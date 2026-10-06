@@ -1,10 +1,7 @@
 'use client'
 
 import type { MatureSkillEffectDefinition } from '@aurevane/game-core/combat/mature-skills'
-import {
-  useSkillEffectTimingPolicy,
-  useSkillCopyPolicyVersion,
-} from './skill-effect-timing-context'
+import { useSkillEffectTimingPolicy } from './skill-effect-timing-context'
 
 import {
   compactSkillEffectSummaryParts,
@@ -14,8 +11,7 @@ import styles from './compact-skill-effect-summary.module.css'
 
 export function CompactSkillEffectSummary({ effect }: { effect: MatureSkillEffectDefinition }) {
   const timingPolicy = useSkillEffectTimingPolicy()
-  const copyPolicyVersion = useSkillCopyPolicyVersion()
-  const parts = compactSkillEffectSummaryParts(effect, timingPolicy, copyPolicyVersion)
+  const parts = compactSkillEffectSummaryParts(effect, timingPolicy)
   return <CompactEffectSummary parts={parts} />
 }
 

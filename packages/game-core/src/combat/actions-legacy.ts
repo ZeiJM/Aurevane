@@ -1,3 +1,4 @@
+import { assertCurrentCombatStatusId, isRetiredCombatStatusId } from './retired-combat-statuses'
 import { terrainAdjustedDefense } from './combat-stat-balance'
 import { duelBalancedDirectDamage } from './combat-duel-balance'
 import type {
@@ -9,7 +10,6 @@ import { combatStatusApplications } from './combat-status-applications'
 import { applyCommittedReflect } from './combat-reflect'
 import { filterBlockedCovertApplication } from './covert-sensory-revealed'
 import { validateSummonProfileDefinition } from './summon-content'
-import type { CombatSkillCopiedEvent } from './combat-skill-copy'
 import {
   spawnCombatSummon,
   type SpawnCombatSummonInput,
@@ -81,12 +81,7 @@ import {
   validateCurrentBurnEffect,
   validateCurrentPoisonEffect,
 } from './combat-dots'
-import {
-  normalizeCombatEffectState,
-  validateCombatTemporarySkillState,
-  type CombatEffectState,
-  type CombatTemporarySkillGrant,
-} from './combat-effect-state'
+import { normalizeCombatEffectState, type CombatEffectState } from './combat-effect-state'
 import {
   validateCombatEffectInstanceProvenance,
   createCombatActionProvenance,
@@ -191,14 +186,8 @@ export interface FacingDamageModifiers {
   rear: number
 }
 
-export interface CombatSkillCopyEffect {
-  type: 'copy'
-  recipient: 'primary-unit'
-}
-
 export type CombatEffectDefinition =
   | CombatStatusCopyEffect
-  | CombatSkillCopyEffect
   | {
       type: 'damage'
       recipient: CombatEffectRecipient
@@ -290,8 +279,6 @@ export interface CombatStatusDefinition {
   gameplayTags?: readonly GameplayTag[]
   endOfTurn?: { type: 'damage' | 'healing'; amount: number }
   movement?: { blocked?: boolean; additionalApPerTile?: number }
-  /** Consumed at the next round boundary; never adds or skips turns. */
-  nextRoundInitiative?: number
 }
 
 export interface CombatContentCatalog {
@@ -353,7 +340,6 @@ export interface PendingCombatEffect {
   copyProvenance?: CombatActionProvenance
   sourceCommandVisibility?: CombatSourceCommandVisibility
   copySource?: {
-    beneficialPersistentEffects?: true
     combatantId: string
     statuses: readonly CombatStatusInstance[]
     effectState: CombatEffectState
@@ -379,13 +365,6 @@ export interface CombatEncounterState {
   statBalancePolicyVersion?: 1
   /** New encounters accumulate repeated effects; omitted historical snapshots retain their rules. */
   effectStackingPolicyVersion?: 1
-  /** Version 1 copies beneficial active tags; omitted historical battles grant a temporary Skill. */
-  copyPolicyVersion?: 1
-  pendingSkillGrants?: readonly {
-    grant: CombatTemporarySkillGrant
-    activationRound: number
-    sourceCommandVisibility?: CombatSourceCommandVisibility
-  }[]
   pendingSummons?: readonly {
     input: SpawnCombatSummonInput
     activationRound: number
@@ -495,7 +474,6 @@ export type CombatResolutionEvent = (
     }
   | CombatSkillAccuracyResolvedEvent
   | CombatCriticalResolvedEvent
-  | CombatSkillCopiedEvent
   | CombatSummonEvent
   | TacticalBattleEvent
   | CombatTerrainEvent
@@ -880,16 +858,10 @@ export function evaluateCombatAction(
   if (issues.length === 0 && copyEffect?.type === 'copy-statuses' && target.combatantId) {
     if (
       target.combatantId === actorId ||
-      (copyEffect.beneficialEffects === true && state.copyPolicyVersion !== 1) ||
       (() => {
         const plan = planCombatStatusCopies(state, actorId, target.combatantId, copyEffect, content)
         const empty =
-          plan.copies.length === 0 &&
-          !plan.poison &&
-          !plan.burn &&
-          plan.bleed.length === 0 &&
-          plan.barriers.length === 0 &&
-          plan.recovery.length === 0
+          plan.copies.length === 0 && !plan.poison && !plan.burn && plan.bleed.length === 0
         return empty && copyEffect.allowNoEligibleEffects !== true
       })()
     ) {
@@ -1121,22 +1093,13 @@ export function defeatCombatActionActor(
   actorId: string,
   content: CombatContentCatalog,
 ): CombatResolutionTransition {
-  let defeated = defeatCurrentCombatant(
-    battleForEffectStacking(state),
-    actorId,
-    collectNextRoundInitiativeModifiers(state, content),
-  )
+  let defeated = defeatCurrentCombatant(battleForEffectStacking(state), actorId, [])
   const summonBoundary = preparePendingSummonsForRound(state, defeated.state.round)
   if (summonBoundary.state !== state)
-    defeated = defeatCurrentCombatant(
-      battleForEffectStacking(summonBoundary.state),
-      actorId,
-      collectNextRoundInitiativeModifiers(summonBoundary.state, content),
-    )
+    defeated = defeatCurrentCombatant(battleForEffectStacking(summonBoundary.state), actorId, [])
   const boundary = applyCombatRoundBoundary(
     withBattle(summonBoundary.state, defeated.state),
     state.tactical.battle.round,
-    content,
   )
   const successorId = boundary.state.tactical.battle.currentTurn?.combatantId
   const successor = successorId
@@ -1154,49 +1117,9 @@ function battleForEffectStacking(state: CombatEncounterState): BattleState {
     : state.tactical.battle
 }
 
-function collectNextRoundInitiativeModifiers(
-  state: CombatEncounterState,
-  content: CombatContentCatalog,
-): NonNullable<BattleState['roundInitiativeModifiers']> {
-  return state.statusState.flatMap((row) => {
-    const unlimited = state.effectStackingPolicyVersion === 1
-    let total = 0n
-    for (const status of row.statuses)
-      total +=
-        BigInt(
-          getStatusDefinition(content, status.statusId, status.statusVersion).nextRoundInitiative ??
-            0,
-        ) * BigInt(unlimited ? status.stacks : 1)
-    for (const pending of state.pendingEffects ?? []) {
-      if (
-        pending.activationRound !== state.tactical.battle.round + 1 ||
-        !pending.recipientIds.includes(row.combatantId) ||
-        pending.effect.type !== 'apply-status'
-      )
-        continue
-      total +=
-        BigInt(
-          pending.content.statuses.find(
-            (definition) => definition.id === (pending.effect as { statusId: string }).statusId,
-          )?.nextRoundInitiative ?? 0,
-        ) * BigInt(unlimited ? pending.effect.stacks : 1)
-    }
-    if (
-      unlimited &&
-      (total > BigInt(Number.MAX_SAFE_INTEGER) || total < -BigInt(Number.MAX_SAFE_INTEGER))
-    )
-      throw new RangeError('Initiative effect total exceeds the safe integer range.')
-    const amount = unlimited
-      ? Number(total)
-      : Number(total > 40n ? 40n : total < -40n ? -40n : total)
-    return amount === 0 ? [] : [{ combatantId: row.combatantId, amount }]
-  })
-}
-
 function applyCombatRoundBoundary(
   state: CombatEncounterState,
   previousRound: number,
-  content: CombatContentCatalog,
 ): CombatResolutionTransition {
   if (state.tactical.battle.round === previousRound) return { state, events: [] }
   let nextState = state
@@ -1204,62 +1127,6 @@ function applyCombatRoundBoundary(
   const expiredTerrain = expireTerrainOverlays(nextState)
   nextState = expiredTerrain.state
   events.push(...expiredTerrain.events)
-  // Consume scheduled tempo once. The committed order remains frozen for the full round.
-  for (const row of nextState.statusState) {
-    const consumed = row.statuses.filter(
-      (status) =>
-        getStatusDefinition(content, status.statusId, status.statusVersion).nextRoundInitiative !==
-        undefined,
-    )
-    nextState = removeStatuses(
-      nextState,
-      row.combatantId,
-      consumed.map((status) => status.statusId),
-    )
-    events.push(
-      ...consumed.map((status) => ({
-        event: 'status_expired' as const,
-        combatantId: row.combatantId,
-        statusId: status.statusId,
-      })),
-    )
-  }
-  if (nextState.pendingSkillGrants?.length) {
-    const readyGrants = nextState.pendingSkillGrants.filter(
-      (row) => row.activationRound <= nextState.tactical.battle.round,
-    )
-    nextState = {
-      ...nextState,
-      pendingSkillGrants: nextState.pendingSkillGrants.filter(
-        (row) => row.activationRound > nextState.tactical.battle.round,
-      ),
-    }
-    const normalizedEffects = normalizeCombatEffectState(nextState.effectState)
-    const effectState = {
-      ...normalizedEffects,
-      temporarySkills: [...normalizedEffects.temporarySkills],
-    }
-    for (const pending of readyGrants) {
-      if (getCombatant(nextState.tactical.battle, pending.grant.combatantId).hp <= 0) continue
-      if (
-        !effectState.temporarySkills.some(
-          (grant) =>
-            grant.combatantId === pending.grant.combatantId &&
-            grant.skillId === pending.grant.skillId &&
-            grant.contentVersion === pending.grant.contentVersion,
-        )
-      )
-        effectState.temporarySkills.push({ ...pending.grant })
-      events.push({
-        event: 'temporary_skill_copied',
-        ...pending.grant,
-        ...(pending.sourceCommandVisibility
-          ? { sourceCommandVisibility: pending.sourceCommandVisibility }
-          : {}),
-      })
-    }
-    nextState = { ...nextState, effectState }
-  }
   const ready = (nextState.pendingEffects ?? []).filter(
     (effect) => effect.activationRound <= nextState.tactical.battle.round,
   )
@@ -1307,11 +1174,7 @@ function applyCombatRoundBoundary(
     }
     const policy = nextState.effectTimingPolicy
     const sourceBefore = pending.copySource
-      ? captureStatusCopySource(
-          nextState,
-          pending.copySource.combatantId,
-          pending.copySource.beneficialPersistentEffects === true,
-        )
+      ? captureStatusCopySource(nextState, pending.copySource.combatantId)
       : null
     const resolutionState = pending.copySource
       ? withStatusCopySource(nextState, pending.copySource)
@@ -1380,21 +1243,6 @@ function applyCombatRoundBoundary(
           : {}),
       })),
     )
-    if (
-      pending.effect.type === 'apply-status' &&
-      pending.content.statuses.find(
-        (definition) => definition.id === (pending.effect as { statusId: string }).statusId,
-      )?.nextRoundInitiative !== undefined
-    ) {
-      for (const recipientId of pending.recipientIds) {
-        nextState = removeStatuses(nextState, recipientId, [pending.effect.statusId])
-        events.push({
-          event: 'status_expired',
-          combatantId: recipientId,
-          statusId: pending.effect.statusId,
-        })
-      }
-    }
   }
   return { state: nextState, events }
 }
@@ -1412,7 +1260,6 @@ export function endCombatTurn(
     throw new Error('End Turn requires an active battle.')
   }
 
-  const roundModifiers = collectNextRoundInitiativeModifiers(state, content)
   const outgoingId = state.tactical.battle.currentTurn!.combatantId
   const outgoing = getCombatant(state.tactical.battle, outgoingId)
   // Predict the existing deterministic ticks for selection only. They are committed below.
@@ -1440,14 +1287,14 @@ export function endCombatTurn(
   )
   let ended = endTurn(
     battleForEffectStacking(state),
-    roundModifiers,
+    [],
     outgoingDefeatedAtTurnEnd || outgoingHpAfterTicks === 0,
   )
   const summonBoundary = preparePendingSummonsForRound(state, ended.state.round)
   if (summonBoundary.state !== state)
     ended = endTurn(
       battleForEffectStacking(summonBoundary.state),
-      roundModifiers,
+      [],
       outgoingDefeatedAtTurnEnd || outgoingHpAfterTicks === 0,
     )
   let nextState = withBattle(summonBoundary.state, ended.state)
@@ -1466,7 +1313,7 @@ export function endCombatTurn(
   const ownerExpiry = expireOwnerTurnEndStatuses(nextState, outgoingId)
   nextState = ownerExpiry.state
   events.push(...ownerExpiry.events)
-  const boundary = applyCombatRoundBoundary(nextState, state.tactical.battle.round, content)
+  const boundary = applyCombatRoundBoundary(nextState, state.tactical.battle.round)
   nextState = boundary.state
   events.push(...boundary.events)
   const completed = completeBattleIfResolved(nextState)
@@ -1540,7 +1387,6 @@ export function validateCombatEncounterState(
     ...validateOngoingRecoveryState(state),
     ...validateBarrierState(state),
     ...validateCombatDotState(state),
-    ...validateCombatTemporarySkillState(state),
   ]
   if (
     state.tactical.battle.effectStackingPolicyVersion === 1 &&
@@ -1581,8 +1427,6 @@ export function validateCombatEncounterState(
         message: 'Invalid pinned Status Resistance.',
       })
   }
-  if (state.copyPolicyVersion !== undefined && state.copyPolicyVersion !== 1)
-    issues.push({ field: 'copyPolicyVersion', message: 'Invalid pinned Copy policy.' })
   if (state.effectStackingPolicyVersion !== undefined && state.effectStackingPolicyVersion !== 1)
     issues.push({
       field: 'effectStackingPolicyVersion',
@@ -1620,12 +1464,6 @@ export function validateCombatEncounterState(
             throw new Error('Invalid pending identity.')
           validateSourceCommandVisibility(state, pending.sourceCommandVisibility, pending.actorId)
           if (
-            pending.effect.type === 'copy-statuses' &&
-            pending.effect.beneficialEffects === true &&
-            state.copyPolicyVersion !== 1
-          )
-            throw new TypeError('Pending beneficial Copy requires its pinned encounter policy.')
-          if (
             pending.criticalRecipientIds !== undefined &&
             (!Array.isArray(pending.criticalRecipientIds) ||
               pending.criticalRecipientIds.some((id: string) => !pending.recipientIds.includes(id)))
@@ -1637,18 +1475,13 @@ export function validateCombatEncounterState(
               !state.tactical.battle.combatants.some(
                 (unit) => unit.id === pending.copySource!.combatantId,
               ) ||
-              !Array.isArray(pending.copySource.statuses) ||
-              (pending.copySource.beneficialPersistentEffects !== undefined &&
-                pending.copySource.beneficialPersistentEffects !== true) ||
-              (pending.copySource.beneficialPersistentEffects === true &&
-                pending.effect.beneficialEffects !== true)
+              !Array.isArray(pending.copySource.statuses)
             )
               throw new TypeError('Invalid pinned copy source.')
             const snapshot = withStatusCopySource(
               {
                 ...state,
                 pendingEffects: undefined,
-                pendingSkillGrants: undefined,
                 pendingSummons: undefined,
               },
               pending.copySource,
@@ -1659,7 +1492,6 @@ export function validateCombatEncounterState(
           if (pending.copyProvenance !== undefined) {
             if (
               pending.effect.type !== 'copy-statuses' ||
-              pending.effect.beneficialEffects !== true ||
               pending.copyProvenance.sourceCombatantId !== pending.actorId ||
               pending.copyProvenance.actionDefinitionId !== pending.actionId
             )
@@ -1752,41 +1584,6 @@ export function validateCombatEncounterState(
         }
       }
   }
-  if (state.pendingSkillGrants !== undefined) {
-    if (!Array.isArray(state.pendingSkillGrants) || !state.effectTimingPolicy)
-      issues.push({
-        field: 'pendingSkillGrants',
-        message: 'Queued Skill grants require an array and pinned policy.',
-      })
-    else {
-      for (const pending of state.pendingSkillGrants) {
-        try {
-          validateSourceCommandVisibility(
-            state,
-            pending.sourceCommandVisibility,
-            pending.grant.combatantId,
-          )
-        } catch {
-          issues.push({ field: 'pendingSkillGrants', message: 'Invalid pinned grant visibility.' })
-        }
-      }
-      for (const pending of state.pendingSkillGrants)
-        if (!Number.isSafeInteger(pending.activationRound) || pending.activationRound < 1)
-          issues.push({
-            field: 'pendingSkillGrants',
-            message: 'Queued Skill activation round must be positive.',
-          })
-      issues.push(
-        ...validateCombatTemporarySkillState({
-          ...state,
-          effectState: {
-            ...normalizeCombatEffectState(state.effectState),
-            temporarySkills: state.pendingSkillGrants.map((row) => row.grant),
-          },
-        }),
-      )
-    }
-  }
   collectPersistentProvenanceIssues(state, issues)
 
   if (state.schemaVersion !== COMBAT_ENCOUNTER_SCHEMA_VERSION) {
@@ -1847,6 +1644,11 @@ export function validateCombatEncounterState(
     for (const [statusIndex, status] of row.statuses.entries()) {
       const statusPrefix = `${prefix}.statuses.${statusIndex}`
       collectIdentityIssue(issues, status.statusId, `${statusPrefix}.statusId`)
+      if (isRetiredCombatStatusId(status.statusId))
+        issues.push({
+          field: `${statusPrefix}.statusId`,
+          message: 'Retired combat status is unsupported.',
+        })
       collectIdentityIssue(issues, status.sourceCombatantId, `${statusPrefix}.sourceCombatantId`)
       collectPositiveIntegerIssue(issues, status.statusVersion, `${statusPrefix}.statusVersion`)
       collectPositiveIntegerIssue(issues, status.stacks, `${statusPrefix}.stacks`)
@@ -2251,9 +2053,6 @@ function resolveActionEffects(
       if (effect.type === 'sensory') {
         throw new TypeError('Sensory must be materialized before legacy effect resolution.')
       }
-      if (effect.type === 'copy') {
-        throw new TypeError('Copy must be materialized before legacy effect resolution.')
-      }
       if (
         !resolvingPending &&
         combatEffectTimingMode(
@@ -2298,7 +2097,6 @@ function resolveActionEffects(
                     copySource: captureStatusCopySource(
                       nextState,
                       effect.mode === 'amplify' ? recipientIds[0]! : actorId,
-                      effect.beneficialEffects === true,
                     ),
                   }
                 : {}),
@@ -2361,10 +2159,7 @@ function resolveActionEffects(
             actionId: action.id,
             sourceCombatantId: actorId,
             targetCombatantId,
-            effectTag:
-              effect.type === 'copy-statuses' && effect.beneficialEffects === true
-                ? 'beneficial-copy'
-                : combatEffectTimingTag(effect),
+            effectTag: combatEffectTimingTag(effect),
             activationRound: state.tactical.battle.round + 1,
             ...(timing?.remainingOwnerTurnEnds === undefined
               ? {}
@@ -2428,7 +2223,6 @@ function resolveActionEffects(
             action.id,
             effect,
             content,
-            resolvingPending,
           )
           nextState = copied.state
           events.push(...copied.events)
@@ -2624,10 +2418,7 @@ function applyEffect(
   actorId: string,
   recipientId: string,
   actionId: string,
-  effect: Exclude<
-    CombatEffectDefinition,
-    { type: 'create-terrain' | 'copy-statuses' | 'copy' | 'sensory' }
-  >,
+  effect: Exclude<CombatEffectDefinition, { type: 'create-terrain' | 'copy-statuses' | 'sensory' }>,
   content: CombatContentCatalog,
   stormRecipients: Set<string>,
   critical: boolean,
@@ -3120,11 +2911,7 @@ function expireOwnerTurnStartStatuses(
 
   for (const status of row.statuses) {
     const definition = getStatusDefinition(content, status.statusId, status.statusVersion)
-    if (
-      status.remainingOwnerTurnEnds !== undefined ||
-      definition.endOfTurn ||
-      definition.nextRoundInitiative !== undefined
-    ) {
+    if (status.remainingOwnerTurnEnds !== undefined || definition.endOfTurn) {
       kept.push(status)
       continue
     }
@@ -3610,8 +3397,10 @@ function validateCombatActionDefinition(
       ],
       'requirement kind',
     )
-    if ('statusId' in requirement)
+    if ('statusId' in requirement) {
       collectRequiredIdentity(requirement.statusId, 'requirement status ID')
+      assertCurrentCombatStatusId(requirement.statusId)
+    }
     if (requirement.kind === 'actor-hp-at-most') {
       assertBasisPoints(requirement.basisPoints, 'actor HP threshold')
     }
@@ -3636,17 +3425,10 @@ function validateCombatActionDefinition(
         'burn',
         'barrier-change',
         'copy-statuses',
-        'copy',
       ],
       'effect type',
     )
     if (effect.type === 'create-terrain') {
-      continue
-    }
-    if (effect.type === 'copy') {
-      if (effect.recipient !== 'primary-unit') {
-        throw new TypeError('Copy requires the selected primary unit.')
-      }
       continue
     }
     if (effect.type === 'displace') {
@@ -3687,6 +3469,7 @@ function validateCombatActionDefinition(
         throw new TypeError('Status removal requires one to sixteen distinct IDs.')
       for (const id of effect.statusIds) {
         collectRequiredIdentity(id, 'removed status ID')
+        assertCurrentCombatStatusId(id)
         if (content) getStatusDefinitionById(content, id)
       }
     }
@@ -3697,6 +3480,7 @@ function validateCombatActionDefinition(
       throw new TypeError('Rewind is a self-only effect.')
     if (effect.type === 'apply-status') {
       collectRequiredIdentity(effect.statusId, 'effect status ID')
+      assertCurrentCombatStatusId(effect.statusId)
       assertPositiveSafeInteger(effect.stacks, 'effect status stacks')
       if (content) getStatusDefinitionById(content, effect.statusId)
     }
@@ -3728,6 +3512,7 @@ function validateCombatContentCatalog(content: CombatContentCatalog): void {
   for (const status of content.statuses) {
     validateCombatAccuracyStatusDefinition(status)
     collectRequiredIdentity(status.id, 'status id')
+    assertCurrentCombatStatusId(status.id)
     assertPositiveSafeInteger(status.version, 'status version')
     assertPositiveSafeInteger(status.maximumStacks, 'status maximum stacks')
     assertPositiveSafeInteger(status.durationOwnerTurnStarts, 'status duration')
@@ -3744,17 +3529,6 @@ function validateCombatContentCatalog(content: CombatContentCatalog): void {
     }
     if (status.damageModifiers?.length && status.maximumStacks !== 1)
       throw new TypeError('Conditional damage statuses must be single-stack.')
-    if (
-      status.nextRoundInitiative !== undefined &&
-      (!Number.isSafeInteger(status.nextRoundInitiative) ||
-        Math.abs(status.nextRoundInitiative) > 40 ||
-        status.nextRoundInitiative === 0 ||
-        status.maximumStacks !== 1 ||
-        status.endOfTurn)
-    )
-      throw new RangeError(
-        'Round initiative status must be single-stack, non-periodic and bounded to +/-40.',
-      )
     if (status.endOfTurn) {
       assertKnownString(status.endOfTurn.type, ['damage', 'healing'], 'periodic effect')
       assertPositiveSafeInteger(status.endOfTurn.amount, 'periodic amount')
@@ -4450,29 +4224,19 @@ function preparePendingSummonsForRound(
 function captureStatusCopySource(
   state: CombatEncounterState,
   combatantId: string,
-  beneficialPersistentEffects = false,
 ): NonNullable<PendingCombatEffect['copySource']> {
   const effects = normalizeCombatEffectState(state.effectState)
   return JSON.parse(
     JSON.stringify({
       combatantId,
-      ...(beneficialPersistentEffects ? { beneficialPersistentEffects: true } : {}),
       statuses: getStatusRow(state, combatantId).statuses,
       effectState: {
         ...effects,
         poison: effects.poison.filter((row) => row.targetCombatantId === combatantId),
         burn: effects.burn.filter((row) => row.targetCombatantId === combatantId),
         bleed: effects.bleed.filter((row) => row.targetCombatantId === combatantId),
-        ...(beneficialPersistentEffects
-          ? {
-              barriers: (effects.barriers ?? []).filter(
-                (row) => row.targetCombatantId === combatantId,
-              ),
-              ongoingRecovery: effects.ongoingRecovery.filter(
-                (row) => row.targetCombatantId === combatantId,
-              ),
-            }
-          : {}),
+        ongoingRecovery: [],
+        ...(effects.barriers ? { barriers: [] } : {}),
       },
     }),
   ) as NonNullable<PendingCombatEffect['copySource']>
@@ -4489,22 +4253,6 @@ function withStatusCopySource(
     ),
     effectState: {
       ...effects,
-      ...(source.beneficialPersistentEffects === true
-        ? {
-            barriers: [
-              ...(effects.barriers ?? []).filter(
-                (row) => row.targetCombatantId !== source.combatantId,
-              ),
-              ...(source.effectState.barriers ?? []),
-            ],
-            ongoingRecovery: [
-              ...effects.ongoingRecovery.filter(
-                (row) => row.targetCombatantId !== source.combatantId,
-              ),
-              ...source.effectState.ongoingRecovery,
-            ],
-          }
-        : {}),
       poison: [
         ...effects.poison.filter((row) => row.targetCombatantId !== source.combatantId),
         ...source.effectState.poison,

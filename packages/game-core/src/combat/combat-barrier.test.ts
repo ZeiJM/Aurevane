@@ -14,14 +14,13 @@ import {
   grantBarrier,
   validateBarrierState,
 } from './combat-barrier'
-import { applyCombatStatusCopies, attachCombatStatusCopyProvenance } from './combat-status-copy'
+import { applyCombatStatusCopies } from './combat-status-copy'
 import { validateCombatActionDefinition } from './combat-authoring-validation'
 import { createPendingBattle, startBattle } from './battle-state'
 import { createTacticalBattleState } from './board'
 import { combatActionPresentationTags } from './gameplay-tags'
 import {
   createCombatActionProvenance,
-  createCombatEffectInstanceProvenance,
   createCombatTriggerGuard,
   type CombatEffectInstanceProvenance,
 } from './combat-kernel-types'
@@ -205,7 +204,6 @@ describe('P4.K4 direct Barrier primitive', () => {
         poison: [],
         bleed: [],
         burn: [],
-        temporarySkills: [],
         damageHistory: [],
       },
     }
@@ -324,7 +322,7 @@ describe('unlimited independent Barrier applications', () => {
     expect(absorbed.after).toBe(0)
   })
 
-  it('copies full donor pools beyond recipient maximum HP while keeping existing recipient lineage', () => {
+  it('does not clone Barrier pools through Copy Buffs or the retired beneficial-effects flag', () => {
     let state = { ...encounter(), effectStackingPolicyVersion: 1 as const }
     state = {
       ...grantBarrier(state, 'actor', 'actor', BARRIER_ACTION_ID, 150).state,
@@ -334,51 +332,19 @@ describe('unlimited independent Barrier applications', () => {
       ...grantBarrier(state, 'actor', 'recruit', BARRIER_ACTION_ID, 140).state,
       effectStackingPolicyVersion: 1,
     }
-    state = {
-      ...grantBarrier(state, 'actor', 'recruit', BARRIER_ACTION_ID, 160).state,
-      effectStackingPolicyVersion: 1,
-    }
-    const context = barrierContext('copy-barriers')
-    state.effectState!.barriers = state.effectState!.barriers!.map((row, index) => ({
-      ...row,
-      provenance: createCombatEffectInstanceProvenance({
-        action: barrierContext(`origin:${index}`).provenance,
-        targetCombatantId: row.targetCombatantId,
-        effectOrdinal: 0,
-        createdRound: 1,
-        createdTurn: 1,
-      }),
-    }))
-    const old = state.effectState!.barriers!.find((row) => row.targetCombatantId === 'actor')!
-    const donors = state.effectState!.barriers!.filter((row) => row.targetCombatantId === 'recruit')
+    const before = JSON.stringify(state)
     const effect = {
       type: 'copy-statuses' as const,
       recipient: 'primary-unit' as const,
       mode: 'amplify' as const,
       beneficialEffects: true,
     }
-    const copied = applyCombatStatusCopies(state, 'actor', 'recruit', 'copy', effect, CONTENT).state
-    const attributed = attachCombatStatusCopyProvenance(
-      state,
-      copied,
-      'actor',
-      'recruit',
-      effect,
-      CONTENT,
-      context,
-    )
-    const recipientPools = attributed.effectState!.barriers!.filter(
-      (row) => row.targetCombatantId === 'actor',
-    )
-    expect(currentBarrierAmount(attributed, 'actor')).toBe(450)
-    expect(recipientPools[0]).toEqual(old)
-    expect(recipientPools.slice(1).map((row) => row.provenance?.copiedFromInstanceId)).toEqual(
-      donors.map((row) => row.provenance!.instanceId),
-    )
-    expect(new Set(recipientPools.map((row) => row.provenance?.instanceId)).size).toBe(3)
-    expect(
-      attributed.effectState!.barriers!.filter((row) => row.targetCombatantId === 'recruit'),
-    ).toEqual(donors)
+    expect(() =>
+      applyCombatStatusCopies(state, 'actor', 'recruit', 'copy', effect, CONTENT),
+    ).toThrow('Retired beneficial-effects Copy')
+    expect(JSON.stringify(state)).toBe(before)
+    expect(currentBarrierAmount(state, 'actor')).toBe(150)
+    expect(currentBarrierAmount(state, 'recruit')).toBe(140)
   })
 
   it('fails closed on unsafe totals and malformed or duplicate pool identities', () => {

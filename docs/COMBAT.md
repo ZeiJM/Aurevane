@@ -1,5 +1,16 @@
 # AUREVANE Combat Design Bible
 
+## Battle effect vocabulary and legacy cleanup — Owner-approved 2026-10-05
+
+Current player-facing effect tags use compact bracketed authored values. `Dmg [x]`, `Water Dmg [x]`, `Storm Dmg [x]`, `Fire Dmg [x]`, `Heal [x]`, `MP Restore [x]` and `MP Drain [x]` display the authored Skill value; current authored effect strength is on the 1–20 scale where applicable, before stat/level/defense/critical modifiers. `Push [x]` and `Pull [x]` use tile distance. Area shapes display `Circle [x]` and `Line [x]`.
+
+Current presentation names are **Rewind**, **Reveal**, **HP Leech**, **MP Leech**, **Copy Buffs**, **Copy Debuffs**, **Vulnerable**, **Defenseless**, **Chilled**, **Damage Up**, **Healing Down**, **Invisible**, **Burn**, **Bleed**, **Poison**, **Rooted**, **Taunted**, **Burn Ward** and **Frozen Ground**. Unlisted combat terms retain their existing names.
+
+Generic Skill **Copy** and **Copy beneficial effects** are removed from current combat, including temporary copied-Skill grants, Copy policy state, dedicated execution/preview/AI authority and generic beneficial-copy compatibility. The surviving copy mechanics are **Copy Buffs** (internal Amplify) and **Copy Debuffs** (internal Curse), which retain their explicit eligible-status/typed-effect rules and K3 lineage.
+
+The obsolete **Regeneration**, **Hastened**, **Delayed**, **Borrowed Hour status**, historical **Summoned protection status**, and historical **Marked damage-vulnerability status** are removed from current engine/content compatibility. Current Skills author healing/Haste/Slow/current Mark directly. The **Borrowed Hour** Skill name remains valid, and the modern Summon mechanic still creates real allied summon combatants. This Owner decision supersedes earlier generic-Copy and legacy-status compatibility language below wherever it conflicts.
+
+
 ## Resource pools, twelve-round duel benchmark and Items placeholder — Owner-approved 2026-10-05
 
 Current derived ruleset5 preserves all non-resource V4 curves and mathematical bases80HP/16MP. Maximum HP is500 at Vitality40 and650 at60; Maximum MP is400 at Intellect40 and500 at60. Through40 the HP/MP slopes are10.5/9.6 per Core; above40 they are7.5/5. Integer numerators round down once. Effective Primary Core bases and focus60/non-focus40 caps remain. Explicit rulesets1–4 and saved encounters retain their recorded values.
@@ -44,7 +55,7 @@ Parameter readers show `Attack [Physical]` in red or `Attack [Mystic]` in green.
 
 New PvE and PvP encounters pin `effectStackingPolicyVersion: 1`. All effect applications accumulate without authored stack-count caps or a shared aggregate modifier ceiling. This supersedes older cap/replacement wording below for encounters with this policy. Snapshots without it retain recorded historical resolution; do not retrofit ongoing historical battles or rewrite immutable authored content.
 
-Ordinary named statuses retain every application's source and magnitude in grouped modifiers, while keeping their existing shared refresh/expiry contract. Each Poison, Bleed, Burn, Barrier pool and ongoing recovery schedule remains independent, preserving its own power, counters, remaining lifetime and K3 lineage. Copy adds all eligible beneficial donor applications without clipping them to a stack limit or a maximum-HP shield pool; the donor remains unchanged and remaining lifetimes are not restarted. Absorb and Reflect aggregate every qualifying application's rate, including totals above 100%. Each active Burn contributes its attack backlash. Wet/Conductive, Inspired, Hexed, accuracy, movement and next-round initiative consumers apply the recorded count and per-application magnitude. Distinct initiative totals sort with exact integer comparisons. Per-application authoring constraints, real HP/MP resource maxima, minimum movement AP, round/lifetime rules, safe integer validation and reaction-chain safety remain authoritative. Neutral modifiers do not iterate over the stack count; unsupported exact arithmetic fails closed rather than stalling a command.
+Ordinary named statuses retain every application's source and magnitude in grouped modifiers, while keeping their existing shared refresh/expiry contract. Each Poison, Bleed, Burn, Barrier pool and ongoing recovery schedule remains independent, preserving its own power, counters, remaining lifetime and K3 lineage. Copy Buffs/Copy Debuffs preserve each eligible cloned application under their authored eligibility and lineage rules; donors remain unchanged. Absorb and Reflect aggregate every qualifying application's rate, including totals above 100%. Each active Burn contributes its attack backlash. Wet/Conductive, Damage Up, Healing Down, accuracy and movement consumers apply the recorded count and per-application magnitude. Per-application authoring constraints, real HP/MP resource maxima, minimum movement AP, round/lifetime rules, safe integer validation and reaction-chain safety remain authoritative. Neutral modifiers do not iterate over the stack count; unsupported exact arithmetic fails closed rather than stalling a command.
 
 Only authoritative `hp === 0` frees an occupied tile. Living, unknown or malformed combatants still block movement, displacement and spawning. A corpse-only tile retains its icon without facing; a living co-occupant owns the visible token and facing. Shared playable and spectator maps follow the same rule.
 
@@ -86,9 +97,7 @@ The shared battle forecast now presents the authoritative `copy-statuses` projec
 
 A composed command whose clone block explicitly permits an empty eligible donor produces no clone forecast for that block while retaining independently meaningful later outcomes. Malformed or unsupported copy projection strings fail closed instead of exposing machine projection text. Existing blocked-target and hit-chance behavior is preserved; the presentation does not mutate preview state, consume RNG or replace server legality/commit authority.
 
-Owner-approved 2026-10-03: current `Copy` transfers the selected unit's active beneficial effect tags onto the user. New PvE and PvP battles pin `copyPolicyVersion: 1`; authored `type: 'copy'` effects reuse the shared status-copy engine under that policy without rewriting immutable Skill definitions. Eligibility includes positive named ordinary, periodic and reactive statuses, including Covert, beyond the historical Amplify opt-in list, plus active Barrier pools and ongoing HP/MP recovery schedules. Negative, neutral mixed-benefit/tradeoff, system/self-cost and pending states are excluded. Copy does not clone actors, current HP/MP/AP, terrain or temporary Skills, or replay already-consumed instant gains. Donors retain their effects; copied stacks respect caps and copied remaining duration is not restarted. Positive per-application potency is retained. Barrier transfers respect the recipient's maximum-HP cap and retain existing lineage when the cap prevents any transfer. Recovery preserves the donor's per-tick amount and remaining future ticks under the existing recipient/resource/action replacement rule; Copy grants no immediate recovery tick. An Instant copied schedule skips the recipient's current partial turn, while delayed activation is available through complete affected turns. Delayed Copy captures eligible donor status, Barrier and recovery state at cast time and attaches copied/inherited K3 lineage only when those effects actually activate. Covert still obeys viewer-relative privacy for forecasts, live positive status/pool/schedule rows and Chronicle receipts; an opposing concealed donor produces only a generic Copy forecast. Empty eligible donors and self-copy are illegal before costs are spent; hostile misses spend normal costs without copying.
-
-Current Copy retains its independent `copy` timing override: effects default to the next global round and an Owner-pinned Instant override resolves immediately. Pending icons and Chronicle outcomes say **Copy beneficial effects**. Historical snapshots without `copyPolicyVersion` preserve the former battle-long deterministic-random eligible regular Skill grant at half AP cost, including recorded grants, pinned Skill mechanics and scheduling. Historical Amplify/Curse keep their separate explicit copy-permission contracts. This change requires no content identity/version rewrite, schema migration or live-content mutation.
+Historical note: the 2026-10-03 generic Copy policy and temporary-Skill Copy compatibility described in earlier revisions are superseded by the 2026-10-05 removal above. Do not restore generic Copy from historical snapshots or documentation.
 
 Historical pre-v5 ruling on 2026-09-18 classified `copy-statuses` clone transfer as a **discrete** consecutive-use effect. That behavior remains relevant only to battles pinned to those historical Skill/rules versions. Current combat-v5 authored Skills use cooldown/Requirement authority instead of consecutive-use falloff. Mature Skill publication no longer applies the former `effects.status-copy-staged` guard; canonical combat-action validation, typed copy policy, target legality, preview and server commit remain authoritative.
 
@@ -705,8 +714,7 @@ instance. Missing historical lineage remains absent. Distinct copies reuse the m
 
 This original Amplify/Curse slice enumerates ordinary status rows only. Typed Poison/Burn/Bleed
 counters, ongoing recovery, Barrier pools, terrain, resources, build state and temporary Skills
-are not copied by this original slice. Current version-1 Copy separately includes active Barrier
-and ongoing HP/MP recovery through the same engine, as specified above. Mixed
+are not copied by this original slice. Mixed
 operation packages, area copies and the old Basic Attack path are rejected rather than partially
 executed. The mature-Skill boundary blocks this staged operation from publication/repeat adapters
 with `effects.status-copy-staged` until the remaining mechanics, repeat-use, player forecasts and
@@ -842,15 +850,10 @@ Sensory is presented as a conditional authored rule.
 
 The `copy-statuses` operation is a supported typed Amplify/Curse authoring block. Master Panel
 validation still routes the resulting PvE/PvP definitions through canonical combat-action validation,
-so invalid self/area/non-first/multi-copy configurations fail closed. Current ordinary copy policy is
-explicit rather than inferred from names: Guard/Haste/Inspire/Invisible are Amplify-copyable, while
-Expose/Hex/Slow/Root/current Mark are Curse-copyable; historical `marked`, mixed and system states remain excluded unless a
-versioned definition explicitly opts in. The former `effects.status-copy-staged` publication guard
+so invalid self/area/non-first/multi-copy configurations fail closed. Current status-copy policy is explicit rather than inferred from names: Guard/Haste/Damage Up/Invisible are Copy Buffs-eligible, while Vulnerable/Healing Down/Slow/Rooted/current Mark are Copy Debuffs-eligible; mixed and system states remain excluded unless a versioned definition explicitly opts in. The former `effects.status-copy-staged` publication guard
 has been retired after the discrete repeat-use ruling.
 
-This remains distinct from random temporary-Skill **Copy**, whose encounter-state, deterministic RNG,
-half-AP command grant, UI, AI, privacy and persistence behavior are implemented through its separate
-typed effect and synthetic pinned command identity.
+Generic temporary-Skill Copy is retired; only the Copy Buffs/Copy Debuffs status-copy path remains current.
 
 ## Minimum Skill reporting
 

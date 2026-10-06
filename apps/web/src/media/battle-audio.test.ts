@@ -85,7 +85,7 @@ describe('committed battle audio', () => {
     }
   })
 
-  it('uses the original Skill audio family for version-pinned copied commands', () => {
+  it('does not route retired temporary copied-Skill commands to current Skill audio', () => {
     expect(
       selectBattleAudioCues(
         [
@@ -97,7 +97,7 @@ describe('committed battle audio', () => {
         8,
         now,
       ),
-    ).toEqual([{ assetId: 'audio.phase4.ironfist-action-v02-3', priority: 70 }])
+    ).toEqual([])
   })
 
   it('coalesces periodic area consequences and varies subsequent renders', () => {

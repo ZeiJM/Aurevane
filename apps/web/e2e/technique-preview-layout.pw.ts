@@ -46,7 +46,7 @@ test('Technique Preview keeps compact effects aligned and contained', async ({
     await page.setViewportSize(viewport)
 
     // Focus a known short value: initial focus follows the learned-skill order,
-    // which can start with a longer effect such as Brace's Guarded parameters.
+    // which can start with a longer effect such as Brace's Guard parameters.
     await dialog.getByRole('checkbox', { name: 'Select Forceful Strike', exact: true }).hover()
     const effectsRow = preview.locator('dt', { hasText: 'Effects' }).locator('..')
     await expect(effectsRow.locator('ul')).toHaveCount(0)
@@ -59,7 +59,7 @@ test('Technique Preview keeps compact effects aligned and contained', async ({
 
     // Longer authored values may wrap, while retaining every parameter.
     await dialog.getByRole('checkbox', { name: 'Select Brace', exact: true }).hover()
-    await expect(compactEffects.first()).toHaveText(/^Guarded \[[\d.]+%\] \[2 Turns\]$/)
+    await expect(compactEffects.first()).toHaveText(/^Guard \[[\d.]+%\] \[2 Turns\]$/)
     await expectEffectsContained(compactEffects)
     await expectPreviewContained(preview)
     const flavor = preview.locator('small').first()

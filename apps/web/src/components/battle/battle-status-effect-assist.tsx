@@ -56,20 +56,20 @@ function detailsFromTrigger(trigger: HTMLElement): EffectDetails {
     source.includes('lg↓')
   ) {
     return {
-      title: 'Lowered Guard',
+      title: 'Defenseless',
       kind: 'Debuff',
       description:
-        'Defenses are exposed. Each Lowered Guard application multiplies incoming damage by 2.5×. In PvP it is applied after a genuine turn-timer expiry and lasts for the next owner-turn start.',
+        'Defenses are exposed. Each Defenseless application multiplies incoming damage by 2.5×. In PvP it is applied after a genuine turn-timer expiry and lasts for the next owner-turn start.',
       duration,
     }
   }
 
   if (source.includes('guarded')) {
     return {
-      title: 'Guarded',
+      title: 'Guard',
       kind: 'Buff',
       description:
-        'Each Guarded application reduces incoming damage by 15%. Reapplying Guarded adds a stack and refreshes its shared owner-turn duration.',
+        'Each Guard application reduces incoming damage by 15%. Reapplying Guard adds a stack and refreshes its shared owner-turn duration.',
       duration,
     }
   }

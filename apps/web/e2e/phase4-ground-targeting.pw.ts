@@ -182,7 +182,7 @@ async function castOnEmptyGround(
   )!
   await root.getByRole('button', { name: 'About Chilling Mist', exact: true }).click()
   const details = page.getByRole('dialog', { name: 'Chilling Mist', exact: true })
-  for (const label of ['Ground', 'Frozen Terrain', 'Slow', '45 AP'])
+  for (const label of ['Ground', 'Frozen Ground', 'Slow', '45 AP'])
     await expect(details).toContainText(label)
   const fit = await details.evaluate((element) => {
     const rect = element.getBoundingClientRect()
@@ -413,13 +413,13 @@ async function castOnEmptyGround(
   await expect(overlay).toHaveAttribute('data-terrain-overlay', 'frozen')
   await expect(overlay).toHaveAttribute(
     'aria-label',
-    /Frozen terrain; 2 round boundaries remaining/,
+    /Frozen Ground terrain; 2 round boundaries remaining/,
   )
   await root.getByRole('button', { name: 'Inspect, Free', exact: true }).click()
   await overlay.click()
   const instructionHost = root.locator('[data-battle-preview-strip]')
   await expect(instructionHost).toHaveCount(1)
-  await expect(instructionHost).toContainText('Frozen terrain')
+  await expect(instructionHost).toContainText('Frozen Ground terrain')
   await page.reload()
   await expect(overlay).toHaveAttribute('data-terrain-overlay', 'frozen')
   expect((await read()).snapshot.terrainOverlays).toEqual(activated.snapshot.terrainOverlays)
@@ -572,7 +572,9 @@ test('PvP ground Skill uses the same forecast and spectator terrain inspection',
     await spectator.keyboard.press('Enter')
     await expect(tile).toHaveAttribute('aria-pressed', 'true')
     const terrainDetails = spectatorRoot.locator('[data-battle-preview-strip="true"]')
-    await expect(terrainDetails).toContainText('Frozen terrain; 2 round boundaries remaining')
+    await expect(terrainDetails).toContainText(
+      'Frozen Ground terrain; 2 round boundaries remaining',
+    )
     await expect(terrainDetails).toContainText('either team')
     await testInfo.attach(`ground-spectator-${testInfo.project.name}`, {
       body: await spectator.screenshot(),

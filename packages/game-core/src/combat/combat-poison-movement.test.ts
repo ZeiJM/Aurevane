@@ -87,7 +87,6 @@ function encounter(targetHp = 30): CombatEncounterState {
       ],
       bleed: [],
       burn: [],
-      temporarySkills: [],
       damageHistory: [],
     },
   }

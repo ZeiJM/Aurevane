@@ -117,7 +117,7 @@ describe('Combat v5.1 summon content', () => {
     )
   })
 
-  it('keeps historical Renewing Herbs pinned while current v5.1 uses the real summon profile', () => {
+  it('keeps real Summon while removing historical Renewing Herbs protection', () => {
     const currentDefinition = resolveMatureSkillVersion('wildwarden.renewing-herbs')
     if (!currentDefinition) throw new Error('Expected current Renewing Herbs.')
     const historical = resolveMatureSkillVersion(
@@ -138,12 +138,10 @@ describe('Combat v5.1 summon content', () => {
     expect(currentDefinition.summonProfile?.abilities).toHaveLength(2)
 
     expect(historical.summonProfile).toBeUndefined()
-    expect(historical.effects).toContainEqual(
-      expect.objectContaining({
-        type: 'apply-status',
-        statusId: 'summoned',
-      }),
+    expect(historical.effects).not.toContainEqual(
+      expect.objectContaining({ type: 'apply-status', statusId: 'summoned' }),
     )
+    expect(historical.effects).toContainEqual(expect.objectContaining({ type: 'healing' }))
   })
 
   it('requires summon effects and profiles to appear together on empty-ground Skills', () => {

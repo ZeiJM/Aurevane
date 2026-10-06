@@ -531,7 +531,7 @@ export function AiBattleQualityControls({
                 whiteSpace: 'nowrap',
               }}
               aria-live="polite"
-              title="Each player turn lasts 60 seconds. Two consecutive timeouts apply Lowered Guard."
+              title="Each player turn lasts 60 seconds. Expired turn timers apply Defenseless."
             >
               <span
                 style={{

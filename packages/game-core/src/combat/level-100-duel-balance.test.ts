@@ -99,7 +99,6 @@ function directDuel(reference: (typeof references)[number], seed: number): numbe
     {
       ...base,
       effectStackingPolicyVersion: 1,
-      copyPolicyVersion: 1,
       effectTimingPolicy: defaultCombatEffectTimingPolicy(),
     },
     ['a', 'b'].map((id) => createCharacterDerivedCombatProfile(id, id, 100, snapshot)),

@@ -6,7 +6,6 @@ import type { BattleSessionCommitRecord } from '@aurevane/db/battle-session'
 import type { TransactionalCommandResult } from '@aurevane/db/transactional-command'
 import {
   createCombatEncounterState,
-  executeCombatAction,
   type CombatStatusInstance,
 } from '@aurevane/game-core/combat/actions'
 import { PV1F_COMBAT_CONTENT } from '@aurevane/game-core/combat/pv1f-action-economy'
@@ -138,26 +137,6 @@ function encounter(): StatDrivenCombatEncounterState {
     bleed: [],
     burn: [],
     damageHistory: [],
-    temporarySkills: [
-      {
-        combatantId: PLAYER,
-        skillId: 'vanguard.forceful-strike',
-        contentVersion: 2,
-        sourceCombatantId: ENEMY,
-      },
-      {
-        combatantId: ALLY,
-        skillId: 'vanguard.cleave',
-        contentVersion: 1,
-        sourceCombatantId: ENEMY,
-      },
-      {
-        combatantId: ENEMY,
-        skillId: 'vanguard.guard-break',
-        contentVersion: 1,
-        sourceCombatantId: PLAYER,
-      },
-    ],
   }
   return state
 }
@@ -326,123 +305,6 @@ describe('CSR-2 live viewer-relative status projection', () => {
       ).toBe(false)
   })
 
-  it('preserves Covert privacy after a current Copy transfers allied beneficial tags', () => {
-    const before = encounter()
-    before.copyPolicyVersion = 1
-    before.statusState = before.statusState.map((row) =>
-      row.combatantId === PLAYER ? { ...row, statuses: [] } : row,
-    )
-    before.effectState = {
-      ...before.effectState!,
-      barriers: [
-        {
-          targetCombatantId: ALLY,
-          sourceCombatantId: ALLY,
-          sourceActionId: 'secret.barrier',
-          amount: 30,
-        },
-      ],
-      ongoingRecovery: [
-        {
-          kind: 'hp',
-          targetCombatantId: ALLY,
-          sourceCombatantId: ALLY,
-          sourceActionId: 'secret.recovery',
-          amountPerTick: 8,
-          remainingFutureTicks: 2,
-        },
-      ],
-    }
-    const result = executeCombatAction(
-      before,
-      {
-        id: 'test.beneficial-copy',
-        version: 1,
-        sourceType: 'discipline-skill',
-        tags: [],
-        target: {
-          kind: 'unit',
-          teamPolicy: 'any',
-          shape: { kind: 'single' },
-          minimumRange: 0,
-          maximumRange: 10,
-          requiresLineOfSight: false,
-          maximumElevationDifference: null,
-          friendlyFire: 'all-units',
-        },
-        cost: { spendsAction: true, mp: 0 },
-        requirements: [],
-        accuracyMode: 'automatic',
-        effects: [{ type: 'copy', recipient: 'primary-unit' }],
-      },
-      { kind: 'unit', combatantId: ALLY },
-      PV1F_COMBAT_CONTENT,
-    ).state
-    const owner = deriveParticipantBattleViewerEntitlement(result.tactical.battle.combatants, [
-      PLAYER,
-    ])
-    const opposing = deriveParticipantBattleViewerEntitlement(result.tactical.battle.combatants, [
-      ENEMY,
-    ])
-    expect(
-      rowStatuses(
-        {
-          statusState: projectBattleStatusStateForViewer(
-            result as StatDrivenCombatEncounterState,
-            owner,
-          ),
-        },
-        PLAYER,
-      ).map((row) => row.statusId),
-    ).toEqual(expect.arrayContaining(['covert', 'guarded']))
-    expect(
-      rowStatuses(
-        {
-          statusState: projectBattleStatusStateForViewer(
-            result as StatDrivenCombatEncounterState,
-            opposing,
-          ),
-        },
-        PLAYER,
-      ),
-    ).toEqual([])
-    expect(
-      rowStatuses(
-        {
-          statusState: projectBattleStatusStateForViewer(
-            result as StatDrivenCombatEncounterState,
-            createSpectatorBattleViewerEntitlement(),
-          ),
-        },
-        PLAYER,
-      ),
-    ).toEqual([])
-    const selfEffects = projectBattleEffectStateForViewer(
-      result as StatDrivenCombatEncounterState,
-      owner,
-    )
-    expect(selfEffects?.barriers?.find((entry) => entry.targetCombatantId === PLAYER)?.amount).toBe(
-      30,
-    )
-    expect(
-      selfEffects?.ongoingRecovery.find((entry) => entry.targetCombatantId === PLAYER)
-        ?.amountPerTick,
-    ).toBe(8)
-    for (const viewer of [opposing, createSpectatorBattleViewerEntitlement()]) {
-      const publicEffects = projectBattleEffectStateForViewer(
-        result as StatDrivenCombatEncounterState,
-        viewer,
-      )
-      expect(publicEffects?.barriers?.some((entry) => entry.targetCombatantId === PLAYER)).toBe(
-        false,
-      )
-      expect(
-        publicEffects?.ongoingRecovery.some((entry) => entry.targetCombatantId === PLAYER),
-      ).toBe(false)
-      expect(JSON.stringify(publicEffects)).not.toContain('secret.barrier')
-      expect(JSON.stringify(publicEffects)).not.toContain('secret.recovery')
-    }
-  })
   it('strips pinned narration metadata from public snapshots without mutating history', () => {
     const state = {
       pendingEffects: [],
@@ -473,12 +335,10 @@ describe('CSR-2 live viewer-relative status projection', () => {
     expect(rowStatuses(projected, PLAYER).map((entry) => entry.statusId)).toEqual([
       'covert',
       'guarded',
-      'copy',
     ])
     expect(rowStatuses(projected, ALLY).map((entry) => entry.statusId)).toEqual([
       'covert',
       'guarded',
-      'copy',
     ])
     expect(rowStatuses(projected, ENEMY).map((entry) => entry.statusId)).toEqual(['exposed'])
     expect(rowStatuses(projected, PLAIN_ENEMY).map((entry) => entry.statusId)).toEqual(['guarded'])
@@ -501,23 +361,6 @@ describe('CSR-2 live viewer-relative status projection', () => {
     expect(rowStatuses(projected, ENEMY).map((entry) => entry.statusId)).toEqual(['exposed'])
     expect(rowStatuses(projected, PLAIN_ENEMY).map((entry) => entry.statusId)).toEqual(['guarded'])
     expect(authoritative.statusState).toEqual(before)
-  })
-  it('projects temporary copied Skill identities only to friendly viewers', () => {
-    const authoritative = encounter()
-    const before = structuredClone(authoritative.effectState)
-    const projected = projectCommittedBattleSession(committed(authoritative), [PLAYER]).snapshot
-
-    expect(projected.effectState?.temporarySkills).toEqual([
-      expect.objectContaining({ combatantId: PLAYER, skillId: 'vanguard.forceful-strike' }),
-      expect.objectContaining({ combatantId: ALLY, skillId: 'vanguard.cleave' }),
-    ])
-
-    const spectator = projectBattleEffectStateForViewer(
-      authoritative,
-      createSpectatorBattleViewerEntitlement(),
-    )
-    expect(spectator?.temporarySkills).toEqual([])
-    expect(authoritative.effectState).toEqual(before)
   })
 })
 
@@ -613,7 +456,6 @@ it('keeps active DOT, recovery and barrier icons tied to actual remaining instan
     ],
     bleed: [],
     burn: [],
-    temporarySkills: [],
     damageHistory: [],
     barriers: [
       {
@@ -666,7 +508,6 @@ it('omits enemy cast identities from persistent live effects independently of hi
     ],
     bleed: [],
     burn: [],
-    temporarySkills: [],
     damageHistory: [],
   }
   const before = structuredClone(state.effectState)

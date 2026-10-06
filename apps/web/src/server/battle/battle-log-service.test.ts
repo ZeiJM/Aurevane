@@ -241,28 +241,6 @@ describe('sanitized battle log service', () => {
     expect(historical[0].actors[0].actions[0].outcomes).toEqual([])
   })
 
-  it('labels pending current Copy as beneficial effects while retaining historical Copy wording', () => {
-    const result = buildBattleLogView(
-      SESSION_ID,
-      ['beneficial-copy', 'copy'].map((effectTag, eventIndex) => ({
-        battleVersion: 1,
-        eventIndex,
-        createdAt: '2026-10-03T00:00:00.000Z',
-        event: {
-          event: 'effect_pending',
-          actionId: 'test.copy',
-          sourceCombatantId: 'character:player-1',
-          targetCombatantId: 'character:player-1',
-          activationRound: 2,
-          effectTag,
-        },
-      })),
-    )
-    expect(result.entries.find((entry) => entry.eventIndex === 0)?.headline).toBe(
-      'Copy beneficial effects',
-    )
-    expect(result.entries.find((entry) => entry.eventIndex === 1)?.headline).toBe('Copy')
-  })
   it('projects committed events into rich readable entries without returning raw resolution payloads', async () => {
     const repository: BattleEventRepository = {
       findBattleEvents: vi.fn(async () => [
@@ -389,88 +367,7 @@ describe('sanitized battle log service', () => {
     expect(serialized).not.toContain('raw')
   })
 
-  it('records the exact pinned temporary copied Skill for authorized battle history', async () => {
-    const repository: BattleEventRepository = {
-      findBattleEvents: vi.fn(async () => [
-        {
-          battleVersion: 12,
-          eventIndex: 0,
-          event: {
-            event: 'temporary_skill_copied',
-            combatantId: 'character:player-1',
-            sourceCombatantId: 'recruit:p2-4-1',
-            skillId: 'vanguard.forceful-strike',
-            contentVersion: 2,
-          },
-          createdAt: '2026-09-18T10:00:00.000Z',
-        },
-      ]),
-    }
-
-    const result = await createBattleLogService(repository).getLog(USER_ID, SESSION_ID)
-
-    expect(result.entries[0]).toEqual(
-      expect.objectContaining({
-        eventType: 'temporary_skill_copied',
-        message: 'Wayfarer copied Vanguard Forceful Strike (v2) for this battle.',
-        actionId: 'vanguard.forceful-strike',
-        actionLabel: 'Vanguard Forceful Strike',
-        headline: 'Copied Skill',
-        tone: 'benefit',
-        facts: [
-          { label: 'Vanguard Forceful Strike', tone: 'benefit' },
-          { label: 'v2', tone: 'neutral' },
-        ],
-      }),
-    )
-  })
-
-  it('presents copied command events as their original Skill identity', () => {
-    const result = buildBattleLogView(SESSION_ID, [
-      {
-        battleVersion: 13,
-        eventIndex: 0,
-        event: {
-          event: 'combat_action_used',
-          actorId: 'character:player-1',
-          actionId: 'temporary.copy.vanguard.forceful-strike.v2',
-        },
-        createdAt: '2026-09-18T10:01:00.000Z',
-      },
-      {
-        battleVersion: 13,
-        eventIndex: 1,
-        event: {
-          event: 'damage_applied',
-          actionId: 'temporary.copy.vanguard.forceful-strike.v2',
-          sourceCombatantId: 'character:player-1',
-          targetCombatantId: 'recruit:p2-4-1',
-          amount: 12,
-          hpBefore: 80,
-          hpAfter: 68,
-        },
-        createdAt: '2026-09-18T10:01:00.000Z',
-      },
-    ])
-
-    expect(result.entries).toEqual([
-      expect.objectContaining({
-        eventType: 'combat_action_used',
-        actionId: 'vanguard.forceful-strike',
-        actionLabel: 'Vanguard Forceful Strike',
-        headline: 'Vanguard Forceful Strike',
-      }),
-      expect.objectContaining({
-        eventType: 'damage_applied',
-        actionId: 'vanguard.forceful-strike',
-        actionLabel: 'Vanguard Forceful Strike',
-        headline: 'Vanguard Forceful Strike',
-      }),
-    ])
-    expect(JSON.stringify(result)).not.toContain('Temporary Copy')
-  })
-
-  it('translates timeout and Lowered Guard internals into player-facing facts', async () => {
+  it('translates timeout and Defenseless internals into player-facing facts', async () => {
     const repository: BattleEventRepository = {
       findBattleEvents: vi.fn(async () => [
         {
@@ -503,7 +400,7 @@ describe('sanitized battle log service', () => {
     )
     const timeout = result.entries.find((entry) => entry.eventType === 'pvp_turn_timed_out')
     expect(loweredGuard?.facts).toEqual([
-      { label: 'Lowered Guard', tone: 'warning' },
+      { label: 'Defenseless', tone: 'warning' },
       { label: '1 turn', tone: 'neutral' },
       { label: 'Takes 2.5× damage', tone: 'warning' },
     ])
@@ -540,11 +437,11 @@ describe('sanitized battle log service', () => {
 
     expect(result.entries[0]).toEqual(
       expect.objectContaining({
-        message: 'Wayfarer stacked Guarded to ×2 for 2 owner-turn starts.',
+        message: 'Wayfarer stacked Guard to ×2 for 2 owner-turn starts.',
         messageTemplate: "{target}'s {status} stacks to ×{stacks}.",
-        templateValues: { status: 'Guarded', statusChange: 'STACKED', stacks: '2' },
+        templateValues: { status: 'Guard', statusChange: 'STACKED', stacks: '2' },
         facts: [
-          { label: 'Guarded', tone: 'benefit' },
+          { label: 'Guard', tone: 'benefit' },
           { label: '×2 stacks', tone: 'neutral' },
           { label: '2 turns', tone: 'neutral' },
         ],

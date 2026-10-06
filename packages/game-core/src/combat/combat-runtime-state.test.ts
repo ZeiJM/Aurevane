@@ -85,7 +85,6 @@ describe('combat runtime encounter normalization', () => {
       poison: [],
       bleed: [],
       burn: [],
-      temporarySkills: [],
       damageHistory: [],
     })
     expect(runtime.terrainOverlays).toEqual([])
@@ -111,7 +110,6 @@ describe('combat runtime encounter normalization', () => {
         poison: [],
         bleed: [],
         burn: [],
-        temporarySkills: [],
         damageHistory: [],
       },
       terrainOverlays: [],

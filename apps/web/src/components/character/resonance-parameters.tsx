@@ -1,9 +1,6 @@
 'use client'
 
-import {
-  useSkillEffectTimingPolicy,
-  useSkillCopyPolicyVersion,
-} from './skill-effect-timing-context'
+import { useSkillEffectTimingPolicy } from './skill-effect-timing-context'
 import type { AnyResonanceDefinition } from '@aurevane/game-core/combat/resonance'
 import { normalizedResonanceMechanics } from '@aurevane/game-core/combat/resonance-v2'
 import { CompactSkillEffectSummary } from './compact-skill-effect-summary'
@@ -25,10 +22,9 @@ export function ResonanceParameters({
   className?: string
 }) {
   const timingPolicy = useSkillEffectTimingPolicy()
-  const copyPolicyVersion = useSkillCopyPolicyVersion()
   const mechanics = definition ? normalizedResonanceMechanics(definition) : null
   const effects = mechanics?.resultEffects ?? []
-  const supplemental = resonanceSupplementalRows(definition, copyPolicyVersion)
+  const supplemental = resonanceSupplementalRows(definition)
   const explanations = supplemental.find(([label]) => label === 'Result details')?.[1]
   return (
     <div
@@ -37,7 +33,7 @@ export function ResonanceParameters({
     >
       <dl>
         <SkillCharacteristicRows
-          rows={resonanceCharacteristicRows(definition, timingPolicy, copyPolicyVersion)}
+          rows={resonanceCharacteristicRows(definition, timingPolicy)}
           effectSummary={
             definition
               ? effects.length

@@ -49,7 +49,7 @@ export function describeTerrainLabel(label: string): {
   const terrainName = battleTerrainName(terrainId, elevationLevel)
   const entryCost = PV1F_MOVEMENT_COST_PER_TERRAIN_POINT * (rough ? 2 : 1)
 
-  const overlay = label.match(/; ((?:Frozen|Steam) terrain; .+)$/)?.[1]
+  const overlay = label.match(/; ((?:Frozen Ground|Steam) terrain; .+)$/)?.[1]
 
   return {
     title: `${terrainName} · Tile ${x},${y}`,

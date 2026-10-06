@@ -30,10 +30,7 @@ function recipient(effect: MatureSkillEffectDefinition): string {
   return 'the selected unit'
 }
 
-export function skillEffectDescription(
-  effect: MatureSkillEffectDefinition,
-  copyPolicyVersion: number | null = 1,
-): string {
+export function skillEffectDescription(effect: MatureSkillEffectDefinition): string {
   const target = recipient(effect)
   switch (effect.type) {
     case 'summon':
@@ -52,20 +49,20 @@ export function skillEffectDescription(
       return `Deal ${effect.amount} base damage to ${target}.${position}${element}`
     }
     case 'create-terrain':
-      return 'Create Frozen terrain on affected tiles for two round boundaries. Both teams pay 10 extra AP per entered tile; Airborne ignores this surcharge. Fire converts Frozen to Steam, which blocks line of sight.'
+      return 'Create Frozen Ground on affected tiles for two round boundaries. Both teams pay 10 extra AP per entered tile; Airborne ignores this surcharge. Fire converts Frozen Ground to Steam, which blocks line of sight.'
     case 'displace':
       return `${effect.direction === 'pull' ? 'Pull' : 'Push'} ${target} up to ${effect.distance} ${effect.distance === 1 ? 'tile' : 'tiles'} ${effect.direction === 'pull' ? 'toward you' : 'away'}, one legal tile at a time. Stops before occupied, blocked or illegal-elevation tiles. Pull never enters your tile. Root prevents displacement. Failure grants no refund.`
     case 'poison':
-      return `Apply Poison (Poisoned) to ${target}.`
+      return `Apply Poison to ${target}.`
     case 'burn': {
       const preview = previewEffect(effect)
       const stages = preview.magnitude!.split('/')
-      return `Apply Burn (Scorched) to ${target}. Burn deals ${stages.join(', then ')} fixed damage at the target's next ${stages.length} ${stages.length === 1 ? 'end-turn boundary' : 'end-turn boundaries'} for each active application.`
+      return `Apply Burn to ${target}. Burn deals ${stages.join(', then ')} fixed damage at the target's next ${stages.length} ${stages.length === 1 ? 'end-turn boundary' : 'end-turn boundaries'} for each active application.`
     }
     case 'bleed':
-      return `Apply Bleed (Bleeding) to ${target} for ${effect.ticks} ${effect.ticks === 1 ? 'end-turn tick' : 'end-turn ticks'} at ${effect.damagePerTick} damage per tick.`
+      return `Apply Bleed to ${target} for ${effect.ticks} ${effect.ticks === 1 ? 'end-turn tick' : 'end-turn ticks'} at ${effect.damagePerTick} damage per tick.`
     case 'return-to-turn-start':
-      return 'Return to the vacant tile where you started this turn. Root blocks the return. No HP, MP, AP, Movement or past action is refunded.'
+      return 'Rewind to the vacant tile where you started this turn. Rooted blocks the return. No HP, MP, AP, Movement or past action is refunded.'
     case 'healing':
       return `Restore up to ${effect.amount} HP to ${target}.${recoveryTiming(effect.ticks)}`
     case 'barrier-change':
@@ -76,12 +73,8 @@ export function skillEffectDescription(
       return effect.mode === 'amplify'
         ? 'Copy eligible positive active statuses from the selected unit onto yourself. The selected unit keeps its statuses; remaining durations are not restarted.'
         : 'Copy eligible negative active statuses from yourself onto the selected unit. You keep the original statuses; remaining durations are not restarted.'
-    case 'copy':
-      return copyPolicyVersion === null
-        ? 'Copy one random eligible regular battle Skill from the selected unit for the rest of this battle. The copied Skill keeps its original MP, targeting, effects and requirements, but costs half AP rounded up.'
-        : 'Copy the selected unit’s active beneficial effect tags onto yourself. The selected unit keeps its effects; remaining durations are not restarted.'
     case 'sensory':
-      return `Attempt Sensory on ${target}. On a successful hit against Covert, remove eligible positive statuses and Covert, then apply Revealed for ${effect.revealedDurationOwnerTurnStarts} owner-turn starts. Otherwise the Sensory block has no effect.`
+      return `Attempt Reveal on ${target}. On a successful hit against Covert, remove eligible positive statuses and Covert, then apply Revealed for ${effect.revealedDurationOwnerTurnStarts} owner-turn starts. Otherwise Reveal has no effect.`
     case 'remove-status': {
       const statusNames = [...new Set(effect.statusIds.map((id) => combatStatusDetails(id).name))]
       return `Remove ${statusNames.join(', ')} from ${target}.`
@@ -109,22 +102,21 @@ export function skillRequirementDescription(requirement: CombatUseRequirement): 
     case 'target-tag-present':
       return `Target must have ${requirement.tag}.`
     case 'actor-status-present':
-      return `Requires ${title(requirement.statusId)} on yourself.`
+      return `Requires ${gameplayStatusName(requirement.statusId)} on yourself.`
     case 'actor-status-absent':
-      return `Requires no ${title(requirement.statusId)} on yourself.`
+      return `Requires no ${gameplayStatusName(requirement.statusId)} on yourself.`
     case 'target-status-present':
-      return `Target must have ${title(requirement.statusId)}.`
+      return `Target must have ${gameplayStatusName(requirement.statusId)}.`
     case 'actor-hp-at-most':
       return `Requires your HP at ${requirement.basisPoints / 100}% or below.`
   }
 }
 
 export function skillTargetTags(skill: MatureSkillDefinition): readonly string[] {
-  const tags = combatActionPresentationTags({
+  return combatActionPresentationTags({
     target: skill.target,
     effects: skill.effects.filter(isMaterializedCombatEffect),
   })
-  return skill.effects.some((effect) => effect.type === 'summon') ? [...tags, 'Summon'] : tags
 }
 
 export function skillTypeDescription(
@@ -167,14 +159,13 @@ export function skillParameterRows(
     cooldownOwnerTurns?: number | null
   } = skill,
   timingPolicy: SkillEffectTimingPolicy = defaultCombatEffectTimingPolicy(),
-  copyPolicyVersion: number | null = 1,
 ): readonly (readonly [string, string])[] {
   return skillInformationRows({
     'Skill Type': skillParameterTypeDescription(skill),
     Cost: skillCostDescription({ ...skill, ...costs }),
     Cooldown: skillCooldownDescription(skill, costs.cooldownOwnerTurns),
     Requirements: skillRequirementsSummary(skill),
-    Effects: skillEffectsSummary(skill, timingPolicy, copyPolicyVersion),
+    Effects: skillEffectsSummary(skill, timingPolicy),
     Range: skillCompactRangeDescription(skill),
     Target: skillTargetRecipientDescription(skill),
     'Target Method': skillTargetMethodDescription(skill),
@@ -223,9 +214,8 @@ function compactMagnitude(effect: MatureSkillEffectDefinition): string | null {
 export function compactSkillEffectSummaryParts(
   effect: MatureSkillEffectDefinition,
   timingPolicy: SkillEffectTimingPolicy = defaultCombatEffectTimingPolicy(),
-  copyPolicyVersion: number | null = 1,
 ): CompactSkillEffectSummaryParts {
-  const preview = previewEffect(effect, copyPolicyVersion)
+  const preview = previewEffect(effect)
   const timing = skillEffectInstantTiming(effect, timingPolicy)
   return {
     label: preview.label,
@@ -238,12 +228,10 @@ export function compactSkillEffectSummaryParts(
 function compactEffectSummary(
   effect: MatureSkillEffectDefinition,
   timingPolicy: SkillEffectTimingPolicy,
-  copyPolicyVersion: number | null,
 ): string {
   const { label, magnitude, duration, timing } = compactSkillEffectSummaryParts(
     effect,
     timingPolicy,
-    copyPolicyVersion,
   )
   return [
     label,
@@ -258,19 +246,15 @@ function compactEffectSummary(
 export function skillEffectSummaries(
   skill: Pick<MatureSkillDefinition, 'effects'>,
   timingPolicy: SkillEffectTimingPolicy = defaultCombatEffectTimingPolicy(),
-  copyPolicyVersion: number | null = 1,
 ): readonly string[] {
-  return skill.effects.map((effect) =>
-    compactEffectSummary(effect, timingPolicy, copyPolicyVersion),
-  )
+  return skill.effects.map((effect) => compactEffectSummary(effect, timingPolicy))
 }
 
 export function skillEffectsSummary<Skill extends Pick<MatureSkillDefinition, 'effects'>>(
   skill: Skill,
   timingPolicy: SkillEffectTimingPolicy = defaultCombatEffectTimingPolicy(),
-  copyPolicyVersion: number | null = 1,
 ): string {
-  return skillEffectSummaries(skill, timingPolicy, copyPolicyVersion).join(', ') || 'N/A'
+  return skillEffectSummaries(skill, timingPolicy).join(', ') || 'N/A'
 }
 
 export function skillRequirementsSummary(
@@ -343,9 +327,9 @@ export function skillTargetMethodDescription(skill: Pick<MatureSkillDefinition, 
     case 'single':
       return 'Single'
     case 'circle':
-      return `Circle · Radius: ${skill.target.shape.radius} ${skill.target.shape.radius === 1 ? 'tile' : 'tiles'}`
+      return `Circle [${skill.target.shape.radius}]`
     case 'line':
-      return `Line · Length: ${skill.target.shape.length} ${skill.target.shape.length === 1 ? 'tile' : 'tiles'}`
+      return `Line [${skill.target.shape.length}]`
   }
 }
 

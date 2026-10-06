@@ -237,19 +237,21 @@ describe('independent application K3 identity', () => {
     ])
   })
 
-  it('preserves Copy Barrier lineage when the same command adds another pool from the same action', () => {
+  it('does not attribute an ordinary Barrier grant to a no-op Copy Buffs block', () => {
     let before = grantBarrier(world(), 'actor', 'actor', DOT_ACTION.id, 8).state
     before = grantBarrier(before, 'actor', 'target', DOT_ACTION.id, 12).state
     const effect = {
       type: 'copy-statuses' as const,
       recipient: 'primary-unit' as const,
       mode: 'amplify' as const,
-      beneficialEffects: true,
+      allowNoEligibleEffects: true,
     }
-    let after = applyCombatStatusCopies(before, 'actor', 'target', DOT_ACTION.id, effect, {
+    const copied = applyCombatStatusCopies(before, 'actor', 'target', DOT_ACTION.id, effect, {
       statuses: [],
-    }).state
-    after = grantBarrier(after, 'actor', 'actor', DOT_ACTION.id, 4).state
+    })
+    expect(copied.projections).toEqual([])
+    expect(copied.events).toEqual([])
+    const after = grantBarrier(copied.state, 'actor', 'actor', DOT_ACTION.id, 4).state
     const action = {
       ...DOT_ACTION,
       effects: [
@@ -262,23 +264,19 @@ describe('independent application K3 identity', () => {
       after,
       action,
       EVALUATION,
-      context('copy-barrier'),
+      context('barrier-after-no-op-copy'),
       { statuses: [] },
     )
-    const recipientPools = result.effectState!.barriers!.filter(
-      (row) => row.targetCombatantId === 'actor',
-    )
+    const pools = result.effectState!.barriers!.filter((row) => row.targetCombatantId === 'actor')
     expect(
-      recipientPools.map((row) => [
-        row.amount,
-        row.provenance?.effectOrdinal,
-        row.provenance?.copyOrdinal,
-      ]),
+      pools.map((row) => [row.amount, row.provenance?.effectOrdinal, row.provenance?.copyOrdinal]),
     ).toEqual([
       [8, undefined, undefined],
-      [12, 0, 0],
       [4, 1, undefined],
     ])
+    expect(
+      result.effectState!.barriers!.filter((row) => row.targetCombatantId === 'target'),
+    ).toEqual(before.effectState!.barriers!.filter((row) => row.targetCombatantId === 'target'))
   })
 
   it('preserves historical replacement attribution', () => {

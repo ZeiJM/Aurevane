@@ -1,10 +1,7 @@
 import 'server-only'
-import { usesBeneficialCombatCopy } from '@aurevane/game-core/combat/combat-status-copy'
-
 import type {
   CombatEffectProjection,
   CombatResolutionEvent,
-  CombatActionDefinition,
   CombatActionEvaluation,
 } from '@aurevane/game-core/combat/actions'
 import type { CombatTerrainProjection } from '@aurevane/game-core/combat/terrain-overlays'
@@ -13,7 +10,6 @@ import type { BattleSessionRecord, BattleSessionRepository } from '@aurevane/db/
 import {
   PV1F_COMBAT_CONTENT,
   evaluatePv1fAction,
-  evaluatePv1fCopiedSkill,
   evaluatePv1fMatureSkill,
   evaluatePv1fMovement,
   finishPv1fTurn,
@@ -37,10 +33,6 @@ import {
   resolveBattleEssenceDefinition,
   type BattleBuildAuthoritySnapshot,
 } from './battle-build-authority'
-import {
-  resolveBattleCopiedSkillCommand,
-  resolveBattleSkillCopyContext,
-} from './battle-skill-copy-authority'
 
 export interface BattlePreviewIssue {
   code: string
@@ -88,11 +80,6 @@ export interface BattleActionPreview {
   defenseKind: CombatDefenseKind | null
   defenseRating: number | null
   mitigatedBaseDamage: number | null
-  skillCopy?: {
-    sourceCombatantId: string
-    random: true
-    eligibleSkills: readonly { skillId: string; contentVersion: number }[]
-  } | null
   issues: readonly BattlePreviewIssue[]
   /** Legacy compatibility only; PV-1F uses numeric Action Economy costs. */
   spendsAction: boolean
@@ -188,56 +175,6 @@ export function projectBattleStatusResistanceForecast(evaluation: CombatActionEv
   }))
 }
 
-/** Preview must not turn an uncommitted Copy into inspection of a concealed hostile donor. */
-export function projectBeneficialCopyPreview(
-  state: StatDrivenCombatEncounterState,
-  action: CombatActionDefinition,
-  evaluation: CombatActionEvaluation,
-): Pick<CombatActionEvaluation, 'projectedEffects' | 'projectedEvents'> {
-  const actor = state.tactical.battle.combatants.find((row) => row.id === evaluation.actorId)
-  const donor = state.tactical.battle.combatants.find(
-    (row) => row.id === evaluation.primaryCombatantId,
-  )
-  const concealed =
-    actor &&
-    donor &&
-    actor.teamId !== donor.teamId &&
-    state.statusState
-      .find((row) => row.combatantId === donor.id)
-      ?.statuses.some((row) => row.statusId === 'covert' && row.timingState !== 'pending')
-  if (
-    !concealed ||
-    !action.effects.some(
-      (effect) => effect.type === 'copy-statuses' && effect.beneficialEffects === true,
-    )
-  )
-    return {
-      projectedEffects: evaluation.projectedEffects,
-      projectedEvents: evaluation.projectedEvents,
-    }
-  const copies = evaluation.projectedEffects.filter((row) => row.effectType === 'copy-statuses')
-  return {
-    projectedEffects: [
-      ...evaluation.projectedEffects.filter((row) => row.effectType !== 'copy-statuses'),
-      ...(copies.length
-        ? [
-            {
-              effectType: 'copy-statuses' as const,
-              statusId: 'beneficial-copy',
-              combatantId: actor.id,
-              before: 'none',
-              after: 'concealed',
-              ...(copies[0]!.activationRound !== undefined
-                ? { activationRound: copies[0]!.activationRound }
-                : {}),
-            },
-          ]
-        : []),
-    ],
-    projectedEvents: [],
-  }
-}
-
 async function previewIntent(
   state: StatDrivenCombatEncounterState,
   intent: BattleIntent,
@@ -288,17 +225,6 @@ async function previewIntent(
     const taggedTechnique = build?.disciplineSkills.find(
       (reference) => reference.skillId === intent.actionId,
     )
-    const copiedCommand = actorId
-      ? await resolveBattleCopiedSkillCommand(
-          state as StatDrivenCombatEncounterState & {
-            buildAuthority?: BattleBuildAuthoritySnapshot
-          },
-          actorId,
-          intent.actionId,
-          combatContentResolver,
-        )
-      : null
-    if (copiedCommand && !copiedCommand.definition) throw persistenceInvalid()
     const matureDefinition =
       taggedTechnique && actorId
         ? await resolveBattleDisciplineSkillDefinition(
@@ -309,59 +235,15 @@ async function previewIntent(
           )
         : null
     if (taggedTechnique && !matureDefinition) throw persistenceInvalid()
-    const copiedCopyContext =
-      !usesBeneficialCombatCopy(state) &&
-      copiedCommand?.definition?.effects.some((effect) => effect.type === 'copy') &&
-      intent.target.kind === 'unit'
-        ? await resolveBattleSkillCopyContext(
-            state as StatDrivenCombatEncounterState & {
-              buildAuthority?: BattleBuildAuthoritySnapshot
-            },
-            actorId ?? '',
-            intent.target.combatantId,
-            combatContentResolver,
-          )
-        : undefined
-    if (copiedCopyContext === null) throw persistenceInvalid()
-    const matureCopyContext =
-      !usesBeneficialCombatCopy(state) &&
-      matureDefinition?.effects.some((effect) => effect.type === 'copy') &&
-      intent.target.kind === 'unit'
-        ? await resolveBattleSkillCopyContext(
-            state as StatDrivenCombatEncounterState & {
-              buildAuthority?: BattleBuildAuthoritySnapshot
-            },
-            actorId ?? '',
-            intent.target.combatantId,
-            combatContentResolver,
-          )
-        : undefined
-    if (matureCopyContext === null) throw persistenceInvalid()
-
     const resolved =
-      copiedCommand?.definition && authority
-        ? evaluatePv1fCopiedSkill(
-            state,
-            copiedCommand.definition,
-            intent.target,
-            authority.combatContext,
-            copiedCopyContext,
-          )
-        : essence && essence.skill.id === intent.actionId && authority
-          ? evaluatePv1fMatureSkill(state, essence.skill, intent.target, authority.combatContext)
-          : matureDefinition &&
-              matureDefinition.sourceDisciplineId === taggedTechnique?.sourceDisciplineId &&
-              authority
-            ? evaluatePv1fMatureSkill(
-                state,
-                matureDefinition,
-                intent.target,
-                authority.combatContext,
-                matureCopyContext ? { copyContext: matureCopyContext } : {},
-              )
-            : evaluatePv1fAction(state, intent.actionId, intent.target)
+      essence && essence.skill.id === intent.actionId && authority
+        ? evaluatePv1fMatureSkill(state, essence.skill, intent.target, authority.combatContext)
+        : matureDefinition &&
+            matureDefinition.sourceDisciplineId === taggedTechnique?.sourceDisciplineId &&
+            authority
+          ? evaluatePv1fMatureSkill(state, matureDefinition, intent.target, authority.combatContext)
+          : evaluatePv1fAction(state, intent.actionId, intent.target)
     const { prepared, action, cost, evaluation } = resolved
-    const visibleCopyPreview = projectBeneficialCopyPreview(prepared, action, evaluation)
     const economy = readPv1fActionEconomy(prepared)
     const before = economy?.current ?? 0
     const affordable = before >= cost
@@ -391,13 +273,13 @@ async function previewIntent(
       primaryCombatantId: evaluation.primaryCombatantId,
       affectedTiles: evaluation.affectedTiles,
       affectedCombatantIds: evaluation.affectedCombatantIds,
-      projectedEffects: resourceIssue ? [] : visibleCopyPreview.projectedEffects,
+      projectedEffects: resourceIssue ? [] : evaluation.projectedEffects,
       targetStatusResistances: resourceIssue
         ? []
         : projectBattleStatusResistanceForecast(evaluation),
       projectedStatuses,
       projectedTerrain: resourceIssue ? [] : evaluation.projectedTerrain,
-      projectedEvents: resourceIssue ? [] : visibleCopyPreview.projectedEvents,
+      projectedEvents: resourceIssue ? [] : evaluation.projectedEvents,
       mpCost: evaluation.mpCost,
       actionEconomyCost: cost,
       actionEconomyBefore: before,
@@ -411,13 +293,6 @@ async function previewIntent(
       defenseKind: forecast?.defenseKind ?? null,
       defenseRating: forecast?.defenseRating ?? null,
       mitigatedBaseDamage: forecast?.mitigatedBaseDamage ?? null,
-      skillCopy: evaluation.skillCopy
-        ? {
-            sourceCombatantId: evaluation.skillCopy.sourceCombatantId,
-            random: true,
-            eligibleSkills: evaluation.skillCopy.eligibleSkills,
-          }
-        : null,
       issues: [
         ...evaluation.issues.map((entry) => issue(entry.code, entry.message)),
         ...(resourceIssue ? [issue(resourceIssue.code, resourceIssue.message)] : []),

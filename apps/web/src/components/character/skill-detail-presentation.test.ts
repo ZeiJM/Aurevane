@@ -69,21 +69,21 @@ describe('Player-facing Skill targeting and effects', () => {
   it('distinguishes ranged area targeting from self recovery without changing the definition', () => {
     const volley = resolveMatureSkillVersion('farstrider.volley')!
     const before = JSON.stringify(volley)
-    expect(skillTargetTags(volley)).toEqual(['Enemy', 'Circle 1', 'Dmg'])
+    expect(skillTargetTags(volley)).toEqual(['Enemy', 'Circle [1]', 'Dmg [10]'])
     expect(skillCompactRangeDescription(volley)).toBe('5')
     expect(Object.fromEntries(skillParameterRows(volley)).Target).toBe('Enemy')
     const breath = resolveMatureSkillVersion('ironfist.focus-breath')!
-    expect(skillTargetTags(breath)).toEqual(['Self', 'Single', 'Heal 1', 'MP Rec 1'])
+    expect(skillTargetTags(breath)).toEqual(['Self', 'Single', 'Heal [12]', 'MP Restore [7]'])
     expect(skillCompactRangeDescription(breath)).toBe('N/A')
     expect(JSON.stringify(volley)).toBe(before)
   })
   it('describes prerequisites, negative resource changes, and facing explicitly', () => {
     expect(skillRequirementDescription({ kind: 'actor-status-present', statusId: 'guarded' })).toBe(
-      'Requires Guarded on yourself.',
+      'Requires Guard on yourself.',
     )
     expect(
       skillRequirementDescription({ kind: 'target-status-present', statusId: 'exposed' }),
-    ).toBe('Target must have Exposed.')
+    ).toBe('Target must have Vulnerable.')
     expect(skillRequirementDescription({ kind: 'actor-hp-at-most', basisPoints: 5000 })).toBe(
       'Requires your HP at 50% or below.',
     )
@@ -125,12 +125,12 @@ it('distinguishes enemy MP drain from the user’s restoration in one Skill', ()
   expect(skillTargetTags(resolveMatureSkillVersion('runeblade.siphon-slash')!)).toEqual([
     'Enemy',
     'Single',
-    'Dmg',
-    'MP Drain',
-    'MP Rec 1 · Self',
+    'Dmg [13]',
+    'MP Drain [7]',
+    'MP Restore [7] · Self',
   ])
-  expect(skillTargetTags(resolveMatureSkillVersion('ravager.blood-siphon')!)).toContain(
-    'Heal 1 · Self',
+  expect(skillTargetTags(resolveMatureSkillVersion('ravager.blood-siphon')!)).toEqual(
+    expect.arrayContaining([expect.stringMatching(/^Heal \[\d+\] · Self$/)]),
   )
 })
 
@@ -159,7 +159,7 @@ it('explains elemental interactions and typed status aliases without changing hi
       statusId: 'burn',
       stacks: 1,
     }),
-  ).toContain('Scorched')
+  ).toContain('Burn')
   expect(
     Object.fromEntries(skillParameterRows(resolveMatureSkillVersion('frostweaver.chilling-mist')!))
       .Target,
@@ -168,19 +168,25 @@ it('explains elemental interactions and typed status aliases without changing hi
 
 it('shows the executable element and canonical status names on current Technique tags', () => {
   const fire = resolveMatureSkillVersion('cinderweaver.cinder-bolt')!
-  expect(skillTargetTags(fire)).toContain('Fire Dmg')
-  expect(skillTargetTags(fire)).toContain('Burn (Scorched)')
-  expect(skillTargetTags(resolveMatureSkillVersion('stormsinger.arc-spark')!)).toContain(
-    'Storm Dmg',
-  )
-  expect(skillTargetTags(resolveMatureSkillVersion('ravager.gash')!)).toContain('Bleed (Bleeding)')
-  expect(skillTargetTags(resolveMatureSkillVersion('cinderweaver.cinder-bolt', 1)!)).not.toContain(
-    'Fire Dmg',
-  )
+  expect(skillTargetTags(fire).some((tag) => /^Fire Dmg \[\d+\]$/.test(tag))).toBe(true)
+  expect(skillTargetTags(fire)).toContain('Burn')
+  expect(
+    skillTargetTags(resolveMatureSkillVersion('stormsinger.arc-spark')!).some((tag) =>
+      /^Storm Dmg \[\d+\]$/.test(tag),
+    ),
+  ).toBe(true)
+  expect(skillTargetTags(resolveMatureSkillVersion('ravager.gash')!)).toContain('Bleed')
+  expect(
+    skillTargetTags(resolveMatureSkillVersion('cinderweaver.cinder-bolt', 1)!).some((tag) =>
+      tag.startsWith('Fire Dmg'),
+    ),
+  ).toBe(false)
 })
 
-it('distinguishes dispelling enemy protection from cleansing harmful effects', () => {
-  expect(skillTargetTags(resolveMatureSkillVersion('runeblade.aether-cut')!)).toContain('Dispel')
+it('keeps Cleanse while no longer inventing retired Summoned dispel behavior', () => {
+  expect(skillTargetTags(resolveMatureSkillVersion('runeblade.aether-cut')!)).not.toContain(
+    'Dispel',
+  )
   expect(skillTargetTags(resolveMatureSkillVersion('tidecaller.cleansing-rain')!)).toContain(
     'Cleanse',
   )
@@ -263,7 +269,7 @@ it('lists authored magnitudes as effects without leaking design tags', () => {
     skillEffectsSummary(siphon),
   )
   const brand = skillEffectsSummary(resolveMatureSkillVersion('runeblade.sigil-brand')!)
-  expect(brand).toBe('Dmg [10], Exposed [14.26%] [2 Turns], Hexed [20.74%] [2 Turns]')
+  expect(brand).toBe('Dmg [10], Vulnerable [14.26%] [2 Turns], Healing Down [20.74%] [2 Turns]')
   expect(skillEffectsSummary(resolveMatureSkillVersion('runeblade.rune-mending')!)).not.toContain(
     'Dmg',
   )
@@ -277,7 +283,7 @@ it('shows conditional elemental and terrain magnitudes without treating them as 
     'Conductive [+20% Storm]',
   )
   expect(skillEffectsSummary(resolveMatureSkillVersion('frostweaver.chilling-mist')!)).toContain(
-    'Frozen Terrain [+10 AP/tile]',
+    'Frozen Ground [+10 AP/tile]',
   )
 })
 
@@ -310,7 +316,7 @@ describe('Combat v5.1 compact effect summaries', () => {
         potencyBasisPoints: 1200,
         durationTurns: 2,
       }),
-    ).toEqual({ label: 'Guarded', magnitude: '12%', duration: '2 Turns' })
+    ).toEqual({ label: 'Guard', magnitude: '12%', duration: '2 Turns' })
 
     expect(
       compactSkillEffectSummaryParts({
@@ -321,7 +327,7 @@ describe('Combat v5.1 compact effect summaries', () => {
         potencyBasisPoints: 1400,
         durationTurns: 2,
       }),
-    ).toEqual({ label: 'Exposed', magnitude: '14%', duration: '2 Turns' })
+    ).toEqual({ label: 'Vulnerable', magnitude: '14%', duration: '2 Turns' })
 
     expect(
       compactSkillEffectSummaryParts({
@@ -332,7 +338,7 @@ describe('Combat v5.1 compact effect summaries', () => {
         potencyBasisPoints: 1600,
         durationTurns: 2,
       }),
-    ).toEqual({ label: 'Hexed', magnitude: '16%', duration: '2 Turns' })
+    ).toEqual({ label: 'Healing Down', magnitude: '16%', duration: '2 Turns' })
   })
 
   it('formats Slow as a concise AP magnitude and separates duration', () => {
@@ -398,13 +404,13 @@ describe('Combat v5.1 compact targeting labels', () => {
         ...base,
         target: { ...base.target, shape: { kind: 'line', length: 3 } },
       }),
-    ).toBe('Line · Length: 3 tiles')
+    ).toBe('Line [3]')
     expect(
       skillTargetMethodDescription({
         ...base,
         target: { ...base.target, shape: { kind: 'circle', radius: 1 } },
       }),
-    ).toBe('Circle · Radius: 1 tile')
+    ).toBe('Circle [1]')
   })
 })
 
@@ -459,7 +465,7 @@ it('describes the authored Burn schedule rather than substituting the default st
 it('keeps area dimensions and distinct recipients in canonical parameter rows', () => {
   const volley = resolveMatureSkillVersion('farstrider.volley')!
   const rows = Object.fromEntries(skillParameterRows(volley))
-  expect(rows['Target Method']).toBe('Circle · Radius: 1 tile')
+  expect(rows['Target Method']).toBe('Circle [1]')
   expect(rows.Target).toBe('Enemy')
   const ground = resolveMatureSkillVersion('frostweaver.chilling-mist')!
   const groundRows = Object.fromEntries(skillParameterRows(ground))
@@ -473,14 +479,4 @@ it('keeps area dimensions and distinct recipients in canonical parameter rows', 
   expect(Object.fromEntries(skillParameterRows(friendlyFire)).Target).toBe(
     'Enemy · All units, including allies',
   )
-})
-
-it('uses the pinned historical Copy label throughout the textual report', () => {
-  const skill = resolveMatureSkillVersion('wildwarden.snare')!
-  const copy = {
-    ...skill,
-    effects: [{ type: 'copy' as const, recipient: 'primary-unit' as const }],
-  }
-  expect(skillEffectsSummary(copy, null, null)).toContain('Skill Copy')
-  expect(skillEffectsSummary(copy)).not.toContain('Skill Copy')
 })

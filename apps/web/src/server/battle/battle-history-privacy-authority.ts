@@ -20,7 +20,6 @@ export interface BattleHistoryPrivacyAuthority {
   readonly viewer: BattleViewerEntitlement
   readonly journals: readonly BattleHistoryPrivacyJournal[]
   readonly buildAuthority?: BattleBuildAuthoritySnapshot
-  readonly copyPolicyVersion?: 1
 }
 
 export interface BattleHistoryPrivacyRepository {
@@ -165,7 +164,6 @@ export function parseBattleHistoryPrivacyAuthorityRow(
         controlledCombatantIds,
       ),
       journals,
-      ...(snapshot.copyPolicyVersion ? { copyPolicyVersion: snapshot.copyPolicyVersion } : {}),
       ...(buildAuthority ? { buildAuthority } : {}),
     }
   }
@@ -174,7 +172,6 @@ export function parseBattleHistoryPrivacyAuthorityRow(
     return {
       viewer: createSpectatorBattleViewerEntitlement(),
       journals,
-      ...(snapshot.copyPolicyVersion ? { copyPolicyVersion: snapshot.copyPolicyVersion } : {}),
       ...(buildAuthority ? { buildAuthority } : {}),
     }
   }

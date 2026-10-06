@@ -261,7 +261,7 @@ function action(entry: BattleLogEntry, names: ChronicleNames, ownerId: string): 
     key: eventKey(entry),
     actorId: ownerId,
     title: loweredGuard
-      ? 'Lowered Guard'
+      ? 'Defenseless'
       : (entry.actionContext?.name ?? entry.actionLabel ?? entry.headline),
     family: family(entry),
     contentId: entry.actionContext?.contentId ?? entry.actionContext?.skillId ?? null,

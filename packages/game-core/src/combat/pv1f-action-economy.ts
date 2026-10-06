@@ -1,25 +1,10 @@
 import { combatEffectTimingMode } from './combat-effect-timing'
-import {
-  materializeBeneficialCombatCopyAction,
-  usesBeneficialCombatCopy,
-} from './combat-status-copy'
 import { materializeVengeanceDamage } from './combat-vengeance'
 import {
   calculateScaledRawDamage,
   currentSkillDamageScaling,
   legacySkillDamageScaling,
 } from './damage-scaling'
-import {
-  commitCombatSkillCopy,
-  copiedSkillApCost,
-  copiedSkillCommandId,
-  copiedSkillUsageKey,
-  previewCombatSkillCopy,
-} from './combat-skill-copy'
-import {
-  forecastCombatSkillAccuracyForTarget,
-  rollCombatSkillAccuracyForTarget,
-} from './combat-skill-accuracy'
 import { normalizeCombatEffectState, type CombatSummonInstance } from './combat-effect-state'
 import {
   advanceCombatSummonOwnerTurn,
@@ -823,17 +808,10 @@ function abilityIdForEvent(action: CombatActionDefinition): string {
   return action.id
 }
 
-export interface Pv1fMatureSkillCopyContext {
-  sourceCombatantId: string
-  sourceSkills: readonly MatureSkillDefinition[]
-  actorCommittedSkills?: readonly MatureSkillDefinition[]
-}
-
 export interface Pv1fMatureSkillOptions {
   apCostOverride?: number
   actionIdOverride?: string
   repeatHistoryKey?: string
-  copyContext?: Pv1fMatureSkillCopyContext
   /** Internal per-authored-effect provenance for an explicitly merged Resonance. */
   effectOrigins?: readonly (CombatEffectOrigin | undefined)[]
   /** Internal merged Resonance effects require the command's existing hostile hit decision. */
@@ -860,7 +838,7 @@ export function evaluatePv1fMatureSkill(
   const authoredCost = options.apCostOverride ?? resolved.apCost
   const resonance = committedResonanceForecast(prepared, definition, target)
   const materializedAuthoredAction = toMaterializedCombatActionDefinition(definition, combatContext)
-  const authoredAction = materializeBeneficialCombatCopyAction(prepared, {
+  const authoredAction: CombatActionDefinition = {
     ...materializedAuthoredAction,
     effectOrigins: definition.effects.flatMap((effect, index) =>
       isMaterializedCombatEffect(effect)
@@ -875,7 +853,7 @@ export function evaluatePv1fMatureSkill(
           ]
         : [],
     ),
-  })
+  }
   const powerScaledAuthoredEffects = applyCurrentMatureSkillPowerScaling(
     prepared,
     definition,
@@ -886,17 +864,13 @@ export function evaluatePv1fMatureSkill(
   const usageKey = options.repeatHistoryKey ?? definition.id
   const repeatPenaltyApplied =
     !usesV5BalanceRules && lastMatureSkillId(prepared, actorId) === usageKey
-  const copyEffect =
-    repeatPenaltyApplied || usesBeneficialCombatCopy(prepared)
-      ? undefined
-      : authoredAction.effects.find((effect) => effect.type === 'copy')
   const baseAction: CombatActionDefinition = {
     ...authoredAction,
     id: options.actionIdOverride ?? authoredAction.id,
-    effects: powerScaledAuthoredEffects.filter((effect) => effect.type !== 'copy'),
+    effects: powerScaledAuthoredEffects,
     effectTimingTags: authoredAction.effectTimingTags,
     effectOrigins: authoredAction.effects.flatMap((effect, index) =>
-      isMaterializedCombatEffect(effect) && effect.type !== 'copy'
+      isMaterializedCombatEffect(effect)
         ? [
             authoredAction.effectOrigins?.[index] ?? {
               family: definition.tags.includes('essence')
@@ -951,115 +925,30 @@ export function evaluatePv1fMatureSkill(
       : {}),
   }
   let evaluation = evaluateCombatAction(prepared, action, target, PV1F_COMBAT_CONTENT)
+  // Summons are materialized outside legacy resolution. Forecast pinned scheduling without
+  // spawning an entity or spending RNG.
   if (
-    copyEffect &&
     evaluation.legal &&
-    evaluation.primaryCombatantId &&
-    !(evaluation.targetHitChances ?? []).some(
-      (chance) => chance.targetCombatantId === evaluation.primaryCombatantId,
-    )
+    definition.effects.some((effect) => effect.type === 'summon') &&
+    definition.summonProfile &&
+    combatEffectTimingMode(prepared.effectTimingPolicy, 'summon') === 'next-round'
   ) {
-    const copyHitChance = forecastCombatSkillAccuracyForTarget(
-      prepared,
-      action,
-      actorId,
-      evaluation.primaryCombatantId,
-      PV1F_COMBAT_CONTENT,
-    )
-    if (copyHitChance) {
-      evaluation = {
-        ...evaluation,
-        targetHitChances: [...(evaluation.targetHitChances ?? []), copyHitChance].sort(
-          (left, right) => left.targetCombatantId.localeCompare(right.targetCombatantId),
-        ),
-        projectionsAssumeHits: true,
-      }
-    }
-  }
-  if (copyEffect && evaluation.legal) {
-    const primary = evaluation.primaryCombatantId
-    const copyContext = options.copyContext
-    if (!primary || !copyContext || copyContext.sourceCombatantId !== primary) {
-      evaluation = {
-        ...evaluation,
-        legal: false,
-        issues: [
-          ...evaluation.issues,
-          {
-            code: 'requirement-not-met',
-            message: "Copy requires the selected unit's committed regular Skill snapshot.",
-          },
-        ],
-      }
-    } else {
-      const preview = previewCombatSkillCopy({
-        state: prepared,
-        actorCombatantId: actorId,
-        sourceCombatantId: primary,
-        sourceSkills: copyContext.sourceSkills,
-        actorCommittedSkills: copyContext.actorCommittedSkills,
-      })
-      if (preview.issues.length > 0) {
-        evaluation = {
-          ...evaluation,
-          legal: false,
-          issues: [
-            ...evaluation.issues,
-            {
-              code: 'requirement-not-met',
-              message: preview.issues[0]!.message,
-            },
-          ],
-        }
-      } else {
-        evaluation = { ...evaluation, skillCopy: preview }
-      }
-    }
-  }
-  // Specialized effects are materialized outside legacy resolution. Forecast their pinned
-  // scheduling without spawning entities, selecting a random copied Skill, or spending RNG.
-  if (evaluation.legal) {
     const activationRound = prepared.tactical.battle.round + 1
-    if (
-      copyEffect &&
-      evaluation.skillCopy &&
-      combatEffectTimingMode(prepared.effectTimingPolicy, 'copy') === 'next-round'
-    )
-      evaluation = {
-        ...evaluation,
-        projectedEffects: [
-          ...evaluation.projectedEffects,
-          {
-            effectType: 'copy',
-            statusId: 'copy',
-            combatantId: actorId,
-            before: 'none',
-            after: 'pending',
-            activationRound,
-            durationScope: 'battle',
-          },
-        ],
-      }
-    if (
-      definition.effects.some((effect) => effect.type === 'summon') &&
-      definition.summonProfile &&
-      combatEffectTimingMode(prepared.effectTimingPolicy, 'summon') === 'next-round'
-    )
-      evaluation = {
-        ...evaluation,
-        projectedEffects: [
-          ...evaluation.projectedEffects,
-          {
-            effectType: 'summon',
-            statusId: 'summon',
-            combatantId: actorId,
-            before: 'none',
-            after: 'pending',
-            activationRound,
-            remainingOwnerTurnEnds: definition.summonProfile.lifetimeTurns,
-          },
-        ],
-      }
+    evaluation = {
+      ...evaluation,
+      projectedEffects: [
+        ...evaluation.projectedEffects,
+        {
+          effectType: 'summon',
+          statusId: 'summon',
+          combatantId: actorId,
+          before: 'none',
+          after: 'pending',
+          activationRound,
+          remainingOwnerTurnEnds: definition.summonProfile.lifetimeTurns,
+        },
+      ],
+    }
   }
   const evaluatedWithVengeance =
     evaluation.legal && vengeance.basis.length > 0
@@ -1106,27 +995,7 @@ export function executePv1fMatureSkill(
   if (!actorId) throw new Error('Mature Skill execution requires an active turn.')
   const resonance = committedResonanceForecast(prepared, definition, target)
 
-  const copySourceId = evaluation.skillCopy?.sourceCombatantId ?? null
-  const ordinaryAccuracyCoversCopy =
-    copySourceId !== null &&
-    action.accuracyMode === 'per-target' &&
-    evaluateCombatAction(prepared, action, target, PV1F_COMBAT_CONTENT).targetHitChances?.some(
-      (chance) => chance.targetCombatantId === copySourceId,
-    ) === true
-  const dedicatedCopyAccuracy =
-    copySourceId && action.accuracyMode === 'per-target' && !ordinaryAccuracyCoversCopy
-      ? rollCombatSkillAccuracyForTarget(
-          prepared,
-          action,
-          actorId,
-          copySourceId,
-          PV1F_COMBAT_CONTENT,
-        )
-      : { state: prepared, event: null }
-  const executionState = reattachStatDrivenCombatBridge(
-    dedicatedCopyAccuracy.state,
-    prepared.statBridge,
-  )
+  const executionState = prepared
   const resonanceRequiresHit =
     (resonance?.forecast.willActivate && resonanceTriggerRequiresHit(resonance.definition)) ||
     options.resonanceRequiresHit
@@ -1147,9 +1016,7 @@ export function executePv1fMatureSkill(
   const resonanceActivated =
     resonance?.forecast.willActivate &&
     (!resonanceRequiresHit || resolved.hitDependentEffectsActivated === true)
-  const resolutionEvents = dedicatedCopyAccuracy.event
-    ? [dedicatedCopyAccuracy.event, ...resolved.events]
-    : resolved.events
+  const resolutionEvents = resolved.events
   const mediaResolutionEvents = resolutionEvents.map((event) =>
     definition.media.audioCueKey &&
     typeof event === 'object' &&
@@ -1215,68 +1082,6 @@ export function executePv1fMatureSkill(
     ? clearLastMatureSkill(next, actorId)
     : markLastMatureSkill(next, actorId, options.repeatHistoryKey ?? definition.id)
 
-  let copyEvent: unknown = null
-  if (evaluation.skillCopy && options.copyContext) {
-    const missed = mediaResolutionEvents.some(
-      (event) =>
-        typeof event === 'object' &&
-        event !== null &&
-        'event' in event &&
-        event.event === 'combat_accuracy_resolved' &&
-        'targetCombatantId' in event &&
-        event.targetCombatantId === evaluation.skillCopy!.sourceCombatantId &&
-        'hit' in event &&
-        event.hit === false,
-    )
-    if (!missed) {
-      const copied = commitCombatSkillCopy({
-        state: next,
-        actorCombatantId: actorId,
-        sourceCombatantId: options.copyContext.sourceCombatantId,
-        sourceSkills: options.copyContext.sourceSkills,
-        actorCommittedSkills: options.copyContext.actorCommittedSkills,
-      })
-      if (
-        copied.event &&
-        combatEffectTimingMode(next.effectTimingPolicy, 'copy') === 'next-round'
-      ) {
-        const grant = normalizeCombatEffectState(copied.state.effectState).temporarySkills.find(
-          (row) =>
-            row.combatantId === copied.event!.combatantId &&
-            row.skillId === copied.event!.skillId &&
-            row.contentVersion === copied.event!.contentVersion,
-        )
-        if (!grant) throw new Error('Copied Skill receipt has no pinned grant.')
-        next = {
-          ...copied.state,
-          effectState: {
-            ...normalizeCombatEffectState(copied.state.effectState),
-            temporarySkills: normalizeCombatEffectState(next.effectState).temporarySkills,
-          },
-          pendingSkillGrants: [
-            ...(next.pendingSkillGrants ?? []),
-            {
-              grant: { ...grant },
-              activationRound: next.tactical.battle.round + 1,
-              sourceCommandVisibility: combatSourceCommandVisibility(prepared, actorId),
-            },
-          ],
-        }
-        copyEvent = {
-          event: 'effect_pending',
-          actionId: definition.id,
-          sourceCombatantId: actorId,
-          targetCombatantId: actorId,
-          effectTag: 'copy',
-          activationRound: next.tactical.battle.round + 1,
-        }
-      } else {
-        next = copied.state
-        copyEvent = copied.event
-      }
-    }
-  }
-
   if (
     resonance &&
     (resonanceActivated || resonance.forecast.willExpireArmedSetup || resonance.forecast.willArm)
@@ -1338,7 +1143,6 @@ export function executePv1fMatureSkill(
             },
           ]
         : []),
-      ...(copyEvent ? [copyEvent] : []),
       ...(repeatPenaltyApplied
         ? [
             {
@@ -1352,54 +1156,6 @@ export function executePv1fMatureSkill(
       { event: 'action_economy_spent', combatantId: actorId, amount: cost, remaining },
     ],
   }
-}
-
-export function evaluatePv1fCopiedSkill(
-  state: StatDrivenCombatEncounterState,
-  definition: MatureSkillDefinition,
-  target: CombatTargetSelection,
-  combatContext: MatureSkillCombatContext = 'pve',
-  copyContext?: Pv1fMatureSkillCopyContext,
-) {
-  const actorId = state.tactical.battle.currentTurn?.combatantId
-  if (!actorId) throw new Error('Copied Skill evaluation requires an active turn.')
-  const held = normalizeCombatEffectState(state.effectState).temporarySkills.some(
-    (grant) =>
-      grant.combatantId === actorId &&
-      grant.skillId === definition.id &&
-      grant.contentVersion === definition.contentVersion,
-  )
-  if (!held) throw new Error('That copied Skill is not granted to the active combatant.')
-  return evaluatePv1fMatureSkill(state, definition, target, combatContext, {
-    apCostOverride: copiedSkillApCost(definition, combatContext),
-    actionIdOverride: copiedSkillCommandId(definition.id, definition.contentVersion),
-    repeatHistoryKey: copiedSkillUsageKey(definition.id, definition.contentVersion),
-    ...(copyContext ? { copyContext } : {}),
-  })
-}
-
-export function executePv1fCopiedSkill(
-  state: StatDrivenCombatEncounterState,
-  definition: MatureSkillDefinition,
-  target: CombatTargetSelection,
-  combatContext: MatureSkillCombatContext = 'pve',
-  copyContext?: Pv1fMatureSkillCopyContext,
-): Pv1fTransition {
-  const actorId = state.tactical.battle.currentTurn?.combatantId
-  if (!actorId) throw new Error('Copied Skill execution requires an active turn.')
-  const held = normalizeCombatEffectState(state.effectState).temporarySkills.some(
-    (grant) =>
-      grant.combatantId === actorId &&
-      grant.skillId === definition.id &&
-      grant.contentVersion === definition.contentVersion,
-  )
-  if (!held) throw new Error('That copied Skill is not granted to the active combatant.')
-  return executePv1fMatureSkill(state, definition, target, combatContext, {
-    apCostOverride: copiedSkillApCost(definition, combatContext),
-    actionIdOverride: copiedSkillCommandId(definition.id, definition.contentVersion),
-    repeatHistoryKey: copiedSkillUsageKey(definition.id, definition.contentVersion),
-    ...(copyContext ? { copyContext } : {}),
-  })
 }
 
 /** Shared by authoritative movement and board highlights; does not spend resources. */
@@ -1845,7 +1601,6 @@ function scaleRepeatedMatureSkillEffects(
       effect.type === 'displace' ||
       effect.type === 'poison' ||
       effect.type === 'burn' ||
-      effect.type === 'copy' ||
       effect.type === 'copy-statuses' ||
       effect.type === 'sensory'
     ) {

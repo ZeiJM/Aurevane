@@ -368,11 +368,9 @@ describe('P2.4 battle session service', () => {
     expect(input.requestFingerprint).toMatch(/^sha256:[0-9a-f]{64}$/)
 
     const persistedSnapshot = input.initialSnapshot as StatDrivenCombatEncounterState
-    expect(persistedSnapshot.copyPolicyVersion).toBe(1)
     expect(persistedSnapshot.statBalancePolicyVersion).toBe(1)
     expect(persistedSnapshot.effectStackingPolicyVersion).toBe(1)
     expect(result.snapshot.effectStackingPolicyVersion).toBe(1)
-    expect(result.snapshot.copyPolicyVersion).toBe(1)
     const player = persistedSnapshot.tactical.battle.combatants.find(
       (combatant) => combatant.id === `character:${CHARACTER_ID}`,
     )

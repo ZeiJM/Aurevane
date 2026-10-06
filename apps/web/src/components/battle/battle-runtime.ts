@@ -36,13 +36,6 @@ export interface BattleTechniquePresentation extends BattleSkillForecastPresenta
   category: BattleTechniqueCategory
 }
 
-export interface BattleCopiedSkillPresentation extends BattleSkillForecastPresentation {
-  contentVersion: number
-  sourceSkillId: string
-  sourceDisciplineId: string
-  category: BattleTechniqueCategory
-}
-
 export interface BattleResonancePresentation {
   definition?: AnyResonanceDefinition
   id: string
@@ -60,7 +53,6 @@ export interface BattleEssencePresentation extends BattleSkillForecastPresentati
 interface BattleBuildPresentation {
   supportActionId?: SupportActionId
   techniques?: readonly BattleTechniquePresentation[]
-  copiedSkills?: readonly BattleCopiedSkillPresentation[]
   resonance?: BattleResonancePresentation | null
   essence?: BattleEssencePresentation | null
 }

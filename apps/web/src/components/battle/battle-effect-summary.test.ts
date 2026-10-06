@@ -56,7 +56,7 @@ describe('battle effect summary', () => {
     ])
   })
 
-  it('compounds recorded Guard/Expose potency instead of the catalog defaults', () => {
+  it('compounds recorded Guard/Vulnerable potency instead of the catalog defaults', () => {
     expect(
       summarizeBattleEffects([
         { statusId: 'guarded', statusVersion: 1, stacks: 2, potencyBasisPoints: 1000 },
@@ -146,7 +146,7 @@ describe('battle effect summary', () => {
 
   it('keeps different lifetime scopes distinct even when required legacy sentinels match', () => {
     const battle = {
-      statusId: 'copy',
+      statusId: 'guarded',
       statusVersion: 1,
       stacks: 1,
       remainingOwnerTurnStarts: 1,
@@ -164,12 +164,11 @@ describe('battle effect summary', () => {
 
 it.each([
   ['guarded', 'Guard'],
-  ['lowered-guard', 'Off-guard'],
-  ['exposed', 'Expose'],
-  ['hexed', 'Hex'],
-  ['inspired', 'Inspire'],
-  ['invisible', 'Ghost'],
-  ['summoned', 'Summon'],
+  ['lowered-guard', 'Defenseless'],
+  ['exposed', 'Vulnerable'],
+  ['hexed', 'Healing Down'],
+  ['inspired', 'Damage Up'],
+  ['invisible', 'Invisible'],
 ])('shows compact active-status label for %s', (id, label) => {
   expect(statusLabel(id)).toBe(label)
 })

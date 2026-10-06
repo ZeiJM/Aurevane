@@ -803,32 +803,6 @@ it('rolls resistance only for the successful hostile area recipient', () => {
   expect(result.state.tactical.battle.rng).toEqual(advanceBattleRng(hitTarget.state).state)
 })
 
-it('copies beneficial effects without a Status Resistance roll or donor mutation', () => {
-  const state = resistingWorld()
-  state.copyPolicyVersion = 1
-  const donor = {
-    statusId: 'test.buff',
-    statusVersion: 1,
-    stacks: 1,
-    remainingOwnerTurnStarts: 2,
-    sourceCombatantId: 'other',
-  }
-  state.statusState = state.statusState.map((row) =>
-    row.combatantId === 'target' ? { ...row, statuses: [donor] } : row,
-  )
-  const result = cast(state, action([{ type: 'copy', recipient: 'primary-unit' }]))
-  expect(resistanceEvents(result.events)).toEqual([])
-  expect(result.state.tactical.battle.rng).toEqual(state.tactical.battle.rng)
-  expect(result.state.statusState.find((row) => row.combatantId === 'target')?.statuses).toEqual([
-    donor,
-  ])
-  expect(
-    result.state.statusState
-      .find((row) => row.combatantId === 'actor')
-      ?.statuses.map((status) => status.statusId),
-  ).toEqual(['test.buff'])
-})
-
 it('filters scheduled Poison at cast time and does not reroll when resistance rises before activation', () => {
   const state = resistingWorld()
   state.effectTimingPolicy = { version: 1, modes: { poison: 'next-round' } }

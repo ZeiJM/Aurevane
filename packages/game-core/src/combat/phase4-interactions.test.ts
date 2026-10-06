@@ -245,27 +245,17 @@ describe('Phase 4 gameplay interactions', () => {
     )
     expect(hp(healed.state, 'actor')).toBe(31)
   })
-  it('creates dispellable Summoned protection without adding an actor or turn', () => {
+  it('removes historical Summoned protection from combat content', () => {
+    expect(PV1F_COMBAT_CONTENT.statuses.some((status) => status.id === 'summoned')).toBe(false)
     const state = withStatus(encounter(), 'enemy', 'summoned')
-    expect(
-      hp(
-        executeCombatAction(
-          state,
-          action([{ type: 'damage', recipient: 'primary-unit', amount: 20 }]),
-          target,
-          PV1F_COMBAT_CONTENT,
-        ).state,
+    expect(() =>
+      executeCombatAction(
+        state,
+        action([{ type: 'damage', recipient: 'primary-unit', amount: 20 }]),
+        target,
+        PV1F_COMBAT_CONTENT,
       ),
-    ).toBe(8)
-    const removed = executeCombatAction(
-      state,
-      action([{ type: 'remove-status', recipient: 'primary-unit', statusIds: ['summoned'] }]),
-      target,
-      PV1F_COMBAT_CONTENT,
-    )
-    expect(statuses(removed.state)).toEqual([])
-    expect(removed.state.tactical.battle.turnNumber).toBe(state.tactical.battle.turnNumber)
-    expect(removed.state.tactical.battle.combatants).toHaveLength(4)
+    ).toThrow('Retired combat status is unsupported')
   })
 })
 
@@ -472,16 +462,27 @@ describe('Phase 4 edge contracts', () => {
     expect(steamed.state.tactical.battle.combatants).toEqual(state.tactical.battle.combatants)
   })
   it('caps Inspired and storm together with existing conditional modifiers and reads typed opponent aliases', () => {
-    let state = withStatus(
+    const state = withStatus(
       withStatus(withStatus(encounter(), 'actor', 'reckless'), 'actor', 'inspired'),
       'enemy',
       'wet',
     )
-    state = withStatus(state, 'enemy', 'marked')
+    const boosted = {
+      ...state,
+      statusState: state.statusState.map((row) => ({
+        ...row,
+        statuses: row.statuses.map((status) =>
+          status.statusId === 'inspired' ? { ...status, potencyBasisPoints: 2000 } : status,
+        ),
+      })),
+    }
+    expect(conditionalDamageMultiplier(boosted, 'actor', 'enemy', PV1F_COMBAT_CONTENT, 12000)).toBe(
+      20000,
+    )
     const storm = action([
       { type: 'damage', recipient: 'primary-unit', amount: 5, element: 'storm' },
     ])
-    expect(hp(executeCombatAction(state, storm, target, PV1F_COMBAT_CONTENT).state)).toBe(15)
+    expect(hp(executeCombatAction(boosted, storm, target, PV1F_COMBAT_CONTENT).state)).toBe(15)
     const tagged = withStatus(withStatus(encounter(), 'actor', 'warded'), 'enemy', 'burn')
     const content = {
       statuses: PV1F_COMBAT_CONTENT.statuses.map((status) =>
@@ -530,8 +531,19 @@ describe('Phase 4 edge contracts', () => {
     expect(hp(result.state)).toBe(25)
     expect(statuses(result.state, 'actor')).toEqual([])
     expect(readPv1fActionEconomy(result.state)?.current).toBe(70)
-    const healing = withStatus(withStatus(encounter(), 'actor', 'regeneration'), 'actor', 'hexed')
-    expect(hp(finishPv1fTurn(healing, 'east').state, 'actor')).toBe(28)
+    const healing = executeCombatAction(
+      withStatus(encounter(), 'actor', 'hexed'),
+      action([{ type: 'healing', recipient: 'actor', amount: 4, ticks: 2 }]),
+      target,
+      PV1F_COMBAT_CONTENT,
+    ).state
+    let recoveryState: StatDrivenCombatEncounterState = { ...healing, statBridge: miss.statBridge }
+    expect(hp(recoveryState, 'actor')).toBe(28)
+    recoveryState = finishPv1fTurn(recoveryState, 'east').state
+    expect(hp(recoveryState, 'actor')).toBe(28)
+    for (let turn = 0; turn < 4; turn += 1)
+      recoveryState = finishPv1fTurn(recoveryState, 'east').state
+    expect(hp(recoveryState, 'actor')).toBe(31)
   })
   it.each([
     ['out-of-bounds', { x: 4, y: 1 }, null],

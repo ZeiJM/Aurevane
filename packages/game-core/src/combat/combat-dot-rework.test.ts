@@ -254,7 +254,6 @@ describe('current Poison runtime', () => {
         ],
         bleed: [],
         burn: [],
-        temporarySkills: [],
         damageHistory: [],
       },
     })

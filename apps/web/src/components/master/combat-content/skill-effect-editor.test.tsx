@@ -44,7 +44,6 @@ describe('Master Panel Skill effect editor', () => {
     ['burn', { type: 'burn', recipient: 'primary-unit', curseCopyable: true }],
     ['barrier-change', { type: 'barrier-change', recipient: 'actor', amount: 10 }],
     ['copy-statuses', { type: 'copy-statuses', recipient: 'primary-unit', mode: 'curse' }],
-    ['copy', { type: 'copy', recipient: 'primary-unit' }],
     ['sensory', { type: 'sensory', recipient: 'primary-unit', revealedDurationOwnerTurnStarts: 3 }],
   ] satisfies readonly [CombatEffectDefinition['type'], CombatEffectDefinition][])(
     'has an explicit %s editor branch',
@@ -145,17 +144,10 @@ describe('Master Panel Skill effect editor', () => {
       mode: 'amplify',
       allowNoEligibleEffects: true,
     })
-    expect(copy).toContain('aria-label="Status copy mode"')
-    expect(copy).toContain('<option value="amplify" selected="">Amplify</option>')
-    expect(copy).toContain('<option value="curse">Curse</option>')
+    expect(copy).toContain('aria-label="Copy mode"')
+    expect(copy).toContain('<option value="amplify" selected="">Copy Buffs</option>')
+    expect(copy).toContain('<option value="curse">Copy Debuffs</option>')
     expect(copy).toContain('aria-label="Allow empty status copy"')
-
-    const skillCopy = render({ type: 'copy', recipient: 'primary-unit' })
-    expect(skillCopy).toContain('Copy beneficial effect tags')
-    expect(skillCopy).toContain('Selected primary unit')
-    expect(skillCopy).toContain('beneficial effect tags')
-    expect(skillCopy).not.toContain('half AP rounded up')
-    expect(skillCopy).not.toContain('Status copy mode')
 
     const sensory = render({
       type: 'sensory',
@@ -182,7 +174,7 @@ describe('Master Panel Skill effect editor', () => {
       recipient: 'affected-tiles',
       terrain: 'frozen',
     })
-    expect(terrain).toContain('Frozen terrain')
+    expect(terrain).toContain('Frozen Ground')
     expect(terrain).toContain('Affected tiles')
 
     const bleed = render({

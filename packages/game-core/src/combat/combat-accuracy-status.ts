@@ -27,7 +27,6 @@ export function validateCombatAccuracyStatusDefinition(status: CombatStatusDefin
     status.damageTakenMultiplierBasisPoints !== 10_000 ||
     (status.damageModifiers?.length ?? 0) > 0 ||
     status.endOfTurn !== undefined ||
-    status.nextRoundInitiative !== undefined ||
     status.movement !== undefined ||
     status.absorbHpBasisPoints !== undefined ||
     status.absorbMpBasisPoints !== undefined ||

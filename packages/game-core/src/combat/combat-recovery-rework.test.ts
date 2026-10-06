@@ -467,15 +467,17 @@ describe('Heal X and MP Rec X execution', () => {
     state = end(end(state))
     expect(value(state, 'target')).toBe(46)
   })
-  it('preserves legacy immediate recovery and Regeneration semantics', () => {
+  it('preserves immediate recovery without restoring retired Regeneration', () => {
     let state = cast(
-      status(encounter(), 'target', 'regeneration'),
+      encounter(),
       action([{ type: 'healing', recipient: 'primary-unit', amount: 8 }]),
     )
+    expect(value(state, 'target')).toBe(38)
     expect(state.effectState).toBeUndefined()
     state = end(end(state))
-    expect(value(state, 'target')).toBe(42)
+    expect(value(state, 'target')).toBe(38)
     expect(pending(state)).toHaveLength(0)
+    expect(PV1F_COMBAT_CONTENT.statuses.some((row) => row.id === 'regeneration')).toBe(false)
   })
   it.each([0, 5, -1, 1.5, NaN, Infinity])(
     'rejects malformed duration %s at the execution boundary',

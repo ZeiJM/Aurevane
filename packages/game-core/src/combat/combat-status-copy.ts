@@ -27,62 +27,20 @@ import {
   type CombatBleedStack,
   type CombatBurnInstance,
   type CombatPoisonInstance,
-  type CombatBarrierInstance,
-  type CombatOngoingRecovery,
 } from './combat-effect-state'
-import { currentBarrierAmount, grantBarrier } from './combat-barrier'
-import { replaceRecoverySchedule } from './combat-recovery'
 import { createCombatEffectInstanceProvenance } from './combat-kernel-types'
-import { combatEffectTimingTag } from './combat-effect-timing'
-
-export const CURRENT_COMBAT_COPY_POLICY_VERSION = 1 as const
-
-/** Absence retains the historical random temporary-Skill contract. */
-export function usesBeneficialCombatCopy(
-  state: Pick<CombatEncounterState, 'copyPolicyVersion'>,
-): boolean {
-  return state.copyPolicyVersion === CURRENT_COMBAT_COPY_POLICY_VERSION
-}
-
-/** Reuse the status transfer kernel without rewriting immutable authored Skill definitions. */
-export function materializeBeneficialCombatCopyAction(
-  state: Pick<CombatEncounterState, 'copyPolicyVersion'>,
-  action: CombatActionDefinition,
-): CombatActionDefinition {
-  if (!usesBeneficialCombatCopy(state) || !action.effects.some((effect) => effect.type === 'copy'))
-    return action
-  const rows = action.effects.map((effect, index) => ({
-    effect:
-      effect.type === 'copy'
-        ? {
-            type: 'copy-statuses' as const,
-            recipient: effect.recipient,
-            mode: 'amplify' as const,
-            beneficialEffects: true,
-          }
-        : effect,
-    origin: action.effectOrigins?.[index],
-    timingTag: action.effectTimingTags?.[index] ?? combatEffectTimingTag(effect),
-    copy: effect.type === 'copy',
-  }))
-  // The shared transfer operation executes first; all other authored effects retain their order.
-  const ordered = [...rows.filter((row) => row.copy), ...rows.filter((row) => !row.copy)]
-  return {
-    ...action,
-    effects: ordered.map((row) => row.effect),
-    effectOrigins: ordered.map((row) => row.origin),
-    effectTimingTags: ordered.map((row) => row.timingTag),
-  }
-}
 
 export interface CombatStatusCopyEffect {
   type: 'copy-statuses'
   recipient: 'primary-unit'
   mode: 'amplify' | 'curse'
-  /** Current Copy includes positive named buffs beyond the historical Amplify opt-in list. */
-  beneficialEffects?: boolean
   /** Composed commands may explicitly permit an empty clone block while later effects still matter. */
   allowNoEligibleEffects?: boolean
+}
+
+function assertCurrentStatusCopyEffect(effect: CombatStatusCopyEffect): void {
+  if ('beneficialEffects' in effect)
+    throw new TypeError('Retired beneficial-effects Copy is unsupported.')
 }
 
 /** Copying remains single-unit and copy-first while composition is introduced incrementally. */
@@ -100,12 +58,7 @@ export function validateCombatStatusCopyAction(action: CombatActionDefinition): 
 
   const entry = copyEntries[0]!
   const effect = entry.effect
-  if (
-    (effect.beneficialEffects !== undefined && typeof effect.beneficialEffects !== 'boolean') ||
-    (effect.beneficialEffects === true && effect.mode !== 'amplify')
-  ) {
-    throw new TypeError('Beneficial effect copying requires a boolean Amplify policy.')
-  }
+  assertCurrentStatusCopyEffect(effect)
   if (
     effect.allowNoEligibleEffects !== undefined &&
     typeof effect.allowNoEligibleEffects !== 'boolean'
@@ -118,9 +71,8 @@ export function validateCombatStatusCopyAction(action: CombatActionDefinition): 
   if (
     entry.index !== 0 ||
     action.sourceType === 'basic-attack' ||
-    (effect.beneficialEffects === true
-      ? !['unit', 'ground-tile'].includes(action.target.kind)
-      : action.target.kind !== 'unit' || action.target.shape.kind !== 'single') ||
+    action.target.kind !== 'unit' ||
+    action.target.shape.kind !== 'single' ||
     effect.recipient !== 'primary-unit' ||
     (effect.mode !== 'amplify' && effect.mode !== 'curse')
   ) {
@@ -134,7 +86,7 @@ function isCopyable(definition: CombatStatusDefinition, effect: CombatStatusCopy
   const mode = effect.mode
   const permitted = mode === 'amplify' ? definition.amplifyCopyable : definition.curseCopyable
   return (
-    (effect.beneficialEffects === true || permitted === true) &&
+    permitted === true &&
     definition.polarity === (mode === 'amplify' ? 'positive' : 'negative') &&
     (definition.reactionClass === undefined ||
       definition.reactionClass === 'ordinary' ||
@@ -285,16 +237,9 @@ interface CombatCopyPlan {
   poisons: readonly PoisonCopy[]
   burns: readonly BurnCopy[]
   bleed: readonly BleedCopy[]
-  barriers: readonly {
-    donor: CombatBarrierInstance
-    previous: CombatBarrierInstance | undefined
-    appliedAmount: number
-    applicationOrder?: number
-  }[]
-  recovery: readonly { donor: CombatOngoingRecovery; previous: CombatOngoingRecovery | undefined }[]
 }
 
-/** Current Copy includes persistent benefits; historical modes keep their pinned eligibility. */
+/** Copy Buffs and Copy Debuffs preserve the authored Amplify/Curse eligibility contract. */
 export function planCombatStatusCopies(
   state: CombatEncounterState,
   actorId: string,
@@ -302,6 +247,7 @@ export function planCombatStatusCopies(
   effect: CombatStatusCopyEffect,
   content: CombatContentCatalog,
 ): CombatCopyPlan {
+  assertCurrentStatusCopyEffect(effect)
   const donorId = effect.mode === 'amplify' ? selectedId : actorId
   const receiverId = effect.mode === 'amplify' ? actorId : selectedId
   if (donorId === receiverId)
@@ -313,8 +259,6 @@ export function planCombatStatusCopies(
       poisons: [],
       burns: [],
       bleed: [],
-      barriers: [],
-      recovery: [],
     }
   const donors = state.statusState.find((row) => row.combatantId === donorId)?.statuses ?? []
   const receiver = state.statusState.find((row) => row.combatantId === receiverId)?.statuses ?? []
@@ -370,9 +314,6 @@ export function planCombatStatusCopies(
         ...(donor.sourceScopedMark === true ? { sourceScopedMark: true as const } : {}),
         statusId: donor.statusId,
         statusVersion: donor.statusVersion,
-        ...(effect.beneficialEffects === true && donor.potencyBasisPoints !== undefined
-          ? { potencyBasisPoints: donor.potencyBasisPoints }
-          : {}),
         stacks,
         ...(usesUnlimitedCombatEffectStacking(state)
           ? {
@@ -447,83 +388,7 @@ export function planCombatStatusCopies(
   const poison = poisons[0]
   const burn = burns[0]
   const bleed = planBleedCopies(state, donorId, receiverId, effect.mode)
-  const persistent = normalizeCombatEffectState(state.effectState)
-  let barrierCapacity =
-    effect.beneficialEffects === true
-      ? Math.max(
-          0,
-          (state.tactical.battle.combatants.find((row) => row.id === receiverId)?.maxHp ?? 0) -
-            currentBarrierAmount(state, receiverId),
-        )
-      : 0
-  let barrierTotal = BigInt(currentBarrierAmount(state, receiverId))
-  let nextBarrierOrder: number | undefined
-  const barriers =
-    effect.beneficialEffects === true
-      ? (persistent.barriers ?? [])
-          .filter((row) => row.targetCombatantId === donorId && row.amount > 0)
-          .sort(
-            (left, right) =>
-              left.sourceActionId.localeCompare(right.sourceActionId) ||
-              left.sourceCombatantId.localeCompare(right.sourceCombatantId) ||
-              (left.applicationOrder ?? 0) - (right.applicationOrder ?? 0),
-          )
-          .map((donor, index) => {
-            const appliedAmount = independent
-              ? donor.amount
-              : Math.min(donor.amount, barrierCapacity)
-            if (independent) {
-              barrierTotal += BigInt(appliedAmount)
-              if (barrierTotal > BigInt(Number.MAX_SAFE_INTEGER))
-                throw new RangeError('Copied Barrier total exceeds the safe integer range.')
-              nextBarrierOrder ??= nextCombatDotApplicationOrder(persistent.barriers ?? [])
-              if (!Number.isSafeInteger(nextBarrierOrder + index))
-                throw new RangeError(
-                  'Copied Barrier application order exceeds the safe integer range.',
-                )
-            } else barrierCapacity -= appliedAmount
-            return {
-              donor,
-              appliedAmount,
-              ...(independent ? { applicationOrder: nextBarrierOrder! + index } : {}),
-              previous: independent
-                ? undefined
-                : persistent.barriers?.find(
-                    (row) =>
-                      row.targetCombatantId === receiverId &&
-                      row.sourceCombatantId === actorId &&
-                      row.sourceActionId === donor.sourceActionId,
-                  ),
-            }
-          })
-      : []
-  const recovery =
-    effect.beneficialEffects === true
-      ? persistent.ongoingRecovery
-          .filter(
-            (row) =>
-              row.targetCombatantId === donorId &&
-              row.remainingFutureTicks > 0 &&
-              row.amountPerTick > 0,
-          )
-          .sort(
-            (left, right) =>
-              left.kind.localeCompare(right.kind) ||
-              left.sourceActionId.localeCompare(right.sourceActionId),
-          )
-          .map((donor) => ({
-            donor,
-            previous: independent
-              ? undefined
-              : persistent.ongoingRecovery.find(
-                  (row) =>
-                    row.targetCombatantId === receiverId &&
-                    row.kind === donor.kind &&
-                    row.sourceActionId === donor.sourceActionId,
-                ),
-          }))
-      : []
-  return { receiverId, copies, poison, burn, poisons, burns, bleed, barriers, recovery }
+  return { receiverId, copies, poison, burn, poisons, burns, bleed }
 }
 
 function statusSummary(status: CombatStatusInstance | undefined): string {
@@ -537,23 +402,15 @@ export function applyCombatStatusCopies(
   actionId: string,
   effect: CombatStatusCopyEffect,
   content: CombatContentCatalog,
-  resolvingPending = false,
 ): CombatResolutionTransition & { projections: CombatEffectProjection[] } {
-  const { receiverId, copies, poisons, burns, bleed, barriers, recovery } = planCombatStatusCopies(
+  const { receiverId, copies, poisons, burns, bleed } = planCombatStatusCopies(
     state,
     actorId,
     selectedId,
     effect,
     content,
   )
-  if (
-    copies.length === 0 &&
-    poisons.length === 0 &&
-    burns.length === 0 &&
-    bleed.length === 0 &&
-    barriers.length === 0 &&
-    recovery.length === 0
-  ) {
+  if (copies.length === 0 && poisons.length === 0 && burns.length === 0 && bleed.length === 0) {
     if (effect.allowNoEligibleEffects === true) {
       return { state, events: [], projections: [] }
     }
@@ -645,88 +502,6 @@ export function applyCombatStatusCopies(
       true,
     )
   }
-  const persistentEvents: CombatResolutionTransition['events'][number][] = []
-  const persistentProjections: CombatEffectProjection[] = []
-  for (const { donor, applicationOrder } of barriers) {
-    const granted = grantBarrier(
-      copiedState,
-      actorId,
-      receiverId,
-      donor.sourceActionId,
-      donor.amount,
-    )
-    copiedState = granted.state
-    if (granted.applied > 0) {
-      const persistent = normalizeCombatEffectState(copiedState.effectState)
-      copiedState = {
-        ...copiedState,
-        effectState: {
-          ...persistent,
-          barriers: persistent.barriers?.map((row) => {
-            if (
-              row.targetCombatantId !== receiverId ||
-              row.sourceCombatantId !== actorId ||
-              row.sourceActionId !== donor.sourceActionId ||
-              (independent && row.applicationOrder !== applicationOrder)
-            )
-              return row
-            const fresh = { ...row }
-            delete fresh.provenance
-            return fresh
-          }),
-        },
-      }
-    }
-    persistentProjections.push({
-      effectType: 'copy-statuses',
-      combatantId: receiverId,
-      before: `barrier:${granted.before}`,
-      after: `barrier:${granted.after}`,
-      statusId: 'barrier',
-      durationScope: 'until-spent',
-    })
-    persistentEvents.push({
-      event: 'barrier_changed',
-      actionId,
-      sourceCombatantId: actorId,
-      targetCombatantId: receiverId,
-      amount: granted.applied,
-      before: granted.before,
-      after: granted.after,
-    })
-  }
-  for (const { donor, previous } of recovery) {
-    copiedState = replaceRecoverySchedule(copiedState, {
-      kind: donor.kind,
-      sourceCombatantId: actorId,
-      targetCombatantId: receiverId,
-      sourceActionId: donor.sourceActionId,
-      amountPerTick: donor.amountPerTick,
-      remainingFutureTicks: donor.remainingFutureTicks,
-      ...(!resolvingPending && state.tactical.battle.currentTurn?.combatantId === receiverId
-        ? { skipCurrentOwnerTurnEnd: true }
-        : {}),
-    })
-    persistentProjections.push({
-      effectType: 'copy-statuses',
-      combatantId: receiverId,
-      before: previous
-        ? `recovery:${previous.kind}:${previous.amountPerTick}:${previous.remainingFutureTicks}`
-        : 'none',
-      after: `recovery:${donor.kind}:${donor.amountPerTick}:${donor.remainingFutureTicks}`,
-      statusId: donor.kind === 'hp' ? 'healing' : 'mp-recovery',
-      remainingOwnerTurnEnds: donor.remainingFutureTicks,
-    })
-    persistentEvents.push({
-      event: 'recovery_scheduled',
-      actionId,
-      sourceCombatantId: actorId,
-      targetCombatantId: receiverId,
-      resource: donor.kind,
-      amountPerTick: donor.amountPerTick,
-      remainingFutureTicks: donor.remainingFutureTicks,
-    })
-  }
   return {
     state: copiedState,
     events: [
@@ -744,10 +519,8 @@ export function applyCombatStatusCopies(
         refreshed: previous !== undefined,
         stacked: previous !== undefined && next.stacks > previous.stacks,
       })),
-      ...persistentEvents,
     ],
     projections: [
-      ...persistentProjections,
       ...copies.map(({ previous, next }) => ({
         effectType: 'copy-statuses' as const,
         combatantId: receiverId,
@@ -788,8 +561,13 @@ export function attachCombatStatusCopyProvenance(
   content: CombatContentCatalog,
   context: CombatResolutionContext,
 ): CombatEncounterState {
-  const { receiverId, copies, poison, burn, poisons, burns, bleed, barriers, recovery } =
-    planCombatStatusCopies(before, actorId, selectedId, effect, content)
+  const { receiverId, copies, poison, burn, poisons, burns, bleed } = planCombatStatusCopies(
+    before,
+    actorId,
+    selectedId,
+    effect,
+    content,
+  )
   const assignments = new Map(
     copies.map((copy, copyOrdinal) => [copy.next.statusId, { copy, copyOrdinal }]),
   )
@@ -815,91 +593,6 @@ export function attachCombatStatusCopyProvenance(
         }
       : row,
   )
-  if (barriers.length || recovery.length) {
-    const persistent = normalizeCombatEffectState(after.effectState)
-    const copiedProvenance = (
-      donor: { provenance?: CombatBarrierInstance['provenance'] },
-      previous: { provenance?: CombatBarrierInstance['provenance'] } | undefined,
-      copyOrdinal: number,
-    ) =>
-      createCombatEffectInstanceProvenance({
-        action: context.provenance,
-        targetCombatantId: receiverId,
-        effectOrdinal: 0,
-        copyOrdinal,
-        createdRound: before.tactical.battle.round,
-        createdTurn: before.tactical.battle.turnNumber,
-        copiedFromInstanceId: donor.provenance?.instanceId,
-        inheritedFromInstanceId: previous?.provenance?.instanceId,
-      })
-    after = {
-      ...after,
-      effectState: {
-        ...persistent,
-        barriers: persistent.barriers?.map((row) => {
-          if (row.targetCombatantId !== receiverId || row.sourceCombatantId !== actorId) return row
-          if (usesUnlimitedCombatEffectStacking(before)) {
-            const index = barriers.findIndex(
-              (copy) => copy.applicationOrder === row.applicationOrder,
-            )
-            const copy = barriers[index]
-            return copy
-              ? {
-                  ...row,
-                  provenance: copiedProvenance(copy.donor, undefined, copies.length + index),
-                }
-              : row
-          }
-          let index = barriers.length - 1
-          while (
-            index >= 0 &&
-            (barriers[index]!.donor.sourceActionId !== row.sourceActionId ||
-              barriers[index]!.appliedAmount === 0)
-          )
-            index -= 1
-          const copy = barriers[index]
-          return copy
-            ? {
-                ...row,
-                provenance: copiedProvenance(copy.donor, copy.previous, copies.length + index),
-              }
-            : row
-        }),
-        ongoingRecovery: (() => {
-          const prior = new Set(normalizeCombatEffectState(before.effectState).ongoingRecovery)
-          const usedCopies = new Set<number>()
-          return persistent.ongoingRecovery.map((row) => {
-            if (
-              row.targetCombatantId !== receiverId ||
-              row.sourceCombatantId !== actorId ||
-              (usesUnlimitedCombatEffectStacking(before) && prior.has(row))
-            )
-              return row
-            const index = recovery.findIndex(
-              (copy, candidateIndex) =>
-                !usedCopies.has(candidateIndex) &&
-                copy.donor.kind === row.kind &&
-                copy.donor.sourceActionId === row.sourceActionId &&
-                (!usesUnlimitedCombatEffectStacking(before) ||
-                  (copy.donor.amountPerTick === row.amountPerTick &&
-                    copy.donor.remainingFutureTicks === row.remainingFutureTicks)),
-            )
-            const copy = recovery[index]
-            if (!copy) return row
-            usedCopies.add(index)
-            return {
-              ...row,
-              provenance: copiedProvenance(
-                copy.donor,
-                copy.previous,
-                copies.length + barriers.length + index,
-              ),
-            }
-          })
-        })(),
-      },
-    }
-  }
   if (!poison && !burn && bleed.length === 0) return { ...after, statusState }
   const dotProvenance = (copy: PoisonCopy | BurnCopy, copyOrdinal: number) =>
     createCombatEffectInstanceProvenance({

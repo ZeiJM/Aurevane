@@ -52,7 +52,6 @@ export function projectBattleStatusStateForViewer(
     | 'terrainOverlays'
     | 'pendingEffects'
     | 'pendingSummons'
-    | 'pendingSkillGrants'
   >,
   viewer: BattleViewerEntitlement,
 ): BattleStatusState {
@@ -117,8 +116,7 @@ export function projectBattleStatusStateForViewer(
     const covert = row.statuses.some(
       (status) => status.statusId === PV1F_COVERT_STATUS.id && status.timingState !== 'pending',
     )
-    if (!covert)
-      return { ...row, statuses: row.statuses.filter((status) => status.statusId !== 'copy') }
+    if (!covert) return row
 
     return {
       ...row,
@@ -195,12 +193,6 @@ export function projectBattleEffectStateForViewer(
           ),
         }
       : {}),
-    temporarySkills: state.effectState.temporarySkills.filter((grant) => {
-      const holder = combatantById.get(grant.combatantId)
-      if (!holder) return false
-      const relationship = battleViewerRelationship(viewer, holder)
-      return relationship === 'self' || relationship === 'ally'
-    }),
   }
 }
 
@@ -209,14 +201,12 @@ export function omitPendingBattlePayloads<
   T extends {
     pendingEffects?: unknown
     pendingSummons?: unknown
-    pendingSkillGrants?: unknown
     buildAuthority?: unknown
   },
 >(state: T): T {
   const projected = { ...state }
   delete projected.pendingEffects
   delete projected.pendingSummons
-  delete projected.pendingSkillGrants
   const authority = projected.buildAuthority
   if (
     authority &&

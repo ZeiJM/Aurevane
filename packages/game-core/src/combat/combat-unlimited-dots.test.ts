@@ -241,7 +241,6 @@ describe('unlimited independent DoT applications', () => {
         type: 'copy-statuses',
         recipient: 'primary-unit',
         mode: 'amplify',
-        beneficialEffects: true,
       },
       content,
     ).state
@@ -308,75 +307,6 @@ describe('unlimited independent DoT applications', () => {
       { stacks: 5, sourceCombatantId: 'actor', potencyBasisPoints: 800 },
     ])
     expect(copied.statusState[0]!.statuses).toEqual([first, second])
-  })
-
-  it('copies repeated recovery applications and leaves existing recipient lineage intact', () => {
-    const provenance = createCombatActionProvenance({
-      rulesetVersion: 2,
-      sourceKind: 'test',
-      actionDefinitionId: 'copy',
-      actionVersion: 1,
-      sourceCombatantId: 'actor',
-      controllerCombatantId: 'actor',
-      triggerChainId: 'copy-chain',
-    })
-    const context = {
-      provenance,
-      triggerGuard: createCombatTriggerGuard({ triggerChainId: 'copy-chain' }),
-    }
-    const lineage = (id: string, ordinal: number) =>
-      createCombatEffectInstanceProvenance({
-        action: provenance,
-        targetCombatantId: id,
-        effectOrdinal: ordinal,
-        createdRound: 1,
-        createdTurn: 1,
-      })
-    const state = world()
-    const old = {
-      kind: 'hp' as const,
-      sourceCombatantId: 'actor',
-      targetCombatantId: 'actor',
-      sourceActionId: 'healing',
-      amountPerTick: 5,
-      remainingFutureTicks: 2,
-      provenance: lineage('actor', 0),
-    }
-    const donors = [2, 7, 11, 13].map((amountPerTick, index) => ({
-      ...old,
-      amountPerTick,
-      targetCombatantId: 'target',
-      sourceCombatantId: 'target',
-      provenance: lineage('target', index),
-    }))
-    state.effectState!.ongoingRecovery = [old, ...donors]
-    const effect = {
-      type: 'copy-statuses' as const,
-      recipient: 'primary-unit' as const,
-      mode: 'amplify' as const,
-      beneficialEffects: true,
-    }
-    const copied = applyCombatStatusCopies(state, 'actor', 'target', 'copy', effect, {
-      statuses: [],
-    }).state
-    const attributed = attachCombatStatusCopyProvenance(
-      state,
-      copied,
-      'actor',
-      'target',
-      effect,
-      { statuses: [] },
-      context,
-    )
-    const rows = attributed.effectState!.ongoingRecovery.filter(
-      (row) => row.targetCombatantId === 'actor',
-    )
-    expect(rows.map((row) => row.amountPerTick)).toEqual([5, 2, 7, 11, 13])
-    expect(rows[0]!.provenance).toEqual(old.provenance)
-    expect(rows.slice(1).map((row) => row.provenance?.copiedFromInstanceId)).toEqual(
-      donors.map((row) => row.provenance.instanceId),
-    )
-    expect(new Set(rows.map((row) => row.provenance?.instanceId)).size).toBe(5)
   })
 
   it('assigns distinct Curse lineage to each copied application without reattributing recipient effects', () => {

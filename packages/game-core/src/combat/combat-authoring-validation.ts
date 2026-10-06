@@ -1,3 +1,4 @@
+import { assertCurrentCombatStatusId } from './retired-combat-statuses'
 import { validateCombatStatusCopyAction } from './combat-status-copy'
 import { validateCombatAccuracyDefinition } from './combat-skill-accuracy'
 import { validateVengeanceActionDefinition } from './combat-vengeance'
@@ -27,10 +28,6 @@ export function validateCombatActionDefinition(
   action: CombatActionDefinition,
   content?: CombatContentCatalog,
 ): void {
-  const copyEffects = action.effects.filter((effect) => effect.type === 'copy')
-  if (copyEffects.length > 1) {
-    throw new TypeError('A combat action may contain at most one Copy effect.')
-  }
   validateCombatStatusCopyAction(action)
   validateVengeanceActionDefinition(action)
   validateCsrActionDefinition(action)
@@ -101,6 +98,7 @@ export function validateCombatActionDefinition(
     )
     if ('statusId' in requirement) {
       requiredIdentity(requirement.statusId, 'requirement status ID')
+      assertCurrentCombatStatusId(requirement.statusId)
       if (content) statusById(content, requirement.statusId)
     }
     if ('tag' in requirement) validateGameplayTag(requirement.tag)
@@ -128,26 +126,12 @@ export function validateCombatActionDefinition(
         'burn',
         'barrier-change',
         'copy-statuses',
-        'copy',
         'sensory',
       ],
       'effect type',
     )
 
     if (effect.type === 'create-terrain') continue
-
-    if (effect.type === 'copy') {
-      if (
-        effect.recipient !== 'primary-unit' ||
-        (action.target.kind !== 'unit' && action.target.kind !== 'ground-tile') ||
-        action.target.teamPolicy === 'self'
-      ) {
-        throw new TypeError(
-          'Copy requires a selected non-self unit or an occupied ground tile as its Skill source.',
-        )
-      }
-      continue
-    }
 
     if (effect.type === 'displace' && content) statusById(content, 'displaced')
 
@@ -192,6 +176,7 @@ export function validateCombatActionDefinition(
       }
       for (const id of effect.statusIds) {
         requiredIdentity(id, 'removed status ID')
+        assertCurrentCombatStatusId(id)
         if (content) statusById(content, id)
       }
     }
@@ -203,6 +188,7 @@ export function validateCombatActionDefinition(
     }
     if (effect.type === 'apply-status') {
       requiredIdentity(effect.statusId, 'effect status ID')
+      assertCurrentCombatStatusId(effect.statusId)
       positiveSafeInteger(effect.stacks, 'effect status stacks')
       if (content) statusById(content, effect.statusId)
       validateBleedAuthoring(effect)
@@ -213,6 +199,7 @@ export function validateCombatActionDefinition(
 export function validateCombatStatusDefinition(status: CombatStatusDefinition): void {
   validateCombatAccuracyStatusDefinition(status)
   requiredIdentity(status.id, 'status id')
+  assertCurrentCombatStatusId(status.id)
   positiveSafeInteger(status.version, 'status version')
   positiveSafeInteger(status.maximumStacks, 'status maximum stacks')
   positiveSafeInteger(status.durationOwnerTurnStarts, 'status duration')
@@ -297,19 +284,6 @@ export function validateCombatStatusDefinition(status: CombatStatusDefinition): 
 
   if (status.damageModifiers?.length && status.maximumStacks !== 1) {
     throw new TypeError('Conditional damage statuses must be single-stack.')
-  }
-
-  if (
-    status.nextRoundInitiative !== undefined &&
-    (!Number.isSafeInteger(status.nextRoundInitiative) ||
-      Math.abs(status.nextRoundInitiative) > 40 ||
-      status.nextRoundInitiative === 0 ||
-      status.maximumStacks !== 1 ||
-      status.endOfTurn)
-  ) {
-    throw new RangeError(
-      'Round initiative status must be single-stack, non-periodic and bounded to +/-40.',
-    )
   }
 
   if (status.endOfTurn) {

@@ -22,7 +22,7 @@ function timingLabel(tag: string): string {
     'remove-status': 'Cleanse / remove status',
     'copy-statuses': 'Amplify / Curse copy',
     copy: 'Skill copy',
-    sensory: 'Sensory',
+    sensory: 'Reveal',
     summon: 'Summon',
   }
   return names[tag] ?? combatStatusDetails(tag).name

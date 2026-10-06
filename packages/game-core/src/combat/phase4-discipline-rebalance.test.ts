@@ -262,11 +262,6 @@ describe('Phase 4 current Discipline Skill rebalance', () => {
             amount: 4,
             ticks: 2,
           }),
-          expect.objectContaining({
-            type: 'apply-status',
-            recipient: 'primary-unit',
-            statusId: 'summoned',
-          }),
         ],
       }),
     )

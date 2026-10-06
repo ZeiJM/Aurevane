@@ -320,18 +320,6 @@ export function buildBattlePrivacyJournalInput(input: {
       ? teamVisibility(actor.actorTeamId)
       : publicVisibility()
   const sensoryPublicIndexes = sensoryPublicEventIndexes(input.events)
-  const gainsCovert = new Set(
-    input.before.copyPolicyVersion === 1
-      ? input.events.flatMap((raw) => {
-          const event = objectValue(raw)
-          return event?.event === 'status_applied' &&
-            event.statusId === PV1F_COVERT_STATUS.id &&
-            typeof event.targetCombatantId === 'string'
-            ? [event.targetCombatantId]
-            : []
-        })
-      : [],
-  )
   const eventVisibilityOverrides: BattlePrivacyEventOverride[] = []
 
   input.events.forEach((raw, eventIndex) => {
@@ -344,8 +332,7 @@ export function buildBattlePrivacyJournalInput(input: {
 
     const targetCombatantId = lifecycleTarget(event)
     if (!targetCombatantId) return
-    const targetWasCovert =
-      hasCovert(statusesByCombatant, targetCombatantId) || gainsCovert.has(targetCombatantId)
+    const targetWasCovert = hasCovert(statusesByCombatant, targetCombatantId)
     const identity = statusLifecycleIdentityBeforeOrAfter({
       event,
       targetCombatantId,

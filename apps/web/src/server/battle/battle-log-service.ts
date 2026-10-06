@@ -1,6 +1,6 @@
 import { combatInteractionDescription } from '../../lib/battle/combat-interaction-presentation'
-import { parseCopiedSkillCommandId } from '@aurevane/game-core/combat/combat-skill-copy'
 import { combatStatusDetails, PHASE4_STATUSES } from '@aurevane/game-core/combat/status-content'
+import { combatStatusPresentationTag } from '@aurevane/game-core/combat/gameplay-tags'
 import type { CombatEffectOrigin } from '@aurevane/game-core/combat/actions'
 import 'server-only'
 
@@ -96,9 +96,7 @@ function combatantLabel(value: unknown): string {
 }
 
 function presentationActionId(value: unknown): string | null {
-  const actionId = stringValue(value)
-  if (!actionId) return null
-  return parseCopiedSkillCommandId(actionId)?.skillId ?? actionId
+  return stringValue(value)
 }
 
 function actionLabel(value: unknown): string {
@@ -123,15 +121,8 @@ function actionKind(value: unknown): BattleLogKind {
 }
 
 function statusLabel(value: unknown): string {
-  if (value === 'beneficial-copy') return combatStatusDetails(value).name
-  if (value === 'guarded') return 'Guarded'
-  if (value === 'lowered-guard') return 'Lowered Guard'
   if (typeof value !== 'string' || value.length === 0) return 'Status'
-  return value
-    .split(/[._-]+/u)
-    .filter(Boolean)
-    .map((part) => part[0]?.toUpperCase() + part.slice(1))
-    .join(' ')
+  return combatStatusPresentationTag(value)
 }
 
 function recruitReasonLabel(value: unknown): string {
@@ -488,31 +479,6 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
     }
     case 'action_spent':
       return null
-    case 'temporary_skill_copied': {
-      const actorCombatantId = stringValue(event.combatantId)
-      const sourceCombatantId = stringValue(event.sourceCombatantId)
-      const skillId = stringValue(event.skillId)
-      const contentVersion = numberValue(event.contentVersion)
-      if (!skillId || contentVersion === null) return null
-      const label = actionLabel(skillId)
-      const version = `v${contentVersion}`
-      return createEntry(record, eventType, {
-        message: `${combatantLabel(actorCombatantId)} copied ${label} (${version}) for this battle.`,
-        messageTemplate: '{actor} copied {action} ({version}) for this battle.',
-        templateValues: { action: label, version },
-        actorCombatantId,
-        targetCombatantId: sourceCombatantId,
-        actionId: skillId,
-        actionLabel: label,
-        kind: 'system',
-        headline: 'Copied Skill',
-        tone: 'benefit',
-        facts: [
-          { label, tone: 'benefit' },
-          { label: version, tone: 'neutral' },
-        ],
-      })
-    }
     case 'combat_action_used': {
       const actorCombatantId = stringValue(event.actorId)
       const actionId = presentationActionId(event.actionId)
@@ -889,22 +855,22 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
               .replace(/(\.\d*[1-9])0+$/u, '$1')}× damage`
       return createEntry(record, eventType, {
         message: stacked
-          ? `${combatantLabel(event.combatantId)} stacked Lowered Guard${stacks === null ? '' : ` to ×${stacks}`} after the turn timer expired.`
-          : `${combatantLabel(event.combatantId)} gained Lowered Guard after the turn timer expired.`,
+          ? `${combatantLabel(event.combatantId)} stacked Defenseless${stacks === null ? '' : ` to ×${stacks}`} after the turn timer expired.`
+          : `${combatantLabel(event.combatantId)} gained Defenseless after the turn timer expired.`,
         messageTemplate: stacked
           ? "{target}'s {status} stacks to ×{stacks}."
-          : '{target} gained Lowered Guard.',
+          : '{target} gained Defenseless.',
         templateValues: {
-          status: 'Lowered Guard',
+          status: 'Defenseless',
           statusChange: stacked ? 'STACKED' : 'APPLIED',
           ...(stacks === null ? {} : { stacks: String(stacks) }),
         },
         targetCombatantId,
         kind: 'status',
-        headline: 'Lowered Guard',
+        headline: 'Defenseless',
         tone: 'warning',
         facts: [
-          ...fact('Lowered Guard', 'warning'),
+          ...fact('Defenseless', 'warning'),
           ...fact(stacks !== null && stacks > 1 ? `×${stacks} stacks` : null),
           ...fact(remaining === null ? null : `${remaining} turn${remaining === 1 ? '' : 's'}`),
           ...fact(multiplierLabel, 'warning'),
@@ -1090,7 +1056,6 @@ export function createViewerSafeBattleLogService(
         projected,
         authority.buildAuthority,
         resolver,
-        authority.copyPolicyVersion ?? null,
       )
     },
   }

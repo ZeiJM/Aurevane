@@ -12,16 +12,14 @@ describe('Combat v5 Nexus and Technique presentation contracts', () => {
 
     expect(source).toContain('focusedSkill.definition.flavorLine')
     expect(source.replace(/\s+/gu, ' ')).toContain(
-      'skillParameterRows( focusedSkill.definition, focusedSkill.definition, timingPolicy, copyPolicyVersion,',
+      'skillParameterRows(focusedSkill.definition, focusedSkill.definition, timingPolicy)',
     )
     const parameters = readFileSync(join(here, 'skill-detail-presentation.ts'), 'utf8')
     expect(parameters).toContain("'Skill Type': skillParameterTypeDescription(skill)")
     expect(parameters).toContain(
       'Cooldown: skillCooldownDescription(skill, costs.cooldownOwnerTurns)',
     )
-    expect(parameters).toContain(
-      'Effects: skillEffectsSummary(skill, timingPolicy, copyPolicyVersion)',
-    )
+    expect(parameters).toContain('Effects: skillEffectsSummary(skill, timingPolicy)')
     expect(source).toContain('className={styles.effectSummaryList}')
     expect(source).toContain('aria-label="Effect explanations"')
   })

@@ -297,7 +297,6 @@ describe('P3.7 direct PvP committed build snapshots', () => {
       mocks.mapSize = size
       await startPvpLobbyWithQuality(hostUserId, lobbyId)
       const state = mocks.createdBattleArgs!.p_initial_snapshot as BattleAuthoritativeEncounterState
-      expect(state.copyPolicyVersion).toBe(1)
       expect(state.statBalancePolicyVersion).toBe(1)
       expect(state.effectStackingPolicyVersion).toBe(1)
       expect(state.tactical).toMatchObject({ width, height: 7 })

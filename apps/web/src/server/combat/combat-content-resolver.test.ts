@@ -257,7 +257,7 @@ describe('combat content resolver', () => {
   it('derives read-only presentation tags from target/effects instead of stored manual tags', () => {
     const definition = staticSkill('vanguard.forceful-strike', 2)
 
-    expect(deriveSkillPresentationTags(definition)).toEqual(['Enemy', 'Single', 'Dmg'])
+    expect(deriveSkillPresentationTags(definition)).toEqual(['Enemy', 'Single', 'Dmg [12]'])
   })
 
   it('prefers published current Essence and Resonance definitions over static content', async () => {

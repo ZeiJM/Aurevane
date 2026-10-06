@@ -110,7 +110,6 @@ function movementEncounter(actorHp = 30): StatDrivenCombatEncounterState {
       ],
       bleed: [],
       burn: [],
-      temporarySkills: [],
       damageHistory: [],
     },
   }

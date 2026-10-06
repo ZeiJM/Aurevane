@@ -564,7 +564,6 @@ describe('Mark and Blind: authoring and snapshot guards', () => {
     { reactionClass: 'reactive' },
     { damageTakenMultiplierBasisPoints: 12_500 },
     { endOfTurn: { type: 'damage', amount: 5 } },
-    { nextRoundInitiative: -5 },
     { blindAccuracyPenaltyBasisPoints: 1_500 },
   ]
   it.each(invalidProfiles)('rejects mixed, stacking or nonordinary Mark definition %j', (patch) => {
@@ -839,27 +838,12 @@ describe('Mark and Blind: command and lifecycle interactions', () => {
       expect(JSON.stringify(state)).toBe(before)
     },
   )
-  it('preserves real published historical Mark source-only damage vulnerability', () => {
-    const definition = PV1F_COMBAT_CONTENT.statuses.find((status) => status.id === 'marked')
-    expect(definition).toBeDefined()
-    const content = { statuses: [definition!] }
-    const first = apply(world(10_000, 0), 'marked', 'target', content)
-    expect(chance(first, content)).toBe(10_000)
-    const own = executeCombatAction(
-      first,
-      { ...attack(), accuracyMode: 'automatic' },
-      TARGET,
-      content,
-    )
-    expect(own.state.tactical.battle.combatants.find((unit) => unit.id === 'target')?.hp).toBe(76)
-    const otherTurn = advanceTo(first, 'ally', content)
-    const ally = executeCombatAction(
-      otherTurn,
-      { ...attack(), accuracyMode: 'automatic' },
-      TARGET,
-      content,
-    )
-    expect(ally.state.tactical.battle.combatants.find((unit) => unit.id === 'target')?.hp).toBe(80)
+  it('removes historical damage-vulnerability Mark while retaining current Accuracy Mark', () => {
+    expect(PV1F_COMBAT_CONTENT.statuses.some((status) => status.id === 'marked')).toBe(false)
+    expect(PV1F_COMBAT_CONTENT.statuses.find((status) => status.id === 'mark')).toMatchObject({
+      curseCopyable: true,
+    })
+    expect(() => apply(world(10_000, 0), 'marked', 'target', PV1F_COMBAT_CONTENT)).toThrow()
   })
 })
 

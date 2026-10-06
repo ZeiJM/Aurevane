@@ -17,23 +17,17 @@ const identifiers: Readonly<Record<string, string>> = {
   inspired: 'INS',
   hexed: 'HEX',
   invisible: 'GHO',
-  summoned: 'SUM',
   airborne: 'AIR',
   displaced: 'DIS',
   haste: 'HST',
-  hastened: 'HSN',
-  delayed: 'DEL',
-  'borrowed-hour': 'BOR',
   burn: 'BUR',
   bleed: 'BLE',
   poison: 'POI',
-  regeneration: 'REG',
   slow: 'SLO',
   root: 'ROO',
   reckless: 'REC',
   fortified: 'FOR',
   challenged: 'CHA',
-  marked: 'MK1',
   mark: 'MRK',
   warded: 'WAR',
   blind: 'BLI',
@@ -50,8 +44,6 @@ const identifiers: Readonly<Record<string, string>> = {
   'return-to-turn-start': 'RET',
   'remove-status': 'CLR',
   'copy-statuses': 'ECP',
-  copy: 'CPY',
-  'beneficial-copy': 'BCP',
   sensory: 'SEN',
   summon: 'ENT',
 }
@@ -111,12 +103,9 @@ export function describeBattleEffect(effect: BattlePresentedStatus) {
     const definition = PHASE4_STATUSES.find(
       (item) => item.id === effect.statusId && item.version === effect.statusVersion,
     )
-    duration =
-      definition?.nextRoundInitiative !== undefined
-        ? 'Until the next round starts'
-        : definition?.endOfTurn
-          ? `${count} affected-turn-end tick${count === 1 ? '' : 's'} remaining`
-          : `${count} affected-unit turn start${count === 1 ? '' : 's'} remaining`
+    duration = definition?.endOfTurn
+      ? `${count} affected-turn-end tick${count === 1 ? '' : 's'} remaining`
+      : `${count} affected-unit turn start${count === 1 ? '' : 's'} remaining`
   }
   return {
     ...identity,

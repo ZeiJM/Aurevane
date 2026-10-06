@@ -86,17 +86,12 @@ const baseAction: CombatActionDefinition = {
 }
 
 describe('canonical delayed effects through the shared Chronicle projection', () => {
-  it.each([
-    { statusId: 'poison' as const, copied: false },
-    { statusId: 'burn' as const, copied: false },
-    { statusId: 'poison' as const, copied: true },
-    { statusId: 'burn' as const, copied: true },
-  ])(
-    'renders the pinned title from actual $statusId ticks (copied=$copied)',
-    async ({ statusId, copied }) => {
+  it.each(['poison' as const, 'burn' as const])(
+    'renders the pinned title from actual %s ticks',
+    async (statusId) => {
       const skillId = 'vanguard.forceful-strike'
-      const contentVersion = copied ? 7 : 12
-      const actionId = copied ? `temporary.copy.${skillId}.v${contentVersion}` : skillId
+      const contentVersion = 12
+      const actionId = skillId
       const pinned = {
         ...resolveMatureSkillVersion(skillId, 2)!,
         contentVersion,
@@ -133,23 +128,7 @@ describe('canonical delayed effects through the shared Chronicle projection', ()
           })),
         )
       }
-      const history = copied
-        ? [
-            {
-              battleVersion: 0,
-              eventIndex: 0,
-              createdAt: '2026-10-04T00:00:00Z',
-              event: {
-                event: 'temporary_skill_copied',
-                combatantId: 'character:zei',
-                sourceCombatantId: 'recruit:weon',
-                skillId,
-                contentVersion,
-              },
-            },
-            ...records,
-          ]
-        : records
+      const history = records
       const authority: BattleHistoryPrivacyAuthority = {
         viewer: createSpectatorBattleViewerEntitlement(),
         journals: [...new Set(history.map((record) => record.battleVersion))].map(
@@ -177,9 +156,9 @@ describe('canonical delayed effects through the shared Chronicle projection', ()
               fingerprint: 'private',
               primary: { disciplineId: 'vanguard', definitionVersion: 1, profileVersion: 1 },
               secondary: null,
-              disciplineSkills: copied
-                ? []
-                : [{ slotIndex: 1, skillId, contentVersion, sourceDisciplineId: 'vanguard' }],
+              disciplineSkills: [
+                { slotIndex: 1, skillId, contentVersion, sourceDisciplineId: 'vanguard' },
+              ],
               extensions: { essence: null, resonance: null },
             },
           ],

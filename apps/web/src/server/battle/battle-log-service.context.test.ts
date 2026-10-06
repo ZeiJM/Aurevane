@@ -64,7 +64,6 @@ async function getLog(
   resolvePinnedSkillDefinition: CombatContentResolver['resolvePinnedSkillDefinition'],
   options: {
     hidden?: boolean
-    copyPolicyVersion?: 1
     legacy?: boolean
     build?: BattleBuildAuthoritySnapshot
     resolver?: Partial<CombatContentResolver>
@@ -73,7 +72,6 @@ async function getLog(
 ) {
   const authority: BattleHistoryPrivacyAuthority = {
     viewer: createSpectatorBattleViewerEntitlement(),
-    ...(options.copyPolicyVersion ? { copyPolicyVersion: options.copyPolicyVersion } : {}),
     journals: [
       {
         schemaVersion: 1,
@@ -137,54 +135,7 @@ describe('recorded Battle Log Skill context', () => {
     },
   )
 
-  it('resolves copied periodic source identity only after its visible versioned grant', async () => {
-    const copiedId = `temporary.copy.${SKILL}.v7`
-    const events = [
-      {
-        event: 'temporary_skill_copied',
-        combatantId: ACTOR,
-        sourceCombatantId: OTHER,
-        skillId: SKILL,
-        contentVersion: 7,
-      },
-      { event: 'combat_action_used', actorId: ACTOR, actionId: copiedId },
-      {
-        event: 'persistent_effect_applied',
-        sourceCombatantId: ACTOR,
-        targetCombatantId: OTHER,
-        actionId: copiedId,
-        statusId: 'poison',
-      },
-      {
-        event: 'damage_applied',
-        sourceCombatantId: ACTOR,
-        targetCombatantId: OTHER,
-        actionId: 'status.poison.current.v1',
-        sourceActionId: copiedId,
-        statusId: 'poison',
-        amount: 4,
-      },
-    ]
-    const resolve = vi.fn(async () => definition({ contentVersion: 7 }))
-    const result = await getLog(
-      events.map((event, index) => record(event, index)),
-      resolve,
-    )
-    const tick = result.entries.find((entry) => entry.periodicStatusId === 'poison')!
-    expect(tick.actionContext).toMatchObject({
-      skillId: SKILL,
-      name: 'Forceful Strike',
-      contentVersion: 7,
-    })
-    const withoutGrant = await getLog(
-      events.slice(1).map((event, index) => record(event, index)),
-      resolve,
-    )
-    expect(
-      withoutGrant.entries.find((entry) => entry.periodicStatusId === 'poison')?.actionContext,
-    ).toBeUndefined()
-  })
-  it('uses the pinned actor pronouns for the canonical Lowered Guard system action', async () => {
+  it('uses the pinned actor pronouns for the canonical Defenseless system action', async () => {
     const build = buildAuthority()
     build.combatants[0]!.narratorIdentity = { name: 'Zei', pronounPresetId: 'he_him' }
     const result = await getLog(
@@ -223,7 +174,7 @@ describe('recorded Battle Log Skill context', () => {
     const actions = buildBattleChronicle(result.entries)[0].actors[0].actions
     expect(actions).toHaveLength(1)
     expect(actions[0]).toMatchObject({
-      title: 'Lowered Guard',
+      title: 'Defenseless',
       flavorTemplate: '{actor} lowered {actor.possessive} guard!',
     })
   })
@@ -363,16 +314,6 @@ describe('recorded Battle Log Skill context', () => {
         },
         1,
       ),
-      record(
-        {
-          event: 'temporary_skill_copied',
-          combatantId: ACTOR,
-          sourceCombatantId: OTHER,
-          skillId: SKILL,
-          contentVersion: 12,
-        },
-        2,
-      ),
     ]
     const visible = await getLog(events, async () => definition(), { build })
     expect(visible.entries[0]?.actionContext?.narrator).toEqual({
@@ -382,7 +323,6 @@ describe('recorded Battle Log Skill context', () => {
       name: 'Recorded Bryn',
       pronounPresetId: 'he_him',
     })
-    expect(visible.entries[2]?.actionContext?.narrator?.target).toBeUndefined()
     build.combatants[0]!.narratorIdentity!.name = 'Later rename'
     expect(visible.entries[0]?.actionContext?.narrator?.actor.name).toBe('Recorded Ari')
     const concealed = await getLog(events, async () => definition(), {
@@ -398,46 +338,6 @@ describe('recorded Battle Log Skill context', () => {
     expect(JSON.stringify(concealed)).not.toContain('Recorded Bryn')
   })
 
-  it('filters later delayed source-private receipts and copied grants before any enrichment or export facts', async () => {
-    const resolve = vi.fn(async () => definition())
-    const result = await getLog(
-      [
-        record({
-          event: 'status_applied',
-          sourceCombatantId: ACTOR,
-          targetCombatantId: OTHER,
-          actionId: SKILL,
-          statusId: 'hexed',
-          remainingOwnerTurnStarts: 1,
-          sourceCommandVisibility: { kind: 'team-only', teamId: 'team:a' },
-        }),
-        record(
-          {
-            event: 'temporary_skill_copied',
-            combatantId: ACTOR,
-            sourceCombatantId: OTHER,
-            skillId: SKILL,
-            contentVersion: 12,
-          },
-          1,
-        ),
-      ],
-      resolve,
-      {
-        eventVisibilityOverrides: [
-          {
-            eventIndex: 0,
-            visibility: { kind: 'team-only', teamId: 'team:a', requiredTeamIds: ['team:b'] },
-          },
-          { eventIndex: 1, visibility: { kind: 'team-only', teamId: 'team:a' } },
-        ],
-      },
-    )
-    expect(result.entries).toEqual([])
-    expect(resolve).not.toHaveBeenCalled()
-    expect(JSON.stringify(result)).not.toContain(SKILL)
-    expect(JSON.stringify(result)).not.toContain('hexed')
-  })
   it('projects only recorded Barrier grants, absorption and scheduled recovery quantities', async () => {
     const result = await getLog(
       [
@@ -846,59 +746,6 @@ describe('recorded Battle Log Skill context', () => {
     expect(JSON.stringify(result)).not.toContain('private_build')
   })
 
-  it('attributes actual effects only to exact actor pins or a preceding visible copied grant', async () => {
-    const effect = {
-      event: 'damage_applied',
-      sourceCombatantId: ACTOR,
-      targetCombatantId: OTHER,
-      actionId: SKILL,
-      amount: 8,
-      hpAfter: 92,
-    }
-    const origin = { family: 'skill', contentId: SKILL, contentVersion: 12 }
-    const valid = await getLog([record({ ...effect, effectOrigin: origin })], async () =>
-      definition(),
-    )
-    expect(valid.entries[0]?.effectOrigin).toEqual(origin)
-    for (const effectOrigin of [
-      { ...origin, contentVersion: 99 },
-      { ...origin, contentId: 'private.skill' },
-      { ...origin, secret: 'do-not-project' },
-    ]) {
-      const invalid = await getLog([record({ ...effect, effectOrigin })], async () => definition())
-      expect(invalid.entries[0]?.effectOrigin).toBeUndefined()
-      expect(invalid.entries[0]?.facts).toContainEqual({ label: '8 DMG', tone: 'damage' })
-    }
-    const borrowed = await getLog(
-      [record({ ...effect, sourceCombatantId: OTHER, effectOrigin: origin })],
-      async () => definition(),
-    )
-    expect(borrowed.entries[0]?.effectOrigin).toBeUndefined()
-    const copyOrigin = { ...origin, contentVersion: 7 }
-    const copyEvent = {
-      ...effect,
-      sourceCombatantId: OTHER,
-      actionId: `temporary.copy.${SKILL}.v7`,
-      effectOrigin: copyOrigin,
-    }
-    const copied = await getLog(
-      [
-        record({
-          event: 'temporary_skill_copied',
-          combatantId: OTHER,
-          sourceCombatantId: ACTOR,
-          skillId: SKILL,
-          contentVersion: 7,
-        }),
-        record(copyEvent, 1),
-      ],
-      async () => definition({ contentVersion: 7 }),
-    )
-    expect(copied.entries[1]?.effectOrigin).toEqual(copyOrigin)
-    const withoutGrant = await getLog([record(copyEvent)], async () => definition())
-    expect(withoutGrant.entries[0]?.effectOrigin).toBeUndefined()
-  })
-
   it('projects pending and actual persistent effects distinctly without authored magnitude substitution', async () => {
     const result = await getLog(
       [
@@ -998,62 +845,6 @@ describe('recorded Battle Log Skill context', () => {
     expect(result.entries[0]?.eventType).toBe('hidden_combat_action')
     expect(result.entries[0]?.actionContext).toBeUndefined()
     expect(JSON.stringify(result)).not.toContain(SKILL)
-    expect(resolve).not.toHaveBeenCalled()
-  })
-
-  it('retains a copied Skill exact identity from its visible grant and encoded command', async () => {
-    const result = await getLog(
-      [
-        record({
-          event: 'temporary_skill_copied',
-          combatantId: OTHER,
-          sourceCombatantId: ACTOR,
-          skillId: SKILL,
-          contentVersion: 7,
-        }),
-        record(
-          { event: 'combat_action_used', actorId: OTHER, actionId: `temporary.copy.${SKILL}.v7` },
-          1,
-        ),
-        record(
-          {
-            event: 'damage_applied',
-            sourceCombatantId: OTHER,
-            targetCombatantId: ACTOR,
-            actionId: `temporary.copy.${SKILL}.v7`,
-            amount: 8,
-            hpAfter: 92,
-          },
-          2,
-        ),
-      ],
-      async (skillId, version) =>
-        skillId === SKILL && version === 7
-          ? definition({ contentVersion: 7, flavorLine: 'Copied historical flavor.' })
-          : null,
-    )
-    expect(result.entries[1]?.actionId).toBe(SKILL)
-    expect(result.entries[1]?.actionContext).toMatchObject({
-      skillId: SKILL,
-      contentVersion: 7,
-      flavor: 'Copied historical flavor.',
-    })
-    expect(result.entries[2]?.actionContext?.contentVersion).toBe(7)
-  })
-
-  it('omits copied context when no visible matching grant establishes provenance', async () => {
-    const resolve = vi.fn(async () => definition({ contentVersion: 7 }))
-    const result = await getLog(
-      [
-        record({
-          event: 'combat_action_used',
-          actorId: OTHER,
-          actionId: `temporary.copy.${SKILL}.v7`,
-        }),
-      ],
-      resolve,
-    )
-    expect(result.entries[0]?.actionContext).toBeUndefined()
     expect(resolve).not.toHaveBeenCalled()
   })
 
@@ -1210,18 +1001,4 @@ describe('in-battle Skill text', () => {
         ?.target,
     ).toEqual(build.combatants[0]!.narratorIdentity)
   })
-})
-
-it('enriches Copy descriptions from the encounter policy, preserving historical Skill copying', async () => {
-  const skill = definition({
-    effects: [{ type: 'copy', recipient: 'primary-unit' }],
-    effectDescriptions: undefined,
-  })
-  const records = [record({ event: 'combat_action_used', actorId: ACTOR, actionId: SKILL })]
-  const historical = await getLog(records, async () => skill)
-  expect(historical.entries[0]?.actionContext?.description).toContain(
-    'one random eligible regular battle Skill',
-  )
-  const current = await getLog(records, async () => skill, { copyPolicyVersion: 1 })
-  expect(current.entries[0]?.actionContext?.description).toContain('active beneficial effect tags')
 })

@@ -18,7 +18,6 @@ export const COMBAT_EFFECT_TIMING_TAGS = [
     'return-to-turn-start',
     'remove-status',
     'copy-statuses',
-    'copy',
     'sensory',
     'summon',
     'guarded',
@@ -73,21 +72,16 @@ export function combatEffectTimingMode(
 }
 /** Presentation only: pending payloads never enter engine status rows. */
 export function pendingCombatStatusRows(
-  state: Pick<
-    CombatEncounterState,
-    'pendingEffects' | 'pendingSummons' | 'pendingSkillGrants' | 'tactical'
-  >,
+  state: Pick<CombatEncounterState, 'pendingEffects' | 'pendingSummons' | 'tactical'>,
 ): { combatantId: string; status: CombatStatusInstance }[] {
   const pendingRows = (state.pendingEffects ?? []).flatMap((pending) => {
     const effect = pending.effect
     const statusId =
-      effect.type === 'copy-statuses' && effect.beneficialEffects === true
-        ? 'beneficial-copy'
-        : effect.type === 'apply-status'
-          ? effect.statusId
-          : effect.type === 'barrier-change'
-            ? 'barrier'
-            : combatEffectTimingTag(effect)
+      effect.type === 'apply-status'
+        ? effect.statusId
+        : effect.type === 'barrier-change'
+          ? 'barrier'
+          : combatEffectTimingTag(effect)
     const definition = pending.content.statuses.find((status) => status.id === statusId)
     const tuning = effect as typeof effect & {
       durationTurns?: number
@@ -153,19 +147,6 @@ export function pendingCombatStatusRows(
   })
   return [
     ...pendingRows,
-    ...(state.pendingSkillGrants ?? []).map((row) => ({
-      combatantId: row.grant.combatantId,
-      status: {
-        statusId: 'copy',
-        durationScope: 'battle' as const,
-        statusVersion: 1,
-        stacks: 1,
-        sourceCombatantId: row.grant.sourceCombatantId,
-        remainingOwnerTurnStarts: 1,
-        activationRound: row.activationRound,
-        timingState: 'pending' as const,
-      },
-    })),
     ...(state.pendingSummons ?? []).map((row) => ({
       combatantId: row.input.ownerCombatantId,
       status: {
@@ -254,8 +235,6 @@ export function activePersistentCombatStatusRows(
         undefined,
         'until-spent',
       )
-  for (const grant of effects.temporarySkills)
-    append(grant.combatantId, 'copy', grant.sourceCombatantId, undefined, 'battle')
   for (const summon of effects.summons ?? [])
     append(
       summon.combatantId,

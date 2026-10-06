@@ -496,7 +496,7 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
               onChange={(event) => onChange({ ...value, statusId: event.currentTarget.value })}
             />
             <small className={styles.fieldHint}>
-              Includes authored statuses such as Covert; Revealed is Sensory-owned.
+              Includes authored statuses such as Covert; Revealed is Reveal-owned.
             </small>
           </label>
           <label className={styles.field}>
@@ -567,7 +567,7 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
         <div className={styles.effectStaticGrid}>
           <div className={styles.effectStatic}>
             <span>Terrain</span>
-            <strong>Frozen terrain</strong>
+            <strong>Frozen Ground</strong>
           </div>
           <div className={styles.effectStatic}>
             <span>Recipient</span>
@@ -732,9 +732,9 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
       controls = (
         <div className={styles.typedGrid}>
           <label className={styles.field}>
-            <span>Status copy mode</span>
+            <span>Copy mode</span>
             <select
-              aria-label="Status copy mode"
+              aria-label="Copy mode"
               value={value.mode}
               onChange={(event) =>
                 onChange({
@@ -743,8 +743,8 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
                 })
               }
             >
-              <option value="amplify">Amplify</option>
-              <option value="curse">Curse</option>
+              <option value="amplify">Copy Buffs</option>
+              <option value="curse">Copy Debuffs</option>
             </select>
           </label>
           <label className={styles.checkField}>
@@ -759,28 +759,7 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
             <span>Allow empty status copy on composed command</span>
           </label>
           <p className={styles.effectNote}>
-            Amplify/Curse clone their eligible active statuses. Copy transfers beneficial effect
-            tags from the target to the user.
-          </p>
-        </div>
-      )
-      break
-
-    case 'copy':
-      controls = (
-        <div className={styles.effectStaticGrid}>
-          <div className={styles.effectStatic}>
-            <span>Effect</span>
-            <strong>Copy beneficial effect tags</strong>
-          </div>
-          <div className={styles.effectStatic}>
-            <span>Source</span>
-            <strong>Selected primary unit</strong>
-          </div>
-          <p className={styles.effectNote}>
-            On a successful resolution, copies active beneficial effect tags from the selected unit
-            onto the user. The target keeps its effects; remaining durations are preserved.
-            Historical battles retain their recorded Copy behavior.
+            Copy Buffs/Copy Debuffs clone their eligible active statuses.
           </p>
         </div>
       )
@@ -810,7 +789,7 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
             />
           </label>
           <p className={styles.effectNote}>
-            Sensory conditionally purges eligible positive statuses, removes Covert, and applies
+            Reveal conditionally purges eligible positive statuses, removes Covert, and applies
             Revealed only on a successful hit against a Covert target.
           </p>
         </div>
@@ -828,7 +807,6 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
     'displace',
     'barrier-change',
     'copy-statuses',
-    'copy',
     'sensory',
   ].includes(value.type)
   const fixedTerrain = value.type === 'create-terrain'
@@ -889,7 +867,7 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
             {fixedImmediate
               ? 'Immediate effect; [0 Turns] is intentionally omitted in player-facing details.'
               : fixedTerrain
-                ? 'Frozen terrain uses the engine-owned two-round duration.'
+                ? 'Frozen Ground uses the engine-owned two-round duration.'
                 : 'Positive durations persist through that many future turns.'}
           </small>
         </label>
@@ -934,7 +912,7 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
               }
             />
             <small className={styles.fieldHint}>
-              Used by percentage-based statuses such as Guarded or Exposed. 15 = 15%.
+              Used by percentage-based statuses such as Guard or Vulnerable. 15 = 15%.
             </small>
           </label>
         ) : null}
