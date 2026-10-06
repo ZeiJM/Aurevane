@@ -1,6 +1,7 @@
 import 'server-only'
 import {
   parseCombatEffectTimingPolicy,
+  parseStoredCombatEffectTimingPolicy,
   defaultCombatEffectTimingPolicy,
   type CombatEffectTimingPolicy,
 } from '@aurevane/game-core/combat/combat-effect-timing'
@@ -19,7 +20,7 @@ export async function readCombatEffectTimingPolicy(): Promise<CombatEffectTiming
       'Combat timing configuration is unavailable.',
     )
   try {
-    return parseCombatEffectTimingPolicy(data)
+    return parseStoredCombatEffectTimingPolicy(data)
   } catch {
     throw new AurevaneError('PERSISTENCE_UNAVAILABLE', 'Combat timing configuration is invalid.')
   }
@@ -62,5 +63,5 @@ export async function publishCombatEffectTimingPolicy(input: {
       'PERSISTENCE_UNAVAILABLE',
       'Combat timing changes could not be published.',
     )
-  return parseCombatEffectTimingPolicy(data)
+  return parseStoredCombatEffectTimingPolicy(data)
 }

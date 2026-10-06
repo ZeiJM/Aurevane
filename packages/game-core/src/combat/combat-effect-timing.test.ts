@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { pendingCombatStatusRows } from './combat-effect-timing'
+import {
+  pendingCombatStatusRows,
+  parseCombatEffectTimingPolicy,
+  parseStoredCombatEffectTimingPolicy,
+} from './combat-effect-timing'
 import { createPendingBattle, startBattle } from './battle-state'
 import {
   createTacticalBattleState,
@@ -106,6 +110,29 @@ function end(state: CombatEncounterState) {
   ).state
 }
 describe('pinned next global round effect timing', () => {
+  it.each(['copy', 'regeneration', 'hastened', 'delayed', 'borrowed-hour', 'summoned', 'marked'])(
+    'ignores inert stored %s timing overrides without allowing new publication',
+    (tag) => {
+      const stored = { version: 3, modes: { [tag]: 'instant', summon: 'instant' } }
+      expect(parseStoredCombatEffectTimingPolicy(stored)).toEqual({
+        version: 3,
+        modes: { summon: 'instant' },
+      })
+      expect(() => parseCombatEffectTimingPolicy(stored)).toThrow()
+      expect(stored.modes[tag]).toBe('instant')
+    },
+  )
+  it('keeps an existing battle usable when its timing metadata names retired effects', () => {
+    const state = encounter()
+    state.effectTimingPolicy = {
+      version: 3,
+      modes: { copy: 'instant', summoned: 'instant', summon: 'instant' },
+    }
+    expect(validateCombatEncounterState(state)).toEqual([])
+    expect(
+      evaluateCombatAction(state, action, { kind: 'unit', combatantId: 'actor1' }, content).legal,
+    ).toBe(true)
+  })
   it.each(['regeneration', 'hastened', 'delayed', 'borrowed-hour', 'summoned', 'marked'])(
     'rejects queued retired %s even with its embedded historical catalog',
     (statusId) => {

@@ -20,7 +20,7 @@ import {
   COMBAT_EFFECT_TIMING_TAGS,
   combatEffectTimingMode,
   combatEffectTimingTag,
-  parseCombatEffectTimingPolicy,
+  parseStoredCombatEffectTimingPolicy,
   pendingCombatStatusRows,
   type CombatEffectTimingPolicy,
 } from './combat-effect-timing'
@@ -1434,7 +1434,7 @@ export function validateCombatEncounterState(
     })
   try {
     if (state.effectTimingPolicy !== undefined)
-      parseCombatEffectTimingPolicy(state.effectTimingPolicy)
+      parseStoredCombatEffectTimingPolicy(state.effectTimingPolicy)
   } catch {
     issues.push({ field: 'effectTimingPolicy', message: 'Invalid pinned effect timing policy.' })
   }

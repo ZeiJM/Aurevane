@@ -1,6 +1,17 @@
 # AUREVANE — Active Task Ledger
 
-## Battle effect vocabulary and legacy cleanup — 2026-10-05 (release verification)
+## Battle-tag follow-up access repair — 2026-10-06
+
+Production Nexus logs identify `effect_timing` persistence recovery. Read-only inspection confirms the published version-3 policy still contains obsolete `copy` and `summoned` timing overrides alongside the current `summon` override. Rejecting those inert keys blocked shared policy loading and saved-battle validation after the cleanup.
+
+- [x] Reproduce the exact Production payload failure in server policy loading and saved-battle validation.
+- [x] Ignore only retired timing metadata on persisted reads; preserve policy version/current overrides, strict new-publication validation and rejection of retired active/queued effects.
+- [ ] Complete full quality gates, review and exact-head CI; record repair release receipts in its PR.
+- [ ] Reproduce Owner-reported repeated custom portrait flicker in Chrome after browser reload (Edge reportedly stable). The current Owner portrait is animated WebP; no speculative rendering change is included. Local diagnostic browsing is blocked in this environment; a recording/actual-Chrome reproduction remains needed.
+
+No Production database mutation or migration is required by the access repair.
+
+## Battle effect vocabulary and legacy cleanup — 2026-10-05 (released)
 
 Owner-approved cleanup simplifies player-facing combat tags and removes obsolete compatibility mechanics. Values display as `Dmg [x]` / elemental `Dmg [x]`, `Heal [x]`, `MP Restore [x]`, `MP Drain [x]`; Push/Pull bracket values are tile distance. Approved presentation renames include Rewind, Reveal, HP/MP Leech, Copy Buffs/Copy Debuffs, Vulnerable, Defenseless, Chilled, Damage Up, Healing Down, Invisible, Rooted, Taunted, Burn Ward and Frozen Ground.
 
@@ -11,11 +22,11 @@ Owner-approved cleanup simplifies player-facing combat tags and removes obsolete
 - [x] Reconcile the task branch with current Main without overwriting newer work.
 - [x] Repair stale test/reference expectations and remove remaining generic Copy forecast compatibility.
 - [x] Reject retired generic Copy flags and retired active/queued status payloads; preserve current Mark, modern summons and eligible Copy Buffs/Copy Debuffs.
-- [ ] Complete exact-head CI before merge.
-- [ ] Finalize documentation/verification receipt and Owner review boundary.
-- [ ] Merge and deploy the verified revision under the Owner’s continuation authorization (“you are free to deploy when done”). No Production migration is authorized.
+- [x] Complete exact-head CI before merge.
+- [x] Finalize documentation/verification receipt and Owner review boundary.
+- [x] Merge and deploy the verified revision under the Owner’s continuation authorization (“you are free to deploy when done”). No Production migration is authorized.
 
-PR #839 tracks exact-head CI, review findings and the final release receipt. Focused saved-state regressions pass (98 tests); no Production migration is included. Deployment remains locked until the verified release.
+PR #839 records all twelve passing workflows on `fe7c1dc`, merge `3f934949c110f5c4b4d69ee88a082f863a725e37` and READY Production deployment `dpl_CW4qEWTVy4jxRQW3tnCEj4xwX2eT`. Public response checks and the short runtime scan passed; authenticated Production smoke was not completed. No Production migration ran; automatic deployments remained locked. The later access regression is tracked above.
 
 ## AFK Lowered Guard and Online Users EXP — 2026-10-05 (released)
 
