@@ -110,6 +110,42 @@ describe('P2.1 deterministic battle state', () => {
     expect(state.initiativeOrder).toEqual(['alpha', 'bravo', 'charlie'])
   })
 
+  it('randomizes equal initiative once at start without consuming combat RNG', () => {
+    const input = battleInput()
+    const combatants = input.combatants.map((unit) => ({ ...unit, initiative: 12 }))
+    const winners = new Set<string>()
+    for (let rngSeed = 1; rngSeed <= 100; rngSeed++) {
+      const pending = createPendingBattle({ ...input, rngSeed, combatants })
+      const started = startBattle(pending).state
+      winners.add(started.currentTurn!.combatantId)
+      expect(startBattle(pending).state).toEqual(started)
+      expect(started.rng).toEqual(pending.rng)
+      expect(validateBattleState(JSON.parse(JSON.stringify(started)))).toEqual([])
+      let next = endTurn(selectFinalFacing(started, 'east').state).state
+      next = endTurn(selectFinalFacing(next, 'east').state).state
+      expect(next.initiativeOrder).toEqual(started.initiativeOrder)
+      const changed = endTurn(selectFinalFacing(next, 'east').state).state
+      const reprioritized = endTurn(selectFinalFacing(changed, 'east').state, [
+        { combatantId: started.initiativeOrder[1], amount: 20 },
+      ]).state
+      expect(reprioritized.initiativeOrder[0]).toBe(started.initiativeOrder[1])
+    }
+    expect([...winners].sort()).toEqual(['recruit', 'wayfarer'])
+  })
+
+  it('rejects duplicate or unknown persisted tie identities and retains legacy ordering', () => {
+    const started = startBattle(createPendingBattle(battleInput())).state
+    expect(
+      validateBattleState({ ...started, initiativeTieOrder: ['wayfarer', 'wayfarer'] }),
+    ).toContainEqual(expect.objectContaining({ field: 'initiativeTieOrder' }))
+    expect(validateBattleState({ ...started, initiativeTieOrder: ['unknown'] })).toContainEqual(
+      expect.objectContaining({ field: 'initiativeTieOrder' }),
+    )
+    const legacy = { ...started }
+    delete legacy.initiativeTieOrder
+    expect(validateBattleState(legacy)).toEqual([])
+  })
+
   it('starts a deterministic turn with Movement Budget and one ready Action', () => {
     const transition = startBattle(createPendingBattle(battleInput()))
 

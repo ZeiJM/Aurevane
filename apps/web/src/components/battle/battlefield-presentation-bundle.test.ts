@@ -11,6 +11,12 @@ function readLocalFile(name: string): string {
 }
 
 describe('shared battlefield presentation bundle', () => {
+  it('paints canonical damaging paths above terrain through the mounted shared styles', () => {
+    const styles = readLocalFile('battlefield-presentation-bundle.module.css')
+    expect(styles).toContain("button[aria-label^='Tile '][data-attack-path='true']")
+    expect(styles).toContain('inset 0 0 12px #d83b4c99')
+    expect(styles).toContain('background: #bd263a38;')
+  })
   it('owns terrain and tile-scaled combatant token presentation', () => {
     const source = readLocalFile('battlefield-presentation-bundle.tsx')
 

@@ -1,3 +1,4 @@
+import { validateStatDrivenCombatEncounterState } from '@aurevane/game-core/combat/stat-driven-combat'
 import type { CharacterRecord } from '@aurevane/db/character'
 import type { BattleSessionRecord, BattleSessionRepository } from '@aurevane/db/battle-session'
 import { readCombatBuildSnapshot } from '@aurevane/game-core/combat/build-snapshot'
@@ -270,10 +271,11 @@ describe('P3.7 direct PvP committed build snapshots', () => {
       await startPvpLobbyWithQuality(hostUserId, lobbyId)
       const state = mocks.createdBattleArgs!.p_initial_snapshot as BattleAuthoritativeEncounterState
       for (const tile of state.tactical.tiles.filter((tile) => tile.elevation > 0)) {
+        expect([1, 2, 3]).toContain(tile.elevation)
         expect(
           state.tactical.tiles.some(
             (neighbor) =>
-              neighbor.elevation === tile.elevation &&
+              neighbor.elevation > 0 &&
               Math.abs(neighbor.position.x - tile.position.x) +
                 Math.abs(neighbor.position.y - tile.position.y) ===
                 1,
@@ -410,6 +412,14 @@ describe('P3.7 direct PvP committed build snapshots', () => {
           })),
         }
       }
+      // Relocating a saved-map fixture must also relocate the active turn's origin.
+      if (initial.turnOrigin) {
+        initial.turnOrigin.position = {
+          ...initial.tactical.placements.find(
+            (placement) => placement.combatantId === initial.turnOrigin!.combatantId,
+          )!.position,
+        }
+      }
       const battle = initial.tactical.battle
       let record: BattleSessionRecord = {
         battleSessionId: '00000000-0000-4000-8000-000000003726',
@@ -472,6 +482,11 @@ describe('P3.7 direct PvP committed build snapshots', () => {
       const hostId = `character:${hostCharacterId}`
       // Always include a real server-facing transition, even if the host initially wins initiative.
       for (let handoff = 0; handoff < 2; handoff += 1) {
+        expect(
+          validateStatDrivenCombatEncounterState(
+            record.snapshot as BattleAuthoritativeEncounterState,
+          ),
+        ).toEqual([])
         const current = await service.getSession(hostUserId, record.battleSessionId)
         const owner =
           current.snapshot.tactical.battle.currentTurn!.combatantId === hostId

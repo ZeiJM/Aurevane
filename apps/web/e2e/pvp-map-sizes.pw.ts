@@ -67,6 +67,35 @@ for (const [size, label, width, tiles] of [
         hostDialog.getByRole('region', { name: 'Locked PvP battle settings' }),
       ).toContainText(label)
       await expect(hostDialog.getByRole('img', { name: 'Versus', exact: true })).toBeVisible()
+      const lobbyEmblem = hostDialog.locator('[data-battle-versus][data-placement="lobby"]')
+      const lobbyGeometry = await lobbyEmblem.evaluate((node) => {
+        const bounds = node.getBoundingClientRect()
+        const teams = [...node.closest('[data-team-count]')!.querySelectorAll('section[data-team]')]
+        const cards = teams.map((team) => team.getBoundingClientRect())
+        return {
+          width: bounds.width,
+          center: bounds.left + bounds.width / 2,
+          seam: (cards[0].right + cards[1].left) / 2,
+          left: bounds.left,
+          right: bounds.right,
+          cards: cards.map((card) => ({ left: card.left, width: card.width })),
+          pointerEvents: getComputedStyle(node).pointerEvents,
+          glow: getComputedStyle(node).filter,
+        }
+      })
+      expect(lobbyGeometry.width).toBeGreaterThanOrEqual(
+        testInfo.project.name === 'mobile-chromium' ? 80 : 144,
+      )
+      expect(Math.abs(lobbyGeometry.center - lobbyGeometry.seam)).toBeLessThanOrEqual(1)
+      expect(lobbyGeometry.left).toBeGreaterThan(
+        lobbyGeometry.cards[0].left + lobbyGeometry.cards[0].width / 2,
+      )
+      expect(lobbyGeometry.right).toBeLessThan(
+        lobbyGeometry.cards[1].left + lobbyGeometry.cards[1].width / 2,
+      )
+      expect(lobbyGeometry.pointerEvents).toBe('none')
+      expect(lobbyGeometry.glow).toContain('drop-shadow')
+      await hostDialog.screenshot({ path: testInfo.outputPath('lobby-versus-impact.png') })
       await guest.goto(`/game/battle?join=${encodeURIComponent(lobby.lobbyKey)}`)
       const guestDialog = guest.getByRole('dialog', { name: 'The arena is waiting.' })
       await expect(

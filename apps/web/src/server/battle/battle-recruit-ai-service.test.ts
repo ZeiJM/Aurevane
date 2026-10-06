@@ -32,6 +32,12 @@ import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
 
+const encounterSeed = vi.hoisted(() => ({ value: 987_654_321 }))
+vi.mock('node:crypto', async (importOriginal) => {
+  const crypto = await importOriginal<typeof import('node:crypto')>()
+  return { ...crypto, randomInt: () => encounterSeed.value }
+})
+
 import {
   createBattleRecruitAiService,
   deriveRecruitTieBreakSeed,
@@ -85,6 +91,8 @@ async function initialEncounter(
   teams: { allyCount?: number; enemyCount?: number; arenaId?: TacticalHallArenaId } = {},
   mapSeed?: number,
 ): Promise<StatDrivenCombatEncounterState> {
+  // Pin the creation seed too: it now determines the saved initiative tie order.
+  encounterSeed.value = mapSeed ?? 987_654_321
   let initialSnapshot: unknown = null
   const repository: BattleSessionRepository = {
     createBattleSession: vi.fn(async (input: CreateBattleSessionInput) => {

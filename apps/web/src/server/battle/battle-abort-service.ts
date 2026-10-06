@@ -128,6 +128,7 @@ function projectBattleSnapshot(state: StatDrivenCombatEncounterState): BattleSes
         lifecycle: battle.lifecycle,
         combatants: battle.combatants,
         initiativeOrder: battle.initiativeOrder,
+        ...(battle.initiativeTieOrder ? { initiativeTieOrder: battle.initiativeTieOrder } : {}),
         ...(battle.roundInitiativeModifiers
           ? { roundInitiativeModifiers: battle.roundInitiativeModifiers }
           : {}),

@@ -85,7 +85,6 @@ export function createStandardBattlefieldTiles(
   )
   const raisedBudget =
     Math.floor((eligible.length * RAISED_RATE[input.elevationBias ?? 'neutral']) / 2000) * 2
-  const raisedPlatforms: (readonly [number, number])[] = []
   let raisedCount = 0
   for (const [first, second] of pairs) {
     if (raisedCount >= raisedBudget) break
@@ -95,21 +94,19 @@ export function createStandardBattlefieldTiles(
     // Jump 0 characters must retain a route through every flat tile and between all spawns.
     if (flatGroundConnected()) {
       raisedCount += 2
-      raisedPlatforms.push([first, second])
     } else {
       tiles[first]!.elevation = 0
       tiles[second]!.elevation = 0
     }
   }
 
-  // Keep each two-tile platform level while drawing its height from the map stream.
-  for (const [first, second] of raisedPlatforms) {
+  // Every raised tile draws independently, including adjacent tiles.
+  for (const tile of tiles) {
+    if (tile.elevation <= 0) continue
     const draw = advanceBattleRng(mapRng)
     mapRng = draw.state
     const roll = draw.value % 100
-    const height = roll < 60 ? 1 : roll < 90 ? 2 : 3
-    tiles[first]!.elevation = height
-    tiles[second]!.elevation = height
+    tile.elevation = roll < 60 ? 1 : roll < 90 ? 2 : 3
   }
 
   const roughBudget = Math.floor(
@@ -127,30 +124,12 @@ export function randomizeRaisedTileHeights(
 ): readonly CombatTile[] {
   let rng = createBattleRngState((seed ^ 0x6865_6967) >>> 0 || 1)
   const next = tiles.map((tile) => ({ ...tile, position: { ...tile.position } }))
-  const byPosition = new Map(next.map((tile) => [`${tile.position.x}:${tile.position.y}`, tile]))
-  const visited = new Set<CombatTile>()
   for (const tile of next) {
-    if (tile.elevation <= 0 || visited.has(tile)) continue
+    if (tile.elevation <= 0) continue
     const draw = advanceBattleRng(rng)
     rng = draw.state
     const roll = draw.value % 100
-    const height = roll < 60 ? 1 : roll < 90 ? 2 : 3
-    const platform = [tile]
-    for (let index = 0; index < platform.length; index++) {
-      const current = platform[index]!
-      if (visited.has(current)) continue
-      visited.add(current)
-      current.elevation = height
-      for (const [dx, dy] of [
-        [1, 0],
-        [-1, 0],
-        [0, 1],
-        [0, -1],
-      ]) {
-        const neighbor = byPosition.get(`${current.position.x + dx!}:${current.position.y + dy!}`)
-        if (neighbor && neighbor.elevation > 0 && !visited.has(neighbor)) platform.push(neighbor)
-      }
-    }
+    tile.elevation = roll < 60 ? 1 : roll < 90 ? 2 : 3
   }
   return next
 }
