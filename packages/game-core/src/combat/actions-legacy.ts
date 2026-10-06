@@ -1387,7 +1387,7 @@ export function endCombatTurn(
 }
 
 export function resolveTargetShapeTiles(
-  tactical: TacticalBattleState,
+  tactical: Pick<TacticalBattleState, 'width' | 'height' | 'tiles'>,
   origin: GridPosition,
   selected: GridPosition,
   shape: CombatTargetShape,
@@ -3697,7 +3697,10 @@ function positionsEqual(left: GridPosition, right: GridPosition): boolean {
   return left.x === right.x && left.y === right.y
 }
 
-function isWithinBoard(tactical: TacticalBattleState, position: GridPosition): boolean {
+function isWithinBoard(
+  tactical: Pick<TacticalBattleState, 'width' | 'height'>,
+  position: GridPosition,
+): boolean {
   return (
     position.x >= 0 &&
     position.y >= 0 &&

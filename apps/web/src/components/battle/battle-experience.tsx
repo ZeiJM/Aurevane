@@ -92,7 +92,8 @@ import {
 import { BattleSelectedSkills } from './battle-selected-skills'
 import { battleActionCooldownTurns } from './battle-action-cooldown'
 
-import { battleAttackPathTiles } from './battle-attack-path'
+import { battleAttackReachTiles } from './battle-attack-path'
+import { createPv1fBasicAttackDefinition } from '@aurevane/game-core/combat/pv1f-action-economy'
 import { BattleSkillCommand } from './battle-skill-command'
 import {
   BATTLE_COMMAND_ARTWORK,
@@ -1305,12 +1306,20 @@ function BattleExperienceContent({
         ).flatMap((intent) => (intent.target.kind === 'unit' ? [intent.target.combatantId] : []))
       : [],
   )
+  const attackDefinition =
+    currentActionId === BASIC_ATTACK_ID
+      ? createPv1fBasicAttackDefinition(1)
+      : activeTechnique?.definition
   const attackPath =
-    mode === 'attack' || mode === 'guard' || mode === 'recover'
-      ? battleAttackPathTiles(
-          selectedActionPreview ? [selectedActionPreview] : rangePreviews,
-          battleState.combatants,
-          tactical.placements,
+    (mode === 'attack' || mode === 'guard' || mode === 'recover') &&
+    localPlacement &&
+    attackDefinition
+      ? battleAttackReachTiles(
+          tactical,
+          localPlacement.position,
+          attackDefinition.target,
+          attackDefinition.effects,
+          selectedActionPreview?.affectedTiles,
         )
       : new Set<string>()
   const handleTile = useCallback(
@@ -2069,6 +2078,11 @@ function BattleExperienceContent({
                     key={key}
                     className={styles.tile}
                     data-attack-path={attackPath.has(key) || undefined}
+                    data-self-target={
+                      (targetRelation === 'friendly' &&
+                        placement?.combatantId === localCombatantId) ||
+                      undefined
+                    }
                     data-terrain={terrain}
                     data-terrain-overlay={overlay?.kind}
                     data-elevation={tile.elevation > 0 || undefined}

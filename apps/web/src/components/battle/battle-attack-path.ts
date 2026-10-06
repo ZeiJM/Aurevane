@@ -1,27 +1,30 @@
-import type { BattleActionPreview } from '@/server/battle/battle-preview-service'
+import { resolveTargetShapeTiles, type CombatTargetSpec } from '@aurevane/game-core/combat/actions'
+import type { TacticalBattleState } from '@aurevane/game-core/combat/board'
 
-/** Highlight only the affected area of a canonical legal damaging forecast. */
-export function battleAttackPathTiles(
-  previews: readonly BattleActionPreview[],
-  livingCombatants: readonly { id: string; hp: number }[],
-  placements: readonly { combatantId: string; position: { x: number; y: number } }[],
+/** Potential hit tiles are informational: no occupant or forecast is required to show reach. */
+export function battleAttackReachTiles(
+  tactical: Pick<TacticalBattleState, 'width' | 'height' | 'tiles'>,
+  origin: { x: number; y: number },
+  target: CombatTargetSpec,
+  effects: readonly { type: string }[],
+  selectedAffectedTiles: readonly { x: number; y: number }[] = [],
 ): ReadonlySet<string> {
-  const tiles = new Set<string>()
-  for (const preview of previews) {
-    if (
-      !preview.legal ||
-      !preview.projectedEffects.some(
-        (effect) =>
-          effect.effectType === 'damage' &&
-          preview.affectedCombatantIds.includes(effect.combatantId) &&
-          livingCombatants.some((unit) => unit.id === effect.combatantId && unit.hp > 0),
-      )
-    )
-      continue
-    for (const tile of preview.affectedTiles) tiles.add(`${tile.x}:${tile.y}`)
-    for (const placement of placements)
-      if (preview.affectedCombatantIds.includes(placement.combatantId))
-        tiles.add(`${placement.position.x}:${placement.position.y}`)
+  const result = new Set<string>()
+  if (!effects.some((effect) => ['damage', 'burn', 'bleed', 'poison'].includes(effect.type)))
+    return result
+  // Aimed area moves display their exact authored footprint, even when it is empty.
+  if (target.shape.kind !== 'single' && selectedAffectedTiles.length > 0) {
+    for (const tile of selectedAffectedTiles) result.add(`${tile.x}:${tile.y}`)
+    return result
   }
-  return tiles
+  // Without an aim, show the possible footprint in every direction. Use the same shape
+  // resolver as combat, including cardinal-only lines and board-clipped circles.
+  for (const tile of tactical.tiles) {
+    const distance = Math.abs(tile.position.x - origin.x) + Math.abs(tile.position.y - origin.y)
+    if (distance < target.minimumRange || distance > target.maximumRange) continue
+    if (target.kind === 'self' && distance !== 0) continue
+    for (const affected of resolveTargetShapeTiles(tactical, origin, tile.position, target.shape))
+      result.add(`${affected.x}:${affected.y}`)
+  }
+  return result
 }

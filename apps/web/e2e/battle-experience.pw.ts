@@ -288,7 +288,7 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   const recruitTarget = page.getByRole('button', { name: /occupied by Recruit/ })
   await expect(battlefield.locator('button[data-target="enemy"]')).toHaveCount(1)
   await expect(recruitTarget).toHaveAttribute('data-target', 'enemy')
-  await expect(battlefield.locator('[data-attack-path]')).toHaveCount(0)
+  await expect.poll(() => battlefield.locator('[data-attack-path]').count()).toBeGreaterThan(1)
   const attackCommit = await commitGesture(page, recruitTarget)
   expect(attackCommit.request().postDataJSON().intent.actionId).toBe('basic.attack.unarmed.basic')
 
