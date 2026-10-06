@@ -1,6 +1,6 @@
 # Battle follow-up fixes — 2026-10-06
 
-Owner authorized the collected corrections and elevations 1–3 at 60%/30%/10%. Owner selected complete global rounds for non-instant status durations. One agent, Medium; no deployment authorization inferred.
+Owner authorized the collected corrections and elevations 1–3 at 60%/30%/10%. Owner selected complete global rounds for non-instant status durations. One agent, Medium. Owner explicitly authorized publishing and making this completed, verified batch live on 2026-10-06, then gave standing permission for completed tasks.
 
 ## Behavior verified
 
@@ -19,3 +19,7 @@ Owner authorized the collected corrections and elevations 1–3 at 60%/30%/10%. 
 Local Chromium launch was unavailable; its download returned an invalid archive. Browser verification is not claimed locally. Existing responsive browser CI includes updated popup transparency/hint assertions. Main was refreshed before publication and remained `e86555d35dd5219166381c02284c40819c1af0cd`.
 
 No database migration or live production mutation. Vercel Git deployment remains locked. PR and CI results belong in the PR release record; this document does not claim deployment.
+
+## CI follow-up
+
+The first PR run reproduced a stale browser expectation for the removed black Effects block. The palette regression now verifies transparent Effects and the readable paper palette in pinned readers while preserving the existing inline dark palette checks. CI also reported GHSA-wq5f-xc86-pv6w, newly indexed on 2026-10-06; the lockfile updates Sharp 0.35.4 to patched 0.35.5 and its bundled native libraries. The targeted pnpm refresh also deduplicated source-map-js to the already locked 1.2.2. `pnpm audit --prod --audit-level=high` then passed with no known vulnerabilities. Full quality gates and browser CI are rerun before release.
