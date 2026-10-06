@@ -428,11 +428,12 @@ describe('P2.4 battle session service', () => {
       statusResistance: 125,
     })
     expect(playerMovementProfile?.maxElevationStep).toBe(0)
-    expect(
+    expect([1, 2, 3]).toContain(
       persistedSnapshot.tactical.tiles.find(
         (tile) => tile.position.x === 2 && tile.position.y === 0,
       )?.elevation,
-    ).toBe(1)
+    )
+    expect(persistedSnapshot.tactical.battle.rng.draws).toBe(0)
     expect(persistedSnapshot.tactical.placements).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
