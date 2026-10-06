@@ -229,20 +229,27 @@ describe('P2.4 battle session service', () => {
     ['guided-fundamentals', 'duel-yard'],
     ['mastery-trial', 'terraced-yard'],
     ['movement-drill', 'basic-training-floor'],
-  ] as const)('preserves the authored %s teaching map', async (recordId, arenaId) => {
-    const service = createBattleSessionService({
-      characters: createCharacterRepository().repository,
-      battles: createBattleRepository().repository,
-    })
-    const created = await service.createSession({
-      userId: USER_ID,
-      characterId: CHARACTER_ID,
-      idempotencyKey: IDEMPOTENCY_KEY,
-      arenaId,
-      battleHallRecordId: recordId,
-    })
-    expect(created.snapshot.tactical.tiles).toEqual(getTacticalHallArena(arenaId).tiles)
-  })
+  ] as const)(
+    'preserves authored %s teaching geometry while drawing raised heights',
+    async (recordId, arenaId) => {
+      const service = createBattleSessionService({
+        characters: createCharacterRepository().repository,
+        battles: createBattleRepository().repository,
+      })
+      const created = await service.createSession({
+        userId: USER_ID,
+        characterId: CHARACTER_ID,
+        idempotencyKey: IDEMPOTENCY_KEY,
+        arenaId,
+        battleHallRecordId: recordId,
+      })
+      const tiles = created.snapshot.tactical.tiles
+      expect(tiles.map((tile) => ({ ...tile, elevation: tile.elevation > 0 ? 1 : 0 }))).toEqual(
+        getTacticalHallArena(arenaId).tiles,
+      )
+      expect(tiles.every((tile) => [0, 1, 2, 3].includes(tile.elevation))).toBe(true)
+    },
+  )
 
   it.each([0, 1, 2])(
     'creates every supported two-team sparring setup with %s allies',
@@ -421,11 +428,12 @@ describe('P2.4 battle session service', () => {
       statusResistance: 125,
     })
     expect(playerMovementProfile?.maxElevationStep).toBe(0)
-    expect(
+    expect([1, 2, 3]).toContain(
       persistedSnapshot.tactical.tiles.find(
         (tile) => tile.position.x === 2 && tile.position.y === 0,
       )?.elevation,
-    ).toBe(1)
+    )
+    expect(persistedSnapshot.tactical.battle.rng.draws).toBe(0)
     expect(persistedSnapshot.tactical.placements).toEqual(
       expect.arrayContaining([
         expect.objectContaining({

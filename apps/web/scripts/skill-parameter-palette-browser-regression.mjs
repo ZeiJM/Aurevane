@@ -122,6 +122,19 @@ const palette = {
   duration: 'rgb(112, 215, 206)',
   timing: 'rgb(112, 215, 206)',
 }
+const paperPalette = {
+  label: 'rgb(23, 45, 60)',
+  magnitude: 'rgb(121, 85, 28)',
+  timing: 'rgb(23, 103, 94)',
+}
+async function assertPaperEffects(panel) {
+  for (const effect of await panel.locator('[data-compact-skill-effect]').all()) {
+    assert.equal(
+      await effect.evaluate((element) => getComputedStyle(element).backgroundColor),
+      'rgba(0, 0, 0, 0)',
+    )
+  }
+}
 try {
   for (const viewport of [
     { width: 1366, height: 768 },
@@ -169,19 +182,10 @@ try {
     const resonanceName = await page.evaluate(() => window.paletteDefinitions.resonance.name)
     const panel = page.getByRole('dialog', { name: resonanceName, exact: true })
     await panel.waitFor()
-    assert.deepEqual(await colors(panel), {
-      label: palette.label,
-      magnitude: palette.magnitude,
-      timing: palette.timing,
-    })
+    assert.deepEqual(await colors(panel), paperPalette)
     assert.ok((await panel.textContent()).includes('Wildwarden · mark'))
     assert.ok((await panel.textContent()).includes('Edgedancer · attack:'))
-    assert.equal(
-      await panel
-        .locator('[data-compact-skill-effect]')
-        .evaluate((element) => getComputedStyle(element).backgroundColor),
-      'rgb(10, 32, 43)',
-    )
+    await assertPaperEffects(panel)
     const box = await panel.boundingBox()
     assert.ok(box.x >= 0 && box.x + box.width <= viewport.width + 1)
     await page.screenshot({ path: resolve(output, `parameters-${viewport.width}.png`) })
@@ -190,6 +194,7 @@ try {
     await page.getByRole('button', { name: 'Read pinned Mystic Skill', exact: true }).click()
     const mysticPanel = page.getByRole('dialog', { name: 'Aether Cut', exact: true })
     await mysticPanel.waitFor()
+    await assertPaperEffects(mysticPanel)
     assert.equal(
       await mysticPanel
         .locator('[data-skill-attack-family="mystic"]')
@@ -224,12 +229,8 @@ try {
       await popup.waitFor()
       assert.equal(await popup.locator('header > strong').textContent(), name)
       assert.deepEqual((await popup.locator('dt').allTextContents()).slice(0, 10), fields)
-      if (attunement === 'resonance')
-        assert.deepEqual(await colors(popup), {
-          label: palette.label,
-          magnitude: palette.magnitude,
-          timing: palette.timing,
-        })
+      if (attunement === 'resonance') assert.deepEqual(await colors(popup), paperPalette)
+      await assertPaperEffects(popup)
       await page.screenshot({ path: resolve(output, `nexus-${attunement}-${viewport.width}.png`) })
       await page.keyboard.press('Escape')
       await popup.waitFor({ state: 'detached' })

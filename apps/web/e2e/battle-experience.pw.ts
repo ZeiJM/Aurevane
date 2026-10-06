@@ -276,6 +276,8 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   await expect(apRemaining).toHaveAttribute('aria-valuenow', apBeforeDetails!)
   await expect(battleLog).toBeVisible()
 
+  // Missing informational forecasts must not hide eligible targets or gate a deliberate cast.
+  await page.route('**/api/battles/*/preview', (route) => route.abort())
   await attackButton.click()
   if ((await battlefield.locator('button[data-target="enemy"]').count()) === 0) {
     await moveButton.click()
@@ -286,7 +288,9 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   const recruitTarget = page.getByRole('button', { name: /occupied by Recruit/ })
   await expect(battlefield.locator('button[data-target="enemy"]')).toHaveCount(1)
   await expect(recruitTarget).toHaveAttribute('data-target', 'enemy')
-  await recruitTarget.click()
+  await expect(battlefield.locator('[data-attack-path]')).toHaveCount(0)
+  const attackCommit = await commitGesture(page, recruitTarget)
+  expect(attackCommit.request().postDataJSON().intent.actionId).toBe('basic.attack.unarmed.basic')
 
   const result = page.getByTestId('battle-result-overlay')
   await expect(result).toBeVisible({ timeout: 15_000 })

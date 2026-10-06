@@ -111,25 +111,27 @@ export function pendingCombatStatusRows(
       (effect.type === 'burn' ? CURRENT_BURN_DAMAGE_BY_STAGE.length : undefined) ??
       Math.max(1, (definition?.durationOwnerTurnStarts ?? 2) - 1)
     const durationScope =
-      effect.type === 'poison' && tuning.durationTurns === undefined
-        ? ('until-removed' as const)
-        : effect.type === 'create-terrain'
-          ? ('rounds' as const)
-          : [
-                'damage',
-                'healing',
-                'resource-change',
-                'create-terrain',
-                'displace',
-                'return-to-turn-start',
-                'remove-status',
-                'copy-statuses',
-                'sensory',
-              ].includes(effect.type)
-            ? ('instant' as const)
-            : effect.type === 'barrier-change'
-              ? ('until-spent' as const)
-              : undefined
+      effect.type === 'apply-status' && pending.statusDurationScope === 'rounds'
+        ? ('rounds' as const)
+        : effect.type === 'poison' && tuning.durationTurns === undefined
+          ? ('until-removed' as const)
+          : effect.type === 'create-terrain'
+            ? ('rounds' as const)
+            : [
+                  'damage',
+                  'healing',
+                  'resource-change',
+                  'create-terrain',
+                  'displace',
+                  'return-to-turn-start',
+                  'remove-status',
+                  'copy-statuses',
+                  'sensory',
+                ].includes(effect.type)
+              ? ('instant' as const)
+              : effect.type === 'barrier-change'
+                ? ('until-spent' as const)
+                : undefined
     const recipients =
       effect.type === 'create-terrain' ||
       (effect.type === 'copy-statuses' && effect.mode === 'amplify')
@@ -149,6 +151,9 @@ export function pendingCombatStatusRows(
         ...(durationScope
           ? {
               durationScope,
+              ...(effect.type === 'apply-status'
+                ? { remainingRoundBoundaries: remaining, remainingOwnerTurnEnds: remaining }
+                : {}),
               ...(effect.type === 'create-terrain'
                 ? {
                     remainingRoundBoundaries:

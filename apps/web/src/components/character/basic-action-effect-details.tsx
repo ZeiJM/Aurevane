@@ -5,12 +5,19 @@ import {
   basicActionEffectExplanation,
   basicActionEffectSummaryParts,
   type BasicActionPresentationId,
+  type BasicActionCharacterStats,
 } from './basic-action-presentation'
 import { CompactEffectSummary } from './compact-skill-effect-summary'
 
-export function BasicActionEffectSummary({ id }: { id: BasicActionPresentationId }) {
+export function BasicActionEffectSummary({
+  id,
+  stats,
+}: {
+  id: BasicActionPresentationId
+  stats?: BasicActionCharacterStats
+}) {
   const timingPolicy = useSkillEffectTimingPolicy()
-  return <CompactEffectSummary parts={basicActionEffectSummaryParts(id, timingPolicy)} />
+  return <CompactEffectSummary parts={basicActionEffectSummaryParts(id, timingPolicy, stats)} />
 }
 
 export function BasicActionEffectExplanations({

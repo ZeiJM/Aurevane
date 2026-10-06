@@ -47,18 +47,32 @@ describe('authoritative inherent action descriptors', () => {
     expect(attack['Target Elevation']).toBe('1')
     expect(attack['Line of Sight']).toBe('Not required')
     expect(attack.Cooldown).toBe('None')
-    expect(basicActionEffectExplanation('basic.attack.unarmed.basic')).toContain('physical damage')
+    expect(basicActionEffectExplanation('basic.attack.unarmed.basic')).toContain(
+      'higher Physical or Mystic Attack',
+    )
   })
 
   it('states movement limits without treating spare AP as unlimited movement or hardcoding Jump', () => {
     const move = values('basic.move')
-    expect(move.Cost).toContain('20 AP per terrain-cost point')
-    expect(move.Range).toBe('Remaining Movement allowance')
-    expect(move.Effects).toContain('1 Movement per entered tile')
-    expect(move.Requirements).toContain('no movement-blocking status')
-    expect(move['Target Elevation']).toContain('committed Jump / movement profile')
+    expect(move.Cost).toBe('20 AP')
+    expect(move.Range).toBe('Character Move stat')
+    expect(move.Effects).toBe('Move [1] [Instant]')
+    expect(move.Requirements).toBe('N/A')
+    expect(move['Target Elevation']).toBe('Character Jump stat')
     expect(move['Target Elevation']).not.toBe('1')
-    expect(basicActionEffectExplanation('basic.move')).toContain('1 Movement per entered tile')
+    expect(basicActionEffectExplanation('basic.move')).toContain('reachable tile')
+  })
+
+  it('uses the character Move, Jump and stronger attack family in battle reports', () => {
+    const stats = { move: 4, jump: 3, physicalPower: 20, mysticPower: 40 }
+    const move = Object.fromEntries(basicActionCharacteristicRows('basic.move', undefined, stats))
+    expect(move.Range).toBe('4')
+    expect(move['Target Elevation']).toBe('3')
+    const attack = Object.fromEntries(
+      basicActionCharacteristicRows('basic.attack.unarmed.basic', undefined, stats),
+    )
+    expect(attack['Skill Type']).toBe('Attack [Mystic]')
+    expect(attack.Effects).toContain('Mystic Power')
   })
 
   it('recognizes the saved Support Action name without creating basic rules for other Skills', () => {

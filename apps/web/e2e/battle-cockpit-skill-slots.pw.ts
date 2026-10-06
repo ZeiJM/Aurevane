@@ -127,6 +127,10 @@ test('keeps square empty Skill slots and consistent cockpit info controls withou
     const panel = page.locator('[data-battle-info-panel]')
     await expect(panel).toBeVisible()
     await expect(panel).not.toHaveText('')
+    await expect(panel).not.toContainText('Arm this action')
+    await expect(panel).not.toContainText('Arm Move')
+    for (const effect of await panel.locator('[data-compact-skill-effect]').all())
+      await expect(effect).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
     const viewport = page.viewportSize()!
     // A stable scrollbar gutter can narrow the fixed containing block even when
     // html's minimum width makes clientWidth equal innerWidth on a 320px phone.

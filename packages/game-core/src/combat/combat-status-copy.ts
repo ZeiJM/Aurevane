@@ -333,6 +333,20 @@ export function planCombatStatusCopies(
           previous?.remainingOwnerTurnStarts ?? 0,
         ),
         sourceCombatantId: actorId,
+        ...(donor.durationScope === 'rounds'
+          ? {
+              durationScope: 'rounds' as const,
+              remainingRoundBoundaries: Math.max(
+                donor.remainingRoundBoundaries ??
+                  donor.remainingOwnerTurnEnds ??
+                  donor.remainingOwnerTurnStarts,
+                previous?.remainingRoundBoundaries ??
+                  previous?.remainingOwnerTurnEnds ??
+                  previous?.remainingOwnerTurnStarts ??
+                  0,
+              ),
+            }
+          : {}),
         ...(donor.remainingOwnerTurnEnds !== undefined
           ? {
               remainingOwnerTurnEnds: Math.max(

@@ -634,11 +634,13 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
         combatStatusDetails(statusId ?? '').kind === 'Buff' ||
         statusId?.startsWith('buff.') === true
       const durationUnit =
-        event.expiryBoundary === 'owner-turn-end'
-          ? 'affected turn'
-          : PHASE4_STATUSES.find((status) => status.id === statusId)?.endOfTurn
-            ? 'end-of-turn tick'
-            : 'owner-turn start'
+        event.expiryBoundary === 'round-end'
+          ? 'round'
+          : event.expiryBoundary === 'owner-turn-end'
+            ? 'affected turn'
+            : PHASE4_STATUSES.find((status) => status.id === statusId)?.endOfTurn
+              ? 'end-of-turn tick'
+              : 'owner-turn start'
       return createEntry(record, eventType, {
         message: stacked
           ? `${combatantLabel(event.targetCombatantId)} stacked ${label}${stacks === null ? '' : ` to ×${stacks}`}${remaining === null ? '' : ` for ${remaining} ${durationUnit}${remaining === 1 ? '' : 's'}`}.`
@@ -665,7 +667,11 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
         facts: [
           ...fact(label, beneficial ? 'benefit' : 'neutral'),
           ...fact(stacks !== null && stacks > 1 ? `×${stacks} stacks` : null),
-          ...fact(remaining === null ? null : `${remaining} turn${remaining === 1 ? '' : 's'}`),
+          ...fact(
+            remaining === null
+              ? null
+              : `${remaining} ${event.expiryBoundary === 'round-end' ? 'round' : 'turn'}${remaining === 1 ? '' : 's'}`,
+          ),
         ],
       })
     }
@@ -872,7 +878,11 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
         facts: [
           ...fact('Defenseless', 'warning'),
           ...fact(stacks !== null && stacks > 1 ? `×${stacks} stacks` : null),
-          ...fact(remaining === null ? null : `${remaining} turn${remaining === 1 ? '' : 's'}`),
+          ...fact(
+            remaining === null
+              ? null
+              : `${remaining} ${event.expiryBoundary === 'round-end' ? 'round' : 'turn'}${remaining === 1 ? '' : 's'}`,
+          ),
           ...fact(multiplierLabel, 'warning'),
         ],
       })

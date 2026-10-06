@@ -61,6 +61,26 @@ function render(entries: readonly BattleLogEntry[]) {
 }
 
 describe('approved Battle Chronicle', () => {
+  it('orders actor groups by recorded turns despite earlier delayed effect attribution', () => {
+    const entries = [
+      entry(1, 0, 'status_applied'),
+      entry(1, 1, 'turn_started', { actorCombatantId: enemy }),
+      technique(2, enemy),
+      entry(3, 0, 'turn_started', { turnNumber: 4 }),
+      { ...technique(4), turnNumber: 4 },
+      entry(5, 0, 'turn_started', { round: 3 }),
+      { ...technique(6), round: 3 },
+      entry(7, 0, 'turn_started', { round: 3, actorCombatantId: enemy }),
+      { ...technique(8, enemy), round: 3 },
+    ]
+    expect(
+      buildBattleChronicle(entries).map((round) => round.actors.map((a) => a.actorId)),
+    ).toEqual([
+      [enemy, actor],
+      [actor, enemy],
+    ])
+  })
+
   it('narrates a completed idle turn in its recorded round and actor group', () => {
     const entries = [
       entry(1, 0, 'turn_started', { round: 4, turnNumber: 7, actorCombatantId: enemy }),

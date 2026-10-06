@@ -337,6 +337,7 @@ export function combatSourceCommandVisibility(
 }
 
 export interface PendingCombatEffect {
+  statusDurationScope?: 'rounds'
   copyProvenance?: CombatActionProvenance
   sourceCommandVisibility?: CombatSourceCommandVisibility
   copySource?: {
@@ -550,7 +551,7 @@ export type CombatResolutionEvent = (
     }
   | {
       event: 'status_applied'
-      expiryBoundary?: 'owner-turn-end'
+      expiryBoundary?: 'owner-turn-end' | 'round-end'
       actionId: string
       sourceCombatantId: string
       targetCombatantId: string
@@ -1124,6 +1125,34 @@ function applyCombatRoundBoundary(
   if (state.tactical.battle.round === previousRound) return { state, events: [] }
   let nextState = state
   const events: CombatResolutionEvent[] = []
+  // Delayed statuses cover complete global rounds, independent of initiative.
+  nextState = {
+    ...nextState,
+    statusState: nextState.statusState.map((row) => ({
+      ...row,
+      statuses: row.statuses.flatMap((status) => {
+        if (status.durationScope !== 'rounds' || status.remainingRoundBoundaries === undefined)
+          return [status]
+        const remaining = status.remainingRoundBoundaries - 1
+        if (remaining > 0)
+          return [
+            {
+              ...status,
+              remainingRoundBoundaries: remaining,
+              remainingOwnerTurnEnds: remaining,
+              remainingOwnerTurnStarts: remaining,
+            },
+          ]
+        events.push({
+          event: 'status_expired',
+          combatantId: row.combatantId,
+          statusId: status.statusId,
+          ...(status.sourceScopedMark ? { sourceCombatantId: status.sourceCombatantId } : {}),
+        })
+        return []
+      }),
+    })),
+  }
   const expiredTerrain = expireTerrainOverlays(nextState)
   nextState = expiredTerrain.state
   events.push(...expiredTerrain.events)
@@ -1234,9 +1263,36 @@ function applyCombatRoundBoundary(
       effectTimingPolicy: policy,
       turnOrigin: nextState.turnOrigin,
     }
+    const appliedStatuses = resolved.events.filter((event) => event.event === 'status_applied')
+    nextState = {
+      ...nextState,
+      statusState: nextState.statusState.map((row) => ({
+        ...row,
+        statuses: row.statuses.map((status) =>
+          status.remainingOwnerTurnEnds !== undefined &&
+          pending.statusDurationScope === 'rounds' &&
+          (!status.durationScope || status.durationScope === 'rounds') &&
+          appliedStatuses.some(
+            (event) =>
+              event.targetCombatantId === row.combatantId &&
+              event.statusId === status.statusId &&
+              (!status.sourceScopedMark || event.sourceCombatantId === status.sourceCombatantId),
+          )
+            ? {
+                ...status,
+                durationScope: 'rounds' as const,
+                remainingRoundBoundaries: status.remainingOwnerTurnEnds,
+              }
+            : status,
+        ),
+      })),
+    }
     events.push(
       ...resolved.events.map((event) => ({
         ...event,
+        ...(event.event === 'status_applied' && pending.statusDurationScope === 'rounds'
+          ? { expiryBoundary: 'round-end' as const }
+          : {}),
         effectActivationRound: state.tactical.battle.round,
         ...(pending.sourceCommandVisibility
           ? { sourceCommandVisibility: pending.sourceCommandVisibility }
@@ -1462,6 +1518,8 @@ export function validateCombatEncounterState(
             !Array.isArray(pending.affectedTiles)
           )
             throw new Error('Invalid pending identity.')
+          if (pending.statusDurationScope !== undefined && pending.statusDurationScope !== 'rounds')
+            throw new TypeError('Invalid pinned status duration scope.')
           validateSourceCommandVisibility(state, pending.sourceCommandVisibility, pending.actorId)
           if (
             pending.criticalRecipientIds !== undefined &&
@@ -2081,6 +2139,9 @@ function resolveActionEffects(
             ...(nextState.pendingEffects ?? []),
             {
               actorId,
+              ...(['apply-status', 'copy-statuses'].includes(effect.type)
+                ? { statusDurationScope: 'rounds' as const }
+                : {}),
               sourceCommandVisibility: combatSourceCommandVisibility(state, actorId),
               criticalRecipientIds: recipientIds.filter((id) =>
                 criticalEffectOrdinalsByTarget?.get(id)?.has(effectOrdinal),
@@ -2878,6 +2939,10 @@ function applyStatusState(
   }
 
   if (state.effectTimingPolicy) {
+    if (nextStatus.durationScope === 'rounds') {
+      delete nextStatus.durationScope
+      delete nextStatus.remainingRoundBoundaries
+    }
     nextStatus.timingState = 'active'
     nextStatus.remainingOwnerTurnEnds =
       durationTurns ??
@@ -4147,7 +4212,11 @@ function expireOwnerTurnEndStatuses(
           : {
               ...row,
               statuses: row.statuses.flatMap((status) => {
-                if (status.remainingOwnerTurnEnds === undefined) return [status]
+                if (
+                  status.durationScope === 'rounds' ||
+                  status.remainingOwnerTurnEnds === undefined
+                )
+                  return [status]
                 if (status.skipCurrentOwnerTurnEnd)
                   return [{ ...status, skipCurrentOwnerTurnEnd: undefined }]
                 const remaining = status.remainingOwnerTurnEnds - 1

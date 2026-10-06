@@ -490,7 +490,7 @@ export function forecastStatDrivenAttack(
   action: CombatActionDefinition,
   selection: CombatTargetSelection,
   content: CombatContentCatalog,
-  defenseKind: CombatDefenseKind = 'armor',
+  defenseKind: CombatDefenseKind = action.tags.includes('mystic') ? 'ward' : 'armor',
 ): StatDrivenAttackForecast {
   assertValidStatDrivenCombatEncounterState(state)
   assertBasicAttack(action)
@@ -541,7 +541,7 @@ export function executeStatDrivenAttack(
   action: CombatActionDefinition,
   selection: CombatTargetSelection,
   content: CombatContentCatalog,
-  defenseKind: CombatDefenseKind = 'armor',
+  defenseKind: CombatDefenseKind = action.tags.includes('mystic') ? 'ward' : 'armor',
 ): StatDrivenCombatTransition {
   const forecast = forecastStatDrivenAttack(state, action, selection, content, defenseKind)
   if (

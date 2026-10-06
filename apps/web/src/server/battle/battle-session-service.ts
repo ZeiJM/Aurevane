@@ -45,7 +45,10 @@ import {
   type TacticalHallArenaId,
 } from '@aurevane/game-core/combat/tactical-hall-arenas'
 import { getTacticalHallRecord } from '@aurevane/game-core/combat/tactical-hall-records'
-import { createStandardBattlefieldTiles } from '@aurevane/game-core/combat/standard-battlefield'
+import {
+  createStandardBattlefieldTiles,
+  randomizeRaisedTileHeights,
+} from '@aurevane/game-core/combat/standard-battlefield'
 import { AurevaneError, StaleBattleVersionError } from '@aurevane/game-core/errors'
 import {
   createBattleSessionChangedInvalidation,
@@ -348,7 +351,7 @@ function createVerticalSliceEncounter(
                 ...recruitPlacements.map((placement) => placement.position),
               ],
             })
-          : arena.tiles,
+          : randomizeRaisedTileHeights(arena.tiles, battle.rng.seed),
       movementProfiles: [
         playerMovementProfile,
         {

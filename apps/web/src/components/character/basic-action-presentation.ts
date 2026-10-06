@@ -29,10 +29,22 @@ import { skillInformationRows, type SkillCharacteristic } from './skill-informat
 export type { SkillCharacteristic } from './skill-information-contract'
 export type BasicActionPresentationId = (typeof PV1F_SKILLS)[number]['id']
 
+export interface BasicActionCharacterStats {
+  move?: number
+  jump?: number
+  physicalPower?: number
+  mysticPower?: number
+}
+
+function attackFamily(stats: BasicActionCharacterStats) {
+  return (stats.mysticPower ?? 0) > (stats.physicalPower ?? 0) ? 'mystic' : 'physical'
+}
+
 /** Inherent effects retain their authoritative formulas in the same visual grammar as Skills. */
 export function basicActionEffectSummaryParts(
   id: BasicActionPresentationId,
   timingPolicy: SkillEffectTimingPolicy = defaultCombatEffectTimingPolicy(),
+  stats: BasicActionCharacterStats = {},
 ): CompactSkillEffectSummaryParts {
   if (id === PV1F_GUARD_ACTION_ID) {
     return {
@@ -47,14 +59,14 @@ export function basicActionEffectSummaryParts(
   if (id === PV1F_BASIC_ATTACK_ID) {
     return {
       label: 'Dmg',
-      magnitude: `${PV1F_BASIC_ATTACK_BASE_DAMAGE} + floor(${PV1F_BASIC_ATTACK_POWER_SCALING_BASIS_POINTS / 100}% Physical Power)`,
+      magnitude: `${PV1F_BASIC_ATTACK_BASE_DAMAGE} + floor(${PV1F_BASIC_ATTACK_POWER_SCALING_BASIS_POINTS / 100}% ${attackFamily(stats) === 'mystic' ? 'Mystic' : 'Physical'} Power)`,
       duration: null,
     }
   }
   if (id === 'basic.move') {
     return {
       label: 'Move',
-      magnitude: '1 Movement per entered tile',
+      magnitude: '1',
       duration: null,
       timing: 'Instant',
     }
@@ -77,8 +89,13 @@ export function basicActionEffectSummaryParts(
 function basicActionEffectsSummary(
   id: BasicActionPresentationId,
   timingPolicy: SkillEffectTimingPolicy,
+  stats: BasicActionCharacterStats = {},
 ): string {
-  const { label, magnitude, duration, timing } = basicActionEffectSummaryParts(id, timingPolicy)
+  const { label, magnitude, duration, timing } = basicActionEffectSummaryParts(
+    id,
+    timingPolicy,
+    stats,
+  )
   return `${label}${magnitude ? ` [${magnitude}]` : ''}${duration ? ` [${duration}]` : ''}${timing ? ` [${timing}]` : ''}`
 }
 
@@ -86,20 +103,20 @@ function basicActionEffectsSummary(
 export function basicActionCharacteristicRows(
   id: BasicActionPresentationId,
   timingPolicy: SkillEffectTimingPolicy = defaultCombatEffectTimingPolicy(),
+  stats: BasicActionCharacterStats = {},
 ): readonly SkillCharacteristic[] {
   const skill = PV1F_SKILLS.find((entry) => entry.id === id)!
   if (id === 'basic.move') {
     return skillInformationRows({
       'Skill Type': 'Utility',
-      Cost: `${skill.cost.amount} AP per terrain-cost point; terrain and active movement modifiers apply`,
+      Cost: `${skill.cost.amount} AP`,
       Cooldown: 'None',
-      Requirements:
-        'AP and Movement remaining; a legal, unoccupied path; no movement-blocking status',
-      Effects: basicActionEffectsSummary(id, timingPolicy),
-      Range: 'Remaining Movement allowance',
+      Requirements: 'N/A',
+      Effects: basicActionEffectsSummary(id, timingPolicy, stats),
+      Range: stats.move === undefined ? 'Character Move stat' : String(stats.move),
       Target: 'Empty Ground',
       'Target Method': 'Path',
-      'Target Elevation': 'Each step must fit the committed Jump / movement profile',
+      'Target Elevation': stats.jump === undefined ? 'Character Jump stat' : String(stats.jump),
       'Line of Sight': 'Not required',
     })
   }
@@ -108,7 +125,7 @@ export function basicActionCharacteristicRows(
   // the authoritative percentage/formula rather than pretending to know character resources.
   const action =
     id === PV1F_BASIC_ATTACK_ID
-      ? createPv1fBasicAttackDefinition(PV1F_BASIC_ATTACK_BASE_DAMAGE)
+      ? createPv1fBasicAttackDefinition(PV1F_BASIC_ATTACK_BASE_DAMAGE, attackFamily(stats))
       : id === PV1F_GUARD_ACTION_ID
         ? PV1F_GUARD_ACTION
         : id === PV1F_RECOVER_ACTION_ID
@@ -122,7 +139,7 @@ export function basicActionCharacteristicRows(
     cooldown,
   })
   return rows.map(([label, value]): SkillCharacteristic => {
-    if (label === 'Effects') return [label, basicActionEffectsSummary(id, timingPolicy)]
+    if (label === 'Effects') return [label, basicActionEffectsSummary(id, timingPolicy, stats)]
     // Server battle-action-resource-availability rejects MP Recovery when MP is full.
     if (label === 'Requirements' && id === PV1F_MP_RECOVER_ACTION_ID) {
       return [label, 'Missing MP']
@@ -149,9 +166,9 @@ export function basicActionEffectExplanation(id: BasicActionPresentationId): str
     return 'Restores the resource up to its maximum when the effect activates. HP and MP Recovery share a cooldown.'
   }
   if (id === PV1F_BASIC_ATTACK_ID) {
-    return 'Deals physical damage to the selected enemy using the shown formula.'
+    return 'Uses your higher Physical or Mystic Attack stat. Equal stats use Physical.'
   }
-  return 'Move along orthogonally adjacent tiles, spending AP and 1 Movement per entered tile. Terrain changes AP cost rather than your Movement allowance.'
+  return 'Move to a reachable tile. Terrain can increase AP cost.'
 }
 
 /** Read-only Inspect and Final Facing use the same report, without inventing Skill content. */
@@ -160,9 +177,10 @@ export function commandCharacteristicRows(
   label: string,
   cost: string,
   timingPolicy: SkillEffectTimingPolicy = defaultCombatEffectTimingPolicy(),
+  stats: BasicActionCharacterStats = {},
 ): readonly SkillCharacteristic[] {
   const id = basicActionIdForCommand(slot, label)
-  if (id) return basicActionCharacteristicRows(id, timingPolicy)
+  if (id) return basicActionCharacteristicRows(id, timingPolicy, stats)
   if (slot === 'inspect' || slot === 'finish') {
     const inspect = slot === 'inspect'
     return skillInformationRows({

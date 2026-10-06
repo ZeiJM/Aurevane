@@ -555,3 +555,10 @@ Release checkpoint: local `pnpm check` passed (1,095 tests including the six rep
 - [x] Add editable in-battle action text for player/AI Skills, Essence Skills and summon abilities; use exact pinned summon ability names and saved identity tokens.
 - [x] Add the one-time default-portrait gallery with authenticated, atomic server/database authority and a staged migration.
 - [ ] Release the verified candidate and portrait migration through the separately authorized workflow. Evidence and boundaries: `docs/superpowers/verification/2026-10-03-battle-log-popups-portrait.md`.
+
+
+## Owner battle follow-up — 2026-10-06
+
+Authorized: proceed with the collected battle fixes, plus 60/30/10 elevation heights. Owner selected complete global rounds for newly queued non-instant status durations. Implemented round-boundary counters (instant and stored lifetimes preserved), canonical Basic Attack family/Defense, recorded Chronicle ordering, damaging forecast glow, Essence explanations, concise Move stats, paper Effects styling, removed arm-action footers and shared lobby VS flames. New standard and teaching map heights use seeded 60/30/10 level draws while preserving joined platforms, flat spawns and connected ground.
+
+Local `pnpm check` passed after the final changes: formatting, lint, typecheck, tests and production build. Core: 2,262 tests; web: 1,554 tests plus seven Node report/audio checks. Focused regressions cover both initiative positions, full-round mitigation/vulnerability, instant and historical lifetimes, manual/AI/PvP timeout boundaries, copied status lifetime, Chronicle fallback ordering, damaging path filtering and seeded standard/teaching elevations. Local browser execution was blocked by a missing Chromium binary and an invalid download archive; responsive browser evidence remains a CI gate. Main was refreshed and remains e86555d. GitHub integration pending; no production deployment claimed or triggered for this work item.

@@ -80,6 +80,7 @@ import {
 import {
   executeStatDrivenAttack,
   getStatDrivenOffensivePower,
+  getStatDrivenCombatProfile,
   reattachStatDrivenCombatBridge,
   validateStatDrivenCombatEncounterState,
   type StatDrivenCombatEncounterState,
@@ -223,11 +224,14 @@ export function calculatePv1fBasicAttackDamage(input: { physicalPower: number })
   )
 }
 
-export function createPv1fBasicAttackDefinition(damage: number): CombatActionDefinition {
+export function createPv1fBasicAttackDefinition(
+  damage: number,
+  family: 'physical' | 'mystic' = 'physical',
+): CombatActionDefinition {
   if (!Number.isSafeInteger(damage) || damage < 1) {
     throw new RangeError('Basic Attack damage must be a positive safe integer.')
   }
-  return createBasicAttackDefinition({
+  const action = createBasicAttackDefinition({
     id: 'unarmed.basic',
     version: 1,
     damage,
@@ -241,6 +245,7 @@ export function createPv1fBasicAttackDefinition(damage: number): CombatActionDef
       rear: 12_500,
     },
   })
+  return { ...action, tags: [...action.tags, family] }
 }
 
 export function createPv1fRecoverAction(maxHp: number): CombatActionDefinition {
@@ -1412,7 +1417,14 @@ export function resolvePv1fActionDefinition(
 ): CombatActionDefinition {
   const actor = getCombatant(state, actorId)
   if (actionId === PV1F_BASIC_ATTACK_ID) {
-    return createPv1fBasicAttackDefinition(readPv1fBasicAttackDamage(state, actorId))
+    const profile = getStatDrivenCombatProfile(state, actorId)
+    const family = (profile.mysticPower ?? 0) > (profile.physicalPower ?? 0) ? 'mystic' : 'physical'
+    const power = family === 'mystic' ? profile.mysticPower : profile.physicalPower
+    const damage =
+      power === undefined
+        ? readPv1fBasicAttackDamage(state, actorId)
+        : calculatePv1fBasicAttackDamage({ physicalPower: power })
+    return createPv1fBasicAttackDefinition(damage, family)
   }
   if (actionId === PV1F_GUARD_ACTION_ID)
     return state.effectTimingPolicy ? PV1F_TIMED_GUARD_ACTION : PV1F_GUARD_ACTION
