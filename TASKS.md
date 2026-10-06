@@ -2,12 +2,12 @@
 
 ## Healing target fill — 2026-10-06
 
-Owner requests healing target highlights to fill the visible tile around the portrait and identity border like the stronger blue self-selection. Shared battlefield CSS paints a 50% green overlay below token artwork for friendly HP-healing candidates. Guard and MP Recovery retain blue, damaging paths retain red, and overlays do not intercept clicks. Actual HP/MP Support Action browser flows verify fill/layering and the retained gold identity ring in PvE and PvP.
+Owner requests recovery target highlights to fill the visible tile around the portrait and identity border like the stronger blue self-selection. The latest clarification makes every Heal/Recovery-tagged action green, including MP Recovery and mixed defensive/healing Skills. Other non-attacking self buffs and basic Guard share the same 50% blue overlay. Shared battlefield styling removes competing legacy friendly tints, preserves terrain texture, participant rings and red damage-path priority, and does not intercept clicks. Actual HP/MP Support Action flows and Sacred Guard/Steady Footing/Guard comparisons cover desktop/mobile PvE/PvP.
 
 - [x] Implement shared full-tile green healing overlay and recipient marker from the armed action's actual effects.
 - [x] Pass focused shared-style regression; add real Support Action browser assertions.
+- [x] Cover HP/MP restoration and authored Heal/Recovery tags independently of command category; compare Guard and pure self-buff paint against mixed healing Skills.
 - [ ] Complete combined full quality and exact-head browser gates before authorized release.
-
 
 ## Chronicle damage types — 2026-10-06
 
@@ -27,7 +27,6 @@ Owner confirms Cleanse always removes Burn, Bleed, Poison, Slow, Rooted, Vulnera
 - [x] Exercise actual removal of all eight statuses and every typed Bleed application for each current Cleanse, preserving unrelated states.
 - [x] Inspect current published content read-only: no Skill/Essence DoT or remove-status overrides require a Production content conversion.
 - [ ] Complete full quality and exact-head release gates; release under standing Owner authorization.
-
 
 ## Battle-tag follow-up access repair — 2026-10-06
 
@@ -585,20 +584,17 @@ Release checkpoint: local `pnpm check` passed (1,095 tests including the six rep
 - [x] Add the one-time default-portrait gallery with authenticated, atomic server/database authority and a staged migration.
 - [ ] Release the verified candidate and portrait migration through the separately authorized workflow. Evidence and boundaries: `docs/superpowers/verification/2026-10-03-battle-log-popups-portrait.md`.
 
-
 ## Owner battle follow-up — 2026-10-06
 
 Authorized: proceed with the collected battle fixes, plus 60/30/10 elevation heights. Owner selected complete global rounds for newly queued non-instant status durations. Implemented round-boundary counters (instant and stored lifetimes preserved), canonical Basic Attack family/Defense, recorded Chronicle ordering, damaging forecast glow, Essence explanations, concise Move stats, paper Effects styling, removed arm-action footers and shared lobby VS flames. New standard and teaching map heights use seeded 60/30/10 level draws while preserving joined platforms, flat spawns and connected ground.
 
 Local `pnpm check` passed after the final changes: formatting, lint, typecheck, tests and production build. Core: 2,262 tests; web: 1,554 tests plus seven Node report/audio checks. Focused regressions cover both initiative positions, full-round mitigation/vulnerability, instant and historical lifetimes, manual/AI/PvP timeout boundaries, copied status lifetime, Chronicle fallback ordering, damaging path filtering and seeded standard/teaching elevations. Local browser execution was blocked by a missing Chromium binary and an invalid download archive; responsive browser evidence remains a CI gate. Main was refreshed and remains e86555d. GitHub integration pending; no production deployment claimed or triggered for this work item.
 
-
 ## Owner VS scale and independent tile heights — 2026-10-06
 
 Owner requested a larger, more impactful lobby VS and clarified that adjacent raised tiles may have different heights. Enlarged the existing shared emblem to 144px on desktop two-team lobbies and 80px on side-by-side mobile lobbies, reserving a wider seam and keeping multi-team/stacked layouts responsive. Added a lobby-only warm glow; shared flame animation and static reduced-motion behavior remain intact. Standard and authored maps now roll each raised tile independently at 60/30/10; flat spawn footprints, connected ground, terrain and saved maps remain authoritative. Focused seeded tests cover mixed adjacent heights, distribution and input immutability. Browser coverage checks emblem size, centering, separation from portrait centers, pointer passthrough and rendered evidence. Owner also clarified that only fully idle timeout turns apply Lowered Guard and reported invisible full attack paths. Added authoritative per-turn command activity that survives AP restoration; AI/PvP skip the penalty after a successful move/action and still penalize the next idle turn. Relocated damaging-path paint from an obsolete stylesheet into the mounted shared battlefield overlay above terrain textures, preserving canonical recipient filtering. Focused timeout and mounted-style regressions pass; full verification/release pending.
 
 - Round 2 follow-up: new battles persist a seeded random initiative tie order at start, independently of combat RNG. Historical saved battles retain their original ties. Regression coverage verifies both tied participants can start, reload/round stability, modifier precedence and metadata validation.
-
 
 2026-10-06 Owner battle follow-up: unify each assigned participant accent across rail portrait borders, rail arrows, grid rings and grid arrows, including spectators. Preserve existing team colors and extend Recruit shade families for five distinct opponents. Label each Skill/Essence/Resonance popup explanation with its effect name. Pending rail effects use yellow until activation; active buffs/debuffs use green/red. Shared presentation only; combat authority and durations unchanged. Focused rendered/color tests and mounted PvE/PvP/spectator browser regressions added; full checks and release pending.
 

@@ -66,11 +66,17 @@ async function readBattle(page: Page): Promise<BattleSessionView> {
 }
 
 async function expectSupportSelectionFill(page: Page, actionId: string) {
+  const identityRing = await page
+    .locator('[data-battle-combatant-card="local"]')
+    .evaluate((card) => getComputedStyle(card).borderColor)
   const tile = page.locator('#battlefield button[data-self-target="true"]').first()
   await expect(tile).toBeVisible()
-  const isHealing = actionId === 'basic.recover'
+  const isHealing = actionId === 'basic.recover' || actionId === 'basic.recover.mp'
   if (isHealing) await expect(tile).toHaveAttribute('data-heal-target', 'true')
   else await expect(tile).not.toHaveAttribute('data-heal-target', 'true')
+  await expect
+    .poll(() => tile.evaluate((node) => getComputedStyle(node).borderColor))
+    .toBe(isHealing ? 'rgb(102, 218, 143)' : 'rgb(108, 145, 198)')
   const fill = await tile.evaluate((node) => {
     const overlay = getComputedStyle(node, '::after')
     const token = node.querySelector<HTMLElement>(':scope > [data-team]')!
@@ -81,13 +87,19 @@ async function expectSupportSelectionFill(page: Page, actionId: string) {
       tokenLayer: Number(getComputedStyle(token).zIndex),
       ring: getComputedStyle(token).borderColor,
       pointerEvents: overlay.pointerEvents,
+      tileBorder: getComputedStyle(node).borderColor,
+      tileShadow: getComputedStyle(node).boxShadow,
+      texture: getComputedStyle(node).backgroundImage,
     }
   })
   expect(fill.background).toBe(isHealing ? 'rgba(102, 218, 143, 0.5)' : 'rgba(108, 145, 198, 0.5)')
   expect(fill.inset).toBe('0px')
   expect(fill.tokenLayer).toBeGreaterThan(fill.overlayLayer)
-  expect(fill.ring).toBe('rgb(208, 170, 98)')
+  expect(fill.ring).toBe(identityRing)
   expect(fill.pointerEvents).toBe('none')
+  expect(fill.tileBorder).toBe(isHealing ? 'rgb(102, 218, 143)' : 'rgb(108, 145, 198)')
+  expect(fill.tileShadow).toBe('none')
+  expect(fill.texture).toContain('terrain-open-stone-v01.webp')
 }
 
 for (const supportActionId of ['basic.recover', 'basic.recover.mp'] as const) {

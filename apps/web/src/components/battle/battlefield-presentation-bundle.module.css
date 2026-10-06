@@ -2,6 +2,29 @@
   display: none;
 }
 
+/* Friendly selections use one fill; legacy parent shadows must not tint Guard differently. */
+:global(
+  main[data-battle-concept='true']
+    section#battlefield
+    button[aria-label^='Tile '][data-self-target='true']:not([data-attack-path='true'])
+),
+:global(
+  main[data-battle-concept='true']
+    section#battlefield
+    button[aria-label^='Tile '][data-heal-target='true']:not([data-attack-path='true'])
+) {
+  border-color: #6c91c6 !important;
+  box-shadow: none !important;
+}
+
+:global(
+  main[data-battle-concept='true']
+    section#battlefield
+    button[aria-label^='Tile '][data-heal-target='true']:not([data-attack-path='true'])
+) {
+  border-color: #66da8f !important;
+}
+
 /* Paint above every terrain material without replacing its texture or target cues. */
 :global(
   main[data-battle-concept='true']
