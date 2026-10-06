@@ -80,7 +80,7 @@ Status: written for Owner review. Product implementation has not started. Recomm
 
 ### Task 4: Current immutable roster and encounter policy
 
-**Files:** Create `combat-percentage-dot-roster.ts` and `.test.ts`; modify `mature-skills.ts`, `essence.ts`, `skill-balance-v5.ts`, `skill-balance-v5-1.ts`, `apps/web/src/server/battle/battle-session-service.ts`, `pvp-lobby-service.ts`, `pvp-lobby-quality-service.ts` and the training creation path discovered from current repository truth.
+**Files:** Create `combat-percentage-dot-roster.ts` and `.test.ts`; modify `mature-skills.ts`, `essence.ts`, `skill-balance-v5.ts`, `skill-balance-v5-1.ts`, `apps/web/src/server/battle/battle-session-service.ts`, `pvp-lobby-service.ts`, `pvp-lobby-quality-service.ts` and their existing training/scenario creation branches.
 
 **Interfaces:** Export `createPercentageDotSkillVersion(definition: MatureSkillDefinition): MatureSkillDefinition | null` and `createPercentageDotEssenceVersion(definition: EssenceDefinition): EssenceDefinition | null`. They append a version only for the nine spec entries and preserve all unrelated Owner fields. Existing current/pinned resolvers remain the public interface. Every newly created encounter pins policy 1; absence preserves historical behavior.
 
@@ -98,13 +98,13 @@ Status: written for Owner review. Product implementation has not started. Recomm
 
 - [ ] Write failing component/service tests for all three controls, 12.34%→1234 round-trip, 25/5/3→25%→20%→15% preview, invalid/nonfinite/extra precision input, standalone DoT without attack/Damage, incompatible recipient coverage, permission denial, stale base/draft and published values surviving a new battle.
 - [ ] Run the Master editor and authoring service test files; confirm the existing fixed-only controls/publication fail these assertions.
-- [ ] Implement controls and current-publication validation. Require attack tag and direct hostile damage covering the DoT's recipient set. Preserve exact percentage values in save/validate/preview/publish and keep reasons/audit/expected-version checks. New defaults use percentage profiles; historical reports remain readable.
+- [ ] Implement controls and current-publication validation. Require attack tag and direct hostile damage covering the DoT's recipient set. Reject generic `apply-status` Burn/Poison/Bleed and fixed-only profiles in new current publication so they cannot bypass typed percentage semantics. Preserve exact percentage values in save/validate/preview/publish and keep reasons/audit/expected-version checks. New defaults use percentage profiles; historical reports remain readable.
 - [ ] Verify Skill and Essence draft/publication paths, old-battle immutable versions, and frontend invalid-input feedback. Review changed TSX with the React checklist.
 - [ ] Commit `feat: author DoT percentages in Master Panel`.
 
 ### Task 6: Shared brackets, descriptions and rail inspection
 
-**Files:** Modify `packages/game-core/src/combat/gameplay-tags.ts`, `apps/web/src/components/character/skill-effect-preview.ts`, `skill-detail-presentation.ts`, shared status/rail presentation helpers found by tracing the current readers, and the corresponding tests. Update Manual/Combat documentation when behavior is implemented.
+**Files:** Modify `packages/game-core/src/combat/gameplay-tags.ts`, `apps/web/src/components/character/skill-effect-preview.ts`, `skill-detail-presentation.ts`, `apps/web/src/components/battle/battle-combatant-effects.tsx`, `battle-effect-identity.ts`, `battle-effect-summary.ts` and `apps/web/src/lib/battle/battle-elevation-effects.ts`, and the corresponding tests. Update Manual/Combat documentation when behavior is implemented.
 
 **Interfaces:** All reports consume the same immutable `damageProfile`. Brackets are `Poison [15%] [4 turns]`, `Bleed [20%] [3 turns]`, `Burn [25% → 20% → 15%] [3 turns]`. Existing timing and effect-name prefixes remain. Rail inspection consumes only viewer-safe `percentageDamage` metadata; reveal actual basis/tick HP without private build/command fields.
 
