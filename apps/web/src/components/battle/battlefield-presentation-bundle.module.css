@@ -21,6 +21,25 @@
   pointer-events: none;
 }
 
+/* Fill the visible tile corners, below the portrait and its identity ring. */
+:global(
+  main[data-battle-concept='true']
+    section#battlefield
+    button[aria-label^='Tile '][data-self-target='true']:not([data-attack-path='true'])
+)::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border: 2px solid #6c91c6;
+  border-radius: inherit;
+  background: #6c91c680;
+  box-shadow:
+    inset 0 0 14px #6c91c699,
+    0 0 8px #6c91c680;
+  pointer-events: none;
+}
+
 /* Keyboard shortcuts can make a previously clicked tile match :focus-visible.
    Unselected tiles must not acquire a second, unrelated selection rectangle.
    Keep deliberate inspection selections and every action/terrain cue intact. */

@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { BattleActionPreview } from '@/server/battle/battle-preview-service'
-import { battleAttackPathTiles } from './battle-attack-path'
 import { battleRangePreviewIntents, requestBattleRangePreviews } from './battle-range-previews'
 
 const skill = {
@@ -182,33 +181,5 @@ describe('automatic canonical range forecasts', () => {
         fetchPreview,
       }),
     ).toEqual([])
-  })
-})
-
-describe('canonical damaging attack paths', () => {
-  const units = combatants.map((unit) => ({ id: unit.combatantId, hp: unit.hp }))
-  const placements = combatants.map((unit) => ({
-    combatantId: unit.combatantId,
-    position: unit.position,
-  }))
-  it('glows along a legal line containing a living damage recipient', () => {
-    const preview = {
-      ...projection('far'),
-      affectedTiles: [
-        { x: 2, y: 1 },
-        { x: 3, y: 1 },
-        { x: 4, y: 1 },
-      ],
-    }
-    expect([...battleAttackPathTiles([preview], units, placements)]).toEqual(['2:1', '3:1', '4:1'])
-  })
-  it('omits empty, blocked, defeated and non-damaging areas', () => {
-    for (const preview of [
-      { ...projection('north'), legal: false },
-      { ...projection('north'), affectedCombatantIds: [] },
-      { ...projection('north'), projectedEffects: [] },
-      projection('defeated'),
-    ])
-      expect(battleAttackPathTiles([preview], units, placements).size).toBe(0)
   })
 })

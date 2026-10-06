@@ -1,3 +1,4 @@
+import { expectCombatantIdentityColors } from './battle-identity-color-helpers'
 import { expect, test, type Page } from '@playwright/test'
 
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
@@ -220,6 +221,7 @@ test('keeps requested PvE presentation parity on desktop and mobile', async ({
   await root.getByRole('button', { name: 'Cancel Action' }).click()
   await selectMoveAndVerifySharedTreatment(root)
 
+  await expectCombatantIdentityColors(root)
   if (mobile) {
     await expect(root.locator(':scope > section[aria-label="Battle roster"]')).toBeHidden()
     await expect(root.locator('[data-battle-notice="true"] > span')).toBeHidden()
@@ -344,6 +346,7 @@ test('keeps requested PvP presentation parity on desktop and mobile', async ({
     await expectBattleHeaderAndArtworkGeometry(activePage)
     await selectMoveAndVerifySharedTreatment(activeRoot)
 
+    await expectCombatantIdentityColors(activeRoot)
     if (mobile) {
       await expect(activeRoot.locator(':scope > section[aria-label="Battle roster"]')).toBeHidden()
       await expect(activeRoot.locator('[data-battle-notice="true"] > span')).toBeHidden()

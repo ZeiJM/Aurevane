@@ -5,6 +5,37 @@ import { previewEffect, skillPreviewEffects } from './skill-effect-preview'
 
 describe('compact Technique explanations', () => {
   it.each([
+    ['fire', 'removes Wet and Frozen'],
+    ['storm', 'consumes Conductive; Wet remains'],
+  ] as const)(
+    'explains %s interactions without repeating the displayed power',
+    (element, interaction) => {
+      const preview = previewEffect({
+        type: 'damage',
+        recipient: 'primary-unit',
+        amount: 9,
+        element,
+      })
+      expect(preview.magnitude).toBe('9')
+      expect(preview.explanation).toContain('Skill power ranges from 1 to 20')
+      expect(preview.explanation).toContain(interaction)
+      expect(preview.explanation).not.toContain('9 power')
+      if (element === 'fire') expect(preview.explanation).toContain('Steam')
+      else expect(preview.explanation).toContain('20% per active Wet or Conductive')
+    },
+  )
+  it('does not invent an elemental interaction for untyped or Water damage', () => {
+    for (const element of [undefined, 'water'] as const) {
+      const preview = previewEffect({
+        type: 'damage',
+        recipient: 'primary-unit',
+        amount: 9,
+        element,
+      })
+      expect(preview.explanation).not.toMatch(/9 power|Steam|consumes Conductive|applies Wet/)
+    }
+  })
+  it.each([
     ['inspired', '+11% outgoing', 'Deal 11% more damage'],
     ['warded', '−11% incoming', 'Take 11% less damage from opponents affected by Burn'],
     ['reckless', '+11% outgoing / +11% incoming', 'Deal 11% more damage and take 11% more damage'],

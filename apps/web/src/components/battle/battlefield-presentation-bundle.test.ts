@@ -17,6 +17,12 @@ describe('shared battlefield presentation bundle', () => {
     expect(styles).toContain('inset 0 0 12px #d83b4c99')
     expect(styles).toContain('background: #bd263a38;')
   })
+  it('fills self-target tiles blue below the unchanged participant token', () => {
+    const styles = readLocalFile('battlefield-presentation-bundle.module.css')
+    expect(styles).toContain("[data-self-target='true']:not([data-attack-path='true'])")
+    expect(styles).toContain('background: #6c91c680;')
+    expect(readLocalFile('battle-experience.tsx')).toContain('data-self-target=')
+  })
   it('owns terrain and tile-scaled combatant token presentation', () => {
     const source = readLocalFile('battlefield-presentation-bundle.tsx')
 

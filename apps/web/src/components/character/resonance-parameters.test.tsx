@@ -42,7 +42,7 @@ describe('shared Resonance parameter report', () => {
     expect(markup).toContain('<dt>Requirements</dt><dd>Wildwarden · mark</dd>')
     expect([...markup.matchAll(/<dt>(.*?)<\/dt>/g)].map((match) => match[1])).toEqual(fields)
     expect(markup).toContain(
-      '<ul aria-label="Effect explanations"><li>Restores MP to you.</li></ul>',
+      '<ul aria-label="Effect explanations"><li><strong>MP Restore</strong> — Restores MP to you.</li></ul>',
     )
     expect(markup).not.toContain('<p>')
     expect(markup).not.toContain('Trigger targeting:')

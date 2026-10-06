@@ -3,6 +3,7 @@
 import { useSkillEffectTimingPolicy } from './skill-effect-timing-context'
 import type { AnyResonanceDefinition } from '@aurevane/game-core/combat/resonance'
 import { normalizedResonanceMechanics } from '@aurevane/game-core/combat/resonance-v2'
+import { previewEffect } from './skill-effect-preview'
 import { CompactSkillEffectSummary } from './compact-skill-effect-summary'
 import {
   resonanceCharacteristicRows,
@@ -57,7 +58,9 @@ export function ResonanceParameters({
       {Array.isArray(explanations) && explanations.length ? (
         <ul aria-label="Effect explanations">
           {explanations.map((explanation, index) => (
-            <li key={index}>{explanation}</li>
+            <li key={index}>
+              <strong>{previewEffect(effects[index]!).label}</strong> — {explanation}
+            </li>
           ))}
         </ul>
       ) : null}

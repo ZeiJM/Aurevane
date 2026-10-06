@@ -38,7 +38,14 @@ test('mounted attack-path overlays remain visible above open, rough and raised t
   test.slow()
   await enterBattle(page)
   const board = page.locator('#battlefield')
-  // Presentation fixture only: forecast selection/legality is covered by battle-range-previews.
+  // Actual armed reach is visible before a recipient or forecast is available.
+  await page.route('**/api/battles/*/preview', (route) => route.abort())
+  await page.locator('main[data-unified-battle="true"]').focus()
+  await page.keyboard.press('Digit2')
+  await expect(board.locator('[data-attack-path]')).toHaveCount(4)
+  await page.keyboard.press('Escape')
+  await expect(board.locator('[data-attack-path]')).toHaveCount(0)
+  // Presentation fixture only: shape selection is covered by battle-attack-path.
   // Exercise the real mounted stylesheet, including the terrain and mode-specific cascade.
   for (const selector of [
     "button[aria-label^='Tile '][data-terrain='open']:not([data-terrain-elevated])",
@@ -91,6 +98,20 @@ test('single target input executes Guard once and repeated keys do not dispatch'
   await expect(
     page.getByLabel('Action preview', { exact: true }).locator('[data-battle-range-forecast]'),
   ).toContainText('Guard')
+  await expect(localTile).toHaveAttribute('data-self-target', 'true')
+  const selfGlow = await localTile.evaluate((tile) => {
+    const overlay = getComputedStyle(tile, '::after')
+    const token = tile.querySelector<HTMLElement>(':scope > [data-team]')!
+    return {
+      background: overlay.backgroundColor,
+      overlayLayer: Number(overlay.zIndex),
+      tokenLayer: Number(getComputedStyle(token).zIndex),
+      ring: getComputedStyle(token).borderColor,
+    }
+  })
+  expect(selfGlow.background).toBe('rgba(108, 145, 198, 0.5)')
+  expect(selfGlow.tokenLayer).toBeGreaterThan(selfGlow.overlayLayer)
+  expect(selfGlow.ring).toBe('rgb(208, 170, 98)')
   expect(commits).toBe(0)
   await page.evaluate(() =>
     window.dispatchEvent(
@@ -104,6 +125,35 @@ test('single target input executes Guard once and repeated keys do not dispatch'
     '70',
   )
   expect(commits).toBe(1)
+  const pendingGuard = page
+    .locator('[data-battle-combatant-card="local"] [data-effect-timing="pending"]')
+    .first()
+  await expect(pendingGuard).toBeVisible()
+  // Rendered timing comes from the committed Guard; exercise both active tones as a CSS fixture.
+  const palettes = await pendingGuard.evaluate((effect) => {
+    const button = effect.querySelector('button')!
+    const read = () => {
+      const css = getComputedStyle(button)
+      return { border: css.borderTopColor, color: css.color, background: css.backgroundImage }
+    }
+    const pending = read()
+    const timing = effect.getAttribute('data-effect-timing')!
+    const tone = effect.getAttribute('data-tone')!
+    effect.setAttribute('data-effect-timing', 'active')
+    effect.setAttribute('data-tone', 'positive')
+    const buff = read()
+    effect.setAttribute('data-tone', 'negative')
+    const debuff = read()
+    effect.setAttribute('data-effect-timing', timing)
+    effect.setAttribute('data-tone', tone)
+    return { pending, buff, debuff }
+  })
+  expect(palettes.pending.border).toBe('rgb(217, 184, 84)')
+  expect(palettes.pending.color).toBe('rgb(245, 221, 150)')
+  expect(palettes.buff.border).toBe('rgb(108, 170, 129)')
+  expect(palettes.debuff.border).toBe('rgb(167, 82, 74)')
+  expect(palettes.buff.background).not.toBe(palettes.pending.background)
+  expect(palettes.debuff.background).not.toBe(palettes.pending.background)
 })
 
 test('leaving during an informational preview cannot submit a late action', async ({ page }) => {
@@ -478,6 +528,37 @@ test('a rapid second Basic Attack commits without waiting for an informational f
   const initialAction = (await initial.json()).battlePreview.preview
   expect(initialAction.legal).toBe(true)
   expect(initialAction.hitChanceBasisPoints).not.toBeNull()
+  await expect
+    .poll(async () =>
+      page.locator('#battlefield').evaluate((board) => {
+        const point = (tile: Element) =>
+          tile
+            .getAttribute('aria-label')!
+            .match(/^Tile (\d+), (\d+)/)!
+            .slice(1)
+            .map(Number)
+        const origin = board.querySelector(
+          'button[aria-label*="occupied by"] > [data-team="0"]',
+        )?.parentElement
+        if (!origin) return false
+        const [x, y] = point(origin)
+        const adjacent = [...board.querySelectorAll('button[aria-label^="Tile "]')].filter(
+          (tile) => {
+            const [tx, ty] = point(tile)
+            return Math.abs(tx - x) + Math.abs(ty - y) === 1
+          },
+        )
+        return (
+          adjacent.length > 1 &&
+          adjacent.every(
+            (tile) =>
+              tile.getAttribute('data-attack-path') === 'true' &&
+              getComputedStyle(tile, '::after').backgroundColor === 'rgba(189, 38, 58, 0.22)',
+          )
+        )
+      }),
+    )
+    .toBe(true)
   await expect(page.getByLabel('Action preview', { exact: true })).toContainText(
     `Hit ${Math.round(initialAction.hitChanceBasisPoints / 100)}%`,
   )

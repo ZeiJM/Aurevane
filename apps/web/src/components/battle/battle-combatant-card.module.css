@@ -5,7 +5,7 @@
   background: linear-gradient(135deg, #263037ed, #10191fee);
   box-shadow:
     inset 0 0 0 3px #191f23,
-    inset 0 0 0 4px #8f7e5544,
+    inset 0 0 0 4px color-mix(in srgb, var(--battle-combatant-accent, #d0aa62) 27%, transparent),
     0 5px 16px #0006;
   padding: 0.3rem;
 }
@@ -15,7 +15,7 @@
   margin-inline: auto;
   aspect-ratio: 1;
   padding: 0;
-  border: 1px solid #bca16d;
+  border: 1px solid var(--battle-combatant-accent, #d0aa62);
   color: inherit;
   background: #14212a;
   overflow: hidden;
