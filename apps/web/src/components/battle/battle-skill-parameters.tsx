@@ -34,7 +34,9 @@ export function BattleSkillParameters({ skill }: { skill: BattleSkillForecastPre
       {definition ? (
         <ul aria-label="Effect explanations">
           {skillPreviewEffects(definition).map((effect, index) => (
-            <li key={index}>{effect.explanation}</li>
+            <li key={index}>
+              <strong>{effect.label}</strong> — {effect.explanation}
+            </li>
           ))}
         </ul>
       ) : null}

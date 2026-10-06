@@ -8,9 +8,9 @@ export const BATTLE_COMBATANT_ACCENTS = [
 ] as const
 
 const BATTLE_TEAM_ACCENTS = [
-  ['#d0aa62', '#e0bd79', '#b98a4f'],
-  ['#aa86cf', '#c09bdd', '#8f6caf'],
-  ['#b9aa92', '#d0c0a6', '#9c8a74'],
+  ['#d0aa62', '#e0bd79', '#b98a4f', '#f0d394', '#98713e'],
+  ['#aa86cf', '#c09bdd', '#8f6caf', '#d5b5ed', '#765591'],
+  ['#b9aa92', '#d0c0a6', '#9c8a74', '#e1d4bd', '#82715e'],
 ] as const
 
 export function battleCombatantAccent(index: number): string {

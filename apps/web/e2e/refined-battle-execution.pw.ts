@@ -104,6 +104,35 @@ test('single target input executes Guard once and repeated keys do not dispatch'
     '70',
   )
   expect(commits).toBe(1)
+  const pendingGuard = page
+    .locator('[data-battle-combatant-card="local"] [data-effect-timing="pending"]')
+    .first()
+  await expect(pendingGuard).toBeVisible()
+  // Rendered timing comes from the committed Guard; exercise both active tones as a CSS fixture.
+  const palettes = await pendingGuard.evaluate((effect) => {
+    const button = effect.querySelector('button')!
+    const read = () => {
+      const css = getComputedStyle(button)
+      return { border: css.borderTopColor, color: css.color, background: css.backgroundImage }
+    }
+    const pending = read()
+    const timing = effect.getAttribute('data-effect-timing')!
+    const tone = effect.getAttribute('data-tone')!
+    effect.setAttribute('data-effect-timing', 'active')
+    effect.setAttribute('data-tone', 'positive')
+    const buff = read()
+    effect.setAttribute('data-tone', 'negative')
+    const debuff = read()
+    effect.setAttribute('data-effect-timing', timing)
+    effect.setAttribute('data-tone', tone)
+    return { pending, buff, debuff }
+  })
+  expect(palettes.pending.border).toBe('rgb(217, 184, 84)')
+  expect(palettes.pending.color).toBe('rgb(245, 221, 150)')
+  expect(palettes.buff.border).toBe('rgb(108, 170, 129)')
+  expect(palettes.debuff.border).toBe('rgb(167, 82, 74)')
+  expect(palettes.buff.background).not.toBe(palettes.pending.background)
+  expect(palettes.debuff.background).not.toBe(palettes.pending.background)
 })
 
 test('leaving during an informational preview cannot submit a late action', async ({ page }) => {

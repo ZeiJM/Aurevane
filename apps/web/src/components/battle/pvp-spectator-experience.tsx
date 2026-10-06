@@ -6,6 +6,7 @@ import { useBattleTabCyclePrevention } from './battle-tab-cycle-prevention'
 import { BattleTerrainToggle } from './battle-terrain-toggle'
 import { battleTerrainName } from './battle-terrain-key-presentation'
 import { BattleCombatantCard } from './battle-combatant-card'
+import { pvpParticipantAccent } from './battle-combatant-colors'
 import { buildDisplayedPlacementByTile } from './battle-geometry'
 import { BattleVersusEmblem } from './battle-versus-emblem'
 import { BattleLogPanel } from './battle-log-panel'
@@ -453,6 +454,15 @@ export function PvpSpectatorExperience({
                       {participant && placement ? (
                         <span
                           className={styles.unit}
+                          style={
+                            {
+                              '--battle-combatant-accent': pvpParticipantAccent(
+                                participant.teamIndex,
+                                participant.seatIndex,
+                                teamCount,
+                              ),
+                            } as CSSProperties
+                          }
                           data-team={participant.teamIndex}
                           data-active={placement.combatantId === activeCombatantId || undefined}
                           data-defeated={combatant?.hp === 0 || undefined}

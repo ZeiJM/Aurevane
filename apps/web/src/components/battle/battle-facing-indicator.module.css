@@ -6,7 +6,7 @@
   display: block;
   width: calc(var(--battle-token-size, 3.4rem) * 0.16);
   height: calc(var(--battle-token-size, 3.4rem) * 0.16);
-  color: #f1d892;
+  color: var(--battle-combatant-accent, #d0aa62);
   filter: drop-shadow(0 1px 2px #000);
   transform-origin: 50% 50%;
   pointer-events: none;

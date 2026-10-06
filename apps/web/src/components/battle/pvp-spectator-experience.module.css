@@ -133,7 +133,7 @@
   z-index: 4;
   width: 85%;
   aspect-ratio: 1;
-  border: 2px solid #b89c6b;
+  border: 2px solid var(--battle-combatant-accent, #d0aa62);
   border-radius: 50%;
   background: #10212a;
   box-shadow: 0 4px 10px #0008;
@@ -154,7 +154,7 @@
 .unit > i {
   position: absolute;
   top: -0.65rem;
-  color: #efd296;
+  color: var(--battle-combatant-accent, #d0aa62);
   font-size: 0.75rem;
   text-shadow: 0 1px 3px #000;
 }

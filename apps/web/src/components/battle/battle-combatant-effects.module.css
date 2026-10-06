@@ -183,6 +183,7 @@
   background: #071016;
 }
 .iconGrid > [data-tone='positive'] .icon {
+  background: linear-gradient(135deg, #244f39, #10261c);
   border-color: #6caa81;
   color: #9fe2b0;
 }
@@ -196,8 +197,16 @@
   outline-offset: -2px;
 }
 
-.iconGrid > [data-effect-timing='pending'] .icon {
+/* Pending activation overrides buff/debuff tones without changing their mechanics. */
+.iconGrid > [data-effect-timing='pending'] .icon,
+.list > [data-effect-timing='pending'] .effectButton {
+  border-color: #d9b854;
   border-style: dashed;
+  color: #f5dd96;
+  background: linear-gradient(135deg, #5b4a20, #2e2717);
+}
+.list > [data-effect-timing='pending'] .identity i {
+  color: #f5dd96;
 }
 .icon i {
   max-width: 100%;

@@ -48,7 +48,10 @@ describe('cockpit Skill Parameters', () => {
     expect(markup.match(/data-compact-skill-effect="true"/g)).toHaveLength(
       definition.effects.length,
     )
-    expect(markup).toContain(skillPreviewEffects(definition)[0]!.explanation)
+    for (const effect of skillPreviewEffects(definition)) {
+      expect(markup).toContain(`<strong>${effect.label}</strong>`)
+      expect(markup).toContain(effect.explanation)
+    }
     expect(markup).not.toContain('Do not replace pinned Nexus effects')
     expect(markup).not.toContain('Legal range')
     expect(markup).toContain('<dt>Range</dt><dd>1</dd>')

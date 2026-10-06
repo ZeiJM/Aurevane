@@ -296,7 +296,7 @@
 .unit > i {
   position: absolute;
   top: -0.65rem;
-  color: #efd296;
+  color: var(--battle-combatant-accent, #d0aa62);
   font-size: 0.75rem;
   text-shadow: 0 1px 3px #000;
 }

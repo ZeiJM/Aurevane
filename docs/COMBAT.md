@@ -864,3 +864,5 @@ Owner-approved 2026-10-06 battle follow-up: Basic Attack uses the higher committ
 
 
 Owner clarification 2026-10-06: Lowered Guard applies on a timer expiry only if the outgoing character performed no successful command during that turn. A committed move or action (including a miss or an action whose AP is later restored) exempts that turn and clears the missed-turn streak. Previewing, inspection, failed commands and passive resource changes do not count. AI and PvP use the same authoritative per-turn activity marker; manual End Turn remains exempt. Existing active turns without the new marker retain an AP-spend fallback.
+
+Owner-approved 2026-10-06 rail readability follow-up: each participant uses one consistent identity accent on portrait borders and facing arrows in the rail and grid, including spectator rendering. Pending effects appear yellow; activation restores green Buff/red Debuff tones using recorded effect timing. Skill, Essence and Resonance popup explanations identify their effect tags explicitly.

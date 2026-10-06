@@ -1,3 +1,4 @@
+import { expectCombatantIdentityColors } from './battle-identity-color-helpers'
 import { randomUUID } from 'node:crypto'
 
 import { expect, test, type Page } from '@playwright/test'
@@ -92,6 +93,7 @@ test('keeps the complete acting title clear of VS without resizing spectator art
     const key = (await host!.locator('[data-pvp-spectator-key] strong').textContent())!.trim()
     await watcher!.goto(`/game/battle/spectate/${key}`)
     await expect(watcher!.locator('[data-battle-versus]')).toBeVisible()
+    await expectCombatantIdentityColors(watcher!.locator('main[data-pvp-spectator]'))
     const response = await watcher!.request.get(`/api/pvp/spectate/${key}`)
     expect(response.ok()).toBe(true)
     const { spectator } = await response.json()
