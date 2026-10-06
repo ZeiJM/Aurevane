@@ -13,6 +13,7 @@ import {
 } from './battle-preview-selection'
 import { BattleActionPreview } from './battle-action-preview'
 import { useBattleRangePreviews } from './use-battle-range-previews'
+import { battleRangePreviewIntents } from './battle-range-previews'
 import { requestBattlePreview } from './battle-preview-request'
 import { BattleChronicleHeading } from './battle-chronicle-heading'
 import { BattleTerrainToggle } from './battle-terrain-toggle'
@@ -1294,6 +1295,16 @@ function BattleExperienceContent({
     preview.preview.actionId === currentActionId
       ? preview.preview
       : null
+  // Target gestures stay available while informational forecasts load or fail.
+  const basicAttackTargets = new Set(
+    mode === 'attack' && !activeTechnique
+      ? battleRangePreviewIntents(
+          actionDescriptor(currentActionId),
+          localCombatantId,
+          previewCombatants,
+        ).flatMap((intent) => (intent.target.kind === 'unit' ? [intent.target.combatantId] : []))
+      : [],
+  )
   const attackPath =
     mode === 'attack' || mode === 'guard' || mode === 'recover'
       ? battleAttackPathTiles(
@@ -2004,7 +2015,9 @@ function BattleExperienceContent({
                   : null
                 const pathIndex = path.findIndex((point) => positionsEqual(point, tile.position))
                 const reachable = mode === 'move' && reachablePaths.has(key) && pathIndex < 0
-                const inAttackRange = attackPath.has(key)
+                const inAttackRange = Boolean(
+                  placement && basicAttackTargets.has(placement.combatantId),
+                )
                 const legalEnemy = Boolean(
                   inAttackRange &&
                   participant &&
