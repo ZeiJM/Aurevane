@@ -142,6 +142,37 @@ try {
         '100',
       )
       await expectName(enemy, 'Recruit 1')
+      await page.getByRole('button', { name: /^Selected Mend,/ }).click()
+      const allyTile = tile('Ally 1')
+      await page.waitForFunction(() =>
+        [...document.querySelectorAll('#battlefield button')].some(
+          (button) =>
+            button.getAttribute('aria-label')?.includes('occupied by Ally 1') &&
+            button.getAttribute('data-heal-target') === 'true',
+        ),
+      )
+      const healingFill = await allyTile.evaluate((button) => {
+        const overlay = getComputedStyle(button, '::after')
+        const token = button.querySelector(':scope > [data-team]')
+        return {
+          color: overlay.backgroundColor,
+          inset: [overlay.top, overlay.right, overlay.bottom, overlay.left],
+          pointerEvents: overlay.pointerEvents,
+          zIndex: Number(overlay.zIndex),
+          tokenZIndex: token ? Number(getComputedStyle(token).zIndex) : null,
+        }
+      })
+      assert.equal(healingFill.color, 'rgba(102, 218, 143, 0.5)')
+      assert.deepEqual(healingFill.inset, ['0px', '0px', '0px', '0px'])
+      assert.equal(healingFill.pointerEvents, 'none')
+      assert.ok(
+        healingFill.tokenZIndex > healingFill.zIndex,
+        'The ally portrait/ring remain above the healing fill',
+      )
+      assert.equal(await tile('Recruit 1').getAttribute('data-heal-target'), null)
+      assert.deepEqual(await commits(), [], 'Arming ally healing submits no command')
+      await command('inspect').click()
+      await tile('Ally 1').click()
       await tile('Recruit 2').click()
       await expectName(enemy, 'Recruit 2')
       await expectName(local, 'Ally 1')

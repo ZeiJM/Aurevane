@@ -880,3 +880,5 @@ Owner clarification 2026-10-06 targeting follow-up supersedes the earlier recipi
 #### Recorded critical outcomes in the Chronicle
 
 The Chronicle and copied transcript identify confirmed critical hits beneath the recorded attack. Compact battle-log narration identifies a critical only for its matching source, action and recipient. The label comes from the immutable critical receipt; it never guesses from the amount or exposes RNG draws. Damage Up remains a 10% outgoing increase per active application; normal integer rounding and the separate critical multiplier can produce different recorded damage amounts while the buff remains active.
+
+Current Resonances that previously used partial Cleanse append corrected content v4 definitions with the same eight removals as Skills and Essences; pinned Resonance v1–v3 remains unchanged. New Master Panel Resonance publication enforces this list as well. Result explanations name their effect before explaining it. Compact logs retain additional hits' recorded elemental types and display a confirmed target-level critical as a separate outcome, avoiding false attribution to a critical-ineligible packet in the same command.

@@ -29,6 +29,10 @@ import {
   validateResonanceDefinition as validateCanonicalResonanceDefinition,
   type AnyResonanceDefinition,
 } from '@aurevane/game-core/combat/resonance'
+import {
+  normalizedResonanceMechanics,
+  isResonanceDefinitionV2,
+} from '@aurevane/game-core/combat/resonance-v2'
 import { AurevaneError } from '@aurevane/game-core/errors'
 
 import type { CombatContentResolver } from '@/server/combat/combat-content-resolver'
@@ -394,6 +398,18 @@ function validateResonanceAuthoringDefinition(definition: unknown): CombatConten
     })
   }
 
+  if (issues.length === 0) {
+    for (const [index, effect] of normalizedResonanceMechanics(candidate).resultEffects.entries()) {
+      if (isCleanseEffect(effect) && !hasCanonicalCleanseStatuses(effect.statusIds)) {
+        issues.push({
+          path: `trigger.${isResonanceDefinitionV2(candidate) ? 'resultEffects' : 'payoffEffects'}[${index}].statusIds`,
+          code: 'INCONSISTENT_CLEANSE',
+          message:
+            'Cleanse must remove Burn, Bleed, Poison, Slow, Rooted, Vulnerable, Marked and Taunted. Use the standard Cleanse list.',
+        })
+      }
+    }
+  }
   return { valid: issues.length === 0, issues, derivedTags: [] }
 }
 

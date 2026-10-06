@@ -611,3 +611,10 @@ Owner clarification 2026-10-06 targeting follow-up supersedes the earlier recipi
 - Owner reported Sacred Guard followed by 23 and 15 damage. Read-only inspection of the matching persisted battle confirms the first hit was critical and the second was normal; Damage Up remained active and increased a 14-damage normal hit to 15. No damage arithmetic change is justified by this report.
 - Preserve confirmed critical results through the sanitized shared Chronicle, compact log, and clipboard transcript without exposing RNG or chance internals. Match compact critical narration to the recorded source, action and recipient; queue pre-command receipts beneath their actual command.
 - Focused regressions pass for repeated Damage Up attacks (normal 15 / critical 23), confirmed versus malformed critical receipts, recipient matching, pre-command ordering, elemental wording and reader/copy parity. Final combined full gate and exact-head CI still pending.
+
+#### Review follow-up for the same batch
+
+- Independent review reproduced partial Cleanse on eleven current Resonances. Append corrected v4 definitions while retaining v1–v3, validate Resonance Result authoring against the same eight-status contract, and label every Resonance explanation with its effect name. Current execution regressions now cover all twenty-one Skill/Essence/Resonance Cleanse definitions and stacked DoT cleanup.
+- Preserve earlier mixed-element hits in compact visible outcomes. Present target-level critical receipts separately from damage packets so a same-command critical-ineligible Vengeance packet is never mislabeled. Both reproduced regressions pass.
+- Add desktop/mobile PvE/PvP allied healing fill assertions in the existing production-component browser harness, including full inset, green opacity, portrait/ring layering, enemy exclusion and no command on arming. Browser execution is pending CI.
+- Extended read-only publication preflight found no published Resonance remove-status override. No live database change is required.

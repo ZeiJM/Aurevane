@@ -1,6 +1,7 @@
 import type { CombatEffectDefinition } from './actions'
 import { combatEffectPresentationTags } from './gameplay-tags'
 import type { MatureSkillDefinition, MatureSkillEffectDefinition } from './mature-skills'
+import type { ResonanceDefinitionV2 } from './resonance-v2'
 
 export const CLEANSE_STATUS_IDS = [
   'burn',
@@ -24,6 +25,31 @@ export function hasCanonicalCleanseStatuses(statusIds: readonly string[]): boole
     statusIds.length === CLEANSE_STATUS_IDS.length &&
     CLEANSE_STATUS_IDS.every((id) => statusIds.includes(id))
   )
+}
+
+export function createCanonicalCleanseResonanceVersion(
+  definition: ResonanceDefinitionV2,
+): ResonanceDefinitionV2 | null {
+  if (
+    !definition.trigger.resultEffects.some(
+      (effect) => isCleanseEffect(effect) && !hasCanonicalCleanseStatuses(effect.statusIds),
+    )
+  )
+    return null
+  return {
+    ...definition,
+    contentVersion: definition.contentVersion + 1,
+    trigger: {
+      ...definition.trigger,
+      resultEffects: definition.trigger.resultEffects.map((effect) =>
+        isCleanseEffect(effect) ? { ...effect, statusIds: [...CLEANSE_STATUS_IDS] } : effect,
+      ),
+    },
+    authoring: {
+      ...definition.authoring,
+      validationTags: [...new Set([...definition.authoring.validationTags, 'canonical-cleanse'])],
+    },
+  }
 }
 
 /** Append only changed versions; never mutate a historical definition or its other effects. */

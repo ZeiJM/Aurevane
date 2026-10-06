@@ -20,6 +20,21 @@ const fields = [
 ]
 
 describe('passive Resonance Skill information', () => {
+  it('names all canonical Cleanse removals in the current Resonance reader', () => {
+    const definition = resolveResonanceForPair('dawnshield', 'farstrider')!
+    const details = JSON.stringify(resonanceSupplementalRows(definition))
+    for (const name of [
+      'Burn',
+      'Bleed',
+      'Poison',
+      'Slow',
+      'Rooted',
+      'Vulnerable',
+      'Marked',
+      'Taunted',
+    ])
+      expect(details).toContain(name)
+  })
   it('shows the ten required fields and preserves sequence setup and unit-target constraints', () => {
     const definition = resolveResonanceForPair('lifebinder', 'vanguard')!
     const rows = resonanceCharacteristicRows(definition)

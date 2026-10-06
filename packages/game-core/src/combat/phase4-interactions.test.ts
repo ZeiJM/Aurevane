@@ -2,6 +2,9 @@ import { terrainOverlayAiUtility } from './terrain-overlays'
 import { conditionalDamageMultiplier } from './damage-modifiers'
 import { executePv1fMatureSkillWithResonance } from './pv1f-resonance'
 import { ADVANCED_RESONANCES } from './advanced-resonances'
+import { P35_REPRESENTATIVE_RESONANCES, resolveResonanceForPair } from './resonance'
+import { normalizedResonanceMechanics } from './resonance-v2'
+import { isCleanseEffect } from './combat-cleanse'
 import { createResonanceCombatState } from './resonance'
 import { describe, expect, it } from 'vitest'
 import { createPendingBattle, startBattle } from './battle-state'
@@ -222,6 +225,11 @@ describe('Phase 4 gameplay interactions', () => {
   const currentCleanses = [
     ...latestEnabledMatureSkills().filter((skill) => skill.tags.includes('cleanse')),
     ...['dawnshield', 'tidecaller'].map((id) => resolveEssenceForBuild(id, null)!.skill),
+    ...P35_REPRESENTATIVE_RESONANCES.flatMap((definition) => {
+      const current = resolveResonanceForPair(...definition.disciplinePair)!
+      const effects = normalizedResonanceMechanics(current).resultEffects
+      return effects.some(isCleanseEffect) ? [{ id: current.id, effects }] : []
+    }),
   ]
   it.each(currentCleanses.map((skill) => [skill.id, skill] as const))(
     '%s removes every canonical Cleanse effect and preserves unrelated states',

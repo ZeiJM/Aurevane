@@ -12,6 +12,7 @@ import { createTacticalBattleState } from '@aurevane/game-core/combat/board'
 import { createCombatEncounterState } from '@aurevane/game-core/combat/actions'
 import { createStatDrivenCombatEncounterState } from '@aurevane/game-core/combat/stat-driven-combat'
 import { createPv1fTemporaryResources } from '@aurevane/game-core/combat/pv1f-action-economy'
+import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
 import './production-styles'
 
 const ids = ['character:player', 'ally', 'enemy-one', 'enemy-two']
@@ -97,6 +98,7 @@ const metadata = {
   localCharacterId: ids[0],
   participants,
 }
+const mend = resolveMatureSkillVersion('lifebinder.mend')
 const runtime = {
   kind: mode,
   metadata,
@@ -105,7 +107,27 @@ const runtime = {
   playerPortraitAssetId: 'character.adventure.male-01',
   playerProfileImageUrl: null,
   supportActionId: 'basic.guard',
-  techniques: [],
+  techniques: [
+    {
+      definition: mend,
+      id: mend.id,
+      contentVersion: mend.contentVersion,
+      name: 'Mend',
+      sourceDisciplineId: mend.sourceDisciplineId,
+      category: 'heal',
+      apCost: mend.apCost,
+      mpCost: mend.mpCost ?? 0,
+      cooldownOwnerTurns: mend.cooldown?.ownerTurns ?? null,
+      iconKey: mend.media.iconKey,
+      targetKind: mend.target.kind,
+      targetTeamPolicy: mend.target.teamPolicy,
+      minimumRange: mend.target.minimumRange,
+      maximumRange: mend.target.maximumRange,
+      tags: mend.tags,
+      effectDescriptions: [],
+      requirementDescriptions: [],
+    },
+  ],
   essence: null,
   copiedSkills: [],
 }
@@ -140,10 +162,13 @@ window.fetch = async (url, options = {}) => {
               intent.target.kind === 'unit'
                 ? [
                     {
-                      effectType: 'damage',
+                      effectType: intent.actionId === mend.id ? 'healing' : 'damage',
                       combatantId: targetId,
                       before: combatant.hp,
-                      after: combatant.hp - damage,
+                      after:
+                        intent.actionId === mend.id
+                          ? Math.min(combatant.maxHp, combatant.hp + 12)
+                          : combatant.hp - damage,
                     },
                   ]
                 : [],

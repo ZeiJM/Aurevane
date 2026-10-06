@@ -15,6 +15,7 @@ import {
   resolveResonanceForPair,
   type AnyResonanceDefinition,
 } from '@aurevane/game-core/combat/resonance'
+import { isResonanceDefinitionV2 } from '@aurevane/game-core/combat/resonance-v2'
 import type { CombatContentResolver } from '@/server/combat/combat-content-resolver'
 
 import {
@@ -106,6 +107,35 @@ function invalidVariant(mutator: (definition: Record<string, unknown>) => void):
 }
 
 describe('combat content authoring service', () => {
+  it('rejects partial Cleanse in a Resonance Result without changing Dispel', () => {
+    const { service } = serviceFixture()
+    const base = resolveResonanceForPair('dawnshield', 'vanguard')!
+    if (!isResonanceDefinitionV2(base)) throw new Error('Expected current Resonance V2.')
+    expect(service.validateResonanceDefinition(base)).toMatchObject({ valid: true })
+    const partial = {
+      ...base,
+      trigger: {
+        ...base.trigger,
+        resultEffects: base.trigger.resultEffects.map((effect) =>
+          effect.type === 'remove-status' ? { ...effect, statusIds: ['burn'] } : effect,
+        ),
+      },
+    }
+    expect(service.validateResonanceDefinition(partial)).toMatchObject({
+      valid: false,
+      issues: expect.arrayContaining([expect.objectContaining({ code: 'INCONSISTENT_CLEANSE' })]),
+    })
+    const dispel = {
+      ...base,
+      trigger: {
+        ...base.trigger,
+        resultEffects: base.trigger.resultEffects.map((effect) =>
+          effect.type === 'remove-status' ? { ...effect, statusIds: ['guarded'] } : effect,
+        ),
+      },
+    }
+    expect(service.validateResonanceDefinition(dispel)).toMatchObject({ valid: true })
+  })
   it('rejects partial Cleanse publication while preserving Dispel and canonical Cleanse', () => {
     const { service } = serviceFixture()
     const base = staticSkill('runeblade.unbinding-rune')
