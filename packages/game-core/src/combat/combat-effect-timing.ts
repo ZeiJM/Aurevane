@@ -2,6 +2,7 @@ import { CURRENT_BURN_DAMAGE_BY_STAGE } from './combat-dots'
 import { COMBAT_TERRAIN_OVERLAY_DETAILS } from './terrain-overlays'
 import type { CombatEffectDefinition, CombatEncounterState, CombatStatusInstance } from './actions'
 import { PHASE4_STATUSES } from './status-content'
+import { isRetiredCombatStatusId } from './retired-combat-statuses'
 
 export const COMBAT_EFFECT_TIMING_TAGS = [
   ...new Set([
@@ -54,6 +55,22 @@ export function parseCombatEffectTimingPolicy(value: unknown): CombatEffectTimin
 }
 export function defaultCombatEffectTimingPolicy(): CombatEffectTimingPolicy {
   return { version: 1, modes: {} }
+}
+/** Retired timing overrides are inert metadata, not authority to restore retired effects. */
+export function parseStoredCombatEffectTimingPolicy(value: unknown): CombatEffectTimingPolicy {
+  if (!value || typeof value !== 'object' || Array.isArray(value))
+    return parseCombatEffectTimingPolicy(value)
+  const candidate = value as CombatEffectTimingPolicy
+  if (!candidate.modes || typeof candidate.modes !== 'object' || Array.isArray(candidate.modes))
+    return parseCombatEffectTimingPolicy(value)
+  const entries = Object.entries(candidate.modes)
+  for (const [, mode] of entries) {
+    if (mode !== 'instant' && mode !== 'next-round') throw new TypeError('Unknown timing mode.')
+  }
+  const modes = Object.fromEntries(
+    entries.filter(([tag]) => tag !== 'copy' && !isRetiredCombatStatusId(tag)),
+  )
+  return parseCombatEffectTimingPolicy({ ...candidate, modes })
 }
 export function combatEffectTimingTag(effect: CombatEffectDefinition): string {
   if (effect.type === 'apply-status') return effect.statusId
