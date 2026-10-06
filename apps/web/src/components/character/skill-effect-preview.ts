@@ -22,6 +22,16 @@ export interface PreviewEffect {
 
 const signed = (value: number) => `${value < 0 ? '−' : '+'}${Math.abs(value)}`
 
+/** Shared by compact popups and expanded reports; describes existing combat rules. */
+export function skillDamageElementInteraction(effect: MatureSkillEffectDefinition): string {
+  if (effect.type !== 'damage') return ''
+  if (effect.element === 'storm')
+    return ' Storm gains 20% per active Wet or Conductive application once per recipient per command and consumes Conductive; Wet remains.'
+  if (effect.element === 'fire')
+    return ' Positive fire damage removes Wet and Frozen from units. Fire on affected Frozen tiles replaces them with Steam for two round boundaries, blocking line of sight for both teams.'
+  return ''
+}
+
 function statusPreview(id: string, potencyBasisPoints?: number): PreviewEffect {
   const details = {
     ...combatStatusDetails(id),
@@ -102,7 +112,7 @@ export function previewEffect(effect: MatureSkillEffectDefinition): PreviewEffec
                 ? 'Fire Dmg'
                 : 'Dmg',
         magnitude: String(effect.amount),
-        explanation: `Skill power ranges from 1 to 20. This effect has ${effect.amount} power${effect.element ? ` (${effect.element})` : ''}. Final HP damage depends on your attack stat, Level and the target’s defenses and effects.${effect.facingModifiersBasisPoints ? ` Facing: front ${effect.facingModifiersBasisPoints.front / 100}%, side ${effect.facingModifiersBasisPoints.side / 100}%, rear ${effect.facingModifiersBasisPoints.rear / 100}%.` : ''}`,
+        explanation: `Skill power ranges from 1 to 20. Final HP damage depends on your attack stat, Level and the target’s defenses and effects.${effect.facingModifiersBasisPoints ? ` Facing: front ${effect.facingModifiersBasisPoints.front / 100}%, side ${effect.facingModifiersBasisPoints.side / 100}%, rear ${effect.facingModifiersBasisPoints.rear / 100}%.` : ''}${skillDamageElementInteraction(effect)}`,
       }
     case 'healing':
       return {

@@ -1,5 +1,5 @@
 import { skillInformationRows } from './skill-information-contract'
-import { previewEffect } from './skill-effect-preview'
+import { previewEffect, skillDamageElementInteraction } from './skill-effect-preview'
 import { combatActionPresentationTags } from '@aurevane/game-core/combat/gameplay-tags'
 import { gameplayStatusName } from '../../lib/battle/combat-interaction-presentation'
 import {
@@ -40,12 +40,7 @@ export function skillEffectDescription(effect: MatureSkillEffectDefinition): str
       const position = facing
         ? ` Facing: front ${facing.front / 100}%, side ${facing.side / 100}%, rear ${facing.rear / 100}%.`
         : ''
-      const element =
-        effect.element === 'storm'
-          ? ' Storm gains 20% per active Wet or Conductive application once per recipient per command and consumes Conductive; Wet remains.'
-          : effect.element === 'fire'
-            ? ' Positive fire damage removes Wet and Frozen from units. Fire on affected Frozen tiles replaces them with Steam for two round boundaries, blocking line of sight for both teams.'
-            : ''
+      const element = skillDamageElementInteraction(effect)
       return `Deal ${effect.amount} base damage to ${target}.${position}${element}`
     }
     case 'create-terrain':
