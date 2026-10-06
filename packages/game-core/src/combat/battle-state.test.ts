@@ -141,7 +141,8 @@ describe('P2.1 deterministic battle state', () => {
     expect(validateBattleState({ ...started, initiativeTieOrder: ['unknown'] })).toContainEqual(
       expect.objectContaining({ field: 'initiativeTieOrder' }),
     )
-    const { initiativeTieOrder: _ties, ...legacy } = started
+    const legacy = { ...started }
+    delete legacy.initiativeTieOrder
     expect(validateBattleState(legacy)).toEqual([])
   })
 
