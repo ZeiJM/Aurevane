@@ -32,6 +32,49 @@ async function enterBattle(page: Page) {
   return page.getByRole('button', { name: new RegExp(`occupied by ${name}`) })
 }
 
+test('mounted attack-path overlays remain visible above open, rough and raised terrain', async ({
+  page,
+}, testInfo) => {
+  test.slow()
+  await enterBattle(page)
+  const board = page.locator('#battlefield')
+  // Presentation fixture only: forecast selection/legality is covered by battle-range-previews.
+  // Exercise the real mounted stylesheet, including the terrain and mode-specific cascade.
+  for (const selector of [
+    "button[aria-label^='Tile '][data-terrain='open']:not([data-terrain-elevated])",
+    "button[aria-label^='Tile '][data-terrain='rough']",
+    "button[aria-label^='Tile '][data-terrain-elevated='true']",
+  ]) {
+    const tile = board.locator(selector).first()
+    await expect(tile).toBeVisible()
+    const before = await tile.evaluate((node) => getComputedStyle(node).backgroundImage)
+    const glow = await tile.evaluate((node) => {
+      node.setAttribute('data-attack-path', 'true')
+      const style = getComputedStyle(node, '::after')
+      return {
+        content: style.content,
+        background: style.backgroundColor,
+        shadow: style.boxShadow,
+        pointerEvents: style.pointerEvents,
+        texture: getComputedStyle(node).backgroundImage,
+      }
+    })
+    expect(glow.content).toBe('""')
+    expect(glow.background).toBe('rgba(189, 38, 58, 0.22)')
+    expect(glow.shadow).toContain('216, 59, 76')
+    expect(glow.pointerEvents).toBe('none')
+    expect(glow.texture).toBe(before)
+  }
+  await board.screenshot({ path: testInfo.outputPath('attack-path-terrain-glow.png') })
+  await board.locator('[data-attack-path]').evaluateAll((tiles) => {
+    for (const tile of tiles) tile.removeAttribute('data-attack-path')
+  })
+  for (const tile of await board.locator("button[aria-label^='Tile ']").all())
+    expect(
+      await tile.evaluate((node) => getComputedStyle(node, '::after').backgroundColor),
+    ).not.toBe('rgba(189, 38, 58, 0.22)')
+})
+
 test('single target input executes Guard once and repeated keys do not dispatch', async ({
   page,
 }) => {

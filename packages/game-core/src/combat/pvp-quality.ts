@@ -5,7 +5,7 @@ import {
 } from './actions'
 import type { BattleCombatant, BattleTemporaryResource } from './battle-state'
 import { createTacticalBattleState } from './board'
-import { PV1F_COMBAT_CONTENT, finishPv1fTurn } from './pv1f-action-economy'
+import { PV1F_COMBAT_CONTENT, finishPv1fTurn, hasPv1fTurnActivity } from './pv1f-action-economy'
 import {
   reattachStatDrivenCombatBridge,
   validateStatDrivenCombatEncounterState,
@@ -190,7 +190,8 @@ function timeoutTrackedTurn(
     throw new Error(`${options.label} timeout tracking is unavailable for this combatant.`)
   }
 
-  const nextStreak = Math.min(2, streak.current + 1)
+  const hadActivity = hasPv1fTurnActivity(state)
+  const nextStreak = hadActivity ? 0 : Math.min(2, streak.current + 1)
   let nextState = rebuildCombatant(state, {
     ...actor,
     temporaryResources: replaceResources(actor.temporaryResources, [
@@ -202,10 +203,11 @@ function timeoutTrackedTurn(
       event: options.timeoutEvent,
       combatantId: actor.id,
       consecutiveMisses: nextStreak,
+      hadActivity,
     },
   ]
 
-  if (options.loweredGuardEveryTimeout || nextStreak >= 2) {
+  if (!hadActivity && (options.loweredGuardEveryTimeout || nextStreak >= 2)) {
     const applied = executeCombatAction(
       nextState,
       nextState.effectTimingPolicy

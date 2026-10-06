@@ -99,6 +99,7 @@ export {
 } from './pv1f-skills'
 
 export const PV1F_ACTION_ECONOMY_MAXIMUM = 100 as const
+const PV1F_TURN_ACTIVITY_RESOURCE_KEY = 'pv1f.activity-turn' as const
 export const PV1F_RECOVER_PERCENT = 10 as const
 export const PV1F_MP_RECOVER_PERCENT = 10 as const
 export const PV1F_STATUS_MAXIMUM_STACKS = 3 as const
@@ -308,6 +309,11 @@ export function createPv1fTemporaryResources(
   }
   return [
     {
+      key: PV1F_TURN_ACTIVITY_RESOURCE_KEY,
+      current: 0,
+      maximum: Number.MAX_SAFE_INTEGER,
+    },
+    {
       key: PV1F_ACTION_ECONOMY_RESOURCE_KEY,
       current: PV1F_ACTION_ECONOMY_MAXIMUM,
       maximum: PV1F_ACTION_ECONOMY_MAXIMUM,
@@ -466,7 +472,14 @@ export function spendPv1fActionEconomy(
   }
 
   const remaining = economy.current - cost
-  const resources = replaceResources(actor.temporaryResources, [{ ...economy, current: remaining }])
+  const resources = replaceResources(actor.temporaryResources, [
+    { ...economy, current: remaining },
+    {
+      key: PV1F_TURN_ACTIVITY_RESOURCE_KEY,
+      current: battle.turnNumber,
+      maximum: Number.MAX_SAFE_INTEGER,
+    },
+  ])
   return withCombatantAndTurn(
     prepared,
     { ...actor, temporaryResources: resources },
@@ -475,6 +488,27 @@ export function spendPv1fActionEconomy(
       actionState:
         remaining >= Math.min(PV1F_BASIC_ATTACK_COST, PV1F_GUARD_COST) ? 'ready' : 'spent',
     },
+  )
+}
+
+/** Successful commands count even if they miss, cost zero AP or later restore AP. */
+export function hasPv1fTurnActivity(state: StatDrivenCombatEncounterState): boolean {
+  const battle = state.tactical.battle
+  if (battle.lifecycle !== 'active' || !battle.currentTurn) return false
+  const resources = getCombatant(state, battle.currentTurn.combatantId).temporaryResources
+  const activity = resources.find((resource) => resource.key === PV1F_TURN_ACTIVITY_RESOURCE_KEY)
+  if (activity) return activity.current === battle.turnNumber
+  // A resumed pre-marker turn still retains its authoritative AP spend.
+  return (
+    resources.some(
+      (resource) =>
+        resource.key === PV1F_ACTION_ECONOMY_TURN_KEY && resource.current === battle.turnNumber,
+    ) &&
+    resources.some(
+      (resource) =>
+        resource.key === PV1F_ACTION_ECONOMY_RESOURCE_KEY &&
+        resource.current < PV1F_ACTION_ECONOMY_MAXIMUM,
+    )
   )
 }
 

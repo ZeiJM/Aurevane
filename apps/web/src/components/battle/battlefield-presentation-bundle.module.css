@@ -2,6 +2,25 @@
   display: none;
 }
 
+/* Paint above every terrain material without replacing its texture or target cues. */
+:global(
+  main[data-battle-concept='true']
+    section#battlefield
+    button[aria-label^='Tile '][data-attack-path='true']
+)::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border: 2px solid #ed6878b3;
+  border-radius: inherit;
+  background: #bd263a38;
+  box-shadow:
+    inset 0 0 12px #d83b4c99,
+    0 0 8px #f03b4f80;
+  pointer-events: none;
+}
+
 /* Keyboard shortcuts can make a previously clicked tile match :focus-visible.
    Unselected tiles must not acquire a second, unrelated selection rectangle.
    Keep deliberate inspection selections and every action/terrain cue intact. */

@@ -270,10 +270,11 @@ describe('P3.7 direct PvP committed build snapshots', () => {
       await startPvpLobbyWithQuality(hostUserId, lobbyId)
       const state = mocks.createdBattleArgs!.p_initial_snapshot as BattleAuthoritativeEncounterState
       for (const tile of state.tactical.tiles.filter((tile) => tile.elevation > 0)) {
+        expect([1, 2, 3]).toContain(tile.elevation)
         expect(
           state.tactical.tiles.some(
             (neighbor) =>
-              neighbor.elevation === tile.elevation &&
+              neighbor.elevation > 0 &&
               Math.abs(neighbor.position.x - tile.position.x) +
                 Math.abs(neighbor.position.y - tile.position.y) ===
                 1,

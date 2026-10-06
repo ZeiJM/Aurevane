@@ -89,7 +89,7 @@ describe('seeded standard battlefields', () => {
           expect(
             tiles.some(
               (neighbor) =>
-                neighbor.elevation === tile.elevation &&
+                neighbor.elevation > 0 &&
                 Math.abs(tile.position.x - neighbor.position.x) +
                   Math.abs(tile.position.y - neighbor.position.y) ===
                   1,
@@ -133,7 +133,7 @@ describe('seeded standard battlefields', () => {
     expect(neutral.raised).toBeLessThan(more.raised)
   })
 
-  it('draws raised platform heights at 60 / 30 / 10 percent across seeds', () => {
+  it('draws raised tile heights at 60 / 30 / 10 percent across seeds', () => {
     const counts = [0, 0, 0, 0]
     for (let seed = 1; seed <= 1000; seed++) {
       for (const tile of createStandardBattlefieldTiles({
@@ -154,6 +154,34 @@ describe('seeded standard battlefields', () => {
       expect(counts[height!]! / raised).toBeCloseTo(probability!, 1)
   })
 
+  it('allows neighboring raised tiles to have different heights', () => {
+    const heights = new Set<string>()
+    for (let seed = 1; seed <= 100; seed++) {
+      // Only the two end pairs can be raised without splitting this flat route.
+      // This proves draws differ within a pair, rather than between separate platforms.
+      const tiles = createStandardBattlefieldTiles({
+        width: 20,
+        height: 1,
+        seed,
+        spawns: [],
+        elevationBias: 'more',
+      })
+      for (const tile of tiles.filter((tile) => tile.elevation > 0)) {
+        for (const neighbor of tiles.filter(
+          (neighbor) =>
+            neighbor.elevation > 0 &&
+            Math.abs(tile.position.x - neighbor.position.x) +
+              Math.abs(tile.position.y - neighbor.position.y) ===
+              1,
+        ))
+          heights.add(`${tile.elevation}:${neighbor.elevation}`)
+      }
+    }
+    expect(heights).toEqual(
+      new Set(['1:1', '1:2', '1:3', '2:1', '2:2', '2:3', '3:1', '3:2', '3:3']),
+    )
+  })
+
   it('leaves tiny or fully protected maps flat without orphan platforms', () => {
     expect(
       createStandardBattlefieldTiles({ width: 2, height: 1, seed: 1, spawns: [{ x: 0, y: 0 }] }),
@@ -172,18 +200,23 @@ it('randomizes authored raised heights only when instantiating a new map', () =>
   }))
   const original = JSON.parse(JSON.stringify(tiles)) as typeof tiles
   const counts = [0, 0, 0, 0]
+  let differentNeighbors = 0
   for (let seed = 1; seed <= 1000; seed++) {
     const map = randomizeRaisedTileHeights(tiles, seed)
     expect(map).toEqual(randomizeRaisedTileHeights(tiles, seed))
     expect(map[0]).toEqual(tiles[0])
-    expect(map[1]!.elevation).toBe(map[2]!.elevation)
-    counts[map[1]!.elevation]!++
+    if (map[1]!.elevation !== map[2]!.elevation) differentNeighbors++
+    for (const tile of map.slice(1)) {
+      expect([1, 2, 3]).toContain(tile.elevation)
+      counts[tile.elevation]!++
+    }
   }
+  expect(differentNeighbors).toBeGreaterThan(300)
   expect(tiles).toEqual(original)
   for (const [height, probability] of [
     [1, 0.6],
     [2, 0.3],
     [3, 0.1],
   ])
-    expect(counts[height!]! / 1000).toBeCloseTo(probability!, 1)
+    expect(counts[height!]! / 2000).toBeCloseTo(probability!, 1)
 })
