@@ -643,8 +643,11 @@ test('Master combat authoring publishes versioned content, pins battles, and rol
       await expect(page.locator('[data-validation-state="valid"]')).toContainText('Validated')
       await runMasterOperation(page, 'diff', 'Diff')
       const groundDiff = page.locator('section[aria-label="Semantic diff"]')
-      await expect(groundDiff).toContainText('groundArea')
-      await expect(groundDiff).toContainText('backlashBasisPoints')
+      await expect(groundDiff).toContainText('groundArea.durationRounds')
+      await expect(groundDiff).toContainText('groundArea.timing')
+      await expect(groundDiff).toContainText('groundArea.visualPresetId')
+      // Semantic array diffs identify the effects field; publication checks exact Burn values.
+      await expect(groundDiff).toContainText('effects')
       await runMasterOperation(page, 'preview', 'Preview')
       await expect(page.locator('section[aria-label="Deterministic preview"]')).toContainText(
         'Ground',
