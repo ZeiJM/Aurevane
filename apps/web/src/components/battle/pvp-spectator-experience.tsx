@@ -1,4 +1,5 @@
 'use client'
+import { BattleGroundAreaLayer } from './battle-ground-area-layer'
 
 import { BattleRouteFrame } from './battle-route-frame'
 import { useBattleTabCyclePrevention } from './battle-tab-cycle-prevention'
@@ -445,6 +446,11 @@ export function PvpSpectatorExperience({
                       aria-label={`Tile ${x}, ${y}; ${tile.terrainId}; elevation ${tile.elevation}${participant ? `; occupied by ${participant.characterName}` : ''}${overlay ? `; ${terrainOverlayDescription(overlay)}` : ''}`}
                       aria-pressed={selected}
                     >
+                      <BattleGroundAreaLayer
+                        areas={battle.snapshot.groundAreas}
+                        round={tactical.battle.round}
+                        position={tile.position}
+                      />
                       {overlay ? (
                         <i data-terrain-overlay-marker="true" aria-hidden="true">
                           {overlay.kind === 'frozen' ? '❄' : '≋'}

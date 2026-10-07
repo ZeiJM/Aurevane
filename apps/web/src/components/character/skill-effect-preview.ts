@@ -1,4 +1,9 @@
 import {
+  combatEffectTimingMode,
+  type CombatEffectTimingPolicy,
+} from '@aurevane/game-core/combat/combat-effect-timing'
+import { combatGroundAreaDescription } from '@aurevane/game-core/combat/combat-ground-visuals'
+import {
   isPercentageDotEffect,
   percentageDotDescription,
   percentageDotMagnitude,
@@ -231,12 +236,27 @@ export function previewEffect(effect: MatureSkillEffectDefinition): PreviewEffec
   }
 }
 
-export function skillPreviewEffects(skill: MatureSkillDefinition): readonly PreviewEffect[] {
-  return skill.effects.map((effect, index) => {
+export function skillPreviewEffects(
+  skill: MatureSkillDefinition,
+  timingPolicy?: CombatEffectTimingPolicy | null,
+): readonly PreviewEffect[] {
+  const effects = skill.effects.map((effect, index) => {
     const entry = previewEffect(effect)
     const override = skill.effectDescriptions?.[index]?.trim()
     return override ? { ...entry, explanation: override } : entry
   })
+  return skill.groundArea
+    ? [
+        ...effects,
+        {
+          label: 'Ground',
+          explanation: combatGroundAreaDescription(
+            skill.groundArea,
+            combatEffectTimingMode(timingPolicy ?? undefined, 'ground-area'),
+          ),
+        },
+      ]
+    : effects
 }
 
 export function effectSummary(effect: PreviewEffect): string {

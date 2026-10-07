@@ -1,4 +1,3 @@
-import { omitPendingBattlePayloads } from './battle-live-viewer-projection'
 import 'server-only'
 
 import { createHash } from 'node:crypto'
@@ -13,7 +12,12 @@ import {
 import { AurevaneError, StaleBattleVersionError } from '@aurevane/game-core/errors'
 import { createBattleSessionChangedInvalidation } from '@aurevane/realtime'
 
-import type { BattleSessionProjection, BattleSessionView } from './battle-session-service'
+import {
+  projectBattleSnapshot as projectParticipantBattleSnapshot,
+  type BattleSessionProjection,
+  type BattleSessionView,
+} from './battle-session-service'
+import { deriveParticipantBattleViewerEntitlement } from './battle-viewer-entitlement'
 
 type BuildExtendedEncounterState = StatDrivenCombatEncounterState & {
   readonly buildAuthority?: unknown
@@ -129,29 +133,20 @@ function resolveFinalTurn(
   }
 }
 
-function projectBattleSnapshot(state: StatDrivenCombatEncounterState): BattleSessionProjection {
-  const battle = state.tactical.battle
-  return {
-    ...omitPendingBattlePayloads(state),
-    tactical: {
-      ...state.tactical,
-      battle: {
-        schemaVersion: battle.schemaVersion,
-        battleId: battle.battleId,
-        rulesVersion: battle.rulesVersion,
-        contentVersion: battle.contentVersion,
-        lifecycle: battle.lifecycle,
-        combatants: battle.combatants,
-        initiativeOrder: battle.initiativeOrder,
-        ...(battle.initiativeTieOrder ? { initiativeTieOrder: battle.initiativeTieOrder } : {}),
-        ...(battle.roundInitiativeModifiers
-          ? { roundInitiativeModifiers: battle.roundInitiativeModifiers }
-          : {}),
-        round: battle.round,
-        turnNumber: battle.turnNumber,
-        currentTurn: battle.currentTurn,
-      },
-    },
+function projectBattleSnapshot(
+  state: StatDrivenCombatEncounterState,
+  controlledCombatantIds: readonly string[],
+): BattleSessionProjection {
+  try {
+    return projectParticipantBattleSnapshot(
+      state,
+      deriveParticipantBattleViewerEntitlement(
+        state.tactical.battle.combatants,
+        controlledCombatantIds,
+      ),
+    )
+  } catch {
+    throw persistenceInvalid()
   }
 }
 
@@ -228,6 +223,7 @@ export function createBattleFinalTurnService(
               battleVersion: replayOrStale.result.battleVersion,
               snapshot: replayOrStale.result.snapshot,
             }),
+            current.controlledCombatantIds,
           ),
           replayed: replayOrStale.replayed,
           invalidation: createBattleSessionChangedInvalidation({
@@ -265,6 +261,7 @@ export function createBattleFinalTurnService(
             battleVersion: committed.result.battleVersion,
             snapshot: committed.result.snapshot,
           }),
+          current.controlledCombatantIds,
         ),
         replayed: committed.replayed,
         invalidation: createBattleSessionChangedInvalidation({

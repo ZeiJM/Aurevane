@@ -1,4 +1,6 @@
 'use client'
+import { combatGroundAreaDescription } from '@aurevane/game-core/combat/combat-ground-visuals'
+import { combatEffectTimingMode } from '@aurevane/game-core/combat/combat-effect-timing'
 
 import { useSkillEffectTimingPolicy } from './skill-effect-timing-context'
 import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
@@ -48,6 +50,14 @@ function SkillDetailBody({ skill }: { skill: MatureSkillDefinition }) {
           </li>
         ))}
       </ol>
+      {skill.groundArea ? (
+        <p>
+          {combatGroundAreaDescription(
+            skill.groundArea,
+            combatEffectTimingMode(timingPolicy ?? undefined, 'ground-area'),
+          )}
+        </p>
+      ) : null}
       {skill.requirements.length ? (
         <>
           <strong>Requirements</strong>

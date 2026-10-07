@@ -931,3 +931,78 @@ describe('current targeting authoring', () => {
     ).toBe(false)
   })
 })
+
+describe('persistent Ground publication and authored Burn backlash', () => {
+  it('previews, publishes, reloads and rolls back immutable duration/preset/percentage versions', async () => {
+    const { store, service } = serviceFixture()
+    store.operators.set(OWNER, 'owner')
+    const baseline = staticSkill('cinderweaver.flame-burst')
+    const original = await service.publishSkill({
+      actorUserId: OWNER,
+      definition: baseline,
+      expectedBaseVersion: baseline.contentVersion,
+    })
+    const source = structuredClone(original.definition) as unknown as MatureSkillDefinition
+    const edited = {
+      ...source,
+      groundArea: { ...source.groundArea!, durationRounds: 4, visualPresetId: 'frost' as const },
+      effects: source.effects.map((effect) =>
+        effect.type === 'burn' ? { ...effect, backlashBasisPoints: 1234 } : effect,
+      ),
+    }
+    const preview = await service.previewSkillDefinition({ actorUserId: OWNER, definition: edited })
+    expect(preview.legal).toBe(true)
+    expect(preview.groundAreas).toMatchObject([
+      { visualPresetId: 'frost', activationRound: 5, expiresAtRound: 9 },
+    ])
+    expect(preview.groundAreas[0]!.tiles).toHaveLength(8)
+    expect(preview.groundAreas[0]).not.toHaveProperty('caster')
+    const published = await service.publishSkill({
+      actorUserId: OWNER,
+      definition: edited,
+      expectedBaseVersion: original.contentVersion,
+    })
+    expect((await resolverFor(store).resolveCurrentSkillDefinition(edited.id))!.groundArea).toEqual(
+      edited.groundArea,
+    )
+    expect(
+      (await resolverFor(store).resolvePinnedSkillDefinition(edited.id, original.contentVersion))!
+        .groundArea,
+    ).toEqual(baseline.groundArea)
+    await expect(
+      service.publishSkill({
+        actorUserId: OUTSIDER,
+        definition: edited,
+        expectedBaseVersion: published.contentVersion,
+      }),
+    ).rejects.toThrow()
+    await expect(
+      service.publishSkill({
+        actorUserId: OWNER,
+        definition: edited,
+        expectedBaseVersion: original.contentVersion,
+      }),
+    ).rejects.toThrow()
+    await service.rollbackSkill({
+      actorUserId: OWNER,
+      skillId: edited.id,
+      targetVersion: original.contentVersion,
+    })
+    expect((await resolverFor(store).resolveCurrentSkillDefinition(edited.id))!.groundArea).toEqual(
+      baseline.groundArea,
+    )
+  })
+  it('rejects invalid durations, executable presets and unsupported entry effects', () => {
+    const { service } = serviceFixture()
+    for (const change of [
+      { durationRounds: 0 },
+      { durationRounds: 5 },
+      { visualPresetId: 'javascript:alert(1)' },
+      { entryEffectOrdinals: [99] },
+    ]) {
+      const definition = staticSkill('cinderweaver.flame-burst')
+      Object.assign(definition.groundArea!, change)
+      expect(service.validateSkillDefinition(definition).valid).toBe(false)
+    }
+  })
+})

@@ -102,6 +102,7 @@ function presentationActionId(value: unknown): string | null {
 
 function actionLabel(value: unknown): string {
   const actionId = presentationActionId(value)
+  if (actionId?.startsWith('ground.pulse.')) return 'Ground Effect'
   if (actionId === 'basic.attack.unarmed.basic') return 'Basic Attack'
   if (actionId === 'basic.guard') return 'Guard'
   if (actionId === 'basic.recover') return 'HP Recovery'

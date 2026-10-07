@@ -1,4 +1,6 @@
 import 'server-only'
+import { createCombatGroundArea } from '@aurevane/game-core/combat/combat-ground-areas'
+import { projectPublicCombatGroundAreas } from '@aurevane/game-core/combat/combat-ground-visuals'
 
 import {
   createCombatEncounterState,
@@ -16,6 +18,7 @@ import {
   createPv1fTemporaryResources,
   evaluatePv1fMatureSkill,
   readPv1fActionEconomy,
+  PV1F_COMBAT_CONTENT,
 } from '@aurevane/game-core/combat/pv1f-action-economy'
 import {
   createDuelBalancedCombatEncounterState,
@@ -346,6 +349,20 @@ export function previewCombatContentDefinition(
       primaryCombatantId: evaluated.evaluation.primaryCombatantId,
       rngConsumed: false as const,
     },
+    groundAreas:
+      evaluated.evaluation.legal && definition.groundArea
+        ? projectPublicCombatGroundAreas(
+            createCombatGroundArea(
+              evaluated.prepared,
+              ACTOR_ID,
+              evaluated.action,
+              evaluated.evaluation.affectedTiles,
+              PV1F_COMBAT_CONTENT,
+            ).groundAreas ?? [],
+            evaluated.prepared.tactical.battle.round,
+            evaluated.prepared.tactical.battle.lifecycle,
+          )
+        : [],
     targeting: {
       target: structuredClone(definition.target),
       selection: structuredClone(selection),

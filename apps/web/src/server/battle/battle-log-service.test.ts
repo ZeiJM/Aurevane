@@ -829,3 +829,29 @@ describe('Complete battle log opening context', () => {
     })
   })
 })
+
+it('describes a passive Ground pulse without printing internal area identifiers', () => {
+  const view = buildBattleLogView(SESSION_ID, [
+    {
+      battleVersion: 3,
+      eventIndex: 0,
+      createdAt: '2026-10-07T15:04:00Z',
+      event: {
+        event: 'damage_applied',
+        actionId: 'ground.pulse.ground.area.1',
+        sourceCombatantId: 'enemy',
+        targetCombatantId: 'actor',
+        amount: 23,
+        hpBefore: 100,
+        hpAfter: 77,
+        element: 'fire',
+        groundAreaId: 'ground.area.1',
+      },
+    },
+  ])
+  expect(view.entries[0]).toMatchObject({
+    actionLabel: 'Ground Effect',
+    templateValues: { amount: '23', element: 'fire' },
+  })
+  expect(view.entries[0].message).toContain('23 fire damage')
+})

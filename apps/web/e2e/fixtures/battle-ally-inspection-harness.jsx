@@ -1,3 +1,4 @@
+import { SkillGroundEditor } from '@/components/master/combat-content/skill-ground-editor'
 import React from 'react'
 import { createRoot } from 'react-dom/client'
 import { BattleExperience } from '@/components/battle/battle-experience'
@@ -99,6 +100,26 @@ const initialBattle = {
   invalidation: null,
 }
 const mode = new URLSearchParams(location.search).get('mode') || 'pve'
+const groundPreset = new URLSearchParams(location.search).get('ground')
+if (groundPreset) {
+  // Serialized public render data only; mechanics and concealment have separate canonical tests.
+  initialBattle.snapshot = {
+    ...snapshot,
+    groundAreas: [
+      {
+        id: 'ground.area.fixture',
+        tiles: [
+          { x: 2, y: 2 },
+          { x: 3, y: 3 },
+        ],
+        activationRound: 2,
+        expiresAtRound: 5,
+        visualPresetId: groundPreset,
+      },
+    ],
+  }
+}
+
 const participants = ids.map((id, index) => ({
   combatantId: id,
   characterId: id,
@@ -507,43 +528,61 @@ function DotDefinitionReport() {
     </>
   )
 }
-fixtureRoot.render(
-  <AudioProvider>
-    {dotCase ? <DotDefinitionReport /> : null}
-    <BattlefieldPresentationBundle
-      battleSessionId="fixture"
-      initialVersion={initialBattle.battleVersion}
-      mode={mode === 'pve' ? 'pve' : 'pvp'}
-      playerName={mode === 'pve' ? 'Zei' : undefined}
-    />
-    {mode === 'spectator' ? (
-      <PvpSpectatorExperience
-        initialSpectator={{
-          battle: initialBattle,
-          mode: '2v2',
-          battleKey: metadata.battleKey,
-          participants,
-        }}
-        initialParticipantTitles={{}}
+function GroundEditorHarness() {
+  const skill = resolveMatureSkillVersion('cinderweaver.flame-burst')
+  const [area, setArea] = React.useState(skill.groundArea)
+  return (
+    <main style={{ padding: 24, maxWidth: 900 }}>
+      <h1>Ground authoring preview</h1>
+      <SkillGroundEditor
+        target={skill.target}
+        effects={skill.effects}
+        value={area}
+        onChange={setArea}
       />
-    ) : (
-      <BattleInteractionLifecycleProvider>
-        <BattleExperience initialBattle={initialBattle} runtime={runtime} />
-        <DesktopBattleCombatantInspect
-          battleSessionId="fixture"
-          pvpMetadata={mode === 'pvp' ? metadata : null}
-          playerName="Zei"
-          playerPortraitAssetId="character.adventure.male-01"
-          battleView={initialBattle}
+      <pre data-ground-draft>{JSON.stringify(area)}</pre>
+    </main>
+  )
+}
+if (mode === 'master-ground') fixtureRoot.render(<GroundEditorHarness />)
+else
+  fixtureRoot.render(
+    <AudioProvider>
+      {dotCase ? <DotDefinitionReport /> : null}
+      <BattlefieldPresentationBundle
+        battleSessionId="fixture"
+        initialVersion={initialBattle.battleVersion}
+        mode={mode === 'pve' ? 'pve' : 'pvp'}
+        playerName={mode === 'pve' ? 'Zei' : undefined}
+      />
+      {mode === 'spectator' ? (
+        <PvpSpectatorExperience
+          initialSpectator={{
+            battle: initialBattle,
+            mode: '2v2',
+            battleKey: metadata.battleKey,
+            participants,
+          }}
+          initialParticipantTitles={{}}
         />
-        {mode === 'pve' ? (
-          <MobileBattleCombatantPopup
+      ) : (
+        <BattleInteractionLifecycleProvider>
+          <BattleExperience initialBattle={initialBattle} runtime={runtime} />
+          <DesktopBattleCombatantInspect
             battleSessionId="fixture"
+            pvpMetadata={mode === 'pvp' ? metadata : null}
             playerName="Zei"
             playerPortraitAssetId="character.adventure.male-01"
+            battleView={initialBattle}
           />
-        ) : null}
-      </BattleInteractionLifecycleProvider>
-    )}
-  </AudioProvider>,
-)
+          {mode === 'pve' ? (
+            <MobileBattleCombatantPopup
+              battleSessionId="fixture"
+              playerName="Zei"
+              playerPortraitAssetId="character.adventure.male-01"
+            />
+          ) : null}
+        </BattleInteractionLifecycleProvider>
+      )}
+    </AudioProvider>,
+  )

@@ -1,3 +1,4 @@
+import { surrenderPvpCombatant } from './pvp-quality'
 import { describe, expect, it } from 'vitest'
 import {
   executeCombatAction,
@@ -532,5 +533,12 @@ describe('canonical persistent Ground cast and entry', () => {
       ),
     ).toHaveLength(0)
     expect(result.state.tactical.battle.rng.draws).toBe(state.tactical.battle.rng.draws + 1)
+  })
+  it('clears active Ground areas when surrender completes a battle', () => {
+    const state = seedArea()
+    state.tactical.battle.combatants.find((row) => row.id === 'ally')!.hp = 0
+    const result = surrenderPvpCombatant(state, 'actor')
+    expect(result.state.tactical.battle.lifecycle).toBe('completed')
+    expect(result.state.groundAreas).toEqual([])
   })
 })

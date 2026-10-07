@@ -29,6 +29,7 @@ import {
 import { SkillEconomyEditor, type SkillEconomyDraft } from './skill-economy-editor'
 import { SkillEffectListEditor } from './skill-effect-list-editor'
 import { SkillMediaEditor } from './skill-media-editor'
+import { SkillGroundEditor, groundAreaForEffects, withSkillGroundArea } from './skill-ground-editor'
 import { SkillTargetingEditor } from './skill-targeting-editor'
 import { SummonProfileEditor } from './summon-profile-editor'
 
@@ -192,6 +193,12 @@ export function CombatContentEditor({ skills, initialSkillId }: CombatContentEdi
   }
 
   function updateSelectedDraft(next: MatureSkillDefinition) {
+    next = withSkillGroundArea(
+      next,
+      next.groundArea && next.target.kind === 'ground-tile'
+        ? groundAreaForEffects(next.effects, next.groundArea)
+        : undefined,
+    )
     if (!selectedSkill) return
     const id = selectedSkill.id
     draftRevision.current[id] = (draftRevision.current[id] ?? 0) + 1
@@ -592,6 +599,14 @@ export function CombatContentEditor({ skills, initialSkillId }: CombatContentEdi
                 value={selectedDraft.target}
                 v51Rules={selectedDraft.authoring.validationTags.includes('owner-rebalance-v5-1')}
                 onChange={(target) => updateSelectedDraft({ ...selectedDraft, target })}
+              />
+              <SkillGroundEditor
+                target={selectedDraft.target}
+                effects={selectedDraft.effects}
+                value={selectedDraft.groundArea}
+                onChange={(groundArea) =>
+                  updateSelectedDraft(withSkillGroundArea(selectedDraft, groundArea))
+                }
               />
               <SkillEconomyEditor
                 value={{

@@ -1,4 +1,8 @@
 import 'server-only'
+import {
+  projectPublicCombatGroundAreas,
+  type PublicCombatGroundArea,
+} from '@aurevane/game-core/combat/combat-ground-visuals'
 
 import {
   activePersistentCombatStatusRows,
@@ -200,13 +204,31 @@ export function projectBattleEffectStateForViewer(
 /** Internal delayed payloads and narration pins must never reach live viewers. */
 export function omitPendingBattlePayloads<
   T extends {
+    groundAreas?: readonly PublicCombatGroundArea[]
+    nextGroundAreaId?: unknown
+    tactical?: { battle: { round: number; lifecycle: string } }
     pendingEffects?: unknown
     turnTriggerState?: unknown
     pendingSummons?: unknown
     buildAuthority?: unknown
   },
->(state: T): T {
-  const projected = { ...state }
+>(
+  state: T,
+): Omit<T, 'groundAreas' | 'nextGroundAreaId'> & {
+  groundAreas?: readonly PublicCombatGroundArea[]
+} {
+  const projected: Omit<T, 'groundAreas' | 'nextGroundAreaId'> & {
+    groundAreas?: readonly PublicCombatGroundArea[]
+  } = {
+    ...state,
+  }
+  Reflect.deleteProperty(projected, 'nextGroundAreaId')
+  if (state.groundAreas)
+    projected.groundAreas = projectPublicCombatGroundAreas(
+      state.groundAreas,
+      state.tactical?.battle.round ?? 0,
+      state.tactical?.battle.lifecycle ?? 'completed',
+    )
   delete projected.turnTriggerState
   delete projected.pendingEffects
   delete projected.pendingSummons

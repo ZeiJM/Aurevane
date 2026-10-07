@@ -1,4 +1,5 @@
 'use client'
+import { BattleGroundAreaLayer } from './battle-ground-area-layer'
 
 import { SkillEffectTimingProvider } from '../character/skill-effect-timing-context'
 
@@ -2212,6 +2213,11 @@ function BattleExperienceContent({
                     }}
                     aria-label={`Tile ${tile.position.x + 1}, ${tile.position.y + 1}; ${tile.terrainId}; elevation ${tile.elevation}${participant ? `; occupied by ${participant.name}` : ''}${overlay ? `; ${terrainOverlayDescription(overlay)}` : ''}`}
                   >
+                    <BattleGroundAreaLayer
+                      areas={battle.snapshot.groundAreas}
+                      round={tactical.battle.round}
+                      position={tile.position}
+                    />
                     {overlay ? (
                       <i data-terrain-overlay-marker="true" aria-hidden="true">
                         {overlay.kind === 'frozen' ? '❄' : '≋'}
