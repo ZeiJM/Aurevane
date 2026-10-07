@@ -747,7 +747,7 @@ records the immediate donor in `copiedFromInstanceId`, and records a replaced re
 copies Poison in this slice. Burn/Bleed typed state, repeat-use/publication, AI and broader copying
 remain separate gates; no published Skill is activated here.
 
-## Curse Burn copy state (staged typed-effect extension)
+## Curse Burn copy state (historical fixed-DoT staged extension)
 
 Current Burn authoring may explicitly set `curseCopyable: true | false`. The optional policy is
 persisted with the Burn instance; omitted historical Burn remains valid and non-copyable, and
@@ -767,7 +767,7 @@ uses `inheritedFromInstanceId` when that instance had provenance. No-context exe
 or invent donor provenance. Amplify never copies Burn in this slice. Bleed typed-state copying,
 repeat-use/publication, AI and broader copying remain separate gates; no published Skill is activated.
 
-## Curse Bleed copy state (staged typed-effect extension)
+## Curse Bleed copy state (historical fixed-DoT staged extension)
 
 Current Bleed authoring may explicitly set `curseCopyable: true | false` per independent stack.
 The optional policy persists with that stack; omitted historical Bleed remains valid and non-copyable,
@@ -892,3 +892,15 @@ Single selects exactly one legal primary unit or tile. Line [X] selects north/ea
 Strict commands submit a cardinal direction for Line or activation for Circle/All, never a client list of victims or tiles. Preview and commit share geometry and spatial checks. Delayed effects keep their captured recipients and pinned definitions. A historical primary-unit Resonance payoff stays armed when an area activation has no primary target. AI evaluates four Line lanes or one Circle/All activation and does not spend AP on an ineffective cast.
 
 Potential previews remain informational: automatic recipient detection, missing/error/stale forecasts and empty footprint tiles do not collapse Line/Circle coverage. Explicit player direction aim may focus one complete lane. Single keeps potential reach plus selectable-candidate cues; All Unit highlights eligible units and All Ground the complete eligible board. Plain buffs/debuffs/terrain use blue; any Heal/Recovery uses green; damage has red priority. Fills remain beneath portraits and identity rings. Arming/hovering consumes no AP, MP, RNG, statuses or counters. Same-turn reloads may retain armed geometry but always clear old command/forecast authority; source defeat, turn changes and terminal states clear planning.
+
+## Current attack-percentage DoTs — Owner approved 2026-10-06
+
+New encounters pin `percentageDotPolicyVersion: 1`; saved encounters without it retain their historical fixed damage, stacking and Copy behavior. The current contract below supersedes the historical staged Burn/Bleed Copy sections for percentage applications. New immutable definitions and publications do not rewrite in-progress battles.
+
+Burn, Poison and Bleed capture each recipient's actual hostile HP loss from direct damage in the same persisted command, after defense, modifiers, criticals, Barrier and remaining-HP clamping. Multi-hit damage is summed per recipient; friendly/self damage, periodic ticks, backlash, reflection and absorbed recovery are excluded. Delayed damage settles by original command identity before its dependent DoT activates; no accuracy/resistance reroll occurs. A miss, resisted DoT, defeated recipient or zero captured damage does not apply or replace an application. Each tick is `floor(capturedDamage * percentageBasisPoints / 10000)` with checked arithmetic. A zero result consumes the scheduled lifetime without an implicit one-HP minimum.
+
+Burn and Poison each allow one active application across sources; a valid reapplication replaces the old basis/profile and restarts duration. The latest valid pending replacement waits for its configured boundary while the old active application continues. Burn advances its authored percentage decay per scheduled tick and retains two-HP backlash once per damaging command, including misses; pending Burn has no backlash. Poison causes an extra percentage tick every five traversed tiles, including displacement, carrying movement remainder between turns; relocation does not count, and extra ticks do not consume scheduled end-turn lifetime. Valid replacement resets that remainder. Bleed applications remain independent, with no three-stack or fixed-total-HP cap under this policy.
+
+Copy Debuffs transfers an eligible application with its captured basis, exact profile, remaining lifetime, Burn stage and lineage; the donor remains unchanged. Single Burn/Poison replacement is enforced at the recipient without restarting a copied Burn's stage. Copy itself causes no tick/backlash and does not require a Damage tag on the copying Skill. Existing immunity, resistance, Cleanse, defeat and terminal cleanup remain authoritative.
+
+Current authoring requires direct Attack/Damage coverage of the DoT's recipients. Master Panel percentage inputs preserve 0.01% precision in integer basis points, append immutable versions and retain stale-version/audit checks. Burn's entire one-to-four-tick sequence must remain positive; Poison and Bleed expose their per-tick percentage and lifetime. Rails show authored pending profiles or active captured HP and next-tick HP through shared readers, without private command/dependency or RNG metadata. The initial nine approved profiles and bounded automated measurements are recorded in `docs/verification/2026-10-06-percentage-dot-balance.md`; this is not human balance acceptance.

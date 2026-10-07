@@ -20,9 +20,14 @@ import {
 } from '@aurevane/game-core/combat/pv1f-action-economy'
 import { createPv1fTemporaryResources } from '@aurevane/game-core/combat/pv1f-action-economy'
 import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
+import { resolveEssenceForBuild } from '@aurevane/game-core/combat/essence'
+import { SkillDetails } from '@/components/character/skill-details'
+import { BattleSkillParameters } from '@/components/battle/battle-skill-parameters'
 import './production-styles'
 
 const targetingCase = new URLSearchParams(location.search).get('targeting')
+const dotCase = new URLSearchParams(location.search).get('dot')
+const dotPhase = new URLSearchParams(location.search).get('phase') || 'active'
 const ids = ['character:player', 'ally', 'enemy-one', 'enemy-two']
 const positions = [
   { x: 3, y: 3 },
@@ -30,7 +35,7 @@ const positions = [
   { x: 4, y: 3 },
   { x: 2, y: 3 },
 ]
-if (targetingCase) positions[3] = { x: 5, y: 3 }
+if (targetingCase || dotCase) positions[3] = { x: 5, y: 3 }
 const pending = createPendingBattle({
   battleId: 'fixture',
   rulesVersion: 1,
@@ -230,6 +235,74 @@ if (targetingCase) {
   ]
   window.targetingDefinition = definition
 }
+if (dotCase) {
+  const essence = dotCase.startsWith('essence-')
+    ? resolveEssenceForBuild(dotCase === 'essence-burn' ? 'cinderweaver' : 'ravager', null)
+    : null
+  const definition =
+    essence?.skill ??
+    resolveMatureSkillVersion(
+      { burn: 'cinderweaver.cinder-bolt', poison: 'wildwarden.venom-shot', bleed: 'ravager.gash' }[
+        dotCase
+      ],
+    )
+  const dot = definition.effects.find((effect) => ['burn', 'poison', 'bleed'].includes(effect.type))
+  const source = {
+    ...snapshot,
+    percentageDotPolicyVersion: 1,
+    effectStackingPolicyVersion: 1,
+    effectTimingPolicy: {
+      version: 1,
+      modes: { damage: 'instant', [dot.type]: dotPhase === 'pending' ? 'next-round' : 'instant' },
+    },
+  }
+  const target =
+    definition.target.geometryVersion === 2 && definition.target.shape.kind !== 'single'
+      ? definition.target.shape.kind === 'line'
+        ? { kind: 'direction', direction: 'east' }
+        : { kind: 'activate' }
+      : { kind: 'unit', combatantId: 'enemy-one' }
+  const transition = executePv1fMatureSkill(
+    source,
+    definition,
+    target,
+    mode === 'pvp' ? 'pvp' : 'pve',
+  )
+  initialBattle.snapshot = transition.state
+  const presentation = {
+    ...runtime.techniques[0],
+    definition,
+    id: definition.id,
+    contentVersion: definition.contentVersion,
+    name: essence?.name ?? dotCase,
+    apCost: definition.apCost,
+    mpCost: definition.mpCost ?? 0,
+    cooldownOwnerTurns: definition.cooldown?.ownerTurns ?? null,
+    sourceDisciplineId: definition.sourceDisciplineId,
+    iconKey: definition.media.iconKey,
+    category: 'attack',
+    target: definition.target,
+    targetKind: definition.target.kind,
+    targetTeamPolicy: definition.target.teamPolicy,
+    minimumRange: definition.target.minimumRange,
+    maximumRange: definition.target.maximumRange,
+    tags: definition.tags,
+  }
+  runtime.techniques = essence ? [] : [presentation]
+  runtime.essence = essence ? { ...presentation, description: essence.description } : null
+  window.dotDefinition = definition
+  window.dotReceipt = transition.events
+  window.dotType = dot.type
+  window.dotPresentation = presentation
+  window.dotCapturedDamage = transition.events
+    .filter(
+      (event) =>
+        event.event === 'damage_applied' &&
+        event.targetCombatantId === 'enemy-one' &&
+        event.sourceActionId === definition.id,
+    )
+    .reduce((sum, event) => sum + event.amount, 0)
+}
 window.fixtureBattle = initialBattle
 window.calls = []
 window.fetch = async (url, options = {}) => {
@@ -386,8 +459,45 @@ window.advanceBattle = (nextActor = 'character:player') => {
 }
 const fixtureRoot = createRoot(document.getElementById('root'))
 window.unmountBattle = () => fixtureRoot.unmount()
+function DotDefinitionReport() {
+  const [open, setOpen] = React.useState(false)
+  return (
+    <>
+      <button
+        style={{ position: 'fixed', left: 8, top: 8, zIndex: 101 }}
+        onClick={() => setOpen(!open)}
+      >
+        {open ? 'Close pinned percentage definition' : 'Read pinned percentage definition'}
+      </button>
+      {open ? (
+        <section
+          aria-label="Pinned percentage definition"
+          style={{
+            position: 'fixed',
+            left: 8,
+            top: 48,
+            zIndex: 100,
+            background: '#0a202b',
+            color: '#f0e8dc',
+            padding: 12,
+            maxWidth: 'calc(100vw - 16px)',
+            width: 700,
+            maxHeight: '85vh',
+            overflow: 'auto',
+          }}
+        >
+          <dl>
+            <BattleSkillParameters skill={window.dotPresentation} />
+          </dl>
+          <SkillDetails skill={window.dotDefinition} expanded />
+        </section>
+      ) : null}
+    </>
+  )
+}
 fixtureRoot.render(
   <AudioProvider>
+    {dotCase ? <DotDefinitionReport /> : null}
     <BattlefieldPresentationBundle
       battleSessionId="fixture"
       initialVersion={initialBattle.battleVersion}

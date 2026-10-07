@@ -56,7 +56,7 @@
     button[aria-label^='Tile '][data-buff-path='true']:not([data-attack-path='true']):not(
       [data-heal-target='true']
     )
-),
+)::after,
 :global(
   main[data-battle-concept='true']
     section#battlefield

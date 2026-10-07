@@ -77,6 +77,11 @@ jobs:
           AV_SKILL_PARAMETER_PALETTE_EVIDENCE_DIR: /tmp/skill-parameter-palette-review
         run: pnpm --filter @aurevane/web exec node scripts/skill-parameter-palette-browser-regression.mjs
 
+      - name: Verify percentage Skill Essence and rail readers across modes
+        env:
+          AV_PERCENTAGE_DOT_EVIDENCE_DIR: /tmp/battle-percentage-dot-review
+        run: pnpm --filter @aurevane/web exec node scripts/battle-percentage-dot-browser-regression.mjs
+
       - name: Verify elevated rail effects and viewer privacy
         env:
           AV_ELEVATED_RAIL_EVIDENCE_DIR: /tmp/battle-elevated-rail-review
@@ -207,6 +212,14 @@ jobs:
         with:
           name: battle-targeting-review
           path: /tmp/battle-targeting-review
+          retention-days: 7
+
+      - name: Save percentage reader evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: battle-percentage-dot-review
+          path: /tmp/battle-percentage-dot-review
           retention-days: 7
 
       - name: Save skill parameter palette evidence

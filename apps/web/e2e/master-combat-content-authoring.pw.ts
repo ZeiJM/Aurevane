@@ -60,6 +60,26 @@ function publishedVersion(payload: unknown): number {
   return payload.published.contentVersion
 }
 
+function publishedBleedBasisPoints(payload: unknown): number {
+  if (
+    !isRecord(payload) ||
+    !isRecord(payload.published) ||
+    !isRecord(payload.published.definition) ||
+    !Array.isArray(payload.published.definition.effects)
+  )
+    throw new TypeError('Publication has no immutable effects.')
+  const bleed = payload.published.definition.effects.find(
+    (effect: unknown) => isRecord(effect) && effect.type === 'bleed',
+  ) as unknown
+  if (
+    !isRecord(bleed) ||
+    !isRecord(bleed.damageProfile) ||
+    !positiveInteger(bleed.damageProfile.basisPoints)
+  )
+    throw new TypeError('Publication has no valid percentage Bleed profile.')
+  return bleed.damageProfile.basisPoints
+}
+
 function publishedMediaHooks(payload: unknown): {
   iconKey: string | null
   audioCueKey: string | null
@@ -504,4 +524,51 @@ test('Master combat authoring publishes versioned content, pins battles, and rol
     newBattleAfterRollbackIdentity.battleSessionId,
     newBattleAfterRollbackIdentity.battleVersion,
   )
+
+  // Real audited publication, reload and rollback; both responsive editor layouts.
+  for (const width of [1366, 390]) {
+    await page.setViewportSize({ width, height: width === 390 ? 844 : 768 })
+    await page.goto('/master/combat-content')
+    const selectGash = async () => {
+      await page.getByLabel('Discipline').selectOption('ravager')
+      await page.getByLabel('Skill', { exact: true }).selectOption('ravager.gash')
+      await expect(page.getByRole('heading', { name: 'Gash', exact: true })).toBeVisible()
+    }
+    await selectGash()
+    const oldGashVersion = currentVersionFromText(await versionState.textContent())
+    const percentage = page.getByLabel('Damage per tick (% of attack damage)', { exact: true })
+    const oldPercentage = await percentage.inputValue()
+    await percentage.fill('12.34')
+    await runMasterOperation(page, 'validate', 'Validate')
+    await expect(page.locator('[data-validation-state="valid"]')).toContainText('Validated')
+    await runMasterOperation(page, 'diff', 'Diff')
+    await expect(page.locator('section[aria-label="Semantic diff"]')).toContainText('1234')
+    await runMasterOperation(page, 'preview', 'Preview')
+    await page.getByRole('button', { name: 'Publish', exact: true }).click()
+    await expect(page.locator('section[aria-label="Confirm publication"]')).toBeVisible()
+    const percentagePublication = await runMasterOperation(page, 'publish', 'Confirm publish')
+    expect(publishedBleedBasisPoints(percentagePublication)).toBe(1234)
+    const percentageVersion = publishedVersion(percentagePublication)
+    expect(percentageVersion).toBeGreaterThan(oldGashVersion)
+    await page.reload()
+    await selectGash()
+    expect(currentVersionFromText(await versionState.textContent())).toBe(percentageVersion)
+    await expect(percentage).toHaveValue('12.34')
+    await percentage.scrollIntoViewIfNeeded()
+    await page.screenshot({ path: testInfo.outputPath(`master-percentage-${width}.png`) })
+    const gashHistory = page.locator('section[aria-labelledby="version-history-heading"]')
+    await gashHistory
+      .getByText(`v${oldGashVersion}`, { exact: true })
+      .locator('..')
+      .locator('..')
+      .getByRole('button', { name: 'Rollback', exact: true })
+      .click()
+    await runMasterOperation(page, 'rollback', 'Confirm rollback')
+    await expect
+      .poll(async () => currentVersionFromText(await versionState.textContent()))
+      .toBe(oldGashVersion)
+    await page.reload()
+    await selectGash()
+    await expect(percentage).toHaveValue(oldPercentage)
+  }
 })
