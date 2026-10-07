@@ -60,7 +60,11 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Install Chromium and Microsoft Edge
-        run: pnpm --filter @aurevane/web exec playwright install --with-deps chromium msedge
+        run: |
+          # The runner's Azure apt mirror stalled before browser installation.
+          # Use the official HTTPS mirror that responded in the same job logs.
+          printf '%s\n' 'https://archive.ubuntu.com/ubuntu/' | sudo tee /etc/apt/apt-mirrors.txt >/dev/null
+          pnpm --filter @aurevane/web exec playwright install --with-deps chromium msedge
 
       - name: Verify shared ally inspection and multi-target previews
         env:
