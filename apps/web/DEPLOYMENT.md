@@ -1,5 +1,13 @@
 # Web deployment note
 
+## Combat, percentage DoTs, targeting and Master elevation — released 2026-10-07
+
+Owner-authorized PR #845 merged as `144aed0f60e4defd068921894aa6039dc01b7c64`, with tree `9340b09d074d2a781e7a793e34bb8b34e1dce9ca` identical to candidate `36fff0401d83bf8602a4ef6846d2c3f3dc7ef205` that passed all 17 workflows. Deployment `dpl_6aow4Lf9w3PbZvBViZ5fSodxqvxk` was verified READY at `2026-10-07T10:16:31.896Z`; its metadata names the merged SHA and canonical https://aurevane.vercel.app/ alias.
+
+Applied only the verified additive elevation policy migration (source `20261007034319_battlefield_elevation_policy.sql`, hosted version `20261007101310`); defaults are 6000/3000/1000 basis points. Public `/`, `/manual`, `/rules` and `/api/foundation/auth-status` smoke checks passed HTTP 200 at `10:17:37.509Z`. Warning/error/fatal runtime logs were empty for the exact deployment from `10:16:31.896Z` through `10:17:43.248Z`.
+
+Final local gate: 4,259 Vitest tests, seven Node checks, formatting/lint/types/build. Browser run `37598004857`: 322 full Chromium and ten Edge passes, plus focused/matrix coverage and repeated Master publication/reload/rollback acceptance. Desktop/mobile Master evidence was inspected. Existing skips and evidence limits are explicit in the [full release receipt](../../docs/verification/2026-10-07-combat-release.md). Start new battles for current pinned targeting/DoT/elevation policies. Git deployments remain disabled; this docs-only closeout does not redeploy the application.
+
 ## AFK Lowered Guard and Online Users EXP — released
 
 The Owner’s standing combined Production request covers this follow-up. PR #836 merges as `6d0b6101b1f7ab3a310a637aa0b1c8a6016787d8`, identical to candidate `989d84ae0d1063e0cea3ecd8f131f75423c6311a`, tree `2d9ee9675bda59641b022deacc58052c04c35117`. All eleven workflows pass. Local quality passes4,027 Vitest tests, seven Node checks, formatting, lint, types and builds. Browser passes6 recovery,3 training,71 focused,317 full Chromium and10 Edge cases; layout passes110 scenarios, native Profile swipe and the directory check, Desktop48 and Buildcraft24. Independent reviews have no blockers.

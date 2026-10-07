@@ -615,7 +615,13 @@ Owner clarification 2026-10-06 targeting follow-up supersedes the earlier recipi
 - Add desktop/mobile PvE/PvP allied healing fill assertions in the existing production-component browser harness, including full inset, green opacity, portrait/ring layering, enemy exclusion and no command on arming. Browser execution is pending CI.
 - Extended read-only publication preflight found no published Resonance remove-status override. No live database change is required.
 
-## Combined percentage DoTs and current targeting — 2026-10-07 (verification in progress)
+## Combined combat, percentage DoTs, targeting and Master elevation — released 2026-10-07
+
+All requested rounds are implemented and live. PR #845 merged the exact all-17-workflow verified tree as `144aed0f60e4defd068921894aa6039dc01b7c64`. Production deployment `dpl_6aow4Lf9w3PbZvBViZ5fSodxqvxk` is READY and serves https://aurevane.vercel.app/. The additive elevation policy migration was applied and verified with 60/30/10 defaults and server-only publication authority. Public smoke passed; the bounded warning/error/fatal scan was empty. Earlier releases A/B remain included.
+
+Native C8, D7 and E3 completion gates passed. Final local quality gate: 4,259 Vitest tests, seven Node checks, formatting/lint/types and production build. Final browser run passed 322 full Chromium and ten Edge cases, plus focused/matrix coverage and repeated Master acceptance. Existing skips are recorded explicitly. Desktop/mobile Master screenshots and spectator/targeting evidence were inspected. Full release source/deployment/migration receipts, verification limits, all 27 Owner checks and exhaustive execution rulings: [combat release receipt](docs/verification/2026-10-07-combat-release.md).
+
+### Historical pre-release checkpoints (superseded)
 
 Owner approved native implementation of both plans and standing publication of fully verified work. Percentage DoT tasks 1–7 are implemented, including per-command captured hostile HP damage, delayed bindings, Burn/Poison replacement, independent Bleeds, Copy metadata, Poison movement cadence, Burn backlash, exact Master percentages, nine immutable roster profiles, historical compatibility and a bounded balance measurement report. Current targeting tasks 1–6 are implemented: one shared geometry/spatial contract; strict cardinal/activation commands; full area execution; AI and Resonance boundaries; 28 Skill/8 Essence immutable conversions; Master authoring/readers; persistent potential previews, deliberate directions and full red/blue/green fills.
 
