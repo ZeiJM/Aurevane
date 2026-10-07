@@ -15,6 +15,7 @@ export const COMBAT_EFFECT_TIMING_TAGS = [
     'mp-recovery',
     'mp-drain',
     'create-terrain',
+    'ground-area',
     'displace',
     'poison',
     'burn',

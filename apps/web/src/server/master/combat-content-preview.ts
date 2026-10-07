@@ -253,6 +253,7 @@ function previewState(
     ...base,
     percentageDotPolicyVersion: 1 as const,
     dotTriggerPolicyVersion: 1 as const,
+    groundEffectPolicyVersion: 1 as const,
     turnOrigin: {
       combatantId: ACTOR_ID,
       turnNumber: battle.turnNumber,

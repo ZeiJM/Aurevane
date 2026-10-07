@@ -1,3 +1,4 @@
+import { createCurrentGroundEssenceVersion } from './combat-ground-roster'
 import { createCurrentTargetingEssenceVersion } from './combat-targeting-roster'
 import { createPercentageDotEssenceVersion } from './combat-percentage-dot-roster'
 import { battleFlavorTemplateIssues } from './battle-narration'
@@ -556,9 +557,20 @@ const CURRENT_TARGETING_ESSENCES = latestEnabledEssences(
   const next = createCurrentTargetingEssenceVersion(definition)
   return next ? [next] : []
 })
-const CURRENT_ESSENCE_REGISTRY = [
+const PRE_CURRENT_GROUND_ESSENCE_REGISTRY = [
   ...PRE_CURRENT_TARGETING_ESSENCE_REGISTRY,
   ...CURRENT_TARGETING_ESSENCES,
+]
+
+const CURRENT_GROUND_ESSENCES = latestEnabledEssences(PRE_CURRENT_GROUND_ESSENCE_REGISTRY).flatMap(
+  (definition) => {
+    const next = createCurrentGroundEssenceVersion(definition)
+    return next ? [next] : []
+  },
+)
+const CURRENT_ESSENCE_REGISTRY = [
+  ...PRE_CURRENT_GROUND_ESSENCE_REGISTRY,
+  ...CURRENT_GROUND_ESSENCES,
 ]
 
 const STABLE_ID_PATTERN = /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/

@@ -1,4 +1,10 @@
 import {
+  validateCombatGroundAreaDefinition,
+  validateCombatGroundAreas,
+  type CombatGroundAreaDefinition,
+  type CombatGroundAreaInstance,
+} from './combat-ground-areas'
+import {
   parseBattlefieldElevationPolicy,
   type BattlefieldElevationPolicy,
 } from './standard-battlefield'
@@ -290,6 +296,7 @@ export interface CombatEffectOrigin {
 }
 
 export interface CombatActionDefinition {
+  groundArea?: CombatGroundAreaDefinition
   effectOrigins?: readonly (CombatEffectOrigin | undefined)[]
   effectTimingTags?: readonly (string | undefined)[]
   id: string
@@ -409,6 +416,9 @@ export interface PendingCombatEffect {
 }
 
 export interface CombatEncounterState {
+  groundEffectPolicyVersion?: 1
+  nextGroundAreaId?: number
+  groundAreas?: readonly CombatGroundAreaInstance[]
   /** Generated once at battle creation; historical snapshots retain saved tiles. */
   battlefieldElevationPolicy?: BattlefieldElevationPolicy
   dotTriggerPolicyVersion?: 1
@@ -1557,6 +1567,7 @@ export function validateCombatEncounterState(
     ...validateBarrierState(state),
     ...validateCombatDotState(state),
     ...validateCombatTurnTriggers(state),
+    ...validateCombatGroundAreas(state),
   ]
   if (
     state.tactical.battle.effectStackingPolicyVersion === 1 &&
@@ -3754,6 +3765,7 @@ function validateCombatActionDefinition(
   action: CombatActionDefinition,
   content?: CombatContentCatalog,
 ): void {
+  validateCombatGroundAreaDefinition(action)
   validateVersionedCombatTargetSpec(action.target)
   validateCurrentAreaTargetRecipients(action)
   validateCombatStatusCopyAction(action)

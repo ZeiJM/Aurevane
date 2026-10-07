@@ -79,6 +79,7 @@ export async function attackWorldPlayer(
   encounter.effectStackingPolicyVersion = 1
   encounter.percentageDotPolicyVersion = 1
   encounter.dotTriggerPolicyVersion = 1
+  encounter.groundEffectPolicyVersion = 1
   const { data, error } = await supabase.rpc('start_world_encounter_v1', {
     p_user_id: userId,
     p_character_id: characterId,

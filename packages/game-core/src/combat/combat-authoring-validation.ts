@@ -1,3 +1,4 @@
+import { validateCombatGroundAreaDefinition } from './combat-ground-areas'
 import {
   validateCurrentAreaTargetRecipients,
   validateVersionedCombatTargetSpec,
@@ -32,6 +33,7 @@ export function validateCombatActionDefinition(
   action: CombatActionDefinition,
   content?: CombatContentCatalog,
 ): void {
+  validateCombatGroundAreaDefinition(action)
   validateVersionedCombatTargetSpec(action.target)
   validateCurrentAreaTargetRecipients(action)
   validateCombatStatusCopyAction(action)

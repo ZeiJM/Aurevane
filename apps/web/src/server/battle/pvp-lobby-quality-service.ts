@@ -362,6 +362,7 @@ export async function startPvpLobbyWithQuality(
   encounter.effectStackingPolicyVersion = 1
   encounter.percentageDotPolicyVersion = 1
   encounter.dotTriggerPolicyVersion = 1
+  encounter.groundEffectPolicyVersion = 1
   const battle = encounter.tactical.battle
   const supabase = createSupabaseAdminClient()
   const { data, error } = await supabase.rpc('create_pvp_battle_session_v1', {

@@ -46,7 +46,15 @@ describe('immutable percentage DoT roster', () => {
         type === 'bleed' && effect.type === 'bleed' ? effect.ticks : effect.durationTurns,
       ).toBe(ticks)
       expect(validateMatureSkillDefinition(current)).toEqual([])
-      const old = resolveMatureSkillVersion(id, current.contentVersion - 1)!
+      const old = Array.from({ length: current.contentVersion - 1 }, (_, index) =>
+        resolveMatureSkillVersion(id, index + 1),
+      )
+        .filter(
+          (definition): definition is NonNullable<typeof definition> =>
+            definition !== null &&
+            !definition.effects.some((effect) => effect.type === type && 'damageProfile' in effect),
+        )
+        .at(-1)!
       expect(old.effects.find((effect) => effect.type === type)).not.toHaveProperty('damageProfile')
       expect(resolveMatureSkillVersion(id, old.contentVersion)).toEqual(old)
     },
