@@ -469,7 +469,7 @@ function DotDefinitionReport() {
   return (
     <>
       <button
-        style={{ position: 'fixed', left: 8, top: 8, zIndex: 101 }}
+        style={{ position: 'fixed', left: 8, top: 8, zIndex: 2002 }}
         onClick={() => setOpen(!open)}
       >
         {open ? 'Close pinned percentage definition' : 'Read pinned percentage definition'}
@@ -481,7 +481,7 @@ function DotDefinitionReport() {
             position: 'fixed',
             left: 8,
             top: 48,
-            zIndex: 100,
+            zIndex: 2001,
             background: '#0a202b',
             color: '#f0e8dc',
             padding: 12,

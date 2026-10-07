@@ -97,6 +97,8 @@ const browser = await chromium.launch({
 })
 const errors = []
 let cases = 0
+let activePage
+let activeCase
 try {
   for (const mode of ['pve', 'pvp', 'spectator']) {
     for (const viewport of [
@@ -110,6 +112,8 @@ try {
             isMobile: viewport.width < 821,
             hasTouch: viewport.width < 821,
           })
+          activePage = page
+          activeCase = `${mode}-${viewport.width}-${dot}-${phase}`
           page.setDefaultTimeout(10000)
           page.on('pageerror', (error) => errors.push(`${mode}/${dot}/${phase}: ${error.message}`))
           await page.goto(server.resolvedUrls.local[0] + `?mode=${mode}&dot=${dot}&phase=${phase}`)
@@ -208,6 +212,14 @@ try {
   console.log(
     `${cases} percentage Skill/Essence and active/pending rail cases passed. Screenshots: ${output}`,
   )
+} catch (error) {
+  if (activePage && !activePage.isClosed())
+    await activePage.screenshot({ path: resolve(output, `failure-${activeCase}.png`) })
+  await fs.writeFile(
+    resolve(output, 'partial-results.json'),
+    JSON.stringify({ cases, activeCase, errors }),
+  )
+  throw error
 } finally {
   await browser.close()
   await server.close()
