@@ -17,6 +17,37 @@ import {
 import { rebalanceResonanceDefinition } from './resonance-balance-v5'
 import { normalizedResonanceMechanics } from './resonance-v2'
 
+it('arms current Chronist setups from any Chronist Skill while retaining historical tempo matching', () => {
+  const current = resolveResonanceForPair('chronist', 'cinderweaver')!
+  const historical = resolveResonanceForPair('chronist', 'cinderweaver', 3)!
+  const utility = resolveMatureSkillVersion('chronist.haste')!
+  const attack = resolveMatureSkillVersion('chronist.temporal-bolt')!
+  const guard = resolveMatureSkillVersion('chronist.rewind-step')!
+  expect(current.contentVersion).toBeGreaterThan(historical.contentVersion)
+  expect(normalizedResonanceMechanics(current).setup).toMatchObject({
+    matchMode: 'any-skill',
+    requiredTags: [],
+  })
+  for (const skill of [utility, attack, guard]) {
+    expect(
+      forecastResonanceForSkill(current, createResonanceCombatState(current), skill).willArm,
+    ).toBe(true)
+  }
+  expect(
+    forecastResonanceForSkill(current, createResonanceCombatState(current), {
+      ...attack,
+      sourceDisciplineId: 'vanguard',
+    }).willArm,
+  ).toBe(false)
+  expect(
+    forecastResonanceForSkill(historical, createResonanceCombatState(historical), attack).willArm,
+  ).toBe(false)
+  expect(
+    forecastResonanceForSkill(historical, createResonanceCombatState(historical), utility).willArm,
+  ).toBe(true)
+  expect(normalizedResonanceMechanics(historical).setup?.requiredTags).toEqual(['tempo'])
+})
+
 function encounter() {
   const battle = startBattle(
     createPendingBattle({

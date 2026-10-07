@@ -4,7 +4,10 @@ import {
 } from '@aurevane/game-core/combat/combat-percentage-dots'
 import { skillInformationRows } from './skill-information-contract'
 import { previewEffect, skillDamageElementInteraction } from './skill-effect-preview'
-import { combatActionPresentationTags } from '@aurevane/game-core/combat/gameplay-tags'
+import {
+  combatActionPresentationTags,
+  combatTargetIncludesActor,
+} from '@aurevane/game-core/combat/gameplay-tags'
 import { gameplayStatusName } from '../../lib/battle/combat-interaction-presentation'
 import {
   combatStatusDetails,
@@ -293,7 +296,7 @@ export function skillTargetDescription(skill: Pick<MatureSkillDefinition, 'targe
     case 'self':
       return 'Self'
     case 'ally':
-      return 'Ally'
+      return combatTargetIncludesActor(skill.target) ? 'Self/Ally' : 'Ally'
     case 'enemy':
       return 'Enemy'
     case 'any':

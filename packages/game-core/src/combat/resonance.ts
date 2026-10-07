@@ -5,6 +5,8 @@ import { FOUNDATION_TRIO_RESONANCES } from './foundation-trio-resonances'
 import { IRONFIST_RESONANCES } from './ironfist-content'
 import { rebalanceResonanceDefinition } from './resonance-balance-v5'
 import { createCanonicalCleanseResonanceVersion } from './combat-cleanse'
+import { createClarifiedResonanceVersion } from './resonance-clarified-content'
+import { matchesResonanceSkill, validResonanceSkillMatcher } from './resonance-skill-matcher'
 import {
   convertV5ResonanceToV2,
   isResonanceDefinitionV2,
@@ -32,6 +34,7 @@ export const RESONANCE_SCHEMA_VERSION = 1 as const
 export interface ResonanceSkillMatcher {
   readonly sourceDisciplineId: string
   readonly requiredTags: readonly string[]
+  readonly matchMode?: 'any-skill'
 }
 
 export interface ResonanceSkillSequenceTrigger {
@@ -166,6 +169,11 @@ const CURRENT_RESONANCE_REGISTRY: readonly AnyResonanceDefinition[] = [
     const updated = createCanonicalCleanseResonanceVersion(definition)
     return updated ? [updated] : []
   }),
+  ...V51_REBALANCED_RESONANCES.map((definition) =>
+    createClarifiedResonanceVersion(
+      createCanonicalCleanseResonanceVersion(definition) ?? definition,
+    ),
+  ),
 ]
 
 const STABLE_ID_PATTERN = /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/
@@ -222,8 +230,8 @@ export function validateResonanceDefinition(definition: AnyResonanceDefinition):
       issues.push(`${field}.sourceDisciplineId`)
     }
     if (
-      matcher.requiredTags.length === 0 ||
-      matcher.requiredTags.some((tag) => !STABLE_ID_PATTERN.test(tag))
+      !validResonanceSkillMatcher(matcher) ||
+      (field === 'trigger.payoff' && matcher.matchMode !== undefined)
     ) {
       issues.push(`${field}.requiredTags`)
     }
@@ -495,10 +503,7 @@ function insertResonanceEventsAfterActionUse(
 }
 
 function matchesSkill(skill: MatureSkillDefinition, matcher: ResonanceSkillMatcher): boolean {
-  return (
-    skill.sourceDisciplineId === matcher.sourceDisciplineId &&
-    matcher.requiredTags.every((tag) => skill.tags.includes(tag))
-  )
+  return matchesResonanceSkill(skill, matcher)
 }
 
 function assertUsableResonance(definition: AnyResonanceDefinition): void {

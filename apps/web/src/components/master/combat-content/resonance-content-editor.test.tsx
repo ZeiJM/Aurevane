@@ -39,6 +39,21 @@ function option(
 }
 
 describe('Master Panel Resonance v2 editor', () => {
+  it('shows explicit Any Skill matching for the approved Chronist setup', () => {
+    const resonance = option('chronist', 'cinderweaver')
+    const markup = renderToStaticMarkup(
+      createElement(ResonanceContentEditor, {
+        resonances: [resonance],
+        initialResonanceId: resonance.id,
+      }),
+    )
+    expect(markup).toContain('aria-label="Resonance Setup matching"')
+    expect(markup).toContain(
+      '<option value="any-skill" selected="">Any Skill in this Discipline</option>',
+    )
+    expect(markup).toMatch(/aria-label="Resonance Setup tags"[^>]*disabled=""/)
+    expect(markup).toContain('<dt>Requirements</dt><dd>Chronist Skills</dd>')
+  })
   it('presents Resonance results with Skill effect highlights and explanation bullets', () => {
     const markup = renderToStaticMarkup(
       createElement(ResonanceContentEditor, {
@@ -52,10 +67,10 @@ describe('Master Panel Resonance v2 editor', () => {
     expect(markup).toContain('aria-label="Neutral historical narration preview"')
     expect(preview).toContain('data-compact-effect-magnitude="true">[4]</span>')
     expect(preview).not.toContain('→ Self')
-    expect(preview).toContain('Edgedancer · attack:')
+    expect(preview).toContain('Edgedancer Skills tagged Attack:')
     expect(preview).toContain('<ul aria-label="Effect explanations">')
     expect(preview).toContain('Restores MP to you.')
-    expect(preview).toContain('<dt>Requirements</dt><dd>Wildwarden · mark</dd>')
+    expect(preview).toContain('<dt>Requirements</dt><dd>Wildwarden Skills tagged Mark</dd>')
   })
 
   it('previews every passive Skill field in the shared order without inventing independent targeting', () => {
@@ -85,7 +100,7 @@ describe('Master Panel Resonance v2 editor', () => {
     expect(preview).toContain('<dt>Cooldown</dt><dd>N/A</dd>')
     expect(preview).toContain('Trigger Skill selected unit')
     expect(preview).not.toContain('Trigger targeting')
-    expect(preview).toContain('Vanguard · attack + melee:')
+    expect(preview).toContain('Vanguard Skills tagged Attack + Melee:')
     expect(preview).not.toContain('<dt>Mode</dt>')
     expect(preview).not.toContain('<dt>Setup</dt>')
     expect(preview).not.toContain('<dt>Trigger</dt>')

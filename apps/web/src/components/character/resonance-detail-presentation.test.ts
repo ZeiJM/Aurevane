@@ -20,6 +20,14 @@ const fields = [
 ]
 
 describe('passive Resonance Skill information', () => {
+  it('uses the concise approved Chronist Skills label instead of an ambiguous tempo category', () => {
+    const definition = resolveResonanceForPair('chronist', 'cinderweaver')!
+    expect(Object.fromEntries(resonanceCharacteristicRows(definition)).Requirements).toBe(
+      'Chronist Skills',
+    )
+    expect(definition.description).toContain('Chronist Skills')
+    expect(definition.description.toLowerCase()).not.toContain('tempo')
+  })
   it('names all canonical Cleanse removals in the current Resonance reader', () => {
     const definition = resolveResonanceForPair('dawnshield', 'farstrider')!
     const details = JSON.stringify(resonanceSupplementalRows(definition))
@@ -49,8 +57,10 @@ describe('passive Resonance Skill information', () => {
       'Target Elevation': 'N/A',
       'Line of Sight': 'N/A',
     })
-    expect(Object.fromEntries(rows).Requirements).toBe('Lifebinder · heal')
-    expect(JSON.stringify(Object.fromEntries(rows).Effects)).toContain('Vanguard · attack + melee:')
+    expect(Object.fromEntries(rows).Requirements).toBe('Lifebinder Skills tagged Heal')
+    expect(JSON.stringify(Object.fromEntries(rows).Effects)).toContain(
+      'Vanguard Skills tagged Attack + Melee:',
+    )
     const supplemental = Object.fromEntries(resonanceSupplementalRows(definition))
     expect(Object.keys(supplemental)).toEqual(['Result details'])
     expect(supplemental['Result details']).not.toEqual([])
@@ -78,8 +88,8 @@ describe('passive Resonance Skill information', () => {
     const rows = Object.fromEntries(resonanceCharacteristicRows(definition))
     expect(rows.Target).toBe('Self; Trigger Skill affected units')
     expect(rows.Effects).toEqual([
-      'Farstrider · attack + ranged: Heal [3] [Instant]',
-      'Farstrider · attack + ranged: Dmg [2] → Trigger Skill affected units',
+      'Farstrider Skills tagged Attack + Ranged: Heal [3] [Instant]',
+      'Farstrider Skills tagged Attack + Ranged: Dmg [2] → Trigger Skill affected units',
     ])
     expect(rows.Range).toBe('N/A')
     expect(JSON.stringify(rows.Requirements)).not.toContain('next Discipline Skill')

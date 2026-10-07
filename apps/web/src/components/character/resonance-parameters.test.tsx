@@ -38,8 +38,8 @@ describe('shared Resonance parameter report', () => {
     }
     expect(markup).toContain('data-compact-effect-magnitude="true">[4]</span>')
     expect(markup).not.toContain('→ Self')
-    expect(markup).toContain('Edgedancer · attack:')
-    expect(markup).toContain('<dt>Requirements</dt><dd>Wildwarden · mark</dd>')
+    expect(markup).toContain('Edgedancer Skills tagged Attack:')
+    expect(markup).toContain('<dt>Requirements</dt><dd>Wildwarden Skills tagged Mark</dd>')
     expect([...markup.matchAll(/<dt>(.*?)<\/dt>/g)].map((match) => match[1])).toEqual(fields)
     expect(markup).toContain(
       '<ul aria-label="Effect explanations"><li><strong>MP Restore</strong> — Restores MP to you.</li></ul>',

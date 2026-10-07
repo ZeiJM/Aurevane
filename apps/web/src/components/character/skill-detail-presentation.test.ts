@@ -20,6 +20,28 @@ import {
   skillParameterRows,
 } from './skill-detail-presentation'
 
+it('uses Self/Ally only when the friendly Skill can actually include its caster', () => {
+  const mend = resolveMatureSkillVersion('lifebinder.mend')!
+  const target = {
+    ...mend.target,
+    geometryVersion: 2 as const,
+    kind: 'unit' as const,
+    teamPolicy: 'ally' as const,
+    friendlyFire: 'allies-only' as const,
+    minimumRange: 0,
+    shape: { kind: 'single' as const },
+  }
+  expect(skillTargetDescription({ target })).toBe('Self/Ally')
+  expect(skillTargetTags({ ...mend, target })[0]).toBe('Self/Ally')
+  const circle = { ...target, shape: { kind: 'circle' as const, radius: 1 } }
+  expect(skillTargetDescription({ target: circle })).toBe('Ally')
+  expect(skillTargetTags({ ...mend, target: circle })[0]).toBe('Ally')
+  expect(skillTargetDescription({ target: { ...target, minimumRange: 1 } })).toBe('Ally')
+  expect(skillTargetDescription({ target: { ...target, friendlyFire: 'all-except-actor' } })).toBe(
+    'Ally',
+  )
+})
+
 it('marks instant effects from their timing tags, retaining duration and excluding direct damage', () => {
   const effect = {
     type: 'apply-status' as const,
