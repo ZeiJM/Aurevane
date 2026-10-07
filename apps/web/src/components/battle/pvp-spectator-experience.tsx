@@ -1,4 +1,5 @@
 'use client'
+import { BattleFacingIndicator } from './battle-facing-indicator'
 import { BattleGroundAreaLayer } from './battle-ground-area-layer'
 
 import { BattleRouteFrame } from './battle-route-frame'
@@ -47,13 +48,6 @@ function positionKey(position: GridPosition): string {
 
 function positionsEqual(left: GridPosition, right: GridPosition): boolean {
   return left.x === right.x && left.y === right.y
-}
-
-function facingGlyph(facing: Facing): string {
-  if (facing === 'north') return '↑'
-  if (facing === 'east') return '→'
-  if (facing === 'south') return '↓'
-  return '←'
 }
 
 function teamName(teamIndex: number): string {
@@ -485,7 +479,7 @@ export function PvpSpectatorExperience({
                             alt=""
                           />
                           {combatant && combatant.hp > 0 ? (
-                            <i>{facingGlyph(placement.facing as Facing)}</i>
+                            <BattleFacingIndicator facing={placement.facing as Facing} />
                           ) : null}
                         </span>
                       ) : null}

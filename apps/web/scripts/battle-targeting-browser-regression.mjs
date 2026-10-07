@@ -104,6 +104,108 @@ const tile = (page, x, y) =>
     .locator('#battlefield')
     .getByRole('button', { name: new RegExp(`^Tile ${x + 1}, ${y + 1};`) })
 try {
+  // Compass badges stay readable at board edges without changing portrait or meter geometry.
+  for (const mode of ['pve', 'pvp', 'spectator']) {
+    for (const viewport of [
+      { width: 1366, height: 768 },
+      { width: 390, height: 844 },
+    ]) {
+      const page = await browser.newPage({ viewport })
+      page.setDefaultTimeout(10000)
+      page.on('pageerror', (error) => errors.push(error.message))
+      await page.goto(server.resolvedUrls.local[0] + `?mode=${mode}&compass=edges`)
+      await page.locator('#battlefield').waitFor()
+      await page
+        .locator('#battlefield')
+        .screenshot({ path: resolve(output, `${mode}-${viewport.width}-compass-edges.png`) })
+      const badges = page.locator('[data-battle-facing-indicator="true"]')
+      assert.equal(await badges.count(), 4, `${mode}: all living combatants use the shared compass`)
+      const directions = []
+      for (const badge of await badges.all()) {
+        const geometry = await badge.evaluate((el) => {
+          const token = el.parentElement,
+            tile = token.parentElement
+          const rect = (value) => value.getBoundingClientRect().toJSON()
+          return {
+            badge: rect(el),
+            token: rect(token),
+            tile: rect(tile),
+            direction: el.dataset.facing,
+            color: getComputedStyle(el).color,
+            identity: getComputedStyle(token).borderTopColor,
+            pointer: getComputedStyle(el).pointerEvents,
+            radius: getComputedStyle(el).borderRadius,
+            transform: getComputedStyle(el).transform,
+            svg: rect(el.querySelector('svg')),
+          }
+        })
+        directions.push(geometry.direction)
+        assert.ok(geometry.badge.width >= 12 && geometry.svg.width >= 6, 'Readable badge and arrow')
+        assert.equal(geometry.pointer, 'none')
+        assert.equal(geometry.radius, '50%')
+        assert.equal(geometry.color, geometry.identity)
+        assert.ok(
+          geometry.badge.left >= geometry.tile.left - 1 &&
+            geometry.badge.right <= geometry.tile.right + 1,
+        )
+        if (viewport.width < 821) {
+          assert.ok(
+            geometry.badge.top >= geometry.tile.top - 1,
+            'Mobile badge stays within its tile',
+          )
+          assert.ok(
+            geometry.badge.top + geometry.badge.height / 2 <= geometry.token.top + 3,
+            'Badge center stays on or above the portrait upper rim',
+          )
+        }
+        const angle = {
+          north: 'matrix(1, 0, 0, 1',
+          east: 'matrix(0, 1, -1, 0',
+          south: 'matrix(-1, 0, 0, -1',
+          west: 'matrix(0, -1, 1, 0',
+        }[geometry.direction]
+        assert.ok(geometry.transform.startsWith(angle), 'Arrow rotation matches recorded facing')
+      }
+      assert.deepEqual(directions.sort(), ['east', 'north', 'south', 'west'])
+      await page.emulateMedia({ reducedMotion: 'reduce' })
+      assert.equal(
+        await badges.first().evaluate((el) => getComputedStyle(el).animationName),
+        'none',
+      )
+      if (mode === 'spectator') {
+        const chat = page
+          .locator('details')
+          .filter({ has: page.getByText('Battle Chat', { exact: true }) })
+        const summary = chat.locator('summary')
+        await summary.click()
+        assert.equal(await chat.getAttribute('open'), '')
+        await chat.getByRole('textbox').waitFor()
+        const bounds = await chat.evaluate((el) => ({
+          summary: el.querySelector('summary').getBoundingClientRect().toJSON(),
+          panel: el.querySelector('[class*="comms"]').getBoundingClientRect().toJSON(),
+        }))
+        assert.ok(
+          bounds.panel.bottom <= bounds.summary.top - 4,
+          'Chat stays above its close control',
+        )
+        assert.ok(
+          bounds.panel.left >= 0 && bounds.panel.right <= viewport.width,
+          'Chat stays within viewport width',
+        )
+        assert.ok(bounds.panel.top >= 0, 'Chat stays within viewport height')
+        await page.screenshot({
+          path: resolve(output, `spectator-${viewport.width}-chat-open.png`),
+          fullPage: true,
+        })
+        await summary.click()
+        assert.equal(await chat.getAttribute('open'), null)
+        assert.equal(await chat.getByRole('textbox').isVisible(), false)
+      }
+      assert.equal((await commits(page)).length, 0, 'Presentation never issues a combat command')
+      cases++
+      await page.close()
+    }
+  }
   if (process.env.AV_TARGETING_ONLY_GROUND !== '1') {
     for (const mode of ['pve', 'pvp']) {
       for (const viewport of [

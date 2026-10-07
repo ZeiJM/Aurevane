@@ -103,6 +103,15 @@ const initialBattle = {
 }
 const mode = new URLSearchParams(location.search).get('mode') || 'pve'
 const groundPreset = new URLSearchParams(location.search).get('ground')
+if (new URLSearchParams(location.search).get('compass') === 'edges') {
+  const directions = ['north', 'east', 'south', 'west']
+  const corners = [{x:0,y:0},{x:8,y:0},{x:0,y:6},{x:8,y:6}]
+  initialBattle.snapshot.tactical.placements.forEach((placement,index)=>{
+    placement.facing = directions[index]
+    placement.position = corners[index]
+  })
+}
+
 if (groundPreset) {
   // Serialized public render data only; mechanics and concealment have separate canonical tests.
   initialBattle.snapshot = {

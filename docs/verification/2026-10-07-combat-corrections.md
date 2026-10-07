@@ -13,7 +13,7 @@ This records the Owner-approved continuation after the earlier combat release, t
 - New encounters pin Ground policy 1: fixed authored tiles, 1–4 global rounds, next-round default/Instant override, ordinary cast effects and one active entry pulse per area/character/cycle. Push/Pull checks each traversed tile; relocation only its landing tile. Source movement/defeat does not change pinned areas. Expiry and every terminal transition clear areas.
 - Ground entry reuses canonical supported unit effects and frozen caster/current recipient calculations, with no repeated command cost, cooldown, actor buffs, Copy, displacement, reactions or Resonance. Percentage DoTs use only their own pulse's positive hostile HP damage.
 - Shared participant/spectator layers show pending markers, registered Embers/Frost/Arcane pulse and static reduced motion beneath portraits. Public responses contain only ID, tiles, activation/expiry and preset.
-- Master Skill/Essence controls edit Ground enablement, duration, activation and finite animation presets, plus precise Burn backlash percentages. Existing validation, reason, expected-version, audit, immutable publication and rollback authority remain intact.
+- Master Skill/Essence controls edit Ground enablement, duration, activation and finite animation presets, plus precise Burn backlash and Poison tick percentages. Existing validation, reason, expected-version, audit, immutable publication and rollback authority remain intact.
 
 ## Verification checkpoint
 
@@ -50,6 +50,14 @@ Candidate `e4aa68b18718731b8f9c6e67cc5f90779ac7a995` cleared 11 workflows. UI la
 
 The superseded Browser job's completed log confirms the installation delay: its runner's Azure Ubuntu package mirror stopped responding to package-index requests, even though the official HTTPS Ubuntu mirror returned the required Noble indexes. No application tests had started. The browser job now writes that responding official HTTPS mirror into the disposable runner's existing apt mirror list before the unchanged Chromium/Edge installation. This does not change Production package settings or remove a browser/check. Actual full browser acceptance still gates the revised candidate. Fresh `NEXT_TELEMETRY_DISABLED=1 corepack pnpm check` passes after this runner-only correction (4,328 Vitest, seven Node checks, format/lint/types/build; exit 0, `/tmp/aurevane-browser-apt-mirror-check.log`).
 
+## Final browser clearance correction
+
+Candidate `4b14a903dbc2c6c69e23b4396fc4103a72fda1af` passed 12 of 13 workflows. Browser Smoke `37692496852` passed both repeated authenticated Master Ground publication/cast/persistence/reload/rollback journeys, then recorded 70 passes, three failures and 21 existing skips in focused composition. The failures were two mobile badge assertions and a spectator chat close control intercepted by its fixed panel. Full Chromium/Edge suites were not reached. Living Atlas passed on one bounded retry after an isolated Stop Auto-path poll timeout; no HTTP 409 or product defect was proven or changed.
+
+The spectator panel now anchors above its actual summary, including a wrapped mobile dock, and stays within the viewport width. Normal click open/close remains required. The mobile compass center now sits on the portrait upper rim with its complete backing inside its tile and a minimum 12px diameter. Keeping the artwork size leaves insufficient top margin for an entire readable badge above the portrait; the old tiny-arrow bottom-edge assertion is replaced by minimum size, full tile-top containment, upper-rim center and non-interception requirements. Existing portrait and meter bounds remain unchanged. The same compass is now mounted for spectators, replacing their remaining legacy glyph.
+
+Reproducing browser assertions failed first for upper-rim clearance, missing spectator compass and chat-above-toggle bounds. The revised production-component matrix passes all 72 cases with no page errors, covering four directions at board corners, identity colors, portrait-preserving geometry, reduced motion and ordinary chat toggling on desktop/mobile PvE/PvP/spectators. New screenshots were inspected. The corpse/living co-occupant regression retains its behavior and now requires the shared compass and recorded east direction in every mode. Fresh `NEXT_TELEMETRY_DISABLED=1 corepack pnpm check` passes (exit 0, `/tmp/aurevane-browser-clearance-check2.log`): formatting, lint, eight-package types, 4,328 Vitest tests, seven Node checks and production build. All 13 revised exact-head authenticated workflows remain mandatory before release.
+
 ## Complete Owner testing checklist
 
 Start a new battle for current content and policy checks. Existing encounters preserve their pinned versions/maps.
@@ -83,7 +91,7 @@ Start a new battle for current content and policy checks. Existing encounters pr
 27. Current Resonance Setup saying Chronist Skills accepts both Chronist attack and non-attack Skills. Other Discipline/tag requirements stay explicit, and the next Skill must satisfy Trigger for Result.
 28. After clicking an action then Escape, another battle hotkey works immediately without a clearing click or Tab focus box. Reading/dialog input guards remain intact.
 29. Post-battle Review Battle Log gives a readable complete Chronicle, scrolls internally and retains summary/reward controls on desktop/mobile.
-30. Master Ground duration, activation, animation and Burn percentages validate, publish, reload and roll back exactly. Invalid definitions, stale updates and unauthorized requests are rejected; existing battles keep pinned content.
+30. Master Ground duration, activation, animation, Burn backlash and Poison tick percentages validate, publish, reload and roll back exactly. Invalid definitions, stale updates and unauthorized requests are rejected; existing battles keep pinned content.
 31. Compare desktop/mobile PvE, PvP and spectators, including reduced motion. Previewing/reading never spends AP/MP or changes RNG/state, and spectators receive no private area payload.
 
 ## Rulings carried from implementation

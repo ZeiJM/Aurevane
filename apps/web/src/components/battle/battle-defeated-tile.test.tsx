@@ -147,9 +147,8 @@ describe('defeated battlefield tokens', () => {
         const tile = secondTile(renderBattle(mode, true, reverse))
         expect(tile).toContain(mode === 'pve' ? 'Recruit 2' : 'Living')
         expect(tile).not.toContain('data-defeated="true"')
-        expect(tile).toContain(
-          mode === 'spectator' ? '<i>→</i>' : 'data-battle-facing-indicator="true"',
-        )
+        expect(tile).toContain('data-battle-facing-indicator="true"')
+        expect(tile).toContain('data-facing="east"')
       }
     },
   )
