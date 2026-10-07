@@ -1,6 +1,6 @@
 # Combat corrections, persistent ground areas and capped DoT triggers
 
-Status: concrete design for Owner review; no implementation or new release claimed.
+Status: approved by Nick on 2026-10-07, with the concise Chronist Skills clarification; implementation and release evidence tracked separately.
 
 ## Intent and scope
 
@@ -14,7 +14,7 @@ All thirteen screenshots were recovered through their supplied upload IDs and in
 
 The Owner answered the Burn basis question: **Burn backlash uses the burning unit's own attack damage, rather than the attack that originally applied Burn.**
 
-Proposed initial Burn backlash rate: **10%**, rounded down. Poison movement retains the exact percentage already authored for that application. Both extra triggers are limited to once per affected character's turn cycle. These limits are additional to ordinary scheduled end-turn ticks.
+Approved initial Burn backlash rate: **10%**, rounded down. Poison movement retains the exact percentage already authored for that application. Both extra triggers are limited to once per affected character's turn cycle. These limits are additional to ordinary scheduled end-turn ticks.
 
 Two ground-area approaches were considered:
 
@@ -57,7 +57,7 @@ Use one target-policy presentation helper across Skill/Essence popups, compact t
 
 Do not convert an ally policy into a new self-damage permission merely to repair its label.
 
-`tempo` in advanced Resonances is an internal matcher tag; it is not the Utility family. The existing Chronist roster assigns it to specific support/control/defense Skills. Generate setup/trigger text from the actual pinned matcher and the qualifying pinned Skill definitions. Show explicit qualifying Skill names where an internal tag would be ambiguous. Measured Flare must name exactly which Chronist Skills arm it and which Cinderweaver attacks consume it. Use this shared explanation for every Resonance, including Profile, battle and Master previews. Preserve setup expiration/consumption mechanics and historical versions. If a trigger has no qualifying current Skill, report it as a content defect instead of inventing a synonym or silently broadening its trigger.
+`tempo` in advanced Resonances is an internal matcher tag; it is not the Utility family. The existing Chronist roster assigns it to specific support/control/defense Skills. Generate setup/trigger text from the actual pinned matcher and the qualifying pinned Skill definitions. Owner clarification: use the concise phrase Chronist Skills. Append immutable Chronist setup revisions in which any Chronist Skill qualifies; descriptions and requirements use that same wording, and the Cinderweaver attack payoff stays explicit. Other tagged setups keep their narrower mechanics and receive accurate shared wording. Use this shared explanation for every Resonance, including Profile, battle and Master previews. Preserve setup expiration/consumption mechanics and historical versions. If a trigger has no qualifying current Skill, report it as a content defect instead of inventing a synonym or silently broadening its trigger.
 
 ## 4. Persistent ground-area contract
 
@@ -96,7 +96,7 @@ New encounters pin a new DoT-trigger policy rather than changing existing saved 
 Burn:
 
 - Capture active Burn eligibility at the start of a damaging command, preserving existing command-start semantics.
-- After the command's direct attack damage settles, sum actual hostile HP loss caused by the burning actor across hits/eligible recipients. Apply `floor(total * backlashBasisPoints / 10000)` to the burning actor, once in their cycle. Initial proposed rate is 1000 basis points (10%); expose the authored percentage in the existing Burn editor and all readers.
+- After the command's direct attack damage settles, sum actual hostile HP loss caused by the burning actor across hits/eligible recipients. Apply `floor(total * backlashBasisPoints / 10000)` to the burning actor, once in their cycle. Approved initial rate is 1000 basis points (10%); expose the authored percentage in the existing Burn editor and all readers.
 - Crits and Barrier/remaining-HP clamping are reflected in that captured loss. Exclude friendly/self, ground-entry, periodic, reflected and other reactive damage. Misses/zero direct HP loss cause no backlash and leave the allowance available for a later successful attack.
 - A positive eligible damage basis reserves the allowance even if rounding produces zero. Additional attacks in that cycle cause no further backlash. Do not fabricate a minimum of one HP or recursively reflect/absorb backlash.
 - Terminal resolution and already-defeated actors remain authoritative; no post-terminal command or duplicate defeat/reward event.

@@ -5,7 +5,17 @@ import type {
   CreateBattleSessionInput,
 } from '@aurevane/db/battle-session'
 import type { CharacterRecord, CharacterRepository } from '@aurevane/db/character'
-import { P2_3_COMBAT_CONTENT, endCombatTurn } from '@aurevane/game-core/combat/actions'
+import {
+  P2_3_COMBAT_CONTENT,
+  endCombatTurn,
+  executeCombatAction,
+} from '@aurevane/game-core/combat/actions'
+import {
+  applyCurrentBurnState,
+  applyCurrentPoisonState,
+} from '@aurevane/game-core/combat/combat-dots'
+import { createElement } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
 import {
   canEnterElevation,
   movementTraversalCostAt,
@@ -44,6 +54,9 @@ import {
 } from './battle-recruit-ai-service'
 import { battleSparringTeamCounts } from '@/components/battle/battle-runtime'
 import { createBattleSessionService } from './battle-session-service'
+import { projectBattleStatusStateForViewer } from './battle-live-viewer-projection'
+import { deriveParticipantBattleViewerEntitlement } from './battle-viewer-entitlement'
+import { BattleCombatantEffects } from '@/components/battle/battle-combatant-effects'
 
 const USER_ID = '11111111-1111-4111-8111-111111111111'
 const CHARACTER_ID = '22222222-2222-4222-8222-222222222222'
@@ -721,6 +734,108 @@ describe('P2.6 authoritative Recruit AI turn service', () => {
       expect(JSON.stringify(decision)).not.toContain('rng')
       expect(commit.requestFingerprint).toMatch(/^sha256:[0-9a-f]{64}$/)
     }
+  })
+
+  it('keeps active multi-turn DoTs in the real Recruit response and rendered rail after a tick', async () => {
+    const player = `character:${CHARACTER_ID}`
+    const recruit = 'recruit:p2-4-1'
+    const initial = advanceToRecruitTurn(await initialEncounter())
+    const withBurn = applyCurrentBurnState(initial, player, recruit, 'test.rail-burn', true, 3, 3)
+    const state = reattachStatDrivenCombatBridge(
+      applyCurrentPoisonState(withBurn, player, recruit, 'test.rail-poison', true, 2, 3),
+      initial.statBridge,
+    )
+    const fixture = createStatefulRepository(state)
+    const result = await createBattleRecruitAiService(fixture.repository).runTurn({
+      userId: USER_ID,
+      battleSessionId: SESSION_ID,
+      expectedBattleVersion: 1,
+    })
+    expect(fixture.currentState().effectState?.burn[0]?.remainingTicks).toBe(2)
+    expect(fixture.currentState().effectState?.poison[0]?.remainingTicks).toBe(2)
+    const statuses = result.snapshot.statusState.find(
+      (row) => row.combatantId === recruit,
+    )!.statuses
+    expect(statuses).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          statusId: 'burn',
+          timingState: 'active',
+          remainingOwnerTurnEnds: 2,
+        }),
+        expect.objectContaining({
+          statusId: 'poison',
+          timingState: 'active',
+          remainingOwnerTurnEnds: 2,
+        }),
+      ]),
+    )
+    const markup = renderToStaticMarkup(
+      createElement(BattleCombatantEffects, { compact: true, name: 'Recruit', statuses }),
+    )
+    expect(markup).toContain('>BUR</i>')
+    expect(markup).toContain('>POI</i>')
+    expect(markup).not.toContain('No combat effects')
+    const viewer = deriveParticipantBattleViewerEntitlement(
+      fixture.currentState().tactical.battle.combatants,
+      [player],
+    )
+    expect(result.snapshot.statusState).toEqual(
+      projectBattleStatusStateForViewer(fixture.currentState(), viewer),
+    )
+    expect(result.snapshot.tactical.battle).not.toHaveProperty('rng')
+    expect(result.snapshot).not.toHaveProperty('pendingEffects')
+  })
+
+  it('activates pending Burn without an empty rail frame in the Recruit boundary response', async () => {
+    const initial = await initialEncounter()
+    const recruit = 'recruit:p2-4-1'
+    const cast = executeCombatAction(
+      initial,
+      {
+        id: 'test.pending-rail-burn',
+        version: 1,
+        sourceType: 'test',
+        tags: [],
+        target: {
+          kind: 'unit',
+          teamPolicy: 'enemy',
+          shape: { kind: 'single' },
+          minimumRange: 0,
+          maximumRange: 99,
+          requiresLineOfSight: false,
+          maximumElevationDifference: null,
+          friendlyFire: 'enemies-only',
+        },
+        cost: { spendsAction: false, mp: 0 },
+        requirements: [],
+        effects: [{ type: 'burn', recipient: 'primary-unit', power: 3, durationTurns: 3 }],
+      },
+      { kind: 'unit', combatantId: recruit },
+      P2_3_COMBAT_CONTENT,
+    )
+    const state = advanceToRecruitTurn(
+      reattachStatDrivenCombatBridge(cast.state, initial.statBridge),
+    )
+    expect(state.pendingEffects).toHaveLength(1)
+    const fixture = createStatefulRepository(state)
+    const result = await createBattleRecruitAiService(fixture.repository).runTurn({
+      userId: USER_ID,
+      battleSessionId: SESSION_ID,
+      expectedBattleVersion: 1,
+    })
+    expect(
+      result.snapshot.statusState.find((row) => row.combatantId === recruit)!.statuses,
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          statusId: 'burn',
+          timingState: 'active',
+          remainingOwnerTurnEnds: 3,
+        }),
+      ]),
+    )
+    expect(result.snapshot).not.toHaveProperty('pendingEffects')
   })
 
   it('routes summon turns through authored summon AI and returns control after the summon turn', async () => {

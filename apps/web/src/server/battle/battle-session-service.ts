@@ -437,7 +437,7 @@ function deriveBattleViewerEntitlement(
   }
 }
 
-function projectBattleSnapshot(
+export function projectBattleSnapshot(
   state: BattleAuthoritativeEncounterState,
   viewer: BattleViewerEntitlement,
 ): BattleSessionProjection {

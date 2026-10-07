@@ -1,4 +1,3 @@
-import { omitPendingBattlePayloads } from './battle-live-viewer-projection'
 import 'server-only'
 import { createHash, randomUUID } from 'node:crypto'
 
@@ -45,15 +44,10 @@ import {
   type BattleSessionChangedInvalidation,
 } from '@aurevane/realtime'
 
-const MAX_RECRUIT_DECISIONS_PER_REQUEST = 16
+import { projectBattleSnapshot, type BattleSessionProjection } from './battle-session-service'
+import { deriveParticipantBattleViewerEntitlement } from './battle-viewer-entitlement'
 
-type ProjectedBattleState = Omit<StatDrivenCombatEncounterState['tactical']['battle'], 'rng'>
-type ProjectedTacticalState = Omit<StatDrivenCombatEncounterState['tactical'], 'battle'> & {
-  battle: ProjectedBattleState
-}
-type RecruitBattleProjection = Omit<StatDrivenCombatEncounterState, 'tactical'> & {
-  tactical: ProjectedTacticalState
-}
+const MAX_RECRUIT_DECISIONS_PER_REQUEST = 16
 type BuildExtendedEncounterState = StatDrivenCombatEncounterState & {
   readonly buildAuthority?: BattleBuildAuthoritySnapshot
   readonly buildBridge?: unknown
@@ -62,7 +56,7 @@ type BuildExtendedEncounterState = StatDrivenCombatEncounterState & {
 export interface RecruitTurnView {
   battleSessionId: string
   battleVersion: number
-  snapshot: RecruitBattleProjection
+  snapshot: BattleSessionProjection
   decisions: readonly {
     combatantId: string
     reason: RecruitAiDecision['reason']
@@ -128,32 +122,6 @@ function preserveFrozenBuildMetadata(
     ...next,
     ...(previous.buildAuthority !== undefined ? { buildAuthority: previous.buildAuthority } : {}),
     ...(previous.buildBridge !== undefined ? { buildBridge: previous.buildBridge } : {}),
-  }
-}
-
-function projectBattleSnapshot(state: StatDrivenCombatEncounterState): RecruitBattleProjection {
-  const battle = state.tactical.battle
-  return {
-    ...omitPendingBattlePayloads(state),
-    tactical: {
-      ...state.tactical,
-      battle: {
-        schemaVersion: battle.schemaVersion,
-        battleId: battle.battleId,
-        rulesVersion: battle.rulesVersion,
-        contentVersion: battle.contentVersion,
-        lifecycle: battle.lifecycle,
-        combatants: battle.combatants,
-        initiativeOrder: battle.initiativeOrder,
-        ...(battle.initiativeTieOrder ? { initiativeTieOrder: battle.initiativeTieOrder } : {}),
-        ...(battle.roundInitiativeModifiers
-          ? { roundInitiativeModifiers: battle.roundInitiativeModifiers }
-          : {}),
-        round: battle.round,
-        turnNumber: battle.turnNumber,
-        currentTurn: battle.currentTurn,
-      },
-    },
   }
 }
 
@@ -309,7 +277,13 @@ export function createBattleRecruitAiService(
           return {
             battleSessionId: initial.battleSessionId,
             battleVersion,
-            snapshot: projectBattleSnapshot(state),
+            snapshot: projectBattleSnapshot(
+              state,
+              deriveParticipantBattleViewerEntitlement(
+                state.tactical.battle.combatants,
+                controlledIds,
+              ),
+            ),
             decisions,
             invalidation: createBattleSessionChangedInvalidation({
               battleSessionId: initial.battleSessionId,
