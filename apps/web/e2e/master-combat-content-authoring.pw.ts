@@ -573,6 +573,17 @@ test('Master combat authoring publishes versioned content, pins battles, and rol
     expect(currentVersionFromText(await versionState.textContent())).toBe(percentageVersion)
     await expect(percentage).toHaveValue('12.34')
     await percentage.scrollIntoViewIfNeeded()
+    if (width === 390) {
+      const fieldBox = await percentage.boundingBox()
+      const reviewBox = await page
+        .getByRole('heading', { name: 'Authoritative review', exact: true })
+        .boundingBox()
+      expect(fieldBox).not.toBeNull()
+      expect(reviewBox).not.toBeNull()
+      expect(reviewBox!.y).toBeGreaterThanOrEqual(fieldBox!.y + fieldBox!.height)
+      expect(fieldBox!.x).toBeGreaterThanOrEqual(0)
+      expect(fieldBox!.x + fieldBox!.width).toBeLessThanOrEqual(width)
+    }
     await page.screenshot({ path: testInfo.outputPath(`master-percentage-${width}.png`) })
     const gashHistory = page.locator('section[aria-labelledby="version-history-heading"]')
     await gashHistory
