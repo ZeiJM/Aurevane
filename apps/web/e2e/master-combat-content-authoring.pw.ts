@@ -285,26 +285,36 @@ async function surrenderBattle(
   battleSessionId: string,
   expectedBattleVersion: number,
 ): Promise<void> {
-  const result = await page.evaluate(
-    async ({ id, version }) => {
-      const response = await fetch(`/api/battles/${id}/surrender`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          expectedBattleVersion: version,
-          idempotencyKey: crypto.randomUUID(),
-        }),
-      })
-      return {
-        status: response.status,
-        body: (await response.json()) as unknown,
-      }
-    },
-    { id: battleSessionId, version: expectedBattleVersion },
-  )
+  let version = expectedBattleVersion
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const result = await page.evaluate(
+      async ({ id, version }) => {
+        const response = await fetch(`/api/battles/${id}/surrender`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            expectedBattleVersion: version,
+            idempotencyKey: crypto.randomUUID(),
+          }),
+        })
+        return {
+          status: response.status,
+          body: (await response.json()) as unknown,
+        }
+      },
+      { id: battleSessionId, version },
+    )
 
-  expect(result.status).toBe(200)
-  expect(battleIdentity(result.body).battleVersion).toBeGreaterThan(expectedBattleVersion)
+    if (result.status === 409) {
+      expect(result.body).toMatchObject({ error: { code: 'STALE_VERSION' } })
+      version = battleIdentity(await readBattle(page, battleSessionId)).battleVersion
+      continue
+    }
+    expect(result.status).toBe(200)
+    expect(battleIdentity(result.body).battleVersion).toBeGreaterThan(version)
+    return
+  }
+  throw new Error('AI battle kept advancing during surrender cleanup.')
 }
 
 function isMasterOperationResponse(response: Response, operation: string): boolean {
