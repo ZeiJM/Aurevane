@@ -58,6 +58,25 @@ function atRound(state: CombatEncounterState, round: number) {
 }
 
 describe('persisted typed Ground area state', () => {
+  it.each(['level', 'physicalPower', 'missing-profile', 'null-profile'])(
+    'rejects incomplete frozen bridge3 %s on reload',
+    (missing) => {
+      const initial = encounter()
+      initial.statBridge = {
+        ...initial.statBridge,
+        schemaVersion: 3 as const,
+        rulesVersion: 3 as const,
+        combatants: initial.statBridge!.combatants.map((profile) => ({ ...profile, level: 50 })),
+      }
+      const placed = createCombatGroundArea(initial, 'enemy', action, tiles, content)
+      const restored = JSON.parse(JSON.stringify(placed)) as CombatEncounterState
+      const caster = restored.groundAreas![0]!.caster
+      if (missing === 'missing-profile') delete caster.statProfile
+      else if (missing === 'null-profile') Object.assign(caster, { statProfile: null })
+      else delete caster.statProfile![missing as 'level' | 'physicalPower']
+      expect(validateCombatGroundAreas(restored).length).toBeGreaterThan(0)
+    },
+  )
   it('keeps caster values and entry payload independent of later source mutations', () => {
     const original = encounter()
     const localAction = JSON.parse(JSON.stringify(action)) as typeof action
@@ -73,8 +92,23 @@ describe('persisted typed Ground area state', () => {
     expect(placed.groundAreas![0]!.caster.placement.position).toEqual({ x: 1, y: 1 })
   })
   it('accepts the current offensive accuracy ceiling without accepting impossible probabilities', () => {
-    const placed = createCombatGroundArea(encounter(), 'actor', action, tiles, content)
-    placed.statBalancePolicyVersion = 1
+    const original = encounter()
+    const current = {
+      ...original,
+      statBalancePolicyVersion: 1 as const,
+      statBridge: {
+        ...original.statBridge,
+        schemaVersion: 4 as const,
+        rulesVersion: 4 as const,
+        combatants: original.statBridge.combatants.map((profile) => ({
+          ...profile,
+          level: 50,
+          criticalChance: 0,
+          statusResistance: 0,
+        })),
+      },
+    }
+    const placed = createCombatGroundArea(current, 'actor', action, tiles, content)
     placed.groundAreas![0]!.caster.statProfile!.accuracy = 14000
     expect(validateCombatGroundAreas(placed)).toEqual([])
     placed.groundAreas![0]!.caster.statProfile!.accuracy = 14001

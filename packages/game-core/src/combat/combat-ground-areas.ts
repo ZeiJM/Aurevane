@@ -21,6 +21,7 @@ import {
 } from './combat-authoring-validation'
 import { isGroundVisualPresetId, type GroundVisualPresetId } from './combat-ground-visuals'
 import type { GridPosition } from './board'
+import type { StatDrivenCombatProfile } from './stat-driven-combat'
 
 export interface CombatGroundAreaDefinition {
   durationRounds: number
@@ -49,7 +50,7 @@ export interface CombatGroundAreaInstance {
     combatant: CombatEncounterState['tactical']['battle']['combatants'][number]
     placement: CombatEncounterState['tactical']['placements'][number]
     statuses: readonly CombatStatusInstance[]
-    statProfile?: NonNullable<CombatEncounterState['statBridge']>['combatants'][number]
+    statProfile?: StatDrivenCombatProfile
   }
   content: CombatContentCatalog
 }
@@ -365,9 +366,28 @@ function validateGroundCaster(state: CombatEncounterState, area: CombatGroundAre
   )
     throw new TypeError('Invalid frozen Ground placement.')
   const profile = area.caster.statProfile
+  if (state.statBridge && profile === undefined)
+    throw new TypeError('Missing frozen Ground stat profile.')
   if (profile !== undefined) {
     if (!profile || !nonnegative(profile.armor) || !nonnegative(profile.ward))
       throw new TypeError('Invalid frozen Ground defenses.')
+    const required = ['accuracy', 'evasion', 'armor', 'ward', 'jump']
+    const bridgeVersion = state.statBridge?.rulesVersion ?? 1
+    if (bridgeVersion >= 2) required.push('physicalPower', 'mysticPower')
+    if (bridgeVersion >= 3) required.push('level')
+    if (bridgeVersion >= 4) required.push('criticalChance')
+    if (state.statBalancePolicyVersion === 1) required.push('statusResistance')
+    if (required.some((key) => !nonnegative(profile[key as keyof typeof profile])))
+      throw new TypeError('Missing or invalid frozen Ground stat.')
+    if (
+      !profile.provenance ||
+      !['scenario', 'character-derived'].includes(profile.provenance.kind) ||
+      typeof profile.provenance.sourceId !== 'string' ||
+      profile.provenance.sourceId.trim().length === 0 ||
+      !Number.isSafeInteger(profile.provenance.sourceRulesVersion) ||
+      profile.provenance.sourceRulesVersion < 1
+    )
+      throw new TypeError('Invalid frozen Ground stat provenance.')
     for (const [key, value] of Object.entries(profile)) {
       if (
         [

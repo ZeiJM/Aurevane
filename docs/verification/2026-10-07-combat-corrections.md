@@ -1,6 +1,6 @@
 # Combat corrections — 2026-10-07
 
-This records the Owner-approved continuation after the earlier combat release, tracked in PR #847: https://github.com/ZeiJM/Aurevane/pull/847. Implementation is complete; final review, authenticated CI and Production release remain pending. Do not read this checkpoint as a live-release claim.
+This records the Owner-approved continuation after the earlier combat release, tracked in PR #847: https://github.com/ZeiJM/Aurevane/pull/847. Implementation and the targeted final-review corrections are present. Verification of the revised final source, authenticated CI and Production release remain pending. Do not read this checkpoint as a live-release claim.
 
 ## Implemented contracts
 
@@ -22,6 +22,21 @@ Tasks 1–7 each completed with the full repository test suite. Task 7 typecheck
 Fresh hosted read-only inspection found no published Skill, Essence or Resonance overrides. No Production content rewrite or new schema migration is needed for this continuation. Earlier elevation settings remain independently published at their existing authority.
 
 Local mounted browser fixtures are not an authenticated Production playtest. Automated mechanics evidence is not human balance acceptance.
+
+## Final-review corrections — pre-release checkpoint
+
+The whole-branch review identified four Important issues. Each was reproduced with a failing focused regression before its correction:
+
+- A Ground pulse caused by Push/Pull could complete the battle inside the original damaging command, before that command settled Burn backlash. Nested movement pulses now defer completion to the enclosing command so its damage, one legal backlash and final verdict settle together. This preserves lethal/draw handling without emitting a premature result.
+- An entrant who was also the Ground caster used live outgoing values. Ground damage now reads the frozen caster's outgoing stats, placement and modifiers independently from the entrant's current incoming defenses and Guard. Self-entry retains current HP and ordinary mutations; the saved caster is calculation data rather than a resurrected combatant.
+- Ground persistence accepted an incomplete pinned stat profile. Reload validation now requires the profile and fields appropriate to the encounter's pinned stat-bridge and balance policies, together with valid provenance. Missing or malformed frozen values fail closed instead of producing later damage failures.
+- Historical Skill readers used current Burn/Poison extra-trigger descriptions. Battle Skill readers now receive the encounter's pinned DoT-trigger policy: policy 1 explains percentage backlash and once-per-cycle movement ticks; pre-policy encounters retain the two-HP backlash and uncapped five-tile wording. Current Nexus/Master readers retain current wording.
+
+The authenticated browser gate also exposed a Guard/pure self-buff highlight regression. Restoring the canonical inherent Guard target metadata restores the shared filled blue selection without changing command legality or the stronger green recovery/orange Ground priorities.
+
+Targeted verification after these corrections passes 31 core Ground tests and three reader tests. The actual Chromium percentage matrix was extended from 60 to 72 cases and all 72 current/historical Skill, Essence and pending/active rail cases pass with no recorded errors. The four desktop/mobile PvE/PvP ally-inspection and self-selection cases also pass. The full 66-case targeting matrix passes again after the Guard metadata repair; current and historical reader screenshots were inspected at desktop/mobile widths. Evidence: `/tmp/aurevane-final-review-green-core2.log`, `/tmp/aurevane-final-review-green-reader2.log`, `/tmp/aurevane-final-review-percentage.log`, `/tmp/aurevane-final-review-ally.log`, `/tmp/aurevane-final-review-targeting.log` and `/tmp/aurevane-corrections-review-percentage/results.json`.
+
+The earlier Task 8 full quality result applies to its pre-review source. A fresh full gate exposed TypeScript boundary errors in the frozen-profile validator/test and shared description callers. Those were corrected using the actual persisted stat-profile type, explicit pinned trigger options in server-rendered Skill/Essence readers, and valid test metadata; the revised full gate passes. Fresh `NEXT_TELEMETRY_DISABLED=1 corepack pnpm check` passes formatting, lint, all eight typecheck packages, 4,328 Vitest tests, seven Node checks and the production build (exit 0; `/tmp/aurevane-final-review-check4.log`). Exact-head authenticated CI, merge and deployment remain pending; final source identities and release evidence remain to be recorded.
 
 ## Complete Owner testing checklist
 
@@ -52,7 +67,7 @@ Start a new battle for current content and policy checks. Existing encounters pr
 23. Burn scheduled damage uses its captured attack percentage/decay. Extra backlash is the authored percentage of actual enemy HP damage caused by the burning unit, defaults to 10%, and occurs only once per turn cycle. Misses, friendly damage and zero hostile HP loss do not trigger it.
 24. Poison scheduled ticks use its authored attack percentage. Five traversed tiles allow one extra tick per turn cycle; further movement that cycle causes none, partial progress carries, and excess thresholds do not bank future ticks.
 25. Burn/Poison valid reapplications replace/restart the application while per-cycle extra-trigger caps remain consumed. Copy/reload cannot renew the cap. Scheduled ticks remain independent; Bleed applications retain separate lifetimes.
-26. Self/Ally labels reflect actual caster eligibility. Fire clears Wet/Chilled from legal damaged recipients and converts eligible Frozen terrain to Steam; it does not automatically allow attacks against self/allies.
+26. Self/Ally labels reflect actual caster eligibility. Positive Fire damage clears Wet/Frozen from legal damaged recipients and converts eligible Frozen terrain to Steam; it does not automatically allow attacks against self/allies.
 27. Current Resonance Setup saying Chronist Skills accepts both Chronist attack and non-attack Skills. Other Discipline/tag requirements stay explicit, and the next Skill must satisfy Trigger for Result.
 28. After clicking an action then Escape, another battle hotkey works immediately without a clearing click or Tab focus box. Reading/dialog input guards remain intact.
 29. Post-battle Review Battle Log gives a readable complete Chronicle, scrolls internally and retains summary/reward controls on desktop/mobile.
@@ -71,5 +86,10 @@ Start a new battle for current content and policy checks. Existing encounters pr
 - Aggregate movement step receipts into one command receipt and charge only traversed steps. Cost if wrong: interruption/AP/placement tests gate release.
 - Accept current frozen caster Accuracy up to 140% before Evasion, while bounding ordinary probability fields separately. Cost if wrong: validator regression tests remain mandatory.
 - Strengthen reduced-motion selector specificity after actual Frost animation remained running. Cost if wrong: all three presets are checked in Chromium.
+- Defer terminal completion for nested displacement-triggered Ground pulses until the enclosing command settles Burn backlash. Cost if wrong: lethal push, surviving-ally and draw regressions must prove one final result.
+- Separate frozen Ground outgoing calculation values from live entrant incoming values, including caster self-entry. Cost if wrong: saved offense/current Guard and dead-source regressions gate release; no calculation shadow may replace live HP mutations.
+- Require complete frozen stat profiles for the pinned bridge/balance rules on Ground reload. Cost if wrong: missing/null profile, required-field and provenance failures must reject before execution.
+- Carry the pinned DoT-trigger policy into historical Skill readers rather than deriving it from today's content. Cost if wrong: the 72-case current/historical reader matrix and immutable-version checks gate release.
+- Restore inherent Guard's canonical target metadata for shared self-selection paint. Cost if wrong: desktop/mobile PvE/PvP Guard and pure self-buff checks must retain blue, while recovery stays green and Ground stays orange.
 
-Final review rulings, exact source/CI identity and Production receipt will be recorded at release.
+Final review closeout, exact source/CI identity and Production receipt will be recorded at release.

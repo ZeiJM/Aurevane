@@ -65,6 +65,7 @@ async function battleBuildExtensions(
   combatantId: string,
 ) {
   const authority = battle.snapshot.buildAuthority
+  const legacyTriggers = battle.snapshot.dotTriggerPolicyVersion !== 1
   const build = battleBuildAuthorityForCombatant(authority, combatantId)
   const resonanceDefinition = resolveBattleResonanceDefinition(authority, combatantId)
   const essenceDefinition = resolveBattleEssenceDefinition(authority, combatantId)
@@ -110,7 +111,9 @@ async function battleBuildExtensions(
           minimumRange: definition.target.minimumRange,
           maximumRange: definition.target.maximumRange,
           tags: skillTargetTags(definition),
-          effectDescriptions: definition.effects.map(skillEffectDescription),
+          effectDescriptions: definition.effects.map((effect) =>
+            skillEffectDescription(effect, { legacyTriggers }),
+          ),
           requirementDescriptions: definition.requirements.map(skillRequirementDescription),
         }
       }),
@@ -150,7 +153,9 @@ async function battleBuildExtensions(
               : (essenceOverride?.cooldownOwnerTurns ??
                 essenceDefinition.skill.cooldown.ownerTurns),
           tags: skillTargetTags(essenceDefinition.skill),
-          effectDescriptions: essenceDefinition.skill.effects.map(skillEffectDescription),
+          effectDescriptions: essenceDefinition.skill.effects.map((effect) =>
+            skillEffectDescription(effect, { legacyTriggers }),
+          ),
           requirementDescriptions: essenceDefinition.skill.requirements.map(
             skillRequirementDescription,
           ),

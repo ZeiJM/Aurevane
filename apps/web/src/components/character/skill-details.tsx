@@ -2,7 +2,10 @@
 import { combatGroundAreaDescription } from '@aurevane/game-core/combat/combat-ground-visuals'
 import { combatEffectTimingMode } from '@aurevane/game-core/combat/combat-effect-timing'
 
-import { useSkillEffectTimingPolicy } from './skill-effect-timing-context'
+import {
+  useSkillEffectTimingPolicy,
+  useSkillDotTriggerPolicyVersion,
+} from './skill-effect-timing-context'
 import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
 import {
   skillEffectDescription,
@@ -17,6 +20,7 @@ import { SkillCharacteristicRows } from './skill-characteristic-rows'
 
 function SkillDetailBody({ skill }: { skill: MatureSkillDefinition }) {
   const timingPolicy = useSkillEffectTimingPolicy()
+  const legacyTriggers = useSkillDotTriggerPolicyVersion() === null
   return (
     <>
       <dl>
@@ -46,7 +50,8 @@ function SkillDetailBody({ skill }: { skill: MatureSkillDefinition }) {
       <ol>
         {skill.effects.map((effect, index) => (
           <li key={index}>
-            {skill.effectDescriptions?.[index]?.trim() || skillEffectDescription(effect)}
+            {skill.effectDescriptions?.[index]?.trim() ||
+              skillEffectDescription(effect, { legacyTriggers })}
           </li>
         ))}
       </ol>

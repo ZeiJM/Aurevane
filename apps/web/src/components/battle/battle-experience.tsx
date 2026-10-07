@@ -106,7 +106,10 @@ import {
 } from './battle-attack-path'
 import { combatCardinalDirections } from '@aurevane/game-core/combat/combat-targeting-shapes'
 import { battleActionUsesRecoverySelection } from './battle-recovery-selection'
-import { createPv1fBasicAttackDefinition } from '@aurevane/game-core/combat/pv1f-action-economy'
+import {
+  createPv1fBasicAttackDefinition,
+  PV1F_GUARD_ACTION,
+} from '@aurevane/game-core/combat/pv1f-action-economy'
 import { BattleSkillCommand } from './battle-skill-command'
 import {
   BATTLE_COMMAND_ARTWORK,
@@ -288,7 +291,10 @@ export function BattleExperience(props: {
 }) {
   useBattleTabCyclePrevention()
   return (
-    <SkillEffectTimingProvider policy={props.initialBattle.snapshot.effectTimingPolicy ?? null}>
+    <SkillEffectTimingProvider
+      policy={props.initialBattle.snapshot.effectTimingPolicy ?? null}
+      dotTriggerPolicyVersion={props.initialBattle.snapshot.dotTriggerPolicyVersion ?? null}
+    >
       <BattleExperienceContent {...props} />
     </SkillEffectTimingProvider>
   )
@@ -1142,6 +1148,7 @@ function BattleExperienceContent({
         targetTeamPolicy: actionId === BASIC_ATTACK_ID ? ('enemy' as const) : ('self' as const),
         minimumRange: actionId === BASIC_ATTACK_ID ? 1 : 0,
         maximumRange: actionId === BASIC_ATTACK_ID ? 1 : 0,
+        target: actionId === BASIC_ATTACK_ID ? undefined : PV1F_GUARD_ACTION.target,
       },
     [runtime.essence, selectableTechniques],
   )

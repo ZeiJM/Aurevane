@@ -29,11 +29,12 @@ export function conditionalDamageMultiplier(
   recipientId: string,
   content: CombatContentCatalog,
   elementalMultiplier = 10_000,
-  options: { ignoreIncomingMitigation?: boolean } = {},
+  options: { ignoreIncomingMitigation?: boolean; outgoingState?: CombatEncounterState } = {},
 ): number {
+  const outgoingState = options.outgoingState ?? state
   let numerator = BigInt(elementalMultiplier)
   const inspiredStatuses =
-    state.statusState
+    outgoingState.statusState
       .find((row) => row.combatantId === attackerId)
       ?.statuses.filter((status) => {
         const definition = content.statuses.find(
@@ -63,7 +64,9 @@ export function conditionalDamageMultiplier(
     [attackerId, recipientId, 'outgoing'],
     [recipientId, attackerId, 'incoming'],
   ] as const) {
-    const statuses = state.statusState.find((row) => row.combatantId === ownerId)?.statuses ?? []
+    const modifierState = direction === 'outgoing' ? outgoingState : state
+    const statuses =
+      modifierState.statusState.find((row) => row.combatantId === ownerId)?.statuses ?? []
     for (const status of statuses) {
       const definition = content.statuses.find(
         (candidate) =>
@@ -82,7 +85,7 @@ export function conditionalDamageMultiplier(
             continue
           if (
             !matchesCondition(
-              state,
+              modifierState,
               ownerId,
               opponentId,
               attackerId,

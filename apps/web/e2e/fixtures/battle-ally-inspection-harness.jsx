@@ -24,12 +24,14 @@ import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-ski
 import { resolveEssenceForBuild } from '@aurevane/game-core/combat/essence'
 import { SkillDetails } from '@/components/character/skill-details'
 import { BattleSkillParameters } from '@/components/battle/battle-skill-parameters'
+import { SkillEffectTimingProvider } from '@/components/character/skill-effect-timing-context'
 import { projectPercentageDotFixtureState } from './percentage-dot-viewer-state'
 import './production-styles'
 
 const targetingCase = new URLSearchParams(location.search).get('targeting')
 const dotCase = new URLSearchParams(location.search).get('dot')
 const dotPhase = new URLSearchParams(location.search).get('phase') || 'active'
+const legacyDotTriggers = new URLSearchParams(location.search).get('triggers') === 'legacy'
 const ids = ['character:player', 'ally', 'enemy-one', 'enemy-two']
 const positions = [
   { x: 3, y: 3 },
@@ -174,7 +176,7 @@ const runtime = {
 }
 if (targetingCase) {
   // Current percentage attacks use the same explicit policy as newly started battles.
-  initialBattle.snapshot = { ...initialBattle.snapshot, percentageDotPolicyVersion: 1 }
+  initialBattle.snapshot = { ...initialBattle.snapshot, percentageDotPolicyVersion: 1, dotTriggerPolicyVersion: 1 }
   const base = resolveMatureSkillVersion(
     targetingCase === 'heal'
       ? 'lifebinder.mend'
@@ -283,6 +285,7 @@ if (dotCase) {
   const source = {
     ...snapshot,
     percentageDotPolicyVersion: 1,
+    dotTriggerPolicyVersion: legacyDotTriggers ? undefined : 1,
     effectStackingPolicyVersion: 1,
     effectTimingPolicy: {
       version: 1,
@@ -550,7 +553,11 @@ if (mode === 'master-ground') fixtureRoot.render(<GroundEditorHarness />)
 else
   fixtureRoot.render(
     <AudioProvider>
-      {dotCase ? <DotDefinitionReport /> : null}
+      {dotCase ? <SkillEffectTimingProvider
+        policy={initialBattle.snapshot.effectTimingPolicy ?? null}
+        dotTriggerPolicyVersion={initialBattle.snapshot.dotTriggerPolicyVersion ?? null}>
+        <DotDefinitionReport />
+      </SkillEffectTimingProvider> : null}
       <BattlefieldPresentationBundle
         battleSessionId="fixture"
         initialVersion={initialBattle.battleVersion}

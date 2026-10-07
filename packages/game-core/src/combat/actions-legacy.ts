@@ -3121,15 +3121,14 @@ function applyEffect(
       (hasGameplayTag(state, recipientId, 'Wet', content) ||
         hasGameplayTag(state, recipientId, 'Conductive', content))
     const amount = resolveDamageAmount(
-      options.groundArea
-        ? withGroundCasterForDamage(state, options.groundArea, recipientId)
-        : state,
+      state,
       actorId,
       recipientId,
       effect,
       content,
       stormBonus ? stormDamageMultiplier(state, recipientId, content) : 10_000,
       critical,
+      options.groundArea,
     )
     if (stormBonus && amount > 0) stormRecipients.add(recipientId)
     const barrier = absorbDirectDamageWithBarrier(state, recipientId, amount)
@@ -3336,7 +3335,9 @@ function resolveDamageAmount(
   content: CombatContentCatalog,
   elementalMultiplier = 10_000,
   critical = false,
+  groundArea?: CombatGroundAreaInstance,
 ): number {
+  const outgoingState = groundArea ? withGroundCasterForDamage(state, groundArea) : state
   let amount = effect.amount
   if (effect.defenseKind && amount > 0 && effect.piercing !== true) {
     const defense = state.statBridge?.combatants.find((unit) => unit.combatantId === recipientId)?.[
@@ -3348,7 +3349,7 @@ function resolveDamageAmount(
   }
 
   if (
-    getCombatant(state.tactical.battle, actorId).teamId !==
+    getCombatant(outgoingState.tactical.battle, actorId).teamId !==
     getCombatant(state.tactical.battle, recipientId).teamId
   ) {
     amount = duelBalancedDirectDamage(state, amount)
@@ -3363,7 +3364,9 @@ function resolveDamageAmount(
     actorId !== recipientId &&
     amount > 0
   ) {
-    const attacker = state.statBridge.combatants.find((unit) => unit.combatantId === actorId)
+    const attacker = outgoingState.statBridge?.combatants.find(
+      (unit) => unit.combatantId === actorId,
+    )
     const defender = state.statBridge.combatants.find((unit) => unit.combatantId === recipientId)
     if (attacker?.level === undefined || defender?.level === undefined) {
       throw new TypeError('Combat rules v3 damage requires attacker and defender Levels.')
@@ -3375,7 +3378,7 @@ function resolveDamageAmount(
   }
 
   if (effect.facingModifiersBasisPoints && actorId !== recipientId) {
-    const actorPlacement = getPlacement(state.tactical, actorId)
+    const actorPlacement = getPlacement(outgoingState.tactical, actorId)
     const targetPlacement = getPlacement(state.tactical, recipientId)
     const relation = classifyFacingRelation(
       targetPlacement.position,
@@ -3416,6 +3419,7 @@ function resolveDamageAmount(
     amount,
     conditionalDamageMultiplier(state, actorId, recipientId, content, elementalMultiplier, {
       ignoreIncomingMitigation: effect.piercing === true,
+      outgoingState,
     }),
   )
 
@@ -4506,6 +4510,7 @@ function applyDisplacement(
 
     const movementEffects = resolveCombatMovementStepEffects(nextState, recipientId, content, {
       preview,
+      deferCompletion: true,
     })
     nextState = movementEffects.state
     movementEffectEvents.push(...movementEffects.events)
@@ -4573,10 +4578,16 @@ export function resolveCombatMovementStepEffects(
   state: CombatEncounterState,
   combatantId: string,
   content: CombatContentCatalog,
-  options: { preview?: boolean } = {},
+  options: { preview?: boolean; deferCompletion?: boolean } = {},
 ): CombatResolutionTransition {
   const poison = resolvePoisonMovementStep(state, combatantId, content)
-  const ground = resolveGroundAtPosition(poison.state, combatantId, content, options.preview)
+  const ground = resolveGroundAtPosition(
+    poison.state,
+    combatantId,
+    content,
+    options.preview,
+    options.deferCompletion,
+  )
   return { state: ground.state, events: [...poison.events, ...ground.events] }
 }
 function resolveGroundAtPosition(
@@ -4584,6 +4595,7 @@ function resolveGroundAtPosition(
   combatantId: string,
   content: CombatContentCatalog,
   preview = false,
+  deferCompletion = false,
 ): CombatResolutionTransition {
   const position = getPlacement(state.tactical, combatantId).position
   return resolveCombatGroundEntry(state, combatantId, position, (current, area, recipientId) => {
@@ -4642,7 +4654,9 @@ function resolveGroundAtPosition(
       after: applied.state,
       events: applied.events,
     })
-    const completed = completeBattleIfResolved(filtered.state)
+    const completed = deferCompletion
+      ? { state: filtered.state, events: [] }
+      : completeBattleIfResolved(filtered.state)
     return {
       state: completed.state,
       events: [
@@ -4663,9 +4677,7 @@ function resolveGroundAtPosition(
 function withGroundCasterForDamage(
   state: CombatEncounterState,
   area: CombatGroundAreaInstance,
-  recipientId: string,
 ): CombatEncounterState {
-  if (recipientId === area.sourceCombatantId) return state
   const caster = area.caster
   return {
     ...state,

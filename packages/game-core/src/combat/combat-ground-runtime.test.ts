@@ -127,6 +127,103 @@ function nextActor(state: CombatEncounterState) {
 }
 
 describe('canonical persistent Ground cast and entry', () => {
+  it.each([true, false])(
+    'settles terminal push and Burn once with surviving ally=%s',
+    (allyLives) => {
+      let state: StatDrivenCombatEncounterState = percentageDotEncounter()
+      state = {
+        ...state,
+        groundEffectPolicyVersion: 1,
+        dotTriggerPolicyVersion: 1,
+        effectTimingPolicy: { version: 1, modes: { displace: 'instant' } },
+      }
+      for (const unit of state.tactical.battle.combatants) {
+        if (unit.id === 'actor') unit.hp = 2
+        if (unit.id === 'enemy') unit.hp = 30
+        if (unit.id === 'other' || (unit.id === 'ally' && !allyLives)) unit.hp = 0
+      }
+      state = createCombatGroundArea(
+        state,
+        'actor',
+        groundAction(100),
+        [{ x: 3, y: 1 }],
+        content,
+      ) as typeof state
+      state = applyCurrentBurnState(state, 'enemy', 'actor', 'test.burn', true, undefined, 3, {
+        capturedDamage: 100,
+        profile: { kind: 'attack-percentage', basisPoints: 2000, decayBasisPointsPerTick: 500 },
+      }) as typeof state
+      const action: CombatActionDefinition = {
+        ...groundAction(),
+        id: 'test.terminal-push',
+        groundArea: undefined,
+        target: { ...groundAction().target, kind: 'unit' },
+        effects: [
+          { type: 'damage', recipient: 'primary-unit', amount: 23 },
+          { type: 'displace', recipient: 'primary-unit', direction: 'push', distance: 1 },
+        ],
+      }
+      const result = executeCombatAction(
+        state,
+        action,
+        { kind: 'unit', combatantId: 'enemy' },
+        content,
+      )
+      expect(hp(result.state)).toBe(0)
+      expect(hp(result.state, 'enemy')).toBe(0)
+      expect(result.state.tactical.battle.lifecycle).toBe('completed')
+      expect(result.state.groundAreas).toEqual([])
+      expect(result.events.filter((event) => event.event === 'battle_completed')).toEqual([
+        { event: 'battle_completed', winningTeamId: allyLives ? 'players' : null },
+      ])
+      expect(
+        result.events.filter(
+          (event) =>
+            event.event === 'damage_applied' &&
+            event.actionId === 'status.burn.backlash.current.v2',
+        ),
+      ).toHaveLength(1)
+    },
+  )
+  it('keeps frozen offense and current defenses when the caster enters its own area', () => {
+    let state = encounter()
+    const statuses = state.statusState.find((row) => row.combatantId === 'actor')!
+    statuses.statuses = [
+      {
+        statusId: 'inspired',
+        statusVersion: 1,
+        stacks: 1,
+        remainingOwnerTurnStarts: 3,
+        sourceCombatantId: 'actor',
+      },
+    ]
+    const action: CombatActionDefinition = {
+      ...groundAction(100),
+      target: { ...groundAction().target, teamPolicy: 'any', friendlyFire: 'all-units' },
+    }
+    state = executeCombatAction(state, action, { kind: 'tile', position: { x: 2, y: 0 } }, content)
+      .state as typeof state
+    state.statusState.find((row) => row.combatantId === 'actor')!.statuses = [
+      {
+        statusId: 'guarded',
+        statusVersion: 1,
+        stacks: 1,
+        remainingOwnerTurnStarts: 3,
+        sourceCombatantId: 'actor',
+      },
+    ]
+    const result = move(state, [
+      { x: 1, y: 1 },
+      { x: 1, y: 0 },
+      { x: 2, y: 0 },
+    ])
+    expect(groundDamage(result.events)[0]).toMatchObject({
+      amount: 93,
+      sourceCombatantId: 'actor',
+      targetCombatantId: 'actor',
+    })
+    expect(hp(result.state)).toBe(907)
+  })
   it('creates exactly one authored footprint on an empty cast without changing previews', () => {
     const state = encounter()
     const action = toCombatActionDefinition(
