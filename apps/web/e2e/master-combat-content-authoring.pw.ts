@@ -339,8 +339,10 @@ async function runMasterOperation(
   operation: string,
   buttonName: string,
 ): Promise<unknown> {
+  const button = page.getByRole('button', { name: buttonName, exact: true })
+  await expect(button).toBeEnabled()
   const pending = page.waitForResponse((response) => isMasterOperationResponse(response, operation))
-  await page.getByRole('button', { name: buttonName, exact: true }).click()
+  await button.click()
   const response = await pending
   expect(response.status()).toBe(200)
   return (await response.json()) as unknown
@@ -639,6 +641,10 @@ test('Master combat authoring publishes versioned content, pins battles, and rol
       await backlash.fill('12.34')
       await runMasterOperation(page, 'validate', 'Validate')
       await expect(page.locator('[data-validation-state="valid"]')).toContainText('Validated')
+      await runMasterOperation(page, 'diff', 'Diff')
+      const groundDiff = page.locator('section[aria-label="Semantic diff"]')
+      await expect(groundDiff).toContainText('groundArea')
+      await expect(groundDiff).toContainText('backlashBasisPoints')
       await runMasterOperation(page, 'preview', 'Preview')
       await expect(page.locator('section[aria-label="Deterministic preview"]')).toContainText(
         'Ground',

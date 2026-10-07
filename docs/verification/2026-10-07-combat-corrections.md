@@ -38,6 +38,12 @@ Targeted verification after these corrections passes 31 core Ground tests and th
 
 The earlier Task 8 full quality result applies to its pre-review source. A fresh full gate exposed TypeScript boundary errors in the frozen-profile validator/test and shared description callers. Those were corrected using the actual persisted stat-profile type, explicit pinned trigger options in server-rendered Skill/Essence readers, and valid test metadata; the revised full gate passes. Fresh `NEXT_TELEMETRY_DISABLED=1 corepack pnpm check` passes formatting, lint, all eight typecheck packages, 4,328 Vitest tests, seven Node checks and the production build (exit 0; `/tmp/aurevane-final-review-check4.log`). Exact-head authenticated CI, merge and deployment remain pending; final source identities and release evidence remain to be recorded.
 
+## Authenticated CI follow-up
+
+Candidate `8ae8e2c3a5a76b677566ef8e784f8c69e96902be` passed 11 of its 13 triggered workflows. Browser smoke `37681822697` passed every mounted targeting/reader/rail/result/input matrix and reached actual Supabase Master authoring. Its new Ground test then skipped the required semantic Diff operation, leaving Preview correctly disabled; both repeated runs reproduced that omission. The saved error context confirms valid content and enabled Diff with disabled Preview. The test now performs and verifies Ground/backlash Diff before Preview and checks button readiness before awaiting a response.
+
+Representative Buildcraft `37681822570` reproduced a stale exact-text expectation (`Lifebinder · heal`) against the approved current text (`Lifebinder Skills tagged Heal`). Its strict Setup/Trigger expectations now use the canonical current wording, including `Vanguard Skills tagged Attack + Melee`; no assertions or scenarios were removed. Fresh `NEXT_TELEMETRY_DISABLED=1 corepack pnpm check` passes again after the test corrections (4,328 Vitest, seven Node checks, format/lint/types/build; exit 0, `/tmp/aurevane-ci-followup-check.log`). Both workflows require a successful run on the revised candidate before release. These corrections change acceptance tests only, preserving the production authority and approved UI.
+
 ## Complete Owner testing checklist
 
 Start a new battle for current content and policy checks. Existing encounters preserve their pinned versions/maps.
