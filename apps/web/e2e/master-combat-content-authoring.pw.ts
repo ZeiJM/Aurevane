@@ -550,7 +550,7 @@ test('Master combat authoring publishes versioned content, pins battles, and rol
     await runMasterOperation(page, 'validate', 'Validate')
     await expect(page.locator('[data-validation-state="valid"]')).toContainText('Validated')
     await runMasterOperation(page, 'diff', 'Diff')
-    await expect(page.locator('section[aria-label="Semantic diff"]')).toContainText('1234')
+    await expect(page.locator('section[aria-label="Semantic diff"]')).toContainText('effects')
     await runMasterOperation(page, 'preview', 'Preview')
     await page.getByRole('button', { name: 'Publish', exact: true }).click()
     await expect(page.locator('section[aria-label="Confirm publication"]')).toBeVisible()
