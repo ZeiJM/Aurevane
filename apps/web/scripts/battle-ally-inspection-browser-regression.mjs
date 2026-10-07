@@ -24,6 +24,10 @@ await fs.copyFile(
   resolve(fixture, 'entry.jsx'),
 )
 await fs.copyFile(
+  resolve(web, 'e2e/fixtures/percentage-dot-viewer-state.ts'),
+  resolve(fixture, 'percentage-dot-viewer-state.ts'),
+)
+await fs.copyFile(
   resolve(web, 'e2e/fixtures/discipline-management-navigation.jsx'),
   resolve(fixture, 'next-mock.jsx'),
 )
@@ -177,6 +181,8 @@ try {
           border: getComputedStyle(button).borderColor,
           shadow: getComputedStyle(button).boxShadow,
           texture: getComputedStyle(button).backgroundImage,
+          position: getComputedStyle(button).position,
+          pointerEvents: getComputedStyle(button).pointerEvents,
           recovery: button.getAttribute('data-heal-target'),
         }))
       for (const [name, recovery] of [
@@ -201,6 +207,8 @@ try {
         assert.equal(paint.border, recovery ? 'rgb(102, 218, 143)' : 'rgb(108, 145, 198)')
         assert.equal(paint.shadow, 'none', 'Legacy highlights must not add a second tint')
         assert.ok(paint.texture.includes('terrain-open-stone-v01.webp'))
+        assert.equal(paint.position, 'relative', 'Buff tiles retain normal board layout')
+        assert.equal(paint.pointerEvents, 'auto', 'Buff tiles remain available to mouse and touch')
       }
       const buffPaint = await selfSelectionPaint()
       await command('guard').click()

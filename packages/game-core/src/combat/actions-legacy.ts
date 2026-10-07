@@ -1,3 +1,26 @@
+import {
+  parseBattlefieldElevationPolicy,
+  type BattlefieldElevationPolicy,
+} from './standard-battlefield'
+import {
+  validateCurrentAreaTargetRecipients,
+  validateVersionedCombatTargetSpec,
+} from './combat-targeting-shapes'
+import {
+  resolveCombatTargetFootprint,
+  filterCombatTargetSpatialFootprint,
+  hasCombatTargetLineOfSight,
+} from './combat-targeting-shapes'
+import {
+  allocatePercentageDotCommand,
+  recordPercentageDotCommandDamage,
+  isPercentageDotEffect,
+  validatePercentageDotCommandState,
+  type PercentageDotCommand,
+  type CapturedPercentageDotDamage,
+} from './combat-percentage-dots'
+import { currentPoisonTickDamage, currentBleedTickDamage } from './combat-dots'
+import type { AttackPercentageDotProfile } from './combat-percentage-dots'
 import { assertCurrentCombatStatusId, isRetiredCombatStatusId } from './retired-combat-statuses'
 import { terrainAdjustedDefense } from './combat-stat-balance'
 import { duelBalancedDirectDamage } from './combat-duel-balance'
@@ -155,9 +178,13 @@ export type CombatFriendlyFirePolicy =
 export type CombatEffectRecipient = 'actor' | 'primary-unit' | 'affected-units'
 
 export type CombatTargetShape =
-  { kind: 'single' } | { kind: 'circle'; radius: number } | { kind: 'line'; length: number }
+  | { kind: 'single' }
+  | { kind: 'circle'; radius: number }
+  | { kind: 'line'; length: number }
+  | { kind: 'all' }
 
 export interface CombatTargetSpec {
+  geometryVersion?: 2
   kind: CombatTargetKind
   teamPolicy: CombatTargetTeamPolicy
   shape: CombatTargetShape
@@ -204,15 +231,27 @@ export type CombatEffectDefinition =
       direction?: 'push' | 'pull'
       distance: number
     }
-  | { type: 'poison'; recipient: CombatEffectRecipient; curseCopyable?: boolean }
-  | { type: 'burn'; recipient: CombatEffectRecipient; curseCopyable?: boolean }
   | {
+      type: 'poison'
+      recipient: CombatEffectRecipient
+      curseCopyable?: boolean
+      damageProfile?: AttackPercentageDotProfile
+    }
+  | {
+      type: 'burn'
+      recipient: CombatEffectRecipient
+      curseCopyable?: boolean
+      damageProfile?: AttackPercentageDotProfile
+    }
+  | ({
       type: 'bleed'
       recipient: CombatEffectRecipient
-      damagePerTick: number
       ticks: number
       curseCopyable?: boolean
-    }
+    } & (
+      | { damagePerTick: number; damageProfile?: never }
+      | { damageProfile: AttackPercentageDotProfile; damagePerTick?: never }
+    ))
   | { type: 'barrier-change'; recipient: CombatEffectRecipient; amount: number }
   | {
       type: 'sensory'
@@ -337,6 +376,8 @@ export function combatSourceCommandVisibility(
 }
 
 export interface PendingCombatEffect {
+  percentageDotCommandId?: number
+  percentageDotDamageEffectOrdinal?: number
   statusDurationScope?: 'rounds'
   copyProvenance?: CombatActionProvenance
   sourceCommandVisibility?: CombatSourceCommandVisibility
@@ -360,6 +401,11 @@ export interface PendingCombatEffect {
 }
 
 export interface CombatEncounterState {
+  /** Generated once at battle creation; historical snapshots retain saved tiles. */
+  battlefieldElevationPolicy?: BattlefieldElevationPolicy
+  percentageDotPolicyVersion?: 1
+  nextPercentageDotCommandId?: number
+  percentageDotCommands?: readonly PercentageDotCommand[]
   /** New direct-damage and positional accuracy balance; omitted snapshots keep old rules. */
   duelBalancePolicyVersion?: 1
   /** Omitted historical encounters retain delta Jump and no ordinary debuff resistance. */
@@ -397,6 +443,8 @@ export type CombatTargetSelection =
   | { kind: 'self' }
   | { kind: 'unit'; combatantId: string }
   | { kind: 'tile'; position: GridPosition }
+  | { kind: 'direction'; direction: 'north' | 'east' | 'south' | 'west' }
+  | { kind: 'activate' }
 
 export type CombatActionIssueCode =
   | 'battle-not-active'
@@ -774,10 +822,9 @@ export function evaluateCombatAction(
     issues.push({ code: 'insufficient-mp', message: 'The actor does not have enough MP.' })
   }
 
-  const target = resolvePrimaryTarget(state, actorId, action.target, selection, content, issues)
-  if (target.position) {
-    collectSpatialTargetIssues(state, actorId, action.target, target.position, issues)
-  }
+  const targeting = resolveCombatTargeting(state, actorId, action.target, selection, content)
+  issues.push(...targeting.issues)
+  const target = { position: targeting.primaryPosition, combatantId: targeting.primaryCombatantId }
   collectRequirementIssues(state, actorId, target.combatantId, action.requirements, content, issues)
   if (action.effects.some((effect) => effect.type === 'return-to-turn-start')) {
     const origin = state.turnOrigin
@@ -810,27 +857,8 @@ export function evaluateCombatAction(
       issues.push({ code: 'requirement-not-met', message: 'Root prevents Rewind Step.' })
   }
 
-  const affectedTiles =
-    target.position && issues.length === 0
-      ? resolveTargetShapeTiles(
-          state.tactical,
-          getPlacement(state.tactical, actorId).position,
-          target.position,
-          action.target.shape,
-        )
-      : []
-
-  if (target.position && issues.length === 0 && affectedTiles.length === 0) {
-    issues.push({
-      code: 'shape-invalid',
-      message: 'The target shape resolves to no legal board tiles.',
-    })
-  }
-
-  const affectedCombatantIds =
-    issues.length === 0
-      ? resolveAffectedCombatants(state, actorId, target.combatantId, action.target, affectedTiles)
-      : []
+  const affectedTiles = issues.length === 0 ? targeting.affectedTiles : []
+  const affectedCombatantIds = issues.length === 0 ? targeting.affectedCombatantIds : []
 
   if (issues.length === 0) {
     collectSelfDamageIssues(
@@ -852,7 +880,9 @@ export function evaluateCombatAction(
         action.effects.some(
           (effect) =>
             effect.type === 'create-terrain' ||
-            (effect.type === 'damage' && effect.element !== undefined),
+            (action.target.geometryVersion !== 2 &&
+              effect.type === 'damage' &&
+              effect.element !== undefined),
         ),
     )
   }
@@ -1159,13 +1189,18 @@ function applyCombatRoundBoundary(
   nextState = expiredTerrain.state
   events.push(...expiredTerrain.events)
   const ready = (nextState.pendingEffects ?? []).filter(
-    (effect) => effect.activationRound <= nextState.tactical.battle.round,
+    (effect) =>
+      !isPercentageDotEffect(effect.effect) &&
+      effect.activationRound <= nextState.tactical.battle.round,
   )
   if (nextState.pendingEffects)
     nextState = {
       ...nextState,
       pendingEffects: nextState.pendingEffects.filter(
-        (effect) => effect.activationRound > nextState.tactical.battle.round,
+        (effect) =>
+          isPercentageDotEffect(effect.effect) ||
+          effect.percentageDotCommandId !== undefined ||
+          effect.activationRound > nextState.tactical.battle.round,
       ),
     }
   for (const pending of ready) {
@@ -1193,7 +1228,26 @@ function applyCombatRoundBoundary(
     const recipients = pending.recipientIds.filter(
       (id) => getCombatant(nextState.tactical.battle, id).hp > 0,
     )
-    if (pending.effect.type !== 'create-terrain' && !recipients.length) continue
+    if (
+      pending.effect.type !== 'create-terrain' &&
+      (!recipients.length ||
+        (pending.percentageDotCommandId !== undefined &&
+          getCombatant(nextState.tactical.battle, pending.actorId).hp <= 0))
+    ) {
+      if (pending.percentageDotCommandId !== undefined) {
+        nextState = recordPercentageDotCommandDamage(
+          nextState,
+          pending.percentageDotCommandId,
+          [],
+          [pending.percentageDotDamageEffectOrdinal!],
+        )
+        nextState = {
+          ...nextState,
+          pendingEffects: nextState.pendingEffects?.filter((row) => row !== pending),
+        }
+      }
+      continue
+    }
     if (pending.effect.type === 'return-to-turn-start') {
       const destination = pending.turnOrigin?.position
       if (
@@ -1221,6 +1275,13 @@ function applyCombatRoundBoundary(
       undefined,
       new Map((pending.criticalRecipientIds ?? []).map((id) => [id, new Set([0])])),
       true,
+      undefined,
+      pending.percentageDotCommandId !== undefined
+        ? {
+            commandId: pending.percentageDotCommandId,
+            damageEffectOrdinal: pending.percentageDotDamageEffectOrdinal!,
+          }
+        : undefined,
     )
     const filtered = filterBlockedCovertApplication({
       before: resolutionState,
@@ -1245,8 +1306,12 @@ function applyCombatRoundBoundary(
           )
         : filtered.state
     const command = { sourceCombatantId: pending.actorId, actionId: pending.actionId }
+    const directState =
+      pending.percentageDotCommandId !== undefined
+        ? { ...lineaged, pendingEffects: lineaged.pendingEffects?.filter((row) => row !== pending) }
+        : lineaged
     const recovered = applyCommittedAbsorbRecovery(
-      lineaged,
+      directState,
       filtered.events as CombatResolutionEvent[],
       pending.content,
       command,
@@ -1302,7 +1367,8 @@ function applyCombatRoundBoundary(
       })),
     )
   }
-  return { state: nextState, events }
+  const settled = settlePercentageDotApplications(nextState)
+  return { state: settled.state, events: [...events, ...settled.events] }
 }
 
 export function endCombatTurn(
@@ -1338,7 +1404,7 @@ export function endCombatTurn(
     legacyOutgoingHpAfterTicks -
       currentPoisonEndTurnDamage(state, outgoingId) -
       advanceCurrentBleedEndTurn(state, outgoingId).stacks.reduce(
-        (sum, row) => sum + row.damagePerTick,
+        (sum, row) => sum + currentBleedTickDamage(row),
         0,
       ) -
       advanceCurrentBurnEndTurn(state, outgoingId).damage,
@@ -1414,6 +1480,7 @@ export function resolveTargetShapeTiles(
       .map((tile) => ({ ...tile.position }))
   }
 
+  if (shape.kind === 'all') throw new TypeError('All requires geometry version 2.')
   assertPositiveSafeInteger(shape.length, 'line length')
   const dx = selected.x - origin.x
   const dy = selected.y - origin.y
@@ -1496,10 +1563,22 @@ export function validateCombatEncounterState(
   } catch {
     issues.push({ field: 'effectTimingPolicy', message: 'Invalid pinned effect timing policy.' })
   }
+  try {
+    if (state.battlefieldElevationPolicy !== undefined)
+      parseBattlefieldElevationPolicy(state.battlefieldElevationPolicy)
+  } catch {
+    issues.push({
+      field: 'battlefieldElevationPolicy',
+      message: 'Invalid pinned elevation policy.',
+    })
+  }
+  issues.push(...validatePercentageDotCommandState(state))
   if (state.pendingEffects !== undefined) {
     if (
       !Array.isArray(state.pendingEffects) ||
-      (state.pendingEffects.length > 0 && !state.effectTimingPolicy)
+      (state.pendingEffects.length > 0 &&
+        !state.effectTimingPolicy &&
+        !state.pendingEffects.every((row) => row.percentageDotCommandId !== undefined))
     )
       issues.push({
         field: 'pendingEffects',
@@ -1817,6 +1896,63 @@ function collectPersistentProvenanceIssues(
   }
 }
 
+/** The authority for command coverage; area activation never invents a primary unit. */
+export function resolveCombatTargeting(
+  state: CombatEncounterState,
+  actorId: string,
+  spec: CombatTargetSpec,
+  selection: CombatTargetSelection,
+  content: CombatContentCatalog,
+): {
+  primaryCombatantId: string | null
+  primaryPosition: GridPosition | null
+  affectedTiles: readonly GridPosition[]
+  affectedCombatantIds: readonly string[]
+  issues: readonly CombatActionIssue[]
+} {
+  const issues: CombatActionIssue[] = []
+  const origin = getPlacement(state.tactical, actorId).position
+  const area = spec.geometryVersion === 2 && spec.shape.kind !== 'single'
+  let primary = { position: null as GridPosition | null, combatantId: null as string | null }
+  let affectedTiles: readonly GridPosition[] = []
+  if (area) {
+    try {
+      affectedTiles = resolveCombatTargetFootprint(state.tactical, origin, spec, selection)
+    } catch {
+      issues.push({
+        code: 'invalid-target-kind',
+        message: 'Choose a cardinal Line direction or activate Circle/All.',
+      })
+    }
+    affectedTiles = filterCombatTargetSpatialFootprint(
+      state.tactical,
+      origin,
+      spec,
+      affectedTiles,
+      state.terrainOverlays,
+    )
+  } else {
+    primary = resolvePrimaryTarget(state, actorId, spec, selection, content, issues)
+    if (primary.position) collectSpatialTargetIssues(state, actorId, spec, primary.position, issues)
+    if (primary.position && issues.length === 0)
+      affectedTiles = resolveCombatTargetFootprint(state.tactical, origin, spec, selection)
+  }
+  if (!issues.length && !affectedTiles.length)
+    issues.push({
+      code: 'shape-invalid',
+      message: 'The target shape resolves to no legal board tiles.',
+    })
+  return {
+    primaryCombatantId: primary.combatantId,
+    primaryPosition: primary.position,
+    affectedTiles,
+    affectedCombatantIds: issues.length
+      ? []
+      : resolveAffectedCombatants(state, actorId, primary.combatantId, spec, affectedTiles),
+    issues,
+  }
+}
+
 function resolvePrimaryTarget(
   state: CombatEncounterState,
   actorId: string,
@@ -2003,7 +2139,11 @@ function resolveAffectedCombatants(
   if (spec.shape.kind === 'single') {
     if (!primaryCombatantId) return []
     const target = getCombatant(state.tactical.battle, primaryCombatantId)
-    return target.hp > 0 && isFriendlyFireAllowed(actor, target, spec.friendlyFire)
+    return target.hp > 0 &&
+      isFriendlyFireAllowed(actor, target, spec.friendlyFire) &&
+      (spec.geometryVersion !== 2 ||
+        spec.kind !== 'unit' ||
+        isTeamPolicyAllowed(actor, target, spec.teamPolicy))
       ? [primaryCombatantId]
       : []
   }
@@ -2014,7 +2154,13 @@ function resolveAffectedCombatants(
     )
     .filter((placement) => {
       const target = getCombatant(state.tactical.battle, placement.combatantId)
-      return target.hp > 0 && isFriendlyFireAllowed(actor, target, spec.friendlyFire)
+      return (
+        target.hp > 0 &&
+        isFriendlyFireAllowed(actor, target, spec.friendlyFire) &&
+        (spec.geometryVersion !== 2 ||
+          spec.kind !== 'unit' ||
+          isTeamPolicyAllowed(actor, target, spec.teamPolicy))
+      )
     })
     .map((placement) => placement.combatantId)
     .sort(compareStableString)
@@ -2085,6 +2231,7 @@ function resolveActionEffects(
   criticalEffectOrdinalsByTarget?: ReadonlyMap<string, ReadonlySet<number>>,
   resolvingPending = false,
   resistedEffectOrdinalsByTarget?: CombatResistedEffectOrdinals,
+  percentageCommand?: { commandId: number; damageEffectOrdinal: number },
 ): CombatResolutionTransition & {
   projections: CombatEffectProjection[]
   terrain: CombatTerrainProjection[]
@@ -2094,6 +2241,14 @@ function resolveActionEffects(
   const projections: CombatEffectProjection[] = []
   const terrain: CombatTerrainProjection[] = []
   const stormRecipients = new Set<string>()
+  let commandId = percentageCommand?.commandId
+  if (!resolvingPending && action.effects.some(isPercentageDotEffect)) {
+    const allocated = allocatePercentageDotCommand(nextState, action)
+    nextState = allocated.state
+    commandId = allocated.commandId
+  }
+  const originalDamageEvents: CombatResolutionEvent[] = []
+  const resolvedDamageOrdinals: number[] = []
   if (action.effects.some((effect) => effect.type === 'damage' && effect.amount > 0)) {
     const revealed = removeGameplayTags(
       nextState,
@@ -2115,10 +2270,11 @@ function resolveActionEffects(
       }
       if (
         !resolvingPending &&
-        combatEffectTimingMode(
-          state.effectTimingPolicy,
-          action.effectTimingTags?.[effectOrdinal] ?? combatEffectTimingTag(effect),
-        ) === 'next-round'
+        (isPercentageDotEffect(effect) ||
+          combatEffectTimingMode(
+            state.effectTimingPolicy,
+            action.effectTimingTags?.[effectOrdinal] ?? combatEffectTimingTag(effect),
+          ) === 'next-round')
       ) {
         const recipientIds = (
           effect.recipient === 'affected-tiles'
@@ -2141,6 +2297,15 @@ function resolveActionEffects(
             ...(nextState.pendingEffects ?? []),
             {
               actorId,
+              ...(commandId !== undefined &&
+              (isPercentageDotEffect(effect) || effect.type === 'damage')
+                ? {
+                    percentageDotCommandId: commandId,
+                    ...(effect.type === 'damage'
+                      ? { percentageDotDamageEffectOrdinal: effectOrdinal }
+                      : {}),
+                  }
+                : {}),
               ...(['apply-status', 'copy-statuses'].includes(effect.type)
                 ? { statusDurationScope: 'rounds' as const }
                 : {}),
@@ -2166,7 +2331,23 @@ function resolveActionEffects(
               effect: JSON.parse(JSON.stringify(effect)) as CombatEffectDefinition,
               recipientIds,
               affectedTiles: affectedTiles.map((tile) => ({ ...tile })),
-              activationRound: state.tactical.battle.round + 1,
+              activationRound:
+                state.tactical.battle.round +
+                (combatEffectTimingMode(
+                  state.effectTimingPolicy,
+                  action.effectTimingTags?.[effectOrdinal] ?? combatEffectTimingTag(effect),
+                ) === 'next-round' ||
+                (isPercentageDotEffect(effect) &&
+                  action.effects.some(
+                    (damage, ordinal) =>
+                      damage.type === 'damage' &&
+                      combatEffectTimingMode(
+                        state.effectTimingPolicy,
+                        action.effectTimingTags?.[ordinal] ?? 'damage',
+                      ) === 'next-round',
+                  ))
+                  ? 1
+                  : 0),
               content: JSON.parse(JSON.stringify(content)) as CombatContentCatalog,
               ...(state.turnOrigin
                 ? {
@@ -2175,6 +2356,22 @@ function resolveActionEffects(
                 : {}),
             },
           ],
+        }
+        if (commandId !== undefined && effect.type === 'damage') {
+          nextState = {
+            ...nextState,
+            percentageDotCommands: nextState.percentageDotCommands!.map((row) =>
+              row.id === commandId
+                ? {
+                    ...row,
+                    outstandingDamageEffectOrdinals: [
+                      ...row.outstandingDamageEffectOrdinals,
+                      effectOrdinal,
+                    ],
+                  }
+                : row,
+            ),
+          }
         }
         if (effect.type === 'create-terrain') {
           for (const position of affectedTiles) {
@@ -2195,7 +2392,10 @@ function resolveActionEffects(
           tactical: nextState.tactical,
           pendingEffects: [latestPending],
         })
-        if (effect.type !== 'create-terrain')
+        if (
+          effect.type !== 'create-terrain' &&
+          latestPending.activationRound > state.tactical.battle.round
+        )
           for (const { combatantId, status } of pendingCombatStatusRows({
             tactical: nextState.tactical,
             pendingEffects: [latestPending],
@@ -2215,7 +2415,11 @@ function resolveActionEffects(
                 ? {}
                 : { remainingRoundBoundaries: status.remainingRoundBoundaries }),
             })
-        for (const targetCombatantId of recipientIds.length ? recipientIds : [null]) {
+        for (const targetCombatantId of latestPending.activationRound > state.tactical.battle.round
+          ? recipientIds.length
+            ? recipientIds
+            : [null]
+          : []) {
           const timing = pendingRows.find((row) => row.combatantId === targetCombatantId)?.status
           events.push({
             event: 'effect_pending',
@@ -2223,7 +2427,7 @@ function resolveActionEffects(
             sourceCombatantId: actorId,
             targetCombatantId,
             effectTag: combatEffectTimingTag(effect),
-            activationRound: state.tactical.battle.round + 1,
+            activationRound: latestPending.activationRound,
             ...(timing?.remainingOwnerTurnEnds === undefined
               ? {}
               : { remainingOwnerTurnEnds: timing.remainingOwnerTurnEnds }),
@@ -2413,6 +2617,20 @@ function resolveActionEffects(
         })
       }
     } finally {
+      if (commandId !== undefined && effect.type === 'damage') {
+        originalDamageEvents.push(
+          ...events.slice(firstEvent).filter((event) => event.event === 'damage_applied'),
+        )
+        if (
+          resolvingPending ||
+          !nextState.pendingEffects?.some(
+            (row) =>
+              row.percentageDotCommandId === commandId &&
+              row.percentageDotDamageEffectOrdinal === effectOrdinal,
+          )
+        )
+          resolvedDamageOrdinals.push(percentageCommand?.damageEffectOrdinal ?? effectOrdinal)
+      }
       if (!resolvingPending && nextState.effectTimingPolicy) {
         const activeId = state.tactical.battle.currentTurn?.combatantId
         const appliedStatusIds = events
@@ -2449,7 +2667,134 @@ function resolveActionEffects(
           events[index] = { ...events[index]!, effectOrigin: { ...origin } }
     }
   }
+  if (commandId !== undefined) {
+    nextState = recordPercentageDotCommandDamage(
+      nextState,
+      commandId,
+      originalDamageEvents,
+      resolvedDamageOrdinals,
+    )
+    if (!resolvingPending) {
+      const settled = settlePercentageDotApplications(nextState)
+      nextState = settled.state
+      events.push(...settled.events)
+      projections.push(...settled.projections)
+    }
+  }
   return { state: nextState, events, projections, terrain }
+}
+
+function settlePercentageDotApplications(
+  state: CombatEncounterState,
+): CombatResolutionTransition & { projections: CombatEffectProjection[] } {
+  if (state.percentageDotPolicyVersion !== 1) return { state, events: [], projections: [] }
+  let nextState = state
+  const events: CombatResolutionEvent[] = []
+  const projections: CombatEffectProjection[] = []
+  const commands = new Map((state.percentageDotCommands ?? []).map((row) => [row.id, row]))
+  const living = new Set(
+    state.tactical.battle.combatants.filter((row) => row.hp > 0).map((row) => row.id),
+  )
+  const pending = state.pendingEffects ?? []
+  const latest = new Map<string, { id: number; index: number }>()
+  for (const [index, entry] of pending.entries()) {
+    if (!isPercentageDotEffect(entry.effect) || entry.effect.type === 'bleed') continue
+    const command = commands.get(entry.percentageDotCommandId!)
+    if (!command || command.outstandingDamageEffectOrdinals.length || !living.has(entry.actorId))
+      continue
+    for (const recipient of entry.recipientIds) {
+      if (!living.has(recipient) || (command.damageByRecipient[recipient] ?? 0) <= 0) continue
+      const key = JSON.stringify([entry.effect.type, recipient])
+      const previous = latest.get(key)
+      if (
+        !previous ||
+        previous.id < command.id ||
+        (previous.id === command.id && previous.index < index)
+      )
+        latest.set(key, { id: command.id, index })
+    }
+  }
+  const retained: PendingCombatEffect[] = []
+  for (const [index, entry] of pending.entries()) {
+    if (!isPercentageDotEffect(entry.effect)) {
+      retained.push(entry)
+      continue
+    }
+    const command = commands.get(entry.percentageDotCommandId!)
+    if (!command) throw new TypeError('Percentage applications require a committed command.')
+    const recipients = entry.recipientIds.filter((recipient) => {
+      if (!living.has(recipient) || !living.has(entry.actorId)) return false
+      const newest = latest.get(JSON.stringify([entry.effect.type, recipient]))
+      return (
+        !newest || command.id > newest.id || (command.id === newest.id && index === newest.index)
+      )
+    })
+    if (!recipients.length) continue
+    if (command.outstandingDamageEffectOrdinals.length) {
+      retained.push({ ...entry, recipientIds: recipients })
+      continue
+    }
+    const eligible = recipients.filter(
+      (recipient) => (command.damageByRecipient[recipient] ?? 0) > 0,
+    )
+    if (entry.activationRound > state.tactical.battle.round) {
+      if (eligible.length) retained.push({ ...entry, recipientIds: eligible })
+      continue
+    }
+    for (const recipientId of eligible) {
+      const captured = {
+        capturedDamage: command.damageByRecipient[recipientId]!,
+        profile: { ...entry.effect.damageProfile },
+      }
+      const applied = applyEffect(
+        nextState,
+        entry.actorId,
+        recipientId,
+        entry.actionId,
+        entry.effect,
+        entry.content,
+        new Set(),
+        false,
+        true,
+        captured,
+      )
+      nextState = applied.state
+      events.push(...applied.events, {
+        event: 'persistent_effect_applied',
+        actionId: entry.actionId,
+        sourceCombatantId: entry.actorId,
+        targetCombatantId: recipientId,
+        statusId: entry.effect.type,
+        ...(entry.effectOrigin ? { effectOrigin: { ...entry.effectOrigin } } : {}),
+        ...(entry.sourceCommandVisibility
+          ? { sourceCommandVisibility: entry.sourceCommandVisibility }
+          : {}),
+        ...(entry.activationRound > (command.createdRound ?? entry.activationRound)
+          ? { effectActivationRound: state.tactical.battle.round }
+          : {}),
+      })
+      projections.push({
+        effectType: entry.effect.type,
+        combatantId: recipientId,
+        before: 'none',
+        after: 'active',
+      })
+    }
+  }
+  const needed = new Set(
+    retained.flatMap((entry) =>
+      entry.percentageDotCommandId === undefined ? [] : [entry.percentageDotCommandId],
+    ),
+  )
+  return {
+    state: {
+      ...nextState,
+      pendingEffects: retained,
+      percentageDotCommands: nextState.percentageDotCommands?.filter((row) => needed.has(row.id)),
+    },
+    events,
+    projections,
+  }
 }
 
 /** Also used by the stat-driven miss path: a damaging command reveals its holder even on a miss. */
@@ -2486,6 +2831,7 @@ function applyEffect(
   stormRecipients: Set<string>,
   critical: boolean,
   resolvingPending = false,
+  percentageDamage?: CapturedPercentageDotDamage,
 ): CombatResolutionTransition {
   if (effect.type === 'displace')
     return applyDisplacement(state, actorId, recipientId, actionId, effect, content)
@@ -2500,20 +2846,24 @@ function applyEffect(
         effect.curseCopyable,
         tuning.power,
         tuning.durationTurns,
+        percentageDamage,
       ),
       events: [],
     }
   }
   if (effect.type === 'bleed') {
+    if (effect.damageProfile && !percentageDamage)
+      throw new TypeError('Percentage Bleed requires captured command damage.')
     return {
       state: applyCurrentBleedState(
         state,
         actorId,
         recipientId,
         actionId,
-        effect.damagePerTick,
+        effect.damagePerTick ?? 0,
         effect.ticks,
         effect.curseCopyable,
+        percentageDamage,
       ),
       events: [],
     }
@@ -2529,6 +2879,7 @@ function applyEffect(
         effect.curseCopyable,
         tuning.power,
         tuning.durationTurns,
+        percentageDamage,
       ),
       events: [],
     }
@@ -3140,13 +3491,23 @@ function resolveCurrentEndOfTurnDots(
   const poisonTicks = currentPoisonEndTurnInstances(nextState, combatantId)
   nextState = advanceCurrentPoisonEndTurn(nextState, combatantId)
   for (const instance of poisonTicks)
-    tick('poison', instance.sourceCombatantId, instance.sourceActionId, instance.damagePerTick ?? 2)
+    tick(
+      'poison',
+      instance.sourceCombatantId,
+      instance.sourceActionId,
+      currentPoisonTickDamage(instance),
+    )
   if (getCombatant(nextState.tactical.battle, combatantId).hp <= 0)
     return { state: nextState, events }
   const bleedTurn = advanceCurrentBleedEndTurn(nextState, combatantId)
   nextState = bleedTurn.state
   for (const instance of bleedTurn.stacks)
-    tick('bleed', instance.sourceCombatantId, instance.sourceActionId, instance.damagePerTick)
+    tick(
+      'bleed',
+      instance.sourceCombatantId,
+      instance.sourceActionId,
+      currentBleedTickDamage(instance),
+    )
   if (getCombatant(nextState.tactical.battle, combatantId).hp <= 0)
     return { state: nextState, events }
   const burnTurn = advanceCurrentBurnEndTurn(nextState, combatantId)
@@ -3176,13 +3537,35 @@ function completeBattleIfResolved(state: CombatEncounterState): CombatResolution
     lifecycle: 'completed',
     currentTurn: null,
   }
-  const nextState = withBattle(state, battle)
+  const nextState = withBattle(
+    state.percentageDotPolicyVersion === 1
+      ? { ...state, pendingEffects: [], percentageDotCommands: [] }
+      : state,
+    battle,
+  )
   return { state: nextState, events: [{ event: 'battle_completed', winningTeamId }] }
 }
 
 function withBattle(state: CombatEncounterState, battle: BattleState): CombatEncounterState {
   const tactical = createTacticalBattleState({ ...state.tactical, battle })
-  const nextState = clearDefeatedRecovery({ ...state, tactical })
+  let nextState = clearDefeatedRecovery({ ...state, tactical })
+  if (nextState.percentageDotPolicyVersion === 1 && nextState.effectState) {
+    const alive = new Set(
+      battle.lifecycle === 'active'
+        ? battle.combatants.filter((row) => row.hp > 0).map((row) => row.id)
+        : [],
+    )
+    const effects = normalizeCombatEffectState(nextState.effectState)
+    nextState = {
+      ...nextState,
+      effectState: {
+        ...effects,
+        poison: effects.poison.filter((row) => alive.has(row.targetCombatantId)),
+        burn: effects.burn.filter((row) => alive.has(row.targetCombatantId)),
+        bleed: effects.bleed.filter((row) => alive.has(row.targetCombatantId)),
+      },
+    }
+  }
   assertValidCombatEncounterState(nextState)
   return nextState
 }
@@ -3318,49 +3701,15 @@ function hasBaselineLineOfSight(
   origin: GridPosition,
   target: GridPosition,
 ): boolean {
-  const tactical = state.tactical
-  const points = bresenhamLine(origin, target)
-  for (let index = 1; index < points.length - 1; index += 1) {
-    const tile = getTile(tactical, points[index])
-    const terrain = tactical.terrains.find((candidate) => candidate.id === tile.terrainId)
-    if (!terrain) throw new Error(`Unknown terrain ${tile.terrainId}.`)
-    if (terrain.traversalCost === null || terrainOverlayAt(state, points[index])?.kind === 'steam')
-      return false
-  }
-  return true
-}
-
-function bresenhamLine(origin: GridPosition, target: GridPosition): GridPosition[] {
-  const points: GridPosition[] = []
-  let x = origin.x
-  let y = origin.y
-  const dx = Math.abs(target.x - origin.x)
-  const sx = origin.x < target.x ? 1 : -1
-  const dy = -Math.abs(target.y - origin.y)
-  const sy = origin.y < target.y ? 1 : -1
-  let error = dx + dy
-
-  while (true) {
-    points.push({ x, y })
-    if (x === target.x && y === target.y) break
-    const doubled = error * 2
-    if (doubled >= dy) {
-      error += dy
-      x += sx
-    }
-    if (doubled <= dx) {
-      error += dx
-      y += sy
-    }
-  }
-
-  return points
+  return hasCombatTargetLineOfSight(state.tactical, origin, target, state.terrainOverlays)
 }
 
 function validateCombatActionDefinition(
   action: CombatActionDefinition,
   content?: CombatContentCatalog,
 ): void {
+  validateVersionedCombatTargetSpec(action.target)
+  validateCurrentAreaTargetRecipients(action)
   validateCombatStatusCopyAction(action)
   validateGameplayActionMetadata(action)
   collectRequiredIdentity(action.id, 'action id')
@@ -3391,7 +3740,15 @@ function validateCombatActionDefinition(
     ['enemies-only', 'allies-only', 'all-units', 'all-except-actor'],
     'friendly-fire policy',
   )
-  assertKnownString(action.target.shape.kind, ['single', 'circle', 'line'], 'target shape kind')
+  assertKnownString(
+    action.target.shape.kind,
+    ['single', 'circle', 'line', 'all'],
+    'target shape kind',
+  )
+  if (action.target.geometryVersion !== undefined && action.target.geometryVersion !== 2)
+    throw new TypeError('Invalid geometry version.')
+  if (action.target.shape.kind === 'all' && action.target.geometryVersion !== 2)
+    throw new TypeError('All requires geometry version 2.')
   assertBoolean(action.target.requiresLineOfSight, 'requiresLineOfSight')
   assertBoolean(action.cost.spendsAction, 'spendsAction')
   assertNonNegativeSafeInteger(action.target.minimumRange, 'minimum range')
@@ -4017,7 +4374,7 @@ export function resolveCombatMovementStepEffects(
     for (let index = 0; index < triggeredTicks; index += 1) {
       const target = getCombatant(nextState.tactical.battle, combatantId)
       if (target.hp <= 0) break
-      const hpAfter = Math.max(0, target.hp - (poison.damagePerTick ?? 2))
+      const hpAfter = Math.max(0, target.hp - currentPoisonTickDamage(poison))
       const defeatsCurrentActor =
         hpAfter === 0 &&
         nextState.tactical.battle.lifecycle === 'active' &&

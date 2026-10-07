@@ -1,10 +1,12 @@
 import { expect, it } from 'vitest'
+import { createPv1fBasicAttackDefinition } from '@aurevane/game-core/combat/pv1f-action-economy'
 import {
   isCurrentBattlePreview,
   battleIntentTileKey,
   selectBattleSkillPreviewIntent,
   selectInitialBattleSkillPreviewIntent,
   selectDirectionalBattleSkillPreviewIntent,
+  canRetainBattleActionPreview,
 } from './battle-preview-selection'
 
 const barrier = {
@@ -27,6 +29,74 @@ const selection = {
   selectedTile: null,
   combatants,
 }
+it('retains only informational action coverage after a same-turn reload and rejects lost authority', () => {
+  const prior = {
+    battleSessionId: 'battle',
+    battleVersion: 3,
+    snapshot: {
+      tactical: {
+        battle: {
+          lifecycle: 'active',
+          turnNumber: 2,
+          currentTurn: { combatantId: 'actor' },
+          combatants: [{ id: 'actor', hp: 100 }],
+        },
+      },
+    },
+  }
+  const next = { ...prior, battleVersion: 4 }
+  expect(canRetainBattleActionPreview(prior, next, 'actor')).toBe(true)
+  for (const battle of [
+    { ...next.snapshot.tactical.battle, lifecycle: 'completed' },
+    { ...next.snapshot.tactical.battle, turnNumber: 3 },
+    { ...next.snapshot.tactical.battle, currentTurn: { combatantId: 'enemy' } },
+    { ...next.snapshot.tactical.battle, combatants: [{ id: 'actor', hp: 0 }] },
+  ])
+    expect(
+      canRetainBattleActionPreview(prior, { ...next, snapshot: { tactical: { battle } } }, 'actor'),
+    ).toBe(false)
+  expect(canRetainBattleActionPreview(prior, { ...next, battleSessionId: 'other' }, 'actor')).toBe(
+    false,
+  )
+  expect(canRetainBattleActionPreview(prior, { ...next, battleVersion: 2 }, 'actor')).toBe(false)
+})
+
+const currentLine = {
+  ...barrier,
+  target: {
+    ...createPv1fBasicAttackDefinition(1).target,
+    geometryVersion: 2 as const,
+    shape: { kind: 'line' as const, length: 3 },
+    minimumRange: 0,
+    maximumRange: 3,
+  },
+}
+it('selects cardinal Line commands without requiring a victim and rejects diagonal clicks', () => {
+  const empty = { ...selection, combatants: [combatants[0]!] }
+  expect(
+    selectDirectionalBattleSkillPreviewIntent(currentLine, empty, { x: -1, y: 0 })?.target,
+  ).toEqual({ kind: 'direction', direction: 'west' })
+  expect(
+    selectBattleSkillPreviewIntent(currentLine, { ...empty, selectedTile: { x: 0, y: 2 } })?.target,
+  ).toEqual({ kind: 'direction', direction: 'south' })
+  expect(
+    selectBattleSkillPreviewIntent(currentLine, { ...empty, selectedTile: { x: 1, y: 1 } }),
+  ).toBeNull()
+  expect(selectInitialBattleSkillPreviewIntent(currentLine, empty)?.target.kind).toBe('direction')
+})
+it.each([{ kind: 'circle', radius: 1 }, { kind: 'all' }] as const)(
+  'arms %j through activation without an implicit primary victim',
+  (shape) => {
+    const skill = { ...currentLine, target: { ...currentLine.target, shape } }
+    expect(selectInitialBattleSkillPreviewIntent(skill, selection)?.target).toEqual({
+      kind: 'activate',
+    })
+    expect(
+      selectBattleSkillPreviewIntent(skill, { ...selection, selectedTile: { x: 10, y: 10 } })
+        ?.target,
+    ).toEqual({ kind: 'activate' })
+  },
+)
 
 it('automatically chooses the nearest eligible living target while preserving a legal chosen target', () => {
   expect(selectInitialBattleSkillPreviewIntent(barrier, selection)?.target).toEqual({

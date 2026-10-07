@@ -58,6 +58,7 @@ function previewDistance(definition: MatureSkillDefinition): number {
     return 0
   }
 
+  if (definition.target.geometryVersion === 2 && definition.target.shape.kind !== 'single') return 1
   const minimum = definition.target.minimumRange
   const maximum = definition.target.maximumRange
   if (minimum > maximum) return minimum
@@ -80,6 +81,11 @@ function previewSelection(
   definition: MatureSkillDefinition,
   targetPosition: GridPosition,
 ): CombatTargetSelection {
+  if (definition.target.geometryVersion === 2) {
+    if (definition.target.shape.kind === 'line') return { kind: 'direction', direction: 'east' }
+    if (definition.target.shape.kind === 'circle' || definition.target.shape.kind === 'all')
+      return { kind: 'activate' }
+  }
   if (definition.target.kind === 'self') return { kind: 'self' }
 
   if (definition.target.kind === 'unit') {
@@ -245,6 +251,7 @@ function previewState(
   const base = createCombatEncounterState(tactical)
   const withFixtureState = {
     ...base,
+    percentageDotPolicyVersion: 1 as const,
     turnOrigin: {
       combatantId: ACTOR_ID,
       turnNumber: battle.turnNumber,

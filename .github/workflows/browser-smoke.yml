@@ -67,10 +67,20 @@ jobs:
           AV_ALLY_INSPECTION_EVIDENCE_DIR: /tmp/battle-ally-inspection-review
         run: pnpm --filter @aurevane/web exec node scripts/battle-ally-inspection-browser-regression.mjs
 
+      - name: Verify current and historical targeting geometry across modes
+        env:
+          AV_TARGETING_EVIDENCE_DIR: /tmp/battle-targeting-review
+        run: pnpm --filter @aurevane/web exec node scripts/battle-targeting-browser-regression.mjs
+
       - name: Verify standardized skill parameter colors and readers
         env:
           AV_SKILL_PARAMETER_PALETTE_EVIDENCE_DIR: /tmp/skill-parameter-palette-review
         run: pnpm --filter @aurevane/web exec node scripts/skill-parameter-palette-browser-regression.mjs
+
+      - name: Verify percentage Skill Essence and rail readers across modes
+        env:
+          AV_PERCENTAGE_DOT_EVIDENCE_DIR: /tmp/battle-percentage-dot-review
+        run: pnpm --filter @aurevane/web exec node scripts/battle-percentage-dot-browser-regression.mjs
 
       - name: Verify elevated rail effects and viewer privacy
         env:
@@ -118,6 +128,19 @@ jobs:
             select public.activate_phase4_combat_interactions_v2();
             select public.activate_phase4_discipline_rebalance_v1();
           "
+
+          # Verify actual Owner publication and terrain-priced keyboard input early.
+          AUREVANE_ENV=local \
+          NEXT_PUBLIC_AUREVANE_ENV=local \
+          NEXT_PUBLIC_SUPABASE_URL="$api_url" \
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="$ANON_KEY" \
+          SUPABASE_SECRET_KEY="$server_key" \
+          pnpm --filter @aurevane/web exec playwright test \
+            e2e/master-combat-content-authoring.pw.ts e2e/battle-wasd-backtracking.pw.ts \
+            --project=desktop-chromium --repeat-each=2
+          mkdir -p /tmp/combat-master-release-review
+          find apps/web/test-results -name 'master-*.png' \
+            -exec cp '{}' /tmp/combat-master-release-review/ \;
 
           # Prove real recovery email and expired-link handling before longer gameplay scenarios.
           AUREVANE_ENV=local \
@@ -194,6 +217,43 @@ jobs:
         with:
           name: battle-ally-inspection-review
           path: /tmp/battle-ally-inspection-review
+          retention-days: 7
+
+      - name: Save targeting geometry evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: battle-targeting-review
+          path: /tmp/battle-targeting-review
+          retention-days: 7
+
+      - name: Save percentage reader evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: battle-percentage-dot-review
+          path: /tmp/battle-percentage-dot-review
+          retention-days: 7
+
+      - name: Save compact combat release screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: combat-release-reader-screens
+          path: |
+            /tmp/battle-percentage-dot-review/results.json
+            /tmp/battle-percentage-dot-review/spectator-*.png
+            /tmp/battle-percentage-dot-review/pve-1366-burn-active-rail.png
+            /tmp/battle-percentage-dot-review/pve-390-poison-pending-rail.png
+            /tmp/battle-percentage-dot-review/pvp-390-essence-burn-active-report.png
+            /tmp/combat-master-release-review/*.png
+            apps/web/test-results/**/master-percentage-*.png
+            apps/web/test-results/**/master-elevation-*.png
+            apps/web/test-results/master-combat-content*/error-context.md
+            apps/web/test-results/master-combat-content*/test-failed-*.png
+            apps/web/test-results/battle-wasd-backtracking*/error-context.md
+            apps/web/test-results/battle-wasd-backtracking*/test-failed-*.png
+            apps/web/test-results/refined-battle-execution*/error-context.md
           retention-days: 7
 
       - name: Save skill parameter palette evidence

@@ -21,6 +21,19 @@ import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
 
+it('projects per-recipient hit chances without private rolls or outcomes', () => {
+  const evaluation = {
+    targetHitChances: [
+      { targetCombatantId: 'one', hitChanceBasisPoints: 9500, rollBasisPoints: 12, hit: true },
+      { targetCombatantId: 'two', hitChanceBasisPoints: 8000, rollBasisPoints: 9999, hit: false },
+    ],
+  } as unknown as Parameters<typeof previewServiceExports.projectBattleHitChanceForecast>[0]
+  expect(previewServiceExports.projectBattleHitChanceForecast(evaluation)).toEqual([
+    { targetCombatantId: 'one', hitChanceBasisPoints: 9500 },
+    { targetCombatantId: 'two', hitChanceBasisPoints: 8000 },
+  ])
+})
+
 import { createBattlePreviewService } from './battle-preview-service'
 import { createBattleSessionService } from './battle-session-service'
 

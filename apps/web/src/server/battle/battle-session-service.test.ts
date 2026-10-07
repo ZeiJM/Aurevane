@@ -378,6 +378,7 @@ describe('P2.4 battle session service', () => {
     expect(persistedSnapshot.statBalancePolicyVersion).toBe(1)
     expect(persistedSnapshot.effectStackingPolicyVersion).toBe(1)
     expect(result.snapshot.effectStackingPolicyVersion).toBe(1)
+    expect(result.snapshot.percentageDotPolicyVersion).toBe(1)
     const player = persistedSnapshot.tactical.battle.combatants.find(
       (combatant) => combatant.id === `character:${CHARACTER_ID}`,
     )
@@ -909,4 +910,53 @@ describe('P2.4 battle session service', () => {
   it('uses Aurevane errors for rejected authority requests', () => {
     expect(new StaleBattleVersionError(2)).toBeInstanceOf(AurevaneError)
   })
+})
+
+it('pins Owner elevation chances at creation and never consults them when reloading a saved battle', async () => {
+  const characters = createCharacterRepository()
+  const battles = createBattleRepository()
+  const policy = {
+    version: 9,
+    level1BasisPoints: 0,
+    level2BasisPoints: 0,
+    level3BasisPoints: 10000,
+  }
+  const readElevationPolicy = vi.fn(async () => policy)
+  const service = createBattleSessionService({
+    characters: characters.repository,
+    battles: battles.repository,
+    readElevationPolicy,
+  })
+  const created = await service.createSession({
+    userId: USER_ID,
+    characterId: CHARACTER_ID,
+    idempotencyKey: IDEMPOTENCY_KEY,
+    arenaId: 'duel-yard',
+  })
+  expect(created.snapshot.battlefieldElevationPolicy).toEqual(policy)
+  expect(created.snapshot.tactical.tiles.some((tile) => tile.elevation > 0)).toBe(true)
+  expect(
+    created.snapshot.tactical.tiles
+      .filter((tile) => tile.elevation > 0)
+      .every((tile) => tile.elevation === 3),
+  ).toBe(true)
+  const persistedSnapshot = battles.createBattleSession.mock.calls[0]![0]
+    .initialSnapshot as StatDrivenCombatEncounterState
+  const record: BattleSessionRecord = {
+    battleSessionId: SESSION_ID,
+    battleId: created.snapshot.tactical.battle.battleId,
+    battleVersion: 1,
+    rulesVersion: created.snapshot.tactical.battle.rulesVersion,
+    contentVersion: created.snapshot.tactical.battle.contentVersion,
+    lifecycle: created.snapshot.tactical.battle.lifecycle,
+    snapshot: persistedSnapshot,
+    controlledCombatantIds: [`character:${CHARACTER_ID}`],
+    updatedAt: CREATED_AT,
+  }
+  battles.findBattleSession.mockResolvedValueOnce(record)
+  readElevationPolicy.mockRejectedValue(new Error('current policy is unavailable'))
+  const loaded = await service.getSession(USER_ID, SESSION_ID)
+  expect(loaded.snapshot.tactical.tiles).toEqual(created.snapshot.tactical.tiles)
+  expect(loaded.snapshot.battlefieldElevationPolicy).toEqual(policy)
+  expect(readElevationPolicy).toHaveBeenCalledTimes(1)
 })

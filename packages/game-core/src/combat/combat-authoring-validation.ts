@@ -1,3 +1,7 @@
+import {
+  validateCurrentAreaTargetRecipients,
+  validateVersionedCombatTargetSpec,
+} from './combat-targeting-shapes'
 import { assertCurrentCombatStatusId } from './retired-combat-statuses'
 import { validateCombatStatusCopyAction } from './combat-status-copy'
 import { validateCombatAccuracyDefinition } from './combat-skill-accuracy'
@@ -28,6 +32,8 @@ export function validateCombatActionDefinition(
   action: CombatActionDefinition,
   content?: CombatContentCatalog,
 ): void {
+  validateVersionedCombatTargetSpec(action.target)
+  validateCurrentAreaTargetRecipients(action)
   validateCombatStatusCopyAction(action)
   validateVengeanceActionDefinition(action)
   validateCsrActionDefinition(action)
@@ -54,7 +60,11 @@ export function validateCombatActionDefinition(
     ['enemies-only', 'allies-only', 'all-units', 'all-except-actor'],
     'friendly-fire policy',
   )
-  knownString(action.target.shape.kind, ['single', 'circle', 'line'], 'target shape kind')
+  knownString(action.target.shape.kind, ['single', 'circle', 'line', 'all'], 'target shape kind')
+  if (action.target.geometryVersion !== undefined && action.target.geometryVersion !== 2)
+    throw new TypeError('Invalid geometry version.')
+  if (action.target.shape.kind === 'all' && action.target.geometryVersion !== 2)
+    throw new TypeError('All requires geometry version 2.')
   boolean(action.target.requiresLineOfSight, 'requiresLineOfSight')
   boolean(action.cost.spendsAction, 'spendsAction')
   nonNegativeSafeInteger(action.target.minimumRange, 'minimum range')

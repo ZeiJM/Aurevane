@@ -1,3 +1,4 @@
+import { percentageDotMagnitude } from './combat-percentage-dots'
 import type {
   CombatActionDefinition,
   CombatContentCatalog,
@@ -289,6 +290,7 @@ function targetPresentationTag(action: Pick<CombatActionDefinition, 'target'>): 
 function shapePresentationTag(action: Pick<CombatActionDefinition, 'target'>): string {
   const shape = action.target.shape
   if (shape.kind === 'single') return 'Single'
+  if (shape.kind === 'all') return 'All'
   if (shape.kind === 'circle') return `Circle [${shape.radius}]`
   return `Line [${shape.length}]`
 }
@@ -298,6 +300,17 @@ export function combatEffectPresentationTags(effect: CombatEffectDefinition): re
 }
 
 function effectPresentationTags(effect: PresentationEffect): readonly string[] {
+  if (['burn', 'poison', 'bleed'].includes(effect.type) && effect.damageProfile) {
+    const typed = effect as unknown as Extract<
+      CombatEffectDefinition,
+      { type: 'burn' | 'poison' | 'bleed' }
+    >
+    const name = effect.type[0]!.toUpperCase() + effect.type.slice(1)
+    const ticks = typed.type === 'bleed' ? typed.ticks : typed.durationTurns
+    return [
+      `${name} [${percentageDotMagnitude(typed)}] [${ticks} ${ticks === 1 ? 'turn' : 'turns'}]`,
+    ]
+  }
   if (effect.type === 'damage') {
     const element =
       effect.element === 'water'

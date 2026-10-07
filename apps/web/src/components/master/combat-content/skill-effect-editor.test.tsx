@@ -11,6 +11,44 @@ function render(effect: CombatEffectDefinition): string {
   )
 }
 
+describe('Master percentage DoT controls', () => {
+  it.each(['poison', 'bleed', 'burn'] as const)(
+    'edits %s percentages instead of fixed HP',
+    (type) => {
+      const effect: CombatEffectDefinition =
+        type === 'bleed'
+          ? {
+              type,
+              recipient: 'primary-unit',
+              ticks: 3,
+              damageProfile: { kind: 'attack-percentage', basisPoints: 1234 },
+            }
+          : {
+              type,
+              recipient: 'primary-unit',
+              durationTurns: 3,
+              damageProfile: {
+                kind: 'attack-percentage',
+                basisPoints: type === 'burn' ? 2500 : 1234,
+                ...(type === 'burn' ? { decayBasisPointsPerTick: 500 } : {}),
+              },
+            }
+      const html = render(effect)
+      expect(html).toContain(
+        type === 'burn'
+          ? 'First tick (% of attack damage)'
+          : 'Damage per tick (% of attack damage)',
+      )
+      expect(html).not.toContain('aria-label="Effect power"')
+      expect(html).not.toContain('aria-label="Bleed damage per tick"')
+      if (type === 'burn') {
+        expect(html).toContain('Decay per tick (percentage points)')
+        expect(html).toContain('25% → 20% → 15%')
+      } else expect(html).toContain('value="12.34"')
+    },
+  )
+})
+
 describe('Master Panel Skill effect editor', () => {
   it.each([
     ['damage', { type: 'damage', recipient: 'primary-unit', amount: 8 }],
@@ -194,14 +232,18 @@ describe('Master Panel Skill effect editor', () => {
       ticks: 4,
       curseCopyable: true,
     })
-    expect(bleed).toContain('aria-label="Bleed damage per tick"')
-    expect(bleed).toContain('aria-label="Bleed ticks"')
+    expect(bleed).toContain('Damage per tick (% of attack damage)')
+    expect(bleed).toContain('aria-label="Effect duration (turns)"')
     expect(bleed).toContain('max="4"')
 
     for (const type of ['poison', 'burn'] as const) {
       const dot = render({ type, recipient: 'primary-unit', curseCopyable: true })
       expect(dot).toContain('aria-label="Curse-copyable"')
-      expect(dot).toContain('aria-label="Effect power"')
+      expect(dot).toContain(
+        type === 'burn'
+          ? 'First tick (% of attack damage)'
+          : 'Damage per tick (% of attack damage)',
+      )
       expect(dot).toContain('aria-label="Effect duration (turns)"')
     }
 

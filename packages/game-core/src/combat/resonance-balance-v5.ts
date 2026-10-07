@@ -61,6 +61,7 @@ function tunePrimaryEffect(effect: CombatEffectDefinition): CombatEffectDefiniti
     case 'poison':
       return { ...effect, power: 4, durationTurns: durationFor(effect) }
     case 'bleed':
+      if (effect.damageProfile) return effect
       return {
         ...effect,
         damagePerTick: clamp(effect.damagePerTick, 2, 4),

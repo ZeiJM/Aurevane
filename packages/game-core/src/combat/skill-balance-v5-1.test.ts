@@ -168,8 +168,13 @@ describe('Combat v5.1 current Technique catalog', () => {
     }
   })
 
-  it('centers the current non-self range distribution on 3', () => {
+  it('preserves the pre-geometry v5.1 non-self range distribution on 3', () => {
     const ranges = latestEnabledMatureSkills()
+      .map((skill) =>
+        skill.target.geometryVersion === 2
+          ? resolveMatureSkillVersion(skill.id, skill.contentVersion - 1)!
+          : skill,
+      )
       .filter((skill) => skill.target.kind !== 'self')
       .map((skill) => skill.target.maximumRange)
       .sort((left, right) => left - right)

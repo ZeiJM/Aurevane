@@ -1,3 +1,4 @@
+import { readBattlefieldElevationPolicy } from '@/server/master/battlefield-elevation-policy-store'
 import { readCombatEffectTimingPolicy } from '@/server/master/combat-effect-timing-policy-store'
 import { omitPendingBattlePayloads } from './battle-live-viewer-projection'
 import 'server-only'
@@ -31,7 +32,12 @@ import {
 } from '@aurevane/game-core/combat/stat-driven-combat'
 import { getTacticalHallArena } from '@aurevane/game-core/combat/tactical-hall-arenas'
 import { AurevaneError } from '@aurevane/game-core/errors'
-import { createStandardBattlefieldTiles } from '@aurevane/game-core/combat/standard-battlefield'
+import {
+  defaultBattlefieldElevationPolicy,
+  parseBattlefieldElevationPolicy,
+  type BattlefieldElevationPolicy,
+  createStandardBattlefieldTiles,
+} from '@aurevane/game-core/combat/standard-battlefield'
 import type { PvpMode } from '@aurevane/validation/combat/pvp'
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
@@ -377,6 +383,7 @@ export function createPvpEncounter(
   roster: readonly PvpEncounterRosterEntry[],
   teamSizes: readonly [number, number, number],
   buildAuthority?: BattleBuildAuthoritySnapshot,
+  elevationPolicy: BattlefieldElevationPolicy = defaultBattlefieldElevationPolicy(),
 ): BattleAuthoritativeEncounterState {
   const arena = getTacticalHallArena('duel-yard')
   const profiles = []
@@ -455,6 +462,7 @@ export function createPvpEncounter(
           height: arena.height,
           terrains: P2_2_VERTICAL_SLICE_TERRAINS,
           tiles: createStandardBattlefieldTiles({
+            elevationPolicy,
             width: arena.width,
             height: arena.height,
             seed: battle.rng.seed,
@@ -470,6 +478,7 @@ export function createPvpEncounter(
 
   return {
     ...encounter,
+    battlefieldElevationPolicy: parseBattlefieldElevationPolicy(elevationPolicy),
     buildAuthority:
       buildAuthority ??
       createBattleBuildAuthoritySnapshot(
@@ -623,9 +632,12 @@ export async function startPvpLobby(
     })),
     createServerCombatContentResolver(),
   )
-  const encounter = createPvpEncounter(roster, lobby.teamSizes, buildAuthority)
+  const elevationPolicy = parseBattlefieldElevationPolicy(await readBattlefieldElevationPolicy())
+  const encounter = createPvpEncounter(roster, lobby.teamSizes, buildAuthority, elevationPolicy)
+  encounter.battlefieldElevationPolicy = elevationPolicy
   encounter.effectTimingPolicy = await readCombatEffectTimingPolicy()
   encounter.effectStackingPolicyVersion = 1
+  encounter.percentageDotPolicyVersion = 1
   const battle = encounter.tactical.battle
   const supabase = createSupabaseAdminClient()
   const { data, error } = await supabase.rpc('create_pvp_battle_session_v1', {

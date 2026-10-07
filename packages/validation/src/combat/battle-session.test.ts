@@ -117,3 +117,24 @@ describe('AI Sparring participant validation', () => {
     ).toBeNull()
   })
 })
+
+describe('strict targeting decisions', () => {
+  const request = (target: unknown) => ({
+    idempotencyKey: IDEMPOTENCY_KEY,
+    expectedBattleVersion: 3,
+    intent: { kind: 'action', actionId: 'skill.line', target },
+  })
+  it.each(['north', 'east', 'south', 'west'])('accepts %s direction', (direction) =>
+    expect(parseBattleIntentRequest(request({ kind: 'direction', direction }))).not.toBeNull(),
+  )
+  it('accepts one area activation', () =>
+    expect(parseBattleIntentRequest(request({ kind: 'activate' }))).not.toBeNull())
+  it.each([
+    { kind: 'direction', direction: 'diagonal' },
+    { kind: 'activate', victims: ['enemy'] },
+    { kind: 'activate', tiles: [{ x: 1, y: 1 }] },
+    { kind: 'direction', direction: 'north', combatantId: 'enemy' },
+  ])('rejects malformed or supplied coverage %j', (target) =>
+    expect(parseBattleIntentRequest(request(target))).toBeNull(),
+  )
+})

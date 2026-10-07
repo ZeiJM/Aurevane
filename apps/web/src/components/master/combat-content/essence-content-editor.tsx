@@ -1,5 +1,7 @@
 'use client'
 
+import { normalizeCurrentCombatTargetSpec } from '@aurevane/game-core/combat/combat-targeting-shapes'
+
 import type { EssenceDefinition } from '@aurevane/game-core/combat/essence'
 import { isMaterializedCombatEffect } from '@aurevane/game-core/combat/summon-content'
 import { useRouter } from 'next/navigation'
@@ -79,7 +81,13 @@ export function EssenceContentEditor({ essences, initialEssenceId }: EssenceCont
     Object.fromEntries(
       essences.map((essence) => [
         essence.id,
-        structuredClone(essence.initialDraft ?? essence.definition),
+        (() => {
+          const draft = structuredClone(essence.initialDraft ?? essence.definition)
+          return {
+            ...draft,
+            skill: { ...draft.skill, target: normalizeCurrentCombatTargetSpec(draft.skill.target) },
+          }
+        })(),
       ]),
     ),
   )

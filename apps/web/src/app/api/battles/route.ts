@@ -1,3 +1,4 @@
+import { readBattlefieldElevationPolicy } from '@/server/master/battlefield-elevation-policy-store'
 import { readCombatEffectTimingPolicy } from '@/server/master/combat-effect-timing-policy-store'
 import { AurevaneError } from '@aurevane/game-core/errors'
 import { parseBattleSessionCreateRequest } from '@aurevane/validation/combat/battle-session'
@@ -50,6 +51,7 @@ export async function POST(request: Request) {
       builds: createSupabaseCharacterBuildRepository(),
       combatContentResolver: createServerCombatContentResolver(),
       readEffectTimingPolicy: readCombatEffectTimingPolicy,
+      readElevationPolicy: readBattlefieldElevationPolicy,
     }).createSession({
       userId: actor.userId,
       characterId: parsed.characterId,

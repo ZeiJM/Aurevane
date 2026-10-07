@@ -1,3 +1,4 @@
+import { estimatedPercentageDotTotal } from './combat-percentage-dot-roster'
 import { ADVANCED_DISCIPLINES } from '../character/advanced-disciplines'
 import {
   foundationDisciplineAttributePolicy,
@@ -314,8 +315,10 @@ function skillMetric(
     return total + Math.floor((mitigated * facingMultiplier) / 10_000)
   }, 0)
   const attritionDamage = definition.effects.reduce((total, effect) => {
+    const percentage = estimatedPercentageDotTotal(effect, directDamage)
+    if (percentage !== null) return total + percentage
     if (effect.type === 'burn') return total + 8
-    if (effect.type === 'bleed') return total + effect.damagePerTick * effect.ticks
+    if (effect.type === 'bleed') return total + (effect.damagePerTick ?? 0) * effect.ticks
     if (effect.type === 'poison') return total + 8
     return total
   }, 0)
@@ -572,6 +575,7 @@ function controlApSwing(effects: readonly MatureSkillEffectDefinition[]): number
 
 function assumedAreaTargets(definition: MatureSkillDefinition): number {
   if (definition.target.shape.kind === 'single') return 1
+  if (definition.target.shape.kind === 'all') return 4
   if (definition.target.shape.kind === 'circle') {
     return Math.min(4, 1 + definition.target.shape.radius)
   }

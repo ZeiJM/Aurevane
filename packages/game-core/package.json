@@ -57,6 +57,7 @@
     "./combat/combat-skill-copy": "./src/combat/combat-skill-copy.ts",
     "./combat/combat-status-copy": "./src/combat/combat-status-copy.ts",
     "./events/persistent-event": "./src/events/persistent-event.ts",
+    "./combat/combat-percentage-dots": "./src/combat/combat-percentage-dots.ts",
     "./combat/combat-dots": "./src/combat/combat-dots.ts",
     "./combat/combat-cleanse": "./src/combat/combat-cleanse.ts",
     "./combat/combat-level-scaling": "./src/combat/combat-level-scaling.ts",
@@ -68,7 +69,10 @@
     "./combat/support-actions": "./src/combat/support-actions.ts",
     "./combat/combat-effect-timing": "./src/combat/combat-effect-timing.ts",
     "./combat/combat-stat-balance": "./src/combat/combat-stat-balance.ts",
-    "./combat/combat-status-resistance": "./src/combat/combat-status-resistance.ts"
+    "./combat/combat-status-resistance": "./src/combat/combat-status-resistance.ts",
+    "./combat/combat-percentage-dot-roster": "./src/combat/combat-percentage-dot-roster.ts",
+    "./combat/combat-targeting-shapes": "./src/combat/combat-targeting-shapes.ts",
+    "./combat/combat-targeting-roster": "./src/combat/combat-targeting-roster.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

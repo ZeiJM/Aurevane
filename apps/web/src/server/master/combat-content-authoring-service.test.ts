@@ -1,3 +1,4 @@
+import { createPercentageDotSkillVersion } from '@aurevane/game-core/combat/combat-percentage-dot-roster'
 import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
@@ -107,6 +108,165 @@ function invalidVariant(mutator: (definition: Record<string, unknown>) => void):
 }
 
 describe('combat content authoring service', () => {
+  it('reconciles a historical published custom DoT through the existing expected-version authority', async () => {
+    const { store, service } = serviceFixture()
+    store.operators.set(OWNER, 'owner')
+    const builtIn = staticSkill('ravager.gash')
+    const fixed = staticSkill(builtIn.id, builtIn.contentVersion - 1)
+    const custom = {
+      ...fixed,
+      apCost: 60,
+      flavorLine: 'Owner authored flavor.',
+      battleText: '{actor} opens a fresh wound.',
+      media: { ...fixed.media },
+      target: { ...fixed.target, maximumRange: 2 },
+    }
+    const original = await store.repository.publish({
+      contentKey: custom.id,
+      contentKind: 'skill',
+      definition: custom as unknown as Record<string, unknown>,
+      expectedBaseVersion: fixed.contentVersion,
+      actorUserId: OWNER,
+    })
+    const before = await resolverFor(store).resolveCurrentSkillDefinition(custom.id)
+    expect(before).toEqual(original.definition)
+    const converted = createPercentageDotSkillVersion(before!)!
+    expect(converted).toMatchObject({
+      apCost: 60,
+      flavorLine: custom.flavorLine,
+      battleText: custom.battleText,
+      media: custom.media,
+      target: custom.target,
+    })
+    const published = await service.publishSkill({
+      actorUserId: OWNER,
+      definition: converted,
+      expectedBaseVersion: original.contentVersion,
+    })
+    expect(
+      await resolverFor(store).resolvePinnedSkillDefinition(custom.id, original.contentVersion),
+    ).toEqual(original.definition)
+    expect(await resolverFor(store).resolveCurrentSkillDefinition(custom.id)).toEqual(
+      published.definition,
+    )
+    expect(published.definition.effects).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          damageProfile: { kind: 'attack-percentage', basisPoints: 2000 },
+        }),
+      ]),
+    )
+    await expect(
+      service.publishSkill({
+        actorUserId: OWNER,
+        definition: converted,
+        expectedBaseVersion: original.contentVersion,
+      }),
+    ).rejects.toMatchObject({ code: 'STALE_VERSION' })
+    expect(before!.effects.find((effect) => effect.type === 'bleed')).not.toHaveProperty(
+      'damageProfile',
+    )
+    expect(await store.listPublishedVersions(custom.id)).toHaveLength(2)
+  })
+
+  it('uses the percentage built-in without database publication when no override exists', async () => {
+    const { store } = serviceFixture()
+    const builtIn = staticSkill('wildwarden.venom-shot')
+    expect(await resolverFor(store).resolveCurrentSkillDefinition(builtIn.id)).toEqual(builtIn)
+    expect(await store.findPublished(builtIn.id)).toBeNull()
+    expect(await store.listPublishedVersions(builtIn.id)).toEqual([])
+    expect(await store.findDraft(builtIn.id)).toBeNull()
+  })
+
+  it('validates edited percentages and rejects standalone or generic DoT publication', () => {
+    const { service } = serviceFixture()
+    const skill = staticSkill('ravager.gash')
+    const edited = {
+      ...skill,
+      effects: skill.effects.map((effect) =>
+        effect.type === 'bleed'
+          ? {
+              ...effect,
+              damagePerTick: undefined,
+              damageProfile: { kind: 'attack-percentage' as const, basisPoints: 1234 },
+            }
+          : effect,
+      ),
+    }
+    expect(service.validateSkillDefinition(edited).valid).toBe(true)
+    expect(
+      service.validateSkillDefinition({
+        ...edited,
+        effects: edited.effects.filter((effect) => effect.type !== 'damage'),
+      }).valid,
+    ).toBe(false)
+    expect(
+      service.validateSkillDefinition({
+        ...edited,
+        effects: [{ type: 'apply-status', recipient: 'primary-unit', statusId: 'burn', stacks: 1 }],
+      }).valid,
+    ).toBe(false)
+  })
+
+  it('round-trips an Owner percentage through save, preview and immutable publication', async () => {
+    const { store, service } = serviceFixture()
+    store.operators.set(OWNER, 'owner')
+    const skill = staticSkill('ravager.gash')
+    const edited = {
+      ...skill,
+      effects: skill.effects.map((effect) =>
+        effect.type === 'bleed'
+          ? {
+              ...effect,
+              damagePerTick: undefined,
+              damageProfile: { kind: 'attack-percentage' as const, basisPoints: 1234 },
+            }
+          : effect,
+      ),
+    }
+    const draft = await service.saveSkillDraft({
+      actorUserId: OWNER,
+      definition: edited,
+      baseVersion: skill.contentVersion,
+      expectedDraftVersion: null,
+    })
+    expect(draft.definition).toMatchObject({
+      effects: expect.arrayContaining([
+        expect.objectContaining({
+          damageProfile: { kind: 'attack-percentage', basisPoints: 1234 },
+        }),
+      ]),
+    })
+    await expect(
+      service.previewSkillDefinition({ actorUserId: OWNER, definition: edited }),
+    ).resolves.toBeDefined()
+    const published = await service.publishSkill({
+      actorUserId: OWNER,
+      definition: edited,
+      expectedBaseVersion: skill.contentVersion,
+    })
+    const current = await resolverFor(store).resolveCurrentSkillDefinition(skill.id)
+    expect(current).toEqual(published.definition)
+    expect(current?.effects.find((effect) => effect.type === 'bleed')).toMatchObject({
+      damageProfile: { kind: 'attack-percentage', basisPoints: 1234 },
+    })
+    expect(staticSkill(skill.id, skill.contentVersion)).toEqual(skill)
+    await expect(
+      service.publishSkill({
+        actorUserId: OWNER,
+        definition: edited,
+        expectedBaseVersion: skill.contentVersion,
+      }),
+    ).rejects.toMatchObject({ code: 'STALE_VERSION' })
+    await expect(
+      service.publishSkill({
+        actorUserId: OUTSIDER,
+        definition: edited,
+        expectedBaseVersion: published.contentVersion,
+      }),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' })
+  })
+
   it('rejects partial Cleanse in a Resonance Result without changing Dispel', () => {
     const { service } = serviceFixture()
     const base = resolveResonanceForPair('dawnshield', 'vanguard')!
@@ -695,5 +855,79 @@ describe('Combat v5.1 Master authoring bounds', () => {
     expect(elevation.issues).toContainEqual(
       expect.objectContaining({ path: 'target.maximumElevationDifference' }),
     )
+  })
+})
+
+describe('current targeting authoring', () => {
+  function area(shape: MatureSkillDefinition['target']['shape']) {
+    const base = staticSkill()
+    return {
+      ...base,
+      target: {
+        ...base.target,
+        geometryVersion: 2 as const,
+        shape,
+        minimumRange: 0,
+        maximumRange:
+          shape.kind === 'circle' ? shape.radius : shape.kind === 'line' ? shape.length : 0,
+        requiresLineOfSight: shape.kind === 'all' ? false : base.target.requiresLineOfSight,
+      },
+      effects: base.effects.map((effect) =>
+        effect.recipient === 'primary-unit'
+          ? { ...effect, recipient: 'affected-units' as const }
+          : effect,
+      ),
+    }
+  }
+  it.each([{ kind: 'line', length: 3 }, { kind: 'circle', radius: 2 }, { kind: 'all' }] as const)(
+    'round trips %j preview/draft/publication with canonical command',
+    async (shape) => {
+      const { store, service } = serviceFixture()
+      store.operators.set(OWNER, 'owner')
+      const definition = area(shape)
+      expect(service.validateSkillDefinition(definition).valid).toBe(true)
+      const preview = await service.previewSkillDefinition({ actorUserId: OWNER, definition })
+      expect(preview.legal).toBe(true)
+      expect(preview.targeting.selection).toEqual(
+        shape.kind === 'line' ? { kind: 'direction', direction: 'east' } : { kind: 'activate' },
+      )
+      const saved = await service.saveSkillDraft({
+        actorUserId: OWNER,
+        definition,
+        baseVersion: definition.contentVersion,
+        expectedDraftVersion: null,
+      })
+      expect(saved.definition.target).toEqual(definition.target)
+      const published = await service.publishSkill({
+        actorUserId: OWNER,
+        definition,
+        expectedBaseVersion: definition.contentVersion,
+      })
+      expect(published.definition.target).toEqual(definition.target)
+      await expect(
+        service.publishSkill({
+          actorUserId: OWNER,
+          definition,
+          expectedBaseVersion: definition.contentVersion,
+        }),
+      ).rejects.toMatchObject({ code: 'STALE_VERSION' })
+    },
+  )
+  it.each([
+    { shape: { kind: 'all' }, minimumRange: 1 },
+    { shape: { kind: 'all' }, maximumRange: 5 },
+    { shape: { kind: 'all' }, requiresLineOfSight: true },
+    { shape: { kind: 'circle', radius: 0 } },
+    { shape: { kind: 'circle', radius: 6 } },
+    { shape: { kind: 'line', length: 1.5 } },
+    { shape: { kind: 'line', length: 3 }, maximumRange: 5 },
+    { shape: { kind: 'circle', radius: 2 }, minimumRange: 1 },
+    { shape: { kind: 'all' }, kind: 'self' },
+  ])('rejects contradictory authoring %j', (patch) => {
+    const { service } = serviceFixture()
+    const base = area({ kind: 'all' })
+    expect(
+      service.validateSkillDefinition({ ...base, target: { ...base.target, ...patch } }).valid,
+    ).toBe(false)
   })
 })

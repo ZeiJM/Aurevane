@@ -88,6 +88,7 @@ async function battleBuildExtensions(
         const override = combatContext ? definition.overrides[combatContext] : undefined
         return {
           definition,
+          target: definition.target,
           id: definition.id,
           contentVersion: definition.contentVersion,
           sourceDisciplineId: definition.sourceDisciplineId,
@@ -131,6 +132,7 @@ async function battleBuildExtensions(
     essence: essenceDefinition
       ? {
           definition: essenceDefinition.skill,
+          target: essenceDefinition.skill.target,
           id: essenceDefinition.skill.id,
           contentVersion: essenceDefinition.contentVersion,
           name: essenceDefinition.name,

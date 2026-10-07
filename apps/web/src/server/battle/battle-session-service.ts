@@ -48,6 +48,9 @@ import { getTacticalHallRecord } from '@aurevane/game-core/combat/tactical-hall-
 import {
   createStandardBattlefieldTiles,
   randomizeRaisedTileHeights,
+  defaultBattlefieldElevationPolicy,
+  parseBattlefieldElevationPolicy,
+  type BattlefieldElevationPolicy,
 } from '@aurevane/game-core/combat/standard-battlefield'
 import { AurevaneError, StaleBattleVersionError } from '@aurevane/game-core/errors'
 import {
@@ -159,6 +162,7 @@ interface Dependencies {
   builds?: CharacterBuildRepository
   combatContentResolver?: CombatContentResolver
   readEffectTimingPolicy?: () => Promise<CombatEffectTimingPolicy>
+  readElevationPolicy?: () => Promise<BattlefieldElevationPolicy>
 }
 
 function battleIntentPrivacyKind(kind: BattleIntent['kind']): BattlePrivacyCommandKind {
@@ -226,6 +230,7 @@ function createVerticalSliceEncounter(
   committedBuild: CharacterActiveBuildRecord | null,
   allyCount: number,
   enemyCount: number,
+  elevationPolicy: BattlefieldElevationPolicy,
 ): StatDrivenCombatEncounterState {
   const arena = getTacticalHallArena(arenaId)
   const playerCombatantId = `character:${character.id}`
@@ -343,6 +348,7 @@ function createVerticalSliceEncounter(
       tiles:
         battleHallRecordId === 'recruit-sparring' && arena.scale === 'duel'
           ? createStandardBattlefieldTiles({
+              elevationPolicy,
               width: arena.width,
               height: arena.height,
               seed: battle.rng.seed,
@@ -351,7 +357,7 @@ function createVerticalSliceEncounter(
                 ...recruitPlacements.map((placement) => placement.position),
               ],
             })
-          : randomizeRaisedTileHeights(arena.tiles, battle.rng.seed),
+          : randomizeRaisedTileHeights(arena.tiles, battle.rng.seed, elevationPolicy),
       movementProfiles: [
         playerMovementProfile,
         {
@@ -599,6 +605,7 @@ export function createBattleSessionService({
   builds,
   combatContentResolver,
   readEffectTimingPolicy,
+  readElevationPolicy,
 }: Dependencies): BattleSessionService {
   return {
     async createSession(command) {
@@ -655,6 +662,9 @@ export function createBattleSessionService({
       // Battle Hall difficulty is server-owned: full duels always use High AI,
       // while guided/legacy teaching records stay Easy regardless of client input.
       const aiDifficulty = authoritativeBattleHallAiDifficulty(battleHallRecordId)
+      const elevationPolicy = parseBattlefieldElevationPolicy(
+        readElevationPolicy ? await readElevationPolicy() : defaultBattlefieldElevationPolicy(),
+      )
       const baseEncounter = createVerticalSliceEncounter(
         character,
         arenaId,
@@ -663,11 +673,14 @@ export function createBattleSessionService({
         committedBuild,
         allyCount,
         enemyCount,
+        elevationPolicy,
       )
+      baseEncounter.battlefieldElevationPolicy = elevationPolicy
       baseEncounter.effectTimingPolicy = readEffectTimingPolicy
         ? await readEffectTimingPolicy()
         : defaultCombatEffectTimingPolicy()
       baseEncounter.effectStackingPolicyVersion = 1
+      baseEncounter.percentageDotPolicyVersion = 1
       let encounter: BattleAuthoritativeEncounterState = baseEncounter
       if (builds) {
         if (!committedBuildSnapshot) {

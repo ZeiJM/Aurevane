@@ -347,3 +347,28 @@ describe('Combat v5.1 summon AI', () => {
     expect(['move', 'face', 'end-turn']).toContain(next.intent.kind)
   })
 })
+
+it('uses a shared full cardinal lane for a versioned summon ability', () => {
+  const base = summonProfile().abilities[0]!
+  const profile = summonProfile({
+    abilities: [
+      {
+        ...base,
+        effects: [{ type: 'damage', recipient: 'affected-units', amount: 10 }],
+        target: {
+          ...base.target,
+          geometryVersion: 2,
+          shape: { kind: 'line', length: 3 },
+          minimumRange: 0,
+          maximumRange: 3,
+        },
+      },
+    ],
+  })
+  const { state, summon } = summonTurn(50, profile)
+  expect(chooseSummonAiDecision({ state, summon, tieBreakSeed: 17 }).intent).toMatchObject({
+    kind: 'action',
+    actionId: base.id,
+    target: { kind: 'direction', direction: 'east' },
+  })
+})

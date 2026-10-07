@@ -36,7 +36,10 @@ export type BattleStatusSummaryInput = Pick<
       | 'applicationModifiers'
     >
   > &
-  Pick<BattlePresentedStatus, 'presentationDuration'>
+  Pick<
+    BattlePresentedStatus,
+    'presentationDuration' | 'percentageDamage' | 'percentageDotProfile' | 'percentageDotStage'
+  >
 
 function compactPercent(value: number): string {
   const percent = Math.abs(value) / 100
@@ -100,6 +103,9 @@ export function aggregateBattleStatusStacks<T extends BattleStatusSummaryInput>(
       status.sourceScopedMark ? status.sourceCombatantId : undefined,
       status.potencyBasisPoints,
       status.applicationModifiers,
+      status.percentageDamage,
+      status.percentageDotProfile,
+      status.percentageDotStage,
     ])
     const existing = grouped.get(key)
     if (!existing) {

@@ -10,6 +10,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   groundSkill: false,
+  elevationPolicy: {
+    version: 1,
+    level1BasisPoints: 6000,
+    level2BasisPoints: 3000,
+    level3BasisPoints: 1000,
+  },
   mapSize: 'medium' as 'small' | 'medium' | 'large',
   terrainBias: 'neutral' as 'less' | 'neutral' | 'more',
   elevationBias: 'neutral' as 'less' | 'neutral' | 'more',
@@ -194,6 +200,8 @@ vi.mock('./pvp-lobby-service', () => ({
 vi.mock('@/lib/supabase/admin', () => ({
   createSupabaseAdminClient: () => ({
     rpc: async (name: string, args: Record<string, unknown>) => {
+      if (name === 'read_battlefield_elevation_policy_v1')
+        return { data: mocks.elevationPolicy, error: null }
       if (name === 'read_combat_effect_timing_policy_v1')
         return { data: { version: 1, modes: {} }, error: null }
       if (name === 'get_pvp_lobby_settings_v2') {
@@ -231,11 +239,35 @@ import { startPvpLobbyWithQuality } from './pvp-lobby-quality-service'
 
 describe('P3.7 direct PvP committed build snapshots', () => {
   beforeEach(() => {
+    mocks.elevationPolicy = {
+      version: 1,
+      level1BasisPoints: 6000,
+      level2BasisPoints: 3000,
+      level3BasisPoints: 1000,
+    }
     mocks.createdBattleArgs = null
     mocks.groundSkill = false
     mocks.mapSize = 'medium'
     mocks.terrainBias = 'neutral'
     mocks.elevationBias = 'neutral'
+  })
+
+  it('uses the published Owner height chances before creating a PvP snapshot', async () => {
+    mocks.elevationPolicy = {
+      version: 7,
+      level1BasisPoints: 0,
+      level2BasisPoints: 0,
+      level3BasisPoints: 10000,
+    }
+    await startPvpLobbyWithQuality(hostUserId, lobbyId)
+    const state = mocks.createdBattleArgs!.p_initial_snapshot as BattleAuthoritativeEncounterState
+    expect(state.battlefieldElevationPolicy).toEqual(mocks.elevationPolicy)
+    expect(state.tactical.tiles.some((tile) => tile.elevation > 0)).toBe(true)
+    expect(
+      state.tactical.tiles
+        .filter((tile) => tile.elevation > 0)
+        .every((tile) => tile.elevation === 3),
+    ).toBe(true)
   })
 
   it.each([
@@ -301,6 +333,7 @@ describe('P3.7 direct PvP committed build snapshots', () => {
       const state = mocks.createdBattleArgs!.p_initial_snapshot as BattleAuthoritativeEncounterState
       expect(state.statBalancePolicyVersion).toBe(1)
       expect(state.effectStackingPolicyVersion).toBe(1)
+      expect(state.percentageDotPolicyVersion).toBe(1)
       expect(state.tactical).toMatchObject({ width, height: 7 })
       expect(state.tactical.tiles).toHaveLength(count)
       expect(state.tactical.tiles.at(-1)?.position).toEqual({ x: width - 1, y: 6 })
@@ -544,46 +577,20 @@ describe('P3.7 direct PvP committed build snapshots', () => {
         },
       ])
       const previewService = createBattlePreviewService(repository, combatContentResolver)
-      const occupied = new Set(
-        before.snapshot.tactical.placements.map(
-          (placement) => `${placement.position.x},${placement.position.y}`,
-        ),
-      )
-      let intent: {
-        kind: 'action'
-        actionId: string
-        target: { kind: 'tile'; position: { x: number; y: number } }
-      } | null = null
-      let preview: Awaited<ReturnType<typeof previewService.previewIntent>> | null = null
-
-      for (const tile of before.snapshot.tactical.tiles) {
-        if (occupied.has(`${tile.position.x},${tile.position.y}`)) continue
-        const candidateIntent = {
-          kind: 'action' as const,
-          actionId: 'frostweaver.chilling-mist',
-          target: { kind: 'tile' as const, position: { ...tile.position } },
-        }
-        const candidatePreview = await previewService.previewIntent({
-          userId: hostUserId,
-          battleSessionId: record.battleSessionId,
-          expectedBattleVersion: record.battleVersion,
-          intent: candidateIntent,
-        })
-        if (
-          candidatePreview.preview.kind === 'action' &&
-          candidatePreview.preview.legal &&
-          candidatePreview.preview.affectedCombatantIds.length === 0 &&
-          candidatePreview.preview.projectedTerrain?.some((entry) => entry.after === 'frozen')
-        ) {
-          intent = candidateIntent
-          preview = candidatePreview
-          break
-        }
+      const intent = {
+        kind: 'action' as const,
+        actionId: 'frostweaver.chilling-mist',
+        target: { kind: 'activate' as const },
       }
-
-      if (!intent || !preview || preview.preview.kind !== 'action') {
-        throw new Error('Expected a legal empty-ground Chilling Mist preview.')
-      }
+      const preview = await previewService.previewIntent({
+        userId: hostUserId,
+        battleSessionId: record.battleSessionId,
+        expectedBattleVersion: record.battleVersion,
+        intent,
+      })
+      expect(currentMist.target.geometryVersion).toBe(2)
+      if (preview.preview.kind !== 'action')
+        throw new Error('Expected a caster-centered Chilling Mist preview.')
       expect(preview.preview).toMatchObject({
         legal: true,
         affectedCombatantIds: [],

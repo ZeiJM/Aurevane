@@ -33,6 +33,7 @@ export function techniqueMagnitudeBands(
     ['Barrier / effect', 'Barrier'],
     ['Displacement', 'tiles'],
     ['DOT damage / tick', 'HP'],
+    ['DOT attack damage (%)', '% attack HP damage'],
     ['Finite DOT duration', 'ticks'],
     ['Circle size', 'radius in tiles'],
     ['Line size', 'tiles'],
@@ -81,14 +82,33 @@ export function techniqueMagnitudeBands(
           add('Displacement', effect.distance)
           break
         case 'bleed':
-          add('DOT damage / tick', effect.damagePerTick)
+          if (effect.damageProfile)
+            add('DOT attack damage (%)', effect.damageProfile.basisPoints / 100)
+          else add('DOT damage / tick', effect.damagePerTick)
           add('Finite DOT duration', effect.ticks)
           break
         case 'burn':
+          if (effect.damageProfile) {
+            const ticks = effect.durationTurns ?? 3
+            for (let stage = 0; stage < ticks; stage++)
+              add(
+                'DOT attack damage (%)',
+                (effect.damageProfile.basisPoints -
+                  (effect.damageProfile.decayBasisPointsPerTick ?? 0) * stage) /
+                  100,
+              )
+            add('Finite DOT duration', ticks)
+            break
+          }
           CURRENT_BURN_DAMAGE_BY_STAGE.forEach((amount) => add('DOT damage / tick', amount))
           add('Finite DOT duration', CURRENT_BURN_DAMAGE_BY_STAGE.length)
           break
         case 'poison':
+          if (effect.damageProfile) {
+            add('DOT attack damage (%)', effect.damageProfile.basisPoints / 100)
+            add('Finite DOT duration', effect.durationTurns ?? 4)
+            break
+          }
           add('DOT damage / tick', CURRENT_POISON_DAMAGE)
           break
       }

@@ -1,3 +1,8 @@
+import {
+  isPercentageDotEffect,
+  percentageDotDescription,
+  percentageDotMagnitude,
+} from '@aurevane/game-core/combat/combat-percentage-dots'
 import { COMBAT_TERRAIN_OVERLAY_DETAILS } from '@aurevane/game-core/combat/terrain-overlays'
 import { PV1F_COMBAT_CONTENT } from '@aurevane/game-core/combat/pv1f-action-economy'
 import { combatStatusDetails } from '@aurevane/game-core/combat/status-content'
@@ -144,6 +149,12 @@ export function previewEffect(effect: MatureSkillEffectDefinition): PreviewEffec
         explanation: `Moves ${target} ${effect.direction === 'pull' ? 'toward you' : 'away'}; stops at blocked tiles or Rooted.`,
       }
     case 'burn': {
+      if (isPercentageDotEffect(effect))
+        return {
+          label: 'Burn',
+          magnitude: percentageDotMagnitude(effect),
+          explanation: percentageDotDescription('burn'),
+        }
       const turns = effect.durationTurns ?? CURRENT_BURN_DAMAGE_BY_STAGE.length
       const values =
         effect.power === undefined
@@ -156,12 +167,24 @@ export function previewEffect(effect: MatureSkillEffectDefinition): PreviewEffec
       }
     }
     case 'bleed':
+      if (isPercentageDotEffect(effect))
+        return {
+          label: 'Bleed',
+          magnitude: percentageDotMagnitude(effect),
+          explanation: percentageDotDescription('bleed'),
+        }
       return {
         label: 'Bleed',
         magnitude: `${effect.damagePerTick} × ${effect.ticks} ticks`,
         explanation: 'Fixed damage at turn end for each active application.',
       }
     case 'poison': {
+      if (isPercentageDotEffect(effect))
+        return {
+          label: 'Poison',
+          magnitude: percentageDotMagnitude(effect),
+          explanation: percentageDotDescription('poison'),
+        }
       const turns = effect.durationTurns
       return {
         label: 'Poison',

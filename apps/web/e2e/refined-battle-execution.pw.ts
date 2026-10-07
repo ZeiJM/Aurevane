@@ -1,4 +1,7 @@
-import { PV1F_ACTION_ECONOMY_RESOURCE_KEY } from '@aurevane/game-core/combat/pv1f-action-economy'
+import {
+  createPv1fBasicAttackDefinition,
+  PV1F_ACTION_ECONOMY_RESOURCE_KEY,
+} from '@aurevane/game-core/combat/pv1f-action-economy'
 import { expect, test, type Page } from '@playwright/test'
 import type { BattleSessionView } from '../src/server/battle/battle-session-service'
 import type { BattlePreviewView } from '../src/server/battle/battle-preview-service'
@@ -537,7 +540,7 @@ test('a rapid second Basic Attack commits without waiting for an informational f
   expect(initialAction.hitChanceBasisPoints).not.toBeNull()
   await expect
     .poll(async () =>
-      page.locator('#battlefield').evaluate((board) => {
+      page.locator('#battlefield').evaluate((board, maximumElevationDifference) => {
         const point = (tile: Element) =>
           tile
             .getAttribute('aria-label')!
@@ -549,6 +552,9 @@ test('a rapid second Basic Attack commits without waiting for an informational f
         )?.parentElement
         if (!origin) return false
         const [x, y] = point(origin)
+        const elevation = (tile: Element) =>
+          Number(tile.getAttribute('aria-label')!.match(/; elevation (\d+)/)![1])
+        const originElevation = elevation(origin)
         const adjacent = [...board.querySelectorAll('button[aria-label^="Tile "]')].filter(
           (tile) => {
             const [tx, ty] = point(tile)
@@ -557,13 +563,20 @@ test('a rapid second Basic Attack commits without waiting for an informational f
         )
         return (
           adjacent.length > 1 &&
-          adjacent.every(
-            (tile) =>
-              tile.getAttribute('data-attack-path') === 'true' &&
-              getComputedStyle(tile, '::after').backgroundColor === 'rgba(189, 38, 58, 0.22)',
-          )
+          // Movement can place the actor beside independently rolled level 2/3 tiles.
+          // Keep every hittable cardinal tile glowing, including empty ones, while
+          // preserving Basic Attack's authored elevation limit.
+          adjacent.every((tile) => {
+            const hittable =
+              maximumElevationDifference === null ||
+              Math.abs(elevation(tile) - originElevation) <= maximumElevationDifference
+            return hittable
+              ? tile.getAttribute('data-attack-path') === 'true' &&
+                  getComputedStyle(tile, '::after').backgroundColor === 'rgba(189, 38, 58, 0.22)'
+              : tile.getAttribute('data-attack-path') !== 'true'
+          })
         )
-      }),
+      }, createPv1fBasicAttackDefinition(1).target.maximumElevationDifference),
     )
     .toBe(true)
   await expect(page.getByLabel('Action preview', { exact: true })).toContainText(

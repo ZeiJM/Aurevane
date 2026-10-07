@@ -1,5 +1,6 @@
 'use client'
 
+import { normalizeCurrentCombatTargetSpec } from '@aurevane/game-core/combat/combat-targeting-shapes'
 import {
   matureSkillApCostBounds,
   type MatureSkillDefinition,
@@ -112,7 +113,17 @@ export function CombatContentEditor({ skills, initialSkillId }: CombatContentEdi
   const [drafts, setDrafts] = useState<Record<string, MatureSkillDefinition>>(() =>
     Object.fromEntries(
       skills.flatMap((skill) =>
-        skill.definition ? [[skill.id, structuredClone(skill.definition)] as const] : [],
+        skill.definition
+          ? [
+              [
+                skill.id,
+                {
+                  ...structuredClone(skill.definition),
+                  target: normalizeCurrentCombatTargetSpec(skill.definition.target),
+                },
+              ] as const,
+            ]
+          : [],
       ),
     ),
   )

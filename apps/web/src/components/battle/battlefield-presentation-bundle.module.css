@@ -6,6 +6,11 @@
 :global(
   main[data-battle-concept='true']
     section#battlefield
+    button[aria-label^='Tile '][data-buff-path='true']:not([data-attack-path='true'])
+),
+:global(
+  main[data-battle-concept='true']
+    section#battlefield
     button[aria-label^='Tile '][data-self-target='true']:not([data-attack-path='true'])
 ),
 :global(
@@ -45,6 +50,13 @@
 }
 
 /* Fill the visible tile corners, below the portrait and its identity ring. */
+:global(
+  main[data-battle-concept='true']
+    section#battlefield
+    button[aria-label^='Tile '][data-buff-path='true']:not([data-attack-path='true']):not(
+      [data-heal-target='true']
+    )
+)::after,
 :global(
   main[data-battle-concept='true']
     section#battlefield

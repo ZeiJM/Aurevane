@@ -7,6 +7,13 @@ import type {
 import type { CombatElement } from '@aurevane/game-core/combat/gameplay-tags'
 import { CLEANSE_STATUS_IDS, isCleanseEffect } from '@aurevane/game-core/combat/combat-cleanse'
 
+import { useId, useState } from 'react'
+import {
+  parsePercentageBasisPoints,
+  percentageBasisPointsText,
+  percentageDotSequence,
+} from '@aurevane/game-core/combat/combat-percentage-dots'
+
 import styles from './combat-content-editor.module.css'
 
 type DamageEffect = Extract<CombatEffectDefinition, { type: 'damage' }>
@@ -365,6 +372,138 @@ function damageEditor(value: DamageEffect, onChange: (next: CombatEffectDefiniti
   )
 }
 
+function PercentageInput({
+  label,
+  basisPoints,
+  allowZero = false,
+  onChange,
+}: {
+  label: string
+  basisPoints: number
+  allowZero?: boolean
+  onChange: (value: number) => void
+}) {
+  const id = useId()
+  const [draft, setDraft] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const display =
+    draft ?? (Number.isSafeInteger(basisPoints) ? percentageBasisPointsText(basisPoints) : '')
+  return (
+    <label className={styles.field}>
+      <span>{label}</span>
+      <input
+        aria-label={label}
+        type="text"
+        inputMode="decimal"
+        value={display}
+        aria-invalid={error !== null}
+        aria-describedby={error ? id : undefined}
+        onChange={(event) => {
+          const text = event.currentTarget.value
+          setDraft(text)
+          try {
+            onChange(parsePercentageBasisPoints(text, allowZero))
+            setError(null)
+          } catch {
+            setError(
+              'Enter ' + (allowZero ? '0' : '0.01') + '–100 with at most two decimal places.',
+            )
+            onChange(Number.NaN)
+          }
+        }}
+        onBlur={() => {
+          if (!error) setDraft(null)
+        }}
+      />
+      {error ? (
+        <span id={id} role="alert">
+          {error}
+        </span>
+      ) : null}
+    </label>
+  )
+}
+
+type DotEffect = Extract<CombatEffectDefinition, { type: 'burn' | 'poison' | 'bleed' }>
+function PercentageDotControls({
+  value,
+  onChange,
+}: {
+  value: DotEffect
+  onChange: (value: CombatEffectDefinition) => void
+}) {
+  const profile = value.damageProfile ?? {
+    kind: 'attack-percentage' as const,
+    basisPoints: value.type === 'burn' ? 2500 : value.type === 'poison' ? 1500 : 2000,
+    ...(value.type === 'burn' ? { decayBasisPointsPerTick: 500 } : {}),
+  }
+  const ticks =
+    value.type === 'bleed'
+      ? value.ticks
+      : (value.durationTurns ?? (value.type === 'poison' ? 4 : 3))
+  function changeProfile(next: typeof profile) {
+    const rest = { ...value }
+    delete rest.power
+    if (rest.type === 'bleed') {
+      const { damagePerTick, ...bleed } = rest
+      void damagePerTick
+      onChange({ ...bleed, damageProfile: next })
+      return
+    }
+    onChange({ ...rest, durationTurns: ticks, damageProfile: next })
+  }
+  let sequence: string
+  try {
+    sequence = percentageDotSequence(profile, ticks)
+  } catch {
+    sequence = 'Every scheduled percentage must be positive.'
+  }
+  return (
+    <div className={styles.typedGrid}>
+      {recipientField(
+        value.type[0]!.toUpperCase() + value.type.slice(1) + ' recipient',
+        value.recipient,
+        (recipient) => onChange({ ...value, recipient }),
+        ['primary-unit', 'affected-units'],
+      )}
+      <PercentageInput
+        label={
+          value.type === 'burn'
+            ? 'First tick (% of attack damage)'
+            : 'Damage per tick (% of attack damage)'
+        }
+        basisPoints={profile.basisPoints}
+        onChange={(basisPoints) => changeProfile({ ...profile, basisPoints })}
+      />
+      {value.type === 'burn' ? (
+        <>
+          <PercentageInput
+            label="Decay per tick (percentage points)"
+            basisPoints={profile.decayBasisPointsPerTick ?? 0}
+            allowZero
+            onChange={(decayBasisPointsPerTick) =>
+              changeProfile({ ...profile, decayBasisPointsPerTick })
+            }
+          />
+          <p className={styles.effectNote}>{sequence}</p>
+        </>
+      ) : null}
+      {!value.damageProfile ? (
+        <button type="button" onClick={() => changeProfile(profile)}>
+          Convert to attack percentage
+        </button>
+      ) : null}
+      {curseCopyableField(value.curseCopyable, (curseCopyable) =>
+        onChange({ ...value, curseCopyable }),
+      )}
+      <p className={styles.effectNote}>
+        Based on HP damage dealt by this attack. Add a direct Damage effect covering these
+        recipients.
+      </p>
+    </div>
+  )
+}
+
 function assertNever(value: never): never {
   throw new TypeError(`Unsupported combat effect editor variant: ${JSON.stringify(value)}`)
 }
@@ -638,80 +777,9 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
       break
 
     case 'poison':
-      controls = (
-        <div className={styles.typedGrid}>
-          {recipientField('Poison recipient', value.recipient, (recipient) =>
-            onChange({ ...value, recipient }),
-          )}
-          {curseCopyableField(value.curseCopyable, (curseCopyable) =>
-            onChange({ ...value, curseCopyable }),
-          )}
-          <p className={styles.effectNote}>
-            Uses the current engine-owned Poison movement profile.
-          </p>
-        </div>
-      )
-      break
-
     case 'bleed':
-      controls = (
-        <div className={styles.typedGrid}>
-          {recipientField('Bleed recipient', value.recipient, (recipient) =>
-            onChange({ ...value, recipient }),
-          )}
-          <label className={styles.field}>
-            <span>Bleed damage per tick</span>
-            <input
-              aria-label="Bleed damage per tick"
-              type="number"
-              min={1}
-              max={20}
-              step={1}
-              value={value.damagePerTick}
-              onChange={(event) =>
-                onChange({
-                  ...value,
-                  damagePerTick: integer(event.currentTarget.value, value.damagePerTick),
-                })
-              }
-            />
-          </label>
-          <label className={styles.field}>
-            <span>Bleed ticks</span>
-            <input
-              aria-label="Bleed ticks"
-              type="number"
-              min={1}
-              max={4}
-              step={1}
-              value={value.ticks}
-              onChange={(event) =>
-                onChange({ ...value, ticks: integer(event.currentTarget.value, value.ticks) })
-              }
-            />
-            <small className={styles.fieldHint}>
-              Per-stack raw total may not exceed 10 damage.
-            </small>
-          </label>
-          {curseCopyableField(value.curseCopyable, (curseCopyable) =>
-            onChange({ ...value, curseCopyable }),
-          )}
-        </div>
-      )
-      break
-
     case 'burn':
-      controls = (
-        <div className={styles.typedGrid}>
-          {recipientField('Burn recipient', value.recipient, (recipient) =>
-            onChange({ ...value, recipient }),
-          )}
-          {curseCopyableField(value.curseCopyable, (curseCopyable) =>
-            onChange({ ...value, curseCopyable }),
-          )}
-          <p className={styles.effectNote}>Uses the current engine-owned Burn stage profile.</p>
-        </div>
-      )
+      controls = <PercentageDotControls value={value} onChange={onChange} />
       break
 
     case 'barrier-change':
@@ -838,7 +906,6 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
                 : value.type === 'apply-status'
                   ? 2
                   : 0)
-  const supportsGenericPower = value.type === 'burn' || value.type === 'poison'
 
   function changeDuration(nextDuration: number) {
     const duration = Math.max(minimumDuration, Math.min(4, nextDuration))
@@ -881,27 +948,6 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
                 : 'Positive durations persist through that many future turns.'}
           </small>
         </label>
-
-        {supportsGenericPower ? (
-          <label className={styles.field}>
-            <span>Effect power</span>
-            <input
-              aria-label="Effect power"
-              type="number"
-              min={1}
-              max={20}
-              step={1}
-              value={value.power ?? 1}
-              onChange={(event) =>
-                onChange({
-                  ...value,
-                  power: Math.max(1, Math.min(20, integer(event.currentTarget.value, 1))),
-                })
-              }
-            />
-            <small className={styles.fieldHint}>Bounded authored power: 1–20.</small>
-          </label>
-        ) : null}
 
         {value.type === 'apply-status' && PERCENTAGE_STATUS_IDS.has(value.statusId) ? (
           <label className={styles.field}>

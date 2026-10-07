@@ -192,16 +192,18 @@ async function castOnEmptyGround(
   await page.keyboard.press('Escape')
   await expect(details).toHaveCount(0)
   const candidates = before.snapshot.tactical.tiles.filter((tile) => {
-    const distance =
-      Math.abs(tile.position.x - actor.position.x) + Math.abs(tile.position.y - actor.position.y)
     return (
-      distance >= 2 &&
-      distance <= 3 &&
+      Math.max(
+        Math.abs(tile.position.x - actor.position.x),
+        Math.abs(tile.position.y - actor.position.y),
+      ) >= 1 &&
+      Math.max(
+        Math.abs(tile.position.x - actor.position.x),
+        Math.abs(tile.position.y - actor.position.y),
+      ) <= 1 &&
       tile.elevation === 0 &&
       !before.snapshot.tactical.placements.some(
-        (row) =>
-          Math.abs(row.position.x - tile.position.x) + Math.abs(row.position.y - tile.position.y) <=
-          1,
+        (row) => row.position.x === tile.position.x && row.position.y === tile.position.y,
       )
     )
   })
@@ -215,15 +217,15 @@ async function castOnEmptyGround(
   })
   let chosen = candidates[0]!
   let legal = false
-  // Read-only server preflight finds legal empty ground without issuing a combat intent.
-  for (const candidate of candidates) {
+  // Read-only caster-centered activation preflight; the later tile gesture is deliberate confirmation.
+  {
     const response = await page.request.post(`/api/battles/${sessionId}/preview`, {
       data: {
         expectedBattleVersion: before.battleVersion,
         intent: {
           kind: 'action',
           actionId: 'frostweaver.chilling-mist',
-          target: { kind: 'tile', position: candidate.position },
+          target: { kind: 'activate' },
         },
       },
     })
@@ -234,9 +236,14 @@ async function castOnEmptyGround(
       for (const terrain of preview.projectedTerrain)
         expect(terrain).toMatchObject({ after: 'frozen', remainingRoundBoundaries: 2 })
       expect(preview.affectedCombatantIds).toHaveLength(0)
-      chosen = candidate
+      chosen = candidates.find((tile) =>
+        preview.affectedTiles.some(
+          (position: { x: number; y: number }) =>
+            position.x === tile.position.x && position.y === tile.position.y,
+        ),
+      )!
+      expect(chosen).toBeDefined()
       legal = true
-      break
     }
   }
   expect(legal).toBe(true)
@@ -342,7 +349,7 @@ async function castOnEmptyGround(
       intent: {
         kind: 'action',
         actionId: 'frostweaver.chilling-mist',
-        target: { kind: 'tile', position: chosen.position },
+        target: { kind: 'activate' },
       },
     })
   } finally {

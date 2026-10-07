@@ -11,10 +11,24 @@ import { createPendingBattle, startBattle } from '@aurevane/game-core/combat/bat
 import { createTacticalBattleState } from '@aurevane/game-core/combat/board'
 import { createCombatEncounterState } from '@aurevane/game-core/combat/actions'
 import { createStatDrivenCombatEncounterState } from '@aurevane/game-core/combat/stat-driven-combat'
+import {
+  evaluatePv1fMatureSkill,
+  executePv1fMatureSkill,
+  readPv1fActionEconomy,
+  evaluatePv1fAction,
+  executePv1fAction,
+} from '@aurevane/game-core/combat/pv1f-action-economy'
 import { createPv1fTemporaryResources } from '@aurevane/game-core/combat/pv1f-action-economy'
 import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
+import { resolveEssenceForBuild } from '@aurevane/game-core/combat/essence'
+import { SkillDetails } from '@/components/character/skill-details'
+import { BattleSkillParameters } from '@/components/battle/battle-skill-parameters'
+import { projectPercentageDotFixtureState } from './percentage-dot-viewer-state'
 import './production-styles'
 
+const targetingCase = new URLSearchParams(location.search).get('targeting')
+const dotCase = new URLSearchParams(location.search).get('dot')
+const dotPhase = new URLSearchParams(location.search).get('phase') || 'active'
 const ids = ['character:player', 'ally', 'enemy-one', 'enemy-two']
 const positions = [
   { x: 3, y: 3 },
@@ -22,6 +36,8 @@ const positions = [
   { x: 4, y: 3 },
   { x: 2, y: 3 },
 ]
+if (targetingCase || dotCase) positions[3] = { x: 5, y: 3 }
+
 const pending = createPendingBattle({
   battleId: 'fixture',
   rulesVersion: 1,
@@ -71,6 +87,8 @@ const snapshot = createStatDrivenCombatEncounterState(
     armor: index,
     ward: 0,
     jump: 1,
+    physicalPower: 20,
+    mysticPower: 20,
   })),
 )
 const initialBattle = {
@@ -133,6 +151,163 @@ const runtime = {
   essence: null,
   copiedSkills: [],
 }
+if (targetingCase) {
+  const base = resolveMatureSkillVersion(
+    targetingCase === 'heal'
+      ? 'lifebinder.mend'
+      : targetingCase === 'buff' || targetingCase === 'all-any'
+        ? 'bastion.steady-footing'
+        : targetingCase === 'all-ground'
+          ? 'frostweaver.chilling-mist'
+          : targetingCase.startsWith('circle')
+            ? 'vanguard.cleave'
+            : 'wildwarden.thorn-line',
+  )
+  const shape =
+    targetingCase === 'single'
+      ? { kind: 'single' }
+      : targetingCase === 'line' || targetingCase === 'legacy'
+        ? { kind: 'line', length: 3 }
+        : targetingCase.startsWith('circle')
+          ? { kind: 'circle', radius: Number(targetingCase.slice(-1)) }
+          : { kind: 'all' }
+  const historical =
+    targetingCase === 'legacy' ? resolveMatureSkillVersion(base.id, base.contentVersion - 1) : null
+  const definition = historical ?? {
+    ...base,
+    target: {
+      ...base.target,
+      geometryVersion: 2,
+      maximumElevationDifference: base.target.maximumElevationDifference ?? 2,
+      kind: targetingCase === 'all-ground' ? 'ground-tile' : 'unit',
+      teamPolicy:
+        targetingCase === 'all-any' || targetingCase === 'all-ground'
+          ? 'any'
+          : targetingCase === 'heal' || targetingCase === 'buff'
+            ? 'ally'
+            : 'enemy',
+      friendlyFire:
+        targetingCase === 'all-any' || targetingCase === 'all-ground'
+          ? 'all-units'
+          : targetingCase === 'heal' || targetingCase === 'buff'
+            ? 'allies-only'
+            : 'enemies-only',
+      shape,
+      minimumRange: shape.kind === 'single' ? 1 : 0,
+      maximumRange:
+        shape.kind === 'line'
+          ? shape.length
+          : shape.kind === 'circle'
+            ? shape.radius
+            : shape.kind === 'single'
+              ? 1
+              : 0,
+      requiresLineOfSight: shape.kind === 'all' ? false : base.target.requiresLineOfSight,
+    },
+    effects: base.effects.map((effect) =>
+      'recipient' in effect && effect.recipient !== 'affected-tiles'
+        ? { ...effect, recipient: 'affected-units' }
+        : effect,
+    ),
+  }
+  runtime.techniques = [
+    {
+      ...runtime.techniques[0],
+      definition,
+      id: definition.id,
+      contentVersion: definition.contentVersion,
+      apCost: definition.apCost,
+      mpCost: definition.mpCost ?? 0,
+      cooldownOwnerTurns: definition.cooldown?.ownerTurns ?? null,
+      sourceDisciplineId: definition.sourceDisciplineId,
+      iconKey: definition.media.iconKey,
+      name: 'Targeting Test',
+      category:
+        targetingCase === 'heal'
+          ? 'heal'
+          : targetingCase === 'buff' ||
+              targetingCase === 'all-any' ||
+              targetingCase === 'all-ground'
+            ? 'defense'
+            : 'attack',
+      target: definition.target,
+      targetKind: definition.target.kind,
+      targetTeamPolicy: definition.target.teamPolicy,
+      minimumRange: definition.target.minimumRange,
+      maximumRange: definition.target.maximumRange,
+      tags: definition.tags,
+    },
+  ]
+  window.targetingDefinition = definition
+}
+if (dotCase) {
+  const essence = dotCase.startsWith('essence-')
+    ? resolveEssenceForBuild(dotCase === 'essence-burn' ? 'cinderweaver' : 'ravager', null)
+    : null
+  const definition =
+    essence?.skill ??
+    resolveMatureSkillVersion(
+      { burn: 'cinderweaver.cinder-bolt', poison: 'wildwarden.venom-shot', bleed: 'ravager.gash' }[
+        dotCase
+      ],
+    )
+  const dot = definition.effects.find((effect) => ['burn', 'poison', 'bleed'].includes(effect.type))
+  const source = {
+    ...snapshot,
+    percentageDotPolicyVersion: 1,
+    effectStackingPolicyVersion: 1,
+    effectTimingPolicy: {
+      version: 1,
+      modes: { damage: 'instant', [dot.type]: dotPhase === 'pending' ? 'next-round' : 'instant' },
+    },
+  }
+  const target =
+    definition.target.geometryVersion === 2 && definition.target.shape.kind !== 'single'
+      ? definition.target.shape.kind === 'line'
+        ? { kind: 'direction', direction: 'east' }
+        : { kind: 'activate' }
+      : { kind: 'unit', combatantId: 'enemy-one' }
+  const transition = executePv1fMatureSkill(
+    source,
+    definition,
+    target,
+    mode === 'pvp' ? 'pvp' : 'pve',
+  )
+  initialBattle.snapshot = projectPercentageDotFixtureState(transition.state)
+  const presentation = {
+    ...runtime.techniques[0],
+    definition,
+    id: definition.id,
+    contentVersion: definition.contentVersion,
+    name: essence?.name ?? dotCase,
+    apCost: definition.apCost,
+    mpCost: definition.mpCost ?? 0,
+    cooldownOwnerTurns: definition.cooldown?.ownerTurns ?? null,
+    sourceDisciplineId: definition.sourceDisciplineId,
+    iconKey: definition.media.iconKey,
+    category: 'attack',
+    target: definition.target,
+    targetKind: definition.target.kind,
+    targetTeamPolicy: definition.target.teamPolicy,
+    minimumRange: definition.target.minimumRange,
+    maximumRange: definition.target.maximumRange,
+    tags: definition.tags,
+  }
+  runtime.techniques = essence ? [] : [presentation]
+  runtime.essence = essence ? { ...presentation, description: essence.description } : null
+  window.dotDefinition = definition
+  window.dotReceipt = transition.events
+  window.dotType = dot.type
+  window.dotPresentation = presentation
+  window.dotCapturedDamage = transition.events
+    .filter(
+      (event) =>
+        event.event === 'damage_applied' &&
+        event.targetCombatantId === 'enemy-one' &&
+        event.actionId === definition.id,
+    )
+    .reduce((sum, event) => sum + event.amount, 0)
+}
 window.fixtureBattle = initialBattle
 window.calls = []
 window.fetch = async (url, options = {}) => {
@@ -140,6 +315,74 @@ window.fetch = async (url, options = {}) => {
   const body = options.body ? JSON.parse(options.body) : null
   window.calls.push({ path, method: options.method || 'GET', body })
   if (path.endsWith('/events')) return new Response(JSON.stringify({ battleLog: { entries: [] } }))
+  if (targetingCase && path.endsWith('/preview')) {
+    if (window.previewFailure === 'http')
+      return Response.json(
+        { error: { code: 'TEMPORARY', message: 'Forecast unavailable.' } },
+        { status: 503 },
+      )
+    if (window.previewFailure === 'network') throw new Error('Forecast connection failed.')
+
+    const intent = body.intent
+    const source = window.fixtureBattle.snapshot
+    const { evaluation, cost, prepared } =
+      intent.actionId === window.targetingDefinition.id
+        ? evaluatePv1fMatureSkill(
+            source,
+            window.targetingDefinition,
+            intent.target,
+            mode === 'pvp' ? 'pvp' : 'pve',
+          )
+        : evaluatePv1fAction(source, intent.actionId, intent.target)
+    const before = readPv1fActionEconomy(prepared)?.current ?? 0
+    window.forecasts ??= []
+    window.forecasts.push({
+      version: window.fixtureBattle.battleVersion,
+      intent,
+      preview: evaluation,
+    })
+    return Response.json({
+      battlePreview: {
+        battleSessionId: 'fixture',
+        battleVersion:
+          window.fixtureBattle.battleVersion + (window.previewFailure === 'stale' ? -1 : 0),
+        preview: {
+          ...evaluation,
+          kind: 'action',
+          legal: evaluation.legal && before >= cost,
+          actionEconomyCost: cost,
+          actionEconomyBefore: before,
+          actionEconomyAfter: before - cost,
+          projectedStatuses: [],
+        },
+      },
+    })
+  }
+  if (targetingCase && /\/(commit|intents)$/.test(path)) {
+    if (body.expectedBattleVersion !== window.fixtureBattle.battleVersion)
+      return Response.json({ message: 'Stale battle version.' }, { status: 409 })
+    try {
+      const intent = body.intent
+      const transition =
+        intent.actionId === window.targetingDefinition.id
+          ? executePv1fMatureSkill(
+              window.fixtureBattle.snapshot,
+              window.targetingDefinition,
+              intent.target,
+              mode === 'pvp' ? 'pvp' : 'pve',
+            )
+          : executePv1fAction(window.fixtureBattle.snapshot, intent.actionId, intent.target)
+      window.receipts = transition.events
+      window.fixtureBattle = {
+        ...window.fixtureBattle,
+        battleVersion: window.fixtureBattle.battleVersion + 1,
+        snapshot: transition.state,
+      }
+      return Response.json({ battle: window.fixtureBattle })
+    } catch (error) {
+      return Response.json({ message: error.message }, { status: 409 })
+    }
+  }
   if (path.endsWith('/preview')) {
     const intent = body.intent
     const targetId = intent.target.kind === 'unit' ? intent.target.combatantId : ids[0]
@@ -201,6 +444,12 @@ window.fetch = async (url, options = {}) => {
     return new Response(JSON.stringify({ battle: window.fixtureBattle }))
   return new Response(JSON.stringify({}))
 }
+window.publishBattle = () =>
+  window.dispatchEvent(
+    new CustomEvent(mode === 'pvp' ? 'aurevane:pvp-battle-state' : 'aurevane:battle-state', {
+      detail: window.fixtureBattle,
+    }),
+  )
 window.advanceBattle = (nextActor = 'character:player') => {
   const next = structuredClone(window.fixtureBattle)
   next.battleVersion++
@@ -215,8 +464,45 @@ window.advanceBattle = (nextActor = 'character:player') => {
 }
 const fixtureRoot = createRoot(document.getElementById('root'))
 window.unmountBattle = () => fixtureRoot.unmount()
+function DotDefinitionReport() {
+  const [open, setOpen] = React.useState(false)
+  return (
+    <>
+      <button
+        style={{ position: 'fixed', left: 8, top: 8, zIndex: 2002 }}
+        onClick={() => setOpen(!open)}
+      >
+        {open ? 'Close pinned percentage definition' : 'Read pinned percentage definition'}
+      </button>
+      {open ? (
+        <section
+          aria-label="Pinned percentage definition"
+          style={{
+            position: 'fixed',
+            left: 8,
+            top: 48,
+            zIndex: 2001,
+            background: '#0a202b',
+            color: '#f0e8dc',
+            padding: 12,
+            maxWidth: 'calc(100vw - 16px)',
+            width: 700,
+            maxHeight: '85vh',
+            overflow: 'auto',
+          }}
+        >
+          <dl>
+            <BattleSkillParameters skill={window.dotPresentation} />
+          </dl>
+          <SkillDetails skill={window.dotDefinition} expanded />
+        </section>
+      ) : null}
+    </>
+  )
+}
 fixtureRoot.render(
   <AudioProvider>
+    {dotCase ? <DotDefinitionReport /> : null}
     <BattlefieldPresentationBundle
       battleSessionId="fixture"
       initialVersion={initialBattle.battleVersion}

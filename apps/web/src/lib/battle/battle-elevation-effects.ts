@@ -1,7 +1,7 @@
-import type { CombatStatusInstance } from '@aurevane/game-core/combat/actions'
+import type { CombatEffectPresentationStatus } from '@aurevane/game-core/combat/combat-effect-timing'
 
 /** Viewer-only rows. This metadata is never part of the persisted combat status lifetime. */
-export type BattlePresentedStatus = CombatStatusInstance & {
+export type BattlePresentedStatus = CombatEffectPresentationStatus & {
   presentationDuration?: 'while-elevated'
 }
 

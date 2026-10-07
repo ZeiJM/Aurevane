@@ -70,7 +70,7 @@ describe('Player-facing Skill targeting and effects', () => {
     const volley = resolveMatureSkillVersion('farstrider.volley')!
     const before = JSON.stringify(volley)
     expect(skillTargetTags(volley)).toEqual(['Enemy', 'Circle [1]', 'Dmg [10]'])
-    expect(skillCompactRangeDescription(volley)).toBe('5')
+    expect(skillCompactRangeDescription(volley)).toBe('1')
     expect(Object.fromEntries(skillParameterRows(volley)).Target).toBe('Enemy')
     const breath = resolveMatureSkillVersion('ironfist.focus-breath')!
     expect(skillTargetTags(breath)).toEqual(['Self', 'Single', 'Heal [12]', 'MP Restore [7]'])
@@ -113,7 +113,8 @@ it('names a linked tradeoff and explains both halves on the correct recipient', 
 it('describes source-specific modifiers, cleansing and periodic timing', () => {
   const mark = resolveMatureSkillVersion('wildwarden.hunters-mark')!
   expect(skillEffectDescription(mark.effects[0]!)).toContain('Other attackers gain no benefit')
-  const burn = resolveMatureSkillVersion('cinderweaver.cinder-bolt')!
+  const currentBurn = resolveMatureSkillVersion('cinderweaver.cinder-bolt')!
+  const burn = resolveMatureSkillVersion(currentBurn.id, currentBurn.contentVersion - 1)!
   expect(skillEffectDescription(burn.effects[1]!)).toContain('2, then 1, then 1')
   expect(skillEffectDescription(burn.effects[1]!)).toContain('end-turn boundaries')
   expect(skillTargetTags(resolveMatureSkillVersion('runeblade.unbinding-rune')!)).toContain(
@@ -169,13 +170,15 @@ it('explains elemental interactions and typed status aliases without changing hi
 it('shows the executable element and canonical status names on current Technique tags', () => {
   const fire = resolveMatureSkillVersion('cinderweaver.cinder-bolt')!
   expect(skillTargetTags(fire).some((tag) => /^Fire Dmg \[\d+\]$/.test(tag))).toBe(true)
-  expect(skillTargetTags(fire)).toContain('Burn')
+  expect(skillTargetTags(fire)).toContain('Burn [25% → 20% → 15%] [3 turns]')
   expect(
     skillTargetTags(resolveMatureSkillVersion('stormsinger.arc-spark')!).some((tag) =>
       /^Storm Dmg \[\d+\]$/.test(tag),
     ),
   ).toBe(true)
-  expect(skillTargetTags(resolveMatureSkillVersion('ravager.gash')!)).toContain('Bleed')
+  expect(skillTargetTags(resolveMatureSkillVersion('ravager.gash')!)).toContain(
+    'Bleed [20%] [3 turns]',
+  )
   expect(
     skillTargetTags(resolveMatureSkillVersion('cinderweaver.cinder-bolt', 1)!).some((tag) =>
       tag.startsWith('Fire Dmg'),
@@ -479,4 +482,35 @@ it('keeps area dimensions and distinct recipients in canonical parameter rows', 
   expect(Object.fromEntries(skillParameterRows(friendlyFire)).Target).toBe(
     'Enemy · All units, including allies',
   )
+})
+
+it('derives All with no positional range/LoS while retaining elevation and ordered rows', () => {
+  const base = resolveMatureSkillVersion('vanguard.forceful-strike')!
+  const skill = {
+    ...base,
+    target: {
+      ...base.target,
+      geometryVersion: 2 as const,
+      shape: { kind: 'all' as const },
+      minimumRange: 0,
+      maximumRange: 0,
+      requiresLineOfSight: false,
+    },
+  }
+  expect(skillTargetMethodDescription(skill)).toBe('All')
+  expect(skillCompactRangeDescription(skill)).toBe('N/A')
+  expect(skillLineOfSightDescription(skill)).toBe('N/A')
+  expect(skillTargetElevationDescription(skill)).toBe(
+    String(base.target.maximumElevationDifference),
+  )
+  expect(skillTargetTags(skill)).toContain('All')
+})
+
+import { skillTargetMethodExplanation } from './skill-detail-presentation'
+it('explains current caster geometry and keeps the historical aimed explanation', () => {
+  const current = resolveMatureSkillVersion('farstrider.volley')!
+  const old = resolveMatureSkillVersion(current.id, current.contentVersion - 1)!
+  expect(skillTargetMethodExplanation(current)).toContain('8 surrounding tiles')
+  expect(skillTargetMethodExplanation(current)).toContain('excluding your tile')
+  expect(skillTargetMethodExplanation(old)).toContain('selected tile')
 })

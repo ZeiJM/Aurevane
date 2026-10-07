@@ -1,3 +1,4 @@
+import { enumerateCombatTargetSelections } from './combat-targeting-shapes'
 import type { CombatTargetSelection } from './actions'
 import { normalizeCombatEffectState, type CombatSummonInstance } from './combat-effect-state'
 import { evaluatePv1fSummonAbility, readPv1fActionEconomy } from './pv1f-action-economy'
@@ -127,15 +128,11 @@ function targetSelections(
   state: StatDrivenCombatEncounterState,
   ability: SummonAbilityDefinition,
 ): readonly CombatTargetSelection[] {
-  if (ability.target.kind === 'self') return [{ kind: 'self' }]
-  if (ability.target.kind === 'unit') {
-    return [...state.tactical.battle.combatants]
-      .sort((left, right) => left.id.localeCompare(right.id))
-      .map((combatant) => ({ kind: 'unit' as const, combatantId: combatant.id }))
-  }
-  return [...state.tactical.tiles]
-    .sort((left, right) => left.position.y - right.position.y || left.position.x - right.position.x)
-    .map((tile) => ({ kind: 'tile' as const, position: { ...tile.position } }))
+  return enumerateCombatTargetSelections(
+    state,
+    state.tactical.battle.currentTurn!.combatantId,
+    ability.target,
+  )
 }
 
 function deterministicTieBreak(seed: number, stableKey: string): number {
@@ -149,6 +146,8 @@ function deterministicTieBreak(seed: number, stableKey: string): number {
 
 function targetKey(target: CombatTargetSelection): string {
   if (target.kind === 'self') return 'self'
+  if (target.kind === 'activate') return 'activate'
+  if (target.kind === 'direction') return `direction:${target.direction}`
   if (target.kind === 'unit') return `unit:${target.combatantId}`
   return `tile:${target.position.x},${target.position.y}`
 }

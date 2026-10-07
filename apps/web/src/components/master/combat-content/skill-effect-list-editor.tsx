@@ -50,11 +50,31 @@ export function createDefaultCombatEffect(type: CombatEffectType): CombatEffectD
     case 'displace':
       return { type, recipient: 'primary-unit', direction: 'push', distance: 1 }
     case 'poison':
-      return { type, recipient: 'primary-unit' }
+      return {
+        type,
+        recipient: 'primary-unit',
+        durationTurns: 4,
+        damageProfile: { kind: 'attack-percentage', basisPoints: 1500 },
+      }
     case 'bleed':
-      return { type, recipient: 'primary-unit', damagePerTick: 1, ticks: 1 }
+      return {
+        type,
+        recipient: 'primary-unit',
+        ticks: 3,
+        durationTurns: 3,
+        damageProfile: { kind: 'attack-percentage', basisPoints: 2000 },
+      }
     case 'burn':
-      return { type, recipient: 'primary-unit' }
+      return {
+        type,
+        recipient: 'primary-unit',
+        durationTurns: 3,
+        damageProfile: {
+          kind: 'attack-percentage',
+          basisPoints: 2500,
+          decayBasisPointsPerTick: 500,
+        },
+      }
     case 'barrier-change':
       return { type, recipient: 'actor', amount: 1 }
     case 'copy-statuses':

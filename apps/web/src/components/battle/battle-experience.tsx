@@ -10,6 +10,9 @@ import {
   selectBattleSkillPreviewIntent,
   selectInitialBattleSkillPreviewIntent,
   selectDirectionalBattleSkillPreviewIntent,
+  battleSkillUsesAreaActivation,
+  battleSkillTargetSpec,
+  canRetainBattleActionPreview,
 } from './battle-preview-selection'
 import { BattleActionPreview } from './battle-action-preview'
 import { useBattleRangePreviews } from './use-battle-range-previews'
@@ -92,7 +95,12 @@ import {
 import { BattleSelectedSkills } from './battle-selected-skills'
 import { battleActionCooldownTurns } from './battle-action-cooldown'
 
-import { battleAttackReachTiles } from './battle-attack-path'
+import {
+  battleTargetReachTiles,
+  battleActionDealsDamage,
+  type BattleTargetAim,
+} from './battle-attack-path'
+import { combatCardinalDirections } from '@aurevane/game-core/combat/combat-targeting-shapes'
 import { battleActionUsesRecoverySelection } from './battle-recovery-selection'
 import { createPv1fBasicAttackDefinition } from '@aurevane/game-core/combat/pv1f-action-economy'
 import { BattleSkillCommand } from './battle-skill-command'
@@ -297,6 +305,7 @@ function BattleExperienceContent({
   const [pendingIntent, setPendingIntent] = useState<BattleIntent | null>(null)
   const [preview, setPreview] = useState<BattlePreviewView | null>(null)
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null)
+  const [targetAim, setTargetAim] = useState<BattleTargetAim>({ aimSource: 'implicit' })
   const [inspectedUnitId, setInspectedUnitId] = useState<string | null>(null)
   const [inspectedEnemyUnitId, setInspectedEnemyUnitId] = useState<string | null>(null)
   const [allyInspection, setAllyInspection] = useState<BattleAllyInspection | null>(null)
@@ -619,6 +628,7 @@ function BattleExperienceContent({
       setPendingIntent(null)
       setPreview(null)
       setSelectedUnitId(null)
+      setTargetAim({ aimSource: 'implicit' })
       setAllyInspection(null)
       setPreviewPending(false)
     },
@@ -648,7 +658,7 @@ function BattleExperienceContent({
   }, [clearPlanning, registerFinishTurnHandler])
 
   const refreshBattle = useCallback(
-    async (message = 'Battle state reloaded.') => {
+    async (message = 'Battle state reloaded.', retainArmedAction = false) => {
       const response = await fetch(`/api/battles/${battle.battleSessionId}`, {
         method: 'GET',
         cache: 'no-store',
@@ -657,17 +667,21 @@ function BattleExperienceContent({
       if (!response.ok || !body.battle) {
         throw new Error(body.error?.message ?? 'The battle state could not be reloaded.')
       }
+      const retainMode =
+        retainArmedAction &&
+        ['attack', 'guard', 'recover'].includes(modeRef.current) &&
+        canRetainBattleActionPreview(battleRef.current, body.battle, localCombatantId)
       battleRef.current = body.battle
       setBattle(body.battle)
-      clearPlanning()
+      clearPlanning(retainMode ? modeRef.current : 'none')
       setNotice(message)
       return body.battle
     },
-    [battle.battleSessionId, clearPlanning],
+    [battle.battleSessionId, clearPlanning, localCombatantId],
   )
 
   const handleApiFailure = useCallback(
-    async (response: Response, body: ApiErrorBody, fallback: string) => {
+    async (response: Response, body: ApiErrorBody, fallback: string, retainArmedAction = false) => {
       if (response.status === 401) {
         router.replace('/')
         router.refresh()
@@ -677,6 +691,7 @@ function BattleExperienceContent({
         try {
           await refreshBattle(
             'The battle changed elsewhere. Your unfinished selection was cleared.',
+            retainArmedAction,
           )
         } catch (refreshError) {
           setNotice(
@@ -857,8 +872,15 @@ function BattleExperienceContent({
           if (!mounted.current || controller.signal.aborted || sequence !== previewSequence.current)
             return
           if (!response.ok || !body.battlePreview) {
-            clearPlanning()
-            await handleApiFailure(response, body, 'That command could not be checked.')
+            setPreview(null)
+            await handleApiFailure(response, body, 'That command could not be checked.', true)
+            return
+          }
+          if (
+            body.battlePreview.battleSessionId !== battle.battleSessionId ||
+            body.battlePreview.battleVersion !== battle.battleVersion
+          ) {
+            setNotice('That forecast is out of date. Choose a target to check it again.')
             return
           }
           setPreview(body.battlePreview)
@@ -904,13 +926,7 @@ function BattleExperienceContent({
       inFlightPreview.current = { intent, version: battle.battleVersion, sequence, result }
       return result
     },
-    [
-      actionCooldownTurns,
-      battle.battleSessionId,
-      battle.battleVersion,
-      clearPlanning,
-      handleApiFailure,
-    ],
+    [actionCooldownTurns, battle.battleSessionId, battle.battleVersion, handleApiFailure],
   )
 
   const commitValue = useCallback(
@@ -925,6 +941,7 @@ function BattleExperienceContent({
       )
         return
       if (intent.kind === 'action' && actionCooldownTurns(intent.actionId) > 0) return
+      if (intent.kind === 'action') setTargetAim({ aimSource: 'player', selection: intent.target })
       commitLock.current = true
       if (runtime.kind === 'pvp') {
         battlePollController.current?.abort()
@@ -1320,16 +1337,26 @@ function BattleExperienceContent({
     currentActionId === BASIC_ATTACK_ID
       ? createPv1fBasicAttackDefinition(1)
       : activeTechnique?.definition
-  const attackPath =
-    (mode === 'attack' || mode === 'guard' || mode === 'recover') &&
-    localPlacement &&
-    attackDefinition
-      ? battleAttackReachTiles(
+  const targetSpec =
+    battleSkillTargetSpec(actionDescriptor(currentActionId)) ?? attackDefinition?.target
+  const damagingSelection = Boolean(
+    attackDefinition && battleActionDealsDamage(attackDefinition.effects),
+  )
+  const potentialPath =
+    (mode === 'attack' || mode === 'guard' || mode === 'recover') && localPlacement && targetSpec
+      ? battleTargetReachTiles(
           tactical,
           localPlacement.position,
-          attackDefinition.target,
-          attackDefinition.effects,
+          targetSpec,
           selectedActionPreview?.affectedTiles,
+          targetAim,
+          localCombatantId
+            ? {
+                tactical,
+                actorId: localCombatantId,
+                terrainOverlays: battle.snapshot.terrainOverlays,
+              }
+            : undefined,
         )
       : new Set<string>()
   const handleTile = useCallback(
@@ -1378,9 +1405,18 @@ function BattleExperienceContent({
           selectedCombatantId: placement?.combatantId ?? null,
           selectedTile: position,
         })
-        if (!intent || (descriptor.targetKind === 'unit' && !placement)) {
+        if (
+          !intent ||
+          (descriptor.targetKind === 'unit' &&
+            !battleSkillUsesAreaActivation(descriptor) &&
+            !placement)
+        ) {
           clearPlanning(mode)
-          setNotice('Choose an eligible target in range.')
+          setNotice(
+            battleSkillTargetSpec(descriptor)?.shape.kind === 'line'
+              ? 'Choose a straight lane: up, down, left or right.'
+              : 'Choose an eligible target in range.',
+          )
           return
         }
         setSelectedUnitId(
@@ -1479,17 +1515,30 @@ function BattleExperienceContent({
       if (selected === 'nextTarget' || selected === 'previousTarget') {
         if (!['attack', 'guard', 'recover'].includes(mode) || planningDisabled) return
         const descriptor = actionDescriptor(currentActionId)
-        const candidates = previewCombatants.flatMap((row) => {
-          const intent = selectBattleSkillPreviewIntent(descriptor, {
-            ...selection,
-            selectedCombatantId: row.combatantId,
-          })
-          return intent?.kind === 'action' && intent.target.kind === 'unit' ? [intent] : []
-        })
+        const target = battleSkillTargetSpec(descriptor)
+        const candidates: Extract<BattleIntent, { kind: 'action' }>[] =
+          target?.geometryVersion === 2 && target.shape.kind === 'line'
+            ? combatCardinalDirections.map((direction) => ({
+                kind: 'action',
+                actionId: descriptor.id,
+                target: { kind: 'direction', direction },
+              }))
+            : previewCombatants.flatMap((row) => {
+                const intent = selectBattleSkillPreviewIntent(descriptor, {
+                  ...selection,
+                  selectedCombatantId: row.combatantId,
+                })
+                return intent?.kind === 'action' && intent.target.kind === 'unit' ? [intent] : []
+              })
         if (!candidates.length) return
         event.preventDefault()
-        const index = candidates.findIndex(
-          (intent) => intent.target.kind === 'unit' && intent.target.combatantId === selectedUnitId,
+        const index = candidates.findIndex((intent) =>
+          intent.target.kind === 'unit'
+            ? intent.target.combatantId === selectedUnitId
+            : intent.target.kind === 'direction' &&
+              pendingIntent?.kind === 'action' &&
+              pendingIntent.target.kind === 'direction' &&
+              intent.target.direction === pendingIntent.target.direction,
         )
         const next =
           candidates[
@@ -1497,6 +1546,7 @@ function BattleExperienceContent({
               candidates.length
           ]!
         if (next.target.kind === 'unit') setSelectedUnitId(next.target.combatantId)
+        setTargetAim({ aimSource: 'player', selection: next.target })
         void requestPreview(next)
         return
       }
@@ -1586,6 +1636,7 @@ function BattleExperienceContent({
     localCombatantId,
     localPlacement,
     mode,
+    pendingIntent,
     planningDisabled,
     previewCombatants,
     requestPreview,
@@ -2011,6 +2062,10 @@ function BattleExperienceContent({
 
         <section
           id="battlefield"
+          onPointerLeave={() => {
+            if (targetSpec?.geometryVersion === 2 && targetSpec.shape.kind === 'line')
+              setTargetAim({ aimSource: 'implicit' })
+          }}
           className={styles.battlefield}
           aria-label={runtime.kind === 'pvp' ? 'PvP tactical battlefield' : 'Tactical battlefield'}
           data-unified-battlefield="true"
@@ -2087,14 +2142,25 @@ function BattleExperienceContent({
                     type="button"
                     key={key}
                     className={styles.tile}
-                    data-attack-path={attackPath.has(key) || undefined}
+                    data-attack-path={(damagingSelection && potentialPath.has(key)) || undefined}
+                    data-buff-path={
+                      (!damagingSelection && !healingSelection && potentialPath.has(key)) ||
+                      undefined
+                    }
                     data-self-target={
                       (targetRelation === 'friendly' &&
                         placement?.combatantId === localCombatantId) ||
                       undefined
                     }
                     data-heal-target={
-                      (targetRelation === 'friendly' && healingSelection) || undefined
+                      (healingSelection &&
+                        !damagingSelection &&
+                        ((potentialPath.has(key) &&
+                          (targetSpec?.shape.kind !== 'single' ||
+                            !placement ||
+                            targetRelation === 'friendly')) ||
+                          targetRelation === 'friendly')) ||
+                      undefined
                     }
                     data-terrain={terrain}
                     data-terrain-overlay={overlay?.kind}
@@ -2117,6 +2183,25 @@ function BattleExperienceContent({
                       undefined
                     }
                     onClick={() => handleTile(tile.position)}
+                    onPointerEnter={(event) => {
+                      if (
+                        event.pointerType === 'touch' ||
+                        planningDisabled ||
+                        executionLock.current ||
+                        targetSpec?.geometryVersion !== 2 ||
+                        targetSpec.shape.kind !== 'line' ||
+                        !['attack', 'guard', 'recover'].includes(mode)
+                      )
+                        return
+                      const intent = selectBattleSkillPreviewIntent(
+                        actionDescriptor(currentActionId),
+                        { ...selection, selectedTile: tile.position, selectedCombatantId: null },
+                      )
+                      if (intent?.target.kind === 'direction') {
+                        setTargetAim({ aimSource: 'player', selection: intent.target })
+                        void requestPreview(intent)
+                      } else setTargetAim({ aimSource: 'implicit' })
+                    }}
                     aria-label={`Tile ${tile.position.x + 1}, ${tile.position.y + 1}; ${tile.terrainId}; elevation ${tile.elevation}${participant ? `; occupied by ${participant.name}` : ''}${overlay ? `; ${terrainOverlayDescription(overlay)}` : ''}`}
                   >
                     {overlay ? (
@@ -2197,6 +2282,7 @@ function BattleExperienceContent({
         <section data-battle-preview-strip="true" aria-label="Target forecast">
           <strong data-battle-instruction-title="true">{contextTitle}</strong>
           <BattleActionPreview
+            aimSource={targetAim.aimSource}
             preview={preview?.battleVersion === battle.battleVersion ? preview.preview : null}
             pending={previewPending}
             rangePreviews={rangePreviews}

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { BattleActionPreview } from '@/server/battle/battle-preview-service'
+import { createPv1fBasicAttackDefinition } from '@aurevane/game-core/combat/pv1f-action-economy'
 import { battleRangePreviewIntents, requestBattleRangePreviews } from './battle-range-previews'
 
 const skill = {
@@ -41,6 +42,59 @@ const projection = (id: string): BattleActionPreview => ({
 })
 
 describe('automatic canonical range forecasts', () => {
+  const target = {
+    ...createPv1fBasicAttackDefinition(1).target,
+    geometryVersion: 2 as const,
+    minimumRange: 0,
+    maximumRange: 3,
+    shape: { kind: 'line' as const, length: 3 },
+  }
+  it('requests all four area directions even when no victim is in a lane', () => {
+    expect(
+      battleRangePreviewIntents({ ...skill, target }, 'actor', [combatants[0]!]).map(
+        (i) => i.target,
+      ),
+    ).toEqual([
+      { kind: 'direction', direction: 'north' },
+      { kind: 'direction', direction: 'east' },
+      { kind: 'direction', direction: 'south' },
+      { kind: 'direction', direction: 'west' },
+    ])
+    expect(
+      battleRangePreviewIntents(
+        { ...skill, target: { ...target, shape: { kind: 'all' } } },
+        'actor',
+        combatants,
+      ).map((i) => i.target),
+    ).toEqual([{ kind: 'activate' }])
+  })
+  it('accepts every actual recipient in an area forecast without inventing a primary target', async () => {
+    const area = {
+      ...projection('north'),
+      primaryCombatantId: null,
+      affectedCombatantIds: ['north', 'south'],
+    }
+    const intents = battleRangePreviewIntents(
+      { ...skill, target: { ...target, shape: { kind: 'circle', radius: 1 } } },
+      'actor',
+      combatants,
+    )
+    const fetchPreview = vi.fn<typeof fetch>(async () =>
+      Response.json({
+        battlePreview: { battleSessionId: 'area-battle', battleVersion: 4, preview: area },
+      }),
+    )
+    expect(
+      await requestBattleRangePreviews({
+        battleSessionId: 'area-battle',
+        battleVersion: 4,
+        actorId: 'actor',
+        intents,
+        signal: new AbortController().signal,
+        fetchPreview,
+      }),
+    ).toEqual([area])
+  })
   it('shares an identical in-flight candidate forecast between readers', async () => {
     let finish!: (response: Response) => void
     const fetchPreview = vi.fn<typeof fetch>(

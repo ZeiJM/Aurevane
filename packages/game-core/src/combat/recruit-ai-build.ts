@@ -1,3 +1,4 @@
+import { enumerateCombatTargetSelections } from './combat-targeting-shapes'
 import { terrainOverlayAiUtility, terrainOverlayAt } from './terrain-overlays'
 import { combatStatusDetails } from './status-content'
 import { isMaterializedCombatEffect } from './summon-content'
@@ -164,7 +165,7 @@ function buildSkillCandidates(
     if (!evaluated.evaluation.legal || !economy || economy.current < evaluated.cost) continue
     // A repeated discrete ground effect can be empty. Do not burn AP for no resulting change.
     if (
-      target.kind === 'tile' &&
+      (target.kind === 'tile' || target.kind === 'direction' || target.kind === 'activate') &&
       !evaluated.evaluation.projectedEffects.some((effect) => effect.before !== effect.after) &&
       !evaluated.evaluation.projectedTerrain.some(
         (effect) =>
@@ -208,15 +209,11 @@ function targetSelections(
   state: StatDrivenCombatEncounterState,
   definition: MatureSkillDefinition,
 ): readonly CombatTargetSelection[] {
-  if (definition.target.kind === 'self') return [{ kind: 'self' }]
-  if (definition.target.kind === 'unit') {
-    return [...state.tactical.battle.combatants]
-      .sort((left, right) => left.id.localeCompare(right.id))
-      .map((combatant) => ({ kind: 'unit' as const, combatantId: combatant.id }))
-  }
-  return [...state.tactical.tiles]
-    .sort((left, right) => left.position.y - right.position.y || left.position.x - right.position.x)
-    .map((tile) => ({ kind: 'tile' as const, position: { ...tile.position } }))
+  return enumerateCombatTargetSelections(
+    state,
+    state.tactical.battle.currentTurn!.combatantId,
+    definition.target,
+  )
 }
 
 export function projectedCombatEffectUtility(
@@ -277,6 +274,8 @@ export function projectedCombatEffectUtility(
 
 function targetKey(target: CombatTargetSelection): string {
   if (target.kind === 'self') return 'self'
+  if (target.kind === 'activate') return 'activate'
+  if (target.kind === 'direction') return `direction:${target.direction}`
   if (target.kind === 'unit') return `unit:${target.combatantId}`
   return `tile:${target.position.x},${target.position.y}`
 }

@@ -1623,6 +1623,14 @@
     position: static;
     max-height: none;
   }
+
+  .editorMain > .reviewPanel {
+    position: static;
+    grid-column: 2;
+    grid-row: auto;
+    max-height: none;
+    overflow: visible;
+  }
 }
 
 @media (max-width: 760px) {
@@ -1652,6 +1660,10 @@
 
   .workspaceTabs {
     overflow-x: auto;
+  }
+
+  .editorMain > .reviewPanel {
+    grid-column: 1;
   }
 
   .previewFacts,
@@ -1794,6 +1806,11 @@
 }
 .workspace :is(input, textarea, select) {
   font-size: 0.84rem;
+}
+@media (max-width: 1180px) {
+  .editor {
+    grid-template-columns: minmax(14rem, 0.7fr) minmax(0, 1.8fr);
+  }
 }
 @media (max-width: 760px) {
   .editor {

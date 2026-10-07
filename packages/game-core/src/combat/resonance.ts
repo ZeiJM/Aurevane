@@ -351,7 +351,11 @@ export function constrainResonanceForecastToTarget(
   selection: CombatTargetSelection,
   affectedCombatantIds: readonly string[],
 ): ReturnType<typeof forecastResonanceForSkill> {
-  if (!forecast.willActivate || selection.kind !== 'tile') return forecast
+  if (
+    !forecast.willActivate ||
+    (selection.kind !== 'tile' && selection.kind !== 'direction' && selection.kind !== 'activate')
+  )
+    return forecast
   if (
     !forecast.bonusEffects.some((effect) => effect.recipient === 'primary-unit') &&
     (!skill.tags.includes('attack') || affectedCombatantIds.length > 0)

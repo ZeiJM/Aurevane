@@ -1,3 +1,10 @@
+import {
+  percentageDotTickDamage,
+  validateCapturedPercentageDotDamage,
+  type CapturedPercentageDotDamage,
+  validatePercentageDotProfile,
+  type AttackPercentageDotProfile,
+} from './combat-percentage-dots'
 import type { CombatEffectRecipient, CombatEncounterIssue, CombatEncounterState } from './actions'
 import {
   normalizeCombatEffectState,
@@ -5,6 +12,63 @@ import {
   type CombatBurnInstance,
   type CombatPoisonInstance,
 } from './combat-effect-state'
+
+export function usesPercentageCombatDots(
+  state: Pick<CombatEncounterState, 'percentageDotPolicyVersion'>,
+): boolean {
+  return state.percentageDotPolicyVersion === 1
+}
+
+export function currentPoisonTickDamage(instance: CombatPoisonInstance): number {
+  return instance.percentageDamage
+    ? percentageDotTickDamage(
+        instance.percentageDamage.capturedDamage,
+        instance.percentageDamage.profile,
+      )
+    : (instance.damagePerTick ?? CURRENT_POISON_DAMAGE)
+}
+
+export function currentBleedTickDamage(instance: CombatBleedStack): number {
+  return instance.percentageDamage
+    ? percentageDotTickDamage(
+        instance.percentageDamage.capturedDamage,
+        instance.percentageDamage.profile,
+      )
+    : instance.damagePerTick
+}
+
+function capturePercentageApplication(
+  state: CombatEncounterState,
+  value: CapturedPercentageDotDamage | undefined,
+  ticks: number | undefined,
+  type: 'burn' | 'poison' | 'bleed',
+): CapturedPercentageDotDamage | undefined {
+  if (!value) return undefined
+  if (!usesPercentageCombatDots(state))
+    throw new TypeError('Percentage DoTs require their pinned encounter policy.')
+  validateCapturedPercentageDotDamage(value, ticks as number, type)
+  return { capturedDamage: value.capturedDamage, profile: { ...value.profile } }
+}
+
+function validPercentageInstance(
+  state: CombatEncounterState,
+  row: { percentageDamage?: CapturedPercentageDotDamage; remainingTicks?: number; stage?: number },
+  type: 'burn' | 'poison' | 'bleed',
+): boolean {
+  if (!row.percentageDamage) return true
+  try {
+    if (!usesPercentageCombatDots(state)) return false
+    validateCapturedPercentageDotDamage(
+      row.percentageDamage,
+      row.remainingTicks as number,
+      type,
+      type === 'burn' ? row.stage : 0,
+    )
+    return true
+  } catch {
+    return false
+  }
+}
 
 export const CURRENT_POISON_PROFILE_VERSION = 1 as const
 export const CURRENT_POISON_DAMAGE = 2 as const
@@ -92,7 +156,13 @@ export function validateCurrentPoisonEffect(effect: {
   curseCopyable?: unknown
   power?: unknown
   durationTurns?: unknown
+  damageProfile?: AttackPercentageDotProfile
 }): void {
+  if (effect.damageProfile !== undefined) {
+    if (effect.power !== undefined)
+      throw new TypeError('Percentage Poison cannot also author fixed power.')
+    validatePercentageDotProfile(effect.damageProfile, effect.durationTurns as number, 'poison')
+  }
   if (effect.curseCopyable !== undefined && typeof effect.curseCopyable !== 'boolean') {
     throw new TypeError('Poison curseCopyable must be boolean when supplied.')
   }
@@ -134,7 +204,7 @@ export function currentPoisonEndTurnDamage(
   targetCombatantId: string,
 ): number {
   return currentPoisonEndTurnInstances(state, targetCombatantId).reduce(
-    (sum, row) => safeDotTotal(sum, row.damagePerTick ?? CURRENT_POISON_DAMAGE),
+    (sum, row) => safeDotTotal(sum, currentPoisonTickDamage(row)),
     0,
   )
 }
@@ -147,7 +217,9 @@ export function applyCurrentPoisonState(
   curseCopyable?: boolean,
   power?: number,
   durationTurns?: number,
+  percentageDamage?: CapturedPercentageDotDamage,
 ): CombatEncounterState {
+  const captured = capturePercentageApplication(state, percentageDamage, durationTurns, 'poison')
   validateCurrentPoisonEffect({ curseCopyable, power, durationTurns })
   const effectState = normalizeCombatEffectState(state.effectState)
   const existing = effectState.poison.find(
@@ -158,13 +230,18 @@ export function applyCurrentPoisonState(
     sourceCombatantId,
     sourceActionId,
     profileVersion: CURRENT_POISON_PROFILE_VERSION,
-    movementRemainder: usesUnlimitedCombatEffectStacking(state)
-      ? 0
-      : (existing?.movementRemainder ?? 0),
-    ...(usesUnlimitedCombatEffectStacking(state)
+    movementRemainder:
+      usesPercentageCombatDots(state) || usesUnlimitedCombatEffectStacking(state)
+        ? 0
+        : (existing?.movementRemainder ?? 0),
+    ...(usesUnlimitedCombatEffectStacking(state) || usesPercentageCombatDots(state)
       ? { applicationOrder: nextCombatDotApplicationOrder(effectState.poison) }
       : {}),
-    ...(power !== undefined ? { damagePerTick: power } : {}),
+    ...(captured
+      ? { percentageDamage: captured }
+      : power !== undefined
+        ? { damagePerTick: power }
+        : {}),
     ...(durationTurns !== undefined ? { remainingTicks: durationTurns } : {}),
     ...(curseCopyable !== undefined ? { curseCopyable } : {}),
   }
@@ -176,7 +253,7 @@ export function applyCurrentPoisonState(
       poison: [
         ...effectState.poison.filter(
           (candidate) =>
-            usesUnlimitedCombatEffectStacking(state) ||
+            (usesUnlimitedCombatEffectStacking(state) && !usesPercentageCombatDots(state)) ||
             candidate.targetCombatantId !== targetCombatantId,
         ),
         instance,
@@ -252,14 +329,26 @@ export function advanceCurrentPoisonMovement(
 }
 
 export function validateCurrentBleedEffect(effect: {
-  damagePerTick: number
+  damagePerTick?: number
+  damageProfile?: AttackPercentageDotProfile
+  power?: unknown
   ticks: number
   curseCopyable?: unknown
 }): void {
   if (effect.curseCopyable !== undefined && typeof effect.curseCopyable !== 'boolean') {
     throw new TypeError('Bleed curseCopyable must be boolean when supplied.')
   }
-  if (!Number.isSafeInteger(effect.damagePerTick) || effect.damagePerTick <= 0) {
+  if (effect.damageProfile !== undefined) {
+    if (effect.damagePerTick !== undefined || effect.power !== undefined)
+      throw new TypeError('Percentage Bleed cannot also author fixed damage.')
+    validatePercentageDotProfile(effect.damageProfile, effect.ticks, 'bleed')
+    return
+  }
+  if (
+    effect.damagePerTick === undefined ||
+    !Number.isSafeInteger(effect.damagePerTick) ||
+    effect.damagePerTick <= 0
+  ) {
     throw new RangeError('Bleed damage per tick must be a positive safe integer.')
   }
   if (
@@ -296,8 +385,14 @@ export function applyCurrentBleedState(
   damagePerTick: number,
   ticks: number,
   curseCopyable?: boolean,
+  percentageDamage?: CapturedPercentageDotDamage,
 ): CombatEncounterState {
-  validateCurrentBleedEffect({ damagePerTick, ticks, curseCopyable })
+  const captured = capturePercentageApplication(state, percentageDamage, ticks, 'bleed')
+  validateCurrentBleedEffect(
+    captured
+      ? { damageProfile: captured.profile, ticks, curseCopyable }
+      : { damagePerTick, ticks, curseCopyable },
+  )
   const effectState = normalizeCombatEffectState(state.effectState)
   const maximumOrder = effectState.bleed.reduce(
     (maximum, stack) => Math.max(maximum, stack.applicationOrder),
@@ -317,6 +412,7 @@ export function applyCurrentBleedState(
     )
   if (
     !usesUnlimitedCombatEffectStacking(state) &&
+    !usesPercentageCombatDots(state) &&
     targetStacks.length >= CURRENT_BLEED_MAX_STACKS
   ) {
     const replaced = targetStacks[0]
@@ -331,7 +427,10 @@ export function applyCurrentBleedState(
     targetCombatantId,
     sourceCombatantId,
     sourceActionId,
-    damagePerTick,
+    damagePerTick: captured
+      ? percentageDotTickDamage(captured.capturedDamage, captured.profile)
+      : damagePerTick,
+    ...(captured ? { percentageDamage: captured } : {}),
     remainingTicks: ticks,
     applicationOrder,
     ...(curseCopyable !== undefined ? { curseCopyable } : {}),
@@ -385,7 +484,13 @@ export function validateCurrentBurnEffect(effect: {
   curseCopyable?: unknown
   power?: unknown
   durationTurns?: unknown
+  damageProfile?: AttackPercentageDotProfile
 }): void {
+  if (effect.damageProfile !== undefined) {
+    if (effect.power !== undefined)
+      throw new TypeError('Percentage Burn cannot also author fixed power.')
+    validatePercentageDotProfile(effect.damageProfile, effect.durationTurns as number, 'burn')
+  }
   if (effect.curseCopyable !== undefined && typeof effect.curseCopyable !== 'boolean') {
     throw new TypeError('Burn curseCopyable must be boolean when supplied.')
   }
@@ -430,7 +535,9 @@ export function applyCurrentBurnState(
   curseCopyable?: boolean,
   power?: number,
   durationTurns?: number,
+  percentageDamage?: CapturedPercentageDotDamage,
 ): CombatEncounterState {
+  const captured = capturePercentageApplication(state, percentageDamage, durationTurns, 'burn')
   validateCurrentBurnEffect({ curseCopyable, power, durationTurns })
   const effectState = normalizeCombatEffectState(state.effectState)
   const instance: CombatBurnInstance = {
@@ -439,10 +546,14 @@ export function applyCurrentBurnState(
     sourceActionId,
     profileVersion: CURRENT_BURN_PROFILE_VERSION,
     stage: 0,
-    ...(usesUnlimitedCombatEffectStacking(state)
+    ...(usesUnlimitedCombatEffectStacking(state) || usesPercentageCombatDots(state)
       ? { applicationOrder: nextCombatDotApplicationOrder(effectState.burn) }
       : {}),
-    ...(power !== undefined ? { basePower: power } : {}),
+    ...(captured
+      ? { percentageDamage: captured }
+      : power !== undefined
+        ? { basePower: power }
+        : {}),
     ...(durationTurns !== undefined ? { remainingTicks: durationTurns } : {}),
     ...(curseCopyable !== undefined ? { curseCopyable } : {}),
   }
@@ -453,7 +564,7 @@ export function applyCurrentBurnState(
       burn: [
         ...effectState.burn.filter(
           (candidate) =>
-            usesUnlimitedCombatEffectStacking(state) ||
+            (usesUnlimitedCombatEffectStacking(state) && !usesPercentageCombatDots(state)) ||
             candidate.targetCombatantId !== targetCombatantId,
         ),
         instance,
@@ -489,8 +600,13 @@ export function advanceCurrentBurnEndTurn(
   const ticks = currentBurnInstances(state, targetCombatantId)
     .filter((row) => !row.skipCurrentOwnerTurnEnd)
     .map((instance) => {
-      const damage =
-        instance.basePower === undefined && instance.remainingTicks === undefined
+      const damage = instance.percentageDamage
+        ? percentageDotTickDamage(
+            instance.percentageDamage.capturedDamage,
+            instance.percentageDamage.profile,
+            instance.stage,
+          )
+        : instance.basePower === undefined && instance.remainingTicks === undefined
           ? CURRENT_BURN_DAMAGE_BY_STAGE[instance.stage]
           : Math.max(1, (instance.basePower ?? CURRENT_BURN_DAMAGE_BY_STAGE[0]) - instance.stage)
       if (damage === undefined)
@@ -524,6 +640,8 @@ export function advanceCurrentBurnEndTurn(
 export function validateCombatDotState(
   state: CombatEncounterState,
 ): readonly CombatEncounterIssue[] {
+  if (state.percentageDotPolicyVersion !== undefined && state.percentageDotPolicyVersion !== 1)
+    return [{ field: 'percentageDotPolicyVersion', message: 'Unsupported percentage DoT policy.' }]
   if (!state.effectState) return []
   return [
     ...validateCurrentPoisonState(state),
@@ -550,7 +668,7 @@ function validateCurrentPoisonState(state: CombatEncounterState): readonly Comba
       invalid = true
       continue
     }
-    const independent = usesUnlimitedCombatEffectStacking(state)
+    const independent = usesUnlimitedCombatEffectStacking(state) || usesPercentageCombatDots(state)
     const order = instance.applicationOrder
     if (
       (independent || order !== undefined) &&
@@ -572,6 +690,8 @@ function validateCurrentPoisonState(state: CombatEncounterState): readonly Comba
       instance.sourceActionId.length === 0 ||
       instance.sourceActionId.trim() !== instance.sourceActionId ||
       instance.profileVersion !== CURRENT_POISON_PROFILE_VERSION ||
+      !validPercentageInstance(state, instance, 'poison') ||
+      (instance.percentageDamage !== undefined && instance.damagePerTick !== undefined) ||
       (instance.curseCopyable !== undefined && typeof instance.curseCopyable !== 'boolean') ||
       (instance.skipCurrentOwnerTurnEnd !== undefined &&
         typeof instance.skipCurrentOwnerTurnEnd !== 'boolean') ||
@@ -586,7 +706,8 @@ function validateCurrentPoisonState(state: CombatEncounterState): readonly Comba
         (!Number.isSafeInteger(instance.remainingTicks) ||
           instance.remainingTicks < 1 ||
           instance.remainingTicks > 4)) ||
-      (!independent && targetIds.has(instance.targetCombatantId)) ||
+      ((!independent || usesPercentageCombatDots(state)) &&
+        targetIds.has(instance.targetCombatantId)) ||
       (previousTargetId !== null && previousTargetId > instance.targetCombatantId)
     ) {
       invalid = true
@@ -624,7 +745,7 @@ function validateCurrentBurnState(state: CombatEncounterState): readonly CombatE
       invalid = true
       continue
     }
-    const independent = usesUnlimitedCombatEffectStacking(state)
+    const independent = usesUnlimitedCombatEffectStacking(state) || usesPercentageCombatDots(state)
     const order = instance.applicationOrder
     if (
       (independent || order !== undefined) &&
@@ -646,6 +767,8 @@ function validateCurrentBurnState(state: CombatEncounterState): readonly CombatE
       instance.sourceActionId.length === 0 ||
       instance.sourceActionId.trim() !== instance.sourceActionId ||
       instance.profileVersion !== CURRENT_BURN_PROFILE_VERSION ||
+      !validPercentageInstance(state, instance, 'burn') ||
+      (instance.percentageDamage !== undefined && instance.basePower !== undefined) ||
       (instance.curseCopyable !== undefined && typeof instance.curseCopyable !== 'boolean') ||
       (instance.skipCurrentOwnerTurnEnd !== undefined &&
         typeof instance.skipCurrentOwnerTurnEnd !== 'boolean') ||
@@ -663,7 +786,8 @@ function validateCurrentBurnState(state: CombatEncounterState): readonly CombatE
         (!Number.isSafeInteger(instance.remainingTicks) ||
           instance.remainingTicks < 1 ||
           instance.remainingTicks > 4)) ||
-      (!independent && targetIds.has(instance.targetCombatantId)) ||
+      ((!independent || usesPercentageCombatDots(state)) &&
+        targetIds.has(instance.targetCombatantId)) ||
       (previousTargetId !== null && previousTargetId > instance.targetCombatantId)
     ) {
       invalid = true
@@ -703,14 +827,16 @@ function validateCurrentBleedState(state: CombatEncounterState): readonly Combat
     }
     const targetCount = (stackCounts.get(stack.targetCombatantId) ?? 0) + 1
     stackCounts.set(stack.targetCombatantId, targetCount)
-    const rawTotalValid =
-      Number.isSafeInteger(stack.damagePerTick) &&
-      Number.isSafeInteger(stack.remainingTicks) &&
-      stack.damagePerTick > 0 &&
-      stack.remainingTicks >= 1 &&
-      stack.remainingTicks <= CURRENT_BLEED_MAX_TICKS &&
-      BigInt(stack.damagePerTick) * BigInt(stack.remainingTicks) <=
-        BigInt(CURRENT_BLEED_MAX_RAW_TOTAL)
+    const rawTotalValid = stack.percentageDamage
+      ? validPercentageInstance(state, stack, 'bleed') &&
+        stack.damagePerTick === currentBleedTickDamage(stack)
+      : Number.isSafeInteger(stack.damagePerTick) &&
+        Number.isSafeInteger(stack.remainingTicks) &&
+        stack.damagePerTick > 0 &&
+        stack.remainingTicks >= 1 &&
+        stack.remainingTicks <= CURRENT_BLEED_MAX_TICKS &&
+        BigInt(stack.damagePerTick) * BigInt(stack.remainingTicks) <=
+          BigInt(CURRENT_BLEED_MAX_RAW_TOTAL)
     const sorted =
       previousTargetId === null ||
       previousTargetId < stack.targetCombatantId ||
@@ -730,7 +856,9 @@ function validateCurrentBleedState(state: CombatEncounterState): readonly Combat
       !Number.isSafeInteger(stack.applicationOrder) ||
       stack.applicationOrder <= 0 ||
       applicationOrders.has(stack.applicationOrder) ||
-      (!usesUnlimitedCombatEffectStacking(state) && targetCount > CURRENT_BLEED_MAX_STACKS) ||
+      (!usesUnlimitedCombatEffectStacking(state) &&
+        !usesPercentageCombatDots(state) &&
+        targetCount > CURRENT_BLEED_MAX_STACKS) ||
       !sorted
     ) {
       invalid = true

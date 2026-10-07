@@ -1,3 +1,6 @@
+import { createCurrentTargetingSkillVersion } from './combat-targeting-roster'
+import { validateCurrentAreaTargetRecipients } from './combat-targeting-shapes'
+import { createPercentageDotSkillVersion } from './combat-percentage-dot-roster'
 import { battleFlavorTemplateIssues } from './battle-narration'
 import { createCanonicalCleanseSkillVersion } from './combat-cleanse'
 import {
@@ -999,12 +1002,33 @@ const CANONICAL_CLEANSE_DISCIPLINE_SKILLS = latestEnabledMatureSkills([
   return next ? [next] : []
 })
 
-const CURRENT_DISCIPLINE_SKILL_REGISTRY = [
+const PERCENTAGE_DOT_DISCIPLINE_SKILLS = latestEnabledMatureSkills([
   ...P33_REPRESENTATIVE_DISCIPLINE_SKILLS,
   ...V5_REBALANCED_DISCIPLINE_SKILLS,
   ...V51_REBALANCED_DISCIPLINE_SKILLS,
   ...CANONICAL_CLEANSE_DISCIPLINE_SKILLS,
+]).flatMap((definition) => {
+  const next = createPercentageDotSkillVersion(definition)
+  return next ? [next] : []
+})
+
+const PRE_CURRENT_TARGETING_DISCIPLINE_SKILL_REGISTRY = [
+  ...P33_REPRESENTATIVE_DISCIPLINE_SKILLS,
+  ...V5_REBALANCED_DISCIPLINE_SKILLS,
+  ...V51_REBALANCED_DISCIPLINE_SKILLS,
+  ...CANONICAL_CLEANSE_DISCIPLINE_SKILLS,
+  ...PERCENTAGE_DOT_DISCIPLINE_SKILLS,
 ] as const satisfies readonly MatureSkillDefinition[]
+const CURRENT_TARGETING_DISCIPLINE_SKILLS = latestEnabledMatureSkills(
+  PRE_CURRENT_TARGETING_DISCIPLINE_SKILL_REGISTRY,
+).flatMap((definition) => {
+  const next = createCurrentTargetingSkillVersion(definition)
+  return next ? [next] : []
+})
+const CURRENT_DISCIPLINE_SKILL_REGISTRY = [
+  ...PRE_CURRENT_TARGETING_DISCIPLINE_SKILL_REGISTRY,
+  ...CURRENT_TARGETING_DISCIPLINE_SKILLS,
+]
 
 /** Current selection catalog; the historical P3.3/P4 export remains stable for pinned contracts. */
 export function latestEnabledMatureSkills(
@@ -1024,6 +1048,11 @@ export function validateMatureSkillDefinition(
   definition: MatureSkillDefinition,
 ): readonly string[] {
   const issues: string[] = []
+  try {
+    validateCurrentAreaTargetRecipients(definition)
+  } catch {
+    issues.push('target.area-recipients')
+  }
   try {
     validateCombatAccuracyDefinition(definition)
     validateGameplayActionMetadata({
@@ -1141,7 +1170,10 @@ export function validateMatureSkillDefinition(
       issues.push('apCost')
     }
     if (definition.target.kind !== 'self') {
-      if (definition.target.maximumRange < 1 || definition.target.maximumRange > 5) {
+      if (
+        !(definition.target.geometryVersion === 2 && definition.target.shape.kind === 'all') &&
+        (definition.target.maximumRange < 1 || definition.target.maximumRange > 5)
+      ) {
         issues.push('target.maximumRange')
       }
       if (
@@ -1212,7 +1244,7 @@ export function validateMatureSkillDefinition(
         issues.push(`effects[${index}].delta`)
       }
     }
-    if (usesV5BalanceRules && effect.type === 'bleed') {
+    if (usesV5BalanceRules && effect.type === 'bleed' && !effect.damageProfile) {
       if (
         !Number.isSafeInteger(effect.damagePerTick) ||
         effect.damagePerTick < 1 ||

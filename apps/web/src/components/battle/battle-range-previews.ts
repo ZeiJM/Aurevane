@@ -1,13 +1,14 @@
 import type { BattleIntent } from '@aurevane/validation/combat/battle-session'
 import type { BattleActionPreview, BattlePreviewView } from '@/server/battle/battle-preview-service'
-import type { BattleSkillForecastPresentation } from './battle-runtime'
-import { selectBattleSkillPreviewIntent } from './battle-preview-selection'
+import {
+  selectBattleSkillPreviewIntent,
+  battleSkillTargetSpec,
+  type BattlePreviewSkill,
+} from './battle-preview-selection'
+import { combatCardinalDirections } from '@aurevane/game-core/combat/combat-targeting-shapes'
 import { requestBattlePreview } from './battle-preview-request'
 
-export type BattleRangePreviewSkill = Pick<
-  BattleSkillForecastPresentation,
-  'id' | 'targetKind' | 'targetTeamPolicy' | 'minimumRange' | 'maximumRange'
->
+export type BattleRangePreviewSkill = BattlePreviewSkill
 export interface BattleRangePreviewCombatant {
   combatantId: string
   teamIndex: number
@@ -22,7 +23,21 @@ export function battleRangePreviewIntents(
   actorId: string | null,
   combatants: readonly BattleRangePreviewCombatant[],
 ): ActionIntent[] {
-  if (!skill || skill.targetKind !== 'unit') return []
+  if (!skill) return []
+  const actor = combatants.find((row) => row.combatantId === actorId)
+  if (!actor || actor.hp <= 0) return []
+  const target = battleSkillTargetSpec(skill)
+  if (target?.geometryVersion === 2) {
+    if (target.shape.kind === 'line')
+      return combatCardinalDirections.map((direction) => ({
+        kind: 'action',
+        actionId: skill.id,
+        target: { kind: 'direction', direction },
+      }))
+    if (target.shape.kind === 'circle' || target.shape.kind === 'all')
+      return [{ kind: 'action', actionId: skill.id, target: { kind: 'activate' } }]
+  }
+  if (skill.targetKind !== 'unit') return []
   return combatants.flatMap((combatant) => {
     const intent = selectBattleSkillPreviewIntent(skill, {
       actorId,
@@ -70,8 +85,10 @@ export async function requestBattleRangePreviews({
           preview.legal &&
           preview.actorId === actorId &&
           preview.actionId === intent.actionId &&
-          intent.target.kind === 'unit' &&
-          preview.primaryCombatantId === intent.target.combatantId
+          (intent.target.kind === 'unit'
+            ? preview.primaryCombatantId === intent.target.combatantId
+            : (intent.target.kind === 'direction' || intent.target.kind === 'activate') &&
+              preview.primaryCombatantId === null)
           ? preview
           : null
       } catch {

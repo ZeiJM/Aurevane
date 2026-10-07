@@ -1,5 +1,9 @@
 import type { CharacterPortraitRef } from '@aurevane/game-core/character/creation'
-import type { CombatTargetKind, CombatTargetTeamPolicy } from '@aurevane/game-core/combat/actions'
+import type {
+  CombatTargetKind,
+  CombatTargetTeamPolicy,
+  CombatTargetSpec,
+} from '@aurevane/game-core/combat/actions'
 import type { SupportActionId } from '@aurevane/game-core/combat/support-actions'
 import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
 import type { AnyResonanceDefinition } from '@aurevane/game-core/combat/resonance'
@@ -15,6 +19,7 @@ export type BattleTechniqueCategory = 'attack' | 'defense' | 'heal'
 export interface BattleSkillForecastPresentation {
   cooldownOwnerTurns?: number | null
   definition?: MatureSkillDefinition
+  target?: CombatTargetSpec
   id: string
   name: string
   iconKey?: string | null

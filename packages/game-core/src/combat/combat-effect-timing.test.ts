@@ -522,7 +522,9 @@ it('keeps instant self DOTs for their next full affected turn', () => {
     const effect =
       type === 'bleed'
         ? { type, recipient: 'actor' as const, damagePerTick: 2, ticks: 1 }
-        : { type, recipient: 'actor' as const, durationTurns: 1 }
+        : type === 'burn'
+          ? { type: 'burn' as const, recipient: 'actor' as const, durationTurns: 1 }
+          : { type: 'poison' as const, recipient: 'actor' as const, durationTurns: 1 }
     state = executeCombatAction(
       state,
       {

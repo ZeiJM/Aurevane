@@ -96,6 +96,7 @@ function weakenImmediateEffect(effect: CombatEffectDefinition): CombatEffectDefi
         durationTurns: Math.max(1, Math.min(1, effect.durationTurns ?? 1)),
       }
     case 'bleed':
+      if (effect.damageProfile) return effect
       return {
         ...effect,
         damagePerTick: scaledPositive(effect.damagePerTick, 0.65),

@@ -8,6 +8,7 @@ import {
   skillParameterRows,
   skillRequirementDescription,
   skillTargetTags,
+  skillTargetMethodExplanation,
 } from './skill-detail-presentation'
 import styles from './skill-details.module.css'
 import { SkillCharacteristicRows } from './skill-characteristic-rows'
@@ -17,7 +18,10 @@ function SkillDetailBody({ skill }: { skill: MatureSkillDefinition }) {
   return (
     <>
       <dl>
-        <SkillCharacteristicRows rows={skillParameterRows(skill, skill, timingPolicy)} />
+        <SkillCharacteristicRows
+          rows={skillParameterRows(skill, skill, timingPolicy)}
+          targetMethodExplanation={skillTargetMethodExplanation(skill)}
+        />
         {skill.overrides.pvp?.apCost !== undefined &&
         skill.overrides.pvp.apCost !== skill.apCost ? (
           <div>

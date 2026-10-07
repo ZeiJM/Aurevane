@@ -112,16 +112,18 @@ it('publishes the Techniques guide and removes the obsolete fixed Power budget',
   expect(text).toContain('Resonance details use Setup, Trigger and Result')
   expect(text).toContain('Immediate Resonances have no Setup')
   expect(text).not.toContain('payoff Discipline/tags')
-  expect(text).toContain('current v5 Skills can author Poison Power and duration')
+  expect(text).toContain('percentage of HP damage dealt by that attack')
+  expect(text).toContain('including Push or Pull')
+  expect(text).not.toContain('current v5 Skills can author Poison Power and duration')
 })
 
 it('documents Combat v5.1 reach, elevation, LOS, and compact targeting presentation', () => {
   const text = articleText('techniques-damage-effects')
 
   expect(text).toContain('Range shows only the maximum reach')
-  expect(text).toContain('Target Method shows Single, Line or Circle')
+  expect(text).toContain('Target Method shows Single, Line [X], Circle [X] or All')
   expect(text).toContain('range 1–5')
-  expect(text).toContain('range 3')
+  expect(text).toContain('eight surrounding tiles')
   expect(text).toContain('elevation 0')
   expect(text).toContain('elevation 1')
   expect(text).toContain('elevation 2')

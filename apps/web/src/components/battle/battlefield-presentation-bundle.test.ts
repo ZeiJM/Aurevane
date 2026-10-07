@@ -11,6 +11,20 @@ function readLocalFile(name: string): string {
 }
 
 describe('shared battlefield presentation bundle', () => {
+  it('keeps every blue fill selector on the overlay so buff reach preserves terrain texture', () => {
+    const styles = readLocalFile('battlefield-presentation-bundle.module.css')
+    const fillRules = [...styles.matchAll(/([^{}]+)\{([^{}]*)\}/g)].filter((rule) =>
+      rule[2]!.includes('background: #6c91c680;'),
+    )
+    expect(fillRules).toHaveLength(1)
+    for (const selector of fillRules[0]![1]!.split(/,\s*(?=:global)/))
+      expect(selector.trim().endsWith('::after')).toBe(true)
+  })
+  it('uses the shared full-tile blue fill for potential nonattack footprints', () => {
+    const styles = readLocalFile('battlefield-presentation-bundle.module.css')
+    expect(styles).toContain("[data-buff-path='true']:not([data-attack-path='true'])")
+    expect(readLocalFile('battle-experience.tsx')).toContain('data-buff-path=')
+  })
   it('paints canonical damaging paths above terrain through the mounted shared styles', () => {
     const styles = readLocalFile('battlefield-presentation-bundle.module.css')
     expect(styles).toContain("button[aria-label^='Tile '][data-attack-path='true']")

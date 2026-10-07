@@ -1,3 +1,7 @@
+import type {
+  AttackPercentageDotProfile,
+  CapturedPercentageDotDamage,
+} from './combat-percentage-dots'
 import { CURRENT_BURN_DAMAGE_BY_STAGE } from './combat-dots'
 import { COMBAT_TERRAIN_OVERLAY_DETAILS } from './terrain-overlays'
 import type { CombatEffectDefinition, CombatEncounterState, CombatStatusInstance } from './actions'
@@ -87,10 +91,16 @@ export function combatEffectTimingMode(
     (['damage', 'healing', 'mp-recovery'].includes(tag) ? 'instant' : 'next-round')
   )
 }
+export type CombatEffectPresentationStatus = CombatStatusInstance & {
+  percentageDamage?: CapturedPercentageDotDamage
+  percentageDotProfile?: AttackPercentageDotProfile
+  percentageDotStage?: number
+}
+
 /** Presentation only: pending payloads never enter engine status rows. */
 export function pendingCombatStatusRows(
   state: Pick<CombatEncounterState, 'pendingEffects' | 'pendingSummons' | 'tactical'>,
-): { combatantId: string; status: CombatStatusInstance }[] {
+): { combatantId: string; status: CombatEffectPresentationStatus }[] {
   const pendingRows = (state.pendingEffects ?? []).flatMap((pending) => {
     const effect = pending.effect
     const statusId =
@@ -141,6 +151,10 @@ export function pendingCombatStatusRows(
       combatantId,
       status: {
         statusId,
+        ...((effect.type === 'burn' || effect.type === 'poison' || effect.type === 'bleed') &&
+        effect.damageProfile
+          ? { percentageDotProfile: { ...effect.damageProfile } }
+          : {}),
         statusVersion: definition?.version ?? 1,
         stacks: effect.type === 'apply-status' ? effect.stacks : 1,
         ...(effect.type === 'apply-status' && tuning.potencyBasisPoints !== undefined
@@ -188,7 +202,7 @@ export function pendingCombatStatusRows(
 /** Active persistent identities come from committed instances, never the latest authored catalog. */
 export function activePersistentCombatStatusRows(
   state: Pick<CombatEncounterState, 'effectState' | 'tactical' | 'terrainOverlays'>,
-): { combatantId: string; status: CombatStatusInstance }[] {
+): { combatantId: string; status: CombatEffectPresentationStatus }[] {
   const effects = state.effectState
   // Tile effects retain their round lifetime on the source's presentation row.
   const terrainRows = (state.terrainOverlays ?? []).map((overlay) => ({
@@ -205,13 +219,15 @@ export function activePersistentCombatStatusRows(
     },
   }))
   if (!effects) return terrainRows
-  const rows: { combatantId: string; status: CombatStatusInstance }[] = []
+  const rows: { combatantId: string; status: CombatEffectPresentationStatus }[] = []
   function append(
     combatantId: string,
     statusId: string,
     sourceCombatantId: string,
     remaining?: number,
     durationScope?: CombatStatusInstance['durationScope'],
+    percentageDamage?: CapturedPercentageDotDamage,
+    percentageDotStage?: number,
   ) {
     if (!state.tactical.battle.combatants.some((unit) => unit.id === combatantId && unit.hp > 0))
       return
@@ -223,6 +239,12 @@ export function activePersistentCombatStatusRows(
         stacks: 1,
         sourceCombatantId,
         timingState: 'active',
+        ...(percentageDamage
+          ? {
+              percentageDamage: { ...percentageDamage, profile: { ...percentageDamage.profile } },
+              ...(percentageDotStage === undefined ? {} : { percentageDotStage }),
+            }
+          : {}),
         remainingOwnerTurnStarts: remaining ?? 1,
         ...(remaining === undefined
           ? { durationScope: durationScope ?? 'until-removed' }
@@ -231,16 +253,33 @@ export function activePersistentCombatStatusRows(
     })
   }
   for (const effect of effects.poison)
-    append(effect.targetCombatantId, 'poison', effect.sourceCombatantId, effect.remainingTicks)
+    append(
+      effect.targetCombatantId,
+      'poison',
+      effect.sourceCombatantId,
+      effect.remainingTicks,
+      undefined,
+      effect.percentageDamage,
+    )
   for (const effect of effects.burn)
     append(
       effect.targetCombatantId,
       'burn',
       effect.sourceCombatantId,
       effect.remainingTicks ?? CURRENT_BURN_DAMAGE_BY_STAGE.length - effect.stage,
+      undefined,
+      effect.percentageDamage,
+      effect.stage,
     )
   for (const effect of effects.bleed)
-    append(effect.targetCombatantId, 'bleed', effect.sourceCombatantId, effect.remainingTicks)
+    append(
+      effect.targetCombatantId,
+      'bleed',
+      effect.sourceCombatantId,
+      effect.remainingTicks,
+      undefined,
+      effect.percentageDamage,
+    )
   for (const effect of effects.ongoingRecovery)
     append(
       effect.targetCombatantId,

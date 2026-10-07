@@ -1,3 +1,5 @@
+import { createCurrentTargetingEssenceVersion } from './combat-targeting-roster'
+import { createPercentageDotEssenceVersion } from './combat-percentage-dot-roster'
 import { battleFlavorTemplateIssues } from './battle-narration'
 import { ADVANCED_DISCIPLINE_ESSENCES } from './advanced-discipline-content'
 import type { CombatActionEvaluation, CombatTargetSelection } from './actions'
@@ -533,11 +535,31 @@ const V51_REBALANCED_ESSENCES = latestEnabledEssences([
 
 export const P36_REPRESENTATIVE_ESSENCES = PRE_V5_CURRENT_ESSENCES
 
-const CURRENT_ESSENCE_REGISTRY = [
+const PERCENTAGE_DOT_ESSENCES = latestEnabledEssences([
   ...P36_REPRESENTATIVE_ESSENCES,
   ...V5_REBALANCED_ESSENCES,
   ...V51_REBALANCED_ESSENCES,
+]).flatMap((definition) => {
+  const next = createPercentageDotEssenceVersion(definition)
+  return next ? [next] : []
+})
+
+const PRE_CURRENT_TARGETING_ESSENCE_REGISTRY = [
+  ...P36_REPRESENTATIVE_ESSENCES,
+  ...V5_REBALANCED_ESSENCES,
+  ...V51_REBALANCED_ESSENCES,
+  ...PERCENTAGE_DOT_ESSENCES,
 ] as const satisfies readonly EssenceDefinition[]
+const CURRENT_TARGETING_ESSENCES = latestEnabledEssences(
+  PRE_CURRENT_TARGETING_ESSENCE_REGISTRY,
+).flatMap((definition) => {
+  const next = createCurrentTargetingEssenceVersion(definition)
+  return next ? [next] : []
+})
+const CURRENT_ESSENCE_REGISTRY = [
+  ...PRE_CURRENT_TARGETING_ESSENCE_REGISTRY,
+  ...CURRENT_TARGETING_ESSENCES,
+]
 
 const STABLE_ID_PATTERN = /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/
 

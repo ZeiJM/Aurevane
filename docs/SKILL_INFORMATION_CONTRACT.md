@@ -13,9 +13,9 @@ Owner-approved 2026-10-02. This is the minimum report for **every full Skill det
 | Effects | Every executable effect, in authored order, with magnitude and duration when applicable. Compact values use `Dmg [12]` or `Guarded [15%] [2 Turns]`; formulas/percentage recovery remain formulas instead of fabricated character-specific amounts. Retain recipient information and full explanations where needed. |
 | Range | Maximum tile range, matching the current compact parameter design. Self-only and untargeted passive actions use `N/A`. Movement states its remaining allowance. Owner refinement 2026-10-02: omit the duplicate Legal range prose from full detail views; engine targeting constraints remain authoritative. |
 | Target | Actual target policy/recipient: Self, Enemy, Ally, Any Unit, Ground or Empty Ground. Passive reports identify result recipients instead of pretending the passive has a separate selection. |
-| Target Method | Single, Circle or Line for authored targeting; Path/Facing where appropriate to an inherent command. Untargeted passives use `N/A`. |
+| Target Method | Single, Circle [X], Line [X] or All for authored targeting; Path/Facing where appropriate to an inherent command. Untargeted passives use `N/A`. |
 | Target Elevation | Authored maximum elevation difference; `N/A` when no independent elevation constraint applies. Move reports the committed character Jump stat. |
-| Line of Sight | Required or Not required for targeted actions; `N/A` for self-only actions or passives with no independent targeting. |
+| Line of Sight | Required or Not required for targeted actions; `N/A` for self-only actions, All, or passives with no independent targeting. |
 
 All ten labels must appear exactly once, in this order. Area geometry belongs in Target Method (including radius/length), and distinct recipients/friendly-fire behavior belongs in Target. Applicable effect explanations, trigger timing, caps, repeat-use rules and mode overrides follow the fields. Do not add a redundant targeting-summary paragraph below the table. A compact action bar, forecast or card may summarize information, but its full detail view must provide the complete minimum report. Do not enlarge or reflow the fixed battle cockpit/forecast to hold this report.
 
@@ -38,3 +38,7 @@ Owner refinement 2026-10-03: append `[Instant]` to applicable effect values when
 
 
 Owner-approved 2026-10-06: Move’s report is Cost 20 AP, Requirements N/A, Effects Move [1] [Instant], Range committed Move stat, and Target Elevation committed Jump stat. Its concise explanation notes reachable tiles and terrain AP costs. Basic Attack’s family and formula follow the higher committed Physical/Mystic Attack stat (Physical ties). Essence readers include the same effect explanations as Techniques. Damage explanations distinguish authored Skill power (1–20) from final HP damage. Battle information readers use the paper background without dark Effects blocks or redundant arm-action instructions.
+
+## Current targeting geometry — 2026-10-06
+
+Current area versions pin `geometryVersion: 2`. Single selects one legal unit/tile. Line [X] starts at the caster and covers X tiles in one cardinal direction; units do not block it. Circle [X] uses Chebyshev distance 1..X around the caster, excludes its tile and includes the inner rings (8 tiles at X=1, 24 at X=2). Separate actor effects remain independent. All ignores positional range and LoS; Range and LoS read N/A while explicitly authored elevation remains visible. Recipient kind, team and friendly fire remain independent. Shared Target Method descriptions explain this origin/coverage without adding a redundant report row or resizing artwork. Historical versions without the marker retain their original destination-based geometry.
