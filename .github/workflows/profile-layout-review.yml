@@ -72,7 +72,9 @@ concurrency:
 jobs:
   review:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # Disposable database/build setup plus the complete serial layout suite
+    # exceeded 20 minutes after all cases passed; allow cleanup and evidence too.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
