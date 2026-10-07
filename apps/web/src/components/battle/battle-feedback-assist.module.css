@@ -2,7 +2,12 @@
   display: none;
 }
 
-:global(#battlefield button[data-target-relation='friendly']) {
+:global(
+  #battlefield
+    button[data-target-relation='friendly']:not([data-self-target='true']):not(
+      [data-heal-target='true']
+    )
+) {
   z-index: 4;
   border-color: rgba(102, 218, 143, 0.98) !important;
   background:

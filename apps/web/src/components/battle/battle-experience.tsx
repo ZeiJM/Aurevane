@@ -93,6 +93,7 @@ import { BattleSelectedSkills } from './battle-selected-skills'
 import { battleActionCooldownTurns } from './battle-action-cooldown'
 
 import { battleAttackReachTiles } from './battle-attack-path'
+import { battleActionUsesRecoverySelection } from './battle-recovery-selection'
 import { createPv1fBasicAttackDefinition } from '@aurevane/game-core/combat/pv1f-action-economy'
 import { BattleSkillCommand } from './battle-skill-command'
 import {
@@ -543,6 +544,15 @@ function BattleExperienceContent({
         : mode === 'recover'
           ? selectedHealTechnique
           : null
+  const armedActionId =
+    pendingIntent?.kind === 'action'
+      ? pendingIntent.actionId
+      : mode === 'guard'
+        ? selectedDefenseActionId
+        : mode === 'recover'
+          ? effectiveHealActionId
+          : null
+  const healingSelection = battleActionUsesRecoverySelection(armedActionId, activeTechnique)
   const previewCombatants = useMemo(
     () =>
       tactical.placements.flatMap((placement) => {
@@ -2082,6 +2092,9 @@ function BattleExperienceContent({
                       (targetRelation === 'friendly' &&
                         placement?.combatantId === localCombatantId) ||
                       undefined
+                    }
+                    data-heal-target={
+                      (targetRelation === 'friendly' && healingSelection) || undefined
                     }
                     data-terrain={terrain}
                     data-terrain-overlay={overlay?.kind}

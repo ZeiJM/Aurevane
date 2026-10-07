@@ -506,6 +506,8 @@ export type CombatResolutionEvent = (
       /** Periodic receipts retain both the canonical damage action and its original cast. */
       sourceActionId?: string
       statusId?: 'poison' | 'burn' | 'bleed'
+      /** Element of this resolved hit; omitted on untyped and historical receipts. */
+      element?: CombatElement
       sourceCombatantId: string
       targetCombatantId: string
       amount: number
@@ -2627,6 +2629,7 @@ function applyEffect(
         {
           event: 'damage_applied',
           actionId,
+          ...(effect.element ? { element: effect.element } : {}),
           sourceCombatantId: actorId,
           targetCombatantId: recipientId,
           amount: target.hp - hpAfter,

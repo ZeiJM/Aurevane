@@ -1,5 +1,33 @@
 # AUREVANE — Active Task Ledger
 
+## Healing target fill — 2026-10-06
+
+Owner requests recovery target highlights to fill the visible tile around the portrait and identity border like the stronger blue self-selection. The latest clarification makes every Heal/Recovery-tagged action green, including MP Recovery and mixed defensive/healing Skills. Other non-attacking self buffs and basic Guard share the same 50% blue overlay. Shared battlefield styling removes competing legacy friendly tints, preserves terrain texture, participant rings and red damage-path priority, and does not intercept clicks. Actual HP/MP Support Action flows and Sacred Guard/Steady Footing/Guard comparisons cover desktop/mobile PvE/PvP.
+
+- [x] Implement shared full-tile green healing overlay and recipient marker from the armed action's actual effects.
+- [x] Pass focused shared-style regression; add real Support Action browser assertions.
+- [x] Cover HP/MP restoration and authored Heal/Recovery tags independently of command category; compare Guard and pure self-buff paint against mixed healing Skills.
+- [ ] Complete combined full quality and exact-head browser gates before authorized release.
+
+## Chronicle damage types — 2026-10-06
+
+Owner requests actual elemental hits to say, for example, `21 fire damage` instead of `21 damage`. Record the element on each authoritative direct-damage receipt; shared Chronicle, compact presentation and Copy Full Log consume that receipt without inferring from current Skill definitions or names. Historical/untyped hits retain generic wording. Shared desktop/mobile PvE, PvP and spectator presentation remains aligned.
+
+- [x] Reproduce missing elemental receipts and generic displayed/copied wording with failing regressions.
+- [x] Preserve Fire/Water/Storm receipt metadata through immediate multi-hit and stored delayed activation; sanitize unknown element values and retain viewer privacy.
+- [x] Pass focused core timing/interaction and log/context/privacy/clipboard/presentation regressions.
+- [ ] Complete full quality and exact-head release checks; publish the verified source under standing Owner authorization.
+
+## Canonical Cleanse — 2026-10-06
+
+Owner confirms Cleanse always removes Burn, Bleed, Poison, Slow, Rooted, Vulnerable, Marked and Taunted. Steady Footing, Thaw and Grounding previously authored partial lists. Append corrected versions without changing AP/MP, range, other effects, cooldown or historical definitions; all eight current Discipline Cleanses and two Essences share the same removal contract and generated descriptions. Preserve unrelated positive/neutral effects and Dispel's separate authored-positive-status behavior.
+
+- [x] Reproduce partial mechanics/descriptions and inconsistent Master Panel validation with failing regressions.
+- [x] Centralize the canonical status list, append the three corrected current versions, and use canonical Master Panel defaults and server validation.
+- [x] Exercise actual removal of all eight statuses and every typed Bleed application for each current Cleanse, preserving unrelated states.
+- [x] Inspect current published content read-only: no Skill/Essence DoT or remove-status overrides require a Production content conversion.
+- [ ] Complete full quality and exact-head release gates; release under standing Owner authorization.
+
 ## Battle-tag follow-up access repair — 2026-10-06
 
 Production Nexus logs identify `effect_timing` persistence recovery. Read-only inspection confirms the published version-3 policy still contains obsolete `copy` and `summoned` timing overrides alongside the current `summon` override. Rejecting those inert keys blocked shared policy loading and saved-battle validation after the cleanup.
@@ -556,13 +584,11 @@ Release checkpoint: local `pnpm check` passed (1,095 tests including the six rep
 - [x] Add the one-time default-portrait gallery with authenticated, atomic server/database authority and a staged migration.
 - [ ] Release the verified candidate and portrait migration through the separately authorized workflow. Evidence and boundaries: `docs/superpowers/verification/2026-10-03-battle-log-popups-portrait.md`.
 
-
 ## Owner battle follow-up — 2026-10-06
 
 Authorized: proceed with the collected battle fixes, plus 60/30/10 elevation heights. Owner selected complete global rounds for newly queued non-instant status durations. Implemented round-boundary counters (instant and stored lifetimes preserved), canonical Basic Attack family/Defense, recorded Chronicle ordering, damaging forecast glow, Essence explanations, concise Move stats, paper Effects styling, removed arm-action footers and shared lobby VS flames. New standard and teaching map heights use seeded 60/30/10 level draws while preserving joined platforms, flat spawns and connected ground.
 
 Local `pnpm check` passed after the final changes: formatting, lint, typecheck, tests and production build. Core: 2,262 tests; web: 1,554 tests plus seven Node report/audio checks. Focused regressions cover both initiative positions, full-round mitigation/vulnerability, instant and historical lifetimes, manual/AI/PvP timeout boundaries, copied status lifetime, Chronicle fallback ordering, damaging path filtering and seeded standard/teaching elevations. Local browser execution was blocked by a missing Chromium binary and an invalid download archive; responsive browser evidence remains a CI gate. Main was refreshed and remains e86555d. GitHub integration pending; no production deployment claimed or triggered for this work item.
-
 
 ## Owner VS scale and independent tile heights — 2026-10-06
 
@@ -570,9 +596,21 @@ Owner requested a larger, more impactful lobby VS and clarified that adjacent ra
 
 - Round 2 follow-up: new battles persist a seeded random initiative tie order at start, independently of combat RNG. Historical saved battles retain their original ties. Regression coverage verifies both tied participants can start, reload/round stability, modifier precedence and metadata validation.
 
-
 2026-10-06 Owner battle follow-up: unify each assigned participant accent across rail portrait borders, rail arrows, grid rings and grid arrows, including spectators. Preserve existing team colors and extend Recruit shade families for five distinct opponents. Label each Skill/Essence/Resonance popup explanation with its effect name. Pending rail effects use yellow until activation; active buffs/debuffs use green/red. Shared presentation only; combat authority and durations unchanged. Focused rendered/color tests and mounted PvE/PvP/spectator browser regressions added; full checks and release pending.
 
 Owner-approved 2026-10-06 damage explanation follow-up: compact Skill and Essence damage explanations include the same existing Fire/Storm interactions as expanded reports, using one shared presentation helper. Retain the 1–20 power scale explanation and the bracketed authored magnitude; remove the redundant per-effect power sentence. Water damage does not implicitly apply Wet. Focused presentation regressions cover interactions, unchanged magnitudes and untyped/Water exclusions.
 
 Owner clarification 2026-10-06 targeting follow-up supersedes the earlier recipient-only rule: armed damaging moves show their potential hit tiles even without a detected target or an informational forecast. Basic Attack shows its four cardinal neighbors. Pinned Skills/Essences use their authored range and the shared combat shape resolver; aimed line/circle moves retain their complete footprint, including empty tiles, like Phoenix Wake. Direct damage and Burn/Bleed/Poison qualify; non-damaging moves do not paint red. This is informational reach, not a promise of legality: server requirements, resources, elevation, line of sight and target policy still govern commits. Self-target tiles use a filled blue overlay beneath the portrait and participant identity border. Real mounted Basic Attack/Guard and missing-forecast regressions verify footprint and paint ordering without injecting targeting attributes.
+
+### 2026-10-06 — Damage Up report: expose recorded critical hits
+
+- Owner reported Sacred Guard followed by 23 and 15 damage. Read-only inspection of the matching persisted battle confirms the first hit was critical and the second was normal; Damage Up remained active and increased a 14-damage normal hit to 15. No damage arithmetic change is justified by this report.
+- Preserve confirmed critical results through the sanitized shared Chronicle, compact log, and clipboard transcript without exposing RNG or chance internals. Match compact critical narration to the recorded source, action and recipient; queue pre-command receipts beneath their actual command.
+- Focused regressions pass for repeated Damage Up attacks (normal 15 / critical 23), confirmed versus malformed critical receipts, recipient matching, pre-command ordering, elemental wording and reader/copy parity. Final combined full gate and exact-head CI still pending.
+
+#### Review follow-up for the same batch
+
+- Independent review reproduced partial Cleanse on eleven current Resonances. Append corrected v4 definitions while retaining v1–v3, validate Resonance Result authoring against the same eight-status contract, and label every Resonance explanation with its effect name. Current execution regressions now cover all twenty-one Skill/Essence/Resonance Cleanse definitions and stacked DoT cleanup.
+- Preserve earlier mixed-element hits in compact visible outcomes. Present target-level critical receipts separately from damage packets so a same-command critical-ineligible Vengeance packet is never mislabeled. Both reproduced regressions pass.
+- Add desktop/mobile PvE/PvP allied healing fill assertions in the existing production-component browser harness, including full inset, green opacity, portrait/ring layering, enemy exclusion and no command on arming. Browser execution is pending CI.
+- Extended read-only publication preflight found no published Resonance remove-status override. No live database change is required.

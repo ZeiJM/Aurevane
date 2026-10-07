@@ -2,6 +2,7 @@ import {
   isSkillNarrationVariantValid,
   type SkillNarrationTemplate,
 } from '@aurevane/game-core/combat/battle-narration'
+import { battleDamageLabel } from '../../lib/battle/battle-damage-type'
 
 import type {
   BattleLogEntry,
@@ -582,7 +583,22 @@ function presentAction(group: ActionGroup, options: PresentationOptions): Presen
     const actor = combatantName(damage.actorCombatantId, options)
     const target = combatantName(damage.targetCombatantId, options)
     const amount = damage.templateValues.amount?.trim()
-    const outcome = amount ? `${amount} damage` : 'Damage dealt'
+    const damageEntries = group.entries.filter((entry) => entry.eventType === 'damage_applied')
+    const criticalEntries = group.entries.filter(
+      (entry) =>
+        entry.eventType === 'combat_critical_resolved' &&
+        entry.templateValues.outcome === 'CRITICAL' &&
+        damageEntries.some(
+          (hit) =>
+            !hit.periodicStatusId &&
+            entry.actorCombatantId === hit.actorCombatantId &&
+            entry.targetCombatantId === hit.targetCombatantId &&
+            entry.actionId === hit.actionId,
+        ),
+    )
+    const outcome = amount
+      ? `${amount} ${battleDamageLabel(damage.templateValues.element)}`
+      : 'Damage dealt'
     const selfDamage =
       damage.actorCombatantId !== null &&
       damage.targetCombatantId !== null &&
@@ -625,6 +641,32 @@ function presentAction(group: ActionGroup, options: PresentationOptions): Presen
       ]
     } else {
       secondary = statusApplicationSecondary(group, options, consumed, damage.targetCombatantId)
+    }
+    // A target-level critical receipt does not identify which packet was eligible:
+    // Vengeance and ordinary damage can share a command and recipient. Keep it separate.
+    const extraOutcomes = [
+      ...criticalEntries.map(
+        (entry) =>
+          `Critical hit on ${combatantName(entry.targetCombatantId, options) ?? 'the target'}!`,
+      ),
+      ...damageEntries
+        .filter((entry) => entry !== damage)
+        .sort((a, b) => a.eventIndex - b.eventIndex)
+        .map(
+          (entry) =>
+            `${entry.templateValues.amount ?? 'Resolved'} ${battleDamageLabel(entry.templateValues.element)} to ${combatantName(entry.targetCombatantId, options) ?? 'the target'}`,
+        ),
+    ]
+    if (extraOutcomes.length > 0) {
+      secondary = [
+        segment('↳ '),
+        segment(extraOutcomes.join(' · '), 'outcome', 'damage'),
+        ...(secondary ? [segment(' · '), ...secondary.slice(1)] : []),
+      ]
+    }
+    for (const entry of damageEntries) {
+      const hitAmount = entry.templateValues.amount?.trim()
+      if (hitAmount) consumed.add(`${hitAmount} dmg`.toLowerCase())
     }
   } else if (healing) {
     const actor = combatantName(healing.actorCombatantId, options)

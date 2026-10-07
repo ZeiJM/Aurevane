@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import {
   SkillEffectListEditor,
+  createDefaultCombatEffect,
   appendCombatEffect,
   moveCombatEffect,
   moveCombatEffectDescription,
@@ -18,6 +19,13 @@ const effects: readonly CombatEffectDefinition[] = [
 ]
 
 describe('Master Panel Skill effect list editor', () => {
+  it('creates a complete canonical Cleanse by default', () => {
+    expect(createDefaultCombatEffect('remove-status')).toEqual({
+      type: 'remove-status',
+      recipient: 'primary-unit',
+      statusIds: ['burn', 'bleed', 'poison', 'slow', 'root', 'exposed', 'mark', 'challenged'],
+    })
+  })
   it('renders authored effects in exact visible order', () => {
     const markup = renderToStaticMarkup(
       createElement(SkillEffectListEditor, { value: effects, onChange: vi.fn() }),

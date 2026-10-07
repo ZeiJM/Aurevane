@@ -23,6 +23,12 @@ describe('shared battlefield presentation bundle', () => {
     expect(styles).toContain('background: #6c91c680;')
     expect(readLocalFile('battle-experience.tsx')).toContain('data-self-target=')
   })
+  it('fills healing targets green through the shared tile layer', () => {
+    const styles = readLocalFile('battlefield-presentation-bundle.module.css')
+    expect(styles).toContain("[data-heal-target='true']:not([data-attack-path='true'])")
+    expect(styles).toContain('background: #66da8f80;')
+    expect(readLocalFile('battle-experience.tsx')).toContain('data-heal-target=')
+  })
   it('owns terrain and tile-scaled combatant token presentation', () => {
     const source = readLocalFile('battlefield-presentation-bundle.tsx')
 

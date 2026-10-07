@@ -4,6 +4,7 @@ import { ADVANCED_RESONANCES } from './advanced-resonances'
 import { FOUNDATION_TRIO_RESONANCES } from './foundation-trio-resonances'
 import { IRONFIST_RESONANCES } from './ironfist-content'
 import { rebalanceResonanceDefinition } from './resonance-balance-v5'
+import { createCanonicalCleanseResonanceVersion } from './combat-cleanse'
 import {
   convertV5ResonanceToV2,
   isResonanceDefinitionV2,
@@ -161,6 +162,10 @@ const CURRENT_RESONANCE_REGISTRY: readonly AnyResonanceDefinition[] = [
   ...P35_REPRESENTATIVE_RESONANCES,
   ...V5_REBALANCED_RESONANCES,
   ...V51_REBALANCED_RESONANCES,
+  ...V51_REBALANCED_RESONANCES.flatMap((definition) => {
+    const updated = createCanonicalCleanseResonanceVersion(definition)
+    return updated ? [updated] : []
+  }),
 ]
 
 const STABLE_ID_PATTERN = /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/

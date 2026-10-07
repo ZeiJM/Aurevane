@@ -1,4 +1,5 @@
 import { combatStatusDetails } from '@aurevane/game-core/combat/status-content'
+import { battleDamageLabel } from '../../lib/battle/battle-damage-type'
 import type { BattleLogEntry } from '@/server/battle/battle-log-service'
 
 import { renderBattleLogEntry } from './battle-log-presentation'
@@ -320,6 +321,10 @@ function outcome(entry: BattleLogEntry, names: ChronicleNames): ChronicleOutcome
   const base = { key: eventKey(entry), tone: 'neutral' as const }
   if (entry.effectTimingState === 'pending') return null
   switch (entry.eventType) {
+    case 'combat_critical_resolved':
+      return value.outcome === 'CRITICAL'
+        ? { ...base, text: `Critical hit on ${target}!`, tone: 'damage' }
+        : null
     case 'effect_pending': {
       const label =
         value.effect ?? (entry.statusId ? combatStatusDetails(entry.statusId).name : entry.headline)
@@ -361,14 +366,14 @@ function outcome(entry: BattleLogEntry, names: ChronicleNames): ChronicleOutcome
               : `Flames scorch ${target}`
         return {
           ...base,
-          text: `${narration} · ${label} deals ${value.amount ?? 'Resolved'} damage`,
+          text: `${narration} · ${label} deals ${value.amount ?? 'Resolved'} ${battleDamageLabel(value.element)}`,
           tone: 'damage',
           statusId: entry.periodicStatusId,
         }
       }
       return {
         ...base,
-        text: `${value.amount ?? 'Resolved'} damage`,
+        text: `${value.amount ?? 'Resolved'} ${battleDamageLabel(value.element)}`,
         recipient: ` to ${target}`,
         tone: 'damage',
       }
@@ -623,7 +628,7 @@ export function buildBattleChronicle(
     if (
       !command &&
       commands.get(entry.battleVersion)?.actorCombatantId === entry.actorCombatantId &&
-      isAccuracyReceipt(entry)
+      (isAccuracyReceipt(entry) || entry.eventType === 'combat_critical_resolved')
     ) {
       const pending = pendingOutcomes.get(entry.battleVersion) ?? []
       pending.push(entry)

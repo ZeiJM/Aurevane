@@ -15,6 +15,7 @@ import {
   resolveResonanceForPair,
   type AnyResonanceDefinition,
 } from '@aurevane/game-core/combat/resonance'
+import { isResonanceDefinitionV2 } from '@aurevane/game-core/combat/resonance-v2'
 import type { CombatContentResolver } from '@/server/combat/combat-content-resolver'
 
 import {
@@ -106,6 +107,65 @@ function invalidVariant(mutator: (definition: Record<string, unknown>) => void):
 }
 
 describe('combat content authoring service', () => {
+  it('rejects partial Cleanse in a Resonance Result without changing Dispel', () => {
+    const { service } = serviceFixture()
+    const base = resolveResonanceForPair('dawnshield', 'vanguard')!
+    if (!isResonanceDefinitionV2(base)) throw new Error('Expected current Resonance V2.')
+    expect(service.validateResonanceDefinition(base)).toMatchObject({ valid: true })
+    const partial = {
+      ...base,
+      trigger: {
+        ...base.trigger,
+        resultEffects: base.trigger.resultEffects.map((effect) =>
+          effect.type === 'remove-status' ? { ...effect, statusIds: ['burn'] } : effect,
+        ),
+      },
+    }
+    expect(service.validateResonanceDefinition(partial)).toMatchObject({
+      valid: false,
+      issues: expect.arrayContaining([expect.objectContaining({ code: 'INCONSISTENT_CLEANSE' })]),
+    })
+    const dispel = {
+      ...base,
+      trigger: {
+        ...base.trigger,
+        resultEffects: base.trigger.resultEffects.map((effect) =>
+          effect.type === 'remove-status' ? { ...effect, statusIds: ['guarded'] } : effect,
+        ),
+      },
+    }
+    expect(service.validateResonanceDefinition(dispel)).toMatchObject({ valid: true })
+  })
+  it('rejects partial Cleanse publication while preserving Dispel and canonical Cleanse', () => {
+    const { service } = serviceFixture()
+    const base = staticSkill('runeblade.unbinding-rune')
+    expect(service.validateSkillDefinition(base)).toMatchObject({ valid: true })
+    const partial = {
+      ...base,
+      effects: [{ type: 'remove-status', recipient: 'actor', statusIds: ['slow', 'root'] }],
+    }
+    expect(service.validateSkillDefinition(partial)).toMatchObject({
+      valid: false,
+      issues: expect.arrayContaining([expect.objectContaining({ code: 'INCONSISTENT_CLEANSE' })]),
+    })
+    const dispel = {
+      ...base,
+      effects: [{ type: 'remove-status', recipient: 'primary-unit', statusIds: ['guarded'] }],
+    }
+    expect(service.validateSkillDefinition(dispel)).toMatchObject({ valid: true })
+    const essence = resolveEssenceForBuild('dawnshield', null)!
+    expect(service.validateEssenceDefinition(essence)).toMatchObject({ valid: true })
+    const partialEssence = {
+      ...essence,
+      skill: {
+        ...essence.skill,
+        effects: essence.skill.effects.map((effect) =>
+          effect.type === 'remove-status' ? { ...effect, statusIds: ['slow'] } : effect,
+        ),
+      },
+    }
+    expect(service.validateEssenceDefinition(partialEssence)).toMatchObject({ valid: false })
+  })
   it('denies users who are not explicit Master Panel operators', async () => {
     const { service } = serviceFixture()
 

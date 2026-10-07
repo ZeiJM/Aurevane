@@ -12,6 +12,7 @@ import { createTacticalBattleState } from '@aurevane/game-core/combat/board'
 import { createCombatEncounterState } from '@aurevane/game-core/combat/actions'
 import { createStatDrivenCombatEncounterState } from '@aurevane/game-core/combat/stat-driven-combat'
 import { createPv1fTemporaryResources } from '@aurevane/game-core/combat/pv1f-action-economy'
+import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
 import './production-styles'
 
 const ids = ['character:player', 'ally', 'enemy-one', 'enemy-two']
@@ -97,6 +98,7 @@ const metadata = {
   localCharacterId: ids[0],
   participants,
 }
+const mend = resolveMatureSkillVersion('lifebinder.mend')
 const runtime = {
   kind: mode,
   metadata,
@@ -105,7 +107,29 @@ const runtime = {
   playerPortraitAssetId: 'character.adventure.male-01',
   playerProfileImageUrl: null,
   supportActionId: 'basic.guard',
-  techniques: [],
+  techniques: [
+    [mend, 'heal', 'Mend'],
+    [resolveMatureSkillVersion('dawnshield.sacred-guard'), 'defense', 'Sacred Guard'],
+    [resolveMatureSkillVersion('bastion.steady-footing'), 'defense', 'Steady Footing'],
+  ].map(([definition, category, name]) => ({
+    definition,
+    id: definition.id,
+    contentVersion: definition.contentVersion,
+    name,
+    sourceDisciplineId: definition.sourceDisciplineId,
+    category,
+    apCost: definition.apCost,
+    mpCost: definition.mpCost ?? 0,
+    cooldownOwnerTurns: definition.cooldown?.ownerTurns ?? null,
+    iconKey: definition.media.iconKey,
+    targetKind: definition.target.kind,
+    targetTeamPolicy: definition.target.teamPolicy,
+    minimumRange: definition.target.minimumRange,
+    maximumRange: definition.target.maximumRange,
+    tags: definition.tags,
+    effectDescriptions: [],
+    requirementDescriptions: [],
+  })),
   essence: null,
   copiedSkills: [],
 }
@@ -140,10 +164,13 @@ window.fetch = async (url, options = {}) => {
               intent.target.kind === 'unit'
                 ? [
                     {
-                      effectType: 'damage',
+                      effectType: intent.actionId === mend.id ? 'healing' : 'damage',
                       combatantId: targetId,
                       before: combatant.hp,
-                      after: combatant.hp - damage,
+                      after:
+                        intent.actionId === mend.id
+                          ? Math.min(combatant.maxHp, combatant.hp + 12)
+                          : combatant.hp - damage,
                     },
                   ]
                 : [],

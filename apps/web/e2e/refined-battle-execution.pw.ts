@@ -99,6 +99,9 @@ test('single target input executes Guard once and repeated keys do not dispatch'
     page.getByLabel('Action preview', { exact: true }).locator('[data-battle-range-forecast]'),
   ).toContainText('Guard')
   await expect(localTile).toHaveAttribute('data-self-target', 'true')
+  await expect
+    .poll(() => localTile.evaluate((tile) => getComputedStyle(tile).borderColor))
+    .toBe('rgb(108, 145, 198)')
   const selfGlow = await localTile.evaluate((tile) => {
     const overlay = getComputedStyle(tile, '::after')
     const token = tile.querySelector<HTMLElement>(':scope > [data-team]')!
@@ -107,11 +110,15 @@ test('single target input executes Guard once and repeated keys do not dispatch'
       overlayLayer: Number(overlay.zIndex),
       tokenLayer: Number(getComputedStyle(token).zIndex),
       ring: getComputedStyle(token).borderColor,
+      tileBorder: getComputedStyle(tile).borderColor,
+      tileShadow: getComputedStyle(tile).boxShadow,
     }
   })
   expect(selfGlow.background).toBe('rgba(108, 145, 198, 0.5)')
   expect(selfGlow.tokenLayer).toBeGreaterThan(selfGlow.overlayLayer)
   expect(selfGlow.ring).toBe('rgb(208, 170, 98)')
+  expect(selfGlow.tileBorder).toBe('rgb(108, 145, 198)')
+  expect(selfGlow.tileShadow).toBe('none')
   expect(commits).toBe(0)
   await page.evaluate(() =>
     window.dispatchEvent(

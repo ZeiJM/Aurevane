@@ -58,6 +58,7 @@
     "./combat/combat-status-copy": "./src/combat/combat-status-copy.ts",
     "./events/persistent-event": "./src/events/persistent-event.ts",
     "./combat/combat-dots": "./src/combat/combat-dots.ts",
+    "./combat/combat-cleanse": "./src/combat/combat-cleanse.ts",
     "./combat/combat-level-scaling": "./src/combat/combat-level-scaling.ts",
     "./combat/combat-critical": "./src/combat/combat-critical.ts",
     "./combat/damage-modifiers": "./src/combat/damage-modifiers.ts",

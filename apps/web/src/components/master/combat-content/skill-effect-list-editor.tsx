@@ -1,6 +1,7 @@
 'use client'
 
 import type { CombatEffectDefinition } from '@aurevane/game-core/combat/actions'
+import { CLEANSE_STATUS_IDS } from '@aurevane/game-core/combat/combat-cleanse'
 import { useState } from 'react'
 
 import { previewEffect } from '../../character/skill-effect-preview'
@@ -41,7 +42,7 @@ export function createDefaultCombatEffect(type: CombatEffectType): CombatEffectD
     case 'apply-status':
       return { type, recipient: 'primary-unit', statusId: 'guarded', stacks: 1 }
     case 'remove-status':
-      return { type, recipient: 'primary-unit', statusIds: ['burn'] }
+      return { type, recipient: 'primary-unit', statusIds: [...CLEANSE_STATUS_IDS] }
     case 'return-to-turn-start':
       return { type, recipient: 'actor' }
     case 'create-terrain':

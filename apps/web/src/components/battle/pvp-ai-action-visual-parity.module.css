@@ -125,12 +125,16 @@
 :global(
   main[data-pvp-battle='true'][data-pvp-action-mode='guard']
     #battlefield
-    button[aria-label^='Tile '][data-target='friendly']
+    button[aria-label^='Tile '][data-target='friendly']:not([data-self-target='true']):not(
+      [data-heal-target='true']
+    )
 ),
 :global(
   main[data-pvp-battle='true'][data-pvp-action-mode='recover']
     #battlefield
-    button[aria-label^='Tile '][data-target='friendly']
+    button[aria-label^='Tile '][data-target='friendly']:not([data-self-target='true']):not(
+      [data-heal-target='true']
+    )
 ) {
   z-index: 4 !important;
   border-color: rgba(102, 218, 143, 0.98) !important;

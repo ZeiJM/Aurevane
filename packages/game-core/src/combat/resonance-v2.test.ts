@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { resolveResonanceForPair } from './resonance'
+import { P35_REPRESENTATIVE_RESONANCES, resolveResonanceForPair } from './resonance'
+import { CLEANSE_STATUS_IDS, isCleanseEffect } from './combat-cleanse'
 import {
   RESONANCE_V2_SCHEMA_VERSION,
   convertV5ResonanceToV2,
@@ -10,6 +11,31 @@ import {
 } from './resonance-v2'
 
 describe('Combat v5.1 Resonance v2 schema', () => {
+  it('gives every current Resonance Cleanse the same removal contract while preserving pinned v3', () => {
+    let corrected = 0
+    for (const definition of P35_REPRESENTATIVE_RESONANCES) {
+      const [first, second] = definition.disciplinePair
+      const current = resolveResonanceForPair(first, second)!
+      const historical = resolveResonanceForPair(first, second, 3)!
+      const effects = normalizedResonanceMechanics(current).resultEffects
+      const oldEffects = normalizedResonanceMechanics(historical).resultEffects
+      if (!oldEffects.some(isCleanseEffect)) continue
+      corrected += 1
+      expect(current.contentVersion).toBe(4)
+      for (const effect of effects.filter(isCleanseEffect))
+        expect(effect.statusIds).toEqual(CLEANSE_STATUS_IDS)
+      expect(
+        oldEffects.filter(isCleanseEffect).every((effect) => effect.statusIds.length < 8),
+      ).toBe(true)
+      expect({
+        ...current,
+        contentVersion: 3,
+        trigger: historical.trigger,
+        authoring: historical.authoring,
+      }).toEqual(historical)
+    }
+    expect(corrected).toBe(11)
+  })
   it('normalizes historical v1 payoff terminology without mutating the definition', () => {
     const historical = resolveResonanceForPair('lifebinder', 'vanguard', 1)
     if (!historical) throw new Error('Expected historical Resonance.')

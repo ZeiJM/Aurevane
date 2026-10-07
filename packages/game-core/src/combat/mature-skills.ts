@@ -1,4 +1,5 @@
 import { battleFlavorTemplateIssues } from './battle-narration'
+import { createCanonicalCleanseSkillVersion } from './combat-cleanse'
 import {
   validateCombatAccuracyDefinition,
   type CombatAccuracyAuthoring,
@@ -989,10 +990,20 @@ const V51_REBALANCED_DISCIPLINE_SKILLS = latestEnabledMatureSkills([
 
 export const P33_REPRESENTATIVE_DISCIPLINE_SKILLS = PRE_V5_CURRENT_DISCIPLINE_SKILLS
 
+const CANONICAL_CLEANSE_DISCIPLINE_SKILLS = latestEnabledMatureSkills([
+  ...P33_REPRESENTATIVE_DISCIPLINE_SKILLS,
+  ...V5_REBALANCED_DISCIPLINE_SKILLS,
+  ...V51_REBALANCED_DISCIPLINE_SKILLS,
+]).flatMap((definition) => {
+  const next = createCanonicalCleanseSkillVersion(definition)
+  return next ? [next] : []
+})
+
 const CURRENT_DISCIPLINE_SKILL_REGISTRY = [
   ...P33_REPRESENTATIVE_DISCIPLINE_SKILLS,
   ...V5_REBALANCED_DISCIPLINE_SKILLS,
   ...V51_REBALANCED_DISCIPLINE_SKILLS,
+  ...CANONICAL_CLEANSE_DISCIPLINE_SKILLS,
 ] as const satisfies readonly MatureSkillDefinition[]
 
 /** Current selection catalog; the historical P3.3/P4 export remains stable for pinned contracts. */

@@ -170,6 +170,8 @@ function activeCommandSlug(): string | null {
 }
 
 function activeSemanticColor(tile: HTMLButtonElement): string | null {
+  // The React-owned full-tile layer is the sole friendly selection color authority.
+  if (tile.dataset.selfTarget === 'true' || tile.dataset.healTarget === 'true') return null
   const activeCommand = activeCommandSlug()
   const targetRelation = tile.dataset.target
 
@@ -305,7 +307,7 @@ export function BattleMapTokenPolish({
       childList: true,
       subtree: true,
       attributes: true,
-      attributeFilter: ['data-target'],
+      attributeFilter: ['data-target', 'data-self-target', 'data-heal-target'],
     })
 
     const boardViewport = battlefield.querySelector('[data-board-auto-fit]')?.parentElement

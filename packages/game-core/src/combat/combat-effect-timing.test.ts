@@ -110,6 +110,34 @@ function end(state: CombatEncounterState) {
   ).state
 }
 describe('pinned next global round effect timing', () => {
+  it('retains a delayed hit’s element through storage and round activation', () => {
+    const state = encounter()
+    state.effectTimingPolicy = { version: 1, modes: { damage: 'next-round' } }
+    const cast = executeCombatAction(
+      state,
+      {
+        ...action,
+        effects: [{ type: 'damage', recipient: 'primary-unit', amount: 5, element: 'fire' }],
+      },
+      { kind: 'unit', combatantId: 'actor1' },
+      content,
+    )
+    expect(cast.events.some((event) => event.event === 'damage_applied')).toBe(false)
+    const stored = JSON.parse(JSON.stringify(cast.state)) as CombatEncounterState
+    const afterFirst = end(stored)
+    const activated = endCombatTurn(
+      {
+        ...afterFirst,
+        tactical: selectCurrentFinalFacing(afterFirst.tactical, 'east').state,
+      },
+      content,
+    )
+    expect(activated.events.find((event) => event.event === 'damage_applied')).toMatchObject({
+      element: 'fire',
+      amount: 5,
+      targetCombatantId: 'actor1',
+    })
+  })
   it.each(['copy', 'regeneration', 'hastened', 'delayed', 'borrowed-hour', 'summoned', 'marked'])(
     'ignores inert stored %s timing overrides without allowing new publication',
     (tag) => {

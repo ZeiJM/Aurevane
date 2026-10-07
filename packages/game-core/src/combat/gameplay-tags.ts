@@ -293,6 +293,10 @@ function shapePresentationTag(action: Pick<CombatActionDefinition, 'target'>): s
   return `Line [${shape.length}]`
 }
 
+export function combatEffectPresentationTags(effect: CombatEffectDefinition): readonly string[] {
+  return effectPresentationTags(effect as unknown as PresentationEffect)
+}
+
 function effectPresentationTags(effect: PresentationEffect): readonly string[] {
   if (effect.type === 'damage') {
     const element =

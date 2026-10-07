@@ -142,6 +142,84 @@ try {
         '100',
       )
       await expectName(enemy, 'Recruit 1')
+      await page.getByRole('button', { name: /^Selected Mend,/ }).click()
+      const allyTile = tile('Ally 1')
+      await page.waitForFunction(() =>
+        [...document.querySelectorAll('#battlefield button')].some(
+          (button) =>
+            button.getAttribute('aria-label')?.includes('occupied by Ally 1') &&
+            button.getAttribute('data-heal-target') === 'true',
+        ),
+      )
+      const healingFill = await allyTile.evaluate((button) => {
+        const overlay = getComputedStyle(button, '::after')
+        const token = button.querySelector(':scope > [data-team]')
+        return {
+          color: overlay.backgroundColor,
+          inset: [overlay.top, overlay.right, overlay.bottom, overlay.left],
+          pointerEvents: overlay.pointerEvents,
+          zIndex: Number(overlay.zIndex),
+          tokenZIndex: token ? Number(getComputedStyle(token).zIndex) : null,
+        }
+      })
+      assert.equal(healingFill.color, 'rgba(102, 218, 143, 0.5)')
+      assert.deepEqual(healingFill.inset, ['0px', '0px', '0px', '0px'])
+      assert.equal(healingFill.pointerEvents, 'none')
+      assert.ok(
+        healingFill.tokenZIndex > healingFill.zIndex,
+        'The ally portrait/ring remain above the healing fill',
+      )
+      assert.equal(await tile('Recruit 1').getAttribute('data-heal-target'), null)
+      assert.deepEqual(await commits(), [], 'Arming ally healing submits no command')
+      const selfSelectionPaint = () =>
+        tile('Zei').evaluate((button) => ({
+          fill: getComputedStyle(button, '::after').backgroundColor,
+          border: getComputedStyle(button).borderColor,
+          shadow: getComputedStyle(button).boxShadow,
+          texture: getComputedStyle(button).backgroundImage,
+          recovery: button.getAttribute('data-heal-target'),
+        }))
+      for (const [name, recovery] of [
+        ['Sacred Guard', true],
+        ['Steady Footing', false],
+      ]) {
+        await page.getByRole('button', { name: new RegExp(`^Selected ${name},`) }).click()
+        await page.waitForFunction((recovery) => {
+          const button = [...document.querySelectorAll('#battlefield button')].find((button) =>
+            button.getAttribute('aria-label')?.includes('occupied by Zei'),
+          )
+          const expectedBorder = recovery ? 'rgb(102, 218, 143)' : 'rgb(108, 145, 198)'
+          return (
+            button?.getAttribute('data-self-target') === 'true' &&
+            (button.getAttribute('data-heal-target') === 'true') === recovery &&
+            getComputedStyle(button).borderColor === expectedBorder &&
+            getComputedStyle(button).boxShadow === 'none'
+          )
+        }, recovery)
+        const paint = await selfSelectionPaint()
+        assert.equal(paint.fill, recovery ? 'rgba(102, 218, 143, 0.5)' : 'rgba(108, 145, 198, 0.5)')
+        assert.equal(paint.border, recovery ? 'rgb(102, 218, 143)' : 'rgb(108, 145, 198)')
+        assert.equal(paint.shadow, 'none', 'Legacy highlights must not add a second tint')
+        assert.ok(paint.texture.includes('terrain-open-stone-v01.webp'))
+      }
+      const buffPaint = await selfSelectionPaint()
+      await command('guard').click()
+      await page.waitForFunction(
+        () =>
+          document.querySelector('[data-battle-command="guard"]')?.getAttribute('aria-pressed') ===
+            'true' ||
+          document
+            .querySelector('[data-battle-layout="refined"]')
+            ?.getAttribute('data-battle-action-mode') === 'guard',
+      )
+      assert.deepEqual(
+        await selfSelectionPaint(),
+        buffPaint,
+        'Guard and pure self buffs share exactly one blue treatment',
+      )
+      assert.deepEqual(await commits(), [], 'Switching support selections submits no command')
+      await command('inspect').click()
+      await tile('Ally 1').click()
       await tile('Recruit 2').click()
       await expectName(enemy, 'Recruit 2')
       await expectName(local, 'Ally 1')

@@ -5,6 +5,7 @@ import type {
   CombatEffectRecipient,
 } from '@aurevane/game-core/combat/actions'
 import type { CombatElement } from '@aurevane/game-core/combat/gameplay-tags'
+import { CLEANSE_STATUS_IDS, isCleanseEffect } from '@aurevane/game-core/combat/combat-cleanse'
 
 import styles from './combat-content-editor.module.css'
 
@@ -540,8 +541,17 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
               }
             />
             <small className={styles.fieldHint}>
-              One to eight distinct status IDs. Use this for Cleanse/Dispel-style blocks.
+              Cleanse removes Burn, Bleed, Poison, Slow, Rooted, Vulnerable, Marked and Taunted.
+              Dispel removes authored positive statuses.
             </small>
+            {isCleanseEffect(value) ? (
+              <button
+                type="button"
+                onClick={() => onChange({ ...value, statusIds: [...CLEANSE_STATUS_IDS] })}
+              >
+                Use standard Cleanse
+              </button>
+            ) : null}
           </label>
         </div>
       )
