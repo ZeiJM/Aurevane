@@ -251,7 +251,7 @@ async function launchRecruitBattle(page: Page): Promise<unknown> {
   await page.goto('/game/battle')
   await expect(page.getByRole('heading', { name: 'Choose your arena.' })).toBeVisible()
   await page.getByLabel('Battle mode').selectOption('recruit-sparring')
-  await page.getByLabel('Arena', { exact: true }).selectOption('duel-yard')
+  await page.getByLabel('AI sparring arena', { exact: true }).selectOption('duel-yard')
 
   const created = page.waitForResponse(isBattleCreateResponse)
   await page.getByRole('button', { name: 'Enter Battle', exact: true }).click()
