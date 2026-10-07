@@ -341,13 +341,21 @@ export function validateCurrentPercentageDotAuthoring(
   }
 }
 
-export function percentageDotDescription(type: 'burn' | 'poison' | 'bleed'): string {
+export function percentageDotDescription(
+  type: 'burn' | 'poison' | 'bleed',
+  backlashBasisPoints = 1000,
+  options: { legacyTriggers?: boolean } = {},
+): string {
   const basis =
     'Each tick uses the displayed percentage of HP damage dealt by that attack, rounded down.'
-  if (type === 'burn')
+  if (options.legacyTriggers && type === 'burn')
     return `${basis} Only one Burn can be active on a recipient; reapplication replaces it and restarts its duration and decay. Each later tick loses the authored percentage-point decay. While burning, a unit takes 2 HP backlash once after each damaging command, including misses and multi-hit attacks.`
-  if (type === 'poison')
+  if (options.legacyTriggers && type === 'poison')
     return `${basis} Only one Poison can be active on a recipient; reapplication replaces it, restarts its duration and resets movement progress. Every five traversed tiles, including Push or Pull, cause an extra tick without consuming a turn-end tick. Partial movement carries between turns; instantaneous relocation does not count.`
+  if (type === 'burn')
+    return `${basis} Only one Burn can be active on a recipient; reapplication replaces it and restarts its duration and decay. Each later tick loses the authored percentage-point decay. Once per turn, a burning unit takes backlash equal to ${percentageBasisPointsText(backlashBasisPoints)}% of the actual HP damage its own attack deals to enemies, rounded down. Multi-hit damage is summed once; misses and friendly damage do not trigger backlash. Reapplication or Copy does not renew this allowance.`
+  if (type === 'poison')
+    return `${basis} Only one Poison can be active on a recipient; reapplication replaces it, restarts its duration and resets movement progress. After five traversed tiles, including Push or Pull, Poison causes one extra tick, at most once per turn, without consuming a turn-end tick. Partial movement carries between turns; excess five-tile thresholds do not bank extra ticks. Reapplication or Copy does not renew this allowance. Instantaneous relocation does not count.`
   return `${basis} Each Bleed application retains its own captured attack damage and duration. Applications tick independently with no stack limit.`
 }
 

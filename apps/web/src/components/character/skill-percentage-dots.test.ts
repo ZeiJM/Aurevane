@@ -41,8 +41,10 @@ describe('shared percentage DoT readers', () => {
   it('explains the same contract for Essence effects and historical fixed versions', () => {
     const current = resolveEssenceForBuild('cinderweaver', null)!
     const burn = current.skill.effects.find((effect) => effect.type === 'burn')!
-    expect(skillEffectDescription(burn)).toContain('2 HP')
-    expect(skillEffectDescription(burn)).toContain('including misses')
+    expect(skillEffectDescription(burn)).toContain('10%')
+    expect(skillEffectDescription(burn)).toContain(
+      'misses and friendly damage do not trigger backlash',
+    )
     const old = resolveEssenceForBuild(
       'cinderweaver',
       null,
@@ -75,6 +77,18 @@ describe('shared percentage DoT readers', () => {
       advanceCurrentBurnEndTurn(applied, 'enemy').state,
     )[0]!.status
     expect(describeBattleEffect(active).explanation).toContain('Next tick: 8 HP')
+    expect(describeBattleEffect(active).explanation).toContain('2 HP backlash')
+    const current = activePersistentCombatStatusRows({
+      ...applied,
+      dotTriggerPolicyVersion: 1,
+      effectState: {
+        ...applied.effectState!,
+        burn: applied.effectState!.burn.map((row) => ({ ...row, backlashBasisPoints: 1234 })),
+      },
+    })[0]!.status
+    expect(describeBattleEffect(current).explanation).toContain('12.34%')
+    expect(describeBattleEffect(current).explanation).toContain('Once per turn')
+    expect(describeBattleEffect(current).explanation).not.toContain('2 HP backlash')
     expect(JSON.stringify(active)).not.toContain('private.skill')
     const skill = resolveMatureSkillVersion('ravager.gash')!
     const state = { ...percentageDotEncounter(), effectTimingPolicy: { version: 1, modes: {} } }

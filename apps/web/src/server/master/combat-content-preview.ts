@@ -252,6 +252,7 @@ function previewState(
   const withFixtureState = {
     ...base,
     percentageDotPolicyVersion: 1 as const,
+    dotTriggerPolicyVersion: 1 as const,
     turnOrigin: {
       combatantId: ACTOR_ID,
       turnNumber: battle.turnNumber,

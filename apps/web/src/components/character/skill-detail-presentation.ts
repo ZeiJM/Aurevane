@@ -40,7 +40,7 @@ function recipient(effect: MatureSkillEffectDefinition): string {
 export function skillEffectDescription(effect: MatureSkillEffectDefinition): string {
   const target = recipient(effect)
   if (isPercentageDotEffect(effect))
-    return `Apply ${previewEffect(effect).label} to ${target}. ${percentageDotDescription(effect.type)}`
+    return `Apply ${previewEffect(effect).label} to ${target}. ${percentageDotDescription(effect.type, effect.type === 'burn' ? effect.backlashBasisPoints : undefined)}`
   switch (effect.type) {
     case 'summon':
       return 'Summon the authored allied unit onto the selected empty tile.'

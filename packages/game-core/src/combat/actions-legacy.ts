@@ -19,6 +19,13 @@ import {
   type PercentageDotCommand,
   type CapturedPercentageDotDamage,
 } from './combat-percentage-dots'
+import {
+  claimCombatTurnTrigger,
+  prepareCombatTurnTriggers,
+  validateCombatTurnTriggers,
+  type CombatTurnTriggerState,
+} from './combat-turn-trigger-state'
+import { collectCommittedHostileCommandDamage } from './combat-committed-damage'
 import { currentPoisonTickDamage, currentBleedTickDamage } from './combat-dots'
 import type { AttackPercentageDotProfile } from './combat-percentage-dots'
 import { assertCurrentCombatStatusId, isRetiredCombatStatusId } from './retired-combat-statuses'
@@ -239,6 +246,7 @@ export type CombatEffectDefinition =
     }
   | {
       type: 'burn'
+      backlashBasisPoints?: number
       recipient: CombatEffectRecipient
       curseCopyable?: boolean
       damageProfile?: AttackPercentageDotProfile
@@ -403,6 +411,8 @@ export interface PendingCombatEffect {
 export interface CombatEncounterState {
   /** Generated once at battle creation; historical snapshots retain saved tiles. */
   battlefieldElevationPolicy?: BattlefieldElevationPolicy
+  dotTriggerPolicyVersion?: 1
+  turnTriggerState?: CombatTurnTriggerState
   percentageDotPolicyVersion?: 1
   nextPercentageDotCommandId?: number
   percentageDotCommands?: readonly PercentageDotCommand[]
@@ -970,16 +980,33 @@ export function applyCurrentBurnBacklash(
   state: CombatEncounterState,
   actorId: string,
   burnCount = currentBurnBacklashApplicationCount(state, actorId),
+  percentageBasis?: { hostileDamage: number; basisPoints: number },
 ): CombatResolutionTransition {
   assertNonNegativeSafeInteger(burnCount, 'Burn backlash application count')
   const actor = getCombatant(state.tactical.battle, actorId)
   if (actor.hp <= 0) return { state, events: [] }
   if (burnCount === 0) return { state, events: [] }
-  const backlash = BigInt(CURRENT_BURN_BACKLASH_DAMAGE) * BigInt(burnCount)
+  let backlash = BigInt(CURRENT_BURN_BACKLASH_DAMAGE) * BigInt(burnCount)
+  if (state.dotTriggerPolicyVersion === 1) {
+    if (!percentageBasis || percentageBasis.hostileDamage <= 0) return { state, events: [] }
+    assertNonNegativeSafeInteger(percentageBasis.hostileDamage, 'Burn backlash damage basis')
+    assertNonNegativeSafeInteger(percentageBasis.basisPoints, 'Burn backlash percentage')
+    if (percentageBasis.basisPoints > 10000)
+      throw new RangeError('Burn backlash percentage exceeds 100%.')
+    const claim = claimCombatTurnTrigger(state, actorId, 'burn.backlash')
+    state = claim.state
+    if (!claim.allowed) return { state, events: [] }
+    backlash =
+      (BigInt(percentageBasis.hostileDamage) * BigInt(percentageBasis.basisPoints)) / 10000n
+    if (backlash === 0n) return { state, events: [] }
+  }
   const hpAfter = Number(BigInt(actor.hp) > backlash ? BigInt(actor.hp) - backlash : 0n)
   const damageEvent: CombatResolutionEvent = {
     event: 'damage_applied',
-    actionId: 'status.burn.backlash.current.v1',
+    actionId:
+      state.dotTriggerPolicyVersion === 1
+        ? 'status.burn.backlash.current.v2'
+        : 'status.burn.backlash.current.v1',
     sourceCombatantId: actorId,
     targetCombatantId: actorId,
     amount: actor.hp - hpAfter,
@@ -1026,6 +1053,7 @@ export function executeCombatAction(
   const burnBacklashCount = burnBacklashApplies
     ? currentBurnBacklashApplicationCount(state, actorId)
     : 0
+  const burnBacklashBasisPoints = currentBurnInstance(state, actorId)?.backlashBasisPoints ?? 1000
   let nextState = state
   let events: CombatResolutionEvent[] = []
 
@@ -1078,7 +1106,19 @@ export function executeCombatAction(
   }
 
   if (burnBacklashApplies) {
-    const backlash = applyCurrentBurnBacklash(nextState, actorId, burnBacklashCount)
+    const damageByTarget = collectCommittedHostileCommandDamage(state, applied.events, {
+      sourceCombatantId: actorId,
+      actionId: action.id,
+    })
+    const hostileDamage = [...damageByTarget.values()].reduce((total, amount) => {
+      const sum = total + amount
+      if (!Number.isSafeInteger(sum)) throw new RangeError('Burn backlash damage basis overflow.')
+      return sum
+    }, 0)
+    const backlash = applyCurrentBurnBacklash(nextState, actorId, burnBacklashCount, {
+      hostileDamage,
+      basisPoints: burnBacklashBasisPoints,
+    })
     nextState = backlash.state
     events.push(...backlash.events)
   }
@@ -1384,6 +1424,8 @@ export function endCombatTurn(
     throw new Error('End Turn requires an active battle.')
   }
 
+  if (state.dotTriggerPolicyVersion === 1 || state.turnTriggerState)
+    state = prepareCombatTurnTriggers(state)
   const outgoingId = state.tactical.battle.currentTurn!.combatantId
   const outgoing = getCombatant(state.tactical.battle, outgoingId)
   // Predict the existing deterministic ticks for selection only. They are committed below.
@@ -1446,6 +1488,8 @@ export function endCombatTurn(
   const nextActorId = nextState.tactical.battle.currentTurn?.combatantId
 
   if (nextActorId) {
+    if (nextState.dotTriggerPolicyVersion === 1 || nextState.turnTriggerState)
+      nextState = prepareCombatTurnTriggers(nextState)
     const expiration = expireOwnerTurnStartStatuses(nextState, nextActorId, content)
     nextState = expiration.state
     events.push(...expiration.events)
@@ -1512,6 +1556,7 @@ export function validateCombatEncounterState(
     ...validateOngoingRecoveryState(state),
     ...validateBarrierState(state),
     ...validateCombatDotState(state),
+    ...validateCombatTurnTriggers(state),
   ]
   if (
     state.tactical.battle.effectStackingPolicyVersion === 1 &&
@@ -2880,6 +2925,7 @@ function applyEffect(
         tuning.power,
         tuning.durationTurns,
         percentageDamage,
+        effect.backlashBasisPoints,
       ),
       events: [],
     }

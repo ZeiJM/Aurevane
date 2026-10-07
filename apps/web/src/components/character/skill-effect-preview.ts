@@ -153,7 +153,7 @@ export function previewEffect(effect: MatureSkillEffectDefinition): PreviewEffec
         return {
           label: 'Burn',
           magnitude: percentageDotMagnitude(effect),
-          explanation: percentageDotDescription('burn'),
+          explanation: percentageDotDescription('burn', effect.backlashBasisPoints),
         }
       const turns = effect.durationTurns ?? CURRENT_BURN_DAMAGE_BY_STAGE.length
       const values =

@@ -78,7 +78,9 @@ export function describeBattleEffect(effect: BattlePresentedStatus) {
       : null
   const percentageDescription =
     dot && (effect.percentageDamage || effect.percentageDotProfile)
-      ? percentageDotDescription(dot)
+      ? percentageDotDescription(dot, effect.burnBacklashBasisPoints, {
+          legacyTriggers: effect.dotTriggerPolicyVersion !== 1,
+        })
       : null
   const capturedDescription = effect.percentageDamage
     ? ` Captured attack damage: ${effect.percentageDamage.capturedDamage} HP. Next tick: ${percentageDotTickDamage(effect.percentageDamage.capturedDamage, effect.percentageDamage.profile, effect.percentageDotStage ?? 0)} HP${effect.stacks > 1 ? ' per application' : ''}.`

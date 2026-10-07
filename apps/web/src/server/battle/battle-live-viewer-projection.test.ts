@@ -308,6 +308,10 @@ describe('CSR-2 live viewer-relative status projection', () => {
   it('strips pinned narration metadata from public snapshots without mutating history', () => {
     const state = {
       pendingEffects: [],
+      turnTriggerState: {
+        preparedTurnNumber: 1,
+        combatants: [{ combatantId: PLAYER, cycle: 1, usedKeys: ['private.ground.instance'] }],
+      },
       buildAuthority: {
         combatants: [
           {
@@ -325,6 +329,7 @@ describe('CSR-2 live viewer-relative status projection', () => {
     })
     expect(state.buildAuthority.combatants[0]?.narratorIdentity.name).toBe('Historical name')
     expect(projected).not.toHaveProperty('pendingEffects')
+    expect(projected).not.toHaveProperty('turnTriggerState')
   })
 
   it('keeps self/allied Covert positives but omits an opposing Covert unit’s positive and unknown status rows', () => {

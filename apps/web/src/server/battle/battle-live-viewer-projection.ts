@@ -52,6 +52,7 @@ export function projectBattleStatusStateForViewer(
     | 'terrainOverlays'
     | 'pendingEffects'
     | 'pendingSummons'
+    | 'dotTriggerPolicyVersion'
   >,
   viewer: BattleViewerEntitlement,
 ): BattleStatusState {
@@ -200,11 +201,13 @@ export function projectBattleEffectStateForViewer(
 export function omitPendingBattlePayloads<
   T extends {
     pendingEffects?: unknown
+    turnTriggerState?: unknown
     pendingSummons?: unknown
     buildAuthority?: unknown
   },
 >(state: T): T {
   const projected = { ...state }
+  delete projected.turnTriggerState
   delete projected.pendingEffects
   delete projected.pendingSummons
   const authority = projected.buildAuthority

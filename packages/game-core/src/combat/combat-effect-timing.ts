@@ -92,6 +92,8 @@ export function combatEffectTimingMode(
   )
 }
 export type CombatEffectPresentationStatus = CombatStatusInstance & {
+  dotTriggerPolicyVersion?: 1
+  burnBacklashBasisPoints?: number
   percentageDamage?: CapturedPercentageDotDamage
   percentageDotProfile?: AttackPercentageDotProfile
   percentageDotStage?: number
@@ -99,7 +101,10 @@ export type CombatEffectPresentationStatus = CombatStatusInstance & {
 
 /** Presentation only: pending payloads never enter engine status rows. */
 export function pendingCombatStatusRows(
-  state: Pick<CombatEncounterState, 'pendingEffects' | 'pendingSummons' | 'tactical'>,
+  state: Pick<
+    CombatEncounterState,
+    'pendingEffects' | 'pendingSummons' | 'tactical' | 'dotTriggerPolicyVersion'
+  >,
 ): { combatantId: string; status: CombatEffectPresentationStatus }[] {
   const pendingRows = (state.pendingEffects ?? []).flatMap((pending) => {
     const effect = pending.effect
@@ -151,6 +156,10 @@ export function pendingCombatStatusRows(
       combatantId,
       status: {
         statusId,
+        ...(state.dotTriggerPolicyVersion === 1 ? { dotTriggerPolicyVersion: 1 as const } : {}),
+        ...(effect.type === 'burn' && effect.backlashBasisPoints !== undefined
+          ? { burnBacklashBasisPoints: effect.backlashBasisPoints }
+          : {}),
         ...((effect.type === 'burn' || effect.type === 'poison' || effect.type === 'bleed') &&
         effect.damageProfile
           ? { percentageDotProfile: { ...effect.damageProfile } }
@@ -201,7 +210,10 @@ export function pendingCombatStatusRows(
 
 /** Active persistent identities come from committed instances, never the latest authored catalog. */
 export function activePersistentCombatStatusRows(
-  state: Pick<CombatEncounterState, 'effectState' | 'tactical' | 'terrainOverlays'>,
+  state: Pick<
+    CombatEncounterState,
+    'effectState' | 'tactical' | 'terrainOverlays' | 'dotTriggerPolicyVersion'
+  >,
 ): { combatantId: string; status: CombatEffectPresentationStatus }[] {
   const effects = state.effectState
   // Tile effects retain their round lifetime on the source's presentation row.
@@ -228,6 +240,7 @@ export function activePersistentCombatStatusRows(
     durationScope?: CombatStatusInstance['durationScope'],
     percentageDamage?: CapturedPercentageDotDamage,
     percentageDotStage?: number,
+    burnBacklashBasisPoints?: number,
   ) {
     if (!state.tactical.battle.combatants.some((unit) => unit.id === combatantId && unit.hp > 0))
       return
@@ -235,6 +248,8 @@ export function activePersistentCombatStatusRows(
       combatantId,
       status: {
         statusId,
+        ...(state.dotTriggerPolicyVersion === 1 ? { dotTriggerPolicyVersion: 1 as const } : {}),
+        ...(burnBacklashBasisPoints !== undefined ? { burnBacklashBasisPoints } : {}),
         statusVersion: 1,
         stacks: 1,
         sourceCombatantId,
@@ -270,6 +285,7 @@ export function activePersistentCombatStatusRows(
       undefined,
       effect.percentageDamage,
       effect.stage,
+      effect.backlashBasisPoints,
     )
   for (const effect of effects.bleed)
     append(
