@@ -222,6 +222,22 @@ jobs:
           path: /tmp/battle-percentage-dot-review
           retention-days: 7
 
+      - name: Save compact combat release screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: combat-release-reader-screens
+          path: |
+            /tmp/battle-percentage-dot-review/results.json
+            /tmp/battle-percentage-dot-review/spectator-*.png
+            /tmp/battle-percentage-dot-review/pve-1366-burn-active-rail.png
+            /tmp/battle-percentage-dot-review/pve-390-poison-pending-rail.png
+            /tmp/battle-percentage-dot-review/pvp-390-essence-burn-active-report.png
+            apps/web/test-results/**/master-percentage-*.png
+            apps/web/test-results/**/master-elevation-*.png
+            apps/web/test-results/refined-battle-execution*/error-context.md
+          retention-days: 7
+
       - name: Save skill parameter palette evidence
         if: always()
         uses: actions/upload-artifact@v4
