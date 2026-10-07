@@ -61,9 +61,18 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   await expect(standardWinDialog).toContainText('Defeat all opposing combatants')
   await standardWinDialog.getByRole('button', { name: 'Return to battle' }).click()
 
+  // Initial initiative can select the Recruit. Wait for its committed response before
+  // submitting a versioned surrender; a stale-version rejection must remain authoritative.
+  const standardBattle = page.locator('main[data-unified-battle="true"]')
+  await expect(standardBattle).toHaveAttribute('data-local-turn', 'true')
+  await expect(standardBattle).not.toHaveAttribute('aria-busy', 'true')
   await page.getByRole('button', { name: 'Surrender', exact: true }).click()
   await expect(page.getByRole('dialog', { name: 'Surrender this battle?' })).toBeVisible()
+  const surrendered = page.waitForResponse(
+    (response) => response.url().endsWith('/surrender') && response.request().method() === 'POST',
+  )
   await page.getByRole('button', { name: 'Confirm Surrender' }).click()
+  expect((await surrendered).status()).toBe(200)
   await expect(page.getByTestId('battle-result-overlay')).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Defeat' })).toBeVisible()
   await page.getByRole('button', { name: 'Return to Battle Hall' }).click()
