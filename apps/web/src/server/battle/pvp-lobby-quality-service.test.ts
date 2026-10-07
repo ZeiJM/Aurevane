@@ -10,6 +10,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   groundSkill: false,
+  elevationPolicy: {
+    version: 1,
+    level1BasisPoints: 6000,
+    level2BasisPoints: 3000,
+    level3BasisPoints: 1000,
+  },
   mapSize: 'medium' as 'small' | 'medium' | 'large',
   terrainBias: 'neutral' as 'less' | 'neutral' | 'more',
   elevationBias: 'neutral' as 'less' | 'neutral' | 'more',
@@ -194,6 +200,8 @@ vi.mock('./pvp-lobby-service', () => ({
 vi.mock('@/lib/supabase/admin', () => ({
   createSupabaseAdminClient: () => ({
     rpc: async (name: string, args: Record<string, unknown>) => {
+      if (name === 'read_battlefield_elevation_policy_v1')
+        return { data: mocks.elevationPolicy, error: null }
       if (name === 'read_combat_effect_timing_policy_v1')
         return { data: { version: 1, modes: {} }, error: null }
       if (name === 'get_pvp_lobby_settings_v2') {
@@ -231,11 +239,35 @@ import { startPvpLobbyWithQuality } from './pvp-lobby-quality-service'
 
 describe('P3.7 direct PvP committed build snapshots', () => {
   beforeEach(() => {
+    mocks.elevationPolicy = {
+      version: 1,
+      level1BasisPoints: 6000,
+      level2BasisPoints: 3000,
+      level3BasisPoints: 1000,
+    }
     mocks.createdBattleArgs = null
     mocks.groundSkill = false
     mocks.mapSize = 'medium'
     mocks.terrainBias = 'neutral'
     mocks.elevationBias = 'neutral'
+  })
+
+  it('uses the published Owner height chances before creating a PvP snapshot', async () => {
+    mocks.elevationPolicy = {
+      version: 7,
+      level1BasisPoints: 0,
+      level2BasisPoints: 0,
+      level3BasisPoints: 10000,
+    }
+    await startPvpLobbyWithQuality(hostUserId, lobbyId)
+    const state = mocks.createdBattleArgs!.p_initial_snapshot as BattleAuthoritativeEncounterState
+    expect(state.battlefieldElevationPolicy).toEqual(mocks.elevationPolicy)
+    expect(state.tactical.tiles.some((tile) => tile.elevation > 0)).toBe(true)
+    expect(
+      state.tactical.tiles
+        .filter((tile) => tile.elevation > 0)
+        .every((tile) => tile.elevation === 3),
+    ).toBe(true)
   })
 
   it.each([

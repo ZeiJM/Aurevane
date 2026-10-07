@@ -1,6 +1,58 @@
 import { advanceBattleRng, createBattleRngState } from './battle-state'
 import type { CombatTile, GridPosition } from './board'
 
+export interface BattlefieldElevationPolicy {
+  version: number
+  level1BasisPoints: number
+  level2BasisPoints: number
+  level3BasisPoints: number
+}
+
+export function defaultBattlefieldElevationPolicy(): BattlefieldElevationPolicy {
+  return { version: 1, level1BasisPoints: 6000, level2BasisPoints: 3000, level3BasisPoints: 1000 }
+}
+
+export function parseBattlefieldElevationPolicy(value: unknown): BattlefieldElevationPolicy {
+  if (!value || typeof value !== 'object' || Array.isArray(value))
+    throw new RangeError('Invalid elevation policy.')
+  const record = value as Record<string, unknown>
+  const keys = ['version', 'level1BasisPoints', 'level2BasisPoints', 'level3BasisPoints']
+  if (
+    Object.keys(record).length !== keys.length ||
+    keys.some((key) => !Object.hasOwn(record, key)) ||
+    !Number.isSafeInteger(record.version) ||
+    (record.version as number) < 1 ||
+    keys
+      .slice(1)
+      .some(
+        (key) =>
+          !Number.isSafeInteger(record[key]) ||
+          (record[key] as number) < 0 ||
+          (record[key] as number) > 10000,
+      ) ||
+    (record.level1BasisPoints as number) +
+      (record.level2BasisPoints as number) +
+      (record.level3BasisPoints as number) !==
+      10000
+  )
+    throw new RangeError('Elevation chances must total exactly 100%.')
+  return {
+    version: record.version as number,
+    level1BasisPoints: record.level1BasisPoints as number,
+    level2BasisPoints: record.level2BasisPoints as number,
+    level3BasisPoints: record.level3BasisPoints as number,
+  }
+}
+
+function heightForDraw(draw: number, policy: BattlefieldElevationPolicy): number {
+  const roll = draw % 10000
+  return roll < policy.level1BasisPoints
+    ? 1
+    : roll < policy.level1BasisPoints + policy.level2BasisPoints
+      ? 2
+      : 3
+}
+
 type MapBias = 'less' | 'neutral' | 'more'
 
 interface StandardBattlefieldInput {
@@ -9,6 +61,7 @@ interface StandardBattlefieldInput {
   seed: number
   spawns: readonly GridPosition[]
   terrainBias?: MapBias
+  elevationPolicy?: BattlefieldElevationPolicy
   elevationBias?: MapBias
 }
 
@@ -20,6 +73,9 @@ export function createStandardBattlefieldTiles(
   input: StandardBattlefieldInput,
 ): readonly CombatTile[] {
   const { width, height, spawns } = input
+  const policy = parseBattlefieldElevationPolicy(
+    input.elevationPolicy ?? defaultBattlefieldElevationPolicy(),
+  )
   if (!Number.isSafeInteger(width) || width < 1 || !Number.isSafeInteger(height) || height < 1) {
     throw new RangeError('Battlefield dimensions must be positive safe integers.')
   }
@@ -105,8 +161,7 @@ export function createStandardBattlefieldTiles(
     if (tile.elevation <= 0) continue
     const draw = advanceBattleRng(mapRng)
     mapRng = draw.state
-    const roll = draw.value % 100
-    tile.elevation = roll < 60 ? 1 : roll < 90 ? 2 : 3
+    tile.elevation = heightForDraw(draw.value, policy)
   }
 
   const roughBudget = Math.floor(
@@ -121,15 +176,16 @@ export function createStandardBattlefieldTiles(
 export function randomizeRaisedTileHeights(
   tiles: readonly CombatTile[],
   seed: number,
+  elevationPolicy: BattlefieldElevationPolicy = defaultBattlefieldElevationPolicy(),
 ): readonly CombatTile[] {
+  const policy = parseBattlefieldElevationPolicy(elevationPolicy)
   let rng = createBattleRngState((seed ^ 0x6865_6967) >>> 0 || 1)
   const next = tiles.map((tile) => ({ ...tile, position: { ...tile.position } }))
   for (const tile of next) {
     if (tile.elevation <= 0) continue
     const draw = advanceBattleRng(rng)
     rng = draw.state
-    const roll = draw.value % 100
-    tile.elevation = roll < 60 ? 1 : roll < 90 ? 2 : 3
+    tile.elevation = heightForDraw(draw.value, policy)
   }
   return next
 }

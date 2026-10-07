@@ -66,8 +66,7 @@ export function CombatEffectTimingEditor({
       <h2>Effect timing policy v{policy.version}</h2>
       <p>
         Delayed effects appear immediately as pending and activate at the start of the next global
-        round. Active durations count the affected character’s completed turns. Existing battles
-        keep their pinned policy.
+        round. Existing battles keep their pinned policy.
       </p>
       <table>
         <thead>

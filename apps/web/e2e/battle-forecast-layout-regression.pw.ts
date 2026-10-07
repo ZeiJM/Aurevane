@@ -451,7 +451,7 @@ function expectStable(geometry: Awaited<ReturnType<typeof capture>>, baseline: R
     contained(dialog.rect!, { x: 0, y: 0, ...geometry.viewport })
 }
 
-async function expectInlineSkillForecast(page: Page, actionId: string, ground: boolean) {
+async function expectInlineSkillForecast(page: Page, actionId: string, area: boolean) {
   const battle = await readBattle(page)
   const preview = page.getByLabel('Action preview', { exact: true })
   const targets = preview.locator('[data-battle-range-forecast]')
@@ -460,24 +460,19 @@ async function expectInlineSkillForecast(page: Page, actionId: string, ground: b
     rows.map((row) => row.getAttribute('data-battle-range-forecast')!),
   )
   expect(new Set(ids).size).toBe(ids.length)
-  let selectedGround: { x: number; y: number } | undefined
-  if (ground) {
-    const tile = page.locator('#battlefield [data-preview-tile="true"]')
-    await expect(tile).toHaveCount(1)
-    const coordinate = (await tile.getAttribute('aria-label'))!.match(/^Tile (\d+), (\d+)/)!
-    selectedGround = { x: Number(coordinate[1]) - 1, y: Number(coordinate[2]) - 1 }
-  }
+  // Current Chilling Mist is caster-centered Circle, so it has no selected ground anchor.
+  if (area) await expect(page.locator('#battlefield [data-preview-tile="true"]')).toHaveCount(0)
   // Read-only authority checks validate each cast, rather than borrowing an alternative's results.
   const forecasts: BattleActionPreview[] = []
-  for (const id of ground ? [ids[0]!] : ids) {
+  for (const id of area ? [ids[0]!] : ids) {
     const response = await page.request.post(`/api/battles/${battle.battleSessionId}/preview`, {
       data: {
         expectedBattleVersion: battle.battleVersion,
         intent: {
           kind: 'action',
           actionId,
-          target: selectedGround
-            ? { kind: 'tile', position: selectedGround }
+          target: area
+            ? { kind: 'activate' }
             : actionId === 'frostweaver.frost-guard'
               ? { kind: 'self' }
               : { kind: 'unit', combatantId: id },
@@ -490,15 +485,15 @@ async function expectInlineSkillForecast(page: Page, actionId: string, ground: b
     expect(authority.preview).toMatchObject({ kind: 'action', actionId, legal: true })
     forecasts.push(authority.preview)
   }
-  if (ground) {
+  if (area) {
     expect([...ids].sort(), 'selected area excludes unrelated alternative casts').toEqual(
       [...forecasts[0]!.affectedCombatantIds].sort(),
     )
-    expect(forecasts[0]!.affectedTiles).toContainEqual(selectedGround)
+    expect(forecasts[0]!.primaryCombatantId).toBeNull()
     expect(forecasts[0]!.affectedTiles.length).toBeGreaterThan(1)
   }
   for (const id of ids) {
-    const authority = ground
+    const authority = area
       ? forecasts[0]!
       : forecasts.find((candidate) => candidate.primaryCombatantId === id)!
     expect(authority).toBeTruthy()
@@ -506,11 +501,13 @@ async function expectInlineSkillForecast(page: Page, actionId: string, ground: b
     await expect(target).toHaveCount(1)
     await expect(target.locator(':scope > strong')).not.toBeEmpty()
     const result = target.locator(':scope > span:last-child')
-    if (authority.primaryCombatantId === id && authority.hitChanceBasisPoints !== null)
-      await expect(result).toContainText(`Hit ${Math.round(authority.hitChanceBasisPoints / 100)}%`)
+    const hitChance =
+      authority.targetHitChances?.find((row) => row.targetCombatantId === id)
+        ?.hitChanceBasisPoints ??
+      (authority.primaryCombatantId === id ? authority.hitChanceBasisPoints : null)
+    if (hitChance !== null)
+      await expect(result).toContainText(`Hit ${Math.round(hitChance / 100)}%`)
     else await expect(result).not.toContainText(/Hit \d+%/)
-    if (authority.primaryCombatantId !== id)
-      await expect(result).not.toContainText(/(?:Hit|Success) \d+%/)
     const effects = authority.projectedEffects.filter((effect) => effect.combatantId === id)
     const damage = effects
       .filter((effect) => effect.effectType === 'damage')

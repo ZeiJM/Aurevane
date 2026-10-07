@@ -132,7 +132,7 @@ try {
         const selector =
           targeting === 'heal'
             ? '[data-heal-target="true"]'
-            : targeting === 'buff' || targeting === 'all-ground'
+            : targeting === 'buff' || targeting === 'all-any' || targeting === 'all-ground'
               ? '[data-buff-path="true"]'
               : '[data-attack-path="true"]'
         const count =
@@ -176,7 +176,7 @@ try {
           fill,
           targeting === 'heal'
             ? 'rgba(102, 218, 143, 0.5)'
-            : targeting === 'buff' || targeting === 'all-ground'
+            : targeting === 'buff' || targeting === 'all-any' || targeting === 'all-ground'
               ? 'rgba(108, 145, 198, 0.5)'
               : 'rgba(189, 38, 58, 0.22)',
         )

@@ -141,6 +141,19 @@ describe('P3.6 direct PvP Essence authority', () => {
     ]
     const first = createPvpEncounter(roster, [1, 1, 0])
     const second = createPvpEncounter(roster, [1, 1, 0])
+    const forcedPolicy = {
+      version: 7,
+      level1BasisPoints: 0,
+      level2BasisPoints: 10000,
+      level3BasisPoints: 0,
+    }
+    const forced = createPvpEncounter(roster, [1, 1, 0], undefined, forcedPolicy)
+    expect(forced.battlefieldElevationPolicy).toEqual(forcedPolicy)
+    expect(
+      forced.tactical.tiles
+        .filter((tile) => tile.elevation > 0)
+        .every((tile) => tile.elevation === 2),
+    ).toBe(true)
     expect(second.tactical.tiles).not.toEqual(first.tactical.tiles)
     for (const state of [first, second]) {
       expect(

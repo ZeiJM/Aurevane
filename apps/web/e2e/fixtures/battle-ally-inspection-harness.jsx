@@ -36,6 +36,7 @@ const positions = [
   { x: 2, y: 3 },
 ]
 if (targetingCase || dotCase) positions[3] = { x: 5, y: 3 }
+
 const pending = createPendingBattle({
   battleId: 'fixture',
   rulesVersion: 1,
@@ -153,7 +154,7 @@ if (targetingCase) {
   const base = resolveMatureSkillVersion(
     targetingCase === 'heal'
       ? 'lifebinder.mend'
-      : targetingCase === 'buff'
+      : targetingCase === 'buff' || targetingCase === 'all-any'
         ? 'bastion.steady-footing'
         : targetingCase === 'all-ground'
           ? 'frostweaver.chilling-mist'
@@ -176,6 +177,7 @@ if (targetingCase) {
     target: {
       ...base.target,
       geometryVersion: 2,
+      maximumElevationDifference: base.target.maximumElevationDifference ?? 2,
       kind: targetingCase === 'all-ground' ? 'ground-tile' : 'unit',
       teamPolicy:
         targetingCase === 'all-any' || targetingCase === 'all-ground'
@@ -222,7 +224,9 @@ if (targetingCase) {
       category:
         targetingCase === 'heal'
           ? 'heal'
-          : targetingCase === 'buff' || targetingCase === 'all-ground'
+          : targetingCase === 'buff' ||
+              targetingCase === 'all-any' ||
+              targetingCase === 'all-ground'
             ? 'defense'
             : 'attack',
       target: definition.target,
@@ -299,7 +303,7 @@ if (dotCase) {
       (event) =>
         event.event === 'damage_applied' &&
         event.targetCombatantId === 'enemy-one' &&
-        event.sourceActionId === definition.id,
+        event.actionId === definition.id,
     )
     .reduce((sum, event) => sum + event.amount, 0)
 }

@@ -251,6 +251,7 @@ async function launchRecruitBattle(page: Page): Promise<unknown> {
   await page.goto('/game/battle')
   await expect(page.getByRole('heading', { name: 'Choose your arena.' })).toBeVisible()
   await page.getByLabel('Battle mode').selectOption('recruit-sparring')
+  await page.getByLabel('Arena', { exact: true }).selectOption('duel-yard')
 
   const created = page.waitForResponse(isBattleCreateResponse)
   await page.getByRole('button', { name: 'Enter Battle', exact: true }).click()
@@ -343,7 +344,7 @@ async function selectAuthoringSkill(page: Page): Promise<void> {
 test('Master combat authoring publishes versioned content, pins battles, and rolls back safely', async ({
   page,
 }, testInfo) => {
-  test.slow()
+  test.setTimeout(240_000)
   test.skip(
     testInfo.project.name !== 'desktop-chromium',
     'One authenticated desktop Chromium proof covers the protected Master authoring workflow.',
@@ -371,6 +372,13 @@ test('Master combat authoring publishes versioned content, pins battles, and rol
   await page.goto('/master')
   await expect(page).toHaveURL(/\/game$/)
 
+  const deniedElevation = await page.request.post('/api/master/combat-elevation', {
+    data: {
+      policy: { version: 1, level1BasisPoints: 0, level2BasisPoints: 0, level3BasisPoints: 10000 },
+      reason: 'not an Owner',
+    },
+  })
+  expect(deniedElevation.status()).toBe(403)
   grantLocalMasterOperator(email)
 
   await page.goto('/game/character')
@@ -570,5 +578,117 @@ test('Master combat authoring publishes versioned content, pins battles, and rol
     await page.reload()
     await selectGash()
     await expect(percentage).toHaveValue(oldPercentage)
+  }
+  // Audited elevation publication, stale rejection and old/new battle pinning.
+  expect(
+    queryLocalDatabase(
+      `select has_function_privilege('anon','public.read_battlefield_elevation_policy_v1()','execute')::text || ',' || has_function_privilege('authenticated','public.publish_battlefield_elevation_policy_v1(uuid,integer,jsonb,text)','execute')::text;`,
+    ),
+  ).toBe('false,false')
+  for (const width of [1366, 390]) {
+    await page.setViewportSize({ width, height: width === 390 ? 844 : 768 })
+    const oldPayload = await launchRecruitBattle(page)
+    const oldIdentity = battleIdentity(oldPayload)
+    const snapshotOf = (payload: unknown) => {
+      if (!isRecord(payload) || !isRecord(payload.battle) || !isRecord(payload.battle.snapshot))
+        throw new Error('Missing battle snapshot')
+      return payload.battle.snapshot
+    }
+    const beforeSnapshot = snapshotOf(oldPayload)
+    if (!isRecord(beforeSnapshot.tactical)) throw new Error('Missing tiles')
+    const beforeTiles = beforeSnapshot.tactical.tiles
+    await page.goto('/master/combat-timing')
+    const editor = page.getByRole('form', { name: 'Elevation chances', exact: true })
+    const fields = [1, 2, 3].map((level) =>
+      editor.getByLabel(`Elevation level ${level} chance (%)`, { exact: true }),
+    )
+    const original = await Promise.all(fields.map((field) => field.inputValue()))
+    const versionText = await editor.getByRole('heading').innerText()
+    const originalVersion = Number(versionText.match(/v(\d+)/)?.[1])
+    expect(positiveInteger(originalVersion)).toBe(true)
+    const submit = editor.getByRole('button', { name: 'Publish elevation chances', exact: true })
+    await fields[0].fill('0')
+    await fields[1].fill('0')
+    await fields[2].fill('99')
+    await editor
+      .getByLabel('Elevation change reason', { exact: true })
+      .fill('Browser elevation publication')
+    await expect(submit).toBeDisabled()
+    await fields[2].fill('100')
+    await expect(submit).toBeEnabled()
+    const publishedResponse = page.waitForResponse(
+      (response) =>
+        response.request().method() === 'POST' &&
+        new URL(response.url()).pathname === '/api/master/combat-elevation',
+    )
+    await submit.click()
+    const published = await publishedResponse
+    expect(published.status()).toBe(200)
+    const publishedBody = (await published.json()) as { policy: { version: number } }
+    expect(publishedBody.policy.version).toBe(originalVersion + 1)
+    await page.reload()
+    await expect(fields[0]).toHaveValue('0')
+    await expect(fields[1]).toHaveValue('0')
+    await expect(fields[2]).toHaveValue('100')
+    await editor.scrollIntoViewIfNeeded()
+    await page.screenshot({ path: testInfo.outputPath(`master-elevation-${width}.png`) })
+    const stale = await page.request.post('/api/master/combat-elevation', {
+      data: {
+        policy: {
+          version: originalVersion,
+          level1BasisPoints: 0,
+          level2BasisPoints: 0,
+          level3BasisPoints: 10000,
+        },
+        reason: 'Stale tab',
+      },
+    })
+    expect(stale.status()).toBe(409)
+    expect(
+      queryLocalDatabase(
+        `select count(*) from app_private.battlefield_elevation_policy_versions where version = ${publishedBody.policy.version} and published_by is not null and reason = 'Browser elevation publication';`,
+      ),
+    ).toBe('1')
+    const oldReloaded = await readBattle(page, oldIdentity.battleSessionId)
+    const oldSnapshot = snapshotOf(oldReloaded)
+    if (!isRecord(oldSnapshot.tactical)) throw new Error('Missing saved tiles')
+    expect(oldSnapshot.tactical.tiles).toEqual(beforeTiles)
+    expect(oldSnapshot.battlefieldElevationPolicy).toEqual(
+      beforeSnapshot.battlefieldElevationPolicy,
+    )
+    const oldCurrent = battleIdentity(oldReloaded)
+    await surrenderBattle(page, oldCurrent.battleSessionId, oldCurrent.battleVersion)
+    const newPayload = await launchRecruitBattle(page)
+    const newSnapshot = snapshotOf(newPayload)
+    expect(newSnapshot.battlefieldElevationPolicy).toEqual({
+      version: publishedBody.policy.version,
+      level1BasisPoints: 0,
+      level2BasisPoints: 0,
+      level3BasisPoints: 10000,
+    })
+    if (!isRecord(newSnapshot.tactical) || !Array.isArray(newSnapshot.tactical.tiles))
+      throw new Error('Missing generated tiles')
+    const raised = newSnapshot.tactical.tiles.filter(
+      (tile: unknown) => isRecord(tile) && typeof tile.elevation === 'number' && tile.elevation > 0,
+    )
+    expect(raised.length).toBeGreaterThan(0)
+    expect(raised.every((tile: unknown) => isRecord(tile) && tile.elevation === 3)).toBe(true)
+    const newIdentity = battleIdentity(newPayload)
+    await surrenderBattle(page, newIdentity.battleSessionId, newIdentity.battleVersion)
+    await page.goto('/master/combat-timing')
+    for (let index = 0; index < 3; index++) await fields[index]!.fill(original[index]!)
+    await editor
+      .getByLabel('Elevation change reason', { exact: true })
+      .fill('Restore baseline after browser verification')
+    const restoreResponse = page.waitForResponse(
+      (response) =>
+        response.request().method() === 'POST' &&
+        new URL(response.url()).pathname === '/api/master/combat-elevation',
+    )
+    await submit.click()
+    expect((await restoreResponse).status()).toBe(200)
+    await page.reload()
+    for (let index = 0; index < 3; index++)
+      await expect(fields[index]!).toHaveValue(original[index]!)
   }
 })

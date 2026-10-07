@@ -1,4 +1,8 @@
 import {
+  parseBattlefieldElevationPolicy,
+  type BattlefieldElevationPolicy,
+} from './standard-battlefield'
+import {
   validateCurrentAreaTargetRecipients,
   validateVersionedCombatTargetSpec,
 } from './combat-targeting-shapes'
@@ -397,6 +401,8 @@ export interface PendingCombatEffect {
 }
 
 export interface CombatEncounterState {
+  /** Generated once at battle creation; historical snapshots retain saved tiles. */
+  battlefieldElevationPolicy?: BattlefieldElevationPolicy
   percentageDotPolicyVersion?: 1
   nextPercentageDotCommandId?: number
   percentageDotCommands?: readonly PercentageDotCommand[]
@@ -1556,6 +1562,15 @@ export function validateCombatEncounterState(
       parseStoredCombatEffectTimingPolicy(state.effectTimingPolicy)
   } catch {
     issues.push({ field: 'effectTimingPolicy', message: 'Invalid pinned effect timing policy.' })
+  }
+  try {
+    if (state.battlefieldElevationPolicy !== undefined)
+      parseBattlefieldElevationPolicy(state.battlefieldElevationPolicy)
+  } catch {
+    issues.push({
+      field: 'battlefieldElevationPolicy',
+      message: 'Invalid pinned elevation policy.',
+    })
   }
   issues.push(...validatePercentageDotCommandState(state))
   if (state.pendingEffects !== undefined) {

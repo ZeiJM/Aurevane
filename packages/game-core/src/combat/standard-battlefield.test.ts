@@ -220,3 +220,41 @@ it('randomizes authored raised heights only when instantiating a new map', () =>
   ])
     expect(counts[height!]! / 2000).toBeCloseTo(probability!, 1)
 })
+
+it.each([1, 2, 3] as const)(
+  'honors an Owner policy forcing height %i on generated and authored maps',
+  (level) => {
+    const policy = {
+      version: 7,
+      level1BasisPoints: level === 1 ? 10000 : 0,
+      level2BasisPoints: level === 2 ? 10000 : 0,
+      level3BasisPoints: level === 3 ? 10000 : 0,
+    }
+    const input = {
+      width: 15,
+      height: 7,
+      seed: 1234,
+      spawns: [
+        { x: 0, y: 3 },
+        { x: 14, y: 3 },
+      ],
+      elevationBias: 'more' as const,
+      elevationPolicy: policy,
+    }
+    const generated = createStandardBattlefieldTiles(input)
+    expect(generated.some((tile) => tile.elevation > 0)).toBe(true)
+    expect(
+      generated.filter((tile) => tile.elevation > 0).every((tile) => tile.elevation === level),
+    ).toBe(true)
+    expect(createStandardBattlefieldTiles(input)).toEqual(generated)
+    const authored = [0, 1, 2, 3].map((elevation, x) => ({
+      position: { x, y: 0 },
+      elevation,
+      terrainId: 'open-ground',
+    }))
+    expect(
+      randomizeRaisedTileHeights(authored, 1234, policy).map((tile) => tile.elevation),
+    ).toEqual([0, level, level, level])
+    expect(authored.map((tile) => tile.elevation)).toEqual([0, 1, 2, 3])
+  },
+)

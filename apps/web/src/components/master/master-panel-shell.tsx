@@ -27,8 +27,8 @@ export const masterNavigation = [
   {
     id: 'combat-timing',
     href: '/master/combat-timing',
-    label: 'Effect Timing',
-    detail: 'Activation & duration',
+    label: 'Combat Settings',
+    detail: 'Timing & elevation',
     icon: '◷',
     capability: 'staff.manage',
     ownerOnly: true,
