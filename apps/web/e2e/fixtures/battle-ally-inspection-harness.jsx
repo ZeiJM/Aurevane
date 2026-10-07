@@ -23,6 +23,7 @@ import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-ski
 import { resolveEssenceForBuild } from '@aurevane/game-core/combat/essence'
 import { SkillDetails } from '@/components/character/skill-details'
 import { BattleSkillParameters } from '@/components/battle/battle-skill-parameters'
+import { projectPercentageDotFixtureState } from './percentage-dot-viewer-state'
 import './production-styles'
 
 const targetingCase = new URLSearchParams(location.search).get('targeting')
@@ -272,7 +273,7 @@ if (dotCase) {
     target,
     mode === 'pvp' ? 'pvp' : 'pve',
   )
-  initialBattle.snapshot = transition.state
+  initialBattle.snapshot = projectPercentageDotFixtureState(transition.state)
   const presentation = {
     ...runtime.techniques[0],
     definition,

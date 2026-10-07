@@ -24,6 +24,10 @@ await fs.copyFile(
   resolve(fixture, 'entry.jsx'),
 )
 await fs.copyFile(
+  resolve(web, 'e2e/fixtures/percentage-dot-viewer-state.ts'),
+  resolve(fixture, 'percentage-dot-viewer-state.ts'),
+)
+await fs.copyFile(
   resolve(web, 'e2e/fixtures/discipline-management-navigation.jsx'),
   resolve(fixture, 'next-mock.jsx'),
 )
