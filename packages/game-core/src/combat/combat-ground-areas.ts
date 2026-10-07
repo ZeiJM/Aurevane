@@ -1,11 +1,14 @@
+import { claimCombatTurnTrigger } from './combat-turn-trigger-state'
 import {
   isPercentageDotEffect,
   validateCurrentPercentageDotAuthoring,
 } from './combat-percentage-dots'
-import { validateCombatEncounterState } from './actions-legacy'
+import { validateCombatEncounterState, combatSourceCommandVisibility } from './actions-legacy'
 import type {
   CombatActionDefinition,
   CombatContentCatalog,
+  CombatEffectOrigin,
+  CombatSourceCommandVisibility,
   CombatEffectDefinition,
   CombatEncounterIssue,
   CombatEncounterState,
@@ -28,6 +31,8 @@ export interface CombatGroundAreaDefinition {
   timing?: 'instant' | 'next-round'
 }
 export interface CombatGroundAreaInstance {
+  sourceCommandVisibility?: CombatSourceCommandVisibility
+  entryEffectOrigins?: readonly (CombatEffectOrigin | null)[]
   id: string
   sourceCombatantId: string
   sourceTeamId: string
@@ -115,6 +120,7 @@ export function createCombatGroundArea(
   action: CombatActionDefinition,
   tiles: readonly GridPosition[],
   content: CombatContentCatalog,
+  options?: { sourceCommandVisibility?: CombatSourceCommandVisibility },
 ): CombatEncounterState {
   if (
     state.groundEffectPolicyVersion !== 1 ||
@@ -141,6 +147,16 @@ export function createCombatGroundArea(
   const area: CombatGroundAreaInstance = JSON.parse(
     JSON.stringify({
       id: `ground.area.${ordinal}`,
+      sourceCommandVisibility: options
+        ? options.sourceCommandVisibility
+        : combatSourceCommandVisibility(state, actorId),
+      ...(action.effectOrigins
+        ? {
+            entryEffectOrigins: action.groundArea.entryEffectOrdinals.map(
+              (index) => action.effectOrigins![index] ?? null,
+            ),
+          }
+        : {}),
       sourceCombatantId: actorId,
       sourceTeamId: actor.teamId,
       sourceActionId: action.id,
@@ -272,6 +288,18 @@ export function validateCombatGroundAreas(
         area.expiresAtRound <= state.tactical.battle.round
       )
         throw new TypeError('Invalid Ground lifetime.')
+      if (
+        area.sourceCommandVisibility &&
+        (area.sourceCommandVisibility.kind !== 'team-only' ||
+          area.sourceCommandVisibility.teamId !== area.sourceTeamId)
+      )
+        throw new TypeError('Invalid Ground source visibility.')
+      if (
+        area.entryEffectOrigins &&
+        (!Array.isArray(area.entryEffectOrigins) ||
+          area.entryEffectOrigins.length !== area.entryEffects.length)
+      )
+        throw new TypeError('Invalid Ground effect origins.')
       validateGroundTiles(state, area.tiles)
       validateCombatContentCatalog(area.content)
       validateGroundCaster(state, area)
@@ -284,6 +312,13 @@ export function validateCombatGroundAreas(
         cost: { spendsAction: false, mp: 0 },
         requirements: [],
         effects: area.entryEffects,
+        ...(area.entryEffectOrigins
+          ? {
+              effectOrigins: area.entryEffectOrigins.map(
+                (origin: CombatEffectOrigin | null) => origin ?? undefined,
+              ),
+            }
+          : {}),
         groundArea: {
           durationRounds: area.expiresAtRound - area.activationRound,
           visualPresetId: area.visualPresetId,
@@ -352,7 +387,12 @@ function validateGroundCaster(state: CombatEncounterState, area: CombatGroundAre
         throw new TypeError('Invalid frozen Ground stat.')
       if (
         ['criticalChance', 'statusResistance', 'accuracy', 'evasion'].includes(key) &&
-        (value as number) > 10000
+        (value as number) >
+          (key === 'accuracy' && state.statBalancePolicyVersion === 1
+            ? 14000
+            : key === 'statusResistance' && state.statBalancePolicyVersion === 1
+              ? 1500
+              : 10000)
       )
         throw new TypeError('Invalid frozen Ground percentage.')
       if (key === 'level' && ((value as number) < 1 || (value as number) > 100))
@@ -378,4 +418,57 @@ function validateGroundCaster(state: CombatEncounterState, area: CombatGroundAre
   }
   if (validateCombatEncounterState(snapshot).some((issue) => issue.field.startsWith('statusState')))
     throw new TypeError('Invalid frozen Ground status applications.')
+}
+
+/** Authoritative footprint/cycle gate shared by committed steps and read-only simulations. */
+export function resolveCombatGroundEntry(
+  state: CombatEncounterState,
+  combatantId: string,
+  position: GridPosition,
+  resolver: (
+    state: CombatEncounterState,
+    area: CombatGroundAreaInstance,
+    combatantId: string,
+  ) => import('./actions').CombatResolutionTransition,
+): import('./actions').CombatResolutionTransition {
+  if (state.groundEffectPolicyVersion !== 1 || state.tactical.battle.lifecycle !== 'active')
+    return { state, events: [] }
+  let next = advanceCombatGroundAreas(state)
+  const events: import('./actions').CombatResolutionEvent[] = []
+  for (const area of next.groundAreas ?? []) {
+    const unit = next.tactical.battle.combatants.find((row) => row.id === combatantId)
+    if (!unit || unit.hp <= 0 || next.tactical.battle.lifecycle !== 'active') break
+    if (
+      area.activationRound > next.tactical.battle.round ||
+      !area.tiles.some((tile) => tile.x === position.x && tile.y === position.y) ||
+      !groundAreaAllowsCombatant(area, unit)
+    )
+      continue
+    const claim = claimCombatTurnTrigger(next, combatantId, `ground.entry.${area.id}`)
+    next = claim.state
+    if (!claim.allowed) continue
+    const applied = resolver(next, area, combatantId)
+    next = applied.state
+    events.push(...applied.events)
+  }
+  return { state: next, events }
+}
+
+export function groundAreaAllowsCombatant(
+  area: CombatGroundAreaInstance,
+  unit: CombatEncounterState['tactical']['battle']['combatants'][number],
+): boolean {
+  const friendly = unit.teamId === area.sourceTeamId
+  if (
+    (area.target.teamPolicy === 'enemy' && friendly) ||
+    (area.target.teamPolicy === 'ally' && !friendly) ||
+    (area.target.teamPolicy === 'self' && unit.id !== area.sourceCombatantId)
+  )
+    return false
+  return (
+    area.target.friendlyFire === 'all-units' ||
+    (area.target.friendlyFire === 'enemies-only' && !friendly) ||
+    (area.target.friendlyFire === 'allies-only' && friendly) ||
+    (area.target.friendlyFire === 'all-except-actor' && unit.id !== area.sourceCombatantId)
+  )
 }

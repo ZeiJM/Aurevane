@@ -72,6 +72,14 @@ describe('persisted typed Ground area state', () => {
     expect(placed.groundAreas![0]!.caster.combatant.hp).toBe(1000)
     expect(placed.groundAreas![0]!.caster.placement.position).toEqual({ x: 1, y: 1 })
   })
+  it('accepts the current offensive accuracy ceiling without accepting impossible probabilities', () => {
+    const placed = createCombatGroundArea(encounter(), 'actor', action, tiles, content)
+    placed.statBalancePolicyVersion = 1
+    placed.groundAreas![0]!.caster.statProfile!.accuracy = 14000
+    expect(validateCombatGroundAreas(placed)).toEqual([])
+    placed.groundAreas![0]!.caster.statProfile!.accuracy = 14001
+    expect(validateCombatGroundAreas(placed)).not.toEqual([])
+  })
   it('rejects malformed frozen caster data on reload', () => {
     const placed = createCombatGroundArea(encounter(), 'actor', action, tiles, content)
     const corruptions = [
