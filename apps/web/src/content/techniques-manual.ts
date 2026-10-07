@@ -16,7 +16,7 @@ import {
   CONDITIONAL_DAMAGE_MINIMUM,
   CONDITIONAL_DAMAGE_MAXIMUM,
 } from '@aurevane/game-core/combat/damage-modifiers'
-import { CURRENT_BURN_BACKLASH_DAMAGE } from '@aurevane/game-core/combat/combat-dots'
+import { percentageDotDescription } from '@aurevane/game-core/combat/combat-percentage-dots'
 import { getFoundationDiscipline } from '@aurevane/game-core/character/foundation-disciplines'
 import { previewEffect } from '@/components/character/skill-effect-preview'
 import {
@@ -56,7 +56,7 @@ export const techniquesManualArticle: ManualArticle = {
   summary:
     'Read a Technique, understand each step of damage, and compare magnitudes across the current regular Skill catalog.',
   category: 'Combat',
-  lastUpdated: '2026-09-28',
+  lastUpdated: '2026-10-07',
   rulesVersion: 'Current combat rules v5.1 · targeting-aware Skill balance',
   body: [
     {
@@ -65,7 +65,7 @@ export const techniquesManualArticle: ManualArticle = {
       paragraphs: [
         `Skill is the umbrella term for combat abilities. The current regular catalog contains ${skills.length} Techniques across ${disciplineIds.length} Disciplines, with eight learnable Techniques per Discipline. Select up to four in Nexus → Manage Techniques. A pure build selects from its Primary library and gains a separate Essence Skill; a mixed build selects four total from its Primary and mastered Secondary libraries, with a 1+3, 2+2 or 3+1 full loadout and a separate Resonance passive.`,
         'Primary supplies the base stat profile; Secondary does not add a second base profile. Learned availability and earned Mastery still govern which Techniques you can select. Battles use committed content versions: editing your build does not rewrite a battle in progress.',
-        'Equipment Skills, Essence Skills and copied battle Skills have their own sources. The magnitude comparisons below cover only the current regular catalog, excluding those sources, historical versions and temporary battle modifiers. Published overrides or already-pinned battles may differ; their actual Technique and battle previews take precedence.',
+        'Equipment Skills and Essence Skills have their own sources. The magnitude comparisons below cover only the current regular catalog, excluding those sources, historical versions and temporary battle modifiers. Published overrides or already-pinned battles may differ; their actual Technique and battle previews take precedence.',
       ],
     },
     {
@@ -170,7 +170,7 @@ export const techniquesManualArticle: ManualArticle = {
       paragraphs: [
         'A pure build shows its active Essence card in Nexus; a mixed build shows its active Resonance card. The card itself keeps a concise flavor line so the full mechanical description does not crowd the layout.',
         'Hover the active Essence or Resonance artwork, or move keyboard focus to it, to open the detail panel. Moving the pointer or focus away closes it automatically. Essence details use the same Skill rows as Technique details: type, cost, cooldown, requirements, effects, range and targeting where applicable.',
-        'Resonance details use Setup, Trigger and Result. Sequence Resonances show the Setup Discipline/tags that arm the Resonance, then the Trigger Discipline/tags that activate its bounded Result effects. Immediate Resonances have no Setup, activate directly from their Trigger, and use a lighter Result because activation is easier. The panel is informational only; it does not change the committed build or battle state.',
+        'Resonance details use Setup, Trigger and Result. Sequence Resonances show the Setup Discipline/tags that arm the Resonance, then the Trigger Discipline/tags that activate its bounded Result effects. In current Setup rows, Chronist Skills means any Chronist Skill, including attacks. Other Setup and Trigger rows retain their displayed tag requirements; these tags do not mean the Utility Skill family. Immediate Resonances have no Setup, activate directly from their Trigger, and use a lighter Result because activation is easier. The panel is informational only; it does not change the committed build or battle state.',
       ],
     },
     {
@@ -184,12 +184,12 @@ export const techniquesManualArticle: ManualArticle = {
         'Heal: restores HP without reviving a defeated unit. Multi-application recovery begins when the effect activates, then continues at recipient turn ends. Healing Down reduces both direct and periodic healing. Restoration cannot exceed maximum HP.',
         'MP Restore / MP Drain: adds or removes MP, bounded by the recipient’s resource limits. Repeated recovery lists its application count; a drain does not imply restoration unless another effect grants it.',
         'Barrier: grants a separate pool that absorbs direct damage before HP. No current regular Technique authors a Barrier grant, although the effect is supported by the combat system.',
-        `Burn: turn-end damage is the displayed declining percentage of HP damage dealt by the originating attack, rounded down. Only one Burn is active per recipient; a valid reapplication replaces it and restarts duration and decay. While active, Burn also deals ${CURRENT_BURN_BACKLASH_DAMAGE} HP backlash once per damaging command, including misses. Historical pinned Burn retains its fixed-damage profile.`,
-        'Poison: each turn-end tick uses the displayed percentage of HP damage dealt by that attack, rounded down. Every five traversed tiles, including Push or Pull, trigger an extra tick without consuming a scheduled tick. Partial movement carries between turns; instantaneous relocation does not count. Only one Poison is active per recipient; reapplication replaces it, restarts duration and resets movement progress. Historical pinned Poison retains its fixed-damage profile.',
+        `Burn: ${percentageDotDescription('burn')} Historical pinned profiles and trigger policies retain their recorded behavior.`,
+        `Poison: ${percentageDotDescription('poison')} Historical pinned profiles and trigger policies retain their recorded behavior.`,
         'Bleed: each application captures its own attack HP damage, percentage and duration. All applications tick independently at recipient turn end without a stack limit. Damage is rounded down; a zero-damage tick still consumes its duration. Copy Debuffs preserves the captured basis and remaining lifetime, and Cleanse removes every qualifying application.',
         'Apply status: grants the named condition for its authored duration. Percentage-based status potency is authored per effect where supported, so Guard, Vulnerable, Mark and similar effects can differ by Skill version. A stack count is separate from percentage potency.',
         'Effect timing: Instant effects activate on resolution. Other effects use the battle’s pinned tag policy, usually the next global round. Pending Rooted allows movement until its activation round; active Rooted blocks movement. The Chronicle states when the effect will take effect.',
-        'Cleanse / Dispel: removes the statuses explicitly listed by the Skill. Dispel removes protection; Cleanse removes harmful conditions. Neither automatically removes every effect in the game.',
+        'Cleanse removes Burn, Bleed, Poison, Slow, Rooted, Vulnerable, Marked and Taunted. Dispel removes its listed protection. Neither removes every effect in the game.',
         'Push / Pull: moves a unit one legal tile at a time, stopping at occupancy, obstacles or illegal elevation. Rooted prevents displacement. Rewind moves you to your vacant turn-start tile without restoring resources or undoing actions.',
         'Frozen Ground: creates a temporary ground overlay affecting both teams; entering it costs extra AP unless Airborne. Fire converts it to Steam, which blocks sight. Unit effects still follow the Skill’s affected-team rule.',
         'Reveal / Copy Buffs / Copy Debuffs: supported specialized effects with separate eligibility rules. Reveal conditionally removes eligible positive statuses and Covert, then applies Revealed. Amplify copies eligible active Buff statuses; Curse copies eligible active Debuff statuses. They are absent from this 136-Technique regular catalog; supported effect types do not imply that every Technique can use them.',

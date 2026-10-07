@@ -21,9 +21,9 @@ test('shared targeting matrix uses canonical forecasts and commands across deskt
       maxBuffer: 4 * 1024 * 1024,
     },
   )
-  expect(result.stdout).toContain('46 production-component targeting cases passed')
+  expect(result.stdout).toContain('66 production-component targeting cases passed')
   const results = JSON.parse(await readFile(resolve(output, 'results.json'), 'utf8'))
-  expect(results.cases).toBe(46)
+  expect(results.cases).toBe(66)
   expect(results.errors).toEqual([])
   await testInfo.attach('Targeting matrix', {
     path: resolve(output, 'results.json'),

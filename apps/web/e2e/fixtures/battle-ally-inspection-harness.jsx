@@ -540,7 +540,9 @@ function GroundEditorHarness() {
         value={area}
         onChange={setArea}
       />
-      <pre data-ground-draft>{JSON.stringify(area)}</pre>
+      <pre data-ground-draft style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
+        {JSON.stringify(area)}
+      </pre>
     </main>
   )
 }

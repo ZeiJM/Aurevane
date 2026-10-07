@@ -195,7 +195,7 @@ describe('canonical persistent Ground cast and entry', () => {
     ).toEqual({ x: 3, y: 1 })
     expect(result.state.tactical.battle.rng).toEqual(initial.tactical.battle.rng)
     expect(readPv1fActionEconomy(result.state)?.current).toBe(
-      readPv1fActionEconomy(initial)?.current! - preview.economyCost,
+      readPv1fActionEconomy(initial)!.current - preview.economyCost,
     )
   })
   it('caps re-entry and grants a new allowance only at the recipient’s next turn', () => {
@@ -381,7 +381,7 @@ describe('canonical persistent Ground cast and entry', () => {
       x: 2,
       y: 1,
     }
-    let state = createCombatGroundArea(
+    const state = createCombatGroundArea(
       initial,
       'actor',
       groundAction(),

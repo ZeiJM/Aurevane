@@ -23,7 +23,8 @@ describe('published Manual rule consistency', () => {
   it('explains pinned pending activation, affected-turn expiry and the text chronicle', () => {
     const text = articleText('battle-hall')
     expect(text).toContain('following global round')
-    expect(text).toContain('after the affected character completes')
+    expect(text).toContain('full stated global rounds')
+    expect(text).toContain('scheduled affected-turn-end ticks')
     expect(text).toContain('direct damage and HP/MP recovery')
     expect(text).toContain('Battle Chronicle')
   })

@@ -488,6 +488,10 @@ try {
     await page.getByLabel('Ground duration (rounds)', { exact: true }).fill('4')
     await page.getByLabel('Ground animation', { exact: true }).selectOption('frost')
     await page.getByLabel('Ground activation', { exact: true }).selectOption('instant')
+    assert.ok(
+      await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+      'Ground editor fits its viewport without horizontal overflow',
+    )
     const draft = JSON.parse(await page.locator('[data-ground-draft]').innerText())
     assert.equal(draft.durationRounds, 4)
     assert.equal(draft.visualPresetId, 'frost')

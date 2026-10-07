@@ -3,6 +3,7 @@ import { execFileSync } from 'node:child_process'
 import { expect, test, type Page, type Response } from '@playwright/test'
 
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
+import { selectDiscipline } from './discipline-library-helpers'
 
 const SKILL_ID = 'vanguard.forceful-strike'
 
@@ -190,7 +191,7 @@ function grantLocalMasterOperator(email: string): void {
   `)
 }
 
-async function equipAuthoringSkill(page: Page): Promise<void> {
+async function equipAuthoringSkill(page: Page, selectedSkillId = SKILL_ID): Promise<void> {
   const result = await page.evaluate(async (skillId) => {
     const current = await fetch('/api/character/build/skills', {
       headers: { Accept: 'application/json' },
@@ -232,7 +233,7 @@ async function equipAuthoringSkill(page: Page): Promise<void> {
       saveStatus: save.status,
       available,
     }
-  }, SKILL_ID)
+  }, selectedSkillId)
 
   expect(result).toEqual({
     readStatus: 200,
@@ -354,7 +355,7 @@ async function selectAuthoringSkill(page: Page): Promise<void> {
 test('Master combat authoring publishes versioned content, pins battles, and rolls back safely', async ({
   page,
 }, testInfo) => {
-  test.setTimeout(240_000)
+  test.setTimeout(360_000)
   test.skip(
     testInfo.project.name !== 'desktop-chromium',
     'One authenticated desktop Chromium proof covers the protected Master authoring workflow.',
@@ -602,6 +603,150 @@ test('Master combat authoring publishes versioned content, pins battles, and rol
       await page.reload()
       await selectGash()
       await expect(percentage).toHaveValue(oldPercentage)
+    }
+    // Actual protected Ground and Burn-trigger publication, reload and rollback.
+    await page.goto('/game/nexus')
+    await page.getByRole('button', { name: /Manage Disciplines/ }).click()
+    const management = page.getByRole('dialog', { name: 'Discipline Management', exact: true })
+    await selectDiscipline(management, 'Primary', 'Cinderweaver')
+    await management.getByRole('button', { name: 'Close', exact: true }).click()
+    await equipAuthoringSkill(page, 'cinderweaver.flame-burst')
+    for (const width of [1366, 390]) {
+      await page.setViewportSize({ width, height: width === 390 ? 844 : 768 })
+      await page.goto('/master/combat-content')
+      const selectFlame = async () => {
+        await page.getByLabel('Discipline').selectOption('cinderweaver')
+        await page.getByLabel('Skill', { exact: true }).selectOption('cinderweaver.flame-burst')
+        await expect(page.getByRole('heading', { name: 'Flame Burst', exact: true })).toBeVisible()
+      }
+      await selectFlame()
+      const oldFlameVersion = currentVersionFromText(await versionState.textContent())
+      const duration = page.getByLabel('Ground duration (rounds)', { exact: true })
+      const preset = page.getByLabel('Ground animation', { exact: true })
+      const activation = page.getByLabel('Ground activation', { exact: true })
+      const backlash = page.getByLabel('Backlash (% of burning unit’s hostile damage)', {
+        exact: true,
+      })
+      const original = {
+        duration: await duration.inputValue(),
+        preset: await preset.inputValue(),
+        activation: await activation.inputValue(),
+        backlash: await backlash.inputValue(),
+      }
+      await duration.fill('4')
+      await preset.selectOption('frost')
+      await activation.selectOption('instant')
+      await backlash.fill('12.34')
+      await runMasterOperation(page, 'validate', 'Validate')
+      await expect(page.locator('[data-validation-state="valid"]')).toContainText('Validated')
+      await runMasterOperation(page, 'preview', 'Preview')
+      await expect(page.locator('section[aria-label="Deterministic preview"]')).toContainText(
+        'Ground',
+      )
+      await page.getByRole('button', { name: 'Publish', exact: true }).click()
+      const publication = await runMasterOperation(page, 'publish', 'Confirm publish')
+      expect(publication).toMatchObject({
+        published: {
+          definition: {
+            groundArea: { durationRounds: 4, visualPresetId: 'frost', timing: 'instant' },
+            effects: expect.arrayContaining([
+              expect.objectContaining({ type: 'burn', backlashBasisPoints: 1234 }),
+            ]),
+          },
+        },
+      })
+      const flameVersion = publishedVersion(publication)
+      expect(flameVersion).toBeGreaterThan(oldFlameVersion)
+      await page.reload()
+      await selectFlame()
+      expect(currentVersionFromText(await versionState.textContent())).toBe(flameVersion)
+      await expect(duration).toHaveValue('4')
+      await expect(preset).toHaveValue('frost')
+      await expect(activation).toHaveValue('instant')
+      await expect(backlash).toHaveValue('12.34')
+      await duration.scrollIntoViewIfNeeded()
+      const fieldBox = await duration.boundingBox()
+      expect(fieldBox).not.toBeNull()
+      expect(fieldBox!.x).toBeGreaterThanOrEqual(0)
+      expect(fieldBox!.x + fieldBox!.width).toBeLessThanOrEqual(width)
+      await page.screenshot({ path: testInfo.outputPath(`master-ground-${width}.png`) })
+      const createdGroundBattle = battleIdentity(await launchRecruitBattle(page))
+      await expect(page.locator('main[data-unified-battle]')).toHaveAttribute(
+        'data-local-turn',
+        'true',
+      )
+      const beforeGround = await readBattle(page, createdGroundBattle.battleSessionId)
+      expect(pinnedSkillVersion(beforeGround, 'cinderweaver.flame-burst')).toBe(flameVersion)
+      const cast = await page.request.post(
+        `/api/battles/${createdGroundBattle.battleSessionId}/intents`,
+        {
+          data: {
+            expectedBattleVersion: battleIdentity(beforeGround).battleVersion,
+            idempotencyKey: crypto.randomUUID(),
+            intent: {
+              kind: 'action',
+              actionId: 'cinderweaver.flame-burst',
+              target: { kind: 'activate' },
+            },
+          },
+        },
+      )
+      const castBody: unknown = await cast.json()
+      expect(cast.status(), JSON.stringify(castBody)).toBe(200)
+      if (!isRecord(castBody) || !isRecord(castBody.battle) || !isRecord(castBody.battle.snapshot))
+        throw new Error('Ground cast did not return its authoritative public snapshot.')
+      const publicAreas = castBody.battle.snapshot.groundAreas
+      expect(publicAreas).toHaveLength(1)
+      if (!Array.isArray(publicAreas) || !isRecord(publicAreas[0]))
+        throw new Error('Ground area public projection is missing.')
+      expect(Object.keys(publicAreas[0]).sort()).toEqual([
+        'activationRound',
+        'expiresAtRound',
+        'id',
+        'tiles',
+        'visualPresetId',
+      ])
+      expect(publicAreas[0].visualPresetId).toBe('frost')
+      expect(Array.isArray(publicAreas[0].tiles) && publicAreas[0].tiles.length > 0).toBe(true)
+      expect(
+        queryLocalDatabase(
+          `select jsonb_array_length(current_snapshot->'groundAreas') from app_private.battle_sessions where id = '${createdGroundBattle.battleSessionId}'::uuid;`,
+        ),
+      ).toBe('1')
+      await page.reload()
+      const reloadedGround = await readBattle(page, createdGroundBattle.battleSessionId)
+      expect(reloadedGround).toMatchObject({ battle: { snapshot: { groundAreas: publicAreas } } })
+      await expect(page.locator('[data-ground-area-preset="frost"]').first()).toBeVisible()
+      await page.screenshot({
+        path: testInfo.outputPath(`battle-ground-${width}.png`),
+        fullPage: true,
+      })
+      await surrenderBattle(
+        page,
+        createdGroundBattle.battleSessionId,
+        battleIdentity(reloadedGround).battleVersion,
+      )
+      expect(
+        queryLocalDatabase(
+          `select coalesce(jsonb_array_length(current_snapshot->'groundAreas'),0) from app_private.battle_sessions where id = '${createdGroundBattle.battleSessionId}'::uuid;`,
+        ),
+      ).toBe('0')
+      await page.goto('/master/combat-content')
+      await selectFlame()
+      const history = page.locator('section[aria-labelledby="version-history-heading"]')
+      await history
+        .getByText(`v${oldFlameVersion}`, { exact: true })
+        .locator('..')
+        .locator('..')
+        .getByRole('button', { name: 'Rollback', exact: true })
+        .click()
+      await runMasterOperation(page, 'rollback', 'Confirm rollback')
+      await page.reload()
+      await selectFlame()
+      await expect(duration).toHaveValue(original.duration)
+      await expect(preset).toHaveValue(original.preset)
+      await expect(activation).toHaveValue(original.activation)
+      await expect(backlash).toHaveValue(original.backlash)
     }
     // Audited elevation publication, stale rejection and old/new battle pinning.
     expect(

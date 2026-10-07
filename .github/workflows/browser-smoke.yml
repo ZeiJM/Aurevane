@@ -139,7 +139,7 @@ jobs:
             e2e/master-combat-content-authoring.pw.ts e2e/battle-wasd-backtracking.pw.ts \
             --project=desktop-chromium --repeat-each=2
           mkdir -p /tmp/combat-master-release-review
-          find apps/web/test-results -name 'master-*.png' \
+          find apps/web/test-results \( -name 'master-*.png' -o -name 'battle-ground-*.png' \) \
             -exec cp '{}' /tmp/combat-master-release-review/ \;
 
           # Prove real recovery email and expired-link handling before longer gameplay scenarios.
@@ -249,6 +249,8 @@ jobs:
             /tmp/combat-master-release-review/*.png
             apps/web/test-results/**/master-percentage-*.png
             apps/web/test-results/**/master-elevation-*.png
+            apps/web/test-results/**/master-ground-*.png
+            apps/web/test-results/**/battle-ground-*.png
             apps/web/test-results/master-combat-content*/error-context.md
             apps/web/test-results/master-combat-content*/test-failed-*.png
             apps/web/test-results/battle-wasd-backtracking*/error-context.md
