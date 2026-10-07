@@ -194,6 +194,10 @@ function checkFit(geometry, label, seal) {
     ],
     ['log itself owns scrolling for long committed history', geometry.logScrollers.length > 0],
     [
+      'history owns at least half the result viewport',
+      geometry.log.height >= geometry.panel.height * 0.5,
+    ],
+    [
       'result artwork dimensions preserved',
       geometry.seal.width >= seal.width - 0.5 && geometry.seal.height >= seal.height - 0.5,
     ],

@@ -114,6 +114,7 @@ try {
         'line',
         'circle1',
         'circle2',
+        'ground-circle1',
         'all',
         'all-any',
         'all-ground',
@@ -136,15 +137,17 @@ try {
         const selector =
           targeting === 'heal'
             ? '[data-heal-target="true"]'
-            : targeting === 'buff' || targeting === 'all-any' || targeting === 'all-ground'
-              ? '[data-buff-path="true"]'
-              : '[data-attack-path="true"]'
+            : targeting === 'all-ground' || targeting === 'ground-circle1'
+              ? '[data-ground-path="true"]'
+              : targeting === 'buff' || targeting === 'all-any'
+                ? '[data-buff-path="true"]'
+                : '[data-attack-path="true"]'
         const count =
           targeting === 'single' || targeting === 'all-any'
             ? 4
             : targeting === 'line'
               ? 12
-              : targeting === 'circle1'
+              : targeting === 'circle1' || targeting === 'ground-circle1'
                 ? 8
                 : targeting === 'circle2'
                   ? 24
@@ -154,12 +157,26 @@ try {
                       ? null
                       : 2
         if (count !== null)
-          await page.waitForFunction(
-            ({ selector, count }) =>
-              document.querySelectorAll('#battlefield button' + selector).length === count,
-            { selector, count },
-          )
-        await page.waitForFunction(() => window.forecasts?.length > 0)
+          await page
+            .waitForFunction(
+              ({ selector, count }) =>
+                document.querySelectorAll('#battlefield button' + selector).length === count,
+              { selector, count },
+            )
+            .catch(async (error) => {
+              throw new Error(
+                `${mode}/${viewport.width}/${targeting}: expected ${count} ${selector} tiles; found ${await page.locator('#battlefield button' + selector).count()}; ${await page.locator('[data-battle-notice]').innerText()}`,
+                { cause: error },
+              )
+            })
+        await page
+          .waitForFunction(() => window.forecasts?.length > 0)
+          .catch(async (error) => {
+            throw new Error(
+              `${mode}/${viewport.width}/${targeting}: missing forecast; ${await page.locator('[data-battle-notice]').innerText()}; errors ${errors.join('; ')}`,
+              { cause: error },
+            )
+          })
         assert.deepEqual(
           await page.evaluate(() => window.fixtureBattle.snapshot),
           original,
@@ -180,10 +197,30 @@ try {
           fill,
           targeting === 'heal'
             ? 'rgba(102, 218, 143, 0.5)'
-            : targeting === 'buff' || targeting === 'all-any' || targeting === 'all-ground'
-              ? 'rgba(108, 145, 198, 0.5)'
-              : 'rgba(189, 38, 58, 0.22)',
+            : targeting === 'all-ground' || targeting === 'ground-circle1'
+              ? 'rgba(222, 117, 34, 0.3)'
+              : targeting === 'buff' || targeting === 'all-any'
+                ? 'rgba(108, 145, 198, 0.5)'
+                : 'rgba(189, 38, 58, 0.22)',
         )
+        if (targeting.includes('circle')) {
+          assert.equal(await tile(page, 3, 3).getAttribute('data-self-target'), null)
+          assert.equal(await tile(page, 3, 3).getAttribute('data-target'), null)
+          assert.equal(
+            await tile(page, 3, 3).evaluate(
+              (button) => getComputedStyle(button, '::after').content,
+            ),
+            'none',
+            'Circle caster tile has no selection fill',
+          )
+        }
+        if (targeting === 'circle1' || targeting === 'ground-circle1' || targeting === 'single') {
+          assert.equal(
+            await tile(page, 5, 3).getAttribute('data-target'),
+            null,
+            'Out-of-footprint occupied tiles have no target outline',
+          )
+        }
         await page.screenshot({
           path: resolve(output, `${mode}-${viewport.width}-${targeting}.png`),
         })
@@ -325,6 +362,21 @@ try {
           assert.equal(
             await page.locator('#battlefield button[data-attack-path="true"]').count(),
             0,
+          )
+          await page.waitForFunction(
+            () => document.activeElement?.dataset.battleKeyboardFocusRoot === 'true',
+          )
+          assert.equal(
+            await page.evaluate(() => document.activeElement?.dataset.battleKeyboardFocusRoot),
+            'true',
+          )
+          await page.keyboard.press('Digit1')
+          assert.equal(
+            await page
+              .locator('[data-battle-layout="refined"]')
+              .getAttribute('data-battle-action-mode'),
+            'move',
+            'Cancel restores direct keyboard commands without a click',
           )
         }
         cases++

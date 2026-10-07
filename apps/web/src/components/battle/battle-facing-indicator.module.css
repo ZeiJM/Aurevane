@@ -3,9 +3,18 @@
   top: calc(var(--battle-token-size, 3.4rem) * -0.18);
   left: 50%;
   z-index: 9;
-  display: block;
-  width: calc(var(--battle-token-size, 3.4rem) * 0.16);
-  height: calc(var(--battle-token-size, 3.4rem) * 0.16);
+  display: grid;
+  place-items: center;
+  width: max(12px, calc(var(--battle-token-size, 3.4rem) * 0.25));
+  height: max(12px, calc(var(--battle-token-size, 3.4rem) * 0.25));
+  box-sizing: border-box;
+  padding: 2px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #34444d, #111b25 75%);
+  box-shadow:
+    0 1px 3px #000b,
+    inset 0 0 0 1px #ffffff18;
   color: var(--battle-combatant-accent, #d0aa62);
   filter: drop-shadow(0 1px 2px #000);
   transform-origin: 50% 50%;
@@ -51,7 +60,7 @@
   .indicator {
     /* Size against the actual portrait: the refined 85% token leaves a narrow tile margin. */
     top: calc(-12% + 1px) !important;
-    width: 12% !important;
-    height: 12% !important;
+    width: max(12px, 25%) !important;
+    height: max(12px, 25%) !important;
   }
 }

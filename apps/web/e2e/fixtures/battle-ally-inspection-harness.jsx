@@ -152,23 +152,27 @@ const runtime = {
   copiedSkills: [],
 }
 if (targetingCase) {
+  // Current percentage attacks use the same explicit policy as newly started battles.
+  initialBattle.snapshot = { ...initialBattle.snapshot, percentageDotPolicyVersion: 1 }
   const base = resolveMatureSkillVersion(
     targetingCase === 'heal'
       ? 'lifebinder.mend'
       : targetingCase === 'buff' || targetingCase === 'all-any'
         ? 'bastion.steady-footing'
-        : targetingCase === 'all-ground'
-          ? 'frostweaver.chilling-mist'
-          : targetingCase.startsWith('circle')
-            ? 'vanguard.cleave'
-            : 'wildwarden.thorn-line',
+        : targetingCase === 'ground-circle1'
+          ? 'cinderweaver.flame-burst'
+          : targetingCase === 'all-ground'
+            ? 'frostweaver.chilling-mist'
+            : targetingCase.startsWith('circle')
+              ? 'vanguard.cleave'
+              : 'wildwarden.thorn-line',
   )
   const shape =
     targetingCase === 'single'
       ? { kind: 'single' }
       : targetingCase === 'line' || targetingCase === 'legacy'
         ? { kind: 'line', length: 3 }
-        : targetingCase.startsWith('circle')
+        : targetingCase.includes('circle')
           ? { kind: 'circle', radius: Number(targetingCase.slice(-1)) }
           : { kind: 'all' }
   const historical =
@@ -179,7 +183,10 @@ if (targetingCase) {
       ...base.target,
       geometryVersion: 2,
       maximumElevationDifference: base.target.maximumElevationDifference ?? 2,
-      kind: targetingCase === 'all-ground' ? 'ground-tile' : 'unit',
+      kind:
+        targetingCase === 'all-ground' || targetingCase === 'ground-circle1'
+          ? 'ground-tile'
+          : 'unit',
       teamPolicy:
         targetingCase === 'all-any' || targetingCase === 'all-ground'
           ? 'any'

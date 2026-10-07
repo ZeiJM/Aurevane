@@ -17,6 +17,7 @@ import {
 import { createPortal } from 'react-dom'
 
 import { BattleInfoPopover } from './battle-info-popover'
+import { restoreBattleKeyboardFocus } from './battle-keyboard-scope'
 import { battleCooldownLabel } from './battle-action-cooldown'
 import { BattleSkillCooldown } from './battle-skill-cooldown'
 import {
@@ -122,7 +123,7 @@ export function BattleSkillCommand({
 
   const closeSelector = useCallback((restoreFocus = false) => {
     setSelectorOpen(false)
-    if (restoreFocus) window.requestAnimationFrame(() => artworkRef.current?.focus())
+    if (restoreFocus) restoreBattleKeyboardFocus()
   }, [])
 
   const positionSelector = useCallback(() => {
