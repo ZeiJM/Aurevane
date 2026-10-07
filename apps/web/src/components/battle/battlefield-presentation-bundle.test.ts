@@ -11,6 +11,11 @@ function readLocalFile(name: string): string {
 }
 
 describe('shared battlefield presentation bundle', () => {
+  it('uses the shared full-tile blue fill for potential nonattack footprints', () => {
+    const styles = readLocalFile('battlefield-presentation-bundle.module.css')
+    expect(styles).toContain("[data-buff-path='true']:not([data-attack-path='true'])")
+    expect(readLocalFile('battle-experience.tsx')).toContain('data-buff-path=')
+  })
   it('paints canonical damaging paths above terrain through the mounted shared styles', () => {
     const styles = readLocalFile('battlefield-presentation-bundle.module.css')
     expect(styles).toContain("button[aria-label^='Tile '][data-attack-path='true']")

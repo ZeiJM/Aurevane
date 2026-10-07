@@ -197,7 +197,19 @@ describe('canonical delayed effects through the shared Chronicle projection', ()
               damagePerTick: 4,
               ticks: 2,
             }
-          : { type: statusId, recipient: 'primary-unit' as const, power: 4, durationTurns: 2 }
+          : statusId === 'burn'
+            ? {
+                type: 'burn' as const,
+                recipient: 'primary-unit' as const,
+                power: 4,
+                durationTurns: 2,
+              }
+            : {
+                type: 'poison' as const,
+                recipient: 'primary-unit' as const,
+                power: 4,
+                durationTurns: 2,
+              }
       let transition = executeCombatAction(
         encounter(),
         { ...baseAction, effects: [effect] },

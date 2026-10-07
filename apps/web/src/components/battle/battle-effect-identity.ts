@@ -1,3 +1,7 @@
+import {
+  percentageDotDescription,
+  percentageDotTickDamage,
+} from '@aurevane/game-core/combat/combat-percentage-dots'
 import { combatStatusDetails, PHASE4_STATUSES } from '@aurevane/game-core/combat/status-content'
 import { statusLabel } from './battle-effect-summary'
 import { statusPotencyDescription } from '../../lib/status-potency-presentation'
@@ -68,9 +72,22 @@ export function describeBattleEffect(effect: BattlePresentedStatus) {
       timingState: 'active',
       explanation: `${terrainEffect.kind} · ${terrainEffect.description} Active · ${terrainEffect.duration}.`,
     }
+  const dot =
+    effect.statusId === 'burn' || effect.statusId === 'poison' || effect.statusId === 'bleed'
+      ? effect.statusId
+      : null
+  const percentageDescription =
+    dot && (effect.percentageDamage || effect.percentageDotProfile)
+      ? percentageDotDescription(dot)
+      : null
+  const capturedDescription = effect.percentageDamage
+    ? ` Captured attack damage: ${effect.percentageDamage.capturedDamage} HP. Next tick: ${percentageDotTickDamage(effect.percentageDamage.capturedDamage, effect.percentageDamage.profile, effect.percentageDotStage ?? 0)} HP${effect.stacks > 1 ? ' per application' : ''}.`
+    : ''
   const identity = {
     ...battleEffectIdentity(effect.statusId),
-    description: statusPotencyDescription(effect.statusId, effect.potencyBasisPoints),
+    description:
+      (percentageDescription ??
+        statusPotencyDescription(effect.statusId, effect.potencyBasisPoints)) + capturedDescription,
   }
   const count =
     effect.durationScope === 'rounds'

@@ -1,3 +1,4 @@
+import { currentPoisonTickDamage } from './combat-dots'
 import { combatEffectTimingMode } from './combat-effect-timing'
 import { materializeVengeanceDamage } from './combat-vengeance'
 import {
@@ -1287,7 +1288,7 @@ function forecastPv1fPoisonMovement(
         0,
         hp -
           advanced.ticks.reduce(
-            (total, tick) => total + tick.triggeredTicks * (tick.instance.damagePerTick ?? 2),
+            (total, tick) => total + tick.triggeredTicks * currentPoisonTickDamage(tick.instance),
             0,
           ),
       )
@@ -1637,6 +1638,10 @@ function scaleRepeatedMatureSkillEffects(
       continue
     }
     if (effect.type === 'bleed') {
+      if (effect.damageProfile) {
+        scaled.push(effect)
+        continue
+      }
       scaled.push({ ...effect, damagePerTick: halfPositiveMagnitude(effect.damagePerTick) })
       continue
     }

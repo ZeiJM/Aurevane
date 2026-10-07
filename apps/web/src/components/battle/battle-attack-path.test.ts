@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import type { TacticalBattleState } from '@aurevane/game-core/combat/board'
 import { createPv1fBasicAttackDefinition } from '@aurevane/game-core/combat/pv1f-action-economy'
-import { battleAttackReachTiles } from './battle-attack-path'
+import { battleAttackReachTiles, battleTargetReachTiles } from './battle-attack-path'
+import { createPendingBattle, startBattle } from '@aurevane/game-core/combat/battle-state'
+import { createTacticalBattleState } from '@aurevane/game-core/combat/board'
+import { createCombatEncounterState } from '@aurevane/game-core/combat/actions'
 
 // Pure geometry fixture: deliberately has no placements or combatants.
 const tactical = {
@@ -67,6 +70,7 @@ describe('armed damage reach', () => {
           { ...basic.target, shape },
           basic.effects,
           affected,
+          { aimSource: 'player', selection: { kind: 'tile', position: affected[0]! } },
         ),
       ]).toEqual(['4:3', '5:3'])
     },
@@ -95,5 +99,173 @@ describe('armed damage reach', () => {
         { type: 'apply-status' },
       ]).size,
     ).toBe(0)
+  })
+})
+
+describe('persistent current targeting footprints', () => {
+  const line = {
+    ...basic.target,
+    geometryVersion: 2 as const,
+    minimumRange: 0,
+    maximumRange: 3,
+    shape: { kind: 'line' as const, length: 3 },
+  }
+  it('keeps four full lanes when an automatic forecast detects one recipient', () => {
+    const before = battleAttackReachTiles(tactical, origin, line, basic.effects)
+    const after = battleAttackReachTiles(tactical, origin, line, basic.effects, [{ x: 4, y: 3 }])
+    expect(before.size).toBe(12)
+    expect(after).toEqual(before)
+    expect([...after].sort()).toEqual([
+      '0:3',
+      '1:3',
+      '2:3',
+      '3:0',
+      '3:1',
+      '3:2',
+      '3:4',
+      '3:5',
+      '3:6',
+      '4:3',
+      '5:3',
+      '6:3',
+    ])
+  })
+  it('focuses the complete explicitly selected lane even without recipients or a successful forecast', () => {
+    expect([
+      ...battleAttackReachTiles(tactical, origin, line, basic.effects, [], {
+        aimSource: 'player',
+        selection: { kind: 'direction', direction: 'east' },
+      }),
+    ]).toEqual(['4:3', '5:3', '6:3'])
+    expect(battleAttackReachTiles(tactical, origin, line, basic.effects).size).toBe(12)
+  })
+  it.each([1, 2])('shows the immediate external Circle %i including its inner ring', (radius) => {
+    const tiles = battleAttackReachTiles(
+      tactical,
+      origin,
+      {
+        ...line,
+        shape: { kind: 'circle', radius },
+        maximumRange: radius,
+      },
+      basic.effects,
+      [{ x: 4, y: 3 }],
+    )
+    expect(tiles.size).toBe(radius === 1 ? 8 : 24)
+    expect(tiles.has('3:3')).toBe(false)
+    expect(tiles.has('4:4')).toBe(true)
+  })
+  it('keeps all Single candidates after automatic detection', () => {
+    expect(
+      battleAttackReachTiles(tactical, origin, basic.target, basic.effects, [{ x: 4, y: 3 }]).size,
+    ).toBe(4)
+  })
+  it('shows All and nonattack potential footprints independently of victims', () => {
+    const all = {
+      ...line,
+      shape: { kind: 'all' as const },
+      maximumRange: 0,
+      requiresLineOfSight: false,
+    }
+    expect(battleTargetReachTiles(tactical, origin, all).size).toBe(49)
+    expect(battleTargetReachTiles(tactical, origin, line).size).toBe(12)
+    expect(battleAttackReachTiles(tactical, origin, all, [{ type: 'healing' }]).size).toBe(0)
+  })
+  it('uses authoritative spatial filtering without letting elevation block a whole lane', () => {
+    const battle = startBattle(
+      createPendingBattle({
+        battleId: 'spatial',
+        rulesVersion: 1,
+        contentVersion: 1,
+        rngSeed: 1,
+        combatants: [
+          {
+            id: 'actor',
+            teamId: 'one',
+            initiative: 20,
+            baseMovementBudget: 3,
+            hp: 100,
+            maxHp: 100,
+            mp: 10,
+            maxMp: 10,
+          },
+          {
+            id: 'enemy',
+            teamId: 'two',
+            initiative: 10,
+            baseMovementBudget: 3,
+            hp: 100,
+            maxHp: 100,
+            mp: 10,
+            maxMp: 10,
+          },
+        ],
+      }),
+    ).state
+    const board = createTacticalBattleState({
+      ...tactical,
+      battle,
+      terrains: [
+        { id: 'open', traversalCost: 1 },
+        { id: 'wall', traversalCost: null },
+      ],
+      movementProfiles: [{ id: 'ground', maxElevationStep: 1, terrainCostOverrides: [] }],
+      placements: [
+        { combatantId: 'actor', position: origin, facing: 'east', movementProfileId: 'ground' },
+        {
+          combatantId: 'enemy',
+          position: { x: 6, y: 3 },
+          facing: 'west',
+          movementProfileId: 'ground',
+        },
+      ],
+      tiles: tactical.tiles.map((tile) => ({
+        ...tile,
+        elevation: tile.position.x === 4 && tile.position.y === 3 ? 3 : 0,
+        terrainId: tile.position.x === 3 && tile.position.y === 2 ? 'wall' : 'open',
+      })),
+    })
+    const state = createCombatEncounterState(board)
+    const before = JSON.stringify(state)
+    const reach = battleTargetReachTiles(
+      board,
+      origin,
+      { ...line, maximumElevationDifference: 1, requiresLineOfSight: true },
+      [],
+      { aimSource: 'implicit' },
+      { tactical: board, terrainOverlays: state.terrainOverlays },
+    )
+    expect(reach.has('4:3')).toBe(false)
+    expect(reach.has('5:3')).toBe(true)
+    expect(reach.has('6:3')).toBe(true)
+    expect(reach.has('3:1')).toBe(false)
+    expect(JSON.stringify(state)).toBe(before)
+    const global = {
+      ...line,
+      shape: { kind: 'all' as const },
+      minimumRange: 0,
+      maximumRange: 0,
+      requiresLineOfSight: false,
+    }
+    expect([
+      ...battleTargetReachTiles(
+        board,
+        origin,
+        global,
+        [],
+        { aimSource: 'implicit' },
+        { tactical: board, actorId: 'actor' },
+      ),
+    ]).toEqual(['6:3'])
+    expect(
+      battleTargetReachTiles(
+        board,
+        origin,
+        { ...global, kind: 'ground-tile' },
+        [],
+        { aimSource: 'implicit' },
+        { tactical: board, actorId: 'actor' },
+      ).size,
+    ).toBe(48)
   })
 })

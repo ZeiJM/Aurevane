@@ -520,6 +520,35 @@ it('omits enemy cast identities from persistent live effects independently of hi
   expect(state.effectState).toEqual(before)
 })
 
+it('retains public captured tick values while hiding a hostile DoT Skill identity', () => {
+  const state = encounter()
+  state.effectState!.poison = [
+    {
+      targetCombatantId: PLAYER,
+      sourceCombatantId: ENEMY,
+      sourceActionId: 'secret.pinned.skill',
+      profileVersion: 1,
+      movementRemainder: 0,
+      remainingTicks: 4,
+      percentageDamage: {
+        capturedDamage: 40,
+        profile: { kind: 'attack-percentage', basisPoints: 1500 },
+      },
+    },
+  ]
+  for (const viewer of [
+    createSpectatorBattleViewerEntitlement(),
+    deriveParticipantBattleViewerEntitlement(state.tactical.battle.combatants, [PLAYER]),
+  ]) {
+    const projected = projectBattleEffectStateForViewer(state, viewer)
+    expect(projected?.poison[0]?.percentageDamage).toEqual(
+      state.effectState!.poison[0]!.percentageDamage,
+    )
+    expect(projected?.poison[0]?.sourceActionId).toBe('combat.effect')
+    expect(JSON.stringify(projected)).not.toContain('secret.pinned.skill')
+  }
+})
+
 it('scrubs concealed enemy provenance even when its debuff holder is self or ally', () => {
   const state = encounter()
   const provenance = createCombatEffectInstanceProvenance({

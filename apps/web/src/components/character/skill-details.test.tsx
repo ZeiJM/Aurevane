@@ -21,11 +21,21 @@ it('shows the minimum report in order once, preserving Range and PvP overrides',
     previous = index
   }
   expect(markup).not.toContain('Legal range')
-  expect(markup).toContain('<dt>Range</dt><dd>5</dd>')
-  expect(markup).toContain('<dt>Target Method</dt><dd>Circle [1]</dd>')
+  expect(markup).toContain('<dt>Range</dt><dd>1</dd>')
+  expect(markup).toContain(
+    '<dt>Target Method</dt><dd title="Circle [1] covers 8 surrounding tiles from you, excluding your tile. Inner rings are included. Separately authored self effects still apply.">Circle [1]</dd>',
+  )
   expect(markup).not.toContain('<p>Circle radius:')
   expect(markup).not.toContain('Affects:')
   expect(markup).toContain(`<dt>PvP Cost</dt><dd>${base.apCost + 1} AP`)
   expect(markup).not.toContain('<dt>AP cost</dt>')
   expect(markup).toContain('Authored explanation of the real effect.')
+})
+
+it('provides the caster-origin explanation within the Target Method row', () => {
+  const current = resolveMatureSkillVersion('farstrider.volley')!
+  const markup = renderToStaticMarkup(<SkillDetails skill={current} expanded />)
+  expect(markup).toContain(
+    'title="Circle [1] covers 8 surrounding tiles from you, excluding your tile.',
+  )
 })

@@ -8,6 +8,7 @@ import {
   type BattleRangePreviewCombatant,
   type BattleRangePreviewSkill,
 } from './battle-range-previews'
+import { battleSkillTargetSpec } from './battle-preview-selection'
 
 /** Independent read-only forecasts never arm, select or authorize a battle command. */
 export function useBattleRangePreviews({
@@ -30,6 +31,7 @@ export function useBattleRangePreviews({
   const targetTeamPolicy = skill?.targetTeamPolicy
   const minimumRange = skill?.minimumRange
   const maximumRange = skill?.maximumRange
+  const target = skill ? battleSkillTargetSpec(skill) : undefined
   const request = useMemo(() => {
     const descriptor =
       id &&
@@ -37,11 +39,11 @@ export function useBattleRangePreviews({
       targetTeamPolicy &&
       minimumRange !== undefined &&
       maximumRange !== undefined
-        ? { id, targetKind, targetTeamPolicy, minimumRange, maximumRange }
+        ? { id, targetKind, targetTeamPolicy, minimumRange, maximumRange, target }
         : null
     const intents = enabled ? battleRangePreviewIntents(descriptor, actorId, combatants) : []
     return {
-      key: JSON.stringify([battleSessionId, battleVersion, actorId, id, enabled, intents]),
+      key: JSON.stringify([battleSessionId, battleVersion, actorId, id, target, enabled, intents]),
       intents,
       battleSessionId,
       battleVersion,
@@ -58,6 +60,7 @@ export function useBattleRangePreviews({
     minimumRange,
     targetKind,
     targetTeamPolicy,
+    target,
   ])
   const [result, setResult] = useState<{
     key: string

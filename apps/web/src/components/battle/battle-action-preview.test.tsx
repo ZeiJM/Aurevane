@@ -54,6 +54,72 @@ const attack: ActionPreview = {
 }
 
 describe('current selection forecast', () => {
+  it('uses each area recipient’s authoritative hit chance without reusing a primary chance', () => {
+    const markup = renderToStaticMarkup(
+      <BattleActionPreview
+        pending={false}
+        preview={{
+          ...attack,
+          primaryCombatantId: null,
+          affectedCombatantIds: ['enemy', 'other'],
+          projectedEffects: [
+            ...attack.projectedEffects,
+            { effectType: 'damage', combatantId: 'other', before: 100, after: 91 },
+          ],
+          targetHitChances: [
+            { targetCombatantId: 'enemy', hitChanceBasisPoints: 9500 },
+            { targetCombatantId: 'other', hitChanceBasisPoints: 8000 },
+          ],
+        }}
+      />,
+    )
+    const enemy = markup.split('data-battle-range-forecast="enemy"')[1]?.split('</article>')[0]
+    const other = markup.split('data-battle-range-forecast="other"')[1]?.split('</article>')[0]
+    expect(enemy).toContain('Hit 95% · On hit 17 dmg')
+    expect(other).toContain('Hit 80% · On hit 9 dmg')
+    expect(other).not.toContain('Hit 95%')
+  })
+  it('shows actual recipients across implicit area forecasts and focuses only explicit player aim', () => {
+    const north = {
+      ...attack,
+      primaryCombatantId: null,
+      affectedCombatantIds: ['enemy'],
+      affectedTiles: [
+        { x: 1, y: 0 },
+        { x: 1, y: -1 },
+      ],
+    }
+    const south = {
+      ...north,
+      affectedCombatantIds: ['other'],
+      projectedEffects: [
+        { effectType: 'damage' as const, combatantId: 'other', before: 100, after: 91 },
+      ],
+    }
+    const implicit = renderToStaticMarkup(
+      <BattleActionPreview
+        pending={false}
+        preview={north}
+        aimSource="implicit"
+        rangePreviews={[north, south]}
+        rangePreviewActionId={attack.actionId}
+      />,
+    )
+    expect(implicit).toContain('data-battle-range-forecast="enemy"')
+    expect(implicit).toContain('data-battle-range-forecast="other"')
+    expect(implicit).toContain('9 dmg')
+    const explicit = renderToStaticMarkup(
+      <BattleActionPreview
+        pending={false}
+        preview={north}
+        aimSource="player"
+        rangePreviews={[north, south]}
+        rangePreviewActionId={attack.actionId}
+      />,
+    )
+    expect(explicit).toContain('data-battle-range-forecast="enemy"')
+    expect(explicit).not.toContain('data-battle-range-forecast="other"')
+  })
   it('keeps resistance chances on their own affected recipients in an area preview', () => {
     const markup = renderToStaticMarkup(
       <BattleActionPreview

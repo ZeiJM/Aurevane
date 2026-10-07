@@ -1,3 +1,4 @@
+import { estimatedPercentageDotTotal } from './combat-percentage-dot-roster'
 import type { MatureSkillDefinition, MatureSkillEffectDefinition } from './mature-skills'
 import {
   CURRENT_EFFECT_DURATION_MAXIMUM_TURNS,
@@ -64,6 +65,7 @@ function tunedEssenceApCost(definition: MatureSkillDefinition): number {
 export function applyV51CurrentTechniqueTargeting(
   definition: MatureSkillDefinition,
 ): MatureSkillDefinition {
+  if (definition.target.geometryVersion === 2) return definition
   if (definition.target.kind === 'self') {
     return {
       ...definition,
@@ -152,6 +154,7 @@ function tuneEffectMagnitude(
       return { ...effect, delta: sign * scalePower(Math.abs(effect.delta), factor) }
     }
     case 'bleed':
+      if (effect.damageProfile) return effect
       return {
         ...effect,
         damagePerTick: scalePower(effect.damagePerTick, factor),
@@ -159,6 +162,7 @@ function tuneEffectMagnitude(
       }
     case 'burn':
     case 'poison':
+      if (effect.damageProfile) return effect
       return {
         ...effect,
         ...(effect.power === undefined ? {} : { power: scalePower(effect.power, factor) }),
@@ -203,7 +207,9 @@ function effectWeight(effect: MatureSkillEffectDefinition): number {
   }
 }
 
-function effectMagnitudeWeight(effect: MatureSkillEffectDefinition): number {
+function effectMagnitudeWeight(effect: MatureSkillEffectDefinition, damageBasis: number): number {
+  const percentageTotal = estimatedPercentageDotTotal(effect, damageBasis)
+  if (percentageTotal !== null) return percentageTotal * 0.12
   switch (effect.type) {
     case 'damage':
       return effect.amount * 0.3
@@ -213,7 +219,7 @@ function effectMagnitudeWeight(effect: MatureSkillEffectDefinition): number {
     case 'resource-change':
       return Math.abs(effect.delta) * 0.18
     case 'bleed':
-      return effect.damagePerTick * effect.ticks * 0.12
+      return (effect.damagePerTick ?? 0) * effect.ticks * 0.12
     case 'burn':
     case 'poison':
       return (effect.power ?? 3) * Math.max(1, defaultEffectDurationTurns(effect)) * 0.1
@@ -234,7 +240,14 @@ function cooldownTurns(
   if (definition.requirements.length > 0) return null
 
   const persistentWeight = effects.reduce((sum, effect) => sum + effectWeight(effect), 0)
-  const magnitudeWeight = effects.reduce((sum, effect) => sum + effectMagnitudeWeight(effect), 0)
+  const damageBasis = effects.reduce(
+    (sum, effect) => sum + (effect.type === 'damage' ? effect.amount : 0),
+    0,
+  )
+  const magnitudeWeight = effects.reduce(
+    (sum, effect) => sum + effectMagnitudeWeight(effect, damageBasis),
+    0,
+  )
   const areaWeight = definition.target.shape.kind === 'single' ? 0 : 6
   const targetingWeight = v51TargetingValueWeight(definition)
   const essenceWeight = kind === 'essence' ? 10 : 0

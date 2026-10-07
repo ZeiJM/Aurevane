@@ -8,6 +8,9 @@ import type {
   CombatTargetTeamPolicy,
 } from '@aurevane/game-core/combat/actions'
 
+import { normalizeCurrentCombatTargetSpec } from '@aurevane/game-core/combat/combat-targeting-shapes'
+
+import { skillTargetMethodExplanation } from '../../character/skill-detail-presentation'
 import styles from './combat-content-editor.module.css'
 
 export interface SkillTargetingEditorProps {
@@ -49,6 +52,7 @@ function shapeForKind(
   kind: CombatTargetShape['kind'],
   current: CombatTargetShape,
 ): CombatTargetShape {
+  if (kind === 'all') return { kind: 'all' }
   if (kind === 'single') return { kind: 'single' }
   if (kind === 'circle') {
     return { kind: 'circle', radius: current.kind === 'circle' ? current.radius : 1 }
@@ -61,6 +65,10 @@ export function SkillTargetingEditor({
   v51Rules = false,
   onChange,
 }: SkillTargetingEditorProps) {
+  const change = (next: CombatTargetSpec) => onChange(normalizeCurrentCombatTargetSpec(next))
+  const modern = value.geometryVersion === 2
+  const area = modern && value.shape.kind !== 'single'
+  const all = modern && value.shape.kind === 'all'
   const shape = value.shape
   const invalidRange = value.minimumRange > value.maximumRange
   const currentNonSelf = v51Rules && value.kind !== 'self'
@@ -76,7 +84,7 @@ export function SkillTargetingEditor({
             aria-label="Target kind"
             value={value.kind}
             onChange={(event) =>
-              onChange({
+              change({
                 ...value,
                 kind: event.currentTarget.value as CombatTargetKind,
               })
@@ -96,7 +104,7 @@ export function SkillTargetingEditor({
             aria-label="Team policy"
             value={value.teamPolicy}
             onChange={(event) =>
-              onChange({
+              change({
                 ...value,
                 teamPolicy: event.currentTarget.value as CombatTargetTeamPolicy,
               })
@@ -116,7 +124,7 @@ export function SkillTargetingEditor({
             aria-label="Target shape"
             value={shape.kind}
             onChange={(event) =>
-              onChange({
+              change({
                 ...value,
                 shape: shapeForKind(event.currentTarget.value as CombatTargetShape['kind'], shape),
               })
@@ -125,6 +133,7 @@ export function SkillTargetingEditor({
             <option value="single">Single</option>
             <option value="circle">Circle</option>
             <option value="line">Line</option>
+            <option value="all">All</option>
           </select>
         </label>
 
@@ -134,10 +143,11 @@ export function SkillTargetingEditor({
             <input
               aria-label="Circle radius"
               type="number"
-              min={0}
+              min={modern ? 1 : 0}
+              max={modern ? 5 : undefined}
               value={shape.radius}
               onChange={(event) =>
-                onChange({
+                change({
                   ...value,
                   shape: {
                     kind: 'circle',
@@ -156,9 +166,10 @@ export function SkillTargetingEditor({
               aria-label="Line length"
               type="number"
               min={1}
+              max={modern ? 5 : undefined}
               value={shape.length}
               onChange={(event) =>
-                onChange({
+                change({
                   ...value,
                   shape: {
                     kind: 'line',
@@ -170,46 +181,49 @@ export function SkillTargetingEditor({
           </label>
         ) : null}
 
-        <label className={styles.field}>
-          <span>Minimum range</span>
-          <input
-            aria-label="Minimum range"
-            aria-invalid={invalidRange}
-            type="number"
-            min={0}
-            value={value.minimumRange}
-            onChange={(event) =>
-              onChange({
-                ...value,
-                minimumRange: integer(event.currentTarget.value, value.minimumRange),
-              })
-            }
-          />
-        </label>
+        {!area ? (
+          <>
+            <label className={styles.field}>
+              <span>Minimum range</span>
+              <input
+                aria-label="Minimum range"
+                aria-invalid={invalidRange}
+                type="number"
+                min={0}
+                value={value.minimumRange}
+                onChange={(event) =>
+                  change({
+                    ...value,
+                    minimumRange: integer(event.currentTarget.value, value.minimumRange),
+                  })
+                }
+              />
+            </label>
 
-        <label className={styles.field}>
-          <span>Maximum range</span>
-          <input
-            aria-label="Maximum range"
-            aria-invalid={invalidRange}
-            type="number"
-            min={currentNonSelf ? 1 : 0}
-            max={currentNonSelf ? 5 : undefined}
-            value={value.maximumRange}
-            onChange={(event) =>
-              onChange({
-                ...value,
-                maximumRange: integer(event.currentTarget.value, value.maximumRange),
-              })
-            }
-          />
-          {currentNonSelf ? (
-            <small className={styles.fieldHint}>
-              Current v5.1 non-self reach is 1–5; longer reach reduces effect budget.
-            </small>
-          ) : null}
-        </label>
-
+            <label className={styles.field}>
+              <span>Maximum range</span>
+              <input
+                aria-label="Maximum range"
+                aria-invalid={invalidRange}
+                type="number"
+                min={currentNonSelf ? 1 : 0}
+                max={currentNonSelf ? 5 : undefined}
+                value={value.maximumRange}
+                onChange={(event) =>
+                  change({
+                    ...value,
+                    maximumRange: integer(event.currentTarget.value, value.maximumRange),
+                  })
+                }
+              />
+              {currentNonSelf ? (
+                <small className={styles.fieldHint}>
+                  Current v5.1 non-self reach is 1–5; longer reach reduces effect budget.
+                </small>
+              ) : null}
+            </label>
+          </>
+        ) : null}
         <label className={styles.field}>
           <span>Maximum elevation difference</span>
           <input
@@ -220,7 +234,7 @@ export function SkillTargetingEditor({
             value={value.maximumElevationDifference ?? ''}
             placeholder={currentNonSelf ? '0' : 'Unlimited'}
             onChange={(event) =>
-              onChange({
+              change({
                 ...value,
                 maximumElevationDifference:
                   event.currentTarget.value === ''
@@ -242,7 +256,7 @@ export function SkillTargetingEditor({
             aria-label="Friendly fire"
             value={value.friendlyFire}
             onChange={(event) =>
-              onChange({
+              change({
                 ...value,
                 friendlyFire: event.currentTarget.value as CombatFriendlyFirePolicy,
               })
@@ -257,26 +271,32 @@ export function SkillTargetingEditor({
         </label>
       </div>
 
-      <label className={styles.checkField}>
-        <input
-          aria-label="Requires line of sight"
-          type="checkbox"
-          checked={value.requiresLineOfSight}
-          onChange={(event) =>
-            onChange({
-              ...value,
-              requiresLineOfSight: event.currentTarget.checked,
-            })
-          }
-        />
-        <span>Requires line of sight</span>
-        {currentNonSelf ? (
-          <small className={styles.fieldHint}>
-            Skipping line of sight consumes targeting budget.
-          </small>
-        ) : null}
-      </label>
-
+      {!all ? (
+        <>
+          <label className={styles.checkField}>
+            <input
+              aria-label="Requires line of sight"
+              type="checkbox"
+              checked={value.requiresLineOfSight}
+              onChange={(event) =>
+                change({
+                  ...value,
+                  requiresLineOfSight: event.currentTarget.checked,
+                })
+              }
+            />
+            <span>Requires line of sight</span>
+            {currentNonSelf ? (
+              <small className={styles.fieldHint}>
+                Skipping line of sight consumes targeting budget.
+              </small>
+            ) : null}
+          </label>
+        </>
+      ) : null}
+      {modern ? (
+        <p className={styles.fieldHint}>{skillTargetMethodExplanation({ target: value })}</p>
+      ) : null}
       {invalidRange ? (
         <p className={styles.inlineError} role="alert">
           Minimum range cannot exceed maximum range.

@@ -1,3 +1,4 @@
+import { usesPercentageCombatDots } from './combat-dots'
 import type {
   CombatActionDefinition,
   CombatContentCatalog,
@@ -188,7 +189,9 @@ function planBleedCopies(
           left.applicationOrder - right.applicationOrder,
       )
     const replaced =
-      !usesUnlimitedCombatEffectStacking(state) && targetRows.length >= 3
+      !usesUnlimitedCombatEffectStacking(state) &&
+      !usesPercentageCombatDots(state) &&
+      targetRows.length >= 3
         ? targetRows[0]
         : undefined
     if (replaced) {
@@ -360,7 +363,7 @@ export function planCombatStatusCopies(
       return { donor, previous, next }
     },
   )
-  const independent = usesUnlimitedCombatEffectStacking(state)
+  const independent = usesUnlimitedCombatEffectStacking(state) || usesPercentageCombatDots(state)
   const persistentDots = normalizeCombatEffectState(state.effectState)
   const poisonDonors =
     effect.mode === 'curse'
@@ -391,12 +394,18 @@ export function planCombatStatusCopies(
   const burnOrders = orders(persistentDots.burn, burnDonors.length)
   const poisons: PoisonCopy[] = poisonDonors.map((donor, index) => ({
     donor,
-    previous: independent ? undefined : (currentPoisonInstance(state, receiverId) ?? undefined),
+    previous:
+      independent && !usesPercentageCombatDots(state)
+        ? undefined
+        : (currentPoisonInstance(state, receiverId) ?? undefined),
     ...(independent ? { applicationOrder: poisonOrders[index] } : {}),
   }))
   const burns: BurnCopy[] = burnDonors.map((donor, index) => ({
     donor,
-    previous: independent ? undefined : (currentBurnInstance(state, receiverId) ?? undefined),
+    previous:
+      independent && !usesPercentageCombatDots(state)
+        ? undefined
+        : (currentBurnInstance(state, receiverId) ?? undefined),
     ...(independent ? { applicationOrder: burnOrders[index] } : {}),
   }))
   const poison = poisons[0]
@@ -444,13 +453,23 @@ export function applyCombatStatusCopies(
         }
       : row,
   )
-  const independent = usesUnlimitedCombatEffectStacking(state)
+  const independent = usesUnlimitedCombatEffectStacking(state) || usesPercentageCombatDots(state)
   const nextPoisons: CombatPoisonInstance[] = poisons.map((copy) => ({
     targetCombatantId: receiverId,
     sourceCombatantId: actorId,
     sourceActionId: actionId,
     profileVersion: copy.donor.profileVersion,
-    movementRemainder: copy.previous?.movementRemainder ?? copy.donor.movementRemainder,
+    movementRemainder: usesPercentageCombatDots(state)
+      ? copy.donor.movementRemainder
+      : (copy.previous?.movementRemainder ?? copy.donor.movementRemainder),
+    ...(copy.donor.percentageDamage
+      ? {
+          percentageDamage: {
+            ...copy.donor.percentageDamage,
+            profile: { ...copy.donor.percentageDamage.profile },
+          },
+        }
+      : {}),
     ...(copy.applicationOrder !== undefined ? { applicationOrder: copy.applicationOrder } : {}),
     ...(independent && copy.donor.damagePerTick !== undefined
       ? { damagePerTick: copy.donor.damagePerTick }
@@ -465,7 +484,15 @@ export function applyCombatStatusCopies(
     sourceCombatantId: actorId,
     sourceActionId: actionId,
     profileVersion: copy.donor.profileVersion,
-    stage: copy.previous ? 0 : copy.donor.stage,
+    stage: copy.previous && !usesPercentageCombatDots(state) ? 0 : copy.donor.stage,
+    ...(copy.donor.percentageDamage
+      ? {
+          percentageDamage: {
+            ...copy.donor.percentageDamage,
+            profile: { ...copy.donor.percentageDamage.profile },
+          },
+        }
+      : {}),
     ...(copy.applicationOrder !== undefined ? { applicationOrder: copy.applicationOrder } : {}),
     ...(independent && copy.donor.basePower !== undefined
       ? { basePower: copy.donor.basePower }
@@ -486,7 +513,9 @@ export function applyCombatStatusCopies(
           ? {
               poison: [
                 ...effectState.poison.filter(
-                  (row) => independent || row.targetCombatantId !== receiverId,
+                  (row) =>
+                    (independent && !usesPercentageCombatDots(state)) ||
+                    row.targetCombatantId !== receiverId,
                 ),
                 ...nextPoisons,
               ].sort(compareCombatDotApplications),
@@ -496,7 +525,9 @@ export function applyCombatStatusCopies(
           ? {
               burn: [
                 ...effectState.burn.filter(
-                  (row) => independent || row.targetCombatantId !== receiverId,
+                  (row) =>
+                    (independent && !usesPercentageCombatDots(state)) ||
+                    row.targetCombatantId !== receiverId,
                 ),
                 ...nextBurns,
               ].sort(compareCombatDotApplications),
@@ -514,6 +545,7 @@ export function applyCombatStatusCopies(
       attempt.donor.damagePerTick,
       attempt.donor.remainingTicks,
       true,
+      attempt.donor.percentageDamage,
     )
   }
   return {

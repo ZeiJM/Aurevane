@@ -98,3 +98,50 @@ it('applies Combat v5.1 maximum range and elevation authoring bounds without cha
   expect(historicalMarkup).not.toMatch(/aria-label="Maximum range"[^>]*max="5"/u)
   expect(historicalMarkup).not.toMatch(/aria-label="Maximum elevation difference"[^>]*max="2"/u)
 })
+
+import { normalizeCurrentCombatTargetSpec } from '@aurevane/game-core/combat/combat-targeting-shapes'
+it('offers All without redundant range, X or line of sight and retains recipient controls', () => {
+  const value = normalizeCurrentCombatTargetSpec(target({ shape: { kind: 'all' } }))
+  const markup = renderToStaticMarkup(
+    createElement(SkillTargetingEditor, { value, onChange: vi.fn() }),
+  )
+  expect(markup).toContain('<option value="all" selected="">All</option>')
+  for (const name of [
+    'Maximum range',
+    'Minimum range',
+    'Circle radius',
+    'Line length',
+    'Requires line of sight',
+  ])
+    expect(markup).not.toContain(`aria-label="${name}"`)
+  for (const name of [
+    'Target kind',
+    'Team policy',
+    'Friendly fire',
+    'Maximum elevation difference',
+  ])
+    expect(markup).toContain(`aria-label="${name}"`)
+  expect(value).toMatchObject({
+    geometryVersion: 2,
+    minimumRange: 0,
+    maximumRange: 0,
+    requiresLineOfSight: false,
+  })
+})
+it.each([
+  { kind: 'circle', radius: 2 },
+  { kind: 'line', length: 4 },
+] as const)('offers one positive bounded X for %j', (shape) => {
+  const value = normalizeCurrentCombatTargetSpec(target({ shape }))
+  const markup = renderToStaticMarkup(
+    createElement(SkillTargetingEditor, { value, onChange: vi.fn() }),
+  )
+  expect(markup).not.toContain('aria-label="Maximum range"')
+  expect(markup).not.toContain('aria-label="Minimum range"')
+  expect(markup).toMatch(/aria-label="(?:Circle radius|Line length)"[^>]*min="1"[^>]*max="5"/u)
+  expect(value).toMatchObject({
+    geometryVersion: 2,
+    minimumRange: 0,
+    maximumRange: shape.kind === 'circle' ? shape.radius : shape.length,
+  })
+})

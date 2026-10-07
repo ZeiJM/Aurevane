@@ -64,6 +64,7 @@ export interface BattleActionPreview {
   affectedTiles: readonly { x: number; y: number }[]
   affectedCombatantIds: readonly string[]
   projectedEffects: readonly CombatEffectProjection[]
+  targetHitChances?: CombatActionEvaluation['targetHitChances']
   targetStatusResistances?: CombatActionEvaluation['targetStatusResistances']
   projectedTerrain?: readonly CombatTerrainProjection[]
   projectedEvents?: readonly CombatResolutionEvent[]
@@ -167,6 +168,13 @@ function issue(code: string, message: string): BattlePreviewIssue {
 }
 
 /** Public forecast probabilities only; never expose the authoritative future RNG draw. */
+export function projectBattleHitChanceForecast(evaluation: CombatActionEvaluation) {
+  return evaluation.targetHitChances?.map((row) => ({
+    targetCombatantId: row.targetCombatantId,
+    hitChanceBasisPoints: row.hitChanceBasisPoints,
+  }))
+}
+
 export function projectBattleStatusResistanceForecast(evaluation: CombatActionEvaluation) {
   return evaluation.targetStatusResistances?.map((row) => ({
     targetCombatantId: row.targetCombatantId,
@@ -274,6 +282,7 @@ async function previewIntent(
       affectedTiles: evaluation.affectedTiles,
       affectedCombatantIds: evaluation.affectedCombatantIds,
       projectedEffects: resourceIssue ? [] : evaluation.projectedEffects,
+      targetHitChances: resourceIssue ? [] : projectBattleHitChanceForecast(evaluation),
       targetStatusResistances: resourceIssue
         ? []
         : projectBattleStatusResistanceForecast(evaluation),

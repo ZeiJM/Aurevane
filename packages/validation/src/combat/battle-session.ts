@@ -25,6 +25,8 @@ export const battleHallRecordIdSchema = z.enum([
 
 const combatTargetSelectionSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('self') }).strict(),
+  z.object({ kind: z.literal('direction'), direction: battleFacingSchema }).strict(),
+  z.object({ kind: z.literal('activate') }).strict(),
   z.object({ kind: z.literal('unit'), combatantId: combatantIdSchema }).strict(),
   z.object({ kind: z.literal('tile'), position: gridPositionSchema }).strict(),
 ])

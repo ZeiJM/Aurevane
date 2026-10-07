@@ -1,3 +1,5 @@
+import { validateCurrentCombatTargetAuthoring } from '@aurevane/game-core/combat/combat-targeting-shapes'
+import { validateCurrentPercentageDotAuthoring } from '@aurevane/game-core/combat/combat-percentage-dots'
 import 'server-only'
 
 import type {
@@ -254,6 +256,8 @@ function validateSkillDefinition(definition: unknown): CombatContentValidationRe
 
   const candidate = structuredClone(definition) as unknown as MatureSkillDefinition
   try {
+    validateCurrentCombatTargetAuthoring(candidate)
+    validateCurrentPercentageDotAuthoring(candidate)
     for (const field of validateMatureSkillDefinition(candidate)) {
       issues.push({
         path: field,

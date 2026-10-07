@@ -1,3 +1,4 @@
+import type { CapturedPercentageDotDamage } from './combat-percentage-dots'
 import type { CombatStatusDefinition } from './actions'
 import type { CombatEffectCategory } from './combat-effect-categories'
 import type { CombatEffectInstanceProvenance } from './combat-kernel-types'
@@ -64,6 +65,7 @@ export interface CombatOngoingRecovery {
 }
 
 export interface CombatPoisonInstance {
+  percentageDamage?: CapturedPercentageDotDamage
   /** Stable identity for independently accumulated applications in stacking policy 1. */
   applicationOrder?: number
   skipCurrentOwnerTurnEnd?: boolean
@@ -81,6 +83,7 @@ export interface CombatPoisonInstance {
 }
 
 export interface CombatBleedStack {
+  percentageDamage?: CapturedPercentageDotDamage
   skipCurrentOwnerTurnEnd?: boolean
   targetCombatantId: string
   sourceCombatantId: string
@@ -94,6 +97,7 @@ export interface CombatBleedStack {
 }
 
 export interface CombatBurnInstance {
+  percentageDamage?: CapturedPercentageDotDamage
   /** Stable identity for independently accumulated applications in stacking policy 1. */
   applicationOrder?: number
   skipCurrentOwnerTurnEnd?: boolean

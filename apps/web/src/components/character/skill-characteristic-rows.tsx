@@ -21,14 +21,18 @@ function parameterValue(label: string, value: string | readonly string[]) {
 export function SkillCharacteristicRows({
   rows,
   effectSummary,
+  targetMethodExplanation,
 }: {
   rows: readonly SkillCharacteristic[]
   effectSummary?: ReactNode
+  targetMethodExplanation?: string
 }) {
   return rows.map(([label, value]) => (
     <div key={label}>
       <dt>{label}</dt>
-      <dd>{label === 'Effects' && effectSummary ? effectSummary : parameterValue(label, value)}</dd>
+      <dd title={label === 'Target Method' ? targetMethodExplanation : undefined}>
+        {label === 'Effects' && effectSummary ? effectSummary : parameterValue(label, value)}
+      </dd>
     </div>
   ))
 }

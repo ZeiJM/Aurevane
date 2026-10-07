@@ -1,5 +1,6 @@
 'use client'
 
+import { skillTargetMethodExplanation } from '../character/skill-detail-presentation'
 import { useSkillEffectTimingPolicy } from '../character/skill-effect-timing-context'
 import { CompactSkillEffectSummary } from '../character/compact-skill-effect-summary'
 import { battleSkillParameterRows } from './battle-preview-content'
@@ -18,6 +19,9 @@ export function BattleSkillParameters({ skill }: { skill: BattleSkillForecastPre
       <dl>
         <SkillCharacteristicRows
           rows={rows}
+          targetMethodExplanation={
+            definition ? skillTargetMethodExplanation(definition) : undefined
+          }
           effectSummary={
             definition
               ? definition.effects.length > 0

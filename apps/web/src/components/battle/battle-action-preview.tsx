@@ -68,11 +68,16 @@ function InlineTargetForecast({
           : 0),
       0,
     )
-  const hitChance = preview.primaryCombatantId === combatantId ? preview.hitChanceBasisPoints : null
+  const hitChance =
+    preview.targetHitChances?.find((row) => row.targetCombatantId === combatantId)
+      ?.hitChanceBasisPoints ??
+    (preview.primaryCombatantId === combatantId ? preview.hitChanceBasisPoints : null)
   const chanceLabel =
-    preview.primaryCombatantId === combatantId
-      ? previewChips(preview).find((chip) => chip.tone === 'chance')?.label
-      : null
+    hitChance !== null
+      ? `Hit ${Math.round(hitChance / 100)}%`
+      : preview.primaryCombatantId === combatantId
+        ? previewChips(preview).find((chip) => chip.tone === 'chance')?.label
+        : null
   const resourceChange = effects
     .filter((effect) => effect.effectType === 'resource-change')
     .reduce(
@@ -153,6 +158,7 @@ export function BattleActionPreview({
   rangePreviews = [],
   rangePreviewsPending = false,
   rangePreviewActionId,
+  aimSource = 'player',
 }: {
   preview: BattlePreviewView['preview'] | null
   pending: boolean
@@ -164,6 +170,7 @@ export function BattleActionPreview({
   rangePreviews?: readonly ActionPreview[]
   rangePreviewsPending?: boolean
   rangePreviewActionId?: string | null
+  aimSource?: 'implicit' | 'player'
 }) {
   const selectedPreview =
     pending ||
@@ -184,6 +191,7 @@ export function BattleActionPreview({
   const preview = selectedPreview ?? eligiblePreviews[0] ?? null
   // Alternatives are separate casts. A chosen area forecast owns its actual affected scope.
   const selectedAreaPreview =
+    aimSource === 'player' &&
     selectedPreview?.kind === 'action' &&
     selectedPreview.legal &&
     (selectedPreview.affectedCombatantIds.length > 1 || selectedPreview.affectedTiles.length > 1)
@@ -195,11 +203,17 @@ export function BattleActionPreview({
         combatantId,
       }))
     : eligiblePreviews.length > 0
-      ? eligiblePreviews.flatMap((candidate) =>
-          candidate.primaryCombatantId
-            ? [{ preview: candidate, combatantId: candidate.primaryCombatantId }]
-            : [],
-        )
+      ? eligiblePreviews
+          .flatMap((candidate) =>
+            (candidate.primaryCombatantId
+              ? [candidate.primaryCombatantId]
+              : candidate.affectedCombatantIds
+            ).map((combatantId) => ({ preview: candidate, combatantId })),
+          )
+          .filter(
+            (row, index, rows) =>
+              rows.findIndex((candidate) => candidate.combatantId === row.combatantId) === index,
+          )
       : selectedPreview?.kind === 'action' && selectedPreview.legal
         ? selectedPreview.affectedCombatantIds.map((combatantId) => ({
             preview: selectedPreview,

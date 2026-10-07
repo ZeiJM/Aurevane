@@ -406,7 +406,13 @@ describe('Combat v5.1 Essence targeting balance', () => {
         elevations.set(elevation ?? 0, (elevations.get(elevation ?? 0) ?? 0) + 1)
       }
 
-      const previous = resolveEssenceForBuild(disciplineId, null, current.contentVersion - 1)
+      const previous = resolveEssenceForBuild(
+        disciplineId,
+        null,
+        current.contentVersion -
+          (current.authoring.validationTags.includes('attack-percentage-dots') ? 2 : 1) -
+          (current.skill.target.geometryVersion === 2 ? 1 : 0),
+      )
       if (!previous) throw new Error(`Expected prior Essence for ${disciplineId}.`)
       expect(previous.skill.authoring.validationTags, previous.essenceId).toContain(
         'owner-rebalance-v5',

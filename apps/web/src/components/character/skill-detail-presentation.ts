@@ -1,3 +1,7 @@
+import {
+  isPercentageDotEffect,
+  percentageDotDescription,
+} from '@aurevane/game-core/combat/combat-percentage-dots'
 import { skillInformationRows } from './skill-information-contract'
 import { previewEffect, skillDamageElementInteraction } from './skill-effect-preview'
 import { combatActionPresentationTags } from '@aurevane/game-core/combat/gameplay-tags'
@@ -32,6 +36,8 @@ function recipient(effect: MatureSkillEffectDefinition): string {
 
 export function skillEffectDescription(effect: MatureSkillEffectDefinition): string {
   const target = recipient(effect)
+  if (isPercentageDotEffect(effect))
+    return `Apply ${previewEffect(effect).label} to ${target}. ${percentageDotDescription(effect.type)}`
   switch (effect.type) {
     case 'summon':
       return 'Summon the authored allied unit onto the selected empty tile.'
@@ -187,9 +193,10 @@ export function skillEffectInstantTiming(
 }
 
 function compactDuration(effect: MatureSkillEffectDefinition): string | null {
-  const turns = effect.durationTurns ?? 0
+  const percentage = isPercentageDotEffect(effect)
+  const turns = percentage && effect.type === 'bleed' ? effect.ticks : (effect.durationTurns ?? 0)
   if (turns <= 0) return null
-  return `${turns} ${turns === 1 ? 'Turn' : 'Turns'}`
+  return `${turns} ${percentage ? (turns === 1 ? 'turn' : 'turns') : turns === 1 ? 'Turn' : 'Turns'}`
 }
 
 function compactMagnitude(effect: MatureSkillEffectDefinition): string | null {
@@ -319,6 +326,8 @@ function skillTargetRecipientDescription(
 
 export function skillTargetMethodDescription(skill: Pick<MatureSkillDefinition, 'target'>): string {
   switch (skill.target.shape.kind) {
+    case 'all':
+      return 'All'
     case 'single':
       return 'Single'
     case 'circle':
@@ -337,12 +346,12 @@ export function skillTargetElevationDescription(
 }
 
 export function skillCompactRangeDescription(skill: Pick<MatureSkillDefinition, 'target'>): string {
-  if (skill.target.kind === 'self') return 'N/A'
+  if (skill.target.kind === 'self' || skill.target.shape.kind === 'all') return 'N/A'
   return String(skill.target.maximumRange)
 }
 
 export function skillLineOfSightDescription(skill: Pick<MatureSkillDefinition, 'target'>): string {
-  if (skill.target.kind === 'self') return 'N/A'
+  if (skill.target.kind === 'self' || skill.target.shape.kind === 'all') return 'N/A'
   return skill.target.requiresLineOfSight ? 'Required' : 'Not required'
 }
 
@@ -379,4 +388,18 @@ export function skillDisplayName(skill: MatureSkillDefinition): string {
     .filter(Boolean)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(' ')
+}
+
+export function skillTargetMethodExplanation(skill: Pick<MatureSkillDefinition, 'target'>): string {
+  const shape = skill.target.shape
+  if (shape.kind === 'single') return 'Single selects exactly one legal unit or tile.'
+  if (shape.kind === 'all')
+    return 'All covers the battlefield regardless of distance or line of sight. Team, friendly fire and authored elevation decide recipients.'
+  if (skill.target.geometryVersion !== 2)
+    return shape.kind === 'circle'
+      ? 'Historical Circle spreads around the selected tile.'
+      : 'Historical Line ends at the selected tile.'
+  if (shape.kind === 'line')
+    return `Line [${shape.length}] covers the complete cardinal lane from you, including empty tiles. Combatants do not stop it; authored terrain, line of sight and elevation rules apply.`
+  return `Circle [${shape.radius}] covers ${(shape.radius * 2 + 1) ** 2 - 1} surrounding tiles from you, excluding your tile. Inner rings are included. Separately authored self effects still apply.`
 }

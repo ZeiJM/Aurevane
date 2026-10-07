@@ -1,3 +1,4 @@
+import { estimatedPercentageDotTotal } from './combat-percentage-dot-roster'
 import type { CombatEffectDefinition } from './actions'
 import type { MatureSkillDefinition, MatureSkillEffectDefinition } from './mature-skills'
 
@@ -223,6 +224,7 @@ function tuneEffect(
         durationTurns,
       }
     case 'bleed':
+      if (effect.damageProfile) return effect
       return {
         ...effect,
         damagePerTick: roundedPower(
@@ -234,6 +236,7 @@ function tuneEffect(
       }
     case 'burn':
     case 'poison':
+      if (effect.damageProfile) return effect
       return {
         ...effect,
         power: roundedPower(
@@ -281,7 +284,9 @@ function effectWeight(effect: MatureSkillEffectDefinition): number {
   }
 }
 
-function effectMagnitudeWeight(effect: MatureSkillEffectDefinition): number {
+function effectMagnitudeWeight(effect: MatureSkillEffectDefinition, damageBasis: number): number {
+  const percentageTotal = estimatedPercentageDotTotal(effect, damageBasis)
+  if (percentageTotal !== null) return percentageTotal * 0.12
   switch (effect.type) {
     case 'damage':
       return effect.amount * 0.3
@@ -291,7 +296,7 @@ function effectMagnitudeWeight(effect: MatureSkillEffectDefinition): number {
     case 'resource-change':
       return Math.abs(effect.delta) * 0.18
     case 'bleed':
-      return effect.damagePerTick * effect.ticks * 0.12
+      return (effect.damagePerTick ?? 0) * effect.ticks * 0.12
     case 'burn':
     case 'poison':
       return (effect.power ?? 3) * Math.max(1, defaultEffectDurationTurns(effect)) * 0.1
@@ -317,7 +322,14 @@ function cooldownTurns(
   if (definition.requirements.length > 0) return null
 
   const persistentWeight = effects.reduce((sum, effect) => sum + effectWeight(effect), 0)
-  const magnitudeWeight = effects.reduce((sum, effect) => sum + effectMagnitudeWeight(effect), 0)
+  const damageBasis = effects.reduce(
+    (sum, effect) => sum + (effect.type === 'damage' ? effect.amount : 0),
+    0,
+  )
+  const magnitudeWeight = effects.reduce(
+    (sum, effect) => sum + effectMagnitudeWeight(effect, damageBasis),
+    0,
+  )
   const areaWeight = isAreaSkill(definition) ? 6 : 0
   const reachWeight = cooldownReachWeight(definition)
   const essenceWeight = kind === 'essence' ? 10 : 0
