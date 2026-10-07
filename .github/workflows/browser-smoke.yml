@@ -137,7 +137,7 @@ jobs:
           SUPABASE_SECRET_KEY="$server_key" \
           pnpm --filter @aurevane/web exec playwright test \
             e2e/master-combat-content-authoring.pw.ts e2e/battle-wasd-backtracking.pw.ts \
-            --project=desktop-chromium
+            --project=desktop-chromium --repeat-each=2
           mkdir -p /tmp/combat-master-release-review
           find apps/web/test-results -name 'master-*.png' \
             -exec cp '{}' /tmp/combat-master-release-review/ \;
