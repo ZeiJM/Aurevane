@@ -14,6 +14,8 @@ The arrow-only PR **#851** passed all three exact-head workflows and merged at *
 
 Shared Ground reader evidence: [desktop](2026-10-08-ground-readers-assets/ground-reader-1366.png) and [mobile](2026-10-08-ground-readers-assets/ground-reader-390.png). These show production components in deterministic local fixtures, not human gameplay acceptance.
 
+Initial exact candidate `bc7e8a92595c4d8b23067e6e36245524735f6ba7` passes 14 of 16 workflows. Representative Buildcraft still asserted the superseded both-team Frozen wording, and Browser smoke's Guided Fundamentals check required red cues on empty Basic Attack tiles. Update those real-page assertions, including the related mounted Attack cue tests and new overlay policy metadata, to the approved enemy-only/occupied-target behavior. Application implementation bytes are unchanged by this test follow-up; the new exact candidate must pass its applicable checks before release.
+
 ## Owner test checklist once live
 
 - Start a fresh PvE battle and fresh PvP battle for new policies; refresh existing battles for reader changes.

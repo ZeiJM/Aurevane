@@ -275,7 +275,8 @@ async function castOnEmptyGround(
   expect(bounds.bottom).toBeLessThanOrEqual(bounds.h)
   await expect(forecast).toContainText('Frozen')
   await expect(forecast).toContainText('[2 Turns]')
-  await expect(forecast).toContainText('Both teams pay extra movement AP')
+  await expect(forecast).toContainText('Only the caster’s enemies pay extra movement AP')
+  await expect(forecast).not.toContainText('Both teams pay extra movement AP')
   await page.keyboard.press('Escape')
   await expect(forecast).toHaveCount(0)
   await expect(root.getByLabel('Action preview', { exact: true }).getByRole('button')).toHaveCount(
@@ -406,6 +407,7 @@ async function castOnEmptyGround(
         position: chosen.position,
         kind: 'frozen',
         remainingRoundBoundaries: 2,
+        frozenGroundPolicyVersion: 1,
       }),
     ]),
   )
@@ -582,7 +584,8 @@ test('PvP ground Skill uses the same forecast and spectator terrain inspection',
     await expect(terrainDetails).toContainText(
       'Frozen Ground terrain; 2 round boundaries remaining',
     )
-    await expect(terrainDetails).toContainText('either team')
+    await expect(terrainDetails).toContainText('only for the caster’s enemies')
+    await expect(terrainDetails).not.toContainText('either team')
     await testInfo.attach(`ground-spectator-${testInfo.project.name}`, {
       body: await spectator.screenshot(),
       contentType: 'image/png',
