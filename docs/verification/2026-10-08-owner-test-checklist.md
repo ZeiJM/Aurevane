@@ -1,6 +1,10 @@
 # October 8 acceptance checklist
 
-All boxes begin unchecked for the new batch. Reported checks from unrecovered code are not evidence that the included snapshot implements these changes. Use fresh battles for new policies and explicit old fixtures for compatibility. Record source SHA/tree, environment, test/receipt and result when checking an item.
+All boxes begin unchecked for fresh Owner acceptance. Use fresh battles for new policies and explicit old fixtures for compatibility. Record source SHA/tree, environment, test/receipt and result when checking an item. Automated verification is recorded separately in [the release report](2026-10-08-combat-auth-reconstruction.md).
+
+Live testing URL: https://aurevane.vercel.app/. PR #849 is merged; all 17 exact-head workflows pass. The deployed source is `45686c7eb84ab864e49ccff4dfbbd97478b5ddeb`, and the additive hosted migration appends timing policy v5. Start fresh battles for the new policies.
+
+Hosted email uses Brevo SMTP with verified outgoing sender aurevanerpg@gmail.com and display name Aurevane RPG. The enabled connection, canonical SiteURL/redirects, subject **Reset your AUREVANE password**, and scanner-safe template are saved and reload-verified. Request a fresh email, open its link in a private/new browser, press **Continue**, then set your password yourself and test signing in. Allow **60 seconds** between reset requests to the same address; the live Supabase allowance is **30 emails/hour**. Brevo's free allowance is 300/day. Earlier delivery receipts and Owner-reported reset success used the original sender/template; delivery with this new sender/template and human hosted password-change acceptance are still to be checked. Brevo substitutes its sending domain for the Gmail domain. Existing legacy emailed callbacks retain their supported compatibility path.
 
 ## Facing indicators and Ground animation
 
@@ -127,4 +131,4 @@ All boxes begin unchecked for the new batch. Reported checks from unrecovered co
 - [ ] If deployed, the exact verified merged source is READY, canonical alias matches it, public smoke and bounded runtime checks pass.
 - [ ] Final user report includes actual status and this complete relevant checklist, without claiming human balance acceptance.
 
-The previous released batch's complete **31-point Owner checklist** remains in `source-snapshot/docs/verification/2026-10-07-combat-corrections.md`; retain it as regression coverage and historical context. Its old compass rim positioning is deliberately superseded by the new tile-corner requirement.
+The previous released batch's complete **31-point Owner checklist** remains in [2026-10-07-combat-corrections.md](2026-10-07-combat-corrections.md); retain it as regression coverage and historical context. Its old compass rim positioning is deliberately superseded by the new tile-corner requirement.
