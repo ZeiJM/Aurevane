@@ -1,5 +1,13 @@
 # Web deployment note
 
+## Persistent Ground and combat corrections — released 2026-10-08 UTC
+
+PR #847 merged as `8a0a5a1e1e2a6a537be8f3de22accc7be7d77bc3`, identical to tested candidate `974d32728223cfa44f8f1fddf161d833f5746aef`, tree `89005998f2550e45d821d73404228723f5035c80`. All 13 exact-head workflows passed, including the isolated Atlas retry and Browser Smoke with 322 full Chromium and ten Edge passes. Full local quality passed 4,328 Vitest tests, seven Node checks, formatting/lint/types/build; the patched production audit reports zero known vulnerabilities.
+
+Production deployment `dpl_BkvsQJyAv1nVQzqCrHD2bAxJpccV` is READY at `2026-10-08T01:56:09.844Z`. Deployment and https://aurevane.vercel.app/ alias metadata identify the merged SHA. Five public pages/API checks pass HTTP 200, including the live Battle Hall Manual's persistent Ground/per-turn-cycle wording. The exact-deployment warning/error/fatal scan through `2026-10-08T01:57:41.147Z` is empty.
+
+New battles pin Ground policy 1 and DoT trigger policy 1. The release retains full-lifetime effects, exact orange aiming, readable shared facing compasses, usable spectator chat, neutral hotkey cancellation, readable completed logs and protected Master Ground/percentage controls. Historical battles remain pinned. No schema migration, hosted content conversion or Production-account mutation was required. Git deployment remains disabled; this receipt-only closeout does not redeploy. Full evidence, all execution rulings and the 31-point Owner testing checklist: [combat corrections receipt](../../docs/verification/2026-10-07-combat-corrections.md). Human playtest acceptance remains an Owner outcome.
+
 ## Combat, percentage DoTs, targeting and Master elevation — released 2026-10-07
 
 Owner-authorized PR #845 merged as `144aed0f60e4defd068921894aa6039dc01b7c64`, with tree `9340b09d074d2a781e7a793e34bb8b34e1dce9ca` identical to candidate `36fff0401d83bf8602a4ef6846d2c3f3dc7ef205` that passed all 17 workflows. Deployment `dpl_6aow4Lf9w3PbZvBViZ5fSodxqvxk` was verified READY at `2026-10-07T10:16:31.896Z`; its metadata names the merged SHA and canonical https://aurevane.vercel.app/ alias.
