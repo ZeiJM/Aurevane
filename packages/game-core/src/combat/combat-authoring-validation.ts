@@ -127,6 +127,7 @@ export function validateCombatActionDefinition(
       [
         'damage',
         'healing',
+        'percentage-recovery',
         'resource-change',
         'apply-status',
         'remove-status',

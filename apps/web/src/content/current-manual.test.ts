@@ -9,6 +9,7 @@ import {
 import { CHARACTER_CREATION_RULES_V1 } from '@aurevane/game-core/character/creation'
 import { CURRENT_LEVEL_CAP } from '@aurevane/game-core/character/progression'
 import { PV1F_MOVEMENT_COST_PER_TERRAIN_POINT } from '@aurevane/game-core/combat/pv1f-skills'
+import { standardSkillDamageScaling } from '@aurevane/game-core/combat/damage-scaling'
 import { describe, expect, it } from 'vitest'
 
 import { currentManualArticles, findCurrentManualArticle } from './current-manual'
@@ -92,13 +93,25 @@ describe('published Manual rule consistency', () => {
   })
 })
 
-it('publishes the Techniques guide and removes the obsolete fixed Power budget', () => {
+it('publishes the Techniques guide with ordinary per-packet Power scaling', () => {
   const text = articleText('techniques-damage-effects')
   expect(text).toContain('Techniques, Damage & Effects')
   expect(text).toContain('136')
   expect(text).toContain('0.01%')
   expect(text).toContain('65 AP')
-  expect(text).toContain('4.64%')
+  const powerTable = findCurrentManualArticle('techniques-damage-effects')!.body.find(
+    (section) => section.id === 'power',
+  )!.table!
+  for (const row of powerTable.rows) {
+    expect(row[1]).toBe(
+      `${standardSkillDamageScaling('physical-power').coefficientBasisPoints / 100}%`,
+    )
+  }
+  expect(text).not.toContain('AP-linked')
+  expect(text).toContain('raw damage = 20')
+  expect(text).toContain('22 HP')
+  expect(text).toContain('hostile direct damage by 140%')
+  expect(text).toContain('without the historical clamp')
   expect(text).toContain('Physical Defense')
   expect(text).toContain('Mystic Defense')
   expect(text).not.toContain('Apply Armor or Ward')
@@ -116,6 +129,14 @@ it('publishes the Techniques guide and removes the obsolete fixed Power budget',
   expect(text).toContain('percentage of HP damage dealt by that attack')
   expect(text).toContain('including Push or Pull')
   expect(text).not.toContain('current v5 Skills can author Poison Power and duration')
+  expect(text).toContain('HP Recovery [4%]')
+  expect(text).toContain('MP Recovery [4%]')
+  expect(text).toContain('captured at cast')
+  expect(text).toContain('HP Hex once')
+  expect(text).toContain('independent hit and critical')
+  expect(text).toContain('Delayed activates two global rounds')
+  expect(text).toContain('cast-position anchor')
+  expect(text).not.toContain('Rewind moves you to your vacant turn-start tile')
 })
 
 it('documents Combat v5.1 reach, elevation, LOS, and compact targeting presentation', () => {

@@ -30,7 +30,10 @@ describe('Combat v5.1 Resonance v2 schema', () => {
   it('appends honest matcher wording without changing prior versions or non-Chronist eligibility', () => {
     for (const original of P35_REPRESENTATIVE_RESONANCES) {
       const [first, second] = original.disciplinePair
-      const current = resolveResonanceForPair(first, second)!
+      const latest = resolveResonanceForPair(first, second)!
+      const current = latest.authoring.validationTags.includes('captured-percentage-recovery')
+        ? resolveResonanceForPair(first, second, latest.contentVersion - 1)!
+        : latest
       const previous = resolveResonanceForPair(first, second, current.contentVersion - 1)!
       const nextMechanics = normalizedResonanceMechanics(current)
       const oldMechanics = normalizedResonanceMechanics(previous)

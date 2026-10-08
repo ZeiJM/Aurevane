@@ -123,8 +123,8 @@ try {
       const directions = []
       for (const badge of await badges.all()) {
         const geometry = await badge.evaluate((el) => {
-          const token = el.parentElement,
-            tile = token.parentElement
+          const tile = el.parentElement,
+            token = tile.querySelector('[data-team]')
           const rect = (value) => value.getBoundingClientRect().toJSON()
           return {
             badge: rect(el),
@@ -148,16 +148,15 @@ try {
           geometry.badge.left >= geometry.tile.left - 1 &&
             geometry.badge.right <= geometry.tile.right + 1,
         )
-        if (viewport.width < 821) {
-          assert.ok(
-            geometry.badge.top >= geometry.tile.top - 1,
-            'Mobile badge stays within its tile',
-          )
-          assert.ok(
-            geometry.badge.top + geometry.badge.height / 2 <= geometry.token.top + 3,
-            'Badge center stays on or above the portrait upper rim',
-          )
-        }
+        assert.ok(
+          geometry.badge.top >= geometry.tile.top && geometry.badge.top <= geometry.tile.top + 5,
+          'Facing sits inside the tile top-left',
+        )
+        assert.ok(
+          geometry.badge.left >= geometry.tile.left &&
+            geometry.badge.left <= geometry.tile.left + 5,
+          'Facing is independent of portrait position',
+        )
         const angle = {
           north: 'matrix(1, 0, 0, 1',
           east: 'matrix(0, 1, -1, 0',
@@ -358,13 +357,13 @@ try {
             )
           }
           if (targeting === 'line') {
-            // Mouse hover may focus one full lane; auto forecasts and empty/occupied transitions cannot.
+            // Mouse hover previews one cast while every legal potential lane remains visible.
             if (viewport.width > 821) {
               await tile(page, 6, 3).hover()
               await page.waitForFunction(
                 () =>
                   document.querySelectorAll('#battlefield button[data-attack-path="true"]')
-                    .length === 3,
+                    .length === 12,
               )
               assert.equal((await commits(page)).length, 0)
               await page.mouse.move(0, 0)
@@ -548,6 +547,22 @@ try {
           assert.notEqual(effect.animation, 'none')
           assert.equal(effect.pointer, 'none')
           assert.equal(effect.zIndex, '1')
+          if (preset === 'embers' || preset === 'arcane-pulse') {
+            const boundaryOpacity = await layers
+              .first()
+              .locator('i')
+              .evaluate((el) => {
+                const animation = el.getAnimations()[0]
+                animation.pause()
+                const duration = Number(animation.effect.getTiming().duration)
+                return [0, duration, duration * 2].map((time) => {
+                  animation.currentTime = time
+                  return Number(getComputedStyle(el).opacity)
+                })
+              })
+            assert.deepEqual(boundaryOpacity, [0, 0, 0])
+          }
+
           await page.screenshot({
             path: resolve(output, `${mode}-${viewport.width}-${preset}-active.png`),
             fullPage: true,

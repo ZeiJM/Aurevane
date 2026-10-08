@@ -24,7 +24,7 @@ export async function expectCombatantIdentityColors(root: Locator) {
               )
               const token = tile?.querySelector<HTMLElement>(':scope > [data-team]')
               const arrow =
-                token?.querySelector<HTMLElement>('[data-battle-facing-indicator]') ??
+                tile?.querySelector<HTMLElement>(':scope > [data-battle-facing-indicator]') ??
                 token?.querySelector<HTMLElement>(':scope > i')
               if (!portrait || !facing || !token || !arrow) return false
               const accent = getComputedStyle(card).borderTopColor

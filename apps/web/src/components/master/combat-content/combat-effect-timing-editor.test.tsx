@@ -8,7 +8,7 @@ it('offers explicit timing choices and audited publication for the complete cano
   )
   expect(markup).toContain('HP recovery')
   expect(markup).toContain('MP drain')
-  expect(markup).toContain('Next global round')
+  expect(markup).toContain('Normal')
   expect(markup).toContain('Reason for this change')
   expect(markup).toContain('Publish timing policy')
   expect(markup).toContain('Existing battles keep their pinned policy')

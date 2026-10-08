@@ -255,5 +255,25 @@ describe('Master Panel Skill effect editor', () => {
     const rewind = render({ type: 'return-to-turn-start', recipient: 'actor' })
     expect(rewind).toContain('Return to turn start')
     expect(rewind).toContain('Actor only')
+    const captured = render({
+      type: 'return-to-turn-start',
+      recipient: 'actor',
+      anchorMode: 'cast-position',
+    })
+    expect(captured).toContain('Return to captured cast tile')
   })
+})
+
+it('authors percentage recovery with a resource, 1–100 percent and 1–4 applications', () => {
+  const html = render({
+    type: 'percentage-recovery',
+    recipient: 'actor',
+    resource: 'hp',
+    percent: 12,
+    ticks: 3,
+  })
+  expect(html).toContain('aria-label="Recovery percent"')
+  expect(html).toContain('max="100"')
+  expect(html).toContain('aria-label="Recovery resource"')
+  expect(html).toContain('aria-label="Recovery applications"')
 })

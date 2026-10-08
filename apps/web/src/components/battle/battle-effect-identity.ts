@@ -91,18 +91,22 @@ export function describeBattleEffect(effect: BattlePresentedStatus) {
       (percentageDescription ??
         statusPotencyDescription(effect.statusId, effect.potencyBasisPoints)) + capturedDescription,
   }
+  const applications = effect.recoveryApplications
   const count =
-    effect.durationScope === 'rounds'
+    applications ??
+    (effect.durationScope === 'rounds'
       ? (effect.remainingRoundBoundaries ?? null)
       : effect.durationScope !== undefined
         ? null
-        : (effect.remainingOwnerTurnEnds ?? effect.remainingOwnerTurnStarts)
+        : (effect.remainingOwnerTurnEnds ?? effect.remainingOwnerTurnStarts))
   const pending = effect.timingState === 'pending'
   const timing = pending
     ? `Pending · Activates at the start of ${effect.activationRound === undefined ? 'the following round' : `round ${effect.activationRound}`}`
     : 'Active'
   let duration: string
-  if (effect.durationScope === 'battle') {
+  if (applications !== undefined) {
+    duration = `${applications} application${applications === 1 ? '' : 's'} remaining${pending ? ' · first on activation' : ''}.`
+  } else if (effect.durationScope === 'battle') {
     duration = 'Until battle ends'
   } else if (effect.durationScope === 'instant') {
     duration = 'One-time effect on activation'
@@ -128,9 +132,16 @@ export function describeBattleEffect(effect: BattlePresentedStatus) {
   }
   return {
     ...identity,
+    ...(applications !== undefined
+      ? { label: effect.statusId === 'healing' ? 'HP Recovery' : 'MP Recovery' }
+      : {}),
     count,
     counterLabel:
-      count === null ? duration : `${count}${effect.durationScope === 'rounds' ? 'r' : 't'}`,
+      applications !== undefined
+        ? `${applications}×`
+        : count === null
+          ? duration
+          : `${count}${effect.durationScope === 'rounds' ? 'r' : 't'}`,
     timing,
     timingState: pending ? 'pending' : 'active',
     duration,

@@ -28,9 +28,10 @@ function createsRecoverySchedule(
   effect: CombatActionDefinition['effects'][number],
 ): effect is Extract<
   CombatActionDefinition['effects'][number],
-  { type: 'healing' | 'resource-change' }
+  { type: 'healing' | 'resource-change' | 'percentage-recovery' }
 > {
-  if (effect.type === 'healing') return (effect.ticks ?? 1) > 1
+  if (effect.type === 'healing' || effect.type === 'percentage-recovery')
+    return (effect.ticks ?? 1) > 1
   return effect.type === 'resource-change' && effect.delta >= 0 && (effect.ticks ?? 1) > 1
 }
 
@@ -73,7 +74,7 @@ export function attachCombatEffectProvenance(
       combatEffectTimingMode(
         before.effectTimingPolicy,
         action.effectTimingTags?.[0] ?? combatEffectTimingTag(copyEffect),
-      ) === 'next-round'
+      ) !== 'instant'
     ) {
       provenanceAfter = {
         ...after,
@@ -138,7 +139,7 @@ export function attachCombatEffectProvenance(
         combatEffectTimingMode(
           before.effectTimingPolicy,
           action.effectTimingTags?.[effectOrdinal] ?? combatEffectTimingTag(effect),
-        ) === 'next-round'
+        ) !== 'instant'
       )
         continue
       const kinds =
@@ -151,7 +152,13 @@ export function attachCombatEffectProvenance(
             : effect.type === 'barrier-change'
               ? ['barrier' as const]
               : createsRecoverySchedule(effect)
-                ? [effect.type === 'healing' ? ('hp' as const) : ('mp' as const)]
+                ? [
+                    effect.type === 'percentage-recovery'
+                      ? effect.resource
+                      : effect.type === 'healing'
+                        ? ('hp' as const)
+                        : ('mp' as const),
+                  ]
                 : []
       if (kinds.length === 0 || effect.recipient === 'affected-tiles') continue
       for (const targetCombatantId of resolveRecipients(evaluation, effect.recipient)) {
@@ -282,7 +289,12 @@ export function attachCombatEffectProvenance(
       }
 
       if (independent) continue
-      const kind = effect.type === 'healing' ? 'hp' : 'mp'
+      const kind =
+        effect.type === 'percentage-recovery'
+          ? effect.resource
+          : effect.type === 'healing'
+            ? 'hp'
+            : 'mp'
       let updated = false
       ongoingRecovery = ongoingRecovery.map((schedule) => {
         if (

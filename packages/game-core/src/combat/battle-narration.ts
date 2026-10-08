@@ -142,7 +142,13 @@ export function defaultSkillBattleText(definition: {
   const force = discipline ? `${discipline} power` : '{actor.possessive} strength'
   if (definition.effects.some((effect) => effect.type === 'damage'))
     return `{actor} channels ${force} into {ability}.`
-  if (definition.effects.some((effect) => effect.type === 'healing'))
+  if (
+    definition.effects.some(
+      (effect) =>
+        effect.type === 'healing' ||
+        (effect.type === 'percentage-recovery' && 'resource' in effect && effect.resource === 'hp'),
+    )
+  )
     return `{actor} draws on ${force} to weave {ability}.`
   return '{actor} calls upon {ability}.'
 }

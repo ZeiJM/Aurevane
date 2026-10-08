@@ -15,6 +15,11 @@ export interface CombatDamageScalingIssue {
   message: string
 }
 
+/** New-policy ordinary packets each use the same offensive basis, regardless of AP or count. */
+export function standardSkillDamageScaling(source: CombatDamageScalingSource): CombatDamageScaling {
+  return { source, coefficientBasisPoints: LEGACY_SKILL_POWER_SCALING_BASIS_POINTS }
+}
+
 export function legacySkillDamageScaling(
   source: CombatDamageScalingSource,
   damageEffectCount: number,

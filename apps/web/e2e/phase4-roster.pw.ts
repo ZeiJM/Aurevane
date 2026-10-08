@@ -412,9 +412,9 @@ test('Chronist provisions its full testing library, Essence artwork and explicit
   await expect(dialog).toContainText('EffectsHaste')
   const rewind = list.locator('article').filter({ hasText: 'Rewind Step' })
   await rewind.getByRole('checkbox').focus()
-  await expect(dialog).toContainText('EffectsRewind')
+  await expect(dialog).toContainText('EffectsRewind [Delayed]')
   await expect(dialog).toContainText(
-    'Returns you to your turn-start tile if legal; refunds no resources.',
+    'Returns you to the tile captured when cast if legal; refunds no resources.',
   )
   await expect(dialog).toContainText('Cooldown')
   expect(await dialog.evaluate((element) => element.scrollWidth > element.clientWidth + 1)).toBe(

@@ -1,9 +1,28 @@
+import { validateCapturedPercentageRecovery } from './combat-percentage-recovery'
 import type { CombatEffectDefinition, CombatEncounterIssue, CombatEncounterState } from './actions'
 import { normalizeCombatEffectState, type CombatOngoingRecovery } from './combat-effect-state'
 
 /** Shared by the live combat boundary and Master Panel validation. */
 export function validateRecoveryEffect(effect: CombatEffectDefinition): void {
-  if (effect.type !== 'healing' && effect.type !== 'resource-change') return
+  if (effect.type === 'percentage-recovery') {
+    if (
+      'amount' in effect ||
+      'delta' in effect ||
+      'power' in effect ||
+      'potencyBasisPoints' in effect ||
+      (effect.durationTurns !== undefined && effect.durationTurns !== (effect.ticks ?? 1) - 1)
+    )
+      throw new TypeError(
+        'Percentage recovery uses percent and applications, without offensive Power.',
+      )
+    if (
+      !['hp', 'mp'].includes(effect.resource) ||
+      !Number.isSafeInteger(effect.percent) ||
+      effect.percent < 1 ||
+      effect.percent > 100
+    )
+      throw new RangeError('Recovery requires HP/MP and an integer percentage between 1 and 100.')
+  } else if (effect.type !== 'healing' && effect.type !== 'resource-change') return
   const ticks = effect.ticks
   if (ticks === undefined) return // Immutable historical single-application effects.
   if (effect.type === 'resource-change' && effect.delta < 0 && ticks !== 1) {
@@ -103,6 +122,18 @@ export function validateOngoingRecoveryState(
         typeof row.skipCurrentOwnerTurnEnd !== 'boolean')
     )
       return invalid
+    if (row.percentageRecovery !== undefined) {
+      try {
+        validateCapturedPercentageRecovery(row.percentageRecovery)
+        if (
+          row.percentageRecovery.resource !== row.kind ||
+          row.percentageRecovery.amountPerApplication !== row.amountPerTick
+        )
+          return invalid
+      } catch {
+        return invalid
+      }
+    }
     const key = recoveryKey(row)
     if (state.effectStackingPolicyVersion !== 1 && seen.has(key)) return invalid
     seen.add(key)

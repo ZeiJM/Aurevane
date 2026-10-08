@@ -57,6 +57,7 @@ export function projectBattleStatusStateForViewer(
     | 'pendingEffects'
     | 'pendingSummons'
     | 'dotTriggerPolicyVersion'
+    | 'skillPacketPolicyVersion'
   >,
   viewer: BattleViewerEntitlement,
 ): BattleStatusState {
@@ -223,6 +224,7 @@ export function omitPendingBattlePayloads<
     ...state,
   }
   Reflect.deleteProperty(projected, 'nextGroundAreaId')
+  Reflect.deleteProperty(projected, 'nextSkillPacketCommandId')
   if (state.groundAreas)
     projected.groundAreas = projectPublicCombatGroundAreas(
       state.groundAreas,

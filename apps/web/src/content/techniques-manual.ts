@@ -1,8 +1,5 @@
 import { latestEnabledMatureSkills } from '@aurevane/game-core/combat/mature-skills'
-import {
-  currentSkillDamageScaling,
-  CURRENT_SKILL_POWER_SCALING_PER_AP_BASIS_POINTS,
-} from '@aurevane/game-core/combat/damage-scaling'
+import { standardSkillDamageScaling } from '@aurevane/game-core/combat/damage-scaling'
 import {
   combatLevelDamageModifierBasisPoints,
   COMBAT_LEVEL_CLOSE_RANGE,
@@ -47,7 +44,7 @@ const bandRows = techniqueMagnitudeBands(skills).map((band) => [
 ])
 const disciplineIds = [...new Set(skills.map((skill) => skill.sourceDisciplineId))]
 
-export const techniquePowerSummary = `Current Technique effects use a bounded authored power scale from 1 to 20. Higher-AP Skills receive more total effect budget, but area coverage, extra effects, long durations and strong utility consume part of that budget so high cost does not mean unlimited output. Direct damage still adds AP-linked Physical or Mystic Power scaling before defenses.`
+export const techniquePowerSummary = `Current non-percentage Technique effects use a bounded authored power scale from 1 to 20. Higher-AP Skills receive more total effect budget, but area coverage, extra effects, long durations and strong utility consume part of that budget so high cost does not mean unlimited output. In new battles, each ordinary direct-damage packet adds 25% of its matching Physical or Mystic Power before defenses, independently of AP cost or packet count. Historical battles keep their recorded scaling.`
 
 export const techniquesManualArticle: ManualArticle = {
   id: 'manual.techniques-damage-effects',
@@ -56,8 +53,8 @@ export const techniquesManualArticle: ManualArticle = {
   summary:
     'Read a Technique, understand each step of damage, and compare magnitudes across the current regular Skill catalog.',
   category: 'Combat',
-  lastUpdated: '2026-10-07',
-  rulesVersion: 'Current combat rules v5.1 · targeting-aware Skill balance',
+  lastUpdated: '2026-10-08',
+  rulesVersion: 'Current combat rules · independent packets and captured recovery',
   body: [
     {
       id: 'technique-basics',
@@ -73,7 +70,7 @@ export const techniquesManualArticle: ManualArticle = {
       title: 'Reading the Technique Preview',
       paragraphs: [
         'Read Skill Type, Cost, Cooldown, Requirements, Effects, Range, Target, Target Method, Target Elevation and Line of Sight in that order. Skill Type is Attack, Recovery or Utility. Requirements must be satisfied before use. Costs are AP and, where listed, MP. Range shows only the maximum reach. Target Method shows Single, Line [X], Circle [X] or All. Line starts at the caster and covers X tiles in one cardinal direction, including empty tiles and every eligible occupant. Circle is centered on the caster: Circle [1] covers the eight surrounding tiles; Circle [2] covers 24 tiles including the inner ring. The caster tile is excluded, while separately authored self effects still apply. All reaches eligible units or ground across the board without positional range or line of sight.',
-        'Each effect is listed on its own line. Bounded non-percentage effect power runs from 1 to 20: Dmg [7] means seven authored base power for that damage block, Healing [4] means four HP power, and MP Restore [4] means four MP power. Equal repeated damage entries are separate hits.',
+        'Identical effects group on one line with an application count while distinct effects retain separate lines. Bounded non-percentage effect power runs from 1 to 20: Dmg [7] means seven authored base power for each packet. HP Recovery [4%] means 4% of the recipient’s maximum HP, and MP Recovery [4%] means 4% of maximum MP. Recovery amounts are captured at cast, including HP Hex once; later maximum-stat changes do not recalculate the captured amount. Equal repeated damage entries remain separate hits, and the command pays its costs once.',
         'A positive duration is appended to the effect line, for example Slow [+10 AP] [2 Turns]. A duration of 0 is immediate and intentionally has no [0 Turns] label. New battles default to following-global-round activation, except direct damage and HP/MP recovery. Icons appear Pending immediately. After activation, ordinary timed statuses last their authored complete global rounds. Attack-based Burn, Poison and Bleed instead tick at affected turn end for their authored number of ticks. Each reader shows the pinned lifetime. Each battle keeps its pinned timing policy. Persistent duration consumes balance budget.',
         'Percentage-based effects use their percentage instead of the 1–20 power number. The same named status may be authored at different potency on different Skills—for example one Guard application may reduce incoming damage by 10% while another reduces it by 15%. The Technique Preview is authoritative for that Skill version. Current Single Techniques use authored range 1–5. Line and Circle use one reach X from 1 to 5, and All shows Range and Line of Sight as N/A. Target team, friendly fire and explicit elevation limits still govern recipients. Most current Techniques have elevation 0 reach; elevation 1 is uncommon and elevation 2 is rare. Extra reach, elevation access, and bypassing line of sight consume balance budget and therefore reduce available Power or require other tradeoffs.',
       ],
@@ -83,11 +80,11 @@ export const techniquesManualArticle: ManualArticle = {
       title: 'Base damage and Power magnitude',
       paragraphs: [
         techniquePowerSummary,
-        `For a normally scaled direct-damage block: coefficientBP = floor(AP cost × ${CURRENT_SKILL_POWER_SCALING_PER_AP_BASIS_POINTS} ÷ number of normally scaled damage blocks); Power bonus = floor(matching Power × coefficientBP ÷ 10,000); raw damage = authored damage power + Power bonus. A basis point is 0.01%. Explicitly authored scaling is retained; Vengeance uses its recorded-damage rule instead of receiving another automatic Power budget.`,
-        'Ordinary Physical damage uses an authored 1–20 packet; ordinary Mystic damage generally caps at 16 and trades some direct force for stronger tempo effects. Rare and existing pinned exceptions retain their authored versions. This authored number and the AP-linked Power contribution are separate. More AP generally raises the authored budget and the Power coefficient, while area coverage, secondary utility, multiple hits, effect potency and duration reduce how much of that budget can be concentrated into one damage block.',
+        `For a normally scaled direct-damage block: coefficientBP = ${standardSkillDamageScaling('physical-power').coefficientBasisPoints}; Power bonus = floor(matching Power × coefficientBP ÷ 10,000); raw damage = authored damage power + Power bonus. A basis point is 0.01%. Explicitly authored scaling is retained; Vengeance uses its recorded-damage rule instead of receiving another automatic Power budget.`,
+        'Ordinary Physical damage uses an authored 1–20 packet; ordinary Mystic damage generally caps at 16 and trades some direct force for stronger tempo effects. Rare and existing pinned exceptions retain their authored versions. This authored number and the per-packet Power contribution are separate. More AP can raise the authored budget but does not change the ordinary 25% Power coefficient. Area coverage, secondary utility, multiple hits, effect potency and duration reduce how much of that authored budget can be concentrated into one damage block. Historically pinned battles keep their own formulas.',
       ],
       table: {
-        caption: 'Current AP-linked Power contribution per direct-damage block',
+        caption: 'Current ordinary Power contribution per direct-damage packet',
         headers: ['AP / hits', 'Power coefficient per hit'],
         rows: [
           [25, 1],
@@ -104,7 +101,7 @@ export const techniquesManualArticle: ManualArticle = {
           [65, 7],
         ].map(([ap, hits]) => [
           `${ap} AP / ${hits} ${hits === 1 ? 'hit' : 'hits'}`,
-          `${currentSkillDamageScaling('physical-power', hits, ap).coefficientBasisPoints / 100}%`,
+          `${standardSkillDamageScaling('physical-power').coefficientBasisPoints / 100}%`,
         ]),
       },
     },
@@ -112,24 +109,25 @@ export const techniquesManualArticle: ManualArticle = {
       id: 'damage-order',
       title: 'The damage calculation, in order',
       paragraphs: [
-        'The server first checks legality and resolves any Accuracy check. A miss does not apply the missed target’s hostile effects. For each successful direct-damage block, the following order matters because each multiplication rounds down separately:',
+        'The server first checks legality. Repeated timing-tag packets in new battles resolve independent hit and critical checks, with their applicable source exceptions; hostile status resistance also follows each packet. A missed packet does not apply its hostile effects. For each successful direct-damage block, the following order matters because each multiplication rounds down separately:',
       ],
       bullets: [
         '1. Add floor(matching Power × coefficientBP ÷ 10,000) to the authored base damage.',
         '2. Apply Physical Defense or Mystic Defense (reduced 20% while on elevated terrain in new battles): floor(raw damage × 100 ÷ (100 + defense)), with a minimum of one for positive raw damage. Piercing skips this defense step.',
-        `3. On an eligible critical hit, multiply by ${COMBAT_CRITICAL_DAMAGE_BASIS_POINTS / 10_000} and round down. One critical result is shared by all eligible damage blocks against the same target in that command.`,
-        '4. Apply the attacker-versus-defender Level multiplier below, rounding down. Self-damage does not receive this relative-Level adjustment.',
-        '5. Apply any authored front/side/rear damage multiplier, rounding down. Only a Skill that specifies a facing multiplier receives one.',
-        '6. Apply the recipient’s legacy damage-taken multipliers, once per active stack in stored order, rounding down each time. Current Guard multiplies by 85% per application; Vulnerable multiplies by 115%. Defenseless, the PvP timeout penalty, is separate at 250% per stack.',
-        `7. Apply the combined conditional/status/elemental damage multiplier, bounded to ${CONDITIONAL_DAMAGE_MINIMUM / 100}–${CONDITIONAL_DAMAGE_MAXIMUM / 100}%, and round down. Piercing ignores incoming reductions in this budget and legacy incoming reductions, but not incoming increases.`,
-        '8. Barrier absorbs direct damage first. Remaining damage reduces HP, bounded by the recipient’s current HP. Later multipliers can round a small hit to zero; the defense minimum is not a final guaranteed HP loss.',
+        '3. New battles multiply hostile direct damage by 140% and round down. This applies after defense and before critical; allied and self damage do not receive this multiplier. Historical encounters retain their pinned policy.',
+        `4. On an eligible critical hit, multiply by ${COMBAT_CRITICAL_DAMAGE_BASIS_POINTS / 10_000} and round down. Each eligible repeated packet uses its own critical result. Historical encounters retain their recorded shared-result rules.`,
+        '5. Apply the attacker-versus-defender Level multiplier below, rounding down. Self-damage does not receive this relative-Level adjustment.',
+        '6. Apply any authored front/side/rear damage multiplier, rounding down. Only a Skill that specifies a facing multiplier receives one.',
+        '7. Apply the recipient’s legacy damage-taken multipliers, once per active stack in stored order, rounding down each time. Current Guard multiplies by 85% per application; Vulnerable multiplies by 115%. Defenseless, the PvP timeout penalty, is separate at 250% per stack.',
+        `8. Apply the combined conditional/status/elemental damage multiplier and round down. New battles retain the stacked result without the historical clamp; historical policies bound this multiplier to ${CONDITIONAL_DAMAGE_MINIMUM / 100}–${CONDITIONAL_DAMAGE_MAXIMUM / 100}%. Piercing ignores incoming reductions in this budget and legacy incoming reductions, but not incoming increases.`,
+        '9. Barrier absorbs direct damage first. Remaining damage reduces HP, bounded by the recipient’s current HP. Later multipliers can round a small hit to zero; the defense minimum is not a final guaranteed HP loss.',
       ],
     },
     {
       id: 'damage-example',
       title: 'A worked hit',
       paragraphs: [
-        'Example: a physical 40 AP Skill has one damage block with authored power 10, the attacker has Physical Power 40, and the defender has Physical Defense 25. At equal Levels, with no critical, facing bonus, status modifiers or Barrier: coefficient = 20%; Power bonus = floor(40 × 0.20) = 8; raw damage = 18; after Physical Defense = floor(18 × 100 ÷ 125) = 14 HP.',
+        'Example: a physical 40 AP Skill hits an enemy with one damage block of authored power 10, the attacker has Physical Power 40, and the defender has Physical Defense 25. At equal Levels, with no critical, facing bonus, status modifiers or Barrier: coefficient = 25%; Power bonus = floor(40 × 0.25) = 10; raw damage = 20; after Physical Defense = floor(20 × 100 ÷ 125) = 16; current hostile direct damage = floor(16 × 1.40) = 22 HP, assuming sufficient remaining HP. Every ordinary packet uses the same 25% coefficient even in a repeated-hit Skill.',
         'A higher-AP attack can receive more damage budget, but adding an area shape, a strong status, another effect or a longer duration redirects part of that budget away from direct damage.',
       ],
     },
@@ -181,16 +179,16 @@ export const techniquesManualArticle: ManualArticle = {
       ],
       bullets: [
         'Dmg: direct damage resolved through the full pipeline above. Multi-hit blocks resolve separately. Accuracy, defenses, criticals and active statuses change the actual result.',
-        'Heal: restores HP without reviving a defeated unit. Multi-application recovery begins when the effect activates, then continues at recipient turn ends. Healing Down reduces both direct and periodic healing. Restoration cannot exceed maximum HP.',
-        'MP Restore / MP Drain: adds or removes MP, bounded by the recipient’s resource limits. Repeated recovery lists its application count; a drain does not imply restoration unless another effect grants it.',
+        'HP Recovery: the base amount is a percentage of the recipient’s maximum HP, rounded down with a minimum of one for a positive maximum. The amount is captured at cast after applying HP Hex once. One to four applications reuse that captured amount: the first occurs on activation, with later applications at recipient turn ends. Each gain caps at the current maximum HP and never revives a defeated unit. Pinned historical Heal versions retain their old flat/Power behavior.',
+        'MP Recovery: a percentage of maximum MP is captured at cast, rounded down with a minimum of one for a positive maximum. Repeated applications reuse that amount while each gain caps at the current maximum MP. MP Drain removes its authored amount; a drain does not imply restoration unless another effect grants it. Pinned historical MP Restore versions retain their old behavior.',
         'Barrier: grants a separate pool that absorbs direct damage before HP. No current regular Technique authors a Barrier grant, although the effect is supported by the combat system.',
         `Burn: ${percentageDotDescription('burn')} Historical pinned profiles and trigger policies retain their recorded behavior.`,
         `Poison: ${percentageDotDescription('poison')} Historical pinned profiles and trigger policies retain their recorded behavior.`,
         'Bleed: each application captures its own attack HP damage, percentage and duration. All applications tick independently at recipient turn end without a stack limit. Damage is rounded down; a zero-damage tick still consumes its duration. Copy Debuffs preserves the captured basis and remaining lifetime, and Cleanse removes every qualifying application.',
         'Apply status: grants the named condition for its authored duration. Percentage-based status potency is authored per effect where supported, so Guard, Vulnerable, Mark and similar effects can differ by Skill version. A stack count is separate from percentage potency.',
-        'Effect timing: Instant effects activate on resolution. Other effects use the battle’s pinned tag policy, usually the next global round. Pending Rooted allows movement until its activation round; active Rooted blocks movement. The Chronicle states when the effect will take effect.',
+        'Effect timing is one Normal/Instant/Delayed choice. Instant activates on resolution; Normal activates the following global round; Delayed activates two global rounds after casting. Each battle keeps its pinned tag policy. Pending Rooted allows movement until its activation round; active Rooted blocks movement. The Chronicle states when the effect will take effect.',
         'Cleanse removes Burn, Bleed, Poison, Slow, Rooted, Vulnerable, Marked and Taunted. Dispel removes its listed protection. Neither removes every effect in the game.',
-        'Push / Pull: moves a unit one legal tile at a time, stopping at occupancy, obstacles or illegal elevation. Rooted prevents displacement. Rewind moves you to your vacant turn-start tile without restoring resources or undoing actions.',
+        'Push / Pull: moves a unit one legal tile at a time, stopping at occupancy, obstacles or illegal elevation. Rooted prevents displacement. Current Rewind records its cast-position anchor before movement and uses Delayed activation by default. On activation it returns to that legal vacant tile without restoring resources or undoing actions. Rooted, occupancy, impassable terrain or illegal elevation can prevent the return. Historical Rewind versions retain their turn-start contract.',
         'Frozen Ground: creates a temporary ground overlay affecting both teams; entering it costs extra AP unless Airborne. Fire converts it to Steam, which blocks sight. Unit effects still follow the Skill’s affected-team rule.',
         'Reveal / Copy Buffs / Copy Debuffs: supported specialized effects with separate eligibility rules. Reveal conditionally removes eligible positive statuses and Covert, then applies Revealed. Amplify copies eligible active Buff statuses; Curse copies eligible active Debuff statuses. They are absent from this 136-Technique regular catalog; supported effect types do not imply that every Technique can use them.',
       ],

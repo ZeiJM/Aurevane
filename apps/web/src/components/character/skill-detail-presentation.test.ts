@@ -95,7 +95,12 @@ describe('Player-facing Skill targeting and effects', () => {
     expect(skillCompactRangeDescription(volley)).toBe('1')
     expect(Object.fromEntries(skillParameterRows(volley)).Target).toBe('Enemy')
     const breath = resolveMatureSkillVersion('ironfist.focus-breath')!
-    expect(skillTargetTags(breath)).toEqual(['Self', 'Single', 'Heal [12]', 'MP Restore [7]'])
+    expect(skillTargetTags(breath)).toEqual([
+      'Self',
+      'Single',
+      'HP Recovery [12%]',
+      'MP Recovery [7%]',
+    ])
     expect(skillCompactRangeDescription(breath)).toBe('N/A')
     expect(JSON.stringify(volley)).toBe(before)
   })
@@ -150,10 +155,10 @@ it('distinguishes enemy MP drain from the user’s restoration in one Skill', ()
     'Single',
     'Dmg [13]',
     'MP Drain [7]',
-    'MP Restore [7] · Self',
+    'MP Recovery [7%] · Self',
   ])
   expect(skillTargetTags(resolveMatureSkillVersion('ravager.blood-siphon')!)).toEqual(
-    expect.arrayContaining([expect.stringMatching(/^Heal \[\d+\] · Self$/)]),
+    expect.arrayContaining([expect.stringMatching(/^HP Recovery \[\d+%\] · Self$/)]),
   )
 })
 
@@ -281,7 +286,7 @@ it('returns one effect summary per authored effect with positive durations only'
   expect(skillEffectSummaries(siphon)).toEqual([
     expect.stringMatching(/^Dmg \[\d+\]$/),
     expect.stringMatching(/^MP Drain \[\d+\]$/),
-    expect.stringMatching(/^MP Restore \[\d+\] \[Instant\]$/),
+    expect.stringMatching(/^MP Recovery \[\d+%\] \[Instant\]$/),
   ])
   const guard = resolveMatureSkillVersion('runeblade.rune-guard')!
   expect(skillEffectSummaries(guard).some((line) => /\[\d+ Turns?\]$/.test(line))).toBe(true)
@@ -289,7 +294,7 @@ it('returns one effect summary per authored effect with positive durations only'
 
 it('lists authored magnitudes as effects without leaking design tags', () => {
   const siphon = resolveMatureSkillVersion('runeblade.siphon-slash')!
-  expect(skillEffectsSummary(siphon)).toBe('Dmg [13], MP Drain [7], MP Restore [7] [Instant]')
+  expect(skillEffectsSummary(siphon)).toBe('Dmg [13], MP Drain [7], MP Recovery [7%] [Instant]')
   expect(skillEffectsSummary({ ...siphon, tags: [...siphon.tags, 'setup', 'melee'] })).toBe(
     skillEffectsSummary(siphon),
   )
@@ -535,4 +540,18 @@ it('explains current caster geometry and keeps the historical aimed explanation'
   expect(skillTargetMethodExplanation(current)).toContain('8 surrounding tiles')
   expect(skillTargetMethodExplanation(current)).toContain('excluding your tile')
   expect(skillTargetMethodExplanation(old)).toContain('selected tile')
+})
+
+it('distinguishes Delayed from Normal and percentage recovery in shared readers', () => {
+  const effect = {
+    type: 'percentage-recovery' as const,
+    recipient: 'actor' as const,
+    resource: 'hp' as const,
+    percent: 12,
+    ticks: 3,
+  }
+  expect(
+    compactSkillEffectSummaryParts(effect, { version: 2, modes: { healing: 'delayed' } }),
+  ).toMatchObject({ magnitude: '12%', timing: 'Delayed' })
+  expect(skillEffectDescription(effect)).toContain('maximum HP')
 })

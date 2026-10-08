@@ -1,6 +1,6 @@
 'use client'
 
-import { Fragment, useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState, type CSSProperties } from 'react'
 
 import type { BattleFacing } from './battle-geometry'
 import styles from './battle-facing-indicator.module.css'
@@ -20,7 +20,13 @@ function facingFromGlyph(value: string): BattleFacing | null {
   return null
 }
 
-export function BattleFacingIndicator({ facing }: { facing: BattleFacing }) {
+export function BattleFacingIndicator({
+  facing,
+  accent,
+}: {
+  facing: BattleFacing
+  accent?: string
+}) {
   const [displayFacing, setDisplayFacing] = useState(facing)
   const [previousFacing, setPreviousFacing] = useState(facing)
   const compatibilityGlyphRef = useRef<HTMLElement | null>(null)
@@ -49,6 +55,7 @@ export function BattleFacingIndicator({ facing }: { facing: BattleFacing }) {
     <Fragment>
       <div
         className={styles.indicator}
+        style={accent ? ({ '--battle-combatant-accent': accent } as CSSProperties) : undefined}
         data-battle-facing-indicator="true"
         data-facing={displayFacing}
         aria-hidden="true"

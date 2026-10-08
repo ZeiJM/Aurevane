@@ -5,7 +5,7 @@ import { createPendingBattle, startBattle } from './battle-state'
 import { createTacticalBattleState } from './board'
 import { mitigateDamageByDefense } from './damage-mitigation'
 import { calculateScaledRawDamage, currentSkillDamageScaling } from './damage-scaling'
-import { resolveMatureSkillVersion } from './mature-skills'
+import { prePercentageRecoverySkill as resolveMatureSkillVersion } from './percentage-recovery-history.test-utils'
 import {
   createPv1fTemporaryResources,
   evaluatePv1fMatureSkill,
@@ -160,7 +160,7 @@ function nextActorTurn(state: StatDrivenCombatEncounterState) {
   return next
 }
 
-describe('policy1 pools preserve published stat-scaled resource tempo', () => {
+describe('historical policy1 pools preserve pinned Power-based resource tempo', () => {
   it.each(anchors)(
     'keeps equal-rating AP60 Physical20/Mystic16 pressure at Core$core',
     (anchor) => {

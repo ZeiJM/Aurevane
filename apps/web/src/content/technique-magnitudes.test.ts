@@ -40,3 +40,21 @@ describe('catalog magnitude comparisons', () => {
     ).toMatchObject({ minimum: 6, lowerQuartile: 6, upperQuartile: 18, maximum: 24 })
   })
 })
+
+it('includes current percentage recovery using maximum-resource units and ordinary per-packet scaling', () => {
+  const skills = latestEnabledMatureSkills()
+  const bands = techniqueMagnitudeBands(skills)
+  for (const resource of ['hp', 'mp'] as const) {
+    const effects = skills
+      .flatMap((s) => s.effects)
+      .filter((e) => e.type === 'percentage-recovery' && e.resource === resource)
+    expect(effects.length).toBeGreaterThan(0)
+    expect(
+      bands.find((b) => b.family === `${resource.toUpperCase()} recovery / application`),
+    ).toMatchObject({ count: effects.length, unit: `% maximum ${resource.toUpperCase()}` })
+  }
+  expect(bands.find((b) => b.family === 'Power coefficient / hit')).toMatchObject({
+    minimum: 25,
+    maximum: 25,
+  })
+})

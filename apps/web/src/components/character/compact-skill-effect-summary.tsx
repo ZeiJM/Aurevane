@@ -9,14 +9,26 @@ import {
 } from './skill-detail-presentation'
 import styles from './compact-skill-effect-summary.module.css'
 
-export function CompactSkillEffectSummary({ effect }: { effect: MatureSkillEffectDefinition }) {
+export function CompactSkillEffectSummary({
+  effect,
+  count = 1,
+}: {
+  effect: MatureSkillEffectDefinition
+  count?: number
+}) {
   const timingPolicy = useSkillEffectTimingPolicy()
   const parts = compactSkillEffectSummaryParts(effect, timingPolicy)
-  return <CompactEffectSummary parts={parts} />
+  return <CompactEffectSummary parts={parts} count={count} />
 }
 
 /** Shared label, magnitude and duration markup for authored and inherent effects. */
-export function CompactEffectSummary({ parts }: { parts: CompactSkillEffectSummaryParts }) {
+export function CompactEffectSummary({
+  parts,
+  count = 1,
+}: {
+  parts: CompactSkillEffectSummaryParts
+  count?: number
+}) {
   return (
     <span data-compact-skill-effect="true">
       <span className={styles.label} data-compact-effect-label="true">
@@ -45,6 +57,12 @@ export function CompactEffectSummary({ parts }: { parts: CompactSkillEffectSumma
             [{parts.timing}]
           </span>
         </>
+      ) : null}
+      {count > 1 ? (
+        <span data-compact-effect-count={count} aria-label={`${count} applications`}>
+          {' '}
+          ×{count}
+        </span>
       ) : null}
     </span>
   )

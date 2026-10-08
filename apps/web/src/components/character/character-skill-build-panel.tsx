@@ -1,5 +1,7 @@
 'use client'
 
+import { groupSkillEffects } from './skill-effect-groups'
+
 import { useSkillEffectTimingPolicy } from './skill-effect-timing-context'
 import { CompactSkillEffectSummary } from './compact-skill-effect-summary'
 import { skillPreviewEffects } from './skill-effect-preview'
@@ -720,9 +722,13 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                                   {label === 'Effects' && focusedSkill ? (
                                     focusedSkill.definition.effects.length > 0 ? (
                                       <div className={styles.effectSummaryList}>
-                                        {focusedSkill.definition.effects.map((effect, index) => (
+                                        {groupSkillEffects(
+                                          focusedSkill.definition.effects,
+                                          focusedSkill.definition.effectDescriptions,
+                                        ).map(({ effect, count, firstIndex: index }) => (
                                           <CompactSkillEffectSummary
                                             effect={effect}
+                                            count={count}
                                             key={`${index}:${effect.type}`}
                                           />
                                         ))}

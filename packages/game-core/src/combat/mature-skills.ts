@@ -1,3 +1,4 @@
+import { createPercentageRecoverySkillVersion } from './combat-recovery-roster'
 import { createCurrentGroundSkillVersion } from './combat-ground-roster'
 import {
   validateCombatGroundAreaDefinition,
@@ -557,7 +558,7 @@ function currentAccuracyMode(
 
   const hostileRecipient = definition.effects.some((effect) => {
     if (!('recipient' in effect) || effect.recipient === 'actor') return false
-    if (effect.type === 'healing') return false
+    if (effect.type === 'healing' || effect.type === 'percentage-recovery') return false
     if (effect.type === 'resource-change') return effect.delta < 0
     if (effect.type === 'barrier-change') return effect.amount < 0
     return effect.type !== 'create-terrain'
@@ -1042,9 +1043,18 @@ const CURRENT_GROUND_DISCIPLINE_SKILLS = latestEnabledMatureSkills(
   const next = createCurrentGroundSkillVersion(definition)
   return next ? [next] : []
 })
-const CURRENT_DISCIPLINE_SKILL_REGISTRY = [
+const PRE_PERCENTAGE_RECOVERY_DISCIPLINE_SKILL_REGISTRY = [
   ...PRE_CURRENT_GROUND_DISCIPLINE_SKILL_REGISTRY,
   ...CURRENT_GROUND_DISCIPLINE_SKILLS,
+]
+const CURRENT_DISCIPLINE_SKILL_REGISTRY = [
+  ...PRE_PERCENTAGE_RECOVERY_DISCIPLINE_SKILL_REGISTRY,
+  ...latestEnabledMatureSkills(PRE_PERCENTAGE_RECOVERY_DISCIPLINE_SKILL_REGISTRY).flatMap(
+    (definition) => {
+      const next = createPercentageRecoverySkillVersion(definition)
+      return next ? [next] : []
+    },
+  ),
 ]
 
 /** Current selection catalog; the historical P3.3/P4 export remains stable for pinned contracts. */

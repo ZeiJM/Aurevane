@@ -65,8 +65,8 @@ export function CombatEffectTimingEditor({
     <form className={styles.editor} onSubmit={publish}>
       <h2>Effect timing policy v{policy.version}</h2>
       <p>
-        Delayed effects appear immediately as pending and activate at the start of the next global
-        round. Existing battles keep their pinned policy.
+        Normal effects activate at the next global round; Delayed effects activate one round later.
+        Instant effects apply immediately. Existing battles keep their pinned policy.
       </p>
       <table>
         <thead>
@@ -97,7 +97,8 @@ export function CombatEffectTimingEditor({
                   }
                 >
                   <option value="instant">Instant</option>
-                  <option value="next-round">Next global round</option>
+                  <option value="next-round">Normal</option>
+                  <option value="delayed">Delayed</option>
                 </select>
               </td>
             </tr>

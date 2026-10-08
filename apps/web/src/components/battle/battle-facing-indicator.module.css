@@ -1,7 +1,7 @@
 .indicator {
   position: absolute;
-  top: calc(var(--battle-token-size, 3.4rem) * -0.18);
-  left: 50%;
+  top: 3px;
+  left: 3px;
   z-index: 9;
   display: grid;
   place-items: center;
@@ -41,27 +41,17 @@
 }
 
 .indicator[data-facing='north'] {
-  transform: translateX(-50%) rotate(0deg);
+  transform: rotate(0deg);
 }
 
 .indicator[data-facing='east'] {
-  transform: translateX(-50%) rotate(90deg);
+  transform: rotate(90deg);
 }
 
 .indicator[data-facing='south'] {
-  transform: translateX(-50%) rotate(180deg);
+  transform: rotate(180deg);
 }
 
 .indicator[data-facing='west'] {
-  transform: translateX(-50%) rotate(270deg);
-}
-
-@media (max-width: 820px) {
-  .indicator {
-    /* Center the readable badge on the upper rim; the unchanged portrait leaves too little
-       tile margin for a complete 12px badge above it. Keep its center above the artwork. */
-    top: calc(1px - max(6px, 12.5%)) !important;
-    width: max(12px, 25%) !important;
-    height: max(12px, 25%) !important;
-  }
+  transform: rotate(270deg);
 }

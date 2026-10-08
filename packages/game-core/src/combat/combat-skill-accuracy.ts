@@ -28,6 +28,7 @@ export interface CombatSkillAccuracyResolvedEvent extends CombatTargetHitChance 
   sourceCombatantId: string
   rollBasisPoints: number
   hit: boolean
+  effectOrdinals?: readonly number[]
   accuracyRulesVersion: typeof COMBAT_SKILL_ACCURACY_RULES_VERSION
 }
 

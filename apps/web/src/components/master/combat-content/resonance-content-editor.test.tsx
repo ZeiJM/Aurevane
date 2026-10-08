@@ -65,11 +65,11 @@ describe('Master Panel Resonance v2 editor', () => {
     )?.[1]
     expect(markup).toContain('aria-label="Battle narration tokens"')
     expect(markup).toContain('aria-label="Neutral historical narration preview"')
-    expect(preview).toContain('data-compact-effect-magnitude="true">[4]</span>')
+    expect(preview).toContain('data-compact-effect-magnitude="true">[4%]</span>')
     expect(preview).not.toContain('→ Self')
     expect(preview).toContain('Edgedancer Skills tagged Attack:')
     expect(preview).toContain('<ul aria-label="Effect explanations">')
-    expect(preview).toContain('Restores MP to you.')
+    expect(preview).toContain('Restores a captured 4% of your maximum MP.')
     expect(preview).toContain('<dt>Requirements</dt><dd>Wildwarden Skills tagged Mark</dd>')
   })
 

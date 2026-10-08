@@ -12,7 +12,8 @@ export type CombatEffectType = CombatEffectDefinition['type']
 
 const EFFECT_TYPES: readonly { value: CombatEffectType; label: string }[] = [
   { value: 'damage', label: 'Damage' },
-  { value: 'healing', label: 'Healing' },
+  { value: 'percentage-recovery', label: 'HP / MP percentage recovery' },
+  { value: 'healing', label: 'Legacy HP amount' },
   { value: 'resource-change', label: 'MP change' },
   { value: 'apply-status', label: 'Apply status' },
   { value: 'remove-status', label: 'Remove status' },
@@ -35,6 +36,8 @@ export function createDefaultCombatEffect(type: CombatEffectType): CombatEffectD
   switch (type) {
     case 'damage':
       return { type, recipient: 'primary-unit', amount: 0 }
+    case 'percentage-recovery':
+      return { type, recipient: 'actor', resource: 'hp', percent: 10, ticks: 1 }
     case 'healing':
       return { type, recipient: 'actor', amount: 0, ticks: 1 }
     case 'resource-change':
@@ -44,7 +47,7 @@ export function createDefaultCombatEffect(type: CombatEffectType): CombatEffectD
     case 'remove-status':
       return { type, recipient: 'primary-unit', statusIds: [...CLEANSE_STATUS_IDS] }
     case 'return-to-turn-start':
-      return { type, recipient: 'actor' }
+      return { type, recipient: 'actor', anchorMode: 'cast-position' }
     case 'create-terrain':
       return { type, recipient: 'affected-tiles', terrain: 'frozen' }
     case 'displace':

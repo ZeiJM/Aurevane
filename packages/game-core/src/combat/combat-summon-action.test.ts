@@ -320,23 +320,37 @@ describe('Combat v5.1 summon Skill execution', () => {
     expect(summonTurns).toBe(5)
   })
 })
-it('keeps a summon pending until the next global round and lets it join that round', () => {
-  let state = executePv1fMatureSkill(
-    { ...encounter(), effectTimingPolicy: { version: 1, modes: {} } },
-    summoningSkill(),
-    { kind: 'tile', position: { x: 1, y: 0 } },
-    'pve',
-  ).state
-  expect(state.effectState?.summons ?? []).toHaveLength(0)
-  expect(state.pendingSummons).toHaveLength(1)
-  state = finishPv1fTurn(state, 'east').state
-  state = finishPv1fTurn(state, 'west').state
-  expect(state.tactical.battle.round).toBe(2)
-  expect(state.effectState?.summons).toHaveLength(1)
-  expect(state.tactical.battle.initiativeOrder).toContain(
-    state.effectState!.summons![0]!.combatantId,
-  )
-})
+it.each(['next-round', 'delayed'] as const)(
+  'keeps a %s summon pending until activation and preserves its full lifetime',
+  (mode) => {
+    let state = executePv1fMatureSkill(
+      { ...encounter(), effectTimingPolicy: { version: 1, modes: { summon: mode } } },
+      summoningSkill(),
+      { kind: 'tile', position: { x: 1, y: 0 } },
+      'pve',
+    ).state
+    expect(state.effectState?.summons ?? []).toHaveLength(0)
+    expect(state.pendingSummons).toHaveLength(1)
+    const activationRound = mode === 'delayed' ? 3 : 2
+    while (state.tactical.battle.round < activationRound) {
+      state = JSON.parse(
+        JSON.stringify(
+          finishPv1fTurn(
+            state,
+            state.tactical.battle.currentTurn!.combatantId === 'enemy' ? 'west' : 'east',
+          ).state,
+        ),
+      )
+      if (state.tactical.battle.round < activationRound)
+        expect(state.effectState?.summons ?? []).toHaveLength(0)
+    }
+    expect(state.tactical.battle.round).toBe(activationRound)
+    expect(state.effectState?.summons).toHaveLength(1)
+    expect(state.tactical.battle.initiativeOrder).toContain(
+      state.effectState!.summons![0]!.combatantId,
+    )
+  },
+)
 
 it('forecasts scheduled summon lifetime without spawning or spending resources', () => {
   const state = { ...encounter(), effectTimingPolicy: { version: 1, modes: {} } }

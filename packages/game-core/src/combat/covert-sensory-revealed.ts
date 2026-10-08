@@ -140,12 +140,17 @@ export function materializeCsrCommittedAction(input: {
   evaluation: CombatActionEvaluation | null
   content: CombatContentCatalog
   missedCombatantIds: ReadonlySet<string>
-}): { action: CombatActionDefinition; content: CombatContentCatalog } {
+}): {
+  action: CombatActionDefinition
+  content: CombatContentCatalog
+  effectSourceOrdinals: readonly number[]
+} {
   const { state, action, evaluation, content, missedCombatantIds } = input
   validateCsrActionDefinition(action)
   const primaryCombatantId = evaluation?.primaryCombatantId ?? null
   let sensoryDuration: number | null = null
   const effects: CombatActionDefinition['effects'][number][] = []
+  const effectSourceOrdinals: number[] = []
   const effectTimingTags: (string | undefined)[] = []
   const effectOrigins: NonNullable<CombatActionDefinition['effectOrigins']>[number][] = []
 
@@ -191,6 +196,7 @@ export function materializeCsrCommittedAction(input: {
       })
     } finally {
       for (let index = initialEffectCount; index < effects.length; index += 1) {
+        effectSourceOrdinals.push(effectIndex)
         effectOrigins.push(action.effectOrigins?.[effectIndex])
         effectTimingTags.push(
           action.effectTimingTags?.[effectIndex] ??
@@ -207,6 +213,7 @@ export function materializeCsrCommittedAction(input: {
       effectTimingTags,
       ...(action.effectOrigins ? { effectOrigins } : {}),
     },
+    effectSourceOrdinals,
     content: sensoryDuration === null ? content : withRevealedDuration(content, sensoryDuration),
   }
 }

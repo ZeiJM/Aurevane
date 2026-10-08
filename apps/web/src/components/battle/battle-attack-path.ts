@@ -76,9 +76,7 @@ export function battleTargetReachTiles(
   if (target.geometryVersion === 2 && target.shape.kind !== 'single') {
     const selections: readonly CombatTargetSelection[] =
       target.shape.kind === 'line'
-        ? aim.aimSource === 'player' && aim.selection?.kind === 'direction'
-          ? [aim.selection]
-          : combatCardinalDirections.map((direction) => ({ kind: 'direction', direction }))
+        ? combatCardinalDirections.map((direction) => ({ kind: 'direction', direction }))
         : [{ kind: 'activate' }]
     for (const selection of selections) add(footprint(selection))
     if (target.shape.kind === 'all' && target.kind === 'unit' && spatial) {

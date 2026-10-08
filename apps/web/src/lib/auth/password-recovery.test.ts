@@ -6,7 +6,7 @@ import {
 } from './password-recovery'
 
 describe('password recovery', () => {
-  it('uses the existing callback URI and gives the same response for existing or absent accounts', async () => {
+  it('marks the recovery callback and gives the same response for existing or absent accounts', async () => {
     const resetPasswordForEmail = vi.fn().mockResolvedValue({ error: null })
     const client = { auth: { resetPasswordForEmail } }
     for (const email of ['existing@example.test', 'unknown@example.test']) {
@@ -15,7 +15,7 @@ describe('password recovery', () => {
         tone: 'neutral',
       })
       expect(resetPasswordForEmail).toHaveBeenLastCalledWith(email, {
-        redirectTo: 'https://aurevane.test/auth/callback?next=/game',
+        redirectTo: 'https://aurevane.test/auth/callback?flow=recovery',
       })
     }
   })

@@ -50,7 +50,7 @@ async function expectMobileTokenMeters(root: ReturnType<Page['locator']>) {
     await expect(meters).toHaveCount(1)
     await expect(meters.locator('[data-mobile-token-meter="hp"]')).toHaveCount(1)
     await expect(meters.locator('[data-mobile-token-meter="mp"]')).toHaveCount(1)
-    await expect(token.locator('[data-battle-facing-indicator="true"]')).toBeVisible()
+    await expect(tile.locator(':scope > [data-battle-facing-indicator="true"]')).toBeVisible()
 
     const geometry = await tile.evaluate((element) => {
       const tokenElement = element.querySelector<HTMLElement>(
@@ -63,8 +63,8 @@ async function expectMobileTokenMeters(root: ReturnType<Page['locator']>) {
       const mpTrack = meterElement.querySelector<HTMLElement>('[data-mobile-token-meter="mp"]')!
       const hp = hpTrack.querySelector<HTMLElement>(':scope > i')!
       const mp = mpTrack.querySelector<HTMLElement>(':scope > i')!
-      const arrow = tokenElement.querySelector<HTMLElement>(
-        '[data-battle-facing-indicator="true"]',
+      const arrow = element.querySelector<HTMLElement>(
+        ':scope > [data-battle-facing-indicator="true"]',
       )!
       const portraitCandidates = Array.from(tokenElement.children).filter(
         (child): child is HTMLElement =>
@@ -83,6 +83,8 @@ async function expectMobileTokenMeters(root: ReturnType<Page['locator']>) {
       const arrowRect = arrow.getBoundingClientRect()
       const portraitRect = portrait.getBoundingClientRect()
       return {
+        tileLeft: tileRect.left,
+        tileRight: tileRect.right,
         tileTop: tileRect.top,
         tileBottom: tileRect.bottom,
         tokenLeft: tokenRect.left,
@@ -95,6 +97,8 @@ async function expectMobileTokenMeters(root: ReturnType<Page['locator']>) {
         meterBottom: meterRect.bottom,
         meterGap: mpTrackRect.top - hpTrackRect.bottom,
         arrowTop: arrowRect.top,
+        arrowLeft: arrowRect.left,
+        arrowRight: arrowRect.right,
         arrowBottom: arrowRect.bottom,
         arrowWidth: arrowRect.width,
         arrowHeight: arrowRect.height,
@@ -129,16 +133,14 @@ async function expectMobileTokenMeters(root: ReturnType<Page['locator']>) {
     expect(geometry.portraitBottom).toBeLessThanOrEqual(geometry.tokenBottom + 1)
 
     expect(geometry.arrowTop).toBeGreaterThanOrEqual(geometry.tileTop - 1)
-    // A readable circular badge cannot fit wholly in the narrow unchanged portrait margin.
-    // Its center sits on the upper rim; the full backing stays inside the tile.
+    // Facing is pinned to the tile's top-left corner, independent of portrait/meter geometry.
     expect(geometry.arrowWidth).toBeGreaterThanOrEqual(12)
     expect(geometry.arrowHeight).toBeGreaterThanOrEqual(12)
-    expect((geometry.arrowTop + geometry.arrowBottom) / 2).toBeLessThanOrEqual(
-      geometry.tokenTop + 3,
-    )
-    expect(geometry.arrowBottom).toBeLessThanOrEqual(
-      geometry.tokenTop + geometry.arrowHeight / 2 + 3,
-    )
+    expect(geometry.arrowTop - geometry.tileTop).toBeLessThanOrEqual(5)
+    expect(geometry.arrowLeft - geometry.tileLeft).toBeGreaterThanOrEqual(1)
+    expect(geometry.arrowLeft - geometry.tileLeft).toBeLessThanOrEqual(5)
+    expect(geometry.arrowRight).toBeLessThanOrEqual(geometry.tileRight + 1)
+    expect(geometry.arrowBottom).toBeLessThanOrEqual(geometry.tileBottom + 1)
     expect(geometry.arrowPointerEvents).toBe('none')
     expect(geometry.arrowBorderRadius).toBe('50%')
     expect(geometry.hpWidth).toBeGreaterThan(0)

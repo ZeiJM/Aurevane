@@ -59,3 +59,70 @@ it('persists immutable Owner-audited versions and rejects stale or malformed pub
   ])
   await db.close()
 }, 20000)
+
+it('appends Delayed Rewind without mutating prior overrides and keeps exclusive audited publication', async () => {
+  const db = await PGlite.create()
+  try {
+    await db.exec(`create role anon;create role authenticated;create role service_role;create schema app_private;
+    create function app_private.assert_game_owner_v1(actor uuid) returns void language plpgsql as $$ begin if actor is distinct from '00000000-0000-0000-0000-000000000001' then raise exception 'GAME_OWNER_REQUIRED';end if;end $$;`)
+    await db.exec(readFileSync(path, 'utf8'))
+    const owner = '00000000-0000-0000-0000-000000000001'
+    await db.query(
+      `select public.publish_combat_effect_timing_policy_v1($1,1,'{"hexed":"instant","summon":"next-round"}','prior override')`,
+      [owner],
+    )
+    await db.exec(
+      readFileSync(
+        resolve(
+          process.cwd(),
+          '../../supabase/migrations/20261008162310_combat_delayed_timing.sql',
+        ),
+        'utf8',
+      ),
+    )
+    expect(
+      (
+        await db.query<{ policy: unknown }>(
+          'select public.read_combat_effect_timing_policy_v1() as policy',
+        )
+      ).rows[0]!.policy,
+    ).toEqual({
+      version: 3,
+      modes: { hexed: 'instant', summon: 'next-round', 'return-to-turn-start': 'delayed' },
+    })
+    await expect(
+      db.query(`select public.publish_combat_effect_timing_policy_v1($1,2,'{}','stale')`, [owner]),
+    ).rejects.toThrow('TIMING_POLICY_VERSION_CONFLICT')
+    await db.query(
+      `select public.publish_combat_effect_timing_policy_v1($1,3,'{"healing":"delayed","ground-area":"delayed"}','new timings')`,
+      [owner],
+    )
+    for (const modes of [
+      { healing: ['instant', 'delayed'] },
+      { healing: null },
+      { invented: 'delayed' },
+      { healing: 'later' },
+    ])
+      await expect(
+        db.query('select public.publish_combat_effect_timing_policy_v1($1,4,$2,$3)', [
+          owner,
+          JSON.stringify(modes),
+          'bad',
+        ]),
+      ).rejects.toThrow('INVALID_TIMING_POLICY')
+    await db.exec('set role authenticated')
+    await expect(
+      db.query(`select public.publish_combat_effect_timing_policy_v1($1,4,'{}','denied')`, [owner]),
+    ).rejects.toThrow('permission denied')
+    await db.exec('reset role')
+    expect(
+      (
+        await db.query<{ modes: unknown }>(
+          'select modes from app_private.combat_effect_timing_policy_versions where version=2',
+        )
+      ).rows[0]!.modes,
+    ).toEqual({ hexed: 'instant', summon: 'next-round' })
+  } finally {
+    await db.close()
+  }
+}, 20000)

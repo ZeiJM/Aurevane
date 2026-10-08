@@ -1,3 +1,4 @@
+import { groupSkillEffects } from './skill-effect-groups'
 import {
   isPercentageDotEffect,
   percentageDotDescription,
@@ -69,7 +70,9 @@ export function skillEffectDescription(
     case 'bleed':
       return `Apply Bleed to ${target} for ${effect.ticks} ${effect.ticks === 1 ? 'end-turn tick' : 'end-turn ticks'} at ${effect.damagePerTick} damage per tick.`
     case 'return-to-turn-start':
-      return 'Rewind to the vacant tile where you started this turn. Rooted blocks the return. No HP, MP, AP, Movement or past action is refunded.'
+      return `Rewind to the ${effect.anchorMode === 'cast-position' ? 'tile captured when cast' : 'vacant tile where you started this turn'}. Rooted blocks the return. No HP, MP, AP, Movement or past action is refunded.`
+    case 'percentage-recovery':
+      return previewEffect(effect).explanation
     case 'healing':
       return `Restore up to ${effect.amount} HP to ${target}.${recoveryTiming(effect.ticks)}`
     case 'barrier-change':
@@ -133,7 +136,9 @@ export function skillTypeDescription(
 
   const recoversHpOrMp = skill.effects.some(
     (effect) =>
-      effect.type === 'healing' || (effect.type === 'resource-change' && effect.delta > 0),
+      effect.type === 'percentage-recovery' ||
+      effect.type === 'healing' ||
+      (effect.type === 'resource-change' && effect.delta > 0),
   )
   return recoversHpOrMp ? 'Recovery' : 'Utility'
 }
@@ -185,22 +190,32 @@ export interface CompactSkillEffectSummaryParts {
   label: string
   magnitude: string | null
   duration: string | null
-  timing?: 'Instant'
+  timing?: 'Instant' | 'Delayed'
 }
 
 export function skillEffectInstantTiming(
   effect: MatureSkillEffectDefinition,
   policy: SkillEffectTimingPolicy = defaultCombatEffectTimingPolicy(),
-): 'Instant' | undefined {
+): 'Instant' | 'Delayed' | undefined {
   const tag = effect.type === 'summon' ? 'summon' : combatEffectTimingTag(effect)
-  return effect.type !== 'damage' && combatEffectTimingMode(policy ?? undefined, tag) === 'instant'
-    ? 'Instant'
-    : undefined
+  const mode = combatEffectTimingMode(policy ?? undefined, tag)
+  return mode === 'delayed'
+    ? 'Delayed'
+    : effect.type !== 'damage' && mode === 'instant'
+      ? 'Instant'
+      : undefined
 }
 
 function compactDuration(effect: MatureSkillEffectDefinition): string | null {
   const percentage = isPercentageDotEffect(effect)
-  const turns = percentage && effect.type === 'bleed' ? effect.ticks : (effect.durationTurns ?? 0)
+  const turns =
+    effect.type === 'percentage-recovery'
+      ? (effect.ticks ?? 1) > 1
+        ? effect.ticks!
+        : 0
+      : percentage && effect.type === 'bleed'
+        ? effect.ticks
+        : (effect.durationTurns ?? 0)
   if (turns <= 0) return null
   return `${turns} ${percentage ? (turns === 1 ? 'turn' : 'turns') : turns === 1 ? 'Turn' : 'Turns'}`
 }
@@ -252,10 +267,13 @@ function compactEffectSummary(
 }
 
 export function skillEffectSummaries(
-  skill: Pick<MatureSkillDefinition, 'effects'>,
+  skill: Pick<MatureSkillDefinition, 'effects' | 'effectDescriptions'>,
   timingPolicy: SkillEffectTimingPolicy = defaultCombatEffectTimingPolicy(),
 ): readonly string[] {
-  return skill.effects.map((effect) => compactEffectSummary(effect, timingPolicy))
+  return groupSkillEffects(skill.effects, skill.effectDescriptions).map(
+    ({ effect, count }) =>
+      `${compactEffectSummary(effect, timingPolicy)}${count > 1 ? ` ×${count}` : ''}`,
+  )
 }
 
 export function skillEffectsSummary<Skill extends Pick<MatureSkillDefinition, 'effects'>>(

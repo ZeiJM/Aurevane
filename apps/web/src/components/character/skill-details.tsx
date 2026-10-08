@@ -8,13 +8,13 @@ import {
 } from './skill-effect-timing-context'
 import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
 import {
-  skillEffectDescription,
   skillCooldownDescription,
   skillParameterRows,
   skillRequirementDescription,
   skillTargetTags,
   skillTargetMethodExplanation,
 } from './skill-detail-presentation'
+import { skillPreviewEffects } from './skill-effect-preview'
 import styles from './skill-details.module.css'
 import { SkillCharacteristicRows } from './skill-characteristic-rows'
 
@@ -46,14 +46,15 @@ function SkillDetailBody({ skill }: { skill: MatureSkillDefinition }) {
           </div>
         ) : null}
       </dl>
-      <strong>Effects, in order</strong>
+      <strong>Effects</strong>
       <ol>
-        {skill.effects.map((effect, index) => (
-          <li key={index}>
-            {skill.effectDescriptions?.[index]?.trim() ||
-              skillEffectDescription(effect, { legacyTriggers })}
-          </li>
-        ))}
+        {skillPreviewEffects(skill, timingPolicy, { legacyTriggers })
+          .filter((effect) => effect.label !== 'Ground')
+          .map((effect, index) => (
+            <li key={index}>
+              <strong>{effect.label}</strong> — {effect.explanation}
+            </li>
+          ))}
       </ol>
       {skill.groundArea ? (
         <p>

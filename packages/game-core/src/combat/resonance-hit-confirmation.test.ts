@@ -208,7 +208,12 @@ describe('Resonance requires a confirmed hostile hit', () => {
           event.event === 'resonance_activated',
       ),
     ).toHaveLength(1)
-    expect(actor(hit.state).hp).toBe(Math.min(actor(later).maxHp, actor(later).hp + 4))
+    expect(actor(hit.state).hp).toBe(
+      Math.min(
+        actor(later).maxHp,
+        actor(later).hp + Math.max(1, Math.floor((actor(later).maxHp * 4) / 100)),
+      ),
+    )
     expect(armed(hit.state, setupId)).toBe(false)
   })
 
@@ -269,7 +274,7 @@ describe('Resonance requires a confirmed hostile hit', () => {
       kind: 'unit',
       combatantId: 'enemy',
     })
-    expect(actor(result.state).mp).toBe(17)
+    expect(actor(result.state).mp).toBe(13)
     expect(result.state.pendingEffects ?? []).toEqual([])
     expect(result.state.statusState).toEqual(initial.statusState)
     expect(armed(result.state, setupId)).toBe(true)
@@ -339,7 +344,7 @@ describe('Resonance requires a confirmed hostile hit', () => {
       expect.objectContaining({ event: 'combat_accuracy_resolved', hit: true }),
     )
     expect(result.state.tactical.battle.combatants.find((unit) => unit.id === 'enemy')!.hp).toBe(50)
-    expect(actor(result.state).hp).toBe(34)
+    expect(actor(result.state).hp).toBe(32)
     expect(result.events).toContainEqual(expect.objectContaining({ event: 'resonance_activated' }))
     expect(armed(result.state, setupId)).toBe(false)
   })

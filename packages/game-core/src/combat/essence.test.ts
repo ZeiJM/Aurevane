@@ -1,3 +1,4 @@
+import { prePercentageRecoveryEssence } from './percentage-recovery-history.test-utils'
 import { describe, expect, it } from 'vitest'
 
 import { createCombatEncounterState } from './actions'
@@ -383,7 +384,7 @@ describe('Combat v5.1 Essence targeting balance', () => {
     ])
 
     for (const disciplineId of disciplineIds) {
-      const current = resolveEssenceForBuild(disciplineId, null)
+      const current = prePercentageRecoveryEssence(disciplineId)
       if (!current) throw new Error(`Expected current Essence for ${disciplineId}.`)
 
       expect(current.authoring.validationTags, current.essenceId).toContain('owner-rebalance-v5-1')

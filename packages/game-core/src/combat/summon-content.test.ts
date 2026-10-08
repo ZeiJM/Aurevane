@@ -1,3 +1,4 @@
+import { prePercentageRecoverySkill } from './percentage-recovery-history.test-utils'
 import { describe, expect, it } from 'vitest'
 
 import type { MatureSkillDefinition } from './mature-skills'
@@ -118,7 +119,7 @@ describe('Combat v5.1 summon content', () => {
   })
 
   it('keeps real Summon while removing historical Renewing Herbs protection', () => {
-    const currentDefinition = resolveMatureSkillVersion('wildwarden.renewing-herbs')
+    const currentDefinition = prePercentageRecoverySkill('wildwarden.renewing-herbs')
     if (!currentDefinition) throw new Error('Expected current Renewing Herbs.')
     const historical = resolveMatureSkillVersion(
       'wildwarden.renewing-herbs',
