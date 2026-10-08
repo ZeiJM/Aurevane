@@ -126,15 +126,14 @@ async function expectCanonicalFacingIndicators(root: ReturnType<Page['locator']>
   const geometry = await indicators.evaluateAll((elements) =>
     elements.map((element) => {
       const indicator = element as HTMLElement
-      const token = indicator.parentElement as HTMLElement
+      const tile = indicator.parentElement as HTMLElement
       const indicatorRect = indicator.getBoundingClientRect()
-      const tokenRect = token.getBoundingClientRect()
+      const tileRect = tile.getBoundingClientRect()
       return {
         width: indicatorRect.width,
         height: indicatorRect.height,
-        centerOffset:
-          indicatorRect.left + indicatorRect.width / 2 - (tokenRect.left + tokenRect.width / 2),
-        topOffset: indicatorRect.top - tokenRect.top,
+        leftOffset: indicatorRect.left - tileRect.left,
+        topOffset: indicatorRect.top - tileRect.top,
         path: indicator.querySelector('path')?.getAttribute('d') ?? '',
       }
     }),
@@ -145,27 +144,29 @@ async function expectCanonicalFacingIndicators(root: ReturnType<Page['locator']>
   for (const indicator of geometry) {
     expect(Math.abs(indicator.width - reference.width)).toBeLessThanOrEqual(0.5)
     expect(Math.abs(indicator.height - reference.height)).toBeLessThanOrEqual(0.5)
-    expect(Math.abs(indicator.centerOffset)).toBeLessThanOrEqual(0.75)
+    expect(indicator.leftOffset).toBeGreaterThanOrEqual(1)
+    expect(indicator.leftOffset).toBeLessThanOrEqual(5)
+    expect(indicator.topOffset).toBeGreaterThanOrEqual(1)
+    expect(indicator.topOffset).toBeLessThanOrEqual(5)
     expect(Math.abs(indicator.topOffset - reference.topOffset)).toBeLessThanOrEqual(0.75)
     expect(indicator.path).toBe(reference.path)
   }
 
   const rotations = await indicators.first().evaluate((element) => {
     const indicator = element as HTMLElement
-    const token = indicator.parentElement as HTMLElement
+    const tile = indicator.parentElement as HTMLElement
     const original = indicator.dataset.facing
     const directions = ['north', 'east', 'south', 'west'] as const
     const samples = directions.map((direction) => {
       indicator.dataset.facing = direction
       const indicatorRect = indicator.getBoundingClientRect()
-      const tokenRect = token.getBoundingClientRect()
+      const tileRect = tile.getBoundingClientRect()
       return {
         direction,
         width: indicatorRect.width,
         height: indicatorRect.height,
-        centerOffset:
-          indicatorRect.left + indicatorRect.width / 2 - (tokenRect.left + tokenRect.width / 2),
-        topOffset: indicatorRect.top - tokenRect.top,
+        leftOffset: indicatorRect.left - tileRect.left,
+        topOffset: indicatorRect.top - tileRect.top,
         transform: getComputedStyle(indicator).transform,
       }
     })
@@ -178,7 +179,10 @@ async function expectCanonicalFacingIndicators(root: ReturnType<Page['locator']>
   for (const sample of rotations) {
     expect(Math.abs(sample.width - rotationReference.width)).toBeLessThanOrEqual(0.5)
     expect(Math.abs(sample.height - rotationReference.height)).toBeLessThanOrEqual(0.5)
-    expect(Math.abs(sample.centerOffset)).toBeLessThanOrEqual(0.75)
+    expect(sample.leftOffset).toBeGreaterThanOrEqual(1)
+    expect(sample.leftOffset).toBeLessThanOrEqual(5)
+    expect(sample.topOffset).toBeGreaterThanOrEqual(1)
+    expect(sample.topOffset).toBeLessThanOrEqual(5)
     expect(Math.abs(sample.topOffset - rotationReference.topOffset)).toBeLessThanOrEqual(0.75)
   }
 }
@@ -213,9 +217,9 @@ async function expectLargeBoardGeometry(root: ReturnType<Page['locator']>) {
       const tile = token.parentElement as HTMLElement
       return token.getBoundingClientRect().width / tile.getBoundingClientRect().width
     })
-    const indicators = tokens
-      .map((token) =>
-        token.querySelector<HTMLElement>(':scope > [data-battle-facing-indicator="true"]'),
+    const indicators = occupied
+      .map((tile) =>
+        tile.querySelector<HTMLElement>(':scope > [data-battle-facing-indicator="true"]'),
       )
       .filter((indicator): indicator is HTMLElement => Boolean(indicator))
       .map((indicator) => {

@@ -209,15 +209,14 @@ test('mobile End Turn opens facing controls and commits a single tapped directio
 
   const arrowGeometry = await tokenArrows.evaluateAll((arrows) =>
     arrows.map((arrow) => {
-      const token = arrow.parentElement!
+      const tile = arrow.parentElement!
       const arrowRect = arrow.getBoundingClientRect()
-      const tokenRect = token.getBoundingClientRect()
+      const tileRect = tile.getBoundingClientRect()
       return {
         width: arrowRect.width,
         height: arrowRect.height,
-        topOffset: arrowRect.top - tokenRect.top,
-        centerOffset:
-          (arrowRect.left + arrowRect.right) / 2 - (tokenRect.left + tokenRect.right) / 2,
+        topOffset: arrowRect.top - tileRect.top,
+        leftOffset: arrowRect.left - tileRect.left,
         path: arrow.querySelector('path')?.getAttribute('d') ?? '',
       }
     }),
@@ -226,7 +225,12 @@ test('mobile End Turn opens facing controls and commits a single tapped directio
   expect(Math.abs(arrowGeometry[0]!.height - arrowGeometry[1]!.height)).toBeLessThanOrEqual(0.5)
   expect(Math.abs(arrowGeometry[0]!.topOffset - arrowGeometry[1]!.topOffset)).toBeLessThanOrEqual(1)
   expect(arrowGeometry[0]!.path).toBe(arrowGeometry[1]!.path)
-  arrowGeometry.forEach((arrow) => expect(Math.abs(arrow.centerOffset)).toBeLessThanOrEqual(1))
+  for (const arrow of arrowGeometry) {
+    expect(arrow.leftOffset).toBeGreaterThanOrEqual(1)
+    expect(arrow.leftOffset).toBeLessThanOrEqual(5)
+    expect(arrow.topOffset).toBeGreaterThanOrEqual(1)
+    expect(arrow.topOffset).toBeLessThanOrEqual(5)
+  }
 
   let finalTurnRequests = 0
   const countFinalTurn = (request: Request) => {
