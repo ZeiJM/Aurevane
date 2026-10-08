@@ -1,5 +1,9 @@
 # AUREVANE — Active Task Ledger
 
+## Facing arrow corner refinement — 2026-10-08
+
+Owner live feedback requests less portrait overlap with neat corner alignment. Shared facing-indicator top/left inset moves from 3px to 1px across desktop/mobile PvE, PvP and spectators. Badge size, identity accent, rotation, pointer passthrough and portrait geometry are preserved. Existing browser geometry checks tighten the allowed visible corner margin without dropping scenarios. The pre-change production-component matrix fails the new bound as expected; all six mode/viewport corner screenshots have been visually inspected after the change. Full `pnpm check` passes (4,401 Vitest tests, seven Node checks, format/lint/types/build) and all 72 production-component targeting cases pass. Exact-head remote CI and the authorized release follow-up remain pending; this refinement is not yet deployed. Evidence: `docs/verification/2026-10-08-facing-corner.md`.
+
 ## October 8 combat/auth reconstruction — released for testing
 
 Scope: independent repeated-tag packets/ordinary damage scaling, unlimited Bleed and DoT narration, compact readers, tile-corner arrows, persistent Line reach, periodic Ground loops, captured percentage recovery/new immutable content, exclusive Normal/Instant/Delayed timing, cast-position Rewind and scanner-safe on-site password recovery. No phase change is implied.

@@ -136,9 +136,9 @@ async function expectMobileTokenMeters(root: ReturnType<Page['locator']>) {
     // Facing is pinned to the tile's top-left corner, independent of portrait/meter geometry.
     expect(geometry.arrowWidth).toBeGreaterThanOrEqual(12)
     expect(geometry.arrowHeight).toBeGreaterThanOrEqual(12)
-    expect(geometry.arrowTop - geometry.tileTop).toBeLessThanOrEqual(5)
+    expect(geometry.arrowTop - geometry.tileTop).toBeLessThanOrEqual(3)
     expect(geometry.arrowLeft - geometry.tileLeft).toBeGreaterThanOrEqual(1)
-    expect(geometry.arrowLeft - geometry.tileLeft).toBeLessThanOrEqual(5)
+    expect(geometry.arrowLeft - geometry.tileLeft).toBeLessThanOrEqual(3)
     expect(geometry.arrowRight).toBeLessThanOrEqual(geometry.tileRight + 1)
     expect(geometry.arrowBottom).toBeLessThanOrEqual(geometry.tileBottom + 1)
     expect(geometry.arrowPointerEvents).toBe('none')

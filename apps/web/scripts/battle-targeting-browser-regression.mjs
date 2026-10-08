@@ -149,12 +149,12 @@ try {
             geometry.badge.right <= geometry.tile.right + 1,
         )
         assert.ok(
-          geometry.badge.top >= geometry.tile.top && geometry.badge.top <= geometry.tile.top + 5,
+          geometry.badge.top >= geometry.tile.top && geometry.badge.top <= geometry.tile.top + 3,
           'Facing sits inside the tile top-left',
         )
         assert.ok(
           geometry.badge.left >= geometry.tile.left &&
-            geometry.badge.left <= geometry.tile.left + 5,
+            geometry.badge.left <= geometry.tile.left + 3,
           'Facing is independent of portrait position',
         )
         const angle = {
