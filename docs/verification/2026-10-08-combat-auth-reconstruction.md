@@ -1,6 +1,6 @@
 # October 8 combat/auth reconstruction verification
 
-This records the reconstructed October 8 work on `agent/combat-auth-reconstruct-20261008`. Implementation authorization is established; publishing, merging, live database/configuration changes and deployment are not inferred. The original ZIP did not contain the missing October 8 source or the exact approved recovery percentage table. The concrete replacement mapping is explicitly new, not recovered evidence.
+This records the reconstructed October 8 work on `agent/combat-auth-reconstruct-20261008`. The Owner explicitly authorized publishing, merging, live database/configuration changes and deployment for testing on October 8. The original ZIP did not contain the missing October 8 source or the exact approved recovery percentage table. The concrete replacement mapping is explicitly new, not recovered evidence.
 
 ## Source
 
@@ -36,7 +36,7 @@ This records the reconstructed October 8 work on `agent/combat-auth-reconstruct-
 | Ground loop boundary checks | Embers/Arcane Pulse opacity is zero at 0, 1 and 2 complete cycles |
 | Protected timing migration integration | 2 PGlite tests passed, old-to-new upgrade, override/history preservation, invalid modes and role grants |
 | Whole-branch fresh review | All important findings resolved and remediation approved |
-| Exact-head remote CI / disposable Supabase reset / delivered email | Pending branch publishing authorization and CI execution |
+| Exact-head remote CI / disposable Supabase reset / delivered email | PR #849 running; quality and disposable database reset passed; full browser acceptance pending |
 | Human gameplay/balance acceptance | Not claimed |
 
 Representative final-source screenshots were visually inspected and retained: [desktop edge arrows](2026-10-08-assets/pve-1366-compass-edges.png) and [mobile active Ground layout](2026-10-08-assets/pve-390-embers-active.png). The active Ground screenshot captures the verified zero-opacity animation boundary; orange footprint and lifetime remain visible. The 72-case matrix was rerun successfully after the final code changes.
@@ -54,4 +54,10 @@ Review found and corrected independent packet self-triggering of hit-dependent R
 5. Local Auth SiteURL is `http://127.0.0.1:3100`; local redirect allowlist also retains localhost/127.0.0.1:3000. CI browser port, capture service and template content path must agree. Production email limits must not be copied from disposable local test settings.
 6. Hosted smoke must exercise real delivered email in a fresh browser, scanner GET then explicit Continue, new-password sign-in/old-password failure, replay/expiry and session revocation. Record observed results before release completion claims.
 
-The next approval boundary is **publishing the local branch/draft PR to obtain exact-head CI**. Merge, hosted migration/configuration and deployment remain separate authorized actions. An earlier automatic approval review rejected pushing because external publication lacked explicit current authorization; local implementation and review are complete before requesting that decision.
+## Authorized release progress
+
+- PR #849 initially published commit `bf5741a4372691ab38ebfb72b36abd2d767e3328`, tree `c5f85f71c11cbae350d552c3f13f8081de558e90`, exactly matching local checkpoint `d40e746`.
+- Hosted read-only audit found no published Skill/Essence/Resonance overrides. Timing policy version 4 contains summon/status-removal Instant overrides; the additive migration preserves them.
+- Initial Representative Buildcraft run `37814976728` failed strict legacy assertions for flat `Heal [4]` and turn-start Rewind. Browser evidence shows the approved percentage recovery and captured cast-position behavior. Revised assertions retain all scenarios and explicitly require captured 4% HP recovery, one-time HP Hex capture, current resource caps/no revival, and Delayed cast-position Rewind.
+- Hosted Auth template configuration is still pending. The connector does not expose it, and the dashboard sign-in reached Google two-step verification before the cloud browser control timed out. No hosted Auth configuration change is claimed.
+- All applicable checks on the revised candidate remain mandatory before release. No merge, migration or deployment is claimed in this progress receipt.
