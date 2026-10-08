@@ -1,4 +1,6 @@
 'use client'
+import { BattleFacingIndicator } from './battle-facing-indicator'
+import { BattleGroundAreaLayer } from './battle-ground-area-layer'
 
 import { BattleRouteFrame } from './battle-route-frame'
 import { useBattleTabCyclePrevention } from './battle-tab-cycle-prevention'
@@ -46,13 +48,6 @@ function positionKey(position: GridPosition): string {
 
 function positionsEqual(left: GridPosition, right: GridPosition): boolean {
   return left.x === right.x && left.y === right.y
-}
-
-function facingGlyph(facing: Facing): string {
-  if (facing === 'north') return '↑'
-  if (facing === 'east') return '→'
-  if (facing === 'south') return '↓'
-  return '←'
 }
 
 function teamName(teamIndex: number): string {
@@ -445,6 +440,11 @@ export function PvpSpectatorExperience({
                       aria-label={`Tile ${x}, ${y}; ${tile.terrainId}; elevation ${tile.elevation}${participant ? `; occupied by ${participant.characterName}` : ''}${overlay ? `; ${terrainOverlayDescription(overlay)}` : ''}`}
                       aria-pressed={selected}
                     >
+                      <BattleGroundAreaLayer
+                        areas={battle.snapshot.groundAreas}
+                        round={tactical.battle.round}
+                        position={tile.position}
+                      />
                       {overlay ? (
                         <i data-terrain-overlay-marker="true" aria-hidden="true">
                           {overlay.kind === 'frozen' ? '❄' : '≋'}
@@ -479,7 +479,7 @@ export function PvpSpectatorExperience({
                             alt=""
                           />
                           {combatant && combatant.hp > 0 ? (
-                            <i>{facingGlyph(placement.facing as Facing)}</i>
+                            <BattleFacingIndicator facing={placement.facing as Facing} />
                           ) : null}
                         </span>
                       ) : null}

@@ -1,3 +1,4 @@
+import { advanceCombatGroundAreas } from './combat-ground-areas'
 import {
   createCombatEncounterState,
   executeCombatAction,
@@ -134,7 +135,10 @@ export function surrenderPvpCombatant(
     }
     const tactical = createTacticalBattleState({ ...nextState.tactical, battle })
     nextState = reattachStatDrivenCombatBridge(
-      { ...nextState, ...createCombatEncounterState(tactical, nextState.statusState) },
+      advanceCombatGroundAreas({
+        ...nextState,
+        ...createCombatEncounterState(tactical, nextState.statusState),
+      }),
       nextState.statBridge,
     )
     events.push({ event: 'battle_completed', winningTeamId })

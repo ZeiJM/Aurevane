@@ -2,6 +2,39 @@
   display: none;
 }
 
+/* Ground candidates share the exact authored footprint, with a distinct warm fill. */
+:global(
+  main[data-battle-concept='true']
+    section#battlefield
+    button[aria-label^='Tile '][data-ground-path='true']
+)::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border: 2px solid #f5ad61;
+  border-radius: inherit;
+  background: #de75224d;
+  box-shadow:
+    inset 0 0 14px #de752299,
+    0 0 8px #f5ad6180;
+  pointer-events: none;
+}
+
+:global(
+  main[data-battle-concept='true']
+    section#battlefield
+    button[aria-label^='Tile '][data-ground-path='true']
+) {
+  border-color: #f5ad61 !important;
+  box-shadow: none !important;
+}
+
+/* The battlefield root receives focus after cancel; it is not an action selection. */
+:global(main[data-battle-keyboard-focus-root='true']:focus) {
+  outline: none;
+}
+
 /* Friendly selections use one fill; legacy parent shadows must not tint Guard differently. */
 :global(
   main[data-battle-concept='true']

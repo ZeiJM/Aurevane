@@ -1,8 +1,12 @@
 'use client'
+import { BattleGroundAreaLayer } from './battle-ground-area-layer'
 
 import { SkillEffectTimingProvider } from '../character/skill-effect-timing-context'
 
-import { isBattleShortcutBlocked as isTextEntryTarget } from './battle-keyboard-scope'
+import {
+  isBattleShortcutBlocked as isTextEntryTarget,
+  restoreBattleKeyboardFocus,
+} from './battle-keyboard-scope'
 import { useBattleTabCyclePrevention } from './battle-tab-cycle-prevention'
 
 import {
@@ -102,7 +106,10 @@ import {
 } from './battle-attack-path'
 import { combatCardinalDirections } from '@aurevane/game-core/combat/combat-targeting-shapes'
 import { battleActionUsesRecoverySelection } from './battle-recovery-selection'
-import { createPv1fBasicAttackDefinition } from '@aurevane/game-core/combat/pv1f-action-economy'
+import {
+  createPv1fBasicAttackDefinition,
+  PV1F_GUARD_ACTION,
+} from '@aurevane/game-core/combat/pv1f-action-economy'
 import { BattleSkillCommand } from './battle-skill-command'
 import {
   BATTLE_COMMAND_ARTWORK,
@@ -284,7 +291,10 @@ export function BattleExperience(props: {
 }) {
   useBattleTabCyclePrevention()
   return (
-    <SkillEffectTimingProvider policy={props.initialBattle.snapshot.effectTimingPolicy ?? null}>
+    <SkillEffectTimingProvider
+      policy={props.initialBattle.snapshot.effectTimingPolicy ?? null}
+      dotTriggerPolicyVersion={props.initialBattle.snapshot.dotTriggerPolicyVersion ?? null}
+    >
       <BattleExperienceContent {...props} />
     </SkillEffectTimingProvider>
   )
@@ -640,11 +650,7 @@ function BattleExperienceContent({
       if (modeRef.current !== 'inspect') return
       clearPlanning()
       setNotice('Inspection closed. Choose your action.')
-      window.requestAnimationFrame(() => {
-        document
-          .querySelector<HTMLElement>('main[data-battle-keyboard-focus-root="true"]')
-          ?.focus({ preventScroll: true })
-      })
+      restoreBattleKeyboardFocus()
     })
   }, [clearPlanning, registerInspectCloseHandler])
 
@@ -1142,6 +1148,7 @@ function BattleExperienceContent({
         targetTeamPolicy: actionId === BASIC_ATTACK_ID ? ('enemy' as const) : ('self' as const),
         minimumRange: actionId === BASIC_ATTACK_ID ? 1 : 0,
         maximumRange: actionId === BASIC_ATTACK_ID ? 1 : 0,
+        target: actionId === BASIC_ATTACK_ID ? undefined : PV1F_GUARD_ACTION.target,
       },
     [runtime.essence, selectableTechniques],
   )
@@ -1554,6 +1561,7 @@ function BattleExperienceContent({
       if (selected === 'cancel') {
         clearPlanning()
         setNotice('Selection cleared.')
+        restoreBattleKeyboardFocus()
         return
       }
       if (selected === 'combatLog') {
@@ -2118,21 +2126,24 @@ function BattleExperienceContent({
                         combatants: previewCombatants,
                       })
                     : null
-                const targetRelation = activeTechnique
-                  ? skillTarget
-                    ? groundTarget
-                      ? 'ground'
-                      : participant?.teamIndex === localTeamIndex
-                        ? 'friendly'
-                        : 'enemy'
-                    : undefined
-                  : selfTarget
-                    ? 'friendly'
-                    : inAttackRange
-                      ? legalEnemy
-                        ? 'enemy'
-                        : 'illegal'
+                const inFootprint = potentialPath.has(key)
+                const targetRelation = !inFootprint
+                  ? undefined
+                  : activeTechnique
+                    ? skillTarget
+                      ? groundTarget
+                        ? 'ground'
+                        : participant?.teamIndex === localTeamIndex
+                          ? 'friendly'
+                          : 'enemy'
                       : undefined
+                    : selfTarget
+                      ? 'friendly'
+                      : inAttackRange
+                        ? legalEnemy
+                          ? 'enemy'
+                          : 'illegal'
+                        : undefined
                 const selected = mode === 'inspect' && selectedUnitId === placement?.combatantId
                 const terrain = tile.terrainId === 'rough-ground' ? 'rough' : 'open'
                 const overlay = terrainOverlayAt(battle.snapshot, tile.position)
@@ -2142,23 +2153,28 @@ function BattleExperienceContent({
                     type="button"
                     key={key}
                     className={styles.tile}
-                    data-attack-path={(damagingSelection && potentialPath.has(key)) || undefined}
+                    data-ground-path={(groundTarget && inFootprint) || undefined}
+                    data-attack-path={
+                      (!groundTarget && damagingSelection && inFootprint) || undefined
+                    }
                     data-buff-path={
-                      (!damagingSelection && !healingSelection && potentialPath.has(key)) ||
+                      (!groundTarget && !damagingSelection && !healingSelection && inFootprint) ||
                       undefined
                     }
                     data-self-target={
-                      (targetRelation === 'friendly' &&
+                      (!groundTarget &&
+                        inFootprint &&
+                        targetRelation === 'friendly' &&
                         placement?.combatantId === localCombatantId) ||
                       undefined
                     }
                     data-heal-target={
-                      (healingSelection &&
+                      (!groundTarget &&
+                        inFootprint &&
+                        healingSelection &&
                         !damagingSelection &&
-                        ((potentialPath.has(key) &&
-                          (targetSpec?.shape.kind !== 'single' ||
-                            !placement ||
-                            targetRelation === 'friendly')) ||
+                        (targetSpec?.shape.kind !== 'single' ||
+                          !placement ||
                           targetRelation === 'friendly')) ||
                       undefined
                     }
@@ -2204,6 +2220,11 @@ function BattleExperienceContent({
                     }}
                     aria-label={`Tile ${tile.position.x + 1}, ${tile.position.y + 1}; ${tile.terrainId}; elevation ${tile.elevation}${participant ? `; occupied by ${participant.name}` : ''}${overlay ? `; ${terrainOverlayDescription(overlay)}` : ''}`}
                   >
+                    <BattleGroundAreaLayer
+                      areas={battle.snapshot.groundAreas}
+                      round={tactical.battle.round}
+                      position={tile.position}
+                    />
                     {overlay ? (
                       <i data-terrain-overlay-marker="true" aria-hidden="true">
                         {overlay.kind === 'frozen' ? '❄' : '≋'}
@@ -2447,6 +2468,7 @@ function BattleExperienceContent({
             onClick={() => {
               clearPlanning()
               setNotice('Selection cleared.')
+              restoreBattleKeyboardFocus()
             }}
             disabled={commitPending}
           >

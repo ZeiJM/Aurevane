@@ -542,9 +542,33 @@ export function ResonanceContentEditor({
                     </select>
                   </label>
                   <label className={styles.field}>
+                    <span>Skill matching</span>
+                    <select
+                      aria-label="Resonance Setup matching"
+                      value={setup.matchMode ?? 'required-tags'}
+                      onChange={(event) =>
+                        updateSetup(
+                          event.currentTarget.value === 'any-skill'
+                            ? { ...setup, matchMode: 'any-skill', requiredTags: [] }
+                            : {
+                                ...setup,
+                                matchMode: undefined,
+                                requiredTags: setup.requiredTags.length
+                                  ? setup.requiredTags
+                                  : ['attack'],
+                              },
+                        )
+                      }
+                    >
+                      <option value="required-tags">Require Skill tags</option>
+                      <option value="any-skill">Any Skill in this Discipline</option>
+                    </select>
+                  </label>
+                  <label className={styles.field}>
                     <span>Required tags</span>
                     <input
                       aria-label="Resonance Setup tags"
+                      disabled={setup.matchMode === 'any-skill'}
                       value={setup.requiredTags.join(', ')}
                       onChange={(event) =>
                         updateSetup({
@@ -554,7 +578,9 @@ export function ResonanceContentEditor({
                       }
                     />
                     <small className={styles.fieldHint}>
-                      One or two comma-separated canonical Skill tags.
+                      {setup.matchMode === 'any-skill'
+                        ? 'Every Skill in the Setup Discipline qualifies.'
+                        : 'One or two comma-separated canonical Skill tags.'}
                     </small>
                   </label>
                   <label className={styles.field}>

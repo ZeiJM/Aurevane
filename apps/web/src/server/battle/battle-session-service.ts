@@ -2,6 +2,7 @@ import {
   defaultCombatEffectTimingPolicy,
   type CombatEffectTimingPolicy,
 } from '@aurevane/game-core/combat/combat-effect-timing'
+import type { PublicCombatGroundArea } from '@aurevane/game-core/combat/combat-ground-visuals'
 import { omitPendingBattlePayloads } from './battle-live-viewer-projection'
 import 'server-only'
 
@@ -117,8 +118,9 @@ type ProjectedTacticalState = Omit<BattleAuthoritativeEncounterState['tactical']
 }
 export type BattleSessionProjection = Omit<
   BattleAuthoritativeEncounterState,
-  'tactical' | 'statusState'
+  'tactical' | 'statusState' | 'groundAreas' | 'nextGroundAreaId'
 > & {
+  groundAreas?: readonly PublicCombatGroundArea[]
   statusState: ReturnType<typeof projectBattleStatusStateForViewer>
   tactical: ProjectedTacticalState
 }
@@ -437,7 +439,7 @@ function deriveBattleViewerEntitlement(
   }
 }
 
-function projectBattleSnapshot(
+export function projectBattleSnapshot(
   state: BattleAuthoritativeEncounterState,
   viewer: BattleViewerEntitlement,
 ): BattleSessionProjection {
@@ -681,6 +683,8 @@ export function createBattleSessionService({
         : defaultCombatEffectTimingPolicy()
       baseEncounter.effectStackingPolicyVersion = 1
       baseEncounter.percentageDotPolicyVersion = 1
+      baseEncounter.dotTriggerPolicyVersion = 1
+      baseEncounter.groundEffectPolicyVersion = 1
       let encounter: BattleAuthoritativeEncounterState = baseEncounter
       if (builds) {
         if (!committedBuildSnapshot) {

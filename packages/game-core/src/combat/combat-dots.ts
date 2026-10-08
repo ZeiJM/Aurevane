@@ -1,3 +1,4 @@
+import { claimCombatTurnTrigger } from './combat-turn-trigger-state'
 import {
   percentageDotTickDamage,
   validateCapturedPercentageDotDamage,
@@ -311,11 +312,21 @@ export function advanceCurrentPoisonMovement(
     )
   if (traversedTiles === 0) return { state, triggeredTicks: 0, ticks: [] }
   const effectState = normalizeCombatEffectState(state.effectState)
-  const ticks = currentPoisonInstances(state, targetCombatantId).map((instance) => ({
+  let ticks = currentPoisonInstances(state, targetCombatantId).map((instance) => ({
     instance,
     triggeredTicks: Math.floor(safeDotTotal(instance.movementRemainder, traversedTiles) / 5),
   }))
   if (ticks.length === 0) return { state, triggeredTicks: 0, ticks: [] }
+  if (state.dotTriggerPolicyVersion === 1 && ticks.some((row) => row.triggeredTicks > 0)) {
+    const claim = claimCombatTurnTrigger(state, targetCombatantId, 'poison.movement')
+    state = claim.state
+    let available = claim.allowed
+    ticks = ticks.map((row) => {
+      const triggeredTicks = available && row.triggeredTicks > 0 ? 1 : 0
+      if (triggeredTicks) available = false
+      return { ...row, triggeredTicks }
+    })
+  }
   const triggeredTicks = ticks.reduce((sum, row) => safeDotTotal(sum, row.triggeredTicks), 0)
   const poison = effectState.poison.map((instance) =>
     instance.targetCombatantId === targetCombatantId
@@ -481,11 +492,21 @@ export function advanceCurrentBleedEndTurn(
 }
 
 export function validateCurrentBurnEffect(effect: {
+  backlashBasisPoints?: unknown
   curseCopyable?: unknown
   power?: unknown
   durationTurns?: unknown
   damageProfile?: AttackPercentageDotProfile
 }): void {
+  if (
+    effect.backlashBasisPoints !== undefined &&
+    (!Number.isSafeInteger(effect.backlashBasisPoints) ||
+      (effect.backlashBasisPoints as number) < 0 ||
+      (effect.backlashBasisPoints as number) > 10000)
+  )
+    throw new RangeError(
+      'Burn backlash percentage must be an integer from 0 to 10000 basis points.',
+    )
   if (effect.damageProfile !== undefined) {
     if (effect.power !== undefined)
       throw new TypeError('Percentage Burn cannot also author fixed power.')
@@ -536,9 +557,10 @@ export function applyCurrentBurnState(
   power?: number,
   durationTurns?: number,
   percentageDamage?: CapturedPercentageDotDamage,
+  backlashBasisPoints?: number,
 ): CombatEncounterState {
   const captured = capturePercentageApplication(state, percentageDamage, durationTurns, 'burn')
-  validateCurrentBurnEffect({ curseCopyable, power, durationTurns })
+  validateCurrentBurnEffect({ curseCopyable, power, durationTurns, backlashBasisPoints })
   const effectState = normalizeCombatEffectState(state.effectState)
   const instance: CombatBurnInstance = {
     targetCombatantId,
@@ -546,6 +568,7 @@ export function applyCurrentBurnState(
     sourceActionId,
     profileVersion: CURRENT_BURN_PROFILE_VERSION,
     stage: 0,
+    ...(backlashBasisPoints !== undefined ? { backlashBasisPoints } : {}),
     ...(usesUnlimitedCombatEffectStacking(state) || usesPercentageCombatDots(state)
       ? { applicationOrder: nextCombatDotApplicationOrder(effectState.burn) }
       : {}),
@@ -768,6 +791,10 @@ function validateCurrentBurnState(state: CombatEncounterState): readonly CombatE
       instance.sourceActionId.trim() !== instance.sourceActionId ||
       instance.profileVersion !== CURRENT_BURN_PROFILE_VERSION ||
       !validPercentageInstance(state, instance, 'burn') ||
+      (instance.backlashBasisPoints !== undefined &&
+        (!Number.isSafeInteger(instance.backlashBasisPoints) ||
+          instance.backlashBasisPoints < 0 ||
+          instance.backlashBasisPoints > 10000)) ||
       (instance.percentageDamage !== undefined && instance.basePower !== undefined) ||
       (instance.curseCopyable !== undefined && typeof instance.curseCopyable !== 'boolean') ||
       (instance.skipCurrentOwnerTurnEnd !== undefined &&

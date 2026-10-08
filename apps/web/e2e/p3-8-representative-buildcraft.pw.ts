@@ -214,11 +214,11 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
       .locator('dt', { hasText: new RegExp(`^${label}$`) })
       .locator('..')
       .locator('dd')
-  await expect(resonanceField('Requirements')).toHaveText('Lifebinder · heal')
+  await expect(resonanceField('Requirements')).toHaveText('Lifebinder Skills tagged Heal')
   await expect(resonancePreview.locator('dt', { hasText: /^(Mode|Setup|Trigger)$/ })).toHaveCount(0)
   await expect(resonanceField('Effects').locator(':scope > div')).toHaveText([
-    'Vanguard · attack + melee: Dmg [6] → Trigger Skill selected unit',
-    'Vanguard · attack + melee: Heal [4] [Instant]',
+    'Vanguard Skills tagged Attack + Melee: Dmg [6] → Trigger Skill selected unit',
+    'Vanguard Skills tagged Attack + Melee: Heal [4] [Instant]',
   ])
   await expect(resonancePreview.getByRole('list', { name: 'Effect explanations' })).toContainText(
     'Restores HP to you.',

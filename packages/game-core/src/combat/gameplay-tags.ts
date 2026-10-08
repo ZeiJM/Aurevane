@@ -4,6 +4,7 @@ import type {
   CombatContentCatalog,
   CombatEffectDefinition,
   CombatEncounterState,
+  CombatTargetSpec,
 } from './actions'
 
 export const GAMEPLAY_TAGS = [
@@ -276,6 +277,17 @@ export function validateGameplayEffectMetadata(effect: CombatEffectDefinition): 
   }
 }
 
+/** Authored team, friendly-fire and geometry policies must all allow the caster. */
+export function combatTargetIncludesActor(target: CombatTargetSpec): boolean {
+  if (!['self', 'unit'].includes(target.kind) || target.teamPolicy === 'enemy') return false
+  if (!['all-units', 'allies-only'].includes(target.friendlyFire)) return false
+  if (target.shape.kind === 'line') return false
+  if (target.shape.kind === 'circle') {
+    return target.geometryVersion !== 2 && target.shape.radius >= target.minimumRange
+  }
+  return target.shape.kind === 'all' || target.minimumRange === 0
+}
+
 function targetPresentationTag(action: Pick<CombatActionDefinition, 'target'>): string {
   const target = action.target
   if (target.kind === 'self') return 'Self'
@@ -283,7 +295,7 @@ function targetPresentationTag(action: Pick<CombatActionDefinition, 'target'>): 
   if (target.kind === 'empty-tile') return 'Empty Tile'
   if (target.teamPolicy === 'enemy') return 'Enemy'
   if (target.teamPolicy === 'self') return 'Self'
-  if (target.teamPolicy === 'ally') return target.minimumRange === 0 ? 'Self/Ally' : 'Ally'
+  if (target.teamPolicy === 'ally') return combatTargetIncludesActor(target) ? 'Self/Ally' : 'Ally'
   return 'Anyone'
 }
 

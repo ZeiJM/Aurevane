@@ -194,7 +194,41 @@ try {
       }
     }
   }
-  assert.equal(cases, 60)
+  // Saved percentage encounters without the trigger policy retain their old extra-tick rules.
+  for (const mode of ['pve', 'pvp', 'spectator']) {
+    for (const width of [1366, 390]) {
+      for (const dot of ['burn', 'poison']) {
+        const page = await browser.newPage({
+          viewport: { width, height: width === 390 ? 844 : 768 },
+        })
+        page.on('pageerror', (error) => errors.push(error.message))
+        await page.goto(server.resolvedUrls.local[0] + `?mode=${mode}&dot=${dot}&triggers=legacy`)
+        await page
+          .getByRole('button', { name: 'Read pinned percentage definition', exact: true })
+          .click()
+        const report = page.getByRole('region', {
+          name: 'Pinned percentage definition',
+          exact: true,
+        })
+        const text = await report.innerText()
+        assert.ok(
+          text.includes(
+            dot === 'burn'
+              ? '2 HP backlash once after each damaging command'
+              : 'Every five traversed tiles',
+          ),
+        )
+        assert.ok(!text.includes('backlash equal to 10%'))
+        assert.ok(!text.includes('at most once per turn'))
+        await report.screenshot({
+          path: resolve(output, `${mode}-${width}-${dot}-legacy-report.png`),
+        })
+        cases++
+        await page.close()
+      }
+    }
+  }
+  assert.equal(cases, 72)
   assert.deepEqual(errors, [])
   await fs.writeFile(
     resolve(output, 'results.json'),

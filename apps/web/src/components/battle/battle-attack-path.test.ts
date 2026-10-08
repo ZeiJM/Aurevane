@@ -269,3 +269,22 @@ describe('persistent current targeting footprints', () => {
     ).toBe(48)
   })
 })
+
+it('paints only the selected Ground Single tile without replacing ordinary attack reach', () => {
+  const target = { ...basic.target, kind: 'ground-tile' as const, maximumRange: 3 }
+  expect([
+    ...battleTargetReachTiles(tactical, origin, target, [], {
+      aimSource: 'player',
+      selection: { kind: 'tile', position: { x: 4, y: 1 } },
+    }),
+  ]).toEqual(['4:1'])
+  expect(
+    battleTargetReachTiles(tactical, origin, target, [], { aimSource: 'implicit' }).size,
+  ).toBeGreaterThan(1)
+  expect([
+    ...battleTargetReachTiles(tactical, origin, target, [], {
+      aimSource: 'player',
+      selection: { kind: 'tile', position: { x: 0, y: 0 } },
+    }),
+  ]).toEqual([])
+})

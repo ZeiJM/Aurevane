@@ -687,7 +687,7 @@ slice without pretending the later full Asset Studio is complete:
 - **Battle audio** uses an allow-listed stable hook selector. Produced approved cues can be
   auditioned in the editor. Existing reserved hooks whose runtime audio has not yet been produced
   remain visible honestly instead of being presented as playable media.
-- **VFX** remains visible but read-only until the approved VFX registry/runtime exists.
+- **Generic VFX hooks** remain visible but read-only. Eligible persistent Ground Skills and Essences separately expose the registered `groundArea.visualPresetId` selector and shared animation preview; arbitrary VFX scripts/styles remain unavailable.
 - Artwork/audio relationships are part of the immutable Skill definition, so publication/version
   pinning governs them together with mechanics. New battles consume the current published hooks;
   existing battles continue resolving their pinned Skill version.
@@ -752,3 +752,8 @@ Current Skill, Essence and Resonance short battle scenes reuse their immutable `
 Current drafts use immutable geometry version 2 and expose Single, Line, Circle and All. Single retains authored min/max range. Line/Circle use one integer X from 1 to 5 and store range 0..X. All exposes no X or positional range, stores range 0..0 with LoS false, and reads Range/LoS N/A. Team policy, recipient kind, friendly fire and explicit elevation remain independent; self-only targeting normalizes to Single. Server preview, save and publication reject contradictory range/LoS, invalid X, area primary-unit effects/requirements and area summons. Single Empty Tile summon remains available. Existing permission, reasons, auditing, optimistic versions, drafts, publication and rollback authority remains unchanged. Historical pinned definitions remain immutable.
 
 Burn/Poison/Bleed percentage controls from the approved attack-based DoT release remain precise in integer basis points (0.01% through 100%), with positive complete tick sequences, authored duration and compatible direct attack coverage validated server-side. Changing a percentage creates a new immutable version and leaves in-progress battles pinned. The Owner can also publish separate elevation chances in Master → Combat Settings: level 1/2/3 default to 60%/30%/10%, accept 0% through 100% to two decimal places and must total exactly 100%. Each raised tile independently draws from this policy in new Battle Hall, PvP and world encounters. Changes require an audit reason and reject stale versions; saved battles retain their pinned policy and actual tiles.
+
+
+### Current persistent Ground controls — 2026-10-07
+
+Eligible Ground Skill and Essence drafts expose persistent-area enablement, duration from one to four global rounds, activation policy and registered Embers/Frost/Arcane pulse animation with a shared preview. Selected entry effects stay aligned with supported unit effects; caster buffs, terrain and summons do not repeat on entry. Publication retains existing validation, expected-version, reason, audit and rollback controls. Burn also exposes an authored backlash percentage from 0% to 100% at 0.01% precision, default 10%, with a once-per-character-turn-cycle allowance. Published changes create immutable versions; existing encounters retain their pinned content and policies. These controls do not change the independent elevation chances in Combat Settings.

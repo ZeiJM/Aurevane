@@ -1,4 +1,14 @@
 import {
+  createCombatGroundArea,
+  advanceCombatGroundAreas,
+  resolveCombatGroundEntry,
+  groundAreaAllowsCombatant,
+  validateCombatGroundAreaDefinition,
+  validateCombatGroundAreas,
+  type CombatGroundAreaDefinition,
+  type CombatGroundAreaInstance,
+} from './combat-ground-areas'
+import {
   parseBattlefieldElevationPolicy,
   type BattlefieldElevationPolicy,
 } from './standard-battlefield'
@@ -19,11 +29,19 @@ import {
   type PercentageDotCommand,
   type CapturedPercentageDotDamage,
 } from './combat-percentage-dots'
+import {
+  claimCombatTurnTrigger,
+  prepareCombatTurnTriggers,
+  validateCombatTurnTriggers,
+  type CombatTurnTriggerState,
+} from './combat-turn-trigger-state'
+import { collectCommittedHostileCommandDamage } from './combat-committed-damage'
 import { currentPoisonTickDamage, currentBleedTickDamage } from './combat-dots'
 import type { AttackPercentageDotProfile } from './combat-percentage-dots'
 import { assertCurrentCombatStatusId, isRetiredCombatStatusId } from './retired-combat-statuses'
 import { terrainAdjustedDefense } from './combat-stat-balance'
 import { duelBalancedDirectDamage } from './combat-duel-balance'
+import { rollCombatStatusResistance } from './combat-status-resistance'
 import type {
   CombatStatusResistanceResolvedEvent,
   CombatResistedEffectOrdinals,
@@ -239,6 +257,7 @@ export type CombatEffectDefinition =
     }
   | {
       type: 'burn'
+      backlashBasisPoints?: number
       recipient: CombatEffectRecipient
       curseCopyable?: boolean
       damageProfile?: AttackPercentageDotProfile
@@ -282,6 +301,7 @@ export interface CombatEffectOrigin {
 }
 
 export interface CombatActionDefinition {
+  groundArea?: CombatGroundAreaDefinition
   effectOrigins?: readonly (CombatEffectOrigin | undefined)[]
   effectTimingTags?: readonly (string | undefined)[]
   id: string
@@ -401,8 +421,13 @@ export interface PendingCombatEffect {
 }
 
 export interface CombatEncounterState {
+  groundEffectPolicyVersion?: 1
+  nextGroundAreaId?: number
+  groundAreas?: readonly CombatGroundAreaInstance[]
   /** Generated once at battle creation; historical snapshots retain saved tiles. */
   battlefieldElevationPolicy?: BattlefieldElevationPolicy
+  dotTriggerPolicyVersion?: 1
+  turnTriggerState?: CombatTurnTriggerState
   percentageDotPolicyVersion?: 1
   nextPercentageDotCommandId?: number
   percentageDotCommands?: readonly PercentageDotCommand[]
@@ -641,6 +666,8 @@ export type CombatResolutionEvent = (
   effectOrigin?: CombatEffectOrigin
   sourceCommandVisibility?: CombatSourceCommandVisibility
   effectActivationRound?: number
+  groundAreaId?: string
+  groundSourceActionId?: string
 }
 
 export type DisplacementFailureReason =
@@ -876,14 +903,15 @@ export function evaluateCombatAction(
       target.combatantId,
       affectedCombatantIds,
       issues,
-      (action.target.kind === 'ground-tile' || action.target.kind === 'empty-tile') &&
-        action.effects.some(
-          (effect) =>
-            effect.type === 'create-terrain' ||
-            (action.target.geometryVersion !== 2 &&
-              effect.type === 'damage' &&
-              effect.element !== undefined),
-        ),
+      (state.groundEffectPolicyVersion === 1 && action.groundArea !== undefined) ||
+        ((action.target.kind === 'ground-tile' || action.target.kind === 'empty-tile') &&
+          action.effects.some(
+            (effect) =>
+              effect.type === 'create-terrain' ||
+              (action.target.geometryVersion !== 2 &&
+                effect.type === 'damage' &&
+                effect.element !== undefined),
+          )),
     )
   }
 
@@ -924,6 +952,12 @@ export function evaluateCombatAction(
       affectedTiles,
       action,
       content,
+      undefined,
+      undefined,
+      false,
+      undefined,
+      undefined,
+      { preview: true },
     )
     projectedEffects = projection.projections
     projectedEvents = projection.events
@@ -970,16 +1004,33 @@ export function applyCurrentBurnBacklash(
   state: CombatEncounterState,
   actorId: string,
   burnCount = currentBurnBacklashApplicationCount(state, actorId),
+  percentageBasis?: { hostileDamage: number; basisPoints: number },
 ): CombatResolutionTransition {
   assertNonNegativeSafeInteger(burnCount, 'Burn backlash application count')
   const actor = getCombatant(state.tactical.battle, actorId)
   if (actor.hp <= 0) return { state, events: [] }
   if (burnCount === 0) return { state, events: [] }
-  const backlash = BigInt(CURRENT_BURN_BACKLASH_DAMAGE) * BigInt(burnCount)
+  let backlash = BigInt(CURRENT_BURN_BACKLASH_DAMAGE) * BigInt(burnCount)
+  if (state.dotTriggerPolicyVersion === 1) {
+    if (!percentageBasis || percentageBasis.hostileDamage <= 0) return { state, events: [] }
+    assertNonNegativeSafeInteger(percentageBasis.hostileDamage, 'Burn backlash damage basis')
+    assertNonNegativeSafeInteger(percentageBasis.basisPoints, 'Burn backlash percentage')
+    if (percentageBasis.basisPoints > 10000)
+      throw new RangeError('Burn backlash percentage exceeds 100%.')
+    const claim = claimCombatTurnTrigger(state, actorId, 'burn.backlash')
+    state = claim.state
+    if (!claim.allowed) return { state, events: [] }
+    backlash =
+      (BigInt(percentageBasis.hostileDamage) * BigInt(percentageBasis.basisPoints)) / 10000n
+    if (backlash === 0n) return { state, events: [] }
+  }
   const hpAfter = Number(BigInt(actor.hp) > backlash ? BigInt(actor.hp) - backlash : 0n)
   const damageEvent: CombatResolutionEvent = {
     event: 'damage_applied',
-    actionId: 'status.burn.backlash.current.v1',
+    actionId:
+      state.dotTriggerPolicyVersion === 1
+        ? 'status.burn.backlash.current.v2'
+        : 'status.burn.backlash.current.v1',
     sourceCombatantId: actorId,
     targetCombatantId: actorId,
     amount: actor.hp - hpAfter,
@@ -1026,6 +1077,7 @@ export function executeCombatAction(
   const burnBacklashCount = burnBacklashApplies
     ? currentBurnBacklashApplicationCount(state, actorId)
     : 0
+  const burnBacklashBasisPoints = currentBurnInstance(state, actorId)?.backlashBasisPoints ?? 1000
   let nextState = state
   let events: CombatResolutionEvent[] = []
 
@@ -1067,6 +1119,30 @@ export function executeCombatAction(
   nextState = applied.state
   events.push(...applied.events)
 
+  nextState = createCombatGroundArea(
+    nextState,
+    actorId,
+    action,
+    evaluation.affectedTiles,
+    content,
+    { sourceCommandVisibility: combatSourceCommandVisibility(state, actorId) },
+  )
+  const createdArea = nextState.groundAreas?.at(-1)
+  if (
+    createdArea &&
+    createdArea.id !== state.groundAreas?.at(-1)?.id &&
+    createdArea.activationRound <= nextState.tactical.battle.round
+  ) {
+    for (const id of evaluation.affectedCombatantIds) {
+      const recipient = nextState.tactical.battle.combatants.find((unit) => unit.id === id)
+      if (
+        recipient &&
+        !missedCombatantIds?.has(id) &&
+        groundAreaAllowsCombatant(createdArea, recipient)
+      )
+        nextState = claimCombatTurnTrigger(nextState, id, `ground.entry.${createdArea.id}`).state
+    }
+  }
   if (action.cooldown) {
     const cooldown = applySkillCooldown(
       getCombatant(nextState.tactical.battle, actorId),
@@ -1078,7 +1154,19 @@ export function executeCombatAction(
   }
 
   if (burnBacklashApplies) {
-    const backlash = applyCurrentBurnBacklash(nextState, actorId, burnBacklashCount)
+    const damageByTarget = collectCommittedHostileCommandDamage(state, applied.events, {
+      sourceCombatantId: actorId,
+      actionId: action.id,
+    })
+    const hostileDamage = [...damageByTarget.values()].reduce((total, amount) => {
+      const sum = total + amount
+      if (!Number.isSafeInteger(sum)) throw new RangeError('Burn backlash damage basis overflow.')
+      return sum
+    }, 0)
+    const backlash = applyCurrentBurnBacklash(nextState, actorId, burnBacklashCount, {
+      hostileDamage,
+      basisPoints: burnBacklashBasisPoints,
+    })
     nextState = backlash.state
     events.push(...backlash.events)
   }
@@ -1384,6 +1472,8 @@ export function endCombatTurn(
     throw new Error('End Turn requires an active battle.')
   }
 
+  if (state.dotTriggerPolicyVersion === 1 || state.turnTriggerState)
+    state = prepareCombatTurnTriggers(state)
   const outgoingId = state.tactical.battle.currentTurn!.combatantId
   const outgoing = getCombatant(state.tactical.battle, outgoingId)
   // Predict the existing deterministic ticks for selection only. They are committed below.
@@ -1446,6 +1536,8 @@ export function endCombatTurn(
   const nextActorId = nextState.tactical.battle.currentTurn?.combatantId
 
   if (nextActorId) {
+    if (nextState.dotTriggerPolicyVersion === 1 || nextState.turnTriggerState)
+      nextState = prepareCombatTurnTriggers(nextState)
     const expiration = expireOwnerTurnStartStatuses(nextState, nextActorId, content)
     nextState = expiration.state
     events.push(...expiration.events)
@@ -1512,6 +1604,8 @@ export function validateCombatEncounterState(
     ...validateOngoingRecoveryState(state),
     ...validateBarrierState(state),
     ...validateCombatDotState(state),
+    ...validateCombatTurnTriggers(state),
+    ...validateCombatGroundAreas(state),
   ]
   if (
     state.tactical.battle.effectStackingPolicyVersion === 1 &&
@@ -2218,6 +2312,11 @@ function collectEffectRecipientIssues(
   }
 }
 
+interface CombatEffectResolutionOptions {
+  groundArea?: CombatGroundAreaInstance
+  preview?: boolean
+}
+
 /** Preview and commit run this exact immutable sequence, including consumptions and failed pushes. */
 function resolveActionEffects(
   state: CombatEncounterState,
@@ -2232,6 +2331,7 @@ function resolveActionEffects(
   resolvingPending = false,
   resistedEffectOrdinalsByTarget?: CombatResistedEffectOrdinals,
   percentageCommand?: { commandId: number; damageEffectOrdinal: number },
+  options: CombatEffectResolutionOptions = {},
 ): CombatResolutionTransition & {
   projections: CombatEffectProjection[]
   terrain: CombatTerrainProjection[]
@@ -2241,15 +2341,19 @@ function resolveActionEffects(
   const projections: CombatEffectProjection[] = []
   const terrain: CombatTerrainProjection[] = []
   const stormRecipients = new Set<string>()
+  const groundPercentageEffects: { effect: CombatEffectDefinition; ordinal: number }[] = []
   let commandId = percentageCommand?.commandId
-  if (!resolvingPending && action.effects.some(isPercentageDotEffect)) {
+  if (!options.groundArea && !resolvingPending && action.effects.some(isPercentageDotEffect)) {
     const allocated = allocatePercentageDotCommand(nextState, action)
     nextState = allocated.state
     commandId = allocated.commandId
   }
   const originalDamageEvents: CombatResolutionEvent[] = []
   const resolvedDamageOrdinals: number[] = []
-  if (action.effects.some((effect) => effect.type === 'damage' && effect.amount > 0)) {
+  if (
+    !options.groundArea &&
+    action.effects.some((effect) => effect.type === 'damage' && effect.amount > 0)
+  ) {
     const revealed = removeGameplayTags(
       nextState,
       actorId,
@@ -2265,6 +2369,10 @@ function resolveActionEffects(
     const firstEvent = events.length
     const firstProjection = projections.length
     try {
+      if (options.groundArea && isPercentageDotEffect(effect)) {
+        groundPercentageEffects.push({ effect, ordinal: effectOrdinal })
+        continue
+      }
       if (effect.type === 'sensory') {
         throw new TypeError('Sensory must be materialized before legacy effect resolution.')
       }
@@ -2507,10 +2615,12 @@ function resolveActionEffects(
           stormRecipients,
           criticalEffectOrdinalsByTarget?.get(recipientId)?.has(effectOrdinal) === true,
           resolvingPending,
+          undefined,
+          options,
         )
         nextState = applied.state
         if (
-          !resolvingPending &&
+          (!resolvingPending || options.groundArea) &&
           state.effectTimingPolicy &&
           state.tactical.battle.currentTurn?.combatantId === recipientId &&
           ['poison', 'burn', 'bleed'].includes(effect.type)
@@ -2631,7 +2741,7 @@ function resolveActionEffects(
         )
           resolvedDamageOrdinals.push(percentageCommand?.damageEffectOrdinal ?? effectOrdinal)
       }
-      if (!resolvingPending && nextState.effectTimingPolicy) {
+      if ((!resolvingPending || options.groundArea) && nextState.effectTimingPolicy) {
         const activeId = state.tactical.battle.currentTurn?.combatantId
         const appliedStatusIds = events
           .slice(firstEvent)
@@ -2665,6 +2775,74 @@ function resolveActionEffects(
       if (origin)
         for (let index = firstEvent; index < events.length; index += 1)
           events[index] = { ...events[index]!, effectOrigin: { ...origin } }
+    }
+  }
+  if (options.groundArea && groundPercentageEffects.length) {
+    const damage = collectCommittedHostileCommandDamage(state, events, {
+      sourceCombatantId: actorId,
+      actionId: action.id,
+    })
+    for (const { effect, ordinal } of groundPercentageEffects) {
+      if (!isPercentageDotEffect(effect)) continue
+      for (const recipientId of affectedCombatantIds) {
+        const basis = damage.get(recipientId) ?? 0
+        if (
+          basis <= 0 ||
+          getCombatant(nextState.tactical.battle, recipientId).hp <= 0 ||
+          resistedEffectOrdinalsByTarget?.get(recipientId)?.has(ordinal)
+        )
+          continue
+        const applied = applyEffect(
+          nextState,
+          actorId,
+          recipientId,
+          action.id,
+          effect,
+          content,
+          stormRecipients,
+          false,
+          true,
+          { capturedDamage: basis, profile: effect.damageProfile },
+          options,
+        )
+        nextState = applied.state
+        if (
+          state.effectTimingPolicy &&
+          state.tactical.battle.currentTurn?.combatantId === recipientId
+        ) {
+          const effects = normalizeCombatEffectState(nextState.effectState)
+          const mark = <T extends { targetCombatantId: string; sourceActionId: string }>(row: T) =>
+            row.targetCombatantId === recipientId && row.sourceActionId === action.id
+              ? { ...row, skipCurrentOwnerTurnEnd: true }
+              : row
+          nextState = {
+            ...nextState,
+            effectState: {
+              ...effects,
+              burn: effects.burn.map(mark),
+              poison: effects.poison.map(mark),
+              bleed: effects.bleed.map(mark),
+            },
+          }
+        }
+        events.push(...applied.events, {
+          event: 'persistent_effect_applied',
+          actionId: action.id,
+          sourceCombatantId: actorId,
+          targetCombatantId: recipientId,
+          statusId: effect.type,
+          ...(action.effectOrigins?.[ordinal]
+            ? { effectOrigin: action.effectOrigins[ordinal] }
+            : {}),
+        })
+        projections.push({
+          effectType: effect.type,
+          combatantId: recipientId,
+          before: 'none',
+          after: 'active',
+          effectOrdinal: ordinal,
+        })
+      }
     }
   }
   if (commandId !== undefined) {
@@ -2832,9 +3010,18 @@ function applyEffect(
   critical: boolean,
   resolvingPending = false,
   percentageDamage?: CapturedPercentageDotDamage,
+  options: CombatEffectResolutionOptions = {},
 ): CombatResolutionTransition {
   if (effect.type === 'displace')
-    return applyDisplacement(state, actorId, recipientId, actionId, effect, content)
+    return applyDisplacement(
+      state,
+      actorId,
+      recipientId,
+      actionId,
+      effect,
+      content,
+      options.preview,
+    )
   if (effect.type === 'poison') {
     const tuning = effect as typeof effect & { power?: number; durationTurns?: number }
     return {
@@ -2880,6 +3067,7 @@ function applyEffect(
         tuning.power,
         tuning.durationTurns,
         percentageDamage,
+        effect.backlashBasisPoints,
       ),
       events: [],
     }
@@ -2904,8 +3092,14 @@ function applyEffect(
   if (effect.type === 'return-to-turn-start') {
     const from = getPlacement(state.tactical, actorId).position
     const to = state.turnOrigin!.position
+    const landed = resolveGroundAtPosition(
+      rewindToTurnOrigin(state, actorId),
+      actorId,
+      content,
+      options.preview,
+    )
     return {
-      state: rewindToTurnOrigin(state, actorId),
+      state: landed.state,
       events: [
         {
           event: 'combatant_rewound',
@@ -2914,6 +3108,7 @@ function applyEffect(
           from: { ...from },
           to: { ...to },
         },
+        ...landed.events,
       ],
     }
   }
@@ -2933,6 +3128,7 @@ function applyEffect(
       content,
       stormBonus ? stormDamageMultiplier(state, recipientId, content) : 10_000,
       critical,
+      options.groundArea,
     )
     if (stormBonus && amount > 0) stormRecipients.add(recipientId)
     const barrier = absorbDirectDamageWithBarrier(state, recipientId, amount)
@@ -3139,7 +3335,9 @@ function resolveDamageAmount(
   content: CombatContentCatalog,
   elementalMultiplier = 10_000,
   critical = false,
+  groundArea?: CombatGroundAreaInstance,
 ): number {
+  const outgoingState = groundArea ? withGroundCasterForDamage(state, groundArea) : state
   let amount = effect.amount
   if (effect.defenseKind && amount > 0 && effect.piercing !== true) {
     const defense = state.statBridge?.combatants.find((unit) => unit.combatantId === recipientId)?.[
@@ -3151,7 +3349,7 @@ function resolveDamageAmount(
   }
 
   if (
-    getCombatant(state.tactical.battle, actorId).teamId !==
+    getCombatant(outgoingState.tactical.battle, actorId).teamId !==
     getCombatant(state.tactical.battle, recipientId).teamId
   ) {
     amount = duelBalancedDirectDamage(state, amount)
@@ -3166,7 +3364,9 @@ function resolveDamageAmount(
     actorId !== recipientId &&
     amount > 0
   ) {
-    const attacker = state.statBridge.combatants.find((unit) => unit.combatantId === actorId)
+    const attacker = outgoingState.statBridge?.combatants.find(
+      (unit) => unit.combatantId === actorId,
+    )
     const defender = state.statBridge.combatants.find((unit) => unit.combatantId === recipientId)
     if (attacker?.level === undefined || defender?.level === undefined) {
       throw new TypeError('Combat rules v3 damage requires attacker and defender Levels.')
@@ -3178,7 +3378,7 @@ function resolveDamageAmount(
   }
 
   if (effect.facingModifiersBasisPoints && actorId !== recipientId) {
-    const actorPlacement = getPlacement(state.tactical, actorId)
+    const actorPlacement = getPlacement(outgoingState.tactical, actorId)
     const targetPlacement = getPlacement(state.tactical, recipientId)
     const relation = classifyFacingRelation(
       targetPlacement.position,
@@ -3219,6 +3419,7 @@ function resolveDamageAmount(
     amount,
     conditionalDamageMultiplier(state, actorId, recipientId, content, elementalMultiplier, {
       ignoreIncomingMitigation: effect.piercing === true,
+      outgoingState,
     }),
   )
 
@@ -3548,7 +3749,7 @@ function completeBattleIfResolved(state: CombatEncounterState): CombatResolution
 
 function withBattle(state: CombatEncounterState, battle: BattleState): CombatEncounterState {
   const tactical = createTacticalBattleState({ ...state.tactical, battle })
-  let nextState = clearDefeatedRecovery({ ...state, tactical })
+  let nextState = advanceCombatGroundAreas(clearDefeatedRecovery({ ...state, tactical }))
   if (nextState.percentageDotPolicyVersion === 1 && nextState.effectState) {
     const alive = new Set(
       battle.lifecycle === 'active'
@@ -3708,6 +3909,7 @@ function validateCombatActionDefinition(
   action: CombatActionDefinition,
   content?: CombatContentCatalog,
 ): void {
+  validateCombatGroundAreaDefinition(action)
   validateVersionedCombatTargetSpec(action.target)
   validateCurrentAreaTargetRecipients(action)
   validateCombatStatusCopyAction(action)
@@ -4212,6 +4414,7 @@ function applyDisplacement(
   actionId: string,
   effect: Extract<CombatEffectDefinition, { type: 'displace' }>,
   content: CombatContentCatalog,
+  preview = false,
 ): CombatResolutionTransition {
   const source = getPlacement(state.tactical, actorId).position
   const placement = getPlacement(state.tactical, recipientId)
@@ -4305,11 +4508,23 @@ function applyDisplacement(
     current = to
     movedTiles += 1
 
-    const movementEffects = resolveCombatMovementStepEffects(nextState, recipientId, content)
+    const movementEffects = resolveCombatMovementStepEffects(nextState, recipientId, content, {
+      preview,
+      deferCompletion: true,
+    })
     nextState = movementEffects.state
     movementEffectEvents.push(...movementEffects.events)
     if (getCombatant(nextState.tactical.battle, recipientId).hp <= 0) {
       stopReason = 'target-defeated'
+      break
+    }
+    if (
+      getStatusRow(nextState, recipientId).statuses.some(
+        (status) =>
+          getStatusDefinition(content, status.statusId, status.statusVersion).movement?.blocked,
+      )
+    ) {
+      stopReason = 'status-restricted'
       break
     }
   }
@@ -4360,6 +4575,141 @@ function applyDisplacement(
 }
 
 export function resolveCombatMovementStepEffects(
+  state: CombatEncounterState,
+  combatantId: string,
+  content: CombatContentCatalog,
+  options: { preview?: boolean; deferCompletion?: boolean } = {},
+): CombatResolutionTransition {
+  const poison = resolvePoisonMovementStep(state, combatantId, content)
+  const ground = resolveGroundAtPosition(
+    poison.state,
+    combatantId,
+    content,
+    options.preview,
+    options.deferCompletion,
+  )
+  return { state: ground.state, events: [...poison.events, ...ground.events] }
+}
+function resolveGroundAtPosition(
+  state: CombatEncounterState,
+  combatantId: string,
+  content: CombatContentCatalog,
+  preview = false,
+  deferCompletion = false,
+): CombatResolutionTransition {
+  const position = getPlacement(state.tactical, combatantId).position
+  return resolveCombatGroundEntry(state, combatantId, position, (current, area, recipientId) => {
+    const action: CombatActionDefinition = {
+      id: `ground.pulse.${area.id}`,
+      version: area.sourceActionVersion,
+      sourceType: 'discipline-skill',
+      tags: ['attack'],
+      target: area.target,
+      cost: { spendsAction: false, mp: 0 },
+      requirements: [],
+      effects: area.entryEffects,
+      ...(area.entryEffectOrigins
+        ? { effectOrigins: area.entryEffectOrigins.map((origin) => origin ?? undefined) }
+        : {}),
+    }
+    const evaluation: CombatActionEvaluation = {
+      legal: true,
+      actionId: action.id,
+      primaryPosition: position,
+      actorId: area.sourceCombatantId,
+      primaryCombatantId: recipientId,
+      affectedCombatantIds: [recipientId],
+      affectedTiles: [position],
+      projectedEffects: [],
+      projectedTerrain: [],
+      projectedEvents: [],
+      mpCost: 0,
+      spendsAction: false,
+      issues: [],
+    }
+    const resistance = preview
+      ? {
+          state: current,
+          events: [],
+          resistedEffectOrdinalsByTarget: new Map<string, ReadonlySet<number>>(),
+        }
+      : rollCombatStatusResistance(current, action, evaluation, area.content, new Set())
+    const applied = resolveActionEffects(
+      resistance.state,
+      area.sourceCombatantId,
+      recipientId,
+      [recipientId],
+      [position],
+      action,
+      area.content,
+      undefined,
+      undefined,
+      true,
+      resistance.resistedEffectOrdinalsByTarget,
+      undefined,
+      { groundArea: area, preview },
+    )
+    const filtered = filterBlockedCovertApplication({
+      before: current,
+      after: applied.state,
+      events: applied.events,
+    })
+    const completed = deferCompletion
+      ? { state: filtered.state, events: [] }
+      : completeBattleIfResolved(filtered.state)
+    return {
+      state: completed.state,
+      events: [
+        ...resistance.events,
+        ...(filtered.events as CombatResolutionEvent[]),
+        ...completed.events,
+      ].map((event) => ({
+        ...event,
+        groundAreaId: area.id,
+        groundSourceActionId: area.sourceActionId,
+        ...(area.sourceCommandVisibility
+          ? { sourceCommandVisibility: area.sourceCommandVisibility }
+          : {}),
+      })),
+    }
+  })
+}
+function withGroundCasterForDamage(
+  state: CombatEncounterState,
+  area: CombatGroundAreaInstance,
+): CombatEncounterState {
+  const caster = area.caster
+  return {
+    ...state,
+    tactical: {
+      ...state.tactical,
+      battle: {
+        ...state.tactical.battle,
+        combatants: state.tactical.battle.combatants.map((unit) =>
+          unit.id === area.sourceCombatantId ? caster.combatant : unit,
+        ),
+      },
+      placements: state.tactical.placements.map((row) =>
+        row.combatantId === area.sourceCombatantId ? caster.placement : row,
+      ),
+    },
+    statusState: state.statusState.map((row) =>
+      row.combatantId === area.sourceCombatantId ? { ...row, statuses: caster.statuses } : row,
+    ),
+    ...(state.statBridge && caster.statProfile
+      ? {
+          statBridge: {
+            ...state.statBridge,
+            combatants: state.statBridge.combatants.map((row) =>
+              row.combatantId === area.sourceCombatantId ? caster.statProfile! : row,
+            ),
+          },
+        }
+      : {}),
+  }
+}
+
+function resolvePoisonMovementStep(
   state: CombatEncounterState,
   combatantId: string,
   content: CombatContentCatalog,

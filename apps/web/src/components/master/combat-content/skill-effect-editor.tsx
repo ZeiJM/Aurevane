@@ -485,7 +485,13 @@ function PercentageDotControls({
               changeProfile({ ...profile, decayBasisPointsPerTick })
             }
           />
-          <p className={styles.effectNote}>{sequence}</p>
+          <PercentageInput
+            label="Backlash (% of burning unit’s hostile damage)"
+            basisPoints={value.backlashBasisPoints ?? 1000}
+            allowZero
+            onChange={(backlashBasisPoints) => onChange({ ...value, backlashBasisPoints })}
+          />
+          <p className={styles.effectNote}>{sequence}. Backlash can trigger once per turn.</p>
         </>
       ) : null}
       {!value.damageProfile ? (

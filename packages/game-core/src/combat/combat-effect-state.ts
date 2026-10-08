@@ -97,6 +97,7 @@ export interface CombatBleedStack {
 }
 
 export interface CombatBurnInstance {
+  backlashBasisPoints?: number
   percentageDamage?: CapturedPercentageDotDamage
   /** Stable identity for independently accumulated applications in stacking policy 1. */
   applicationOrder?: number

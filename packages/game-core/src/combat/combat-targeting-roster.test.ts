@@ -32,14 +32,23 @@ describe('immutable current targeting catalog', () => {
         continue
       }
       expect(current.target.geometryVersion, current.id).toBe(2)
+      const geometryCurrent = current.groundArea
+        ? current.id.startsWith('essence.')
+          ? resolveEssenceForBuild(current.sourceDisciplineId, null, current.contentVersion - 1)!
+              .skill
+          : resolveMatureSkillVersion(current.id, current.contentVersion - 1)!
+        : current
       const old = current.id.startsWith('essence.')
-        ? resolveEssenceForBuild(current.sourceDisciplineId, null, current.contentVersion - 1)!
-            .skill
-        : resolveMatureSkillVersion(current.id, current.contentVersion - 1)!
+        ? resolveEssenceForBuild(
+            current.sourceDisciplineId,
+            null,
+            geometryCurrent.contentVersion - 1,
+          )!.skill
+        : resolveMatureSkillVersion(current.id, geometryCurrent.contentVersion - 1)!
       expect(old.target.geometryVersion).toBeUndefined()
-      expect(createCurrentTargetingSkillVersion(old)).toEqual(current)
+      expect(createCurrentTargetingSkillVersion(old)).toEqual(geometryCurrent)
       expect({
-        ...current,
+        ...geometryCurrent,
         contentVersion: old.contentVersion,
         target: old.target,
         authoring: old.authoring,

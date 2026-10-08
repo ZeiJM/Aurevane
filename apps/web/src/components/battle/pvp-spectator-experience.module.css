@@ -202,17 +202,19 @@
   outline: 2px solid #328e82;
 }
 .chatDock {
+  position: relative;
   margin-left: auto;
 }
 .chatDock summary {
   cursor: pointer;
 }
 .comms {
-  position: fixed;
+  /* Anchor above the actual toggle, including when the dock wraps on mobile. */
+  position: absolute;
   z-index: 2000;
-  right: 0.6rem;
-  bottom: 4rem;
-  width: min(26rem, calc(100vw - 1.2rem));
+  right: 0;
+  bottom: calc(100% + 0.5rem);
+  width: min(26rem, calc(100vw - 3rem));
   max-height: 50dvh;
   overflow: auto;
 }

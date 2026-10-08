@@ -281,20 +281,20 @@ export function BattleCompletionPanel({ battle }: BattleCompletionPanelProps) {
           </div>
         </div>
 
-        {recordId === 'mastery-trial' && result === 'Victory' ? (
-          <div className={styles.logActions}>
-            <button
-              type="button"
-              className={styles.secondary}
-              disabled={claimPending || masteryNotice !== null}
-              onClick={() => void claimMastery()}
-            >
-              {claimPending ? 'Verifying…' : 'Claim Mastery'}
-            </button>
-            {masteryNotice ? <span role="status">{masteryNotice}</span> : null}
-          </div>
-        ) : null}
         <div className={styles.logActions}>
+          {recordId === 'mastery-trial' && result === 'Victory' ? (
+            <>
+              <button
+                type="button"
+                className={styles.secondary}
+                disabled={claimPending || masteryNotice !== null}
+                onClick={() => void claimMastery()}
+              >
+                {claimPending ? 'Verifying…' : 'Claim Mastery'}
+              </button>
+              {masteryNotice ? <span role="status">{masteryNotice}</span> : null}
+            </>
+          ) : null}
           <button type="button" className={styles.secondary} onClick={() => void toggleBattleLog()}>
             {logLoading ? 'Loading Battle Log…' : logOpen ? 'Hide Battle Log' : 'Review Battle Log'}
           </button>

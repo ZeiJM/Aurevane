@@ -41,6 +41,11 @@ import {
 import * as legacy from './actions-legacy'
 
 export * from './actions-legacy'
+export {
+  createCombatGroundArea,
+  advanceCombatGroundAreas,
+  validateCombatGroundAreas,
+} from './combat-ground-areas'
 
 type LegacyDamageEffect = Extract<legacy.CombatEffectDefinition, { type: 'damage' }>
 

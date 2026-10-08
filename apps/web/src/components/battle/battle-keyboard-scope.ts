@@ -1,3 +1,12 @@
+/** Leave a dismissed action control without drawing another selectable command box. */
+export function restoreBattleKeyboardFocus(): void {
+  window.requestAnimationFrame(() => {
+    document
+      .querySelector<HTMLElement>('main[data-battle-keyboard-focus-root="true"]')
+      ?.focus({ preventScroll: true })
+  })
+}
+
 /** Reading controls and native action-details dialogs own keyboard input instead of combat shortcuts. */
 export function isBattleShortcutBlocked(target: EventTarget | null, code?: string): boolean {
   // Inspect owns keyboard input even when focus remains on the tile that opened it.

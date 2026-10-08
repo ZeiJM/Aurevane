@@ -1,3 +1,4 @@
+import type { PublicCombatGroundArea } from '@aurevane/game-core/combat/combat-ground-visuals'
 export interface CombatContentValidationIssue {
   readonly path: string
   readonly code: string
@@ -15,6 +16,7 @@ export interface CombatContentSemanticDiff {
 }
 
 export interface CombatContentPreviewSummary {
+  readonly groundAreas?: readonly PublicCombatGroundArea[]
   readonly legal?: boolean
   readonly costs?: {
     readonly actionEconomy?: number

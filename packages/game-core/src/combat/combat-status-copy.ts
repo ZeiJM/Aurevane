@@ -480,6 +480,9 @@ export function applyCombatStatusCopies(
     curseCopyable: true,
   }))
   const nextBurns: CombatBurnInstance[] = burns.map((copy) => ({
+    ...(copy.donor.backlashBasisPoints !== undefined
+      ? { backlashBasisPoints: copy.donor.backlashBasisPoints }
+      : {}),
     targetCombatantId: receiverId,
     sourceCombatantId: actorId,
     sourceActionId: actionId,

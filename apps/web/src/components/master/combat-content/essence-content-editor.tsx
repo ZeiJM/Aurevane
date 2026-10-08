@@ -27,6 +27,7 @@ import {
 import { SkillEconomyEditor, type SkillEconomyDraft } from './skill-economy-editor'
 import { SkillEffectListEditor } from './skill-effect-list-editor'
 import { SkillMediaEditor } from './skill-media-editor'
+import { SkillGroundEditor, groundAreaForEffects, withSkillGroundArea } from './skill-ground-editor'
 import { SkillTargetingEditor } from './skill-targeting-editor'
 
 export interface EssenceContentEditorOption {
@@ -125,6 +126,15 @@ export function EssenceContentEditor({ essences, initialEssenceId }: EssenceCont
   )
 
   function updateDraft(next: EssenceDefinition) {
+    next = {
+      ...next,
+      skill: withSkillGroundArea(
+        next.skill,
+        next.skill.groundArea && next.skill.target.kind === 'ground-tile'
+          ? groundAreaForEffects(next.skill.effects, next.skill.groundArea)
+          : undefined,
+      ),
+    }
     if (!selected) return
     const id = selected.id
     draftRevision.current[id] = (draftRevision.current[id] ?? 0) + 1
@@ -439,6 +449,14 @@ export function EssenceContentEditor({ essences, initialEssenceId }: EssenceCont
             <SkillTargetingEditor
               value={skill.target}
               onChange={(target) => updateDraft({ ...selectedDraft, skill: { ...skill, target } })}
+            />
+            <SkillGroundEditor
+              target={skill.target}
+              effects={skill.effects}
+              value={skill.groundArea}
+              onChange={(groundArea) =>
+                updateDraft({ ...selectedDraft, skill: withSkillGroundArea(skill, groundArea) })
+              }
             />
             <SkillEconomyEditor
               value={{

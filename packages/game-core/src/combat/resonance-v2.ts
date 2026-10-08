@@ -1,6 +1,7 @@
 import { battleFlavorTemplateIssues } from './battle-narration'
 import type { CombatEffectDefinition } from './actions'
 import { validateGameplayEffectMetadata } from './gameplay-tags'
+import { validResonanceSkillMatcher } from './resonance-skill-matcher'
 import type { ResonanceDefinition, ResonanceMediaHooks, ResonanceSkillMatcher } from './resonance'
 
 export const RESONANCE_V2_SCHEMA_VERSION = 2 as const
@@ -48,12 +49,7 @@ const STABLE_ID_PATTERN = /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/u
 const IMMEDIATE_TRIGGER_DISCIPLINES = new Set(['chronist', 'farstrider', 'ironfist', 'shadehand'])
 
 function matcherValid(matcher: ResonanceSkillMatcher): boolean {
-  return (
-    STABLE_ID_PATTERN.test(matcher.sourceDisciplineId) &&
-    matcher.requiredTags.length >= 1 &&
-    matcher.requiredTags.length <= 2 &&
-    matcher.requiredTags.every((tag) => STABLE_ID_PATTERN.test(tag))
-  )
+  return validResonanceSkillMatcher(matcher, 2)
 }
 
 function validateEffect(effect: CombatEffectDefinition): boolean {
@@ -188,7 +184,11 @@ export function validateResonanceDefinitionV2(
     issues.push('trigger.mode')
   }
 
-  if (!matcherValid(definition.trigger.trigger)) issues.push('trigger.trigger')
+  if (
+    !matcherValid(definition.trigger.trigger) ||
+    definition.trigger.trigger.matchMode !== undefined
+  )
+    issues.push('trigger.trigger')
 
   const matcherDisciplines = [
     ...(definition.trigger.setup ? [definition.trigger.setup.sourceDisciplineId] : []),

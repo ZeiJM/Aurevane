@@ -1359,7 +1359,7 @@ export function executePv1fMovement(
   state: StatDrivenCombatEncounterState,
   path: readonly GridPosition[],
 ): Pv1fTransition {
-  const { prepared, movement, economyCost, poisonForecast } = evaluatePv1fMovement(state, path)
+  const { prepared, movement, economyCost } = evaluatePv1fMovement(state, path)
   if (!movement.legal)
     throw new Error(movement.issues[0]?.message ?? 'That movement path is not legal.')
   if (!canAffordPv1fEconomy(prepared, economyCost)) {
@@ -1367,32 +1367,80 @@ export function executePv1fMovement(
   }
   const actorId = prepared.tactical.battle.currentTurn?.combatantId
   if (!actorId) throw new Error('PV-1F movement requires an active turn.')
-  const moved = moveCurrentCombatant(
-    prepared.tactical,
-    movement.path,
-    'entered-tiles',
-    prepared.statBalancePolicyVersion,
-  )
-  let next = reattachStatDrivenCombatBridge(
-    { ...prepared, ...createCombatEncounterState(moved.state, prepared.statusState) },
-    prepared.statBridge,
-  )
+  let next = prepared
+  let spentEconomy = 0
+  const movementEvents: unknown[] = []
   const movementEffectEvents: unknown[] = []
-  for (let index = 0; index < poisonForecast.traversedTiles; index += 1) {
+  for (let index = 1; index < movement.path.length; index += 1) {
+    if (
+      next.tactical.battle.lifecycle !== 'active' ||
+      next.tactical.battle.currentTurn?.combatantId !== actorId ||
+      getCombatant(next, actorId).hp <= 0
+    )
+      break
+    const modifiers = pv1fMovementModifiers(next)
+    if (modifiers.blocked) break
+    const position = movement.path[index]!
+    const traversal = movementTraversalCostAt(next.tactical, actorId, position)
+    if (traversal === null) break
+    const stepCost = movementApCostForTile(traversal, modifiers.additionalApAt(position))
+    if (!canAffordPv1fEconomy(next, spentEconomy + stepCost)) break
+    const moved = moveCurrentCombatant(
+      next.tactical,
+      [movement.path[index - 1]!, position],
+      'entered-tiles',
+      next.statBalancePolicyVersion,
+    )
+    next = reattachStatDrivenCombatBridge(
+      { ...next, ...createCombatEncounterState(moved.state, next.statusState) },
+      next.statBridge,
+    )
+    spentEconomy += stepCost
+    movementEvents.push(...moved.events)
     const resolved = resolveCombatMovementStepEffects(next, actorId, PV1F_COMBAT_CONTENT)
-    next = reattachStatDrivenCombatBridge(resolved.state, prepared.statBridge)
+    next = reattachStatDrivenCombatBridge(resolved.state, next.statBridge)
     movementEffectEvents.push(...resolved.events)
-    if (getCombatant(next, actorId).hp <= 0) break
   }
-  next = spendPv1fActionEconomyForActor(next, actorId, economyCost)
+  // One command retains one movement receipt, even though hazards resolve at each tile.
+  const moves = (
+    movementEvents as {
+      event: string
+      from: GridPosition
+      to: GridPosition
+      movementCost: number
+    }[]
+  ).filter((event) => event.event === 'combatant_moved')
+  const movedEvents =
+    moves.length === 0
+      ? []
+      : [
+          {
+            ...moves[0],
+            to: moves.at(-1)!.to,
+            movementCost: moves.reduce((sum, event) => sum + event.movementCost, 0),
+          },
+        ]
+  const spends = (
+    movementEvents as { event: string; amount: number; remaining: number; combatantId: string }[]
+  ).filter((event) => event.event === 'movement_spent')
+  const spentEvents =
+    spends.length === 0
+      ? []
+      : [{ ...spends.at(-1)!, amount: spends.reduce((sum, event) => sum + event.amount, 0) }]
+  next = spendPv1fActionEconomyForActor(next, actorId, spentEconomy)
   next = clearLastMatureSkill(next, actorId)
   const remaining = readPv1fActionEconomy(next, actorId)?.current ?? 0
   return {
     state: next,
     events: [
-      ...moved.events,
+      ...movementEvents.filter(
+        (event) =>
+          !['combatant_moved', 'movement_spent'].includes((event as { event: string }).event),
+      ),
+      ...spentEvents,
+      ...movedEvents,
       ...movementEffectEvents,
-      { event: 'action_economy_spent', combatantId: actorId, amount: economyCost, remaining },
+      { event: 'action_economy_spent', combatantId: actorId, amount: spentEconomy, remaining },
     ],
   }
 }

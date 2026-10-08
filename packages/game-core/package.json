@@ -31,6 +31,7 @@
     "./combat/mature-skills": "./src/combat/mature-skills.ts",
     "./combat/resonance": "./src/combat/resonance.ts",
     "./combat/resonance-v2": "./src/combat/resonance-v2.ts",
+    "./combat/resonance-skill-matcher": "./src/combat/resonance-skill-matcher.ts",
     "./combat/pv1f-resonance": "./src/combat/pv1f-resonance.ts",
     "./combat/essence": "./src/combat/essence.ts",
     "./combat/skill-cooldowns": "./src/combat/skill-cooldowns.ts",
@@ -72,7 +73,9 @@
     "./combat/combat-status-resistance": "./src/combat/combat-status-resistance.ts",
     "./combat/combat-percentage-dot-roster": "./src/combat/combat-percentage-dot-roster.ts",
     "./combat/combat-targeting-shapes": "./src/combat/combat-targeting-shapes.ts",
-    "./combat/combat-targeting-roster": "./src/combat/combat-targeting-roster.ts"
+    "./combat/combat-targeting-roster": "./src/combat/combat-targeting-roster.ts",
+    "./combat/combat-ground-areas": "./src/combat/combat-ground-areas.ts",
+    "./combat/combat-ground-visuals": "./src/combat/combat-ground-visuals.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

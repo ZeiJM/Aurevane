@@ -3,8 +3,43 @@ import { describe, expect, it } from 'vitest'
 import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
 import { skillPreviewEffects } from '../character/skill-effect-preview'
 import { BattleSkillParameters } from './battle-skill-parameters'
+import { SkillEffectTimingProvider } from '../character/skill-effect-timing-context'
 
 describe('cockpit Skill Parameters', () => {
+  it.each(['cinderweaver.cinder-bolt', 'wildwarden.venom-shot'])(
+    'reads historical trigger policy for %s',
+    (id) => {
+      const definition = resolveMatureSkillVersion(id)!
+      expect(definition).toBeDefined()
+      const markup = renderToStaticMarkup(
+        <SkillEffectTimingProvider policy={null} dotTriggerPolicyVersion={null}>
+          <BattleSkillParameters
+            skill={{
+              definition,
+              id: definition.id,
+              name: definition.id,
+              apCost: 50,
+              mpCost: 0,
+              minimumRange: definition.target.minimumRange,
+              maximumRange: definition.target.maximumRange,
+              targetKind: definition.target.kind,
+              targetTeamPolicy: definition.target.teamPolicy,
+              tags: [],
+              effectDescriptions: [],
+              requirementDescriptions: [],
+            }}
+          />
+        </SkillEffectTimingProvider>,
+      )
+      expect(markup).toContain(
+        id.startsWith('cinder')
+          ? '2 HP backlash once after each damaging command'
+          : 'Every five traversed tiles',
+      )
+      expect(markup).not.toContain('at most once per turn')
+      expect(markup).not.toContain('backlash equal to 10%')
+    },
+  )
   it('reads the committed definition with Nexus effects and effective battle costs', () => {
     const definition = resolveMatureSkillVersion('vanguard.forceful-strike', 2)!
     const before = JSON.stringify(definition)

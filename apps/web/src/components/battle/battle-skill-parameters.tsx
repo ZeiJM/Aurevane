@@ -1,7 +1,10 @@
 'use client'
 
 import { skillTargetMethodExplanation } from '../character/skill-detail-presentation'
-import { useSkillEffectTimingPolicy } from '../character/skill-effect-timing-context'
+import {
+  useSkillEffectTimingPolicy,
+  useSkillDotTriggerPolicyVersion,
+} from '../character/skill-effect-timing-context'
 import { CompactSkillEffectSummary } from '../character/compact-skill-effect-summary'
 import { battleSkillParameterRows } from './battle-preview-content'
 import { skillPreviewEffects } from '../character/skill-effect-preview'
@@ -11,6 +14,7 @@ import { SkillCharacteristicRows } from '../character/skill-characteristic-rows'
 /** Uses the same pinned definitions and parameter/effect renderers as Skill Management. */
 export function BattleSkillParameters({ skill }: { skill: BattleSkillForecastPresentation }) {
   const timingPolicy = useSkillEffectTimingPolicy()
+  const legacyTriggers = useSkillDotTriggerPolicyVersion() === null
   const definition = skill.definition
   const rows = battleSkillParameterRows(skill, timingPolicy)
   return (
@@ -37,11 +41,13 @@ export function BattleSkillParameters({ skill }: { skill: BattleSkillForecastPre
       </dl>
       {definition ? (
         <ul aria-label="Effect explanations">
-          {skillPreviewEffects(definition).map((effect, index) => (
-            <li key={index}>
-              <strong>{effect.label}</strong> — {effect.explanation}
-            </li>
-          ))}
+          {skillPreviewEffects(definition, timingPolicy, { legacyTriggers }).map(
+            (effect, index) => (
+              <li key={index}>
+                <strong>{effect.label}</strong> — {effect.explanation}
+              </li>
+            ),
+          )}
         </ul>
       ) : null}
       {skill.requirementDescriptions.length > 0 ? (

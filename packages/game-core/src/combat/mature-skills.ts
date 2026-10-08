@@ -1,3 +1,8 @@
+import { createCurrentGroundSkillVersion } from './combat-ground-roster'
+import {
+  validateCombatGroundAreaDefinition,
+  type CombatGroundAreaDefinition,
+} from './combat-ground-areas'
 import { createCurrentTargetingSkillVersion } from './combat-targeting-roster'
 import { validateCurrentAreaTargetRecipients } from './combat-targeting-shapes'
 import { createPercentageDotSkillVersion } from './combat-percentage-dot-roster'
@@ -72,6 +77,7 @@ export interface MatureSkillAuthoringMetadata {
 export type MatureSkillEffectDefinition = CombatEffectDefinition | CombatSummonEffect
 
 export interface MatureSkillDefinition extends CombatAccuracyAuthoring {
+  readonly groundArea?: CombatGroundAreaDefinition
   readonly id: string
   readonly contentVersion: number
   readonly enabled: boolean
@@ -1025,9 +1031,20 @@ const CURRENT_TARGETING_DISCIPLINE_SKILLS = latestEnabledMatureSkills(
   const next = createCurrentTargetingSkillVersion(definition)
   return next ? [next] : []
 })
-const CURRENT_DISCIPLINE_SKILL_REGISTRY = [
+const PRE_CURRENT_GROUND_DISCIPLINE_SKILL_REGISTRY = [
   ...PRE_CURRENT_TARGETING_DISCIPLINE_SKILL_REGISTRY,
   ...CURRENT_TARGETING_DISCIPLINE_SKILLS,
+]
+
+const CURRENT_GROUND_DISCIPLINE_SKILLS = latestEnabledMatureSkills(
+  PRE_CURRENT_GROUND_DISCIPLINE_SKILL_REGISTRY,
+).flatMap((definition) => {
+  const next = createCurrentGroundSkillVersion(definition)
+  return next ? [next] : []
+})
+const CURRENT_DISCIPLINE_SKILL_REGISTRY = [
+  ...PRE_CURRENT_GROUND_DISCIPLINE_SKILL_REGISTRY,
+  ...CURRENT_GROUND_DISCIPLINE_SKILLS,
 ]
 
 /** Current selection catalog; the historical P3.3/P4 export remains stable for pinned contracts. */
@@ -1048,6 +1065,17 @@ export function validateMatureSkillDefinition(
   definition: MatureSkillDefinition,
 ): readonly string[] {
   const issues: string[] = []
+  try {
+    validateCombatGroundAreaDefinition(definition)
+  } catch {
+    issues.push('groundArea')
+  }
+  if (
+    definition.authoring.validationTags.includes('persistent-ground-areas') &&
+    !definition.groundArea
+  )
+    issues.push('groundArea')
+
   try {
     validateCurrentAreaTargetRecipients(definition)
   } catch {
@@ -1324,6 +1352,7 @@ function projectResolvedMatureSkillAction(
     sourceType: 'discipline-skill',
     tags: resolved.tags,
     target: resolved.target,
+    ...(resolved.groundArea ? { groundArea: resolved.groundArea } : {}),
     cost: { spendsAction: true, mp: resolved.mpCost ?? 0 },
     requirements: resolved.requirements,
     ...(resolved.cooldown === null ? {} : { cooldown: resolved.cooldown }),

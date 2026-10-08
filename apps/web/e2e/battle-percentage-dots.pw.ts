@@ -22,10 +22,10 @@ test('percentage Skill/Essence and active/pending readers across desktop/mobile 
     },
   )
   expect(result.stdout).toContain(
-    '60 percentage Skill/Essence and active/pending rail cases passed',
+    '72 percentage Skill/Essence and active/pending rail cases passed',
   )
   const results = JSON.parse(await readFile(resolve(output, 'results.json'), 'utf8'))
-  expect(results.cases).toBe(60)
+  expect(results.cases).toBe(72)
   expect(results.errors).toEqual([])
   await testInfo.attach('Percentage readers', {
     path: resolve(output, 'results.json'),

@@ -334,6 +334,8 @@ describe('P3.7 direct PvP committed build snapshots', () => {
       expect(state.statBalancePolicyVersion).toBe(1)
       expect(state.effectStackingPolicyVersion).toBe(1)
       expect(state.percentageDotPolicyVersion).toBe(1)
+      expect(state.dotTriggerPolicyVersion).toBe(1)
+      expect(state.groundEffectPolicyVersion).toBe(1)
       expect(state.tactical).toMatchObject({ width, height: 7 })
       expect(state.tactical.tiles).toHaveLength(count)
       expect(state.tactical.tiles.at(-1)?.position).toEqual({ x: width - 1, y: 6 })

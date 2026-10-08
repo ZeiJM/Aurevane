@@ -228,6 +228,15 @@ export function CombatContentReviewPanel({
                 <dd>{percent(hitChance.hitChanceBasisPoints)}</dd>
               </div>
             ) : null}
+            {preview.groundAreas?.map((area) => (
+              <div key={area.id}>
+                <dt>Ground area</dt>
+                <dd>
+                  {area.tiles.length} tiles · {area.expiresAtRound - area.activationRound} rounds ·{' '}
+                  {area.visualPresetId}
+                </dd>
+              </div>
+            ))}
             {effectTypes.length > 0 ? (
               <div>
                 <dt>Projected effects</dt>

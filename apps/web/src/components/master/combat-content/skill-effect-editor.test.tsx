@@ -43,6 +43,8 @@ describe('Master percentage DoT controls', () => {
       expect(html).not.toContain('aria-label="Bleed damage per tick"')
       if (type === 'burn') {
         expect(html).toContain('Decay per tick (percentage points)')
+        expect(html).toContain('Backlash (% of burning unit’s hostile damage)')
+        expect(html).toContain('Backlash can trigger once per turn.')
         expect(html).toContain('25% → 20% → 15%')
       } else expect(html).toContain('value="12.34"')
     },

@@ -1,4 +1,9 @@
 import {
+  combatEffectTimingMode,
+  type CombatEffectTimingPolicy,
+} from '@aurevane/game-core/combat/combat-effect-timing'
+import { combatGroundAreaDescription } from '@aurevane/game-core/combat/combat-ground-visuals'
+import {
   isPercentageDotEffect,
   percentageDotDescription,
   percentageDotMagnitude,
@@ -91,7 +96,10 @@ function statusPreview(id: string, potencyBasisPoints?: number): PreviewEffect {
   return result
 }
 
-export function previewEffect(effect: MatureSkillEffectDefinition): PreviewEffect {
+export function previewEffect(
+  effect: MatureSkillEffectDefinition,
+  options: { legacyTriggers?: boolean } = {},
+): PreviewEffect {
   const target =
     effect.recipient === 'actor'
       ? 'you'
@@ -153,7 +161,7 @@ export function previewEffect(effect: MatureSkillEffectDefinition): PreviewEffec
         return {
           label: 'Burn',
           magnitude: percentageDotMagnitude(effect),
-          explanation: percentageDotDescription('burn'),
+          explanation: percentageDotDescription('burn', effect.backlashBasisPoints, options),
         }
       const turns = effect.durationTurns ?? CURRENT_BURN_DAMAGE_BY_STAGE.length
       const values =
@@ -183,7 +191,7 @@ export function previewEffect(effect: MatureSkillEffectDefinition): PreviewEffec
         return {
           label: 'Poison',
           magnitude: percentageDotMagnitude(effect),
-          explanation: percentageDotDescription('poison'),
+          explanation: percentageDotDescription('poison', undefined, options),
         }
       const turns = effect.durationTurns
       return {
@@ -231,12 +239,28 @@ export function previewEffect(effect: MatureSkillEffectDefinition): PreviewEffec
   }
 }
 
-export function skillPreviewEffects(skill: MatureSkillDefinition): readonly PreviewEffect[] {
-  return skill.effects.map((effect, index) => {
-    const entry = previewEffect(effect)
+export function skillPreviewEffects(
+  skill: MatureSkillDefinition,
+  timingPolicy?: CombatEffectTimingPolicy | null,
+  options: { legacyTriggers?: boolean } = {},
+): readonly PreviewEffect[] {
+  const effects = skill.effects.map((effect, index) => {
+    const entry = previewEffect(effect, options)
     const override = skill.effectDescriptions?.[index]?.trim()
     return override ? { ...entry, explanation: override } : entry
   })
+  return skill.groundArea
+    ? [
+        ...effects,
+        {
+          label: 'Ground',
+          explanation: combatGroundAreaDescription(
+            skill.groundArea,
+            combatEffectTimingMode(timingPolicy ?? undefined, 'ground-area'),
+          ),
+        },
+      ]
+    : effects
 }
 
 export function effectSummary(effect: PreviewEffect): string {

@@ -1,5 +1,9 @@
 # AUREVANE — Active Task Ledger
 
+## Current combat corrections — 2026-10-07
+
+Owner approved persistent exact-footprint orange Ground areas, full-lifetime continuous effect rows, clearer direction arrows, seamless hotkeys, readable completed logs, honest Self/Ally labels and explicit Resonance matchers. New encounters pin Ground policy 1 and DoT trigger policy 1. Burn uses authored outgoing-hostile-damage backlash (10% default); Burn and Poison extra triggers are once per character turn cycle, with scheduled ticks independent. Master exposes registered Ground presets/duration/activation and exact Burn percentages through immutable publication. Chronist Skills Setup accepts any Chronist Skill; historical content remains pinned. Current authority: docs/COMBAT.md and the 2026-10-07 combat-corrections plan/spec. Tasks 1–7 are implemented and verified; final rendered/quality/review/release gates are in progress. This continuation does not change phase boundaries or imply human playtest acceptance.
+
 ## Healing target fill — 2026-10-06
 
 Owner requests recovery target highlights to fill the visible tile around the portrait and identity border like the stronger blue self-selection. The latest clarification makes every Heal/Recovery-tagged action green, including MP Recovery and mixed defensive/healing Skills. Other non-attacking self buffs and basic Guard share the same 50% blue overlay. Shared battlefield styling removes competing legacy friendly tints, preserves terrain texture, participant rings and red damage-path priority, and does not intercept clicks. Actual HP/MP Support Action flows and Sacred Guard/Steady Footing/Guard comparisons cover desktop/mobile PvE/PvP.

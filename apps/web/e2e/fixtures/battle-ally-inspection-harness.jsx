@@ -1,3 +1,4 @@
+import { SkillGroundEditor } from '@/components/master/combat-content/skill-ground-editor'
 import React from 'react'
 import { createRoot } from 'react-dom/client'
 import { BattleExperience } from '@/components/battle/battle-experience'
@@ -23,12 +24,14 @@ import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-ski
 import { resolveEssenceForBuild } from '@aurevane/game-core/combat/essence'
 import { SkillDetails } from '@/components/character/skill-details'
 import { BattleSkillParameters } from '@/components/battle/battle-skill-parameters'
+import { SkillEffectTimingProvider } from '@/components/character/skill-effect-timing-context'
 import { projectPercentageDotFixtureState } from './percentage-dot-viewer-state'
 import './production-styles'
 
 const targetingCase = new URLSearchParams(location.search).get('targeting')
 const dotCase = new URLSearchParams(location.search).get('dot')
 const dotPhase = new URLSearchParams(location.search).get('phase') || 'active'
+const legacyDotTriggers = new URLSearchParams(location.search).get('triggers') === 'legacy'
 const ids = ['character:player', 'ally', 'enemy-one', 'enemy-two']
 const positions = [
   { x: 3, y: 3 },
@@ -99,6 +102,35 @@ const initialBattle = {
   invalidation: null,
 }
 const mode = new URLSearchParams(location.search).get('mode') || 'pve'
+const groundPreset = new URLSearchParams(location.search).get('ground')
+if (new URLSearchParams(location.search).get('compass') === 'edges') {
+  const directions = ['north', 'east', 'south', 'west']
+  const corners = [{x:0,y:0},{x:8,y:0},{x:0,y:6},{x:8,y:6}]
+  initialBattle.snapshot.tactical.placements.forEach((placement,index)=>{
+    placement.facing = directions[index]
+    placement.position = corners[index]
+  })
+}
+
+if (groundPreset) {
+  // Serialized public render data only; mechanics and concealment have separate canonical tests.
+  initialBattle.snapshot = {
+    ...snapshot,
+    groundAreas: [
+      {
+        id: 'ground.area.fixture',
+        tiles: [
+          { x: 2, y: 2 },
+          { x: 3, y: 3 },
+        ],
+        activationRound: 2,
+        expiresAtRound: 5,
+        visualPresetId: groundPreset,
+      },
+    ],
+  }
+}
+
 const participants = ids.map((id, index) => ({
   combatantId: id,
   characterId: id,
@@ -152,23 +184,27 @@ const runtime = {
   copiedSkills: [],
 }
 if (targetingCase) {
+  // Current percentage attacks use the same explicit policy as newly started battles.
+  initialBattle.snapshot = { ...initialBattle.snapshot, percentageDotPolicyVersion: 1, dotTriggerPolicyVersion: 1 }
   const base = resolveMatureSkillVersion(
     targetingCase === 'heal'
       ? 'lifebinder.mend'
       : targetingCase === 'buff' || targetingCase === 'all-any'
         ? 'bastion.steady-footing'
-        : targetingCase === 'all-ground'
-          ? 'frostweaver.chilling-mist'
-          : targetingCase.startsWith('circle')
-            ? 'vanguard.cleave'
-            : 'wildwarden.thorn-line',
+        : targetingCase === 'ground-circle1'
+          ? 'cinderweaver.flame-burst'
+          : targetingCase === 'all-ground'
+            ? 'frostweaver.chilling-mist'
+            : targetingCase.startsWith('circle')
+              ? 'vanguard.cleave'
+              : 'wildwarden.thorn-line',
   )
   const shape =
     targetingCase === 'single'
       ? { kind: 'single' }
       : targetingCase === 'line' || targetingCase === 'legacy'
         ? { kind: 'line', length: 3 }
-        : targetingCase.startsWith('circle')
+        : targetingCase.includes('circle')
           ? { kind: 'circle', radius: Number(targetingCase.slice(-1)) }
           : { kind: 'all' }
   const historical =
@@ -179,7 +215,10 @@ if (targetingCase) {
       ...base.target,
       geometryVersion: 2,
       maximumElevationDifference: base.target.maximumElevationDifference ?? 2,
-      kind: targetingCase === 'all-ground' ? 'ground-tile' : 'unit',
+      kind:
+        targetingCase === 'all-ground' || targetingCase === 'ground-circle1'
+          ? 'ground-tile'
+          : 'unit',
       teamPolicy:
         targetingCase === 'all-any' || targetingCase === 'all-ground'
           ? 'any'
@@ -255,6 +294,7 @@ if (dotCase) {
   const source = {
     ...snapshot,
     percentageDotPolicyVersion: 1,
+    dotTriggerPolicyVersion: legacyDotTriggers ? undefined : 1,
     effectStackingPolicyVersion: 1,
     effectTimingPolicy: {
       version: 1,
@@ -500,43 +540,67 @@ function DotDefinitionReport() {
     </>
   )
 }
-fixtureRoot.render(
-  <AudioProvider>
-    {dotCase ? <DotDefinitionReport /> : null}
-    <BattlefieldPresentationBundle
-      battleSessionId="fixture"
-      initialVersion={initialBattle.battleVersion}
-      mode={mode === 'pve' ? 'pve' : 'pvp'}
-      playerName={mode === 'pve' ? 'Zei' : undefined}
-    />
-    {mode === 'spectator' ? (
-      <PvpSpectatorExperience
-        initialSpectator={{
-          battle: initialBattle,
-          mode: '2v2',
-          battleKey: metadata.battleKey,
-          participants,
-        }}
-        initialParticipantTitles={{}}
+function GroundEditorHarness() {
+  const skill = resolveMatureSkillVersion('cinderweaver.flame-burst')
+  const [area, setArea] = React.useState(skill.groundArea)
+  return (
+    <main style={{ padding: 24, maxWidth: 900 }}>
+      <h1>Ground authoring preview</h1>
+      <SkillGroundEditor
+        target={skill.target}
+        effects={skill.effects}
+        value={area}
+        onChange={setArea}
       />
-    ) : (
-      <BattleInteractionLifecycleProvider>
-        <BattleExperience initialBattle={initialBattle} runtime={runtime} />
-        <DesktopBattleCombatantInspect
-          battleSessionId="fixture"
-          pvpMetadata={mode === 'pvp' ? metadata : null}
-          playerName="Zei"
-          playerPortraitAssetId="character.adventure.male-01"
-          battleView={initialBattle}
+      <pre data-ground-draft style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
+        {JSON.stringify(area)}
+      </pre>
+    </main>
+  )
+}
+if (mode === 'master-ground') fixtureRoot.render(<GroundEditorHarness />)
+else
+  fixtureRoot.render(
+    <AudioProvider>
+      {dotCase ? <SkillEffectTimingProvider
+        policy={initialBattle.snapshot.effectTimingPolicy ?? null}
+        dotTriggerPolicyVersion={initialBattle.snapshot.dotTriggerPolicyVersion ?? null}>
+        <DotDefinitionReport />
+      </SkillEffectTimingProvider> : null}
+      <BattlefieldPresentationBundle
+        battleSessionId="fixture"
+        initialVersion={initialBattle.battleVersion}
+        mode={mode === 'pve' ? 'pve' : 'pvp'}
+        playerName={mode === 'pve' ? 'Zei' : undefined}
+      />
+      {mode === 'spectator' ? (
+        <PvpSpectatorExperience
+          initialSpectator={{
+            battle: initialBattle,
+            mode: '2v2',
+            battleKey: metadata.battleKey,
+            participants,
+          }}
+          initialParticipantTitles={{}}
         />
-        {mode === 'pve' ? (
-          <MobileBattleCombatantPopup
+      ) : (
+        <BattleInteractionLifecycleProvider>
+          <BattleExperience initialBattle={initialBattle} runtime={runtime} />
+          <DesktopBattleCombatantInspect
             battleSessionId="fixture"
+            pvpMetadata={mode === 'pvp' ? metadata : null}
             playerName="Zei"
             playerPortraitAssetId="character.adventure.male-01"
+            battleView={initialBattle}
           />
-        ) : null}
-      </BattleInteractionLifecycleProvider>
-    )}
-  </AudioProvider>,
-)
+          {mode === 'pve' ? (
+            <MobileBattleCombatantPopup
+              battleSessionId="fixture"
+              playerName="Zei"
+              playerPortraitAssetId="character.adventure.male-01"
+            />
+          ) : null}
+        </BattleInteractionLifecycleProvider>
+      )}
+    </AudioProvider>,
+  )

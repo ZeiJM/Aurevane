@@ -1,15 +1,15 @@
 import { defaultCombatEffectTimingPolicy } from '@aurevane/game-core/combat/combat-effect-timing'
 import type { SkillEffectTimingPolicy } from './skill-effect-timing-context'
-import type { AnyResonanceDefinition } from '@aurevane/game-core/combat/resonance'
+import type {
+  AnyResonanceDefinition,
+  ResonanceSkillMatcher,
+} from '@aurevane/game-core/combat/resonance'
+import { resonanceSkillMatcherDescription } from '@aurevane/game-core/combat/resonance-skill-matcher'
 import type { CombatEffectDefinition } from '@aurevane/game-core/combat/actions'
 import { normalizedResonanceMechanics } from '@aurevane/game-core/combat/resonance-v2'
 import { previewEffect } from './skill-effect-preview'
 import { skillEffectSummaries } from './skill-detail-presentation'
 import { skillInformationRows, type SkillCharacteristic } from './skill-information-contract'
-
-function disciplineName(id: string): string {
-  return id.replace(/[._-]/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
-}
 
 export function resonanceResultRecipient(effect: CombatEffectDefinition): string {
   switch (effect.recipient) {
@@ -24,11 +24,8 @@ export function resonanceResultRecipient(effect: CombatEffectDefinition): string
   }
 }
 
-export function resonanceMatcher(value: {
-  sourceDisciplineId: string
-  requiredTags: readonly string[]
-}): string {
-  return `${disciplineName(value.sourceDisciplineId)} · ${value.requiredTags.join(' + ')}`
+export function resonanceMatcher(value: ResonanceSkillMatcher): string {
+  return resonanceSkillMatcherDescription(value)
 }
 
 /** Resonance adds effects to its Trigger Skill; it has no independent action or Target Spec. */

@@ -4,7 +4,10 @@ import {
 } from '@aurevane/game-core/combat/combat-percentage-dots'
 import { skillInformationRows } from './skill-information-contract'
 import { previewEffect, skillDamageElementInteraction } from './skill-effect-preview'
-import { combatActionPresentationTags } from '@aurevane/game-core/combat/gameplay-tags'
+import {
+  combatActionPresentationTags,
+  combatTargetIncludesActor,
+} from '@aurevane/game-core/combat/gameplay-tags'
 import { gameplayStatusName } from '../../lib/battle/combat-interaction-presentation'
 import {
   combatStatusDetails,
@@ -34,10 +37,13 @@ function recipient(effect: MatureSkillEffectDefinition): string {
   return 'the selected unit'
 }
 
-export function skillEffectDescription(effect: MatureSkillEffectDefinition): string {
+export function skillEffectDescription(
+  effect: MatureSkillEffectDefinition,
+  options: { legacyTriggers?: boolean } = {},
+): string {
   const target = recipient(effect)
   if (isPercentageDotEffect(effect))
-    return `Apply ${previewEffect(effect).label} to ${target}. ${percentageDotDescription(effect.type)}`
+    return `Apply ${previewEffect(effect).label} to ${target}. ${percentageDotDescription(effect.type, effect.type === 'burn' ? effect.backlashBasisPoints : undefined, options)}`
   switch (effect.type) {
     case 'summon':
       return 'Summon the authored allied unit onto the selected empty tile.'
@@ -293,7 +299,7 @@ export function skillTargetDescription(skill: Pick<MatureSkillDefinition, 'targe
     case 'self':
       return 'Self'
     case 'ally':
-      return 'Ally'
+      return combatTargetIncludesActor(skill.target) ? 'Self/Ally' : 'Ally'
     case 'enemy':
       return 'Enemy'
     case 'any':

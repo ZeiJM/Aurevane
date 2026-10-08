@@ -96,6 +96,10 @@ async function expectMobileTokenMeters(root: ReturnType<Page['locator']>) {
         meterGap: mpTrackRect.top - hpTrackRect.bottom,
         arrowTop: arrowRect.top,
         arrowBottom: arrowRect.bottom,
+        arrowWidth: arrowRect.width,
+        arrowHeight: arrowRect.height,
+        arrowPointerEvents: getComputedStyle(arrow).pointerEvents,
+        arrowBorderRadius: getComputedStyle(arrow).borderRadius,
         portraitLeft: portraitRect.left,
         portraitRight: portraitRect.right,
         portraitTop: portraitRect.top,
@@ -125,7 +129,18 @@ async function expectMobileTokenMeters(root: ReturnType<Page['locator']>) {
     expect(geometry.portraitBottom).toBeLessThanOrEqual(geometry.tokenBottom + 1)
 
     expect(geometry.arrowTop).toBeGreaterThanOrEqual(geometry.tileTop - 1)
-    expect(geometry.arrowBottom).toBeLessThanOrEqual(geometry.tokenTop + 3)
+    // A readable circular badge cannot fit wholly in the narrow unchanged portrait margin.
+    // Its center sits on the upper rim; the full backing stays inside the tile.
+    expect(geometry.arrowWidth).toBeGreaterThanOrEqual(12)
+    expect(geometry.arrowHeight).toBeGreaterThanOrEqual(12)
+    expect((geometry.arrowTop + geometry.arrowBottom) / 2).toBeLessThanOrEqual(
+      geometry.tokenTop + 3,
+    )
+    expect(geometry.arrowBottom).toBeLessThanOrEqual(
+      geometry.tokenTop + geometry.arrowHeight / 2 + 3,
+    )
+    expect(geometry.arrowPointerEvents).toBe('none')
+    expect(geometry.arrowBorderRadius).toBe('50%')
     expect(geometry.hpWidth).toBeGreaterThan(0)
     expect(geometry.mpWidth).toBeGreaterThanOrEqual(0)
     expect(geometry.hpBackground).not.toBe(geometry.mpBackground)
