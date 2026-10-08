@@ -1,5 +1,15 @@
 # Web deployment note
 
+## Combat/auth reconstruction — released for testing 2026-10-08
+
+Owner-authorized PR #849 merged as `45686c7eb84ab864e49ccff4dfbbd97478b5ddeb`, with tree `d80b486b86ef317d12ba6ac8fde4c0d1cd598a60` identical to final candidate `7d33bd6bd1ab5ca0368bba2a06bc7cda018de481`. All 17 exact-head workflows pass. Full local quality passes 4,401 Vitest tests and seven Node checks, format/lint/eight-package types/build; the production audit reports no known vulnerabilities. Browser smoke passes four Master/WASD, six real-mail recovery, three training, 73 focused, 322 full Chromium and ten Edge checks. Existing project-specific skips remain documented separately.
+
+Production deployment `dpl_6jwSR1ejDxgAXBFAX5MR7yQdMkSF` is READY at `2026-10-08T20:36:12.148Z`; its source and https://aurevane.vercel.app/ alias identify the exact merged release. Eight public smoke checks return HTTP 200. Recovery GET is non-consuming and offers Continue; an ordinary reset route has no password form. Both recovery responses retain no-store/no-referrer. The exact-deployment warning/error/fatal scan from READY through `2026-10-08T20:45:19.355Z` has no matching log groups.
+
+Applied source `20261008162310_combat_delayed_timing.sql` as hosted migration `20261008203822`. Timing v5 appends Rewind=Delayed, preserving Instant summon/remove-status, the prior v4 payload, five history rows and service-only publisher grants. Security-advisor baseline is unchanged. Hosted Brevo SMTP is enabled with verified sender aurevanerpg@gmail.com / Aurevane RPG, canonical Auth URLs and the scanner-safe subject/template saved and reload-verified. Supabase retains 60 seconds per recipient and 30 emails/hour. Original-sender delivery and Owner-reported reset success are recorded; new-sender/new-template delivery and human password-change/gameplay acceptance remain Owner testing outcomes. No Production account password or gameplay data was changed by the release.
+
+New encounters use independent repeated packets, captured percentage recovery and cast-position Delayed Rewind; historical mechanics remain pinned. The replacement percentage mapping is explicitly new, not recovered original approval evidence. Git deployment remains disabled. The documentation closeout does not change application bytes or redeploy. Full evidence and testing checklist: [release receipt](../../docs/verification/2026-10-08-combat-auth-reconstruction.md) and [Owner checklist](../../docs/verification/2026-10-08-owner-test-checklist.md).
+
 ## Persistent Ground and combat corrections — released 2026-10-08 UTC
 
 PR #847 merged as `8a0a5a1e1e2a6a537be8f3de22accc7be7d77bc3`, identical to tested candidate `974d32728223cfa44f8f1fddf161d833f5746aef`, tree `89005998f2550e45d821d73404228723f5035c80`. All 13 exact-head workflows passed, including the isolated Atlas retry and Browser Smoke with 322 full Chromium and ten Edge passes. Full local quality passed 4,328 Vitest tests, seven Node checks, formatting/lint/types/build; the patched production audit reports zero known vulnerabilities.
