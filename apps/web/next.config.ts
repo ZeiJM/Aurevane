@@ -42,6 +42,21 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   typedRoutes: true,
+  async headers() {
+    return [
+      '/auth/recovery',
+      '/auth/reset-password',
+      '/auth/callback',
+      '/api/account/recovery',
+      '/api/account/password-reset',
+    ].map((source) => ({
+      source,
+      headers: [
+        { key: 'Referrer-Policy', value: 'no-referrer' },
+        { key: 'Cache-Control', value: 'private, no-store' },
+      ],
+    }))
+  },
   env: previewEnvironment ?? unprovisionedProductionEnvironment,
 }
 

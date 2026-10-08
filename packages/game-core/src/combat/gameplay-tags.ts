@@ -1,3 +1,4 @@
+import { validateRecoveryEffect } from './combat-recovery'
 import { percentageDotMagnitude } from './combat-percentage-dots'
 import type {
   CombatActionDefinition,
@@ -222,6 +223,7 @@ export function validateGameplayActionMetadata(
 
 /** Shared content-boundary validation; the containing action supplies target-dependent legality. */
 export function validateGameplayEffectMetadata(effect: CombatEffectDefinition): void {
+  validateRecoveryEffect(effect)
   if (
     effect.durationTurns !== undefined &&
     (!Number.isSafeInteger(effect.durationTurns) ||
@@ -335,6 +337,8 @@ function effectPresentationTags(effect: PresentationEffect): readonly string[] {
     const label = `${element} [${positiveDisplayInteger(effect.amount, 1)}]`
     return effect.piercing === true ? [label, 'Pierce'] : [label]
   }
+  if (effect.type === 'percentage-recovery')
+    return [`${effect.resource === 'mp' ? 'MP' : 'HP'} Recovery [${effect.percent}%]`]
   if (effect.type === 'healing') return [`Heal [${positiveDisplayInteger(effect.amount, 1)}]`]
   if (effect.type === 'resource-change') {
     return typeof effect.delta === 'number' && effect.delta < 0

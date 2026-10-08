@@ -1,3 +1,4 @@
+import type { CapturedPercentageRecovery } from './combat-percentage-recovery'
 import type { CapturedPercentageDotDamage } from './combat-percentage-dots'
 import type { CombatStatusDefinition } from './actions'
 import type { CombatEffectCategory } from './combat-effect-categories'
@@ -53,6 +54,7 @@ export interface DamageProvenance {
 }
 
 export interface CombatOngoingRecovery {
+  percentageRecovery?: CapturedPercentageRecovery
   kind: 'hp' | 'mp'
   sourceCombatantId: string
   targetCombatantId: string

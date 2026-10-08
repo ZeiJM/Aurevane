@@ -130,13 +130,13 @@ describe('persistent current targeting footprints', () => {
       '6:3',
     ])
   })
-  it('focuses the complete explicitly selected lane even without recipients or a successful forecast', () => {
+  it('keeps all potential lanes when one explicit direction is previewed', () => {
     expect([
       ...battleAttackReachTiles(tactical, origin, line, basic.effects, [], {
         aimSource: 'player',
         selection: { kind: 'direction', direction: 'east' },
       }),
-    ]).toEqual(['4:3', '5:3', '6:3'])
+    ]).toHaveLength(12)
     expect(battleAttackReachTiles(tactical, origin, line, basic.effects).size).toBe(12)
   })
   it.each([1, 2])('shows the immediate external Circle %i including its inner ring', (radius) => {

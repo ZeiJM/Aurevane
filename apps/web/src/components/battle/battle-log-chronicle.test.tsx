@@ -1,3 +1,4 @@
+import { formatBattleLogForClipboard } from './battle-log-clipboard'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 
@@ -751,3 +752,23 @@ describe('approved Battle Chronicle', () => {
     expect(html).not.toContain('round undefined')
   })
 })
+
+it.each([1, 4])(
+  'shares honest %i-application pending recovery wording with copied logs',
+  (applications) => {
+    const rows = [
+      technique(1),
+      entry(1, 1, 'effect_pending', {
+        statusId: 'healing',
+        templateValues: { effect: 'HP Recovery', activation: ' until round 4' },
+        effectTiming: { durationScope: 'instant', recoveryApplications: applications },
+      }),
+    ]
+    const html = render(rows)
+    const copied = formatBattleLogForClipboard(rows, { playerName: 'Zei', combatantNames: names })
+    const expected = `HP Recovery will restore ${applications} application${applications === 1 ? '' : 's'} on Weon, beginning at the start of round 4!`
+    expect(html).toContain(expected)
+    expect(copied).toContain(expected)
+    expect(copied).not.toContain('during rounds')
+  },
+)

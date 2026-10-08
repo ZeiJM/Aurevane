@@ -855,3 +855,67 @@ it('describes a passive Ground pulse without printing internal area identifiers'
   })
   expect(view.entries[0].message).toContain('23 fire damage')
 })
+
+it('projects canonical blocked Rewind reasons without raw anchors or arbitrary strings', () => {
+  const view = buildBattleLogView(SESSION_ID, [
+    {
+      battleVersion: 1,
+      eventIndex: 0,
+      createdAt: '2026-10-08T12:00:00Z',
+      event: {
+        event: 'combatant_rewind_blocked',
+        actionId: 'chronist.rewind-step',
+        combatantId: 'actor',
+        reason: 'occupied',
+        returnAnchor: { x: 9, y: 9 },
+        private: 'secret',
+      },
+    },
+  ])
+  expect(view.entries).toHaveLength(1)
+  expect(view.entries[0]!.message).toContain('occupied')
+  expect(JSON.stringify(view)).not.toMatch(/secret|returnAnchor/)
+})
+
+it('projects only bounded recovery application counts on the appropriate pending tags', () => {
+  const rows = [
+    { effectTag: 'healing', recoveryApplications: 4 },
+    { effectTag: 'mp-recovery', recoveryApplications: 1 },
+    { effectTag: 'healing', recoveryApplications: 5 },
+    { effectTag: 'damage', recoveryApplications: 4 },
+  ]
+  const result = buildBattleLogView(
+    SESSION_ID,
+    rows.map((row, eventIndex) => ({
+      battleVersion: 1,
+      eventIndex,
+      createdAt: '2026-10-08T00:00:00Z',
+      event: {
+        event: 'effect_pending',
+        sourceCombatantId: 'actor',
+        targetCombatantId: 'enemy',
+        actionId: 'skill.test',
+        activationRound: 4,
+        ...row,
+      },
+    })),
+  )
+  expect(result.entries.map((entry) => entry.effectTiming?.recoveryApplications)).toEqual([
+    4,
+    1,
+    undefined,
+    undefined,
+  ])
+  const chronicle = buildBattleChronicle(result.entries, {
+    combatantNames: { actor: 'Zei', enemy: 'Weon' },
+  })
+  const outcomes = chronicle.flatMap((r) =>
+    r.actors.flatMap((a) => a.actions.flatMap((c) => c.outcomes)),
+  )
+  expect(outcomes).toContainEqual(
+    expect.objectContaining({
+      text: 'HP Recovery will restore 4 applications on Weon, beginning at the start of round 4!',
+    }),
+  )
+  expect(JSON.stringify(outcomes)).not.toContain('a future round')
+})

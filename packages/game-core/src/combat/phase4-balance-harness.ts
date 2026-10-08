@@ -1,3 +1,4 @@
+import { percentageRecoveryAmount } from './combat-percentage-recovery'
 import { estimatedPercentageDotTotal } from './combat-percentage-dot-roster'
 import { ADVANCED_DISCIPLINES } from '../character/advanced-disciplines'
 import {
@@ -328,14 +329,22 @@ function skillMetric(
   const expectedAttritionDamage = expectedDirectDamage + attritionDamage * (hitChance / 10_000)
   const healing = definition.effects.reduce(
     (total, effect) =>
-      effect.type === 'healing' ? total + effect.amount * (effect.ticks ?? 1) : total,
+      effect.type === 'percentage-recovery' && effect.resource === 'hp'
+        ? total +
+          percentageRecoveryAmount(stats.stats.maxHp.value, effect.percent) * (effect.ticks ?? 1)
+        : effect.type === 'healing'
+          ? total + effect.amount * (effect.ticks ?? 1)
+          : total,
     0,
   )
   const mpRecovery = definition.effects.reduce(
     (total, effect) =>
-      effect.type === 'resource-change' && effect.delta > 0
-        ? total + effect.delta * (effect.ticks ?? 1)
-        : total,
+      effect.type === 'percentage-recovery' && effect.resource === 'mp'
+        ? total +
+          percentageRecoveryAmount(stats.stats.maxMp.value, effect.percent) * (effect.ticks ?? 1)
+        : effect.type === 'resource-change' && effect.delta > 0
+          ? total + effect.delta * (effect.ticks ?? 1)
+          : total,
     0,
   )
 

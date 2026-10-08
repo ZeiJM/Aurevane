@@ -1,3 +1,4 @@
+import { createPercentageRecoveryResonanceVersion } from './combat-recovery-roster'
 import { battleFlavorTemplateIssues } from './battle-narration'
 import { validateGameplayEffectMetadata } from './gameplay-tags'
 import { ADVANCED_RESONANCES } from './advanced-resonances'
@@ -161,7 +162,7 @@ const V51_REBALANCED_RESONANCES = V5_REBALANCED_RESONANCES.map(convertV5Resonanc
 
 export const P35_REPRESENTATIVE_RESONANCES: readonly ResonanceDefinition[] = PRE_V5_RESONANCES
 
-const CURRENT_RESONANCE_REGISTRY: readonly AnyResonanceDefinition[] = [
+const PRE_PERCENTAGE_RECOVERY_RESONANCE_REGISTRY: readonly AnyResonanceDefinition[] = [
   ...P35_REPRESENTATIVE_RESONANCES,
   ...V5_REBALANCED_RESONANCES,
   ...V51_REBALANCED_RESONANCES,
@@ -174,6 +175,19 @@ const CURRENT_RESONANCE_REGISTRY: readonly AnyResonanceDefinition[] = [
       createCanonicalCleanseResonanceVersion(definition) ?? definition,
     ),
   ),
+]
+const latestRecoveryResonances = new Map<string, AnyResonanceDefinition>()
+for (const row of PRE_PERCENTAGE_RECOVERY_RESONANCE_REGISTRY) {
+  const previous = latestRecoveryResonances.get(row.id)
+  if (row.enabled && (!previous || row.contentVersion > previous.contentVersion))
+    latestRecoveryResonances.set(row.id, row)
+}
+const CURRENT_RESONANCE_REGISTRY = [
+  ...PRE_PERCENTAGE_RECOVERY_RESONANCE_REGISTRY,
+  ...[...latestRecoveryResonances.values()].flatMap((definition) => {
+    const next = createPercentageRecoveryResonanceVersion(definition)
+    return next ? [next] : []
+  }),
 ]
 
 const STABLE_ID_PATTERN = /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/

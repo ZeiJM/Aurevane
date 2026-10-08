@@ -122,3 +122,24 @@ describe('battle effect identity', () => {
     },
   )
 })
+
+it.each([1, 4])(
+  'describes %i captured recovery applications without claiming a one-time schedule',
+  (applications) => {
+    const result = describeBattleEffect({
+      statusId: 'healing',
+      statusVersion: 1,
+      stacks: 1,
+      sourceCombatantId: 'actor',
+      remainingOwnerTurnStarts: applications,
+      timingState: 'pending',
+      activationRound: 4,
+      durationScope: 'instant',
+      recoveryApplications: applications,
+    })
+    expect(result.count).toBe(applications)
+    expect(result.counterLabel).toBe(`${applications}×`)
+    expect(result.duration).toContain(`${applications} application`)
+    expect(result.duration).toContain('activation')
+  },
+)

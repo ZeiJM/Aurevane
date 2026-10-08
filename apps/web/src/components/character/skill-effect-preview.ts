@@ -127,6 +127,12 @@ export function previewEffect(
         magnitude: String(effect.amount),
         explanation: `Skill power ranges from 1 to 20. Final HP damage depends on your attack stat, Level and the target’s defenses and effects.${effect.facingModifiersBasisPoints ? ` Facing: front ${effect.facingModifiersBasisPoints.front / 100}%, side ${effect.facingModifiersBasisPoints.side / 100}%, rear ${effect.facingModifiersBasisPoints.rear / 100}%.` : ''}${skillDamageElementInteraction(effect)}`,
       }
+    case 'percentage-recovery':
+      return {
+        label: effect.resource === 'hp' ? 'HP Recovery' : 'MP Recovery',
+        magnitude: `${effect.percent}%`,
+        explanation: `Restores a captured ${effect.percent}% of ${target === 'you' ? 'your' : `${target}’s`} maximum ${effect.resource.toUpperCase()}${(effect.ticks ?? 1) > 1 ? ` per application, ${effect.ticks} times` : ''}. ${effect.resource === 'hp' ? 'The maximum and HP Hex adjustment are captured when cast' : 'The maximum is captured when cast'}; actual gains cap at the current maximum and never revive.`,
+      }
     case 'healing':
       return {
         label: 'Heal',
@@ -221,7 +227,10 @@ export function previewEffect(
     case 'return-to-turn-start':
       return {
         label: 'Rewind',
-        explanation: 'Returns you to your turn-start tile if legal; refunds no resources.',
+        explanation:
+          effect.anchorMode === 'cast-position'
+            ? 'Returns you to the tile captured when cast if legal; refunds no resources.'
+            : 'Returns you to your turn-start tile if legal; refunds no resources.',
       }
     case 'copy-statuses':
       return {
@@ -244,11 +253,19 @@ export function skillPreviewEffects(
   timingPolicy?: CombatEffectTimingPolicy | null,
   options: { legacyTriggers?: boolean } = {},
 ): readonly PreviewEffect[] {
-  const effects = skill.effects.map((effect, index) => {
-    const entry = previewEffect(effect, options)
-    const override = skill.effectDescriptions?.[index]?.trim()
-    return override ? { ...entry, explanation: override } : entry
-  })
+  const seen = new Set<string>()
+  const effects = skill.effects
+    .map((effect, index) => {
+      const entry = previewEffect(effect, options)
+      const override = skill.effectDescriptions?.[index]?.trim()
+      return override ? { ...entry, explanation: override } : entry
+    })
+    .filter((entry) => {
+      const key = JSON.stringify([entry.label, entry.explanation])
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
   return skill.groundArea
     ? [
         ...effects,

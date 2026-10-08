@@ -1,3 +1,4 @@
+import { combatEffectTimingRoundOffset } from './combat-effect-timing'
 import { claimCombatTurnTrigger } from './combat-turn-trigger-state'
 import {
   isPercentageDotEffect,
@@ -29,7 +30,7 @@ export interface CombatGroundAreaDefinition {
   /** Original effect ordinals keep entry payloads aligned with authored cast effects. */
   entryEffectOrdinals: readonly number[]
   /** Omitted uses the pinned Ground timing policy, defaulting to next round. */
-  timing?: 'instant' | 'next-round'
+  timing?: 'instant' | 'next-round' | 'delayed'
 }
 export interface CombatGroundAreaInstance {
   sourceCommandVisibility?: CombatSourceCommandVisibility
@@ -63,6 +64,7 @@ type GroundAuthoring = {
 const ENTRY_TYPES = new Set([
   'damage',
   'healing',
+  'percentage-recovery',
   'resource-change',
   'apply-status',
   'remove-status',
@@ -89,7 +91,7 @@ export function validateCombatGroundAreaDefinition(action: GroundAuthoring): voi
     throw new RangeError('Ground duration must be one to four rounds.')
   if (!isGroundVisualPresetId(ground.visualPresetId))
     throw new TypeError('Ground visual must use a registered preset.')
-  if (ground.timing !== undefined && !['instant', 'next-round'].includes(ground.timing))
+  if (ground.timing !== undefined && !['instant', 'next-round', 'delayed'].includes(ground.timing))
     throw new TypeError('Invalid Ground timing.')
   if (
     !Array.isArray(ground.entryEffectOrdinals) ||
@@ -141,7 +143,7 @@ export function createCombatGroundArea(
     throw new RangeError('Ground area identity overflow.')
   const timing =
     action.groundArea.timing ?? state.effectTimingPolicy?.modes['ground-area'] ?? 'next-round'
-  const activationRound = state.tactical.battle.round + (timing === 'instant' ? 0 : 1)
+  const activationRound = state.tactical.battle.round + combatEffectTimingRoundOffset(timing)
   const expiresAtRound = activationRound + action.groundArea.durationRounds
   if (!Number.isSafeInteger(expiresAtRound)) throw new RangeError('Ground expiry overflow.')
   const statProfile = state.statBridge?.combatants.find((unit) => unit.combatantId === actorId)
@@ -282,7 +284,7 @@ export function validateCombatGroundAreas(
       if (
         !Number.isSafeInteger(area.activationRound) ||
         area.activationRound < 1 ||
-        area.activationRound > state.tactical.battle.round + 1 ||
+        area.activationRound > state.tactical.battle.round + 2 ||
         !Number.isSafeInteger(area.expiresAtRound) ||
         area.expiresAtRound <= area.activationRound ||
         area.expiresAtRound - area.activationRound > 4 ||

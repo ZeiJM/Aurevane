@@ -1,3 +1,4 @@
+import { createPercentageRecoveryEssenceVersion } from './combat-recovery-roster'
 import { createCurrentGroundEssenceVersion } from './combat-ground-roster'
 import { createCurrentTargetingEssenceVersion } from './combat-targeting-roster'
 import { createPercentageDotEssenceVersion } from './combat-percentage-dot-roster'
@@ -199,7 +200,7 @@ function currentEssenceAccuracyMode(
   if (skill.target.teamPolicy !== 'enemy' && skill.target.teamPolicy !== 'any') return 'automatic'
   return skill.effects.some((effect) => {
     if (!('recipient' in effect) || effect.recipient === 'actor') return false
-    if (effect.type === 'healing') return false
+    if (effect.type === 'healing' || effect.type === 'percentage-recovery') return false
     if (effect.type === 'resource-change') return effect.delta < 0
     if (effect.type === 'barrier-change') return effect.amount < 0
     return effect.type !== 'create-terrain'
@@ -568,9 +569,16 @@ const CURRENT_GROUND_ESSENCES = latestEnabledEssences(PRE_CURRENT_GROUND_ESSENCE
     return next ? [next] : []
   },
 )
-const CURRENT_ESSENCE_REGISTRY = [
+const PRE_PERCENTAGE_RECOVERY_ESSENCE_REGISTRY = [
   ...PRE_CURRENT_GROUND_ESSENCE_REGISTRY,
   ...CURRENT_GROUND_ESSENCES,
+]
+const CURRENT_ESSENCE_REGISTRY = [
+  ...PRE_PERCENTAGE_RECOVERY_ESSENCE_REGISTRY,
+  ...latestEnabledEssences(PRE_PERCENTAGE_RECOVERY_ESSENCE_REGISTRY).flatMap((definition) => {
+    const next = createPercentageRecoveryEssenceVersion(definition)
+    return next ? [next] : []
+  }),
 ]
 
 const STABLE_ID_PATTERN = /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/

@@ -105,6 +105,7 @@ export function defaultEffectDurationTurns(effect: MatureSkillEffectDefinition):
   switch (effect.type) {
     case 'apply-status':
       return defaultStatusDuration(effect.statusId)
+    case 'percentage-recovery':
     case 'healing':
       return Math.max(0, (effect.ticks ?? 1) - 1)
     case 'resource-change':
@@ -270,6 +271,7 @@ function effectWeight(effect: MatureSkillEffectDefinition): number {
     case 'copy-statuses':
     case 'sensory':
       return 1.3 + duration * 0.25
+    case 'percentage-recovery':
     case 'healing':
     case 'resource-change':
     case 'barrier-change':

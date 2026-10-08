@@ -451,6 +451,16 @@ export function PvpSpectatorExperience({
                           {overlay.remainingRoundBoundaries}
                         </i>
                       ) : null}
+                      {participant && placement && combatant && combatant.hp > 0 ? (
+                        <BattleFacingIndicator
+                          facing={placement.facing as Facing}
+                          accent={pvpParticipantAccent(
+                            participant.teamIndex,
+                            participant.seatIndex,
+                            teamCount,
+                          )}
+                        />
+                      ) : null}
                       {participant && placement ? (
                         <span
                           className={styles.unit}
@@ -478,9 +488,6 @@ export function PvpSpectatorExperience({
                             sizes="64px"
                             alt=""
                           />
-                          {combatant && combatant.hp > 0 ? (
-                            <BattleFacingIndicator facing={placement.facing as Facing} />
-                          ) : null}
                         </span>
                       ) : null}
                     </button>

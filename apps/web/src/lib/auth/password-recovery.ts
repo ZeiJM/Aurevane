@@ -2,7 +2,12 @@ export const ACCOUNT_PASSWORD_MINIMUM_LENGTH = 8
 export const PASSWORD_RESET_REQUEST_MESSAGE =
   'If an account exists for that email, a password reset link is on its way. Check your inbox and spam folder.'
 export const INVALID_PASSWORD_RESET_MESSAGE =
-  'This account link has expired or could not be verified. Request a new password reset link and open it in the same browser.'
+  'This account link has expired or could not be verified. Request a new password reset link.'
+
+/** A transport check only; Auth must verify the opaque recovery credential. */
+export function isPasswordRecoveryTokenHash(value: unknown): value is string {
+  return typeof value === 'string' && /^[A-Za-z0-9_-]{16,256}$/.test(value)
+}
 
 export async function requestAccountPasswordReset(
   client: {
@@ -17,8 +22,8 @@ export async function requestAccountPasswordReset(
   origin: string,
 ): Promise<{ message: string; tone: 'neutral' | 'error' }> {
   const { error } = await client.auth.resetPasswordForEmail(email, {
-    // Reuse the existing confirmation redirect allow-list entry; PKCE carries recovery type.
-    redirectTo: `${origin}/auth/callback?next=/game`,
+    // Legacy PKCE emails retain their callback; the configured template uses token_hash.
+    redirectTo: `${origin}/auth/callback?flow=recovery`,
   })
   return error
     ? {

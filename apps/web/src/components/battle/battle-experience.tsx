@@ -2232,6 +2232,16 @@ function BattleExperienceContent({
                       </i>
                     ) : null}
                     {tile.elevation > 0 ? <span className={styles.elevation}>▲</span> : null}
+                    {participant && placement && combatant && combatant.hp > 0 ? (
+                      <BattleFacingIndicator
+                        facing={placement.facing}
+                        accent={pvpParticipantAccent(
+                          participant.teamIndex,
+                          participant.seatIndex,
+                          viewModel.teamCount,
+                        )}
+                      />
+                    ) : null}
                     {participant && placement ? (
                       <span
                         className={styles.unit}
@@ -2267,9 +2277,6 @@ function BattleExperienceContent({
                             {participant.name.charAt(0).toUpperCase()}
                           </span>
                         )}
-                        {combatant && combatant.hp > 0 ? (
-                          <BattleFacingIndicator facing={placement.facing} />
-                        ) : null}
                         <strong>{participant.name}</strong>
                       </span>
                     ) : null}

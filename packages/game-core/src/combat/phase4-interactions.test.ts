@@ -267,7 +267,9 @@ describe('Phase 4 gameplay interactions', () => {
     (id) => {
       const old = resolveMatureSkillVersion(id, 4)!
       const current = resolveMatureSkillVersion(id)!
-      expect(current.contentVersion).toBe(5)
+      expect(current.contentVersion).toBe(
+        current.authoring.validationTags.includes('captured-percentage-recovery') ? 6 : 5,
+      )
       expect(old.effects.find((effect) => effect.type === 'remove-status')).not.toMatchObject({
         statusIds: cleanseIds,
       })

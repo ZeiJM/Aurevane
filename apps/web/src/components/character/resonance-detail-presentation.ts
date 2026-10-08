@@ -1,3 +1,4 @@
+import { groupSkillEffects } from './skill-effect-groups'
 import { defaultCombatEffectTimingPolicy } from '@aurevane/game-core/combat/combat-effect-timing'
 import type { SkillEffectTimingPolicy } from './skill-effect-timing-context'
 import type {
@@ -49,6 +50,7 @@ export function resonanceCharacteristicRows(
   }
   const mechanics = normalizedResonanceMechanics(definition)
   const recipients = [...new Set(mechanics.resultEffects.map(resonanceResultRecipient))]
+  const grouped = groupSkillEffects(mechanics.resultEffects)
   return skillInformationRows<string | readonly string[]>({
     'Skill Type': 'Resonance',
     Cost: 'N/A',
@@ -56,7 +58,7 @@ export function resonanceCharacteristicRows(
     Requirements: mechanics.setup ? resonanceMatcher(mechanics.setup) : 'N/A',
     Effects: skillEffectSummaries({ effects: mechanics.resultEffects }, timingPolicy).map(
       (summary, index) =>
-        `${resonanceMatcher(mechanics.trigger)}: ${summary}${mechanics.resultEffects[index]!.recipient === 'actor' ? '' : ` → ${resonanceResultRecipient(mechanics.resultEffects[index]!)}`}`,
+        `${resonanceMatcher(mechanics.trigger)}: ${summary}${grouped[index]!.effect.recipient === 'actor' ? '' : ` → ${resonanceResultRecipient(grouped[index]!.effect)}`}`,
     ),
     Range: 'N/A',
     Target: recipients.join('; ') || 'N/A',
@@ -73,6 +75,11 @@ export function resonanceSupplementalRows(
   if (!definition) return []
   const mechanics = normalizedResonanceMechanics(definition)
   return [
-    ['Result details', mechanics.resultEffects.map((effect) => previewEffect(effect).explanation)],
+    [
+      'Result details',
+      groupSkillEffects(mechanics.resultEffects).map(
+        ({ effect }) => previewEffect(effect).explanation,
+      ),
+    ],
   ]
 }

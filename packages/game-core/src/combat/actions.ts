@@ -1,4 +1,9 @@
 import {
+  skillPacketGroups,
+  rollSkillPacketAccuracy,
+  rollSkillPacketOutcomes,
+} from './combat-skill-packets'
+import {
   forecastCombatStatusResistance,
   rollCombatStatusResistance,
   type CombatTargetStatusResistance,
@@ -72,6 +77,7 @@ export interface CombatActionDefinition
 
 export interface CombatEncounterState extends Omit<legacy.CombatEncounterState, 'statBridge'> {
   statBridge?: {
+    schemaVersion?: number
     rulesVersion?: number
     combatants: readonly {
       combatantId: string
@@ -200,7 +206,10 @@ export function executeCombatAction(
     state,
     materializeVengeanceDamage(state, previewAction).action,
   )
+  const packetGroups = skillPacketGroups(state, action)
+  let originalOrdinals = action.effects.map((_effect, ordinal) => ordinal)
   const requiresEvaluation =
+    Boolean(packetGroups) ||
     state.statBalancePolicyVersion === 1 ||
     Boolean(context) ||
     Boolean(hitDependentEffects) ||
@@ -210,9 +219,17 @@ export function executeCombatAction(
   const evaluation = requiresEvaluation
     ? legacy.evaluateCombatAction(state, previewMaterializedAction, selection, content)
     : null
-  const accuracy = rollCombatSkillAccuracy(state, action, evaluation, content)
+  const dependentOrdinals = new Set(hitDependentEffects?.effectOrdinals ?? [])
+  const prerequisiteGroups = packetGroups
+    ?.map((group) => group.filter((ordinal) => !dependentOrdinals.has(ordinal)))
+    .filter((group) => group.length)
+  let packetAccuracy = packetGroups
+    ? rollSkillPacketAccuracy(state, action, evaluation, content, prerequisiteGroups!)
+    : null
+  let accuracy = packetAccuracy ?? rollCombatSkillAccuracy(state, action, evaluation, content)
   const hitDependentEffectsActivated = hitDependentEffects
-    ? evaluation?.affectedCombatantIds.some((id) => {
+    ? (packetGroups === null || prerequisiteGroups!.length > 0) &&
+      evaluation?.affectedCombatantIds.some((id) => {
         const actor = state.tactical.battle.combatants.find((unit) => unit.id === actorId)
         const target = state.tactical.battle.combatants.find((unit) => unit.id === id)
         return (
@@ -224,8 +241,55 @@ export function executeCombatAction(
         )
       }) === true
     : undefined
+  if (packetGroups && packetAccuracy && hitDependentEffectsActivated) {
+    // Unique tags keep their shared prerequisite roll; repeated bonus tags roll only after confirmation.
+    for (const group of packetGroups) {
+      const prerequisite = group.filter((ordinal) => !dependentOrdinals.has(ordinal))
+      const dependent = group.filter((ordinal) => dependentOrdinals.has(ordinal))
+      if (!prerequisite.length || !dependent.length) continue
+      for (const [, missed] of packetAccuracy.missedEffectOrdinalsByTarget)
+        if (prerequisite.some((ordinal) => missed.has(ordinal)))
+          dependent.forEach((ordinal) => missed.add(ordinal))
+      packetAccuracy.events = packetAccuracy.events.map((event) =>
+        event.effectOrdinals?.some((ordinal) => prerequisite.includes(ordinal))
+          ? { ...event, effectOrdinals: group }
+          : event,
+      )
+    }
+    const bonus = rollSkillPacketAccuracy(
+      packetAccuracy.state,
+      action,
+      evaluation,
+      content,
+      packetGroups.filter((group) => group.every((ordinal) => dependentOrdinals.has(ordinal))),
+    )
+    for (const [id, ordinals] of bonus.missedEffectOrdinalsByTarget) {
+      const missed = packetAccuracy.missedEffectOrdinalsByTarget.get(id) ?? new Set<number>()
+      ordinals.forEach((ordinal) => missed.add(ordinal))
+      packetAccuracy.missedEffectOrdinalsByTarget.set(id, missed)
+    }
+    const events = [...packetAccuracy.events, ...bonus.events]
+    packetAccuracy = {
+      ...packetAccuracy,
+      state: bonus.state,
+      events,
+      missedCombatantIds: new Set(
+        events
+          .filter(
+            (event) =>
+              !event.hit &&
+              !events.some(
+                (other) => other.targetCombatantId === event.targetCombatantId && other.hit,
+              ),
+          )
+          .map((event) => event.targetCombatantId),
+      ),
+    }
+    accuracy = packetAccuracy
+  }
   if (hitDependentEffects && !hitDependentEffectsActivated) {
     const omitted = new Set(hitDependentEffects.effectOrdinals)
+    originalOrdinals = originalOrdinals.filter((_ordinal, index) => !omitted.has(index))
     action = {
       ...action,
       effects: action.effects.filter((_effect, index) => !omitted.has(index)),
@@ -245,19 +309,38 @@ export function executeCombatAction(
     content,
     missedCombatantIds: accuracy.missedCombatantIds,
   })
-  const resistance = rollCombatStatusResistance(
-    accuracy.state,
-    csr.action,
-    evaluation,
-    csr.content,
-    accuracy.missedCombatantIds,
-  )
-  const critical = rollCombatCritical(
-    resistance.state,
-    csr.action,
-    evaluation,
-    accuracy.missedCombatantIds,
-  )
+  const packets =
+    packetGroups && packetAccuracy
+      ? rollSkillPacketOutcomes(
+          accuracy.state,
+          csr.action,
+          evaluation,
+          csr.content,
+          packetGroups,
+          csr.effectSourceOrdinals.map((ordinal) => originalOrdinals[ordinal]!),
+          packetAccuracy.missedEffectOrdinalsByTarget,
+        )
+      : null
+  const resistance = packets
+    ? {
+        state: packets.state,
+        events: packets.resistanceEvents,
+        resistedEffectOrdinalsByTarget: packets.resistedEffectOrdinalsByTarget,
+      }
+    : rollCombatStatusResistance(
+        accuracy.state,
+        csr.action,
+        evaluation,
+        csr.content,
+        accuracy.missedCombatantIds,
+      )
+  const critical = packets
+    ? {
+        state: packets.state,
+        events: packets.criticalEvents,
+        criticalEffectOrdinalsByTarget: packets.criticalEffectOrdinalsByTarget,
+      }
+    : rollCombatCritical(resistance.state, csr.action, evaluation, accuracy.missedCombatantIds)
   const materializedAction = materializeStatScaledDamage(
     critical.state,
     materializeVengeanceDamage(critical.state, csr.action).action,

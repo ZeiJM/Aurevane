@@ -1,9 +1,10 @@
 import { currentPoisonTickDamage } from './combat-dots'
-import { combatEffectTimingMode } from './combat-effect-timing'
+import { combatEffectTimingMode, combatEffectTimingRoundOffset } from './combat-effect-timing'
 import { materializeVengeanceDamage } from './combat-vengeance'
 import {
   calculateScaledRawDamage,
   currentSkillDamageScaling,
+  standardSkillDamageScaling,
   legacySkillDamageScaling,
 } from './damage-scaling'
 import { normalizeCombatEffectState, type CombatSummonInstance } from './combat-effect-state'
@@ -669,7 +670,9 @@ function summonAbilityDefinition(
   ).length
   const damageScaling =
     state.statBridge.rulesVersion === 4 && damageCount > 0
-      ? currentSkillDamageScaling(source, damageCount, ability.apCost)
+      ? state.skillPacketPolicyVersion === 1
+        ? standardSkillDamageScaling(source)
+        : currentSkillDamageScaling(source, damageCount, ability.apCost)
       : null
   const recoveryScaling =
     state.statBridge.rulesVersion === 4 && recoveryCount > 0
@@ -924,7 +927,22 @@ export function evaluatePv1fMatureSkill(
     ),
   }
   if (resonance?.forecast.willActivate) {
-    baseAction.effects = [...baseAction.effects, ...resonance.forecast.bonusEffects]
+    baseAction.effects = [
+      ...baseAction.effects,
+      ...resonance.forecast.bonusEffects.map((effect) =>
+        state.skillPacketPolicyVersion === 1 &&
+        effect.type === 'damage' &&
+        !effect.scaling &&
+        !('vengeance' in effect && effect.vengeance)
+          ? {
+              ...effect,
+              scaling: standardSkillDamageScaling(
+                definition.tags.includes('mystic') ? 'mystic-power' : 'physical-power',
+              ),
+            }
+          : effect,
+      ),
+    ]
     if (baseAction.effectTimingTags)
       baseAction.effectTimingTags = [
         ...baseAction.effectTimingTags,
@@ -971,9 +989,11 @@ export function evaluatePv1fMatureSkill(
     evaluation.legal &&
     definition.effects.some((effect) => effect.type === 'summon') &&
     definition.summonProfile &&
-    combatEffectTimingMode(prepared.effectTimingPolicy, 'summon') === 'next-round'
+    combatEffectTimingMode(prepared.effectTimingPolicy, 'summon') !== 'instant'
   ) {
-    const activationRound = prepared.tactical.battle.round + 1
+    const activationRound =
+      prepared.tactical.battle.round +
+      combatEffectTimingRoundOffset(combatEffectTimingMode(prepared.effectTimingPolicy, 'summon'))
     evaluation = {
       ...evaluation,
       projectedEffects: [
@@ -1088,14 +1108,18 @@ export function executePv1fMatureSkill(
       position: target.position,
       facing: actorPlacement.facing,
     }
-    if (combatEffectTimingMode(next.effectTimingPolicy, 'summon') === 'next-round') {
+    if (combatEffectTimingMode(next.effectTimingPolicy, 'summon') !== 'instant') {
       next = {
         ...next,
         pendingSummons: [
           ...(next.pendingSummons ?? []),
           {
             input: JSON.parse(JSON.stringify(input)) as typeof input,
-            activationRound: next.tactical.battle.round + 1,
+            activationRound:
+              next.tactical.battle.round +
+              combatEffectTimingRoundOffset(
+                combatEffectTimingMode(next.effectTimingPolicy, 'summon'),
+              ),
             sourceCommandVisibility: combatSourceCommandVisibility(prepared, actorId),
           },
         ],
@@ -1107,7 +1131,9 @@ export function executePv1fMatureSkill(
         targetCombatantId: actorId,
         effectTag: 'summon',
         remainingOwnerTurnEnds: input.profile.lifetimeTurns,
-        activationRound: next.tactical.battle.round + 1,
+        activationRound:
+          next.tactical.battle.round +
+          combatEffectTimingRoundOffset(combatEffectTimingMode(next.effectTimingPolicy, 'summon')),
       })
     } else {
       const summoned = spawnCombatSummon(next, input)
@@ -1576,9 +1602,11 @@ function applyCurrentMatureSkillPowerScaling(
   const damageScaling =
     unscaledDamageCount === 0
       ? null
-      : state.statBridge.rulesVersion === 3
-        ? legacySkillDamageScaling(source, unscaledDamageCount)
-        : currentSkillDamageScaling(source, unscaledDamageCount, apCost)
+      : state.skillPacketPolicyVersion === 1
+        ? standardSkillDamageScaling(source)
+        : state.statBridge.rulesVersion === 3
+          ? legacySkillDamageScaling(source, unscaledDamageCount)
+          : currentSkillDamageScaling(source, unscaledDamageCount, apCost)
 
   const usesV5BalanceRules = definition.authoring.validationTags.includes('owner-rebalance-v5')
   const scalableRecoveryCount = usesV5BalanceRules
@@ -1675,6 +1703,10 @@ function scaleRepeatedMatureSkillEffects(
             }
           : {}),
       })
+      continue
+    }
+    if (effect.type === 'percentage-recovery') {
+      scaled.push({ ...effect, percent: halfPositiveMagnitude(effect.percent) })
       continue
     }
     if (effect.type === 'healing' || effect.type === 'barrier-change') {

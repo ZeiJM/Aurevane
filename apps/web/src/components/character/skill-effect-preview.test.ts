@@ -76,13 +76,13 @@ describe('compact Technique explanations', () => {
       skillPreviewEffects(resolveMatureSkillVersion('shadehand.backstab')!)[0].explanation,
     ).toContain('front 100%, side 130%, rear 170%')
   })
-  it('returns one explanation line for every authored effect', () => {
+  it('shares one explanation for identical effect meaning while parameters retain authored applications', () => {
     const skill = resolveMatureSkillVersion('runeblade.siphon-slash')!
     const effects = [
       { type: 'damage' as const, recipient: 'primary-unit' as const, amount: 2 },
       { type: 'damage' as const, recipient: 'primary-unit' as const, amount: 3 },
     ]
-    expect(skillPreviewEffects({ ...skill, effects })).toHaveLength(2)
+    expect(skillPreviewEffects({ ...skill, effects })).toHaveLength(1)
   })
 
   it('deduplicates legacy/current aliases in generated Cleanse wording', () => {
@@ -111,4 +111,17 @@ describe('compact Technique explanations', () => {
     expect(status('fortified').magnitude).toBe('−30% incoming / −20% outgoing')
     expect(status('guarded').magnitude).toBe('−15% incoming')
   })
+})
+
+it('shows captured percentage HP/MP recovery without offensive Power', () => {
+  const result = previewEffect({
+    type: 'percentage-recovery',
+    recipient: 'actor',
+    resource: 'hp',
+    percent: 12,
+    ticks: 3,
+  })
+  expect(result).toMatchObject({ label: 'HP Recovery', magnitude: '12%' })
+  expect(result.explanation).toContain('maximum HP')
+  expect(result.explanation).toContain('captured')
 })

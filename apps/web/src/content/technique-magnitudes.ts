@@ -6,7 +6,7 @@ import {
   CURRENT_BURN_DAMAGE_BY_STAGE,
   CURRENT_POISON_DAMAGE,
 } from '@aurevane/game-core/combat/combat-dots'
-import { currentSkillDamageScaling } from '@aurevane/game-core/combat/damage-scaling'
+import { standardSkillDamageScaling } from '@aurevane/game-core/combat/damage-scaling'
 
 export interface MagnitudeBand {
   family: string
@@ -26,6 +26,8 @@ export function techniqueMagnitudeBands(
     ['Direct damage / hit', 'base damage'],
     ['Direct damage / command', 'base damage'],
     ['Power coefficient / hit', '% Power'],
+    ['HP recovery / application', '% maximum HP'],
+    ['MP recovery / application', '% maximum MP'],
     ['Healing / application', 'HP'],
     ['Multi-application healing / effect', 'total HP'],
     ['MP restore / application', 'MP'],
@@ -47,13 +49,12 @@ export function techniqueMagnitudeBands(
         'Direct damage / command',
         damage.reduce((total, effect) => total + effect.amount, 0),
       )
-      const unscaled = damage.filter((effect) => !effect.scaling && !effect.vengeance).length
       for (const effect of damage) {
         if (effect.vengeance) continue
         add(
           'Power coefficient / hit',
-          (effect.scaling ?? currentSkillDamageScaling('physical-power', unscaled, skill.apCost))
-            .coefficientBasisPoints / 100,
+          (effect.scaling ?? standardSkillDamageScaling('physical-power')).coefficientBasisPoints /
+            100,
         )
       }
     }
@@ -63,6 +64,9 @@ export function techniqueMagnitudeBands(
       switch (effect.type) {
         case 'damage':
           add('Direct damage / hit', effect.amount)
+          break
+        case 'percentage-recovery':
+          add(`${effect.resource.toUpperCase()} recovery / application`, effect.percent)
           break
         case 'healing':
           add('Healing / application', effect.amount)

@@ -34,7 +34,10 @@ export const COMBAT_EFFECT_TIMING_TAGS = [
     ...PHASE4_STATUSES.map((status) => status.id),
   ]),
 ] as readonly string[]
-export type CombatEffectTimingMode = 'instant' | 'next-round'
+export type CombatEffectTimingMode = 'instant' | 'next-round' | 'delayed'
+export function combatEffectTimingRoundOffset(mode: CombatEffectTimingMode): 0 | 1 | 2 {
+  return mode === 'instant' ? 0 : mode === 'next-round' ? 1 : 2
+}
 export interface CombatEffectTimingPolicy {
   version: number
   modes: Readonly<Record<string, CombatEffectTimingMode>>
@@ -53,7 +56,10 @@ export function parseCombatEffectTimingPolicy(value: unknown): CombatEffectTimin
   )
     throw new TypeError('Timing policy version and modes are required.')
   for (const [tag, mode] of Object.entries(candidate.modes)) {
-    if (!COMBAT_EFFECT_TIMING_TAGS.includes(tag) || (mode !== 'instant' && mode !== 'next-round'))
+    if (
+      !COMBAT_EFFECT_TIMING_TAGS.includes(tag) ||
+      (mode !== 'instant' && mode !== 'next-round' && mode !== 'delayed')
+    )
       throw new TypeError('Unknown timing tag or mode.')
   }
   return { version: candidate.version, modes: { ...candidate.modes } }
@@ -70,7 +76,8 @@ export function parseStoredCombatEffectTimingPolicy(value: unknown): CombatEffec
     return parseCombatEffectTimingPolicy(value)
   const entries = Object.entries(candidate.modes)
   for (const [, mode] of entries) {
-    if (mode !== 'instant' && mode !== 'next-round') throw new TypeError('Unknown timing mode.')
+    if (mode !== 'instant' && mode !== 'next-round' && mode !== 'delayed')
+      throw new TypeError('Unknown timing mode.')
   }
   const modes = Object.fromEntries(
     entries.filter(([tag]) => tag !== 'copy' && !isRetiredCombatStatusId(tag)),
@@ -78,6 +85,8 @@ export function parseStoredCombatEffectTimingPolicy(value: unknown): CombatEffec
   return parseCombatEffectTimingPolicy({ ...candidate, modes })
 }
 export function combatEffectTimingTag(effect: CombatEffectDefinition): string {
+  if (effect.type === 'percentage-recovery')
+    return effect.resource === 'hp' ? 'healing' : 'mp-recovery'
   if (effect.type === 'apply-status') return effect.statusId
   if (effect.type === 'resource-change') return effect.delta >= 0 ? 'mp-recovery' : 'mp-drain'
   return effect.type
@@ -93,6 +102,7 @@ export function combatEffectTimingMode(
   )
 }
 export type CombatEffectPresentationStatus = CombatStatusInstance & {
+  recoveryApplications?: number
   dotTriggerPolicyVersion?: 1
   burnBacklashBasisPoints?: number
   percentageDamage?: CapturedPercentageDotDamage
@@ -122,6 +132,7 @@ export function pendingCombatStatusRows(
       potencyBasisPoints?: number
     }
     const remaining =
+      (effect.type === 'percentage-recovery' ? (effect.ticks ?? 1) : undefined) ??
       tuning.durationTurns ??
       tuning.ticks ??
       (effect.type === 'burn' ? CURRENT_BURN_DAMAGE_BY_STAGE.length : undefined) ??
@@ -136,6 +147,7 @@ export function pendingCombatStatusRows(
             : [
                   'damage',
                   'healing',
+                  'percentage-recovery',
                   'resource-change',
                   'create-terrain',
                   'displace',
@@ -172,6 +184,9 @@ export function pendingCombatStatusRows(
           : {}),
         sourceCombatantId: pending.actorId,
         remainingOwnerTurnStarts: remaining,
+        ...(effect.type === 'percentage-recovery'
+          ? { recoveryApplications: effect.ticks ?? 1 }
+          : {}),
         ...(durationScope
           ? {
               durationScope,
@@ -242,6 +257,7 @@ export function activePersistentCombatStatusRows(
     percentageDamage?: CapturedPercentageDotDamage,
     percentageDotStage?: number,
     burnBacklashBasisPoints?: number,
+    recoveryApplications?: number,
   ) {
     if (!state.tactical.battle.combatants.some((unit) => unit.id === combatantId && unit.hp > 0))
       return
@@ -255,6 +271,7 @@ export function activePersistentCombatStatusRows(
         stacks: 1,
         sourceCombatantId,
         timingState: 'active',
+        ...(recoveryApplications !== undefined ? { recoveryApplications } : {}),
         ...(percentageDamage
           ? {
               percentageDamage: { ...percentageDamage, profile: { ...percentageDamage.profile } },
@@ -303,6 +320,11 @@ export function activePersistentCombatStatusRows(
       effect.kind === 'hp' ? 'healing' : 'mp-recovery',
       effect.sourceCombatantId,
       effect.remainingFutureTicks,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      effect.percentageRecovery ? effect.remainingFutureTicks : undefined,
     )
   for (const effect of effects.barriers ?? [])
     if (effect.amount > 0)

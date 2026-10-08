@@ -103,12 +103,14 @@ export function SkillGroundEditor({
                 onChange={(event) => {
                   const next = { ...value }
                   if (event.currentTarget.value === 'policy') delete next.timing
-                  else next.timing = event.currentTarget.value as 'instant' | 'next-round'
+                  else
+                    next.timing = event.currentTarget.value as 'instant' | 'next-round' | 'delayed'
                   onChange(next)
                 }}
               >
                 <option value="policy">Follow battle timing policy</option>
-                <option value="next-round">Next round</option>
+                <option value="next-round">Normal</option>
+                <option value="delayed">Delayed</option>
                 <option value="instant">Instant</option>
               </select>
             </label>

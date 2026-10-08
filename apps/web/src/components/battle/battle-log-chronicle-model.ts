@@ -285,6 +285,8 @@ function action(entry: BattleLogEntry, names: ChronicleNames, ownerId: string): 
 function duration(entry: BattleLogEntry): string | undefined {
   const recorded = entry.facts.find((fact) => /^\d+ (?:turns?|rounds?)$/u.test(fact.label))?.label
   if (recorded) return recorded
+  const applications = entry.effectTiming?.recoveryApplications
+  if (applications) return `${applications} application${applications === 1 ? '' : 's'}`
   const turns = entry.effectTiming?.remainingOwnerTurnEnds
   if (turns) return `${turns} turn${turns === 1 ? '' : 's'}`
   const rounds = entry.effectTiming?.remainingRoundBoundaries
@@ -321,6 +323,8 @@ function outcome(entry: BattleLogEntry, names: ChronicleNames): ChronicleOutcome
   const base = { key: eventKey(entry), tone: 'neutral' as const }
   if (entry.effectTimingState === 'pending') return null
   switch (entry.eventType) {
+    case 'combatant_rewind_blocked':
+      return { ...base, text: entry.message, tone: 'harm' }
     case 'combat_critical_resolved':
       return value.outcome === 'CRITICAL'
         ? { ...base, text: `Critical hit on ${target}!`, tone: 'damage' }
@@ -337,6 +341,13 @@ function outcome(entry: BattleLogEntry, names: ChronicleNames): ChronicleOutcome
           ? Number(candidateRound)
           : undefined
       const round = recordedRound ? `round ${recordedRound}` : 'a future round'
+      if (entry.effectTiming?.recoveryApplications)
+        return {
+          ...base,
+          tone: effectTone(entry.statusId),
+          text: `${label} will restore ${entry.effectTiming.recoveryApplications} application${entry.effectTiming.recoveryApplications === 1 ? '' : 's'}${entry.targetCombatantId ? ` on ${target}` : ''}, beginning at the start of ${round}!`,
+          ...(entry.statusId ? { statusId: entry.statusId, duration: duration(entry) } : {}),
+        }
       const remaining =
         entry.effectTiming?.remainingOwnerTurnEnds ?? entry.effectTiming?.remainingRoundBoundaries
       const candidateEnd = recordedRound && remaining ? recordedRound + remaining - 1 : undefined
@@ -356,6 +367,22 @@ function outcome(entry: BattleLogEntry, names: ChronicleNames): ChronicleOutcome
       }
     }
     case 'damage_applied': {
+      const cause =
+        entry.damageTrigger === 'burn-backlash' ||
+        ['status.burn.backlash.current.v1', 'status.burn.backlash.current.v2'].includes(
+          entry.actionId ?? '',
+        )
+          ? 'Burn backlash'
+          : entry.damageTrigger === 'poison-movement'
+            ? 'an extra Poison tick after movement'
+            : null
+      if (cause)
+        return {
+          ...base,
+          text: `${target} took ${value.amount ?? 'Resolved'} ${battleDamageLabel(value.element)} from ${cause}`,
+          tone: 'damage',
+          statusId: cause === 'Burn backlash' ? 'burn' : 'poison',
+        }
       if (entry.periodicStatusId) {
         const label = combatStatusDetails(entry.periodicStatusId).name
         const narration =

@@ -56,15 +56,15 @@ async function capturedRecoveryLink(request: APIRequestContext, email: string): 
         link =
           messageText
             .replaceAll('&amp;', '&')
-            .match(/https?:\/\/[^\s"<>]+\/auth\/v1\/verify\?[^\s"<>]+/)?.[0] ?? ''
+            .match(/https?:\/\/[^\s"<>]+\/auth\/recovery\?[^\s"<>]+/)?.[0] ?? ''
         return Boolean(link)
       },
       { timeout: 15_000, message: 'local captured password recovery email' },
     )
     .toBe(true)
   const url = new URL(link)
-  expect(url.origin).toBe(new URL(authUrl!).origin)
-  expect(url.searchParams.get('type')).toBe('recovery')
+  expect(url.origin).toBe(new URL(test.info().project.use.baseURL!).origin)
+  expect(url.searchParams.get('token_hash')).toBeTruthy()
   return link
 }
 
@@ -87,6 +87,7 @@ test.beforeEach(() => {
 test('email recovery updates the password, signs out, and requires a fresh gameplay claim', async ({
   page,
   request,
+  browser,
 }, info) => {
   test.setTimeout(60_000)
   const email = `recover-${info.project.name}-${Date.now()}@example.test`
@@ -97,11 +98,19 @@ test('email recovery updates the password, signs out, and requires a fresh gamep
   await page.getByRole('button', { name: 'Sign in', exact: true }).click()
   await requestReset(page, email)
   const link = await capturedRecoveryLink(request, email)
+  // A mail scanner GET must not consume the credential or establish Auth.
+  const scanner = await request.get(link)
+  expect(scanner.ok()).toBe(true)
+  expect(scanner.headers()['referrer-policy']).toBe('no-referrer')
+  const recoveryContext = await browser.newContext({ baseURL: test.info().project.use.baseURL })
+  page = await recoveryContext.newPage()
   let claims = 0
   page.on('request', (request) => {
     if (new URL(request.url()).pathname === '/api/account/game-session/claim') claims += 1
   })
   await page.goto(link)
+  await expect(page.getByLabel('New password', { exact: true })).toHaveCount(0)
+  await page.getByRole('button', { name: 'Continue to reset password' }).click()
   expect(new URL(page.url()).origin).toBe(new URL(test.info().project.use.baseURL!).origin)
   await expect(page).toHaveURL(/\/auth\/reset-password$/)
   const recoveryCookieNames = (await page.context().cookies()).map((cookie) => cookie.name)
@@ -136,6 +145,11 @@ test('email recovery updates the password, signs out, and requires a fresh gamep
   await expect(
     page.getByText('This account link has expired or could not be verified.', { exact: false }),
   ).toBeVisible()
+  await page.goto(link)
+  await page.getByRole('button', { name: 'Continue to reset password' }).click()
+  await expect(page.getByRole('status')).toContainText('expired or could not be verified')
+  await expect(page.getByLabel('New password', { exact: true })).toHaveCount(0)
+  await recoveryContext.close()
 })
 
 test('invalid callbacks and expired captured emails offer a safe recovery retry', async ({
@@ -176,7 +190,8 @@ test('invalid callbacks and expired captured emails offer a safe recovery retry'
     `update auth.users set recovery_sent_at = now() - interval '2 days' where id = '${data.user.id}'::uuid;`,
   ])
   await page.goto(link)
-  await expect(page).toHaveURL(/\/auth\/reset-password\?error=invalid-link/)
+  await page.getByRole('button', { name: 'Continue to reset password' }).click()
+  await expect(page.getByRole('status')).toContainText('expired or could not be verified')
   await expect(page.getByLabel('New password', { exact: true })).toHaveCount(0)
   await expect(page.getByRole('link', { name: 'Request a new reset link' })).toBeVisible()
 })

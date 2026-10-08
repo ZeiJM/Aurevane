@@ -36,12 +36,14 @@ export interface BattleLogEntry {
   effectActivationRound?: number
   /** Lifetime recorded when the pending effect was committed; old history may omit it. */
   effectTiming?: {
+    recoveryApplications?: number
     remainingOwnerTurnEnds?: number
     remainingRoundBoundaries?: number
     durationScope?: 'rounds' | 'instant' | 'until-removed' | 'until-spent'
   }
   /** Canonical periodic damage, distinct from a fresh cast or effect activation. */
   periodicStatusId?: 'poison' | 'burn' | 'bleed'
+  damageTrigger?: 'burn-backlash' | 'poison-movement' | 'scheduled-tick'
   effectTimingState?: 'pending'
   actorNarrator?: BattleNarratorIdentitySnapshot
   occurredAt: string
@@ -188,7 +190,17 @@ function createEntry(
   const raw = record.event as Record<string, unknown>
   const ownerTurns = numberValue(raw.remainingOwnerTurnEnds)
   const roundBoundaries = numberValue(raw.remainingRoundBoundaries)
+  const applications = numberValue(raw.recoveryApplications)
+  const recoveryApplications =
+    ['healing', 'mp-recovery'].includes(String(raw.effectTag)) &&
+    applications !== null &&
+    Number.isSafeInteger(applications) &&
+    applications >= 1 &&
+    applications <= 4
+      ? applications
+      : undefined
   const effectTiming: NonNullable<BattleLogEntry['effectTiming']> = {
+    ...(recoveryApplications !== undefined ? { recoveryApplications } : {}),
     ...(ownerTurns !== null && Number.isSafeInteger(ownerTurns) && ownerTurns > 0
       ? { remainingOwnerTurnEnds: ownerTurns }
       : {}),
@@ -207,6 +219,11 @@ function createEntry(
     eventType === 'damage_applied' && ['poison', 'burn', 'bleed'].includes(String(raw.statusId))
       ? (raw.statusId as NonNullable<BattleLogEntry['periodicStatusId']>)
       : undefined
+  const damageTrigger =
+    eventType === 'damage_applied' &&
+    ['burn-backlash', 'poison-movement', 'scheduled-tick'].includes(String(raw.damageTrigger))
+      ? (raw.damageTrigger as BattleLogEntry['damageTrigger'])
+      : undefined
   const defaultMessageValues = {
     ...templateValues,
     actor: combatantLabel(actorCombatantId),
@@ -214,6 +231,7 @@ function createEntry(
   }
 
   return {
+    ...(damageTrigger ? { damageTrigger } : {}),
     battleVersion: record.battleVersion,
     eventIndex: record.eventIndex,
     occurredAt: record.createdAt,
@@ -284,7 +302,21 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
     case 'effect_pending': {
       const tag = stringValue(event.effectTag)
       const activationRound = numberValue(event.activationRound)
-      const label = statusLabel(tag)
+      const candidate = numberValue(event.recoveryApplications)
+      const applications =
+        ['healing', 'mp-recovery'].includes(String(tag)) &&
+        candidate !== null &&
+        Number.isSafeInteger(candidate) &&
+        candidate >= 1 &&
+        candidate <= 4
+          ? candidate
+          : undefined
+      const label =
+        applications === undefined
+          ? statusLabel(tag)
+          : tag === 'healing'
+            ? 'HP Recovery'
+            : 'MP Recovery'
       const targetCombatantId = stringValue(event.targetCombatantId)
       return createEntry(record, eventType, {
         messageTemplate: targetCombatantId
@@ -292,7 +324,16 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
           : '{effect} pending on the ground{activation}.',
         templateValues: {
           effect: label,
-          activation: activationRound === null ? '' : ` until round ${activationRound}`,
+          ...(activationRound !== null &&
+          Number.isSafeInteger(activationRound) &&
+          activationRound > 0
+            ? { round: String(activationRound) }
+            : {}),
+          activation:
+            (activationRound === null ? '' : ` until round ${activationRound}`) +
+            (applications === undefined
+              ? ''
+              : ` · ${applications} application${applications === 1 ? '' : 's'}`),
         },
         actorCombatantId: stringValue(event.sourceCombatantId),
         targetCombatantId,
@@ -318,6 +359,30 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
         kind: 'status',
         headline: label,
         facts: fact(label),
+      })
+    }
+    case 'combatant_rewind_blocked': {
+      const descriptions: Readonly<Record<string, string>> = {
+        rooted: 'Rooted blocks the return',
+        occupied: 'the captured tile is occupied',
+        impassable: 'the captured tile is impassable',
+        elevation: 'the captured tile exceeds Jump',
+        defeated: 'the caster is defeated',
+      }
+      const reason = stringValue(event.reason)
+      const description = reason ? descriptions[reason] : undefined
+      if (!description) return null
+      const actorCombatantId = stringValue(event.combatantId)
+      return createEntry(record, eventType, {
+        messageTemplate: 'Rewind failed: {reason}.',
+        templateValues: { reason: description },
+        actorCombatantId,
+        targetCombatantId: actorCombatantId,
+        actionId: presentationActionId(event.actionId),
+        kind: 'movement',
+        headline: 'Rewind blocked',
+        tone: 'warning',
+        facts: fact(description, 'warning'),
       })
     }
     case 'combatant_rewound': {
@@ -542,9 +607,18 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
         : periodic
           ? statusLabel(event.statusId)
           : 'Damage'
+      const cause =
+        event.damageTrigger === 'burn-backlash' ||
+        ['status.burn.backlash.current.v1', 'status.burn.backlash.current.v2'].includes(
+          String(event.actionId),
+        )
+          ? ' from Burn backlash'
+          : event.damageTrigger === 'poison-movement'
+            ? ' from an extra Poison tick after movement'
+            : ''
       return createEntry(record, eventType, {
-        message: `${combatantLabel(event.targetCombatantId)} took ${amount ?? 'resolved'} ${damageLabel}${hpAfter === null ? '' : ` and has ${hpAfter} HP remaining`}.`,
-        messageTemplate: `{target} took {amount} ${damageLabel}.`,
+        message: `${combatantLabel(event.targetCombatantId)} took ${amount ?? 'resolved'} ${damageLabel}${cause}${hpAfter === null ? '' : ` and has ${hpAfter} HP remaining`}.`,
+        messageTemplate: `{target} took {amount} ${damageLabel}${cause}.`,
         templateValues: { amount: String(amount ?? 'resolved'), ...(element ? { element } : {}) },
         actorCombatantId,
         targetCombatantId,
@@ -752,6 +826,7 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
         messageTemplate: '{actor} ended turn {turn}.',
         templateValues: { turn: String(turnNumber ?? '—') },
         actorCombatantId,
+        round: numberValue(event.round),
         turnNumber,
         kind: 'turn',
         headline: 'Turn End',
@@ -965,14 +1040,36 @@ function annotateBattleContext(entries: readonly BattleLogEntry[]): BattleLogEnt
   // persisted opening snapshot; PvE does not separately persist those opening events.
   let round = 1
   let turnNumber: number | null = 1
+  let completed: {
+    battleVersion: number
+    combatantId: string
+    round: number
+    turnNumber: number | null
+  } | null = null
 
   for (const entry of oldestFirst) {
     if (entry.eventType === 'round_started') turnNumber = null
     if (entry.round !== null) round = entry.round
     if (entry.turnNumber !== null) turnNumber = entry.turnNumber
+    if (entry.eventType === 'turn_ended' && entry.actorCombatantId) {
+      completed = {
+        battleVersion: entry.battleVersion,
+        combatantId: entry.actorCombatantId,
+        round,
+        turnNumber,
+      }
+    }
+    const outgoingTick =
+      entry.periodicStatusId &&
+      completed &&
+      completed.battleVersion === entry.battleVersion &&
+      completed.combatantId === entry.targetCombatantId &&
+      entry.effectActivationRound === undefined &&
+      entry.damageTrigger !== 'burn-backlash' &&
+      entry.damageTrigger !== 'poison-movement'
     context.set(eventKey(entry), {
-      round: entry.round ?? round,
-      turnNumber: entry.turnNumber ?? turnNumber,
+      round: outgoingTick ? completed!.round : (entry.round ?? round),
+      turnNumber: outgoingTick ? completed!.turnNumber : (entry.turnNumber ?? turnNumber),
     })
   }
 

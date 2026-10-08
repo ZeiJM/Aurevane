@@ -24,6 +24,7 @@ export interface CombatCriticalResolvedEvent extends CombatTargetCriticalChance 
   sourceCombatantId: string
   rollBasisPoints: number | null
   critical: boolean
+  effectOrdinals?: readonly number[]
   criticalRulesVersion: typeof COMBAT_CRITICAL_RULES_VERSION
 }
 

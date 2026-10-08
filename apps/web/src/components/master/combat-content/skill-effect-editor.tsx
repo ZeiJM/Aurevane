@@ -527,6 +527,62 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
       controls = damageEditor(value, onChange)
       break
 
+    case 'percentage-recovery':
+      controls = (
+        <div className={styles.typedGrid}>
+          {recipientField('Recovery recipient', value.recipient, (recipient) =>
+            onChange({ ...value, recipient }),
+          )}
+          <label className={styles.field}>
+            <span>Resource</span>
+            <select
+              aria-label="Recovery resource"
+              value={value.resource}
+              onChange={(event) =>
+                onChange({ ...value, resource: event.currentTarget.value as 'hp' | 'mp' })
+              }
+            >
+              <option value="hp">HP</option>
+              <option value="mp">MP</option>
+            </select>
+          </label>
+          <label className={styles.field}>
+            <span>Percent of recipient maximum</span>
+            <input
+              aria-label="Recovery percent"
+              type="number"
+              min={1}
+              max={100}
+              step={1}
+              value={value.percent}
+              onChange={(event) =>
+                onChange({ ...value, percent: integer(event.currentTarget.value, value.percent) })
+              }
+            />
+          </label>
+          <label className={styles.field}>
+            <span>Applications</span>
+            <input
+              aria-label="Recovery applications"
+              type="number"
+              min={1}
+              max={4}
+              step={1}
+              value={value.ticks ?? 1}
+              onChange={(event) => {
+                const ticks = integer(event.currentTarget.value, value.ticks ?? 1)
+                onChange({ ...value, ticks, durationTurns: Math.max(0, ticks - 1) })
+              }}
+            />
+          </label>
+          <p className={styles.effectNote}>
+            The recipient maximum and HP Hex adjustment are captured when cast; each application
+            reuses that amount.
+          </p>
+        </div>
+      )
+      break
+
     case 'healing':
       controls = (
         <div className={styles.typedGrid}>
@@ -707,7 +763,11 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
         <div className={styles.effectStaticGrid}>
           <div className={styles.effectStatic}>
             <span>Effect</span>
-            <strong>Return to turn start</strong>
+            <strong>
+              {value.anchorMode === 'cast-position'
+                ? 'Return to captured cast tile'
+                : 'Return to turn start'}
+            </strong>
           </div>
           <div className={styles.effectStatic}>
             <span>Recipient</span>
@@ -894,10 +954,11 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
     'sensory',
   ].includes(value.type)
   const fixedTerrain = value.type === 'create-terrain'
+  const maximumDuration = value.type === 'percentage-recovery' ? 3 : 4
   const minimumDuration = ['apply-status', 'bleed', 'burn', 'poison'].includes(value.type) ? 1 : 0
   const durationTurns =
     value.durationTurns ??
-    (value.type === 'healing'
+    (value.type === 'healing' || value.type === 'percentage-recovery'
       ? Math.max(0, (value.ticks ?? 1) - 1)
       : value.type === 'resource-change' && value.delta > 0
         ? Math.max(0, (value.ticks ?? 1) - 1)
@@ -914,8 +975,8 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
                   : 0)
 
   function changeDuration(nextDuration: number) {
-    const duration = Math.max(minimumDuration, Math.min(4, nextDuration))
-    if (value.type === 'healing') {
+    const duration = Math.max(minimumDuration, Math.min(maximumDuration, nextDuration))
+    if (value.type === 'healing' || value.type === 'percentage-recovery') {
       onChange({ ...value, durationTurns: duration, ticks: duration + 1 })
       return
     }
@@ -940,7 +1001,7 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
             aria-label="Effect duration (turns)"
             type="number"
             min={fixedImmediate ? 0 : fixedTerrain ? 2 : minimumDuration}
-            max={fixedImmediate ? 0 : fixedTerrain ? 2 : 4}
+            max={fixedImmediate ? 0 : fixedTerrain ? 2 : maximumDuration}
             step={1}
             disabled={fixedImmediate || fixedTerrain}
             value={fixedImmediate ? 0 : fixedTerrain ? 2 : durationTurns}

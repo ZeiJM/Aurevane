@@ -1,3 +1,4 @@
+import { prePercentageRecoverySkill } from './percentage-recovery-history.test-utils'
 import { describe, expect, it } from 'vitest'
 import {
   surrenderPvpCombatant,
@@ -169,7 +170,7 @@ describe('Chronist authoritative tempo', () => {
     ).not.toEqual([])
   })
   it('rewinds only position to this turn origin without refunds, preserving reloads and Root legality', () => {
-    const definition = skill('chronist.rewind-step')
+    const definition = prePercentageRecoverySkill('chronist.rewind-step')
     expect(
       evaluatePv1fMatureSkill(encounter(), definition, { kind: 'self' }).evaluation.legal,
     ).toBe(false)

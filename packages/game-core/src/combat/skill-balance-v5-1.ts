@@ -45,7 +45,14 @@ export function classifyV51SkillRole(definition: MatureSkillDefinition): V51Skil
   ) {
     return 'attack'
   }
-  if (definition.effects.some((effect) => effect.type === 'healing')) return 'recovery'
+  if (
+    definition.effects.some(
+      (effect) =>
+        effect.type === 'healing' ||
+        (effect.type === 'percentage-recovery' && effect.resource === 'hp'),
+    )
+  )
+    return 'recovery'
   return 'utility'
 }
 
@@ -193,6 +200,7 @@ function effectWeight(effect: MatureSkillEffectDefinition): number {
     case 'copy-statuses':
     case 'sensory':
       return 1.3 + duration * 0.25
+    case 'percentage-recovery':
     case 'healing':
     case 'resource-change':
     case 'barrier-change':

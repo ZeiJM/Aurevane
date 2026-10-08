@@ -1,3 +1,4 @@
+import { prePercentageRecoverySkill } from './percentage-recovery-history.test-utils'
 import { describe, expect, it } from 'vitest'
 
 import { resolveMatureSkillVersion, type MatureSkillDefinition } from './mature-skills'
@@ -6,7 +7,7 @@ import { createCombatEncounterState, executeCombatAction } from './actions'
 import { pendingCombatStatusRows } from './combat-effect-timing'
 import { createPendingBattle, startBattle } from './battle-state'
 import { normalizeCombatEffectState } from './combat-effect-state'
-import { currentSkillDamageScaling } from './damage-scaling'
+import { currentSkillDamageScaling, standardSkillDamageScaling } from './damage-scaling'
 import { readSkillCooldown } from './skill-cooldowns'
 import { createTacticalBattleState } from './board'
 import {
@@ -180,6 +181,38 @@ function expectLethalResolution(actorId: 'player' | 'recruit', targetId: 'player
 }
 
 describe('Level-100 offensive scaling', () => {
+  it('scales seven ordinary Power-9 packets like a single ordinary Power-8 attack in new battles', () => {
+    const ordinary = resolveMatureSkillVersion('vanguard.forceful-strike')!
+    const repeated = {
+      ...ordinary,
+      effects: Array.from({ length: 7 }, () => ({
+        type: 'damage' as const,
+        recipient: 'primary-unit' as const,
+        amount: 9,
+      })),
+    }
+    const state = { ...currentPowerEncounter(), skillPacketPolicyVersion: 1 as const }
+    const result = evaluatePv1fMatureSkill(state, repeated, {
+      kind: 'unit',
+      combatantId: 'recruit',
+    })
+    expect(result.action.effects).toHaveLength(7)
+    for (const effect of result.action.effects)
+      expect(effect).toMatchObject({
+        amount: 9,
+        scaling: standardSkillDamageScaling('physical-power'),
+      })
+    const single = evaluatePv1fMatureSkill(
+      state,
+      { ...ordinary, effects: [{ type: 'damage', recipient: 'primary-unit', amount: 8 }] },
+      { kind: 'unit', combatantId: 'recruit' },
+    )
+    expect(single.action.effects[0]).toMatchObject({
+      amount: 8,
+      scaling: standardSkillDamageScaling('physical-power'),
+    })
+  })
+
   it('derives Basic Attack from Physical Power instead of reading Core Stats directly', () => {
     expect(calculatePv1fBasicAttackDamage({ physicalPower: 34 })).toBe(11)
     expect(calculatePv1fBasicAttackDamage({ physicalPower: 75 })).toBe(17)
@@ -213,8 +246,8 @@ describe('Level-100 offensive scaling', () => {
     })
   })
 
-  it('converts authored v5 recovery Power into stat-scaled HP and MP output', () => {
-    const definition = resolveMatureSkillVersion('cinderweaver.banked-embers')
+  it('preserves pinned historical v5 recovery Power as stat-scaled HP and MP output', () => {
+    const definition = prePercentageRecoverySkill('cinderweaver.banked-embers')
     if (!definition) throw new Error('Expected current Banked Embers fixture.')
     const authoredHealing = definition.effects.find((effect) => effect.type === 'healing')
     const authoredMp = definition.effects.find((effect) => effect.type === 'resource-change')

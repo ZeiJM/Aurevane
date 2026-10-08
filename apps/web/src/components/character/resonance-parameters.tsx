@@ -1,5 +1,7 @@
 'use client'
 
+import { groupSkillEffects } from './skill-effect-groups'
+
 import { useSkillEffectTimingPolicy } from './skill-effect-timing-context'
 import type { AnyResonanceDefinition } from '@aurevane/game-core/combat/resonance'
 import { normalizedResonanceMechanics } from '@aurevane/game-core/combat/resonance-v2'
@@ -38,10 +40,10 @@ export function ResonanceParameters({
           effectSummary={
             definition
               ? effects.length
-                ? effects.map((effect, index) => (
+                ? groupSkillEffects(effects).map(({ effect, count, firstIndex: index }) => (
                     <div className={styles.effectRow} key={index}>
                       {resonanceMatcher(mechanics!.trigger)}:{' '}
-                      <CompactSkillEffectSummary effect={effect} />
+                      <CompactSkillEffectSummary effect={effect} count={count} />
                       {effect.recipient !== 'actor'
                         ? ` → ${resonanceResultRecipient(effect)}`
                         : null}
@@ -59,7 +61,8 @@ export function ResonanceParameters({
         <ul aria-label="Effect explanations">
           {explanations.map((explanation, index) => (
             <li key={index}>
-              <strong>{previewEffect(effects[index]!).label}</strong> — {explanation}
+              <strong>{previewEffect(groupSkillEffects(effects)[index]!.effect).label}</strong> —{' '}
+              {explanation}
             </li>
           ))}
         </ul>

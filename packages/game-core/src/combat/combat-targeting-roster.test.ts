@@ -1,3 +1,7 @@
+import {
+  prePercentageRecoverySkill,
+  prePercentageRecoveryEssence,
+} from './percentage-recovery-history.test-utils'
 import { describe, expect, it } from 'vitest'
 import {
   latestEnabledMatureSkills,
@@ -16,11 +20,14 @@ import {
 import { applyV51CurrentTechniqueTargeting } from './skill-balance-v5-1'
 const essences = () =>
   [...new Set(P36_REPRESENTATIVE_ESSENCES.map((e) => e.sourceDisciplineId))].map((id) =>
-    resolveEssenceForBuild(id, null)!,
+    prePercentageRecoveryEssence(id),
   )
 describe('immutable current targeting catalog', () => {
   it('versions exactly 23 Circle and 13 Line entries while retaining 117 Single definitions', () => {
-    const all = [...latestEnabledMatureSkills(), ...essences().map((e) => e.skill)]
+    const all = [
+      ...latestEnabledMatureSkills().map((s) => prePercentageRecoverySkill(s.id)),
+      ...essences().map((e) => e.skill),
+    ]
     expect(all).toHaveLength(153)
     expect(all.filter((s) => s.target.shape.kind === 'circle')).toHaveLength(23)
     expect(all.filter((s) => s.target.shape.kind === 'line')).toHaveLength(13)

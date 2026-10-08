@@ -1,5 +1,13 @@
 # AUREVANE — Active Task Ledger
 
+## October 8 combat/auth reconstruction — locally verified, publishing pending
+
+Scope: independent repeated-tag packets/ordinary damage scaling, unlimited Bleed and DoT narration, compact readers, tile-corner arrows, persistent Line reach, periodic Ground loops, captured percentage recovery/new immutable content, exclusive Normal/Instant/Delayed timing, cast-position Rewind and scanner-safe on-site password recovery. No phase change is implied.
+
+Implementation is reconstructed on `agent/combat-auth-reconstruct-20261008`, including prior auth/readers commit `7bb363a`. Final implementation `c3dc83b` passes full `pnpm check`: 4,401 Vitest tests, seven Node checks, format/lint/eight-package types/build; production audit has no known vulnerabilities. The 72-case production-component browser matrix and protected timing migration integration tests pass; fresh review is approved. The original missing percentage table is not recovered; concrete replacement mapping is documented separately. See `docs/superpowers/plans/2026-10-08-combat-auth-reconstruction.md`, `docs/verification/2026-10-08-percentage-recovery-mapping.md` and `docs/verification/2026-10-08-combat-auth-reconstruction.md`.
+
+Release gates still require publishing authorization, exact-head CI with disposable DB/Auth and captured-email/new-browser acceptance, plus hosted configuration/override inspection under release authorization. Preserve the October 7 released evidence below as history, not evidence for this batch.
+
 ## Current combat corrections — 2026-10-07
 
 Owner approved persistent exact-footprint orange Ground areas, full-lifetime continuous effect rows, clearer direction arrows, seamless hotkeys, readable completed logs, honest Self/Ally labels and explicit Resonance matchers. New encounters pin Ground policy 1 and DoT trigger policy 1. Burn uses authored outgoing-hostile-damage backlash (10% default); Burn and Poison extra triggers are once per character turn cycle, with scheduled ticks independent. Master exposes registered Ground presets/duration/activation and exact Burn percentages through immutable publication. Chronist Skills Setup accepts any Chronist Skill; historical content remains pinned. Current authority: docs/COMBAT.md and the 2026-10-07 combat-corrections plan/spec. Tasks 1–9 are implemented, verified and released through PR #847. All 13 exact-head workflows passed; Production deployment dpl_BkvsQJyAv1nVQzqCrHD2bAxJpccV is READY at the merged source. Release evidence and the complete 31-point Owner checklist: docs/verification/2026-10-07-combat-corrections.md. This continuation does not change phase boundaries or imply human playtest acceptance.

@@ -1,5 +1,7 @@
 'use client'
 
+import { groupSkillEffects } from '../character/skill-effect-groups'
+
 import { skillTargetMethodExplanation } from '../character/skill-detail-presentation'
 import {
   useSkillEffectTimingPolicy,
@@ -29,11 +31,13 @@ export function BattleSkillParameters({ skill }: { skill: BattleSkillForecastPre
           effectSummary={
             definition
               ? definition.effects.length > 0
-                ? definition.effects.map((effect, index) => (
-                    <div key={index}>
-                      <CompactSkillEffectSummary effect={effect} />
-                    </div>
-                  ))
+                ? groupSkillEffects(definition.effects, definition.effectDescriptions).map(
+                    ({ effect, count, firstIndex: index }) => (
+                      <div key={index}>
+                        <CompactSkillEffectSummary effect={effect} count={count} />
+                      </div>
+                    ),
+                  )
                 : 'N/A'
               : undefined
           }

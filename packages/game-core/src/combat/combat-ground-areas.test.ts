@@ -227,3 +227,17 @@ describe('persisted typed Ground area state', () => {
     expect(area(completed && advanceCombatGroundAreas(completed))).toBeUndefined()
   })
 })
+
+it('preserves all three active Ground rounds after Delayed activation and JSON reload', () => {
+  const placed = createCombatGroundArea(
+    { ...encounter(), effectTimingPolicy: { version: 2, modes: { 'ground-area': 'delayed' } } },
+    'actor',
+    action,
+    tiles,
+    content,
+  )
+  const loaded = JSON.parse(JSON.stringify(placed)) as CombatEncounterState
+  expect(area(loaded)).toMatchObject({ activationRound: 3, expiresAtRound: 6 })
+  expect(area(advanceCombatGroundAreas(atRound(loaded, 5)))).toBeDefined()
+  expect(area(advanceCombatGroundAreas(atRound(loaded, 6)))).toBeUndefined()
+})
