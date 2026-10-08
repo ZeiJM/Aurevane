@@ -3,6 +3,7 @@ import { battleDamageLabel } from '../../lib/battle/battle-damage-type'
 import type { BattleLogEntry } from '@/server/battle/battle-log-service'
 
 import { renderBattleLogEntry } from './battle-log-presentation'
+import { summarizeBattleLogTerrain } from './battle-log-terrain-summary'
 
 export type ChronicleFamily =
   'movement' | 'idle' | 'skill' | 'essence' | 'resonance' | 'ascension' | 'severence'
@@ -545,7 +546,7 @@ export function buildBattleChronicle(
   }
   let command: ChronicleAction | null = null
   let version = -1
-  for (const entry of ordered) {
+  for (const entry of summarizeBattleLogTerrain(ordered)) {
     if (entry.battleVersion !== version) {
       command = null
       version = entry.battleVersion

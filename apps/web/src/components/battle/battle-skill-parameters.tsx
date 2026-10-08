@@ -4,21 +4,29 @@ import { groupSkillEffects } from '../character/skill-effect-groups'
 
 import { skillTargetMethodExplanation } from '../character/skill-detail-presentation'
 import {
+  useSkillGroundInteractionRules,
+  useAirborneAttackElevation,
   useSkillEffectTimingPolicy,
   useSkillDotTriggerPolicyVersion,
 } from '../character/skill-effect-timing-context'
 import { CompactSkillEffectSummary } from '../character/compact-skill-effect-summary'
 import { battleSkillParameterRows } from './battle-preview-content'
 import { skillPreviewEffects } from '../character/skill-effect-preview'
+import { SkillGroundAreaDetails } from '../character/skill-ground-area-details'
 import type { BattleSkillForecastPresentation } from './battle-runtime'
 import { SkillCharacteristicRows } from '../character/skill-characteristic-rows'
 
 /** Uses the same pinned definitions and parameter/effect renderers as Skill Management. */
 export function BattleSkillParameters({ skill }: { skill: BattleSkillForecastPresentation }) {
   const timingPolicy = useSkillEffectTimingPolicy()
+  const groundRules = useSkillGroundInteractionRules()
+  const airborneAttackElevation = useAirborneAttackElevation()
   const legacyTriggers = useSkillDotTriggerPolicyVersion() === null
   const definition = skill.definition
-  const rows = battleSkillParameterRows(skill, timingPolicy)
+  const rows = battleSkillParameterRows(skill, timingPolicy, {
+    ...groundRules,
+    airborneAttackElevation,
+  })
   return (
     <div data-battle-skill-parameters="true">
       <strong>Parameters</strong>
@@ -45,7 +53,7 @@ export function BattleSkillParameters({ skill }: { skill: BattleSkillForecastPre
       </dl>
       {definition ? (
         <ul aria-label="Effect explanations">
-          {skillPreviewEffects(definition, timingPolicy, { legacyTriggers }).map(
+          {skillPreviewEffects(definition, { legacyTriggers, ...groundRules }).map(
             (effect, index) => (
               <li key={index}>
                 <strong>{effect.label}</strong> — {effect.explanation}
@@ -54,6 +62,7 @@ export function BattleSkillParameters({ skill }: { skill: BattleSkillForecastPre
           )}
         </ul>
       ) : null}
+      {definition ? <SkillGroundAreaDetails skill={definition} /> : null}
       {skill.requirementDescriptions.length > 0 ? (
         <>
           <strong>Requirement details</strong>

@@ -6,10 +6,15 @@ import type {
   ResonanceSkillMatcher,
 } from '@aurevane/game-core/combat/resonance'
 import { resonanceSkillMatcherDescription } from '@aurevane/game-core/combat/resonance-skill-matcher'
+import { matchesResonanceSkill } from '@aurevane/game-core/combat/resonance-skill-matcher'
+import {
+  latestEnabledMatureSkills,
+  type MatureSkillDefinition,
+} from '@aurevane/game-core/combat/mature-skills'
 import type { CombatEffectDefinition } from '@aurevane/game-core/combat/actions'
 import { normalizedResonanceMechanics } from '@aurevane/game-core/combat/resonance-v2'
 import { previewEffect } from './skill-effect-preview'
-import { skillEffectSummaries } from './skill-detail-presentation'
+import { skillEffectSummaries, skillDisplayName } from './skill-detail-presentation'
 import { skillInformationRows, type SkillCharacteristic } from './skill-information-contract'
 
 export function resonanceResultRecipient(effect: CombatEffectDefinition): string {
@@ -25,7 +30,23 @@ export function resonanceResultRecipient(effect: CombatEffectDefinition): string
   }
 }
 
-export function resonanceMatcher(value: ResonanceSkillMatcher): string {
+export function resonanceMatcher(
+  value: ResonanceSkillMatcher,
+  knownSkills: readonly MatureSkillDefinition[] = latestEnabledMatureSkills(),
+): string {
+  if (value.requiredTags.includes('control')) {
+    const names = [
+      ...new Set(
+        knownSkills.filter((skill) => matchesResonanceSkill(skill, value)).map(skillDisplayName),
+      ),
+    ]
+    const discipline = resonanceSkillMatcherDescription({
+      sourceDisciplineId: value.sourceDisciplineId,
+      matchMode: 'any-skill',
+      requiredTags: [],
+    })
+    return `${discipline}: ${names.length ? names.join(', ') : 'no matching setup Skill in this loadout'}`
+  }
   return resonanceSkillMatcherDescription(value)
 }
 
@@ -33,6 +54,7 @@ export function resonanceMatcher(value: ResonanceSkillMatcher): string {
 export function resonanceCharacteristicRows(
   definition: AnyResonanceDefinition | null | undefined,
   timingPolicy: SkillEffectTimingPolicy = defaultCombatEffectTimingPolicy(),
+  knownSkills?: readonly MatureSkillDefinition[],
 ): readonly SkillCharacteristic[] {
   if (!definition) {
     return skillInformationRows({
@@ -55,10 +77,10 @@ export function resonanceCharacteristicRows(
     'Skill Type': 'Resonance',
     Cost: 'N/A',
     Cooldown: 'N/A',
-    Requirements: mechanics.setup ? resonanceMatcher(mechanics.setup) : 'N/A',
+    Requirements: mechanics.setup ? resonanceMatcher(mechanics.setup, knownSkills) : 'N/A',
     Effects: skillEffectSummaries({ effects: mechanics.resultEffects }, timingPolicy).map(
       (summary, index) =>
-        `${resonanceMatcher(mechanics.trigger)}: ${summary}${grouped[index]!.effect.recipient === 'actor' ? '' : ` → ${resonanceResultRecipient(grouped[index]!.effect)}`}`,
+        `${resonanceMatcher(mechanics.trigger, knownSkills)}: ${summary}${grouped[index]!.effect.recipient === 'actor' ? '' : ` → ${resonanceResultRecipient(grouped[index]!.effect)}`}`,
     ),
     Range: 'N/A',
     Target: recipients.join('; ') || 'N/A',

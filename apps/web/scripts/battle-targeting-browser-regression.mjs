@@ -245,19 +245,21 @@ try {
                   ? '[data-buff-path="true"]'
                   : '[data-attack-path="true"]'
           const count =
-            targeting === 'single' || targeting === 'all-any'
-              ? 4
-              : targeting === 'line'
-                ? 12
-                : targeting === 'circle1' || targeting === 'ground-circle1'
-                  ? 8
-                  : targeting === 'circle2'
-                    ? 24
-                    : targeting === 'all-ground'
-                      ? 63
-                      : targeting === 'legacy'
-                        ? null
-                        : 2
+            targeting === 'single'
+              ? 1
+              : targeting === 'all-any'
+                ? 4
+                : targeting === 'line'
+                  ? 12
+                  : targeting === 'circle1' || targeting === 'ground-circle1'
+                    ? 8
+                    : targeting === 'circle2'
+                      ? 24
+                      : targeting === 'all-ground'
+                        ? 63
+                        : targeting === 'legacy'
+                          ? null
+                          : 2
           if (count !== null)
             await page
               .waitForFunction(
@@ -342,8 +344,16 @@ try {
               'ally',
               'character:player',
             ])
-          if (targeting === 'all-ground')
+          if (targeting === 'all-ground') {
             assert.equal(forecasts[0].preview.affectedTiles.length, 63)
+            const outcomes = await page.locator('[data-battle-preview-lane="outcomes"]').innerText()
+            assert.match(outcomes, /63 tiles/)
+            assert.match(outcomes, /caster’s enemies only/)
+            assert.ok(
+              outcomes.length < 3500,
+              'Ground preview summarizes terrain instead of listing every tile',
+            )
+          }
           if (targeting === 'legacy') {
             assert.equal(
               await page.evaluate(() => window.targetingDefinition.target.geometryVersion),
@@ -354,6 +364,38 @@ try {
                 (row) =>
                   row.intent.target.kind !== 'direction' && row.intent.target.kind !== 'activate',
               ),
+            )
+          }
+          if (targeting === 'single') {
+            // A forced move leaves no red single-unit targeting cue on the vacated tile.
+            await page.evaluate(() => {
+              window.fixtureBattle = {
+                ...window.fixtureBattle,
+                battleVersion: window.fixtureBattle.battleVersion + 1,
+                snapshot: {
+                  ...window.fixtureBattle.snapshot,
+                  tactical: {
+                    ...window.fixtureBattle.snapshot.tactical,
+                    placements: window.fixtureBattle.snapshot.tactical.placements.map((row) =>
+                      row.combatantId === 'enemy-one' ? { ...row, position: { x: 3, y: 2 } } : row,
+                    ),
+                  },
+                },
+              }
+              window.publishBattle()
+            })
+            await arm()
+            await page.waitForFunction(
+              () =>
+                document.querySelector('#battlefield button[aria-label^="Tile 4, 3;"]')?.dataset
+                  .attackPath === 'true',
+            )
+            assert.equal(await tile(page, 5, 4).getAttribute('data-attack-path'), null)
+            assert.equal(
+              await tile(page, 5, 4).evaluate(
+                (button) => getComputedStyle(button, '::after').content,
+              ),
+              'none',
             )
           }
           if (targeting === 'line') {
@@ -409,6 +451,9 @@ try {
               await page.waitForFunction(
                 (version) => window.fixtureBattle.battleVersion > version,
                 version,
+              )
+              await page.waitForFunction(
+                () => !document.querySelector('[data-battle-execution-pending="true"]'),
               )
               const command = (await commits(page)).at(-1)
               assert.deepEqual(command.body.intent.target, { kind: 'direction', direction })

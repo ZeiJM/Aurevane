@@ -1,3 +1,4 @@
+import { airborneGroundMiss, airborneAttackAction } from './combat-airborne'
 import { terrainEvasionBonusBasisPoints } from './combat-stat-balance'
 import { facingHitChanceModifierBasisPoints } from './combat-duel-balance'
 import { advanceBattleRng } from './battle-state'
@@ -73,6 +74,9 @@ export function forecastCombatSkillAccuracyForTarget(
   content: CombatContentCatalog,
 ): CombatTargetHitChance | null {
   validateCombatAccuracyDefinition(action)
+  if (airborneGroundMiss(state, action, targetCombatantId, content))
+    return { targetCombatantId, hitChanceBasisPoints: 0 }
+  action = airborneAttackAction(state, action, content)
   if (action.accuracyMode !== 'per-target') return null
 
   const actor = state.tactical.battle.combatants.find((unit) => unit.id === actorId)
@@ -152,7 +156,12 @@ export function forecastCombatSkillAccuracy(
   content: CombatContentCatalog,
 ): CombatActionEvaluation {
   validateCombatAccuracyDefinition(action)
-  if (!evaluation.legal || !evaluation.actorId || action.accuracyMode !== 'per-target')
+  if (
+    !evaluation.legal ||
+    !evaluation.actorId ||
+    (action.accuracyMode !== 'per-target' &&
+      !(state.airbornePolicyVersion === 1 && action.target.kind === 'ground-tile'))
+  )
     return evaluation
   const actorId = evaluation.actorId
   const actor = state.tactical.battle.combatants.find((unit) => unit.id === actorId)
@@ -170,7 +179,10 @@ export function forecastCombatSkillAccuracy(
     .filter((id) => {
       const target = state.tactical.battle.combatants.find((unit) => unit.id === id)
       if (!target) throw new TypeError('Combat accuracy requires a committed recipient.')
-      return target.hp > 0 && target.teamId !== actor.teamId
+      return (
+        target.hp > 0 &&
+        (target.teamId !== actor.teamId || airborneGroundMiss(state, action, id, content))
+      )
     })
     .sort((left, right) => (left < right ? -1 : left > right ? 1 : 0))
   const targetHitChances = hostileIds.flatMap((targetCombatantId) => {
@@ -199,7 +211,12 @@ export function rollCombatSkillAccuracy(
 } {
   const missedCombatantIds = new Set<string>()
   const events: CombatSkillAccuracyResolvedEvent[] = []
-  if (!evaluation?.legal || !evaluation.actorId || action.accuracyMode !== 'per-target') {
+  if (
+    !evaluation?.legal ||
+    !evaluation.actorId ||
+    (action.accuracyMode !== 'per-target' &&
+      !(state.airbornePolicyVersion === 1 && action.target.kind === 'ground-tile'))
+  ) {
     return { state, events, missedCombatantIds }
   }
   const forecast = forecastCombatSkillAccuracy(state, action, evaluation, content)

@@ -692,6 +692,12 @@ it('retains committed terrain conversions, expiry and failed displacement as rea
       })),
   }).getLog(USER_ID, SESSION_ID)
   expect(log.entries).toHaveLength(5)
+  expect(log.entries[0]?.terrainChange).toEqual({
+    position: { x: 1, y: 2 },
+    before: null,
+    after: 'frozen',
+    remainingRoundBoundaries: 2,
+  })
   const text = log.entries.map((entry) => entry.message).join(' ')
   expect(text).toContain('Frozen')
   expect(text).toContain('Steam')

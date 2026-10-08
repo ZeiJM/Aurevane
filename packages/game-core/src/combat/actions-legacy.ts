@@ -1,3 +1,4 @@
+import { airborneGroundMiss, airborneAttackAction } from './combat-airborne'
 import {
   percentageRecoveryAmount,
   validateCapturedPercentageRecovery,
@@ -67,6 +68,8 @@ import {
   combatEffectTimingMode,
   combatEffectTimingRoundOffset,
   combatEffectTimingTag,
+  combatActionEffectTimingTag,
+  currentCombatEffectTimingTag,
   parseStoredCombatEffectTimingPolicy,
   pendingCombatStatusRows,
   type CombatEffectTimingPolicy,
@@ -84,7 +87,10 @@ import {
   compareCombatStatusInstances,
   validateCombatAccuracyStatusDefinition,
 } from './combat-accuracy-status'
-import type { CombatSkillAccuracyResolvedEvent } from './combat-skill-accuracy'
+import {
+  rollCombatSkillAccuracyForTarget,
+  type CombatSkillAccuracyResolvedEvent,
+} from './combat-skill-accuracy'
 import {
   COMBAT_CRITICAL_DAMAGE_BASIS_POINTS,
   type CombatCriticalResolvedEvent,
@@ -422,6 +428,7 @@ export interface PendingCombatEffect {
     effectState: CombatEffectState
   }
 
+  groundTargeted?: true
   timingTag?: string
   effectOrigin?: CombatEffectOrigin
   criticalRecipientIds?: readonly string[]
@@ -438,6 +445,11 @@ export interface PendingCombatEffect {
 }
 
 export interface CombatEncounterState {
+  /** New encounters: Frozen Ground movement surcharge affects only source enemies. */
+  displacementPolicyVersion?: 1
+  frozenGroundPolicyVersion?: 1
+  /** New encounters: Airborne evades Ground Skills and grants Target Elevation 3. */
+  airbornePolicyVersion?: 1
   groundEffectPolicyVersion?: 1
   nextGroundAreaId?: number
   groundAreas?: readonly CombatGroundAreaInstance[]
@@ -878,6 +890,7 @@ export function evaluateCombatAction(
     issues.push({ code: 'insufficient-mp', message: 'The actor does not have enough MP.' })
   }
 
+  action = airborneAttackAction(state, action, content)
   const targeting = resolveCombatTargeting(state, actorId, action.target, selection, content)
   issues.push(...targeting.issues)
   const target = { position: targeting.primaryPosition, combatantId: targeting.primaryCombatantId }
@@ -1362,7 +1375,7 @@ function applyCombatRoundBoundary(
         cost: { spendsAction: false, mp: 0 },
         requirements: [],
         target: {
-          kind: 'unit',
+          kind: pending.groundTargeted ? 'ground-tile' : 'unit',
           teamPolicy: 'any',
           shape: { kind: 'single' },
           minimumRange: 0,
@@ -1375,8 +1388,29 @@ function applyCombatRoundBoundary(
         effectTimingTags: [pending.timingTag],
         effects: [pending.effect],
       }
+      const evaded = new Set<string>()
+      for (const id of pending.recipientIds) {
+        if (!airborneGroundMiss(nextState, action, id, pending.content)) continue
+        evaded.add(id)
+        const miss = rollCombatSkillAccuracyForTarget(
+          nextState,
+          action,
+          pending.actorId,
+          id,
+          pending.content,
+        )
+        nextState = miss.state
+        if (miss.event)
+          events.push({
+            ...miss.event,
+            effectActivationRound: nextState.tactical.battle.round,
+            ...(pending.sourceCommandVisibility
+              ? { sourceCommandVisibility: pending.sourceCommandVisibility }
+              : {}),
+          })
+      }
       const recipients = pending.recipientIds.filter(
-        (id) => getCombatant(nextState.tactical.battle, id).hp > 0,
+        (id) => !evaded.has(id) && getCombatant(nextState.tactical.battle, id).hp > 0,
       )
       if (
         pending.effect.type !== 'create-terrain' &&
@@ -1797,6 +1831,14 @@ export function validateCombatEncounterState(
         message: 'Invalid pinned Status Resistance.',
       })
   }
+  for (const field of [
+    'frozenGroundPolicyVersion',
+    'airbornePolicyVersion',
+    'displacementPolicyVersion',
+  ] as const) {
+    if (state[field] !== undefined && state[field] !== 1)
+      issues.push({ field, message: 'Unsupported pinned ground interaction policy.' })
+  }
   if (state.effectStackingPolicyVersion !== undefined && state.effectStackingPolicyVersion !== 1)
     issues.push({
       field: 'effectStackingPolicyVersion',
@@ -1848,7 +1890,9 @@ export function validateCombatEncounterState(
             pending.recipientIds.some(
               (id: string) => !state.tactical.battle.combatants.some((unit) => unit.id === id),
             ) ||
-            !Array.isArray(pending.affectedTiles)
+            !Array.isArray(pending.affectedTiles) ||
+            (pending.groundTargeted !== undefined &&
+              (pending.groundTargeted !== true || state.airbornePolicyVersion !== 1))
           )
             throw new Error('Invalid pending identity.')
           if (state.skillPacketPolicyVersion === 1 && pending.skillPacketCommandId === undefined)
@@ -2385,7 +2429,7 @@ function collectRequirementIssues(
       if (requirement.kind === 'actor-tag-absent' ? present : !present)
         issues.push({
           code: 'requirement-not-met',
-          message: `${requirement.kind === 'target-tag-present' ? 'Target' : 'Actor'} ${requirement.kind === 'actor-tag-absent' ? 'must not have' : 'requires'} ${requirement.tag}.`,
+          message: `${requirement.kind === 'target-tag-present' ? 'Target' : 'Actor'} ${requirement.kind === 'actor-tag-absent' ? 'must not have' : 'requires'} ${requirement.tag === 'Frozen' ? 'Chilled' : requirement.tag}.`,
         })
       continue
     }
@@ -2580,6 +2624,12 @@ function resolveActionEffects(
     const firstEvent = events.length
     const firstProjection = projections.length
     try {
+      if (
+        state.displacementPolicyVersion === 1 &&
+        effect.type === 'apply-status' &&
+        effect.statusId === 'displaced'
+      )
+        continue
       if (options.groundArea && isPercentageDotEffect(effect)) {
         groundPercentageEffects.push({ effect, ordinal: effectOrdinal })
         continue
@@ -2592,7 +2642,7 @@ function resolveActionEffects(
         (isPercentageDotEffect(effect) ||
           combatEffectTimingMode(
             state.effectTimingPolicy,
-            action.effectTimingTags?.[effectOrdinal] ?? combatEffectTimingTag(effect),
+            combatActionEffectTimingTag(state, effect, action.effectTimingTags?.[effectOrdinal]),
           ) !== 'instant')
       ) {
         const recipientIds = (
@@ -2607,6 +2657,7 @@ function resolveActionEffects(
         ).filter(
           (id) =>
             !missedCombatantIds?.has(id) &&
+            !airborneGroundMiss(nextState, action, id, content) &&
             !resistedEffectOrdinalsByTarget?.get(id)?.has(effectOrdinal),
         )
         if (!recipientIds.length && effect.type !== 'create-terrain') continue
@@ -2626,6 +2677,9 @@ function resolveActionEffects(
             ...(nextState.pendingEffects ?? []),
             {
               actorId,
+              ...(state.airbornePolicyVersion === 1 && action.target.kind === 'ground-tile'
+                ? { groundTargeted: true as const }
+                : {}),
               ...(skillPacketCommandId !== undefined ? { skillPacketCommandId } : {}),
               ...(commandId !== undefined &&
               (isPercentageDotEffect(effect) || effect.type === 'damage')
@@ -2644,9 +2698,11 @@ function resolveActionEffects(
                 criticalEffectOrdinalsByTarget?.get(id)?.has(effectOrdinal),
               ),
               actionId: action.id,
-              ...(action.effectTimingTags?.[effectOrdinal]
-                ? { timingTag: action.effectTimingTags[effectOrdinal] }
-                : {}),
+              ...(state.displacementPolicyVersion === 1 && effect.type === 'displace'
+                ? { timingTag: currentCombatEffectTimingTag(effect) }
+                : action.effectTimingTags?.[effectOrdinal]
+                  ? { timingTag: action.effectTimingTags[effectOrdinal] }
+                  : {}),
               ...(action.effectOrigins?.[effectOrdinal]
                 ? { effectOrigin: { ...action.effectOrigins[effectOrdinal] } }
                 : {}),
@@ -2677,7 +2733,11 @@ function resolveActionEffects(
                   combatEffectTimingRoundOffset(
                     combatEffectTimingMode(
                       state.effectTimingPolicy,
-                      action.effectTimingTags?.[effectOrdinal] ?? combatEffectTimingTag(effect),
+                      combatActionEffectTimingTag(
+                        state,
+                        effect,
+                        action.effectTimingTags?.[effectOrdinal],
+                      ),
                     ),
                   ),
                   isPercentageDotEffect(effect)
@@ -2734,6 +2794,9 @@ function resolveActionEffects(
                   before: event.before,
                   after: event.after,
                   remainingRoundBoundaries: event.remainingRoundBoundaries,
+                  ...(event.frozenGroundPolicyVersion === 1
+                    ? { frozenGroundPolicyVersion: 1 as const }
+                    : {}),
                   activationRound: nextState.pendingEffects!.at(-1)!.activationRound,
                 })
           }
@@ -2819,6 +2882,9 @@ function resolveActionEffects(
                 before: event.before,
                 after: event.after,
                 remainingRoundBoundaries: event.remainingRoundBoundaries,
+                ...(event.frozenGroundPolicyVersion === 1
+                  ? { frozenGroundPolicyVersion: 1 as const }
+                  : {}),
               })
             }
         }
@@ -2833,6 +2899,7 @@ function resolveActionEffects(
         // Engine-owned target roll gates every unit effect, not just damage packets.
         if (
           missedCombatantIds?.has(recipientId) ||
+          airborneGroundMiss(nextState, action, recipientId, content) ||
           resistedEffectOrdinalsByTarget?.get(recipientId)?.has(effectOrdinal)
         )
           continue
@@ -3178,6 +3245,53 @@ function settlePercentageDotApplications(
       continue
     }
     for (const recipientId of eligible) {
+      if (
+        entry.groundTargeted &&
+        airborneGroundMiss(
+          nextState,
+          { target: { kind: 'ground-tile' } as CombatTargetSpec },
+          recipientId,
+          entry.content,
+        )
+      ) {
+        const action: CombatActionDefinition = {
+          id: entry.actionId,
+          version: 1,
+          sourceType: 'test',
+          tags: [],
+          cost: { spendsAction: false, mp: 0 },
+          requirements: [],
+          target: {
+            kind: 'ground-tile',
+            teamPolicy: 'any',
+            shape: { kind: 'single' },
+            minimumRange: 0,
+            maximumRange: 0,
+            requiresLineOfSight: false,
+            maximumElevationDifference: null,
+            friendlyFire: 'all-units',
+          },
+          effects: [entry.effect],
+          effectOrigins: [entry.effectOrigin],
+        }
+        const miss = rollCombatSkillAccuracyForTarget(
+          nextState,
+          action,
+          entry.actorId,
+          recipientId,
+          entry.content,
+        )
+        nextState = miss.state
+        if (miss.event)
+          events.push({
+            ...miss.event,
+            effectActivationRound: nextState.tactical.battle.round,
+            ...(entry.sourceCommandVisibility
+              ? { sourceCommandVisibility: entry.sourceCommandVisibility }
+              : {}),
+          })
+        continue
+      }
       const captured = {
         capturedDamage: command.damageByRecipient[recipientId]!,
         profile: { ...entry.effect.damageProfile },
@@ -4848,16 +4962,19 @@ function applyDisplacement(
     }
   }
 
-  const marked = applyEffect(
-    nextState,
-    actorId,
-    recipientId,
-    actionId,
-    { type: 'apply-status', recipient: 'primary-unit', statusId: 'displaced', stacks: 1 },
-    content,
-    new Set(),
-    false,
-  )
+  const marked =
+    state.displacementPolicyVersion === 1
+      ? { state: nextState, events: [] }
+      : applyEffect(
+          nextState,
+          actorId,
+          recipientId,
+          actionId,
+          { type: 'apply-status', recipient: 'primary-unit', statusId: 'displaced', stacks: 1 },
+          content,
+          new Set(),
+          false,
+        )
   return {
     state: marked.state,
     events: [
@@ -4913,6 +5030,31 @@ function resolveGroundAtPosition(
       ...(area.entryEffectOrigins
         ? { effectOrigins: area.entryEffectOrigins.map((origin) => origin ?? undefined) }
         : {}),
+    }
+    if (airborneGroundMiss(current, action, recipientId, area.content)) {
+      if (preview) return { state: current, events: [] }
+      const miss = rollCombatSkillAccuracyForTarget(
+        current,
+        action,
+        area.sourceCombatantId,
+        recipientId,
+        area.content,
+      )
+      return {
+        state: miss.state,
+        events: miss.event
+          ? [
+              {
+                ...miss.event,
+                groundAreaId: area.id,
+                groundSourceActionId: area.sourceActionId,
+                ...(area.sourceCommandVisibility
+                  ? { sourceCommandVisibility: area.sourceCommandVisibility }
+                  : {}),
+              },
+            ]
+          : [],
+      }
     }
     const evaluation: CombatActionEvaluation = {
       legal: true,

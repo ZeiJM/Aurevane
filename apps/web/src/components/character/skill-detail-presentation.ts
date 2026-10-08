@@ -22,13 +22,17 @@ import type {
 import { isMaterializedCombatEffect } from '@aurevane/game-core/combat/summon-content'
 import {
   combatEffectTimingMode,
-  combatEffectTimingTag,
+  currentCombatEffectTimingTag,
   defaultCombatEffectTimingPolicy,
 } from '@aurevane/game-core/combat/combat-effect-timing'
 import type { SkillEffectTimingPolicy } from './skill-effect-timing-context'
 
 function title(value: string): string {
   return value.replace(/[-_]/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
+}
+
+function requirementTagName(tag: string): string {
+  return tag === 'Frozen' ? gameplayStatusName('frozen') : title(tag)
 }
 
 function recipient(effect: MatureSkillEffectDefinition): string {
@@ -40,7 +44,11 @@ function recipient(effect: MatureSkillEffectDefinition): string {
 
 export function skillEffectDescription(
   effect: MatureSkillEffectDefinition,
-  options: { legacyTriggers?: boolean } = {},
+  options: {
+    legacyTriggers?: boolean
+    legacyFrozenGround?: boolean
+    legacyAirborne?: boolean
+  } = {},
 ): string {
   const target = recipient(effect)
   if (isPercentageDotEffect(effect))
@@ -57,7 +65,7 @@ export function skillEffectDescription(
       return `Deal ${effect.amount} base damage to ${target}.${position}${element}`
     }
     case 'create-terrain':
-      return 'Create Frozen Ground on affected tiles for two round boundaries. Both teams pay 10 extra AP per entered tile; Airborne ignores this surcharge. Fire converts Frozen Ground to Steam, which blocks line of sight.'
+      return `Create Frozen Ground on affected tiles for two round boundaries. ${options.legacyFrozenGround ? 'Both teams' : 'Only the caster’s enemies'} pay 10 extra AP per entered tile; Airborne ignores this surcharge. Fire converts Frozen Ground to Steam, which blocks line of sight for both teams.`
     case 'displace':
       return `${effect.direction === 'pull' ? 'Pull' : 'Push'} ${target} up to ${effect.distance} ${effect.distance === 1 ? 'tile' : 'tiles'} ${effect.direction === 'pull' ? 'toward you' : 'away'}, one legal tile at a time. Stops before occupied, blocked or illegal-elevation tiles. Pull never enters your tile. Root prevents displacement. Failure grants no refund.`
     case 'poison':
@@ -91,13 +99,15 @@ export function skillEffectDescription(
     }
     case 'apply-status': {
       const status = combatStatusDetails(effect.statusId)
-      const preview = previewEffect(effect)
+      const preview = previewEffect(effect, options)
       const duration =
         (effect.durationTurns ?? 0) > 0
           ? `Lasts ${effect.durationTurns} ${effect.durationTurns === 1 ? 'turn' : 'turns'}.`
           : combatStatusDuration(effect.statusId)
       const explanation =
-        effect.potencyBasisPoints !== undefined ? preview.explanation : status.description
+        effect.potencyBasisPoints !== undefined || effect.statusId === 'airborne'
+          ? preview.explanation
+          : status.description
       return `Apply ${effect.stacks} ${gameplayStatusName(effect.statusId)} ${effect.stacks === 1 ? 'stack' : 'stacks'} to ${target}. ${explanation} ${duration}`
     }
   }
@@ -106,11 +116,11 @@ export function skillEffectDescription(
 export function skillRequirementDescription(requirement: CombatUseRequirement): string {
   switch (requirement.kind) {
     case 'actor-tag-present':
-      return `Requires ${requirement.tag} on yourself.`
+      return `Requires ${requirementTagName(requirement.tag)} on yourself.`
     case 'actor-tag-absent':
-      return `Requires no ${requirement.tag} on yourself.`
+      return `Requires no ${requirementTagName(requirement.tag)} on yourself.`
     case 'target-tag-present':
-      return `Target must have ${requirement.tag}.`
+      return `Target must have ${requirementTagName(requirement.tag)}.`
     case 'actor-status-present':
       return `Requires ${gameplayStatusName(requirement.statusId)} on yourself.`
     case 'actor-status-absent':
@@ -171,6 +181,7 @@ export function skillParameterRows(
     cooldownOwnerTurns?: number | null
   } = skill,
   timingPolicy: SkillEffectTimingPolicy = defaultCombatEffectTimingPolicy(),
+  options: { legacyFrozenGround?: boolean; airborneAttackElevation?: boolean } = {},
 ): readonly (readonly [string, string])[] {
   return skillInformationRows({
     'Skill Type': skillParameterTypeDescription(skill),
@@ -179,9 +190,12 @@ export function skillParameterRows(
     Requirements: skillRequirementsSummary(skill),
     Effects: skillEffectsSummary(skill, timingPolicy),
     Range: skillCompactRangeDescription(skill),
-    Target: skillTargetRecipientDescription(skill),
+    Target: skillTargetRecipientDescription(skill, options.legacyFrozenGround),
     'Target Method': skillTargetMethodDescription(skill),
-    'Target Elevation': skillTargetElevationDescription(skill),
+    'Target Elevation':
+      options.airborneAttackElevation && skill.tags.includes('attack')
+        ? '3'
+        : skillTargetElevationDescription(skill),
     'Line of Sight': skillLineOfSightDescription(skill),
   })
 }
@@ -197,7 +211,7 @@ export function skillEffectInstantTiming(
   effect: MatureSkillEffectDefinition,
   policy: SkillEffectTimingPolicy = defaultCombatEffectTimingPolicy(),
 ): 'Instant' | 'Delayed' | undefined {
-  const tag = effect.type === 'summon' ? 'summon' : combatEffectTimingTag(effect)
+  const tag = effect.type === 'summon' ? 'summon' : currentCombatEffectTimingTag(effect)
   const mode = combatEffectTimingMode(policy ?? undefined, tag)
   return mode === 'delayed'
     ? 'Delayed'
@@ -291,11 +305,11 @@ export function skillRequirementsSummary(
     .map((requirement) => {
       switch (requirement.kind) {
         case 'actor-tag-present':
-          return `Self: ${title(requirement.tag)}`
+          return `Self: ${requirementTagName(requirement.tag)}`
         case 'actor-tag-absent':
-          return `Self lacks ${title(requirement.tag)}`
+          return `Self lacks ${requirementTagName(requirement.tag)}`
         case 'target-tag-present':
-          return `Target: ${title(requirement.tag)}`
+          return `Target: ${requirementTagName(requirement.tag)}`
         case 'actor-status-present':
           return `Self: ${gameplayStatusName(requirement.statusId)}`
         case 'actor-status-absent':
@@ -328,6 +342,7 @@ export function skillTargetDescription(skill: Pick<MatureSkillDefinition, 'targe
 /** Include affected recipients only when they differ from the selected target policy. */
 function skillTargetRecipientDescription(
   skill: Pick<MatureSkillDefinition, 'target' | 'effects'>,
+  legacyFrozenGround = false,
 ): string {
   const target = skillTargetDescription(skill)
   const { kind, teamPolicy, friendlyFire } = skill.target
@@ -340,11 +355,12 @@ function skillTargetRecipientDescription(
         (teamPolicy === 'any' && friendlyFire === 'all-units')))
   const recipients = recipientsMatch ? '' : ` · ${unitAffectedDescription(skill)}`
   const terrain = skill.effects.some(
-    (effect) =>
-      effect.type === 'create-terrain' || (effect.type === 'damage' && effect.element === 'fire'),
+    (effect) => effect.type === 'damage' && effect.element === 'fire',
   )
-    ? ' · Terrain: both teams'
-    : ''
+    ? ' · Steam: both teams'
+    : skill.effects.some((effect) => effect.type === 'create-terrain')
+      ? ` · Frozen Ground: ${legacyFrozenGround ? 'both teams' : 'caster’s enemies only'}`
+      : ''
   return target + recipients + terrain
 }
 

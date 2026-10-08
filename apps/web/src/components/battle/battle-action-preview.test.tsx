@@ -54,6 +54,44 @@ const attack: ActionPreview = {
 }
 
 describe('current selection forecast', () => {
+  it.each([{ recipients: [] }, { recipients: ['enemy', 'second'] }])(
+    'summarizes matching Ground tiles with recipients $recipients',
+    ({ recipients }) => {
+      const definition = resolveMatureSkillVersion('frostweaver.chilling-mist')!
+      const projectedTerrain = Array.from({ length: 8 }, (_, x) => ({
+        position: { x, y: 2 },
+        before: null,
+        after: 'frozen' as const,
+        remainingRoundBoundaries: 2,
+        activationRound: 4,
+      }))
+      const preview = {
+        ...attack,
+        actionId: definition.id,
+        primaryCombatantId: null,
+        affectedCombatantIds: recipients,
+        affectedTiles: projectedTerrain.map((tile) => tile.position),
+        projectedEffects: [],
+        projectedTerrain,
+        mitigatedBaseDamage: null,
+        hitChanceBasisPoints: null,
+      }
+      const before = JSON.stringify(preview)
+      const markup = renderToStaticMarkup(
+        <BattleActionPreview
+          pending={false}
+          preview={preview}
+          skill={{ ...barrier, definition, id: definition.id, targetKind: 'ground-tile' }}
+        />,
+      )
+      expect(markup).toContain('Frozen Ground · 8 tiles · Starts round 4 · 2 rounds')
+      expect(markup).not.toContain('at tile')
+      expect(markup).toContain('+10 AP/tile')
+      expect(markup).toContain('both teams')
+      for (const id of recipients) expect(markup).toContain(`data-battle-range-forecast="${id}"`)
+      expect(JSON.stringify(preview)).toBe(before)
+    },
+  )
   it('uses each area recipient’s authoritative hit chance without reusing a primary chance', () => {
     const markup = renderToStaticMarkup(
       <BattleActionPreview

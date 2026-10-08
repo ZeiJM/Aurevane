@@ -216,8 +216,8 @@ describe('Master Panel Skill effect editor', () => {
       direction: 'push',
       distance: 2,
     })
-    expect(displace).toContain('aria-label="Displacement direction"')
-    expect(displace).toContain('aria-label="Displacement distance"')
+    expect(displace).toContain('aria-label="Push or Pull"')
+    expect(displace).toContain('aria-label="Tiles moved"')
 
     const terrain = render({
       type: 'create-terrain',

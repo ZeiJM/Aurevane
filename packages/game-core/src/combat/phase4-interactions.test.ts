@@ -1,4 +1,5 @@
-import { terrainOverlayAiUtility } from './terrain-overlays'
+import { terrainOverlayAiUtility, setTerrainOverlay } from './terrain-overlays'
+import { percentageDotEncounter } from './combat-percentage-dots.test-utils'
 import { conditionalDamageMultiplier } from './damage-modifiers'
 import { executePv1fMatureSkillWithResonance } from './pv1f-resonance'
 import { ADVANCED_RESONANCES } from './advanced-resonances'
@@ -409,6 +410,41 @@ describe('Phase 4 shared temporary terrain', () => {
     const airborne = withStatus(frozen, 'actor', 'airborne')
     expect(evaluatePv1fMovement(airborne, path).economyCost).toBe(20)
   })
+  it.each(['actor', 'ally', 'enemy', 'other'])(
+    'new Frozen Ground charges only caster enemies: %s',
+    (mover) => {
+      const state = { ...encounter(), frozenGroundPolicyVersion: 1 as const }
+      const destination = { x: 2, y: 0 }
+      let frozen = {
+        ...executeCombatAction(
+          state,
+          ice,
+          { kind: 'tile', position: destination },
+          PV1F_COMBAT_CONTENT,
+        ).state,
+        statBridge: state.statBridge,
+      }
+      while (frozen.tactical.battle.currentTurn?.combatantId !== mover)
+        frozen = finishPv1fTurn(frozen, 'west').state
+      const origin = frozen.tactical.placements.find((row) => row.combatantId === mover)!.position
+      const target = { x: origin.x, y: origin.y + (mover === 'ally' ? 1 : -1) }
+      frozen = {
+        ...frozen,
+        terrainOverlays: [{ ...frozen.terrainOverlays![0]!, position: target }],
+      }
+      const path = [origin, target]
+      const expected = ['actor', 'ally'].includes(mover) ? 20 : 30
+      const restored = JSON.parse(JSON.stringify(frozen))
+      expect(evaluatePv1fMovement(restored, path).economyCost).toBe(expected)
+      const before = readPv1fActionEconomy(restored)!.current
+      expect(readPv1fActionEconomy(executePv1fMovement(restored, path).state)!.current).toBe(
+        before - expected,
+      )
+      const slowed = withStatus(restored, mover, 'slow')
+      expect(evaluatePv1fMovement(slowed, path).economyCost).toBe(expected + 10)
+      expect(evaluatePv1fMovement(withStatus(slowed, mover, 'airborne'), path).economyCost).toBe(30)
+    },
+  )
   it('refreshes instead of stacking and expires after exactly two round boundaries', () => {
     let state = encounter()
     const first = executeCombatAction(state, ice, tile, PV1F_COMBAT_CONTENT).state
@@ -908,4 +944,315 @@ it('preserves overlays at actual surrender completion without granting another t
   expect(final.state.tactical.battle.currentTurn).toBeNull()
   expect(final.state.terrainOverlays).toEqual(frozen.terrainOverlays)
   expect(() => finishPv1fTurn(final.state, 'west')).toThrow()
+})
+
+describe('Owner Airborne ground immunity and Attack elevation', () => {
+  it.each([false, true])(
+    'checks delayed percentage Ground DoTs only at activation (Airborne=%s)',
+    (stillAirborne) => {
+      const base = {
+        ...percentageDotEncounter(),
+        airbornePolicyVersion: 1 as const,
+        effectTimingPolicy: {
+          version: 1,
+          modes: { damage: 'instant' as const, poison: 'delayed' as const },
+        },
+      }
+      const skill = {
+        ...ground([
+          { type: 'damage', recipient: 'affected-units', amount: 40 },
+          {
+            type: 'poison',
+            recipient: 'affected-units',
+            durationTurns: 4,
+            damageProfile: { kind: 'attack-percentage', basisPoints: 1500 },
+          },
+        ]),
+        id: 'delayed-ground-poison',
+      }
+      const cast = executeCombatAction(
+        base,
+        skill,
+        { kind: 'tile', position: { x: 2, y: 1 } },
+        PV1F_COMBAT_CONTENT,
+      )
+      let state = withStatus({ ...cast.state, statBridge: base.statBridge }, 'enemy', 'airborne')
+      state.statusState
+        .find((row) => row.combatantId === 'enemy')!
+        .statuses.find((row) => row.statusId === 'airborne')!.remainingOwnerTurnStarts =
+        stillAirborne ? 6 : 1
+      const unrelated = {
+        ...skill,
+        id: 'unrelated-poison',
+        target: { ...skill.target, kind: 'unit' as const, shape: { kind: 'single' as const } },
+        effects: skill.effects.map((effect) =>
+          effect.type === 'damage' || effect.type === 'poison'
+            ? { ...effect, recipient: 'primary-unit' as const }
+            : effect,
+        ),
+      }
+      const other = executeCombatAction(
+        state,
+        unrelated,
+        { kind: 'unit', combatantId: 'other' },
+        PV1F_COMBAT_CONTENT,
+      )
+      expect(other.state.pendingEffects).toContainEqual(
+        expect.objectContaining({
+          actionId: skill.id,
+          recipientIds: ['enemy'],
+          activationRound: 3,
+        }),
+      )
+      state = { ...JSON.parse(JSON.stringify(other.state)), statBridge: base.statBridge }
+      const events = []
+      while (state.tactical.battle.round < 3) {
+        const next = finishPv1fTurn(state, 'west')
+        state = next.state
+        events.push(...next.events)
+      }
+      expect(state.effectState?.poison.some((row) => row.targetCombatantId === 'enemy')).toBe(
+        !stillAirborne,
+      )
+      if (stillAirborne)
+        expect(events).toContainEqual(
+          expect.objectContaining({
+            event: 'combat_accuracy_resolved',
+            actionId: skill.id,
+            targetCombatantId: 'enemy',
+            hit: false,
+            hitChanceBasisPoints: 0,
+            effectActivationRound: 3,
+          }),
+        )
+    },
+  )
+  it.each(['automatic', 'per-target'] as const)(
+    'Ground %s cannot hit an Airborne enemy or ally',
+    (accuracyMode) => {
+      const base = { ...encounter(), airbornePolicyVersion: 1 as const }
+      const skill: CombatActionDefinition = {
+        ...ground([
+          { type: 'damage', recipient: 'affected-units', amount: 4 },
+          { type: 'apply-status', recipient: 'affected-units', statusId: 'slow', stacks: 1 },
+        ]),
+        accuracyMode,
+        tags: ['attack'],
+        target: { ...ground([]).target, friendlyFire: 'all-units' },
+      }
+      for (const id of ['enemy', 'ally']) {
+        const state = withStatus(base, id, 'airborne')
+        const selection = {
+          kind: 'tile' as const,
+          position: state.tactical.placements.find((row) => row.combatantId === id)!.position,
+        }
+        const preview = evaluateCombatAction(state, skill, selection, PV1F_COMBAT_CONTENT)
+        expect(preview.targetHitChances).toContainEqual({
+          targetCombatantId: id,
+          hitChanceBasisPoints: 0,
+        })
+        expect(preview.projectedEffects.filter((row) => row.combatantId === id)).toEqual([])
+        const result = executeCombatAction(
+          JSON.parse(JSON.stringify(state)),
+          skill,
+          selection,
+          PV1F_COMBAT_CONTENT,
+        )
+        expect(hp(result.state, id)).toBe(hp(state, id))
+        expect(statuses(result.state, id)).not.toContain('slow')
+        expect(result.events).toContainEqual(
+          expect.objectContaining({
+            event: 'combat_accuracy_resolved',
+            targetCombatantId: id,
+            hit: false,
+            hitChanceBasisPoints: 0,
+          }),
+        )
+      }
+    },
+  )
+  it('checks current Airborne at delayed Ground activation after JSON reload', () => {
+    const state = {
+      ...encounter(),
+      airbornePolicyVersion: 1 as const,
+      effectTimingPolicy: { version: 1, modes: { damage: 'next-round' as const } },
+    }
+    const skill = ground([{ type: 'damage', recipient: 'affected-units', amount: 5 }])
+    const selection = { kind: 'tile' as const, position: { x: 2, y: 1 } }
+    const cast = executeCombatAction(state, skill, selection, PV1F_COMBAT_CONTENT)
+    expect(cast.state.pendingEffects![0]!.groundTargeted).toBe(true)
+    let stored = JSON.parse(
+      JSON.stringify(
+        withStatus({ ...cast.state, statBridge: state.statBridge }, 'enemy', 'airborne'),
+      ),
+    )
+    for (let turn = 0; turn < 4; turn++) stored = finishPv1fTurn(stored, 'west').state
+    expect(hp(stored)).toBe(hp(state))
+    expect(stored.pendingEffects).toEqual([])
+  })
+  it.each([
+    ['attack', true],
+    ['utility', false],
+    ['heal', false],
+  ] as const)('Airborne elevates only %s Skills', (tag, legal) => {
+    const base = withStatus(
+      { ...encounter(), airbornePolicyVersion: 1 as const },
+      'actor',
+      'airborne',
+    )
+    const state = {
+      ...base,
+      tactical: {
+        ...base.tactical,
+        tiles: base.tactical.tiles.map((row) =>
+          row.position.x === 2 && row.position.y === 1 ? { ...row, elevation: 3 } : row,
+        ),
+      },
+    }
+    const skill = {
+      ...action([{ type: 'damage', recipient: 'primary-unit', amount: 1 }]),
+      tags: [tag],
+      target: {
+        ...action([]).target,
+        maximumElevationDifference: 0,
+        shape: { kind: 'single' as const },
+      },
+    }
+    expect(evaluateCombatAction(state, skill, target, PV1F_COMBAT_CONTENT).legal).toBe(legal)
+    expect(
+      evaluateCombatAction(
+        { ...state, airbornePolicyVersion: undefined },
+        skill,
+        target,
+        PV1F_COMBAT_CONTENT,
+      ).legal,
+    ).toBe(false)
+    expect(
+      evaluateCombatAction(
+        {
+          ...state,
+          statusState: base.statusState.map((row) =>
+            row.combatantId === 'actor' ? { ...row, statuses: [] } : row.statuses ? row : row,
+          ),
+        },
+        skill,
+        target,
+        PV1F_COMBAT_CONTENT,
+      ).legal,
+    ).toBe(false)
+  })
+})
+
+it.each(['push', 'pull'] as const)(
+  'current %s moves without the retired Displaced marker',
+  (direction) => {
+    const base = encounter()
+    const state = { ...base, displacementPolicyVersion: 1 as const }
+    const skill = {
+      ...action([{ type: 'displace', recipient: 'primary-unit', direction, distance: 1 }]),
+      target: { ...action([]).target, shape: { kind: 'single' as const } },
+    }
+    const selection = direction === 'push' ? { kind: 'unit' as const, combatantId: 'ally' } : target
+    const setup =
+      direction === 'push'
+        ? {
+            ...skill,
+            target: {
+              ...skill.target,
+              teamPolicy: 'any' as const,
+              friendlyFire: 'all-units' as const,
+            },
+          }
+        : skill
+    // Put the pull recipient two tiles away with an empty intermediate tile.
+    const ready =
+      direction === 'pull'
+        ? {
+            ...state,
+            tactical: {
+              ...state.tactical,
+              placements: state.tactical.placements.map((row) =>
+                row.combatantId === 'enemy'
+                  ? { ...row, position: { x: 1, y: 3 } }
+                  : row.combatantId === 'ally'
+                    ? { ...row, position: { x: 0, y: 2 } }
+                    : row,
+              ),
+            },
+          }
+        : state
+    const result = executeCombatAction(ready, setup, selection, PV1F_COMBAT_CONTENT)
+    expect(result.events).toContainEqual(
+      expect.objectContaining({ event: 'combatant_displaced', direction }),
+    )
+    expect(statuses(result.state, selection.combatantId)).not.toContain('displaced')
+  },
+)
+
+it('new Push and Pull independently honor Master timing; old battles keep shared timing', () => {
+  const base = encounter()
+  const state = {
+    ...base,
+    displacementPolicyVersion: 1 as const,
+    effectTimingPolicy: {
+      version: 6,
+      modes: { displace: 'instant' as const, push: 'instant' as const, pull: 'delayed' as const },
+    },
+  }
+  const effects: CombatEffectDefinition[] = [
+    { type: 'displace', recipient: 'primary-unit', direction: 'push', distance: 1 },
+    { type: 'displace', recipient: 'primary-unit', direction: 'pull', distance: 1 },
+  ]
+  const skill = {
+    ...action(effects),
+    target: { ...action([]).target, shape: { kind: 'single' as const } },
+  }
+  const current = executeCombatAction(state, skill, target, PV1F_COMBAT_CONTENT)
+  expect(current.state.pendingEffects).toContainEqual(
+    expect.objectContaining({ timingTag: 'pull', activationRound: 3 }),
+  )
+  const historical = executeCombatAction(
+    { ...state, displacementPolicyVersion: undefined },
+    skill,
+    target,
+    PV1F_COMBAT_CONTENT,
+  )
+  expect(historical.state.pendingEffects ?? []).toEqual([])
+})
+
+it('Frozen Ground ownership follows replacement caster team even after source defeat', () => {
+  const base = { ...encounter(), frozenGroundPolicyVersion: 1 as const }
+  const destination = { x: 1, y: 0 }
+  const allyIce = setTerrainOverlay(base, destination, 'frozen', 'ally', 'test.ice').state
+  expect(
+    evaluatePv1fMovement({ ...allyIce, statBridge: base.statBridge }, [{ x: 1, y: 1 }, destination])
+      .economyCost,
+  ).toBe(20)
+  const enemyIce = setTerrainOverlay(
+    allyIce,
+    destination,
+    'frozen',
+    'other',
+    'test.enemy-ice',
+  ).state
+  const restored = JSON.parse(
+    JSON.stringify({
+      ...enemyIce,
+      statBridge: base.statBridge,
+      tactical: {
+        ...enemyIce.tactical,
+        battle: {
+          ...enemyIce.tactical.battle,
+          combatants: enemyIce.tactical.battle.combatants.map((unit) =>
+            unit.id === 'other' ? { ...unit, hp: 0 } : unit,
+          ),
+        },
+      },
+    }),
+  )
+  expect(evaluatePv1fMovement(restored, [{ x: 1, y: 1 }, destination]).economyCost).toBe(30)
+  expect(
+    readPv1fActionEconomy(executePv1fMovement(restored, [{ x: 1, y: 1 }, destination]).state)!
+      .current,
+  ).toBe(70)
 })

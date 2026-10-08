@@ -796,7 +796,7 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
       controls = (
         <div className={styles.typedGrid}>
           {recipientField(
-            'Displacement recipient',
+            `${value.direction === 'pull' ? 'Pull' : 'Push'} recipient`,
             value.recipient,
             (recipient) =>
               onChange({
@@ -806,9 +806,9 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
             ['primary-unit', 'affected-units'],
           )}
           <label className={styles.field}>
-            <span>Displacement direction</span>
+            <span>Push or Pull</span>
             <select
-              aria-label="Displacement direction"
+              aria-label="Push or Pull"
               value={value.direction ?? ''}
               onChange={(event) => {
                 const direction = event.currentTarget.value
@@ -823,9 +823,9 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
             </select>
           </label>
           <label className={styles.field}>
-            <span>Displacement distance</span>
+            <span>Tiles moved</span>
             <input
-              aria-label="Displacement distance"
+              aria-label="Tiles moved"
               type="number"
               min={1}
               step={1}

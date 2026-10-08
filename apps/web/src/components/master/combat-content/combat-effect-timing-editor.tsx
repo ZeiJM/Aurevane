@@ -16,7 +16,8 @@ function timingLabel(tag: string): string {
     'mp-recovery': 'MP recovery',
     'mp-drain': 'MP drain',
     'create-terrain': 'Terrain',
-    displace: 'Displacement',
+    push: 'Push',
+    pull: 'Pull',
     'barrier-change': 'Barrier',
     'return-to-turn-start': 'Return to turn start',
     'remove-status': 'Cleanse / remove status',
@@ -76,33 +77,35 @@ export function CombatEffectTimingEditor({
           </tr>
         </thead>
         <tbody>
-          {COMBAT_EFFECT_TIMING_TAGS.map((tag) => (
-            <tr key={tag}>
-              <th scope="row">
-                <label htmlFor={`timing-${tag}`}>{timingLabel(tag)}</label>
-              </th>
-              <td>
-                <select
-                  id={`timing-${tag}`}
-                  value={combatEffectTimingMode(policy, tag)}
-                  disabled={saving}
-                  onChange={(event) =>
-                    setPolicy({
-                      ...policy,
-                      modes: {
-                        ...policy.modes,
-                        [tag]: event.target.value as CombatEffectTimingMode,
-                      },
-                    })
-                  }
-                >
-                  <option value="instant">Instant</option>
-                  <option value="next-round">Normal</option>
-                  <option value="delayed">Delayed</option>
-                </select>
-              </td>
-            </tr>
-          ))}
+          {COMBAT_EFFECT_TIMING_TAGS.filter((tag) => tag !== 'displace' && tag !== 'displaced').map(
+            (tag) => (
+              <tr key={tag}>
+                <th scope="row">
+                  <label htmlFor={`timing-${tag}`}>{timingLabel(tag)}</label>
+                </th>
+                <td>
+                  <select
+                    id={`timing-${tag}`}
+                    value={combatEffectTimingMode(policy, tag)}
+                    disabled={saving}
+                    onChange={(event) =>
+                      setPolicy({
+                        ...policy,
+                        modes: {
+                          ...policy.modes,
+                          [tag]: event.target.value as CombatEffectTimingMode,
+                        },
+                      })
+                    }
+                  >
+                    <option value="instant">Instant</option>
+                    <option value="next-round">Normal</option>
+                    <option value="delayed">Delayed</option>
+                  </select>
+                </td>
+              </tr>
+            ),
+          )}
         </tbody>
       </table>
       <label>

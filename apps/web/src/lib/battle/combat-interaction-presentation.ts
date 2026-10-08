@@ -1,6 +1,7 @@
 import { combatStatusPresentationTag } from '@aurevane/game-core/combat/gameplay-tags'
 import {
   COMBAT_TERRAIN_OVERLAY_DETAILS,
+  frozenGroundDescription,
   type CombatTerrainOverlay,
   type CombatTerrainProjection,
 } from '@aurevane/game-core/combat/terrain-overlays'
@@ -15,7 +16,7 @@ export function terrainOverlayDescription(
   if (!overlay) return ''
   const details = COMBAT_TERRAIN_OVERLAY_DETAILS[overlay.kind]
   const rounds = overlay.remainingRoundBoundaries
-  return `${details.name} terrain; ${rounds} round ${rounds === 1 ? 'boundary' : 'boundaries'} remaining; ${details.description}`
+  return `${details.name} terrain; ${rounds} round ${rounds === 1 ? 'boundary' : 'boundaries'} remaining; ${overlay.kind === 'frozen' ? frozenGroundDescription(overlay.frozenGroundPolicyVersion ?? null) : details.description}`
 }
 
 function tile(value: unknown): string | null {
@@ -51,7 +52,52 @@ export function combatTerrainProjectionDescription(
   const before = projection.before ? COMBAT_TERRAIN_OVERLAY_DETAILS[projection.before].name : null
   const timing =
     projection.activationRound !== undefined ? `Starts round ${projection.activationRound} · ` : ''
-  return `${timing}${before ? `${before} → ` : ''}${details.name} at tile ${position} · ${rounds} round ${rounds === 1 ? 'boundary' : 'boundaries'}. ${details.description}`
+  return `${timing}${before ? `${before} → ` : ''}${details.name} at tile ${position} · ${rounds} round ${rounds === 1 ? 'boundary' : 'boundaries'}. ${projection.after === 'frozen' ? frozenGroundDescription(projection.frozenGroundPolicyVersion ?? null) : details.description}`
+}
+
+/** Count actual projected/recorded tiles; distinct transitions and timing remain separate. */
+export function combatTerrainSummaries(
+  projections: readonly CombatTerrainProjection[],
+): readonly string[] {
+  const groups = new Map<
+    string,
+    {
+      projection: CombatTerrainProjection
+      positions: Set<string>
+    }
+  >()
+  for (const projection of projections) {
+    if (!combatTerrainProjectionDescription(projection)) continue
+    const key = JSON.stringify([
+      projection.before,
+      projection.after,
+      projection.remainingRoundBoundaries,
+      projection.activationRound ?? null,
+      projection.frozenGroundPolicyVersion ?? null,
+    ])
+    const group = groups.get(key) ?? { projection, positions: new Set<string>() }
+    group.positions.add(`${projection.position.x},${projection.position.y}`)
+    groups.set(key, group)
+  }
+  return [...groups.values()].map(({ projection, positions }) => {
+    const after = projection.after as 'frozen' | 'steam'
+    const details = COMBAT_TERRAIN_OVERLAY_DETAILS[after]
+    const before = projection.before ? COMBAT_TERRAIN_OVERLAY_DETAILS[projection.before].name : null
+    const rounds = projection.remainingRoundBoundaries
+    return [
+      `${before ? `${before} → ` : ''}${details.name}`,
+      `${positions.size} ${positions.size === 1 ? 'tile' : 'tiles'}`,
+      projection.activationRound !== undefined
+        ? `Starts round ${projection.activationRound}`
+        : null,
+      `${rounds} ${rounds === 1 ? 'round' : 'rounds'}`,
+      after === 'frozen'
+        ? `+${COMBAT_TERRAIN_OVERLAY_DETAILS.frozen.additionalApPerTile} AP/tile; ${projection.frozenGroundPolicyVersion === 1 ? 'caster’s enemies only' : 'both teams'}; Airborne exempt`
+        : 'Blocks line of sight; both teams',
+    ]
+      .filter(Boolean)
+      .join(' · ')
+  })
 }
 
 /** Shared forecast and sanitized log text. Unknown payloads never become player-facing text. */
@@ -70,6 +116,7 @@ export function combatInteractionDescription(event: object): string | null {
       before: data.before === 'frozen' || data.before === 'steam' ? data.before : null,
       after: data.after,
       remainingRoundBoundaries: rounds,
+      ...(data.frozenGroundPolicyVersion === 1 ? { frozenGroundPolicyVersion: 1 as const } : {}),
     })
   }
   if (

@@ -56,6 +56,7 @@ export function projectBattleStatusStateForViewer(
     | 'terrainOverlays'
     | 'pendingEffects'
     | 'pendingSummons'
+    | 'airbornePolicyVersion'
     | 'dotTriggerPolicyVersion'
     | 'skillPacketPolicyVersion'
   >,
@@ -95,11 +96,19 @@ export function projectBattleStatusStateForViewer(
     const row = {
       ...activeRow,
       statuses: [
-        ...activeRow.statuses,
+        ...activeRow.statuses.map((status) =>
+          status.statusId === 'airborne' && state.airbornePolicyVersion === 1
+            ? { ...status, airbornePolicyVersion: 1 as const }
+            : status,
+        ),
         ...terrainStatuses,
         ...pending
           .filter((item) => item.combatantId === activeRow.combatantId)
-          .map((item) => item.status),
+          .map((item) =>
+            item.status.statusId === 'airborne' && state.airbornePolicyVersion === 1
+              ? { ...item.status, airbornePolicyVersion: 1 as const }
+              : item.status,
+          ),
       ],
     }
     // Validated snapshots should always resolve this row; omission is safer than disclosure if they do not.

@@ -9,6 +9,7 @@ import { AurevaneImage } from '@/components/media/aurevane-image'
 import {
   combatInteractionDescription,
   combatTerrainProjectionDescription,
+  combatTerrainSummaries,
 } from '../../lib/battle/combat-interaction-presentation'
 import { battleGroundTargetPresentation, previewChips } from './battle-preview-content'
 import type {
@@ -17,16 +18,39 @@ import type {
 } from './battle-runtime'
 import styles from './battle-action-preview.module.css'
 
+function terrainEventAlreadyProjected(event: object, preview: ActionPreview): boolean {
+  const data = event as {
+    event?: string
+    position?: { x: number; y: number }
+    after?: string
+    before?: string | null
+    remainingRoundBoundaries?: number
+  }
+  return (
+    data.event === 'terrain_overlay_changed' &&
+    (preview.projectedTerrain ?? []).some(
+      (projection) =>
+        projection.position.x === data.position?.x &&
+        projection.position.y === data.position?.y &&
+        projection.before === data.before &&
+        projection.after === data.after &&
+        projection.remainingRoundBoundaries === data.remainingRoundBoundaries,
+    )
+  )
+}
+
 function InlineTargetForecast({
   preview,
   combatantId,
   participant,
   includeTerrain,
+  compactTerrain,
 }: {
   preview: ActionPreview
   combatantId: string
   participant?: BattlePresentationParticipant
   includeTerrain: boolean
+  compactTerrain: boolean
 }) {
   const effects = preview.projectedEffects.filter((effect) => effect.combatantId === combatantId)
   const recipientEvents = preview.projectedEvents?.filter(
@@ -113,7 +137,9 @@ function InlineTargetForecast({
       .map((chip) => chip.label),
     ...(recipientEvents ?? []).map(combatInteractionDescription),
     ...(includeTerrain
-      ? (preview.projectedTerrain ?? []).map(combatTerrainProjectionDescription)
+      ? compactTerrain
+        ? combatTerrainSummaries(preview.projectedTerrain ?? [])
+        : (preview.projectedTerrain ?? []).map(combatTerrainProjectionDescription)
       : []),
   ]
     .filter(Boolean)
@@ -221,14 +247,19 @@ export function BattleActionPreview({
           }))
         : []
   const chips = preview ? previewChips(preview) : []
+  const compactTerrain = (skill?.definition?.target.kind ?? skill?.targetKind) === 'ground-tile'
   const ground = targetTile ? battleGroundTargetPresentation(targetTile, targetOverlay) : null
   const interactions =
     preview?.kind === 'action'
       ? [
           ...new Set(
             [
-              ...(preview.projectedTerrain ?? []).map(combatTerrainProjectionDescription),
-              ...(preview.projectedEvents ?? []).map(combatInteractionDescription),
+              ...(compactTerrain
+                ? combatTerrainSummaries(preview.projectedTerrain ?? [])
+                : (preview.projectedTerrain ?? []).map(combatTerrainProjectionDescription)),
+              ...(preview.projectedEvents ?? [])
+                .filter((event) => !compactTerrain || !terrainEventAlreadyProjected(event, preview))
+                .map(combatInteractionDescription),
             ].filter((description): description is string => Boolean(description)),
           ),
         ]
@@ -273,6 +304,7 @@ export function BattleActionPreview({
                   <InlineTargetForecast
                     key={combatantId}
                     preview={targetPreview}
+                    compactTerrain={compactTerrain}
                     combatantId={combatantId}
                     includeTerrain={
                       targetPreview.primaryCombatantId === combatantId ||

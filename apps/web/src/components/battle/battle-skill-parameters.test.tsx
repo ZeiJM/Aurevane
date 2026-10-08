@@ -6,6 +6,44 @@ import { BattleSkillParameters } from './battle-skill-parameters'
 import { SkillEffectTimingProvider } from '../character/skill-effect-timing-context'
 
 describe('cockpit Skill Parameters', () => {
+  it.each([
+    ['next-round', 'starting next round'],
+    ['instant', 'starting immediately'],
+    ['delayed', 'starting two rounds after cast'],
+  ] as const)('separates Ground area rules from effects with %s timing', (mode, timing) => {
+    const definition = resolveMatureSkillVersion('frostweaver.chilling-mist')!
+    const before = JSON.stringify(definition)
+    const markup = renderToStaticMarkup(
+      <SkillEffectTimingProvider policy={{ version: 5, modes: { 'ground-area': mode } }}>
+        <BattleSkillParameters
+          skill={{
+            definition,
+            id: definition.id,
+            name: 'Chilling Mist',
+            apCost: definition.apCost,
+            mpCost: definition.mpCost ?? 0,
+            minimumRange: definition.target.minimumRange,
+            maximumRange: definition.target.maximumRange,
+            targetKind: definition.target.kind,
+            targetTeamPolicy: definition.target.teamPolicy,
+            tags: [],
+            effectDescriptions: [],
+            requirementDescriptions: [],
+          }}
+        />
+      </SkillEffectTimingProvider>,
+    )
+    const effects = markup.match(/<ul aria-label="Effect explanations">([\s\S]*?)<\/ul>/)?.[1]
+    expect(effects).toContain('<strong>Frozen Ground</strong>')
+    expect(effects).toContain('<strong>Slow</strong>')
+    expect(effects).toContain('<strong>Chilled</strong>')
+    expect(effects).not.toContain('<strong>Ground</strong>')
+    expect(effects).not.toContain('Each cast has its own allowance')
+    expect(markup).toContain('<p aria-label="Ground area rules"><strong>Ground area</strong>')
+    expect(markup).toContain(timing)
+    expect(markup.match(/Each cast has its own allowance/g)).toHaveLength(1)
+    expect(JSON.stringify(definition)).toBe(before)
+  })
   it.each(['cinderweaver.cinder-bolt', 'wildwarden.venom-shot'])(
     'reads historical trigger policy for %s',
     (id) => {
@@ -93,6 +131,7 @@ describe('cockpit Skill Parameters', () => {
     expect(markup).toContain('<dt>Target</dt><dd>Enemy</dd>')
     expect(markup).not.toContain('Single target')
     expect(markup).not.toContain('Affects:')
+    expect(markup).not.toContain('aria-label="Ground area rules"')
     expect(JSON.stringify(definition)).toBe(before)
   })
 })

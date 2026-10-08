@@ -19,6 +19,7 @@ import './production-styles'
 const query = new URLSearchParams(location.search)
 const physical = resolveMatureSkillVersion('vanguard.forceful-strike')
 const mystic = resolveMatureSkillVersion('runeblade.aether-cut')
+const ground = resolveMatureSkillVersion('frostweaver.chilling-mist')
 const guard = resolveMatureSkillVersion('edgedancer.poised-guard')
 const resonance = resolveResonanceForPair('wildwarden', 'edgedancer')
 const essence = resolveEssenceForBuild('vanguard', null)
@@ -50,6 +51,7 @@ function Reports() {
       {[
         ['physical', physical],
         ['mystic', mystic],
+        ['ground', ground],
       ].map(([family, skill]) => (
         <React.Fragment key={family}>
           <section aria-label={`Nexus ${family} parameters`} style={sectionStyle}>

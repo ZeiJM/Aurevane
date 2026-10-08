@@ -258,6 +258,9 @@ function previewState(
     dotTriggerPolicyVersion: 1 as const,
     skillPacketPolicyVersion: 1 as const,
     groundEffectPolicyVersion: 1 as const,
+    frozenGroundPolicyVersion: 1 as const,
+    airbornePolicyVersion: 1 as const,
+    displacementPolicyVersion: 1 as const,
     turnOrigin: {
       combatantId: ACTOR_ID,
       turnNumber: battle.turnNumber,

@@ -8,7 +8,7 @@ import { previewEffect } from '../../character/skill-effect-preview'
 import styles from './combat-content-editor.module.css'
 import { SkillEffectEditor } from './skill-effect-editor'
 
-export type CombatEffectType = CombatEffectDefinition['type']
+export type CombatEffectType = CombatEffectDefinition['type'] | 'push' | 'pull'
 
 const EFFECT_TYPES: readonly { value: CombatEffectType; label: string }[] = [
   { value: 'damage', label: 'Damage' },
@@ -19,7 +19,8 @@ const EFFECT_TYPES: readonly { value: CombatEffectType; label: string }[] = [
   { value: 'remove-status', label: 'Remove status' },
   { value: 'return-to-turn-start', label: 'Return to turn start' },
   { value: 'create-terrain', label: 'Create Frozen Ground' },
-  { value: 'displace', label: 'Displace' },
+  { value: 'push', label: 'Push' },
+  { value: 'pull', label: 'Pull' },
   { value: 'poison', label: 'Poison' },
   { value: 'bleed', label: 'Bleed' },
   { value: 'burn', label: 'Burn' },
@@ -50,6 +51,9 @@ export function createDefaultCombatEffect(type: CombatEffectType): CombatEffectD
       return { type, recipient: 'actor', anchorMode: 'cast-position' }
     case 'create-terrain':
       return { type, recipient: 'affected-tiles', terrain: 'frozen' }
+    case 'push':
+    case 'pull':
+      return { type: 'displace', recipient: 'primary-unit', direction: type, distance: 1 }
     case 'displace':
       return { type, recipient: 'primary-unit', direction: 'push', distance: 1 }
     case 'poison':
@@ -179,7 +183,13 @@ export function SkillEffectListEditor({
             <header className={styles.effectHeader}>
               <div>
                 <span className={styles.effectOrdinal}>Effect {index + 1}</span>
-                <strong>{EFFECT_TYPES.find((entry) => entry.value === effect.type)?.label}</strong>
+                <strong>
+                  {effect.type === 'displace'
+                    ? effect.direction === 'pull'
+                      ? 'Pull'
+                      : 'Push'
+                    : EFFECT_TYPES.find((entry) => entry.value === effect.type)?.label}
+                </strong>
               </div>
               <div className={styles.effectActions}>
                 <button

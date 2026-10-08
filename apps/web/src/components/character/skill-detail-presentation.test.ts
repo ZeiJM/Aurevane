@@ -88,6 +88,14 @@ it('keeps configured timing in the text report for mixed damage and utility effe
 })
 
 describe('Player-facing Skill targeting and effects', () => {
+  it('uses Chilled for Shatter requirements without changing the stored Frozen tag', () => {
+    const shatter = resolveMatureSkillVersion('frostweaver.shatter')!
+    const before = JSON.stringify(shatter)
+    expect(skillRequirementsSummary(shatter)).toBe('Target: Chilled')
+    expect(skillRequirementDescription(shatter.requirements[0]!)).toBe('Target must have Chilled.')
+    expect(shatter.requirements).toContainEqual({ kind: 'target-tag-present', tag: 'Frozen' })
+    expect(JSON.stringify(shatter)).toBe(before)
+  })
   it('distinguishes ranged area targeting from self recovery without changing the definition', () => {
     const volley = resolveMatureSkillVersion('farstrider.volley')!
     const before = JSON.stringify(volley)
@@ -191,7 +199,7 @@ it('explains elemental interactions and typed status aliases without changing hi
   expect(
     Object.fromEntries(skillParameterRows(resolveMatureSkillVersion('frostweaver.chilling-mist')!))
       .Target,
-  ).toContain('Terrain: both teams')
+  ).toContain('Frozen Ground: caster’s enemies only')
 })
 
 it('shows the executable element and canonical status names on current Technique tags', () => {
@@ -501,7 +509,7 @@ it('keeps area dimensions and distinct recipients in canonical parameter rows', 
   const groundRows = Object.fromEntries(skillParameterRows(ground))
   expect(groundRows.Target).toContain('Ground')
   expect(groundRows.Target).toContain('Enemies only')
-  expect(groundRows.Target).toContain('Terrain: both teams')
+  expect(groundRows.Target).toContain('Frozen Ground: caster’s enemies only')
   const friendlyFire = {
     ...volley,
     target: { ...volley.target, friendlyFire: 'all-units' as const },

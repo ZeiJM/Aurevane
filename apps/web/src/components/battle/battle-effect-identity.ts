@@ -44,6 +44,8 @@ const identifiers: Readonly<Record<string, string>> = {
   damage: 'DMG',
   'create-terrain': 'TER',
   displace: 'MOV',
+  push: 'PSH',
+  pull: 'PLL',
   'barrier-change': 'SHD',
   'return-to-turn-start': 'RET',
   'remove-status': 'CLR',
@@ -89,7 +91,10 @@ export function describeBattleEffect(effect: BattlePresentedStatus) {
     ...battleEffectIdentity(effect.statusId),
     description:
       (percentageDescription ??
-        statusPotencyDescription(effect.statusId, effect.potencyBasisPoints)) + capturedDescription,
+        (effect.statusId === 'airborne' && effect.airbornePolicyVersion !== 1
+          ? 'Ignore the Frozen Ground AP surcharge. Board bounds, elevation, obstacles, occupancy, Rooted and Movement allowance still apply.'
+          : statusPotencyDescription(effect.statusId, effect.potencyBasisPoints))) +
+      capturedDescription,
   }
   const applications = effect.recoveryApplications
   const count =

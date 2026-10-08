@@ -5,6 +5,7 @@ import { groupSkillEffects } from './skill-effect-groups'
 import { useSkillEffectTimingPolicy } from './skill-effect-timing-context'
 import { CompactSkillEffectSummary } from './compact-skill-effect-summary'
 import { skillPreviewEffects } from './skill-effect-preview'
+import { SkillGroundAreaDetails } from './skill-ground-area-details'
 
 import Image from 'next/image'
 
@@ -751,14 +752,13 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                             className={styles.effectExplanations}
                             aria-label="Effect explanations"
                           >
-                            {skillPreviewEffects(focusedSkill.definition, timingPolicy).map(
-                              (effect) => (
-                                <li key={JSON.stringify(effect)}>
-                                  <strong>{effect.label}</strong> — {effect.explanation}
-                                </li>
-                              ),
-                            )}
+                            {skillPreviewEffects(focusedSkill.definition).map((effect) => (
+                              <li key={JSON.stringify(effect)}>
+                                <strong>{effect.label}</strong> — {effect.explanation}
+                              </li>
+                            ))}
                           </ul>
+                          <SkillGroundAreaDetails skill={focusedSkill.definition} />
                         </>
                       ) : (
                         <p>No Technique is available for this build.</p>

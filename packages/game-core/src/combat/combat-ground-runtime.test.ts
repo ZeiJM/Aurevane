@@ -639,3 +639,51 @@ describe('canonical persistent Ground cast and entry', () => {
     expect(result.state.groundAreas).toEqual([])
   })
 })
+
+it('Airborne ignores persistent Ground on entry and receives it after Airborne expires', () => {
+  let state = seedArea({ ...encounter(), airbornePolicyVersion: 1 })
+  const air = content.statuses.find((row) => row.id === 'airborne')!
+  state = {
+    ...state,
+    statusState: state.statusState.map((row) =>
+      row.combatantId === 'actor'
+        ? {
+            ...row,
+            statuses: [
+              {
+                statusId: 'airborne',
+                statusVersion: air.version,
+                stacks: 1,
+                remainingOwnerTurnStarts: 3,
+                sourceCombatantId: 'actor',
+              },
+            ],
+          }
+        : row,
+    ),
+  }
+  const path = [
+    { x: 1, y: 1 },
+    { x: 2, y: 1 },
+  ]
+  const preview = evaluatePv1fMovement(state, path)
+  const moved = move(JSON.parse(JSON.stringify(state)), path)
+  expect(hp(moved.state)).toBe(hp(state))
+  expect(groundDamage(moved.events)).toHaveLength(0)
+  expect(moved.events).toContainEqual(
+    expect.objectContaining({
+      event: 'combat_accuracy_resolved',
+      targetCombatantId: 'actor',
+      hitChanceBasisPoints: 0,
+      hit: false,
+    }),
+  )
+  expect(preview.movement.legal).toBe(true)
+  const grounded = {
+    ...state,
+    statusState: state.statusState.map((row) =>
+      row.combatantId === 'actor' ? { ...row, statuses: [] } : row,
+    ),
+  }
+  expect(hp(move(grounded, path).state)).toBeLessThan(hp(state))
+})

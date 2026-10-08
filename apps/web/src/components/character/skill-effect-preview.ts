@@ -1,9 +1,4 @@
 import {
-  combatEffectTimingMode,
-  type CombatEffectTimingPolicy,
-} from '@aurevane/game-core/combat/combat-effect-timing'
-import { combatGroundAreaDescription } from '@aurevane/game-core/combat/combat-ground-visuals'
-import {
   isPercentageDotEffect,
   percentageDotDescription,
   percentageDotMagnitude,
@@ -98,7 +93,11 @@ function statusPreview(id: string, potencyBasisPoints?: number): PreviewEffect {
 
 export function previewEffect(
   effect: MatureSkillEffectDefinition,
-  options: { legacyTriggers?: boolean } = {},
+  options: {
+    legacyTriggers?: boolean
+    legacyFrozenGround?: boolean
+    legacyAirborne?: boolean
+  } = {},
 ): PreviewEffect {
   const target =
     effect.recipient === 'actor'
@@ -155,7 +154,13 @@ export function previewEffect(
             : `Restores MP to ${target}${effect.ticks && effect.ticks > 1 ? ` per application, ${effect.ticks} times (first when the effect activates)` : ''}.`,
       }
     case 'apply-status':
-      return statusPreview(effect.statusId, effect.potencyBasisPoints)
+      return effect.statusId === 'airborne' && options.legacyAirborne
+        ? {
+            label: 'Airborne',
+            explanation:
+              'Ignore the Frozen Ground AP surcharge. Board bounds, elevation, obstacles, occupancy, Rooted and Movement allowance still apply.',
+          }
+        : statusPreview(effect.statusId, effect.potencyBasisPoints)
     case 'displace':
       return {
         label: effect.direction === 'pull' ? 'Pull' : 'Push',
@@ -222,7 +227,7 @@ export function previewEffect(
       return {
         label: 'Frozen Ground',
         magnitude: `+${COMBAT_TERRAIN_OVERLAY_DETAILS.frozen.additionalApPerTile} AP/tile`,
-        explanation: 'Both teams pay extra movement AP; fire turns it into sight-blocking Steam.',
+        explanation: `${options.legacyFrozenGround ? 'Both teams' : 'Only the caster’s enemies'} pay extra movement AP; fire turns it into sight-blocking Steam.`,
       }
     case 'return-to-turn-start':
       return {
@@ -250,11 +255,14 @@ export function previewEffect(
 
 export function skillPreviewEffects(
   skill: MatureSkillDefinition,
-  timingPolicy?: CombatEffectTimingPolicy | null,
-  options: { legacyTriggers?: boolean } = {},
+  options: {
+    legacyTriggers?: boolean
+    legacyFrozenGround?: boolean
+    legacyAirborne?: boolean
+  } = {},
 ): readonly PreviewEffect[] {
   const seen = new Set<string>()
-  const effects = skill.effects
+  return skill.effects
     .map((effect, index) => {
       const entry = previewEffect(effect, options)
       const override = skill.effectDescriptions?.[index]?.trim()
@@ -266,18 +274,6 @@ export function skillPreviewEffects(
       seen.add(key)
       return true
     })
-  return skill.groundArea
-    ? [
-        ...effects,
-        {
-          label: 'Ground',
-          explanation: combatGroundAreaDescription(
-            skill.groundArea,
-            combatEffectTimingMode(timingPolicy ?? undefined, 'ground-area'),
-          ),
-        },
-      ]
-    : effects
 }
 
 export function effectSummary(effect: PreviewEffect): string {

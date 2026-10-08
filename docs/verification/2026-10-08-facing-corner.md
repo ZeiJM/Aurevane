@@ -13,4 +13,4 @@ Base Main: **33c7f6a23f28a49c2253278f9359138f77d3beab**. Only the shared stylesh
 
 ## Release boundary
 
-Exact-head remote CI and deployment evidence are pending. Do not confuse this verified local candidate with the previously deployed 3px inset or claim human acceptance of the refined appearance before the Owner tests it.
+All three exact-head workflows passed for b6cb99bf5663218bbe5471ff55e9b0a1dc20e072; PR #851 merged at d9fec991de40d7bf85553f6a7413d678c308fc91. Combined production deployment evidence follows the Ground/Airborne continuation. Do not confuse this verified local candidate with the previously deployed 3px inset or claim human acceptance of the refined appearance before the Owner tests it.

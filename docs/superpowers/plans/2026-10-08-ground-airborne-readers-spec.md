@@ -1,0 +1,11 @@
+# October 8 Ground, Airborne and reader refinements
+
+Owner authorized automatic implementation and release for testing. Latest clarification: Airborne grants Target Elevation 3 only to its holder’s Attack Skills. See `docs/COMBAT.md` for the complete approved rules.
+
+Mechanical rules: Frozen Ground +10 AP affects only caster enemies; allies/caster immune, Airborne exemption and independent Slow retained. Airborne holders automatically evade any Ground-targeted Skill (0% hit), including automatic/friendly, delayed settlement and persistent entry; only Attack Skills gain elevation3 while active. Push/Pull are separate authoring and timing choices; no current Displaced marker. Preserve blockers, costs, Steam LoS and Rewind.
+
+Compatibility: new encounters pin independent optional version1 Frozen/Airborne/displacement policies; absent policies retain old mechanics. Additive timing migration admits push/pull without modifying stored policies or grants. New authoring rejects Displaced; exact historical definitions, receipts and snapshots remain readable.
+
+Readers: separate Ground area rules from authored effects; count actual terrain changes and preserve timing/transitions, explicit per-unit outcomes, cast/source/content boundaries and viewer privacy. Chronicle and Copy Full Log share the same summary. Display Chilled for the existing Frozen requirement. Resonance lists exact qualifying setup Skill names and plain sequence instructions; do not invent a Control/Utility equivalence. Vacated single-unit attack tiles have no residual red cue; retain genuine area and Line coverage across responsive PvE/PvP/spectation.
+
+Acceptance: meaningful Core/authoring/SQL/privacy/reader regressions, full workspace quality gate, responsive production-component browser checks and independent review before exact-head CI/merge. Deploy only verified merged source; verify canonical alias and HTTP/runtime evidence. Human playtest acceptance remains separate.

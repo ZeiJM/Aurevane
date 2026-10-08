@@ -1,8 +1,8 @@
 'use client'
-import { combatGroundAreaDescription } from '@aurevane/game-core/combat/combat-ground-visuals'
-import { combatEffectTimingMode } from '@aurevane/game-core/combat/combat-effect-timing'
 
 import {
+  useSkillGroundInteractionRules,
+  useAirborneAttackElevation,
   useSkillEffectTimingPolicy,
   useSkillDotTriggerPolicyVersion,
 } from './skill-effect-timing-context'
@@ -15,17 +15,23 @@ import {
   skillTargetMethodExplanation,
 } from './skill-detail-presentation'
 import { skillPreviewEffects } from './skill-effect-preview'
+import { SkillGroundAreaDetails } from './skill-ground-area-details'
 import styles from './skill-details.module.css'
 import { SkillCharacteristicRows } from './skill-characteristic-rows'
 
 function SkillDetailBody({ skill }: { skill: MatureSkillDefinition }) {
   const timingPolicy = useSkillEffectTimingPolicy()
+  const groundRules = useSkillGroundInteractionRules()
+  const airborneAttackElevation = useAirborneAttackElevation()
   const legacyTriggers = useSkillDotTriggerPolicyVersion() === null
   return (
     <>
       <dl>
         <SkillCharacteristicRows
-          rows={skillParameterRows(skill, skill, timingPolicy)}
+          rows={skillParameterRows(skill, skill, timingPolicy, {
+            ...groundRules,
+            airborneAttackElevation,
+          })}
           targetMethodExplanation={skillTargetMethodExplanation(skill)}
         />
         {skill.overrides.pvp?.apCost !== undefined &&
@@ -48,22 +54,13 @@ function SkillDetailBody({ skill }: { skill: MatureSkillDefinition }) {
       </dl>
       <strong>Effects</strong>
       <ol>
-        {skillPreviewEffects(skill, timingPolicy, { legacyTriggers })
-          .filter((effect) => effect.label !== 'Ground')
-          .map((effect, index) => (
-            <li key={index}>
-              <strong>{effect.label}</strong> — {effect.explanation}
-            </li>
-          ))}
+        {skillPreviewEffects(skill, { legacyTriggers, ...groundRules }).map((effect, index) => (
+          <li key={index}>
+            <strong>{effect.label}</strong> — {effect.explanation}
+          </li>
+        ))}
       </ol>
-      {skill.groundArea ? (
-        <p>
-          {combatGroundAreaDescription(
-            skill.groundArea,
-            combatEffectTimingMode(timingPolicy ?? undefined, 'ground-area'),
-          )}
-        </p>
-      ) : null}
+      <SkillGroundAreaDetails skill={skill} />
       {skill.requirements.length ? (
         <>
           <strong>Requirements</strong>

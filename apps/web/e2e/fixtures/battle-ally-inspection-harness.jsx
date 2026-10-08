@@ -105,8 +105,13 @@ const mode = new URLSearchParams(location.search).get('mode') || 'pve'
 const groundPreset = new URLSearchParams(location.search).get('ground')
 if (new URLSearchParams(location.search).get('compass') === 'edges') {
   const directions = ['north', 'east', 'south', 'west']
-  const corners = [{x:0,y:0},{x:8,y:0},{x:0,y:6},{x:8,y:6}]
-  initialBattle.snapshot.tactical.placements.forEach((placement,index)=>{
+  const corners = [
+    { x: 0, y: 0 },
+    { x: 8, y: 0 },
+    { x: 0, y: 6 },
+    { x: 8, y: 6 },
+  ]
+  initialBattle.snapshot.tactical.placements.forEach((placement, index) => {
     placement.facing = directions[index]
     placement.position = corners[index]
   })
@@ -185,7 +190,14 @@ const runtime = {
 }
 if (targetingCase) {
   // Current percentage attacks use the same explicit policy as newly started battles.
-  initialBattle.snapshot = { ...initialBattle.snapshot, percentageDotPolicyVersion: 1, dotTriggerPolicyVersion: 1 }
+  initialBattle.snapshot = {
+    ...initialBattle.snapshot,
+    percentageDotPolicyVersion: 1,
+    dotTriggerPolicyVersion: 1,
+    frozenGroundPolicyVersion: 1,
+    airbornePolicyVersion: 1,
+    displacementPolicyVersion: 1,
+  }
   const base = resolveMatureSkillVersion(
     targetingCase === 'heal'
       ? 'lifebinder.mend'
@@ -562,11 +574,14 @@ if (mode === 'master-ground') fixtureRoot.render(<GroundEditorHarness />)
 else
   fixtureRoot.render(
     <AudioProvider>
-      {dotCase ? <SkillEffectTimingProvider
-        policy={initialBattle.snapshot.effectTimingPolicy ?? null}
-        dotTriggerPolicyVersion={initialBattle.snapshot.dotTriggerPolicyVersion ?? null}>
-        <DotDefinitionReport />
-      </SkillEffectTimingProvider> : null}
+      {dotCase ? (
+        <SkillEffectTimingProvider
+          policy={initialBattle.snapshot.effectTimingPolicy ?? null}
+          dotTriggerPolicyVersion={initialBattle.snapshot.dotTriggerPolicyVersion ?? null}
+        >
+          <DotDefinitionReport />
+        </SkillEffectTimingProvider>
+      ) : null}
       <BattlefieldPresentationBundle
         battleSessionId="fixture"
         initialVersion={initialBattle.battleVersion}

@@ -77,7 +77,7 @@ export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
     'airborne',
     'Airborne',
     'Buff',
-    'Ignore the Frozen Ground AP surcharge. Board bounds, elevation, obstacles, occupancy, Rooted and Movement allowance still apply.',
+    'Ground-targeted Skills always miss you (100% evasion), including area activations. Your Attack Skills have Target Elevation 3 while Airborne is active. Ignore the Frozen Ground AP surcharge; board bounds, movement elevation, obstacles, occupancy, Rooted, Slow and Movement allowance still apply.',
     { gameplayTags: ['Airborne'] },
   ),
   status(
@@ -225,6 +225,18 @@ const legacyDescriptions: Record<
     kind: 'Effect',
     description:
       'Creates the authored terrain overlay at the selected tiles when the effect activates.',
+  },
+  push: {
+    name: 'Push',
+    kind: 'Effect',
+    description:
+      'Moves the target away along the authored legal path. Stops at blocked tiles or Rooted; no resource refund.',
+  },
+  pull: {
+    name: 'Pull',
+    kind: 'Effect',
+    description:
+      'Moves the target toward the caster along the authored legal path without entering the caster’s tile. Stops at blocked tiles or Rooted; no resource refund.',
   },
   displace: {
     name: 'Displacement',

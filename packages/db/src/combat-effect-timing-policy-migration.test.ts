@@ -126,3 +126,53 @@ it('appends Delayed Rewind without mutating prior overrides and keeps exclusive 
     await db.close()
   }
 }, 20000)
+
+it('allows independent Push/Pull publication while keeping history and service-only grants', async () => {
+  const db = await PGlite.create()
+  try {
+    await db.exec(`create role anon; create role authenticated; create role service_role; create schema app_private;
+      create function app_private.assert_game_owner_v1(actor uuid) returns void language plpgsql as $$ begin if actor is distinct from '00000000-0000-0000-0000-000000000001' then raise exception 'GAME_OWNER_REQUIRED'; end if; end $$;`)
+    await db.exec(readFileSync(path, 'utf8'))
+    const owner = '00000000-0000-0000-0000-000000000001'
+    await db.query(
+      `select public.publish_combat_effect_timing_policy_v1($1,1,'{"displace":"instant"}','existing shared movement timing')`,
+      [owner],
+    )
+    const before = await db.query(
+      'select version,modes from app_private.combat_effect_timing_policy_versions order by version',
+    )
+    await db.exec(
+      readFileSync(
+        resolve(
+          process.cwd(),
+          '../../supabase/migrations/20261008224315_combat_push_pull_timing.sql',
+        ),
+        'utf8',
+      ),
+    )
+    expect(
+      (
+        await db.query(
+          'select version,modes from app_private.combat_effect_timing_policy_versions order by version',
+        )
+      ).rows,
+    ).toEqual(before.rows)
+    await db.query(
+      `select public.publish_combat_effect_timing_policy_v1($1,2,'{"push":"instant","pull":"delayed"}','separate timing')`,
+      [owner],
+    )
+    expect(
+      (
+        await db.query<{ policy: unknown }>(
+          'select public.read_combat_effect_timing_policy_v1() as policy',
+        )
+      ).rows[0]!.policy,
+    ).toEqual({ version: 3, modes: { push: 'instant', pull: 'delayed' } })
+    await db.exec('set role authenticated')
+    await expect(
+      db.query(`select public.publish_combat_effect_timing_policy_v1($1,3,'{}','denied')`, [owner]),
+    ).rejects.toThrow('permission denied')
+  } finally {
+    await db.close()
+  }
+}, 20000)

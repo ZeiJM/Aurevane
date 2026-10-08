@@ -165,6 +165,29 @@ try {
         .count(),
       1,
     )
+    for (const surface of ['Master', 'Battle']) {
+      const report = page.getByRole('region', {
+        name: `${surface} ground ${surface === 'Master' ? 'details' : 'parameters'}`,
+      })
+      const effects = report.locator(
+        surface === 'Master' ? 'ol' : '[aria-label="Effect explanations"]',
+      )
+      assert.deepEqual(await effects.locator('li > strong').allTextContents(), [
+        'Frozen Ground',
+        'Slow',
+        'Chilled',
+      ])
+      assert.ok(!(await effects.textContent()).includes('Each cast has its own allowance'))
+      const area = report.getByLabel('Ground area rules', { exact: true })
+      assert.equal(await area.count(), 1)
+      assert.ok((await area.textContent()).includes('starting next round'))
+      assert.ok((await area.textContent()).includes('Each cast has its own allowance'))
+      const box = await report.boundingBox()
+      assert.ok(box.x >= 0 && box.x + box.width <= viewport.width + 1)
+      if (surface === 'Battle') {
+        await report.screenshot({ path: resolve(output, `ground-reader-${viewport.width}.png`) })
+      }
+    }
     const reference = await colors(
       page.getByRole('region', { name: 'Discipline effect reference' }),
     )

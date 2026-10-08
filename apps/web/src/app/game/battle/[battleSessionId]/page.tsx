@@ -112,7 +112,11 @@ async function battleBuildExtensions(
           maximumRange: definition.target.maximumRange,
           tags: skillTargetTags(definition),
           effectDescriptions: definition.effects.map((effect) =>
-            skillEffectDescription(effect, { legacyTriggers }),
+            skillEffectDescription(effect, {
+              legacyTriggers,
+              legacyFrozenGround: battle.snapshot.frozenGroundPolicyVersion !== 1,
+              legacyAirborne: battle.snapshot.airbornePolicyVersion !== 1,
+            }),
           ),
           requirementDescriptions: definition.requirements.map(skillRequirementDescription),
         }
@@ -154,7 +158,11 @@ async function battleBuildExtensions(
                 essenceDefinition.skill.cooldown.ownerTurns),
           tags: skillTargetTags(essenceDefinition.skill),
           effectDescriptions: essenceDefinition.skill.effects.map((effect) =>
-            skillEffectDescription(effect, { legacyTriggers }),
+            skillEffectDescription(effect, {
+              legacyTriggers,
+              legacyFrozenGround: battle.snapshot.frozenGroundPolicyVersion !== 1,
+              legacyAirborne: battle.snapshot.airbornePolicyVersion !== 1,
+            }),
           ),
           requirementDescriptions: essenceDefinition.skill.requirements.map(
             skillRequirementDescription,

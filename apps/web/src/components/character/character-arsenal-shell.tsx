@@ -19,6 +19,7 @@ import { FoundationDisciplineSigil } from '@/components/character/foundation-dis
 import { LoadoutHeader } from '@/components/character/loadout-header'
 
 import { skillPreviewEffects } from './skill-effect-preview'
+import { SkillGroundAreaDetails } from './skill-ground-area-details'
 import { skillDisplayName } from './skill-detail-presentation'
 import { ResonanceParameters } from './resonance-parameters'
 import { SkillParameters } from './skill-parameters'
@@ -51,12 +52,19 @@ function EssenceHoverPreview({ essence }: { essence: EssenceDefinition }) {
             </li>
           ))}
         </ul>
+        <SkillGroundAreaDetails skill={skill} />
       </aside>
     </BattleInfoPopover>
   )
 }
 
-function ResonanceHoverPreview({ resonance }: { resonance: AnyResonanceDefinition }) {
+function ResonanceHoverPreview({
+  resonance,
+  knownSkills,
+}: {
+  resonance: AnyResonanceDefinition
+  knownSkills: readonly MatureSkillDefinition[]
+}) {
   return (
     <BattleInfoPopover
       label={`Preview Resonance: ${resonance.name}`}
@@ -76,7 +84,7 @@ function ResonanceHoverPreview({ resonance }: { resonance: AnyResonanceDefinitio
       }
     >
       <aside id={`resonance-preview-${resonance.id}`} role="tooltip">
-        <ResonanceParameters definition={resonance} />
+        <ResonanceParameters definition={resonance} knownSkills={knownSkills} />
       </aside>
     </BattleInfoPopover>
   )
@@ -379,7 +387,12 @@ export function CharacterArsenalShell({
 
               {resonance ? (
                 <article className={styles.attunementCard} data-active="true">
-                  <ResonanceHoverPreview resonance={resonance} />
+                  <ResonanceHoverPreview
+                    resonance={resonance}
+                    knownSkills={disciplineBuild.disciplineSkills.learnedSkills.map(
+                      (entry) => entry.definition,
+                    )}
+                  />
                   <div>
                     <div className={styles.attunementIdentity}>
                       <strong>{resonance.name}</strong>

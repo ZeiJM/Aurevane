@@ -6,6 +6,7 @@ import { BattleMapKey } from './battle-map-key'
 import { BATTLE_TERRAIN_KEY_DETAILS } from './battle-terrain-key-presentation'
 
 const snapshot = {
+  frozenGroundPolicyVersion: 1 as const,
   tactical: {
     terrains: [{ id: 'open-ground', traversalCost: 1 }],
     tiles: [{ position: { x: 0, y: 0 }, terrainId: 'open-ground', elevation: 0 }],
@@ -13,6 +14,13 @@ const snapshot = {
 }
 
 describe('footer terrain reader', () => {
+  it('preserves the Frozen rule for historical encounters', () => {
+    const markup = renderToStaticMarkup(
+      <BattleMapKey snapshot={{ ...snapshot, frozenGroundPolicyVersion: undefined }} compact />,
+    )
+    expect(markup).toContain('Adds 10 AP per entered tile for either team.')
+    expect(markup).not.toContain('only for the caster’s enemies')
+  })
   it('starts closed with one keyboard accessible Terrain toggle and no permanent key', () => {
     const markup = renderToStaticMarkup(<BattleTerrainToggle snapshot={snapshot} />)
     expect(markup).toContain('aria-label="Terrain"')
