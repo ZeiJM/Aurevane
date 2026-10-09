@@ -56,6 +56,7 @@ function SummonAbilityParameters({
 }
 
 function SummonAbilityDetails({ ability }: { ability: SummonAbilityDefinition }) {
+  const timingPolicy = useSkillEffectTimingPolicy()
   const groundRules = useSkillGroundInteractionRules()
   const dotTriggerPolicyVersion = useSkillDotTriggerPolicyVersion()
   const legacyTriggers = dotTriggerPolicyVersion === null
@@ -64,13 +65,16 @@ function SummonAbilityDetails({ ability }: { ability: SummonAbilityDefinition })
     <>
       <p>{ability.description}</p>
       <ul aria-label="Effect explanations">
-        {skillPreviewEffects(ability, { legacyTriggers, legacyPoisonMovement, ...groundRules }).map(
-          (effect, index) => (
-            <li key={index}>
-              <strong>{effect.label}</strong> — {effect.explanation}
-            </li>
-          ),
-        )}
+        {skillPreviewEffects(ability, {
+          legacyTriggers,
+          legacyPoisonMovement,
+          ...groundRules,
+          timingPolicy,
+        }).map((effect, index) => (
+          <li key={index}>
+            <strong>{effect.label}</strong> — {effect.explanation}
+          </li>
+        ))}
       </ul>
       {ability.requirements.length ? (
         <>
@@ -83,6 +87,23 @@ function SummonAbilityDetails({ ability }: { ability: SummonAbilityDefinition })
         </>
       ) : null}
       <p>A summon can use one ability per turn.</p>
+    </>
+  )
+}
+
+/** Complete pinned report used inside the summon ability information popout. */
+export function SummonAbilityReader({
+  ability,
+  airborne = false,
+}: {
+  ability: SummonAbilityDefinition
+  airborne?: boolean
+}) {
+  return (
+    <>
+      <strong>Parameters</strong>
+      <SummonAbilityParameters ability={ability} airborne={airborne} />
+      <SummonAbilityDetails ability={ability} />
     </>
   )
 }
@@ -102,7 +123,10 @@ export function SummonAbilityList({
       dotTriggerPolicyVersion={policies.dotTriggerPolicyVersion ?? null}
       frozenGroundPolicyVersion={policies.frozenGroundPolicyVersion ?? null}
       airbornePolicyVersion={policies.airbornePolicyVersion ?? null}
+      airborneJumpPolicyVersion={policies.airborneJumpPolicyVersion ?? null}
+      elementalDamagePolicyVersion={policies.elementalDamagePolicyVersion ?? null}
       healingDownPolicyVersion={policies.healingDownPolicyVersion ?? null}
+      blindsideActivationPolicyVersion={policies.blindsideActivationPolicyVersion ?? null}
     >
       <div className={styles.list} aria-label="Summon abilities">
         {abilities.map((ability) => (
@@ -118,13 +142,9 @@ export function SummonAbilityList({
                 consumeOutsideClick
                 layer="inspect"
               >
-                <strong>Parameters</strong>
-                <SummonAbilityParameters ability={ability} airborne={airborne} />
-                <SummonAbilityDetails ability={ability} />
+                <SummonAbilityReader ability={ability} airborne={airborne} />
               </BattleInfoPopover>
             </header>
-            <p>{ability.description}</p>
-            <SummonAbilityParameters ability={ability} airborne={airborne} />
           </article>
         ))}
       </div>

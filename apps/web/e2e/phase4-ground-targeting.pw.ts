@@ -428,7 +428,9 @@ async function castOnEmptyGround(
   await overlay.click()
   const instructionHost = root.locator('[data-battle-preview-strip]')
   await expect(instructionHost).toHaveCount(1)
-  await expect(instructionHost).toContainText('Frozen Ground terrain')
+  await expect(instructionHost).toContainText('Frozen Ground terrain · 2 rounds remaining')
+  await expect(instructionHost).not.toContainText('caster’s enemies')
+  await expect(instructionHost).not.toContainText('Airborne')
   await page.reload()
   await expect(overlay).toHaveAttribute('data-terrain-overlay', 'frozen')
   expect((await read()).snapshot.terrainOverlays).toEqual(activated.snapshot.terrainOverlays)
@@ -581,11 +583,11 @@ test('PvP ground Skill uses the same forecast and spectator terrain inspection',
     await spectator.keyboard.press('Enter')
     await expect(tile).toHaveAttribute('aria-pressed', 'true')
     const terrainDetails = spectatorRoot.locator('[data-battle-preview-strip="true"]')
-    await expect(terrainDetails).toContainText(
-      'Frozen Ground terrain; 2 round boundaries remaining',
-    )
-    await expect(terrainDetails).toContainText('only for the caster’s enemies')
-    await expect(terrainDetails).not.toContainText('either team')
+    await expect(terrainDetails).toContainText('Frozen Ground · 2 rounds remaining')
+    await expect(terrainDetails).not.toContainText('caster’s enemies')
+    await expect(terrainDetails).not.toContainText('Airborne')
+    // The compact strip omits rules while the accessible tile retains them.
+    await expect(tile).toHaveAttribute('aria-label', /only for the caster’s enemies/)
     await testInfo.attach(`ground-spectator-${testInfo.project.name}`, {
       body: await spectator.screenshot(),
       contentType: 'image/png',

@@ -1,6 +1,7 @@
 'use client'
 
 import { useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { statusPotencyDescription } from '@/lib/status-potency-presentation'
 import { combatStatusDetails } from '@aurevane/game-core/combat/status-content'
 
 import type { BattleLogEntry } from '@/server/battle/battle-log-service'
@@ -51,7 +52,13 @@ function ChronicleTechnique({ action, actorName }: { action: ChronicleAction; ac
                   className={styles.effect}
                   trigger={result.text}
                 >
-                  <p>{combatStatusDetails(result.statusId).description}</p>
+                  <p>
+                    {result.statusId === 'suppress'
+                      ? result.potencyBasisPoints === undefined
+                        ? 'Recorded Suppress percentage unavailable.'
+                        : statusPotencyDescription(result.statusId, result.potencyBasisPoints)
+                      : combatStatusDetails(result.statusId).description}
+                  </p>
                   {result.duration ? <p>Recorded duration: {result.duration}.</p> : null}
                 </BattleInfoPopover>
               ) : (

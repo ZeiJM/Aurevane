@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { PGlite } from '@electric-sql/pglite'
 import { expect, it } from 'vitest'
@@ -172,6 +172,119 @@ it('allows independent Push/Pull publication while keeping history and service-o
     await expect(
       db.query(`select public.publish_combat_effect_timing_policy_v1($1,3,'{}','denied')`, [owner]),
     ).rejects.toThrow('permission denied')
+  } finally {
+    await db.close()
+  }
+}, 20000)
+
+it('adds only Suppress timing without rewriting Owner v7 history or widening publication permissions', async () => {
+  const db = await PGlite.create()
+  try {
+    await db.exec(`create role anon; create role authenticated; create role service_role; create schema app_private;
+      create function app_private.assert_game_owner_v1(actor uuid) returns void language plpgsql as $$ begin if actor is distinct from '00000000-0000-0000-0000-000000000001' then raise exception 'GAME_OWNER_REQUIRED'; end if; end $$;`)
+    await db.exec(readFileSync(path, 'utf8'))
+    await db.exec(
+      readFileSync(
+        resolve(
+          process.cwd(),
+          '../../supabase/migrations/20261008224315_combat_push_pull_timing.sql',
+        ),
+        'utf8',
+      ),
+    )
+    const owner = '00000000-0000-0000-0000-000000000001'
+    const modes = {
+      summon: 'instant',
+      'remove-status': 'instant',
+      'return-to-turn-start': 'delayed',
+      push: 'instant',
+      pull: 'next-round',
+      blindside: 'instant',
+    }
+    for (let version = 1; version < 7; version++)
+      await db.query('select public.publish_combat_effect_timing_policy_v1($1,$2,$3,$4)', [
+        owner,
+        version,
+        JSON.stringify(modes),
+        `Owner version ${version + 1}`,
+      ])
+    const before = (
+      await db.query(
+        'select * from app_private.combat_effect_timing_policy_versions order by version',
+      )
+    ).rows
+    const migrations = readdirSync(resolve(process.cwd(), '../../supabase/migrations'))
+    const suppressMigration = migrations.find((name) =>
+      name.endsWith('_combat_suppress_timing.sql'),
+    )
+    if (suppressMigration)
+      await db.exec(
+        readFileSync(
+          resolve(process.cwd(), '../../supabase/migrations', suppressMigration),
+          'utf8',
+        ),
+      )
+    expect(
+      (
+        await db.query(
+          'select * from app_private.combat_effect_timing_policy_versions order by version',
+        )
+      ).rows,
+    ).toEqual(before)
+    await db.exec('set role service_role')
+    await db.query('select public.publish_combat_effect_timing_policy_v1($1,7,$2,$3)', [
+      owner,
+      JSON.stringify({ ...modes, suppress: 'delayed' }),
+      'Suppress timing',
+    ])
+    await expect(
+      db.query('select public.publish_combat_effect_timing_policy_v1($1,8,$2,$3)', [
+        '00000000-0000-0000-0000-000000000002',
+        JSON.stringify({ suppress: 'instant' }),
+        'not Owner',
+      ]),
+    ).rejects.toThrow('GAME_OWNER_REQUIRED')
+    await expect(
+      db.query('select public.publish_combat_effect_timing_policy_v1($1,7,$2,$3)', [
+        owner,
+        JSON.stringify({ suppress: 'instant' }),
+        'stale',
+      ]),
+    ).rejects.toThrow('TIMING_POLICY_VERSION_CONFLICT')
+    for (const mode of ['later', null, ['instant']])
+      await expect(
+        db.query('select public.publish_combat_effect_timing_policy_v1($1,8,$2,$3)', [
+          owner,
+          JSON.stringify({ suppress: mode }),
+          'invalid',
+        ]),
+      ).rejects.toThrow('INVALID_TIMING_POLICY')
+    await db.exec('reset role')
+    for (const role of ['anon', 'authenticated']) {
+      await db.exec(`set role ${role}`)
+      await expect(
+        db.query('select public.publish_combat_effect_timing_policy_v1($1,8,$2,$3)', [
+          owner,
+          '{}',
+          'denied',
+        ]),
+      ).rejects.toThrow('permission denied')
+      await db.exec('reset role')
+    }
+    expect(
+      (
+        await db.query(
+          'select * from app_private.combat_effect_timing_policy_versions where version<=7 order by version',
+        )
+      ).rows,
+    ).toEqual(before)
+    expect(
+      (
+        await db.query<{ policy: unknown }>(
+          'select public.read_combat_effect_timing_policy_v1() as policy',
+        )
+      ).rows[0]!.policy,
+    ).toEqual({ version: 8, modes: { ...modes, suppress: 'delayed' } })
   } finally {
     await db.close()
   }

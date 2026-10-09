@@ -2,8 +2,11 @@ import type { CombatEffectPresentationStatus } from '@aurevane/game-core/combat/
 
 /** Viewer-only rows. This metadata is never part of the persisted combat status lifetime. */
 export type BattlePresentedStatus = CombatEffectPresentationStatus & {
+  elementalDamagePolicyVersion?: 1
   airbornePolicyVersion?: 1
+  airborneJumpPolicyVersion?: 1
   healingDownPolicyVersion?: 1
+  blindsideActivationPolicyVersion?: 1
   presentationDuration?: 'while-elevated'
 }
 

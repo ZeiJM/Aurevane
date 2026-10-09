@@ -423,8 +423,9 @@ async function attachRecordedSummonSkillContext(
     })
   }
   const contexts = new Map<string, SkillContext>()
+  const identities = new Map<string, { name: string }>()
   const activeSources = new Set(
-    view.entries.filter((entry) => entry.actionId).map((entry) => entry.actorCombatantId),
+    view.entries.flatMap((entry) => [entry.actorCombatantId, entry.targetCombatantId]),
   )
   const pending = [...sources.entries()].filter(([id]) => activeSources.has(id))
   let nextIndex = 0
@@ -444,6 +445,7 @@ async function attachRecordedSummonSkillContext(
             definition.summonProfile?.id !== source.profileId
           )
             continue
+          identities.set(id, { name: definition.summonProfile.name })
           for (const ability of definition.summonProfile.abilities)
             contexts.set(`${id}:${ability.id}`, {
               family: 'skill',
@@ -471,15 +473,31 @@ async function attachRecordedSummonSkillContext(
         ? authority.combatants.find((build) => build.combatantId === entry.targetCombatantId)
             ?.narratorIdentity
         : undefined
+      const targetSource = entry.targetCombatantId
+        ? sources.get(entry.targetCombatantId)
+        : undefined
+      const actorIdentity =
+        source && precedes(source.record, entry)
+          ? identities.get(entry.actorCombatantId!)
+          : undefined
+      const targetIdentity =
+        targetSource && precedes(targetSource.record, entry)
+          ? identities.get(entry.targetCombatantId!)
+          : undefined
+      const namedEntry = {
+        ...entry,
+        ...(actorIdentity ? { actorNarrator: { ...actorIdentity } } : {}),
+        ...(targetIdentity ? { targetNarrator: { ...targetIdentity } } : {}),
+      }
       return source && context && precedes(source.record, entry)
         ? {
-            ...entry,
+            ...namedEntry,
             actionContext: {
               ...context,
               narrator: { ...context.narrator!, ...(target ? { target: { ...target } } : {}) },
             },
           }
-        : entry
+        : namedEntry
     }),
   }
 }

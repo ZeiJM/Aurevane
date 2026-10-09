@@ -1,4 +1,7 @@
-import { createCombatEncounterState } from '@aurevane/game-core/combat/actions'
+import {
+  createCombatEncounterState,
+  synchronizeCombatInitiative,
+} from '@aurevane/game-core/combat/actions'
 import { createPendingBattle, startBattle } from '@aurevane/game-core/combat/battle-state'
 import {
   createTacticalBattleState,
@@ -8,8 +11,12 @@ import {
 import {
   createPv1fTemporaryResources,
   preparePv1fTurnEconomy,
+  finishPv1fTurn,
 } from '@aurevane/game-core/combat/pv1f-action-economy'
-import { createStatDrivenCombatEncounterState } from '@aurevane/game-core/combat/stat-driven-combat'
+import {
+  createStatDrivenCombatEncounterState,
+  validateStatDrivenCombatEncounterState,
+} from '@aurevane/game-core/combat/stat-driven-combat'
 import { beforeEach, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
@@ -20,9 +27,16 @@ vi.mock('./supabase-battle-session-repository', () => ({
 import { surrenderAiBattle } from './ai-battle-surrender-service'
 
 beforeEach(() => vi.clearAllMocks())
-it.each([0, 1, 2])(
-  'immediately concedes the entire practice team with %s AI allies',
-  async (allyCount) => {
+it.each(
+  [0, 1, 2].flatMap((allyCount) => [
+    { allyCount, policy: 'historical', initiative: 'descending', seed: 1234 },
+    ...['descending', 'ascending', 'tied', 'recruits-first'].flatMap((initiative) =>
+      [1, 9, 1234].map((seed) => ({ allyCount, policy: 'current', initiative, seed })),
+    ),
+  ]),
+)(
+  'concedes $allyCount allies under $policy policies with $initiative Initiative and seed $seed',
+  async ({ allyCount, policy, initiative, seed }) => {
     const ids = [
       'character:player',
       ...Array.from({ length: allyCount }, (_, i) => `recruit:ally-${i + 1}`),
@@ -33,11 +47,20 @@ it.each([0, 1, 2])(
         battleId: 'surrender-test',
         rulesVersion: 3,
         contentVersion: 2,
-        rngSeed: 1234,
+        rngSeed: seed,
         combatants: ids.map((id, index) => ({
           id,
           teamId: index <= allyCount ? 'players' : 'opponents',
-          initiative: 20 - index,
+          initiative:
+            initiative === 'recruits-first'
+              ? index
+                ? 21
+                : 19
+              : initiative === 'tied'
+                ? 20
+                : initiative === 'ascending'
+                  ? 20 + index
+                  : 20 - index,
           baseMovementBudget: 4,
           hp: 100,
           maxHp: 100,
@@ -65,7 +88,7 @@ it.each([0, 1, 2])(
         movementProfileId: P2_2_ORDINARY_GROUND_PROFILE.id,
       })),
     })
-    const state = preparePv1fTurnEconomy(
+    let state = preparePv1fTurnEconomy(
       createStatDrivenCombatEncounterState(
         createCombatEncounterState(tactical),
         ids.map((combatantId, index) => ({
@@ -83,6 +106,19 @@ it.each([0, 1, 2])(
         })),
       ),
     )
+    if (policy === 'current') {
+      state = synchronizeCombatInitiative({
+        ...state,
+        elementalDamagePolicyVersion: 1,
+        dynamicInitiativePolicyVersion: 1,
+      })
+      // The native browser waits for the local turn after earlier Recruit turns complete.
+      while (state.tactical.battle.currentTurn?.combatantId !== 'character:player') {
+        state = finishPv1fTurn(state, 'east').state
+      }
+    }
+    expect(validateStatDrivenCombatEncounterState(state)).toEqual([])
+    const originalBattle = state.tactical.battle
     repository.findBattleSession.mockResolvedValue({
       battleSessionId: 'session',
       battleVersion: 7,
@@ -100,6 +136,16 @@ it.each([0, 1, 2])(
     }))
     const result = await surrenderAiBattle('user', 'session', 7, 'request')
     expect(result.snapshot.tactical.battle.lifecycle).toBe('completed')
+    expect(result.snapshot.tactical.battle.currentTurn).toBeNull()
+    expect(result.snapshot.tactical.battle.round).toBeLessThanOrEqual(originalBattle.round + 1)
+    expect(result.snapshot.tactical.battle.turnNumber).toBeLessThanOrEqual(
+      originalBattle.turnNumber + 1 + allyCount,
+    )
+    expect(
+      result.snapshot.tactical.battle.combatants
+        .filter((c) => c.teamId === 'opponents')
+        .map((c) => c.mp),
+    ).toEqual(originalBattle.combatants.filter((c) => c.teamId === 'opponents').map((c) => c.mp))
     expect(
       result.snapshot.tactical.battle.combatants
         .filter((c) => c.teamId === 'players')
@@ -112,10 +158,53 @@ it.each([0, 1, 2])(
     ).toBe(true)
     expect(repository.commitBattleIntent).toHaveBeenCalledTimes(1)
     const input = repository.commitBattleIntent.mock.calls[0][0]
+    expect(input.nextSnapshot.statBridge).toEqual(state.statBridge)
+    expect(input.nextSnapshot.elementalDamagePolicyVersion).toBe(state.elementalDamagePolicyVersion)
+    expect(input.nextSnapshot.dynamicInitiativePolicyVersion).toBe(
+      state.dynamicInitiativePolicyVersion,
+    )
+    expect(input.nextSnapshot.tactical.battle.initiativeTieOrder).toEqual(
+      originalBattle.initiativeTieOrder,
+    )
+    expect(input.nextSnapshot.tactical.battle.rng).toEqual(originalBattle.rng)
+    const started = input.events.filter(
+      (event: { event: string }) => event.event === 'turn_started',
+    )
+    const ended = input.events.filter((event: { event: string }) => event.event === 'turn_ended')
+    expect(started).toHaveLength(ended.length)
+    expect(started.length).toBeLessThanOrEqual(1 + allyCount)
+    expect(new Set(started.map((event: { combatantId: string }) => event.combatantId)).size).toBe(
+      started.length,
+    )
+    expect(
+      ended.every((event: { combatantId: string }) =>
+        ids.slice(0, 1 + allyCount).includes(event.combatantId),
+      ),
+    ).toBe(true)
+    expect(input.nextSnapshot.tactical.battle.turnNumber).toBe(
+      originalBattle.turnNumber + started.length,
+    )
+    expect(input.nextSnapshot.tactical.battle.round).toBe(
+      originalBattle.round +
+        input.events.filter((event: { event: string }) => event.event === 'round_started').length,
+    )
     expect(input.expectedBattleVersion).toBe(7)
+    expect(validateStatDrivenCombatEncounterState(input.nextSnapshot)).toEqual([])
     expect(
       input.events.filter((event: { event: string }) => event.event === 'ai_combatant_surrendered'),
     ).toHaveLength(1 + allyCount)
-    expect(input.events).toContainEqual({ event: 'battle_completed', winningTeamId: 'opponents' })
+    expect(
+      input.events.filter((event: { event: string }) => event.event === 'battle_completed'),
+    ).toEqual([{ event: 'battle_completed', winningTeamId: 'opponents' }])
+    repository.findBattleSession.mockResolvedValue({
+      battleSessionId: 'session',
+      battleVersion: 8,
+      snapshot: input.nextSnapshot,
+      controlledCombatantIds: ['character:player'],
+    })
+    await expect(surrenderAiBattle('user', 'session', 8, 'repeat')).rejects.toThrow(
+      'Only an active AI battle can be surrendered.',
+    )
+    expect(repository.commitBattleIntent).toHaveBeenCalledTimes(1)
   },
 )

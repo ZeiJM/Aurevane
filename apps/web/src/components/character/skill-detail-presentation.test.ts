@@ -181,7 +181,7 @@ it('explains elemental interactions and typed status aliases without changing hi
     amount: 10,
     element: 'fire',
   })
-  expect(fire).toContain('removes Wet and Frozen')
+  expect(fire).toContain('removes Drenched and Chilled')
   expect(fire).toContain('Steam')
   const storm = skillEffectDescription({
     type: 'damage',
@@ -190,8 +190,8 @@ it('explains elemental interactions and typed status aliases without changing hi
     element: 'storm',
   })
   expect(storm).toContain('20%')
-  expect(storm).toContain('consumes Conductive')
-  expect(storm).toContain('once per recipient')
+  expect(storm).toContain('consumes the old Conductive charge')
+  expect(storm).toContain('not consumed again in the same command')
   expect(
     skillEffectDescription({
       type: 'apply-status',
@@ -319,7 +319,7 @@ it('lists authored magnitudes as effects without leaking design tags', () => {
 
 it('shows conditional elemental and terrain magnitudes without treating them as universal damage', () => {
   expect(skillEffectsSummary(resolveMatureSkillVersion('tidecaller.water-lance')!)).toContain(
-    'Wet [+20% Storm]',
+    'Drenched [+20% Storm]',
   )
   expect(skillEffectsSummary(resolveMatureSkillVersion('stormsinger.static-drain')!)).toContain(
     'Conductive [+20% Storm]',
@@ -566,4 +566,39 @@ it('distinguishes Delayed from Normal and percentage recovery in shared readers'
     compactSkillEffectSummaryParts(effect, { version: 2, modes: { healing: 'delayed' } }),
   ).toMatchObject({ magnitude: '12%', timing: 'Delayed' })
   expect(skillEffectDescription(effect)).toContain('maximum HP')
+})
+
+it('reads Suppress percentage and duration without a power-scale representation', () => {
+  const effect = {
+    type: 'apply-status' as const,
+    recipient: 'primary-unit' as const,
+    statusId: 'suppress',
+    stacks: 1,
+    potencyBasisPoints: 2534,
+    durationTurns: 2,
+  }
+  expect(skillEffectDescription(effect)).toContain('25.34%')
+  expect(skillEffectDescription(effect)).not.toContain('1–20')
+  expect(compactSkillEffectSummaryParts(effect)).toMatchObject({
+    label: 'Suppress',
+    magnitude: '25.34%',
+    duration: '2 Turns',
+  })
+})
+
+it('full Cleanse description includes Suppress while Dispel excludes it', () => {
+  expect(
+    skillEffectDescription({
+      type: 'remove-status',
+      recipient: 'primary-unit',
+      statusIds: ['slow'],
+    }),
+  ).toContain('Suppress')
+  expect(
+    skillEffectDescription({
+      type: 'remove-status',
+      recipient: 'primary-unit',
+      statusIds: ['guarded'],
+    }),
+  ).not.toContain('Suppress')
 })

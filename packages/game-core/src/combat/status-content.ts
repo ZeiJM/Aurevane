@@ -1,5 +1,6 @@
 import type { CombatStatusDefinition } from './actions'
 import { blindsideDamageDescription } from './combat-blindside'
+import { airborneDescription } from './combat-airborne'
 import type { CombatDamageModifier, DamageCondition } from './damage-modifiers'
 
 export interface NamedCombatStatus extends CombatStatusDefinition {
@@ -66,6 +67,18 @@ export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
     amplifyCopyable: true,
     reactionClass: 'ordinary',
   }),
+  status(
+    'suppress',
+    'Suppress',
+    'Debuff',
+    'Deal 25% less outgoing direct damage. Never stacks; retains the highest percentage and longest remaining duration. Captured Burn, Poison and Bleed ticks are unchanged.',
+    {
+      durationOwnerTurnStarts: 3,
+      gameplayTags: ['Suppress'],
+      curseCopyable: true,
+      reactionClass: 'ordinary',
+    },
+  ),
   status('hexed', 'Healing Down', 'Debuff', 'Receive 25% less HP and MP recovery.', {
     gameplayTags: ['Hexed'],
     curseCopyable: true,
@@ -79,13 +92,7 @@ export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
     { gameplayTags: ['Invisible'], amplifyCopyable: true, reactionClass: 'ordinary' },
   ),
 
-  status(
-    'airborne',
-    'Airborne',
-    'Buff',
-    'Ground-targeted Skills always miss you (100% evasion), including area activations. Your Attack Skills have Target Elevation 3 while Airborne is active. Ignore the Frozen Ground AP surcharge; board bounds, movement elevation, obstacles, occupancy, Rooted, Slow and Movement allowance still apply.',
-    { gameplayTags: ['Airborne'] },
-  ),
+  status('airborne', 'Airborne', 'Buff', airborneDescription(), { gameplayTags: ['Airborne'] }),
   status(
     'displaced',
     'Displaced',
@@ -319,6 +326,7 @@ export function combatStatusDetails(
   id: string,
 ): Pick<NamedCombatStatus, 'name' | 'kind' | 'description'> {
   const named = PHASE4_STATUSES.find((status) => status.id === id)
+  if (id === 'wet' && named) return { ...named, name: 'Drenched' }
   if (named && persistentEffectDescriptions[id])
     return { ...named, description: persistentEffectDescriptions[id] }
   return (

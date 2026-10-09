@@ -534,7 +534,8 @@ async function expectInlineSkillForecast(page: Page, actionId: string, area: boo
     for (const effect of effects)
       if (effect.effectType === 'apply-status' && typeof effect.after === 'string')
         await expect(result).toContainText(
-          scheduledEffectPreviewLabel(effect) ?? gameplayStatusName(effect.after),
+          scheduledEffectPreviewLabel(effect) ??
+            gameplayStatusName(effect.statusId ?? effect.after.split(':')[0]!),
         )
     await expect
       .poll(() =>

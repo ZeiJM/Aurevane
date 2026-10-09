@@ -23,7 +23,10 @@ import {
   readSummonInspectMetadata,
   type BattleSummonInspectMetadata,
 } from './battle-summon-inspect'
-import { terrainAdjustedBattleProfile } from '../../lib/battle/battle-elevation-stats'
+import {
+  visibleBattleInitiative,
+  terrainAdjustedBattleProfile,
+} from '../../lib/battle/battle-elevation-stats'
 import styles from './mobile-battle-combatant-popup.module.css'
 
 const DESKTOP_POINTER_QUERY = '(any-hover: hover) and (any-pointer: fine)'
@@ -130,7 +133,10 @@ function readSelectedCombatant(
   const summon = readSummonInspectMetadata(battle.snapshot, combatant.id)
 
   return {
-    combatant,
+    combatant: {
+      ...combatant,
+      initiative: visibleBattleInitiative(battle.snapshot, combatant, statuses),
+    },
     placement,
     profile: terrainAdjustedBattleProfile(battle.snapshot, combatant.id, profile, statuses),
     statuses,

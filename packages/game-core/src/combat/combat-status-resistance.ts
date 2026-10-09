@@ -27,12 +27,19 @@ export function isStatusResistanceEligibleEffect(
   action: CombatActionDefinition,
   ordinal: number,
   content: CombatContentCatalog,
+  elemental = false,
 ): boolean {
   const origin = action.effectOrigins?.[ordinal]
   if (origin && origin.family !== 'skill') return false
   if (!origin && action.sourceType !== 'discipline-skill') return false
   const effect = action.effects[ordinal]
   if (!effect) return false
+  if (
+    elemental &&
+    effect.type === 'damage' &&
+    ['ice', 'water', 'storm'].includes(effect.element ?? '')
+  )
+    return true
   if (effect.type === 'poison' || effect.type === 'burn' || effect.type === 'bleed') return true
   if (effect.type === 'copy-statuses') return effect.mode === 'curse'
   if (effect.type !== 'apply-status') return false
@@ -57,7 +64,12 @@ export function forecastCombatStatusResistance(
   const byTarget = new Map<string, number[]>()
   for (const [ordinal, effect] of action.effects.entries()) {
     if (
-      !isStatusResistanceEligibleEffect(action, ordinal, content) ||
+      !isStatusResistanceEligibleEffect(
+        action,
+        ordinal,
+        content,
+        state.elementalDamagePolicyVersion === 1,
+      ) ||
       effect.recipient === 'affected-tiles'
     )
       continue

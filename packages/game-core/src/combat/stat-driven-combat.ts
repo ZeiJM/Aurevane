@@ -1,3 +1,4 @@
+import { outgoingSuppressionBasisPoints, scaleSuppressedDirectDamage } from './combat-suppress'
 import { terrainAdjustedDefense, terrainEvasionBonusBasisPoints } from './combat-stat-balance'
 import { combatAccuracyStatusModifier } from './combat-accuracy-status'
 import { duelBalancedDirectDamage, facingHitChanceModifierBasisPoints } from './combat-duel-balance'
@@ -532,7 +533,11 @@ export function forecastStatDrivenAttack(
     mitigatedBaseDamage:
       firstDamageAmount(mitigatedAction) === null
         ? null
-        : duelBalancedDirectDamage(state, firstDamageAmount(mitigatedAction)!),
+        : scaleSuppressedDirectDamage(
+            duelBalancedDirectDamage(state, firstDamageAmount(mitigatedAction)!),
+            10000,
+            outgoingSuppressionBasisPoints(state, baseline.actorId),
+          ),
   }
 }
 

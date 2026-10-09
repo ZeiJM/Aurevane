@@ -1058,11 +1058,39 @@ const PRE_BLINDSIDE_REGISTRY = [
   ),
 ]
 
-const CURRENT_DISCIPLINE_SKILL_REGISTRY = [
+const PRE_ELEMENTAL_DISCIPLINE_SKILL_REGISTRY = [
   ...PRE_BLINDSIDE_REGISTRY,
   ...latestEnabledMatureSkills(PRE_BLINDSIDE_REGISTRY).flatMap((definition) => {
     const next = createBlindsideSkillVersion(definition)
     return next ? [next] : []
+  }),
+]
+
+const CURRENT_DISCIPLINE_SKILL_REGISTRY = [
+  ...PRE_ELEMENTAL_DISCIPLINE_SKILL_REGISTRY,
+  ...latestEnabledMatureSkills(PRE_ELEMENTAL_DISCIPLINE_SKILL_REGISTRY).flatMap((definition) => {
+    const element =
+      definition.sourceDisciplineId === 'frostweaver'
+        ? ('ice' as const)
+        : definition.sourceDisciplineId === 'tidecaller'
+          ? ('water' as const)
+          : definition.sourceDisciplineId === 'stormsinger'
+            ? ('storm' as const)
+            : null
+    if (!element || !definition.effects.some((effect) => effect.type === 'damage')) return []
+    return [
+      {
+        ...definition,
+        contentVersion: definition.contentVersion + 1,
+        effects: definition.effects.map((effect) =>
+          effect.type === 'damage' ? { ...effect, element } : effect,
+        ),
+        authoring: {
+          ...definition.authoring,
+          validationTags: [...definition.authoring.validationTags, 'elemental-damage'],
+        },
+      },
+    ]
   }),
 ]
 
@@ -1266,7 +1294,8 @@ export function validateMatureSkillDefinition(
       effect.potencyBasisPoints !== undefined &&
       (!Number.isSafeInteger(effect.potencyBasisPoints) ||
         effect.potencyBasisPoints < 100 ||
-        effect.potencyBasisPoints > 5_000)
+        effect.potencyBasisPoints >
+          (effect.type === 'apply-status' && effect.statusId === 'suppress' ? 10_000 : 5_000))
     ) {
       issues.push(`effects[${index}].potencyBasisPoints`)
     }

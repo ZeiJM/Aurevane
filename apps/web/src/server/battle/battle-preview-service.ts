@@ -70,6 +70,7 @@ export interface BattleActionPreview {
   projectedEvents?: readonly CombatResolutionEvent[]
   projectedStatuses: readonly {
     statusId: string
+    potencyBasisPoints?: number
     durationOwnerTurnStarts: number | null
     damageTakenMultiplierBasisPoints: number | null
   }[]
@@ -260,19 +261,43 @@ async function previewIntent(
       action.sourceType === 'basic-attack'
         ? forecastStatDrivenAttack(prepared, action, intent.target, PV1F_COMBAT_CONTENT)
         : null
-    const projectedStatuses = action.effects.flatMap((effect) => {
-      if (effect.type !== 'apply-status') return []
-      const status = PV1F_COMBAT_CONTENT.statuses.find(
-        (candidate) => candidate.id === effect.statusId,
+    const projectedStatuses: BattleActionPreview['projectedStatuses'][number][] =
+      action.effects.flatMap((effect) => {
+        if (effect.type !== 'apply-status') return []
+        if (effect.statusId === 'suppress') return []
+        const status = PV1F_COMBAT_CONTENT.statuses.find(
+          (candidate) => candidate.id === effect.statusId,
+        )
+        return [
+          {
+            statusId: effect.statusId,
+            durationOwnerTurnStarts: status?.durationOwnerTurnStarts ?? null,
+            damageTakenMultiplierBasisPoints: status?.damageTakenMultiplierBasisPoints ?? null,
+          },
+        ]
+      })
+    const suppressProjections = new Map(
+      evaluation.projectedEffects
+        .filter((effect) => effect.statusId === 'suppress')
+        .map((effect) => [effect.combatantId, effect]),
+    )
+    for (const projection of suppressProjections.values()) {
+      const receipt = evaluation.projectedEvents.find(
+        (event): event is Extract<CombatResolutionEvent, { event: 'status_applied' }> =>
+          event.event === 'status_applied' &&
+          event.statusId === 'suppress' &&
+          event.targetCombatantId === projection.combatantId,
       )
-      return [
-        {
-          statusId: effect.statusId,
-          durationOwnerTurnStarts: status?.durationOwnerTurnStarts ?? null,
-          damageTakenMultiplierBasisPoints: status?.damageTakenMultiplierBasisPoints ?? null,
-        },
-      ]
-    })
+      projectedStatuses.push({
+        statusId: 'suppress',
+        potencyBasisPoints: projection.potencyBasisPoints ?? 2500,
+        durationOwnerTurnStarts:
+          projection.remainingRoundBoundaries ??
+          projection.remainingOwnerTurnEnds ??
+          Math.max(1, (receipt?.remainingOwnerTurnStarts ?? 3) - 1),
+        damageTakenMultiplierBasisPoints: null,
+      })
+    }
     return {
       kind: 'action',
       legal: evaluation.legal && affordable && !resourceIssue,

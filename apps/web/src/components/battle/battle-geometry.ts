@@ -1,4 +1,7 @@
 import { pv1fMovementModifiers } from '@aurevane/game-core/combat/pv1f-action-economy'
+import { PV1F_COMBAT_CONTENT } from '@aurevane/game-core/combat/pv1f-action-economy'
+import { airborneMovementTactical } from '@aurevane/game-core/combat/combat-airborne'
+import { canEnterElevation } from '@aurevane/game-core/combat/board'
 import {
   PV1F_MOVEMENT_COST_PER_TERRAIN_POINT,
   movementApCostForTile,
@@ -94,7 +97,7 @@ export function buildReachablePaths(
   actionEconomy: number,
   maximumSteps = Infinity,
 ): Map<string, BattleGridPosition[]> {
-  const tactical = state.tactical
+  const tactical = airborneMovementTactical(state, PV1F_COMBAT_CONTENT)
   const turn = tactical.battle.currentTurn
   if (!turn || !activePlacement || turn.combatantId !== activePlacement.combatantId) {
     return new Map()
@@ -165,7 +168,15 @@ export function buildReachablePaths(
       if (!neighborTile || !currentTile) continue
       const occupant = occupied.get(neighborKey)
       if (occupant && occupant !== activePlacement.combatantId) continue
-      if (Math.abs(neighborTile.elevation - currentTile.elevation) > profile.maxElevationStep) {
+      if (
+        !canEnterElevation(
+          currentTile.elevation,
+          neighborTile.elevation,
+          profile.maxElevationStep,
+          state.statBalancePolicyVersion,
+          state.airborneJumpPolicyVersion,
+        )
+      ) {
         continue
       }
 

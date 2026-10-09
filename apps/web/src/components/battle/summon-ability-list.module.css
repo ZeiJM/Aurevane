@@ -16,34 +16,3 @@
   justify-content: space-between;
   gap: 8px;
 }
-.card > p {
-  margin: 5px 0;
-  font-size: 12px;
-  line-height: 1.4;
-}
-.card > dl {
-  display: grid;
-  gap: 0;
-  margin: 6px 0 0;
-  font-size: 12px;
-  line-height: 1.35;
-}
-.card > dl > div {
-  display: grid;
-  grid-template-columns: 104px minmax(0, 1fr);
-  align-items: baseline;
-  gap: 6px;
-  padding: 3px 0;
-  border-bottom: 1px solid #b59b6626;
-}
-.card dt {
-  font-weight: 600;
-  color: #c7b58d;
-}
-.card dd {
-  margin: 0;
-  overflow-wrap: anywhere;
-}
-.card :global([data-compact-skill-effect]) {
-  display: block;
-}

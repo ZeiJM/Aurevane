@@ -119,3 +119,19 @@ describe('P4.K4 Copy Buffs/Copy Debuffs Recruit AI projected utility', () => {
     expect(utility()?.(evaluation([copyProjection('enemy')]), state(), ordinary)).toBe(0)
   })
 })
+
+it('scores the actual Suppress percentage reduction through canonical effect projections', () => {
+  const debuff = (potencyBasisPoints: number): CombatEffectProjection => ({
+    effectType: 'apply-status',
+    statusId: 'suppress',
+    potencyBasisPoints,
+    combatantId: 'enemy',
+    before: 'none',
+    after: `suppress:1:${potencyBasisPoints}:2`,
+  })
+  expect(utility()?.(evaluation([debuff(2500)]), state(), [])).toBe(2)
+  expect(utility()?.(evaluation([debuff(10000)]), state(), [])).toBe(8)
+  expect(
+    utility()?.(evaluation([{ ...debuff(10000), before: 'suppress:1:10000:2' }]), state(), []),
+  ).toBe(0)
+})

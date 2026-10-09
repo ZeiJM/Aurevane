@@ -19,6 +19,13 @@ export function terrainOverlayDescription(
   return `${details.name} terrain; ${rounds} round ${rounds === 1 ? 'boundary' : 'boundaries'} remaining; ${overlay.kind === 'frozen' ? frozenGroundDescription(overlay.frozenGroundPolicyVersion ?? null) : details.description}`
 }
 
+/** Compact inspect rows keep lifecycle; full rules remain in tile accessibility/help. */
+export function terrainOverlaySummary(overlay: CombatTerrainOverlay | null | undefined): string {
+  if (!overlay) return ''
+  const rounds = overlay.remainingRoundBoundaries
+  return `${COMBAT_TERRAIN_OVERLAY_DETAILS[overlay.kind].name} · ${rounds} ${rounds === 1 ? 'round' : 'rounds'} remaining`
+}
+
 function tile(value: unknown): string | null {
   if (!value || typeof value !== 'object') return null
   const { x, y } = value as { x?: unknown; y?: unknown }
@@ -47,7 +54,7 @@ export function combatTerrainProjectionDescription(
   const position = tile(projection.position)
   if (!position || (projection.after !== 'frozen' && projection.after !== 'steam')) return null
   const rounds = projection.remainingRoundBoundaries
-  if (rounds !== 1 && rounds !== 2) return null
+  if (!Number.isSafeInteger(rounds) || (rounds as number) < 1 || (rounds as number) > 4) return null
   const details = COMBAT_TERRAIN_OVERLAY_DETAILS[projection.after]
   const before = projection.before ? COMBAT_TERRAIN_OVERLAY_DETAILS[projection.before].name : null
   const timing =
@@ -55,17 +62,11 @@ export function combatTerrainProjectionDescription(
   return `${timing}${before ? `${before} → ` : ''}${details.name} at tile ${position} · ${rounds} round ${rounds === 1 ? 'boundary' : 'boundaries'}. ${projection.after === 'frozen' ? frozenGroundDescription(projection.frozenGroundPolicyVersion ?? null) : details.description}`
 }
 
-/** Count actual projected/recorded tiles; distinct transitions and timing remain separate. */
+/** Group actual projected/recorded changes; distinct transitions and timing remain separate. */
 export function combatTerrainSummaries(
   projections: readonly CombatTerrainProjection[],
 ): readonly string[] {
-  const groups = new Map<
-    string,
-    {
-      projection: CombatTerrainProjection
-      positions: Set<string>
-    }
-  >()
+  const groups = new Map<string, CombatTerrainProjection>()
   for (const projection of projections) {
     if (!combatTerrainProjectionDescription(projection)) continue
     const key = JSON.stringify([
@@ -75,25 +76,22 @@ export function combatTerrainSummaries(
       projection.activationRound ?? null,
       projection.frozenGroundPolicyVersion ?? null,
     ])
-    const group = groups.get(key) ?? { projection, positions: new Set<string>() }
-    group.positions.add(`${projection.position.x},${projection.position.y}`)
-    groups.set(key, group)
+    if (!groups.has(key)) groups.set(key, projection)
   }
-  return [...groups.values()].map(({ projection, positions }) => {
+  return [...groups.values()].map((projection) => {
     const after = projection.after as 'frozen' | 'steam'
     const details = COMBAT_TERRAIN_OVERLAY_DETAILS[after]
     const before = projection.before ? COMBAT_TERRAIN_OVERLAY_DETAILS[projection.before].name : null
     const rounds = projection.remainingRoundBoundaries
     return [
       `${before ? `${before} → ` : ''}${details.name}`,
-      `${positions.size} ${positions.size === 1 ? 'tile' : 'tiles'}`,
       projection.activationRound !== undefined
         ? `Starts round ${projection.activationRound}`
         : null,
       `${rounds} ${rounds === 1 ? 'round' : 'rounds'}`,
       after === 'frozen'
-        ? `+${COMBAT_TERRAIN_OVERLAY_DETAILS.frozen.additionalApPerTile} AP/tile; ${projection.frozenGroundPolicyVersion === 1 ? 'caster’s enemies only' : 'both teams'}; Airborne exempt`
-        : 'Blocks line of sight; both teams',
+        ? `+${COMBAT_TERRAIN_OVERLAY_DETAILS.frozen.additionalApPerTile} AP/tile`
+        : 'Blocks line of sight',
     ]
       .filter(Boolean)
       .join(' · ')
@@ -110,12 +108,13 @@ export function combatInteractionDescription(event: object): string | null {
     (data.after === 'frozen' || data.after === 'steam')
   ) {
     const rounds = data.remainingRoundBoundaries
-    if (rounds !== 1 && rounds !== 2) return null
+    if (!Number.isSafeInteger(rounds) || (rounds as number) < 1 || (rounds as number) > 4)
+      return null
     return combatTerrainProjectionDescription({
       position: data.position as CombatTerrainProjection['position'],
       before: data.before === 'frozen' || data.before === 'steam' ? data.before : null,
       after: data.after,
-      remainingRoundBoundaries: rounds,
+      remainingRoundBoundaries: rounds as number,
       ...(data.frozenGroundPolicyVersion === 1 ? { frozenGroundPolicyVersion: 1 as const } : {}),
     })
   }

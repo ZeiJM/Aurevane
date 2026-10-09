@@ -57,7 +57,10 @@ export function projectBattleStatusStateForViewer(
     | 'pendingEffects'
     | 'pendingSummons'
     | 'airbornePolicyVersion'
+    | 'airborneJumpPolicyVersion'
     | 'healingDownPolicyVersion'
+    | 'elementalDamagePolicyVersion'
+    | 'blindsideActivationPolicyVersion'
     | 'dotTriggerPolicyVersion'
     | 'skillPacketPolicyVersion'
   >,
@@ -69,8 +72,18 @@ export function projectBattleStatusStateForViewer(
 
   const presentInteractionPolicy = (status: BattlePresentedStatus): BattlePresentedStatus => ({
     ...status,
+    ...(status.statusId === 'blindside' && state.blindsideActivationPolicyVersion === 1
+      ? { blindsideActivationPolicyVersion: 1 as const }
+      : {}),
     ...(status.statusId === 'airborne' && state.airbornePolicyVersion === 1
       ? { airbornePolicyVersion: 1 as const }
+      : {}),
+    ...(status.statusId === 'airborne' && state.airborneJumpPolicyVersion === 1
+      ? { airborneJumpPolicyVersion: 1 as const }
+      : {}),
+    ...(['wet', 'frozen', 'conductive'].includes(status.statusId) &&
+    state.elementalDamagePolicyVersion === 1
+      ? { elementalDamagePolicyVersion: 1 as const }
       : {}),
     ...(status.statusId === 'hexed' && state.healingDownPolicyVersion === 1
       ? { healingDownPolicyVersion: 1 as const }

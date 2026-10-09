@@ -60,6 +60,7 @@ export function BattleSkillParameters({ skill }: { skill: BattleSkillForecastPre
             legacyTriggers,
             legacyPoisonMovement,
             ...groundRules,
+            timingPolicy,
           }).map((effect, index) => (
             <li key={index}>
               <strong>{effect.label}</strong> — {effect.explanation}

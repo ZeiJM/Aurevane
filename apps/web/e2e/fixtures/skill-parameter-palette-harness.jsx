@@ -10,6 +10,8 @@ import { ResonanceParameters } from '@/components/character/resonance-parameters
 import { CharacterArsenalShell } from '@/components/character/character-arsenal-shell'
 import { BattleSkillParameters } from '@/components/battle/battle-skill-parameters'
 import { BattleInfoPopover } from '@/components/battle/battle-info-popover'
+import { SummonAbilityList } from '@/components/battle/summon-ability-list'
+import { SkillEffectTimingProvider } from '@/components/character/skill-effect-timing-context'
 import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
 import { resolveResonanceForPair } from '@aurevane/game-core/combat/resonance'
 import { resolveEssenceForBuild } from '@aurevane/game-core/combat/essence'
@@ -174,6 +176,81 @@ function Nexus() {
     />
   )
 }
+function ElementalReaders() {
+  const definition = {
+    ...resolveMatureSkillVersion('tidecaller.water-lance'),
+    name: 'Overlap Water',
+    effects: [
+      {
+        type: 'damage',
+        recipient: 'affected-units',
+        amount: 10,
+        element: 'water',
+        durationTurns: 0,
+      },
+      {
+        type: 'apply-status',
+        recipient: 'primary-unit',
+        statusId: 'wet',
+        stacks: 1,
+        durationTurns: 3,
+        potencyBasisPoints: 3500,
+      },
+    ],
+    effectDescriptions: ['Pinned Water explanation.'],
+  }
+  const ability = {
+    ...resolveMatureSkillVersion('wildwarden.renewing-herbs').summonProfile.abilities[0],
+    name: 'Captured Water',
+    effects: [
+      {
+        type: 'damage',
+        recipient: 'primary-unit',
+        amount: 10,
+        element: 'water',
+        durationTurns: 3,
+        potencyBasisPoints: 3500,
+      },
+      {
+        type: 'apply-status',
+        recipient: 'primary-unit',
+        statusId: 'wet',
+        stacks: 1,
+        durationTurns: 3,
+        potencyBasisPoints: 3500,
+      },
+    ],
+  }
+  const mode = query.get('wet') || 'instant'
+  const historical = query.get('historical') === 'true'
+  const policies = {
+    effectTimingPolicy: { version: 7, modes: { wet: mode } },
+    ...(historical ? {} : { elementalDamagePolicyVersion: 1 }),
+  }
+  return (
+    <main style={{ padding: 16, maxWidth: 780 }}>
+      <section aria-label="Battle overlap reader" style={sectionStyle}>
+        <SkillEffectTimingProvider
+          policy={policies.effectTimingPolicy}
+          elementalDamagePolicyVersion={historical ? null : 1}
+        >
+          <BattleInfoPopover label="About Overlap Water" title="Overlap Water" trigger="!">
+            <BattleSkillParameters skill={battleSkill(definition)} />
+          </BattleInfoPopover>
+        </SkillEffectTimingProvider>
+      </section>
+      <section aria-label="Captured summon abilities" style={sectionStyle}>
+        <SummonAbilityList abilities={[ability]} policies={policies} />
+      </section>
+    </main>
+  )
+}
 createRoot(document.getElementById('root')).render(
-  query.get('surface') === 'nexus' ? <Nexus /> : <Reports />,
+  query.get('surface') === 'nexus' ? (
+    <Nexus />
+  ) : query.get('surface') === 'elemental-readers' ? (
+    <ElementalReaders />
+  ) : (
+    <Reports />
+  ),
 )

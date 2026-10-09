@@ -1,4 +1,7 @@
+import { outgoingSuppressionBasisPoints } from './combat-suppress'
+import { hasGameplayTag } from './gameplay-tags'
 import type { BattleFacing } from './battle-state'
+import { airborneMovementTactical } from './combat-airborne'
 import {
   PV1F_COMBAT_CONTENT,
   PV1F_GUARD_ACTION_ID,
@@ -297,7 +300,11 @@ function buildCandidates(
     enemies.map((enemy) => enemy.id),
   )
   if (nearestEnemy) {
-    const preferredFacing = facingToward(actorPlacement.position, nearestEnemy.position)
+    const preferredFacing =
+      state.elementalDamagePolicyVersion === 1 &&
+      hasGameplayTag(state, actorPlacement.combatantId, 'Frozen', PV1F_COMBAT_CONTENT)
+        ? actorPlacement.facing
+        : facingToward(actorPlacement.position, nearestEnemy.position)
     pushCandidate(candidates, profile, {
       intent: { kind: 'face', facing: preferredFacing },
       reason: 'face-threat',
@@ -345,6 +352,8 @@ function createAttackCandidate(
     (combatant) => combatant.id === targetCombatantId,
   )
   const damage = forecast.mitigatedBaseDamage ?? 0
+  if (damage === 0 && outgoingSuppressionBasisPoints(state, forecast.evaluation.actorId!) > 0)
+    return null
   const lethalBonus = targetCombatant && damage >= targetCombatant.hp ? 16 : 0
   const hitChanceBonus = Math.round((forecast.hitChanceBasisPoints ?? 0) / 1_000)
 
@@ -427,7 +436,7 @@ function enemyApproachDistances(
       const key = positionKey(from)
       if (!tiles.has(key) || occupied.has(key) || distances.has(key)) continue
       const planningBoard = {
-        ...state.tactical,
+        ...airborneMovementTactical(state, PV1F_COMBAT_CONTENT),
         placements: state.tactical.placements.map((placement) =>
           placement.combatantId === actorId ? { ...placement, position: from } : placement,
         ),
@@ -438,6 +447,7 @@ function enemyApproachDistances(
           [from, destination],
           'entered-tiles',
           state.statBalancePolicyVersion,
+          state.airborneJumpPolicyVersion,
         ).legal
       )
         continue

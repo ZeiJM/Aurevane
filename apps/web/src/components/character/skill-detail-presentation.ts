@@ -7,6 +7,7 @@ import { skillInformationRows } from './skill-information-contract'
 import { previewEffect, skillDamageElementInteraction } from './skill-effect-preview'
 import {
   combatActionPresentationTags,
+  combatEffectPresentationTags,
   combatTargetIncludesActor,
 } from '@aurevane/game-core/combat/gameplay-tags'
 import { gameplayStatusName } from '../../lib/battle/combat-interaction-presentation'
@@ -32,7 +33,11 @@ function title(value: string): string {
 }
 
 function requirementTagName(tag: string): string {
-  return tag === 'Frozen' ? gameplayStatusName('frozen') : title(tag)
+  return tag === 'Frozen'
+    ? gameplayStatusName('frozen')
+    : tag === 'Wet'
+      ? gameplayStatusName('wet')
+      : title(tag)
 }
 
 function recipient(effect: MatureSkillEffectDefinition): string {
@@ -49,7 +54,10 @@ export function skillEffectDescription(
     legacyPoisonMovement?: boolean
     legacyFrozenGround?: boolean
     legacyAirborne?: boolean
+    legacyAirborneJump?: boolean
     legacyHealingDown?: boolean
+    legacyElemental?: boolean
+    timingPolicy?: SkillEffectTimingPolicy
   } = {},
 ): string {
   const target = recipient(effect)
@@ -63,7 +71,11 @@ export function skillEffectDescription(
       const position = facing
         ? ` Facing: front ${facing.front / 100}%, side ${facing.side / 100}%, rear ${facing.rear / 100}%.`
         : ''
-      const element = skillDamageElementInteraction(effect)
+      const element = skillDamageElementInteraction(
+        effect,
+        options.legacyElemental,
+        options.timingPolicy,
+      )
       return `Deal ${effect.amount} base damage to ${target}.${position}${element}`
     }
     case 'create-terrain':
@@ -96,10 +108,15 @@ export function skillEffectDescription(
     case 'sensory':
       return `Attempt Reveal on ${target}. On a successful hit against Covert, remove eligible positive statuses and Covert, then apply Revealed for ${effect.revealedDurationOwnerTurnStarts} owner-turn starts. Otherwise Reveal has no effect.`
     case 'remove-status': {
-      const statusNames = [...new Set(effect.statusIds.map((id) => combatStatusDetails(id).name))]
+      const statusIds = combatEffectPresentationTags(effect).includes('Cleanse')
+        ? [...effect.statusIds, 'suppress']
+        : effect.statusIds
+      const statusNames = [...new Set(statusIds.map((id) => combatStatusDetails(id).name))]
       return `Remove ${statusNames.join(', ')} from ${target}.`
     }
     case 'apply-status': {
+      if (effect.statusId === 'suppress')
+        return `Apply Suppress to ${target}. ${previewEffect(effect, options).explanation} Lasts ${effect.durationTurns ?? 2} turns.`
       const status = combatStatusDetails(effect.statusId)
       const preview = previewEffect(effect, options)
       const duration =
@@ -186,7 +203,11 @@ export function skillParameterRows(
     cooldownOwnerTurns?: number | null
   } = skill,
   timingPolicy: SkillEffectTimingPolicy = defaultCombatEffectTimingPolicy(),
-  options: { legacyFrozenGround?: boolean; airborneAttackElevation?: boolean } = {},
+  options: {
+    legacyFrozenGround?: boolean
+    airborneAttackElevation?: boolean
+    legacyElemental?: boolean
+  } = {},
 ): readonly (readonly [string, string])[] {
   return skillInformationRows({
     'Skill Type': skillParameterTypeDescription(skill),
@@ -195,7 +216,14 @@ export function skillParameterRows(
     Requirements: skillRequirementsSummary(skill),
     Effects: skillEffectsSummary(skill, timingPolicy),
     Range: skillCompactRangeDescription(skill),
-    Target: skillTargetRecipientDescription(skill, options.legacyFrozenGround),
+    Target:
+      skillTargetRecipientDescription(skill, options.legacyFrozenGround) +
+      (!options.legacyElemental &&
+      skill.target.kind === 'unit' &&
+      skill.target.teamPolicy === 'enemy' &&
+      skill.effects.some((effect) => effect.type === 'damage' && effect.element === 'fire')
+        ? ' / Ground'
+        : ''),
     'Target Method': skillTargetMethodDescription(skill),
     'Target Elevation':
       options.airborneAttackElevation && skill.tags.includes('attack')
@@ -235,7 +263,13 @@ function compactDuration(effect: MatureSkillEffectDefinition): string | null {
       : percentage && effect.type === 'bleed'
         ? effect.ticks
         : (effect.durationTurns ??
-          (effect.type === 'apply-status' && effect.statusId === 'blindside' ? 1 : 0))
+          (effect.type === 'apply-status'
+            ? effect.statusId === 'blindside'
+              ? 1
+              : effect.statusId === 'suppress'
+                ? 2
+                : 0
+            : 0))
   if (turns <= 0) return null
   return `${turns} ${percentage ? (turns === 1 ? 'turn' : 'turns') : turns === 1 ? 'Turn' : 'Turns'}`
 }

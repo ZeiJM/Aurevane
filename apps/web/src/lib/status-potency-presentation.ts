@@ -16,8 +16,18 @@ export function statusDamageMultiplierBasisPoints(
 export function statusPotencyDescription(
   statusId: string,
   potencyBasisPoints?: number,
-  options: { legacyHealingDown?: boolean } = {},
+  options: { legacyHealingDown?: boolean; legacyElemental?: boolean } = {},
 ): string {
+  if (options.legacyElemental === false) {
+    if (statusId === 'wet')
+      return `Drenched reduces effective Initiative by 10% once while active and adds ${(potencyBasisPoints ?? 2000) / 100}% Storm damage. Fire removes Drenched.`
+    if (statusId === 'conductive')
+      return `Adds ${(potencyBasisPoints ?? 2000) / 100}% Storm damage; positive Storm HP damage consumes the old charge. A Storm Skill can apply a fresh charge after settlement.`
+    if (statusId === 'frozen')
+      return 'Chilled prevents changing final facing at turn end. End the turn in the current direction; movement keeps its usual automatic facing. A legal Fire cast cleanses the caster; positive Fire damage cleanses its recipient.'
+  }
+  if (statusId === 'suppress')
+    return `Deal ${(potencyBasisPoints ?? 2500) / 100}% less outgoing direct damage. Never stacks; retains the highest percentage and longest remaining duration. Captured Burn, Poison and Bleed ticks are unchanged; new DoTs capture actual settled HP loss. Cleanse removes it; Dispel does not.`
   if (statusId === 'hexed') {
     const percent = (potencyBasisPoints ?? 2500) / 100
     return options.legacyHealingDown

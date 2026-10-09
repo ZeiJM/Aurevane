@@ -6,6 +6,7 @@ import { combatStatusDetails, PHASE4_STATUSES } from '@aurevane/game-core/combat
 import { statusLabel } from './battle-effect-summary'
 import { statusPotencyDescription } from '../../lib/status-potency-presentation'
 import { blindsideStatusDescription } from '@aurevane/game-core/combat/combat-blindside'
+import { airborneDescription } from '@aurevane/game-core/combat/combat-airborne'
 import {
   terrainBattleEffectPresentation,
   type BattlePresentedStatus,
@@ -21,6 +22,7 @@ const identifiers: Readonly<Record<string, string>> = {
   conductive: 'CON',
   inspired: 'INS',
   hexed: 'HEX',
+  suppress: 'SUP',
   invisible: 'GHO',
   airborne: 'AIR',
   displaced: 'DIS',
@@ -92,15 +94,33 @@ export function describeBattleEffect(effect: BattlePresentedStatus) {
     : ''
   const identity = {
     ...battleEffectIdentity(effect.statusId),
+    ...(effect.statusId === 'suppress'
+      ? { label: `Suppress [${(effect.potencyBasisPoints ?? 2500) / 100}%]` }
+      : {}),
     description:
       (percentageDescription ??
         (effect.statusId === 'blindside'
-          ? blindsideStatusDescription(effect)
-          : effect.statusId === 'airborne' && effect.airbornePolicyVersion !== 1
-            ? 'Ignore the Frozen Ground AP surcharge. Board bounds, elevation, obstacles, occupancy, Rooted and Movement allowance still apply.'
-            : statusPotencyDescription(effect.statusId, effect.potencyBasisPoints, {
-                legacyHealingDown: effect.healingDownPolicyVersion !== 1,
-              }))) + capturedDescription,
+          ? blindsideStatusDescription(effect, effect.blindsideActivationPolicyVersion !== 1)
+          : effect.statusId === 'airborne'
+            ? airborneDescription(
+                effect.airbornePolicyVersion !== 1,
+                effect.airborneJumpPolicyVersion !== 1,
+              )
+            : statusPotencyDescription(
+                effect.statusId,
+                ['wet', 'conductive'].includes(effect.statusId) &&
+                  effect.applicationModifiers?.length
+                  ? Math.max(
+                      ...effect.applicationModifiers.map(
+                        (application) => application.potencyBasisPoints ?? 2000,
+                      ),
+                    )
+                  : effect.potencyBasisPoints,
+                {
+                  legacyHealingDown: effect.healingDownPolicyVersion !== 1,
+                  legacyElemental: effect.elementalDamagePolicyVersion !== 1,
+                },
+              ))) + capturedDescription,
   }
   const applications = effect.recoveryApplications
   const count =

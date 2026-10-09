@@ -223,6 +223,12 @@ function polishBattlefieldTokens(
 ) {
   const desktopPvpScale = window.matchMedia(DESKTOP_PVP_TOKEN_QUERY).matches
   syncBoardScale()
+  // Clear owned target overrides on every tile, including one a pushed/pulled unit vacated.
+  // Range glows remain on the React-owned potential footprint layer.
+  for (const tile of document.querySelectorAll<HTMLButtonElement>(
+    '#battlefield button[aria-label^="Tile "]',
+  ))
+    syncSemanticTargetTile(tile, activeSemanticColor(tile))
   const occupiedTiles = Array.from(
     document.querySelectorAll<HTMLButtonElement>('#battlefield button[aria-label*="occupied by"]'),
   )
@@ -253,8 +259,6 @@ function polishBattlefieldTokens(
     const name = token.querySelector<HTMLElement>(':scope > strong')
     const combatantName = combatantNameForTile(tile, token, combatantAccents)
     const identityAccent = combatantName ? combatantAccents[combatantName] : undefined
-    const semanticAccent = activeSemanticColor(tile)
-    syncSemanticTargetTile(tile, semanticAccent)
     const tokenAccent = identityAccent
     if (tokenAccent) token.style.setProperty('border-color', tokenAccent, 'important')
     else token.style.removeProperty('border-color')

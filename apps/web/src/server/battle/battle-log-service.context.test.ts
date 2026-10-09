@@ -15,6 +15,7 @@ import type { BattleHistoryPrivacyAuthority } from './battle-history-privacy-aut
 import type { BattlePrivacyEventOverride } from './battle-history-privacy'
 import { createViewerSafeBattleLogService } from './battle-log-service'
 import { createSpectatorBattleViewerEntitlement } from './battle-viewer-entitlement'
+import { formatBattleLogForClipboard } from '../../components/battle/battle-log-clipboard'
 import { buildBattleChronicle } from '../../components/battle/battle-log-chronicle-model'
 
 const ACTOR = 'character:actor'
@@ -1002,3 +1003,199 @@ describe('in-battle Skill text', () => {
     ).toEqual(build.combatants[0]!.narratorIdentity)
   })
 })
+
+describe('departed summon identity', () => {
+  it.each(['summon_expired', 'summon_defeated'])(
+    'names movement, incoming attacks and the %s receipt without an ability cast',
+    async (eventType) => {
+      const parent = resolveMatureSkillVersion('wildwarden.renewing-herbs')!
+      const summonId = 'summon:recorded'
+      const records = [
+        record(
+          {
+            event: 'summon_spawned',
+            combatantId: summonId,
+            ownerCombatantId: ACTOR,
+            sourceSkillId: parent.id,
+            sourceSkillVersion: parent.contentVersion,
+            profileId: parent.summonProfile!.id,
+          },
+          0,
+        ),
+        record(
+          {
+            event: 'combatant_moved',
+            combatantId: summonId,
+            from: { x: 1, y: 1 },
+            to: { x: 2, y: 1 },
+            apCost: 10,
+          },
+          1,
+        ),
+        record(
+          {
+            event: 'damage_applied',
+            sourceCombatantId: OTHER,
+            targetCombatantId: summonId,
+            actionId: 'basic.attack.unarmed.basic',
+            amount: 16,
+          },
+          2,
+        ),
+        record({ event: eventType, combatantId: summonId }, 3),
+      ]
+      const resolve = vi.fn(async (id: string, version: number) =>
+        id === parent.id && version === parent.contentVersion ? parent : null,
+      )
+      const result = await getLog(records, resolve)
+      expect(
+        result.entries.find((entry) => entry.eventType === 'combatant_moved')?.actorNarrator,
+      ).toEqual({ name: 'Verdant Stalker' })
+      expect(
+        result.entries.find((entry) => entry.eventType === 'damage_applied')?.targetNarrator,
+      ).toEqual({ name: 'Verdant Stalker' })
+      const departure = result.entries.find((entry) => entry.eventType === eventType)
+      expect(departure).toMatchObject({
+        actorCombatantId: summonId,
+        actionId: null,
+        actorNarrator: { name: 'Verdant Stalker' },
+      })
+      const chronicle = buildBattleChronicle(result.entries)
+      expect(JSON.stringify(chronicle)).toContain('Verdant Stalker')
+      expect(
+        chronicle.flatMap((round) => round.actors).find((actor) => actor.actorId === summonId)
+          ?.name,
+      ).toBe('Verdant Stalker')
+      expect(
+        chronicle.flatMap((round) =>
+          round.actors.flatMap((actor) =>
+            actor.actions.flatMap((action) => action.outcomes.map((outcome) => outcome.text)),
+          ),
+        ),
+      ).toContain(
+        eventType === 'summon_expired'
+          ? 'Verdant Stalker faded as the summon duration ended.'
+          : 'Verdant Stalker was dispelled after being defeated.',
+      )
+      const copied = formatBattleLogForClipboard(result.entries)
+      expect(copied).toContain('Verdant Stalker moves.')
+      expect(copied).toContain(
+        eventType === 'summon_expired'
+          ? 'Verdant Stalker faded as the summon duration ended.'
+          : 'Verdant Stalker was dispelled after being defeated.',
+      )
+      expect(copied).not.toContain('Combatant moves.')
+      expect(resolve).toHaveBeenCalledTimes(1)
+      resolve.mockClear()
+      const hidden = await getLog(records, resolve, { hidden: true })
+      expect(JSON.stringify(hidden)).not.toContain('Verdant Stalker')
+      expect(hidden.entries.every((entry) => !entry.actorNarrator && !entry.targetNarrator)).toBe(
+        true,
+      )
+      expect(resolve).not.toHaveBeenCalled()
+    },
+  )
+})
+
+it('Chronicle and Copy Full Log retain recorded Suppress percentage and lifetime', async () => {
+  const result = await getLog(
+    [
+      record({ event: 'combat_action_used', actionId: SKILL, actorId: ACTOR }),
+      record(
+        {
+          event: 'effect_pending',
+          actionId: SKILL,
+          sourceCombatantId: ACTOR,
+          targetCombatantId: OTHER,
+          effectTag: 'suppress',
+          potencyBasisPoints: 2534,
+          activationRound: 3,
+          remainingRoundBoundaries: 2,
+          durationScope: 'rounds',
+        },
+        1,
+      ),
+      record(
+        {
+          event: 'status_applied',
+          actionId: SKILL,
+          sourceCombatantId: ACTOR,
+          targetCombatantId: OTHER,
+          statusId: 'suppress',
+          potencyBasisPoints: 4000,
+          stacks: 1,
+          remainingOwnerTurnStarts: 2,
+          expiryBoundary: 'owner-turn-end',
+          refreshed: true,
+          stacked: false,
+        },
+        2,
+      ),
+    ],
+    async () => definition(),
+  )
+  expect(JSON.stringify(buildBattleChronicle(result.entries))).toContain('Suppress [25.34%]')
+  const copied = formatBattleLogForClipboard(result.entries)
+  expect(copied).toContain('Suppress [25.34%]')
+  expect(copied).toContain('Suppress [40%]')
+  expect(copied).toContain('2 turns')
+})
+
+it.each(['effect_pending', 'status_applied'] as const)(
+  'sanitizes and preserves recorded Suppress percentage for %s without leaking hidden history',
+  async (eventType) => {
+    const raw = {
+      event: eventType,
+      actionId: SKILL,
+      sourceCombatantId: ACTOR,
+      targetCombatantId: OTHER,
+      ...(eventType === 'effect_pending'
+        ? {
+            effectTag: 'suppress',
+            activationRound: 3,
+            remainingRoundBoundaries: 2,
+            durationScope: 'rounds',
+          }
+        : {
+            statusId: 'suppress',
+            stacks: 1,
+            remainingOwnerTurnStarts: 2,
+            expiryBoundary: 'owner-turn-end',
+            refreshed: false,
+            stacked: false,
+          }),
+      potencyBasisPoints: 10000,
+    }
+    const records = [
+      record({ event: 'combat_action_used', actionId: SKILL, actorId: ACTOR }),
+      record(raw, 1),
+    ]
+    const resolve = vi.fn(async () => definition())
+    const visible = await getLog(records, resolve)
+    expect(visible.entries.find((entry) => entry.eventType === eventType)).toMatchObject({
+      statusId: 'suppress',
+      potencyBasisPoints: 10000,
+    })
+    const outcomes = buildBattleChronicle(visible.entries).flatMap((round) =>
+      round.actors.flatMap((actor) => actor.actions.flatMap((action) => action.outcomes)),
+    )
+    expect(outcomes).toContainEqual(
+      expect.objectContaining({ statusId: 'suppress', potencyBasisPoints: 10000 }),
+    )
+    const hidden = await getLog(records, resolve, { hidden: true })
+    expect(hidden.entries.every((entry) => entry.potencyBasisPoints === undefined)).toBe(true)
+    expect(JSON.stringify(hidden)).not.toContain('Suppress')
+    for (const invalid of [0, 99, 10001, 100.5, '10000']) {
+      const invalidLog = await getLog(
+        [records[0], record({ ...raw, potencyBasisPoints: invalid }, 1)],
+        resolve,
+      )
+      expect(invalidLog.entries.find((entry) => entry.eventType === eventType)).not.toHaveProperty(
+        'potencyBasisPoints',
+      )
+      expect(invalidLog.entries.find((entry) => entry.eventType === eventType)?.headline).toBe(
+        'Suppress',
+      )
+    }
+  },
+)

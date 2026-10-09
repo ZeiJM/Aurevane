@@ -4,7 +4,9 @@ import {
   advanceBattleRng,
   createBattleRngState,
   createPendingBattle,
+  defeatCurrentCombatant,
   endTurn,
+  reorderBattleInitiative,
   selectFinalFacing,
   spendAction,
   spendMovement,
@@ -397,4 +399,57 @@ describe('P2.1 deterministic battle state', () => {
 
     expect(() => startBattle(state)).toThrow('at least two active teams')
   })
+})
+
+it('normalizes current Initiative on terminal actor defeat without granting another turn', () => {
+  const pending = createPendingBattle({
+    battleId: 'dynamic-terminal-defeat',
+    rulesVersion: 3,
+    contentVersion: 2,
+    rngSeed: 9,
+    combatants: [
+      {
+        id: 'actor',
+        teamId: 'players',
+        initiative: 20,
+        baseMovementBudget: 4,
+        hp: 100,
+        maxHp: 100,
+        mp: 25,
+        maxMp: 25,
+      },
+      {
+        id: 'enemy',
+        teamId: 'opponents',
+        initiative: 19,
+        baseMovementBudget: 4,
+        hp: 100,
+        maxHp: 100,
+        mp: 25,
+        maxMp: 25,
+      },
+    ],
+  })
+  const active = reorderBattleInitiative({
+    ...startBattle(pending).state,
+    dynamicInitiativePolicyVersion: 1,
+    activeInitiativeModifiers: [{ combatantId: 'actor', amount: -2 }],
+  })
+  expect(active.initiativeOrder).toEqual(['actor', 'enemy'])
+  expect(validateBattleState(active)).toEqual([])
+  const out = defeatCurrentCombatant(active, 'actor')
+  expect(out.state.initiativeOrder).toEqual(['enemy', 'actor'])
+  expect(validateBattleState(out.state)).toEqual([])
+  expect(out.state.lifecycle).toBe('completed')
+  expect(out.state.currentTurn).toBeNull()
+  expect(out.state.round).toBe(active.round)
+  expect(out.state.turnNumber).toBe(active.turnNumber)
+  expect(out.state.combatants.find((unit) => unit.id === 'enemy')).toEqual(
+    active.combatants.find((unit) => unit.id === 'enemy'),
+  )
+  expect(out.events).toEqual([
+    { event: 'turn_ended', round: 1, turnNumber: 1, combatantId: 'actor' },
+    { event: 'battle_completed', winningTeamId: 'opponents' },
+  ])
+  expect(() => defeatCurrentCombatant(out.state, 'actor')).toThrow()
 })

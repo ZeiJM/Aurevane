@@ -1,3 +1,4 @@
+import { setTerrainOverlay } from '@aurevane/game-core/combat/terrain-overlays'
 import { SkillGroundEditor } from '@/components/master/combat-content/skill-ground-editor'
 import React from 'react'
 import { createRoot } from 'react-dom/client'
@@ -13,14 +14,18 @@ import { createTacticalBattleState } from '@aurevane/game-core/combat/board'
 import { createCombatEncounterState } from '@aurevane/game-core/combat/actions'
 import {
   createCurrentStatDrivenCombatEncounterState,
+  createStatBalancedCombatEncounterState,
   createStatDrivenCombatEncounterState,
 } from '@aurevane/game-core/combat/stat-driven-combat'
 import {
+  finishPv1fTurn,
   evaluatePv1fMatureSkill,
   executePv1fMatureSkill,
   readPv1fActionEconomy,
   evaluatePv1fAction,
   executePv1fAction,
+  evaluatePv1fMovement,
+  executePv1fMovement,
 } from '@aurevane/game-core/combat/pv1f-action-economy'
 import { createPv1fTemporaryResources } from '@aurevane/game-core/combat/pv1f-action-economy'
 import { spawnCombatSummon } from '@aurevane/game-core/combat/combat-summons'
@@ -29,10 +34,12 @@ import { resolveEssenceForBuild } from '@aurevane/game-core/combat/essence'
 import { SkillDetails } from '@/components/character/skill-details'
 import { BattleSkillParameters } from '@/components/battle/battle-skill-parameters'
 import { SkillEffectTimingProvider } from '@/components/character/skill-effect-timing-context'
+import { PV1F_COMBAT_CONTENT } from '@aurevane/game-core/combat/pv1f-action-economy'
 import { projectPercentageDotFixtureState } from './percentage-dot-viewer-state'
 import './production-styles'
 
 const targetingCase = new URLSearchParams(location.search).get('targeting')
+const elementalCase = new URLSearchParams(location.search).get('elemental')
 const dotCase = new URLSearchParams(location.search).get('dot')
 const dotPhase = new URLSearchParams(location.search).get('phase') || 'active'
 const legacyDotTriggers = new URLSearchParams(location.search).get('triggers') === 'legacy'
@@ -106,6 +113,18 @@ const initialBattle = {
   invalidation: null,
 }
 const mode = new URLSearchParams(location.search).get('mode') || 'pve'
+if (new URLSearchParams(location.search).get('airborne') === '1') {
+  initialBattle.snapshot = createStatBalancedCombatEncounterState(
+    initialBattle.snapshot,
+    initialBattle.snapshot.statBridge.combatants.map((profile) => ({
+      ...profile,
+      physicalPower: 20,
+      mysticPower: 20,
+      level: 1,
+      criticalChance: 0,
+    })),
+  )
+}
 const groundPreset = new URLSearchParams(location.search).get('ground')
 if (new URLSearchParams(location.search).get('summon') === '1') {
   const skill = resolveMatureSkillVersion('wildwarden.renewing-herbs')
@@ -380,13 +399,173 @@ if (dotCase) {
     )
     .reduce((sum, event) => sum + event.amount, 0)
 }
+if (elementalCase) {
+  initialBattle.snapshot = {
+    ...initialBattle.snapshot,
+    elementalDamagePolicyVersion: 1,
+    dynamicInitiativePolicyVersion: 1,
+    effectTimingPolicy: { version: 7, modes: { damage: 'instant' } },
+  }
+  if (elementalCase === 'steam' || elementalCase.startsWith('fire')) {
+    initialBattle.snapshot = setTerrainOverlay(
+      initialBattle.snapshot,
+      { x: 3, y: 2 },
+      'frozen',
+      'enemy-one',
+      'fixture.freeze',
+    ).state
+    if (elementalCase === 'steam')
+      initialBattle.snapshot.terrainOverlays[0] = {
+        ...initialBattle.snapshot.terrainOverlays[0],
+        kind: 'steam',
+        remainingRoundBoundaries: 1,
+      }
+  }
+  if (elementalCase === 'chilled' || elementalCase.startsWith('fire'))
+    initialBattle.snapshot.statusState = initialBattle.snapshot.statusState.map((row) =>
+      row.combatantId === 'character:player'
+        ? {
+            ...row,
+            statuses: [
+              {
+                statusId: 'frozen',
+                statusVersion: 1,
+                stacks: 1,
+                remainingOwnerTurnStarts: 3,
+                remainingOwnerTurnEnds: 2,
+                sourceCombatantId: 'enemy-one',
+              },
+            ],
+          }
+        : row,
+    )
+  if (elementalCase.startsWith('fire') && targetingCase) {
+    const definition = {
+      ...window.targetingDefinition,
+      effects: [
+        {
+          type: 'damage',
+          recipient:
+            window.targetingDefinition.target.shape.kind === 'single'
+              ? 'primary-unit'
+              : 'affected-units',
+          amount: 10,
+          element: 'fire',
+        },
+      ],
+    }
+    window.targetingDefinition = definition
+    runtime.techniques[0] = { ...runtime.techniques[0], definition }
+    if (elementalCase === 'fire-area')
+      initialBattle.snapshot.statusState = initialBattle.snapshot.statusState.map((row) =>
+        row.combatantId === 'enemy-one'
+          ? {
+              ...row,
+              statuses: [
+                {
+                  statusId: 'airborne',
+                  statusVersion: 1,
+                  stacks: 1,
+                  remainingOwnerTurnStarts: 3,
+                  sourceCombatantId: 'enemy-one',
+                },
+              ],
+            }
+          : row,
+      )
+  }
+}
+const suppressCase = new URLSearchParams(location.search).get('suppress')
+if (suppressCase) {
+  initialBattle.snapshot.effectTimingPolicy = { version: 7, modes: {} }
+  if (suppressCase === 'pending') {
+    initialBattle.snapshot.pendingEffects = [
+      {
+        actorId: 'enemy-one',
+        actionId: 'fixture.suppress',
+        recipientIds: ['character:player'],
+        affectedTiles: [],
+        activationRound: 3,
+        statusDurationScope: 'rounds',
+        content: PV1F_COMBAT_CONTENT,
+        effect: {
+          type: 'apply-status',
+          recipient: 'primary-unit',
+          statusId: 'suppress',
+          stacks: 1,
+          potencyBasisPoints: 2534,
+          durationTurns: 2,
+        },
+      },
+    ]
+    initialBattle.snapshot = projectPercentageDotFixtureState(initialBattle.snapshot)
+  } else {
+    initialBattle.snapshot.statusState.find(
+      (row) => row.combatantId === 'character:player',
+    ).statuses = [
+      {
+        statusId: 'suppress',
+        statusVersion: 1,
+        stacks: 1,
+        potencyBasisPoints: 2534,
+        remainingOwnerTurnStarts: 2,
+        remainingOwnerTurnEnds: 2,
+        timingState: 'active',
+        sourceCombatantId: 'enemy-one',
+      },
+    ]
+  }
+}
+const suppressChronicleEntries = suppressCase
+  ? (() => {
+      const pending = suppressCase === 'pending'
+      const percent = pending ? 25.34 : 100
+      const base = {
+        battleVersion: 1,
+        occurredAt: '2026-10-09T00:00:00Z',
+        round: 1,
+        turnNumber: 1,
+        actorCombatantId: 'enemy-one',
+        targetCombatantId: 'character:player',
+        actionId: 'fixture.suppress',
+        actionLabel: 'Recorded Suppress',
+        message: '',
+        messageTemplate: '',
+        templateValues: {},
+        facts: [],
+        headline: '',
+        tone: 'neutral',
+      }
+      return [
+        { ...base, eventIndex: 0, eventType: 'combat_action_used', kind: 'skill' },
+        {
+          ...base,
+          eventIndex: 1,
+          eventType: pending ? 'effect_pending' : 'status_applied',
+          kind: 'status',
+          statusId: 'suppress',
+          potencyBasisPoints: percent * 100,
+          templateValues: {
+            status: `Suppress [${percent}%]`,
+            effect: `Suppress [${percent}%]`,
+            round: '3',
+          },
+          facts: [{ label: pending ? 'Pending until round 3' : '2 turns', tone: 'neutral' }],
+          ...(pending
+            ? { effectTiming: { remainingRoundBoundaries: 2, durationScope: 'rounds' } }
+            : {}),
+        },
+      ]
+    })()
+  : []
 window.fixtureBattle = initialBattle
 window.calls = []
 window.fetch = async (url, options = {}) => {
   const path = String(url)
   const body = options.body ? JSON.parse(options.body) : null
   window.calls.push({ path, method: options.method || 'GET', body })
-  if (path.endsWith('/events')) return new Response(JSON.stringify({ battleLog: { entries: [] } }))
+  if (path.endsWith('/events'))
+    return new Response(JSON.stringify({ battleLog: { entries: suppressChronicleEntries } }))
   if (targetingCase && path.endsWith('/preview')) {
     if (window.previewFailure === 'http')
       return Response.json(
@@ -397,6 +576,24 @@ window.fetch = async (url, options = {}) => {
 
     const intent = body.intent
     const source = window.fixtureBattle.snapshot
+    if (intent.kind === 'move') {
+      const result = evaluatePv1fMovement(source, intent.path)
+      const before = readPv1fActionEconomy(result.prepared)?.current ?? 0
+      return Response.json({
+        battlePreview: {
+          battleSessionId: 'fixture',
+          battleVersion: window.fixtureBattle.battleVersion,
+          preview: {
+            ...result.movement,
+            kind: 'move',
+            legal: result.movement.legal && before >= result.economyCost,
+            actionEconomyCost: result.economyCost,
+            actionEconomyBefore: before,
+            actionEconomyAfter: before - result.economyCost,
+          },
+        },
+      })
+    }
     const { evaluation, cost, prepared } =
       intent.actionId === window.targetingDefinition.id
         ? evaluatePv1fMatureSkill(
@@ -430,20 +627,24 @@ window.fetch = async (url, options = {}) => {
       },
     })
   }
-  if (targetingCase && /\/(commit|intents)$/.test(path)) {
+  if (targetingCase && /\/(commit|intents|final-turn)$/.test(path)) {
     if (body.expectedBattleVersion !== window.fixtureBattle.battleVersion)
       return Response.json({ message: 'Stale battle version.' }, { status: 409 })
     try {
-      const intent = body.intent
+      const intent = body.intent ?? { kind: 'face', facing: body.facing }
       const transition =
-        intent.actionId === window.targetingDefinition.id
-          ? executePv1fMatureSkill(
-              window.fixtureBattle.snapshot,
-              window.targetingDefinition,
-              intent.target,
-              mode === 'pvp' ? 'pvp' : 'pve',
-            )
-          : executePv1fAction(window.fixtureBattle.snapshot, intent.actionId, intent.target)
+        intent.kind === 'face'
+          ? finishPv1fTurn(window.fixtureBattle.snapshot, intent.facing)
+          : intent.kind === 'move'
+            ? executePv1fMovement(window.fixtureBattle.snapshot, intent.path)
+            : intent.actionId === window.targetingDefinition.id
+              ? executePv1fMatureSkill(
+                  window.fixtureBattle.snapshot,
+                  window.targetingDefinition,
+                  intent.target,
+                  mode === 'pvp' ? 'pvp' : 'pve',
+                )
+              : executePv1fAction(window.fixtureBattle.snapshot, intent.actionId, intent.target)
       window.receipts = transition.events
       window.fixtureBattle = {
         ...window.fixtureBattle,
@@ -452,6 +653,7 @@ window.fetch = async (url, options = {}) => {
       }
       return Response.json({ battle: window.fixtureBattle })
     } catch (error) {
+      window.commitFailure = error.message
       return Response.json({ message: error.message }, { status: 409 })
     }
   }

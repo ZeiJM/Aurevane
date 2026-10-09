@@ -10,7 +10,10 @@ export interface BattleSummonInspectMetadata {
     | 'dotTriggerPolicyVersion'
     | 'frozenGroundPolicyVersion'
     | 'airbornePolicyVersion'
+    | 'airborneJumpPolicyVersion'
+    | 'elementalDamagePolicyVersion'
     | 'healingDownPolicyVersion'
+    | 'blindsideActivationPolicyVersion'
   >
   readonly profileId: string
   readonly name: string
@@ -44,7 +47,10 @@ export function readSummonInspectMetadata(
       dotTriggerPolicyVersion: snapshot.dotTriggerPolicyVersion,
       frozenGroundPolicyVersion: snapshot.frozenGroundPolicyVersion,
       airbornePolicyVersion: snapshot.airbornePolicyVersion,
+      airborneJumpPolicyVersion: snapshot.airborneJumpPolicyVersion,
+      elementalDamagePolicyVersion: snapshot.elementalDamagePolicyVersion,
       healingDownPolicyVersion: snapshot.healingDownPolicyVersion,
+      blindsideActivationPolicyVersion: snapshot.blindsideActivationPolicyVersion,
     },
     profileId: summon.profile.id,
     name: summon.profile.name,

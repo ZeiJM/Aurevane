@@ -90,7 +90,9 @@ export function validateTerrainOverlays(
       !state.tactical.tiles.some(
         (tile) => tile.position.x === overlay.position.x && tile.position.y === overlay.position.y,
       ) ||
-      ![1, 2].includes(overlay.remainingRoundBoundaries) ||
+      !(state.elementalDamagePolicyVersion === 1 ? [1, 2, 3, 4] : [1, 2]).includes(
+        overlay.remainingRoundBoundaries,
+      ) ||
       !state.tactical.battle.combatants.some((unit) => unit.id === overlay.sourceCombatantId)
     )
       return invalid
@@ -114,7 +116,12 @@ export function setTerrainOverlay(
     position: { ...position },
     kind,
     sourceCombatantId,
-    remainingRoundBoundaries: COMBAT_TERRAIN_OVERLAY_DETAILS[kind].roundBoundaries,
+    remainingRoundBoundaries:
+      state.elementalDamagePolicyVersion === 1 &&
+      kind === 'steam' &&
+      terrainOverlayAt(state, position)?.kind === 'frozen'
+        ? terrainOverlayAt(state, position)!.remainingRoundBoundaries
+        : COMBAT_TERRAIN_OVERLAY_DETAILS[kind].roundBoundaries,
   }
   return {
     state: {

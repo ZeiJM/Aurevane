@@ -33,6 +33,8 @@ export interface CombatGroundAreaDefinition {
   timing?: 'instant' | 'next-round' | 'delayed'
 }
 export interface CombatGroundAreaInstance {
+  /** Converted ice tiles retain the area schedule but no longer apply its ice entry payload. */
+  steamTiles?: readonly GridPosition[]
   sourceCommandVisibility?: CombatSourceCommandVisibility
   entryEffectOrigins?: readonly (CombatEffectOrigin | null)[]
   id: string
@@ -304,6 +306,20 @@ export function validateCombatGroundAreas(
       )
         throw new TypeError('Invalid Ground effect origins.')
       validateGroundTiles(state, area.tiles)
+      if (area.steamTiles) {
+        if (state.elementalDamagePolicyVersion !== 1)
+          throw new TypeError('Ice conversion requires its pinned policy.')
+        validateGroundTiles(state, area.steamTiles)
+        if (
+          area.steamTiles.some(
+            (tile: GridPosition) =>
+              !area.tiles.some(
+                (source: GridPosition) => source.x === tile.x && source.y === tile.y,
+              ),
+          )
+        )
+          throw new TypeError('Converted tiles must belong to their ice area.')
+      }
       validateCombatContentCatalog(area.content)
       validateGroundCaster(state, area)
       const action: CombatActionDefinition = {
@@ -461,6 +477,7 @@ export function resolveCombatGroundEntry(
     const unit = next.tactical.battle.combatants.find((row) => row.id === combatantId)
     if (!unit || unit.hp <= 0 || next.tactical.battle.lifecycle !== 'active') break
     if (
+      area.steamTiles?.some((tile) => tile.x === position.x && tile.y === position.y) ||
       area.activationRound > next.tactical.battle.round ||
       !area.tiles.some((tile) => tile.x === position.x && tile.y === position.y) ||
       !groundAreaAllowsCombatant(area, unit)

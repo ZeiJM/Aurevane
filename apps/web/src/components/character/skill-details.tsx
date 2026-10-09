@@ -57,13 +57,16 @@ function SkillDetailBody({ skill }: { skill: MatureSkillDefinition }) {
       </dl>
       <strong>Effects</strong>
       <ol>
-        {skillPreviewEffects(skill, { legacyTriggers, legacyPoisonMovement, ...groundRules }).map(
-          (effect, index) => (
-            <li key={index}>
-              <strong>{effect.label}</strong> — {effect.explanation}
-            </li>
-          ),
-        )}
+        {skillPreviewEffects(skill, {
+          legacyTriggers,
+          legacyPoisonMovement,
+          ...groundRules,
+          timingPolicy,
+        }).map((effect, index) => (
+          <li key={index}>
+            <strong>{effect.label}</strong> — {effect.explanation}
+          </li>
+        ))}
       </ol>
       {skill.requirements.length ? (
         <>

@@ -11,8 +11,11 @@ export type SkillEffectTimingPolicy = CombatEffectTimingPolicy | null
 const TimingContext = createContext<SkillEffectTimingPolicy>(defaultCombatEffectTimingPolicy())
 const GroundInteractionContext = createContext({
   legacyFrozenGround: false,
+  legacyElemental: false,
   legacyAirborne: false,
+  legacyAirborneJump: false,
   legacyHealingDown: false,
+  legacyBlindsideActivation: false,
 })
 export const AirborneAttackElevationContext = createContext(false)
 const DotTriggerContext = createContext<1 | 2 | null>(2)
@@ -22,14 +25,20 @@ export function SkillEffectTimingProvider({
   dotTriggerPolicyVersion = 2,
   frozenGroundPolicyVersion = 1,
   airbornePolicyVersion = 1,
+  airborneJumpPolicyVersion = 1,
   healingDownPolicyVersion = 1,
+  blindsideActivationPolicyVersion = 1,
+  elementalDamagePolicyVersion = 1,
   children,
 }: {
   policy: SkillEffectTimingPolicy
   dotTriggerPolicyVersion?: 1 | 2 | null
   frozenGroundPolicyVersion?: 1 | null
   airbornePolicyVersion?: 1 | null
+  airborneJumpPolicyVersion?: 1 | null
   healingDownPolicyVersion?: 1 | null
+  blindsideActivationPolicyVersion?: 1 | null
+  elementalDamagePolicyVersion?: 1 | null
   children: ReactNode
 }) {
   return (
@@ -38,8 +47,11 @@ export function SkillEffectTimingProvider({
         <GroundInteractionContext.Provider
           value={{
             legacyFrozenGround: frozenGroundPolicyVersion !== 1,
+            legacyElemental: elementalDamagePolicyVersion !== 1,
             legacyAirborne: airbornePolicyVersion !== 1,
+            legacyAirborneJump: airborneJumpPolicyVersion !== 1,
             legacyHealingDown: healingDownPolicyVersion !== 1,
+            legacyBlindsideActivation: blindsideActivationPolicyVersion !== 1,
           }}
         >
           {children}

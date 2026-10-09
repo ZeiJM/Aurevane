@@ -61,18 +61,6 @@ export function battleTargetReachTiles(
       ? positions
       : []
   }
-  if (
-    target.kind === 'ground-tile' &&
-    target.shape.kind === 'single' &&
-    aim.aimSource === 'player' &&
-    aim.selection?.kind === 'tile'
-  ) {
-    const distance =
-      Math.abs(aim.selection.position.x - origin.x) + Math.abs(aim.selection.position.y - origin.y)
-    if (distance >= target.minimumRange && distance <= target.maximumRange)
-      add(footprint(aim.selection))
-    return result
-  }
   if (target.geometryVersion === 2 && target.shape.kind !== 'single') {
     const selections: readonly CombatTargetSelection[] =
       target.shape.kind === 'line'

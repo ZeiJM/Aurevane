@@ -42,3 +42,6 @@ Owner-approved 2026-10-06: Move’s report is Cost 20 AP, Requirements N/A, Effe
 ## Current targeting geometry — 2026-10-06
 
 Current area versions pin `geometryVersion: 2`. Single selects one legal unit/tile. Line [X] starts at the caster and covers X tiles in one cardinal direction; units do not block it. Circle [X] uses Chebyshev distance 1..X around the caster, excludes its tile and includes the inner rings (8 tiles at X=1, 24 at X=2). Separate actor effects remain independent. All ignores positional range and LoS; Range and LoS read N/A while explicitly authored elevation remains visible. Recipient kind, team and friendly fire remain independent. Shared Target Method descriptions explain this origin/coverage without adding a redundant report row or resizing artwork. Historical versions without the marker retain their original destination-based geometry.
+
+
+Owner refinement2026-10-09: summon inspect lists show only ability names plus a ! full reader, without duplicating parameters or prose inline. Hover/tap opens the complete pinned ten-characteristic report. Display Damage first and Blindside second for granting Skills; maintain original effect-description indices and immutable execution order. Blindside activation is conditional on qualifying side/rear enemy hits in new encounters, with historical battle readers preserving their saved policy.

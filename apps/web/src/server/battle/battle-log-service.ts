@@ -49,6 +49,7 @@ export interface BattleLogEntry {
   damageTrigger?: 'burn-backlash' | 'poison-movement' | 'scheduled-tick'
   effectTimingState?: 'pending'
   actorNarrator?: BattleNarratorIdentitySnapshot
+  targetNarrator?: BattleNarratorIdentitySnapshot
   occurredAt: string
   eventType: string
   message: string
@@ -59,6 +60,8 @@ export interface BattleLogEntry {
   actionId: string | null
   actionLabel: string | null
   statusId?: string
+  /** Captured, validated Suppress percentage from this viewer-visible receipt. */
+  potencyBasisPoints?: number
   effectOrigin?: CombatEffectOrigin
   actionContext?: {
     family?: 'skill' | 'essence' | 'resonance'
@@ -164,6 +167,12 @@ function renderTemplate(template: string, values: Readonly<Record<string, string
   })
 }
 
+function recordedSuppressPotency(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 100 && value <= 10000
+    ? value
+    : undefined
+}
+
 function createEntry(
   record: BattleEventRecord,
   eventType: string,
@@ -259,6 +268,10 @@ function createEntry(
     actionId: input.actionId ?? null,
     actionLabel: input.actionLabel ?? null,
     ...(input.statusId ? { statusId: input.statusId } : {}),
+    ...(input.statusId === 'suppress' &&
+    recordedSuppressPotency(raw.potencyBasisPoints) !== undefined
+      ? { potencyBasisPoints: recordedSuppressPotency(raw.potencyBasisPoints) }
+      : {}),
     ...(input.terrainChange ? { terrainChange: input.terrainChange } : {}),
     round: input.round ?? null,
     turnNumber: input.turnNumber ?? null,
@@ -331,7 +344,9 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
           : undefined
       const label =
         applications === undefined
-          ? statusLabel(tag)
+          ? tag === 'suppress' && recordedSuppressPotency(event.potencyBasisPoints) !== undefined
+            ? `Suppress [${recordedSuppressPotency(event.potencyBasisPoints)! / 100}%]`
+            : statusLabel(tag)
           : tag === 'healing'
             ? 'HP Recovery'
             : 'MP Recovery'
@@ -609,6 +624,21 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
         tone: 'benefit',
       })
     }
+    case 'summon_expired':
+    case 'summon_defeated': {
+      const combatantId = stringValue(event.combatantId)
+      if (!combatantId) return null
+      const expired = eventType === 'summon_expired'
+      return createEntry(record, eventType, {
+        messageTemplate: expired
+          ? '{actor} faded as the summon duration ended.'
+          : '{actor} was dispelled after being defeated.',
+        actorCombatantId: combatantId,
+        kind: 'status',
+        headline: expired ? 'Summon expired' : 'Summon dispelled',
+        tone: 'neutral',
+      })
+    }
     case 'poison_duration_refreshed': {
       const targetCombatantId = stringValue(event.targetCombatantId)
       const turns = numberValue(event.remainingOwnerTurnEnds)
@@ -744,7 +774,10 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
     case 'status_applied': {
       const targetCombatantId = stringValue(event.targetCombatantId)
       const statusId = stringValue(event.statusId)
-      const label = statusLabel(statusId)
+      const label =
+        statusId === 'suppress' && recordedSuppressPotency(event.potencyBasisPoints) !== undefined
+          ? `Suppress [${recordedSuppressPotency(event.potencyBasisPoints)! / 100}%]`
+          : statusLabel(statusId)
       const remaining = numberValue(event.remainingOwnerTurnStarts)
       const refreshed = event.refreshed === true
       const stacked = event.stacked === true
