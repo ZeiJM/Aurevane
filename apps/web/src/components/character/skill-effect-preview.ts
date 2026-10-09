@@ -100,6 +100,7 @@ export function previewEffect(
   effect: MatureSkillEffectDefinition,
   options: {
     legacyTriggers?: boolean
+    legacyPoisonMovement?: boolean
     legacyFrozenGround?: boolean
     legacyAirborne?: boolean
     legacyHealingDown?: boolean
@@ -265,9 +266,10 @@ export function previewEffect(
 }
 
 export function skillPreviewEffects(
-  skill: MatureSkillDefinition,
+  skill: Pick<MatureSkillDefinition, 'effects' | 'effectDescriptions'>,
   options: {
     legacyTriggers?: boolean
+    legacyPoisonMovement?: boolean
     legacyFrozenGround?: boolean
     legacyAirborne?: boolean
     legacyHealingDown?: boolean

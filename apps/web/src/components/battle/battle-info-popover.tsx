@@ -26,6 +26,7 @@ export function BattleInfoPopover({
   hover = false,
   consumeOutsideClick = false,
   placement = 'auto',
+  layer = 'battle',
 }: {
   label: string
   description?: string
@@ -36,6 +37,7 @@ export function BattleInfoPopover({
   hover?: boolean
   consumeOutsideClick?: boolean
   placement?: 'auto' | 'above'
+  layer?: 'battle' | 'inspect'
 }) {
   const id = useId()
   const [open, setOpen] = useState(false)
@@ -112,7 +114,7 @@ export function BattleInfoPopover({
             height: window.innerHeight,
           },
           pagePositioned ? { x: window.scrollX, y: window.scrollY } : undefined,
-          placement,
+          layer === 'inspect' ? 'beside' : placement,
         ),
       )
     }
@@ -137,7 +139,7 @@ export function BattleInfoPopover({
       window.removeEventListener('resize', place)
       window.removeEventListener('scroll', placeOnScroll, true)
     }
-  }, [open, wideReport, pageReport, placement])
+  }, [open, wideReport, pageReport, placement, layer])
 
   useEffect(() => {
     if (!open) return
@@ -280,7 +282,7 @@ export function BattleInfoPopover({
             data-battle-info-page={pageReport}
             onMouseEnter={hover ? cancelClose : undefined}
             onMouseLeave={hover ? queueClose : undefined}
-            className={styles.panel}
+            className={[styles.panel, layer === 'inspect' ? styles.inspectPanel : ''].join(' ')}
             style={
               { '--battle-info-left': `${position.left}px`, top: position.top } as CSSProperties
             }

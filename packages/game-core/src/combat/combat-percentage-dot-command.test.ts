@@ -1,4 +1,5 @@
 import { selectCurrentFinalFacing } from './board'
+import { PHASE4_STATUSES } from './status-content'
 import { describe, expect, it } from 'vitest'
 import {
   executeCombatAction,
@@ -9,6 +10,7 @@ import {
 } from './actions'
 import { percentageDotEncounter } from './combat-percentage-dots.test-utils'
 import { grantBarrier } from './combat-barrier'
+import { createCombatActionProvenance, createCombatTriggerGuard } from './combat-kernel-types'
 
 const content = { statuses: [] }
 function attack(reversed = false, multi = false): CombatActionDefinition {
@@ -57,6 +59,175 @@ function nextRound(state: CombatEncounterState): CombatEncounterState {
 }
 
 describe('percentage DoTs capture their originating attack', () => {
+  it.each([undefined, 1] as const)(
+    'preserves stronger Poison damage provenance on a same-action duration upgrade with stacking policy %s, then records a greater percentage’s new basis',
+    (effectStackingPolicyVersion) => {
+      const context = (actionId: string, chainId = actionId) => ({
+        provenance: createCombatActionProvenance({
+          rulesetVersion: 2,
+          sourceKind: 'test',
+          actionDefinitionId: actionId,
+          actionVersion: 1,
+          sourceCombatantId: 'actor',
+          controllerCombatantId: 'actor',
+          triggerChainId: `chain:${chainId}`,
+        }),
+        triggerGuard: createCombatTriggerGuard({ triggerChainId: `chain:${chainId}` }),
+      })
+      const first = {
+        ...attack(),
+        id: 'strong',
+        effects: [
+          attack().effects[0]!,
+          {
+            type: 'poison' as const,
+            recipient: 'primary-unit' as const,
+            durationTurns: 2,
+            damageProfile: { kind: 'attack-percentage' as const, basisPoints: 3000 },
+          },
+        ],
+      }
+      let state = executeCombatAction(
+        { ...percentageDotEncounter(), effectStackingPolicyVersion, dotTriggerPolicyVersion: 2 },
+        first,
+        { kind: 'unit', combatantId: 'enemy' },
+        content,
+        context(first.id),
+      ).state
+      const original = state.effectState!.poison[0]!
+      state = executeCombatAction(
+        state,
+        { ...attack(), id: first.id },
+        { kind: 'unit', combatantId: 'enemy' },
+        content,
+        context(first.id, 'weaker-reapplication'),
+      ).state
+      expect(state.effectState!.poison[0]).toMatchObject({
+        originalDurationTurns: 4,
+        remainingTicks: 4,
+        percentageDamage: original.percentageDamage,
+        provenance: original.provenance,
+        sourceActionId: 'strong',
+        applicationOrder: original.applicationOrder,
+      })
+      const upgrade = {
+        ...first,
+        id: 'upgrade',
+        effects: [
+          { type: 'damage' as const, recipient: 'primary-unit' as const, amount: 20 },
+          {
+            type: 'poison' as const,
+            recipient: 'primary-unit' as const,
+            durationTurns: 1,
+            damageProfile: { kind: 'attack-percentage' as const, basisPoints: 4000 },
+          },
+        ],
+      }
+      state = executeCombatAction(
+        state,
+        upgrade,
+        { kind: 'unit', combatantId: 'enemy' },
+        content,
+        context(upgrade.id),
+      ).state
+      expect(state.effectState!.poison[0]).toMatchObject({
+        originalDurationTurns: 4,
+        remainingTicks: 4,
+        sourceActionId: 'upgrade',
+        percentageDamage: { capturedDamage: 20, profile: { basisPoints: 4000 } },
+      })
+      expect(state.effectState!.poison[0]!.provenance?.action.actionDefinitionId).toBe('upgrade')
+    },
+  )
+  it.each([undefined, 1] as const)(
+    'records new Poison provenance after clearing and reapplying in one command with stacking policy %s',
+    (effectStackingPolicyVersion) => {
+      const action = attack()
+      const context = (chainId: string) => ({
+        provenance: createCombatActionProvenance({
+          rulesetVersion: 2,
+          sourceKind: 'test',
+          actionDefinitionId: action.id,
+          actionVersion: 1,
+          sourceCombatantId: 'actor',
+          controllerCombatantId: 'actor',
+          triggerChainId: chainId,
+        }),
+        triggerGuard: createCombatTriggerGuard({ triggerChainId: chainId }),
+      })
+      let state = executeCombatAction(
+        { ...percentageDotEncounter(), effectStackingPolicyVersion, dotTriggerPolicyVersion: 2 },
+        action,
+        { kind: 'unit', combatantId: 'enemy' },
+        { statuses: PHASE4_STATUSES },
+        context('original'),
+      ).state
+      const originalOrder = state.effectState!.poison[0]!.applicationOrder
+      state = executeCombatAction(
+        state,
+        {
+          ...action,
+          effects: [
+            { type: 'remove-status', recipient: 'primary-unit', statusIds: ['poison'] },
+            ...action.effects,
+          ],
+        },
+        { kind: 'unit', combatantId: 'enemy' },
+        { statuses: PHASE4_STATUSES },
+        context('replacement'),
+      ).state
+      expect(state.effectState!.poison).toHaveLength(1)
+      expect(state.effectState!.poison[0]).toMatchObject({
+        applicationOrder: originalOrder,
+        provenance: { action: { triggerChainId: 'replacement' }, effectOrdinal: 2 },
+      })
+      expect(validateCombatEncounterState(JSON.parse(JSON.stringify(state)))).toEqual([])
+    },
+  )
+  it('merges independent maxima from delayed Poison commands after reload without discarding the earlier stronger percentage', () => {
+    const initial = {
+      ...percentageDotEncounter(),
+      dotTriggerPolicyVersion: 2 as const,
+      effectTimingPolicy: {
+        version: 1,
+        modes: { damage: 'next-round' as const, poison: 'instant' as const },
+      },
+    }
+    const stronger = {
+      ...attack(),
+      id: 'stronger',
+      effects: [
+        attack().effects[0]!,
+        {
+          type: 'poison' as const,
+          recipient: 'primary-unit' as const,
+          durationTurns: 2,
+          damageProfile: { kind: 'attack-percentage' as const, basisPoints: 3000 },
+        },
+      ],
+    }
+    let state = executeCombatAction(
+      initial,
+      stronger,
+      { kind: 'unit', combatantId: 'enemy' },
+      content,
+    ).state
+    state = executeCombatAction(
+      state,
+      attack(),
+      { kind: 'unit', combatantId: 'enemy' },
+      content,
+    ).state
+    state = nextRound(JSON.parse(JSON.stringify(state)))
+    expect(validateCombatEncounterState(state)).toEqual([])
+    expect(state.effectState!.poison).toHaveLength(1)
+    expect(state.effectState!.poison[0]).toMatchObject({
+      sourceActionId: 'stronger',
+      originalDurationTurns: 4,
+      remainingTicks: 4,
+      percentageDamage: { capturedDamage: 40, profile: { basisPoints: 3000 } },
+    })
+  })
   for (const damage of ['instant', 'next-round'] as const)
     for (const poison of ['instant', 'next-round'] as const) {
       it(`binds ${damage} damage and ${poison} Poison through reconnect`, () => {

@@ -21,7 +21,9 @@ export function BattleSkillParameters({ skill }: { skill: BattleSkillForecastPre
   const timingPolicy = useSkillEffectTimingPolicy()
   const groundRules = useSkillGroundInteractionRules()
   const airborneAttackElevation = useAirborneAttackElevation()
-  const legacyTriggers = useSkillDotTriggerPolicyVersion() === null
+  const dotTriggerPolicyVersion = useSkillDotTriggerPolicyVersion()
+  const legacyTriggers = dotTriggerPolicyVersion === null
+  const legacyPoisonMovement = dotTriggerPolicyVersion !== 2
   const definition = skill.definition
   const rows = battleSkillParameterRows(skill, timingPolicy, {
     ...groundRules,
@@ -33,6 +35,7 @@ export function BattleSkillParameters({ skill }: { skill: BattleSkillForecastPre
       <dl>
         <SkillCharacteristicRows
           rows={rows}
+          targetDetails={definition ? <SkillGroundAreaDetails skill={definition} /> : undefined}
           targetMethodExplanation={
             definition ? skillTargetMethodExplanation(definition) : undefined
           }
@@ -53,16 +56,17 @@ export function BattleSkillParameters({ skill }: { skill: BattleSkillForecastPre
       </dl>
       {definition ? (
         <ul aria-label="Effect explanations">
-          {skillPreviewEffects(definition, { legacyTriggers, ...groundRules }).map(
-            (effect, index) => (
-              <li key={index}>
-                <strong>{effect.label}</strong> — {effect.explanation}
-              </li>
-            ),
-          )}
+          {skillPreviewEffects(definition, {
+            legacyTriggers,
+            legacyPoisonMovement,
+            ...groundRules,
+          }).map((effect, index) => (
+            <li key={index}>
+              <strong>{effect.label}</strong> — {effect.explanation}
+            </li>
+          ))}
         </ul>
       ) : null}
-      {definition ? <SkillGroundAreaDetails skill={definition} /> : null}
       {skill.requirementDescriptions.length > 0 ? (
         <>
           <strong>Requirement details</strong>

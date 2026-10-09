@@ -310,7 +310,7 @@ const legacyDescriptions: Record<
 }
 const persistentEffectDescriptions: Record<string, string> = {
   poison:
-    'Takes poison damage at affected turn ends and after sufficient movement. The applied instance determines its power and lifetime.',
+    'Current percentage Poison ticks once at the affected turn end. Every five traversed tiles, including Push or Pull, refresh its full recorded duration without extra damage. Reapplication retains the greater percentage and original duration independently and resets movement progress. Historical applications retain their recorded rules.',
   burn: 'Takes decreasing burn damage at affected turn ends. Attacking while burning causes additional damage. The applied instance determines its power and lifetime.',
   bleed:
     'Bleeding stacks deal damage at affected turn ends. Each applied stack retains its own power and remaining ticks.',

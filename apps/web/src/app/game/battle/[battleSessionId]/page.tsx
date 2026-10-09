@@ -65,7 +65,8 @@ async function battleBuildExtensions(
   combatantId: string,
 ) {
   const authority = battle.snapshot.buildAuthority
-  const legacyTriggers = battle.snapshot.dotTriggerPolicyVersion !== 1
+  const legacyTriggers = battle.snapshot.dotTriggerPolicyVersion === undefined
+  const legacyPoisonMovement = battle.snapshot.dotTriggerPolicyVersion !== 2
   const build = battleBuildAuthorityForCombatant(authority, combatantId)
   const resonanceDefinition = resolveBattleResonanceDefinition(authority, combatantId)
   const essenceDefinition = resolveBattleEssenceDefinition(authority, combatantId)
@@ -114,6 +115,7 @@ async function battleBuildExtensions(
           effectDescriptions: definition.effects.map((effect) =>
             skillEffectDescription(effect, {
               legacyTriggers,
+              legacyPoisonMovement,
               legacyFrozenGround: battle.snapshot.frozenGroundPolicyVersion !== 1,
               legacyAirborne: battle.snapshot.airbornePolicyVersion !== 1,
               legacyHealingDown: battle.snapshot.healingDownPolicyVersion !== 1,
@@ -161,6 +163,7 @@ async function battleBuildExtensions(
           effectDescriptions: essenceDefinition.skill.effects.map((effect) =>
             skillEffectDescription(effect, {
               legacyTriggers,
+              legacyPoisonMovement,
               legacyFrozenGround: battle.snapshot.frozenGroundPolicyVersion !== 1,
               legacyAirborne: battle.snapshot.airbornePolicyVersion !== 1,
               legacyHealingDown: battle.snapshot.healingDownPolicyVersion !== 1,

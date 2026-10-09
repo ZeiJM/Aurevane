@@ -19,7 +19,6 @@ import { FoundationDisciplineSigil } from '@/components/character/foundation-dis
 import { LoadoutHeader } from '@/components/character/loadout-header'
 
 import { skillPreviewEffects } from './skill-effect-preview'
-import { SkillGroundAreaDetails } from './skill-ground-area-details'
 import { skillDisplayName } from './skill-detail-presentation'
 import { ResonanceParameters } from './resonance-parameters'
 import { SkillParameters } from './skill-parameters'
@@ -52,7 +51,6 @@ function EssenceHoverPreview({ essence }: { essence: EssenceDefinition }) {
             </li>
           ))}
         </ul>
-        <SkillGroundAreaDetails skill={skill} />
       </aside>
     </BattleInfoPopover>
   )

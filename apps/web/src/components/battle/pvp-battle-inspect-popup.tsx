@@ -1,5 +1,7 @@
 'use client'
 
+import { SummonAbilityList } from './summon-ability-list'
+
 import type { CharacterPortraitRef } from '@aurevane/game-core/character/creation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
@@ -239,7 +241,7 @@ export function PvpBattleInspectPopup({
     }
 
     function handleEscape(event: KeyboardEvent) {
-      if (event.key === 'Escape') closeInspect()
+      if (event.key === 'Escape' && !event.defaultPrevented) closeInspect()
     }
 
     document.addEventListener('click', handleBattlefieldClick, true)
@@ -395,20 +397,11 @@ export function PvpBattleInspectPopup({
                   {selected.summon.lifetimeTurns} turns remaining.
                 </p>
                 <p>{selected.summon.tags.join(' · ')}</p>
-                <ul>
-                  {selected.summon.abilities.map((ability) => (
-                    <li key={ability.id}>
-                      <strong>
-                        {ability.name}
-                        <b>
-                          {ability.apCost} AP
-                          {ability.mpCost > 0 ? ` · ${ability.mpCost} MP` : ''}
-                        </b>
-                      </strong>
-                      <small>{ability.description}</small>
-                    </li>
-                  ))}
-                </ul>
+                <SummonAbilityList
+                  abilities={selected.summon.abilities}
+                  policies={selected.summon.policies}
+                  airborne={selected.statuses.some((status) => status.statusId === 'airborne')}
+                />
               </section>
             ) : null}
 

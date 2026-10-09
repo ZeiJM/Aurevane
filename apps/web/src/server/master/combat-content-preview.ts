@@ -255,7 +255,7 @@ function previewState(
   const withFixtureState = {
     ...base,
     percentageDotPolicyVersion: 1 as const,
-    dotTriggerPolicyVersion: 1 as const,
+    dotTriggerPolicyVersion: 2 as const,
     skillPacketPolicyVersion: 1 as const,
     groundEffectPolicyVersion: 1 as const,
     frozenGroundPolicyVersion: 1 as const,

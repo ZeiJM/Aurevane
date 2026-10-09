@@ -64,3 +64,29 @@ describe('footer placement preference', () => {
     expect(result.top).toBe(108)
   })
 })
+
+describe('nested inspect reader placement', () => {
+  it('keeps a tall desktop reader to the left of its trigger so hover cannot intercept the click', () => {
+    const anchor = { left: 892, right: 910, top: 383, bottom: 401 }
+    const result = battleInfoPopoverPosition(
+      anchor,
+      { width: 320, height: 460 },
+      { width: 1366, height: 768 },
+      undefined,
+      'beside',
+    )
+    expect(result.left + 320).toBeLessThan(anchor.left)
+    expect(result.top).toBeGreaterThanOrEqual(8)
+  })
+  it('keeps a touch reader within narrow viewport bounds without clipping', () => {
+    expect(
+      battleInfoPopoverPosition(
+        { left: 342, right: 360, top: 383, bottom: 401 },
+        { width: 320, height: 460 },
+        { width: 390, height: 844 },
+        undefined,
+        'beside',
+      ).left,
+    ).toBe(14)
+  })
+})

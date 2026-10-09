@@ -152,40 +152,64 @@ describe('current Poison edge rules', () => {
     expect(reapplied.state.effectState?.poison[0]?.movementRemainder).toBe(0)
   })
 
-  it('Revert relocates without counting Poison movement progress', () => {
-    const initial = encounter()
-    const staged = moveCurrentCombatant(initial.tactical, [
-      { x: 0, y: 0 },
-      { x: 1, y: 0 },
-      { x: 2, y: 0 },
-    ])
-    const displacedWithoutCombatHook: CombatEncounterState = {
-      ...initial,
-      tactical: staged.state,
-      turnOrigin: {
-        combatantId: 'actor',
-        turnNumber: initial.tactical.battle.turnNumber,
-        position: { x: 0, y: 0 },
-      },
-    }
-    expect(actorX(displacedWithoutCombatHook)).toBe(2)
+  it.each([undefined, 2] as const)(
+    'Revert relocates without counting Poison movement progress under policy %s',
+    (policy) => {
+      const base = encounter()
+      const initial: CombatEncounterState =
+        policy === undefined
+          ? base
+          : {
+              ...base,
+              dotTriggerPolicyVersion: policy,
+              percentageDotPolicyVersion: 1,
+              effectState: {
+                ...base.effectState!,
+                poison: base.effectState!.poison.map((row) => ({
+                  ...row,
+                  applicationOrder: 1,
+                  originalDurationTurns: 3,
+                  remainingTicks: 2,
+                  percentageDamage: {
+                    capturedDamage: 100,
+                    profile: { kind: 'attack-percentage', basisPoints: 2000 },
+                  },
+                })),
+              },
+            }
+      const staged = moveCurrentCombatant(initial.tactical, [
+        { x: 0, y: 0 },
+        { x: 1, y: 0 },
+        { x: 2, y: 0 },
+      ])
+      const displacedWithoutCombatHook: CombatEncounterState = {
+        ...initial,
+        tactical: staged.state,
+        turnOrigin: {
+          combatantId: 'actor',
+          turnNumber: initial.tactical.battle.turnNumber,
+          position: { x: 0, y: 0 },
+        },
+      }
+      expect(actorX(displacedWithoutCombatHook)).toBe(2)
 
-    const reverted = executeCombatAction(
-      displacedWithoutCombatHook,
-      selfAction('test.revert', [{ type: 'return-to-turn-start', recipient: 'actor' }]),
-      { kind: 'self' },
-      CONTENT,
-    )
+      const reverted = executeCombatAction(
+        displacedWithoutCombatHook,
+        selfAction('test.revert', [{ type: 'return-to-turn-start', recipient: 'actor' }]),
+        { kind: 'self' },
+        CONTENT,
+      )
 
-    expect(actorX(reverted.state)).toBe(0)
-    expect(reverted.state.effectState?.poison[0]?.movementRemainder).toBe(4)
-    expect(
-      reverted.events.some(
-        (event) =>
-          event.event === 'damage_applied' && event.actionId === 'status.poison.current.v1',
-      ),
-    ).toBe(false)
-  })
+      expect(actorX(reverted.state)).toBe(0)
+      expect(reverted.state.effectState?.poison[0]?.movementRemainder).toBe(4)
+      expect(
+        reverted.events.some(
+          (event) =>
+            event.event === 'damage_applied' && event.actionId === 'status.poison.current.v1',
+        ),
+      ).toBe(false)
+    },
+  )
 
   it('a lethal end-turn Poison tick defeats the outgoing unit and completes the battle cleanly', () => {
     const state = encounter(2)

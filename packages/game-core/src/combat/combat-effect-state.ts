@@ -79,6 +79,8 @@ export interface CombatPoisonInstance {
   /** Current authored Poison may pin bounded power and remaining future turns. */
   damagePerTick?: number
   remainingTicks?: number
+  /** Captured authored duration for percentage Poison movement refresh under trigger policy 2. */
+  originalDurationTurns?: number
   /** Explicit current Curse eligibility; omitted historical Poison remains non-copyable. */
   curseCopyable?: boolean
   provenance?: CombatEffectInstanceProvenance

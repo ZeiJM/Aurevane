@@ -22,6 +22,147 @@ const captured = (capturedDamage = 40, basisPoints = 1500) => ({
 })
 
 describe('percentage DoT application lifetimes', () => {
+  it.each([undefined, 0, 5, 1.5, 1])(
+    'rejects malformed or missing captured original Poison duration %s in policy 2',
+    (originalDurationTurns) => {
+      const initial = applyCurrentPoisonState(
+        { ...percentageDotEncounter(), dotTriggerPolicyVersion: 2 },
+        'actor',
+        'enemy',
+        'first',
+        true,
+        undefined,
+        3,
+        captured(),
+      )
+      const state = {
+        ...initial,
+        effectState: {
+          ...initial.effectState!,
+          poison: initial.effectState!.poison.map((row) => ({ ...row, originalDurationTurns })),
+        },
+      }
+      expect(validateCombatEncounterState(JSON.parse(JSON.stringify(state)))).toEqual(
+        expect.arrayContaining([expect.objectContaining({ field: 'effectState.poison' })]),
+      )
+    },
+  )
+  it.each([
+    {
+      duration: 4,
+      percent: 1000,
+      expectedDuration: 4,
+      expectedPercent: 2000,
+      expectedSource: 'actor',
+      expectedBasis: 40,
+    },
+    {
+      duration: 1,
+      percent: 3000,
+      expectedDuration: 3,
+      expectedPercent: 3000,
+      expectedSource: 'ally',
+      expectedBasis: 20,
+    },
+    {
+      duration: 1,
+      percent: 1000,
+      expectedDuration: 3,
+      expectedPercent: 2000,
+      expectedSource: 'actor',
+      expectedBasis: 40,
+    },
+    {
+      duration: 3,
+      percent: 2000,
+      expectedDuration: 3,
+      expectedPercent: 2000,
+      expectedSource: 'actor',
+      expectedBasis: 40,
+    },
+  ])(
+    'retains independent duration/percentage maxima on v2 reapplication: $duration turns/$percent bp',
+    ({ duration, percent, expectedDuration, expectedPercent, expectedSource, expectedBasis }) => {
+      let state = applyCurrentPoisonState(
+        { ...percentageDotEncounter(), dotTriggerPolicyVersion: 2 },
+        'actor',
+        'enemy',
+        'first',
+        true,
+        undefined,
+        3,
+        captured(40, 2000),
+      )
+      state = advanceCurrentPoisonMovement(
+        advanceCurrentPoisonEndTurn(state, 'enemy'),
+        'enemy',
+        4,
+      ).state
+      state = applyCurrentPoisonState(
+        state,
+        'ally',
+        'enemy',
+        'second',
+        true,
+        undefined,
+        duration,
+        captured(20, percent),
+      )
+      expect(state.effectState!.poison).toHaveLength(1)
+      expect(state.effectState!.poison[0]).toMatchObject({
+        originalDurationTurns: expectedDuration,
+        remainingTicks: expectedDuration,
+        movementRemainder: 0,
+        sourceCombatantId: expectedSource,
+        percentageDamage: captured(expectedBasis, expectedPercent),
+      })
+      state = advanceCurrentPoisonEndTurn(state, 'enemy')
+      const restored = JSON.parse(JSON.stringify(state))
+      expect(validateCombatEncounterState(restored)).toEqual([])
+      const refreshed = advanceCurrentPoisonMovement(restored, 'enemy', 5)
+      expect(refreshed.triggeredTicks).toBe(0)
+      expect(refreshed.state.effectState!.poison[0]!.remainingTicks).toBe(expectedDuration)
+    },
+  )
+  it('copies the captured original duration and counter, then refreshes the copied Poison without damage', () => {
+    let state = applyCurrentPoisonState(
+      { ...percentageDotEncounter(), dotTriggerPolicyVersion: 2 },
+      'actor',
+      'enemy',
+      'first',
+      true,
+      undefined,
+      4,
+      captured(),
+    )
+    state = advanceCurrentPoisonMovement(
+      advanceCurrentPoisonEndTurn(state, 'enemy'),
+      'enemy',
+      4,
+    ).state
+    const copied = applyCombatStatusCopies(
+      state,
+      'enemy',
+      'other',
+      'copy',
+      { type: 'copy-statuses', recipient: 'primary-unit', mode: 'curse' },
+      { statuses: [] },
+    )
+    const receiver = copied.state.effectState!.poison.find(
+      (row) => row.targetCombatantId === 'other',
+    )!
+    expect(receiver).toMatchObject({
+      originalDurationTurns: 4,
+      remainingTicks: 3,
+      movementRemainder: 4,
+    })
+    const refreshed = advanceCurrentPoisonMovement(copied.state, 'other', 1)
+    expect(refreshed.triggeredTicks).toBe(0)
+    expect(
+      refreshed.state.effectState!.poison.find((row) => row.targetCombatantId === 'other')!
+        .remainingTicks,
+    ).toBe(4)
+  })
   it('replaces Poison across sources with a fresh basis, duration and movement counter', () => {
     let state = applyCurrentPoisonState(
       percentageDotEncounter(),

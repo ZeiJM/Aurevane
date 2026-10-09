@@ -83,7 +83,8 @@ export function describeBattleEffect(effect: BattlePresentedStatus) {
   const percentageDescription =
     dot && (effect.percentageDamage || effect.percentageDotProfile)
       ? percentageDotDescription(dot, effect.burnBacklashBasisPoints, {
-          legacyTriggers: effect.dotTriggerPolicyVersion !== 1,
+          legacyTriggers: effect.dotTriggerPolicyVersion === undefined,
+          legacyPoisonMovement: effect.dotTriggerPolicyVersion !== 2,
         })
       : null
   const capturedDescription = effect.percentageDamage

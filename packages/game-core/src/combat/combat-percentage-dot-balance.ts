@@ -106,7 +106,7 @@ function encounter(
     {
       ...base,
       percentageDotPolicyVersion: 1,
-      dotTriggerPolicyVersion: 1,
+      dotTriggerPolicyVersion: 2,
       groundEffectPolicyVersion: 1,
       effectStackingPolicyVersion: 1,
       effectTimingPolicy: defaultCombatEffectTimingPolicy(),

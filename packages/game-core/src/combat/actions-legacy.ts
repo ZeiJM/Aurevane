@@ -471,7 +471,7 @@ export interface CombatEncounterState {
   /** Independent repeated Skill applications; absent snapshots retain shared rolls. */
   skillPacketPolicyVersion?: 1
   nextSkillPacketCommandId?: number
-  dotTriggerPolicyVersion?: 1
+  dotTriggerPolicyVersion?: 1 | 2
   turnTriggerState?: CombatTurnTriggerState
   percentageDotPolicyVersion?: 1
   nextPercentageDotCommandId?: number
@@ -620,6 +620,11 @@ export type CombatResolutionEvent = (
   | SkillCooldownEvent
   | { event: 'combat_action_used'; actionId: string; actorId: string }
   | { event: 'mp_spent'; combatantId: string; amount: number; remaining: number }
+  | {
+      event: 'poison_duration_refreshed'
+      targetCombatantId: string
+      remainingOwnerTurnEnds: number
+    }
   | {
       event: 'damage_applied'
       actionId: string
@@ -1080,7 +1085,7 @@ export function applyCurrentBurnBacklash(
   if (actor.hp <= 0) return { state, events: [] }
   if (burnCount === 0) return { state, events: [] }
   let backlash = BigInt(CURRENT_BURN_BACKLASH_DAMAGE) * BigInt(burnCount)
-  if (state.dotTriggerPolicyVersion === 1) {
+  if (state.dotTriggerPolicyVersion !== undefined) {
     if (!percentageBasis || percentageBasis.hostileDamage <= 0) return { state, events: [] }
     assertNonNegativeSafeInteger(percentageBasis.hostileDamage, 'Burn backlash damage basis')
     assertNonNegativeSafeInteger(percentageBasis.basisPoints, 'Burn backlash percentage')
@@ -1097,7 +1102,7 @@ export function applyCurrentBurnBacklash(
   const damageEvent: CombatResolutionEvent = {
     event: 'damage_applied',
     actionId:
-      state.dotTriggerPolicyVersion === 1
+      state.dotTriggerPolicyVersion !== undefined
         ? 'status.burn.backlash.current.v2'
         : 'status.burn.backlash.current.v1',
     sourceCombatantId: actorId,
@@ -1105,7 +1110,9 @@ export function applyCurrentBurnBacklash(
     amount: actor.hp - hpAfter,
     hpBefore: actor.hp,
     hpAfter,
-    ...(state.dotTriggerPolicyVersion === 1 ? { damageTrigger: 'burn-backlash' as const } : {}),
+    ...(state.dotTriggerPolicyVersion !== undefined
+      ? { damageTrigger: 'burn-backlash' as const }
+      : {}),
   }
   if (hpAfter === 0) {
     const defeated = defeatCurrentCombatant(battleForEffectStacking(state), actorId)
@@ -1661,7 +1668,7 @@ export function endCombatTurn(
     throw new Error('End Turn requires an active battle.')
   }
 
-  if (state.dotTriggerPolicyVersion === 1 || state.turnTriggerState)
+  if (state.dotTriggerPolicyVersion !== undefined || state.turnTriggerState)
     state = prepareCombatTurnTriggers(state)
   const outgoingId = state.tactical.battle.currentTurn!.combatantId
   const outgoing = getCombatant(state.tactical.battle, outgoingId)
@@ -1725,7 +1732,7 @@ export function endCombatTurn(
   const nextActorId = nextState.tactical.battle.currentTurn?.combatantId
 
   if (nextActorId) {
-    if (nextState.dotTriggerPolicyVersion === 1 || nextState.turnTriggerState)
+    if (nextState.dotTriggerPolicyVersion !== undefined || nextState.turnTriggerState)
       nextState = prepareCombatTurnTriggers(nextState)
     const expiration = expireOwnerTurnStartStatuses(nextState, nextActorId, content)
     nextState = expiration.state
@@ -3241,7 +3248,12 @@ function settlePercentageDotApplications(
   for (const [index, entry] of pending.entries()) {
     if (skillPacketCommandId !== undefined && entry.skillPacketCommandId !== skillPacketCommandId)
       continue
-    if (!isPercentageDotEffect(entry.effect) || entry.effect.type === 'bleed') continue
+    if (
+      !isPercentageDotEffect(entry.effect) ||
+      entry.effect.type === 'bleed' ||
+      (state.dotTriggerPolicyVersion === 2 && entry.effect.type === 'poison')
+    )
+      continue
     const command = commands.get(entry.percentageDotCommandId!)
     if (!command || command.outstandingDamageEffectOrdinals.length || !living.has(entry.actorId))
       continue
@@ -4172,7 +4184,9 @@ function resolveCurrentEndOfTurnDots(
       ...(state.effectTimingPolicy || state.effectStackingPolicyVersion === 1
         ? { statusId, sourceActionId }
         : {}),
-      ...(state.dotTriggerPolicyVersion === 1 ? { damageTrigger: 'scheduled-tick' as const } : {}),
+      ...(state.dotTriggerPolicyVersion !== undefined
+        ? { damageTrigger: 'scheduled-tick' as const }
+        : {}),
     })
     if (hpAfter < target.hp) {
       const revealed = removeGameplayTags(
@@ -5241,7 +5255,20 @@ function resolvePoisonMovementStep(
 ): CombatResolutionTransition {
   const poison = currentPoisonInstance(state, combatantId)
   const advanced = advanceCurrentPoisonMovement(state, combatantId, 1)
-  if (!poison || advanced.triggeredTicks === 0) return { state: advanced.state, events: [] }
+  if (!poison || advanced.triggeredTicks === 0)
+    return {
+      state: advanced.state,
+      events:
+        advanced.refreshedDurationTurns === undefined
+          ? []
+          : [
+              {
+                event: 'poison_duration_refreshed',
+                targetCombatantId: combatantId,
+                remainingOwnerTurnEnds: advanced.refreshedDurationTurns,
+              },
+            ],
+    }
 
   let nextState = advanced.state
   const events: CombatResolutionEvent[] = []
@@ -5271,7 +5298,7 @@ function resolvePoisonMovementStep(
         amount: target.hp - hpAfter,
         hpBefore: target.hp,
         hpAfter,
-        ...(state.dotTriggerPolicyVersion === 1
+        ...(state.dotTriggerPolicyVersion !== undefined
           ? { damageTrigger: 'poison-movement' as const }
           : {}),
       })

@@ -367,6 +367,13 @@ function outcome(entry: BattleLogEntry, names: ChronicleNames): ChronicleOutcome
         ...(entry.statusId ? { statusId: entry.statusId, duration: duration(entry) } : {}),
       }
     }
+    case 'poison_duration_refreshed':
+      return {
+        ...base,
+        text: `${target}'s Poison duration reset to ${value.turns} turns after five traversed tiles`,
+        tone: 'harm',
+        statusId: 'poison',
+      }
     case 'damage_applied': {
       const cause =
         entry.damageTrigger === 'burn-backlash' ||

@@ -25,6 +25,21 @@ const rows = [
 ] as const
 
 describe('shared percentage DoT readers', () => {
+  it('distinguishes current Poison duration refresh from capped and uncapped historical movement damage', () => {
+    const effect = resolveMatureSkillVersion('wildwarden.venom-shot')!.effects.find(
+      (row) => row.type === 'poison',
+    )!
+    const current = previewEffect(effect).explanation!
+    expect(current).toContain('reset its remaining duration')
+    expect(current).toContain('greater authored percentage and original duration independently')
+    expect(current).toContain('without extra damage')
+    expect(previewEffect(effect, { legacyPoisonMovement: true }).explanation).toContain(
+      'at most once per turn',
+    )
+    expect(
+      previewEffect(effect, { legacyPoisonMovement: true, legacyTriggers: true }).explanation,
+    ).toContain('cause an extra tick')
+  })
   it.each(rows)('reads %s from its immutable percentage profile', (id, bracket) => {
     const skill = resolveMatureSkillVersion(id)!
     const effect = skill.effects.find(

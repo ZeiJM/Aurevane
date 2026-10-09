@@ -124,7 +124,7 @@ export function combatEffectTimingMode(
 }
 export type CombatEffectPresentationStatus = CombatStatusInstance & {
   recoveryApplications?: number
-  dotTriggerPolicyVersion?: 1
+  dotTriggerPolicyVersion?: 1 | 2
   burnBacklashBasisPoints?: number
   percentageDamage?: CapturedPercentageDotDamage
   percentageDotProfile?: AttackPercentageDotProfile
@@ -193,7 +193,9 @@ export function pendingCombatStatusRows(
       combatantId,
       status: {
         statusId,
-        ...(state.dotTriggerPolicyVersion === 1 ? { dotTriggerPolicyVersion: 1 as const } : {}),
+        ...(state.dotTriggerPolicyVersion !== undefined
+          ? { dotTriggerPolicyVersion: state.dotTriggerPolicyVersion }
+          : {}),
         ...(effect.type === 'burn' && effect.backlashBasisPoints !== undefined
           ? { burnBacklashBasisPoints: effect.backlashBasisPoints }
           : {}),
@@ -292,7 +294,9 @@ export function activePersistentCombatStatusRows(
       combatantId,
       status: {
         statusId,
-        ...(state.dotTriggerPolicyVersion === 1 ? { dotTriggerPolicyVersion: 1 as const } : {}),
+        ...(state.dotTriggerPolicyVersion !== undefined
+          ? { dotTriggerPolicyVersion: state.dotTriggerPolicyVersion }
+          : {}),
         ...(burnBacklashBasisPoints !== undefined ? { burnBacklashBasisPoints } : {}),
         statusVersion: 1,
         stacks: 1,

@@ -480,6 +480,9 @@ export function applyCombatStatusCopies(
     ...(independent && copy.donor.remainingTicks !== undefined
       ? { remainingTicks: copy.donor.remainingTicks }
       : {}),
+    ...(copy.donor.originalDurationTurns !== undefined
+      ? { originalDurationTurns: copy.donor.originalDurationTurns }
+      : {}),
     curseCopyable: true,
   }))
   const nextBurns: CombatBurnInstance[] = burns.map((copy) => ({

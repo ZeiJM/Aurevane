@@ -11,6 +11,37 @@ const USER_ID = '11111111-1111-4111-8111-111111111111'
 const SESSION_ID = '33333333-3333-4333-8333-333333333333'
 
 describe('sanitized battle log service', () => {
+  it('describes recorded Poison movement as a duration refresh without claiming damage', () => {
+    const view = buildBattleLogView(SESSION_ID, [
+      {
+        battleVersion: 2,
+        eventIndex: 0,
+        createdAt: '2026-10-09T00:00:00Z',
+        event: {
+          event: 'poison_duration_refreshed',
+          targetCombatantId: 'recruit:weon',
+          remainingOwnerTurnEnds: 4,
+        },
+      },
+    ])
+    expect(view.entries[0]).toMatchObject({
+      eventType: 'poison_duration_refreshed',
+      headline: 'Poison duration refreshed',
+      templateValues: { turns: '4' },
+    })
+    const chronicle = buildBattleChronicle(view.entries, {
+      combatantNames: { 'recruit:weon': 'Weon' },
+    })
+    const narration = chronicle.flatMap((round) =>
+      round.actors.flatMap((actor) =>
+        actor.actions.flatMap((action) => action.outcomes.map((outcome) => outcome.text)),
+      ),
+    )
+    expect(narration).toContain(
+      "Weon's Poison duration reset to 4 turns after five traversed tiles",
+    )
+    expect(JSON.stringify(view)).not.toContain('damage_applied')
+  })
   it.each([true, false, 'true', undefined])(
     'shows only a confirmed critical result: %s',
     (critical) => {

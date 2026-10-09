@@ -609,6 +609,29 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
         tone: 'benefit',
       })
     }
+    case 'poison_duration_refreshed': {
+      const targetCombatantId = stringValue(event.targetCombatantId)
+      const turns = numberValue(event.remainingOwnerTurnEnds)
+      if (
+        !targetCombatantId ||
+        turns === null ||
+        !Number.isSafeInteger(turns) ||
+        turns < 1 ||
+        turns > 4
+      )
+        return null
+      return createEntry(record, eventType, {
+        messageTemplate:
+          "{target}'s Poison duration reset to {turns} turns after five traversed tiles.",
+        templateValues: { turns: String(turns) },
+        targetCombatantId,
+        statusId: 'poison',
+        kind: 'status',
+        headline: 'Poison duration refreshed',
+        tone: 'warning',
+        facts: fact(`${turns} turns`),
+      })
+    }
     case 'damage_applied': {
       const actorCombatantId = stringValue(event.sourceCombatantId)
       const targetCombatantId = stringValue(event.targetCombatantId)

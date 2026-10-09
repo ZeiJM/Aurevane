@@ -14,8 +14,9 @@ export function SkillGroundAreaDetails({ skill }: { skill: MatureSkillDefinition
     combatEffectTimingMode(timingPolicy ?? undefined, 'ground-area'),
   )
   return (
-    <p aria-label="Ground area rules">
-      <strong>Ground area</strong> — {description.replace(/^Ground: /u, '')}
-    </p>
+    <small aria-label="Ground area rules" title={description} style={{ display: 'block' }}>
+      {skill.groundArea.durationRounds} rounds · {description.match(/starting [^.]+/u)?.[0]} · Entry
+      applies effects once per character’s turn.
+    </small>
   )
 }

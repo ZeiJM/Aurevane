@@ -219,7 +219,15 @@ try {
       const area = report.getByLabel('Ground area rules', { exact: true })
       assert.equal(await area.count(), 1)
       assert.ok((await area.textContent()).includes('starting next round'))
-      assert.ok((await area.textContent()).includes('Each cast has its own allowance'))
+      assert.ok(
+        (await area.textContent()).includes('Entry applies effects once per character’s turn'),
+      )
+      assert.equal(
+        await area.evaluate(
+          (element) => element.closest('dd')?.previousElementSibling?.textContent,
+        ),
+        'Target',
+      )
       const box = await report.boundingBox()
       assert.ok(box.x >= 0 && box.x + box.width <= viewport.width + 1)
       if (surface === 'Battle') {

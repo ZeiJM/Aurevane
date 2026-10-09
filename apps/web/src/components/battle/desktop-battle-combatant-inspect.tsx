@@ -1,5 +1,7 @@
 'use client'
 
+import { SummonAbilityList } from './summon-ability-list'
+
 import type { CharacterPortraitRef } from '@aurevane/game-core/character/creation'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
@@ -336,7 +338,7 @@ export function DesktopBattleCombatantInspect({
     }
 
     function handleEscape(event: KeyboardEvent) {
-      if (event.key === 'Escape') closeInspect()
+      if (event.key === 'Escape' && !event.defaultPrevented) closeInspect()
     }
 
     document.addEventListener('click', handleClick, true)
@@ -513,20 +515,11 @@ export function DesktopBattleCombatantInspect({
                     <span key={tag}>{tag}</span>
                   ))}
                 </div>
-                <div className={styles.summonAbilities}>
-                  {selected.summon.abilities.map((ability) => (
-                    <article key={ability.id}>
-                      <div>
-                        <strong>{ability.name}</strong>
-                        <span>
-                          {ability.apCost} AP
-                          {ability.mpCost > 0 ? ` · ${ability.mpCost} MP` : ''}
-                        </span>
-                      </div>
-                      <p>{ability.description}</p>
-                    </article>
-                  ))}
-                </div>
+                <SummonAbilityList
+                  abilities={selected.summon.abilities}
+                  policies={selected.summon.policies}
+                  airborne={selected.statuses.some((status) => status.statusId === 'airborne')}
+                />
               </section>
             ) : null}
 

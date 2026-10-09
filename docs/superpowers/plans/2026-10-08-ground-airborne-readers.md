@@ -47,9 +47,18 @@ Files: shared character Skill/Resonance reports; battle preview, terrain summary
 
 - [x] Add separately editable per-Skill Blindside side/rear percentages, captured per application; verify preview/commit, reapplication/restore, Copy Buffs, malformed metadata and responsive Master inputs.
 
+### Follow-ups: summon inspection, legal AI and Poison refresh
+
+- [x] Reproduce summon/Recruit resolution failure; prune departed summon turn-trigger records atomically, preserve legal filters, test exhausted AI turn completion.
+- [x] Share pinned ten-row summon ability cards and ! hover/tap details across desktop/mobile PvE/PvP/spectators; nested dialog layering and Escape ordering; read inspected snapshot policies.
+- [x] Move condensed Ground delivery notes into Target, remove bottom Ground entry and preserve authored effect explanations.
+- [x] Implement Poison policy2 duration refresh and independent maxima; preserve old policies, copying/pending/restore and no extra movement damage.
+- [x] Complete combined gate/review including all follow-ups: 4,522 Vitest tests plus seven Node checks, formatting/lint/types/build.
+- [ ] Complete exact-head release including all follow-ups.
+
 ### Task 3: Verified release
 
-- [ ] Refresh Main; publish exact local tree as stacked candidate without disturbing the arrow-only CI.
+- [x] Refresh Main and publish the exact local tree. Prior editable-only native candidate835d353cdfa742f866a5f90298a63dca86c7cc57 matches local34a9f7dc485059c94af659c259f6a0fecdf1f4f4, tree d745e4dce965047e9f009598267690d4d41e36df. PR852 includes the editable Blindside follow-up.
 - [ ] Require all applicable exact-head workflows, merge and apply verified additive timing migration.
 - [ ] Deploy verified merged SHA, check canonical alias/HTTP/bounded logs, record evidence and provide Owner checklist.
 

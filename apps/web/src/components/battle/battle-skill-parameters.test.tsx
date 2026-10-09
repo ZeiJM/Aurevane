@@ -39,9 +39,15 @@ describe('cockpit Skill Parameters', () => {
     expect(effects).toContain('<strong>Chilled</strong>')
     expect(effects).not.toContain('<strong>Ground</strong>')
     expect(effects).not.toContain('Each cast has its own allowance')
-    expect(markup).toContain('<p aria-label="Ground area rules"><strong>Ground area</strong>')
+    expect(markup).toMatch(
+      /<dt>Target<\/dt><dd>[\s\S]*?aria-label="Ground area rules"[\s\S]*?<\/dd>/,
+    )
+    expect(markup).not.toContain('<strong>Ground area</strong>')
+    expect(markup.indexOf('aria-label="Ground area rules"')).toBeLessThan(
+      markup.indexOf('aria-label="Effect explanations"'),
+    )
     expect(markup).toContain(timing)
-    expect(markup.match(/Each cast has its own allowance/g)).toHaveLength(1)
+    expect(markup).toContain('Entry applies effects once per character’s turn')
     expect(JSON.stringify(definition)).toBe(before)
   })
   it.each(['cinderweaver.cinder-bolt', 'wildwarden.venom-shot'])(

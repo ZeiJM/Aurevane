@@ -334,7 +334,7 @@ describe('P3.7 direct PvP committed build snapshots', () => {
       expect(state.statBalancePolicyVersion).toBe(1)
       expect(state.effectStackingPolicyVersion).toBe(1)
       expect(state.percentageDotPolicyVersion).toBe(1)
-      expect(state.dotTriggerPolicyVersion).toBe(1)
+      expect(state.dotTriggerPolicyVersion).toBe(2)
       expect(state.groundEffectPolicyVersion).toBe(1)
       expect(state.frozenGroundPolicyVersion).toBe(1)
       expect(state.airbornePolicyVersion).toBe(1)

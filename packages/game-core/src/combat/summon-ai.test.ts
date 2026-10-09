@@ -8,8 +8,10 @@ import { spawnCombatSummon } from './combat-summons'
 import {
   executePv1fMovement,
   executePv1fSummonAbility,
+  finishPv1fTurn,
   preparePv1fTurnEconomy,
   readPv1fActionEconomy,
+  spendPv1fActionEconomy,
 } from './pv1f-action-economy'
 import { chooseSummonAiDecision, type SummonAiDecision } from './summon-ai'
 import {
@@ -228,6 +230,22 @@ function chosenAbility(decision: SummonAiDecision): string | null {
 }
 
 describe('Combat v5.1 summon AI', () => {
+  it('finishes its turn deterministically when no ability or movement is affordable', () => {
+    const active = summonTurn(20)
+    const state = spendPv1fActionEconomy(active.state, 85)
+    const input = { state, summon: active.summon, tieBreakSeed: 45 }
+    const decision = chooseSummonAiDecision(input)
+    expect(chooseSummonAiDecision(input)).toEqual(decision)
+    expect(decision.intent.kind).toBe('face')
+    if (decision.intent.kind !== 'face') throw new Error('Expected final facing to end the turn.')
+    const finished = finishPv1fTurn(state, decision.intent.facing)
+    expect(finished.state.tactical.battle.currentTurn?.combatantId).toBe('player')
+    expect(finished.events).not.toContainEqual(
+      expect.objectContaining({ event: 'summon_ability_used' }),
+    )
+    expect(finished.state.effectState?.summons?.[0]?.turnsCompleted).toBe(1)
+  })
+
   it('chooses healing over damage when a friendly target is meaningfully injured', () => {
     const { state, summon } = summonTurn(20)
     const decision = chooseSummonAiDecision({ state, summon, tieBreakSeed: 17 })

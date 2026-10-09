@@ -15,18 +15,18 @@ const GroundInteractionContext = createContext({
   legacyHealingDown: false,
 })
 export const AirborneAttackElevationContext = createContext(false)
-const DotTriggerContext = createContext<1 | null>(1)
+const DotTriggerContext = createContext<1 | 2 | null>(2)
 
 export function SkillEffectTimingProvider({
   policy,
-  dotTriggerPolicyVersion = 1,
+  dotTriggerPolicyVersion = 2,
   frozenGroundPolicyVersion = 1,
   airbornePolicyVersion = 1,
   healingDownPolicyVersion = 1,
   children,
 }: {
   policy: SkillEffectTimingPolicy
-  dotTriggerPolicyVersion?: 1 | null
+  dotTriggerPolicyVersion?: 1 | 2 | null
   frozenGroundPolicyVersion?: 1 | null
   airbornePolicyVersion?: 1 | null
   healingDownPolicyVersion?: 1 | null
@@ -52,7 +52,7 @@ export function SkillEffectTimingProvider({
 export function useSkillEffectTimingPolicy(): SkillEffectTimingPolicy {
   return useContext(TimingContext)
 }
-export function useSkillDotTriggerPolicyVersion(): 1 | null {
+export function useSkillDotTriggerPolicyVersion(): 1 | 2 | null {
   return useContext(DotTriggerContext)
 }
 

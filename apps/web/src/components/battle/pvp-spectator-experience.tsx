@@ -13,7 +13,10 @@ import { buildDisplayedPlacementByTile } from './battle-geometry'
 import { BattleVersusEmblem } from './battle-versus-emblem'
 import { BattleLogPanel } from './battle-log-panel'
 import { BattleChronicleHeading } from './battle-chronicle-heading'
-import type { BattlePresentationParticipant } from './battle-runtime'
+import {
+  battlePresentationParticipantMap,
+  type BattlePresentationParticipant,
+} from './battle-runtime'
 
 import { terrainOverlayAt } from '@aurevane/game-core/combat/terrain-overlays'
 import { PV1F_MOVEMENT_COST_PER_TERRAIN_POINT } from '@aurevane/game-core/combat/pv1f-skills'
@@ -26,7 +29,7 @@ import { DesktopBattleCombatantInspect } from '@/components/battle/desktop-battl
 import { PvpBattleChat } from '@/components/battle/pvp-battle-chat'
 import { CharacterPortraitImage } from '@/components/character/character-portrait-image'
 import { getStarterPortraitImageAssetId } from '@/media/character'
-import type { PvpBattleParticipantView, PvpSpectatorView } from '@/server/battle/pvp-lobby-service'
+import type { PvpSpectatorView } from '@/server/battle/pvp-lobby-service'
 
 import styles from './pvp-spectator-experience.module.css'
 
@@ -55,11 +58,11 @@ function teamName(teamIndex: number): string {
 }
 
 function participantName(
-  participants: ReadonlyMap<string, PvpBattleParticipantView>,
+  participants: ReadonlyMap<string, BattlePresentationParticipant>,
   combatantId: string | null | undefined,
 ): string {
   if (!combatantId) return 'Awaiting next activation'
-  return participants.get(combatantId)?.characterName ?? 'Unknown combatant'
+  return participants.get(combatantId)?.name ?? 'Unknown combatant'
 }
 
 function terrainPresentation(terrainId: string): 'rough' | 'open' {
@@ -121,6 +124,7 @@ export function PvpSpectatorExperience({
     () => ({ participants: spectator.participants }),
     [spectator.participants],
   )
+  const presentationByCombatant = battlePresentationParticipantMap(battle, presentationParticipants)
   const placementByTile = useMemo(() => buildDisplayedPlacementByTile(tactical), [tactical])
   const activeCombatantId = battleState.currentTurn?.combatantId ?? null
   const activeParticipant = activeCombatantId
@@ -391,7 +395,7 @@ export function PvpSpectatorExperience({
             >
               <div>
                 <span>Battlefield</span>
-                <strong>{participantName(participantByCombatant, activeCombatantId)}</strong>
+                <strong>{participantName(presentationByCombatant, activeCombatantId)}</strong>
               </div>
               <small>Read-only tactical view</small>
             </div>
@@ -405,7 +409,7 @@ export function PvpSpectatorExperience({
                   const key = positionKey(tile.position)
                   const placement = placementByTile.get(key)
                   const participant = placement
-                    ? participantByCombatant.get(placement.combatantId)
+                    ? presentationByCombatant.get(placement.combatantId)
                     : undefined
                   const combatant = placement
                     ? battleState.combatants.find(
@@ -437,7 +441,7 @@ export function PvpSpectatorExperience({
                           setSelectedCombatantId(placement.combatantId)
                         if (inspectMode) setSelectedPosition({ ...tile.position })
                       }}
-                      aria-label={`Tile ${x}, ${y}; ${tile.terrainId}; elevation ${tile.elevation}${participant ? `; occupied by ${participant.characterName}` : ''}${overlay ? `; ${terrainOverlayDescription(overlay)}` : ''}`}
+                      aria-label={`Tile ${x}, ${y}; ${tile.terrainId}; elevation ${tile.elevation}${participant ? `; occupied by ${participant.name}` : ''}${overlay ? `; ${terrainOverlayDescription(overlay)}` : ''}`}
                       aria-pressed={selected}
                     >
                       <BattleGroundAreaLayer
@@ -477,17 +481,21 @@ export function PvpSpectatorExperience({
                           data-active={placement.combatantId === activeCombatantId || undefined}
                           data-defeated={combatant?.hp === 0 || undefined}
                           data-desktop-inspect-combatant={placement.combatantId}
-                          title={`${participant.characterName} · ${teamName(participant.teamIndex)}`}
+                          title={`${participant.name} · ${teamName(participant.teamIndex)}`}
                         >
-                          <CharacterPortraitImage
-                            imageUrl={participant.profileImageUrl}
-                            fallbackAssetId={getStarterPortraitImageAssetId(
-                              participant.portraitRef as CharacterPortraitRef,
-                            )}
-                            className={styles.unitPortrait}
-                            sizes="64px"
-                            alt=""
-                          />
+                          {participant.portraitAssetId ? (
+                            <CharacterPortraitImage
+                              imageUrl={participant.profileImageUrl}
+                              fallbackAssetId={participant.portraitAssetId}
+                              className={styles.unitPortrait}
+                              sizes="64px"
+                              alt=""
+                            />
+                          ) : (
+                            <span className={styles.summonPortrait} aria-hidden="true">
+                              {participant.name.charAt(0).toUpperCase()}
+                            </span>
+                          )}
                         </span>
                       ) : null}
                     </button>

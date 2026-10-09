@@ -46,6 +46,7 @@ export function skillEffectDescription(
   effect: MatureSkillEffectDefinition,
   options: {
     legacyTriggers?: boolean
+    legacyPoisonMovement?: boolean
     legacyFrozenGround?: boolean
     legacyAirborne?: boolean
     legacyHealingDown?: boolean

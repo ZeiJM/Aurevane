@@ -744,6 +744,9 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                                   ) : (
                                     'N/A'
                                   )}
+                                  {label === 'Target' ? (
+                                    <SkillGroundAreaDetails skill={focusedSkill.definition} />
+                                  ) : null}
                                 </dd>
                               </div>
                             ))}
@@ -758,7 +761,6 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                               </li>
                             ))}
                           </ul>
-                          <SkillGroundAreaDetails skill={focusedSkill.definition} />
                         </>
                       ) : (
                         <p>No Technique is available for this build.</p>

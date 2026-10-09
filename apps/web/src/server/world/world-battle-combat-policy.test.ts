@@ -108,7 +108,7 @@ it('persists current combat policies and configured heights for a new world enco
   expect(saved!.battlefieldElevationPolicy).toEqual(policy)
   expect(saved!.effectTimingPolicy).toEqual({ version: 3, modes: { burn: 'instant' } })
   expect(saved!.percentageDotPolicyVersion).toBe(1)
-  expect(saved!.dotTriggerPolicyVersion).toBe(1)
+  expect(saved!.dotTriggerPolicyVersion).toBe(2)
   expect(saved!.groundEffectPolicyVersion).toBe(1)
   expect(saved!.effectStackingPolicyVersion).toBe(1)
   expect(saved!.tactical.tiles.some((tile) => tile.elevation > 0)).toBe(true)

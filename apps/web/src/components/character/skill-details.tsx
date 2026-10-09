@@ -23,7 +23,9 @@ function SkillDetailBody({ skill }: { skill: MatureSkillDefinition }) {
   const timingPolicy = useSkillEffectTimingPolicy()
   const groundRules = useSkillGroundInteractionRules()
   const airborneAttackElevation = useAirborneAttackElevation()
-  const legacyTriggers = useSkillDotTriggerPolicyVersion() === null
+  const dotTriggerPolicyVersion = useSkillDotTriggerPolicyVersion()
+  const legacyTriggers = dotTriggerPolicyVersion === null
+  const legacyPoisonMovement = dotTriggerPolicyVersion !== 2
   return (
     <>
       <dl>
@@ -33,6 +35,7 @@ function SkillDetailBody({ skill }: { skill: MatureSkillDefinition }) {
             airborneAttackElevation,
           })}
           targetMethodExplanation={skillTargetMethodExplanation(skill)}
+          targetDetails={<SkillGroundAreaDetails skill={skill} />}
         />
         {skill.overrides.pvp?.apCost !== undefined &&
         skill.overrides.pvp.apCost !== skill.apCost ? (
@@ -54,13 +57,14 @@ function SkillDetailBody({ skill }: { skill: MatureSkillDefinition }) {
       </dl>
       <strong>Effects</strong>
       <ol>
-        {skillPreviewEffects(skill, { legacyTriggers, ...groundRules }).map((effect, index) => (
-          <li key={index}>
-            <strong>{effect.label}</strong> — {effect.explanation}
-          </li>
-        ))}
+        {skillPreviewEffects(skill, { legacyTriggers, legacyPoisonMovement, ...groundRules }).map(
+          (effect, index) => (
+            <li key={index}>
+              <strong>{effect.label}</strong> — {effect.explanation}
+            </li>
+          ),
+        )}
       </ol>
-      <SkillGroundAreaDetails skill={skill} />
       {skill.requirements.length ? (
         <>
           <strong>Requirements</strong>

@@ -344,7 +344,7 @@ export function validateCurrentPercentageDotAuthoring(
 export function percentageDotDescription(
   type: 'burn' | 'poison' | 'bleed',
   backlashBasisPoints = 1000,
-  options: { legacyTriggers?: boolean } = {},
+  options: { legacyTriggers?: boolean; legacyPoisonMovement?: boolean } = {},
 ): string {
   const basis =
     'Each tick uses the displayed percentage of HP damage dealt by that attack, rounded down.'
@@ -354,6 +354,8 @@ export function percentageDotDescription(
     return `${basis} Only one Poison can be active on a recipient; reapplication replaces it, restarts its duration and resets movement progress. Every five traversed tiles, including Push or Pull, cause an extra tick without consuming a turn-end tick. Partial movement carries between turns; instantaneous relocation does not count.`
   if (type === 'burn')
     return `${basis} Only one Burn can be active on a recipient; reapplication replaces it and restarts its duration and decay. Each later tick loses the authored percentage-point decay. Once per turn, a burning unit takes backlash equal to ${percentageBasisPointsText(backlashBasisPoints)}% of the actual HP damage its own attack deals to enemies, rounded down. Multi-hit damage is summed once; misses and friendly damage do not trigger backlash. Reapplication or Copy does not renew this allowance.`
+  if (type === 'poison' && !options.legacyPoisonMovement)
+    return `${basis} Poison ticks once at the affected turn end. Only one Poison can be active; reapplication retains the greater authored percentage and original duration independently, restarts that full duration and resets movement progress. Every five accumulated traversed tiles, including Push or Pull, reset its remaining duration to the recorded full duration without extra damage. Partial movement carries between turns; each further five tiles can refresh it again. Instantaneous relocation does not count.`
   if (type === 'poison')
     return `${basis} Only one Poison can be active on a recipient; reapplication replaces it, restarts its duration and resets movement progress. After five traversed tiles, including Push or Pull, Poison causes one extra tick, at most once per turn, without consuming a turn-end tick. Partial movement carries between turns; excess five-tile thresholds do not bank extra ticks. Reapplication or Copy does not renew this allowance. Instantaneous relocation does not count.`
   return `${basis} Each Bleed application retains its own captured attack damage and duration. Applications tick independently with no stack limit.`
