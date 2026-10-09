@@ -43,7 +43,7 @@ Files: shared character Skill/Resonance reports; battle preview, terrain summary
 - [x] Append Blindside versions for all five positional Skills and expose one-turn Instant authoring/readers.
 - [x] Verify expiry, persistent Ground settlement, defeat cleanup, history and Master conversions; resolve independent review findings.
 - [x] Complete combined full gate including editable Blindside (4,484 Vitest tests, seven Node checks, format/lint/types/build).
-- [ ] Complete exact-head release.
+- [x] Complete exact-head release: PR #852 merged after all 17 workflows; hosted additive timing migration and explicit Production deployment verified.
 
 - [x] Add separately editable per-Skill Blindside side/rear percentages, captured per application; verify preview/commit, reapplication/restore, Copy Buffs, malformed metadata and responsive Master inputs.
 
@@ -54,14 +54,16 @@ Files: shared character Skill/Resonance reports; battle preview, terrain summary
 - [x] Move condensed Ground delivery notes into Target, remove bottom Ground entry and preserve authored effect explanations.
 - [x] Implement Poison policy2 duration refresh and independent maxima; preserve old policies, copying/pending/restore and no extra movement damage.
 - [x] Complete combined gate/review including all follow-ups: 4,522 Vitest tests plus seven Node checks, formatting/lint/types/build.
-- [ ] Complete exact-head release including all follow-ups.
+- [x] Complete exact-head release including all follow-ups; see final release receipt.
 
 ### Task 3: Verified release
 
 - [x] Refresh Main and publish the exact local tree. Prior editable-only native candidate835d353cdfa742f866a5f90298a63dca86c7cc57 matches local34a9f7dc485059c94af659c259f6a0fecdf1f4f4, tree d745e4dce965047e9f009598267690d4d41e36df. PR852 includes the editable Blindside follow-up.
-- [ ] Require all applicable exact-head workflows, merge and apply verified additive timing migration.
-- [ ] Deploy verified merged SHA, check canonical alias/HTTP/bounded logs, record evidence and provide Owner checklist.
+- [x] Require all applicable exact-head workflows, merge and apply verified additive timing migration.
+- [x] Deploy verified merged SHA, check canonical alias/HTTP/bounded logs, record evidence and provide Owner checklist.
 
 ## Execution ledger
 
 Tasks 1–2 implementation and local verification complete: full check passes 4,437 Vitest tests plus seven Node checks; review fix passes 109 focused mechanics/percentage tests. Native release follows existing Owner authorization. Ruling: preserve absent-policy historical Displaced mechanics and old Ground/Airborne limits while retiring current authoring and markers — protects saved encounters; fresh encounters receive the approved rules.
+
+Final release: October8/9 Owner follow-ups are released for testing through PR #852, merge `e68c1b66e8608b13ef791ce592920a6b6b0fe69c`. All 17 exact-head workflows passed for `4c79a8cb22cd2deea423d8cecf73ea99337ef9c0`; the merged tree `f02000544256ccb476afe51d4b62c9b9abe5de77` matches the final local verification (4,522 Vitest tests plus seven Node checks, formatting/lint/eight-package types/build). Production `dpl_Bf3k5k72q9XMW96n1DTBxCWvxQv3` is READY at https://aurevane.vercel.app since `2026-10-09T03:40:43.703Z`. The additive Push/Pull/Blindside timing migration preserves all six published policy versions and service-only grants; no new security-advisor groups were introduced. Seven public-route checks return HTTP 200, and the bounded initial runtime window shows no warning/error/fatal entries. Fresh battles pin the new policies, including Poison2; historical encounters retain their recorded rules. Human gameplay acceptance remains the Owner checklist in `docs/verification/2026-10-08-ground-airborne-readers.md`. Automatic Git deployments remain locked and this release implies no phase change.
