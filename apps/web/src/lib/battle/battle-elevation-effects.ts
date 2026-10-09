@@ -4,6 +4,7 @@ import type { CombatEffectPresentationStatus } from '@aurevane/game-core/combat/
 export type BattlePresentedStatus = CombatEffectPresentationStatus & {
   airbornePolicyVersion?: 1
   healingDownPolicyVersion?: 1
+  blindsideActivationPolicyVersion?: 1
   presentationDuration?: 'while-elevated'
 }
 

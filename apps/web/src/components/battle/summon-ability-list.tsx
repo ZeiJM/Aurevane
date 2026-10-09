@@ -87,6 +87,23 @@ function SummonAbilityDetails({ ability }: { ability: SummonAbilityDefinition })
   )
 }
 
+/** Complete pinned report used inside the summon ability information popout. */
+export function SummonAbilityReader({
+  ability,
+  airborne = false,
+}: {
+  ability: SummonAbilityDefinition
+  airborne?: boolean
+}) {
+  return (
+    <>
+      <strong>Parameters</strong>
+      <SummonAbilityParameters ability={ability} airborne={airborne} />
+      <SummonAbilityDetails ability={ability} />
+    </>
+  )
+}
+
 export function SummonAbilityList({
   abilities,
   airborne = false,
@@ -103,6 +120,7 @@ export function SummonAbilityList({
       frozenGroundPolicyVersion={policies.frozenGroundPolicyVersion ?? null}
       airbornePolicyVersion={policies.airbornePolicyVersion ?? null}
       healingDownPolicyVersion={policies.healingDownPolicyVersion ?? null}
+      blindsideActivationPolicyVersion={policies.blindsideActivationPolicyVersion ?? null}
     >
       <div className={styles.list} aria-label="Summon abilities">
         {abilities.map((ability) => (
@@ -118,13 +136,9 @@ export function SummonAbilityList({
                 consumeOutsideClick
                 layer="inspect"
               >
-                <strong>Parameters</strong>
-                <SummonAbilityParameters ability={ability} airborne={airborne} />
-                <SummonAbilityDetails ability={ability} />
+                <SummonAbilityReader ability={ability} airborne={airborne} />
               </BattleInfoPopover>
             </header>
-            <p>{ability.description}</p>
-            <SummonAbilityParameters ability={ability} airborne={airborne} />
           </article>
         ))}
       </div>

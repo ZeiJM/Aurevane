@@ -28,5 +28,17 @@ export function groupSkillEffects<Effect extends MatureSkillEffectDefinition>(
       groups.push({ effect, count: 1, firstIndex })
     }
   })
-  return groups
+  // Display Damage before Blindside; retain original indices for descriptions/authoring.
+  // The engine still executes its immutable authored sequence, applying the buff before the hit.
+  const blindside = groups.filter(
+    ({ effect }) => effect.type === 'apply-status' && effect.statusId === 'blindside',
+  )
+  const damage = groups.filter(({ effect }) => effect.type === 'damage')
+  return blindside.length && damage.length
+    ? [
+        ...damage,
+        ...blindside,
+        ...groups.filter((group) => !damage.includes(group) && !blindside.includes(group)),
+      ]
+    : groups
 }

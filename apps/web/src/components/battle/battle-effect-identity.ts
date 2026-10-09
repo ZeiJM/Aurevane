@@ -95,7 +95,7 @@ export function describeBattleEffect(effect: BattlePresentedStatus) {
     description:
       (percentageDescription ??
         (effect.statusId === 'blindside'
-          ? blindsideStatusDescription(effect)
+          ? blindsideStatusDescription(effect, effect.blindsideActivationPolicyVersion !== 1)
           : effect.statusId === 'airborne' && effect.airbornePolicyVersion !== 1
             ? 'Ignore the Frozen Ground AP surcharge. Board bounds, elevation, obstacles, occupancy, Rooted and Movement allowance still apply.'
             : statusPotencyDescription(effect.statusId, effect.potencyBasisPoints, {

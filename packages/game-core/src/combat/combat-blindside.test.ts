@@ -1,3 +1,4 @@
+import { executeCombatAction as executeLegacyCombatAction } from './actions-legacy'
 import { expect, it } from 'vitest'
 import {
   applyCurrentBurnBacklash,
@@ -355,6 +356,127 @@ it.each(['burn-backlash', 'forced-defeat'] as const)(
     expect(result.state.tactical.battle.combatants[0]!.hp).toBe(0)
     expect(result.state.tactical.battle.currentTurn?.combatantId).not.toBe('actor')
     expect(result.state.statusState[0]!.statuses).not.toContainEqual(
+      expect.objectContaining({ statusId: 'blindside' }),
+    )
+  },
+)
+
+it.each([
+  ['west', 20, false],
+  ['north', 32, true],
+  ['east', 44, true],
+] as const)(
+  'new encounters grant Blindside only on a qualifying %s hit',
+  (facing, damage, active) => {
+    const state = { ...faced(facing), blindsideActivationPolicyVersion: 1 as const }
+    const preview = evaluateCombatAction(state, action, selection, content)
+    expect(preview.projectedEffects.some((effect) => effect.effectType === 'apply-status')).toBe(
+      active,
+    )
+    const result = executeCombatAction(state, action, selection, content)
+    expect(result.events).toContainEqual(
+      expect.objectContaining({ event: 'damage_applied', amount: damage }),
+    )
+    expect(
+      result.events.some(
+        (event) => event.event === 'status_applied' && event.statusId === 'blindside',
+      ),
+    ).toBe(active)
+    expect(
+      result.state.statusState[0]!.statuses.some((status) => status.statusId === 'blindside'),
+    ).toBe(active)
+    const restored = JSON.parse(JSON.stringify(result.state)) as CombatEncounterState
+    expect(restored.blindsideActivationPolicyVersion).toBe(1)
+    expect(validateCombatEncounterState(restored)).toEqual([])
+  },
+)
+
+it('a missed flank, a front cast and an authored 100% flank do not grant or refresh Blindside', () => {
+  const flank = { ...faced('east'), blindsideActivationPolicyVersion: 1 as const }
+  const missed = executeLegacyCombatAction(
+    flank,
+    action,
+    selection,
+    content,
+    undefined,
+    new Set(['enemy']),
+  )
+  expect(missed.events.some((event) => event.event === 'status_applied')).toBe(false)
+  expect(missed.state.statusState[0]!.statuses).toEqual([])
+  const neutral = {
+    ...action,
+    effects: [
+      { ...customBlindsideEffect, blindsideModifiersBasisPoints: { side: 10000, rear: 10000 } },
+      action.effects[1]!,
+    ],
+  }
+  expect(
+    executeCombatAction(flank, neutral, selection, content).state.statusState[0]!.statuses,
+  ).toEqual([])
+  const buffed = executeCombatAction(flank, action, selection, content).state
+  const front = {
+    ...buffed,
+    tactical: {
+      ...buffed.tactical,
+      placements: buffed.tactical.placements.map((row) =>
+        row.combatantId === 'enemy' ? { ...row, facing: 'west' as const } : row,
+      ),
+    },
+  }
+  const repeated = executeCombatAction(front, action, selection, content)
+  expect(repeated.events.some((event) => event.event === 'status_applied')).toBe(false)
+  expect(repeated.state.statusState).toEqual(buffed.statusState)
+})
+
+it('a missed damage packet cannot grant Blindside through an independent actor packet', () => {
+  const state = { ...faced('east'), blindsideActivationPolicyVersion: 1 as const }
+  const result = executeLegacyCombatAction(
+    state,
+    action,
+    selection,
+    content,
+    undefined,
+    new Set(),
+    undefined,
+    new Map([['enemy', new Set([1])]]),
+  )
+  expect(result.events.some((event) => event.event === 'status_applied')).toBe(false)
+  expect(result.state.statusState[0]!.statuses).toEqual([])
+})
+
+it.each(['next-round', 'delayed'] as const)(
+  'retains an earned %s Blindside application through restore and activation',
+  (mode) => {
+    let state = executeCombatAction(
+      {
+        ...faced('east'),
+        blindsideActivationPolicyVersion: 1,
+        effectTimingPolicy: { version: 3, modes: { blindside: mode } },
+      },
+      action,
+      selection,
+      content,
+    ).state
+    expect(
+      state.pendingEffects?.some(
+        (pending) =>
+          pending.effect.type === 'apply-status' && pending.effect.statusId === 'blindside',
+      ),
+    ).toBe(true)
+    state = JSON.parse(JSON.stringify(state)) as CombatEncounterState
+    const events = []
+    while (state.tactical.battle.round < (mode === 'delayed' ? 3 : 2)) {
+      const result = endCombatTurn(
+        { ...state, tactical: selectCurrentFinalFacing(state.tactical, 'west').state },
+        content,
+      )
+      state = result.state
+      events.push(...result.events)
+    }
+    expect(events).toContainEqual(
+      expect.objectContaining({ event: 'status_applied', statusId: 'blindside' }),
+    )
+    expect(state.statusState[0]!.statuses).toContainEqual(
       expect.objectContaining({ statusId: 'blindside' }),
     )
   },

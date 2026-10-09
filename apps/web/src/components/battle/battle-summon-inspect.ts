@@ -11,6 +11,7 @@ export interface BattleSummonInspectMetadata {
     | 'frozenGroundPolicyVersion'
     | 'airbornePolicyVersion'
     | 'healingDownPolicyVersion'
+    | 'blindsideActivationPolicyVersion'
   >
   readonly profileId: string
   readonly name: string
@@ -45,6 +46,7 @@ export function readSummonInspectMetadata(
       frozenGroundPolicyVersion: snapshot.frozenGroundPolicyVersion,
       airbornePolicyVersion: snapshot.airbornePolicyVersion,
       healingDownPolicyVersion: snapshot.healingDownPolicyVersion,
+      blindsideActivationPolicyVersion: snapshot.blindsideActivationPolicyVersion,
     },
     profileId: summon.profile.id,
     name: summon.profile.name,

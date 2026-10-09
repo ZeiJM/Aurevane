@@ -49,6 +49,7 @@ export interface BattleLogEntry {
   damageTrigger?: 'burn-backlash' | 'poison-movement' | 'scheduled-tick'
   effectTimingState?: 'pending'
   actorNarrator?: BattleNarratorIdentitySnapshot
+  targetNarrator?: BattleNarratorIdentitySnapshot
   occurredAt: string
   eventType: string
   message: string
@@ -607,6 +608,21 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
         kind: 'status',
         headline: 'Summon',
         tone: 'benefit',
+      })
+    }
+    case 'summon_expired':
+    case 'summon_defeated': {
+      const combatantId = stringValue(event.combatantId)
+      if (!combatantId) return null
+      const expired = eventType === 'summon_expired'
+      return createEntry(record, eventType, {
+        messageTemplate: expired
+          ? '{actor} faded as the summon duration ended.'
+          : '{actor} was dispelled after being defeated.',
+        actorCombatantId: combatantId,
+        kind: 'status',
+        headline: expired ? 'Summon expired' : 'Summon dispelled',
+        tone: 'neutral',
       })
     }
     case 'poison_duration_refreshed': {

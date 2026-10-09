@@ -303,6 +303,9 @@ export function BattleExperience(props: {
       frozenGroundPolicyVersion={props.initialBattle.snapshot.frozenGroundPolicyVersion ?? null}
       airbornePolicyVersion={props.initialBattle.snapshot.airbornePolicyVersion ?? null}
       healingDownPolicyVersion={props.initialBattle.snapshot.healingDownPolicyVersion ?? null}
+      blindsideActivationPolicyVersion={
+        props.initialBattle.snapshot.blindsideActivationPolicyVersion ?? null
+      }
     >
       <BattleExperienceContent {...props} />
     </SkillEffectTimingProvider>

@@ -530,8 +530,9 @@ export function buildBattleChronicle(
     const actorIdentity = narrator?.actor ?? entry.actorNarrator
     if (entry.actorCombatantId && actorIdentity?.name)
       pinnedNames.set(entry.actorCombatantId, actorIdentity.name)
-    if (entry.targetCombatantId && narrator?.target?.name)
-      pinnedNames.set(entry.targetCombatantId, narrator.target.name)
+    const targetIdentity = narrator?.target ?? entry.targetNarrator
+    if (entry.targetCombatantId && targetIdentity?.name)
+      pinnedNames.set(entry.targetCombatantId, targetIdentity.name)
   }
   names = {
     ...names,

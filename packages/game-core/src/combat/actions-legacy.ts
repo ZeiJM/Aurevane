@@ -463,6 +463,8 @@ export interface CombatEncounterState {
   airbornePolicyVersion?: 1
   /** New encounters: Healing Down reduces HP and MP recovery equally. */
   healingDownPolicyVersion?: 1
+  /** New encounters: grant Blindside only for a damaging flank hit above 100%. */
+  blindsideActivationPolicyVersion?: 1
   groundEffectPolicyVersion?: 1
   nextGroundAreaId?: number
   groundAreas?: readonly CombatGroundAreaInstance[]
@@ -1857,6 +1859,7 @@ export function validateCombatEncounterState(
     'airbornePolicyVersion',
     'displacementPolicyVersion',
     'healingDownPolicyVersion',
+    'blindsideActivationPolicyVersion',
   ] as const) {
     if (state[field] !== undefined && state[field] !== 1)
       issues.push({ field, message: 'Unsupported pinned combat interaction policy.' })
@@ -2680,6 +2683,48 @@ function resolveActionEffects(
         groundPercentageEffects.push({ effect, ordinal: effectOrdinal })
         continue
       }
+      if (
+        !resolvingPending &&
+        state.blindsideActivationPolicyVersion === 1 &&
+        effect.type === 'apply-status' &&
+        effect.statusId === 'blindside' &&
+        effect.recipient === 'actor' &&
+        !action.effects.some(
+          (hit, hitOrdinal) =>
+            hit.type === 'damage' &&
+            hit.amount > 0 &&
+            resolveEffectRecipients(
+              actorId,
+              primaryCombatantId,
+              affectedCombatantIds,
+              hit.recipient,
+            ).some((targetId) => {
+              if (
+                targetId === actorId ||
+                missedCombatantIds?.has(targetId) ||
+                resistedEffectOrdinalsByTarget?.get(targetId)?.has(hitOrdinal) ||
+                airborneGroundMiss(nextState, action, targetId, content)
+              )
+                return false
+              const actor = getCombatant(nextState.tactical.battle, actorId)
+              const target = getCombatant(nextState.tactical.battle, targetId)
+              if (target.hp <= 0 || actor.teamId === target.teamId) return false
+              const source = getPlacement(nextState.tactical, actorId)
+              const placement = getPlacement(nextState.tactical, targetId)
+              const relation = classifyFacingRelation(
+                placement.position,
+                placement.facing,
+                source.position,
+              )
+              return (
+                relation !== 'front' &&
+                (effect.blindsideModifiersBasisPoints ?? DEFAULT_BLINDSIDE_MODIFIERS)[relation] >
+                  10000
+              )
+            }),
+        )
+      )
+        continue
       if (effect.type === 'sensory') {
         throw new TypeError('Sensory must be materialized before legacy effect resolution.')
       }

@@ -1,3 +1,4 @@
+import { groupSkillEffects } from './skill-effect-groups'
 import {
   isPercentageDotEffect,
   percentageDotDescription,
@@ -104,6 +105,7 @@ export function previewEffect(
     legacyFrozenGround?: boolean
     legacyAirborne?: boolean
     legacyHealingDown?: boolean
+    legacyBlindsideActivation?: boolean
   } = {},
 ): PreviewEffect {
   const target =
@@ -164,7 +166,10 @@ export function previewEffect(
       if (effect.statusId === 'blindside')
         return {
           label: 'Blindside',
-          explanation: blindsideDamageDescription(effect.blindsideModifiersBasisPoints),
+          explanation: blindsideDamageDescription(
+            effect.blindsideModifiersBasisPoints,
+            options.legacyBlindsideActivation,
+          ),
         }
       return effect.statusId === 'airborne' && options.legacyAirborne
         ? {
@@ -273,11 +278,12 @@ export function skillPreviewEffects(
     legacyFrozenGround?: boolean
     legacyAirborne?: boolean
     legacyHealingDown?: boolean
+    legacyBlindsideActivation?: boolean
   } = {},
 ): readonly PreviewEffect[] {
   const seen = new Set<string>()
-  return skill.effects
-    .map((effect, index) => {
+  return groupSkillEffects(skill.effects, skill.effectDescriptions)
+    .map(({ effect, firstIndex: index }) => {
       const entry = previewEffect(effect, options)
       const override = skill.effectDescriptions?.[index]?.trim()
       return override ? { ...entry, explanation: override } : entry

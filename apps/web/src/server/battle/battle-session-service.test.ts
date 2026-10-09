@@ -384,6 +384,7 @@ describe('P2.4 battle session service', () => {
     expect(result.snapshot.frozenGroundPolicyVersion).toBe(1)
     expect(result.snapshot.airbornePolicyVersion).toBe(1)
     expect(result.snapshot.healingDownPolicyVersion).toBe(1)
+    expect(result.snapshot.blindsideActivationPolicyVersion).toBe(1)
     expect(result.snapshot.displacementPolicyVersion).toBe(1)
     const player = persistedSnapshot.tactical.battle.combatants.find(
       (combatant) => combatant.id === `character:${CHARACTER_ID}`,

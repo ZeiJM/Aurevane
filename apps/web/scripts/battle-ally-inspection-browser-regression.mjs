@@ -407,20 +407,17 @@ try {
         2,
         'Both pinned summon abilities use standard characteristics',
       )
+      assert.deepEqual(await cards.locator('strong').allTextContents(), [
+        'Thorn Rake',
+        'Verdant Mend',
+      ])
       for (const card of await cards.all()) {
-        assert.deepEqual(await card.locator('dt').allTextContents(), [
-          'Skill Type',
-          'Cost',
-          'Cooldown',
-          'Requirements',
-          'Effects',
-          'Range',
-          'Target',
-          'Target Method',
-          'Target Elevation',
-          'Line of Sight',
-        ])
-        assert.match(await card.innerText(), /45 AP/)
+        assert.equal(
+          await card.locator('dt, dd, p').count(),
+          0,
+          'Parameters and prose live only in the information popout',
+        )
+        assert.equal(await card.getByRole('button').textContent(), '!')
       }
       const trigger = parent.getByRole('button', { name: 'About Thorn Rake', exact: true })
       assert.equal(await trigger.textContent(), '!')
@@ -428,7 +425,19 @@ try {
       else await trigger.hover()
       const reader = page.getByRole('dialog', { name: 'Thorn Rake', exact: true })
       await reader.waitFor()
-      assert.equal(await reader.locator('dt').count(), 10)
+      assert.deepEqual(await reader.locator('dt').allTextContents(), [
+        'Skill Type',
+        'Cost',
+        'Cooldown',
+        'Requirements',
+        'Effects',
+        'Range',
+        'Target',
+        'Target Method',
+        'Target Elevation',
+        'Line of Sight',
+      ])
+      assert.match(await reader.innerText(), /45 AP/)
       assert.match(await reader.innerText(), /Skill power ranges from 1 to 20/)
       assert.equal(
         await reader.evaluate((panel) => {

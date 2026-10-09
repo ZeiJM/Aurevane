@@ -109,8 +109,16 @@ function combatantName(
 export function renderBattleLogEntry(entry: BattleLogEntry, options: PresentationOptions): string {
   const values: Readonly<Record<string, string>> = {
     ...entry.templateValues,
-    actor: combatantName(entry.actorCombatantId, options) ?? 'Combatant',
-    target: combatantName(entry.targetCombatantId, options) ?? 'Combatant',
+    actor:
+      entry.actionContext?.narrator?.actor.name ??
+      entry.actorNarrator?.name ??
+      combatantName(entry.actorCombatantId, options) ??
+      'Combatant',
+    target:
+      entry.actionContext?.narrator?.target?.name ??
+      entry.targetNarrator?.name ??
+      combatantName(entry.targetCombatantId, options) ??
+      'Combatant',
   }
 
   return entry.messageTemplate

@@ -58,6 +58,7 @@ export function projectBattleStatusStateForViewer(
     | 'pendingSummons'
     | 'airbornePolicyVersion'
     | 'healingDownPolicyVersion'
+    | 'blindsideActivationPolicyVersion'
     | 'dotTriggerPolicyVersion'
     | 'skillPacketPolicyVersion'
   >,
@@ -69,6 +70,9 @@ export function projectBattleStatusStateForViewer(
 
   const presentInteractionPolicy = (status: BattlePresentedStatus): BattlePresentedStatus => ({
     ...status,
+    ...(status.statusId === 'blindside' && state.blindsideActivationPolicyVersion === 1
+      ? { blindsideActivationPolicyVersion: 1 as const }
+      : {}),
     ...(status.statusId === 'airborne' && state.airbornePolicyVersion === 1
       ? { airbornePolicyVersion: 1 as const }
       : {}),

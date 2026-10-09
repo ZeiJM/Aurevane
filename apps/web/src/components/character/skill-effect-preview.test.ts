@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
+import { resolveEssenceForBuild } from '@aurevane/game-core/combat/essence'
+import { latestEnabledMatureSkills } from '@aurevane/game-core/combat/mature-skills'
 import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
 import { previewEffect, skillPreviewEffects } from './skill-effect-preview'
-import { skillEffectDescription } from './skill-detail-presentation'
+import { skillEffectDescription, skillEffectSummaries } from './skill-detail-presentation'
 
 it('describes the granting Skill’s authored Blindside side and rear percentages', () => {
   const effect = {
@@ -87,9 +89,9 @@ describe('compact Technique explanations', () => {
         .explanation,
     ).toContain('minimum of 10 AP')
     const current = resolveMatureSkillVersion('shadehand.backstab')!
-    expect(skillPreviewEffects(current)[0].explanation).toContain(
-      '160% from the side and 220% from the rear',
-    )
+    expect(
+      skillPreviewEffects(current).find((effect) => effect.label === 'Blindside')!.explanation,
+    ).toContain('160% from the side and 220% from the rear')
     expect(
       skillPreviewEffects(
         resolveMatureSkillVersion('shadehand.backstab', current.contentVersion - 1)!,
@@ -163,4 +165,24 @@ it('Healing Down Skill readers explain both resources and respect historical bat
     magnitude: '−14% healing',
     explanation: 'Receive 14% less healing.',
   })
+})
+
+it('shows Damage before Blindside for every granting Skill without mutating execution order', () => {
+  const skills = [
+    ...latestEnabledMatureSkills(),
+    resolveEssenceForBuild('shadehand', null)!.skill,
+  ].filter((skill) =>
+    skill.effects.some(
+      (effect) => effect.type === 'apply-status' && effect.statusId === 'blindside',
+    ),
+  )
+  expect(skills.length).toBeGreaterThanOrEqual(5)
+  for (const skill of skills) {
+    const before = JSON.stringify(skill)
+    expect(skillEffectSummaries(skill)[0]).toMatch(/Dmg/)
+    expect(skillEffectSummaries(skill)[1]).toMatch(/Blindside/)
+    expect(skillPreviewEffects(skill)[0]?.label).toMatch(/Dmg/)
+    expect(skillPreviewEffects(skill)[1]?.label).toBe('Blindside')
+    expect(JSON.stringify(skill)).toBe(before)
+  }
 })

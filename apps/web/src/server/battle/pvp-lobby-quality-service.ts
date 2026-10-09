@@ -367,6 +367,7 @@ export async function startPvpLobbyWithQuality(
   encounter.frozenGroundPolicyVersion = 1
   encounter.airbornePolicyVersion = 1
   encounter.healingDownPolicyVersion = 1
+  encounter.blindsideActivationPolicyVersion = 1
   encounter.groundEffectPolicyVersion = 1
   const battle = encounter.tactical.battle
   const supabase = createSupabaseAdminClient()
