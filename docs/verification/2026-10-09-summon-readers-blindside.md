@@ -1,6 +1,6 @@
 # October9 summon readers and Blindside verification
 
-Status: summon/Blindside/targeting/Airborne Jump/Ground copy scope locally verified and reviewed. PR854 is open; not yet merged or deployed.
+Status: Released for testing through PR #854, merge `dedb3d52876b494aaa7bafa916e42d7a5a7ad5b8`; production `dpl_4cv2DhwMGceW5jv6dwCk7Ct5AdSN` is READY at https://aurevane.vercel.app. See [final release evidence](2026-10-09-combat-release.md). Human acceptance remains pending. The details below retain their historical local verification checkpoints.
 
 BaseMain: `8b7646ff7b3143c915fb13e8c3f943b6c8521634`. Isolated branch `agent/summon-compact-chronicle-20261009`. Existing Owner automatic release authorization covers these continuation requests. The Vercel Git deployment lock is unchanged. No database/SMTP work is needed.
 

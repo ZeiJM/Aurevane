@@ -1,8 +1,8 @@
 # October 9 Owner testing checklist
 
-Release status: pending combined verification and deployment. This checklist describes expected behavior after the release; it does not claim human acceptance.
+Release status: Released for testing through PR #854, merge `dedb3d52876b494aaa7bafa916e42d7a5a7ad5b8`; production `dpl_4cv2DhwMGceW5jv6dwCk7Ct5AdSN` is READY at https://aurevane.vercel.app. See [final release evidence](2026-10-09-combat-release.md). Human acceptance remains pending.
 
-Open https://aurevane.vercel.app after the release is confirmed, refresh the page, and start a **new battle**. Existing battles keep their saved rules. Try the key checks on your usual desktop and phone.
+Open https://aurevane.vercel.app, refresh the page, and start a **new battle**. Existing battles keep their saved rules. Try the key checks on your usual desktop and phone.
 
 1. **Fire and mist.** Become Chilled, then use a Fire damage Skill: your Chilled clears when the legal cast commits. Aim Fire at an empty Frozen Ground tile: it becomes animated mist and keeps the ice's original expiry time. Fire can also target an enemy. A rejected cast must not clear Chilled.
 2. **Ice and facing.** Hit an enemy with Ice damage: Chilled appears. During that enemy's turn, another final-facing direction is unavailable; ending in the current direction still works. Once Chilled ends or is cleansed, final-facing choices return.
@@ -11,8 +11,10 @@ Open https://aurevane.vercel.app after the release is confirmed, refresh the pag
 5. **Suppress in Master.** Suppress is available for authoring; it has not been added to existing Skills. Add it to a draft, choose 25% and two turns, and inspect its ! reader and preview. It should show percentages, not ordinary damage power. At 100%, outgoing direct damage is zero while already applied Burn, Poison and Bleed retain their captured ticks. A newly applied percentage DoT still uses actual HP damage dealt as its basis, so zero direct HP loss supplies no positive basis. Reapplication keeps the strongest percentage and longest remaining lifetime; Cleanse removes it and Dispel does not.
 6. **Airborne and heights.** While Airborne, Jump is 3 and Attack Skills have Target Elevation 3. Ground-targeted Skills miss the holder. When Airborne ends on raised ground, a character with low normal Jump can cross a level plateau and descend, paying ordinary movement costs.
 7. **Range glows and Ground text.** Select Single, Line, Circle, All and Ground Skills: the full potential footprint is visible, including empty tiles. Cancel clears the glow. After Push or Pull, the enemy's old tile has no leftover target border. Ground inspection and logs keep short names and rounds without listing every tile or repeating team/Airborne rules.
-8. **Summons and Blindside.** Inspect Verdant Stalker: each ability shows only its name and !; hover or tap ! for all ten characteristics. Defeat or expiry is named in the Chronicle and copied log. Blindside Skills list Damage first. Front and 100% hits do not activate Blindside; qualifying side/rear hits do, and the buff expires at the holder's turn end.
+8. **Summons and Blindside.** Inspect Verdant Stalker: each ability shows only its name and !; hover or tap ! for all ten characteristics. Defeat or expiry is named in the Chronicle and copied log. When a summon has no legal move or action, it ends its turn instead of attempting an illegal command. Blindside Skills list Damage first. Front and 100% hits do not activate Blindside; qualifying side/rear hits do, and the buff expires at the holder's turn end.
 9. **Recovery and Poison.** Compare HP and MP recovery with and without Healing Down. Use a stronger debuff or a larger MP restore to make the reduction visible; a small restore can round to the same displayed amount. Poison ticks once per affected turn; travelling five tiles, including Push/Pull, refreshes its captured duration without an extra movement tick. Reapplication retains the strongest percentage and longest original duration.
+
+10. **Battle exits.** Start AI practice with zero, one and two allies. Surrender ends the whole practice team as a loss; rematch starts normally, and Abort ends that practice battle. No server error or extra turn should appear.
 
 If something fails, record the Skill name, round, whether the battle was newly started, and what happened versus what you expected. The copied battle log is useful alongside a screenshot.
 
