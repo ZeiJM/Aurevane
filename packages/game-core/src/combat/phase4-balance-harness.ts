@@ -1,4 +1,5 @@
 import { percentageRecoveryAmount } from './combat-percentage-recovery'
+import { DEFAULT_BLINDSIDE_MODIFIERS } from './combat-blindside'
 import { estimatedPercentageDotTotal } from './combat-percentage-dot-roster'
 import { ADVANCED_DISCIPLINES } from '../character/advanced-disciplines'
 import {
@@ -306,21 +307,27 @@ function skillMetric(
     const authoredScaling = 'scaling' in effect ? effect.scaling : undefined
     const raw = calculateScaledRawDamage(effect.amount, authoredScaling ?? scaling, power)
     const mitigated = mitigateDamageByDefense(raw, PHASE4_BALANCE_TARGET_DEFENSE)
-    const hasBlindside = definition.effects.some(
+    const blindside = definition.effects.find(
       (effect) =>
         effect.type === 'apply-status' &&
         effect.statusId === 'blindside' &&
         effect.recipient === 'actor',
     )
-    const facingMultiplier = hasBlindside
-      ? 22000
-      : effect.facingModifiersBasisPoints
+    const facingMultiplier =
+      blindside?.type === 'apply-status'
         ? Math.max(
-            effect.facingModifiersBasisPoints.front,
-            effect.facingModifiersBasisPoints.side,
-            effect.facingModifiersBasisPoints.rear,
+            10000,
+            ...Object.values(
+              blindside.blindsideModifiersBasisPoints ?? DEFAULT_BLINDSIDE_MODIFIERS,
+            ),
           )
-        : 10_000
+        : effect.facingModifiersBasisPoints
+          ? Math.max(
+              effect.facingModifiersBasisPoints.front,
+              effect.facingModifiersBasisPoints.side,
+              effect.facingModifiersBasisPoints.rear,
+            )
+          : 10_000
     return total + Math.floor((mitigated * facingMultiplier) / 10_000)
   }, 0)
   const attritionDamage = definition.effects.reduce((total, effect) => {

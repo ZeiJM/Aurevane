@@ -6,6 +6,7 @@ import {
 import { COMBAT_TERRAIN_OVERLAY_DETAILS } from '@aurevane/game-core/combat/terrain-overlays'
 import { PV1F_COMBAT_CONTENT } from '@aurevane/game-core/combat/pv1f-action-economy'
 import { combatStatusDetails } from '@aurevane/game-core/combat/status-content'
+import { blindsideDamageDescription } from '@aurevane/game-core/combat/combat-blindside'
 import {
   CURRENT_BURN_DAMAGE_BY_STAGE,
   CURRENT_POISON_DAMAGE,
@@ -159,6 +160,11 @@ export function previewEffect(
             : `Restores MP to ${target}${effect.ticks && effect.ticks > 1 ? ` per application, ${effect.ticks} times (first when the effect activates)` : ''}.`,
       }
     case 'apply-status':
+      if (effect.statusId === 'blindside')
+        return {
+          label: 'Blindside',
+          explanation: blindsideDamageDescription(effect.blindsideModifiersBasisPoints),
+        }
       return effect.statusId === 'airborne' && options.legacyAirborne
         ? {
             label: 'Airborne',

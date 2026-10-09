@@ -2,6 +2,20 @@ import { describe, expect, it } from 'vitest'
 
 import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
 import { previewEffect, skillPreviewEffects } from './skill-effect-preview'
+import { skillEffectDescription } from './skill-detail-presentation'
+
+it('describes the granting Skill’s authored Blindside side and rear percentages', () => {
+  const effect = {
+    type: 'apply-status' as const,
+    recipient: 'actor' as const,
+    statusId: 'blindside',
+    stacks: 1,
+    durationTurns: 1,
+    blindsideModifiersBasisPoints: { side: 17550, rear: 25000 },
+  }
+  expect(previewEffect(effect).explanation).toContain('175.5% from the side and 250% from the rear')
+  expect(skillEffectDescription(effect)).toContain('175.5% from the side and 250% from the rear')
+})
 
 describe('compact Technique explanations', () => {
   it.each(['bastion.steady-footing', 'frostweaver.thaw', 'stormsinger.grounding'])(

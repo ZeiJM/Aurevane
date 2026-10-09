@@ -317,6 +317,9 @@ export function planCombatStatusCopies(
         ...(donor.sourceScopedMark === true ? { sourceScopedMark: true as const } : {}),
         statusId: donor.statusId,
         statusVersion: donor.statusVersion,
+        ...(donor.blindsideModifiersBasisPoints === undefined
+          ? {}
+          : { blindsideModifiersBasisPoints: { ...donor.blindsideModifiersBasisPoints } }),
         stacks,
         ...(usesUnlimitedCombatEffectStacking(state)
           ? {

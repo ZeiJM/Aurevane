@@ -5,6 +5,7 @@ import {
   evaluateCombatAction,
   executeCombatAction,
   endCombatTurn,
+  validateCombatEncounterState,
   type CombatActionDefinition,
   type CombatEncounterState,
 } from './actions'
@@ -17,6 +18,7 @@ import {
   toCombatActionDefinition,
 } from './mature-skills'
 import { PV1F_COMBAT_CONTENT } from './pv1f-action-economy'
+import { validateCombatActionDefinition } from './combat-authoring-validation'
 
 const content = PV1F_COMBAT_CONTENT
 const selection = { kind: 'unit' as const, combatantId: 'enemy' }
@@ -61,6 +63,139 @@ function faced(facing: 'west' | 'north' | 'east'): CombatEncounterState {
     },
   }
 }
+const customBlindsideEffect = {
+  type: 'apply-status' as const,
+  recipient: 'actor' as const,
+  statusId: 'blindside',
+  stacks: 1,
+  durationTurns: 1,
+  blindsideModifiersBasisPoints: { side: 17500, rear: 25000 },
+}
+const customBlindside = {
+  ...action,
+  effects: [customBlindsideEffect, action.effects[1]!],
+}
+it.each([
+  ['west', 20],
+  ['north', 35],
+  ['east', 50],
+] as const)(
+  'uses the Skill-authored Blindside values for %s in preview and committed damage',
+  (facing, amount) => {
+    const state = faced(facing)
+    expect(
+      evaluateCombatAction(state, customBlindside, selection, content).projectedEffects,
+    ).toContainEqual({
+      effectType: 'damage',
+      combatantId: 'enemy',
+      before: 1000,
+      after: 1000 - amount,
+    })
+    const result = executeCombatAction(state, customBlindside, selection, content)
+    expect(result.events).toContainEqual(
+      expect.objectContaining({ event: 'damage_applied', amount }),
+    )
+    expect(result.state.statusState[0]!.statuses[0]).toMatchObject({
+      blindsideModifiersBasisPoints: { side: 17500, rear: 25000 },
+    })
+  },
+)
+it('preserves independently authored Blindside applications after reapplication and restore', () => {
+  const initial = { ...faced('east'), effectStackingPolicyVersion: 1 as const }
+  const first = executeCombatAction(initial, customBlindside, selection, content).state
+  const next = {
+    ...customBlindside,
+    effects: [
+      {
+        ...customBlindsideEffect,
+        blindsideModifiersBasisPoints: { side: 12500, rear: 18000 },
+      },
+    ],
+  }
+  const second = executeCombatAction(first, next, selection, content).state
+  const restored = JSON.parse(JSON.stringify(second)) as CombatEncounterState
+  const hit = executeCombatAction(
+    restored,
+    { ...action, effects: [action.effects[1]!] },
+    selection,
+    content,
+  )
+  expect(hit.events).toContainEqual(
+    expect.objectContaining({ event: 'damage_applied', amount: 90 }),
+  )
+  expect(restored.statusState[0]!.statuses[0]!.applicationModifiers).toEqual([
+    expect.objectContaining({ blindsideModifiersBasisPoints: { side: 17500, rear: 25000 } }),
+    expect.objectContaining({ blindsideModifiersBasisPoints: { side: 12500, rear: 18000 } }),
+  ])
+})
+it.each([undefined, 1] as const)(
+  'Copy Buffs preserves the granting Skill’s Blindside values with stacking policy %s',
+  (effectStackingPolicyVersion) => {
+    const initial = {
+      ...faced('east'),
+      ...(effectStackingPolicyVersion === undefined ? {} : { effectStackingPolicyVersion }),
+      effectTimingPolicy: {
+        version: 1,
+        modes: { 'copy-statuses': 'instant' as const, copy: 'instant' as const },
+      },
+    }
+    const granted = executeCombatAction(
+      initial,
+      {
+        ...action,
+        effects: [{ ...customBlindsideEffect, recipient: 'primary-unit' as const }],
+      },
+      selection,
+      content,
+    ).state
+    const copied = executeCombatAction(
+      granted,
+      {
+        ...action,
+        effects: [{ type: 'copy-statuses', recipient: 'primary-unit', mode: 'amplify' }],
+      },
+      selection,
+      content,
+    ).state
+    const result = executeCombatAction(
+      copied,
+      { ...action, effects: [action.effects[1]!] },
+      selection,
+      content,
+    )
+    expect(result.events).toContainEqual(
+      expect.objectContaining({ event: 'damage_applied', amount: 50 }),
+    )
+  },
+)
+it.each([
+  { side: 9999, rear: 22000 },
+  { side: 16000.5, rear: 22000 },
+  { side: 16000, rear: Number.NaN },
+])('rejects invalid authored Blindside percentages %j', (modifiers) => {
+  expect(() =>
+    validateCombatActionDefinition({
+      ...customBlindside,
+      effects: [{ ...customBlindsideEffect, blindsideModifiersBasisPoints: modifiers }],
+    }),
+  ).toThrow(/Blindside/)
+})
+it.each(['status', 'application'] as const)(
+  'rejects malformed restored Blindside %s metadata',
+  (location) => {
+    const result = executeCombatAction(
+      { ...faced('east'), effectStackingPolicyVersion: 1 },
+      customBlindside,
+      selection,
+      content,
+    )
+    const restored = JSON.parse(JSON.stringify(result.state))
+    const status = restored.statusState[0].statuses[0]
+    const row = location === 'status' ? status : status.applicationModifiers[0]
+    row.blindsideModifiersBasisPoints.rear = 9999
+    expect(validateCombatEncounterState(restored).length).toBeGreaterThan(0)
+  },
+)
 it.each([
   ['west', 20],
   ['north', 32],

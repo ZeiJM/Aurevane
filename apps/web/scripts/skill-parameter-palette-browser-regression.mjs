@@ -154,6 +154,21 @@ try {
       stacks: 1,
       durationTurns: 1,
     })
+    const addedEffect = authoring.locator('[data-effect-type="apply-status"]').nth(1)
+    assert.equal(
+      await addedEffect.getByLabel('Side damage (%)', { exact: true }).inputValue(),
+      '160',
+    )
+    assert.equal(
+      await addedEffect.getByLabel('Rear damage (%)', { exact: true }).inputValue(),
+      '220',
+    )
+    await addedEffect.getByLabel('Side damage (%)', { exact: true }).fill('175.5')
+    await addedEffect.getByLabel('Rear damage (%)', { exact: true }).fill('250')
+    assert.deepEqual(
+      await page.evaluate(() => window.blindsideAuthoringEffects[1].blindsideModifiersBasisPoints),
+      { side: 17550, rear: 25000 },
+    )
     const firstEffect = authoring.locator('[data-effect-type="apply-status"]').first()
     await firstEffect.getByLabel('Status ID', { exact: true }).fill('blindside')
     const converted = await page.evaluate(() => window.blindsideAuthoringEffects[0])
@@ -164,6 +179,9 @@ try {
       '1',
     )
     assert.ok(await firstEffect.getByLabel('Effect duration (turns)', { exact: true }).isDisabled())
+    await authoring.screenshot({
+      path: resolve(output, `blindside-authoring-${viewport.width}.png`),
+    })
     for (const family of ['physical', 'mystic'])
       for (const surface of ['Nexus', 'Master', 'Battle']) {
         const report = page.getByRole('region', {

@@ -1,4 +1,5 @@
 import { validateRecoveryEffect } from './combat-recovery'
+import { validateBlindsideModifiers } from './combat-blindside'
 import { percentageDotMagnitude } from './combat-percentage-dots'
 import type {
   CombatActionDefinition,
@@ -227,6 +228,11 @@ export function validateGameplayActionMetadata(
 /** Shared content-boundary validation; the containing action supplies target-dependent legality. */
 export function validateGameplayEffectMetadata(effect: CombatEffectDefinition): void {
   validateRecoveryEffect(effect)
+  if (effect.type === 'apply-status' && effect.blindsideModifiersBasisPoints !== undefined) {
+    if (effect.statusId !== 'blindside')
+      throw new TypeError('Blindside percentages require Blindside.')
+    validateBlindsideModifiers(effect.blindsideModifiersBasisPoints)
+  }
   if (
     effect.type === 'apply-status' &&
     effect.statusId === 'blindside' &&
@@ -234,7 +240,7 @@ export function validateGameplayEffectMetadata(effect: CombatEffectDefinition): 
       effect.potencyBasisPoints !== undefined)
   )
     throw new TypeError(
-      'Blindside lasts one owner turn and uses fixed side/rear damage multipliers.',
+      'Blindside lasts one owner turn and uses separate side/rear damage multipliers.',
     )
   if (
     effect.durationTurns !== undefined &&

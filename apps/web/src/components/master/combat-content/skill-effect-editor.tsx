@@ -6,6 +6,7 @@ import type {
 } from '@aurevane/game-core/combat/actions'
 import type { CombatElement } from '@aurevane/game-core/combat/gameplay-tags'
 import { CLEANSE_STATUS_IDS, isCleanseEffect } from '@aurevane/game-core/combat/combat-cleanse'
+import { DEFAULT_BLINDSIDE_MODIFIERS } from '@aurevane/game-core/combat/combat-blindside'
 
 import { useId, useState } from 'react'
 import {
@@ -701,6 +702,7 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
                   next.durationTurns = 1
                   delete next.potencyBasisPoints
                 }
+                if (next.statusId !== 'blindside') delete next.blindsideModifiersBasisPoints
                 onChange(next)
               }}
             />
@@ -721,6 +723,45 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
               }
             />
           </label>
+          {value.statusId === 'blindside' ? (
+            <>
+              {(['side', 'rear'] as const).map((direction) => (
+                <label className={styles.field} key={direction}>
+                  <span>{direction === 'side' ? 'Side' : 'Rear'} damage (%)</span>
+                  <input
+                    aria-label={`${direction === 'side' ? 'Side' : 'Rear'} damage (%)`}
+                    type="number"
+                    min={100}
+                    step={0.01}
+                    value={
+                      (value.blindsideModifiersBasisPoints ?? DEFAULT_BLINDSIDE_MODIFIERS)[
+                        direction
+                      ] / 100
+                    }
+                    onChange={(event) => {
+                      const percent = Number(event.currentTarget.value)
+                      const points = Math.round(percent * 100)
+                      onChange({
+                        ...value,
+                        blindsideModifiersBasisPoints: {
+                          ...(value.blindsideModifiersBasisPoints ?? DEFAULT_BLINDSIDE_MODIFIERS),
+                          [direction]:
+                            event.currentTarget.value.trim() &&
+                            Number.isFinite(percent) &&
+                            Math.abs(percent * 100 - points) < 0.000001
+                              ? points
+                              : Number.NaN,
+                        },
+                      })
+                    }}
+                  />
+                </label>
+              ))}
+              <small className={styles.fieldHint}>
+                160% damage means a 60% increase. Front damage stays at 100%.
+              </small>
+            </>
+          ) : null}
         </div>
       )
       break
@@ -1020,7 +1061,9 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
               ? 'Immediate effect; [0 Turns] is intentionally omitted in player-facing details.'
               : fixedTerrain
                 ? 'Frozen Ground uses the engine-owned two-round duration.'
-                : 'Positive durations persist through that many future turns.'}
+                : fixedBlindside
+                  ? 'Expires at the end of the affected character’s turn.'
+                  : 'Positive durations persist through that many future turns.'}
           </small>
         </label>
 

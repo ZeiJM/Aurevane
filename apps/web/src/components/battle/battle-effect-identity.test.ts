@@ -18,6 +18,33 @@ const pendingFamilies = [
   'healing',
 ]
 
+it('reads each captured Blindside profile without replacing earlier applications', () => {
+  const effect: CombatStatusInstance = {
+    statusId: 'blindside',
+    statusVersion: 1,
+    stacks: 2,
+    remainingOwnerTurnStarts: 1,
+    remainingOwnerTurnEnds: 1,
+    sourceCombatantId: 'actor',
+    blindsideModifiersBasisPoints: { side: 12500, rear: 18000 },
+    applicationModifiers: [
+      {
+        stacks: 1,
+        sourceCombatantId: 'actor',
+        blindsideModifiersBasisPoints: { side: 17550, rear: 25000 },
+      },
+      {
+        stacks: 1,
+        sourceCombatantId: 'actor',
+        blindsideModifiersBasisPoints: { side: 12500, rear: 18000 },
+      },
+    ],
+  }
+  const description = describeBattleEffect(effect).description
+  expect(description).toContain('175.5% side, 250% rear')
+  expect(description).toContain('125% side, 180% rear')
+})
+
 describe('battle effect identity', () => {
   it.each([
     ['guarded', 'Reduces incoming damage by 11%'],

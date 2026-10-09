@@ -1,4 +1,5 @@
 import type { CombatStatusDefinition } from './actions'
+import { blindsideDamageDescription } from './combat-blindside'
 import type { CombatDamageModifier, DamageCondition } from './damage-modifiers'
 
 export interface NamedCombatStatus extends CombatStatusDefinition {
@@ -60,17 +61,11 @@ export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
     amplifyCopyable: true,
     reactionClass: 'ordinary',
   }),
-  status(
-    'blindside',
-    'Blindside',
-    'Buff',
-    'For one owner turn, Skill damage is 100% from the front, 160% from the side and 220% from the rear per application. Activates instantly; expires at the end of your turn. Basic Attack is unchanged.',
-    {
-      gameplayTags: ['Blindside'],
-      amplifyCopyable: true,
-      reactionClass: 'ordinary',
-    },
-  ),
+  status('blindside', 'Blindside', 'Buff', blindsideDamageDescription(), {
+    gameplayTags: ['Blindside'],
+    amplifyCopyable: true,
+    reactionClass: 'ordinary',
+  }),
   status('hexed', 'Healing Down', 'Debuff', 'Receive 25% less HP and MP recovery.', {
     gameplayTags: ['Hexed'],
     curseCopyable: true,

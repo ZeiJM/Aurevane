@@ -108,7 +108,8 @@ export function skillEffectDescription(
       const explanation =
         effect.potencyBasisPoints !== undefined ||
         effect.statusId === 'airborne' ||
-        effect.statusId === 'hexed'
+        effect.statusId === 'hexed' ||
+        effect.statusId === 'blindside'
           ? preview.explanation
           : status.description
       return `Apply ${effect.stacks} ${gameplayStatusName(effect.statusId)} ${effect.stacks === 1 ? 'stack' : 'stacks'} to ${target}. ${explanation} ${duration}`

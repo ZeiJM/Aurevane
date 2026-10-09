@@ -5,6 +5,7 @@ import {
 import { combatStatusDetails, PHASE4_STATUSES } from '@aurevane/game-core/combat/status-content'
 import { statusLabel } from './battle-effect-summary'
 import { statusPotencyDescription } from '../../lib/status-potency-presentation'
+import { blindsideStatusDescription } from '@aurevane/game-core/combat/combat-blindside'
 import {
   terrainBattleEffectPresentation,
   type BattlePresentedStatus,
@@ -92,11 +93,13 @@ export function describeBattleEffect(effect: BattlePresentedStatus) {
     ...battleEffectIdentity(effect.statusId),
     description:
       (percentageDescription ??
-        (effect.statusId === 'airborne' && effect.airbornePolicyVersion !== 1
-          ? 'Ignore the Frozen Ground AP surcharge. Board bounds, elevation, obstacles, occupancy, Rooted and Movement allowance still apply.'
-          : statusPotencyDescription(effect.statusId, effect.potencyBasisPoints, {
-              legacyHealingDown: effect.healingDownPolicyVersion !== 1,
-            }))) + capturedDescription,
+        (effect.statusId === 'blindside'
+          ? blindsideStatusDescription(effect)
+          : effect.statusId === 'airborne' && effect.airbornePolicyVersion !== 1
+            ? 'Ignore the Frozen Ground AP surcharge. Board bounds, elevation, obstacles, occupancy, Rooted and Movement allowance still apply.'
+            : statusPotencyDescription(effect.statusId, effect.potencyBasisPoints, {
+                legacyHealingDown: effect.healingDownPolicyVersion !== 1,
+              }))) + capturedDescription,
   }
   const applications = effect.recoveryApplications
   const count =

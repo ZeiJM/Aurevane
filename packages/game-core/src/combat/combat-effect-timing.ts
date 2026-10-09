@@ -203,6 +203,9 @@ export function pendingCombatStatusRows(
           : {}),
         statusVersion: definition?.version ?? 1,
         stacks: effect.type === 'apply-status' ? effect.stacks : 1,
+        ...(effect.type === 'apply-status' && effect.blindsideModifiersBasisPoints !== undefined
+          ? { blindsideModifiersBasisPoints: { ...effect.blindsideModifiersBasisPoints } }
+          : {}),
         ...(effect.type === 'apply-status' && tuning.potencyBasisPoints !== undefined
           ? { potencyBasisPoints: tuning.potencyBasisPoints }
           : {}),

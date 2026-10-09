@@ -42,8 +42,10 @@ Files: shared character Skill/Resonance reports; battle preview, terrain summary
 - [x] Apply Healing Down to HP and MP recovery, including delayed/periodic and Leech gains; preserve absent-policy history and drains.
 - [x] Append Blindside versions for all five positional Skills and expose one-turn Instant authoring/readers.
 - [x] Verify expiry, persistent Ground settlement, defeat cleanup, history and Master conversions; resolve independent review findings.
-- [x] Complete combined full gate (4,471 Vitest tests, seven Node checks, format/lint/types/build).
+- [x] Complete combined full gate including editable Blindside (4,484 Vitest tests, seven Node checks, format/lint/types/build).
 - [ ] Complete exact-head release.
+
+- [x] Add separately editable per-Skill Blindside side/rear percentages, captured per application; verify preview/commit, reapplication/restore, Copy Buffs, malformed metadata and responsive Master inputs.
 
 ### Task 3: Verified release
 

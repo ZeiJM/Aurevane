@@ -55,6 +55,11 @@ import type {
 import { applyCommittedAbsorbRecovery } from './combat-absorb-recovery'
 import { combatStatusApplications } from './combat-status-applications'
 import { healingDownAdjustedRecovery } from './combat-recovery-modifiers'
+import {
+  DEFAULT_BLINDSIDE_MODIFIERS,
+  validateBlindsideModifiers,
+  type BlindsideModifiers,
+} from './combat-blindside'
 import { applyCommittedReflect } from './combat-reflect'
 import { filterBlockedCovertApplication } from './covert-sensory-revealed'
 import { validateSummonProfileDefinition } from './summon-content'
@@ -312,6 +317,7 @@ export type CombatEffectDefinition =
       recipient: CombatEffectRecipient
       statusId: string
       stacks: number
+      blindsideModifiersBasisPoints?: BlindsideModifiers
     }
 
 export interface CombatEffectOrigin {
@@ -370,6 +376,7 @@ export interface CombatStatusInstance {
     stacks: number
     sourceCombatantId: string
     potencyBasisPoints?: number
+    blindsideModifiersBasisPoints?: BlindsideModifiers
   }[]
   durationScope?: 'battle' | 'instant' | 'until-spent' | 'until-removed' | 'rounds'
 
@@ -388,6 +395,7 @@ export interface CombatStatusInstance {
   sourceCombatantId: string
   /** Optional per-application authored magnitude; 100 = 1 percentage point. */
   potencyBasisPoints?: number
+  blindsideModifiersBasisPoints?: BlindsideModifiers
   provenance?: CombatEffectInstanceProvenance
 }
 
@@ -2137,6 +2145,22 @@ export function validateCombatEncounterState(
     )
     for (const [statusIndex, status] of row.statuses.entries()) {
       const statusPrefix = `${prefix}.statuses.${statusIndex}`
+      for (const [index, application] of [
+        status,
+        ...(Array.isArray(status.applicationModifiers) ? status.applicationModifiers : []),
+      ].entries()) {
+        if (application?.blindsideModifiersBasisPoints === undefined) continue
+        try {
+          if (status.statusId !== 'blindside')
+            throw new TypeError('Blindside metadata requires Blindside.')
+          validateBlindsideModifiers(application.blindsideModifiersBasisPoints)
+        } catch {
+          issues.push({
+            field: `${statusPrefix}.blindsideModifiersBasisPoints.${index}`,
+            message: 'Invalid recorded Blindside percentages.',
+          })
+        }
+      }
       collectIdentityIssue(issues, status.statusId, `${statusPrefix}.statusId`)
       if (isRetiredCombatStatusId(status.statusId))
         issues.push({
@@ -3674,6 +3698,7 @@ function applyEffect(
     content,
     tuning.durationTurns,
     tuning.potencyBasisPoints,
+    effect.blindsideModifiersBasisPoints,
   )
   const status = getStatus(nextState, recipientId, effect.statusId, actorId)
   if (!status) {
@@ -3826,21 +3851,29 @@ function resolveDamageAmount(
     const source = getPlacement(state.tactical, actorId)
     const target = getPlacement(state.tactical, recipientId)
     const relation = classifyFacingRelation(target.position, target.facing, source.position)
-    const multiplier = { front: 10000, side: 16000, rear: 22000 }[relation]
     const statuses = getStatusRow(state, actorId).statuses.filter((status) =>
       getStatusDefinition(content, status.statusId, status.statusVersion).gameplayTags?.includes(
         'Blindside',
       ),
     )
-    for (const status of state.effectStackingPolicyVersion === 1 ? statuses : statuses.slice(0, 1))
-      for (
-        let count = 0;
-        count < (state.effectStackingPolicyVersion === 1 ? status.stacks : 1) &&
-        multiplier !== 10000 &&
-        amount > 0;
-        count += 1
-      )
-        amount = scaleByBasisPoints(amount, multiplier)
+    for (const status of state.effectStackingPolicyVersion === 1
+      ? statuses
+      : statuses.slice(0, 1)) {
+      const applications =
+        state.effectStackingPolicyVersion === 1
+          ? combatStatusApplications(status)
+          : [{ ...status, stacks: 1 }]
+      for (const application of applications) {
+        const modifiers = application.blindsideModifiersBasisPoints ?? DEFAULT_BLINDSIDE_MODIFIERS
+        const multiplier = relation === 'front' ? 10000 : modifiers[relation]
+        for (
+          let count = 0;
+          count < application.stacks && multiplier !== 10000 && amount > 0;
+          count += 1
+        )
+          amount = scaleByBasisPoints(amount, multiplier)
+      }
+    }
   }
 
   for (const status of getStatusRow(state, recipientId).statuses) {
@@ -3890,6 +3923,7 @@ function applyStatusState(
   content: CombatContentCatalog,
   durationTurns?: number,
   potencyBasisPoints?: number,
+  blindsideModifiersBasisPoints?: BlindsideModifiers,
 ): CombatEncounterState {
   assertPositiveSafeInteger(stacks, 'status stacks')
   if (
@@ -3907,6 +3941,11 @@ function applyStatusState(
     throw new RangeError('Status potency must be from 1 to 50 percentage points.')
   }
   const definition = getStatusDefinitionById(content, statusId)
+  const blindsideModifiers =
+    statusId === 'blindside'
+      ? { ...(blindsideModifiersBasisPoints ?? DEFAULT_BLINDSIDE_MODIFIERS) }
+      : undefined
+  if (blindsideModifiers) validateBlindsideModifiers(blindsideModifiers)
   const remainingOwnerTurnStarts =
     durationTurns === undefined ? definition.durationOwnerTurnStarts : durationTurns + 1
   const existing = getStatus(state, recipientId, statusId, sourceCombatantId)
@@ -3924,6 +3963,7 @@ function applyStatusState(
         remainingOwnerTurnStarts,
         sourceCombatantId,
         ...(potencyBasisPoints !== undefined ? { potencyBasisPoints } : {}),
+        ...(blindsideModifiers ? { blindsideModifiersBasisPoints: blindsideModifiers } : {}),
       }
     : {
         ...(definition.markAccuracyBonusBasisPoints !== undefined
@@ -3935,6 +3975,7 @@ function applyStatusState(
         remainingOwnerTurnStarts,
         sourceCombatantId,
         ...(potencyBasisPoints !== undefined ? { potencyBasisPoints } : {}),
+        ...(blindsideModifiers ? { blindsideModifiersBasisPoints: blindsideModifiers } : {}),
       }
 
   if (state.effectStackingPolicyVersion === 1) {
@@ -3944,6 +3985,7 @@ function applyStatusState(
         stacks,
         sourceCombatantId,
         ...(potencyBasisPoints === undefined ? {} : { potencyBasisPoints }),
+        ...(blindsideModifiers ? { blindsideModifiersBasisPoints: blindsideModifiers } : {}),
       },
     ]
   }
