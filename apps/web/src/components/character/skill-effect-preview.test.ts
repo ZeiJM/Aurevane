@@ -272,3 +272,106 @@ it('keeps captured explicit elemental duration and bonus in authored prose overr
   expect(rows[0]!.explanation).toContain('3 affected turns')
   expect(rows[0]!.explanation).toContain('35% Storm damage')
 })
+
+describe('elemental recipient overlap explanations', () => {
+  const hit = { type: 'damage', recipient: 'affected-units', amount: 10, durationTurns: 0 } as const
+  const tuning = {
+    type: 'apply-status',
+    recipient: 'primary-unit',
+    stacks: 1,
+    durationTurns: 3,
+    potencyBasisPoints: 3500,
+  } as const
+
+  it.each([
+    ['water', 'wet', 'Drenched'],
+    ['ice', 'frozen', 'Chilled'],
+    ['storm', 'conductive', 'Conductive'],
+  ] as const)(
+    'explains the tuned primary recipient and default others for %s damage',
+    (element, statusId, name) => {
+      const skill = {
+        effects: [
+          { ...hit, element },
+          { ...tuning, statusId },
+        ],
+      }
+      const before = JSON.stringify(skill)
+      const explanation = skillPreviewEffects(skill)[0]!.explanation
+      const [primary, others] = explanation.split(' Otherwise:')
+      expect(primary).toContain('If a damaged recipient is the primary target:')
+      expect(primary).toContain(name)
+      expect(primary).toContain('for 3 affected turns')
+      expect(others).toContain(name)
+      expect(others).toContain('for 2 affected turns')
+      if (element !== 'ice') {
+        expect(primary).toContain('35% Storm damage')
+        expect(others).toContain('20% Storm damage')
+        expect(others).not.toContain('35%')
+      }
+      expect(JSON.stringify(skill)).toBe(before)
+    },
+  )
+
+  it('uses an affected-unit override only when it covers the damaged primary target', () => {
+    const explanation = skillPreviewEffects({
+      effects: [
+        { ...hit, recipient: 'primary-unit', element: 'water' },
+        { ...tuning, recipient: 'affected-units', statusId: 'wet' },
+      ],
+    })[0]!.explanation
+    expect(explanation).toContain('If a damaged recipient is among the affected units:')
+    expect(explanation.split(' Otherwise:')[0]).toContain('3 affected turns')
+    expect(explanation.split(' Otherwise:')[1]).toContain('2 affected turns')
+  })
+
+  it('keeps the first matching explicit profile per recipient and authored description indices', () => {
+    const skill = {
+      effects: [
+        {
+          type: 'apply-status',
+          recipient: 'actor',
+          statusId: 'blindside',
+          stacks: 1,
+          durationTurns: 1,
+        } as const,
+        { ...hit, element: 'water' } as const,
+        { ...tuning, statusId: 'wet' },
+        { ...tuning, statusId: 'wet', durationTurns: 4, potencyBasisPoints: 4500 },
+        {
+          ...tuning,
+          statusId: 'wet',
+          recipient: 'affected-units',
+          durationTurns: 1,
+          potencyBasisPoints: 1500,
+        } as const,
+      ],
+      effectDescriptions: ['Pinned Blindside prose.', 'Pinned Water prose.'],
+    }
+    const rows = skillPreviewEffects(skill)
+    expect(rows[0]!.explanation).toMatch(/^Pinned Water prose\./)
+    const [primary, others] = rows[0]!.explanation.split(' Otherwise:')
+    expect(primary).toContain('3 affected turns')
+    expect(primary).toContain('35% Storm damage')
+    expect(others).toContain('1 affected turns')
+    expect(others).toContain('15% Storm damage')
+    expect(rows[0]!.explanation).not.toContain('45%')
+    expect(rows[0]!.explanation).not.toContain('20% Storm damage')
+    expect(rows[1]!.explanation).toBe('Pinned Blindside prose.')
+  })
+
+  it('preserves historical descriptions without adding current conditional profiles', () => {
+    const rows = skillPreviewEffects(
+      {
+        effects: [
+          { ...hit, element: 'water' },
+          { ...tuning, statusId: 'wet' },
+        ],
+      },
+      { legacyElemental: true },
+    )
+    expect(rows[0]!.explanation).not.toContain('Drenched')
+    expect(rows[0]!.explanation).not.toContain('If a damaged recipient')
+    expect(rows[1]!.explanation).not.toContain('Initiative')
+  })
+})

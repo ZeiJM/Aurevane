@@ -1,5 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
+import type { BattleSkillForecastPresentation } from './battle-runtime'
 import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
 import { skillPreviewEffects } from '../character/skill-effect-preview'
 import { BattleSkillParameters } from './battle-skill-parameters'
@@ -139,5 +140,56 @@ describe('cockpit Skill Parameters', () => {
     expect(markup).not.toContain('Affects:')
     expect(markup).not.toContain('aria-label="Ground area rules"')
     expect(JSON.stringify(definition)).toBe(before)
+  })
+})
+
+const definition = {
+  ...resolveMatureSkillVersion('tidecaller.water-lance')!,
+  effects: [
+    { type: 'damage', recipient: 'affected-units', amount: 10, element: 'water', durationTurns: 0 },
+    {
+      type: 'apply-status',
+      recipient: 'primary-unit',
+      statusId: 'wet',
+      stacks: 1,
+      durationTurns: 3,
+      potencyBasisPoints: 3500,
+    },
+  ],
+  effectDescriptions: ['Pinned water hit.'],
+} as const
+const skill: BattleSkillForecastPresentation = {
+  definition,
+  id: definition.id,
+  name: 'Overlap Water',
+  apCost: definition.apCost,
+  mpCost: definition.mpCost ?? 0,
+  targetKind: definition.target.kind,
+  targetTeamPolicy: definition.target.teamPolicy,
+  minimumRange: definition.target.minimumRange,
+  maximumRange: definition.target.maximumRange,
+  tags: definition.tags,
+  effectDescriptions: [],
+  requirementDescriptions: [],
+}
+
+describe('current battle ! reader elemental overlap', () => {
+  it('shows captured primary tuning in the real BattleSkillParameters explanations', () => {
+    const before = JSON.stringify(skill)
+    const markup = renderToStaticMarkup(
+      <SkillEffectTimingProvider policy={null} elementalDamagePolicyVersion={1}>
+        <BattleSkillParameters skill={skill} />
+      </SkillEffectTimingProvider>,
+    )
+    const damage = markup.split('aria-label="Effect explanations"')[1]!.split('</li>')[0]!
+    expect(damage).toContain('Pinned water hit.')
+    const [primary, others] = damage.split(' Otherwise:')
+    expect(primary).toContain('If a damaged recipient is the primary target:')
+    expect(primary).toContain('3 affected turns')
+    expect(primary).toContain('35% Storm damage')
+    expect(others).toContain('2 affected turns')
+    expect(others).toContain('20% Storm damage')
+    expect(others).not.toContain('35%')
+    expect(JSON.stringify(skill)).toBe(before)
   })
 })

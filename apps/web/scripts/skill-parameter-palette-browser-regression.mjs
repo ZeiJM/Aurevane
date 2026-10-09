@@ -332,6 +332,70 @@ try {
       await popup.waitFor({ state: 'detached' })
       assert.equal(await trigger.evaluate((element) => element === document.activeElement), true)
     }
+    for (const scenario of [
+      { wet: 'instant', lifetime: '3 affected turns starting when damage settles (Instant)' },
+      { wet: 'next-round', lifetime: '3 full rounds starting next round after damage settles' },
+      {
+        wet: 'delayed',
+        lifetime: '3 full rounds starting two round boundaries after damage settles (Delayed)',
+      },
+      { wet: 'delayed', historical: true },
+    ]) {
+      await page.goto(
+        `${server.resolvedUrls.local[0]}?surface=elemental-readers&wet=${scenario.wet}&historical=${!!scenario.historical}`,
+        { waitUntil: 'networkidle' },
+      )
+      const raw = page.getByRole('region', { name: 'Captured summon abilities' })
+      assert.equal(await raw.locator('dt').count(), 0)
+      assert.equal((await raw.textContent()).trim(), 'Captured Water!')
+      for (const title of ['Overlap Water', 'Captured Water']) {
+        const trigger = page.getByRole('button', { name: `About ${title}`, exact: true })
+        await trigger.click()
+        const popup = page.getByRole('dialog', { name: title, exact: true })
+        await popup.waitFor()
+        assert.deepEqual(await popup.locator('dt').allTextContents(), fields)
+        const explanations = await popup.getByLabel('Effect explanations').textContent()
+        if (scenario.historical) {
+          assert.ok(!explanations.includes('Initiative by 10%'))
+          assert.ok(!explanations.includes('full rounds starting'))
+          assert.ok(!explanations.includes('If a damaged recipient'))
+        } else {
+          assert.ok(explanations.includes(scenario.lifetime))
+          assert.ok(explanations.includes('35% Storm damage'))
+          if (title === 'Overlap Water') {
+            const damage = await popup
+              .getByLabel('Effect explanations')
+              .locator('li')
+              .first()
+              .textContent()
+            const [primary, others] = damage.split(' Otherwise:')
+            assert.ok(primary.includes('If a damaged recipient is the primary target:'))
+            assert.ok(primary.includes(scenario.lifetime))
+            assert.ok(primary.includes('35% Storm damage'))
+            assert.ok(others.includes('20% Storm damage'))
+            assert.ok(!others.includes('35%'))
+          }
+        }
+        const popupBox = await popup.boundingBox()
+        assert.ok(popupBox.x >= 0 && popupBox.x + popupBox.width <= viewport.width + 1)
+        assert.ok(popupBox.y >= 0 && popupBox.y + popupBox.height <= viewport.height + 1)
+        // Reach the last explanation through the real popup's scrolling container.
+        const last = popup.getByLabel('Effect explanations').locator('li').last()
+        await last.scrollIntoViewIfNeeded()
+        const lastBox = await last.boundingBox()
+        assert.ok(lastBox.y >= 0 && lastBox.y < viewport.height)
+        assert.ok(await popup.evaluate((element) => element.scrollWidth <= element.clientWidth + 1))
+        await popup.screenshot({
+          path: resolve(
+            output,
+            `elemental-${title === 'Overlap Water' ? 'battle' : 'summon'}-${scenario.historical ? 'historical' : scenario.wet}-${viewport.width}.png`,
+          ),
+        })
+        await page.keyboard.press('Escape')
+        await popup.waitFor({ state: 'detached' })
+        assert.equal(await trigger.evaluate((element) => element === document.activeElement), true)
+      }
+    }
     assert.deepEqual(errors, [])
     evidence.push({ viewport, status: 'passed' })
     await page.close()

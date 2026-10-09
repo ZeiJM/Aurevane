@@ -56,6 +56,7 @@ function SummonAbilityParameters({
 }
 
 function SummonAbilityDetails({ ability }: { ability: SummonAbilityDefinition }) {
+  const timingPolicy = useSkillEffectTimingPolicy()
   const groundRules = useSkillGroundInteractionRules()
   const dotTriggerPolicyVersion = useSkillDotTriggerPolicyVersion()
   const legacyTriggers = dotTriggerPolicyVersion === null
@@ -64,13 +65,16 @@ function SummonAbilityDetails({ ability }: { ability: SummonAbilityDefinition })
     <>
       <p>{ability.description}</p>
       <ul aria-label="Effect explanations">
-        {skillPreviewEffects(ability, { legacyTriggers, legacyPoisonMovement, ...groundRules }).map(
-          (effect, index) => (
-            <li key={index}>
-              <strong>{effect.label}</strong> — {effect.explanation}
-            </li>
-          ),
-        )}
+        {skillPreviewEffects(ability, {
+          legacyTriggers,
+          legacyPoisonMovement,
+          ...groundRules,
+          timingPolicy,
+        }).map((effect, index) => (
+          <li key={index}>
+            <strong>{effect.label}</strong> — {effect.explanation}
+          </li>
+        ))}
       </ul>
       {ability.requirements.length ? (
         <>

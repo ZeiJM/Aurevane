@@ -24,6 +24,7 @@ function Readers({
       frozenGroundPolicyVersion={policies.frozenGroundPolicyVersion ?? null}
       healingDownPolicyVersion={policies.healingDownPolicyVersion ?? null}
       blindsideActivationPolicyVersion={policies.blindsideActivationPolicyVersion ?? null}
+      elementalDamagePolicyVersion={policies.elementalDamagePolicyVersion ?? null}
     >
       {abilities.map((ability) => (
         <article key={ability.id} data-summon-ability={ability.id}>
@@ -117,5 +118,70 @@ describe('pinned summon ability characteristics', () => {
   it('keeps historical Airborne targeting limits', () => {
     const markup = renderToStaticMarkup(<Readers policies={{}} abilities={abilities} airborne />)
     expect(markup).not.toContain('<dt>Target Elevation</dt><dd>3</dd>')
+  })
+})
+
+describe('captured summon elemental explanation timing', () => {
+  const water = {
+    ...abilities[0]!,
+    effects: [
+      {
+        type: 'damage',
+        recipient: 'primary-unit',
+        amount: 10,
+        element: 'water',
+        durationTurns: 3,
+        potencyBasisPoints: 3500,
+      },
+    ],
+  } as const
+
+  it.each([
+    ['next-round', '3 full rounds starting next round after damage settles'],
+    ['delayed', '3 full rounds starting two round boundaries after damage settles (Delayed)'],
+  ] as const)('reads the saved %s policy in the production summon reader', (mode, lifetime) => {
+    const markup = renderToStaticMarkup(
+      <Readers
+        abilities={[water]}
+        policies={{
+          elementalDamagePolicyVersion: 1,
+          effectTimingPolicy: { version: 7, modes: { wet: mode } },
+        }}
+      />,
+    )
+    const explanations = markup.split('aria-label="Effect explanations"')[1]!
+    expect(explanations).toContain(lifetime)
+    expect(explanations).toContain('35% Storm damage')
+    expect(explanations).not.toContain('when damage settles (Instant)')
+  })
+
+  it('retains legacy help when the captured elemental policy is absent', () => {
+    const historical = {
+      ...water,
+      effects: [
+        ...water.effects,
+        {
+          type: 'apply-status',
+          recipient: 'primary-unit',
+          statusId: 'wet',
+          stacks: 1,
+          durationTurns: 3,
+          potencyBasisPoints: 3500,
+        },
+      ],
+    } as const
+    const markup = renderToStaticMarkup(
+      <Readers
+        abilities={[historical]}
+        policies={{
+          effectTimingPolicy: { version: 7, modes: { wet: 'delayed' } },
+        }}
+      />,
+    )
+    const explanations = markup.split('aria-label="Effect explanations"')[1]!
+    expect(explanations).toContain('Storm')
+    expect(explanations).not.toContain('Initiative')
+    expect(explanations).not.toContain('full rounds starting')
+    expect(explanations).not.toContain('If a damaged recipient')
   })
 })

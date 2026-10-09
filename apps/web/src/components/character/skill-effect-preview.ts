@@ -36,9 +36,51 @@ export function skillDamageElementInteraction(
   effect: MatureSkillEffectDefinition,
   legacyElemental = false,
   timingPolicy?: CombatEffectTimingPolicy | null,
+  skillEffects?: readonly MatureSkillEffectDefinition[],
 ): string {
   if (effect.type !== 'damage') return ''
   if (!legacyElemental) {
+    const statusId = ({ ice: 'frozen', water: 'wet', storm: 'conductive' } as const)[
+      effect.element as 'ice' | 'water' | 'storm'
+    ]
+    if (statusId && skillEffects) {
+      // Static readers have no resolved cast identities. Describe overlap conditionally;
+      // the engine's captureElementalApplication chooses the first matching status per unit.
+      const branches: string[] = []
+      const seenRecipients = new Set<string>()
+      for (const candidate of skillEffects) {
+        if (
+          candidate.type !== 'apply-status' ||
+          candidate.statusId !== statusId ||
+          seenRecipients.has(candidate.recipient)
+        )
+          continue
+        seenRecipients.add(candidate.recipient)
+        const captured = {
+          ...effect,
+          durationTurns: effect.durationTurns || candidate.durationTurns,
+          potencyBasisPoints: effect.potencyBasisPoints ?? candidate.potencyBasisPoints,
+        }
+        const interaction = skillDamageElementInteraction(captured, false, timingPolicy)
+        if (candidate.recipient === effect.recipient)
+          return branches.join('') + (branches.length ? ' Otherwise:' : '') + interaction
+        const condition =
+          candidate.recipient === 'primary-unit'
+            ? 'is the primary target'
+            : candidate.recipient === 'actor'
+              ? 'is the caster'
+              : 'is among the affected units'
+        branches.push(
+          ` ${branches.length ? 'Otherwise, if' : 'If'} a damaged recipient ${condition}:${interaction}`,
+        )
+      }
+      if (branches.length)
+        return (
+          branches.join('') +
+          ' Otherwise:' +
+          skillDamageElementInteraction(effect, false, timingPolicy)
+        )
+    }
     const duration = effect.durationTurns || 2
     const bonus = (effect.potencyBasisPoints ?? 2000) / 100
     const tag =
@@ -145,6 +187,7 @@ export function previewEffect(
     legacyBlindsideActivation?: boolean
     legacyElemental?: boolean
     timingPolicy?: CombatEffectTimingPolicy | null
+    skillEffects?: readonly MatureSkillEffectDefinition[]
   } = {},
 ): PreviewEffect {
   const target =
@@ -174,7 +217,7 @@ export function previewEffect(
                   ? 'Ice Dmg'
                   : 'Dmg',
         magnitude: String(effect.amount),
-        explanation: `Skill power ranges from 1 to 20. Final HP damage depends on your attack stat, Level and the target’s defenses and effects.${effect.facingModifiersBasisPoints ? ` Facing: front ${effect.facingModifiersBasisPoints.front / 100}%, side ${effect.facingModifiersBasisPoints.side / 100}%, rear ${effect.facingModifiersBasisPoints.rear / 100}%.` : ''}${skillDamageElementInteraction(effect, options.legacyElemental, options.timingPolicy)}`,
+        explanation: `Skill power ranges from 1 to 20. Final HP damage depends on your attack stat, Level and the target’s defenses and effects.${effect.facingModifiersBasisPoints ? ` Facing: front ${effect.facingModifiersBasisPoints.front / 100}%, side ${effect.facingModifiersBasisPoints.side / 100}%, rear ${effect.facingModifiersBasisPoints.rear / 100}%.` : ''}${skillDamageElementInteraction(effect, options.legacyElemental, options.timingPolicy, options.skillEffects)}`,
       }
     case 'percentage-recovery':
       return {
@@ -335,30 +378,7 @@ export function skillPreviewEffects(
   const seen = new Set<string>()
   return groupSkillEffects(skill.effects, skill.effectDescriptions)
     .map(({ effect, firstIndex: index }) => {
-      const statusId =
-        effect.type === 'damage'
-          ? ({ ice: 'frozen', water: 'wet', storm: 'conductive' } as const)[
-              effect.element as 'ice' | 'water' | 'storm'
-            ]
-          : undefined
-      const explicit =
-        !options.legacyElemental && statusId
-          ? skill.effects.find(
-              (candidate) =>
-                candidate.type === 'apply-status' &&
-                candidate.statusId === statusId &&
-                candidate.recipient === effect.recipient,
-            )
-          : undefined
-      const captured =
-        effect.type === 'damage' && explicit?.type === 'apply-status'
-          ? {
-              ...effect,
-              durationTurns: effect.durationTurns || explicit.durationTurns,
-              potencyBasisPoints: effect.potencyBasisPoints ?? explicit.potencyBasisPoints,
-            }
-          : effect
-      const entry = previewEffect(captured, options)
+      const entry = previewEffect(effect, { ...options, skillEffects: skill.effects })
       const override = skill.effectDescriptions?.[index]?.trim()
       return override
         ? {
@@ -366,7 +386,7 @@ export function skillPreviewEffects(
             explanation:
               override +
               (!options.legacyElemental
-                ? skillDamageElementInteraction(captured, false, options.timingPolicy)
+                ? skillDamageElementInteraction(effect, false, options.timingPolicy, skill.effects)
                 : ''),
           }
         : entry
