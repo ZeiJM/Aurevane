@@ -389,6 +389,16 @@ export function removeCombatSummon(
       combatants: state.statBridge.combatants.filter((row) => row.combatantId !== combatantId),
     },
     statusState: state.statusState.filter((row) => row.combatantId !== combatantId),
+    ...(state.turnTriggerState === undefined
+      ? {}
+      : {
+          turnTriggerState: {
+            ...state.turnTriggerState,
+            combatants: state.turnTriggerState.combatants.filter(
+              (row) => row.combatantId !== combatantId,
+            ),
+          },
+        }),
     effectState: cleanupEffectState(effectState, combatantId),
     ...(state.pendingEffects === undefined
       ? {}

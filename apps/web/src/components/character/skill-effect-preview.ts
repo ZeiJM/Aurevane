@@ -1,9 +1,4 @@
 import {
-  combatEffectTimingMode,
-  type CombatEffectTimingPolicy,
-} from '@aurevane/game-core/combat/combat-effect-timing'
-import { combatGroundAreaDescription } from '@aurevane/game-core/combat/combat-ground-visuals'
-import {
   isPercentageDotEffect,
   percentageDotDescription,
   percentageDotMagnitude,
@@ -11,6 +6,7 @@ import {
 import { COMBAT_TERRAIN_OVERLAY_DETAILS } from '@aurevane/game-core/combat/terrain-overlays'
 import { PV1F_COMBAT_CONTENT } from '@aurevane/game-core/combat/pv1f-action-economy'
 import { combatStatusDetails } from '@aurevane/game-core/combat/status-content'
+import { blindsideDamageDescription } from '@aurevane/game-core/combat/combat-blindside'
 import {
   CURRENT_BURN_DAMAGE_BY_STAGE,
   CURRENT_POISON_DAMAGE,
@@ -42,10 +38,14 @@ export function skillDamageElementInteraction(effect: MatureSkillEffectDefinitio
   return ''
 }
 
-function statusPreview(id: string, potencyBasisPoints?: number): PreviewEffect {
+function statusPreview(
+  id: string,
+  potencyBasisPoints?: number,
+  legacyHealingDown = false,
+): PreviewEffect {
   const details = {
     ...combatStatusDetails(id),
-    description: statusPotencyDescription(id, potencyBasisPoints),
+    description: statusPotencyDescription(id, potencyBasisPoints, { legacyHealingDown }),
   }
   const status = PV1F_COMBAT_CONTENT.statuses.find((entry) => entry.id === id)
   const result: PreviewEffect = { label: details.name, explanation: details.description }
@@ -58,7 +58,7 @@ function statusPreview(id: string, potencyBasisPoints?: number): PreviewEffect {
         id === 'inspired'
           ? `+${percent} outgoing`
           : id === 'hexed'
-            ? `−${percent} healing`
+            ? `−${percent} ${legacyHealingDown ? 'healing' : 'HP/MP recovery'}`
             : `+${percent} Storm`
   } else if (status?.markAccuracyBonusBasisPoints !== undefined) {
     result.magnitude = `+${(potencyBasisPoints ?? status.markAccuracyBonusBasisPoints) / 100} pp Accuracy`
@@ -98,7 +98,13 @@ function statusPreview(id: string, potencyBasisPoints?: number): PreviewEffect {
 
 export function previewEffect(
   effect: MatureSkillEffectDefinition,
-  options: { legacyTriggers?: boolean } = {},
+  options: {
+    legacyTriggers?: boolean
+    legacyPoisonMovement?: boolean
+    legacyFrozenGround?: boolean
+    legacyAirborne?: boolean
+    legacyHealingDown?: boolean
+  } = {},
 ): PreviewEffect {
   const target =
     effect.recipient === 'actor'
@@ -131,7 +137,7 @@ export function previewEffect(
       return {
         label: effect.resource === 'hp' ? 'HP Recovery' : 'MP Recovery',
         magnitude: `${effect.percent}%`,
-        explanation: `Restores a captured ${effect.percent}% of ${target === 'you' ? 'your' : `${target}’s`} maximum ${effect.resource.toUpperCase()}${(effect.ticks ?? 1) > 1 ? ` per application, ${effect.ticks} times` : ''}. ${effect.resource === 'hp' ? 'The maximum and HP Hex adjustment are captured when cast' : 'The maximum is captured when cast'}; actual gains cap at the current maximum and never revive.`,
+        explanation: `Restores a captured ${effect.percent}% of ${target === 'you' ? 'your' : `${target}’s`} maximum ${effect.resource.toUpperCase()}${(effect.ticks ?? 1) > 1 ? ` per application, ${effect.ticks} times` : ''}. ${effect.resource === 'hp' || !options.legacyHealingDown ? 'The maximum and Healing Down adjustment are captured when cast' : 'The maximum is captured when cast'}; actual gains cap at the current maximum and never revive.`,
       }
     case 'healing':
       return {
@@ -155,7 +161,18 @@ export function previewEffect(
             : `Restores MP to ${target}${effect.ticks && effect.ticks > 1 ? ` per application, ${effect.ticks} times (first when the effect activates)` : ''}.`,
       }
     case 'apply-status':
-      return statusPreview(effect.statusId, effect.potencyBasisPoints)
+      if (effect.statusId === 'blindside')
+        return {
+          label: 'Blindside',
+          explanation: blindsideDamageDescription(effect.blindsideModifiersBasisPoints),
+        }
+      return effect.statusId === 'airborne' && options.legacyAirborne
+        ? {
+            label: 'Airborne',
+            explanation:
+              'Ignore the Frozen Ground AP surcharge. Board bounds, elevation, obstacles, occupancy, Rooted and Movement allowance still apply.',
+          }
+        : statusPreview(effect.statusId, effect.potencyBasisPoints, options.legacyHealingDown)
     case 'displace':
       return {
         label: effect.direction === 'pull' ? 'Pull' : 'Push',
@@ -222,7 +239,7 @@ export function previewEffect(
       return {
         label: 'Frozen Ground',
         magnitude: `+${COMBAT_TERRAIN_OVERLAY_DETAILS.frozen.additionalApPerTile} AP/tile`,
-        explanation: 'Both teams pay extra movement AP; fire turns it into sight-blocking Steam.',
+        explanation: `${options.legacyFrozenGround ? 'Both teams' : 'Only the caster’s enemies'} pay extra movement AP; fire turns it into sight-blocking Steam.`,
       }
     case 'return-to-turn-start':
       return {
@@ -249,12 +266,17 @@ export function previewEffect(
 }
 
 export function skillPreviewEffects(
-  skill: MatureSkillDefinition,
-  timingPolicy?: CombatEffectTimingPolicy | null,
-  options: { legacyTriggers?: boolean } = {},
+  skill: Pick<MatureSkillDefinition, 'effects' | 'effectDescriptions'>,
+  options: {
+    legacyTriggers?: boolean
+    legacyPoisonMovement?: boolean
+    legacyFrozenGround?: boolean
+    legacyAirborne?: boolean
+    legacyHealingDown?: boolean
+  } = {},
 ): readonly PreviewEffect[] {
   const seen = new Set<string>()
-  const effects = skill.effects
+  return skill.effects
     .map((effect, index) => {
       const entry = previewEffect(effect, options)
       const override = skill.effectDescriptions?.[index]?.trim()
@@ -266,18 +288,6 @@ export function skillPreviewEffects(
       seen.add(key)
       return true
     })
-  return skill.groundArea
-    ? [
-        ...effects,
-        {
-          label: 'Ground',
-          explanation: combatGroundAreaDescription(
-            skill.groundArea,
-            combatEffectTimingMode(timingPolicy ?? undefined, 'ground-area'),
-          ),
-        },
-      ]
-    : effects
 }
 
 export function effectSummary(effect: PreviewEffect): string {

@@ -54,6 +54,7 @@ import {
 } from './battle-recruit-ai-service'
 import { battleSparringTeamCounts } from '@/components/battle/battle-runtime'
 import { createBattleSessionService } from './battle-session-service'
+import { buildBattlePrivacyJournalInput } from './battle-history-privacy'
 import { projectBattleStatusStateForViewer } from './battle-live-viewer-projection'
 import { deriveParticipantBattleViewerEntitlement } from './battle-viewer-entitlement'
 import { BattleCombatantEffects } from '@/components/battle/battle-combatant-effects'
@@ -881,6 +882,69 @@ describe('P2.6 authoritative Recruit AI turn service', () => {
     )
     expect(summon?.turnsCompleted).toBe(1)
   })
+
+  it.each([1, 7, 24])(
+    'completes summon and Recruit service turns on generated terrain (seed %i)',
+    async (seed) => {
+      const active = stateWithActiveSummonTurn(await initialEncounter({}, seed))
+      const fixture = createStatefulRepository(active.state)
+      const service = createBattleRecruitAiService(fixture.repository)
+      for (
+        let turn = 0;
+        turn < 16 && fixture.currentState().tactical.battle.lifecycle === 'active';
+        turn += 1
+      ) {
+        let state = fixture.currentState()
+        if (state.tactical.battle.currentTurn?.combatantId === `character:${CHARACTER_ID}`) {
+          const ended = finishPv1fTurn(state, 'east')
+          await fixture.commitBattleIntent({
+            actorKey: USER_ID,
+            idempotencyKey: `test-player-end-${turn}`,
+            requestFingerprint: `test-${turn}`,
+            userId: USER_ID,
+            battleSessionId: SESSION_ID,
+            expectedBattleVersion: fixture.commits.length + 1,
+            nextSnapshot: ended.state,
+            events: ended.events,
+            privacyJournal: buildBattlePrivacyJournalInput({
+              before: state,
+              after: ended.state,
+              commandKind: 'face',
+              events: ended.events,
+            }),
+          })
+          state = fixture.currentState()
+        }
+        if (state.tactical.battle.lifecycle !== 'active') break
+        await service.runTurn({
+          userId: USER_ID,
+          battleSessionId: SESSION_ID,
+          expectedBattleVersion: fixture.commits.length + 1,
+        })
+      }
+      expect(
+        fixture.commits.some((commit) =>
+          commit.events.some(
+            (event) =>
+              typeof event === 'object' &&
+              event !== null &&
+              'event' in event &&
+              event.event === 'summon_defeated',
+          ),
+        ),
+      ).toBe(true)
+      expect(
+        fixture
+          .currentState()
+          .effectState?.summons?.some((row) => row.combatantId === active.summonId),
+      ).toBe(false)
+      expect(
+        fixture
+          .currentState()
+          .turnTriggerState?.combatants.some((row) => row.combatantId === active.summonId),
+      ).toBe(false)
+    },
+  )
 
   it('rejects attempts to run Recruit AI during a player-controlled turn', async () => {
     const state = await initialEncounter()

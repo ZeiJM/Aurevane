@@ -2,6 +2,7 @@ import { pendingCombatStatusRows } from './combat-effect-timing'
 import { expect, it } from 'vitest'
 import {
   executeCombatAction,
+  evaluateCombatAction,
   endCombatTurn,
   validateCombatEncounterState,
   type CombatActionDefinition,
@@ -9,7 +10,51 @@ import {
 } from './actions'
 import { percentageDotEncounter } from './combat-percentage-dots.test-utils'
 import { selectCurrentFinalFacing } from './board'
+import { resolveMatureSkillVersion, toCombatActionDefinition } from './mature-skills'
 const content = { statuses: [] }
+const hexCatalog = {
+  statuses: [
+    {
+      id: 'test.hex',
+      version: 1,
+      maximumStacks: 3,
+      durationOwnerTurnStarts: 10,
+      damageTakenMultiplierBasisPoints: 10000,
+      gameplayTags: ['Hexed' as const],
+    },
+  ],
+}
+function recoveryRecipient(
+  current: boolean,
+  potencyBasisPoints = 2500,
+  stacks = 1,
+): CombatEncounterState {
+  const state: CombatEncounterState = {
+    ...percentageDotEncounter(),
+    ...(current ? { healingDownPolicyVersion: 1 as const } : {}),
+  }
+  const actor = state.tactical.battle.combatants[0]!
+  actor.hp = 100
+  actor.mp = 0
+  actor.maxMp = 200
+  const statusRow = {
+    combatantId: 'actor',
+    statuses: [
+      {
+        statusId: 'test.hex',
+        statusVersion: 1,
+        sourceCombatantId: 'enemy',
+        stacks,
+        remainingOwnerTurnStarts: 10,
+        potencyBasisPoints,
+      },
+    ],
+  }
+  state.statusState = state.statusState.map((row) =>
+    row.combatantId === 'actor' ? statusRow : row,
+  )
+  return state
+}
 const action: CombatActionDefinition = {
   id: 'test.percentage-recovery',
   version: 1,
@@ -31,6 +76,94 @@ const action: CombatActionDefinition = {
     { type: 'percentage-recovery', recipient: 'actor', resource: 'hp', percent: 10, ticks: 2 },
   ],
 }
+it.each(['hp', 'mp'] as const)(
+  'Healing Down cuts captured %s recovery once across delayed activation and ticks',
+  (resource) => {
+    const base = {
+      ...recoveryRecipient(true),
+      effectTimingPolicy: {
+        version: 2,
+        modes: { healing: 'delayed' as const, 'mp-recovery': 'delayed' as const },
+      },
+    }
+    const skill: CombatActionDefinition = {
+      ...action,
+      effects: [
+        { type: 'percentage-recovery', recipient: 'actor', resource, percent: 10, ticks: 2 },
+      ],
+    }
+    const preview = evaluateCombatAction(base, skill, { kind: 'self' }, hexCatalog)
+    const cast = executeCombatAction(base, skill, { kind: 'self' }, hexCatalog)
+    const amount = resource === 'hp' ? 75 : 15
+    expect(
+      cast.state.pendingEffects![0]!.percentageRecoveryByRecipient!.actor!.amountPerApplication,
+    ).toBe(amount)
+    expect(preview.legal).toBe(true)
+    let state = JSON.parse(JSON.stringify(cast.state)) as CombatEncounterState
+    state.statusState = state.statusState.map((row) => ({ ...row, statuses: [] }))
+    const before = state.tactical.battle.combatants[0]![resource]
+    while (state.tactical.battle.round < 5)
+      state = endCombatTurn(
+        { ...state, tactical: selectCurrentFinalFacing(state.tactical, 'west').state },
+        hexCatalog,
+      ).state
+    expect(state.tactical.battle.combatants[0]![resource]).toBe(before + 2 * amount)
+    expect(validateCombatEncounterState(state)).toEqual([])
+  },
+)
+it.each([
+  [2500, 1, 30],
+  [1000, 2, 32],
+] as const)(
+  'cuts flat HP and MP recovery using %i potency/%i applications',
+  (potency, stacks, amount) => {
+    const state = recoveryRecipient(true, potency, stacks)
+    const skill: CombatActionDefinition = {
+      ...action,
+      effects: [
+        { type: 'healing', recipient: 'actor', amount: 40 },
+        { type: 'resource-change', recipient: 'actor', resource: 'mp', delta: 40 },
+      ],
+    }
+    const result = executeCombatAction(state, skill, { kind: 'self' }, hexCatalog)
+    expect(
+      evaluateCombatAction(state, skill, { kind: 'self' }, hexCatalog).projectedEffects,
+    ).toContainEqual({
+      effectType: 'resource-change',
+      combatantId: 'actor',
+      before: 0,
+      after: amount,
+    })
+    expect(result.state.tactical.battle.combatants[0]!.hp).toBe(100 + amount)
+    expect(result.state.tactical.battle.combatants[0]!.mp).toBe(amount)
+    const drained = executeCombatAction(
+      result.state,
+      {
+        ...skill,
+        effects: [{ type: 'resource-change', recipient: 'actor', resource: 'mp', delta: -10 }],
+      },
+      { kind: 'self' },
+      hexCatalog,
+    )
+    expect(drained.state.tactical.battle.combatants[0]!.mp).toBe(amount - 10)
+  },
+)
+it('preserves historical MP recovery while HP Healing Down remains active', () => {
+  const result = executeCombatAction(
+    recoveryRecipient(false),
+    {
+      ...action,
+      effects: [
+        { type: 'percentage-recovery', recipient: 'actor', resource: 'hp', percent: 10 },
+        { type: 'percentage-recovery', recipient: 'actor', resource: 'mp', percent: 10 },
+      ],
+    },
+    { kind: 'self' },
+    hexCatalog,
+  )
+  expect(result.state.tactical.battle.combatants[0]!.hp).toBe(175)
+  expect(result.state.tactical.battle.combatants[0]!.mp).toBe(20)
+})
 function end(state: CombatEncounterState) {
   return endCombatTurn(
     { ...state, tactical: selectCurrentFinalFacing(state.tactical, 'west').state },
@@ -282,3 +415,58 @@ it.each([1, 2, 4])(
     })
   },
 )
+
+it.each(['pve', 'pvp'] as const)(
+  'Healing Down cuts actual Fieldcraft HP and MP in %s',
+  (context) => {
+    const skill = toCombatActionDefinition(
+      resolveMatureSkillVersion('farstrider.fieldcraft')!,
+      context,
+    )
+    const state = recoveryRecipient(true, 1400)
+    const actor = state.tactical.battle.combatants[0]!
+    actor.maxHp = 100
+    actor.hp = 20
+    actor.maxMp = 20
+    const baseline = executeCombatAction(
+      { ...state, statusState: state.statusState.map((row) => ({ ...row, statuses: [] })) },
+      skill,
+      { kind: 'self' },
+      hexCatalog,
+    )
+    const result = executeCombatAction(state, skill, { kind: 'self' }, hexCatalog)
+    const restored = baseline.state.tactical.battle.combatants[0]!
+    const reduced = result.state.tactical.battle.combatants[0]!
+    expect(restored.hp - actor.hp).toBeGreaterThan(0)
+    expect(restored.mp).toBeGreaterThan(0)
+    expect(reduced.hp - actor.hp).toBe(Math.floor((restored.hp - actor.hp) * 0.86))
+    expect(reduced.mp).toBe(Math.floor(restored.mp * 0.86))
+    expect(reduced.mp).toBeLessThan(restored.mp)
+  },
+)
+it('Healing Down reduces flat periodic MP, rounds down and keeps resource caps', () => {
+  let state = recoveryRecipient(true)
+  const skill: CombatActionDefinition = {
+    ...action,
+    effects: [{ type: 'resource-change', recipient: 'actor', resource: 'mp', delta: 3, ticks: 2 }],
+  }
+  state = executeCombatAction(state, skill, { kind: 'self' }, hexCatalog).state
+  expect(state.tactical.battle.combatants[0]!.mp).toBe(2)
+  while (state.tactical.battle.round < 3)
+    state = endCombatTurn(
+      { ...state, tactical: selectCurrentFinalFacing(state.tactical, 'west').state },
+      hexCatalog,
+    ).state
+  expect(state.tactical.battle.combatants[0]!.mp).toBe(4)
+  state.tactical.battle.combatants[0]!.mp = 199
+  const capped = executeCombatAction(
+    state,
+    {
+      ...skill,
+      effects: [{ type: 'resource-change', recipient: 'actor', resource: 'mp', delta: 3 }],
+    },
+    { kind: 'self' },
+    hexCatalog,
+  )
+  expect(capped.state.tactical.battle.combatants[0]!.mp).toBe(200)
+})

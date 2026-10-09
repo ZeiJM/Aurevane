@@ -2,6 +2,7 @@ import React from 'react'
 import { createRoot } from 'react-dom/client'
 import { SkillParameters } from '@/components/character/skill-parameters'
 import { SkillDetails } from '@/components/character/skill-details'
+import { SkillEffectListEditor } from '@/components/master/combat-content/skill-effect-list-editor'
 import { SkillCharacteristicRows } from '@/components/character/skill-characteristic-rows'
 import { basicActionCharacteristicRows } from '@/components/character/basic-action-presentation'
 import { CompactSkillEffectSummary } from '@/components/character/compact-skill-effect-summary'
@@ -19,7 +20,10 @@ import './production-styles'
 const query = new URLSearchParams(location.search)
 const physical = resolveMatureSkillVersion('vanguard.forceful-strike')
 const mystic = resolveMatureSkillVersion('runeblade.aether-cut')
+const ground = resolveMatureSkillVersion('frostweaver.chilling-mist')
 const guard = resolveMatureSkillVersion('edgedancer.poised-guard')
+const healingDown = resolveMatureSkillVersion('runeblade.sigil-brand')
+const blindside = resolveEssenceForBuild('shadehand', null).skill
 const resonance = resolveResonanceForPair('wildwarden', 'edgedancer')
 const essence = resolveEssenceForBuild('vanguard', null)
 const battleSkill = (definition) => ({
@@ -44,12 +48,39 @@ window.fetch = async (url) => {
 }
 
 const sectionStyle = { background: '#0a202b', color: '#f0e8dc', padding: 12, marginBottom: 12 }
+function BlindsideAuthoring() {
+  const [effects, setEffects] = React.useState([
+    {
+      type: 'apply-status',
+      recipient: 'actor',
+      statusId: 'guarded',
+      stacks: 1,
+      durationTurns: 2,
+      potencyBasisPoints: 1400,
+    },
+  ])
+  return (
+    <section aria-label="Master Blindside authoring" style={sectionStyle}>
+      <SkillEffectListEditor
+        value={effects}
+        onChange={(next) => {
+          window.blindsideAuthoringEffects = next
+          setEffects(next)
+        }}
+      />
+    </section>
+  )
+}
 function Reports() {
   return (
     <main style={{ padding: 16, maxWidth: 780 }}>
+      <BlindsideAuthoring />
       {[
         ['physical', physical],
         ['mystic', mystic],
+        ['ground', ground],
+        ['healing-down', healingDown],
+        ['blindside', blindside],
       ].map(([family, skill]) => (
         <React.Fragment key={family}>
           <section aria-label={`Nexus ${family} parameters`} style={sectionStyle}>

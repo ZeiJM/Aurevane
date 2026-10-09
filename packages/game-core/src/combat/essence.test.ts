@@ -412,7 +412,8 @@ describe('Combat v5.1 Essence targeting balance', () => {
         null,
         current.contentVersion -
           (current.authoring.validationTags.includes('attack-percentage-dots') ? 2 : 1) -
-          (current.skill.target.geometryVersion === 2 ? 1 : 0),
+          (current.skill.target.geometryVersion === 2 ? 1 : 0) -
+          (current.authoring.validationTags.includes('instant-blindside-v1') ? 1 : 0),
       )
       if (!previous) throw new Error(`Expected prior Essence for ${disciplineId}.`)
       expect(previous.skill.authoring.validationTags, previous.essenceId).toContain(

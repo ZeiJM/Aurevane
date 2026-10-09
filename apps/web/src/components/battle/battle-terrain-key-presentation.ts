@@ -7,6 +7,7 @@ import {
 
 export type BattleTerrainKeyKind = 'open' | 'rough' | 'elevated' | 'blocked' | 'frozen' | 'steam'
 export type BattleTerrainKeySnapshot = {
+  frozenGroundPolicyVersion?: 1
   tactical: Pick<TacticalBattleState, 'tiles' | 'terrains'>
   terrainOverlays?: readonly CombatTerrainOverlay[]
 }

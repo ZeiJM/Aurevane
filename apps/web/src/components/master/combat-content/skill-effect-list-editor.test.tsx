@@ -19,6 +19,26 @@ const effects: readonly CombatEffectDefinition[] = [
 ]
 
 describe('Master Panel Skill effect list editor', () => {
+  it('authors Push and Pull as separate choices with exact direction', () => {
+    expect(createDefaultCombatEffect('push')).toEqual({
+      type: 'displace',
+      recipient: 'primary-unit',
+      direction: 'push',
+      distance: 1,
+    })
+    expect(createDefaultCombatEffect('pull')).toEqual({
+      type: 'displace',
+      recipient: 'primary-unit',
+      direction: 'pull',
+      distance: 1,
+    })
+    const markup = renderToStaticMarkup(
+      createElement(SkillEffectListEditor, { value: [], onChange: vi.fn() }),
+    )
+    expect(markup).toContain('<option value="push">Push</option>')
+    expect(markup).toContain('<option value="pull">Pull</option>')
+    expect(markup).not.toContain('<option value="displace"')
+  })
   it('creates a complete canonical Cleanse by default', () => {
     expect(createDefaultCombatEffect('remove-status')).toEqual({
       type: 'remove-status',
@@ -74,7 +94,7 @@ describe('Master Panel Skill effect list editor', () => {
       'remove-status',
       'return-to-turn-start',
       'create-terrain',
-      'displace',
+      // Push/Pull choices produce the shared internal movement payload.
       'poison',
       'bleed',
       'burn',
@@ -90,5 +110,15 @@ describe('Master Panel Skill effect list editor', () => {
     expect(markup).not.toContain('<textarea')
     expect(markup).not.toContain('Raw JSON')
     expect(markup).not.toContain('Script')
+  })
+})
+
+it('provides reusable Instant one-turn Blindside authoring', () => {
+  expect(createDefaultCombatEffect('blindside')).toEqual({
+    type: 'apply-status',
+    recipient: 'actor',
+    statusId: 'blindside',
+    stacks: 1,
+    durationTurns: 1,
   })
 })

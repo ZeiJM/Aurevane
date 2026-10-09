@@ -73,8 +73,19 @@ describe('Foundation trio authored class content', () => {
 
     const backstab = resolveMatureSkillVersion('shadehand.backstab')
     const backstabDamage = backstab?.effects.find((effect) => effect.type === 'damage')
-    expect(backstabDamage).toMatchObject({
-      facingModifiersBasisPoints: { front: 10_000, side: 13_000, rear: 17_000 },
+    expect(
+      backstabDamage?.type === 'damage' && backstabDamage.facingModifiersBasisPoints,
+    ).toBeUndefined()
+    expect(backstab?.effects).toContainEqual({
+      type: 'apply-status',
+      recipient: 'actor',
+      statusId: 'blindside',
+      stacks: 1,
+      durationTurns: 1,
+    })
+    const previous = resolveMatureSkillVersion('shadehand.backstab', backstab!.contentVersion - 1)!
+    expect(previous.effects.find((effect) => effect.type === 'damage')).toMatchObject({
+      facingModifiersBasisPoints: { front: 10000, side: 13000, rear: 17000 },
     })
 
     const arcaneField = resolveMatureSkillVersion('aetherist.arcane-field')

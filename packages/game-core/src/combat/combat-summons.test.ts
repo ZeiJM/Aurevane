@@ -16,6 +16,7 @@ import {
   type StatDrivenCombatProfileV4,
 } from './stat-driven-combat'
 import { SUMMON_PROFILE_SCHEMA_VERSION, type SummonProfileDefinition } from './summon-content'
+import { claimCombatTurnTrigger } from './combat-turn-trigger-state'
 
 function profile(combatantId: string, team: 'players' | 'opponents'): StatDrivenCombatProfileV4 {
   return {
@@ -171,6 +172,27 @@ function spawn(state = encounter(), summon = summonProfile()) {
 }
 
 describe('Combat v5.1 summon runtime state', () => {
+  it.each(['defeated', 'expired'] as const)(
+    'removes a %s summon’s turn trigger tracking while preserving other allowances',
+    (reason) => {
+      const spawned = spawn()
+      const summonId = spawned.state.effectState!.summons![0]!.combatantId
+      const playerClaim = claimCombatTurnTrigger(spawned.state, 'player', 'burn-backlash')
+      const summonClaim = claimCombatTurnTrigger(playerClaim.state, summonId, 'ground-area:1')
+      const state = { ...spawned.state, ...summonClaim.state, statBridge: spawned.state.statBridge }
+      const removed = removeCombatSummon(state, summonId, reason)
+      expect(removed.state.turnTriggerState?.combatants).toEqual([
+        { combatantId: 'player', cycle: 1, usedKeys: ['burn-backlash'] },
+      ])
+      expect(removed.state.turnTriggerState?.preparedTurnNumber).toBe(
+        state.tactical.battle.turnNumber,
+      )
+      expect(
+        validateStatDrivenCombatEncounterState(JSON.parse(JSON.stringify(removed.state))),
+      ).toEqual([])
+      expect(claimCombatTurnTrigger(removed.state, 'player', 'burn-backlash').allowed).toBe(false)
+    },
+  )
   it('preserves the new stat policy with an explicit zero-resistance summon profile', () => {
     const base = encounter()
     const current = {
@@ -351,6 +373,7 @@ describe('Combat v5.1 summon runtime state', () => {
     expect(cleaned.state.effectState?.summons?.some((row) => row.combatantId === summonId)).toBe(
       false,
     )
+    expect(cleaned.state).not.toHaveProperty('turnTriggerState')
     expect(cleaned.events).toContainEqual(
       expect.objectContaining({ event: 'summon_defeated', combatantId: summonId }),
     )

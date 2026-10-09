@@ -373,6 +373,106 @@ try {
       )
     }
   }
+
+  for (const mode of ['pve', 'pvp', 'spectator']) {
+    for (const viewport of [
+      { width: 1366, height: 768 },
+      { width: 390, height: 844 },
+    ]) {
+      const page = await browser.newPage({
+        viewport,
+        isMobile: viewport.width < 821,
+        hasTouch: viewport.width < 821,
+      })
+      page.setDefaultTimeout(10000)
+      page.on('pageerror', (error) => errors.push(error.message))
+      await page.goto(server.resolvedUrls.local[0] + `?mode=${mode}&summon=1`)
+      if (mode === 'spectator') await page.getByRole('button', { name: /^Inspect$/ }).click()
+      else await page.locator('[data-battle-command="inspect"]').click()
+      const tile = page
+        .locator('#battlefield')
+        .getByRole('button', { name: /occupied by Verdant Stalker/ })
+      await tile.click()
+      // Map selection updates the rail; the rail opens the full inspect popup.
+      const inspect = page.getByRole('button', { name: 'Inspect Verdant Stalker', exact: true })
+      if (await inspect.count()) await inspect.click()
+      const parent = page.getByRole('dialog', {
+        name: 'Verdant Stalker battle details',
+        exact: true,
+      })
+      await parent.waitFor()
+      const cards = parent.locator('[data-summon-ability]')
+      assert.equal(
+        await cards.count(),
+        2,
+        'Both pinned summon abilities use standard characteristics',
+      )
+      for (const card of await cards.all()) {
+        assert.deepEqual(await card.locator('dt').allTextContents(), [
+          'Skill Type',
+          'Cost',
+          'Cooldown',
+          'Requirements',
+          'Effects',
+          'Range',
+          'Target',
+          'Target Method',
+          'Target Elevation',
+          'Line of Sight',
+        ])
+        assert.match(await card.innerText(), /45 AP/)
+      }
+      const trigger = parent.getByRole('button', { name: 'About Thorn Rake', exact: true })
+      assert.equal(await trigger.textContent(), '!')
+      if (viewport.width < 821) await trigger.tap()
+      else await trigger.hover()
+      const reader = page.getByRole('dialog', { name: 'Thorn Rake', exact: true })
+      await reader.waitFor()
+      assert.equal(await reader.locator('dt').count(), 10)
+      assert.match(await reader.innerText(), /Skill power ranges from 1 to 20/)
+      assert.equal(
+        await reader.evaluate((panel) => {
+          const r = panel.getBoundingClientRect()
+          return panel.contains(document.elementFromPoint(r.left + 12, r.top + 12))
+        }),
+        true,
+        'The nested reader is painted above the summon inspect dialog',
+      )
+      await page.screenshot({
+        path: resolve(output, `summon-${mode}-${viewport.width}.png`),
+        fullPage: true,
+      })
+      // Pin the desktop hover reader before exercising keyboard focus and dismissal.
+      if (viewport.width >= 821) await trigger.click()
+      await page.keyboard.press('Escape')
+      await reader.waitFor({ state: 'detached' })
+      assert.equal(await parent.isVisible(), true, 'First Escape closes only the ability reader')
+      await parent.getByRole('button', { name: 'About Verdant Mend', exact: true }).click()
+      const mend = page.getByRole('dialog', { name: 'Verdant Mend', exact: true })
+      await mend.waitFor()
+      assert.match(await mend.innerText(), /captured.*maximum HP/)
+      assert.equal(await page.locator('[data-battle-info-panel]').count(), 1)
+      await page.keyboard.press('Escape')
+      await mend.waitFor({ state: 'detached' })
+      await page.keyboard.press('Escape')
+      await parent.waitFor({ state: 'detached' })
+      assert.deepEqual(
+        await page.evaluate(() =>
+          window.calls.filter((call) => /\/(commit|intents|final-turn)$/.test(call.path)),
+        ),
+        [],
+        'Summon reading never submits a battle command',
+      )
+      assert.equal(
+        await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth),
+        false,
+      )
+      await page.close()
+      console.log(
+        `summon ${mode} ${viewport.width}: standard characteristics, hover/tap details, nested layering and dismissal passed`,
+      )
+    }
+  }
   assert.deepEqual(errors, [])
 } finally {
   await browser.close()

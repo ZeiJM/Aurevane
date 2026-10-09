@@ -18,6 +18,33 @@ const pendingFamilies = [
   'healing',
 ]
 
+it('reads each captured Blindside profile without replacing earlier applications', () => {
+  const effect: CombatStatusInstance = {
+    statusId: 'blindside',
+    statusVersion: 1,
+    stacks: 2,
+    remainingOwnerTurnStarts: 1,
+    remainingOwnerTurnEnds: 1,
+    sourceCombatantId: 'actor',
+    blindsideModifiersBasisPoints: { side: 12500, rear: 18000 },
+    applicationModifiers: [
+      {
+        stacks: 1,
+        sourceCombatantId: 'actor',
+        blindsideModifiersBasisPoints: { side: 17550, rear: 25000 },
+      },
+      {
+        stacks: 1,
+        sourceCombatantId: 'actor',
+        blindsideModifiersBasisPoints: { side: 12500, rear: 18000 },
+      },
+    ],
+  }
+  const description = describeBattleEffect(effect).description
+  expect(description).toContain('175.5% side, 250% rear')
+  expect(description).toContain('125% side, 180% rear')
+})
+
 describe('battle effect identity', () => {
   it.each([
     ['guarded', 'Reduces incoming damage by 11%'],
@@ -48,7 +75,7 @@ describe('battle effect identity', () => {
   )
 
   it('retains canonical descriptions when historical instances have no recorded potency', () => {
-    for (const statusId of ['guarded', 'warded', 'mark', 'hexed', 'inspired', 'fortified']) {
+    for (const statusId of ['guarded', 'warded', 'mark', 'inspired', 'fortified']) {
       expect(
         describeBattleEffect({
           statusId,
@@ -141,5 +168,27 @@ it.each([1, 4])(
     expect(result.counterLabel).toBe(`${applications}×`)
     expect(result.duration).toContain(`${applications} application`)
     expect(result.duration).toContain('activation')
+  },
+)
+
+it.each(['active', 'pending'] as const)(
+  'Healing Down %s readers match current and historical recovery rules',
+  (timingState) => {
+    const effect = {
+      statusId: 'hexed',
+      statusVersion: 1,
+      stacks: 1,
+      sourceCombatantId: 'caster',
+      remainingOwnerTurnStarts: 2,
+      timingState,
+    }
+    expect(describeBattleEffect(effect).description).toBe('Receive 25% less healing.')
+    expect(describeBattleEffect({ ...effect, healingDownPolicyVersion: 1 }).description).toBe(
+      'Receive 25% less HP and MP recovery.',
+    )
+    expect(
+      describeBattleEffect({ ...effect, healingDownPolicyVersion: 1, potencyBasisPoints: 1600 })
+        .description,
+    ).toBe('Receive 16% less HP and MP recovery.')
   },
 )

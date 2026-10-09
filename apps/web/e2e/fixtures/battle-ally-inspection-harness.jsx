@@ -11,7 +11,10 @@ import { BattleInteractionLifecycleProvider } from '@/components/battle/battle-i
 import { createPendingBattle, startBattle } from '@aurevane/game-core/combat/battle-state'
 import { createTacticalBattleState } from '@aurevane/game-core/combat/board'
 import { createCombatEncounterState } from '@aurevane/game-core/combat/actions'
-import { createStatDrivenCombatEncounterState } from '@aurevane/game-core/combat/stat-driven-combat'
+import {
+  createCurrentStatDrivenCombatEncounterState,
+  createStatDrivenCombatEncounterState,
+} from '@aurevane/game-core/combat/stat-driven-combat'
 import {
   evaluatePv1fMatureSkill,
   executePv1fMatureSkill,
@@ -20,6 +23,7 @@ import {
   executePv1fAction,
 } from '@aurevane/game-core/combat/pv1f-action-economy'
 import { createPv1fTemporaryResources } from '@aurevane/game-core/combat/pv1f-action-economy'
+import { spawnCombatSummon } from '@aurevane/game-core/combat/combat-summons'
 import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
 import { resolveEssenceForBuild } from '@aurevane/game-core/combat/essence'
 import { SkillDetails } from '@/components/character/skill-details'
@@ -103,10 +107,31 @@ const initialBattle = {
 }
 const mode = new URLSearchParams(location.search).get('mode') || 'pve'
 const groundPreset = new URLSearchParams(location.search).get('ground')
+if (new URLSearchParams(location.search).get('summon') === '1') {
+  const skill = resolveMatureSkillVersion('wildwarden.renewing-herbs')
+  const current = createCurrentStatDrivenCombatEncounterState(
+    snapshot,
+    snapshot.statBridge.combatants.map((profile) => ({ ...profile, level: 1, criticalChance: 0 })),
+  )
+  initialBattle.snapshot = spawnCombatSummon(current, {
+    ownerCombatantId: 'character:player',
+    sourceSkillId: skill.id,
+    sourceSkillVersion: skill.contentVersion,
+    profile: skill.summonProfile,
+    position: { x: 1, y: 1 },
+    facing: 'east',
+  }).state
+}
+
 if (new URLSearchParams(location.search).get('compass') === 'edges') {
   const directions = ['north', 'east', 'south', 'west']
-  const corners = [{x:0,y:0},{x:8,y:0},{x:0,y:6},{x:8,y:6}]
-  initialBattle.snapshot.tactical.placements.forEach((placement,index)=>{
+  const corners = [
+    { x: 0, y: 0 },
+    { x: 8, y: 0 },
+    { x: 0, y: 6 },
+    { x: 8, y: 6 },
+  ]
+  initialBattle.snapshot.tactical.placements.forEach((placement, index) => {
     placement.facing = directions[index]
     placement.position = corners[index]
   })
@@ -185,7 +210,14 @@ const runtime = {
 }
 if (targetingCase) {
   // Current percentage attacks use the same explicit policy as newly started battles.
-  initialBattle.snapshot = { ...initialBattle.snapshot, percentageDotPolicyVersion: 1, dotTriggerPolicyVersion: 1 }
+  initialBattle.snapshot = {
+    ...initialBattle.snapshot,
+    percentageDotPolicyVersion: 1,
+    dotTriggerPolicyVersion: 1,
+    frozenGroundPolicyVersion: 1,
+    airbornePolicyVersion: 1,
+    displacementPolicyVersion: 1,
+  }
   const base = resolveMatureSkillVersion(
     targetingCase === 'heal'
       ? 'lifebinder.mend'
@@ -562,11 +594,14 @@ if (mode === 'master-ground') fixtureRoot.render(<GroundEditorHarness />)
 else
   fixtureRoot.render(
     <AudioProvider>
-      {dotCase ? <SkillEffectTimingProvider
-        policy={initialBattle.snapshot.effectTimingPolicy ?? null}
-        dotTriggerPolicyVersion={initialBattle.snapshot.dotTriggerPolicyVersion ?? null}>
-        <DotDefinitionReport />
-      </SkillEffectTimingProvider> : null}
+      {dotCase ? (
+        <SkillEffectTimingProvider
+          policy={initialBattle.snapshot.effectTimingPolicy ?? null}
+          dotTriggerPolicyVersion={initialBattle.snapshot.dotTriggerPolicyVersion ?? null}
+        >
+          <DotDefinitionReport />
+        </SkillEffectTimingProvider>
+      ) : null}
       <BattlefieldPresentationBundle
         battleSessionId="fixture"
         initialVersion={initialBattle.battleVersion}

@@ -317,6 +317,9 @@ export function planCombatStatusCopies(
         ...(donor.sourceScopedMark === true ? { sourceScopedMark: true as const } : {}),
         statusId: donor.statusId,
         statusVersion: donor.statusVersion,
+        ...(donor.blindsideModifiersBasisPoints === undefined
+          ? {}
+          : { blindsideModifiersBasisPoints: { ...donor.blindsideModifiersBasisPoints } }),
         stacks,
         ...(usesUnlimitedCombatEffectStacking(state)
           ? {
@@ -476,6 +479,9 @@ export function applyCombatStatusCopies(
       : {}),
     ...(independent && copy.donor.remainingTicks !== undefined
       ? { remainingTicks: copy.donor.remainingTicks }
+      : {}),
+    ...(copy.donor.originalDurationTurns !== undefined
+      ? { originalDurationTurns: copy.donor.originalDurationTurns }
       : {}),
     curseCopyable: true,
   }))

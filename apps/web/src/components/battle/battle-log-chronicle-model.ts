@@ -3,6 +3,7 @@ import { battleDamageLabel } from '../../lib/battle/battle-damage-type'
 import type { BattleLogEntry } from '@/server/battle/battle-log-service'
 
 import { renderBattleLogEntry } from './battle-log-presentation'
+import { summarizeBattleLogTerrain } from './battle-log-terrain-summary'
 
 export type ChronicleFamily =
   'movement' | 'idle' | 'skill' | 'essence' | 'resonance' | 'ascension' | 'severence'
@@ -366,6 +367,13 @@ function outcome(entry: BattleLogEntry, names: ChronicleNames): ChronicleOutcome
         ...(entry.statusId ? { statusId: entry.statusId, duration: duration(entry) } : {}),
       }
     }
+    case 'poison_duration_refreshed':
+      return {
+        ...base,
+        text: `${target}'s Poison duration reset to ${value.turns} turns after five traversed tiles`,
+        tone: 'harm',
+        statusId: 'poison',
+      }
     case 'damage_applied': {
       const cause =
         entry.damageTrigger === 'burn-backlash' ||
@@ -545,7 +553,7 @@ export function buildBattleChronicle(
   }
   let command: ChronicleAction | null = null
   let version = -1
-  for (const entry of ordered) {
+  for (const entry of summarizeBattleLogTerrain(ordered)) {
     if (entry.battleVersion !== version) {
       command = null
       version = entry.battleVersion

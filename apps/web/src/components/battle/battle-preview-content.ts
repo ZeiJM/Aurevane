@@ -53,9 +53,10 @@ export interface PreviewChip {
 export function battleSkillParameterRows(
   skill: BattleSkillForecastPresentation,
   timingPolicy: SkillEffectTimingPolicy = defaultCombatEffectTimingPolicy(),
+  options: { legacyFrozenGround?: boolean; airborneAttackElevation?: boolean } = {},
 ): readonly (readonly [string, string])[] {
   if (skill.definition) {
-    return skillParameterRows(skill.definition, skill, timingPolicy)
+    return skillParameterRows(skill.definition, skill, timingPolicy, options)
   }
   // Legacy presentations may not retain an immutable definition. Never infer missing
   // mechanics from a current catalogue or silently describe unknown fields as inapplicable.

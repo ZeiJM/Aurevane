@@ -83,7 +83,8 @@ export function validateCombatTurnTriggers(
   const issues: CombatEncounterIssue[] = []
   if (
     state.dotTriggerPolicyVersion !== undefined &&
-    (state.dotTriggerPolicyVersion !== 1 || state.percentageDotPolicyVersion !== 1)
+    ((state.dotTriggerPolicyVersion !== 1 && state.dotTriggerPolicyVersion !== 2) ||
+      state.percentageDotPolicyVersion !== 1)
   )
     issues.push({
       field: 'dotTriggerPolicyVersion',

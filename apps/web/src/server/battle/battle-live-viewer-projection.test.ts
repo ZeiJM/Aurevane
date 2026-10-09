@@ -401,42 +401,57 @@ function elevatedEncounter(combatantId: string, elevation: number) {
   return state
 }
 
-it('shows pending icons without exposing queued effect definitions', () => {
-  const state = encounter()
-  state.effectTimingPolicy = { version: 1, modes: {} }
-  state.pendingEffects = [
-    {
-      actorId: PLAYER,
-      actionId: 'test.pending',
-      effect: { type: 'apply-status', recipient: 'primary-unit', statusId: 'hexed', stacks: 1 },
-      recipientIds: [PLAIN_ENEMY],
-      affectedTiles: [],
-      activationRound: 2,
-      content: {
-        statuses: [
-          {
-            id: 'hexed',
-            version: 1,
-            maximumStacks: 1,
-            durationOwnerTurnStarts: 2,
-            damageTakenMultiplierBasisPoints: 10000,
-          },
-        ],
-      },
-    },
-  ]
-  const rows = projectBattleStatusStateForViewer(state, createSpectatorBattleViewerEntitlement())
-  expect(rows.find((row) => row.combatantId === PLAIN_ENEMY)?.statuses).toEqual(
-    expect.arrayContaining([
-      expect.objectContaining({
-        statusId: 'hexed',
-        timingState: 'pending',
+it.each([1, undefined] as const)(
+  'shows pending icons with recovery policy %s without exposing queued definitions',
+  (policy) => {
+    const state = encounter()
+    state.effectTimingPolicy = { version: 1, modes: {} }
+    state.healingDownPolicyVersion = policy
+    state.statusState = state.statusState.map((row) =>
+      row.combatantId === PLAYER
+        ? { ...row, statuses: [...row.statuses, status('hexed', ENEMY)] }
+        : row,
+    )
+    state.pendingEffects = [
+      {
+        actorId: PLAYER,
+        actionId: 'test.pending',
+        effect: { type: 'apply-status', recipient: 'primary-unit', statusId: 'hexed', stacks: 1 },
+        recipientIds: [PLAIN_ENEMY],
+        affectedTiles: [],
         activationRound: 2,
-        remainingOwnerTurnEnds: 1,
-      }),
-    ]),
-  )
-})
+        content: {
+          statuses: [
+            {
+              id: 'hexed',
+              version: 1,
+              maximumStacks: 1,
+              durationOwnerTurnStarts: 2,
+              damageTakenMultiplierBasisPoints: 10000,
+            },
+          ],
+        },
+      },
+    ]
+    const rows = projectBattleStatusStateForViewer(state, createSpectatorBattleViewerEntitlement())
+    for (const id of [PLAYER, PLAIN_ENEMY])
+      expect(
+        rows
+          .find((row) => row.combatantId === id)
+          ?.statuses.find((item) => item.statusId === 'hexed')?.healingDownPolicyVersion,
+      ).toBe(policy)
+    expect(rows.find((row) => row.combatantId === PLAIN_ENEMY)?.statuses).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          statusId: 'hexed',
+          timingState: 'pending',
+          activationRound: 2,
+          remainingOwnerTurnEnds: 1,
+        }),
+      ]),
+    )
+  },
+)
 
 it('keeps active DOT, recovery and barrier icons tied to actual remaining instances', () => {
   const state = encounter()

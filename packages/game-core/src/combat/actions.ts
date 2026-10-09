@@ -1,3 +1,4 @@
+import { airborneAttackAction } from './combat-airborne'
 import {
   skillPacketGroups,
   rollSkillPacketAccuracy,
@@ -133,6 +134,7 @@ export function evaluateCombatAction(
   selection: legacy.CombatTargetSelection,
   content: legacy.CombatContentCatalog,
 ): CombatActionEvaluation {
+  action = airborneAttackAction(state, action, content)
   validateCombatAccuracyDefinition(action)
   const csrPreviewAction = materializeCsrPreviewAction(action)
   let materialized = materializeVengeanceDamage(state, csrPreviewAction)
@@ -198,6 +200,7 @@ export function executeCombatAction(
   context?: CombatResolutionContext,
   hitDependentEffects?: CombatHitDependentEffects,
 ): CombatResolutionTransition {
+  action = airborneAttackAction(state, action, content)
   validateCombatAccuracyDefinition(action)
   const round = state.tactical.battle.round
   const actorId = state.tactical.battle.currentTurn?.combatantId ?? null
@@ -214,6 +217,7 @@ export function executeCombatAction(
     Boolean(context) ||
     Boolean(hitDependentEffects) ||
     action.accuracyMode === 'per-target' ||
+    (state.airbornePolicyVersion === 1 && action.target.kind === 'ground-tile') ||
     action.effects.some((effect) => effect.type === 'sensory') ||
     (state.statBridge?.rulesVersion === 4 && hasCriticalEligibleDamage(action))
   const evaluation = requiresEvaluation

@@ -462,6 +462,14 @@ describe('combat content authoring service', () => {
       },
     ],
     [
+      'retired Displaced marker',
+      (value: Record<string, unknown>) => {
+        value.effects = [
+          { type: 'apply-status', recipient: 'primary-unit', statusId: 'displaced', stacks: 1 },
+        ]
+      },
+    ],
+    [
       'invalid Push/Pull distance',
       (value: Record<string, unknown>) => {
         value.effects = [

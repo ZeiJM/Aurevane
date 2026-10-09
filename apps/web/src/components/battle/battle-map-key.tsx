@@ -1,5 +1,7 @@
 'use client'
 
+import { frozenGroundDescription } from '@aurevane/game-core/combat/terrain-overlays'
+
 import { BattleInfoPopover } from './battle-info-popover'
 import {
   BATTLE_TERRAIN_KEY_DETAILS,
@@ -30,7 +32,13 @@ export function BattleMapKey({
       </header>
       <div className={styles.samples}>
         {terrainKeys.map((kind) => {
-          const terrain = BATTLE_TERRAIN_KEY_DETAILS[kind]
+          const terrain =
+            kind === 'frozen'
+              ? {
+                  ...BATTLE_TERRAIN_KEY_DETAILS.frozen,
+                  description: `${frozenGroundDescription(snapshot.frozenGroundPolicyVersion ?? null)} Preserves base terrain and expires after 2 round boundaries.`,
+                }
+              : BATTLE_TERRAIN_KEY_DETAILS[kind]
           const active = activeKeys.has(kind)
           const sample = (
             <>

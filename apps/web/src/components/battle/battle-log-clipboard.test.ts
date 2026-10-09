@@ -78,6 +78,84 @@ function expectDisplayParity(entries: readonly BattleLogEntry[], expected: reado
 }
 
 describe('Battle Chronicle clipboard transcript', () => {
+  it('summarizes a recorded Ground activation once in the reader and Copy Full Log', () => {
+    const entries = Array.from({ length: 8 }, (_, eventIndex) =>
+      entry(3, eventIndex, 'terrain_overlay_changed', {
+        actionId: 'frostweaver.chilling-mist',
+        actionLabel: 'Chilling Mist',
+        targetCombatantId: null,
+        messageTemplate: `Frozen Ground at tile ${eventIndex + 1},3 · 2 round boundaries.`,
+        terrainChange: {
+          position: { x: eventIndex, y: 2 },
+          before: null,
+          after: 'frozen',
+          remainingRoundBoundaries: 2,
+        },
+      }),
+    )
+    const original = JSON.stringify(entries)
+    const copied = formatBattleLogForClipboard(entries, options)
+    expect(copied).toContain('Frozen Ground · 8 tiles · 2 rounds')
+    expect(copied.match(/^Chilling Mist$/gm)).toHaveLength(1)
+    expect(copied).not.toContain('at tile')
+    expect(copied.split('\n').filter(Boolean)).toEqual(displayedLines(entries))
+    expect(JSON.stringify(entries)).toBe(original)
+  })
+  it.each([
+    { boundary: 'cast', override: { actionId: 'another.cast' } },
+    { boundary: 'actor', override: { actorCombatantId: enemy } },
+    { boundary: 'commit', override: { battleVersion: 4 } },
+    { boundary: 'activation', override: { effectActivationRound: 4 } },
+    { boundary: 'missing receipt', override: { eventIndex: 2 } },
+  ])('does not merge terrain across a different $boundary', ({ override }) => {
+    const first = entry(3, 0, 'terrain_overlay_changed', {
+      targetCombatantId: null,
+      terrainChange: {
+        position: { x: 1, y: 2 },
+        before: null,
+        after: 'frozen',
+        remainingRoundBoundaries: 2,
+      },
+    })
+    const second = {
+      ...first,
+      eventIndex: 1,
+      ...override,
+      terrainChange: { ...first.terrainChange!, position: { x: 2, y: 2 } },
+    }
+    const entries = [first, second]
+    const copied = formatBattleLogForClipboard(entries, options)
+    expect(copied).not.toContain('2 tiles')
+    expect(copied.match(/Frozen Ground · 1 tile · 2 rounds/g)).toHaveLength(2)
+    expect(copied.split('\n').filter(Boolean)).toEqual(displayedLines(entries))
+  })
+  it('keeps distinct terrain transitions under one recorded cast without merging durations', () => {
+    const entries = [
+      entry(3, 0, 'terrain_overlay_changed', {
+        targetCombatantId: null,
+        terrainChange: {
+          position: { x: 1, y: 2 },
+          before: null,
+          after: 'frozen',
+          remainingRoundBoundaries: 2,
+        },
+      }),
+      entry(3, 1, 'terrain_overlay_changed', {
+        targetCombatantId: null,
+        terrainChange: {
+          position: { x: 2, y: 2 },
+          before: 'frozen',
+          after: 'steam',
+          remainingRoundBoundaries: 1,
+        },
+      }),
+    ]
+    const copied = formatBattleLogForClipboard(entries, options)
+    expect(copied).toContain('Frozen Ground · 1 tile · 2 rounds')
+    expect(copied).toContain('Frozen Ground → Steam · 1 tile · 1 round')
+    expect(copied.match(/^Hollow Reflection$/gm)).toHaveLength(1)
+    expect(copied.split('\n').filter(Boolean)).toEqual(displayedLines(entries))
+  })
   it('shows a recorded critical before the command beneath that attack in both the reader and copy', () => {
     const entries = [
       entry(1, 0, 'combat_critical_resolved', { templateValues: { outcome: 'CRITICAL' } }),

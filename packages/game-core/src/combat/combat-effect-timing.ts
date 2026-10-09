@@ -17,6 +17,8 @@ export const COMBAT_EFFECT_TIMING_TAGS = [
     'create-terrain',
     'ground-area',
     'displace',
+    'push',
+    'pull',
     'poison',
     'burn',
     'bleed',
@@ -91,6 +93,24 @@ export function combatEffectTimingTag(effect: CombatEffectDefinition): string {
   if (effect.type === 'resource-change') return effect.delta >= 0 ? 'mp-recovery' : 'mp-drain'
   return effect.type
 }
+export function currentCombatEffectTimingTag(effect: CombatEffectDefinition): string {
+  return effect.type === 'displace'
+    ? effect.direction === 'pull'
+      ? 'pull'
+      : 'push'
+    : combatEffectTimingTag(effect)
+}
+export function combatActionEffectTimingTag(
+  state: Pick<CombatEncounterState, 'displacementPolicyVersion'>,
+  effect: CombatEffectDefinition,
+  authoredTag?: string,
+): string {
+  return state.displacementPolicyVersion === 1 &&
+    effect.type === 'displace' &&
+    (!authoredTag || authoredTag === 'displace')
+    ? currentCombatEffectTimingTag(effect)
+    : (authoredTag ?? combatEffectTimingTag(effect))
+}
 export function combatEffectTimingMode(
   policy: CombatEffectTimingPolicy | undefined,
   tag: string,
@@ -98,12 +118,13 @@ export function combatEffectTimingMode(
   if (!policy) return 'instant'
   return (
     policy.modes[tag] ??
-    (['damage', 'healing', 'mp-recovery'].includes(tag) ? 'instant' : 'next-round')
+    (tag === 'push' || tag === 'pull' ? policy.modes.displace : undefined) ??
+    (['damage', 'healing', 'mp-recovery', 'blindside'].includes(tag) ? 'instant' : 'next-round')
   )
 }
 export type CombatEffectPresentationStatus = CombatStatusInstance & {
   recoveryApplications?: number
-  dotTriggerPolicyVersion?: 1
+  dotTriggerPolicyVersion?: 1 | 2
   burnBacklashBasisPoints?: number
   percentageDamage?: CapturedPercentageDotDamage
   percentageDotProfile?: AttackPercentageDotProfile
@@ -124,7 +145,10 @@ export function pendingCombatStatusRows(
         ? effect.statusId
         : effect.type === 'barrier-change'
           ? 'barrier'
-          : combatEffectTimingTag(effect)
+          : effect.type === 'displace' &&
+              (pending.timingTag === 'push' || pending.timingTag === 'pull')
+            ? pending.timingTag
+            : combatEffectTimingTag(effect)
     const definition = pending.content.statuses.find((status) => status.id === statusId)
     const tuning = effect as typeof effect & {
       durationTurns?: number
@@ -169,7 +193,9 @@ export function pendingCombatStatusRows(
       combatantId,
       status: {
         statusId,
-        ...(state.dotTriggerPolicyVersion === 1 ? { dotTriggerPolicyVersion: 1 as const } : {}),
+        ...(state.dotTriggerPolicyVersion !== undefined
+          ? { dotTriggerPolicyVersion: state.dotTriggerPolicyVersion }
+          : {}),
         ...(effect.type === 'burn' && effect.backlashBasisPoints !== undefined
           ? { burnBacklashBasisPoints: effect.backlashBasisPoints }
           : {}),
@@ -179,6 +205,9 @@ export function pendingCombatStatusRows(
           : {}),
         statusVersion: definition?.version ?? 1,
         stacks: effect.type === 'apply-status' ? effect.stacks : 1,
+        ...(effect.type === 'apply-status' && effect.blindsideModifiersBasisPoints !== undefined
+          ? { blindsideModifiersBasisPoints: { ...effect.blindsideModifiersBasisPoints } }
+          : {}),
         ...(effect.type === 'apply-status' && tuning.potencyBasisPoints !== undefined
           ? { potencyBasisPoints: tuning.potencyBasisPoints }
           : {}),
@@ -265,7 +294,9 @@ export function activePersistentCombatStatusRows(
       combatantId,
       status: {
         statusId,
-        ...(state.dotTriggerPolicyVersion === 1 ? { dotTriggerPolicyVersion: 1 as const } : {}),
+        ...(state.dotTriggerPolicyVersion !== undefined
+          ? { dotTriggerPolicyVersion: state.dotTriggerPolicyVersion }
+          : {}),
         ...(burnBacklashBasisPoints !== undefined ? { burnBacklashBasisPoints } : {}),
         statusVersion: 1,
         stacks: 1,

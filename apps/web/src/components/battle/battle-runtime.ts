@@ -228,12 +228,11 @@ function pvpParticipants(
   }))
 }
 
-export function buildBattleViewModel(
+/** Playable and spectator surfaces resolve pinned summons through their owner’s presentation. */
+export function battlePresentationParticipantMap(
   battle: BattleSessionView,
-  runtime: BattleRuntime,
-): BattleViewModel {
-  const participants =
-    runtime.kind === 'pvp' ? pvpParticipants(runtime) : pveParticipants(battle, runtime)
+  participants: readonly BattlePresentationParticipant[],
+): Map<string, BattlePresentationParticipant> {
   const participantByCombatant = new Map(
     participants.map((participant) => [participant.combatantId, participant] as const),
   )
@@ -253,6 +252,16 @@ export function buildBattleViewModel(
       local: false,
     })
   }
+  return participantByCombatant
+}
+
+export function buildBattleViewModel(
+  battle: BattleSessionView,
+  runtime: BattleRuntime,
+): BattleViewModel {
+  const participants =
+    runtime.kind === 'pvp' ? pvpParticipants(runtime) : pveParticipants(battle, runtime)
+  const participantByCombatant = battlePresentationParticipantMap(battle, participants)
   const localParticipant = participants.find((participant) => participant.local) ?? null
   const highestTeam = participants.reduce(
     (highest, participant) => Math.max(highest, participant.teamIndex),

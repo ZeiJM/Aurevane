@@ -226,7 +226,7 @@ export function applyCurrentPoisonState(
   const existing = effectState.poison.find(
     (instance) => instance.targetCombatantId === targetCombatantId,
   )
-  const instance = {
+  let instance: CombatPoisonInstance = {
     targetCombatantId,
     sourceCombatantId,
     sourceActionId,
@@ -244,7 +244,22 @@ export function applyCurrentPoisonState(
         ? { damagePerTick: power }
         : {}),
     ...(durationTurns !== undefined ? { remainingTicks: durationTurns } : {}),
+    ...(state.dotTriggerPolicyVersion === 2 && captured
+      ? { originalDurationTurns: durationTurns! }
+      : {}),
     ...(curseCopyable !== undefined ? { curseCopyable } : {}),
+  }
+  if (state.dotTriggerPolicyVersion === 2 && captured && existing?.percentageDamage) {
+    const duration = Math.max(durationTurns!, existing.originalDurationTurns!)
+    instance =
+      captured.profile.basisPoints > existing.percentageDamage.profile.basisPoints
+        ? { ...instance, originalDurationTurns: duration, remainingTicks: duration }
+        : {
+            ...existing,
+            originalDurationTurns: duration,
+            remainingTicks: duration,
+            movementRemainder: 0,
+          }
   }
 
   return {
@@ -305,6 +320,7 @@ export function advanceCurrentPoisonMovement(
   state: CombatEncounterState
   triggeredTicks: number
   ticks: readonly { instance: CombatPoisonInstance; triggeredTicks: number }[]
+  refreshedDurationTurns?: number
 } {
   if (!Number.isSafeInteger(traversedTiles) || traversedTiles < 0)
     throw new RangeError(
@@ -312,12 +328,39 @@ export function advanceCurrentPoisonMovement(
     )
   if (traversedTiles === 0) return { state, triggeredTicks: 0, ticks: [] }
   const effectState = normalizeCombatEffectState(state.effectState)
+  if (state.dotTriggerPolicyVersion === 2) {
+    let refreshedDurationTurns: number | undefined
+    const poison = effectState.poison.map((instance) => {
+      if (instance.targetCombatantId !== targetCombatantId || !instance.percentageDamage)
+        return instance
+      const progress = safeDotTotal(instance.movementRemainder, traversedTiles)
+      if (
+        !Number.isSafeInteger(instance.originalDurationTurns) ||
+        instance.originalDurationTurns! < 1 ||
+        instance.originalDurationTurns! > 4
+      )
+        throw new TypeError('Poison movement refresh requires its captured original duration.')
+      if (progress >= 5) refreshedDurationTurns = instance.originalDurationTurns
+      return {
+        ...instance,
+        movementRemainder: progress % 5,
+        ...(progress >= 5 ? { remainingTicks: instance.originalDurationTurns! } : {}),
+      }
+    })
+    if (currentPoisonInstances(state, targetCombatantId).some((row) => row.percentageDamage))
+      return {
+        state: { ...state, effectState: { ...effectState, poison } },
+        triggeredTicks: 0,
+        ticks: [],
+        ...(refreshedDurationTurns !== undefined ? { refreshedDurationTurns } : {}),
+      }
+  }
   let ticks = currentPoisonInstances(state, targetCombatantId).map((instance) => ({
     instance,
     triggeredTicks: Math.floor(safeDotTotal(instance.movementRemainder, traversedTiles) / 5),
   }))
   if (ticks.length === 0) return { state, triggeredTicks: 0, ticks: [] }
-  if (state.dotTriggerPolicyVersion === 1 && ticks.some((row) => row.triggeredTicks > 0)) {
+  if (state.dotTriggerPolicyVersion !== undefined && ticks.some((row) => row.triggeredTicks > 0)) {
     const claim = claimCombatTurnTrigger(state, targetCombatantId, 'poison.movement')
     state = claim.state
     let available = claim.allowed
@@ -714,6 +757,15 @@ function validateCurrentPoisonState(state: CombatEncounterState): readonly Comba
       instance.sourceActionId.trim() !== instance.sourceActionId ||
       instance.profileVersion !== CURRENT_POISON_PROFILE_VERSION ||
       !validPercentageInstance(state, instance, 'poison') ||
+      (state.dotTriggerPolicyVersion === 2 &&
+        instance.percentageDamage !== undefined &&
+        instance.originalDurationTurns === undefined) ||
+      (instance.originalDurationTurns !== undefined &&
+        (!Number.isSafeInteger(instance.originalDurationTurns) ||
+          instance.originalDurationTurns < 1 ||
+          instance.originalDurationTurns > 4 ||
+          instance.remainingTicks === undefined ||
+          instance.remainingTicks > instance.originalDurationTurns)) ||
       (instance.percentageDamage !== undefined && instance.damagePerTick !== undefined) ||
       (instance.curseCopyable !== undefined && typeof instance.curseCopyable !== 'boolean') ||
       (instance.skipCurrentOwnerTurnEnd !== undefined &&

@@ -4,6 +4,7 @@ import { groupSkillEffects } from './skill-effect-groups'
 
 import { useSkillEffectTimingPolicy } from './skill-effect-timing-context'
 import type { AnyResonanceDefinition } from '@aurevane/game-core/combat/resonance'
+import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
 import { normalizedResonanceMechanics } from '@aurevane/game-core/combat/resonance-v2'
 import { previewEffect } from './skill-effect-preview'
 import { CompactSkillEffectSummary } from './compact-skill-effect-summary'
@@ -20,9 +21,11 @@ import styles from './resonance-parameters.module.css'
 export function ResonanceParameters({
   definition,
   className,
+  knownSkills,
 }: {
   definition: AnyResonanceDefinition | null | undefined
   className?: string
+  knownSkills?: readonly MatureSkillDefinition[]
 }) {
   const timingPolicy = useSkillEffectTimingPolicy()
   const mechanics = definition ? normalizedResonanceMechanics(definition) : null
@@ -34,15 +37,23 @@ export function ResonanceParameters({
       className={[styles.report, className].filter(Boolean).join(' ')}
       data-resonance-parameters="true"
     >
+      {mechanics?.setup ? (
+        <p>
+          Use a setup Skill from Requirements first. Your next Discipline Skill must match the
+          condition in Effects to gain the bonus. The setup is consumed when the combo activates.
+        </p>
+      ) : mechanics ? (
+        <p>Matching Skills automatically gain the effects below. No setup Skill is required.</p>
+      ) : null}
       <dl>
         <SkillCharacteristicRows
-          rows={resonanceCharacteristicRows(definition, timingPolicy)}
+          rows={resonanceCharacteristicRows(definition, timingPolicy, knownSkills)}
           effectSummary={
             definition
               ? effects.length
                 ? groupSkillEffects(effects).map(({ effect, count, firstIndex: index }) => (
                     <div className={styles.effectRow} key={index}>
-                      {resonanceMatcher(mechanics!.trigger)}:{' '}
+                      {resonanceMatcher(mechanics!.trigger, knownSkills)}:{' '}
                       <CompactSkillEffectSummary effect={effect} count={count} />
                       {effect.recipient !== 'actor'
                         ? ` → ${resonanceResultRecipient(effect)}`

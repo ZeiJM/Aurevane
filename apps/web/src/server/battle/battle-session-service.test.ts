@@ -379,8 +379,12 @@ describe('P2.4 battle session service', () => {
     expect(persistedSnapshot.effectStackingPolicyVersion).toBe(1)
     expect(result.snapshot.effectStackingPolicyVersion).toBe(1)
     expect(result.snapshot.percentageDotPolicyVersion).toBe(1)
-    expect(result.snapshot.dotTriggerPolicyVersion).toBe(1)
+    expect(result.snapshot.dotTriggerPolicyVersion).toBe(2)
     expect(result.snapshot.groundEffectPolicyVersion).toBe(1)
+    expect(result.snapshot.frozenGroundPolicyVersion).toBe(1)
+    expect(result.snapshot.airbornePolicyVersion).toBe(1)
+    expect(result.snapshot.healingDownPolicyVersion).toBe(1)
+    expect(result.snapshot.displacementPolicyVersion).toBe(1)
     const player = persistedSnapshot.tactical.battle.combatants.find(
       (combatant) => combatant.id === `character:${CHARACTER_ID}`,
     )

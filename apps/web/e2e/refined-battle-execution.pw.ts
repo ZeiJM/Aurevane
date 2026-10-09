@@ -41,11 +41,21 @@ test('mounted attack-path overlays remain visible above open, rough and raised t
   test.slow()
   await enterBattle(page)
   const board = page.locator('#battlefield')
-  // Actual armed reach is visible before a recipient or forecast is available.
+  // Single-unit Attack cues mark eligible occupants even without informational forecasts.
   await page.route('**/api/battles/*/preview', (route) => route.abort())
   await page.locator('main[data-unified-battle="true"]').focus()
   await page.keyboard.press('Digit2')
-  await expect(board.locator('[data-attack-path]')).toHaveCount(4)
+  await expect(page.locator('[data-battle-command="attack"]')).toHaveAttribute(
+    'data-active',
+    'true',
+  )
+  await expect
+    .poll(async () => ({
+      cues: await board.locator('[data-attack-path]').count(),
+      targets: await board.locator('[data-target="enemy"]').count(),
+    }))
+    .toEqual({ cues: 0, targets: 0 })
+  await expect(board.locator('[data-attack-path]:not([data-target="enemy"])')).toHaveCount(0)
   await page.keyboard.press('Escape')
   await expect(board.locator('[data-attack-path]')).toHaveCount(0)
   // Presentation fixture only: shape selection is covered by battle-attack-path.
@@ -564,13 +574,12 @@ test('a rapid second Basic Attack commits without waiting for an informational f
         return (
           adjacent.length > 1 &&
           // Movement can place the actor beside independently rolled level 2/3 tiles.
-          // Keep every hittable cardinal tile glowing, including empty ones, while
-          // preserving Basic Attack's authored elevation limit.
+          // Highlight only eligible occupied recipients and retain the authored elevation limit.
           adjacent.every((tile) => {
             const hittable =
               maximumElevationDifference === null ||
               Math.abs(elevation(tile) - originElevation) <= maximumElevationDifference
-            return hittable
+            return hittable && tile.getAttribute('data-target') === 'enemy'
               ? tile.getAttribute('data-attack-path') === 'true' &&
                   getComputedStyle(tile, '::after').backgroundColor === 'rgba(189, 38, 58, 0.22)'
               : tile.getAttribute('data-attack-path') !== 'true'

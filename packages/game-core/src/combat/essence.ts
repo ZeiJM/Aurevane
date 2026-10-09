@@ -1,3 +1,4 @@
+import { createBlindsideEssenceVersion } from './combat-blindside-roster'
 import { createPercentageRecoveryEssenceVersion } from './combat-recovery-roster'
 import { createCurrentGroundEssenceVersion } from './combat-ground-roster'
 import { createCurrentTargetingEssenceVersion } from './combat-targeting-roster'
@@ -573,10 +574,18 @@ const PRE_PERCENTAGE_RECOVERY_ESSENCE_REGISTRY = [
   ...PRE_CURRENT_GROUND_ESSENCE_REGISTRY,
   ...CURRENT_GROUND_ESSENCES,
 ]
-const CURRENT_ESSENCE_REGISTRY = [
+const PRE_BLINDSIDE_REGISTRY = [
   ...PRE_PERCENTAGE_RECOVERY_ESSENCE_REGISTRY,
   ...latestEnabledEssences(PRE_PERCENTAGE_RECOVERY_ESSENCE_REGISTRY).flatMap((definition) => {
     const next = createPercentageRecoveryEssenceVersion(definition)
+    return next ? [next] : []
+  }),
+]
+
+const CURRENT_ESSENCE_REGISTRY = [
+  ...PRE_BLINDSIDE_REGISTRY,
+  ...latestEnabledEssences(PRE_BLINDSIDE_REGISTRY).flatMap((definition) => {
+    const next = createBlindsideEssenceVersion(definition)
     return next ? [next] : []
   }),
 ]

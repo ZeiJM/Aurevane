@@ -408,9 +408,20 @@ describe('Versioned Phase 4 published interactions', () => {
   }
   it('keeps Skill facing, basic facing and conditional modifier bounds distinct', () => {
     const opening = resolveEssenceForBuild('shadehand', null)!.skill
-    const damage = opening.effects[0]!
+    const damage = opening.effects.find((effect) => effect.type === 'damage')!
     if (damage.type !== 'damage') throw new Error('Expected Perfect Opening damage')
-    expect(damage.facingModifiersBasisPoints!.rear).toBe(22000)
+    expect(damage.facingModifiersBasisPoints).toBeUndefined()
+    expect(opening.effects).toContainEqual({
+      type: 'apply-status',
+      recipient: 'actor',
+      statusId: 'blindside',
+      stacks: 1,
+      durationTurns: 1,
+    })
+    const previous = resolveEssenceForBuild('shadehand', null, opening.contentVersion - 1)!.skill
+    expect(previous.effects.find((effect) => effect.type === 'damage')).toMatchObject({
+      facingModifiersBasisPoints: { rear: 22000 },
+    })
     expect(() =>
       evaluatePv1fMatureSkill(
         encounter(),

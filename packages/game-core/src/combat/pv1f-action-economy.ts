@@ -1,3 +1,4 @@
+import { airborneAttackAction } from './combat-airborne'
 import { currentPoisonTickDamage } from './combat-dots'
 import { combatEffectTimingMode, combatEffectTimingRoundOffset } from './combat-effect-timing'
 import { materializeVengeanceDamage } from './combat-vengeance'
@@ -957,6 +958,7 @@ export function evaluatePv1fMatureSkill(
       })),
     ]
   }
+  baseAction.target = airborneAttackAction(prepared, baseAction, PV1F_COMBAT_CONTENT).target
   const vengeance = materializeVengeanceDamage(prepared, baseAction)
   const defendedEffects: readonly CombatEffectDefinition[] = vengeance.action.effects.map(
     (effect) =>
@@ -1228,9 +1230,14 @@ export function executePv1fMatureSkill(
 export function pv1fMovementModifiers(
   state: Pick<
     StatDrivenCombatEncounterState,
-    'statusState' | 'terrainOverlays' | 'effectStackingPolicyVersion'
+    'statusState' | 'terrainOverlays' | 'effectStackingPolicyVersion' | 'frozenGroundPolicyVersion'
   > & {
-    tactical: { battle: Pick<StatDrivenCombatEncounterState['tactical']['battle'], 'currentTurn'> }
+    tactical: {
+      battle: Pick<
+        StatDrivenCombatEncounterState['tactical']['battle'],
+        'currentTurn' | 'combatants'
+      >
+    }
   },
 ) {
   const actorId = state.tactical.battle.currentTurn?.combatantId
@@ -1271,13 +1278,23 @@ export function pv1fMovementModifiers(
   const airborne = Boolean(
     actorId && hasGameplayTag(state, actorId, 'Airborne', PV1F_COMBAT_CONTENT),
   )
+  const actorTeam = state.tactical.battle.combatants.find((unit) => unit.id === actorId)?.teamId
+  const frozenSurchargeApplies = (position: GridPosition) => {
+    const overlay = terrainOverlayAt(state, position)
+    if (airborne || overlay?.kind !== 'frozen') return false
+    if (state.frozenGroundPolicyVersion !== 1) return true
+    const sourceTeam = state.tactical.battle.combatants.find(
+      (unit) => unit.id === overlay.sourceCombatantId,
+    )?.teamId
+    return actorTeam !== undefined && sourceTeam !== undefined && actorTeam !== sourceTeam
+  }
   return {
     blocked: rooted,
     additionalApAt: (position: GridPosition) =>
       safeDelta(
         surcharge +
           BigInt(
-            !airborne && terrainOverlayAt(state, position)?.kind === 'frozen'
+            frozenSurchargeApplies(position)
               ? COMBAT_TERRAIN_OVERLAY_DETAILS.frozen.additionalApPerTile
               : 0,
           ),

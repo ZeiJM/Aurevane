@@ -7,6 +7,9 @@ export function combatStatusApplications(status: CombatStatusInstance) {
       {
         stacks: status.stacks,
         sourceCombatantId: status.sourceCombatantId,
+        ...(status.blindsideModifiersBasisPoints === undefined
+          ? {}
+          : { blindsideModifiersBasisPoints: status.blindsideModifiersBasisPoints }),
         ...(status.potencyBasisPoints === undefined
           ? {}
           : { potencyBasisPoints: status.potencyBasisPoints }),

@@ -190,8 +190,13 @@ export function BattleSelectedSkills({
               title={runtime.resonance.name}
               hotkey={formatCombatKeybind(bindings.essence)}
             >
-              <p>{runtime.resonance.description}</p>
-              <ResonanceParameters definition={runtime.resonance.definition} />
+              {!runtime.resonance.definition ? <p>{runtime.resonance.description}</p> : null}
+              <ResonanceParameters
+                definition={runtime.resonance.definition}
+                knownSkills={(runtime.techniques ?? []).flatMap((skill) =>
+                  skill.definition ? [skill.definition] : [],
+                )}
+              />
             </SkillControls>
             <small>Resonance · Passive</small>
           </>

@@ -180,6 +180,18 @@ function forbiddenDraftFieldIssues(
   const issues: CombatContentValidationIssue[] = []
   for (const [field, nested] of Object.entries(value)) {
     const fieldPath = path === '$' ? field : `${path}.${field}`
+    if (
+      ['statusId', 'statusIds', 'tag', 'requiredTags', 'excludedTags'].includes(field) &&
+      (nested === 'displaced' ||
+        nested === 'Displaced' ||
+        (Array.isArray(nested) && nested.some((tag) => tag === 'displaced' || tag === 'Displaced')))
+    )
+      issues.push({
+        path: fieldPath,
+        code: 'RETIRED_DISPLACED_TAG',
+        message: 'Displaced is retired. Use Push or Pull effects directly.',
+      })
+
     if (FORBIDDEN_DRAFT_FIELDS.has(field)) {
       issues.push({
         path: fieldPath,

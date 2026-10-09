@@ -133,7 +133,7 @@ export function attachCombatEffectProvenance(
       cleared: boolean
     }
   >()
-  if (independent) {
+  if (independent || before.dotTriggerPolicyVersion === 2) {
     for (const [effectOrdinal, effect] of action.effects.entries()) {
       if (
         combatEffectTimingMode(
@@ -164,6 +164,7 @@ export function attachCombatEffectProvenance(
       for (const targetCombatantId of resolveRecipients(evaluation, effect.recipient)) {
         if (resistedEffectOrdinalsByTarget?.get(targetCombatantId)?.has(effectOrdinal)) continue
         for (const kind of kinds) {
+          if (!independent && kind !== 'poison') continue
           const key = JSON.stringify([targetCombatantId, kind])
           const application = independentApplications.get(key) ?? {
             kind,
@@ -235,7 +236,7 @@ export function attachCombatEffectProvenance(
       }
 
       if (effect.type === 'poison') {
-        if (independent) continue
+        if (independent || before.dotTriggerPolicyVersion === 2) continue
         let updated = false
         poison = poison.map((instance) => {
           if (

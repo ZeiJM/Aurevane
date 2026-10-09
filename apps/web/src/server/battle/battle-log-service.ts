@@ -3,6 +3,7 @@ import { battleDamageLabel } from '../../lib/battle/battle-damage-type'
 import { combatStatusDetails, PHASE4_STATUSES } from '@aurevane/game-core/combat/status-content'
 import { combatStatusPresentationTag } from '@aurevane/game-core/combat/gameplay-tags'
 import type { CombatEffectOrigin } from '@aurevane/game-core/combat/actions'
+import type { CombatTerrainProjection } from '@aurevane/game-core/combat/terrain-overlays'
 import 'server-only'
 
 import type {
@@ -28,6 +29,8 @@ export interface BattleLogFact {
 }
 
 export interface BattleLogEntry {
+  /** Terrain fields copied only from a sanitized, viewer-visible recorded event. */
+  terrainChange?: CombatTerrainProjection
   battleVersion: number
   eventIndex: number
   /** Viewer-safe projection omitted an event after this entry; absence cannot prove idle. */
@@ -173,6 +176,7 @@ function createEntry(
     actionId?: string | null
     actionLabel?: string | null
     statusId?: string | null
+    terrainChange?: CombatTerrainProjection
     round?: number | null
     turnNumber?: number | null
     kind: BattleLogKind
@@ -255,6 +259,7 @@ function createEntry(
     actionId: input.actionId ?? null,
     actionLabel: input.actionLabel ?? null,
     ...(input.statusId ? { statusId: input.statusId } : {}),
+    ...(input.terrainChange ? { terrainChange: input.terrainChange } : {}),
     round: input.round ?? null,
     turnNumber: input.turnNumber ?? null,
     kind: input.kind,
@@ -295,6 +300,19 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
             : 'Terrain',
       tone: eventType === 'displacement_failed' ? 'warning' : 'neutral',
       facts: fact(description, eventType === 'displacement_failed' ? 'warning' : 'neutral'),
+      ...(eventType === 'terrain_overlay_changed'
+        ? {
+            terrainChange: {
+              position: { ...(event.position as CombatTerrainProjection['position']) },
+              before: event.before === 'frozen' || event.before === 'steam' ? event.before : null,
+              after: event.after as 'frozen' | 'steam',
+              ...(event.frozenGroundPolicyVersion === 1
+                ? { frozenGroundPolicyVersion: 1 as const }
+                : {}),
+              remainingRoundBoundaries: event.remainingRoundBoundaries as number,
+            },
+          }
+        : {}),
     })
   }
 
@@ -589,6 +607,29 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
         kind: 'status',
         headline: 'Summon',
         tone: 'benefit',
+      })
+    }
+    case 'poison_duration_refreshed': {
+      const targetCombatantId = stringValue(event.targetCombatantId)
+      const turns = numberValue(event.remainingOwnerTurnEnds)
+      if (
+        !targetCombatantId ||
+        turns === null ||
+        !Number.isSafeInteger(turns) ||
+        turns < 1 ||
+        turns > 4
+      )
+        return null
+      return createEntry(record, eventType, {
+        messageTemplate:
+          "{target}'s Poison duration reset to {turns} turns after five traversed tiles.",
+        templateValues: { turns: String(turns) },
+        targetCombatantId,
+        statusId: 'poison',
+        kind: 'status',
+        headline: 'Poison duration refreshed',
+        tone: 'warning',
+        facts: fact(`${turns} turns`),
       })
     }
     case 'damage_applied': {

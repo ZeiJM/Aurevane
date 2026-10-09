@@ -1,5 +1,7 @@
 'use client'
 
+import { SummonAbilityList } from './summon-ability-list'
+
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { CharacterPortraitImage } from '@/components/character/character-portrait-image'
@@ -241,7 +243,7 @@ export function MobileBattleCombatantPopup({
     }
 
     function handleEscape(event: KeyboardEvent) {
-      if (event.key === 'Escape') closeInspect()
+      if (event.key === 'Escape' && !event.defaultPrevented) closeInspect()
     }
 
     document.addEventListener('click', handleBattlefieldClick, true)
@@ -393,20 +395,11 @@ export function MobileBattleCombatantPopup({
                 </p>
                 <p>{selected.summon.flavorLine}</p>
                 <p>{selected.summon.tags.join(' · ')}</p>
-                <ul>
-                  {selected.summon.abilities.map((ability) => (
-                    <li key={ability.id}>
-                      <strong>
-                        {ability.name}
-                        <b>
-                          {ability.apCost} AP
-                          {ability.mpCost > 0 ? ` · ${ability.mpCost} MP` : ''}
-                        </b>
-                      </strong>
-                      <p>{ability.description}</p>
-                    </li>
-                  ))}
-                </ul>
+                <SummonAbilityList
+                  abilities={selected.summon.abilities}
+                  policies={selected.summon.policies}
+                  airborne={selected.statuses.some((status) => status.statusId === 'airborne')}
+                />
               </section>
             ) : null}
 

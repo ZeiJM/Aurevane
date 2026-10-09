@@ -18,6 +18,15 @@ const fields = [
 ]
 
 describe('shared Resonance parameter report', () => {
+  it('names exact Frozen Flare setup Skills without inventing a Control or Utility annotation', () => {
+    const definition = resolveResonanceForPair('frostweaver', 'cinderweaver')!
+    const before = JSON.stringify(definition)
+    const markup = renderToStaticMarkup(<ResonanceParameters definition={definition} />)
+    expect(markup).toContain('Ice Lance, Chilling Mist, Crystal Prison')
+    expect(markup).not.toMatch(/Skills tagged Control|Skills tagged Utility/)
+    expect(markup).toContain('Cinderweaver Skills tagged Attack')
+    expect(JSON.stringify(definition)).toBe(before)
+  })
   it('preserves passive fields, sequence constraints and canonical result information', () => {
     const definition = resolveResonanceForPair('wildwarden', 'edgedancer')!
     const before = JSON.stringify(definition)
@@ -42,9 +51,9 @@ describe('shared Resonance parameter report', () => {
     expect(markup).toContain('<dt>Requirements</dt><dd>Wildwarden Skills tagged Mark</dd>')
     expect([...markup.matchAll(/<dt>(.*?)<\/dt>/g)].map((match) => match[1])).toEqual(fields)
     expect(markup).toContain(
-      '<ul aria-label="Effect explanations"><li><strong>MP Recovery</strong> — Restores a captured 4% of your maximum MP. The maximum is captured when cast; actual gains cap at the current maximum and never revive.</li></ul>',
+      '<ul aria-label="Effect explanations"><li><strong>MP Recovery</strong> — Restores a captured 4% of your maximum MP. The maximum and Healing Down adjustment are captured when cast; actual gains cap at the current maximum and never revive.</li></ul>',
     )
-    expect(markup).not.toContain('<p>')
+    expect(markup).toContain('Use a setup Skill from Requirements first.')
     expect(markup).not.toContain('Trigger targeting:')
     expect(JSON.stringify(definition)).toBe(before)
   })

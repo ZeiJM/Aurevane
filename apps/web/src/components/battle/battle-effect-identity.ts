@@ -5,6 +5,7 @@ import {
 import { combatStatusDetails, PHASE4_STATUSES } from '@aurevane/game-core/combat/status-content'
 import { statusLabel } from './battle-effect-summary'
 import { statusPotencyDescription } from '../../lib/status-potency-presentation'
+import { blindsideStatusDescription } from '@aurevane/game-core/combat/combat-blindside'
 import {
   terrainBattleEffectPresentation,
   type BattlePresentedStatus,
@@ -35,6 +36,7 @@ const identifiers: Readonly<Record<string, string>> = {
   mark: 'MRK',
   warded: 'WAR',
   blind: 'BLI',
+  blindside: 'BLS',
   barrier: 'BAR',
   covert: 'COV',
   revealed: 'REV',
@@ -44,6 +46,8 @@ const identifiers: Readonly<Record<string, string>> = {
   damage: 'DMG',
   'create-terrain': 'TER',
   displace: 'MOV',
+  push: 'PSH',
+  pull: 'PLL',
   'barrier-change': 'SHD',
   'return-to-turn-start': 'RET',
   'remove-status': 'CLR',
@@ -79,7 +83,8 @@ export function describeBattleEffect(effect: BattlePresentedStatus) {
   const percentageDescription =
     dot && (effect.percentageDamage || effect.percentageDotProfile)
       ? percentageDotDescription(dot, effect.burnBacklashBasisPoints, {
-          legacyTriggers: effect.dotTriggerPolicyVersion !== 1,
+          legacyTriggers: effect.dotTriggerPolicyVersion === undefined,
+          legacyPoisonMovement: effect.dotTriggerPolicyVersion !== 2,
         })
       : null
   const capturedDescription = effect.percentageDamage
@@ -89,7 +94,13 @@ export function describeBattleEffect(effect: BattlePresentedStatus) {
     ...battleEffectIdentity(effect.statusId),
     description:
       (percentageDescription ??
-        statusPotencyDescription(effect.statusId, effect.potencyBasisPoints)) + capturedDescription,
+        (effect.statusId === 'blindside'
+          ? blindsideStatusDescription(effect)
+          : effect.statusId === 'airborne' && effect.airbornePolicyVersion !== 1
+            ? 'Ignore the Frozen Ground AP surcharge. Board bounds, elevation, obstacles, occupancy, Rooted and Movement allowance still apply.'
+            : statusPotencyDescription(effect.statusId, effect.potencyBasisPoints, {
+                legacyHealingDown: effect.healingDownPolicyVersion !== 1,
+              }))) + capturedDescription,
   }
   const applications = effect.recoveryApplications
   const count =

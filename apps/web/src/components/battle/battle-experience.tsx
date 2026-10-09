@@ -1,7 +1,12 @@
 'use client'
+
+import { hasGameplayTag } from '@aurevane/game-core/combat/gameplay-tags'
 import { BattleGroundAreaLayer } from './battle-ground-area-layer'
 
-import { SkillEffectTimingProvider } from '../character/skill-effect-timing-context'
+import {
+  SkillEffectTimingProvider,
+  AirborneAttackElevationContext,
+} from '../character/skill-effect-timing-context'
 
 import {
   isBattleShortcutBlocked as isTextEntryTarget,
@@ -107,6 +112,7 @@ import {
 import { combatCardinalDirections } from '@aurevane/game-core/combat/combat-targeting-shapes'
 import { battleActionUsesRecoverySelection } from './battle-recovery-selection'
 import {
+  PV1F_COMBAT_CONTENT,
   createPv1fBasicAttackDefinition,
   PV1F_GUARD_ACTION,
 } from '@aurevane/game-core/combat/pv1f-action-economy'
@@ -294,6 +300,9 @@ export function BattleExperience(props: {
     <SkillEffectTimingProvider
       policy={props.initialBattle.snapshot.effectTimingPolicy ?? null}
       dotTriggerPolicyVersion={props.initialBattle.snapshot.dotTriggerPolicyVersion ?? null}
+      frozenGroundPolicyVersion={props.initialBattle.snapshot.frozenGroundPolicyVersion ?? null}
+      airbornePolicyVersion={props.initialBattle.snapshot.airbornePolicyVersion ?? null}
+      healingDownPolicyVersion={props.initialBattle.snapshot.healingDownPolicyVersion ?? null}
     >
       <BattleExperienceContent {...props} />
     </SkillEffectTimingProvider>
@@ -1139,18 +1148,30 @@ function BattleExperienceContent({
     if (pendingIntent) void executeIntent(pendingIntent, 'Enter')
   }, [executeIntent, pendingIntent])
 
+  const airborneAttackElevation = Boolean(
+    battle.snapshot.airbornePolicyVersion === 1 &&
+    localCombatantId &&
+    hasGameplayTag(battle.snapshot, localCombatantId, 'Airborne', PV1F_COMBAT_CONTENT),
+  )
   const actionDescriptor = useCallback(
-    (actionId: string) =>
-      selectableTechniques.find((item) => item.id === actionId) ??
-      (runtime.essence?.id === actionId ? runtime.essence : undefined) ?? {
+    (actionId: string) => {
+      const skill =
+        selectableTechniques.find((item) => item.id === actionId) ??
+        (runtime.essence?.id === actionId ? runtime.essence : undefined)
+      if (skill)
+        return airborneAttackElevation && skill.definition?.tags.includes('attack')
+          ? { ...skill, target: { ...skill.definition.target, maximumElevationDifference: 3 } }
+          : skill
+      return {
         id: actionId,
         targetKind: actionId === BASIC_ATTACK_ID ? ('unit' as const) : ('self' as const),
         targetTeamPolicy: actionId === BASIC_ATTACK_ID ? ('enemy' as const) : ('self' as const),
         minimumRange: actionId === BASIC_ATTACK_ID ? 1 : 0,
         maximumRange: actionId === BASIC_ATTACK_ID ? 1 : 0,
         target: actionId === BASIC_ATTACK_ID ? undefined : PV1F_GUARD_ACTION.target,
-      },
-    [runtime.essence, selectableTechniques],
+      }
+    },
+    [airborneAttackElevation, runtime.essence, selectableTechniques],
   )
 
   const selection = useMemo(
@@ -1344,8 +1365,15 @@ function BattleExperienceContent({
     currentActionId === BASIC_ATTACK_ID
       ? createPv1fBasicAttackDefinition(1)
       : activeTechnique?.definition
-  const targetSpec =
+  const authoredTargetSpec =
     battleSkillTargetSpec(actionDescriptor(currentActionId)) ?? attackDefinition?.target
+  const targetSpec =
+    authoredTargetSpec &&
+    airborneAttackElevation &&
+    attackDefinition?.tags.includes('attack') &&
+    currentActionId !== BASIC_ATTACK_ID
+      ? { ...authoredTargetSpec, maximumElevationDifference: 3 }
+      : authoredTargetSpec
   const damagingSelection = Boolean(
     attackDefinition && battleActionDealsDamage(attackDefinition.effects),
   )
@@ -1850,700 +1878,712 @@ function BattleExperienceContent({
       : null
 
   return (
-    <main
-      data-battle-concept="true"
-      className={styles.shell}
-      data-unified-battle="true"
-      data-battle-layout="refined"
-      data-battle-action-mode={
-        mode === 'guard' &&
-        (selectedDefenseActionId === RECOVER_ID || selectedDefenseActionId === MP_RECOVER_ID)
-          ? 'recover'
-          : mode
-      }
-      data-battle-kind={runtime.kind}
-      data-battle-mode={runtime.kind}
-      data-battle-visual-contract="true"
-      data-pvp-battle={runtime.kind === 'pvp' ? 'true' : undefined}
-      data-local-turn={localTurn || undefined}
-      data-battle-keyboard-focus-root="true"
-      data-battle-execution-pending={executionPending || commitPending || undefined}
-      tabIndex={-1}
-      aria-busy={recruitPending || undefined}
-    >
-      <header className={styles.header} data-unified-battle-header="true">
-        <div className={styles.objective}>
-          <strong>{viewModel.objective}</strong>
-        </div>
-
-        <div
-          className={styles.economy}
-          data-active={localTurn || undefined}
-          data-unified-battle-economy="true"
-        >
-          <div className={styles.economyCopy}>
-            <span data-battle-turn-clock-slot="true" />
-            <span>Action Economy</span>
-            <strong>{actionEconomy} AP</strong>
-            {localTurn && proposedCost > 0 ? (
-              <small>− {proposedCost} proposed</small>
-            ) : (
-              <small aria-hidden="true" />
-            )}
+    <AirborneAttackElevationContext.Provider value={airborneAttackElevation}>
+      <main
+        data-battle-concept="true"
+        className={styles.shell}
+        data-unified-battle="true"
+        data-battle-layout="refined"
+        data-battle-action-mode={
+          mode === 'guard' &&
+          (selectedDefenseActionId === RECOVER_ID || selectedDefenseActionId === MP_RECOVER_ID)
+            ? 'recover'
+            : mode
+        }
+        data-battle-kind={runtime.kind}
+        data-battle-mode={runtime.kind}
+        data-battle-visual-contract="true"
+        data-pvp-battle={runtime.kind === 'pvp' ? 'true' : undefined}
+        data-local-turn={localTurn || undefined}
+        data-battle-keyboard-focus-root="true"
+        data-battle-execution-pending={executionPending || commitPending || undefined}
+        tabIndex={-1}
+        aria-busy={recruitPending || undefined}
+      >
+        <header className={styles.header} data-unified-battle-header="true">
+          <div className={styles.objective}>
+            <strong>{viewModel.objective}</strong>
           </div>
+
           <div
-            className={styles.economyTrack}
-            role="progressbar"
-            aria-label="Action Economy remaining"
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={actionEconomy}
+            className={styles.economy}
+            data-active={localTurn || undefined}
+            data-unified-battle-economy="true"
           >
-            <span style={{ width: `${actionEconomy}%` }} />
-            {localTurn && proposedCost > 0 ? (
-              <i
-                style={{
-                  left: `${Math.max(0, actionEconomy - proposedCost)}%`,
-                  width: `${Math.min(actionEconomy, proposedCost)}%`,
-                }}
-              />
-            ) : null}
-          </div>
-        </div>
-
-        <div data-battle-header-utilities="true">
-          {guidedGuardPractice ? (
-            <button
-              type="button"
-              className={bridgeStyles.guidedPractice}
-              aria-label="Practice Guard, 30 AP"
-              title="Practice Guard for this lesson. Your saved Support Action stays in slot 3."
-              disabled={planningDisabled || actionEconomy < 30 || (cooldowns[GUARD_ID] ?? 0) > 0}
-              onKeyDown={(event) => {
-                if (event.repeat && (event.key === 'Enter' || event.key === ' '))
-                  event.preventDefault()
-              }}
-              onClick={() => {
-                if (executionLock.current || commitLock.current || planningDisabled) return
-                if (mode === 'guard' && currentActionId === GUARD_ID) {
-                  const intent = selectBattleSkillPreviewIntent(
-                    actionDescriptor(GUARD_ID),
-                    selection,
-                  )
-                  if (intent) void executeIntent(intent)
-                  return
-                }
-                setSelectedDefenseActionId(GUARD_ID)
-                armAction('guard', GUARD_ID)
-              }}
-            >
-              <span>Practice Guard</span>
-            </button>
-          ) : null}
-          <BattleInfoPopover
-            label="Victory Conditions"
-            consumeOutsideClick
-            trigger={
-              <>
-                <span>Victory Conditions</span>
-                <b>{objectiveComplete ? '1/1' : '0/1'}</b>
-              </>
-            }
-          >
-            <h2>{viewModel.objective}.</h2>
-            <p>
-              You win when your side is the only side with at least one combatant still able to
-              fight.
-            </p>
-          </BattleInfoPopover>
-        </div>
-      </header>
-
-      <section className={styles.roster} aria-label="Battle roster">
-        {Array.from({ length: viewModel.teamCount }, (_, teamIndex) => {
-          const members = viewModel.participants.filter(
-            (participant) => participant.teamIndex === teamIndex,
-          )
-          return (
-            <div
-              className={styles.teamRoster}
-              key={teamIndex}
-              data-local={teamIndex === localTeamIndex || undefined}
-            >
-              <div className={styles.teamHeading}>
-                <span>Team {teamIndex + 1}</span>
-                <strong>{teamLabel(teamIndex, viewModel.teamCount)}</strong>
-              </div>
-              <div className={styles.teamMembers}>
-                {members.map((participant) => {
-                  const combatant = battleState.combatants.find(
-                    (candidate) => candidate.id === participant.combatantId,
-                  )
-                  const active = battleState.currentTurn?.combatantId === participant.combatantId
-                  return (
-                    <article
-                      key={participant.combatantId}
-                      className={styles.rosterCard}
-                      data-active={active || undefined}
-                      data-defeated={combatant?.hp === 0 || undefined}
-                    >
-                      {participant.portraitAssetId ? (
-                        <CharacterPortraitImage
-                          imageUrl={participant.profileImageUrl}
-                          fallbackAssetId={participant.portraitAssetId}
-                          className={styles.rosterPortrait}
-                          sizes="56px"
-                          alt=""
-                        />
-                      ) : (
-                        <span
-                          className={`${styles.rosterPortrait} ${bridgeStyles.portraitFallback}`}
-                          aria-hidden="true"
-                        >
-                          {participant.name.charAt(0).toUpperCase()}
-                        </span>
-                      )}
-                      <div className={styles.rosterIdentity}>
-                        <strong>{participant.name}</strong>
-                        <small>
-                          {participant.level ? `Lv ${participant.level}` : 'Combatant'}
-                          {participant.local ? ' · You' : ''}
-                        </small>
-                        <div className={styles.miniMeters}>
-                          <span>
-                            <i
-                              style={{
-                                width: `${meterPercent(combatant?.hp ?? 0, combatant?.maxHp ?? 1)}%`,
-                              }}
-                            />
-                          </span>
-                          <span>
-                            <i
-                              style={{
-                                width: `${meterPercent(combatant?.mp ?? 0, combatant?.maxMp ?? 1)}%`,
-                              }}
-                            />
-                          </span>
-                        </div>
-                      </div>
-                      {active ? <b>ACTIVE</b> : null}
-                    </article>
-                  )
-                })}
-              </div>
+            <div className={styles.economyCopy}>
+              <span data-battle-turn-clock-slot="true" />
+              <span>Action Economy</span>
+              <strong>{actionEconomy} AP</strong>
+              {localTurn && proposedCost > 0 ? (
+                <small>− {proposedCost} proposed</small>
+              ) : (
+                <small aria-hidden="true" />
+              )}
             </div>
-          )
-        })}
-      </section>
-
-      <section className={styles.content} data-unified-battle-content="true">
-        <div
-          className={styles.notice}
-          data-local-turn={localTurn || undefined}
-          data-battle-notice="true"
-        >
-          <strong>
-            {localTurn
-              ? 'Your turn'
-              : battleState.lifecycle === 'active'
-                ? `Waiting for ${activeName}`
-                : resultLabel()}
-          </strong>
-          <span>{notice}</span>
-        </div>
-
-        <aside data-battle-side="local">
-          <BattleCombatantCard
-            participant={localRailParticipant}
-            battle={battle}
-            teamCount={viewModel.teamCount}
-            role="local"
-          />
-          {localParticipant && enemyParticipant ? <BattleVersusEmblem /> : null}
-          <BattleCombatantCard
-            participant={enemyParticipant}
-            battle={battle}
-            teamCount={viewModel.teamCount}
-            role="selected"
-          />
-        </aside>
-
-        <section
-          id="battlefield"
-          onPointerLeave={() => {
-            if (targetSpec?.geometryVersion === 2 && targetSpec.shape.kind === 'line')
-              setTargetAim({ aimSource: 'implicit' })
-          }}
-          className={styles.battlefield}
-          aria-label={runtime.kind === 'pvp' ? 'PvP tactical battlefield' : 'Tactical battlefield'}
-          data-unified-battlefield="true"
-        >
-          <div className={styles.boardViewport}>
             <div
-              className={styles.board}
-              style={boardStyle}
-              data-board-auto-fit={`${tactical.width}x${tactical.height}`}
+              className={styles.economyTrack}
+              role="progressbar"
+              aria-label="Action Economy remaining"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={actionEconomy}
             >
-              {tactical.tiles.map((tile) => {
-                const key = positionKey(tile.position)
-                const placement = placementByTile.get(key)
-                const participant = placement
-                  ? viewModel.participantByCombatant.get(placement.combatantId)
-                  : null
-                const combatant = placement
-                  ? battleState.combatants.find(
-                      (candidate) => candidate.id === placement.combatantId,
-                    )
-                  : null
-                const pathIndex = path.findIndex((point) => positionsEqual(point, tile.position))
-                const reachable = mode === 'move' && reachablePaths.has(key) && pathIndex < 0
-                const inAttackRange = Boolean(
-                  placement && basicAttackTargets.has(placement.combatantId),
-                )
-                const legalEnemy = Boolean(
-                  inAttackRange &&
-                  participant &&
-                  participant.teamIndex !== localTeamIndex &&
-                  combatant &&
-                  combatant.hp > 0,
-                )
-                const selfTarget =
-                  (mode === 'guard' || mode === 'recover') &&
-                  placement?.combatantId === localCombatantId
-                const groundTarget =
-                  activeTechnique?.targetKind === 'ground-tile' ||
-                  activeTechnique?.targetKind === 'empty-tile'
-                const skillTarget =
-                  activeTechnique &&
-                  (groundTarget ||
-                    (placement &&
-                      (activeTechnique.targetKind !== 'self' ||
-                        placement.combatantId === localCombatantId)))
-                    ? selectBattleSkillPreviewIntent(activeTechnique, {
-                        actorId: localCombatantId,
-                        selectedCombatantId: placement?.combatantId ?? null,
-                        selectedTile: tile.position,
-                        combatants: previewCombatants,
-                      })
-                    : null
-                const inFootprint = potentialPath.has(key)
-                const targetRelation = !inFootprint
-                  ? undefined
-                  : activeTechnique
-                    ? skillTarget
-                      ? groundTarget
-                        ? 'ground'
-                        : participant?.teamIndex === localTeamIndex
-                          ? 'friendly'
-                          : 'enemy'
-                      : undefined
-                    : selfTarget
-                      ? 'friendly'
-                      : inAttackRange
-                        ? legalEnemy
-                          ? 'enemy'
-                          : 'illegal'
-                        : undefined
-                const selected = mode === 'inspect' && selectedUnitId === placement?.combatantId
-                const terrain = tile.terrainId === 'rough-ground' ? 'rough' : 'open'
-                const overlay = terrainOverlayAt(battle.snapshot, tile.position)
+              <span style={{ width: `${actionEconomy}%` }} />
+              {localTurn && proposedCost > 0 ? (
+                <i
+                  style={{
+                    left: `${Math.max(0, actionEconomy - proposedCost)}%`,
+                    width: `${Math.min(actionEconomy, proposedCost)}%`,
+                  }}
+                />
+              ) : null}
+            </div>
+          </div>
 
-                return (
-                  <button
-                    type="button"
-                    key={key}
-                    className={styles.tile}
-                    data-ground-path={(groundTarget && inFootprint) || undefined}
-                    data-attack-path={
-                      (!groundTarget && damagingSelection && inFootprint) || undefined
-                    }
-                    data-buff-path={
-                      (!groundTarget && !damagingSelection && !healingSelection && inFootprint) ||
-                      undefined
-                    }
-                    data-self-target={
-                      (!groundTarget &&
-                        inFootprint &&
-                        targetRelation === 'friendly' &&
-                        placement?.combatantId === localCombatantId) ||
-                      undefined
-                    }
-                    data-heal-target={
-                      (!groundTarget &&
-                        inFootprint &&
-                        healingSelection &&
-                        !damagingSelection &&
-                        (targetSpec?.shape.kind !== 'single' ||
-                          !placement ||
-                          targetRelation === 'friendly')) ||
-                      undefined
-                    }
-                    data-terrain={terrain}
-                    data-terrain-overlay={overlay?.kind}
-                    data-elevation={tile.elevation > 0 || undefined}
-                    data-reachable={reachable || undefined}
-                    data-path={pathIndex >= 0 || undefined}
-                    data-path-index={pathIndex >= 0 ? pathIndex : undefined}
-                    data-target={targetRelation}
-                    data-selected={selected || undefined}
-                    data-preview-tile={
-                      (pendingIntent?.kind === 'action' &&
-                        pendingIntent.target.kind === 'tile' &&
-                        positionsEqual(pendingIntent.target.position, tile.position)) ||
-                      undefined
-                    }
-                    data-affected={
-                      (preview?.preview.kind === 'action' &&
-                        placement &&
-                        preview.preview.affectedCombatantIds.includes(placement.combatantId)) ||
-                      undefined
-                    }
-                    onClick={() => handleTile(tile.position)}
-                    onPointerEnter={(event) => {
-                      if (
-                        event.pointerType === 'touch' ||
-                        planningDisabled ||
-                        executionLock.current ||
-                        targetSpec?.geometryVersion !== 2 ||
-                        targetSpec.shape.kind !== 'line' ||
-                        !['attack', 'guard', 'recover'].includes(mode)
-                      )
-                        return
-                      const intent = selectBattleSkillPreviewIntent(
-                        actionDescriptor(currentActionId),
-                        { ...selection, selectedTile: tile.position, selectedCombatantId: null },
-                      )
-                      if (intent?.target.kind === 'direction') {
-                        setTargetAim({ aimSource: 'player', selection: intent.target })
-                        void requestPreview(intent)
-                      } else setTargetAim({ aimSource: 'implicit' })
-                    }}
-                    aria-label={`Tile ${tile.position.x + 1}, ${tile.position.y + 1}; ${tile.terrainId}; elevation ${tile.elevation}${participant ? `; occupied by ${participant.name}` : ''}${overlay ? `; ${terrainOverlayDescription(overlay)}` : ''}`}
-                  >
-                    <BattleGroundAreaLayer
-                      areas={battle.snapshot.groundAreas}
-                      round={tactical.battle.round}
-                      position={tile.position}
-                    />
-                    {overlay ? (
-                      <i data-terrain-overlay-marker="true" aria-hidden="true">
-                        {overlay.kind === 'frozen' ? '❄' : '≋'}
-                        {overlay.remainingRoundBoundaries}
-                      </i>
-                    ) : null}
-                    {tile.elevation > 0 ? <span className={styles.elevation}>▲</span> : null}
-                    {participant && placement && combatant && combatant.hp > 0 ? (
-                      <BattleFacingIndicator
-                        facing={placement.facing}
-                        accent={pvpParticipantAccent(
-                          participant.teamIndex,
-                          participant.seatIndex,
-                          viewModel.teamCount,
-                        )}
-                      />
-                    ) : null}
-                    {participant && placement ? (
-                      <span
-                        className={styles.unit}
-                        style={
-                          {
-                            '--battle-combatant-accent': pvpParticipantAccent(
-                              participant.teamIndex,
-                              participant.seatIndex,
-                              viewModel.teamCount,
-                            ),
-                          } as CSSProperties
-                        }
-                        data-team={participant.teamIndex}
-                        data-active={
-                          battleState.currentTurn?.combatantId === participant.combatantId ||
-                          undefined
-                        }
+          <div data-battle-header-utilities="true">
+            {guidedGuardPractice ? (
+              <button
+                type="button"
+                className={bridgeStyles.guidedPractice}
+                aria-label="Practice Guard, 30 AP"
+                title="Practice Guard for this lesson. Your saved Support Action stays in slot 3."
+                disabled={planningDisabled || actionEconomy < 30 || (cooldowns[GUARD_ID] ?? 0) > 0}
+                onKeyDown={(event) => {
+                  if (event.repeat && (event.key === 'Enter' || event.key === ' '))
+                    event.preventDefault()
+                }}
+                onClick={() => {
+                  if (executionLock.current || commitLock.current || planningDisabled) return
+                  if (mode === 'guard' && currentActionId === GUARD_ID) {
+                    const intent = selectBattleSkillPreviewIntent(
+                      actionDescriptor(GUARD_ID),
+                      selection,
+                    )
+                    if (intent) void executeIntent(intent)
+                    return
+                  }
+                  setSelectedDefenseActionId(GUARD_ID)
+                  armAction('guard', GUARD_ID)
+                }}
+              >
+                <span>Practice Guard</span>
+              </button>
+            ) : null}
+            <BattleInfoPopover
+              label="Victory Conditions"
+              consumeOutsideClick
+              trigger={
+                <>
+                  <span>Victory Conditions</span>
+                  <b>{objectiveComplete ? '1/1' : '0/1'}</b>
+                </>
+              }
+            >
+              <h2>{viewModel.objective}.</h2>
+              <p>
+                You win when your side is the only side with at least one combatant still able to
+                fight.
+              </p>
+            </BattleInfoPopover>
+          </div>
+        </header>
+
+        <section className={styles.roster} aria-label="Battle roster">
+          {Array.from({ length: viewModel.teamCount }, (_, teamIndex) => {
+            const members = viewModel.participants.filter(
+              (participant) => participant.teamIndex === teamIndex,
+            )
+            return (
+              <div
+                className={styles.teamRoster}
+                key={teamIndex}
+                data-local={teamIndex === localTeamIndex || undefined}
+              >
+                <div className={styles.teamHeading}>
+                  <span>Team {teamIndex + 1}</span>
+                  <strong>{teamLabel(teamIndex, viewModel.teamCount)}</strong>
+                </div>
+                <div className={styles.teamMembers}>
+                  {members.map((participant) => {
+                    const combatant = battleState.combatants.find(
+                      (candidate) => candidate.id === participant.combatantId,
+                    )
+                    const active = battleState.currentTurn?.combatantId === participant.combatantId
+                    return (
+                      <article
+                        key={participant.combatantId}
+                        className={styles.rosterCard}
+                        data-active={active || undefined}
                         data-defeated={combatant?.hp === 0 || undefined}
                       >
                         {participant.portraitAssetId ? (
                           <CharacterPortraitImage
                             imageUrl={participant.profileImageUrl}
                             fallbackAssetId={participant.portraitAssetId}
-                            className={styles.unitPortrait}
-                            sizes="96px"
+                            className={styles.rosterPortrait}
+                            sizes="56px"
                             alt=""
                           />
                         ) : (
                           <span
-                            className={`${bridgeStyles.portraitFallback} ${bridgeStyles.unitPortraitFallback}`}
+                            className={`${styles.rosterPortrait} ${bridgeStyles.portraitFallback}`}
                             aria-hidden="true"
                           >
                             {participant.name.charAt(0).toUpperCase()}
                           </span>
                         )}
-                        <strong>{participant.name}</strong>
-                      </span>
-                    ) : null}
-                  </button>
-                )
-              })}
+                        <div className={styles.rosterIdentity}>
+                          <strong>{participant.name}</strong>
+                          <small>
+                            {participant.level ? `Lv ${participant.level}` : 'Combatant'}
+                            {participant.local ? ' · You' : ''}
+                          </small>
+                          <div className={styles.miniMeters}>
+                            <span>
+                              <i
+                                style={{
+                                  width: `${meterPercent(combatant?.hp ?? 0, combatant?.maxHp ?? 1)}%`,
+                                }}
+                              />
+                            </span>
+                            <span>
+                              <i
+                                style={{
+                                  width: `${meterPercent(combatant?.mp ?? 0, combatant?.maxMp ?? 1)}%`,
+                                }}
+                              />
+                            </span>
+                          </div>
+                        </div>
+                        {active ? <b>ACTIVE</b> : null}
+                      </article>
+                    )
+                  })}
+                </div>
+              </div>
+            )
+          })}
+        </section>
+
+        <section className={styles.content} data-unified-battle-content="true">
+          <div
+            className={styles.notice}
+            data-local-turn={localTurn || undefined}
+            data-battle-notice="true"
+          >
+            <strong>
+              {localTurn
+                ? 'Your turn'
+                : battleState.lifecycle === 'active'
+                  ? `Waiting for ${activeName}`
+                  : resultLabel()}
+            </strong>
+            <span>{notice}</span>
+          </div>
+
+          <aside data-battle-side="local">
+            <BattleCombatantCard
+              participant={localRailParticipant}
+              battle={battle}
+              teamCount={viewModel.teamCount}
+              role="local"
+            />
+            {localParticipant && enemyParticipant ? <BattleVersusEmblem /> : null}
+            <BattleCombatantCard
+              participant={enemyParticipant}
+              battle={battle}
+              teamCount={viewModel.teamCount}
+              role="selected"
+            />
+          </aside>
+
+          <section
+            id="battlefield"
+            onPointerLeave={() => {
+              if (targetSpec?.geometryVersion === 2 && targetSpec.shape.kind === 'line')
+                setTargetAim({ aimSource: 'implicit' })
+            }}
+            className={styles.battlefield}
+            aria-label={
+              runtime.kind === 'pvp' ? 'PvP tactical battlefield' : 'Tactical battlefield'
+            }
+            data-unified-battlefield="true"
+          >
+            <div className={styles.boardViewport}>
+              <div
+                className={styles.board}
+                style={boardStyle}
+                data-board-auto-fit={`${tactical.width}x${tactical.height}`}
+              >
+                {tactical.tiles.map((tile) => {
+                  const key = positionKey(tile.position)
+                  const placement = placementByTile.get(key)
+                  const participant = placement
+                    ? viewModel.participantByCombatant.get(placement.combatantId)
+                    : null
+                  const combatant = placement
+                    ? battleState.combatants.find(
+                        (candidate) => candidate.id === placement.combatantId,
+                      )
+                    : null
+                  const pathIndex = path.findIndex((point) => positionsEqual(point, tile.position))
+                  const reachable = mode === 'move' && reachablePaths.has(key) && pathIndex < 0
+                  const inAttackRange = Boolean(
+                    placement && basicAttackTargets.has(placement.combatantId),
+                  )
+                  const legalEnemy = Boolean(
+                    inAttackRange &&
+                    participant &&
+                    participant.teamIndex !== localTeamIndex &&
+                    combatant &&
+                    combatant.hp > 0,
+                  )
+                  const selfTarget =
+                    (mode === 'guard' || mode === 'recover') &&
+                    placement?.combatantId === localCombatantId
+                  const groundTarget =
+                    activeTechnique?.targetKind === 'ground-tile' ||
+                    activeTechnique?.targetKind === 'empty-tile'
+                  const skillTarget =
+                    activeTechnique &&
+                    (groundTarget ||
+                      (placement &&
+                        (activeTechnique.targetKind !== 'self' ||
+                          placement.combatantId === localCombatantId)))
+                      ? selectBattleSkillPreviewIntent(activeTechnique, {
+                          actorId: localCombatantId,
+                          selectedCombatantId: placement?.combatantId ?? null,
+                          selectedTile: tile.position,
+                          combatants: previewCombatants,
+                        })
+                      : null
+                  const inFootprint = potentialPath.has(key)
+                  const targetRelation = !inFootprint
+                    ? undefined
+                    : activeTechnique
+                      ? skillTarget
+                        ? groundTarget
+                          ? 'ground'
+                          : participant?.teamIndex === localTeamIndex
+                            ? 'friendly'
+                            : 'enemy'
+                        : undefined
+                      : selfTarget
+                        ? 'friendly'
+                        : inAttackRange
+                          ? legalEnemy
+                            ? 'enemy'
+                            : 'illegal'
+                          : undefined
+                  const selected = mode === 'inspect' && selectedUnitId === placement?.combatantId
+                  const terrain = tile.terrainId === 'rough-ground' ? 'rough' : 'open'
+                  const overlay = terrainOverlayAt(battle.snapshot, tile.position)
+
+                  return (
+                    <button
+                      type="button"
+                      key={key}
+                      className={styles.tile}
+                      data-ground-path={(groundTarget && inFootprint) || undefined}
+                      data-attack-path={
+                        (!groundTarget &&
+                          damagingSelection &&
+                          inFootprint &&
+                          (targetSpec?.kind !== 'unit' ||
+                            targetSpec.shape.kind !== 'single' ||
+                            (combatant &&
+                              combatant.hp > 0 &&
+                              Boolean(activeTechnique ? skillTarget : legalEnemy)))) ||
+                        undefined
+                      }
+                      data-buff-path={
+                        (!groundTarget && !damagingSelection && !healingSelection && inFootprint) ||
+                        undefined
+                      }
+                      data-self-target={
+                        (!groundTarget &&
+                          inFootprint &&
+                          targetRelation === 'friendly' &&
+                          placement?.combatantId === localCombatantId) ||
+                        undefined
+                      }
+                      data-heal-target={
+                        (!groundTarget &&
+                          inFootprint &&
+                          healingSelection &&
+                          !damagingSelection &&
+                          (targetSpec?.shape.kind !== 'single' ||
+                            !placement ||
+                            targetRelation === 'friendly')) ||
+                        undefined
+                      }
+                      data-terrain={terrain}
+                      data-terrain-overlay={overlay?.kind}
+                      data-elevation={tile.elevation > 0 || undefined}
+                      data-reachable={reachable || undefined}
+                      data-path={pathIndex >= 0 || undefined}
+                      data-path-index={pathIndex >= 0 ? pathIndex : undefined}
+                      data-target={targetRelation}
+                      data-selected={selected || undefined}
+                      data-preview-tile={
+                        (pendingIntent?.kind === 'action' &&
+                          pendingIntent.target.kind === 'tile' &&
+                          positionsEqual(pendingIntent.target.position, tile.position)) ||
+                        undefined
+                      }
+                      data-affected={
+                        (preview?.preview.kind === 'action' &&
+                          placement &&
+                          preview.preview.affectedCombatantIds.includes(placement.combatantId)) ||
+                        undefined
+                      }
+                      onClick={() => handleTile(tile.position)}
+                      onPointerEnter={(event) => {
+                        if (
+                          event.pointerType === 'touch' ||
+                          planningDisabled ||
+                          executionLock.current ||
+                          targetSpec?.geometryVersion !== 2 ||
+                          targetSpec.shape.kind !== 'line' ||
+                          !['attack', 'guard', 'recover'].includes(mode)
+                        )
+                          return
+                        const intent = selectBattleSkillPreviewIntent(
+                          actionDescriptor(currentActionId),
+                          { ...selection, selectedTile: tile.position, selectedCombatantId: null },
+                        )
+                        if (intent?.target.kind === 'direction') {
+                          setTargetAim({ aimSource: 'player', selection: intent.target })
+                          void requestPreview(intent)
+                        } else setTargetAim({ aimSource: 'implicit' })
+                      }}
+                      aria-label={`Tile ${tile.position.x + 1}, ${tile.position.y + 1}; ${tile.terrainId}; elevation ${tile.elevation}${participant ? `; occupied by ${participant.name}` : ''}${overlay ? `; ${terrainOverlayDescription(overlay)}` : ''}`}
+                    >
+                      <BattleGroundAreaLayer
+                        areas={battle.snapshot.groundAreas}
+                        round={tactical.battle.round}
+                        position={tile.position}
+                      />
+                      {overlay ? (
+                        <i data-terrain-overlay-marker="true" aria-hidden="true">
+                          {overlay.kind === 'frozen' ? '❄' : '≋'}
+                          {overlay.remainingRoundBoundaries}
+                        </i>
+                      ) : null}
+                      {tile.elevation > 0 ? <span className={styles.elevation}>▲</span> : null}
+                      {participant && placement && combatant && combatant.hp > 0 ? (
+                        <BattleFacingIndicator
+                          facing={placement.facing}
+                          accent={pvpParticipantAccent(
+                            participant.teamIndex,
+                            participant.seatIndex,
+                            viewModel.teamCount,
+                          )}
+                        />
+                      ) : null}
+                      {participant && placement ? (
+                        <span
+                          className={styles.unit}
+                          style={
+                            {
+                              '--battle-combatant-accent': pvpParticipantAccent(
+                                participant.teamIndex,
+                                participant.seatIndex,
+                                viewModel.teamCount,
+                              ),
+                            } as CSSProperties
+                          }
+                          data-team={participant.teamIndex}
+                          data-active={
+                            battleState.currentTurn?.combatantId === participant.combatantId ||
+                            undefined
+                          }
+                          data-defeated={combatant?.hp === 0 || undefined}
+                        >
+                          {participant.portraitAssetId ? (
+                            <CharacterPortraitImage
+                              imageUrl={participant.profileImageUrl}
+                              fallbackAssetId={participant.portraitAssetId}
+                              className={styles.unitPortrait}
+                              sizes="96px"
+                              alt=""
+                            />
+                          ) : (
+                            <span
+                              className={`${bridgeStyles.portraitFallback} ${bridgeStyles.unitPortraitFallback}`}
+                              aria-hidden="true"
+                            >
+                              {participant.name.charAt(0).toUpperCase()}
+                            </span>
+                          )}
+                          <strong>{participant.name}</strong>
+                        </span>
+                      ) : null}
+                    </button>
+                  )
+                })}
+              </div>
             </div>
+          </section>
+
+          <aside
+            data-battle-side="selected"
+            data-battle-flow-log-target="true"
+            aria-label="Battle Chronicle"
+          >
+            <BattleChronicleHeading round={battleState.round} />
+            <BattleLogPanel
+              presentation="inline"
+              battleSessionId={battle.battleSessionId}
+              battleVersion={battle.battleVersion}
+              currentRound={battleState.round}
+              playerName={runtime.playerName}
+              combatantNames={Object.fromEntries(
+                Array.from(viewModel.participantByCombatant.values()).map((participant) => [
+                  participant.combatantId,
+                  participant.name,
+                ]),
+              )}
+            />
+          </aside>
+          <section data-battle-preview-strip="true" aria-label="Target forecast">
+            <strong data-battle-instruction-title="true">{contextTitle}</strong>
+            <BattleActionPreview
+              aimSource={targetAim.aimSource}
+              preview={preview?.battleVersion === battle.battleVersion ? preview.preview : null}
+              pending={previewPending}
+              rangePreviews={rangePreviews}
+              rangePreviewsPending={rangePreviewsPending}
+              rangePreviewActionId={rangePreviewActionId}
+              skill={activeTechnique}
+              targetTile={
+                previewTargetPosition
+                  ? tactical.tiles.find((tile) =>
+                      positionsEqual(tile.position, previewTargetPosition),
+                    )
+                  : undefined
+              }
+              targetOverlay={
+                previewTargetPosition
+                  ? terrainOverlayAt(battle.snapshot, previewTargetPosition)?.kind
+                  : undefined
+              }
+              participants={Array.from(viewModel.participantByCombatant.values())}
+              notice={contextDescription}
+            />
+          </section>
+          <div data-battle-command-dock="true">
+            <section
+              className={styles.commandDeck}
+              aria-label="Command Deck"
+              data-unified-command-deck="true"
+              style={COCKPIT_ORNAMENT_STYLE}
+            >
+              <div className={styles.commands} data-battle-command-group="true">
+                <BattleSkillCommand
+                  characterStats={characterStats}
+                  slot="items"
+                  hotkey={formatCombatKeybind(bindings.items)}
+                  label="Items"
+                  cost="Coming soon"
+                  artworkSrc={BATTLE_MISSING_ARTWORK}
+                  active={false}
+                  disabled
+                  onActivate={() => {}}
+                >
+                  <small data-battle-items-locked="true">Coming soon</small>
+                </BattleSkillCommand>
+                <BattleSkillCommand
+                  characterStats={characterStats}
+                  slot="inspect"
+                  hotkey={formatCombatKeybind(bindings.inspect)}
+                  label="Inspect"
+                  cost="Free"
+                  artworkSrc={BATTLE_COMMAND_ARTWORK.inspect}
+                  active={mode === 'inspect'}
+                  disabled={false}
+                  onActivate={() => chooseMode('inspect')}
+                />
+                <BattleSkillCommand
+                  characterStats={characterStats}
+                  slot="move"
+                  hotkey={formatCombatKeybind(bindings.move)}
+                  label="Move"
+                  cost={`${MOVE_COST_PER_TERRAIN_POINT} AP`}
+                  artworkSrc={BATTLE_COMMAND_ARTWORK.move}
+                  active={mode === 'move'}
+                  disabled={planningDisabled || reachablePaths.size === 0}
+                  onActivate={() => chooseMode('move')}
+                />
+                <BattleSkillCommand
+                  characterStats={characterStats}
+                  slot="attack"
+                  hotkey={formatCombatKeybind(bindings.basicAttack)}
+                  label="Basic Attack"
+                  cost={`${ATTACK_COST} AP`}
+                  artworkSrc={BATTLE_COMMAND_ARTWORK.attack}
+                  active={mode === 'attack' && selectedAttackActionId === BASIC_ATTACK_ID}
+                  disabled={planningDisabled || actionEconomy < ATTACK_COST}
+                  onActivate={() => chooseMode('attack')}
+                />
+                <BattleSkillCommand
+                  characterStats={characterStats}
+                  slot="guard"
+                  hotkey={formatCombatKeybind(bindings.guard)}
+                  label={supportSkill.name}
+                  cost={`${supportCost} AP`}
+                  artworkSrc={battleSkillArtwork(supportActionId)}
+                  active={mode === 'guard' && selectedDefenseActionId === supportActionId}
+                  disabled={planningDisabled || actionEconomy < supportCost}
+                  cooldownTurns={cooldowns[supportActionId] ?? 0}
+                  onActivate={() => chooseMode('guard')}
+                />
+              </div>
+              <BattleSelectedSkills
+                runtime={runtime}
+                activeId={activeTechnique?.id}
+                disabled={planningDisabled}
+                actionEconomy={actionEconomy}
+                cooldowns={cooldowns}
+                bindings={bindings}
+                onSelect={selectAction}
+              />
+              <BattleSkillCommand
+                characterStats={characterStats}
+                slot="finish"
+                hotkey={formatCombatKeybind(bindings.endTurn)}
+                label="End Turn"
+                cost="Choose facing"
+                artworkSrc={BATTLE_COMMAND_ARTWORK.finish}
+                active={mode === 'finish'}
+                disabled={planningDisabled}
+                onActivate={() => {
+                  if (mode === 'finish' && localPlacement)
+                    void commitValue({ kind: 'face', facing: localPlacement.facing })
+                  else chooseMode('finish')
+                }}
+              >
+                {mode === 'finish' ? (
+                  <div
+                    className={styles.facingRow}
+                    data-open="true"
+                    data-unified-facing-pad="true"
+                    role="group"
+                    aria-label="Final facing"
+                  >
+                    {(['north', 'west', 'east', 'south'] as const).map((facing) => (
+                      <button
+                        type="button"
+                        key={facing}
+                        disabled={planningDisabled}
+                        onClick={() => void commitValue({ kind: 'face', facing })}
+                        aria-label={`Face ${facing}`}
+                      >
+                        {facingGlyph(facing)}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </BattleSkillCommand>
+            </section>
           </div>
         </section>
 
-        <aside
-          data-battle-side="selected"
-          data-battle-flow-log-target="true"
-          aria-label="Battle Chronicle"
-        >
-          <BattleChronicleHeading round={battleState.round} />
-          <BattleLogPanel
-            presentation="inline"
-            battleSessionId={battle.battleSessionId}
-            battleVersion={battle.battleVersion}
-            currentRound={battleState.round}
-            playerName={runtime.playerName}
-            combatantNames={Object.fromEntries(
-              Array.from(viewModel.participantByCombatant.values()).map((participant) => [
-                participant.combatantId,
-                participant.name,
-              ]),
-            )}
-          />
-        </aside>
-        <section data-battle-preview-strip="true" aria-label="Target forecast">
-          <strong data-battle-instruction-title="true">{contextTitle}</strong>
-          <BattleActionPreview
-            aimSource={targetAim.aimSource}
-            preview={preview?.battleVersion === battle.battleVersion ? preview.preview : null}
-            pending={previewPending}
-            rangePreviews={rangePreviews}
-            rangePreviewsPending={rangePreviewsPending}
-            rangePreviewActionId={rangePreviewActionId}
-            skill={activeTechnique}
-            targetTile={
-              previewTargetPosition
-                ? tactical.tiles.find((tile) =>
-                    positionsEqual(tile.position, previewTargetPosition),
-                  )
-                : undefined
-            }
-            targetOverlay={
-              previewTargetPosition
-                ? terrainOverlayAt(battle.snapshot, previewTargetPosition)?.kind
-                : undefined
-            }
-            participants={Array.from(viewModel.participantByCombatant.values())}
-            notice={contextDescription}
-          />
-        </section>
-        <div data-battle-command-dock="true">
-          <section
-            className={styles.commandDeck}
-            aria-label="Command Deck"
-            data-unified-command-deck="true"
-            style={COCKPIT_ORNAMENT_STYLE}
-          >
-            <div className={styles.commands} data-battle-command-group="true">
-              <BattleSkillCommand
-                characterStats={characterStats}
-                slot="items"
-                hotkey={formatCombatKeybind(bindings.items)}
-                label="Items"
-                cost="Coming soon"
-                artworkSrc={BATTLE_MISSING_ARTWORK}
-                active={false}
-                disabled
-                onActivate={() => {}}
-              >
-                <small data-battle-items-locked="true">Coming soon</small>
-              </BattleSkillCommand>
-              <BattleSkillCommand
-                characterStats={characterStats}
-                slot="inspect"
-                hotkey={formatCombatKeybind(bindings.inspect)}
-                label="Inspect"
-                cost="Free"
-                artworkSrc={BATTLE_COMMAND_ARTWORK.inspect}
-                active={mode === 'inspect'}
-                disabled={false}
-                onActivate={() => chooseMode('inspect')}
-              />
-              <BattleSkillCommand
-                characterStats={characterStats}
-                slot="move"
-                hotkey={formatCombatKeybind(bindings.move)}
-                label="Move"
-                cost={`${MOVE_COST_PER_TERRAIN_POINT} AP`}
-                artworkSrc={BATTLE_COMMAND_ARTWORK.move}
-                active={mode === 'move'}
-                disabled={planningDisabled || reachablePaths.size === 0}
-                onActivate={() => chooseMode('move')}
-              />
-              <BattleSkillCommand
-                characterStats={characterStats}
-                slot="attack"
-                hotkey={formatCombatKeybind(bindings.basicAttack)}
-                label="Basic Attack"
-                cost={`${ATTACK_COST} AP`}
-                artworkSrc={BATTLE_COMMAND_ARTWORK.attack}
-                active={mode === 'attack' && selectedAttackActionId === BASIC_ATTACK_ID}
-                disabled={planningDisabled || actionEconomy < ATTACK_COST}
-                onActivate={() => chooseMode('attack')}
-              />
-              <BattleSkillCommand
-                characterStats={characterStats}
-                slot="guard"
-                hotkey={formatCombatKeybind(bindings.guard)}
-                label={supportSkill.name}
-                cost={`${supportCost} AP`}
-                artworkSrc={battleSkillArtwork(supportActionId)}
-                active={mode === 'guard' && selectedDefenseActionId === supportActionId}
-                disabled={planningDisabled || actionEconomy < supportCost}
-                cooldownTurns={cooldowns[supportActionId] ?? 0}
-                onActivate={() => chooseMode('guard')}
-              />
-            </div>
-            <BattleSelectedSkills
-              runtime={runtime}
-              activeId={activeTechnique?.id}
-              disabled={planningDisabled}
-              actionEconomy={actionEconomy}
-              cooldowns={cooldowns}
-              bindings={bindings}
-              onSelect={selectAction}
-            />
-            <BattleSkillCommand
-              characterStats={characterStats}
-              slot="finish"
-              hotkey={formatCombatKeybind(bindings.endTurn)}
-              label="End Turn"
-              cost="Choose facing"
-              artworkSrc={BATTLE_COMMAND_ARTWORK.finish}
-              active={mode === 'finish'}
-              disabled={planningDisabled}
-              onActivate={() => {
-                if (mode === 'finish' && localPlacement)
-                  void commitValue({ kind: 'face', facing: localPlacement.facing })
-                else chooseMode('finish')
-              }}
-            >
-              {mode === 'finish' ? (
-                <div
-                  className={styles.facingRow}
-                  data-open="true"
-                  data-unified-facing-pad="true"
-                  role="group"
-                  aria-label="Final facing"
-                >
-                  {(['north', 'west', 'east', 'south'] as const).map((facing) => (
-                    <button
-                      type="button"
-                      key={facing}
-                      disabled={planningDisabled}
-                      onClick={() => void commitValue({ kind: 'face', facing })}
-                      aria-label={`Face ${facing}`}
-                    >
-                      {facingGlyph(facing)}
-                    </button>
-                  ))}
-                </div>
-              ) : null}
-            </BattleSkillCommand>
-          </section>
-        </div>
-      </section>
-
-      <footer className={styles.footer} data-unified-battle-footer="true">
-        {capabilities.chat ? (
-          <button type="button" className={styles.chatButton} aria-expanded="false">
-            Chat
-          </button>
-        ) : null}
-        {capabilities.battleLink && viewModel.battleKey ? (
-          <button
-            type="button"
-            className={styles.battleKey}
-            data-pvp-spectator-key="true"
-            onClick={() => void copyBattleKey()}
-          >
-            <small>{copyNotice ? 'Copied!' : 'Spectator Key · click to copy'}</small>
-            <strong>{viewModel.battleKey}</strong>
-          </button>
-        ) : null}
-        <div className={styles.footerActions} data-battle-footer-actions="true">
-          <BattleTerrainToggle snapshot={battle.snapshot} />
-          <button
-            type="button"
-            className={styles.cancelAction}
-            onClick={() => {
-              clearPlanning()
-              setNotice('Selection cleared.')
-              restoreBattleKeyboardFocus()
-            }}
-            disabled={commitPending}
-          >
-            Cancel Action
-          </button>
-          {runtime.kind === 'pve' ? (
-            <button
-              type="button"
-              data-unified-surrender="true"
-              onClick={() => setSurrenderOpen(true)}
-              disabled={surrenderPending || battleState.lifecycle !== 'active'}
-            >
-              Surrender
+        <footer className={styles.footer} data-unified-battle-footer="true">
+          {capabilities.chat ? (
+            <button type="button" className={styles.chatButton} aria-expanded="false">
+              Chat
             </button>
           ) : null}
-        </div>
-      </footer>
+          {capabilities.battleLink && viewModel.battleKey ? (
+            <button
+              type="button"
+              className={styles.battleKey}
+              data-pvp-spectator-key="true"
+              onClick={() => void copyBattleKey()}
+            >
+              <small>{copyNotice ? 'Copied!' : 'Spectator Key · click to copy'}</small>
+              <strong>{viewModel.battleKey}</strong>
+            </button>
+          ) : null}
+          <div className={styles.footerActions} data-battle-footer-actions="true">
+            <BattleTerrainToggle snapshot={battle.snapshot} />
+            <button
+              type="button"
+              className={styles.cancelAction}
+              onClick={() => {
+                clearPlanning()
+                setNotice('Selection cleared.')
+                restoreBattleKeyboardFocus()
+              }}
+              disabled={commitPending}
+            >
+              Cancel Action
+            </button>
+            {runtime.kind === 'pve' ? (
+              <button
+                type="button"
+                data-unified-surrender="true"
+                onClick={() => setSurrenderOpen(true)}
+                disabled={surrenderPending || battleState.lifecycle !== 'active'}
+              >
+                Surrender
+              </button>
+            ) : null}
+          </div>
+        </footer>
 
-      {recruitFailed ? (
-        <button
-          type="button"
-          className={bridgeStyles.retryOpponent}
-          onClick={() => {
-            recruitAttemptedVersion.current = null
-            setRecruitFailed(false)
-            void runRecruitTurn()
-          }}
-        >
-          Retry Recruit turn
-        </button>
-      ) : null}
-
-      {surrenderOpen && runtime.kind === 'pve' ? (
-        <div className={surrenderStyles.backdrop} onPointerDown={() => setSurrenderOpen(false)}>
-          <section
-            className={surrenderStyles.dialog}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="battle-surrender-title"
-            onPointerDown={(event) => event.stopPropagation()}
+        {recruitFailed ? (
+          <button
+            type="button"
+            className={bridgeStyles.retryOpponent}
+            onClick={() => {
+              recruitAttemptedVersion.current = null
+              setRecruitFailed(false)
+              void runRecruitTurn()
+            }}
           >
-            <span>Controlled Exercise</span>
-            <h2 id="battle-surrender-title">Surrender this battle?</h2>
-            <p>
-              Surrendering ends the battle immediately as a loss. Practice grants no normal
-              progression rewards.
-            </p>
-            <div className={surrenderStyles.actions}>
-              <button
-                type="button"
-                className={surrenderStyles.stay}
-                onClick={() => setSurrenderOpen(false)}
-                disabled={surrenderPending}
-              >
-                Stay in battle
-              </button>
-              <button
-                type="button"
-                className={surrenderStyles.confirm}
-                onClick={() => void confirmPveSurrender()}
-                disabled={surrenderPending}
-              >
-                {surrenderPending ? 'Surrendering…' : 'Confirm Surrender'}
-              </button>
-            </div>
-          </section>
-        </div>
-      ) : null}
-    </main>
+            Retry Recruit turn
+          </button>
+        ) : null}
+
+        {surrenderOpen && runtime.kind === 'pve' ? (
+          <div className={surrenderStyles.backdrop} onPointerDown={() => setSurrenderOpen(false)}>
+            <section
+              className={surrenderStyles.dialog}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="battle-surrender-title"
+              onPointerDown={(event) => event.stopPropagation()}
+            >
+              <span>Controlled Exercise</span>
+              <h2 id="battle-surrender-title">Surrender this battle?</h2>
+              <p>
+                Surrendering ends the battle immediately as a loss. Practice grants no normal
+                progression rewards.
+              </p>
+              <div className={surrenderStyles.actions}>
+                <button
+                  type="button"
+                  className={surrenderStyles.stay}
+                  onClick={() => setSurrenderOpen(false)}
+                  disabled={surrenderPending}
+                >
+                  Stay in battle
+                </button>
+                <button
+                  type="button"
+                  className={surrenderStyles.confirm}
+                  onClick={() => void confirmPveSurrender()}
+                  disabled={surrenderPending}
+                >
+                  {surrenderPending ? 'Surrendering…' : 'Confirm Surrender'}
+                </button>
+              </div>
+            </section>
+          </div>
+        ) : null}
+      </main>
+    </AirborneAttackElevationContext.Provider>
   )
 }

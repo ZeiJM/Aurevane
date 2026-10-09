@@ -200,20 +200,23 @@ describe('new percentage DoT trigger policy', () => {
     for (const value of [0, 1234, 10000])
       expect(() => validateCurrentBurnEffect({ backlashBasisPoints: value })).not.toThrow()
   })
-  it('uses actual outgoing hostile HP damage and allows only one backlash per actor cycle', () => {
-    const initial = burn(encounter())
-    const first = executeCombatAction(initial, strike(), selection, content)
-    expect(backlash(first.events)).toBe(2)
-    const repeated = executeCombatAction(first.state, strike(), selection, content)
-    expect(backlash(repeated.events)).toBe(0)
-    const renewed = executeCombatAction(
-      nextActorCycle(repeated.state),
-      strike(59),
-      selection,
-      content,
-    )
-    expect(backlash(renewed.events)).toBe(5)
-  })
+  it.each([1, 2] as const)(
+    'uses actual outgoing hostile HP damage and allows only one backlash per actor cycle under policy %i',
+    (dotTriggerPolicyVersion) => {
+      const initial = burn({ ...encounter(), dotTriggerPolicyVersion })
+      const first = executeCombatAction(initial, strike(), selection, content)
+      expect(backlash(first.events)).toBe(2)
+      const repeated = executeCombatAction(first.state, strike(), selection, content)
+      expect(backlash(repeated.events)).toBe(0)
+      const renewed = executeCombatAction(
+        nextActorCycle(repeated.state),
+        strike(59),
+        selection,
+        content,
+      )
+      expect(backlash(renewed.events)).toBe(5)
+    },
+  )
   it('does not claim the allowance for a miss, but a positive basis rounding to zero does claim it', () => {
     const initial = burn(encounter())
     const missed = executeLegacyCombatAction(

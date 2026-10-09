@@ -3,12 +3,14 @@ import type { GridPosition } from './board'
 
 export type CombatTerrainOverlayKind = 'frozen' | 'steam'
 export interface CombatTerrainOverlay {
+  frozenGroundPolicyVersion?: 1
   kind: CombatTerrainOverlayKind
   position: GridPosition
   remainingRoundBoundaries: number
   sourceCombatantId: string
 }
 export interface CombatTerrainProjection {
+  frozenGroundPolicyVersion?: 1
   /** Forecast-only activation boundary; absent on immediate committed terrain receipts. */
   activationRound?: number
   position: GridPosition
@@ -28,7 +30,7 @@ export const COMBAT_TERRAIN_OVERLAY_DETAILS = {
   frozen: {
     name: 'Frozen Ground',
     description:
-      'Adds 10 AP per entered tile for either team. Airborne ignores this surcharge; Movement allowance is unchanged.',
+      'Adds 10 AP per entered tile only for the caster’s enemies. Airborne ignores this surcharge; Movement allowance is unchanged.',
     additionalApPerTile: 10,
     blocksLineOfSight: false,
     roundBoundaries: 2,
@@ -41,6 +43,12 @@ export const COMBAT_TERRAIN_OVERLAY_DETAILS = {
     roundBoundaries: 2,
   },
 } as const
+
+export function frozenGroundDescription(policyVersion: 1 | null | undefined = 1): string {
+  return policyVersion === 1
+    ? COMBAT_TERRAIN_OVERLAY_DETAILS.frozen.description
+    : 'Adds 10 AP per entered tile for either team. Airborne ignores this surcharge; Movement allowance is unchanged.'
+}
 
 export function terrainOverlayAt(
   state: Pick<CombatEncounterState, 'terrainOverlays'>,
@@ -74,6 +82,8 @@ export function validateTerrainOverlays(
     if (
       !overlay ||
       !['frozen', 'steam'].includes(overlay.kind) ||
+      (overlay.frozenGroundPolicyVersion !== undefined &&
+        (overlay.frozenGroundPolicyVersion !== 1 || state.frozenGroundPolicyVersion !== 1)) ||
       !overlay.position ||
       !Number.isSafeInteger(overlay.position.x) ||
       !Number.isSafeInteger(overlay.position.y) ||
@@ -100,6 +110,7 @@ export function setTerrainOverlay(
 ): { state: CombatEncounterState; events: readonly CombatTerrainEvent[] } {
   const before = terrainOverlayAt(state, position)?.kind ?? null
   const overlay: CombatTerrainOverlay = {
+    ...(state.frozenGroundPolicyVersion === 1 ? { frozenGroundPolicyVersion: 1 as const } : {}),
     position: { ...position },
     kind,
     sourceCombatantId,
@@ -118,6 +129,7 @@ export function setTerrainOverlay(
     events: [
       {
         event: 'terrain_overlay_changed',
+        ...(state.frozenGroundPolicyVersion === 1 ? { frozenGroundPolicyVersion: 1 as const } : {}),
         actionId,
         sourceCombatantId,
         position: { ...position },
@@ -164,7 +176,11 @@ export function terrainOverlayAiUtility(
     if (
       terrain.after !== 'frozen' ||
       (terrain.before === terrain.after &&
-        terrainOverlayAt(state, terrain.position)?.remainingRoundBoundaries === 2)
+        terrainOverlayAt(state, terrain.position)?.remainingRoundBoundaries === 2 &&
+        (state.frozenGroundPolicyVersion !== 1 ||
+          state.tactical.battle.combatants.find(
+            (unit) => unit.id === terrainOverlayAt(state, terrain.position)?.sourceCombatantId,
+          )?.teamId === actorTeam))
     )
       continue
     for (const placement of state.tactical.placements) {
@@ -175,7 +191,8 @@ export function terrainOverlayAiUtility(
       const distance =
         Math.abs(placement.position.x - terrain.position.x) +
         Math.abs(placement.position.y - terrain.position.y)
-      if (distance <= 1) utility += unit.teamId === actorTeam ? -6 : 6
+      if (distance <= 1)
+        utility += unit.teamId === actorTeam ? (state.frozenGroundPolicyVersion === 1 ? 0 : -6) : 6
     }
   }
   return Math.max(-24, Math.min(24, utility))

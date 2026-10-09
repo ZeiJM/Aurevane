@@ -6,6 +6,7 @@ import type {
   CombatResolutionTransition,
 } from './actions'
 import { validateCombatStatusDefinition } from './combat-authoring-validation'
+import { healingDownAdjustedRecovery } from './combat-recovery-modifiers'
 
 const ABSORB_BASIS_POINTS = 10_000
 const ABSORB_HP_ACTION_ID = 'status.absorb-hp.current.v1'
@@ -29,8 +30,12 @@ export function applyCommittedAbsorbRecovery(
     if (!target || target.hp <= 0) continue
     const rates = activeAbsorbBasisPoints(state, content, targetId)
     // Both resources use original HP damage, never the net loss after healing.
-    const hpRecovery = recoveryAmount(damage, rates.hp, target.maxHp - target.hp)
-    const mpRecovery = recoveryAmount(damage, rates.mp, target.maxMp - target.mp)
+    const reduceRecovery = (amount: bigint) =>
+      state.healingDownPolicyVersion === 1
+        ? healingDownAdjustedRecovery(state, targetId, amount, content)
+        : amount
+    const hpRecovery = recoveryAmount(damage, rates.hp, target.maxHp - target.hp, reduceRecovery)
+    const mpRecovery = recoveryAmount(damage, rates.mp, target.maxMp - target.mp, reduceRecovery)
     if (hpRecovery === 0 && mpRecovery === 0) continue
 
     const hpAfter = target.hp + hpRecovery
@@ -82,11 +87,16 @@ export function applyCommittedAbsorbRecovery(
   }
 }
 
-function recoveryAmount(damage: number, basisPoints: number, capacity: number): number {
+function recoveryAmount(
+  damage: number,
+  basisPoints: number,
+  capacity: number,
+  reduceRecovery: (amount: bigint) => bigint,
+): number {
   if (basisPoints === 0 || capacity <= 0) return 0
   // Integer arithmetic keeps the percentage floor exact before the minimum-1 rule.
   const requested = (BigInt(damage) * BigInt(basisPoints)) / BigInt(ABSORB_BASIS_POINTS)
-  const positive = requested > 0n ? requested : 1n
+  const positive = reduceRecovery(requested > 0n ? requested : 1n)
   return Number(positive < BigInt(capacity) ? positive : BigInt(capacity))
 }
 

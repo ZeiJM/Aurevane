@@ -65,7 +65,8 @@ async function battleBuildExtensions(
   combatantId: string,
 ) {
   const authority = battle.snapshot.buildAuthority
-  const legacyTriggers = battle.snapshot.dotTriggerPolicyVersion !== 1
+  const legacyTriggers = battle.snapshot.dotTriggerPolicyVersion === undefined
+  const legacyPoisonMovement = battle.snapshot.dotTriggerPolicyVersion !== 2
   const build = battleBuildAuthorityForCombatant(authority, combatantId)
   const resonanceDefinition = resolveBattleResonanceDefinition(authority, combatantId)
   const essenceDefinition = resolveBattleEssenceDefinition(authority, combatantId)
@@ -112,7 +113,13 @@ async function battleBuildExtensions(
           maximumRange: definition.target.maximumRange,
           tags: skillTargetTags(definition),
           effectDescriptions: definition.effects.map((effect) =>
-            skillEffectDescription(effect, { legacyTriggers }),
+            skillEffectDescription(effect, {
+              legacyTriggers,
+              legacyPoisonMovement,
+              legacyFrozenGround: battle.snapshot.frozenGroundPolicyVersion !== 1,
+              legacyAirborne: battle.snapshot.airbornePolicyVersion !== 1,
+              legacyHealingDown: battle.snapshot.healingDownPolicyVersion !== 1,
+            }),
           ),
           requirementDescriptions: definition.requirements.map(skillRequirementDescription),
         }
@@ -154,7 +161,13 @@ async function battleBuildExtensions(
                 essenceDefinition.skill.cooldown.ownerTurns),
           tags: skillTargetTags(essenceDefinition.skill),
           effectDescriptions: essenceDefinition.skill.effects.map((effect) =>
-            skillEffectDescription(effect, { legacyTriggers }),
+            skillEffectDescription(effect, {
+              legacyTriggers,
+              legacyPoisonMovement,
+              legacyFrozenGround: battle.snapshot.frozenGroundPolicyVersion !== 1,
+              legacyAirborne: battle.snapshot.airbornePolicyVersion !== 1,
+              legacyHealingDown: battle.snapshot.healingDownPolicyVersion !== 1,
+            }),
           ),
           requirementDescriptions: essenceDefinition.skill.requirements.map(
             skillRequirementDescription,

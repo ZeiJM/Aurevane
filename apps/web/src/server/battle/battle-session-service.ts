@@ -683,8 +683,12 @@ export function createBattleSessionService({
         : defaultCombatEffectTimingPolicy()
       baseEncounter.effectStackingPolicyVersion = 1
       baseEncounter.percentageDotPolicyVersion = 1
-      baseEncounter.dotTriggerPolicyVersion = 1
+      baseEncounter.dotTriggerPolicyVersion = 2
       baseEncounter.skillPacketPolicyVersion = 1
+      baseEncounter.displacementPolicyVersion = 1
+      baseEncounter.frozenGroundPolicyVersion = 1
+      baseEncounter.airbornePolicyVersion = 1
+      baseEncounter.healingDownPolicyVersion = 1
       baseEncounter.groundEffectPolicyVersion = 1
       let encounter: BattleAuthoritativeEncounterState = baseEncounter
       if (builds) {

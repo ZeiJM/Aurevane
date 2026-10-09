@@ -42,6 +42,9 @@
   gap: 6px;
   margin-bottom: 6px;
 }
+.inspectPanel {
+  z-index: 17000;
+}
 .panel > header > strong {
   min-width: 0;
   overflow-wrap: anywhere;
