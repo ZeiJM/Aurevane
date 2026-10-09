@@ -45,7 +45,8 @@ describe('compact Technique explanations', () => {
       const effect = skill.effects.find((entry) => entry.type === 'remove-status')!
       expect(previewEffect(effect)).toMatchObject({
         label: 'Cleanse',
-        explanation: 'Removes Burn, Bleed, Poison, Slow, Rooted, Vulnerable, Marked, Taunted.',
+        explanation:
+          'Removes Burn, Bleed, Poison, Slow, Rooted, Vulnerable, Marked, Taunted, Suppress.',
       })
     },
   )

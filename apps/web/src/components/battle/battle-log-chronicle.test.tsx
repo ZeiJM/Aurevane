@@ -1,6 +1,7 @@
 import { formatBattleLogForClipboard } from './battle-log-clipboard'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+import * as popovers from './battle-info-popover'
 
 import type { BattleLogEntry } from '@/server/battle/battle-log-service'
 
@@ -772,3 +773,68 @@ it.each([1, 4])(
     expect(copied).not.toContain('during rounds')
   },
 )
+
+it.each([
+  ['status_applied', 10000, '2 turns'],
+  ['effect_pending', 2534, '2 rounds'],
+] as const)(
+  'Chronicle %s ! uses captured Suppress percentage and duration instead of its label',
+  (eventType, potencyBasisPoints, duration) => {
+    const recorded = entry(1, 1, eventType, {
+      statusId: 'suppress',
+      potencyBasisPoints,
+      targetCombatantId: enemy,
+      templateValues: { status: 'Suppress [25%]', effect: 'Suppress [25%]', round: '3' },
+      facts: [{ label: duration, tone: 'neutral' }],
+      ...(eventType === 'effect_pending'
+        ? { effectTiming: { remainingRoundBoundaries: 2, durationScope: 'rounds' } }
+        : {}),
+    })
+    const entries = [technique(1), recorded]
+    expect(buildBattleChronicle(entries)[0].actors[0].actions[0].outcomes[0]).toMatchObject({
+      potencyBasisPoints,
+      duration,
+    })
+    const popup = vi
+      .spyOn(popovers, 'BattleInfoPopover')
+      .mockImplementation(({ children, trigger }) => (
+        <aside role="dialog">
+          {trigger}
+          {children}
+        </aside>
+      ))
+    try {
+      const html = render(entries)
+      expect(html).toContain(`Deal ${potencyBasisPoints / 100}% less outgoing direct damage`)
+      expect(html).toContain(`Recorded duration: ${duration}.`)
+      expect(html).not.toContain('Deal 25% less outgoing direct damage')
+    } finally {
+      popup.mockRestore()
+    }
+  },
+)
+
+it('Chronicle ! does not invent a Suppress percentage when recorded metadata is missing', () => {
+  const popup = vi
+    .spyOn(popovers, 'BattleInfoPopover')
+    .mockImplementation(({ children, trigger }) => (
+      <aside role="dialog">
+        {trigger}
+        {children}
+      </aside>
+    ))
+  try {
+    const html = render([
+      technique(1),
+      entry(1, 1, 'status_applied', {
+        statusId: 'suppress',
+        templateValues: { status: 'Suppress [100%]' },
+      }),
+    ])
+    expect(html).toContain('Recorded Suppress percentage unavailable.')
+    expect(html).not.toContain('Deal 25% less outgoing direct damage')
+    expect(html).not.toContain('Deal 100% less outgoing direct damage')
+  } finally {
+    popup.mockRestore()
+  }
+})

@@ -516,13 +516,56 @@ if (suppressCase) {
     ]
   }
 }
+const suppressChronicleEntries = suppressCase
+  ? (() => {
+      const pending = suppressCase === 'pending'
+      const percent = pending ? 25.34 : 100
+      const base = {
+        battleVersion: 1,
+        occurredAt: '2026-10-09T00:00:00Z',
+        round: 1,
+        turnNumber: 1,
+        actorCombatantId: 'enemy-one',
+        targetCombatantId: 'character:player',
+        actionId: 'fixture.suppress',
+        actionLabel: 'Recorded Suppress',
+        message: '',
+        messageTemplate: '',
+        templateValues: {},
+        facts: [],
+        headline: '',
+        tone: 'neutral',
+      }
+      return [
+        { ...base, eventIndex: 0, eventType: 'combat_action_used', kind: 'skill' },
+        {
+          ...base,
+          eventIndex: 1,
+          eventType: pending ? 'effect_pending' : 'status_applied',
+          kind: 'status',
+          statusId: 'suppress',
+          potencyBasisPoints: percent * 100,
+          templateValues: {
+            status: `Suppress [${percent}%]`,
+            effect: `Suppress [${percent}%]`,
+            round: '3',
+          },
+          facts: [{ label: pending ? 'Pending until round 3' : '2 turns', tone: 'neutral' }],
+          ...(pending
+            ? { effectTiming: { remainingRoundBoundaries: 2, durationScope: 'rounds' } }
+            : {}),
+        },
+      ]
+    })()
+  : []
 window.fixtureBattle = initialBattle
 window.calls = []
 window.fetch = async (url, options = {}) => {
   const path = String(url)
   const body = options.body ? JSON.parse(options.body) : null
   window.calls.push({ path, method: options.method || 'GET', body })
-  if (path.endsWith('/events')) return new Response(JSON.stringify({ battleLog: { entries: [] } }))
+  if (path.endsWith('/events'))
+    return new Response(JSON.stringify({ battleLog: { entries: suppressChronicleEntries } }))
   if (targetingCase && path.endsWith('/preview')) {
     if (window.previewFailure === 'http')
       return Response.json(

@@ -1140,3 +1140,62 @@ it('Chronicle and Copy Full Log retain recorded Suppress percentage and lifetime
   expect(copied).toContain('Suppress [40%]')
   expect(copied).toContain('2 turns')
 })
+
+it.each(['effect_pending', 'status_applied'] as const)(
+  'sanitizes and preserves recorded Suppress percentage for %s without leaking hidden history',
+  async (eventType) => {
+    const raw = {
+      event: eventType,
+      actionId: SKILL,
+      sourceCombatantId: ACTOR,
+      targetCombatantId: OTHER,
+      ...(eventType === 'effect_pending'
+        ? {
+            effectTag: 'suppress',
+            activationRound: 3,
+            remainingRoundBoundaries: 2,
+            durationScope: 'rounds',
+          }
+        : {
+            statusId: 'suppress',
+            stacks: 1,
+            remainingOwnerTurnStarts: 2,
+            expiryBoundary: 'owner-turn-end',
+            refreshed: false,
+            stacked: false,
+          }),
+      potencyBasisPoints: 10000,
+    }
+    const records = [
+      record({ event: 'combat_action_used', actionId: SKILL, actorId: ACTOR }),
+      record(raw, 1),
+    ]
+    const resolve = vi.fn(async () => definition())
+    const visible = await getLog(records, resolve)
+    expect(visible.entries.find((entry) => entry.eventType === eventType)).toMatchObject({
+      statusId: 'suppress',
+      potencyBasisPoints: 10000,
+    })
+    const outcomes = buildBattleChronicle(visible.entries).flatMap((round) =>
+      round.actors.flatMap((actor) => actor.actions.flatMap((action) => action.outcomes)),
+    )
+    expect(outcomes).toContainEqual(
+      expect.objectContaining({ statusId: 'suppress', potencyBasisPoints: 10000 }),
+    )
+    const hidden = await getLog(records, resolve, { hidden: true })
+    expect(hidden.entries.every((entry) => entry.potencyBasisPoints === undefined)).toBe(true)
+    expect(JSON.stringify(hidden)).not.toContain('Suppress')
+    for (const invalid of [0, 99, 10001, 100.5, '10000']) {
+      const invalidLog = await getLog(
+        [records[0], record({ ...raw, potencyBasisPoints: invalid }, 1)],
+        resolve,
+      )
+      expect(invalidLog.entries.find((entry) => entry.eventType === eventType)).not.toHaveProperty(
+        'potencyBasisPoints',
+      )
+      expect(invalidLog.entries.find((entry) => entry.eventType === eventType)?.headline).toBe(
+        'Suppress',
+      )
+    }
+  },
+)

@@ -13,6 +13,7 @@ export interface ChronicleOutcome {
   recipient?: string
   tone: 'neutral' | 'damage' | 'recovery' | 'benefit' | 'harm'
   statusId?: string
+  potencyBasisPoints?: number
   duration?: string
 }
 export interface ChronicleAction {
@@ -321,7 +322,13 @@ function isAccuracyReceipt(entry: BattleLogEntry): boolean {
 function outcome(entry: BattleLogEntry, names: ChronicleNames): ChronicleOutcome | null {
   const target = chronicleCombatantName(entry.targetCombatantId, names)
   const value = entry.templateValues
-  const base = { key: eventKey(entry), tone: 'neutral' as const }
+  const base = {
+    key: eventKey(entry),
+    tone: 'neutral' as const,
+    ...(entry.potencyBasisPoints !== undefined
+      ? { potencyBasisPoints: entry.potencyBasisPoints }
+      : {}),
+  }
   if (entry.effectTimingState === 'pending') return null
   switch (entry.eventType) {
     case 'combatant_rewind_blocked':

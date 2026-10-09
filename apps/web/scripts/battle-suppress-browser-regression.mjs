@@ -105,6 +105,7 @@ const browser = await chromium.launch({
 })
 const errors = []
 let cases = 0
+let chronicleCases = 0
 try {
   for (const mode of ['pve', 'pvp', 'spectator']) {
     for (const viewport of [
@@ -138,6 +139,33 @@ try {
           0,
         )
         await page.screenshot({ path: resolve(output, `${mode}-${viewport.width}-${phase}.png`) })
+        await page.keyboard.press('Escape')
+        const chronicle = page.locator('[data-battle-chronicle]')
+        await chronicle.getByRole('button', { name: 'Explain Suppress', exact: true }).click()
+        const explanation = page.getByRole('dialog', { name: 'Suppress', exact: true })
+        const recordedPercent = phase === 'pending' ? '25.34' : '100'
+        assert.ok(
+          (await explanation.innerText()).includes(
+            `${recordedPercent}% less outgoing direct damage`,
+          ),
+        )
+        assert.ok(!(await explanation.innerText()).includes('Deal 25% less outgoing direct damage'))
+        assert.ok(
+          (await explanation.innerText()).includes(
+            `Recorded duration: 2 ${phase === 'pending' ? 'rounds' : 'turns'}.`,
+          ),
+        )
+        assert.deepEqual(await page.evaluate(() => window.fixtureBattle.snapshot), before)
+        assert.equal(
+          await page.evaluate(
+            () => window.calls.filter((row) => /\/(commit|intents)$/.test(row.path)).length,
+          ),
+          0,
+        )
+        await page.screenshot({
+          path: resolve(output, `${mode}-${viewport.width}-${phase}-chronicle.png`),
+        })
+        chronicleCases++
         cases++
         await page.close()
       }
@@ -201,7 +229,7 @@ try {
     await page.close()
   }
   assert.deepEqual(errors, [])
-  console.log(JSON.stringify({ cases, errors, evidence: output }))
+  console.log(JSON.stringify({ cases, chronicleCases, errors, evidence: output }))
 } finally {
   await browser.close()
   await server.close()

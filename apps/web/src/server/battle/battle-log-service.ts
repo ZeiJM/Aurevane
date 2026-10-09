@@ -60,6 +60,8 @@ export interface BattleLogEntry {
   actionId: string | null
   actionLabel: string | null
   statusId?: string
+  /** Captured, validated Suppress percentage from this viewer-visible receipt. */
+  potencyBasisPoints?: number
   effectOrigin?: CombatEffectOrigin
   actionContext?: {
     family?: 'skill' | 'essence' | 'resonance'
@@ -165,6 +167,12 @@ function renderTemplate(template: string, values: Readonly<Record<string, string
   })
 }
 
+function recordedSuppressPotency(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 100 && value <= 10000
+    ? value
+    : undefined
+}
+
 function createEntry(
   record: BattleEventRecord,
   eventType: string,
@@ -260,6 +268,10 @@ function createEntry(
     actionId: input.actionId ?? null,
     actionLabel: input.actionLabel ?? null,
     ...(input.statusId ? { statusId: input.statusId } : {}),
+    ...(input.statusId === 'suppress' &&
+    recordedSuppressPotency(raw.potencyBasisPoints) !== undefined
+      ? { potencyBasisPoints: recordedSuppressPotency(raw.potencyBasisPoints) }
+      : {}),
     ...(input.terrainChange ? { terrainChange: input.terrainChange } : {}),
     round: input.round ?? null,
     turnNumber: input.turnNumber ?? null,
@@ -332,8 +344,8 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
           : undefined
       const label =
         applications === undefined
-          ? tag === 'suppress' && numberValue(event.potencyBasisPoints) !== null
-            ? `Suppress [${numberValue(event.potencyBasisPoints)! / 100}%]`
+          ? tag === 'suppress' && recordedSuppressPotency(event.potencyBasisPoints) !== undefined
+            ? `Suppress [${recordedSuppressPotency(event.potencyBasisPoints)! / 100}%]`
             : statusLabel(tag)
           : tag === 'healing'
             ? 'HP Recovery'
@@ -763,8 +775,8 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
       const targetCombatantId = stringValue(event.targetCombatantId)
       const statusId = stringValue(event.statusId)
       const label =
-        statusId === 'suppress' && numberValue(event.potencyBasisPoints) !== null
-          ? `Suppress [${numberValue(event.potencyBasisPoints)! / 100}%]`
+        statusId === 'suppress' && recordedSuppressPotency(event.potencyBasisPoints) !== undefined
+          ? `Suppress [${recordedSuppressPotency(event.potencyBasisPoints)! / 100}%]`
           : statusLabel(statusId)
       const remaining = numberValue(event.remainingOwnerTurnStarts)
       const refreshed = event.refreshed === true
