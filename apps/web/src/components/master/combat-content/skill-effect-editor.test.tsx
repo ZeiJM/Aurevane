@@ -295,3 +295,17 @@ it('authors Ice and additional captured Drenched/Conductive Storm bonuses in per
     render({ type: 'damage', recipient: 'primary-unit', amount: 10, element: 'storm' }),
   ).toContain('Conductive Storm bonus (%)')
 })
+
+it('authors Suppress as 1–100% with two decimal places and a single application', () => {
+  const markup = render({
+    type: 'apply-status',
+    recipient: 'primary-unit',
+    statusId: 'suppress',
+    stacks: 1,
+  })
+  expect(markup).toContain('aria-label="Status potency (percent)"')
+  expect(markup).toContain('max="100"')
+  expect(markup).toContain('step="0.01"')
+  expect(markup).toContain('value="25"')
+  expect(markup).toContain('Never stacks')
+})

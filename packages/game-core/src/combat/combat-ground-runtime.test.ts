@@ -728,3 +728,29 @@ it.each([
     expect(hp(result.state)).toBe(1000 - damage)
   },
 )
+
+it.each([2500, 10000])(
+  'Ground entry retains captured Suppress %i after the live caster changes',
+  (potencyBasisPoints) => {
+    const initial = encounter()
+    initial.statusState.find((row) => row.combatantId === 'enemy')!.statuses = [
+      {
+        statusId: 'suppress',
+        statusVersion: 1,
+        stacks: 1,
+        potencyBasisPoints,
+        remainingOwnerTurnStarts: 2,
+        remainingOwnerTurnEnds: 2,
+        sourceCombatantId: 'actor',
+      },
+    ]
+    const state = seedArea(initial, undefined, groundAction(100))
+    state.statusState.find((row) => row.combatantId === 'enemy')!.statuses = []
+    const restored = JSON.parse(JSON.stringify(state))
+    const result = move(restored, [
+      { x: 1, y: 1 },
+      { x: 2, y: 1 },
+    ])
+    expect(hp(result.state)).toBe(potencyBasisPoints === 10000 ? 1000 : 925)
+  },
+)

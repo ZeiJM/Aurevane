@@ -332,7 +332,9 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
           : undefined
       const label =
         applications === undefined
-          ? statusLabel(tag)
+          ? tag === 'suppress' && numberValue(event.potencyBasisPoints) !== null
+            ? `Suppress [${numberValue(event.potencyBasisPoints)! / 100}%]`
+            : statusLabel(tag)
           : tag === 'healing'
             ? 'HP Recovery'
             : 'MP Recovery'
@@ -760,7 +762,10 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
     case 'status_applied': {
       const targetCombatantId = stringValue(event.targetCombatantId)
       const statusId = stringValue(event.statusId)
-      const label = statusLabel(statusId)
+      const label =
+        statusId === 'suppress' && numberValue(event.potencyBasisPoints) !== null
+          ? `Suppress [${numberValue(event.potencyBasisPoints)! / 100}%]`
+          : statusLabel(statusId)
       const remaining = numberValue(event.remainingOwnerTurnStarts)
       const refreshed = event.refreshed === true
       const stacked = event.stacked === true

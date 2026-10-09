@@ -1073,3 +1073,47 @@ it('publishes and restores captured elemental bonus/duration through immutable M
     expect(result.valid).toBe(false)
   }
 })
+
+it('validates and immutably publishes Suppress percentage boundaries without rewriting the original Skill', async () => {
+  const { store, service } = serviceFixture()
+  store.operators.set(OWNER, 'owner')
+  const original = staticSkill()
+  const definition = {
+    ...original,
+    effectDescriptions: undefined,
+    effects: [
+      {
+        type: 'apply-status' as const,
+        recipient: 'primary-unit' as const,
+        statusId: 'suppress',
+        stacks: 1,
+        potencyBasisPoints: 10000,
+        durationTurns: 4,
+      },
+    ],
+  }
+  expect(service.validateSkillDefinition(definition).valid).toBe(true)
+  for (const potencyBasisPoints of [0, 99, 10001, 2500.1])
+    expect(
+      service.validateSkillDefinition({
+        ...definition,
+        effects: [{ ...definition.effects[0]!, potencyBasisPoints }],
+      }).valid,
+    ).toBe(false)
+  for (const durationTurns of [0, 5])
+    expect(
+      service.validateSkillDefinition({
+        ...definition,
+        effects: [{ ...definition.effects[0]!, durationTurns }],
+      }).valid,
+    ).toBe(false)
+  const published = await service.publishSkill({
+    actorUserId: OWNER,
+    definition,
+    expectedBaseVersion: original.contentVersion,
+  })
+  expect((published.definition as unknown as MatureSkillDefinition).effects).toEqual(
+    definition.effects,
+  )
+  expect(staticSkill().effects).toEqual(original.effects)
+})

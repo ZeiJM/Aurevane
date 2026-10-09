@@ -26,6 +26,7 @@ const PERCENTAGE_STATUS_IDS = new Set([
   'mark',
   'marked',
   'hexed',
+  'suppress',
   'inspired',
   'summoned',
   'warded',
@@ -743,6 +744,12 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
                   next.durationTurns = 1
                   delete next.potencyBasisPoints
                 }
+                if (next.statusId === 'suppress') {
+                  next.stacks = 1
+                  next.durationTurns ??= 2
+                  next.potencyBasisPoints ??= 2500
+                  delete next.power
+                }
                 if (next.statusId !== 'blindside') delete next.blindsideModifiersBasisPoints
                 onChange(next)
               }}
@@ -758,7 +765,9 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
               type="number"
               min={1}
               step={1}
-              value={value.stacks}
+              max={value.statusId === 'suppress' ? 1 : undefined}
+              disabled={value.statusId === 'suppress'}
+              value={value.statusId === 'suppress' ? 1 : value.stacks}
               onChange={(event) =>
                 onChange({ ...value, stacks: integer(event.currentTarget.value, value.stacks) })
               }
@@ -1119,19 +1128,25 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
               aria-label="Status potency (percent)"
               type="number"
               min={1}
-              max={50}
-              step={1}
-              value={(value.potencyBasisPoints ?? 1500) / 100}
+              max={value.statusId === 'suppress' ? 100 : 50}
+              step={value.statusId === 'suppress' ? 0.01 : 1}
+              value={
+                (value.potencyBasisPoints ?? (value.statusId === 'suppress' ? 2500 : 1500)) / 100
+              }
               onChange={(event) =>
                 onChange({
                   ...value,
                   potencyBasisPoints:
-                    Math.max(1, Math.min(50, integer(event.currentTarget.value, 15))) * 100,
+                    value.statusId === 'suppress'
+                      ? Math.round(Number(event.currentTarget.value) * 100)
+                      : Math.max(1, Math.min(50, integer(event.currentTarget.value, 15))) * 100,
                 })
               }
             />
             <small className={styles.fieldHint}>
-              Used by percentage-based statuses such as Guard or Vulnerable. 15 = 15%.
+              {value.statusId === 'suppress'
+                ? 'Outgoing direct-damage reduction. Never stacks; retains the highest percentage and longest remaining duration. 25 = 25%.'
+                : 'Used by percentage-based statuses such as Guard or Vulnerable. 15 = 15%.'}
             </small>
           </label>
         ) : null}

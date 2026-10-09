@@ -25,6 +25,7 @@ export const GAMEPLAY_TAGS = [
   'Fortified',
   'Airborne',
   'Blindside',
+  'Suppress',
   'Displaced',
 ] as const
 export type GameplayTag = (typeof GAMEPLAY_TAGS)[number]
@@ -50,6 +51,7 @@ const STATUS_TAG_ALIASES: Readonly<Record<string, GameplayTag>> = {
   fortified: 'Fortified',
   airborne: 'Airborne',
   blindside: 'Blindside',
+  suppress: 'Suppress',
   displaced: 'Displaced',
 }
 
@@ -61,6 +63,7 @@ const STATUS_PRESENTATION_TAGS: Readonly<Record<string, string>> = {
   conductive: 'Conductive',
   inspired: 'Damage Up',
   hexed: 'Healing Down',
+  suppress: 'Suppress',
   invisible: 'Invisible',
   airborne: 'Airborne',
   displaced: 'Displaced',
@@ -260,10 +263,23 @@ export function validateGameplayEffectMetadata(effect: CombatEffectDefinition): 
     effect.potencyBasisPoints !== undefined &&
     (!Number.isSafeInteger(effect.potencyBasisPoints) ||
       effect.potencyBasisPoints < 100 ||
-      effect.potencyBasisPoints > 5_000)
+      effect.potencyBasisPoints >
+        (effect.type === 'apply-status' && effect.statusId === 'suppress' ? 10_000 : 5_000))
   ) {
-    throw new RangeError('Effect percentage potency must be from 1 to 50 percentage points.')
+    throw new RangeError(
+      `Effect percentage potency must be from 1 to ${effect.type === 'apply-status' && effect.statusId === 'suppress' ? 100 : 50} percentage points.`,
+    )
   }
+  if (
+    effect.type === 'apply-status' &&
+    effect.statusId === 'suppress' &&
+    ((effect.durationTurns !== undefined && effect.durationTurns < 1) ||
+      effect.stacks !== 1 ||
+      effect.power !== undefined)
+  )
+    throw new RangeError(
+      'Suppress requires one application, a percentage and 1 to 4 turns; power is unsupported.',
+    )
   if (
     effect.type === 'damage' &&
     effect.piercing !== undefined &&
@@ -378,7 +394,11 @@ function effectPresentationTags(effect: PresentationEffect): readonly string[] {
     return [`${direction} [${positiveDisplayInteger(effect.distance, 1)}]`]
   }
   if (effect.type === 'apply-status' && typeof effect.statusId === 'string') {
-    return [combatStatusPresentationTag(effect.statusId)]
+    return [
+      effect.statusId === 'suppress'
+        ? `Suppress [${(typeof effect.potencyBasisPoints === 'number' ? effect.potencyBasisPoints : 2500) / 100}%]`
+        : combatStatusPresentationTag(effect.statusId),
+    ]
   }
   if (effect.type === 'copy-statuses') {
     if (effect.mode === 'amplify') return ['Copy Buffs']

@@ -365,3 +365,19 @@ it.each([
     /Copied|Copy beneficial effects|barrier:|recovery:|concealed/u,
   )
 })
+
+it('forecast shows captured Suppress percentage and exact pending lifetime', () => {
+  const preview = actionPreview([
+    {
+      effectType: 'apply-status',
+      statusId: 'suppress',
+      potencyBasisPoints: 2534,
+      combatantId: 'target',
+      before: 'none',
+      after: 'pending',
+      activationRound: 3,
+      remainingRoundBoundaries: 2,
+    },
+  ])
+  expect(labels(preview)).toContain('Suppress [25.34%] · Starts round 3 · 2 round boundaries')
+})

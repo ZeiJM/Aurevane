@@ -1,3 +1,4 @@
+import { outgoingSuppressionBasisPoints } from './combat-suppress'
 import { enumerateCombatTargetSelections } from './combat-targeting-shapes'
 import { terrainOverlayAiUtility, terrainOverlayAt } from './terrain-overlays'
 import { combatStatusDetails } from './status-content'
@@ -182,6 +183,13 @@ function buildSkillCandidates(
       : resonance?.forecast.willArm
         ? (resonanceMechanics?.aiSetupUtilityBonus ?? 0)
         : 0
+    if (
+      outgoingSuppressionBasisPoints(state, evaluated.evaluation.actorId!) === 10000 &&
+      !evaluated.evaluation.projectedEffects.some((effect) => effect.before !== effect.after) &&
+      !evaluated.evaluation.projectedTerrain.some((effect) => effect.before !== effect.after) &&
+      resonanceUtility === 0
+    )
+      continue
     candidates.push({
       actionId: evaluated.action.id,
       definition,
@@ -240,6 +248,10 @@ export function projectedCombatEffectUtility(
         : 1
     if (typeof effect.before !== 'number' || typeof effect.after !== 'number') {
       if (effect.before === effect.after) return utility
+      if (effect.statusId === 'suppress')
+        return (
+          utility - 8 * sign * ((effect.potencyBasisPoints ?? 2500) / 10000) * debuffProbability
+        )
       if (effect.effectType === 'copy-statuses') {
         if (!copyMode) return utility
         // Clone projections already passed authoritative legality/eligibility. Reuse the

@@ -73,3 +73,27 @@ Retained logs under `/tmp/oct9-elemental/` document RED before the corresponding
 Prior product checkpoint b1734f9 and root commits c248c59/7f54c7f are preserved. Root's E2E/checklist/plan/spec files are excluded from this implementation commit. The requested one-line playable Ground E2E correction was made for root and remains excluded. Suppress is not implemented in this task. No privileged DB, auth, SMTP, dependency or deployment mutation was performed.
 
 No open design blocker remains. Root must run the combined repository `pnpm check`, independent review, exact-head CI and release-source/deployment verification after Suppress. Actual browser fixtures test production components and canonical local commits; they do not claim signed-in hosted gameplay or Owner acceptance. Live publication-pointer evidence was provided by root and must be considered current only at its read time.
+
+
+## Independent review fix round 1
+
+The two Important findings in `/tmp/oct9-elemental/task-review-report.md` were reproduced and corrected after checkpoint `cfb6197`.
+
+1. Normal/Delayed current-policy Fire now retains captured affected tiles even with no eligible unit recipients, and activation reaches the existing environmental settlement. Empty Ground, entirely missed recipients and Airborne-only recipients are covered across JSON restore. Surviving ordinary ice converts with one boundary remaining; four-round persistent ice converts with two boundaries remaining at Delayed activation. Expired ice is not recreated or extended. Caster Chilled clears once at the legal commit, with no second cleanse during activation and no unit damage for these empty payloads. Historical absent elemental policy retains the previous queue behavior.
+2. Explicit/implicit elemental statuses reconcile by resolved recipient identity within the original command. Only overlapping explicit recipient applications defer to positive damage settlement; nonoverlapping explicit recipients retain their authored timing. Matching tuning, timing tag and source origin are captured per recipient for pending damage. The original single captured application field remains supported for saved payload compatibility. A 35% primary-unit Conductive authored before, after or between affected-unit Storm packets produces one fresh 35% charge after all command packets settle; it cannot boost another packet in that command. Mixed recipient sets keep the other recipient's native 20% default where no explicit tuning applies. Restored settlement validates recipient keys, status identity and source metadata.
+
+Focused TDD command:
+
+```text
+pnpm --filter @aurevane/game-core exec vitest run src/combat/combat-elemental-damage.test.ts
+```
+
+- `review-1-fire-red.log`: five newly added regressions failed; 23 existing tests passed. `review-1-fire-green.log`: all 28 passed after retaining Fire tile payloads.
+- `review-1-identity-red.log`: seven identity/order/restore/mixed-set regressions failed; 28 existing tests passed. `review-1-identity-green.log`: all 35 passed after recipient-based reconciliation.
+- `review-1-focused.log`: all 39 tests passed after additional per-recipient tuning, timing/origin and malformed JSON capture coverage, including the restored delayed between-packets order. An additional timing fixture initially used an unregistered tag; it was corrected to the existing registered `wet` tag. This fixture correction did not change product timing policy.
+- Final `pnpm --filter @aurevane/game-core test`: 144 files, 2661 tests passed, exit 0 (`review-1-core.log`). This run follows the final type narrowing changes and includes all 39 elemental regressions.
+- Final `pnpm --filter @aurevane/game-core typecheck`: passed, exit 0 (`review-1-types.log`). Type checking caught recipient-union/fixture inference issues; those were corrected before the final core run.
+- `pnpm exec eslint packages/game-core/src/combat/actions-legacy.ts packages/game-core/src/combat/combat-elemental-damage.test.ts`: passed, exit 0 (`review-1-lint.log`).
+- `pnpm exec prettier --check packages/game-core/src/combat/actions-legacy.ts packages/game-core/src/combat/combat-elemental-damage.test.ts`: passed, exit 0 (`review-1-format.log`). `git diff --check`: passed.
+
+No reader, UI, validation package, hosted state, migration, dependency or deployment changes were made in this fix round. Root's uncommitted Owner checklist correction is excluded. Suppress remains a separate sequential task. The earlier browser evidence was not rerun for this core-only fix; root owns scoped re-review and the later combined repository/browser/exact-head release gates. No open implementation blocker remains for the two review findings.

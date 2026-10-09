@@ -86,6 +86,16 @@ jobs:
           AV_PERCENTAGE_DOT_EVIDENCE_DIR: /tmp/battle-percentage-dot-review
         run: pnpm --filter @aurevane/web exec node scripts/battle-percentage-dot-browser-regression.mjs
 
+      - name: Verify elemental statuses and Ground readers across modes
+        env:
+          AV_ELEMENTAL_EVIDENCE_DIR: /tmp/battle-elemental-review
+        run: pnpm --filter @aurevane/web exec node scripts/battle-elemental-browser-regression.mjs
+
+      - name: Verify Suppress percentage authoring and readers across modes
+        env:
+          AV_SUPPRESS_EVIDENCE_DIR: /tmp/battle-suppress-review
+        run: pnpm --filter @aurevane/web exec node scripts/battle-suppress-browser-regression.mjs
+
       - name: Verify elevated rail effects and viewer privacy
         env:
           AV_ELEVATED_RAIL_EVIDENCE_DIR: /tmp/battle-elevated-rail-review
@@ -237,6 +247,22 @@ jobs:
         with:
           name: battle-percentage-dot-review
           path: /tmp/battle-percentage-dot-review
+          retention-days: 7
+
+      - name: Save elemental status and Ground reader evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: battle-elemental-review
+          path: /tmp/battle-elemental-review
+          retention-days: 7
+
+      - name: Save Suppress percentage authoring and reader evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: battle-suppress-review
+          path: /tmp/battle-suppress-review
           retention-days: 7
 
       - name: Save compact combat release screenshots

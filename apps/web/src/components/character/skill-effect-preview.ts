@@ -83,7 +83,9 @@ function statusPreview(
   const result: PreviewEffect = { label: details.name, explanation: details.description }
   // These gameplay-tag rules live in the damage/healing resolvers. Their shared
   // status descriptions are the public authority; avoid a second numeric constant.
-  if (['inspired', 'hexed', 'wet', 'conductive'].includes(id)) {
+  if (id === 'suppress') {
+    result.magnitude = `${(potencyBasisPoints ?? 2500) / 100}%`
+  } else if (['inspired', 'hexed', 'wet', 'conductive'].includes(id)) {
     const percent =
       !legacyElemental && (id === 'wet' || id === 'conductive')
         ? `${(potencyBasisPoints ?? 2000) / 100}%`
@@ -275,7 +277,10 @@ export function previewEffect(
       }
     }
     case 'remove-status': {
-      const statusNames = [...new Set(effect.statusIds.map((id) => combatStatusDetails(id).name))]
+      const ids = effect.statusIds.every((id) => combatStatusDetails(id).kind === 'Buff')
+        ? effect.statusIds
+        : [...effect.statusIds, 'suppress']
+      const statusNames = [...new Set(ids.map((id) => combatStatusDetails(id).name))]
       return {
         label: effect.statusIds.every((id) => combatStatusDetails(id).kind === 'Buff')
           ? 'Dispel'

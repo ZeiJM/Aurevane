@@ -67,6 +67,18 @@ export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
     amplifyCopyable: true,
     reactionClass: 'ordinary',
   }),
+  status(
+    'suppress',
+    'Suppress',
+    'Debuff',
+    'Deal 25% less outgoing direct damage. Never stacks; retains the highest percentage and longest remaining duration. Captured Burn, Poison and Bleed ticks are unchanged.',
+    {
+      durationOwnerTurnStarts: 3,
+      gameplayTags: ['Suppress'],
+      curseCopyable: true,
+      reactionClass: 'ordinary',
+    },
+  ),
   status('hexed', 'Healing Down', 'Debuff', 'Receive 25% less HP and MP recovery.', {
     gameplayTags: ['Hexed'],
     curseCopyable: true,

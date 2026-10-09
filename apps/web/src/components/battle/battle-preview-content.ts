@@ -236,7 +236,7 @@ export function scheduledEffectPreviewLabel(
             : effect.durationScope === 'battle'
               ? 'Battle-long'
               : null
-  return `${gameplayStatusName(effect.statusId ?? effect.effectType)} · Starts round ${effect.activationRound}${lifetime ? ` · ${lifetime}` : ''}`
+  return `${effect.statusId === 'suppress' ? `Suppress [${(effect.potencyBasisPoints ?? 2500) / 100}%]` : gameplayStatusName(effect.statusId ?? effect.effectType)} · Starts round ${effect.activationRound}${lifetime ? ` · ${lifetime}` : ''}`
 }
 
 function actionPreviewChips(preview: ActionPreview): PreviewChip[] {
@@ -321,7 +321,13 @@ function actionPreviewChips(preview: ActionPreview): PreviewChip[] {
 
   for (const status of preview.projectedStatuses) {
     if (!statusWasProjected(status.statusId, preview.projectedEvents)) continue
-    chips.push({ label: gameplayStatusName(status.statusId), tone: 'effect' })
+    chips.push({
+      label:
+        status.statusId === 'suppress'
+          ? `Suppress [${(status.potencyBasisPoints ?? 2500) / 100}%]`
+          : gameplayStatusName(status.statusId),
+      tone: 'effect',
+    })
     if (
       status.damageTakenMultiplierBasisPoints !== null &&
       status.damageTakenMultiplierBasisPoints < 10_000
@@ -346,7 +352,11 @@ function actionPreviewChips(preview: ActionPreview): PreviewChip[] {
             typeof effect.after === 'string' &&
             !scheduledEffectPreviewLabel(effect),
         )
-        .map((effect) => gameplayStatusName(String(effect.after))),
+        .map((effect) =>
+          effect.statusId === 'suppress'
+            ? `Suppress [${(effect.potencyBasisPoints ?? 2500) / 100}%]`
+            : gameplayStatusName(String(effect.after)),
+        ),
     )
     for (const status of statuses) {
       chips.push({ label: status, tone: 'effect' })

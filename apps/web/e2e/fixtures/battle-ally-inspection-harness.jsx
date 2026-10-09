@@ -34,6 +34,7 @@ import { resolveEssenceForBuild } from '@aurevane/game-core/combat/essence'
 import { SkillDetails } from '@/components/character/skill-details'
 import { BattleSkillParameters } from '@/components/battle/battle-skill-parameters'
 import { SkillEffectTimingProvider } from '@/components/character/skill-effect-timing-context'
+import { PV1F_COMBAT_CONTENT } from '@aurevane/game-core/combat/pv1f-action-economy'
 import { projectPercentageDotFixtureState } from './percentage-dot-viewer-state'
 import './production-styles'
 
@@ -472,6 +473,47 @@ if (elementalCase) {
             }
           : row,
       )
+  }
+}
+const suppressCase = new URLSearchParams(location.search).get('suppress')
+if (suppressCase) {
+  initialBattle.snapshot.effectTimingPolicy = { version: 7, modes: {} }
+  if (suppressCase === 'pending') {
+    initialBattle.snapshot.pendingEffects = [
+      {
+        actorId: 'enemy-one',
+        actionId: 'fixture.suppress',
+        recipientIds: ['character:player'],
+        affectedTiles: [],
+        activationRound: 3,
+        statusDurationScope: 'rounds',
+        content: PV1F_COMBAT_CONTENT,
+        effect: {
+          type: 'apply-status',
+          recipient: 'primary-unit',
+          statusId: 'suppress',
+          stacks: 1,
+          potencyBasisPoints: 2534,
+          durationTurns: 2,
+        },
+      },
+    ]
+    initialBattle.snapshot = projectPercentageDotFixtureState(initialBattle.snapshot)
+  } else {
+    initialBattle.snapshot.statusState.find(
+      (row) => row.combatantId === 'character:player',
+    ).statuses = [
+      {
+        statusId: 'suppress',
+        statusVersion: 1,
+        stacks: 1,
+        potencyBasisPoints: 2534,
+        remainingOwnerTurnStarts: 2,
+        remainingOwnerTurnEnds: 2,
+        timingState: 'active',
+        sourceCombatantId: 'enemy-one',
+      },
+    ]
   }
 }
 window.fixtureBattle = initialBattle

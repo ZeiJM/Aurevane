@@ -1,3 +1,5 @@
+Owner Suppress follow-up — October9: Suppress reduces outgoing direct damage by its displayed percentage, from1% to100%, independently for1–4 turns. It never stacks; reapplication retains the stronger percentage and longer remaining duration. Cleanse removes it, Dispel does not, and Copy Debuffs can copy it.100% prevents direct damage. New Burn/Poison/Bleed still use actual HP lost from their qualifying hit; existing captured ticks continue unchanged. No current Skill, Essence or summon gains Suppress automatically. Implementation is under verification; not yet deployed.
+
 # AUREVANE — Adventurer's Guide: Current Rules Draft
 
 **Status:** Design-stage player-facing Manual draft.

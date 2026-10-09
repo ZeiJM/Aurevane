@@ -1,3 +1,4 @@
+import { outgoingSuppressionBasisPoints } from './combat-suppress'
 import { hasGameplayTag } from './gameplay-tags'
 import type { BattleFacing } from './battle-state'
 import { airborneMovementTactical } from './combat-airborne'
@@ -351,6 +352,8 @@ function createAttackCandidate(
     (combatant) => combatant.id === targetCombatantId,
   )
   const damage = forecast.mitigatedBaseDamage ?? 0
+  if (damage === 0 && outgoingSuppressionBasisPoints(state, forecast.evaluation.actorId!) > 0)
+    return null
   const lethalBonus = targetCombatant && damage >= targetCombatant.hp ? 16 : 0
   const hitChanceBonus = Math.round((forecast.hitChanceBasisPoints ?? 0) / 1_000)
 

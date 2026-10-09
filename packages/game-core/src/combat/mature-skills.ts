@@ -1294,7 +1294,8 @@ export function validateMatureSkillDefinition(
       effect.potencyBasisPoints !== undefined &&
       (!Number.isSafeInteger(effect.potencyBasisPoints) ||
         effect.potencyBasisPoints < 100 ||
-        effect.potencyBasisPoints > 5_000)
+        effect.potencyBasisPoints >
+          (effect.type === 'apply-status' && effect.statusId === 'suppress' ? 10_000 : 5_000))
     ) {
       issues.push(`effects[${index}].potencyBasisPoints`)
     }

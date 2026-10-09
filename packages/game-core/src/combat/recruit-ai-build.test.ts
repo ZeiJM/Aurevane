@@ -401,3 +401,45 @@ describe('Phase 4 advanced AI through committed builds', () => {
     expect(result.events).toContainEqual(expect.objectContaining({ event: 'resonance_activated' }))
   })
 })
+
+it('100% Suppress never invents damaging moves and ends after legal useful support is exhausted', () => {
+  let state = encounter()
+  state.statusState.find((row) => row.combatantId === actorId)!.statuses = [
+    {
+      statusId: 'suppress',
+      statusVersion: 1,
+      stacks: 1,
+      sourceCombatantId: targetId,
+      potencyBasisPoints: 10000,
+      remainingOwnerTurnStarts: 3,
+    },
+  ]
+  for (let count = 0; count < 8; count++) {
+    const choice = chooseBuildAwareRecruitAiDecision({
+      state,
+      profile: RECRUIT_STANDARD_PROFILE,
+      tieBreakSeed: 42,
+    })
+    if (choice.intent.kind === 'face') {
+      expect(
+        finishPv1fTurn(state, choice.intent.facing).state.tactical.battle.currentTurn?.combatantId,
+      ).toBe(targetId)
+      return
+    }
+    if (choice.intent.kind === 'end-turn') {
+      expect(count).toBeLessThan(8)
+      return
+    }
+    expect(choice.intent.kind).toBe('action')
+    if (choice.intent.kind !== 'action') throw new Error('Unexpected move on fully occupied map')
+    expect([PV1F_GUARD_ACTION_ID, PV1F_RECOVER_ACTION_ID, PV1F_MP_RECOVER_ACTION_ID]).toContain(
+      choice.intent.actionId,
+    )
+    state = executeBuildAwareRecruitAiAction(
+      state,
+      choice.intent.actionId,
+      choice.intent.target,
+    ).state
+  }
+  throw new Error('AI failed to finish its turn')
+})

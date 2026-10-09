@@ -1,3 +1,4 @@
+import { mergeSuppressStatus } from './combat-suppress'
 import { usesPercentageCombatDots } from './combat-dots'
 import type {
   CombatActionDefinition,
@@ -117,7 +118,11 @@ function assertPinnedStatus(
     !Number.isSafeInteger(instance.remainingOwnerTurnStarts) ||
     instance.remainingOwnerTurnStarts < 1 ||
     instance.remainingOwnerTurnStarts >
-      (instance.remainingOwnerTurnEnds !== undefined ? 4 : definition.durationOwnerTurnStarts)
+      (instance.remainingOwnerTurnEnds !== undefined
+        ? 4
+        : instance.statusId === 'suppress'
+          ? 5
+          : definition.durationOwnerTurnStarts)
   ) {
     throw new TypeError(
       'Copied status state must match its pinned version, stack cap and remaining duration.',
@@ -257,6 +262,7 @@ export function planCombatStatusCopies(
   selectedId: string,
   effect: CombatStatusCopyEffect,
   content: CombatContentCatalog,
+  statusDurationScope?: 'rounds',
 ): CombatCopyPlan {
   assertCurrentStatusCopyEffect(effect)
   const donorId = effect.mode === 'amplify' ? selectedId : actorId
@@ -325,7 +331,7 @@ export function planCombatStatusCopies(
         : previousStacks + Math.min(donorStacks, definition.maximumStacks - previousStacks)
       if (!Number.isSafeInteger(stacks))
         throw new RangeError('Copied status stacks have reached the safe integer limit.')
-      const next: CombatStatusInstance = {
+      let next: CombatStatusInstance = {
         ...(donor.sourceScopedMark === true ? { sourceScopedMark: true as const } : {}),
         statusId: donor.statusId,
         statusVersion: donor.statusVersion,
@@ -374,6 +380,24 @@ export function planCombatStatusCopies(
               timingState: 'active' as const,
             }
           : {}),
+      }
+      if (donor.statusId === 'suppress') {
+        const incoming = {
+          ...donor,
+          sourceCombatantId: actorId,
+          skipCurrentOwnerTurnEnd: undefined,
+        }
+        if (statusDurationScope === 'rounds') {
+          const remaining =
+            donor.remainingRoundBoundaries ??
+            donor.remainingOwnerTurnEnds ??
+            donor.remainingOwnerTurnStarts
+          incoming.durationScope = 'rounds'
+          incoming.remainingRoundBoundaries = remaining
+          incoming.remainingOwnerTurnEnds = remaining
+          incoming.remainingOwnerTurnStarts = remaining
+        }
+        next = mergeSuppressStatus(previous, incoming, state, receiverId)
       }
       return { donor, previous, next }
     },
@@ -430,7 +454,11 @@ export function planCombatStatusCopies(
 }
 
 function statusSummary(status: CombatStatusInstance | undefined): string {
-  return status ? `${status.statusId}:${status.stacks}:${status.remainingOwnerTurnStarts}` : 'none'
+  return status
+    ? status.statusId === 'suppress'
+      ? `suppress:1:${status.potencyBasisPoints ?? 2500}:${status.remainingOwnerTurnStarts}`
+      : `${status.statusId}:${status.stacks}:${status.remainingOwnerTurnStarts}`
+    : 'none'
 }
 
 export function applyCombatStatusCopies(
@@ -440,6 +468,7 @@ export function applyCombatStatusCopies(
   actionId: string,
   effect: CombatStatusCopyEffect,
   content: CombatContentCatalog,
+  statusDurationScope?: 'rounds',
 ): CombatResolutionTransition & { projections: CombatEffectProjection[] } {
   const { receiverId, copies, poisons, burns, bleed } = planCombatStatusCopies(
     state,
@@ -447,6 +476,7 @@ export function applyCombatStatusCopies(
     selectedId,
     effect,
     content,
+    statusDurationScope,
   )
   if (copies.length === 0 && poisons.length === 0 && burns.length === 0 && bleed.length === 0) {
     if (effect.allowNoEligibleEffects === true) {
@@ -578,10 +608,16 @@ export function applyCombatStatusCopies(
         sourceCombatantId: actorId,
         targetCombatantId: receiverId,
         statusId: next.statusId,
+        ...(next.statusId === 'suppress' ? { potencyBasisPoints: next.potencyBasisPoints } : {}),
         stacks: next.stacks,
         remainingOwnerTurnStarts: next.remainingOwnerTurnStarts,
         ...(next.remainingOwnerTurnEnds !== undefined
-          ? { expiryBoundary: 'owner-turn-end' as const }
+          ? {
+              expiryBoundary:
+                next.durationScope === 'rounds'
+                  ? ('round-end' as const)
+                  : ('owner-turn-end' as const),
+            }
           : {}),
         refreshed: previous !== undefined,
         stacked: previous !== undefined && next.stacks > previous.stacks,
@@ -591,6 +627,15 @@ export function applyCombatStatusCopies(
       ...copies.map(({ previous, next }) => ({
         effectType: 'copy-statuses' as const,
         combatantId: receiverId,
+        ...(next.statusId === 'suppress'
+          ? {
+              statusId: 'suppress',
+              potencyBasisPoints: next.potencyBasisPoints,
+              durationScope: next.durationScope,
+              remainingOwnerTurnEnds: next.remainingOwnerTurnEnds,
+              remainingRoundBoundaries: next.remainingRoundBoundaries,
+            }
+          : {}),
         before: statusSummary(previous),
         after: statusSummary(next),
       })),

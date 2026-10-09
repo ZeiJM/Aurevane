@@ -7,6 +7,7 @@ import { skillInformationRows } from './skill-information-contract'
 import { previewEffect, skillDamageElementInteraction } from './skill-effect-preview'
 import {
   combatActionPresentationTags,
+  combatEffectPresentationTags,
   combatTargetIncludesActor,
 } from '@aurevane/game-core/combat/gameplay-tags'
 import { gameplayStatusName } from '../../lib/battle/combat-interaction-presentation'
@@ -107,10 +108,15 @@ export function skillEffectDescription(
     case 'sensory':
       return `Attempt Reveal on ${target}. On a successful hit against Covert, remove eligible positive statuses and Covert, then apply Revealed for ${effect.revealedDurationOwnerTurnStarts} owner-turn starts. Otherwise Reveal has no effect.`
     case 'remove-status': {
-      const statusNames = [...new Set(effect.statusIds.map((id) => combatStatusDetails(id).name))]
+      const statusIds = combatEffectPresentationTags(effect).includes('Cleanse')
+        ? [...effect.statusIds, 'suppress']
+        : effect.statusIds
+      const statusNames = [...new Set(statusIds.map((id) => combatStatusDetails(id).name))]
       return `Remove ${statusNames.join(', ')} from ${target}.`
     }
     case 'apply-status': {
+      if (effect.statusId === 'suppress')
+        return `Apply Suppress to ${target}. ${previewEffect(effect, options).explanation} Lasts ${effect.durationTurns ?? 2} turns.`
       const status = combatStatusDetails(effect.statusId)
       const preview = previewEffect(effect, options)
       const duration =
@@ -257,7 +263,13 @@ function compactDuration(effect: MatureSkillEffectDefinition): string | null {
       : percentage && effect.type === 'bleed'
         ? effect.ticks
         : (effect.durationTurns ??
-          (effect.type === 'apply-status' && effect.statusId === 'blindside' ? 1 : 0))
+          (effect.type === 'apply-status'
+            ? effect.statusId === 'blindside'
+              ? 1
+              : effect.statusId === 'suppress'
+                ? 2
+                : 0
+            : 0))
   if (turns <= 0) return null
   return `${turns} ${percentage ? (turns === 1 ? 'turn' : 'turns') : turns === 1 ? 'Turn' : 'Turns'}`
 }

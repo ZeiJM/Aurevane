@@ -216,3 +216,24 @@ it.each(['active', 'pending'] as const)(
     ).toBe('Receive 16% less HP and MP recovery.')
   },
 )
+
+it('reads active and pending Suppress with exact percentage and lifetime', () => {
+  const effect = {
+    statusId: 'suppress',
+    statusVersion: 1,
+    stacks: 1,
+    potencyBasisPoints: 2534,
+    remainingOwnerTurnStarts: 2,
+    remainingOwnerTurnEnds: 2,
+    sourceCombatantId: 'actor',
+  }
+  expect(describeBattleEffect(effect)).toMatchObject({
+    label: 'Suppress [25.34%]',
+    identifier: 'SUP',
+    kind: 'Debuff',
+  })
+  expect(describeBattleEffect(effect).explanation).toContain('25.34%')
+  expect(
+    describeBattleEffect({ ...effect, timingState: 'pending', activationRound: 3 }).explanation,
+  ).toContain('round 3')
+})

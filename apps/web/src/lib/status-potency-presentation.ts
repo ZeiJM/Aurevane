@@ -26,6 +26,8 @@ export function statusPotencyDescription(
     if (statusId === 'frozen')
       return 'Chilled prevents changing final facing at turn end. End the turn in the current direction; movement keeps its usual automatic facing. A legal Fire cast cleanses the caster; positive Fire damage cleanses its recipient.'
   }
+  if (statusId === 'suppress')
+    return `Deal ${(potencyBasisPoints ?? 2500) / 100}% less outgoing direct damage. Never stacks; retains the highest percentage and longest remaining duration. Captured Burn, Poison and Bleed ticks are unchanged; new DoTs capture actual settled HP loss. Cleanse removes it; Dispel does not.`
   if (statusId === 'hexed') {
     const percent = (potencyBasisPoints ?? 2500) / 100
     return options.legacyHealingDown

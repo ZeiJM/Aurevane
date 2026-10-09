@@ -1,7 +1,4 @@
-import {
-  createPv1fBasicAttackDefinition,
-  PV1F_ACTION_ECONOMY_RESOURCE_KEY,
-} from '@aurevane/game-core/combat/pv1f-action-economy'
+import { PV1F_ACTION_ECONOMY_RESOURCE_KEY } from '@aurevane/game-core/combat/pv1f-action-economy'
 import { expect, test, type Page } from '@playwright/test'
 import type { BattleSessionView } from '../src/server/battle/battle-session-service'
 import type { BattlePreviewView } from '../src/server/battle/battle-preview-service'
@@ -544,44 +541,19 @@ test('a rapid second Basic Attack commits without waiting for an informational f
   const initialAction = (await initial.json()).battlePreview.preview
   expect(initialAction.legal).toBe(true)
   expect(initialAction.hitChanceBasisPoints).not.toBeNull()
+  await expectBasicAttackPotentialRange(page)
   await expect
-    .poll(async () =>
-      page.locator('#battlefield').evaluate((board, maximumElevationDifference) => {
-        const point = (tile: Element) =>
-          tile
-            .getAttribute('aria-label')!
-            .match(/^Tile (\d+), (\d+)/)!
-            .slice(1)
-            .map(Number)
-        const origin = board.querySelector(
-          'button[aria-label*="occupied by"] > [data-team="0"]',
-        )?.parentElement
-        if (!origin) return false
-        const [x, y] = point(origin)
-        const elevation = (tile: Element) =>
-          Number(tile.getAttribute('aria-label')!.match(/; elevation (\d+)/)![1])
-        const originElevation = elevation(origin)
-        const adjacent = [...board.querySelectorAll('button[aria-label^="Tile "]')].filter(
-          (tile) => {
-            const [tx, ty] = point(tile)
-            return Math.abs(tx - x) + Math.abs(ty - y) === 1
-          },
-        )
-        return (
-          adjacent.length > 1 &&
-          // Movement can place the actor beside independently rolled level 2/3 tiles.
-          // Highlight only eligible occupied recipients and retain the authored elevation limit.
-          adjacent.every((tile) => {
-            const hittable =
-              maximumElevationDifference === null ||
-              Math.abs(elevation(tile) - originElevation) <= maximumElevationDifference
-            return hittable && tile.getAttribute('data-target') === 'enemy'
-              ? tile.getAttribute('data-attack-path') === 'true' &&
-                  getComputedStyle(tile, '::after').backgroundColor === 'rgba(189, 38, 58, 0.22)'
-              : tile.getAttribute('data-attack-path') !== 'true'
-          })
-        )
-      }, createPv1fBasicAttackDefinition(1).target.maximumElevationDifference),
+    .poll(() =>
+      page
+        .locator('#battlefield [data-attack-path]')
+        .evaluateAll(
+          (tiles) =>
+            tiles.length > 0 &&
+            tiles.every(
+              (tile) =>
+                getComputedStyle(tile, '::after').backgroundColor === 'rgba(189, 38, 58, 0.22)',
+            ),
+        ),
     )
     .toBe(true)
   await expect(page.getByLabel('Action preview', { exact: true })).toContainText(

@@ -1,3 +1,10 @@
+import { combatEffectPresentationTags } from './gameplay-tags'
+import {
+  DEFAULT_SUPPRESS_BASIS_POINTS,
+  mergeSuppressStatus,
+  outgoingSuppressionBasisPoints,
+  scaleSuppressedDirectDamage,
+} from './combat-suppress'
 import { airborneGroundMiss, airborneAttackAction, airborneJump } from './combat-airborne'
 import {
   percentageRecoveryAmount,
@@ -425,7 +432,14 @@ export function combatSourceCommandVisibility(
   return { kind: 'team-only', teamId: getCombatant(state.tactical.battle, actorId).teamId }
 }
 
+interface CapturedElementalApplication {
+  effect: CombatEffectDefinition
+  timingTag?: string
+  effectOrigin?: CombatEffectOrigin
+}
+
 export interface PendingCombatEffect {
+  elementalApplicationsByRecipient?: Readonly<Record<string, CapturedElementalApplication>>
   elementalApplication?: { effect: CombatEffectDefinition; timingTag?: string }
   elementalResistedRecipientIds?: readonly string[]
   /** Damage from Basic actions remains outside Skill-only Blindside amplification. */
@@ -559,6 +573,7 @@ export interface CombatEffectProjection {
   /** Forecast metadata describes scheduled application, never a committed result. */
   activationRound?: number
   statusId?: string
+  potencyBasisPoints?: number
   durationScope?: CombatStatusInstance['durationScope']
   remainingOwnerTurnEnds?: number
   remainingRoundBoundaries?: number
@@ -599,6 +614,7 @@ export type CombatResolutionEvent = (
       sourceCombatantId: string
       targetCombatantId: string | null
       effectTag: string
+      potencyBasisPoints?: number
       activationRound: number
       recoveryApplications?: number
       remainingOwnerTurnEnds?: number
@@ -696,6 +712,7 @@ export type CombatResolutionEvent = (
       sourceCombatantId: string
       targetCombatantId: string
       statusId: string
+      potencyBasisPoints?: number
       stacks: number
       remainingOwnerTurnStarts: number
       refreshed: boolean
@@ -1420,6 +1437,20 @@ function battleForEffectStacking(state: CombatEncounterState): BattleState {
     : state.tactical.battle
 }
 
+/** Environmental Fire survives a missed/empty unit payload until its captured activation. */
+function hasCurrentFireTileEffect(
+  state: CombatEncounterState,
+  effect: CombatEffectDefinition,
+  tiles: readonly GridPosition[],
+): boolean {
+  return (
+    state.elementalDamagePolicyVersion === 1 &&
+    effect.type === 'damage' &&
+    effect.element === 'fire' &&
+    tiles.length > 0
+  )
+}
+
 function applyCombatRoundBoundary(
   state: CombatEncounterState,
   previousRound: number,
@@ -1543,7 +1574,8 @@ function applyCombatRoundBoundary(
       )
       if (
         pending.effect.type !== 'create-terrain' &&
-        (!recipients.length ||
+        ((!recipients.length &&
+          !hasCurrentFireTileEffect(nextState, pending.effect, pending.affectedTiles)) ||
           (pending.percentageDotCommandId !== undefined &&
             getCombatant(nextState.tactical.battle, pending.actorId).hp <= 0))
       ) {
@@ -1622,8 +1654,10 @@ function applyCombatRoundBoundary(
           : undefined,
         {
           elementalApplications,
+          capturedElementalApplications: pending.elementalApplicationsByRecipient,
           skillDamage: pending.skillDamage,
           returnAnchor: pending.returnAnchor,
+          statusDurationScope: pending.statusDurationScope,
           percentageRecoveryByRecipient: pending.percentageRecoveryByRecipient,
         },
       )
@@ -1689,6 +1723,7 @@ function applyCombatRoundBoundary(
         statusState: nextState.statusState.map((row) => ({
           ...row,
           statuses: row.statuses.map((status) =>
+            status.statusId !== 'suppress' &&
             status.remainingOwnerTurnEnds !== undefined &&
             pending.statusDurationScope === 'rounds' &&
             (!status.durationScope || status.durationScope === 'rounds') &&
@@ -1710,7 +1745,9 @@ function applyCombatRoundBoundary(
       events.push(
         ...resolved.events.map((event) => ({
           ...event,
-          ...(event.event === 'status_applied' && pending.statusDurationScope === 'rounds'
+          ...(event.event === 'status_applied' &&
+          event.statusId !== 'suppress' &&
+          pending.statusDurationScope === 'rounds'
             ? { expiryBoundary: 'round-end' as const }
             : {}),
           effectActivationRound: state.tactical.battle.round,
@@ -2146,6 +2183,35 @@ export function validateCombatEncounterState(
               ))
           )
             throw new TypeError('Invalid captured elemental resistance recipients.')
+          if (pending.elementalApplicationsByRecipient !== undefined) {
+            const applications: Readonly<Record<string, CapturedElementalApplication>> =
+              pending.elementalApplicationsByRecipient
+            if (
+              state.elementalDamagePolicyVersion !== 1 ||
+              !elementalStatusId(pending.effect) ||
+              !applications ||
+              typeof applications !== 'object' ||
+              Array.isArray(applications)
+            )
+              throw new TypeError('Invalid captured elemental recipient definitions.')
+            for (const [id, application] of Object.entries(applications)) {
+              if (
+                !pending.recipientIds.includes(id) ||
+                application?.effect?.type !== 'apply-status' ||
+                application.effect.statusId !== elementalStatusId(pending.effect)
+              )
+                throw new TypeError('Invalid captured elemental recipient definition.')
+              validateCombatActionDefinition(
+                {
+                  ...P2_3_GUARD_ACTION,
+                  effects: [application.effect],
+                  effectTimingTags: [application.timingTag],
+                  effectOrigins: [application.effectOrigin],
+                },
+                pending.content,
+              )
+            }
+          }
           if (pending.elementalApplication !== undefined) {
             const application = pending.elementalApplication
             if (
@@ -2359,6 +2425,26 @@ export function validateCombatEncounterState(
           })
         }
       }
+      if (
+        status.statusId === 'suppress' &&
+        (status.stacks !== 1 ||
+          status.potencyBasisPoints === undefined ||
+          status.sourceScopedMark !== undefined ||
+          status.blindsideModifiersBasisPoints !== undefined ||
+          status.applicationModifiers !== undefined ||
+          status.remainingOwnerTurnStarts > (status.remainingOwnerTurnEnds === undefined ? 5 : 4) ||
+          (status.remainingOwnerTurnEnds ?? 1) > 4 ||
+          (status.remainingRoundBoundaries !== undefined &&
+            (!Number.isSafeInteger(status.remainingRoundBoundaries) ||
+              status.remainingRoundBoundaries < 1 ||
+              status.remainingRoundBoundaries > 4)) ||
+          (status.durationScope === 'rounds' && status.remainingRoundBoundaries === undefined) ||
+          (status.durationScope !== undefined && status.durationScope !== 'rounds'))
+      )
+        issues.push({
+          field: statusPrefix,
+          message: 'Suppress must retain one percentage application and a 1 to 4 turn lifetime.',
+        })
       collectIdentityIssue(issues, status.statusId, `${statusPrefix}.statusId`)
       if (isRetiredCombatStatusId(status.statusId))
         issues.push({
@@ -2386,7 +2472,8 @@ export function validateCombatEncounterState(
               (application.potencyBasisPoints !== undefined &&
                 (!Number.isSafeInteger(application.potencyBasisPoints) ||
                   application.potencyBasisPoints < 100 ||
-                  application.potencyBasisPoints > 5000)),
+                  application.potencyBasisPoints >
+                    (status.statusId === 'suppress' ? 10000 : 5000))),
           ) ||
           applications.reduce((sum, application) => sum + BigInt(application.stacks), 0n) !==
             BigInt(status.stacks)
@@ -2415,11 +2502,11 @@ export function validateCombatEncounterState(
         status.potencyBasisPoints !== undefined &&
         (!Number.isSafeInteger(status.potencyBasisPoints) ||
           status.potencyBasisPoints < 100 ||
-          status.potencyBasisPoints > 5_000)
+          status.potencyBasisPoints > (status.statusId === 'suppress' ? 10_000 : 5_000))
       ) {
         issues.push({
           field: `${statusPrefix}.potencyBasisPoints`,
-          message: 'Status potency must be from 1 to 50 percentage points.',
+          message: `Status potency must be from 1 to ${status.statusId === 'suppress' ? 100 : 50} percentage points.`,
         })
       }
       if (!expectedCombatantIds.includes(status.sourceCombatantId)) {
@@ -2807,17 +2894,48 @@ type ElementalApplications = Map<
     ordinal: number
     action: CombatActionDefinition
     content: CombatContentCatalog
+    explicitApplication?: CapturedElementalApplication
   }
 >
 
 interface CombatEffectResolutionOptions {
   elementalApplications?: ElementalApplications
+  capturedElementalApplications?: Readonly<Record<string, CapturedElementalApplication>>
   missedEffectOrdinalsByTarget?: CombatResistedEffectOrdinals
   skillDamage?: boolean
   groundArea?: CombatGroundAreaInstance
   preview?: boolean
   percentageRecoveryByRecipient?: Readonly<Record<string, CapturedPercentageRecovery>>
   returnAnchor?: GridPosition
+  statusDurationScope?: 'rounds'
+}
+
+/** Resolve authored tuning against the cast's identities before pending selectors are narrowed. */
+function captureElementalApplication(
+  action: CombatActionDefinition,
+  actorId: string,
+  primaryCombatantId: string | null,
+  affectedCombatantIds: readonly string[],
+  recipientId: string,
+  statusId: string,
+): CapturedElementalApplication | undefined {
+  const ordinal = action.effects.findIndex(
+    (effect) =>
+      effect.type === 'apply-status' &&
+      effect.statusId === statusId &&
+      resolveEffectRecipients(
+        actorId,
+        primaryCombatantId,
+        affectedCombatantIds,
+        effect.recipient,
+      ).includes(recipientId),
+  )
+  if (ordinal < 0) return undefined
+  return {
+    effect: action.effects[ordinal]!,
+    timingTag: action.effectTimingTags?.[ordinal],
+    effectOrigin: action.effectOrigins?.[ordinal],
+  }
 }
 
 /** Preview and commit run this exact immutable sequence, including consumptions and failed pushes. */
@@ -2836,16 +2954,11 @@ function settleElementalApplications(
     ordinal,
     action,
     content,
+    explicitApplication,
   } of elementalApplications.values()) {
     if (getCombatant(nextState.tactical.battle, recipientId).hp <= 0) continue
     const statusId = elementalStatusId(effect)!
-    const explicitOrdinal = action.effects.findIndex(
-      (candidate) =>
-        candidate.type === 'apply-status' &&
-        candidate.statusId === statusId &&
-        candidate.recipient === effect.recipient,
-    )
-    const explicit = explicitOrdinal >= 0 ? action.effects[explicitOrdinal]! : undefined
+    const explicit = explicitApplication?.effect
     const tuning = { ...(explicit ?? {}), ...effect } as CombatEffectDefinition & {
       durationTurns?: number
       potencyBasisPoints?: number
@@ -2866,8 +2979,7 @@ function settleElementalApplications(
         : {}),
     }
     const modes = nextState.effectTimingPolicy?.modes ?? {}
-    const timingTag =
-      explicitOrdinal >= 0 ? (action.effectTimingTags?.[explicitOrdinal] ?? statusId) : statusId
+    const timingTag = explicitApplication?.timingTag ?? statusId
     const instant =
       !nextState.effectTimingPolicy ||
       modes[timingTag] === undefined ||
@@ -2881,7 +2993,7 @@ function settleElementalApplications(
       {
         ...action,
         effects: [application],
-        effectOrigins: [action.effectOrigins?.[explicitOrdinal >= 0 ? explicitOrdinal : ordinal]],
+        effectOrigins: [explicitApplication?.effectOrigin ?? action.effectOrigins?.[ordinal]],
         effectTimingTags: [timingTag],
         groundArea: undefined,
       },
@@ -3026,14 +3138,36 @@ function resolveActionEffects(
         )
       )
         continue
-      if (
-        state.elementalDamagePolicyVersion === 1 &&
-        effect.type === 'apply-status' &&
-        action.effects.some(
-          (hit) => elementalStatusId(hit) === effect.statusId && hit.recipient === effect.recipient,
-        )
+      // Only overlapping identities defer to positive damage settlement; unrelated authored
+      // recipients retain their own application and timing.
+      const effectRecipientIds = (
+        effect.recipient === 'affected-tiles'
+          ? []
+          : resolveEffectRecipients(
+              actorId,
+              primaryCombatantId,
+              affectedCombatantIds,
+              effect.recipient,
+            )
+      ).filter(
+        (recipientId) =>
+          !(
+            state.elementalDamagePolicyVersion === 1 &&
+            effect.type === 'apply-status' &&
+            action.effects.some(
+              (hit) =>
+                hit.type === 'damage' &&
+                elementalStatusId(hit) === effect.statusId &&
+                resolveEffectRecipients(
+                  actorId,
+                  primaryCombatantId,
+                  affectedCombatantIds,
+                  hit.recipient,
+                ).includes(recipientId),
+            )
+          ),
       )
-        continue
+      if (effect.type === 'apply-status' && !effectRecipientIds.length) continue
       if (effect.type === 'sensory') {
         throw new TypeError('Sensory must be materialized before legacy effect resolution.')
       }
@@ -3046,14 +3180,7 @@ function resolveActionEffects(
           ) !== 'instant')
       ) {
         const recipientIds = (
-          effect.recipient === 'affected-tiles'
-            ? []
-            : resolveEffectRecipients(
-                actorId,
-                primaryCombatantId,
-                affectedCombatantIds,
-                effect.recipient,
-              )
+          effect.recipient === 'affected-tiles' ? [] : effectRecipientIds
         ).filter(
           (id) =>
             !missedCombatantIds?.has(id) &&
@@ -3064,7 +3191,12 @@ function resolveActionEffects(
               (effect.type !== 'damage' || state.elementalDamagePolicyVersion !== 1)
             ),
         )
-        if (!recipientIds.length && effect.type !== 'create-terrain') continue
+        if (
+          !recipientIds.length &&
+          effect.type !== 'create-terrain' &&
+          !hasCurrentFireTileEffect(state, effect, affectedTiles)
+        )
+          continue
         if (
           (nextState.skillPacketPolicyVersion === 1 ||
             nextState.elementalDamagePolicyVersion === 1) &&
@@ -3140,22 +3272,19 @@ function resolveActionEffects(
                     elementalResistedRecipientIds: recipientIds.filter((id) =>
                       resistedEffectOrdinalsByTarget?.get(id)?.has(effectOrdinal),
                     ),
-                    ...(() => {
-                      const index = action.effects.findIndex(
-                        (candidate) =>
-                          candidate.type === 'apply-status' &&
-                          candidate.statusId === elementalStatusId(effect) &&
-                          candidate.recipient === effect.recipient,
-                      )
-                      return index >= 0
-                        ? {
-                            elementalApplication: {
-                              effect: action.effects[index]!,
-                              timingTag: action.effectTimingTags?.[index],
-                            },
-                          }
-                        : {}
-                    })(),
+                    elementalApplicationsByRecipient: Object.fromEntries(
+                      recipientIds.flatMap((id) => {
+                        const application = captureElementalApplication(
+                          action,
+                          actorId,
+                          primaryCombatantId,
+                          affectedCombatantIds,
+                          id,
+                          elementalStatusId(effect)!,
+                        )
+                        return application ? [[id, JSON.parse(JSON.stringify(application))]] : []
+                      }),
+                    ),
                   }
                 : {}),
               effect: JSON.parse(JSON.stringify(effect)) as CombatEffectDefinition,
@@ -3255,6 +3384,9 @@ function resolveActionEffects(
               after: 'pending',
               activationRound: status.activationRound,
               statusId: status.statusId,
+              ...(status.statusId === 'suppress'
+                ? { potencyBasisPoints: status.potencyBasisPoints ?? DEFAULT_SUPPRESS_BASIS_POINTS }
+                : {}),
               ...(status.durationScope ? { durationScope: status.durationScope } : {}),
               ...(status.remainingOwnerTurnEnds === undefined
                 ? {}
@@ -3275,6 +3407,13 @@ function resolveActionEffects(
             sourceCombatantId: actorId,
             targetCombatantId,
             effectTag: combatEffectTimingTag(effect),
+            ...(effect.type === 'apply-status' && effect.statusId === 'suppress'
+              ? {
+                  potencyBasisPoints:
+                    (effect as typeof effect & { potencyBasisPoints?: number })
+                      .potencyBasisPoints ?? DEFAULT_SUPPRESS_BASIS_POINTS,
+                }
+              : {}),
             activationRound: latestPending.activationRound,
             ...(timing?.remainingOwnerTurnEnds === undefined
               ? {}
@@ -3363,12 +3502,7 @@ function resolveActionEffects(
         }
         if (effect.type === 'create-terrain') continue
       }
-      for (const recipientId of resolveEffectRecipients(
-        actorId,
-        primaryCombatantId,
-        affectedCombatantIds,
-        effect.recipient,
-      )) {
+      for (const recipientId of effectRecipientIds) {
         // Engine-owned target roll gates every unit effect, not just damage packets.
         if (
           missedCombatantIds?.has(recipientId) ||
@@ -3386,6 +3520,7 @@ function resolveActionEffects(
             action.id,
             effect,
             content,
+            options.statusDurationScope,
           )
           nextState = copied.state
           events.push(...copied.events)
@@ -3435,6 +3570,17 @@ function resolveActionEffects(
               ordinal: effectOrdinal,
               action,
               content,
+              explicitApplication:
+                options.capturedElementalApplications !== undefined
+                  ? options.capturedElementalApplications[recipientId]
+                  : captureElementalApplication(
+                      action,
+                      actorId,
+                      primaryCombatantId,
+                      affectedCombatantIds,
+                      recipientId,
+                      statusId,
+                    ),
             })
         }
         if (
@@ -3523,8 +3669,11 @@ function resolveActionEffects(
           beforeValue = currentBurnInstance(before, recipientId)?.stage ?? 'none'
           afterValue = currentBurnInstance(nextState, recipientId)?.stage ?? 'none'
         } else if (effect.type === 'remove-status') {
+          const statusIds = combatEffectPresentationTags(effect).includes('Cleanse')
+            ? [...new Set([...effect.statusIds, 'suppress'])]
+            : effect.statusIds
           const removedStatusIds = getStatusRow(before, recipientId)
-            .statuses.filter((status) => effect.statusIds.includes(status.statusId))
+            .statuses.filter((status) => statusIds.includes(status.statusId))
             .map((status) => status.statusId)
           if (effect.statusIds.includes('poison') && hasCurrentPoison(before, recipientId)) {
             removedStatusIds.push('poison')
@@ -3540,12 +3689,30 @@ function resolveActionEffects(
         } else {
           const oldStatus = getStatus(before, recipientId, effect.statusId, actorId)
           const newStatus = getStatus(nextState, recipientId, effect.statusId, actorId)
-          beforeValue = oldStatus ? `${oldStatus.statusId}:${oldStatus.stacks}` : 'none'
-          afterValue = newStatus ? `${newStatus.statusId}:${newStatus.stacks}` : 'none'
+          const summary = (status: CombatStatusInstance | null) =>
+            !status
+              ? 'none'
+              : status.statusId === 'suppress'
+                ? `suppress:1:${status.potencyBasisPoints ?? DEFAULT_SUPPRESS_BASIS_POINTS}:${status.remainingRoundBoundaries ?? status.remainingOwnerTurnEnds ?? status.remainingOwnerTurnStarts}`
+                : `${status.statusId}:${status.stacks}`
+          beforeValue = summary(oldStatus)
+          afterValue = summary(newStatus)
         }
         projections.push({
           effectType: effect.type,
           combatantId: recipientId,
+          ...(effect.type === 'apply-status' && effect.statusId === 'suppress'
+            ? {
+                statusId: 'suppress',
+                potencyBasisPoints: getStatus(nextState, recipientId, 'suppress')
+                  ?.potencyBasisPoints,
+                durationScope: getStatus(nextState, recipientId, 'suppress')?.durationScope,
+                remainingOwnerTurnEnds: getStatus(nextState, recipientId, 'suppress')
+                  ?.remainingOwnerTurnEnds,
+                remainingRoundBoundaries: getStatus(nextState, recipientId, 'suppress')
+                  ?.remainingRoundBoundaries,
+              }
+            : {}),
           before: beforeValue,
           after: afterValue,
         })
@@ -3583,6 +3750,7 @@ function resolveActionEffects(
                     ...row,
                     statuses: row.statuses.map((status) =>
                       status.statusId !== 'blindside' &&
+                      status.statusId !== 'suppress' &&
                       appliedStatusIds.includes(status.statusId) &&
                       status.remainingOwnerTurnEnds !== undefined
                         ? { ...status, skipCurrentOwnerTurnEnd: true }
@@ -4133,8 +4301,11 @@ function applyEffect(
   }
 
   if (effect.type === 'remove-status') {
+    const statusIds = combatEffectPresentationTags(effect).includes('Cleanse')
+      ? [...new Set([...effect.statusIds, 'suppress'])]
+      : effect.statusIds
     const removedStatusIds = getStatusRow(state, recipientId)
-      .statuses.filter((status) => effect.statusIds.includes(status.statusId))
+      .statuses.filter((status) => statusIds.includes(status.statusId))
       .map((status) => status.statusId)
     const removesCurrentPoison =
       effect.statusIds.includes('poison') && hasCurrentPoison(state, recipientId)
@@ -4146,7 +4317,7 @@ function applyEffect(
     if (removesCurrentBleed) removedStatusIds.push('bleed')
     if (removesCurrentBurn) removedStatusIds.push('burn')
 
-    let nextState = removeStatuses(state, recipientId, effect.statusIds)
+    let nextState = removeStatuses(state, recipientId, statusIds)
     if (removesCurrentPoison) nextState = removeCurrentPoisonState(nextState, recipientId)
     if (removesCurrentBleed) nextState = removeCurrentBleedState(nextState, recipientId)
     if (removesCurrentBurn) nextState = removeCurrentBurnState(nextState, recipientId)
@@ -4178,6 +4349,7 @@ function applyEffect(
     tuning.durationTurns,
     tuning.potencyBasisPoints,
     effect.blindsideModifiersBasisPoints,
+    options.statusDurationScope,
   )
   const status = getStatus(nextState, recipientId, effect.statusId, actorId)
   if (!status) {
@@ -4193,11 +4365,16 @@ function applyEffect(
         sourceCombatantId: actorId,
         targetCombatantId: recipientId,
         statusId: status.statusId,
+        ...(status.statusId === 'suppress'
+          ? { potencyBasisPoints: status.potencyBasisPoints }
+          : {}),
         stacks: status.stacks,
         remainingOwnerTurnStarts: status.remainingOwnerTurnStarts,
-        ...(status.remainingOwnerTurnEnds !== undefined
-          ? { expiryBoundary: 'owner-turn-end' as const }
-          : {}),
+        ...(status.durationScope === 'rounds'
+          ? { expiryBoundary: 'round-end' as const }
+          : status.remainingOwnerTurnEnds !== undefined
+            ? { expiryBoundary: 'owner-turn-end' as const }
+            : {}),
         refreshed: existingStatus !== null,
         stacked: existingStatus !== null && status.stacks > existingStatus.stacks,
       },
@@ -4406,15 +4583,23 @@ function resolveDamageAmount(
     }
   }
 
-  amount = scaleByBasisPoints(
-    amount,
-    conditionalDamageMultiplier(state, actorId, recipientId, content, elementalMultiplier, {
+  const multiplier = conditionalDamageMultiplier(
+    state,
+    actorId,
+    recipientId,
+    content,
+    elementalMultiplier,
+    {
       ignoreIncomingMitigation: effect.piercing === true,
       outgoingState,
-    }),
+    },
   )
-
-  return amount
+  // Round once at the existing final modifier boundary. Periodic ticks never enter this path.
+  return scaleSuppressedDirectDamage(
+    amount,
+    multiplier,
+    outgoingSuppressionBasisPoints(outgoingState, actorId),
+  )
 }
 
 function applyStatusState(
@@ -4427,6 +4612,7 @@ function applyStatusState(
   durationTurns?: number,
   potencyBasisPoints?: number,
   blindsideModifiersBasisPoints?: BlindsideModifiers,
+  statusDurationScope?: 'rounds',
 ): CombatEncounterState {
   assertPositiveSafeInteger(stacks, 'status stacks')
   if (
@@ -4439,9 +4625,11 @@ function applyStatusState(
     potencyBasisPoints !== undefined &&
     (!Number.isSafeInteger(potencyBasisPoints) ||
       potencyBasisPoints < 100 ||
-      potencyBasisPoints > 5_000)
+      potencyBasisPoints > (statusId === 'suppress' ? 10_000 : 5_000))
   ) {
-    throw new RangeError('Status potency must be from 1 to 50 percentage points.')
+    throw new RangeError(
+      `Status potency must be from 1 to ${statusId === 'suppress' ? 100 : 50} percentage points.`,
+    )
   }
   const definition = getStatusDefinitionById(content, statusId)
   const blindsideModifiers =
@@ -4449,17 +4637,24 @@ function applyStatusState(
       ? { ...(blindsideModifiersBasisPoints ?? DEFAULT_BLINDSIDE_MODIFIERS) }
       : undefined
   if (blindsideModifiers) validateBlindsideModifiers(blindsideModifiers)
+  if (statusId === 'suppress') {
+    durationTurns ??= 2
+    potencyBasisPoints ??= DEFAULT_SUPPRESS_BASIS_POINTS
+  }
   const remainingOwnerTurnStarts =
     durationTurns === undefined ? definition.durationOwnerTurnStarts : durationTurns + 1
   const existing = getStatus(state, recipientId, statusId, sourceCombatantId)
-  const nextStacks = existing
-    ? state.effectStackingPolicyVersion === 1
-      ? addEffectApplications(existing.stacks, stacks)
-      : addClampedSafeInteger(existing.stacks, stacks, 1, definition.maximumStacks)
-    : state.effectStackingPolicyVersion === 1
-      ? stacks
-      : Math.min(definition.maximumStacks, stacks)
-  const nextStatus: CombatStatusInstance = existing
+  const nextStacks =
+    statusId === 'suppress'
+      ? 1
+      : existing
+        ? state.effectStackingPolicyVersion === 1
+          ? addEffectApplications(existing.stacks, stacks)
+          : addClampedSafeInteger(existing.stacks, stacks, 1, definition.maximumStacks)
+        : state.effectStackingPolicyVersion === 1
+          ? stacks
+          : Math.min(definition.maximumStacks, stacks)
+  let nextStatus: CombatStatusInstance = existing
     ? {
         ...existing,
         stacks: nextStacks,
@@ -4481,7 +4676,7 @@ function applyStatusState(
         ...(blindsideModifiers ? { blindsideModifiersBasisPoints: blindsideModifiers } : {}),
       }
 
-  if (state.effectStackingPolicyVersion === 1) {
+  if (state.effectStackingPolicyVersion === 1 && statusId !== 'suppress') {
     nextStatus.applicationModifiers = [
       ...(existing ? combatStatusApplications(existing) : []),
       {
@@ -4507,6 +4702,18 @@ function applyStatusState(
       durationTurns ??
       Math.max(1, definition.durationOwnerTurnStarts - (definition.endOfTurn ? 0 : 1))
     nextStatus.remainingOwnerTurnStarts = nextStatus.remainingOwnerTurnEnds
+  }
+  if (statusId === 'suppress') {
+    if (statusDurationScope === 'rounds') {
+      nextStatus.durationScope = 'rounds'
+      nextStatus.remainingRoundBoundaries = nextStatus.remainingOwnerTurnEnds ?? durationTurns!
+    }
+    if (state.effectTimingPolicy && statusDurationScope !== 'rounds') {
+      delete nextStatus.skipCurrentOwnerTurnEnd
+      if (state.tactical.battle.currentTurn?.combatantId === recipientId)
+        nextStatus.skipCurrentOwnerTurnEnd = true
+    }
+    nextStatus = mergeSuppressStatus(existing ?? undefined, nextStatus, state, recipientId)
   }
   const statusState = state.statusState.map((candidate) =>
     candidate.combatantId === recipientId

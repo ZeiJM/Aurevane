@@ -22,6 +22,7 @@ const identifiers: Readonly<Record<string, string>> = {
   conductive: 'CON',
   inspired: 'INS',
   hexed: 'HEX',
+  suppress: 'SUP',
   invisible: 'GHO',
   airborne: 'AIR',
   displaced: 'DIS',
@@ -93,6 +94,9 @@ export function describeBattleEffect(effect: BattlePresentedStatus) {
     : ''
   const identity = {
     ...battleEffectIdentity(effect.statusId),
+    ...(effect.statusId === 'suppress'
+      ? { label: `Suppress [${(effect.potencyBasisPoints ?? 2500) / 100}%]` }
+      : {}),
     description:
       (percentageDescription ??
         (effect.statusId === 'blindside'

@@ -648,6 +648,440 @@ describe('current elemental settlement', () => {
       ),
     ).toEqual(['frozen'])
   })
+  it('Normal empty Ground Fire captures its tiles through restore and keeps the surviving ice expiry', () => {
+    let base = {
+      ...status(encounter(), 'frozen', 'actor'),
+      effectTimingPolicy: { version: 7, modes: { damage: 'next-round' as const } },
+    }
+    base = setTerrainOverlay(base, { x: 0, y: 1 }, 'frozen', 'enemy', 'fixture.ice')
+      .state as typeof base
+    const fire = {
+      ...skill('fire'),
+      target: { ...skill('fire').target, geometryVersion: 2 as const },
+    }
+    const selection = { kind: 'tile' as const, position: { x: 0, y: 1 } }
+    const forecast = evaluateCombatAction(base, fire, selection, PV1F_COMBAT_CONTENT)
+    expect(forecast.legal).toBe(true)
+    let state = executeCombatAction(base, fire, selection, PV1F_COMBAT_CONTENT).state
+    expect(statuses(state, 'actor')).toEqual([])
+    expect(state.pendingEffects).toMatchObject([
+      { recipientIds: [], affectedTiles: [{ x: 0, y: 1 }], activationRound: 2 },
+    ])
+    const events: { event: string }[] = []
+    for (let turn = 0; turn < 4; turn++) {
+      const out = finishPv1fTurn(JSON.parse(JSON.stringify(state)), 'west')
+      state = out.state
+      events.push(...(out.events as { event: string }[]))
+    }
+    expect(events.filter((event) => event.event === 'damage_applied')).toEqual([])
+    expect(state.terrainOverlays).toMatchObject([{ kind: 'steam', remainingRoundBoundaries: 1 }])
+    for (let turn = 0; turn < 4; turn++)
+      state = finishPv1fTurn(state as ReturnType<typeof percentageDotEncounter>, 'west').state
+    expect(state.terrainOverlays).toEqual([])
+  })
+  it('Delayed empty Ground Fire converts surviving persistent ice and never repeats caster cleanse', () => {
+    const base = {
+      ...status(encounter(), 'frozen', 'actor'),
+      groundEffectPolicyVersion: 1 as const,
+      effectTimingPolicy: { version: 7, modes: { damage: 'delayed' as const } },
+    }
+    const ice = {
+      ...skill('ice'),
+      target: { ...skill('ice').target, kind: 'ground-tile' as const },
+      effects: [
+        {
+          type: 'apply-status' as const,
+          recipient: 'affected-units' as const,
+          statusId: 'frozen',
+          stacks: 1,
+        },
+      ],
+      groundArea: {
+        durationRounds: 4,
+        visualPresetId: 'frost' as const,
+        timing: 'instant' as const,
+        entryEffectOrdinals: [0],
+      },
+    }
+    const source = createCombatGroundArea(base, 'enemy', ice, [{ x: 0, y: 1 }], PV1F_COMBAT_CONTENT)
+    let state = executeCombatAction(
+      source,
+      skill('fire'),
+      { kind: 'tile', position: { x: 0, y: 1 } },
+      PV1F_COMBAT_CONTENT,
+    ).state
+    expect(statuses(state, 'actor')).toEqual([])
+    expect(state.pendingEffects).toMatchObject([
+      { recipientIds: [], affectedTiles: [{ x: 0, y: 1 }], activationRound: 3 },
+    ])
+    const events: { event: string }[] = []
+    for (let turn = 0; turn < 7; turn++) {
+      const out = finishPv1fTurn(JSON.parse(JSON.stringify(state)), 'west')
+      state = out.state
+      events.push(...(out.events as { event: string }[]))
+    }
+    state = status(state, 'frozen', 'actor')
+    const out = finishPv1fTurn(state as ReturnType<typeof percentageDotEncounter>, 'west')
+    state = out.state
+    events.push(...(out.events as { event: string }[]))
+    expect(statuses(state, 'actor').some((status) => status.statusId === 'frozen')).toBe(true)
+    expect(events.filter((event) => event.event === 'damage_applied')).toEqual([])
+    expect(state.terrainOverlays).toMatchObject([{ kind: 'steam', remainingRoundBoundaries: 2 }])
+    expect(state.groundAreas).toMatchObject([{ expiresAtRound: 5, steamTiles: [{ x: 0, y: 1 }] }])
+    for (let turn = 0; turn < 8; turn++)
+      state = finishPv1fTurn(state as ReturnType<typeof percentageDotEncounter>, 'west').state
+    expect(state.terrainOverlays).toEqual([])
+    expect(state.groundAreas).toEqual([])
+  })
+  it('Delayed empty Fire does not resurrect ice that expires before activation', () => {
+    let state = {
+      ...encounter(),
+      effectTimingPolicy: { version: 7, modes: { damage: 'delayed' as const } },
+    } as CombatEncounterState
+    state = setTerrainOverlay(state, { x: 0, y: 1 }, 'frozen', 'enemy', 'fixture.ice').state
+    state = executeCombatAction(
+      state,
+      skill('fire'),
+      { kind: 'tile', position: { x: 0, y: 1 } },
+      PV1F_COMBAT_CONTENT,
+    ).state
+    expect(state.pendingEffects).toHaveLength(1)
+    for (let turn = 0; turn < 8; turn++)
+      state = finishPv1fTurn(JSON.parse(JSON.stringify(state)), 'west').state
+    expect(state.terrainOverlays).toEqual([])
+    expect(state.pendingEffects).toEqual([])
+  })
+  it.each(['missed', 'airborne'] as const)(
+    'Normal Ground Fire still converts ice when every recipient is %s',
+    (cause) => {
+      let state = {
+        ...encounter(),
+        airbornePolicyVersion: 1 as const,
+        effectTimingPolicy: { version: 7, modes: { damage: 'next-round' as const } },
+      } as CombatEncounterState
+      state = cause === 'airborne' ? status(state, 'airborne') : missed(state)
+      state = setTerrainOverlay(state, { x: 2, y: 1 }, 'frozen', 'enemy', 'fixture.ice').state
+      const fire = { ...skill('fire'), accuracyMode: 'per-target' as const }
+      state = executeCombatAction(
+        state,
+        fire,
+        { kind: 'tile', position: { x: 2, y: 1 } },
+        PV1F_COMBAT_CONTENT,
+      ).state
+      expect(state.pendingEffects).toMatchObject([
+        { recipientIds: [], affectedTiles: [{ x: 2, y: 1 }] },
+      ])
+      const events: { event: string }[] = []
+      for (let turn = 0; turn < 4; turn++) {
+        const out = finishPv1fTurn(JSON.parse(JSON.stringify(state)), 'west')
+        state = out.state
+        events.push(...(out.events as { event: string }[]))
+      }
+      expect(events.filter((event) => event.event === 'damage_applied')).toEqual([])
+      expect(state.terrainOverlays).toMatchObject([{ kind: 'steam', remainingRoundBoundaries: 1 }])
+    },
+  )
+  it.each(['before', 'after', 'between'] as const)(
+    'reconciles overlapping selector identities with explicit Conductive %s damage',
+    (order) => {
+      const storm = skill('storm', order === 'between' ? [100, 100] : [100])
+      const hits = storm.effects.flatMap((effect) =>
+        effect.type === 'damage'
+          ? [
+              {
+                ...effect,
+                recipient: 'affected-units' as const,
+              },
+            ]
+          : [],
+      )
+      const charge = {
+        type: 'apply-status' as const,
+        recipient: 'primary-unit' as const,
+        statusId: 'conductive',
+        stacks: 1,
+        durationTurns: 3,
+        potencyBasisPoints: 3500,
+      }
+      const action = {
+        ...storm,
+        effects:
+          order === 'before'
+            ? [charge, ...hits]
+            : order === 'after'
+              ? [...hits, charge]
+              : [hits[0]!, charge, hits[1]!],
+      }
+      const base = encounter()
+      const preview = evaluateCombatAction(base, action, target, PV1F_COMBAT_CONTENT)
+      const out = executeCombatAction(base, action, target, PV1F_COMBAT_CONTENT)
+      expect(out.events.filter((e) => e.event === 'damage_applied').map((e) => e.amount)).toEqual(
+        order === 'between' ? [100, 100] : [100],
+      )
+      expect(out.events.filter((e) => e.event === 'status_applied')).toHaveLength(1)
+      expect(statuses(out.state)).toEqual([
+        expect.objectContaining({
+          statusId: 'conductive',
+          stacks: 1,
+          potencyBasisPoints: 3500,
+          remainingOwnerTurnEnds: 3,
+        }),
+      ])
+      expect(preview.projectedEffects.filter((e) => e.effectType === 'apply-status')).toHaveLength(
+        1,
+      )
+      expect(
+        preview.projectedEffects.filter((e) => e.effectType === 'damage').map((e) => e.after),
+      ).toEqual(order === 'between' ? [900, 800] : [900])
+      expect(statuses(base)).toEqual([])
+    },
+  )
+  it.each(['before', 'after', 'between'] as const)(
+    'captures identity-matched explicit tuning across delayed restore with status %s damage',
+    (order) => {
+      const hits = skill('storm', [100, 100]).effects.flatMap((effect) =>
+        effect.type === 'damage'
+          ? [
+              {
+                ...effect,
+                recipient: 'affected-units' as const,
+              },
+            ]
+          : [],
+      )
+      const charge = {
+        type: 'apply-status' as const,
+        recipient: 'primary-unit' as const,
+        statusId: 'conductive',
+        stacks: 1,
+        durationTurns: 3,
+        potencyBasisPoints: 3500,
+      }
+      const action = {
+        ...skill('storm'),
+        effects:
+          order === 'before'
+            ? [charge, ...hits]
+            : order === 'after'
+              ? [...hits, charge]
+              : [hits[0]!, charge, hits[1]!],
+      }
+      const base = {
+        ...encounter(),
+        effectTimingPolicy: { version: 7, modes: { damage: 'delayed' as const } },
+      }
+      let state = executeCombatAction(base, action, target, PV1F_COMBAT_CONTENT).state
+      expect(state.pendingEffects).toHaveLength(2)
+      expect(validateCombatEncounterState(JSON.parse(JSON.stringify(state)))).toEqual([])
+      const events: { event: string; amount?: number }[] = []
+      for (let turn = 0; turn < 8; turn++) {
+        const out = finishPv1fTurn(JSON.parse(JSON.stringify(state)), 'west')
+        state = out.state
+        events.push(...(out.events as typeof events))
+      }
+      expect(events.filter((e) => e.event === 'damage_applied').map((e) => e.amount)).toEqual([
+        100, 100,
+      ])
+      expect(events.filter((e) => e.event === 'status_applied')).toHaveLength(1)
+      expect(statuses(state)).toEqual([
+        expect.objectContaining({
+          statusId: 'conductive',
+          stacks: 1,
+          potencyBasisPoints: 3500,
+          remainingOwnerTurnEnds: 3,
+        }),
+      ])
+    },
+  )
+  it.each([false, true])(
+    'preserves nonoverlapping explicit recipients and tuning, delayed=%s',
+    (delayed) => {
+      const action = {
+        ...skill('storm'),
+        target: { ...skill('storm').target, shape: { kind: 'circle' as const, radius: 1 } },
+        effects: [
+          {
+            type: 'damage' as const,
+            recipient: 'primary-unit' as const,
+            element: 'storm' as const,
+            amount: 100,
+          },
+          {
+            type: 'apply-status' as const,
+            recipient: 'affected-units' as const,
+            statusId: 'conductive',
+            stacks: 1,
+            durationTurns: 3,
+            potencyBasisPoints: 3500,
+          },
+        ],
+      }
+      let state = {
+        ...encounter(),
+        ...(delayed
+          ? {
+              effectTimingPolicy: {
+                version: 7,
+                modes: { damage: 'delayed' as const, conductive: 'next-round' as const },
+              },
+            }
+          : {}),
+      }
+      const out = executeCombatAction(state, action, target, PV1F_COMBAT_CONTENT)
+      state = out.state
+      if (delayed) {
+        expect(
+          state
+            .pendingEffects!.filter((row) => row.effect.type === 'apply-status')
+            .map((row) => row.recipientIds),
+        ).toEqual([['other']])
+        const damage = state.pendingEffects!.find((row) => row.effect.type === 'damage')!
+        expect(damage.elementalApplicationsByRecipient).toMatchObject({
+          enemy: { effect: { potencyBasisPoints: 3500, durationTurns: 3 } },
+        })
+        for (let turn = 0; turn < 12; turn++)
+          state = finishPv1fTurn(JSON.parse(JSON.stringify(state)), 'west').state
+      }
+      expect(statuses(state)).toEqual([
+        expect.objectContaining({ statusId: 'conductive', stacks: 1, potencyBasisPoints: 3500 }),
+      ])
+      expect(statuses(state, 'other')).toEqual([
+        expect.objectContaining({ statusId: 'conductive', stacks: 1, potencyBasisPoints: 3500 }),
+      ])
+    },
+  )
+  it.each([false, true])(
+    'captures tuning only for the original matching recipient, delayed=%s',
+    (delayed) => {
+      const action = {
+        ...skill('storm'),
+        target: { ...skill('storm').target, shape: { kind: 'circle' as const, radius: 1 } },
+        effects: [
+          {
+            type: 'damage' as const,
+            recipient: 'affected-units' as const,
+            element: 'storm' as const,
+            amount: 100,
+          },
+          {
+            type: 'apply-status' as const,
+            recipient: 'primary-unit' as const,
+            statusId: 'conductive',
+            stacks: 1,
+            durationTurns: 3,
+            potencyBasisPoints: 3500,
+          },
+        ],
+      }
+      let state = {
+        ...encounter(),
+        ...(delayed
+          ? { effectTimingPolicy: { version: 7, modes: { damage: 'delayed' as const } } }
+          : {}),
+      }
+      state = executeCombatAction(state, action, target, PV1F_COMBAT_CONTENT).state
+      if (delayed) {
+        expect(Object.keys(state.pendingEffects![0]!.elementalApplicationsByRecipient!)).toEqual([
+          'enemy',
+        ])
+        for (let turn = 0; turn < 8; turn++)
+          state = finishPv1fTurn(JSON.parse(JSON.stringify(state)), 'west').state
+      }
+      expect(statuses(state)).toEqual([
+        expect.objectContaining({
+          statusId: 'conductive',
+          stacks: 1,
+          potencyBasisPoints: 3500,
+          remainingOwnerTurnEnds: 3,
+        }),
+      ])
+      expect(statuses(state, 'other')).toEqual([
+        expect.objectContaining({
+          statusId: 'conductive',
+          stacks: 1,
+          potencyBasisPoints: 2000,
+          remainingOwnerTurnEnds: 2,
+        }),
+      ])
+    },
+  )
+  it('validates captured recipient identity and preserves explicit timing and origin after restore', () => {
+    const origin = { family: 'resonance' as const, contentId: 'fixture.charge', contentVersion: 4 }
+    const action = {
+      ...skill('storm'),
+      effects: [
+        {
+          type: 'damage' as const,
+          recipient: 'affected-units' as const,
+          element: 'storm' as const,
+          amount: 100,
+        },
+        {
+          type: 'apply-status' as const,
+          recipient: 'primary-unit' as const,
+          statusId: 'conductive',
+          stacks: 1,
+          durationTurns: 3,
+          potencyBasisPoints: 3500,
+        },
+      ],
+      effectTimingTags: [undefined, 'wet'],
+      effectOrigins: [undefined, origin],
+    }
+    const base = {
+      ...encounter(),
+      effectTimingPolicy: {
+        version: 7,
+        modes: { damage: 'delayed' as const, wet: 'next-round' as const },
+      },
+    }
+    let state = executeCombatAction(base, action, target, PV1F_COMBAT_CONTENT).state
+    const captured = state.pendingEffects![0]!.elementalApplicationsByRecipient!.enemy!
+    expect(captured).toMatchObject({ timingTag: 'wet', effectOrigin: origin })
+    for (const applications of [
+      { ally: captured },
+      { enemy: { ...captured, effect: { ...captured.effect, statusId: 'wet' } } },
+      { enemy: { ...captured, effectOrigin: { ...origin, contentVersion: 0 } } },
+    ]) {
+      expect(
+        validateCombatEncounterState(
+          JSON.parse(
+            JSON.stringify({
+              ...state,
+              pendingEffects: state.pendingEffects!.map((row) => ({
+                ...row,
+                elementalApplicationsByRecipient: applications,
+              })),
+            }),
+          ),
+        ).some((issue) => issue.field === 'pendingEffects'),
+      ).toBe(true)
+    }
+    for (let turn = 0; turn < 8; turn++)
+      state = finishPv1fTurn(JSON.parse(JSON.stringify(state)), 'west').state
+    expect(statuses(state)).toEqual([])
+    expect(state.pendingEffects).toMatchObject([
+      {
+        activationRound: 4,
+        effect: { statusId: 'conductive', potencyBasisPoints: 3500, durationTurns: 3 },
+        effectOrigin: origin,
+        timingTag: 'wet',
+        recipientIds: ['enemy'],
+      },
+    ])
+    const events: { event: string; effectOrigin?: unknown }[] = []
+    for (let turn = 0; turn < 4; turn++) {
+      const out = finishPv1fTurn(JSON.parse(JSON.stringify(state)), 'west')
+      state = out.state
+      events.push(...(out.events as typeof events))
+    }
+    expect(events.find((event) => event.event === 'status_applied')).toMatchObject({
+      effectOrigin: origin,
+    })
+    expect(statuses(state)).toEqual([
+      expect.objectContaining({ potencyBasisPoints: 3500, remainingRoundBoundaries: 3 }),
+    ])
+  })
   it('absent policy retains historical Water status and Fire targeting semantics', () => {
     const base = percentageDotEncounter()
     expect(

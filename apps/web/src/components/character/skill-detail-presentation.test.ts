@@ -567,3 +567,38 @@ it('distinguishes Delayed from Normal and percentage recovery in shared readers'
   ).toMatchObject({ magnitude: '12%', timing: 'Delayed' })
   expect(skillEffectDescription(effect)).toContain('maximum HP')
 })
+
+it('reads Suppress percentage and duration without a power-scale representation', () => {
+  const effect = {
+    type: 'apply-status' as const,
+    recipient: 'primary-unit' as const,
+    statusId: 'suppress',
+    stacks: 1,
+    potencyBasisPoints: 2534,
+    durationTurns: 2,
+  }
+  expect(skillEffectDescription(effect)).toContain('25.34%')
+  expect(skillEffectDescription(effect)).not.toContain('1–20')
+  expect(compactSkillEffectSummaryParts(effect)).toMatchObject({
+    label: 'Suppress',
+    magnitude: '25.34%',
+    duration: '2 Turns',
+  })
+})
+
+it('full Cleanse description includes Suppress while Dispel excludes it', () => {
+  expect(
+    skillEffectDescription({
+      type: 'remove-status',
+      recipient: 'primary-unit',
+      statusIds: ['slow'],
+    }),
+  ).toContain('Suppress')
+  expect(
+    skillEffectDescription({
+      type: 'remove-status',
+      recipient: 'primary-unit',
+      statusIds: ['guarded'],
+    }),
+  ).not.toContain('Suppress')
+})

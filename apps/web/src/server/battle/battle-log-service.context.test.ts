@@ -1096,3 +1096,47 @@ describe('departed summon identity', () => {
     },
   )
 })
+
+it('Chronicle and Copy Full Log retain recorded Suppress percentage and lifetime', async () => {
+  const result = await getLog(
+    [
+      record({ event: 'combat_action_used', actionId: SKILL, actorId: ACTOR }),
+      record(
+        {
+          event: 'effect_pending',
+          actionId: SKILL,
+          sourceCombatantId: ACTOR,
+          targetCombatantId: OTHER,
+          effectTag: 'suppress',
+          potencyBasisPoints: 2534,
+          activationRound: 3,
+          remainingRoundBoundaries: 2,
+          durationScope: 'rounds',
+        },
+        1,
+      ),
+      record(
+        {
+          event: 'status_applied',
+          actionId: SKILL,
+          sourceCombatantId: ACTOR,
+          targetCombatantId: OTHER,
+          statusId: 'suppress',
+          potencyBasisPoints: 4000,
+          stacks: 1,
+          remainingOwnerTurnStarts: 2,
+          expiryBoundary: 'owner-turn-end',
+          refreshed: true,
+          stacked: false,
+        },
+        2,
+      ),
+    ],
+    async () => definition(),
+  )
+  expect(JSON.stringify(buildBattleChronicle(result.entries))).toContain('Suppress [25.34%]')
+  const copied = formatBattleLogForClipboard(result.entries)
+  expect(copied).toContain('Suppress [25.34%]')
+  expect(copied).toContain('Suppress [40%]')
+  expect(copied).toContain('2 turns')
+})
