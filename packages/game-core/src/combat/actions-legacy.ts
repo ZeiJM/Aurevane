@@ -1,4 +1,4 @@
-import { airborneGroundMiss, airborneAttackAction } from './combat-airborne'
+import { airborneGroundMiss, airborneAttackAction, airborneJump } from './combat-airborne'
 import {
   percentageRecoveryAmount,
   validateCapturedPercentageRecovery,
@@ -461,6 +461,8 @@ export interface CombatEncounterState {
   frozenGroundPolicyVersion?: 1
   /** New encounters: Airborne evades Ground Skills and grants Target Elevation 3. */
   airbornePolicyVersion?: 1
+  /** New encounters: active Airborne temporarily sets movement Jump to 3. */
+  airborneJumpPolicyVersion?: 1
   /** New encounters: Healing Down reduces HP and MP recovery equally. */
   healingDownPolicyVersion?: 1
   /** New encounters: grant Blindside only for a damaging flank hit above 100%. */
@@ -933,7 +935,7 @@ export function evaluateCombatAction(
       state.tactical.terrains.find((terrain) => terrain.id === tile.terrainId)?.traversalCost ==
         null ||
       getLivingOccupantId(state.tactical, origin.position) !== null ||
-      !canRewindIntoTile(state, actorId, origin.position)
+      !canRewindIntoTile(state, actorId, origin.position, content)
     ) {
       issues.push({
         code: 'requirement-not-met',
@@ -1471,7 +1473,7 @@ function applyCombatRoundBoundary(
               ? ('occupied' as const)
               : movementTraversalCostAt(nextState.tactical, pending.actorId, destination!) === null
                 ? ('impassable' as const)
-                : !canRewindIntoTile(nextState, pending.actorId, destination!)
+                : !canRewindIntoTile(nextState, pending.actorId, destination!, pending.content)
                   ? ('elevation' as const)
                   : null
         if (reason) {
@@ -1857,6 +1859,7 @@ export function validateCombatEncounterState(
   for (const field of [
     'frozenGroundPolicyVersion',
     'airbornePolicyVersion',
+    'airborneJumpPolicyVersion',
     'displacementPolicyVersion',
     'healingDownPolicyVersion',
     'blindsideActivationPolicyVersion',
@@ -3788,6 +3791,7 @@ function canRewindIntoTile(
   state: CombatEncounterState,
   actorId: string,
   destination: GridPosition,
+  content: CombatContentCatalog,
 ): boolean {
   if (state.statBalancePolicyVersion !== 1) return true
   const placement = getPlacement(state.tactical, actorId)
@@ -3798,8 +3802,14 @@ function canRewindIntoTile(
     canEnterElevation(
       getTile(state.tactical, placement.position).elevation,
       tile.elevation,
-      getMovementProfile(state.tactical, placement.movementProfileId).maxElevationStep,
+      airborneJump(
+        state,
+        actorId,
+        getMovementProfile(state.tactical, placement.movementProfileId).maxElevationStep,
+        content,
+      ),
       state.statBalancePolicyVersion,
+      state.airborneJumpPolicyVersion,
     ),
   )
 }
@@ -5044,8 +5054,9 @@ function applyDisplacement(
       !canEnterElevation(
         getTile(nextState.tactical, current).elevation,
         tile.elevation,
-        profile.maxElevationStep,
+        airborneJump(nextState, recipientId, profile.maxElevationStep, content),
         nextState.statBalancePolicyVersion,
+        nextState.airborneJumpPolicyVersion,
       )
     )
       stopReason = 'elevation-step-too-high'

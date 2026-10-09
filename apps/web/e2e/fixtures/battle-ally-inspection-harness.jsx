@@ -13,6 +13,7 @@ import { createTacticalBattleState } from '@aurevane/game-core/combat/board'
 import { createCombatEncounterState } from '@aurevane/game-core/combat/actions'
 import {
   createCurrentStatDrivenCombatEncounterState,
+  createStatBalancedCombatEncounterState,
   createStatDrivenCombatEncounterState,
 } from '@aurevane/game-core/combat/stat-driven-combat'
 import {
@@ -21,6 +22,8 @@ import {
   readPv1fActionEconomy,
   evaluatePv1fAction,
   executePv1fAction,
+  evaluatePv1fMovement,
+  executePv1fMovement,
 } from '@aurevane/game-core/combat/pv1f-action-economy'
 import { createPv1fTemporaryResources } from '@aurevane/game-core/combat/pv1f-action-economy'
 import { spawnCombatSummon } from '@aurevane/game-core/combat/combat-summons'
@@ -106,6 +109,18 @@ const initialBattle = {
   invalidation: null,
 }
 const mode = new URLSearchParams(location.search).get('mode') || 'pve'
+if (new URLSearchParams(location.search).get('airborne') === '1') {
+  initialBattle.snapshot = createStatBalancedCombatEncounterState(
+    initialBattle.snapshot,
+    initialBattle.snapshot.statBridge.combatants.map((profile) => ({
+      ...profile,
+      physicalPower: 20,
+      mysticPower: 20,
+      level: 1,
+      criticalChance: 0,
+    })),
+  )
+}
 const groundPreset = new URLSearchParams(location.search).get('ground')
 if (new URLSearchParams(location.search).get('summon') === '1') {
   const skill = resolveMatureSkillVersion('wildwarden.renewing-herbs')
@@ -397,6 +412,24 @@ window.fetch = async (url, options = {}) => {
 
     const intent = body.intent
     const source = window.fixtureBattle.snapshot
+    if (intent.kind === 'move') {
+      const result = evaluatePv1fMovement(source, intent.path)
+      const before = readPv1fActionEconomy(result.prepared)?.current ?? 0
+      return Response.json({
+        battlePreview: {
+          battleSessionId: 'fixture',
+          battleVersion: window.fixtureBattle.battleVersion,
+          preview: {
+            ...result.movement,
+            kind: 'move',
+            legal: result.movement.legal && before >= result.economyCost,
+            actionEconomyCost: result.economyCost,
+            actionEconomyBefore: before,
+            actionEconomyAfter: before - result.economyCost,
+          },
+        },
+      })
+    }
     const { evaluation, cost, prepared } =
       intent.actionId === window.targetingDefinition.id
         ? evaluatePv1fMatureSkill(
@@ -436,14 +469,16 @@ window.fetch = async (url, options = {}) => {
     try {
       const intent = body.intent
       const transition =
-        intent.actionId === window.targetingDefinition.id
-          ? executePv1fMatureSkill(
-              window.fixtureBattle.snapshot,
-              window.targetingDefinition,
-              intent.target,
-              mode === 'pvp' ? 'pvp' : 'pve',
-            )
-          : executePv1fAction(window.fixtureBattle.snapshot, intent.actionId, intent.target)
+        intent.kind === 'move'
+          ? executePv1fMovement(window.fixtureBattle.snapshot, intent.path)
+          : intent.actionId === window.targetingDefinition.id
+            ? executePv1fMatureSkill(
+                window.fixtureBattle.snapshot,
+                window.targetingDefinition,
+                intent.target,
+                mode === 'pvp' ? 'pvp' : 'pve',
+              )
+            : executePv1fAction(window.fixtureBattle.snapshot, intent.actionId, intent.target)
       window.receipts = transition.events
       window.fixtureBattle = {
         ...window.fixtureBattle,

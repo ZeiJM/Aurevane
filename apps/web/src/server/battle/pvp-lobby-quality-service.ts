@@ -366,6 +366,7 @@ export async function startPvpLobbyWithQuality(
   encounter.displacementPolicyVersion = 1
   encounter.frozenGroundPolicyVersion = 1
   encounter.airbornePolicyVersion = 1
+  encounter.airborneJumpPolicyVersion = 1
   encounter.healingDownPolicyVersion = 1
   encounter.blindsideActivationPolicyVersion = 1
   encounter.groundEffectPolicyVersion = 1

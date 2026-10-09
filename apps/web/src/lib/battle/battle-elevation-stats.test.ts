@@ -22,6 +22,31 @@ function terrainState(
 }
 
 describe('terrain-adjusted display stats', () => {
+  it('shows active Airborne Jump3 without changing the saved profile or revealing hidden Airborne', () => {
+    const status = {
+      statusId: 'airborne',
+      statusVersion: 1,
+      stacks: 1,
+      remainingOwnerTurnStarts: 2,
+      sourceCombatantId: 'unit',
+    }
+    const state = {
+      ...terrainState(0),
+      airborneJumpPolicyVersion: 1 as const,
+      statusState: [{ combatantId: 'unit', statuses: [status] }],
+    }
+    const profile = { armor: 31, ward: 22, evasion: 400, jump: 1 }
+    expect(terrainAdjustedBattleProfile(state, 'unit', profile)?.jump).toBe(3)
+    expect(profile.jump).toBe(1)
+    expect(terrainAdjustedBattleProfile(state, 'unit', profile, [])?.jump).toBe(1)
+    expect(
+      terrainAdjustedBattleProfile(
+        { ...state, airborneJumpPolicyVersion: undefined },
+        'unit',
+        profile,
+      )?.jump,
+    ).toBe(1)
+  })
   it.each([
     [1, 1900],
     [2, 2400],

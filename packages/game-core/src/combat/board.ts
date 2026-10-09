@@ -165,6 +165,7 @@ export function evaluateCurrentMovementPath(
   path: readonly GridPosition[],
   allowanceCostMode: MovementAllowanceCostMode = 'terrain-weight',
   statBalancePolicyVersion?: 1,
+  airborneJumpPolicyVersion?: 1,
 ): MovementPathPreview {
   assertValidTacticalBattleState(state)
 
@@ -238,6 +239,7 @@ export function evaluateCurrentMovementPath(
           currentTile.elevation,
           profile.maxElevationStep,
           statBalancePolicyVersion,
+          airborneJumpPolicyVersion,
         )
       ) {
         issues.push({
@@ -304,12 +306,14 @@ export function moveCurrentCombatant(
   path: readonly GridPosition[],
   allowanceCostMode: MovementAllowanceCostMode = 'terrain-weight',
   statBalancePolicyVersion?: 1,
+  airborneJumpPolicyVersion?: 1,
 ): TacticalBattleTransition {
   const preview = evaluateCurrentMovementPath(
     state,
     path,
     allowanceCostMode,
     statBalancePolicyVersion,
+    airborneJumpPolicyVersion,
   )
   if (!preview.legal) {
     const issue = preview.issues[0]
@@ -857,8 +861,11 @@ export function canEnterElevation(
   destinationHeight: number,
   jump: number,
   statBalancePolicyVersion?: 1,
+  airborneJumpPolicyVersion?: 1,
 ): boolean {
   return statBalancePolicyVersion === 1
-    ? destinationHeight < currentHeight || destinationHeight <= jump
+    ? destinationHeight < currentHeight ||
+        destinationHeight <= jump ||
+        (airborneJumpPolicyVersion === 1 && destinationHeight === currentHeight)
     : Math.abs(destinationHeight - currentHeight) <= jump
 }

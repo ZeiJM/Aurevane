@@ -1,5 +1,6 @@
 import type { CombatStatusDefinition } from './actions'
 import { blindsideDamageDescription } from './combat-blindside'
+import { airborneDescription } from './combat-airborne'
 import type { CombatDamageModifier, DamageCondition } from './damage-modifiers'
 
 export interface NamedCombatStatus extends CombatStatusDefinition {
@@ -79,13 +80,7 @@ export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
     { gameplayTags: ['Invisible'], amplifyCopyable: true, reactionClass: 'ordinary' },
   ),
 
-  status(
-    'airborne',
-    'Airborne',
-    'Buff',
-    'Ground-targeted Skills always miss you (100% evasion), including area activations. Your Attack Skills have Target Elevation 3 while Airborne is active. Ignore the Frozen Ground AP surcharge; board bounds, movement elevation, obstacles, occupancy, Rooted, Slow and Movement allowance still apply.',
-    { gameplayTags: ['Airborne'] },
-  ),
+  status('airborne', 'Airborne', 'Buff', airborneDescription(), { gameplayTags: ['Airborne'] }),
   status(
     'displaced',
     'Displaced',

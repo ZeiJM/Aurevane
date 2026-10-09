@@ -56,7 +56,16 @@
 - [x] Verify vacated inline target border cleanup with a failing pre-fix browser case and passing corrected implementation.
 - [x] Review desktop/mobile PvE/PvP Single, Line, Circle, All and Ground cases, retaining historical geometry and server legality.
 
-### Task4: Verification and release
+### Task4: Temporary Airborne Jump3
+
+- [x] Reproduce failed height3 movement despite active Airborne and existing Attack elevation3.
+- [x] Add an optional independent Jump policy in new encounter factories and canonical validation.
+- [x] Share derived movement Jump across preview/commit/board/AI without changing persisted profiles.
+- [x] Update captured status/Skill/summon descriptions and current Manual.
+- [x] Verify height limits, Rooted/Slow, pending/expired/historical, JSON restore, actual mounted movement and Attack elevation.
+- [x] Obtain a fresh review of the added Airborne scope.
+
+### Task5: Verification and release
 
 - [x] Refresh Main; inspect combined patch and run pnpm check plus affected browser parity checks.
 - [x] Obtain the required fresh review of the added targeting fixes; retain the completed whole-branch review and resolve material findings.

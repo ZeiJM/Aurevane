@@ -1,4 +1,4 @@
-import { airborneAttackAction } from './combat-airborne'
+import { airborneAttackAction, airborneMovementTactical } from './combat-airborne'
 import { currentPoisonTickDamage } from './combat-dots'
 import { combatEffectTimingMode, combatEffectTimingRoundOffset } from './combat-effect-timing'
 import { materializeVengeanceDamage } from './combat-vengeance'
@@ -1352,11 +1352,13 @@ export function evaluatePv1fMovement(
   path: readonly GridPosition[],
 ) {
   const prepared = preparePv1fTurnEconomy(state)
+  const movementTactical = airborneMovementTactical(prepared, PV1F_COMBAT_CONTENT)
   let movement = evaluateCurrentMovementPath(
-    prepared.tactical,
+    movementTactical,
     path,
     'entered-tiles',
     prepared.statBalancePolicyVersion,
+    prepared.airborneJumpPolicyVersion,
   )
   const modifiers = pv1fMovementModifiers(prepared)
   if (modifiers.blocked) {
@@ -1376,10 +1378,11 @@ export function evaluatePv1fMovement(
     : { traversedTiles: 0, triggeredTicks: 0, damage: 0, willDefeat: false }
   if (movement.legal && poisonForecast.traversedTiles < path.length - 1) {
     movement = evaluateCurrentMovementPath(
-      prepared.tactical,
+      movementTactical,
       path.slice(0, poisonForecast.traversedTiles + 1),
       'entered-tiles',
       prepared.statBalancePolicyVersion,
+      prepared.airborneJumpPolicyVersion,
     )
   }
   // Retain the terrain-weight preview contract, including a validated prefix of an illegal path.
@@ -1429,13 +1432,20 @@ export function executePv1fMovement(
     const stepCost = movementApCostForTile(traversal, modifiers.additionalApAt(position))
     if (!canAffordPv1fEconomy(next, spentEconomy + stepCost)) break
     const moved = moveCurrentCombatant(
-      next.tactical,
+      airborneMovementTactical(next, PV1F_COMBAT_CONTENT),
       [movement.path[index - 1]!, position],
       'entered-tiles',
       next.statBalancePolicyVersion,
+      next.airborneJumpPolicyVersion,
     )
     next = reattachStatDrivenCombatBridge(
-      { ...next, ...createCombatEncounterState(moved.state, next.statusState) },
+      {
+        ...next,
+        ...createCombatEncounterState(
+          { ...moved.state, movementProfiles: next.tactical.movementProfiles },
+          next.statusState,
+        ),
+      },
       next.statBridge,
     )
     spentEconomy += stepCost

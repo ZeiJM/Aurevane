@@ -84,10 +84,11 @@ describe('current selection forecast', () => {
           skill={{ ...barrier, definition, id: definition.id, targetKind: 'ground-tile' }}
         />,
       )
-      expect(markup).toContain('Frozen Ground · 8 tiles · Starts round 4 · 2 rounds')
+      expect(markup).toContain('Frozen Ground · Starts round 4 · 2 rounds')
       expect(markup).not.toContain('at tile')
       expect(markup).toContain('+10 AP/tile')
-      expect(markup).toContain('both teams')
+      expect(markup).not.toContain('both teams')
+      expect(markup).not.toContain('Airborne exempt')
       for (const id of recipients) expect(markup).toContain(`data-battle-range-forecast="${id}"`)
       expect(JSON.stringify(preview)).toBe(before)
     },

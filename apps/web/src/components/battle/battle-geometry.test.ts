@@ -6,6 +6,7 @@ import {
 } from '@aurevane/game-core/combat/actions'
 import {
   createStatDrivenCombatEncounterState,
+  createStatBalancedCombatEncounterState,
   type StatDrivenCombatEncounterState,
 } from '@aurevane/game-core/combat/stat-driven-combat'
 import { createPvpQualityResources } from '@aurevane/game-core/combat/pvp-quality'
@@ -24,6 +25,81 @@ import {
   buildReachablePaths,
   retractProjectedPath,
 } from './battle-geometry'
+
+it('shows Airborne Jump 3 paths consistently with authoritative movement and saved history', () => {
+  const base = withStatus(
+    { ...encounter(), airborneJumpPolicyVersion: 1 as const },
+    'actor',
+    'airborne',
+  )
+  const state = {
+    ...base,
+    tactical: {
+      ...base.tactical,
+      tiles: base.tactical.tiles.map((row) =>
+        row.position.x === 1 && row.position.y === 0 ? { ...row, elevation: 3 } : row,
+      ),
+    },
+  }
+  const placement = state.tactical.placements[0]!
+  expect(buildMovementPaths(state, placement, 100).has('1:0')).toBe(true)
+  expect(
+    evaluatePv1fMovement(state, [
+      { x: 1, y: 1 },
+      { x: 1, y: 0 },
+    ]).movement.legal,
+  ).toBe(true)
+  expect(
+    buildMovementPaths({ ...state, airborneJumpPolicyVersion: undefined }, placement, 100).has(
+      '1:0',
+    ),
+  ).toBe(false)
+})
+
+it('allows descending after Airborne ends and never previews entry above current Jump', () => {
+  const raw = encounter()
+  const base = createStatBalancedCombatEncounterState(
+    raw,
+    raw.statBridge.combatants.map((profile) => ({
+      ...profile,
+      physicalPower: 20,
+      mysticPower: 20,
+      level: 1,
+      criticalChance: 0,
+    })),
+  )
+  const state = {
+    ...base,
+    statBalancePolicyVersion: 1 as const,
+    airborneJumpPolicyVersion: 1 as const,
+    tactical: {
+      ...base.tactical,
+      tiles: base.tactical.tiles.map((row) =>
+        row.position.x === 1 && row.position.y === 1
+          ? { ...row, elevation: 3 }
+          : row.position.x === 0 && row.position.y === 1
+            ? { ...row, elevation: 3 }
+            : row.position.x === 1 && row.position.y === 0
+              ? { ...row, elevation: 4 }
+              : row,
+      ),
+    },
+  }
+  const placement = state.tactical.placements[0]!
+  const paths = buildMovementPaths(state, placement, 100)
+  expect(paths.has('0:1')).toBe(true)
+  expect(paths.has('0:0')).toBe(true)
+  expect(
+    buildMovementPaths({ ...state, airborneJumpPolicyVersion: undefined }, placement, 100).has(
+      '0:1',
+    ),
+  ).toBe(false)
+  expect(evaluatePv1fMovement(state, paths.get('0:1')!).movement.legal).toBe(true)
+  expect(paths.has('1:0')).toBe(false)
+  expect(
+    buildMovementPaths(withStatus(state, 'actor', 'airborne'), placement, 100).has('1:0'),
+  ).toBe(false)
+})
 
 describe('retractProjectedPath', () => {
   const path = [

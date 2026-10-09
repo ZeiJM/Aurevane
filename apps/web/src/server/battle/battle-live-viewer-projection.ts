@@ -57,6 +57,7 @@ export function projectBattleStatusStateForViewer(
     | 'pendingEffects'
     | 'pendingSummons'
     | 'airbornePolicyVersion'
+    | 'airborneJumpPolicyVersion'
     | 'healingDownPolicyVersion'
     | 'blindsideActivationPolicyVersion'
     | 'dotTriggerPolicyVersion'
@@ -75,6 +76,9 @@ export function projectBattleStatusStateForViewer(
       : {}),
     ...(status.statusId === 'airborne' && state.airbornePolicyVersion === 1
       ? { airbornePolicyVersion: 1 as const }
+      : {}),
+    ...(status.statusId === 'airborne' && state.airborneJumpPolicyVersion === 1
+      ? { airborneJumpPolicyVersion: 1 as const }
       : {}),
     ...(status.statusId === 'hexed' && state.healingDownPolicyVersion === 1
       ? { healingDownPolicyVersion: 1 as const }

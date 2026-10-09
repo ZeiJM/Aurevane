@@ -10,6 +10,7 @@ export interface BattleSummonInspectMetadata {
     | 'dotTriggerPolicyVersion'
     | 'frozenGroundPolicyVersion'
     | 'airbornePolicyVersion'
+    | 'airborneJumpPolicyVersion'
     | 'healingDownPolicyVersion'
     | 'blindsideActivationPolicyVersion'
   >
@@ -45,6 +46,7 @@ export function readSummonInspectMetadata(
       dotTriggerPolicyVersion: snapshot.dotTriggerPolicyVersion,
       frozenGroundPolicyVersion: snapshot.frozenGroundPolicyVersion,
       airbornePolicyVersion: snapshot.airbornePolicyVersion,
+      airborneJumpPolicyVersion: snapshot.airborneJumpPolicyVersion,
       healingDownPolicyVersion: snapshot.healingDownPolicyVersion,
       blindsideActivationPolicyVersion: snapshot.blindsideActivationPolicyVersion,
     },

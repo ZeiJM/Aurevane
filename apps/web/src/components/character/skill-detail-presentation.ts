@@ -49,6 +49,7 @@ export function skillEffectDescription(
     legacyPoisonMovement?: boolean
     legacyFrozenGround?: boolean
     legacyAirborne?: boolean
+    legacyAirborneJump?: boolean
     legacyHealingDown?: boolean
   } = {},
 ): string {

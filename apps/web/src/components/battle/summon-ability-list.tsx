@@ -119,6 +119,7 @@ export function SummonAbilityList({
       dotTriggerPolicyVersion={policies.dotTriggerPolicyVersion ?? null}
       frozenGroundPolicyVersion={policies.frozenGroundPolicyVersion ?? null}
       airbornePolicyVersion={policies.airbornePolicyVersion ?? null}
+      airborneJumpPolicyVersion={policies.airborneJumpPolicyVersion ?? null}
       healingDownPolicyVersion={policies.healingDownPolicyVersion ?? null}
       blindsideActivationPolicyVersion={policies.blindsideActivationPolicyVersion ?? null}
     >

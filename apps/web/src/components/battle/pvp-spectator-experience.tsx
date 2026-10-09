@@ -20,7 +20,10 @@ import {
 
 import { terrainOverlayAt } from '@aurevane/game-core/combat/terrain-overlays'
 import { PV1F_MOVEMENT_COST_PER_TERRAIN_POINT } from '@aurevane/game-core/combat/pv1f-skills'
-import { terrainOverlayDescription } from '../../lib/battle/combat-interaction-presentation'
+import {
+  terrainOverlayDescription,
+  terrainOverlaySummary,
+} from '../../lib/battle/combat-interaction-presentation'
 
 import type { CharacterPortraitRef } from '@aurevane/game-core/character/creation'
 import { useEffect, useMemo, useState, type CSSProperties } from 'react'
@@ -287,7 +290,7 @@ export function PvpSpectatorExperience({
               ? 'blocked'
               : `${traversalCost * MOVE_COST_PER_TERRAIN_POINT} AP`}{' '}
             · Elevation {selectedTile.elevation}.{' '}
-            {terrainOverlayDescription(terrainOverlayAt(battle.snapshot, selectedTile.position))}
+            {terrainOverlaySummary(terrainOverlayAt(battle.snapshot, selectedTile.position))}
           </span>
         </>
       )

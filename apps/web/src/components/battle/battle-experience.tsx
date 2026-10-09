@@ -1,5 +1,6 @@
 'use client'
 
+import { airborneJump } from '@aurevane/game-core/combat/combat-airborne'
 import { hasGameplayTag } from '@aurevane/game-core/combat/gameplay-tags'
 import { BattleGroundAreaLayer } from './battle-ground-area-layer'
 
@@ -302,6 +303,7 @@ export function BattleExperience(props: {
       dotTriggerPolicyVersion={props.initialBattle.snapshot.dotTriggerPolicyVersion ?? null}
       frozenGroundPolicyVersion={props.initialBattle.snapshot.frozenGroundPolicyVersion ?? null}
       airbornePolicyVersion={props.initialBattle.snapshot.airbornePolicyVersion ?? null}
+      airborneJumpPolicyVersion={props.initialBattle.snapshot.airborneJumpPolicyVersion ?? null}
       healingDownPolicyVersion={props.initialBattle.snapshot.healingDownPolicyVersion ?? null}
       blindsideActivationPolicyVersion={
         props.initialBattle.snapshot.blindsideActivationPolicyVersion ?? null
@@ -527,7 +529,10 @@ function BattleExperienceContent({
   )
   const characterStats = {
     move: localCombatant?.baseMovementBudget,
-    jump: localProfile?.jump,
+    jump:
+      localCombatantId && localProfile
+        ? airborneJump(battle.snapshot, localCombatantId, localProfile.jump, PV1F_COMBAT_CONTENT)
+        : localProfile?.jump,
     physicalPower: localProfile?.physicalPower,
     mysticPower: localProfile?.mysticPower,
   }

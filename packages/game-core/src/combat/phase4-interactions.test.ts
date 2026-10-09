@@ -33,6 +33,7 @@ import {
 } from './pv1f-action-economy'
 import {
   createStatDrivenCombatEncounterState,
+  createStatBalancedCombatEncounterState,
   type StatDrivenCombatEncounterState,
 } from './stat-driven-combat'
 import {
@@ -947,6 +948,287 @@ it('preserves overlays at actual surrender completion without granting another t
 })
 
 describe('Owner Airborne ground immunity and Attack elevation', () => {
+  it('lets a low-Jump combatant cross its level plateau to descend after Airborne ends', () => {
+    const raw = encounter()
+    const current = createStatBalancedCombatEncounterState(
+      raw,
+      raw.statBridge.combatants.map((profile) => ({
+        ...profile,
+        physicalPower: 20,
+        mysticPower: 20,
+        level: 1,
+        criticalChance: 0,
+      })),
+    )
+    const state = {
+      ...current,
+      airborneJumpPolicyVersion: 1 as const,
+      tactical: {
+        ...current.tactical,
+        tiles: current.tactical.tiles.map((row) =>
+          row.position.x === 1 && (row.position.y === 0 || row.position.y === 1)
+            ? { ...row, elevation: 3 }
+            : row,
+        ),
+      },
+    }
+    const path = [
+      { x: 1, y: 1 },
+      { x: 1, y: 0 },
+      { x: 0, y: 0 },
+    ]
+    expect(evaluatePv1fMovement(state, path).movement.legal).toBe(true)
+    expect(
+      executePv1fMovement(state, path).state.tactical.placements.find(
+        (row) => row.combatantId === 'actor',
+      )?.position,
+    ).toEqual({ x: 0, y: 0 })
+    expect(
+      evaluatePv1fMovement({ ...state, airborneJumpPolicyVersion: undefined }, path).movement.legal,
+    ).toBe(false)
+  })
+  it('lets a low-Jump combatant descend after actual Airborne expiry in current encounters', () => {
+    const raw = encounter()
+    const current = createStatBalancedCombatEncounterState(
+      raw,
+      raw.statBridge.combatants.map((profile) => ({
+        ...profile,
+        physicalPower: 20,
+        mysticPower: 20,
+        level: 1,
+        criticalChance: 0,
+      })),
+    )
+    const active = withStatus(
+      { ...current, airbornePolicyVersion: 1 as const, airborneJumpPolicyVersion: 1 as const },
+      'actor',
+      'airborne',
+    )
+    const state = {
+      ...active,
+      statusState: active.statusState.map((row) =>
+        row.combatantId === 'actor'
+          ? {
+              ...row,
+              statuses: row.statuses.map((status) => ({ ...status, remainingOwnerTurnStarts: 1 })),
+            }
+          : row,
+      ),
+      tactical: {
+        ...active.tactical,
+        tiles: active.tactical.tiles.map((row) =>
+          row.position.x === 1 && row.position.y === 0 ? { ...row, elevation: 3 } : row,
+        ),
+      },
+    }
+    let moved: StatDrivenCombatEncounterState = executePv1fMovement(state, [
+      { x: 1, y: 1 },
+      { x: 1, y: 0 },
+    ]).state
+    for (let index = 0; index < 4; index++) moved = finishPv1fTurn(moved, 'west').state
+    expect(statuses(moved, 'actor')).not.toContain('airborne')
+    const path = [
+      { x: 1, y: 0 },
+      { x: 1, y: 1 },
+    ]
+    expect(evaluatePv1fMovement(moved, path).movement.legal).toBe(true)
+    expect(
+      executePv1fMovement(moved, path).state.tactical.placements.find(
+        (row) => row.combatantId === 'actor',
+      )?.position,
+    ).toEqual({ x: 1, y: 1 })
+  })
+  it.each(['push', 'pull'] as const)(
+    'uses the Airborne recipient’s live Jump for %s',
+    (direction) => {
+      const base = withStatus(
+        { ...encounter(), airborneJumpPolicyVersion: 1 as const },
+        'enemy',
+        'airborne',
+      )
+      const destination = direction === 'push' ? { x: 3, y: 1 } : { x: 2, y: 1 }
+      const state = {
+        ...base,
+        tactical: {
+          ...base.tactical,
+          placements: base.tactical.placements.map((row) =>
+            row.combatantId === 'other'
+              ? { ...row, position: { x: 4, y: 2 } }
+              : row.combatantId === 'enemy' && direction === 'pull'
+                ? { ...row, position: { x: 3, y: 1 } }
+                : row,
+          ),
+          tiles: base.tactical.tiles.map((row) =>
+            row.position.x === destination.x && row.position.y === destination.y
+              ? { ...row, elevation: 3 }
+              : row,
+          ),
+        },
+      }
+      const skill = {
+        ...action([{ type: 'displace', recipient: 'primary-unit', direction, distance: 1 }]),
+        target: { ...action([]).target, maximumRange: 3, shape: { kind: 'single' as const } },
+      }
+      const result = executeCombatAction(state, skill, target, PV1F_COMBAT_CONTENT)
+      expect(
+        result.state.tactical.placements.find((row) => row.combatantId === 'enemy')?.position,
+      ).toEqual(destination)
+      expect(result.state.tactical.movementProfiles).toEqual(state.tactical.movementProfiles)
+      expect(
+        executeCombatAction(
+          { ...state, airborneJumpPolicyVersion: undefined },
+          skill,
+          target,
+          PV1F_COMBAT_CONTENT,
+        ).events,
+      ).toContainEqual(
+        expect.objectContaining({
+          event: 'displacement_failed',
+          reason: 'elevation-step-too-high',
+        }),
+      )
+    },
+  )
+  it('uses Airborne Jump for Rewind tile entry in current encounters', () => {
+    const raw = encounter()
+    const current = createStatBalancedCombatEncounterState(
+      raw,
+      raw.statBridge.combatants.map((profile) => ({
+        ...profile,
+        physicalPower: 20,
+        mysticPower: 20,
+        level: 1,
+        criticalChance: 0,
+      })),
+    )
+    const active = withStatus(
+      { ...current, airborneJumpPolicyVersion: 1 as const },
+      'actor',
+      'airborne',
+    )
+    const destination = { x: 1, y: 0 }
+    const state = {
+      ...active,
+      turnOrigin: {
+        combatantId: 'actor',
+        turnNumber: active.tactical.battle.turnNumber,
+        position: destination,
+      },
+      tactical: {
+        ...active.tactical,
+        tiles: active.tactical.tiles.map((row) =>
+          row.position.x === destination.x && row.position.y === destination.y
+            ? { ...row, elevation: 3 }
+            : row,
+        ),
+      },
+    }
+    const skill = {
+      ...action([{ type: 'return-to-turn-start', recipient: 'actor' }]),
+      target: {
+        ...action([]).target,
+        kind: 'self' as const,
+        teamPolicy: 'self' as const,
+        minimumRange: 0,
+        maximumRange: 0,
+      },
+    }
+    expect(evaluateCombatAction(state, skill, { kind: 'self' }, PV1F_COMBAT_CONTENT).legal).toBe(
+      true,
+    )
+    expect(
+      evaluateCombatAction(
+        { ...state, airborneJumpPolicyVersion: undefined },
+        skill,
+        { kind: 'self' },
+        PV1F_COMBAT_CONTENT,
+      ).legal,
+    ).toBe(false)
+    expect(
+      executeCombatAction(
+        state,
+        skill,
+        { kind: 'self' },
+        PV1F_COMBAT_CONTENT,
+      ).state.tactical.placements.find((row) => row.combatantId === 'actor')?.position,
+    ).toEqual(destination)
+  })
+  it('temporarily sets Jump to 3 for preview and commit without rewriting the saved profile', () => {
+    const base = withStatus(
+      { ...encounter(), airbornePolicyVersion: 1 as const, airborneJumpPolicyVersion: 1 as const },
+      'actor',
+      'airborne',
+    )
+    const destination = { x: 1, y: 0 }
+    const state = {
+      ...base,
+      tactical: {
+        ...base.tactical,
+        tiles: base.tactical.tiles.map((row) =>
+          row.position.x === destination.x && row.position.y === destination.y
+            ? { ...row, elevation: 3 }
+            : row,
+        ),
+      },
+    }
+    const path = [{ x: 1, y: 1 }, destination]
+    expect(evaluatePv1fMovement(state, path).movement.legal).toBe(true)
+    const moved = executePv1fMovement(JSON.parse(JSON.stringify(state)), path).state
+    expect(moved.tactical.placements.find((row) => row.combatantId === 'actor')?.position).toEqual(
+      destination,
+    )
+    expect(moved.tactical.movementProfiles).toEqual(state.tactical.movementProfiles)
+    expect(moved.statBridge).toEqual(state.statBridge)
+    expect(
+      evaluatePv1fMovement({ ...state, airborneJumpPolicyVersion: undefined }, path).movement.legal,
+    ).toBe(false)
+    expect(evaluatePv1fMovement(withStatus(state, 'actor', 'root'), path).movement.legal).toBe(
+      false,
+    )
+    expect(
+      evaluatePv1fMovement(
+        {
+          ...state,
+          tactical: {
+            ...state.tactical,
+            tiles: state.tactical.tiles.map((row) =>
+              row.position.x === 1 && row.position.y === 0 ? { ...row, elevation: 4 } : row,
+            ),
+          },
+        },
+        path,
+      ).movement.legal,
+    ).toBe(false)
+    expect(
+      evaluatePv1fMovement(
+        {
+          ...state,
+          statusState: state.statusState.map((row) =>
+            row.combatantId === 'actor'
+              ? {
+                  ...row,
+                  statuses: row.statuses.map((status) => ({
+                    ...status,
+                    timingState: 'pending' as const,
+                  })),
+                }
+              : row,
+          ),
+        },
+        path,
+      ).movement.legal,
+    ).toBe(false)
+    expect(evaluatePv1fMovement(withStatus(state, 'actor', 'slow'), path).economyCost).toBe(
+      evaluatePv1fMovement(state, path).economyCost + 10,
+    )
+    const expired = {
+      ...moved,
+      statusState: moved.statusState.map((row) =>
+        row.combatantId === 'actor' ? { ...row, statuses: [] } : row,
+      ),
+    }
+    expect(evaluatePv1fMovement(expired, [destination, { x: 1, y: 1 }]).movement.legal).toBe(false)
+  })
   it.each([false, true])(
     'checks delayed percentage Ground DoTs only at activation (Airborne=%s)',
     (stillAirborne) => {

@@ -8,6 +8,7 @@ import { COMBAT_TERRAIN_OVERLAY_DETAILS } from '@aurevane/game-core/combat/terra
 import { PV1F_COMBAT_CONTENT } from '@aurevane/game-core/combat/pv1f-action-economy'
 import { combatStatusDetails } from '@aurevane/game-core/combat/status-content'
 import { blindsideDamageDescription } from '@aurevane/game-core/combat/combat-blindside'
+import { airborneDescription } from '@aurevane/game-core/combat/combat-airborne'
 import {
   CURRENT_BURN_DAMAGE_BY_STAGE,
   CURRENT_POISON_DAMAGE,
@@ -104,6 +105,7 @@ export function previewEffect(
     legacyPoisonMovement?: boolean
     legacyFrozenGround?: boolean
     legacyAirborne?: boolean
+    legacyAirborneJump?: boolean
     legacyHealingDown?: boolean
     legacyBlindsideActivation?: boolean
   } = {},
@@ -171,11 +173,10 @@ export function previewEffect(
             options.legacyBlindsideActivation,
           ),
         }
-      return effect.statusId === 'airborne' && options.legacyAirborne
+      return effect.statusId === 'airborne'
         ? {
             label: 'Airborne',
-            explanation:
-              'Ignore the Frozen Ground AP surcharge. Board bounds, elevation, obstacles, occupancy, Rooted and Movement allowance still apply.',
+            explanation: airborneDescription(options.legacyAirborne, options.legacyAirborneJump),
           }
         : statusPreview(effect.statusId, effect.potencyBasisPoints, options.legacyHealingDown)
     case 'displace':
@@ -277,6 +278,7 @@ export function skillPreviewEffects(
     legacyPoisonMovement?: boolean
     legacyFrozenGround?: boolean
     legacyAirborne?: boolean
+    legacyAirborneJump?: boolean
     legacyHealingDown?: boolean
     legacyBlindsideActivation?: boolean
   } = {},

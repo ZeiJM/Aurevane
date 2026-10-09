@@ -95,7 +95,10 @@ describe('Battle Chronicle clipboard transcript', () => {
     )
     const original = JSON.stringify(entries)
     const copied = formatBattleLogForClipboard(entries, options)
-    expect(copied).toContain('Frozen Ground · 8 tiles · 2 rounds')
+    expect(copied).toContain('Frozen Ground · 2 rounds')
+    expect(copied).not.toContain('8 tiles')
+    expect(copied).not.toContain('caster’s enemies only')
+    expect(copied).not.toContain('Airborne exempt')
     expect(copied.match(/^Chilling Mist$/gm)).toHaveLength(1)
     expect(copied).not.toContain('at tile')
     expect(copied.split('\n').filter(Boolean)).toEqual(displayedLines(entries))
@@ -126,7 +129,7 @@ describe('Battle Chronicle clipboard transcript', () => {
     const entries = [first, second]
     const copied = formatBattleLogForClipboard(entries, options)
     expect(copied).not.toContain('2 tiles')
-    expect(copied.match(/Frozen Ground · 1 tile · 2 rounds/g)).toHaveLength(2)
+    expect(copied.match(/Frozen Ground · 2 rounds/g)).toHaveLength(2)
     expect(copied.split('\n').filter(Boolean)).toEqual(displayedLines(entries))
   })
   it('keeps distinct terrain transitions under one recorded cast without merging durations', () => {
@@ -151,8 +154,8 @@ describe('Battle Chronicle clipboard transcript', () => {
       }),
     ]
     const copied = formatBattleLogForClipboard(entries, options)
-    expect(copied).toContain('Frozen Ground · 1 tile · 2 rounds')
-    expect(copied).toContain('Frozen Ground → Steam · 1 tile · 1 round')
+    expect(copied).toContain('Frozen Ground · 2 rounds')
+    expect(copied).toContain('Frozen Ground → Steam · 1 round')
     expect(copied.match(/^Hollow Reflection$/gm)).toHaveLength(1)
     expect(copied.split('\n').filter(Boolean)).toEqual(displayedLines(entries))
   })

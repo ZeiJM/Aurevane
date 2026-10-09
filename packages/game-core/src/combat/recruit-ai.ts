@@ -1,4 +1,5 @@
 import type { BattleFacing } from './battle-state'
+import { airborneMovementTactical } from './combat-airborne'
 import {
   PV1F_COMBAT_CONTENT,
   PV1F_GUARD_ACTION_ID,
@@ -427,7 +428,7 @@ function enemyApproachDistances(
       const key = positionKey(from)
       if (!tiles.has(key) || occupied.has(key) || distances.has(key)) continue
       const planningBoard = {
-        ...state.tactical,
+        ...airborneMovementTactical(state, PV1F_COMBAT_CONTENT),
         placements: state.tactical.placements.map((placement) =>
           placement.combatantId === actorId ? { ...placement, position: from } : placement,
         ),
@@ -438,6 +439,7 @@ function enemyApproachDistances(
           [from, destination],
           'entered-tiles',
           state.statBalancePolicyVersion,
+          state.airborneJumpPolicyVersion,
         ).legal
       )
         continue

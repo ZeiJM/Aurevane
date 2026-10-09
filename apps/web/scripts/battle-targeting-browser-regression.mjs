@@ -347,8 +347,11 @@ try {
           if (targeting === 'all-ground') {
             assert.equal(forecasts[0].preview.affectedTiles.length, 63)
             const outcomes = await page.locator('[data-battle-preview-lane="outcomes"]').innerText()
-            assert.match(outcomes, /63 tiles/)
-            assert.match(outcomes, /caster’s enemies only/)
+            assert.match(outcomes, /Frozen Ground.*2 rounds/)
+            assert.doesNotMatch(
+              outcomes,
+              /63 tiles|caster’s enemies only|both teams|Airborne exempt/,
+            )
             assert.ok(
               outcomes.length < 3500,
               'Ground preview summarizes terrain instead of listing every tile',
@@ -572,6 +575,160 @@ try {
           cases++
           await page.close()
         }
+        const airbornePage = await browser.newPage({
+          viewport,
+          isMobile: viewport.width < 821,
+          hasTouch: viewport.width < 821,
+        })
+        airbornePage.on('pageerror', (error) => errors.push(`${mode}/airborne: ${error.message}`))
+        await airbornePage.goto(
+          server.resolvedUrls.local[0] + `?mode=${mode}&targeting=single&airborne=1`,
+        )
+        await airbornePage.locator('[data-battle-combatant-card="local"]').waitFor()
+        await airbornePage.evaluate(() => {
+          const state = window.fixtureBattle.snapshot
+          window.fixtureBattle = {
+            ...window.fixtureBattle,
+            battleVersion: window.fixtureBattle.battleVersion + 1,
+            snapshot: {
+              ...state,
+              airborneJumpPolicyVersion: 1,
+              statusState: state.statusState.map((row) =>
+                row.combatantId === 'character:player'
+                  ? {
+                      ...row,
+                      statuses: [
+                        ...row.statuses,
+                        {
+                          statusId: 'airborne',
+                          statusVersion: 1,
+                          stacks: 1,
+                          remainingOwnerTurnStarts: 2,
+                          sourceCombatantId: 'character:player',
+                        },
+                      ],
+                    }
+                  : row,
+              ),
+              tactical: {
+                ...state.tactical,
+                tiles: state.tactical.tiles.map((row) =>
+                  (row.position.x === 3 && row.position.y === 2) ||
+                  (row.position.x === 4 && row.position.y === 3)
+                    ? { ...row, elevation: 3 }
+                    : row,
+                ),
+              },
+            },
+          }
+          window.publishBattle()
+        })
+        await airbornePage.getByRole('button', { name: /^Selected Targeting Test,/ }).click()
+        await tile(airbornePage, 4, 3).click()
+        await airbornePage.waitForFunction(() =>
+          window.receipts?.some((event) => event.event === 'damage_applied'),
+        )
+        assert.ok(
+          await airbornePage.evaluate(() =>
+            window.forecasts.some((forecast) => forecast.preview.legal),
+          ),
+          'Airborne Attack preview and commit reach elevation3',
+        )
+        await airbornePage.locator('[data-command-slot="move"]').click()
+        await tile(airbornePage, 3, 2).click()
+        await airbornePage.waitForFunction(() =>
+          window.fixtureBattle.snapshot.tactical.placements.some(
+            (row) =>
+              row.combatantId === 'character:player' &&
+              row.position.x === 3 &&
+              row.position.y === 2,
+          ),
+        )
+        assert.equal(
+          await airbornePage.evaluate(
+            () =>
+              window.fixtureBattle.snapshot.statBridge.combatants.find(
+                (row) => row.combatantId === 'character:player',
+              ).jump,
+          ),
+          1,
+          'Airborne does not rewrite saved Jump',
+        )
+        assert.equal(
+          await airbornePage.evaluate(
+            () => window.fixtureBattle.snapshot.tactical.movementProfiles[0].maxElevationStep,
+          ),
+          1,
+          'Committed movement preserves the saved profile',
+        )
+        await airbornePage.screenshot({
+          path: resolve(output, `${mode}-${viewport.width}-airborne-height3.png`),
+        })
+        await airbornePage.evaluate(() => {
+          const state = window.fixtureBattle.snapshot
+          window.fixtureBattle = {
+            ...window.fixtureBattle,
+            battleVersion: window.fixtureBattle.battleVersion + 1,
+            snapshot: {
+              ...state,
+              statusState: state.statusState.map((row) =>
+                row.combatantId === 'character:player'
+                  ? {
+                      ...row,
+                      statuses: row.statuses.filter((status) => status.statusId !== 'airborne'),
+                    }
+                  : row,
+              ),
+            },
+          }
+          window.publishBattle()
+        })
+        await airbornePage.locator('[data-command-slot="move"]').click()
+        await tile(airbornePage, 3, 3).click()
+        await airbornePage.waitForFunction(() =>
+          window.fixtureBattle.snapshot.tactical.placements.some(
+            (row) =>
+              row.combatantId === 'character:player' &&
+              row.position.x === 3 &&
+              row.position.y === 3,
+          ),
+        )
+        await airbornePage.screenshot({
+          path: resolve(output, `${mode}-${viewport.width}-airborne-expired-descent.png`),
+        })
+        await airbornePage.evaluate(() => {
+          const state = window.fixtureBattle.snapshot
+          window.fixtureBattle = {
+            ...window.fixtureBattle,
+            battleVersion: window.fixtureBattle.battleVersion + 1,
+            snapshot: {
+              ...state,
+              terrainOverlays: [
+                {
+                  kind: 'frozen',
+                  position: { x: 2, y: 2 },
+                  remainingRoundBoundaries: 2,
+                  sourceCombatantId: 'character:player',
+                  frozenGroundPolicyVersion: 1,
+                },
+              ],
+            },
+          }
+          window.publishBattle()
+        })
+        await airbornePage.locator('[data-command-slot="inspect"]').click()
+        await tile(airbornePage, 2, 2).click()
+        const groundNotice = await airbornePage
+          .locator('[data-battle-preview-lane="outcomes"]')
+          .innerText()
+        assert.match(groundNotice, /Frozen Ground terrain · 2 rounds remaining/)
+        assert.doesNotMatch(groundNotice, /Adds 10 AP|Airborne|caster’s enemies/)
+        assert.match(await tile(airbornePage, 2, 2).getAttribute('aria-label'), /Adds 10 AP/)
+        await airbornePage.screenshot({
+          path: resolve(output, `${mode}-${viewport.width}-compact-ground-inspect.png`),
+        })
+        cases++
+        await airbornePage.close()
       }
     }
     for (const viewport of [

@@ -6,6 +6,24 @@ import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-ski
 import { previewEffect, skillPreviewEffects } from './skill-effect-preview'
 import { skillEffectDescription, skillEffectSummaries } from './skill-detail-presentation'
 
+it('reports Airborne Jump and Attack elevation without rewriting historical readers', () => {
+  const effect = {
+    type: 'apply-status' as const,
+    recipient: 'actor' as const,
+    statusId: 'airborne',
+    stacks: 1,
+    durationTurns: 2,
+  }
+  expect(previewEffect(effect).explanation).toContain('Your Jump is 3')
+  expect(skillEffectDescription(effect)).toContain('Target Elevation 3')
+  expect(previewEffect(effect, { legacyAirborneJump: true }).explanation).not.toContain(
+    'Your Jump is 3',
+  )
+  expect(previewEffect(effect, { legacyAirborneJump: true }).explanation).toContain(
+    'Target Elevation 3',
+  )
+})
+
 it('describes the granting Skill’s authored Blindside side and rear percentages', () => {
   const effect = {
     type: 'apply-status' as const,
