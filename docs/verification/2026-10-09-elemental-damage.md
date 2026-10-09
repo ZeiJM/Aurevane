@@ -1,6 +1,6 @@
 # October 9 elemental implementation receipt
 
-Status: local implementation checkpoint. No merge, deployment or human acceptance is claimed. Root owns the fresh combined release gate and independent review, including the sequential Suppress task.
+Status: Released for testing through PR #854, merge `dedb3d52876b494aaa7bafa916e42d7a5a7ad5b8`; production `dpl_4cv2DhwMGceW5jv6dwCk7Ct5AdSN` is READY at https://aurevane.vercel.app. See [final release evidence](2026-10-09-combat-release.md). Human acceptance remains pending. The details below retain their historical local verification checkpoints.
 
 ## Implemented contract
 
