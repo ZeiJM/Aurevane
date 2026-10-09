@@ -118,7 +118,8 @@ export function describeBattleEffect(effect: BattlePresentedStatus) {
                   : effect.potencyBasisPoints,
                 {
                   legacyHealingDown: effect.healingDownPolicyVersion !== 1,
-                  legacyElemental: effect.elementalDamagePolicyVersion !== 1,
+                  legacyElemental: effect.elementalDamagePolicyVersion == null,
+                  explicitElemental: effect.elementalDamagePolicyVersion === 2,
                 },
               ))) + capturedDescription,
   }

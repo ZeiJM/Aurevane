@@ -1006,7 +1006,7 @@ const CANONICAL_CLEANSE_DISCIPLINE_SKILLS = latestEnabledMatureSkills([
   ...V5_REBALANCED_DISCIPLINE_SKILLS,
   ...V51_REBALANCED_DISCIPLINE_SKILLS,
 ]).flatMap((definition) => {
-  const next = createCanonicalCleanseSkillVersion(definition)
+  const next = createCanonicalCleanseSkillVersion(definition, true)
   return next ? [next] : []
 })
 
@@ -1066,7 +1066,7 @@ const PRE_ELEMENTAL_DISCIPLINE_SKILL_REGISTRY = [
   }),
 ]
 
-const CURRENT_DISCIPLINE_SKILL_REGISTRY = [
+const PRE_EXPLICIT_ELEMENTAL_DISCIPLINE_SKILL_REGISTRY = [
   ...PRE_ELEMENTAL_DISCIPLINE_SKILL_REGISTRY,
   ...latestEnabledMatureSkills(PRE_ELEMENTAL_DISCIPLINE_SKILL_REGISTRY).flatMap((definition) => {
     const element =
@@ -1092,6 +1092,80 @@ const CURRENT_DISCIPLINE_SKILL_REGISTRY = [
       },
     ]
   }),
+]
+
+/** Append editable elemental tags while retaining every previously published definition. */
+export function createExplicitElementalSkillVersion(
+  definition: MatureSkillDefinition,
+): MatureSkillDefinition | null {
+  const statusIds = { ice: 'frozen', water: 'wet', storm: 'conductive' } as const
+  const damages = definition.effects.filter(
+    (effect) =>
+      effect.type === 'damage' &&
+      effect.element &&
+      (effect.element in statusIds || effect.element === 'fire'),
+  )
+  if (!damages.length) return null
+  const effects = [...definition.effects]
+  for (const damage of damages) {
+    if (damage.type !== 'damage' || !damage.element || !(damage.element in statusIds)) continue
+    const statusId = statusIds[damage.element as keyof typeof statusIds]
+    if (
+      effects.some(
+        (effect) =>
+          effect.type === 'apply-status' &&
+          effect.statusId === statusId &&
+          effect.recipient === damage.recipient,
+      )
+    )
+      continue
+    effects.push({
+      type: 'apply-status',
+      recipient: damage.recipient,
+      statusId,
+      stacks: 1,
+      durationTurns: 2,
+      ...(statusId === 'frozen' ? {} : { potencyBasisPoints: 2000 }),
+    })
+  }
+  if (
+    damages.some((effect) => effect.type === 'damage' && effect.element === 'fire') &&
+    !effects.some(
+      (effect) =>
+        effect.type === 'remove-status' &&
+        effect.recipient === 'actor' &&
+        effect.statusIds.length === 1 &&
+        effect.statusIds[0] === 'frozen',
+    )
+  )
+    effects.push({ type: 'remove-status', recipient: 'actor', statusIds: ['frozen'] })
+  return {
+    ...definition,
+    contentVersion: definition.contentVersion + 1,
+    effects,
+    ...(definition.effectDescriptions
+      ? {
+          effectDescriptions: [
+            ...definition.effectDescriptions,
+            ...effects.slice(definition.effects.length).map(() => null),
+          ],
+        }
+      : {}),
+    authoring: {
+      ...definition.authoring,
+      validationTags: [...definition.authoring.validationTags, 'elemental-status-tags'],
+    },
+  }
+}
+
+const CURRENT_DISCIPLINE_SKILL_REGISTRY = [
+  ...PRE_EXPLICIT_ELEMENTAL_DISCIPLINE_SKILL_REGISTRY,
+  ...latestEnabledMatureSkills(PRE_EXPLICIT_ELEMENTAL_DISCIPLINE_SKILL_REGISTRY).flatMap(
+    (definition) => {
+      const next = createExplicitElementalSkillVersion(definition)
+      return next ? [next] : []
+    },
+  ),
 ]
 
 /** Current selection catalog; the historical P3.3/P4 export remains stable for pinned contracts. */

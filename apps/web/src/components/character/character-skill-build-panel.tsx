@@ -728,6 +728,7 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                                           focusedSkill.definition.effectDescriptions,
                                         ).map(({ effect, count, firstIndex: index }) => (
                                           <CompactSkillEffectSummary
+                                            skillEffects={focusedSkill.definition.effects}
                                             effect={effect}
                                             count={count}
                                             key={`${index}:${effect.type}`}

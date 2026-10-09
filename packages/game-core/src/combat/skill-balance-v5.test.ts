@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { latestEnabledMatureSkills, resolveMatureSkillVersion } from './mature-skills'
 import { rebalanceMatureSkillDefinition } from './skill-balance-v5'
 import { isMaterializedCombatEffect } from './summon-content'
+import { isCleanseChilledEffect } from './combat-cleanse'
 
 describe('owner v5 Skill rebalance', () => {
   it('publishes all current regular Techniques with bounded power, duration, and cooldown rules', () => {
@@ -20,6 +21,15 @@ describe('owner v5 Skill rebalance', () => {
       }
 
       for (const effect of skill.effects) {
+        if (effect.type === 'remove-status' && isCleanseChilledEffect(effect)) {
+          expect(effect.recipient).toBe('actor')
+          expect(skill.authoring.validationTags).toContain('elemental-status-tags')
+          expect(skill.effects.some((hit) => hit.type === 'damage' && hit.element === 'fire')).toBe(
+            true,
+          )
+          expect(effect.durationTurns).toBeUndefined()
+          continue
+        }
         expect(effect.durationTurns).toBeDefined()
         expect(effect.durationTurns).toBeGreaterThanOrEqual(0)
         expect(effect.durationTurns).toBeLessThanOrEqual(4)

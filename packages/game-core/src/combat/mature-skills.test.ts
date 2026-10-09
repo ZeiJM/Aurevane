@@ -244,3 +244,79 @@ describe('Combat v5.1 authoring bounds', () => {
     expect(validateMatureSkillDefinition(historicalLongshot)).toEqual([])
   })
 })
+
+describe('current explicit elemental Skill versions', () => {
+  it('includes matching explicit tags in every typed persistent Ground entry payload', () => {
+    const statusIds = { ice: 'frozen', water: 'wet', storm: 'conductive' } as const
+    for (const skill of latestEnabledMatureSkills()) {
+      if (!skill.groundArea) continue
+      const entries = skill.groundArea.entryEffectOrdinals.map((ordinal) => skill.effects[ordinal]!)
+      for (const effect of entries) {
+        if (effect.type !== 'damage' || !effect.element || !(effect.element in statusIds)) continue
+        expect(entries, skill.id).toContainEqual(
+          expect.objectContaining({
+            type: 'apply-status',
+            recipient: effect.recipient,
+            statusId: statusIds[effect.element as keyof typeof statusIds],
+          }),
+        )
+      }
+    }
+  })
+  it('appends matching editable status tags while preserving the previous typed definition', () => {
+    const ids = { ice: 'frozen', water: 'wet', storm: 'conductive' } as const
+    const typed = latestEnabledMatureSkills().filter((d) =>
+      d.effects.some((e) => e.type === 'damage' && e.element && e.element in ids),
+    )
+    expect(typed.length).toBeGreaterThan(0)
+    for (const definition of typed) {
+      for (const damage of definition.effects) {
+        if (damage.type !== 'damage' || !damage.element || !(damage.element in ids)) continue
+        expect(definition.effects).toContainEqual(
+          expect.objectContaining({
+            type: 'apply-status',
+            recipient: damage.recipient,
+            statusId: ids[damage.element as keyof typeof ids],
+          }),
+        )
+      }
+      expect(definition.authoring.validationTags).toContain('elemental-status-tags')
+      const previous = resolveMatureSkillVersion(definition.id, definition.contentVersion - 1)!
+      expect(previous.authoring.validationTags).not.toContain('elemental-status-tags')
+      expect({
+        ...definition,
+        contentVersion: previous.contentVersion,
+        effects: previous.effects,
+        authoring: previous.authoring,
+      }).toEqual(previous)
+    }
+  })
+})
+
+describe('current explicit Fire cleanse Skill versions', () => {
+  it('appends only a caster Cleanse Chilled tag to every current Fire damage Skill', () => {
+    const fire = latestEnabledMatureSkills().filter((skill) =>
+      skill.effects.some((effect) => effect.type === 'damage' && effect.element === 'fire'),
+    )
+    expect(fire.length).toBeGreaterThan(0)
+    for (const skill of fire) {
+      expect(skill.effects, skill.id).toContainEqual({
+        type: 'remove-status',
+        recipient: 'actor',
+        statusIds: ['frozen'],
+      })
+      const old = resolveMatureSkillVersion(skill.id, skill.contentVersion - 1)!
+      expect({
+        ...skill,
+        contentVersion: old.contentVersion,
+        effects: old.effects,
+        authoring: old.authoring,
+        ...(old.effectDescriptions ? { effectDescriptions: old.effectDescriptions } : {}),
+      }).toEqual(old)
+      if (skill.groundArea)
+        expect(
+          skill.groundArea.entryEffectOrdinals.map((i) => skill.effects[i]),
+        ).not.toContainEqual({ type: 'remove-status', recipient: 'actor', statusIds: ['frozen'] })
+    }
+  })
+})

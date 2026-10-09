@@ -1,6 +1,7 @@
 'use client'
 
 import { useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useSkillElementalDamagePolicyVersion } from '../character/skill-effect-timing-context'
 import { statusPotencyDescription } from '@/lib/status-potency-presentation'
 import { combatStatusDetails } from '@aurevane/game-core/combat/status-content'
 
@@ -19,7 +20,15 @@ import {
 } from './battle-log-chronicle-text'
 import styles from './battle-log-chronicle.module.css'
 
-function ChronicleTechnique({ action, actorName }: { action: ChronicleAction; actorName: string }) {
+function ChronicleTechnique({
+  action,
+  actorName,
+  elementalDamagePolicyVersion,
+}: {
+  action: ChronicleAction
+  actorName: string
+  elementalDamagePolicyVersion: 1 | 2 | null
+}) {
   const narration = chronicleActionNarration(action, actorName)
   const title = chronicleActionTitle(action)
   const missingResult = chronicleMissingResult(action)
@@ -57,7 +66,13 @@ function ChronicleTechnique({ action, actorName }: { action: ChronicleAction; ac
                       ? result.potencyBasisPoints === undefined
                         ? 'Recorded Suppress percentage unavailable.'
                         : statusPotencyDescription(result.statusId, result.potencyBasisPoints)
-                      : combatStatusDetails(result.statusId).description}
+                      : ['wet', 'frozen', 'conductive'].includes(result.statusId)
+                        ? statusPotencyDescription(result.statusId, result.potencyBasisPoints, {
+                            legacyElemental: elementalDamagePolicyVersion == null,
+                            explicitElemental: elementalDamagePolicyVersion === 2,
+                            elementalPotencyUnavailable: result.potencyBasisPoints === undefined,
+                          })
+                        : combatStatusDetails(result.statusId).description}
                   </p>
                   {result.duration ? <p>Recorded duration: {result.duration}.</p> : null}
                 </BattleInfoPopover>
@@ -74,7 +89,12 @@ function ChronicleTechnique({ action, actorName }: { action: ChronicleAction; ac
         <p className={styles.outcomes}>{missingResult}</p>
       ) : null}
       {action.specials.map((special) => (
-        <ChronicleTechnique key={special.key} action={special} actorName={actorName} />
+        <ChronicleTechnique
+          key={special.key}
+          action={special}
+          actorName={actorName}
+          elementalDamagePolicyVersion={elementalDamagePolicyVersion}
+        />
       ))}
     </article>
   )
@@ -86,11 +106,16 @@ export function BattleLogChronicle({
   combatantNames,
   currentRound,
   emptyMessage = 'No committed battle actions yet.',
+  elementalDamagePolicyVersion: capturedElementalPolicy,
 }: ChronicleNames & {
   entries: readonly BattleLogEntry[]
   currentRound?: number
   emptyMessage?: string
+  elementalDamagePolicyVersion?: 1 | 2 | null
 }) {
+  const contextElementalPolicy = useSkillElementalDamagePolicyVersion()
+  const elementalDamagePolicyVersion =
+    capturedElementalPolicy === undefined ? contextElementalPolicy : capturedElementalPolicy
   const rounds = useMemo(
     () => buildBattleChronicle(entries, { playerName, combatantNames }),
     [entries, playerName, combatantNames],
@@ -218,7 +243,12 @@ export function BattleLogChronicle({
                   >
                     <h3>{actor.name}</h3>
                     {actor.actions.map((action) => (
-                      <ChronicleTechnique key={action.key} action={action} actorName={actor.name} />
+                      <ChronicleTechnique
+                        key={action.key}
+                        action={action}
+                        actorName={actor.name}
+                        elementalDamagePolicyVersion={elementalDamagePolicyVersion}
+                      />
                     ))}
                   </section>
                 ))}

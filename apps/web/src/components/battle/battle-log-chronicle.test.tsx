@@ -838,3 +838,36 @@ it('Chronicle ! does not invent a Suppress percentage when recorded metadata is 
     popup.mockRestore()
   }
 })
+
+it('keeps Chronicle elemental explanations pinned in standalone completed battle readers', () => {
+  const popup = vi
+    .spyOn(popovers, 'BattleInfoPopover')
+    .mockImplementation(({ children, trigger }) => (
+      <aside role="dialog">
+        {trigger}
+        {children}
+      </aside>
+    ))
+  try {
+    const entries = [
+      technique(1),
+      entry(1, 1, 'status_applied', { statusId: 'wet', templateValues: { status: 'Drenched' } }),
+    ]
+    const report = (elementalDamagePolicyVersion: 1 | 2 | null) =>
+      renderToStaticMarkup(
+        <BattleLogChronicle
+          entries={entries}
+          elementalDamagePolicyVersion={elementalDamagePolicyVersion}
+        />,
+      )
+    expect(report(2)).toContain('10%, capped at 100%')
+    expect(report(2)).not.toContain('Fire removes')
+    expect(report(2)).toContain('recorded percentage unavailable')
+    expect(report(2)).not.toContain('20% Storm damage')
+    expect(report(1)).toContain('10% once')
+    expect(report(1)).toContain('Fire removes Drenched')
+    expect(report(null)).toContain('Fire removes Wet')
+  } finally {
+    popup.mockRestore()
+  }
+})

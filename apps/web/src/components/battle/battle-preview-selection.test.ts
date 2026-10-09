@@ -416,3 +416,107 @@ it('keeps the identified ground tile in the aimed direction instead of retargeti
   )
   expect(selectDirectionalBattleSkillPreviewIntent(skill, current, { x: -1, y: 0 })).toBeNull()
 })
+
+const fire = { ...barrier, targetTeamPolicy: 'enemy' as const, groundIntentCapable: true }
+it('uses the clicked Fire tile before a stale enemy selection', () => {
+  expect(
+    selectBattleSkillPreviewIntent(fire, {
+      ...selection,
+      selectedCombatantId: 'enemy',
+      selectedTile: { x: 2, y: 0 },
+    })?.target,
+  ).toEqual({ kind: 'tile', position: { x: 2, y: 0 } })
+  expect(
+    selectBattleSkillPreviewIntent(fire, {
+      ...selection,
+      selectedCombatantId: 'ally',
+      selectedTile: { x: 1, y: 0 },
+    })?.target,
+  ).toEqual({ kind: 'unit', combatantId: 'enemy' })
+})
+it.each([{ kind: 'line', length: 3 }, { kind: 'circle', radius: 1 }, { kind: 'all' }] as const)(
+  'infers Fire %j ground intent from the ordinary tile selection',
+  (shape) => {
+    const skill = { ...fire, target: { ...currentLine.target, shape } }
+    const target =
+      shape.kind === 'line'
+        ? ({ kind: 'direction', direction: 'east' } as const)
+        : ({ kind: 'activate' } as const)
+    expect(
+      selectBattleSkillPreviewIntent(skill, {
+        ...selection,
+        selectedCombatantId: 'enemy',
+        selectedTile: { x: 2, y: 0 },
+      })?.target,
+    ).toEqual({ ...target, ground: true })
+    expect(
+      selectBattleSkillPreviewIntent(skill, {
+        ...selection,
+        selectedCombatantId: 'enemy',
+        selectedTile: { x: 1, y: 0 },
+      })?.target,
+    ).toEqual(target)
+    expect(
+      selectDirectionalBattleSkillPreviewIntent(skill, selection, { x: 1, y: 0 })?.target,
+    ).toEqual(target)
+    expect(
+      selectDirectionalBattleSkillPreviewIntent(
+        skill,
+        {
+          ...selection,
+          selectedTarget: { ...target, ground: true },
+        },
+        { x: 1, y: 0 },
+      )?.target,
+    ).toEqual({ ...target, ground: true })
+    expect(selectInitialBattleSkillPreviewIntent(skill, selection)?.target).not.toHaveProperty(
+      'ground',
+    )
+  },
+)
+it('offers a directional Fire ground cast when that direction has no eligible enemy', () => {
+  expect(
+    selectDirectionalBattleSkillPreviewIntent(
+      fire,
+      {
+        ...selection,
+        tiles: [{ x: 0, y: 1 }],
+      },
+      { x: 0, y: 1 },
+    )?.target,
+  ).toEqual({ kind: 'tile', position: { x: 0, y: 1 } })
+})
+
+it('selects a living enemy for dual-intent Fire authored as Ground Single', () => {
+  const skill = { ...fire, targetKind: 'ground-tile' as const }
+  expect(
+    selectBattleSkillPreviewIntent(skill, {
+      ...selection,
+      selectedCombatantId: 'enemy',
+      selectedTile: { x: 1, y: 0 },
+    })?.target,
+  ).toEqual({ kind: 'unit', combatantId: 'enemy' })
+  expect(
+    selectInitialBattleSkillPreviewIntent(skill, { ...selection, tiles: [{ x: 2, y: 0 }] })?.target,
+  ).toEqual({ kind: 'unit', combatantId: 'enemy' })
+  expect(
+    selectBattleSkillPreviewIntent(skill, { ...selection, selectedTile: { x: 2, y: 0 } })?.target,
+  ).toEqual({ kind: 'tile', position: { x: 2, y: 0 } })
+})
+it('uses enemy or ground activation for dual-intent Fire authored as Ground Circle', () => {
+  const skill = {
+    ...fire,
+    targetKind: 'ground-tile' as const,
+    target: { ...currentLine.target, shape: { kind: 'circle' as const, radius: 1 } },
+  }
+  expect(
+    selectBattleSkillPreviewIntent(skill, {
+      ...selection,
+      selectedCombatantId: 'enemy',
+      selectedTile: { x: 1, y: 0 },
+    })?.target,
+  ).toEqual({ kind: 'activate' })
+  expect(
+    selectBattleSkillPreviewIntent(skill, { ...selection, selectedTile: { x: 2, y: 0 } })?.target,
+  ).toEqual({ kind: 'activate', ground: true })
+})

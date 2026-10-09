@@ -1,4 +1,4 @@
-import { combatEffectPresentationTags } from './gameplay-tags'
+import { combatEffectPresentationTags, isCleanseChilledEffect } from './gameplay-tags'
 import {
   DEFAULT_SUPPRESS_BASIS_POINTS,
   mergeSuppressStatus,
@@ -475,7 +475,7 @@ export interface PendingCombatEffect {
 
 export interface CombatEncounterState {
   /** Current element settlement; absent snapshots keep historical interactions. */
-  elementalDamagePolicyVersion?: 1
+  elementalDamagePolicyVersion?: 1 | 2
   /** Current active Initiative changes affect only future eligible turns. */
   dynamicInitiativePolicyVersion?: 1
   /** New encounters: Frozen Ground movement surcharge affects only source enemies. */
@@ -899,23 +899,27 @@ export function synchronizeCombatInitiative<T extends CombatEncounterState>(stat
   if (state.dynamicInitiativePolicyVersion !== 1 || state.tactical.battle.lifecycle !== 'active')
     return state
   const battle = state.tactical.battle
-  const activeInitiativeModifiers = battle.combatants.flatMap((unit) =>
-    state.statusState
-      .find((row) => row.combatantId === unit.id)
-      ?.statuses.some((status) => status.statusId === 'wet' && status.timingState !== 'pending')
-      ? [
-          {
-            combatantId: unit.id,
-            amount: -Math.ceil(
-              (unit.initiative +
-                (battle.roundInitiativeModifiers?.find((row) => row.combatantId === unit.id)
-                  ?.amount ?? 0)) /
-                10,
-            ),
-          },
-        ]
-      : [],
-  )
+  const activeInitiativeModifiers = battle.combatants.flatMap((unit) => {
+    const wet =
+      state.statusState
+        .find((row) => row.combatantId === unit.id)
+        ?.statuses.filter(
+          (status) => status.statusId === 'wet' && status.timingState !== 'pending',
+        ) ?? []
+    if (!wet.length) return []
+    const tempo =
+      battle.roundInitiativeModifiers?.find((row) => row.combatantId === unit.id)?.amount ?? 0
+    if (state.elementalDamagePolicyVersion !== 2)
+      return [{ combatantId: unit.id, amount: -Math.ceil((unit.initiative + tempo) / 10) }]
+    // Clamp the count before arithmetic; recorded applications may exceed ten or have multiplicity.
+    const applications = wet
+      .flatMap(combatStatusApplications)
+      .reduce((count, application) => Math.min(10, count + Math.min(10, application.stacks)), 0)
+    const effective = BigInt(unit.initiative) + BigInt(tempo)
+    const reduction = effective > 0n ? (effective * BigInt(applications) + 9n) / 10n : 0n
+    return [{ combatantId: unit.id, amount: -Number(reduction) }]
+  })
+
   return {
     ...state,
     tactical: {
@@ -941,7 +945,7 @@ export function elementalActionIntent<T extends CombatActionDefinition>(
     (selection.kind === 'direction' || selection.kind === 'activate') &&
     selection.ground !== undefined
   const capable =
-    state.elementalDamagePolicyVersion === 1 &&
+    state.elementalDamagePolicyVersion !== undefined &&
     (action.target.kind === 'unit' || action.target.kind === 'ground-tile') &&
     action.target.teamPolicy === 'enemy' &&
     action.effects.some((effect) => effect.type === 'damage' && effect.element === 'fire')
@@ -953,6 +957,17 @@ export function elementalActionIntent<T extends CombatActionDefinition>(
       action.target.shape.kind === 'single')
   )
     throw new TypeError('Ground intent requires a current Fire area Skill.')
+  if (
+    capable &&
+    state.elementalDamagePolicyVersion === 2 &&
+    action.target.kind === 'ground-tile' &&
+    (selection.kind === 'unit' ||
+      ((selection.kind === 'direction' || selection.kind === 'activate') &&
+        selection.ground === undefined))
+  ) {
+    // Enemy casts retain the authored footprint and payload; persistence belongs to Ground intent.
+    return { ...action, target: { ...action.target, kind: 'unit' }, groundArea: undefined } as T
+  }
   if (!capable || (selection.kind !== 'tile' && !areaGround)) return action
   return {
     ...action,
@@ -1091,7 +1106,7 @@ export function evaluateCombatAction(
             (effect) =>
               effect.type === 'create-terrain' ||
               ((action.target.geometryVersion !== 2 ||
-                (state.elementalDamagePolicyVersion === 1 &&
+                (state.elementalDamagePolicyVersion !== undefined &&
                   effect.type === 'damage' &&
                   effect.element === 'fire')) &&
                 effect.type === 'damage' &&
@@ -1444,7 +1459,7 @@ function hasCurrentFireTileEffect(
   tiles: readonly GridPosition[],
 ): boolean {
   return (
-    state.elementalDamagePolicyVersion === 1 &&
+    state.elementalDamagePolicyVersion !== undefined &&
     effect.type === 'damage' &&
     effect.element === 'fire' &&
     tiles.length > 0
@@ -1550,7 +1565,13 @@ function applyCombatRoundBoundary(
       }
       const evaded = new Set<string>()
       for (const id of pending.recipientIds) {
-        if (!airborneGroundMiss(nextState, action, id, pending.content)) continue
+        if (
+          (nextState.elementalDamagePolicyVersion === 2 &&
+            pending.effect.recipient === 'actor' &&
+            isCleanseChilledEffect(pending.effect)) ||
+          !airborneGroundMiss(nextState, action, id, pending.content)
+        )
+          continue
         evaded.add(id)
         const miss = rollCombatSkillAccuracyForTarget(
           nextState,
@@ -2023,7 +2044,11 @@ export function validateCombatEncounterState(
       message: 'Skill packet policy requires version 1 and bridge schema/rules version 4.',
     })
   for (const policy of ['elementalDamagePolicyVersion', 'dynamicInitiativePolicyVersion'] as const)
-    if (state[policy] !== undefined && state[policy] !== 1)
+    if (
+      state[policy] !== undefined &&
+      state[policy] !== 1 &&
+      !(policy === 'elementalDamagePolicyVersion' && state[policy] === 2)
+    )
       issues.push({ field: policy, message: 'Unsupported combat policy.' })
   if (state.statBalancePolicyVersion !== undefined && state.statBalancePolicyVersion !== 1)
     issues.push({
@@ -2081,7 +2106,7 @@ export function validateCombatEncounterState(
   }
   if (
     state.nextSkillPacketCommandId !== undefined &&
-    ((state.skillPacketPolicyVersion !== 1 && state.elementalDamagePolicyVersion !== 1) ||
+    ((state.skillPacketPolicyVersion !== 1 && state.elementalDamagePolicyVersion === undefined) ||
       !Number.isSafeInteger(state.nextSkillPacketCommandId) ||
       state.nextSkillPacketCommandId < 2)
   )
@@ -2119,7 +2144,8 @@ export function validateCombatEncounterState(
             throw new TypeError('Current pending effects require their packet command identity.')
           if (
             pending.skillPacketCommandId !== undefined &&
-            ((state.skillPacketPolicyVersion !== 1 && state.elementalDamagePolicyVersion !== 1) ||
+            ((state.skillPacketPolicyVersion !== 1 &&
+              state.elementalDamagePolicyVersion === undefined) ||
               !Number.isSafeInteger(pending.skillPacketCommandId) ||
               pending.skillPacketCommandId < 1 ||
               !state.nextSkillPacketCommandId ||
@@ -2173,7 +2199,7 @@ export function validateCombatEncounterState(
           }
           if (
             pending.elementalResistedRecipientIds !== undefined &&
-            (state.elementalDamagePolicyVersion !== 1 ||
+            (state.elementalDamagePolicyVersion === undefined ||
               !elementalStatusId(pending.effect) ||
               !Array.isArray(pending.elementalResistedRecipientIds) ||
               new Set(pending.elementalResistedRecipientIds).size !==
@@ -2187,7 +2213,7 @@ export function validateCombatEncounterState(
             const applications: Readonly<Record<string, CapturedElementalApplication>> =
               pending.elementalApplicationsByRecipient
             if (
-              state.elementalDamagePolicyVersion !== 1 ||
+              state.elementalDamagePolicyVersion === undefined ||
               !elementalStatusId(pending.effect) ||
               !applications ||
               typeof applications !== 'object' ||
@@ -2215,7 +2241,7 @@ export function validateCombatEncounterState(
           if (pending.elementalApplication !== undefined) {
             const application = pending.elementalApplication
             if (
-              state.elementalDamagePolicyVersion !== 1 ||
+              state.elementalDamagePolicyVersion === undefined ||
               application.effect?.type !== 'apply-status' ||
               application.effect.statusId !== elementalStatusId(pending.effect) ||
               application.effect.recipient !== pending.effect.recipient
@@ -2959,7 +2985,11 @@ function settleElementalApplications(
     if (getCombatant(nextState.tactical.battle, recipientId).hp <= 0) continue
     const statusId = elementalStatusId(effect)!
     const explicit = explicitApplication?.effect
-    const tuning = { ...(explicit ?? {}), ...effect } as CombatEffectDefinition & {
+    const tuning = (
+      state.elementalDamagePolicyVersion === 2
+        ? (explicit ?? {})
+        : { ...(explicit ?? {}), ...effect }
+    ) as CombatEffectDefinition & {
       durationTurns?: number
       potencyBasisPoints?: number
     }
@@ -2969,7 +2999,7 @@ function settleElementalApplications(
       statusId,
       stacks: 1,
       durationTurns:
-        effect.durationTurns && effect.durationTurns > 0
+        state.elementalDamagePolicyVersion !== 2 && effect.durationTurns && effect.durationTurns > 0
           ? effect.durationTurns
           : explicit && 'durationTurns' in explicit && explicit.durationTurns
             ? explicit.durationTurns
@@ -3152,7 +3182,7 @@ function resolveActionEffects(
       ).filter(
         (recipientId) =>
           !(
-            state.elementalDamagePolicyVersion === 1 &&
+            state.elementalDamagePolicyVersion !== undefined &&
             effect.type === 'apply-status' &&
             action.effects.some(
               (hit) =>
@@ -3184,11 +3214,18 @@ function resolveActionEffects(
         ).filter(
           (id) =>
             !missedCombatantIds?.has(id) &&
-            !airborneGroundMiss(nextState, action, id, content) &&
+            !(
+              airborneGroundMiss(nextState, action, id, content) &&
+              !(
+                state.elementalDamagePolicyVersion === 2 &&
+                effect.recipient === 'actor' &&
+                isCleanseChilledEffect(effect)
+              )
+            ) &&
             !options.missedEffectOrdinalsByTarget?.get(id)?.has(effectOrdinal) &&
             !(
               resistedEffectOrdinalsByTarget?.get(id)?.has(effectOrdinal) &&
-              (effect.type !== 'damage' || state.elementalDamagePolicyVersion !== 1)
+              (effect.type !== 'damage' || state.elementalDamagePolicyVersion === undefined)
             ),
         )
         if (
@@ -3199,7 +3236,7 @@ function resolveActionEffects(
           continue
         if (
           (nextState.skillPacketPolicyVersion === 1 ||
-            nextState.elementalDamagePolicyVersion === 1) &&
+            nextState.elementalDamagePolicyVersion !== undefined) &&
           skillPacketCommandId === undefined
         ) {
           skillPacketCommandId = nextState.nextSkillPacketCommandId ?? 1
@@ -3267,7 +3304,7 @@ function resolveActionEffects(
                     ),
                   }
                 : {}),
-              ...(state.elementalDamagePolicyVersion === 1 && elementalStatusId(effect)
+              ...(state.elementalDamagePolicyVersion !== undefined && elementalStatusId(effect)
                 ? {
                     elementalResistedRecipientIds: recipientIds.filter((id) =>
                       resistedEffectOrdinalsByTarget?.get(id)?.has(effectOrdinal),
@@ -3435,7 +3472,7 @@ function resolveActionEffects(
       ) {
         for (const position of affectedTiles) {
           const iceAreas =
-            state.elementalDamagePolicyVersion === 1
+            state.elementalDamagePolicyVersion !== undefined
               ? (nextState.groundAreas ?? []).filter(
                   (area) =>
                     area.activationRound <= nextState.tactical.battle.round &&
@@ -3506,10 +3543,15 @@ function resolveActionEffects(
         // Engine-owned target roll gates every unit effect, not just damage packets.
         if (
           missedCombatantIds?.has(recipientId) ||
-          airborneGroundMiss(nextState, action, recipientId, content) ||
+          (airborneGroundMiss(nextState, action, recipientId, content) &&
+            !(
+              state.elementalDamagePolicyVersion === 2 &&
+              effect.recipient === 'actor' &&
+              isCleanseChilledEffect(effect)
+            )) ||
           options.missedEffectOrdinalsByTarget?.get(recipientId)?.has(effectOrdinal) ||
           (resistedEffectOrdinalsByTarget?.get(recipientId)?.has(effectOrdinal) &&
-            (effect.type !== 'damage' || state.elementalDamagePolicyVersion !== 1))
+            (effect.type !== 'damage' || state.elementalDamagePolicyVersion === undefined))
         )
           continue
         if (effect.type === 'copy-statuses') {
@@ -3549,17 +3591,30 @@ function resolveActionEffects(
           getCombatant(nextState.tactical.battle, recipientId).hp <
             getCombatant(before.tactical.battle, recipientId).hp
         if (
-          state.elementalDamagePolicyVersion === 1 &&
+          state.elementalDamagePolicyVersion !== undefined &&
           positiveHostileDamage &&
           effect.type === 'damage'
         ) {
-          if (effect.element === 'fire') {
+          if (effect.element === 'fire' && state.elementalDamagePolicyVersion === 1) {
             for (const statusId of ['wet', 'frozen'])
               elementalApplications.delete(JSON.stringify([recipientId, statusId]))
           }
           const statusId = elementalStatusId(effect)
+          const explicitApplication = statusId
+            ? options.capturedElementalApplications !== undefined
+              ? options.capturedElementalApplications[recipientId]
+              : captureElementalApplication(
+                  action,
+                  actorId,
+                  primaryCombatantId,
+                  affectedCombatantIds,
+                  recipientId,
+                  statusId,
+                )
+            : undefined
           if (
             statusId &&
+            (state.elementalDamagePolicyVersion === 1 || explicitApplication !== undefined) &&
             !resistedEffectOrdinalsByTarget?.get(recipientId)?.has(effectOrdinal) &&
             getCombatant(nextState.tactical.battle, recipientId).hp > 0
           )
@@ -3570,17 +3625,7 @@ function resolveActionEffects(
               ordinal: effectOrdinal,
               action,
               content,
-              explicitApplication:
-                options.capturedElementalApplications !== undefined
-                  ? options.capturedElementalApplications[recipientId]
-                  : captureElementalApplication(
-                      action,
-                      actorId,
-                      primaryCombatantId,
-                      affectedCombatantIds,
-                      recipientId,
-                      statusId,
-                    ),
+              explicitApplication,
             })
         }
         if (
@@ -3669,9 +3714,11 @@ function resolveActionEffects(
           beforeValue = currentBurnInstance(before, recipientId)?.stage ?? 'none'
           afterValue = currentBurnInstance(nextState, recipientId)?.stage ?? 'none'
         } else if (effect.type === 'remove-status') {
-          const statusIds = combatEffectPresentationTags(effect).includes('Cleanse')
-            ? [...new Set([...effect.statusIds, 'suppress'])]
-            : effect.statusIds
+          const statusIds =
+            combatEffectPresentationTags(effect).includes('Cleanse') ||
+            (state.elementalDamagePolicyVersion !== 2 && isCleanseChilledEffect(effect))
+              ? [...new Set([...effect.statusIds, 'suppress'])]
+              : effect.statusIds
           const removedStatusIds = getStatusRow(before, recipientId)
             .statuses.filter((status) => statusIds.includes(status.statusId))
             .map((status) => status.statusId)
@@ -4175,12 +4222,12 @@ function applyEffect(
   if (effect.type === 'damage') {
     const target = getCombatant(state.tactical.battle, recipientId)
     const elementHostile =
-      state.elementalDamagePolicyVersion !== 1 ||
+      state.elementalDamagePolicyVersion === undefined ||
       (target.hp > 0 && target.teamId !== getCombatant(state.tactical.battle, actorId).teamId)
     const stormBonus =
       elementHostile &&
       effect.element === 'storm' &&
-      (state.elementalDamagePolicyVersion === 1 || !stormRecipients.has(recipientId)) &&
+      (state.elementalDamagePolicyVersion !== undefined || !stormRecipients.has(recipientId)) &&
       (hasGameplayTag(state, recipientId, 'Wet', content) ||
         hasGameplayTag(state, recipientId, 'Conductive', content))
     const amount = resolveDamageAmount(
@@ -4194,7 +4241,7 @@ function applyEffect(
       options.groundArea,
       options.skillDamage,
     )
-    if (state.elementalDamagePolicyVersion !== 1 && stormBonus && amount > 0)
+    if (state.elementalDamagePolicyVersion === undefined && stormBonus && amount > 0)
       stormRecipients.add(recipientId)
     const barrier = absorbDirectDamageWithBarrier(state, recipientId, amount)
     const hpAfter = Math.max(0, target.hp - barrier.remainingDamage)
@@ -4216,7 +4263,11 @@ function applyEffect(
             actionId,
             [
               'Invisible',
-              ...(effect.element === 'fire' && elementHostile ? (['Wet', 'Frozen'] as const) : []),
+              ...(effect.element === 'fire' &&
+              elementHostile &&
+              state.elementalDamagePolicyVersion !== 2
+                ? (['Wet', 'Frozen'] as const)
+                : []),
               ...(stormBonus ? (['Conductive'] as const) : []),
             ],
             content,
@@ -4301,9 +4352,11 @@ function applyEffect(
   }
 
   if (effect.type === 'remove-status') {
-    const statusIds = combatEffectPresentationTags(effect).includes('Cleanse')
-      ? [...new Set([...effect.statusIds, 'suppress'])]
-      : effect.statusIds
+    const statusIds =
+      combatEffectPresentationTags(effect).includes('Cleanse') ||
+      (state.elementalDamagePolicyVersion !== 2 && isCleanseChilledEffect(effect))
+        ? [...new Set([...effect.statusIds, 'suppress'])]
+        : effect.statusIds
     const removedStatusIds = getStatusRow(state, recipientId)
       .statuses.filter((status) => statusIds.includes(status.statusId))
       .map((status) => status.statusId)
@@ -4431,7 +4484,7 @@ function stormDamageMultiplier(
   recipientId: string,
   content: CombatContentCatalog,
 ): number {
-  if (state.elementalDamagePolicyVersion === 1) {
+  if (state.elementalDamagePolicyVersion !== undefined) {
     let bonus = 0
     for (const tag of ['Wet', 'Conductive'] as const) {
       const applications = getStatusRow(state, recipientId)
@@ -4691,7 +4744,8 @@ function applyStatusState(
   if (
     state.effectTimingPolicy ||
     statusId === 'blindside' ||
-    (state.elementalDamagePolicyVersion === 1 && ['frozen', 'wet', 'conductive'].includes(statusId))
+    (state.elementalDamagePolicyVersion !== undefined &&
+      ['frozen', 'wet', 'conductive'].includes(statusId))
   ) {
     if (nextStatus.durationScope === 'rounds') {
       delete nextStatus.durationScope

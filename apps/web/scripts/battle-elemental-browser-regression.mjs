@@ -97,186 +97,344 @@ const browser = await chromium.launch({
 })
 const errors = []
 let cases = 0
+const catalogCases = []
 const tile = (page, x, y) =>
   page
     .locator('#battlefield')
     .getByRole('button', { name: new RegExp(`^Tile ${x + 1}, ${y + 1};`) })
 try {
-  for (const mode of ['pve', 'pvp', 'spectator']) {
-    for (const viewport of [
-      { width: 1366, height: 768 },
-      { width: 390, height: 844 },
-    ]) {
-      for (const reducedMotion of ['no-preference', 'reduce']) {
-        const page = await browser.newPage({ viewport, reducedMotion })
-        page.on('pageerror', (error) => errors.push(error.message))
-        await page.goto(server.resolvedUrls.local[0] + `?mode=${mode}&elemental=steam`)
-        const mist = page.locator('[data-ground-steam-mist="true"]')
-        await mist.waitFor()
-        assert.equal(await mist.count(), 1)
-        const animation = await mist
-          .locator('i')
-          .first()
-          .evaluate((el) => getComputedStyle(el).animationName)
-        assert.equal(
-          animation === 'none',
-          reducedMotion === 'reduce',
-          `${mode} ${viewport.width} ${reducedMotion}`,
-        )
-        assert.ok(
-          await mist
+  if (process.env.AV_ELEMENTAL_ONLY_CATALOG !== '1') {
+    for (const mode of ['pve', 'pvp', 'spectator']) {
+      for (const viewport of [
+        { width: 1366, height: 768 },
+        { width: 390, height: 844 },
+      ]) {
+        for (const reducedMotion of ['no-preference', 'reduce']) {
+          const page = await browser.newPage({ viewport, reducedMotion })
+          page.on('pageerror', (error) => errors.push(error.message))
+          await page.goto(server.resolvedUrls.local[0] + `?mode=${mode}&elemental=steam`)
+          const mist = page.locator('[data-ground-steam-mist="true"]')
+          await mist.waitFor()
+          assert.equal(await mist.count(), 1)
+          const animation = await mist
             .locator('i')
             .first()
-            .evaluate((el) => Number.parseFloat(getComputedStyle(el).opacity) > 0),
+            .evaluate((el) => getComputedStyle(el).animationName)
+          assert.equal(
+            animation === 'none',
+            reducedMotion === 'reduce',
+            `${mode} ${viewport.width} ${reducedMotion}`,
+          )
+          assert.ok(
+            await mist
+              .locator('i')
+              .first()
+              .evaluate((el) => Number.parseFloat(getComputedStyle(el).opacity) > 0),
+          )
+          await page.locator('#battlefield').screenshot({
+            path: resolve(output, `${mode}-${viewport.width}-${reducedMotion}-steam.png`),
+          })
+          cases++
+          await page.close()
+        }
+      }
+    }
+
+    for (const policy of [1, 2]) {
+      for (const mode of ['pve', 'pvp']) {
+        for (const viewport of [
+          { width: 1366, height: 768 },
+          { width: 390, height: 844 },
+        ]) {
+          const page = await browser.newPage({
+            viewport,
+            isMobile: viewport.width < 821,
+            hasTouch: viewport.width < 821,
+          })
+          page.setDefaultTimeout(10000)
+          page.on('pageerror', (error) => errors.push(`${mode}/${policy}: ${error.message}`))
+          const load = async (shape, elemental = 'fire-area') => {
+            await page.goto(
+              server.resolvedUrls.local[0] +
+                `?mode=${mode}&targeting=${shape}&elemental=${elemental}&elementalPolicy=${policy}&cycleTarget=custom`,
+            )
+            await page.locator('#battlefield').waitFor()
+            await page.getByRole('button', { name: /^Selected Targeting Test,/ }).click()
+            assert.equal(
+              await page.getByRole('group', { name: 'Fire target' }).count(),
+              0,
+              'Fire uses ordinary board selection without cockpit target buttons',
+            )
+            assert.equal(await page.getByRole('button', { name: 'Ground', exact: true }).count(), 0)
+            assert.equal(
+              await page.getByRole('button', { name: 'Enemies', exact: true }).count(),
+              0,
+            )
+          }
+          const receipt = async () => {
+            await page.waitForFunction(
+              () => window.fixtureBattle.battleVersion === 2 || window.commitFailure,
+            )
+            const result = await page.evaluate(() => ({
+              failure: window.commitFailure,
+              calls: window.calls.filter((call) => /\/(commit|intents)$/.test(call.path)),
+              statuses: window.fixtureBattle.snapshot.statusState.find(
+                (row) => row.combatantId === 'character:player',
+              ).statuses,
+              overlays: window.fixtureBattle.snapshot.terrainOverlays,
+              enemyHp: window.fixtureBattle.snapshot.tactical.battle.combatants.find(
+                (unit) => unit.id === 'enemy-one',
+              ).hp,
+            }))
+            assert.equal(result.failure, undefined)
+            assert.equal(result.calls.length, 1)
+            assert.equal(
+              result.statuses.some((status) => status.statusId === 'frozen'),
+              false,
+              'Legal Fire cleanses caster Chilled',
+            )
+            return result
+          }
+          for (const ground of [false, true]) {
+            await load('single', 'fire')
+            await tile(page, ground ? 3 : 4, ground ? 2 : 3).click()
+            const result = await receipt()
+            assert.deepEqual(
+              result.calls[0].body.intent.target,
+              ground
+                ? { kind: 'tile', position: { x: 3, y: 2 } }
+                : { kind: 'unit', combatantId: 'enemy-one' },
+            )
+            if (ground) {
+              assert.equal(result.overlays[0].kind, 'steam')
+              assert.equal(result.overlays[0].remainingRoundBoundaries, 2)
+              await page.waitForFunction(() =>
+                window.calls.some(
+                  (call) =>
+                    call.path.endsWith('/preview') &&
+                    call.body.expectedBattleVersion === 2 &&
+                    call.body.intent.target.kind === 'tile',
+                ),
+              )
+              await page.waitForFunction(
+                () =>
+                  !document
+                    .querySelector('main[data-unified-battle]')
+                    .hasAttribute('data-battle-execution-pending'),
+              )
+              await page.evaluate(() => {
+                window.calls = []
+              })
+              await page.keyboard.press('n')
+              await page.waitForFunction(() =>
+                window.calls.some(
+                  (call) =>
+                    call.path.endsWith('/preview') &&
+                    call.body.expectedBattleVersion === 2 &&
+                    call.body.intent.target.kind === 'unit',
+                ),
+              )
+            } else assert.ok(result.enemyHp < 80)
+            cases++
+          }
+          for (const shape of ['line', 'circle1', 'all']) {
+            for (const gesture of ['enemy', 'ground', 'arrow']) {
+              await load(shape)
+              const target =
+                shape === 'line' ? { kind: 'direction', direction: 'east' } : { kind: 'activate' }
+              const ground = gesture === 'ground' || (gesture === 'arrow' && shape === 'line')
+              if (gesture === 'arrow') {
+                // Existing line hover supplies ground intent to keyboard direction, without another mode.
+                if (shape === 'line') {
+                  await tile(page, 6, 3).hover()
+                  await page.waitForFunction(() =>
+                    window.calls.some(
+                      (call) =>
+                        call.path.endsWith('/preview') && call.body.intent.target.ground === true,
+                    ),
+                  )
+                }
+                await page.keyboard.press('ArrowRight')
+              } else
+                await tile(
+                  page,
+                  ground ? (shape === 'line' ? 6 : 3) : 4,
+                  ground && shape !== 'line' ? 2 : 3,
+                ).click()
+              const result = await receipt()
+              assert.deepEqual(
+                result.calls[0].body.intent.target,
+                ground ? { ...target, ground: true } : target,
+              )
+              if (ground) assert.equal(result.enemyHp, 80, 'Ground Fire misses Airborne')
+              else assert.ok(result.enemyHp < 80, 'Enemy Fire hits Airborne')
+              cases++
+            }
+          }
+          await page.goto(
+            server.resolvedUrls.local[0] +
+              `?mode=${mode}&targeting=single&elemental=chilled&elementalPolicy=${policy}&cycleTarget=custom`,
+          )
+          await page.locator('[data-command-slot="finish"]').click()
+          assert.equal(
+            await page.getByRole('button', { name: 'Face east', exact: true }).isEnabled(),
+            true,
+          )
+          for (const facing of ['north', 'south', 'west'])
+            assert.equal(
+              await page.getByRole('button', { name: `Face ${facing}`, exact: true }).isDisabled(),
+              true,
+            )
+          await page.keyboard.press('ArrowUp')
+          assert.equal(
+            await page.evaluate(
+              () =>
+                window.calls.filter((call) => /\/(commit|intents|final-turn)$/.test(call.path))
+                  .length,
+            ),
+            0,
+            'Chilled rejects changed final facing hotkey',
+          )
+          await page.getByRole('button', { name: 'Face east', exact: true }).click()
+          await page.waitForFunction(
+            () => window.fixtureBattle.battleVersion === 2 || window.commitFailure,
+          )
+          assert.equal(await page.evaluate(() => window.commitFailure), undefined)
+          assert.equal(
+            await page.evaluate(
+              () =>
+                window.fixtureBattle.snapshot.tactical.placements.find(
+                  (row) => row.combatantId === 'character:player',
+                ).facing,
+            ),
+            'east',
+          )
+          cases++
+          await page.close()
+        }
+      }
+    }
+    for (const mode of ['pve', 'pvp']) {
+      for (const viewport of [
+        { width: 1366, height: 768 },
+        { width: 390, height: 844 },
+      ]) {
+        const page = await browser.newPage({ viewport })
+        page.setDefaultTimeout(10000)
+        page.on('pageerror', (error) => errors.push(error.message))
+        await page.goto(
+          server.resolvedUrls.local[0] +
+            `?mode=${mode}&targeting=single&elemental=fire&elementalPolicy=legacy`,
         )
-        await page.locator('#battlefield').screenshot({
-          path: resolve(output, `${mode}-${viewport.width}-${reducedMotion}-steam.png`),
-        })
+        await page.getByRole('button', { name: /^Selected Targeting Test,/ }).click()
+        await tile(page, 3, 2).click()
+        assert.equal(
+          await page.evaluate(
+            () => window.calls.filter((call) => /\/(commit|intents)$/.test(call.path)).length,
+          ),
+          0,
+          'Historical absent policy retains enemy-only Fire selection',
+        )
+        await page.locator('[data-command-slot="finish"]').click()
+        for (const facing of ['north', 'east', 'south', 'west'])
+          assert.equal(
+            await page.getByRole('button', { name: `Face ${facing}`, exact: true }).isEnabled(),
+            true,
+            'Historical Chilled does not lock final facing',
+          )
         cases++
         await page.close()
       }
     }
   }
-  for (const mode of ['pve', 'pvp']) {
-    for (const viewport of [
-      { width: 1366, height: 768 },
-      { width: 390, height: 844 },
-    ]) {
-      const page = await browser.newPage({ viewport })
-      page.on('pageerror', (error) => errors.push(error.message))
-      await page.goto(
-        server.resolvedUrls.local[0] + `?mode=${mode}&targeting=single&elemental=fire`,
-      )
-      await page.locator('#battlefield').waitFor()
-      await page.getByRole('button', { name: /^Selected Targeting Test,/ }).click()
-      await tile(page, 3, 2).click()
-      await page
-        .waitForFunction(() => window.calls.some((call) => /\/(commit|intents)$/.test(call.path)))
-        .catch(async (error) => {
-          console.log(
-            JSON.stringify(
-              await page.evaluate(() => ({
-                calls: window.calls,
-                forecasts: window.forecasts,
-                notices: document.body.innerText,
-              })),
-              null,
-              2,
-            ),
+  // Mount the actual published Flame Burst, including its authored Ground preset and effects.
+  for (const policy of [2, 1, 'legacy']) {
+    for (const mode of ['pve', 'pvp']) {
+      for (const viewport of [
+        { width: 1366, height: 768 },
+        { width: 390, height: 844 },
+      ]) {
+        for (const ground of [true, false]) {
+          const page = await browser.newPage({
+            viewport,
+            isMobile: viewport.width < 821,
+            hasTouch: viewport.width < 821,
+          })
+          page.setDefaultTimeout(10000)
+          page.on('pageerror', (error) =>
+            errors.push(`${mode}/catalog/${policy}: ${error.message}`),
           )
-          throw error
-        })
-      await page.waitForFunction(
-        () => window.fixtureBattle.battleVersion === 2 || window.commitFailure,
-      )
-      assert.equal(await page.evaluate(() => window.commitFailure), undefined)
-      const receipt = await page.evaluate(() => ({
-        calls: window.calls,
-        statuses: window.fixtureBattle.snapshot.statusState.find(
-          (row) => row.combatantId === 'character:player',
-        ).statuses,
-        overlays: window.fixtureBattle.snapshot.terrainOverlays,
-      }))
-      assert.equal(
-        receipt.statuses.some((status) => status.statusId === 'frozen'),
-        false,
-        'Legal empty Fire cast cleanses caster Chilled',
-      )
-      assert.equal(receipt.overlays[0].kind, 'steam')
-      assert.equal(receipt.overlays[0].remainingRoundBoundaries, 2)
-      assert.equal(receipt.calls.filter((call) => /\/(commit|intents)$/.test(call.path)).length, 1)
-      assert.deepEqual(
-        receipt.calls.find((call) => /\/(commit|intents)$/.test(call.path)).body.intent.target,
-        { kind: 'tile', position: { x: 3, y: 2 } },
-      )
-      cases++
-      await page.close()
-    }
-  }
-  for (const mode of ['pve', 'pvp']) {
-    for (const viewport of [
-      { width: 1366, height: 768 },
-      { width: 390, height: 844 },
-    ]) {
-      const page = await browser.newPage({ viewport })
-      page.on('pageerror', (error) => errors.push(error.message))
-      await page.goto(
-        server.resolvedUrls.local[0] + `?mode=${mode}&targeting=line&elemental=fire-area`,
-      )
-      await page.getByRole('button', { name: /^Selected Targeting Test,/ }).click()
-      await page.getByRole('button', { name: 'Ground', exact: true }).click()
-      await tile(page, 5, 3).click()
-      await page.waitForFunction(
-        () => window.fixtureBattle.battleVersion === 2 || window.commitFailure,
-      )
-      const ground = await page.evaluate(() => ({
-        failure: window.commitFailure,
-        intent: window.calls.find((call) => /\/(commit|intents)$/.test(call.path)).body.intent,
-        enemy: window.fixtureBattle.snapshot.tactical.battle.combatants.find(
-          (unit) => unit.id === 'enemy-one',
-        ).hp,
-      }))
-      assert.equal(ground.failure, undefined)
-      assert.deepEqual(ground.intent.target, { kind: 'direction', direction: 'east', ground: true })
-      assert.equal(ground.enemy, 80, 'Ground Fire misses Airborne')
-      await page.goto(
-        server.resolvedUrls.local[0] + `?mode=${mode}&targeting=line&elemental=fire-area`,
-      )
-      await page.getByRole('button', { name: /^Selected Targeting Test,/ }).click()
-      await tile(page, 5, 3).click()
-      await page.waitForFunction(
-        () => window.fixtureBattle.battleVersion === 2 || window.commitFailure,
-      )
-      assert.equal(await page.evaluate(() => window.commitFailure), undefined)
-      assert.ok(
-        await page.evaluate(
-          () =>
-            window.fixtureBattle.snapshot.tactical.battle.combatants.find(
+          await page.goto(
+            server.resolvedUrls.local[0] +
+              `?mode=${mode}&targeting=catalog-fire&elemental=fire-catalog&elementalPolicy=${policy}`,
+          )
+          await page.getByRole('button', { name: /^Selected Targeting Test,/ }).click()
+          const authored = await page.evaluate(() => ({
+            id: window.targetingDefinition.id,
+            target: window.targetingDefinition.target,
+            groundArea: window.targetingDefinition.groundArea,
+          }))
+          assert.equal(authored.id, 'cinderweaver.flame-burst')
+          assert.equal(authored.target.kind, 'ground-tile')
+          assert.equal(authored.target.shape.kind, 'circle')
+          assert.equal(authored.target.shape.radius, 1)
+          assert.equal(authored.groundArea.durationRounds, 3)
+          assert.equal(await page.getByRole('group', { name: 'Fire target' }).count(), 0)
+          await tile(page, ground ? 3 : 4, ground ? 2 : 3).click()
+          await page.waitForFunction(
+            () => window.fixtureBattle.battleVersion === 2 || window.commitFailure,
+          )
+          const result = await page.evaluate(() => ({
+            failure: window.commitFailure,
+            intent: window.calls.find((call) => /\/(commit|intents)$/.test(call.path)).body.intent,
+            enemyHp: window.fixtureBattle.snapshot.tactical.battle.combatants.find(
               (unit) => unit.id === 'enemy-one',
-            ).hp < 80,
-        ),
-        'Enemy Fire hits Airborne',
-      )
-      cases++
-      await page.goto(
-        server.resolvedUrls.local[0] + `?mode=${mode}&targeting=single&elemental=chilled`,
-      )
-      await page.locator('[data-command-slot="finish"]').click()
-      assert.equal(
-        await page.getByRole('button', { name: 'Face east', exact: true }).isEnabled(),
-        true,
-      )
-      for (const facing of ['north', 'south', 'west'])
-        assert.equal(
-          await page.getByRole('button', { name: `Face ${facing}`, exact: true }).isDisabled(),
-          true,
-        )
-      await page.getByRole('button', { name: 'Face east', exact: true }).click()
-      await page.waitForFunction(
-        () => window.fixtureBattle.battleVersion === 2 || window.commitFailure,
-      )
-      assert.equal(await page.evaluate(() => window.commitFailure), undefined)
-      assert.equal(
-        await page.evaluate(
-          () =>
-            window.fixtureBattle.snapshot.tactical.placements.find(
-              (row) => row.combatantId === 'character:player',
-            ).facing,
-        ),
-        'east',
-      )
-      assert.notEqual(
-        await page.evaluate(
-          () => window.fixtureBattle.snapshot.tactical.battle.currentTurn.combatantId,
-        ),
-        'character:player',
-      )
-      cases++
-      await page.close()
+            ).hp,
+            groundAreas: window.fixtureBattle.snapshot.groundAreas ?? [],
+          }))
+          assert.equal(result.failure, undefined)
+          assert.deepEqual(
+            result.intent.target,
+            policy === 2 && ground ? { kind: 'activate', ground: true } : { kind: 'activate' },
+          )
+          if (policy === 2 && !ground) {
+            assert.ok(result.enemyHp < 80, 'Published Flame Burst Enemy intent hits Airborne')
+            assert.equal(
+              result.groundAreas.length,
+              0,
+              'Enemy intent creates no persistent Ground area',
+            )
+          } else {
+            assert.equal(
+              result.enemyHp,
+              80,
+              'Published Flame Burst Ground intent excludes Airborne',
+            )
+            assert.equal(result.groundAreas.length, 1)
+            assert.equal(
+              result.groundAreas[0].expiresAtRound - result.groundAreas[0].activationRound,
+              3,
+            )
+          }
+          catalogCases.push({
+            policy,
+            mode,
+            width: viewport.width,
+            selected: ground ? 'ground' : 'enemy',
+            target: result.intent.target,
+            enemyHp: result.enemyHp,
+            groundAreas: result.groundAreas.length,
+          })
+          cases++
+          await page.close()
+        }
+      }
     }
   }
   assert.deepEqual(errors, [])
-  console.log(JSON.stringify({ cases, errors, evidence: output }))
+  const result = { cases, errors, catalogCases, evidence: output }
+  await fs.writeFile(resolve(output, 'results.json'), JSON.stringify(result, null, 2) + '\n')
+  console.log(JSON.stringify(result))
 } finally {
   await browser.close()
   await server.close()

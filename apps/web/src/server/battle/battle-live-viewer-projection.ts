@@ -82,8 +82,8 @@ export function projectBattleStatusStateForViewer(
       ? { airborneJumpPolicyVersion: 1 as const }
       : {}),
     ...(['wet', 'frozen', 'conductive'].includes(status.statusId) &&
-    state.elementalDamagePolicyVersion === 1
-      ? { elementalDamagePolicyVersion: 1 as const }
+    state.elementalDamagePolicyVersion !== undefined
+      ? { elementalDamagePolicyVersion: state.elementalDamagePolicyVersion }
       : {}),
     ...(status.statusId === 'hexed' && state.healingDownPolicyVersion === 1
       ? { healingDownPolicyVersion: 1 as const }

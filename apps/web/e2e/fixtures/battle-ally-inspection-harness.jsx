@@ -1,3 +1,4 @@
+import { DEFAULT_COMBAT_KEYBINDS } from '@aurevane/validation/player/combat-controls'
 import { setTerrainOverlay } from '@aurevane/game-core/combat/terrain-overlays'
 import { SkillGroundEditor } from '@/components/master/combat-content/skill-ground-editor'
 import React from 'react'
@@ -233,6 +234,7 @@ if (targetingCase) {
     ...initialBattle.snapshot,
     percentageDotPolicyVersion: 1,
     dotTriggerPolicyVersion: 1,
+    ...(targetingCase === 'catalog-fire' ? { groundEffectPolicyVersion: 1 } : {}),
     frozenGroundPolicyVersion: 1,
     airbornePolicyVersion: 1,
     displacementPolicyVersion: 1,
@@ -242,7 +244,7 @@ if (targetingCase) {
       ? 'lifebinder.mend'
       : targetingCase === 'buff' || targetingCase === 'all-any'
         ? 'bastion.steady-footing'
-        : targetingCase === 'ground-circle1'
+        : targetingCase === 'ground-circle1' || targetingCase === 'catalog-fire'
           ? 'cinderweaver.flame-burst'
           : targetingCase === 'all-ground'
             ? 'frostweaver.chilling-mist'
@@ -260,46 +262,50 @@ if (targetingCase) {
           : { kind: 'all' }
   const historical =
     targetingCase === 'legacy' ? resolveMatureSkillVersion(base.id, base.contentVersion - 1) : null
-  const definition = historical ?? {
-    ...base,
-    target: {
-      ...base.target,
-      geometryVersion: 2,
-      maximumElevationDifference: base.target.maximumElevationDifference ?? 2,
-      kind:
-        targetingCase === 'all-ground' || targetingCase === 'ground-circle1'
-          ? 'ground-tile'
-          : 'unit',
-      teamPolicy:
-        targetingCase === 'all-any' || targetingCase === 'all-ground'
-          ? 'any'
-          : targetingCase === 'heal' || targetingCase === 'buff'
-            ? 'ally'
-            : 'enemy',
-      friendlyFire:
-        targetingCase === 'all-any' || targetingCase === 'all-ground'
-          ? 'all-units'
-          : targetingCase === 'heal' || targetingCase === 'buff'
-            ? 'allies-only'
-            : 'enemies-only',
-      shape,
-      minimumRange: shape.kind === 'single' ? 1 : 0,
-      maximumRange:
-        shape.kind === 'line'
-          ? shape.length
-          : shape.kind === 'circle'
-            ? shape.radius
-            : shape.kind === 'single'
-              ? 1
-              : 0,
-      requiresLineOfSight: shape.kind === 'all' ? false : base.target.requiresLineOfSight,
-    },
-    effects: base.effects.map((effect) =>
-      'recipient' in effect && effect.recipient !== 'affected-tiles'
-        ? { ...effect, recipient: 'affected-units' }
-        : effect,
-    ),
-  }
+  const definition =
+    historical ??
+    (targetingCase === 'catalog-fire'
+      ? base
+      : {
+          ...base,
+          target: {
+            ...base.target,
+            geometryVersion: 2,
+            maximumElevationDifference: base.target.maximumElevationDifference ?? 2,
+            kind:
+              targetingCase === 'all-ground' || targetingCase === 'ground-circle1'
+                ? 'ground-tile'
+                : 'unit',
+            teamPolicy:
+              targetingCase === 'all-any' || targetingCase === 'all-ground'
+                ? 'any'
+                : targetingCase === 'heal' || targetingCase === 'buff'
+                  ? 'ally'
+                  : 'enemy',
+            friendlyFire:
+              targetingCase === 'all-any' || targetingCase === 'all-ground'
+                ? 'all-units'
+                : targetingCase === 'heal' || targetingCase === 'buff'
+                  ? 'allies-only'
+                  : 'enemies-only',
+            shape,
+            minimumRange: shape.kind === 'single' ? 1 : 0,
+            maximumRange:
+              shape.kind === 'line'
+                ? shape.length
+                : shape.kind === 'circle'
+                  ? shape.radius
+                  : shape.kind === 'single'
+                    ? 1
+                    : 0,
+            requiresLineOfSight: shape.kind === 'all' ? false : base.target.requiresLineOfSight,
+          },
+          effects: base.effects.map((effect) =>
+            'recipient' in effect && effect.recipient !== 'affected-tiles'
+              ? { ...effect, recipient: 'affected-units' }
+              : effect,
+          ),
+        })
   runtime.techniques = [
     {
       ...runtime.techniques[0],
@@ -402,9 +408,14 @@ if (dotCase) {
 if (elementalCase) {
   initialBattle.snapshot = {
     ...initialBattle.snapshot,
-    elementalDamagePolicyVersion: 1,
+    elementalDamagePolicyVersion:
+      new URLSearchParams(location.search).get('elementalPolicy') === 'legacy'
+        ? undefined
+        : new URLSearchParams(location.search).get('elementalPolicy') === '1'
+          ? 1
+          : 2,
     dynamicInitiativePolicyVersion: 1,
-    effectTimingPolicy: { version: 7, modes: { damage: 'instant' } },
+    effectTimingPolicy: { version: 7, modes: { damage: 'instant', 'remove-status': 'instant' } },
   }
   if (elementalCase === 'steam' || elementalCase.startsWith('fire')) {
     initialBattle.snapshot = setTerrainOverlay(
@@ -440,23 +451,34 @@ if (elementalCase) {
         : row,
     )
   if (elementalCase.startsWith('fire') && targetingCase) {
-    const definition = {
-      ...window.targetingDefinition,
-      effects: [
-        {
-          type: 'damage',
-          recipient:
-            window.targetingDefinition.target.shape.kind === 'single'
-              ? 'primary-unit'
-              : 'affected-units',
-          amount: 10,
-          element: 'fire',
-        },
-      ],
-    }
+    const definition =
+      elementalCase === 'fire-catalog'
+        ? window.targetingDefinition
+        : {
+            ...window.targetingDefinition,
+            // Repeatable fixture Skills exercise retained target selection after a legal commit.
+            cooldown: null,
+            requirements: [{ kind: 'actor-status-absent', statusId: 'guarded' }],
+            effects: [
+              {
+                type: 'damage',
+                recipient:
+                  window.targetingDefinition.target.shape.kind === 'single'
+                    ? 'primary-unit'
+                    : 'affected-units',
+                amount: 10,
+                element: 'fire',
+              },
+              { type: 'remove-status', recipient: 'actor', statusIds: ['frozen'] },
+            ],
+          }
     window.targetingDefinition = definition
-    runtime.techniques[0] = { ...runtime.techniques[0], definition }
-    if (elementalCase === 'fire-area')
+    runtime.techniques[0] = {
+      ...runtime.techniques[0],
+      definition,
+      cooldownOwnerTurns: definition.cooldown?.ownerTurns ?? null,
+    }
+    if (elementalCase === 'fire-area' || elementalCase === 'fire-catalog')
       initialBattle.snapshot.statusState = initialBattle.snapshot.statusState.map((row) =>
         row.combatantId === 'enemy-one'
           ? {
@@ -564,6 +586,15 @@ window.fetch = async (url, options = {}) => {
   const path = String(url)
   const body = options.body ? JSON.parse(options.body) : null
   window.calls.push({ path, method: options.method || 'GET', body })
+  if (
+    path === '/api/account/controls' &&
+    new URLSearchParams(location.search).get('cycleTarget') === 'custom'
+  )
+    return Response.json({
+      controls: {
+        combatKeybinds: { ...DEFAULT_COMBAT_KEYBINDS, nextTarget: { code: 'KeyN', shift: false } },
+      },
+    })
   if (path.endsWith('/events'))
     return new Response(JSON.stringify({ battleLog: { entries: suppressChronicleEntries } }))
   if (targetingCase && path.endsWith('/preview')) {

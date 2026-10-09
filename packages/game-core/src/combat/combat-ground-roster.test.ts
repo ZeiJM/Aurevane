@@ -8,10 +8,23 @@ import {
 } from './mature-skills'
 
 const ground = { durationRounds: 3, visualPresetId: 'embers' as const, entryEffectOrdinals: [0, 1] }
+/** Find the original Ground append rather than assuming it is still the latest version. */
+function firstPersistentGroundVersion(id: string) {
+  let definition = resolveMatureSkillVersion(id)!
+  if (!definition.groundArea) throw new Error(`Expected persistent Ground for ${id}.`)
+  while (definition.contentVersion > 1) {
+    const previous = resolveMatureSkillVersion(id, definition.contentVersion - 1)
+    if (!previous?.groundArea) break
+    definition = previous
+  }
+  return definition
+}
+
 describe('immutable persistent Ground definitions', () => {
   it('defaults direct Ground damage to two rounds without inventing entry ticks for pure terrain', () => {
     const current = resolveMatureSkillVersion('cinderweaver.flame-burst')!
-    const old = resolveMatureSkillVersion(current.id, current.contentVersion - 1)!
+    const firstGround = firstPersistentGroundVersion(current.id)
+    const old = resolveMatureSkillVersion(current.id, firstGround.contentVersion - 1)!
     const direct = { ...old, effects: old.effects.filter((effect) => effect.type === 'damage') }
     expect(createCurrentGroundSkillVersion(direct)?.groundArea).toEqual({
       durationRounds: 2,
@@ -36,10 +49,15 @@ describe('immutable persistent Ground definitions', () => {
     const current = resolveMatureSkillVersion('cinderweaver.flame-burst')!
     expect(current).toHaveProperty('groundArea', ground)
     expect(toCombatActionDefinition(current, 'pve')).toHaveProperty('groundArea', ground)
-    const old = resolveMatureSkillVersion(current.id, current.contentVersion - 1)!
+    const firstGround = firstPersistentGroundVersion(current.id)
+    const old = resolveMatureSkillVersion(current.id, firstGround.contentVersion - 1)!
     expect(old).not.toHaveProperty('groundArea')
     expect(old.target).toEqual(current.target)
-    expect(old.effects).toEqual(current.effects)
+    expect(createCurrentGroundSkillVersion(old)).toEqual(firstGround)
+    expect(old.effects).toEqual(firstGround.effects)
+    expect(current.groundArea!.entryEffectOrdinals.map((index) => current.effects[index])).toEqual(
+      firstGround.groundArea!.entryEffectOrdinals.map((index) => firstGround.effects[index]),
+    )
     expect(old.apCost).toBe(current.apCost)
   })
   it('uses the existing repeated lifetime for Poison and excludes terrain operations from entry', () => {

@@ -84,10 +84,15 @@ function previewSelection(
   definition: MatureSkillDefinition,
   targetPosition: GridPosition,
 ): CombatTargetSelection {
+  const groundFire =
+    definition.target.kind === 'ground-tile' &&
+    definition.target.teamPolicy === 'enemy' &&
+    definition.effects.some((effect) => effect.type === 'damage' && effect.element === 'fire')
   if (definition.target.geometryVersion === 2) {
-    if (definition.target.shape.kind === 'line') return { kind: 'direction', direction: 'east' }
+    if (definition.target.shape.kind === 'line')
+      return { kind: 'direction', direction: 'east', ...(groundFire ? { ground: true } : {}) }
     if (definition.target.shape.kind === 'circle' || definition.target.shape.kind === 'all')
-      return { kind: 'activate' }
+      return { kind: 'activate', ...(groundFire ? { ground: true } : {}) }
   }
   if (definition.target.kind === 'self') return { kind: 'self' }
 
@@ -261,7 +266,7 @@ function previewState(
     frozenGroundPolicyVersion: 1 as const,
     airbornePolicyVersion: 1 as const,
     airborneJumpPolicyVersion: 1 as const,
-    elementalDamagePolicyVersion: 1 as const,
+    elementalDamagePolicyVersion: 2 as const,
     dynamicInitiativePolicyVersion: 1 as const,
     healingDownPolicyVersion: 1 as const,
     blindsideActivationPolicyVersion: 1 as const,

@@ -1,14 +1,18 @@
 'use client'
 
 import type { CombatEffectDefinition } from '@aurevane/game-core/combat/actions'
-import { CLEANSE_STATUS_IDS } from '@aurevane/game-core/combat/combat-cleanse'
+import {
+  CLEANSE_STATUS_IDS,
+  isCleanseChilledEffect,
+} from '@aurevane/game-core/combat/combat-cleanse'
 import { useState } from 'react'
 
 import { previewEffect } from '../../character/skill-effect-preview'
 import styles from './combat-content-editor.module.css'
 import { SkillEffectEditor } from './skill-effect-editor'
 
-export type CombatEffectType = CombatEffectDefinition['type'] | 'push' | 'pull' | 'blindside'
+export type CombatEffectType =
+  CombatEffectDefinition['type'] | 'push' | 'pull' | 'blindside' | 'cleanse-chilled'
 
 const EFFECT_TYPES: readonly { value: CombatEffectType; label: string }[] = [
   { value: 'damage', label: 'Damage' },
@@ -18,6 +22,7 @@ const EFFECT_TYPES: readonly { value: CombatEffectType; label: string }[] = [
   { value: 'apply-status', label: 'Apply status' },
   { value: 'blindside', label: 'Blindside · Instant, 1 turn' },
   { value: 'remove-status', label: 'Remove status' },
+  { value: 'cleanse-chilled', label: 'Cleanse Chilled' },
   { value: 'return-to-turn-start', label: 'Return to turn start' },
   { value: 'create-terrain', label: 'Create Frozen Ground' },
   { value: 'push', label: 'Push' },
@@ -54,6 +59,8 @@ export function createDefaultCombatEffect(type: CombatEffectType): CombatEffectD
       return { type, recipient: 'actor', resource: 'mp', delta: 0, ticks: 1 }
     case 'apply-status':
       return { type, recipient: 'primary-unit', statusId: 'guarded', stacks: 1 }
+    case 'cleanse-chilled':
+      return { type: 'remove-status', recipient: 'actor', statusIds: ['frozen'] }
     case 'remove-status':
       return { type, recipient: 'primary-unit', statusIds: [...CLEANSE_STATUS_IDS] }
     case 'return-to-turn-start':
@@ -197,9 +204,11 @@ export function SkillEffectListEditor({
                     ? effect.direction === 'pull'
                       ? 'Pull'
                       : 'Push'
-                    : effect.type === 'apply-status' && effect.statusId === 'blindside'
-                      ? 'Blindside'
-                      : EFFECT_TYPES.find((entry) => entry.value === effect.type)?.label}
+                    : isCleanseChilledEffect(effect)
+                      ? 'Cleanse Chilled'
+                      : effect.type === 'apply-status' && effect.statusId === 'blindside'
+                        ? 'Blindside'
+                        : EFFECT_TYPES.find((entry) => entry.value === effect.type)?.label}
                 </strong>
               </div>
               <div className={styles.effectActions}>

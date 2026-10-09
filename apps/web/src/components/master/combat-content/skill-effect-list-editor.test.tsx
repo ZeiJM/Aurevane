@@ -122,3 +122,11 @@ it('provides reusable Instant one-turn Blindside authoring', () => {
     durationTurns: 1,
   })
 })
+
+it('authors the visible limited Cleanse Chilled using the existing removal payload', () => {
+  expect(createDefaultCombatEffect('cleanse-chilled')).toEqual({
+    type: 'remove-status',
+    recipient: 'actor',
+    statusIds: ['frozen'],
+  })
+})

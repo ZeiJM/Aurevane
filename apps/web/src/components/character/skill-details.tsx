@@ -93,10 +93,11 @@ export function SkillDetails({
   skill: MatureSkillDefinition
   expanded?: boolean
 }) {
+  const groundRules = useSkillGroundInteractionRules()
   return (
     <div className={styles.root} data-testid="skill-details">
       <div className={styles.tags} aria-label="Targeting and effects">
-        {skillTargetTags(skill).map((tag) => (
+        {skillTargetTags(skill, groundRules).map((tag) => (
           <span key={tag}>{tag}</span>
         ))}
       </div>

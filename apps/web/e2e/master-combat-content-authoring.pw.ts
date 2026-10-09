@@ -695,7 +695,7 @@ test('Master combat authoring publishes versioned content, pins battles, and rol
             intent: {
               kind: 'action',
               actionId: 'cinderweaver.flame-burst',
-              target: { kind: 'activate' },
+              target: { kind: 'activate', ground: true },
             },
           },
         },

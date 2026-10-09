@@ -16,15 +16,25 @@ export function statusDamageMultiplierBasisPoints(
 export function statusPotencyDescription(
   statusId: string,
   potencyBasisPoints?: number,
-  options: { legacyHealingDown?: boolean; legacyElemental?: boolean } = {},
+  options: {
+    legacyHealingDown?: boolean
+    legacyElemental?: boolean
+    explicitElemental?: boolean
+    elementalPotencyUnavailable?: boolean
+  } = {},
 ): string {
-  if (options.legacyElemental === false) {
+  const stormBonus = options.elementalPotencyUnavailable
+    ? 'the captured Storm damage bonus (recorded percentage unavailable)'
+    : `${(potencyBasisPoints ?? 2000) / 100}% Storm damage`
+  if (!options.legacyElemental) {
     if (statusId === 'wet')
-      return `Drenched reduces effective Initiative by 10% once while active and adds ${(potencyBasisPoints ?? 2000) / 100}% Storm damage. Fire removes Drenched.`
+      return options.explicitElemental === false
+        ? `Drenched reduces effective Initiative by 10% once while active and adds ${stormBonus}. Fire removes Drenched.`
+        : `Each Drenched application reduces effective Initiative by 10%, capped at 100% reduction (minimum 0 Initiative), while active. Drenched adds ${stormBonus} using the strongest active application.`
     if (statusId === 'conductive')
-      return `Adds ${(potencyBasisPoints ?? 2000) / 100}% Storm damage; positive Storm HP damage consumes the old charge. A Storm Skill can apply a fresh charge after settlement.`
+      return `Adds ${stormBonus}; positive Storm HP damage consumes the old charge. ${options.explicitElemental === false ? 'A Storm Skill' : 'An explicit Conductive tag'} can apply a fresh charge after settlement; the new charge cannot be consumed again in the same command.`
     if (statusId === 'frozen')
-      return 'Chilled prevents changing final facing at turn end. End the turn in the current direction; movement keeps its usual automatic facing. A legal Fire cast cleanses the caster; positive Fire damage cleanses its recipient.'
+      return `Chilled prevents changing final facing at turn end. End the turn in the current direction; movement keeps its usual automatic facing. ${options.explicitElemental === false ? 'A legal Fire cast cleanses the caster; positive Fire damage cleanses its recipient.' : 'Cleanse Chilled removes it from its authored recipient.'}`
   }
   if (statusId === 'suppress')
     return `Deal ${(potencyBasisPoints ?? 2500) / 100}% less outgoing direct damage. Never stacks; retains the highest percentage and longest remaining duration. Captured Burn, Poison and Bleed ticks are unchanged; new DoTs capture actual settled HP loss. Cleanse removes it; Dispel does not.`

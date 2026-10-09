@@ -111,7 +111,10 @@ async function battleBuildExtensions(
           targetTeamPolicy: definition.target.teamPolicy,
           minimumRange: definition.target.minimumRange,
           maximumRange: definition.target.maximumRange,
-          tags: skillTargetTags(definition),
+          tags: skillTargetTags(definition, {
+            legacyElemental: battle.snapshot.elementalDamagePolicyVersion == null,
+            explicitElemental: battle.snapshot.elementalDamagePolicyVersion === 2,
+          }),
           effectDescriptions: definition.effects.map((effect) =>
             skillEffectDescription(effect, {
               legacyTriggers,
@@ -119,8 +122,10 @@ async function battleBuildExtensions(
               legacyFrozenGround: battle.snapshot.frozenGroundPolicyVersion !== 1,
               legacyAirborne: battle.snapshot.airbornePolicyVersion !== 1,
               legacyAirborneJump: battle.snapshot.airborneJumpPolicyVersion !== 1,
-              legacyElemental: battle.snapshot.elementalDamagePolicyVersion !== 1,
+              legacyElemental: battle.snapshot.elementalDamagePolicyVersion == null,
+              explicitElemental: battle.snapshot.elementalDamagePolicyVersion === 2,
               timingPolicy: battle.snapshot.effectTimingPolicy ?? null,
+              skillEffects: definition.effects,
               legacyHealingDown: battle.snapshot.healingDownPolicyVersion !== 1,
             }),
           ),
@@ -162,7 +167,10 @@ async function battleBuildExtensions(
               ? null
               : (essenceOverride?.cooldownOwnerTurns ??
                 essenceDefinition.skill.cooldown.ownerTurns),
-          tags: skillTargetTags(essenceDefinition.skill),
+          tags: skillTargetTags(essenceDefinition.skill, {
+            legacyElemental: battle.snapshot.elementalDamagePolicyVersion == null,
+            explicitElemental: battle.snapshot.elementalDamagePolicyVersion === 2,
+          }),
           effectDescriptions: essenceDefinition.skill.effects.map((effect) =>
             skillEffectDescription(effect, {
               legacyTriggers,
@@ -170,8 +178,10 @@ async function battleBuildExtensions(
               legacyFrozenGround: battle.snapshot.frozenGroundPolicyVersion !== 1,
               legacyAirborne: battle.snapshot.airbornePolicyVersion !== 1,
               legacyAirborneJump: battle.snapshot.airborneJumpPolicyVersion !== 1,
-              legacyElemental: battle.snapshot.elementalDamagePolicyVersion !== 1,
+              legacyElemental: battle.snapshot.elementalDamagePolicyVersion == null,
+              explicitElemental: battle.snapshot.elementalDamagePolicyVersion === 2,
               timingPolicy: battle.snapshot.effectTimingPolicy ?? null,
+              skillEffects: essenceDefinition.skill.effects,
               legacyHealingDown: battle.snapshot.healingDownPolicyVersion !== 1,
             }),
           ),

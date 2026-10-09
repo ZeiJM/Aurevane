@@ -5,7 +5,11 @@ import type {
   CombatEffectRecipient,
 } from '@aurevane/game-core/combat/actions'
 import type { CombatElement } from '@aurevane/game-core/combat/gameplay-tags'
-import { CLEANSE_STATUS_IDS, isCleanseEffect } from '@aurevane/game-core/combat/combat-cleanse'
+import {
+  CLEANSE_STATUS_IDS,
+  isCleanseEffect,
+  isCleanseChilledEffect,
+} from '@aurevane/game-core/combat/combat-cleanse'
 import { DEFAULT_BLINDSIDE_MODIFIERS } from '@aurevane/game-core/combat/combat-blindside'
 
 import { useId, useState } from 'react'
@@ -26,6 +30,8 @@ const PERCENTAGE_STATUS_IDS = new Set([
   'mark',
   'marked',
   'hexed',
+  'wet',
+  'conductive',
   'suppress',
   'inspired',
   'summoned',
@@ -149,46 +155,6 @@ function damageEditor(value: DamageEffect, onChange: (next: CombatEffectDefiniti
         </select>
       </label>
 
-      {value.element && ['ice', 'water', 'storm'].includes(value.element) ? (
-        <label className={styles.field}>
-          <span>Elemental debuff duration (turns)</span>
-          <input
-            aria-label="Elemental debuff duration (turns)"
-            type="number"
-            min={1}
-            max={4}
-            step={1}
-            value={value.durationTurns || 2}
-            onChange={(event) =>
-              onChange({ ...value, durationTurns: integer(event.currentTarget.value, 2) })
-            }
-          />
-        </label>
-      ) : null}
-      {value.element === 'water' || value.element === 'storm' ? (
-        <label className={styles.field}>
-          <span>
-            {value.element === 'water' ? 'Drenched Storm bonus (%)' : 'Conductive Storm bonus (%)'}
-          </span>
-          <input
-            aria-label={
-              value.element === 'water' ? 'Drenched Storm bonus (%)' : 'Conductive Storm bonus (%)'
-            }
-            type="number"
-            min={1}
-            max={50}
-            step={0.01}
-            value={(value.potencyBasisPoints ?? 2000) / 100}
-            onChange={(event) =>
-              onChange({
-                ...value,
-                potencyBasisPoints: Math.round(Number(event.currentTarget.value) * 100),
-              })
-            }
-          />
-          <small>Additional Storm damage captured on the applied debuff. Default 20%.</small>
-        </label>
-      ) : null}
       <label className={styles.checkField}>
         <input
           aria-label="Piercing"
@@ -840,8 +806,9 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
               }
             />
             <small className={styles.fieldHint}>
-              Cleanse removes Burn, Bleed, Poison, Slow, Rooted, Vulnerable, Marked and Taunted.
-              Dispel removes authored positive statuses.
+              {isCleanseChilledEffect(value)
+                ? 'Cleanse Chilled removes only Chilled from the authored recipient; other statuses remain.'
+                : 'Cleanse removes Burn, Bleed, Poison, Slow, Rooted, Vulnerable, Marked and Taunted. Dispel removes authored positive statuses.'}
             </small>
             {isCleanseEffect(value) ? (
               <button
@@ -1129,24 +1096,30 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
               type="number"
               min={1}
               max={value.statusId === 'suppress' ? 100 : 50}
-              step={value.statusId === 'suppress' ? 0.01 : 1}
+              step={['suppress', 'wet', 'conductive'].includes(value.statusId) ? 0.01 : 1}
               value={
-                (value.potencyBasisPoints ?? (value.statusId === 'suppress' ? 2500 : 1500)) / 100
+                (value.potencyBasisPoints ??
+                  (value.statusId === 'suppress'
+                    ? 2500
+                    : ['wet', 'conductive'].includes(value.statusId)
+                      ? 2000
+                      : 1500)) / 100
               }
               onChange={(event) =>
                 onChange({
                   ...value,
-                  potencyBasisPoints:
-                    value.statusId === 'suppress'
-                      ? Math.round(Number(event.currentTarget.value) * 100)
-                      : Math.max(1, Math.min(50, integer(event.currentTarget.value, 15))) * 100,
+                  potencyBasisPoints: ['suppress', 'wet', 'conductive'].includes(value.statusId)
+                    ? Math.round(Number(event.currentTarget.value) * 100)
+                    : Math.max(1, Math.min(50, integer(event.currentTarget.value, 15))) * 100,
                 })
               }
             />
             <small className={styles.fieldHint}>
               {value.statusId === 'suppress'
                 ? 'Outgoing direct-damage reduction. Never stacks; retains the highest percentage and longest remaining duration. 25 = 25%.'
-                : 'Used by percentage-based statuses such as Guard or Vulnerable. 15 = 15%.'}
+                : ['wet', 'conductive'].includes(value.statusId)
+                  ? 'Additional Storm damage captured on this explicit status tag. Default 20%. Matching elemental damage requires positive hostile actual HP loss after Barrier and a surviving recipient.'
+                  : 'Used by percentage-based statuses such as Guard or Vulnerable. 15 = 15%.'}
             </small>
           </label>
         ) : null}

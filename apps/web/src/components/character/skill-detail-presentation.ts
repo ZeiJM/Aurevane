@@ -1,10 +1,15 @@
+import { isCleanseChilledEffect } from '@aurevane/game-core/combat/combat-cleanse'
 import { groupSkillEffects } from './skill-effect-groups'
 import {
   isPercentageDotEffect,
   percentageDotDescription,
 } from '@aurevane/game-core/combat/combat-percentage-dots'
 import { skillInformationRows } from './skill-information-contract'
-import { previewEffect, skillDamageElementInteraction } from './skill-effect-preview'
+import {
+  elementalStatusOverlapsDamage,
+  previewEffect,
+  skillDamageElementInteraction,
+} from './skill-effect-preview'
 import {
   combatActionPresentationTags,
   combatEffectPresentationTags,
@@ -57,6 +62,8 @@ export function skillEffectDescription(
     legacyAirborneJump?: boolean
     legacyHealingDown?: boolean
     legacyElemental?: boolean
+    explicitElemental?: boolean
+    skillEffects?: readonly MatureSkillEffectDefinition[]
     timingPolicy?: SkillEffectTimingPolicy
   } = {},
 ): string {
@@ -75,6 +82,8 @@ export function skillEffectDescription(
         effect,
         options.legacyElemental,
         options.timingPolicy,
+        options.skillEffects,
+        options.explicitElemental,
       )
       return `Deal ${effect.amount} base damage to ${target}.${position}${element}`
     }
@@ -108,15 +117,30 @@ export function skillEffectDescription(
     case 'sensory':
       return `Attempt Reveal on ${target}. On a successful hit against Covert, remove eligible positive statuses and Covert, then apply Revealed for ${effect.revealedDurationOwnerTurnStarts} owner-turn starts. Otherwise Reveal has no effect.`
     case 'remove-status': {
-      const statusIds = combatEffectPresentationTags(effect).includes('Cleanse')
-        ? [...effect.statusIds, 'suppress']
-        : effect.statusIds
+      if (
+        isCleanseChilledEffect(effect) &&
+        !options.legacyElemental &&
+        options.explicitElemental !== false
+      )
+        return previewEffect(effect, options).explanation
+      const statusIds =
+        combatEffectPresentationTags(effect).includes('Cleanse') ||
+        (isCleanseChilledEffect(effect) &&
+          (options.legacyElemental || options.explicitElemental === false))
+          ? [...effect.statusIds, 'suppress']
+          : effect.statusIds
       const statusNames = [...new Set(statusIds.map((id) => combatStatusDetails(id).name))]
       return `Remove ${statusNames.join(', ')} from ${target}.`
     }
     case 'apply-status': {
       if (effect.statusId === 'suppress')
         return `Apply Suppress to ${target}. ${previewEffect(effect, options).explanation} Lasts ${effect.durationTurns ?? 2} turns.`
+      if (
+        !options.legacyElemental &&
+        options.explicitElemental !== false &&
+        ['frozen', 'wet', 'conductive'].includes(effect.statusId)
+      )
+        return `Apply ${gameplayStatusName(effect.statusId)} to ${target}. ${previewEffect(effect, options).explanation}`
       const status = combatStatusDetails(effect.statusId)
       const preview = previewEffect(effect, options)
       const duration =
@@ -154,11 +178,19 @@ export function skillRequirementDescription(requirement: CombatUseRequirement): 
   }
 }
 
-export function skillTargetTags(skill: MatureSkillDefinition): readonly string[] {
+export function skillTargetTags(
+  skill: MatureSkillDefinition,
+  options: { legacyElemental?: boolean; explicitElemental?: boolean } = {},
+): readonly string[] {
   return combatActionPresentationTags({
     target: skill.target,
     effects: skill.effects.filter(isMaterializedCombatEffect),
-  })
+  }).map((tag) =>
+    (options.legacyElemental || options.explicitElemental === false) &&
+    tag.startsWith('Cleanse Chilled')
+      ? tag.replace('Cleanse Chilled', 'Cleanse')
+      : tag,
+  )
 }
 
 export function skillTypeDescription(
@@ -207,6 +239,7 @@ export function skillParameterRows(
     legacyFrozenGround?: boolean
     airborneAttackElevation?: boolean
     legacyElemental?: boolean
+    explicitElemental?: boolean
   } = {},
 ): readonly (readonly [string, string])[] {
   return skillInformationRows({
@@ -214,16 +247,22 @@ export function skillParameterRows(
     Cost: skillCostDescription({ ...skill, ...costs }),
     Cooldown: skillCooldownDescription(skill, costs.cooldownOwnerTurns),
     Requirements: skillRequirementsSummary(skill),
-    Effects: skillEffectsSummary(skill, timingPolicy),
+    Effects: skillEffectsSummary(skill, timingPolicy, options),
     Range: skillCompactRangeDescription(skill),
     Target:
-      skillTargetRecipientDescription(skill, options.legacyFrozenGround) +
-      (!options.legacyElemental &&
-      skill.target.kind === 'unit' &&
+      !options.legacyElemental &&
+      options.explicitElemental !== false &&
+      (skill.target.kind === 'unit' || skill.target.kind === 'ground-tile') &&
       skill.target.teamPolicy === 'enemy' &&
       skill.effects.some((effect) => effect.type === 'damage' && effect.element === 'fire')
-        ? ' / Ground'
-        : ''),
+        ? 'Enemy / Ground'
+        : skillTargetRecipientDescription(skill, options.legacyFrozenGround) +
+          (!options.legacyElemental &&
+          skill.target.kind === 'unit' &&
+          skill.target.teamPolicy === 'enemy' &&
+          skill.effects.some((effect) => effect.type === 'damage' && effect.element === 'fire')
+            ? ' / Ground'
+            : ''),
     'Target Method': skillTargetMethodDescription(skill),
     'Target Elevation':
       options.airborneAttackElevation && skill.tags.includes('attack')
@@ -231,6 +270,12 @@ export function skillParameterRows(
         : skillTargetElevationDescription(skill),
     'Line of Sight': skillLineOfSightDescription(skill),
   })
+}
+
+interface ElementalEffectPresentationOptions {
+  legacyElemental?: boolean
+  explicitElemental?: boolean
+  skillEffects?: readonly MatureSkillEffectDefinition[]
 }
 
 export interface CompactSkillEffectSummaryParts {
@@ -243,9 +288,16 @@ export interface CompactSkillEffectSummaryParts {
 export function skillEffectInstantTiming(
   effect: MatureSkillEffectDefinition,
   policy: SkillEffectTimingPolicy = defaultCombatEffectTimingPolicy(),
+  options: ElementalEffectPresentationOptions = {},
 ): 'Instant' | 'Delayed' | undefined {
   const tag = effect.type === 'summon' ? 'summon' : currentCombatEffectTimingTag(effect)
-  const mode = combatEffectTimingMode(policy ?? undefined, tag)
+  const mode =
+    !options.legacyElemental &&
+    options.explicitElemental !== false &&
+    elementalStatusOverlapsDamage(effect, options.skillEffects) &&
+    policy?.modes[tag] === undefined
+      ? 'instant'
+      : combatEffectTimingMode(policy ?? undefined, tag)
   return mode === 'delayed'
     ? 'Delayed'
     : effect.type !== 'damage' && mode === 'instant'
@@ -291,13 +343,17 @@ function compactMagnitude(effect: MatureSkillEffectDefinition): string | null {
 export function compactSkillEffectSummaryParts(
   effect: MatureSkillEffectDefinition,
   timingPolicy: SkillEffectTimingPolicy = defaultCombatEffectTimingPolicy(),
+  options: ElementalEffectPresentationOptions = {},
 ): CompactSkillEffectSummaryParts {
-  const preview = previewEffect(effect)
-  const timing = skillEffectInstantTiming(effect, timingPolicy)
+  const preview = previewEffect(effect, options)
+  const timing = skillEffectInstantTiming(effect, timingPolicy, options)
   return {
     label: preview.label,
     magnitude: compactMagnitude(effect),
-    duration: compactDuration(effect),
+    duration:
+      effect.type === 'damage' && !options.legacyElemental && options.explicitElemental !== false
+        ? null
+        : compactDuration(effect),
     ...(timing ? { timing } : {}),
   }
 }
@@ -305,10 +361,12 @@ export function compactSkillEffectSummaryParts(
 function compactEffectSummary(
   effect: MatureSkillEffectDefinition,
   timingPolicy: SkillEffectTimingPolicy,
+  options: ElementalEffectPresentationOptions,
 ): string {
   const { label, magnitude, duration, timing } = compactSkillEffectSummaryParts(
     effect,
     timingPolicy,
+    options,
   )
   return [
     label,
@@ -323,18 +381,20 @@ function compactEffectSummary(
 export function skillEffectSummaries(
   skill: Pick<MatureSkillDefinition, 'effects' | 'effectDescriptions'>,
   timingPolicy: SkillEffectTimingPolicy = defaultCombatEffectTimingPolicy(),
+  options: ElementalEffectPresentationOptions = {},
 ): readonly string[] {
   return groupSkillEffects(skill.effects, skill.effectDescriptions).map(
     ({ effect, count }) =>
-      `${compactEffectSummary(effect, timingPolicy)}${count > 1 ? ` ×${count}` : ''}`,
+      `${compactEffectSummary(effect, timingPolicy, { ...options, skillEffects: skill.effects })}${count > 1 ? ` ×${count}` : ''}`,
   )
 }
 
 export function skillEffectsSummary<Skill extends Pick<MatureSkillDefinition, 'effects'>>(
   skill: Skill,
   timingPolicy: SkillEffectTimingPolicy = defaultCombatEffectTimingPolicy(),
+  options: ElementalEffectPresentationOptions = {},
 ): string {
-  return skillEffectSummaries(skill, timingPolicy).join(', ') || 'N/A'
+  return skillEffectSummaries(skill, timingPolicy, options).join(', ') || 'N/A'
 }
 
 export function skillRequirementsSummary(

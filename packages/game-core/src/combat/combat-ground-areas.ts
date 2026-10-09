@@ -307,7 +307,7 @@ export function validateCombatGroundAreas(
         throw new TypeError('Invalid Ground effect origins.')
       validateGroundTiles(state, area.tiles)
       if (area.steamTiles) {
-        if (state.elementalDamagePolicyVersion !== 1)
+        if (state.elementalDamagePolicyVersion === undefined)
           throw new TypeError('Ice conversion requires its pinned policy.')
         validateGroundTiles(state, area.steamTiles)
         if (

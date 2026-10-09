@@ -429,3 +429,13 @@ describe('Combat v5.1 Essence targeting balance', () => {
     expect(elevations.get(2) ?? 0).toBeGreaterThan(0)
   })
 })
+
+it('current Essence audit has no typed Fire direct damage requiring a caster cleanse append', () => {
+  const disciplines = [...new Set(P36_REPRESENTATIVE_ESSENCES.map((e) => e.sourceDisciplineId))]
+  const fire = disciplines
+    .map((id) => resolveEssenceForBuild(id, null)!)
+    .filter((e) =>
+      e.skill.effects.some((effect) => effect.type === 'damage' && effect.element === 'fire'),
+    )
+  expect(fire).toEqual([])
+})

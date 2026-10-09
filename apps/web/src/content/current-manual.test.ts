@@ -153,3 +153,15 @@ it('documents Combat v5.1 reach, elevation, LOS, and compact targeting presentat
   expect(text).toContain('Slow [+10 AP]')
   expect(text).not.toContain('Slow [+10 AP/tile]')
 })
+
+it('explains explicit elemental tags, stacked Drenched Initiative and caster-only Fire cleanse', () => {
+  const text = articleText('battle-hall')
+  expect(text).toContain('explicit Chilled tag')
+  expect(text).toContain('explicit Drenched tag')
+  expect(text).toContain('explicit Conductive tag')
+  expect(text).toContain('10% per application')
+  expect(text).toContain('100% reduction (minimum 0 Initiative)')
+  expect(text).toContain('strongest active captured Storm damage bonus')
+  expect(text).toContain('Drenched and hostile recipients’ Chilled remain')
+  expect(text).not.toContain('Fire damage clears Drenched and Chilled')
+})

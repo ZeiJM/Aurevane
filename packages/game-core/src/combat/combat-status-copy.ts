@@ -293,7 +293,7 @@ export function planCombatStatusCopies(
     if (!definition) throw new TypeError(`Missing pinned status definition ${donor.statusId}.`)
     if (
       donor.timingState === 'pending' ||
-      !isCopyable(definition, effect, state.elementalDamagePolicyVersion === 1)
+      !isCopyable(definition, effect, state.elementalDamagePolicyVersion !== undefined)
     )
       continue
     assertPinnedStatus(donor, definition, usesUnlimitedCombatEffectStacking(state))

@@ -9,6 +9,18 @@ import type {
   CombatTargetSpec,
 } from './actions'
 
+/** Limited removal is a separate authored effect; it must never widen to full Cleanse. */
+export function isCleanseChilledEffect(effect: {
+  readonly type: string
+  readonly statusIds?: readonly string[]
+}): boolean {
+  return (
+    effect.type === 'remove-status' &&
+    effect.statusIds?.length === 1 &&
+    effect.statusIds[0] === 'frozen'
+  )
+}
+
 export const GAMEPLAY_TAGS = [
   'Scorched',
   'Frozen',
@@ -382,6 +394,7 @@ function effectPresentationTags(effect: PresentationEffect): readonly string[] {
       : [`MP Restore [${positiveDisplayInteger(effect.delta, 1)}]`]
   }
   if (effect.type === 'remove-status') {
+    if (isCleanseChilledEffect(effect)) return ['Cleanse Chilled']
     const ids = Array.isArray(effect.statusIds)
       ? effect.statusIds.filter((id): id is string => typeof id === 'string')
       : []

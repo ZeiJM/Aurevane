@@ -45,7 +45,11 @@ export function BattleSkillParameters({ skill }: { skill: BattleSkillForecastPre
                 ? groupSkillEffects(definition.effects, definition.effectDescriptions).map(
                     ({ effect, count, firstIndex: index }) => (
                       <div key={index}>
-                        <CompactSkillEffectSummary effect={effect} count={count} />
+                        <CompactSkillEffectSummary
+                          effect={effect}
+                          count={count}
+                          skillEffects={definition.effects}
+                        />
                       </div>
                     ),
                   )

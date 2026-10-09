@@ -237,3 +237,32 @@ it('reads active and pending Suppress with exact percentage and lifetime', () =>
     describeBattleEffect({ ...effect, timingState: 'pending', activationRound: 3 }).explanation,
   ).toContain('round 3')
 })
+
+it('describes current elemental rails using their saved policy and strongest captured bonus', () => {
+  const current = describeBattleEffect({
+    statusId: 'wet',
+    statusVersion: 1,
+    stacks: 3,
+    remainingOwnerTurnStarts: 2,
+    sourceCombatantId: 'caster',
+    elementalDamagePolicyVersion: 2,
+    applicationModifiers: [
+      { stacks: 1, sourceCombatantId: 'caster', potencyBasisPoints: 3500 },
+      { stacks: 2, sourceCombatantId: 'caster', potencyBasisPoints: 4250 },
+    ],
+  })
+  expect(current.description).toContain('10%, capped at 100%')
+  expect(current.description).toContain('42.5% Storm damage')
+  expect(current.description).not.toContain('Fire removes')
+  const old = describeBattleEffect({
+    statusId: 'wet',
+    statusVersion: 1,
+    stacks: 3,
+    remainingOwnerTurnStarts: 2,
+    sourceCombatantId: 'caster',
+    elementalDamagePolicyVersion: 1,
+    potencyBasisPoints: 3500,
+  })
+  expect(old.description).toContain('10% once')
+  expect(old.description).toContain('Fire removes Drenched')
+})

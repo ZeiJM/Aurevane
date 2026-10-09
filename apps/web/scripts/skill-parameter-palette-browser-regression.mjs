@@ -333,18 +333,48 @@ try {
       assert.equal(await trigger.evaluate((element) => element === document.activeElement), true)
     }
     for (const scenario of [
+      { wet: 'unset', lifetime: '3 affected turns starting when damage settles (Instant)' },
       { wet: 'instant', lifetime: '3 affected turns starting when damage settles (Instant)' },
       { wet: 'next-round', lifetime: '3 full rounds starting next round after damage settles' },
       {
         wet: 'delayed',
         lifetime: '3 full rounds starting two round boundaries after damage settles (Delayed)',
       },
+      {
+        wet: 'delayed',
+        elemental: 1,
+        lifetime: '3 full rounds starting two round boundaries after damage settles (Delayed)',
+      },
+      {
+        wet: 'delayed',
+        duration: 4,
+        potency: 42,
+        lifetime: '4 full rounds starting two round boundaries after damage settles (Delayed)',
+      },
       { wet: 'delayed', historical: true },
     ]) {
       await page.goto(
-        `${server.resolvedUrls.local[0]}?surface=elemental-readers&wet=${scenario.wet}&historical=${!!scenario.historical}`,
+        `${server.resolvedUrls.local[0]}?surface=elemental-readers&wet=${scenario.wet}&historical=${!!scenario.historical}&elemental=${scenario.elemental || 2}`,
         { waitUntil: 'networkidle' },
       )
+      if (scenario.duration) {
+        const editor = page
+          .getByRole('region', { name: 'Master elemental authoring' })
+          .locator('[data-effect-type="apply-status"]')
+        await editor
+          .getByLabel('Effect duration (turns)', { exact: true })
+          .fill(String(scenario.duration))
+        await editor
+          .getByLabel('Status potency (percent)', { exact: true })
+          .fill(String(scenario.potency))
+      }
+      const master = page.getByRole('region', { name: 'Master elemental details' })
+      assert.deepEqual((await master.locator('dt').allTextContents()).slice(0, 10), fields)
+      if (!scenario.historical && scenario.elemental !== 1) {
+        const status = await master.locator('ol li').nth(1).textContent()
+        assert.ok(status.includes(scenario.lifetime))
+        assert.ok(status.includes(`${scenario.potency || 35}% Storm damage`))
+      }
       const raw = page.getByRole('region', { name: 'Captured summon abilities' })
       assert.equal(await raw.locator('dt').count(), 0)
       assert.equal((await raw.textContent()).trim(), 'Captured Water!')
@@ -359,21 +389,38 @@ try {
           assert.ok(!explanations.includes('Initiative by 10%'))
           assert.ok(!explanations.includes('full rounds starting'))
           assert.ok(!explanations.includes('If a damaged recipient'))
+        } else if (scenario.elemental === 1) {
+          assert.ok(explanations.includes(scenario.lifetime))
+          const damage = await popup
+            .getByLabel('Effect explanations')
+            .locator('li')
+            .first()
+            .textContent()
+          assert.ok(damage.includes('35% Storm damage'))
+          if (title === 'Overlap Water') {
+            assert.ok(damage.includes('Otherwise:'))
+            assert.ok(damage.includes('20% Storm damage'))
+          }
         } else {
           assert.ok(explanations.includes(scenario.lifetime))
-          assert.ok(explanations.includes('35% Storm damage'))
+          assert.ok(explanations.includes(`${scenario.potency || 35}% Storm damage`))
+          assert.equal(
+            await popup.locator('[data-compact-skill-effect]').first().textContent(),
+            'Water Dmg [10]',
+          )
+          const rows = popup.getByLabel('Effect explanations').locator('li')
+          assert.equal(await rows.count(), 2)
+          const damage = await rows.first().textContent()
+          const status = await rows.nth(1).textContent()
+          assert.ok(!/applies Drenched|affected turns|full rounds|35%|Otherwise/.test(damage))
+          assert.ok(status.includes(scenario.lifetime))
+          assert.ok(status.includes(`${scenario.potency || 35}% Storm damage`))
+          assert.ok(status.includes('positive hostile HP damage'))
+          assert.ok(status.includes('survives'))
+          assert.ok(status.includes('10%, capped at 100%'))
+          assert.ok(!status.includes('Fire removes'))
           if (title === 'Overlap Water') {
-            const damage = await popup
-              .getByLabel('Effect explanations')
-              .locator('li')
-              .first()
-              .textContent()
-            const [primary, others] = damage.split(' Otherwise:')
-            assert.ok(primary.includes('If a damaged recipient is the primary target:'))
-            assert.ok(primary.includes(scenario.lifetime))
-            assert.ok(primary.includes('35% Storm damage'))
-            assert.ok(others.includes('20% Storm damage'))
-            assert.ok(!others.includes('35%'))
+            assert.ok(!explanations.includes('20% Storm damage'))
           }
         }
         const popupBox = await popup.boundingBox()
@@ -388,13 +435,70 @@ try {
         await popup.screenshot({
           path: resolve(
             output,
-            `elemental-${title === 'Overlap Water' ? 'battle' : 'summon'}-${scenario.historical ? 'historical' : scenario.wet}-${viewport.width}.png`,
+            `elemental-${title === 'Overlap Water' ? 'battle' : 'summon'}-${scenario.historical ? 'historical' : `${scenario.wet}-policy${scenario.elemental || 2}-duration${scenario.duration || 3}`}-${viewport.width}.png`,
           ),
         })
         await page.keyboard.press('Escape')
         await popup.waitFor({ state: 'detached' })
         assert.equal(await trigger.evaluate((element) => element === document.activeElement), true)
       }
+    }
+    for (const fireIntent of ['unit', 'ground']) {
+      await page.goto(`${server.resolvedUrls.local[0]}?surface=fire-readers&fire=${fireIntent}`, {
+        waitUntil: 'networkidle',
+      })
+      const fireEditor = page.getByRole('region', { name: 'Master Fire authoring' })
+      await fireEditor.getByLabel('New effect type').selectOption('cleanse-chilled')
+      await fireEditor.getByRole('button', { name: 'Add effect', exact: true }).click()
+      assert.deepEqual(await page.evaluate(() => window.fireAuthoringEffects[1]), {
+        type: 'remove-status',
+        recipient: 'actor',
+        statusIds: ['frozen'],
+      })
+      const cleanseEditor = fireEditor.locator('[data-effect-type="remove-status"]')
+      assert.equal(
+        await cleanseEditor.getByLabel('Status IDs', { exact: true }).inputValue(),
+        'frozen',
+      )
+      assert.equal(
+        await cleanseEditor.getByLabel('Status removal recipient', { exact: true }).inputValue(),
+        'actor',
+      )
+      assert.equal(
+        await cleanseEditor
+          .getByRole('button', { name: 'Use standard Cleanse', exact: true })
+          .count(),
+        0,
+      )
+      for (const name of ['Master Fire details', 'Nexus Fire parameters']) {
+        const report = page.getByRole('region', { name })
+        assert.deepEqual((await report.locator('dt').allTextContents()).slice(0, 10), fields)
+        assert.ok((await report.textContent()).includes('Cleanse Chilled [Instant]'))
+        assert.ok((await report.textContent()).includes('Enemy / Ground'))
+      }
+      await page.getByRole('button', { name: 'About Fire report', exact: true }).click()
+      const firePopup = page.getByRole('dialog', { name: 'Fire report', exact: true })
+      await firePopup.waitFor()
+      assert.deepEqual(await firePopup.locator('dt').allTextContents(), fields)
+      if (fireIntent === 'ground') {
+        assert.ok(
+          (
+            await firePopup.getByLabel('Ground area rules', { exact: true }).textContent()
+          ).startsWith('Ground casts: 3 rounds'),
+        )
+      }
+      const fireRows = firePopup.getByLabel('Effect explanations').locator('li')
+      assert.equal(await fireRows.count(), 2)
+      assert.ok(!(await fireRows.first().textContent()).includes('cleanses Chilled'))
+      assert.equal(
+        await fireRows.nth(1).textContent(),
+        'Cleanse Chilled — Removes Chilled from the caster only; other statuses remain.',
+      )
+      await firePopup.screenshot({
+        path: resolve(output, `fire-limited-cleanse-${fireIntent}-${viewport.width}.png`),
+      })
+      await page.keyboard.press('Escape')
+      await firePopup.waitFor({ state: 'detached' })
     }
     assert.deepEqual(errors, [])
     evidence.push({ viewport, status: 'passed' })

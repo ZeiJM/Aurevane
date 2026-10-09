@@ -301,7 +301,7 @@ function buildCandidates(
   )
   if (nearestEnemy) {
     const preferredFacing =
-      state.elementalDamagePolicyVersion === 1 &&
+      state.elementalDamagePolicyVersion !== undefined &&
       hasGameplayTag(state, actorPlacement.combatantId, 'Frozen', PV1F_COMBAT_CONTENT)
         ? actorPlacement.facing
         : facingToward(actorPlacement.position, nearestEnemy.position)

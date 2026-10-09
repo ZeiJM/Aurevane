@@ -1514,7 +1514,7 @@ export function finishPv1fTurn(
     outgoingCombatantId !== null && getCombatant(prepared, outgoingCombatantId).hp <= 0
   if (
     !outgoingDefeated &&
-    prepared.elementalDamagePolicyVersion === 1 &&
+    prepared.elementalDamagePolicyVersion !== undefined &&
     hasGameplayTag(prepared, outgoingCombatantId!, 'Frozen', PV1F_COMBAT_CONTENT) &&
     prepared.tactical.placements.find((row) => row.combatantId === outgoingCombatantId)!.facing !==
       facing
