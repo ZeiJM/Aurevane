@@ -54,6 +54,7 @@ import type {
 } from './combat-status-resistance'
 import { applyCommittedAbsorbRecovery } from './combat-absorb-recovery'
 import { combatStatusApplications } from './combat-status-applications'
+import { healingDownAdjustedRecovery } from './combat-recovery-modifiers'
 import { applyCommittedReflect } from './combat-reflect'
 import { filterBlockedCovertApplication } from './covert-sensory-revealed'
 import { validateSummonProfileDefinition } from './summon-content'
@@ -415,6 +416,8 @@ export function combatSourceCommandVisibility(
 }
 
 export interface PendingCombatEffect {
+  /** Damage from Basic actions remains outside Skill-only Blindside amplification. */
+  skillDamage?: boolean
   /** Current-policy activation group; reactions aggregate original damage once. */
   skillPacketCommandId?: number
   percentageDotCommandId?: number
@@ -450,6 +453,8 @@ export interface CombatEncounterState {
   frozenGroundPolicyVersion?: 1
   /** New encounters: Airborne evades Ground Skills and grants Target Elevation 3. */
   airbornePolicyVersion?: 1
+  /** New encounters: Healing Down reduces HP and MP recovery equally. */
+  healingDownPolicyVersion?: 1
   groundEffectPolicyVersion?: 1
   nextGroundAreaId?: number
   groundAreas?: readonly CombatGroundAreaInstance[]
@@ -1492,6 +1497,7 @@ function applyCombatRoundBoundary(
             }
           : undefined,
         {
+          skillDamage: pending.skillDamage,
           returnAnchor: pending.returnAnchor,
           percentageRecoveryByRecipient: pending.percentageRecoveryByRecipient,
         },
@@ -1835,9 +1841,10 @@ export function validateCombatEncounterState(
     'frozenGroundPolicyVersion',
     'airbornePolicyVersion',
     'displacementPolicyVersion',
+    'healingDownPolicyVersion',
   ] as const) {
     if (state[field] !== undefined && state[field] !== 1)
-      issues.push({ field, message: 'Unsupported pinned ground interaction policy.' })
+      issues.push({ field, message: 'Unsupported pinned combat interaction policy.' })
   }
   if (state.effectStackingPolicyVersion !== undefined && state.effectStackingPolicyVersion !== 1)
     issues.push({
@@ -1911,6 +1918,8 @@ export function validateCombatEncounterState(
               ))
           )
             throw new TypeError('Invalid pending packet command.')
+          if (pending.skillDamage !== undefined && typeof pending.skillDamage !== 'boolean')
+            throw new TypeError('Invalid pinned Skill damage eligibility.')
           if (pending.statusDurationScope !== undefined && pending.statusDurationScope !== 'rounds')
             throw new TypeError('Invalid pinned status duration scope.')
           validateSourceCommandVisibility(state, pending.sourceCommandVisibility, pending.actorId)
@@ -2565,6 +2574,7 @@ function collectEffectRecipientIssues(
 }
 
 interface CombatEffectResolutionOptions {
+  skillDamage?: boolean
   groundArea?: CombatGroundAreaInstance
   preview?: boolean
   percentageRecoveryByRecipient?: Readonly<Record<string, CapturedPercentageRecovery>>
@@ -2590,6 +2600,11 @@ function resolveActionEffects(
   projections: CombatEffectProjection[]
   terrain: CombatTerrainProjection[]
 } {
+  options = {
+    ...options,
+    skillDamage:
+      options.skillDamage ?? !['basic-attack', 'basic-action'].includes(action.sourceType),
+  }
   let nextState = state
   const events: CombatResolutionEvent[] = []
   const projections: CombatEffectProjection[] = []
@@ -2677,6 +2692,9 @@ function resolveActionEffects(
             ...(nextState.pendingEffects ?? []),
             {
               actorId,
+              ...(effect.type === 'damage' && options.skillDamage === false
+                ? { skillDamage: false }
+                : {}),
               ...(state.airbornePolicyVersion === 1 && action.target.kind === 'ground-tile'
                 ? { groundTargeted: true as const }
                 : {}),
@@ -3077,6 +3095,7 @@ function resolveActionEffects(
                 ? {
                     ...row,
                     statuses: row.statuses.map((status) =>
+                      status.statusId !== 'blindside' &&
                       appliedStatusIds.includes(status.statusId) &&
                       status.remainingOwnerTurnEnds !== undefined
                         ? { ...status, skipCurrentOwnerTurnEnd: true }
@@ -3503,6 +3522,7 @@ function applyEffect(
       stormBonus ? stormDamageMultiplier(state, recipientId, content) : 10_000,
       critical,
       options.groundArea,
+      options.skillDamage,
     )
     if (stormBonus && amount > 0) stormRecipients.add(recipientId)
     const barrier = absorbDirectDamageWithBarrier(state, recipientId, amount)
@@ -3744,6 +3764,7 @@ function resolveDamageAmount(
   elementalMultiplier = 10_000,
   critical = false,
   groundArea?: CombatGroundAreaInstance,
+  skillDamage = true,
 ): number {
   const outgoingState = groundArea ? withGroundCasterForDamage(state, groundArea) : state
   let amount = effect.amount
@@ -3794,6 +3815,32 @@ function resolveDamageAmount(
       actorPlacement.position,
     )
     amount = scaleByBasisPoints(amount, effect.facingModifiersBasisPoints[relation])
+  }
+
+  if (
+    skillDamage &&
+    actorId !== recipientId &&
+    amount > 0 &&
+    hasGameplayTag(state, actorId, 'Blindside', content)
+  ) {
+    const source = getPlacement(state.tactical, actorId)
+    const target = getPlacement(state.tactical, recipientId)
+    const relation = classifyFacingRelation(target.position, target.facing, source.position)
+    const multiplier = { front: 10000, side: 16000, rear: 22000 }[relation]
+    const statuses = getStatusRow(state, actorId).statuses.filter((status) =>
+      getStatusDefinition(content, status.statusId, status.statusVersion).gameplayTags?.includes(
+        'Blindside',
+      ),
+    )
+    for (const status of state.effectStackingPolicyVersion === 1 ? statuses : statuses.slice(0, 1))
+      for (
+        let count = 0;
+        count < (state.effectStackingPolicyVersion === 1 ? status.stacks : 1) &&
+        multiplier !== 10000 &&
+        amount > 0;
+        count += 1
+      )
+        amount = scaleByBasisPoints(amount, multiplier)
   }
 
   for (const status of getStatusRow(state, recipientId).statuses) {
@@ -3901,7 +3948,7 @@ function applyStatusState(
     ]
   }
 
-  if (state.effectTimingPolicy) {
+  if (state.effectTimingPolicy || statusId === 'blindside') {
     if (nextStatus.durationScope === 'rounds') {
       delete nextStatus.durationScope
       delete nextStatus.remainingRoundBoundaries
@@ -4158,7 +4205,15 @@ function completeBattleIfResolved(state: CombatEncounterState): CombatResolution
 
 function withBattle(state: CombatEncounterState, battle: BattleState): CombatEncounterState {
   const tactical = createTacticalBattleState({ ...state.tactical, battle })
-  let nextState = advanceCombatGroundAreas(clearDefeatedRecovery({ ...state, tactical }))
+  const defeated = new Set(battle.combatants.filter((unit) => unit.hp <= 0).map((unit) => unit.id))
+  const statusState = state.statusState.map((row) =>
+    defeated.has(row.combatantId) && row.statuses.some((status) => status.statusId === 'blindside')
+      ? { ...row, statuses: row.statuses.filter((status) => status.statusId !== 'blindside') }
+      : row,
+  )
+  let nextState = advanceCombatGroundAreas(
+    clearDefeatedRecovery({ ...state, statusState, tactical }),
+  )
   if (nextState.percentageDotPolicyVersion === 1 && nextState.effectState) {
     const alive = new Set(
       battle.lifecycle === 'active'
@@ -4803,24 +4858,8 @@ function incomingHealingAmount(
   amount: number,
   content: CombatContentCatalog,
 ): number {
-  const hexedStatuses = getStatusRow(state, recipientId).statuses.filter((status) =>
-    getStatusDefinition(content, status.statusId, status.statusVersion).gameplayTags?.includes(
-      'Hexed',
-    ),
-  )
-  let healed = amount
-  for (const hexed of state.effectStackingPolicyVersion === 1
-    ? hexedStatuses
-    : hexedStatuses.slice(0, 1))
-    for (const application of state.effectStackingPolicyVersion === 1
-      ? combatStatusApplications(hexed)
-      : [{ ...hexed, stacks: 1 }])
-      for (let count = 0; count < application.stacks && healed > 0; count += 1)
-        healed = scaleByBasisPoints(
-          healed,
-          Math.max(0, 10_000 - (application.potencyBasisPoints ?? 2_500)),
-        )
-  return healed
+  assertNonNegativeSafeInteger(amount, 'combat recovery')
+  return Number(healingDownAdjustedRecovery(state, recipientId, BigInt(amount), content))
 }
 
 function applyDisplacement(
@@ -5349,7 +5388,14 @@ function applyImmediateRecovery(
   const mpAfter =
     alreadyCaptured && target.hp <= 0
       ? target.mp
-      : addClampedSafeInteger(target.mp, effect.delta, 0, target.maxMp)
+      : addClampedSafeInteger(
+          target.mp,
+          !alreadyCaptured && state.healingDownPolicyVersion === 1 && effect.delta > 0
+            ? incomingHealingAmount(state, recipientId, effect.delta, content)
+            : effect.delta,
+          0,
+          target.maxMp,
+        )
   return {
     state: withUpdatedCombatant(state, recipientId, { ...target, mp: mpAfter }),
     events: [
@@ -5538,7 +5584,7 @@ function capturePercentageRecovery(
     percent: effect.percent,
     maximumAtCast,
     amountPerApplication:
-      effect.resource === 'hp'
+      effect.resource === 'hp' || state.healingDownPolicyVersion === 1
         ? incomingHealingAmount(state, recipientId, amount, content)
         : amount,
   }

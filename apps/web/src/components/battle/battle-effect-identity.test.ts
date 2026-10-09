@@ -48,7 +48,7 @@ describe('battle effect identity', () => {
   )
 
   it('retains canonical descriptions when historical instances have no recorded potency', () => {
-    for (const statusId of ['guarded', 'warded', 'mark', 'hexed', 'inspired', 'fortified']) {
+    for (const statusId of ['guarded', 'warded', 'mark', 'inspired', 'fortified']) {
       expect(
         describeBattleEffect({
           statusId,
@@ -141,5 +141,27 @@ it.each([1, 4])(
     expect(result.counterLabel).toBe(`${applications}×`)
     expect(result.duration).toContain(`${applications} application`)
     expect(result.duration).toContain('activation')
+  },
+)
+
+it.each(['active', 'pending'] as const)(
+  'Healing Down %s readers match current and historical recovery rules',
+  (timingState) => {
+    const effect = {
+      statusId: 'hexed',
+      statusVersion: 1,
+      stacks: 1,
+      sourceCombatantId: 'caster',
+      remainingOwnerTurnStarts: 2,
+      timingState,
+    }
+    expect(describeBattleEffect(effect).description).toBe('Receive 25% less healing.')
+    expect(describeBattleEffect({ ...effect, healingDownPolicyVersion: 1 }).description).toBe(
+      'Receive 25% less HP and MP recovery.',
+    )
+    expect(
+      describeBattleEffect({ ...effect, healingDownPolicyVersion: 1, potencyBasisPoints: 1600 })
+        .description,
+    ).toBe('Receive 16% less HP and MP recovery.')
   },
 )

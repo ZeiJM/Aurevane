@@ -1,5 +1,7 @@
 # October 8 Ground, Airborne and reader refinements
 
+Owner follow-up: Healing Down reduces both HP and MP recovery by the recorded per-application potency. Pin optional `healingDownPolicyVersion:1` in new PvE/PvP/Master previews; absent historical policy retains HP-only reduction. Flat positive recovery shares the HP calculation; percentage recovery captures the reduced amount once, including delayed activation and future ticks. HP/MP Leech recovery also shares the reduction before resource caps. MP costs/drains remain unchanged. Shared Skill/status readers and Manual explicitly say HP and MP recovery. Add actual Fieldcraft PvE/PvP, preview, stacking, periodic rounding/caps, delayed serialization and historical regressions.
+
 Owner authorized automatic implementation and release for testing. Latest clarification: Airborne grants Target Elevation 3 only to its holder’s Attack Skills. See `docs/COMBAT.md` for the complete approved rules.
 
 Mechanical rules: Frozen Ground +10 AP affects only caster enemies; allies/caster immune, Airborne exemption and independent Slow retained. Airborne holders automatically evade any Ground-targeted Skill (0% hit), including automatic/friendly, delayed settlement and persistent entry; only Attack Skills gain elevation3 while active. Push/Pull are separate authoring and timing choices; no current Displaced marker. Preserve blockers, costs, Steam LoS and Rewind.

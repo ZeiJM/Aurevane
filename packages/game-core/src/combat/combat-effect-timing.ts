@@ -119,7 +119,7 @@ export function combatEffectTimingMode(
   return (
     policy.modes[tag] ??
     (tag === 'push' || tag === 'pull' ? policy.modes.displace : undefined) ??
-    (['damage', 'healing', 'mp-recovery'].includes(tag) ? 'instant' : 'next-round')
+    (['damage', 'healing', 'mp-recovery', 'blindside'].includes(tag) ? 'instant' : 'next-round')
   )
 }
 export type CombatEffectPresentationStatus = CombatStatusInstance & {

@@ -158,7 +158,7 @@ it('allows independent Push/Pull publication while keeping history and service-o
       ).rows,
     ).toEqual(before.rows)
     await db.query(
-      `select public.publish_combat_effect_timing_policy_v1($1,2,'{"push":"instant","pull":"delayed"}','separate timing')`,
+      `select public.publish_combat_effect_timing_policy_v1($1,2,'{"push":"instant","pull":"delayed","blindside":"instant"}','separate timing')`,
       [owner],
     )
     expect(
@@ -167,7 +167,7 @@ it('allows independent Push/Pull publication while keeping history and service-o
           'select public.read_combat_effect_timing_policy_v1() as policy',
         )
       ).rows[0]!.policy,
-    ).toEqual({ version: 3, modes: { push: 'instant', pull: 'delayed' } })
+    ).toEqual({ version: 3, modes: { push: 'instant', pull: 'delayed', blindside: 'instant' } })
     await db.exec('set role authenticated')
     await expect(
       db.query(`select public.publish_combat_effect_timing_policy_v1($1,3,'{}','denied')`, [owner]),

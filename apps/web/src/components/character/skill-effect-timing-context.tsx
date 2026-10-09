@@ -9,7 +9,11 @@ import {
 /** Null explicitly represents a historical battle with legacy instant timing. */
 export type SkillEffectTimingPolicy = CombatEffectTimingPolicy | null
 const TimingContext = createContext<SkillEffectTimingPolicy>(defaultCombatEffectTimingPolicy())
-const GroundInteractionContext = createContext({ legacyFrozenGround: false, legacyAirborne: false })
+const GroundInteractionContext = createContext({
+  legacyFrozenGround: false,
+  legacyAirborne: false,
+  legacyHealingDown: false,
+})
 export const AirborneAttackElevationContext = createContext(false)
 const DotTriggerContext = createContext<1 | null>(1)
 
@@ -18,12 +22,14 @@ export function SkillEffectTimingProvider({
   dotTriggerPolicyVersion = 1,
   frozenGroundPolicyVersion = 1,
   airbornePolicyVersion = 1,
+  healingDownPolicyVersion = 1,
   children,
 }: {
   policy: SkillEffectTimingPolicy
   dotTriggerPolicyVersion?: 1 | null
   frozenGroundPolicyVersion?: 1 | null
   airbornePolicyVersion?: 1 | null
+  healingDownPolicyVersion?: 1 | null
   children: ReactNode
 }) {
   return (
@@ -33,6 +39,7 @@ export function SkillEffectTimingProvider({
           value={{
             legacyFrozenGround: frozenGroundPolicyVersion !== 1,
             legacyAirborne: airbornePolicyVersion !== 1,
+            legacyHealingDown: healingDownPolicyVersion !== 1,
           }}
         >
           {children}

@@ -51,7 +51,7 @@ describe('shared Resonance parameter report', () => {
     expect(markup).toContain('<dt>Requirements</dt><dd>Wildwarden Skills tagged Mark</dd>')
     expect([...markup.matchAll(/<dt>(.*?)<\/dt>/g)].map((match) => match[1])).toEqual(fields)
     expect(markup).toContain(
-      '<ul aria-label="Effect explanations"><li><strong>MP Recovery</strong> — Restores a captured 4% of your maximum MP. The maximum is captured when cast; actual gains cap at the current maximum and never revive.</li></ul>',
+      '<ul aria-label="Effect explanations"><li><strong>MP Recovery</strong> — Restores a captured 4% of your maximum MP. The maximum and Healing Down adjustment are captured when cast; actual gains cap at the current maximum and never revive.</li></ul>',
     )
     expect(markup).toContain('Use a setup Skill from Requirements first.')
     expect(markup).not.toContain('Trigger targeting:')

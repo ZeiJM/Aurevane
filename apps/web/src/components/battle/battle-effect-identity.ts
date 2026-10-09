@@ -35,6 +35,7 @@ const identifiers: Readonly<Record<string, string>> = {
   mark: 'MRK',
   warded: 'WAR',
   blind: 'BLI',
+  blindside: 'BLS',
   barrier: 'BAR',
   covert: 'COV',
   revealed: 'REV',
@@ -93,8 +94,9 @@ export function describeBattleEffect(effect: BattlePresentedStatus) {
       (percentageDescription ??
         (effect.statusId === 'airborne' && effect.airbornePolicyVersion !== 1
           ? 'Ignore the Frozen Ground AP surcharge. Board bounds, elevation, obstacles, occupancy, Rooted and Movement allowance still apply.'
-          : statusPotencyDescription(effect.statusId, effect.potencyBasisPoints))) +
-      capturedDescription,
+          : statusPotencyDescription(effect.statusId, effect.potencyBasisPoints, {
+              legacyHealingDown: effect.healingDownPolicyVersion !== 1,
+            }))) + capturedDescription,
   }
   const applications = effect.recoveryApplications
   const count =

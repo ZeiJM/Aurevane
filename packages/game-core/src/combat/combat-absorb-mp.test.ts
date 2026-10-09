@@ -418,3 +418,30 @@ describe('Absorb MP committed-command recovery', () => {
     )
   })
 })
+
+it.each([1, undefined] as const)(
+  'Healing Down applies equally to HP/MP Leech under policy %s',
+  (policy) => {
+    const hexed = PHASE4_STATUSES.find((row) => row.id === 'hexed')!
+    const statuses = [MP25, HP25, hexed]
+    const state = { ...encounter({ statuses }), healingDownPolicyVersion: policy }
+    const result = cast(state, hit(), statuses)
+    expect(unit(result)).toMatchObject({ hp: policy === 1 ? 83 : 85, mp: policy === 1 ? 13 : 15 })
+    expect(mpEvents(result)[0]).toMatchObject({ delta: policy === 1 ? 3 : 5 })
+  },
+)
+it('reduces Leech before capping against available resource capacity', () => {
+  const hexed = PHASE4_STATUSES.find((row) => row.id === 'hexed')!
+  const statuses = [MP25, hexed]
+  const state = { ...encounter({ statuses, mp: 98 }), healingDownPolicyVersion: 1 as const }
+  expect(unit(cast(state, hit(), statuses)).mp).toBe(100)
+})
+
+it('Healing Down can reduce minimum Leech recovery to zero without a phantom receipt', () => {
+  const hexed = PHASE4_STATUSES.find((row) => row.id === 'hexed')!
+  const statuses = [MP25, HP25, hexed]
+  const result = cast({ ...encounter({ statuses }), healingDownPolicyVersion: 1 }, hit(1), statuses)
+  expect(unit(result)).toMatchObject({ hp: 99, mp: 10 })
+  expect(mpEvents(result)).toEqual([])
+  expect(result.events.filter((event) => event.event === 'healing_applied')).toEqual([])
+})

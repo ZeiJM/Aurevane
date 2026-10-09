@@ -338,6 +338,7 @@ describe('P3.7 direct PvP committed build snapshots', () => {
       expect(state.groundEffectPolicyVersion).toBe(1)
       expect(state.frozenGroundPolicyVersion).toBe(1)
       expect(state.airbornePolicyVersion).toBe(1)
+      expect(state.healingDownPolicyVersion).toBe(1)
       expect(state.displacementPolicyVersion).toBe(1)
       expect(state.tactical).toMatchObject({ width, height: 7 })
       expect(state.tactical.tiles).toHaveLength(count)

@@ -11,6 +11,7 @@ it('offers explicit timing choices and audited publication for the complete cano
   expect(markup).toContain('Normal')
   expect(markup).toContain('timing-push')
   expect(markup).toContain('timing-pull')
+  expect(markup).toMatch(/id="timing-blindside"[^]*?<option value="instant" selected="">Instant/)
   expect(markup).not.toContain('timing-displace')
   expect(markup).toContain('Reason for this change')
   expect(markup).toContain('Publish timing policy')

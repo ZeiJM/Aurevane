@@ -132,6 +132,10 @@ describe('Player-facing Skill targeting and effects', () => {
     ).toBe('Remove 5 MP from the selected unit.')
     const backstab = resolveMatureSkillVersion('shadehand.backstab')!
     expect(skillEffectDescription(backstab.effects[0]!)).toContain(
+      '160% from the side and 220% from the rear',
+    )
+    const historical = resolveMatureSkillVersion('shadehand.backstab', backstab.contentVersion - 1)!
+    expect(skillEffectDescription(historical.effects[0]!)).toContain(
       'front 100%, side 130%, rear 170%',
     )
   })

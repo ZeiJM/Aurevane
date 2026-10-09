@@ -72,8 +72,14 @@ describe('compact Technique explanations', () => {
       previewEffect({ type: 'apply-status', recipient: 'actor', statusId: 'haste', stacks: 1 })
         .explanation,
     ).toContain('minimum of 10 AP')
+    const current = resolveMatureSkillVersion('shadehand.backstab')!
+    expect(skillPreviewEffects(current)[0].explanation).toContain(
+      '160% from the side and 220% from the rear',
+    )
     expect(
-      skillPreviewEffects(resolveMatureSkillVersion('shadehand.backstab')!)[0].explanation,
+      skillPreviewEffects(
+        resolveMatureSkillVersion('shadehand.backstab', current.contentVersion - 1)!,
+      )[0].explanation,
     ).toContain('front 100%, side 130%, rear 170%')
   })
   it('shares one explanation for identical effect meaning while parameters retain authored applications', () => {
@@ -124,4 +130,23 @@ it('shows captured percentage HP/MP recovery without offensive Power', () => {
   expect(result).toMatchObject({ label: 'HP Recovery', magnitude: '12%' })
   expect(result.explanation).toContain('maximum HP')
   expect(result.explanation).toContain('captured')
+})
+
+it('Healing Down Skill readers explain both resources and respect historical battle rules', () => {
+  const effect = {
+    type: 'apply-status' as const,
+    recipient: 'primary-unit' as const,
+    statusId: 'hexed',
+    stacks: 1,
+    potencyBasisPoints: 1400,
+  }
+  expect(previewEffect(effect)).toMatchObject({
+    label: 'Healing Down',
+    magnitude: '−14% HP/MP recovery',
+    explanation: 'Receive 14% less HP and MP recovery.',
+  })
+  expect(previewEffect(effect, { legacyHealingDown: true })).toMatchObject({
+    magnitude: '−14% healing',
+    explanation: 'Receive 14% less healing.',
+  })
 })

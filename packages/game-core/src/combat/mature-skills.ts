@@ -1,3 +1,4 @@
+import { createBlindsideSkillVersion } from './combat-blindside-roster'
 import { createPercentageRecoverySkillVersion } from './combat-recovery-roster'
 import { createCurrentGroundSkillVersion } from './combat-ground-roster'
 import {
@@ -1047,7 +1048,7 @@ const PRE_PERCENTAGE_RECOVERY_DISCIPLINE_SKILL_REGISTRY = [
   ...PRE_CURRENT_GROUND_DISCIPLINE_SKILL_REGISTRY,
   ...CURRENT_GROUND_DISCIPLINE_SKILLS,
 ]
-const CURRENT_DISCIPLINE_SKILL_REGISTRY = [
+const PRE_BLINDSIDE_REGISTRY = [
   ...PRE_PERCENTAGE_RECOVERY_DISCIPLINE_SKILL_REGISTRY,
   ...latestEnabledMatureSkills(PRE_PERCENTAGE_RECOVERY_DISCIPLINE_SKILL_REGISTRY).flatMap(
     (definition) => {
@@ -1055,6 +1056,14 @@ const CURRENT_DISCIPLINE_SKILL_REGISTRY = [
       return next ? [next] : []
     },
   ),
+]
+
+const CURRENT_DISCIPLINE_SKILL_REGISTRY = [
+  ...PRE_BLINDSIDE_REGISTRY,
+  ...latestEnabledMatureSkills(PRE_BLINDSIDE_REGISTRY).flatMap((definition) => {
+    const next = createBlindsideSkillVersion(definition)
+    return next ? [next] : []
+  }),
 ]
 
 /** Current selection catalog; the historical P3.3/P4 export remains stable for pinned contracts. */

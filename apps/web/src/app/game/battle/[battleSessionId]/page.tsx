@@ -116,6 +116,7 @@ async function battleBuildExtensions(
               legacyTriggers,
               legacyFrozenGround: battle.snapshot.frozenGroundPolicyVersion !== 1,
               legacyAirborne: battle.snapshot.airbornePolicyVersion !== 1,
+              legacyHealingDown: battle.snapshot.healingDownPolicyVersion !== 1,
             }),
           ),
           requirementDescriptions: definition.requirements.map(skillRequirementDescription),
@@ -162,6 +163,7 @@ async function battleBuildExtensions(
               legacyTriggers,
               legacyFrozenGround: battle.snapshot.frozenGroundPolicyVersion !== 1,
               legacyAirborne: battle.snapshot.airbornePolicyVersion !== 1,
+              legacyHealingDown: battle.snapshot.healingDownPolicyVersion !== 1,
             }),
           ),
           requirementDescriptions: essenceDefinition.skill.requirements.map(

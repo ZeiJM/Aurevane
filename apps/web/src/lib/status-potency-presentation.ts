@@ -13,7 +13,17 @@ export function statusDamageMultiplierBasisPoints(
 }
 
 /** Historical instances keep their definition's description when no magnitude was recorded. */
-export function statusPotencyDescription(statusId: string, potencyBasisPoints?: number): string {
+export function statusPotencyDescription(
+  statusId: string,
+  potencyBasisPoints?: number,
+  options: { legacyHealingDown?: boolean } = {},
+): string {
+  if (statusId === 'hexed') {
+    const percent = (potencyBasisPoints ?? 2500) / 100
+    return options.legacyHealingDown
+      ? `Receive ${percent}% less healing.`
+      : `Receive ${percent}% less HP and MP recovery.`
+  }
   const fallback = combatStatusDetails(statusId).description
   if (potencyBasisPoints === undefined) return fallback
   const percent = potencyBasisPoints / 100
@@ -26,8 +36,6 @@ export function statusPotencyDescription(statusId: string, potencyBasisPoints?: 
       return `Each application multiplies incoming damage by ${(10000 + potencyBasisPoints) / 10000}×. Applied after a genuine PvP turn-timer expiry.`
     case 'inspired':
       return `Deal ${percent}% more damage per application.`
-    case 'hexed':
-      return `Receive ${percent}% less healing.`
     case 'mark':
       return `The source gains +${percent} percentage points Accuracy against this target. Other attackers gain no benefit.`
     case 'blind':

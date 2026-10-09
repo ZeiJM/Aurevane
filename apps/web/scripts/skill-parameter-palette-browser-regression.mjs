@@ -144,6 +144,26 @@ try {
     const errors = []
     page.on('pageerror', (error) => errors.push(error.message))
     await page.goto(server.resolvedUrls.local[0], { waitUntil: 'networkidle' })
+    const authoring = page.getByRole('region', { name: 'Master Blindside authoring' })
+    await authoring.getByLabel('New effect type').selectOption('blindside')
+    await authoring.getByRole('button', { name: 'Add effect', exact: true }).click()
+    assert.deepEqual(await page.evaluate(() => window.blindsideAuthoringEffects[1]), {
+      type: 'apply-status',
+      recipient: 'actor',
+      statusId: 'blindside',
+      stacks: 1,
+      durationTurns: 1,
+    })
+    const firstEffect = authoring.locator('[data-effect-type="apply-status"]').first()
+    await firstEffect.getByLabel('Status ID', { exact: true }).fill('blindside')
+    const converted = await page.evaluate(() => window.blindsideAuthoringEffects[0])
+    assert.equal(converted.durationTurns, 1)
+    assert.equal(converted.potencyBasisPoints, undefined)
+    assert.equal(
+      await firstEffect.getByLabel('Effect duration (turns)', { exact: true }).inputValue(),
+      '1',
+    )
+    assert.ok(await firstEffect.getByLabel('Effect duration (turns)', { exact: true }).isDisabled())
     for (const family of ['physical', 'mystic'])
       for (const surface of ['Nexus', 'Master', 'Battle']) {
         const report = page.getByRole('region', {
@@ -187,6 +207,33 @@ try {
       if (surface === 'Battle') {
         await report.screenshot({ path: resolve(output, `ground-reader-${viewport.width}.png`) })
       }
+    }
+    for (const surface of ['Master', 'Battle']) {
+      const report = page.getByRole('region', {
+        name: `${surface} healing-down ${surface === 'Master' ? 'details' : 'parameters'}`,
+      })
+      assert.ok((await report.textContent()).includes('less HP and MP recovery'))
+      if (surface === 'Battle') {
+        await report.screenshot({
+          path: resolve(output, `healing-down-reader-${viewport.width}.png`),
+        })
+      }
+    }
+    for (const surface of ['Nexus', 'Master', 'Battle']) {
+      const report = page.getByRole('region', {
+        name: `${surface} blindside ${surface === 'Master' ? 'details' : 'parameters'}`,
+      })
+      const summary = await report.textContent()
+      assert.ok(summary.includes('Blindside'))
+      assert.ok(summary.includes('[Instant]'))
+      assert.ok(summary.includes('[1 Turn]'))
+      assert.ok(summary.includes('[20]'))
+      if (surface !== 'Nexus') {
+        assert.ok(summary.includes('160% from the side and 220% from the rear'))
+        assert.ok(!summary.includes('Facing: front 120%'))
+      }
+      if (surface === 'Battle')
+        await report.screenshot({ path: resolve(output, `blindside-reader-${viewport.width}.png`) })
     }
     const reference = await colors(
       page.getByRole('region', { name: 'Discipline effect reference' }),

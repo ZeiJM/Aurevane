@@ -112,3 +112,13 @@ describe('Master Panel Skill effect list editor', () => {
     expect(markup).not.toContain('Script')
   })
 })
+
+it('provides reusable Instant one-turn Blindside authoring', () => {
+  expect(createDefaultCombatEffect('blindside')).toEqual({
+    type: 'apply-status',
+    recipient: 'actor',
+    statusId: 'blindside',
+    stacks: 1,
+    durationTurns: 1,
+  })
+})

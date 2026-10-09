@@ -306,13 +306,21 @@ function skillMetric(
     const authoredScaling = 'scaling' in effect ? effect.scaling : undefined
     const raw = calculateScaledRawDamage(effect.amount, authoredScaling ?? scaling, power)
     const mitigated = mitigateDamageByDefense(raw, PHASE4_BALANCE_TARGET_DEFENSE)
-    const facingMultiplier = effect.facingModifiersBasisPoints
-      ? Math.max(
-          effect.facingModifiersBasisPoints.front,
-          effect.facingModifiersBasisPoints.side,
-          effect.facingModifiersBasisPoints.rear,
-        )
-      : 10_000
+    const hasBlindside = definition.effects.some(
+      (effect) =>
+        effect.type === 'apply-status' &&
+        effect.statusId === 'blindside' &&
+        effect.recipient === 'actor',
+    )
+    const facingMultiplier = hasBlindside
+      ? 22000
+      : effect.facingModifiersBasisPoints
+        ? Math.max(
+            effect.facingModifiersBasisPoints.front,
+            effect.facingModifiersBasisPoints.side,
+            effect.facingModifiersBasisPoints.rear,
+          )
+        : 10_000
     return total + Math.floor((mitigated * facingMultiplier) / 10_000)
   }, 0)
   const attritionDamage = definition.effects.reduce((total, effect) => {

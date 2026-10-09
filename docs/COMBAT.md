@@ -1,5 +1,7 @@
 # AUREVANE Combat Design Bible
 
+Owner Blindside follow-up: formalize positional Skill damage as an Instant one-owner-turn positive buff. Front 100%, side 160%, rear 220% per active application, outside the ordinary conditional-modifier budget. New Perfect Opening retains one power-20 hit; Backstab, Exploit Opening, Execution Cut and Flanking Cut also replace hidden facing multipliers with the shared buff and keep their power/cost/cooldown/targeting. Append immutable versions; historical versions keep their original facing coefficients. The buff applies before its granting hit, benefits other Skills during that turn, leaves Basic Attack unchanged and expires at that owner turn end. Master authoring offers Blindside and its timing characteristics default to Instant. Read the active status at actual damage settlement; expired buffs do not amplify delayed damage. Existing application-count stacking and Copy Buffs rules remain authoritative.
+
 ## October 8 combat/auth reconstruction — branch source, release pending
 
 New encounters pin `skillPacketPolicyVersion: 1`. Repeated authored timing tags receive independent applicable accuracy, critical and resistance rolls; distinct tags retain a shared group. Costs, cooldowns and command reactions remain once per command. Ordinary unscaled damage uses a 2,500-basis-point Power coefficient per application, independent of AP or packet count; explicit scaling and Vengeance remain authored. Historical encounters without the pin retain their recorded formula and RNG contract. Queued applications persist committed outcomes and original source ordinals, and percentage DoTs use actual settled direct HP damage from the same command.
@@ -28,7 +30,6 @@ Generic Skill **Copy** and **Copy beneficial effects** are removed from current 
 
 The obsolete **Regeneration**, **Hastened**, **Delayed**, **Borrowed Hour status**, historical **Summoned protection status**, and historical **Marked damage-vulnerability status** are removed from current engine/content compatibility. Current Skills author healing/Haste/Slow/current Mark directly. The **Borrowed Hour** Skill name remains valid, and the modern Summon mechanic still creates real allied summon combatants. This Owner decision supersedes earlier generic-Copy and legacy-status compatibility language below wherever it conflicts.
 
-
 ## Resource pools, twelve-round duel benchmark and Items placeholder — Owner-approved 2026-10-05
 
 Current derived ruleset5 preserves all non-resource V4 curves and mathematical bases80HP/16MP. Maximum HP is500 at Vitality40 and650 at60; Maximum MP is400 at Intellect40 and500 at60. Through40 the HP/MP slopes are10.5/9.6 per Core; above40 they are7.5/5. Integer numerators round down once. Effective Primary Core bases and focus60/non-focus40 caps remain. Explicit rulesets1–4 and saved encounters retain their recorded values.
@@ -40,7 +41,6 @@ Hostile Basic Attack and per-target Skill hit chance adds front−5, side+5 or r
 The balance standard is approximately12 rounds for equally built Level100, Vitality40/offensive-Core40 direct-pressure mirrors using four selected Skills, normal AP/cooldowns and Basic Attack filler on flat adjacent front-facing tiles. Both reference allocations spend135 effective Core points. Before the 2026-10-06 automatic Basic Attack family change, across100 seeds per reference Vanguard averaged11.52 rounds and Aetherist12.68, pooled12.10. With the approved stronger-stat Basic Attack and matching Defense, the same pooled benchmark averages11.425 rounds; the natural target remains approximately12 rounds. Build specialization, HP investment, healing, terrain and tactics can change duration; no turn limit or scripted kill enforces12. Exact fixtures and limitations: `superpowers/plans/2026-10-05-duel-resources-facing-items-spec.md`.
 
 The shared playable cockpit adds locked **Items · Coming soon** immediately before Inspect, default **P**, with identical square/frame/control formatting. Preserve existing artwork variables, image/card sizes and commands; allocate five inherent columns evenly, followed by the four Skills, Essence/Resonance, supernatural placeholder and End Turn. Desktop and mobile PvE/PvP use the same component. Saved customP bindings survive, allocating an available alternative for the new placeholder. The slot and hotkey cannot issue gameplay commands; this does not implement item consumption or storage.
-
 
 ## Owner stat and battle reader continuation — 2026-10-05
 
@@ -222,7 +222,7 @@ Current typed gameplay tags include Scorched, Frozen, Conductive, Wet, Bleeding,
 
 - Water Skills apply Wet only when authored to do so. The first positive storm hit per recipient per command receives a 20% bonus from Wet or Conductive, within the existing combined modifier budget. The conditions do not double the bonus. Conductive is consumed; Wet remains.
 - Positive fire damage removes Wet and Frozen statuses. Independently, fire on an affected Frozen tile converts that overlay to Steam, including empty tiles and either team's tiles.
-- Inspired adds 10% outgoing damage within the same combined budget. Hexed reduces incoming direct and periodic healing by 25%; it does not change ordinary revive effects. Historical pinned content may still use the legacy Summoned protection status. Current v5.1 summoning Skills instead create a real allied summon combatant on legal empty ground.
+- Inspired adds 10% outgoing damage within the same combined budget. Hexed (Healing Down) reduces incoming HP and MP recovery by its recorded potency (25% default), including periodic recovery, in new encounters pinned with `healingDownPolicyVersion:1`. Percentage recovery captures the reduction once at cast; delayed activation and later captured ticks do not apply it twice. Flat positive recovery applies the current modifier to each application. HP/MP Leech recovery also shares the reduction before resource caps. MP costs/drains and ordinary revive effects are unchanged. Absent historical policy retains the former HP-only reduction. Historical pinned content may still use the legacy Summoned protection status. Current v5.1 summoning Skills instead create a real allied summon combatant on legal empty ground.
 - Invisible blocks hostile direct unit selection. It does not prevent a ground or area effect from hitting the unit. Taking positive damage or committing the holder's damaging command breaks concealment, including a missed basic attack.
 - New encounters pin `frozenGroundPolicyVersion: 1`: Frozen Ground adds 10 AP per tile entered only to enemies of the overlay’s source team, on top of base terrain and Slow costs. The caster and allies pay no Frozen surcharge; source defeat does not change ownership. Reapplication uses the replacement caster’s team. Historical encounters without this policy retain the both-team surcharge. Airborne ignores only this temporary Frozen surcharge; it does not bypass Root, occupancy, elevation, base terrain or the separate Movement allowance.
 - Steam blocks line of sight through intermediate tiles, following the existing endpoint convention. Steam affects both teams. Frozen Ground follows the pinned enemy-only policy above. Both overlays preserve base terrain and expire after two round boundaries. Reapplication refreshes duration without stacking; at most one overlay occupies a tile.
@@ -877,9 +877,7 @@ Generic temporary-Skill Copy is retired; only the Copy Buffs/Copy Debuffs status
 
 Owner-approved 2026-10-02: every full Skill detail, including inherent commands, Support Actions, Essence and Resonance/passives, follows `docs/SKILL_INFORMATION_CONTRACT.md`. Preserve all ten ordered fields; use N/A only for inapplicable rules, None for absent applicable prerequisites/cooldowns and Unavailable for missing immutable metadata. Shared reports derive from canonical definitions and committed battle snapshots; this requirement changes presentation, not combat resolution.
 
-
 Owner-approved 2026-10-06 battle follow-up: Basic Attack uses the higher committed Physical or Mystic Attack stat; ties use Physical. The selected family supplies both raw damage scaling and Physical/Mystic Defense in canonical preview and commit. New seeded standard battlefield raised tiles each independently draw height 1/2/3 with 60%/30%/10% probabilities, using the independent map RNG. Neighboring raised tiles may have different heights; spawn footprints remain flat and ground routes remain connected. Authored teaching maps retain their geometry and terrain and draw each raised tile height independently at creation using the same probabilities. Stored tiles remain authoritative.
-
 
 Owner clarification 2026-10-06: Lowered Guard applies on a timer expiry only if the outgoing character performed no successful command during that turn. A committed move or action (including a miss or an action whose AP is later restored) exempts that turn and clears the missed-turn streak. Previewing, inspection, failed commands and passive resource changes do not count. AI and PvP use the same authoritative per-turn activity marker; manual End Turn remains exempt. Existing active turns without the new marker retain an AP-spend fallback.
 
@@ -917,11 +915,9 @@ Copy Debuffs transfers an eligible application with its captured basis, exact pr
 
 Current authoring requires direct Attack/Damage coverage of the DoT's recipients. Master Panel percentage inputs preserve 0.01% precision in integer basis points, append immutable versions and retain stale-version/audit checks. Burn's entire one-to-four-tick sequence must remain positive; Poison and Bleed expose their per-tick percentage and lifetime. Rails show authored pending profiles or active captured HP and next-tick HP through shared readers, without private command/dependency or RNG metadata. The initial nine approved profiles and bounded automated measurements are recorded in `docs/verification/2026-10-06-percentage-dot-balance.md`; this is not human balance acceptance.
 
-
 ## Owner-controlled elevation chances — 2026-10-07
 
 New Battle Hall, PvP and world encounters pin an elevation policy before generating tiles. Each raised tile independently draws height 1/2/3 with default chances 60%/30%/10%; adjacent heights may differ. Master → Combat Settings lets the Game Owner publish percentages to two decimal places (including 0 and 100), totaling exactly 100%, with a reason and expected version. Changing this policy affects only future battles. Flat tiles, terrain placement, spawn clearance and connected ground remain unchanged; saved maps never reroll on reads, previews, moves or reloads. These are per-tile chances, not a guaranteed quota on each board.
-
 
 ## Persistent Ground and combat correction policy — 2026-10-07
 
@@ -936,7 +932,6 @@ Shared desktop/mobile PvE, PvP and spectator maps show a static pending marker, 
 Canonical participant projections preserve typed Burn/Poison/other active rows across Recruit and Final Turn responses. Pending yellow tags transition directly to active beneficial green/harmful red rows without an empty intermediate snapshot. Escape/cancel restores neutral battle focus for the next hotkey. The completed-battle reader gives the full Chronicle the dominant viewport area while preserving summary and reward actions.
 
 Current Resonance descriptions use explicit Setup, Trigger and Result eligibility. “Chronist Skills” Setup accepts any Chronist Skill, including attacks; other displayed tag requirements remain narrower, and Trigger remains tagged. These tags do not mean the Utility Skill family. Historical definitions retain their original matchers. Unit Skill reports include Self when canonical geometry permits the caster alongside Ally; Circle remains caster-excluded unless a separate actor effect is authored. Elemental interactions do not broaden authored target/team legality: positive Fire clears Wet/Chilled from actual legal damaged recipients and converts eligible Frozen tiles to Steam.
-
 
 ## Owner live-review refinements — 2026-10-08
 

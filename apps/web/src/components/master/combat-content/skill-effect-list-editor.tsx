@@ -8,7 +8,7 @@ import { previewEffect } from '../../character/skill-effect-preview'
 import styles from './combat-content-editor.module.css'
 import { SkillEffectEditor } from './skill-effect-editor'
 
-export type CombatEffectType = CombatEffectDefinition['type'] | 'push' | 'pull'
+export type CombatEffectType = CombatEffectDefinition['type'] | 'push' | 'pull' | 'blindside'
 
 const EFFECT_TYPES: readonly { value: CombatEffectType; label: string }[] = [
   { value: 'damage', label: 'Damage' },
@@ -16,6 +16,7 @@ const EFFECT_TYPES: readonly { value: CombatEffectType; label: string }[] = [
   { value: 'healing', label: 'Legacy HP amount' },
   { value: 'resource-change', label: 'MP change' },
   { value: 'apply-status', label: 'Apply status' },
+  { value: 'blindside', label: 'Blindside · Instant, 1 turn' },
   { value: 'remove-status', label: 'Remove status' },
   { value: 'return-to-turn-start', label: 'Return to turn start' },
   { value: 'create-terrain', label: 'Create Frozen Ground' },
@@ -35,6 +36,14 @@ function assertNever(value: never): never {
 
 export function createDefaultCombatEffect(type: CombatEffectType): CombatEffectDefinition {
   switch (type) {
+    case 'blindside':
+      return {
+        type: 'apply-status',
+        recipient: 'actor',
+        statusId: 'blindside',
+        stacks: 1,
+        durationTurns: 1,
+      }
     case 'damage':
       return { type, recipient: 'primary-unit', amount: 0 }
     case 'percentage-recovery':
@@ -188,7 +197,9 @@ export function SkillEffectListEditor({
                     ? effect.direction === 'pull'
                       ? 'Pull'
                       : 'Push'
-                    : EFFECT_TYPES.find((entry) => entry.value === effect.type)?.label}
+                    : effect.type === 'apply-status' && effect.statusId === 'blindside'
+                      ? 'Blindside'
+                      : EFFECT_TYPES.find((entry) => entry.value === effect.type)?.label}
                 </strong>
               </div>
               <div className={styles.effectActions}>

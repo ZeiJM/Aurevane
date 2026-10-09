@@ -687,3 +687,44 @@ it('Airborne ignores persistent Ground on entry and receives it after Airborne e
   }
   expect(hp(move(grounded, path).state)).toBeLessThan(hp(state))
 })
+
+it.each([
+  ['live', 44],
+  ['expired', 20],
+  ['moved-to-front', 20],
+] as const)(
+  'persistent Ground uses the %s caster Blindside buff and position at entry',
+  (condition, damage) => {
+    const initial = encounter()
+    initial.statusState.find((row) => row.combatantId === 'enemy')!.statuses = [
+      {
+        statusId: 'blindside',
+        statusVersion: 1,
+        stacks: 1,
+        sourceCombatantId: 'enemy',
+        remainingOwnerTurnStarts: 1,
+        remainingOwnerTurnEnds: 1,
+      },
+    ]
+    let state = seedArea(initial, undefined, groundAction(20))
+    state = JSON.parse(JSON.stringify(state)) as StatDrivenCombatEncounterState
+    if (condition === 'expired')
+      state.statusState.find((row) => row.combatantId === 'enemy')!.statuses = []
+    if (condition === 'moved-to-front')
+      state.tactical = {
+        ...state.tactical,
+        placements: state.tactical.placements.map((row) =>
+          row.combatantId === 'enemy' ? { ...row, position: { x: 0, y: 1 } } : row,
+        ),
+      }
+    const path = [
+      { x: 1, y: 1 },
+      { x: 2, y: 1 },
+    ]
+    const projected = evaluatePv1fMovement(state, path)
+    const result = move(state, path)
+    expect(projected.movement.legal).toBe(true)
+    expect(groundDamage(result.events)).toEqual([expect.objectContaining({ amount: damage })])
+    expect(hp(result.state)).toBe(1000 - damage)
+  },
+)

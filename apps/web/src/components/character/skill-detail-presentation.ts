@@ -48,6 +48,7 @@ export function skillEffectDescription(
     legacyTriggers?: boolean
     legacyFrozenGround?: boolean
     legacyAirborne?: boolean
+    legacyHealingDown?: boolean
   } = {},
 ): string {
   const target = recipient(effect)
@@ -80,7 +81,7 @@ export function skillEffectDescription(
     case 'return-to-turn-start':
       return `Rewind to the ${effect.anchorMode === 'cast-position' ? 'tile captured when cast' : 'vacant tile where you started this turn'}. Rooted blocks the return. No HP, MP, AP, Movement or past action is refunded.`
     case 'percentage-recovery':
-      return previewEffect(effect).explanation
+      return previewEffect(effect, options).explanation
     case 'healing':
       return `Restore up to ${effect.amount} HP to ${target}.${recoveryTiming(effect.ticks)}`
     case 'barrier-change':
@@ -105,7 +106,9 @@ export function skillEffectDescription(
           ? `Lasts ${effect.durationTurns} ${effect.durationTurns === 1 ? 'turn' : 'turns'}.`
           : combatStatusDuration(effect.statusId)
       const explanation =
-        effect.potencyBasisPoints !== undefined || effect.statusId === 'airborne'
+        effect.potencyBasisPoints !== undefined ||
+        effect.statusId === 'airborne' ||
+        effect.statusId === 'hexed'
           ? preview.explanation
           : status.description
       return `Apply ${effect.stacks} ${gameplayStatusName(effect.statusId)} ${effect.stacks === 1 ? 'stack' : 'stacks'} to ${target}. ${explanation} ${duration}`
@@ -229,7 +232,8 @@ function compactDuration(effect: MatureSkillEffectDefinition): string | null {
         : 0
       : percentage && effect.type === 'bleed'
         ? effect.ticks
-        : (effect.durationTurns ?? 0)
+        : (effect.durationTurns ??
+          (effect.type === 'apply-status' && effect.statusId === 'blindside' ? 1 : 0))
   if (turns <= 0) return null
   return `${turns} ${percentage ? (turns === 1 ? 'turn' : 'turns') : turns === 1 ? 'Turn' : 'Turns'}`
 }

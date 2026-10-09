@@ -23,6 +23,7 @@ export const GAMEPLAY_TAGS = [
   'Poisoned',
   'Fortified',
   'Airborne',
+  'Blindside',
   'Displaced',
 ] as const
 export type GameplayTag = (typeof GAMEPLAY_TAGS)[number]
@@ -47,6 +48,7 @@ const STATUS_TAG_ALIASES: Readonly<Record<string, GameplayTag>> = {
   poisoned: 'Poisoned',
   fortified: 'Fortified',
   airborne: 'Airborne',
+  blindside: 'Blindside',
   displaced: 'Displaced',
 }
 
@@ -86,6 +88,7 @@ const POSITIVE_STATUS_IDS = new Set([
   'inspired',
   'invisible',
   'airborne',
+  'blindside',
   'haste',
   'fortified',
   'warded',
@@ -224,6 +227,15 @@ export function validateGameplayActionMetadata(
 /** Shared content-boundary validation; the containing action supplies target-dependent legality. */
 export function validateGameplayEffectMetadata(effect: CombatEffectDefinition): void {
   validateRecoveryEffect(effect)
+  if (
+    effect.type === 'apply-status' &&
+    effect.statusId === 'blindside' &&
+    ((effect.durationTurns !== undefined && effect.durationTurns !== 1) ||
+      effect.potencyBasisPoints !== undefined)
+  )
+    throw new TypeError(
+      'Blindside lasts one owner turn and uses fixed side/rear damage multipliers.',
+    )
   if (
     effect.durationTurns !== undefined &&
     (!Number.isSafeInteger(effect.durationTurns) ||

@@ -1,5 +1,7 @@
 # Ground, Airborne and reader refinements Implementation Plan
 
+Owner follow-up: Healing Down reduces both HP and MP recovery by the recorded per-application potency. Pin optional `healingDownPolicyVersion:1` in new PvE/PvP/Master previews; absent historical policy retains HP-only reduction. Flat positive recovery shares the HP calculation; percentage recovery captures the reduced amount once, including delayed activation and future ticks. HP/MP Leech recovery also shares the reduction before resource caps. MP costs/drains remain unchanged. Shared Skill/status readers and Manual explicitly say HP and MP recovery. Add actual Fieldcraft PvE/PvP, preview, stacking, periodic rounding/caps, delayed serialization and historical regressions.
+
 > **For agentic workers:** Use superpowers:executing-plans to implement these tasks in this session.
 
 **Goal:** Release the Owner’s Ground/Airborne/Push/Pull rules and shared reader refinements for testing.
@@ -34,6 +36,14 @@ Files: shared character Skill/Resonance reports; battle preview, terrain summary
 - [x] Add meaningful assertions for Ground separation, actual tile summaries, Chilled labels, exact setup names, receipt/source/content grouping and immutable inputs.
 - [x] Implement shared summaries/notes and Attack-only elevation context; suppress vacant single-unit Attack cue.
 - [x] Verify desktop/mobile production components, privacy, full log parity and visual evidence (72 targeting cases, both shared reader layouts).
+
+### Follow-ups: Healing Down and Blindside
+
+- [x] Apply Healing Down to HP and MP recovery, including delayed/periodic and Leech gains; preserve absent-policy history and drains.
+- [x] Append Blindside versions for all five positional Skills and expose one-turn Instant authoring/readers.
+- [x] Verify expiry, persistent Ground settlement, defeat cleanup, history and Master conversions; resolve independent review findings.
+- [x] Complete combined full gate (4,471 Vitest tests, seven Node checks, format/lint/types/build).
+- [ ] Complete exact-head release.
 
 ### Task 3: Verified release
 

@@ -37,10 +37,14 @@ export function skillDamageElementInteraction(effect: MatureSkillEffectDefinitio
   return ''
 }
 
-function statusPreview(id: string, potencyBasisPoints?: number): PreviewEffect {
+function statusPreview(
+  id: string,
+  potencyBasisPoints?: number,
+  legacyHealingDown = false,
+): PreviewEffect {
   const details = {
     ...combatStatusDetails(id),
-    description: statusPotencyDescription(id, potencyBasisPoints),
+    description: statusPotencyDescription(id, potencyBasisPoints, { legacyHealingDown }),
   }
   const status = PV1F_COMBAT_CONTENT.statuses.find((entry) => entry.id === id)
   const result: PreviewEffect = { label: details.name, explanation: details.description }
@@ -53,7 +57,7 @@ function statusPreview(id: string, potencyBasisPoints?: number): PreviewEffect {
         id === 'inspired'
           ? `+${percent} outgoing`
           : id === 'hexed'
-            ? `−${percent} healing`
+            ? `−${percent} ${legacyHealingDown ? 'healing' : 'HP/MP recovery'}`
             : `+${percent} Storm`
   } else if (status?.markAccuracyBonusBasisPoints !== undefined) {
     result.magnitude = `+${(potencyBasisPoints ?? status.markAccuracyBonusBasisPoints) / 100} pp Accuracy`
@@ -97,6 +101,7 @@ export function previewEffect(
     legacyTriggers?: boolean
     legacyFrozenGround?: boolean
     legacyAirborne?: boolean
+    legacyHealingDown?: boolean
   } = {},
 ): PreviewEffect {
   const target =
@@ -130,7 +135,7 @@ export function previewEffect(
       return {
         label: effect.resource === 'hp' ? 'HP Recovery' : 'MP Recovery',
         magnitude: `${effect.percent}%`,
-        explanation: `Restores a captured ${effect.percent}% of ${target === 'you' ? 'your' : `${target}’s`} maximum ${effect.resource.toUpperCase()}${(effect.ticks ?? 1) > 1 ? ` per application, ${effect.ticks} times` : ''}. ${effect.resource === 'hp' ? 'The maximum and HP Hex adjustment are captured when cast' : 'The maximum is captured when cast'}; actual gains cap at the current maximum and never revive.`,
+        explanation: `Restores a captured ${effect.percent}% of ${target === 'you' ? 'your' : `${target}’s`} maximum ${effect.resource.toUpperCase()}${(effect.ticks ?? 1) > 1 ? ` per application, ${effect.ticks} times` : ''}. ${effect.resource === 'hp' || !options.legacyHealingDown ? 'The maximum and Healing Down adjustment are captured when cast' : 'The maximum is captured when cast'}; actual gains cap at the current maximum and never revive.`,
       }
     case 'healing':
       return {
@@ -160,7 +165,7 @@ export function previewEffect(
             explanation:
               'Ignore the Frozen Ground AP surcharge. Board bounds, elevation, obstacles, occupancy, Rooted and Movement allowance still apply.',
           }
-        : statusPreview(effect.statusId, effect.potencyBasisPoints)
+        : statusPreview(effect.statusId, effect.potencyBasisPoints, options.legacyHealingDown)
     case 'displace':
       return {
         label: effect.direction === 'pull' ? 'Pull' : 'Push',
@@ -259,6 +264,7 @@ export function skillPreviewEffects(
     legacyTriggers?: boolean
     legacyFrozenGround?: boolean
     legacyAirborne?: boolean
+    legacyHealingDown?: boolean
   } = {},
 ): readonly PreviewEffect[] {
   const seen = new Set<string>()

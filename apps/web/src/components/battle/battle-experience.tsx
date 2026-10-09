@@ -302,6 +302,7 @@ export function BattleExperience(props: {
       dotTriggerPolicyVersion={props.initialBattle.snapshot.dotTriggerPolicyVersion ?? null}
       frozenGroundPolicyVersion={props.initialBattle.snapshot.frozenGroundPolicyVersion ?? null}
       airbornePolicyVersion={props.initialBattle.snapshot.airbornePolicyVersion ?? null}
+      healingDownPolicyVersion={props.initialBattle.snapshot.healingDownPolicyVersion ?? null}
     >
       <BattleExperienceContent {...props} />
     </SkillEffectTimingProvider>

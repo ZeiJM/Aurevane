@@ -57,6 +57,7 @@ export function projectBattleStatusStateForViewer(
     | 'pendingEffects'
     | 'pendingSummons'
     | 'airbornePolicyVersion'
+    | 'healingDownPolicyVersion'
     | 'dotTriggerPolicyVersion'
     | 'skillPacketPolicyVersion'
   >,
@@ -66,6 +67,15 @@ export function projectBattleStatusStateForViewer(
     state.tactical.battle.combatants.map((combatant) => [combatant.id, combatant] as const),
   )
 
+  const presentInteractionPolicy = (status: BattlePresentedStatus): BattlePresentedStatus => ({
+    ...status,
+    ...(status.statusId === 'airborne' && state.airbornePolicyVersion === 1
+      ? { airbornePolicyVersion: 1 as const }
+      : {}),
+    ...(status.statusId === 'hexed' && state.healingDownPolicyVersion === 1
+      ? { healingDownPolicyVersion: 1 as const }
+      : {}),
+  })
   const pending = [...pendingCombatStatusRows(state), ...activePersistentCombatStatusRows(state)]
   return state.statusState.map((activeRow) => {
     const combatant = combatantById.get(activeRow.combatantId)
@@ -96,19 +106,11 @@ export function projectBattleStatusStateForViewer(
     const row = {
       ...activeRow,
       statuses: [
-        ...activeRow.statuses.map((status) =>
-          status.statusId === 'airborne' && state.airbornePolicyVersion === 1
-            ? { ...status, airbornePolicyVersion: 1 as const }
-            : status,
-        ),
+        ...activeRow.statuses.map((status) => presentInteractionPolicy(status)),
         ...terrainStatuses,
         ...pending
           .filter((item) => item.combatantId === activeRow.combatantId)
-          .map((item) =>
-            item.status.statusId === 'airborne' && state.airbornePolicyVersion === 1
-              ? { ...item.status, airbornePolicyVersion: 1 as const }
-              : item.status,
-          ),
+          .map((item) => presentInteractionPolicy(item.status)),
       ],
     }
     // Validated snapshots should always resolve this row; omission is safer than disclosure if they do not.

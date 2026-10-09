@@ -695,7 +695,14 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
               aria-label="Status ID"
               type="text"
               value={value.statusId}
-              onChange={(event) => onChange({ ...value, statusId: event.currentTarget.value })}
+              onChange={(event) => {
+                const next = { ...value, statusId: event.currentTarget.value }
+                if (next.statusId === 'blindside') {
+                  next.durationTurns = 1
+                  delete next.potencyBasisPoints
+                }
+                onChange(next)
+              }}
             />
             <small className={styles.fieldHint}>
               Includes authored statuses such as Covert; Revealed is Reveal-owned.
@@ -954,6 +961,7 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
     'sensory',
   ].includes(value.type)
   const fixedTerrain = value.type === 'create-terrain'
+  const fixedBlindside = value.type === 'apply-status' && value.statusId === 'blindside'
   const maximumDuration = value.type === 'percentage-recovery' ? 3 : 4
   const minimumDuration = ['apply-status', 'bleed', 'burn', 'poison'].includes(value.type) ? 1 : 0
   const durationTurns =
@@ -1000,11 +1008,11 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
           <input
             aria-label="Effect duration (turns)"
             type="number"
-            min={fixedImmediate ? 0 : fixedTerrain ? 2 : minimumDuration}
-            max={fixedImmediate ? 0 : fixedTerrain ? 2 : maximumDuration}
+            min={fixedBlindside ? 1 : fixedImmediate ? 0 : fixedTerrain ? 2 : minimumDuration}
+            max={fixedBlindside ? 1 : fixedImmediate ? 0 : fixedTerrain ? 2 : maximumDuration}
             step={1}
-            disabled={fixedImmediate || fixedTerrain}
-            value={fixedImmediate ? 0 : fixedTerrain ? 2 : durationTurns}
+            disabled={fixedImmediate || fixedTerrain || fixedBlindside}
+            value={fixedBlindside ? 1 : fixedImmediate ? 0 : fixedTerrain ? 2 : durationTurns}
             onChange={(event) => changeDuration(integer(event.currentTarget.value, durationTurns))}
           />
           <small className={styles.fieldHint}>
