@@ -422,11 +422,11 @@ export function defeatCurrentCombatant(
   const activeTeams = collectActiveTeams(defeatedState)
   if (activeTeams.size <= 1) {
     const winningTeamId = [...activeTeams][0] ?? null
-    const nextState: BattleState = {
+    const nextState: BattleState = reorderBattleInitiative({
       ...defeatedState,
       lifecycle: 'completed',
       currentTurn: null,
-    }
+    })
     assertValidBattleState(nextState)
     events.push({ event: 'battle_completed', winningTeamId })
     return { state: nextState, events }

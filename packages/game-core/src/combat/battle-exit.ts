@@ -1,4 +1,4 @@
-import { validateBattleState, type BattleState } from './battle-state'
+import { reorderBattleInitiative, validateBattleState, type BattleState } from './battle-state'
 
 export type BattleExitPolicy =
   'ABORT_PRACTICE' | 'IMMEDIATE_RETREAT' | 'TACTICAL_EXTRACTION' | 'SURRENDER' | 'NO_VOLUNTARY_EXIT'
@@ -27,11 +27,11 @@ export function abortPracticeBattle(state: BattleState): BattleExitTransition {
     throw new Error('Only a pending or active practice battle can be aborted.')
   }
 
-  const nextState: BattleState = {
+  const nextState: BattleState = reorderBattleInitiative({
     ...state,
     lifecycle: 'abandoned',
     currentTurn: null,
-  }
+  })
   const nextIssues = validateBattleState(nextState)
   if (nextIssues.length > 0) {
     throw new Error(

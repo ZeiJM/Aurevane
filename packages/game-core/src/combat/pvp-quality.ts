@@ -4,7 +4,11 @@ import {
   executeCombatAction,
   type CombatActionDefinition,
 } from './actions'
-import type { BattleCombatant, BattleTemporaryResource } from './battle-state'
+import {
+  reorderBattleInitiative,
+  type BattleCombatant,
+  type BattleTemporaryResource,
+} from './battle-state'
 import { createTacticalBattleState } from './board'
 import { PV1F_COMBAT_CONTENT, finishPv1fTurn, hasPv1fTurnActivity } from './pv1f-action-economy'
 import {
@@ -128,11 +132,11 @@ export function surrenderPvpCombatant(
 
   if (livingTeams.size <= 1) {
     const winningTeamId = [...livingTeams][0] ?? null
-    const battle = {
+    const battle = reorderBattleInitiative({
       ...nextState.tactical.battle,
       lifecycle: 'completed' as const,
       currentTurn: null,
-    }
+    })
     const tactical = createTacticalBattleState({ ...nextState.tactical, battle })
     nextState = reattachStatDrivenCombatBridge(
       advanceCombatGroundAreas({
