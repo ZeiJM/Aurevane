@@ -2,7 +2,7 @@
 
 > **For agentic workers:** Use superpowers:executing-plans to implement this plan in the current session. Existing Owner authorization permits completion and release without another confirmation.
 
-**Goal:** Compact summon skills, preserve named summon departures and activate Blindside only for enhanced flank hits.
+**Goal:** Compact summon skills, preserve named summon departures and activate Blindside only for enhanced flank hits, restore full target previews and clear vacated target borders.
 
 **Architecture:** Extend the existing shared reader, viewer-safe recorded log enrichment and canonical effect resolver. Pin the activation change independently for new encounters; reorder presentation without changing execution.
 
@@ -47,9 +47,18 @@
 - [x] Implement shared display ordering and policy-gated flank activation.
 - [x] Verify all current positional Skills, preview/commit, neutral/front/missed/independent packet gates, restore and historical cases.
 
-### Task3: Verification and release
+### Task3: Full target previews and vacated borders
 
-- [x] Refresh Main; inspect focused patch and run pnpm check plus affected browser parity checks.
-- [x] Obtain the required fresh whole-branch review; resolve material findings with regression coverage.
+**Files:** battle-attack-path.ts/test; battle-experience.tsx; battle-map-token-polish.tsx; battle-targeting-browser-regression.mjs.
+
+- [x] Reproduce Single occupied-only preview and Ground Single aim collapse with failing browser/unit regressions.
+- [x] Restore potential geometry independently of occupied victims and selected Ground Single aim.
+- [x] Verify vacated inline target border cleanup with a failing pre-fix browser case and passing corrected implementation.
+- [x] Review desktop/mobile PvE/PvP Single, Line, Circle, All and Ground cases, retaining historical geometry and server legality.
+
+### Task4: Verification and release
+
+- [x] Refresh Main; inspect combined patch and run pnpm check plus affected browser parity checks.
+- [x] Obtain the required fresh review of the added targeting fixes; retain the completed whole-branch review and resolve material findings.
 - [ ] Publish isolated branch/PR; wait for all applicable exact-head CI; merge verified head.
 - [ ] Deploy exact merged SHA, verify canonical alias/public routes/runtime window and record actual evidence.

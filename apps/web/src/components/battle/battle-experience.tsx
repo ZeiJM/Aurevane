@@ -2189,15 +2189,7 @@ function BattleExperienceContent({
                       className={styles.tile}
                       data-ground-path={(groundTarget && inFootprint) || undefined}
                       data-attack-path={
-                        (!groundTarget &&
-                          damagingSelection &&
-                          inFootprint &&
-                          (targetSpec?.kind !== 'unit' ||
-                            targetSpec.shape.kind !== 'single' ||
-                            (combatant &&
-                              combatant.hp > 0 &&
-                              Boolean(activeTechnique ? skillTarget : legalEnemy)))) ||
-                        undefined
+                        (!groundTarget && damagingSelection && inFootprint) || undefined
                       }
                       data-buff-path={
                         (!groundTarget && !damagingSelection && !healingSelection && inFootprint) ||

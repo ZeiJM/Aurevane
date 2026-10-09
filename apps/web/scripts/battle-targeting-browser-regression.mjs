@@ -246,7 +246,7 @@ try {
                   : '[data-attack-path="true"]'
           const count =
             targeting === 'single'
-              ? 1
+              ? 4
               : targeting === 'all-any'
                 ? 4
                 : targeting === 'line'
@@ -368,6 +368,12 @@ try {
           }
           if (targeting === 'single') {
             // A forced move leaves no red single-unit targeting cue on the vacated tile.
+            await page.locator('[data-command-slot="attack"]').click()
+            await page.waitForFunction(
+              () =>
+                document.querySelector('#battlefield button[aria-label^="Tile 5, 4;"]')?.style
+                  .borderColor === 'rgb(255, 118, 111)',
+            )
             await page.evaluate(() => {
               window.fixtureBattle = {
                 ...window.fixtureBattle,
@@ -384,11 +390,31 @@ try {
               }
               window.publishBattle()
             })
+            await page.waitForFunction(
+              () =>
+                document.querySelector('#battlefield button[aria-label^="Tile 5, 4;"]')?.style
+                  .borderColor === '',
+            )
             await arm()
             await page.waitForFunction(
               () =>
-                document.querySelector('#battlefield button[aria-label^="Tile 4, 3;"]')?.dataset
+                document.querySelector('#battlefield button[aria-label^="Tile 5, 4;"]')?.dataset
                   .attackPath === 'true',
+            )
+            assert.equal(
+              await tile(page, 4, 3).getAttribute('data-attack-path'),
+              'true',
+              'An empty in-range tile keeps the potential glow',
+            )
+            assert.equal(
+              await tile(page, 4, 3).getAttribute('data-target'),
+              null,
+              'The moved unit leaves no target outline',
+            )
+            assert.equal(
+              await tile(page, 4, 3).evaluate((button) => button.style.borderColor),
+              '',
+              'The vacated tile has no stale inline target border',
             )
             assert.equal(await tile(page, 5, 4).getAttribute('data-attack-path'), null)
             assert.equal(
@@ -396,6 +422,21 @@ try {
                 (button) => getComputedStyle(button, '::after').content,
               ),
               'none',
+            )
+            await page.getByRole('button', { name: 'Cancel Action', exact: true }).click()
+            assert.equal(
+              await page.locator('#battlefield button[data-attack-path="true"]').count(),
+              0,
+            )
+            assert.deepEqual(
+              await tile(page, 4, 3).evaluate((button) => ({
+                border: button.style.borderColor,
+                background: button.style.backgroundColor,
+                shadow: button.style.boxShadow,
+                glow: getComputedStyle(button, '::after').content,
+              })),
+              { border: '', background: '', shadow: '', glow: 'none' },
+              'Cancel clears the potential glow and all stale target overrides',
             )
           }
           if (targeting === 'line') {
