@@ -44,6 +44,10 @@ export interface BattleTurnState {
 }
 
 export interface BattleState {
+  dynamicInitiativePolicyVersion?: 1
+  /** Persist round progress independently of changing sort positions. */
+  actedCombatantIds?: readonly string[]
+  activeInitiativeModifiers?: readonly { combatantId: string; amount: number }[]
   /** Echoes the encounter policy so frozen round offsets retain versioned validation. */
   effectStackingPolicyVersion?: 1
   schemaVersion: typeof BATTLE_STATE_SCHEMA_VERSION
@@ -318,7 +322,16 @@ export function endTurn(
     throw new Error('No eligible combatant is available for the next turn.')
   }
 
-  const wrappedRound = next.initiativeIndex <= turn.initiativeIndex
+  const wrappedRound =
+    state.dynamicInitiativePolicyVersion === 1
+      ? !state.initiativeOrder.some(
+          (id) =>
+            id !== turn.combatantId &&
+            !(state.actedCombatantIds ?? []).includes(id) &&
+            !(state.deferredInitiativeCombatantIds ?? []).includes(id) &&
+            getCombatant(state, id)?.hp > 0,
+        )
+      : next.initiativeIndex <= turn.initiativeIndex
   const nextRound = wrappedRound ? state.round + 1 : state.round
   const nextTurnNumber = state.turnNumber + 1
   const roundState = wrappedRound
@@ -326,7 +339,7 @@ export function endTurn(
         ...state,
         initiativeOrder: createInitiativeOrder(
           state.combatants,
-          nextRoundModifiers,
+          combinedInitiativeModifiers(state, nextRoundModifiers),
           new Set(),
           state.initiativeTieOrder,
         ),
@@ -339,12 +352,21 @@ export function endTurn(
   if (wrappedRound) next = findFirstEligibleCombatant(roundState, excludedId)!
   const nextState: BattleState = {
     ...roundState,
+    ...(roundState.dynamicInitiativePolicyVersion === 1
+      ? {
+          actedCombatantIds: wrappedRound
+            ? []
+            : [...(roundState.actedCombatantIds ?? []), turn.combatantId],
+        }
+      : {}),
     round: nextRound,
     turnNumber: nextTurnNumber,
     currentTurn: createFreshTurn(next.combatant, next.initiativeIndex),
   }
 
-  assertValidBattleState(nextState)
+  const orderedState =
+    nextState.dynamicInitiativePolicyVersion === 1 ? reorderBattleInitiative(nextState) : nextState
+  assertValidBattleState(orderedState)
 
   const events: BattleEvent[] = [
     {
@@ -366,7 +388,7 @@ export function endTurn(
     combatantId: next.combatant.id,
   })
 
-  return { state: nextState, events }
+  return { state: orderedState, events }
 }
 
 export function defeatCurrentCombatant(
@@ -413,7 +435,16 @@ export function defeatCurrentCombatant(
   let next = findNextEligibleCombatant(defeatedState, turn.initiativeIndex, combatantId)
   if (!next) throw new Error('No eligible combatant is available after the active defeat.')
 
-  const wrappedRound = next.initiativeIndex <= turn.initiativeIndex
+  const wrappedRound =
+    defeatedState.dynamicInitiativePolicyVersion === 1
+      ? !defeatedState.initiativeOrder.some(
+          (id) =>
+            id !== combatantId &&
+            !(defeatedState.actedCombatantIds ?? []).includes(id) &&
+            !(defeatedState.deferredInitiativeCombatantIds ?? []).includes(id) &&
+            getCombatant(defeatedState, id)?.hp > 0,
+        )
+      : next.initiativeIndex <= turn.initiativeIndex
   const nextRound = wrappedRound ? state.round + 1 : state.round
   const nextTurnNumber = state.turnNumber + 1
   const roundState = wrappedRound
@@ -421,7 +452,7 @@ export function defeatCurrentCombatant(
         ...defeatedState,
         initiativeOrder: createInitiativeOrder(
           defeatedState.combatants,
-          nextRoundModifiers,
+          combinedInitiativeModifiers(defeatedState, nextRoundModifiers),
           new Set(),
           state.initiativeTieOrder,
         ),
@@ -433,12 +464,20 @@ export function defeatCurrentCombatant(
     : defeatedState
   if (wrappedRound) next = findFirstEligibleCombatant(roundState, combatantId)!
 
-  const nextState: BattleState = {
+  let nextState: BattleState = {
     ...roundState,
+    ...(roundState.dynamicInitiativePolicyVersion === 1
+      ? {
+          actedCombatantIds: wrappedRound
+            ? []
+            : [...(roundState.actedCombatantIds ?? []), turn.combatantId],
+        }
+      : {}),
     round: nextRound,
     turnNumber: nextTurnNumber,
     currentTurn: createFreshTurn(next.combatant, next.initiativeIndex),
   }
+  if (nextState.dynamicInitiativePolicyVersion === 1) nextState = reorderBattleInitiative(nextState)
   assertValidBattleState(nextState)
 
   if (wrappedRound) events.push({ event: 'round_started', round: nextRound })
@@ -528,12 +567,42 @@ export function validateBattleState(state: BattleState): readonly BattleInvarian
       field: 'initiativeTieOrder',
       message: 'Tie priorities must be unique known combatants chosen after battle start.',
     })
-  const expectedInitiativeOrder = createInitiativeOrder(
+  if (
+    state.dynamicInitiativePolicyVersion !== undefined &&
+    state.dynamicInitiativePolicyVersion !== 1
+  )
+    issues.push({
+      field: 'dynamicInitiativePolicyVersion',
+      message: 'Unsupported Initiative policy.',
+    })
+  for (const modifier of state.activeInitiativeModifiers ?? [])
+    if (!combatantIds.has(modifier.combatantId) || !Number.isSafeInteger(modifier.amount))
+      issues.push({
+        field: 'activeInitiativeModifiers',
+        message: 'Invalid active Initiative offset.',
+      })
+  const acted = state.actedCombatantIds ?? []
+  if (
+    new Set(acted).size !== acted.length ||
+    acted.some((id) => !combatantIds.has(id)) ||
+    (state.dynamicInitiativePolicyVersion !== 1 &&
+      (acted.length || state.activeInitiativeModifiers?.length))
+  )
+    issues.push({ field: 'actedCombatantIds', message: 'Invalid persisted round progress.' })
+  const sorted = createInitiativeOrder(
     state.combatants,
-    state.roundInitiativeModifiers,
+    combinedInitiativeModifiers(state),
     deferredIds,
     state.initiativeTieOrder,
   )
+  const expectedInitiativeOrder =
+    state.dynamicInitiativePolicyVersion === 1 && state.currentTurn
+      ? [
+          ...acted,
+          state.currentTurn.combatantId,
+          ...sorted.filter((id) => !acted.includes(id) && id !== state.currentTurn!.combatantId),
+        ]
+      : sorted
   if (!arraysEqual(state.initiativeOrder, expectedInitiativeOrder)) {
     issues.push({
       field: 'initiativeOrder',
@@ -612,6 +681,69 @@ function shuffleInitiativeTies(state: BattleState): string[] {
     ;[ids[index], ids[selected]] = [ids[selected], ids[index]]
   }
   return ids
+}
+
+function combinedInitiativeModifiers(
+  state: BattleState,
+  round = state.roundInitiativeModifiers ?? [],
+) {
+  const totals = new Map(round.map((row) => [row.combatantId, row.amount]))
+  for (const row of state.activeInitiativeModifiers ?? [])
+    totals.set(row.combatantId, (totals.get(row.combatantId) ?? 0) + row.amount)
+  return [...totals].map(([combatantId, amount]) => ({ combatantId, amount }))
+}
+/** Keep the current actor and completed prefix fixed while sorting only future participants. */
+export function reorderBattleInitiative(state: BattleState): BattleState {
+  if (state.dynamicInitiativePolicyVersion !== 1) return state
+  const sorted = createInitiativeOrder(
+    state.combatants,
+    combinedInitiativeModifiers(state),
+    new Set(state.deferredInitiativeCombatantIds ?? []),
+    state.initiativeTieOrder,
+  )
+  if (!state.currentTurn) return { ...state, initiativeOrder: sorted }
+  if (state.lifecycle !== 'active') return state
+  const acted = state.actedCombatantIds ?? []
+  const actorId = state.currentTurn.combatantId
+  const initiativeOrder = [
+    ...acted,
+    actorId,
+    ...sorted.filter((id) => !acted.includes(id) && id !== actorId),
+  ]
+  return {
+    ...state,
+    actedCombatantIds: acted,
+    initiativeOrder,
+    currentTurn: { ...state.currentTurn, initiativeIndex: acted.length },
+  }
+}
+
+/** Round boundary settlement completes before its first actor is selected. */
+export function selectDynamicRoundFirstActor(
+  state: BattleState,
+  turnNumber = state.turnNumber,
+): BattleState {
+  if (state.dynamicInitiativePolicyVersion !== 1 || state.lifecycle !== 'active') return state
+  const initiativeOrder = createInitiativeOrder(
+    state.combatants,
+    combinedInitiativeModifiers(state),
+    new Set(),
+    state.initiativeTieOrder,
+  )
+  const first = findFirstEligibleCombatant({
+    ...state,
+    initiativeOrder,
+    deferredInitiativeCombatantIds: [],
+  })
+  if (!first) return state
+  return {
+    ...state,
+    actedCombatantIds: [],
+    initiativeOrder,
+    deferredInitiativeCombatantIds: [],
+    turnNumber,
+    currentTurn: createFreshTurn(first.combatant, first.initiativeIndex),
+  }
 }
 
 function createInitiativeOrder(

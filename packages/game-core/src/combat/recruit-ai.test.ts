@@ -4,6 +4,7 @@ import { createCombatEncounterState } from './actions'
 import { createPendingBattle, startBattle } from './battle-state'
 import { createTacticalBattleState } from './board'
 import {
+  finishPv1fTurn,
   executePv1fAction,
   evaluatePv1fMovement,
   PV1F_RECOVER_ACTION_ID,
@@ -414,4 +415,42 @@ it('plans a current-policy descent from height three with Jump zero', () => {
   if (decision.intent.kind !== 'move') throw new Error('Expected a legal descent route.')
   expect(evaluatePv1fMovement(state, decision.intent.path).movement.legal).toBe(true)
   expect(JSON.stringify(state)).toBe(before)
+})
+
+it('a Chilled current-policy recruit can finish in its existing direction', () => {
+  const original = spendPv1fActionEconomy(
+    encounter({ width: 2, recruitPosition: { x: 1, y: 0 }, playerPosition: { x: 0, y: 0 } }),
+    100,
+  )
+  const state = {
+    ...original,
+    elementalDamagePolicyVersion: 1 as const,
+    tactical: {
+      ...original.tactical,
+      placements: original.tactical.placements.map((row) =>
+        row.combatantId === 'recruit' ? { ...row, facing: 'north' as const } : row,
+      ),
+    },
+    statusState: original.statusState.map((row) =>
+      row.combatantId === 'recruit'
+        ? {
+            ...row,
+            statuses: [
+              {
+                statusId: 'frozen',
+                statusVersion: 1,
+                stacks: 1,
+                remainingOwnerTurnStarts: 2,
+                sourceCombatantId: 'player',
+              },
+            ],
+          }
+        : row,
+    ),
+  }
+  const decision = chooseRecruitAiDecision({ state, tieBreakSeed: 9 })
+  expect(decision.intent).toEqual({ kind: 'face', facing: 'north' })
+  expect(finishPv1fTurn(state, 'north').state.tactical.battle.currentTurn?.combatantId).toBe(
+    'player',
+  )
 })

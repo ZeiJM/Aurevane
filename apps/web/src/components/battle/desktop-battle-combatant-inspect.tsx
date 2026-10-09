@@ -23,7 +23,10 @@ import {
   readSummonInspectMetadata,
   type BattleSummonInspectMetadata,
 } from './battle-summon-inspect'
-import { terrainAdjustedBattleProfile } from '../../lib/battle/battle-elevation-stats'
+import {
+  visibleBattleInitiative,
+  terrainAdjustedBattleProfile,
+} from '../../lib/battle/battle-elevation-stats'
 import styles from './desktop-battle-combatant-inspect.module.css'
 import { useBattleInteractionLifecycle } from './battle-interaction-lifecycle'
 import { buildBattleViewModel } from './battle-runtime'
@@ -195,7 +198,10 @@ function readSelectedCombatant(
     : null
 
   return {
-    combatant,
+    combatant: {
+      ...combatant,
+      initiative: visibleBattleInitiative(battle.snapshot, combatant, statuses),
+    },
     placement,
     profile: terrainAdjustedBattleProfile(battle.snapshot, combatantId, profile, statuses),
     statuses,

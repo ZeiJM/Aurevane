@@ -11,6 +11,7 @@ export type SkillEffectTimingPolicy = CombatEffectTimingPolicy | null
 const TimingContext = createContext<SkillEffectTimingPolicy>(defaultCombatEffectTimingPolicy())
 const GroundInteractionContext = createContext({
   legacyFrozenGround: false,
+  legacyElemental: false,
   legacyAirborne: false,
   legacyAirborneJump: false,
   legacyHealingDown: false,
@@ -27,6 +28,7 @@ export function SkillEffectTimingProvider({
   airborneJumpPolicyVersion = 1,
   healingDownPolicyVersion = 1,
   blindsideActivationPolicyVersion = 1,
+  elementalDamagePolicyVersion = 1,
   children,
 }: {
   policy: SkillEffectTimingPolicy
@@ -36,6 +38,7 @@ export function SkillEffectTimingProvider({
   airborneJumpPolicyVersion?: 1 | null
   healingDownPolicyVersion?: 1 | null
   blindsideActivationPolicyVersion?: 1 | null
+  elementalDamagePolicyVersion?: 1 | null
   children: ReactNode
 }) {
   return (
@@ -44,6 +47,7 @@ export function SkillEffectTimingProvider({
         <GroundInteractionContext.Provider
           value={{
             legacyFrozenGround: frozenGroundPolicyVersion !== 1,
+            legacyElemental: elementalDamagePolicyVersion !== 1,
             legacyAirborne: airbornePolicyVersion !== 1,
             legacyAirborneJump: airborneJumpPolicyVersion !== 1,
             legacyHealingDown: healingDownPolicyVersion !== 1,

@@ -1,3 +1,4 @@
+import { setTerrainOverlay } from '@aurevane/game-core/combat/terrain-overlays'
 import { SkillGroundEditor } from '@/components/master/combat-content/skill-ground-editor'
 import React from 'react'
 import { createRoot } from 'react-dom/client'
@@ -17,6 +18,7 @@ import {
   createStatDrivenCombatEncounterState,
 } from '@aurevane/game-core/combat/stat-driven-combat'
 import {
+  finishPv1fTurn,
   evaluatePv1fMatureSkill,
   executePv1fMatureSkill,
   readPv1fActionEconomy,
@@ -36,6 +38,7 @@ import { projectPercentageDotFixtureState } from './percentage-dot-viewer-state'
 import './production-styles'
 
 const targetingCase = new URLSearchParams(location.search).get('targeting')
+const elementalCase = new URLSearchParams(location.search).get('elemental')
 const dotCase = new URLSearchParams(location.search).get('dot')
 const dotPhase = new URLSearchParams(location.search).get('phase') || 'active'
 const legacyDotTriggers = new URLSearchParams(location.search).get('triggers') === 'legacy'
@@ -395,6 +398,82 @@ if (dotCase) {
     )
     .reduce((sum, event) => sum + event.amount, 0)
 }
+if (elementalCase) {
+  initialBattle.snapshot = {
+    ...initialBattle.snapshot,
+    elementalDamagePolicyVersion: 1,
+    dynamicInitiativePolicyVersion: 1,
+    effectTimingPolicy: { version: 7, modes: { damage: 'instant' } },
+  }
+  if (elementalCase === 'steam' || elementalCase.startsWith('fire')) {
+    initialBattle.snapshot = setTerrainOverlay(
+      initialBattle.snapshot,
+      { x: 3, y: 2 },
+      'frozen',
+      'enemy-one',
+      'fixture.freeze',
+    ).state
+    if (elementalCase === 'steam')
+      initialBattle.snapshot.terrainOverlays[0] = {
+        ...initialBattle.snapshot.terrainOverlays[0],
+        kind: 'steam',
+        remainingRoundBoundaries: 1,
+      }
+  }
+  if (elementalCase === 'chilled' || elementalCase.startsWith('fire'))
+    initialBattle.snapshot.statusState = initialBattle.snapshot.statusState.map((row) =>
+      row.combatantId === 'character:player'
+        ? {
+            ...row,
+            statuses: [
+              {
+                statusId: 'frozen',
+                statusVersion: 1,
+                stacks: 1,
+                remainingOwnerTurnStarts: 3,
+                remainingOwnerTurnEnds: 2,
+                sourceCombatantId: 'enemy-one',
+              },
+            ],
+          }
+        : row,
+    )
+  if (elementalCase.startsWith('fire') && targetingCase) {
+    const definition = {
+      ...window.targetingDefinition,
+      effects: [
+        {
+          type: 'damage',
+          recipient:
+            window.targetingDefinition.target.shape.kind === 'single'
+              ? 'primary-unit'
+              : 'affected-units',
+          amount: 10,
+          element: 'fire',
+        },
+      ],
+    }
+    window.targetingDefinition = definition
+    runtime.techniques[0] = { ...runtime.techniques[0], definition }
+    if (elementalCase === 'fire-area')
+      initialBattle.snapshot.statusState = initialBattle.snapshot.statusState.map((row) =>
+        row.combatantId === 'enemy-one'
+          ? {
+              ...row,
+              statuses: [
+                {
+                  statusId: 'airborne',
+                  statusVersion: 1,
+                  stacks: 1,
+                  remainingOwnerTurnStarts: 3,
+                  sourceCombatantId: 'enemy-one',
+                },
+              ],
+            }
+          : row,
+      )
+  }
+}
 window.fixtureBattle = initialBattle
 window.calls = []
 window.fetch = async (url, options = {}) => {
@@ -463,22 +542,24 @@ window.fetch = async (url, options = {}) => {
       },
     })
   }
-  if (targetingCase && /\/(commit|intents)$/.test(path)) {
+  if (targetingCase && /\/(commit|intents|final-turn)$/.test(path)) {
     if (body.expectedBattleVersion !== window.fixtureBattle.battleVersion)
       return Response.json({ message: 'Stale battle version.' }, { status: 409 })
     try {
-      const intent = body.intent
+      const intent = body.intent ?? { kind: 'face', facing: body.facing }
       const transition =
-        intent.kind === 'move'
-          ? executePv1fMovement(window.fixtureBattle.snapshot, intent.path)
-          : intent.actionId === window.targetingDefinition.id
-            ? executePv1fMatureSkill(
-                window.fixtureBattle.snapshot,
-                window.targetingDefinition,
-                intent.target,
-                mode === 'pvp' ? 'pvp' : 'pve',
-              )
-            : executePv1fAction(window.fixtureBattle.snapshot, intent.actionId, intent.target)
+        intent.kind === 'face'
+          ? finishPv1fTurn(window.fixtureBattle.snapshot, intent.facing)
+          : intent.kind === 'move'
+            ? executePv1fMovement(window.fixtureBattle.snapshot, intent.path)
+            : intent.actionId === window.targetingDefinition.id
+              ? executePv1fMatureSkill(
+                  window.fixtureBattle.snapshot,
+                  window.targetingDefinition,
+                  intent.target,
+                  mode === 'pvp' ? 'pvp' : 'pve',
+                )
+              : executePv1fAction(window.fixtureBattle.snapshot, intent.actionId, intent.target)
       window.receipts = transition.events
       window.fixtureBattle = {
         ...window.fixtureBattle,
@@ -487,6 +568,7 @@ window.fetch = async (url, options = {}) => {
       }
       return Response.json({ battle: window.fixtureBattle })
     } catch (error) {
+      window.commitFailure = error.message
       return Response.json({ message: error.message }, { status: 409 })
     }
   }

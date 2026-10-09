@@ -8,6 +8,7 @@ import type { BattlePreviewView } from '../src/server/battle/battle-preview-serv
 import { buildMovementPaths } from '../src/components/battle/battle-geometry'
 import { createAccountAndEnterCharacter } from './pv1f-test-helpers'
 import { expectNoSkillPreviewMetadata } from './battle-preview-metadata-helpers'
+import { expectBasicAttackPotentialRange } from './battle-target-range-helpers'
 
 async function enterBattle(page: Page) {
   const name = `Wayfarer ${Date.now()
@@ -41,7 +42,7 @@ test('mounted attack-path overlays remain visible above open, rough and raised t
   test.slow()
   await enterBattle(page)
   const board = page.locator('#battlefield')
-  // Single-unit Attack cues mark eligible occupants even without informational forecasts.
+  // Potential Attack range remains visible even with no nearby enemy or forecast.
   await page.route('**/api/battles/*/preview', (route) => route.abort())
   await page.locator('main[data-unified-battle="true"]').focus()
   await page.keyboard.press('Digit2')
@@ -49,13 +50,8 @@ test('mounted attack-path overlays remain visible above open, rough and raised t
     'data-active',
     'true',
   )
-  await expect
-    .poll(async () => ({
-      cues: await board.locator('[data-attack-path]').count(),
-      targets: await board.locator('[data-target="enemy"]').count(),
-    }))
-    .toEqual({ cues: 0, targets: 0 })
-  await expect(board.locator('[data-attack-path]:not([data-target="enemy"])')).toHaveCount(0)
+  await expectBasicAttackPotentialRange(page)
+  await expect(board.locator('[data-target="enemy"]')).toHaveCount(0)
   await page.keyboard.press('Escape')
   await expect(board.locator('[data-attack-path]')).toHaveCount(0)
   // Presentation fixture only: shape selection is covered by battle-attack-path.

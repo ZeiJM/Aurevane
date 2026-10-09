@@ -9,16 +9,25 @@ export function BattleGroundAreaLayer({
   areas,
   round,
   position,
+  steam = false,
 }: {
   areas?: readonly PublicCombatGroundArea[]
   round: number
+  steam?: boolean
   position: { x: number; y: number }
 }) {
   return (
     <>
+      {steam ? (
+        <span className={styles.mist} data-ground-steam-mist="true" aria-hidden="true">
+          <i />
+          <i />
+        </span>
+      ) : null}
       {areas
         ?.filter(
           (area) =>
+            !area.steamTiles?.some((tile) => tile.x === position.x && tile.y === position.y) &&
             area.expiresAtRound > round &&
             area.tiles.some((tile) => tile.x === position.x && tile.y === position.y),
         )

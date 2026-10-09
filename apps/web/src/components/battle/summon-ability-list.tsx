@@ -120,6 +120,7 @@ export function SummonAbilityList({
       frozenGroundPolicyVersion={policies.frozenGroundPolicyVersion ?? null}
       airbornePolicyVersion={policies.airbornePolicyVersion ?? null}
       airborneJumpPolicyVersion={policies.airborneJumpPolicyVersion ?? null}
+      elementalDamagePolicyVersion={policies.elementalDamagePolicyVersion ?? null}
       healingDownPolicyVersion={policies.healingDownPolicyVersion ?? null}
       blindsideActivationPolicyVersion={policies.blindsideActivationPolicyVersion ?? null}
     >

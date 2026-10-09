@@ -1,3 +1,5 @@
+October9 elemental authoring: Damage Element supports Fire, Ice, Water and Storm. Ice/Water/Storm expose debuff duration1–4 turns (legacy immediate damage0 means the2-turn default). Water’s Drenched Storm bonus and Storm’s Conductive Storm bonus are **additional damage percentages**, default20%, validated/captured using the existing safe integer potency100–5000 basis-point budget. Editing duration never changes potency. Immutable publish/rollback and Copy Debuffs preserve per-application values and source provenance. Typed damage supplies one implicit elemental status after successful damage settlement; an explicit matching status supplies captured timing/duration/bonus without duplicating the application. Default implicit timing is Instant (affected owner turns); explicit wet/frozen/conductive timing overrides remain authoritative. No new global schema or policy publication is needed. Historical saved encounters retain their pinned flags, definitions and timing.
+
 # AUREVANE — Owner, Staff & Master Panel Specification
 
 **Status:** Authoritative operations specification subordinate to `docs/GAME_MASTER_PLAN.md` and its owner-approved domain specifications.

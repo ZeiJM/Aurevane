@@ -1,3 +1,4 @@
+import type { CombatEffectTimingPolicy } from '@aurevane/game-core/combat/combat-effect-timing'
 import { groupSkillEffects } from './skill-effect-groups'
 import {
   isPercentageDotEffect,
@@ -31,8 +32,33 @@ export interface PreviewEffect {
 const signed = (value: number) => `${value < 0 ? '−' : '+'}${Math.abs(value)}`
 
 /** Shared by compact popups and expanded reports; describes existing combat rules. */
-export function skillDamageElementInteraction(effect: MatureSkillEffectDefinition): string {
+export function skillDamageElementInteraction(
+  effect: MatureSkillEffectDefinition,
+  legacyElemental = false,
+  timingPolicy?: CombatEffectTimingPolicy | null,
+): string {
   if (effect.type !== 'damage') return ''
+  if (!legacyElemental) {
+    const duration = effect.durationTurns || 2
+    const bonus = (effect.potencyBasisPoints ?? 2000) / 100
+    const tag =
+      effect.element === 'ice' ? 'frozen' : effect.element === 'water' ? 'wet' : 'conductive'
+    const mode = timingPolicy?.modes[tag] ?? 'instant'
+    const lifetime =
+      mode === 'instant'
+        ? `${duration} affected turns starting when damage settles (Instant)`
+        : mode === 'next-round'
+          ? `${duration} full rounds starting next round after damage settles`
+          : `${duration} full rounds starting two round boundaries after damage settles (Delayed)`
+    if (effect.element === 'ice')
+      return ` Positive hostile HP damage applies Chilled for ${lifetime}; Chilled locks final facing to the current direction.`
+    if (effect.element === 'water')
+      return ` Positive hostile HP damage applies Drenched for ${lifetime}. Drenched reduces Initiative by 10% once and adds ${bonus}% Storm damage while active.`
+    if (effect.element === 'storm')
+      return ` Positive hostile HP damage consumes the old Conductive charge for its captured Storm bonus, then applies one fresh Conductive charge for ${lifetime} with +${bonus}% Storm damage. Drenched remains; a new charge is not consumed again in the same command.`
+    if (effect.element === 'fire')
+      return ' A legal Fire cast cleanses Chilled from its caster even on empty Ground or a miss. Positive Fire HP damage removes Drenched and Chilled from hostile recipients. Fire converts affected Frozen Ground to Steam mist, keeping its remaining life and blocking sight for both teams.'
+  }
   if (effect.element === 'storm')
     return ' Storm gains 20% per active Wet or Conductive application once per recipient per command and consumes Conductive; Wet remains.'
   if (effect.element === 'fire')
@@ -44,17 +70,24 @@ function statusPreview(
   id: string,
   potencyBasisPoints?: number,
   legacyHealingDown = false,
+  legacyElemental = false,
 ): PreviewEffect {
   const details = {
     ...combatStatusDetails(id),
-    description: statusPotencyDescription(id, potencyBasisPoints, { legacyHealingDown }),
+    description: statusPotencyDescription(id, potencyBasisPoints, {
+      legacyHealingDown,
+      legacyElemental,
+    }),
   }
   const status = PV1F_COMBAT_CONTENT.statuses.find((entry) => entry.id === id)
   const result: PreviewEffect = { label: details.name, explanation: details.description }
   // These gameplay-tag rules live in the damage/healing resolvers. Their shared
   // status descriptions are the public authority; avoid a second numeric constant.
   if (['inspired', 'hexed', 'wet', 'conductive'].includes(id)) {
-    const percent = details.description.match(/\d+(?:\.\d+)?%/)?.[0]
+    const percent =
+      !legacyElemental && (id === 'wet' || id === 'conductive')
+        ? `${(potencyBasisPoints ?? 2000) / 100}%`
+        : details.description.match(/\d+(?:\.\d+)?%/)?.[0]
     if (percent)
       result.magnitude =
         id === 'inspired'
@@ -108,6 +141,8 @@ export function previewEffect(
     legacyAirborneJump?: boolean
     legacyHealingDown?: boolean
     legacyBlindsideActivation?: boolean
+    legacyElemental?: boolean
+    timingPolicy?: CombatEffectTimingPolicy | null
   } = {},
 ): PreviewEffect {
   const target =
@@ -133,9 +168,11 @@ export function previewEffect(
               ? 'Storm Dmg'
               : effect.element === 'fire'
                 ? 'Fire Dmg'
-                : 'Dmg',
+                : effect.element === 'ice'
+                  ? 'Ice Dmg'
+                  : 'Dmg',
         magnitude: String(effect.amount),
-        explanation: `Skill power ranges from 1 to 20. Final HP damage depends on your attack stat, Level and the target’s defenses and effects.${effect.facingModifiersBasisPoints ? ` Facing: front ${effect.facingModifiersBasisPoints.front / 100}%, side ${effect.facingModifiersBasisPoints.side / 100}%, rear ${effect.facingModifiersBasisPoints.rear / 100}%.` : ''}${skillDamageElementInteraction(effect)}`,
+        explanation: `Skill power ranges from 1 to 20. Final HP damage depends on your attack stat, Level and the target’s defenses and effects.${effect.facingModifiersBasisPoints ? ` Facing: front ${effect.facingModifiersBasisPoints.front / 100}%, side ${effect.facingModifiersBasisPoints.side / 100}%, rear ${effect.facingModifiersBasisPoints.rear / 100}%.` : ''}${skillDamageElementInteraction(effect, options.legacyElemental, options.timingPolicy)}`,
       }
     case 'percentage-recovery':
       return {
@@ -178,7 +215,12 @@ export function previewEffect(
             label: 'Airborne',
             explanation: airborneDescription(options.legacyAirborne, options.legacyAirborneJump),
           }
-        : statusPreview(effect.statusId, effect.potencyBasisPoints, options.legacyHealingDown)
+        : statusPreview(
+            effect.statusId,
+            effect.potencyBasisPoints,
+            options.legacyHealingDown,
+            options.legacyElemental,
+          )
     case 'displace':
       return {
         label: effect.direction === 'pull' ? 'Pull' : 'Push',
@@ -281,14 +323,48 @@ export function skillPreviewEffects(
     legacyAirborneJump?: boolean
     legacyHealingDown?: boolean
     legacyBlindsideActivation?: boolean
+    legacyElemental?: boolean
+    timingPolicy?: CombatEffectTimingPolicy | null
   } = {},
 ): readonly PreviewEffect[] {
   const seen = new Set<string>()
   return groupSkillEffects(skill.effects, skill.effectDescriptions)
     .map(({ effect, firstIndex: index }) => {
-      const entry = previewEffect(effect, options)
+      const statusId =
+        effect.type === 'damage'
+          ? ({ ice: 'frozen', water: 'wet', storm: 'conductive' } as const)[
+              effect.element as 'ice' | 'water' | 'storm'
+            ]
+          : undefined
+      const explicit =
+        !options.legacyElemental && statusId
+          ? skill.effects.find(
+              (candidate) =>
+                candidate.type === 'apply-status' &&
+                candidate.statusId === statusId &&
+                candidate.recipient === effect.recipient,
+            )
+          : undefined
+      const captured =
+        effect.type === 'damage' && explicit?.type === 'apply-status'
+          ? {
+              ...effect,
+              durationTurns: effect.durationTurns || explicit.durationTurns,
+              potencyBasisPoints: effect.potencyBasisPoints ?? explicit.potencyBasisPoints,
+            }
+          : effect
+      const entry = previewEffect(captured, options)
       const override = skill.effectDescriptions?.[index]?.trim()
-      return override ? { ...entry, explanation: override } : entry
+      return override
+        ? {
+            ...entry,
+            explanation:
+              override +
+              (!options.legacyElemental
+                ? skillDamageElementInteraction(captured, false, options.timingPolicy)
+                : ''),
+          }
+        : entry
     })
     .filter((entry) => {
       const key = JSON.stringify([entry.label, entry.explanation])

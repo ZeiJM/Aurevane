@@ -54,3 +54,24 @@ export function terrainAdjustedBattleProfile<
     ward: terrainAdjustedDefense(state, combatantId, profile.ward),
   }
 }
+
+export function visibleBattleInitiative(
+  state: {
+    dynamicInitiativePolicyVersion?: 1
+    tactical?: {
+      battle: { roundInitiativeModifiers?: readonly { combatantId: string; amount: number }[] }
+    }
+  },
+  combatant: { initiative: number; id?: string },
+  statuses: readonly BattlePresentedStatus[],
+): number {
+  const normal =
+    combatant.initiative +
+    (state.tactical?.battle.roundInitiativeModifiers?.find(
+      (row) => row.combatantId === combatant.id,
+    )?.amount ?? 0)
+  return state.dynamicInitiativePolicyVersion === 1 &&
+    statuses.some((status) => status.statusId === 'wet' && status.timingState !== 'pending')
+    ? normal - Math.ceil(normal / 10)
+    : normal
+}

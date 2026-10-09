@@ -83,9 +83,17 @@ export function validateCombatStatusCopyAction(action: CombatActionDefinition): 
   }
 }
 
-function isCopyable(definition: CombatStatusDefinition, effect: CombatStatusCopyEffect): boolean {
+function isCopyable(
+  definition: CombatStatusDefinition,
+  effect: CombatStatusCopyEffect,
+  elemental = false,
+): boolean {
   const mode = effect.mode
-  const permitted = mode === 'amplify' ? definition.amplifyCopyable : definition.curseCopyable
+  const permitted =
+    mode === 'amplify'
+      ? definition.amplifyCopyable
+      : (definition.curseCopyable ??
+        (elemental && ['wet', 'frozen', 'conductive'].includes(definition.id)))
   return (
     permitted === true &&
     definition.polarity === (mode === 'amplify' ? 'positive' : 'negative') &&
@@ -277,7 +285,11 @@ export function planCombatStatusCopies(
   for (const donor of [...donors].sort(compareCombatStatusInstances)) {
     const definition = definitions.get(donor.statusId)
     if (!definition) throw new TypeError(`Missing pinned status definition ${donor.statusId}.`)
-    if (donor.timingState === 'pending' || !isCopyable(definition, effect)) continue
+    if (
+      donor.timingState === 'pending' ||
+      !isCopyable(definition, effect, state.elementalDamagePolicyVersion === 1)
+    )
+      continue
     assertPinnedStatus(donor, definition, usesUnlimitedCombatEffectStacking(state))
     const previous = selected.get(donor.statusId)
     if (usesUnlimitedCombatEffectStacking(state) && previous) {

@@ -314,6 +314,7 @@ export function combatStatusDetails(
   id: string,
 ): Pick<NamedCombatStatus, 'name' | 'kind' | 'description'> {
   const named = PHASE4_STATUSES.find((status) => status.id === id)
+  if (id === 'wet' && named) return { ...named, name: 'Drenched' }
   if (named && persistentEffectDescriptions[id])
     return { ...named, description: persistentEffectDescriptions[id] }
   return (

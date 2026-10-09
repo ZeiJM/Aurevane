@@ -1014,3 +1014,62 @@ describe('persistent Ground publication and authored Burn backlash', () => {
     }
   })
 })
+
+it('publishes and restores captured elemental bonus/duration through immutable Master versions', async () => {
+  const { store, service } = serviceFixture()
+  store.operators.set(OWNER, 'owner')
+  const original = staticSkill('tidecaller.water-lance')
+  const definition = {
+    ...original,
+    effects: original.effects.map((effect) =>
+      effect.type === 'damage'
+        ? { ...effect, element: 'water' as const, potencyBasisPoints: 3500, durationTurns: 3 }
+        : effect,
+    ),
+  }
+  const first = await service.publishSkill({
+    actorUserId: OWNER,
+    definition,
+    expectedBaseVersion: original.contentVersion,
+  })
+  const firstDefinition = first.definition as unknown as MatureSkillDefinition
+  expect(firstDefinition.effects.find((effect) => effect.type === 'damage')).toMatchObject({
+    element: 'water',
+    potencyBasisPoints: 3500,
+    durationTurns: 3,
+  })
+  const next = {
+    ...firstDefinition,
+    effects: firstDefinition.effects.map((effect) =>
+      effect.type === 'damage' ? { ...effect, potencyBasisPoints: 1500 } : effect,
+    ),
+  }
+  await service.publishSkill({
+    actorUserId: OWNER,
+    definition: next,
+    expectedBaseVersion: first.contentVersion,
+  })
+  await service.rollbackSkill({
+    actorUserId: OWNER,
+    skillId: original.id,
+    targetVersion: first.contentVersion,
+  })
+  expect((await store.findPublished(original.id))!.definition.effects).toEqual(
+    first.definition.effects,
+  )
+  for (const invalid of [0, 5001, 1.5, Number.MAX_SAFE_INTEGER]) {
+    const result = service.validateSkillDefinition({
+      ...definition,
+      effects: [
+        {
+          type: 'damage',
+          recipient: 'primary-unit',
+          amount: 10,
+          element: 'water',
+          potencyBasisPoints: invalid,
+        },
+      ],
+    })
+    expect(result.valid).toBe(false)
+  }
+})

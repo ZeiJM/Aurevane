@@ -689,6 +689,8 @@ export function createBattleSessionService({
       baseEncounter.frozenGroundPolicyVersion = 1
       baseEncounter.airbornePolicyVersion = 1
       baseEncounter.airborneJumpPolicyVersion = 1
+      baseEncounter.elementalDamagePolicyVersion = 1
+      baseEncounter.dynamicInitiativePolicyVersion = 1
       baseEncounter.healingDownPolicyVersion = 1
       baseEncounter.blindsideActivationPolicyVersion = 1
       baseEncounter.groundEffectPolicyVersion = 1

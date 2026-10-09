@@ -32,7 +32,11 @@ function title(value: string): string {
 }
 
 function requirementTagName(tag: string): string {
-  return tag === 'Frozen' ? gameplayStatusName('frozen') : title(tag)
+  return tag === 'Frozen'
+    ? gameplayStatusName('frozen')
+    : tag === 'Wet'
+      ? gameplayStatusName('wet')
+      : title(tag)
 }
 
 function recipient(effect: MatureSkillEffectDefinition): string {
@@ -51,6 +55,8 @@ export function skillEffectDescription(
     legacyAirborne?: boolean
     legacyAirborneJump?: boolean
     legacyHealingDown?: boolean
+    legacyElemental?: boolean
+    timingPolicy?: SkillEffectTimingPolicy
   } = {},
 ): string {
   const target = recipient(effect)
@@ -64,7 +70,11 @@ export function skillEffectDescription(
       const position = facing
         ? ` Facing: front ${facing.front / 100}%, side ${facing.side / 100}%, rear ${facing.rear / 100}%.`
         : ''
-      const element = skillDamageElementInteraction(effect)
+      const element = skillDamageElementInteraction(
+        effect,
+        options.legacyElemental,
+        options.timingPolicy,
+      )
       return `Deal ${effect.amount} base damage to ${target}.${position}${element}`
     }
     case 'create-terrain':
@@ -187,7 +197,11 @@ export function skillParameterRows(
     cooldownOwnerTurns?: number | null
   } = skill,
   timingPolicy: SkillEffectTimingPolicy = defaultCombatEffectTimingPolicy(),
-  options: { legacyFrozenGround?: boolean; airborneAttackElevation?: boolean } = {},
+  options: {
+    legacyFrozenGround?: boolean
+    airborneAttackElevation?: boolean
+    legacyElemental?: boolean
+  } = {},
 ): readonly (readonly [string, string])[] {
   return skillInformationRows({
     'Skill Type': skillParameterTypeDescription(skill),
@@ -196,7 +210,14 @@ export function skillParameterRows(
     Requirements: skillRequirementsSummary(skill),
     Effects: skillEffectsSummary(skill, timingPolicy),
     Range: skillCompactRangeDescription(skill),
-    Target: skillTargetRecipientDescription(skill, options.legacyFrozenGround),
+    Target:
+      skillTargetRecipientDescription(skill, options.legacyFrozenGround) +
+      (!options.legacyElemental &&
+      skill.target.kind === 'unit' &&
+      skill.target.teamPolicy === 'enemy' &&
+      skill.effects.some((effect) => effect.type === 'damage' && effect.element === 'fire')
+        ? ' / Ground'
+        : ''),
     'Target Method': skillTargetMethodDescription(skill),
     'Target Elevation':
       options.airborneAttackElevation && skill.tags.includes('attack')

@@ -54,7 +54,7 @@ export function combatTerrainProjectionDescription(
   const position = tile(projection.position)
   if (!position || (projection.after !== 'frozen' && projection.after !== 'steam')) return null
   const rounds = projection.remainingRoundBoundaries
-  if (rounds !== 1 && rounds !== 2) return null
+  if (!Number.isSafeInteger(rounds) || (rounds as number) < 1 || (rounds as number) > 4) return null
   const details = COMBAT_TERRAIN_OVERLAY_DETAILS[projection.after]
   const before = projection.before ? COMBAT_TERRAIN_OVERLAY_DETAILS[projection.before].name : null
   const timing =
@@ -108,12 +108,13 @@ export function combatInteractionDescription(event: object): string | null {
     (data.after === 'frozen' || data.after === 'steam')
   ) {
     const rounds = data.remainingRoundBoundaries
-    if (rounds !== 1 && rounds !== 2) return null
+    if (!Number.isSafeInteger(rounds) || (rounds as number) < 1 || (rounds as number) > 4)
+      return null
     return combatTerrainProjectionDescription({
       position: data.position as CombatTerrainProjection['position'],
       before: data.before === 'frozen' || data.before === 'steam' ? data.before : null,
       after: data.after,
-      remainingRoundBoundaries: rounds,
+      remainingRoundBoundaries: rounds as number,
       ...(data.frozenGroundPolicyVersion === 1 ? { frozenGroundPolicyVersion: 1 as const } : {}),
     })
   }

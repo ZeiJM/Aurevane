@@ -50,8 +50,8 @@ describe('compact Technique explanations', () => {
     },
   )
   it.each([
-    ['fire', 'removes Wet and Frozen'],
-    ['storm', 'consumes Conductive; Wet remains'],
+    ['fire', 'removes Drenched and Chilled'],
+    ['storm', 'consumes the old Conductive charge'],
   ] as const)(
     'explains %s interactions without repeating the displayed power',
     (element, interaction) => {
@@ -66,7 +66,7 @@ describe('compact Technique explanations', () => {
       expect(preview.explanation).toContain(interaction)
       expect(preview.explanation).not.toContain('9 power')
       if (element === 'fire') expect(preview.explanation).toContain('Steam')
-      else expect(preview.explanation).toContain('20% per active Wet or Conductive')
+      else expect(preview.explanation).toContain('+20% Storm damage')
     },
   )
   it('does not invent an elemental interaction for untyped or Water damage', () => {
@@ -203,4 +203,71 @@ it('shows Damage before Blindside for every granting Skill without mutating exec
     expect(skillPreviewEffects(skill)[1]?.label).toBe('Blindside')
     expect(JSON.stringify(skill)).toBe(before)
   }
+})
+
+it('explains current typed damage, captured bonuses and caster cleanse', () => {
+  expect(
+    previewEffect({ type: 'damage', recipient: 'primary-unit', amount: 10, element: 'ice' }),
+  ).toMatchObject({ label: 'Ice Dmg', explanation: expect.stringContaining('Chilled') })
+  expect(
+    previewEffect({
+      type: 'damage',
+      recipient: 'primary-unit',
+      amount: 10,
+      element: 'water',
+      potencyBasisPoints: 3500,
+      durationTurns: 3,
+    }).explanation,
+  ).toContain('35%')
+  expect(
+    previewEffect({ type: 'damage', recipient: 'primary-unit', amount: 10, element: 'water' })
+      .explanation,
+  ).toContain('Initiative by 10%')
+  expect(
+    previewEffect({ type: 'damage', recipient: 'primary-unit', amount: 10, element: 'fire' })
+      .explanation,
+  ).toContain('caster')
+})
+
+it('explains implicit elemental timing using the captured status timing override', () => {
+  const water = {
+    type: 'damage' as const,
+    recipient: 'primary-unit' as const,
+    amount: 10,
+    element: 'water' as const,
+    durationTurns: 0,
+  }
+  expect(previewEffect(water).explanation).toContain('2 affected turns')
+  expect(
+    previewEffect(water, { timingPolicy: { version: 7, modes: { wet: 'next-round' } } })
+      .explanation,
+  ).toContain('2 full rounds starting next round')
+  expect(
+    previewEffect(water, { timingPolicy: { version: 7, modes: { wet: 'delayed' } } }).explanation,
+  ).toContain('2 full rounds starting two round boundaries after damage settles')
+})
+
+it('keeps captured explicit elemental duration and bonus in authored prose overrides', () => {
+  const water = {
+    type: 'damage' as const,
+    recipient: 'primary-unit' as const,
+    amount: 10,
+    element: 'water' as const,
+    durationTurns: 0,
+  }
+  const status = {
+    type: 'apply-status' as const,
+    recipient: 'primary-unit' as const,
+    statusId: 'wet',
+    stacks: 1,
+    durationTurns: 3,
+    potencyBasisPoints: 3500,
+  }
+  const rows = skillPreviewEffects({
+    effects: [water, status],
+    effectDescriptions: ['A wave strikes.'],
+  })
+  expect(rows[0]!.explanation).toContain('A wave strikes.')
+  expect(rows[0]!.explanation).toContain('3 affected turns')
+  expect(rows[0]!.explanation).toContain('35% Storm damage')
 })

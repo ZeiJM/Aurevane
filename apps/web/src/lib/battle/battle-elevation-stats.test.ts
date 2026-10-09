@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { terrainAdjustedBattleProfile } from './battle-elevation-stats'
+import { terrainAdjustedBattleProfile, visibleBattleInitiative } from './battle-elevation-stats'
 
 function terrainState(
   height: number,
@@ -80,4 +80,26 @@ describe('terrain-adjusted display stats', () => {
       evasion: 400,
     })
   })
+})
+
+it('shows active viewer-visible Drenched Initiative once, including tempo, without using hidden statuses', () => {
+  const state = {
+    dynamicInitiativePolicyVersion: 1 as const,
+    tactical: { battle: { roundInitiativeModifiers: [{ combatantId: 'unit', amount: 40 }] } },
+  }
+  const unit = { id: 'unit', initiative: 20 }
+  const wet = {
+    statusId: 'wet',
+    statusVersion: 1,
+    stacks: 3,
+    remainingOwnerTurnStarts: 2,
+    sourceCombatantId: 'source',
+  }
+  expect(visibleBattleInitiative(state, unit, [wet])).toBe(54)
+  expect(visibleBattleInitiative(state, unit, [{ ...wet, timingState: 'pending' }])).toBe(60)
+  expect(visibleBattleInitiative(state, unit, [])).toBe(60)
+  expect(
+    visibleBattleInitiative({ ...state, dynamicInitiativePolicyVersion: undefined }, unit, [wet]),
+  ).toBe(60)
+  expect(unit.initiative).toBe(20)
 })

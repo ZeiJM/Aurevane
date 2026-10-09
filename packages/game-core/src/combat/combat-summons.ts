@@ -364,6 +364,20 @@ export function removeCombatSummon(
         ...state.tactical.battle,
         combatants: state.tactical.battle.combatants.filter((row) => row.id !== combatantId),
         initiativeOrder,
+        ...(state.tactical.battle.actedCombatantIds
+          ? {
+              actedCombatantIds: state.tactical.battle.actedCombatantIds.filter(
+                (id) => id !== combatantId,
+              ),
+            }
+          : {}),
+        ...(state.tactical.battle.activeInitiativeModifiers
+          ? {
+              activeInitiativeModifiers: state.tactical.battle.activeInitiativeModifiers.filter(
+                (row) => row.combatantId !== combatantId,
+              ),
+            }
+          : {}),
         ...(state.tactical.battle.initiativeTieOrder
           ? {
               initiativeTieOrder: state.tactical.battle.initiativeTieOrder.filter(

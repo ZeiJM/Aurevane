@@ -261,6 +261,8 @@ function previewState(
     frozenGroundPolicyVersion: 1 as const,
     airbornePolicyVersion: 1 as const,
     airborneJumpPolicyVersion: 1 as const,
+    elementalDamagePolicyVersion: 1 as const,
+    dynamicInitiativePolicyVersion: 1 as const,
     healingDownPolicyVersion: 1 as const,
     blindsideActivationPolicyVersion: 1 as const,
     displacementPolicyVersion: 1 as const,

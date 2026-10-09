@@ -1512,6 +1512,14 @@ export function finishPv1fTurn(
     )
   const outgoingDefeated =
     outgoingCombatantId !== null && getCombatant(prepared, outgoingCombatantId).hp <= 0
+  if (
+    !outgoingDefeated &&
+    prepared.elementalDamagePolicyVersion === 1 &&
+    hasGameplayTag(prepared, outgoingCombatantId!, 'Frozen', PV1F_COMBAT_CONTENT) &&
+    prepared.tactical.placements.find((row) => row.combatantId === outgoingCombatantId)!.facing !==
+      facing
+  )
+    throw new Error('Chilled prevents changing final facing. End in the existing direction.')
   const selected = outgoingDefeated
     ? { state: prepared.tactical, events: [] }
     : selectCurrentFinalFacing(prepared.tactical, facing)

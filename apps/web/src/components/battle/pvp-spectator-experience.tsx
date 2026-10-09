@@ -448,6 +448,7 @@ export function PvpSpectatorExperience({
                       aria-pressed={selected}
                     >
                       <BattleGroundAreaLayer
+                        steam={overlay?.kind === 'steam'}
                         areas={battle.snapshot.groundAreas}
                         round={tactical.battle.round}
                         position={tile.position}

@@ -181,7 +181,7 @@ it('explains elemental interactions and typed status aliases without changing hi
     amount: 10,
     element: 'fire',
   })
-  expect(fire).toContain('removes Wet and Frozen')
+  expect(fire).toContain('removes Drenched and Chilled')
   expect(fire).toContain('Steam')
   const storm = skillEffectDescription({
     type: 'damage',
@@ -190,8 +190,8 @@ it('explains elemental interactions and typed status aliases without changing hi
     element: 'storm',
   })
   expect(storm).toContain('20%')
-  expect(storm).toContain('consumes Conductive')
-  expect(storm).toContain('once per recipient')
+  expect(storm).toContain('consumes the old Conductive charge')
+  expect(storm).toContain('not consumed again in the same command')
   expect(
     skillEffectDescription({
       type: 'apply-status',
@@ -319,7 +319,7 @@ it('lists authored magnitudes as effects without leaking design tags', () => {
 
 it('shows conditional elemental and terrain magnitudes without treating them as universal damage', () => {
   expect(skillEffectsSummary(resolveMatureSkillVersion('tidecaller.water-lance')!)).toContain(
-    'Wet [+20% Storm]',
+    'Drenched [+20% Storm]',
   )
   expect(skillEffectsSummary(resolveMatureSkillVersion('stormsinger.static-drain')!)).toContain(
     'Conductive [+20% Storm]',

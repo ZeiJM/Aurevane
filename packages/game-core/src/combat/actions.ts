@@ -134,7 +134,11 @@ export function evaluateCombatAction(
   selection: legacy.CombatTargetSelection,
   content: legacy.CombatContentCatalog,
 ): CombatActionEvaluation {
-  action = airborneAttackAction(state, action, content)
+  action = legacy.elementalActionIntent(
+    state,
+    airborneAttackAction(state, action, content),
+    selection,
+  )
   validateCombatAccuracyDefinition(action)
   const csrPreviewAction = materializeCsrPreviewAction(action)
   let materialized = materializeVengeanceDamage(state, csrPreviewAction)
@@ -200,7 +204,11 @@ export function executeCombatAction(
   context?: CombatResolutionContext,
   hitDependentEffects?: CombatHitDependentEffects,
 ): CombatResolutionTransition {
-  action = airborneAttackAction(state, action, content)
+  action = legacy.elementalActionIntent(
+    state,
+    airborneAttackAction(state, action, content),
+    selection,
+  )
   validateCombatAccuracyDefinition(action)
   const round = state.tactical.battle.round
   const actorId = state.tactical.battle.currentTurn?.combatantId ?? null
@@ -382,6 +390,7 @@ export function executeCombatAction(
     accuracy.missedCombatantIds,
     critical.criticalEffectOrdinalsByTarget,
     resistance.resistedEffectOrdinalsByTarget,
+    packets?.missedEffectOrdinalsByTarget,
   )
   const covertFiltered = filterBlockedCovertApplication({
     before: critical.state,

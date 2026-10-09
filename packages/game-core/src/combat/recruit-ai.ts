@@ -1,3 +1,4 @@
+import { hasGameplayTag } from './gameplay-tags'
 import type { BattleFacing } from './battle-state'
 import { airborneMovementTactical } from './combat-airborne'
 import {
@@ -298,7 +299,11 @@ function buildCandidates(
     enemies.map((enemy) => enemy.id),
   )
   if (nearestEnemy) {
-    const preferredFacing = facingToward(actorPlacement.position, nearestEnemy.position)
+    const preferredFacing =
+      state.elementalDamagePolicyVersion === 1 &&
+      hasGameplayTag(state, actorPlacement.combatantId, 'Frozen', PV1F_COMBAT_CONTENT)
+        ? actorPlacement.facing
+        : facingToward(actorPlacement.position, nearestEnemy.position)
     pushCandidate(candidates, profile, {
       intent: { kind: 'face', facing: preferredFacing },
       reason: 'face-threat',

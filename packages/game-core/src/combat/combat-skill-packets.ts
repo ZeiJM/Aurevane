@@ -108,6 +108,9 @@ export function rollSkillPacketOutcomes(
       id,
       sourceOrdinals.flatMap((source, ordinal) => (original.has(source) ? [ordinal] : [])),
     )
+  const missedEffectOrdinalsByTarget: PacketOrdinalMap = new Map(
+    [...resistedEffectOrdinalsByTarget].map(([id, ordinals]) => [id, new Set(ordinals)]),
+  )
   const criticalEffectOrdinalsByTarget: PacketOrdinalMap = new Map()
   const resistanceEvents: ReturnType<typeof rollCombatStatusResistance>['events'][number][] = []
   const criticalEvents: ReturnType<typeof rollCombatCritical>['events'][number][] = []
@@ -157,6 +160,7 @@ export function rollSkillPacketOutcomes(
   return {
     state,
     resistanceEvents,
+    missedEffectOrdinalsByTarget,
     criticalEvents,
     resistedEffectOrdinalsByTarget,
     criticalEffectOrdinalsByTarget,

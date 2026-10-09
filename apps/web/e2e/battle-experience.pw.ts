@@ -10,6 +10,7 @@ import type { BattleSessionView } from '../src/server/battle/battle-session-serv
 import { createAccountAndEnterCharacter } from './pv1f-test-helpers'
 import { commitGesture } from './refined-battle-helpers'
 import { expectRecordedBattleRound } from './battle-round-badge-helpers'
+import { expectBasicAttackPotentialRange } from './battle-target-range-helpers'
 
 function uniqueCharacterName(): string {
   const letters = Date.now()
@@ -297,8 +298,10 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   const recruitTarget = page.getByRole('button', { name: /occupied by Recruit/ })
   await expect(battlefield.locator('button[data-target="enemy"]')).toHaveCount(1)
   await expect(recruitTarget).toHaveAttribute('data-target', 'enemy')
-  await expect(battlefield.locator('[data-attack-path]')).toHaveCount(1)
-  await expect(battlefield.locator('[data-attack-path]:not([data-target="enemy"])')).toHaveCount(0)
+  await expectBasicAttackPotentialRange(page)
+  expect(
+    await battlefield.locator('[data-attack-path]:not([data-target="enemy"])').count(),
+  ).toBeGreaterThan(0)
   const attackCommit = await commitGesture(page, recruitTarget)
   expect(attackCommit.request().postDataJSON().intent.actionId).toBe('basic.attack.unarmed.basic')
 

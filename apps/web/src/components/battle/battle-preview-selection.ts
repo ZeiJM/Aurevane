@@ -19,6 +19,8 @@ export type BattlePreviewSkill = Pick<
   | 'maximumRange'
   | 'target'
   | 'definition'
+  | 'groundIntentCapable'
+  | 'groundIntentSelected'
 >
 export function battleSkillTargetSpec(skill: BattlePreviewSkill) {
   return skill.target ?? skill.definition?.target
@@ -98,7 +100,15 @@ export function selectInitialBattleSkillPreviewIntent(
           }),
         )
         .find(Boolean) ?? combatCardinalDirections[0]
-    return { kind: 'action', actionId: skill.id, target: { kind: 'direction', direction } }
+    return {
+      kind: 'action',
+      actionId: skill.id,
+      target: {
+        kind: 'direction',
+        direction,
+        ...(skill.groundIntentSelected ? { ground: true as const } : {}),
+      },
+    }
   }
   const ordered = [...selection.combatants].sort(
     (left, right) =>
@@ -161,11 +171,26 @@ export function selectDirectionalBattleSkillPreviewIntent(
   if (spec?.geometryVersion === 2 && spec.shape.kind === 'line') {
     const facing = cardinalDirection(direction)
     return facing
-      ? { kind: 'action', actionId: skill.id, target: { kind: 'direction', direction: facing } }
+      ? {
+          kind: 'action',
+          actionId: skill.id,
+          target: {
+            kind: 'direction',
+            direction: facing,
+            ...(skill.groundIntentSelected ? { ground: true as const } : {}),
+          },
+        }
       : null
   }
   if (spec?.geometryVersion === 2 && (spec.shape.kind === 'circle' || spec.shape.kind === 'all'))
-    return { kind: 'action', actionId: skill.id, target: { kind: 'activate' } }
+    return {
+      kind: 'action',
+      actionId: skill.id,
+      target: {
+        kind: 'activate',
+        ...(skill.groundIntentSelected ? { ground: true as const } : {}),
+      },
+    }
   const aimed = (position: { x: number; y: number }) =>
     (position.x - actor.position.x) * direction.x + (position.y - actor.position.y) * direction.y >
     0
@@ -224,7 +249,14 @@ export function selectBattleSkillPreviewIntent(
   const spec = battleSkillTargetSpec(skill)
   if (spec?.geometryVersion === 2 && spec.shape.kind !== 'single') {
     if (spec.shape.kind !== 'line')
-      return { kind: 'action', actionId: skill.id, target: { kind: 'activate' } }
+      return {
+        kind: 'action',
+        actionId: skill.id,
+        target: {
+          kind: 'activate',
+          ...(skill.groundIntentSelected ? { ground: true as const } : {}),
+        },
+      }
     const position =
       selection.selectedTile ??
       selection.combatants.find((row) => row.combatantId === selection.selectedCombatantId)
@@ -235,7 +267,15 @@ export function selectBattleSkillPreviewIntent(
       y: position.y - actor.position.y,
     })
     return direction
-      ? { kind: 'action', actionId: skill.id, target: { kind: 'direction', direction } }
+      ? {
+          kind: 'action',
+          actionId: skill.id,
+          target: {
+            kind: 'direction',
+            direction,
+            ...(skill.groundIntentSelected ? { ground: true as const } : {}),
+          },
+        }
       : null
   }
   const inRange = (position: { x: number; y: number }) => {
@@ -245,7 +285,18 @@ export function selectBattleSkillPreviewIntent(
   if (skill.targetKind === 'self') {
     return { kind: 'action', actionId: skill.id, target: { kind: 'self' } }
   }
-  if (skill.targetKind === 'ground-tile' || skill.targetKind === 'empty-tile') {
+  if (
+    skill.targetKind === 'ground-tile' ||
+    skill.targetKind === 'empty-tile' ||
+    (skill.groundIntentCapable &&
+      (skill.groundIntentSelected ||
+        !selection.combatants.some(
+          (row) =>
+            row.combatantId === selection.selectedCombatantId &&
+            row.hp > 0 &&
+            row.teamIndex !== actor.teamIndex,
+        )))
+  ) {
     if (
       skill.targetKind === 'empty-tile' &&
       selection.selectedTile &&

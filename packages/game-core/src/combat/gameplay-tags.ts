@@ -28,7 +28,7 @@ export const GAMEPLAY_TAGS = [
   'Displaced',
 ] as const
 export type GameplayTag = (typeof GAMEPLAY_TAGS)[number]
-export type CombatElement = 'water' | 'storm' | 'fire'
+export type CombatElement = 'water' | 'storm' | 'fire' | 'ice'
 
 /** Stable aliases read old snapshots without renaming their stored status identities. */
 const STATUS_TAG_ALIASES: Readonly<Record<string, GameplayTag>> = {
@@ -56,7 +56,7 @@ const STATUS_TAG_ALIASES: Readonly<Record<string, GameplayTag>> = {
 const STATUS_PRESENTATION_TAGS: Readonly<Record<string, string>> = {
   guarded: 'Guard',
   exposed: 'Vulnerable',
-  wet: 'Wet',
+  wet: 'Drenched',
   frozen: 'Chilled',
   conductive: 'Conductive',
   inspired: 'Damage Up',
@@ -273,7 +273,7 @@ export function validateGameplayEffectMetadata(effect: CombatEffectDefinition): 
   if (
     effect.type === 'damage' &&
     effect.element !== undefined &&
-    !['water', 'storm', 'fire'].includes(effect.element)
+    !['water', 'storm', 'fire', 'ice'].includes(effect.element)
   )
     throw new TypeError('Unknown damage element.')
   if (
@@ -351,7 +351,9 @@ function effectPresentationTags(effect: PresentationEffect): readonly string[] {
           ? 'Storm Dmg'
           : effect.element === 'fire'
             ? 'Fire Dmg'
-            : 'Dmg'
+            : effect.element === 'ice'
+              ? 'Ice Dmg'
+              : 'Dmg'
     const label = `${element} [${positiveDisplayInteger(effect.amount, 1)}]`
     return effect.piercing === true ? [label, 'Pierce'] : [label]
   }

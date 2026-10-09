@@ -11,6 +11,7 @@ export function isGroundVisualPresetId(value: unknown): value is GroundVisualPre
 
 /** Safe render data: deliberately excludes caster, action identity and execution payload. */
 export interface PublicCombatGroundArea {
+  steamTiles?: readonly { x: number; y: number }[]
   id: string
   tiles: readonly { x: number; y: number }[]
   activationRound: number
@@ -27,6 +28,9 @@ export function projectPublicCombatGroundAreas(
     .filter((area) => area.expiresAtRound > round)
     .map((area) => ({
       id: area.id,
+      ...(area.steamTiles?.length
+        ? { steamTiles: area.steamTiles.map((tile) => ({ x: tile.x, y: tile.y })) }
+        : {}),
       tiles: area.tiles.map((tile) => ({ x: tile.x, y: tile.y })),
       activationRound: area.activationRound,
       expiresAtRound: area.expiresAtRound,

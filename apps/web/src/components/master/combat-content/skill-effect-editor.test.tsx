@@ -277,3 +277,21 @@ it('authors percentage recovery with a resource, 1–100 percent and 1–4 appli
   expect(html).toContain('aria-label="Recovery resource"')
   expect(html).toContain('aria-label="Recovery applications"')
 })
+
+it('authors Ice and additional captured Drenched/Conductive Storm bonuses in percent', () => {
+  const water = render({
+    type: 'damage',
+    recipient: 'primary-unit',
+    amount: 10,
+    element: 'water',
+    potencyBasisPoints: 3500,
+    durationTurns: 3,
+  })
+  expect(water).toContain('value="ice"')
+  expect(water).toContain('Drenched Storm bonus (%)')
+  expect(water).toContain('value="35"')
+  expect(water).toContain('Elemental debuff duration (turns)')
+  expect(
+    render({ type: 'damage', recipient: 'primary-unit', amount: 10, element: 'storm' }),
+  ).toContain('Conductive Storm bonus (%)')
+})

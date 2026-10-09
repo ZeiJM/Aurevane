@@ -26,3 +26,16 @@ describe('shared persistent Ground layer', () => {
     expect(render(2, { x: 0, y: 1 })).toBe('')
   })
 })
+
+it('renders gentle shared Steam mist and suppresses frost on converted tiles', () => {
+  const html = renderToStaticMarkup(
+    createElement(BattleGroundAreaLayer, {
+      areas: [{ ...area, visualPresetId: 'frost', steamTiles: [{ x: 1, y: 1 }] }],
+      round: 2,
+      position: { x: 1, y: 1 },
+      steam: true,
+    }),
+  )
+  expect(html).toContain('data-ground-steam-mist="true"')
+  expect(html).not.toContain('data-ground-area-preset="frost"')
+})

@@ -138,3 +138,22 @@ describe('strict targeting decisions', () => {
     expect(parseBattleIntentRequest(request(target))).toBeNull(),
   )
 })
+
+it('parses explicit area Ground intent without accepting false or unrecognized fields', () => {
+  const request = {
+    idempotencyKey: IDEMPOTENCY_KEY,
+    expectedBattleVersion: 1,
+    intent: {
+      kind: 'action',
+      actionId: 'fire',
+      target: { kind: 'direction', direction: 'east', ground: true },
+    },
+  }
+  expect(parseBattleIntentRequest(request)?.intent).toEqual(request.intent)
+  expect(
+    parseBattleIntentRequest({
+      ...request,
+      intent: { ...request.intent, target: { ...request.intent.target, ground: false } },
+    }),
+  ).toBeNull()
+})

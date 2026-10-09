@@ -102,9 +102,21 @@ export function describeBattleEffect(effect: BattlePresentedStatus) {
                 effect.airbornePolicyVersion !== 1,
                 effect.airborneJumpPolicyVersion !== 1,
               )
-            : statusPotencyDescription(effect.statusId, effect.potencyBasisPoints, {
-                legacyHealingDown: effect.healingDownPolicyVersion !== 1,
-              }))) + capturedDescription,
+            : statusPotencyDescription(
+                effect.statusId,
+                ['wet', 'conductive'].includes(effect.statusId) &&
+                  effect.applicationModifiers?.length
+                  ? Math.max(
+                      ...effect.applicationModifiers.map(
+                        (application) => application.potencyBasisPoints ?? 2000,
+                      ),
+                    )
+                  : effect.potencyBasisPoints,
+                {
+                  legacyHealingDown: effect.healingDownPolicyVersion !== 1,
+                  legacyElemental: effect.elementalDamagePolicyVersion !== 1,
+                },
+              ))) + capturedDescription,
   }
   const applications = effect.recoveryApplications
   const count =

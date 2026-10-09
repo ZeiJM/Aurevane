@@ -141,12 +141,53 @@ function damageEditor(value: DamageEffect, onChange: (next: CombatEffectDefiniti
           }}
         >
           <option value="">None</option>
+          <option value="ice">Ice</option>
           <option value="water">Water</option>
           <option value="storm">Storm</option>
           <option value="fire">Fire</option>
         </select>
       </label>
 
+      {value.element && ['ice', 'water', 'storm'].includes(value.element) ? (
+        <label className={styles.field}>
+          <span>Elemental debuff duration (turns)</span>
+          <input
+            aria-label="Elemental debuff duration (turns)"
+            type="number"
+            min={1}
+            max={4}
+            step={1}
+            value={value.durationTurns || 2}
+            onChange={(event) =>
+              onChange({ ...value, durationTurns: integer(event.currentTarget.value, 2) })
+            }
+          />
+        </label>
+      ) : null}
+      {value.element === 'water' || value.element === 'storm' ? (
+        <label className={styles.field}>
+          <span>
+            {value.element === 'water' ? 'Drenched Storm bonus (%)' : 'Conductive Storm bonus (%)'}
+          </span>
+          <input
+            aria-label={
+              value.element === 'water' ? 'Drenched Storm bonus (%)' : 'Conductive Storm bonus (%)'
+            }
+            type="number"
+            min={1}
+            max={50}
+            step={0.01}
+            value={(value.potencyBasisPoints ?? 2000) / 100}
+            onChange={(event) =>
+              onChange({
+                ...value,
+                potencyBasisPoints: Math.round(Number(event.currentTarget.value) * 100),
+              })
+            }
+          />
+          <small>Additional Storm damage captured on the applied debuff. Default 20%.</small>
+        </label>
+      ) : null}
       <label className={styles.checkField}>
         <input
           aria-label="Piercing"
@@ -1044,28 +1085,32 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
     <div className={styles.effectEditor} data-effect-type={value.type}>
       {controls}
       <div className={styles.effectTuningGrid}>
-        <label className={styles.field}>
-          <span>Effect duration (turns)</span>
-          <input
-            aria-label="Effect duration (turns)"
-            type="number"
-            min={fixedBlindside ? 1 : fixedImmediate ? 0 : fixedTerrain ? 2 : minimumDuration}
-            max={fixedBlindside ? 1 : fixedImmediate ? 0 : fixedTerrain ? 2 : maximumDuration}
-            step={1}
-            disabled={fixedImmediate || fixedTerrain || fixedBlindside}
-            value={fixedBlindside ? 1 : fixedImmediate ? 0 : fixedTerrain ? 2 : durationTurns}
-            onChange={(event) => changeDuration(integer(event.currentTarget.value, durationTurns))}
-          />
-          <small className={styles.fieldHint}>
-            {fixedImmediate
-              ? 'Immediate effect; [0 Turns] is intentionally omitted in player-facing details.'
-              : fixedTerrain
-                ? 'Frozen Ground uses the engine-owned two-round duration.'
-                : fixedBlindside
-                  ? 'Expires at the end of the affected character’s turn.'
-                  : 'Positive durations persist through that many future turns.'}
-          </small>
-        </label>
+        {!(value.type === 'damage' && ['ice', 'water', 'storm'].includes(value.element ?? '')) ? (
+          <label className={styles.field}>
+            <span>Effect duration (turns)</span>
+            <input
+              aria-label="Effect duration (turns)"
+              type="number"
+              min={fixedBlindside ? 1 : fixedImmediate ? 0 : fixedTerrain ? 2 : minimumDuration}
+              max={fixedBlindside ? 1 : fixedImmediate ? 0 : fixedTerrain ? 2 : maximumDuration}
+              step={1}
+              disabled={fixedImmediate || fixedTerrain || fixedBlindside}
+              value={fixedBlindside ? 1 : fixedImmediate ? 0 : fixedTerrain ? 2 : durationTurns}
+              onChange={(event) =>
+                changeDuration(integer(event.currentTarget.value, durationTurns))
+              }
+            />
+            <small className={styles.fieldHint}>
+              {fixedImmediate
+                ? 'Immediate effect; [0 Turns] is intentionally omitted in player-facing details.'
+                : fixedTerrain
+                  ? 'Frozen Ground uses the engine-owned two-round duration.'
+                  : fixedBlindside
+                    ? 'Expires at the end of the affected character’s turn.'
+                    : 'Positive durations persist through that many future turns.'}
+            </small>
+          </label>
+        ) : null}
 
         {value.type === 'apply-status' && PERCENTAGE_STATUS_IDS.has(value.statusId) ? (
           <label className={styles.field}>
