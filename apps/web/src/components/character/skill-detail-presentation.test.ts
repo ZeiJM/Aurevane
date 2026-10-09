@@ -153,7 +153,13 @@ it('describes source-specific modifiers, cleansing and periodic timing', () => {
   const mark = resolveMatureSkillVersion('wildwarden.hunters-mark')!
   expect(skillEffectDescription(mark.effects[0]!)).toContain('Other attackers gain no benefit')
   const currentBurn = resolveMatureSkillVersion('cinderweaver.cinder-bolt')!
-  const burn = resolveMatureSkillVersion(currentBurn.id, currentBurn.contentVersion - 1)!
+  const burn = Array.from({ length: currentBurn.contentVersion }, (_, index) =>
+    resolveMatureSkillVersion(currentBurn.id, currentBurn.contentVersion - index),
+  ).find((definition) =>
+    definition?.effects.some(
+      (effect) => effect.type === 'burn' && effect.damageProfile === undefined,
+    ),
+  )!
   expect(skillEffectDescription(burn.effects[1]!)).toContain('2, then 1, then 1')
   expect(skillEffectDescription(burn.effects[1]!)).toContain('end-turn boundaries')
   expect(skillTargetTags(resolveMatureSkillVersion('runeblade.unbinding-rune')!)).toContain(
@@ -181,7 +187,8 @@ it('explains elemental interactions and typed status aliases without changing hi
     amount: 10,
     element: 'fire',
   })
-  expect(fire).toContain('removes Drenched and Chilled')
+  expect(fire).not.toContain('cleanses Chilled from its caster')
+  expect(fire).not.toContain('removes Drenched and Chilled')
   expect(fire).toContain('Steam')
   const storm = skillEffectDescription({
     type: 'damage',
@@ -189,9 +196,9 @@ it('explains elemental interactions and typed status aliases without changing hi
     amount: 10,
     element: 'storm',
   })
-  expect(storm).toContain('20%')
+  expect(storm).toContain('active Drenched and Conductive bonuses')
   expect(storm).toContain('consumes the old Conductive charge')
-  expect(storm).toContain('not consumed again in the same command')
+  expect(storm).not.toContain('applies one fresh Conductive')
   expect(
     skillEffectDescription({
       type: 'apply-status',
@@ -601,4 +608,92 @@ it('full Cleanse description includes Suppress while Dispel excludes it', () => 
       statusIds: ['guarded'],
     }),
   ).not.toContain('Suppress')
+})
+
+it('puts current elemental duration and potency solely on the explicit status tag', () => {
+  const effects = [
+    {
+      type: 'damage' as const,
+      recipient: 'primary-unit' as const,
+      amount: 10,
+      element: 'water' as const,
+      durationTurns: 3,
+      potencyBasisPoints: 3500,
+    },
+    {
+      type: 'apply-status' as const,
+      recipient: 'primary-unit' as const,
+      statusId: 'wet',
+      stacks: 1,
+      durationTurns: 4,
+      potencyBasisPoints: 4200,
+    },
+  ]
+  const skill = { effects }
+  const timing = { version: 9, modes: { wet: 'delayed' as const } }
+  expect(skillEffectSummaries(skill, timing)).toEqual([
+    'Water Dmg [10]',
+    'Drenched [42%] [4 Turns] [Delayed]',
+  ])
+  expect(skillEffectSummaries(skill, timing, { explicitElemental: false })[0]).toBe(
+    'Water Dmg [10] [3 Turns]',
+  )
+})
+
+it('advertises Ground Fire intent only for the canonical enemy unit target', () => {
+  const base = resolveMatureSkillVersion('tidecaller.water-lance')!
+  const effects = [
+    {
+      type: 'damage' as const,
+      recipient: 'primary-unit' as const,
+      amount: 10,
+      element: 'fire' as const,
+    },
+  ]
+  expect(Object.fromEntries(skillParameterRows({ ...base, effects })).Target).toBe('Enemy / Ground')
+  expect(
+    Object.fromEntries(
+      skillParameterRows({
+        ...base,
+        effects,
+        target: { ...base.target, teamPolicy: 'any', friendlyFire: 'all-units' },
+      }),
+    ).Target,
+  ).not.toContain('/ Ground')
+})
+
+it('keeps limited-cleanse Effects timing and historical tag aliases consistent', () => {
+  const base = resolveMatureSkillVersion('cinderweaver.cinder-bolt')!
+  const skill = {
+    ...base,
+    effects: [
+      { type: 'remove-status' as const, recipient: 'actor' as const, statusIds: ['frozen'] },
+    ],
+    effectDescriptions: [],
+  }
+  const policy = { version: 7, modes: { 'remove-status': 'instant' as const } }
+  expect(skillEffectSummaries(skill, policy)).toEqual(['Cleanse Chilled [Instant]'])
+  expect(skillEffectSummaries(skill, policy, { explicitElemental: false })).toEqual([
+    'Cleanse [Instant]',
+  ])
+  expect(skillTargetTags(skill)).toContain('Cleanse Chilled · Self')
+  expect(skillTargetTags(skill, { explicitElemental: false })).toContain('Cleanse · Self')
+})
+
+it('shows both intents for current Flame Burst while preserving its captured Ground geometry', () => {
+  const skill = resolveMatureSkillVersion('cinderweaver.flame-burst')!
+  const before = JSON.stringify(skill)
+  const rows = Object.fromEntries(skillParameterRows(skill))
+  expect(rows.Target).toBe('Enemy / Ground')
+  expect(rows['Target Method']).toBe('Circle [1]')
+  expect(rows.Effects).toContain('Fire Dmg')
+  expect(rows.Effects).toContain('Cleanse Chilled')
+  expect(
+    Object.fromEntries(
+      skillParameterRows(skill, skill, defaultCombatEffectTimingPolicy(), {
+        explicitElemental: false,
+      }),
+    ).Target,
+  ).toBe('Ground · Enemies only · Steam: both teams')
+  expect(JSON.stringify(skill)).toBe(before)
 })

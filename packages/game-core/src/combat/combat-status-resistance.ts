@@ -68,7 +68,7 @@ export function forecastCombatStatusResistance(
         action,
         ordinal,
         content,
-        state.elementalDamagePolicyVersion === 1,
+        state.elementalDamagePolicyVersion !== undefined,
       ) ||
       effect.recipient === 'affected-tiles'
     )
@@ -85,6 +85,29 @@ export function forecastCombatStatusResistance(
       const target = state.tactical.battle.combatants.find((unit) => unit.id === id)
       if (!target || target.hp <= 0 || target.teamId === actor.teamId || missedCombatantIds.has(id))
         continue
+      if (state.elementalDamagePolicyVersion === 2 && effect.type === 'damage') {
+        const statusId = { ice: 'frozen', water: 'wet', storm: 'conductive' }[
+          effect.element as 'ice' | 'water' | 'storm'
+        ]
+        if (
+          !statusId ||
+          !action.effects.some((application, index) => {
+            if (
+              application.type !== 'apply-status' ||
+              application.statusId !== statusId ||
+              !isStatusResistanceEligibleEffect(action, index, content)
+            )
+              return false
+            return application.recipient === 'actor'
+              ? evaluation.actorId === id
+              : application.recipient === 'primary-unit'
+                ? evaluation.primaryCombatantId === id
+                : application.recipient === 'affected-units' &&
+                  evaluation.affectedCombatantIds.includes(id)
+          })
+        )
+          continue
+      }
       if (effect.type === 'copy-statuses') {
         const copied = planCombatStatusCopies(state, evaluation.actorId, id, effect, content)
         if (

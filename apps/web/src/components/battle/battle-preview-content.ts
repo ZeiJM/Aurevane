@@ -53,7 +53,12 @@ export interface PreviewChip {
 export function battleSkillParameterRows(
   skill: BattleSkillForecastPresentation,
   timingPolicy: SkillEffectTimingPolicy = defaultCombatEffectTimingPolicy(),
-  options: { legacyFrozenGround?: boolean; airborneAttackElevation?: boolean } = {},
+  options: {
+    legacyFrozenGround?: boolean
+    airborneAttackElevation?: boolean
+    legacyElemental?: boolean
+    explicitElemental?: boolean
+  } = {},
 ): readonly (readonly [string, string])[] {
   if (skill.definition) {
     return skillParameterRows(skill.definition, skill, timingPolicy, options)

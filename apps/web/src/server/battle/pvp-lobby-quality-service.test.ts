@@ -339,7 +339,7 @@ describe('P3.7 direct PvP committed build snapshots', () => {
       expect(state.frozenGroundPolicyVersion).toBe(1)
       expect(state.airbornePolicyVersion).toBe(1)
       expect(state.airborneJumpPolicyVersion).toBe(1)
-      expect(state.elementalDamagePolicyVersion).toBe(1)
+      expect(state.elementalDamagePolicyVersion).toBe(2)
       expect(state.dynamicInitiativePolicyVersion).toBe(1)
       expect(state.healingDownPolicyVersion).toBe(1)
       expect(state.blindsideActivationPolicyVersion).toBe(1)

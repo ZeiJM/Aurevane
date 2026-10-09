@@ -221,33 +221,85 @@ function ElementalReaders() {
       },
     ],
   }
+  const [effects, setEffects] = React.useState(definition.effects)
+  const capturedDefinition = { ...definition, effects }
+  const capturedAbility = { ...ability, effects: [ability.effects[0], effects[1]] }
   const mode = query.get('wet') || 'instant'
   const historical = query.get('historical') === 'true'
+  const elementalPolicy = historical ? null : query.get('elemental') === '1' ? 1 : 2
   const policies = {
-    effectTimingPolicy: { version: 7, modes: { wet: mode } },
-    ...(historical ? {} : { elementalDamagePolicyVersion: 1 }),
+    effectTimingPolicy: { version: 7, modes: mode === 'unset' ? {} : { wet: mode } },
+    ...(historical ? {} : { elementalDamagePolicyVersion: elementalPolicy }),
   }
   return (
     <main style={{ padding: 16, maxWidth: 780 }}>
+      <section aria-label="Master elemental authoring" style={sectionStyle}>
+        <SkillEffectListEditor value={effects} onChange={setEffects} />
+      </section>
+      <section aria-label="Master elemental details" style={sectionStyle}>
+        <SkillEffectTimingProvider
+          policy={policies.effectTimingPolicy}
+          elementalDamagePolicyVersion={elementalPolicy}
+        >
+          <SkillDetails skill={capturedDefinition} expanded />
+        </SkillEffectTimingProvider>
+      </section>
       <section aria-label="Battle overlap reader" style={sectionStyle}>
         <SkillEffectTimingProvider
           policy={policies.effectTimingPolicy}
-          elementalDamagePolicyVersion={historical ? null : 1}
+          elementalDamagePolicyVersion={elementalPolicy}
         >
           <BattleInfoPopover label="About Overlap Water" title="Overlap Water" trigger="!">
-            <BattleSkillParameters skill={battleSkill(definition)} />
+            <BattleSkillParameters skill={battleSkill(capturedDefinition)} />
           </BattleInfoPopover>
         </SkillEffectTimingProvider>
       </section>
       <section aria-label="Captured summon abilities" style={sectionStyle}>
-        <SummonAbilityList abilities={[ability]} policies={policies} />
+        <SummonAbilityList abilities={[capturedAbility]} policies={policies} />
       </section>
+    </main>
+  )
+}
+function FireReaders() {
+  const base = resolveMatureSkillVersion(
+    query.get('fire') === 'ground' ? 'cinderweaver.flame-burst' : 'cinderweaver.cinder-bolt',
+  )
+  const [effects, setEffects] = React.useState([
+    base.effects.find((effect) => effect.type === 'damage'),
+  ])
+  React.useEffect(() => {
+    window.fireAuthoringEffects = effects
+  }, [effects])
+  const definition = { ...base, effects, effectDescriptions: [] }
+  return (
+    <main style={{ padding: 16, maxWidth: 780 }}>
+      <section aria-label="Master Fire authoring" style={sectionStyle}>
+        <SkillEffectListEditor value={effects} onChange={setEffects} />
+      </section>
+      <SkillEffectTimingProvider
+        policy={{ version: 7, modes: { 'remove-status': 'instant' } }}
+        elementalDamagePolicyVersion={2}
+      >
+        <section aria-label="Master Fire details" style={sectionStyle}>
+          <SkillDetails skill={definition} expanded />
+        </section>
+        <section aria-label="Nexus Fire parameters" style={sectionStyle}>
+          <dl>
+            <SkillParameters skill={definition} />
+          </dl>
+        </section>
+        <BattleInfoPopover label="About Fire report" title="Fire report" trigger="!">
+          <BattleSkillParameters skill={battleSkill(definition)} />
+        </BattleInfoPopover>
+      </SkillEffectTimingProvider>
     </main>
   )
 }
 createRoot(document.getElementById('root')).render(
   query.get('surface') === 'nexus' ? (
     <Nexus />
+  ) : query.get('surface') === 'fire-readers' ? (
+    <FireReaders />
   ) : query.get('surface') === 'elemental-readers' ? (
     <ElementalReaders />
   ) : (

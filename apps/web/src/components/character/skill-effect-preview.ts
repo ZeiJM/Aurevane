@@ -1,4 +1,9 @@
-import type { CombatEffectTimingPolicy } from '@aurevane/game-core/combat/combat-effect-timing'
+import { isCleanseChilledEffect } from '@aurevane/game-core/combat/combat-cleanse'
+import {
+  combatEffectTimingMode,
+  defaultCombatEffectTimingPolicy,
+  type CombatEffectTimingPolicy,
+} from '@aurevane/game-core/combat/combat-effect-timing'
 import { groupSkillEffects } from './skill-effect-groups'
 import {
   isPercentageDotEffect,
@@ -31,14 +36,43 @@ export interface PreviewEffect {
 
 const signed = (value: number) => `${value < 0 ? '−' : '+'}${Math.abs(value)}`
 
+/** Recipient selectors may overlap at cast time; descriptions keep that condition explicit. */
+export function elementalStatusOverlapsDamage(
+  effect: MatureSkillEffectDefinition,
+  skillEffects: readonly MatureSkillEffectDefinition[] = [],
+): boolean {
+  if (effect.type !== 'apply-status') return false
+  const element = ({ frozen: 'ice', wet: 'water', conductive: 'storm' } as Record<string, string>)[
+    effect.statusId
+  ]
+  return (
+    Boolean(element) &&
+    skillEffects.some(
+      (candidate) =>
+        candidate.type === 'damage' &&
+        candidate.element === element &&
+        (candidate.recipient === effect.recipient ||
+          (candidate.recipient !== 'actor' && effect.recipient !== 'actor')),
+    )
+  )
+}
+
 /** Shared by compact popups and expanded reports; describes existing combat rules. */
 export function skillDamageElementInteraction(
   effect: MatureSkillEffectDefinition,
   legacyElemental = false,
   timingPolicy?: CombatEffectTimingPolicy | null,
   skillEffects?: readonly MatureSkillEffectDefinition[],
+  explicitElemental = true,
 ): string {
   if (effect.type !== 'damage') return ''
+  if (!legacyElemental && explicitElemental) {
+    if (effect.element === 'fire')
+      return ' Fire converts affected Frozen Ground to Steam mist, keeping its remaining life and blocking sight for both teams.'
+    if (effect.element === 'storm')
+      return ' Storm uses active Drenched and Conductive bonuses and consumes the old Conductive charge; Drenched remains.'
+    return ''
+  }
   if (!legacyElemental) {
     const statusId = ({ ice: 'frozen', water: 'wet', storm: 'conductive' } as const)[
       effect.element as 'ice' | 'water' | 'storm'
@@ -61,7 +95,13 @@ export function skillDamageElementInteraction(
           durationTurns: effect.durationTurns || candidate.durationTurns,
           potencyBasisPoints: effect.potencyBasisPoints ?? candidate.potencyBasisPoints,
         }
-        const interaction = skillDamageElementInteraction(captured, false, timingPolicy)
+        const interaction = skillDamageElementInteraction(
+          captured,
+          false,
+          timingPolicy,
+          undefined,
+          false,
+        )
         if (candidate.recipient === effect.recipient)
           return branches.join('') + (branches.length ? ' Otherwise:' : '') + interaction
         const condition =
@@ -78,7 +118,7 @@ export function skillDamageElementInteraction(
         return (
           branches.join('') +
           ' Otherwise:' +
-          skillDamageElementInteraction(effect, false, timingPolicy)
+          skillDamageElementInteraction(effect, false, timingPolicy, undefined, false)
         )
     }
     const duration = effect.durationTurns || 2
@@ -113,12 +153,14 @@ function statusPreview(
   potencyBasisPoints?: number,
   legacyHealingDown = false,
   legacyElemental = false,
+  explicitElemental = true,
 ): PreviewEffect {
   const details = {
     ...combatStatusDetails(id),
     description: statusPotencyDescription(id, potencyBasisPoints, {
       legacyHealingDown,
       legacyElemental,
+      explicitElemental,
     }),
   }
   const status = PV1F_COMBAT_CONTENT.statuses.find((entry) => entry.id === id)
@@ -186,6 +228,7 @@ export function previewEffect(
     legacyHealingDown?: boolean
     legacyBlindsideActivation?: boolean
     legacyElemental?: boolean
+    explicitElemental?: boolean
     timingPolicy?: CombatEffectTimingPolicy | null
     skillEffects?: readonly MatureSkillEffectDefinition[]
   } = {},
@@ -217,7 +260,7 @@ export function previewEffect(
                   ? 'Ice Dmg'
                   : 'Dmg',
         magnitude: String(effect.amount),
-        explanation: `Skill power ranges from 1 to 20. Final HP damage depends on your attack stat, Level and the target’s defenses and effects.${effect.facingModifiersBasisPoints ? ` Facing: front ${effect.facingModifiersBasisPoints.front / 100}%, side ${effect.facingModifiersBasisPoints.side / 100}%, rear ${effect.facingModifiersBasisPoints.rear / 100}%.` : ''}${skillDamageElementInteraction(effect, options.legacyElemental, options.timingPolicy, options.skillEffects)}`,
+        explanation: `Skill power ranges from 1 to 20. Final HP damage depends on your attack stat, Level and the target’s defenses and effects.${effect.facingModifiersBasisPoints ? ` Facing: front ${effect.facingModifiersBasisPoints.front / 100}%, side ${effect.facingModifiersBasisPoints.side / 100}%, rear ${effect.facingModifiersBasisPoints.rear / 100}%.` : ''}${skillDamageElementInteraction(effect, options.legacyElemental, options.timingPolicy, options.skillEffects, options.explicitElemental)}`,
       }
     case 'percentage-recovery':
       return {
@@ -255,17 +298,46 @@ export function previewEffect(
             options.legacyBlindsideActivation,
           ),
         }
-      return effect.statusId === 'airborne'
-        ? {
-            label: 'Airborne',
-            explanation: airborneDescription(options.legacyAirborne, options.legacyAirborneJump),
-          }
-        : statusPreview(
-            effect.statusId,
-            effect.potencyBasisPoints,
-            options.legacyHealingDown,
-            options.legacyElemental,
-          )
+      const preview =
+        effect.statusId === 'airborne'
+          ? {
+              label: 'Airborne',
+              explanation: airborneDescription(options.legacyAirborne, options.legacyAirborneJump),
+            }
+          : statusPreview(
+              effect.statusId,
+              effect.potencyBasisPoints,
+              options.legacyHealingDown,
+              options.legacyElemental,
+              options.explicitElemental,
+            )
+      if (
+        !options.legacyElemental &&
+        options.explicitElemental !== false &&
+        ['frozen', 'wet', 'conductive'].includes(effect.statusId)
+      ) {
+        const overlaps = elementalStatusOverlapsDamage(effect, options.skillEffects)
+        const trigger = overlaps
+          ? ' For recipients also hit by this Skill’s matching elemental damage, applies only after positive hostile HP damage (actual loss after Barrier), if the recipient survives.'
+          : ''
+        const policy =
+          options.timingPolicy === undefined
+            ? defaultCombatEffectTimingPolicy()
+            : options.timingPolicy
+        const mode = overlaps
+          ? (policy?.modes[effect.statusId] ?? 'instant')
+          : combatEffectTimingMode(policy ?? undefined, effect.statusId)
+        const turns = effect.durationTurns || 2
+        const start = overlaps ? 'damage settles' : 'the effect activates'
+        const lifetime =
+          mode === 'instant'
+            ? `${turns} affected ${turns === 1 ? 'turn' : 'turns'} starting when ${start} (Instant)`
+            : mode === 'next-round'
+              ? `${turns} full rounds starting next round after ${start}`
+              : `${turns} full rounds starting two round boundaries after ${start} (Delayed)`
+        return { ...preview, explanation: `${preview.explanation}${trigger} Lasts ${lifetime}.` }
+      }
+      return preview
     case 'displace':
       return {
         label: effect.direction === 'pull' ? 'Pull' : 'Push',
@@ -320,6 +392,15 @@ export function previewEffect(
       }
     }
     case 'remove-status': {
+      if (
+        isCleanseChilledEffect(effect) &&
+        !options.legacyElemental &&
+        options.explicitElemental !== false
+      )
+        return {
+          label: 'Cleanse Chilled',
+          explanation: `Removes Chilled from ${effect.recipient === 'actor' ? 'the caster' : effect.recipient === 'affected-units' ? 'each affected unit' : 'the selected unit'} only; other statuses remain.`,
+        }
       const ids = effect.statusIds.every((id) => combatStatusDetails(id).kind === 'Buff')
         ? effect.statusIds
         : [...effect.statusIds, 'suppress']
@@ -372,6 +453,7 @@ export function skillPreviewEffects(
     legacyHealingDown?: boolean
     legacyBlindsideActivation?: boolean
     legacyElemental?: boolean
+    explicitElemental?: boolean
     timingPolicy?: CombatEffectTimingPolicy | null
   } = {},
 ): readonly PreviewEffect[] {
@@ -380,13 +462,27 @@ export function skillPreviewEffects(
     .map(({ effect, firstIndex: index }) => {
       const entry = previewEffect(effect, { ...options, skillEffects: skill.effects })
       const override = skill.effectDescriptions?.[index]?.trim()
+      if (
+        override &&
+        effect.type === 'apply-status' &&
+        !options.legacyElemental &&
+        options.explicitElemental !== false &&
+        ['frozen', 'wet', 'conductive'].includes(effect.statusId)
+      )
+        return { ...entry, explanation: `${override} ${entry.explanation}` }
       return override
         ? {
             ...entry,
             explanation:
               override +
               (!options.legacyElemental
-                ? skillDamageElementInteraction(effect, false, options.timingPolicy, skill.effects)
+                ? skillDamageElementInteraction(
+                    effect,
+                    false,
+                    options.timingPolicy,
+                    skill.effects,
+                    options.explicitElemental,
+                  )
                 : ''),
           }
         : entry

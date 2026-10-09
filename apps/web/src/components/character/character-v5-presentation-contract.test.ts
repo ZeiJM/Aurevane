@@ -3,6 +3,8 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { describe, expect, it } from 'vitest'
+import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
+import { skillParameterRows, skillEffectsSummary } from './skill-detail-presentation'
 
 const here = dirname(fileURLToPath(import.meta.url))
 
@@ -19,7 +21,38 @@ describe('Combat v5 Nexus and Technique presentation contracts', () => {
     expect(parameters).toContain(
       'Cooldown: skillCooldownDescription(skill, costs.cooldownOwnerTurns)',
     )
-    expect(parameters).toContain('Effects: skillEffectsSummary(skill, timingPolicy)')
+    const skill = {
+      ...resolveMatureSkillVersion('tidecaller.water-lance')!,
+      effects: [
+        {
+          type: 'damage' as const,
+          recipient: 'primary-unit' as const,
+          amount: 10,
+          element: 'water' as const,
+          durationTurns: 3,
+        },
+        {
+          type: 'apply-status' as const,
+          recipient: 'primary-unit' as const,
+          statusId: 'wet',
+          stacks: 1,
+          durationTurns: 4,
+          potencyBasisPoints: 4200,
+        },
+      ],
+    }
+    const capturedPolicy = { version: 7, modes: { wet: 'delayed' as const } }
+    for (const explicitElemental of [true, false]) {
+      const options = { explicitElemental }
+      const effects = Object.fromEntries(
+        skillParameterRows(skill, skill, capturedPolicy, options),
+      ).Effects
+      expect(effects).toBe(skillEffectsSummary(skill, capturedPolicy, options))
+      expect(effects).toBe(
+        `${explicitElemental ? 'Water Dmg [10]' : 'Water Dmg [10] [3 Turns]'}, Drenched [42%] [4 Turns] [Delayed]`,
+      )
+      expect(effects).not.toMatch(/\n/u)
+    }
     expect(source).toContain('className={styles.effectSummaryList}')
     expect(source).toContain('aria-label="Effect explanations"')
   })

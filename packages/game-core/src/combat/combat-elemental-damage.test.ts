@@ -8,12 +8,21 @@ import {
   type CombatEncounterState,
 } from './actions'
 import { percentageDotEncounter } from './combat-percentage-dots.test-utils'
-import { PV1F_COMBAT_CONTENT, finishPv1fTurn } from './pv1f-action-economy'
+import {
+  PV1F_COMBAT_CONTENT,
+  finishPv1fTurn,
+  executePv1fMatureSkill,
+  evaluatePv1fMatureSkill,
+} from './pv1f-action-economy'
 import { setTerrainOverlay } from './terrain-overlays'
 import { advanceBattleRng } from './battle-state'
 import { createCombatGroundArea } from './combat-ground-areas'
 import { defaultCombatEffectTimingPolicy } from './combat-effect-timing'
 import { grantBarrier } from './combat-barrier'
+import { resolveCombatMovementStepEffects } from './actions-legacy'
+import { combatEffectPresentationTags } from './gameplay-tags'
+import { createCanonicalCleanseSkillVersion, CLEANSE_STATUS_IDS } from './combat-cleanse'
+import { resolveMatureSkillVersion, toCombatActionDefinition } from './mature-skills'
 
 const missed = (base: CombatEncounterState): CombatEncounterState => ({
   ...base,
@@ -463,39 +472,58 @@ describe('current elemental settlement', () => {
       statuses(executeCombatAction(encounter(), water, target, PV1F_COMBAT_CONTENT).state)[0],
     ).toMatchObject({ remainingOwnerTurnEnds: 3, potencyBasisPoints: 3500 })
   })
-  it('ordinary resistance rejects the implicit debuff while preserving direct damage', () => {
-    let base = encounter()
-    for (let seed = 1; seed < 1000; seed++) {
-      const rng = { ...base.tactical.battle.rng, seed, state: seed, draws: 0 }
-      if (advanceBattleRng(rng).value % 10000 < 1500) {
-        base = { ...base, tactical: { ...base.tactical, battle: { ...base.tactical.battle, rng } } }
-        break
+  it.each([1, 2] as const)(
+    'policy %s ordinary resistance rejects the debuff while preserving direct damage',
+    (policy) => {
+      let base = { ...encounter(), elementalDamagePolicyVersion: policy }
+      for (let seed = 1; seed < 1000; seed++) {
+        const rng = { ...base.tactical.battle.rng, seed, state: seed, draws: 0 }
+        if (advanceBattleRng(rng).value % 10000 < 1500) {
+          base = {
+            ...base,
+            tactical: { ...base.tactical, battle: { ...base.tactical.battle, rng } },
+          }
+          break
+        }
       }
-    }
-    base = {
-      ...base,
-      statBalancePolicyVersion: 1,
-      statBridge: {
-        ...base.statBridge!,
-        rulesVersion: 4,
-        schemaVersion: 4,
-        combatants: base.statBridge!.combatants.map((u) => ({
-          ...u,
-          statusResistance: 1500,
-          criticalChance: 0,
-          level: 1,
-        })),
-      },
-    }
-    const out = executeCombatAction(base, skill('water'), target, PV1F_COMBAT_CONTENT)
-    expect(out.events.filter((e) => e.event === 'damage_applied').map((e) => e.amount)).toEqual([
-      10,
-    ])
-    expect(out.events.filter((e) => e.event === 'combat_status_resistance_resolved')).toMatchObject(
-      [{ resisted: true }],
-    )
-    expect(statuses(out.state)).toEqual([])
-  })
+      base = {
+        ...base,
+        statBalancePolicyVersion: 1,
+        statBridge: {
+          ...base.statBridge!,
+          rulesVersion: 4,
+          schemaVersion: 4,
+          combatants: base.statBridge!.combatants.map((u) => ({
+            ...u,
+            statusResistance: 1500,
+            criticalChance: 0,
+            level: 1,
+          })),
+        },
+      }
+      const out = executeCombatAction(
+        base,
+        policy === 1
+          ? skill('water')
+          : {
+              ...skill('water'),
+              effects: [
+                ...skill('water').effects,
+                { type: 'apply-status', recipient: 'primary-unit', statusId: 'wet', stacks: 1 },
+              ],
+            },
+        target,
+        PV1F_COMBAT_CONTENT,
+      )
+      expect(out.events.filter((e) => e.event === 'damage_applied').map((e) => e.amount)).toEqual([
+        10,
+      ])
+      expect(
+        out.events.filter((e) => e.event === 'combat_status_resistance_resolved'),
+      ).toMatchObject([{ resisted: true }])
+      expect(statuses(out.state)).toEqual([])
+    },
+  )
   it('Fire Ground intent keeps enemy recipients and current Airborne immunity', () => {
     const base = { ...status(encounter(), 'airborne'), airbornePolicyVersion: 1 as const }
     const ground = executeCombatAction(
@@ -1095,5 +1123,643 @@ describe('current elemental settlement', () => {
         PV1F_COMBAT_CONTENT,
       ).legal,
     ).toBe(false)
+  })
+})
+
+describe('explicit elemental policy 2', () => {
+  const current = (): CombatEncounterState => ({ ...encounter(), elementalDamagePolicyVersion: 2 })
+  const fire = (): CombatActionDefinition => ({
+    ...skill('fire'),
+    effects: [
+      ...skill('fire').effects,
+      { type: 'remove-status', recipient: 'actor', statusIds: ['frozen'] },
+    ],
+  })
+  const explicit = (
+    element: 'ice' | 'water' | 'storm',
+    amounts = [10],
+  ): CombatActionDefinition => ({
+    ...skill(element, amounts),
+    effects: [
+      ...skill(element, amounts).effects,
+      {
+        type: 'apply-status',
+        recipient: 'primary-unit',
+        statusId: { ice: 'frozen', water: 'wet', storm: 'conductive' }[element],
+        stacks: 1,
+        durationTurns: 3,
+        ...(element === 'ice' ? {} : { potencyBasisPoints: 3500 }),
+      },
+    ],
+  })
+  it('accepts policy 2 and rejects unknown elemental policy versions', () => {
+    expect(validateCombatEncounterState(current())).toEqual([])
+    expect(
+      validateCombatEncounterState({ ...current(), elementalDamagePolicyVersion: 3 as 1 }).map(
+        (i) => i.field,
+      ),
+    ).toContain('elementalDamagePolicyVersion')
+  })
+  it.each(['ice', 'water', 'storm'] as const)(
+    '%s damage requires an explicit matching status tag',
+    (element) => {
+      expect(
+        statuses(executeCombatAction(current(), skill(element), target, PV1F_COMBAT_CONTENT).state),
+      ).toEqual([])
+      expect(
+        statuses(
+          executeCombatAction(current(), explicit(element), target, PV1F_COMBAT_CONTENT).state,
+        ),
+      ).toEqual([
+        expect.objectContaining({
+          statusId: { ice: 'frozen', water: 'wet', storm: 'conductive' }[element],
+          remainingOwnerTurnEnds: 3,
+        }),
+      ])
+    },
+  )
+  it('Fire preserves hostile Drenched and Chilled while cleansing only caster Chilled', () => {
+    const base = status(status(status(current(), 'wet'), 'frozen'), 'frozen', 'actor')
+    const out = executeCombatAction(base, fire(), target, PV1F_COMBAT_CONTENT)
+    expect(statuses(out.state).map((s) => s.statusId)).toEqual(['frozen', 'wet'])
+    expect(statuses(out.state, 'actor')).toEqual([])
+  })
+  it('Fire does not cancel earlier elemental applications in one command', () => {
+    const action = {
+      ...explicit('water'),
+      effects: [...explicit('water').effects, ...skill('fire').effects],
+    }
+    const out = executeCombatAction(current(), action, target, PV1F_COMBAT_CONTENT)
+    expect(statuses(out.state)).toEqual([
+      expect.objectContaining({
+        statusId: 'wet',
+        remainingOwnerTurnEnds: 3,
+        potencyBasisPoints: 3500,
+      }),
+    ])
+  })
+  it('repeated Storm consumes the old charge and applies one fresh authored charge after damage', () => {
+    const base = status(status(current(), 'wet', 'enemy', 3000), 'conductive', 'enemy', 4000)
+    const out = executeCombatAction(
+      base,
+      explicit('storm', [100, 100]),
+      target,
+      PV1F_COMBAT_CONTENT,
+    )
+    expect(out.events.filter((e) => e.event === 'damage_applied').map((e) => e.amount)).toEqual([
+      170, 130,
+    ])
+    expect(statuses(out.state).find((s) => s.statusId === 'conductive')).toMatchObject({
+      stacks: 1,
+      potencyBasisPoints: 3500,
+      remainingOwnerTurnEnds: 3,
+    })
+  })
+  it('explicit tags obey miss, full Barrier and survivor guards', () => {
+    const base = current()
+    const absorbed = grantBarrier(base, 'actor', 'enemy', 'test.barrier', 100).state
+    expect(
+      statuses(executeCombatAction(absorbed, explicit('water'), target, PV1F_COMBAT_CONTENT).state),
+    ).toEqual([])
+    expect(
+      statuses(
+        executeCombatAction(
+          missed(base),
+          { ...explicit('water'), accuracyMode: 'per-target' },
+          target,
+          PV1F_COMBAT_CONTENT,
+        ).state,
+      ),
+    ).toEqual([])
+    const lethal = {
+      ...explicit('water'),
+      effects: [{ ...explicit('water').effects[0]!, amount: 1000 }, explicit('water').effects[1]!],
+    }
+    expect(statuses(executeCombatAction(base, lethal, target, PV1F_COMBAT_CONTENT).state)).toEqual(
+      [],
+    )
+  })
+  it('pending packets capture explicit tuning and never invent missing tags after restore', () => {
+    const base = {
+      ...current(),
+      effectTimingPolicy: {
+        ...defaultCombatEffectTimingPolicy(),
+        modes: { damage: 'delayed' as const },
+      },
+    }
+    for (const authored of [false, true]) {
+      let state = JSON.parse(
+        JSON.stringify(
+          executeCombatAction(
+            base,
+            authored ? explicit('water') : skill('water'),
+            target,
+            PV1F_COMBAT_CONTENT,
+          ).state,
+        ),
+      ) as CombatEncounterState
+      expect(validateCombatEncounterState(state)).toEqual([])
+      for (let i = 0; i < 8; i++)
+        state = finishPv1fTurn(state as ReturnType<typeof percentageDotEncounter>, 'west').state
+      expect(statuses(state)).toEqual(
+        authored
+          ? [
+              expect.objectContaining({
+                statusId: 'wet',
+                potencyBasisPoints: 3500,
+                remainingOwnerTurnEnds: 3,
+              }),
+            ]
+          : [],
+      )
+    }
+  })
+  it('damage without a matching status tag never consumes an ordinary status-resistance roll', () => {
+    const initial = current()
+    const base = {
+      ...initial,
+      statBalancePolicyVersion: 1 as const,
+      statBridge: {
+        ...initial.statBridge!,
+        rulesVersion: 4 as const,
+        schemaVersion: 4 as const,
+        combatants: initial.statBridge!.combatants.map((u) => ({
+          ...u,
+          statusResistance: 1500,
+          criticalChance: 0,
+          level: 1,
+        })),
+      },
+    }
+    const out = executeCombatAction(base, skill('water'), target, PV1F_COMBAT_CONTENT)
+    expect(out.events.filter((e) => e.event === 'combat_status_resistance_resolved')).toEqual([])
+    expect(out.state.tactical.battle.rng.draws).toBe(initial.tactical.battle.rng.draws)
+    expect(out.events.filter((e) => e.event === 'damage_applied')).toHaveLength(1)
+  })
+  it('area explicit tags settle independently against each recipient actual HP loss', () => {
+    const area = {
+      ...explicit('ice'),
+      target: {
+        ...skill('ice').target,
+        geometryVersion: 2 as const,
+        shape: { kind: 'line' as const, length: 3 },
+        minimumRange: 0,
+        maximumRange: 3,
+      },
+      effects: explicit('ice').effects.map((effect) =>
+        effect.type === 'damage' || effect.type === 'apply-status'
+          ? { ...effect, recipient: 'affected-units' as const }
+          : effect,
+      ),
+    }
+    const base = grantBarrier(current(), 'actor', 'enemy', 'test.barrier', 100).state
+    const out = executeCombatAction(
+      base,
+      area,
+      { kind: 'direction', direction: 'east' },
+      PV1F_COMBAT_CONTENT,
+    )
+    expect(out.state.tactical.battle.combatants.find((u) => u.id === 'enemy')?.hp).toBe(1000)
+    expect(out.state.tactical.battle.combatants.find((u) => u.id === 'other')?.hp).toBe(990)
+    expect(statuses(out.state, 'enemy')).toEqual([])
+    expect(statuses(out.state, 'other')).toHaveLength(1)
+  })
+  it('persistent Ground entry uses captured explicit tags and never invents damage-only tags', () => {
+    for (const authored of [false, true]) {
+      const base = { ...current(), groundEffectPolicyVersion: 1 as const }
+      const damage = {
+        type: 'damage' as const,
+        amount: 10,
+        element: 'water' as const,
+        recipient: 'affected-units' as const,
+      }
+      const ground = {
+        ...skill('water'),
+        target: { ...skill('water').target, kind: 'ground-tile' as const },
+        effects: authored
+          ? [
+              damage,
+              {
+                type: 'apply-status' as const,
+                recipient: 'affected-units' as const,
+                statusId: 'wet',
+                stacks: 1,
+                durationTurns: 3,
+                potencyBasisPoints: 3500,
+              },
+            ]
+          : [damage],
+        groundArea: {
+          durationRounds: 3,
+          visualPresetId: 'frost' as const,
+          timing: 'instant' as const,
+          entryEffectOrdinals: authored ? [0, 1] : [0],
+        },
+      }
+      const placed = createCombatGroundArea(
+        base,
+        'actor',
+        ground,
+        [{ x: 2, y: 1 }],
+        PV1F_COMBAT_CONTENT,
+      )
+      const out = resolveCombatMovementStepEffects(
+        JSON.parse(JSON.stringify(placed)),
+        'enemy',
+        PV1F_COMBAT_CONTENT,
+      )
+      expect(out.events.filter((e) => e.event === 'damage_applied')).toHaveLength(1)
+      expect(statuses(out.state)).toEqual(
+        authored ? [expect.objectContaining({ statusId: 'wet', potencyBasisPoints: 3500 })] : [],
+      )
+    }
+  })
+  it('policy 2 takes tuning only from the explicit status and policy 1 preserves its damage override', () => {
+    const water = explicit('water')
+    const conflict = {
+      ...water,
+      effects: [
+        { ...water.effects[0]!, durationTurns: 1, potencyBasisPoints: 1000 },
+        water.effects[1]!,
+      ],
+    }
+    expect(
+      statuses(executeCombatAction(current(), conflict, target, PV1F_COMBAT_CONTENT).state)[0],
+    ).toMatchObject({ remainingOwnerTurnEnds: 3, potencyBasisPoints: 3500 })
+    expect(
+      statuses(executeCombatAction(encounter(), conflict, target, PV1F_COMBAT_CONTENT).state)[0],
+    ).toMatchObject({ remainingOwnerTurnEnds: 1, potencyBasisPoints: 1000 })
+  })
+  it('Fire Ground retains caster cleanse and original ice expiry under policy 2', () => {
+    let base = status(current(), 'frozen', 'actor')
+    base = setTerrainOverlay(base, { x: 0, y: 1 }, 'frozen', 'enemy', 'freeze').state
+    base = {
+      ...base,
+      terrainOverlays: base.terrainOverlays!.map((o) => ({ ...o, remainingRoundBoundaries: 1 })),
+    }
+    const out = executeCombatAction(
+      base,
+      fire(),
+      { kind: 'tile', position: { x: 0, y: 1 } },
+      PV1F_COMBAT_CONTENT,
+    )
+    expect(statuses(out.state, 'actor')).toEqual([])
+    expect(out.state.terrainOverlays).toEqual([
+      expect.objectContaining({ kind: 'steam', remainingRoundBoundaries: 1 }),
+    ])
+  })
+  it('bare Fire damage has no hidden caster cleanse in policy 2', () => {
+    const base = status(current(), 'frozen', 'actor')
+    expect(
+      statuses(
+        executeCombatAction(base, skill('fire'), target, PV1F_COMBAT_CONTENT).state,
+        'actor',
+      ),
+    ).toHaveLength(1)
+  })
+  it('limited Cleanse Chilled removes only caster Chilled and has its own presentation tag', () => {
+    const base = status(
+      status(status(current(), 'frozen', 'actor'), 'wet', 'actor'),
+      'suppress',
+      'actor',
+      2500,
+    )
+    const action = fire()
+    expect(combatEffectPresentationTags(action.effects[1]!)).toEqual(['Cleanse Chilled'])
+    const out = executeCombatAction(base, action, target, PV1F_COMBAT_CONTENT)
+    expect(statuses(out.state, 'actor').map((s) => s.statusId)).toEqual(['suppress', 'wet'])
+  })
+  it('an explicit Instant cleanse commits on a missed Fire cast with delayed damage', () => {
+    const base = {
+      ...missed(status(current(), 'frozen', 'actor')),
+      effectTimingPolicy: {
+        version: 7,
+        modes: { damage: 'delayed' as const, 'remove-status': 'instant' as const },
+      },
+    }
+    const out = executeCombatAction(
+      base,
+      { ...fire(), accuracyMode: 'per-target' },
+      target,
+      PV1F_COMBAT_CONTENT,
+    )
+    expect(statuses(out.state, 'actor')).toEqual([])
+    expect(out.events.filter((e) => e.event === 'damage_applied')).toEqual([])
+  })
+  it('an explicit caster cleanse obeys a captured Master timing override', () => {
+    const base = {
+      ...status(current(), 'frozen', 'actor'),
+      effectTimingPolicy: { version: 7, modes: { 'remove-status': 'next-round' as const } },
+    }
+    let state = executeCombatAction(base, fire(), target, PV1F_COMBAT_CONTENT).state
+    expect(statuses(state, 'actor')).toHaveLength(1)
+    expect(state.pendingEffects).toEqual([
+      expect.objectContaining({
+        effect: expect.objectContaining({
+          type: 'remove-status',
+          recipient: 'actor',
+          statusIds: ['frozen'],
+        }),
+        recipientIds: ['actor'],
+      }),
+    ])
+    state = JSON.parse(JSON.stringify(state))
+    for (let i = 0; i < 4; i++)
+      state = finishPv1fTurn(state as ReturnType<typeof percentageDotEncounter>, 'west').state
+    expect(statuses(state, 'actor')).toEqual([])
+  })
+  it('an Airborne caster still cleanses Chilled on legal empty Fire Ground commit', () => {
+    const base = {
+      ...status(status(current(), 'frozen', 'actor'), 'airborne', 'actor'),
+      airbornePolicyVersion: 1 as const,
+    }
+    const out = executeCombatAction(
+      base,
+      fire(),
+      { kind: 'tile', position: { x: 0, y: 1 } },
+      PV1F_COMBAT_CONTENT,
+    )
+    expect(statuses(out.state, 'actor').map((s) => s.statusId)).toEqual(['airborne'])
+  })
+  it('an Airborne caster receives its queued explicit cleanse after a Ground timing override', () => {
+    const base = {
+      ...status(status(current(), 'frozen', 'actor'), 'airborne', 'actor'),
+      airbornePolicyVersion: 1 as const,
+      effectTimingPolicy: { version: 7, modes: { 'remove-status': 'next-round' as const } },
+    }
+    let state = executeCombatAction(
+      base,
+      fire(),
+      { kind: 'tile', position: { x: 0, y: 1 } },
+      PV1F_COMBAT_CONTENT,
+    ).state
+    expect(statuses(state, 'actor').map((s) => s.statusId)).toEqual(['airborne', 'frozen'])
+    for (let i = 0; i < 4; i++)
+      state = finishPv1fTurn(
+        JSON.parse(JSON.stringify(state)) as ReturnType<typeof percentageDotEncounter>,
+        'west',
+      ).state
+    expect(statuses(state, 'actor').map((s) => s.statusId)).toEqual(['airborne'])
+  })
+  it('persistent Fire Ground entry never repeats the cast-only cleanse', () => {
+    const base = status({ ...current(), groundEffectPolicyVersion: 1 as const }, 'frozen', 'actor')
+    const action = {
+      ...fire(),
+      target: { ...fire().target, kind: 'ground-tile' as const },
+      effects: [
+        {
+          type: 'damage' as const,
+          recipient: 'affected-units' as const,
+          amount: 10,
+          element: 'fire' as const,
+        },
+        fire().effects[1]!,
+      ],
+      groundArea: {
+        durationRounds: 3,
+        visualPresetId: 'embers' as const,
+        timing: 'instant' as const,
+        entryEffectOrdinals: [0],
+      },
+    }
+    const placed = createCombatGroundArea(
+      base,
+      'actor',
+      action,
+      [{ x: 2, y: 1 }],
+      PV1F_COMBAT_CONTENT,
+    )
+    const out = resolveCombatMovementStepEffects(placed, 'enemy', PV1F_COMBAT_CONTENT)
+    expect(statuses(out.state, 'actor')).toHaveLength(1)
+    expect(out.events.filter((e) => e.event === 'damage_applied')).toHaveLength(1)
+  })
+  it.each([undefined, 1] as const)(
+    'historical policy %s retains its original partial removal of Suppress',
+    (policy) => {
+      const base = status(
+        status({ ...encounter(), elementalDamagePolicyVersion: policy }, 'frozen', 'actor'),
+        'suppress',
+        'actor',
+        2500,
+      )
+      const action = {
+        ...skill('water'),
+        effects: [
+          { type: 'remove-status' as const, recipient: 'actor' as const, statusIds: ['frozen'] },
+        ],
+      }
+      expect(
+        statuses(executeCombatAction(base, action, target, PV1F_COMBAT_CONTENT).state, 'actor'),
+      ).toEqual([])
+    },
+  )
+  it('legacy canonical publication remains available without widening current limited Cleanse Chilled', () => {
+    const definition = resolveMatureSkillVersion('cinderweaver.cinder-bolt')!
+    const source = {
+      ...definition,
+      effects: [
+        { type: 'remove-status' as const, recipient: 'actor' as const, statusIds: ['frozen'] },
+      ],
+    }
+    expect(createCanonicalCleanseSkillVersion(source)).toBeNull()
+    expect(createCanonicalCleanseSkillVersion(source, true)?.effects).toEqual([
+      { type: 'remove-status', recipient: 'actor', statusIds: [...CLEANSE_STATUS_IDS] },
+    ])
+  })
+  it.each(['hit', 'miss', 'empty-ground', 'delayed-damage'] as const)(
+    'actual current Cinder Bolt cleanses only caster Chilled on %s commit',
+    (mode) => {
+      let action = toCombatActionDefinition(
+        resolveMatureSkillVersion('cinderweaver.cinder-bolt')!,
+        'pve',
+      )
+      let base = status(status(status(current(), 'frozen', 'actor'), 'wet'), 'frozen')
+      if (mode === 'miss') {
+        base = missed(base)
+        action = { ...action, accuracyMode: 'per-target' }
+      }
+      if (mode === 'delayed-damage')
+        base = {
+          ...base,
+          effectTimingPolicy: {
+            version: 7,
+            modes: { damage: 'delayed', 'remove-status': 'instant' },
+          },
+        }
+      const out = executeCombatAction(
+        base,
+        action,
+        mode === 'empty-ground' ? { kind: 'tile', position: { x: 0, y: 1 } } : target,
+        PV1F_COMBAT_CONTENT,
+      )
+      expect(statuses(out.state, 'actor')).toEqual([])
+      expect(statuses(out.state).map((s) => s.statusId)).toEqual(['frozen', 'wet'])
+      if (mode === 'delayed-damage')
+        expect(out.state.pendingEffects?.some((p) => p.effect.type === 'damage')).toBe(true)
+    },
+  )
+  it('policy 1 retains implicit application and historical Fire recipient cleansing', () => {
+    expect(
+      statuses(executeCombatAction(encounter(), skill('water'), target, PV1F_COMBAT_CONTENT).state),
+    ).toHaveLength(1)
+    const base = status(status(encounter(), 'wet'), 'frozen')
+    expect(
+      statuses(executeCombatAction(base, skill('fire'), target, PV1F_COMBAT_CONTENT).state),
+    ).toEqual([])
+  })
+})
+
+describe('policy 2 actual Flame Burst Enemy and Ground intent', () => {
+  const definition = () => resolveMatureSkillVersion('cinderweaver.flame-burst')!
+  const state = (): ReturnType<typeof percentageDotEncounter> => ({
+    ...(status(status(encounter(), 'airborne'), 'frozen', 'actor') as ReturnType<
+      typeof percentageDotEncounter
+    >),
+    elementalDamagePolicyVersion: 2,
+    airbornePolicyVersion: 1,
+    groundEffectPolicyVersion: 1,
+    effectTimingPolicy: {
+      version: 7,
+      modes: { damage: 'instant', 'remove-status': 'instant', 'ground-area': 'instant' },
+    },
+  })
+  it.each(['pve', 'pvp'] as const)(
+    'the authoritative %s path hits an Airborne enemy and creates no persistent Ground on Enemy activation',
+    (context) => {
+      const base = state()
+      const original = JSON.parse(JSON.stringify(definition()))
+      const selection = { kind: 'activate' as const }
+      const forecast = evaluatePv1fMatureSkill(base, definition(), selection, context)
+      expect(forecast.evaluation.legal).toBe(true)
+      expect(
+        forecast.evaluation.projectedEffects.some(
+          (e) => e.effectType === 'damage' && e.combatantId === 'enemy',
+        ),
+      ).toBe(true)
+      const out = executePv1fMatureSkill(base, definition(), selection, context)
+      expect(out.state.tactical.battle.combatants.find((u) => u.id === 'enemy')!.hp).toBeLessThan(
+        1000,
+      )
+      expect(out.state.groundAreas ?? []).toEqual([])
+      expect(statuses(out.state, 'actor')).toEqual([])
+      expect(definition()).toEqual(original)
+    },
+  )
+  it.each(['pve', 'pvp'] as const)(
+    'the authoritative %s Ground path preserves Airborne immunity and the authored three-round area',
+    (context) => {
+      const base = state()
+      const selection = { kind: 'activate' as const, ground: true as const }
+      const out = executePv1fMatureSkill(base, definition(), selection, context)
+      expect(out.state.tactical.battle.combatants.find((u) => u.id === 'enemy')!.hp).toBe(1000)
+      expect(out.state.groundAreas).toEqual([
+        expect.objectContaining({
+          activationRound: 1,
+          expiresAtRound: 4,
+          target: expect.objectContaining({ kind: 'ground-tile' }),
+          entryEffects: definition().groundArea!.entryEffectOrdinals.map((i) =>
+            expect.objectContaining({ type: definition().effects[i]!.type }),
+          ),
+        }),
+      ])
+      expect(statuses(out.state, 'actor')).toEqual([])
+    },
+  )
+  it('direct Enemy and Ground commits share geometry and preserve ice conversion expiry', () => {
+    let base = state()
+    base = setTerrainOverlay(base, { x: 1, y: 0 }, 'frozen', 'enemy', 'freeze').state as typeof base
+    base = {
+      ...base,
+      terrainOverlays: base.terrainOverlays!.map((o) => ({ ...o, remainingRoundBoundaries: 1 })),
+    }
+    const action = toCombatActionDefinition(definition(), 'pve')
+    const enemy = evaluateCombatAction(base, action, { kind: 'activate' }, PV1F_COMBAT_CONTENT)
+    const ground = evaluateCombatAction(
+      base,
+      action,
+      { kind: 'activate', ground: true },
+      PV1F_COMBAT_CONTENT,
+    )
+    expect(enemy.affectedTiles).toEqual(ground.affectedTiles)
+    const out = executeCombatAction(base, action, { kind: 'activate' }, PV1F_COMBAT_CONTENT)
+    expect(out.state.terrainOverlays).toEqual([
+      expect.objectContaining({ kind: 'steam', remainingRoundBoundaries: 1 }),
+    ])
+    expect(out.state.groundAreas ?? []).toEqual([])
+  })
+  it('delayed Enemy damage captures unit intent through restore and bypasses Ground immunity on activation', () => {
+    const initial = state()
+    const base = {
+      ...initial,
+      effectTimingPolicy: {
+        version: 7,
+        modes: { ...initial.effectTimingPolicy!.modes, damage: 'delayed' as const },
+      },
+    }
+    let current = executePv1fMatureSkill(base, definition(), { kind: 'activate' }).state
+    expect(
+      current.pendingEffects
+        ?.filter((p) => p.effect.type === 'damage')
+        .every((p) => p.groundTargeted === undefined),
+    ).toBe(true)
+    expect(current.groundAreas ?? []).toEqual([])
+    current = {
+      ...current,
+      statusState: current.statusState.map((row) =>
+        row.combatantId !== 'enemy'
+          ? row
+          : {
+              ...row,
+              statuses: row.statuses.map((s) =>
+                s.statusId !== 'airborne' ? s : { ...s, remainingOwnerTurnStarts: 4 },
+              ),
+            },
+      ),
+    }
+    const events: { event: string; targetCombatantId?: string }[] = []
+    for (let i = 0; i < 8; i++) {
+      const next = finishPv1fTurn(JSON.parse(JSON.stringify(current)), 'west')
+      current = next.state
+      events.push(...(next.events as { event: string; targetCombatantId?: string }[]))
+    }
+    expect(
+      events.some((e) => e.event === 'damage_applied' && e.targetCombatantId === 'enemy'),
+    ).toBe(true)
+  })
+  it('a Single Fire Ground preset accepts distinct Enemy unit and Ground tile selections', () => {
+    const action = {
+      ...skill('fire'),
+      target: { ...skill('fire').target, kind: 'ground-tile' as const },
+      effects: [
+        {
+          type: 'damage' as const,
+          recipient: 'affected-units' as const,
+          amount: 10,
+          element: 'fire' as const,
+        },
+      ],
+      groundArea: {
+        durationRounds: 3,
+        visualPresetId: 'embers' as const,
+        entryEffectOrdinals: [0],
+      },
+    }
+    const enemy = executeCombatAction(state(), action, target, PV1F_COMBAT_CONTENT)
+    expect(enemy.state.tactical.battle.combatants.find((u) => u.id === 'enemy')!.hp).toBe(990)
+    expect(enemy.state.groundAreas ?? []).toHaveLength(0)
+    const ground = executeCombatAction(
+      state(),
+      action,
+      { kind: 'tile', position: { x: 2, y: 1 } },
+      PV1F_COMBAT_CONTENT,
+    )
+    expect(ground.state.tactical.battle.combatants.find((u) => u.id === 'enemy')!.hp).toBe(1000)
+    expect(ground.state.groundAreas).toHaveLength(1)
+  })
+  it('historical policy 1 keeps unflagged Flame Burst as persistent Ground with Airborne immunity', () => {
+    const base = { ...state(), elementalDamagePolicyVersion: 1 as const }
+    const out = executePv1fMatureSkill(base, definition(), { kind: 'activate' })
+    expect(out.state.tactical.battle.combatants.find((u) => u.id === 'enemy')!.hp).toBe(1000)
+    expect(out.state.groundAreas).toHaveLength(1)
   })
 })

@@ -1,5 +1,6 @@
+export { isCleanseChilledEffect } from './gameplay-tags'
 import type { CombatEffectDefinition } from './actions'
-import { combatEffectPresentationTags } from './gameplay-tags'
+import { combatEffectPresentationTags, isCleanseChilledEffect } from './gameplay-tags'
 import type { MatureSkillDefinition, MatureSkillEffectDefinition } from './mature-skills'
 import type { ResonanceDefinitionV2 } from './resonance-v2'
 
@@ -20,6 +21,17 @@ export function isCleanseEffect(
   return effect.type === 'remove-status' && combatEffectPresentationTags(effect).includes('Cleanse')
 }
 
+/** Historical registry construction keeps the original partial Frozen cleanse classification. */
+function isCanonicalizationCleanse(
+  effect: MatureSkillEffectDefinition,
+  legacyFrozenRemoval: boolean,
+): effect is Extract<CombatEffectDefinition, { type: 'remove-status' }> {
+  return (
+    effect.type === 'remove-status' &&
+    (isCleanseEffect(effect) || (legacyFrozenRemoval && isCleanseChilledEffect(effect)))
+  )
+}
+
 export function hasCanonicalCleanseStatuses(statusIds: readonly string[]): boolean {
   return (
     statusIds.length === CLEANSE_STATUS_IDS.length &&
@@ -29,10 +41,13 @@ export function hasCanonicalCleanseStatuses(statusIds: readonly string[]): boole
 
 export function createCanonicalCleanseResonanceVersion(
   definition: ResonanceDefinitionV2,
+  legacyFrozenRemoval = false,
 ): ResonanceDefinitionV2 | null {
   if (
     !definition.trigger.resultEffects.some(
-      (effect) => isCleanseEffect(effect) && !hasCanonicalCleanseStatuses(effect.statusIds),
+      (effect) =>
+        isCanonicalizationCleanse(effect, legacyFrozenRemoval) &&
+        !hasCanonicalCleanseStatuses(effect.statusIds),
     )
   )
     return null
@@ -42,7 +57,9 @@ export function createCanonicalCleanseResonanceVersion(
     trigger: {
       ...definition.trigger,
       resultEffects: definition.trigger.resultEffects.map((effect) =>
-        isCleanseEffect(effect) ? { ...effect, statusIds: [...CLEANSE_STATUS_IDS] } : effect,
+        isCanonicalizationCleanse(effect, legacyFrozenRemoval)
+          ? { ...effect, statusIds: [...CLEANSE_STATUS_IDS] }
+          : effect,
       ),
     },
     authoring: {
@@ -55,10 +72,13 @@ export function createCanonicalCleanseResonanceVersion(
 /** Append only changed versions; never mutate a historical definition or its other effects. */
 export function createCanonicalCleanseSkillVersion(
   definition: MatureSkillDefinition,
+  legacyFrozenRemoval = false,
 ): MatureSkillDefinition | null {
   if (
     !definition.effects.some(
-      (effect) => isCleanseEffect(effect) && !hasCanonicalCleanseStatuses(effect.statusIds),
+      (effect) =>
+        isCanonicalizationCleanse(effect, legacyFrozenRemoval) &&
+        !hasCanonicalCleanseStatuses(effect.statusIds),
     )
   )
     return null
@@ -66,12 +86,16 @@ export function createCanonicalCleanseSkillVersion(
     ...definition,
     contentVersion: definition.contentVersion + 1,
     effects: definition.effects.map((effect) =>
-      isCleanseEffect(effect) ? { ...effect, statusIds: [...CLEANSE_STATUS_IDS] } : effect,
+      isCanonicalizationCleanse(effect, legacyFrozenRemoval)
+        ? { ...effect, statusIds: [...CLEANSE_STATUS_IDS] }
+        : effect,
     ),
     ...(definition.effectDescriptions
       ? {
           effectDescriptions: definition.effectDescriptions.map((description, index) =>
-            isCleanseEffect(definition.effects[index]!) ? null : description,
+            isCanonicalizationCleanse(definition.effects[index]!, legacyFrozenRemoval)
+              ? null
+              : description,
           ),
         }
       : {}),

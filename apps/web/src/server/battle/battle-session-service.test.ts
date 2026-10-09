@@ -384,7 +384,7 @@ describe('P2.4 battle session service', () => {
     expect(result.snapshot.frozenGroundPolicyVersion).toBe(1)
     expect(result.snapshot.airbornePolicyVersion).toBe(1)
     expect(result.snapshot.airborneJumpPolicyVersion).toBe(1)
-    expect(result.snapshot.elementalDamagePolicyVersion).toBe(1)
+    expect(result.snapshot.elementalDamagePolicyVersion).toBe(2)
     expect(result.snapshot.dynamicInitiativePolicyVersion).toBe(1)
     expect(result.snapshot.healingDownPolicyVersion).toBe(1)
     expect(result.snapshot.blindsideActivationPolicyVersion).toBe(1)

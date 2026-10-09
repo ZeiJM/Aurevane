@@ -45,7 +45,11 @@ function SummonAbilityParameters({
           ability.effects.length
             ? groupSkillEffects(ability.effects).map(({ effect, count, firstIndex }) => (
                 <div key={firstIndex}>
-                  <CompactSkillEffectSummary effect={effect} count={count} />
+                  <CompactSkillEffectSummary
+                    effect={effect}
+                    count={count}
+                    skillEffects={ability.effects}
+                  />
                 </div>
               ))
             : 'N/A'

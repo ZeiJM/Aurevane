@@ -17,7 +17,6 @@ import type { BattleSessionView } from '@/server/battle/battle-session-service'
 export type BattleTechniqueCategory = 'attack' | 'defense' | 'heal'
 
 export interface BattleSkillForecastPresentation {
-  groundIntentSelected?: boolean
   groundIntentCapable?: boolean
   cooldownOwnerTurns?: number | null
   definition?: MatureSkillDefinition

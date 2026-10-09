@@ -25,6 +25,7 @@ interface BattleLogFeedProps {
   recentTurnCount?: number
   currentTurnNumber?: number
   currentRound?: number
+  elementalDamagePolicyVersion?: 1 | 2 | null
   flowView?: BattleLogFlowView
   hideFlowViewControl?: boolean
   onFlowViewChange?: (view: BattleLogFlowView) => void

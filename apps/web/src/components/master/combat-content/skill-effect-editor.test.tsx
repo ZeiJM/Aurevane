@@ -278,7 +278,7 @@ it('authors percentage recovery with a resource, 1–100 percent and 1–4 appli
   expect(html).toContain('aria-label="Recovery applications"')
 })
 
-it('authors Ice and additional captured Drenched/Conductive Storm bonuses in percent', () => {
+it('authors elemental damage typing independently from captured status potency', () => {
   const water = render({
     type: 'damage',
     recipient: 'primary-unit',
@@ -288,12 +288,11 @@ it('authors Ice and additional captured Drenched/Conductive Storm bonuses in per
     durationTurns: 3,
   })
   expect(water).toContain('value="ice"')
-  expect(water).toContain('Drenched Storm bonus (%)')
-  expect(water).toContain('value="35"')
-  expect(water).toContain('Elemental debuff duration (turns)')
+  expect(water).not.toContain('Drenched Storm bonus (%)')
+  expect(water).not.toContain('Elemental debuff duration (turns)')
   expect(
     render({ type: 'damage', recipient: 'primary-unit', amount: 10, element: 'storm' }),
-  ).toContain('Conductive Storm bonus (%)')
+  ).not.toContain('Conductive Storm bonus (%)')
 })
 
 it('authors Suppress as 1–100% with two decimal places and a single application', () => {
@@ -308,4 +307,32 @@ it('authors Suppress as 1–100% with two decimal places and a single applicatio
   expect(markup).toContain('step="0.01"')
   expect(markup).toContain('value="25"')
   expect(markup).toContain('Never stacks')
+})
+
+it('keeps elemental status duration and potency controls on the separate status tag', () => {
+  const water = render({ type: 'damage', recipient: 'primary-unit', amount: 10, element: 'water' })
+  expect(water).not.toContain('Elemental debuff duration (turns)')
+  expect(water).not.toContain('Drenched Storm bonus (%)')
+  for (const statusId of ['wet', 'conductive']) {
+    const tag = render({
+      type: 'apply-status',
+      recipient: 'primary-unit',
+      statusId,
+      stacks: 1,
+      durationTurns: 4,
+      potencyBasisPoints: 4200,
+    })
+    expect(tag).toContain('aria-label="Status potency (percent)"')
+    expect(tag).toContain('value="42"')
+    expect(tag).toContain('aria-label="Effect duration (turns)"')
+    expect(tag).toContain('value="4"')
+  }
+})
+
+it('keeps limited Chilled removal independent from standard Cleanse authoring', () => {
+  const markup = render({ type: 'remove-status', recipient: 'actor', statusIds: ['frozen'] })
+  expect(markup).toContain('Cleanse Chilled removes only Chilled')
+  expect(markup).toContain('value="frozen"')
+  expect(markup).not.toContain('Use standard Cleanse')
+  expect(markup).not.toContain('Cleanse removes Burn')
 })

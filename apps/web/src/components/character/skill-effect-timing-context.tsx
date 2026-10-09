@@ -12,12 +12,14 @@ const TimingContext = createContext<SkillEffectTimingPolicy>(defaultCombatEffect
 const GroundInteractionContext = createContext({
   legacyFrozenGround: false,
   legacyElemental: false,
+  explicitElemental: true,
   legacyAirborne: false,
   legacyAirborneJump: false,
   legacyHealingDown: false,
   legacyBlindsideActivation: false,
 })
 export const AirborneAttackElevationContext = createContext(false)
+const ElementalDamagePolicyContext = createContext<1 | 2 | null>(null)
 const DotTriggerContext = createContext<1 | 2 | null>(2)
 
 export function SkillEffectTimingProvider({
@@ -28,7 +30,7 @@ export function SkillEffectTimingProvider({
   airborneJumpPolicyVersion = 1,
   healingDownPolicyVersion = 1,
   blindsideActivationPolicyVersion = 1,
-  elementalDamagePolicyVersion = 1,
+  elementalDamagePolicyVersion = 2,
   children,
 }: {
   policy: SkillEffectTimingPolicy
@@ -38,25 +40,28 @@ export function SkillEffectTimingProvider({
   airborneJumpPolicyVersion?: 1 | null
   healingDownPolicyVersion?: 1 | null
   blindsideActivationPolicyVersion?: 1 | null
-  elementalDamagePolicyVersion?: 1 | null
+  elementalDamagePolicyVersion?: 1 | 2 | null
   children: ReactNode
 }) {
   return (
     <TimingContext.Provider value={policy}>
-      <DotTriggerContext.Provider value={dotTriggerPolicyVersion}>
-        <GroundInteractionContext.Provider
-          value={{
-            legacyFrozenGround: frozenGroundPolicyVersion !== 1,
-            legacyElemental: elementalDamagePolicyVersion !== 1,
-            legacyAirborne: airbornePolicyVersion !== 1,
-            legacyAirborneJump: airborneJumpPolicyVersion !== 1,
-            legacyHealingDown: healingDownPolicyVersion !== 1,
-            legacyBlindsideActivation: blindsideActivationPolicyVersion !== 1,
-          }}
-        >
-          {children}
-        </GroundInteractionContext.Provider>
-      </DotTriggerContext.Provider>
+      <ElementalDamagePolicyContext.Provider value={elementalDamagePolicyVersion}>
+        <DotTriggerContext.Provider value={dotTriggerPolicyVersion}>
+          <GroundInteractionContext.Provider
+            value={{
+              legacyFrozenGround: frozenGroundPolicyVersion !== 1,
+              legacyElemental: elementalDamagePolicyVersion == null,
+              explicitElemental: elementalDamagePolicyVersion === 2,
+              legacyAirborne: airbornePolicyVersion !== 1,
+              legacyAirborneJump: airborneJumpPolicyVersion !== 1,
+              legacyHealingDown: healingDownPolicyVersion !== 1,
+              legacyBlindsideActivation: blindsideActivationPolicyVersion !== 1,
+            }}
+          >
+            {children}
+          </GroundInteractionContext.Provider>
+        </DotTriggerContext.Provider>
+      </ElementalDamagePolicyContext.Provider>
     </TimingContext.Provider>
   )
 }
@@ -73,4 +78,8 @@ export function useSkillGroundInteractionRules() {
 }
 export function useAirborneAttackElevation() {
   return useContext(AirborneAttackElevationContext)
+}
+
+export function useSkillElementalDamagePolicyVersion(): 1 | 2 | null {
+  return useContext(ElementalDamagePolicyContext)
 }

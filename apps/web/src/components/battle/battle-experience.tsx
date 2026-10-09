@@ -409,8 +409,11 @@ function BattleExperienceContent({
       (runtime.techniques ?? []).map((skill) => ({
         ...skill,
         groundIntentCapable:
-          battle.snapshot.elementalDamagePolicyVersion === 1 &&
-          skill.targetKind === 'unit' &&
+          (battle.snapshot.elementalDamagePolicyVersion === 1 ||
+            battle.snapshot.elementalDamagePolicyVersion === 2) &&
+          (skill.targetKind === 'unit' ||
+            (battle.snapshot.elementalDamagePolicyVersion === 2 &&
+              skill.targetKind === 'ground-tile')) &&
           skill.targetTeamPolicy === 'enemy' &&
           skill.definition?.effects.some(
             (effect) => effect.type === 'damage' && effect.element === 'fire',
@@ -422,8 +425,11 @@ function BattleExperienceContent({
     ? {
         ...runtime.essence,
         groundIntentCapable:
-          battle.snapshot.elementalDamagePolicyVersion === 1 &&
-          runtime.essence.targetKind === 'unit' &&
+          (battle.snapshot.elementalDamagePolicyVersion === 1 ||
+            battle.snapshot.elementalDamagePolicyVersion === 2) &&
+          (runtime.essence.targetKind === 'unit' ||
+            (battle.snapshot.elementalDamagePolicyVersion === 2 &&
+              runtime.essence.targetKind === 'ground-tile')) &&
           runtime.essence.targetTeamPolicy === 'enemy' &&
           runtime.essence.definition?.effects.some(
             (effect) => effect.type === 'damage' && effect.element === 'fire',
@@ -439,7 +445,6 @@ function BattleExperienceContent({
   const healTechniques = selectableTechniques.filter((technique) => technique.category === 'heal')
   const skillArtwork = (technique: (typeof selectableTechniques)[number]) =>
     battleSkillArtwork(technique.id, technique.iconKey)
-  const [groundIntentSelected, setGroundIntentSelected] = useState(false)
   const [selectedAttackActionId, setSelectedAttackActionId] = useState<string>(BASIC_ATTACK_ID)
   const supportActionId = parseSupportActionId(runtime.supportActionId) ?? DEFAULT_SUPPORT_ACTION_ID
   const supportSkill = pv1fSkillByActionId(supportActionId)!
@@ -1198,8 +1203,11 @@ function BattleExperienceContent({
           ? {
               ...runtime.essence,
               groundIntentCapable:
-                battle.snapshot.elementalDamagePolicyVersion === 1 &&
-                runtime.essence.targetKind === 'unit' &&
+                (battle.snapshot.elementalDamagePolicyVersion === 1 ||
+                  battle.snapshot.elementalDamagePolicyVersion === 2) &&
+                (runtime.essence.targetKind === 'unit' ||
+                  (battle.snapshot.elementalDamagePolicyVersion === 2 &&
+                    runtime.essence.targetKind === 'ground-tile')) &&
                 runtime.essence.targetTeamPolicy === 'enemy' &&
                 runtime.essence.definition?.effects.some(
                   (effect) => effect.type === 'damage' && effect.element === 'fire',
@@ -1207,13 +1215,12 @@ function BattleExperienceContent({
             }
           : undefined)
       if (skill) {
-        const selectedSkill = skill.groundIntentCapable ? { ...skill, groundIntentSelected } : skill
         return airborneAttackElevation && skill.definition?.tags.includes('attack')
           ? {
-              ...selectedSkill,
+              ...skill,
               target: { ...skill.definition.target, maximumElevationDifference: 3 },
             }
-          : selectedSkill
+          : skill
       }
       return {
         id: actionId,
@@ -1230,13 +1237,13 @@ function BattleExperienceContent({
       runtime.essence,
       selectableTechniques,
       battle.snapshot.elementalDamagePolicyVersion,
-      groundIntentSelected,
     ],
   )
 
   const selection = useMemo(
     () => ({
       actorId: localCombatantId,
+      selectedTarget: pendingIntent?.kind === 'action' ? pendingIntent.target : null,
       selectedCombatantId: selectedUnitId ?? inspectedUnitId,
       selectedTile:
         pendingIntent?.kind === 'action' && pendingIntent.target.kind === 'tile'
@@ -1270,6 +1277,7 @@ function BattleExperienceContent({
       selectedCombatantId:
         prior.intent.target.kind === 'unit' ? prior.intent.target.combatantId : null,
       selectedTile: prior.intent.target.kind === 'tile' ? prior.intent.target.position : null,
+      selectedTarget: prior.intent.target,
     })
     if (intent) {
       setSelectedUnitId(
@@ -1295,7 +1303,13 @@ function BattleExperienceContent({
     (nextMode: 'attack' | 'guard' | 'recover', actionId: string) => {
       if (planningDisabled || executionLock.current) return
       if (actionCooldownTurns(actionId) > 0) return
-      const intent = selectInitialBattleSkillPreviewIntent(actionDescriptor(actionId), selection)
+      const intent = selectInitialBattleSkillPreviewIntent(actionDescriptor(actionId), {
+        ...selection,
+        selectedTarget:
+          pendingIntent?.kind === 'action' && pendingIntent.actionId === actionId
+            ? pendingIntent.target
+            : null,
+      })
       clearPlanning(nextMode)
       if (intent) {
         setSelectedUnitId(
@@ -1316,13 +1330,13 @@ function BattleExperienceContent({
       planningDisabled,
       requestPreview,
       selection,
+      pendingIntent,
     ],
   )
 
   const selectAction = useCallback(
     (skillId: string, category: 'attack' | 'defense' | 'heal') => {
       if (planningDisabledRef.current || executionLock.current || commitLock.current) return
-      setGroundIntentSelected(false)
       if (actionCooldownTurns(skillId) > 0) return
       if (category === 'defense') {
         setSelectedDefenseActionId(skillId)
@@ -1338,7 +1352,6 @@ function BattleExperienceContent({
     [
       actionCooldownTurns,
       armAction,
-      setGroundIntentSelected,
       setSelectedAttackActionId,
       setSelectedDefenseActionId,
       setSelectedTechniqueHealId,
@@ -1586,7 +1599,8 @@ function BattleExperienceContent({
         event.preventDefault()
         if (mode === 'finish') {
           if (
-            battle.snapshot.elementalDamagePolicyVersion === 1 &&
+            (battle.snapshot.elementalDamagePolicyVersion === 1 ||
+              battle.snapshot.elementalDamagePolicyVersion === 2) &&
             localCombatantId &&
             localPlacement &&
             hasGameplayTag(battle.snapshot, localCombatantId, 'Frozen', PV1F_COMBAT_CONTENT) &&
@@ -1635,6 +1649,7 @@ function BattleExperienceContent({
                 const intent = selectBattleSkillPreviewIntent(descriptor, {
                   ...selection,
                   selectedCombatantId: row.combatantId,
+                  selectedTile: null,
                 })
                 return intent?.kind === 'action' && intent.target.kind === 'unit' ? [intent] : []
               })
@@ -2516,25 +2531,6 @@ function BattleExperienceContent({
                 bindings={bindings}
                 onSelect={selectAction}
               />
-              {mode === 'attack' && activeTechnique?.groundIntentCapable ? (
-                <div role="group" aria-label="Fire target" className={styles.facingRow}>
-                  {(['Enemies', 'Ground'] as const).map((label) => (
-                    <button
-                      key={label}
-                      type="button"
-                      aria-pressed={groundIntentSelected === (label === 'Ground')}
-                      disabled={planningDisabled}
-                      onClick={() => {
-                        setGroundIntentSelected(label === 'Ground')
-                        setPendingIntent(null)
-                        setPreview(null)
-                      }}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              ) : null}
               <BattleSkillCommand
                 characterStats={characterStats}
                 slot="finish"
@@ -2566,7 +2562,8 @@ function BattleExperienceContent({
                         aria-label={`Face ${facing}`}
                         disabled={
                           planningDisabled ||
-                          (battle.snapshot.elementalDamagePolicyVersion === 1 &&
+                          ((battle.snapshot.elementalDamagePolicyVersion === 1 ||
+                            battle.snapshot.elementalDamagePolicyVersion === 2) &&
                             !!localCombatantId &&
                             hasGameplayTag(
                               battle.snapshot,

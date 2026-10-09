@@ -314,6 +314,9 @@ export function BattleCompletionPanel({ battle }: BattleCompletionPanelProps) {
               <div className={styles.logTranscript}>
                 <BattleLogFeed
                   entries={log.entries}
+                  elementalDamagePolicyVersion={
+                    battle.snapshot.elementalDamagePolicyVersion ?? null
+                  }
                   {...logOptions}
                   emptyMessage="No committed battle actions were recorded."
                 />

@@ -20,7 +20,6 @@ export type BattlePreviewSkill = Pick<
   | 'target'
   | 'definition'
   | 'groundIntentCapable'
-  | 'groundIntentSelected'
 >
 export function battleSkillTargetSpec(skill: BattlePreviewSkill) {
   return skill.target ?? skill.definition?.target
@@ -40,8 +39,28 @@ type PreviewSelection = {
   selectedTile: { x: number; y: number } | null
   combatants: readonly PreviewSelectionCombatant[]
   tiles?: readonly { x: number; y: number }[]
+  selectedTarget?: ActionIntent['target'] | null
 }
 type ActionIntent = Extract<BattleIntent, { kind: 'action' }>
+
+function selectedFireEnemy(selection: PreviewSelection, actor: PreviewSelectionCombatant) {
+  return selection.combatants.find(
+    (row) =>
+      row.hp > 0 &&
+      row.teamIndex !== actor.teamIndex &&
+      (selection.selectedTile
+        ? positionsEqual(row.position, selection.selectedTile)
+        : row.combatantId === selection.selectedCombatantId),
+  )
+}
+function fireGroundSelection(skill: BattlePreviewSkill, selection: PreviewSelection) {
+  if (!skill.groundIntentCapable) return false
+  const actor = selection.combatants.find((row) => row.combatantId === selection.actorId)
+  if (!actor) return false
+  if (selection.selectedTile) return !selectedFireEnemy(selection, actor)
+  const target = selection.selectedTarget
+  return (target?.kind === 'direction' || target?.kind === 'activate') && target.ground === true
+}
 
 interface PreviewContinuityState {
   battleSessionId: string
@@ -106,7 +125,7 @@ export function selectInitialBattleSkillPreviewIntent(
       target: {
         kind: 'direction',
         direction,
-        ...(skill.groundIntentSelected ? { ground: true as const } : {}),
+        ...(fireGroundSelection(skill, selection) ? { ground: true as const } : {}),
       },
     }
   }
@@ -118,17 +137,22 @@ export function selectInitialBattleSkillPreviewIntent(
       left.position.x - right.position.x ||
       left.combatantId.localeCompare(right.combatantId),
   )
-  if (skill.targetKind === 'unit') {
+  if (skill.targetKind === 'unit' || skill.groundIntentCapable) {
     for (const row of ordered) {
       const intent = selectBattleSkillPreviewIntent(skill, {
         ...selection,
         selectedCombatantId: row.combatantId,
+        selectedTile: null,
       })
       if (intent?.kind === 'action') return intent
     }
-    return null
+    if (!skill.groundIntentCapable) return null
   }
-  if (skill.targetKind === 'ground-tile' || skill.targetKind === 'empty-tile') {
+  if (
+    skill.targetKind === 'ground-tile' ||
+    skill.targetKind === 'empty-tile' ||
+    skill.groundIntentCapable
+  ) {
     const preferred =
       skill.targetKind === 'ground-tile'
         ? ordered
@@ -177,7 +201,7 @@ export function selectDirectionalBattleSkillPreviewIntent(
           target: {
             kind: 'direction',
             direction: facing,
-            ...(skill.groundIntentSelected ? { ground: true as const } : {}),
+            ...(fireGroundSelection(skill, selection) ? { ground: true as const } : {}),
           },
         }
       : null
@@ -188,7 +212,7 @@ export function selectDirectionalBattleSkillPreviewIntent(
       actionId: skill.id,
       target: {
         kind: 'activate',
-        ...(skill.groundIntentSelected ? { ground: true as const } : {}),
+        ...(fireGroundSelection(skill, selection) ? { ground: true as const } : {}),
       },
     }
   const aimed = (position: { x: number; y: number }) =>
@@ -205,7 +229,7 @@ export function selectDirectionalBattleSkillPreviewIntent(
           : null
     if (position && aimed(position)) return chosen
   }
-  if (skill.targetKind === 'unit') {
+  if (skill.targetKind === 'unit' || skill.groundIntentCapable) {
     const candidates = selection.combatants
       .filter((row) => aimed(row.position))
       .sort(
@@ -224,25 +248,25 @@ export function selectDirectionalBattleSkillPreviewIntent(
       })
       if (intent?.kind === 'action') return intent
     }
-    return null
+    if (!skill.groundIntentCapable) return null
   }
-  return selectInitialBattleSkillPreviewIntent(skill, {
-    ...selection,
-    selectedCombatantId: null,
-    selectedTile: null,
-    tiles: selection.tiles?.filter(aimed),
-  })
+  return selectInitialBattleSkillPreviewIntent(
+    skill.groundIntentCapable
+      ? { ...skill, targetKind: 'ground-tile', groundIntentCapable: false }
+      : skill,
+    {
+      ...selection,
+      selectedCombatantId: null,
+      selectedTile: null,
+      tiles: selection.tiles?.filter(aimed),
+    },
+  )
 }
 
 /** Chooses only the player's target (or an authored self target). The server still checks legality. */
 export function selectBattleSkillPreviewIntent(
   skill: BattlePreviewSkill,
-  selection: {
-    actorId: string | null
-    selectedCombatantId: string | null
-    selectedTile: { x: number; y: number } | null
-    combatants: readonly PreviewSelectionCombatant[]
-  },
+  selection: PreviewSelection,
 ): ActionIntent | null {
   const actor = selection.combatants.find((row) => row.combatantId === selection.actorId)
   if (!actor || actor.hp <= 0) return null
@@ -254,7 +278,7 @@ export function selectBattleSkillPreviewIntent(
         actionId: skill.id,
         target: {
           kind: 'activate',
-          ...(skill.groundIntentSelected ? { ground: true as const } : {}),
+          ...(fireGroundSelection(skill, selection) ? { ground: true as const } : {}),
         },
       }
     const position =
@@ -273,7 +297,7 @@ export function selectBattleSkillPreviewIntent(
           target: {
             kind: 'direction',
             direction,
-            ...(skill.groundIntentSelected ? { ground: true as const } : {}),
+            ...(fireGroundSelection(skill, selection) ? { ground: true as const } : {}),
           },
         }
       : null
@@ -286,16 +310,9 @@ export function selectBattleSkillPreviewIntent(
     return { kind: 'action', actionId: skill.id, target: { kind: 'self' } }
   }
   if (
-    skill.targetKind === 'ground-tile' ||
+    (skill.targetKind === 'ground-tile' && !skill.groundIntentCapable) ||
     skill.targetKind === 'empty-tile' ||
-    (skill.groundIntentCapable &&
-      (skill.groundIntentSelected ||
-        !selection.combatants.some(
-          (row) =>
-            row.combatantId === selection.selectedCombatantId &&
-            row.hp > 0 &&
-            row.teamIndex !== actor.teamIndex,
-        )))
+    fireGroundSelection(skill, selection)
   ) {
     if (
       skill.targetKind === 'empty-tile' &&
@@ -314,9 +331,11 @@ export function selectBattleSkillPreviewIntent(
         }
       : null
   }
-  const target = selection.selectedCombatantId
-    ? selection.combatants.find((row) => row.combatantId === selection.selectedCombatantId)
-    : actor
+  const target = skill.groundIntentCapable
+    ? selectedFireEnemy(selection, actor)
+    : selection.selectedCombatantId
+      ? selection.combatants.find((row) => row.combatantId === selection.selectedCombatantId)
+      : actor
   if (!target || target.hp <= 0 || !inRange(target.position)) return null
   const sameTeam = target.teamIndex === actor.teamIndex
   if (

@@ -167,12 +167,12 @@ const PRE_PERCENTAGE_RECOVERY_RESONANCE_REGISTRY: readonly AnyResonanceDefinitio
   ...V5_REBALANCED_RESONANCES,
   ...V51_REBALANCED_RESONANCES,
   ...V51_REBALANCED_RESONANCES.flatMap((definition) => {
-    const updated = createCanonicalCleanseResonanceVersion(definition)
+    const updated = createCanonicalCleanseResonanceVersion(definition, true)
     return updated ? [updated] : []
   }),
   ...V51_REBALANCED_RESONANCES.map((definition) =>
     createClarifiedResonanceVersion(
-      createCanonicalCleanseResonanceVersion(definition) ?? definition,
+      createCanonicalCleanseResonanceVersion(definition, true) ?? definition,
     ),
   ),
 ]

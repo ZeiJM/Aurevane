@@ -348,3 +348,99 @@ describe('active Initiative safe round progress', () => {
     expect(cast(s).tactical.battle.initiativeOrder).toEqual(['actor', 'enemy', 'other', 'ally'])
   })
 })
+
+describe('policy 2 stacked Drenched Initiative', () => {
+  const water = {
+    ...action,
+    effects: [
+      ...action.effects,
+      {
+        type: 'apply-status' as const,
+        recipient: 'primary-unit' as const,
+        statusId: 'wet',
+        stacks: 1,
+        durationTurns: 2,
+      },
+    ],
+  }
+  const current = (): CombatEncounterState => ({ ...base(), elementalDamagePolicyVersion: 2 })
+  const hit = (state: CombatEncounterState) =>
+    executeCombatAction(state, water, { kind: 'unit', combatantId: 'enemy' }, PV1F_COMBAT_CONTENT)
+      .state
+  it('successive Water casts add ten percent per application and reorder only future actors', () => {
+    const first = hit(current())
+    const second = hit(first)
+    expect(first.tactical.battle.activeInitiativeModifiers).toEqual([
+      { combatantId: 'enemy', amount: -9 },
+    ])
+    expect(second.tactical.battle.activeInitiativeModifiers).toEqual([
+      { combatantId: 'enemy', amount: -18 },
+    ])
+    expect(second.tactical.battle.currentTurn?.combatantId).toBe('actor')
+    expect(second.tactical.battle.initiativeOrder).toEqual(['actor', 'other', 'ally', 'enemy'])
+    let state = JSON.parse(JSON.stringify(second)) as CombatEncounterState
+    const turns = ['actor']
+    for (let i = 0; i < 3; i++) {
+      state = finish(state)
+      turns.push(state.tactical.battle.currentTurn!.combatantId)
+    }
+    expect(turns).toEqual(['actor', 'other', 'ally', 'enemy'])
+    expect(new Set(turns).size).toBe(4)
+  })
+  it('round tempo is reduced with base Initiative and rounds once after additive stacking', () => {
+    const initial = current()
+    const state = hit(
+      hit({
+        ...initial,
+        tactical: {
+          ...initial.tactical,
+          battle: {
+            ...initial.tactical.battle,
+            roundInitiativeModifiers: [{ combatantId: 'enemy', amount: 7 }],
+          },
+        },
+      }),
+    )
+    expect(state.tactical.battle.activeInitiativeModifiers).toEqual([
+      { combatantId: 'enemy', amount: -20 },
+    ])
+    expect(state.tactical.battle.combatants.find((u) => u.id === 'enemy')?.initiative).toBe(90)
+    expect(state.tactical.battle.roundInitiativeModifiers).toEqual([
+      { combatantId: 'enemy', amount: 7 },
+    ])
+  })
+  it('ten applications cap the reduction at all effective Initiative and removal restores order', () => {
+    let state = current()
+    for (let i = 0; i < 11; i++) state = hit(state)
+    expect(state.tactical.battle.activeInitiativeModifiers).toEqual([
+      { combatantId: 'enemy', amount: -90 },
+    ])
+    const removed = executeCombatAction(
+      state,
+      {
+        ...water,
+        effects: [{ type: 'remove-status', recipient: 'primary-unit', statusIds: ['wet'] }],
+      },
+      { kind: 'unit', combatantId: 'enemy' },
+      PV1F_COMBAT_CONTENT,
+    ).state
+    expect(removed.tactical.battle.activeInitiativeModifiers ?? []).toEqual([])
+    expect(removed.tactical.battle.initiativeOrder).toEqual(['actor', 'enemy', 'other', 'ally'])
+    for (let i = 0; i < 8; i++) state = finish(state)
+    expect(state.tactical.battle.activeInitiativeModifiers ?? []).toEqual([])
+    expect(state.tactical.battle.initiativeOrder).toEqual(['actor', 'enemy', 'other', 'ally'])
+  })
+  it('pending Drenched has no reduction before its captured applications activate', () => {
+    const initial = {
+      ...current(),
+      effectTimingPolicy: { version: 7, modes: { wet: 'next-round' as const } },
+    }
+    let state = hit(hit(initial))
+    expect(state.tactical.battle.activeInitiativeModifiers ?? []).toEqual([])
+    for (let i = 0; i < 4; i++) state = finish(JSON.parse(JSON.stringify(state)))
+    expect(state.tactical.battle.activeInitiativeModifiers).toEqual([
+      { combatantId: 'enemy', amount: -18 },
+    ])
+    expect(state.tactical.battle.initiativeOrder).toEqual(['actor', 'other', 'ally', 'enemy'])
+  })
+})

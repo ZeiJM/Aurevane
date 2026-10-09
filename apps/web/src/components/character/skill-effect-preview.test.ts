@@ -51,7 +51,7 @@ describe('compact Technique explanations', () => {
     },
   )
   it.each([
-    ['fire', 'removes Drenched and Chilled'],
+    ['fire', 'Fire converts affected Frozen Ground'],
     ['storm', 'consumes the old Conductive charge'],
   ] as const)(
     'explains %s interactions without repeating the displayed power',
@@ -67,7 +67,7 @@ describe('compact Technique explanations', () => {
       expect(preview.explanation).toContain(interaction)
       expect(preview.explanation).not.toContain('9 power')
       if (element === 'fire') expect(preview.explanation).toContain('Steam')
-      else expect(preview.explanation).toContain('+20% Storm damage')
+      else expect(preview.explanation).toContain('active Drenched and Conductive bonuses')
     },
   )
   it('does not invent an elemental interaction for untyped or Water damage', () => {
@@ -206,27 +206,37 @@ it('shows Damage before Blindside for every granting Skill without mutating exec
   }
 })
 
-it('explains current typed damage, captured bonuses and caster cleanse', () => {
+it('explains saved policy 1 typed damage, captured bonuses and caster cleanse', () => {
   expect(
-    previewEffect({ type: 'damage', recipient: 'primary-unit', amount: 10, element: 'ice' }),
+    previewEffect(
+      { type: 'damage', recipient: 'primary-unit', amount: 10, element: 'ice' },
+      { explicitElemental: false },
+    ),
   ).toMatchObject({ label: 'Ice Dmg', explanation: expect.stringContaining('Chilled') })
   expect(
-    previewEffect({
-      type: 'damage',
-      recipient: 'primary-unit',
-      amount: 10,
-      element: 'water',
-      potencyBasisPoints: 3500,
-      durationTurns: 3,
-    }).explanation,
+    previewEffect(
+      {
+        type: 'damage',
+        recipient: 'primary-unit',
+        amount: 10,
+        element: 'water',
+        potencyBasisPoints: 3500,
+        durationTurns: 3,
+      },
+      { explicitElemental: false },
+    ).explanation,
   ).toContain('35%')
   expect(
-    previewEffect({ type: 'damage', recipient: 'primary-unit', amount: 10, element: 'water' })
-      .explanation,
+    previewEffect(
+      { type: 'damage', recipient: 'primary-unit', amount: 10, element: 'water' },
+      { explicitElemental: false },
+    ).explanation,
   ).toContain('Initiative by 10%')
   expect(
-    previewEffect({ type: 'damage', recipient: 'primary-unit', amount: 10, element: 'fire' })
-      .explanation,
+    previewEffect(
+      { type: 'damage', recipient: 'primary-unit', amount: 10, element: 'fire' },
+      { explicitElemental: false },
+    ).explanation,
   ).toContain('caster')
 })
 
@@ -238,13 +248,20 @@ it('explains implicit elemental timing using the captured status timing override
     element: 'water' as const,
     durationTurns: 0,
   }
-  expect(previewEffect(water).explanation).toContain('2 affected turns')
+  expect(previewEffect(water, { explicitElemental: false }).explanation).toContain(
+    '2 affected turns',
+  )
   expect(
-    previewEffect(water, { timingPolicy: { version: 7, modes: { wet: 'next-round' } } })
-      .explanation,
+    previewEffect(water, {
+      explicitElemental: false,
+      timingPolicy: { version: 7, modes: { wet: 'next-round' } },
+    }).explanation,
   ).toContain('2 full rounds starting next round')
   expect(
-    previewEffect(water, { timingPolicy: { version: 7, modes: { wet: 'delayed' } } }).explanation,
+    previewEffect(water, {
+      explicitElemental: false,
+      timingPolicy: { version: 7, modes: { wet: 'delayed' } },
+    }).explanation,
   ).toContain('2 full rounds starting two round boundaries after damage settles')
 })
 
@@ -269,11 +286,12 @@ it('keeps captured explicit elemental duration and bonus in authored prose overr
     effectDescriptions: ['A wave strikes.'],
   })
   expect(rows[0]!.explanation).toContain('A wave strikes.')
-  expect(rows[0]!.explanation).toContain('3 affected turns')
-  expect(rows[0]!.explanation).toContain('35% Storm damage')
+  expect(rows[0]!.explanation).not.toContain('3 affected turns')
+  expect(rows[1]!.explanation).toContain('3 affected turns')
+  expect(rows[1]!.explanation).toContain('35% Storm damage')
 })
 
-describe('elemental recipient overlap explanations', () => {
+describe('saved policy 1 elemental recipient overlap explanations', () => {
   const hit = { type: 'damage', recipient: 'affected-units', amount: 10, durationTurns: 0 } as const
   const tuning = {
     type: 'apply-status',
@@ -297,7 +315,7 @@ describe('elemental recipient overlap explanations', () => {
         ],
       }
       const before = JSON.stringify(skill)
-      const explanation = skillPreviewEffects(skill)[0]!.explanation
+      const explanation = skillPreviewEffects(skill, { explicitElemental: false })[0]!.explanation
       const [primary, others] = explanation.split(' Otherwise:')
       expect(primary).toContain('If a damaged recipient is the primary target:')
       expect(primary).toContain(name)
@@ -314,12 +332,15 @@ describe('elemental recipient overlap explanations', () => {
   )
 
   it('uses an affected-unit override only when it covers the damaged primary target', () => {
-    const explanation = skillPreviewEffects({
-      effects: [
-        { ...hit, recipient: 'primary-unit', element: 'water' },
-        { ...tuning, recipient: 'affected-units', statusId: 'wet' },
-      ],
-    })[0]!.explanation
+    const explanation = skillPreviewEffects(
+      {
+        effects: [
+          { ...hit, recipient: 'primary-unit', element: 'water' },
+          { ...tuning, recipient: 'affected-units', statusId: 'wet' },
+        ],
+      },
+      { explicitElemental: false },
+    )[0]!.explanation
     expect(explanation).toContain('If a damaged recipient is among the affected units:')
     expect(explanation.split(' Otherwise:')[0]).toContain('3 affected turns')
     expect(explanation.split(' Otherwise:')[1]).toContain('2 affected turns')
@@ -348,7 +369,7 @@ describe('elemental recipient overlap explanations', () => {
       ],
       effectDescriptions: ['Pinned Blindside prose.', 'Pinned Water prose.'],
     }
-    const rows = skillPreviewEffects(skill)
+    const rows = skillPreviewEffects(skill, { explicitElemental: false })
     expect(rows[0]!.explanation).toMatch(/^Pinned Water prose\./)
     const [primary, others] = rows[0]!.explanation.split(' Otherwise:')
     expect(primary).toContain('3 affected turns')
@@ -374,4 +395,107 @@ describe('elemental recipient overlap explanations', () => {
     expect(rows[0]!.explanation).not.toContain('If a damaged recipient')
     expect(rows[1]!.explanation).not.toContain('Initiative')
   })
+})
+
+it('current explicit elemental reports put captured status rules on their own row', () => {
+  const rows = skillPreviewEffects(
+    {
+      effects: [
+        { type: 'damage', recipient: 'affected-units', amount: 10, element: 'water' },
+        {
+          type: 'apply-status',
+          recipient: 'primary-unit',
+          statusId: 'wet',
+          stacks: 1,
+          durationTurns: 4,
+          potencyBasisPoints: 4250,
+        },
+      ],
+    },
+    { timingPolicy: { version: 9, modes: { wet: 'delayed' } } },
+  )
+  expect(rows.map((row) => row.label)).toEqual(['Water Dmg', 'Drenched'])
+  expect(rows[0]!.explanation).not.toMatch(
+    /applies Drenched|affected turns|full rounds|42.5%|Otherwise/,
+  )
+  expect(rows[1]!.explanation).toContain('42.5% Storm damage')
+  expect(rows[1]!.explanation).toContain(
+    '4 full rounds starting two round boundaries after damage settles (Delayed)',
+  )
+  expect(rows[1]!.explanation).toContain('positive hostile HP damage')
+  expect(rows[1]!.explanation).toContain('survives')
+  expect(rows[1]!.explanation).not.toContain('Fire removes')
+})
+
+it('current damage alone never promises hidden Chilled, Drenched or fresh Conductive', () => {
+  for (const element of ['ice', 'water', 'storm'] as const) {
+    expect(
+      previewEffect({ type: 'damage', recipient: 'primary-unit', amount: 10, element }).explanation,
+    ).not.toMatch(/applies Chilled|applies Drenched|applies one fresh Conductive/)
+  }
+  const fire = previewEffect({
+    type: 'damage',
+    recipient: 'primary-unit',
+    amount: 10,
+    element: 'fire',
+  }).explanation
+  expect(fire).not.toContain('cleanses Chilled from its caster')
+  expect(fire).toContain('remaining life')
+  expect(fire).not.toMatch(/removes Drenched|cleanses its recipient/)
+})
+
+it('reports the visible limited Fire cleanse separately without claiming a full Cleanse', () => {
+  const effects = [
+    {
+      type: 'damage' as const,
+      recipient: 'primary-unit' as const,
+      amount: 10,
+      element: 'fire' as const,
+    },
+    { type: 'remove-status' as const, recipient: 'actor' as const, statusIds: ['frozen'] },
+  ]
+  const rows = skillPreviewEffects({ effects })
+  expect(rows.map((row) => row.label)).toEqual(['Fire Dmg', 'Cleanse Chilled'])
+  expect(rows[0]!.explanation).toContain('Steam')
+  expect(rows[0]!.explanation).not.toContain('cleanses Chilled')
+  expect(rows[1]!.explanation).toBe('Removes Chilled from the caster only; other statuses remain.')
+  expect(rows[1]!.explanation).not.toMatch(/Suppress|Burn|Drenched/)
+  expect(skillEffectDescription(effects[1]!)).toBe(rows[1]!.explanation)
+  expect(previewEffect({ ...effects[1]!, recipient: 'primary-unit' }).explanation).toBe(
+    'Removes Chilled from the selected unit only; other statuses remain.',
+  )
+})
+
+it('preserves historical frozen-only removal’s Suppress supplement', () => {
+  const effect = {
+    type: 'remove-status' as const,
+    recipient: 'actor' as const,
+    statusIds: ['frozen'],
+  }
+  for (const options of [{ explicitElemental: false }, { legacyElemental: true }]) {
+    expect(previewEffect(effect, options)).toMatchObject({
+      label: 'Cleanse',
+      explanation: 'Removes Chilled, Suppress.',
+    })
+    expect(skillEffectDescription(effect, options)).toBe('Remove Chilled, Suppress from yourself.')
+    expect(previewEffect(effect, options).explanation).not.toContain('other statuses remain')
+  }
+})
+
+it('shows the separate limited cleanse for every current Fire Skill', () => {
+  const skills = latestEnabledMatureSkills().filter((skill) =>
+    skill.effects.some((effect) => effect.type === 'damage' && effect.element === 'fire'),
+  )
+  expect(skills.length).toBeGreaterThan(0)
+  for (const skill of skills) {
+    const rows = skillPreviewEffects(skill)
+    expect(rows.filter((row) => row.label === 'Cleanse Chilled')).toHaveLength(1)
+    expect(rows.find((row) => row.label === 'Cleanse Chilled')!.explanation).toBe(
+      'Removes Chilled from the caster only; other statuses remain.',
+    )
+    const damage = rows.filter((row) => row.label === 'Fire Dmg')
+    expect(damage.length).toBeGreaterThan(0)
+    for (const row of damage)
+      expect(row.explanation).not.toMatch(/cleanses Chilled|removes Drenched|removes Wet/)
+  }
 })

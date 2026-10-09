@@ -39,9 +39,14 @@ describe('immutable current targeting catalog', () => {
         continue
       }
       expect(current.target.geometryVersion, current.id).toBe(2)
-      const beforeElemental = current.authoring.validationTags.includes('elemental-damage')
+      const beforeExplicitTags = current.authoring.validationTags.includes('elemental-status-tags')
         ? resolveMatureSkillVersion(current.id, current.contentVersion - 1)!
         : current
+      const beforeElemental = beforeExplicitTags.authoring.validationTags.includes(
+        'elemental-damage',
+      )
+        ? resolveMatureSkillVersion(current.id, beforeExplicitTags.contentVersion - 1)!
+        : beforeExplicitTags
       const geometryCurrent = beforeElemental.groundArea
         ? current.id.startsWith('essence.')
           ? resolveEssenceForBuild(
