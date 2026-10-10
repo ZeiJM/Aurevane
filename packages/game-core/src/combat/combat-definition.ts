@@ -18,6 +18,8 @@ import {
 export type { RequirementNode, AbilityRequirementContext } from './combat-requirements'
 export type AbilityActivation = 'manual' | 'automatic' | 'ongoing'
 export type AbilityMode = 'action' | 'modifier'
+export type AbilityActivationLimit =
+  'once-per-action' | 'once-per-owner-turn' | 'once-per-round' | 'once-per-battle'
 export type CombatAccuracyRule =
   { readonly kind: 'standard' } | { readonly kind: 'fixed'; readonly chanceBasisPoints: number }
 
@@ -60,6 +62,7 @@ export interface AbilityBehavior {
   readonly effects: readonly AbilityEffect[]
   /** Private authoring; public projections must recursively omit this and accuracyRule. */
   readonly accuracy?: CombatAccuracyRule
+  readonly activationLimits?: readonly AbilityActivationLimit[]
 }
 export interface AbilityDefinition {
   readonly schemaVersion: 1
@@ -79,6 +82,7 @@ export interface AbilityDefinitionIssue {
     | 'invalid-requirement'
     | 'requirement-budget'
     | 'invalid-accuracy'
+    | 'invalid-activation-limit'
     | 'accuracy-inapplicable'
     | 'unsupported-tag'
     | 'unsupported-recipient'
@@ -163,10 +167,34 @@ export function validateAbilityDefinition(value: unknown): readonly AbilityDefin
         'targeting',
         'effects',
         'accuracy',
+        'activationLimits',
       ],
       path,
     )
     stableId(candidate.id, `${path}.id`, behaviorIds)
+    if (Object.hasOwn(candidate, 'activationLimits')) {
+      const limits = candidate.activationLimits
+      if (
+        !Array.isArray(limits) ||
+        limits.length > 4 ||
+        new Set(limits).size !== limits.length ||
+        limits.some(
+          (limit) =>
+            ![
+              'once-per-action',
+              'once-per-owner-turn',
+              'once-per-round',
+              'once-per-battle',
+            ].includes(limit),
+        ) ||
+        (candidate.activation === 'ongoing' && limits.length > 0)
+      )
+        issue(
+          `${path}.activationLimits`,
+          'invalid-activation-limit',
+          'Activation limits require at most four distinct supported scopes; Ongoing cannot have activation limits.',
+        )
+    }
     if (
       !['manual', 'automatic', 'ongoing'].includes(candidate.activation as string) ||
       !['action', 'modifier'].includes(candidate.mode as string)
@@ -406,6 +434,40 @@ export function validateAbilityDefinition(value: unknown): readonly AbilityDefin
       }
     }
     const summons = payloads.filter((payload) => payload.type === 'summon')
+    if (candidate.mode === 'modifier') {
+      for (const [ordinal, payload] of payloads.entries()) {
+        if (payload.type !== 'apply-status' && payload.type !== 'remove-status') continue
+        const element =
+          payload.type === 'remove-status'
+            ? 'fire'
+            : payload.statusId === 'frozen'
+              ? 'ice'
+              : payload.statusId === 'wet'
+                ? 'water'
+                : payload.statusId === 'conductive'
+                  ? 'storm'
+                  : null
+        if (
+          !element ||
+          !payloads.some(
+            (hit) =>
+              (hit.type === 'damage' || hit.type === 'pierce') &&
+              hit.element === element &&
+              (element === 'fire'
+                ? payload.recipient === 'actor' &&
+                  payload.type === 'remove-status' &&
+                  payload.statusIds.length === 1 &&
+                  payload.statusIds[0] === 'frozen'
+                : hit.recipient === payload.recipient),
+          )
+        )
+          issue(
+            `${path}.effects[${ordinal}]`,
+            'unsupported-combination',
+            'Packet modifiers permit only explicit elemental companions associated with contributing damage.',
+          )
+      }
+    }
     if (
       summons.length > 0 &&
       (summons.length !== 1 || !record(target) || target.kind !== 'empty-tile')

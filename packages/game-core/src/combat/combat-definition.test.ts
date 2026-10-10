@@ -50,6 +50,78 @@ function ability() {
 }
 
 describe('canonical Ability definition', () => {
+  it('activation_limit_contract accepts all four distinct scopes and historical absence', () => {
+    const value = ability()
+    const activationLimits = [
+      'once-per-action',
+      'once-per-owner-turn',
+      'once-per-round',
+      'once-per-battle',
+    ]
+    Object.assign(value.behaviors[0]!, { activationLimits })
+    expect(parseAbilityDefinition(value).behaviors[0]).toHaveProperty(
+      'activationLimits',
+      activationLimits,
+    )
+    expect(parseAbilityDefinition(ability()).behaviors[0]).not.toHaveProperty('activationLimits')
+  })
+  it.each([
+    null,
+    'once-per-round',
+    ['once-per-turn'],
+    ['once-per-round', 'once-per-round'],
+    Array(5).fill('once-per-action'),
+  ])('activation_limit_contract rejects malformed limits %j', (activationLimits) => {
+    const value = ability()
+    Object.assign(value.behaviors[0]!, { activationLimits })
+    expect(validateAbilityDefinition(value)).toContainEqual(
+      expect.objectContaining({ code: 'invalid-activation-limit' }),
+    )
+  })
+  it('packet_modifier_contract accepts inherited elemental packets and rejects unrelated status modifiers', () => {
+    const value = ability()
+    Object.assign(value.behaviors[0]!, { mode: 'modifier', targeting: null })
+    Object.assign(value.behaviors[0]!.effects[0]!.payload, { element: 'water' })
+    value.behaviors[0]!.effects.push({
+      id: 'companion',
+      payload: {
+        type: 'apply-status',
+        recipient: 'primary-unit',
+        statusId: 'wet',
+        stacks: 1,
+        durationTurns: 2,
+        potencyBasisPoints: 2000,
+      },
+    } as never)
+    expect(validateAbilityDefinition(value)).toEqual([])
+    Object.assign(value.behaviors[0]!, { activation: 'automatic' })
+    expect(validateAbilityDefinition(value)).toEqual([])
+    Object.assign(value.behaviors[0]!.effects[1]!.payload, { statusId: 'suppress' })
+    expect(validateAbilityDefinition(value)).toContainEqual(
+      expect.objectContaining({ code: 'unsupported-combination' }),
+    )
+  })
+  it('ongoing_limit_contract rejects activation scopes and continuous packets', () => {
+    const value = ability()
+    Object.assign(value.behaviors[0]!, {
+      activation: 'ongoing',
+      mode: 'modifier',
+      targeting: null,
+      costs: [],
+      activationLimits: ['once-per-round'],
+    })
+    value.behaviors[0]!.effects = [
+      {
+        id: 'bonus',
+        payload: { type: 'damage-bonus', recipient: 'actor', multiplierBasisPoints: 11000 },
+      } as never,
+    ]
+    expect(validateAbilityDefinition(value)).toContainEqual(
+      expect.objectContaining({ code: 'invalid-activation-limit' }),
+    )
+    Object.assign(value.behaviors[0]!, { activationLimits: [] })
+    expect(validateAbilityDefinition(value)).toEqual([])
+  })
   it('canonical_cost_units keeps simultaneous AP11/MP2/HP1 as three typed costs', () => {
     expect(parseAbilityDefinition(ability()).behaviors[0]?.costs).toEqual([
       { resource: 'ap', amount: 11 },

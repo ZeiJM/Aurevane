@@ -69,6 +69,12 @@ export interface CombatTagDefinition {
 
 const UNIT_RECIPIENTS = ['actor', 'primary-unit', 'affected-units'] as const
 const nativeFields = ['durationTurns', 'power', 'potencyBasisPoints']
+const packetModifierCombinations = Object.freeze([
+  { activation: 'manual', mode: 'action' },
+  { activation: 'automatic', mode: 'action' },
+  { activation: 'manual', mode: 'modifier' },
+  { activation: 'automatic', mode: 'modifier' },
+] as const)
 const nativeUnits = {
   durationTurns: 'turns',
   power: 'power',
@@ -106,6 +112,7 @@ export const COMBAT_TAG_REGISTRY: readonly CombatTagDefinition[] = Object.freeze
     ['amount', 'defenseKind', 'element', 'scaling', 'vengeance', 'facingModifiersBasisPoints'],
     { amount: 'power' },
     'Deal authored power through the existing scaling, defense and damage pipeline.',
+    { combinations: packetModifierCombinations },
   ),
   tag(
     'pierce',
@@ -119,7 +126,10 @@ export const COMBAT_TAG_REGISTRY: readonly CombatTagDefinition[] = Object.freeze
     ],
     { amount: 'power', armorIgnoredBasisPoints: 'basis-points' },
     'Deal power and ignore the configured percentage of explicit equipment Armor only. Without equipment Armor this bypass provides no advantage.',
-    { runtimeCapability: 'equipment-armor-boundary-required' },
+    {
+      runtimeCapability: 'equipment-armor-boundary-required',
+      combinations: packetModifierCombinations,
+    },
   ),
   tag(
     'healing',
@@ -144,12 +154,14 @@ export const COMBAT_TAG_REGISTRY: readonly CombatTagDefinition[] = Object.freeze
     ['statusId', 'stacks', 'blindsideModifiersBasisPoints'],
     { statusId: 'identity', stacks: 'applications' },
     'Apply a supported status with its captured magnitude, timing and native stacking policy.',
+    { combinations: packetModifierCombinations },
   ),
   tag(
     'remove-status',
     ['statusIds'],
     { statusIds: 'identity' },
     'Remove only the explicitly named supported statuses.',
+    { combinations: packetModifierCombinations },
   ),
   tag(
     'return-to-turn-start',
@@ -290,6 +302,21 @@ export function validateCombatTagPayload(
       'payload',
       'unsupported-combination',
       'This Tag does not support the activation/mode combination.',
+    )
+  if (
+    combination?.mode === 'modifier' &&
+    ((value.type === 'apply-status' &&
+      !['frozen', 'wet', 'conductive'].includes(value.statusId as string)) ||
+      (value.type === 'remove-status' &&
+        (value.recipient !== 'actor' ||
+          !Array.isArray(value.statusIds) ||
+          value.statusIds.length !== 1 ||
+          value.statusIds[0] !== 'frozen')))
+  )
+    issue(
+      'payload',
+      'unsupported-combination',
+      'Packet modifiers permit only required elemental companion statuses or actor Cleanse Chilled.',
     )
   function keys(row: unknown, allowed: readonly string[], path: string): void {
     if (!isRecord(row)) {
