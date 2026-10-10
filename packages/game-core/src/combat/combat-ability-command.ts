@@ -1,7 +1,10 @@
 import { combatAbilityLiveRootIds } from './combat-ability-state'
 import { combatSourceCommandVisibility } from './actions-legacy'
 import { prepareNativePv1fTurn } from './pv1f-turn-preparation'
-import type { CombatNativeExecutionHooks } from './combat-native-mutations'
+import type {
+  CombatNativeExecutionHooks,
+  CombatNativeMutationFacts,
+} from './combat-native-mutations'
 import {
   evaluateCombatAction,
   executeCombatAction,
@@ -45,7 +48,10 @@ import {
   readSkillCooldown,
   type SkillCooldownDefinition,
 } from './skill-cooldowns'
-import { composeCombatModifiers } from './combat-modifier-composition'
+import {
+  composeCombatModifiers,
+  type CombatModifierSuppression,
+} from './combat-modifier-composition'
 import { issueCommittedCombatExecution, committedCombatAction } from './combat-committed-execution'
 import { markPv1fTurnActivity } from './pv1f-turn-activity'
 import { spendAction } from './battle-state'
@@ -121,6 +127,7 @@ export interface PreparedCombatAbilityCommand {
   readonly evaluation: CombatActionEvaluation
   readonly costs: AbilityBehavior['costs']
   readonly participants: readonly PreparedCombatAbilityParticipant[]
+  readonly modifierSuppressions: readonly CombatModifierSuppression[]
   readonly context: CombatResolutionContext
   readonly requirementSubjects: readonly {
     readonly combatantId: string
@@ -168,7 +175,10 @@ export function combatAbilityParticipant(
   }
 }
 export function combatAbilityParticipantIssues(
-  input: CombatAbilityCommandInput,
+  input: Pick<
+    CombatAbilityCommandInput,
+    'state' | 'actorId' | 'context' | 'trigger' | 'eventSession'
+  >,
   participant: Participant,
 ): CombatActionEvaluation['issues'] {
   const issues: CombatActionEvaluation['issues'][number][] = []
@@ -263,7 +273,7 @@ export function aggregateCombatAbilityCosts(
     .map((resource) => ({ resource, amount: totals[resource] }))
 }
 export function combatAbilityCostIssues(
-  input: CombatAbilityCommandInput,
+  input: Pick<CombatAbilityCommandInput, 'state' | 'actorId'>,
   costs: AbilityBehavior['costs'],
 ): CombatActionEvaluation['issues'] {
   const actor = input.state.tactical.battle.combatants.find((row) => row.id === input.actorId)
@@ -287,6 +297,39 @@ export function combatAbilityCostIssues(
       message: `Insufficient ${cost.resource.toUpperCase()} for atomic command payment.`,
     }))
 }
+/** Shared observation only; callers retain causal fallbacks and their own outcome queue. */
+function captureNativeAbilityMutation(
+  before: CombatEncounterState,
+  transition: CombatResolutionTransition,
+  identity: string,
+  session: CombatAbilityEventSession,
+  facts: CombatNativeMutationFacts,
+) {
+  const after = reconcileCombatAbilitySources(
+    transition.state,
+    (transition.state.capturedAbilitySources ?? []).filter((source) =>
+      transition.state.abilityRuntime?.activeSourceIds.includes(source.sourceInstanceId),
+    ),
+  )
+  return captureCombatAbilityMutation(before, after, identity, session, {
+    ...facts,
+    events: transition.events.flatMap((event) =>
+      automaticAbilityEventSupported(event.event, 'after') &&
+      !(event.event === 'damage_applied' && event.amount === 0)
+        ? [{ type: event.event as AutomaticAbilityEventType, phase: 'after' as const }]
+        : [],
+    ),
+    resourceMutations: after.tactical.battle.combatants.flatMap((unit) => {
+      const old = combatAbilitySubject(before, unit.id),
+        next = combatAbilitySubject(after, unit.id)
+      const resources = (['ap', 'mp', 'hp'] as const).filter(
+        (resource) => old && old.resources?.[resource] !== next?.resources?.[resource],
+      )
+      return resources.length ? [{ combatantId: unit.id, resources }] : []
+    }),
+  })
+}
+
 export function prepareCombatAbilityCommand(
   input: CombatAbilityCommandInput,
 ): PreparedCombatAbilityCommand {
@@ -456,6 +499,7 @@ export function prepareCombatAbilityCommand(
     },
     costs,
     participants,
+    modifierSuppressions: composed.modifierSuppressions,
     context,
     requirementSubjects: input.state.tactical.battle.combatants.map((unit) => ({
       combatantId: unit.id,
@@ -464,9 +508,12 @@ export function prepareCombatAbilityCommand(
   }
 }
 
+export interface CombatAbilityCommandTransition extends CombatResolutionTransition {
+  readonly modifierSuppressions: readonly CombatModifierSuppression[]
+}
 export function commitCombatAbilityCommand(
   input: CombatAbilityCommandInput,
-): CombatResolutionTransition {
+): CombatAbilityCommandTransition {
   const prepared = prepareCombatAbilityCommand(input) as Prepared
   if (!prepared.evaluation.legal)
     throw new Error(
@@ -766,21 +813,7 @@ export function commitCombatAbilityCommand(
       session.guard = value
     },
     observeMutation: (before, transition, nativeFacts) => {
-      const after = reconcileCombatAbilitySources(
-        transition.state,
-        (transition.state.capturedAbilitySources ?? []).filter((source) =>
-          transition.state.abilityRuntime?.activeSourceIds.includes(source.sourceInstanceId),
-        ),
-      )
-      const resources = after.tactical.battle.combatants.flatMap((unit) => {
-        const old = combatAbilitySubject(before, unit.id),
-          next = combatAbilitySubject(after, unit.id)
-        const changed = (['ap', 'mp', 'hp'] as const).filter(
-          (resource) => old && old.resources?.[resource] !== next?.resources?.[resource],
-        )
-        return changed.length ? [{ combatantId: unit.id, resources: changed }] : []
-      })
-      const mutation = captureCombatAbilityMutation(before, after, commandIdentity, session, {
+      const mutation = captureNativeAbilityMutation(before, transition, commandIdentity, session, {
         ...facts,
         ...nativeFacts,
         actionFacts:
@@ -793,13 +826,6 @@ export function commitCombatAbilityCommand(
           (!nativeFacts.prepaid && nativeFacts.actionId === prepared.action.id
             ? facts.selectedCombatantId
             : undefined),
-        events: transition.events.flatMap((event) =>
-          automaticAbilityEventSupported(event.event, 'after') &&
-          !(event.event === 'damage_applied' && event.amount === 0)
-            ? [{ type: event.event as AutomaticAbilityEventType, phase: 'after' as const }]
-            : [],
-        ),
-        resourceMutations: resources,
       })
       outcomeQueue.push(mutation.frame)
       return mutation.state
@@ -865,6 +891,7 @@ export function commitCombatAbilityCommand(
       })
   return {
     ...out,
+    modifierSuppressions: prepared.modifierSuppressions,
     events: [
       ...paymentEvents.map((event) => ({
         ...event,
@@ -881,6 +908,9 @@ export function commitCombatAbilityCommand(
       })),
       {
         ...attempt,
+        ...(prepared.modifierSuppressions.length
+          ? { modifierSuppressions: prepared.modifierSuppressions }
+          : {}),
         ...(combatSourceCommandVisibility(input.state, input.actorId)
           ? { sourceCommandVisibility: combatSourceCommandVisibility(input.state, input.actorId) }
           : {}),
@@ -921,29 +951,7 @@ export function createCombatNativeAbilityRuntime(
     },
     prepareIncoming: (state) => prepareNativePv1fTurn(state, true),
     observeMutation: (before, transition, facts) => {
-      const after = reconcileCombatAbilitySources(
-        transition.state,
-        (transition.state.capturedAbilitySources ?? []).filter((source) =>
-          transition.state.abilityRuntime?.activeSourceIds.includes(source.sourceInstanceId),
-        ),
-      )
-      const mutation = captureCombatAbilityMutation(before, after, identity, session, {
-        ...facts,
-        events: transition.events.flatMap((event) =>
-          automaticAbilityEventSupported(event.event, 'after') &&
-          !(event.event === 'damage_applied' && event.amount === 0)
-            ? [{ type: event.event as AutomaticAbilityEventType, phase: 'after' as const }]
-            : [],
-        ),
-        resourceMutations: after.tactical.battle.combatants.flatMap((unit) => {
-          const old = combatAbilitySubject(before, unit.id),
-            next = combatAbilitySubject(after, unit.id)
-          const resources = (['ap', 'mp', 'hp'] as const).filter(
-            (resource) => old && old.resources?.[resource] !== next?.resources?.[resource],
-          )
-          return resources.length ? [{ combatantId: unit.id, resources }] : []
-        }),
-      })
+      const mutation = captureNativeAbilityMutation(before, transition, identity, session, facts)
       queue.push(mutation.frame)
       return mutation.state
     },

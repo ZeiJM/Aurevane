@@ -4,6 +4,7 @@ import { hasCurrentBleed, hasCurrentBurn, hasCurrentPoison } from './combat-dots
 import type { CombatContentCatalog, CombatEncounterState } from './actions'
 import { classifyFacingRelation } from './board'
 import { evaluateAbilityRequirements } from './combat-requirements'
+import { combatAbilitySubject } from './combat-behavior-runtime'
 import type { CombatCommandDamageBonus } from './combat-ability-command'
 
 export function validateCombatCommandDamageBonuses(value: unknown): void {
@@ -119,19 +120,7 @@ export function conditionalDamageMultiplier(
     )
   const owner = outgoingState.tactical.battle.combatants.find((unit) => unit.id === attackerId)
   if (owner && owner.hp > 0 && outgoingState.tactical.battle.lifecycle === 'active') {
-    const ap = owner.temporaryResources.find((row) => row.key === 'pv1f.action-economy')
-    const context = {
-      owner: {
-        resources: { hp: owner.hp, mp: owner.mp, ap: ap?.current ?? 0 },
-        maximumResources: { hp: owner.maxHp, mp: owner.maxMp, ap: ap?.maximum ?? 100 },
-        statusIds:
-          outgoingState.statusState
-            .find((row) => row.combatantId === attackerId)
-            ?.statuses.filter((status) => status.timingState !== 'pending')
-            .map((status) => status.statusId) ?? [],
-        primeAbilityIds: [],
-      },
-    }
+    const context = { owner: combatAbilitySubject(outgoingState, attackerId) }
     for (const source of outgoingState.capturedAbilitySources ?? []) {
       if (
         source.ownerCombatantId !== attackerId ||

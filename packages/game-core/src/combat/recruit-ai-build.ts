@@ -32,7 +32,10 @@ import {
   type RecruitAiProfile,
 } from './recruit-ai'
 import { normalizedResonanceMechanics } from './resonance-v2'
-import type { StatDrivenCombatEncounterState } from './stat-driven-combat'
+import {
+  reattachStatDrivenCombatBridge,
+  type StatDrivenCombatEncounterState,
+} from './stat-driven-combat'
 
 interface BuildSkillCandidate {
   actionId: string
@@ -115,14 +118,21 @@ export function executeBuildAwareRecruitAiAction(
   )
   if (source) {
     const prepared = preparePv1fTurnEconomy(state)
-    return commitCombatAbilityCommand({
+    const transition = commitCombatAbilityCommand({
       state: prepared,
       actorId,
       root: { kind: 'canonical', source, behaviorId: commandOptions.behaviorId },
       selection: target,
       content: PV1F_COMBAT_CONTENT,
       context: combatAbilityCommandContext(prepared, source),
-    }) as Pv1fTransition
+    })
+    return {
+      ...transition,
+      state: reattachStatDrivenCombatBridge(
+        transition.state,
+        (transition.state as StatDrivenCombatEncounterState).statBridge ?? prepared.statBridge,
+      ),
+    }
   }
 
   const definition = (skillOptions.committedSkills ?? committedMatureSkills(state, actorId)).find(

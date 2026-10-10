@@ -1,3 +1,5 @@
+import { captureCombatAbilitySource } from '@aurevane/game-core/combat/combat-behavior-capture'
+import { reconcileCombatAbilitySources } from '@aurevane/game-core/combat/combat-behavior-runtime'
 import {
   createCombatActionProvenance,
   createCombatEffectInstanceProvenance,
@@ -25,7 +27,7 @@ import {
   projectBattleEffectStateForViewer,
   projectBattleStatusStateForViewer,
 } from './battle-live-viewer-projection'
-import { projectCommittedBattleSession } from './battle-session-service'
+import { projectCommittedBattleSession, projectBattleSnapshot } from './battle-session-service'
 import {
   deriveParticipantBattleViewerEntitlement,
   createSpectatorBattleViewerEntitlement,
@@ -37,6 +39,7 @@ it('strips private captured Ability and command execution authority from actual 
     visible: 'yes',
     capturedAbilitySources: [{ definition: { secret: 'private' } }],
     abilityRuntime: { usage: [1] },
+    modifierSuppressions: [{ sourceInstanceId: 'private-source', reason: 'insufficient-ap' }],
     nativeBasicAttackCommand: true,
     commandDamageBonuses: [1],
     effectEligibleRecipientIds: [['actor']],
@@ -177,6 +180,89 @@ function committed(
 }
 
 describe('CSR-2 live viewer-relative status projection', () => {
+  it('real committed live projection exposes only controlled active published Manual choices, including a Covert owner', () => {
+    const owned = (
+      ownerCombatantId: string,
+      sourceKind: 'discipline-skill' | 'scenario' = 'discipline-skill',
+    ) =>
+      captureCombatAbilitySource({
+        schemaVersion: 1,
+        sourceInstanceId: `private-capture:${sourceKind}:${ownerCombatantId}`,
+        ownerCombatantId,
+        abilityId: 'owned.ability',
+        contentVersion: 1,
+        sourceKind,
+        sourceDisciplineId: 'vanguard',
+        tags: ['attack'],
+        definition: {
+          schemaVersion: 1,
+          behaviors: [
+            {
+              id: 'manual',
+              activation: 'manual',
+              mode: 'modifier',
+              classification: 'attack',
+              attackFamily: 'physical',
+              costs: [],
+              cooldown: null,
+              requirements: null,
+              targeting: null,
+              effects: [
+                {
+                  id: 'bonus',
+                  payload: {
+                    type: 'damage-bonus',
+                    recipient: 'actor',
+                    multiplierBasisPoints: 11000,
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      })
+    const own = owned(PLAYER),
+      ally = owned(ALLY),
+      enemy = owned(ENEMY),
+      privateScenario = owned(PLAYER, 'scenario')
+    const state = reconcileCombatAbilitySources(encounter(), [
+      own,
+      ally,
+      enemy,
+      privateScenario,
+    ]) as StatDrivenCombatEncounterState
+    const before = JSON.stringify(state)
+    const self = projectCommittedBattleSession(committed(state), [PLAYER]).snapshot
+    expect(self.manualModifierAvailability).toEqual([
+      expect.objectContaining({
+        sourceInstanceId: own.sourceInstanceId,
+        ownerCombatantId: PLAYER,
+        behaviorId: 'manual',
+        costs: [],
+      }),
+    ])
+    const opposite = projectCommittedBattleSession(committed(state), [ENEMY]).snapshot
+    expect(opposite.manualModifierAvailability).toEqual([
+      expect.objectContaining({
+        sourceInstanceId: enemy.sourceInstanceId,
+        ownerCombatantId: ENEMY,
+        ownerEligible: false,
+        blockedReasons: ['turn-unavailable'],
+      }),
+    ])
+    expect(
+      projectBattleSnapshot(state, createSpectatorBattleViewerEntitlement())
+        .manualModifierAvailability,
+    ).toEqual([])
+    expect(JSON.stringify(self)).not.toContain(ally.sourceInstanceId)
+    expect(JSON.stringify(self)).not.toContain(enemy.sourceInstanceId)
+    expect(JSON.stringify(self)).not.toContain(privateScenario.sourceInstanceId)
+    expect(JSON.stringify(self)).not.toMatch(
+      /capturedAbilitySources|abilityRuntime|chanceBasisPoints|requirementSubjects/,
+    )
+    expect(JSON.stringify(state)).toBe(before)
+  })
+
   it.each([
     [1, 1500],
     [2, 2000],

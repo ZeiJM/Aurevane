@@ -17,6 +17,41 @@ import {
 } from './combat-ability-command'
 import { consumeCombatTrigger } from './combat-kernel-types'
 
+export type CombatModifierSuppressionReason =
+  | 'participant-budget'
+  | 'requirement-not-met'
+  | 'root-incompatible'
+  | 'source-owner-mismatch'
+  | 'cooldown-active'
+  | 'activation-limit'
+  | 'duplicate-command'
+  | 'insufficient-ap'
+  | 'insufficient-mp'
+  | 'insufficient-hp'
+  | 'depth-limit'
+  | 'reaction-budget-exhausted'
+  | 'instance-already-executed'
+export interface CombatModifierSuppression {
+  readonly sourceInstanceId: string
+  readonly abilityId: string
+  readonly contentVersion: number
+  readonly behaviorId: string
+  readonly reason: CombatModifierSuppressionReason
+}
+function suppressionIssue(code: string): CombatModifierSuppressionReason {
+  switch (code) {
+    case 'source-owner-mismatch':
+    case 'cooldown-active':
+    case 'activation-limit':
+    case 'duplicate-command':
+    case 'insufficient-ap':
+    case 'insufficient-mp':
+    case 'insufficient-hp':
+      return code
+    default:
+      throw new TypeError(`unexpected-modifier-suppression-issue:${code}`)
+  }
+}
 type Participant = ReturnType<typeof combatAbilityParticipant>
 function compare(a: string, b: string): number {
   return a < b ? -1 : a > b ? 1 : 0
@@ -29,6 +64,7 @@ export function composeCombatModifiers(
 ): {
   readonly action: CombatActionDefinition
   readonly participants: readonly Participant[]
+  readonly modifierSuppressions: readonly CombatModifierSuppression[]
 } {
   const root = input.root
   const rootBehavior = rootParticipant.behavior
@@ -101,18 +137,18 @@ export function composeCombatModifiers(
       : rootAction.effectEligibleRecipientIds?.[i],
   )
   const bonuses: CombatCommandDamageBonus[] = []
-  function compatible(behavior: AbilityBehavior): void {
+  function compatible(behavior: AbilityBehavior): boolean {
     if (
       context.event!.action!.classification !== 'attack' ||
       rootAction.groundArea ||
       !['unit'].includes(rootAction.target.kind)
     )
-      throw new TypeError('modifier-root-incompatible')
+      return false
     if (
       behavior.effects.some((effect) => effect.payload.recipient === 'primary-unit') &&
       !geometry.primaryCombatantId
     )
-      throw new TypeError('modifier-root-incompatible')
+      return false
     if (
       behavior.effects.some(
         (effect) =>
@@ -121,7 +157,8 @@ export function composeCombatModifiers(
           ),
       )
     )
-      throw new TypeError('modifier-root-incompatible')
+      return false
+    return true
   }
   function append(
     source: CapturedCombatAbilitySource,
@@ -196,7 +233,7 @@ export function composeCombatModifiers(
         throw new TypeError('manual-modifier-behavior-required')
       if (rootParticipant.activation !== 'manual')
         throw new TypeError('manual-modifier-root-required')
-      compatible(behavior)
+      if (!compatible(behavior)) throw new TypeError('modifier-root-incompatible')
       if (!evaluateAbilityRequirements(behavior.requirements, context))
         throw new TypeError('modifier-requirement-not-met')
       return { source, behavior }
@@ -248,12 +285,26 @@ export function composeCombatModifiers(
     rootParticipant.sourceInstanceId,
     rootParticipant.behaviorId ?? rootAction.id,
   ])
+  const modifierSuppressions: CombatModifierSuppression[] = []
   for (const { source, behavior } of candidates) {
-    if (participants.length >= 15 || !evaluateAbilityRequirements(behavior.requirements, context))
+    const suppress = (reason: CombatModifierSuppressionReason) =>
+      modifierSuppressions.push({
+        sourceInstanceId: source.sourceInstanceId,
+        abilityId: source.abilityId,
+        contentVersion: source.contentVersion,
+        behaviorId: behavior.id,
+        reason,
+      })
+    if (participants.length >= 15) {
+      suppress('participant-budget')
       continue
-    try {
-      compatible(behavior)
-    } catch {
+    }
+    if (!evaluateAbilityRequirements(behavior.requirements, context)) {
+      suppress('requirement-not-met')
+      continue
+    }
+    if (!compatible(behavior)) {
+      suppress('root-incompatible')
       continue
     }
     const participant = combatAbilityParticipant(
@@ -262,17 +313,6 @@ export function composeCombatModifiers(
       hookId,
       (input.trigger?.depth ?? 0) + 1,
     )
-    if (
-      combatAbilityParticipantIssues(
-        { ...input, context: { ...input.context, triggerGuard: quotedGuard } },
-        participant,
-      ).length > 0 ||
-      combatAbilityCostIssues(
-        input,
-        aggregateCombatAbilityCosts([rootParticipant, ...participants, participant]),
-      ).length > 0
-    )
-      continue
     const key = JSON.stringify([
       input.state.tactical.battle.battleId,
       source.sourceInstanceId,
@@ -285,7 +325,26 @@ export function composeCombatModifiers(
       instanceId: JSON.stringify([key, hookId]),
       depth: participant.depth!,
     })
-    if (!reservation.accepted) continue
+    if (!reservation.accepted) {
+      suppress(reservation.reason)
+      continue
+    }
+    const participantIssues = combatAbilityParticipantIssues(
+      { ...input, context: { ...input.context, triggerGuard: quotedGuard } },
+      participant,
+    )
+    if (participantIssues.length) {
+      suppress(suppressionIssue(participantIssues[0]!.code))
+      continue
+    }
+    const costIssues = combatAbilityCostIssues(
+      input,
+      aggregateCombatAbilityCosts([rootParticipant, ...participants, participant]),
+    )
+    if (costIssues.length) {
+      suppress(suppressionIssue(costIssues[0]!.code))
+      continue
+    }
     quotedGuard = reservation.guard
     append(source, behavior, participant)
   }
@@ -300,5 +359,6 @@ export function composeCombatModifiers(
       ...(bonuses.length > 0 ? { commandDamageBonuses: bonuses } : {}),
     },
     participants,
+    modifierSuppressions,
   }
 }

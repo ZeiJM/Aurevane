@@ -87,6 +87,32 @@ function command(
   }
 }
 
+it('present plural targeting fails closed before canonical quote or payment', () => {
+  const input = command()
+  if (input.root.kind !== 'canonical') throw new Error('canonical fixture required')
+  const behavior = input.root.source.definition.behaviors[0]!
+  const plural = captureCombatAbilitySource(
+    source({ ...behavior, targeting: { ...behavior.targeting!, maximumSelections: 2 } }),
+  )
+  const unsupported = {
+    ...input,
+    root: { kind: 'canonical' as const, source: plural },
+    manualModifiers: [],
+  }
+  unsupported.state = reconcileCombatAbilitySources(
+    preparePv1fTurnEconomy(percentageDotEncounter()),
+    [plural],
+  )
+  const before = JSON.stringify(unsupported.state)
+  expect(() => prepareCombatAbilityCommand(unsupported)).toThrow(
+    'canonical-plural-targeting-required',
+  )
+  expect(() => commitCombatAbilityCommand(unsupported)).toThrow(
+    'canonical-plural-targeting-required',
+  )
+  expect(JSON.stringify(unsupported.state)).toBe(before)
+  expect(prepareCombatAbilityCommand({ ...input, manualModifiers: [] }).evaluation.legal).toBe(true)
+})
 it('actual immediate percentage Poison settlement emits one witnessed Automatic child', () => {
   const input = command(100, 20, {
     effects: [

@@ -48,6 +48,7 @@ import {
   createCharacterDerivedCombatProfile,
   createDuelBalancedCombatEncounterState,
   validateStatDrivenCombatEncounterState,
+  reattachStatDrivenCombatBridge,
   type StatDrivenCombatEncounterState,
   type StatDrivenCombatProfileV4,
 } from '@aurevane/game-core/combat/stat-driven-combat'
@@ -88,6 +89,7 @@ import {
 import {
   projectBattleEffectStateForViewer,
   projectBattleStatusStateForViewer,
+  projectBattleManualModifierAvailability,
 } from './battle-live-viewer-projection'
 import {
   battleBuildAuthorityForCombatant,
@@ -132,6 +134,7 @@ export type BattleSessionProjection = Omit<
   BattleAuthoritativeEncounterState,
   'tactical' | 'statusState' | 'groundAreas' | 'nextGroundAreaId'
 > & {
+  manualModifierAvailability?: ReturnType<typeof projectBattleManualModifierAvailability>
   groundAreas?: readonly PublicCombatGroundArea[]
   statusState: ReturnType<typeof projectBattleStatusStateForViewer>
   tactical: ProjectedTacticalState
@@ -474,6 +477,9 @@ export function projectBattleSnapshot(
   const battle = state.tactical.battle
   return {
     ...omitPendingBattlePayloads(state),
+    ...(state.capturedAbilitySources
+      ? { manualModifierAvailability: projectBattleManualModifierAvailability(state, viewer) }
+      : {}),
     statusState: projectBattleStatusStateForViewer(state, viewer),
     ...(state.effectState ? { effectState: projectBattleEffectStateForViewer(state, viewer) } : {}),
     tactical: {
@@ -564,18 +570,22 @@ async function resolveIntent(
         ? capturedBattleActionSource(state, state.buildAuthority, actorId, intent.actionId)
         : null
       if (capturedSource && actorId) {
-        return preserveBuildAuthority(
+        const transition = commitCombatAbilityCommand({
           state,
-          commitCombatAbilityCommand({
-            state,
-            actorId,
-            root: { kind: 'canonical', source: capturedSource, behaviorId: intent.behaviorId },
-            manualModifiers: intent.manualModifiers,
-            selection: intent.target,
-            content: PV1F_COMBAT_CONTENT,
-            context: combatAbilityCommandContext(state, capturedSource),
-          }) as { state: StatDrivenCombatEncounterState; events: readonly unknown[] },
-        )
+          actorId,
+          root: { kind: 'canonical', source: capturedSource, behaviorId: intent.behaviorId },
+          manualModifiers: intent.manualModifiers,
+          selection: intent.target,
+          content: PV1F_COMBAT_CONTENT,
+          context: combatAbilityCommandContext(state, capturedSource),
+        })
+        return preserveBuildAuthority(state, {
+          state: reattachStatDrivenCombatBridge(
+            transition.state,
+            (transition.state as StatDrivenCombatEncounterState).statBridge ?? state.statBridge,
+          ),
+          events: transition.events,
+        })
       }
       const essence = actorId
         ? await resolvePinnedBattleEssenceDefinition(

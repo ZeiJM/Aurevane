@@ -1,8 +1,12 @@
+import { readSkillCooldown } from './skill-cooldowns'
 import { pruneCombatAbilityActionHistory } from './combat-ability-state'
 import { hasCurrentPoison, hasCurrentBleed, currentBurnInstance } from './combat-dots'
 import {
   prepareCombatAbilityCommand,
   commitCombatAbilityCommand,
+  combatAbilityParticipant,
+  combatAbilityParticipantIssues,
+  combatAbilityCostIssues,
   type ManualCombatModifierSelection,
 } from './combat-ability-command'
 import {
@@ -25,6 +29,7 @@ import {
   evaluateAutomaticRequirementTrigger,
   type AbilityRequirementContext,
   type AbilityRequirementSubjectState,
+  type RequirementNode,
 } from './combat-requirements'
 import { createCombatActionProvenance, createCombatTriggerGuard } from './combat-kernel-types'
 
@@ -125,6 +130,8 @@ export function materializeCombatAbilityAction(
   behavior: AbilityBehavior,
 ): CombatActionDefinition {
   if (!behavior.targeting) throw new TypeError('ability-action-targeting-required')
+  if (behavior.targeting.maximumSelections !== 1)
+    throw new TypeError('canonical-plural-targeting-required')
   const { maximumSelections: _count, ...target } = behavior.targeting
   void _count
   if (behavior.effects.some((effect) => ['summon', 'damage-bonus'].includes(effect.payload.type)))
@@ -183,6 +190,113 @@ export function combatAbilitySubject(
     ],
     primeAbilityIds: [],
   }
+}
+
+/** Safe owner-relative quote; final compatibility/aggregate eligibility requires the selected action. */
+export interface CombatManualModifierAvailability {
+  readonly ownerCombatantId: string
+  readonly sourceInstanceId: string
+  readonly behaviorId: string
+  readonly name: string
+  readonly type: 'manual-modifier'
+  readonly costs: AbilityBehavior['costs']
+  readonly cooldown:
+    (NonNullable<AbilityBehavior['cooldown']> & { readonly ticksRemaining: number }) | null
+  readonly ownerEligible: boolean
+  readonly blockedReasons: readonly string[]
+  readonly requiresAction: true
+}
+function ownerRequirementTruth(
+  node: RequirementNode | null,
+  owner: AbilityRequirementSubjectState | null,
+): boolean | null {
+  if (!node) return true
+  if (node.kind === 'all' || node.kind === 'any') {
+    const values = node.children.map((child) => ownerRequirementTruth(child, owner))
+    if (node.kind === 'all')
+      return values.includes(false) ? false : values.includes(null) ? null : true
+    return values.includes(true) ? true : values.includes(null) ? null : false
+  }
+  if (
+    node.kind === 'action' ||
+    node.kind === 'event' ||
+    node.kind === 'resource-threshold-crossing' ||
+    node.subject !== 'owner'
+  )
+    return null
+  return evaluateAbilityRequirements(node, { owner })
+}
+export function combatManualModifierAvailability(
+  state: CombatEncounterState,
+  ownerCombatantId: string,
+): readonly CombatManualModifierAvailability[] {
+  const owner = state.tactical.battle.combatants.find((unit) => unit.id === ownerCombatantId)
+  if (!owner) return []
+  return (state.capturedAbilitySources ?? [])
+    .filter(
+      (source) =>
+        source.ownerCombatantId === ownerCombatantId &&
+        ['discipline-skill', 'essence', 'resonance'].includes(source.sourceKind) &&
+        state.abilityRuntime?.activeSourceIds.includes(source.sourceInstanceId),
+    )
+    .flatMap((source) =>
+      source.definition.behaviors
+        .filter((behavior) => behavior.activation === 'manual' && behavior.mode === 'modifier')
+        .map((behavior) => {
+          const input = {
+            state,
+            actorId: ownerCombatantId,
+            context: combatAbilityCommandContext(state, source),
+          }
+          const reasons = [
+            ...combatAbilityParticipantIssues(
+              input,
+              combatAbilityParticipant(source, behavior),
+            ).map((issue) => issue.code),
+            ...combatAbilityCostIssues(input, behavior.costs).map((issue) => issue.code),
+            ...(state.tactical.battle.lifecycle !== 'active' ? ['battle-ended'] : []),
+            ...(state.tactical.battle.currentTurn?.combatantId !== ownerCombatantId
+              ? ['turn-unavailable']
+              : []),
+            ...(ownerRequirementTruth(
+              behavior.requirements,
+              combatAbilitySubject(state, ownerCombatantId),
+            ) === false
+              ? ['requirement-not-met']
+              : []),
+          ]
+          const blockedReasons = [...new Set(reasons)].sort()
+          return {
+            ownerCombatantId,
+            sourceInstanceId: source.sourceInstanceId,
+            behaviorId: behavior.id,
+            name: behavior.id,
+            type: 'manual-modifier' as const,
+            costs: behavior.costs.map((cost) => ({ resource: cost.resource, amount: cost.amount })),
+            cooldown: behavior.cooldown
+              ? {
+                  key: behavior.cooldown.key,
+                  ownerTurns: behavior.cooldown.ownerTurns,
+                  ticksRemaining: readSkillCooldown(owner, behavior.cooldown).ticksRemaining,
+                }
+              : null,
+            ownerEligible: blockedReasons.length === 0,
+            blockedReasons,
+            requiresAction: true as const,
+          }
+        }),
+    )
+    .sort((a, b) =>
+      a.sourceInstanceId < b.sourceInstanceId
+        ? -1
+        : a.sourceInstanceId > b.sourceInstanceId
+          ? 1
+          : a.behaviorId < b.behaviorId
+            ? -1
+            : a.behaviorId > b.behaviorId
+              ? 1
+              : 0,
+    )
 }
 
 export function evaluateCombatAbility(input: CombatAbilityActivationInput): CombatActionEvaluation {

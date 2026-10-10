@@ -34,6 +34,7 @@ import type {
 
 import {
   createBattleSessionService,
+  projectBattleSnapshot,
   type BattleAuthoritativeEncounterState,
 } from './battle-session-service'
 import { createViewerSafeBattleLogService } from './battle-log-service'
@@ -410,212 +411,395 @@ function positionPlayerAdjacent(state: BattleAuthoritativeEncounterState) {
   return state.buildAuthority ? { ...base, buildAuthority: state.buildAuthority } : base
 }
 
-it('creates immutable published Essence behaviors and uses their exact bundle through preview, commit and reconnect', async () => {
-  const original = structuredClone(resolveEssenceForBuild('vanguard', null)!)
-  const ability: AbilityDefinition = {
-    schemaVersion: 1,
-    behaviors: [
-      {
-        id: 'strike',
-        activation: 'manual',
-        mode: 'action',
-        classification: 'attack',
-        attackFamily: 'physical',
-        costs: [
-          { resource: 'ap', amount: 11 },
-          { resource: 'mp', amount: 2 },
-          { resource: 'hp', amount: 1 },
-        ],
-        cooldown: null,
-        requirements: null,
-        targeting: { ...original.skill.target, maximumSelections: 1 },
-        accuracy: { kind: 'fixed', chanceBasisPoints: 10000 },
-        effects: [{ id: 'hit', payload: { type: 'damage', recipient: 'primary-unit', amount: 3 } }],
-      },
-      {
-        id: 'extra',
-        activation: 'manual',
-        mode: 'modifier',
-        classification: 'attack',
-        attackFamily: 'physical',
-        costs: [
-          { resource: 'ap', amount: 7 },
-          { resource: 'mp', amount: 1 },
-          { resource: 'hp', amount: 2 },
-        ],
-        cooldown: null,
-        requirements: null,
-        targeting: null,
-        effects: [{ id: 'hit', payload: { type: 'damage', recipient: 'primary-unit', amount: 2 } }],
-      },
-      {
-        id: 'extra-z',
-        activation: 'manual',
-        mode: 'modifier',
-        classification: 'attack',
-        attackFamily: 'physical',
-        costs: [],
-        cooldown: null,
-        requirements: null,
-        targeting: null,
-        effects: [{ id: 'hit', payload: { type: 'damage', recipient: 'primary-unit', amount: 1 } }],
-      },
-      {
-        id: 'start',
-        activation: 'automatic',
-        mode: 'action',
-        classification: 'recovery',
-        costs: [{ resource: 'mp', amount: 1 }],
-        cooldown: null,
-        requirements: { kind: 'event', eventType: 'battle_started', phase: 'after' },
-        targeting: {
-          kind: 'self',
-          teamPolicy: 'self',
-          friendlyFire: 'allies-only',
-          shape: { kind: 'single' },
-          minimumRange: 0,
-          maximumRange: 0,
-          requiresLineOfSight: false,
-          maximumElevationDifference: null,
-          maximumSelections: 1,
+it.each([1, 2])(
+  'creates immutable published Essence behaviors and admits only supported selection count %i',
+  async (maximumSelections) => {
+    const original = structuredClone(resolveEssenceForBuild('vanguard', null)!)
+    const ability: AbilityDefinition = {
+      schemaVersion: 1,
+      behaviors: [
+        {
+          id: 'strike',
+          activation: 'manual',
+          mode: 'action',
+          classification: 'attack',
+          attackFamily: 'physical',
+          costs: [
+            { resource: 'ap', amount: 11 },
+            { resource: 'mp', amount: 2 },
+            { resource: 'hp', amount: 1 },
+          ],
+          cooldown: null,
+          requirements: null,
+          targeting: { ...original.skill.target, maximumSelections },
+          accuracy: { kind: 'fixed', chanceBasisPoints: 10000 },
+          effects: [
+            { id: 'hit', payload: { type: 'damage', recipient: 'primary-unit', amount: 3 } },
+          ],
         },
-        effects: [{ id: 'heal', payload: { type: 'healing', recipient: 'actor', amount: 1 } }],
+        {
+          id: 'extra',
+          activation: 'manual',
+          mode: 'modifier',
+          classification: 'attack',
+          attackFamily: 'physical',
+          costs: [
+            { resource: 'ap', amount: 7 },
+            { resource: 'mp', amount: 1 },
+            { resource: 'hp', amount: 2 },
+          ],
+          cooldown: null,
+          requirements: null,
+          targeting: null,
+          effects: [
+            { id: 'hit', payload: { type: 'damage', recipient: 'primary-unit', amount: 2 } },
+          ],
+        },
+        {
+          id: 'private-optional',
+          activation: 'automatic',
+          mode: 'modifier',
+          classification: 'attack',
+          attackFamily: 'physical',
+          costs: [{ resource: 'ap', amount: 1000 }],
+          cooldown: null,
+          requirements: { kind: 'event', eventType: 'combat_action_used', phase: 'before' },
+          targeting: null,
+          effects: [
+            { id: 'extra', payload: { type: 'damage', recipient: 'primary-unit', amount: 2 } },
+          ],
+        },
+        {
+          id: 'extra-z',
+          activation: 'manual',
+          mode: 'modifier',
+          classification: 'attack',
+          attackFamily: 'physical',
+          costs: [],
+          cooldown: null,
+          requirements: null,
+          targeting: null,
+          effects: [
+            { id: 'hit', payload: { type: 'damage', recipient: 'primary-unit', amount: 1 } },
+          ],
+        },
+        {
+          id: 'start',
+          activation: 'automatic',
+          mode: 'action',
+          classification: 'recovery',
+          costs: [{ resource: 'mp', amount: 1 }],
+          cooldown: null,
+          requirements: { kind: 'event', eventType: 'battle_started', phase: 'after' },
+          targeting: {
+            kind: 'self',
+            teamPolicy: 'self',
+            friendlyFire: 'allies-only',
+            shape: { kind: 'single' },
+            minimumRange: 0,
+            maximumRange: 0,
+            requiresLineOfSight: false,
+            maximumElevationDifference: null,
+            maximumSelections: 1,
+          },
+          effects: [{ id: 'heal', payload: { type: 'healing', recipient: 'actor', amount: 1 } }],
+        },
+      ],
+    }
+    let published = {
+      ...original,
+      contentVersion: 77,
+      ability,
+      skill: { ...original.skill, contentVersion: 77 },
+    }
+    const resolver: CombatContentResolver = {
+      resolveCurrentSkillDefinition: async (id) => resolveMatureSkillVersion(id),
+      resolvePinnedSkillDefinition: async (id, version) => resolveMatureSkillVersion(id, version),
+      resolveCurrentEssenceDefinition: async () => structuredClone(published),
+      resolvePinnedEssenceDefinition: async () => structuredClone(published),
+    }
+    const builds = buildRepository(pureSnapshot()),
+      battles = battleRepository()
+    const service = createBattleSessionService({
+      characters: characterRepository(),
+      battles: battles.repository,
+      builds: builds.repository,
+      combatContentResolver: resolver,
+    })
+    const createdView = await service.createSession({
+      userId: USER_ID,
+      characterId: CHARACTER_ID,
+      idempotencyKey: '88888888-8888-4888-8888-888888888888',
+    })
+    const created = battles.record!.snapshot as BattleAuthoritativeEncounterState
+    const startup = battles.createBattleSession.mock.calls[0]![0].startup!
+    expect(startup.events).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ event: 'mp_spent', amount: 1 }),
+        expect.objectContaining({ event: 'combat_action_used', actionId: original.essenceId }),
+      ]),
+    )
+    expect(startup.startSnapshot).not.toHaveProperty('abilityRuntime')
+    expect(startup.privacyJournal.commandVisibility).toEqual({ kind: 'public' })
+    expect(created.capturedAbilitySources).toHaveLength(1)
+    const source = created.capturedAbilitySources![0]!
+    expect(source.sourceKind).toBe('essence')
+    expect(source.contentVersion).toBe(77)
+    expect(Object.isFrozen(source.definition)).toBe(true)
+    if (maximumSelections === 1) {
+      expect(createdView.snapshot).toHaveProperty('manualModifierAvailability', [
+        expect.objectContaining({
+          sourceInstanceId: source.sourceInstanceId,
+          behaviorId: 'extra',
+          name: 'extra',
+          type: 'manual-modifier',
+          costs: [
+            { resource: 'ap', amount: 7 },
+            { resource: 'mp', amount: 1 },
+            { resource: 'hp', amount: 2 },
+          ],
+          ownerEligible: true,
+          blockedReasons: [],
+          requiresAction: true,
+        }),
+        expect.objectContaining({
+          sourceInstanceId: source.sourceInstanceId,
+          behaviorId: 'extra-z',
+          costs: [],
+          cooldown: null,
+        }),
+      ])
+      for (const viewer of [
+        deriveParticipantBattleViewerEntitlement(created.tactical.battle.combatants, [
+          'recruit:p2-4-1',
+        ]),
+        createSpectatorBattleViewerEntitlement(),
+      ]) {
+        expect(projectBattleSnapshot(created, viewer)).toHaveProperty(
+          'manualModifierAvailability',
+          [],
+        )
+      }
+      const inactive = {
+        ...created,
+        abilityRuntime: { ...created.abilityRuntime!, activeSourceIds: [] },
+      }
+      const owner = deriveParticipantBattleViewerEntitlement(created.tactical.battle.combatants, [
+        PLAYER_ID,
+      ])
+      expect(projectBattleSnapshot(inactive, owner)).toHaveProperty(
+        'manualModifierAvailability',
+        [],
+      )
+      const malformed = JSON.parse(JSON.stringify(created))
+      const malformedModifier = malformed.capturedAbilitySources[0].definition.behaviors.find(
+        (behavior: { id: string }) => behavior.id === 'extra',
+      ) as { costs?: unknown }
+      delete malformedModifier.costs
+      battles.replaceSnapshot(malformed)
+      await expect(service.getSession(USER_ID, SESSION_ID)).rejects.toMatchObject({
+        code: 'PERSISTENCE_UNAVAILABLE',
+      })
+      battles.replaceSnapshot(created)
+      const blocked = {
+        ...created,
+        tactical: {
+          ...created.tactical,
+          battle: {
+            ...created.tactical.battle,
+            combatants: created.tactical.battle.combatants.map((row) =>
+              row.id === PLAYER_ID
+                ? {
+                    ...row,
+                    mp: 0,
+                    hp: 1,
+                    temporaryResources: row.temporaryResources.map((resource) =>
+                      resource.key === 'pv1f.action-economy'
+                        ? { ...resource, current: 0 }
+                        : resource,
+                    ),
+                  }
+                : row,
+            ),
+          },
+        },
+      }
+      expect(projectBattleSnapshot(blocked, owner)).toHaveProperty(
+        'manualModifierAvailability',
+        expect.arrayContaining([
+          expect.objectContaining({
+            behaviorId: 'extra',
+            ownerEligible: false,
+            blockedReasons: ['insufficient-ap', 'insufficient-hp', 'insufficient-mp'],
+          }),
+        ]),
+      )
+      expect(JSON.stringify(createdView.snapshot)).not.toMatch(
+        /capturedAbilitySources|abilityRuntime|accuracyRule|chanceBasisPoints|"definition":|conditionTruth|modifierSuppressions/,
+      )
+    }
+    expect(created.tactical.battle.combatants.find((row) => row.id === PLAYER_ID)!.mp).toBe(
+      created.tactical.battle.combatants.find((row) => row.id === PLAYER_ID)!.maxMp - 1,
+    )
+    const positioned = { ...created, tactical: positionPlayerAdjacent(created).tactical }
+    battles.replaceSnapshot(JSON.parse(JSON.stringify(positioned)))
+    published = {
+      ...published,
+      enabled: false,
+      ability: {
+        ...ability,
+        behaviors: ability.behaviors.map((row) => ({
+          ...row,
+          costs: [{ resource: 'ap', amount: 99 }],
+        })),
       },
-    ],
-  }
-  let published = {
-    ...original,
-    contentVersion: 77,
-    ability,
-    skill: { ...original.skill, contentVersion: 77 },
-  }
-  const resolver: CombatContentResolver = {
-    resolveCurrentSkillDefinition: async (id) => resolveMatureSkillVersion(id),
-    resolvePinnedSkillDefinition: async (id, version) => resolveMatureSkillVersion(id, version),
-    resolveCurrentEssenceDefinition: async () => structuredClone(published),
-    resolvePinnedEssenceDefinition: async () => structuredClone(published),
-  }
-  const builds = buildRepository(pureSnapshot()),
-    battles = battleRepository()
-  const service = createBattleSessionService({
-    characters: characterRepository(),
-    battles: battles.repository,
-    builds: builds.repository,
-    combatContentResolver: resolver,
-  })
-  await service.createSession({
-    userId: USER_ID,
-    characterId: CHARACTER_ID,
-    idempotencyKey: '88888888-8888-4888-8888-888888888888',
-  })
-  const created = battles.record!.snapshot as BattleAuthoritativeEncounterState
-  const startup = battles.createBattleSession.mock.calls[0]![0].startup!
-  expect(startup.events).toEqual(
-    expect.arrayContaining([
-      expect.objectContaining({ event: 'mp_spent', amount: 1 }),
-      expect.objectContaining({ event: 'combat_action_used', actionId: original.essenceId }),
-    ]),
-  )
-  expect(startup.startSnapshot).not.toHaveProperty('abilityRuntime')
-  expect(startup.privacyJournal.commandVisibility).toEqual({ kind: 'public' })
-  expect(created.capturedAbilitySources).toHaveLength(1)
-  const source = created.capturedAbilitySources![0]!
-  expect(source.sourceKind).toBe('essence')
-  expect(source.contentVersion).toBe(77)
-  expect(Object.isFrozen(source.definition)).toBe(true)
-  expect(created.tactical.battle.combatants.find((row) => row.id === PLAYER_ID)!.mp).toBe(
-    created.tactical.battle.combatants.find((row) => row.id === PLAYER_ID)!.maxMp - 1,
-  )
-  const positioned = { ...created, tactical: positionPlayerAdjacent(created).tactical }
-  battles.replaceSnapshot(JSON.parse(JSON.stringify(positioned)))
-  published = {
-    ...published,
-    enabled: false,
-    ability: {
-      ...ability,
-      behaviors: ability.behaviors.map((row) => ({
-        ...row,
-        costs: [{ resource: 'ap', amount: 99 }],
-      })),
-    },
-  }
-  const intent = {
-    kind: 'action' as const,
-    actionId: original.essenceId,
-    behaviorId: 'strike',
-    target: { kind: 'unit' as const, combatantId: 'recruit:p2-4-1' },
-    manualModifiers: [
-      { sourceInstanceId: source.sourceInstanceId, behaviorId: 'extra-z' },
-      { sourceInstanceId: source.sourceInstanceId, behaviorId: 'extra' },
-    ],
-  }
-  const before = JSON.stringify(battles.record!.snapshot)
-  for (const manualModifiers of [
-    [intent.manualModifiers[0]!, intent.manualModifiers[0]!],
-    [{ sourceInstanceId: 'foreign.source', behaviorId: 'extra' }],
-  ]) {
-    await expect(
-      service.submitIntent({
-        userId: USER_ID,
-        battleSessionId: SESSION_ID,
-        expectedBattleVersion: 1,
-        idempotencyKey: '11111111-9999-4999-8999-999999999999',
-        intent: { ...intent, manualModifiers },
-      }),
-    ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
-    expect(battles.commitBattleIntent).not.toHaveBeenCalled()
+    }
+    const intent = {
+      kind: 'action' as const,
+      actionId: original.essenceId,
+      behaviorId: 'strike',
+      target: { kind: 'unit' as const, combatantId: 'recruit:p2-4-1' },
+      manualModifiers: [
+        { sourceInstanceId: source.sourceInstanceId, behaviorId: 'extra-z' },
+        { sourceInstanceId: source.sourceInstanceId, behaviorId: 'extra' },
+      ],
+    }
+    const before = JSON.stringify(battles.record!.snapshot)
+    if (maximumSelections === 2) {
+      await expect(
+        createBattlePreviewService(battles.repository, resolver).previewIntent({
+          userId: USER_ID,
+          battleSessionId: SESSION_ID,
+          expectedBattleVersion: 1,
+          intent,
+        }),
+      ).rejects.toThrow('canonical-plural-targeting-required')
+      await expect(
+        service.submitIntent({
+          userId: USER_ID,
+          battleSessionId: SESSION_ID,
+          expectedBattleVersion: 1,
+          idempotencyKey: '99999999-9999-4999-8999-999999999999',
+          intent,
+        }),
+      ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
+      expect(battles.commitBattleIntent).not.toHaveBeenCalled()
+      expect(JSON.stringify(battles.record!.snapshot)).toBe(before)
+      return
+    }
+    for (const manualModifiers of [
+      [intent.manualModifiers[0]!, intent.manualModifiers[0]!],
+      [{ sourceInstanceId: 'foreign.source', behaviorId: 'extra' }],
+    ]) {
+      await expect(
+        service.submitIntent({
+          userId: USER_ID,
+          battleSessionId: SESSION_ID,
+          expectedBattleVersion: 1,
+          idempotencyKey: '11111111-9999-4999-8999-999999999999',
+          intent: { ...intent, manualModifiers },
+        }),
+      ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
+      expect(battles.commitBattleIntent).not.toHaveBeenCalled()
+      expect(JSON.stringify(battles.record!.snapshot)).toBe(before)
+    }
+    const preview = await createBattlePreviewService(battles.repository, resolver).previewIntent({
+      userId: USER_ID,
+      battleSessionId: SESSION_ID,
+      expectedBattleVersion: 1,
+      intent,
+    })
+    expect(preview.preview).toMatchObject({
+      kind: 'action',
+      legal: true,
+      actionEconomyCost: 18,
+      mpCost: 3,
+    })
+    expect(JSON.stringify(preview)).not.toMatch(
+      /effectOrigin|sourceInstanceId|abilityParticipants|sourceCommandVisibility|modifierSuppressions|private-optional/,
+    )
     expect(JSON.stringify(battles.record!.snapshot)).toBe(before)
-  }
-  const preview = await createBattlePreviewService(battles.repository, resolver).previewIntent({
-    userId: USER_ID,
-    battleSessionId: SESSION_ID,
-    expectedBattleVersion: 1,
-    intent,
-  })
-  expect(preview.preview).toMatchObject({
-    kind: 'action',
-    legal: true,
-    actionEconomyCost: 18,
-    mpCost: 3,
-  })
-  expect(JSON.stringify(preview)).not.toMatch(
-    /effectOrigin|sourceInstanceId|abilityParticipants|sourceCommandVisibility/,
-  )
-  expect(JSON.stringify(battles.record!.snapshot)).toBe(before)
-  await service.submitIntent({
-    userId: USER_ID,
-    battleSessionId: SESSION_ID,
-    expectedBattleVersion: 1,
-    idempotencyKey: '99999999-9999-4999-8999-999999999999',
-    intent,
-  })
-  const next = battles.record!.snapshot as BattleAuthoritativeEncounterState
-  expect(readPv1fActionEconomy(next)!.current).toBe(82)
-  expect(next.capturedAbilitySources![0]!.definition).toEqual(ability)
-  expect(next.abilityRuntime!.nextCommandSequence).toBe(2)
-  const committedInput = battles.commitBattleIntent.mock.calls[0]![0]
-  battles.findBattleIntentReplay.mockImplementation(async (retry) =>
-    retry.requestFingerprint === committedInput.requestFingerprint
-      ? { battleSessionId: SESSION_ID, battleVersion: 2, snapshot: next, committedAt: CREATED_AT }
-      : null,
-  )
-  const persistedBeforeReplay = JSON.stringify(battles.record!.snapshot)
-  const replay = await service.submitIntent({
-    userId: USER_ID,
-    battleSessionId: SESSION_ID,
-    expectedBattleVersion: 1,
-    idempotencyKey: '99999999-9999-4999-8999-999999999999',
-    intent: { ...intent, manualModifiers: [...intent.manualModifiers].reverse() },
-  })
-  expect(replay.replayed).toBe(true)
-  expect(battles.commitBattleIntent).toHaveBeenCalledTimes(1)
-  expect(JSON.stringify(battles.record!.snapshot)).toBe(persistedBeforeReplay)
+    await service.submitIntent({
+      userId: USER_ID,
+      battleSessionId: SESSION_ID,
+      expectedBattleVersion: 1,
+      idempotencyKey: '99999999-9999-4999-8999-999999999999',
+      intent,
+    })
+    const next = battles.record!.snapshot as BattleAuthoritativeEncounterState
+    expect(readPv1fActionEconomy(next)!.current).toBe(82)
+    expect(next.capturedAbilitySources![0]!.definition).toEqual(ability)
+    expect(next.abilityRuntime!.nextCommandSequence).toBe(2)
+    const committedInput = battles.commitBattleIntent.mock.calls[0]![0]
+    expect(committedInput.events).toContainEqual(
+      expect.objectContaining({
+        event: 'combat_action_used',
+        modifierSuppressions: [
+          {
+            sourceInstanceId: source.sourceInstanceId,
+            abilityId: original.essenceId,
+            contentVersion: 77,
+            behaviorId: 'private-optional',
+            reason: 'insufficient-ap',
+          },
+        ],
+      }),
+    )
+    const safeHistory = await createViewerSafeBattleLogService(
+      {
+        findBattleEvents: async () =>
+          committedInput.events.map((event, eventIndex) => ({
+            battleVersion: 2,
+            eventIndex,
+            event,
+            createdAt: CREATED_AT,
+          })),
+      },
+      {
+        findBattleHistoryPrivacy: async () => ({
+          viewer: deriveParticipantBattleViewerEntitlement(next.tactical.battle.combatants, [
+            PLAYER_ID,
+          ]),
+          journals: [
+            {
+              ...committedInput.privacyJournal!,
+              battleVersion: 2,
+              actorCombatantId: PLAYER_ID,
+              actorTeamId: next.tactical.battle.combatants.find((row) => row.id === PLAYER_ID)!
+                .teamId,
+              eventCount: committedInput.events.length,
+            },
+          ],
+          buildAuthority: next.buildAuthority!,
+        }),
+      },
+    ).getLog(USER_ID, SESSION_ID)
+    expect(JSON.stringify(safeHistory)).not.toMatch(
+      /modifierSuppressions|private-optional|sourceInstanceId|abilityCommandFacts/,
+    )
+    battles.findBattleIntentReplay.mockImplementation(async (retry) =>
+      retry.requestFingerprint === committedInput.requestFingerprint
+        ? { battleSessionId: SESSION_ID, battleVersion: 2, snapshot: next, committedAt: CREATED_AT }
+        : null,
+    )
+    const persistedBeforeReplay = JSON.stringify(battles.record!.snapshot)
+    const replay = await service.submitIntent({
+      userId: USER_ID,
+      battleSessionId: SESSION_ID,
+      expectedBattleVersion: 1,
+      idempotencyKey: '99999999-9999-4999-8999-999999999999',
+      intent: { ...intent, manualModifiers: [...intent.manualModifiers].reverse() },
+    })
+    expect(replay.replayed).toBe(true)
+    expect(battles.commitBattleIntent).toHaveBeenCalledTimes(1)
+    expect(JSON.stringify(battles.record!.snapshot)).toBe(persistedBeforeReplay)
 
-  const publicView = await service.getSession(USER_ID, SESSION_ID)
-  expect(JSON.stringify(publicView)).not.toMatch(
-    /capturedAbilitySources|conditionTruth|accuracyRule|effectEligibleRecipientIds|abilityParticipants/,
-  )
-})
+    const publicView = await service.getSession(USER_ID, SESSION_ID)
+    expect(JSON.stringify(publicView)).not.toMatch(
+      /capturedAbilitySources|conditionTruth|accuracyRule|effectEligibleRecipientIds|abilityParticipants|modifierSuppressions|private-optional/,
+    )
+  },
+)
 
 it('projects startup Automatic children with their own Covert visibility through actual history DTOs', async () => {
   const original = structuredClone(resolveEssenceForBuild('vanguard', null)!)

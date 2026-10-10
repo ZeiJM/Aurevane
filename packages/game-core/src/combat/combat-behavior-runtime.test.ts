@@ -1,3 +1,11 @@
+import {
+  applyCurrentPoisonState,
+  applyCurrentBleedState,
+  applyCurrentBurnState,
+  removeCurrentPoisonState,
+  removeCurrentBleedState,
+  removeCurrentBurnState,
+} from './combat-dots'
 import { applySkillCooldown, readSkillCooldown } from './skill-cooldowns'
 import { describe, expect, it } from 'vitest'
 import { percentageDotEncounter } from './combat-percentage-dots.test-utils'
@@ -19,6 +27,7 @@ import {
 import {
   activateCombatAbility,
   combatAbilityCommandContext,
+  combatManualModifierAvailability,
   evaluateCombatAbility,
   reconcileCombatAbilitySources,
   type CombatAbilityActivationInput,
@@ -272,6 +281,195 @@ describe('canonical behavior runtime', () => {
     const out = activateCombatAbility({ ...command, state })
     expect(out.events.find((e) => e.event === 'damage_applied')).toMatchObject({ amount: 15 })
     expect(out.state.statusState).toEqual(command.state.statusState)
+  })
+  it.each([
+    {
+      tag: 'poison',
+      apply: (state: CombatAbilityActivationInput['state']) =>
+        applyCurrentPoisonState(state, 'enemy', 'actor', 'native.poison'),
+      remove: removeCurrentPoisonState,
+    },
+    {
+      tag: 'bleed',
+      apply: (state: CombatAbilityActivationInput['state']) =>
+        applyCurrentBleedState(state, 'enemy', 'actor', 'native.bleed', 1, 2),
+      remove: removeCurrentBleedState,
+    },
+    {
+      tag: 'burn',
+      apply: (state: CombatAbilityActivationInput['state']) =>
+        applyCurrentBurnState(state, 'enemy', 'actor', 'native.burn'),
+      remove: removeCurrentBurnState,
+    },
+  ])(
+    'Ongoing native $tag owner condition agrees with actual forecast/commit/removal and JSON',
+    ({ tag, apply, remove }) => {
+      const root = captureCombatAbilitySource(
+        source({ costs: [], accuracy: { kind: 'fixed', chanceBasisPoints: 10000 } }),
+      )
+      const maintained = captureCombatAbilitySource(
+        source(
+          {
+            id: 'bonus',
+            activation: 'ongoing',
+            mode: 'modifier',
+            classification: 'utility',
+            attackFamily: undefined,
+            costs: [],
+            targeting: null,
+            requirements: {
+              kind: 'status-presence',
+              subject: 'owner',
+              statusId: tag,
+              present: true,
+            },
+            effects: [
+              {
+                id: 'bonus',
+                payload: { type: 'damage-bonus', recipient: 'actor', multiplierBasisPoints: 15000 },
+              },
+            ],
+          },
+          `ongoing-${tag}`,
+        ),
+      )
+      const initial = reconcileCombatAbilitySources(apply(input().state), [root, maintained])
+      expect(initial.abilityRuntime!.maintained).toHaveLength(1)
+      for (const state of [initial, JSON.parse(JSON.stringify(initial))]) {
+        const command = input({
+          state,
+          source: root,
+          context: combatAbilityCommandContext(state, root),
+        })
+        const before = JSON.stringify(state)
+        expect(evaluateCombatAbility(command).projectedEffects).toContainEqual(
+          expect.objectContaining({
+            effectType: 'damage',
+            combatantId: 'enemy',
+            before: 1000,
+            after: 985,
+          }),
+        )
+        expect(JSON.stringify(state)).toBe(before)
+        const committed = activateCombatAbility(command)
+        expect(committed.events).toContainEqual(
+          expect.objectContaining({
+            event: 'damage_applied',
+            sourceCombatantId: 'actor',
+            targetCombatantId: 'enemy',
+            amount: 15,
+          }),
+        )
+        expect(committed.state.statusState).toEqual(state.statusState)
+        const cleared = reconcileCombatAbilitySources(remove(state, 'actor'), [root, maintained])
+        expect(cleared.abilityRuntime!.maintained).toEqual([])
+        const unmodified = {
+          ...command,
+          state: cleared,
+          context: combatAbilityCommandContext(cleared, root),
+        }
+        expect(evaluateCombatAbility(unmodified).projectedEffects).toContainEqual(
+          expect.objectContaining({
+            effectType: 'damage',
+            combatantId: 'enemy',
+            before: 1000,
+            after: 990,
+          }),
+        )
+        expect(activateCombatAbility(unmodified).events).toContainEqual(
+          expect.objectContaining({
+            event: 'damage_applied',
+            targetCombatantId: 'enemy',
+            amount: 10,
+          }),
+        )
+      }
+    },
+  )
+  it('safe Manual availability shares current cooldown/limit/owner predicates after actual commit and JSON', () => {
+    const root = captureCombatAbilitySource(source({ costs: [] }))
+    const modifier = captureCombatAbilitySource(
+      source(
+        {
+          id: 'available',
+          mode: 'modifier',
+          targeting: null,
+          costs: [],
+          cooldown: { key: 'availability', ownerTurns: 2 },
+          activationLimits: ['once-per-battle'],
+          requirements: {
+            kind: 'all',
+            children: [
+              { kind: 'action', classification: 'attack' },
+              {
+                kind: 'resource-state',
+                subject: 'owner',
+                resource: 'mp',
+                comparison: 'at-least',
+                amount: 20,
+              },
+            ],
+          },
+          effects: [
+            {
+              id: 'bonus',
+              payload: { type: 'damage-bonus', recipient: 'actor', multiplierBasisPoints: 11000 },
+            },
+          ],
+        },
+        'available-source',
+      ),
+    )
+    const state = reconcileCombatAbilitySources(input().state, [root, modifier])
+    const before = JSON.stringify(state)
+    expect(combatManualModifierAvailability(state, 'actor')).toEqual([
+      {
+        ownerCombatantId: 'actor',
+        sourceInstanceId: 'available-source',
+        behaviorId: 'available',
+        name: 'available',
+        type: 'manual-modifier',
+        costs: [],
+        cooldown: { key: 'availability', ownerTurns: 2, ticksRemaining: 0 },
+        ownerEligible: true,
+        blockedReasons: [],
+        requiresAction: true,
+      },
+    ])
+    expect(JSON.stringify(state)).toBe(before)
+    expect(combatManualModifierAvailability(state, 'enemy')).toEqual([])
+    const out = activateCombatAbility(
+      input({
+        state,
+        source: root,
+        context: combatAbilityCommandContext(state, root),
+        manualModifiers: [{ sourceInstanceId: 'available-source', behaviorId: 'available' }],
+      }),
+    )
+    const restored = JSON.parse(JSON.stringify(out.state))
+    expect(combatManualModifierAvailability(restored, 'actor')).toEqual([
+      expect.objectContaining({
+        cooldown: { key: 'availability', ownerTurns: 2, ticksRemaining: 3 },
+        ownerEligible: false,
+        blockedReasons: ['activation-limit', 'cooldown-active'],
+      }),
+    ])
+    const poor = {
+      ...state,
+      tactical: {
+        ...state.tactical,
+        battle: {
+          ...state.tactical.battle,
+          combatants: state.tactical.battle.combatants.map((unit) =>
+            unit.id === 'actor' ? { ...unit, mp: 19 } : unit,
+          ),
+        },
+      },
+    }
+    expect(combatManualModifierAvailability(poor, 'actor')[0]).toMatchObject({
+      ownerEligible: false,
+      blockedReasons: ['requirement-not-met'],
+    })
   })
   it('captures packet Requirements before its own payment and applies explicit packet timing', () => {
     const command = input({
