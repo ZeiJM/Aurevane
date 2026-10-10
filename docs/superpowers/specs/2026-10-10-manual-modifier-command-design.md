@@ -170,3 +170,12 @@ The continuation plan pins explicit-only selection, malformed/foreign/inactive/d
 Tasks3/3A/4/7/10/13/15/16 receive these interfaces and prove their actual plural geometry, walking, prime/release, controls/readers and final roster cases. Unsupported capability fails with a named reason until its responsible task is implemented. No test-count or architecture-document update can mark Task2 playable/accepted; its complete real service/core gate and independent review are still required.
 
 Self-review: the recommended approach has no persistent arming queue, client execution definitions, automatic Manual attachment, separate damage executor, per-recipient payment, mutable pending predicate, modifier hit roll, planned-endpoint attack, duplicate cooldown start or private DTO leak. Numeric bounds reuse current definition/guard budgets. Root qualification stays intrinsic; actual captures/history and absent-field paths remain authoritative.
+
+
+## Trusted native Basic Attack adapter clarification — Ruling11
+
+A trusted composed native Basic root may carry private `nativeBasicAttackCommand:true` to enter shared accuracy/critical/packet settlement. The ordinary absent-marker Basic path stays historical. This marker is internal preparation data, not a tag, authored accuracy field, client intent or standalone automatic action. Validate its shape/source compatibility and strip it from actual public projections.
+
+The root and its inherited modifier packets share one Basic hit result. Preserve the existing committed Basic Accuracy/Evasion, facing/status/clamp and terrain Evasion arithmetic; the current Basic helper does not use Skill Target Elevation to bypass terrain Evasion. Preserve its original hit/critical draw count and truthful native result receipts. Apply Basic Defense only to original root packets; each appended packet retains its own explicit scaling/Defense, including Pierce. Shared preparation/forecast/commit and legal miss payment/limits remain one command.
+
+Test seeded ordinary-vs-composed Basic hit/miss/critical/RNG, elevated recipients, root-vs-modifier Defense, exact preview/commit, invalid private markers and safe service projections. This narrowly resolves current native adapter plumbing; it does not change authored canonical Basic conversion authority or replace native damage/hit execution.
