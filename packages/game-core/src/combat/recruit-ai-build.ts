@@ -1,3 +1,6 @@
+import { prepareCombatAbilityCommand, commitCombatAbilityCommand } from './combat-ability-command'
+import { combatAbilityCommandContext } from './combat-behavior-runtime'
+import type { CapturedCombatAbilitySource } from './combat-behavior-capture'
 import { outgoingSuppressionBasisPoints } from './combat-suppress'
 import { enumerateCombatTargetSelections } from './combat-targeting-shapes'
 import { terrainOverlayAiUtility, terrainOverlayAt } from './terrain-overlays'
@@ -17,6 +20,8 @@ import {
   executePv1fMatureSkill,
   evaluatePv1fMatureSkill,
   readPv1fActionEconomy,
+  preparePv1fTurnEconomy,
+  PV1F_COMBAT_CONTENT,
   type Pv1fTransition,
 } from './pv1f-action-economy'
 import {
@@ -31,7 +36,9 @@ import type { StatDrivenCombatEncounterState } from './stat-driven-combat'
 
 interface BuildSkillCandidate {
   actionId: string
-  definition: MatureSkillDefinition
+  definition?: MatureSkillDefinition
+  behaviorId?: string
+  recovery?: boolean
   target: CombatTargetSelection
   evaluation: CombatActionEvaluation
   utility: number
@@ -40,6 +47,7 @@ interface BuildSkillCandidate {
 
 export interface BuildAwareRecruitAiSkillOptions {
   committedSkills?: readonly MatureSkillDefinition[]
+  canonicalSources?: readonly CapturedCombatAbilitySource[]
 }
 
 export function chooseBuildAwareRecruitAiDecision(input: {
@@ -54,14 +62,18 @@ export function chooseBuildAwareRecruitAiDecision(input: {
 
   const committed =
     input.skillOptions?.committedSkills ?? committedMatureSkills(input.state, actorId)
-  const skillCandidates = committed
-    .flatMap((definition) =>
-      buildSkillCandidates(input.state, definition, input.profile ?? RECRUIT_STANDARD_PROFILE),
-    )
-    .sort((left, right) => {
-      if (left.utility !== right.utility) return right.utility - left.utility
-      return left.stableKey.localeCompare(right.stableKey)
-    })
+  const sources = activeCanonicalSources(input.state, actorId, input.skillOptions)
+  const skillCandidates = [
+    ...canonicalSkillCandidates(input.state, sources, input.profile ?? RECRUIT_STANDARD_PROFILE),
+    ...committed
+      .filter((definition) => !sources.some((source) => source.abilityId === definition.id))
+      .flatMap((definition) =>
+        buildSkillCandidates(input.state, definition, input.profile ?? RECRUIT_STANDARD_PROFILE),
+      ),
+  ].sort((left, right) => {
+    if (left.utility !== right.utility) return right.utility - left.utility
+    return left.stableKey.localeCompare(right.stableKey)
+  })
   const selected = skillCandidates[0]
   if (!selected || selected.utility <= baseline.utility) {
     return {
@@ -75,8 +87,12 @@ export function chooseBuildAwareRecruitAiDecision(input: {
       kind: 'action',
       actionId: selected.actionId,
       target: copyTarget(selected.target),
+      ...(selected.behaviorId ? { behaviorId: selected.behaviorId } : {}),
     },
-    reason: selected.definition.tags.includes('heal') ? 'recover-survival' : 'legal-damage',
+    reason:
+      selected.recovery || selected.definition?.tags.includes('heal')
+        ? 'recover-survival'
+        : 'legal-damage',
     utility: selected.utility,
     candidateCount: baseline.candidateCount + skillCandidates.length,
     profileId: baseline.profileId,
@@ -90,16 +106,100 @@ export function executeBuildAwareRecruitAiAction(
   actionId: string,
   target: CombatTargetSelection,
   skillOptions: BuildAwareRecruitAiSkillOptions = {},
+  commandOptions: { readonly behaviorId?: string } = {},
 ): Pv1fTransition {
   const actorId = state.tactical.battle.currentTurn?.combatantId
   if (!actorId) throw new Error('Build-aware Recruit AI action requires an active turn.')
+  const source = activeCanonicalSources(state, actorId, skillOptions).find(
+    (row) => row.abilityId === actionId,
+  )
+  if (source) {
+    const prepared = preparePv1fTurnEconomy(state)
+    return commitCombatAbilityCommand({
+      state: prepared,
+      actorId,
+      root: { kind: 'canonical', source, behaviorId: commandOptions.behaviorId },
+      selection: target,
+      content: PV1F_COMBAT_CONTENT,
+      context: combatAbilityCommandContext(prepared, source),
+    }) as Pv1fTransition
+  }
+
   const definition = (skillOptions.committedSkills ?? committedMatureSkills(state, actorId)).find(
     (candidate) => candidate.id === actionId,
   )
   if (definition) {
-    return executePv1fMatureSkill(state, definition, target, 'pve')
+    return executePv1fMatureSkill(state, definition, target, 'pve', commandOptions)
   }
   return executePv1fAction(state, actionId, target)
+}
+
+function activeCanonicalSources(
+  state: StatDrivenCombatEncounterState,
+  actorId: string,
+  options?: BuildAwareRecruitAiSkillOptions,
+): readonly CapturedCombatAbilitySource[] {
+  return (options?.canonicalSources ?? state.capturedAbilitySources ?? []).filter(
+    (source) =>
+      source.ownerCombatantId === actorId &&
+      ['discipline-skill', 'essence', 'resonance'].includes(source.sourceKind) &&
+      state.abilityRuntime?.activeSourceIds.includes(source.sourceInstanceId),
+  )
+}
+function canonicalSkillCandidates(
+  state: StatDrivenCombatEncounterState,
+  sources: readonly CapturedCombatAbilitySource[],
+  profile: RecruitAiProfile,
+): BuildSkillCandidate[] {
+  const prepared = preparePv1fTurnEconomy(state)
+  const actorId = prepared.tactical.battle.currentTurn!.combatantId
+  return sources.flatMap((source) =>
+    source.definition.behaviors.flatMap((behavior) => {
+      if (behavior.activation !== 'manual' || behavior.mode !== 'action' || !behavior.targeting)
+        return []
+      return enumerateCombatTargetSelections(prepared, actorId, behavior.targeting).flatMap(
+        (target) => {
+          try {
+            const command = prepareCombatAbilityCommand({
+              state: prepared,
+              actorId,
+              root: { kind: 'canonical', source, behaviorId: behavior.id },
+              selection: target,
+              content: PV1F_COMBAT_CONTENT,
+              context: combatAbilityCommandContext(prepared, source),
+            })
+            if (!command.evaluation.legal) return []
+            const utility =
+              projectedCombatEffectUtility(command.evaluation, prepared, command.action.effects) +
+              terrainOverlayAiUtility(prepared, command.evaluation)
+            if (utility <= 0) return []
+            return [
+              {
+                actionId: source.abilityId,
+                behaviorId: behavior.id,
+                recovery: behavior.classification === 'recovery',
+                target,
+                evaluation: command.evaluation,
+                utility:
+                  (behavior.classification === 'recovery'
+                    ? profile.recoverUtility
+                    : behavior.classification === 'utility'
+                      ? profile.guardUtility
+                      : profile.attackUtility) + utility,
+                stableKey: JSON.stringify([
+                  source.sourceInstanceId,
+                  behavior.id,
+                  targetKey(target),
+                ]),
+              },
+            ]
+          } catch {
+            return []
+          }
+        },
+      )
+    }),
+  )
 }
 
 export function committedMatureSkills(

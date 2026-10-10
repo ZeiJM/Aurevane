@@ -42,6 +42,7 @@ import {
   createSpectatorBattleViewerEntitlement,
 } from './battle-viewer-entitlement'
 import { createBattlePreviewService } from './battle-preview-service'
+import { createBattleAbortService } from './battle-abort-service'
 import type { CombatContentResolver } from '@/server/combat/combat-content-resolver'
 import type { AbilityDefinition } from '@aurevane/game-core/combat/combat-definition'
 import { convertV5ResonanceToV2 } from '@aurevane/game-core/combat/resonance-v2'
@@ -52,6 +53,122 @@ const CHARACTER_ID = '22222222-2222-4222-8222-222222222222'
 const SESSION_ID = '33333333-3333-4333-8333-333333333333'
 const CREATED_AT = '2026-09-04T03:45:00.000Z'
 const PLAYER_ID = `character:${CHARACTER_ID}`
+
+it('actual practice abort retains the exact archived source and truth without startup activation or maintenance', async () => {
+  const original = resolveEssenceForBuild('vanguard', null)!
+  const ability: AbilityDefinition = {
+    schemaVersion: 1,
+    behaviors: [
+      {
+        id: 'maintained',
+        activation: 'ongoing',
+        mode: 'modifier',
+        classification: 'attack',
+        attackFamily: 'physical',
+        costs: [],
+        cooldown: null,
+        requirements: null,
+        targeting: null,
+        effects: [
+          {
+            id: 'bonus',
+            payload: { type: 'damage-bonus', recipient: 'actor', multiplierBasisPoints: 15000 },
+          },
+        ],
+      },
+      ...(['manual', 'automatic'] as const).map((activation) => ({
+        id: activation === 'manual' ? 'heal' : 'initial',
+        activation,
+        mode: 'action' as const,
+        classification: 'recovery' as const,
+        costs: [{ resource: 'mp' as const, amount: 1 }],
+        cooldown: null,
+        activationLimits: ['once-per-battle' as const],
+        requirements: null,
+        targeting: {
+          kind: 'self' as const,
+          teamPolicy: 'self' as const,
+          friendlyFire: 'allies-only' as const,
+          shape: { kind: 'single' as const },
+          minimumRange: 0,
+          maximumRange: 0,
+          requiresLineOfSight: false,
+          maximumElevationDifference: null,
+          maximumSelections: 1,
+        },
+        effects: [
+          {
+            id: 'heal',
+            payload: { type: 'healing' as const, recipient: 'actor' as const, amount: 1 },
+          },
+        ],
+      })),
+    ],
+  }
+  const published = {
+    ...original,
+    contentVersion: 77,
+    skill: { ...original.skill, contentVersion: 77 },
+    ability,
+  }
+  const resolver: CombatContentResolver = {
+    resolveCurrentSkillDefinition: async (id) => resolveMatureSkillVersion(id),
+    resolvePinnedSkillDefinition: async (id, version) => resolveMatureSkillVersion(id, version),
+    resolveCurrentEssenceDefinition: async () => structuredClone(published),
+    resolvePinnedEssenceDefinition: async () => structuredClone(published),
+  }
+  const battles = battleRepository()
+  const service = createBattleSessionService({
+    characters: characterRepository(),
+    battles: battles.repository,
+    builds: buildRepository(pureSnapshot()).repository,
+    combatContentResolver: resolver,
+  })
+  await service.createSession({
+    userId: USER_ID,
+    characterId: CHARACTER_ID,
+    idempotencyKey: '88888888-8888-4888-8888-888888888888',
+  })
+  await service.submitIntent({
+    userId: USER_ID,
+    battleSessionId: SESSION_ID,
+    expectedBattleVersion: 1,
+    idempotencyKey: '77777777-7777-4777-8777-777777777777',
+    intent: {
+      kind: 'action',
+      actionId: original.essenceId,
+      behaviorId: 'heal',
+      target: { kind: 'self' },
+    },
+  })
+  const created = battles.record!.snapshot as BattleAuthoritativeEncounterState
+  expect(created.abilityRuntime!.usage).toHaveLength(2)
+  expect(created.abilityRuntime!.conditionTruth).toHaveLength(1)
+  expect(created.abilityRuntime!.maintained).toHaveLength(1)
+  battles.replaceSnapshot(JSON.parse(JSON.stringify(created)))
+  const view = await createBattleAbortService(battles.repository).abortPractice({
+    userId: USER_ID,
+    battleSessionId: SESSION_ID,
+    expectedBattleVersion: 2,
+    idempotencyKey: '99999999-9999-4999-8999-999999999999',
+  })
+  const saved = battles.record!.snapshot as BattleAuthoritativeEncounterState
+  expect(saved.tactical.battle.lifecycle).toBe('abandoned')
+  expect(saved.capturedAbilitySources).toEqual(created.capturedAbilitySources)
+  expect(saved.abilityRuntime!.maintained).toEqual([])
+  expect(saved.abilityRuntime!.usage).toEqual(created.abilityRuntime!.usage)
+  expect(saved.abilityRuntime!.conditionTruth).toEqual(created.abilityRuntime!.conditionTruth)
+  expect(saved.buildAuthority).toEqual(created.buildAuthority)
+  for (const key of Object.keys(created).filter(
+    (key) => key.endsWith('PolicyVersion') || key === 'effectTimingPolicy',
+  ))
+    expect(saved[key as keyof typeof saved]).toEqual(created[key as keyof typeof created])
+  expect(battles.commitBattleIntent).toHaveBeenCalledTimes(2)
+  expect(battles.commitBattleIntent.mock.calls[1]![0].events).toEqual([
+    expect.objectContaining({ event: 'battle_abandoned' }),
+  ])
+  expect(JSON.stringify(view)).not.toMatch(/capturedAbilitySources|abilityRuntime|sourceInstanceId/)
+})
 
 function characterRecord(): CharacterRecord {
   return {
@@ -227,7 +344,9 @@ function battleRepository() {
     }
   })
   const findBattleSession = vi.fn(async () => record)
-  const findBattleIntentReplay = vi.fn(async (): Promise<BattleSessionCommitRecord | null> => null)
+  const findBattleIntentReplay = vi.fn<BattleSessionRepository['findBattleIntentReplay']>(
+    async (): Promise<BattleSessionCommitRecord | null> => null,
+  )
   const commitBattleIntent = vi.fn(async (input: CommitBattleIntentInput) => {
     if (!record) throw new Error('Expected an existing battle session.')
     record = {
@@ -256,6 +375,7 @@ function battleRepository() {
     repository,
     createBattleSession,
     commitBattleIntent,
+    findBattleIntentReplay,
     get record() {
       return record
     },
@@ -327,6 +447,18 @@ it('creates immutable published Essence behaviors and uses their exact bundle th
         requirements: null,
         targeting: null,
         effects: [{ id: 'hit', payload: { type: 'damage', recipient: 'primary-unit', amount: 2 } }],
+      },
+      {
+        id: 'extra-z',
+        activation: 'manual',
+        mode: 'modifier',
+        classification: 'attack',
+        attackFamily: 'physical',
+        costs: [],
+        cooldown: null,
+        requirements: null,
+        targeting: null,
+        effects: [{ id: 'hit', payload: { type: 'damage', recipient: 'primary-unit', amount: 1 } }],
       },
       {
         id: 'start',
@@ -412,9 +544,28 @@ it('creates immutable published Essence behaviors and uses their exact bundle th
     actionId: original.essenceId,
     behaviorId: 'strike',
     target: { kind: 'unit' as const, combatantId: 'recruit:p2-4-1' },
-    manualModifiers: [{ sourceInstanceId: source.sourceInstanceId, behaviorId: 'extra' }],
+    manualModifiers: [
+      { sourceInstanceId: source.sourceInstanceId, behaviorId: 'extra-z' },
+      { sourceInstanceId: source.sourceInstanceId, behaviorId: 'extra' },
+    ],
   }
   const before = JSON.stringify(battles.record!.snapshot)
+  for (const manualModifiers of [
+    [intent.manualModifiers[0]!, intent.manualModifiers[0]!],
+    [{ sourceInstanceId: 'foreign.source', behaviorId: 'extra' }],
+  ]) {
+    await expect(
+      service.submitIntent({
+        userId: USER_ID,
+        battleSessionId: SESSION_ID,
+        expectedBattleVersion: 1,
+        idempotencyKey: '11111111-9999-4999-8999-999999999999',
+        intent: { ...intent, manualModifiers },
+      }),
+    ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
+    expect(battles.commitBattleIntent).not.toHaveBeenCalled()
+    expect(JSON.stringify(battles.record!.snapshot)).toBe(before)
+  }
   const preview = await createBattlePreviewService(battles.repository, resolver).previewIntent({
     userId: USER_ID,
     battleSessionId: SESSION_ID,
@@ -442,6 +593,24 @@ it('creates immutable published Essence behaviors and uses their exact bundle th
   expect(readPv1fActionEconomy(next)!.current).toBe(82)
   expect(next.capturedAbilitySources![0]!.definition).toEqual(ability)
   expect(next.abilityRuntime!.nextCommandSequence).toBe(2)
+  const committedInput = battles.commitBattleIntent.mock.calls[0]![0]
+  battles.findBattleIntentReplay.mockImplementation(async (retry) =>
+    retry.requestFingerprint === committedInput.requestFingerprint
+      ? { battleSessionId: SESSION_ID, battleVersion: 2, snapshot: next, committedAt: CREATED_AT }
+      : null,
+  )
+  const persistedBeforeReplay = JSON.stringify(battles.record!.snapshot)
+  const replay = await service.submitIntent({
+    userId: USER_ID,
+    battleSessionId: SESSION_ID,
+    expectedBattleVersion: 1,
+    idempotencyKey: '99999999-9999-4999-8999-999999999999',
+    intent: { ...intent, manualModifiers: [...intent.manualModifiers].reverse() },
+  })
+  expect(replay.replayed).toBe(true)
+  expect(battles.commitBattleIntent).toHaveBeenCalledTimes(1)
+  expect(JSON.stringify(battles.record!.snapshot)).toBe(persistedBeforeReplay)
+
   const publicView = await service.getSession(USER_ID, SESSION_ID)
   expect(JSON.stringify(publicView)).not.toMatch(
     /capturedAbilitySources|conditionTruth|accuracyRule|effectEligibleRecipientIds|abilityParticipants/,

@@ -2,6 +2,7 @@ import { omitCombatExecutionMetadata } from './battle-live-viewer-projection'
 import 'server-only'
 
 import type { BattleEventRecord } from '@aurevane/db/battle-session'
+import type { CombatEffectOrigin } from '@aurevane/game-core/combat/actions'
 import { combatStatusMetadata } from '@aurevane/game-core/combat/combat-effect-state'
 import {
   PV1F_COMBAT_CONTENT,
@@ -484,6 +485,8 @@ export function projectBattleHistoryForViewer(
   records: readonly BattleEventRecord[],
   journals: readonly BattleHistoryPrivacyJournal[],
   viewer: BattleViewerEntitlement,
+  /** Chronicle's reader may restore only a display reference verified against pinned authority. */
+  verifyDisplayOrigin?: (visibleRecord: BattleEventRecord) => CombatEffectOrigin | null,
 ): BattleEventRecord[] {
   const journalByVersion = new Map(
     journals.map((journal) => [journal.battleVersion, journal] as const),
@@ -597,6 +600,21 @@ export function projectBattleHistoryForViewer(
   return projected.map((record) => {
     const visible = replacements.get(record) ?? record
     const event = objectValue(visible.event)
-    return event ? { ...visible, event: omitCombatExecutionMetadata(event) } : visible
+    if (!event) return visible
+    const safeEvent = omitCombatExecutionMetadata(event)
+    const displayOrigin = event.effectOrigin ? verifyDisplayOrigin?.(visible) : null
+    return {
+      ...visible,
+      event: displayOrigin
+        ? {
+            ...safeEvent,
+            effectOrigin: {
+              family: displayOrigin.family,
+              contentId: displayOrigin.contentId,
+              contentVersion: displayOrigin.contentVersion,
+            },
+          }
+        : safeEvent,
+    }
   })
 }

@@ -3814,6 +3814,9 @@ function resolveActionEffects(
                 })
           }
         }
+        // Percentage DoTs stage even instant applications until original command damage is
+        // known. This scheduled ordinal remains authoritative for the settled provenance.
+        if (isPercentageDotEffect(effect)) options.settledEffectOrdinals?.add(effectOrdinal)
         const latestPending = nextState.pendingEffects![nextState.pendingEffects!.length - 1]!
         const pendingRows = pendingCombatStatusRows({
           tactical: nextState.tactical,
@@ -4318,7 +4321,7 @@ function resolveActionEffects(
       resolvedDamageOrdinals,
     )
     if (!resolvingPending) {
-      const settled = settlePercentageDotApplications(nextState)
+      const settled = settlePercentageDotApplications(nextState, undefined, options.nativeHooks)
       nextState = settled.state
       events.push(...settled.events)
       projections.push(...settled.projections)

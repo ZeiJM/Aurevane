@@ -1,4 +1,7 @@
 import { advanceCombatGroundAreas } from './combat-ground-areas'
+import { createCombatNativeAbilityRuntime } from './combat-ability-command'
+import { refreezeCapturedCombatAbilityState } from './combat-behavior-runtime'
+import { observeCombatNativeMutation } from './combat-native-mutations'
 import {
   createCombatEncounterState,
   executeCombatAction,
@@ -148,6 +151,7 @@ export function surrenderPvpCombatant(
     events.push({ event: 'battle_completed', winningTeamId })
   }
 
+  nextState = refreezeCapturedCombatAbilityState(nextState)
   assertValid(nextState)
   return { state: nextState, events }
 }
@@ -199,6 +203,7 @@ function timeoutTrackedTurn(
   }
 
   const hadActivity = hasPv1fTurnActivity(state)
+  const nativeHooks = createCombatNativeAbilityRuntime(state, PV1F_COMBAT_CONTENT)
   const nextStreak = hadActivity ? 0 : Math.min(2, streak.current + 1)
   let nextState = rebuildCombatant(state, {
     ...actor,
@@ -237,7 +242,14 @@ function timeoutTrackedTurn(
     if ((!statusApplied || statusApplied.event !== 'status_applied') && !statusPending) {
       throw new Error('Lowered Guard application did not produce a status event.')
     }
-    nextState = reattachStatDrivenCombatBridge(applied.state, nextState.statBridge)
+    const observed = observeCombatNativeMutation(nativeHooks, nextState, applied, {
+      actionId: APPLY_LOWERED_GUARD.id,
+      triggeringCombatantId: actor.id,
+      selectedCombatantId: actor.id,
+      affectedCombatantIds: [actor.id],
+    })
+    const settled = nativeHooks?.settleOutcomes?.(observed) ?? observed
+    nextState = reattachStatDrivenCombatBridge(settled.state, nextState.statBridge)
     if (options.loweredGuardDurationOwnerTurnStarts !== null && !nextState.effectTimingPolicy) {
       nextState = setStatusRemainingOwnerTurnStarts(
         nextState,
@@ -246,7 +258,7 @@ function timeoutTrackedTurn(
         options.loweredGuardDurationOwnerTurnStarts,
       )
     }
-    events.push(...applied.events)
+    events.push(...settled.events)
     events.push({
       event: options.loweredGuardEvent,
       combatantId: actor.id,
@@ -263,7 +275,7 @@ function timeoutTrackedTurn(
   )
   if (!placement) throw new Error('The timed-out combatant has no tactical placement.')
 
-  const ended = finishPv1fTurn(nextState, placement.facing)
+  const ended = finishPv1fTurn(nextState, placement.facing, false, nativeHooks)
   return {
     state: ended.state,
     events: [...events, ...ended.events],
@@ -345,7 +357,9 @@ function rebuildCombatant(
   }
   const tactical = createTacticalBattleState({ ...state.tactical, battle })
   const encounter = { ...state, ...createCombatEncounterState(tactical, state.statusState) }
-  const next = reattachStatDrivenCombatBridge(encounter, state.statBridge)
+  const next = refreezeCapturedCombatAbilityState(
+    reattachStatDrivenCombatBridge(encounter, state.statBridge),
+  )
   assertValid(next)
   return next
 }

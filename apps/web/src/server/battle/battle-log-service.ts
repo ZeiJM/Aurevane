@@ -16,7 +16,10 @@ import type { BattleNarratorIdentitySnapshot } from './battle-build-authority'
 import type { BattleHistoryPrivacyRepository } from './battle-history-privacy-authority'
 import { projectBattleHistoryForViewer } from './battle-history-privacy'
 import type { CombatContentResolver } from '../combat/combat-content-resolver'
-import { attachRecordedBattleLogSkillContext } from './battle-log-skill-context'
+import {
+  attachRecordedBattleLogSkillContext,
+  verifiedRecordedEffectOrigin,
+} from './battle-log-skill-context'
 
 export type BattleLogKind =
   'offense' | 'movement' | 'defense' | 'recovery' | 'status' | 'resource' | 'turn' | 'system'
@@ -1275,7 +1278,19 @@ export function createViewerSafeBattleLogService(
         battleSessionId,
         battleVersions,
       )
-      const projected = projectBattleHistoryForViewer(records, authority.journals, authority.viewer)
+      const projected = projectBattleHistoryForViewer(
+        records,
+        authority.journals,
+        authority.viewer,
+        authority.buildAuthority
+          ? (record) => {
+              const entry = buildBattleLogView(battleSessionId, [record]).entries[0]
+              return entry
+                ? verifiedRecordedEffectOrigin(entry, record, authority.buildAuthority!)
+                : null
+            }
+          : undefined,
+      )
       return attachRecordedBattleLogSkillContext(
         buildBattleLogView(battleSessionId, projected),
         projected,

@@ -204,7 +204,7 @@ export async function attachRecordedBattleLogSkillContext(
 }
 
 /** Origin attribution is a receipt, never guessed from matching amounts or current content. */
-function verifiedRecordedEffectOrigin(
+export function verifiedRecordedEffectOrigin(
   entry: BattleLogEntry,
   record: BattleEventRecord,
   authority: BattleBuildAuthoritySnapshot,

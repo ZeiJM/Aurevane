@@ -555,6 +555,26 @@ describe('recorded Battle Log Skill context', () => {
           },
           2,
         ),
+        record(
+          {
+            event: 'damage_applied',
+            sourceCombatantId: ACTOR,
+            targetCombatantId: OTHER,
+            actionId: SKILL,
+            amount: 1,
+            hpAfter: 91,
+            effectOrigin: {
+              family: 'resonance',
+              contentId: pinned.id,
+              contentVersion: 19,
+              sourceInstanceId: 'private-execution-source',
+              behaviorId: 'private-behavior',
+              effectId: 'private-effect',
+            },
+            abilityCommandFacts: { rootActionId: 'private-command' },
+          },
+          3,
+        ),
       ],
       async () => null,
       { build: authority, resolver: { resolvePinnedResonanceDefinition: lookup } },
@@ -573,6 +593,10 @@ describe('recorded Battle Log Skill context', () => {
       contentVersion: 19,
     })
     expect(result.entries[2]?.effectOrigin).toBeUndefined()
+    expect(result.entries[3]?.effectOrigin).toBeUndefined()
+    expect(JSON.stringify(result)).not.toMatch(
+      /private-execution-source|private-behavior|private-effect|private-command/,
+    )
     expect(JSON.stringify(result)).not.toContain('9999')
     lookup.mockClear()
     const hidden = await getLog(

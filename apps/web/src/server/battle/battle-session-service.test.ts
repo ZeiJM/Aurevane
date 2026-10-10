@@ -1,3 +1,4 @@
+import { PV1F_GUARD_ACTION_ID } from '@aurevane/game-core/combat/pv1f-action-economy'
 import type {
   BattleSessionCommitRecord,
   BattleSessionRepository,
@@ -106,7 +107,9 @@ function createBattleRepository() {
     },
   }))
   const findBattleSession = vi.fn(async (): Promise<BattleSessionRecord | null> => null)
-  const findBattleIntentReplay = vi.fn(async (): Promise<BattleSessionCommitRecord | null> => null)
+  const findBattleIntentReplay = vi.fn<BattleSessionRepository['findBattleIntentReplay']>(
+    async (): Promise<BattleSessionCommitRecord | null> => null,
+  )
   const commitBattleIntent = vi.fn(async (input: CommitBattleIntentInput) => ({
     replayed: false,
     result: {
@@ -855,6 +858,35 @@ describe('P2.4 battle session service', () => {
         },
       }),
     ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
+    expect(battles.commitBattleIntent).not.toHaveBeenCalled()
+  })
+
+  it('uses the historical fingerprint for an omitted or empty Manual modifier set on a stale replay', async () => {
+    const { battles, service, record, persistedSnapshot } = await createPersistedFixture()
+    battles.findBattleSession.mockResolvedValue({ ...record, battleVersion: 2 })
+    battles.findBattleIntentReplay.mockResolvedValue({
+      battleSessionId: SESSION_ID,
+      battleVersion: 2,
+      snapshot: persistedSnapshot,
+      committedAt: CREATED_AT,
+    })
+    const intent = {
+      kind: 'action' as const,
+      actionId: PV1F_GUARD_ACTION_ID,
+      target: { kind: 'self' as const },
+    }
+    const command = {
+      userId: USER_ID,
+      battleSessionId: SESSION_ID,
+      expectedBattleVersion: 1,
+      idempotencyKey: '77777777-7777-4777-8777-777777777777',
+      intent,
+    }
+    await service.submitIntent(command)
+    await service.submitIntent({ ...command, intent: { ...intent, manualModifiers: [] } })
+    expect(battles.findBattleIntentReplay.mock.calls[1]![0].requestFingerprint).toBe(
+      battles.findBattleIntentReplay.mock.calls[0]![0].requestFingerprint,
+    )
     expect(battles.commitBattleIntent).not.toHaveBeenCalled()
   })
 

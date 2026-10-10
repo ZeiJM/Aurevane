@@ -200,6 +200,21 @@ function persistenceInvalid(): AurevaneError {
   return new AurevaneError('PERSISTENCE_UNAVAILABLE', 'The stored battle state is invalid.')
 }
 
+function fingerprintBattleIntent(intent: BattleIntent): BattleIntent {
+  if (intent.kind !== 'action') return intent
+  const { manualModifiers, ...root } = intent
+  if (!manualModifiers?.length) return root
+  const compare = (left: string, right: string) => (left < right ? -1 : left > right ? 1 : 0)
+  return {
+    ...root,
+    manualModifiers: [...manualModifiers].sort(
+      (left, right) =>
+        compare(left.sourceInstanceId, right.sourceInstanceId) ||
+        compare(left.behaviorId, right.behaviorId),
+    ),
+  }
+}
+
 function fingerprint(value: unknown): string {
   return `sha256:${createHash('sha256').update(JSON.stringify(value)).digest('hex')}`
 }
@@ -884,7 +899,7 @@ export function createBattleSessionService({
         command: 'battle.intent.v3',
         battleSessionId: command.battleSessionId,
         expectedBattleVersion: command.expectedBattleVersion,
-        intent: command.intent,
+        intent: fingerprintBattleIntent(command.intent),
       })
 
       if (current.battleVersion !== command.expectedBattleVersion) {

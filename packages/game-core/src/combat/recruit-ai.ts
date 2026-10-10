@@ -27,7 +27,7 @@ export type RecruitAiDifficulty = 'easy' | 'standard' | 'high'
 
 export type RecruitAiIntent =
   | { kind: 'move'; path: readonly GridPosition[] }
-  | { kind: 'action'; actionId: string; target: CombatTargetSelection }
+  | { kind: 'action'; actionId: string; behaviorId?: string; target: CombatTargetSelection }
   | { kind: 'face'; facing: BattleFacing }
   | { kind: 'end-turn' }
 

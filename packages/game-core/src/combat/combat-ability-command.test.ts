@@ -87,6 +87,68 @@ function command(
   }
 }
 
+it('actual immediate percentage Poison settlement emits one witnessed Automatic child', () => {
+  const input = command(100, 20, {
+    effects: [
+      { id: 'hit', payload: { type: 'damage', recipient: 'primary-unit', amount: 10 } },
+      {
+        id: 'poison',
+        payload: {
+          type: 'poison',
+          recipient: 'primary-unit',
+          durationTurns: 2,
+          damageProfile: { kind: 'attack-percentage', basisPoints: 1500 },
+        },
+      },
+    ],
+  })
+  const automatic = captureCombatAbilitySource({
+    ...source(
+      {
+        id: 'poison-witness',
+        activation: 'automatic',
+        classification: 'recovery',
+        attackFamily: undefined,
+        costs: [{ resource: 'mp', amount: 1 }],
+        requirements: {
+          kind: 'all',
+          children: [
+            { kind: 'event', eventType: 'persistent_effect_applied', phase: 'after' },
+            { kind: 'status-presence', subject: 'owner', statusId: 'poison', present: true },
+          ],
+        },
+        targeting: {
+          kind: 'self',
+          teamPolicy: 'self',
+          friendlyFire: 'allies-only',
+          shape: { kind: 'single' },
+          minimumRange: 0,
+          maximumRange: 0,
+          requiresLineOfSight: false,
+          maximumElevationDifference: null,
+          maximumSelections: 1,
+        },
+        effects: [{ id: 'heal', payload: { type: 'healing', recipient: 'actor', amount: 1 } }],
+      },
+      'poison-witness',
+    ),
+    ownerCombatantId: 'enemy',
+    abilityId: 'poison.witness',
+  })
+  const state = reconcileCombatAbilitySources(input.state, [
+    ...input.state.capturedAbilitySources!,
+    automatic,
+  ])
+  const out = commitCombatAbilityCommand({ ...input, state, manualModifiers: undefined })
+  expect(out.state.effectState!.poison).toHaveLength(1)
+  expect(
+    out.events
+      .filter((event) => event.event === 'combat_action_used')
+      .map((event) => event.actionId),
+  ).toEqual(['test.ability', 'poison.witness'])
+  expect(out.state.tactical.battle.combatants.find((unit) => unit.id === 'enemy')!.mp).toBe(19)
+})
+
 describe('one atomic captured Ability command', () => {
   it('preview forecasts maintained contributions from the same post-payment state as commit', () => {
     const input = command(20, 20)

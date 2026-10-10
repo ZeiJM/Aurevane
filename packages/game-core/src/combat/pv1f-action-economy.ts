@@ -1,4 +1,7 @@
-import { observeCombatNativeMutation } from './combat-native-mutations'
+import {
+  observeCombatNativeMutation,
+  type CombatNativeExecutionHooks,
+} from './combat-native-mutations'
 import {
   prepareNativePv1fTurn,
   PV1F_ACTION_ECONOMY_MAXIMUM,
@@ -1659,9 +1662,9 @@ export function validatePv1fFinalFacing(
   state: StatDrivenCombatEncounterState,
   facing: BattleFacing,
 ): void {
-  const prepared = preparePv1fTurnEconomy(state)
-  const actorId = prepared.tactical.battle.currentTurn?.combatantId ?? null
-  const defeated = actorId !== null && getCombatant(prepared, actorId).hp <= 0
+  const actorId = state.tactical.battle.currentTurn?.combatantId ?? null
+  const defeated = actorId !== null && getCombatant(state, actorId).hp <= 0
+  const prepared = defeated ? state : preparePv1fTurnEconomy(state)
   if (
     !defeated &&
     prepared.elementalDamagePolicyVersion !== undefined &&
@@ -1676,16 +1679,19 @@ export function finishPv1fTurn(
   state: StatDrivenCombatEncounterState,
   facing: BattleFacing,
   outgoingDefeatedAtTurnEnd = false,
+  nativeHooks?: CombatNativeExecutionHooks,
 ): Pv1fTransition {
-  const prepared = preparePv1fTurnEconomy(state)
-  const outgoingCombatantId = prepared.tactical.battle.currentTurn?.combatantId ?? null
+  const outgoingCombatantId = state.tactical.battle.currentTurn?.combatantId ?? null
+  const outgoingDefeated =
+    outgoingCombatantId !== null && getCombatant(state, outgoingCombatantId).hp <= 0
+  // Defeated active actors enter the existing turn-end cleanup without a fresh
+  // economy preparation. endCombatTurn still validates the remaining state.
+  const prepared = outgoingDefeated ? state : preparePv1fTurnEconomy(state)
   const outgoingWasSummon =
     outgoingCombatantId !== null &&
     (normalizeCombatEffectState(prepared.effectState).summons ?? []).some(
       (summon) => summon.combatantId === outgoingCombatantId,
     )
-  const outgoingDefeated =
-    outgoingCombatantId !== null && getCombatant(prepared, outgoingCombatantId).hp <= 0
   validatePv1fFinalFacing(prepared, facing)
   const selected = outgoingDefeated
     ? { state: prepared.tactical, events: [] }
@@ -1700,7 +1706,7 @@ export function finishPv1fTurn(
     encounter,
     PV1F_COMBAT_CONTENT,
     outgoingDefeatedAtTurnEnd || outgoingDefeated,
-    createCombatNativeAbilityRuntime(encounter, PV1F_COMBAT_CONTENT),
+    nativeHooks ?? createCombatNativeAbilityRuntime(encounter, PV1F_COMBAT_CONTENT),
   )
   let bridged = reattachStatDrivenCombatBridge(
     ended.state,

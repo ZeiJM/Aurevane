@@ -1,14 +1,19 @@
 import 'server-only'
+import { buildBattlePrivacyJournalInput } from './battle-history-privacy'
 
 import { createHash } from 'node:crypto'
 
 import type { BattleSessionRecord, BattleSessionRepository } from '@aurevane/db/battle-session'
 import type { BattleFacing } from '@aurevane/game-core/combat/battle-state'
-import { finishPv1fTurn } from '@aurevane/game-core/combat/pv1f-action-economy'
+import {
+  finishPv1fTurn,
+  validatePv1fFinalFacing,
+} from '@aurevane/game-core/combat/pv1f-action-economy'
 import {
   validateStatDrivenCombatEncounterState,
   type StatDrivenCombatEncounterState,
 } from '@aurevane/game-core/combat/stat-driven-combat'
+import { refreezeCapturedCombatAbilityState } from '@aurevane/game-core/combat/combat-behavior-runtime'
 import { AurevaneError, StaleBattleVersionError } from '@aurevane/game-core/errors'
 import { createBattleSessionChangedInvalidation } from '@aurevane/realtime'
 
@@ -81,7 +86,7 @@ function readPersistedEncounter(record: BattleSessionRecord): BuildExtendedEncou
     ) {
       throw persistenceInvalid()
     }
-    return candidate
+    return refreezeCapturedCombatAbilityState(candidate)
   } catch (error) {
     if (error instanceof AurevaneError) throw error
     throw persistenceInvalid()
@@ -171,7 +176,7 @@ export function createBattleFinalTurnService(
       const state = readPersistedEncounter(record)
       assertControlledTurn(state, record.controlledCombatantIds)
       try {
-        resolveFinalTurn(state, command.facing)
+        validatePv1fFinalFacing(state, command.facing)
         return {
           battleSessionId: record.battleSessionId,
           battleVersion: record.battleVersion,
@@ -249,7 +254,14 @@ export function createBattleFinalTurnService(
         nextSnapshot: nextState,
         events: resolved.events,
 
-        privacyJournal: null,
+        privacyJournal: state.capturedAbilitySources?.length
+          ? buildBattlePrivacyJournalInput({
+              before: state,
+              after: nextState,
+              commandKind: 'face',
+              events: resolved.events,
+            })
+          : null,
       })
 
       return {

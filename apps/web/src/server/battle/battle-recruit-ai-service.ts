@@ -35,7 +35,9 @@ import { AurevaneError, StaleBattleVersionError } from '@aurevane/game-core/erro
 import type { CombatContentResolver } from '@/server/combat/combat-content-resolver'
 import { createServerCombatContentResolver } from '@/server/combat/combat-content-resolver'
 import {
-  resolveBattleDisciplineSkillDefinitions,
+  resolveBattleDisciplineSkillDefinition,
+  battleBuildAuthorityForCombatant,
+  capturedBattleActionSource,
   resolvePinnedBattleEssenceDefinition,
   type BattleBuildAuthoritySnapshot,
 } from './battle-build-authority'
@@ -138,7 +140,9 @@ function resolveRecruitIntent(
     if (intent.kind === 'action') {
       return summon
         ? executePv1fSummonAbility(state, summon, intent.actionId, intent.target)
-        : executeBuildAwareRecruitAiAction(state, intent.actionId, intent.target, skillOptions)
+        : executeBuildAwareRecruitAiAction(state, intent.actionId, intent.target, skillOptions, {
+            behaviorId: intent.behaviorId,
+          })
     }
     if (intent.kind === 'face') return finishPv1fTurn(state, intent.facing)
 
@@ -174,11 +178,34 @@ async function resolveRecruitSkillOptions(
   if (!authority) return {}
   if (!resolver) throw persistenceInvalid('Published combat content resolver is unavailable.')
 
-  const regular = await resolveBattleDisciplineSkillDefinitions(authority, actorId, resolver)
-  if (regular === null) return { committedSkills: [] }
-
-  const essence = await resolvePinnedBattleEssenceDefinition(authority, actorId, resolver)
-  return { committedSkills: essence ? [...regular, essenceCombatSkill(essence)] : [...regular] }
+  const build = battleBuildAuthorityForCombatant(authority, actorId)
+  if (!build) return { committedSkills: [], canonicalSources: [] }
+  const canonicalSources = (state.capturedAbilitySources ?? []).filter(
+    (source) =>
+      source.ownerCombatantId === actorId &&
+      capturedBattleActionSource(state, authority, actorId, source.abilityId) === source,
+  )
+  const regular = []
+  for (const reference of build.disciplineSkills) {
+    if (canonicalSources.some((source) => source.abilityId === reference.skillId)) continue
+    const definition = await resolveBattleDisciplineSkillDefinition(
+      authority,
+      actorId,
+      reference.skillId,
+      resolver,
+    )
+    if (!definition) throw persistenceInvalid('Pinned AI Skill definition is unavailable.')
+    regular.push(definition)
+  }
+  const essence =
+    build.extensions.essence &&
+    !canonicalSources.some((source) => source.abilityId === build.extensions.essence!.skillId)
+      ? await resolvePinnedBattleEssenceDefinition(authority, actorId, resolver)
+      : null
+  return {
+    committedSkills: essence ? [...regular, essenceCombatSkill(essence)] : regular,
+    canonicalSources,
+  }
 }
 
 function recruitDifficultyForActor(

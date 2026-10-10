@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
 import { createCombatEncounterState } from './actions'
+import { captureCombatAbilitySource } from './combat-behavior-capture'
+import { reconcileCombatAbilitySources } from './combat-behavior-runtime'
+import { source } from './combat-behavior.test-utils'
 import { createPendingBattle, startBattle } from './battle-state'
 import { createTacticalBattleState } from './board'
 import {
@@ -19,6 +22,7 @@ import {
   PVP_LOWERED_GUARD_STATUS_ID,
   timeoutAiTurn,
   timeoutPvpTurn,
+  surrenderPvpCombatant,
 } from './pvp-quality'
 import {
   createStatDrivenCombatEncounterState,
@@ -149,6 +153,116 @@ function expectLoweredGuardDamage(
 }
 
 describe('battle turn quality rules', () => {
+  it.each([
+    ['pvp', 'instant'],
+    ['ai', 'instant'],
+    ['pvp', 'next-round'],
+    ['ai', 'next-round'],
+  ] as const)(
+    'observes the real %s timeout Lowered Guard only on its %s status settlement',
+    (kind, timing) => {
+      const initial = {
+        ...encounter(kind),
+        effectTimingPolicy: { version: 1 as const, modes: { 'lowered-guard': timing } },
+      }
+      const automatic = captureCombatAbilitySource({
+        ...source({
+          id: 'lowered-witness',
+          activation: 'automatic',
+          classification: 'recovery',
+          attackFamily: undefined,
+          costs: [{ resource: 'mp', amount: 1 }],
+          requirements: {
+            kind: 'all',
+            children: [
+              { kind: 'event', eventType: 'status_applied', phase: 'after' },
+              {
+                kind: 'status-presence',
+                subject: 'owner',
+                statusId: 'lowered-guard',
+                present: true,
+              },
+            ],
+          },
+          targeting: {
+            kind: 'self',
+            teamPolicy: 'self',
+            friendlyFire: 'allies-only',
+            shape: { kind: 'single' },
+            minimumRange: 0,
+            maximumRange: 0,
+            requiresLineOfSight: false,
+            maximumElevationDifference: null,
+            maximumSelections: 1,
+          },
+          effects: [{ id: 'heal', payload: { type: 'healing', recipient: 'actor', amount: 1 } }],
+        }),
+        ownerCombatantId: 'player',
+      })
+      const state = reconcileCombatAbilitySources(initial, [automatic]) as typeof initial
+      const first = kind === 'ai' ? timeoutAiTurn(state) : timeoutPvpTurn(state)
+      if (timing === 'next-round') {
+        expect(
+          first.events.filter(
+            (event) => (event as { actionId?: string }).actionId === automatic.abilityId,
+          ),
+        ).toEqual([])
+        expect(
+          first.state.tactical.battle.combatants.find((unit) => unit.id === 'player')!.mp,
+        ).toBe(20)
+      }
+      const out = timing === 'instant' ? first : finishPv1fTurn(first.state, 'west')
+      expect(
+        out.events.filter(
+          (event) =>
+            (event as { event: string; actionId?: string }).event === 'combat_action_used' &&
+            (event as { actionId?: string }).actionId === automatic.abilityId,
+        ),
+      ).toEqual([expect.objectContaining({ actionId: automatic.abilityId })])
+      expect(out.state.tactical.battle.combatants.find((unit) => unit.id === 'player')!.mp).toBe(19)
+      if (timing === 'instant')
+        expect(
+          out.events.findIndex(
+            (event) => (event as { actionId?: string }).actionId === automatic.abilityId,
+          ),
+        ).toBeLessThan(
+          out.events.findIndex((event) => (event as { event: string }).event === 'turn_ended'),
+        )
+    },
+  )
+
+  it('terminal surrender preserves immutable source archives and clears maintained contributions without activation', () => {
+    const initial = encounter()
+    const ongoing = captureCombatAbilitySource({
+      ...source({
+        id: 'maintained',
+        activation: 'ongoing',
+        mode: 'modifier',
+        costs: [],
+        targeting: null,
+        effects: [
+          {
+            id: 'bonus',
+            payload: { type: 'damage-bonus', recipient: 'actor', multiplierBasisPoints: 15000 },
+          },
+        ],
+      }),
+      ownerCombatantId: 'opponent',
+    })
+    const state = reconcileCombatAbilitySources(initial, [ongoing]) as typeof initial
+    expect(state.abilityRuntime!.maintained).toHaveLength(1)
+    const out = surrenderPvpCombatant(JSON.parse(JSON.stringify(state)) as typeof state, 'opponent')
+    expect(out.state.tactical.battle.lifecycle).toBe('completed')
+    expect(out.state.capturedAbilitySources).toEqual(state.capturedAbilitySources)
+    expect(out.state.abilityRuntime!.maintained).toEqual([])
+    expect(Object.isFrozen(out.state.capturedAbilitySources![0]!.definition)).toBe(true)
+    expect(out.state.abilityRuntime!.usage).toEqual(state.abilityRuntime!.usage)
+    expect(out.state.abilityRuntime!.conditionTruth).toEqual(state.abilityRuntime!.conditionTruth)
+    expect(out.events).toEqual([
+      { event: 'pvp_combatant_surrendered', combatantId: 'opponent' },
+      { event: 'battle_completed', winningTeamId: 'team:0' },
+    ])
+  })
   it.each(['pvp', 'ai'] as const)(
     'does not count a preview, rejected command or passive AP loss as %s activity',
     (kind) => {

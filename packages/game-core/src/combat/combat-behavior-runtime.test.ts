@@ -18,6 +18,7 @@ import {
 } from './pv1f-action-economy'
 import {
   activateCombatAbility,
+  combatAbilityCommandContext,
   evaluateCombatAbility,
   reconcileCombatAbilitySources,
   type CombatAbilityActivationInput,
@@ -493,6 +494,77 @@ describe('canonical behavior runtime', () => {
     expect(next.tactical.battle.currentTurn!.combatantId).toBe('actor')
     expect(evaluateCombatAbility({ ...command, state: next, context: second }).legal).toBe(true)
   })
+  it.each([
+    { activationLimits: ['once-per-round'] },
+    { activationLimits: ['once-per-owner-turn'] },
+    { activationLimits: ['once-per-round', 'once-per-owner-turn'] },
+  ] as const)(
+    'once_limit_epoch keeps two owners independent through actual rounds and JSON reconnect: %j',
+    ({ activationLimits }) => {
+      const owned = (ownerCombatantId: string) =>
+        captureCombatAbilitySource({
+          ...source(
+            {
+              activationLimits,
+              accuracy: { kind: 'fixed', chanceBasisPoints: 10000 },
+              costs: [{ resource: 'mp', amount: 1 }],
+            },
+            `source-${ownerCombatantId}`,
+          ),
+          ownerCombatantId,
+        })
+      const a = owned('actor'),
+        b = owned('enemy')
+      let state = reconcileCombatAbilitySources(input().state, [a, b])
+      const command = (owner: typeof a) => ({
+        ...input(),
+        state,
+        actorId: owner.ownerCombatantId,
+        source: owner,
+        selection: { kind: 'unit' as const, combatantId: owner === a ? 'enemy' : 'actor' },
+        context: combatAbilityCommandContext(state, owner),
+      })
+      const assertBlockedWithoutPayment = (owner: typeof a) => {
+        const before = JSON.stringify(state)
+        expect(evaluateCombatAbility(command(owner)).issues).toContainEqual(
+          expect.objectContaining({ code: 'activation-limit' }),
+        )
+        expect(() => activateCombatAbility(command(owner))).toThrow()
+        expect(JSON.stringify(state)).toBe(before)
+      }
+      state = activateCombatAbility(command(a)).state
+      state = JSON.parse(JSON.stringify(state))
+      const actorEpoch = state.abilityRuntime!.usage[0]!.ownerCycle
+      const firstRound = state.tactical.battle.round
+      assertBlockedWithoutPayment(a)
+      state = finishPv1fTurn(state as never, 'west').state
+      expect(state.tactical.battle.currentTurn!.combatantId).toBe('enemy')
+      expect(state.tactical.battle.round).toBe(firstRound)
+      expect(
+        state.turnTriggerState!.combatants.find((row) => row.combatantId === 'actor')!.cycle,
+      ).toBe(actorEpoch)
+      expect(evaluateCombatAbility(command(b)).legal).toBe(true)
+      state = activateCombatAbility(command(b)).state
+      state = JSON.parse(JSON.stringify(state))
+      expect(state.abilityRuntime!.usage).toHaveLength(2)
+      expect(new Set(state.abilityRuntime!.usage.map((row) => row.key)).size).toBe(2)
+      assertBlockedWithoutPayment(b)
+      for (let count = 0; count < 3; count++) state = finishPv1fTurn(state as never, 'west').state
+      expect(state.tactical.battle.currentTurn!.combatantId).toBe('actor')
+      expect(state.tactical.battle.round).toBe(firstRound + 1)
+      expect(evaluateCombatAbility(command(a)).legal).toBe(true)
+      state = activateCombatAbility(command(a)).state
+      assertBlockedWithoutPayment(a)
+      state = finishPv1fTurn(state as never, 'west').state
+      expect(evaluateCombatAbility(command(b)).legal).toBe(true)
+      state = activateCombatAbility(command(b)).state
+      assertBlockedWithoutPayment(b)
+      for (const id of ['actor', 'enemy'])
+        expect(state.tactical.battle.combatants.find((row) => row.id === id)!.mp).toBe(18)
+      expect(state.abilityRuntime!.usage).toHaveLength(2)
+      expect(state.abilityRuntime!.usage.every((row) => row.round === firstRound + 1)).toBe(true)
+    },
+  )
   it('Automatic explicit actor authority resolves real out-of-turn Reflect without changing turn ownership', () => {
     const command = input()
     const auto = captureCombatAbilitySource({

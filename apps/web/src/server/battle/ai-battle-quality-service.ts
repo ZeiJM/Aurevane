@@ -1,6 +1,8 @@
 import 'server-only'
+import { buildBattlePrivacyJournalInput } from './battle-history-privacy'
 
 import { createHash, randomUUID } from 'node:crypto'
+import { refreezeCapturedCombatAbilityState } from '@aurevane/game-core/combat/combat-behavior-runtime'
 
 import {
   prepareAiQualityCombatant,
@@ -76,7 +78,7 @@ function readEncounter(value: unknown): BuildExtendedEncounterState {
   const state = value as unknown as BuildExtendedEncounterState
   const issues = validateStatDrivenCombatEncounterState(state)
   if (issues.length > 0) throw unavailable('The stored AI battle state is invalid.')
-  return state
+  return refreezeCapturedCombatAbilityState(state)
 }
 
 function preserveFrozenBuildMetadata(
@@ -189,7 +191,14 @@ export async function tickAiTurnClock(
       nextSnapshot: nextState,
       events: resolved.events,
 
-      privacyJournal: null,
+      privacyJournal: state.capturedAbilitySources?.length
+        ? buildBattlePrivacyJournalInput({
+            before: state,
+            after: nextState,
+            commandKind: 'system',
+            events: resolved.events,
+          })
+        : null,
     })
   } catch (error) {
     if (!(error instanceof StaleBattleVersionError)) throw error

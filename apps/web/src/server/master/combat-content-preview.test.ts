@@ -1,3 +1,4 @@
+import type { AbilityDefinition } from '@aurevane/game-core/combat/combat-definition'
 import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
@@ -262,4 +263,47 @@ describe('Master Panel combat content preview', () => {
     expect(JSON.stringify(preview)).not.toContain('covertPresent')
     expect(preview.simulation.rngConsumed).toBe(false)
   })
+})
+
+it('uses selected canonical behavior geometry and keeps raw execution origin out of actual authoring preview receipts', () => {
+  const original = structuredClone(resolveMatureSkillVersion('vanguard.forceful-strike')!)
+  const ability: AbilityDefinition = {
+    schemaVersion: 1,
+    behaviors: [
+      {
+        id: 'restore',
+        activation: 'manual',
+        mode: 'action',
+        classification: 'recovery',
+        costs: [
+          { resource: 'ap', amount: 3 },
+          { resource: 'mp', amount: 2 },
+        ],
+        cooldown: null,
+        requirements: null,
+        targeting: {
+          kind: 'self',
+          teamPolicy: 'self',
+          friendlyFire: 'allies-only',
+          shape: { kind: 'single' },
+          minimumRange: 0,
+          maximumRange: 0,
+          requiresLineOfSight: false,
+          maximumElevationDifference: null,
+          maximumSelections: 1,
+        },
+        effects: [{ id: 'heal', payload: { type: 'healing', recipient: 'actor', amount: 1 } }],
+      },
+    ],
+  }
+  const definition = { ...original, ability }
+  const before = JSON.stringify(definition)
+  const preview = previewCombatContentDefinition(definition, { behaviorId: 'restore' })
+  expect(preview.legal).toBe(true)
+  expect(preview.targeting.selection).toEqual({ kind: 'self' })
+  expect(preview.costs).toMatchObject({ actionEconomy: 3, mp: 2 })
+  expect(JSON.stringify(preview)).not.toMatch(
+    /effectOrigin|sourceInstanceId|abilityParticipants|sourceCommandVisibility/,
+  )
+  expect(JSON.stringify(definition)).toBe(before)
 })
