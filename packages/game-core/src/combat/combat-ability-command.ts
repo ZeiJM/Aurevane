@@ -1,3 +1,4 @@
+import { prepareNativePv1fTurn } from './pv1f-turn-preparation'
 import type { CombatNativeExecutionHooks } from './combat-native-mutations'
 import {
   evaluateCombatAction,
@@ -17,6 +18,7 @@ import {
   type CapturedCombatAbilitySource,
 } from './combat-behavior-capture'
 import {
+  combatAbilityCommandContext,
   combatAbilityBehavior,
   combatAbilitySubject,
   materializeCombatAbilityAction,
@@ -195,7 +197,7 @@ export function combatAbilityParticipantIssues(
   )
     issues.push({ code: 'source-owner-mismatch', message: 'Captured source is inactive.' })
   const key = combatAbilityUsageKey(input.state, source, behavior),
-    rootActionId = input.context.provenance.triggerChainId
+    rootActionId = input.trigger?.rootActionId ?? input.context.provenance.triggerChainId
   const usage = input.state.abilityRuntime?.usage.find((row) => row.key === key)
   const commandId = participant.triggerId
     ? JSON.stringify([rootActionId, participant.triggerId])
@@ -545,7 +547,7 @@ export function commitCombatAbilityCommand(
       ...usage.filter((row) => row.key !== key),
       {
         key,
-        rootActionId: prepared.context.provenance.triggerChainId,
+        rootActionId: input.trigger?.rootActionId ?? prepared.context.provenance.triggerChainId,
         commandId: participant.triggerId
           ? JSON.stringify([prepared.context.provenance.triggerChainId, participant.triggerId])
           : prepared.context.provenance.triggerChainId,
@@ -596,6 +598,7 @@ export function commitCombatAbilityCommand(
     tags: prepared.action.tags,
   }
   const facts = {
+    rootActionId: input.trigger?.rootActionId ?? context.provenance.triggerChainId,
     actionFacts,
     triggeringCombatantId: input.actorId,
     selectedCombatantId: prepared.evaluation.primaryCombatantId ?? undefined,
@@ -719,6 +722,15 @@ export function commitCombatAbilityCommand(
     }
   }
   const nativeHooks: CombatNativeExecutionHooks = {
+    commandFacts: (actionId) =>
+      actionId === prepared.action.id
+        ? {
+            rootActionId: facts.rootActionId,
+            actionFacts,
+            selectedCombatantId: facts.selectedCombatantId,
+          }
+        : undefined,
+    prepareIncoming: (state) => prepareNativePv1fTurn(state, true),
     getGuard: () => session.guard,
     setGuard: (value) => {
       session.guard = value
@@ -839,4 +851,92 @@ export function commitCombatAbilityCommand(
       ...out.events,
     ],
   }
+}
+
+/** Internal native boundary driver. Each invocation owns its queue; nested commands retain theirs. */
+export function createCombatNativeAbilityRuntime(
+  state: CombatEncounterState,
+  content: CombatContentCatalog,
+) {
+  const source = state.capturedAbilitySources?.find(
+    (source) =>
+      state.abilityRuntime?.activeSourceIds.includes(source.sourceInstanceId) &&
+      source.definition.behaviors.some(
+        (behavior) => behavior.activation === 'automatic' && behavior.mode === 'action',
+      ),
+  )
+  if (!source) return undefined
+  const context = combatAbilityCommandContext(state, source)
+  const session = createCombatAbilityEventSession(context.triggerGuard)
+  const queue: CombatAbilityEventFrame[] = []
+  const identity = JSON.stringify([
+    'native-boundary',
+    state.tactical.battle.battleId,
+    state.tactical.battle.turnNumber,
+  ])
+  const hooks: CombatNativeExecutionHooks = {
+    getGuard: () => session.guard,
+    setGuard: (guard) => {
+      session.guard = guard
+    },
+    prepareIncoming: (state) => prepareNativePv1fTurn(state, true),
+    observeMutation: (before, transition, facts) => {
+      const after = reconcileCombatAbilitySources(
+        transition.state,
+        (transition.state.capturedAbilitySources ?? []).filter((source) =>
+          transition.state.abilityRuntime?.activeSourceIds.includes(source.sourceInstanceId),
+        ),
+      )
+      const mutation = captureCombatAbilityMutation(before, after, identity, session, {
+        ...facts,
+        events: transition.events.flatMap((event) =>
+          automaticAbilityEventSupported(event.event, 'after') &&
+          !(event.event === 'damage_applied' && event.amount === 0)
+            ? [{ type: event.event as AutomaticAbilityEventType, phase: 'after' as const }]
+            : [],
+        ),
+        resourceMutations: after.tactical.battle.combatants.flatMap((unit) => {
+          const old = combatAbilitySubject(before, unit.id),
+            next = combatAbilitySubject(after, unit.id)
+          const resources = (['ap', 'mp', 'hp'] as const).filter(
+            (resource) => old && old.resources?.[resource] !== next?.resources?.[resource],
+          )
+          return resources.length ? [{ combatantId: unit.id, resources }] : []
+        }),
+      })
+      queue.push(mutation.frame)
+      return mutation.state
+    },
+    settleOutcomes: (transition) => {
+      let state = transition.state
+      const events = [...transition.events]
+      while (queue.length) {
+        const out = processCombatAbilityEvent(
+          state,
+          queue.shift()!,
+          content,
+          context,
+          session,
+          0,
+          (child) => {
+            if (prepareCombatAbilityCommand(child).evaluation.legal)
+              return commitCombatAbilityCommand(child)
+            return {
+              state: child.state,
+              events: [],
+              resolution: {
+                pipelineVersion: COMBAT_RESOLUTION_PIPELINE_VERSION,
+                provenance: child.context.provenance,
+                triggerGuard: session.guard,
+              },
+            }
+          },
+        )
+        state = out.state
+        events.push(...out.events)
+      }
+      return { state, events }
+    },
+  }
+  return hooks
 }

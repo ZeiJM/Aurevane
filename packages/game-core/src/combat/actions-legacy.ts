@@ -1,6 +1,7 @@
 import {
   observeCombatNativeMutation,
   type CombatNativeExecutionHooks,
+  type CombatNativeMutationFacts,
 } from './combat-native-mutations'
 import { validateCombatAbilityState } from './combat-ability-state'
 import {
@@ -462,6 +463,10 @@ interface CapturedElementalApplication {
 }
 
 export interface PendingCombatEffect {
+  abilityCommandFacts?: Pick<
+    CombatNativeMutationFacts,
+    'actionFacts' | 'selectedCombatantId' | 'rootActionId'
+  >
   commandDamageBonuses?: readonly CombatCommandDamageBonus[]
   /** Effective canonical packet timing is pinned independently of historical global policy. */
   timingMode?: 'instant' | 'next-round' | 'delayed'
@@ -1552,6 +1557,7 @@ export function defeatCombatActionActor(
       ? { ...nativeDefeated, abilityRuntime: observedDefeat.abilityRuntime }
       : nativeDefeated,
     state.tactical.battle.round,
+    nativeHooks,
   )
   const events: CombatResolutionEvent[] = [
     ...defeated.events,
@@ -1561,12 +1567,31 @@ export function defeatCombatActionActor(
   const settled = settleDynamicRoundSelection(boundary.state, state, events)
   const successorId = settled.tactical.battle.currentTurn?.combatantId
   const successor = successorId
-    ? expireOwnerTurnStartStatuses(settled, successorId, content)
+    ? expireOwnerTurnStartStatuses(settled, successorId, content, nativeHooks)
     : { state: settled, events: [] }
-  return {
-    state: synchronizeCombatInitiative(successor.state),
-    events: [...events, ...successor.events],
+  let next = successor.state
+  const successorEvents = [...events, ...successor.events]
+  if (successorId && next.tactical.battle.lifecycle === 'active') {
+    if (next.dotTriggerPolicyVersion !== undefined || next.turnTriggerState || next.abilityRuntime)
+      next = prepareCombatTurnTriggers(next)
+    const prepared = nativeHooks?.prepareIncoming?.(next)
+    if (prepared) {
+      next = observeCombatNativeMutation(nativeHooks, next, prepared, {
+        affectedCombatantIds: [successorId],
+      }).state
+      successorEvents.push(...prepared.events)
+    }
+    for (const event of events.filter(
+      (event) => event.event === 'round_started' || event.event === 'turn_started',
+    ))
+      next = observeCombatNativeMutation(
+        nativeHooks,
+        next,
+        { state: next, events: [event] },
+        { triggeringCombatantId: successorId, affectedCombatantIds: [successorId] },
+      ).state
   }
+  return { state: synchronizeCombatInitiative(next), events: successorEvents }
 }
 
 function battleForEffectStacking(state: CombatEncounterState): BattleState {
@@ -1592,6 +1617,7 @@ function hasCurrentFireTileEffect(
 function applyCombatRoundBoundary(
   state: CombatEncounterState,
   previousRound: number,
+  nativeHooks?: CombatNativeExecutionHooks,
 ): CombatResolutionTransition {
   if (state.tactical.battle.round === previousRound) return { state, events: [] }
   let nextState = state
@@ -1624,6 +1650,21 @@ function applyCombatRoundBoundary(
       }),
     })),
   }
+  nextState = observeCombatNativeMutation(
+    nativeHooks,
+    state,
+    { state: nextState, events: [...events] },
+    {
+      affectedCombatantIds: [
+        ...new Set(
+          events
+            .filter((event) => event.event === 'status_expired')
+            .map((event) => event.combatantId),
+        ),
+      ],
+      prepaid: true,
+    },
+  ).state
   const expiredTerrain = expireTerrainOverlays(nextState)
   nextState = expiredTerrain.state
   events.push(...expiredTerrain.events)
@@ -1659,9 +1700,34 @@ function applyCombatRoundBoundary(
     }
   }
   for (const activationGroup of activationGroups) {
+    const activationHooks: CombatNativeExecutionHooks | undefined = nativeHooks
+      ? {
+          ...nativeHooks,
+          observeMutation: (before, transition, facts) => {
+            const pending = activationGroup.find((pending) => pending.actionId === facts.actionId)
+            return nativeHooks.observeMutation(before, transition, {
+              ...facts,
+              rootActionId: activationGroup[0]?.abilityCommandFacts?.rootActionId,
+              ...pending?.abilityCommandFacts,
+              prepaid: true,
+            })
+          },
+        }
+      : undefined
     const aggregateEvents: CombatResolutionEvent[] = []
     const elementalApplications: ElementalApplications = new Map()
     for (const pending of activationGroup) {
+      const pendingHooks: CombatNativeExecutionHooks | undefined = activationHooks
+        ? {
+            ...activationHooks,
+            observeMutation: (before, transition, facts) =>
+              activationHooks.observeMutation(before, transition, {
+                ...facts,
+                ...(facts.actionId === pending.actionId ? pending.abilityCommandFacts : {}),
+                prepaid: true,
+              }),
+          }
+        : undefined
       const action: CombatActionDefinition = {
         id: pending.actionId,
         version: 1,
@@ -1800,6 +1866,7 @@ function applyCombatRoundBoundary(
             }
           : undefined,
         {
+          nativeHooks: pendingHooks,
           elementalApplications,
           capturedElementalApplications: pending.elementalApplicationsByRecipient,
           skillDamage: pending.skillDamage,
@@ -1847,15 +1914,18 @@ function applyCombatRoundBoundary(
                 filtered.events as CombatResolutionEvent[],
                 pending.content,
                 command,
+                pendingHooks,
               )
               const reflected = applyCommittedReflect(
                 recovered.state,
                 filtered.events as CombatResolutionEvent[],
                 pending.content,
                 command,
-                undefined,
+                nativeHooks?.getGuard(),
                 true,
+                pendingHooks,
               )
+              if (reflected.triggerGuard) nativeHooks?.setGuard(reflected.triggerGuard)
               return { state: reflected.state, events: [...recovered.events, ...reflected.events] }
             })()
       aggregateEvents.push(...(filtered.events as CombatResolutionEvent[]))
@@ -1904,13 +1974,19 @@ function applyCombatRoundBoundary(
         })),
       )
     }
-    const elementalSettled = settleElementalApplications(nextState, elementalApplications)
+    const elementalSettled = settleElementalApplications(nextState, elementalApplications, {
+      nativeHooks: activationHooks,
+    })
     nextState = elementalSettled.state
     events.push(...elementalSettled.events)
     aggregateEvents.push(...elementalSettled.events)
     const first = activationGroup[0]!
     if (first.skillPacketCommandId !== undefined) {
-      const settledCommand = settlePercentageDotApplications(nextState, first.skillPacketCommandId)
+      const settledCommand = settlePercentageDotApplications(
+        nextState,
+        first.skillPacketCommandId,
+        activationHooks,
+      )
       nextState = settledCommand.state
       events.push(...settledCommand.events)
       const command = { sourceCombatantId: first.actorId, actionId: first.actionId }
@@ -1919,22 +1995,26 @@ function applyCombatRoundBoundary(
         aggregateEvents,
         first.content,
         command,
+        activationHooks,
       )
       const reflected = applyCommittedReflect(
         recovered.state,
         aggregateEvents,
         first.content,
         command,
-        createCombatTriggerGuard({
-          triggerChainId: JSON.stringify([
-            'pending-packet',
-            nextState.tactical.battle.battleId,
-            first.skillPacketCommandId,
-            first.activationRound,
-          ]),
-        }),
+        nativeHooks?.getGuard() ??
+          createCombatTriggerGuard({
+            triggerChainId: JSON.stringify([
+              'pending-packet',
+              nextState.tactical.battle.battleId,
+              first.skillPacketCommandId,
+              first.activationRound,
+            ]),
+          }),
         true,
+        activationHooks,
       )
+      nativeHooks?.setGuard(reflected.triggerGuard)
       nextState = reflected.state
       events.push(
         ...[...recovered.events.slice(aggregateEvents.length), ...reflected.events].map(
@@ -1948,8 +2028,13 @@ function applyCombatRoundBoundary(
         ),
       )
     }
+    if (nativeHooks?.settleOutcomes) {
+      const children = nativeHooks.settleOutcomes({ state: nextState, events: [] })
+      nextState = children.state
+      events.push(...children.events)
+    }
   }
-  const settled = settlePercentageDotApplications(nextState)
+  const settled = settlePercentageDotApplications(nextState, undefined, nativeHooks)
   return { state: settled.state, events: [...events, ...settled.events] }
 }
 
@@ -1996,6 +2081,7 @@ export function endCombatTurn(
   state: CombatEncounterState,
   content: CombatContentCatalog,
   outgoingDefeatedAtTurnEnd = false,
+  nativeHooks?: CombatNativeExecutionHooks,
 ): CombatResolutionTransition {
   assertValidCombatEncounterStateForTurnEnd(state, outgoingDefeatedAtTurnEnd)
   validateCombatContentCatalog(content)
@@ -2005,7 +2091,7 @@ export function endCombatTurn(
     throw new Error('End Turn requires an active battle.')
   }
 
-  if (state.dotTriggerPolicyVersion !== undefined || state.turnTriggerState)
+  if (state.dotTriggerPolicyVersion !== undefined || state.turnTriggerState || state.abilityRuntime)
     state = prepareCombatTurnTriggers(state)
   state = synchronizeCombatInitiative(state)
   const outgoingId = state.tactical.battle.currentTurn!.combatantId
@@ -2049,33 +2135,83 @@ export function endCombatTurn(
   const events: CombatResolutionEvent[] = [...ended.events, ...summonBoundary.events]
   // Resolve the outgoing unit's periodic effects after advancing initiative. This permits
   // lethal ticks without ever persisting a defeated combatant as the current actor.
-  const periodic = resolveEndOfTurnStatuses(nextState, outgoingId, content)
+  const periodic = resolveEndOfTurnStatuses(nextState, outgoingId, content, nativeHooks)
   nextState = periodic.state
   events.push(...periodic.events)
-  const currentDots = resolveCurrentEndOfTurnDots(nextState, outgoingId, content)
+  const currentDots = resolveCurrentEndOfTurnDots(nextState, outgoingId, content, nativeHooks)
   nextState = currentDots.state
   events.push(...currentDots.events)
-  const recovery = resolveEndOfTurnRecovery(nextState, outgoingId, content)
+  const recovery = resolveEndOfTurnRecovery(nextState, outgoingId, content, nativeHooks)
   nextState = recovery.state
   events.push(...recovery.events)
-  const ownerExpiry = expireOwnerTurnEndStatuses(nextState, outgoingId)
+  const ownerExpiry = expireOwnerTurnEndStatuses(nextState, outgoingId, nativeHooks)
   nextState = ownerExpiry.state
   events.push(...ownerExpiry.events)
-  const boundary = applyCombatRoundBoundary(nextState, state.tactical.battle.round)
+  const outgoingReceipt = ended.events.find((event) => event.event === 'turn_ended')
+  if (outgoingReceipt)
+    nextState = observeCombatNativeMutation(
+      nativeHooks,
+      nextState,
+      { state: nextState, events: [outgoingReceipt] },
+      { triggeringCombatantId: outgoingId, affectedCombatantIds: [outgoingId] },
+    ).state
+  const boundary = applyCombatRoundBoundary(nextState, state.tactical.battle.round, nativeHooks)
   nextState = boundary.state
   events.push(...boundary.events)
   nextState = settleDynamicRoundSelection(nextState, state, events)
+  if (nativeHooks?.settleOutcomes) {
+    const settled = nativeHooks.settleOutcomes({ state: nextState, events: [] })
+    nextState = settled.state
+    events.push(...settled.events)
+  }
   const completed = completeBattleIfResolved(nextState)
   nextState = completed.state
   events.push(...completed.events)
+  const roundReceipt = events.find((event) => event.event === 'round_started')
+  if (roundReceipt && nextState.tactical.battle.lifecycle === 'active')
+    nextState = observeCombatNativeMutation(
+      nativeHooks,
+      nextState,
+      { state: nextState, events: [roundReceipt] },
+      { affectedCombatantIds: [] },
+    ).state
   const nextActorId = nextState.tactical.battle.currentTurn?.combatantId
 
   if (nextActorId) {
-    if (nextState.dotTriggerPolicyVersion !== undefined || nextState.turnTriggerState)
+    if (
+      nextState.dotTriggerPolicyVersion !== undefined ||
+      nextState.turnTriggerState ||
+      nextState.abilityRuntime
+    )
       nextState = prepareCombatTurnTriggers(nextState)
-    const expiration = expireOwnerTurnStartStatuses(nextState, nextActorId, content)
+    const expiration = expireOwnerTurnStartStatuses(nextState, nextActorId, content, nativeHooks)
     nextState = expiration.state
     events.push(...expiration.events)
+    const prepared = nativeHooks?.prepareIncoming?.(nextState)
+    if (prepared) {
+      nextState = observeCombatNativeMutation(nativeHooks, nextState, prepared, {
+        affectedCombatantIds: [nextActorId],
+      }).state
+      events.push(...prepared.events)
+    }
+  }
+  // Boundary receipts are captured at their prepared native boundary, after prepaid effects.
+  if (nativeHooks) {
+    if (nextState.tactical.battle.lifecycle === 'active' && nextActorId) {
+      const event = events.find((event) => event.event === 'turn_started')
+      if (event)
+        nextState = observeCombatNativeMutation(
+          nativeHooks,
+          nextState,
+          { state: nextState, events: [event] },
+          { triggeringCombatantId: nextActorId, affectedCombatantIds: [nextActorId] },
+        ).state
+    }
+    if (nativeHooks.settleOutcomes) {
+      const settled = nativeHooks.settleOutcomes({ state: nextState, events: [] })
+      nextState = settled.state
+      events.push(...settled.events)
+    }
   }
 
   nextState = synchronizeCombatInitiative(nextState)
@@ -3519,6 +3655,13 @@ function resolveActionEffects(
             ...(nextState.pendingEffects ?? []),
             {
               actorId,
+              ...(options.nativeHooks?.commandFacts?.(action.id)
+                ? {
+                    abilityCommandFacts: JSON.parse(
+                      JSON.stringify(options.nativeHooks.commandFacts(action.id)),
+                    ),
+                  }
+                : {}),
               ...(effect.type === 'damage' && options.skillDamage === false
                 ? { skillDamage: false }
                 : {}),
@@ -4194,6 +4337,7 @@ function resolveActionEffects(
 function settlePercentageDotApplications(
   state: CombatEncounterState,
   skillPacketCommandId?: number,
+  nativeHooks?: CombatNativeExecutionHooks,
 ): CombatResolutionTransition & { projections: CombatEffectProjection[] } {
   if (state.percentageDotPolicyVersion !== 1) return { state, events: [], projections: [] }
   let nextState = state
@@ -4322,6 +4466,19 @@ function settlePercentageDotApplications(
         false,
         true,
         captured,
+        {
+          nativeHooks: nativeHooks
+            ? {
+                ...nativeHooks,
+                observeMutation: (before, transition, facts) =>
+                  nativeHooks.observeMutation(before, transition, {
+                    ...facts,
+                    ...entry.abilityCommandFacts,
+                    prepaid: true,
+                  }),
+              }
+            : undefined,
+        },
       )
       nextState = applied.state
       events.push(...applied.events, {
@@ -5164,6 +5321,7 @@ function expireOwnerTurnStartStatuses(
   state: CombatEncounterState,
   combatantId: string,
   content: CombatContentCatalog,
+  nativeHooks?: CombatNativeExecutionHooks,
 ): CombatResolutionTransition {
   const row = getStatusRow(state, combatantId)
   const kept: CombatStatusInstance[] = []
@@ -5195,7 +5353,12 @@ function expireOwnerTurnStartStatuses(
   )
   const nextState = synchronizeCombatInitiative({ ...state, statusState })
   assertValidCombatEncounterState(nextState)
-  return { state: nextState, events }
+  return observeCombatNativeMutation(
+    nativeHooks,
+    state,
+    { state: nextState, events },
+    { affectedCombatantIds: [combatantId] },
+  )
 }
 
 function removeStatuses(
@@ -5220,6 +5383,7 @@ function resolveEndOfTurnStatuses(
   state: CombatEncounterState,
   combatantId: string,
   content: CombatContentCatalog,
+  nativeHooks?: CombatNativeExecutionHooks,
 ): CombatResolutionTransition {
   let nextState = state
   const events: CombatResolutionEvent[] = []
@@ -5237,6 +5401,7 @@ function resolveEndOfTurnStatuses(
               target.maxHp,
               target.hp + incomingHealingAmount(nextState, combatantId, amount, content),
             )
+      const beforeTick = nextState
       nextState = withUpdatedCombatant(nextState, combatantId, { ...target, hp: hpAfter })
       events.push({
         event: definition.endOfTurn.type === 'damage' ? 'damage_applied' : 'healing_applied',
@@ -5247,6 +5412,16 @@ function resolveEndOfTurnStatuses(
         hpBefore: target.hp,
         hpAfter,
       })
+      nextState = observeCombatNativeMutation(
+        nativeHooks,
+        beforeTick,
+        { state: nextState, events: [events[events.length - 1]!] },
+        {
+          triggeringCombatantId: status.sourceCombatantId,
+          affectedCombatantIds: [combatantId],
+          prepaid: true,
+        },
+      ).state
     }
     if (definition.endOfTurn.type === 'damage' && target.hp > 0) {
       const revealed = removeGameplayTags(
@@ -5257,14 +5432,25 @@ function resolveEndOfTurnStatuses(
         ['Invisible'],
         content,
       )
-      nextState = revealed.state
+      nextState = observeCombatNativeMutation(nativeHooks, nextState, revealed, {
+        triggeringCombatantId: status.sourceCombatantId,
+        affectedCombatantIds: [combatantId],
+        prepaid: true,
+      }).state
       events.push(...revealed.events)
     }
     if (status.remainingOwnerTurnEnds !== undefined) continue
     const remaining = status.remainingOwnerTurnStarts - 1
     if (remaining === 0) {
-      nextState = removeStatuses(nextState, combatantId, [status.statusId])
-      events.push({ event: 'status_expired', combatantId, statusId: status.statusId })
+      const expired = {
+        state: removeStatuses(nextState, combatantId, [status.statusId]),
+        events: [{ event: 'status_expired' as const, combatantId, statusId: status.statusId }],
+      }
+      nextState = observeCombatNativeMutation(nativeHooks, nextState, expired, {
+        affectedCombatantIds: [combatantId],
+        prepaid: true,
+      }).state
+      events.push(...expired.events)
     } else {
       nextState = {
         ...nextState,
@@ -5290,6 +5476,7 @@ function resolveCurrentEndOfTurnDots(
   state: CombatEncounterState,
   combatantId: string,
   content: CombatContentCatalog,
+  nativeHooks?: CombatNativeExecutionHooks,
 ): CombatResolutionTransition {
   let nextState = state
   const events: CombatResolutionEvent[] = []
@@ -5303,6 +5490,7 @@ function resolveCurrentEndOfTurnDots(
     if (target.hp <= 0) return
     const hpAfter = Math.max(0, target.hp - amount)
     const actionId = statusId === 'bleed' ? sourceActionId : `status.${statusId}.current.v1`
+    const beforeTick = nextState
     nextState = withUpdatedCombatant(nextState, combatantId, { ...target, hp: hpAfter })
     events.push({
       event: 'damage_applied',
@@ -5319,6 +5507,16 @@ function resolveCurrentEndOfTurnDots(
         ? { damageTrigger: 'scheduled-tick' as const }
         : {}),
     })
+    nextState = observeCombatNativeMutation(
+      nativeHooks,
+      beforeTick,
+      { state: nextState, events: [events[events.length - 1]!] },
+      {
+        triggeringCombatantId: sourceCombatantId,
+        affectedCombatantIds: [combatantId],
+        prepaid: true,
+      },
+    ).state
     if (hpAfter < target.hp) {
       const revealed = removeGameplayTags(
         nextState,
@@ -5328,12 +5526,21 @@ function resolveCurrentEndOfTurnDots(
         ['Invisible'],
         content,
       )
-      nextState = revealed.state
+      nextState = observeCombatNativeMutation(nativeHooks, nextState, revealed, {
+        triggeringCombatantId: sourceCombatantId,
+        affectedCombatantIds: [combatantId],
+        prepaid: true,
+      }).state
       events.push(...revealed.events)
     }
   }
   const poisonTicks = currentPoisonEndTurnInstances(nextState, combatantId)
-  nextState = advanceCurrentPoisonEndTurn(nextState, combatantId)
+  nextState = observeCombatNativeMutation(
+    nativeHooks,
+    nextState,
+    { state: advanceCurrentPoisonEndTurn(nextState, combatantId), events: [] },
+    { affectedCombatantIds: [combatantId], prepaid: true },
+  ).state
   for (const instance of poisonTicks)
     tick(
       'poison',
@@ -5344,7 +5551,12 @@ function resolveCurrentEndOfTurnDots(
   if (getCombatant(nextState.tactical.battle, combatantId).hp <= 0)
     return { state: nextState, events }
   const bleedTurn = advanceCurrentBleedEndTurn(nextState, combatantId)
-  nextState = bleedTurn.state
+  nextState = observeCombatNativeMutation(
+    nativeHooks,
+    nextState,
+    { state: bleedTurn.state, events: [] },
+    { affectedCombatantIds: [combatantId], prepaid: true },
+  ).state
   for (const instance of bleedTurn.stacks)
     tick(
       'bleed',
@@ -5355,7 +5567,12 @@ function resolveCurrentEndOfTurnDots(
   if (getCombatant(nextState.tactical.battle, combatantId).hp <= 0)
     return { state: nextState, events }
   const burnTurn = advanceCurrentBurnEndTurn(nextState, combatantId)
-  nextState = burnTurn.state
+  nextState = observeCombatNativeMutation(
+    nativeHooks,
+    nextState,
+    { state: burnTurn.state, events: [] },
+    { affectedCombatantIds: [combatantId], prepaid: true },
+  ).state
   for (const { instance, damage } of burnTurn.ticks)
     tick('burn', instance.sourceCombatantId, instance.sourceActionId, damage)
   return { state: nextState, events }
@@ -6524,6 +6741,7 @@ function resolveEndOfTurnRecovery(
   state: CombatEncounterState,
   combatantId: string,
   content: CombatContentCatalog,
+  nativeHooks?: CombatNativeExecutionHooks,
 ): CombatResolutionTransition {
   let nextState = clearDefeatedRecovery(state)
   const events: CombatResolutionEvent[] = []
@@ -6552,6 +6770,7 @@ function resolveEndOfTurnRecovery(
             resource: 'mp',
             delta: schedule.amountPerTick,
           }
+    const beforeTick = nextState
     const tick = applyImmediateRecovery(
       nextState,
       schedule.sourceCombatantId,
@@ -6569,6 +6788,16 @@ function resolveEndOfTurnRecovery(
       },
       schedule,
     )
+    nextState = observeCombatNativeMutation(
+      nativeHooks,
+      beforeTick,
+      { state: nextState, events: tick.events },
+      {
+        triggeringCombatantId: schedule.sourceCombatantId,
+        affectedCombatantIds: [combatantId],
+        prepaid: true,
+      },
+    ).state
     events.push(...tick.events)
   }
   return { state: nextState, events }
@@ -6643,9 +6872,10 @@ function applyImmediateRecovery(
 function expireOwnerTurnEndStatuses(
   state: CombatEncounterState,
   combatantId: string,
+  nativeHooks?: CombatNativeExecutionHooks,
 ): CombatResolutionTransition {
   const events: CombatResolutionEvent[] = []
-  return {
+  const transition: CombatResolutionTransition = {
     state: {
       ...state,
       statusState: state.statusState.map((row) =>
@@ -6685,6 +6915,9 @@ function expireOwnerTurnEndStatuses(
     },
     events,
   }
+  return observeCombatNativeMutation(nativeHooks, state, transition, {
+    affectedCombatantIds: [combatantId],
+  })
 }
 
 function preparePendingSummonsForRound(

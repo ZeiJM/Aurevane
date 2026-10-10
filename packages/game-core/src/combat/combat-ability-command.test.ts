@@ -1,4 +1,5 @@
-import { executeCombatAction } from './actions'
+import { selectCurrentFinalFacing } from './board'
+import { executeCombatAction, endCombatTurn } from './actions'
 import {
   issueCommittedCombatExecution,
   type CommittedCombatExecution,
@@ -20,6 +21,7 @@ import {
   reconcileCombatAbilitySources,
 } from './combat-behavior-runtime'
 import {
+  createCombatNativeAbilityRuntime,
   prepareCombatAbilityCommand,
   commitCombatAbilityCommand,
   type CombatAbilityCommandInput,
@@ -1242,4 +1244,295 @@ it('native Reflect precedes queued damage children and consumes their shared gua
   ).toEqual(['test.ability', 'status.reflect.current.v1', 'child.heal'])
   expect(out.state.tactical.battle.combatants.find((row) => row.id === 'actor')!.hp).toBe(95)
   expect(out.resolution!.triggerGuard.remainingReactionBudget).toBe(30)
+})
+
+it.each([false, true])(
+  'real delayed settlement retains causal action facts and original action limit; prior hit %s',
+  (priorHit) => {
+    const input = {
+      ...command(100, 100, {
+        costs: [{ resource: 'ap', amount: 10 }],
+        effects: [
+          ...(priorHit
+            ? [
+                {
+                  id: 'now',
+                  payload: {
+                    type: 'damage' as const,
+                    recipient: 'primary-unit' as const,
+                    amount: 1,
+                  },
+                },
+              ]
+            : []),
+          {
+            id: 'later',
+            timing: 'next-round',
+            payload: { type: 'damage', recipient: 'primary-unit', amount: 20 },
+          },
+        ],
+      }),
+      manualModifiers: undefined,
+    }
+    const reaction = captureCombatAbilitySource({
+      ...source(
+        {
+          id: 'pending-reactor',
+          activation: 'automatic',
+          classification: 'recovery',
+          attackFamily: undefined,
+          costs: [{ resource: 'mp', amount: 1 }],
+          activationLimits: ['once-per-action'],
+          requirements: {
+            kind: 'all',
+            children: [
+              { kind: 'action', classification: 'attack' },
+              { kind: 'event', eventType: 'damage_applied', phase: 'after' },
+            ],
+          },
+          targeting: {
+            kind: 'self',
+            teamPolicy: 'self',
+            friendlyFire: 'allies-only',
+            shape: { kind: 'single' },
+            minimumRange: 0,
+            maximumRange: 0,
+            requiresLineOfSight: false,
+            maximumElevationDifference: null,
+            maximumSelections: 1,
+          },
+          effects: [{ id: 'heal', payload: { type: 'healing', recipient: 'actor', amount: 1 } }],
+        },
+        'pending-reactor',
+      ),
+      abilityId: 'pending.child',
+    })
+    const state = reconcileCombatAbilitySources(input.state, [
+      ...input.state.capturedAbilitySources!,
+      reaction,
+    ])
+    const committed = commitCombatAbilityCommand({ ...input, state })
+    expect(committed.events.filter((event) => event.event === 'combat_action_used')).toHaveLength(
+      priorHit ? 2 : 1,
+    )
+    expect(
+      committed.state.pendingEffects![0]!.abilityCommandFacts?.actionFacts?.classification,
+    ).toBe('attack')
+    let live = JSON.parse(JSON.stringify(committed.state)) as typeof committed.state
+    const events: (typeof committed.events)[number][] = []
+    while (live.tactical.battle.round === state.tactical.battle.round) {
+      const out = finishPv1fTurn(live as never, 'west')
+      live = out.state
+      events.push(...(out.events as typeof committed.events))
+    }
+    expect(
+      events.filter((event) => event.event === 'damage_applied').map((event) => event.actionId),
+    ).toEqual(['test.ability'])
+    expect(
+      events.filter((event) => event.event === 'combat_action_used').map((event) => event.actionId),
+    ).toEqual(priorHit ? [] : ['pending.child'])
+    expect(
+      events.filter((event) => event.event === 'ap_spent' || event.event === 'hp_spent'),
+    ).toHaveLength(0)
+    expect(events.filter((event) => event.event === 'mp_spent')).toEqual(
+      priorHit ? [] : [expect.objectContaining({ amount: 1 })],
+    )
+    expect(live.tactical.battle.combatants.find((unit) => unit.id === 'actor')!.hp).toBe(101)
+    expect(live.abilityRuntime!.usage.filter((row) => row.key.includes('source-a'))).toHaveLength(1)
+  },
+)
+
+it('terminal delayed enemy defeat prevents the incoming Automatic turn action and AP reset', () => {
+  const base = command(100, 100, {
+    costs: [{ resource: 'ap', amount: 10 }],
+    targeting: {
+      kind: 'unit',
+      teamPolicy: 'enemy',
+      friendlyFire: 'enemies-only',
+      shape: { kind: 'circle', radius: 2 },
+      minimumRange: 0,
+      maximumRange: 2,
+      requiresLineOfSight: false,
+      maximumElevationDifference: null,
+      maximumSelections: 1,
+    },
+    effects: [
+      {
+        id: 'end',
+        timing: 'next-round',
+        payload: { type: 'damage', recipient: 'affected-units', amount: 20 },
+      },
+    ],
+  })
+  const reaction = captureCombatAbilitySource({
+    ...source(
+      {
+        id: 'incoming',
+        activation: 'automatic',
+        classification: 'recovery',
+        attackFamily: undefined,
+        costs: [{ resource: 'mp', amount: 1 }],
+        requirements: {
+          kind: 'all',
+          children: [
+            { kind: 'event', eventType: 'turn_started', phase: 'after' },
+            {
+              kind: 'resource-state',
+              subject: 'owner',
+              resource: 'ap',
+              comparison: 'at-least',
+              amount: 100,
+            },
+          ],
+        },
+        targeting: {
+          kind: 'self',
+          teamPolicy: 'self',
+          friendlyFire: 'allies-only',
+          shape: { kind: 'single' },
+          minimumRange: 0,
+          maximumRange: 0,
+          requiresLineOfSight: false,
+          maximumElevationDifference: null,
+          maximumSelections: 1,
+        },
+        effects: [{ id: 'heal', payload: { type: 'healing', recipient: 'actor', amount: 1 } }],
+      },
+      'terminal-incoming',
+    ),
+    abilityId: 'terminal.child',
+  })
+  const state = reconcileCombatAbilitySources(
+    {
+      ...base.state,
+      tactical: {
+        ...base.state.tactical,
+        battle: {
+          ...base.state.tactical.battle,
+          combatants: base.state.tactical.battle.combatants.map((unit) =>
+            unit.teamId === 'enemies' ? { ...unit, hp: 10 } : unit,
+          ),
+        },
+      },
+    },
+    [...base.state.capturedAbilitySources!, reaction],
+  )
+  let live = commitCombatAbilityCommand({
+    ...base,
+    state,
+    selection: { kind: 'activate' },
+    manualModifiers: undefined,
+  }).state
+  const events: ReturnType<typeof commitCombatAbilityCommand>['events'][number][] = []
+  while (
+    live.tactical.battle.lifecycle === 'active' &&
+    live.tactical.battle.round === state.tactical.battle.round
+  ) {
+    const out = finishPv1fTurn(live as never, 'west')
+    live = out.state
+    events.push(...(out.events as typeof events))
+  }
+  expect(live.tactical.battle.lifecycle).toBe('completed')
+  expect(live.tactical.battle.currentTurn).toBeNull()
+  expect(
+    events.some(
+      (event) => event.event === 'combat_action_used' && event.actionId === 'terminal.child',
+    ),
+  ).toBe(false)
+  expect(
+    live.tactical.battle.combatants
+      .find((unit) => unit.id === 'actor')!
+      .temporaryResources.find((row) => row.key === 'pv1f.action-economy')!.current,
+  ).toBe(90)
+})
+
+it('actual periodic down/up/down ticks capture two owner crossings before child settlement', () => {
+  const base = command(100, 100)
+  const reaction = captureCombatAbilitySource({
+    ...source(
+      {
+        id: 'tick-cross',
+        activation: 'automatic',
+        classification: 'recovery',
+        attackFamily: undefined,
+        costs: [{ resource: 'mp', amount: 1 }],
+        requirements: {
+          kind: 'resource-state',
+          subject: 'owner',
+          resource: 'hp',
+          comparison: 'at-most',
+          amount: 90,
+        },
+        targeting: {
+          kind: 'self',
+          teamPolicy: 'self',
+          friendlyFire: 'allies-only',
+          shape: { kind: 'single' },
+          minimumRange: 0,
+          maximumRange: 0,
+          requiresLineOfSight: false,
+          maximumElevationDifference: null,
+          maximumSelections: 1,
+        },
+        effects: [{ id: 'heal', payload: { type: 'healing', recipient: 'actor', amount: 1 } }],
+      },
+      'tick-cross',
+    ),
+    abilityId: 'tick.child',
+  })
+  const ids = ['test.tick.1down', 'test.tick.2up', 'test.tick.3down']
+  const content = {
+    ...PV1F_COMBAT_CONTENT,
+    statuses: [
+      ...PV1F_COMBAT_CONTENT.statuses,
+      ...ids.map((id, index) => ({
+        id,
+        version: 1,
+        maximumStacks: 1,
+        durationOwnerTurnStarts: 2,
+        damageTakenMultiplierBasisPoints: 10000,
+        polarity: 'negative' as const,
+        endOfTurn: { type: index === 1 ? ('healing' as const) : ('damage' as const), amount: 20 },
+      })),
+    ],
+  }
+  const state = reconcileCombatAbilitySources(
+    {
+      ...base.state,
+      statusState: base.state.statusState.map((row) =>
+        row.combatantId === 'actor'
+          ? {
+              ...row,
+              statuses: ids.map((statusId) => ({
+                statusId,
+                statusVersion: 1,
+                stacks: 1,
+                remainingOwnerTurnStarts: 2,
+                sourceCombatantId: 'enemy',
+              })),
+            }
+          : row,
+      ),
+    },
+    [reaction],
+  )
+  const out = endCombatTurn(
+    { ...state, tactical: selectCurrentFinalFacing(state.tactical, 'west').state },
+    content,
+    false,
+    createCombatNativeAbilityRuntime(state, content),
+  )
+  expect(
+    out.events
+      .filter((event) => event.event === 'damage_applied' || event.event === 'healing_applied')
+      .map((event) => event.actionId),
+  ).toEqual([
+    'status.test.tick.1down',
+    'status.test.tick.2up',
+    'status.test.tick.3down',
+    'tick.child',
+    'tick.child',
+  ])
+  expect(out.state.tactical.battle.combatants.find((unit) => unit.id === 'actor')!.hp).toBe(82)
+  expect(out.state.tactical.battle.combatants.find((unit) => unit.id === 'actor')!.mp).toBe(8)
 })

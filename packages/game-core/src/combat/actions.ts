@@ -669,9 +669,10 @@ export function endCombatTurn(
   state: CombatEncounterState,
   content: legacy.CombatContentCatalog,
   outgoingDefeatedAtTurnEnd = false,
+  nativeHooks?: CombatNativeExecutionHooks,
 ): CombatResolutionTransition {
   const round = state.tactical.battle.round
-  const transition = legacy.endCombatTurn(state, content, outgoingDefeatedAtTurnEnd)
+  const transition = legacy.endCombatTurn(state, content, outgoingDefeatedAtTurnEnd, nativeHooks)
   return {
     state: recordTurnDamageHistory(transition.state, transition.events, round),
     events: transition.events,
@@ -681,12 +682,21 @@ export function endCombatTurn(
 export function waitCurrentTurn(
   state: CombatEncounterState,
   content: legacy.CombatContentCatalog,
+  nativeHooks?: CombatNativeExecutionHooks,
 ): CombatResolutionTransition {
-  const round = state.tactical.battle.round
-  const transition = legacy.waitCurrentTurn(state, content)
+  if (!nativeHooks) {
+    const round = state.tactical.battle.round
+    const transition = legacy.waitCurrentTurn(state, content)
+    return {
+      state: recordTurnDamageHistory(transition.state, transition.events, round),
+      events: transition.events,
+    }
+  }
+  const actorId = state.tactical.battle.currentTurn?.combatantId
+  const transition = endCombatTurn(state, content, false, nativeHooks)
   return {
-    state: recordTurnDamageHistory(transition.state, transition.events, round),
-    events: transition.events,
+    state: transition.state,
+    events: [{ event: 'combatant_waited', combatantId: actorId! }, ...transition.events],
   }
 }
 

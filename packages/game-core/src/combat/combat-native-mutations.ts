@@ -3,6 +3,7 @@ import type { CombatTriggerGuard } from './combat-kernel-types'
 import type { AbilityRequirementContext } from './combat-requirements'
 
 export interface CombatNativeMutationFacts {
+  readonly rootActionId?: string
   readonly actionId?: string
   readonly triggeringCombatantId?: string
   readonly selectedCombatantId?: string
@@ -12,6 +13,11 @@ export interface CombatNativeMutationFacts {
 }
 /** Private synchronous native callbacks; never authored, serialized, or accepted as intent. */
 export interface CombatNativeExecutionHooks {
+  readonly commandFacts?: (
+    actionId: string,
+  ) =>
+    | Pick<CombatNativeMutationFacts, 'actionFacts' | 'selectedCombatantId' | 'rootActionId'>
+    | undefined
   readonly observeMutation: (
     before: CombatEncounterState,
     transition: CombatResolutionTransition,
@@ -19,6 +25,7 @@ export interface CombatNativeExecutionHooks {
   ) => CombatEncounterState
   readonly getGuard: () => CombatTriggerGuard
   readonly setGuard: (guard: CombatTriggerGuard) => void
+  readonly settleOutcomes?: (transition: CombatResolutionTransition) => CombatResolutionTransition
   readonly prepareIncoming?: (state: CombatEncounterState) => CombatResolutionTransition
 }
 export function observeCombatNativeMutation<Transition extends CombatResolutionTransition>(

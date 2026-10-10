@@ -90,6 +90,7 @@ export interface CombatAbilityActivationInput {
   readonly content: CombatContentCatalog
   readonly context: CombatResolutionContext
   readonly trigger?: {
+    readonly rootActionId?: string
     readonly id: string
     readonly type: string
     readonly phase: 'before' | 'after'

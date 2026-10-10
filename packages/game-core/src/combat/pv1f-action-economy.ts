@@ -1,3 +1,14 @@
+import {
+  prepareNativePv1fTurn,
+  PV1F_ACTION_ECONOMY_MAXIMUM,
+  PV1F_ACTION_ECONOMY_RESOURCE_KEY,
+  PV1F_ACTION_ECONOMY_TURN_KEY,
+} from './pv1f-turn-preparation'
+export {
+  PV1F_ACTION_ECONOMY_MAXIMUM,
+  PV1F_ACTION_ECONOMY_RESOURCE_KEY,
+  PV1F_ACTION_ECONOMY_TURN_KEY,
+} from './pv1f-turn-preparation'
 import { markPv1fTurnActivity, PV1F_TURN_ACTIVITY_RESOURCE_KEY } from './pv1f-turn-activity'
 import { airborneAttackAction, airborneMovementTactical } from './combat-airborne'
 import {
@@ -5,6 +16,7 @@ import {
   canonicalCombatActionSourceKind,
 } from './combat-action-source'
 import {
+  createCombatNativeAbilityRuntime,
   prepareCombatAbilityCommand,
   commitCombatAbilityCommand,
   type CombatAbilityCommandInput,
@@ -74,7 +86,6 @@ import {
   type MatureSkillDefinition,
 } from './mature-skills'
 import {
-  advanceSkillCooldownsAtOwnerTurnStart,
   applySkillCooldown,
   readSkillCooldown,
   type SkillCooldownDefinition,
@@ -115,7 +126,6 @@ export {
   PV1F_RECOVER_COST,
 } from './pv1f-skills'
 
-export const PV1F_ACTION_ECONOMY_MAXIMUM = 100 as const
 export const PV1F_RECOVER_PERCENT = 10 as const
 export const PV1F_MP_RECOVER_PERCENT = 10 as const
 export const PV1F_STATUS_MAXIMUM_STACKS = 3 as const
@@ -135,8 +145,6 @@ export const PV1F_GUARD_COOLDOWN: SkillCooldownDefinition = {
   ownerTurns: PV1F_GUARD_COOLDOWN_OWNER_TURNS,
 }
 
-export const PV1F_ACTION_ECONOMY_RESOURCE_KEY = 'pv1f.action-economy' as const
-export const PV1F_ACTION_ECONOMY_TURN_KEY = 'pv1f.action-economy-turn' as const
 export const PV1F_BASIC_ATTACK_DAMAGE_KEY = 'pv1f.basic-attack-damage' as const
 export const PV1F_BASIC_ATTACK_BASE_DAMAGE = 6 as const
 export const PV1F_BASIC_ATTACK_POWER_SCALING_BASIS_POINTS = 1_500 as const
@@ -374,53 +382,11 @@ export function readPv1fBasicAttackDamage(
 }
 
 function preparePv1fTurnEconomyTransition(state: StatDrivenCombatEncounterState): Pv1fTransition {
-  const battle = state.tactical.battle
-  const turn = battle.currentTurn
-  if (battle.lifecycle !== 'active' || !turn) return { state, events: [] }
-
-  const actor = getCombatant(state, turn.combatantId)
-  const marker = actor.temporaryResources.find(
-    (resource) => resource.key === PV1F_ACTION_ECONOMY_TURN_KEY,
-  )
-  const economy = actor.temporaryResources.find(
-    (resource) => resource.key === PV1F_ACTION_ECONOMY_RESOURCE_KEY,
-  )
-  if (marker?.current === battle.turnNumber && economy) return { state, events: [] }
-
-  const placement = state.tactical.placements.find((unit) => unit.combatantId === actor.id)!
-  state = {
-    ...state,
-    turnOrigin: {
-      combatantId: actor.id,
-      turnNumber: battle.turnNumber,
-      position: { ...placement.position },
-    },
-  }
-  const cooldownTransition = advanceSkillCooldownsAtOwnerTurnStart(actor)
-  const resources = replaceResources(cooldownTransition.combatant.temporaryResources, [
-    {
-      key: PV1F_ACTION_ECONOMY_RESOURCE_KEY,
-      current: PV1F_ACTION_ECONOMY_MAXIMUM,
-      maximum: PV1F_ACTION_ECONOMY_MAXIMUM,
-    },
-    {
-      key: PV1F_ACTION_ECONOMY_TURN_KEY,
-      current: battle.turnNumber,
-      maximum: Number.MAX_SAFE_INTEGER,
-    },
-  ])
-
-  return {
-    state: withCombatantAndTurn(
-      state,
-      { ...cooldownTransition.combatant, temporaryResources: resources },
-      {
-        ...turn,
-        actionState: 'ready',
-      },
-    ),
-    events: cooldownTransition.events,
-  }
+  const transition = prepareNativePv1fTurn(state)
+  const issues = validateStatDrivenCombatEncounterState(transition.state)
+  if (issues.length)
+    throw new Error(`Invalid PV-1F combat state: ${issues[0]?.field}: ${issues[0]?.message}`)
+  return transition
 }
 
 export function preparePv1fTurnEconomy(
@@ -1695,6 +1661,7 @@ export function finishPv1fTurn(
     encounter,
     PV1F_COMBAT_CONTENT,
     outgoingDefeatedAtTurnEnd || outgoingDefeated,
+    createCombatNativeAbilityRuntime(encounter, PV1F_COMBAT_CONTENT),
   )
   let bridged = reattachStatDrivenCombatBridge(
     ended.state,
@@ -1985,31 +1952,6 @@ function withCombatant(
         combatants: state.tactical.battle.combatants.map((candidate) =>
           candidate.id === combatant.id ? combatant : candidate,
         ),
-      },
-    },
-  }
-  const issues = validateStatDrivenCombatEncounterState(next)
-  if (issues.length > 0) {
-    throw new Error(`Invalid PV-1F combat state: ${issues[0]?.field}: ${issues[0]?.message}`)
-  }
-  return next
-}
-
-function withCombatantAndTurn(
-  state: StatDrivenCombatEncounterState,
-  combatant: BattleCombatant,
-  currentTurn: NonNullable<StatDrivenCombatEncounterState['tactical']['battle']['currentTurn']>,
-): StatDrivenCombatEncounterState {
-  const next: StatDrivenCombatEncounterState = {
-    ...state,
-    tactical: {
-      ...state.tactical,
-      battle: {
-        ...state.tactical.battle,
-        combatants: state.tactical.battle.combatants.map((candidate) =>
-          candidate.id === combatant.id ? combatant : candidate,
-        ),
-        currentTurn,
       },
     },
   }

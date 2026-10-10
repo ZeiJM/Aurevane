@@ -70,6 +70,7 @@ export interface CombatAbilityEventFrame {
     readonly before?: AbilityRequirementSubjectState
     readonly after: AbilityRequirementSubjectState
   }[]
+  readonly rootActionId?: string
   readonly actionFacts?: NonNullable<AbilityRequirementContext['event']>['action']
   readonly triggeringCombatantId?: string
   readonly selectedCombatantId?: string
@@ -412,6 +413,7 @@ export function processCombatAbilityEvent(
         triggerGuard: session.guard,
       },
       trigger: {
+        rootActionId: frame.rootActionId,
         id: frame.id,
         type: matching?.type ?? '',
         phase: matching?.phase ?? 'after',
