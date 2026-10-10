@@ -172,7 +172,7 @@ it('validates explicit All and rejects unversioned All or malformed geometry ver
   expect(() =>
     validateCombatActionDefinition({
       ...action,
-      target: { ...action.target, geometryVersion: 3 as never },
+      target: { ...action.target, geometryVersion: 4 as never },
     }),
   ).toThrow()
 })

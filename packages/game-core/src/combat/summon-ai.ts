@@ -145,6 +145,7 @@ function deterministicTieBreak(seed: number, stableKey: string): number {
 }
 
 function targetKey(target: CombatTargetSelection): string {
+  if (target.kind === 'selections') return JSON.stringify(target.selections)
   if (target.kind === 'self') return 'self'
   if (target.kind === 'activate') return 'activate'
   if (target.kind === 'direction') return `direction:${target.direction}`

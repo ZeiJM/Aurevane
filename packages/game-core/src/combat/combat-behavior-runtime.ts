@@ -24,6 +24,7 @@ import {
 } from './combat-behavior-capture'
 import type { AbilityBehavior } from './combat-definition'
 import { nativeCombatTagPayload } from './combat-tag-registry'
+import { canonicalCombatEffectRecipients } from './combat-targeting-shapes'
 import {
   evaluateAbilityRequirements,
   evaluateAutomaticRequirementTrigger,
@@ -130,10 +131,7 @@ export function materializeCombatAbilityAction(
   behavior: AbilityBehavior,
 ): CombatActionDefinition {
   if (!behavior.targeting) throw new TypeError('ability-action-targeting-required')
-  if (behavior.targeting.maximumSelections !== 1)
-    throw new TypeError('canonical-plural-targeting-required')
-  const { maximumSelections: _count, ...target } = behavior.targeting
-  void _count
+  const target = behavior.targeting
   if (behavior.effects.some((effect) => ['summon', 'damage-bonus'].includes(effect.payload.type)))
     throw new TypeError('canonical-specialized-tag-routing-required')
   return {
@@ -144,12 +142,14 @@ export function materializeCombatAbilityAction(
       ...source.tags.filter((tag) => !['attack', 'mystic', 'physical'].includes(tag)),
       ...(behavior.classification === 'attack' ? ['attack', behavior.attackFamily!] : []),
     ],
-    target: { ...target, geometryVersion: 2 },
+    target: { ...target, geometryVersion: target.geometryVersion ?? 2 },
     cost: { spendsAction: false, mp: 0 },
     requirements: [],
     ...(behavior.cooldown ? { cooldown: behavior.cooldown } : {}),
     ...(behavior.accuracy ? { accuracyRule: behavior.accuracy } : {}),
-    effects: behavior.effects.map((effect) => nativeCombatTagPayload(effect.payload)),
+    effects: behavior.effects.map((effect) =>
+      canonicalCombatEffectRecipients(nativeCombatTagPayload(effect.payload), target),
+    ),
     effectTimingModes: behavior.effects.map((effect) => effect.timing),
     effectOrigins: behavior.effects.map((effect) => ({
       sourceInstanceId: source.sourceInstanceId,

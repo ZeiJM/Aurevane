@@ -66,9 +66,17 @@ export function validateCombatActionDefinition(
     'friendly-fire policy',
   )
   knownString(action.target.shape.kind, ['single', 'circle', 'line', 'all'], 'target shape kind')
-  if (action.target.geometryVersion !== undefined && action.target.geometryVersion !== 2)
+  if (
+    action.target.geometryVersion !== undefined &&
+    action.target.geometryVersion !== 2 &&
+    action.target.geometryVersion !== 3
+  )
     throw new TypeError('Invalid geometry version.')
-  if (action.target.shape.kind === 'all' && action.target.geometryVersion !== 2)
+  if (
+    action.target.shape.kind === 'all' &&
+    action.target.geometryVersion !== 2 &&
+    action.target.geometryVersion !== 3
+  )
     throw new TypeError('All requires geometry version 2.')
   boolean(action.target.requiresLineOfSight, 'requiresLineOfSight')
   boolean(action.cost.spendsAction, 'spendsAction')

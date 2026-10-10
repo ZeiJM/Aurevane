@@ -319,14 +319,19 @@ export function validateAbilityDefinition(value: unknown): readonly AbilityDefin
             'maximumElevationDifference',
             'friendlyFire',
             'maximumSelections',
+            'categories',
           ],
           `${path}.targeting`,
         )
-        if (target.geometryVersion !== undefined && target.geometryVersion !== 2)
+        if (
+          target.geometryVersion !== undefined &&
+          target.geometryVersion !== 2 &&
+          target.geometryVersion !== 3
+        )
           issue(
             `${path}.targeting.geometryVersion`,
             'invalid-targeting',
-            'Canonical geometry supports version 2 only.',
+            'Canonical geometry supports versions 2 and 3.',
           )
         if (
           !nonnegative(target.maximumSelections) ||
@@ -491,14 +496,15 @@ export function validateAbilityDefinition(value: unknown): readonly AbilityDefin
       )
     if (allEffectsValid && record(target) && record(target.shape) && candidate.mode === 'action') {
       try {
-        const { maximumSelections: _count, ...nativeTarget } = target
-        void _count
         validateCombatActionDefinition({
           id: typeof candidate.id === 'string' ? candidate.id : 'invalid',
           version: 1,
           sourceType: 'discipline-skill',
           tags: [],
-          target: { ...nativeTarget, geometryVersion: 2 } as unknown as CombatTargetSpec,
+          target: {
+            ...target,
+            geometryVersion: target.geometryVersion ?? 2,
+          } as unknown as CombatTargetSpec,
           cost: { spendsAction: true, mp: 0 },
           requirements: [],
           effects: payloads

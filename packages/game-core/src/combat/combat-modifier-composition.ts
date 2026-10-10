@@ -1,11 +1,15 @@
 import type { CombatActionDefinition, CombatActionEvaluation } from './actions'
+import { canonicalCombatEffectRecipients } from './combat-targeting-shapes'
 import {
   captureCombatAbilitySource,
   type CapturedCombatAbilitySource,
 } from './combat-behavior-capture'
 import { combatAbilitySubject } from './combat-behavior-runtime'
 import type { AbilityBehavior, AbilityEffect } from './combat-definition'
-import { evaluateAbilityRequirements, type AbilityRequirementContext } from './combat-requirements'
+import {
+  evaluateAbilitySelectedRequirements,
+  type AbilityRequirementContext,
+} from './combat-requirements'
 import { nativeCombatTagPayload } from './combat-tag-registry'
 import {
   aggregateCombatAbilityCosts,
@@ -68,6 +72,10 @@ export function composeCombatModifiers(
 } {
   const root = input.root
   const rootBehavior = rootParticipant.behavior
+  const selectedIds =
+    geometry.selectedCombatantIds ??
+    (geometry.primaryCombatantId ? [geometry.primaryCombatantId] : [])
+  const selectedSubjects = selectedIds.map((id) => combatAbilitySubject(input.state, id))
   const context: AbilityRequirementContext = {
     owner: combatAbilitySubject(input.state, input.actorId),
     selected: combatAbilitySubject(input.state, geometry.primaryCombatantId),
@@ -105,15 +113,17 @@ export function composeCombatModifiers(
       effect.payload.recipient === 'actor'
         ? [input.actorId]
         : effect.payload.recipient === 'primary-unit'
-          ? geometry.primaryCombatantId
-            ? [geometry.primaryCombatantId]
-            : []
+          ? selectedIds
           : input.state.tactical.battle.combatants.map((unit) => unit.id)
     return ids.filter((id) =>
-      evaluateAbilityRequirements(effect.requirements ?? null, {
-        ...effectContext,
-        affected: combatAbilitySubject(input.state, id),
-      }),
+      evaluateAbilitySelectedRequirements(
+        effect.requirements ?? null,
+        {
+          ...effectContext,
+          affected: combatAbilitySubject(input.state, id),
+        },
+        selectedSubjects,
+      ),
     )
   }
   const rootContext: AbilityRequirementContext = {
@@ -146,7 +156,7 @@ export function composeCombatModifiers(
       return false
     if (
       behavior.effects.some((effect) => effect.payload.recipient === 'primary-unit') &&
-      !geometry.primaryCombatantId
+      !selectedIds.length
     )
       return false
     if (
@@ -180,7 +190,9 @@ export function composeCombatModifiers(
           })
         continue
       }
-      effects.push(nativeCombatTagPayload(effect.payload))
+      effects.push(
+        canonicalCombatEffectRecipients(nativeCombatTagPayload(effect.payload), rootAction.target),
+      )
       origins.push({
         sourceInstanceId: source.sourceInstanceId,
         behaviorId: behavior.id,
@@ -234,7 +246,7 @@ export function composeCombatModifiers(
       if (rootParticipant.activation !== 'manual')
         throw new TypeError('manual-modifier-root-required')
       if (!compatible(behavior)) throw new TypeError('modifier-root-incompatible')
-      if (!evaluateAbilityRequirements(behavior.requirements, context))
+      if (!evaluateAbilitySelectedRequirements(behavior.requirements, context, selectedSubjects))
         throw new TypeError('modifier-requirement-not-met')
       return { source, behavior }
     })
@@ -299,7 +311,7 @@ export function composeCombatModifiers(
       suppress('participant-budget')
       continue
     }
-    if (!evaluateAbilityRequirements(behavior.requirements, context)) {
+    if (!evaluateAbilitySelectedRequirements(behavior.requirements, context, selectedSubjects)) {
       suppress('requirement-not-met')
       continue
     }

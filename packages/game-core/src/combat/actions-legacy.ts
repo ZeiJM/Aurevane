@@ -44,6 +44,8 @@ import {
 } from './combat-targeting-shapes'
 import {
   resolveCombatTargetFootprint,
+  combatTargetCategories,
+  combatTargetUnitCategoryAllowed,
   filterCombatTargetSpatialFootprint,
   hasCombatTargetLineOfSight,
 } from './combat-targeting-shapes'
@@ -244,7 +246,10 @@ export type CombatTargetShape =
   | { kind: 'all' }
 
 export interface CombatTargetSpec {
-  geometryVersion?: 2
+  geometryVersion?: 2 | 3
+  /** Geometry 3 categories are independent of legacy kind/team/friendly-fire fields. */
+  categories?: readonly ('self' | 'ally' | 'enemy' | 'ground')[]
+  maximumSelections?: number
   kind: CombatTargetKind
   teamPolicy: CombatTargetTeamPolicy
   shape: CombatTargetShape
@@ -576,8 +581,16 @@ export type CombatTargetSelection =
   | { kind: 'tile'; position: GridPosition }
   | { kind: 'direction'; direction: 'north' | 'east' | 'south' | 'west'; ground?: true }
   | { kind: 'activate'; ground?: true }
+  | { kind: 'selections'; selections: readonly CombatOrdinaryTargetSelection[] }
+
+export type CombatOrdinaryTargetSelection =
+  | { kind: 'self' }
+  | { kind: 'unit'; combatantId: string }
+  | { kind: 'tile'; position: GridPosition }
 
 export type CombatActionIssueCode =
+  | 'duplicate-target'
+  | 'target-count-invalid'
   | 'insufficient-ap'
   | 'insufficient-hp'
   | 'activation-limit'
@@ -623,6 +636,7 @@ export interface CombatEffectProjection {
 }
 
 export interface CombatActionEvaluation {
+  selectedCombatantIds?: readonly string[]
   legal: boolean
   actionId: string
   actorId: string | null
@@ -1006,6 +1020,7 @@ export function elementalActionIntent<T extends CombatActionDefinition>(
   action: T,
   selection: CombatTargetSelection,
 ): T {
+  if (action.target.geometryVersion === 3) return action
   const areaGround =
     (selection.kind === 'direction' || selection.kind === 'activate') &&
     selection.ground !== undefined
@@ -1197,6 +1212,7 @@ export function evaluateCombatAction(
     actorId,
     primaryPosition: target.position ? { ...target.position } : null,
     primaryCombatantId: target.combatantId,
+    selectedCombatantIds: targeting.selectedCombatantIds,
     affectedTiles,
     affectedCombatantIds,
     projectedEffects,
@@ -2865,6 +2881,7 @@ export function resolveCombatTargeting(
   selection: CombatTargetSelection,
   content: CombatContentCatalog,
 ): {
+  selectedCombatantIds?: readonly string[]
   primaryCombatantId: string | null
   primaryPosition: GridPosition | null
   affectedTiles: readonly GridPosition[]
@@ -2873,7 +2890,106 @@ export function resolveCombatTargeting(
 } {
   const issues: CombatActionIssue[] = []
   const origin = getPlacement(state.tactical, actorId).position
-  const area = spec.geometryVersion === 2 && spec.shape.kind !== 'single'
+  const area =
+    (spec.geometryVersion === 2 || spec.geometryVersion === 3) && spec.shape.kind !== 'single'
+  if (
+    spec.shape.kind === 'single' &&
+    (spec.geometryVersion === 3 ||
+      (spec.maximumSelections ?? 1) > 1 ||
+      selection.kind === 'selections')
+  ) {
+    const selections = selection.kind === 'selections' ? selection.selections : [selection]
+    const maximum = spec.maximumSelections ?? 1
+    if (selections.length < 1 || selections.length > maximum || maximum > 3)
+      issues.push({
+        code: 'target-count-invalid',
+        message: 'Choose one through the authored number of distinct targets.',
+      })
+    const identities = new Set<string>()
+    const selectedIds: string[] = [],
+      affectedIds = new Set<string>(),
+      tiles: GridPosition[] = []
+    const actor = getCombatant(state.tactical.battle, actorId)
+    for (const selected of selections) {
+      const identity =
+        selected.kind === 'self'
+          ? `unit:${actorId}`
+          : selected.kind === 'unit'
+            ? `unit:${selected.combatantId}`
+            : selected.kind === 'tile'
+              ? `tile:${selected.position.x}:${selected.position.y}`
+              : selected.kind
+      if (identities.has(identity))
+        issues.push({ code: 'duplicate-target', message: 'Selections must be distinct.' })
+      identities.add(identity)
+      let effective = spec
+      if (spec.geometryVersion === 3) {
+        if (selected.kind === 'tile') {
+          if (!combatTargetCategories(spec).includes('ground'))
+            issues.push({
+              code: 'invalid-target-kind',
+              message: 'This action does not target Ground.',
+            })
+          effective = { ...spec, kind: spec.kind === 'empty-tile' ? 'empty-tile' : 'ground-tile' }
+        } else if (selected.kind === 'unit' || selected.kind === 'self') {
+          const id = selected.kind === 'self' ? actorId : selected.combatantId
+          const unit = state.tactical.battle.combatants.find((row) => row.id === id)
+          if (unit && !combatTargetUnitCategoryAllowed(spec, actor, unit))
+            issues.push({
+              code: 'target-team-not-allowed',
+              message: 'The selected unit is outside authored target categories.',
+            })
+          effective = { ...spec, kind: 'unit', teamPolicy: 'any' }
+        }
+      }
+      const primary = resolvePrimaryTarget(
+        state,
+        actorId,
+        effective,
+        selected.kind === 'self' && effective.kind === 'unit'
+          ? { kind: 'unit', combatantId: actorId }
+          : selected,
+        content,
+        issues,
+      )
+      if (!primary.position) continue
+      collectSpatialTargetIssues(state, actorId, spec, primary.position, issues)
+      tiles.push(primary.position)
+      if (selected.kind !== 'tile' && primary.combatantId) selectedIds.push(primary.combatantId)
+      if (spec.geometryVersion === 3) {
+        if (primary.combatantId) {
+          const unit = getCombatant(state.tactical.battle, primary.combatantId)
+          // Ground may affect occupants, but never admits the actor through Ally.
+          if (
+            unit.hp > 0 &&
+            (selected.kind !== 'tile' ||
+              unit.id !== actorId ||
+              combatTargetCategories(spec).includes('self')) &&
+            (selected.kind === 'tile'
+              ? isFriendlyFireAllowed(actor, unit, spec.friendlyFire)
+              : combatTargetUnitCategoryAllowed(spec, actor, unit))
+          )
+            affectedIds.add(unit.id)
+        }
+      } else
+        for (const id of resolveAffectedCombatants(state, actorId, primary.combatantId, spec, [
+          primary.position,
+        ]))
+          affectedIds.add(id)
+    }
+    const distinctTiles = tiles.filter(
+      (tile, index) => tiles.findIndex((row) => positionsEqual(row, tile)) === index,
+    )
+    const singleId = selections.length === 1 && selectedIds.length === 1 ? selectedIds[0]! : null
+    return {
+      primaryCombatantId: singleId,
+      primaryPosition: selections.length === 1 ? (tiles[0] ?? null) : null,
+      selectedCombatantIds: selectedIds,
+      affectedTiles: issues.length ? [] : distinctTiles,
+      affectedCombatantIds: issues.length ? [] : [...affectedIds].sort(compareStableString),
+      issues,
+    }
+  }
   let primary = { position: null as GridPosition | null, combatantId: null as string | null }
   let affectedTiles: readonly GridPosition[] = []
   if (area) {
@@ -2903,6 +3019,13 @@ export function resolveCombatTargeting(
       code: 'shape-invalid',
       message: 'The target shape resolves to no legal board tiles.',
     })
+  if (
+    spec.geometryVersion === 3 &&
+    area &&
+    combatTargetCategories(spec).includes('self') &&
+    !affectedTiles.some((position) => positionsEqual(position, origin))
+  )
+    affectedTiles = [...affectedTiles, origin]
   return {
     primaryCombatantId: primary.combatantId,
     primaryPosition: primary.position,
@@ -2910,6 +3033,7 @@ export function resolveCombatTargeting(
     affectedCombatantIds: issues.length
       ? []
       : resolveAffectedCombatants(state, actorId, primary.combatantId, spec, affectedTiles),
+    selectedCombatantIds: primary.combatantId ? [primary.combatantId] : [],
     issues,
   }
 }
@@ -3117,10 +3241,16 @@ function resolveAffectedCombatants(
       const target = getCombatant(state.tactical.battle, placement.combatantId)
       return (
         target.hp > 0 &&
-        isFriendlyFireAllowed(actor, target, spec.friendlyFire) &&
-        (spec.geometryVersion !== 2 ||
-          spec.kind !== 'unit' ||
-          isTeamPolicyAllowed(actor, target, spec.teamPolicy))
+        (spec.geometryVersion !== 3 ||
+          combatTargetUnitCategoryAllowed(spec, actor, target) ||
+          (combatTargetCategories(spec).includes('ground') &&
+            target.id !== actor.id &&
+            isFriendlyFireAllowed(actor, target, spec.friendlyFire))) &&
+        (spec.geometryVersion === 3 ||
+          (isFriendlyFireAllowed(actor, target, spec.friendlyFire) &&
+            (spec.geometryVersion !== 2 ||
+              spec.kind !== 'unit' ||
+              isTeamPolicyAllowed(actor, target, spec.teamPolicy))))
       )
     })
     .map((placement) => placement.combatantId)
@@ -5882,9 +6012,17 @@ function validateCombatActionDefinition(
     ['single', 'circle', 'line', 'all'],
     'target shape kind',
   )
-  if (action.target.geometryVersion !== undefined && action.target.geometryVersion !== 2)
+  if (
+    action.target.geometryVersion !== undefined &&
+    action.target.geometryVersion !== 2 &&
+    action.target.geometryVersion !== 3
+  )
     throw new TypeError('Invalid geometry version.')
-  if (action.target.shape.kind === 'all' && action.target.geometryVersion !== 2)
+  if (
+    action.target.shape.kind === 'all' &&
+    action.target.geometryVersion !== 2 &&
+    action.target.geometryVersion !== 3
+  )
     throw new TypeError('All requires geometry version 2.')
   assertBoolean(action.target.requiresLineOfSight, 'requiresLineOfSight')
   assertBoolean(action.cost.spendsAction, 'spendsAction')
