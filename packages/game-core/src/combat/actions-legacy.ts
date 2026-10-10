@@ -1,3 +1,7 @@
+import {
+  committedCombatAttemptRecorded,
+  type CommittedCombatExecution,
+} from './combat-committed-execution'
 import { combatEffectPresentationTags, isCleanseChilledEffect } from './gameplay-tags'
 import type { CombatCommandDamageBonus } from './combat-ability-command'
 import { validateCombatCommandDamageBonuses } from './damage-modifiers'
@@ -683,6 +687,12 @@ export type CombatResolutionEvent = (
     }
   | SkillCooldownEvent
   | { event: 'combat_action_used'; actionId: string; actorId: string }
+  | {
+      event: 'combat_action_interrupted'
+      actionId: string
+      actorId: string
+      reason: 'actor-unavailable' | 'battle-ended' | 'turn-changed' | 'selection-invalid'
+    }
   | { event: 'mp_spent'; combatantId: string; amount: number; remaining: number }
   | {
       event: 'poison_duration_refreshed'
@@ -1316,6 +1326,7 @@ export function executeCombatAction(
   resistedEffectOrdinalsByTarget?: CombatResistedEffectOrdinals,
   missedEffectOrdinalsByTarget?: CombatResistedEffectOrdinals,
   executionActorId?: string,
+  committedExecution?: CommittedCombatExecution,
 ): CombatResolutionTransition {
   const evaluation = evaluateCombatAction(state, action, selection, content, executionActorId)
   if (!evaluation.legal || !evaluation.actorId) {
@@ -1357,7 +1368,8 @@ export function executeCombatAction(
     })
   }
 
-  events.push({ event: 'combat_action_used', actionId: action.id, actorId })
+  if (!committedExecution || !committedCombatAttemptRecorded(committedExecution))
+    events.push({ event: 'combat_action_used', actionId: action.id, actorId })
 
   const applied = resolveActionEffects(
     nextState,

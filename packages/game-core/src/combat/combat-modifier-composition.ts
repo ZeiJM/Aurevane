@@ -72,7 +72,7 @@ export function composeCombatModifiers(
           ? geometry.primaryCombatantId
             ? [geometry.primaryCombatantId]
             : []
-          : geometry.affectedCombatantIds
+          : input.state.tactical.battle.combatants.map((unit) => unit.id)
     return ids.filter((id) =>
       evaluateAbilityRequirements(effect.requirements ?? null, {
         ...effectContext,
@@ -81,10 +81,10 @@ export function composeCombatModifiers(
     )
   }
   const rootContext: AbilityRequirementContext = {
+    ...(input.trigger?.requirementsContext ?? {}),
     owner: context.owner,
     selected: context.selected,
     triggering: context.triggering,
-    ...(input.trigger?.requirementsContext ?? {}),
     ...(input.trigger
       ? {
           event: {

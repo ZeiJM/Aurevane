@@ -28,13 +28,28 @@ import {
   type AbilityRequirementSubjectState,
 } from './combat-requirements'
 import { combatTurnCycle, prepareCombatTurnTriggers } from './combat-turn-trigger-state'
-import { consumeCombatTrigger, createCombatActionProvenance } from './combat-kernel-types'
+import {
+  consumeCombatTrigger,
+  createCombatActionProvenance,
+  COMBAT_RESOLUTION_PIPELINE_VERSION,
+} from './combat-kernel-types'
 import {
   applySkillCooldown,
   readSkillCooldown,
   type SkillCooldownDefinition,
 } from './skill-cooldowns'
 import { composeCombatModifiers } from './combat-modifier-composition'
+import { issueCommittedCombatExecution, committedCombatAction } from './combat-committed-execution'
+import { markPv1fTurnActivity } from './pv1f-turn-activity'
+import { spendAction } from './battle-state'
+import {
+  createCombatAbilityEventSession,
+  assertCombatAbilityEventSession,
+  captureCombatAbilityEventFrame,
+  processCombatAbilityEvent,
+  type CombatAbilityEventSession,
+  type CombatAbilityEventFrame,
+} from './combat-ability-events'
 
 export interface ManualCombatModifierSelection {
   readonly sourceInstanceId: string
@@ -72,6 +87,9 @@ export interface CombatAbilityCommandInput {
   readonly context: CombatResolutionContext
   readonly trigger?: CombatAbilityActivationInput['trigger']
   readonly manualModifiers?: readonly ManualCombatModifierSelection[]
+  /** Issued transient orchestration only; not persisted or supplied by intents. */
+  readonly eventSession?: CombatAbilityEventSession
+  readonly eventDepth?: number
 }
 export interface PreparedCombatAbilityParticipant {
   readonly sourceInstanceId: string
@@ -544,10 +562,179 @@ export function commitCombatAbilityCommand(
           : (tracking.nextCommandSequence ?? 1) + 1,
     },
   }
-  const out = executeCombatAction(paid, prepared.action, input.selection, input.content, {
-    ...prepared.context,
-    triggerGuard: guard,
+  const manual = prepared.participants[0]!.activation === 'manual'
+  if (manual) paid = markPv1fTurnActivity(paid, input.actorId)
+  if (prepared.action.cost.spendsAction) {
+    const spent = spendAction(paid.tactical.battle)
+    paid = { ...paid, tactical: { ...paid.tactical, battle: spent.state } }
+    paymentEvents.push(...spent.events)
+  }
+  const context = { ...prepared.context, triggerGuard: guard }
+  const session = input.eventSession ?? createCombatAbilityEventSession(guard)
+  assertCombatAbilityEventSession(session, context)
+  session.guard = guard
+  const depth = input.eventDepth ?? input.trigger?.depth ?? 0
+  const commandIdentity = input.trigger?.id ?? context.provenance.triggerChainId
+  const actionFacts = {
+    classification:
+      input.root.kind === 'canonical'
+        ? prepared.participants[0]!.behavior!.classification
+        : input.root.classification,
+    attackFamily:
+      input.root.kind === 'canonical'
+        ? prepared.participants[0]!.behavior!.attackFamily
+        : input.root.attackFamily,
+    sourceDisciplineId:
+      input.root.kind === 'canonical'
+        ? input.root.source.sourceDisciplineId
+        : input.root.sourceDisciplineId,
+    tags: prepared.action.tags,
+  }
+  const facts = {
+    actionFacts,
+    triggeringCombatantId: input.actorId,
+    selectedCombatantId: prepared.evaluation.primaryCombatantId ?? undefined,
+    affectedCombatantIds: prepared.evaluation.affectedCombatantIds,
+  }
+  const outcomeQueue: CombatAbilityEventFrame[] = []
+  outcomeQueue.push(
+    captureCombatAbilityEventFrame(input.state, paid, commandIdentity, session, {
+      ...facts,
+      affectedCombatantIds: [input.actorId],
+      events: paymentEvents.flatMap((event) =>
+        ['ap_spent', 'mp_spent', 'hp_spent', 'action_spent'].includes(event.event)
+          ? [
+              {
+                type: event.event as 'ap_spent' | 'mp_spent' | 'hp_spent' | 'action_spent',
+                phase: 'after' as const,
+              },
+            ]
+          : [],
+      ),
+      resourceMutations: prepared.costs.length
+        ? [{ combatantId: input.actorId, resources: prepared.costs.map((cost) => cost.resource) }]
+        : [],
+    }),
+  )
+  const committedExecution = issueCommittedCombatExecution(
+    paid,
+    input.actorId,
+    prepared.action,
+    input.selection,
+    context,
+    manual,
+  )
+  const attempt: CombatResolutionEvent = {
+    event: 'combat_action_used',
+    actionId: prepared.action.id,
+    actorId: input.actorId,
+  }
+  const beforeFrame = captureCombatAbilityEventFrame(paid, paid, commandIdentity, session, {
+    ...facts,
+    events: [{ type: 'combat_action_used', phase: 'before' }],
+    resourceMutations: [],
   })
+  const executeAutomatic = (child: CombatAbilityCommandInput): CombatResolutionTransition => {
+    const quote = prepareCombatAbilityCommand(child)
+    if (!quote.evaluation.legal)
+      return {
+        state: child.state,
+        events: [],
+        resolution: {
+          pipelineVersion: COMBAT_RESOLUTION_PIPELINE_VERSION,
+          provenance: child.context.provenance,
+          triggerGuard: session.guard,
+        },
+      }
+    return commitCombatAbilityCommand(child)
+  }
+  const before = processCombatAbilityEvent(
+    paid,
+    beforeFrame,
+    input.content,
+    context,
+    session,
+    depth,
+    executeAutomatic,
+  )
+  const live = before.state
+  const drainOutcomes = (
+    native: CombatResolutionTransition,
+    nativeGuard: typeof guard,
+  ): CombatResolutionTransition => {
+    session.guard = nativeGuard
+    let state = native.state
+    const events = [...native.events]
+    outcomeQueue.push(
+      captureCombatAbilityEventFrame(state, state, commandIdentity, session, {
+        ...facts,
+        events: [{ type: 'combat_action_used', phase: 'after' }],
+        resourceMutations: [],
+      }),
+    )
+    for (const frame of outcomeQueue) {
+      const children = processCombatAbilityEvent(
+        state,
+        frame,
+        input.content,
+        context,
+        session,
+        depth,
+        executeAutomatic,
+      )
+      state = children.state
+      events.push(...children.events)
+    }
+    return {
+      state,
+      events,
+      resolution: {
+        pipelineVersion: COMBAT_RESOLUTION_PIPELINE_VERSION,
+        provenance: context.provenance,
+        triggerGuard: session.guard,
+      },
+    }
+  }
+  const actor = live.tactical.battle.combatants.find((unit) => unit.id === input.actorId)
+  const interruption =
+    !actor || actor.hp <= 0
+      ? ('actor-unavailable' as const)
+      : live.tactical.battle.lifecycle !== 'active'
+        ? ('battle-ended' as const)
+        : manual &&
+            (live.tactical.battle.turnNumber !== input.state.tactical.battle.turnNumber ||
+              live.tactical.battle.currentTurn?.combatantId !== input.actorId)
+          ? ('turn-changed' as const)
+          : !evaluateCombatAction(
+                live,
+                committedCombatAction(prepared.action),
+                input.selection,
+                input.content,
+                context.executionAuthority,
+              ).legal
+            ? ('selection-invalid' as const)
+            : null
+  const out = interruption
+    ? drainOutcomes(
+        {
+          state: live,
+          events: [
+            {
+              event: 'combat_action_interrupted',
+              actionId: prepared.action.id,
+              actorId: input.actorId,
+              reason: interruption,
+            },
+          ],
+        },
+        session.guard,
+      )
+    : executeCombatAction(live, prepared.action, input.selection, input.content, {
+        ...context,
+        triggerGuard: session.guard,
+        committedExecution,
+        resolveCommittedAbilityOutcomes: drainOutcomes,
+      })
   return {
     ...out,
     events: [
@@ -561,6 +748,8 @@ export function commitCombatAbilityCommand(
           costs: row.costs.map((cost) => ({ ...cost })),
         })),
       })),
+      attempt,
+      ...before.events,
       ...out.events,
     ],
   }

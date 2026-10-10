@@ -1,9 +1,15 @@
+import { executeCombatAction } from './actions'
+import {
+  issueCommittedCombatExecution,
+  type CommittedCombatExecution,
+} from './combat-committed-execution'
 import { describe, expect, it } from 'vitest'
 import { percentageDotEncounter } from './combat-percentage-dots.test-utils'
 import {
   preparePv1fTurnEconomy,
   readPv1fActionEconomy,
   finishPv1fTurn,
+  hasPv1fTurnActivity,
 } from './pv1f-action-economy'
 import type { AbilityBehavior } from './combat-definition'
 import { PV1F_COMBAT_CONTENT } from './pv1f-action-economy'
@@ -381,4 +387,269 @@ describe('one atomic captured Ability command', () => {
     expect(prepareCombatAbilityCommand(input).action.effects).toHaveLength(1)
     expect(prepareCombatAbilityCommand(input).participants).toHaveLength(1)
   })
+})
+
+function withBeforeAction(input: CombatAbilityCommandInput, cost = 5): CombatAbilityCommandInput {
+  const automatic = captureCombatAbilitySource(
+    source(
+      {
+        id: 'before',
+        activation: 'automatic',
+        classification: 'utility',
+        attackFamily: undefined,
+        costs: [{ resource: 'ap', amount: cost }],
+        cooldown: { key: 'before', ownerTurns: 2 },
+        requirements: {
+          kind: 'all',
+          children: [
+            { kind: 'action', classification: 'attack' },
+            { kind: 'event', eventType: 'combat_action_used', phase: 'before' },
+          ],
+        },
+        targeting: {
+          kind: 'self',
+          teamPolicy: 'self',
+          friendlyFire: 'allies-only',
+          shape: { kind: 'single' },
+          minimumRange: 0,
+          maximumRange: 0,
+          requiresLineOfSight: false,
+          maximumElevationDifference: null,
+          maximumSelections: 1,
+        },
+        effects: [{ id: 'own-heal', payload: { type: 'healing', recipient: 'actor', amount: 1 } }],
+      },
+      'before-source',
+    ),
+  )
+  return {
+    ...input,
+    state: reconcileCombatAbilitySources(input.state, [
+      ...input.state.capturedAbilitySources!,
+      automatic,
+    ]),
+  }
+}
+
+describe('committed before-action orchestration', () => {
+  it('root30 plus paid-state before5 leaves65; one use/payment/sequence per command', () => {
+    const input = withBeforeAction({
+      ...command(100, 20, {
+        costs: [{ resource: 'ap', amount: 30 }],
+        cooldown: { key: 'root', ownerTurns: 2 },
+      }),
+      manualModifiers: undefined,
+    })
+    const before = JSON.stringify(input)
+    expect(prepareCombatAbilityCommand(input).costs).toEqual([{ resource: 'ap', amount: 30 }])
+    expect(JSON.stringify(input)).toBe(before)
+    const out = commitCombatAbilityCommand(input)
+    expect(readPv1fActionEconomy(out.state as never)!.current).toBe(65)
+    expect(
+      out.events
+        .filter((e) => e.event === 'ap_spent')
+        .map((e) => (e.event === 'ap_spent' ? e.amount : 0)),
+    ).toEqual([30, 5])
+    expect(out.events.filter((e) => e.event === 'combat_action_used')).toHaveLength(2)
+    expect(out.state.abilityRuntime!.usage).toHaveLength(2)
+    expect(out.state.abilityRuntime!.nextCommandSequence).toBe(2)
+    expect(out.resolution!.triggerGuard.remainingReactionBudget).toBe(31)
+    expect(
+      out.events
+        .filter((e) => e.event === 'healing_applied' || e.event === 'damage_applied')
+        .map((e) => e.event),
+    ).toEqual(['healing_applied', 'damage_applied'])
+    expect(hasPv1fTurnActivity(out.state as never)).toBe(true)
+  })
+  it('an unaffordable before child spends0 and its parent settles normally', () => {
+    const input = withBeforeAction({
+      ...command(30, 20, { costs: [{ resource: 'ap', amount: 30 }] }),
+      manualModifiers: undefined,
+    })
+    const out = commitCombatAbilityCommand(input)
+    expect(out.state.abilityRuntime!.usage).toHaveLength(1)
+    expect(out.events.filter((e) => e.event === 'combat_action_used')).toHaveLength(1)
+    expect(out.events.filter((e) => e.event === 'skill_cooldown_started')).toHaveLength(0)
+    expect(out.events.find((e) => e.event === 'damage_applied')).toMatchObject({
+      targetCombatantId: 'enemy',
+      amount: 10,
+    })
+  })
+  it('before children never inherit explicit Manual modifiers', () => {
+    const input = withBeforeAction(command(100, 20, { costs: [{ resource: 'ap', amount: 30 }] }))
+    const out = commitCombatAbilityCommand(input)
+    expect(readPv1fActionEconomy(out.state as never)!.current).toBe(58)
+    expect(
+      out.events
+        .filter((e) => e.event === 'damage_applied')
+        .map((e) => (e.event === 'damage_applied' ? e.amount : 0)),
+    ).toEqual([10, 3])
+    expect(out.events.filter((e) => e.event === 'healing_applied')).toHaveLength(1)
+    expect(out.state.abilityRuntime!.usage).toHaveLength(3)
+  })
+  it('invalid bundle never reaches a hook or changes its authoritative input', () => {
+    const input = withBeforeAction(command(10, 20)),
+      before = JSON.stringify(input)
+    expect(() => commitCombatAbilityCommand(input)).toThrow('insufficient-ap')
+    expect(JSON.stringify(input)).toBe(before)
+  })
+})
+
+describe('engine-issued committed admission', () => {
+  it('rejects forged and JSON-restored capabilities before native RNG', () => {
+    const input = command(),
+      prepared = prepareCombatAbilityCommand(input)
+    for (const token of [
+      {} as CommittedCombatExecution,
+      JSON.parse(
+        JSON.stringify(
+          issueCommittedCombatExecution(
+            input.state,
+            input.actorId,
+            prepared.action,
+            input.selection,
+            prepared.context,
+            true,
+          ),
+        ),
+      ),
+    ]) {
+      const snapshot = JSON.stringify(input.state)
+      expect(() =>
+        executeCombatAction(input.state, prepared.action, input.selection, input.content, {
+          ...prepared.context,
+          committedExecution: token,
+        }),
+      ).toThrow('invalid-committed-execution-authority')
+      expect(JSON.stringify(input.state)).toBe(snapshot)
+    }
+  })
+  it.each(['action', 'selection', 'actor', 'turn', 'provenance'] as const)(
+    'rejects a mismatched %s binding',
+    (mismatch) => {
+      const input = command(),
+        prepared = prepareCombatAbilityCommand(input)
+      const token = issueCommittedCombatExecution(
+        input.state,
+        input.actorId,
+        prepared.action,
+        input.selection,
+        prepared.context,
+        true,
+      )
+      const action =
+        mismatch === 'action' ? { ...prepared.action, id: 'replacement' } : prepared.action
+      const selection =
+        mismatch === 'selection' ? { kind: 'unit' as const, combatantId: 'other' } : input.selection
+      const context = {
+        ...prepared.context,
+        committedExecution: token,
+        provenance: {
+          ...prepared.context.provenance,
+          ...(mismatch === 'actor'
+            ? { sourceCombatantId: 'enemy' as typeof prepared.context.provenance.sourceCombatantId }
+            : {}),
+          ...(mismatch === 'provenance'
+            ? { actionVersion: 2 as typeof prepared.context.provenance.actionVersion }
+            : {}),
+        },
+      }
+      const state =
+        mismatch === 'turn'
+          ? {
+              ...input.state,
+              tactical: {
+                ...input.state.tactical,
+                battle: {
+                  ...input.state.tactical.battle,
+                  turnNumber: input.state.tactical.battle.turnNumber + 1,
+                },
+              },
+            }
+          : input.state
+      expect(() => executeCombatAction(state, action, selection, input.content, context)).toThrow(
+        'invalid-committed-execution-authority',
+      )
+    },
+  )
+  it('an issued capability settles once and cannot execute again', () => {
+    const input = { ...command(), manualModifiers: undefined },
+      prepared = prepareCombatAbilityCommand(input)
+    const token = issueCommittedCombatExecution(
+      input.state,
+      input.actorId,
+      prepared.action,
+      input.selection,
+      prepared.context,
+      true,
+    )
+    const context = { ...prepared.context, committedExecution: token }
+    const out = executeCombatAction(
+      input.state,
+      prepared.action,
+      input.selection,
+      input.content,
+      context,
+    )
+    expect(out.events.filter((e) => e.event === 'combat_action_used')).toHaveLength(0)
+    expect(() =>
+      executeCombatAction(out.state, prepared.action, input.selection, input.content, context),
+    ).toThrow('invalid-committed-execution-authority')
+  })
+})
+
+it('an off-turn child effect gate captures its own pre-payment owner, never its parent owner', () => {
+  const input = {
+    ...command(100, 20, { costs: [{ resource: 'ap', amount: 30 }] }),
+    manualModifiers: undefined,
+  }
+  const template = source(
+    {
+      id: 'counter',
+      activation: 'automatic',
+      costs: [{ resource: 'mp', amount: 5 }],
+      automaticTarget: { subject: 'triggering' },
+      requirements: {
+        kind: 'all',
+        children: [
+          { kind: 'action', classification: 'attack' },
+          { kind: 'event', eventType: 'combat_action_used', phase: 'before' },
+          {
+            kind: 'resource-state',
+            subject: 'triggering',
+            resource: 'ap',
+            comparison: 'at-most',
+            amount: 70,
+          },
+        ],
+      },
+      effects: [
+        {
+          id: 'counter-hit',
+          requirements: {
+            kind: 'resource-state',
+            subject: 'owner',
+            resource: 'mp',
+            comparison: 'at-least',
+            amount: 20,
+          },
+          payload: { type: 'damage', recipient: 'primary-unit', amount: 1 },
+        },
+      ],
+    },
+    'enemy-before',
+  )
+  const automatic = captureCombatAbilitySource({ ...template, ownerCombatantId: 'enemy' })
+  const state = reconcileCombatAbilitySources(input.state, [
+    ...input.state.capturedAbilitySources!,
+    automatic,
+  ])
+  const out = commitCombatAbilityCommand({ ...input, state })
+  expect(
+    out.events
+      .filter((e) => e.event === 'damage_applied')
+      .map((e) => (e.event === 'damage_applied' ? e.targetCombatantId : null)),
+  ).toEqual(['actor', 'enemy'])
+  expect(out.state.tactical.battle.combatants.find((u) => u.id === 'enemy')!.mp).toBe(15)
+  expect(out.events.filter((e) => e.event === 'combat_action_used')).toHaveLength(2)
 })

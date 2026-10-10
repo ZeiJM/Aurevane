@@ -1,3 +1,4 @@
+import { markPv1fTurnActivity, PV1F_TURN_ACTIVITY_RESOURCE_KEY } from './pv1f-turn-activity'
 import { airborneAttackAction, airborneMovementTactical } from './combat-airborne'
 import {
   capturedMatureSkillAbilitySource,
@@ -86,10 +87,8 @@ import {
   type GridPosition,
 } from './board'
 import {
-  PV1F_BASIC_ATTACK_COST,
   PV1F_BASIC_ATTACK_ID,
   PV1F_GUARD_ACTION_ID,
-  PV1F_GUARD_COST,
   movementApCostForTile,
   PV1F_MP_RECOVER_ACTION_ID,
   PV1F_RECOVER_ACTION_ID,
@@ -117,7 +116,6 @@ export {
 } from './pv1f-skills'
 
 export const PV1F_ACTION_ECONOMY_MAXIMUM = 100 as const
-const PV1F_TURN_ACTIVITY_RESOURCE_KEY = 'pv1f.activity-turn' as const
 export const PV1F_RECOVER_PERCENT = 10 as const
 export const PV1F_MP_RECOVER_PERCENT = 10 as const
 export const PV1F_STATUS_MAXIMUM_STACKS = 3 as const
@@ -490,22 +488,14 @@ export function spendPv1fActionEconomy(
   }
 
   const remaining = economy.current - cost
-  const resources = replaceResources(actor.temporaryResources, [
-    { ...economy, current: remaining },
-    {
-      key: PV1F_TURN_ACTIVITY_RESOURCE_KEY,
-      current: battle.turnNumber,
-      maximum: Number.MAX_SAFE_INTEGER,
-    },
-  ])
-  return withCombatantAndTurn(
-    prepared,
-    { ...actor, temporaryResources: resources },
-    {
-      ...turn,
-      actionState:
-        remaining >= Math.min(PV1F_BASIC_ATTACK_COST, PV1F_GUARD_COST) ? 'ready' : 'spent',
-    },
+  return markPv1fTurnActivity(
+    withCombatant(prepared, {
+      ...actor,
+      temporaryResources: replaceResources(actor.temporaryResources, [
+        { ...economy, current: remaining },
+      ]),
+    }),
+    actor.id,
   )
 }
 

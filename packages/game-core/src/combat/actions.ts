@@ -1,3 +1,8 @@
+import {
+  consumeCommittedCombatExecution,
+  committedCombatAction,
+  type CommittedCombatExecution,
+} from './combat-committed-execution'
 import { terrainAdjustedDefense } from './combat-stat-balance'
 import { airborneAttackAction } from './combat-airborne'
 import {
@@ -109,6 +114,11 @@ export interface CombatResolutionContext {
   triggerGuard: CombatTriggerGuard
   /** Engine-owned captured Automatic authority; never a client command field. */
   executionAuthority?: CombatAutomaticActionAuthority
+  committedExecution?: CommittedCombatExecution
+  resolveCommittedAbilityOutcomes?: (
+    transition: CombatResolutionTransition,
+    guard: CombatTriggerGuard,
+  ) => CombatResolutionTransition
 }
 export interface CombatAutomaticActionAuthority {
   readonly activation: 'automatic'
@@ -215,6 +225,12 @@ export function executeCombatAction(
   context?: CombatResolutionContext,
   hitDependentEffects?: CombatHitDependentEffects,
 ): CombatResolutionTransition {
+  if (context?.resolveCommittedAbilityOutcomes && !context.committedExecution)
+    throw new TypeError('invalid-committed-execution-authority')
+  if (context?.committedExecution) {
+    consumeCommittedCombatExecution(context.committedExecution, state, action, selection, context)
+    action = committedCombatAction(action)
+  }
   const executionActorId = context?.executionAuthority?.actorId
   if (
     executionActorId &&
@@ -426,13 +442,21 @@ export function executeCombatAction(
         Boolean(context?.executionAuthority),
       )
       triggerGuard = reflected.triggerGuard
-      return { state: reflected.state, events: [...recovered.events, ...reflected.events] }
+      const native = { state: reflected.state, events: [...recovered.events, ...reflected.events] }
+      if (!context?.resolveCommittedAbilityOutcomes) return native
+      const children = context.resolveCommittedAbilityOutcomes(
+        native,
+        triggerGuard ?? context.triggerGuard,
+      )
+      triggerGuard = children.resolution?.triggerGuard ?? triggerGuard
+      return children
     },
     accuracy.missedCombatantIds,
     critical.criticalEffectOrdinalsByTarget,
     resistance.resistedEffectOrdinalsByTarget,
     packets?.missedEffectOrdinalsByTarget,
     executionActorId,
+    context?.committedExecution,
   )
   const covertFiltered = filterBlockedCovertApplication({
     before: critical.state,
