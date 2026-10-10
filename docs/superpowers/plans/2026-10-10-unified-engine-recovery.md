@@ -10,6 +10,8 @@
 
 **Spec:** `docs/superpowers/specs/2026-10-10-unified-engine-recovery-design.md` and the exact approved `2026-10-10-unified-engine-recovery-owner-brief.md`.
 
+**Owner clarification:** `docs/superpowers/specs/2026-10-10-auxiliary-skill-editor-owner-addendum.md` requires complete panel editing for every Skill behind Support Action slot3, including Guard, HP Recovery and MP Recovery, alongside editable Move/Basic Attack. Each option is editable regardless of the selected slot choice. This preserves the existing single Support Action and four selected Discipline Skills.
+
 **Recovery status:** The prior local overhaul and evidence are unavailable. Task1 is reconstructed and independently accepted at949af25e877c7ff158bd8f885e1aa7a69d014306; later product tasks remain pending. Earlier conversation test counts are not evidence for reconstructed code. Baseline `ee5d49de449851c9b9aa61438735c4cd27ca6af4`; branch `agent/unified-engine-recovery-20261010`.
 
 ## Global Constraints
@@ -106,6 +108,8 @@ Push verified task commits and durable evidence summaries to this non-deploying 
 
 **Interfaces:** Consume T1–3. Produce registry Move payload with `apPerTraversalPoint`10–100/default20 and `maximumTiles`1–20, first/once-only Manual walking compatibility; Basic Move/Attack definitions captured into T2 sources. Basic identity `unarmed.basic` stays separate from command identity; read the current Basic Move identity rather than renaming it.
 
+- [ ] Extend the same editable Basic resolver/capture to every actual Support Action in `SUPPORT_ACTION_IDS`: Guard, HP Recovery and MP Recovery. Cover edited authored values in new battles, immutable old captures and the preserved single saved slot3 choice; carry exact identities and cooldown-sharing/conversion restrictions into T5/7/10. See the auxiliary Skill editor Owner addendum.
+
 - [ ] RED `move_then_enemy_followup`, `reached_not_planned_origin`, `move_interruption_poison_root_death`, `authored_cost_plus_traversal`, `movement_cap_independent`, `zero_ap_basic_offense_once`, `positive_ap_repeat`, `basic_attack_stat_family`, `edited_basic_old_new_capture`. Use AP100 and Move AP11/MP2/rate35/cap2; one terrain point leaves54AP; interruption before destination uses reached tile. Miss consumes zero-AP offensive attempt; prime/invalid do not; pure walk remains ordinary. Physical ties win, damage remains stat-derived, AP0 Basic Attack publication rejected.
 - [ ] Run new core Move/Basic tests and actual server preview/commit covering tests. Expected: missing registration/capture/follow-up assertions fail.
 - [ ] Implement through the real orthogonal traversal/step helper, preserving Haste/Slow/min10AP/occupancy/Jump/Poison and remaining Movement. Commit authored costs once and walking AP per legal entered tile. No Automatic/Ongoing Move or new human summon command. Save divergent old-to-new drafts truthfully; convert/publish only a complete mechanically equivalent saved version or explain the exact incompatibility.
@@ -130,6 +134,8 @@ Push verified task commits and durable evidence summaries to this non-deploying 
 
 **Interfaces:** Consume accepted engine/Basics. Expand `CombatContentKind` with Basic/Discipline/Tag/Item/Ascension/Severence while retaining legitimate existing kinds. Produce full-record create/duplicate/saveDraft/publish/restoreToDraft/archive/Used-by services and current/exact-version catalogue reads. All current publication choices use CAS; actual RPC/caller signatures are reported and carried into T6/T8/T10.
 
+- [ ] Include every auxiliary Support Action definition in the complete Basic/inherent record workflow; edits are independent of the selected slot3 option and use real full-record CAS, history, exact capture and dependency authority.
+
 - [ ] RED `complete_record_atomic_cas`, `create_duplicate_stable_ids`, `restore_full_hidden_media`, `current_plus_two_retained_older`, `archive_used_by_basic_guard`, `no_seed_resurrection`, `future_saved_but_unsupported_runtime`, `real_predecessor_authority`. Assert stale draft/publication writes mutate nothing; every field/version/history/projection/audit rolls back on a failed step; old referenced versions readable; restore becomes draft then a new version; retired current lookup never resurrects a seed; unsupported future activation is blocked specifically.
 - [ ] Run repository/service/handler and real local/PGlite migration tests. Expected: new complete/cross-kind transactional assertions fail, actual predecessor authorization remains exercised.
 - [ ] Extend the real spine, strict envelope/identity validation and indexed reverse references. Preserve schema history/grants/RLS, and finalize uploaded media before referencing durable IDs. Version Skill source immutably, validate canonical and legacy agreement, preserve Basic publish/conversion rules. Never backfill by overwriting actual Owner publications.
@@ -153,6 +159,8 @@ Push verified task commits and durable evidence summaries to this non-deploying 
 **Files:** New core `public-combat-presentation.ts`, shared Ability/Requirement/Tag readers; all actual Skill/Nexus/build/Basic/Resonance/summon/status/Manual/log/preview/API/RSC/live/spectator consumers; rendered and serialization/browser tests.
 
 **Interfaces:** Consume accepted captures/current/pinned content. Produce `PublicCombat<T>`, `PublicAbilityDefinition`, safe Basic/build/Controlled/live maintained DTOs, versioned Tag context and shared full/compact/live/Chronicle adapters. Final composed envelopes are projected recursively, preserving numeric combat Accuracy/Evasion, independent proc chance and authorized forecasts/results.
+
+- [ ] Include all edited auxiliary definitions in the actual current/pinned availability, forecast, cockpit, Manual and recorded outcome readers; require the auxiliary addendum's registry-driven coverage and historical privacy checks.
 
 - [ ] RED `recursive_private_accuracy_omitted`, `pinned_current_basic_rendered`, `safe_controlled_build_capture`, `maintained_exact_source_lifetime`, `ten_ordered_rows_multicost`, `conditional_recipients_geometry`, `versioned_tag_actual_lookup`, `typed_template_plain_text_plural_miss`, `copy_same_recorded_log`, `one_accessible_popup`. Assert raw authoring aliases/objects/materialized actions absent from serialized API/RSC/capture/pending/Ground/summon envelopes; private inputs unchanged; old/current Basics show actual AP/rate/cap/range; maintained12.5% says while Requirements, not expiry; actual MISS does not claim a hit.
 - [ ] Run rendered reader and actual boundary tests. Expected: missing migration/leak/wording failures, not mocked DTO-only success.
@@ -189,6 +197,8 @@ Push verified task commits and durable evidence summaries to this non-deploying 
 **Files:** Master shell/nav plus existing combat-content editor/workflow/client, shared category/Discipline/Tag/editor panels, media upload/finalize/crop/audio services, routes/handlers and rendered/browser tests.
 
 **Interfaces:** Consume T5/6/7/8. Produce complete manual create/edit/duplicate/link/search/filter/publish/archive/restore for every requested kind, explicit E/R current selection, contextual Parameters/Text/Media/History and actual shared previews. Preserve server CAS/capture/privacy; no parallel mechanics.
+
+- [ ] Expose and fully edit every Skill available behind Support Action slot3, including unselected Guard/HP Recovery/MP Recovery. Cover Parameters/Text/Media/History, Draft/Publish/Restore and real shared previews for each; prove the complete editor-to-new-battle outcome chain at T13/16. The auxiliary Skill editor Owner addendum defines this acceptance scope.
 
 - [ ] RED `manual_new_kind_complete_save`, `create_skill_within_discipline_retry`, `link_existing_no_duplicate`, `source_tags_registry_compatibility`, `basic_saved_version_publish`, `insert_reference_values`, `media_finalize_crop_audio_history`, `draft_published_compare`, `archive_dependencies`, `future_capability_truth`. Assert exact saved canonical definitions reach publication/real execution/readers; Illustrative preview does not claim equipped Resonance matching or simulation.
 - [ ] Run existing editor/workflow/server and new category/reference/media tests. Expected: missing genuine workflows fail.
