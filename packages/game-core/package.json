@@ -21,6 +21,8 @@
     "./character/wayfarers-practice": "./src/character/wayfarers-practice.ts",
     "./combat/actions": "./src/combat/actions.ts",
     "./combat/combat-definition": "./src/combat/combat-definition.ts",
+    "./combat/combat-behavior-capture": "./src/combat/combat-behavior-capture.ts",
+    "./combat/combat-behavior-runtime": "./src/combat/combat-behavior-runtime.ts",
     "./combat/combat-requirements": "./src/combat/combat-requirements.ts",
     "./combat/combat-tag-registry": "./src/combat/combat-tag-registry.ts",
     "./combat/combat-skill-accuracy": "./src/combat/combat-skill-accuracy.ts",

@@ -180,6 +180,8 @@ import {
   validateDamageModifiers,
   type CombatDamageModifier,
 } from './damage-modifiers'
+import type { CapturedCombatAbilitySource } from './combat-behavior-capture'
+import type { CombatAbilityRuntimeState } from './combat-behavior-runtime'
 import {
   applySkillCooldown,
   readSkillCooldown,
@@ -474,6 +476,8 @@ export interface PendingCombatEffect {
 }
 
 export interface CombatEncounterState {
+  capturedAbilitySources?: readonly CapturedCombatAbilitySource[]
+  abilityRuntime?: CombatAbilityRuntimeState
   /** Current element settlement; absent snapshots keep historical interactions. */
   elementalDamagePolicyVersion?: 1 | 2
   /** Current active Initiative changes affect only future eligible turns. */
@@ -544,6 +548,11 @@ export type CombatTargetSelection =
   | { kind: 'activate'; ground?: true }
 
 export type CombatActionIssueCode =
+  | 'insufficient-ap'
+  | 'insufficient-hp'
+  | 'activation-limit'
+  | 'duplicate-command'
+  | 'source-owner-mismatch'
   | 'battle-not-active'
   | 'action-already-spent'
   | 'insufficient-mp'
@@ -600,6 +609,7 @@ export interface CombatActionEvaluation {
 }
 
 export type CombatResolutionEvent = (
+  | { event: 'ap_spent' | 'hp_spent'; combatantId: string; amount: number; remaining: number }
   | CombatStatusResistanceResolvedEvent
   | {
       event: 'persistent_effect_applied'
@@ -994,6 +1004,7 @@ export function evaluateCombatAction(
   action: CombatActionDefinition,
   selection: CombatTargetSelection,
   content: CombatContentCatalog,
+  executionActorId?: string,
 ): CombatActionEvaluation {
   assertValidCombatEncounterState(state)
   validateCombatContentCatalog(content)
@@ -1003,7 +1014,8 @@ export function evaluateCombatAction(
   const issues: CombatActionIssue[] = []
   const battle = state.tactical.battle
   const turn = battle.currentTurn
-  const actorId = battle.lifecycle === 'active' && turn ? turn.combatantId : null
+  const actorId =
+    battle.lifecycle === 'active' && turn ? (executionActorId ?? turn.combatantId) : null
 
   if (!actorId || !turn) {
     issues.push({ code: 'battle-not-active', message: 'Combat action requires an active turn.' })
@@ -1031,7 +1043,11 @@ export function evaluateCombatAction(
     issues.push({ code: 'insufficient-mp', message: 'The actor does not have enough MP.' })
   }
 
-  action = elementalActionIntent(state, airborneAttackAction(state, action, content), selection)
+  action = elementalActionIntent(
+    state,
+    airborneAttackAction(state, action, content, actorId),
+    selection,
+  )
   const targeting = resolveCombatTargeting(state, actorId, action.target, selection, content)
   issues.push(...targeting.issues)
   const target = { position: targeting.primaryPosition, combatantId: targeting.primaryCombatantId }
@@ -1265,8 +1281,9 @@ export function executeCombatAction(
   criticalEffectOrdinalsByTarget?: ReadonlyMap<string, ReadonlySet<number>>,
   resistedEffectOrdinalsByTarget?: CombatResistedEffectOrdinals,
   missedEffectOrdinalsByTarget?: CombatResistedEffectOrdinals,
+  executionActorId?: string,
 ): CombatResolutionTransition {
-  const evaluation = evaluateCombatAction(state, action, selection, content)
+  const evaluation = evaluateCombatAction(state, action, selection, content, executionActorId)
   if (!evaluation.legal || !evaluation.actorId) {
     const issue = evaluation.issues[0]
     throw new Error(

@@ -106,6 +106,12 @@ export interface CombatActionEvaluation extends legacy.CombatActionEvaluation {
 export interface CombatResolutionContext {
   provenance: CombatActionProvenance
   triggerGuard: CombatTriggerGuard
+  /** Engine-owned captured Automatic authority; never a client command field. */
+  executionAuthority?: CombatAutomaticActionAuthority
+}
+export interface CombatAutomaticActionAuthority {
+  readonly activation: 'automatic'
+  readonly actorId: string
 }
 
 export interface CombatResolutionMetadata {
@@ -133,20 +139,23 @@ export function evaluateCombatAction(
   action: CombatActionDefinition,
   selection: legacy.CombatTargetSelection,
   content: legacy.CombatContentCatalog,
+  executionAuthority?: CombatAutomaticActionAuthority,
 ): CombatActionEvaluation {
+  const executionActorId = executionAuthority?.actorId
   action = legacy.elementalActionIntent(
     state,
-    airborneAttackAction(state, action, content),
+    airborneAttackAction(state, action, content, executionActorId),
     selection,
   )
   validateCombatAccuracyDefinition(action)
   const csrPreviewAction = materializeCsrPreviewAction(action)
-  let materialized = materializeVengeanceDamage(state, csrPreviewAction)
+  let materialized = materializeVengeanceDamage(state, csrPreviewAction, executionActorId)
   let evaluation = legacy.evaluateCombatAction(
     state,
-    materializeStatScaledDamage(state, materialized.action),
+    materializeStatScaledDamage(state, materialized.action, executionActorId),
     selection,
     content,
+    executionActorId,
   )
   const csrForecast =
     state.statBalancePolicyVersion === 1 && evaluation.legal
@@ -160,12 +169,13 @@ export function evaluateCombatAction(
         })
       : { action: csrPreviewAction, content }
   if (state.statBalancePolicyVersion === 1 && evaluation.legal) {
-    materialized = materializeVengeanceDamage(state, csrForecast.action)
+    materialized = materializeVengeanceDamage(state, csrForecast.action, executionActorId)
     evaluation = legacy.evaluateCombatAction(
       state,
-      materializeStatScaledDamage(state, materialized.action),
+      materializeStatScaledDamage(state, materialized.action, executionActorId),
       selection,
       csrForecast.content,
+      executionActorId,
     )
   }
   const preview =
@@ -204,18 +214,25 @@ export function executeCombatAction(
   context?: CombatResolutionContext,
   hitDependentEffects?: CombatHitDependentEffects,
 ): CombatResolutionTransition {
+  const executionActorId = context?.executionAuthority?.actorId
+  if (
+    executionActorId &&
+    (context?.provenance.sourceCombatantId !== executionActorId || action.cost.spendsAction)
+  )
+    throw new TypeError('invalid-automatic-execution-authority')
   action = legacy.elementalActionIntent(
     state,
-    airborneAttackAction(state, action, content),
+    airborneAttackAction(state, action, content, executionActorId),
     selection,
   )
   validateCombatAccuracyDefinition(action)
   const round = state.tactical.battle.round
-  const actorId = state.tactical.battle.currentTurn?.combatantId ?? null
+  const actorId = executionActorId ?? state.tactical.battle.currentTurn?.combatantId ?? null
   const previewAction = materializeCsrPreviewAction(action)
   const previewMaterializedAction = materializeStatScaledDamage(
     state,
-    materializeVengeanceDamage(state, previewAction).action,
+    materializeVengeanceDamage(state, previewAction, executionActorId).action,
+    executionActorId,
   )
   const packetGroups = skillPacketGroups(state, action)
   let originalOrdinals = action.effects.map((_effect, ordinal) => ordinal)
@@ -230,7 +247,13 @@ export function executeCombatAction(
     action.effects.some((effect) => effect.type === 'sensory') ||
     (state.statBridge?.rulesVersion === 4 && hasCriticalEligibleDamage(action))
   const evaluation = requiresEvaluation
-    ? legacy.evaluateCombatAction(state, previewMaterializedAction, selection, content)
+    ? legacy.evaluateCombatAction(
+        state,
+        previewMaterializedAction,
+        selection,
+        content,
+        executionActorId,
+      )
     : null
   const dependentOrdinals = new Set(hitDependentEffects?.effectOrdinals ?? [])
   const prerequisiteGroups = packetGroups
@@ -369,7 +392,8 @@ export function executeCombatAction(
     : rollCombatCritical(resistance.state, csr.action, evaluation, accuracy.missedCombatantIds)
   const materializedAction = materializeStatScaledDamage(
     critical.state,
-    materializeVengeanceDamage(critical.state, csr.action).action,
+    materializeVengeanceDamage(critical.state, csr.action, executionActorId).action,
+    executionActorId,
   )
   let triggerGuard = context?.triggerGuard
   const committed = legacy.executeCombatAction(
@@ -397,6 +421,7 @@ export function executeCombatAction(
         content,
         command,
         triggerGuard,
+        Boolean(context?.executionAuthority),
       )
       triggerGuard = reflected.triggerGuard
       return { state: reflected.state, events: [...recovered.events, ...reflected.events] }
@@ -405,6 +430,7 @@ export function executeCombatAction(
     critical.criticalEffectOrdinalsByTarget,
     resistance.resistedEffectOrdinalsByTarget,
     packets?.missedEffectOrdinalsByTarget,
+    executionActorId,
   )
   const covertFiltered = filterBlockedCovertApplication({
     before: critical.state,
@@ -503,10 +529,11 @@ function recordTurnDamageHistory(
 function materializeStatScaledDamage(
   state: CombatEncounterState,
   action: CombatActionDefinition,
+  executionActorId?: string,
 ): legacy.CombatActionDefinition {
   const actorId =
     state.tactical.battle.lifecycle === 'active'
-      ? (state.tactical.battle.currentTurn?.combatantId ?? null)
+      ? (executionActorId ?? state.tactical.battle.currentTurn?.combatantId ?? null)
       : null
 
   const effects: legacy.CombatEffectDefinition[] = action.effects.map((effect) => {

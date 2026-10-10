@@ -68,8 +68,8 @@ export function airborneAttackAction<T extends CombatActionDefinition>(
   state: CombatEncounterState,
   action: T,
   content: CombatContentCatalog,
+  actorId = state.tactical.battle.currentTurn?.combatantId,
 ): T {
-  const actorId = state.tactical.battle.currentTurn?.combatantId
   return state.airbornePolicyVersion === 1 &&
     actorId &&
     action.tags.includes('attack') &&
