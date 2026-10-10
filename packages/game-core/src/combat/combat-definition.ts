@@ -3,6 +3,7 @@ import { validateCombatActionDefinition } from './combat-authoring-validation'
 import { validateSkillCooldownDefinition, type SkillCooldownDefinition } from './skill-cooldowns'
 import {
   validateAbilityRequirements,
+  isBeforeActionModifierRequirement,
   type RequirementNode,
   type AbilityResource,
   type AbilityClassification,
@@ -87,6 +88,7 @@ export interface AbilityDefinitionIssue {
     | 'unsupported-tag'
     | 'unsupported-recipient'
     | 'unsupported-combination'
+    | 'automatic-modifier-before-action-required'
     | 'invalid-payload'
     | 'elemental-companion'
   readonly message: string
@@ -253,6 +255,17 @@ export function validateAbilityDefinition(value: unknown): readonly AbilityDefin
       }
     }
     requirements(candidate.requirements, `${path}.requirements`)
+    if (
+      candidate.activation === 'automatic' &&
+      candidate.mode === 'modifier' &&
+      validateAbilityRequirements(candidate.requirements).length === 0 &&
+      !isBeforeActionModifierRequirement(candidate.requirements as RequirementNode | null)
+    )
+      issue(
+        `${path}.requirements`,
+        'automatic-modifier-before-action-required',
+        'Automatic modifiers require an action qualifier or combat_action_used/before in every satisfying branch; crossing and other event hooks are unsupported.',
+      )
     const target = candidate.targeting
     if (candidate.mode === 'action') {
       if (!record(target))

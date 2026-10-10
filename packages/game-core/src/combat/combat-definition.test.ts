@@ -50,6 +50,70 @@ function ability() {
 }
 
 describe('canonical Ability definition', () => {
+  it.each([
+    null,
+    { kind: 'resource-state', subject: 'owner', resource: 'hp', comparison: 'at-most', amount: 10 },
+    {
+      kind: 'any',
+      children: [
+        { kind: 'action', classification: 'attack' },
+        { kind: 'status-presence', subject: 'owner', statusId: 'wet', present: true },
+      ],
+    },
+    { kind: 'event', eventType: 'combat_action_used', phase: 'after' },
+    {
+      kind: 'all',
+      children: [
+        { kind: 'action', classification: 'attack' },
+        {
+          kind: 'resource-threshold-crossing',
+          subject: 'owner',
+          resource: 'hp',
+          direction: 'below',
+          thresholdBasisPoints: 5000,
+        },
+      ],
+    },
+  ])('Automatic modifier rejects an unanchored/incompatible tree %j', (requirements) => {
+    const value = ability()
+    Object.assign(value.behaviors[0]!, {
+      activation: 'automatic',
+      mode: 'modifier',
+      targeting: null,
+      requirements,
+    })
+    expect(validateAbilityDefinition(value)).toContainEqual(
+      expect.objectContaining({ code: 'automatic-modifier-before-action-required' }),
+    )
+  })
+  it('Automatic modifier accepts All(action, Any(stateA,stateB))', () => {
+    const value = ability()
+    Object.assign(value.behaviors[0]!, {
+      activation: 'automatic',
+      mode: 'modifier',
+      targeting: null,
+      requirements: {
+        kind: 'all',
+        children: [
+          { kind: 'action', classification: 'attack' },
+          {
+            kind: 'any',
+            children: [
+              { kind: 'status-presence', subject: 'owner', statusId: 'wet', present: true },
+              {
+                kind: 'resource-state',
+                subject: 'owner',
+                resource: 'hp',
+                comparison: 'at-most',
+                amount: 10,
+              },
+            ],
+          },
+        ],
+      },
+    })
+    expect(validateAbilityDefinition(value)).toEqual([])
+  })
   it('activation_limit_contract accepts all four distinct scopes and historical absence', () => {
     const value = ability()
     const activationLimits = [
@@ -95,6 +159,9 @@ describe('canonical Ability definition', () => {
     } as never)
     expect(validateAbilityDefinition(value)).toEqual([])
     Object.assign(value.behaviors[0]!, { activation: 'automatic' })
+    Object.assign(value.behaviors[0]!, {
+      requirements: { kind: 'action', classification: 'attack' },
+    })
     expect(validateAbilityDefinition(value)).toEqual([])
     Object.assign(value.behaviors[0]!.effects[1]!.payload, { statusId: 'suppress' })
     expect(validateAbilityDefinition(value)).toContainEqual(

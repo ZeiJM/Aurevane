@@ -4,6 +4,25 @@ const safeInteger = z.number().int().min(Number.MIN_SAFE_INTEGER).max(Number.MAX
 const safePositiveInteger = safeInteger.positive()
 const battleSessionIdSchema = z.string().uuid()
 const combatantIdSchema = z.string().trim().min(1).max(160)
+const exactReferenceIdSchema = z
+  .string()
+  .min(1)
+  .refine((value) => value.trim() === value)
+const manualModifiersSchema = z
+  .array(
+    z
+      .object({
+        sourceInstanceId: exactReferenceIdSchema,
+        behaviorId: exactReferenceIdSchema,
+      })
+      .strict(),
+  )
+  .max(15)
+  .refine(
+    (rows) =>
+      new Set(rows.map((row) => JSON.stringify([row.sourceInstanceId, row.behaviorId]))).size ===
+      rows.length,
+  )
 const gridPositionSchema = z.object({ x: safeInteger, y: safeInteger }).strict()
 const battleFacingSchema = z.enum(['north', 'east', 'south', 'west'])
 const tacticalHallArenaIdSchema = z.enum([
@@ -44,6 +63,8 @@ export const battleIntentSchema = z.discriminatedUnion('kind', [
       kind: z.literal('action'),
       actionId: z.string().trim().min(1).max(160),
       target: combatTargetSelectionSchema,
+      behaviorId: exactReferenceIdSchema.optional(),
+      manualModifiers: manualModifiersSchema.optional(),
     })
     .strict(),
   z.object({ kind: z.literal('face'), facing: battleFacingSchema }).strict(),

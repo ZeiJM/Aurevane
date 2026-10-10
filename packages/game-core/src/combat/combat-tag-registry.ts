@@ -241,7 +241,7 @@ export const COMBAT_TAG_REGISTRY: readonly CombatTagDefinition[] = Object.freeze
     'damage-bonus',
     ['multiplierBasisPoints'],
     { multiplierBasisPoints: 'basis-points' },
-    'Maintain an owner outgoing damage bonus while its Requirements hold. Each source owns its contribution; the canonical maintained-source resolver is required.',
+    'Manual modifies the selected Attack for this command and its prepaid packets. Ongoing maintains an owner outgoing damage bonus while its Requirements hold. Each captured source owns its contribution.',
     {
       payloadFields: ['type', 'recipient', 'multiplierBasisPoints'],
       recipients: ['actor'],

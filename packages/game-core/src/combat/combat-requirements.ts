@@ -73,6 +73,32 @@ export interface AbilityRequirementContext {
 }
 
 export const ABILITY_REQUIREMENT_BUDGET = Object.freeze({ maximumDepth: 8, maximumNodes: 128 })
+
+/** Every satisfying branch must qualify this root's before-action hook. */
+export function isBeforeActionModifierRequirement(node: RequirementNode | null): boolean {
+  function inspect(value: RequirementNode): { compatible: boolean; anchored: boolean } {
+    if (value.kind === 'resource-threshold-crossing') return { compatible: false, anchored: false }
+    if (value.kind === 'event') {
+      const compatible = value.eventType === 'combat_action_used' && value.phase === 'before'
+      return { compatible, anchored: compatible }
+    }
+    if (value.kind === 'action') return { compatible: true, anchored: true }
+    if (value.kind === 'all' || value.kind === 'any') {
+      const children = value.children.map(inspect)
+      return {
+        compatible: children.every((child) => child.compatible),
+        anchored:
+          value.kind === 'all'
+            ? children.some((child) => child.anchored)
+            : children.every((child) => child.anchored),
+      }
+    }
+    return { compatible: true, anchored: false }
+  }
+  if (!node) return false
+  const result = inspect(node)
+  return result.compatible && result.anchored
+}
 const ID = /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/u
 const subjects = ['owner', 'selected', 'affected', 'triggering']
 const resources = ['ap', 'mp', 'hp']
