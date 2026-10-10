@@ -1,3 +1,7 @@
+import {
+  validateCombatNativeCommandFacts,
+  type CapturedCombatNativeCommandFacts,
+} from './combat-native-mutations'
 import { combatEffectTimingRoundOffset } from './combat-effect-timing'
 import { claimCombatTurnTrigger } from './combat-turn-trigger-state'
 import {
@@ -33,6 +37,7 @@ export interface CombatGroundAreaDefinition {
   timing?: 'instant' | 'next-round' | 'delayed'
 }
 export interface CombatGroundAreaInstance {
+  abilityCommandFacts?: CapturedCombatNativeCommandFacts
   /** Converted ice tiles retain the area schedule but no longer apply its ice entry payload. */
   steamTiles?: readonly GridPosition[]
   sourceCommandVisibility?: CombatSourceCommandVisibility
@@ -125,7 +130,10 @@ export function createCombatGroundArea(
   action: CombatActionDefinition,
   tiles: readonly GridPosition[],
   content: CombatContentCatalog,
-  options?: { sourceCommandVisibility?: CombatSourceCommandVisibility },
+  options?: {
+    sourceCommandVisibility?: CombatSourceCommandVisibility
+    abilityCommandFacts?: CapturedCombatNativeCommandFacts
+  },
 ): CombatEncounterState {
   if (
     state.groundEffectPolicyVersion !== 1 ||
@@ -152,6 +160,7 @@ export function createCombatGroundArea(
   const area: CombatGroundAreaInstance = JSON.parse(
     JSON.stringify({
       id: `ground.area.${ordinal}`,
+      ...(options?.abilityCommandFacts ? { abilityCommandFacts: options.abilityCommandFacts } : {}),
       sourceCommandVisibility: options
         ? options.sourceCommandVisibility
         : combatSourceCommandVisibility(state, actorId),
@@ -305,6 +314,7 @@ export function validateCombatGroundAreas(
           area.entryEffectOrigins.length !== area.entryEffects.length)
       )
         throw new TypeError('Invalid Ground effect origins.')
+      validateCombatNativeCommandFacts(area.abilityCommandFacts)
       validateGroundTiles(state, area.tiles)
       if (area.steamTiles) {
         if (state.elementalDamagePolicyVersion === undefined)

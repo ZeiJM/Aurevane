@@ -1,3 +1,9 @@
+import { commitCombatAbilityCommand } from './combat-ability-command'
+import { combatAbilityCommandContext } from './combat-behavior-runtime'
+import { finishPv1fTurn } from './pv1f-action-economy'
+import { captureCombatAbilitySource } from './combat-behavior-capture'
+import { reconcileCombatAbilitySources } from './combat-behavior-runtime'
+import { source } from './combat-behavior.test-utils'
 import { surrenderPvpCombatant } from './pvp-quality'
 import { describe, expect, it } from 'vitest'
 import {
@@ -754,3 +760,338 @@ it.each([2500, 10000])(
     expect(hp(result.state)).toBe(potencyBasisPoints === 10000 ? 1000 : 925)
   },
 )
+
+it.each([false, true])(
+  'real multi-step movement queues children after the paid path; once-action %s',
+  (once) => {
+    const reaction = captureCombatAbilitySource({
+      ...source(
+        {
+          id: 'step-heal',
+          activation: 'automatic',
+          classification: 'recovery',
+          attackFamily: undefined,
+          costs: [{ resource: 'mp', amount: 1 }],
+          activationLimits: once ? ['once-per-action'] : [],
+          requirements: {
+            kind: 'all',
+            children: [
+              { kind: 'event', eventType: 'movement_spent', phase: 'after' },
+              {
+                kind: 'resource-state',
+                subject: 'owner',
+                resource: 'ap',
+                comparison: 'at-least',
+                amount: 100,
+              },
+            ],
+          },
+          targeting: {
+            kind: 'self',
+            teamPolicy: 'self',
+            friendlyFire: 'allies-only',
+            shape: { kind: 'single' },
+            minimumRange: 0,
+            maximumRange: 0,
+            requiresLineOfSight: false,
+            maximumElevationDifference: null,
+            maximumSelections: 1,
+          },
+          effects: [
+            {
+              id: 'heal',
+              requirements: {
+                kind: 'resource-state',
+                subject: 'owner',
+                resource: 'ap',
+                comparison: 'at-most',
+                amount: 60,
+              },
+              payload: { type: 'healing', recipient: 'actor', amount: 1 },
+            },
+          ],
+        },
+        'move-child',
+      ),
+      abilityId: 'move.child',
+    })
+    const original = encounter()
+    const state = reconcileCombatAbilitySources(
+      {
+        ...original,
+        tactical: {
+          ...original.tactical,
+          battle: {
+            ...original.tactical.battle,
+            combatants: original.tactical.battle.combatants.map((unit) =>
+              unit.id === 'actor' ? { ...unit, hp: 900 } : unit,
+            ),
+          },
+        },
+      },
+      [reaction],
+    ) as StatDrivenCombatEncounterState
+    const path = [
+      { x: 1, y: 1 },
+      { x: 2, y: 1 },
+      { x: 3, y: 1 },
+    ]
+    const before = JSON.stringify(state)
+    evaluatePv1fMovement(state, path)
+    expect(JSON.stringify(state)).toBe(before)
+    const out = executePv1fMovement(state, path)
+    expect(readPv1fActionEconomy(out.state)!.current).toBe(60)
+    expect(hp(out.state)).toBe(once ? 901 : 902)
+    expect(out.state.tactical.battle.combatants.find((unit) => unit.id === 'actor')!.mp).toBe(
+      once ? 19 : 18,
+    )
+    const events = out.events as readonly CombatResolutionEvent[]
+    expect(
+      events.filter((event) => event.event === 'healing_applied').map((event) => event.actionId),
+    ).toEqual(once ? ['move.child'] : ['move.child', 'move.child'])
+    expect(
+      out.events.findIndex(
+        (event) => (event as { event: string }).event === 'action_economy_spent',
+      ),
+    ).toBeLessThan(
+      out.events.findIndex((event) => (event as { event: string }).event === 'combat_action_used'),
+    )
+  },
+)
+
+it('native Ground damage/heal/damage retains two crossings until the whole path settles', () => {
+  const reaction = captureCombatAbilitySource({
+    ...source(
+      {
+        id: 'ground-cross',
+        activation: 'automatic',
+        classification: 'recovery',
+        attackFamily: undefined,
+        costs: [{ resource: 'mp', amount: 1 }],
+        requirements: {
+          kind: 'resource-threshold-crossing',
+          subject: 'owner',
+          resource: 'hp',
+          direction: 'below',
+          thresholdBasisPoints: 9900,
+        },
+        targeting: {
+          kind: 'self',
+          teamPolicy: 'self',
+          friendlyFire: 'allies-only',
+          shape: { kind: 'single' },
+          minimumRange: 0,
+          maximumRange: 0,
+          requiresLineOfSight: false,
+          maximumElevationDifference: null,
+          maximumSelections: 1,
+        },
+        effects: [{ id: 'heal', payload: { type: 'healing', recipient: 'actor', amount: 1 } }],
+      },
+      'ground-cross',
+    ),
+    abilityId: 'ground.child',
+  })
+  let state = seedArea()
+  state = seedArea(
+    state,
+    { x: 2, y: 1 },
+    {
+      ...groundAction(),
+      id: 'test.ground-heal',
+      effects: [{ type: 'healing', recipient: 'affected-units', amount: 23 }],
+    },
+  )
+  state = seedArea(state, { x: 3, y: 1 })
+  state = reconcileCombatAbilitySources(state, [reaction]) as typeof state
+  const out = executePv1fMovement(state, [
+    { x: 1, y: 1 },
+    { x: 2, y: 1 },
+    { x: 3, y: 1 },
+  ])
+  const receipts = (out.events as readonly CombatResolutionEvent[]).filter(
+    (event) => event.event === 'damage_applied' || event.event === 'healing_applied',
+  )
+  expect(receipts.map((event) => event.actionId)).toEqual([
+    'ground.pulse.ground.area.1',
+    'ground.pulse.ground.area.2',
+    'ground.pulse.ground.area.3',
+    'ground.child',
+    'ground.child',
+  ])
+  expect(hp(out.state)).toBe(979)
+  expect(out.state.tactical.battle.combatants.find((unit) => unit.id === 'actor')!.mp).toBe(18)
+})
+
+it('actual observed native Ground cast freezes intrinsic facts across JSON restore and entry', () => {
+  const reaction = captureCombatAbilitySource({
+    ...source(
+      {
+        id: 'ground-facts',
+        activation: 'automatic',
+        classification: 'recovery',
+        attackFamily: undefined,
+        costs: [{ resource: 'mp', amount: 1 }],
+        activationLimits: ['once-per-action'],
+        requirements: {
+          kind: 'all',
+          children: [
+            { kind: 'action', classification: 'attack', attackFamily: 'physical' },
+            { kind: 'event', eventType: 'damage_applied', phase: 'after' },
+          ],
+        },
+        targeting: {
+          kind: 'self',
+          teamPolicy: 'self',
+          friendlyFire: 'allies-only',
+          shape: { kind: 'single' },
+          minimumRange: 0,
+          maximumRange: 0,
+          requiresLineOfSight: false,
+          maximumElevationDifference: null,
+          maximumSelections: 1,
+        },
+        effects: [{ id: 'heal', payload: { type: 'healing', recipient: 'actor', amount: 1 } }],
+      },
+      'ground-facts',
+    ),
+    abilityId: 'facts.child',
+  })
+  let state = reconcileCombatAbilitySources(encounter(), [
+    reaction,
+  ]) as StatDrivenCombatEncounterState
+  state = finishPv1fTurn(state, 'west').state
+  const action = groundAction(20)
+  const out = commitCombatAbilityCommand({
+    state,
+    actorId: 'enemy',
+    root: {
+      kind: 'native',
+      sourceInstanceId: 'native.enemy-ground',
+      action,
+      costs: [],
+      classification: 'attack',
+      attackFamily: 'physical',
+    },
+    selection: { kind: 'tile', position: { x: 2, y: 1 } },
+    content,
+    context: combatAbilityCommandContext(state, {
+      ...reaction,
+      ownerCombatantId: 'enemy',
+      abilityId: action.id,
+      contentVersion: action.version,
+    }),
+  })
+  expect(out.state.groundAreas![0]!.abilityCommandFacts!.actionFacts).toMatchObject({
+    classification: 'attack',
+    attackFamily: 'physical',
+    tags: ['attack'],
+  })
+  state = JSON.parse(JSON.stringify(out.state)) as typeof state
+  while (state.tactical.battle.currentTurn!.combatantId !== 'actor')
+    state = finishPv1fTurn(state, 'west').state
+  const entered = executePv1fMovement(state, [
+    { x: 1, y: 1 },
+    { x: 2, y: 1 },
+  ])
+  expect(
+    (entered.events as readonly CombatResolutionEvent[])
+      .filter((event) => event.event === 'combat_action_used')
+      .map((event) => event.actionId),
+  ).toEqual(['facts.child'])
+  expect(hp(entered.state)).toBe(981)
+})
+
+it('native movement immediately refreshes an Ongoing source without any Automatic action', () => {
+  const maintained = captureCombatAbilitySource(
+    source(
+      {
+        id: 'ap-maintained',
+        activation: 'ongoing',
+        mode: 'modifier',
+        costs: [],
+        requirements: {
+          kind: 'resource-state',
+          subject: 'owner',
+          resource: 'ap',
+          comparison: 'at-most',
+          amount: 60,
+        },
+        targeting: null,
+        effects: [
+          {
+            id: 'bonus',
+            payload: { type: 'damage-bonus', recipient: 'actor', multiplierBasisPoints: 13000 },
+          },
+        ],
+      },
+      'ap-maintained',
+    ),
+  )
+  const independent = captureCombatAbilitySource(
+    source(
+      {
+        id: 'independent',
+        activation: 'ongoing',
+        mode: 'modifier',
+        costs: [],
+        requirements: null,
+        targeting: null,
+        effects: [
+          {
+            id: 'bonus',
+            payload: { type: 'damage-bonus', recipient: 'actor', multiplierBasisPoints: 14000 },
+          },
+        ],
+      },
+      'independent-source',
+    ),
+  )
+  const state = reconcileCombatAbilitySources(encounter(), [
+    maintained,
+    independent,
+  ]) as StatDrivenCombatEncounterState
+  expect(state.abilityRuntime!.maintained).toEqual([
+    expect.objectContaining({
+      sourceInstanceId: 'independent-source',
+      multiplierBasisPoints: 14000,
+    }),
+  ])
+  const out = executePv1fMovement(state, [
+    { x: 1, y: 1 },
+    { x: 2, y: 1 },
+    { x: 3, y: 1 },
+  ])
+  expect(readPv1fActionEconomy(out.state)!.current).toBe(60)
+  expect(out.state.abilityRuntime!.maintained).toEqual([
+    expect.objectContaining({
+      sourceInstanceId: 'ap-maintained',
+      behaviorId: 'ap-maintained',
+      multiplierBasisPoints: 13000,
+    }),
+    expect.objectContaining({
+      sourceInstanceId: 'independent-source',
+      behaviorId: 'independent',
+      multiplierBasisPoints: 14000,
+    }),
+  ])
+  const removed = reconcileCombatAbilitySources(out.state, [independent])
+  expect(removed.abilityRuntime!.maintained).toEqual([
+    expect.objectContaining({
+      sourceInstanceId: 'independent-source',
+      behaviorId: 'independent',
+      multiplierBasisPoints: 14000,
+    }),
+  ])
+  expect(removed.abilityRuntime!.activeSourceIds).toEqual(['independent-source'])
+  expect(removed.capturedAbilitySources!.map((source) => source.sourceInstanceId)).toEqual([
+    'ap-maintained',
+    'independent-source',
+  ])
+  expect(removed.tactical).toEqual(out.state.tactical)
+  expect(
+    (out.events as readonly CombatResolutionEvent[]).filter(
+      (event) => event.event === 'combat_action_used',
+    ),
+  ).toHaveLength(0)
+})

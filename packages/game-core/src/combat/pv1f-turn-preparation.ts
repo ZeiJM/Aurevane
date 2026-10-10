@@ -22,7 +22,13 @@ export function prepareNativePv1fTurn<T extends CombatEncounterState>(
   )
   if (marker?.current === battle.turnNumber && economy) return { state, events: [] }
 
-  if (existingOnly && !economy) return { state, events: [] }
+  if (
+    existingOnly &&
+    !battle.combatants.some((unit) =>
+      unit.temporaryResources.some((resource) => resource.key === PV1F_ACTION_ECONOMY_RESOURCE_KEY),
+    )
+  )
+    return { state, events: [] }
   const placement = state.tactical.placements.find((unit) => unit.combatantId === actor.id)!
   state = {
     ...state,

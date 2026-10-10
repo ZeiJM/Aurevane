@@ -862,7 +862,9 @@ export function createCombatNativeAbilityRuntime(
     (source) =>
       state.abilityRuntime?.activeSourceIds.includes(source.sourceInstanceId) &&
       source.definition.behaviors.some(
-        (behavior) => behavior.activation === 'automatic' && behavior.mode === 'action',
+        (behavior) =>
+          (behavior.activation === 'automatic' && behavior.mode === 'action') ||
+          (behavior.activation === 'ongoing' && behavior.mode === 'modifier'),
       ),
   )
   if (!source) return undefined

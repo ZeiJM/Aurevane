@@ -38,3 +38,42 @@ export function observeCombatNativeMutation<Transition extends CombatResolutionT
     ? { ...transition, state: hooks.observeMutation(before, transition, facts) }
     : transition
 }
+
+export type CapturedCombatNativeCommandFacts = Pick<
+  CombatNativeMutationFacts,
+  'actionFacts' | 'selectedCombatantId' | 'rootActionId'
+>
+/** Present private pending/Ground facts are strict; absent historical captures remain valid. */
+export function validateCombatNativeCommandFacts(value: unknown): void {
+  if (value === undefined) return
+  if (!value || typeof value !== 'object' || Array.isArray(value))
+    throw new TypeError('invalid-native-command-facts')
+  const facts = value as Record<string, unknown>
+  if (
+    Object.keys(facts).some(
+      (key) => !['rootActionId', 'actionFacts', 'selectedCombatantId'].includes(key),
+    ) ||
+    typeof facts.rootActionId !== 'string' ||
+    !facts.rootActionId.trim() ||
+    (facts.selectedCombatantId !== undefined &&
+      (typeof facts.selectedCombatantId !== 'string' || !facts.selectedCombatantId.trim()))
+  )
+    throw new TypeError('invalid-native-command-facts')
+  const action = facts.actionFacts as Record<string, unknown> | null
+  if (
+    !action ||
+    typeof action !== 'object' ||
+    Array.isArray(action) ||
+    Object.keys(action).some(
+      (key) => !['classification', 'attackFamily', 'sourceDisciplineId', 'tags'].includes(key),
+    ) ||
+    !['attack', 'recovery', 'utility'].includes(action.classification as string) ||
+    (action.attackFamily !== undefined &&
+      !['physical', 'mystic'].includes(action.attackFamily as string)) ||
+    (action.sourceDisciplineId !== undefined &&
+      (typeof action.sourceDisciplineId !== 'string' || !action.sourceDisciplineId.trim())) ||
+    !Array.isArray(action.tags) ||
+    action.tags.some((tag) => typeof tag !== 'string' || !tag.trim())
+  )
+    throw new TypeError('invalid-native-command-facts')
+}

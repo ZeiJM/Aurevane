@@ -1,5 +1,5 @@
 import { selectCurrentFinalFacing } from './board'
-import { executeCombatAction, endCombatTurn } from './actions'
+import { executeCombatAction, endCombatTurn, validateCombatEncounterState } from './actions'
 import {
   issueCommittedCombatExecution,
   type CommittedCombatExecution,
@@ -1535,4 +1535,117 @@ it('actual periodic down/up/down ticks capture two owner crossings before child 
   ])
   expect(out.state.tactical.battle.combatants.find((unit) => unit.id === 'actor')!.hp).toBe(82)
   expect(out.state.tactical.battle.combatants.find((unit) => unit.id === 'actor')!.mp).toBe(8)
+})
+
+it('actual owner status expiry binds the triggering source and affected recipient', () => {
+  const base = command(100, 100)
+  const reaction = captureCombatAbilitySource({
+    ...source(
+      {
+        id: 'expiry-source',
+        activation: 'automatic',
+        classification: 'recovery',
+        attackFamily: undefined,
+        costs: [{ resource: 'mp', amount: 1 }],
+        requirements: { kind: 'event', eventType: 'status_expired', phase: 'after' },
+        automaticTarget: { subject: 'triggering' },
+        targeting: {
+          kind: 'unit',
+          teamPolicy: 'any',
+          friendlyFire: 'all-units',
+          shape: { kind: 'single' },
+          minimumRange: 0,
+          maximumRange: 4,
+          requiresLineOfSight: false,
+          maximumElevationDifference: null,
+          maximumSelections: 1,
+        },
+        effects: [
+          { id: 'heal', payload: { type: 'healing', recipient: 'primary-unit', amount: 1 } },
+        ],
+      },
+      'expiry-source',
+    ),
+    abilityId: 'expiry.child',
+  })
+  const state = reconcileCombatAbilitySources(
+    {
+      ...base.state,
+      tactical: {
+        ...base.state.tactical,
+        battle: {
+          ...base.state.tactical.battle,
+          combatants: base.state.tactical.battle.combatants.map((unit) =>
+            unit.id === 'enemy' ? { ...unit, hp: 900 } : unit,
+          ),
+        },
+      },
+      statusState: base.state.statusState.map((row) =>
+        row.combatantId === 'enemy'
+          ? {
+              ...row,
+              statuses: [
+                {
+                  statusId: 'frozen',
+                  statusVersion: 1,
+                  stacks: 1,
+                  remainingOwnerTurnStarts: 1,
+                  sourceCombatantId: 'enemy',
+                },
+              ],
+            }
+          : row,
+      ),
+    },
+    [reaction],
+  )
+  const out = finishPv1fTurn(state as never, 'west')
+  expect(
+    (out.events as ReturnType<typeof commitCombatAbilityCommand>['events']).filter(
+      (event) => event.event === 'healing_applied',
+    ),
+  ).toEqual([
+    expect.objectContaining({
+      actionId: 'expiry.child',
+      targetCombatantId: 'enemy',
+      hpBefore: 900,
+      hpAfter: 901,
+    }),
+  ])
+  expect(out.state.statusState.find((row) => row.combatantId === 'enemy')!.statuses).toHaveLength(0)
+})
+
+it.each([
+  null,
+  { rootActionId: 'root', actionFacts: { classification: 'attack', tags: [] }, guard: {} },
+  { rootActionId: 'root', actionFacts: { classification: 'move', tags: [] } },
+  {
+    rootActionId: 'root',
+    actionFacts: { classification: 'attack', tags: [] },
+    selectedCombatantId: 7,
+  },
+])('actual restored pending validation rejects malformed private command facts %j', (facts) => {
+  const input = {
+    ...command(100, 100, {
+      effects: [
+        {
+          id: 'later',
+          timing: 'next-round',
+          payload: { type: 'damage', recipient: 'primary-unit', amount: 20 },
+        },
+      ],
+    }),
+    manualModifiers: undefined,
+  }
+  const out = commitCombatAbilityCommand(input)
+  expect(validateCombatEncounterState(out.state)).toEqual([])
+  const restored = JSON.parse(JSON.stringify(out.state)) as typeof out.state
+  const bad = {
+    ...restored,
+    pendingEffects: restored.pendingEffects!.map((row) => ({ ...row, abilityCommandFacts: facts })),
+  } as typeof out.state
+  expect(validateCombatEncounterState(bad)).toContainEqual(
+    expect.objectContaining({ field: 'pendingEffects', message: 'Invalid pinned delayed effect.' }),
+  )
+  expect(() => finishPv1fTurn(bad as never, 'west')).toThrow('Invalid')
 })

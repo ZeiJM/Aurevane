@@ -1,3 +1,4 @@
+import { observeCombatNativeMutation } from './combat-native-mutations'
 import {
   prepareNativePv1fTurn,
   PV1F_ACTION_ECONOMY_MAXIMUM,
@@ -68,6 +69,7 @@ import {
   evaluateCombatAction,
   executeCombatAction,
   resolveCombatMovementStepEffects,
+  finishCombatNativeConsequences,
   type CombatActionDefinition,
   type CombatActionEvaluation,
   type CombatContentCatalog,
@@ -1541,6 +1543,7 @@ export function executePv1fMovement(
   }
   const actorId = prepared.tactical.battle.currentTurn?.combatantId
   if (!actorId) throw new Error('PV-1F movement requires an active turn.')
+  const nativeHooks = createCombatNativeAbilityRuntime(prepared, PV1F_COMBAT_CONTENT)
   let next = prepared
   let spentEconomy = 0
   const movementEvents: unknown[] = []
@@ -1559,6 +1562,7 @@ export function executePv1fMovement(
     if (traversal === null) break
     const stepCost = movementApCostForTile(traversal, modifiers.additionalApAt(position))
     if (!canAffordPv1fEconomy(next, spentEconomy + stepCost)) break
+    const beforeStep = next
     const moved = moveCurrentCombatant(
       airborneMovementTactical(next, PV1F_COMBAT_CONTENT),
       [movement.path[index - 1]!, position],
@@ -1576,9 +1580,18 @@ export function executePv1fMovement(
       },
       next.statBridge,
     )
+    next = observeCombatNativeMutation(
+      nativeHooks,
+      beforeStep,
+      { state: next, events: moved.events },
+      { triggeringCombatantId: actorId, affectedCombatantIds: [actorId] },
+    ).state as typeof next
     spentEconomy += stepCost
     movementEvents.push(...moved.events)
-    const resolved = resolveCombatMovementStepEffects(next, actorId, PV1F_COMBAT_CONTENT)
+    const resolved = resolveCombatMovementStepEffects(next, actorId, PV1F_COMBAT_CONTENT, {
+      nativeHooks,
+      deferCompletion: Boolean(nativeHooks),
+    })
     next = reattachStatDrivenCombatBridge(resolved.state, next.statBridge)
     movementEffectEvents.push(...resolved.events)
   }
@@ -1608,10 +1621,11 @@ export function executePv1fMovement(
     spends.length === 0
       ? []
       : [{ ...spends.at(-1)!, amount: spends.reduce((sum, event) => sum + event.amount, 0) }]
+  const beforePayment = next
   next = spendPv1fActionEconomyForActor(next, actorId, spentEconomy)
   next = clearLastMatureSkill(next, actorId)
   const remaining = readPv1fActionEconomy(next, actorId)?.current ?? 0
-  return {
+  const transition = {
     state: next,
     events: [
       ...movementEvents.filter(
@@ -1624,8 +1638,20 @@ export function executePv1fMovement(
       { event: 'action_economy_spent', combatantId: actorId, amount: spentEconomy, remaining },
     ],
   }
+  if (!nativeHooks) return transition
+  const paid = observeCombatNativeMutation(
+    nativeHooks,
+    beforePayment,
+    { state: next, events: [] },
+    { triggeringCombatantId: actorId, affectedCombatantIds: [actorId] },
+  )
+  const settled = nativeHooks.settleOutcomes!({ state: paid.state, events: [] })
+  const completed = finishCombatNativeConsequences(settled.state)
+  return {
+    state: reattachStatDrivenCombatBridge(completed.state, next.statBridge),
+    events: [...transition.events, ...settled.events, ...completed.events],
+  }
 }
-
 export function finishPv1fTurn(
   state: StatDrivenCombatEncounterState,
   facing: BattleFacing,

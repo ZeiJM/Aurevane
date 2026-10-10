@@ -703,99 +703,107 @@ describe('canonical behavior runtime', () => {
   })
 })
 
-it('actual finishPv1fTurn prepares incoming AP and old clocks before Automatic owner costs', () => {
-  const initial = input().state
-  const enemy = initial.tactical.battle.combatants.find((unit) => unit.id === 'enemy')!
-  const old = applySkillCooldown(
-    { ...enemy, temporaryResources: [{ key: 'pv1f.action-economy', current: 0, maximum: 100 }] },
-    { key: 'old', ownerTurns: 1 },
-    { actionId: 'old.action', definitionVersion: 1 },
-  ).combatant
-  const reaction = captureCombatAbilitySource({
-    ...source(
+it.each([true, false])(
+  'actual finishPv1fTurn prepares incoming AP and old clocks before Automatic costs; prior incoming pool %s',
+  (existingPool) => {
+    const initial = input().state
+    const enemy = initial.tactical.battle.combatants.find((unit) => unit.id === 'enemy')!
+    const old = applySkillCooldown(
       {
-        id: 'incoming',
-        activation: 'automatic',
-        classification: 'recovery',
-        attackFamily: undefined,
-        costs: [{ resource: 'ap', amount: 5 }],
-        cooldown: { key: 'incoming', ownerTurns: 1 },
-        activationLimits: ['once-per-owner-turn'],
-        requirements: {
-          kind: 'all',
-          children: [
-            { kind: 'event', eventType: 'turn_started', phase: 'after' },
-            {
-              kind: 'resource-state',
-              subject: 'owner',
-              resource: 'ap',
-              comparison: 'at-least',
-              amount: 5,
-            },
-          ],
-        },
-        targeting: {
-          kind: 'self',
-          teamPolicy: 'self',
-          friendlyFire: 'allies-only',
-          shape: { kind: 'single' },
-          minimumRange: 0,
-          maximumRange: 0,
-          requiresLineOfSight: false,
-          maximumElevationDifference: null,
-          maximumSelections: 1,
-        },
-        effects: [{ id: 'heal', payload: { type: 'healing', recipient: 'actor', amount: 1 } }],
+        ...enemy,
+        temporaryResources: existingPool
+          ? [{ key: 'pv1f.action-economy', current: 0, maximum: 100 }]
+          : [],
       },
-      'incoming-source',
-    ),
-    ownerCombatantId: 'enemy',
-  })
-  const state = reconcileCombatAbilitySources(
-    {
-      ...initial,
-      tactical: {
-        ...initial.tactical,
-        battle: {
-          ...initial.tactical.battle,
-          combatants: initial.tactical.battle.combatants.map((unit) =>
-            unit.id === 'enemy'
-              ? {
-                  ...old,
-                  temporaryResources: old.temporaryResources.map((row) =>
-                    row.key.startsWith('p3.skill-cooldown.') ? { ...row, current: 1 } : row,
-                  ),
-                }
-              : unit,
-          ),
+      { key: 'old', ownerTurns: 1 },
+      { actionId: 'old.action', definitionVersion: 1 },
+    ).combatant
+    const reaction = captureCombatAbilitySource({
+      ...source(
+        {
+          id: 'incoming',
+          activation: 'automatic',
+          classification: 'recovery',
+          attackFamily: undefined,
+          costs: [{ resource: 'ap', amount: 5 }],
+          cooldown: { key: 'incoming', ownerTurns: 1 },
+          activationLimits: ['once-per-owner-turn'],
+          requirements: {
+            kind: 'all',
+            children: [
+              { kind: 'event', eventType: 'turn_started', phase: 'after' },
+              {
+                kind: 'resource-state',
+                subject: 'owner',
+                resource: 'ap',
+                comparison: 'at-least',
+                amount: 5,
+              },
+            ],
+          },
+          targeting: {
+            kind: 'self',
+            teamPolicy: 'self',
+            friendlyFire: 'allies-only',
+            shape: { kind: 'single' },
+            minimumRange: 0,
+            maximumRange: 0,
+            requiresLineOfSight: false,
+            maximumElevationDifference: null,
+            maximumSelections: 1,
+          },
+          effects: [{ id: 'heal', payload: { type: 'healing', recipient: 'actor', amount: 1 } }],
+        },
+        'incoming-source',
+      ),
+      ownerCombatantId: 'enemy',
+    })
+    const state = reconcileCombatAbilitySources(
+      {
+        ...initial,
+        tactical: {
+          ...initial.tactical,
+          battle: {
+            ...initial.tactical.battle,
+            combatants: initial.tactical.battle.combatants.map((unit) =>
+              unit.id === 'enemy'
+                ? {
+                    ...old,
+                    temporaryResources: old.temporaryResources.map((row) =>
+                      row.key.startsWith('p3.skill-cooldown.') ? { ...row, current: 1 } : row,
+                    ),
+                  }
+                : unit,
+            ),
+          },
         },
       },
-    },
-    [reaction],
-  )
-  const out = finishPv1fTurn(state as never, 'west')
-  const incoming = out.state.tactical.battle.combatants.find((unit) => unit.id === 'enemy')!
-  expect(out.state.tactical.battle.currentTurn?.combatantId).toBe('enemy')
-  expect(readPv1fActionEconomy(out.state, 'enemy')!.current).toBe(95)
-  expect(readSkillCooldown(incoming, { key: 'old', ownerTurns: 1 }).ticksRemaining).toBe(0)
-  expect(readSkillCooldown(incoming, { key: 'incoming', ownerTurns: 1 }).ticksRemaining).toBe(2)
-  expect(hasPv1fTurnActivity(out.state)).toBe(false)
-  expect(out.state.abilityRuntime!.usage).toHaveLength(1)
-  expect(out.state.abilityRuntime!.nextCommandSequence).toBeUndefined()
-  expect(
-    out.events.filter(
-      (event) =>
-        typeof event === 'object' &&
-        event !== null &&
-        (event as { event?: string }).event === 'combat_action_used',
-    ),
-  ).toHaveLength(1)
-  const repeated = preparePv1fTurnEconomy(out.state)
-  expect(readPv1fActionEconomy(repeated, 'enemy')!.current).toBe(95)
-  expect(
-    readSkillCooldown(
-      repeated.tactical.battle.combatants.find((unit) => unit.id === 'enemy')!,
-      { key: 'incoming', ownerTurns: 1 },
-    ).ticksRemaining,
-  ).toBe(2)
-})
+      [reaction],
+    )
+    const out = finishPv1fTurn(state as never, 'west')
+    const incoming = out.state.tactical.battle.combatants.find((unit) => unit.id === 'enemy')!
+    expect(out.state.tactical.battle.currentTurn?.combatantId).toBe('enemy')
+    expect(readPv1fActionEconomy(out.state, 'enemy')!.current).toBe(95)
+    expect(readSkillCooldown(incoming, { key: 'old', ownerTurns: 1 }).ticksRemaining).toBe(0)
+    expect(readSkillCooldown(incoming, { key: 'incoming', ownerTurns: 1 }).ticksRemaining).toBe(2)
+    expect(hasPv1fTurnActivity(out.state)).toBe(false)
+    expect(out.state.abilityRuntime!.usage).toHaveLength(1)
+    expect(out.state.abilityRuntime!.nextCommandSequence).toBeUndefined()
+    expect(
+      out.events.filter(
+        (event) =>
+          typeof event === 'object' &&
+          event !== null &&
+          (event as { event?: string }).event === 'combat_action_used',
+      ),
+    ).toHaveLength(1)
+    const repeated = preparePv1fTurnEconomy(out.state)
+    expect(readPv1fActionEconomy(repeated, 'enemy')!.current).toBe(95)
+    expect(
+      readSkillCooldown(
+        repeated.tactical.battle.combatants.find((unit) => unit.id === 'enemy')!,
+        { key: 'incoming', ownerTurns: 1 },
+      ).ticksRemaining,
+    ).toBe(2)
+  },
+)

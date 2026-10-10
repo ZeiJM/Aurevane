@@ -1,4 +1,5 @@
 import {
+  validateCombatNativeCommandFacts,
   observeCombatNativeMutation,
   type CombatNativeExecutionHooks,
   type CombatNativeMutationFacts,
@@ -1360,7 +1361,10 @@ export function executeCombatAction(
     action,
     evaluation.affectedTiles,
     content,
-    { sourceCommandVisibility: combatSourceCommandVisibility(state, actorId) },
+    {
+      sourceCommandVisibility: combatSourceCommandVisibility(state, actorId),
+      abilityCommandFacts: nativeHooks?.commandFacts?.(action.id),
+    },
   )
   const createdArea = nextState.groundAreas?.at(-1)
   if (
@@ -1650,21 +1654,7 @@ function applyCombatRoundBoundary(
       }),
     })),
   }
-  nextState = observeCombatNativeMutation(
-    nativeHooks,
-    state,
-    { state: nextState, events: [...events] },
-    {
-      affectedCombatantIds: [
-        ...new Set(
-          events
-            .filter((event) => event.event === 'status_expired')
-            .map((event) => event.combatantId),
-        ),
-      ],
-      prepaid: true,
-    },
-  ).state
+  nextState = applyObservedStatusBoundary(state, nextState.statusState, events, nativeHooks)
   const expiredTerrain = expireTerrainOverlays(nextState)
   nextState = expiredTerrain.state
   events.push(...expiredTerrain.events)
@@ -2396,6 +2386,7 @@ export function validateCombatEncounterState(
     else
       for (const pending of state.pendingEffects) {
         try {
+          validateCombatNativeCommandFacts(pending.abilityCommandFacts)
           if (
             pending.timingMode !== undefined &&
             !['instant', 'next-round', 'delayed'].includes(pending.timingMode)
@@ -4616,15 +4607,19 @@ function applyEffectNative(
   options: CombatEffectResolutionOptions = {},
 ): CombatResolutionTransition & { nativeMutationCaptured?: true } {
   if (effect.type === 'displace')
-    return applyDisplacement(
-      state,
-      actorId,
-      recipientId,
-      actionId,
-      effect,
-      content,
-      options.preview,
-    )
+    return {
+      ...applyDisplacement(
+        state,
+        actorId,
+        recipientId,
+        actionId,
+        effect,
+        content,
+        options.preview,
+        options.preview ? undefined : options.nativeHooks,
+      ),
+      ...(options.nativeHooks && !options.preview ? { nativeMutationCaptured: true as const } : {}),
+    }
   if (effect.type === 'poison') {
     const tuning = effect as typeof effect & { power?: number; durationTurns?: number }
     return {
@@ -4697,24 +4692,31 @@ function applyEffectNative(
     const to =
       options.returnAnchor ??
       (effect.anchorMode === 'cast-position' ? from : state.turnOrigin!.position)
+    const receipt: CombatResolutionEvent = {
+      event: 'combatant_rewound',
+      actionId,
+      combatantId: actorId,
+      from: { ...from },
+      to: { ...to },
+    }
+    const moved = observeCombatNativeMutation(
+      options.preview ? undefined : options.nativeHooks,
+      state,
+      { state: rewindToTurnOrigin(state, actorId, to), events: [receipt] },
+      { actionId, triggeringCombatantId: actorId, affectedCombatantIds: [actorId] },
+    )
     const landed = resolveGroundAtPosition(
-      rewindToTurnOrigin(state, actorId, to),
+      moved.state,
       actorId,
       content,
       options.preview,
+      Boolean(options.nativeHooks),
+      options.preview ? undefined : options.nativeHooks,
     )
     return {
       state: landed.state,
-      events: [
-        {
-          event: 'combatant_rewound',
-          actionId,
-          combatantId: actorId,
-          from: { ...from },
-          to: { ...to },
-        },
-        ...landed.events,
-      ],
+      events: [receipt, ...landed.events],
+      ...(options.nativeHooks && !options.preview ? { nativeMutationCaptured: true as const } : {}),
     }
   }
 
@@ -5317,6 +5319,61 @@ function applyStatusState(
   return nextState
 }
 
+/** Boundary countdown/removal mutates each native status independently before queued dispatch. */
+function applyObservedStatusBoundary(
+  state: CombatEncounterState,
+  statusState: CombatEncounterState['statusState'],
+  events: readonly CombatResolutionEvent[],
+  nativeHooks?: CombatNativeExecutionHooks,
+): CombatEncounterState {
+  if (!nativeHooks) return { ...state, statusState }
+  let next = state
+  for (const row of state.statusState) {
+    const after = statusState.find((candidate) => candidate.combatantId === row.combatantId)!
+    for (const status of row.statuses) {
+      const replacement = after.statuses.find(
+        (candidate) =>
+          candidate.statusId === status.statusId &&
+          candidate.sourceCombatantId === status.sourceCombatantId,
+      )
+      if (replacement === status) continue
+      const changed = {
+        ...next,
+        statusState: next.statusState.map((current) =>
+          current.combatantId !== row.combatantId
+            ? current
+            : {
+                ...current,
+                statuses: current.statuses.flatMap((candidate) =>
+                  candidate === status ? (replacement ? [replacement] : []) : [candidate],
+                ),
+              },
+        ),
+      }
+      const receipts = replacement
+        ? []
+        : events.filter(
+            (event) =>
+              event.event === 'status_expired' &&
+              event.combatantId === row.combatantId &&
+              event.statusId === status.statusId &&
+              (!event.sourceCombatantId || event.sourceCombatantId === status.sourceCombatantId),
+          )
+      next = observeCombatNativeMutation(
+        nativeHooks,
+        next,
+        { state: changed, events: receipts },
+        {
+          triggeringCombatantId: status.sourceCombatantId,
+          affectedCombatantIds: [row.combatantId],
+          prepaid: true,
+        },
+      ).state
+    }
+  }
+  return next
+}
+
 function expireOwnerTurnStartStatuses(
   state: CombatEncounterState,
   combatantId: string,
@@ -5351,14 +5408,11 @@ function expireOwnerTurnStartStatuses(
   const statusState = state.statusState.map((candidate) =>
     candidate.combatantId === combatantId ? { ...candidate, statuses: kept } : candidate,
   )
-  const nextState = synchronizeCombatInitiative({ ...state, statusState })
-  assertValidCombatEncounterState(nextState)
-  return observeCombatNativeMutation(
-    nativeHooks,
-    state,
-    { state: nextState, events },
-    { affectedCombatantIds: [combatantId] },
+  const nextState = synchronizeCombatInitiative(
+    applyObservedStatusBoundary(state, statusState, events, nativeHooks),
   )
+  assertValidCombatEncounterState(nextState)
+  return { state: nextState, events }
 }
 
 function removeStatuses(
@@ -5578,6 +5632,13 @@ function resolveCurrentEndOfTurnDots(
   return { state: nextState, events }
 }
 
+/** Internal whole-command consequence seam, shared with native movement. */
+export function finishCombatNativeConsequences(
+  state: CombatEncounterState,
+): CombatResolutionTransition {
+  const completed = completeBattleIfResolved(state)
+  return { state: synchronizeCombatInitiative(completed.state), events: completed.events }
+}
 function completeBattleIfResolved(state: CombatEncounterState): CombatResolutionTransition {
   if (state.tactical.battle.lifecycle !== 'active') {
     return { state, events: [] }
@@ -6300,6 +6361,7 @@ function applyDisplacement(
   effect: Extract<CombatEffectDefinition, { type: 'displace' }>,
   content: CombatContentCatalog,
   preview = false,
+  nativeHooks?: CombatNativeExecutionHooks,
 ): CombatResolutionTransition {
   const source = getPlacement(state.tactical, actorId).position
   const placement = getPlacement(state.tactical, recipientId)
@@ -6382,6 +6444,7 @@ function applyDisplacement(
 
     if (stopReason) break
 
+    const beforeStep = nextState
     nextState = {
       ...nextState,
       tactical: {
@@ -6391,12 +6454,19 @@ function applyDisplacement(
         ),
       },
     }
+    nextState = observeCombatNativeMutation(
+      nativeHooks,
+      beforeStep,
+      { state: nextState, events: [] },
+      { actionId, triggeringCombatantId: actorId, affectedCombatantIds: [recipientId] },
+    ).state
     current = to
     movedTiles += 1
 
     const movementEffects = resolveCombatMovementStepEffects(nextState, recipientId, content, {
       preview,
       deferCompletion: true,
+      nativeHooks,
     })
     nextState = movementEffects.state
     movementEffectEvents.push(...movementEffects.events)
@@ -6444,9 +6514,27 @@ function applyDisplacement(
           content,
           new Set(),
           false,
+          false,
+          undefined,
+          { nativeHooks, preview },
         )
+  const receipt: CombatResolutionEvent = {
+    event: 'combatant_displaced',
+    ...(effect.direction ? { direction: effect.direction, distance: movedTiles } : {}),
+    actionId,
+    sourceCombatantId: actorId,
+    combatantId: recipientId,
+    from,
+    to: { ...current },
+  }
+  const observed = observeCombatNativeMutation(
+    nativeHooks,
+    marked.state,
+    { state: marked.state, events: [receipt] },
+    { actionId, triggeringCombatantId: actorId, affectedCombatantIds: [recipientId] },
+  )
   return {
-    state: marked.state,
+    state: observed.state,
     events: [
       {
         event: 'combatant_displaced',
@@ -6467,15 +6555,25 @@ export function resolveCombatMovementStepEffects(
   state: CombatEncounterState,
   combatantId: string,
   content: CombatContentCatalog,
-  options: { preview?: boolean; deferCompletion?: boolean } = {},
+  options: {
+    preview?: boolean
+    deferCompletion?: boolean
+    nativeHooks?: CombatNativeExecutionHooks
+  } = {},
 ): CombatResolutionTransition {
-  const poison = resolvePoisonMovementStep(state, combatantId, content)
+  const poison = resolvePoisonMovementStep(
+    state,
+    combatantId,
+    content,
+    options.preview ? undefined : options.nativeHooks,
+  )
   const ground = resolveGroundAtPosition(
     poison.state,
     combatantId,
     content,
     options.preview,
     options.deferCompletion,
+    options.preview ? undefined : options.nativeHooks,
   )
   return { state: ground.state, events: [...poison.events, ...ground.events] }
 }
@@ -6485,9 +6583,22 @@ function resolveGroundAtPosition(
   content: CombatContentCatalog,
   preview = false,
   deferCompletion = false,
+  nativeHooks?: CombatNativeExecutionHooks,
 ): CombatResolutionTransition {
   const position = getPlacement(state.tactical, combatantId).position
   return resolveCombatGroundEntry(state, combatantId, position, (current, area, recipientId) => {
+    const groundHooks: CombatNativeExecutionHooks | undefined = nativeHooks
+      ? {
+          ...nativeHooks,
+          observeMutation: (before, transition, facts) =>
+            nativeHooks.observeMutation(before, transition, {
+              ...facts,
+              ...area.abilityCommandFacts,
+              selectedCombatantId: recipientId,
+              prepaid: true,
+            }),
+        }
+      : undefined
     const action: CombatActionDefinition = {
       id: `ground.pulse.${area.id}`,
       version: area.sourceActionVersion,
@@ -6561,7 +6672,7 @@ function resolveGroundAtPosition(
       true,
       resistance.resistedEffectOrdinalsByTarget,
       undefined,
-      { groundArea: area, preview },
+      { groundArea: area, preview, nativeHooks: groundHooks },
     )
     const filtered = filterBlockedCovertApplication({
       before: current,
@@ -6627,12 +6738,19 @@ function resolvePoisonMovementStep(
   state: CombatEncounterState,
   combatantId: string,
   content: CombatContentCatalog,
+  nativeHooks?: CombatNativeExecutionHooks,
 ): CombatResolutionTransition {
   const poison = currentPoisonInstance(state, combatantId)
   const advanced = advanceCurrentPoisonMovement(state, combatantId, 1)
+  const observedAdvance = observeCombatNativeMutation(
+    nativeHooks,
+    state,
+    { state: advanced.state, events: [] },
+    { affectedCombatantIds: [combatantId], prepaid: true },
+  ).state
   if (!poison || advanced.triggeredTicks === 0)
     return {
-      state: advanced.state,
+      state: observedAdvance,
       events:
         advanced.refreshedDurationTurns === undefined
           ? []
@@ -6645,7 +6763,7 @@ function resolvePoisonMovementStep(
             ],
     }
 
-  let nextState = advanced.state
+  let nextState = observedAdvance
   const events: CombatResolutionEvent[] = []
   for (const { instance: poison, triggeredTicks } of advanced.ticks) {
     for (let index = 0; index < triggeredTicks; index += 1) {
@@ -6659,6 +6777,7 @@ function resolvePoisonMovementStep(
       const defeatTransition = defeatsCurrentActor
         ? defeatCurrentCombatant(battleForEffectStacking(nextState), combatantId)
         : null
+      const beforeTick = nextState
       nextState = defeatTransition
         ? withBattle(nextState, defeatTransition.state)
         : withUpdatedCombatant(nextState, combatantId, { ...target, hp: hpAfter })
@@ -6678,6 +6797,16 @@ function resolvePoisonMovementStep(
           : {}),
       })
 
+      nextState = observeCombatNativeMutation(
+        nativeHooks,
+        beforeTick,
+        { state: nextState, events: [events[events.length - 1]!] },
+        {
+          triggeringCombatantId: poison.sourceCombatantId,
+          affectedCombatantIds: [combatantId],
+          prepaid: true,
+        },
+      ).state
       if (hpAfter < target.hp) {
         const revealed = removeGameplayTags(
           nextState,
@@ -6687,7 +6816,11 @@ function resolvePoisonMovementStep(
           ['Invisible'],
           content,
         )
-        nextState = revealed.state
+        nextState = observeCombatNativeMutation(nativeHooks, nextState, revealed, {
+          triggeringCombatantId: poison.sourceCombatantId,
+          affectedCombatantIds: [combatantId],
+          prepaid: true,
+        }).state
         events.push(...revealed.events)
       }
       if (defeatTransition) events.push(...defeatTransition.events)
@@ -6915,9 +7048,10 @@ function expireOwnerTurnEndStatuses(
     },
     events,
   }
-  return observeCombatNativeMutation(nativeHooks, state, transition, {
-    affectedCombatantIds: [combatantId],
-  })
+  return {
+    state: applyObservedStatusBoundary(state, transition.state.statusState, events, nativeHooks),
+    events,
+  }
 }
 
 function preparePendingSummonsForRound(
