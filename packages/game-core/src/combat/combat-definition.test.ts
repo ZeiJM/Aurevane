@@ -50,6 +50,115 @@ function ability() {
 }
 
 describe('canonical Ability definition', () => {
+  it('requires explicit Automatic unit binding and admits exact supported subjects', () => {
+    const value = ability()
+    value.behaviors[0]!.activation = 'automatic'
+    expect(validateAbilityDefinition(value)).toContainEqual(
+      expect.objectContaining({ code: 'automatic-target-required' }),
+    )
+    for (const subject of ['owner', 'triggering', 'selected', 'affected']) {
+      expect(
+        validateAbilityDefinition({
+          ...value,
+          behaviors: [{ ...value.behaviors[0], automaticTarget: { subject } }],
+        }),
+      ).toEqual([])
+    }
+  })
+  it('rejects unanchored nonowner Automatic state branches and unsupported phases', () => {
+    const value = ability(),
+      behavior = {
+        ...value.behaviors[0]!,
+        activation: 'automatic',
+        automaticTarget: { subject: 'triggering' },
+      }
+    for (const requirements of [
+      {
+        kind: 'resource-state',
+        subject: 'selected',
+        resource: 'hp',
+        comparison: 'at-most',
+        amount: 5,
+      },
+      {
+        kind: 'any',
+        children: [
+          { kind: 'event', eventType: 'damage_applied', phase: 'after' },
+          { kind: 'status-presence', subject: 'affected', statusId: 'wet', present: true },
+        ],
+      },
+    ])
+      expect(
+        validateAbilityDefinition({ ...value, behaviors: [{ ...behavior, requirements }] }),
+      ).toContainEqual(expect.objectContaining({ code: 'automatic-state-anchor-required' }))
+    for (const requirements of [
+      { kind: 'event', eventType: 'damage_applied', phase: 'before' },
+      { kind: 'event', eventType: 'made_up', phase: 'after' },
+    ])
+      expect(
+        validateAbilityDefinition({ ...value, behaviors: [{ ...behavior, requirements }] }),
+      ).toContainEqual(expect.objectContaining({ code: 'automatic-event-unsupported' }))
+  })
+  it('Self defaults to owner and rejects foreign or inapplicable binding fields', () => {
+    const value = ability(),
+      base = value.behaviors[0]!
+    const self = {
+      ...base,
+      activation: 'automatic',
+      classification: 'utility',
+      attackFamily: undefined,
+      targeting: {
+        ...base.targeting,
+        kind: 'self',
+        teamPolicy: 'self',
+        minimumRange: 0,
+        maximumRange: 0,
+        friendlyFire: 'allies-only',
+      },
+      effects: [{ id: 'heal', payload: { type: 'healing', recipient: 'actor', amount: 1 } }],
+    }
+    expect(validateAbilityDefinition({ ...value, behaviors: [self] })).toEqual([])
+    expect(
+      validateAbilityDefinition({
+        ...value,
+        behaviors: [{ ...self, automaticTarget: { subject: 'owner' } }],
+      }),
+    ).toEqual([])
+    for (const subject of ['triggering', 'selected', 'affected', 'invented'])
+      expect(
+        validateAbilityDefinition({
+          ...value,
+          behaviors: [{ ...self, automaticTarget: { subject } }],
+        }),
+      ).toContainEqual(expect.objectContaining({ code: 'invalid-automatic-target' }))
+    expect(
+      validateAbilityDefinition({
+        ...value,
+        behaviors: [{ ...base, automaticTarget: { subject: 'owner' } }],
+      }),
+    ).toContainEqual(expect.objectContaining({ code: 'invalid-automatic-target' }))
+    expect(
+      validateAbilityDefinition({
+        ...value,
+        behaviors: [
+          {
+            ...self,
+            activation: 'ongoing',
+            mode: 'modifier',
+            targeting: null,
+            automaticTarget: { subject: 'owner' },
+          },
+        ],
+      }),
+    ).toContainEqual(expect.objectContaining({ code: 'invalid-automatic-target' }))
+    expect(
+      validateAbilityDefinition({
+        ...value,
+        behaviors: [{ ...self, automaticTarget: { subject: 'owner', nearest: true } }],
+      }),
+    ).toContainEqual(expect.objectContaining({ code: 'unknown-key' }))
+  })
+
   it.each([
     null,
     { kind: 'resource-state', subject: 'owner', resource: 'hp', comparison: 'at-most', amount: 10 },
@@ -354,7 +463,8 @@ describe('canonical Ability definition', () => {
     const automatic = ability()
     automatic.behaviors[0]!.activation = 'automatic'
     Object.assign(automatic.behaviors[0]!, {
-      requirements: { kind: 'event', eventType: 'damage-settled', phase: 'after' },
+      requirements: { kind: 'event', eventType: 'damage_applied', phase: 'after' },
+      automaticTarget: { subject: 'triggering' },
     })
     expect(validateAbilityDefinition(automatic)).toEqual([])
     const ongoing = ability()

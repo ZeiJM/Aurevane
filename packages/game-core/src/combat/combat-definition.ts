@@ -1,9 +1,11 @@
+import { automaticAbilityEventSupported } from './combat-ability-events'
 import type { CombatTargetSpec } from './actions'
 import { validateCombatActionDefinition } from './combat-authoring-validation'
 import { validateSkillCooldownDefinition, type SkillCooldownDefinition } from './skill-cooldowns'
 import {
   validateAbilityRequirements,
   isBeforeActionModifierRequirement,
+  hasUnanchoredAutomaticStateRequirement,
   type RequirementNode,
   type AbilityResource,
   type AbilityClassification,
@@ -17,6 +19,7 @@ import {
 } from './combat-tag-registry'
 
 export type { RequirementNode, AbilityRequirementContext } from './combat-requirements'
+export type AutomaticAbilityTargetSubject = 'owner' | 'triggering' | 'selected' | 'affected'
 export type AbilityActivation = 'manual' | 'automatic' | 'ongoing'
 export type AbilityMode = 'action' | 'modifier'
 export type AbilityActivationLimit =
@@ -63,6 +66,7 @@ export interface AbilityBehavior {
   readonly effects: readonly AbilityEffect[]
   /** Private authoring; public projections must recursively omit this and accuracyRule. */
   readonly accuracy?: CombatAccuracyRule
+  readonly automaticTarget?: { readonly subject: AutomaticAbilityTargetSubject }
   readonly activationLimits?: readonly AbilityActivationLimit[]
 }
 export interface AbilityDefinition {
@@ -89,6 +93,10 @@ export interface AbilityDefinitionIssue {
     | 'unsupported-recipient'
     | 'unsupported-combination'
     | 'automatic-modifier-before-action-required'
+    | 'invalid-automatic-target'
+    | 'automatic-target-required'
+    | 'automatic-state-anchor-required'
+    | 'automatic-event-unsupported'
     | 'invalid-payload'
     | 'elemental-companion'
   readonly message: string
@@ -170,6 +178,7 @@ export function validateAbilityDefinition(value: unknown): readonly AbilityDefin
         'effects',
         'accuracy',
         'activationLimits',
+        'automaticTarget',
       ],
       path,
     )
@@ -266,6 +275,32 @@ export function validateAbilityDefinition(value: unknown): readonly AbilityDefin
         'automatic-modifier-before-action-required',
         'Automatic modifiers require an action qualifier or combat_action_used/before in every satisfying branch; crossing and other event hooks are unsupported.',
       )
+    if (
+      candidate.activation === 'automatic' &&
+      candidate.mode === 'action' &&
+      validateAbilityRequirements(candidate.requirements).length === 0
+    ) {
+      const requirement = candidate.requirements as RequirementNode | null
+      if (hasUnanchoredAutomaticStateRequirement(requirement))
+        issue(
+          `${path}.requirements`,
+          'automatic-state-anchor-required',
+          'Nonowner state branches require an actual event anchor.',
+        )
+      function checkEvents(node: RequirementNode): void {
+        if (node.kind === 'all' || node.kind === 'any') node.children.forEach(checkEvents)
+        else if (
+          node.kind === 'event' &&
+          !automaticAbilityEventSupported(node.eventType, node.phase)
+        )
+          issue(
+            `${path}.requirements`,
+            'automatic-event-unsupported',
+            'This Automatic event/phase has no supported mutation handler.',
+          )
+      }
+      if (requirement) checkEvents(requirement)
+    }
     const target = candidate.targeting
     if (candidate.mode === 'action') {
       if (!record(target))
@@ -324,6 +359,38 @@ export function validateAbilityDefinition(value: unknown): readonly AbilityDefin
         `${path}.targeting`,
         'unsupported-combination',
         'Modifier targeting must be null; the maintained contribution belongs to its owner.',
+      )
+    if (Object.hasOwn(candidate, 'automaticTarget')) {
+      const binding = candidate.automaticTarget
+      if (
+        !record(binding) ||
+        !['owner', 'triggering', 'selected', 'affected'].includes(binding.subject as string) ||
+        candidate.activation !== 'automatic' ||
+        candidate.mode !== 'action' ||
+        !record(target) ||
+        !['self', 'unit'].includes(target.kind as string) ||
+        !record(target.shape) ||
+        target.shape.kind !== 'single' ||
+        (target.kind === 'self' && binding.subject !== 'owner')
+      )
+        issue(
+          `${path}.automaticTarget`,
+          'invalid-automatic-target',
+          'Automatic target binding applies only to Automatic Self/ordinary unit actions; Self binds owner.',
+        )
+      if (record(binding)) keys(binding, ['subject'], `${path}.automaticTarget`)
+    } else if (
+      candidate.activation === 'automatic' &&
+      candidate.mode === 'action' &&
+      record(target) &&
+      target.kind === 'unit' &&
+      record(target.shape) &&
+      target.shape.kind === 'single'
+    )
+      issue(
+        `${path}.automaticTarget`,
+        'automatic-target-required',
+        'Automatic single-unit actions require an explicit causal subject.',
       )
     if (
       candidate.activation === 'ongoing' &&

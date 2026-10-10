@@ -55,6 +55,11 @@ export interface AbilityRequirementSubjectState {
 }
 
 export interface AbilityRequirementContext {
+  /** Engine-captured resource mutations; snapshots alone never establish a crossing. */
+  readonly resourceMutations?: Readonly<
+    Partial<Record<AbilityRequirementSubject, readonly AbilityResource[]>>
+  >
+
   readonly owner?: AbilityRequirementSubjectState | null
   readonly selected?: AbilityRequirementSubjectState | null
   readonly affected?: AbilityRequirementSubjectState | null
@@ -296,7 +301,12 @@ export function evaluateAbilityRequirements(
     }
     const previous = subject.previousResources?.[node.resource]
     const maximum = subject.maximumResources?.[node.resource]
-    if (!context.event || !nonnegative(previous) || !nonnegative(maximum) || maximum === 0)
+    if (
+      !context.resourceMutations?.[node.subject]?.includes(node.resource) ||
+      !nonnegative(previous) ||
+      !nonnegative(maximum) ||
+      maximum === 0
+    )
       return false
     const now = BigInt(amount) * 10000n
     const before = BigInt(previous) * 10000n
@@ -310,4 +320,75 @@ export function evaluateAbilityRequirements(
 
 function nonnegative(value: unknown): value is number {
   return Number.isSafeInteger(value) && (value as number) >= 0
+}
+
+export interface AutomaticRequirementTriggerResult {
+  readonly holds: boolean
+  readonly stateTruth: boolean
+  readonly eventMatched: boolean
+  readonly stateEntered: boolean
+}
+/** Pure full-tree witness/projection; a held Any state branch is not an event pulse. */
+export function evaluateAutomaticRequirementTrigger(
+  requirement: RequirementNode | null,
+  context: AbilityRequirementContext,
+  priorStateTruth: boolean,
+): AutomaticRequirementTriggerResult {
+  if (validateAbilityRequirements(requirement).length)
+    return { holds: false, stateTruth: false, eventMatched: false, stateEntered: false }
+  function visit(node: RequirementNode): Omit<AutomaticRequirementTriggerResult, 'stateEntered'> {
+    if (node.kind === 'all' || node.kind === 'any') {
+      const children = node.children.map(visit)
+      const holds =
+        node.kind === 'all'
+          ? children.every((child) => child.holds)
+          : children.some((child) => child.holds)
+      return {
+        holds,
+        stateTruth:
+          node.kind === 'all'
+            ? children.every((child) => child.stateTruth)
+            : children.some((child) => child.stateTruth),
+        eventMatched: holds && children.some((child) => child.holds && child.eventMatched),
+      }
+    }
+    const holds = evaluateAbilityRequirements(node, context)
+    const transient = ['event', 'action', 'resource-threshold-crossing'].includes(node.kind)
+    return {
+      holds,
+      stateTruth: !transient && holds,
+      eventMatched:
+        holds &&
+        (node.kind === 'event' ||
+          node.kind === 'resource-threshold-crossing' ||
+          (node.kind === 'action' &&
+            context.event?.type === 'combat_action_used' &&
+            context.event.phase === 'after')),
+    }
+  }
+  const result = requirement
+    ? visit(requirement)
+    : { holds: true, stateTruth: true, eventMatched: false }
+  return { ...result, stateEntered: result.stateTruth && !priorStateTruth }
+}
+
+/** Four bounded witness classes avoid exponential All/Any branch expansion. */
+export function hasUnanchoredAutomaticStateRequirement(
+  requirement: RequirementNode | null,
+): boolean {
+  if (!requirement || validateAbilityRequirements(requirement).length) return false
+  function witnesses(node: RequirementNode): Set<number> {
+    if (node.kind === 'any') return new Set(node.children.flatMap((child) => [...witnesses(child)]))
+    if (node.kind === 'all') {
+      let result = new Set([0])
+      for (const child of node.children) {
+        const next = witnesses(child)
+        result = new Set([...result].flatMap((left) => [...next].map((right) => left | right)))
+      }
+      return result
+    }
+    if (['event', 'action', 'resource-threshold-crossing'].includes(node.kind)) return new Set([1])
+    return new Set(['subject' in node && node.subject !== 'owner' ? 2 : 0])
+  }
+  return witnesses(requirement).has(2)
 }

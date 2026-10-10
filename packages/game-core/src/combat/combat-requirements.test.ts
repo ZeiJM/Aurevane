@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   evaluateAbilityRequirements,
+  evaluateAutomaticRequirementTrigger,
   validateAbilityRequirements,
   type RequirementNode,
   type AbilityRequirementContext,
@@ -28,6 +29,21 @@ function depth(count: number): RequirementNode {
 }
 
 describe('Ability Requirements', () => {
+  it('cannot synthesize a resource crossing from preview snapshots and an event label', () => {
+    expect(
+      evaluateAbilityRequirements(
+        {
+          kind: 'resource-threshold-crossing',
+          subject: 'owner',
+          resource: 'hp',
+          direction: 'below',
+          thresholdBasisPoints: 5000,
+        },
+        { ...context, event: { type: 'damage_applied', phase: 'after' } },
+      ),
+    ).toBe(false)
+  })
+
   it('rejects undefined-only action qualifiers before canonical cloning', () => {
     expect(validateAbilityRequirements({ kind: 'action', classification: undefined })).not.toEqual(
       [],
@@ -150,7 +166,13 @@ describe('Ability Requirements', () => {
         tags: ['melee'],
       },
     }
-    expect(evaluateAbilityRequirements(threshold, { ...context, event })).toBe(true)
+    expect(
+      evaluateAbilityRequirements(threshold, {
+        ...context,
+        event,
+        resourceMutations: { owner: ['hp'] },
+      }),
+    ).toBe(true)
     expect(
       evaluateAbilityRequirements(threshold, {
         ...context,
@@ -220,5 +242,112 @@ describe('Ability Requirements', () => {
       expect.objectContaining({ code: 'requirement-budget' }),
     )
     expect(evaluateAbilityRequirements(cyclic as never, context)).toBe(false)
+  })
+})
+
+describe('Automatic full-tree pulses', () => {
+  const low: RequirementNode = {
+    kind: 'resource-state',
+    subject: 'owner',
+    resource: 'hp',
+    comparison: 'at-most',
+    amount: 50,
+  }
+  const event: RequirementNode = { kind: 'event', eventType: 'damage_applied', phase: 'after' }
+  const action: RequirementNode = { kind: 'action', classification: 'attack' }
+  it('held lowHP inside Any does not pulse on unrelated events but its matching event still pulses', () => {
+    const requirement: RequirementNode = { kind: 'any', children: [low, event] }
+    expect(
+      evaluateAutomaticRequirementTrigger(
+        requirement,
+        { ...context, event: { type: 'status_applied', phase: 'after' } },
+        true,
+      ),
+    ).toEqual({ holds: true, stateTruth: true, eventMatched: false, stateEntered: false })
+    expect(
+      evaluateAutomaticRequirementTrigger(
+        requirement,
+        { ...context, event: { type: 'damage_applied', phase: 'after' } },
+        true,
+      ).eventMatched,
+    ).toBe(true)
+    expect(evaluateAutomaticRequirementTrigger(requirement, context, false).stateEntered).toBe(true)
+  })
+  it('All requires a complete satisfying witness and action leaves pulse only on used/after', () => {
+    const before = {
+      ...context,
+      event: {
+        type: 'combat_action_used',
+        phase: 'before' as const,
+        action: { classification: 'attack' as const, tags: [] },
+      },
+    }
+    const beforeEvent: RequirementNode = {
+      kind: 'event',
+      eventType: 'combat_action_used',
+      phase: 'before',
+    }
+    expect(
+      evaluateAutomaticRequirementTrigger(
+        { kind: 'all', children: [action, beforeEvent] },
+        before,
+        false,
+      ),
+    ).toEqual({ holds: true, stateTruth: false, eventMatched: true, stateEntered: false })
+    expect(evaluateAutomaticRequirementTrigger(action, before, false).eventMatched).toBe(false)
+    expect(
+      evaluateAutomaticRequirementTrigger(
+        action,
+        { ...before, event: { ...before.event, phase: 'after' } },
+        false,
+      ).eventMatched,
+    ).toBe(true)
+    expect(
+      evaluateAutomaticRequirementTrigger(
+        { kind: 'all', children: [event, { ...low, amount: 1 }] },
+        { ...context, event: { type: 'damage_applied', phase: 'after' } },
+        false,
+      ).eventMatched,
+    ).toBe(false)
+    expect(
+      evaluateAutomaticRequirementTrigger(
+        {
+          kind: 'all',
+          children: [event, { kind: 'event', eventType: 'hp_spent', phase: 'after' }],
+        },
+        { ...context, event: { type: 'damage_applied', phase: 'after' } },
+        false,
+      ).eventMatched,
+    ).toBe(false)
+  })
+  it('a real payment crossing can pulse without a damage event or any authored receipt', () => {
+    const crossing: RequirementNode = {
+      kind: 'resource-threshold-crossing',
+      subject: 'owner',
+      resource: 'hp',
+      direction: 'below',
+      thresholdBasisPoints: 5000,
+    }
+    expect(
+      evaluateAutomaticRequirementTrigger(
+        crossing,
+        { ...context, resourceMutations: { owner: ['hp'] } },
+        false,
+      ),
+    ).toEqual({ holds: true, stateTruth: false, eventMatched: true, stateEntered: false })
+    expect(
+      evaluateAutomaticRequirementTrigger(
+        crossing,
+        { ...context, resourceMutations: { owner: ['mp'] } },
+        false,
+      ).eventMatched,
+    ).toBe(false)
+    expect(evaluateAutomaticRequirementTrigger(null, context, false)).toEqual({
+      holds: true,
+      stateTruth: true,
+      eventMatched: false,
+      stateEntered: true,
+    })
+    expect(evaluateAutomaticRequirementTrigger(null, context, true).stateEntered).toBe(false)
   })
 })

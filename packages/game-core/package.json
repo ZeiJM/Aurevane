@@ -22,6 +22,7 @@
     "./combat/actions": "./src/combat/actions.ts",
     "./combat/combat-definition": "./src/combat/combat-definition.ts",
     "./combat/combat-behavior-capture": "./src/combat/combat-behavior-capture.ts",
+    "./combat/combat-ability-events": "./src/combat/combat-ability-events.ts",
     "./combat/combat-ability-command": "./src/combat/combat-ability-command.ts",
     "./combat/combat-modifier-composition": "./src/combat/combat-modifier-composition.ts",
     "./combat/combat-behavior-runtime": "./src/combat/combat-behavior-runtime.ts",

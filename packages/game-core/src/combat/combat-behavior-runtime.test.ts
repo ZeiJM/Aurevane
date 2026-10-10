@@ -492,7 +492,7 @@ describe('canonical behavior runtime', () => {
   it('Automatic explicit actor authority resolves real out-of-turn Reflect without changing turn ownership', () => {
     const command = input()
     const auto = captureCombatAbilitySource({
-      ...source({ activation: 'automatic', costs: [] }),
+      ...source({ activation: 'automatic', automaticTarget: { subject: 'triggering' }, costs: [] }),
       ownerCombatantId: 'enemy',
     })
     const state = {
