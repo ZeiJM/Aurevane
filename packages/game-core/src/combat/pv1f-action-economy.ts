@@ -1654,6 +1654,24 @@ export function executePv1fMovement(
     events: [...transition.events, ...settled.events, ...completed.events],
   }
 }
+/** Pure legality only: previews must not run turn-boundary reactions or draw RNG. */
+export function validatePv1fFinalFacing(
+  state: StatDrivenCombatEncounterState,
+  facing: BattleFacing,
+): void {
+  const prepared = preparePv1fTurnEconomy(state)
+  const actorId = prepared.tactical.battle.currentTurn?.combatantId ?? null
+  const defeated = actorId !== null && getCombatant(prepared, actorId).hp <= 0
+  if (
+    !defeated &&
+    prepared.elementalDamagePolicyVersion !== undefined &&
+    hasGameplayTag(prepared, actorId!, 'Frozen', PV1F_COMBAT_CONTENT) &&
+    prepared.tactical.placements.find((row) => row.combatantId === actorId)!.facing !== facing
+  )
+    throw new Error('Chilled prevents changing final facing. End in the existing direction.')
+  if (!defeated) selectCurrentFinalFacing(prepared.tactical, facing)
+}
+
 export function finishPv1fTurn(
   state: StatDrivenCombatEncounterState,
   facing: BattleFacing,
@@ -1668,14 +1686,7 @@ export function finishPv1fTurn(
     )
   const outgoingDefeated =
     outgoingCombatantId !== null && getCombatant(prepared, outgoingCombatantId).hp <= 0
-  if (
-    !outgoingDefeated &&
-    prepared.elementalDamagePolicyVersion !== undefined &&
-    hasGameplayTag(prepared, outgoingCombatantId!, 'Frozen', PV1F_COMBAT_CONTENT) &&
-    prepared.tactical.placements.find((row) => row.combatantId === outgoingCombatantId)!.facing !==
-      facing
-  )
-    throw new Error('Chilled prevents changing final facing. End in the existing direction.')
+  validatePv1fFinalFacing(prepared, facing)
   const selected = outgoingDefeated
     ? { state: prepared.tactical, events: [] }
     : selectCurrentFinalFacing(prepared.tactical, facing)
@@ -2001,6 +2012,17 @@ export function committedResonanceForecast(
   if (!actorId) return null
   const build = readBattleAuthorityCombatBuildSnapshot(state, actorId)
   const reference = build?.extensions.resonance
+  if (
+    reference &&
+    state.capturedAbilitySources?.some(
+      (source) =>
+        source.sourceKind === 'resonance' &&
+        source.ownerCombatantId === actorId &&
+        source.abilityId === reference.resonanceId &&
+        source.contentVersion === reference.contentVersion,
+    )
+  )
+    return null
   if (
     !build ||
     !reference ||

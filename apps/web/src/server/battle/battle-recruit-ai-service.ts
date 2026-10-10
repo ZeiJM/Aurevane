@@ -36,9 +36,11 @@ import type { CombatContentResolver } from '@/server/combat/combat-content-resol
 import { createServerCombatContentResolver } from '@/server/combat/combat-content-resolver'
 import {
   resolveBattleDisciplineSkillDefinitions,
-  resolveBattleEssenceDefinition,
+  resolvePinnedBattleEssenceDefinition,
   type BattleBuildAuthoritySnapshot,
 } from './battle-build-authority'
+import { essenceCombatSkill } from '@aurevane/game-core/combat/essence'
+import { refreezeCapturedCombatAbilityState } from '@aurevane/game-core/combat/combat-behavior-runtime'
 import {
   createBattleSessionChangedInvalidation,
   type BattleSessionChangedInvalidation,
@@ -107,7 +109,7 @@ function readPersistedEncounter(snapshot: unknown): BuildExtendedEncounterState 
     const candidate = snapshot as BuildExtendedEncounterState
     const issues = validateStatDrivenCombatEncounterState(candidate)
     if (issues.length > 0) throw persistenceInvalid()
-    return candidate
+    return refreezeCapturedCombatAbilityState(candidate)
   } catch (error) {
     if (error instanceof AurevaneError) throw error
     throw persistenceInvalid()
@@ -175,8 +177,8 @@ async function resolveRecruitSkillOptions(
   const regular = await resolveBattleDisciplineSkillDefinitions(authority, actorId, resolver)
   if (regular === null) return { committedSkills: [] }
 
-  const essence = resolveBattleEssenceDefinition(authority, actorId)
-  return { committedSkills: essence ? [...regular, essence.skill] : [...regular] }
+  const essence = await resolvePinnedBattleEssenceDefinition(authority, actorId, resolver)
+  return { committedSkills: essence ? [...regular, essenceCombatSkill(essence)] : [...regular] }
 }
 
 function recruitDifficultyForActor(

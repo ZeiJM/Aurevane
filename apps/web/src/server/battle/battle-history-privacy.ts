@@ -1,3 +1,4 @@
+import { omitCombatExecutionMetadata } from './battle-live-viewer-projection'
 import 'server-only'
 
 import type { BattleEventRecord } from '@aurevane/db/battle-session'
@@ -593,5 +594,9 @@ export function projectBattleHistoryForViewer(
       ),
     })
   }
-  return projected.map((record) => replacements.get(record) ?? record)
+  return projected.map((record) => {
+    const visible = replacements.get(record) ?? record
+    const event = objectValue(visible.event)
+    return event ? { ...visible, event: omitCombatExecutionMetadata(event) } : visible
+  })
 }

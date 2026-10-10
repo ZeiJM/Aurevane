@@ -31,6 +31,20 @@ import {
 
 import { battleViewerRelationship, type BattleViewerEntitlement } from './battle-viewer-entitlement'
 
+/** Shallow public receipt projection; private execution records stay in persistence. */
+export function omitCombatExecutionMetadata<T extends object>(receipt: T): T {
+  const projected = { ...receipt }
+  for (const key of [
+    'effectOrigin',
+    'abilityParticipants',
+    'sourceCommandVisibility',
+    'abilityCommandFacts',
+    'provenance',
+  ])
+    Reflect.deleteProperty(projected, key)
+  return projected
+}
+
 type BattleStatusState = readonly {
   combatantId: string
   statuses: readonly BattlePresentedStatus[]
@@ -119,11 +133,13 @@ export function projectBattleStatusStateForViewer(
     const row = {
       ...activeRow,
       statuses: [
-        ...activeRow.statuses.map((status) => presentInteractionPolicy(status)),
+        ...activeRow.statuses.map((status) =>
+          presentInteractionPolicy(omitCombatExecutionMetadata(status)),
+        ),
         ...terrainStatuses,
         ...pending
           .filter((item) => item.combatantId === activeRow.combatantId)
-          .map((item) => presentInteractionPolicy(item.status)),
+          .map((item) => presentInteractionPolicy(omitCombatExecutionMetadata(item.status))),
       ],
     }
     // Validated snapshots should always resolve this row; omission is safer than disclosure if they do not.
@@ -198,7 +214,7 @@ export function projectBattleEffectStateForViewer(
   >(
     instance: T,
   ): T => {
-    if (sourceAllowed(instance.sourceCombatantId)) return instance
+    if (sourceAllowed(instance.sourceCombatantId)) return omitCombatExecutionMetadata(instance)
     const publicEffect = { ...instance, sourceActionId: 'combat.effect' }
     delete publicEffect.provenance
     return publicEffect

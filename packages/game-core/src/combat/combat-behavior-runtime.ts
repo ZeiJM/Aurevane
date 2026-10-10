@@ -243,7 +243,7 @@ export function reconcileCombatAbilitySources(
   return {
     ...state,
     capturedAbilitySources: [
-      ...(state.capturedAbilitySources ?? []),
+      ...(state.capturedAbilitySources ?? []).map(captureCombatAbilitySource),
       ...captured.filter(
         (source) =>
           !state.capturedAbilitySources?.some(
@@ -287,4 +287,17 @@ export function reconcileCombatAbilitySources(
         : { nextCommandSequence: state.abilityRuntime.nextCommandSequence }),
     },
   }
+}
+
+/** Strict restore validation happens at the owning encounter reader; this never dispatches. */
+export function refreezeCapturedCombatAbilityState<State extends CombatEncounterState>(
+  state: State,
+): State {
+  if (!state.capturedAbilitySources) return state
+  return reconcileCombatAbilitySources(
+    state,
+    state.capturedAbilitySources.filter((source) =>
+      state.abilityRuntime?.activeSourceIds.includes(source.sourceInstanceId),
+    ),
+  ) as State
 }

@@ -23,7 +23,10 @@ import {
   calculatePv1fBasicAttackDamage,
   createPv1fTemporaryResources,
   preparePv1fTurnEconomy,
+  PV1F_COMBAT_CONTENT,
 } from '@aurevane/game-core/combat/pv1f-action-economy'
+import { activateCombatAbilitySources } from '@aurevane/game-core/combat/combat-ability-command'
+import { buildBattlePrivacyJournalInput } from './battle-history-privacy'
 import {
   createCharacterDerivedCombatProfile,
   createDuelBalancedCombatEncounterState,
@@ -52,6 +55,7 @@ import { createServerCombatContentResolver } from '@/server/combat/combat-conten
 
 import {
   createBattleBuildAuthoritySnapshot,
+  captureBattleBuildAbilitySources,
   createResolvedBattleBuildAuthoritySnapshot,
   narratorIdentityForCharacter,
   type BattleBuildAuthoritySnapshot,
@@ -622,6 +626,7 @@ export async function startPvpLobby(
     roster.push({ member, character, buildSnapshot })
   }
 
+  const combatContentResolver = createServerCombatContentResolver()
   const buildAuthority = await createResolvedBattleBuildAuthoritySnapshot(
     'pvp',
     roster.map(({ character, buildSnapshot }) => ({
@@ -630,10 +635,10 @@ export async function startPvpLobby(
       snapshot: buildSnapshot,
       narratorIdentity: narratorIdentityForCharacter(character),
     })),
-    createServerCombatContentResolver(),
+    combatContentResolver,
   )
   const elevationPolicy = parseBattlefieldElevationPolicy(await readBattlefieldElevationPolicy())
-  const encounter = createPvpEncounter(roster, lobby.teamSizes, buildAuthority, elevationPolicy)
+  let encounter = createPvpEncounter(roster, lobby.teamSizes, buildAuthority, elevationPolicy)
   encounter.battlefieldElevationPolicy = elevationPolicy
   encounter.effectTimingPolicy = await readCombatEffectTimingPolicy()
   encounter.effectStackingPolicyVersion = 1
@@ -649,22 +654,45 @@ export async function startPvpLobby(
   encounter.healingDownPolicyVersion = 1
   encounter.blindsideActivationPolicyVersion = 1
   encounter.groundEffectPolicyVersion = 1
+  const startSnapshot = encounter
+  const sources = await captureBattleBuildAbilitySources(
+    encounter,
+    buildAuthority,
+    combatContentResolver,
+  )
+  const initialized = activateCombatAbilitySources(encounter, sources, PV1F_COMBAT_CONTENT, true)
+  encounter = { ...initialized.state, buildAuthority } as typeof encounter
   const battle = encounter.tactical.battle
   const supabase = createSupabaseAdminClient()
-  const { data, error } = await supabase.rpc('create_pvp_battle_session_v1', {
-    p_actor_user_id: userId,
-    p_lobby_id: lobbyId,
-    p_battle_id: battle.battleId,
-    p_rules_version: battle.rulesVersion,
-    p_content_version: battle.contentVersion,
-    p_initial_snapshot: encounter,
-    p_participants: roster.map(({ member, character }) => ({
-      combatant_id: `character:${character.id}`,
-      user_id: member.userId,
-      character_id: character.id,
-      team_index: member.teamIndex,
-    })),
-  })
+  const { data, error } = await supabase.rpc(
+    sources.length ? 'create_pvp_battle_session_v2' : 'create_pvp_battle_session_v1',
+    {
+      p_actor_user_id: userId,
+      p_lobby_id: lobbyId,
+      p_battle_id: battle.battleId,
+      p_rules_version: battle.rulesVersion,
+      p_content_version: battle.contentVersion,
+      p_initial_snapshot: encounter,
+      ...(sources.length
+        ? {
+            p_start_snapshot: startSnapshot,
+            p_initial_events: initialized.events,
+            p_privacy_journal: buildBattlePrivacyJournalInput({
+              before: startSnapshot,
+              after: encounter,
+              commandKind: 'system',
+              events: initialized.events,
+            }),
+          }
+        : {}),
+      p_participants: roster.map(({ member, character }) => ({
+        combatant_id: `character:${character.id}`,
+        user_id: member.userId,
+        character_id: character.id,
+        team_index: member.teamIndex,
+      })),
+    },
+  )
   if (error) mapRpcError(error)
   const row = Array.isArray(data) && data.length === 1 && isObject(data[0]) ? data[0] : null
   const battleSessionId = row ? readString(row.battle_session_id) : null

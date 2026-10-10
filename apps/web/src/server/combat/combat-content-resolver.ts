@@ -273,6 +273,7 @@ function validatePublishedSkill(
   }
 
   try {
+    if (Object.hasOwn(candidate, 'ability')) return structuredClone(candidate)
     for (const context of ['pve', 'pvp'] as const) {
       validateCombatActionDefinition(toMaterializedCombatActionDefinition(candidate, context))
     }

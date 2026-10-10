@@ -102,6 +102,50 @@ const publishedResonance = (definition: AnyResonanceDefinition): CombatContentVe
 })
 
 describe('combat content resolver', () => {
+  it('returns validated published canonical Skill envelopes before the guarded legacy action projection', async () => {
+    const source = new MemoryPublishedCombatContentSource()
+    const definition = {
+      ...staticSkill('vanguard.forceful-strike'),
+      contentVersion: 77,
+      ability: {
+        schemaVersion: 1 as const,
+        behaviors: [
+          {
+            id: 'canonical',
+            activation: 'manual' as const,
+            mode: 'action' as const,
+            classification: 'attack' as const,
+            attackFamily: 'physical' as const,
+            costs: [],
+            cooldown: null,
+            requirements: null,
+            targeting: { ...staticSkill('vanguard.forceful-strike').target, maximumSelections: 1 },
+            effects: [
+              {
+                id: 'damage',
+                payload: { type: 'damage' as const, recipient: 'primary-unit' as const, amount: 1 },
+              },
+            ],
+          },
+        ],
+      },
+    }
+    source.current.set(definition.id, publishedSkill(definition))
+    source.versions.set(`${definition.id}@77`, publishedSkill(definition))
+    const resolver = createCombatContentResolver(source)
+    expect((await resolver.resolveCurrentSkillDefinition(definition.id))?.ability).toEqual(
+      definition.ability,
+    )
+    expect((await resolver.resolvePinnedSkillDefinition(definition.id, 77))?.ability).toEqual(
+      definition.ability,
+    )
+    definition.ability.behaviors[0]!.effects[0]!.payload.amount = 99
+    expect(
+      (await resolver.resolvePinnedSkillDefinition(definition.id, 77))?.ability?.behaviors[0]
+        ?.effects[0]?.payload,
+    ).toMatchObject({ amount: 1 })
+  })
+
   it('falls back to the current static Skill when no publication exists', async () => {
     const source = new MemoryPublishedCombatContentSource()
     const resolver = createCombatContentResolver(source)

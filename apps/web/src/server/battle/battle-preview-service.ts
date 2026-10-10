@@ -12,9 +12,16 @@ import {
   evaluatePv1fAction,
   evaluatePv1fMatureSkill,
   evaluatePv1fMovement,
-  finishPv1fTurn,
+  validatePv1fFinalFacing,
   readPv1fActionEconomy,
+  preparePv1fTurnEconomy,
 } from '@aurevane/game-core/combat/pv1f-action-economy'
+import { prepareCombatAbilityCommand } from '@aurevane/game-core/combat/combat-ability-command'
+import {
+  combatAbilityCommandContext,
+  refreezeCapturedCombatAbilityState,
+} from '@aurevane/game-core/combat/combat-behavior-runtime'
+import { essenceCombatSkill } from '@aurevane/game-core/combat/essence'
 import {
   forecastStatDrivenAttack,
   validateStatDrivenCombatEncounterState,
@@ -26,11 +33,13 @@ import type { BattleIntent } from '@aurevane/validation/combat/battle-session'
 
 import type { CombatContentResolver } from '@/server/combat/combat-content-resolver'
 
+import { omitCombatExecutionMetadata } from './battle-live-viewer-projection'
 import { battleActionResourceIssue } from './battle-action-resource-availability'
 import {
   battleBuildAuthorityForCombatant,
   resolveBattleDisciplineSkillDefinition,
-  resolveBattleEssenceDefinition,
+  resolvePinnedBattleEssenceDefinition,
+  capturedBattleActionSource,
   type BattleBuildAuthoritySnapshot,
 } from './battle-build-authority'
 
@@ -138,7 +147,7 @@ function readPersistedEncounter(record: BattleSessionRecord): StatDrivenCombatEn
     const candidate = snapshot as StatDrivenCombatEncounterState
     const issues = validateStatDrivenCombatEncounterState(candidate)
     if (issues.length > 0) throw persistenceInvalid()
-    return candidate
+    return refreezeCapturedCombatAbilityState(candidate)
   } catch (error) {
     if (error instanceof AurevaneError) throw error
     throw persistenceInvalid()
@@ -230,12 +239,18 @@ async function previewIntent(
       }
     ).buildAuthority
     const build = actorId ? battleBuildAuthorityForCombatant(authority, actorId) : null
-    const essence = actorId ? resolveBattleEssenceDefinition(authority, actorId) : null
+    const capturedSource = actorId
+      ? capturedBattleActionSource(state, authority, actorId, intent.actionId)
+      : null
+    const essence =
+      !capturedSource && actorId
+        ? await resolvePinnedBattleEssenceDefinition(authority, actorId, combatContentResolver)
+        : null
     const taggedTechnique = build?.disciplineSkills.find(
       (reference) => reference.skillId === intent.actionId,
     )
     const matureDefinition =
-      taggedTechnique && actorId
+      !capturedSource && taggedTechnique && actorId
         ? await resolveBattleDisciplineSkillDefinition(
             authority,
             actorId,
@@ -243,22 +258,56 @@ async function previewIntent(
             combatContentResolver,
           )
         : null
-    if (taggedTechnique && !matureDefinition) throw persistenceInvalid()
-    const resolved =
-      essence && essence.skill.id === intent.actionId && authority
-        ? evaluatePv1fMatureSkill(state, essence.skill, intent.target, authority.combatContext)
+    if (!capturedSource && taggedTechnique && !matureDefinition) throw persistenceInvalid()
+    const preparedState = preparePv1fTurnEconomy(state)
+    const canonical =
+      capturedSource && actorId
+        ? prepareCombatAbilityCommand({
+            state: preparedState,
+            actorId,
+            root: { kind: 'canonical', source: capturedSource, behaviorId: intent.behaviorId },
+            manualModifiers: intent.manualModifiers,
+            selection: intent.target,
+            content: PV1F_COMBAT_CONTENT,
+            context: combatAbilityCommandContext(preparedState, capturedSource),
+          })
+        : null
+    const resolved = canonical
+      ? {
+          prepared: preparedState,
+          action: canonical.action,
+          evaluation: canonical.evaluation,
+          cost: canonical.costs.find((row) => row.resource === 'ap')?.amount ?? 0,
+        }
+      : essence && essence.skill.id === intent.actionId && authority
+        ? evaluatePv1fMatureSkill(
+            state,
+            essenceCombatSkill(essence),
+            intent.target,
+            authority.combatContext,
+            { behaviorId: intent.behaviorId, manualModifiers: intent.manualModifiers },
+          )
         : matureDefinition &&
             matureDefinition.sourceDisciplineId === taggedTechnique?.sourceDisciplineId &&
             authority
-          ? evaluatePv1fMatureSkill(state, matureDefinition, intent.target, authority.combatContext)
-          : evaluatePv1fAction(state, intent.actionId, intent.target)
+          ? evaluatePv1fMatureSkill(
+              state,
+              matureDefinition,
+              intent.target,
+              authority.combatContext,
+              { behaviorId: intent.behaviorId, manualModifiers: intent.manualModifiers },
+            )
+          : evaluatePv1fAction(state, intent.actionId, intent.target, {
+              behaviorId: intent.behaviorId,
+              manualModifiers: intent.manualModifiers,
+            })
     const { prepared, action, cost, evaluation } = resolved
     const economy = readPv1fActionEconomy(prepared)
     const before = economy?.current ?? 0
     const affordable = before >= cost
     const resourceIssue = battleActionResourceIssue(prepared, intent)
     const forecast =
-      action.sourceType === 'basic-attack'
+      action.sourceType === 'basic-attack' && !action.nativeBasicAttackCommand
         ? forecastStatDrivenAttack(prepared, action, intent.target, PV1F_COMBAT_CONTENT)
         : null
     const projectedStatuses: BattleActionPreview['projectedStatuses'][number][] =
@@ -313,7 +362,9 @@ async function previewIntent(
         : projectBattleStatusResistanceForecast(evaluation),
       projectedStatuses,
       projectedTerrain: resourceIssue ? [] : evaluation.projectedTerrain,
-      projectedEvents: resourceIssue ? [] : evaluation.projectedEvents,
+      projectedEvents: resourceIssue
+        ? []
+        : evaluation.projectedEvents.map(omitCombatExecutionMetadata),
       mpCost: evaluation.mpCost,
       actionEconomyCost: cost,
       actionEconomyBefore: before,
@@ -345,7 +396,7 @@ async function previewIntent(
 
   if (intent.kind === 'face') {
     try {
-      finishPv1fTurn(state, intent.facing)
+      validatePv1fFinalFacing(state, intent.facing)
       return { kind: 'face', legal: true, facing: intent.facing, endsTurn: true, issues: [] }
     } catch (error) {
       return {

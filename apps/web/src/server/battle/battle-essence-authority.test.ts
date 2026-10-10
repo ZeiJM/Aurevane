@@ -36,7 +36,16 @@ import {
   createBattleSessionService,
   type BattleAuthoritativeEncounterState,
 } from './battle-session-service'
+import { createViewerSafeBattleLogService } from './battle-log-service'
+import {
+  deriveParticipantBattleViewerEntitlement,
+  createSpectatorBattleViewerEntitlement,
+} from './battle-viewer-entitlement'
 import { createBattlePreviewService } from './battle-preview-service'
+import type { CombatContentResolver } from '@/server/combat/combat-content-resolver'
+import type { AbilityDefinition } from '@aurevane/game-core/combat/combat-definition'
+import { convertV5ResonanceToV2 } from '@aurevane/game-core/combat/resonance-v2'
+import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
 
 const USER_ID = '11111111-1111-4111-8111-111111111111'
 const CHARACTER_ID = '22222222-2222-4222-8222-222222222222'
@@ -280,6 +289,431 @@ function positionPlayerAdjacent(state: BattleAuthoritativeEncounterState) {
   )
   return state.buildAuthority ? { ...base, buildAuthority: state.buildAuthority } : base
 }
+
+it('creates immutable published Essence behaviors and uses their exact bundle through preview, commit and reconnect', async () => {
+  const original = structuredClone(resolveEssenceForBuild('vanguard', null)!)
+  const ability: AbilityDefinition = {
+    schemaVersion: 1,
+    behaviors: [
+      {
+        id: 'strike',
+        activation: 'manual',
+        mode: 'action',
+        classification: 'attack',
+        attackFamily: 'physical',
+        costs: [
+          { resource: 'ap', amount: 11 },
+          { resource: 'mp', amount: 2 },
+          { resource: 'hp', amount: 1 },
+        ],
+        cooldown: null,
+        requirements: null,
+        targeting: { ...original.skill.target, maximumSelections: 1 },
+        accuracy: { kind: 'fixed', chanceBasisPoints: 10000 },
+        effects: [{ id: 'hit', payload: { type: 'damage', recipient: 'primary-unit', amount: 3 } }],
+      },
+      {
+        id: 'extra',
+        activation: 'manual',
+        mode: 'modifier',
+        classification: 'attack',
+        attackFamily: 'physical',
+        costs: [
+          { resource: 'ap', amount: 7 },
+          { resource: 'mp', amount: 1 },
+          { resource: 'hp', amount: 2 },
+        ],
+        cooldown: null,
+        requirements: null,
+        targeting: null,
+        effects: [{ id: 'hit', payload: { type: 'damage', recipient: 'primary-unit', amount: 2 } }],
+      },
+      {
+        id: 'start',
+        activation: 'automatic',
+        mode: 'action',
+        classification: 'recovery',
+        costs: [{ resource: 'mp', amount: 1 }],
+        cooldown: null,
+        requirements: { kind: 'event', eventType: 'battle_started', phase: 'after' },
+        targeting: {
+          kind: 'self',
+          teamPolicy: 'self',
+          friendlyFire: 'allies-only',
+          shape: { kind: 'single' },
+          minimumRange: 0,
+          maximumRange: 0,
+          requiresLineOfSight: false,
+          maximumElevationDifference: null,
+          maximumSelections: 1,
+        },
+        effects: [{ id: 'heal', payload: { type: 'healing', recipient: 'actor', amount: 1 } }],
+      },
+    ],
+  }
+  let published = {
+    ...original,
+    contentVersion: 77,
+    ability,
+    skill: { ...original.skill, contentVersion: 77 },
+  }
+  const resolver: CombatContentResolver = {
+    resolveCurrentSkillDefinition: async (id) => resolveMatureSkillVersion(id),
+    resolvePinnedSkillDefinition: async (id, version) => resolveMatureSkillVersion(id, version),
+    resolveCurrentEssenceDefinition: async () => structuredClone(published),
+    resolvePinnedEssenceDefinition: async () => structuredClone(published),
+  }
+  const builds = buildRepository(pureSnapshot()),
+    battles = battleRepository()
+  const service = createBattleSessionService({
+    characters: characterRepository(),
+    battles: battles.repository,
+    builds: builds.repository,
+    combatContentResolver: resolver,
+  })
+  await service.createSession({
+    userId: USER_ID,
+    characterId: CHARACTER_ID,
+    idempotencyKey: '88888888-8888-4888-8888-888888888888',
+  })
+  const created = battles.record!.snapshot as BattleAuthoritativeEncounterState
+  const startup = battles.createBattleSession.mock.calls[0]![0].startup!
+  expect(startup.events).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ event: 'mp_spent', amount: 1 }),
+      expect.objectContaining({ event: 'combat_action_used', actionId: original.essenceId }),
+    ]),
+  )
+  expect(startup.startSnapshot).not.toHaveProperty('abilityRuntime')
+  expect(startup.privacyJournal.commandVisibility).toEqual({ kind: 'public' })
+  expect(created.capturedAbilitySources).toHaveLength(1)
+  const source = created.capturedAbilitySources![0]!
+  expect(source.sourceKind).toBe('essence')
+  expect(source.contentVersion).toBe(77)
+  expect(Object.isFrozen(source.definition)).toBe(true)
+  expect(created.tactical.battle.combatants.find((row) => row.id === PLAYER_ID)!.mp).toBe(
+    created.tactical.battle.combatants.find((row) => row.id === PLAYER_ID)!.maxMp - 1,
+  )
+  const positioned = { ...created, tactical: positionPlayerAdjacent(created).tactical }
+  battles.replaceSnapshot(JSON.parse(JSON.stringify(positioned)))
+  published = {
+    ...published,
+    enabled: false,
+    ability: {
+      ...ability,
+      behaviors: ability.behaviors.map((row) => ({
+        ...row,
+        costs: [{ resource: 'ap', amount: 99 }],
+      })),
+    },
+  }
+  const intent = {
+    kind: 'action' as const,
+    actionId: original.essenceId,
+    behaviorId: 'strike',
+    target: { kind: 'unit' as const, combatantId: 'recruit:p2-4-1' },
+    manualModifiers: [{ sourceInstanceId: source.sourceInstanceId, behaviorId: 'extra' }],
+  }
+  const before = JSON.stringify(battles.record!.snapshot)
+  const preview = await createBattlePreviewService(battles.repository, resolver).previewIntent({
+    userId: USER_ID,
+    battleSessionId: SESSION_ID,
+    expectedBattleVersion: 1,
+    intent,
+  })
+  expect(preview.preview).toMatchObject({
+    kind: 'action',
+    legal: true,
+    actionEconomyCost: 18,
+    mpCost: 3,
+  })
+  expect(JSON.stringify(preview)).not.toMatch(
+    /effectOrigin|sourceInstanceId|abilityParticipants|sourceCommandVisibility/,
+  )
+  expect(JSON.stringify(battles.record!.snapshot)).toBe(before)
+  await service.submitIntent({
+    userId: USER_ID,
+    battleSessionId: SESSION_ID,
+    expectedBattleVersion: 1,
+    idempotencyKey: '99999999-9999-4999-8999-999999999999',
+    intent,
+  })
+  const next = battles.record!.snapshot as BattleAuthoritativeEncounterState
+  expect(readPv1fActionEconomy(next)!.current).toBe(82)
+  expect(next.capturedAbilitySources![0]!.definition).toEqual(ability)
+  expect(next.abilityRuntime!.nextCommandSequence).toBe(2)
+  const publicView = await service.getSession(USER_ID, SESSION_ID)
+  expect(JSON.stringify(publicView)).not.toMatch(
+    /capturedAbilitySources|conditionTruth|accuracyRule|effectEligibleRecipientIds|abilityParticipants/,
+  )
+})
+
+it('projects startup Automatic children with their own Covert visibility through actual history DTOs', async () => {
+  const original = structuredClone(resolveEssenceForBuild('vanguard', null)!)
+  const self = {
+    kind: 'self' as const,
+    teamPolicy: 'self' as const,
+    friendlyFire: 'allies-only' as const,
+    shape: { kind: 'single' as const },
+    minimumRange: 0,
+    maximumRange: 0,
+    requiresLineOfSight: false,
+    maximumElevationDifference: null,
+    maximumSelections: 1,
+  }
+  const base = {
+    activation: 'automatic' as const,
+    mode: 'action' as const,
+    classification: 'utility' as const,
+    costs: [],
+    cooldown: null,
+    requirements: { kind: 'event' as const, eventType: 'battle_started', phase: 'after' as const },
+    targeting: self,
+  }
+  const ability: AbilityDefinition = {
+    schemaVersion: 1,
+    behaviors: [
+      {
+        ...base,
+        id: 'a-hide',
+        effects: [
+          {
+            id: 'covert',
+            timing: 'instant',
+            payload: { type: 'apply-status', recipient: 'actor', statusId: 'covert', stacks: 1 },
+          },
+        ],
+      },
+      {
+        ...base,
+        id: 'z-recover',
+        classification: 'recovery',
+        costs: [{ resource: 'mp', amount: 1 }],
+        effects: [{ id: 'heal', payload: { type: 'healing', recipient: 'actor', amount: 1 } }],
+      },
+    ],
+  }
+  const published = {
+    ...original,
+    contentVersion: 77,
+    ability,
+    skill: { ...original.skill, contentVersion: 77 },
+  }
+  const resolver: CombatContentResolver = {
+    resolveCurrentSkillDefinition: async (id) => resolveMatureSkillVersion(id),
+    resolvePinnedSkillDefinition: async (id, version) => resolveMatureSkillVersion(id, version),
+    resolveCurrentEssenceDefinition: async () => published,
+    resolvePinnedEssenceDefinition: async () => published,
+  }
+  const battles = battleRepository()
+  await createBattleSessionService({
+    characters: characterRepository(),
+    battles: battles.repository,
+    builds: buildRepository(pureSnapshot()).repository,
+    combatContentResolver: resolver,
+  }).createSession({
+    userId: USER_ID,
+    characterId: CHARACTER_ID,
+    idempotencyKey: '88888888-8888-4888-8888-888888888888',
+  })
+  const creation = battles.createBattleSession.mock.calls[0]![0]
+  const startup = creation.startup!
+  const state = creation.initialSnapshot as BattleAuthoritativeEncounterState
+  const hiddenReceipts = startup.events.flatMap((event, eventIndex) =>
+    (event as { sourceCommandVisibility?: unknown }).sourceCommandVisibility ? [eventIndex] : [],
+  )
+  expect(startup.events).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ sourceCommandVisibility: expect.anything() }),
+    ]),
+  )
+  expect(startup.privacyJournal.commandVisibility).toEqual({ kind: 'public' })
+  for (const eventIndex of hiddenReceipts)
+    expect(startup.privacyJournal.eventVisibilityOverrides).toContainEqual({
+      eventIndex,
+      visibility: {
+        kind: 'team-only',
+        teamId: state.tactical.battle.combatants.find((row) => row.id === PLAYER_ID)!.teamId,
+      },
+    })
+  const records = startup.events.map((event, eventIndex) => ({
+    battleVersion: 1,
+    eventIndex,
+    event,
+    createdAt: CREATED_AT,
+  }))
+  const actorTeamId = state.tactical.battle.combatants.find((row) => row.id === PLAYER_ID)!.teamId
+  const journal = {
+    ...startup.privacyJournal,
+    battleVersion: 1,
+    actorCombatantId: PLAYER_ID,
+    actorTeamId,
+    eventCount: records.length,
+  }
+  const views = [
+    deriveParticipantBattleViewerEntitlement(state.tactical.battle.combatants, [PLAYER_ID]),
+    deriveParticipantBattleViewerEntitlement(state.tactical.battle.combatants, ['recruit:p2-4-1']),
+    createSpectatorBattleViewerEntitlement(),
+  ]
+  for (const [index, viewer] of views.entries()) {
+    const log = await createViewerSafeBattleLogService(
+      { findBattleEvents: async () => records },
+      {
+        findBattleHistoryPrivacy: async () => ({
+          viewer,
+          journals: [journal],
+          buildAuthority: state.buildAuthority,
+        }),
+      },
+      resolver,
+    ).getLog(USER_ID, SESSION_ID)
+    expect(JSON.stringify(log)).not.toMatch(
+      /effectOrigin|abilityParticipants|sourceCommandVisibility|sourceInstanceId|conditionTruth/,
+    )
+    expect(log.entries.filter((entry) => entry.eventType === 'combat_action_used')).toHaveLength(
+      index === 0 ? 2 : 1,
+    )
+    expect(log.entries.filter((entry) => entry.eventType === 'mp_spent')).toHaveLength(
+      index === 0 ? 1 : 0,
+    )
+    if (index === 0) expect(JSON.stringify(log)).toContain(original.essenceId)
+    else {
+      expect(JSON.stringify(log)).not.toContain('z-recover')
+      expect(log.entries.filter((entry) => entry.eventType === 'mp_spent')).toHaveLength(0)
+    }
+  }
+})
+
+it.each(['skill', 'resonance-v1', 'resonance-v2'] as const)(
+  'routes actual published %s capture through create, pure preview, commit and JSON reconnect',
+  async (kind) => {
+    const self = {
+      kind: 'self' as const,
+      teamPolicy: 'self' as const,
+      friendlyFire: 'allies-only' as const,
+      shape: { kind: 'single' as const },
+      minimumRange: 0,
+      maximumRange: 0,
+      requiresLineOfSight: false,
+      maximumElevationDifference: null,
+      maximumSelections: 1,
+    }
+    const ability: AbilityDefinition = {
+      schemaVersion: 1,
+      behaviors: [
+        {
+          id: 'restore',
+          activation: 'manual',
+          mode: 'action',
+          classification: 'recovery',
+          costs: [
+            { resource: 'ap', amount: 12 },
+            { resource: 'mp', amount: 2 },
+          ],
+          cooldown: null,
+          activationLimits: ['once-per-battle'],
+          requirements: null,
+          targeting: self,
+          effects: [{ id: 'heal', payload: { type: 'healing', recipient: 'actor', amount: 1 } }],
+        },
+      ],
+    }
+    const skill = {
+      ...resolveMatureSkillVersion('vanguard.forceful-strike')!,
+      contentVersion: 77,
+      ability,
+    }
+    const builtin = resolveResonanceForPair('vanguard', 'lifebinder', 1)!
+    let resonance = {
+      ...(kind === 'resonance-v2' ? convertV5ResonanceToV2(builtin) : builtin),
+      contentVersion: 77,
+      ability,
+    }
+    let currentSkill = skill
+    const build =
+      kind === 'skill'
+        ? {
+            ...pureSnapshot(),
+            disciplineSkills: [
+              {
+                slotIndex: 1 as const,
+                skillId: skill.id,
+                contentVersion: resolveMatureSkillVersion(skill.id)!.contentVersion,
+                sourceDisciplineId: skill.sourceDisciplineId,
+              },
+            ],
+          }
+        : mixedSnapshot()
+    const resolver: CombatContentResolver = {
+      resolveCurrentSkillDefinition: async () => structuredClone(currentSkill),
+      resolvePinnedSkillDefinition: async () => structuredClone(currentSkill),
+      resolveCurrentResonanceDefinition: async () => structuredClone(resonance),
+      resolvePinnedResonanceDefinition: async () => structuredClone(resonance),
+    }
+    if (kind === 'skill') {
+      delete resolver.resolveCurrentResonanceDefinition
+      delete resolver.resolvePinnedResonanceDefinition
+    }
+    const battles = battleRepository()
+    const service = createBattleSessionService({
+      characters: characterRepository(),
+      battles: battles.repository,
+      builds: buildRepository(build).repository,
+      combatContentResolver: resolver,
+    })
+    await service.createSession({
+      userId: USER_ID,
+      characterId: CHARACTER_ID,
+      idempotencyKey: '88888888-8888-4888-8888-888888888888',
+    })
+    const created = battles.record!.snapshot as BattleAuthoritativeEncounterState
+    const source = created.capturedAbilitySources![0]!
+    expect(source).toMatchObject({
+      contentVersion: 77,
+      sourceKind: kind === 'skill' ? 'discipline-skill' : 'resonance',
+    })
+    expect(Object.isFrozen(source.definition)).toBe(true)
+    battles.replaceSnapshot(JSON.parse(JSON.stringify(created)))
+    currentSkill = { ...currentSkill, enabled: false, ability: { ...ability, behaviors: [] } }
+    resonance = { ...resonance, enabled: false, ability: { ...ability, behaviors: [] } }
+    const intent = {
+      kind: 'action' as const,
+      actionId: source.abilityId,
+      behaviorId: 'restore',
+      target: { kind: 'self' as const },
+    }
+    const before = JSON.stringify(battles.record!.snapshot)
+    const preview = await createBattlePreviewService(battles.repository, resolver).previewIntent({
+      userId: USER_ID,
+      battleSessionId: SESSION_ID,
+      expectedBattleVersion: 1,
+      intent,
+    })
+    expect(preview.preview).toMatchObject({ legal: true, mpCost: 2, actionEconomyCost: 12 })
+    expect(JSON.stringify(battles.record!.snapshot)).toBe(before)
+    await service.submitIntent({
+      userId: USER_ID,
+      battleSessionId: SESSION_ID,
+      expectedBattleVersion: 1,
+      idempotencyKey: '99999999-9999-4999-8999-999999999999',
+      intent,
+    })
+    const committed = battles.record!.snapshot as BattleAuthoritativeEncounterState
+    expect(readPv1fActionEconomy(committed)!.current).toBe(88)
+    expect(committed.capturedAbilitySources![0]!.definition).toEqual(ability)
+    battles.replaceSnapshot(JSON.parse(JSON.stringify(committed)))
+    const repeated = await createBattlePreviewService(battles.repository, resolver).previewIntent({
+      userId: USER_ID,
+      battleSessionId: SESSION_ID,
+      expectedBattleVersion: 2,
+      intent,
+    })
+    expect(repeated.preview.legal).toBe(false)
+    expect(JSON.stringify(await service.getSession(USER_ID, SESSION_ID))).not.toMatch(
+      /capturedAbilitySources|conditionTruth|effectOrigin|abilityParticipants/,
+    )
+  },
+)
 
 describe('P3.6 battle Essence authority', () => {
   it.each(['pve', 'pvp'] as const)(

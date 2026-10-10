@@ -35,9 +35,11 @@ export function canonicalCombatActionSourceKind(
 export function capturedMatureSkillAbilitySource(
   state: CombatEncounterState,
   definition: MatureSkillDefinition,
+  ownerCombatantId = state.tactical.battle.currentTurn?.combatantId,
 ): CapturedCombatAbilitySource | null {
-  const ownerCombatantId = state.tactical.battle.currentTurn?.combatantId
   if (!ownerCombatantId) return null
+  if (!state.tactical.battle.combatants.some((unit) => unit.id === ownerCombatantId))
+    throw new TypeError('captured-source-owner-unavailable')
   const stored = state.capturedAbilitySources?.find(
     (source) => source.ownerCombatantId === ownerCombatantId && source.abilityId === definition.id,
   )

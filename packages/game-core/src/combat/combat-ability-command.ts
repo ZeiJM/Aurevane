@@ -1,4 +1,5 @@
 import { combatAbilityLiveRootIds } from './combat-ability-state'
+import { combatSourceCommandVisibility } from './actions-legacy'
 import { prepareNativePv1fTurn } from './pv1f-turn-preparation'
 import type { CombatNativeExecutionHooks } from './combat-native-mutations'
 import {
@@ -447,7 +448,12 @@ export function prepareCombatAbilityCommand(
       : evaluation
   return {
     action: composed.action,
-    evaluation: { ...forecast, legal: issues.length === 0, issues },
+    evaluation: {
+      ...forecast,
+      mpCost: costs.find((cost) => cost.resource === 'mp')?.amount ?? 0,
+      legal: issues.length === 0,
+      issues,
+    },
     costs,
     participants,
     context,
@@ -699,7 +705,12 @@ export function commitCombatAbilityCommand(
   ): CombatResolutionTransition => {
     session.guard = nativeGuard
     let state = native.state
-    const events = [...native.events]
+    const visibility = combatSourceCommandVisibility(input.state, input.actorId)
+    const events = native.events.map((event) =>
+      visibility && !Object.hasOwn(event, 'sourceCommandVisibility')
+        ? { ...event, sourceCommandVisibility: visibility }
+        : event,
+    )
     for (const frame of outcomeQueue) {
       const children = processCombatAbilityEvent(
         state,
@@ -857,6 +868,9 @@ export function commitCombatAbilityCommand(
     events: [
       ...paymentEvents.map((event) => ({
         ...event,
+        ...(combatSourceCommandVisibility(input.state, input.actorId)
+          ? { sourceCommandVisibility: combatSourceCommandVisibility(input.state, input.actorId) }
+          : {}),
         abilityParticipants: prepared.participants.map((row) => ({
           sourceInstanceId: row.sourceInstanceId,
           abilityId: row.abilityId,
@@ -865,7 +879,12 @@ export function commitCombatAbilityCommand(
           costs: row.costs.map((cost) => ({ ...cost })),
         })),
       })),
-      attempt,
+      {
+        ...attempt,
+        ...(combatSourceCommandVisibility(input.state, input.actorId)
+          ? { sourceCommandVisibility: combatSourceCommandVisibility(input.state, input.actorId) }
+          : {}),
+      },
       ...before.events,
       ...out.events,
     ],
@@ -960,4 +979,50 @@ export function createCombatNativeAbilityRuntime(
     },
   }
   return hooks
+}
+
+/** Actual server source activation; restore/read callers only reconcile and never invoke this. */
+export function activateCombatAbilitySources(
+  state: CombatEncounterState,
+  sources: readonly CapturedCombatAbilitySource[],
+  content: CombatContentCatalog,
+  battleStarted = false,
+): CombatResolutionTransition {
+  const before = state
+  const next =
+    sources.length || state.capturedAbilitySources
+      ? prepareCombatTurnTriggers(reconcileCombatAbilitySources(state, sources))
+      : state
+  const source = sources[0]
+  if (!source || next.tactical.battle.lifecycle !== 'active') return { state: next, events: [] }
+  const context = combatAbilityCommandContext(next, source)
+  const session = createCombatAbilityEventSession(context.triggerGuard, before)
+  const captured = captureCombatAbilityMutation(
+    before,
+    next,
+    JSON.stringify([
+      'source-activation',
+      next.tactical.battle.battleId,
+      next.tactical.battle.turnNumber,
+    ]),
+    session,
+    {
+      events: battleStarted ? [{ type: 'battle_started', phase: 'after' }] : [],
+      affectedCombatantIds: [],
+      resourceMutations: [],
+    },
+    { newlyActivatedSourceIds: sources.map((row) => row.sourceInstanceId) },
+  )
+  return processCombatAbilityEvent(
+    captured.state,
+    captured.frame,
+    content,
+    context,
+    session,
+    0,
+    (child) =>
+      prepareCombatAbilityCommand(child).evaluation.legal
+        ? commitCombatAbilityCommand(child)
+        : { state: child.state, events: [] },
+  )
 }

@@ -11,6 +11,7 @@ import { createHash, randomInt, randomUUID } from 'node:crypto'
 import type {
   BattleSessionCommitRecord,
   BattleSessionRepository,
+  CreateBattleSessionInput,
 } from '@aurevane/db/battle-session'
 import type { TransactionalCommandResult } from '@aurevane/db/transactional-command'
 import type { CharacterRecord, CharacterRepository } from '@aurevane/db/character'
@@ -24,9 +25,18 @@ import {
   createTacticalBattleState,
 } from '@aurevane/game-core/combat/board'
 import { executePv1fEssenceSkill } from '@aurevane/game-core/combat/essence'
+import {
+  activateCombatAbilitySources,
+  commitCombatAbilityCommand,
+} from '@aurevane/game-core/combat/combat-ability-command'
+import {
+  combatAbilityCommandContext,
+  refreezeCapturedCombatAbilityState,
+} from '@aurevane/game-core/combat/combat-behavior-runtime'
 import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
 import {
   calculatePv1fBasicAttackDamage,
+  PV1F_COMBAT_CONTENT,
   createPv1fTemporaryResources,
   executePv1fAction,
   executePv1fMatureSkill,
@@ -82,11 +92,13 @@ import {
 import {
   battleBuildAuthorityForCombatant,
   createBattleBuildAuthoritySnapshot,
+  capturedBattleActionSource,
+  captureBattleBuildAbilitySources,
+  resolvePinnedBattleEssenceDefinition,
   createResolvedBattleBuildAuthoritySnapshot,
   narratorIdentityForCharacter,
   parseBattleBuildAuthoritySnapshot,
   resolveBattleDisciplineSkillDefinition,
-  resolveBattleEssenceDefinition,
   type BattleBuildAuthoritySnapshot,
 } from './battle-build-authority'
 import {
@@ -414,11 +426,12 @@ function readPersistedEncounter(snapshot: unknown): BattleAuthoritativeEncounter
     const issues = validateStatDrivenCombatEncounterState(candidate)
     if (issues.length > 0) throw persistenceInvalid()
 
-    if (!Object.prototype.hasOwnProperty.call(candidate, 'buildAuthority')) return candidate
+    if (!Object.prototype.hasOwnProperty.call(candidate, 'buildAuthority'))
+      return refreezeCapturedCombatAbilityState(candidate)
     const authority = parseBattleBuildAuthoritySnapshot(candidate.buildAuthority)
     if (!authority) throw persistenceInvalid()
     validateBattleBuildAuthorityCoverage(candidate, authority)
-    return { ...candidate, buildAuthority: authority }
+    return { ...refreezeCapturedCombatAbilityState(candidate), buildAuthority: authority }
   } catch (error) {
     if (error instanceof AurevaneError) throw error
     throw persistenceInvalid()
@@ -532,7 +545,30 @@ async function resolveIntent(
 
       const actorId = state.tactical.battle.currentTurn?.combatantId
       const build = actorId ? battleBuildAuthorityForCombatant(state.buildAuthority, actorId) : null
-      const essence = actorId ? resolveBattleEssenceDefinition(state.buildAuthority, actorId) : null
+      const capturedSource = actorId
+        ? capturedBattleActionSource(state, state.buildAuthority, actorId, intent.actionId)
+        : null
+      if (capturedSource && actorId) {
+        return preserveBuildAuthority(
+          state,
+          commitCombatAbilityCommand({
+            state,
+            actorId,
+            root: { kind: 'canonical', source: capturedSource, behaviorId: intent.behaviorId },
+            manualModifiers: intent.manualModifiers,
+            selection: intent.target,
+            content: PV1F_COMBAT_CONTENT,
+            context: combatAbilityCommandContext(state, capturedSource),
+          }) as { state: StatDrivenCombatEncounterState; events: readonly unknown[] },
+        )
+      }
+      const essence = actorId
+        ? await resolvePinnedBattleEssenceDefinition(
+            state.buildAuthority,
+            actorId,
+            combatContentResolver,
+          )
+        : null
       if (build && essence && intent.actionId === essence.skill.id && state.buildAuthority) {
         return preserveBuildAuthority(
           state,
@@ -543,6 +579,7 @@ async function resolveIntent(
             secondaryDisciplineId: build.secondary?.disciplineId ?? null,
             combatContext: state.buildAuthority.combatContext,
             selection: intent.target,
+            options: { behaviorId: intent.behaviorId, manualModifiers: intent.manualModifiers },
           }),
         )
       }
@@ -568,6 +605,7 @@ async function resolveIntent(
             definition,
             intent.target,
             state.buildAuthority.combatContext,
+            { behaviorId: intent.behaviorId, manualModifiers: intent.manualModifiers },
           ),
         )
       }
@@ -575,7 +613,13 @@ async function resolveIntent(
         throw invalidBattleIntent('That Technique is not tagged in this battle build.')
       }
 
-      return preserveBuildAuthority(state, executePv1fAction(state, intent.actionId, intent.target))
+      return preserveBuildAuthority(
+        state,
+        executePv1fAction(state, intent.actionId, intent.target, {
+          behaviorId: intent.behaviorId,
+          manualModifiers: intent.manualModifiers,
+        }),
+      )
     }
     if (intent.kind === 'face') {
       return preserveBuildAuthority(state, finishPv1fTurn(state, intent.facing))
@@ -727,6 +771,36 @@ export function createBattleSessionService({
               ]),
         }
       }
+      let startup: CreateBattleSessionInput['startup']
+      if (encounter.buildAuthority) {
+        const sources = await captureBattleBuildAbilitySources(
+          encounter,
+          encounter.buildAuthority,
+          combatContentResolver,
+        )
+        const startSnapshot = encounter
+        const initialized = activateCombatAbilitySources(
+          encounter,
+          sources,
+          PV1F_COMBAT_CONTENT,
+          true,
+        )
+        encounter = {
+          ...initialized.state,
+          buildAuthority: encounter.buildAuthority,
+        } as BattleAuthoritativeEncounterState
+        if (sources.length)
+          startup = {
+            startSnapshot,
+            events: initialized.events,
+            privacyJournal: buildBattlePrivacyJournalInput({
+              before: startSnapshot,
+              after: encounter,
+              commandKind: 'system',
+              events: initialized.events,
+            }),
+          }
+      }
       const battle = encounter.tactical.battle
       const persisted = await battles.createBattleSession({
         actorKey: command.userId,
@@ -746,6 +820,7 @@ export function createBattleSessionService({
         rulesVersion: battle.rulesVersion,
         contentVersion: battle.contentVersion,
         initialSnapshot: encounter,
+        ...(startup ? { startup } : {}),
         participants: [
           {
             combatantId: `character:${character.id}`,

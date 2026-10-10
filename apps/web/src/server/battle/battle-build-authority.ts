@@ -15,6 +15,7 @@ import {
 } from '@aurevane/game-core/combat/build-snapshot'
 import {
   essenceSnapshotReference,
+  validateEssenceDefinition,
   resolveEssenceForBuild,
   type EssenceDefinition,
   type EssenceSnapshotReference,
@@ -26,6 +27,7 @@ import {
 } from '@aurevane/game-core/combat/mature-skills'
 import {
   resonanceSnapshotReference,
+  validateResonanceDefinition,
   resolveResonanceForPair,
   type AnyResonanceDefinition,
   type ResonanceSnapshotReference,
@@ -33,6 +35,13 @@ import {
 
 import type { CharacterCommittedBuildSnapshotRecord } from '@/server/character/character-build-service'
 import type { CombatContentResolver } from '@/server/combat/combat-content-resolver'
+import {
+  capturedMatureSkillAbilitySource,
+  capturedResonanceAbilitySource,
+} from '@aurevane/game-core/combat/combat-action-source'
+import { essenceCombatSkill } from '@aurevane/game-core/combat/essence'
+import type { CombatEncounterState } from '@aurevane/game-core/combat/actions'
+import type { CapturedCombatAbilitySource } from '@aurevane/game-core/combat/combat-behavior-capture'
 
 export const BATTLE_BUILD_AUTHORITY_SCHEMA_VERSION = 1 as const
 
@@ -317,14 +326,14 @@ function parseCombatant(
   const expectedResonance = resolveResonanceForPair(
     value.primary.disciplineId,
     secondaryDisciplineId,
-    resonance?.contentVersion,
+    allowPublishedSkillVersions ? undefined : resonance?.contentVersion,
   )
   if (resonance) {
     if (!expectedResonance) return null
     const expected = resonanceSnapshotReference(expectedResonance)
     if (
       expected.resonanceId !== resonance.resonanceId ||
-      expected.contentVersion !== resonance.contentVersion ||
+      (!allowPublishedSkillVersions && expected.contentVersion !== resonance.contentVersion) ||
       expected.disciplinePair[0] !== resonance.disciplinePair[0] ||
       expected.disciplinePair[1] !== resonance.disciplinePair[1]
     ) {
@@ -340,17 +349,17 @@ function parseCombatant(
   const expectedEssence = resolveEssenceForBuild(
     value.primary.disciplineId,
     secondaryDisciplineId,
-    essence?.contentVersion,
+    allowPublishedSkillVersions ? undefined : essence?.contentVersion,
   )
   if (essence) {
     if (!expectedEssence) return null
     const expected = essenceSnapshotReference(expectedEssence)
     if (
       expected.essenceId !== essence.essenceId ||
-      expected.contentVersion !== essence.contentVersion ||
+      (!allowPublishedSkillVersions && expected.contentVersion !== essence.contentVersion) ||
       expected.sourceDisciplineId !== essence.sourceDisciplineId ||
       expected.skillId !== essence.skillId ||
-      expected.skillContentVersion !== essence.skillContentVersion
+      (!allowPublishedSkillVersions && expected.skillContentVersion !== essence.skillContentVersion)
     ) {
       return null
     }
@@ -497,10 +506,41 @@ export async function createResolvedBattleBuildAuthoritySnapshot(
       })
     }
 
-    const currentEssence = resolveEssenceForBuild(
-      input.snapshot.primary.disciplineId,
-      input.snapshot.secondary?.disciplineId ?? null,
+    const primary = input.snapshot.primary.disciplineId
+    const secondary = input.snapshot.secondary?.disciplineId ?? null
+    const builtinEssence = resolveEssenceForBuild(primary, secondary)
+    const builtinResonance = resolveResonanceForPair(primary, secondary)
+    const currentEssence = resolver.resolveCurrentEssenceDefinition
+      ? await resolver.resolveCurrentEssenceDefinition(primary, secondary)
+      : builtinEssence
+    const currentResonance = resolver.resolveCurrentResonanceDefinition
+      ? await resolver.resolveCurrentResonanceDefinition(primary, secondary)
+      : builtinResonance
+    if (
+      builtinEssence &&
+      (!currentEssence ||
+        !currentEssence.enabled ||
+        !currentEssence.skill.enabled ||
+        validateEssenceDefinition(currentEssence).length ||
+        currentEssence.essenceId !== builtinEssence.essenceId ||
+        currentEssence.sourceDisciplineId !== primary ||
+        secondary !== null)
     )
+      throw new TypeError('Published Essence does not match the enabled committed build extension.')
+    if (!builtinEssence && currentEssence)
+      throw new TypeError('Unexpected published Essence for this build.')
+    if (
+      builtinResonance &&
+      (!currentResonance ||
+        !currentResonance.enabled ||
+        validateResonanceDefinition(currentResonance).length ||
+        currentResonance.id !== builtinResonance.id ||
+        currentResonance.disciplinePair[0] !== builtinResonance.disciplinePair[0] ||
+        currentResonance.disciplinePair[1] !== builtinResonance.disciplinePair[1])
+    )
+      throw new TypeError('Published Resonance does not match the enabled committed build pair.')
+    if (!builtinResonance && currentResonance)
+      throw new TypeError('Unexpected published Resonance for this build.')
 
     resolvedInputs.push({
       ...input,
@@ -510,6 +550,7 @@ export async function createResolvedBattleBuildAuthoritySnapshot(
         extensions: {
           ...input.snapshot.extensions,
           essence: currentEssence ? essenceSnapshotReference(currentEssence) : null,
+          resonance: currentResonance ? resonanceSnapshotReference(currentResonance) : null,
         },
       },
     })
@@ -620,4 +661,161 @@ export function resolveBattleResonanceDefinition(
   if (!definition) return null
   const expected = resonanceSnapshotReference(definition)
   return expected.resonanceId === reference.resonanceId ? definition : null
+}
+
+/** Published extensions are admitted by exact immutable reference and actual build ownership. */
+export async function resolvePinnedBattleEssenceDefinition(
+  authority: BattleBuildAuthoritySnapshot | null | undefined,
+  combatantId: string,
+  resolver?: CombatContentResolver,
+): Promise<EssenceDefinition | null> {
+  const build = battleBuildAuthorityForCombatant(authority, combatantId)
+  const reference = build?.extensions.essence
+  if (!build || !reference) return null
+  const definition =
+    authority?.catalogVersion === 3 && resolver?.resolvePinnedEssenceDefinition
+      ? await resolver.resolvePinnedEssenceDefinition(
+          build.primary.disciplineId,
+          build.secondary?.disciplineId ?? null,
+          reference.essenceId,
+          reference.contentVersion,
+        )
+      : resolveBattleEssenceDefinition(authority, combatantId)
+  if (!definition || validateEssenceDefinition(definition).length || build.secondary !== null)
+    return null
+  const expected = essenceSnapshotReference(definition)
+  return expected.essenceId === reference.essenceId &&
+    expected.contentVersion === reference.contentVersion &&
+    expected.sourceDisciplineId === build.primary.disciplineId &&
+    expected.sourceDisciplineId === reference.sourceDisciplineId &&
+    expected.skillId === reference.skillId &&
+    expected.skillContentVersion === reference.skillContentVersion
+    ? structuredClone(definition)
+    : null
+}
+
+export async function resolvePinnedBattleResonanceDefinition(
+  authority: BattleBuildAuthoritySnapshot | null | undefined,
+  combatantId: string,
+  resolver?: CombatContentResolver,
+): Promise<AnyResonanceDefinition | null> {
+  const build = battleBuildAuthorityForCombatant(authority, combatantId)
+  const reference = build?.extensions.resonance
+  if (!build || !reference || !build.secondary) return null
+  const definition =
+    authority?.catalogVersion === 3 && resolver?.resolvePinnedResonanceDefinition
+      ? await resolver.resolvePinnedResonanceDefinition(
+          build.primary.disciplineId,
+          build.secondary.disciplineId,
+          reference.resonanceId,
+          reference.contentVersion,
+        )
+      : resolveBattleResonanceDefinition(authority, combatantId)
+  if (!definition || validateResonanceDefinition(definition).length) return null
+  const expected = resonanceSnapshotReference(definition)
+  return expected.resonanceId === reference.resonanceId &&
+    expected.contentVersion === reference.contentVersion &&
+    expected.disciplinePair[0] === reference.disciplinePair[0] &&
+    expected.disciplinePair[1] === reference.disciplinePair[1]
+    ? structuredClone(definition)
+    : null
+}
+
+/** Server producer: captures every admitted canonical behavior, including unselected modes. */
+export async function captureBattleBuildAbilitySources(
+  state: CombatEncounterState,
+  authority: BattleBuildAuthoritySnapshot,
+  resolver?: CombatContentResolver,
+): Promise<readonly CapturedCombatAbilitySource[]> {
+  const sources: CapturedCombatAbilitySource[] = []
+  for (const build of authority.combatants) {
+    const regular = await resolveBattleDisciplineSkillDefinitions(
+      authority,
+      build.combatantId,
+      resolver,
+    )
+    if (!regular) throw new TypeError('Pinned battle Skill definition is unavailable.')
+    for (const definition of regular) {
+      const source = capturedMatureSkillAbilitySource(state, definition, build.combatantId)
+      if (source) sources.push(source)
+      else if (!definition.enabled) throw new TypeError('Pinned battle Skill is disabled.')
+    }
+    const essence = await resolvePinnedBattleEssenceDefinition(
+      authority,
+      build.combatantId,
+      resolver,
+    )
+    if (build.extensions.essence && !essence)
+      throw new TypeError('Pinned battle Essence definition is unavailable.')
+    if (essence) {
+      const source = capturedMatureSkillAbilitySource(
+        state,
+        essenceCombatSkill(essence),
+        build.combatantId,
+      )
+      if (source) sources.push(source)
+      if ((!essence.enabled || !essence.skill.enabled) && !source)
+        throw new TypeError('Pinned battle Essence is disabled.')
+    }
+    const resonance = await resolvePinnedBattleResonanceDefinition(
+      authority,
+      build.combatantId,
+      resolver,
+    )
+    if (build.extensions.resonance && !resonance)
+      throw new TypeError('Pinned battle Resonance definition is unavailable.')
+    if (resonance) {
+      const source = capturedResonanceAbilitySource(
+        state,
+        build.combatantId,
+        resonance,
+        build.extensions.resonance!.disciplinePair,
+      )
+      if (source) sources.push(source)
+      else if (!resonance.enabled) throw new TypeError('Pinned battle Resonance is disabled.')
+    }
+  }
+  return sources
+}
+
+/** Client action IDs are admitted against the captured build, never the current catalogue. */
+export function capturedBattleActionSource(
+  state: CombatEncounterState,
+  authority: BattleBuildAuthoritySnapshot | null | undefined,
+  combatantId: string,
+  actionId: string,
+): CapturedCombatAbilitySource | null {
+  const build = battleBuildAuthorityForCombatant(authority, combatantId)
+  if (!build) return null
+  const regular = build.disciplineSkills.find((row) => row.skillId === actionId)
+  const essence = build.extensions.essence?.skillId === actionId ? build.extensions.essence : null
+  const resonance =
+    build.extensions.resonance?.resonanceId === actionId ? build.extensions.resonance : null
+  const expectedKind = regular
+    ? 'discipline-skill'
+    : essence
+      ? 'essence'
+      : resonance
+        ? 'resonance'
+        : null
+  const version =
+    regular?.contentVersion ?? essence?.skillContentVersion ?? resonance?.contentVersion
+  if (!expectedKind) return null
+  const source = state.capturedAbilitySources?.find(
+    (row) =>
+      row.ownerCombatantId === combatantId &&
+      row.abilityId === actionId &&
+      row.sourceKind === expectedKind,
+  )
+  if (!source) return null
+  if (
+    source.contentVersion !== version ||
+    (regular && source.sourceDisciplineId !== regular.sourceDisciplineId) ||
+    (essence && source.sourceDisciplineId !== essence.sourceDisciplineId) ||
+    (resonance &&
+      source.sourceInstanceId !==
+        JSON.stringify(['resonance', combatantId, ...resonance.disciplinePair, actionId, version]))
+  )
+    throw new TypeError('Captured battle source does not match its exact build reference.')
+  return source
 }

@@ -9,6 +9,8 @@ import {
 
 import type { CharacterCommittedBuildSnapshotRecord } from '@/server/character/character-build-service'
 import type { CombatContentResolver } from '@/server/combat/combat-content-resolver'
+import { resolveResonanceForPair } from '@aurevane/game-core/combat/resonance'
+import { resolveEssenceForBuild } from '@aurevane/game-core/combat/essence'
 
 import {
   createBattleBuildAuthoritySnapshot,
@@ -73,6 +75,51 @@ function productionShapeMixedSnapshot(): CharacterCommittedBuildSnapshotRecord {
 function currentStaticSkill(skillId: string): MatureSkillDefinition | null {
   return resolveMatureSkillVersion(skillId)
 }
+
+it.each(['resonance', 'essence'] as const)(
+  'pins the admitted published %s extension instead of its builtin version',
+  async (kind) => {
+    const snapshot = productionShapeMixedSnapshot()
+    if (kind === 'essence') {
+      snapshot.secondary = null
+      snapshot.disciplineSkills = snapshot.disciplineSkills.filter(
+        (row) => row.sourceDisciplineId === 'vanguard',
+      )
+      snapshot.extensions = { ...snapshot.extensions, resonance: null, essence: null }
+    }
+    const resolver: CombatContentResolver = {
+      resolveCurrentSkillDefinition: async (id) => currentStaticSkill(id),
+      resolvePinnedSkillDefinition: async (id, version) => resolveMatureSkillVersion(id, version),
+      resolveCurrentResonanceDefinition: async (_, secondary) =>
+        secondary === null
+          ? null
+          : {
+              ...structuredClone(resolveResonanceForPair('vanguard', 'lifebinder')!),
+              contentVersion: 77,
+            },
+      resolveCurrentEssenceDefinition: async (_, secondary) => {
+        if (secondary !== null) return null
+        const original = structuredClone(resolveEssenceForBuild('vanguard', null)!)
+        return { ...original, contentVersion: 77, skill: { ...original.skill, contentVersion: 77 } }
+      },
+    }
+    const authority = await createResolvedBattleBuildAuthoritySnapshot(
+      'pve',
+      [
+        {
+          combatantId: 'character:00000000-0000-4000-8000-000000004301',
+          characterId: '00000000-0000-4000-8000-000000004301',
+          snapshot,
+        },
+      ],
+      resolver,
+    )
+    expect(authority.combatants[0]!.extensions[kind]?.contentVersion).toBe(77)
+    expect(parseBattleBuildAuthoritySnapshot(JSON.parse(JSON.stringify(authority)))).toEqual(
+      authority,
+    )
+  },
+)
 
 describe('battle build authority mixed Technique source capacity', () => {
   it('accepts the canonical legal 3+1 mixed loadout when entering PvE battle', () => {
