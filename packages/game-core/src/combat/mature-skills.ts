@@ -1,3 +1,8 @@
+import {
+  validateAbilityDefinition,
+  assertLegacyAbilityAbsent,
+  type AbilityDefinition,
+} from './combat-definition'
 import { createBlindsideSkillVersion } from './combat-blindside-roster'
 import { createPercentageRecoverySkillVersion } from './combat-recovery-roster'
 import { createCurrentGroundSkillVersion } from './combat-ground-roster'
@@ -79,6 +84,7 @@ export interface MatureSkillAuthoringMetadata {
 export type MatureSkillEffectDefinition = CombatEffectDefinition | CombatSummonEffect
 
 export interface MatureSkillDefinition extends CombatAccuracyAuthoring {
+  readonly ability?: AbilityDefinition
   readonly groundArea?: CombatGroundAreaDefinition
   readonly id: string
   readonly contentVersion: number
@@ -1186,31 +1192,35 @@ export function validateMatureSkillDefinition(
   definition: MatureSkillDefinition,
 ): readonly string[] {
   const issues: string[] = []
-  try {
-    validateCombatGroundAreaDefinition(definition)
-  } catch {
-    issues.push('groundArea')
-  }
-  if (
-    definition.authoring.validationTags.includes('persistent-ground-areas') &&
-    !definition.groundArea
-  )
-    issues.push('groundArea')
+  const canonical = Object.hasOwn(definition, 'ability')
+  if (canonical && validateAbilityDefinition(definition.ability).length > 0) issues.push('ability')
+  if (!canonical) {
+    try {
+      validateCombatGroundAreaDefinition(definition)
+    } catch {
+      issues.push('groundArea')
+    }
+    if (
+      definition.authoring.validationTags.includes('persistent-ground-areas') &&
+      !definition.groundArea
+    )
+      issues.push('groundArea')
 
-  try {
-    validateCurrentAreaTargetRecipients(definition)
-  } catch {
-    issues.push('target.area-recipients')
-  }
-  try {
-    validateCombatAccuracyDefinition(definition)
-    validateGameplayActionMetadata({
-      target: definition.target,
-      requirements: definition.requirements,
-      effects: definition.effects.filter(isMaterializedCombatEffect),
-    })
-  } catch {
-    issues.push('combatDefinition')
+    try {
+      validateCurrentAreaTargetRecipients(definition)
+    } catch {
+      issues.push('target.area-recipients')
+    }
+    try {
+      validateCombatAccuracyDefinition(definition)
+      validateGameplayActionMetadata({
+        target: definition.target,
+        requirements: definition.requirements,
+        effects: definition.effects.filter(isMaterializedCombatEffect),
+      })
+    } catch {
+      issues.push('combatDefinition')
+    }
   }
   const idPattern = /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/
   if (!idPattern.test(definition.id)) issues.push('id')
@@ -1231,23 +1241,33 @@ export function validateMatureSkillDefinition(
   )
     issues.push('battleText')
   if (!idPattern.test(definition.sourceDisciplineId)) issues.push('sourceDisciplineId')
-  if (
-    !Number.isSafeInteger(definition.apCost) ||
-    definition.apCost < 1 ||
-    definition.apCost > 100
-  ) {
-    issues.push('apCost')
+  if (!canonical) {
+    if (
+      !Number.isSafeInteger(definition.apCost) ||
+      definition.apCost < 1 ||
+      definition.apCost > 100
+    ) {
+      issues.push('apCost')
+    }
+    if (
+      definition.mpCost !== undefined &&
+      (!Number.isSafeInteger(definition.mpCost) || definition.mpCost < 0 || definition.mpCost > 20)
+    )
+      issues.push('mpCost')
   }
-  if (
-    definition.mpCost !== undefined &&
-    (!Number.isSafeInteger(definition.mpCost) || definition.mpCost < 0 || definition.mpCost > 20)
-  )
-    issues.push('mpCost')
   const effectDescriptions = definition.effectDescriptions as unknown
   if (effectDescriptions !== undefined) {
     if (
       !Array.isArray(effectDescriptions) ||
-      effectDescriptions.length !== definition.effects.length
+      effectDescriptions.length !==
+        (canonical
+          ? issues.includes('ability')
+            ? 0
+            : definition.ability!.behaviors.reduce(
+                (total, behavior) => total + behavior.effects.length,
+                0,
+              )
+          : definition.effects.length)
     ) {
       issues.push('effectDescriptions')
     } else {
@@ -1295,135 +1315,138 @@ export function validateMatureSkillDefinition(
   if (definition.authoring.schemaVersion !== MATURE_SKILL_SCHEMA_VERSION) {
     issues.push('authoring.schemaVersion')
   }
-  const summonEffects = definition.effects.filter((effect) => effect.type === 'summon')
-  if (summonEffects.length > 0 !== (definition.summonProfile !== undefined)) {
-    issues.push('summonProfile')
-  }
-  if (definition.summonProfile !== undefined) {
-    const summonIssues = validateSummonProfileDefinition(definition.summonProfile)
-    if (summonIssues.length > 0) issues.push('summonProfile')
-  }
-  if (summonEffects.length > 0) {
-    if (summonEffects.length !== 1) issues.push('effects.summon')
-    if (definition.target.kind !== 'empty-tile') issues.push('target.kind')
-    if (summonEffects.some((effect) => (effect.durationTurns ?? 0) !== 0)) {
-      issues.push('effects.summon.durationTurns')
+  if (!canonical) {
+    const summonEffects = definition.effects.filter((effect) => effect.type === 'summon')
+    if (summonEffects.length > 0 !== (definition.summonProfile !== undefined)) {
+      issues.push('summonProfile')
+    }
+    if (definition.summonProfile !== undefined) {
+      const summonIssues = validateSummonProfileDefinition(definition.summonProfile)
+      if (summonIssues.length > 0) issues.push('summonProfile')
+    }
+    if (summonEffects.length > 0) {
+      if (summonEffects.length !== 1) issues.push('effects.summon')
+      if (definition.target.kind !== 'empty-tile') issues.push('target.kind')
+      if (summonEffects.some((effect) => (effect.durationTurns ?? 0) !== 0)) {
+        issues.push('effects.summon.durationTurns')
+      }
     }
   }
-
   const usesV5BalanceRules = definition.authoring.validationTags.includes('owner-rebalance-v5')
-  const usesV51BalanceRules = definition.authoring.validationTags.includes('owner-rebalance-v5-1')
-  if (usesV51BalanceRules) {
-    const apBounds = matureSkillApCostBounds(definition)
-    if (definition.apCost < apBounds.minimum || definition.apCost > apBounds.maximum) {
-      issues.push('apCost')
-    }
-    if (definition.target.kind !== 'self') {
-      if (
-        !(definition.target.geometryVersion === 2 && definition.target.shape.kind === 'all') &&
-        (definition.target.maximumRange < 1 || definition.target.maximumRange > 5)
-      ) {
-        issues.push('target.maximumRange')
-      }
-      if (
-        definition.target.maximumElevationDifference === null ||
-        definition.target.maximumElevationDifference < 0 ||
-        definition.target.maximumElevationDifference > 2
-      ) {
-        issues.push('target.maximumElevationDifference')
-      }
-    }
-  }
   if (usesV5BalanceRules && !definition.flavorLine?.trim()) issues.push('flavorLine')
-  if (usesV5BalanceRules && definition.requirements.length > 0) {
-    if (definition.cooldown !== null) issues.push('cooldown')
-  } else if (
-    usesV5BalanceRules &&
-    (definition.cooldown === null ||
-      !idPattern.test(definition.cooldown.key) ||
-      !Number.isSafeInteger(definition.cooldown.ownerTurns) ||
-      definition.cooldown.ownerTurns < 1 ||
-      definition.cooldown.ownerTurns > 3)
-  ) {
-    issues.push('cooldown')
-  } else if (
-    !usesV5BalanceRules &&
-    (definition.cooldown === null ||
-      !idPattern.test(definition.cooldown.key) ||
-      !Number.isSafeInteger(definition.cooldown.ownerTurns) ||
-      definition.cooldown.ownerTurns < 1)
-  ) {
-    issues.push('cooldown')
-  }
-
-  for (const [index, effect] of definition.effects.entries()) {
-    const durationTurns = effect.durationTurns ?? 0
-    if (!Number.isSafeInteger(durationTurns) || durationTurns < 0 || durationTurns > 4) {
-      issues.push(`effects[${index}].durationTurns`)
+  if (!canonical) {
+    const usesV51BalanceRules = definition.authoring.validationTags.includes('owner-rebalance-v5-1')
+    if (usesV51BalanceRules) {
+      const apBounds = matureSkillApCostBounds(definition)
+      if (definition.apCost < apBounds.minimum || definition.apCost > apBounds.maximum) {
+        issues.push('apCost')
+      }
+      if (definition.target.kind !== 'self') {
+        if (
+          !(definition.target.geometryVersion === 2 && definition.target.shape.kind === 'all') &&
+          (definition.target.maximumRange < 1 || definition.target.maximumRange > 5)
+        ) {
+          issues.push('target.maximumRange')
+        }
+        if (
+          definition.target.maximumElevationDifference === null ||
+          definition.target.maximumElevationDifference < 0 ||
+          definition.target.maximumElevationDifference > 2
+        ) {
+          issues.push('target.maximumElevationDifference')
+        }
+      }
     }
-    if (effect.type === 'summon') continue
-    if (effect.type === 'copy-statuses' && 'beneficialEffects' in effect)
-      issues.push(`effects[${index}].beneficialEffects`)
-    if (
-      effect.potencyBasisPoints !== undefined &&
-      (!Number.isSafeInteger(effect.potencyBasisPoints) ||
-        effect.potencyBasisPoints < 100 ||
-        effect.potencyBasisPoints >
-          (effect.type === 'apply-status' && effect.statusId === 'suppress' ? 10_000 : 5_000))
-    ) {
-      issues.push(`effects[${index}].potencyBasisPoints`)
-    }
-    if (
-      effect.power !== undefined &&
-      (!Number.isSafeInteger(effect.power) || effect.power < 1 || effect.power > 20)
-    ) {
-      issues.push(`effects[${index}].power`)
-    }
-    if (
+    if (usesV5BalanceRules && definition.requirements.length > 0) {
+      if (definition.cooldown !== null) issues.push('cooldown')
+    } else if (
       usesV5BalanceRules &&
-      (effect.type === 'damage' || effect.type === 'healing' || effect.type === 'barrier-change')
+      (definition.cooldown === null ||
+        !idPattern.test(definition.cooldown.key) ||
+        !Number.isSafeInteger(definition.cooldown.ownerTurns) ||
+        definition.cooldown.ownerTurns < 1 ||
+        definition.cooldown.ownerTurns > 3)
     ) {
-      const minimum = effect.type === 'damage' && effect.vengeance !== undefined ? 0 : 1
-      if (!Number.isSafeInteger(effect.amount) || effect.amount < minimum || effect.amount > 20) {
-        issues.push(`effects[${index}].amount`)
-      }
-    }
-    if (usesV5BalanceRules && effect.type === 'resource-change') {
-      const magnitude = Math.abs(effect.delta)
-      if (!Number.isSafeInteger(magnitude) || magnitude < 1 || magnitude > 20) {
-        issues.push(`effects[${index}].delta`)
-      }
-    }
-    if (usesV5BalanceRules && effect.type === 'bleed' && !effect.damageProfile) {
-      if (
-        !Number.isSafeInteger(effect.damagePerTick) ||
-        effect.damagePerTick < 1 ||
-        effect.damagePerTick > 20
-      ) {
-        issues.push(`effects[${index}].damagePerTick`)
-      }
-    }
-  }
-  for (const [context, override] of Object.entries(definition.overrides)) {
-    if (override?.apCost !== undefined) {
-      const apBounds = usesV51BalanceRules
-        ? matureSkillApCostBounds(definition)
-        : { minimum: 1, maximum: 100 }
-      if (
-        !Number.isSafeInteger(override.apCost) ||
-        override.apCost < apBounds.minimum ||
-        override.apCost > apBounds.maximum
-      ) {
-        issues.push(`overrides.${context}.apCost`)
-      }
-    }
-    if (
-      override?.cooldownOwnerTurns !== undefined &&
-      (!Number.isSafeInteger(override.cooldownOwnerTurns) ||
-        override.cooldownOwnerTurns < 1 ||
-        (usesV5BalanceRules && override.cooldownOwnerTurns > 3))
+      issues.push('cooldown')
+    } else if (
+      !usesV5BalanceRules &&
+      (definition.cooldown === null ||
+        !idPattern.test(definition.cooldown.key) ||
+        !Number.isSafeInteger(definition.cooldown.ownerTurns) ||
+        definition.cooldown.ownerTurns < 1)
     ) {
-      issues.push(`overrides.${context}.cooldownOwnerTurns`)
+      issues.push('cooldown')
+    }
+
+    for (const [index, effect] of definition.effects.entries()) {
+      const durationTurns = effect.durationTurns ?? 0
+      if (!Number.isSafeInteger(durationTurns) || durationTurns < 0 || durationTurns > 4) {
+        issues.push(`effects[${index}].durationTurns`)
+      }
+      if (effect.type === 'summon') continue
+      if (effect.type === 'copy-statuses' && 'beneficialEffects' in effect)
+        issues.push(`effects[${index}].beneficialEffects`)
+      if (
+        effect.potencyBasisPoints !== undefined &&
+        (!Number.isSafeInteger(effect.potencyBasisPoints) ||
+          effect.potencyBasisPoints < 100 ||
+          effect.potencyBasisPoints >
+            (effect.type === 'apply-status' && effect.statusId === 'suppress' ? 10_000 : 5_000))
+      ) {
+        issues.push(`effects[${index}].potencyBasisPoints`)
+      }
+      if (
+        effect.power !== undefined &&
+        (!Number.isSafeInteger(effect.power) || effect.power < 1 || effect.power > 20)
+      ) {
+        issues.push(`effects[${index}].power`)
+      }
+      if (
+        usesV5BalanceRules &&
+        (effect.type === 'damage' || effect.type === 'healing' || effect.type === 'barrier-change')
+      ) {
+        const minimum = effect.type === 'damage' && effect.vengeance !== undefined ? 0 : 1
+        if (!Number.isSafeInteger(effect.amount) || effect.amount < minimum || effect.amount > 20) {
+          issues.push(`effects[${index}].amount`)
+        }
+      }
+      if (usesV5BalanceRules && effect.type === 'resource-change') {
+        const magnitude = Math.abs(effect.delta)
+        if (!Number.isSafeInteger(magnitude) || magnitude < 1 || magnitude > 20) {
+          issues.push(`effects[${index}].delta`)
+        }
+      }
+      if (usesV5BalanceRules && effect.type === 'bleed' && !effect.damageProfile) {
+        if (
+          !Number.isSafeInteger(effect.damagePerTick) ||
+          effect.damagePerTick < 1 ||
+          effect.damagePerTick > 20
+        ) {
+          issues.push(`effects[${index}].damagePerTick`)
+        }
+      }
+    }
+    for (const [context, override] of Object.entries(definition.overrides)) {
+      if (override?.apCost !== undefined) {
+        const apBounds = usesV51BalanceRules
+          ? matureSkillApCostBounds(definition)
+          : { minimum: 1, maximum: 100 }
+        if (
+          !Number.isSafeInteger(override.apCost) ||
+          override.apCost < apBounds.minimum ||
+          override.apCost > apBounds.maximum
+        ) {
+          issues.push(`overrides.${context}.apCost`)
+        }
+      }
+      if (
+        override?.cooldownOwnerTurns !== undefined &&
+        (!Number.isSafeInteger(override.cooldownOwnerTurns) ||
+          override.cooldownOwnerTurns < 1 ||
+          (usesV5BalanceRules && override.cooldownOwnerTurns > 3))
+      ) {
+        issues.push(`overrides.${context}.cooldownOwnerTurns`)
+      }
     }
   }
   return issues
@@ -1448,6 +1471,7 @@ export function resolveMatureSkillForContext(
   definition: MatureSkillDefinition,
   combatContext: MatureSkillCombatContext,
 ): ResolvedMatureSkillDefinition {
+  assertLegacyAbilityAbsent(definition)
   assertUsableDefinition(definition)
   const override = definition.overrides[combatContext]
   return {
@@ -1479,6 +1503,7 @@ function projectResolvedMatureSkillAction(
     requirements: resolved.requirements,
     ...(resolved.cooldown === null ? {} : { cooldown: resolved.cooldown }),
     effects,
+    ...(resolved.accuracyRule !== undefined ? { accuracyRule: resolved.accuracyRule } : {}),
     ...(resolved.accuracyMode !== undefined ? { accuracyMode: resolved.accuracyMode } : {}),
     ...(resolved.accuracyModifierBasisPoints !== undefined
       ? { accuracyModifierBasisPoints: resolved.accuracyModifierBasisPoints }

@@ -1,3 +1,8 @@
+import {
+  validateAbilityDefinition,
+  assertLegacyAbilityAbsent,
+  type AbilityDefinition,
+} from './combat-definition'
 import { createBlindsideEssenceVersion } from './combat-blindside-roster'
 import { createPercentageRecoveryEssenceVersion } from './combat-recovery-roster'
 import { createCurrentGroundEssenceVersion } from './combat-ground-roster'
@@ -30,6 +35,7 @@ import type { StatDrivenCombatEncounterState } from './stat-driven-combat'
 export const ESSENCE_SCHEMA_VERSION = 1 as const
 
 export interface EssenceDefinition {
+  readonly ability?: AbilityDefinition
   readonly essenceId: string
   readonly contentVersion: number
   readonly enabled: boolean
@@ -594,6 +600,8 @@ const STABLE_ID_PATTERN = /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/
 
 export function validateEssenceDefinition(definition: EssenceDefinition): readonly string[] {
   const issues: string[] = []
+  const canonical = Object.hasOwn(definition, 'ability')
+  if (canonical && validateAbilityDefinition(definition.ability).length > 0) issues.push('ability')
   if (!STABLE_ID_PATTERN.test(definition.essenceId)) issues.push('essenceId')
   if (!Number.isSafeInteger(definition.contentVersion) || definition.contentVersion < 1) {
     issues.push('contentVersion')
@@ -621,7 +629,12 @@ export function validateEssenceDefinition(definition: EssenceDefinition): readon
     issues.push('skill.sourceDisciplineId')
   }
   if (!definition.skill.tags.includes('essence')) issues.push('skill.tags.essence')
-  if (validateMatureSkillDefinition(definition.skill).length > 0) issues.push('skill.definition')
+  if (
+    validateMatureSkillDefinition(
+      canonical ? { ...definition.skill, ability: definition.ability } : definition.skill,
+    ).length > 0
+  )
+    issues.push('skill.definition')
   if (definition.authoring.schemaVersion !== ESSENCE_SCHEMA_VERSION) {
     issues.push('authoring.schemaVersion')
   }
@@ -728,6 +741,7 @@ export function executePv1fEssenceSkill(input: {
 }
 
 function assertUsableEssence(definition: EssenceDefinition): void {
+  assertLegacyAbilityAbsent(definition)
   const issues = validateEssenceDefinition(definition)
   if (issues.length > 0) throw new TypeError(`Invalid Essence definition: ${issues.join(', ')}.`)
   if (!definition.enabled || !definition.skill.enabled) {

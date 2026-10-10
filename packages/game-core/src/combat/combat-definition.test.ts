@@ -1,0 +1,305 @@
+import { describe, expect, it } from 'vitest'
+import { parseAbilityDefinition, validateAbilityDefinition } from './combat-definition'
+import {
+  P33_REPRESENTATIVE_DISCIPLINE_SKILLS,
+  toCombatActionDefinition,
+  validateMatureSkillDefinition,
+} from './mature-skills'
+import { P36_REPRESENTATIVE_ESSENCES, validateEssenceDefinition } from './essence'
+import { P35_REPRESENTATIVE_RESONANCES, validateResonanceDefinition } from './resonance'
+import {
+  convertV5ResonanceToV2,
+  normalizedResonanceMechanics,
+  validateResonanceDefinitionV2,
+} from './resonance-v2'
+
+function ability() {
+  return {
+    schemaVersion: 1,
+    behaviors: [
+      {
+        id: 'strike',
+        activation: 'manual',
+        mode: 'action',
+        classification: 'attack',
+        attackFamily: 'physical',
+        costs: [
+          { resource: 'ap', amount: 11 },
+          { resource: 'mp', amount: 2 },
+          { resource: 'hp', amount: 1 },
+        ],
+        cooldown: null,
+        requirements: null,
+        targeting: {
+          kind: 'unit',
+          teamPolicy: 'enemy',
+          shape: { kind: 'single' },
+          minimumRange: 1,
+          maximumRange: 3,
+          requiresLineOfSight: true,
+          maximumElevationDifference: 1,
+          friendlyFire: 'enemies-only',
+          maximumSelections: 1,
+        },
+        effects: [
+          { id: 'hit', payload: { type: 'damage', recipient: 'primary-unit', amount: 20 } },
+        ],
+      },
+    ],
+  }
+}
+
+describe('canonical Ability definition', () => {
+  it('canonical_cost_units keeps simultaneous AP11/MP2/HP1 as three typed costs', () => {
+    expect(parseAbilityDefinition(ability()).behaviors[0]?.costs).toEqual([
+      { resource: 'ap', amount: 11 },
+      { resource: 'mp', amount: 2 },
+      { resource: 'hp', amount: 1 },
+    ])
+    const invalid = ability()
+    invalid.behaviors[0]!.costs.push({ resource: 'ap', amount: 3 })
+    expect(validateAbilityDefinition(invalid)).toContainEqual(
+      expect.objectContaining({ code: 'duplicate-cost' }),
+    )
+  })
+
+  it.each([0, 10000])('fixed_accuracy_endpoints accepts Fixed %i', (chanceBasisPoints) => {
+    const value = ability()
+    Object.assign(value.behaviors[0]!, { accuracy: { kind: 'fixed', chanceBasisPoints } })
+    expect(parseAbilityDefinition(value).behaviors[0]?.accuracy).toEqual({
+      kind: 'fixed',
+      chanceBasisPoints,
+    })
+  })
+  it.each([-1, 10001, 0.5])('fixed_accuracy_endpoints rejects Fixed %i', (chanceBasisPoints) => {
+    const value = ability()
+    Object.assign(value.behaviors[0]!, { accuracy: { kind: 'fixed', chanceBasisPoints } })
+    expect(validateAbilityDefinition(value)).toContainEqual(
+      expect.objectContaining({ code: 'invalid-accuracy' }),
+    )
+  })
+
+  it('rejects unknown mechanical keys, duplicate behavior/effect IDs and unbounded groups', () => {
+    expect(validateAbilityDefinition({ ...ability(), script: 'dealDamage()' })).toContainEqual(
+      expect.objectContaining({ code: 'unknown-key', path: 'script' }),
+    )
+    const duplicate = ability()
+    duplicate.behaviors.push(duplicate.behaviors[0]!)
+    expect(validateAbilityDefinition(duplicate)).toContainEqual(
+      expect.objectContaining({ code: 'duplicate-id' }),
+    )
+    const effects = ability()
+    effects.behaviors[0]!.effects.push(effects.behaviors[0]!.effects[0]!)
+    expect(validateAbilityDefinition(effects)).toContainEqual(
+      expect.objectContaining({ code: 'duplicate-id' }),
+    )
+    const groups = ability()
+    groups.behaviors = Array.from({ length: 17 }, (_, index) => ({
+      ...groups.behaviors[0]!,
+      id: `group-${index}`,
+    }))
+    expect(validateAbilityDefinition(groups)).toContainEqual(
+      expect.objectContaining({ code: 'array-budget' }),
+    )
+    const bounded = ability()
+    bounded.behaviors[0]!.effects = Array.from({ length: 32 }, (_, index) => ({
+      ...bounded.behaviors[0]!.effects[0]!,
+      id: `effect-${index}`,
+    }))
+    expect(validateAbilityDefinition(bounded)).toEqual([])
+    bounded.behaviors[0]!.effects.push({ ...bounded.behaviors[0]!.effects[0]!, id: 'overflow' })
+    expect(validateAbilityDefinition(bounded)).toContainEqual(
+      expect.objectContaining({ code: 'array-budget' }),
+    )
+  })
+
+  it('rejects duplicate recipient authority and accuracy without an applicable hostile hit check', () => {
+    const value = ability()
+    Object.assign(value.behaviors[0]!.effects[0]!, { recipient: 'actor' })
+    expect(validateAbilityDefinition(value)).toContainEqual(
+      expect.objectContaining({ code: 'unknown-key' }),
+    )
+    const self = ability()
+    Object.assign(self.behaviors[0]!, {
+      accuracy: { kind: 'fixed', chanceBasisPoints: 5000 },
+      targeting: {
+        ...self.behaviors[0]!.targeting,
+        kind: 'self',
+        teamPolicy: 'self',
+        minimumRange: 0,
+        maximumRange: 0,
+        friendlyFire: 'allies-only',
+      },
+    })
+    self.behaviors[0]!.effects[0]!.payload.recipient = 'actor'
+    expect(validateAbilityDefinition(self)).toContainEqual(
+      expect.objectContaining({ code: 'accuracy-inapplicable' }),
+    )
+  })
+
+  it('canonical_legacy_conflict fails closed for present malformed envelopes and never executes flat fields', () => {
+    const skill = P33_REPRESENTATIVE_DISCIPLINE_SKILLS.find((candidate) => candidate.enabled)!
+    expect(
+      validateMatureSkillDefinition({ ...skill, ability: { schemaVersion: 99 } } as never),
+    ).toContain('ability')
+    expect(() => toCombatActionDefinition({ ...skill, ability: null } as never, 'pve')).toThrow(
+      /ability/i,
+    )
+    expect(() =>
+      toCombatActionDefinition({ ...skill, ability: parseAbilityDefinition(ability()) }, 'pve'),
+    ).toThrow(/canonical-activation-required/)
+    expect(validateMatureSkillDefinition(skill)).toEqual([])
+    const essence = P36_REPRESENTATIVE_ESSENCES.find((candidate) => candidate.enabled)!
+    expect(validateEssenceDefinition({ ...essence, ability: null } as never)).toContain('ability')
+    const resonance = P35_REPRESENTATIVE_RESONANCES.find((candidate) => candidate.enabled)!
+    expect(validateResonanceDefinition({ ...resonance, ability: null } as never)).toContain(
+      'ability',
+    )
+  })
+
+  it('elemental_companion_validation requires one unconditional same-recipient policy2 companion', () => {
+    for (const [element, statusId] of [
+      ['ice', 'frozen'],
+      ['water', 'wet'],
+      ['storm', 'conductive'],
+    ] as const) {
+      const value = ability()
+      Object.assign(value.behaviors[0]!.effects[0]!.payload, { element })
+      expect(validateAbilityDefinition(value)).toContainEqual(
+        expect.objectContaining({ code: 'elemental-companion' }),
+      )
+      value.behaviors[0]!.effects.push({
+        id: 'companion',
+        payload: {
+          type: 'apply-status',
+          recipient: 'primary-unit',
+          statusId,
+          stacks: 1,
+          durationTurns: 2,
+          ...(element === 'ice' ? {} : { potencyBasisPoints: 2000 }),
+        },
+      } as never)
+      expect(validateAbilityDefinition(value)).toEqual([])
+      value.behaviors[0]!.effects.push({
+        ...value.behaviors[0]!.effects[1]!,
+        id: 'duplicate-companion',
+      })
+      expect(validateAbilityDefinition(value)).toContainEqual(
+        expect.objectContaining({ code: 'elemental-companion' }),
+      )
+    }
+    const fire = ability()
+    Object.assign(fire.behaviors[0]!.effects[0]!.payload, { element: 'fire' })
+    expect(validateAbilityDefinition(fire)).toContainEqual(
+      expect.objectContaining({ code: 'elemental-companion' }),
+    )
+    fire.behaviors[0]!.effects.push({
+      id: 'thaw',
+      payload: { type: 'remove-status', recipient: 'actor', statusIds: ['frozen'] },
+    } as never)
+    expect(validateAbilityDefinition(fire)).toEqual([])
+    Object.assign(fire.behaviors[0]!.effects[1]!, {
+      requirements: {
+        kind: 'prime-presence',
+        subject: 'owner',
+        abilityId: 'strike',
+        present: true,
+      },
+    })
+    expect(validateAbilityDefinition(fire)).toContainEqual(
+      expect.objectContaining({ code: 'elemental-companion' }),
+    )
+  })
+
+  it('supports Automatic native packets and only source-owned Ongoing modifiers', () => {
+    const automatic = ability()
+    automatic.behaviors[0]!.activation = 'automatic'
+    Object.assign(automatic.behaviors[0]!, {
+      requirements: { kind: 'event', eventType: 'damage-settled', phase: 'after' },
+    })
+    expect(validateAbilityDefinition(automatic)).toEqual([])
+    const ongoing = ability()
+    Object.assign(ongoing.behaviors[0]!, {
+      activation: 'ongoing',
+      mode: 'modifier',
+      costs: [],
+      targeting: null,
+      effects: [
+        {
+          id: 'bonus',
+          payload: { type: 'damage-bonus', recipient: 'actor', multiplierBasisPoints: 11000 },
+        },
+      ],
+    })
+    expect(validateAbilityDefinition(ongoing)).toEqual([])
+    ongoing.behaviors[0]!.costs = [{ resource: 'hp', amount: 1 }]
+    expect(validateAbilityDefinition(ongoing)).toContainEqual(
+      expect.objectContaining({ code: 'unsupported-combination' }),
+    )
+    const mystic = ability()
+    mystic.behaviors[0]!.attackFamily = 'mystic'
+    expect(parseAbilityDefinition(mystic).behaviors[0]?.attackFamily).toBe('mystic')
+    Object.assign(mystic.behaviors[0]!, { attackFamily: undefined })
+    expect(validateAbilityDefinition(mystic)).not.toEqual([])
+  })
+
+  it('rejects malformed shapes and raw legacy envelopes keep piercing semantics', () => {
+    const malformed = ability()
+    Object.assign(malformed.behaviors[0]!, {
+      targeting: { ...malformed.behaviors[0]!.targeting, shape: null },
+    })
+    expect(validateAbilityDefinition(malformed)).not.toEqual([])
+    const historicalGeometry = ability()
+    Object.assign(historicalGeometry.behaviors[0]!.targeting, { geometryVersion: 1 })
+    expect(validateAbilityDefinition(historicalGeometry)).toContainEqual(
+      expect.objectContaining({ code: 'invalid-targeting' }),
+    )
+    const skill = P33_REPRESENTATIVE_DISCIPLINE_SKILLS.find(
+      (candidate) =>
+        candidate.enabled && candidate.effects.some((effect) => effect.type === 'damage'),
+    )!
+    const legacy = {
+      ...skill,
+      effects: [
+        { type: 'damage' as const, recipient: 'primary-unit' as const, amount: 20, piercing: true },
+      ],
+    }
+    expect(validateMatureSkillDefinition(legacy)).toEqual([])
+    expect(toCombatActionDefinition(legacy, 'pve').effects[0]).toMatchObject({ piercing: true })
+  })
+
+  it('keeps identity validation with canonical mechanics and guards the direct Resonance V2 adapter', () => {
+    const canonical = parseAbilityDefinition(ability())
+    const skill = P33_REPRESENTATIVE_DISCIPLINE_SKILLS.find((candidate) => candidate.enabled)!
+    expect(
+      validateMatureSkillDefinition({ ...skill, ability: canonical, apCost: -1, effects: [] }),
+    ).toEqual([])
+    expect(
+      validateMatureSkillDefinition({ ...skill, ability: canonical, id: 'invalid id' }),
+    ).toContain('id')
+    const essence = P36_REPRESENTATIVE_ESSENCES.find((candidate) => candidate.enabled)!
+    expect(
+      validateEssenceDefinition({
+        ...essence,
+        ability: canonical,
+        skill: { ...essence.skill, apCost: -1, effects: [] },
+      }),
+    ).toEqual([])
+    expect(
+      validateEssenceDefinition({
+        ...essence,
+        ability: canonical,
+        skill: { ...essence.skill, nameRef: '' },
+      }),
+    ).toContain('skill.definition')
+    const resonance = convertV5ResonanceToV2(
+      P35_REPRESENTATIVE_RESONANCES.find((candidate) => candidate.enabled)!,
+    )
+    expect(validateResonanceDefinitionV2({ ...resonance, ability: null } as never)).toContain(
+      'ability',
+    )
+    expect(() => normalizedResonanceMechanics({ ...resonance, ability: canonical })).toThrow(
+      /canonical-activation-required/,
+    )
+  })
+})

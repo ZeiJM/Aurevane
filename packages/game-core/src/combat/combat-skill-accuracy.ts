@@ -1,3 +1,4 @@
+import { validAccuracy, type CombatAccuracyRule } from './combat-definition'
 import { airborneGroundMiss, airborneAttackAction } from './combat-airborne'
 import { terrainEvasionBonusBasisPoints } from './combat-stat-balance'
 import { facingHitChanceModifierBasisPoints } from './combat-duel-balance'
@@ -14,6 +15,8 @@ const BASIS_POINTS = 10_000
 export const COMBAT_SKILL_ACCURACY_RULES_VERSION = 1 as const
 
 export interface CombatAccuracyAuthoring {
+  /** Private canonical hit rule; mutually exclusive with legacy authoring. */
+  readonly accuracyRule?: CombatAccuracyRule
   readonly accuracyMode?: 'automatic' | 'per-target'
   readonly accuracyModifierBasisPoints?: number
 }
@@ -34,8 +37,39 @@ export interface CombatSkillAccuracyResolvedEvent extends CombatTargetHitChance 
 }
 
 export function validateCombatAccuracyDefinition(
-  definition: CombatAccuracyAuthoring & { readonly sourceType?: string },
+  definition: CombatAccuracyAuthoring & {
+    readonly sourceType?: string
+    readonly target?: CombatActionDefinition['target']
+    readonly effects?: readonly { readonly recipient: string }[]
+  },
 ): void {
+  if (definition.accuracyRule !== undefined) {
+    if (!validAccuracy(definition.accuracyRule))
+      throw new TypeError('Invalid canonical combat accuracy rule.')
+    if (
+      definition.accuracyMode !== undefined ||
+      definition.accuracyModifierBasisPoints !== undefined
+    )
+      throw new TypeError('Canonical and legacy combat accuracy authoring conflict.')
+    if (definition.sourceType === 'basic-attack')
+      throw new TypeError(
+        'Canonical Basic Attack accuracy requires its canonical activation adapter.',
+      )
+    if (
+      definition.target &&
+      (!['unit', 'ground-tile'].includes(definition.target.kind) ||
+        !['enemy', 'any'].includes(definition.target.teamPolicy) ||
+        !['enemies-only', 'all-units', 'all-except-actor'].includes(definition.target.friendlyFire))
+    )
+      throw new TypeError('Canonical accuracy requires an applicable hostile recipient hit check.')
+    if (
+      definition.effects &&
+      !definition.effects.some((effect) =>
+        ['primary-unit', 'affected-units'].includes(effect.recipient),
+      )
+    )
+      throw new TypeError('Canonical accuracy requires an applicable hit-dependent packet.')
+  }
   if (
     definition.accuracyMode !== undefined &&
     definition.accuracyMode !== 'automatic' &&
@@ -77,7 +111,7 @@ export function forecastCombatSkillAccuracyForTarget(
   if (airborneGroundMiss(state, action, targetCombatantId, content))
     return { targetCombatantId, hitChanceBasisPoints: 0 }
   action = airborneAttackAction(state, action, content)
-  if (action.accuracyMode !== 'per-target') return null
+  if (action.accuracyMode !== 'per-target' && action.accuracyRule === undefined) return null
 
   const actor = state.tactical.battle.combatants.find((unit) => unit.id === actorId)
   const target = state.tactical.battle.combatants.find((unit) => unit.id === targetCombatantId)
@@ -85,6 +119,9 @@ export function forecastCombatSkillAccuracyForTarget(
     throw new TypeError('Combat accuracy requires committed actor and target combatants.')
   }
   if (target.hp <= 0 || target.teamId === actor.teamId) return null
+
+  if (action.accuracyRule?.kind === 'fixed')
+    return { targetCombatantId, hitChanceBasisPoints: action.accuracyRule.chanceBasisPoints }
 
   return {
     targetCombatantId,
@@ -160,6 +197,7 @@ export function forecastCombatSkillAccuracy(
     !evaluation.legal ||
     !evaluation.actorId ||
     (action.accuracyMode !== 'per-target' &&
+      action.accuracyRule === undefined &&
       !(state.airbornePolicyVersion === 1 && action.target.kind === 'ground-tile'))
   )
     return evaluation
@@ -215,6 +253,7 @@ export function rollCombatSkillAccuracy(
     !evaluation?.legal ||
     !evaluation.actorId ||
     (action.accuracyMode !== 'per-target' &&
+      action.accuracyRule === undefined &&
       !(state.airbornePolicyVersion === 1 && action.target.kind === 'ground-tile'))
   ) {
     return { state, events, missedCombatantIds }

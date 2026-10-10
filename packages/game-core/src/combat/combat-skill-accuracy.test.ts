@@ -493,3 +493,94 @@ describe('Mature Skill accuracy forwarding', () => {
     expect(rolls(second.events)[0]).toMatchObject({ hit: true, hitChanceBasisPoints: 10_000 })
   })
 })
+
+describe('private canonical hit authoring', () => {
+  it('preserves a private canonical hit rule through the legacy mature envelope adapter', () => {
+    const skill = P33_REPRESENTATIVE_DISCIPLINE_SKILLS.find(
+      (candidate) => candidate.enabled && candidate.target.teamPolicy === 'enemy',
+    )!
+    const projected = toCombatActionDefinition(
+      {
+        ...skill,
+        accuracyMode: undefined,
+        accuracyModifierBasisPoints: undefined,
+        accuracyRule: { kind: 'fixed', chanceBasisPoints: 0 },
+      },
+      'pve',
+    )
+    expect(projected.accuracyRule).toEqual({ kind: 'fixed', chanceBasisPoints: 0 })
+  })
+  it('shares the canonical hit across repeated packets even under the historical packet policy', () => {
+    const fixed = {
+      ...action([
+        { type: 'damage', recipient: 'primary-unit', amount: 10 },
+        { type: 'damage', recipient: 'primary-unit', amount: 10 },
+      ]),
+      accuracyMode: undefined,
+      accuracyRule: { kind: 'fixed', chanceBasisPoints: 10000 },
+    } as CombatActionDefinition
+    const state = world()
+    const hit = cast(
+      {
+        ...state,
+        statBridge: {
+          ...state.statBridge!,
+          schemaVersion: 4,
+          rulesVersion: 4,
+          combatants: state.statBridge!.combatants.map((row) => ({
+            ...row,
+            level: 100,
+            criticalChance: 0,
+            statusResistance: 0,
+          })),
+        },
+        skillPacketPolicyVersion: 1,
+      },
+      fixed,
+    )
+    expect(unit(hit.state).hp).toBe(80)
+    expect(rolls(hit.events)).toHaveLength(1)
+  })
+  it('Fixed0/10000 ignores ordinary adjustments while preserving one recipient hit result', () => {
+    const fixed = {
+      ...action(),
+      accuracyMode: undefined,
+      accuracyRule: { kind: 'fixed', chanceBasisPoints: 0 },
+    } as CombatActionDefinition
+    const missed = cast(world(10000, 0), fixed)
+    expect(unit(missed.state).hp).toBe(100)
+    expect(rolls(missed.events)).toHaveLength(1)
+    expect(rolls(missed.events)[0]).toMatchObject({ hit: false, hitChanceBasisPoints: 0 })
+    const certain = {
+      ...fixed,
+      accuracyRule: { kind: 'fixed', chanceBasisPoints: 10000 },
+    } as CombatActionDefinition
+    const hit = cast(world(0, 10000), certain)
+    expect(unit(hit.state).hp).toBeLessThan(100)
+    expect(rolls(hit.events)).toHaveLength(1)
+    expect(rolls(hit.events)[0]).toMatchObject({ hit: true, hitChanceBasisPoints: 10000 })
+  })
+  it('rejects conflicting canonical/legacy hit authors and inapplicable friendly configuration', () => {
+    expect(() =>
+      validateCombatActionDefinition({
+        ...action(),
+        accuracyRule: { kind: 'fixed', chanceBasisPoints: 5000 },
+      } as CombatActionDefinition),
+    ).toThrow(/conflict/)
+    expect(() =>
+      validateCombatActionDefinition({
+        ...action(),
+        accuracyMode: undefined,
+        accuracyRule: { kind: 'fixed', chanceBasisPoints: -1 },
+      } as CombatActionDefinition),
+    ).toThrow()
+    expect(() =>
+      validateCombatActionDefinition({
+        ...action(),
+        accuracyMode: undefined,
+        accuracyRule: { kind: 'fixed', chanceBasisPoints: 5000 },
+        target: { ...action().target, teamPolicy: 'ally', friendlyFire: 'allies-only' },
+      } as CombatActionDefinition),
+    ).toThrow(/applicable/)
+  })
+})

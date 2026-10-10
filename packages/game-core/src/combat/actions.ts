@@ -225,6 +225,7 @@ export function executeCombatAction(
     Boolean(context) ||
     Boolean(hitDependentEffects) ||
     action.accuracyMode === 'per-target' ||
+    action.accuracyRule !== undefined ||
     (state.airbornePolicyVersion === 1 && action.target.kind === 'ground-tile') ||
     action.effects.some((effect) => effect.type === 'sensory') ||
     (state.statBridge?.rulesVersion === 4 && hasCriticalEligibleDamage(action))
@@ -236,7 +237,13 @@ export function executeCombatAction(
     ?.map((group) => group.filter((ordinal) => !dependentOrdinals.has(ordinal)))
     .filter((group) => group.length)
   let packetAccuracy = packetGroups
-    ? rollSkillPacketAccuracy(state, action, evaluation, content, prerequisiteGroups!)
+    ? rollSkillPacketAccuracy(
+        state,
+        action,
+        evaluation,
+        content,
+        action.accuracyRule ? [originalOrdinals] : prerequisiteGroups!,
+      )
     : null
   let accuracy = packetAccuracy ?? rollCombatSkillAccuracy(state, action, evaluation, content)
   const hitDependentEffectsActivated = hitDependentEffects
@@ -253,7 +260,14 @@ export function executeCombatAction(
         )
       }) === true
     : undefined
-  if (packetGroups && packetAccuracy && hitDependentEffectsActivated) {
+  // Canonical accuracy shares one recipient result across every hit-dependent packet.
+  // Historical packet groups still own their separate resistance and critical checks.
+  if (
+    packetGroups &&
+    packetAccuracy &&
+    hitDependentEffectsActivated &&
+    action.accuracyRule === undefined
+  ) {
     // Unique tags keep their shared prerequisite roll; repeated bonus tags roll only after confirmation.
     for (const group of packetGroups) {
       const prerequisite = group.filter((ordinal) => !dependentOrdinals.has(ordinal))
