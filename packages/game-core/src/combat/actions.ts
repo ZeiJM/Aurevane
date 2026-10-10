@@ -413,6 +413,20 @@ export function executeCombatAction(
     materializeVengeanceDamage(critical.state, csr.action, executionActorId).action,
     executionActorId,
   )
+  const provenanceEvaluation =
+    evaluation && accuracy.missedCombatantIds.size > 0
+      ? {
+          ...evaluation,
+          primaryCombatantId:
+            evaluation.primaryCombatantId &&
+            accuracy.missedCombatantIds.has(evaluation.primaryCombatantId)
+              ? null
+              : evaluation.primaryCombatantId,
+          affectedCombatantIds: evaluation.affectedCombatantIds.filter(
+            (id) => !accuracy.missedCombatantIds.has(id),
+          ),
+        }
+      : evaluation
   let triggerGuard = context?.triggerGuard
   const committed = legacy.executeCombatAction(
     critical.state,
@@ -421,35 +435,30 @@ export function executeCombatAction(
     csr.content,
     (resolved) => {
       if (!actorId) return resolved
-      const command = { sourceCombatantId: actorId, actionId: action.id }
-      const historyState = recordCommittedDamageHistory(resolved.state, resolved.events, {
+      if (context?.resolveCommittedAbilityOutcomes && provenanceEvaluation)
+        resolved = {
+          ...resolved,
+          state: attachCombatEffectProvenance(
+            state,
+            resolved.state,
+            csr.action,
+            provenanceEvaluation,
+            context,
+            csr.content,
+            resistance.resistedEffectOrdinalsByTarget,
+          ),
+        }
+      const reactions = resolveNativeCommittedReactions(
+        resolved,
+        content,
+        actorId,
+        action.id,
         round,
-        commandSourceCombatantId: actorId,
-      })
-      const recovered = applyCommittedAbsorbRecovery(
-        historyState,
-        resolved.events,
-        content,
-        command,
-      )
-      // Both reactions read only original receipts, never each other's output.
-      const reflected = applyCommittedReflect(
-        recovered.state,
-        resolved.events,
-        content,
-        command,
+        context,
         triggerGuard,
-        Boolean(context?.executionAuthority),
       )
-      triggerGuard = reflected.triggerGuard
-      const native = { state: reflected.state, events: [...recovered.events, ...reflected.events] }
-      if (!context?.resolveCommittedAbilityOutcomes) return native
-      const children = context.resolveCommittedAbilityOutcomes(
-        native,
-        triggerGuard ?? context.triggerGuard,
-      )
-      triggerGuard = children.resolution?.triggerGuard ?? triggerGuard
-      return children
+      triggerGuard = reactions.guard
+      return reactions.transition
     },
     accuracy.missedCombatantIds,
     critical.criticalEffectOrdinalsByTarget,
@@ -500,37 +509,141 @@ export function executeCombatAction(
       ? { ...committedTransition, events: [...preCommitEvents, ...committedTransition.events] }
       : committedTransition
   if (!context || !evaluation) return transition
-  // A miss must not reattribute an existing status or persistent effect.
-  const provenanceEvaluation =
-    accuracy.missedCombatantIds.size === 0
-      ? evaluation
-      : {
-          ...evaluation,
-          primaryCombatantId:
-            evaluation.primaryCombatantId &&
-            accuracy.missedCombatantIds.has(evaluation.primaryCombatantId)
-              ? null
-              : evaluation.primaryCombatantId,
-          affectedCombatantIds: evaluation.affectedCombatantIds.filter(
-            (id) => !accuracy.missedCombatantIds.has(id),
-          ),
-        }
   return {
     ...(hitDependentEffects ? { hitDependentEffectsActivated } : {}),
-    state: attachCombatEffectProvenance(
-      state,
-      transition.state,
-      csr.action,
-      provenanceEvaluation,
-      context,
-      csr.content,
-      resistance.resistedEffectOrdinalsByTarget,
-    ),
+    state: context.resolveCommittedAbilityOutcomes
+      ? transition.state
+      : attachCombatEffectProvenance(
+          state,
+          transition.state,
+          csr.action,
+          provenanceEvaluation!,
+          context,
+          csr.content,
+          resistance.resistedEffectOrdinalsByTarget,
+        ),
     events: transition.events,
     resolution: {
       pipelineVersion: COMBAT_RESOLUTION_PIPELINE_VERSION,
       provenance: context.provenance,
       triggerGuard: triggerGuard ?? context.triggerGuard,
+    },
+  }
+}
+
+function resolveNativeCommittedReactions(
+  resolved: CombatResolutionTransition,
+  content: legacy.CombatContentCatalog,
+  actorId: string,
+  actionId: string,
+  round: number,
+  context: CombatResolutionContext | undefined,
+  guard: CombatTriggerGuard | undefined,
+): { transition: CombatResolutionTransition; guard: CombatTriggerGuard | undefined } {
+  const command = { sourceCombatantId: actorId, actionId }
+  const historyState = recordCommittedDamageHistory(resolved.state, resolved.events, {
+    round,
+    commandSourceCombatantId: actorId,
+  })
+  const recovered = applyCommittedAbsorbRecovery(historyState, resolved.events, content, command)
+  const reflected = applyCommittedReflect(
+    recovered.state,
+    resolved.events,
+    content,
+    command,
+    guard,
+    Boolean(context?.executionAuthority),
+  )
+  const native = { state: reflected.state, events: [...recovered.events, ...reflected.events] }
+  if (!context?.resolveCommittedAbilityOutcomes)
+    return { transition: native, guard: reflected.triggerGuard }
+  const children = context.resolveCommittedAbilityOutcomes(
+    native,
+    reflected.triggerGuard ?? context.triggerGuard,
+  )
+  return {
+    transition: children,
+    guard: children.resolution?.triggerGuard ?? reflected.triggerGuard,
+  }
+}
+
+/** Only an admitted, still-living actor can settle original independent actor packets. */
+export function executeCommittedCombatActorEffects(
+  state: CombatEncounterState,
+  action: CombatActionDefinition,
+  selection: legacy.CombatTargetSelection,
+  content: legacy.CombatContentCatalog,
+  context: CombatResolutionContext,
+): CombatResolutionTransition {
+  if (!context.committedExecution) throw new TypeError('invalid-committed-execution-authority')
+  consumeCommittedCombatExecution(context.committedExecution, state, action, selection, context)
+  const actorId = context.provenance.sourceCombatantId
+  if (
+    state.tactical.battle.lifecycle !== 'active' ||
+    !state.tactical.battle.combatants.some((unit) => unit.id === actorId && unit.hp > 0)
+  )
+    throw new TypeError('committed-actor-settlement-unavailable')
+  const evaluation: CombatActionEvaluation = {
+    legal: true,
+    actionId: action.id,
+    actorId,
+    primaryPosition: null,
+    primaryCombatantId: null,
+    affectedTiles: [],
+    affectedCombatantIds: [],
+    projectedEffects: [],
+    projectedTerrain: [],
+    projectedEvents: [],
+    mpCost: 0,
+    spendsAction: false,
+    issues: [],
+  }
+  let guard = context.triggerGuard
+  const out = legacy.executeCommittedCombatActorEffects(
+    state,
+    actorId,
+    action,
+    content,
+    context.committedExecution,
+    (resolved, settledEffectOrdinals) => {
+      resolved = {
+        ...resolved,
+        state: attachCombatEffectProvenance(
+          state,
+          resolved.state,
+          action,
+          evaluation,
+          context,
+          content,
+          undefined,
+          settledEffectOrdinals,
+        ),
+      }
+      const reactions = resolveNativeCommittedReactions(
+        resolved,
+        content,
+        actorId,
+        action.id,
+        state.tactical.battle.round,
+        context,
+        guard,
+      )
+      guard = reactions.guard ?? guard
+      return reactions.transition
+    },
+  )
+  const filtered = filterBlockedCovertApplication({
+    before: state,
+    after: out.state,
+    events: out.events,
+  })
+  return {
+    state: filtered.state,
+    events: filtered.events as legacy.CombatResolutionEvent[],
+    resolution: {
+      pipelineVersion: COMBAT_RESOLUTION_PIPELINE_VERSION,
+      provenance: context.provenance,
+      triggerGuard: guard,
     },
   }
 }

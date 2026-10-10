@@ -653,3 +653,377 @@ it('an off-turn child effect gate captures its own pre-payment owner, never its 
   expect(out.state.tactical.battle.combatants.find((u) => u.id === 'enemy')!.mp).toBe(15)
   expect(out.events.filter((e) => e.event === 'combat_action_used')).toHaveLength(2)
 })
+
+function interruptedFire(
+  delayed = false,
+  killActor = false,
+  extraEffects: AbilityBehavior['effects'] = [],
+): CombatAbilityCommandInput {
+  const input = {
+    ...command(100, 20, {
+      costs: [
+        { resource: 'ap', amount: 30 },
+        { resource: 'hp', amount: 1 },
+      ],
+      cooldown: { key: 'root-fire', ownerTurns: 2 },
+      effects: [
+        {
+          id: 'fire-hit',
+          payload: { type: 'damage', recipient: 'primary-unit', amount: 10, element: 'fire' },
+        },
+        {
+          id: 'cleanse',
+          timing: delayed ? 'delayed' : 'instant',
+          payload: { type: 'remove-status', recipient: 'actor', statusIds: ['frozen'] },
+        },
+        {
+          id: 'gated-heal',
+          requirements: {
+            kind: 'resource-state',
+            subject: 'owner',
+            resource: 'hp',
+            comparison: 'at-least',
+            amount: 20,
+          },
+          payload: { type: 'healing', recipient: 'actor', amount: 1 },
+        },
+        ...extraEffects,
+      ],
+    }),
+    manualModifiers: undefined,
+  }
+  const killer = captureCombatAbilitySource({
+    ...source(
+      {
+        id: 'before-kill',
+        activation: 'automatic',
+        automaticTarget: { subject: killActor ? 'triggering' : 'selected' },
+        costs: [],
+        activationLimits: ['once-per-action'],
+        accuracy: { kind: 'fixed', chanceBasisPoints: 10000 },
+        requirements: { kind: 'event', eventType: 'combat_action_used', phase: 'before' },
+        effects: [
+          { id: 'kill', payload: { type: 'damage', recipient: 'primary-unit', amount: 20 } },
+        ],
+      },
+      'before-killer',
+    ),
+    abilityId: 'child.kill',
+    ownerCombatantId: killActor ? 'enemy' : 'actor',
+  })
+  const state = reconcileCombatAbilitySources(
+    {
+      ...input.state,
+      elementalDamagePolicyVersion: 2 as const,
+      tactical: {
+        ...input.state.tactical,
+        battle: {
+          ...input.state.tactical.battle,
+          combatants: input.state.tactical.battle.combatants.map((unit) =>
+            unit.id === 'enemy' && !killActor ? { ...unit, hp: 10 } : unit,
+          ),
+        },
+      },
+      statusState: input.state.statusState.map((row) =>
+        row.combatantId === 'actor'
+          ? {
+              ...row,
+              statuses: [
+                {
+                  statusId: 'frozen',
+                  statusVersion: 1,
+                  stacks: 1,
+                  remainingOwnerTurnStarts: 2,
+                  sourceCombatantId: 'actor',
+                },
+              ],
+            }
+          : row,
+      ),
+    },
+    [...input.state.capturedAbilitySources!, killer],
+  )
+  return { ...input, state }
+}
+describe('paid interrupted native settlement', () => {
+  it('target defeat retains one paid attempt and the independent Fire actor cleanse with locked gates', () => {
+    const input = interruptedFire(),
+      out = commitCombatAbilityCommand(input)
+    expect(out.events.filter((e) => e.event === 'combat_action_interrupted')).toEqual([
+      {
+        event: 'combat_action_interrupted',
+        actionId: 'test.ability',
+        actorId: 'actor',
+        reason: 'selection-invalid',
+      },
+    ])
+    expect(out.state.statusState.find((row) => row.combatantId === 'actor')!.statuses).toEqual([])
+    expect(out.state.tactical.battle.combatants.find((row) => row.id === 'actor')!.hp).toBe(20)
+    expect(readPv1fActionEconomy(out.state as never)!.current).toBe(70)
+    expect(out.state.abilityRuntime!.nextCommandSequence).toBe(2)
+    expect(out.state.abilityRuntime!.usage).toHaveLength(2)
+    expect(hasPv1fTurnActivity(out.state as never)).toBe(true)
+    expect(
+      out.events.filter((e) => e.event === 'combat_action_used' && e.actionId === 'test.ability'),
+    ).toHaveLength(1)
+    expect(
+      out.events.filter(
+        (e) => e.event === 'combat_accuracy_resolved' && e.actionId === 'test.ability',
+      ),
+    ).toEqual([])
+    expect(
+      out.events.filter((e) => e.event === 'damage_applied' && e.actionId === 'test.ability'),
+    ).toEqual([])
+    expect(out.events.filter((e) => e.event === 'status_removed')).toHaveLength(1)
+    expect(out.state.pendingEffects ?? []).toEqual([])
+  })
+  it('a genuine delayed actor cleanse keeps its original ordinal/origin and schedules no target payload', () => {
+    const input = interruptedFire(true),
+      out = commitCombatAbilityCommand(input)
+    expect(out.state.pendingEffects).toHaveLength(1)
+    expect(out.state.pendingEffects![0]).toMatchObject({
+      actorId: 'actor',
+      recipientIds: ['actor'],
+      effect: { type: 'remove-status', recipient: 'actor', statusIds: ['frozen'] },
+      effectOrigin: { sourceInstanceId: 'source-a', behaviorId: 'strike', effectId: 'cleanse' },
+    })
+    expect(out.events.filter((e) => e.event === 'effect_pending')).toHaveLength(1)
+    expect(
+      out.state.statusState
+        .find((row) => row.combatantId === 'actor')!
+        .statuses.map((row) => row.statusId),
+    ).toEqual(['frozen'])
+  })
+})
+
+it('same-owner same-Ability outcome children retain their own original status provenance', () => {
+  const input = {
+    ...command(100, 20, {
+      costs: [],
+      effects: [
+        { id: 'hit', payload: { type: 'damage', recipient: 'primary-unit', amount: 10 } },
+        {
+          id: 'parent-buff',
+          payload: { type: 'apply-status', recipient: 'actor', statusId: 'inspired', stacks: 1 },
+        },
+      ],
+    }),
+    manualModifiers: undefined,
+  }
+  const child = captureCombatAbilitySource(
+    source(
+      {
+        id: 'after-buff',
+        activation: 'automatic',
+        classification: 'utility',
+        attackFamily: undefined,
+        costs: [],
+        activationLimits: ['once-per-action'],
+        targeting: {
+          kind: 'self',
+          teamPolicy: 'self',
+          friendlyFire: 'allies-only',
+          shape: { kind: 'single' },
+          minimumRange: 0,
+          maximumRange: 0,
+          requiresLineOfSight: false,
+          maximumElevationDifference: null,
+          maximumSelections: 1,
+        },
+        requirements: { kind: 'event', eventType: 'combat_action_used', phase: 'after' },
+        effects: [
+          {
+            id: 'child-buff',
+            payload: { type: 'apply-status', recipient: 'actor', statusId: 'inspired', stacks: 1 },
+          },
+        ],
+      },
+      'after-source',
+    ),
+  )
+  const state = reconcileCombatAbilitySources(input.state, [
+    ...input.state.capturedAbilitySources!,
+    child,
+  ])
+  const out = commitCombatAbilityCommand({ ...input, state })
+  const inspired = out.state.statusState
+    .find((row) => row.combatantId === 'actor')!
+    .statuses.find((row) => row.statusId === 'inspired')!
+  expect(inspired.stacks).toBe(2)
+  expect(inspired.provenance?.effectOrdinal).toBe(0)
+  expect(
+    out.events
+      .filter((row) => row.event === 'status_applied')
+      .map((row) => row.effectOrigin?.effectId),
+  ).toEqual(['parent-buff', 'child-buff'])
+})
+
+it('a before counter defeats the paid root actor without actor packets or a root hit draw', () => {
+  const input = interruptedFire(false, true),
+    out = commitCombatAbilityCommand(input)
+  expect(out.events.filter((e) => e.event === 'combat_action_interrupted')).toEqual([
+    {
+      event: 'combat_action_interrupted',
+      actionId: 'test.ability',
+      actorId: 'actor',
+      reason: 'actor-unavailable',
+    },
+  ])
+  const actor = out.state.tactical.battle.combatants.find((unit) => unit.id === 'actor')!
+  expect(actor.hp).toBe(0)
+  expect(out.state.tactical.battle.currentTurn?.combatantId).not.toBe('actor')
+  expect(out.state.tactical.battle.rng.draws).toBe(input.state.tactical.battle.rng.draws + 1)
+  expect(actor.temporaryResources.find((row) => row.key === 'pv1f.action-economy')!.current).toBe(
+    70,
+  )
+  expect(actor.temporaryResources.find((row) => row.key === 'pv1f.activity-turn')!.current).toBe(
+    input.state.tactical.battle.turnNumber,
+  )
+  expect(out.state.abilityRuntime!.nextCommandSequence).toBe(2)
+  expect(out.state.abilityRuntime!.usage).toHaveLength(2)
+  expect(
+    out.events.filter((e) => e.event === 'status_removed' && e.actionId === 'test.ability'),
+  ).toEqual([])
+  expect(
+    out.events
+      .filter((e) => e.event === 'combat_accuracy_resolved')
+      .map((e) => (e.event === 'combat_accuracy_resolved' ? e.actionId : null)),
+  ).toEqual(['child.kill'])
+  expect(
+    out.events.filter(
+      (e) => e.event === 'combat_critical_resolved' && e.actionId === 'test.ability',
+    ),
+  ).toEqual([])
+  expect(out.state.pendingEffects ?? []).toEqual([])
+})
+it('an interrupted actor cannot gain hit-dependent Blindside', () => {
+  const input = interruptedFire(false, false, [
+    {
+      id: 'blindside',
+      payload: { type: 'apply-status', recipient: 'actor', statusId: 'blindside', stacks: 1 },
+    },
+  ])
+  const out = commitCombatAbilityCommand(input)
+  expect(out.events.some((e) => e.event === 'status_applied' && e.statusId === 'blindside')).toBe(
+    false,
+  )
+  expect(
+    out.state.statusState
+      .find((row) => row.combatantId === 'actor')!
+      .statuses.some((row) => row.statusId === 'blindside'),
+  ).toBe(false)
+})
+
+it('skipped interrupted actor status packets do not reattribute an existing status', () => {
+  const input = interruptedFire(false, false, [
+    {
+      id: 'blindside',
+      payload: { type: 'apply-status', recipient: 'actor', statusId: 'blindside', stacks: 1 },
+    },
+    {
+      id: 'locked-out',
+      requirements: {
+        kind: 'resource-state',
+        subject: 'owner',
+        resource: 'hp',
+        comparison: 'at-least',
+        amount: 1000,
+      },
+      payload: { type: 'apply-status', recipient: 'actor', statusId: 'inspired', stacks: 1 },
+    },
+  ])
+  const state = {
+    ...input.state,
+    statusState: input.state.statusState.map((row) =>
+      row.combatantId === 'actor'
+        ? {
+            ...row,
+            statuses: [
+              ...row.statuses,
+              {
+                statusId: 'blindside',
+                statusVersion: 1,
+                stacks: 1,
+                remainingOwnerTurnStarts: 2,
+                sourceCombatantId: 'actor',
+              },
+              {
+                statusId: 'inspired',
+                statusVersion: 1,
+                stacks: 1,
+                remainingOwnerTurnStarts: 2,
+                sourceCombatantId: 'actor',
+              },
+            ].sort((a, b) => (a.statusId < b.statusId ? -1 : a.statusId > b.statusId ? 1 : 0)),
+          }
+        : row,
+    ),
+  }
+  const out = commitCombatAbilityCommand({ ...input, state })
+  const statuses = out.state.statusState.find((row) => row.combatantId === 'actor')!.statuses
+  expect(statuses.map((row) => [row.statusId, row.stacks, row.provenance])).toEqual([
+    ['blindside', 1, undefined],
+    ['inspired', 1, undefined],
+  ])
+})
+it('a before child hides the original primary without fallback or root accuracy', () => {
+  const input = {
+    ...command(100, 20, { costs: [{ resource: 'ap', amount: 30 }] }),
+    manualModifiers: undefined,
+  }
+  const hide = captureCombatAbilitySource({
+    ...source(
+      {
+        id: 'hide',
+        activation: 'automatic',
+        classification: 'utility',
+        attackFamily: undefined,
+        targeting: {
+          kind: 'self',
+          teamPolicy: 'self',
+          friendlyFire: 'allies-only',
+          shape: { kind: 'single' },
+          minimumRange: 0,
+          maximumRange: 0,
+          requiresLineOfSight: false,
+          maximumElevationDifference: null,
+          maximumSelections: 1,
+        },
+        costs: [],
+        activationLimits: ['once-per-action'],
+        requirements: { kind: 'event', eventType: 'combat_action_used', phase: 'before' },
+        effects: [
+          {
+            id: 'hide',
+            payload: { type: 'apply-status', recipient: 'actor', statusId: 'invisible', stacks: 1 },
+          },
+        ],
+      },
+      'hide-source',
+    ),
+    abilityId: 'child.hide',
+    ownerCombatantId: 'enemy',
+  })
+  const state = reconcileCombatAbilitySources(input.state, [
+    ...input.state.capturedAbilitySources!,
+    hide,
+  ])
+  const out = commitCombatAbilityCommand({ ...input, state })
+  expect(out.events.filter((row) => row.event === 'combat_action_interrupted')).toEqual([
+    {
+      event: 'combat_action_interrupted',
+      actionId: 'test.ability',
+      actorId: 'actor',
+      reason: 'selection-invalid',
+    },
+  ])
+  expect(readPv1fActionEconomy(out.state as never)!.current).toBe(70)
+  expect(
+    out.events.filter(
+      (row) => row.event === 'combat_accuracy_resolved' && row.actionId === 'test.ability',
+    ),
+  ).toEqual([])
+  expect(
+    out.events.filter((row) => row.event === 'damage_applied' && row.actionId === 'test.ability'),
+  ).toEqual([])
+})

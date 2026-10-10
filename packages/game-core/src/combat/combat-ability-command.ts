@@ -1,6 +1,7 @@
 import {
   evaluateCombatAction,
   executeCombatAction,
+  executeCommittedCombatActorEffects,
   type CombatActionDefinition,
   type CombatActionEvaluation,
   type CombatEncounterState,
@@ -714,21 +715,36 @@ export function commitCombatAbilityCommand(
               ).legal
             ? ('selection-invalid' as const)
             : null
+  const interruptedReceipt: CombatResolutionEvent | null = interruption
+    ? {
+        event: 'combat_action_interrupted',
+        actionId: prepared.action.id,
+        actorId: input.actorId,
+        reason: interruption,
+      }
+    : null
+  if (interruption)
+    outcomeQueue.push(
+      captureCombatAbilityEventFrame(live, live, commandIdentity, session, {
+        ...facts,
+        events: [{ type: 'combat_action_interrupted', phase: 'after' }],
+        resourceMutations: [],
+      }),
+    )
+  const canSettleActor = interruption === 'selection-invalid'
   const out = interruption
-    ? drainOutcomes(
-        {
-          state: live,
-          events: [
-            {
-              event: 'combat_action_interrupted',
-              actionId: prepared.action.id,
-              actorId: input.actorId,
-              reason: interruption,
-            },
-          ],
-        },
-        session.guard,
-      )
+    ? canSettleActor
+      ? executeCommittedCombatActorEffects(live, prepared.action, input.selection, input.content, {
+          ...context,
+          triggerGuard: session.guard,
+          committedExecution,
+          resolveCommittedAbilityOutcomes: (native, nativeGuard) =>
+            drainOutcomes(
+              { ...native, events: [interruptedReceipt!, ...native.events] },
+              nativeGuard,
+            ),
+        })
+      : drainOutcomes({ state: live, events: [interruptedReceipt!] }, session.guard)
     : executeCombatAction(live, prepared.action, input.selection, input.content, {
         ...context,
         triggerGuard: session.guard,

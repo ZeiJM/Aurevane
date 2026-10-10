@@ -60,12 +60,14 @@ export function attachCombatEffectProvenance(
   context: CombatResolutionContext,
   content?: CombatContentCatalog,
   resistedEffectOrdinalsByTarget?: CombatResistedEffectOrdinals,
+  settledEffectOrdinals?: ReadonlySet<number>,
 ): CombatEncounterState {
   if (!evaluation.actorId) return after
   const copyEffect = action.effects[0]
   let provenanceAfter = after
   if (
     copyEffect?.type === 'copy-statuses' &&
+    (!settledEffectOrdinals || settledEffectOrdinals.has(0)) &&
     evaluation.primaryCombatantId &&
     !resistedEffectOrdinalsByTarget?.get(evaluation.primaryCombatantId)?.has(0)
   ) {
@@ -135,6 +137,7 @@ export function attachCombatEffectProvenance(
   >()
   if (independent || before.dotTriggerPolicyVersion === 2) {
     for (const [effectOrdinal, effect] of action.effects.entries()) {
+      if (settledEffectOrdinals && !settledEffectOrdinals.has(effectOrdinal)) continue
       if (
         combatEffectTimingMode(
           before.effectTimingPolicy,
@@ -185,6 +188,7 @@ export function attachCombatEffectProvenance(
   const bleedApplications: BleedApplication[] = []
   const lastBleedClearOrdinalByTarget = new Map<string, number>()
   for (const [effectOrdinal, effect] of action.effects.entries()) {
+    if (settledEffectOrdinals && !settledEffectOrdinals.has(effectOrdinal)) continue
     if (effect.type !== 'bleed' && effect.type !== 'remove-status') continue
     const recipients = resolveRecipients(evaluation, effect.recipient).filter(
       (id) => !resistedEffectOrdinalsByTarget?.get(id)?.has(effectOrdinal),
@@ -202,6 +206,7 @@ export function attachCombatEffectProvenance(
   }
 
   for (const [effectOrdinal, effect] of action.effects.entries()) {
+    if (settledEffectOrdinals && !settledEffectOrdinals.has(effectOrdinal)) continue
     if (
       effect.type !== 'apply-status' &&
       effect.type !== 'poison' &&

@@ -1096,51 +1096,7 @@ export function evaluateCombatAction(
   issues.push(...targeting.issues)
   const target = { position: targeting.primaryPosition, combatantId: targeting.primaryCombatantId }
   collectRequirementIssues(state, actorId, target.combatantId, action.requirements, content, issues)
-  if (
-    action.effects.some(
-      (effect) => effect.type === 'return-to-turn-start' && effect.anchorMode !== 'cast-position',
-    )
-  ) {
-    const origin = state.turnOrigin
-    const placement = getPlacement(state.tactical, actorId)
-    const tile =
-      origin && state.tactical.tiles.find((tile) => samePosition(tile.position, origin.position))
-    if (
-      !origin ||
-      origin.combatantId !== actorId ||
-      origin.turnNumber !== battle.turnNumber ||
-      samePosition(origin.position, placement.position) ||
-      !tile ||
-      state.tactical.terrains.find((terrain) => terrain.id === tile.terrainId)?.traversalCost ==
-        null ||
-      getLivingOccupantId(state.tactical, origin.position) !== null ||
-      !canRewindIntoTile(state, actorId, origin.position, content)
-    ) {
-      issues.push({
-        code: 'requirement-not-met',
-        message:
-          'Rewind Step requires a vacant, passable tile where you started this turn, after moving away.',
-      })
-    }
-    if (
-      getStatusRow(state, actorId).statuses.some(
-        (status) =>
-          getStatusDefinition(content, status.statusId, status.statusVersion).movement?.blocked,
-      )
-    )
-      issues.push({ code: 'requirement-not-met', message: 'Root prevents Rewind Step.' })
-  }
-
-  if (
-    action.effects.some(
-      (effect) => effect.type === 'return-to-turn-start' && effect.anchorMode === 'cast-position',
-    ) &&
-    getStatusRow(state, actorId).statuses.some(
-      (status) =>
-        getStatusDefinition(content, status.statusId, status.statusVersion).movement?.blocked,
-    )
-  )
-    issues.push({ code: 'requirement-not-met', message: 'Root prevents Rewind Step.' })
+  collectActorEffectCapabilityIssues(state, actorId, action.effects, content, issues)
   const affectedTiles = issues.length === 0 ? targeting.affectedTiles : []
   const affectedCombatantIds = issues.length === 0 ? targeting.affectedCombatantIds : []
 
@@ -1340,11 +1296,6 @@ export function executeCombatAction(
 
   action = elementalActionIntent(state, action, selection)
   const actorId = evaluation.actorId
-  const burnBacklashApplies = shouldApplyCurrentBurnBacklash(state, actorId, action)
-  const burnBacklashCount = burnBacklashApplies
-    ? currentBurnBacklashApplicationCount(state, actorId)
-    : 0
-  const burnBacklashBasisPoints = currentBurnInstance(state, actorId)?.backlashBasisPoints ?? 1000
   let nextState = state
   let events: CombatResolutionEvent[] = []
 
@@ -1368,7 +1319,10 @@ export function executeCombatAction(
     })
   }
 
-  if (!committedExecution || !committedCombatAttemptRecorded(committedExecution))
+  if (
+    !committedExecution ||
+    !committedCombatAttemptRecorded(committedExecution, state, actorId, action.id)
+  )
     events.push({ event: 'combat_action_used', actionId: action.id, actorId })
 
   const applied = resolveActionEffects(
@@ -1423,23 +1377,15 @@ export function executeCombatAction(
     events.push(...cooldown.events)
   }
 
-  if (burnBacklashApplies) {
-    const damageByTarget = collectCommittedHostileCommandDamage(state, applied.events, {
-      sourceCombatantId: actorId,
-      actionId: action.id,
-    })
-    const hostileDamage = [...damageByTarget.values()].reduce((total, amount) => {
-      const sum = total + amount
-      if (!Number.isSafeInteger(sum)) throw new RangeError('Burn backlash damage basis overflow.')
-      return sum
-    }, 0)
-    const backlash = applyCurrentBurnBacklash(nextState, actorId, burnBacklashCount, {
-      hostileDamage,
-      basisPoints: burnBacklashBasisPoints,
-    })
-    nextState = backlash.state
-    events.push(...backlash.events)
-  }
+  const backlash = resolveCommittedCombatActionBacklash(
+    state,
+    nextState,
+    actorId,
+    action,
+    applied.events,
+  )
+  nextState = backlash.state
+  events.push(...backlash.events)
 
   // Engine-owned reaction seam: committed effects first, terminal verdict last.
   // Omitted by historical four-argument callers; never populated by authored scripts.
@@ -1456,6 +1402,87 @@ export function executeCombatAction(
   nextState = synchronizeCombatInitiative(nextState)
   assertValidCombatEncounterState(nextState)
   return { state: nextState, events }
+}
+
+function resolveCommittedCombatActionBacklash(
+  before: CombatEncounterState,
+  state: CombatEncounterState,
+  actorId: string,
+  action: CombatActionDefinition,
+  receipts: readonly CombatResolutionEvent[],
+): CombatResolutionTransition {
+  let nextState = state
+  const events: CombatResolutionEvent[] = []
+  if (shouldApplyCurrentBurnBacklash(before, actorId, action)) {
+    const damageByTarget = collectCommittedHostileCommandDamage(before, receipts, {
+      sourceCombatantId: actorId,
+      actionId: action.id,
+    })
+    const hostileDamage = [...damageByTarget.values()].reduce((total, amount) => {
+      const sum = total + amount
+      if (!Number.isSafeInteger(sum)) throw new RangeError('Burn backlash damage basis overflow.')
+      return sum
+    }, 0)
+    const backlash = applyCurrentBurnBacklash(
+      nextState,
+      actorId,
+      currentBurnBacklashApplicationCount(before, actorId),
+      {
+        hostileDamage,
+        basisPoints: currentBurnInstance(before, actorId)?.backlashBasisPoints ?? 1000,
+      },
+    )
+    nextState = backlash.state
+    events.push(...backlash.events)
+  }
+
+  return { state: nextState, events }
+}
+
+/** Engine-issued interruption entry; no target, ground, payment, hit or new action-use. */
+export function executeCommittedCombatActorEffects(
+  state: CombatEncounterState,
+  actorId: string,
+  action: CombatActionDefinition,
+  content: CombatContentCatalog,
+  committedExecution: CommittedCombatExecution,
+  resolveCommittedReactions: (
+    transition: CombatResolutionTransition,
+    settledEffectOrdinals: ReadonlySet<number>,
+  ) => CombatResolutionTransition,
+): CombatResolutionTransition {
+  committedCombatAttemptRecorded(committedExecution, state, actorId, action.id)
+  const settledEffectOrdinals = new Set<number>()
+  const applied = resolveActionEffects(
+    state,
+    actorId,
+    null,
+    [],
+    [],
+    action,
+    content,
+    undefined,
+    undefined,
+    false,
+    undefined,
+    undefined,
+    { actorOnly: true, settledEffectOrdinals },
+  )
+  const backlash = resolveCommittedCombatActionBacklash(
+    state,
+    applied.state,
+    actorId,
+    action,
+    applied.events,
+  )
+  const reacted = resolveCommittedReactions(
+    { state: backlash.state, events: [...applied.events, ...backlash.events] },
+    settledEffectOrdinals,
+  )
+  const completion = completeBattleIfResolved(reacted.state)
+  const next = synchronizeCombatInitiative(completion.state)
+  assertValidCombatEncounterState(next)
+  return { state: next, events: [...reacted.events, ...completion.events] }
 }
 
 export function waitCurrentTurn(
@@ -2937,6 +2964,61 @@ function resolveAffectedCombatants(
     .sort(compareStableString)
 }
 
+function collectActorEffectCapabilityIssues(
+  state: CombatEncounterState,
+  actorId: string,
+  effects: readonly CombatEffectDefinition[],
+  content: CombatContentCatalog,
+  issues: CombatActionIssue[],
+): void {
+  const battle = state.tactical.battle
+  if (
+    effects.some(
+      (effect) => effect.type === 'return-to-turn-start' && effect.anchorMode !== 'cast-position',
+    )
+  ) {
+    const origin = state.turnOrigin
+    const placement = getPlacement(state.tactical, actorId)
+    const tile =
+      origin && state.tactical.tiles.find((tile) => samePosition(tile.position, origin.position))
+    if (
+      !origin ||
+      origin.combatantId !== actorId ||
+      origin.turnNumber !== battle.turnNumber ||
+      samePosition(origin.position, placement.position) ||
+      !tile ||
+      state.tactical.terrains.find((terrain) => terrain.id === tile.terrainId)?.traversalCost ==
+        null ||
+      getLivingOccupantId(state.tactical, origin.position) !== null ||
+      !canRewindIntoTile(state, actorId, origin.position, content)
+    ) {
+      issues.push({
+        code: 'requirement-not-met',
+        message:
+          'Rewind Step requires a vacant, passable tile where you started this turn, after moving away.',
+      })
+    }
+    if (
+      getStatusRow(state, actorId).statuses.some(
+        (status) =>
+          getStatusDefinition(content, status.statusId, status.statusVersion).movement?.blocked,
+      )
+    )
+      issues.push({ code: 'requirement-not-met', message: 'Root prevents Rewind Step.' })
+  }
+
+  if (
+    effects.some(
+      (effect) => effect.type === 'return-to-turn-start' && effect.anchorMode === 'cast-position',
+    ) &&
+    getStatusRow(state, actorId).statuses.some(
+      (status) =>
+        getStatusDefinition(content, status.statusId, status.statusVersion).movement?.blocked,
+    )
+  )
+    issues.push({ code: 'requirement-not-met', message: 'Root prevents Rewind Step.' })
+}
+
 function collectSelfDamageIssues(
   effects: readonly CombatEffectDefinition[],
   actorId: string,
@@ -3016,6 +3098,9 @@ interface CombatEffectResolutionOptions {
   percentageRecoveryByRecipient?: Readonly<Record<string, CapturedPercentageRecovery>>
   returnAnchor?: GridPosition
   statusDurationScope?: 'rounds'
+  /** Native committed actor settlement retains every original ordinal. */
+  actorOnly?: true
+  settledEffectOrdinals?: Set<number>
 }
 
 /** Resolve authored tuning against the cast's identities before pending selectors are narrowed. */
@@ -3143,6 +3228,44 @@ function settleElementalApplications(
   return { state: nextState, events, projections }
 }
 
+function resolveCombatActionActorAttempt(
+  state: CombatEncounterState,
+  actorId: string,
+  action: CombatActionDefinition,
+  content: CombatContentCatalog,
+  resolvingPending: boolean,
+  options: CombatEffectResolutionOptions,
+): CombatResolutionTransition {
+  let nextState = state
+  const events: CombatResolutionEvent[] = []
+  if (
+    state.elementalDamagePolicyVersion === 1 &&
+    !resolvingPending &&
+    !options.groundArea &&
+    action.effects.some((effect) => effect.type === 'damage' && effect.element === 'fire')
+  ) {
+    const cleansed = removeGameplayTags(nextState, actorId, actorId, action.id, ['Frozen'], content)
+    nextState = cleansed.state
+    events.push(...cleansed.events)
+  }
+  if (
+    !options.groundArea &&
+    action.effects.some((effect) => effect.type === 'damage' && effect.amount > 0)
+  ) {
+    const revealed = removeGameplayTags(
+      nextState,
+      actorId,
+      actorId,
+      action.id,
+      ['Invisible'],
+      content,
+    )
+    nextState = revealed.state
+    events.push(...revealed.events)
+  }
+  return { state: nextState, events }
+}
+
 function resolveActionEffects(
   state: CombatEncounterState,
   actorId: string,
@@ -3173,42 +3296,46 @@ function resolveActionEffects(
   const terrain: CombatTerrainProjection[] = []
   const stormRecipients = new Set<string>()
   const elementalApplications: ElementalApplications = options.elementalApplications ?? new Map()
-  if (
-    state.elementalDamagePolicyVersion === 1 &&
-    !resolvingPending &&
-    !options.groundArea &&
-    action.effects.some((effect) => effect.type === 'damage' && effect.element === 'fire')
-  ) {
-    const cleansed = removeGameplayTags(nextState, actorId, actorId, action.id, ['Frozen'], content)
-    nextState = cleansed.state
-    events.push(...cleansed.events)
-  }
+  const attempt = resolveCombatActionActorAttempt(
+    nextState,
+    actorId,
+    action,
+    content,
+    resolvingPending,
+    options,
+  )
+  nextState = attempt.state
+  events.push(...attempt.events)
   const groundPercentageEffects: { effect: CombatEffectDefinition; ordinal: number }[] = []
   let skillPacketCommandId: number | undefined
   let commandId = percentageCommand?.commandId
-  if (!options.groundArea && !resolvingPending && action.effects.some(isPercentageDotEffect)) {
+  if (
+    !options.groundArea &&
+    !resolvingPending &&
+    action.effects.some(
+      (effect) =>
+        isPercentageDotEffect(effect) && (!options.actorOnly || effect.recipient === 'actor'),
+    )
+  ) {
     const allocated = allocatePercentageDotCommand(nextState, action)
     nextState = allocated.state
     commandId = allocated.commandId
   }
   const originalDamageEvents: CombatResolutionEvent[] = []
   const resolvedDamageOrdinals: number[] = []
-  if (
-    !options.groundArea &&
-    action.effects.some((effect) => effect.type === 'damage' && effect.amount > 0)
-  ) {
-    const revealed = removeGameplayTags(
-      nextState,
-      actorId,
-      actorId,
-      action.id,
-      ['Invisible'],
-      content,
-    )
-    nextState = revealed.state
-    events.push(...revealed.events)
-  }
   for (const [effectOrdinal, effect] of action.effects.entries()) {
+    if (options.actorOnly) {
+      if (getCombatant(nextState.tactical.battle, actorId).hp <= 0) break
+      if (
+        effect.recipient !== 'actor' ||
+        (effect.type === 'apply-status' && effect.statusId === 'blindside')
+      )
+        continue
+      const capabilityIssues: CombatActionIssue[] = []
+      collectActorEffectCapabilityIssues(nextState, actorId, [effect], content, capabilityIssues)
+      collectSelfDamageIssues([effect], actorId, null, [], capabilityIssues)
+      if (capabilityIssues.length) continue
+    }
     const firstEvent = events.length
     const firstProjection = projections.length
     try {
@@ -3877,6 +4004,8 @@ function resolveActionEffects(
         })
       }
     } finally {
+      if (events.length > firstEvent || projections.length > firstProjection)
+        options.settledEffectOrdinals?.add(effectOrdinal)
       if (commandId !== undefined && effect.type === 'damage') {
         originalDamageEvents.push(
           ...events.slice(firstEvent).filter((event) => event.event === 'damage_applied'),
@@ -4359,7 +4488,7 @@ function applyEffect(
     const barrier = absorbDirectDamageWithBarrier(state, recipientId, amount)
     const hpAfter = Math.max(0, target.hp - barrier.remainingDamage)
     const defeatedCurrent =
-      resolvingPending &&
+      (resolvingPending || actorId !== recipientId) &&
       hpAfter === 0 &&
       barrier.state.tactical.battle.currentTurn?.combatantId === recipientId
         ? defeatCombatActionActor(barrier.state, recipientId, content)

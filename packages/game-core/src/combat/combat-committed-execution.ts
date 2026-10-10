@@ -14,10 +14,12 @@ interface Admission {
   readonly turnNumber: number
   readonly actorId: string
   readonly manual: boolean
+  readonly actionId: string
   readonly action: string
   readonly selection: string
   readonly provenance: string
   consumed: boolean
+  settled: boolean
 }
 const issued = new WeakMap<CommittedCombatExecution, Admission>()
 
@@ -36,10 +38,12 @@ export function issueCommittedCombatExecution(
     turnNumber: state.tactical.battle.turnNumber,
     actorId,
     manual,
+    actionId: action.id,
     action: JSON.stringify(action),
     selection: JSON.stringify(selection),
     provenance: JSON.stringify(context.provenance),
     consumed: false,
+    settled: false,
   })
   return token
 }
@@ -70,9 +74,22 @@ export function consumeCommittedCombatExecution(
 }
 
 /** Legacy emission suppression is possible only after the native wrapper consumed issuance. */
-export function committedCombatAttemptRecorded(token: CommittedCombatExecution): boolean {
+export function committedCombatAttemptRecorded(
+  token: CommittedCombatExecution,
+  state: CombatEncounterState,
+  actorId: string,
+  actionId: string,
+): boolean {
   const admission = issued.get(token)
-  if (!admission?.consumed) throw new TypeError('invalid-committed-execution-authority')
+  if (
+    !admission?.consumed ||
+    admission.settled ||
+    admission.actorId !== actorId ||
+    admission.actionId !== actionId ||
+    admission.battleId !== state.tactical.battle.battleId
+  )
+    throw new TypeError('invalid-committed-execution-authority')
+  admission.settled = true
   return true
 }
 

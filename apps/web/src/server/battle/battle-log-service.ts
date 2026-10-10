@@ -579,6 +579,28 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
     }
     case 'action_spent':
       return null
+    case 'combat_action_interrupted': {
+      const actorCombatantId = stringValue(event.actorId)
+      const actionId = presentationActionId(event.actionId)
+      if (
+        !actorCombatantId ||
+        !actionId ||
+        !['actor-unavailable', 'battle-ended', 'turn-changed', 'selection-invalid'].includes(
+          String(event.reason),
+        )
+      )
+        return null
+      const label = actionLabel(actionId)
+      return createEntry(record, eventType, {
+        actorCombatantId,
+        actionId,
+        actionLabel: label,
+        messageTemplate: '{actor} could not complete {action}.',
+        templateValues: { action: label },
+        kind: actionKind(actionId),
+        headline: 'Interrupted',
+      })
+    }
     case 'combat_action_used': {
       const actorCombatantId = stringValue(event.actorId)
       const actionId = presentationActionId(event.actionId)
