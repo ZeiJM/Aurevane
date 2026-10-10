@@ -76,6 +76,8 @@ Push verified task commits and durable evidence summaries to this non-deploying 
 
 ### Task 2: Captured execution, modifiers, Automatic and Ongoing behavior
 
+**Current architecture clarification:** use `docs/superpowers/specs/2026-10-10-manual-modifier-command-design.md` and its Task2 continuation plan `docs/superpowers/plans/2026-10-10-manual-modifier-command.md` (Ruling10). Explicit references and one atomic canonical/native command resolve the Manual modifier integration gap; all original task gates/BASE remain.
+
 **Files:** New `combat-behavior-runtime.ts`/tests and `combat-behavior-capture.ts`/tests; extend `actions.ts`, `combat-action-source.ts`, `combat-kernel-types.ts`, actual encounter creation/pending/turn/AI service paths.
 
 **Interfaces:** Consume T1. Produce immutable `CapturedCombatAbilitySource`, `CombatAbilityActivationInput`, `evaluateCombatAbility(input: CombatAbilityActivationInput): CombatActionEvaluation`, `activateCombatAbility(input: CombatAbilityActivationInput): CombatResolutionTransition`, and source-owned reconciliation/event processing functions used by actual services. Input includes state, actor ID, captured source, behavior ID, selection, catalogue and command provenance; never a client-supplied execution definition.
