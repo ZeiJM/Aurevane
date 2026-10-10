@@ -4,7 +4,7 @@ import {
   type CombatNativeExecutionHooks,
   type CombatNativeMutationFacts,
 } from './combat-native-mutations'
-import { validateCombatAbilityState } from './combat-ability-state'
+import { validateCombatAbilityState, pruneCombatAbilityActionHistory } from './combat-ability-state'
 import {
   committedCombatAttemptRecorded,
   type CommittedCombatExecution,
@@ -1664,7 +1664,7 @@ function applyCombatRoundBoundary(
       effect.activationRound <= nextState.tactical.battle.round,
   )
   if (nextState.pendingEffects)
-    nextState = {
+    nextState = pruneCombatAbilityActionHistory({
       ...nextState,
       pendingEffects: nextState.pendingEffects.filter(
         (effect) =>
@@ -1672,7 +1672,7 @@ function applyCombatRoundBoundary(
           effect.percentageDotCommandId !== undefined ||
           effect.activationRound > nextState.tactical.battle.round,
       ),
-    }
+    })
   const activationGroups: PendingCombatEffect[][] = []
   const packetGroups = new Map<string, PendingCombatEffect[]>()
   for (const pending of ready) {
@@ -1789,10 +1789,10 @@ function applyCombatRoundBoundary(
             [],
             [pending.percentageDotDamageEffectOrdinal!],
           )
-          nextState = {
+          nextState = pruneCombatAbilityActionHistory({
             ...nextState,
             pendingEffects: nextState.pendingEffects?.filter((row) => row !== pending),
-          }
+          })
         }
         continue
       }
@@ -1890,10 +1890,10 @@ function applyCombatRoundBoundary(
       const command = { sourceCombatantId: pending.actorId, actionId: pending.actionId }
       const directState =
         pending.percentageDotCommandId !== undefined
-          ? {
+          ? pruneCombatAbilityActionHistory({
               ...lineaged,
               pendingEffects: lineaged.pendingEffects?.filter((row) => row !== pending),
-            }
+            })
           : lineaged
       const resolved =
         pending.skillPacketCommandId !== undefined
@@ -4500,11 +4500,11 @@ function settlePercentageDotApplications(
     ),
   )
   return {
-    state: {
+    state: pruneCombatAbilityActionHistory({
       ...nextState,
       pendingEffects: retained,
       percentageDotCommands: nextState.percentageDotCommands?.filter((row) => needed.has(row.id)),
-    },
+    }),
     events,
     projections,
   }
@@ -5661,7 +5661,7 @@ function completeBattleIfResolved(state: CombatEncounterState): CombatResolution
   })
   const nextState = withBattle(
     state.percentageDotPolicyVersion === 1
-      ? { ...state, pendingEffects: [], percentageDotCommands: [] }
+      ? pruneCombatAbilityActionHistory({ ...state, pendingEffects: [], percentageDotCommands: [] })
       : state,
     battle,
   )

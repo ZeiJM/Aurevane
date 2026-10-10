@@ -133,6 +133,7 @@ export interface CombatAbilityEventSession {
   guard: CombatTriggerGuard
   mutationOrdinal: number
   readonly dispatched: Set<string>
+  readonly actionUsage: Map<string, Set<string>>
 }
 const sessions = new WeakSet<CombatAbilityEventSession>()
 const frames = new WeakMap<CombatAbilityEventFrame, CombatAbilityEventSession>()
@@ -223,8 +224,19 @@ function captureAutomaticImpulses(
 }
 export function createCombatAbilityEventSession(
   guard: CombatTriggerGuard,
+  state?: CombatEncounterState,
 ): CombatAbilityEventSession {
-  const session = { guard, mutationOrdinal: 0, dispatched: new Set<string>() }
+  const session = {
+    guard,
+    mutationOrdinal: 0,
+    dispatched: new Set<string>(),
+    actionUsage: new Map(
+      (state?.abilityRuntime?.usage ?? []).map((row) => [
+        row.key,
+        new Set([row.rootActionId, ...(row.pendingRootActionIds ?? [])]),
+      ]),
+    ),
+  }
   sessions.add(session)
   return session
 }

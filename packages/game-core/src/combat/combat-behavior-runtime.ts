@@ -1,3 +1,4 @@
+import { pruneCombatAbilityActionHistory } from './combat-ability-state'
 import { hasCurrentPoison, hasCurrentBleed, currentBurnInstance } from './combat-dots'
 import {
   prepareCombatAbilityCommand,
@@ -30,6 +31,7 @@ import { createCombatActionProvenance, createCombatTriggerGuard } from './combat
 interface CombatAbilityUsage {
   readonly key: string
   readonly rootActionId: string
+  readonly pendingRootActionIds?: readonly string[]
   readonly commandId: string
   readonly ownerCycle: number
   readonly round: number
@@ -203,6 +205,7 @@ export function reconcileCombatAbilitySources(
   state: CombatEncounterState,
   sources: readonly CapturedCombatAbilitySource[],
 ): CombatEncounterState {
+  state = pruneCombatAbilityActionHistory(state)
   const captured = sources.map(captureCombatAbilitySource)
   if (new Set(captured.map((source) => source.sourceInstanceId)).size !== captured.length)
     throw new TypeError('duplicate-captured-source')

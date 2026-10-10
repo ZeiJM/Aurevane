@@ -1,3 +1,4 @@
+import { combatAbilityLiveRootIds } from './combat-ability-state'
 import { prepareNativePv1fTurn } from './pv1f-turn-preparation'
 import type { CombatNativeExecutionHooks } from './combat-native-mutations'
 import {
@@ -229,7 +230,9 @@ export function combatAbilityParticipantIssues(
           ? usage.round === input.state.tactical.battle.round
           : scope === 'once-per-owner-turn'
             ? usage.ownerCycle === combatTurnCycle(input.state, input.actorId)
-            : usage.rootActionId === rootActionId,
+            : usage.rootActionId === rootActionId ||
+              usage.pendingRootActionIds?.includes(rootActionId) ||
+              input.eventSession?.actionUsage.get(key)?.has(rootActionId),
     )
   )
     issues.push({
@@ -286,6 +289,7 @@ export function combatAbilityCostIssues(
 export function prepareCombatAbilityCommand(
   input: CombatAbilityCommandInput,
 ): PreparedCombatAbilityCommand {
+  if (input.eventSession) assertCombatAbilityEventSession(input.eventSession, input.context)
   let action: CombatActionDefinition, participant: Participant
   const root = input.root
   if (root.kind === 'canonical') {
@@ -543,14 +547,29 @@ export function commitCombatAbilityCommand(
         : { ...guard, executedInstanceIds: [...guard.executedInstanceIds, instanceId] }
     if (!captures.some((row) => row.sourceInstanceId === source.sourceInstanceId))
       captures.push(source)
+    const rootActionId = input.trigger?.rootActionId ?? prepared.context.provenance.triggerChainId
+    const previous = usage.find((row) => row.key === key)
+    const liveRoots = combatAbilityLiveRootIds(paid)
+    const pendingRootActionIds = [
+      ...new Set([
+        ...(previous?.pendingRootActionIds ?? []),
+        ...(previous ? [previous.rootActionId] : []),
+      ]),
+    ].filter((id) => id !== rootActionId && liveRoots.has(id))
+    if (input.eventSession) {
+      const used = input.eventSession.actionUsage.get(key) ?? new Set<string>()
+      used.add(rootActionId)
+      input.eventSession.actionUsage.set(key, used)
+    }
     usage = [
       ...usage.filter((row) => row.key !== key),
       {
         key,
-        rootActionId: input.trigger?.rootActionId ?? prepared.context.provenance.triggerChainId,
+        rootActionId,
+        ...(pendingRootActionIds.length ? { pendingRootActionIds } : {}),
         commandId: participant.triggerId
-          ? JSON.stringify([prepared.context.provenance.triggerChainId, participant.triggerId])
-          : prepared.context.provenance.triggerChainId,
+          ? JSON.stringify([rootActionId, participant.triggerId])
+          : rootActionId,
         ownerCycle: combatTurnCycle(paid, input.actorId),
         round: paid.tactical.battle.round,
         battleId: paid.tactical.battle.battleId,
@@ -577,7 +596,7 @@ export function commitCombatAbilityCommand(
     paymentEvents.push(...spent.events)
   }
   const context = { ...prepared.context, triggerGuard: guard }
-  const session = input.eventSession ?? createCombatAbilityEventSession(guard)
+  const session = input.eventSession ?? createCombatAbilityEventSession(guard, paid)
   assertCombatAbilityEventSession(session, context)
   session.guard = guard
   const depth = input.eventDepth ?? input.trigger?.depth ?? 0
@@ -869,7 +888,7 @@ export function createCombatNativeAbilityRuntime(
   )
   if (!source) return undefined
   const context = combatAbilityCommandContext(state, source)
-  const session = createCombatAbilityEventSession(context.triggerGuard)
+  const session = createCombatAbilityEventSession(context.triggerGuard, state)
   const queue: CombatAbilityEventFrame[] = []
   const identity = JSON.stringify([
     'native-boundary',

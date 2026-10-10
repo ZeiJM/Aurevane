@@ -14,7 +14,9 @@ import {
   type CombatEncounterState,
   type CombatResolutionEvent,
 } from './actions'
-import { createCombatGroundArea } from './combat-ground-areas'
+import { createCombatGroundArea, advanceCombatGroundAreas } from './combat-ground-areas'
+import { validateCombatAbilityState } from './combat-ability-state'
+import { combatAbilityUsageKey } from './combat-ability-command'
 import { percentageDotEncounter } from './combat-percentage-dots.test-utils'
 import { selectCurrentFinalFacing } from './board'
 import {
@@ -1094,4 +1096,65 @@ it('native movement immediately refreshes an Ongoing source without any Automati
       (event) => event.event === 'combat_action_used',
     ),
   ).toHaveLength(0)
+})
+
+it('native Ground expiry prunes completed-root history while preserving live root and latest usage', () => {
+  const captured = captureCombatAbilitySource(source())
+  const base = reconcileCombatAbilitySources(encounter(), [captured])
+  const action = groundAction()
+  const facts = (rootActionId: string) => ({
+    rootActionId,
+    actionFacts: {
+      classification: 'attack' as const,
+      attackFamily: 'physical' as const,
+      tags: ['attack'],
+    },
+  })
+  const first = createCombatGroundArea(
+    base,
+    'enemy',
+    { ...action, groundArea: { ...action.groundArea!, durationRounds: 1 } },
+    [{ x: 2, y: 1 }],
+    content,
+    { abilityCommandFacts: facts('first-root') },
+  )
+  const both = createCombatGroundArea(first, 'enemy', action, [{ x: 3, y: 1 }], content, {
+    abilityCommandFacts: facts('latest-root'),
+  })
+  const usage = {
+    key: combatAbilityUsageKey(both, captured, captured.definition.behaviors[0]!),
+    rootActionId: 'latest-root',
+    pendingRootActionIds: ['first-root'],
+    commandId: 'latest-root',
+    ownerCycle: 0,
+    round: both.tactical.battle.round,
+    battleId: both.tactical.battle.battleId,
+  }
+  const state = { ...both, abilityRuntime: { ...both.abilityRuntime!, usage: [usage] } }
+  expect(validateCombatAbilityState(state)).toEqual([])
+  for (const pendingRootActionIds of [
+    ['foreign'],
+    ['first-root', 'first-root'],
+    ['latest-root'],
+    [3],
+  ])
+    expect(
+      validateCombatAbilityState({
+        ...state,
+        abilityRuntime: { ...state.abilityRuntime!, usage: [{ ...usage, pendingRootActionIds }] },
+      } as never).length,
+    ).toBeGreaterThan(0)
+  const out = advanceCombatGroundAreas({
+    ...state,
+    tactical: {
+      ...state.tactical,
+      battle: { ...state.tactical.battle, round: state.tactical.battle.round + 1 },
+    },
+  })
+  expect(out.groundAreas!.map((row) => row.abilityCommandFacts!.rootActionId)).toEqual([
+    'latest-root',
+  ])
+  expect(out.abilityRuntime!.usage).toEqual([{ ...usage, pendingRootActionIds: undefined }])
+  expect(Object.hasOwn(out.abilityRuntime!.usage[0]!, 'pendingRootActionIds')).toBe(false)
+  expect(validateCombatAbilityState(out)).toEqual([])
 })

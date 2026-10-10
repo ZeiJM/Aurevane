@@ -84,3 +84,101 @@ it('restored condition truth admits only unique exact known Automatic action ent
     expect(validateCombatAbilityState(withTruth(bad)).length).toBeGreaterThan(0)
   expect(validateCombatAbilityState(JSON.parse(JSON.stringify(withTruth([valid]))))).toEqual([])
 })
+
+it('restored usage and maintenance reject foreign, duplicate and malformed inventory authority', () => {
+  const captured = captureCombatAbilitySource(source())
+  const state = reconcileCombatAbilitySources(percentageDotEncounter(), [captured])
+  const valid = {
+    key: JSON.stringify([
+      state.tactical.battle.battleId,
+      captured.sourceInstanceId,
+      captured.ownerCombatantId,
+      captured.abilityId,
+      captured.contentVersion,
+      captured.definition.behaviors[0]!.id,
+    ]),
+    rootActionId: 'original-root',
+    commandId: 'original-root',
+    ownerCycle: 0,
+    round: state.tactical.battle.round,
+    battleId: state.tactical.battle.battleId,
+  }
+  const withUsage = (usage: unknown) =>
+    ({ ...state, abilityRuntime: { ...state.abilityRuntime!, usage } }) as never
+  expect(validateCombatAbilityState(withUsage([valid]))).toEqual([])
+  for (const usage of [
+    [null],
+    [valid, valid],
+    [{ ...valid, key: 'foreign' }],
+    [{ ...valid, battleId: 'foreign' }],
+    [{ ...valid, rootActionId: '' }],
+    [{ ...valid, commandId: 3 }],
+    [{ ...valid, ownerCycle: -1 }],
+    [{ ...valid, ownerCycle: state.tactical.battle.turnNumber + 1 }],
+    [{ ...valid, round: 1.5 }],
+    [{ ...valid, extra: true }],
+    [{ ...valid, pendingRootActionIds: ['foreign'] }],
+    [{ ...valid, pendingRootActionIds: ['original-root', 'original-root'] }],
+  ])
+    expect(validateCombatAbilityState(withUsage(usage)).length).toBeGreaterThan(0)
+  for (const maintained of [
+    [null],
+    [
+      {
+        sourceInstanceId: captured.sourceInstanceId,
+        ownerCombatantId: 'actor',
+        behaviorId: 'root',
+        effectId: 'missing',
+        multiplierBasisPoints: 13000,
+      },
+    ],
+  ])
+    expect(
+      validateCombatAbilityState({
+        ...state,
+        abilityRuntime: { ...state.abilityRuntime!, maintained },
+      } as never).length,
+    ).toBeGreaterThan(0)
+})
+
+it('maintenance restore matches the exact active captured Ongoing contribution', () => {
+  const captured = captureCombatAbilitySource(
+    source({
+      activation: 'ongoing',
+      mode: 'modifier',
+      classification: 'utility',
+      attackFamily: undefined,
+      targeting: null,
+      costs: [],
+      effects: [
+        {
+          id: 'bonus',
+          payload: { type: 'damage-bonus', recipient: 'actor', multiplierBasisPoints: 13000 },
+        },
+      ],
+    }),
+  )
+  const state = reconcileCombatAbilitySources(percentageDotEncounter(), [captured])
+  const row = state.abilityRuntime!.maintained[0]!
+  expect(row).toBeDefined()
+  expect(validateCombatAbilityState(JSON.parse(JSON.stringify(state)))).toEqual([])
+  for (const maintained of [
+    [row, row],
+    [{ ...row, ownerCombatantId: 'enemy' }],
+    [{ ...row, effectId: 'foreign' }],
+    [{ ...row, multiplierBasisPoints: 14000 }],
+    [{ ...row, extra: true }],
+  ])
+    expect(
+      validateCombatAbilityState({
+        ...state,
+        abilityRuntime: { ...state.abilityRuntime!, maintained },
+      } as never).length,
+    ).toBeGreaterThan(0)
+  expect(
+    validateCombatAbilityState({
+      ...state,
+      abilityRuntime: { ...state.abilityRuntime!, activeSourceIds: [] },
+    }).length,
+  ).toBeGreaterThan(0)
+})

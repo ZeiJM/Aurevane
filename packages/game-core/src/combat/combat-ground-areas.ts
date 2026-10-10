@@ -1,3 +1,4 @@
+import { pruneCombatAbilityActionHistory } from './combat-ability-state'
 import {
   validateCombatNativeCommandFacts,
   type CapturedCombatNativeCommandFacts,
@@ -206,7 +207,7 @@ export function advanceCombatGroundAreas(state: CombatEncounterState): CombatEnc
   if (remaining.length === state.groundAreas.length) return state
   // Discard expired area keys while retaining DoT claims for their complete turn cycle.
   const liveKeys = new Set(remaining.map((area) => `ground.entry.${area.id}`))
-  return {
+  return pruneCombatAbilityActionHistory({
     ...state,
     groundAreas: remaining,
     ...(state.turnTriggerState
@@ -222,7 +223,7 @@ export function advanceCombatGroundAreas(state: CombatEncounterState): CombatEnc
           },
         }
       : {}),
-  }
+  })
 }
 
 function validateGroundTiles(state: CombatEncounterState, tiles: readonly GridPosition[]): void {

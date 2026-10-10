@@ -1247,7 +1247,7 @@ it('native Reflect precedes queued damage children and consumes their shared gua
 })
 
 it.each([false, true])(
-  'real delayed settlement retains causal action facts and original action limit; prior hit %s',
+  'real delayed settlement retains causal action facts and concurrent original action limits after another root; prior hit %s',
   (priorHit) => {
     const input = {
       ...command(100, 100, {
@@ -1311,13 +1311,23 @@ it.each([false, true])(
       ...input.state.capturedAbilitySources!,
       reaction,
     ])
-    const committed = commitCombatAbilityCommand({ ...input, state })
+    const first = commitCombatAbilityCommand({ ...input, state })
+    const committed = commitCombatAbilityCommand({
+      ...input,
+      state: first.state,
+      context: combatAbilityCommandContext(first.state, first.state.capturedAbilitySources![0]!),
+    })
     expect(committed.events.filter((event) => event.event === 'combat_action_used')).toHaveLength(
       priorHit ? 2 : 1,
     )
     expect(
       committed.state.pendingEffects![0]!.abilityCommandFacts?.actionFacts?.classification,
     ).toBe('attack')
+    const reactionUsage = committed.state.abilityRuntime!.usage.find((row) =>
+      row.key.includes('pending-reactor'),
+    )!
+    expect(reactionUsage?.pendingRootActionIds?.length ?? 0).toBe(priorHit ? 1 : 0)
+    expect(validateCombatEncounterState(committed.state)).toEqual([])
     let live = JSON.parse(JSON.stringify(committed.state)) as typeof committed.state
     const events: (typeof committed.events)[number][] = []
     while (live.tactical.battle.round === state.tactical.battle.round) {
@@ -1327,17 +1337,23 @@ it.each([false, true])(
     }
     expect(
       events.filter((event) => event.event === 'damage_applied').map((event) => event.actionId),
-    ).toEqual(['test.ability'])
+    ).toEqual(['test.ability', 'test.ability'])
     expect(
       events.filter((event) => event.event === 'combat_action_used').map((event) => event.actionId),
-    ).toEqual(priorHit ? [] : ['pending.child'])
+    ).toEqual(priorHit ? [] : ['pending.child', 'pending.child'])
     expect(
       events.filter((event) => event.event === 'ap_spent' || event.event === 'hp_spent'),
     ).toHaveLength(0)
     expect(events.filter((event) => event.event === 'mp_spent')).toEqual(
-      priorHit ? [] : [expect.objectContaining({ amount: 1 })],
+      priorHit
+        ? []
+        : [expect.objectContaining({ amount: 1 }), expect.objectContaining({ amount: 1 })],
     )
-    expect(live.tactical.battle.combatants.find((unit) => unit.id === 'actor')!.hp).toBe(101)
+    expect(live.tactical.battle.combatants.find((unit) => unit.id === 'actor')!.hp).toBe(102)
+    expect(live.abilityRuntime!.usage.every((row) => row.pendingRootActionIds === undefined)).toBe(
+      true,
+    )
+    expect(validateCombatEncounterState(live)).toEqual([])
     expect(live.abilityRuntime!.usage.filter((row) => row.key.includes('source-a'))).toHaveLength(1)
   },
 )
@@ -1648,4 +1664,23 @@ it.each([
     expect.objectContaining({ field: 'pendingEffects', message: 'Invalid pinned delayed effect.' }),
   )
   expect(() => finishPv1fTurn(bad as never, 'west')).toThrow('Invalid')
+})
+
+it('rejects foreign event-session history before command admission or usage changes', () => {
+  const input = command()
+  const serialized = JSON.stringify(input.state)
+  const eventSession = {
+    guard: input.context.triggerGuard,
+    mutationOrdinal: 0,
+    dispatched: new Set(),
+    actionUsage: new Map(),
+  }
+  expect(() => prepareCombatAbilityCommand({ ...input, eventSession } as never)).toThrow(
+    'invalid-automatic-event-session',
+  )
+  expect(() => commitCombatAbilityCommand({ ...input, eventSession } as never)).toThrow(
+    'invalid-automatic-event-session',
+  )
+  expect(JSON.stringify(input.state)).toBe(serialized)
+  expect(eventSession.actionUsage.size).toBe(0)
 })
