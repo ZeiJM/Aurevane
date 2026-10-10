@@ -484,3 +484,27 @@ it('stops an event route when its live objective is withdrawn, leaving quest pol
   expect(next.position).toEqual(state.position)
   expect(next.route).toEqual([])
 })
+
+describe('offline characters in the shared world', () => {
+  it('keeps offline characters at their saved spot in the starting town and never attackable', () => {
+    const state = newWorldState()
+    const view = projectWorld(
+      state,
+      [
+        {
+          characterId: 'sleeper',
+          name: 'Sleeper',
+          level: 4,
+          portraitRef: 'p',
+          imageUrl: null,
+          position: state.position,
+          online: false,
+          attackable: false,
+        },
+      ],
+      1000,
+    )
+    expect(view.players).toHaveLength(1)
+    expect(view.players[0]).toMatchObject({ name: 'Sleeper', online: false, attackable: false })
+  })
+})

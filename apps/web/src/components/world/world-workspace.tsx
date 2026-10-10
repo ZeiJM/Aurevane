@@ -8,6 +8,7 @@ import type { WorldIntent, WorldPosition, WorldView } from '@/world/types'
 import { Globe } from './globe'
 import { SectorMap } from './sector-map'
 import { Surroundings } from './surroundings'
+import { WorldDock } from './world-dock'
 import styles from './world.module.css'
 
 export function WorldWorkspace({
@@ -332,6 +333,21 @@ export function WorldWorkspace({
             />
           )}
         </div>
+        <WorldDock
+          players={view.players}
+          landmarks={local.landmarks}
+          safe={Boolean(safe)}
+          selectedPlayerId={player?.characterId ?? null}
+          disabled={disabled}
+          onSelectPlayer={setTarget}
+          onApproach={(position) => walk(position)}
+          onAttack={(targetId) => void send({ kind: 'attack', targetId })}
+          onLandmark={(landmark) => {
+            inspectTile({ sectorId: local.id, x: landmark.x, y: landmark.y })
+            setSelected(local.id)
+            setMode('sector')
+          }}
+        />
         <div className={styles.travelBar}>
           <span data-world-travel-status>
             {view.route.length ? (
@@ -508,53 +524,7 @@ export function WorldWorkspace({
               Inspect sector →
             </button>
           </section>
-        ) : (
-          <section className={styles.panel}>
-            <h2>⚑ Nearby Players</h2>
-            <p className={styles.quiet}>Near you in {local.name}.</p>
-            {player ? (
-              <>
-                <div className={styles.playerSummary}>
-                  <Image src={player.imageUrl!} alt="" width={72} height={72} />
-                  <div>
-                    <h3>{player.name}</h3>
-                    <span>Level {player.level}</span>
-                    <small>{player.attackable ? '● Within reach' : 'Approach to interact'}</small>
-                  </div>
-                </div>
-                {view.players.length > 1 ? (
-                  <select
-                    aria-label="Select nearby player"
-                    value={player.characterId}
-                    onChange={(e) => setTarget(e.target.value)}
-                  >
-                    {view.players.map((p) => (
-                      <option key={p.characterId} value={p.characterId}>
-                        {p.name}
-                      </option>
-                    ))}
-                  </select>
-                ) : null}
-                <button
-                  className={styles.attack}
-                  disabled={disabled || !player.attackable}
-                  onClick={() => void send({ kind: 'attack', targetId: player.characterId })}
-                >
-                  ⚔ Attack
-                </button>
-                <p className={styles.quiet}>
-                  Attacks begin tactical combat immediately in open territory.
-                </p>
-              </>
-            ) : (
-              <div className={styles.emptyPlayers}>
-                <span>♧</span>
-                <h3>A quiet stretch of road</h3>
-                <p>Other travellers appear here when they enter your surroundings.</p>
-              </div>
-            )}
-          </section>
-        )}
+        ) : null}
         {pulseObjectives.length ? (
           <section className={styles.panel} aria-label="World Pulse">
             <h2>✦ World Pulse</h2>

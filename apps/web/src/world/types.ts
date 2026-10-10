@@ -98,6 +98,8 @@ export interface WorldPlayer {
   portraitRef: string
   imageUrl: string | null
   position: WorldPosition
+  /** Seen in the World within the last 40 seconds. Absent on historical payloads. */
+  online?: boolean
   attackable: boolean
 }
 export interface WorldCell {
