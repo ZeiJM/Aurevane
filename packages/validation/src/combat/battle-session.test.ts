@@ -210,3 +210,32 @@ it('parses explicit area Ground intent without accepting false or unrecognized f
     }),
   ).toBeNull()
 })
+
+it('admits reference-only plural unit/Self/Ground intent and rejects nested/overbudget payloads', () => {
+  const target = {
+    kind: 'selections',
+    selections: [
+      { kind: 'unit', combatantId: 'enemy' },
+      { kind: 'self' },
+      { kind: 'tile', position: { x: 3, y: 2 } },
+    ],
+  }
+  const request = {
+    idempotencyKey: IDEMPOTENCY_KEY,
+    expectedBattleVersion: 1,
+    intent: { kind: 'action', actionId: 'plural', behaviorId: 'strike', target },
+  }
+  expect(parseBattleIntentRequest(request)?.intent).toEqual(request.intent)
+  for (const selections of [
+    [],
+    [...target.selections, target.selections[0]],
+    [{ kind: 'selections', selections: target.selections }],
+    [{ kind: 'unit', combatantId: 'enemy', definition: {} }],
+  ])
+    expect(
+      parseBattleIntentRequest({
+        ...request,
+        intent: { ...request.intent, target: { kind: 'selections', selections } },
+      }),
+    ).toBeNull()
+})

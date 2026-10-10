@@ -54,6 +54,21 @@ const combatTargetSelectionSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('activate'), ground: z.literal(true).optional() }).strict(),
   z.object({ kind: z.literal('unit'), combatantId: combatantIdSchema }).strict(),
   z.object({ kind: z.literal('tile'), position: gridPositionSchema }).strict(),
+  z
+    .object({
+      kind: z.literal('selections'),
+      selections: z
+        .array(
+          z.discriminatedUnion('kind', [
+            z.object({ kind: z.literal('self') }).strict(),
+            z.object({ kind: z.literal('unit'), combatantId: combatantIdSchema }).strict(),
+            z.object({ kind: z.literal('tile'), position: gridPositionSchema }).strict(),
+          ]),
+        )
+        .min(1)
+        .max(3),
+    })
+    .strict(),
 ])
 
 export const battleIntentSchema = z.discriminatedUnion('kind', [

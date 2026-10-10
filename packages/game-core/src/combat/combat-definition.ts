@@ -373,24 +373,24 @@ export function validateAbilityDefinition(value: unknown): readonly AbilityDefin
         candidate.activation !== 'automatic' ||
         candidate.mode !== 'action' ||
         !record(target) ||
-        !['self', 'unit'].includes(target.kind as string) ||
+        !['self', 'unit', 'ground-tile', 'empty-tile'].includes(target.kind as string) ||
         !record(target.shape) ||
-        target.shape.kind !== 'single' ||
+        !['single', 'line'].includes(target.shape.kind as string) ||
         (target.kind === 'self' && binding.subject !== 'owner')
       )
         issue(
           `${path}.automaticTarget`,
           'invalid-automatic-target',
-          'Automatic target binding applies only to Automatic Self/ordinary unit actions; Self binds owner.',
+          'Automatic single/Line actions bind a causal subject; Self binds owner; Circle/All use owner activation.',
         )
       if (record(binding)) keys(binding, ['subject'], `${path}.automaticTarget`)
     } else if (
       candidate.activation === 'automatic' &&
       candidate.mode === 'action' &&
       record(target) &&
-      target.kind === 'unit' &&
+      target.kind !== 'self' &&
       record(target.shape) &&
-      target.shape.kind === 'single'
+      ['single', 'line'].includes(target.shape.kind as string)
     )
       issue(
         `${path}.automaticTarget`,

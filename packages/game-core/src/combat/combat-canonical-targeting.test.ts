@@ -16,6 +16,11 @@ import {
   maximumSupportedCombatRange,
 } from './combat-targeting-shapes'
 import { P2_7_TACTICAL_HALL_ARENAS } from './tactical-hall-arenas'
+import {
+  chooseBuildAwareRecruitAiDecision,
+  executeBuildAwareRecruitAiAction,
+} from './recruit-ai-build'
+import { reattachStatDrivenCombatBridge } from './stat-driven-combat'
 
 const target = (overrides: Partial<CombatTargetSpec> = {}): CombatTargetSpec => ({
   geometryVersion: 3,
@@ -302,4 +307,46 @@ it('Line clips walls but independent disabled LoS permits Steam; line_all_eligib
         { kind: 'activate' },
       ),
     ).toHaveLength(size!)
+})
+
+it('actual captured Recruit AI selects and commits the plural set through the shared command', () => {
+  const command = input()
+  const state = reattachStatDrivenCombatBridge(command.state, percentageDotEncounter().statBridge)
+  const before = JSON.stringify(state)
+  const choice = chooseBuildAwareRecruitAiDecision({
+    state,
+    tieBreakSeed: 42,
+    skillOptions: { committedSkills: [] },
+  })
+  expect(choice.intent.kind).toBe('action')
+  if (choice.intent.kind !== 'action') throw new Error('action required')
+  expect(choice.intent.target).toEqual(command.selection)
+  expect(JSON.stringify(state)).toBe(before)
+  const committed = executeBuildAwareRecruitAiAction(
+    state,
+    choice.intent.actionId,
+    choice.intent.target,
+    { committedSkills: [] },
+    { behaviorId: choice.intent.behaviorId },
+  )
+  expect(
+    committed.events
+      .filter(
+        (event): event is { event: 'damage_applied'; targetCombatantId: string } =>
+          typeof event === 'object' &&
+          event !== null &&
+          'event' in event &&
+          event.event === 'damage_applied',
+      )
+      .map((event) => event.targetCombatantId),
+  ).toEqual(['enemy', 'other'])
+  expect(
+    committed.events.filter(
+      (event) =>
+        typeof event === 'object' &&
+        event !== null &&
+        'event' in event &&
+        event.event === 'ap_spent',
+    ),
+  ).toHaveLength(1)
 })

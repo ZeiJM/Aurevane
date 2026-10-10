@@ -46,6 +46,7 @@ import { createBattlePreviewService } from './battle-preview-service'
 import { createBattleAbortService } from './battle-abort-service'
 import type { CombatContentResolver } from '@/server/combat/combat-content-resolver'
 import type { AbilityDefinition } from '@aurevane/game-core/combat/combat-definition'
+import { parseBattleIntentRequest } from '@aurevane/validation/combat/battle-session'
 import { convertV5ResonanceToV2 } from '@aurevane/game-core/combat/resonance-v2'
 import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
 
@@ -54,6 +55,162 @@ const CHARACTER_ID = '22222222-2222-4222-8222-222222222222'
 const SESSION_ID = '33333333-3333-4333-8333-333333333333'
 const CREATED_AT = '2026-09-04T03:45:00.000Z'
 const PLAYER_ID = `character:${CHARACTER_ID}`
+
+it('actual reference parser, preview and atomic CAS commit share plural geometry and a safe owner targeting DTO', async () => {
+  const original = resolveEssenceForBuild('vanguard', null)!
+  const targeting = {
+    geometryVersion: 3 as const,
+    categories: ['enemy', 'ground'] as const,
+    maximumSelections: 3,
+    kind: 'unit' as const,
+    teamPolicy: 'enemy' as const,
+    friendlyFire: 'enemies-only' as const,
+    shape: { kind: 'single' as const },
+    minimumRange: 0,
+    maximumRange: 20,
+    requiresLineOfSight: false,
+    maximumElevationDifference: null,
+  }
+  const ability: AbilityDefinition = {
+    schemaVersion: 1,
+    behaviors: [
+      {
+        id: 'plural',
+        activation: 'manual',
+        mode: 'action',
+        classification: 'attack',
+        attackFamily: 'physical',
+        costs: [
+          { resource: 'ap', amount: 11 },
+          { resource: 'mp', amount: 2 },
+          { resource: 'hp', amount: 1 },
+        ],
+        cooldown: null,
+        requirements: null,
+        targeting,
+        accuracy: { kind: 'fixed', chanceBasisPoints: 10000 },
+        effects: [
+          { id: 'hit', payload: { type: 'damage', recipient: 'affected-units', amount: 3 } },
+        ],
+      },
+    ],
+  }
+  const published = {
+    ...original,
+    contentVersion: 77,
+    skill: { ...original.skill, contentVersion: 77 },
+    ability,
+  }
+  const resolver: CombatContentResolver = {
+    resolveCurrentSkillDefinition: async (id) => resolveMatureSkillVersion(id),
+    resolvePinnedSkillDefinition: async (id, version) => resolveMatureSkillVersion(id, version),
+    resolveCurrentEssenceDefinition: async () => structuredClone(published),
+    resolvePinnedEssenceDefinition: async () => structuredClone(published),
+  }
+  const battles = battleRepository()
+  const service = createBattleSessionService({
+    characters: characterRepository(),
+    battles: battles.repository,
+    builds: buildRepository(pureSnapshot()).repository,
+    combatContentResolver: resolver,
+  })
+  const createdView = await service.createSession({
+    userId: USER_ID,
+    characterId: CHARACTER_ID,
+    idempotencyKey: '88888888-8888-4888-8888-888888888888',
+    battleHallRecordId: 'recruit-sparring',
+    enemyCount: 2,
+  })
+  const state = battles.record!.snapshot as BattleAuthoritativeEncounterState
+  const enemies = state.tactical.battle.combatants
+    .filter(
+      (unit) =>
+        unit.teamId !==
+        state.tactical.battle.combatants.find((unit) => unit.id === PLAYER_ID)!.teamId,
+    )
+    .map((unit) => unit.id)
+  expect(enemies).toHaveLength(2)
+  expect(createdView.snapshot).toHaveProperty('manualActionTargets', [
+    { actionId: original.essenceId, behaviorId: 'plural', target: targeting },
+  ])
+  expect(projectBattleSnapshot(state, createSpectatorBattleViewerEntitlement())).toHaveProperty(
+    'manualActionTargets',
+    [],
+  )
+  const parsed = parseBattleIntentRequest({
+    idempotencyKey: '99999999-9999-4999-8999-999999999999',
+    expectedBattleVersion: 1,
+    intent: {
+      kind: 'action',
+      actionId: original.essenceId,
+      behaviorId: 'plural',
+      target: {
+        kind: 'selections',
+        selections: enemies.map((combatantId) => ({ kind: 'unit', combatantId })),
+      },
+    },
+  })!
+  const before = JSON.stringify(battles.record!.snapshot)
+  const preview = await createBattlePreviewService(battles.repository, resolver).previewIntent({
+    userId: USER_ID,
+    battleSessionId: SESSION_ID,
+    expectedBattleVersion: 1,
+    intent: parsed.intent,
+  })
+  expect(preview.preview).toMatchObject({
+    kind: 'action',
+    legal: true,
+    actionEconomyCost: 11,
+    affectedCombatantIds: enemies.slice().sort(),
+  })
+  expect(JSON.stringify(battles.record!.snapshot)).toBe(before)
+  const duplicate = {
+    ...parsed.intent,
+    target: {
+      kind: 'selections' as const,
+      selections: [
+        { kind: 'unit' as const, combatantId: enemies[0]! },
+        { kind: 'unit' as const, combatantId: enemies[0]! },
+      ],
+    },
+  }
+  await expect(
+    service.submitIntent({
+      userId: USER_ID,
+      battleSessionId: SESSION_ID,
+      expectedBattleVersion: 1,
+      idempotencyKey: '77777777-7777-4777-8777-777777777777',
+      intent: duplicate,
+    }),
+  ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
+  expect(battles.commitBattleIntent).not.toHaveBeenCalled()
+  await service.submitIntent({ userId: USER_ID, battleSessionId: SESSION_ID, ...parsed })
+  const committed = battles.commitBattleIntent.mock.calls[0]![0]
+  expect(
+    committed.events
+      .filter(
+        (event): event is { event: 'damage_applied'; targetCombatantId: string } =>
+          typeof event === 'object' &&
+          event !== null &&
+          'event' in event &&
+          event.event === 'damage_applied',
+      )
+      .map((event) => event.targetCombatantId),
+  ).toEqual(enemies.slice().sort())
+  expect(
+    committed.events.filter(
+      (event) =>
+        typeof event === 'object' &&
+        event !== null &&
+        'event' in event &&
+        event.event === 'ap_spent',
+    ),
+  ).toHaveLength(1)
+  expect(battles.commitBattleIntent).toHaveBeenCalledTimes(1)
+  expect(JSON.stringify(preview)).not.toMatch(
+    /accuracyRule|chanceBasisPoints|capturedAbilitySources|effectOrigin|abilityParticipants|modifierSuppressions/,
+  )
+})
 
 it('actual practice abort retains the exact archived source and truth without startup activation or maintenance', async () => {
   const original = resolveEssenceForBuild('vanguard', null)!
@@ -665,28 +822,6 @@ it.each([1, 2])(
       ],
     }
     const before = JSON.stringify(battles.record!.snapshot)
-    if (maximumSelections === 2) {
-      await expect(
-        createBattlePreviewService(battles.repository, resolver).previewIntent({
-          userId: USER_ID,
-          battleSessionId: SESSION_ID,
-          expectedBattleVersion: 1,
-          intent,
-        }),
-      ).rejects.toThrow('canonical-plural-targeting-required')
-      await expect(
-        service.submitIntent({
-          userId: USER_ID,
-          battleSessionId: SESSION_ID,
-          expectedBattleVersion: 1,
-          idempotencyKey: '99999999-9999-4999-8999-999999999999',
-          intent,
-        }),
-      ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
-      expect(battles.commitBattleIntent).not.toHaveBeenCalled()
-      expect(JSON.stringify(battles.record!.snapshot)).toBe(before)
-      return
-    }
     for (const manualModifiers of [
       [intent.manualModifiers[0]!, intent.manualModifiers[0]!],
       [{ sourceInstanceId: 'foreign.source', behaviorId: 'extra' }],

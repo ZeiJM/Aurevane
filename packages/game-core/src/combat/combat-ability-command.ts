@@ -681,6 +681,7 @@ export function commitCombatAbilityCommand(
     actionFacts,
     triggeringCombatantId: input.actorId,
     selectedCombatantId: prepared.evaluation.primaryCombatantId ?? undefined,
+    selectedCombatantIds: prepared.evaluation.selectedCombatantIds,
     affectedCombatantIds: prepared.evaluation.affectedCombatantIds,
   }
   const outcomeQueue: CombatAbilityEventFrame[] = []
@@ -812,6 +813,7 @@ export function commitCombatAbilityCommand(
             rootActionId: facts.rootActionId,
             actionFacts,
             selectedCombatantId: facts.selectedCombatantId,
+            selectedCombatantIds: facts.selectedCombatantIds,
           }
         : undefined,
     prepareIncoming: (state) => prepareNativePv1fTurn(state, true),
@@ -832,6 +834,11 @@ export function commitCombatAbilityCommand(
           nativeFacts.selectedCombatantId ??
           (!nativeFacts.prepaid && nativeFacts.actionId === prepared.action.id
             ? facts.selectedCombatantId
+            : undefined),
+        selectedCombatantIds:
+          nativeFacts.selectedCombatantIds ??
+          (!nativeFacts.prepaid && nativeFacts.actionId === prepared.action.id
+            ? facts.selectedCombatantIds
             : undefined),
       })
       outcomeQueue.push(mutation.frame)

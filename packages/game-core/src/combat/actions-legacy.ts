@@ -471,7 +471,7 @@ interface CapturedElementalApplication {
 export interface PendingCombatEffect {
   abilityCommandFacts?: Pick<
     CombatNativeMutationFacts,
-    'actionFacts' | 'selectedCombatantId' | 'rootActionId'
+    'actionFacts' | 'selectedCombatantId' | 'selectedCombatantIds' | 'rootActionId'
   >
   commandDamageBonuses?: readonly CombatCommandDamageBonus[]
   /** Effective canonical packet timing is pinned independently of historical global policy. */

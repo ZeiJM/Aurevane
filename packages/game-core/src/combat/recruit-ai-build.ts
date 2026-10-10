@@ -3,6 +3,7 @@ import { combatAbilityCommandContext } from './combat-behavior-runtime'
 import type { CapturedCombatAbilitySource } from './combat-behavior-capture'
 import { outgoingSuppressionBasisPoints } from './combat-suppress'
 import { enumerateCombatTargetSelections } from './combat-targeting-shapes'
+import { buildCombatAiPluralSelection } from './combat-ai-plural-selection'
 import { terrainOverlayAiUtility, terrainOverlayAt } from './terrain-overlays'
 import { combatStatusDetails } from './status-content'
 import { isMaterializedCombatEffect } from './summon-content'
@@ -167,47 +168,48 @@ function canonicalSkillCandidates(
     source.definition.behaviors.flatMap((behavior) => {
       if (behavior.activation !== 'manual' || behavior.mode !== 'action' || !behavior.targeting)
         return []
-      return enumerateCombatTargetSelections(prepared, actorId, behavior.targeting).flatMap(
-        (target) => {
-          try {
-            const command = prepareCombatAbilityCommand({
-              state: prepared,
-              actorId,
-              root: { kind: 'canonical', source, behaviorId: behavior.id },
-              selection: target,
-              content: PV1F_COMBAT_CONTENT,
-              context: combatAbilityCommandContext(prepared, source),
-            })
-            if (!command.evaluation.legal) return []
-            const utility =
-              projectedCombatEffectUtility(command.evaluation, prepared, command.action.effects) +
-              terrainOverlayAiUtility(prepared, command.evaluation)
-            if (utility <= 0) return []
-            return [
-              {
-                actionId: source.abilityId,
-                behaviorId: behavior.id,
-                recovery: behavior.classification === 'recovery',
-                target,
-                evaluation: command.evaluation,
-                utility:
-                  (behavior.classification === 'recovery'
-                    ? profile.recoverUtility
-                    : behavior.classification === 'utility'
-                      ? profile.guardUtility
-                      : profile.attackUtility) + utility,
-                stableKey: JSON.stringify([
-                  source.sourceInstanceId,
-                  behavior.id,
-                  targetKey(target),
-                ]),
-              },
-            ]
-          } catch {
-            return []
-          }
-        },
-      )
+      const evaluate = (target: CombatTargetSelection): BuildSkillCandidate[] => {
+        try {
+          const command = prepareCombatAbilityCommand({
+            state: prepared,
+            actorId,
+            root: { kind: 'canonical', source, behaviorId: behavior.id },
+            selection: target,
+            content: PV1F_COMBAT_CONTENT,
+            context: combatAbilityCommandContext(prepared, source),
+          })
+          if (!command.evaluation.legal) return []
+          const utility =
+            projectedCombatEffectUtility(command.evaluation, prepared, command.action.effects) +
+            terrainOverlayAiUtility(prepared, command.evaluation)
+          if (utility <= 0) return []
+          return [
+            {
+              actionId: source.abilityId,
+              behaviorId: behavior.id,
+              recovery: behavior.classification === 'recovery',
+              target,
+              evaluation: command.evaluation,
+              utility:
+                (behavior.classification === 'recovery'
+                  ? profile.recoverUtility
+                  : behavior.classification === 'utility'
+                    ? profile.guardUtility
+                    : profile.attackUtility) + utility,
+              stableKey: JSON.stringify([source.sourceInstanceId, behavior.id, targetKey(target)]),
+            },
+          ]
+        } catch {
+          return []
+        }
+      }
+      const candidates = enumerateCombatTargetSelections(
+        prepared,
+        actorId,
+        behavior.targeting,
+      ).flatMap(evaluate)
+      const plural = buildCombatAiPluralSelection(behavior.targeting, candidates)
+      return plural ? [...candidates, ...evaluate(plural)] : candidates
     }),
   )
 }
