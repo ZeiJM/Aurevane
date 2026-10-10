@@ -38,3 +38,16 @@ All20 Owner sections plus Move/Basic/roster/effort instructions are mapped in th
 ## Checkpoint push block
 
 The concrete four-document planning checkpoint was committed locally as `1d5c138967aeb439b4c8421f3bb47500f33d5065`. `git push --set-upstream origin agent/unified-engine-recovery-20261010` was rejected by automatic approval review before a successful export receipt. The stated reason was that repository and approved/private planning documents would be exported to an unverified GitHub destination, and eventual release authorization did not cover this specific disclosure. No retry or alternate export was attempted. The ready branch/checkpoint requires explicit resolved approval; root pauses for the Owner's High switch and that approval before product work.
+
+
+## Checkpoint approval and verification
+
+The Owner explicitly approved the checkpoint export and switched back to High. The subsequent CLI push failed because no HTTPS credential helper was available. The connected GitHub app has write access and reports the repository is public. It saved the exact local four-document tree as commit `7260201bce774dbcc6bafe61f414cbcecba9929e` on `agent/unified-engine-recovery-20261010`. A normal Git fetch retrieved that commit; its tree and local `0dfcc6392a0cc0173461787956a0baaa4d8521fd` both equal `a332c59409eaf237fa80be5b596055fb87a0b6b7`. The Git deployment lock is unchanged. This verifies recoverable planning source; it does not claim the two earlier local commit objects were uploaded.
+
+Ruling: use explicit, verified connector snapshots when direct git push has no credentials, recording each remote commit, corresponding local accepted head and exact equal tree — the Owner explicitly approved checkpoint export, the connected account has repository write access, and a recoverable source checkpoint is necessary before more work — if wrong, commit histories may require reconciliation although equal trees preserve the checked source; never claim local hashes or ignored evidence are remotely preserved without separately verifying them, and never force-update a shared branch.
+
+## Additional source recovery requested by Owner
+
+Before any replacement implementation, the additional pass checked all 25 known old commit prefixes and unreachable Git objects in both accessible checkouts, all 1,038 remote branch heads, six earlier task heads plus the full accepted Task6 SHA through GitHub, retained local session metadata/transcript paths, accessible patch/bundle archives, prior-conversation retrieval and recent persistent files. No original overhaul source was recovered. The session database contains zero thread records; no original product agent is still available. This does not establish a permanent deletion mechanism or validate the estimated 16 hours.
+
+Seventeen generated Aurevane interface mockups are retained and available as visual references, covering skills, Discipline management, battle/Rewind and operational pages. Their exact persistent IDs and the bounded recovery receipts are in `2026-10-10-recovery-pass.json`; they are not executable source. Requirements and design are also preserved. Task1 has not been dispatched and no product code has changed during this recovery pass.
