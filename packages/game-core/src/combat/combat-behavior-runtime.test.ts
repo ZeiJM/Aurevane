@@ -8,6 +8,8 @@ import {
   executePv1fMatureSkill,
   evaluatePv1fMatureSkill,
   hasPv1fTurnActivity,
+  evaluatePv1fAction,
+  executePv1fAction,
   readPv1fActionEconomy,
 } from './pv1f-action-economy'
 import {
@@ -19,6 +21,13 @@ import {
 import { captureCombatAbilitySource } from './combat-behavior-capture'
 import { source } from './combat-behavior.test-utils'
 import { toCombatActionDefinition, resolveMatureSkillVersion } from './mature-skills'
+import { PV1F_BASIC_ATTACK_ID } from './pv1f-skills'
+import {
+  createStatDrivenCombatEncounterState,
+  createCurrentStatDrivenCombatEncounterState,
+} from './stat-driven-combat'
+import { forecastStatDrivenAttack } from './stat-driven-combat'
+import { evaluateCombatAction } from './actions'
 
 function input(
   overrides: Partial<CombatAbilityActivationInput> = {},
@@ -49,6 +58,189 @@ const actor = (state: CombatAbilityActivationInput['state']) =>
   state.tactical.battle.combatants.find((unit) => unit.id === 'actor')!
 
 describe('canonical behavior runtime', () => {
+  it.each([false, 'yes', 1])('rejects malformed private Basic marker %s', (marker) => {
+    const old = evaluatePv1fAction(input().state as never, PV1F_BASIC_ATTACK_ID, {
+      kind: 'unit',
+      combatantId: 'enemy',
+    })
+    expect(() =>
+      evaluateCombatAction(
+        old.prepared,
+        { ...old.action, nativeBasicAttackCommand: marker } as never,
+        { kind: 'unit', combatantId: 'enemy' },
+        PV1F_COMBAT_CONTENT,
+      ),
+    ).toThrow('invalid-native-basic-command-marker')
+    expect(() =>
+      evaluateCombatAction(
+        old.prepared,
+        { ...old.action, sourceType: 'discipline-skill', nativeBasicAttackCommand: true },
+        { kind: 'unit', combatantId: 'enemy' },
+        PV1F_COMBAT_CONTENT,
+      ),
+    ).toThrow('invalid-native-basic-command-marker')
+  })
+  it.each(
+    [0, 10000].flatMap((accuracy) =>
+      [0, 5000, 10000].map((criticalChance) => ({ accuracy, criticalChance })),
+    ),
+  )(
+    'composed native Basic preserves seeded hit/critical draws and root Defense; %j',
+    ({ accuracy, criticalChance }) => {
+      const initial = preparePv1fTurnEconomy(percentageDotEncounter())
+      const state = createStatDrivenCombatEncounterState(
+        initial,
+        initial.statBridge.combatants.map((profile) => ({
+          ...profile,
+          accuracy: profile.combatantId === 'actor' ? accuracy : 10000,
+          armor: profile.combatantId === 'enemy' ? 400 : 0,
+          ward: 0,
+          level: 50,
+          criticalChance,
+        })),
+      )
+      const baseline = executePv1fAction(state, PV1F_BASIC_ATTACK_ID, {
+        kind: 'unit',
+        combatantId: 'enemy',
+      })
+      const modifier = captureCombatAbilitySource(
+        source(
+          {
+            id: 'bonus',
+            mode: 'modifier',
+            targeting: null,
+            costs: [{ resource: 'ap', amount: 7 }],
+            activationLimits: ['once-per-battle'],
+            effects: [
+              {
+                id: 'mystic-hit',
+                payload: {
+                  type: 'damage',
+                  recipient: 'primary-unit',
+                  amount: 20,
+                  defenseKind: 'ward',
+                },
+              },
+            ],
+          },
+          'modifier',
+        ),
+      )
+      const active = reconcileCombatAbilitySources(state, [modifier])
+      const options = { manualModifiers: [{ sourceInstanceId: 'modifier', behaviorId: 'bonus' }] }
+      const preview = evaluatePv1fAction(
+        active as never,
+        PV1F_BASIC_ATTACK_ID,
+        { kind: 'unit', combatantId: 'enemy' },
+        options,
+      )
+      expect(preview.action.effects).toHaveLength(2)
+      expect(preview.action.nativeBasicAttackCommand).toBe(true)
+      expect(
+        evaluatePv1fAction(state, PV1F_BASIC_ATTACK_ID, { kind: 'unit', combatantId: 'enemy' })
+          .action.nativeBasicAttackCommand,
+      ).toBeUndefined()
+      const out = executePv1fAction(
+        active as never,
+        PV1F_BASIC_ATTACK_ID,
+        { kind: 'unit', combatantId: 'enemy' },
+        options,
+      )
+      const oldReceipt = baseline.events.find(
+        (e) => (e as { event: string }).event === 'stat_driven_attack_resolved',
+      )
+      expect(
+        out.events.filter((e) => (e as { event: string }).event === 'stat_driven_attack_resolved'),
+      ).toEqual([oldReceipt])
+      expect(out.state.tactical.battle.rng).toEqual(baseline.state.tactical.battle.rng)
+      const damage = out.events.filter(
+        (e) => (e as { event: string }).event === 'damage_applied',
+      ) as { amount: number }[]
+      const oldDamage = baseline.events.filter(
+        (e) => (e as { event: string }).event === 'damage_applied',
+      ) as { amount: number }[]
+      expect(damage.slice(0, oldDamage.length)).toEqual(oldDamage)
+      expect(damage).toHaveLength(accuracy === 0 ? 0 : 2)
+      if (accuracy !== 0) {
+        expect(damage[1]!.amount).toBeGreaterThan(damage[0]!.amount)
+        if (criticalChance === 0)
+          expect(
+            preview.evaluation.projectedEffects
+              .filter((effect) => effect.effectType === 'damage')
+              .map((effect) => Number(effect.before) - Number(effect.after)),
+          ).toEqual(damage.map((event) => event.amount))
+      }
+      expect(() =>
+        executePv1fAction(
+          out.state,
+          PV1F_BASIC_ATTACK_ID,
+          { kind: 'unit', combatantId: 'enemy' },
+          options,
+        ),
+      ).toThrow('limit')
+      expect(readPv1fActionEconomy(out.state)!.current).toBe(
+        readPv1fActionEconomy(baseline.state)!.current - 7,
+      )
+      expect(out.state.abilityRuntime!.usage).toHaveLength(1)
+    },
+  )
+  it('composed native Basic retains terrain Evasion without a Skill elevation bypass', () => {
+    const initial = preparePv1fTurnEconomy(percentageDotEncounter())
+    const modern = createCurrentStatDrivenCombatEncounterState(
+      initial,
+      initial.statBridge.combatants.map((profile) => ({
+        ...profile,
+        physicalPower: profile.physicalPower!,
+        mysticPower: profile.mysticPower!,
+        level: 50,
+        criticalChance: 0,
+        statusResistance: 0,
+      })),
+    )
+    const state = {
+      ...modern,
+      statBalancePolicyVersion: 1 as const,
+      tactical: {
+        ...initial.tactical,
+        tiles: initial.tactical.tiles.map((tile) =>
+          tile.position.x === 2 && tile.position.y === 1 ? { ...tile, elevation: 1 } : tile,
+        ),
+      },
+    }
+    const modifier = captureCombatAbilitySource(
+      source(
+        {
+          id: 'bonus',
+          mode: 'modifier',
+          targeting: null,
+          costs: [],
+          effects: [
+            { id: 'hit', payload: { type: 'damage', recipient: 'primary-unit', amount: 3 } },
+          ],
+        },
+        'modifier',
+      ),
+    )
+    const active = reconcileCombatAbilitySources(state, [modifier])
+    const old = evaluatePv1fAction(state, PV1F_BASIC_ATTACK_ID, {
+      kind: 'unit',
+      combatantId: 'enemy',
+    })
+    const oldChance = forecastStatDrivenAttack(
+      old.prepared,
+      old.action,
+      { kind: 'unit', combatantId: 'enemy' },
+      PV1F_COMBAT_CONTENT,
+    ).hitChanceBasisPoints
+    const preview = evaluatePv1fAction(
+      active as never,
+      PV1F_BASIC_ATTACK_ID,
+      { kind: 'unit', combatantId: 'enemy' },
+      { manualModifiers: [{ sourceInstanceId: 'modifier', behaviorId: 'bonus' }] },
+    )
+    expect(oldChance).toBe(8500)
+    expect(preview.evaluation.targetHitChances![0]!.hitChanceBasisPoints).toBe(oldChance)
+  })
   it('source_owned_maintenance changes actual damage without making a removable status', () => {
     const command = input()
     const maintained = captureCombatAbilitySource(
@@ -401,5 +593,111 @@ describe('canonical behavior runtime', () => {
     expect(actor(out.state).mp).toBe(18)
     expect(hasPv1fTurnActivity(out.state)).toBe(true)
     expect(out.state.capturedAbilitySources![0]!.definition).toEqual(definition.ability)
+  })
+  it('actual Mature adapter returns the exact composed gated action and combined cost', () => {
+    const command = input()
+    const modifier = captureCombatAbilitySource(
+      source(
+        {
+          id: 'bonus',
+          mode: 'modifier',
+          targeting: null,
+          costs: [{ resource: 'ap', amount: 7 }],
+          effects: [
+            {
+              id: 'extra',
+              requirements: {
+                kind: 'resource-state',
+                subject: 'owner',
+                resource: 'mp',
+                comparison: 'at-least',
+                amount: 21,
+              },
+              payload: { type: 'damage', recipient: 'primary-unit', amount: 3 },
+            },
+          ],
+        },
+        'modifier',
+      ),
+    )
+    const legacy = resolveMatureSkillVersion('vanguard.forceful-strike', 2)!
+    const definition = { ...legacy, ability: source().definition }
+    const state = reconcileCombatAbilitySources(command.state, [modifier])
+    // Exact immutable root is also active; direct adapter cannot reactivate an archived source.
+    const capturedRoot = captureCombatAbilitySource({
+      ...command.source,
+      sourceInstanceId: JSON.stringify([
+        'skill',
+        'actor',
+        definition.id,
+        definition.contentVersion,
+      ]),
+      abilityId: definition.id,
+      contentVersion: definition.contentVersion,
+    })
+    const active = reconcileCombatAbilitySources(state, [modifier, capturedRoot])
+    const options = { manualModifiers: [{ sourceInstanceId: 'modifier', behaviorId: 'bonus' }] }
+    const preview = evaluatePv1fMatureSkill(
+      active as never,
+      definition,
+      command.selection,
+      'pve',
+      options,
+    )
+    expect(preview.cost).toBe(18)
+    expect(preview.action.effects).toHaveLength(2)
+    expect(preview.action.effectEligibleRecipientIds).toEqual([undefined, []])
+    const out = executePv1fMatureSkill(
+      active as never,
+      definition,
+      command.selection,
+      'pve',
+      options,
+    )
+    expect(readPv1fActionEconomy(out.state)!.current).toBe(82)
+    expect(
+      out.events.filter((e) => (e as { event: string }).event === 'damage_applied'),
+    ).toHaveLength(1)
+  })
+  it('historical Mature root retains its intrinsic Discipline and scaling while selecting a modifier', () => {
+    const command = input()
+    const modifier = captureCombatAbilitySource(
+      source(
+        {
+          id: 'bonus',
+          mode: 'modifier',
+          targeting: null,
+          costs: [{ resource: 'ap', amount: 7 }],
+          requirements: { kind: 'action', sourceDisciplineId: 'vanguard' },
+          effects: [
+            { id: 'extra', payload: { type: 'damage', recipient: 'primary-unit', amount: 3 } },
+          ],
+        },
+        'modifier',
+      ),
+    )
+    const definition = resolveMatureSkillVersion('vanguard.forceful-strike', 2)!
+    const state = reconcileCombatAbilitySources(command.state, [modifier])
+    const baseline = evaluatePv1fMatureSkill(state as never, definition, command.selection)
+    const options = { manualModifiers: [{ sourceInstanceId: 'modifier', behaviorId: 'bonus' }] }
+    const preview = evaluatePv1fMatureSkill(
+      state as never,
+      definition,
+      command.selection,
+      'pve',
+      options,
+    )
+    expect(preview.cost).toBe(baseline.cost + 7)
+    expect(preview.action.effects.slice(0, baseline.action.effects.length)).toEqual(
+      baseline.action.effects,
+    )
+    const out = executePv1fMatureSkill(
+      state as never,
+      definition,
+      command.selection,
+      'pve',
+      options,
+    )
+    expect(readPv1fActionEconomy(out.state)!.current).toBe(100 - preview.cost)
   })
 })

@@ -31,6 +31,20 @@ import {
   createSpectatorBattleViewerEntitlement,
 } from './battle-viewer-entitlement'
 
+it('strips private captured Ability and command execution authority from actual public state', () => {
+  const privateState = {
+    pendingEffects: [],
+    visible: 'yes',
+    capturedAbilitySources: [{ definition: { secret: 'private' } }],
+    abilityRuntime: { usage: [1] },
+    nativeBasicAttackCommand: true,
+    commandDamageBonuses: [1],
+    effectEligibleRecipientIds: [['actor']],
+    effectTimingModes: ['delayed'],
+  }
+  expect(omitPendingBattlePayloads(privateState)).toEqual({ visible: 'yes' })
+})
+
 const PLAYER = 'character:player'
 const ALLY = 'character:ally'
 const ENEMY = 'character:enemy'

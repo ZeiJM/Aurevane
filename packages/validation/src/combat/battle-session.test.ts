@@ -36,6 +36,12 @@ describe('explicit Manual modifier intent', () => {
   ])('rejects malformed/duplicate/overbudget references %j', (manualModifiers) => {
     expect(parse({ ...action, manualModifiers })).toBeNull()
   })
+  it('rejects private Basic execution authority in client commands', () => {
+    expect(parse({ ...action, nativeBasicAttackCommand: true })).toBeNull()
+    expect(
+      parse({ ...action, manualModifiers: [{ ...reference, nativeBasicAttackCommand: true }] }),
+    ).toBeNull()
+  })
   it('accepts fifteen distinct references but rejects fields on other intents', () => {
     expect(
       parse({

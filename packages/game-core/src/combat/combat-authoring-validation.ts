@@ -34,6 +34,8 @@ export function validateCombatActionDefinition(
   action: CombatActionDefinition,
   content?: CombatContentCatalog,
 ): void {
+  if (Object.hasOwn(action, 'nativeBasicAttackCommand'))
+    throw new TypeError('private-native-basic-command-not-authored')
   validateCombatGroundAreaDefinition(action)
   validateVersionedCombatTargetSpec(action.target)
   validateCurrentAreaTargetRecipients(action)

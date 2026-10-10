@@ -1192,6 +1192,8 @@ export function validateMatureSkillDefinition(
   definition: MatureSkillDefinition,
 ): readonly string[] {
   const issues: string[] = []
+  if (Object.hasOwn(definition, 'nativeBasicAttackCommand'))
+    issues.push('private-native-basic-command-not-authored')
   const canonical = Object.hasOwn(definition, 'ability')
   if (canonical && validateAbilityDefinition(definition.ability).length > 0) issues.push('ability')
   if (!canonical) {

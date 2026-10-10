@@ -2,6 +2,7 @@ import type { CombatActionSourceType } from './actions'
 import { assertNever, type CombatActionSourceKind } from './combat-kernel-types'
 import type { CombatEncounterState } from './actions'
 import type { MatureSkillDefinition } from './mature-skills'
+import { validateMatureSkillDefinition } from './mature-skills'
 import {
   captureCombatAbilitySource,
   type CapturedCombatAbilitySource,
@@ -41,6 +42,10 @@ export function capturedMatureSkillAbilitySource(
     return captureCombatAbilitySource(stored)
   }
   if (!Object.hasOwn(definition, 'ability')) return null
+  const issues = validateMatureSkillDefinition(definition)
+  if (issues.length > 0)
+    throw new TypeError(`Invalid mature Skill definition: ${issues.join(', ')}.`)
+  if (!definition.enabled) throw new RangeError('That mature Skill version is disabled.')
   return captureCombatAbilitySource({
     schemaVersion: 1,
     sourceInstanceId: JSON.stringify([

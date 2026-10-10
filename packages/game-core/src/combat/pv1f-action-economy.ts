@@ -1,9 +1,16 @@
 import { airborneAttackAction, airborneMovementTactical } from './combat-airborne'
-import { capturedMatureSkillAbilitySource } from './combat-action-source'
+import {
+  capturedMatureSkillAbilitySource,
+  canonicalCombatActionSourceKind,
+} from './combat-action-source'
+import {
+  prepareCombatAbilityCommand,
+  commitCombatAbilityCommand,
+  type CombatAbilityCommandInput,
+  type ManualCombatModifierSelection,
+} from './combat-ability-command'
 import {
   activateCombatAbility,
-  evaluateCombatAbility,
-  materializeCombatAbilityAction,
   combatAbilityBehavior,
   combatAbilityCommandContext,
 } from './combat-behavior-runtime'
@@ -578,12 +585,15 @@ export function evaluatePv1fAction(
   state: StatDrivenCombatEncounterState,
   actionId: string,
   target: CombatTargetSelection,
+  options: Pick<Pv1fMatureSkillOptions, 'manualModifiers' | 'behaviorId'> = {},
 ): {
   prepared: StatDrivenCombatEncounterState
   action: CombatActionDefinition
   cost: number
   evaluation: CombatActionEvaluation
+  command?: CombatAbilityCommandInput
 } {
+  if (options.behaviorId !== undefined) throw new TypeError('native-root-behavior-unavailable')
   const prepared = preparePv1fTurnEconomy(state)
   const actorId = prepared.tactical.battle.currentTurn?.combatantId
   if (!actorId) throw new Error('PV-1F action evaluation requires an active turn.')
@@ -608,6 +618,24 @@ export function evaluatePv1fAction(
           ],
         }
       : baseEvaluation
+  const command = nativePv1fAbilityCommand(
+    prepared,
+    actorId,
+    cooldownDefinition ? { ...action, cooldown: cooldownDefinition } : action,
+    target,
+    cost,
+    options.manualModifiers,
+  )
+  if (command) {
+    const quote = prepareCombatAbilityCommand(command)
+    return {
+      prepared,
+      action: quote.action,
+      cost: quote.costs.find((row) => row.resource === 'ap')?.amount ?? 0,
+      evaluation: quote.evaluation,
+      command,
+    }
+  }
   return { prepared, action, cost, evaluation }
 }
 
@@ -615,8 +643,14 @@ export function executePv1fAction(
   state: StatDrivenCombatEncounterState,
   actionId: string,
   target: CombatTargetSelection,
+  options: Pick<Pv1fMatureSkillOptions, 'manualModifiers' | 'behaviorId'> = {},
 ): Pv1fTransition {
-  const { prepared, action, cost, evaluation } = evaluatePv1fAction(state, actionId, target)
+  const { prepared, action, cost, evaluation, command } = evaluatePv1fAction(
+    state,
+    actionId,
+    target,
+    options,
+  )
   if (!evaluation.legal) {
     throw new Error(evaluation.issues[0]?.message ?? 'That action is not legal.')
   }
@@ -626,8 +660,15 @@ export function executePv1fAction(
 
   const actorId = prepared.tactical.battle.currentTurn?.combatantId
   if (!actorId) throw new Error('PV-1F action execution requires an active turn.')
-  const transition =
-    action.sourceType === 'basic-attack'
+  const transition = command
+    ? (() => {
+        const resolved = commitCombatAbilityCommand(command)
+        return {
+          state: reattachStatDrivenCombatBridge(resolved.state, prepared.statBridge),
+          events: resolved.events,
+        }
+      })()
+    : action.sourceType === 'basic-attack'
       ? executeStatDrivenAttack(prepared, action, target, PV1F_COMBAT_CONTENT)
       : (() => {
           const resolved = executeCombatAction(prepared, action, target, PV1F_COMBAT_CONTENT)
@@ -637,19 +678,20 @@ export function executePv1fAction(
           }
         })()
   const defeatedSummons = removeDefeatedCombatSummons(transition.state)
-  let next = spendPv1fActionEconomyForActor(defeatedSummons.state, actorId, cost)
+  let next = spendPv1fActionEconomyForActor(defeatedSummons.state, actorId, command ? 0 : cost)
   next = clearLastMatureSkill(next, actorId)
   const cooldownDefinition = pv1fCooldownForAction(action.id)
-  const cooldownEvents: readonly unknown[] = cooldownDefinition
-    ? (() => {
-        const started = applySkillCooldown(getCombatant(next, actorId), cooldownDefinition, {
-          actionId: action.id,
-          definitionVersion: action.version,
-        })
-        next = withCombatant(next, started.combatant)
-        return started.events
-      })()
-    : []
+  const cooldownEvents: readonly unknown[] =
+    cooldownDefinition && !command
+      ? (() => {
+          const started = applySkillCooldown(getCombatant(next, actorId), cooldownDefinition, {
+            actionId: action.id,
+            definitionVersion: action.version,
+          })
+          next = withCombatant(next, started.combatant)
+          return started.events
+        })()
+      : []
   const remaining = readPv1fActionEconomy(next, actorId)?.current ?? 0
   return {
     state: next,
@@ -860,7 +902,70 @@ function abilityIdForEvent(action: CombatActionDefinition): string {
   return action.id
 }
 
+function nativePv1fAbilityCommand(
+  state: StatDrivenCombatEncounterState,
+  actorId: string,
+  action: CombatActionDefinition,
+  selection: CombatTargetSelection,
+  apCost: number,
+  manualModifiers?: readonly ManualCombatModifierSelection[],
+  sourceDisciplineId?: string,
+): CombatAbilityCommandInput | undefined {
+  const hasAutomaticModifiers = state.capturedAbilitySources?.some(
+    (source) =>
+      source.ownerCombatantId === actorId &&
+      state.abilityRuntime?.activeSourceIds.includes(source.sourceInstanceId) &&
+      source.definition.behaviors.some(
+        (behavior) => behavior.activation === 'automatic' && behavior.mode === 'modifier',
+      ),
+  )
+  if (!manualModifiers?.length && !hasAutomaticModifiers) return undefined
+  if (action.sourceType === 'basic-attack')
+    action = {
+      ...action,
+      nativeBasicAttackCommand: true,
+      effects: action.effects.map((effect) =>
+        effect.type === 'damage'
+          ? { ...effect, defenseKind: action.tags.includes('mystic') ? 'ward' : 'armor' }
+          : effect,
+      ),
+    }
+  const sourceKind = canonicalCombatActionSourceKind(action.sourceType)
+  return {
+    state,
+    actorId,
+    selection,
+    content: PV1F_COMBAT_CONTENT,
+    manualModifiers,
+    root: {
+      kind: 'native',
+      action,
+      sourceDisciplineId,
+      sourceInstanceId: JSON.stringify(['native', sourceKind, actorId, action.id, action.version]),
+      costs: [
+        { resource: 'ap', amount: apCost },
+        ...(action.cost.mp ? [{ resource: 'mp' as const, amount: action.cost.mp }] : []),
+      ],
+      classification: action.tags.includes('attack')
+        ? 'attack'
+        : action.effects.some((effect) => ['healing', 'percentage-recovery'].includes(effect.type))
+          ? 'recovery'
+          : 'utility',
+      ...(action.tags.includes('attack')
+        ? { attackFamily: action.tags.includes('mystic') ? 'mystic' : 'physical' }
+        : {}),
+    },
+    context: combatAbilityCommandContext(state, {
+      sourceKind,
+      ownerCombatantId: actorId,
+      abilityId: action.id,
+      contentVersion: action.version,
+    }),
+  }
+}
+
 export interface Pv1fMatureSkillOptions {
+  manualModifiers?: readonly ManualCombatModifierSelection[]
   behaviorId?: string
   apCostOverride?: number
   actionIdOverride?: string
@@ -883,6 +988,7 @@ export function evaluatePv1fMatureSkill(
   cost: number
   evaluation: CombatActionEvaluation
   repeatPenaltyApplied: boolean
+  command?: CombatAbilityCommandInput
 } {
   const prepared = preparePv1fTurnEconomy(state)
   const actorId = prepared.tactical.battle.currentTurn?.combatantId
@@ -890,24 +996,26 @@ export function evaluatePv1fMatureSkill(
   const capturedSource = capturedMatureSkillAbilitySource(prepared, definition)
   if (capturedSource) {
     const behavior = combatAbilityBehavior(capturedSource, options.behaviorId)
-    const action = materializeCombatAbilityAction(capturedSource, behavior)
-    const evaluation = evaluateCombatAbility({
+    const command: CombatAbilityCommandInput = {
       state: prepared,
       actorId,
-      source: capturedSource,
-      behaviorId: behavior.id,
+      root: { kind: 'canonical', source: capturedSource, behaviorId: behavior.id },
+      manualModifiers: options.manualModifiers,
       selection: target,
       content: PV1F_COMBAT_CONTENT,
       context: combatAbilityCommandContext(prepared, capturedSource),
-    })
+    }
+    const result = prepareCombatAbilityCommand(command)
     return {
       prepared,
-      action,
-      cost: behavior.costs.find((cost) => cost.resource === 'ap')?.amount ?? 0,
-      evaluation,
+      action: result.action,
+      cost: result.costs.find((cost) => cost.resource === 'ap')?.amount ?? 0,
+      evaluation: result.evaluation,
       repeatPenaltyApplied: false,
+      command,
     }
   }
+  if (options.behaviorId !== undefined) throw new TypeError('native-root-behavior-unavailable')
   const resolved = resolveMatureSkillForContext(definition, combatContext)
   const authoredCost = options.apCostOverride ?? resolved.apCost
   const resonance = committedResonanceForecast(prepared, definition, target)
@@ -1054,6 +1162,26 @@ export function evaluatePv1fMatureSkill(
           })),
         }
       : evaluation
+  const command = nativePv1fAbilityCommand(
+    prepared,
+    actorId,
+    action,
+    target,
+    revealedSkillApCost(prepared, actorId, authoredCost),
+    options.manualModifiers,
+    definition.sourceDisciplineId,
+  )
+  if (command) {
+    const result = prepareCombatAbilityCommand(command)
+    return {
+      prepared,
+      action: result.action,
+      cost: result.costs.find((cost) => cost.resource === 'ap')?.amount ?? 0,
+      evaluation: result.evaluation,
+      repeatPenaltyApplied,
+      command,
+    }
+  }
   return {
     prepared,
     action,
@@ -1079,6 +1207,7 @@ export function executePv1fMatureSkill(
       actorId,
       source: capturedSource,
       behaviorId: options.behaviorId,
+      manualModifiers: options.manualModifiers,
       selection: target,
       content: PV1F_COMBAT_CONTENT,
       context: combatAbilityCommandContext(canonicalPrepared, capturedSource),
@@ -1086,13 +1215,8 @@ export function executePv1fMatureSkill(
     const bridged = reattachStatDrivenCombatBridge(out.state, canonicalPrepared.statBridge)
     return { state: spendPv1fActionEconomyForActor(bridged, actorId, 0), events: out.events }
   }
-  const { prepared, action, cost, evaluation, repeatPenaltyApplied } = evaluatePv1fMatureSkill(
-    state,
-    definition,
-    target,
-    combatContext,
-    options,
-  )
+  const { prepared, action, cost, evaluation, repeatPenaltyApplied, command } =
+    evaluatePv1fMatureSkill(state, definition, target, combatContext, options)
   if (!evaluation.legal) {
     throw new Error(evaluation.issues[0]?.message ?? 'That mature Skill is not legal.')
   }
@@ -1107,20 +1231,22 @@ export function executePv1fMatureSkill(
   const resonanceRequiresHit =
     (resonance?.forecast.willActivate && resonanceTriggerRequiresHit(resonance.definition)) ||
     options.resonanceRequiresHit
-  const resolved = executeCombatAction(
-    executionState,
-    action,
-    target,
-    PV1F_COMBAT_CONTENT,
-    undefined,
-    resonanceRequiresHit
-      ? {
-          effectOrdinals: (action.effectOrigins ?? []).flatMap((origin, index) =>
-            origin?.family === 'resonance' ? [index] : [],
-          ),
-        }
-      : undefined,
-  )
+  const resolved = command
+    ? commitCombatAbilityCommand(command)
+    : executeCombatAction(
+        executionState,
+        action,
+        target,
+        PV1F_COMBAT_CONTENT,
+        undefined,
+        resonanceRequiresHit
+          ? {
+              effectOrdinals: (action.effectOrigins ?? []).flatMap((origin, index) =>
+                origin?.family === 'resonance' ? [index] : [],
+              ),
+            }
+          : undefined,
+      )
   const resonanceActivated =
     resonance?.forecast.willActivate &&
     (!resonanceRequiresHit || resolved.hitDependentEffectsActivated === true)
@@ -1191,7 +1317,7 @@ export function executePv1fMatureSkill(
   }
   const defeatedSummons = removeDefeatedCombatSummons(next)
   next = defeatedSummons.state
-  next = spendPv1fActionEconomyForActor(next, actorId, cost)
+  next = spendPv1fActionEconomyForActor(next, actorId, command ? 0 : cost)
   next = definition.authoring.validationTags.includes('owner-rebalance-v5')
     ? clearLastMatureSkill(next, actorId)
     : markLastMatureSkill(next, actorId, options.repeatHistoryKey ?? definition.id)

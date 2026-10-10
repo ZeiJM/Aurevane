@@ -343,6 +343,8 @@ export interface CombatEffectOrigin {
 }
 
 export interface CombatActionDefinition {
+  /** Private trusted composed Basic adapter; never authored or projected. */
+  nativeBasicAttackCommand?: true
   commandDamageBonuses?: readonly CombatCommandDamageBonus[]
   groundArea?: CombatGroundAreaDefinition
   effectOrigins?: readonly (CombatEffectOrigin | undefined)[]
@@ -622,6 +624,17 @@ export interface CombatActionEvaluation {
 }
 
 export type CombatResolutionEvent = (
+  | {
+      event: 'stat_driven_attack_resolved'
+      actorId: string
+      targetId: string
+      hitChanceBasisPoints: number
+      rollBasisPoints: number
+      hit: boolean
+      defenseKind: 'armor' | 'ward'
+      defenseRating: number
+      rulesVersion: 1 | 2 | 3 | 4
+    }
   | { event: 'ap_spent' | 'hp_spent'; combatantId: string; amount: number; remaining: number }
   | CombatStatusResistanceResolvedEvent
   | {

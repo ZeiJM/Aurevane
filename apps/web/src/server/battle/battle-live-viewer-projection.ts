@@ -249,6 +249,15 @@ export function omitPendingBattlePayloads<
   }
   Reflect.deleteProperty(projected, 'nextGroundAreaId')
   Reflect.deleteProperty(projected, 'nextSkillPacketCommandId')
+  for (const key of [
+    'capturedAbilitySources',
+    'abilityRuntime',
+    'nativeBasicAttackCommand',
+    'commandDamageBonuses',
+    'effectEligibleRecipientIds',
+    'effectTimingModes',
+  ])
+    Reflect.deleteProperty(projected, key)
   if (state.groundAreas)
     projected.groundAreas = projectPublicCombatGroundAreas(
       state.groundAreas,

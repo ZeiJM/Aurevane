@@ -14,6 +14,16 @@ import {
 import { combatStatusMetadata } from './combat-effect-state'
 
 describe('combat authoring validation boundary', () => {
+  it('rejects the private native Basic marker at the actual authored boundary', () => {
+    expect(() =>
+      validateCombatActionDefinition({
+        ...P2_3_GUARD_ACTION,
+        sourceType: 'basic-attack',
+        target: { ...P2_3_GUARD_ACTION.target, kind: 'unit' },
+        nativeBasicAttackCommand: true,
+      }),
+    ).toThrow('private-native-basic-command-not-authored')
+  })
   it('exposes pure validators that accept current published content', () => {
     expect(() =>
       validateCombatActionDefinition(P2_3_GUARD_ACTION, P2_3_COMBAT_CONTENT),

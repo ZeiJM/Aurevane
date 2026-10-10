@@ -1,3 +1,4 @@
+import { terrainAdjustedDefense } from './combat-stat-balance'
 import { airborneAttackAction } from './combat-airborne'
 import {
   skillPacketGroups,
@@ -241,6 +242,7 @@ export function executeCombatAction(
     state.statBalancePolicyVersion === 1 ||
     Boolean(context) ||
     Boolean(hitDependentEffects) ||
+    action.nativeBasicAttackCommand === true ||
     action.accuracyMode === 'per-target' ||
     action.accuracyRule !== undefined ||
     (state.airbornePolicyVersion === 1 && action.target.kind === 'ground-tile') ||
@@ -443,7 +445,32 @@ export function executeCombatAction(
     events: covertFiltered.events as legacy.CombatResolutionEvent[],
     ...(hitDependentEffects ? { hitDependentEffectsActivated } : {}),
   }
-  const preCommitEvents = [...accuracy.events, ...resistance.events, ...critical.events]
+  const accuracyEvents: legacy.CombatResolutionEvent[] = action.nativeBasicAttackCommand
+    ? accuracy.events.map((event) => {
+        const defenseKind = action.tags.includes('mystic') ? 'ward' : 'armor'
+        const profile = state.statBridge?.combatants.find(
+          (row) => row.combatantId === event.targetCombatantId,
+        )
+        if (!profile || ![1, 2, 3, 4].includes(state.statBridge?.rulesVersion ?? 0))
+          throw new TypeError('native-basic-command-stat-bridge-required')
+        return {
+          event: 'stat_driven_attack_resolved',
+          actorId: event.sourceCombatantId,
+          targetId: event.targetCombatantId,
+          hitChanceBasisPoints: event.hitChanceBasisPoints,
+          rollBasisPoints: event.rollBasisPoints,
+          hit: event.hit,
+          defenseKind,
+          defenseRating: terrainAdjustedDefense(
+            state,
+            event.targetCombatantId,
+            profile[defenseKind],
+          ),
+          rulesVersion: state.statBridge!.rulesVersion as 1 | 2 | 3 | 4,
+        }
+      })
+    : [...accuracy.events]
+  const preCommitEvents = [...accuracyEvents, ...resistance.events, ...critical.events]
   const transition =
     preCommitEvents.length > 0
       ? { ...committedTransition, events: [...preCommitEvents, ...committedTransition.events] }

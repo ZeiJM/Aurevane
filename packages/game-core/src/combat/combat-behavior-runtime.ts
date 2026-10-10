@@ -49,7 +49,10 @@ export interface CombatAbilityRuntimeState {
 }
 export function combatAbilityCommandContext(
   state: CombatEncounterState,
-  source: CapturedCombatAbilitySource,
+  source: Pick<
+    CapturedCombatAbilitySource,
+    'ownerCombatantId' | 'abilityId' | 'contentVersion' | 'sourceKind'
+  >,
 ): CombatResolutionContext {
   const triggerChainId = JSON.stringify([
     'ability',

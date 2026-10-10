@@ -38,11 +38,22 @@ export interface CombatSkillAccuracyResolvedEvent extends CombatTargetHitChance 
 
 export function validateCombatAccuracyDefinition(
   definition: CombatAccuracyAuthoring & {
+    readonly nativeBasicAttackCommand?: true
     readonly sourceType?: string
     readonly target?: CombatActionDefinition['target']
     readonly effects?: readonly { readonly recipient: string }[]
   },
 ): void {
+  if (
+    definition.nativeBasicAttackCommand !== undefined &&
+    (definition.nativeBasicAttackCommand !== true ||
+      definition.sourceType !== 'basic-attack' ||
+      definition.target?.kind !== 'unit' ||
+      definition.accuracyRule !== undefined ||
+      definition.accuracyMode !== undefined ||
+      definition.accuracyModifierBasisPoints !== undefined)
+  )
+    throw new TypeError('invalid-native-basic-command-marker')
   if (definition.accuracyRule !== undefined) {
     if (!validAccuracy(definition.accuracyRule))
       throw new TypeError('Invalid canonical combat accuracy rule.')
@@ -111,7 +122,12 @@ export function forecastCombatSkillAccuracyForTarget(
   if (airborneGroundMiss(state, action, targetCombatantId, content))
     return { targetCombatantId, hitChanceBasisPoints: 0 }
   action = airborneAttackAction(state, action, content)
-  if (action.accuracyMode !== 'per-target' && action.accuracyRule === undefined) return null
+  if (
+    !action.nativeBasicAttackCommand &&
+    action.accuracyMode !== 'per-target' &&
+    action.accuracyRule === undefined
+  )
+    return null
 
   const actor = state.tactical.battle.combatants.find((unit) => unit.id === actorId)
   const target = state.tactical.battle.combatants.find((unit) => unit.id === targetCombatantId)
@@ -133,7 +149,7 @@ export function forecastCombatSkillAccuracyForTarget(
           terrainEvasionBonusBasisPoints(
             state,
             targetCombatantId,
-            action.target.maximumElevationDifference,
+            action.nativeBasicAttackCommand ? undefined : action.target.maximumElevationDifference,
           ),
       },
       (action.accuracyModifierBasisPoints ?? 0) +
@@ -198,6 +214,7 @@ export function forecastCombatSkillAccuracy(
     !evaluation.actorId ||
     (action.accuracyMode !== 'per-target' &&
       action.accuracyRule === undefined &&
+      !action.nativeBasicAttackCommand &&
       !(state.airbornePolicyVersion === 1 && action.target.kind === 'ground-tile'))
   )
     return evaluation
@@ -254,6 +271,7 @@ export function rollCombatSkillAccuracy(
     !evaluation.actorId ||
     (action.accuracyMode !== 'per-target' &&
       action.accuracyRule === undefined &&
+      !action.nativeBasicAttackCommand &&
       !(state.airbornePolicyVersion === 1 && action.target.kind === 'ground-tile'))
   ) {
     return { state, events, missedCombatantIds }
