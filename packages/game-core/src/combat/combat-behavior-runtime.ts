@@ -1,3 +1,4 @@
+import { hasCurrentPoison, hasCurrentBleed, currentBurnInstance } from './combat-dots'
 import {
   prepareCombatAbilityCommand,
   commitCombatAbilityCommand,
@@ -20,6 +21,7 @@ import type { AbilityBehavior } from './combat-definition'
 import { nativeCombatTagPayload } from './combat-tag-registry'
 import {
   evaluateAbilityRequirements,
+  evaluateAutomaticRequirementTrigger,
   type AbilityRequirementContext,
   type AbilityRequirementSubjectState,
 } from './combat-requirements'
@@ -46,6 +48,11 @@ export interface CombatAbilityRuntimeState {
   readonly usage: readonly CombatAbilityUsage[]
   readonly maintained: readonly CombatMaintainedAbilityContribution[]
   readonly nextCommandSequence?: number
+  readonly conditionTruth?: readonly {
+    readonly sourceInstanceId: string
+    readonly behaviorId: string
+    readonly holds: boolean
+  }[]
 }
 export function combatAbilityCommandContext(
   state: CombatEncounterState,
@@ -160,11 +167,17 @@ export function combatAbilitySubject(
   return {
     resources: { hp: unit.hp, mp: unit.mp, ap: ap?.current ?? 0 },
     maximumResources: { hp: unit.maxHp, mp: unit.maxMp, ap: ap?.maximum ?? 100 },
-    statusIds:
-      state.statusState
-        .find((row) => row.combatantId === id)
-        ?.statuses.filter((row) => row.timingState !== 'pending')
-        .map((row) => row.statusId) ?? [],
+    statusIds: [
+      ...new Set([
+        ...(state.statusState
+          .find((row) => row.combatantId === id)
+          ?.statuses.filter((row) => row.timingState !== 'pending')
+          .map((row) => row.statusId) ?? []),
+        ...(hasCurrentPoison(state, unit.id) ? ['poison'] : []),
+        ...(hasCurrentBleed(state, unit.id) ? ['bleed'] : []),
+        ...(currentBurnInstance(state, unit.id) ? ['burn'] : []),
+      ]),
+    ],
     primeAbilityIds: [],
   }
 }
@@ -240,6 +253,31 @@ export function reconcileCombatAbilitySources(
       activeSourceIds: captured.map((row) => row.sourceInstanceId),
       usage: state.abilityRuntime?.usage ?? [],
       maintained,
+      conditionTruth: [
+        ...(state.abilityRuntime?.conditionTruth ?? []),
+        ...captured.flatMap((source) =>
+          source.definition.behaviors
+            .filter(
+              (behavior) =>
+                behavior.activation === 'automatic' &&
+                behavior.mode === 'action' &&
+                !state.abilityRuntime?.conditionTruth?.some(
+                  (row) =>
+                    row.sourceInstanceId === source.sourceInstanceId &&
+                    row.behaviorId === behavior.id,
+                ),
+            )
+            .map((behavior) => ({
+              sourceInstanceId: source.sourceInstanceId,
+              behaviorId: behavior.id,
+              holds: evaluateAutomaticRequirementTrigger(
+                behavior.requirements,
+                { owner: combatAbilitySubject(state, source.ownerCombatantId) },
+                true,
+              ).stateTruth,
+            })),
+        ),
+      ],
       ...(state.abilityRuntime?.nextCommandSequence === undefined
         ? {}
         : { nextCommandSequence: state.abilityRuntime.nextCommandSequence }),

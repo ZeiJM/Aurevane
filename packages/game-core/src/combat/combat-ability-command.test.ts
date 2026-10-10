@@ -1027,3 +1027,60 @@ it('a before child hides the original primary without fallback or root accuracy'
     out.events.filter((row) => row.event === 'damage_applied' && row.actionId === 'test.ability'),
   ).toEqual([])
 })
+
+it('actual atomic HP payment triggers a state entry once without damage or truth rollback', () => {
+  const input = {
+    ...command(100, 20, { costs: [{ resource: 'hp', amount: 1 }] }),
+    manualModifiers: undefined,
+  }
+  const heal = captureCombatAbilitySource({
+    ...source(
+      {
+        id: 'low-hp',
+        activation: 'automatic',
+        classification: 'recovery',
+        attackFamily: undefined,
+        costs: [{ resource: 'mp', amount: 1 }],
+        requirements: {
+          kind: 'resource-state',
+          subject: 'owner',
+          resource: 'hp',
+          comparison: 'at-most',
+          amount: 19,
+        },
+        targeting: {
+          kind: 'self',
+          teamPolicy: 'self',
+          friendlyFire: 'allies-only',
+          shape: { kind: 'single' },
+          minimumRange: 0,
+          maximumRange: 0,
+          requiresLineOfSight: false,
+          maximumElevationDifference: null,
+          maximumSelections: 1,
+        },
+        effects: [{ id: 'heal', payload: { type: 'healing', recipient: 'actor', amount: 1 } }],
+      },
+      'low-source',
+    ),
+    abilityId: 'child.heal',
+  })
+  const state = reconcileCombatAbilitySources(input.state, [
+    ...input.state.capturedAbilitySources!,
+    heal,
+  ])
+  const out = commitCombatAbilityCommand({ ...input, state })
+  const actor = out.state.tactical.battle.combatants.find((row) => row.id === 'actor')!
+  expect(actor.hp).toBe(20)
+  expect(actor.mp).toBe(9)
+  expect(
+    out.events.filter((row) => row.event === 'healing_applied' && row.actionId === 'child.heal'),
+  ).toHaveLength(1)
+  expect(
+    out.events.filter((row) => row.event === 'damage_applied' && row.targetCombatantId === 'actor'),
+  ).toEqual([])
+  expect(
+    out.state.abilityRuntime!.conditionTruth!.find((row) => row.sourceInstanceId === 'low-source')!
+      .holds,
+  ).toBe(false)
+})

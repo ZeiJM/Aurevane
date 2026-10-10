@@ -11,6 +11,7 @@ import { combatAbilitySubject } from './combat-behavior-runtime'
 import { evaluateAutomaticRequirementTrigger } from './combat-requirements'
 import {
   createCombatActionProvenance,
+  consumeCombatTrigger,
   COMBAT_RESOLUTION_PIPELINE_VERSION,
   type CombatTriggerGuard,
 } from './combat-kernel-types'
@@ -134,6 +135,91 @@ export interface CombatAbilityEventSession {
 }
 const sessions = new WeakSet<CombatAbilityEventSession>()
 const frames = new WeakMap<CombatAbilityEventFrame, CombatAbilityEventSession>()
+interface AutomaticImpulse {
+  readonly source: CapturedCombatAbilitySource
+  readonly behavior: AbilityBehavior
+  readonly requirementsContext: AbilityRequirementContext
+  readonly event?: CombatAbilityEventFrame['events'][number]
+}
+const impulses = new WeakMap<CombatAbilityEventFrame, readonly AutomaticImpulse[]>()
+function captureAutomaticImpulses(
+  before: CombatEncounterState,
+  after: CombatEncounterState,
+  frame: CombatAbilityEventFrame,
+  newlyActivatedSourceIds: readonly string[],
+) {
+  const truth = [...(after.abilityRuntime?.conditionTruth ?? [])]
+  const candidates: AutomaticImpulse[] = []
+  for (const source of after.capturedAbilitySources ?? []) {
+    if (!after.abilityRuntime?.activeSourceIds.includes(source.sourceInstanceId)) continue
+    for (const behavior of source.definition.behaviors) {
+      if (behavior.activation !== 'automatic' || behavior.mode !== 'action') continue
+      const context = combatAbilityFrameRequirements(frame, source.ownerCombatantId)
+      const stateTruth = evaluateAutomaticRequirementTrigger(
+        behavior.requirements,
+        context,
+        true,
+      ).stateTruth
+      const prior = truth.find(
+        (row) => row.sourceInstanceId === source.sourceInstanceId && row.behaviorId === behavior.id,
+      )
+      const fresh =
+        newlyActivatedSourceIds.includes(source.sourceInstanceId) &&
+        !before.capturedAbilitySources?.some(
+          (row) => row.sourceInstanceId === source.sourceInstanceId,
+        )
+      const entered = stateTruth && !(fresh ? false : (prior?.holds ?? stateTruth))
+      const event = frame.events.find(
+        (receipt) =>
+          evaluateAutomaticRequirementTrigger(
+            behavior.requirements,
+            combatAbilityFrameRequirements(frame, source.ownerCombatantId, receipt),
+            true,
+          ).eventMatched,
+      )
+      const mutationMatched = evaluateAutomaticRequirementTrigger(
+        behavior.requirements,
+        context,
+        true,
+      ).eventMatched
+      const row = {
+        sourceInstanceId: source.sourceInstanceId,
+        behaviorId: behavior.id,
+        holds: stateTruth,
+      }
+      if (prior) truth[truth.indexOf(prior)] = row
+      else truth.push(row)
+      if (entered || event || mutationMatched)
+        candidates.push(
+          detached({
+            source,
+            behavior,
+            requirementsContext: detached(
+              event
+                ? combatAbilityFrameRequirements(frame, source.ownerCombatantId, event)
+                : context,
+            ),
+            ...(event ? { event } : {}),
+          }),
+        )
+    }
+  }
+  impulses.set(
+    frame,
+    candidates.sort((a, b) =>
+      a.source.sourceInstanceId < b.source.sourceInstanceId
+        ? -1
+        : a.source.sourceInstanceId > b.source.sourceInstanceId
+          ? 1
+          : a.behavior.id < b.behavior.id
+            ? -1
+            : a.behavior.id > b.behavior.id
+              ? 1
+              : 0,
+    ),
+  )
+  return truth
+}
 export function createCombatAbilityEventSession(
   guard: CombatTriggerGuard,
 ): CombatAbilityEventSession {
@@ -187,7 +273,31 @@ export function captureCombatAbilityEventFrame(
     })),
   })
   frames.set(frame, session)
+  captureAutomaticImpulses(before, after, frame, [])
   return frame
+}
+/** Record truth at a real mutation; dispatch never edits this persisted memory. */
+export function captureCombatAbilityMutation(
+  before: CombatEncounterState,
+  after: CombatEncounterState,
+  identity: string,
+  session: CombatAbilityEventSession,
+  facts: Omit<CombatAbilityEventFrame, 'id' | 'mutationOrdinal' | 'subjects' | 'placements'>,
+  options: { readonly newlyActivatedSourceIds?: readonly string[] } = {},
+): { readonly state: CombatEncounterState; readonly frame: CombatAbilityEventFrame } {
+  const frame = captureCombatAbilityEventFrame(before, after, identity, session, facts)
+  const conditionTruth = captureAutomaticImpulses(
+    before,
+    after,
+    frame,
+    options.newlyActivatedSourceIds ?? [],
+  )
+  return {
+    frame,
+    state: after.abilityRuntime
+      ? { ...after, abilityRuntime: { ...after.abilityRuntime, conditionTruth } }
+      : after,
+  }
 }
 export function combatAbilityFrameRequirements(
   frame: CombatAbilityEventFrame,
@@ -231,7 +341,11 @@ export function combatAbilityFrameRequirements(
         frame.resourceMutations.find((row) => row.combatantId === id)?.resources ?? [],
       ]),
     ),
-    ...(event ? { event: { ...event, action: frame.actionFacts } } : {}),
+    ...(event
+      ? { event: { ...event, action: frame.actionFacts } }
+      : frame.actionFacts
+        ? { event: { type: '', phase: 'after', action: frame.actionFacts } }
+        : {}),
   }
   return context
 }
@@ -250,24 +364,8 @@ export function processCombatAbilityEvent(
   if (frames.get(frame) !== session) throw new TypeError('invalid-automatic-event-frame')
   let next = state
   const events: CombatResolutionTransition['events'][number][] = []
-  const candidates = (state.capturedAbilitySources ?? [])
-    .flatMap((source) =>
-      source.definition.behaviors
-        .filter((behavior) => behavior.activation === 'automatic' && behavior.mode === 'action')
-        .map((behavior) => ({ source, behavior })),
-    )
-    .sort((a, b) =>
-      a.source.sourceInstanceId < b.source.sourceInstanceId
-        ? -1
-        : a.source.sourceInstanceId > b.source.sourceInstanceId
-          ? 1
-          : a.behavior.id < b.behavior.id
-            ? -1
-            : a.behavior.id > b.behavior.id
-              ? 1
-              : 0,
-    )
-  for (const { source, behavior } of candidates) {
+  const candidates = impulses.get(frame) ?? []
+  for (const { source, behavior, requirementsContext, event: matching } of candidates) {
     if (
       next.tactical.battle.lifecycle !== 'active' ||
       !next.abilityRuntime?.activeSourceIds.includes(source.sourceInstanceId) ||
@@ -278,17 +376,22 @@ export function processCombatAbilityEvent(
       continue
     const key = JSON.stringify([frame.id, source.sourceInstanceId, behavior.id])
     if (session.dispatched.has(key)) continue
-    const matching = frame.events.find(
-      (event) =>
-        evaluateAutomaticRequirementTrigger(
-          behavior.requirements,
-          combatAbilityFrameRequirements(frame, source.ownerCombatantId, event),
-          true,
-        ).eventMatched,
-    )
-    // State-entry/crossing candidates are added at real capture in Step4, never inferred here.
-    if (!matching) continue
     session.dispatched.add(key)
+    const usageKey = JSON.stringify([
+      state.tactical.battle.battleId,
+      source.sourceInstanceId,
+      source.ownerCombatantId,
+      source.abilityId,
+      source.contentVersion,
+      behavior.id,
+    ])
+    if (
+      !consumeCombatTrigger(session.guard, {
+        instanceId: JSON.stringify([usageKey, frame.id]),
+        depth: depth + 1,
+      }).accepted
+    )
+      continue
     const selection = resolveAutomaticAbilitySelection(next, source, behavior, frame)
     if ('suppression' in selection) continue
     const child = executeAutomatic({
@@ -310,22 +413,21 @@ export function processCombatAbilityEvent(
       },
       trigger: {
         id: frame.id,
-        type: matching.type,
-        phase: matching.phase,
+        type: matching?.type ?? '',
+        phase: matching?.phase ?? 'after',
         depth: depth + 1,
         triggeringCombatantId: frame.triggeringCombatantId,
-        requirementsContext: combatAbilityFrameRequirements(
-          frame,
-          source.ownerCombatantId,
-          matching,
-        ),
+        requirementsContext,
       },
       eventSession: session,
       eventDepth: depth + 1,
     })
     next = child.state
     events.push(...child.events)
-    if (child.resolution) session.guard = child.resolution.triggerGuard
+    if (child.resolution) {
+      session.guard = child.resolution.triggerGuard
+      assertCombatAbilityEventSession(session, context)
+    }
   }
   return {
     state: next,

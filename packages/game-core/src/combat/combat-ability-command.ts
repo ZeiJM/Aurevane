@@ -46,7 +46,7 @@ import { spendAction } from './battle-state'
 import {
   createCombatAbilityEventSession,
   assertCombatAbilityEventSession,
-  captureCombatAbilityEventFrame,
+  captureCombatAbilityMutation,
   processCombatAbilityEvent,
   type CombatAbilityEventSession,
   type CombatAbilityEventFrame,
@@ -598,8 +598,12 @@ export function commitCombatAbilityCommand(
     affectedCombatantIds: prepared.evaluation.affectedCombatantIds,
   }
   const outcomeQueue: CombatAbilityEventFrame[] = []
-  outcomeQueue.push(
-    captureCombatAbilityEventFrame(input.state, paid, commandIdentity, session, {
+  const paymentMutation = captureCombatAbilityMutation(
+    input.state,
+    paid,
+    commandIdentity,
+    session,
+    {
       ...facts,
       affectedCombatantIds: [input.actorId],
       events: paymentEvents.flatMap((event) =>
@@ -615,8 +619,10 @@ export function commitCombatAbilityCommand(
       resourceMutations: prepared.costs.length
         ? [{ combatantId: input.actorId, resources: prepared.costs.map((cost) => cost.resource) }]
         : [],
-    }),
+    },
   )
+  paid = paymentMutation.state
+  outcomeQueue.push(paymentMutation.frame)
   const committedExecution = issueCommittedCombatExecution(
     paid,
     input.actorId,
@@ -630,11 +636,13 @@ export function commitCombatAbilityCommand(
     actionId: prepared.action.id,
     actorId: input.actorId,
   }
-  const beforeFrame = captureCombatAbilityEventFrame(paid, paid, commandIdentity, session, {
+  const beforeMutation = captureCombatAbilityMutation(paid, paid, commandIdentity, session, {
     ...facts,
     events: [{ type: 'combat_action_used', phase: 'before' }],
     resourceMutations: [],
   })
+  paid = beforeMutation.state
+  const beforeFrame = beforeMutation.frame
   const executeAutomatic = (child: CombatAbilityCommandInput): CombatResolutionTransition => {
     const quote = prepareCombatAbilityCommand(child)
     if (!quote.evaluation.legal)
@@ -658,7 +666,7 @@ export function commitCombatAbilityCommand(
     depth,
     executeAutomatic,
   )
-  const live = before.state
+  let live = before.state
   const drainOutcomes = (
     native: CombatResolutionTransition,
     nativeGuard: typeof guard,
@@ -666,13 +674,6 @@ export function commitCombatAbilityCommand(
     session.guard = nativeGuard
     let state = native.state
     const events = [...native.events]
-    outcomeQueue.push(
-      captureCombatAbilityEventFrame(state, state, commandIdentity, session, {
-        ...facts,
-        events: [{ type: 'combat_action_used', phase: 'after' }],
-        resourceMutations: [],
-      }),
-    )
     for (const frame of outcomeQueue) {
       const children = processCombatAbilityEvent(
         state,
@@ -686,6 +687,23 @@ export function commitCombatAbilityCommand(
       state = children.state
       events.push(...children.events)
     }
+    const finishedMutation = captureCombatAbilityMutation(state, state, commandIdentity, session, {
+      ...facts,
+      events: [{ type: 'combat_action_used', phase: 'after' }],
+      resourceMutations: [],
+    })
+    state = finishedMutation.state
+    const finishedChildren = processCombatAbilityEvent(
+      state,
+      finishedMutation.frame,
+      input.content,
+      context,
+      session,
+      depth,
+      executeAutomatic,
+    )
+    state = finishedChildren.state
+    events.push(...finishedChildren.events)
     return {
       state,
       events,
@@ -723,14 +741,15 @@ export function commitCombatAbilityCommand(
         reason: interruption,
       }
     : null
-  if (interruption)
-    outcomeQueue.push(
-      captureCombatAbilityEventFrame(live, live, commandIdentity, session, {
-        ...facts,
-        events: [{ type: 'combat_action_interrupted', phase: 'after' }],
-        resourceMutations: [],
-      }),
-    )
+  if (interruption) {
+    const interruptedMutation = captureCombatAbilityMutation(live, live, commandIdentity, session, {
+      ...facts,
+      events: [{ type: 'combat_action_interrupted', phase: 'after' }],
+      resourceMutations: [],
+    })
+    live = interruptedMutation.state
+    outcomeQueue.push(interruptedMutation.frame)
+  }
   const canSettleActor = interruption === 'selection-invalid'
   const out = interruption
     ? canSettleActor

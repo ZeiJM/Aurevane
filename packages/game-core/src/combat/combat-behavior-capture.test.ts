@@ -1,3 +1,6 @@
+import { validateCombatAbilityState } from './combat-ability-state'
+import { reconcileCombatAbilitySources } from './combat-behavior-runtime'
+import { percentageDotEncounter } from './combat-percentage-dots.test-utils'
 import { describe, expect, it } from 'vitest'
 import { captureCombatAbilitySource } from './combat-behavior-capture'
 import { validateAbilityDefinition } from './combat-definition'
@@ -55,4 +58,29 @@ describe('private canonical execution capture', () => {
       )
     }
   })
+})
+
+it('restored condition truth admits only unique exact known Automatic action entries', () => {
+  const captured = captureCombatAbilitySource(
+    source({ activation: 'automatic', automaticTarget: { subject: 'owner' } }),
+  )
+  const state = reconcileCombatAbilitySources(percentageDotEncounter(), [captured])
+  const valid = {
+    sourceInstanceId: captured.sourceInstanceId,
+    behaviorId: captured.definition.behaviors[0]!.id,
+    holds: false,
+  }
+  const withTruth = (conditionTruth: unknown) =>
+    ({ ...state, abilityRuntime: { ...state.abilityRuntime!, conditionTruth } }) as never
+  expect(validateCombatAbilityState(withTruth([valid]))).toEqual([])
+  for (const bad of [
+    null,
+    [valid, valid],
+    [{ ...valid, holds: 1 }],
+    [{ ...valid, sourceInstanceId: 'unknown' }],
+    [{ ...valid, behaviorId: 'unknown' }],
+    [{ ...valid, extra: true }],
+  ])
+    expect(validateCombatAbilityState(withTruth(bad)).length).toBeGreaterThan(0)
+  expect(validateCombatAbilityState(JSON.parse(JSON.stringify(withTruth([valid]))))).toEqual([])
 })

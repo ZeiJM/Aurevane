@@ -1,3 +1,4 @@
+import { validateCombatAbilityState } from './combat-ability-state'
 import {
   committedCombatAttemptRecorded,
   type CommittedCombatExecution,
@@ -2103,6 +2104,7 @@ export function validateCombatEncounterState(
   state: CombatEncounterState,
 ): readonly CombatEncounterIssue[] {
   const issues: CombatEncounterIssue[] = [
+    ...validateCombatAbilityState(state),
     ...validateTerrainOverlays(state),
     ...validateOngoingRecoveryState(state),
     ...validateBarrierState(state),

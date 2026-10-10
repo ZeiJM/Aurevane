@@ -1,10 +1,19 @@
-import { combatAbilityCommandContext } from './combat-behavior-runtime'
+import { createCombatTriggerGuard } from './combat-kernel-types'
+import { commitCombatAbilityCommand, prepareCombatAbilityCommand } from './combat-ability-command'
+import type { AbilityBehavior } from './combat-definition'
+import type { CombatEncounterState } from './actions'
+import { captureCombatAbilitySource } from './combat-behavior-capture'
+import {
+  combatAbilityCommandContext,
+  reconcileCombatAbilitySources,
+} from './combat-behavior-runtime'
 import { PV1F_COMBAT_CONTENT } from './pv1f-action-economy'
 import { describe, expect, it } from 'vitest'
 import {
   automaticAbilityEventSupported,
   createCombatAbilityEventSession,
   captureCombatAbilityEventFrame,
+  captureCombatAbilityMutation,
   combatAbilityFrameRequirements,
   processCombatAbilityEvent,
   resolveAutomaticAbilitySelection,
@@ -130,4 +139,290 @@ it('detaches exact changed resources and rejects fabricated/foreign session fram
       },
     ),
   ).toThrow('invalid-automatic-event-session')
+})
+
+function stateAuto(
+  requirements: AbilityBehavior['requirements'] = {
+    kind: 'resource-state',
+    subject: 'owner',
+    resource: 'hp',
+    comparison: 'at-most',
+    amount: 500,
+  },
+) {
+  const captured = captureCombatAbilitySource(
+    source({
+      id: 'react',
+      activation: 'automatic',
+      classification: 'recovery',
+      attackFamily: undefined,
+      costs: [],
+      requirements,
+      targeting: {
+        kind: 'self',
+        teamPolicy: 'self',
+        friendlyFire: 'allies-only',
+        shape: { kind: 'single' },
+        minimumRange: 0,
+        maximumRange: 0,
+        requiresLineOfSight: false,
+        maximumElevationDifference: null,
+        maximumSelections: 1,
+      },
+      effects: [{ id: 'heal', payload: { type: 'healing', recipient: 'actor', amount: 1 } }],
+    }),
+  )
+  return { captured, state: reconcileCombatAbilitySources(percentageDotEncounter(), [captured]) }
+}
+function hp(state: CombatEncounterState, amount: number): CombatEncounterState {
+  return {
+    ...state,
+    tactical: {
+      ...state.tactical,
+      battle: {
+        ...state.tactical.battle,
+        combatants: state.tactical.battle.combatants.map((unit) =>
+          unit.id === 'actor' ? { ...unit, hp: amount } : unit,
+        ),
+      },
+    },
+  }
+}
+it('captures down/up/down state impulses once and never rolls truth back on queued dispatch', () => {
+  const { captured, state } = stateAuto(),
+    context = combatAbilityCommandContext(state, captured),
+    session = createCombatAbilityEventSession(context.triggerGuard)
+  const frames: CombatAbilityEventFrame[] = []
+  let next = state
+  for (const amount of [400, 600, 400]) {
+    const mutation = captureCombatAbilityMutation(next, hp(next, amount), 'hp', session, {
+      events: [],
+      affectedCombatantIds: ['actor'],
+      resourceMutations: [{ combatantId: 'actor', resources: ['hp'] }],
+    })
+    next = mutation.state
+    frames.push(mutation.frame)
+  }
+  expect(next.abilityRuntime!.conditionTruth).toEqual([
+    { sourceInstanceId: captured.sourceInstanceId, behaviorId: 'react', holds: true },
+  ])
+  const calls: string[] = []
+  for (const frame of frames) {
+    const out = processCombatAbilityEvent(
+      next,
+      frame,
+      PV1F_COMBAT_CONTENT,
+      context,
+      session,
+      0,
+      (input) => {
+        calls.push(input.trigger!.id)
+        return { state: input.state, events: [] }
+      },
+    )
+    next = out.state
+  }
+  expect(calls).toEqual([frames[0]!.id, frames[2]!.id])
+  expect(next.abilityRuntime!.conditionTruth![0]!.holds).toBe(true)
+  processCombatAbilityEvent(next, frames[0]!, PV1F_COMBAT_CONTENT, context, session, 0, () => {
+    throw Error('duplicate must not execute')
+  })
+})
+it('missing restored truth seeds silently while explicit real source activation may initially pulse', () => {
+  const { captured, state } = stateAuto(null),
+    context = combatAbilityCommandContext(state, captured)
+  const restored = JSON.parse(JSON.stringify(state)) as CombatEncounterState
+  delete (restored.abilityRuntime as { conditionTruth?: unknown }).conditionTruth
+  const session = createCombatAbilityEventSession(context.triggerGuard)
+  const seeded = captureCombatAbilityMutation(restored, restored, 'restore', session, {
+    events: [],
+    affectedCombatantIds: [],
+    resourceMutations: [],
+  })
+  let count = 0
+  processCombatAbilityEvent(
+    seeded.state,
+    seeded.frame,
+    PV1F_COMBAT_CONTENT,
+    context,
+    session,
+    0,
+    (input) => {
+      count++
+      return { state: input.state, events: [] }
+    },
+  )
+  expect(count).toBe(0)
+  const activated = captureCombatAbilityMutation(
+    percentageDotEncounter(),
+    seeded.state,
+    'activate',
+    session,
+    { events: [], affectedCombatantIds: [], resourceMutations: [] },
+    { newlyActivatedSourceIds: [captured.sourceInstanceId] },
+  )
+  processCombatAbilityEvent(
+    activated.state,
+    activated.frame,
+    PV1F_COMBAT_CONTENT,
+    context,
+    session,
+    0,
+    (input) => {
+      count++
+      return { state: input.state, events: [] }
+    },
+  )
+  expect(count).toBe(1)
+  const kept = reconcileCombatAbilitySources(reconcileCombatAbilitySources(activated.state, []), [
+    captured,
+  ])
+  expect(kept.abilityRuntime!.conditionTruth).toEqual(
+    activated.state.abilityRuntime!.conditionTruth,
+  )
+})
+it('a held Any state branch still allows a genuine matching event but no unrelated pulse', () => {
+  const { captured, state } = stateAuto({
+      kind: 'any',
+      children: [
+        {
+          kind: 'resource-state',
+          subject: 'owner',
+          resource: 'hp',
+          comparison: 'at-most',
+          amount: 1000,
+        },
+        { kind: 'event', eventType: 'healing_applied', phase: 'after' },
+      ],
+    }),
+    context = combatAbilityCommandContext(state, captured),
+    session = createCombatAbilityEventSession(context.triggerGuard)
+  let next = state,
+    count = 0
+  for (const type of ['damage_applied', 'healing_applied'] as const) {
+    const mutation = captureCombatAbilityMutation(next, next, type, session, {
+      events: [{ type, phase: 'after' }],
+      affectedCombatantIds: ['actor'],
+      resourceMutations: [],
+    })
+    next = mutation.state
+    processCombatAbilityEvent(
+      next,
+      mutation.frame,
+      PV1F_COMBAT_CONTENT,
+      context,
+      session,
+      0,
+      (input) => {
+        count++
+        return { state: input.state, events: [] }
+      },
+    )
+  }
+  expect(count).toBe(1)
+})
+
+it.each([
+  { maxDepth: 8, depth: 8, reactionBudget: 32 },
+  { maxDepth: 8, depth: 0, reactionBudget: 0 },
+])(
+  'shared depth/budget suppresses before child executor and payment: %j',
+  ({ maxDepth, depth, reactionBudget }) => {
+    const { captured, state } = stateAuto({
+      kind: 'event',
+      eventType: 'healing_applied',
+      phase: 'after',
+    })
+    const base = combatAbilityCommandContext(state, captured),
+      context = {
+        ...base,
+        triggerGuard: createCombatTriggerGuard({
+          triggerChainId: base.provenance.triggerChainId,
+          maxDepth,
+          reactionBudget,
+        }),
+      },
+      session = createCombatAbilityEventSession(context.triggerGuard)
+    const mutation = captureCombatAbilityMutation(state, state, 'heal', session, {
+      events: [{ type: 'healing_applied', phase: 'after' }],
+      affectedCombatantIds: ['actor'],
+      resourceMutations: [],
+    })
+    expect(
+      processCombatAbilityEvent(
+        mutation.state,
+        mutation.frame,
+        PV1F_COMBAT_CONTENT,
+        context,
+        session,
+        depth,
+        () => {
+          throw Error('exhausted guard must not execute')
+        },
+      ).state,
+    ).toEqual(mutation.state)
+  },
+)
+it('archived truth and usage survive JSON removal/readd without resetting once-per-battle', () => {
+  const { captured, state } = stateAuto({
+    kind: 'event',
+    eventType: 'healing_applied',
+    phase: 'after',
+  })
+  const context = combatAbilityCommandContext(state, captured),
+    session = createCombatAbilityEventSession(context.triggerGuard)
+  const limited = captureCombatAbilitySource({
+    ...captured,
+    definition: {
+      ...captured.definition,
+      behaviors: captured.definition.behaviors.map((row) => ({
+        ...row,
+        activationLimits: ['once-per-battle'] as const,
+        costs: [{ resource: 'mp' as const, amount: 1 }],
+      })),
+    },
+  })
+  const active = reconcileCombatAbilitySources(percentageDotEncounter(), [limited])
+  const mutation = captureCombatAbilityMutation(active, active, 'heal', session, {
+    events: [{ type: 'healing_applied', phase: 'after' }],
+    affectedCombatantIds: ['actor'],
+    resourceMutations: [],
+  })
+  const first = processCombatAbilityEvent(
+    mutation.state,
+    mutation.frame,
+    PV1F_COMBAT_CONTENT,
+    context,
+    session,
+    0,
+    commitCombatAbilityCommand,
+  )
+  expect(first.state.abilityRuntime!.usage).toHaveLength(1)
+  const archived = reconcileCombatAbilitySources(first.state, [])
+  const restored = reconcileCombatAbilitySources(JSON.parse(JSON.stringify(archived)), [limited])
+  expect(restored.abilityRuntime!.usage).toEqual(first.state.abilityRuntime!.usage)
+  expect(restored.abilityRuntime!.conditionTruth).toEqual(
+    first.state.abilityRuntime!.conditionTruth,
+  )
+  const second = captureCombatAbilityMutation(restored, restored, 'heal2', session, {
+    events: [{ type: 'healing_applied', phase: 'after' }],
+    affectedCombatantIds: ['actor'],
+    resourceMutations: [],
+  })
+  const out = processCombatAbilityEvent(
+    second.state,
+    second.frame,
+    PV1F_COMBAT_CONTENT,
+    context,
+    session,
+    0,
+    (input) =>
+      prepareCombatAbilityCommand(input).evaluation.legal
+        ? commitCombatAbilityCommand(input)
+        : { state: input.state, events: [] },
+  )
+  expect(out.events).toEqual([])
+  expect(out.state.tactical.battle.combatants.find((row) => row.id === 'actor')!.mp).toBe(
+    first.state.tactical.battle.combatants.find((row) => row.id === 'actor')!.mp,
+  )
 })
