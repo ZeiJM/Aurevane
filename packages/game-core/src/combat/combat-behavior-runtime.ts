@@ -22,7 +22,11 @@ import {
   type AbilityRequirementSubjectState,
 } from './combat-requirements'
 import { combatTurnCycle, prepareCombatTurnTriggers } from './combat-turn-trigger-state'
-import { createCombatActionProvenance, consumeCombatTrigger } from './combat-kernel-types'
+import {
+  createCombatActionProvenance,
+  createCombatTriggerGuard,
+  consumeCombatTrigger,
+} from './combat-kernel-types'
 
 interface CombatAbilityUsage {
   readonly key: string
@@ -44,6 +48,30 @@ export interface CombatAbilityRuntimeState {
   readonly activeSourceIds: readonly string[]
   readonly usage: readonly CombatAbilityUsage[]
   readonly maintained: readonly CombatMaintainedAbilityContribution[]
+  readonly nextCommandSequence?: number
+}
+export function combatAbilityCommandContext(
+  state: CombatEncounterState,
+  source: CapturedCombatAbilitySource,
+): CombatResolutionContext {
+  const triggerChainId = JSON.stringify([
+    'ability',
+    state.tactical.battle.battleId,
+    state.tactical.battle.turnNumber,
+    state.abilityRuntime?.nextCommandSequence ?? 1,
+  ])
+  return {
+    provenance: createCombatActionProvenance({
+      rulesetVersion: state.tactical.battle.rulesVersion,
+      sourceKind: source.sourceKind,
+      actionDefinitionId: source.abilityId,
+      actionVersion: source.contentVersion,
+      sourceCombatantId: source.ownerCombatantId,
+      controllerCombatantId: source.ownerCombatantId,
+      triggerChainId,
+    }),
+    triggerGuard: createCombatTriggerGuard({ triggerChainId }),
+  }
 }
 export interface CombatAbilityActivationInput {
   readonly state: CombatEncounterState
@@ -104,11 +132,60 @@ export function materializeCombatAbilityAction(
     ...(behavior.cooldown ? { cooldown: behavior.cooldown } : {}),
     ...(behavior.accuracy ? { accuracyRule: behavior.accuracy } : {}),
     effects: behavior.effects.map((effect) => nativeCombatTagPayload(effect.payload)),
-    effectOrigins: behavior.effects.map(() => ({
+    effectTimingModes: behavior.effects.map((effect) => effect.timing),
+    effectOrigins: behavior.effects.map((effect) => ({
+      sourceInstanceId: source.sourceInstanceId,
+      behaviorId: behavior.id,
+      effectId: effect.id,
       family: source.sourceKind === 'essence' ? 'essence' : 'skill',
       contentId: source.abilityId,
       contentVersion: source.contentVersion,
     })),
+  }
+}
+
+/** Eligibility is resolved from immutable pre-payment subjects, before native settlement. */
+function captureCombatAbilityAction(
+  input: CombatAbilityActivationInput,
+  source: CapturedCombatAbilitySource,
+  behavior: AbilityBehavior,
+): CombatActionDefinition {
+  const action = materializeCombatAbilityAction(source, behavior)
+  const authority =
+    behavior.activation === 'automatic'
+      ? { activation: 'automatic' as const, actorId: input.actorId }
+      : undefined
+  const geometry = evaluateCombatAction(
+    input.state,
+    action,
+    input.selection,
+    input.content,
+    authority,
+  )
+  return {
+    ...action,
+    effectEligibleRecipientIds: behavior.effects.map((effect) => {
+      if (!effect.requirements) return undefined
+      if (effect.payload.recipient === 'affected-tiles')
+        throw new TypeError('canonical-tile-requirement-routing-required')
+      const ids =
+        effect.payload.recipient === 'actor'
+          ? [input.actorId]
+          : effect.payload.recipient === 'primary-unit'
+            ? geometry.primaryCombatantId
+              ? [geometry.primaryCombatantId]
+              : []
+            : geometry.affectedCombatantIds
+      return ids.filter((id) =>
+        evaluateAbilityRequirements(effect.requirements ?? null, {
+          owner: combatAbilitySubject(input.state, input.actorId),
+          selected: combatAbilitySubject(input.state, geometry.primaryCombatantId),
+          triggering: combatAbilitySubject(input.state, input.trigger?.triggeringCombatantId),
+          ...(input.trigger?.requirementsContext ?? {}),
+          affected: combatAbilitySubject(input.state, id),
+        }),
+      )
+    }),
   }
 }
 
@@ -149,7 +226,7 @@ export function combatAbilitySubject(
 export function evaluateCombatAbility(input: CombatAbilityActivationInput): CombatActionEvaluation {
   const source = captureCombatAbilitySource(input.source)
   const behavior = combatAbilityBehavior(source, input.behaviorId)
-  const action = materializeCombatAbilityAction(source, behavior)
+  const action = captureCombatAbilityAction(input, source, behavior)
   if (behavior.activation === 'automatic' && !input.trigger)
     throw new TypeError('automatic-event-required')
   const authority =
@@ -179,7 +256,15 @@ export function evaluateCombatAbility(input: CombatAbilityActivationInput): Comb
     selected: combatAbilitySubject(input.state, evaluation.primaryCombatantId),
     triggering: combatAbilitySubject(input.state, input.trigger?.triggeringCombatantId),
     ...(input.trigger?.requirementsContext ?? {}),
-    ...(input.trigger ? { event: { type: input.trigger.type, phase: input.trigger.phase } } : {}),
+    ...(input.trigger
+      ? {
+          event: {
+            ...input.trigger.requirementsContext?.event,
+            type: input.trigger.type,
+            phase: input.trigger.phase,
+          },
+        }
+      : {}),
   }
   if (!evaluateAbilityRequirements(behavior.requirements, context))
     issues.push({ code: 'requirement-not-met', message: 'Ability Requirements are not met.' })
@@ -251,7 +336,7 @@ export function activateCombatAbility(
     throw new Error(`${evaluation.issues[0]?.code}: ${evaluation.issues[0]?.message}`)
   const source = captureCombatAbilitySource(input.source)
   const behavior = combatAbilityBehavior(source, input.behaviorId)
-  const action = materializeCombatAbilityAction(source, behavior)
+  const action = captureCombatAbilityAction(input, source, behavior)
   const key = usageKey(input.state, source, behavior)
   const paymentEvents: CombatResolutionEvent[] = []
   let paid = prepareCombatTurnTriggers(input.state)
@@ -313,6 +398,9 @@ export function activateCombatAbility(
       : [...(paid.capturedAbilitySources ?? []), source],
     abilityRuntime: {
       ...tracking,
+      nextCommandSequence: input.trigger
+        ? tracking.nextCommandSequence
+        : (tracking.nextCommandSequence ?? 1) + 1,
       usage: [
         ...tracking.usage.filter((row) => row.key !== key),
         {
@@ -404,10 +492,14 @@ export function reconcileCombatAbilitySources(
       ),
     ],
     abilityRuntime: {
+      ...state.abilityRuntime,
       schemaVersion: 1,
       activeSourceIds: captured.map((row) => row.sourceInstanceId),
       usage: state.abilityRuntime?.usage ?? [],
       maintained,
+      ...(state.abilityRuntime?.nextCommandSequence === undefined
+        ? {}
+        : { nextCommandSequence: state.abilityRuntime.nextCommandSequence }),
     },
   }
 }

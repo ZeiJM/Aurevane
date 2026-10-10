@@ -1,4 +1,12 @@
 import { airborneAttackAction, airborneMovementTactical } from './combat-airborne'
+import { capturedMatureSkillAbilitySource } from './combat-action-source'
+import {
+  activateCombatAbility,
+  evaluateCombatAbility,
+  materializeCombatAbilityAction,
+  combatAbilityBehavior,
+  combatAbilityCommandContext,
+} from './combat-behavior-runtime'
 import { currentPoisonTickDamage } from './combat-dots'
 import { combatEffectTimingMode, combatEffectTimingRoundOffset } from './combat-effect-timing'
 import { materializeVengeanceDamage } from './combat-vengeance'
@@ -853,6 +861,7 @@ function abilityIdForEvent(action: CombatActionDefinition): string {
 }
 
 export interface Pv1fMatureSkillOptions {
+  behaviorId?: string
   apCostOverride?: number
   actionIdOverride?: string
   repeatHistoryKey?: string
@@ -878,6 +887,27 @@ export function evaluatePv1fMatureSkill(
   const prepared = preparePv1fTurnEconomy(state)
   const actorId = prepared.tactical.battle.currentTurn?.combatantId
   if (!actorId) throw new Error('Mature Skill evaluation requires an active turn.')
+  const capturedSource = capturedMatureSkillAbilitySource(prepared, definition)
+  if (capturedSource) {
+    const behavior = combatAbilityBehavior(capturedSource, options.behaviorId)
+    const action = materializeCombatAbilityAction(capturedSource, behavior)
+    const evaluation = evaluateCombatAbility({
+      state: prepared,
+      actorId,
+      source: capturedSource,
+      behaviorId: behavior.id,
+      selection: target,
+      content: PV1F_COMBAT_CONTENT,
+      context: combatAbilityCommandContext(prepared, capturedSource),
+    })
+    return {
+      prepared,
+      action,
+      cost: behavior.costs.find((cost) => cost.resource === 'ap')?.amount ?? 0,
+      evaluation,
+      repeatPenaltyApplied: false,
+    }
+  }
   const resolved = resolveMatureSkillForContext(definition, combatContext)
   const authoredCost = options.apCostOverride ?? resolved.apCost
   const resonance = committedResonanceForecast(prepared, definition, target)
@@ -1040,6 +1070,22 @@ export function executePv1fMatureSkill(
   combatContext: MatureSkillCombatContext = 'pve',
   options: Pv1fMatureSkillOptions = {},
 ): Pv1fTransition {
+  const canonicalPrepared = preparePv1fTurnEconomy(state)
+  const capturedSource = capturedMatureSkillAbilitySource(canonicalPrepared, definition)
+  if (capturedSource) {
+    const actorId = canonicalPrepared.tactical.battle.currentTurn!.combatantId
+    const out = activateCombatAbility({
+      state: canonicalPrepared,
+      actorId,
+      source: capturedSource,
+      behaviorId: options.behaviorId,
+      selection: target,
+      content: PV1F_COMBAT_CONTENT,
+      context: combatAbilityCommandContext(canonicalPrepared, capturedSource),
+    })
+    const bridged = reattachStatDrivenCombatBridge(out.state, canonicalPrepared.statBridge)
+    return { state: spendPv1fActionEconomyForActor(bridged, actorId, 0), events: out.events }
+  }
   const { prepared, action, cost, evaluation, repeatPenaltyApplied } = evaluatePv1fMatureSkill(
     state,
     definition,

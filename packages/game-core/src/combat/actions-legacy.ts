@@ -332,6 +332,9 @@ export type CombatEffectDefinition =
     }
 
 export interface CombatEffectOrigin {
+  sourceInstanceId?: string
+  behaviorId?: string
+  effectId?: string
   family: 'skill' | 'essence' | 'resonance' | 'basic' | 'ascension' | 'severance'
   contentId: string
   contentVersion: number
@@ -341,6 +344,9 @@ export interface CombatActionDefinition {
   groundArea?: CombatGroundAreaDefinition
   effectOrigins?: readonly (CombatEffectOrigin | undefined)[]
   effectTimingTags?: readonly (string | undefined)[]
+  /** Trusted activation-time packet decisions; absent on historical actions. */
+  effectTimingModes?: readonly ('instant' | 'next-round' | 'delayed' | undefined)[]
+  effectEligibleRecipientIds?: readonly (readonly string[] | undefined)[]
   id: string
   version: number
   sourceType: CombatActionSourceType
@@ -437,10 +443,13 @@ export function combatSourceCommandVisibility(
 interface CapturedElementalApplication {
   effect: CombatEffectDefinition
   timingTag?: string
+  timingMode?: 'instant' | 'next-round' | 'delayed'
   effectOrigin?: CombatEffectOrigin
 }
 
 export interface PendingCombatEffect {
+  /** Effective canonical packet timing is pinned independently of historical global policy. */
+  timingMode?: 'instant' | 'next-round' | 'delayed'
   elementalApplicationsByRecipient?: Readonly<Record<string, CapturedElementalApplication>>
   elementalApplication?: { effect: CombatEffectDefinition; timingTag?: string }
   elementalResistedRecipientIds?: readonly string[]
@@ -2134,7 +2143,14 @@ export function validateCombatEncounterState(
       !Array.isArray(state.pendingEffects) ||
       (state.pendingEffects.length > 0 &&
         !state.effectTimingPolicy &&
-        !state.pendingEffects.every((row) => row.percentageDotCommandId !== undefined))
+        !state.pendingEffects.every(
+          (row) =>
+            row.percentageDotCommandId !== undefined ||
+            (row.timingMode !== undefined &&
+              row.effectOrigin?.sourceInstanceId &&
+              row.effectOrigin.behaviorId &&
+              row.effectOrigin.effectId),
+        ))
     )
       issues.push({
         field: 'pendingEffects',
@@ -2143,6 +2159,11 @@ export function validateCombatEncounterState(
     else
       for (const pending of state.pendingEffects) {
         try {
+          if (
+            pending.timingMode !== undefined &&
+            !['instant', 'next-round', 'delayed'].includes(pending.timingMode)
+          )
+            throw new TypeError('Invalid pinned packet timing.')
           if (
             !pending ||
             !Number.isSafeInteger(pending.activationRound) ||
@@ -2961,11 +2982,20 @@ function captureElementalApplication(
   affectedCombatantIds: readonly string[],
   recipientId: string,
   statusId: string,
+  damageOrdinal?: number,
 ): CapturedElementalApplication | undefined {
   const ordinal = action.effects.findIndex(
-    (effect) =>
+    (effect, ordinal) =>
       effect.type === 'apply-status' &&
       effect.statusId === statusId &&
+      (action.effectEligibleRecipientIds?.[ordinal] === undefined ||
+        action.effectEligibleRecipientIds[ordinal]!.includes(recipientId)) &&
+      (damageOrdinal === undefined ||
+        !action.effectOrigins?.[damageOrdinal]?.sourceInstanceId ||
+        (action.effectOrigins?.[ordinal]?.sourceInstanceId ===
+          action.effectOrigins[damageOrdinal]?.sourceInstanceId &&
+          action.effectOrigins?.[ordinal]?.behaviorId ===
+            action.effectOrigins[damageOrdinal]?.behaviorId)) &&
       resolveEffectRecipients(
         actorId,
         primaryCombatantId,
@@ -2977,6 +3007,7 @@ function captureElementalApplication(
   return {
     effect: action.effects[ordinal]!,
     timingTag: action.effectTimingTags?.[ordinal],
+    timingMode: action.effectTimingModes?.[ordinal],
     effectOrigin: action.effectOrigins?.[ordinal],
   }
 }
@@ -3027,10 +3058,11 @@ function settleElementalApplications(
     }
     const modes = nextState.effectTimingPolicy?.modes ?? {}
     const timingTag = explicitApplication?.timingTag ?? statusId
-    const instant =
-      !nextState.effectTimingPolicy ||
-      modes[timingTag] === undefined ||
-      modes[timingTag] === 'instant'
+    const instant = explicitApplication?.timingMode
+      ? explicitApplication.timingMode === 'instant'
+      : !nextState.effectTimingPolicy ||
+        modes[timingTag] === undefined ||
+        modes[timingTag] === 'instant'
     const applied = resolveActionEffects(
       nextState,
       actorId,
@@ -3042,6 +3074,8 @@ function settleElementalApplications(
         effects: [application],
         effectOrigins: [explicitApplication?.effectOrigin ?? action.effectOrigins?.[ordinal]],
         effectTimingTags: [timingTag],
+        effectTimingModes: [explicitApplication?.timingMode],
+        effectEligibleRecipientIds: undefined,
         groundArea: undefined,
       },
       content,
@@ -3198,6 +3232,8 @@ function resolveActionEffects(
             )
       ).filter(
         (recipientId) =>
+          (action.effectEligibleRecipientIds?.[effectOrdinal] === undefined ||
+            action.effectEligibleRecipientIds[effectOrdinal]!.includes(recipientId)) &&
           !(
             state.elementalDamagePolicyVersion !== undefined &&
             effect.type === 'apply-status' &&
@@ -3221,10 +3257,11 @@ function resolveActionEffects(
       if (
         !resolvingPending &&
         (isPercentageDotEffect(effect) ||
-          combatEffectTimingMode(
-            state.effectTimingPolicy,
-            combatActionEffectTimingTag(state, effect, action.effectTimingTags?.[effectOrdinal]),
-          ) !== 'instant')
+          (action.effectTimingModes?.[effectOrdinal] ??
+            combatEffectTimingMode(
+              state.effectTimingPolicy,
+              combatActionEffectTimingTag(state, effect, action.effectTimingTags?.[effectOrdinal]),
+            )) !== 'instant')
       ) {
         const recipientIds = (
           effect.recipient === 'affected-tiles' ? [] : effectRecipientIds
@@ -3295,6 +3332,9 @@ function resolveActionEffects(
                 criticalEffectOrdinalsByTarget?.get(id)?.has(effectOrdinal),
               ),
               actionId: action.id,
+              ...(action.effectTimingModes?.[effectOrdinal]
+                ? { timingMode: action.effectTimingModes[effectOrdinal] }
+                : {}),
               ...(state.displacementPolicyVersion === 1 && effect.type === 'displace'
                 ? { timingTag: currentCombatEffectTimingTag(effect) }
                 : action.effectTimingTags?.[effectOrdinal]
@@ -3335,6 +3375,7 @@ function resolveActionEffects(
                           affectedCombatantIds,
                           id,
                           elementalStatusId(effect)!,
+                          effectOrdinal,
                         )
                         return application ? [[id, JSON.parse(JSON.stringify(application))]] : []
                       }),
@@ -3348,14 +3389,15 @@ function resolveActionEffects(
                 state.tactical.battle.round +
                 Math.max(
                   combatEffectTimingRoundOffset(
-                    combatEffectTimingMode(
-                      state.effectTimingPolicy,
-                      combatActionEffectTimingTag(
-                        state,
-                        effect,
-                        action.effectTimingTags?.[effectOrdinal],
+                    action.effectTimingModes?.[effectOrdinal] ??
+                      combatEffectTimingMode(
+                        state.effectTimingPolicy,
+                        combatActionEffectTimingTag(
+                          state,
+                          effect,
+                          action.effectTimingTags?.[effectOrdinal],
+                        ),
                       ),
-                    ),
                   ),
                   isPercentageDotEffect(effect)
                     ? Math.max(
@@ -3627,6 +3669,7 @@ function resolveActionEffects(
                   affectedCombatantIds,
                   recipientId,
                   statusId,
+                  effectOrdinal,
                 )
             : undefined
           if (
@@ -5275,6 +5318,28 @@ function validateCombatActionDefinition(
     )
       throw new TypeError('Internal effect timing tags must align with registered effects.')
   }
+  if (
+    action.effectTimingModes !== undefined &&
+    (!Array.isArray(action.effectTimingModes) ||
+      action.effectTimingModes.length !== action.effects.length ||
+      action.effectTimingModes.some(
+        (mode) => mode !== undefined && !['instant', 'next-round', 'delayed'].includes(mode),
+      ))
+  )
+    throw new TypeError('Internal packet timing must align with registered effects.')
+  if (
+    action.effectEligibleRecipientIds !== undefined &&
+    (!Array.isArray(action.effectEligibleRecipientIds) ||
+      action.effectEligibleRecipientIds.length !== action.effects.length ||
+      action.effectEligibleRecipientIds.some(
+        (ids) =>
+          ids !== undefined &&
+          (!Array.isArray(ids) ||
+            new Set(ids).size !== ids.length ||
+            ids.some((id) => typeof id !== 'string' || !id.trim())),
+      ))
+  )
+    throw new TypeError('Internal packet eligibility must align with registered effects.')
   if (action.effectOrigins !== undefined) {
     if (
       !Array.isArray(action.effectOrigins) ||
@@ -5283,6 +5348,9 @@ function validateCombatActionDefinition(
       throw new TypeError('Effect origins must align with the effect list.')
     for (const origin of action.effectOrigins) {
       if (!origin) continue
+      for (const key of ['sourceInstanceId', 'behaviorId', 'effectId'] as const)
+        if (origin[key] !== undefined && (typeof origin[key] !== 'string' || !origin[key]!.trim()))
+          throw new TypeError('Invalid captured packet identity.')
       if (
         !['skill', 'essence', 'resonance', 'basic', 'ascension', 'severance'].includes(
           origin.family,

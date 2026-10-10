@@ -1,5 +1,11 @@
 import type { CombatActionSourceType } from './actions'
 import { assertNever, type CombatActionSourceKind } from './combat-kernel-types'
+import type { CombatEncounterState } from './actions'
+import type { MatureSkillDefinition } from './mature-skills'
+import {
+  captureCombatAbilitySource,
+  type CapturedCombatAbilitySource,
+} from './combat-behavior-capture'
 
 export function canonicalCombatActionSourceKind(
   sourceType: CombatActionSourceType,
@@ -17,4 +23,38 @@ export function canonicalCombatActionSourceKind(
     default:
       return assertNever(sourceType, 'CombatActionSourceType')
   }
+}
+
+/** Encounter captures outrank later catalogue objects, including mutated same-version rows. */
+export function capturedMatureSkillAbilitySource(
+  state: CombatEncounterState,
+  definition: MatureSkillDefinition,
+): CapturedCombatAbilitySource | null {
+  const ownerCombatantId = state.tactical.battle.currentTurn?.combatantId
+  if (!ownerCombatantId) return null
+  const stored = state.capturedAbilitySources?.find(
+    (source) => source.ownerCombatantId === ownerCombatantId && source.abilityId === definition.id,
+  )
+  if (stored) {
+    if (stored.contentVersion !== definition.contentVersion)
+      throw new TypeError('captured-source-version-mismatch')
+    return captureCombatAbilitySource(stored)
+  }
+  if (!Object.hasOwn(definition, 'ability')) return null
+  return captureCombatAbilitySource({
+    schemaVersion: 1,
+    sourceInstanceId: JSON.stringify([
+      'skill',
+      ownerCombatantId,
+      definition.id,
+      definition.contentVersion,
+    ]),
+    ownerCombatantId,
+    abilityId: definition.id,
+    contentVersion: definition.contentVersion,
+    sourceKind: definition.tags.includes('essence') ? 'essence' : 'discipline-skill',
+    sourceDisciplineId: definition.sourceDisciplineId,
+    tags: definition.tags,
+    definition: definition.ability!,
+  })
 }

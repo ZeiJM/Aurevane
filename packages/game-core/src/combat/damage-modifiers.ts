@@ -3,6 +3,7 @@ import { hasGameplayTag, validateGameplayTag, type GameplayTag } from './gamepla
 import { hasCurrentBleed, hasCurrentBurn, hasCurrentPoison } from './combat-dots'
 import type { CombatContentCatalog, CombatEncounterState } from './actions'
 import { classifyFacingRelation } from './board'
+import { evaluateAbilityRequirements } from './combat-requirements'
 
 export type DamageCondition =
   | { kind: 'always' }
@@ -60,6 +61,49 @@ export function conditionalDamageMultiplier(
     }
   }
   let denominator = 1n
+  const owner = outgoingState.tactical.battle.combatants.find((unit) => unit.id === attackerId)
+  if (owner && owner.hp > 0 && outgoingState.tactical.battle.lifecycle === 'active') {
+    const ap = owner.temporaryResources.find((row) => row.key === 'pv1f.action-economy')
+    const context = {
+      owner: {
+        resources: { hp: owner.hp, mp: owner.mp, ap: ap?.current ?? 0 },
+        maximumResources: { hp: owner.maxHp, mp: owner.maxMp, ap: ap?.maximum ?? 100 },
+        statusIds:
+          outgoingState.statusState
+            .find((row) => row.combatantId === attackerId)
+            ?.statuses.filter((status) => status.timingState !== 'pending')
+            .map((status) => status.statusId) ?? [],
+        primeAbilityIds: [],
+      },
+    }
+    for (const source of outgoingState.capturedAbilitySources ?? []) {
+      if (
+        source.ownerCombatantId !== attackerId ||
+        !outgoingState.abilityRuntime?.activeSourceIds.includes(source.sourceInstanceId)
+      )
+        continue
+      for (const behavior of source.definition.behaviors) {
+        if (
+          behavior.activation !== 'ongoing' ||
+          !evaluateAbilityRequirements(behavior.requirements, context)
+        )
+          continue
+        for (const effect of behavior.effects) {
+          if (
+            effect.payload.type !== 'damage-bonus' ||
+            !evaluateAbilityRequirements(effect.requirements ?? null, context)
+          )
+            continue
+          ;[numerator, denominator] = multiplyRepeatedRatio(
+            numerator,
+            denominator,
+            effect.payload.multiplierBasisPoints,
+            1,
+          )
+        }
+      }
+    }
+  }
   for (const [ownerId, opponentId, direction] of [
     [attackerId, recipientId, 'outgoing'],
     [recipientId, attackerId, 'incoming'],
