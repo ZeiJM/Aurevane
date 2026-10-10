@@ -1,6 +1,9 @@
 import {
-  evaluateCombatAction,
-  executeCombatAction,
+  prepareCombatAbilityCommand,
+  commitCombatAbilityCommand,
+  type ManualCombatModifierSelection,
+} from './combat-ability-command'
+import {
   type CombatEncounterState,
   type CombatContentCatalog,
   type CombatResolutionContext,
@@ -8,7 +11,6 @@ import {
   type CombatActionEvaluation,
   type CombatResolutionTransition,
   type CombatTargetSelection,
-  type CombatResolutionEvent,
 } from './actions'
 import {
   captureCombatAbilitySource,
@@ -21,12 +23,7 @@ import {
   type AbilityRequirementContext,
   type AbilityRequirementSubjectState,
 } from './combat-requirements'
-import { combatTurnCycle, prepareCombatTurnTriggers } from './combat-turn-trigger-state'
-import {
-  createCombatActionProvenance,
-  createCombatTriggerGuard,
-  consumeCombatTrigger,
-} from './combat-kernel-types'
+import { createCombatActionProvenance, createCombatTriggerGuard } from './combat-kernel-types'
 
 interface CombatAbilityUsage {
   readonly key: string
@@ -78,6 +75,7 @@ export interface CombatAbilityActivationInput {
   readonly actorId: string
   readonly source: CapturedCombatAbilitySource
   readonly behaviorId?: string
+  readonly manualModifiers?: readonly ManualCombatModifierSelection[]
   readonly selection: CombatTargetSelection
   readonly content: CombatContentCatalog
   readonly context: CombatResolutionContext
@@ -144,66 +142,6 @@ export function materializeCombatAbilityAction(
   }
 }
 
-/** Eligibility is resolved from immutable pre-payment subjects, before native settlement. */
-function captureCombatAbilityAction(
-  input: CombatAbilityActivationInput,
-  source: CapturedCombatAbilitySource,
-  behavior: AbilityBehavior,
-): CombatActionDefinition {
-  const action = materializeCombatAbilityAction(source, behavior)
-  const authority =
-    behavior.activation === 'automatic'
-      ? { activation: 'automatic' as const, actorId: input.actorId }
-      : undefined
-  const geometry = evaluateCombatAction(
-    input.state,
-    action,
-    input.selection,
-    input.content,
-    authority,
-  )
-  return {
-    ...action,
-    effectEligibleRecipientIds: behavior.effects.map((effect) => {
-      if (!effect.requirements) return undefined
-      if (effect.payload.recipient === 'affected-tiles')
-        throw new TypeError('canonical-tile-requirement-routing-required')
-      const ids =
-        effect.payload.recipient === 'actor'
-          ? [input.actorId]
-          : effect.payload.recipient === 'primary-unit'
-            ? geometry.primaryCombatantId
-              ? [geometry.primaryCombatantId]
-              : []
-            : geometry.affectedCombatantIds
-      return ids.filter((id) =>
-        evaluateAbilityRequirements(effect.requirements ?? null, {
-          owner: combatAbilitySubject(input.state, input.actorId),
-          selected: combatAbilitySubject(input.state, geometry.primaryCombatantId),
-          triggering: combatAbilitySubject(input.state, input.trigger?.triggeringCombatantId),
-          ...(input.trigger?.requirementsContext ?? {}),
-          affected: combatAbilitySubject(input.state, id),
-        }),
-      )
-    }),
-  }
-}
-
-function usageKey(
-  state: CombatEncounterState,
-  source: CapturedCombatAbilitySource,
-  behavior: AbilityBehavior,
-): string {
-  return JSON.stringify([
-    state.tactical.battle.battleId,
-    source.sourceInstanceId,
-    source.ownerCombatantId,
-    source.abilityId,
-    source.contentVersion,
-    behavior.id,
-  ])
-}
-
 export function combatAbilitySubject(
   state: CombatEncounterState,
   id: string | null | undefined,
@@ -224,222 +162,19 @@ export function combatAbilitySubject(
 }
 
 export function evaluateCombatAbility(input: CombatAbilityActivationInput): CombatActionEvaluation {
-  const source = captureCombatAbilitySource(input.source)
-  const behavior = combatAbilityBehavior(source, input.behaviorId)
-  const action = captureCombatAbilityAction(input, source, behavior)
-  if (behavior.activation === 'automatic' && !input.trigger)
-    throw new TypeError('automatic-event-required')
-  const authority =
-    behavior.activation === 'automatic'
-      ? { activation: 'automatic' as const, actorId: input.actorId }
-      : undefined
-  const evaluation = evaluateCombatAction(
-    input.state,
-    action,
-    input.selection,
-    input.content,
-    authority,
-  )
-  const issues = [...evaluation.issues]
-  if (source.ownerCombatantId !== input.actorId || evaluation.actorId !== input.actorId)
-    issues.push({
-      code: 'source-owner-mismatch',
-      message: 'Captured source belongs to a different acting combatant.',
-    })
-  const stored = input.state.capturedAbilitySources?.find(
-    (row) => row.sourceInstanceId === source.sourceInstanceId,
-  )
-  if (stored && JSON.stringify(stored) !== JSON.stringify(source))
-    throw new TypeError('captured-source-cannot-change-in-place')
-  const context: AbilityRequirementContext = {
-    owner: combatAbilitySubject(input.state, input.actorId),
-    selected: combatAbilitySubject(input.state, evaluation.primaryCombatantId),
-    triggering: combatAbilitySubject(input.state, input.trigger?.triggeringCombatantId),
-    ...(input.trigger?.requirementsContext ?? {}),
-    ...(input.trigger
-      ? {
-          event: {
-            ...input.trigger.requirementsContext?.event,
-            type: input.trigger.type,
-            phase: input.trigger.phase,
-          },
-        }
-      : {}),
-  }
-  if (!evaluateAbilityRequirements(behavior.requirements, context))
-    issues.push({ code: 'requirement-not-met', message: 'Ability Requirements are not met.' })
-  const key = usageKey(input.state, source, behavior)
-  const usage = input.state.abilityRuntime?.usage.find((row) => row.key === key)
-  const rootActionId = input.context.provenance.triggerChainId
-  const commandId = input.trigger ? JSON.stringify([rootActionId, input.trigger.id]) : rootActionId
-  const instanceId = input.trigger ? JSON.stringify([key, input.trigger.id]) : key
-  if (
-    usage?.commandId === commandId ||
-    input.context.triggerGuard.executedInstanceIds.includes(instanceId)
-  )
-    issues.push({
-      code: 'duplicate-command',
-      message: 'This captured activation already committed.',
-    })
-  if (
-    input.trigger &&
-    !consumeCombatTrigger(input.context.triggerGuard, { instanceId, depth: input.trigger.depth })
-      .accepted
-  )
-    issues.push({
-      code: 'activation-limit',
-      message: 'Automatic activation exceeds the shared trigger guard.',
-    })
-  if (
-    usage &&
-    behavior.activationLimits?.some((scope) =>
-      scope === 'once-per-battle'
-        ? true
-        : scope === 'once-per-round'
-          ? usage.round === input.state.tactical.battle.round
-          : scope === 'once-per-owner-turn'
-            ? usage.ownerCycle === combatTurnCycle(input.state, input.actorId)
-            : usage.rootActionId === rootActionId,
-    )
-  )
-    issues.push({
-      code: 'activation-limit',
-      message: 'The captured activation limit has already been used.',
-    })
-  const unit = input.state.tactical.battle.combatants.find((row) => row.id === input.actorId)
-  for (const cost of behavior.costs) {
-    const available =
-      cost.resource === 'ap'
-        ? (unit?.temporaryResources.find((row) => row.key === 'pv1f.action-economy')?.current ?? 0)
-        : cost.resource === 'hp'
-          ? Math.max(0, (unit?.hp ?? 0) - 1)
-          : (unit?.mp ?? 0)
-    if (available < cost.amount)
-      issues.push({
-        code:
-          cost.resource === 'ap'
-            ? 'insufficient-ap'
-            : cost.resource === 'hp'
-              ? 'insufficient-hp'
-              : 'insufficient-mp',
-        message: `Insufficient ${cost.resource.toUpperCase()} for atomic Ability payment.`,
-      })
-  }
-  return { ...evaluation, legal: issues.length === 0, issues }
+  return prepareCombatAbilityCommand({
+    ...input,
+    root: { kind: 'canonical', source: input.source, behaviorId: input.behaviorId },
+  }).evaluation
 }
 
 export function activateCombatAbility(
   input: CombatAbilityActivationInput,
 ): CombatResolutionTransition {
-  const evaluation = evaluateCombatAbility(input)
-  if (!evaluation.legal)
-    throw new Error(`${evaluation.issues[0]?.code}: ${evaluation.issues[0]?.message}`)
-  const source = captureCombatAbilitySource(input.source)
-  const behavior = combatAbilityBehavior(source, input.behaviorId)
-  const action = captureCombatAbilityAction(input, source, behavior)
-  const key = usageKey(input.state, source, behavior)
-  const paymentEvents: CombatResolutionEvent[] = []
-  let paid = prepareCombatTurnTriggers(input.state)
-  paid = {
-    ...paid,
-    tactical: {
-      ...paid.tactical,
-      battle: {
-        ...paid.tactical.battle,
-        combatants: paid.tactical.battle.combatants.map((unit) => {
-          if (unit.id !== input.actorId) return unit
-          let next = { ...unit }
-          for (const cost of behavior.costs) {
-            if (cost.amount === 0) continue
-            if (cost.resource === 'ap') {
-              next = {
-                ...next,
-                temporaryResources: next.temporaryResources.map((row) =>
-                  row.key === 'pv1f.action-economy'
-                    ? { ...row, current: row.current - cost.amount }
-                    : row,
-                ),
-              }
-              paymentEvents.push({
-                event: 'ap_spent',
-                combatantId: unit.id,
-                amount: cost.amount,
-                remaining: next.temporaryResources.find((row) => row.key === 'pv1f.action-economy')!
-                  .current,
-              })
-            } else {
-              next = { ...next, [cost.resource]: next[cost.resource] - cost.amount }
-              paymentEvents.push({
-                event: cost.resource === 'hp' ? 'hp_spent' : 'mp_spent',
-                combatantId: unit.id,
-                amount: cost.amount,
-                remaining: next[cost.resource],
-              })
-            }
-          }
-          return next
-        }),
-      },
-    },
-  }
-  const tracking = paid.abilityRuntime ?? {
-    schemaVersion: 1,
-    activeSourceIds: [source.sourceInstanceId],
-    usage: [],
-    maintained: [],
-  }
-  const instanceId = input.trigger ? JSON.stringify([key, input.trigger.id]) : key
-  paid = {
-    ...paid,
-    capturedAbilitySources: paid.capturedAbilitySources?.some(
-      (row) => row.sourceInstanceId === source.sourceInstanceId,
-    )
-      ? paid.capturedAbilitySources
-      : [...(paid.capturedAbilitySources ?? []), source],
-    abilityRuntime: {
-      ...tracking,
-      nextCommandSequence: input.trigger
-        ? tracking.nextCommandSequence
-        : (tracking.nextCommandSequence ?? 1) + 1,
-      usage: [
-        ...tracking.usage.filter((row) => row.key !== key),
-        {
-          key,
-          rootActionId: input.context.provenance.triggerChainId,
-          commandId: input.trigger
-            ? JSON.stringify([input.context.provenance.triggerChainId, input.trigger.id])
-            : input.context.provenance.triggerChainId,
-          ownerCycle: combatTurnCycle(paid, input.actorId),
-          round: paid.tactical.battle.round,
-          battleId: paid.tactical.battle.battleId,
-        },
-      ],
-    },
-  }
-  const triggerGuard = input.trigger
-    ? consumeCombatTrigger(input.context.triggerGuard, { instanceId, depth: input.trigger.depth })
-        .guard
-    : {
-        ...input.context.triggerGuard,
-        executedInstanceIds: [...input.context.triggerGuard.executedInstanceIds, key],
-      }
-  const context: CombatResolutionContext = {
-    provenance: createCombatActionProvenance({
-      rulesetVersion: input.state.tactical.battle.rulesVersion,
-      sourceKind: source.sourceKind,
-      actionDefinitionId: source.abilityId,
-      actionVersion: source.contentVersion,
-      sourceCombatantId: input.actorId,
-      controllerCombatantId: input.actorId,
-      triggerChainId: input.context.provenance.triggerChainId,
-    }),
-    triggerGuard,
-    ...(behavior.activation === 'automatic'
-      ? { executionAuthority: { activation: 'automatic', actorId: input.actorId } }
-      : {}),
-  }
-  const out = executeCombatAction(paid, action, input.selection, input.content, context)
-  return { ...out, events: [...paymentEvents, ...out.events] }
+  return commitCombatAbilityCommand({
+    ...input,
+    root: { kind: 'canonical', source: input.source, behaviorId: input.behaviorId },
+  })
 }
 
 export function reconcileCombatAbilitySources(

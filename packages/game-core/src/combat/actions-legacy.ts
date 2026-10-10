@@ -1,4 +1,6 @@
 import { combatEffectPresentationTags, isCleanseChilledEffect } from './gameplay-tags'
+import type { CombatCommandDamageBonus } from './combat-ability-command'
+import { validateCombatCommandDamageBonuses } from './damage-modifiers'
 import {
   DEFAULT_SUPPRESS_BASIS_POINTS,
   mergeSuppressStatus,
@@ -341,6 +343,7 @@ export interface CombatEffectOrigin {
 }
 
 export interface CombatActionDefinition {
+  commandDamageBonuses?: readonly CombatCommandDamageBonus[]
   groundArea?: CombatGroundAreaDefinition
   effectOrigins?: readonly (CombatEffectOrigin | undefined)[]
   effectTimingTags?: readonly (string | undefined)[]
@@ -448,6 +451,7 @@ interface CapturedElementalApplication {
 }
 
 export interface PendingCombatEffect {
+  commandDamageBonuses?: readonly CombatCommandDamageBonus[]
   /** Effective canonical packet timing is pinned independently of historical global policy. */
   timingMode?: 'instant' | 'next-round' | 'delayed'
   elementalApplicationsByRecipient?: Readonly<Record<string, CapturedElementalApplication>>
@@ -770,6 +774,14 @@ export type CombatResolutionEvent = (
   | { event: 'combatant_waited'; combatantId: string }
   | { event: 'battle_completed'; winningTeamId: string | null }
 ) & {
+  /** Private participant attribution on atomic payment/cooldown receipts. */
+  abilityParticipants?: readonly {
+    sourceInstanceId: string
+    abilityId: string
+    contentVersion: number
+    behaviorId?: string
+    costs: readonly { resource: 'ap' | 'mp' | 'hp'; amount: number }[]
+  }[]
   effectOrigin?: CombatEffectOrigin
   sourceCommandVisibility?: CombatSourceCommandVisibility
   effectActivationRound?: number
@@ -1583,6 +1595,9 @@ function applyCombatRoundBoundary(
           friendlyFire: 'all-units',
         },
         effectOrigins: [pending.effectOrigin],
+        ...(pending.commandDamageBonuses
+          ? { commandDamageBonuses: pending.commandDamageBonuses }
+          : {}),
         effectTimingTags: [pending.timingTag, pending.elementalApplication?.timingTag],
         effects: [
           pending.effect,
@@ -2334,6 +2349,9 @@ export function validateCombatEncounterState(
                   : pending.effect,
               ],
               effectOrigins: [pending.effectOrigin],
+              ...(pending.commandDamageBonuses
+                ? { commandDamageBonuses: pending.commandDamageBonuses }
+                : {}),
               effectTimingTags: [pending.timingTag],
             },
             pending.content,
@@ -2963,6 +2981,7 @@ type ElementalApplications = Map<
 >
 
 interface CombatEffectResolutionOptions {
+  commandDamageBonuses?: readonly CombatCommandDamageBonus[]
   elementalApplications?: ElementalApplications
   capturedElementalApplications?: Readonly<Record<string, CapturedElementalApplication>>
   missedEffectOrdinalsByTarget?: CombatResistedEffectOrdinals
@@ -3119,6 +3138,7 @@ function resolveActionEffects(
 } {
   options = {
     ...options,
+    commandDamageBonuses: action.commandDamageBonuses,
     skillDamage:
       options.skillDamage ?? !['basic-attack', 'basic-action'].includes(action.sourceType),
   }
@@ -3331,6 +3351,13 @@ function resolveActionEffects(
               criticalRecipientIds: recipientIds.filter((id) =>
                 criticalEffectOrdinalsByTarget?.get(id)?.has(effectOrdinal),
               ),
+              ...(action.commandDamageBonuses && effect.type === 'damage'
+                ? {
+                    commandDamageBonuses: action.commandDamageBonuses.map((bonus) => ({
+                      ...bonus,
+                    })),
+                  }
+                : {}),
               actionId: action.id,
               ...(action.effectTimingModes?.[effectOrdinal]
                 ? { timingMode: action.effectTimingModes[effectOrdinal] }
@@ -4300,6 +4327,7 @@ function applyEffect(
       critical,
       options.groundArea,
       options.skillDamage,
+      options.commandDamageBonuses,
     )
     if (state.elementalDamagePolicyVersion === undefined && stormBonus && amount > 0)
       stormRecipients.add(recipientId)
@@ -4583,6 +4611,7 @@ function resolveDamageAmount(
   critical = false,
   groundArea?: CombatGroundAreaInstance,
   skillDamage = true,
+  commandDamageBonuses?: readonly CombatCommandDamageBonus[],
 ): number {
   const outgoingState = groundArea ? withGroundCasterForDamage(state, groundArea) : state
   let amount = effect.amount
@@ -4705,6 +4734,7 @@ function resolveDamageAmount(
     {
       ignoreIncomingMitigation: effect.piercing === true,
       outgoingState,
+      commandDamageBonuses,
     },
   )
   // Round once at the existing final modifier boundary. Periodic ticks never enter this path.
@@ -5250,6 +5280,7 @@ function validateCombatActionDefinition(
   validateCurrentAreaTargetRecipients(action)
   validateCombatStatusCopyAction(action)
   validateGameplayActionMetadata(action)
+  validateCombatCommandDamageBonuses(action.commandDamageBonuses)
   collectRequiredIdentity(action.id, 'action id')
   assertPositiveSafeInteger(action.version, 'action version')
   if (action.cooldown) {
