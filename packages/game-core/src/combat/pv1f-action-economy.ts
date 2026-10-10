@@ -869,15 +869,17 @@ function nativePv1fAbilityCommand(
   manualModifiers?: readonly ManualCombatModifierSelection[],
   sourceDisciplineId?: string,
 ): CombatAbilityCommandInput | undefined {
-  const hasAutomaticModifiers = state.capturedAbilitySources?.some(
+  const requiresCapturedCommand = state.capturedAbilitySources?.some(
     (source) =>
-      source.ownerCombatantId === actorId &&
       state.abilityRuntime?.activeSourceIds.includes(source.sourceInstanceId) &&
       source.definition.behaviors.some(
-        (behavior) => behavior.activation === 'automatic' && behavior.mode === 'modifier',
+        (behavior) =>
+          (behavior.activation === 'automatic' &&
+            (behavior.mode === 'action' || source.ownerCombatantId === actorId)) ||
+          (behavior.activation === 'ongoing' && behavior.mode === 'modifier'),
       ),
   )
-  if (!manualModifiers?.length && !hasAutomaticModifiers) return undefined
+  if (!manualModifiers?.length && !requiresCapturedCommand) return undefined
   if (action.sourceType === 'basic-attack')
     action = {
       ...action,

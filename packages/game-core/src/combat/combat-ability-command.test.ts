@@ -1684,3 +1684,153 @@ it('rejects foreign event-session history before command admission or usage chan
   expect(JSON.stringify(input.state)).toBe(serialized)
   expect(eventSession.actionUsage.size).toBe(0)
 })
+
+it('a gated root packet preserves the provenance of a preexisting same-owner status', () => {
+  const base = command(100, 100, {
+    costs: [],
+    effects: [
+      {
+        id: 'existing',
+        payload: { type: 'apply-status', recipient: 'actor', statusId: 'inspired', stacks: 1 },
+      },
+    ],
+  })
+  const first = commitCombatAbilityCommand({ ...base, manualModifiers: undefined })
+  const gated = captureCombatAbilitySource({
+    ...source(
+      {
+        costs: [],
+        effects: [
+          {
+            id: 'blocked',
+            requirements: {
+              kind: 'resource-state',
+              subject: 'owner',
+              resource: 'ap',
+              comparison: 'at-most',
+              amount: 0,
+            },
+            payload: { type: 'apply-status', recipient: 'actor', statusId: 'inspired', stacks: 1 },
+          },
+        ],
+      },
+      'gated-source',
+    ),
+    abilityId: 'gated.root',
+  })
+  const state = reconcileCombatAbilitySources(first.state, [
+    ...first.state.capturedAbilitySources!,
+    gated,
+  ])
+  const before = state.statusState
+    .find((row) => row.combatantId === 'actor')!
+    .statuses.find((row) => row.statusId === 'inspired')!
+  const out = commitCombatAbilityCommand({
+    ...base,
+    state,
+    root: { kind: 'canonical', source: gated },
+    manualModifiers: undefined,
+    context: combatAbilityCommandContext(state, gated),
+  })
+  expect(out.events.filter((row) => row.event === 'status_applied')).toEqual([])
+  expect(
+    out.state.statusState
+      .find((row) => row.combatantId === 'actor')!
+      .statuses.find((row) => row.statusId === 'inspired'),
+  ).toEqual(before)
+})
+
+it('a Revealed-blocked Covert packet creates no temporary Automatic status witness', () => {
+  const base = command(100, 100, {
+    costs: [],
+    classification: 'utility',
+    attackFamily: undefined,
+    targeting: {
+      kind: 'self',
+      teamPolicy: 'self',
+      friendlyFire: 'allies-only',
+      shape: { kind: 'single' },
+      minimumRange: 0,
+      maximumRange: 0,
+      requiresLineOfSight: false,
+      maximumElevationDifference: null,
+      maximumSelections: 1,
+    },
+    effects: [
+      {
+        id: 'covert',
+        payload: { type: 'apply-status', recipient: 'actor', statusId: 'covert', stacks: 1 },
+      },
+    ],
+  })
+  const reaction = captureCombatAbilitySource({
+    ...source(
+      {
+        id: 'blocked-witness',
+        activation: 'automatic',
+        classification: 'recovery',
+        attackFamily: undefined,
+        costs: [{ resource: 'mp', amount: 1 }],
+        requirements: {
+          kind: 'all',
+          children: [
+            { kind: 'event', eventType: 'status_applied', phase: 'after' },
+            { kind: 'status-presence', subject: 'owner', statusId: 'covert', present: true },
+          ],
+        },
+        targeting: {
+          kind: 'self',
+          teamPolicy: 'self',
+          friendlyFire: 'allies-only',
+          shape: { kind: 'single' },
+          minimumRange: 0,
+          maximumRange: 0,
+          requiresLineOfSight: false,
+          maximumElevationDifference: null,
+          maximumSelections: 1,
+        },
+        effects: [{ id: 'heal', payload: { type: 'healing', recipient: 'actor', amount: 1 } }],
+      },
+      'blocked-witness',
+    ),
+    abilityId: 'false.child',
+  })
+  const state = reconcileCombatAbilitySources(
+    {
+      ...base.state,
+      statusState: base.state.statusState.map((row) =>
+        row.combatantId === 'actor'
+          ? {
+              ...row,
+              statuses: [
+                {
+                  statusId: 'revealed',
+                  statusVersion: 1,
+                  stacks: 1,
+                  remainingOwnerTurnStarts: 2,
+                  sourceCombatantId: 'enemy',
+                },
+              ],
+            }
+          : row,
+      ),
+    },
+    [...base.state.capturedAbilitySources!, reaction],
+  )
+  const out = commitCombatAbilityCommand({
+    ...base,
+    state,
+    manualModifiers: undefined,
+    selection: { kind: 'self' },
+  })
+  expect(
+    out.events.filter((row) => row.event === 'combat_action_used').map((row) => row.actionId),
+  ).toEqual(['test.ability'])
+  expect(out.events.filter((row) => row.event === 'status_applied')).toEqual([])
+  expect(out.state.tactical.battle.combatants.find((unit) => unit.id === 'actor')!.mp).toBe(10)
+  expect(
+    out.state.statusState
+      .find((row) => row.combatantId === 'actor')!
+      .statuses.some((row) => row.statusId === 'covert'),
+  ).toBe(false)
+})

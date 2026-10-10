@@ -1287,6 +1287,7 @@ export function executeCombatAction(
   content: CombatContentCatalog,
   resolveCommittedReactions?: (
     transition: CombatResolutionTransition,
+    settledEffectOrdinals: ReadonlySet<number>,
   ) => CombatResolutionTransition,
   missedCombatantIds?: ReadonlySet<string>,
   criticalEffectOrdinalsByTarget?: ReadonlyMap<string, ReadonlySet<number>>,
@@ -1337,6 +1338,7 @@ export function executeCombatAction(
   )
     events.push({ event: 'combat_action_used', actionId: action.id, actorId })
 
+  const settledEffectOrdinals = new Set<number>()
   const applied = resolveActionEffects(
     nextState,
     actorId,
@@ -1350,7 +1352,7 @@ export function executeCombatAction(
     false,
     resistedEffectOrdinalsByTarget,
     undefined,
-    { missedEffectOrdinalsByTarget, nativeHooks },
+    { missedEffectOrdinalsByTarget, nativeHooks, settledEffectOrdinals },
   )
   nextState = applied.state
   events.push(...applied.events)
@@ -1406,7 +1408,7 @@ export function executeCombatAction(
   // Engine-owned reaction seam: committed effects first, terminal verdict last.
   // Omitted by historical four-argument callers; never populated by authored scripts.
   if (resolveCommittedReactions) {
-    const reacted = resolveCommittedReactions({ state: nextState, events })
+    const reacted = resolveCommittedReactions({ state: nextState, events }, settledEffectOrdinals)
     nextState = reacted.state
     events = [...reacted.events]
   }

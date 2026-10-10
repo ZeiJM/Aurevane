@@ -4,6 +4,9 @@ import { percentageDotEncounter } from './combat-percentage-dots.test-utils'
 import { createCombatActionProvenance, createCombatTriggerGuard } from './combat-kernel-types'
 import {
   PV1F_COMBAT_CONTENT,
+  PV1F_GUARD_ACTION_ID,
+  PV1F_RECOVER_ACTION_ID,
+  PV1F_MP_RECOVER_ACTION_ID,
   preparePv1fTurnEconomy,
   finishPv1fTurn,
   executePv1fMatureSkill,
@@ -805,5 +808,102 @@ it.each([true, false])(
         { key: 'incoming', ownerTurns: 1 },
       ).ticksRemaining,
     ).toBe(2)
+  },
+)
+
+it.each(
+  [
+    PV1F_BASIC_ATTACK_ID,
+    PV1F_GUARD_ACTION_ID,
+    PV1F_RECOVER_ACTION_ID,
+    PV1F_MP_RECOVER_ACTION_ID,
+  ].flatMap((actionId) => ['actor', 'enemy'].map((ownerId) => ({ actionId, ownerId }))),
+)(
+  'native root $actionId dispatches $ownerId Automatic action without attached modifiers',
+  ({ actionId, ownerId }) => {
+    const prepared = preparePv1fTurnEconomy(percentageDotEncounter())
+    const initial = {
+      ...prepared,
+      tactical: {
+        ...prepared.tactical,
+        battle: {
+          ...prepared.tactical.battle,
+          combatants: prepared.tactical.battle.combatants.map((unit) => ({
+            ...unit,
+            hp: 900,
+            mp: 10,
+          })),
+        },
+      },
+    }
+    const selection =
+      actionId === PV1F_BASIC_ATTACK_ID
+        ? { kind: 'unit' as const, combatantId: 'enemy' }
+        : { kind: 'self' as const }
+    const baseline = executePv1fAction(initial, actionId, selection)
+    const reaction = captureCombatAbilitySource({
+      ...source(
+        {
+          id: 'native-reactor',
+          activation: 'automatic',
+          classification: 'recovery',
+          attackFamily: undefined,
+          costs: [{ resource: 'mp', amount: 1 }],
+          requirements: {
+            kind: 'all',
+            children: [
+              { kind: 'event', eventType: 'combat_action_used', phase: 'after' },
+              { kind: 'action', requiredTags: ['basic'] },
+            ],
+          },
+          targeting: {
+            kind: 'self',
+            teamPolicy: 'self',
+            friendlyFire: 'allies-only',
+            shape: { kind: 'single' },
+            minimumRange: 0,
+            maximumRange: 0,
+            requiresLineOfSight: false,
+            maximumElevationDifference: null,
+            maximumSelections: 1,
+          },
+          effects: [{ id: 'heal', payload: { type: 'healing', recipient: 'actor', amount: 1 } }],
+        },
+        'native-reactor',
+      ),
+      ownerCombatantId: ownerId,
+      abilityId: 'native.child',
+    })
+    const state = reconcileCombatAbilitySources(initial, [reaction]) as typeof initial
+    const before = JSON.stringify(state)
+    const preview = evaluatePv1fAction(state, actionId, selection)
+    expect(preview.evaluation.legal).toBe(true)
+    expect(JSON.stringify(state)).toBe(before)
+    const out = executePv1fAction(state, actionId, selection)
+    expect(
+      (out.events as { event: string; actionId?: string }[])
+        .filter((row) => row.event === 'combat_action_used')
+        .map((row) => row.actionId),
+    ).toEqual([actionId, 'native.child'])
+    const oldOwner = baseline.state.tactical.battle.combatants.find((unit) => unit.id === ownerId)!
+    const owner = out.state.tactical.battle.combatants.find((unit) => unit.id === ownerId)!
+    expect(owner.hp).toBe(Math.min(owner.maxHp, oldOwner.hp + 1))
+    expect(owner.mp).toBe(oldOwner.mp - 1)
+    expect(out.state.tactical.battle.rng).toEqual(baseline.state.tactical.battle.rng)
+    expect(readPv1fActionEconomy(out.state)!.current).toBe(
+      readPv1fActionEconomy(baseline.state)!.current,
+    )
+    expect(hasPv1fTurnActivity(out.state)).toBe(true)
+    expect(out.state.abilityRuntime!.nextCommandSequence).toBe(2)
+    if (actionId === PV1F_BASIC_ATTACK_ID)
+      expect(
+        out.events.filter(
+          (row) => (row as { event: string }).event === 'stat_driven_attack_resolved',
+        ),
+      ).toEqual(
+        baseline.events.filter(
+          (row) => (row as { event: string }).event === 'stat_driven_attack_resolved',
+        ),
+      )
   },
 )
