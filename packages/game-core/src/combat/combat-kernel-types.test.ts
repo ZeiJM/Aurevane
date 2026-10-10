@@ -101,6 +101,7 @@ describe('combat action provenance', () => {
       'basic',
       'discipline-skill',
       'essence',
+      'resonance',
       'equipment',
       'soulmark',
       'mantle',
@@ -111,7 +112,7 @@ describe('combat action provenance', () => {
       'test',
     ]
 
-    expect(sources).toHaveLength(11)
+    expect(sources).toHaveLength(12)
   })
 
   it('rejects invalid persisted provenance at the construction boundary', () => {

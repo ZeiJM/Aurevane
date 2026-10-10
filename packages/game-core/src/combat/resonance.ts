@@ -1,8 +1,4 @@
-import {
-  validateAbilityDefinition,
-  assertLegacyAbilityAbsent,
-  type AbilityDefinition,
-} from './combat-definition'
+import { validateAbilityDefinition, type AbilityDefinition } from './combat-definition'
 import { createPercentageRecoveryResonanceVersion } from './combat-recovery-roster'
 import { battleFlavorTemplateIssues } from './battle-narration'
 import { validateGameplayEffectMetadata } from './gameplay-tags'
@@ -535,7 +531,6 @@ function matchesSkill(skill: MatureSkillDefinition, matcher: ResonanceSkillMatch
 }
 
 function assertUsableResonance(definition: AnyResonanceDefinition): void {
-  assertLegacyAbilityAbsent(definition)
   const issues = validateResonanceDefinition(definition)
   if (issues.length > 0) throw new TypeError(`Invalid Resonance definition: ${issues.join(', ')}.`)
   if (!definition.enabled) throw new RangeError('That Resonance version is disabled.')

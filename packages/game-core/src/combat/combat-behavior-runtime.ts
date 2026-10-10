@@ -138,7 +138,12 @@ export function materializeCombatAbilityAction(
       sourceInstanceId: source.sourceInstanceId,
       behaviorId: behavior.id,
       effectId: effect.id,
-      family: source.sourceKind === 'essence' ? 'essence' : 'skill',
+      family:
+        source.sourceKind === 'resonance'
+          ? 'resonance'
+          : source.sourceKind === 'essence'
+            ? 'essence'
+            : 'skill',
       contentId: source.abilityId,
       contentVersion: source.contentVersion,
     })),

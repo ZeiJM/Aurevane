@@ -1,3 +1,8 @@
+import {
+  validateResonanceDefinition,
+  canonicalResonancePair,
+  type AnyResonanceDefinition,
+} from './resonance'
 import type { CombatActionSourceType } from './actions'
 import { assertNever, type CombatActionSourceKind } from './combat-kernel-types'
 import type { CombatEncounterState } from './actions'
@@ -60,6 +65,54 @@ export function capturedMatureSkillAbilitySource(
     sourceKind: definition.tags.includes('essence') ? 'essence' : 'discipline-skill',
     sourceDisciplineId: definition.sourceDisciplineId,
     tags: definition.tags,
+    definition: definition.ability!,
+  })
+}
+
+/** Pair ownership is encoded in the immutable source identity, never inferred as one Discipline. */
+export function capturedResonanceAbilitySource(
+  state: CombatEncounterState,
+  ownerCombatantId: string,
+  definition: AnyResonanceDefinition,
+  disciplinePair: readonly [string, string],
+): CapturedCombatAbilitySource | null {
+  if (!state.tactical.battle.combatants.some((unit) => unit.id === ownerCombatantId))
+    throw new TypeError('captured-source-owner-unavailable')
+  const pair = canonicalResonancePair(disciplinePair[0], disciplinePair[1])
+  const sourceInstanceId = JSON.stringify([
+    'resonance',
+    ownerCombatantId,
+    ...pair,
+    definition.id,
+    definition.contentVersion,
+  ])
+  const stored = state.capturedAbilitySources?.find(
+    (source) =>
+      source.sourceKind === 'resonance' &&
+      source.ownerCombatantId === ownerCombatantId &&
+      source.abilityId === definition.id,
+  )
+  if (stored) {
+    if (stored.contentVersion !== definition.contentVersion)
+      throw new TypeError('captured-source-version-mismatch')
+    if (stored.sourceInstanceId !== sourceInstanceId)
+      throw new TypeError('captured-source-pair-mismatch')
+    return captureCombatAbilitySource(stored)
+  }
+  if (!Object.hasOwn(definition, 'ability')) return null
+  const issues = validateResonanceDefinition(definition)
+  if (issues.length) throw new TypeError(`Invalid Resonance definition: ${issues.join(', ')}.`)
+  if (!definition.enabled) throw new RangeError('That Resonance version is disabled.')
+  if (definition.disciplinePair[0] !== pair[0] || definition.disciplinePair[1] !== pair[1])
+    throw new TypeError('captured-source-pair-mismatch')
+  return captureCombatAbilitySource({
+    schemaVersion: 1,
+    sourceInstanceId,
+    ownerCombatantId,
+    abilityId: definition.id,
+    contentVersion: definition.contentVersion,
+    sourceKind: 'resonance',
+    tags: [],
     definition: definition.ability!,
   })
 }

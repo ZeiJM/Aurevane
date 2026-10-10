@@ -48,6 +48,37 @@ function fixture() {
 }
 
 describe('captured modifier composition', () => {
+  it('retains a Resonance modifier packet family without inventing pair Discipline', () => {
+    const input = fixture()
+    const resonance = captureCombatAbilitySource({
+      ...source(
+        {
+          id: 'bonus',
+          mode: 'modifier',
+          targeting: null,
+          costs: [],
+          effects: [
+            { id: 'resonant', payload: { type: 'damage', recipient: 'primary-unit', amount: 2 } },
+          ],
+        },
+        'resonance-source',
+      ),
+      sourceKind: 'resonance',
+      sourceDisciplineId: undefined,
+    })
+    const state = reconcileCombatAbilitySources(input.state, [input.root.source, resonance])
+    const quote = prepareCombatAbilityCommand({
+      ...input,
+      state,
+      manualModifiers: [{ sourceInstanceId: 'resonance-source', behaviorId: 'bonus' }],
+    })
+    expect(quote.action.effectOrigins?.[1]).toMatchObject({
+      family: 'resonance',
+      sourceInstanceId: 'resonance-source',
+      behaviorId: 'bonus',
+      effectId: 'resonant',
+    })
+  })
   it('sorts exact source/behavior blocks independently of request list order', () => {
     const input = fixture(),
       a = { sourceInstanceId: 'a', behaviorId: 'bonus' },
