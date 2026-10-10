@@ -78,7 +78,7 @@ Push verified task commits and durable evidence summaries to this non-deploying 
 
 ### Task 2: Captured execution, modifiers, Automatic and Ongoing behavior
 
-**Current architecture clarification:** use `docs/superpowers/specs/2026-10-10-manual-modifier-command-design.md` and its Task2 continuation plan `docs/superpowers/plans/2026-10-10-manual-modifier-command.md` (Ruling10). Explicit references and one atomic canonical/native command resolve the Manual modifier integration gap; all original task gates/BASE remain.
+**Current architecture clarification:** use `docs/superpowers/specs/2026-10-10-manual-modifier-command-design.md` and its Task2 continuation plan `docs/superpowers/plans/2026-10-10-manual-modifier-command.md` (Ruling10). Explicit references and one atomic canonical/native command resolve the Manual modifier integration gap; all original task gates/BASE remain. Standalone Automatic actions additionally follow `docs/superpowers/specs/2026-10-10-automatic-action-order-design.md` and `docs/superpowers/plans/2026-10-10-automatic-action-order.md` (Rulings13–14): paid-state before hooks, paid interruption/native actor semantics, exact outcome mutation frames/persisted truth and explicit Automatic target binding. These are future implementation contracts; current Task2 remains incomplete/unaccepted.
 
 **Files:** New `combat-behavior-runtime.ts`/tests and `combat-behavior-capture.ts`/tests; extend `actions.ts`, `combat-action-source.ts`, `combat-kernel-types.ts`, actual encounter creation/pending/turn/AI service paths.
 
@@ -92,6 +92,8 @@ Push verified task commits and durable evidence summaries to this non-deploying 
 
 ### Task 3: Canonical plural targeting, recipients and geometry
 
+**Automatic handoff:** extend Ruling14’s same explicit role binding into actual plural/direction/area/Ground support; preserve immutable causal IDs/current live geometry and suppress unavailable bindings without arbitrary fallback. Consume the Automatic ordering specification; do not invent a second event/target executor.
+
 **Files:** Extend `combat-targeting-shapes.ts`, `combat-authoring-validation.ts`, action/selection validation, actual preview/commit/AI target adapters; new canonical targeting tests.
 
 **Interfaces:** Consume T1/T2 `AbilityTargeting`/`AbilitySelection`; produce one canonical target resolver consumed by evaluate/activate and one safe geometry adapter consumed by the controller. Selection has distinct unit/tile IDs plus supported direction, Ground destination and Move path where relevant. Cardinal Line and caster-centered Chebyshev Circle retain geometry2 behavior; new independent All constraints require a new explicit geometry marker.
@@ -103,6 +105,8 @@ Push verified task commits and durable evidence summaries to this non-deploying 
 - [ ] Commit/handoff/gate/checkpoint; list the exact geometry marker and largest-map evidence.
 
 ### Task 3A: Registered Move and editable Basic actions
+
+**Committed-order handoff:** retain Ruling13 locked bundle/eligibility and original selection through actual reached-origin movement; do not repay/recompose after before reactions or walking. Automatic Move remains unsupported.
 
 **Files:** New `combat-move-effect.ts`/tests and `combat-basic-actions.ts`/tests; actual movement/Poison step execution, command validator/session/AI/controller, Basic definition resolver/capture.
 
@@ -117,6 +121,8 @@ Push verified task commits and durable evidence summaries to this non-deploying 
 - [ ] Commit/handoff/gate/checkpoint. Record every preserved conversion restriction and actual browser fixture limit.
 
 ### Task 4: Controlled prime/release, cancellation and Rewind
+
+**Committed-order/UI handoff:** free prime emits no paid action-use hook; legal release consumes prime and pins anchor/bundle before before-use reactions, and paid interruption cannot restore it. Invalid pre-commit release retains it. Honor the latest Owner correction: no primed decoration or extra Release button; readiness-only restrained light within the existing skill image, native interaction/accessibility and unchanged bounds.
 
 **Files:** New `combat-controlled.ts`/tests; timing parser/policy, command validation, capture/state/session/AI and shared PvE/PvP controller/readiness.
 
