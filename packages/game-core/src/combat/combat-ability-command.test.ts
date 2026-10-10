@@ -1084,3 +1084,162 @@ it('actual atomic HP payment triggers a state entry once without damage or truth
       .holds,
   ).toBe(false)
 })
+
+it('actual native down/up/down packets queue two exact crossings before any outcome child', () => {
+  const input = {
+    ...command(100, 100, {
+      costs: [],
+      effects: [
+        { id: 'down-one', payload: { type: 'damage', recipient: 'primary-unit', amount: 20 } },
+        { id: 'up', payload: { type: 'healing', recipient: 'primary-unit', amount: 20 } },
+        { id: 'down-two', payload: { type: 'damage', recipient: 'primary-unit', amount: 20 } },
+      ],
+    }),
+    manualModifiers: undefined,
+  }
+  const heal = captureCombatAbilitySource({
+    ...source(
+      {
+        id: 'cross',
+        activation: 'automatic',
+        classification: 'recovery',
+        attackFamily: undefined,
+        costs: [{ resource: 'mp', amount: 1 }],
+        requirements: {
+          kind: 'resource-threshold-crossing',
+          subject: 'owner',
+          resource: 'hp',
+          direction: 'below',
+          thresholdBasisPoints: 5900,
+        },
+        targeting: {
+          kind: 'self',
+          teamPolicy: 'self',
+          friendlyFire: 'allies-only',
+          shape: { kind: 'single' },
+          minimumRange: 0,
+          maximumRange: 0,
+          requiresLineOfSight: false,
+          maximumElevationDifference: null,
+          maximumSelections: 1,
+        },
+        effects: [{ id: 'heal', payload: { type: 'healing', recipient: 'actor', amount: 1 } }],
+      },
+      'cross-source',
+    ),
+    abilityId: 'child.heal',
+    ownerCombatantId: 'enemy',
+  })
+  const state = reconcileCombatAbilitySources(
+    {
+      ...input.state,
+      tactical: {
+        ...input.state.tactical,
+        battle: {
+          ...input.state.tactical.battle,
+          combatants: input.state.tactical.battle.combatants.map((row) =>
+            row.id === 'enemy' ? { ...row, hp: 600 } : row,
+          ),
+        },
+      },
+    },
+    [...input.state.capturedAbilitySources!, heal],
+  )
+  const before = JSON.stringify(state),
+    preview = prepareCombatAbilityCommand({ ...input, state })
+  expect(preview.evaluation.legal).toBe(true)
+  expect(JSON.stringify(state)).toBe(before)
+  const out = commitCombatAbilityCommand({ ...input, state })
+  expect(
+    out.events
+      .filter((row) => row.event === 'damage_applied' || row.event === 'healing_applied')
+      .map((row) => row.actionId),
+  ).toEqual(['test.ability', 'test.ability', 'test.ability', 'child.heal', 'child.heal'])
+  const enemy = out.state.tactical.battle.combatants.find((row) => row.id === 'enemy')!
+  expect(enemy.hp).toBe(582)
+  expect(enemy.mp).toBe(18)
+})
+
+it('native Reflect precedes queued damage children and consumes their shared guard', () => {
+  const input = {
+    ...command(100, 100, {
+      costs: [],
+      effects: [{ id: 'hit', payload: { type: 'damage', recipient: 'primary-unit', amount: 20 } }],
+    }),
+    manualModifiers: undefined,
+  }
+  const heal = captureCombatAbilitySource({
+    ...source(
+      {
+        id: 'after-hit',
+        activation: 'automatic',
+        classification: 'recovery',
+        attackFamily: undefined,
+        costs: [{ resource: 'mp', amount: 1 }],
+        activationLimits: ['once-per-action'],
+        requirements: { kind: 'event', eventType: 'damage_applied', phase: 'after' },
+        targeting: {
+          kind: 'self',
+          teamPolicy: 'self',
+          friendlyFire: 'allies-only',
+          shape: { kind: 'single' },
+          minimumRange: 0,
+          maximumRange: 0,
+          requiresLineOfSight: false,
+          maximumElevationDifference: null,
+          maximumSelections: 1,
+        },
+        effects: [{ id: 'heal', payload: { type: 'healing', recipient: 'actor', amount: 1 } }],
+      },
+      'reflect-child',
+    ),
+    abilityId: 'child.heal',
+    ownerCombatantId: 'enemy',
+  })
+  const state = reconcileCombatAbilitySources(
+    {
+      ...input.state,
+      statusState: input.state.statusState.map((row) =>
+        row.combatantId === 'enemy'
+          ? {
+              ...row,
+              statuses: [
+                {
+                  statusId: 'test.reflect',
+                  statusVersion: 1,
+                  stacks: 1,
+                  remainingOwnerTurnStarts: 2,
+                  sourceCombatantId: 'enemy',
+                },
+              ],
+            }
+          : row,
+      ),
+    },
+    [...input.state.capturedAbilitySources!, heal],
+  )
+  const content = {
+    ...PV1F_COMBAT_CONTENT,
+    statuses: [
+      ...PV1F_COMBAT_CONTENT.statuses,
+      {
+        id: 'test.reflect',
+        version: 1,
+        maximumStacks: 1,
+        durationOwnerTurnStarts: 2,
+        damageTakenMultiplierBasisPoints: 10000,
+        polarity: 'positive' as const,
+        reactionClass: 'reactive' as const,
+        reflectBasisPoints: 2500,
+      },
+    ],
+  }
+  const out = commitCombatAbilityCommand({ ...input, state, content })
+  expect(
+    out.events
+      .filter((row) => row.event === 'damage_applied' || row.event === 'healing_applied')
+      .map((row) => row.actionId),
+  ).toEqual(['test.ability', 'status.reflect.current.v1', 'child.heal'])
+  expect(out.state.tactical.battle.combatants.find((row) => row.id === 'actor')!.hp).toBe(95)
+  expect(out.resolution!.triggerGuard.remainingReactionBudget).toBe(30)
+})

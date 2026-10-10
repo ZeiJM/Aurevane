@@ -1,3 +1,4 @@
+import type { CombatNativeExecutionHooks } from './combat-native-mutations'
 import {
   evaluateCombatAction,
   executeCombatAction,
@@ -19,6 +20,7 @@ import {
   combatAbilityBehavior,
   combatAbilitySubject,
   materializeCombatAbilityAction,
+  reconcileCombatAbilitySources,
   type CombatAbilityActivationInput,
 } from './combat-behavior-runtime'
 import type { AbilityBehavior } from './combat-definition'
@@ -47,6 +49,8 @@ import {
   createCombatAbilityEventSession,
   assertCombatAbilityEventSession,
   captureCombatAbilityMutation,
+  automaticAbilityEventSupported,
+  type AutomaticAbilityEventType,
   processCombatAbilityEvent,
   type CombatAbilityEventSession,
   type CombatAbilityEventFrame,
@@ -714,6 +718,51 @@ export function commitCombatAbilityCommand(
       },
     }
   }
+  const nativeHooks: CombatNativeExecutionHooks = {
+    getGuard: () => session.guard,
+    setGuard: (value) => {
+      session.guard = value
+    },
+    observeMutation: (before, transition, nativeFacts) => {
+      const after = reconcileCombatAbilitySources(
+        transition.state,
+        (transition.state.capturedAbilitySources ?? []).filter((source) =>
+          transition.state.abilityRuntime?.activeSourceIds.includes(source.sourceInstanceId),
+        ),
+      )
+      const resources = after.tactical.battle.combatants.flatMap((unit) => {
+        const old = combatAbilitySubject(before, unit.id),
+          next = combatAbilitySubject(after, unit.id)
+        const changed = (['ap', 'mp', 'hp'] as const).filter(
+          (resource) => old && old.resources?.[resource] !== next?.resources?.[resource],
+        )
+        return changed.length ? [{ combatantId: unit.id, resources: changed }] : []
+      })
+      const mutation = captureCombatAbilityMutation(before, after, commandIdentity, session, {
+        ...facts,
+        ...nativeFacts,
+        actionFacts:
+          nativeFacts.actionFacts ??
+          (!nativeFacts.prepaid && nativeFacts.actionId === prepared.action.id
+            ? facts.actionFacts
+            : undefined),
+        selectedCombatantId:
+          nativeFacts.selectedCombatantId ??
+          (!nativeFacts.prepaid && nativeFacts.actionId === prepared.action.id
+            ? facts.selectedCombatantId
+            : undefined),
+        events: transition.events.flatMap((event) =>
+          automaticAbilityEventSupported(event.event, 'after') &&
+          !(event.event === 'damage_applied' && event.amount === 0)
+            ? [{ type: event.event as AutomaticAbilityEventType, phase: 'after' as const }]
+            : [],
+        ),
+        resourceMutations: resources,
+      })
+      outcomeQueue.push(mutation.frame)
+      return mutation.state
+    },
+  }
   const actor = live.tactical.battle.combatants.find((unit) => unit.id === input.actorId)
   const interruption =
     !actor || actor.hp <= 0
@@ -757,6 +806,7 @@ export function commitCombatAbilityCommand(
           ...context,
           triggerGuard: session.guard,
           committedExecution,
+          nativeHooks,
           resolveCommittedAbilityOutcomes: (native, nativeGuard) =>
             drainOutcomes(
               { ...native, events: [interruptedReceipt!, ...native.events] },
@@ -768,6 +818,7 @@ export function commitCombatAbilityCommand(
         ...context,
         triggerGuard: session.guard,
         committedExecution,
+        nativeHooks,
         resolveCommittedAbilityOutcomes: drainOutcomes,
       })
   return {

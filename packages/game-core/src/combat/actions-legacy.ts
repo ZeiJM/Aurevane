@@ -1,3 +1,7 @@
+import {
+  observeCombatNativeMutation,
+  type CombatNativeExecutionHooks,
+} from './combat-native-mutations'
 import { validateCombatAbilityState } from './combat-ability-state'
 import {
   committedCombatAttemptRecorded,
@@ -1284,6 +1288,7 @@ export function executeCombatAction(
   missedEffectOrdinalsByTarget?: CombatResistedEffectOrdinals,
   executionActorId?: string,
   committedExecution?: CommittedCombatExecution,
+  nativeHooks?: CombatNativeExecutionHooks,
 ): CombatResolutionTransition {
   const evaluation = evaluateCombatAction(state, action, selection, content, executionActorId)
   if (!evaluation.legal || !evaluation.actorId) {
@@ -1339,7 +1344,7 @@ export function executeCombatAction(
     false,
     resistedEffectOrdinalsByTarget,
     undefined,
-    { missedEffectOrdinalsByTarget },
+    { missedEffectOrdinalsByTarget, nativeHooks },
   )
   nextState = applied.state
   events.push(...applied.events)
@@ -1384,6 +1389,7 @@ export function executeCombatAction(
     actorId,
     action,
     applied.events,
+    nativeHooks,
   )
   nextState = backlash.state
   events.push(...backlash.events)
@@ -1411,6 +1417,7 @@ function resolveCommittedCombatActionBacklash(
   actorId: string,
   action: CombatActionDefinition,
   receipts: readonly CombatResolutionEvent[],
+  nativeHooks?: CombatNativeExecutionHooks,
 ): CombatResolutionTransition {
   let nextState = state
   const events: CombatResolutionEvent[] = []
@@ -1424,14 +1431,19 @@ function resolveCommittedCombatActionBacklash(
       if (!Number.isSafeInteger(sum)) throw new RangeError('Burn backlash damage basis overflow.')
       return sum
     }, 0)
-    const backlash = applyCurrentBurnBacklash(
+    const backlash = observeCombatNativeMutation(
+      nativeHooks,
       nextState,
-      actorId,
-      currentBurnBacklashApplicationCount(before, actorId),
-      {
-        hostileDamage,
-        basisPoints: currentBurnInstance(before, actorId)?.backlashBasisPoints ?? 1000,
-      },
+      applyCurrentBurnBacklash(
+        nextState,
+        actorId,
+        currentBurnBacklashApplicationCount(before, actorId),
+        {
+          hostileDamage,
+          basisPoints: currentBurnInstance(before, actorId)?.backlashBasisPoints ?? 1000,
+        },
+      ),
+      { actionId: action.id, triggeringCombatantId: actorId, affectedCombatantIds: [actorId] },
     )
     nextState = backlash.state
     events.push(...backlash.events)
@@ -1451,6 +1463,7 @@ export function executeCommittedCombatActorEffects(
     transition: CombatResolutionTransition,
     settledEffectOrdinals: ReadonlySet<number>,
   ) => CombatResolutionTransition,
+  nativeHooks?: CombatNativeExecutionHooks,
 ): CombatResolutionTransition {
   committedCombatAttemptRecorded(committedExecution, state, actorId, action.id)
   const settledEffectOrdinals = new Set<number>()
@@ -1467,7 +1480,7 @@ export function executeCommittedCombatActorEffects(
     false,
     undefined,
     undefined,
-    { actorOnly: true, settledEffectOrdinals },
+    { actorOnly: true, settledEffectOrdinals, nativeHooks },
   )
   const backlash = resolveCommittedCombatActionBacklash(
     state,
@@ -1475,6 +1488,7 @@ export function executeCommittedCombatActorEffects(
     actorId,
     action,
     applied.events,
+    nativeHooks,
   )
   const reacted = resolveCommittedReactions(
     { state: backlash.state, events: [...applied.events, ...backlash.events] },
@@ -1512,13 +1526,31 @@ export function defeatCombatActionActor(
   state: CombatEncounterState,
   actorId: string,
   content: CombatContentCatalog,
+  nativeHooks?: CombatNativeExecutionHooks,
+  damageReceipt?: Extract<CombatResolutionEvent, { event: 'damage_applied' }>,
 ): CombatResolutionTransition {
   let defeated = defeatCurrentCombatant(battleForEffectStacking(state), actorId, [])
+  const observedDefeat =
+    damageReceipt && nativeHooks
+      ? observeCombatNativeMutation(
+          nativeHooks,
+          state,
+          { state: withBattle(state, defeated.state), events: [damageReceipt] },
+          {
+            actionId: damageReceipt.actionId,
+            triggeringCombatantId: damageReceipt.sourceCombatantId,
+            affectedCombatantIds: [actorId],
+          },
+        ).state
+      : null
   const summonBoundary = preparePendingSummonsForRound(state, defeated.state.round)
   if (summonBoundary.state !== state)
     defeated = defeatCurrentCombatant(battleForEffectStacking(summonBoundary.state), actorId, [])
+  const nativeDefeated = withBattle(summonBoundary.state, defeated.state)
   const boundary = applyCombatRoundBoundary(
-    withBattle(summonBoundary.state, defeated.state),
+    observedDefeat
+      ? { ...nativeDefeated, abilityRuntime: observedDefeat.abilityRuntime }
+      : nativeDefeated,
     state.tactical.battle.round,
   )
   const events: CombatResolutionEvent[] = [
@@ -3102,6 +3134,7 @@ interface CombatEffectResolutionOptions {
   statusDurationScope?: 'rounds'
   /** Native committed actor settlement retains every original ordinal. */
   actorOnly?: true
+  nativeHooks?: CombatNativeExecutionHooks
   settledEffectOrdinals?: Set<number>
 }
 
@@ -3218,6 +3251,7 @@ function settleElementalApplications(
       {
         skillDamage: options.skillDamage,
         preview: options.preview,
+        nativeHooks: options.nativeHooks,
         groundArea: options.groundArea,
       },
     )
@@ -3246,7 +3280,12 @@ function resolveCombatActionActorAttempt(
     !options.groundArea &&
     action.effects.some((effect) => effect.type === 'damage' && effect.element === 'fire')
   ) {
-    const cleansed = removeGameplayTags(nextState, actorId, actorId, action.id, ['Frozen'], content)
+    const cleansed = observeCombatNativeMutation(
+      options.preview ? undefined : options.nativeHooks,
+      nextState,
+      removeGameplayTags(nextState, actorId, actorId, action.id, ['Frozen'], content),
+      { actionId: action.id, triggeringCombatantId: actorId, affectedCombatantIds: [actorId] },
+    )
     nextState = cleansed.state
     events.push(...cleansed.events)
   }
@@ -3254,13 +3293,11 @@ function resolveCombatActionActorAttempt(
     !options.groundArea &&
     action.effects.some((effect) => effect.type === 'damage' && effect.amount > 0)
   ) {
-    const revealed = removeGameplayTags(
+    const revealed = observeCombatNativeMutation(
+      options.preview ? undefined : options.nativeHooks,
       nextState,
-      actorId,
-      actorId,
-      action.id,
-      ['Invisible'],
-      content,
+      removeGameplayTags(nextState, actorId, actorId, action.id, ['Invisible'], content),
+      { actionId: action.id, triggeringCombatantId: actorId, affectedCombatantIds: [actorId] },
     )
     nextState = revealed.state
     events.push(...revealed.events)
@@ -3795,14 +3832,25 @@ function resolveActionEffects(
         )
           continue
         if (effect.type === 'copy-statuses') {
-          const copied = applyCombatStatusCopies(
+          const copied = observeCombatNativeMutation(
+            options.preview ? undefined : options.nativeHooks,
             nextState,
-            actorId,
-            recipientId,
-            action.id,
-            effect,
-            content,
-            options.statusDurationScope,
+            applyCombatStatusCopies(
+              nextState,
+              actorId,
+              recipientId,
+              action.id,
+              effect,
+              content,
+              options.statusDurationScope,
+            ),
+            {
+              actionId: action.id,
+              triggeringCombatantId: actorId,
+              selectedCombatantId: primaryCombatantId ?? undefined,
+              affectedCombatantIds: [recipientId],
+              ...(resolvingPending ? { prepaid: true as const } : {}),
+            },
           )
           nextState = copied.state
           events.push(...copied.events)
@@ -3903,14 +3951,6 @@ function resolveActionEffects(
           }
         }
         events.push(...applied.events)
-        if (effect.type === 'poison' || effect.type === 'burn' || effect.type === 'bleed')
-          events.push({
-            event: 'persistent_effect_applied',
-            actionId: action.id,
-            sourceCombatantId: actorId,
-            targetCombatantId: recipientId,
-            statusId: effect.type,
-          })
         let beforeValue: number | string
         let afterValue: number | string
         if (
@@ -4359,6 +4399,65 @@ function applyEffect(
   percentageDamage?: CapturedPercentageDotDamage,
   options: CombatEffectResolutionOptions = {},
 ): CombatResolutionTransition {
+  const { nativeMutationCaptured, ...native } = applyEffectNative(
+    state,
+    actorId,
+    recipientId,
+    actionId,
+    effect,
+    content,
+    stormRecipients,
+    critical,
+    resolvingPending,
+    percentageDamage,
+    options,
+  )
+  const transition: CombatResolutionTransition = {
+    ...native,
+    events: [
+      ...native.events,
+      ...(['poison', 'burn', 'bleed'].includes(effect.type)
+        ? [
+            {
+              event: 'persistent_effect_applied' as const,
+              actionId,
+              sourceCombatantId: actorId,
+              targetCombatantId: recipientId,
+              statusId: effect.type as 'poison' | 'burn' | 'bleed',
+            },
+          ]
+        : []),
+    ],
+  }
+  const observed = nativeMutationCaptured
+    ? transition
+    : observeCombatNativeMutation(
+        options.preview ? undefined : options.nativeHooks,
+        state,
+        transition,
+        {
+          actionId,
+          triggeringCombatantId: actorId,
+          affectedCombatantIds: [recipientId],
+          ...(resolvingPending ? { prepaid: true as const } : {}),
+        },
+      )
+  return percentageDamage ? { ...observed, events: native.events } : observed
+}
+
+function applyEffectNative(
+  state: CombatEncounterState,
+  actorId: string,
+  recipientId: string,
+  actionId: string,
+  effect: Exclude<CombatEffectDefinition, { type: 'create-terrain' | 'copy-statuses' | 'sensory' }>,
+  content: CombatContentCatalog,
+  stormRecipients: Set<string>,
+  critical: boolean,
+  resolvingPending = false,
+  percentageDamage?: CapturedPercentageDotDamage,
+  options: CombatEffectResolutionOptions = {},
+): CombatResolutionTransition & { nativeMutationCaptured?: true } {
   if (effect.type === 'displace')
     return applyDisplacement(
       state,
@@ -4487,65 +4586,95 @@ function applyEffect(
     )
     if (state.elementalDamagePolicyVersion === undefined && stormBonus && amount > 0)
       stormRecipients.add(recipientId)
+    const hooks = options.preview ? undefined : options.nativeHooks
+    const facts = {
+      actionId,
+      triggeringCombatantId: actorId,
+      affectedCombatantIds: [recipientId],
+      ...(resolvingPending ? { prepaid: true as const } : {}),
+    }
     const barrier = absorbDirectDamageWithBarrier(state, recipientId, amount)
+    const barrierEvents: CombatResolutionEvent[] =
+      barrier.absorbed > 0
+        ? [
+            {
+              event: 'barrier_absorbed',
+              actionId,
+              sourceCombatantId: actorId,
+              targetCombatantId: recipientId,
+              amount: barrier.absorbed,
+              before: barrier.before,
+              after: barrier.after,
+            },
+          ]
+        : []
+    const barrierState = observeCombatNativeMutation(
+      hooks,
+      state,
+      { state: barrier.state, events: barrierEvents },
+      facts,
+    ).state
     const hpAfter = Math.max(0, target.hp - barrier.remainingDamage)
+    const damageReceipt: Extract<CombatResolutionEvent, { event: 'damage_applied' }> = {
+      event: 'damage_applied',
+      actionId,
+      ...(effect.element ? { element: effect.element } : {}),
+      sourceCombatantId: actorId,
+      targetCombatantId: recipientId,
+      amount: target.hp - hpAfter,
+      hpBefore: target.hp,
+      hpAfter,
+    }
     const defeatedCurrent =
       (resolvingPending || actorId !== recipientId) &&
       hpAfter === 0 &&
-      barrier.state.tactical.battle.currentTurn?.combatantId === recipientId
-        ? defeatCombatActionActor(barrier.state, recipientId, content)
+      barrierState.tactical.battle.currentTurn?.combatantId === recipientId
+        ? defeatCombatActionActor(barrierState, recipientId, content, hooks, damageReceipt)
         : null
     const updated =
       defeatedCurrent?.state ??
-      withUpdatedCombatant(barrier.state, recipientId, { ...target, hp: hpAfter })
+      observeCombatNativeMutation(
+        hooks,
+        barrierState,
+        {
+          state: withUpdatedCombatant(barrierState, recipientId, { ...target, hp: hpAfter }),
+          events: [damageReceipt],
+        },
+        facts,
+      ).state
     const removed =
       hpAfter < target.hp
-        ? removeGameplayTags(
+        ? observeCombatNativeMutation(
+            hooks,
             updated,
-            actorId,
-            recipientId,
-            actionId,
-            [
-              'Invisible',
-              ...(effect.element === 'fire' &&
-              elementHostile &&
-              state.elementalDamagePolicyVersion !== 2
-                ? (['Wet', 'Frozen'] as const)
-                : []),
-              ...(stormBonus ? (['Conductive'] as const) : []),
-            ],
-            content,
+            removeGameplayTags(
+              updated,
+              actorId,
+              recipientId,
+              actionId,
+              [
+                'Invisible',
+                ...(effect.element === 'fire' &&
+                elementHostile &&
+                state.elementalDamagePolicyVersion !== 2
+                  ? (['Wet', 'Frozen'] as const)
+                  : []),
+                ...(stormBonus ? (['Conductive'] as const) : []),
+              ],
+              content,
+            ),
+            facts,
           )
         : { state: updated, events: [] }
     return {
       state: removed.state,
       events: [
-        ...(barrier.absorbed > 0
-          ? [
-              {
-                event: 'barrier_absorbed' as const,
-                actionId,
-                sourceCombatantId: actorId,
-                targetCombatantId: recipientId,
-                amount: barrier.absorbed,
-                before: barrier.before,
-                after: barrier.after,
-              },
-            ]
-          : []),
-        {
-          event: 'damage_applied',
-          actionId,
-          ...(effect.element ? { element: effect.element } : {}),
-          sourceCombatantId: actorId,
-          targetCombatantId: recipientId,
-          amount: target.hp - hpAfter,
-          hpBefore: target.hp,
-          hpAfter,
-        },
+        ...barrierEvents,
+        damageReceipt,
         ...removed.events,
         ...(defeatedCurrent?.events ?? []),
       ],
+      nativeMutationCaptured: true,
     }
   }
 

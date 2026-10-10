@@ -1,3 +1,4 @@
+import type { CombatNativeExecutionHooks } from './combat-native-mutations'
 import {
   consumeCommittedCombatExecution,
   committedCombatAction,
@@ -115,6 +116,7 @@ export interface CombatResolutionContext {
   /** Engine-owned captured Automatic authority; never a client command field. */
   executionAuthority?: CombatAutomaticActionAuthority
   committedExecution?: CommittedCombatExecution
+  nativeHooks?: CombatNativeExecutionHooks
   resolveCommittedAbilityOutcomes?: (
     transition: CombatResolutionTransition,
     guard: CombatTriggerGuard,
@@ -225,7 +227,10 @@ export function executeCombatAction(
   context?: CombatResolutionContext,
   hitDependentEffects?: CombatHitDependentEffects,
 ): CombatResolutionTransition {
-  if (context?.resolveCommittedAbilityOutcomes && !context.committedExecution)
+  if (
+    (context?.resolveCommittedAbilityOutcomes || context?.nativeHooks) &&
+    !context.committedExecution
+  )
     throw new TypeError('invalid-committed-execution-authority')
   if (context?.committedExecution) {
     consumeCommittedCombatExecution(context.committedExecution, state, action, selection, context)
@@ -466,6 +471,7 @@ export function executeCombatAction(
     packets?.missedEffectOrdinalsByTarget,
     executionActorId,
     context?.committedExecution,
+    context?.nativeHooks,
   )
   const covertFiltered = filterBlockedCovertApplication({
     before: critical.state,
@@ -545,15 +551,25 @@ function resolveNativeCommittedReactions(
     round,
     commandSourceCombatantId: actorId,
   })
-  const recovered = applyCommittedAbsorbRecovery(historyState, resolved.events, content, command)
+  const currentGuard = context?.nativeHooks?.getGuard() ?? guard
+  context?.nativeHooks?.setGuard(currentGuard ?? context.triggerGuard)
+  const recovered = applyCommittedAbsorbRecovery(
+    historyState,
+    resolved.events,
+    content,
+    command,
+    context?.nativeHooks,
+  )
   const reflected = applyCommittedReflect(
     recovered.state,
     resolved.events,
     content,
     command,
-    guard,
+    currentGuard,
     Boolean(context?.executionAuthority),
+    context?.nativeHooks,
   )
+  context?.nativeHooks?.setGuard(reflected.triggerGuard)
   const native = { state: reflected.state, events: [...recovered.events, ...reflected.events] }
   if (!context?.resolveCommittedAbilityOutcomes)
     return { transition: native, guard: reflected.triggerGuard }
@@ -631,6 +647,7 @@ export function executeCommittedCombatActorEffects(
       guard = reactions.guard ?? guard
       return reactions.transition
     },
+    context.nativeHooks,
   )
   const filtered = filterBlockedCovertApplication({
     before: state,
