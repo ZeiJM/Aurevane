@@ -127,7 +127,7 @@ export function WorldDock({
                     <button
                       type="button"
                       className={styles.nearbyPortrait}
-                      aria-label={`Inspect ${p.name}`}
+                      aria-label={`Select ${p.name}`}
                       onClick={() => onSelectPlayer(p.characterId)}
                     >
                       {src ? (
@@ -152,6 +152,7 @@ export function WorldDock({
                       <button
                         type="button"
                         className={styles.attack}
+                        aria-label={`Attack ${p.name}`}
                         disabled={disabled || !p.attackable}
                         onClick={() => onAttack(p.characterId)}
                       >
@@ -160,6 +161,7 @@ export function WorldDock({
                       <button
                         type="button"
                         disabled={disabled}
+                        aria-label={`Approach ${p.name}`}
                         onClick={() => onApproach(p.position)}
                       >
                         Approach
