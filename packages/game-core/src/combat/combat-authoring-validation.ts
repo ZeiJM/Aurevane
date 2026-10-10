@@ -20,6 +20,7 @@ import { validateCsrActionDefinition } from './covert-sensory-revealed'
 import type {
   CombatActionDefinition,
   CombatContentCatalog,
+  CombatEffectDefinition,
   CombatStatusDefinition,
 } from './actions'
 import { validateCombatDamageScaling } from './damage-scaling'
@@ -168,9 +169,7 @@ export function validateCombatActionDefinition(
       knownString(effect.defenseKind, ['armor', 'ward'], 'damage defense kind')
     }
     if (effect.type === 'damage' && effect.facingModifiersBasisPoints) {
-      basisPoints(effect.facingModifiersBasisPoints.front, 'front damage modifier', 22_000)
-      basisPoints(effect.facingModifiersBasisPoints.side, 'side damage modifier', 22_000)
-      basisPoints(effect.facingModifiersBasisPoints.rear, 'rear damage modifier', 22_000)
+      validateCombatDamageFacingModifiers(effect.facingModifiersBasisPoints)
     }
     if (effect.type === 'resource-change') {
       knownString(effect.resource, ['mp'], 'effect resource')
@@ -207,6 +206,16 @@ export function validateCombatActionDefinition(
       validateBleedAuthoring(effect)
     }
   }
+}
+
+export function validateCombatDamageFacingModifiers(
+  modifiers: NonNullable<
+    Extract<CombatEffectDefinition, { type: 'damage' }>['facingModifiersBasisPoints']
+  >,
+): void {
+  basisPoints(modifiers.front, 'front damage modifier', 22_000)
+  basisPoints(modifiers.side, 'side damage modifier', 22_000)
+  basisPoints(modifiers.rear, 'rear damage modifier', 22_000)
 }
 
 export function validateCombatStatusDefinition(status: CombatStatusDefinition): void {

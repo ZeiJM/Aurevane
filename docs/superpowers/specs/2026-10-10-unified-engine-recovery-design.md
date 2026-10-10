@@ -2,7 +2,7 @@
 
 This resumes the Owner-approved overhaul. It does not claim to restore the missing implementation. The exact approved brief is `2026-10-10-unified-engine-recovery-owner-brief.md`; subsequent conversation adds editable Move/Basic Attack, movement as a reusable Skill effect, a complete creative and balanced roster revision, and the final verified live release. Existing approval remains in force. The earlier 42-line ruling ledger and local commits are unavailable; this document carries the recoverable contracts explicitly without claiming to reproduce that ledger.
 
-Baseline: `ee5d49de449851c9b9aa61438735c4cd27ca6af4`. Recovery branch: `agent/unified-engine-recovery-20261010`. Product work, hosted migrations and deployment have not started on this branch.
+Baseline: `ee5d49de449851c9b9aa61438735c4cd27ca6af4`. Recovery branch: `agent/unified-engine-recovery-20261010`. Task1 product work is reconstructed and independently accepted; actual runtime integration and later tasks remain pending. Hosted migrations, publication, merge and deployment have not started on this branch.
 
 ## Grounded baseline and change boundaries
 

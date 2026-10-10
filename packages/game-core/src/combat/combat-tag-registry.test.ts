@@ -7,6 +7,27 @@ import {
 import { resolveMatureSkillVersion } from './mature-skills'
 
 describe('implemented combat Tag registry', () => {
+  it.each(['damage', 'pierce'])('validates standalone %s facing modifier values', (type) => {
+    const payload = {
+      type,
+      recipient: 'primary-unit',
+      amount: 1,
+      ...(type === 'pierce' ? { armorIgnoredBasisPoints: 2500 } : {}),
+      facingModifiersBasisPoints: { front: 0, side: 10000, rear: 22000 },
+    }
+    expect(validateCombatTagPayload(payload)).toEqual([])
+    for (const facingModifiersBasisPoints of [
+      { front: -1, side: 10000, rear: 10000 },
+      { front: 10000, side: 22001, rear: 10000 },
+      { front: 10000, side: 10000, rear: 0.5 },
+      { front: 10000, side: Number.NaN, rear: 10000 },
+      { front: 10000, side: 10000 },
+    ])
+      expect(validateCombatTagPayload({ ...payload, facingModifiersBasisPoints })).toContainEqual(
+        expect.objectContaining({ code: 'invalid-payload' }),
+      )
+  })
+
   it('future_armor_boundary uses only explicit equipment Armor, never armor/ward', () => {
     expect(equipmentArmorAfterPierce({ equipmentArmor: 40, armor: 999, ward: 999 }, 2500)).toBe(30)
     expect(equipmentArmorAfterPierce({ armor: 40, ward: 99 }, 10000)).toBe(0)

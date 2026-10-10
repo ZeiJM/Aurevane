@@ -10,7 +10,7 @@
 
 **Spec:** `docs/superpowers/specs/2026-10-10-unified-engine-recovery-design.md` and the exact approved `2026-10-10-unified-engine-recovery-owner-brief.md`.
 
-**Recovery status:** The prior local overhaul and evidence are unavailable. Every product task below is pending; earlier conversation test counts are not evidence for reconstructed code. Baseline `ee5d49de449851c9b9aa61438735c4cd27ca6af4`; branch `agent/unified-engine-recovery-20261010`.
+**Recovery status:** The prior local overhaul and evidence are unavailable. Task1 is reconstructed and independently accepted at949af25e877c7ff158bd8f885e1aa7a69d014306; later product tasks remain pending. Earlier conversation test counts are not evidence for reconstructed code. Baseline `ee5d49de449851c9b9aa61438735c4cd27ca6af4`; branch `agent/unified-engine-recovery-20261010`.
 
 ## Global Constraints
 
@@ -233,9 +233,10 @@ Push verified task commits and durable evidence summaries to this non-deploying 
 
 **Files:** Read actual current repository and permitted read-only published override inventory; produce `docs/superpowers/specs/2026-10-10-roster-rebalance.md` and machine-readable full per-record design manifest.
 
-**Interfaces:** Consume accepted engine/registry/publication/build/AI behavior and real inventory. Produce reviewed proposed new immutable versions for every current Skill/Essence/Resonance/Basic considered, Discipline identities/play cycles, actual cost/power/cooldown/Requirements/recipient choices and counterplay/interaction cases. Stable IDs/intrinsic source/earned eligibility remain coherent.
+**Interfaces:** Consume accepted engine/registry/publication/build/AI behavior and real inventory. Produce reviewed proposed new immutable versions for every current Skill/Essence/Resonance/Basic considered, Discipline identities/play cycles, actual cost/power/cooldown/Requirements/recipient choices and counterplay/interaction cases. Stable IDs/intrinsic source/earned eligibility remain coherent. Include the Owner tag-coverage addendum below.
 
 - [ ] Pause root and prompt for Extra High if creative balance judgment requires it; do not silently spend higher-effort worker credits. Inventory actual overrides and records; do not assume only seeded counts or rewrite Owner edits without reconciliation.
+- [ ] Inventory every currently implemented gameplay tag from the actual accepted registries/handlers. Map each to at least one meaningful, obtainable playable Skill/Essence/Resonance/Basic definition in the final roster. Include supported Requirement tags and newly implemented effects. Distinguish historical-only aliases and future authoring entries from executable tags; no invented handler or decorative tag counts as runtime coverage. Preserve creative playstyles and balance rather than stuffing unrelated effects together.
 - [ ] Design distinct choices across Disciplines and each actual pair Resonance: setup/spend, movement/position, tempo, conditional risk, protective/support, resource and counterplay cycles using supported effects. Include variable power, free primes/maintained aura/no-input, finite chains, AI and PvE/PvP. No blanket percentage reskin or universally best zero-cost loop.
 - [ ] For an enemy positional-return candidate or any wider Basic/Move extension, define a bounded typed recipient/anchor/refresh/clock/landing/visibility/counterplay contract and exact new tests before inclusion; mark it provisional until T15 real handler/capture/editor/readers/AI pass. Preserve existing self-Rewind history.
 - [ ] Validate complete inventory coverage, legality/cost/chain budgets, distinct cycle rationale and before/after cases. Expected: no orphan/missing/reclassified record or unsupported mechanic sold as implemented.
@@ -247,7 +248,7 @@ Push verified task commits and durable evidence summaries to this non-deploying 
 
 **Interfaces:** Consume exact accepted14 manifest. Produce complete new immutable roster definitions and reviewed publication/backfill procedure preserving current Owner edits/history/relationship selections/earned facts. Implement all selected new mechanics before their definitions may publish.
 
-- [ ] RED each selected new mechanic's finite/counterplay/capture/history/no-input cases, whole actual roster parser/handler coverage and stable source/eligibility/version comparisons. Retain individual representative PvE/PvP and real AI cases for each distinct cycle.
+- [ ] RED each selected new mechanic's finite/counterplay/capture/history/no-input cases, whole actual roster parser/handler coverage and stable source/eligibility/version comparisons. Add a registry-driven completeness check that fails for any implemented gameplay tag lacking a playable roster case, and authoritative outcome tests for the documented tag cases; mere presence in JSON or a description is insufficient. Retain individual representative PvE/PvP and real AI cases for each distinct cycle.
 - [ ] Implement exact14 definitions and complete any extension through parser→handler→capture→editor→public reader→AI. Append versions; never mutate old snapshots or restore obsolete hidden formulas/retired statuses. Recalculate actual budgets and interaction cases rather than assuming labels prove uniqueness/balance.
 - [ ] Run covering complete roster and new-extension tests, actual editor/service/AI/serialization/browser cases and affected checks. Expected: all records supported and each promised mechanic executable/legible; no unsupported placeholder or infinite/free dominance case.
 - [ ] Commit complete applied manifest/evidence, independent gate and durable checkpoint. Carry all exact changed records and test instructions to16/release.
@@ -261,6 +262,7 @@ Push verified task commits and durable evidence summaries to this non-deploying 
 - [ ] Verify actual final editor→validation→publication→authoritative execution→reader chains for every category/mechanic; real protected RPCs/selected character/expiry/revocation, full rollback/physical schedule, old/new captures, no-input and late settlement paths. Resolve real gaps with covering failing tests and independent task gate.
 - [ ] Inspect final1366×768/1440×900/390×844/200% zoom workflows with native keyboard/touch, long text/empty/error/history and real current/pinned data. Preserve representative screenshots and report console/runtime results. Local headless is not hosted authentication or human gameplay acceptance.
 - [ ] Run final `pnpm check` after all focused final changes pass. Expected: complete gate green on exact accepted head, all warnings/limits accounted for and no untested changed source.
+- [ ] Deliver the complete tag-to-content test checklist: stable tag ID/display name, Discipline and playable content ID/version, parameters/conditions, activation steps and expected observable outcome, with actual execution evidence. Every currently implemented gameplay tag must have a meaningful final-roster use and test case; no untested or silently omitted tag.
 - [ ] Commit durable exhaustive changed-records/testing/rulings/evidence handoff; one independent task16 gate, then one most-capable available whole-branch review over actual merge-base..head, carrying deferred/parked/declined items. One combined final fix wave and scoped follow-up per SDD; no duplicate broad review or unreviewed load-bearing residual.
 - [ ] Final authorized release: refresh/reconcile main and exact-head CI; inspect actual hosted migrations/publications/Owner edits, apply only reviewed necessary changes with CAS/history/security preserved; merge/push intended result and explicitly deploy exact intended SHA with Git deployment lock retained. Verify Ready state/canonical URL/logs/public and available authenticated smoke. Expected: exact release receipts, truthful smoke/human limits, exhaustive change/test list and all current ledger rulings in order. Never infer live success from build/tests alone.
 
@@ -290,6 +292,7 @@ Push verified task commits and durable evidence summaries to this non-deploying 
 | 20 Migration/whole-chain/verification | Every task gate,13,16 and final release |
 | Conversation: Move/editable Basics | 3A,4–5,7,10,13–16 |
 | Conversation: complete creative balanced roster | 14–16 before release |
+| Conversation: every programmed gameplay tag used/testable in roster | 14 inventory/design,15 definitions/outcomes,16 exhaustive player checklist |
 | Conversation: low credits/effort pause | Common gate and14; High after reconstruction, prompt before Extra High |
 
 ## Self-review and execution handoff

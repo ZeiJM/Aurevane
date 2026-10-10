@@ -2,7 +2,10 @@ import type { CombatEffectDefinition, CombatEffectRecipient } from './actions'
 import type { AbilityDefinitionIssue, AbilityActivation, AbilityMode } from './combat-definition'
 import { ABILITY_DEFINITION_BUDGET, validateAbilityElementalCompanions } from './combat-definition'
 import { ABILITY_REQUIREMENT_BUDGET } from './combat-requirements'
-import { validateCombatActionDefinition } from './combat-authoring-validation'
+import {
+  validateCombatActionDefinition,
+  validateCombatDamageFacingModifiers,
+} from './combat-authoring-validation'
 import { validateGameplayEffectMetadata, combatEffectPresentationTags } from './gameplay-tags'
 import {
   validateCurrentBleedEffect,
@@ -481,6 +484,12 @@ export function validateCombatTagPayload(
       )
         throw new TypeError('Invalid damage scaling.')
       if (value.type === 'pierce') integer(value.armorIgnoredBasisPoints, 0, 10000, 'Armor ignored')
+      if (value.facingModifiersBasisPoints !== undefined)
+        validateCombatDamageFacingModifiers(
+          value.facingModifiersBasisPoints as NonNullable<
+            Extract<CombatEffectDefinition, { type: 'damage' }>['facingModifiersBasisPoints']
+          >,
+        )
     }
     if (['healing', 'barrier-change'].includes(value.type as string))
       integer(value.amount, 1, 20, 'Authored power')
