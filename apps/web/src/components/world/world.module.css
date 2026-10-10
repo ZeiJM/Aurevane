@@ -1935,3 +1935,18 @@
     --dockh: 220px;
   }
 }
+
+.workspace .playerToken[data-count]::after {
+  content: '×' attr(data-count);
+  position: absolute;
+  right: -0.35rem;
+  top: -0.35rem;
+  min-width: 1.1rem;
+  padding: 0 0.2rem;
+  border-radius: 999px;
+  background: #7a2b22;
+  color: #fff1ea;
+  font-size: 0.62rem;
+  line-height: 1.1rem;
+  text-align: center;
+}

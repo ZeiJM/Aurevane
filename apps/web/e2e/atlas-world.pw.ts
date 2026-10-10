@@ -228,7 +228,10 @@ test('Living Atlas fits the shared shell and supports travel, globe and temporar
   await expectSectorToFit()
   // Selecting a destination is presentation only; the explicit action starts travel.
   const beforeSelection = await world(page)
-  await grid.getByRole('button', { name: 'E18 N24, open territory', exact: true }).click()
+  // Other characters (including offline ones) may now stand on this tile; select it directly.
+  await grid
+    .getByRole('button', { name: 'E18 N24, open territory', exact: true })
+    .dispatchEvent('click')
   const afterSelection = await world(page)
   expect(afterSelection.position).toEqual(beforeSelection.position)
   expect(afterSelection.route).toEqual(beforeSelection.route)

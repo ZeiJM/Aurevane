@@ -43,6 +43,18 @@ export function SectorMap({
     for (const cell of sector.cells) indexed[cell.y * 13 + cell.x] = cell
     return indexed
   }, [sector.cells])
+  // Many characters can share one tile (the starting town): show the highest level once, with a count.
+  const stackedPlayers = useMemo(() => {
+    const byTile = new Map<string, { player: WorldPlayer; count: number }>()
+    for (const player of [...players].sort((a, b) => b.level - a.level)) {
+      if (player.position.sectorId !== sector.id) continue
+      const key = `${player.position.x}:${player.position.y}`
+      const group = byTile.get(key)
+      if (group) group.count += 1
+      else byTile.set(key, { player, count: 1 })
+    }
+    return [...byTile.values()]
+  }, [players, sector.id])
   const path = [...(local ? [position] : []), ...route.map((s) => s.position)].filter(
     (p) => p.sectorId === sector.id,
   )
@@ -132,18 +144,17 @@ export function SectorMap({
           )
         })}
         {local ? <MapToken position={position} name={name} portrait={portrait} /> : null}
-        {players
-          .filter((p) => p.position.sectorId === sector.id)
-          .map((player) => (
-            <MapToken
-              key={player.characterId}
-              position={player.position}
-              name={player.name}
-              portrait={resolvePublicCharacterImageUrl(player.imageUrl, player.portraitRef)!}
-              enemy
-              onClick={() => onPlayer(player.characterId)}
-            />
-          ))}
+        {stackedPlayers.map(({ player, count }) => (
+          <MapToken
+            key={player.characterId}
+            position={player.position}
+            name={player.name}
+            portrait={resolvePublicCharacterImageUrl(player.imageUrl, player.portraitRef)!}
+            enemy
+            count={count}
+            onClick={() => onPlayer(player.characterId)}
+          />
+        ))}
       </div>
       <div className={styles.eastings}>
         {Array.from({ length: 13 }, (_, x) => (
@@ -158,12 +169,14 @@ function MapToken({
   name,
   portrait,
   enemy = false,
+  count = 1,
   onClick,
 }: {
   position: WorldPosition
   name: string
   portrait: string
   enemy?: boolean
+  count?: number
   onClick?: () => void
 }) {
   const center = cellCenter(position)
@@ -171,9 +184,11 @@ function MapToken({
     <button
       className={styles.playerToken}
       data-enemy={enemy}
+      data-count={count > 1 ? count : undefined}
       style={{ left: `${center.x * 100}%`, top: `${center.y * 100}%` }}
       onClick={onClick}
       aria-label={enemy ? `Inspect ${name}` : `${name}, your position`}
+      title={count > 1 ? `${name} and ${count - 1} more here` : undefined}
     >
       <Image
         unoptimized

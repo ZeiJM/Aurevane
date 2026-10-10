@@ -51,7 +51,7 @@ jobs:
             select public.activate_phase4_combat_interactions_v2();
             select public.activate_phase4_discipline_rebalance_v1();
           "
-          pnpm --filter @aurevane/web exec playwright test e2e/atlas-world.pw.ts --reporter=github,line
+          pnpm --filter @aurevane/web exec playwright test e2e/atlas-world.pw.ts
       - name: Save Atlas screenshots and traces
         if: always()
         uses: actions/upload-artifact@v4
