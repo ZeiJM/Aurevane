@@ -1813,7 +1813,7 @@ function renderRoster() {
   const sorted = ROSTER.slice().sort((a, b) => Number(b.online !== false) - Number(a.online !== false) || b.level - a.level || a.name.localeCompare(b.name));
   const mySafe = zoneSafe(me.x, me.y), busy = Boolean(SV && (SV.busy || SV.movementBlocked));
   const html = sorted.map((p) => {
-    const d = Math.max(Math.abs(p.position.x - me.x), Math.abs(p.position.y - me.y)), r = d <= 1, on = p.online !== false;
+    const d = dist(p.position), r = d <= 1, on = p.online !== false;
     const btn = r
       ? `${!mySafe && !zoneSafePos(p.position) ? `<button type="button" class="atk" data-act="attack" data-id="${esc(p.characterId)}" aria-label="Attack ${esc(p.name)}"${p.attackable && !busy ? '' : ' disabled'}>Attack</button>` : ''}<button type="button" class="tk" disabled title="Talking is coming soon" aria-label="Talk to ${esc(p.name)} (coming soon)">Talk</button>`
       : `<button type="button" data-act="approach" data-id="${esc(p.characterId)}" aria-label="Approach ${esc(p.name)}"${busy ? ' disabled' : ''}>Approach</button>`;
@@ -1994,6 +1994,8 @@ view.addEventListener('click', (e) => {
   if (ex) { say(`Travelling along ${ex.name}.`); sendWalk(ex.to); return; }
   const P = sectorAt(t.x, t.y);
   if (!P || isBlocked(t.x, t.y)) { say(blockWhy(t.x, t.y)); return; }
+  const hp = homeP(), lmk = hp && (window.__pois || []).find((l) => l.kind === 'poi' && hp.gx + l.x === t.x && hp.gy + l.y === t.y);
+  if (lmk && window.__showPoi) window.__showPoi(lmk);
   sendWalk({ sectorId: P.S.id, x: t.x - P.gx, y: t.y - P.gy });
 });
 /* movement keys are hardwired: W A S D and the arrows work anywhere while the map is on screen */
@@ -2733,18 +2735,53 @@ setTimeout(fitMap, 0);
   });
 })();
 
-/* one dock, two tabs: click Nearby or Points of interest to swap the list shown below the map */
+/* right-hand panel: Character / Points of interest / Missions; anything clicked opens its detail in the same panel */
 (function () {
   const dock = document.getElementById('dock'); if (!dock) return;
-  const tabs = { nearby: [document.getElementById('tab-nb'), document.getElementById('nb-list')], poi: [document.getElementById('tab-poi'), document.getElementById('poi-list')] };
-  const show = (k) => { dock.dataset.tab = k; for (const key in tabs) { const on = key === k; tabs[key][0].setAttribute('aria-selected', String(on)); tabs[key][1].hidden = !on; } };
-  tabs.nearby[0].addEventListener('click', () => show('nearby'));
-  tabs.poi[0].addEventListener('click', () => show('poi'));
-  let k0 = 'nearby'; try { const v = localStorage.getItem('aurevane.dockTab'); if (v === 'poi' || v === 'nearby') k0 = v; } catch (e) {}
-  const save = (k) => { try { localStorage.setItem('aurevane.dockTab', k); } catch (e) {} };
-  tabs.nearby[0].addEventListener('click', () => save('nearby'));
-  tabs.poi[0].addEventListener('click', () => save('poi'));
+  const tabs = { nearby: [document.getElementById('tab-nb'), document.getElementById('nb-pane')], poi: [document.getElementById('tab-poi'), document.getElementById('poi-list')], missions: [document.getElementById('tab-ms'), document.getElementById('ms-list')] };
+  const detail = document.getElementById('detail');
+  let current = 'nearby';
+  const show = (k) => { current = k; detail.hidden = true; dock.dataset.tab = k; for (const key in tabs) { const on = key === k; tabs[key][0].setAttribute('aria-selected', String(on)); tabs[key][1].hidden = !on; } };
+  for (const k in tabs) tabs[k][0].addEventListener('click', () => { show(k); try { localStorage.setItem('aurevane.dockTab', k); } catch (e) {} });
+  let k0 = 'nearby'; try { const v = localStorage.getItem('aurevane.dockTab'); if (v && tabs[v]) k0 = v; } catch (e) {}
   show(k0);
+  const open = (html, wire) => {
+    for (const key in tabs) tabs[key][1].hidden = true;
+    detail.innerHTML = '<button type="button" class="back">‹ Back</button>' + html; detail.hidden = false;
+    detail.querySelector('.back').addEventListener('click', () => show(current));
+    if (wire) wire(detail);
+    detail.scrollIntoView({ block: 'nearest' });
+  };
+  const kindName = { settlement: 'Settlement', watchtower: 'Watchtower', frontier: 'Frontier', anchor: 'Anchor', shrine: 'Shrine', ruin: 'Ruin', exit: 'Road', poi: 'Landmark' };
+  window.__showPoi = (l) => {
+    open(`${l.img ? `<div class="pic"><img src="assets/${esc(l.img)}.webp" alt=""></div>` : ''}<h3>${esc(l.name)}</h3><p>${esc(l.kind === 'exit' ? 'A road leading out of this area' + (l.via ? ` (${l.via})` : '') + '.' : kindName[l.landmarkKind] || 'A place of interest here.')}</p><div class="acts"><button type="button" data-go>${l.kind === 'exit' ? 'Travel' : 'Walk here'}</button></div>`,
+      (d) => d.querySelector('[data-go]').addEventListener('click', () => { say(l.kind === 'exit' ? `Travelling along ${l.via || 'the road'}.` : `Walking to ${l.name}.`); sendWalk(l.dest); }));
+  };
+  window.__showPlayer = (p) => open(`<h3>${esc(p.name)}</h3><p>Player · Level ${esc(p.level)}${p.online === false ? ' · Away' : ''}</p><div class="acts"><button type="button" data-ap>Approach</button><button type="button" data-at${p.attackable ? '' : ' disabled'}>Attack</button><button type="button" disabled title="Talking is coming soon">Talk</button></div>`,
+    (d) => { d.querySelector('[data-ap]').addEventListener('click', () => { say(`Approaching ${p.name}…`); sendWalk({ sectorId: p.position.sectorId, x: p.position.x, y: p.position.y }); }); d.querySelector('[data-at]').addEventListener('click', () => { if (!p.attackable) return; post({ type: 'attack', targetId: p.characterId }); say(`Challenging ${p.name}…`); }); });
+  window.__showMission = (o) => {
+    const going = SV && SV.routeObjectiveId === o.id;
+    open(`<h3>${esc(o.name)}</h3><p>${esc(o.description)}</p><p>${o.kind === 'event' ? 'World Pulse' : 'Quest'} · ${o.completed ? 'Completed' : esc(o.progress || 'Available')}</p><div class="acts">${o.autoPath && o.destination && !o.completed ? `<button type="button" data-ap${going ? ' disabled' : ''}>${going ? 'Travelling…' : 'Auto-path'}</button>` : ''}</div>`,
+      (d) => { const b = d.querySelector('[data-ap]'); if (b) b.addEventListener('click', () => { post({ type: 'autopath', objectiveId: o.id }); say(`Following ${o.name}…`); }); });
+  };
+  window.__showDetailTab = show;
+  window.__renderMissions = () => {
+    const list = (SV && SV.objectives) || [], el = tabs.missions[1];
+    const html = list.length ? list.map((o, i) => `<button type="button" class="msi" data-ms="${i}"><b>${esc(o.name)}</b><span>${o.kind === 'event' ? 'World Pulse' : 'Quest'} · ${o.completed ? 'Completed' : esc(o.progress || 'Available')}</span></button>`).join('') : '<p class="dockempty">No missions here yet. Explore, and talk to people you meet.</p>';
+    if (el._html !== html) { el.innerHTML = html; el._html = html; }
+  };
+  tabs.missions[1].addEventListener('click', (e) => { const b = e.target.closest('[data-ms]'); if (!b) return; const o = ((SV && SV.objectives) || [])[Number(b.dataset.ms)]; if (o) window.__showMission(o); });
+  nbList.addEventListener('click', (e) => {
+    if (e.target.closest('[data-act]')) return;
+    const c = e.target.closest('.nbt'); if (!c) return;
+    const id = c.querySelector('[data-id]'), p = id && ROSTER.find((q) => q.characterId === id.dataset.id); if (p) window.__showPlayer(p);
+  });
+  window.__renderMe = () => {
+    const el = document.getElementById('me-card'); if (!el || !SV || !SECTOR) return;
+    const hp = homeP(), lx = me.x - (hp ? hp.gx : 0), ly = me.y - (hp ? hp.gy : 0);
+    const html = `<img src="${esc(SV.portrait || '')}" alt="" referrerpolicy="no-referrer"><b>${esc(SV.name || 'You')}</b><span>${esc(SECTOR.name)}</span><span>${esc(SECTOR.coordinate)} · ${lx}, ${ly}</span>`;
+    if (el._html !== html) { el.innerHTML = html; el._html = html; }
+  };
 })();
 
 
@@ -2900,7 +2937,7 @@ setTimeout(fitMap, 0);
     const S = SECTOR; if (!S) return;
     const secs = sectorById();
     const imgFor = { settlement: ['timber_stone_tavern', 125, 60], watchtower: ['round_watchtower', 120, 40], frontier: ['teal_rune_stone', 80, 66], anchor: ['teal_rune_stone', 80, 66], shrine: ['moonpetal_shrine', 110, 52], ruin: ['ancient_moss_arch', 110, 52], camp: ['small_campfire', 70, 62], grove: ['firefly_lantern_glade', 120, 52], spring: ['crystalline_pool', 110, 52], hamlet: ['thatched_farmhouse', 110, 56], waystone: ['iron_lamppost', 46, 60] };
-    const list = S.landmarks.map((l) => { const [img, sz, py] = imgFor[l.kind] || imgFor.anchor; return { name: l.name, img, sz, py, x: l.x, y: l.y, dest: { sectorId: S.id, x: l.x, y: l.y }, kind: 'poi' }; });
+    const list = S.landmarks.map((l) => { const [img, sz, py] = imgFor[l.kind] || imgFor.anchor; return { name: l.name, img, sz, py, x: l.x, y: l.y, dest: { sectorId: S.id, x: l.x, y: l.y }, kind: 'poi', landmarkKind: l.kind }; });
     const seenTo = new Set();
     S.exits.filter((e) => e.from.sectorId === S.id).forEach((e) => {
       if (seenTo.has(e.to.sectorId)) return; seenTo.add(e.to.sectorId);
@@ -2929,7 +2966,7 @@ setTimeout(fitMap, 0);
   poiEl.addEventListener('click', (e) => {
     const b = e.target.closest('[data-poi]'); if (!b) return;
     const l = (window.__pois || [])[Number(b.dataset.poi)]; if (!l) return;
-    say(l.kind === 'exit' ? `Travelling along ${l.via || 'the road'}.` : `Walking to ${l.name}.`); sendWalk(l.dest);
+    if (window.__showPoi) window.__showPoi(l); else { say(l.kind === 'exit' ? `Travelling along ${l.via || 'the road'}.` : `Walking to ${l.name}.`); sendWalk(l.dest); }
   });
 
   let lastPoiSig = '', lastRouteSig = '', lastPlaceSig = '';
@@ -2966,6 +3003,8 @@ setTimeout(fitMap, 0);
       /* the server confirms steps a little behind the preview, so only a large gap is a real jump */
       if (Math.hypot(meV.x - me.x, meV.y - me.y) > (predState ? 14 : 3)) meV = { ...me };
     }
+    if (window.__renderMissions) window.__renderMissions();
+    if (window.__renderMe) window.__renderMe();
     buildHero();
     if (heroGhost) { heroGhost.remove(); heroGhost = null; }
     ROSTER = s.players.filter((p) => placed.has(p.position.sectorId));

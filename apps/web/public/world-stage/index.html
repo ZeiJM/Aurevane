@@ -82,13 +82,20 @@
         </div>
         <aside class="side" id="side-map">
           <div class="dock" id="dock" data-tab="nearby">
-            <div class="dock-tabs" role="tablist" aria-label="Nearby and points of interest">
-              <button type="button" class="dtab" id="tab-nb" role="tab" aria-selected="true" aria-controls="nb-list"><span class="dt" id="nb-h">Nearby</span><span class="zb" id="zone-badge" data-z="safe" title="Towns are safe zones: combat is disabled">Safe zone</span></button>
+            <div class="dock-tabs" role="tablist" aria-label="Character, points of interest and missions">
+              <button type="button" class="dtab" id="tab-nb" role="tab" aria-selected="true" aria-controls="nb-pane"><span class="dt" id="nb-h">Character</span></button>
               <button type="button" class="dtab" id="tab-poi" role="tab" aria-selected="false" aria-controls="poi-list"><span class="dt" id="poi-h">Points of interest</span></button>
+              <button type="button" class="dtab" id="tab-ms" role="tab" aria-selected="false" aria-controls="ms-list"><span class="dt" id="ms-h">Missions</span></button>
             </div>
             <div class="dock-body">
-              <div id="nb-list" class="nb" role="tabpanel" aria-labelledby="tab-nb"></div>
+              <div id="nb-pane" role="tabpanel" aria-labelledby="tab-nb">
+                <div class="me" id="me-card"></div>
+                <h4 class="sub-h">Nearby <span class="zb" id="zone-badge" data-z="safe" title="Towns are safe zones: combat is disabled">Safe zone</span></h4>
+                <div id="nb-list" class="nb"></div>
+              </div>
               <div id="poi-list" class="poi" role="tabpanel" aria-labelledby="tab-poi" hidden></div>
+              <div id="ms-list" class="ms" role="tabpanel" aria-labelledby="tab-ms" hidden></div>
+              <div id="detail" class="detail" hidden></div>
               <p class="nbnote" id="nb-note" aria-live="polite"></p>
             </div>
           </div>

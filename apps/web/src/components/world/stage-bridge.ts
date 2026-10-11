@@ -16,6 +16,17 @@ export interface WorldStageState {
   busy: boolean
   movementBlocked: string | null
   environment: WorldView['environment']
+  objectives: Array<{
+    id: string
+    name: string
+    description: string
+    kind: 'quest' | 'event'
+    autoPath: boolean
+    destination: WorldPosition | null
+    completed: boolean
+    progress?: string
+  }>
+  routeObjectiveId: string | null
 }
 
 export type WorldStageMessage =
@@ -23,6 +34,7 @@ export type WorldStageMessage =
   | { type: 'walk'; destination: WorldPosition }
   | { type: 'attack'; targetId: string }
   | { type: 'travel'; sectorId: string }
+  | { type: 'autopath'; objectiveId: string }
 
 const isPosition = (value: unknown): value is WorldPosition => {
   const p = value as WorldPosition | null
@@ -46,6 +58,8 @@ export function parseStageMessage(data: unknown): WorldStageMessage | null {
     return { type: 'attack', targetId: m.targetId }
   if (m.type === 'travel' && typeof m.sectorId === 'string')
     return { type: 'travel', sectorId: m.sectorId }
+  if (m.type === 'autopath' && typeof m.objectiveId === 'string')
+    return { type: 'autopath', objectiveId: m.objectiveId }
   return null
 }
 
@@ -72,6 +86,17 @@ export function buildStageState(
     busy,
     movementBlocked: view.movementBlocked,
     environment: view.environment,
+    objectives: view.objectives.map((o) => ({
+      id: o.id,
+      name: o.name,
+      description: o.description,
+      kind: o.kind,
+      autoPath: o.autoPath,
+      destination: o.destination,
+      completed: o.completed,
+      progress: o.progress,
+    })),
+    routeObjectiveId: view.routeObjectiveId ?? null,
   }
 }
 
