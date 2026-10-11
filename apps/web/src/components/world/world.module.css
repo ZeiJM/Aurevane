@@ -2156,3 +2156,8 @@
     top: 76px;
   }
 }
+/* The map, panel and bar fill the workspace edge to edge, so the bar joins the bottom of the panel */
+.workspace {
+  padding: 0;
+  gap: 0;
+}
