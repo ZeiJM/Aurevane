@@ -1090,7 +1090,7 @@ for (let mx = -1; mx <= 1; mx++) for (let my = -1; my <= 1; my++) {
   const cell = add(cloudTile, 'g', { transform: `translate(${mx * CLP_X},${my * CLP_Y})` });
   for (let i = 0; i < 3; i++) {
     const lane = add(cell, 'g', { transform: `translate(0,${40 + i * 180})` });
-    const inner = add(lane, 'g', { class: 'cloud', style: `animation-delay:${-i * 20}s;animation-duration:${55 + i * 14}s` });
+    const inner = add(lane, 'g', { class: 'cloud', style: `animation-delay:${-i * 40}s;animation-duration:${110 + i * 28}s;animation-timing-function:steps(${(110 + i * 28) * 8}, end)` });
     const im = add(inner, 'image', { x: -320 - i * 30, y: -150, width: 640 + i * 90, height: 300 + i * 40, opacity: 0.5 });
     im.setAttribute('href', cloudURLs[i]);
   }
