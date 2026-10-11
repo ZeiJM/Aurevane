@@ -66,7 +66,7 @@ section { display: grid; gap: 16px; }
 
 /* Ambient motion, all gated by data-motion */
 .sway { transform-box: fill-box; transform-origin: 50% 100%; }
-[data-motion='true'] .sway { animation: sway 5.5s ease-in-out infinite alternate; }
+[data-motion='true'] .sway:not(.grass) { animation: sway 5.5s ease-in-out infinite alternate; }
 [data-motion='true'] .sway.slow { animation-duration: 8s; }
 
 @keyframes sway { from { transform: rotate(calc(var(--amp, 2.6deg) * -1)) skewX(calc(var(--amp, 2.6deg) * -0.55)); } to { transform: rotate(var(--amp, 2.6deg)) skewX(calc(var(--amp, 2.6deg) * 0.55)); } }
@@ -857,3 +857,6 @@ main { max-width: none; gap: 0; }
 
 /* embedded in the World page: the footer carries the coordinates and the settings button */
 .hud-corner:has(#sb-sec-cell) { display: none; }
+
+/* ambient loops rest while the character walks, so the map repaints only for movement */
+#viewport[data-moving='1'] :is(.sway, .leaf, .fly, .veil, .puff, .ripple, .glint, .mote, .ember, .aura, .glowcap, .fall, .mist, .pulse, .seadrift) { animation-play-state: paused; }

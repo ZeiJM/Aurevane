@@ -84,15 +84,27 @@ export function resolveWorldIntent(
       destination = objective!.destination!
     } else destination = intent.destination
     if (!isKnown(state, destination)) invalid('Survey this ground before plotting a route.')
+    // Plan from where the character really is: steps that came due since the last tick are
+    // applied first, so a new click never pulls a walking character back to a stale tile.
+    const walking = advanceWorldRoute(state, now)
+    const origin = walking.position
     const sectors = visibleSectors(state)
-    const route = findWorldRoute(state.position, destination, sectors, (p) => isKnown(state, p))
+    const route = findWorldRoute(origin, destination, sectors, (p) => isKnown(state, p))
     if (!route) invalid('There is no known walkable route to that location.')
-    // Replanning never accelerates a due movement step; all new steps wait a full interval.
+    // Replanning never accelerates movement: a step already under way keeps its schedule,
+    // otherwise the first new step waits a full interval.
+    const underWay =
+      walking.route.length > 0 && walking.nextStepAt !== null && walking.nextStepAt > now
     next = {
       ...state,
+      position: origin,
       route: route!,
       routeObjectiveId: intent.kind === 'autopath' ? intent.objectiveId : null,
-      nextStepAt: route!.length ? now + route![0]!.durationMs : null,
+      nextStepAt: route!.length
+        ? underWay
+          ? Math.min(walking.nextStepAt!, now + route![0]!.durationMs)
+          : now + route![0]!.durationMs
+        : null,
     }
   }
   next = advanceWorldObjectiveProgress(revealNearby(next))

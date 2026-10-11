@@ -425,6 +425,23 @@ export function WorldWorkspace({
               </b>
             </span>
           </span>
+        </span>
+        <span data-world-travel-status className={styles.travelStatus}>
+          {message || view.movementBlocked ? (
+            <span role="status">{message || view.movementBlocked}</span>
+          ) : null}
+        </span>
+        <span className={styles.stageActions}>
+          {view.route.length ? (
+            <button onClick={() => void send({ kind: 'stop' })}>Stop travel</button>
+          ) : null}
+          <button
+            aria-expanded={journal}
+            aria-controls="world-journal"
+            onClick={() => setJournal(!journal)}
+          >
+            ⚑ Journal
+          </button>
           <button
             className={styles.gear}
             aria-label="Settings"
@@ -442,23 +459,6 @@ export function WorldWorkspace({
                 fill="currentColor"
               />
             </svg>
-          </button>
-        </span>
-        <span data-world-travel-status className={styles.travelStatus}>
-          {message || view.movementBlocked ? (
-            <span role="status">{message || view.movementBlocked}</span>
-          ) : null}
-        </span>
-        <span className={styles.stageActions}>
-          {view.route.length ? (
-            <button onClick={() => void send({ kind: 'stop' })}>Stop travel</button>
-          ) : null}
-          <button
-            aria-expanded={journal}
-            aria-controls="world-journal"
-            onClick={() => setJournal(!journal)}
-          >
-            ⚑ Journal
           </button>
         </span>
       </div>

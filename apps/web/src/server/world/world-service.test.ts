@@ -555,3 +555,30 @@ describe('endless generated wilds', () => {
     ).toThrow()
   })
 })
+
+describe('replanning mid-walk', () => {
+  const sec = 'aureth-crown'
+  it('plans from the tile already reached and keeps the step under way', () => {
+    const start = newWorldState()
+    const first = resolveWorldIntent(
+      start,
+      {
+        kind: 'walk',
+        destination: { sectorId: sec, x: start.position.x + 3, y: start.position.y },
+      },
+      10_000,
+    )
+    expect(first.route.length).toBeGreaterThan(2)
+    const due = first.nextStepAt!
+    // Two steps are due on the authored clock but no tick has been processed yet.
+    const now = due + STEP_MS + 10
+    const second = resolveWorldIntent(
+      first,
+      { kind: 'walk', destination: { sectorId: sec, x: start.position.x, y: start.position.y } },
+      now,
+    )
+    expect(second.position).toEqual(first.route[1]!.position)
+    expect(second.nextStepAt).toBeLessThanOrEqual(now + STEP_MS)
+    expect(second.nextStepAt).toBeGreaterThan(now)
+  })
+})
