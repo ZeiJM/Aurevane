@@ -2,7 +2,7 @@ import { GRID_HEIGHT, GRID_WIDTH, START_POSITION, STEP_MS } from './catalog'
 import { isWildSectorId } from './wild-ids'
 import type { TravelStep, WorldObjective, WorldPosition, WorldSector, WorldState } from './types'
 
-export const ACTIVE_WORLD_SYNC_MS = 1200
+export const ACTIVE_WORLD_SYNC_MS = 600
 export const IDLE_WORLD_SYNC_MS = 10000
 export function worldSyncDelayMs(state: {
   routeLength: number

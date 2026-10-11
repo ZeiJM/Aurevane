@@ -95,33 +95,18 @@ export function resolveWorldIntent(
     // otherwise the first new step waits a full interval.
     const underWay =
       walking.route.length > 0 && walking.nextStepAt !== null && walking.nextStepAt > now
-    let position = origin
-    let steps = route!
-    let nextStepAt: number | null = steps.length
-      ? underWay
-        ? Math.min(walking.nextStepAt!, now + steps[0]!.durationMs)
-        : now + steps[0]!.durationMs
-      : null
-    // Starting from a standstill, the first ordinary one-tile step lands at once; only the
-    // following steps keep the authored pace. Road crossings still take their full time.
-    const first = steps[0]
-    if (
-      !underWay &&
-      first &&
-      first.position.sectorId === origin.sectorId &&
-      Math.abs(first.position.x - origin.x) + Math.abs(first.position.y - origin.y) === 1 &&
-      first.durationMs <= STEP_MS
-    ) {
-      position = first.position
-      steps = steps.slice(1)
-      nextStepAt = steps.length ? now + steps[0]!.durationMs : null
-    }
+    // A step already under way keeps its schedule; from a standstill the first step is due at
+    // once (the character starts moving immediately) and later steps follow the authored pace.
     next = {
       ...state,
-      position,
-      route: steps,
+      position: origin,
+      route: route!,
       routeObjectiveId: intent.kind === 'autopath' ? intent.objectiveId : null,
-      nextStepAt,
+      nextStepAt: route!.length
+        ? underWay
+          ? Math.min(walking.nextStepAt!, now + route![0]!.durationMs)
+          : now
+        : null,
     }
   }
   next = advanceWorldObjectiveProgress(revealNearby(next))

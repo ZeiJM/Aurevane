@@ -556,9 +556,16 @@ test('Crown Road advances one authoritative ordinary step with one due client ti
   })
 
   expect((await world(page)).route).toHaveLength(0)
+  const walkReceipt = page.waitForResponse(
+    (response) =>
+      new URL(response.url()).pathname === '/api/world' &&
+      response.request().method() === 'POST' &&
+      response.request().postDataJSON()?.intent?.kind === 'walk',
+  )
   await stageWalk(page, { sectorId: road.id, x: 7, y: 4 })
-  await expect(page.getByRole('button', { name: 'Stop travel', exact: true })).toBeVisible()
-  expect((await world(page)).route[0]?.durationMs).toBe(STEP_MS)
+  // The first step is due at once, so one tick confirms it a moment after the plan is saved.
+  const planned: WorldView = await (await walkReceipt).json()
+  expect(planned.route[0]?.durationMs).toBe(STEP_MS)
   await expect.poll(async () => (await world(page)).position.x, { timeout: 4_000 }).toBe(7)
   expect(tickPosts).toBe(1)
 })

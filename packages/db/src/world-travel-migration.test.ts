@@ -105,6 +105,7 @@ beforeAll(async () => {
   )
   await db.exec(migration('20260923190443_living_atlas_world_travel.sql'))
   await db.exec(migration('20260923194500_phase5_world_interactions.sql'))
+  await db.exec(migration('20261011163000_world_multistep_pacing.sql'))
 }, 30000)
 beforeEach(async () => {
   await db.exec('begin')
@@ -325,34 +326,94 @@ it('rechecks a prechecked spectator join at the write boundary after an encounte
     'PVP_SPECTATE_CONFLICT',
   )
 })
-it('rebases a delayed successor step on the authoritative commit clock', async () => {
-  const route = [
-    { position: { ...initial.position, x: 6 }, durationMs: 1100 },
-    { position: { ...initial.position, x: 7 }, durationMs: 1100 },
-  ]
-  // Model a read/resolution followed by queue or lock delay, without sleeping.
+it('confirms several due steps at once and keeps the authored pace', async () => {
+  const route = [6, 7, 8, 9].map((x) => ({
+    position: { ...initial.position, x },
+    durationMs: 275,
+  }))
+  const t0 = Date.now() - 1000
   await db.query('update app_private.character_world_state set state=$2 where character_id=$1', [
     character,
-    { ...initial, route, nextStepAt: Date.now() - 5000 },
+    { ...initial, route, nextStepAt: t0 },
   ])
+  // Steps land at t0, t0+275, t0+550 and t0+825: all four are due, so three can be confirmed.
   const before = Date.now()
   await commit(1, 'tick', {
     ...initial,
-    position: route[0]!.position,
-    route: route.slice(1),
-    nextStepAt: Date.now() - 1000,
+    position: route[2]!.position,
+    route: route.slice(3),
+    nextStepAt: t0 + 825,
   })
   const next = (await read()).rows[0]!.result.state
-  expect(next.nextStepAt).toBeGreaterThanOrEqual(before + 1100)
+  expect(next.position).toEqual(route[2]!.position)
+  // The deadline is never earlier than the running schedule and never later than one step away.
+  expect(next.nextStepAt).toBeGreaterThanOrEqual(t0)
+  expect(next.nextStepAt).toBeLessThanOrEqual(Date.now() + 275)
+  expect(before).toBeLessThanOrEqual(Date.now())
+  // Skipping ahead of the saved route is rejected.
   await rejected(
     () =>
       commit(
         2,
         'tick',
-        { ...initial, position: route[1]!.position },
+        { ...initial, position: { ...initial.position, x: 20 } },
         '00000000-0000-4000-8000-000000000098',
       ),
+    'WORLD_INVALID_STEP',
+  )
+})
+it('rejects confirming a step whose authored landing time has not passed', async () => {
+  const route = [6, 7, 8].map((x) => ({
+    position: { ...initial.position, x },
+    durationMs: 275,
+  }))
+  const t0 = Date.now() - 300
+  await db.query('update app_private.character_world_state set state=$2 where character_id=$1', [
+    character,
+    { ...initial, route, nextStepAt: t0 },
+  ])
+  // The first step landed at t0 and the second at t0+275 (both past); the third lands at t0+550.
+  await rejected(
+    () =>
+      commit(
+        1,
+        'tick',
+        { ...initial, position: route[2]!.position, route: [], nextStepAt: null },
+        '00000000-0000-4000-8000-000000000097',
+      ),
     'WORLD_STEP_NOT_DUE',
+  )
+})
+it('lets a replan confirm due steps first and then start from the tile reached', async () => {
+  const route = [6, 7, 8].map((x) => ({
+    position: { ...initial.position, x },
+    durationMs: 275,
+  }))
+  const t0 = Date.now() - 2000
+  await db.query('update app_private.character_world_state set state=$2 where character_id=$1', [
+    character,
+    { ...initial, route, nextStepAt: t0 },
+  ])
+  const replan = [{ position: { ...initial.position, x: 7, y: 5 }, durationMs: 275 }]
+  await commit(1, 'walk', {
+    ...initial,
+    position: route[1]!.position,
+    route: replan,
+    nextStepAt: Date.now(),
+  })
+  const next = (await read()).rows[0]!.result.state
+  expect(next.position).toEqual(route[1]!.position)
+  expect(next.route).toHaveLength(1)
+  // A walk cannot jump to a tile that is not on the saved route.
+  await rejected(
+    () =>
+      commit(
+        2,
+        'walk',
+        { ...initial, position: { ...initial.position, x: 30 }, route: [], nextStepAt: null },
+        '00000000-0000-4000-8000-000000000098',
+      ),
+    'WORLD_INVALID_STEP',
   )
 })
 

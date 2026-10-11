@@ -228,6 +228,11 @@ export function WorldWorkspace({
     window.addEventListener('message', onMessage)
     return () => window.removeEventListener('message', onMessage)
   }, [])
+  // Confirm the steps already taken first, so the character stops where it is standing.
+  async function stopMoving() {
+    if (current.current.route.length && !pending.current) await sendRef.current({ kind: 'tick' })
+    await sendRef.current({ kind: 'stop' })
+  }
   const local = view.sectors.find((s) => s.id === view.position.sectorId) ?? view.sectors[0]!
   const disabled = busy || Boolean(view.movementBlocked)
   const pulseObjectives = view.objectives.filter((objective) => objective.kind === 'event')
@@ -245,11 +250,9 @@ export function WorldWorkspace({
         (disabled || !objective.autoPath || !objective.destination)
       }
       onClick={() =>
-        void send(
-          view.routeObjectiveId === objective.id
-            ? { kind: 'stop' }
-            : { kind: 'autopath', objectiveId: objective.id },
-        )
+        void (view.routeObjectiveId === objective.id
+          ? stopMoving()
+          : send({ kind: 'autopath', objectiveId: objective.id }))
       }
     >
       ♧{' '}
@@ -435,7 +438,7 @@ export function WorldWorkspace({
         </span>
         <span className={styles.stageActions}>
           {view.route.length ? (
-            <button onClick={() => void send({ kind: 'stop' })}>Stop travel</button>
+            <button onClick={() => void stopMoving()}>Stop travel</button>
           ) : null}
           <button
             aria-expanded={journal}

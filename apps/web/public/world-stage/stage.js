@@ -1763,16 +1763,16 @@ function paint() {
   }
   onMoveUi();
 }
-let predState = null, heldPred = null, optim = null;
+let predState = null, optim = null;
 /* The server owns every step; between its replies the stage only previews the steps already
    due on the authored clock, so the walk never waits for a network round trip. */
 function predictedTarget() {
   const p = predState;
-  if (optim && (Date.now() - optim.at > 1500 || (SV && SV.route.length))) optim = null;
-  if (!p && optim) return optim;
-  if (!p || !SECTOR || reduceMotion) { heldPred = null; return me; }
+  if (optim && (Date.now() - optim.at > 6000 || (SV && SV.route.length))) optim = null;
+  if (!p && optim) return optim.path[Math.min(optim.path.length - 1, Math.floor((Date.now() - optim.at) / 275))];
+  if (!p || !SECTOR || reduceMotion) return me;
   let t = p.nextStepAt, now = p.serverNow + (Date.now() - p.recvAt), tgt = null;
-  if (t === null) { heldPred = null; return me; }
+  if (t === null) return me;
   for (let i = 0; i < p.route.length && i < 60; i++) {
     if (t > now) break;
     const st = p.route[i];
@@ -1780,9 +1780,11 @@ function predictedTarget() {
     tgt = st.position;
     t += (p.route[i + 1] ? p.route[i + 1].durationMs : 0);
   }
-  /* never walk backwards: if the reply is late, keep heading for the tile already due */
-  if (!tgt && heldPred && Math.hypot(meV.x - heldPred.x, meV.y - heldPred.y) < 1.6) return heldPred;
-  heldPred = tgt || null;
+  /* never walk backwards along the route: the server schedule can start a little after the click,
+     so when we are already further along than it says, hold the tile we have reached */
+  let tIdx = -1, cur = -1;
+  for (let i = 0; i < p.route.length; i++) { const q = p.route[i].position; if (tgt && q.x === tgt.x && q.y === tgt.y && q.sectorId === tgt.sectorId) tIdx = i; if (q.sectorId === SECTOR.id && Math.abs(q.x - meV.x) <= 0.5 && Math.abs(q.y - meV.y) <= 0.5) cur = i; }
+  if (cur > tIdx) return p.route[cur].position;
   return tgt || me;
 }
 let lastV = performance.now();
@@ -1825,16 +1827,16 @@ function drawRoute() {
 
 /* ---------- input ---------- */
 let queued = null; /* last wish while the page is busy confirming an earlier command */
-/* first step of the shortest in-sector path, used to start moving before the server replies */
-function firstStepToward(dest) {
+/* shortest in-sector path, walked at the authored pace while the server's reply is on its way */
+function pathToward(dest) {
   if (!SECTOR || dest.sectorId !== SECTOR.id || reduceMotion) return null;
   const from = predictedTarget(), key = (x, y) => y * CW + x, prev = new Map([[key(from.x, from.y), null]]), q = [[from.x, from.y]];
   for (let i = 0; i < q.length; i++) {
     const [x, y] = q[i];
     if (x === dest.x && y === dest.y) {
-      let k = key(x, y), step = null;
-      while (prev.get(k) !== null && prev.get(k) !== undefined) { step = { x: k % CW, y: Math.floor(k / CW) }; k = prev.get(k); }
-      return step;
+      let k = key(x, y); const out = [];
+      while (prev.get(k) !== null && prev.get(k) !== undefined) { out.unshift({ x: k % CW, y: Math.floor(k / CW) }); k = prev.get(k); }
+      return out.length ? out : null;
     }
     for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
       const nx = x + dx, ny = y + dy;
@@ -1847,8 +1849,8 @@ function firstStepToward(dest) {
 function sendWalk(dest) {
   if (SV && (SV.busy || SV.movementBlocked)) { queued = dest; if (SV.movementBlocked) say(SV.movementBlocked); return; }
   queued = null;
-  const step = SV && !SV.route.length ? firstStepToward(dest) : null;
-  if (step) optim = { x: step.x, y: step.y, at: Date.now() };
+  const path = SV && !SV.route.length ? pathToward(dest) : null;
+  if (path) optim = { path, at: Date.now() };
   post({ type: 'walk', destination: dest });
 }
 function exitAt(x, y) { return SECTOR && SECTOR.exits.find((e) => e.from.sectorId === SECTOR.id && e.from.x === x && e.from.y === y); }
@@ -2826,7 +2828,8 @@ setTimeout(fitMap, 0);
     } else {
       SECTOR.landmarks = sec.landmarks; SECTOR.exits = sec.exits;
       me = { x: s.position.x, y: s.position.y };
-      if (Math.hypot(meV.x - me.x, meV.y - me.y) > 3) meV = { ...me };
+      /* the server confirms steps a little behind the preview, so only a large gap is a real jump */
+      if (Math.hypot(meV.x - me.x, meV.y - me.y) > (predState ? 14 : 3)) meV = { ...me };
     }
     buildHero();
     if (heroGhost) { heroGhost.remove(); heroGhost = null; }

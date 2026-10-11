@@ -557,7 +557,7 @@ describe('endless generated wilds', () => {
 })
 
 describe('starting a walk', () => {
-  it('lands the first ordinary step at once and paces the rest', () => {
+  it('makes the first step due at once and paces the rest', () => {
     const start = newWorldState()
     const next = resolveWorldIntent(
       start,
@@ -571,9 +571,14 @@ describe('starting a walk', () => {
       },
       10_000,
     )
-    expect(next.position).toEqual({ ...start.position, x: start.position.x + 1 })
-    expect(next.route).toHaveLength(2)
-    expect(next.nextStepAt).toBe(10_000 + STEP_MS)
+    // The stored position only moves through confirmed steps; the first one is due immediately.
+    expect(next.position).toEqual(start.position)
+    expect(next.route).toHaveLength(3)
+    expect(next.nextStepAt).toBe(10_000)
+    // Steps land at +0, +275 and +550 ms: shortly before the third, two are confirmed together.
+    const tick = resolveWorldIntent(next, { kind: 'tick' }, 10_000 + STEP_MS * 2 - 1)
+    expect(tick.position.x).toBe(start.position.x + 2)
+    expect(tick.nextStepAt).toBe(10_000 + STEP_MS * 2)
   })
 })
 
