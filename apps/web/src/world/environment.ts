@@ -1,6 +1,6 @@
 /**
  * Server-owned World environment: a shared in-game day/night clock and weather.
- * The World keeps its own time: one real hour is one in-game day, so day and night visibly pass
+ * The World clock is real UTC, so day and night follow the same hour for everyone
  * while people play. Pure and deterministic so every player (and test) resolves the same result.
  */
 export const WORLD_WEATHER = ['clear', 'overcast', 'rain', 'storm', 'fog', 'wind'] as const
@@ -39,10 +39,10 @@ export const DEFAULT_WORLD_ENVIRONMENT_SETTINGS: WorldEnvironmentSettings = {
   version: 0,
 }
 
-/** One real hour is one in-game day. */
-export const WORLD_DAY_REAL_MS = 3_600_000
+/** The World clock is real UTC: one real day is one World day. */
+export const WORLD_DAY_REAL_MS = 86_400_000
 const GAME_MINUTE_MS = WORLD_DAY_REAL_MS / 1440
-/** Weather changes at most every six in-game hours (fifteen real minutes). */
+/** Weather changes at most every six hours. */
 const WEATHER_BLOCK_MS = WORLD_DAY_REAL_MS / 4
 const STAY = 0.5
 const LOOKBACK_HOURS = 96 // look-back, in six-hour weather blocks

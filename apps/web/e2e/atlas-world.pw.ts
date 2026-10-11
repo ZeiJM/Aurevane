@@ -227,7 +227,7 @@ test('the World page is the scenic map stage inside the shared shell, with Journ
   const frame = stageOf(page)
   await expectLocation(page, 'Verdant Expanse')
   await expect(frame.locator('#nav-svg')).toBeVisible()
-  await expect(frame.locator('#sb-time')).toContainText('in-game')
+  await expect(frame.locator('#sb-time')).toContainText('UTC')
   await expect(frame.locator('#sb-wx')).not.toBeEmpty()
   await expect(frame.locator('#tab-nb')).toBeVisible()
   await expect(frame.locator('#zone-badge')).toBeVisible()

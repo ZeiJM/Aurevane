@@ -28,23 +28,24 @@ describe('weatherAtHour', () => {
   })
 })
 
-const GAME_MINUTE = 2500 // one real hour is one in-game day
-const BLOCK = HOUR / 4 // weather moves in six-hour in-game blocks
+const DAY = 86_400_000
+const GAME_MINUTE = 60_000 // the World clock is real UTC
+const BLOCK = DAY / 4 // weather moves in six-hour blocks
 describe('resolveWorldEnvironment', () => {
-  it('runs on the in-game clock: one real hour is one in-game day', () => {
+  it('runs on real UTC', () => {
     const env = resolveWorldEnvironment(MIDNIGHT + 90 * GAME_MINUTE, base)
     expect(env).toMatchObject({
       minuteOfDay: 90,
       frozen: false,
       weatherSource: 'live',
-      dayLengthMs: HOUR,
+      dayLengthMs: DAY,
     })
     expect(env.weather).toBe(weatherAtHour(Math.floor((MIDNIGHT + 90 * GAME_MINUTE) / BLOCK)))
-    // A real half hour is half an in-game day, wherever the real UTC day happens to be.
-    expect(resolveWorldEnvironment(MIDNIGHT + HOUR / 2, base).minuteOfDay).toBe(720)
-    expect(resolveWorldEnvironment(MIDNIGHT + 7 * HOUR + HOUR / 4, base).minuteOfDay).toBe(360)
+    // Noon UTC reads 12:00.
+    expect(resolveWorldEnvironment(MIDNIGHT + DAY / 2, base).minuteOfDay).toBe(720)
+    expect(resolveWorldEnvironment(MIDNIGHT + DAY / 4, base).minuteOfDay).toBe(360)
   })
-  it('wraps offsets across in-game midnight in both directions', () => {
+  it('wraps offsets across midnight in both directions', () => {
     expect(
       resolveWorldEnvironment(MIDNIGHT + 30 * GAME_MINUTE, { ...base, timeOffsetMinutes: -60 })
         .minuteOfDay,
@@ -54,7 +55,7 @@ describe('resolveWorldEnvironment', () => {
         .minuteOfDay,
     ).toBe(20)
   })
-  it('freezes the clock at a minute of the in-game day, ignoring the offset', () => {
+  it('freezes the clock at a minute of the UTC day, ignoring the offset', () => {
     const env = resolveWorldEnvironment(MIDNIGHT + 5 * HOUR + 123, {
       ...base,
       frozenMinuteOfDay: 1080,
@@ -62,7 +63,7 @@ describe('resolveWorldEnvironment', () => {
     })
     expect(env.frozen).toBe(true)
     expect(env.minuteOfDay).toBe(1080)
-    expect(env.effectiveTimeMs).toBe(MIDNIGHT + 5 * HOUR + 1080 * GAME_MINUTE)
+    expect(env.effectiveTimeMs).toBe(MIDNIGHT + 1080 * GAME_MINUTE)
   })
   it('applies a weather override only until it expires', () => {
     const now = MIDNIGHT + 5 * HOUR
