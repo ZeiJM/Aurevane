@@ -91,11 +91,8 @@ describe('authenticated navigation performance contracts', () => {
   })
 
   it('bounds repeated Atlas client render work', () => {
-    const sector = source('src/components/world/sector-map.tsx')
     const sphere = source('src/components/world/spherical-view.tsx')
 
-    expect(sector).toContain('cellsByIndex')
-    expect(sector).not.toContain('sector.cells.find')
     expect(sphere).toContain('requestAnimationFrame')
     expect(sphere).toContain('cancelAnimationFrame')
   })
