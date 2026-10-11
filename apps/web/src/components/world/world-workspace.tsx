@@ -230,6 +230,10 @@ export function WorldWorkspace({
   }, [])
   // Confirm the steps already taken first, so the character stops where it is standing.
   async function stopMoving() {
+    frame.current?.contentWindow?.postMessage(
+      { av: 'world-host', type: 'stop' },
+      window.location.origin,
+    )
     if (current.current.route.length && !pending.current) await sendRef.current({ kind: 'tick' })
     await sendRef.current({ kind: 'stop' })
   }
