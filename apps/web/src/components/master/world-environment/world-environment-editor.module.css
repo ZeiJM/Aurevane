@@ -1,0 +1,62 @@
+.editor {
+  display: grid;
+  gap: 1rem;
+  width: 100%;
+  max-width: 60rem;
+  margin: 2rem auto;
+  padding-top: 2rem;
+  border-top: 1px solid rgba(205, 177, 111, 0.3);
+  color: var(--av-text, #ede3cb);
+}
+.editor h2,
+.editor h3,
+.editor p {
+  margin: 0;
+  line-height: 1.6;
+}
+.editor label {
+  display: grid;
+  gap: 0.5rem;
+}
+.editor input,
+.editor select,
+.editor textarea,
+.editor button {
+  min-height: 2.75rem;
+  padding: 0.5rem 0.75rem;
+  font: inherit;
+  color: inherit;
+  background: #171811;
+  border: 1px solid rgba(205, 177, 111, 0.5);
+  border-radius: 0.3rem;
+}
+.editor input[type='number'],
+.editor input[type='time'],
+.editor select {
+  width: 100%;
+}
+.editor input[type='checkbox'] {
+  min-height: 0;
+  width: 1.1rem;
+  height: 1.1rem;
+  vertical-align: middle;
+}
+.editor textarea {
+  min-height: 6rem;
+  resize: vertical;
+}
+.editor button {
+  justify-self: start;
+}
+.editor ol {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding-left: 1.25rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.editor :is(input, select, textarea, button):focus-visible {
+  outline: 2px solid #dfbd72;
+  outline-offset: 3px;
+}
