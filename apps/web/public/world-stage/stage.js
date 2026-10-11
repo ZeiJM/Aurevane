@@ -2897,6 +2897,7 @@ setTimeout(fitMap, 0);
     if (e.origin !== location.origin || !e.data || e.data.av !== 'world-host') return;
     if (e.data.type === 'state') applyState(e.data.state);
     else if (e.data.type === 'say') say(e.data.text);
+    else if (e.data.type === 'stop') { lastWalk = null; queued = null; optim = null; }
   });
   post({ type: 'ready' });
 })();
