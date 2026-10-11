@@ -32,15 +32,17 @@ export default async function MasterPanelPage() {
             <p>
               {item.id === 'combat'
                 ? 'Find a definition, refine its behavior, then review and publish.'
-                : item.id === 'combat-timing'
-                  ? 'Set immediate or following-round activation for new battles.'
-                  : item.id === 'events'
-                    ? 'Compose phases and objectives. Preview before scheduling.'
-                    : item.id === 'live-events'
-                      ? 'Inspect live runs, participants, and operational recovery.'
-                      : item.id === 'music'
-                        ? 'Upload, audition, and assign music across Aurevane.'
-                        : 'Manage roles and capabilities with an explicit review.'}
+                : item.id === 'world-environment'
+                  ? 'Shift or freeze server time and force weather for the World.'
+                  : item.id === 'combat-timing'
+                    ? 'Set immediate or following-round activation for new battles.'
+                    : item.id === 'events'
+                      ? 'Compose phases and objectives. Preview before scheduling.'
+                      : item.id === 'live-events'
+                        ? 'Inspect live runs, participants, and operational recovery.'
+                        : item.id === 'music'
+                          ? 'Upload, audition, and assign music across Aurevane.'
+                          : 'Manage roles and capabilities with an explicit review.'}
             </p>
             <strong>Open workspace →</strong>
           </Link>

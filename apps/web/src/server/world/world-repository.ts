@@ -7,6 +7,8 @@ import { isSafe, newWorldState } from '@/world/travel'
 import type { WorldCommand, WorldPlayer, WorldState } from '@/world/types'
 import { eventWorldObjectives } from './world-events'
 import { WORLD_OBJECTIVES, WORLD_SECTORS } from './world-content'
+import { resolveWorldEnvironment } from '@/world/environment'
+import { readWorldEnvironmentSettings } from './world-environment-store'
 import { projectWorld, resolveWorldIntent } from './world-service'
 
 export function worldRpcError(error: { message?: string }): never {
@@ -87,9 +89,12 @@ export async function readWorld(userId: string, characterId: string) {
   const objectives = [...WORLD_OBJECTIVES, ...eventWorldObjectives(data.eventObjectives)]
   const state = data.state as WorldState
   const players = data.players as WorldPlayer[]
-  const profileImages = await loadPublicCharacterProfileImageMap(
-    players.map((player) => player.characterId),
-  ).catch(() => new Map<string, string>())
+  const [profileImages, environmentSettings] = await Promise.all([
+    loadPublicCharacterProfileImageMap(players.map((player) => player.characterId)).catch(
+      () => new Map<string, string>(),
+    ),
+    readWorldEnvironmentSettings(),
+  ])
   const view = projectWorld(
     state,
     players.map((player) => ({
@@ -98,6 +103,7 @@ export async function readWorld(userId: string, characterId: string) {
     })),
     data.serverNow,
     objectives,
+    resolveWorldEnvironment(data.serverNow, environmentSettings),
   )
   view.characterId = characterId
   view.battleSessionId = typeof data.battleSessionId === 'string' ? data.battleSessionId : null

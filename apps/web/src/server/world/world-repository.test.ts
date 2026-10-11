@@ -1,14 +1,17 @@
 import { beforeEach, expect, it, vi } from 'vitest'
 import { createHash } from 'node:crypto'
 vi.mock('server-only', () => ({}))
-const { rpc, profileImages } = vi.hoisted(() => ({
+const { rpc, profileImages, environmentSettings } = vi.hoisted(() => ({
   rpc: vi.fn(),
+  environmentSettings: vi.fn(),
   profileImages: new Map<string, string>(),
 }))
 vi.mock('@/lib/supabase/admin', () => ({ createSupabaseAdminClient: () => ({ rpc }) }))
 vi.mock('@/server/character/character-profile-display-service', () => ({
   loadPublicCharacterProfileImageMap: vi.fn(async () => new Map(profileImages)),
 }))
+vi.mock('./world-environment-store', () => ({ readWorldEnvironmentSettings: environmentSettings }))
+import { DEFAULT_WORLD_ENVIRONMENT_SETTINGS } from '@/world/environment'
 import { newWorldState } from '@/world/travel'
 import type { WorldCommand } from '@/world/types'
 import { commitWorldCommand, readWorld } from './world-repository'
@@ -32,6 +35,29 @@ const payload = () => ({
 beforeEach(() => {
   rpc.mockReset()
   profileImages.clear()
+  environmentSettings.mockReset().mockResolvedValue(DEFAULT_WORLD_ENVIRONMENT_SETTINGS)
+})
+
+it('attaches the server-owned environment, honouring Master settings', async () => {
+  rpc.mockResolvedValue({ data: payload() })
+  expect((await readWorld('owner', characterId)).view.environment).toMatchObject({
+    weatherSource: 'live',
+    frozen: false,
+    settingsVersion: 0,
+  })
+  environmentSettings.mockResolvedValue({
+    ...DEFAULT_WORLD_ENVIRONMENT_SETTINGS,
+    version: 3,
+    frozenMinuteOfDay: 1080,
+    weatherOverride: 'fog',
+  })
+  expect((await readWorld('owner', characterId)).view.environment).toMatchObject({
+    minuteOfDay: 1080,
+    frozen: true,
+    weather: 'fog',
+    weatherSource: 'master',
+    settingsVersion: 3,
+  })
 })
 
 it('materializes expired training once using the existing authority, without claiming rewards', async () => {

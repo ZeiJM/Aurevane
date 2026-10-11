@@ -13,7 +13,14 @@ import {
 import styles from './master-panel-shell.module.css'
 
 export type MasterPanelSection =
-  'overview' | 'combat' | 'combat-timing' | 'staff' | 'events' | 'live-events' | 'music'
+  | 'overview'
+  | 'combat'
+  | 'combat-timing'
+  | 'world-environment'
+  | 'staff'
+  | 'events'
+  | 'live-events'
+  | 'music'
 
 interface MasterPanelShellProps {
   access: MasterPanelAccess
@@ -30,6 +37,15 @@ export const masterNavigation = [
     label: 'Combat Settings',
     detail: 'Timing & elevation',
     icon: '◷',
+    capability: 'staff.manage',
+    ownerOnly: true,
+  },
+  {
+    id: 'world-environment',
+    href: '/master/world-environment',
+    label: 'World Environment',
+    detail: 'Server time & weather',
+    icon: '☼',
     capability: 'staff.manage',
     ownerOnly: true,
   },
@@ -79,6 +95,7 @@ export const masterNavigation = [
     | '/master/combat-content'
     | '/master/combat-timing'
     | '/master/music'
+    | '/master/world-environment'
     | '/master/staff'
     | '/master/events'
     | '/master/events/live'

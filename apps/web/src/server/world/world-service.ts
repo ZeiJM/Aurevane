@@ -1,6 +1,7 @@
 import 'server-only'
 import { AurevaneError } from '@aurevane/game-core/errors'
 import { FRONTIER_APPROACH, GRID_WIDTH, STEP_MS } from '@/world/catalog'
+import { resolveWorldEnvironment, type WorldEnvironment } from '@/world/environment'
 import {
   advanceWorldRoute,
   canAutoPath,
@@ -125,6 +126,7 @@ export function projectWorld(
   players: readonly WorldPlayer[],
   now: number,
   objectives: readonly WorldObjective[] = WORLD_OBJECTIVES,
+  environment: WorldEnvironment = resolveWorldEnvironment(now),
 ): WorldView {
   const sectors = WORLD_SECTORS.filter((s) => s.charted || state.discoveries[s.id]).map(
     (sector) => {
@@ -198,6 +200,7 @@ export function projectWorld(
     archive: worldArchiveEntries(state),
     battleSessionId: null,
     movementBlocked: null,
+    environment,
   }
 }
 export function assertEncounterRange(state: WorldState, target: WorldState) {
