@@ -30,3 +30,9 @@
 - Sectors remain the authored 13×9 boards (not an endless procedural world).
 - Weather/time come from Master settings when set, otherwise real UTC.
 - Static stage files are excluded from Prettier and ESLint (`public/world-stage`).
+
+## Layout: square map with right-hand panel (agent/world-layout-panel)
+
+- The World map is a 1:1 square filling the viewport height; the header, Character / POI / Missions tabs and the detail view live in a right-hand panel; a bottom bar holds coordinates and settings.
+- Layout only: no pace, pathing or continuous-world changes.
+- Headless check: map 900x900, panel 700 wide, tabs switch, mission auto-path message posted, no page errors. Human acceptance pending.

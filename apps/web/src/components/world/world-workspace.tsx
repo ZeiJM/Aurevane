@@ -219,6 +219,8 @@ export function WorldWorkspace({
         void sendRef.current({ kind: 'walk', destination: message.destination })
       else if (message.type === 'attack')
         void sendRef.current({ kind: 'attack', targetId: message.targetId })
+      else if (message.type === 'autopath')
+        void sendRef.current({ kind: 'autopath', objectiveId: message.objectiveId })
       else if (message.type === 'travel') {
         const destination = travelDestination(current.current, message.sectorId)
         if (destination) void sendRef.current({ kind: 'walk', destination })
