@@ -21,6 +21,11 @@
 - CI exact head `f18cba85`: Quality gates, Database foundation, Atlas browser, desktop-experience, representative-buildcraft and authority workflows passed. The Atlas browser test passes on the final head (PR #861). The long Responsive browser smoke was still running at release; any failure there will be fixed and redeployed.
 - Atlas e2e (`apps/web/e2e/atlas-world.pw.ts`) was rewritten for the frame, Journal and stage intents.
 
+## Final status
+- Responsive browser smoke passed on the released commit `b3ddffd0` (and on the PR head). Atlas browser test passes.
+- Supabase Preview shows "Remote migration versions not found in local migrations directory". It is long-standing: production records each migration under its apply time (for example `20261011030821` for this release's `20261011010000_world_environment_controls.sql`), so versions never match local filenames, and earlier main commits fail the same way. Not changed here; resolving it means a deliberate migration-history repair or disabling the check in the Supabase integration, both Owner decisions.
+- Human gameplay acceptance is pending.
+
 ## Open decisions / notes
 - Sectors remain the authored 13×9 boards (not an endless procedural world).
 - Weather/time come from Master settings when set, otherwise real UTC.
