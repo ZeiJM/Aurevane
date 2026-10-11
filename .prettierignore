@@ -5,3 +5,4 @@ coverage
 dist
 .bootstrap
 docs/GAME_MASTER_PLAN.md
+apps/web/public/world-stage

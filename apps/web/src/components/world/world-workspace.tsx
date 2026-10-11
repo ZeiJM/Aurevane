@@ -1,14 +1,16 @@
 'use client'
-import { useEffect, useRef, useState } from 'react'
-import Image from 'next/image'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { WORLD_REGIONS, FRONTIER_APPROACH, worldRegion } from '@/world/catalog'
+import { FRONTIER_APPROACH, worldRegion } from '@/world/catalog'
 import { remainingTravelMs, samePosition, worldSyncDelayMs } from '@/world/travel'
 import type { WorldIntent, WorldPosition, WorldView } from '@/world/types'
-import { Globe } from './globe'
-import { SectorMap } from './sector-map'
+import {
+  buildStageState,
+  parseStageMessage,
+  travelDestination,
+  type WorldStageState,
+} from './stage-bridge'
 import { Surroundings } from './surroundings'
-import { WorldDock } from './world-dock'
 import styles from './world.module.css'
 
 export function WorldWorkspace({
@@ -21,20 +23,13 @@ export function WorldWorkspace({
   const router = useRouter()
   const refreshing = useRef(false)
   const [view, setView] = useState(initialView),
-    [mode, setMode] = useState<'globe' | 'sector'>('sector'),
-    [selected, setSelected] = useState(initialView.position.sectorId)
-  const [grid, setGrid] = useState(true),
-    [motion, setMotion] = useState(true),
-    [layers, setLayers] = useState(false),
     [panorama, setPanorama] = useState(false),
-    [focus, setFocus] = useState(0)
-  const [search, setSearch] = useState(''),
-    [selectedTile, setSelectedTile] = useState<WorldPosition | null>(null),
-    [target, setTarget] = useState<string | null>(null),
+    [journal, setJournal] = useState(false),
     [message, setMessage] = useState(''),
     [busy, setBusy] = useState(false)
+  const frame = useRef<HTMLIFrameElement | null>(null),
+    stageReady = useRef(false)
   const current = useRef(initialView),
-    followingPlayer = useRef(true),
     pending = useRef(false),
     mounted = useRef(true),
     viewAcceptedAt = useRef<number | null>(null),
@@ -51,13 +46,7 @@ export function WorldWorkspace({
       return
     }
     if (next.version < current.current.version) return
-    if (next.position.sectorId !== current.current.position.sectorId) {
-      setPanorama(false)
-      if (followingPlayer.current) setSelected(next.position.sectorId)
-    }
-    setSelected((id) =>
-      next.sectors.some((sector) => sector.id === id) ? id : next.position.sectorId,
-    )
+    if (next.position.sectorId !== current.current.position.sectorId) setPanorama(false)
     current.current = next
     viewAcceptedAt.current = Date.now()
     setView(next)
@@ -167,10 +156,71 @@ export function WorldWorkspace({
     document.addEventListener('visibilitychange', onVisibilityChange)
     return () => document.removeEventListener('visibilitychange', onVisibilityChange)
   }, [])
-  const sector = view.sectors.find((s) => s.id === selected) ?? view.sectors[0]!
-  const player = view.players.find((p) => p.characterId === target) ?? view.players[0]
-  const local = view.sectors.find((s) => s.id === view.position.sectorId)!
-  const safe = local.cells.find((c) => c.x === view.position.x && c.y === view.position.y)?.safe
+
+  const postState = useCallback(() => {
+    const target = frame.current?.contentWindow
+    if (!target || !stageReady.current) return
+    const latest = current.current
+    const elapsed = Math.max(
+      0,
+      viewAcceptedAt.current === null ? 0 : Date.now() - viewAcceptedAt.current,
+    )
+    const state: WorldStageState = buildStageState(
+      latest,
+      character,
+      latest.serverNow + elapsed,
+      pending.current,
+    )
+    target.postMessage({ av: 'world-host', type: 'state', state }, window.location.origin)
+  }, [character])
+  const postRef = useRef(postState)
+  useEffect(() => {
+    postRef.current = postState
+  })
+  useEffect(() => {
+    postState()
+  }, [view, busy, postState])
+  // The frame can finish loading before React hydrates, so its one-time "ready" message may be
+  // missed. Posting on load, and immediately when it is already loaded, closes that race; a
+  // message sent to a stage that is not listening yet is simply dropped.
+  useEffect(() => {
+    const element = frame.current
+    if (!element) return
+    const onLoad = () => {
+      stageReady.current = true
+      postRef.current()
+    }
+    element.addEventListener('load', onLoad)
+    try {
+      if (element.contentDocument?.readyState === 'complete') onLoad()
+    } catch {
+      // A cross-origin frame cannot be inspected; the load event covers it.
+    }
+    return () => element.removeEventListener('load', onLoad)
+  }, [])
+  useEffect(() => {
+    const onMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return
+      if (!frame.current || event.source !== frame.current.contentWindow) return
+      const message = parseStageMessage(event.data)
+      if (!message) return
+      if (message.type === 'ready') {
+        stageReady.current = true
+        postRef.current()
+      } else if (message.type === 'walk')
+        void sendRef.current({ kind: 'walk', destination: message.destination })
+      else if (message.type === 'attack')
+        void sendRef.current({ kind: 'attack', targetId: message.targetId })
+      else if (message.type === 'travel') {
+        const destination = travelDestination(current.current, message.sectorId)
+        if (destination) void sendRef.current({ kind: 'walk', destination })
+        else setMessage('That place has no known route yet. Chart the road to it first.')
+      }
+    }
+    window.addEventListener('message', onMessage)
+    return () => window.removeEventListener('message', onMessage)
+  }, [])
+  const local = view.sectors.find((s) => s.id === view.position.sectorId) ?? view.sectors[0]!
   const destination = view.route.at(-1)?.position
   const destinationName = view.sectors.find((s) => s.id === destination?.sectorId)?.name
   const remainingSeconds = Math.ceil(remainingTravelMs(view, view.serverNow) / 1000)
@@ -178,504 +228,256 @@ export function WorldWorkspace({
     remainingSeconds >= 60
       ? `${Math.floor(remainingSeconds / 60)}m ${remainingSeconds % 60}s`
       : `${remainingSeconds}s`
-  const selectedCell =
-    selectedTile?.sectorId === sector.id
-      ? sector.cells.find((cell) => cell.x === selectedTile.x && cell.y === selectedTile.y)
-      : null
-  const selectedLandmark =
-    selectedCell &&
-    sector.landmarks.find(
-      (landmark) => landmark.x === selectedCell.x && landmark.y === selectedCell.y,
-    )
-  function select(id: string) {
-    followingPlayer.current = false
-    setSelected(id)
-    setSelectedTile(null)
-    setSearch('')
-  }
-  function inspectTile(position: WorldPosition) {
-    followingPlayer.current = false
-    setSelectedTile(position)
-  }
-  function walk(destination: WorldPosition) {
-    void send({ kind: 'walk', destination })
-  }
   const disabled = busy || Boolean(view.movementBlocked)
   const pulseObjectives = view.objectives.filter((objective) => objective.kind === 'event')
   const questObjectives = view.objectives.filter((objective) => objective.kind === 'quest')
-  const majorRegionIds = new Set(WORLD_REGIONS.map((region) => region.id))
-  const chartedMinorSectors = view.sectors.filter(
-    (candidate) =>
-      candidate.charted &&
-      !majorRegionIds.has(candidate.id) &&
-      (candidate.name.toLowerCase().includes(search.toLowerCase()) ||
-        candidate.coordinate.toLowerCase().includes(search.toLowerCase())),
+  const autoPathButton = (
+    objective: WorldView['objectives'][number],
+    start: string,
+    clues: string,
+    running: string,
+  ) => (
+    <button
+      className={styles.primary}
+      disabled={
+        busy ||
+        (view.routeObjectiveId !== objective.id &&
+          (disabled || !objective.autoPath || !objective.destination))
+      }
+      onClick={() =>
+        void send(
+          view.routeObjectiveId === objective.id
+            ? { kind: 'stop' }
+            : { kind: 'autopath', objectiveId: objective.id },
+        )
+      }
+    >
+      ♧{' '}
+      {view.routeObjectiveId === objective.id
+        ? running
+        : objective.autoPath && objective.destination
+          ? start
+          : clues}
+    </button>
   )
-  const toolbar = (
-    <header className={styles.toolbar}>
-      <div className={styles.heading}>
-        <span className={styles.compass} aria-hidden="true">
-          ✥
-        </span>
-        <div>
-          <h1>{mode === 'globe' ? 'World Map' : sector.name}</h1>
-          <p>
-            {mode === 'globe'
-              ? 'The known world, and the roads beyond'
-              : selected === view.position.sectorId
-                ? `${sector.coordinate} · E${local.east + view.position.x} / N${local.north - view.position.y}`
-                : `${sector.coordinate} · Inspecting this region`}
-          </p>
-        </div>
-      </div>
-      <div className={styles.tools}>
-        <button aria-pressed={grid} onClick={() => setGrid(!grid)}>
-          ▦ Grid
-        </button>
-        <button aria-expanded={layers} onClick={() => setLayers(!layers)}>
-          ▱ Layers
-        </button>
-        <button
-          onClick={() => {
-            followingPlayer.current = true
-            setSelected(view.position.sectorId)
-            setSelectedTile(null)
-            setFocus((n) => n + 1)
-          }}
-        >
-          ⌖ My Position
-        </button>
-        <button disabled={!local.panorama} onClick={() => setPanorama(true)}>
-          ◉ View 360°
-        </button>
-      </div>
-      <div className={styles.toolbarBottom}>
-        <div className={styles.tabs} role="group" aria-label="Map view">
-          <button aria-pressed={mode === 'globe'} onClick={() => setMode('globe')}>
-            ◎ Globe
-          </button>
-          <button aria-pressed={mode === 'sector'} onClick={() => setMode('sector')}>
-            ✥ Sector
-          </button>
-        </div>
-        <span className={styles.territory} data-safe={safe}>
-          {safe ? '◇ Protected settlement' : '⚔ Open PvP territory'}
-          <small>
-            {safe ? 'A place to rest and prepare.' : 'Other travellers may be encountered.'}
-          </small>
-        </span>
-      </div>
-      <p className={styles.locationContext} data-world-location-context>
-        <span>
-          You are in <strong>{local.name}</strong>
-        </span>
-        <span>
-          Viewing <strong>{sector.name}</strong>
-        </span>
-      </p>
-      {layers ? (
-        <div className={styles.layerPanel}>
-          <label>
-            <input type="checkbox" checked={grid} onChange={(e) => setGrid(e.target.checked)} />
-            Coordinate grid
-          </label>
-          <label>
-            <input type="checkbox" checked={motion} onChange={(e) => setMotion(e.target.checked)} />
-            Environmental motion
-          </label>
-          <p>Uncharted places reveal themselves as you explore.</p>
-        </div>
-      ) : null}
-    </header>
-  )
+  function walk(position: WorldPosition) {
+    void send({ kind: 'walk', destination: position })
+  }
   return (
     <section
       className={styles.workspace}
       data-world-workspace
-      data-world-view={mode}
+      data-world-view="sector"
       data-av-surface="moonstone"
     >
-      <div className={styles.mapColumn}>
-        {mode === 'sector' ? toolbar : null}
-        <div className={styles.mapViewport}>
-          {mode === 'globe' ? (
-            <Globe
-              sectorCoordinate={local.coordinate}
-              selected={selected}
-              sectors={view.sectors}
-              onSelect={(id) => {
-                select(id)
-                setMessage('')
-              }}
-              onUnavailable={(coordinate) =>
-                setMessage(
-                  `${coordinate} is uncharted. No charted destination is available there yet.`,
-                )
-              }
-              grid={grid}
-              portrait={character.portrait}
-              name={character.name}
-              focusKey={focus}
-            />
+      <iframe
+        ref={frame}
+        className={styles.stageFrame}
+        title="World map"
+        data-world-stage
+        src="/world-stage/index.html"
+        allow="fullscreen"
+      />
+      <div className={styles.stageBar}>
+        <span data-world-travel-status>
+          {view.route.length ? (
+            <>
+              <strong>
+                {view.route[0]?.road ?? 'Walking'} → {destinationName}
+              </strong>
+              <small>
+                About {remainingTime} · {view.route.length} steps remaining
+              </small>
+            </>
+          ) : message || view.movementBlocked ? (
+            <span role="status">{message || view.movementBlocked}</span>
           ) : (
-            <SectorMap
-              sector={sector}
-              position={view.position}
-              route={view.route}
-              players={view.players}
-              portrait={character.portrait}
-              name={character.name}
-              grid={grid}
-              motion={motion}
-              selectedTile={selectedTile}
-              onMove={inspectTile}
-              onPlayer={setTarget}
-            />
+            <>Click the map or use W A S D to walk. Open the Journal for quests and routes.</>
           )}
-        </div>
-        <WorldDock
-          players={view.players}
-          landmarks={local.landmarks}
-          safe={Boolean(safe)}
-          selectedPlayerId={player?.characterId ?? null}
-          disabled={disabled}
-          onSelectPlayer={setTarget}
-          onApproach={(position) => walk(position)}
-          onAttack={(targetId) => void send({ kind: 'attack', targetId })}
-          onLandmark={(landmark) => {
-            inspectTile({ sectorId: local.id, x: landmark.x, y: landmark.y })
-            setSelected(local.id)
-            setMode('sector')
-          }}
-        />
-        <div className={styles.travelBar}>
-          <span data-world-travel-status>
-            {view.route.length ? (
-              <>
-                <strong>
-                  {view.route[0]?.road ?? 'Walking'} → {destinationName}
-                </strong>
-                <small>
-                  About {remainingTime} · {view.route.length} steps remaining
-                </small>
-              </>
-            ) : selected !== view.position.sectorId ? (
-              'Inspecting only. Select a square, then choose Travel to selected tile.'
-            ) : (
-              'Select a square to inspect it, then choose Travel to selected tile.'
-            )}
-          </span>
+        </span>
+        <span className={styles.stageActions}>
           {view.route.length ? (
             <button onClick={() => void send({ kind: 'stop' })} disabled={busy}>
               Stop travel
             </button>
           ) : null}
-        </div>
-        {message || view.movementBlocked ? (
-          <p role="status" className={styles.notice}>
-            {message || view.movementBlocked}
-          </p>
-        ) : null}
+          <button disabled={!local.panorama} onClick={() => setPanorama(true)}>
+            ◉ View 360°
+          </button>
+          <button
+            aria-expanded={journal}
+            aria-controls="world-journal"
+            onClick={() => setJournal(!journal)}
+          >
+            ⚑ Journal
+          </button>
+        </span>
       </div>
-      <aside className={styles.sidebar}>
-        {mode === 'globe' ? toolbar : null}
-        <section className={styles.panel} aria-label="Location details">
-          {sector.panorama ? (
-            <div className={styles.locationArt}>
-              <Image src={sector.panorama} alt="" fill sizes="(max-width: 760px) 100vw, 24vw" />
-            </div>
-          ) : null}
-          <h2>Viewing {sector.name}</h2>
-          <p className={styles.quiet}>
-            {worldRegion(sector.regionId)?.summary ?? 'Explore the places revealed on your map.'}
-          </p>
-          <p className={styles.quiet}>
-            {selected === local.id ? 'Your current area' : `Inspecting from ${local.name}`} ·{' '}
-            {sector.coordinate}
-          </p>
-          {sector.landmarks.length ? (
-            <div className={styles.locationLandmarks} aria-label="Known landmarks">
-              {sector.landmarks.map((landmark) => (
-                <button
-                  key={landmark.id}
-                  onClick={() => {
-                    inspectTile({ sectorId: sector.id, x: landmark.x, y: landmark.y })
-                    setMode('sector')
-                  }}
-                >
-                  View {landmark.name}
-                </button>
-              ))}
-            </div>
-          ) : null}
-          {selectedCell && selectedTile ? (
-            <div className={styles.quest} aria-live="polite">
-              <h3>{selectedLandmark?.name ?? 'Selected destination'}</h3>
-              <p>
-                E{sector.east + selectedCell.x} / N{sector.north - selectedCell.y} ·{' '}
-                {selectedCell.safe ? 'Protected settlement' : 'Open territory'}
-              </p>
-              {samePosition(selectedTile, view.position) ? (
-                <p>You are here.</p>
-              ) : (
-                <>
-                  <button
-                    className={styles.primary}
-                    disabled={disabled || !selectedCell.walkable}
-                    onClick={() => walk(selectedTile)}
-                  >
-                    {view.route.length
-                      ? 'Replace route with selected tile'
-                      : 'Travel to selected tile'}
-                  </button>
-                  <p className={styles.quiet}>
-                    Travel starts only when you choose this action. A known route must be available;
-                    its travel time appears once started.
-                  </p>
-                </>
-              )}
-            </div>
-          ) : (
+      {journal ? (
+        <aside className={styles.journal} id="world-journal" aria-label="Journal">
+          <div className={styles.journalHead}>
+            <h2>Journal</h2>
+            <button onClick={() => setJournal(false)}>Close</button>
+          </div>
+          <section className={styles.panel} aria-label="Location details">
+            <h2>You are in {local.name}</h2>
             <p className={styles.quiet}>
-              Viewing a place does not start travel. Select a walkable square to choose a
-              destination.
+              {worldRegion(local.regionId)?.summary ?? 'Explore the places revealed on your map.'}
             </p>
-          )}
-        </section>
-        {view.interactions.length ? (
-          <section className={styles.panel} aria-label="Local interaction">
-            <h2>✦ Local interaction</h2>
-            <p className={styles.quiet}>At your current position in {local.name}.</p>
-            {view.interactions.map((interaction) => (
-              <div className={styles.quest} key={interaction.id}>
-                <h3>{interaction.title}</h3>
-                <p>
-                  <strong>{interaction.speaker}</strong> · {interaction.body}
-                </p>
-                {interaction.actionLabel ? (
-                  <button
-                    className={styles.primary}
-                    disabled={disabled || view.route.length > 0}
-                    onClick={() => void send({ kind: 'interact', interactionId: interaction.id })}
-                  >
-                    {interaction.actionLabel}
-                  </button>
-                ) : (
-                  <p className={styles.quiet}>
-                    {interaction.progress === 'completed'
-                      ? 'This objective is complete.'
-                      : 'Return after checking the eastern watch.'}
-                  </p>
-                )}
-              </div>
-            ))}
+            <p className={styles.quiet}>
+              {local.coordinate} · E{local.east + view.position.x} / N
+              {local.north - view.position.y}
+            </p>
           </section>
-        ) : null}
-        {mode === 'globe' ? (
-          <section className={styles.panel}>
-            <h2>✥ World Regions</h2>
-            <input
-              className={styles.search}
-              aria-label="Find a region"
-              placeholder="Find a region…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-            <div className={styles.regionList}>
-              {WORLD_REGIONS.filter(
-                (r) =>
-                  view.sectors.some((candidate) => candidate.id === r.id) &&
-                  r.name.toLowerCase().includes(search.toLowerCase()),
-              ).map((r) => (
-                <button
-                  key={r.id}
-                  data-active={selected === r.id}
-                  aria-pressed={selected === r.id}
-                  onClick={() => select(r.id)}
-                >
-                  <Image src={`/media/art/world/${r.art}-v01.webp`} alt="" width={56} height={47} />
-                  <span>{r.name}</span>
-                </button>
-              ))}
-            </div>
-            {chartedMinorSectors.length ? (
-              <div className={styles.chartedSectorIndex}>
-                <h3>Charted Sectors</h3>
-                <div className={styles.chartedSectorList}>
-                  {chartedMinorSectors.map((chartedSector) => (
+          {view.interactions.length ? (
+            <section className={styles.panel} aria-label="Local interaction">
+              <h2>✦ Local interaction</h2>
+              <p className={styles.quiet}>At your current position in {local.name}.</p>
+              {view.interactions.map((interaction) => (
+                <div className={styles.quest} key={interaction.id}>
+                  <h3>{interaction.title}</h3>
+                  <p>
+                    <strong>{interaction.speaker}</strong> · {interaction.body}
+                  </p>
+                  {interaction.actionLabel ? (
                     <button
-                      key={chartedSector.id}
-                      data-active={selected === chartedSector.id}
-                      aria-pressed={selected === chartedSector.id}
-                      onClick={() => select(chartedSector.id)}
+                      className={styles.primary}
+                      disabled={disabled || view.route.length > 0}
+                      onClick={() => void send({ kind: 'interact', interactionId: interaction.id })}
                     >
-                      <strong>{chartedSector.name}</strong>
-                      <small>{chartedSector.coordinate}</small>
+                      {interaction.actionLabel}
                     </button>
-                  ))}
+                  ) : (
+                    <p className={styles.quiet}>
+                      {interaction.progress === 'completed'
+                        ? 'This objective is complete.'
+                        : 'Return after checking the eastern watch.'}
+                    </p>
+                  )}
                 </div>
-              </div>
-            ) : null}
-            <p className={styles.regionDescription}>
-              {worldRegion(selected)?.summary ??
-                `${sector.name} · ${sector.coordinate}. An unlabeled charted sector.`}
-            </p>
-            <button className={styles.primary} onClick={() => setMode('sector')}>
-              Inspect sector →
-            </button>
-          </section>
-        ) : null}
-        {pulseObjectives.length ? (
-          <section className={styles.panel} aria-label="World Pulse">
-            <h2>✦ World Pulse</h2>
-            <p className={styles.quiet}>
-              Live happenings that currently reach your part of the world.
-            </p>
-            {pulseObjectives.map((objective) => (
+              ))}
+            </section>
+          ) : null}
+          {pulseObjectives.length ? (
+            <section className={styles.panel} aria-label="World Pulse">
+              <h2>✦ World Pulse</h2>
+              <p className={styles.quiet}>
+                Live happenings that currently reach your part of the world.
+              </p>
+              {pulseObjectives.map((objective) => (
+                <div className={styles.quest} key={objective.id}>
+                  <h3>{objective.name}</h3>
+                  <p>○ {objective.description}</p>
+                  {autoPathButton(
+                    objective,
+                    'Follow event route',
+                    'Follow the clues',
+                    'Stop Auto-path',
+                  )}
+                </div>
+              ))}
+            </section>
+          ) : null}
+          <section className={styles.panel}>
+            <h2>⚑ Tracked Quests</h2>
+            {questObjectives.map((objective) => (
               <div className={styles.quest} key={objective.id}>
                 <h3>{objective.name}</h3>
-                <p>○ {objective.description}</p>
-                <button
-                  className={styles.primary}
-                  disabled={
-                    busy ||
-                    (view.routeObjectiveId !== objective.id &&
-                      (disabled || !objective.autoPath || !objective.destination))
-                  }
-                  onClick={() =>
-                    void send(
-                      view.routeObjectiveId === objective.id
-                        ? { kind: 'stop' }
-                        : { kind: 'autopath', objectiveId: objective.id },
-                    )
-                  }
-                >
-                  ♧{' '}
-                  {view.routeObjectiveId === objective.id
-                    ? 'Stop Auto-path'
-                    : objective.autoPath && objective.destination
-                      ? 'Follow event route'
-                      : 'Follow the clues'}
-                </button>
-              </div>
-            ))}
-          </section>
-        ) : null}
-        <section className={styles.panel}>
-          <h2>⚑ Tracked Quests</h2>
-          {questObjectives.map((objective) => (
-            <div className={styles.quest} key={objective.id}>
-              <h3>{objective.name}</h3>
-              <p>
-                {objective.completed ? '✓ ' : '○ '}
-                {objective.description}
-              </p>
-              {!objective.completed ? (
-                <button
-                  className={styles.primary}
-                  disabled={
-                    busy ||
-                    (view.routeObjectiveId !== objective.id &&
-                      (disabled || !objective.autoPath || !objective.destination))
-                  }
-                  onClick={() =>
-                    void send(
-                      view.routeObjectiveId === objective.id
-                        ? { kind: 'stop' }
-                        : { kind: 'autopath', objectiveId: objective.id },
-                    )
-                  }
-                >
-                  ♧{' '}
-                  {view.routeObjectiveId === objective.id
-                    ? 'Stop Auto-path'
-                    : objective.autoPath && objective.destination
-                      ? 'Start Auto-path'
-                      : 'Follow the clues'}
-                </button>
-              ) : null}
-            </div>
-          ))}
-        </section>
-        {view.archive.length ? (
-          <section className={styles.panel} aria-label="Archive">
-            <h2>▤ Archive</h2>
-            {view.archive.map((entry) => (
-              <div className={styles.quest} key={entry.id}>
-                <h3>{entry.title}</h3>
-                <p>{entry.summary}</p>
-                <p className={styles.quiet}>
-                  Field Observation · {entry.location} · {entry.provenance}
+                <p>
+                  {objective.completed ? '✓ ' : '○ '}
+                  {objective.description}
                 </p>
-              </div>
-            ))}
-          </section>
-        ) : null}
-        {view.anchors?.length ? (
-          <section className={styles.panel} aria-label="Frontier Anchors">
-            <h2>◇ Frontier Anchors</h2>
-            <p className={styles.quiet}>
-              Persistent places you have personally confirmed beyond reliable cartography.
-            </p>
-            {view.anchors.map((anchor) => (
-              <div className={styles.quest} key={anchor.id}>
-                <h3>{anchor.name}</h3>
-                <p className={styles.quiet}>Recorded Anchor · persists in frontier history</p>
-              </div>
-            ))}
-          </section>
-        ) : null}
-        {sector.exits.length ? (
-          <section className={styles.panel} aria-label="Roads and crossings">
-            <h2>Roads & crossings</h2>
-            <p className={styles.quiet}>From {sector.name}</p>
-            <div className={styles.exitList}>
-              {sector.exits.map((exit) => {
-                const targetSector = view.sectors.find((s) => s.id === exit.to.sectorId)
-                if (!targetSector) return null
-                return (
-                  <button
-                    key={`${exit.to.sectorId}:${exit.to.x}:${exit.to.y}`}
-                    disabled={disabled}
-                    onClick={() => walk(exit.to)}
-                  >
-                    <strong>Travel to {targetSector.name}</strong>
-                    <small>
-                      {exit.name} · {targetSector.coordinate}
-                    </small>
-                  </button>
-                )
-              })}
-            </div>
-          </section>
-        ) : null}
-        {!local.charted || samePosition(view.position, FRONTIER_APPROACH) ? (
-          <section className={styles.panel}>
-            <h2>Beyond the last map</h2>
-            <p>Routes beyond this point may not remain where you left them.</p>
-            {local.charted ? (
-              <button
-                className={styles.primary}
-                disabled={disabled || view.route.length > 0}
-                onClick={() => {
-                  if (
-                    window.confirm(
-                      'Cross beyond the last reliable map? Your route ends here; the next steps must be surveyed.',
+                {!objective.completed
+                  ? autoPathButton(
+                      objective,
+                      'Start Auto-path',
+                      'Follow the clues',
+                      'Stop Auto-path',
                     )
-                  )
-                    void send({ kind: 'cross' })
-                }}
-              >
-                Cross into uncharted territory
-              </button>
-            ) : (
-              <p className={styles.quiet}>
-                Your survey is saved as you explore. Known ground keeps its coordinates.
-              </p>
-            )}
+                  : null}
+              </div>
+            ))}
           </section>
-        ) : null}
-      </aside>
+          {view.archive.length ? (
+            <section className={styles.panel} aria-label="Archive">
+              <h2>▤ Archive</h2>
+              {view.archive.map((entry) => (
+                <div className={styles.quest} key={entry.id}>
+                  <h3>{entry.title}</h3>
+                  <p>{entry.summary}</p>
+                  <p className={styles.quiet}>
+                    Field Observation · {entry.location} · {entry.provenance}
+                  </p>
+                </div>
+              ))}
+            </section>
+          ) : null}
+          {view.anchors?.length ? (
+            <section className={styles.panel} aria-label="Frontier Anchors">
+              <h2>◇ Frontier Anchors</h2>
+              <p className={styles.quiet}>
+                Persistent places you have personally confirmed beyond reliable cartography.
+              </p>
+              {view.anchors.map((anchor) => (
+                <div className={styles.quest} key={anchor.id}>
+                  <h3>{anchor.name}</h3>
+                  <p className={styles.quiet}>Recorded Anchor · persists in frontier history</p>
+                </div>
+              ))}
+            </section>
+          ) : null}
+          {local.exits.length ? (
+            <section className={styles.panel} aria-label="Roads and crossings">
+              <h2>Roads & crossings</h2>
+              <p className={styles.quiet}>From {local.name}</p>
+              <div className={styles.exitList}>
+                {local.exits.map((exit) => {
+                  const targetSector = view.sectors.find((s) => s.id === exit.to.sectorId)
+                  if (!targetSector) return null
+                  return (
+                    <button
+                      key={`${exit.to.sectorId}:${exit.to.x}:${exit.to.y}`}
+                      disabled={disabled}
+                      onClick={() => walk(exit.to)}
+                    >
+                      <strong>Travel to {targetSector.name}</strong>
+                      <small>
+                        {exit.name} · {targetSector.coordinate}
+                      </small>
+                    </button>
+                  )
+                })}
+              </div>
+            </section>
+          ) : null}
+          {!local.charted || samePosition(view.position, FRONTIER_APPROACH) ? (
+            <section className={styles.panel}>
+              <h2>Beyond the last map</h2>
+              <p>Routes beyond this point may not remain where you left them.</p>
+              {local.charted ? (
+                <button
+                  className={styles.primary}
+                  disabled={disabled || view.route.length > 0}
+                  onClick={() => {
+                    if (
+                      window.confirm(
+                        'Cross beyond the last reliable map? Your route ends here; the next steps must be surveyed.',
+                      )
+                    )
+                      void send({ kind: 'cross' })
+                  }}
+                >
+                  Cross into uncharted territory
+                </button>
+              ) : (
+                <p className={styles.quiet}>
+                  Your survey is saved as you explore. Known ground keeps its coordinates.
+                </p>
+              )}
+            </section>
+          ) : null}
+        </aside>
+      ) : null}
       {panorama && local.panorama ? (
         <Surroundings src={local.panorama} name={local.name} onClose={() => setPanorama(false)} />
       ) : null}

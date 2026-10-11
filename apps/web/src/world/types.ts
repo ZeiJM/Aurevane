@@ -1,3 +1,5 @@
+import type { WorldEnvironment } from './environment'
+
 export interface WorldPosition {
   sectorId: string
   x: number
@@ -129,6 +131,8 @@ export interface WorldView {
   archive: WorldArchiveEntry[]
   battleSessionId: string | null
   movementBlocked: string | null
+  /** Server-owned day/night clock and weather, identical for every player. */
+  environment: WorldEnvironment
 }
 export type WorldIntent =
   | { kind: 'walk'; destination: WorldPosition }

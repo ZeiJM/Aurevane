@@ -34,6 +34,8 @@ describe('Master workspace composition', () => {
       )
     expect(render(['game-owner'])).toContain('href="/master/combat-timing"')
     expect(render(['content-staff'])).not.toContain('href="/master/combat-timing"')
+    expect(render(['game-owner'])).toContain('href="/master/world-environment"')
+    expect(render(['content-staff'])).not.toContain('href="/master/world-environment"')
   })
   it('keeps authorized workspaces reachable and guards staff and event navigation', () => {
     const markup = renderToStaticMarkup(

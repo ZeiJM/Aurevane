@@ -9,18 +9,19 @@ import { projectWorld } from '@/server/world/world-service'
 import { newWorldState } from '@/world/travel'
 import { WorldWorkspace } from './world-workspace'
 
-describe('Atlas location presentation', () => {
-  it('names the actual location separately from the inspected location and offers selection before travel', () => {
+describe('World page', () => {
+  it('renders the scenic map stage as a same-origin frame with travel status and Journal control', () => {
     const markup = renderToStaticMarkup(
       createElement(WorldWorkspace, {
         initialView: projectWorld(newWorldState(), [], 1000),
         character: { name: 'Traveller', portrait: '/portrait.webp' },
       }),
     )
-    expect(markup).toContain('You are in')
-    expect(markup).toContain('Viewing')
-    expect(markup).toContain('Select a square to inspect it')
-    expect(markup).toContain('aria-label="Location details"')
+    expect(markup).toContain('data-world-workspace')
+    expect(markup).toContain('src="/world-stage/index.html"')
+    expect(markup).toContain('title="World map"')
+    expect(markup).toContain('data-world-travel-status')
+    expect(markup).toContain('Journal')
     expect(markup).not.toContain('Weathered Observatory')
   })
 })
