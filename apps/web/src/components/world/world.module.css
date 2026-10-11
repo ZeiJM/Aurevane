@@ -2117,7 +2117,7 @@
   bottom: 0;
 }
 
-/* v38: the bar sits under the map's right-hand panel (the map is a square filling the height) */
+/* v38: the bar sits under the map's right-hand panel (a quarter of the width, at least 20rem) */
 .workspace {
   container-type: size;
 }
@@ -2129,8 +2129,7 @@
   box-sizing: border-box;
   height: 56px;
   min-height: 56px;
-  width: calc(100cqw - min(100cqh, calc(100cqw - 22rem)));
-  min-width: 22rem;
+  width: max(20rem, 25cqw);
   padding: 0.3rem 0.7rem;
   border-left: 1px solid #8a7440;
   overflow: visible;
@@ -2154,6 +2153,6 @@
 /* The Journal opens below the panel header so the location / world-view button stays usable */
 @media (min-width: 761px) {
   .workspace .journal {
-    top: 58px;
+    top: 76px;
   }
 }

@@ -42,3 +42,8 @@
 - Stage now previews the shortest path immediately on every click, including mid-walk and while an earlier command is still confirming; the preview hands over at the next committed version (`version` added to the stage state).
 - If a walk settles on a tile other than the clicked one, the stage retries that click once.
 - Verified: world Vitest (150), DB travel migration tests (19), eslint/tsc/prettier, headless stage simulation (20 random destinations, with and without replans, 300 ms mean latency: 0 short). Human gameplay acceptance pending.
+
+## Layout: panel is a quarter of the window (agent/world-panel-quarter)
+
+- The right-hand panel is `max(20rem, 25%)` of the window width; the map fills all remaining width and height (no longer forced square). The page bar under the panel uses the same width. The header is a fixed 76px with the title wrapping to two lines; the Journal opens below it.
+- Headless check at 1585x780, 1440x900 and 1000x700: map flush to the left edge, panel 25% wide, e2e selectors visible, no horizontal scroll. Human acceptance pending.
