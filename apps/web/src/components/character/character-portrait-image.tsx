@@ -12,6 +12,7 @@ interface CharacterPortraitImageProps {
   className?: string
   sizes?: string
   alt?: string
+  priority?: boolean
   onRemoteError?: () => void
 }
 
@@ -22,6 +23,7 @@ export function CharacterPortraitImage({
   sizes,
   alt = '',
   onRemoteError,
+  priority = false,
 }: CharacterPortraitImageProps) {
   const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null)
   const useRemoteImage = Boolean(imageUrl && failedImageUrl !== imageUrl)
@@ -35,7 +37,8 @@ export function CharacterPortraitImage({
         src={imageUrl}
         alt={alt}
         className={portraitClassName}
-        loading="lazy"
+        loading={priority ? 'eager' : 'lazy'}
+        fetchPriority={priority ? 'high' : undefined}
         referrerPolicy="no-referrer"
         onError={() => {
           setFailedImageUrl(imageUrl)

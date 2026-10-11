@@ -3,6 +3,8 @@
 import { useLayoutEffect } from 'react'
 
 const DESKTOP_PVP_TOKEN_QUERY = '(min-width: 821px)'
+const ROOMY_BATTLE_QUERY = '(min-width: 1101px)'
+const CHRONICLE_GUTTER_PROPERTY = '--battle-chronicle-gutter-transfer'
 const PLAYER_TOKEN_SHADOW = '0 0.45rem 1rem rgba(0, 0, 0, 0.35)'
 const DAMAGE_COLOR = '#ff766f'
 const HEALING_COLOR = '#59d39b'
@@ -32,6 +34,50 @@ export function fitBattleBoard(
   return { width: columns * scale, height: rows * scale }
 }
 
+function arenaFootprintColumns(columns: number, rows: number): number {
+  return rows === 7 && [9, 12, 15].includes(columns) ? 15 : columns
+}
+
+/** Standard arenas reserve the widest arena footprint, keeping seven-row tiles the same scale. */
+export function fitBattleArenaBoard(
+  columns: number,
+  rows: number,
+  availableWidth: number,
+  availableHeight: number,
+  gap = 0,
+) {
+  const footprintColumns = arenaFootprintColumns(columns, rows)
+  const scale = Math.max(
+    0,
+    Math.min(
+      (availableWidth - (footprintColumns - 1) * gap) / footprintColumns,
+      (availableHeight - (rows - 1) * gap) / rows,
+    ),
+  )
+  return { width: columns * scale + (columns - 1) * gap, height: rows * scale + (rows - 1) * gap }
+}
+
+/** Reclaim only width beyond the unchanged arena footprint, retaining a comfortable map gutter. */
+export function battleChronicleGutterWidth(
+  columns: number,
+  rows: number,
+  availableWidth: number,
+  availableHeight: number,
+  gap: number,
+  rootFontSize: number,
+): number {
+  const footprint = fitBattleArenaBoard(
+    arenaFootprintColumns(columns, rows),
+    rows,
+    availableWidth,
+    availableHeight,
+    gap,
+  )
+  return Math.floor(
+    Math.max(0, Math.min(10 * rootFontSize, availableWidth - footprint.width - 3 * rootFontSize)),
+  )
+}
+
 function syncBoardScale(): { width: number; height: number } | null {
   const board = document.querySelector<HTMLElement>('#battlefield [data-board-auto-fit]')
   if (!board) return null
@@ -47,14 +93,42 @@ function syncBoardScale(): { width: number; height: number } | null {
   // width-only board can have its lower rows clipped when the available viewport height shrinks.
   // This bundle is shared with spectators, so every desktop map uses the same sizing boundary.
   const viewport = board.parentElement
+  const stage = board.closest('#battlefield')?.parentElement
+  const sharedStage = stage?.matches(
+    '[data-unified-battle-content="true"], [data-spectator-broadcast="true"]',
+  )
+    ? stage
+    : null
+  if (!window.matchMedia(ROOMY_BATTLE_QUERY).matches) {
+    sharedStage?.style.removeProperty(CHRONICLE_GUTTER_PROPERTY)
+  }
   if (window.matchMedia(DESKTOP_PVP_TOKEN_QUERY).matches && viewport) {
     const style = getComputedStyle(viewport)
-    const availableWidth =
-      viewport.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)
+    const horizontalPadding = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight)
+    let availableWidth = viewport.clientWidth - horizontalPadding
     const availableHeight =
       viewport.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom)
     if (availableWidth <= 0 || availableHeight <= 0) return { width, height }
-    const fitted = fitBattleBoard(width, height, availableWidth, availableHeight)
+    const gap = parseFloat(getComputedStyle(board).columnGap) || 0
+    if (sharedStage && window.matchMedia(ROOMY_BATTLE_QUERY).matches) {
+      const previousTransfer =
+        parseFloat(getComputedStyle(sharedStage).getPropertyValue(CHRONICLE_GUTTER_PROPERTY)) || 0
+      // Restore the original width mathematically before sizing. Measuring only the narrowed
+      // viewport would repeatedly consume/release its gutter through the existing ResizeObserver.
+      const transfer = battleChronicleGutterWidth(
+        width,
+        height,
+        availableWidth + previousTransfer,
+        availableHeight,
+        gap,
+        parseFloat(getComputedStyle(document.documentElement).fontSize),
+      )
+      if (previousTransfer !== transfer) {
+        sharedStage.style.setProperty(CHRONICLE_GUTTER_PROPERTY, `${transfer}px`)
+        availableWidth = viewport.clientWidth - horizontalPadding
+      }
+    }
+    const fitted = fitBattleArenaBoard(width, height, availableWidth, availableHeight, gap)
     board.style.setProperty('box-sizing', 'border-box', 'important')
     board.style.setProperty('width', `${fitted.width}px`, 'important')
     board.style.setProperty('max-width', '100%', 'important')
@@ -78,6 +152,9 @@ function syncBoardScale(): { width: number; height: number } | null {
 }
 
 function activeCommandSlug(): string | null {
+  const mode = document.querySelector<HTMLElement>('[data-battle-layout="refined"]')?.dataset
+    .battleActionMode
+  if (mode) return mode
   const nativeActive = document.querySelector<HTMLButtonElement>(
     'section[aria-label="Command Deck"] button[data-active="true"]',
   )
@@ -93,6 +170,13 @@ function activeCommandSlug(): string | null {
 }
 
 function activeSemanticColor(tile: HTMLButtonElement): string | null {
+  // The React-owned full-tile layer is the sole friendly selection color authority.
+  if (
+    tile.dataset.groundPath === 'true' ||
+    tile.dataset.selfTarget === 'true' ||
+    tile.dataset.healTarget === 'true'
+  )
+    return null
   const activeCommand = activeCommandSlug()
   const targetRelation = tile.dataset.target
 
@@ -139,6 +223,12 @@ function polishBattlefieldTokens(
 ) {
   const desktopPvpScale = window.matchMedia(DESKTOP_PVP_TOKEN_QUERY).matches
   syncBoardScale()
+  // Clear owned target overrides on every tile, including one a pushed/pulled unit vacated.
+  // Range glows remain on the React-owned potential footprint layer.
+  for (const tile of document.querySelectorAll<HTMLButtonElement>(
+    '#battlefield button[aria-label^="Tile "]',
+  ))
+    syncSemanticTargetTile(tile, activeSemanticColor(tile))
   const occupiedTiles = Array.from(
     document.querySelectorAll<HTMLButtonElement>('#battlefield button[aria-label*="occupied by"]'),
   )
@@ -152,12 +242,15 @@ function polishBattlefieldTokens(
 
     // Portraits, rings and facing cues scale from the actual tile, including nonstandard maps.
     const cell = tile.getBoundingClientRect()
-    const tokenSize = `${Math.max(0, Math.min(cell.width, cell.height) * 0.68)}px`
+    const tokenSize = `${Math.max(0, Math.min(cell.width, cell.height) * 0.85)}px`
     token.style.setProperty('--battle-token-size', tokenSize)
     token.style.setProperty('position', 'absolute', 'important')
     token.style.setProperty('top', '50%', 'important')
     token.style.setProperty('left', '50%', 'important')
     token.style.setProperty('z-index', '4', 'important')
+    token.style.setProperty('box-sizing', 'border-box', 'important')
+    token.style.setProperty('padding', '0', 'important')
+    token.style.setProperty('border-radius', '50%', 'important')
     token.style.setProperty('width', tokenSize, 'important')
     token.style.setProperty('height', tokenSize, 'important')
     token.style.setProperty('aspect-ratio', '1', 'important')
@@ -166,9 +259,7 @@ function polishBattlefieldTokens(
     const name = token.querySelector<HTMLElement>(':scope > strong')
     const combatantName = combatantNameForTile(tile, token, combatantAccents)
     const identityAccent = combatantName ? combatantAccents[combatantName] : undefined
-    const semanticAccent = activeSemanticColor(tile)
-    syncSemanticTargetTile(tile, semanticAccent)
-    const tokenAccent = semanticAccent ?? identityAccent
+    const tokenAccent = identityAccent
     if (tokenAccent) token.style.setProperty('border-color', tokenAccent, 'important')
     else token.style.removeProperty('border-color')
 
@@ -182,12 +273,24 @@ function polishBattlefieldTokens(
 
     if (name) name.style.display = 'none'
 
-    for (const image of Array.from(token.querySelectorAll<HTMLImageElement>('img'))) {
-      image.style.width = '100%'
-      image.style.height = '100%'
-      image.style.objectFit = 'cover'
-      image.style.objectPosition = '50% 50%'
-      image.style.borderRadius = '50%'
+    for (const portrait of Array.from(
+      token.querySelectorAll<HTMLElement>(
+        ':scope > .character-portrait-media, :scope > [class*="unitPortraitFallback"]',
+      ),
+    )) {
+      // The ring owns the outer square; portrait sizing uses its inner box, with no inherited
+      // media margin or padding. Keep overflow on the token itself for its facing indicator.
+      portrait.style.setProperty('position', 'absolute', 'important')
+      portrait.style.setProperty('inset', '0', 'important')
+      portrait.style.setProperty('box-sizing', 'border-box', 'important')
+      portrait.style.setProperty('width', '100%', 'important')
+      portrait.style.setProperty('height', '100%', 'important')
+      portrait.style.setProperty('margin', '0', 'important')
+      portrait.style.setProperty('padding', '0', 'important')
+      portrait.style.setProperty('object-fit', 'cover', 'important')
+      portrait.style.setProperty('object-position', '50% 50%', 'important')
+      portrait.style.setProperty('border-radius', '50%', 'important')
+      portrait.style.setProperty('clip-path', 'circle(50% at 50% 50%)', 'important')
     }
   }
 }
@@ -213,19 +316,30 @@ export function BattleMapTokenPolish({
       childList: true,
       subtree: true,
       attributes: true,
-      attributeFilter: ['data-target'],
+      attributeFilter: ['data-target', 'data-self-target', 'data-heal-target'],
     })
 
     const boardViewport = battlefield.querySelector('[data-board-auto-fit]')?.parentElement
-    const sizeObserver = new ResizeObserver(polish)
+    let resizeFrame: number | null = null
+    const sizeObserver = new ResizeObserver(() => {
+      if (resizeFrame !== null) return
+      // A gutter transfer resizes this viewport. Write after observer delivery so a real
+      // height/font change cannot create an undelivered ResizeObserver notification loop.
+      resizeFrame = window.requestAnimationFrame(() => {
+        resizeFrame = null
+        polish()
+      })
+    })
     if (boardViewport) sizeObserver.observe(boardViewport)
 
-    const commandDeck = document.querySelector('section[aria-label="Command Deck"]')
+    const commandDeck = document.querySelector(
+      '[data-battle-layout="refined"], section[aria-label="Command Deck"]',
+    )
     const commandObserver = commandDeck ? new MutationObserver(polish) : null
     commandObserver?.observe(commandDeck!, {
       subtree: true,
       attributes: true,
-      attributeFilter: ['data-active', 'data-battle-active'],
+      attributeFilter: ['data-active', 'data-battle-active', 'data-battle-action-mode'],
     })
 
     window.addEventListener('resize', polish)
@@ -233,8 +347,10 @@ export function BattleMapTokenPolish({
     return () => {
       battlefieldObserver.disconnect()
       sizeObserver.disconnect()
+      if (resizeFrame !== null) window.cancelAnimationFrame(resizeFrame)
       commandObserver?.disconnect()
       window.removeEventListener('resize', polish)
+      battlefield.parentElement?.style.removeProperty(CHRONICLE_GUTTER_PROPERTY)
     }
   }, [combatantAccents, playerName])
 

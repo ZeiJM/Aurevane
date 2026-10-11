@@ -4,6 +4,17 @@ import type { BattleSessionView } from '@/server/battle/battle-session-service'
 type BattleSnapshot = BattleSessionView['snapshot']
 
 export interface BattleSummonInspectMetadata {
+  readonly policies: Pick<
+    BattleSnapshot,
+    | 'effectTimingPolicy'
+    | 'dotTriggerPolicyVersion'
+    | 'frozenGroundPolicyVersion'
+    | 'airbornePolicyVersion'
+    | 'airborneJumpPolicyVersion'
+    | 'elementalDamagePolicyVersion'
+    | 'healingDownPolicyVersion'
+    | 'blindsideActivationPolicyVersion'
+  >
   readonly profileId: string
   readonly name: string
   readonly description: string
@@ -29,6 +40,18 @@ export function readSummonInspectMetadata(
   if (!summon) return null
 
   return {
+    policies: {
+      effectTimingPolicy: snapshot.effectTimingPolicy
+        ? structuredClone(snapshot.effectTimingPolicy)
+        : undefined,
+      dotTriggerPolicyVersion: snapshot.dotTriggerPolicyVersion,
+      frozenGroundPolicyVersion: snapshot.frozenGroundPolicyVersion,
+      airbornePolicyVersion: snapshot.airbornePolicyVersion,
+      airborneJumpPolicyVersion: snapshot.airborneJumpPolicyVersion,
+      elementalDamagePolicyVersion: snapshot.elementalDamagePolicyVersion,
+      healingDownPolicyVersion: snapshot.healingDownPolicyVersion,
+      blindsideActivationPolicyVersion: snapshot.blindsideActivationPolicyVersion,
+    },
     profileId: summon.profile.id,
     name: summon.profile.name,
     description: summon.profile.description,

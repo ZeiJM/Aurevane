@@ -1,20 +1,13 @@
+import { airborneAttackAction, airborneMovementTactical } from './combat-airborne'
+import { currentPoisonTickDamage } from './combat-dots'
+import { combatEffectTimingMode, combatEffectTimingRoundOffset } from './combat-effect-timing'
 import { materializeVengeanceDamage } from './combat-vengeance'
 import {
   calculateScaledRawDamage,
   currentSkillDamageScaling,
+  standardSkillDamageScaling,
   legacySkillDamageScaling,
 } from './damage-scaling'
-import {
-  commitCombatSkillCopy,
-  copiedSkillApCost,
-  copiedSkillCommandId,
-  copiedSkillUsageKey,
-  previewCombatSkillCopy,
-} from './combat-skill-copy'
-import {
-  forecastCombatSkillAccuracyForTarget,
-  rollCombatSkillAccuracyForTarget,
-} from './combat-skill-accuracy'
 import { normalizeCombatEffectState, type CombatSummonInstance } from './combat-effect-state'
 import {
   advanceCombatSummonOwnerTurn,
@@ -22,15 +15,16 @@ import {
   removeDefeatedCombatSummons,
   spawnCombatSummon,
 } from './combat-summons'
-import type { SummonAbilityDefinition } from './summon-content'
+import { isMaterializedCombatEffect, type SummonAbilityDefinition } from './summon-content'
 import { hasGameplayTag } from './gameplay-tags'
-import { CURRENT_POISON_DAMAGE, advanceCurrentPoisonMovement } from './combat-dots'
+import { advanceCurrentPoisonMovement } from './combat-dots'
 import { terrainOverlayAt, COMBAT_TERRAIN_OVERLAY_DETAILS } from './terrain-overlays'
 import { readBattleAuthorityCombatBuildSnapshot } from './battle-authority-build-snapshot'
 import {
   forecastResonanceForSkill,
   resolveResonanceForPair,
   constrainResonanceForecastToTarget,
+  resonanceTriggerRequiresHit,
 } from './resonance'
 import { PHASE4_STATUSES } from './status-content'
 import {
@@ -39,6 +33,7 @@ import {
   revealedSkillApCost,
 } from './covert-sensory-revealed'
 import {
+  combatSourceCommandVisibility,
   createBasicAttackDefinition,
   createCombatEncounterState,
   endCombatTurn,
@@ -50,6 +45,7 @@ import {
   type CombatContentCatalog,
   type CombatEncounterState,
   type CombatEffectDefinition,
+  type CombatEffectOrigin,
   type CombatStatusDefinition,
   type CombatTargetSelection,
 } from './actions'
@@ -87,6 +83,7 @@ import {
 import {
   executeStatDrivenAttack,
   getStatDrivenOffensivePower,
+  getStatDrivenCombatProfile,
   reattachStatDrivenCombatBridge,
   validateStatDrivenCombatEncounterState,
   type StatDrivenCombatEncounterState,
@@ -105,10 +102,12 @@ export {
 } from './pv1f-skills'
 
 export const PV1F_ACTION_ECONOMY_MAXIMUM = 100 as const
+const PV1F_TURN_ACTIVITY_RESOURCE_KEY = 'pv1f.activity-turn' as const
 export const PV1F_RECOVER_PERCENT = 10 as const
 export const PV1F_MP_RECOVER_PERCENT = 10 as const
 export const PV1F_STATUS_MAXIMUM_STACKS = 3 as const
 export const PV1F_RECOVERY_COOLDOWN_OWNER_TURNS = 2 as const
+export const PV1F_GUARD_COOLDOWN_OWNER_TURNS = 2 as const
 export const PV1F_REPEAT_SKILL_EFFECTIVENESS_BASIS_POINTS = 5_000 as const
 export const PV1F_LAST_MATURE_SKILL_RESOURCE_PREFIX = 'pv1f.last-mature-skill.' as const
 export const PV1F_SUMMON_ABILITY_USED_TURN_KEY = 'pv1f.summon-ability-used-turn' as const
@@ -116,6 +115,11 @@ export const PV1F_SUMMON_ABILITY_USED_TURN_KEY = 'pv1f.summon-ability-used-turn'
 export const PV1F_RECOVERY_COOLDOWN: SkillCooldownDefinition = {
   key: 'basic.recovery',
   ownerTurns: PV1F_RECOVERY_COOLDOWN_OWNER_TURNS,
+}
+
+export const PV1F_GUARD_COOLDOWN: SkillCooldownDefinition = {
+  key: PV1F_GUARD_ACTION_ID,
+  ownerTurns: PV1F_GUARD_COOLDOWN_OWNER_TURNS,
 }
 
 export const PV1F_ACTION_ECONOMY_RESOURCE_KEY = 'pv1f.action-economy' as const
@@ -193,9 +197,21 @@ export const PV1F_GUARD_ACTION: CombatActionDefinition = {
   effects: [{ type: 'apply-status', recipient: 'actor', statusId: 'guarded', stacks: 1 }],
 }
 
+// The legacy owner-start count converts to one completed turn under the timing policy.
+// Current inherent Guard explicitly grants two; historical actions and queued payloads stay pinned.
+const PV1F_TIMED_GUARD_ACTION: CombatActionDefinition = {
+  ...PV1F_GUARD_ACTION,
+  version: 2,
+  effects: PV1F_GUARD_ACTION.effects.map((effect) => ({
+    ...effect,
+    durationTurns: PV1F_GUARDED_STATUS.durationOwnerTurnStarts,
+  })),
+}
+
 export interface Pv1fTransition {
   state: StatDrivenCombatEncounterState
   events: readonly unknown[]
+  hitDependentEffectsActivated?: boolean
 }
 
 export function calculatePv1fBasicAttackDamage(input: { physicalPower: number }): number {
@@ -212,11 +228,14 @@ export function calculatePv1fBasicAttackDamage(input: { physicalPower: number })
   )
 }
 
-export function createPv1fBasicAttackDefinition(damage: number): CombatActionDefinition {
+export function createPv1fBasicAttackDefinition(
+  damage: number,
+  family: 'physical' | 'mystic' = 'physical',
+): CombatActionDefinition {
   if (!Number.isSafeInteger(damage) || damage < 1) {
     throw new RangeError('Basic Attack damage must be a positive safe integer.')
   }
-  return createBasicAttackDefinition({
+  const action = createBasicAttackDefinition({
     id: 'unarmed.basic',
     version: 1,
     damage,
@@ -230,6 +249,7 @@ export function createPv1fBasicAttackDefinition(damage: number): CombatActionDef
       rear: 12_500,
     },
   })
+  return { ...action, tags: [...action.tags, family] }
 }
 
 export function createPv1fRecoverAction(maxHp: number): CombatActionDefinition {
@@ -291,6 +311,11 @@ export function createPv1fTemporaryResources(
     throw new RangeError('Basic Attack damage must be a positive safe integer.')
   }
   return [
+    {
+      key: PV1F_TURN_ACTIVITY_RESOURCE_KEY,
+      current: 0,
+      maximum: Number.MAX_SAFE_INTEGER,
+    },
     {
       key: PV1F_ACTION_ECONOMY_RESOURCE_KEY,
       current: PV1F_ACTION_ECONOMY_MAXIMUM,
@@ -392,10 +417,19 @@ export function preparePv1fTurnEconomy(
 }
 
 export function pv1fCooldownForAction(actionId: string): SkillCooldownDefinition | null {
+  if (actionId === PV1F_GUARD_ACTION_ID) return PV1F_GUARD_COOLDOWN
   if (actionId === PV1F_RECOVER_ACTION_ID || actionId === PV1F_MP_RECOVER_ACTION_ID) {
     return PV1F_RECOVERY_COOLDOWN
   }
   return null
+}
+
+export function pv1fCooldownForMatureSkill(
+  definition: MatureSkillDefinition,
+  combatContext: MatureSkillCombatContext = 'pve',
+): SkillCooldownDefinition | null {
+  if (!definition.authoring.validationTags.includes('owner-rebalance-v5')) return null
+  return resolveMatureSkillForContext(definition, combatContext).cooldown
 }
 
 export function readPv1fActionCooldown(
@@ -441,7 +475,14 @@ export function spendPv1fActionEconomy(
   }
 
   const remaining = economy.current - cost
-  const resources = replaceResources(actor.temporaryResources, [{ ...economy, current: remaining }])
+  const resources = replaceResources(actor.temporaryResources, [
+    { ...economy, current: remaining },
+    {
+      key: PV1F_TURN_ACTIVITY_RESOURCE_KEY,
+      current: battle.turnNumber,
+      maximum: Number.MAX_SAFE_INTEGER,
+    },
+  ])
   return withCombatantAndTurn(
     prepared,
     { ...actor, temporaryResources: resources },
@@ -450,6 +491,27 @@ export function spendPv1fActionEconomy(
       actionState:
         remaining >= Math.min(PV1F_BASIC_ATTACK_COST, PV1F_GUARD_COST) ? 'ready' : 'spent',
     },
+  )
+}
+
+/** Successful commands count even if they miss, cost zero AP or later restore AP. */
+export function hasPv1fTurnActivity(state: StatDrivenCombatEncounterState): boolean {
+  const battle = state.tactical.battle
+  if (battle.lifecycle !== 'active' || !battle.currentTurn) return false
+  const resources = getCombatant(state, battle.currentTurn.combatantId).temporaryResources
+  const activity = resources.find((resource) => resource.key === PV1F_TURN_ACTIVITY_RESOURCE_KEY)
+  if (activity) return activity.current === battle.turnNumber
+  // A resumed pre-marker turn still retains its authoritative AP spend.
+  return (
+    resources.some(
+      (resource) =>
+        resource.key === PV1F_ACTION_ECONOMY_TURN_KEY && resource.current === battle.turnNumber,
+    ) &&
+    resources.some(
+      (resource) =>
+        resource.key === PV1F_ACTION_ECONOMY_RESOURCE_KEY &&
+        resource.current < PV1F_ACTION_ECONOMY_MAXIMUM,
+    )
   )
 }
 
@@ -609,7 +671,9 @@ function summonAbilityDefinition(
   ).length
   const damageScaling =
     state.statBridge.rulesVersion === 4 && damageCount > 0
-      ? currentSkillDamageScaling(source, damageCount, ability.apCost)
+      ? state.skillPacketPolicyVersion === 1
+        ? standardSkillDamageScaling(source)
+        : currentSkillDamageScaling(source, damageCount, ability.apCost)
       : null
   const recoveryScaling =
     state.statBridge.rulesVersion === 4 && recoveryCount > 0
@@ -788,17 +852,14 @@ function abilityIdForEvent(action: CombatActionDefinition): string {
   return action.id
 }
 
-export interface Pv1fMatureSkillCopyContext {
-  sourceCombatantId: string
-  sourceSkills: readonly MatureSkillDefinition[]
-  actorCommittedSkills?: readonly MatureSkillDefinition[]
-}
-
 export interface Pv1fMatureSkillOptions {
   apCostOverride?: number
   actionIdOverride?: string
   repeatHistoryKey?: string
-  copyContext?: Pv1fMatureSkillCopyContext
+  /** Internal per-authored-effect provenance for an explicitly merged Resonance. */
+  effectOrigins?: readonly (CombatEffectOrigin | undefined)[]
+  /** Internal merged Resonance effects require the command's existing hostile hit decision. */
+  resonanceRequiresHit?: boolean
 }
 
 export function evaluatePv1fMatureSkill(
@@ -820,7 +881,23 @@ export function evaluatePv1fMatureSkill(
   const resolved = resolveMatureSkillForContext(definition, combatContext)
   const authoredCost = options.apCostOverride ?? resolved.apCost
   const resonance = committedResonanceForecast(prepared, definition, target)
-  const authoredAction = toMaterializedCombatActionDefinition(definition, combatContext)
+  const materializedAuthoredAction = toMaterializedCombatActionDefinition(definition, combatContext)
+  const authoredAction: CombatActionDefinition = {
+    ...materializedAuthoredAction,
+    effectOrigins: definition.effects.flatMap((effect, index) =>
+      isMaterializedCombatEffect(effect)
+        ? [
+            options.effectOrigins?.[index] ?? {
+              family: definition.tags.includes('essence')
+                ? ('essence' as const)
+                : ('skill' as const),
+              contentId: definition.id,
+              contentVersion: definition.contentVersion,
+            },
+          ]
+        : [],
+    ),
+  }
   const powerScaledAuthoredEffects = applyCurrentMatureSkillPowerScaling(
     prepared,
     definition,
@@ -831,16 +908,57 @@ export function evaluatePv1fMatureSkill(
   const usageKey = options.repeatHistoryKey ?? definition.id
   const repeatPenaltyApplied =
     !usesV5BalanceRules && lastMatureSkillId(prepared, actorId) === usageKey
-  const copyEffect = repeatPenaltyApplied
-    ? undefined
-    : authoredAction.effects.find((effect) => effect.type === 'copy')
   const baseAction: CombatActionDefinition = {
     ...authoredAction,
     id: options.actionIdOverride ?? authoredAction.id,
-    effects: powerScaledAuthoredEffects.filter((effect) => effect.type !== 'copy'),
+    effects: powerScaledAuthoredEffects,
+    effectTimingTags: authoredAction.effectTimingTags,
+    effectOrigins: authoredAction.effects.flatMap((effect, index) =>
+      isMaterializedCombatEffect(effect)
+        ? [
+            authoredAction.effectOrigins?.[index] ?? {
+              family: definition.tags.includes('essence')
+                ? ('essence' as const)
+                : ('skill' as const),
+              contentId: definition.id,
+              contentVersion: definition.contentVersion,
+            },
+          ]
+        : [],
+    ),
   }
-  if (resonance?.forecast.willActivate)
-    baseAction.effects = [...baseAction.effects, ...resonance.forecast.bonusEffects]
+  if (resonance?.forecast.willActivate) {
+    baseAction.effects = [
+      ...baseAction.effects,
+      ...resonance.forecast.bonusEffects.map((effect) =>
+        state.skillPacketPolicyVersion === 1 &&
+        effect.type === 'damage' &&
+        !effect.scaling &&
+        !('vengeance' in effect && effect.vengeance)
+          ? {
+              ...effect,
+              scaling: standardSkillDamageScaling(
+                definition.tags.includes('mystic') ? 'mystic-power' : 'physical-power',
+              ),
+            }
+          : effect,
+      ),
+    ]
+    if (baseAction.effectTimingTags)
+      baseAction.effectTimingTags = [
+        ...baseAction.effectTimingTags,
+        ...resonance.forecast.bonusEffects.map(() => undefined),
+      ]
+    baseAction.effectOrigins = [
+      ...(baseAction.effectOrigins ?? []),
+      ...resonance.forecast.bonusEffects.map(() => ({
+        family: 'resonance' as const,
+        contentId: resonance.definition.id,
+        contentVersion: resonance.definition.contentVersion,
+      })),
+    ]
+  }
+  baseAction.target = airborneAttackAction(prepared, baseAction, PV1F_COMBAT_CONTENT).target
   const vengeance = materializeVengeanceDamage(prepared, baseAction)
   const defendedEffects: readonly CombatEffectDefinition[] = vengeance.action.effects.map(
     (effect) =>
@@ -848,77 +966,50 @@ export function evaluatePv1fMatureSkill(
         ? { ...effect, defenseKind: definition.tags.includes('mystic') ? 'ward' : 'armor' }
         : effect,
   )
+  const effectRows = defendedEffects.flatMap((effect, index) =>
+    (repeatPenaltyApplied ? scaleRepeatedMatureSkillEffects([effect]) : [effect]).map(
+      (resolvedEffect) => ({
+        effect: resolvedEffect,
+        origin: baseAction.effectOrigins?.[index],
+        timingTag: baseAction.effectTimingTags?.[index],
+      }),
+    ),
+  )
   const action: CombatActionDefinition = {
     ...baseAction,
-    ...(usesV5BalanceRules ? {} : { cooldown: undefined }),
-    effects: repeatPenaltyApplied
-      ? scaleRepeatedMatureSkillEffects(defendedEffects)
-      : defendedEffects,
+    cooldown: pv1fCooldownForMatureSkill(definition, combatContext) ?? undefined,
+    effects: effectRows.map((row) => row.effect),
+    effectOrigins: effectRows.map((row) => row.origin),
+    ...(baseAction.effectTimingTags
+      ? { effectTimingTags: effectRows.map((row) => row.timingTag) }
+      : {}),
   }
   let evaluation = evaluateCombatAction(prepared, action, target, PV1F_COMBAT_CONTENT)
+  // Summons are materialized outside legacy resolution. Forecast pinned scheduling without
+  // spawning an entity or spending RNG.
   if (
-    copyEffect &&
     evaluation.legal &&
-    evaluation.primaryCombatantId &&
-    !(evaluation.targetHitChances ?? []).some(
-      (chance) => chance.targetCombatantId === evaluation.primaryCombatantId,
-    )
+    definition.effects.some((effect) => effect.type === 'summon') &&
+    definition.summonProfile &&
+    combatEffectTimingMode(prepared.effectTimingPolicy, 'summon') !== 'instant'
   ) {
-    const copyHitChance = forecastCombatSkillAccuracyForTarget(
-      prepared,
-      action,
-      actorId,
-      evaluation.primaryCombatantId,
-      PV1F_COMBAT_CONTENT,
-    )
-    if (copyHitChance) {
-      evaluation = {
-        ...evaluation,
-        targetHitChances: [...(evaluation.targetHitChances ?? []), copyHitChance].sort(
-          (left, right) => left.targetCombatantId.localeCompare(right.targetCombatantId),
-        ),
-        projectionsAssumeHits: true,
-      }
-    }
-  }
-  if (copyEffect && evaluation.legal) {
-    const primary = evaluation.primaryCombatantId
-    const copyContext = options.copyContext
-    if (!primary || !copyContext || copyContext.sourceCombatantId !== primary) {
-      evaluation = {
-        ...evaluation,
-        legal: false,
-        issues: [
-          ...evaluation.issues,
-          {
-            code: 'requirement-not-met',
-            message: "Copy requires the selected unit's committed regular Skill snapshot.",
-          },
-        ],
-      }
-    } else {
-      const preview = previewCombatSkillCopy({
-        state: prepared,
-        actorCombatantId: actorId,
-        sourceCombatantId: primary,
-        sourceSkills: copyContext.sourceSkills,
-        actorCommittedSkills: copyContext.actorCommittedSkills,
-      })
-      if (preview.issues.length > 0) {
-        evaluation = {
-          ...evaluation,
-          legal: false,
-          issues: [
-            ...evaluation.issues,
-            {
-              code: 'requirement-not-met',
-              message: preview.issues[0]!.message,
-            },
-          ],
-        }
-      } else {
-        evaluation = { ...evaluation, skillCopy: preview }
-      }
+    const activationRound =
+      prepared.tactical.battle.round +
+      combatEffectTimingRoundOffset(combatEffectTimingMode(prepared.effectTimingPolicy, 'summon'))
+    evaluation = {
+      ...evaluation,
+      projectedEffects: [
+        ...evaluation.projectedEffects,
+        {
+          effectType: 'summon',
+          statusId: 'summon',
+          combatantId: actorId,
+          before: 'none',
+          after: 'pending',
+          activationRound,
+          remainingOwnerTurnEnds: definition.summonProfile.lifetimeTurns,
+        },
+      ],
     }
   }
   const evaluatedWithVengeance =
@@ -966,31 +1057,28 @@ export function executePv1fMatureSkill(
   if (!actorId) throw new Error('Mature Skill execution requires an active turn.')
   const resonance = committedResonanceForecast(prepared, definition, target)
 
-  const copySourceId = evaluation.skillCopy?.sourceCombatantId ?? null
-  const ordinaryAccuracyCoversCopy =
-    copySourceId !== null &&
-    action.accuracyMode === 'per-target' &&
-    evaluateCombatAction(prepared, action, target, PV1F_COMBAT_CONTENT).targetHitChances?.some(
-      (chance) => chance.targetCombatantId === copySourceId,
-    ) === true
-  const dedicatedCopyAccuracy =
-    copySourceId && action.accuracyMode === 'per-target' && !ordinaryAccuracyCoversCopy
-      ? rollCombatSkillAccuracyForTarget(
-          prepared,
-          action,
-          actorId,
-          copySourceId,
-          PV1F_COMBAT_CONTENT,
-        )
-      : { state: prepared, event: null }
-  const executionState = reattachStatDrivenCombatBridge(
-    dedicatedCopyAccuracy.state,
-    prepared.statBridge,
+  const executionState = prepared
+  const resonanceRequiresHit =
+    (resonance?.forecast.willActivate && resonanceTriggerRequiresHit(resonance.definition)) ||
+    options.resonanceRequiresHit
+  const resolved = executeCombatAction(
+    executionState,
+    action,
+    target,
+    PV1F_COMBAT_CONTENT,
+    undefined,
+    resonanceRequiresHit
+      ? {
+          effectOrdinals: (action.effectOrigins ?? []).flatMap((origin, index) =>
+            origin?.family === 'resonance' ? [index] : [],
+          ),
+        }
+      : undefined,
   )
-  const resolved = executeCombatAction(executionState, action, target, PV1F_COMBAT_CONTENT)
-  const resolutionEvents = dedicatedCopyAccuracy.event
-    ? [dedicatedCopyAccuracy.event, ...resolved.events]
-    : resolved.events
+  const resonanceActivated =
+    resonance?.forecast.willActivate &&
+    (!resonanceRequiresHit || resolved.hitDependentEffectsActivated === true)
+  const resolutionEvents = resolved.events
   const mediaResolutionEvents = resolutionEvents.map((event) =>
     definition.media.audioCueKey &&
     typeof event === 'object' &&
@@ -1014,16 +1102,46 @@ export function executePv1fMatureSkill(
       (placement) => placement.combatantId === actorId,
     )
     if (!actorPlacement) throw new Error('Summon Skill execution requires actor placement.')
-    const summoned = spawnCombatSummon(next, {
+    const input = {
       ownerCombatantId: actorId,
       sourceSkillId: definition.id,
       sourceSkillVersion: definition.contentVersion,
       profile: definition.summonProfile,
       position: target.position,
       facing: actorPlacement.facing,
-    })
-    next = summoned.state
-    summonEvents.push(...summoned.events)
+    }
+    if (combatEffectTimingMode(next.effectTimingPolicy, 'summon') !== 'instant') {
+      next = {
+        ...next,
+        pendingSummons: [
+          ...(next.pendingSummons ?? []),
+          {
+            input: JSON.parse(JSON.stringify(input)) as typeof input,
+            activationRound:
+              next.tactical.battle.round +
+              combatEffectTimingRoundOffset(
+                combatEffectTimingMode(next.effectTimingPolicy, 'summon'),
+              ),
+            sourceCommandVisibility: combatSourceCommandVisibility(prepared, actorId),
+          },
+        ],
+      }
+      summonEvents.push({
+        event: 'effect_pending',
+        actionId: definition.id,
+        sourceCombatantId: actorId,
+        targetCombatantId: actorId,
+        effectTag: 'summon',
+        remainingOwnerTurnEnds: input.profile.lifetimeTurns,
+        activationRound:
+          next.tactical.battle.round +
+          combatEffectTimingRoundOffset(combatEffectTimingMode(next.effectTimingPolicy, 'summon')),
+      })
+    } else {
+      const summoned = spawnCombatSummon(next, input)
+      next = summoned.state
+      summonEvents.push(...summoned.events)
+    }
   }
   const defeatedSummons = removeDefeatedCombatSummons(next)
   next = defeatedSummons.state
@@ -1032,37 +1150,9 @@ export function executePv1fMatureSkill(
     ? clearLastMatureSkill(next, actorId)
     : markLastMatureSkill(next, actorId, options.repeatHistoryKey ?? definition.id)
 
-  let copyEvent: unknown = null
-  if (evaluation.skillCopy && options.copyContext) {
-    const missed = mediaResolutionEvents.some(
-      (event) =>
-        typeof event === 'object' &&
-        event !== null &&
-        'event' in event &&
-        event.event === 'combat_accuracy_resolved' &&
-        'targetCombatantId' in event &&
-        event.targetCombatantId === evaluation.skillCopy!.sourceCombatantId &&
-        'hit' in event &&
-        event.hit === false,
-    )
-    if (!missed) {
-      const copied = commitCombatSkillCopy({
-        state: next,
-        actorCombatantId: actorId,
-        sourceCombatantId: options.copyContext.sourceCombatantId,
-        sourceSkills: options.copyContext.sourceSkills,
-        actorCommittedSkills: options.copyContext.actorCommittedSkills,
-      })
-      next = copied.state
-      copyEvent = copied.event
-    }
-  }
-
   if (
     resonance &&
-    (resonance.forecast.willActivate ||
-      resonance.forecast.willExpireArmedSetup ||
-      resonance.forecast.willArm)
+    (resonanceActivated || resonance.forecast.willExpireArmedSetup || resonance.forecast.willArm)
   ) {
     const actor = getCombatant(next, actorId)
     const resources = actor.temporaryResources.filter(
@@ -1078,11 +1168,14 @@ export function executePv1fMatureSkill(
   const remaining = readPv1fActionEconomy(next, actorId)?.current ?? 0
   return {
     state: next,
+    ...(resonanceRequiresHit
+      ? { hitDependentEffectsActivated: resolved.hitDependentEffectsActivated }
+      : {}),
     events: [
       ...mediaResolutionEvents,
       ...summonEvents,
       ...defeatedSummons.events,
-      ...(resonance?.forecast.willActivate
+      ...(resonanceActivated
         ? [
             {
               event: 'resonance_activated',
@@ -1118,7 +1211,6 @@ export function executePv1fMatureSkill(
             },
           ]
         : []),
-      ...(copyEvent ? [copyEvent] : []),
       ...(repeatPenaltyApplied
         ? [
             {
@@ -1134,87 +1226,79 @@ export function executePv1fMatureSkill(
   }
 }
 
-export function evaluatePv1fCopiedSkill(
-  state: StatDrivenCombatEncounterState,
-  definition: MatureSkillDefinition,
-  target: CombatTargetSelection,
-  combatContext: MatureSkillCombatContext = 'pve',
-  copyContext?: Pv1fMatureSkillCopyContext,
-) {
-  const actorId = state.tactical.battle.currentTurn?.combatantId
-  if (!actorId) throw new Error('Copied Skill evaluation requires an active turn.')
-  const held = normalizeCombatEffectState(state.effectState).temporarySkills.some(
-    (grant) =>
-      grant.combatantId === actorId &&
-      grant.skillId === definition.id &&
-      grant.contentVersion === definition.contentVersion,
-  )
-  if (!held) throw new Error('That copied Skill is not granted to the active combatant.')
-  return evaluatePv1fMatureSkill(state, definition, target, combatContext, {
-    apCostOverride: copiedSkillApCost(definition, combatContext),
-    actionIdOverride: copiedSkillCommandId(definition.id, definition.contentVersion),
-    repeatHistoryKey: copiedSkillUsageKey(definition.id, definition.contentVersion),
-    ...(copyContext ? { copyContext } : {}),
-  })
-}
-
-export function executePv1fCopiedSkill(
-  state: StatDrivenCombatEncounterState,
-  definition: MatureSkillDefinition,
-  target: CombatTargetSelection,
-  combatContext: MatureSkillCombatContext = 'pve',
-  copyContext?: Pv1fMatureSkillCopyContext,
-): Pv1fTransition {
-  const actorId = state.tactical.battle.currentTurn?.combatantId
-  if (!actorId) throw new Error('Copied Skill execution requires an active turn.')
-  const held = normalizeCombatEffectState(state.effectState).temporarySkills.some(
-    (grant) =>
-      grant.combatantId === actorId &&
-      grant.skillId === definition.id &&
-      grant.contentVersion === definition.contentVersion,
-  )
-  if (!held) throw new Error('That copied Skill is not granted to the active combatant.')
-  return executePv1fMatureSkill(state, definition, target, combatContext, {
-    apCostOverride: copiedSkillApCost(definition, combatContext),
-    actionIdOverride: copiedSkillCommandId(definition.id, definition.contentVersion),
-    repeatHistoryKey: copiedSkillUsageKey(definition.id, definition.contentVersion),
-    ...(copyContext ? { copyContext } : {}),
-  })
-}
-
 /** Shared by authoritative movement and board highlights; does not spend resources. */
 export function pv1fMovementModifiers(
-  state: Pick<StatDrivenCombatEncounterState, 'statusState' | 'terrainOverlays'> & {
-    tactical: { battle: Pick<StatDrivenCombatEncounterState['tactical']['battle'], 'currentTurn'> }
+  state: Pick<
+    StatDrivenCombatEncounterState,
+    'statusState' | 'terrainOverlays' | 'effectStackingPolicyVersion' | 'frozenGroundPolicyVersion'
+  > & {
+    tactical: {
+      battle: Pick<
+        StatDrivenCombatEncounterState['tactical']['battle'],
+        'currentTurn' | 'combatants'
+      >
+    }
   },
 ) {
   const actorId = state.tactical.battle.currentTurn?.combatantId
-  const definitions = (
+  const statuses = (
     state.statusState.find((row) => row.combatantId === actorId)?.statuses ?? []
-  ).map((status) =>
+  ).filter((status) => status.timingState !== 'pending')
+  const definitions = statuses.map((status) =>
     PV1F_COMBAT_CONTENT.statuses.find(
       (definition) =>
         definition.id === status.statusId && definition.version === status.statusVersion,
     ),
   )
   const rooted = definitions.some((definition) => definition?.movement?.blocked)
-  const surcharge = Math.min(
-    20,
-    definitions.reduce(
-      (sum, definition) => sum + (definition?.movement?.additionalApPerTile ?? 0),
-      0,
-    ),
-  )
+  const surcharge =
+    state.effectStackingPolicyVersion === 1
+      ? definitions.reduce(
+          (sum, definition, index) =>
+            sum +
+            BigInt(definition?.movement?.additionalApPerTile ?? 0) *
+              BigInt(statuses[index]!.stacks),
+          0n,
+        )
+      : BigInt(
+          Math.min(
+            20,
+            definitions.reduce(
+              (sum, definition) => sum + (definition?.movement?.additionalApPerTile ?? 0),
+              0,
+            ),
+          ),
+        )
+  const safeDelta = (value: bigint) => {
+    if (value > BigInt(Number.MAX_SAFE_INTEGER) || value < -BigInt(Number.MAX_SAFE_INTEGER))
+      throw new RangeError('Combined movement effect modifier exceeds the safe integer range.')
+    return Number(value)
+  }
+  safeDelta(surcharge)
   const airborne = Boolean(
     actorId && hasGameplayTag(state, actorId, 'Airborne', PV1F_COMBAT_CONTENT),
   )
+  const actorTeam = state.tactical.battle.combatants.find((unit) => unit.id === actorId)?.teamId
+  const frozenSurchargeApplies = (position: GridPosition) => {
+    const overlay = terrainOverlayAt(state, position)
+    if (airborne || overlay?.kind !== 'frozen') return false
+    if (state.frozenGroundPolicyVersion !== 1) return true
+    const sourceTeam = state.tactical.battle.combatants.find(
+      (unit) => unit.id === overlay.sourceCombatantId,
+    )?.teamId
+    return actorTeam !== undefined && sourceTeam !== undefined && actorTeam !== sourceTeam
+  }
   return {
     blocked: rooted,
     additionalApAt: (position: GridPosition) =>
-      surcharge +
-      (!airborne && terrainOverlayAt(state, position)?.kind === 'frozen'
-        ? COMBAT_TERRAIN_OVERLAY_DETAILS.frozen.additionalApPerTile
-        : 0),
+      safeDelta(
+        surcharge +
+          BigInt(
+            frozenSurchargeApplies(position)
+              ? COMBAT_TERRAIN_OVERLAY_DETAILS.frozen.additionalApPerTile
+              : 0,
+          ),
+      ),
   }
 }
 
@@ -1243,7 +1327,14 @@ function forecastPv1fPoisonMovement(
     traversedTiles += 1
     triggeredTicks += advanced.triggeredTicks
     if (advanced.triggeredTicks > 0) {
-      hp = Math.max(0, hp - advanced.triggeredTicks * CURRENT_POISON_DAMAGE)
+      hp = Math.max(
+        0,
+        hp -
+          advanced.ticks.reduce(
+            (total, tick) => total + tick.triggeredTicks * currentPoisonTickDamage(tick.instance),
+            0,
+          ),
+      )
       if (hp === 0) break
     }
   }
@@ -1261,7 +1352,14 @@ export function evaluatePv1fMovement(
   path: readonly GridPosition[],
 ) {
   const prepared = preparePv1fTurnEconomy(state)
-  let movement = evaluateCurrentMovementPath(prepared.tactical, path)
+  const movementTactical = airborneMovementTactical(prepared, PV1F_COMBAT_CONTENT)
+  let movement = evaluateCurrentMovementPath(
+    movementTactical,
+    path,
+    'entered-tiles',
+    prepared.statBalancePolicyVersion,
+    prepared.airborneJumpPolicyVersion,
+  )
   const modifiers = pv1fMovementModifiers(prepared)
   if (modifiers.blocked) {
     movement.legal = false
@@ -1280,10 +1378,19 @@ export function evaluatePv1fMovement(
     : { traversedTiles: 0, triggeredTicks: 0, damage: 0, willDefeat: false }
   if (movement.legal && poisonForecast.traversedTiles < path.length - 1) {
     movement = evaluateCurrentMovementPath(
-      prepared.tactical,
+      movementTactical,
       path.slice(0, poisonForecast.traversedTiles + 1),
+      'entered-tiles',
+      prepared.statBalancePolicyVersion,
+      prepared.airborneJumpPolicyVersion,
     )
   }
+  // Retain the terrain-weight preview contract, including a validated prefix of an illegal path.
+  const terrainCost = movement.path.slice(1, movement.cost + 1).reduce((sum, position) => {
+    const traversal = movementTraversalCostAt(prepared.tactical, movement.combatantId, position)
+    if (traversal === null) throw new Error('Validated movement cannot enter blocked terrain.')
+    return sum + traversal
+  }, 0)
   const economyCost = movement.legal
     ? movement.path.slice(1).reduce((sum, position) => {
         const traversal = movementTraversalCostAt(prepared.tactical, movement.combatantId, position)
@@ -1291,14 +1398,14 @@ export function evaluatePv1fMovement(
         return sum + movementApCostForTile(traversal, modifiers.additionalApAt(position))
       }, 0)
     : 0
-  return { prepared, movement, economyCost, poisonForecast }
+  return { prepared, movement, terrainCost, economyCost, poisonForecast }
 }
 
 export function executePv1fMovement(
   state: StatDrivenCombatEncounterState,
   path: readonly GridPosition[],
 ): Pv1fTransition {
-  const { prepared, movement, economyCost, poisonForecast } = evaluatePv1fMovement(state, path)
+  const { prepared, movement, economyCost } = evaluatePv1fMovement(state, path)
   if (!movement.legal)
     throw new Error(movement.issues[0]?.message ?? 'That movement path is not legal.')
   if (!canAffordPv1fEconomy(prepared, economyCost)) {
@@ -1306,27 +1413,87 @@ export function executePv1fMovement(
   }
   const actorId = prepared.tactical.battle.currentTurn?.combatantId
   if (!actorId) throw new Error('PV-1F movement requires an active turn.')
-  const moved = moveCurrentCombatant(prepared.tactical, movement.path)
-  let next = reattachStatDrivenCombatBridge(
-    { ...prepared, ...createCombatEncounterState(moved.state, prepared.statusState) },
-    prepared.statBridge,
-  )
+  let next = prepared
+  let spentEconomy = 0
+  const movementEvents: unknown[] = []
   const movementEffectEvents: unknown[] = []
-  for (let index = 0; index < poisonForecast.traversedTiles; index += 1) {
+  for (let index = 1; index < movement.path.length; index += 1) {
+    if (
+      next.tactical.battle.lifecycle !== 'active' ||
+      next.tactical.battle.currentTurn?.combatantId !== actorId ||
+      getCombatant(next, actorId).hp <= 0
+    )
+      break
+    const modifiers = pv1fMovementModifiers(next)
+    if (modifiers.blocked) break
+    const position = movement.path[index]!
+    const traversal = movementTraversalCostAt(next.tactical, actorId, position)
+    if (traversal === null) break
+    const stepCost = movementApCostForTile(traversal, modifiers.additionalApAt(position))
+    if (!canAffordPv1fEconomy(next, spentEconomy + stepCost)) break
+    const moved = moveCurrentCombatant(
+      airborneMovementTactical(next, PV1F_COMBAT_CONTENT),
+      [movement.path[index - 1]!, position],
+      'entered-tiles',
+      next.statBalancePolicyVersion,
+      next.airborneJumpPolicyVersion,
+    )
+    next = reattachStatDrivenCombatBridge(
+      {
+        ...next,
+        ...createCombatEncounterState(
+          { ...moved.state, movementProfiles: next.tactical.movementProfiles },
+          next.statusState,
+        ),
+      },
+      next.statBridge,
+    )
+    spentEconomy += stepCost
+    movementEvents.push(...moved.events)
     const resolved = resolveCombatMovementStepEffects(next, actorId, PV1F_COMBAT_CONTENT)
-    next = reattachStatDrivenCombatBridge(resolved.state, prepared.statBridge)
+    next = reattachStatDrivenCombatBridge(resolved.state, next.statBridge)
     movementEffectEvents.push(...resolved.events)
-    if (getCombatant(next, actorId).hp <= 0) break
   }
-  next = spendPv1fActionEconomyForActor(next, actorId, economyCost)
+  // One command retains one movement receipt, even though hazards resolve at each tile.
+  const moves = (
+    movementEvents as {
+      event: string
+      from: GridPosition
+      to: GridPosition
+      movementCost: number
+    }[]
+  ).filter((event) => event.event === 'combatant_moved')
+  const movedEvents =
+    moves.length === 0
+      ? []
+      : [
+          {
+            ...moves[0],
+            to: moves.at(-1)!.to,
+            movementCost: moves.reduce((sum, event) => sum + event.movementCost, 0),
+          },
+        ]
+  const spends = (
+    movementEvents as { event: string; amount: number; remaining: number; combatantId: string }[]
+  ).filter((event) => event.event === 'movement_spent')
+  const spentEvents =
+    spends.length === 0
+      ? []
+      : [{ ...spends.at(-1)!, amount: spends.reduce((sum, event) => sum + event.amount, 0) }]
+  next = spendPv1fActionEconomyForActor(next, actorId, spentEconomy)
   next = clearLastMatureSkill(next, actorId)
   const remaining = readPv1fActionEconomy(next, actorId)?.current ?? 0
   return {
     state: next,
     events: [
-      ...moved.events,
+      ...movementEvents.filter(
+        (event) =>
+          !['combatant_moved', 'movement_spent'].includes((event as { event: string }).event),
+      ),
+      ...spentEvents,
+      ...movedEvents,
       ...movementEffectEvents,
-      { event: 'action_economy_spent', combatantId: actorId, amount: economyCost, remaining },
+      { event: 'action_economy_spent', combatantId: actorId, amount: spentEconomy, remaining },
     ],
   }
 }
@@ -1345,6 +1512,14 @@ export function finishPv1fTurn(
     )
   const outgoingDefeated =
     outgoingCombatantId !== null && getCombatant(prepared, outgoingCombatantId).hp <= 0
+  if (
+    !outgoingDefeated &&
+    prepared.elementalDamagePolicyVersion !== undefined &&
+    hasGameplayTag(prepared, outgoingCombatantId!, 'Frozen', PV1F_COMBAT_CONTENT) &&
+    prepared.tactical.placements.find((row) => row.combatantId === outgoingCombatantId)!.facing !==
+      facing
+  )
+    throw new Error('Chilled prevents changing final facing. End in the existing direction.')
   const selected = outgoingDefeated
     ? { state: prepared.tactical, events: [] }
     : selectCurrentFinalFacing(prepared.tactical, facing)
@@ -1359,7 +1534,10 @@ export function finishPv1fTurn(
     PV1F_COMBAT_CONTENT,
     outgoingDefeatedAtTurnEnd || outgoingDefeated,
   )
-  let bridged = reattachStatDrivenCombatBridge(ended.state, prepared.statBridge)
+  let bridged = reattachStatDrivenCombatBridge(
+    ended.state,
+    (ended.state as StatDrivenCombatEncounterState).statBridge ?? prepared.statBridge,
+  )
   const summonTurnEvents: unknown[] = []
   if (outgoingWasSummon && outgoingCombatantId) {
     const transition =
@@ -1383,9 +1561,17 @@ export function resolvePv1fActionDefinition(
 ): CombatActionDefinition {
   const actor = getCombatant(state, actorId)
   if (actionId === PV1F_BASIC_ATTACK_ID) {
-    return createPv1fBasicAttackDefinition(readPv1fBasicAttackDamage(state, actorId))
+    const profile = getStatDrivenCombatProfile(state, actorId)
+    const family = (profile.mysticPower ?? 0) > (profile.physicalPower ?? 0) ? 'mystic' : 'physical'
+    const power = family === 'mystic' ? profile.mysticPower : profile.physicalPower
+    const damage =
+      power === undefined
+        ? readPv1fBasicAttackDamage(state, actorId)
+        : calculatePv1fBasicAttackDamage({ physicalPower: power })
+    return createPv1fBasicAttackDefinition(damage, family)
   }
-  if (actionId === PV1F_GUARD_ACTION_ID) return PV1F_GUARD_ACTION
+  if (actionId === PV1F_GUARD_ACTION_ID)
+    return state.effectTimingPolicy ? PV1F_TIMED_GUARD_ACTION : PV1F_GUARD_ACTION
   if (actionId === PV1F_RECOVER_ACTION_ID) return createPv1fRecoverAction(actor.maxHp)
   if (actionId === PV1F_MP_RECOVER_ACTION_ID) return createPv1fMpRecoveryAction(actor.maxMp)
   throw new Error(`Unsupported PV-1F action ${actionId}.`)
@@ -1451,9 +1637,11 @@ function applyCurrentMatureSkillPowerScaling(
   const damageScaling =
     unscaledDamageCount === 0
       ? null
-      : state.statBridge.rulesVersion === 3
-        ? legacySkillDamageScaling(source, unscaledDamageCount)
-        : currentSkillDamageScaling(source, unscaledDamageCount, apCost)
+      : state.skillPacketPolicyVersion === 1
+        ? standardSkillDamageScaling(source)
+        : state.statBridge.rulesVersion === 3
+          ? legacySkillDamageScaling(source, unscaledDamageCount)
+          : currentSkillDamageScaling(source, unscaledDamageCount, apCost)
 
   const usesV5BalanceRules = definition.authoring.validationTags.includes('owner-rebalance-v5')
   const scalableRecoveryCount = usesV5BalanceRules
@@ -1552,6 +1740,10 @@ function scaleRepeatedMatureSkillEffects(
       })
       continue
     }
+    if (effect.type === 'percentage-recovery') {
+      scaled.push({ ...effect, percent: halfPositiveMagnitude(effect.percent) })
+      continue
+    }
     if (effect.type === 'healing' || effect.type === 'barrier-change') {
       scaled.push({ ...effect, amount: halfPositiveMagnitude(effect.amount) })
       continue
@@ -1561,6 +1753,10 @@ function scaleRepeatedMatureSkillEffects(
       continue
     }
     if (effect.type === 'bleed') {
+      if (effect.damageProfile) {
+        scaled.push(effect)
+        continue
+      }
       scaled.push({ ...effect, damagePerTick: halfPositiveMagnitude(effect.damagePerTick) })
       continue
     }
@@ -1571,7 +1767,6 @@ function scaleRepeatedMatureSkillEffects(
       effect.type === 'displace' ||
       effect.type === 'poison' ||
       effect.type === 'burn' ||
-      effect.type === 'copy' ||
       effect.type === 'copy-statuses' ||
       effect.type === 'sensory'
     ) {

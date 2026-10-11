@@ -388,3 +388,93 @@
     font-size: 0.83rem;
   }
 }
+
+/* Approved archive reading composition, board 16. */
+.rules {
+  width: 100%;
+  padding: 1rem;
+  color: #374235;
+  background: linear-gradient(135deg, #ddd2bd, #c5b496);
+  border: 1px solid #9b8662;
+  gap: 1rem;
+}
+.intro {
+  grid-template-columns: minmax(0, 1fr) minmax(14rem, 35%);
+  gap: 1rem;
+}
+.intro h1 {
+  font-size: 2.5rem;
+  color: #344037;
+}
+.lede {
+  color: #535e50;
+  font-size: 0.87rem;
+  line-height: 1.5;
+}
+.heroMedia {
+  min-height: 9rem;
+  border-radius: 2px;
+}
+.heroImage {
+  filter: none;
+}
+.heroStatement {
+  background: #20332ca0;
+}
+.workspace {
+  grid-template-columns: minmax(12rem, 23%) minmax(0, 1fr);
+  gap: 0.8rem;
+}
+.nav {
+  top: 0;
+  padding: 0.8rem;
+  background: #c7b79a;
+  border: 1px solid #aa926c;
+}
+.nav a,
+.navLabel {
+  color: #424f3f;
+  font-size: 0.86rem;
+}
+.content {
+  background: #e1d7c3;
+  border: 1px solid #ab9370;
+  padding: 0.9rem;
+}
+.ruleSection {
+  background: transparent;
+}
+.ruleHeader h2,
+.bodyBlock h3,
+.principles h2 {
+  color: #374235;
+}
+.ruleHeader p,
+.bodyBlock p,
+.bodyBlock li,
+.principles li {
+  color: #535e4d;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+.eyebrow,
+.meta dt {
+  color: #786444;
+}
+.meta dd {
+  color: #56604f;
+}
+.principles {
+  background: #d8cbb3;
+  border: 1px solid #b29a76;
+  padding: 0.8rem;
+}
+@media (max-width: 760px) {
+  .intro,
+  .workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .nav {
+    position: static;
+  }
+}

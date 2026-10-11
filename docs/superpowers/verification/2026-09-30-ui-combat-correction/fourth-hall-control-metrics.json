@@ -1,0 +1,836 @@
+[
+  {
+    "width": 1366,
+    "height": 768,
+    "overlap": -7.359375,
+    "doc": 0,
+    "body": {
+      "x": 241.640625,
+      "y": 354.53125,
+      "width": 1057.71875,
+      "height": 276.078125,
+      "top": 354.53125,
+      "right": 1299.359375,
+      "bottom": 630.609375,
+      "left": 241.640625
+    },
+    "bodyStyle": {
+      "height": "276.078px",
+      "overflow": "auto",
+      "align": "start"
+    },
+    "controls": [
+      {
+        "name": "pvp-mode",
+        "height": 40,
+        "font": 13.76,
+        "visible": true
+      },
+      {
+        "name": "1 player2 players3 players",
+        "height": 40,
+        "font": 13.76,
+        "visible": true
+      },
+      {
+        "name": "1 player2 players3 players",
+        "height": 40,
+        "font": 13.76,
+        "visible": true
+      },
+      {
+        "name": "Standard",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      },
+      {
+        "name": "Expanded",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      },
+      {
+        "name": "Less",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      },
+      {
+        "name": "Neutral",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      },
+      {
+        "name": "More",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      },
+      {
+        "name": "Less",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      },
+      {
+        "name": "Neutral",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      },
+      {
+        "name": "More",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      },
+      {
+        "name": "60 second turn timer",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      },
+      {
+        "name": "120 second turn timer",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      },
+      {
+        "name": "No turn timer",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      }
+    ],
+    "parent": [
+      {
+        "rect": {
+          "x": 224.65625,
+          "y": 239.03125,
+          "width": 1091.6875,
+          "height": 462.3125,
+          "top": 239.03125,
+          "right": 1316.34375,
+          "bottom": 701.34375,
+          "left": 224.65625
+        },
+        "rows": "433.125px",
+        "height": "462.312px",
+        "maxheight": "100%"
+      },
+      {
+        "rect": {
+          "x": 224.65625,
+          "y": 239.03125,
+          "width": 1091.6875,
+          "height": 462.3125,
+          "top": 239.03125,
+          "right": 1316.34375,
+          "bottom": 701.34375,
+          "left": 224.65625
+        },
+        "rows": "462.312px",
+        "height": "462.312px",
+        "maxheight": "100%"
+      }
+    ]
+  },
+  {
+    "width": 1199,
+    "height": 768,
+    "overlap": -7.671875,
+    "doc": 0,
+    "body": {
+      "x": 239.96875,
+      "y": 385,
+      "width": 894.0625,
+      "height": 246.96875,
+      "top": 385,
+      "right": 1134.03125,
+      "bottom": 631.96875,
+      "left": 239.96875
+    },
+    "bodyStyle": {
+      "height": "246.969px",
+      "overflow": "auto",
+      "align": "start"
+    },
+    "controls": [
+      {
+        "name": "pvp-mode",
+        "height": 40,
+        "font": 13.76,
+        "visible": true
+      },
+      {
+        "name": "1 player2 players3 players",
+        "height": 40,
+        "font": 13.76,
+        "visible": true
+      },
+      {
+        "name": "1 player2 players3 players",
+        "height": 40,
+        "font": 13.76,
+        "visible": true
+      },
+      {
+        "name": "Standard",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      },
+      {
+        "name": "Expanded",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      },
+      {
+        "name": "Less",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      },
+      {
+        "name": "Neutral",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      },
+      {
+        "name": "More",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      },
+      {
+        "name": "Less",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      },
+      {
+        "name": "Neutral",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      },
+      {
+        "name": "More",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      },
+      {
+        "name": "60 second turn timer",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      },
+      {
+        "name": "120 second turn timer",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      },
+      {
+        "name": "No turn timer",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      }
+    ],
+    "parent": [
+      {
+        "rect": {
+          "x": 222.984375,
+          "y": 268.875,
+          "width": 928.03125,
+          "height": 434.140625,
+          "top": 268.875,
+          "right": 1151.015625,
+          "bottom": 703.015625,
+          "left": 222.984375
+        },
+        "rows": "404.953px",
+        "height": "434.141px",
+        "maxheight": "100%"
+      },
+      {
+        "rect": {
+          "x": 222.984375,
+          "y": 268.875,
+          "width": 928.03125,
+          "height": 434.140625,
+          "top": 268.875,
+          "right": 1151.015625,
+          "bottom": 703.015625,
+          "left": 222.984375
+        },
+        "rows": "434.141px",
+        "height": "434.141px",
+        "maxheight": "100%"
+      }
+    ]
+  },
+  {
+    "width": 1024,
+    "height": 768,
+    "overlap": -7.671875,
+    "doc": 0,
+    "body": {
+      "x": 238.375,
+      "y": 383.40625,
+      "width": 722.25,
+      "height": 250.15625,
+      "top": 383.40625,
+      "right": 960.625,
+      "bottom": 633.5625,
+      "left": 238.375
+    },
+    "bodyStyle": {
+      "height": "250.156px",
+      "overflow": "auto",
+      "align": "start"
+    },
+    "controls": [
+      {
+        "name": "pvp-mode",
+        "height": 40,
+        "font": 13.76,
+        "visible": true
+      },
+      {
+        "name": "1 player2 players3 players",
+        "height": 40,
+        "font": 13.76,
+        "visible": true
+      },
+      {
+        "name": "1 player2 players3 players",
+        "height": 40,
+        "font": 13.76,
+        "visible": true
+      },
+      {
+        "name": "Standard",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      },
+      {
+        "name": "Expanded",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      },
+      {
+        "name": "Less",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      },
+      {
+        "name": "Neutral",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      },
+      {
+        "name": "More",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      },
+      {
+        "name": "Less",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      },
+      {
+        "name": "Neutral",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      },
+      {
+        "name": "More",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      },
+      {
+        "name": "60 second turn timer",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      },
+      {
+        "name": "120 second turn timer",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      },
+      {
+        "name": "No turn timer",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      }
+    ],
+    "parent": [
+      {
+        "rect": {
+          "x": 221.390625,
+          "y": 267.28125,
+          "width": 756.21875,
+          "height": 437.328125,
+          "top": 267.28125,
+          "right": 977.609375,
+          "bottom": 704.609375,
+          "left": 221.390625
+        },
+        "rows": "408.141px",
+        "height": "437.328px",
+        "maxheight": "100%"
+      },
+      {
+        "rect": {
+          "x": 221.390625,
+          "y": 267.28125,
+          "width": 756.21875,
+          "height": 437.328125,
+          "top": 267.28125,
+          "right": 977.609375,
+          "bottom": 704.609375,
+          "left": 221.390625
+        },
+        "rows": "437.328px",
+        "height": "437.328px",
+        "maxheight": "100%"
+      }
+    ]
+  },
+  {
+    "width": 1024,
+    "height": 576,
+    "overlap": -7.671875,
+    "doc": 0,
+    "body": {
+      "x": 238.375,
+      "y": 383.40625,
+      "width": 722.25,
+      "height": 58.15625,
+      "top": 383.40625,
+      "right": 960.625,
+      "bottom": 441.5625,
+      "left": 238.375
+    },
+    "bodyStyle": {
+      "height": "58.1562px",
+      "overflow": "auto",
+      "align": "start"
+    },
+    "controls": [
+      {
+        "name": "pvp-mode",
+        "height": 40,
+        "font": 13.76,
+        "visible": true
+      },
+      {
+        "name": "1 player2 players3 players",
+        "height": 40,
+        "font": 13.76,
+        "visible": true
+      },
+      {
+        "name": "1 player2 players3 players",
+        "height": 40,
+        "font": 13.76,
+        "visible": true
+      },
+      {
+        "name": "Standard",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      },
+      {
+        "name": "Expanded",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      },
+      {
+        "name": "Less",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      },
+      {
+        "name": "Neutral",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      },
+      {
+        "name": "More",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      },
+      {
+        "name": "Less",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      },
+      {
+        "name": "Neutral",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      },
+      {
+        "name": "More",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      },
+      {
+        "name": "60 second turn timer",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      },
+      {
+        "name": "120 second turn timer",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      },
+      {
+        "name": "No turn timer",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      }
+    ],
+    "parent": [
+      {
+        "rect": {
+          "x": 221.390625,
+          "y": 267.28125,
+          "width": 756.21875,
+          "height": 245.328125,
+          "top": 267.28125,
+          "right": 977.609375,
+          "bottom": 512.609375,
+          "left": 221.390625
+        },
+        "rows": "216.141px",
+        "height": "245.328px",
+        "maxheight": "100%"
+      },
+      {
+        "rect": {
+          "x": 221.390625,
+          "y": 267.28125,
+          "width": 756.21875,
+          "height": 245.328125,
+          "top": 267.28125,
+          "right": 977.609375,
+          "bottom": 512.609375,
+          "left": 221.390625
+        },
+        "rows": "245.328px",
+        "height": "245.328px",
+        "maxheight": "100%"
+      }
+    ]
+  },
+  {
+    "width": 768,
+    "height": 1024,
+    "overlap": -20.78125,
+    "doc": 0,
+    "body": {
+      "x": 238.375,
+      "y": 551.953125,
+      "width": 466.25,
+      "height": 337.609375,
+      "top": 551.953125,
+      "right": 704.625,
+      "bottom": 889.5625,
+      "left": 238.375
+    },
+    "bodyStyle": {
+      "height": "337.609px",
+      "overflow": "auto",
+      "align": "start"
+    },
+    "controls": [
+      {
+        "name": "pvp-mode",
+        "height": 40,
+        "font": 13,
+        "visible": true
+      },
+      {
+        "name": "1 player2 players3 players",
+        "height": 40,
+        "font": 13,
+        "visible": true
+      },
+      {
+        "name": "1 player2 players3 players",
+        "height": 40,
+        "font": 13,
+        "visible": true
+      },
+      {
+        "name": "Standard",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      },
+      {
+        "name": "Expanded",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      },
+      {
+        "name": "Less",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      },
+      {
+        "name": "Neutral",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      },
+      {
+        "name": "More",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      },
+      {
+        "name": "Less",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      },
+      {
+        "name": "Neutral",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      },
+      {
+        "name": "More",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      },
+      {
+        "name": "60 second turn timer",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      },
+      {
+        "name": "120 second turn timer",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      },
+      {
+        "name": "No turn timer",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      }
+    ],
+    "parent": [
+      {
+        "rect": {
+          "x": 221.390625,
+          "y": 436.4375,
+          "width": 500.21875,
+          "height": 524.171875,
+          "top": 436.4375,
+          "right": 721.609375,
+          "bottom": 960.609375,
+          "left": 221.390625
+        },
+        "rows": "494.984px",
+        "height": "524.172px",
+        "maxheight": "100%"
+      },
+      {
+        "rect": {
+          "x": 221.390625,
+          "y": 436.4375,
+          "width": 500.21875,
+          "height": 524.171875,
+          "top": 436.4375,
+          "right": 721.609375,
+          "bottom": 960.609375,
+          "left": 221.390625
+        },
+        "rows": "524.172px",
+        "height": "524.172px",
+        "maxheight": "100%"
+      }
+    ]
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "overlap": -21.671875,
+    "doc": 449,
+    "body": {
+      "x": 40.375,
+      "y": 76.890625,
+      "width": 294.25,
+      "height": 547.484375,
+      "top": 76.890625,
+      "right": 334.625,
+      "bottom": 624.375,
+      "left": 40.375
+    },
+    "bodyStyle": {
+      "height": "547.484px",
+      "overflow": "visible",
+      "align": "start"
+    },
+    "controls": [
+      {
+        "name": "pvp-mode",
+        "height": 44,
+        "font": 16,
+        "visible": true
+      },
+      {
+        "name": "1 player2 players3 players",
+        "height": 44,
+        "font": 16,
+        "visible": true
+      },
+      {
+        "name": "1 player2 players3 players",
+        "height": 44,
+        "font": 16,
+        "visible": true
+      },
+      {
+        "name": "Standard",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      },
+      {
+        "name": "Expanded",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      },
+      {
+        "name": "Less",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      },
+      {
+        "name": "Neutral",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      },
+      {
+        "name": "More",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      },
+      {
+        "name": "Less",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      },
+      {
+        "name": "Neutral",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      },
+      {
+        "name": "More",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      },
+      {
+        "name": "60 second turn timer",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      },
+      {
+        "name": "120 second turn timer",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      },
+      {
+        "name": "No turn timer",
+        "height": 40,
+        "font": 12,
+        "visible": true
+      }
+    ],
+    "parent": [
+      {
+        "rect": {
+          "x": 23.390625,
+          "y": -60.9375,
+          "width": 328.21875,
+          "height": 772.359375,
+          "top": -60.9375,
+          "right": 351.609375,
+          "bottom": 711.421875,
+          "left": 23.390625
+        },
+        "rows": "727.172px 0px 0px",
+        "height": "772.359px",
+        "maxheight": "none"
+      },
+      {
+        "rect": {
+          "x": 23.390625,
+          "y": -60.9375,
+          "width": 328.21875,
+          "height": 772.359375,
+          "top": -60.9375,
+          "right": 351.609375,
+          "bottom": 711.421875,
+          "left": 23.390625
+        },
+        "rows": "772.359px",
+        "height": "772.359px",
+        "maxheight": "100%"
+      }
+    ]
+  }
+]

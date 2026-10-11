@@ -1,3 +1,14 @@
+import { airborneAttackAction } from './combat-airborne'
+import {
+  skillPacketGroups,
+  rollSkillPacketAccuracy,
+  rollSkillPacketOutcomes,
+} from './combat-skill-packets'
+import {
+  forecastCombatStatusResistance,
+  rollCombatStatusResistance,
+  type CombatTargetStatusResistance,
+} from './combat-status-resistance'
 import {
   validateCombatAccuracyDefinition,
   forecastCombatSkillAccuracy,
@@ -18,7 +29,6 @@ import {
 } from './combat-vengeance'
 import { applyCommittedReflect } from './combat-reflect'
 import type { CombatDamageScaling } from './damage-scaling'
-import type { CombatSkillCopyPreview } from './combat-skill-copy'
 import { calculateScaledRawDamage, validateCombatDamageScaling } from './damage-scaling'
 import { applyCommittedAbsorbRecovery } from './combat-absorb-recovery'
 import { recordCommittedDamageHistory } from './combat-damage-history'
@@ -37,6 +47,11 @@ import {
 import * as legacy from './actions-legacy'
 
 export * from './actions-legacy'
+export {
+  createCombatGroundArea,
+  advanceCombatGroundAreas,
+  validateCombatGroundAreas,
+} from './combat-ground-areas'
 
 type LegacyDamageEffect = Extract<legacy.CombatEffectDefinition, { type: 'damage' }>
 
@@ -63,6 +78,7 @@ export interface CombatActionDefinition
 
 export interface CombatEncounterState extends Omit<legacy.CombatEncounterState, 'statBridge'> {
   statBridge?: {
+    schemaVersion?: number
     rulesVersion?: number
     combatants: readonly {
       combatantId: string
@@ -74,6 +90,7 @@ export interface CombatEncounterState extends Omit<legacy.CombatEncounterState, 
       evasion?: number
       level?: number
       criticalChance?: number
+      statusResistance?: number
     }[]
   }
 }
@@ -82,8 +99,8 @@ export interface CombatActionEvaluation extends legacy.CombatActionEvaluation {
   vengeanceBasis?: readonly CombatVengeanceBasis[]
   targetHitChances?: readonly CombatTargetHitChance[]
   targetCriticalChances?: readonly CombatTargetCriticalChance[]
+  targetStatusResistances?: readonly CombatTargetStatusResistance[]
   projectionsAssumeHits?: true
-  skillCopy?: CombatSkillCopyPreview
 }
 
 export interface CombatResolutionContext {
@@ -103,6 +120,12 @@ export interface CombatResolutionTransition extends Omit<
 > {
   state: CombatEncounterState
   resolution?: CombatResolutionMetadata
+  /** Transient result of an engine-owned effect group; never an authored hit override. */
+  hitDependentEffectsActivated?: boolean
+}
+
+export interface CombatHitDependentEffects {
+  readonly effectOrdinals: readonly number[]
 }
 
 export function evaluateCombatAction(
@@ -111,15 +134,40 @@ export function evaluateCombatAction(
   selection: legacy.CombatTargetSelection,
   content: legacy.CombatContentCatalog,
 ): CombatActionEvaluation {
+  action = legacy.elementalActionIntent(
+    state,
+    airborneAttackAction(state, action, content),
+    selection,
+  )
   validateCombatAccuracyDefinition(action)
   const csrPreviewAction = materializeCsrPreviewAction(action)
-  const materialized = materializeVengeanceDamage(state, csrPreviewAction)
-  const evaluation = legacy.evaluateCombatAction(
+  let materialized = materializeVengeanceDamage(state, csrPreviewAction)
+  let evaluation = legacy.evaluateCombatAction(
     state,
     materializeStatScaledDamage(state, materialized.action),
     selection,
     content,
   )
+  const csrForecast =
+    state.statBalancePolicyVersion === 1 && evaluation.legal
+      ? materializeCsrCommittedAction({
+          state,
+          action,
+          selection,
+          evaluation,
+          content,
+          missedCombatantIds: new Set(),
+        })
+      : { action: csrPreviewAction, content }
+  if (state.statBalancePolicyVersion === 1 && evaluation.legal) {
+    materialized = materializeVengeanceDamage(state, csrForecast.action)
+    evaluation = legacy.evaluateCombatAction(
+      state,
+      materializeStatScaledDamage(state, materialized.action),
+      selection,
+      csrForecast.content,
+    )
+  }
   const preview =
     evaluation.legal && materialized.basis.length > 0
       ? { ...evaluation, vengeanceBasis: materialized.basis }
@@ -127,13 +175,25 @@ export function evaluateCombatAction(
   const accuracyPreview = forecastCombatSkillAccuracy(state, action, preview, content)
   const criticalPreview = forecastCombatCritical(
     state,
-    csrPreviewAction,
+    csrForecast.action,
     accuracyPreview,
     new Set(),
   )
-  return criticalPreview.targetCriticalChances.length > 0
-    ? { ...accuracyPreview, targetCriticalChances: criticalPreview.targetCriticalChances }
-    : accuracyPreview
+  const result =
+    criticalPreview.targetCriticalChances.length > 0
+      ? { ...accuracyPreview, targetCriticalChances: criticalPreview.targetCriticalChances }
+      : accuracyPreview
+  return state.statBalancePolicyVersion === 1
+    ? {
+        ...result,
+        targetStatusResistances: forecastCombatStatusResistance(
+          state,
+          csrForecast.action,
+          result,
+          csrForecast.content,
+        ),
+      }
+    : result
 }
 
 export function executeCombatAction(
@@ -142,7 +202,13 @@ export function executeCombatAction(
   selection: legacy.CombatTargetSelection,
   content: legacy.CombatContentCatalog,
   context?: CombatResolutionContext,
+  hitDependentEffects?: CombatHitDependentEffects,
 ): CombatResolutionTransition {
+  action = legacy.elementalActionIntent(
+    state,
+    airborneAttackAction(state, action, content),
+    selection,
+  )
   validateCombatAccuracyDefinition(action)
   const round = state.tactical.battle.round
   const actorId = state.tactical.battle.currentTurn?.combatantId ?? null
@@ -151,15 +217,102 @@ export function executeCombatAction(
     state,
     materializeVengeanceDamage(state, previewAction).action,
   )
+  const packetGroups = skillPacketGroups(state, action)
+  let originalOrdinals = action.effects.map((_effect, ordinal) => ordinal)
   const requiresEvaluation =
+    Boolean(packetGroups) ||
+    state.statBalancePolicyVersion === 1 ||
     Boolean(context) ||
+    Boolean(hitDependentEffects) ||
     action.accuracyMode === 'per-target' ||
+    (state.airbornePolicyVersion === 1 && action.target.kind === 'ground-tile') ||
     action.effects.some((effect) => effect.type === 'sensory') ||
     (state.statBridge?.rulesVersion === 4 && hasCriticalEligibleDamage(action))
   const evaluation = requiresEvaluation
     ? legacy.evaluateCombatAction(state, previewMaterializedAction, selection, content)
     : null
-  const accuracy = rollCombatSkillAccuracy(state, action, evaluation, content)
+  const dependentOrdinals = new Set(hitDependentEffects?.effectOrdinals ?? [])
+  const prerequisiteGroups = packetGroups
+    ?.map((group) => group.filter((ordinal) => !dependentOrdinals.has(ordinal)))
+    .filter((group) => group.length)
+  let packetAccuracy = packetGroups
+    ? rollSkillPacketAccuracy(state, action, evaluation, content, prerequisiteGroups!)
+    : null
+  let accuracy = packetAccuracy ?? rollCombatSkillAccuracy(state, action, evaluation, content)
+  const hitDependentEffectsActivated = hitDependentEffects
+    ? (packetGroups === null || prerequisiteGroups!.length > 0) &&
+      evaluation?.affectedCombatantIds.some((id) => {
+        const actor = state.tactical.battle.combatants.find((unit) => unit.id === actorId)
+        const target = state.tactical.battle.combatants.find((unit) => unit.id === id)
+        return (
+          target &&
+          actor &&
+          target.hp > 0 &&
+          target.teamId !== actor.teamId &&
+          !accuracy.missedCombatantIds.has(id)
+        )
+      }) === true
+    : undefined
+  if (packetGroups && packetAccuracy && hitDependentEffectsActivated) {
+    // Unique tags keep their shared prerequisite roll; repeated bonus tags roll only after confirmation.
+    for (const group of packetGroups) {
+      const prerequisite = group.filter((ordinal) => !dependentOrdinals.has(ordinal))
+      const dependent = group.filter((ordinal) => dependentOrdinals.has(ordinal))
+      if (!prerequisite.length || !dependent.length) continue
+      for (const [, missed] of packetAccuracy.missedEffectOrdinalsByTarget)
+        if (prerequisite.some((ordinal) => missed.has(ordinal)))
+          dependent.forEach((ordinal) => missed.add(ordinal))
+      packetAccuracy.events = packetAccuracy.events.map((event) =>
+        event.effectOrdinals?.some((ordinal) => prerequisite.includes(ordinal))
+          ? { ...event, effectOrdinals: group }
+          : event,
+      )
+    }
+    const bonus = rollSkillPacketAccuracy(
+      packetAccuracy.state,
+      action,
+      evaluation,
+      content,
+      packetGroups.filter((group) => group.every((ordinal) => dependentOrdinals.has(ordinal))),
+    )
+    for (const [id, ordinals] of bonus.missedEffectOrdinalsByTarget) {
+      const missed = packetAccuracy.missedEffectOrdinalsByTarget.get(id) ?? new Set<number>()
+      ordinals.forEach((ordinal) => missed.add(ordinal))
+      packetAccuracy.missedEffectOrdinalsByTarget.set(id, missed)
+    }
+    const events = [...packetAccuracy.events, ...bonus.events]
+    packetAccuracy = {
+      ...packetAccuracy,
+      state: bonus.state,
+      events,
+      missedCombatantIds: new Set(
+        events
+          .filter(
+            (event) =>
+              !event.hit &&
+              !events.some(
+                (other) => other.targetCombatantId === event.targetCombatantId && other.hit,
+              ),
+          )
+          .map((event) => event.targetCombatantId),
+      ),
+    }
+    accuracy = packetAccuracy
+  }
+  if (hitDependentEffects && !hitDependentEffectsActivated) {
+    const omitted = new Set(hitDependentEffects.effectOrdinals)
+    originalOrdinals = originalOrdinals.filter((_ordinal, index) => !omitted.has(index))
+    action = {
+      ...action,
+      effects: action.effects.filter((_effect, index) => !omitted.has(index)),
+      ...(action.effectOrigins
+        ? { effectOrigins: action.effectOrigins.filter((_origin, index) => !omitted.has(index)) }
+        : {}),
+      ...(action.effectTimingTags
+        ? { effectTimingTags: action.effectTimingTags.filter((_tag, index) => !omitted.has(index)) }
+        : {}),
+    }
+  }
   const csr = materializeCsrCommittedAction({
     state: accuracy.state,
     action,
@@ -168,12 +321,38 @@ export function executeCombatAction(
     content,
     missedCombatantIds: accuracy.missedCombatantIds,
   })
-  const critical = rollCombatCritical(
-    accuracy.state,
-    csr.action,
-    evaluation,
-    accuracy.missedCombatantIds,
-  )
+  const packets =
+    packetGroups && packetAccuracy
+      ? rollSkillPacketOutcomes(
+          accuracy.state,
+          csr.action,
+          evaluation,
+          csr.content,
+          packetGroups,
+          csr.effectSourceOrdinals.map((ordinal) => originalOrdinals[ordinal]!),
+          packetAccuracy.missedEffectOrdinalsByTarget,
+        )
+      : null
+  const resistance = packets
+    ? {
+        state: packets.state,
+        events: packets.resistanceEvents,
+        resistedEffectOrdinalsByTarget: packets.resistedEffectOrdinalsByTarget,
+      }
+    : rollCombatStatusResistance(
+        accuracy.state,
+        csr.action,
+        evaluation,
+        csr.content,
+        accuracy.missedCombatantIds,
+      )
+  const critical = packets
+    ? {
+        state: packets.state,
+        events: packets.criticalEvents,
+        criticalEffectOrdinalsByTarget: packets.criticalEffectOrdinalsByTarget,
+      }
+    : rollCombatCritical(resistance.state, csr.action, evaluation, accuracy.missedCombatantIds)
   const materializedAction = materializeStatScaledDamage(
     critical.state,
     materializeVengeanceDamage(critical.state, csr.action).action,
@@ -210,6 +389,8 @@ export function executeCombatAction(
     },
     accuracy.missedCombatantIds,
     critical.criticalEffectOrdinalsByTarget,
+    resistance.resistedEffectOrdinalsByTarget,
+    packets?.missedEffectOrdinalsByTarget,
   )
   const covertFiltered = filterBlockedCovertApplication({
     before: critical.state,
@@ -220,8 +401,9 @@ export function executeCombatAction(
     ...committed,
     state: covertFiltered.state,
     events: covertFiltered.events as legacy.CombatResolutionEvent[],
+    ...(hitDependentEffects ? { hitDependentEffectsActivated } : {}),
   }
-  const preCommitEvents = [...accuracy.events, ...critical.events]
+  const preCommitEvents = [...accuracy.events, ...resistance.events, ...critical.events]
   const transition =
     preCommitEvents.length > 0
       ? { ...committedTransition, events: [...preCommitEvents, ...committedTransition.events] }
@@ -243,6 +425,7 @@ export function executeCombatAction(
           ),
         }
   return {
+    ...(hitDependentEffects ? { hitDependentEffectsActivated } : {}),
     state: attachCombatEffectProvenance(
       state,
       transition.state,
@@ -250,6 +433,7 @@ export function executeCombatAction(
       provenanceEvaluation,
       context,
       csr.content,
+      resistance.resistedEffectOrdinalsByTarget,
     ),
     events: transition.events,
     resolution: {
@@ -268,7 +452,7 @@ export function endCombatTurn(
   const round = state.tactical.battle.round
   const transition = legacy.endCombatTurn(state, content, outgoingDefeatedAtTurnEnd)
   return {
-    state: recordCommittedDamageHistory(transition.state, transition.events, { round }),
+    state: recordTurnDamageHistory(transition.state, transition.events, round),
     events: transition.events,
   }
 }
@@ -280,9 +464,26 @@ export function waitCurrentTurn(
   const round = state.tactical.battle.round
   const transition = legacy.waitCurrentTurn(state, content)
   return {
-    state: recordCommittedDamageHistory(transition.state, transition.events, { round }),
+    state: recordTurnDamageHistory(transition.state, transition.events, round),
     events: transition.events,
   }
+}
+
+/** Delayed damage belongs to its activation round; outgoing periodic ticks retain their turn round. */
+function recordTurnDamageHistory(
+  state: CombatEncounterState,
+  events: readonly legacy.CombatResolutionEvent[],
+  turnRound: number,
+): CombatEncounterState {
+  const rounds = new Map<number, legacy.CombatResolutionEvent[]>()
+  for (const event of events) {
+    const round = event.effectActivationRound ?? turnRound
+    rounds.set(round, [...(rounds.get(round) ?? []), event])
+  }
+  let next = state
+  for (const [round, receipts] of rounds)
+    next = recordCommittedDamageHistory(next, receipts, { round })
+  return next
 }
 
 function materializeStatScaledDamage(
@@ -297,9 +498,6 @@ function materializeStatScaledDamage(
   const effects: legacy.CombatEffectDefinition[] = action.effects.map((effect) => {
     if (effect.type === 'sensory') {
       throw new TypeError('Sensory must be materialized before legacy effect resolution.')
-    }
-    if (effect.type === 'copy') {
-      throw new TypeError('Copy must be materialized by the mature Skill execution layer.')
     }
     if (effect.type !== 'damage') return effect
 

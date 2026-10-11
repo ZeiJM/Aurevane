@@ -1,8 +1,8 @@
 import { isStarterCharacterPortraitRef } from '@aurevane/game-core/character/starter-options'
 import {
-  copiedSkillApCost,
-  copiedSkillCommandId,
-} from '@aurevane/game-core/combat/combat-skill-copy'
+  DEFAULT_SUPPORT_ACTION_ID,
+  parseSupportActionId,
+} from '@aurevane/game-core/combat/support-actions'
 import { isAurevaneError } from '@aurevane/game-core/errors'
 import { parseBattleSessionId } from '@aurevane/validation/combat/battle-session'
 import { headers } from 'next/headers'
@@ -25,7 +25,6 @@ import {
   resolveBattleDisciplineSkillDefinition,
   resolveBattleEssenceDefinition,
   resolveBattleResonanceDefinition,
-  resolveBattleTemporarySkillDefinition,
 } from '@/server/battle/battle-build-authority'
 import { createBattleSessionService } from '@/server/battle/battle-session-service'
 import { getPvpBattleMetadata } from '@/server/battle/pvp-lobby-service'
@@ -66,6 +65,8 @@ async function battleBuildExtensions(
   combatantId: string,
 ) {
   const authority = battle.snapshot.buildAuthority
+  const legacyTriggers = battle.snapshot.dotTriggerPolicyVersion === undefined
+  const legacyPoisonMovement = battle.snapshot.dotTriggerPolicyVersion !== 2
   const build = battleBuildAuthorityForCombatant(authority, combatantId)
   const resonanceDefinition = resolveBattleResonanceDefinition(authority, combatantId)
   const essenceDefinition = resolveBattleEssenceDefinition(authority, combatantId)
@@ -88,6 +89,8 @@ async function battleBuildExtensions(
           return null
         const override = combatContext ? definition.overrides[combatContext] : undefined
         return {
+          definition,
+          target: definition.target,
           id: definition.id,
           contentVersion: definition.contentVersion,
           sourceDisciplineId: definition.sourceDisciplineId,
@@ -108,58 +111,36 @@ async function battleBuildExtensions(
           targetTeamPolicy: definition.target.teamPolicy,
           minimumRange: definition.target.minimumRange,
           maximumRange: definition.target.maximumRange,
-          tags: skillTargetTags(definition),
-          effectDescriptions: definition.effects.map(skillEffectDescription),
+          tags: skillTargetTags(definition, {
+            legacyElemental: battle.snapshot.elementalDamagePolicyVersion == null,
+            explicitElemental: battle.snapshot.elementalDamagePolicyVersion === 2,
+          }),
+          effectDescriptions: definition.effects.map((effect) =>
+            skillEffectDescription(effect, {
+              legacyTriggers,
+              legacyPoisonMovement,
+              legacyFrozenGround: battle.snapshot.frozenGroundPolicyVersion !== 1,
+              legacyAirborne: battle.snapshot.airbornePolicyVersion !== 1,
+              legacyAirborneJump: battle.snapshot.airborneJumpPolicyVersion !== 1,
+              legacyElemental: battle.snapshot.elementalDamagePolicyVersion == null,
+              explicitElemental: battle.snapshot.elementalDamagePolicyVersion === 2,
+              timingPolicy: battle.snapshot.effectTimingPolicy ?? null,
+              skillEffects: definition.effects,
+              legacyHealingDown: battle.snapshot.healingDownPolicyVersion !== 1,
+            }),
+          ),
           requirementDescriptions: definition.requirements.map(skillRequirementDescription),
         }
       }),
     )
   ).filter((entry): entry is NonNullable<typeof entry> => entry !== null)
 
-  const copiedSkills = authority
-    ? (
-        await Promise.all(
-          (battle.snapshot.effectState?.temporarySkills ?? [])
-            .filter((grant) => grant.combatantId === combatantId)
-            .map(async (grant) => {
-              const definition = await resolveBattleTemporarySkillDefinition(
-                authority,
-                grant,
-                resolver,
-              )
-              if (!definition) return null
-              return {
-                id: copiedSkillCommandId(definition.id, definition.contentVersion),
-                sourceSkillId: definition.id,
-                contentVersion: definition.contentVersion,
-                sourceDisciplineId: definition.sourceDisciplineId,
-                name: titleCase(
-                  definition.id.includes('.')
-                    ? definition.id.slice(definition.id.indexOf('.') + 1)
-                    : definition.id,
-                ),
-                iconKey: definition.media.iconKey,
-                apCost: copiedSkillApCost(definition, authority.combatContext),
-                mpCost: definition.mpCost ?? 0,
-                category: techniqueCategory(definition.tags),
-                targetKind: definition.target.kind,
-                targetTeamPolicy: definition.target.teamPolicy,
-                minimumRange: definition.target.minimumRange,
-                maximumRange: definition.target.maximumRange,
-                tags: [...skillTargetTags(definition), 'Copied'],
-                effectDescriptions: definition.effects.map(skillEffectDescription),
-                requirementDescriptions: definition.requirements.map(skillRequirementDescription),
-              }
-            }),
-        )
-      ).filter((entry): entry is NonNullable<typeof entry> => entry !== null)
-    : []
-
   return {
+    supportActionId: parseSupportActionId(build?.supportActionId) ?? DEFAULT_SUPPORT_ACTION_ID,
     techniques,
-    copiedSkills,
     resonance: resonanceDefinition
       ? {
+          definition: resonanceDefinition,
           id: resonanceDefinition.id,
           contentVersion: resonanceDefinition.contentVersion,
           name: resonanceDefinition.name,
@@ -168,6 +149,8 @@ async function battleBuildExtensions(
       : null,
     essence: essenceDefinition
       ? {
+          definition: essenceDefinition.skill,
+          target: essenceDefinition.skill.target,
           id: essenceDefinition.skill.id,
           contentVersion: essenceDefinition.contentVersion,
           name: essenceDefinition.name,
@@ -184,8 +167,24 @@ async function battleBuildExtensions(
               ? null
               : (essenceOverride?.cooldownOwnerTurns ??
                 essenceDefinition.skill.cooldown.ownerTurns),
-          tags: skillTargetTags(essenceDefinition.skill),
-          effectDescriptions: essenceDefinition.skill.effects.map(skillEffectDescription),
+          tags: skillTargetTags(essenceDefinition.skill, {
+            legacyElemental: battle.snapshot.elementalDamagePolicyVersion == null,
+            explicitElemental: battle.snapshot.elementalDamagePolicyVersion === 2,
+          }),
+          effectDescriptions: essenceDefinition.skill.effects.map((effect) =>
+            skillEffectDescription(effect, {
+              legacyTriggers,
+              legacyPoisonMovement,
+              legacyFrozenGround: battle.snapshot.frozenGroundPolicyVersion !== 1,
+              legacyAirborne: battle.snapshot.airbornePolicyVersion !== 1,
+              legacyAirborneJump: battle.snapshot.airborneJumpPolicyVersion !== 1,
+              legacyElemental: battle.snapshot.elementalDamagePolicyVersion == null,
+              explicitElemental: battle.snapshot.elementalDamagePolicyVersion === 2,
+              timingPolicy: battle.snapshot.effectTimingPolicy ?? null,
+              skillEffects: essenceDefinition.skill.effects,
+              legacyHealingDown: battle.snapshot.healingDownPolicyVersion !== 1,
+            }),
+          ),
           requirementDescriptions: essenceDefinition.skill.requirements.map(
             skillRequirementDescription,
           ),
@@ -256,8 +255,8 @@ export default async function BattleSessionPage({
           runtime={{
             kind: 'pvp',
             playerName: localParticipant.characterName,
+            supportActionId: buildExtensions.supportActionId,
             techniques: buildExtensions.techniques,
-            copiedSkills: buildExtensions.copiedSkills,
             resonance: buildExtensions.resonance,
             essence: buildExtensions.essence,
             metadata: pvpMetadata,
@@ -296,8 +295,8 @@ export default async function BattleSessionPage({
         runtime={{
           kind: 'pve',
           playerName: character.name,
+          supportActionId: buildExtensions.supportActionId,
           techniques: buildExtensions.techniques,
-          copiedSkills: buildExtensions.copiedSkills,
           resonance: buildExtensions.resonance,
           essence: buildExtensions.essence,
           playerLevel: character.level,

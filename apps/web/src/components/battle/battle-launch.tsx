@@ -18,6 +18,8 @@ import { AurevaneImage } from '@/components/media/aurevane-image'
 
 import type { PvpLobbyView } from '@/server/battle/pvp-lobby-service'
 
+import { PVP_MAP_SIZES, pvpMapProfile } from '@/lib/battle/pvp-map-presentation'
+
 import styles from './battle-launch.module.css'
 import { PvpLobbyModal } from './pvp-lobby-modal'
 
@@ -27,7 +29,7 @@ interface BattleLaunchProps {
   initialJoinKey?: string | null
 }
 
-type HallSection = 'ai' | 'pvp' | 'spectate'
+type HallSection = 'ai' | 'pvp' | 'spectate' | 'matchmaking'
 
 interface ApiErrorBody {
   error?: { message?: string }
@@ -56,13 +58,13 @@ const ARENAS: readonly { id: TacticalHallArenaId; name: string; scale: string; s
     {
       id: 'crossroads-court',
       name: 'Crossroads Court',
-      scale: '7×7',
+      scale: '12×7',
       summary: 'Close engagement: cross the difficult center or take an open flank.',
     },
     {
       id: 'terraced-yard',
       name: 'Terraced Yard',
-      scale: '11×7',
+      scale: '15×7',
       summary: 'Long approach with raised side platforms and a ground-level route.',
     },
   ]
@@ -104,6 +106,8 @@ export function BattleLaunch({ characterId, initialJoinKey = null }: BattleLaunc
   const [pvpEntry, setPvpEntry] = useState<'create' | 'join'>(initialJoinKey ? 'join' : 'create')
   const [recordId, setRecordId] = useState<TacticalHallRecordId | null>('recruit-sparring')
   const [arenaId, setArenaId] = useState<TacticalHallArenaId>('duel-yard')
+  const [allyCount, setAllyCount] = useState(0)
+  const [enemyCount, setEnemyCount] = useState(1)
   const [pvpMode, setPvpMode] = useState<PvpMode | null>(DEFAULT_PVP_MODE)
   const [teamASize, setTeamASize] = useState(1)
   const [teamBSize, setTeamBSize] = useState(1)
@@ -118,7 +122,6 @@ export function BattleLaunch({ characterId, initialJoinKey = null }: BattleLaunc
   const [error, setError] = useState<string | null>(null)
 
   const selectedRecord = recordId ? getTacticalHallRecord(recordId) : null
-  const selectedArena = ARENAS.find((arena) => arena.id === arenaId) ?? ARENAS[1]
 
   function chooseSection(next: HallSection) {
     setSection(next)
@@ -157,6 +160,7 @@ export function BattleLaunch({ characterId, initialJoinKey = null }: BattleLaunc
           characterId,
           arenaId,
           battleHallRecordId: selectedRecord.id,
+          ...(selectedRecord.id === 'recruit-sparring' ? { allyCount, enemyCount } : {}),
           idempotencyKey: crypto.randomUUID(),
         }),
       })
@@ -332,7 +336,6 @@ export function BattleLaunch({ characterId, initialJoinKey = null }: BattleLaunc
       className={styles.page}
       id="battle-launch"
       aria-labelledby="battle-launch-title"
-      data-av-surface="moonstone"
     >
       <header className={styles.heading} data-hall-scene="true">
         <AurevaneImage
@@ -382,7 +385,16 @@ export function BattleLaunch({ characterId, initialJoinKey = null }: BattleLaunc
           onClick={() => chooseSection('pvp')}
         >
           <span aria-hidden="true">♟</span>
-          <strong>Player vs Player</strong>
+          <strong>PVP - Direct</strong>
+        </button>
+        <button
+          type="button"
+          data-active={section === 'matchmaking' || undefined}
+          aria-pressed={section === 'matchmaking'}
+          onClick={() => chooseSection('matchmaking')}
+        >
+          <span aria-hidden="true">✧</span>
+          <strong>PVP - Matchmaking (coming soon)</strong>
         </button>
         <button
           type="button"
@@ -396,7 +408,23 @@ export function BattleLaunch({ characterId, initialJoinKey = null }: BattleLaunc
         </button>
       </nav>
 
-      <div className={styles.workspaceGrid}>
+      {section === 'matchmaking' ? (
+        <section className="av-matchmaking" aria-labelledby="matchmaking-title">
+          <span className="av-soon">Coming Soon</span>
+          <div className="av-matchmaking-sigil" aria-hidden="true">
+            ⚔
+          </div>
+          <h2 id="matchmaking-title">A worthy rival awaits.</h2>
+          <p>
+            Matchmaking will help you find your next opponent. For now, create a direct PvP lobby or
+            join a friend with a battle key.
+          </p>
+          <button type="button" className="av-action" onClick={() => chooseSection('pvp')}>
+            Open direct PvP →
+          </button>
+        </section>
+      ) : null}
+      <div className={styles.workspaceGrid} hidden={section === 'matchmaking'}>
         <section
           className={styles.workspace}
           data-tone="ai"
@@ -419,20 +447,6 @@ export function BattleLaunch({ characterId, initialJoinKey = null }: BattleLaunc
           </div>
 
           <div className={styles.workspaceBody} data-hall-scroll-body="true">
-            <figure className={styles.arenaVista}>
-              <AurevaneImage
-                assetId="environment.battle-hall.courtyard"
-                sizes="(max-width: 900px) 100vw, 64vw"
-              />
-              <figcaption>
-                <div>
-                  <strong>{selectedArena.name}</strong>
-                  <span>{selectedArena.scale}</span>
-                </div>
-                <em>A classic proving ground for focused combat.</em>
-              </figcaption>
-            </figure>
-
             <div className={styles.arenaControlRow}>
               <label>
                 <span>Arena</span>
@@ -445,7 +459,7 @@ export function BattleLaunch({ characterId, initialJoinKey = null }: BattleLaunc
                   }
                 >
                   {(recordId === 'guided-fundamentals'
-                    ? ARENAS.filter((arena) => arena.id === 'basic-training-floor')
+                    ? ARENAS.filter((arena) => arena.id === selectedRecord?.defaultArenaId)
                     : recordId === 'mastery-trial'
                       ? ARENAS.filter((arena) => arena.id === 'terraced-yard')
                       : ARENAS.filter((arena) => arena.id !== 'basic-training-floor')
@@ -456,6 +470,49 @@ export function BattleLaunch({ characterId, initialJoinKey = null }: BattleLaunc
                   ))}
                 </select>
               </label>
+              {recordId === 'recruit-sparring' ? (
+                <fieldset className={styles.participants}>
+                  <legend>Participants</legend>
+                  <div>
+                    <label>
+                      <span>Allies</span>
+                      <select
+                        aria-label="AI sparring allies"
+                        value={allyCount}
+                        disabled={pending}
+                        onChange={(event) => {
+                          const next = Number(event.target.value)
+                          setAllyCount(next)
+                          setEnemyCount((count) => Math.min(count, 5 - next))
+                        }}
+                      >
+                        {[0, 1, 2].map((count) => (
+                          <option key={count} value={count}>
+                            {count}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
+                      <span>Enemies</span>
+                      <select
+                        aria-label="AI sparring enemies"
+                        value={enemyCount}
+                        disabled={pending}
+                        onChange={(event) => setEnemyCount(Number(event.target.value))}
+                      >
+                        {Array.from({ length: 5 - allyCount }, (_, index) => index + 1).map(
+                          (count) => (
+                            <option key={count} value={count}>
+                              {count}
+                            </option>
+                          ),
+                        )}
+                      </select>
+                    </label>
+                  </div>
+                </fieldset>
+              ) : null}
             </div>
 
             <nav className={styles.modePicker} aria-label="AI arenas">
@@ -525,22 +582,19 @@ export function BattleLaunch({ characterId, initialJoinKey = null }: BattleLaunc
                 <p className={styles.recordPurpose} id="ai-record-purpose">
                   {selectedRecord.purpose}
                 </p>
+                <footer className={styles.panelActions} data-hall-action-row="true">
+                  <button
+                    type="button"
+                    className={styles.primaryAction}
+                    onClick={() => void launchAiBattle()}
+                    disabled={pending}
+                  >
+                    {pending ? 'Entering…' : 'Enter Battle'}
+                  </button>
+                </footer>
               </div>
             ) : null}
           </div>
-
-          {selectedRecord ? (
-            <footer className={styles.panelActions} data-hall-action-row="true">
-              <button
-                type="button"
-                className={styles.primaryAction}
-                onClick={() => void launchAiBattle()}
-                disabled={pending}
-              >
-                {pending ? 'Entering…' : 'Enter Battle'}
-              </button>
-            </footer>
-          ) : null}
         </section>
 
         <section
@@ -568,7 +622,7 @@ export function BattleLaunch({ characterId, initialJoinKey = null }: BattleLaunc
             <div className={styles.pvpContent}>
               <div className={styles.workspaceHeading}>
                 <div>
-                  <h2 id="pvp-heading">Player vs Player</h2>
+                  <h2 id="pvp-heading">PVP - Direct</h2>
                   <p>Create a private battle or join with a key to fight another player.</p>
                 </div>
                 <blockquote>“Greater minds make a greater tomorrow.”</blockquote>
@@ -684,7 +738,7 @@ export function BattleLaunch({ characterId, initialJoinKey = null }: BattleLaunc
                       <fieldset data-pvp-setting-group>
                         <legend>Map size</legend>
                         <div data-pvp-setting-options>
-                          {(['medium', 'large'] as const).map((value) => (
+                          {PVP_MAP_SIZES.map((value) => (
                             <button
                               key={value}
                               type="button"
@@ -693,7 +747,7 @@ export function BattleLaunch({ characterId, initialJoinKey = null }: BattleLaunc
                               onClick={() => setMapSize(value)}
                               disabled={pending}
                             >
-                              {value === 'medium' ? 'Standard' : 'Expanded'}
+                              {pvpMapProfile(value).description}
                             </button>
                           ))}
                         </div>

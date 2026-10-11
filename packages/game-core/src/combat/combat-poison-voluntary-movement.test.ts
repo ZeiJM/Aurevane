@@ -110,7 +110,6 @@ function movementEncounter(actorHp = 30): StatDrivenCombatEncounterState {
       ],
       bleed: [],
       burn: [],
-      temporarySkills: [],
       damageHistory: [],
     },
   }
@@ -125,6 +124,47 @@ function actorX(state: CombatEncounterState): number {
 }
 
 describe('current Poison voluntary movement', () => {
+  it('previews and commits full affordable movement without a Poison damage stop under policy 2', () => {
+    const base = movementEncounter(1)
+    const state = {
+      ...base,
+      percentageDotPolicyVersion: 1 as const,
+      dotTriggerPolicyVersion: 2 as const,
+      effectState: {
+        ...base.effectState!,
+        poison: base.effectState!.poison.map((row) => ({
+          ...row,
+          applicationOrder: 1,
+          originalDurationTurns: 4,
+          remainingTicks: 2,
+          percentageDamage: {
+            capturedDamage: 100,
+            profile: { kind: 'attack-percentage' as const, basisPoints: 2000 },
+          },
+        })),
+      },
+    }
+    const preview = evaluatePv1fMovement(state, PATH)
+    expect(preview.poisonForecast).toEqual({
+      traversedTiles: 3,
+      triggeredTicks: 0,
+      damage: 0,
+      willDefeat: false,
+    })
+    const result = executePv1fMovement(state, PATH)
+    expect(actorX(result.state)).toBe(3)
+    expect(actorHp(result.state)).toBe(1)
+    expect(readPv1fActionEconomy(result.state)?.current).toBe(40)
+    expect(result.state.effectState!.poison[0]).toMatchObject({
+      remainingTicks: 4,
+      movementRemainder: 2,
+    })
+    expect(result.events).toContainEqual({
+      event: 'poison_duration_refreshed',
+      targetCombatantId: 'actor',
+      remainingOwnerTurnEnds: 4,
+    })
+  })
   it('counts every entered tile, deals threshold damage and charges AP for the traversed path', () => {
     const result = executePv1fMovement(movementEncounter(), PATH)
 

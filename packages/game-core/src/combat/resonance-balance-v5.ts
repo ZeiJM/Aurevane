@@ -7,7 +7,7 @@ function durationFor(effect: CombatEffectDefinition): number {
   if (effect.durationTurns !== undefined) return effect.durationTurns
   switch (effect.type) {
     case 'apply-status':
-      return ['root', 'haste', 'hastened', 'delayed'].includes(effect.statusId) ? 1 : 2
+      return ['root', 'haste'].includes(effect.statusId) ? 1 : 2
     case 'bleed':
       return effect.ticks
     case 'burn':
@@ -24,7 +24,6 @@ function statusPotency(statusId: string): number | undefined {
     case 'guarded':
     case 'exposed':
     case 'inspired':
-    case 'summoned':
     case 'warded':
       return 1_200
     case 'mark':
@@ -62,6 +61,7 @@ function tunePrimaryEffect(effect: CombatEffectDefinition): CombatEffectDefiniti
     case 'poison':
       return { ...effect, power: 4, durationTurns: durationFor(effect) }
     case 'bleed':
+      if (effect.damageProfile) return effect
       return {
         ...effect,
         damagePerTick: clamp(effect.damagePerTick, 2, 4),

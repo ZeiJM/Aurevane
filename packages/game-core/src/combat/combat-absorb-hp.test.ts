@@ -11,6 +11,7 @@ import {
   type CombatStatusDefinition,
   type CombatTargetSelection,
 } from './actions'
+import { applyCommittedAbsorbRecovery } from './combat-absorb-recovery'
 import { validateCombatStatusDefinition } from './combat-authoring-validation'
 import { createPendingBattle, startBattle } from './battle-state'
 import { createTacticalBattleState, selectCurrentFinalFacing } from './board'
@@ -400,5 +401,95 @@ describe('P4.K4 Absorb HP committed-damage reaction', () => {
       provenance,
       triggerGuard,
     })
+  })
+})
+
+describe('unlimited reactive recovery applications', () => {
+  it('uses all three 50-percent applications for both resources while respecting real resource maxima', () => {
+    const status = absorbStatus('test.absorb-both-unlimited', 5000, {
+      absorbMpBasisPoints: 5000,
+      maximumStacks: 3,
+    })
+    const base = encounter({ targetHp: 50, targetStatuses: [status] })
+    const initial = {
+      ...base,
+      effectStackingPolicyVersion: 1 as const,
+      tactical: {
+        ...base.tactical,
+        battle: {
+          ...base.tactical.battle,
+          combatants: base.tactical.battle.combatants.map((row) =>
+            row.id === 'target' ? { ...row, mp: 0, maxMp: 100 } : row,
+          ),
+        },
+      },
+      statusState: base.statusState.map((row) =>
+        row.combatantId === 'target'
+          ? { ...row, statuses: row.statuses.map((instance) => ({ ...instance, stacks: 3 })) }
+          : row,
+      ),
+    }
+    const result = execute(initial, 20, [status])
+    expect(targetHp(result.state)).toBe(60)
+    expect(result.state.tactical.battle.combatants.find((row) => row.id === 'target')!.mp).toBe(30)
+    expect(absorbHealingEvents(result)[0]).toMatchObject({ amount: 30 })
+    const full = {
+      ...initial,
+      tactical: {
+        ...initial.tactical,
+        battle: {
+          ...initial.tactical.battle,
+          combatants: initial.tactical.battle.combatants.map((row) =>
+            row.id === 'target' ? { ...row, hp: 95, mp: 95 } : row,
+          ),
+        },
+      },
+    }
+    const bounded = execute(full, 20, [status])
+    expect(targetHp(bounded.state)).toBe(100)
+    expect(bounded.state.tactical.battle.combatants.find((row) => row.id === 'target')!.mp).toBe(
+      100,
+    )
+    const legacy = execute({ ...initial, effectStackingPolicyVersion: undefined }, 20, [status])
+    expect(targetHp(legacy.state)).toBe(50)
+    expect(legacy.state.tactical.battle.combatants.find((row) => row.id === 'target')!.mp).toBe(20)
+  })
+
+  it('fails closed when an accumulated reactive rate cannot remain a safe integer', () => {
+    const status = absorbStatus('test.absorb-overflow', 5000)
+    const base = encounter({ targetHp: 50, targetStatuses: [status] })
+    const initial = {
+      ...base,
+      effectStackingPolicyVersion: 1 as const,
+      statusState: base.statusState.map((row) =>
+        row.combatantId === 'target'
+          ? {
+              ...row,
+              statuses: row.statuses.map((instance) => ({
+                ...instance,
+                stacks: Number.MAX_SAFE_INTEGER,
+              })),
+            }
+          : row,
+      ),
+    }
+    expect(() =>
+      applyCommittedAbsorbRecovery(
+        initial,
+        [
+          {
+            event: 'damage_applied',
+            actionId: 'hit',
+            sourceCombatantId: 'actor',
+            targetCombatantId: 'target',
+            amount: 20,
+            hpBefore: 70,
+            hpAfter: 50,
+          },
+        ],
+        { statuses: [status] },
+        { sourceCombatantId: 'actor', actionId: 'hit' },
+      ),
+    ).toThrow('safe integer')
   })
 })

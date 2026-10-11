@@ -1,62 +1,71 @@
+'use client'
+
+import {
+  useSkillGroundInteractionRules,
+  useAirborneAttackElevation,
+  useSkillEffectTimingPolicy,
+  useSkillDotTriggerPolicyVersion,
+} from './skill-effect-timing-context'
 import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
 import {
-  skillAffectedDescription,
-  skillEffectDescription,
-  skillRangeDescription,
+  skillCooldownDescription,
+  skillParameterRows,
   skillRequirementDescription,
   skillTargetTags,
+  skillTargetMethodExplanation,
 } from './skill-detail-presentation'
+import { skillPreviewEffects } from './skill-effect-preview'
+import { SkillGroundAreaDetails } from './skill-ground-area-details'
 import styles from './skill-details.module.css'
+import { SkillCharacteristicRows } from './skill-characteristic-rows'
 
 function SkillDetailBody({ skill }: { skill: MatureSkillDefinition }) {
+  const timingPolicy = useSkillEffectTimingPolicy()
+  const groundRules = useSkillGroundInteractionRules()
+  const airborneAttackElevation = useAirborneAttackElevation()
+  const dotTriggerPolicyVersion = useSkillDotTriggerPolicyVersion()
+  const legacyTriggers = dotTriggerPolicyVersion === null
+  const legacyPoisonMovement = dotTriggerPolicyVersion !== 2
   return (
     <>
       <dl>
-        <div>
-          <dt>Range</dt>
-          <dd>{skillRangeDescription(skill)}</dd>
-        </div>
-        <div>
-          <dt>Affects</dt>
-          <dd>{skillAffectedDescription(skill)}</dd>
-        </div>
-        {skill.target.kind !== 'self' ? (
-          <>
-            <div>
-              <dt>Line of sight</dt>
-              <dd>{skill.target.requiresLineOfSight ? 'Required' : 'Not required'}</dd>
-            </div>
-            <div>
-              <dt>Elevation gap</dt>
-              <dd>
-                {skill.target.maximumElevationDifference === null
-                  ? 'No limit'
-                  : `Up to ${skill.target.maximumElevationDifference}`}
-              </dd>
-            </div>
-          </>
-        ) : null}
-        <div>
-          <dt>AP cost</dt>
-          <dd>
-            {skill.apCost}
-            {skill.overrides.pvp?.apCost !== undefined &&
-            skill.overrides.pvp.apCost !== skill.apCost
-              ? ` · PvP ${skill.overrides.pvp.apCost}`
-              : ''}
-          </dd>
-        </div>
-        {(skill.mpCost ?? 0) > 0 ? (
+        <SkillCharacteristicRows
+          rows={skillParameterRows(skill, skill, timingPolicy, {
+            ...groundRules,
+            airborneAttackElevation,
+          })}
+          targetMethodExplanation={skillTargetMethodExplanation(skill)}
+          targetDetails={<SkillGroundAreaDetails skill={skill} />}
+        />
+        {skill.overrides.pvp?.apCost !== undefined &&
+        skill.overrides.pvp.apCost !== skill.apCost ? (
           <div>
-            <dt>MP cost</dt>
-            <dd>{skill.mpCost}</dd>
+            <dt>PvP Cost</dt>
+            <dd>
+              {skill.overrides.pvp.apCost} AP{skill.mpCost ? ` / ${skill.mpCost} MP` : ''}
+            </dd>
+          </div>
+        ) : null}
+        {skill.cooldown !== null &&
+        skill.overrides.pvp?.cooldownOwnerTurns !== undefined &&
+        skill.overrides.pvp.cooldownOwnerTurns !== skill.cooldown.ownerTurns ? (
+          <div>
+            <dt>PvP Cooldown</dt>
+            <dd>{skillCooldownDescription(skill, skill.overrides.pvp.cooldownOwnerTurns)}</dd>
           </div>
         ) : null}
       </dl>
-      <strong>Effects, in order</strong>
+      <strong>Effects</strong>
       <ol>
-        {skill.effects.map((effect, index) => (
-          <li key={index}>{skillEffectDescription(effect)}</li>
+        {skillPreviewEffects(skill, {
+          legacyTriggers,
+          legacyPoisonMovement,
+          ...groundRules,
+          timingPolicy,
+        }).map((effect, index) => (
+          <li key={index}>
+            <strong>{effect.label}</strong> — {effect.explanation}
+          </li>
         ))}
       </ol>
       {skill.requirements.length ? (
@@ -84,10 +93,11 @@ export function SkillDetails({
   skill: MatureSkillDefinition
   expanded?: boolean
 }) {
+  const groundRules = useSkillGroundInteractionRules()
   return (
     <div className={styles.root} data-testid="skill-details">
       <div className={styles.tags} aria-label="Targeting and effects">
-        {skillTargetTags(skill).map((tag) => (
+        {skillTargetTags(skill, groundRules).map((tag) => (
           <span key={tag}>{tag}</span>
         ))}
       </div>

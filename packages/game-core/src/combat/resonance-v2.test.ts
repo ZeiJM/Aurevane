@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
-import { resolveResonanceForPair } from './resonance'
+import { P35_REPRESENTATIVE_RESONANCES, resolveResonanceForPair } from './resonance'
+import { CLEANSE_STATUS_IDS, isCleanseEffect } from './combat-cleanse'
+import { latestEnabledMatureSkills } from './mature-skills'
+import { matchesResonanceSkill } from './resonance-skill-matcher'
 import {
   RESONANCE_V2_SCHEMA_VERSION,
   convertV5ResonanceToV2,
@@ -10,6 +13,101 @@ import {
 } from './resonance-v2'
 
 describe('Combat v5.1 Resonance v2 schema', () => {
+  it('has real qualifying current Skills for every displayed setup and trigger', () => {
+    const skills = latestEnabledMatureSkills()
+    for (const definition of P35_REPRESENTATIVE_RESONANCES) {
+      const current = resolveResonanceForPair(...definition.disciplinePair)!
+      const mechanics = normalizedResonanceMechanics(current)
+      for (const matcher of [mechanics.setup, mechanics.trigger]) {
+        if (!matcher) continue
+        expect(
+          skills.some((skill) => matchesResonanceSkill(skill, matcher)),
+          `${current.id}: ${JSON.stringify(matcher)}`,
+        ).toBe(true)
+      }
+    }
+  })
+  it('appends honest matcher wording without changing prior versions or non-Chronist eligibility', () => {
+    for (const original of P35_REPRESENTATIVE_RESONANCES) {
+      const [first, second] = original.disciplinePair
+      const latest = resolveResonanceForPair(first, second)!
+      const current = latest.authoring.validationTags.includes('captured-percentage-recovery')
+        ? resolveResonanceForPair(first, second, latest.contentVersion - 1)!
+        : latest
+      const previous = resolveResonanceForPair(first, second, current.contentVersion - 1)!
+      const nextMechanics = normalizedResonanceMechanics(current)
+      const oldMechanics = normalizedResonanceMechanics(previous)
+      expect(nextMechanics.trigger).toEqual(oldMechanics.trigger)
+      expect(nextMechanics.resultEffects).toEqual(oldMechanics.resultEffects)
+      expect(nextMechanics.aiSetupUtilityBonus).toBe(oldMechanics.aiSetupUtilityBonus)
+      expect(nextMechanics.aiTriggerUtilityBonus).toBe(oldMechanics.aiTriggerUtilityBonus)
+      if (oldMechanics.setup?.sourceDisciplineId === 'chronist') {
+        expect(oldMechanics.setup.requiredTags).toEqual(['tempo'])
+        expect(nextMechanics.setup).toEqual({
+          sourceDisciplineId: 'chronist',
+          matchMode: 'any-skill',
+          requiredTags: [],
+        })
+      } else expect(nextMechanics.setup).toEqual(oldMechanics.setup)
+      expect(current.description).not.toContain('tempo')
+      expect(
+        validateResonanceDefinitionV2(
+          current as Parameters<typeof validateResonanceDefinitionV2>[0],
+        ),
+      ).toEqual([])
+    }
+  })
+
+  it('rejects ambiguous Any Skill matcher payloads instead of silently accepting every Skill', () => {
+    const current = resolveResonanceForPair('chronist', 'cinderweaver')!
+    if (!isResonanceDefinitionV2(current) || !current.trigger.setup)
+      throw new Error('Expected sequence')
+    for (const setup of [
+      { ...current.trigger.setup, requiredTags: ['attack'] },
+      { sourceDisciplineId: 'chronist', requiredTags: [] },
+      { ...current.trigger.setup, matchMode: 'unknown' },
+    ]) {
+      const invalid = {
+        ...current,
+        trigger: { ...current.trigger, setup },
+      } as unknown as Parameters<typeof validateResonanceDefinitionV2>[0]
+      expect(validateResonanceDefinitionV2(invalid)).toContain('trigger.setup')
+    }
+    expect(
+      validateResonanceDefinitionV2({
+        ...current,
+        trigger: {
+          ...current.trigger,
+          trigger: { ...current.trigger.trigger, matchMode: 'any-skill', requiredTags: [] },
+        },
+      }),
+    ).toContain('trigger.trigger')
+  })
+  it('gives every current Resonance Cleanse the same removal contract while preserving pinned v3', () => {
+    let corrected = 0
+    for (const definition of P35_REPRESENTATIVE_RESONANCES) {
+      const [first, second] = definition.disciplinePair
+      const current = resolveResonanceForPair(first, second)!
+      const historical = resolveResonanceForPair(first, second, 3)!
+      const effects = normalizedResonanceMechanics(current).resultEffects
+      const oldEffects = normalizedResonanceMechanics(historical).resultEffects
+      if (!oldEffects.some(isCleanseEffect)) continue
+      corrected += 1
+      expect(current.contentVersion).toBe(5)
+      for (const effect of effects.filter(isCleanseEffect))
+        expect(effect.statusIds).toEqual(CLEANSE_STATUS_IDS)
+      expect(
+        oldEffects.filter(isCleanseEffect).every((effect) => effect.statusIds.length < 8),
+      ).toBe(true)
+      expect({
+        ...resolveResonanceForPair(first, second, 4)!,
+        contentVersion: 3,
+        trigger: historical.trigger,
+        authoring: historical.authoring,
+      }).toEqual(historical)
+    }
+    expect(corrected).toBe(11)
+  })
   it('normalizes historical v1 payoff terminology without mutating the definition', () => {
     const historical = resolveResonanceForPair('lifebinder', 'vanguard', 1)
     if (!historical) throw new Error('Expected historical Resonance.')

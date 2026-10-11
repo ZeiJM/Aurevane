@@ -6,9 +6,11 @@ import {
 } from '@aurevane/game-core/combat/actions'
 import {
   createStatDrivenCombatEncounterState,
+  createStatBalancedCombatEncounterState,
   type StatDrivenCombatEncounterState,
 } from '@aurevane/game-core/combat/stat-driven-combat'
 import { createPvpQualityResources } from '@aurevane/game-core/combat/pvp-quality'
+import { hasGameplayTag, statusIdsForGameplayTag } from '@aurevane/game-core/combat/gameplay-tags'
 import {
   createPv1fTemporaryResources,
   PV1F_COMBAT_CONTENT,
@@ -16,7 +18,88 @@ import {
 } from '@aurevane/game-core/combat/pv1f-action-economy'
 import { describe, expect, it } from 'vitest'
 
-import { buildReachablePaths, retractProjectedPath } from './battle-geometry'
+import {
+  buildMovementPaths,
+  buildDisplayedPlacementByTile,
+  positionKey,
+  buildReachablePaths,
+  retractProjectedPath,
+} from './battle-geometry'
+
+it('shows Airborne Jump 3 paths consistently with authoritative movement and saved history', () => {
+  const base = withStatus(
+    { ...encounter(), airborneJumpPolicyVersion: 1 as const },
+    'actor',
+    'airborne',
+  )
+  const state = {
+    ...base,
+    tactical: {
+      ...base.tactical,
+      tiles: base.tactical.tiles.map((row) =>
+        row.position.x === 1 && row.position.y === 0 ? { ...row, elevation: 3 } : row,
+      ),
+    },
+  }
+  const placement = state.tactical.placements[0]!
+  expect(buildMovementPaths(state, placement, 100).has('1:0')).toBe(true)
+  expect(
+    evaluatePv1fMovement(state, [
+      { x: 1, y: 1 },
+      { x: 1, y: 0 },
+    ]).movement.legal,
+  ).toBe(true)
+  expect(
+    buildMovementPaths({ ...state, airborneJumpPolicyVersion: undefined }, placement, 100).has(
+      '1:0',
+    ),
+  ).toBe(false)
+})
+
+it('allows descending after Airborne ends and never previews entry above current Jump', () => {
+  const raw = encounter()
+  const base = createStatBalancedCombatEncounterState(
+    raw,
+    raw.statBridge.combatants.map((profile) => ({
+      ...profile,
+      physicalPower: 20,
+      mysticPower: 20,
+      level: 1,
+      criticalChance: 0,
+    })),
+  )
+  const state = {
+    ...base,
+    statBalancePolicyVersion: 1 as const,
+    airborneJumpPolicyVersion: 1 as const,
+    tactical: {
+      ...base.tactical,
+      tiles: base.tactical.tiles.map((row) =>
+        row.position.x === 1 && row.position.y === 1
+          ? { ...row, elevation: 3 }
+          : row.position.x === 0 && row.position.y === 1
+            ? { ...row, elevation: 3 }
+            : row.position.x === 1 && row.position.y === 0
+              ? { ...row, elevation: 4 }
+              : row,
+      ),
+    },
+  }
+  const placement = state.tactical.placements[0]!
+  const paths = buildMovementPaths(state, placement, 100)
+  expect(paths.has('0:1')).toBe(true)
+  expect(paths.has('0:0')).toBe(true)
+  expect(
+    buildMovementPaths({ ...state, airborneJumpPolicyVersion: undefined }, placement, 100).has(
+      '0:1',
+    ),
+  ).toBe(false)
+  expect(evaluatePv1fMovement(state, paths.get('0:1')!).movement.legal).toBe(true)
+  expect(paths.has('1:0')).toBe(false)
+  expect(
+    buildMovementPaths(withStatus(state, 'actor', 'airborne'), placement, 100).has('1:0'),
+  ).toBe(false)
+})
 
 describe('retractProjectedPath', () => {
   const path = [
@@ -135,6 +218,93 @@ function withStatus<T extends CombatEncounterState>(
 }
 
 describe('authoritative movement highlights', () => {
+  it('highlights paths through and onto defeated units while retaining living blockers', () => {
+    const original = encounter()
+    const state = {
+      ...original,
+      tactical: {
+        ...original.tactical,
+        battle: {
+          ...original.tactical.battle,
+          combatants: original.tactical.battle.combatants.map((combatant) =>
+            combatant.id === 'enemy' ? { ...combatant, hp: 0 } : combatant,
+          ),
+        },
+      },
+    }
+    const paths = buildMovementPaths(state, state.tactical.placements[0]!, 100)
+    expect(paths.get('2:1')).toEqual([
+      { x: 1, y: 1 },
+      { x: 2, y: 1 },
+    ])
+    expect(paths.get('2:2')).toEqual([
+      { x: 1, y: 1 },
+      { x: 2, y: 1 },
+      { x: 2, y: 2 },
+    ])
+    expect(paths.has('3:1')).toBe(false)
+    expect(paths.has('1:2')).toBe(false)
+    for (const path of paths.values()) {
+      expect(evaluatePv1fMovement(state, path).movement.legal).toBe(true)
+    }
+  })
+
+  it.each([false, true])(
+    'shows and selects the living occupant regardless of corpse ordering (%j)',
+    (reverse) => {
+      const state = encounter().tactical
+      const tactical = {
+        ...state,
+        battle: {
+          ...state.battle,
+          combatants: state.battle.combatants.map((row) =>
+            row.id === 'enemy' ? { ...row, hp: 0 } : row,
+          ),
+        },
+        placements: state.placements.map((row) =>
+          row.combatantId === 'enemy' ? { ...row, position: { x: 1, y: 1 } } : row,
+        ),
+      }
+      if (reverse) tactical.placements.reverse()
+      expect(buildDisplayedPlacementByTile(tactical).get('1:1')?.combatantId).toBe('actor')
+      expect(
+        buildReachablePaths(
+          { ...encounter(), tactical },
+          tactical.placements.find((row) => row.combatantId === 'actor')!,
+          100,
+        ).has('1:1'),
+      ).toBe(true)
+      const onlyCorpse = {
+        ...tactical,
+        placements: tactical.placements.filter((row) => row.combatantId !== 'actor'),
+      }
+      expect(buildDisplayedPlacementByTile(onlyCorpse).get('1:1')?.combatantId).toBe('enemy')
+    },
+  )
+
+  it.each([false, true])(
+    'never lets a corpse conceal a living movement blocker (%j)',
+    (reverse) => {
+      const original = encounter()
+      const tactical = {
+        ...original.tactical,
+        battle: {
+          ...original.tactical.battle,
+          combatants: original.tactical.battle.combatants.map((row) =>
+            row.id === 'enemy' ? { ...row, hp: 0 } : row,
+          ),
+        },
+        placements: original.tactical.placements.map((row) =>
+          row.combatantId === 'enemy' ? { ...row, position: { x: 3, y: 1 } } : row,
+        ),
+      }
+      if (reverse) tactical.placements.reverse()
+      const actor = tactical.placements.find((row) => row.combatantId === 'actor')!
+      expect(buildMovementPaths({ ...original, tactical }, actor, 100).has('3:1')).toBe(false)
+      expect(buildDisplayedPlacementByTile(tactical).get('3:1')?.combatantId).toBe('other')
+    },
+  )
+
   it.each([
     [[], true, 20, false],
     [['slow'], false, 20, false],
@@ -196,9 +366,56 @@ describe('authoritative movement highlights', () => {
     state.tactical.battle.currentTurn!.movementRemaining = 1
     expect(buildReachablePaths(state, state.tactical.placements[0]!, 100).has('0:0')).toBe(false)
   })
+
+  it.each([
+    [2, 80],
+    [1, 60],
+  ] as const)('highlights two MOVE steps across %i rough tiles for %i AP', (roughTiles, ap) => {
+    const state = encounter()
+    state.tactical.battle.currentTurn!.movementMaximum = 2
+    state.tactical.battle.currentTurn!.movementRemaining = 2
+    state.tactical.battle.combatants[0]!.baseMovementBudget = 2
+    state.tactical.terrains = [
+      ...state.tactical.terrains,
+      { id: 'rough', traversalCost: 2 },
+      { id: 'wall', traversalCost: null },
+    ]
+    state.tactical.tiles = state.tactical.tiles.map((tile) => ({
+      ...tile,
+      terrainId:
+        tile.position.x === 1 && tile.position.y === 0
+          ? 'wall'
+          : (tile.position.x === 0 && tile.position.y === 1) ||
+              (roughTiles === 2 && tile.position.x === 0 && tile.position.y === 0)
+            ? 'rough'
+            : 'open',
+    }))
+    const paths = buildReachablePaths(state, state.tactical.placements[0]!, ap)
+    const selected = paths.get('0:0')!
+    expect(selected).toHaveLength(3)
+    expect(evaluatePv1fMovement(state, selected).movement).toMatchObject({
+      legal: true,
+      cost: 2,
+      movementRemainingAfter: 0,
+    })
+    expect(evaluatePv1fMovement(state, selected).economyCost).toBe(ap)
+    expect(paths.has('0:2')).toBe(true)
+    expect(paths.has('0:3')).toBe(false)
+  })
+
+  it('does not highlight a rough tile when its AP cost cannot be paid', () => {
+    const state = encounter()
+    state.tactical.terrains = [...state.tactical.terrains, { id: 'rough', traversalCost: 2 }]
+    state.tactical.tiles = state.tactical.tiles.map((tile) => ({
+      ...tile,
+      terrainId: tile.position.x === 0 && tile.position.y === 1 ? 'rough' : 'open',
+    }))
+    expect(buildReachablePaths(state, state.tactical.placements[0]!, 39).has('0:1')).toBe(false)
+    expect(buildReachablePaths(state, state.tactical.placements[0]!, 40).has('0:1')).toBe(true)
+  })
 })
 
-it('retains both AP-cheaper and Movement-cheaper routes through a merge', () => {
+it('chooses the lower-AP route when both routes through a merge have equal MOVE steps', () => {
   const base = encounter()
   const state = {
     ...base,
@@ -237,13 +454,109 @@ it('retains both AP-cheaper and Movement-cheaper routes through a merge', () => 
     })),
   }
   const placement = state.tactical.placements[0]!
-  // Top: 4 Movement / 110 AP. Bottom: 5 Movement / 100 AP.
+  // Top: 4 Movement / 110 AP. Bottom: 4 Movement / 100 AP.
   const affordable = buildReachablePaths(state, placement, 100).get('2:2')!
   expect(evaluatePv1fMovement(state, affordable).economyCost).toBe(100)
-  expect(evaluatePv1fMovement(state, affordable).movement.cost).toBe(5)
-  // A hypothetical larger AP budget still must preserve the shorter Movement route
-  // through the merge to reach the next tile within the unchanged 5 Movement cap.
+  expect(evaluatePv1fMovement(state, affordable).movement.cost).toBe(4)
+  // The lower-AP route can extend to the next tile within the unchanged 5 Movement cap.
   const extended = buildReachablePaths(state, placement, 130).get('3:2')!
-  expect(evaluatePv1fMovement(state, extended).economyCost).toBe(130)
+  expect(evaluatePv1fMovement(state, extended).economyCost).toBe(120)
   expect(evaluatePv1fMovement(state, extended).movement.cost).toBe(5)
+})
+
+it('keeps a shorter costly route when the cheapest merge route exhausts MOVE before the destination', () => {
+  const base = withStatus(encounter(), 'actor', 'haste')
+  const state = {
+    ...base,
+    tactical: {
+      ...base.tactical,
+      terrains: [...base.tactical.terrains, { id: 'rough', traversalCost: 2 }],
+      placements: base.tactical.placements.map((row, index) => ({
+        ...row,
+        position: index === 0 ? { x: 0, y: 0 } : { x: index + 1, y: 3 },
+      })),
+      tiles: base.tactical.tiles.map((tile) => ({
+        ...tile,
+        terrainId: tile.position.x === 1 && tile.position.y === 0 ? 'rough' : 'open',
+      })),
+    },
+    terrainOverlays: [
+      {
+        kind: 'frozen' as const,
+        position: { x: 1, y: 0 },
+        remainingRoundBoundaries: 2,
+        sourceCombatantId: 'actor',
+      },
+    ],
+  }
+  const paths = buildReachablePaths(state, state.tactical.placements[0]!, 100)
+  const merge = evaluatePv1fMovement(state, paths.get('2:0')!)
+  expect(merge.movement.cost).toBe(4)
+  expect(merge.economyCost).toBe(40)
+  const destination = evaluatePv1fMovement(state, paths.get('4:0')!)
+  expect(destination.movement).toMatchObject({ legal: true, cost: 4, movementRemainingAfter: 1 })
+  expect(destination.economyCost).toBe(70)
+})
+
+describe('full-range Move destinations', () => {
+  it('keeps pending rail statuses out of movement and gameplay tag calculations', () => {
+    let state = encounter()
+    for (const status of ['root', 'airborne', 'covert']) state = withStatus(state, 'actor', status)
+    state.statusState = state.statusState.map((row) => ({
+      ...row,
+      statuses: row.statuses.map((status) => ({
+        ...status,
+        timingState: 'pending',
+        activationRound: 2,
+      })),
+    }))
+    state.terrainOverlays = [
+      {
+        kind: 'frozen',
+        position: { x: 1, y: 0 },
+        remainingRoundBoundaries: 2,
+        sourceCombatantId: 'actor',
+      },
+    ]
+    const paths = buildMovementPaths(state, state.tactical.placements[0]!, 100)
+    expect(paths.has('0:1')).toBe(true)
+    expect(paths.has('1:0')).toBe(true)
+    expect(buildMovementPaths(state, state.tactical.placements[0]!, 29).has('1:0')).toBe(false)
+    expect(hasGameplayTag(state, 'actor', 'Airborne', PV1F_COMBAT_CONTENT)).toBe(false)
+    expect(statusIdsForGameplayTag(state, 'actor', 'Airborne', PV1F_COMBAT_CONTENT)).toEqual([])
+  })
+  it('offers complete legal routes across the full remaining movement budget', () => {
+    const state = encounter()
+    const placement = state.tactical.placements[0]!
+    const paths = buildMovementPaths(state, placement, 100)
+    expect(paths.has('0:1')).toBe(true)
+    expect(paths.has('1:0')).toBe(true)
+    expect(paths.get('0:0')).toHaveLength(3)
+    expect(paths.has(positionKey(placement.position))).toBe(false)
+    for (const path of paths.values()) {
+      expect(path.length).toBeGreaterThanOrEqual(2)
+      expect(path.length).toBeLessThanOrEqual(6)
+      expect(evaluatePv1fMovement(state, path).movement.legal).toBe(true)
+    }
+    expect(state.tactical.battle.currentTurn!.movementRemaining).toBe(5)
+    expect(buildReachablePaths(state, placement, 100).has('0:0')).toBe(true)
+  })
+
+  it('still respects AP, rough terrain, elevation, blocked movement and exhausted Movement', () => {
+    const state = encounter()
+    state.tactical.terrains = [...state.tactical.terrains, { id: 'rough', traversalCost: 2 }]
+    state.tactical.tiles = state.tactical.tiles.map((tile) => ({
+      ...tile,
+      terrainId: tile.position.x === 0 && tile.position.y === 1 ? 'rough' : 'open',
+      elevation: tile.position.x === 1 && tile.position.y === 0 ? 1 : 0,
+    }))
+    expect(buildMovementPaths(state, state.tactical.placements[0]!, 39).size).toBe(0)
+    expect([...buildMovementPaths(state, state.tactical.placements[0]!, 40).keys()]).toEqual([
+      '0:1',
+    ])
+    const rooted = withStatus(state, 'actor', 'root')
+    expect(buildMovementPaths(rooted, rooted.tactical.placements[0]!, 100).size).toBe(0)
+    state.tactical.battle.currentTurn!.movementRemaining = 0
+    expect(buildMovementPaths(state, state.tactical.placements[0]!, 100).size).toBe(0)
+  })
 })

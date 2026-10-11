@@ -1,11 +1,15 @@
 'use client'
 
+import { normalizeCurrentCombatTargetSpec } from '@aurevane/game-core/combat/combat-targeting-shapes'
+
 import type { EssenceDefinition } from '@aurevane/game-core/combat/essence'
 import { isMaterializedCombatEffect } from '@aurevane/game-core/combat/summon-content'
 import { useRouter } from 'next/navigation'
 import { useMemo, useRef, useState } from 'react'
 
+import { SkillDetails } from '../../character/skill-details'
 import styles from './combat-content-editor.module.css'
+import { BattleFlavorTemplateHelp } from './battle-flavor-template-help'
 import { postCombatContentAuthoring } from './combat-content-client'
 import { CombatContentReviewPanel } from './combat-content-review-panel'
 import {
@@ -23,6 +27,7 @@ import {
 import { SkillEconomyEditor, type SkillEconomyDraft } from './skill-economy-editor'
 import { SkillEffectListEditor } from './skill-effect-list-editor'
 import { SkillMediaEditor } from './skill-media-editor'
+import { SkillGroundEditor, groundAreaForEffects, withSkillGroundArea } from './skill-ground-editor'
 import { SkillTargetingEditor } from './skill-targeting-editor'
 
 export interface EssenceContentEditorOption {
@@ -77,7 +82,13 @@ export function EssenceContentEditor({ essences, initialEssenceId }: EssenceCont
     Object.fromEntries(
       essences.map((essence) => [
         essence.id,
-        structuredClone(essence.initialDraft ?? essence.definition),
+        (() => {
+          const draft = structuredClone(essence.initialDraft ?? essence.definition)
+          return {
+            ...draft,
+            skill: { ...draft.skill, target: normalizeCurrentCombatTargetSpec(draft.skill.target) },
+          }
+        })(),
       ]),
     ),
   )
@@ -115,6 +126,15 @@ export function EssenceContentEditor({ essences, initialEssenceId }: EssenceCont
   )
 
   function updateDraft(next: EssenceDefinition) {
+    next = {
+      ...next,
+      skill: withSkillGroundArea(
+        next.skill,
+        next.skill.groundArea && next.skill.target.kind === 'ground-tile'
+          ? groundAreaForEffects(next.skill.effects, next.skill.groundArea)
+          : undefined,
+      ),
+    }
     if (!selected) return
     const id = selected.id
     draftRevision.current[id] = (draftRevision.current[id] ?? 0) + 1
@@ -394,11 +414,49 @@ export function EssenceContentEditor({ essences, initialEssenceId }: EssenceCont
                   Presentation only. The nested Skill remains the authoritative mechanic.
                 </small>
               </label>
+              <BattleFlavorTemplateHelp
+                value={selectedDraft.flavorLine ?? ''}
+                ability={selectedDraft.name}
+                onChange={(flavorLine) => updateDraft({ ...selectedDraft, flavorLine })}
+              />
+              <label className={styles.field}>
+                <span>In-battle text</span>
+                <input
+                  aria-label="Essence in-battle text"
+                  maxLength={160}
+                  value={skill.battleText ?? ''}
+                  onChange={(event) => {
+                    const next = { ...skill }
+                    if (event.currentTarget.value.trim())
+                      next.battleText = event.currentTarget.value
+                    else Reflect.deleteProperty(next, 'battleText')
+                    updateDraft({ ...selectedDraft, skill: next })
+                  }}
+                />
+                <small className={styles.fieldHint}>
+                  Describe the action in battle. Leave blank to use the default action narration.
+                </small>
+              </label>
+              <BattleFlavorTemplateHelp
+                value={skill.battleText ?? ''}
+                ability={selectedDraft.name}
+                onChange={(battleText) =>
+                  updateDraft({ ...selectedDraft, skill: { ...skill, battleText } })
+                }
+              />
             </fieldset>
 
             <SkillTargetingEditor
               value={skill.target}
               onChange={(target) => updateDraft({ ...selectedDraft, skill: { ...skill, target } })}
+            />
+            <SkillGroundEditor
+              target={skill.target}
+              effects={skill.effects}
+              value={skill.groundArea}
+              onChange={(groundArea) =>
+                updateDraft({ ...selectedDraft, skill: withSkillGroundArea(skill, groundArea) })
+              }
             />
             <SkillEconomyEditor
               value={{
@@ -458,6 +516,16 @@ export function EssenceContentEditor({ essences, initialEssenceId }: EssenceCont
             ))}
           </output>
         </section>
+
+        {skill ? (
+          <section className={styles.tags} aria-label="Player-facing Skill information">
+            <div>
+              <p className={styles.sectionLabel}>Read-only draft projection</p>
+              <h2>Skill information</h2>
+            </div>
+            <SkillDetails skill={skill} expanded />
+          </section>
+        ) : null}
 
         <CombatContentReviewPanel
           contentKey={selected.id}

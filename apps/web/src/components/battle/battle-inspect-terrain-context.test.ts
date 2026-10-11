@@ -10,13 +10,13 @@ describe('battle Inspect terrain context', () => {
     })
   })
 
-  it('keeps rough and open ground labels unchanged at base elevation', () => {
+  it('uses current terrain names at base elevation', () => {
     expect(describeTerrainLabel('Tile 4, 5; rough-ground; elevation 0')).toEqual({
-      title: 'Rough ground · Tile 4,5',
+      title: 'Difficult terrain · Tile 4,5',
       description: 'Entry costs 40 AP · Elevation 0.',
     })
     expect(describeTerrainLabel('Tile 4, 4; open-ground; elevation 0')).toEqual({
-      title: 'Open ground · Tile 4,4',
+      title: 'Neutral ground · Tile 4,4',
       description: 'Entry costs 20 AP · Elevation 0.',
     })
   })
@@ -29,16 +29,18 @@ describe('battle Inspect terrain context', () => {
   })
 })
 
-it('includes temporary terrain duration and both-team rules in empty tile Inspect', () => {
+it('keeps temporary terrain name and duration compact without repeating its rules', () => {
   const frozen = describeTerrainLabel(
-    'Tile 4, 4; open-ground; elevation 0; Frozen terrain; 2 round boundaries remaining; Adds 10 AP per entered tile for either team. Airborne ignores this surcharge; Movement allowance is unchanged.',
+    'Tile 4, 4; open-ground; elevation 0; Frozen Ground terrain; 2 round boundaries remaining; Adds 10 AP per entered tile for either team. Airborne ignores this surcharge; Movement allowance is unchanged.',
   )!
-  expect(frozen.description).toContain('Frozen terrain')
-  expect(frozen.description).toContain('2 round boundaries remaining')
-  expect(frozen.description).toContain('Airborne')
+  expect(frozen.description).toContain('Frozen Ground terrain')
+  expect(frozen.description).toContain('2 rounds remaining')
+  expect(frozen.description).not.toContain('Adds 10 AP')
+  expect(frozen.description).not.toContain('Airborne')
   const steam = describeTerrainLabel(
     'Tile 4, 4; rough-ground; elevation 0; Steam terrain; 1 round boundary remaining; Blocks line of sight through this tile for either team. Preserves base terrain.',
   )!
   expect(steam.description).toContain('Steam terrain')
-  expect(steam.description).toContain('Blocks line of sight')
+  expect(steam.description).toContain('1 round remaining')
+  expect(steam.description).not.toContain('Blocks line of sight')
 })

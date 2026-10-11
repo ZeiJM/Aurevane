@@ -1,3 +1,6 @@
+import { readBattlefieldElevationPolicy } from '@/server/master/battlefield-elevation-policy-store'
+import { readCombatEffectTimingPolicy } from '@/server/master/combat-effect-timing-policy-store'
+import { omitPendingBattlePayloads } from './battle-live-viewer-projection'
 import 'server-only'
 
 import { randomInt, randomUUID } from 'node:crypto'
@@ -23,12 +26,18 @@ import {
 } from '@aurevane/game-core/combat/pv1f-action-economy'
 import {
   createCharacterDerivedCombatProfile,
-  createStatDrivenCombatEncounterState,
+  createDuelBalancedCombatEncounterState,
   validateStatDrivenCombatEncounterState,
   type StatDrivenCombatEncounterState,
 } from '@aurevane/game-core/combat/stat-driven-combat'
 import { getTacticalHallArena } from '@aurevane/game-core/combat/tactical-hall-arenas'
 import { AurevaneError } from '@aurevane/game-core/errors'
+import {
+  defaultBattlefieldElevationPolicy,
+  parseBattlefieldElevationPolicy,
+  type BattlefieldElevationPolicy,
+  createStandardBattlefieldTiles,
+} from '@aurevane/game-core/combat/standard-battlefield'
 import type { PvpMode } from '@aurevane/validation/combat/pvp'
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
@@ -44,6 +53,7 @@ import { createServerCombatContentResolver } from '@/server/combat/combat-conten
 import {
   createBattleBuildAuthoritySnapshot,
   createResolvedBattleBuildAuthoritySnapshot,
+  narratorIdentityForCharacter,
   type BattleBuildAuthoritySnapshot,
 } from './battle-build-authority'
 import { projectBattleStatusStateForViewer } from './battle-live-viewer-projection'
@@ -56,7 +66,6 @@ import { createSpectatorBattleViewerEntitlement } from './battle-viewer-entitlem
 
 const PVP_RULES_VERSION = 3
 const PVP_CONTENT_VERSION = 2
-const PVP_BASE_MOVEMENT_UNITS = 10
 
 export interface PvpLobbyMemberView {
   userId: string
@@ -374,6 +383,7 @@ export function createPvpEncounter(
   roster: readonly PvpEncounterRosterEntry[],
   teamSizes: readonly [number, number, number],
   buildAuthority?: BattleBuildAuthoritySnapshot,
+  elevationPolicy: BattlefieldElevationPolicy = defaultBattlefieldElevationPolicy(),
 ): BattleAuthoritativeEncounterState {
   const arena = getTacticalHallArena('duel-yard')
   const profiles = []
@@ -424,7 +434,7 @@ export function createPvpEncounter(
       id: combatantId,
       teamId: `team:${member.teamIndex}`,
       initiative: derived.stats.initiative.value,
-      baseMovementBudget: PVP_BASE_MOVEMENT_UNITS,
+      baseMovementBudget: derived.stats.movement.value,
       hp: derived.stats.maxHp.value,
       maxHp: derived.stats.maxHp.value,
       mp: derived.stats.maxMp.value,
@@ -444,14 +454,20 @@ export function createPvpEncounter(
   ).state
 
   const encounter = preparePv1fTurnEconomy(
-    createStatDrivenCombatEncounterState(
+    createDuelBalancedCombatEncounterState(
       createCombatEncounterState(
         createTacticalBattleState({
           battle,
           width: arena.width,
           height: arena.height,
           terrains: P2_2_VERTICAL_SLICE_TERRAINS,
-          tiles: arena.tiles,
+          tiles: createStandardBattlefieldTiles({
+            elevationPolicy,
+            width: arena.width,
+            height: arena.height,
+            seed: battle.rng.seed,
+            spawns: placements.map((placement) => placement.position),
+          }),
           movementProfiles,
           placements,
         }),
@@ -462,6 +478,7 @@ export function createPvpEncounter(
 
   return {
     ...encounter,
+    battlefieldElevationPolicy: parseBattlefieldElevationPolicy(elevationPolicy),
     buildAuthority:
       buildAuthority ??
       createBattleBuildAuthoritySnapshot(
@@ -470,6 +487,7 @@ export function createPvpEncounter(
           combatantId: `character:${character.id}`,
           characterId: character.id,
           snapshot: buildSnapshot,
+          narratorIdentity: narratorIdentityForCharacter(character),
         })),
       ),
   }
@@ -483,7 +501,7 @@ function projectSnapshot(input: unknown): BattleSessionProjection {
   const viewer = createSpectatorBattleViewerEntitlement()
   const battle = candidate.tactical.battle
   return {
-    ...candidate,
+    ...omitPendingBattlePayloads(candidate),
     statusState: projectBattleStatusStateForViewer(candidate, viewer),
     tactical: {
       ...candidate.tactical,
@@ -495,6 +513,7 @@ function projectSnapshot(input: unknown): BattleSessionProjection {
         lifecycle: battle.lifecycle,
         combatants: battle.combatants,
         initiativeOrder: battle.initiativeOrder,
+        ...(battle.initiativeTieOrder ? { initiativeTieOrder: battle.initiativeTieOrder } : {}),
         ...(battle.roundInitiativeModifiers
           ? { roundInitiativeModifiers: battle.roundInitiativeModifiers }
           : {}),
@@ -609,10 +628,27 @@ export async function startPvpLobby(
       combatantId: `character:${character.id}`,
       characterId: character.id,
       snapshot: buildSnapshot,
+      narratorIdentity: narratorIdentityForCharacter(character),
     })),
     createServerCombatContentResolver(),
   )
-  const encounter = createPvpEncounter(roster, lobby.teamSizes, buildAuthority)
+  const elevationPolicy = parseBattlefieldElevationPolicy(await readBattlefieldElevationPolicy())
+  const encounter = createPvpEncounter(roster, lobby.teamSizes, buildAuthority, elevationPolicy)
+  encounter.battlefieldElevationPolicy = elevationPolicy
+  encounter.effectTimingPolicy = await readCombatEffectTimingPolicy()
+  encounter.effectStackingPolicyVersion = 1
+  encounter.percentageDotPolicyVersion = 1
+  encounter.dotTriggerPolicyVersion = 2
+  encounter.skillPacketPolicyVersion = 1
+  encounter.displacementPolicyVersion = 1
+  encounter.frozenGroundPolicyVersion = 1
+  encounter.airbornePolicyVersion = 1
+  encounter.airborneJumpPolicyVersion = 1
+  encounter.elementalDamagePolicyVersion = 2
+  encounter.dynamicInitiativePolicyVersion = 1
+  encounter.healingDownPolicyVersion = 1
+  encounter.blindsideActivationPolicyVersion = 1
+  encounter.groundEffectPolicyVersion = 1
   const battle = encounter.tactical.battle
   const supabase = createSupabaseAdminClient()
   const { data, error } = await supabase.rpc('create_pvp_battle_session_v1', {

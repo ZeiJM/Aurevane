@@ -6,9 +6,12 @@ import { createTacticalBattleState } from './board'
 import type { CombatSummonInstance } from './combat-effect-state'
 import { spawnCombatSummon } from './combat-summons'
 import {
+  executePv1fMovement,
   executePv1fSummonAbility,
+  finishPv1fTurn,
   preparePv1fTurnEconomy,
   readPv1fActionEconomy,
+  spendPv1fActionEconomy,
 } from './pv1f-action-economy'
 import { chooseSummonAiDecision, type SummonAiDecision } from './summon-ai'
 import {
@@ -227,6 +230,22 @@ function chosenAbility(decision: SummonAiDecision): string | null {
 }
 
 describe('Combat v5.1 summon AI', () => {
+  it('finishes its turn deterministically when no ability or movement is affordable', () => {
+    const active = summonTurn(20)
+    const state = spendPv1fActionEconomy(active.state, 85)
+    const input = { state, summon: active.summon, tieBreakSeed: 45 }
+    const decision = chooseSummonAiDecision(input)
+    expect(chooseSummonAiDecision(input)).toEqual(decision)
+    expect(decision.intent.kind).toBe('face')
+    if (decision.intent.kind !== 'face') throw new Error('Expected final facing to end the turn.')
+    const finished = finishPv1fTurn(state, decision.intent.facing)
+    expect(finished.state.tactical.battle.currentTurn?.combatantId).toBe('player')
+    expect(finished.events).not.toContainEqual(
+      expect.objectContaining({ event: 'summon_ability_used' }),
+    )
+    expect(finished.state.effectState?.summons?.[0]?.turnsCompleted).toBe(1)
+  })
+
   it('chooses healing over damage when a friendly target is meaningfully injured', () => {
     const { state, summon } = summonTurn(20)
     const decision = chooseSummonAiDecision({ state, summon, tieBreakSeed: 17 })
@@ -274,6 +293,48 @@ describe('Combat v5.1 summon AI', () => {
     expect(chosenAbility(b)).toBe(chosenAbility(a))
   })
 
+  it('moves under normal movement authority until an authored ability is in legal range, then attacks', () => {
+    const meleeOnly = summonProfile({
+      abilities: [
+        {
+          ...summonProfile().abilities[0]!,
+          target: {
+            ...summonProfile().abilities[0]!.target,
+            minimumRange: 1,
+            maximumRange: 1,
+          },
+        },
+      ],
+    })
+    const { state, summon } = summonTurn(50, meleeOnly)
+
+    const first = chooseSummonAiDecision({ state, summon, tieBreakSeed: 301 })
+    expect(first.intent.kind).toBe('move')
+    if (first.intent.kind !== 'move') throw new Error('Expected summon movement.')
+
+    const moved = executePv1fMovement(state, first.intent.path)
+    const movedPlacement = moved.state.tactical.placements.find(
+      (placement) => placement.combatantId === summon.combatantId,
+    )
+    expect(movedPlacement?.position).toEqual({ x: 2, y: 0 })
+
+    const currentSummon = moved.state.effectState?.summons?.find(
+      (row) => row.combatantId === summon.combatantId,
+    )
+    if (!currentSummon) throw new Error('Expected active summon after movement.')
+
+    const second = chooseSummonAiDecision({
+      state: moved.state,
+      summon: currentSummon,
+      tieBreakSeed: 302,
+    })
+    expect(second.intent).toMatchObject({
+      kind: 'action',
+      actionId: 'wildwarden.verdant-stalker.thorn-rake',
+      target: { kind: 'unit', combatantId: 'enemy' },
+    })
+  })
+
   it('allows at most one authored ability per summon turn while leaving movement/facing/end available', () => {
     const { state, summon } = summonTurn(50)
     const first = chooseSummonAiDecision({ state, summon, tieBreakSeed: 44 })
@@ -302,5 +363,30 @@ describe('Combat v5.1 summon AI', () => {
         summon.profile.abilities.some((ability) => ability.id === nextActionId),
     ).toBe(false)
     expect(['move', 'face', 'end-turn']).toContain(next.intent.kind)
+  })
+})
+
+it('uses a shared full cardinal lane for a versioned summon ability', () => {
+  const base = summonProfile().abilities[0]!
+  const profile = summonProfile({
+    abilities: [
+      {
+        ...base,
+        effects: [{ type: 'damage', recipient: 'affected-units', amount: 10 }],
+        target: {
+          ...base.target,
+          geometryVersion: 2,
+          shape: { kind: 'line', length: 3 },
+          minimumRange: 0,
+          maximumRange: 3,
+        },
+      },
+    ],
+  })
+  const { state, summon } = summonTurn(50, profile)
+  expect(chooseSummonAiDecision({ state, summon, tieBreakSeed: 17 }).intent).toMatchObject({
+    kind: 'action',
+    actionId: base.id,
+    target: { kind: 'direction', direction: 'east' },
   })
 })

@@ -1,7 +1,9 @@
 import { combatStatusPresentationTag } from '@aurevane/game-core/combat/gameplay-tags'
 import {
   COMBAT_TERRAIN_OVERLAY_DETAILS,
+  frozenGroundDescription,
   type CombatTerrainOverlay,
+  type CombatTerrainProjection,
 } from '@aurevane/game-core/combat/terrain-overlays'
 
 export function gameplayStatusName(id: string): string {
@@ -14,7 +16,14 @@ export function terrainOverlayDescription(
   if (!overlay) return ''
   const details = COMBAT_TERRAIN_OVERLAY_DETAILS[overlay.kind]
   const rounds = overlay.remainingRoundBoundaries
-  return `${details.name} terrain; ${rounds} round ${rounds === 1 ? 'boundary' : 'boundaries'} remaining; ${details.description}`
+  return `${details.name} terrain; ${rounds} round ${rounds === 1 ? 'boundary' : 'boundaries'} remaining; ${overlay.kind === 'frozen' ? frozenGroundDescription(overlay.frozenGroundPolicyVersion ?? null) : details.description}`
+}
+
+/** Compact inspect rows keep lifecycle; full rules remain in tile accessibility/help. */
+export function terrainOverlaySummary(overlay: CombatTerrainOverlay | null | undefined): string {
+  if (!overlay) return ''
+  const rounds = overlay.remainingRoundBoundaries
+  return `${COMBAT_TERRAIN_OVERLAY_DETAILS[overlay.kind].name} · ${rounds} ${rounds === 1 ? 'round' : 'rounds'} remaining`
 }
 
 function tile(value: unknown): string | null {
@@ -38,6 +47,57 @@ const PUSH_FAILURES: Readonly<Record<string, string>> = {
   'target-defeated': 'target is defeated',
 }
 
+/** A forecast is a projection, never a fabricated history event. */
+export function combatTerrainProjectionDescription(
+  projection: CombatTerrainProjection,
+): string | null {
+  const position = tile(projection.position)
+  if (!position || (projection.after !== 'frozen' && projection.after !== 'steam')) return null
+  const rounds = projection.remainingRoundBoundaries
+  if (!Number.isSafeInteger(rounds) || (rounds as number) < 1 || (rounds as number) > 4) return null
+  const details = COMBAT_TERRAIN_OVERLAY_DETAILS[projection.after]
+  const before = projection.before ? COMBAT_TERRAIN_OVERLAY_DETAILS[projection.before].name : null
+  const timing =
+    projection.activationRound !== undefined ? `Starts round ${projection.activationRound} · ` : ''
+  return `${timing}${before ? `${before} → ` : ''}${details.name} at tile ${position} · ${rounds} round ${rounds === 1 ? 'boundary' : 'boundaries'}. ${projection.after === 'frozen' ? frozenGroundDescription(projection.frozenGroundPolicyVersion ?? null) : details.description}`
+}
+
+/** Group actual projected/recorded changes; distinct transitions and timing remain separate. */
+export function combatTerrainSummaries(
+  projections: readonly CombatTerrainProjection[],
+): readonly string[] {
+  const groups = new Map<string, CombatTerrainProjection>()
+  for (const projection of projections) {
+    if (!combatTerrainProjectionDescription(projection)) continue
+    const key = JSON.stringify([
+      projection.before,
+      projection.after,
+      projection.remainingRoundBoundaries,
+      projection.activationRound ?? null,
+      projection.frozenGroundPolicyVersion ?? null,
+    ])
+    if (!groups.has(key)) groups.set(key, projection)
+  }
+  return [...groups.values()].map((projection) => {
+    const after = projection.after as 'frozen' | 'steam'
+    const details = COMBAT_TERRAIN_OVERLAY_DETAILS[after]
+    const before = projection.before ? COMBAT_TERRAIN_OVERLAY_DETAILS[projection.before].name : null
+    const rounds = projection.remainingRoundBoundaries
+    return [
+      `${before ? `${before} → ` : ''}${details.name}`,
+      projection.activationRound !== undefined
+        ? `Starts round ${projection.activationRound}`
+        : null,
+      `${rounds} ${rounds === 1 ? 'round' : 'rounds'}`,
+      after === 'frozen'
+        ? `+${COMBAT_TERRAIN_OVERLAY_DETAILS.frozen.additionalApPerTile} AP/tile`
+        : 'Blocks line of sight',
+    ]
+      .filter(Boolean)
+      .join(' · ')
+  })
+}
+
 /** Shared forecast and sanitized log text. Unknown payloads never become player-facing text. */
 export function combatInteractionDescription(event: object): string | null {
   const data = event as Record<string, unknown>
@@ -47,14 +107,16 @@ export function combatInteractionDescription(event: object): string | null {
     position &&
     (data.after === 'frozen' || data.after === 'steam')
   ) {
-    const details = COMBAT_TERRAIN_OVERLAY_DETAILS[data.after]
-    const before =
-      data.before === 'frozen' || data.before === 'steam'
-        ? COMBAT_TERRAIN_OVERLAY_DETAILS[data.before].name
-        : null
     const rounds = data.remainingRoundBoundaries
-    if (rounds !== 1 && rounds !== 2) return null
-    return `${before ? `${before} → ` : ''}${details.name} at tile ${position} · ${rounds} round ${rounds === 1 ? 'boundary' : 'boundaries'}. ${details.description}`
+    if (!Number.isSafeInteger(rounds) || (rounds as number) < 1 || (rounds as number) > 4)
+      return null
+    return combatTerrainProjectionDescription({
+      position: data.position as CombatTerrainProjection['position'],
+      before: data.before === 'frozen' || data.before === 'steam' ? data.before : null,
+      after: data.after,
+      remainingRoundBoundaries: rounds as number,
+      ...(data.frozenGroundPolicyVersion === 1 ? { frozenGroundPolicyVersion: 1 as const } : {}),
+    })
   }
   if (
     data.event === 'terrain_overlay_expired' &&

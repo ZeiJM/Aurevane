@@ -1,11 +1,16 @@
+import { advanceCombatGroundAreas } from './combat-ground-areas'
 import {
   createCombatEncounterState,
   executeCombatAction,
   type CombatActionDefinition,
 } from './actions'
-import type { BattleCombatant, BattleTemporaryResource } from './battle-state'
+import {
+  reorderBattleInitiative,
+  type BattleCombatant,
+  type BattleTemporaryResource,
+} from './battle-state'
 import { createTacticalBattleState } from './board'
-import { PV1F_COMBAT_CONTENT, finishPv1fTurn } from './pv1f-action-economy'
+import { PV1F_COMBAT_CONTENT, finishPv1fTurn, hasPv1fTurnActivity } from './pv1f-action-economy'
 import {
   reattachStatDrivenCombatBridge,
   validateStatDrivenCombatEncounterState,
@@ -87,7 +92,8 @@ export function timeoutAiTurn(state: StatDrivenCombatEncounterState): PvpQuality
     timeoutEvent: 'ai_turn_timed_out',
     loweredGuardEvent: 'ai_lowered_guard_applied',
     label: 'AI battle',
-    loweredGuardEveryTimeout: false,
+    // Current battles penalize every AFK timeout; legacy snapshots retain their two-miss rule.
+    loweredGuardEveryTimeout: state.effectTimingPolicy !== undefined,
     loweredGuardDurationOwnerTurnStarts: 1,
   })
 }
@@ -126,14 +132,17 @@ export function surrenderPvpCombatant(
 
   if (livingTeams.size <= 1) {
     const winningTeamId = [...livingTeams][0] ?? null
-    const battle = {
+    const battle = reorderBattleInitiative({
       ...nextState.tactical.battle,
       lifecycle: 'completed' as const,
       currentTurn: null,
-    }
+    })
     const tactical = createTacticalBattleState({ ...nextState.tactical, battle })
     nextState = reattachStatDrivenCombatBridge(
-      { ...nextState, ...createCombatEncounterState(tactical, nextState.statusState) },
+      advanceCombatGroundAreas({
+        ...nextState,
+        ...createCombatEncounterState(tactical, nextState.statusState),
+      }),
       nextState.statBridge,
     )
     events.push({ event: 'battle_completed', winningTeamId })
@@ -189,7 +198,8 @@ function timeoutTrackedTurn(
     throw new Error(`${options.label} timeout tracking is unavailable for this combatant.`)
   }
 
-  const nextStreak = Math.min(2, streak.current + 1)
+  const hadActivity = hasPv1fTurnActivity(state)
+  const nextStreak = hadActivity ? 0 : Math.min(2, streak.current + 1)
   let nextState = rebuildCombatant(state, {
     ...actor,
     temporaryResources: replaceResources(actor.temporaryResources, [
@@ -201,24 +211,34 @@ function timeoutTrackedTurn(
       event: options.timeoutEvent,
       combatantId: actor.id,
       consecutiveMisses: nextStreak,
+      hadActivity,
     },
   ]
 
-  if (options.loweredGuardEveryTimeout || nextStreak >= 2) {
+  if (!hadActivity && (options.loweredGuardEveryTimeout || nextStreak >= 2)) {
     const applied = executeCombatAction(
       nextState,
-      APPLY_LOWERED_GUARD,
+      nextState.effectTimingPolicy
+        ? {
+            ...APPLY_LOWERED_GUARD,
+            effects: APPLY_LOWERED_GUARD.effects.map((effect) => ({ ...effect, durationTurns: 1 })),
+          }
+        : APPLY_LOWERED_GUARD,
       { kind: 'self' },
       PV1F_COMBAT_CONTENT,
     )
     const statusApplied = applied.events.find(
       (event) => event.event === 'status_applied' && event.statusId === PVP_LOWERED_GUARD_STATUS_ID,
     )
-    if (!statusApplied || statusApplied.event !== 'status_applied') {
+    const statusPending = applied.events.some(
+      (event) =>
+        event.event === 'effect_pending' && event.effectTag === PVP_LOWERED_GUARD_STATUS_ID,
+    )
+    if ((!statusApplied || statusApplied.event !== 'status_applied') && !statusPending) {
       throw new Error('Lowered Guard application did not produce a status event.')
     }
     nextState = reattachStatDrivenCombatBridge(applied.state, nextState.statBridge)
-    if (options.loweredGuardDurationOwnerTurnStarts !== null) {
+    if (options.loweredGuardDurationOwnerTurnStarts !== null && !nextState.effectTimingPolicy) {
       nextState = setStatusRemainingOwnerTurnStarts(
         nextState,
         actor.id,
@@ -232,8 +252,9 @@ function timeoutTrackedTurn(
       combatantId: actor.id,
       remainingOwnerTurnStarts: options.loweredGuardDurationOwnerTurnStarts,
       damageTakenMultiplierBasisPoints: 25_000,
-      stacks: statusApplied.stacks,
-      stacked: statusApplied.stacked,
+      stacks: statusApplied?.event === 'status_applied' ? statusApplied.stacks : 1,
+      stacked: statusApplied?.event === 'status_applied' ? statusApplied.stacked : false,
+      ...(statusPending ? { timingState: 'pending' } : {}),
     })
   }
 

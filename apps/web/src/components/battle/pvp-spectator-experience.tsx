@@ -1,12 +1,29 @@
 'use client'
+import { BattleFacingIndicator } from './battle-facing-indicator'
+import { BattleGroundAreaLayer } from './battle-ground-area-layer'
 
 import { BattleRouteFrame } from './battle-route-frame'
+import { useBattleTabCyclePrevention } from './battle-tab-cycle-prevention'
 
-import { BattleMapKey } from './battle-map-key'
+import { BattleTerrainToggle } from './battle-terrain-toggle'
+import { battleTerrainName } from './battle-terrain-key-presentation'
+import { BattleCombatantCard } from './battle-combatant-card'
+import { pvpParticipantAccent } from './battle-combatant-colors'
+import { buildDisplayedPlacementByTile } from './battle-geometry'
+import { BattleVersusEmblem } from './battle-versus-emblem'
+import { BattleLogPanel } from './battle-log-panel'
+import { BattleChronicleHeading } from './battle-chronicle-heading'
+import {
+  battlePresentationParticipantMap,
+  type BattlePresentationParticipant,
+} from './battle-runtime'
 
 import { terrainOverlayAt } from '@aurevane/game-core/combat/terrain-overlays'
 import { PV1F_MOVEMENT_COST_PER_TERRAIN_POINT } from '@aurevane/game-core/combat/pv1f-skills'
-import { terrainOverlayDescription } from '../../lib/battle/combat-interaction-presentation'
+import {
+  terrainOverlayDescription,
+  terrainOverlaySummary,
+} from '../../lib/battle/combat-interaction-presentation'
 
 import type { CharacterPortraitRef } from '@aurevane/game-core/character/creation'
 import { useEffect, useMemo, useState, type CSSProperties } from 'react'
@@ -15,10 +32,9 @@ import { DesktopBattleCombatantInspect } from '@/components/battle/desktop-battl
 import { PvpBattleChat } from '@/components/battle/pvp-battle-chat'
 import { CharacterPortraitImage } from '@/components/character/character-portrait-image'
 import { getStarterPortraitImageAssetId } from '@/media/character'
-import type { PvpBattleParticipantView, PvpSpectatorView } from '@/server/battle/pvp-lobby-service'
+import type { PvpSpectatorView } from '@/server/battle/pvp-lobby-service'
 
 import styles from './pvp-spectator-experience.module.css'
-import inspectStyles from './pvp-spectator-inspect.module.css'
 
 const MOVE_COST_PER_TERRAIN_POINT = PV1F_MOVEMENT_COST_PER_TERRAIN_POINT
 const SPECTATOR_REFRESH_MS = 850
@@ -40,28 +56,16 @@ function positionsEqual(left: GridPosition, right: GridPosition): boolean {
   return left.x === right.x && left.y === right.y
 }
 
-function meterPercent(value: number, maximum: number): number {
-  if (maximum <= 0) return 0
-  return Math.max(0, Math.min(100, (value / maximum) * 100))
-}
-
-function facingGlyph(facing: Facing): string {
-  if (facing === 'north') return '↑'
-  if (facing === 'east') return '→'
-  if (facing === 'south') return '↓'
-  return '←'
-}
-
 function teamName(teamIndex: number): string {
   return `Team ${teamIndex + 1}`
 }
 
 function participantName(
-  participants: ReadonlyMap<string, PvpBattleParticipantView>,
+  participants: ReadonlyMap<string, BattlePresentationParticipant>,
   combatantId: string | null | undefined,
 ): string {
   if (!combatantId) return 'Awaiting next activation'
-  return participants.get(combatantId)?.characterName ?? 'Unknown combatant'
+  return participants.get(combatantId)?.name ?? 'Unknown combatant'
 }
 
 function terrainPresentation(terrainId: string): 'rough' | 'open' {
@@ -75,12 +79,14 @@ export function PvpSpectatorExperience({
   initialSpectator: PvpSpectatorView
   initialParticipantTitles: Record<string, string | null>
 }) {
+  useBattleTabCyclePrevention()
   const [spectator, setSpectator] = useState(initialSpectator)
   const [participantTitles, setParticipantTitles] = useState(initialParticipantTitles)
   const [connectionNote, setConnectionNote] = useState<string | null>(null)
   const [copyNotice, setCopyNotice] = useState(false)
   const [stopping, setStopping] = useState(false)
   const [inspectMode, setInspectMode] = useState(false)
+  const [selectedCombatantId, setSelectedCombatantId] = useState<string | null>(null)
   const [selectedPosition, setSelectedPosition] = useState<GridPosition | null>(null)
 
   const battle = spectator.battle
@@ -102,23 +108,32 @@ export function PvpSpectatorExperience({
       ),
     [spectator.participants],
   )
+  const presentationParticipants: BattlePresentationParticipant[] = spectator.participants.map(
+    (participant) => ({
+      combatantId: participant.combatantId,
+      characterId: participant.characterId,
+      name: participant.characterName,
+      level: participant.characterLevel,
+      teamIndex: participant.teamIndex,
+      seatIndex: participant.seatIndex,
+      profileImageUrl: participant.profileImageUrl,
+      portraitAssetId: getStarterPortraitImageAssetId(
+        participant.portraitRef as CharacterPortraitRef,
+      ),
+      local: false,
+    }),
+  )
   const inspectMetadata = useMemo(
     () => ({ participants: spectator.participants }),
     [spectator.participants],
   )
-  const placementByTile = useMemo(
-    () =>
-      new Map(
-        tactical.placements.map(
-          (placement) => [positionKey(placement.position), placement] as const,
-        ),
-      ),
-    [tactical.placements],
-  )
+  const presentationByCombatant = battlePresentationParticipantMap(battle, presentationParticipants)
+  const placementByTile = useMemo(() => buildDisplayedPlacementByTile(tactical), [tactical])
   const activeCombatantId = battleState.currentTurn?.combatantId ?? null
   const activeParticipant = activeCombatantId
     ? (participantByCombatant.get(activeCombatantId) ?? null)
     : null
+  const actingTeamIndex = activeParticipant?.teamIndex ?? presentationParticipants[0]?.teamIndex
   const activeCombatant = activeCombatantId
     ? (battleState.combatants.find((combatant) => combatant.id === activeCombatantId) ?? null)
     : null
@@ -132,11 +147,12 @@ export function PvpSpectatorExperience({
     ? (tactical.terrains.find((terrain) => terrain.id === selectedTile.terrainId) ?? null)
     : null
 
-  const boardStyle: CSSProperties = {
+  const boardStyle = {
     gridTemplateColumns: `repeat(${tactical.width}, minmax(0, 1fr))`,
     gridTemplateRows: `repeat(${tactical.height}, minmax(0, 1fr))`,
     aspectRatio: `${tactical.width} / ${tactical.height}`,
-  }
+    '--battle-columns': tactical.width,
+  } as CSSProperties
 
   const teamSummaries = Array.from({ length: teamCount }, (_, teamIndex) => {
     const members = spectator.participants.filter(
@@ -261,8 +277,7 @@ export function PvpSpectatorExperience({
     }
 
     if (selectedTile && !selectedPlacement) {
-      const terrainName =
-        terrainPresentation(selectedTile.terrainId) === 'rough' ? 'Difficult ground' : 'Open ground'
+      const terrainName = battleTerrainName(selectedTile.terrainId, selectedTile.elevation)
       const traversalCost = selectedTerrain?.traversalCost ?? null
       return (
         <>
@@ -275,7 +290,7 @@ export function PvpSpectatorExperience({
               ? 'blocked'
               : `${traversalCost * MOVE_COST_PER_TERRAIN_POINT} AP`}{' '}
             · Elevation {selectedTile.elevation}.{' '}
-            {terrainOverlayDescription(terrainOverlayAt(battle.snapshot, selectedTile.position))}
+            {terrainOverlaySummary(terrainOverlayAt(battle.snapshot, selectedTile.position))}
           </span>
         </>
       )
@@ -291,72 +306,11 @@ export function PvpSpectatorExperience({
     )
   }
 
-  function teamCard(team: (typeof teamSummaries)[number]) {
-    return (
-      <article
-        className={styles.teamCard}
-        key={team.teamIndex}
-        data-team={team.teamIndex}
-        data-member-count={String(team.members.length)}
-      >
-        <div className={styles.teamHeading}>
-          <strong>{teamName(team.teamIndex)}</strong>
-          <span>
-            {team.standing}/{team.members.length} standing
-          </span>
-        </div>
-        <div className={styles.teamMembers}>
-          {team.members.map((member) => {
-            const combatant = battleState.combatants.find(
-              (candidate) => candidate.id === member.combatantId,
-            )
-            const active = member.combatantId === activeCombatantId
-            const hpPercent = combatant ? meterPercent(combatant.hp, combatant.maxHp) : 0
-            return (
-              <div
-                className={styles.member}
-                data-active={active || undefined}
-                data-defeated={combatant?.hp === 0 || undefined}
-                key={member.characterId}
-              >
-                <CharacterPortraitImage
-                  imageUrl={member.profileImageUrl}
-                  fallbackAssetId={getStarterPortraitImageAssetId(
-                    member.portraitRef as CharacterPortraitRef,
-                  )}
-                  className={styles.memberPortrait}
-                  sizes="(min-width: 981px) 15rem, 42px"
-                  alt=""
-                />
-                <span className={styles.memberIdentity}>
-                  <strong>{member.characterName}</strong>
-                  <small>
-                    Level {member.characterLevel}
-                    {participantTitles[member.characterId]
-                      ? ` · ${participantTitles[member.characterId]}`
-                      : ''}
-                  </small>
-                </span>
-                <span className={styles.memberHealth}>
-                  <i aria-hidden="true">
-                    <b style={{ width: `${hpPercent}%` }} />
-                  </i>
-                  <small>
-                    HP {combatant?.hp ?? '—'}/{combatant?.maxHp ?? '—'}
-                  </small>
-                </span>
-              </div>
-            )
-          })}
-        </div>
-      </article>
-    )
-  }
-
   return (
     <BattleRouteFrame sessionHref={`/game/battle/spectate/${spectator.battleKey}`} spectating>
       <main
         data-battle-concept="true"
+        data-battle-layout="refined"
         className={styles.page}
         data-pvp-spectator="true"
         data-spectator-inspect-active={inspectMode || undefined}
@@ -374,7 +328,6 @@ export function PvpSpectatorExperience({
             {connectionNote ? <p>{connectionNote}</p> : null}
           </div>
           <div className={styles.headerActions}>
-            <BattleMapKey />
             <button
               type="button"
               className={styles.keyButton}
@@ -400,180 +353,207 @@ export function PvpSpectatorExperience({
           aria-label="PvP team status"
         >
           <aside
-            className={`${styles.teamRail} ${styles.teamRailLeft}`}
-            data-spectator-team-rail="left"
-            aria-label="Left team roster"
+            className={styles.localSide}
+            data-battle-side="local"
+            aria-label="Acting character"
           >
-            {teamSummaries.filter((team) => team.teamIndex % 2 === 0).map(teamCard)}
+            <BattleCombatantCard
+              participant={
+                presentationParticipants.find((item) => item.combatantId === activeCombatantId) ??
+                presentationParticipants[0] ??
+                null
+              }
+              battle={battle}
+              teamCount={teamCount}
+              role="acting"
+            />
+            {presentationParticipants.some((item) => item.teamIndex !== actingTeamIndex) ? (
+              <BattleVersusEmblem />
+            ) : null}
+            <BattleCombatantCard
+              participant={
+                presentationParticipants.find(
+                  (item) =>
+                    item.combatantId === selectedCombatantId && item.teamIndex !== actingTeamIndex,
+                ) ??
+                presentationParticipants.find((item) => item.teamIndex !== actingTeamIndex) ??
+                null
+              }
+              battle={battle}
+              teamCount={teamCount}
+              role="selected"
+            />
           </aside>
 
-          <div className={styles.centerStage}>
-            <aside
-              className={styles.controlRail}
-              data-spectator-control-rail="true"
-              aria-label="Spectator match context"
+          <section
+            id="battlefield"
+            className={styles.battlefieldWrap}
+            aria-label="Live battlefield"
+          >
+            <div
+              className={styles.battlefieldHeader}
+              data-active-hp={
+                activeCombatant ? `${activeCombatant.hp}/${activeCombatant.maxHp}` : '—'
+              }
             >
-              <article className={styles.actingCard}>
-                <span>Now Acting</span>
-                <strong>{activeParticipant?.characterName ?? 'Match complete'}</strong>
-                {activeCombatant && activeParticipant ? (
-                  <>
-                    <small>{teamName(activeParticipant.teamIndex)}</small>
-                    <div className={styles.resourceLine}>
-                      <span>
-                        HP {activeCombatant.hp}/{activeCombatant.maxHp}
-                      </span>
-                      <span>
-                        MP {activeCombatant.mp}/{activeCombatant.maxMp}
-                      </span>
-                    </div>
-                  </>
-                ) : null}
-              </article>
-              <article className={styles.pulseCard}>
-                <span>Match Pulse</span>
-                <dl style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
-                  <div>
-                    <dt>Round</dt>
-                    <dd>{battleState.round}</dd>
-                  </div>
-                  <div>
-                    <dt>Format</dt>
-                    <dd>{spectator.mode.toUpperCase()}</dd>
-                  </div>
-                </dl>
-              </article>
-            </aside>
-
-            <section
-              id="battlefield"
-              className={`${styles.battlefieldWrap} ${inspectStyles.battlefieldWrap}`}
-              aria-label="Live battlefield"
-            >
-              <div
-                className={styles.battlefieldHeader}
-                data-active-hp={
-                  activeCombatant ? `${activeCombatant.hp}/${activeCombatant.maxHp}` : '—'
-                }
-              >
-                <div>
-                  <span>Battlefield</span>
-                  <strong>{participantName(participantByCombatant, activeCombatantId)}</strong>
-                </div>
-                <small>Read-only tactical view</small>
+              <div>
+                <span>Battlefield</span>
+                <strong>{participantName(presentationByCombatant, activeCombatantId)}</strong>
               </div>
-              <div className={styles.boardScroller} data-battlefield-backdrop="true">
-                <div
-                  className={styles.board}
-                  style={boardStyle}
-                  data-board-auto-fit={`${tactical.width}x${tactical.height}`}
-                >
-                  {tactical.tiles.map((tile) => {
-                    const key = positionKey(tile.position)
-                    const placement = placementByTile.get(key)
-                    const participant = placement
-                      ? participantByCombatant.get(placement.combatantId)
-                      : undefined
-                    const combatant = placement
-                      ? battleState.combatants.find(
-                          (candidate) => candidate.id === placement.combatantId,
-                        )
-                      : undefined
-                    const terrain = terrainPresentation(tile.terrainId)
-                    const overlay = terrainOverlayAt(battle.snapshot, tile.position)
-                    const x = tile.position.x + 1
-                    const y = tile.position.y + 1
-                    const selected = Boolean(
-                      inspectMode &&
-                      selectedPosition &&
-                      positionsEqual(tile.position, selectedPosition),
-                    )
+              <small>Read-only tactical view</small>
+            </div>
+            <div className={styles.boardScroller} data-battlefield-backdrop="true">
+              <div
+                className={styles.board}
+                style={boardStyle}
+                data-board-auto-fit={`${tactical.width}x${tactical.height}`}
+              >
+                {tactical.tiles.map((tile) => {
+                  const key = positionKey(tile.position)
+                  const placement = placementByTile.get(key)
+                  const participant = placement
+                    ? presentationByCombatant.get(placement.combatantId)
+                    : undefined
+                  const combatant = placement
+                    ? battleState.combatants.find(
+                        (candidate) => candidate.id === placement.combatantId,
+                      )
+                    : undefined
+                  const terrain = terrainPresentation(tile.terrainId)
+                  const overlay = terrainOverlayAt(battle.snapshot, tile.position)
+                  const x = tile.position.x + 1
+                  const y = tile.position.y + 1
+                  const selected = Boolean(
+                    inspectMode &&
+                    selectedPosition &&
+                    positionsEqual(tile.position, selectedPosition),
+                  )
 
-                    return (
-                      <button
-                        type="button"
-                        className={`${styles.tile} ${inspectStyles.tile}`}
-                        data-terrain={terrain}
-                        data-terrain-overlay={overlay?.kind}
-                        data-elevation={tile.elevation > 0 || undefined}
-                        data-inspect-active={inspectMode || undefined}
-                        data-selected={selected || undefined}
-                        key={key}
-                        onClick={() => {
-                          if (inspectMode && !placement) setSelectedPosition({ ...tile.position })
-                        }}
-                        aria-label={`Tile ${x}, ${y}; ${tile.terrainId}; elevation ${tile.elevation}${participant ? `; occupied by ${participant.characterName}` : ''}${overlay ? `; ${terrainOverlayDescription(overlay)}` : ''}`}
-                        aria-pressed={selected}
-                      >
-                        {overlay ? (
-                          <i data-terrain-overlay-marker="true" aria-hidden="true">
-                            {overlay.kind === 'frozen' ? '❄' : '≋'}
-                            {overlay.remainingRoundBoundaries}
-                          </i>
-                        ) : null}
-                        {participant && placement ? (
-                          <span
-                            className={styles.unit}
-                            data-team={participant.teamIndex}
-                            data-active={placement.combatantId === activeCombatantId || undefined}
-                            data-defeated={combatant?.hp === 0 || undefined}
-                            data-desktop-inspect-combatant={placement.combatantId}
-                            title={`${participant.characterName} · ${teamName(participant.teamIndex)}`}
-                          >
+                  return (
+                    <button
+                      type="button"
+                      className={styles.tile}
+                      data-terrain={terrain}
+                      data-terrain-overlay={overlay?.kind}
+                      data-elevation={tile.elevation > 0 || undefined}
+                      data-inspect-active={inspectMode || undefined}
+                      data-selected={selected || undefined}
+                      key={key}
+                      onClick={() => {
+                        if (placement && participant?.teamIndex !== actingTeamIndex)
+                          setSelectedCombatantId(placement.combatantId)
+                        if (inspectMode) setSelectedPosition({ ...tile.position })
+                      }}
+                      aria-label={`Tile ${x}, ${y}; ${tile.terrainId}; elevation ${tile.elevation}${participant ? `; occupied by ${participant.name}` : ''}${overlay ? `; ${terrainOverlayDescription(overlay)}` : ''}`}
+                      aria-pressed={selected}
+                    >
+                      <BattleGroundAreaLayer
+                        steam={overlay?.kind === 'steam'}
+                        areas={battle.snapshot.groundAreas}
+                        round={tactical.battle.round}
+                        position={tile.position}
+                      />
+                      {overlay ? (
+                        <i data-terrain-overlay-marker="true" aria-hidden="true">
+                          {overlay.kind === 'frozen' ? '❄' : '≋'}
+                          {overlay.remainingRoundBoundaries}
+                        </i>
+                      ) : null}
+                      {participant && placement && combatant && combatant.hp > 0 ? (
+                        <BattleFacingIndicator
+                          facing={placement.facing as Facing}
+                          accent={pvpParticipantAccent(
+                            participant.teamIndex,
+                            participant.seatIndex,
+                            teamCount,
+                          )}
+                        />
+                      ) : null}
+                      {participant && placement ? (
+                        <span
+                          className={styles.unit}
+                          style={
+                            {
+                              '--battle-combatant-accent': pvpParticipantAccent(
+                                participant.teamIndex,
+                                participant.seatIndex,
+                                teamCount,
+                              ),
+                            } as CSSProperties
+                          }
+                          data-team={participant.teamIndex}
+                          data-active={placement.combatantId === activeCombatantId || undefined}
+                          data-defeated={combatant?.hp === 0 || undefined}
+                          data-desktop-inspect-combatant={placement.combatantId}
+                          title={`${participant.name} · ${teamName(participant.teamIndex)}`}
+                        >
+                          {participant.portraitAssetId ? (
                             <CharacterPortraitImage
                               imageUrl={participant.profileImageUrl}
-                              fallbackAssetId={getStarterPortraitImageAssetId(
-                                participant.portraitRef as CharacterPortraitRef,
-                              )}
+                              fallbackAssetId={participant.portraitAssetId}
                               className={styles.unitPortrait}
                               sizes="64px"
                               alt=""
                             />
-                            <i>{facingGlyph(placement.facing as Facing)}</i>
-                          </span>
-                        ) : null}
-                      </button>
-                    )
-                  })}
-                </div>
+                          ) : (
+                            <span className={styles.summonPortrait} aria-hidden="true">
+                              {participant.name.charAt(0).toUpperCase()}
+                            </span>
+                          )}
+                        </span>
+                      ) : null}
+                    </button>
+                  )
+                })}
               </div>
-              <div className={inspectStyles.inspectDeck} aria-label="Spectator inspect controls">
-                <button
-                  type="button"
-                  className={inspectStyles.inspectButton}
-                  data-active={inspectMode || undefined}
-                  aria-pressed={inspectMode}
-                  onClick={toggleInspect}
-                >
-                  <span>00</span>
-                  <strong>Inspect</strong>
-                  <small>Free</small>
-                </button>
-                <div className={inspectStyles.inspectContext}>{inspectContext()}</div>
-              </div>
-            </section>
+            </div>
+          </section>
 
-            <div className={styles.commsStack}>
+          <aside
+            className={styles.selectedSide}
+            data-battle-side="selected"
+            aria-label="Battle Chronicle"
+          >
+            <BattleChronicleHeading round={battleState.round} />
+            <BattleLogPanel
+              presentation="inline"
+              battleSessionId={battle.battleSessionId}
+              battleVersion={battle.battleVersion}
+              combatantNames={combatantNames}
+              currentRound={battleState.round}
+              recentTurnCount={2}
+            />
+          </aside>
+          <div className={styles.preview} data-battle-preview-strip="true">
+            <div data-battle-spectator-preview-content="true">{inspectContext()}</div>
+            {activeParticipant && participantTitles[activeParticipant.characterId] ? (
+              <small
+                className={styles.actorTitle}
+                role="note"
+                aria-label={`${activeParticipant.characterName} title`}
+              >
+                {participantTitles[activeParticipant.characterId]}
+              </small>
+            ) : null}
+          </div>
+          <div className={styles.inspectDock} data-battle-command-dock="true">
+            <button type="button" aria-pressed={inspectMode} onClick={toggleInspect}>
+              Inspect
+            </button>
+            <span>Read-only battlefield · Select a character to view its current state.</span>
+            <div className={styles.terrainControl}>
+              <BattleTerrainToggle snapshot={battle.snapshot} />
+            </div>
+            <details className={styles.chatDock}>
+              <summary>Battle Chat</summary>
               <PvpBattleChat
                 battleSessionId={battle.battleSessionId}
                 readOnly={false}
-                showBattleLog
-                requestedTab="log"
-                logRecentTurnCount={battleState.lifecycle === 'active' ? 4 : null}
-                logCurrentTurnNumber={battleState.turnNumber}
                 combatantNames={combatantNames}
                 className={styles.comms}
               />
-            </div>
+            </details>
           </div>
-
-          <aside
-            className={`${styles.teamRail} ${styles.teamRailRight}`}
-            data-spectator-team-rail="right"
-            aria-label="Right team roster"
-          >
-            {teamSummaries.filter((team) => team.teamIndex % 2 === 1).map(teamCard)}
-          </aside>
         </section>
       </main>
       <DesktopBattleCombatantInspect

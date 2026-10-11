@@ -190,6 +190,124 @@ function context(actorId: string, chainId: string): CombatResolutionContext {
 }
 
 describe('Mark and Blind: public-entry contract', () => {
+  it.each([1, 0, -1])(
+    'cancels extreme accuracy totals exactly with a %i-stack residual',
+    (residual) => {
+      const base = world()
+      const count = Number.MAX_SAFE_INTEGER - 1
+      const state = {
+        ...base,
+        effectStackingPolicyVersion: 1 as const,
+        statusState: base.statusState.map((row) => ({
+          ...row,
+          statuses:
+            row.combatantId === 'actor'
+              ? [
+                  {
+                    statusId: BLIND.id,
+                    statusVersion: 1,
+                    stacks: count,
+                    sourceCombatantId: 'actor',
+                    remainingOwnerTurnStarts: 2,
+                  },
+                ]
+              : row.combatantId === 'target'
+                ? [
+                    {
+                      statusId: MARK.id,
+                      statusVersion: 1,
+                      stacks: count + residual,
+                      sourceScopedMark: true as const,
+                      sourceCombatantId: 'actor',
+                      remainingOwnerTurnStarts: 2,
+                    },
+                  ]
+                : [],
+        })),
+      }
+      expect(validateCombatEncounterState(state)).toEqual([])
+      expect(chance(state)).toBe(5000 + residual * 1500)
+    },
+  )
+
+  it.each([MARK, BLIND])(
+    'fails closed when the uncancelled $id accuracy total exceeds safe precision',
+    (definition) => {
+      const base = world()
+      const ownerId = definition === MARK ? 'target' : 'actor'
+      const state = {
+        ...base,
+        effectStackingPolicyVersion: 1 as const,
+        statusState: base.statusState.map((row) => ({
+          ...row,
+          statuses:
+            row.combatantId === ownerId
+              ? [
+                  {
+                    statusId: definition.id,
+                    statusVersion: 1,
+                    stacks: Number.MAX_SAFE_INTEGER,
+                    ...(definition === MARK ? { sourceScopedMark: true as const } : {}),
+                    sourceCombatantId: 'actor',
+                    remainingOwnerTurnStarts: 2,
+                  },
+                ]
+              : [],
+        })),
+      }
+      expect(() => chance(state)).toThrow('safe integer')
+    },
+  )
+
+  it.each(['guarded', 'inspired', 'hexed', 'warded', 'mark', 'reckless', 'fortified', 'exposed'])(
+    'does not interpret authored %s potency as an actor Blind penalty',
+    (statusId) => {
+      const content = { statuses: [...PV1F_COMBAT_CONTENT.statuses, MARK, BLIND] }
+      const state = executeCombatAction(
+        world(),
+        {
+          ...statusAction(statusId),
+          effects: [
+            {
+              type: 'apply-status',
+              recipient: 'actor',
+              statusId,
+              stacks: 1,
+              potencyBasisPoints: 2000,
+            },
+          ],
+        },
+        TARGET,
+        content,
+      ).state
+      expect(chance(state, content)).toBe(5000)
+      const committed = executeCombatAction(state, attack(), TARGET, content)
+      expect(committed.events).toContainEqual(
+        expect.objectContaining({
+          event: 'combat_accuracy_resolved',
+          hitChanceBasisPoints: 5000,
+        }),
+      )
+      const blinded = executeCombatAction(
+        state,
+        {
+          ...statusAction(BLIND.id),
+          effects: [
+            {
+              type: 'apply-status',
+              recipient: 'actor',
+              statusId: BLIND.id,
+              stacks: 1,
+              potencyBasisPoints: 1100,
+            },
+          ],
+        },
+        TARGET,
+        content,
+      ).state
+      expect(chance(blinded, content)).toBe(3900)
+    },
+  )
   it('adds fifteen percentage points for the Mark source, not fifteen percent of accuracy', () => {
     expect(chance(apply(world(), MARK.id))).toBe(6_500)
   })
@@ -446,7 +564,6 @@ describe('Mark and Blind: authoring and snapshot guards', () => {
     { reactionClass: 'reactive' },
     { damageTakenMultiplierBasisPoints: 12_500 },
     { endOfTurn: { type: 'damage', amount: 5 } },
-    { nextRoundInitiative: -5 },
     { blindAccuracyPenaltyBasisPoints: 1_500 },
   ]
   it.each(invalidProfiles)('rejects mixed, stacking or nonordinary Mark definition %j', (patch) => {
@@ -721,27 +838,12 @@ describe('Mark and Blind: command and lifecycle interactions', () => {
       expect(JSON.stringify(state)).toBe(before)
     },
   )
-  it('preserves real published historical Mark source-only damage vulnerability', () => {
-    const definition = PV1F_COMBAT_CONTENT.statuses.find((status) => status.id === 'marked')
-    expect(definition).toBeDefined()
-    const content = { statuses: [definition!] }
-    const first = apply(world(10_000, 0), 'marked', 'target', content)
-    expect(chance(first, content)).toBe(10_000)
-    const own = executeCombatAction(
-      first,
-      { ...attack(), accuracyMode: 'automatic' },
-      TARGET,
-      content,
-    )
-    expect(own.state.tactical.battle.combatants.find((unit) => unit.id === 'target')?.hp).toBe(76)
-    const otherTurn = advanceTo(first, 'ally', content)
-    const ally = executeCombatAction(
-      otherTurn,
-      { ...attack(), accuracyMode: 'automatic' },
-      TARGET,
-      content,
-    )
-    expect(ally.state.tactical.battle.combatants.find((unit) => unit.id === 'target')?.hp).toBe(80)
+  it('removes historical damage-vulnerability Mark while retaining current Accuracy Mark', () => {
+    expect(PV1F_COMBAT_CONTENT.statuses.some((status) => status.id === 'marked')).toBe(false)
+    expect(PV1F_COMBAT_CONTENT.statuses.find((status) => status.id === 'mark')).toMatchObject({
+      curseCopyable: true,
+    })
+    expect(() => apply(world(10_000, 0), 'marked', 'target', PV1F_COMBAT_CONTENT)).toThrow()
   })
 })
 

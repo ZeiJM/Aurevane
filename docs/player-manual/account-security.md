@@ -23,6 +23,12 @@ Enter the same email and password used for the account. AUREVANE verifies the re
 
 If the session has expired, sign in again. Refreshing the browser should not create a second account profile or lose the profile already attached to your account.
 
+## Reset a forgotten password
+
+Select **Forgot password?** on the sign-in form, enter your account email and choose **Send reset link**. If the email belongs to an account, a recovery link is sent. Open it in the same browser where you requested it, enter and confirm a new password of at least eight characters, then sign in with the new password.
+
+If the link has expired, was already used, or was opened in another browser, choose **Request a new reset link** and try again. The request confirmation does not disclose whether an email has an account.
+
 ## Sign out
 
 Use **Sign out** from the authenticated account screen when you are finished, especially on a shared computer. Signing out ends the browser session; it does not delete the account or its persistent profile.

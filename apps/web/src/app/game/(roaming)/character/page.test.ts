@@ -1,5 +1,6 @@
 import type { PersistedCharacter } from '@aurevane/game-core/character/persistence'
 import { buildPrimaryDisciplinePreview } from '@aurevane/game-core/character/discipline-build'
+import { defaultCombatEffectTimingPolicy } from '@aurevane/game-core/combat/combat-effect-timing'
 import { AurevaneError } from '@aurevane/game-core/errors'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -12,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   activeSpectating: vi.fn(),
   selectedCharacter: vi.fn(),
   levelCurve: vi.fn(),
+  timingPolicy: vi.fn(),
   disciplineBuild: vi.fn(),
   currentSkillDetails: vi.fn(),
   attributeAllocation: vi.fn(),
@@ -38,6 +40,9 @@ vi.mock('@/server/account/active-game-session', () => ({
 }))
 vi.mock('@/server/character/selected-character', () => ({
   loadSelectedCharacter: mocks.selectedCharacter,
+}))
+vi.mock('@/server/master/combat-effect-timing-policy-store', () => ({
+  readCombatEffectTimingPolicy: mocks.timingPolicy,
 }))
 vi.mock('@/server/progression/progression-service', () => ({
   loadLevelProgressionCurve: mocks.levelCurve,
@@ -86,6 +91,7 @@ vi.mock('@/components/shell/authenticated-game-shell', () => ({
 }))
 vi.mock('@/server/logging', () => import('../../../../server/logging'))
 
+import { SkillEffectTimingProvider } from '@/components/character/skill-effect-timing-context'
 import { CharacterProfileShell } from '@/components/character/character-profile-shell'
 import { AuthenticatedGameRecoveryContent } from '@/components/shell/authenticated-game-shell'
 
@@ -193,6 +199,7 @@ const recoveryStages = [
   ['level_curve', mocks.levelCurve],
   ['discipline_build', mocks.disciplineBuild],
   ['attribute_allocation', mocks.attributeAllocation],
+  ['effect_timing', mocks.timingPolicy],
 ] as const
 
 describe('Profile persistence recovery diagnostics', () => {
@@ -202,6 +209,7 @@ describe('Profile persistence recovery diagnostics', () => {
     mocks.redirect.mockImplementation((path: string) => {
       throw new Error(`redirect:${path}`)
     })
+    mocks.timingPolicy.mockResolvedValue(defaultCombatEffectTimingPolicy())
     mocks.actor.mockResolvedValue({ userId: character.userId })
     mocks.activeBattle.mockResolvedValue(null)
     mocks.activeSpectating.mockResolvedValue(null)
@@ -248,8 +256,10 @@ describe('Profile persistence recovery diagnostics', () => {
   it('renders healthy Profile data without a recovery log', async () => {
     const page = await CharacterProfilePage()
 
-    expect(page.type).toBe(CharacterProfileShell)
-    expect(page.props.supernatural).toEqual({ state: null, choices: [] })
+    expect(page.type).toBe(SkillEffectTimingProvider)
+    expect(page.props.policy).toEqual(defaultCombatEffectTimingPolicy())
+    expect(page.props.children.type).toBe(CharacterProfileShell)
+    expect(page.props.children.props.supernatural).toEqual({ state: null, choices: [] })
     expect(console.error).not.toHaveBeenCalled()
   })
 
@@ -269,8 +279,10 @@ describe('Profile persistence recovery diagnostics', () => {
 
     const page = await CharacterProfilePage()
 
-    expect(page.type).toBe(CharacterProfileShell)
-    expect(page.props.supernatural).toMatchObject({
+    expect(page.type).toBe(SkillEffectTimingProvider)
+    expect(page.props.policy).toEqual(defaultCombatEffectTimingPolicy())
+    expect(page.props.children.type).toBe(CharacterProfileShell)
+    expect(page.props.children.props.supernatural).toMatchObject({
       state: { stateVersion: 4, path: 'unawakened', nodeId: 'awakening.threshold' },
       choices: [
         {
@@ -294,8 +306,10 @@ describe('Profile persistence recovery diagnostics', () => {
 
     const page = await CharacterProfilePage()
 
-    expect(page.type).toBe(CharacterProfileShell)
-    expect(page.props.supernatural).toEqual({ state: null, choices: [] })
+    expect(page.type).toBe(SkillEffectTimingProvider)
+    expect(page.props.policy).toEqual(defaultCombatEffectTimingPolicy())
+    expect(page.props.children.type).toBe(CharacterProfileShell)
+    expect(page.props.children.props.supernatural).toEqual({ state: null, choices: [] })
     expect(console.error).not.toHaveBeenCalled()
   })
 
@@ -316,7 +330,9 @@ describe('Profile persistence recovery diagnostics', () => {
 
       const page = await CharacterProfilePage()
 
-      expect(page.type).toBe(CharacterProfileShell)
+      expect(page.type).toBe(SkillEffectTimingProvider)
+      expect(page.props.policy).toEqual(defaultCombatEffectTimingPolicy())
+      expect(page.props.children.type).toBe(CharacterProfileShell)
       expect(console.error).not.toHaveBeenCalled()
     },
   )

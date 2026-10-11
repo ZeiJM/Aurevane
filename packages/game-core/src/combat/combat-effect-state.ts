@@ -1,3 +1,5 @@
+import type { CapturedPercentageRecovery } from './combat-percentage-recovery'
+import type { CapturedPercentageDotDamage } from './combat-percentage-dots'
 import type { CombatStatusDefinition } from './actions'
 import type { CombatEffectCategory } from './combat-effect-categories'
 import type { CombatEffectInstanceProvenance } from './combat-kernel-types'
@@ -52,6 +54,7 @@ export interface DamageProvenance {
 }
 
 export interface CombatOngoingRecovery {
+  percentageRecovery?: CapturedPercentageRecovery
   kind: 'hp' | 'mp'
   sourceCombatantId: string
   targetCombatantId: string
@@ -64,6 +67,10 @@ export interface CombatOngoingRecovery {
 }
 
 export interface CombatPoisonInstance {
+  percentageDamage?: CapturedPercentageDotDamage
+  /** Stable identity for independently accumulated applications in stacking policy 1. */
+  applicationOrder?: number
+  skipCurrentOwnerTurnEnd?: boolean
   targetCombatantId: string
   sourceCombatantId: string
   sourceActionId: string
@@ -72,12 +79,16 @@ export interface CombatPoisonInstance {
   /** Current authored Poison may pin bounded power and remaining future turns. */
   damagePerTick?: number
   remainingTicks?: number
+  /** Captured authored duration for percentage Poison movement refresh under trigger policy 2. */
+  originalDurationTurns?: number
   /** Explicit current Curse eligibility; omitted historical Poison remains non-copyable. */
   curseCopyable?: boolean
   provenance?: CombatEffectInstanceProvenance
 }
 
 export interface CombatBleedStack {
+  percentageDamage?: CapturedPercentageDotDamage
+  skipCurrentOwnerTurnEnd?: boolean
   targetCombatantId: string
   sourceCombatantId: string
   sourceActionId: string
@@ -90,6 +101,11 @@ export interface CombatBleedStack {
 }
 
 export interface CombatBurnInstance {
+  backlashBasisPoints?: number
+  percentageDamage?: CapturedPercentageDotDamage
+  /** Stable identity for independently accumulated applications in stacking policy 1. */
+  applicationOrder?: number
+  skipCurrentOwnerTurnEnd?: boolean
   targetCombatantId: string
   sourceCombatantId: string
   sourceActionId: string
@@ -103,13 +119,6 @@ export interface CombatBurnInstance {
   provenance?: CombatEffectInstanceProvenance
 }
 
-export interface CombatTemporarySkillGrant {
-  combatantId: string
-  skillId: string
-  contentVersion: number
-  sourceCombatantId: string
-}
-
 export interface CombatDamageHistoryEntry {
   combatantId: string
   round: number
@@ -117,6 +126,8 @@ export interface CombatDamageHistoryEntry {
 }
 
 export interface CombatBarrierInstance {
+  /** Stable identity for independent Barrier pools in stacking policy 1. */
+  applicationOrder?: number
   targetCombatantId: string
   sourceCombatantId: string
   sourceActionId: string
@@ -139,7 +150,6 @@ export interface CombatEffectState {
   poison: CombatPoisonInstance[]
   bleed: CombatBleedStack[]
   burn: CombatBurnInstance[]
-  temporarySkills: CombatTemporarySkillGrant[]
   damageHistory: CombatDamageHistoryEntry[]
   barriers?: CombatBarrierInstance[]
   summons?: CombatSummonInstance[]
@@ -156,90 +166,8 @@ export function normalizeCombatEffectState(value: unknown): CombatEffectState {
     poison: Array.isArray(input.poison) ? input.poison : [],
     bleed: Array.isArray(input.bleed) ? input.bleed : [],
     burn: Array.isArray(input.burn) ? input.burn : [],
-    temporarySkills: Array.isArray(input.temporarySkills) ? input.temporarySkills : [],
     damageHistory: Array.isArray(input.damageHistory) ? input.damageHistory : [],
     ...(Array.isArray(input.barriers) ? { barriers: input.barriers } : {}),
     ...(Array.isArray(input.summons) ? { summons: input.summons } : {}),
   }
-}
-
-export interface CombatTemporarySkillStateIssue {
-  field: string
-  message: string
-}
-
-export function validateCombatTemporarySkillState(state: {
-  tactical: { battle: { combatants: readonly { id: string }[] } }
-  effectState?: unknown
-}): readonly CombatTemporarySkillStateIssue[] {
-  const effectState = state.effectState
-  if (effectState === undefined) return []
-  if (!effectState || typeof effectState !== 'object' || Array.isArray(effectState)) {
-    return [{ field: 'effectState', message: 'Combat effect state must be an object.' }]
-  }
-
-  const temporarySkills = (effectState as { temporarySkills?: unknown }).temporarySkills
-  if (temporarySkills === undefined) return []
-  if (!Array.isArray(temporarySkills)) {
-    return [
-      {
-        field: 'effectState.temporarySkills',
-        message: 'Temporary Skill grants must be an array.',
-      },
-    ]
-  }
-
-  const combatantIds = new Set(state.tactical.battle.combatants.map((combatant) => combatant.id))
-  const seen = new Set<string>()
-  const issues: CombatTemporarySkillStateIssue[] = []
-
-  temporarySkills.forEach((value, index) => {
-    const field = `effectState.temporarySkills.${index}`
-    if (!value || typeof value !== 'object' || Array.isArray(value)) {
-      issues.push({ field, message: 'Temporary Skill grant must be an object.' })
-      return
-    }
-
-    const grant = value as Partial<CombatTemporarySkillGrant>
-    if (
-      typeof grant.combatantId !== 'string' ||
-      grant.combatantId.length === 0 ||
-      typeof grant.skillId !== 'string' ||
-      grant.skillId.length === 0 ||
-      !Number.isSafeInteger(grant.contentVersion) ||
-      (grant.contentVersion as number) < 1 ||
-      typeof grant.sourceCombatantId !== 'string' ||
-      grant.sourceCombatantId.length === 0
-    ) {
-      issues.push({
-        field,
-        message: 'Temporary Skill grant identity and pinned version must be valid.',
-      })
-      return
-    }
-
-    if (!combatantIds.has(grant.combatantId) || !combatantIds.has(grant.sourceCombatantId)) {
-      issues.push({
-        field,
-        message: 'Temporary Skill grant combatants must belong to this encounter.',
-      })
-    }
-    if (grant.combatantId === grant.sourceCombatantId) {
-      issues.push({
-        field,
-        message: 'Temporary Skill Copy source must be a different combatant.',
-      })
-    }
-
-    const identity = `${grant.combatantId}\u0000${grant.skillId}\u0000${grant.contentVersion}`
-    if (seen.has(identity)) {
-      issues.push({
-        field,
-        message: 'Temporary copied pinned Skill identities must be unique per combatant.',
-      })
-    }
-    seen.add(identity)
-  })
-
-  return issues
 }

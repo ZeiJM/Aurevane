@@ -7,6 +7,7 @@ import { getStarterPortraitImageAssetId } from '@/media/character'
 import styles from './character-identity-card.module.css'
 
 export interface CharacterIdentityCardProps {
+  compactRail?: boolean
   profile: CharacterProfileReadModel
   primary: DisciplineDefinition
   secondary: DisciplineDefinition | null
@@ -26,37 +27,57 @@ export function CharacterIdentityCard({
   disciplineSummary,
   maxHp,
   maxMp,
+  compactRail = false,
 }: CharacterIdentityCardProps) {
   const progress = profile.progression.progress
+  const Name = compactRail ? 'strong' : 'h1'
 
   return (
     <article
       className={styles.card}
-      data-testid="character-profile"
+      data-testid={compactRail ? 'character-rail-profile' : 'character-profile'}
       data-profile-identity-banner="true"
+      data-compact-rail={compactRail || undefined}
       data-av-surface="ink"
     >
       <div className={styles.portraitFrame} data-character-portrait-frame>
         <div className={styles.portrait}>
           <CharacterPortraitImage
             imageUrl={imageUrl}
+            priority={compactRail}
             fallbackAssetId={getStarterPortraitImageAssetId(profile.identity.portraitRef)}
-            sizes="(min-width: 1200px) 20vw, (min-width: 761px) 38vw, 92vw"
+            sizes={
+              compactRail
+                ? '(max-height: 620px) 88px, (max-height: 700px) 112px, 165px'
+                : '(min-width: 1200px) 20vw, (min-width: 761px) 38vw, 92vw'
+            }
             alt={`${profile.identity.name} portrait`}
           />
         </div>
       </div>
 
       <div className={styles.identity} data-character-identity-copy>
-        <h1>{profile.identity.name}</h1>
+        <Name>{profile.identity.name}</Name>
         <p className={styles.motto}>A quieter blade still changes the tide.</p>
         <div className={styles.tags}>
           <span>
-            Primary: <span data-testid="primary-discipline-chip">{primary.name}</span>
+            Primary:{' '}
+            <span
+              data-testid={compactRail ? 'rail-primary-discipline-chip' : 'primary-discipline-chip'}
+            >
+              {primary.name}
+            </span>
           </span>
           {secondary ? (
             <span>
-              Secondary: <span data-testid="secondary-discipline-chip">{secondary.name}</span>
+              Secondary:{' '}
+              <span
+                data-testid={
+                  compactRail ? 'rail-secondary-discipline-chip' : 'secondary-discipline-chip'
+                }
+              >
+                {secondary.name}
+              </span>
             </span>
           ) : null}
           {personalTitle ? <span data-tone="title">{personalTitle}</span> : null}
@@ -65,7 +86,7 @@ export function CharacterIdentityCard({
 
       <section
         className={styles.progress}
-        data-testid="level-progress"
+        data-testid={compactRail ? 'rail-level-progress' : 'level-progress'}
         aria-label="Character progression"
       >
         <div className={styles.progressLabel}>
@@ -82,7 +103,7 @@ export function CharacterIdentityCard({
         <div
           className={styles.xpTrack}
           role="progressbar"
-          aria-label="Level progress"
+          aria-label={compactRail ? 'Rail level progress' : 'Level progress'}
           aria-valuemin={0}
           aria-valuemax={10000}
           aria-valuenow={progress.progressBasisPoints}

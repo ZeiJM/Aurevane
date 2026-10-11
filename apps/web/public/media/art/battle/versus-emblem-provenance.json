@@ -1,0 +1,33 @@
+{
+  "requestId": "ART-BATTLE-VERSUS-20261004",
+  "status": "owner-approved-generated-implementation",
+  "authorization": "Owner approved the metallic gold VS concept and requested animated flames with modest border overlap, preserving all existing cards and portraits.",
+  "assetId": "ui.battle.versus-emblem.v01",
+  "promptSpec": "content/art-requests/ART-BATTLE-VERSUS-20261004.md",
+  "source": {
+    "provider": "OpenAI built-in image generation",
+    "method": "transparent approved-concept derivative",
+    "createdAt": "2026-10-04",
+    "master": "exec-3c82f57d-f290-4a82-8f41-d813e3f3bf10.png",
+    "sha256": "18abd7921b007ec0e0877b382ee9683dc7bb4c21214a7e933af5fd374966ce87",
+    "retention": "Original source retained with the generating conversation"
+  },
+  "runtime": {
+    "path": "/media/art/battle/versus-emblem-v01.webp",
+    "width": 1774,
+    "height": 887,
+    "bytes": 255646,
+    "sha256": "c5ddc67657430167b8d88a7039378eb04199b2fc413dc9b51a70b3a847c92122",
+    "derivative": "Deterministic Sharp WebP encoding, quality 90, alphaQuality 100, effort 6; original dimensions retained",
+    "alpha": {
+      "preserved": true,
+      "minimum": 0,
+      "maximum": 255
+    }
+  },
+  "review": {
+    "text": "VS only",
+    "interfaceFragments": "none",
+    "application": "Shared PvE/PvP/spectator left rail seam; absolute decoration with no layout footprint or input interception; outer-flame-only CSS animation with reduced-motion support"
+  }
+}

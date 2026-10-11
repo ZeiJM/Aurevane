@@ -1,0 +1,30 @@
+{
+  "requestId": "ART-BATTLE-COCKPIT-20261002",
+  "status": "owner-requested-generated-implementation",
+  "authorization": "Owner requested generated translucent cockpit material and removal of the red End Turn surround; release requires verification under existing authorization.",
+  "promptSpec": "content/art-requests/ART-BATTLE-COCKPIT-20261002.md",
+  "assetId": "ui.battle.cockpit-ornament.v01",
+  "source": {
+    "provider": "OpenAI built-in image generation",
+    "method": "stylized-concept",
+    "createdAt": "2026-10-02",
+    "master": "exec-d9e8652b-aa7a-43d9-b6d0-752f9d10aa61.png",
+    "sha256": "412da7b678f0757efd6ec07ad60c4153acf86b562c9cbf9b99e331afddb92920",
+    "retention": "Original source retained with the generating conversation"
+  },
+  "runtime": {
+    "path": "/media/art/battle/cockpit-ornament-v01.webp",
+    "width": 2172,
+    "height": 724,
+    "bytes": 571956,
+    "sha256": "7530b9a1208b3cb977d20ad7f5d2b1073b11843a56b911ebaa2c2e904c4e20ed",
+    "derivative": "Deterministic Sharp WebP encoding, quality 90, alphaQuality 100, effort 6",
+    "alpha": { "preserved": true, "minimum": 0, "maximum": 255 }
+  },
+  "review": {
+    "unwantedText": "none",
+    "figures": "none",
+    "interfaceControls": "none; real controls remain code-native",
+    "application": "Shared PvP/PvE cockpit ornament at 20% opacity; independent translucent parchment backing"
+  }
+}

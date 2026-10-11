@@ -6,6 +6,7 @@ import {
   cellCenter,
   findWorldRoute,
   newWorldState,
+  ACTIVE_WORLD_SYNC_MS,
   remainingTravelMs,
   worldSyncDelayMs,
 } from './travel'
@@ -19,7 +20,8 @@ describe('world travel', () => {
     )!
     expect(local).toHaveLength(3)
     expect(local.every((step) => step.durationMs === STEP_MS)).toBe(true)
-    expect(local.reduce((ms, step) => ms + step.durationMs, 0)).toBe(3300)
+    expect(STEP_MS).toBe(275)
+    expect(local.reduce((ms, step) => ms + step.durationMs, 0)).toBe(825)
 
     const crownJourney = findWorldRoute(
       { sectorId: 'aureth-crown', x: 12, y: 4 },
@@ -28,7 +30,7 @@ describe('world travel', () => {
     )!
     expect(crownJourney).toHaveLength(14)
     expect(crownJourney.every((step) => step.durationMs === STEP_MS)).toBe(true)
-    expect(crownJourney.reduce((ms, step) => ms + step.durationMs, 0)).toBe(15400)
+    expect(crownJourney.reduce((ms, step) => ms + step.durationMs, 0)).toBe(3_850)
   })
 
   it('schedules active sync from the authoritative next-step deadline', () => {
@@ -47,7 +49,8 @@ describe('world travel', () => {
         nextStepAt: 2100,
         serverNow: 1000,
       }),
-    ).toBe(1200)
+    ).toBe(1100)
+    expect(ACTIVE_WORLD_SYNC_MS).toBe(STEP_MS)
     expect(
       worldSyncDelayMs({
         routeLength: 3,
@@ -55,7 +58,7 @@ describe('world travel', () => {
         nextStepAt: 1000,
         serverNow: 1200,
       }),
-    ).toBe(1200)
+    ).toBe(STEP_MS)
     expect(
       worldSyncDelayMs({
         routeLength: 3,
@@ -63,7 +66,7 @@ describe('world travel', () => {
         nextStepAt: null,
         serverNow: 1200,
       }),
-    ).toBe(1200)
+    ).toBe(STEP_MS)
     expect(
       worldSyncDelayMs({
         routeLength: 0,
@@ -115,7 +118,7 @@ describe('world travel', () => {
     ])
       expect(findWorldRoute(START_POSITION, to, CHARTED_SECTORS)).toBeNull()
   })
-  it('keeps the representative local settlement route at three authoritative 1.1-second steps', () => {
+  it('keeps the representative local settlement route at three authoritative quarter-second steps', () => {
     const route = findWorldRoute(
       START_POSITION,
       { sectorId: 'verdant-expanse', x: 2, y: 4 },
@@ -124,7 +127,7 @@ describe('world travel', () => {
 
     expect(route).toHaveLength(3)
     expect(route.every((step) => step.durationMs === STEP_MS)).toBe(true)
-    expect(route.reduce((ms, step) => ms + step.durationMs, 0)).toBe(3_300)
+    expect(route.reduce((ms, step) => ms + step.durationMs, 0)).toBe(825)
   })
 
   it('keeps the representative settlement-to-settlement journey on the same 26-step path', () => {
@@ -135,7 +138,7 @@ describe('world travel', () => {
     )!
 
     expect(route).toHaveLength(26)
-    expect(route.reduce((ms, step) => ms + step.durationMs, 0)).toBe(28_600)
+    expect(route.reduce((ms, step) => ms + step.durationMs, 0)).toBe(7_150)
   })
 
   it('uses the tuned authoritative pace for a representative regional journey', () => {
@@ -145,7 +148,7 @@ describe('world travel', () => {
       CHARTED_SECTORS,
     )!
     expect(route.length).toBeGreaterThan(1)
-    expect(route.reduce((ms, s) => ms + s.durationMs, 0)).toBe(27_500)
+    expect(route.reduce((ms, s) => ms + s.durationMs, 0)).toBe(6_875)
     expect(route.at(-1)?.position).toEqual({ sectorId: 'aureth-crown', x: 6, y: 4 })
   })
   it('adds a connected Crown wilderness cluster without replacing the established Crown Road', () => {
@@ -221,7 +224,7 @@ describe('world travel', () => {
       expect(new Set(road.map((s) => s.position.x)).size).toBe(13)
       expect(road.every((s) => s.position.y === 4)).toBe(true)
       expect(road.slice(1).every((s) => s.durationMs === STEP_MS)).toBe(true)
-      expect(route.reduce((ms, step) => ms + step.durationMs, 0)).toBe(15_400)
+      expect(route.reduce((ms, step) => ms + step.durationMs, 0)).toBe(3_850)
       expect(route.at(-1)?.position).toEqual(to)
     }
   })

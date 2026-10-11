@@ -9,7 +9,16 @@ test('account entry is responsive, focusable, stable, and media-safe', async ({ 
   await expect(page.getByTestId('account-shell')).toBeVisible()
   const title = page.getByRole('heading', { level: 1, name: 'AUREVANE' })
   await expect(title).toBeVisible()
-  await expect(page.locator('img[src*="world-v01.webp"]')).toBeVisible()
+  const hero = page.locator('[aria-labelledby="aurevane-title"]')
+  await expect(hero).toBeVisible()
+  const artwork = page.locator('[data-approved-entry="gateway"] main > [aria-hidden="true"] img')
+  await expect(artwork).toHaveAttribute('src', /entry%2Fgateway-v01|entry\/gateway-v01/)
+  const artworkWidth = await artwork.evaluate(async (element) => {
+    const image = element as HTMLImageElement
+    await image.decode()
+    return image.naturalWidth
+  })
+  expect(artworkWidth).toBeGreaterThan(0)
 
   const hasHorizontalOverflow = await page.evaluate(
     () => document.documentElement.scrollWidth > window.innerWidth + 1,
@@ -101,7 +110,7 @@ test('a new account persists its private profile across refresh, sign-out, and s
   await expect(page.getByText('Available later', { exact: true })).toBeVisible()
 
   await page.reload()
-  await expect(page.getByRole('heading', { name: 'Choose your character.' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Choose your character' })).toBeVisible()
   await expect(page.getByRole('link', { name: 'Create Character' })).toHaveCount(1)
   await expect(page.getByText('Additional character slot', { exact: true })).toBeVisible()
   await expect(
@@ -117,7 +126,7 @@ test('a new account persists its private profile across refresh, sign-out, and s
   await page.getByRole('button', { name: 'Enter AUREVANE' }).click()
 
   await expect(page).toHaveURL(/\/game$/)
-  await expect(page.getByRole('heading', { name: 'Choose your character.' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Choose your character' })).toBeVisible()
   await expect(page.getByRole('link', { name: 'Create Character' })).toHaveCount(1)
 })
 

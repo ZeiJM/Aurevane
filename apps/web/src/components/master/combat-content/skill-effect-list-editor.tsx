@@ -1,30 +1,38 @@
 'use client'
 
 import type { CombatEffectDefinition } from '@aurevane/game-core/combat/actions'
+import {
+  CLEANSE_STATUS_IDS,
+  isCleanseChilledEffect,
+} from '@aurevane/game-core/combat/combat-cleanse'
 import { useState } from 'react'
 
 import { previewEffect } from '../../character/skill-effect-preview'
 import styles from './combat-content-editor.module.css'
 import { SkillEffectEditor } from './skill-effect-editor'
 
-export type CombatEffectType = CombatEffectDefinition['type']
+export type CombatEffectType =
+  CombatEffectDefinition['type'] | 'push' | 'pull' | 'blindside' | 'cleanse-chilled'
 
 const EFFECT_TYPES: readonly { value: CombatEffectType; label: string }[] = [
   { value: 'damage', label: 'Damage' },
-  { value: 'healing', label: 'Healing' },
+  { value: 'percentage-recovery', label: 'HP / MP percentage recovery' },
+  { value: 'healing', label: 'Legacy HP amount' },
   { value: 'resource-change', label: 'MP change' },
   { value: 'apply-status', label: 'Apply status' },
+  { value: 'blindside', label: 'Blindside · Instant, 1 turn' },
   { value: 'remove-status', label: 'Remove status' },
+  { value: 'cleanse-chilled', label: 'Cleanse Chilled' },
   { value: 'return-to-turn-start', label: 'Return to turn start' },
-  { value: 'create-terrain', label: 'Create Frozen terrain' },
-  { value: 'displace', label: 'Displace' },
+  { value: 'create-terrain', label: 'Create Frozen Ground' },
+  { value: 'push', label: 'Push' },
+  { value: 'pull', label: 'Pull' },
   { value: 'poison', label: 'Poison' },
   { value: 'bleed', label: 'Bleed' },
   { value: 'burn', label: 'Burn' },
   { value: 'barrier-change', label: 'Barrier' },
-  { value: 'copy-statuses', label: 'Amplify / Curse status copy' },
-  { value: 'copy', label: 'Temporary Skill Copy' },
-  { value: 'sensory', label: 'Sensory / Revealed' },
+  { value: 'copy-statuses', label: 'Copy Buffs / Copy Debuffs' },
+  { value: 'sensory', label: 'Reveal / Revealed' },
 ]
 
 function assertNever(value: never): never {
@@ -33,34 +41,67 @@ function assertNever(value: never): never {
 
 export function createDefaultCombatEffect(type: CombatEffectType): CombatEffectDefinition {
   switch (type) {
+    case 'blindside':
+      return {
+        type: 'apply-status',
+        recipient: 'actor',
+        statusId: 'blindside',
+        stacks: 1,
+        durationTurns: 1,
+      }
     case 'damage':
       return { type, recipient: 'primary-unit', amount: 0 }
+    case 'percentage-recovery':
+      return { type, recipient: 'actor', resource: 'hp', percent: 10, ticks: 1 }
     case 'healing':
       return { type, recipient: 'actor', amount: 0, ticks: 1 }
     case 'resource-change':
       return { type, recipient: 'actor', resource: 'mp', delta: 0, ticks: 1 }
     case 'apply-status':
       return { type, recipient: 'primary-unit', statusId: 'guarded', stacks: 1 }
+    case 'cleanse-chilled':
+      return { type: 'remove-status', recipient: 'actor', statusIds: ['frozen'] }
     case 'remove-status':
-      return { type, recipient: 'primary-unit', statusIds: ['burn'] }
+      return { type, recipient: 'primary-unit', statusIds: [...CLEANSE_STATUS_IDS] }
     case 'return-to-turn-start':
-      return { type, recipient: 'actor' }
+      return { type, recipient: 'actor', anchorMode: 'cast-position' }
     case 'create-terrain':
       return { type, recipient: 'affected-tiles', terrain: 'frozen' }
+    case 'push':
+    case 'pull':
+      return { type: 'displace', recipient: 'primary-unit', direction: type, distance: 1 }
     case 'displace':
       return { type, recipient: 'primary-unit', direction: 'push', distance: 1 }
     case 'poison':
-      return { type, recipient: 'primary-unit' }
+      return {
+        type,
+        recipient: 'primary-unit',
+        durationTurns: 4,
+        damageProfile: { kind: 'attack-percentage', basisPoints: 1500 },
+      }
     case 'bleed':
-      return { type, recipient: 'primary-unit', damagePerTick: 1, ticks: 1 }
+      return {
+        type,
+        recipient: 'primary-unit',
+        ticks: 3,
+        durationTurns: 3,
+        damageProfile: { kind: 'attack-percentage', basisPoints: 2000 },
+      }
     case 'burn':
-      return { type, recipient: 'primary-unit' }
+      return {
+        type,
+        recipient: 'primary-unit',
+        durationTurns: 3,
+        damageProfile: {
+          kind: 'attack-percentage',
+          basisPoints: 2500,
+          decayBasisPointsPerTick: 500,
+        },
+      }
     case 'barrier-change':
       return { type, recipient: 'actor', amount: 1 }
     case 'copy-statuses':
       return { type, recipient: 'primary-unit', mode: 'amplify' }
-    case 'copy':
-      return { type, recipient: 'primary-unit' }
     case 'sensory':
       return { type, recipient: 'primary-unit', revealedDurationOwnerTurnStarts: 2 }
     default:
@@ -158,7 +199,17 @@ export function SkillEffectListEditor({
             <header className={styles.effectHeader}>
               <div>
                 <span className={styles.effectOrdinal}>Effect {index + 1}</span>
-                <strong>{EFFECT_TYPES.find((entry) => entry.value === effect.type)?.label}</strong>
+                <strong>
+                  {effect.type === 'displace'
+                    ? effect.direction === 'pull'
+                      ? 'Pull'
+                      : 'Push'
+                    : isCleanseChilledEffect(effect)
+                      ? 'Cleanse Chilled'
+                      : effect.type === 'apply-status' && effect.statusId === 'blindside'
+                        ? 'Blindside'
+                        : EFFECT_TYPES.find((entry) => entry.value === effect.type)?.label}
+                </strong>
               </div>
               <div className={styles.effectActions}>
                 <button
@@ -266,7 +317,7 @@ export function SkillEffectListEditor({
         Effect order is authoritative.
         {maxEffects === undefined ? '' : ` This section allows at most ${maxEffects} effects.`}
         {
-          ' Validation catches composition rules such as status Copy placement, Sensory targeting, and Rewind self-only requirements.'
+          ' Validation catches composition rules such as Copy Buffs/Copy Debuffs placement, Reveal targeting, and Rewind self-only requirements.'
         }
       </p>
     </fieldset>

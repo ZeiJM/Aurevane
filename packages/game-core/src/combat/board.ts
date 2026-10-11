@@ -92,6 +92,9 @@ export interface MovementPathPreview {
   issues: readonly MovementPathIssue[]
 }
 
+/** Legacy board callers use terrain weight; the AP action economy spends MOVE per entered tile. */
+export type MovementAllowanceCostMode = 'terrain-weight' | 'entered-tiles'
+
 export type FacingRelation = 'front' | 'side' | 'rear'
 
 export type TacticalBattleEvent =
@@ -160,6 +163,9 @@ export function createTacticalBattleState(
 export function evaluateCurrentMovementPath(
   state: TacticalBattleState,
   path: readonly GridPosition[],
+  allowanceCostMode: MovementAllowanceCostMode = 'terrain-weight',
+  statBalancePolicyVersion?: 1,
+  airborneJumpPolicyVersion?: 1,
 ): MovementPathPreview {
   assertValidTacticalBattleState(state)
 
@@ -227,7 +233,15 @@ export function evaluateCurrentMovementPath(
         break
       }
 
-      if (Math.abs(currentTile.elevation - previousTile.elevation) > profile.maxElevationStep) {
+      if (
+        !canEnterElevation(
+          previousTile.elevation,
+          currentTile.elevation,
+          profile.maxElevationStep,
+          statBalancePolicyVersion,
+          airborneJumpPolicyVersion,
+        )
+      ) {
         issues.push({
           code: 'elevation-step-too-high',
           stepIndex: index,
@@ -236,7 +250,7 @@ export function evaluateCurrentMovementPath(
         break
       }
 
-      const occupyingCombatant = getOccupyingCombatant(state, current)
+      const occupyingCombatant = getLivingOccupantId(state, current)
       if (occupyingCombatant !== null && occupyingCombatant !== turn.combatantId) {
         issues.push({
           code: 'occupied-tile',
@@ -246,7 +260,7 @@ export function evaluateCurrentMovementPath(
         break
       }
 
-      cost += traversalCost
+      cost += allowanceCostMode === 'entered-tiles' ? 1 : traversalCost
       if (!Number.isSafeInteger(cost)) {
         throw new RangeError('Movement path cost exceeded the safe integer range.')
       }
@@ -257,7 +271,7 @@ export function evaluateCurrentMovementPath(
     issues.push({
       code: 'movement-budget-exceeded',
       stepIndex: copiedPath.length - 1,
-      message: 'Movement path costs more than the remaining Movement Budget.',
+      message: 'Movement path costs more than the remaining Movement allowance.',
     })
   }
 
@@ -273,7 +287,7 @@ export function evaluateCurrentMovementPath(
   }
 }
 
-/** Read an entered tile's movement cost using the combatant's pinned movement profile. */
+/** Read an entered tile's terrain weight using the combatant's pinned movement profile. */
 export function movementTraversalCostAt(
   state: TacticalBattleState,
   combatantId: string,
@@ -290,8 +304,17 @@ export function movementTraversalCostAt(
 export function moveCurrentCombatant(
   state: TacticalBattleState,
   path: readonly GridPosition[],
+  allowanceCostMode: MovementAllowanceCostMode = 'terrain-weight',
+  statBalancePolicyVersion?: 1,
+  airborneJumpPolicyVersion?: 1,
 ): TacticalBattleTransition {
-  const preview = evaluateCurrentMovementPath(state, path)
+  const preview = evaluateCurrentMovementPath(
+    state,
+    path,
+    allowanceCostMode,
+    statBalancePolicyVersion,
+    airborneJumpPolicyVersion,
+  )
   if (!preview.legal) {
     const issue = preview.issues[0]
     if (!issue) {
@@ -618,11 +641,16 @@ function collectPlacementIssues(issues: TacticalBoardIssue[], state: TacticalBat
     }
     combatantIds.add(placement.combatantId)
 
-    const key = positionKey(placement.position)
-    if (positionKeys.has(key)) {
-      issues.push({ field: `${prefix}.position`, message: 'Two combatants cannot share a tile.' })
+    const combatant = state.battle.combatants.find(
+      (candidate) => candidate.id === placement.combatantId,
+    )
+    if (combatant?.hp !== 0) {
+      const key = positionKey(placement.position)
+      if (positionKeys.has(key)) {
+        issues.push({ field: `${prefix}.position`, message: 'Two combatants cannot share a tile.' })
+      }
+      positionKeys.add(key)
     }
-    positionKeys.add(key)
 
     const tile = state.tiles.find((candidate) =>
       positionsEqual(candidate.position, placement.position),
@@ -695,7 +723,7 @@ function getPlacement(state: TacticalBattleState, combatantId: string): CombatPl
   return placement
 }
 
-function getMovementProfile(
+export function getMovementProfile(
   state: TacticalBattleState,
   movementProfileId: string,
 ): CombatMovementProfile {
@@ -714,10 +742,18 @@ function getTile(state: TacticalBattleState, position: GridPosition): CombatTile
   return tile
 }
 
-function getOccupyingCombatant(state: TacticalBattleState, position: GridPosition): string | null {
+/** Defeated placements remain visible but only living combatants reserve board space. */
+export function getLivingOccupantId(
+  state: TacticalBattleState,
+  position: GridPosition,
+): string | null {
   return (
-    state.placements.find((placement) => positionsEqual(placement.position, position))
-      ?.combatantId ?? null
+    state.placements.find(
+      (placement) =>
+        positionsEqual(placement.position, position) &&
+        state.battle.combatants.find((combatant) => combatant.id === placement.combatantId)?.hp !==
+          0,
+    )?.combatantId ?? null
   )
 }
 
@@ -817,4 +853,19 @@ function compareStableString(left: string, right: string): number {
   if (left < right) return -1
   if (left > right) return 1
   return 0
+}
+
+/** Current Jump gates absolute raised entry; descent cannot strand a combatant. */
+export function canEnterElevation(
+  currentHeight: number,
+  destinationHeight: number,
+  jump: number,
+  statBalancePolicyVersion?: 1,
+  airborneJumpPolicyVersion?: 1,
+): boolean {
+  return statBalancePolicyVersion === 1
+    ? destinationHeight < currentHeight ||
+        destinationHeight <= jump ||
+        (airborneJumpPolicyVersion === 1 && destinationHeight === currentHeight)
+    : Math.abs(destinationHeight - currentHeight) <= jump
 }

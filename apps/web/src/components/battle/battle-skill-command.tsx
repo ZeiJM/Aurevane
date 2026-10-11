@@ -1,5 +1,6 @@
 'use client'
 
+import { useSkillEffectTimingPolicy } from '../character/skill-effect-timing-context'
 import Image from 'next/image'
 
 import {
@@ -11,10 +12,24 @@ import {
   useState,
   type CSSProperties,
   type SyntheticEvent,
+  type ReactNode,
 } from 'react'
 import { createPortal } from 'react-dom'
 
 import { BattleInfoPopover } from './battle-info-popover'
+import { restoreBattleKeyboardFocus } from './battle-keyboard-scope'
+import { battleCooldownLabel } from './battle-action-cooldown'
+import { BattleSkillCooldown } from './battle-skill-cooldown'
+import {
+  commandCharacteristicRows,
+  basicActionIdForCommand,
+  type BasicActionCharacterStats,
+} from '../character/basic-action-presentation'
+import {
+  BasicActionEffectExplanations,
+  BasicActionEffectSummary,
+} from '../character/basic-action-effect-details'
+import { SkillCharacteristicRows } from '../character/skill-characteristic-rows'
 
 import artworkFitStyles from './battle-skill-artwork-fit.module.css'
 import {
@@ -24,7 +39,8 @@ import {
 import styles from './battle-skill-command.module.css'
 import { BATTLE_MISSING_ARTWORK } from './battle-skill-presentation'
 
-export type BattleCommandSlot = 'inspect' | 'move' | 'attack' | 'guard' | 'recover' | 'finish'
+export type BattleCommandSlot =
+  'items' | 'inspect' | 'move' | 'attack' | 'guard' | 'recover' | 'finish'
 
 export interface BattleSkillSelectorOption {
   id: string
@@ -75,9 +91,12 @@ export function BattleSkillCommand({
   artworkSrc,
   active,
   disabled,
+  cooldownTurns = 0,
   onActivate,
   selector,
   tags = [],
+  children,
+  characterStats,
 }: {
   slot: BattleCommandSlot
   hotkey: string
@@ -86,20 +105,25 @@ export function BattleSkillCommand({
   artworkSrc: string
   active: boolean
   disabled: boolean
+  cooldownTurns?: number
   onActivate: () => void
   selector?: BattleSkillSelectorConfig
   tags?: readonly string[]
+  characterStats?: BasicActionCharacterStats
+  children?: ReactNode
 }) {
+  const timingPolicy = useSkillEffectTimingPolicy()
   const informationId = useId()
   const [selectorOpen, setSelectorOpen] = useState(false)
   const [selectorStyle, setSelectorStyle] = useState<CSSProperties>({})
   const artworkRef = useRef<HTMLButtonElement | null>(null)
   const selectorRef = useRef<HTMLDivElement | null>(null)
   const canSwap = Boolean(selector && selector.options.length > 1)
+  const basicActionId = basicActionIdForCommand(slot, label)
 
   const closeSelector = useCallback((restoreFocus = false) => {
     setSelectorOpen(false)
-    if (restoreFocus) window.requestAnimationFrame(() => artworkRef.current?.focus())
+    if (restoreFocus) restoreBattleKeyboardFocus()
   }, [])
 
   const positionSelector = useCallback(() => {
@@ -191,62 +215,97 @@ export function BattleSkillCommand({
         data-battle-command={slot}
         data-command-slot={slot}
         data-action-cost={cost}
-        disabled={disabled}
+        disabled={slot === 'items' || disabled || cooldownTurns > 0}
+        data-battle-cooldown-active={cooldownTurns > 0 || undefined}
         onClick={onActivate}
-        aria-label={`${label}, ${cost}`}
+        aria-label={`${label}, ${cost}${battleCooldownLabel(cooldownTurns)}`}
       >
-        <span className={styles.hotkey} data-battle-command-hotkey="true">
-          {hotkey}
-        </span>
-        <strong>{label}</strong>
         <span
           className={`${styles.artwork} ${artworkFitStyles.frame}`}
           data-battle-command-artwork="static"
+          data-battle-skill-cooldown={cooldownTurns || undefined}
           data-av-square-media="true"
           data-av-square-media-fit="contain"
           aria-hidden="true"
         >
-          <Image
-            width={64}
-            height={64}
-            unoptimized
-            src={artworkSrc}
-            alt=""
-            onError={fallbackBrokenArtwork}
-          />
+          {slot === 'items' ? (
+            <svg viewBox="0 0 100 100" width="100%" height="100%" fill="none" aria-hidden="true">
+              <path d="M34 44V32a16 16 0 0 1 32 0v12" stroke="#c4a56c" strokeWidth="5" />
+              <rect
+                x="23"
+                y="43"
+                width="54"
+                height="40"
+                rx="6"
+                stroke="#c4a56c"
+                strokeWidth="3"
+                fill="#c4a56c18"
+              />
+              <circle cx="50" cy="59" r="5" fill="#c4a56c" />
+              <path d="M50 63v9" stroke="#c4a56c" strokeWidth="4" />
+            </svg>
+          ) : (
+            <Image
+              width={192}
+              height={192}
+              unoptimized
+              src={artworkSrc}
+              alt=""
+              onError={fallbackBrokenArtwork}
+            />
+          )}
+          <BattleSkillCooldown turns={cooldownTurns} />
         </span>
+        <strong>{label}</strong>
       </button>
+      <div className={styles.controls} data-battle-cockpit-controls="true">
+        <BattleInfoPopover
+          label={`About ${label}`}
+          title={label}
+          trigger="i"
+          consumeOutsideClick
+          className={styles.infoTrigger}
+        >
+          <strong>Parameters</strong>
+          <dl>
+            <SkillCharacteristicRows
+              rows={commandCharacteristicRows(slot, label, cost, timingPolicy, characterStats)}
+              effectSummary={
+                basicActionId ? (
+                  <BasicActionEffectSummary id={basicActionId} stats={characterStats} />
+                ) : null
+              }
+            />
+          </dl>
+          {basicActionId ? <BasicActionEffectExplanations id={basicActionId} /> : null}
+          {tags.length > 0 ? (
+            <div className={styles.tags} data-battle-skill-tags="details">
+              {tags.map((tag) => (
+                <span key={tag}>{tag}</span>
+              ))}
+            </div>
+          ) : (
+            <p>
+              {slot === 'items'
+                ? 'Battle Items are coming soon. This slot is locked and cannot issue a command.'
+                : slot === 'inspect'
+                  ? 'Select a character or tile to inspect it for free.'
+                  : slot === 'finish'
+                    ? 'Choose your final facing on the map, then finish your turn.'
+                    : null}
+            </p>
+          )}
+        </BattleInfoPopover>
+        <span className={styles.hotkey} data-battle-command-hotkey="true">
+          {hotkey}
+        </span>
+      </div>
 
-      <BattleInfoPopover
-        label={`About ${label}`}
-        title={label}
-        trigger="ⓘ"
-        className={styles.infoTrigger}
-      >
-        <p>
-          <strong>{cost}</strong>
-        </p>
-        {tags.length > 0 ? (
-          <div className={styles.tags} data-battle-skill-tags="details">
-            {tags.map((tag) => (
-              <span key={tag}>{tag}</span>
-            ))}
-          </div>
-        ) : (
-          <p>
-            {slot === 'inspect'
-              ? 'Select a character or tile to inspect it for free.'
-              : slot === 'move'
-                ? 'Select reachable tiles to preview your path and its AP cost.'
-                : slot === 'finish'
-                  ? 'Choose your final facing on the map, then finish your turn.'
-                  : 'Select a target to preview the result and AP cost before confirming.'}
-          </p>
-        )}
-        {tags.length > 0 ? (
-          <p>Select a target to see the projected result before confirming.</p>
-        ) : null}
-      </BattleInfoPopover>
+      {slot === 'finish' || children ? (
+        <div className={styles.extraControls} data-battle-command-extra-controls="true">
+          {children}
+        </div>
+      ) : null}
 
       {canSwap && selector ? (
         <button

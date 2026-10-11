@@ -1,3 +1,5 @@
+import { SkillEffectTimingProvider } from '@/components/character/skill-effect-timing-context'
+import { readCombatEffectTimingPolicy } from '@/server/master/combat-effect-timing-policy-store'
 import {
   resolveEssenceForBuild,
   validateEssenceDefinition,
@@ -241,32 +243,35 @@ export default async function MasterCombatContentPage() {
     )
   ).sort((left, right) => left.label.localeCompare(right.label))
 
+  const timingPolicy = await readCombatEffectTimingPolicy()
   return (
-    <MasterPanelShell
-      access={access}
-      activeSection="combat"
-      title="Combat Content"
-      description="Create and refine typed, versioned Skills without stepping outside the canonical combat engine."
-    >
-      <CombatContentAuthoringWorkspace
-        key={[
-          ...options.map(
-            (option) =>
-              `skill:${option.id}:${option.currentVersion}:${option.draftVersion ?? 'none'}`,
-          ),
-          ...essences.map(
-            (option) =>
-              `essence:${option.id}:${option.currentVersion}:${option.draftVersion ?? 'none'}`,
-          ),
-          ...resonances.map(
-            (option) =>
-              `resonance:${option.id}:${option.currentVersion}:${option.draftVersion ?? 'none'}`,
-          ),
-        ].join('|')}
-        skills={options}
-        essences={essences}
-        resonances={resonances}
-      />
-    </MasterPanelShell>
+    <SkillEffectTimingProvider policy={timingPolicy}>
+      <MasterPanelShell
+        access={access}
+        activeSection="combat"
+        title="Combat Content"
+        description="Create and refine typed, versioned Skills without stepping outside the canonical combat engine."
+      >
+        <CombatContentAuthoringWorkspace
+          key={[
+            ...options.map(
+              (option) =>
+                `skill:${option.id}:${option.currentVersion}:${option.draftVersion ?? 'none'}`,
+            ),
+            ...essences.map(
+              (option) =>
+                `essence:${option.id}:${option.currentVersion}:${option.draftVersion ?? 'none'}`,
+            ),
+            ...resonances.map(
+              (option) =>
+                `resonance:${option.id}:${option.currentVersion}:${option.draftVersion ?? 'none'}`,
+            ),
+          ].join('|')}
+          skills={options}
+          essences={essences}
+          resonances={resonances}
+        />
+      </MasterPanelShell>
+    </SkillEffectTimingProvider>
   )
 }

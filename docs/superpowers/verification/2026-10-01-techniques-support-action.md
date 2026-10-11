@@ -1,0 +1,102 @@
+# Techniques, Support Action and continued UI verification
+
+## Scope and release boundary
+
+Owner-authorized continuation of PR #790: eight-card Primary/Secondary Discipline rows, independent Support Action saved to battle slot 3, the approved Profile stat/tendencies presentation, single-panel Training, persistent Nexus/Items navigation, Haven shortcut removal, standardized headers and Character Select fit, three PvP map sizes with the VS centerpiece, and Guided Fundamentals at 9×7. The specification and implementation plan are the same-date documents in `../specs/` and `../plans/`.
+
+New battles pin Support Action and map geometry. Historic snapshot fingerprints and recorded battle maps remain compatible. Training cancellation retains the existing proportional reward settlement through the existing idempotent claim endpoint. Build Tendencies visualizes relative Core Stats; it changes no combat formula.
+
+Only the two new additive migrations are part of this release: `20261001184328_character_support_action.sql` and `20261001190915_pvp_three_map_sizes.sql`. Unrelated pending world/story migrations and combat-content publication are outside this work item. Production migration, deployment and authenticated acceptance are not implied by fixture evidence.
+
+## Component and domain evidence
+
+- Support persistence focused tests cover ownership, strict allowed IDs, versions, receipts, named loadouts, legacy fingerprints and pinned snapshots. An independent backend review found no blockers. Database execution remains an exact-candidate CI gate.
+- Actual Techniques component fixtures passed twelve pure/mixed layout cases at 1440×900, 1366×768, 1536×614, 1024×576, 821×768 and 390×844. Save checks passed successive versions 1→2→3, busy exclusion, independent Discipline capacity and rollback.
+- Actual battle fixtures passed twelve PvE/PvP Support Action cases and two pending-preview/dialog cases. These cover names/art/AP, custom keybinds, deliberate second press, held-key exclusion, HP/MP full, shared recovery cooldown, reading dialogs and late unmount.
+- Profile layout fixtures passed eleven desktop/mobile widths from 1920 to 320 pixels. Five popup cases verified viewport fit, category explanations, Escape and outside dismissal. All thirteen Combat Stats appear once under their corresponding Core Stats.
+- Nexus/Items fixtures covered eighteen navigation/layout cases, including desktop Nexus without page overflow; authenticated CI subsequently identified the mobile summary defect recorded below. Training fixtures passed twenty-four panel states and four lifecycle cases. Independent review identified a stale-tab stop that returned `stopped:false` but left settlement active; the actual-component regression first timed out, then passed with Plan visible and zero extra claims after the fix. A real second-tab regression is included in authenticated CI.
+- Shared headers and Character Select passed fifty-six actual-component cases: four shells, seven viewports, and 16px/20px root fonts. Requested desktop viewports and 768×576 fit without page scrolling.
+- PvP focused domain/service tests check all three canonical geometries and preserve old 9×7/13×9 snapshot replay. Lobby fixtures cover desktop/mobile and 1v1/2v2/3v3 modes with reduced-motion support.
+- Guided arena regression tests first failed because the server accepted a different proposed arena. The setup now displays its existing 9×7 Duel Yard record, and authoritative session tests require 63 tiles and reject client arena overrides. Legacy drill geometry and stored snapshots remain unchanged.
+- Independent integration review identified that Recovery in slot 3 removed access to the required Guard lesson. An exercise-only Practice Guard control uses the same battle input/preview/commit owner, keeps slot 3 unchanged and preserves full-resource recovery legality. Focused render regressions first failed before the control was added; authenticated desktop/mobile regressions check the recorded Guard criterion with full MP.
+
+Fixture checks use production components with synthetic transport/data. They are not authenticated Production gameplay or database evidence. Durable authenticated tests are included in the disposable browser workflow for Support Action, Techniques, loadout navigation, Training, profile, roster headers and PvP map sizes.
+
+## Final gates and release
+
+The final local format, uncached lint, package lint, uncached typecheck, uncached full suite (3,142 Vitest tests and seven Node checks), and fresh Production builds passed. The four new/extended browser suites parse to 36 project cases. The final Guided practice fixture passed eight desktop/short/mobile cases with one Guard commit, AP 70, full MP unchanged, selected Support Action retained and stable board height. A held-Enter regression first reproduced a native repeat committing once; the local repeat guard then preserved zero commits while held and one commit after a deliberate second press. The authenticated test includes this input sequence.
+
+Independent integrated review found two material edge cases (stale-tab Training settlement and inaccessible Guided Guard practice with Recovery); both were reproduced, corrected and reviewed again. No remaining material finding was identified in the reviewed persistence, snapshot, input, navigation, Profile, Training, header or map-size paths. SQL/authenticated candidate CI remains required.
+
+PR #790 passed CI, Representative Buildcraft, UI layout review and Browser smoke on exact head `5b794a8cd4025b561d09ac961367c36e80936cb4`, then merged at `ae9cc3f5aeddfa72651339855a17f1c53f443b85`. Branch deployment remains locked. This continuation builds on that application tree.
+
+Exact-candidate SQL/browser workflows, final main freshness, merge identifiers, Production preflight/migrations, deployment identity, bounded live smoke and restored deployment lock will be recorded here as they finish. This candidate has not yet been released.
+
+## Initial authenticated CI findings
+
+PR #791 head `8f4c90196858f0988cec12896016b6613d93324c` passed eleven workflows, including the Support Action positive/negative/race/loadout SQL verifier in Discipline Build DB, the three-map SQL verifier in Battle Session DB, Foundation Security DB, CI and the existing build/snapshot authorities. Browser smoke, Desktop page fit, Desktop experience and Representative Buildcraft reported findings; UI layout review reached its time bound while blocked by repeated mobile launcher clicks. This head is not a release candidate.
+
+The browser traces distinguish stale test contracts from application defects. Tests still expected the retired Nexus heading, counted Support Action articles as learned Discipline Skills, assumed the old default PvP board, and applied a short-effect single-line assertion to Brace's longer complete parameters. The new Support Action test also captured an automatic MP preview instead of the subsequent HP shortcut preview, and waited for `/intents` after a successful `/commit`. These tests now use the requested labels, semantic Discipline checkboxes, explicit Small or current Medium geometry, deterministic short/long authored values, correlated preview intents and the actual commit endpoint. Resource legality, cooldown, capacity, full parameter containment, and one-commit assertions remain.
+
+Authenticated CI additionally identified a real mobile Nexus summary/launcher overlap and fresh-page React hydration errors. These application defects require fixes and a new full candidate run before merge or release. Production remains unchanged; read-only schema preflight still shows migration `20260928042812`, no Support Action columns and the legacy medium/large constraint.
+
+The hydration defect was traced by replaying the exact authenticated SSR HTML and built assets. React omitted the six SVG axis titles because each title had multiple JSX text children; the client expected their text. A single interpolated string retains every axis label/value and tooltip. The new `renderToString` regression reproduced six empty titles before the fix and passed afterward. A real browser SSR→HTML parse→`hydrateRoot` fixture containing the actual authenticated shell, shared header, account menu and graph reproduced the same title mismatch before the fix, then passed with no recoverable/page errors, all six complete title labels, the original graph DOM retained and the graph button clickable. No header rewrite or hydration-error suppression was introduced.
+
+The mobile Nexus defect was reproduced using the exact authenticated CI DOM, styles and artwork in a real mobile Chromium context. An auto-sized grid track took the whole summary width, leaving no label track; overflowing text enlarged the mobile layout viewport and caused the Support summary/navigation to intercept launcher clicks. The first grid track now uses the existing cockpit artwork size. No pointer-event bypass or forced click was added. The exact replay passes normal actionability after the one-line fix. Twelve actual-component cases cover empty/four equipped Skills at 390×844, 393×851, 320×700, 1366×768, 1440×900 and 1536×614; they check contained text/art, no horizontal overflow, separated summary/launcher, both button corners and normal dialog opening. Durable authenticated assertions cover the three phone sizes.
+
+Independent review of the corrected SVG, Nexus, preview and stale roster/map test contracts found no blocking findings. Fresh uncached full tests passed 3,143 Vitest tests and seven Node checks; uncached type checks and Production builds passed. Fresh repository formatting, uncached app/worker lint, explicit package lint and explicit E2E ESLint also passed. Root independently repeated the twelve Nexus browser cases successfully. Exact corrected-head authenticated/database CI remains a release gate.
+
+Corrected head `df24d571fe1f7a3c9a6f9af8e903ceaf8f634760` passed thirteen workflows, including UI layout review (104 authenticated cases plus its navigation check) and Desktop page fit. All previously failing mobile launcher interactions and fresh-render hydration checks passed. Three workflows exposed subsequent findings: A1 used an unscoped identity selector that could match a streamed copy outside the authenticated shell; the Ironfist persistence check counted the separate selected Support radio as a fifth Skill; and the desktop Support Action save left the Nexus summary at Guard after MP Recovery committed. Rail assertions now scope to the authenticated shell; Discipline persistence counts checked checkboxes while retaining every exact selected-Skill assertion. The A1 readability check targets the actual Combat Stat label rather than its glyph.
+
+Rendered diagnostics also showed small-desktop Profile content extending behind the shared footer at 1366×768, 1280×720 and 1536×614. The earlier Profile fixture omitted the real shared header/footer; a new actual-shell fixture reproduces the clipping. Profile fitting and the committed Support summary refresh need corrections and a new exact-head CI run. This head remains unreleased.
+
+The final Profile correction fits the real shared shell at thirteen viewport sizes, including 1280×720, 1366×768 and 1536×614. All six Core Stats and thirteen Combat Stats remain present; desktop main/sheet scrolling and clipping are rejected. Compact spacing and an adjacent graph preserve the approved layout; only the four-row Agility group uses inline values at short heights. Whole-word text and graph bounds/label-value separation checks pass on desktop and mobile. Root independently repeated the thirteen layout cases and thirteen text checks.
+
+The Support Action display race was reproduced with the production component and actual Next.js 16.3.6 App Router: a successful save and updated RSC response still left the summary stale when `history.replaceState` and `router.refresh` ran in the same handler. Refresh now runs after the closed query state commits. A ref records dirty state without another render; no provider, optimistic summary, timer or persistence change was introduced. The actual-router regression passes confirmed Guard/HP/MP save-close-reopen with sequential server versions, one refresh for each dirty close, zero refresh for a clean close, pending dismissal exclusion and failed-write rollback. Root independently repeated that matrix successfully. The original authenticated summary assertion remains and now also checks the closed query, reopening and failed-save summary.
+
+The frozen corrective patch passed fresh `pnpm check` (format, app/worker and package lint, types, full suite and Production build), explicit changed-E2E lint, and discovery of 96 cases across its seven changed browser suites. Independent review found no critical or important blockers after inspecting actual-router and actual-shell evidence. Final candidate CI and release remain required.
+
+## Exact candidate and Production release — completed
+
+All seventeen workflows passed on exact candidate `e16da79096291e8d623eadb152e9a3b2e7087d31` (tree `81128b9c494205e8e9e04e253b745281100fc711`). Browser smoke passed 61 focused scenarios, 289 full-suite Chromium scenarios and ten Edge scenarios, with 19/212/2 intentional project skips respectively. The complete workflow ran all three stages. Its server logs include destination-stream-closed notices during browser navigation; every scenario and workflow passed. UI review passed 104 cases plus one navigation check, with 61/2 intentional skips; Desktop experience passed 48 scenarios with 27 intentional skips. Actual Profile bounds, mobile Nexus launchers, committed Support save/close/reopen, rollback, battle Support and Guided Guard cases passed.
+
+| Workflow                  | Successful run |
+| ------------------------- | -------------- |
+| Skill Engine              | 36928605865    |
+| Shared Build Snapshots    | 36928605875    |
+| Profile Skill Build       | 36928605804    |
+| Resonance Build           | 36928605765    |
+| Essence Build             | 36928605772    |
+| Wayfarer's Practice DB    | 36928605976    |
+| Attribute Allocation      | 36928606114    |
+| Foundation Security DB    | 36928606001    |
+| Battle Session DB         | 36928605959    |
+| CI                        | 36928605863    |
+| Discipline Build DB       | 36928605890    |
+| Desktop page fit          | 36928606004    |
+| Desktop experience        | 36928605747    |
+| Representative Buildcraft | 36928605883    |
+| UI layout review          | 36928605798    |
+| Living Atlas browser      | 36928605982    |
+| Browser smoke             | 36928605729    |
+
+Fresh Main still matched `ae9cc3f5aeddfa72651339855a17f1c53f443b85` before merge. PR #791 merged at `d44f03c4c101db02e51e804bd26d9aa864387c93`; the merged tree is identical to the tested candidate. Configuration-only PR #792 enabled Main for the one approved release. Its merge/source is `768f80b8a7f24c55345471e3d0094fb6eb369224`. A local comparison confirms the sole difference from the tested tree is the Main deployment switch.
+
+### Production migration verification
+
+The final read-only preflight confirmed predecessor migration `20260928042812`, absent Support columns, the legacy medium/large map constraint, the four expected function-body hashes and service-only execute grants. Only the two reviewed SQL files were applied, sequentially, before deployment:
+
+| Repository migration                          | SHA-256                                                            | Actual Production history                     |
+| --------------------------------------------- | ------------------------------------------------------------------ | --------------------------------------------- |
+| `20261001184328_character_support_action.sql` | `1e6786fce97764c889eb2a5a7d4505c335eda9b6292b2ae966ebc33af8bee834` | `20261001221022` / `character_support_action` |
+| `20261001190915_pvp_three_map_sizes.sql`      | `410d692e326e9a97bdc1f6586cfed629c6c7d1d663136225d4de009508126c9f` | `20261001221030` / `pvp_three_map_sizes`      |
+
+Postflight confirms both Support columns are NOT NULL with `basic.guard` defaults; both allowed-action constraints and the small/medium/large constraint are validated. The two new private receipt/audit tables have RLS and no anon/authenticated SELECT grants. All seven relevant RPCs retain fixed search paths and service-only execute grants. Security advisors retain the existing leaked-password-protection warning; the only new INFO findings are the two intentionally closed private RLS tables (43 versus 41 baseline). No new public exposure, unrelated world/story migration, combat-content activation or Production gameplay mutation was performed.
+
+### Live deployment and closeout
+
+Deployment `dpl_5CWVV3mEiYLKV7sJZkghQGUDej5y` is READY, source `768f80b8a7f24c55345471e3d0094fb6eb369224`, with the canonical alias https://aurevane.vercel.app/. READY time is `2026-10-01T22:12:49.674Z`. The canonical deployment lookup independently confirms that identity.
+
+Live cloud-browser checks verified account entry with the shared header, Manual navigation and Battle Hall search, the released battle guide/current input and Movement/AP instructions, Rules and News. Public HTTP returned 200. No app-origin browser warning/error was observed; the browser extension emitted unrelated metadata errors. The deployment-scoped Production warning/error/fatal count query was empty over `2026-10-01T22:12:49.674Z`–`2026-10-01T22:14:58Z`; the upper bound is the public HTTP Date header.
+
+This configuration/documentation closeout restores `git.deploymentEnabled` to `{ "**": false }` without changing application bytes. Authenticated flows and persistence were verified in disposable CI; no Production sign-in, independent human multiplayer study or Owner visual acceptance is claimed.

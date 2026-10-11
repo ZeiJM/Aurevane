@@ -1,74 +1,79 @@
 'use client'
 
+import { frozenGroundDescription } from '@aurevane/game-core/combat/terrain-overlays'
+
 import { BattleInfoPopover } from './battle-info-popover'
+import {
+  BATTLE_TERRAIN_KEY_DETAILS,
+  presentBattleTerrainKeys,
+  type BattleTerrainKeyKind,
+  type BattleTerrainKeySnapshot,
+} from './battle-terrain-key-presentation'
 import styles from './battle-map-key.module.css'
 
-export function BattleMapKey() {
+export function BattleMapKey({
+  snapshot,
+  compact = false,
+}: {
+  snapshot: BattleTerrainKeySnapshot
+  compact?: boolean
+}) {
+  const activeKeys = new Set(presentBattleTerrainKeys(snapshot))
+  const terrainKeys = Object.keys(BATTLE_TERRAIN_KEY_DETAILS) as BattleTerrainKeyKind[]
+
   return (
-    <BattleInfoPopover
-      label="Map Key"
-      trigger={
-        <>
-          <span aria-hidden="true">▦</span> Map Key
-        </>
-      }
+    <section
+      className={`${styles.inline}${compact ? ` ${styles.compact}` : ''}`}
+      aria-label="Terrain Key"
+      data-battle-terrain-key="true"
     >
-      <dl className={styles.key}>
-        <div>
-          <dt>
-            <i data-key="rough" aria-hidden="true" />
-            Difficult Terrain
-          </dt>
-          <dd>Costs more AP and Movement to cross. Check the path preview before moving.</dd>
-        </div>
-        <div>
-          <dt>
-            <i data-key="elevated" aria-hidden="true">
-              ▲
-            </i>
-            Elevated Ground
-          </dt>
-          <dd>The raised rim marks elevation. Access depends on your character’s Jump.</dd>
-        </div>
-        <div>
-          <dt>
-            <i data-key="frozen" aria-hidden="true">
-              ❄
-            </i>
-            Frozen
-          </dt>
-          <dd>Temporary ice adds 10 AP per tile entered. Airborne ignores this extra cost.</dd>
-        </div>
-        <div>
-          <dt>
-            <i data-key="steam" aria-hidden="true">
-              ≋
-            </i>
-            Steam
-          </dt>
-          <dd>Temporary steam blocks line of sight through intervening tiles.</dd>
-        </div>
-        <div>
-          <dt>
-            <i data-key="path" aria-hidden="true">
-              1
-            </i>
-            Movement path
-          </dt>
-          <dd>Numbered tiles show the planned route. The AP bar previews its total cost.</dd>
-        </div>
-        <div>
-          <dt>
-            <i data-key="facing" aria-hidden="true">
-              ↑
-            </i>
-            Facing
-          </dt>
-          <dd>
-            The arrow above a portrait shows its facing. Choose a map arrow to finish your turn.
-          </dd>
-        </div>
-      </dl>
-    </BattleInfoPopover>
+      <header>
+        <strong>Terrain Key</strong>
+      </header>
+      <div className={styles.samples}>
+        {terrainKeys.map((kind) => {
+          const terrain =
+            kind === 'frozen'
+              ? {
+                  ...BATTLE_TERRAIN_KEY_DETAILS.frozen,
+                  description: `${frozenGroundDescription(snapshot.frozenGroundPolicyVersion ?? null)} Preserves base terrain and expires after 2 round boundaries.`,
+                }
+              : BATTLE_TERRAIN_KEY_DETAILS[kind]
+          const active = activeKeys.has(kind)
+          const sample = (
+            <>
+              <i data-key={kind} data-terrain-active={active} aria-hidden="true">
+                {terrain.glyph}
+              </i>
+              <span>{terrain.name}</span>
+              <small className={styles.status} data-terrain-active={active}>
+                <b aria-hidden="true">●</b> {active ? 'Active' : 'Inactive'}
+              </small>
+            </>
+          )
+          if (compact) {
+            return (
+              <details key={kind} className={styles.entry} name="battle-terrain-help">
+                <summary className={styles.sample} aria-label={terrain.name}>
+                  {sample}
+                </summary>
+                <p>{terrain.description}</p>
+              </details>
+            )
+          }
+          return (
+            <BattleInfoPopover
+              key={kind}
+              label={terrain.name}
+              description={active ? 'Active in this battle' : 'Inactive in this battle'}
+              className={styles.sample}
+              trigger={sample}
+            >
+              <p>{terrain.description}</p>
+            </BattleInfoPopover>
+          )
+        })}
+      </div>
+    </section>
   )
 }

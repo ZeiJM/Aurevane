@@ -329,3 +329,30 @@ describe('Amplify/Curse composed-command K3 provenance', () => {
     expect(applied?.provenance).toMatchObject({ effectOrdinal: 1 })
   })
 })
+
+it('preserves global-round duration when copying a current status', () => {
+  const state = world([
+    {
+      combatantId: 'target',
+      statuses: [
+        status(POSITIVE, 'other', {
+          durationScope: 'rounds',
+          remainingRoundBoundaries: 2,
+          remainingOwnerTurnEnds: 2,
+          timingState: 'active',
+        }),
+      ],
+    },
+  ])
+  const result = executeCombatAction(
+    state,
+    action('amplify', [copyEffect('amplify')]),
+    TARGET,
+    CONTENT,
+  )
+  expect(statuses(result.state, 'actor')[0]).toMatchObject({
+    durationScope: 'rounds',
+    remainingRoundBoundaries: 2,
+    remainingOwnerTurnEnds: 2,
+  })
+})

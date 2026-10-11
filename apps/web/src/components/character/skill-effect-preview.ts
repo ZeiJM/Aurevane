@@ -1,6 +1,20 @@
+import { isCleanseChilledEffect } from '@aurevane/game-core/combat/combat-cleanse'
+import {
+  combatEffectTimingMode,
+  defaultCombatEffectTimingPolicy,
+  type CombatEffectTimingPolicy,
+} from '@aurevane/game-core/combat/combat-effect-timing'
+import { groupSkillEffects } from './skill-effect-groups'
+import {
+  isPercentageDotEffect,
+  percentageDotDescription,
+  percentageDotMagnitude,
+} from '@aurevane/game-core/combat/combat-percentage-dots'
 import { COMBAT_TERRAIN_OVERLAY_DETAILS } from '@aurevane/game-core/combat/terrain-overlays'
 import { PV1F_COMBAT_CONTENT } from '@aurevane/game-core/combat/pv1f-action-economy'
 import { combatStatusDetails } from '@aurevane/game-core/combat/status-content'
+import { blindsideDamageDescription } from '@aurevane/game-core/combat/combat-blindside'
+import { airborneDescription } from '@aurevane/game-core/combat/combat-airborne'
 import {
   CURRENT_BURN_DAMAGE_BY_STAGE,
   CURRENT_POISON_DAMAGE,
@@ -9,6 +23,10 @@ import type {
   MatureSkillDefinition,
   MatureSkillEffectDefinition,
 } from '@aurevane/game-core/combat/mature-skills'
+import {
+  statusDamageMultiplierBasisPoints,
+  statusPotencyDescription,
+} from '../../lib/status-potency-presentation'
 
 export interface PreviewEffect {
   label: string
@@ -18,24 +36,156 @@ export interface PreviewEffect {
 
 const signed = (value: number) => `${value < 0 ? '−' : '+'}${Math.abs(value)}`
 
-function statusPreview(id: string, potencyBasisPoints?: number): PreviewEffect {
-  const details = combatStatusDetails(id)
+/** Recipient selectors may overlap at cast time; descriptions keep that condition explicit. */
+export function elementalStatusOverlapsDamage(
+  effect: MatureSkillEffectDefinition,
+  skillEffects: readonly MatureSkillEffectDefinition[] = [],
+): boolean {
+  if (effect.type !== 'apply-status') return false
+  const element = ({ frozen: 'ice', wet: 'water', conductive: 'storm' } as Record<string, string>)[
+    effect.statusId
+  ]
+  return (
+    Boolean(element) &&
+    skillEffects.some(
+      (candidate) =>
+        candidate.type === 'damage' &&
+        candidate.element === element &&
+        (candidate.recipient === effect.recipient ||
+          (candidate.recipient !== 'actor' && effect.recipient !== 'actor')),
+    )
+  )
+}
+
+/** Shared by compact popups and expanded reports; describes existing combat rules. */
+export function skillDamageElementInteraction(
+  effect: MatureSkillEffectDefinition,
+  legacyElemental = false,
+  timingPolicy?: CombatEffectTimingPolicy | null,
+  skillEffects?: readonly MatureSkillEffectDefinition[],
+  explicitElemental = true,
+): string {
+  if (effect.type !== 'damage') return ''
+  if (!legacyElemental && explicitElemental) {
+    if (effect.element === 'fire')
+      return ' Fire converts affected Frozen Ground to Steam mist, keeping its remaining life and blocking sight for both teams.'
+    if (effect.element === 'storm')
+      return ' Storm uses active Drenched and Conductive bonuses and consumes the old Conductive charge; Drenched remains.'
+    return ''
+  }
+  if (!legacyElemental) {
+    const statusId = ({ ice: 'frozen', water: 'wet', storm: 'conductive' } as const)[
+      effect.element as 'ice' | 'water' | 'storm'
+    ]
+    if (statusId && skillEffects) {
+      // Static readers have no resolved cast identities. Describe overlap conditionally;
+      // the engine's captureElementalApplication chooses the first matching status per unit.
+      const branches: string[] = []
+      const seenRecipients = new Set<string>()
+      for (const candidate of skillEffects) {
+        if (
+          candidate.type !== 'apply-status' ||
+          candidate.statusId !== statusId ||
+          seenRecipients.has(candidate.recipient)
+        )
+          continue
+        seenRecipients.add(candidate.recipient)
+        const captured = {
+          ...effect,
+          durationTurns: effect.durationTurns || candidate.durationTurns,
+          potencyBasisPoints: effect.potencyBasisPoints ?? candidate.potencyBasisPoints,
+        }
+        const interaction = skillDamageElementInteraction(
+          captured,
+          false,
+          timingPolicy,
+          undefined,
+          false,
+        )
+        if (candidate.recipient === effect.recipient)
+          return branches.join('') + (branches.length ? ' Otherwise:' : '') + interaction
+        const condition =
+          candidate.recipient === 'primary-unit'
+            ? 'is the primary target'
+            : candidate.recipient === 'actor'
+              ? 'is the caster'
+              : 'is among the affected units'
+        branches.push(
+          ` ${branches.length ? 'Otherwise, if' : 'If'} a damaged recipient ${condition}:${interaction}`,
+        )
+      }
+      if (branches.length)
+        return (
+          branches.join('') +
+          ' Otherwise:' +
+          skillDamageElementInteraction(effect, false, timingPolicy, undefined, false)
+        )
+    }
+    const duration = effect.durationTurns || 2
+    const bonus = (effect.potencyBasisPoints ?? 2000) / 100
+    const tag =
+      effect.element === 'ice' ? 'frozen' : effect.element === 'water' ? 'wet' : 'conductive'
+    const mode = timingPolicy?.modes[tag] ?? 'instant'
+    const lifetime =
+      mode === 'instant'
+        ? `${duration} affected turns starting when damage settles (Instant)`
+        : mode === 'next-round'
+          ? `${duration} full rounds starting next round after damage settles`
+          : `${duration} full rounds starting two round boundaries after damage settles (Delayed)`
+    if (effect.element === 'ice')
+      return ` Positive hostile HP damage applies Chilled for ${lifetime}; Chilled locks final facing to the current direction.`
+    if (effect.element === 'water')
+      return ` Positive hostile HP damage applies Drenched for ${lifetime}. Drenched reduces Initiative by 10% once and adds ${bonus}% Storm damage while active.`
+    if (effect.element === 'storm')
+      return ` Positive hostile HP damage consumes the old Conductive charge for its captured Storm bonus, then applies one fresh Conductive charge for ${lifetime} with +${bonus}% Storm damage. Drenched remains; a new charge is not consumed again in the same command.`
+    if (effect.element === 'fire')
+      return ' A legal Fire cast cleanses Chilled from its caster even on empty Ground or a miss. Positive Fire HP damage removes Drenched and Chilled from hostile recipients. Fire converts affected Frozen Ground to Steam mist, keeping its remaining life and blocking sight for both teams.'
+  }
+  if (effect.element === 'storm')
+    return ' Storm gains 20% per active Wet or Conductive application once per recipient per command and consumes Conductive; Wet remains.'
+  if (effect.element === 'fire')
+    return ' Positive fire damage removes Wet and Frozen from units. Fire on affected Frozen tiles replaces them with Steam for two round boundaries, blocking line of sight for both teams.'
+  return ''
+}
+
+function statusPreview(
+  id: string,
+  potencyBasisPoints?: number,
+  legacyHealingDown = false,
+  legacyElemental = false,
+  explicitElemental = true,
+): PreviewEffect {
+  const details = {
+    ...combatStatusDetails(id),
+    description: statusPotencyDescription(id, potencyBasisPoints, {
+      legacyHealingDown,
+      legacyElemental,
+      explicitElemental,
+    }),
+  }
   const status = PV1F_COMBAT_CONTENT.statuses.find((entry) => entry.id === id)
   const result: PreviewEffect = { label: details.name, explanation: details.description }
   // These gameplay-tag rules live in the damage/healing resolvers. Their shared
   // status descriptions are the public authority; avoid a second numeric constant.
-  if (['inspired', 'hexed', 'wet', 'conductive'].includes(id)) {
-    const percent = details.description.match(/\d+(?:\.\d+)?%/)?.[0]
+  if (id === 'suppress') {
+    result.magnitude = `${(potencyBasisPoints ?? 2500) / 100}%`
+  } else if (['inspired', 'hexed', 'wet', 'conductive'].includes(id)) {
+    const percent =
+      !legacyElemental && (id === 'wet' || id === 'conductive')
+        ? `${(potencyBasisPoints ?? 2000) / 100}%`
+        : details.description.match(/\d+(?:\.\d+)?%/)?.[0]
     if (percent)
       result.magnitude =
         id === 'inspired'
           ? `+${percent} outgoing`
           : id === 'hexed'
-            ? `−${percent} healing`
+            ? `−${percent} ${legacyHealingDown ? 'healing' : 'HP/MP recovery'}`
             : `+${percent} Storm`
   } else if (status?.markAccuracyBonusBasisPoints !== undefined) {
-    result.magnitude = `+${status.markAccuracyBonusBasisPoints / 100} pp Accuracy`
+    result.magnitude = `+${(potencyBasisPoints ?? status.markAccuracyBonusBasisPoints) / 100} pp Accuracy`
     result.explanation = `Source gains ${result.magnitude} against this target.`
+  } else if (id === 'blind' && potencyBasisPoints !== undefined) {
+    result.magnitude = `−${potencyBasisPoints / 100} pp Accuracy`
   } else if (status?.movement?.additionalApPerTile !== undefined) {
     result.magnitude = `${signed(status.movement.additionalApPerTile)} AP`
     result.explanation = details.description
@@ -45,13 +195,13 @@ function statusPreview(id: string, potencyBasisPoints?: number): PreviewEffect {
     result.magnitude = status.damageModifiers
       .map(
         (modifier) =>
-          `${signed((modifier.multiplierBasisPoints - 10_000) / 100)}% ${modifier.direction}`,
+          `${signed((statusDamageMultiplierBasisPoints(modifier.multiplierBasisPoints, potencyBasisPoints) - 10_000) / 100)}% ${modifier.direction}`,
       )
       .join(' / ')
     result.explanation = details.description.split('. ')[0] + '.'
   } else if (status && status.damageTakenMultiplierBasisPoints !== 10_000) {
-    result.magnitude = `${signed((status.damageTakenMultiplierBasisPoints - 10_000) / 100)}% incoming${status.maximumStacks > 1 ? '/stack' : ''}`
-    result.explanation = `Recipient takes ${result.magnitude}.${status.maximumStacks > 1 ? ` Up to ${status.maximumStacks} stacks.` : ''}`
+    result.magnitude = `${signed((statusDamageMultiplierBasisPoints(status.damageTakenMultiplierBasisPoints, potencyBasisPoints) - 10_000) / 100)}% incoming`
+    result.explanation = `Recipient takes ${result.magnitude}.`
   } else if (status?.endOfTurn) {
     result.magnitude = `${status.endOfTurn.amount} × ${status.durationOwnerTurnStarts} ticks`
   }
@@ -59,22 +209,30 @@ function statusPreview(id: string, potencyBasisPoints?: number): PreviewEffect {
     const percent = potencyBasisPoints / 100
     if (id === 'guarded') {
       result.magnitude = `−${percent}% incoming`
-      result.explanation = `Reduces incoming damage by ${percent}% per stack.`
     } else if (id === 'exposed') {
       result.magnitude = `+${percent}% incoming`
-      result.explanation = `Increases incoming damage by ${percent}%.`
-    } else if (id === 'mark') {
-      result.magnitude = `+${percent} pp Accuracy`
-      result.explanation = `Source gains +${percent} percentage points Accuracy against this target.`
-    } else if (id === 'hexed') {
-      result.magnitude = `−${percent}% healing`
-      result.explanation = `Reduces incoming healing by ${percent}%.`
     }
+    result.explanation = details.description
   }
   return result
 }
 
-export function previewEffect(effect: MatureSkillEffectDefinition): PreviewEffect {
+export function previewEffect(
+  effect: MatureSkillEffectDefinition,
+  options: {
+    legacyTriggers?: boolean
+    legacyPoisonMovement?: boolean
+    legacyFrozenGround?: boolean
+    legacyAirborne?: boolean
+    legacyAirborneJump?: boolean
+    legacyHealingDown?: boolean
+    legacyBlindsideActivation?: boolean
+    legacyElemental?: boolean
+    explicitElemental?: boolean
+    timingPolicy?: CombatEffectTimingPolicy | null
+    skillEffects?: readonly MatureSkillEffectDefinition[]
+  } = {},
+): PreviewEffect {
   const target =
     effect.recipient === 'actor'
       ? 'you'
@@ -91,15 +249,30 @@ export function previewEffect(effect: MatureSkillEffectDefinition): PreviewEffec
       }
     case 'damage':
       return {
-        label: 'Dmg',
+        label:
+          effect.element === 'water'
+            ? 'Water Dmg'
+            : effect.element === 'storm'
+              ? 'Storm Dmg'
+              : effect.element === 'fire'
+                ? 'Fire Dmg'
+                : effect.element === 'ice'
+                  ? 'Ice Dmg'
+                  : 'Dmg',
         magnitude: String(effect.amount),
-        explanation: `Deals base${effect.element ? ` ${effect.element}` : ''} damage before Power, Level and defenses.${effect.facingModifiersBasisPoints ? ` Facing: front ${effect.facingModifiersBasisPoints.front / 100}%, side ${effect.facingModifiersBasisPoints.side / 100}%, rear ${effect.facingModifiersBasisPoints.rear / 100}%.` : ''}`,
+        explanation: `Skill power ranges from 1 to 20. Final HP damage depends on your attack stat, Level and the target’s defenses and effects.${effect.facingModifiersBasisPoints ? ` Facing: front ${effect.facingModifiersBasisPoints.front / 100}%, side ${effect.facingModifiersBasisPoints.side / 100}%, rear ${effect.facingModifiersBasisPoints.rear / 100}%.` : ''}${skillDamageElementInteraction(effect, options.legacyElemental, options.timingPolicy, options.skillEffects, options.explicitElemental)}`,
+      }
+    case 'percentage-recovery':
+      return {
+        label: effect.resource === 'hp' ? 'HP Recovery' : 'MP Recovery',
+        magnitude: `${effect.percent}%`,
+        explanation: `Restores a captured ${effect.percent}% of ${target === 'you' ? 'your' : `${target}’s`} maximum ${effect.resource.toUpperCase()}${(effect.ticks ?? 1) > 1 ? ` per application, ${effect.ticks} times` : ''}. ${effect.resource === 'hp' || !options.legacyHealingDown ? 'The maximum and Healing Down adjustment are captured when cast' : 'The maximum is captured when cast'}; actual gains cap at the current maximum and never revive.`,
       }
     case 'healing':
       return {
-        label: 'Healing',
+        label: 'Heal',
         magnitude: String(effect.amount),
-        explanation: `Restores HP to ${target}${effect.ticks && effect.ticks > 1 ? ` per application, ${effect.ticks} times (first immediately)` : ''}.`,
+        explanation: `Restores HP to ${target}${effect.ticks && effect.ticks > 1 ? ` per application, ${effect.ticks} times (first when the effect activates)` : ''}.`,
       }
     case 'barrier-change':
       return {
@@ -114,17 +287,70 @@ export function previewEffect(effect: MatureSkillEffectDefinition): PreviewEffec
         explanation:
           effect.delta < 0
             ? `Removes MP from ${target}.`
-            : `Restores MP to ${target}${effect.ticks && effect.ticks > 1 ? ` per application, ${effect.ticks} times (first immediately)` : ''}.`,
+            : `Restores MP to ${target}${effect.ticks && effect.ticks > 1 ? ` per application, ${effect.ticks} times (first when the effect activates)` : ''}.`,
       }
     case 'apply-status':
-      return statusPreview(effect.statusId, effect.potencyBasisPoints)
+      if (effect.statusId === 'blindside')
+        return {
+          label: 'Blindside',
+          explanation: blindsideDamageDescription(
+            effect.blindsideModifiersBasisPoints,
+            options.legacyBlindsideActivation,
+          ),
+        }
+      const preview =
+        effect.statusId === 'airborne'
+          ? {
+              label: 'Airborne',
+              explanation: airborneDescription(options.legacyAirborne, options.legacyAirborneJump),
+            }
+          : statusPreview(
+              effect.statusId,
+              effect.potencyBasisPoints,
+              options.legacyHealingDown,
+              options.legacyElemental,
+              options.explicitElemental,
+            )
+      if (
+        !options.legacyElemental &&
+        options.explicitElemental !== false &&
+        ['frozen', 'wet', 'conductive'].includes(effect.statusId)
+      ) {
+        const overlaps = elementalStatusOverlapsDamage(effect, options.skillEffects)
+        const trigger = overlaps
+          ? ' For recipients also hit by this Skill’s matching elemental damage, applies only after positive hostile HP damage (actual loss after Barrier), if the recipient survives.'
+          : ''
+        const policy =
+          options.timingPolicy === undefined
+            ? defaultCombatEffectTimingPolicy()
+            : options.timingPolicy
+        const mode = overlaps
+          ? (policy?.modes[effect.statusId] ?? 'instant')
+          : combatEffectTimingMode(policy ?? undefined, effect.statusId)
+        const turns = effect.durationTurns || 2
+        const start = overlaps ? 'damage settles' : 'the effect activates'
+        const lifetime =
+          mode === 'instant'
+            ? `${turns} affected ${turns === 1 ? 'turn' : 'turns'} starting when ${start} (Instant)`
+            : mode === 'next-round'
+              ? `${turns} full rounds starting next round after ${start}`
+              : `${turns} full rounds starting two round boundaries after ${start} (Delayed)`
+        return { ...preview, explanation: `${preview.explanation}${trigger} Lasts ${lifetime}.` }
+      }
+      return preview
     case 'displace':
       return {
         label: effect.direction === 'pull' ? 'Pull' : 'Push',
-        magnitude: `${effect.distance} ${effect.distance === 1 ? 'tile' : 'tiles'}`,
-        explanation: `Moves ${target} ${effect.direction === 'pull' ? 'toward you' : 'away'}; stops at blocked tiles or Root.`,
+        magnitude: String(effect.distance),
+        explanation: `Moves ${target} ${effect.direction === 'pull' ? 'toward you' : 'away'}; stops at blocked tiles or Rooted.`,
       }
     case 'burn': {
+      if (isPercentageDotEffect(effect))
+        return {
+          label: 'Burn',
+          magnitude: percentageDotMagnitude(effect),
+          explanation: percentageDotDescription('burn', effect.backlashBasisPoints, options),
+        }
       const turns = effect.durationTurns ?? CURRENT_BURN_DAMAGE_BY_STAGE.length
       const values =
         effect.power === undefined
@@ -133,16 +359,28 @@ export function previewEffect(effect: MatureSkillEffectDefinition): PreviewEffec
       return {
         label: 'Burn',
         magnitude: values.join('/'),
-        explanation: `Fixed damage at the next ${turns} turn ${turns === 1 ? 'end' : 'ends'}; reapplication restarts it.`,
+        explanation: `Fixed damage at the next ${turns} turn ${turns === 1 ? 'end' : 'ends'} for each active application.`,
       }
     }
     case 'bleed':
+      if (isPercentageDotEffect(effect))
+        return {
+          label: 'Bleed',
+          magnitude: percentageDotMagnitude(effect),
+          explanation: percentageDotDescription('bleed'),
+        }
       return {
         label: 'Bleed',
         magnitude: `${effect.damagePerTick} × ${effect.ticks} ticks`,
-        explanation: 'Fixed damage at turn end; up to three independent stacks.',
+        explanation: 'Fixed damage at turn end for each active application.',
       }
     case 'poison': {
+      if (isPercentageDotEffect(effect))
+        return {
+          label: 'Poison',
+          magnitude: percentageDotMagnitude(effect),
+          explanation: percentageDotDescription('poison', undefined, options),
+        }
       const turns = effect.durationTurns
       return {
         label: 'Poison',
@@ -154,7 +392,19 @@ export function previewEffect(effect: MatureSkillEffectDefinition): PreviewEffec
       }
     }
     case 'remove-status': {
-      const statusNames = [...new Set(effect.statusIds.map((id) => combatStatusDetails(id).name))]
+      if (
+        isCleanseChilledEffect(effect) &&
+        !options.legacyElemental &&
+        options.explicitElemental !== false
+      )
+        return {
+          label: 'Cleanse Chilled',
+          explanation: `Removes Chilled from ${effect.recipient === 'actor' ? 'the caster' : effect.recipient === 'affected-units' ? 'each affected unit' : 'the selected unit'} only; other statuses remain.`,
+        }
+      const ids = effect.statusIds.every((id) => combatStatusDetails(id).kind === 'Buff')
+        ? effect.statusIds
+        : [...effect.statusIds, 'suppress']
+      const statusNames = [...new Set(ids.map((id) => combatStatusDetails(id).name))]
       return {
         label: effect.statusIds.every((id) => combatStatusDetails(id).kind === 'Buff')
           ? 'Dispel'
@@ -164,42 +414,85 @@ export function previewEffect(effect: MatureSkillEffectDefinition): PreviewEffec
     }
     case 'create-terrain':
       return {
-        label: 'Frozen Terrain',
+        label: 'Frozen Ground',
         magnitude: `+${COMBAT_TERRAIN_OVERLAY_DETAILS.frozen.additionalApPerTile} AP/tile`,
-        explanation: 'Both teams pay extra movement AP; fire turns it into sight-blocking Steam.',
+        explanation: `${options.legacyFrozenGround ? 'Both teams' : 'Only the caster’s enemies'} pay extra movement AP; fire turns it into sight-blocking Steam.`,
       }
     case 'return-to-turn-start':
       return {
-        label: 'Return',
-        explanation: 'Returns you to your turn-start tile if legal; refunds no resources.',
+        label: 'Rewind',
+        explanation:
+          effect.anchorMode === 'cast-position'
+            ? 'Returns you to the tile captured when cast if legal; refunds no resources.'
+            : 'Returns you to your turn-start tile if legal; refunds no resources.',
       }
     case 'copy-statuses':
       return {
-        label: effect.mode === 'amplify' ? 'Amplify' : 'Curse',
+        label: effect.mode === 'amplify' ? 'Copy Buffs' : 'Copy Debuffs',
         explanation:
           effect.mode === 'amplify'
             ? 'Copies eligible positive statuses from the target to you.'
             : 'Copies eligible negative statuses from you to the target.',
       }
-    case 'copy':
-      return {
-        label: 'Skill Copy',
-        explanation: 'Copies one eligible enemy Skill for this battle at half AP, rounded up.',
-      }
     case 'sensory':
       return {
-        label: 'Sensory',
+        label: 'Reveal',
         explanation: 'On a hit against Covert, strips eligible buffs and applies Revealed.',
       }
   }
 }
 
-export function skillPreviewEffects(skill: MatureSkillDefinition): readonly PreviewEffect[] {
-  return skill.effects.map((effect, index) => {
-    const entry = previewEffect(effect)
-    const override = skill.effectDescriptions?.[index]?.trim()
-    return override ? { ...entry, explanation: override } : entry
-  })
+export function skillPreviewEffects(
+  skill: Pick<MatureSkillDefinition, 'effects' | 'effectDescriptions'>,
+  options: {
+    legacyTriggers?: boolean
+    legacyPoisonMovement?: boolean
+    legacyFrozenGround?: boolean
+    legacyAirborne?: boolean
+    legacyAirborneJump?: boolean
+    legacyHealingDown?: boolean
+    legacyBlindsideActivation?: boolean
+    legacyElemental?: boolean
+    explicitElemental?: boolean
+    timingPolicy?: CombatEffectTimingPolicy | null
+  } = {},
+): readonly PreviewEffect[] {
+  const seen = new Set<string>()
+  return groupSkillEffects(skill.effects, skill.effectDescriptions)
+    .map(({ effect, firstIndex: index }) => {
+      const entry = previewEffect(effect, { ...options, skillEffects: skill.effects })
+      const override = skill.effectDescriptions?.[index]?.trim()
+      if (
+        override &&
+        effect.type === 'apply-status' &&
+        !options.legacyElemental &&
+        options.explicitElemental !== false &&
+        ['frozen', 'wet', 'conductive'].includes(effect.statusId)
+      )
+        return { ...entry, explanation: `${override} ${entry.explanation}` }
+      return override
+        ? {
+            ...entry,
+            explanation:
+              override +
+              (!options.legacyElemental
+                ? skillDamageElementInteraction(
+                    effect,
+                    false,
+                    options.timingPolicy,
+                    skill.effects,
+                    options.explicitElemental,
+                  )
+                : ''),
+          }
+        : entry
+    })
+    .filter((entry) => {
+      const key = JSON.stringify([entry.label, entry.explanation])
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
 }
 
 export function effectSummary(effect: PreviewEffect): string {

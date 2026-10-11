@@ -1,12 +1,21 @@
 .indicator {
   position: absolute;
-  top: calc(var(--battle-token-size, 3.4rem) * -0.18);
-  left: 50%;
+  top: 1px;
+  left: 1px;
   z-index: 9;
-  display: block;
-  width: calc(var(--battle-token-size, 3.4rem) * 0.16);
-  height: calc(var(--battle-token-size, 3.4rem) * 0.16);
-  color: #f1d892;
+  display: grid;
+  place-items: center;
+  width: max(12px, calc(var(--battle-token-size, 3.4rem) * 0.25));
+  height: max(12px, calc(var(--battle-token-size, 3.4rem) * 0.25));
+  box-sizing: border-box;
+  padding: 2px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #34444d, #111b25 75%);
+  box-shadow:
+    0 1px 3px #000b,
+    inset 0 0 0 1px #ffffff18;
+  color: var(--battle-combatant-accent, #d0aa62);
   filter: drop-shadow(0 1px 2px #000);
   transform-origin: 50% 50%;
   pointer-events: none;
@@ -32,26 +41,17 @@
 }
 
 .indicator[data-facing='north'] {
-  transform: translateX(-50%) rotate(0deg);
+  transform: rotate(0deg);
 }
 
 .indicator[data-facing='east'] {
-  transform: translateX(-50%) rotate(90deg);
+  transform: rotate(90deg);
 }
 
 .indicator[data-facing='south'] {
-  transform: translateX(-50%) rotate(180deg);
+  transform: rotate(180deg);
 }
 
 .indicator[data-facing='west'] {
-  transform: translateX(-50%) rotate(270deg);
-}
-
-@media (max-width: 820px) {
-  .indicator,
-  .compatibilityGlyph {
-    top: calc(var(--battle-token-size, 2rem) * -0.24) !important;
-    width: calc(var(--battle-token-size, 2rem) * 0.2) !important;
-    height: calc(var(--battle-token-size, 2rem) * 0.2) !important;
-  }
+  transform: rotate(270deg);
 }

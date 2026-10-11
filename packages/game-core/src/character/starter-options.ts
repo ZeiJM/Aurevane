@@ -5,6 +5,15 @@ import type {
   StarterAppearanceRef,
 } from './creation'
 
+/** Current creation gallery. Existing wayfarer references remain valid for saved characters. */
+export const ADVENTURE_CHARACTER_PORTRAITS = (['male', 'female'] as const).flatMap((gender) =>
+  Array.from({ length: 12 }, (_, index) => ({
+    ref: `portrait.adventure.${gender}-${String(index + 1).padStart(2, '0')}` as CharacterPortraitRef,
+    label: `${gender === 'male' ? 'Male' : 'Female'} adventurer ${String(index + 1).padStart(2, '0')}`,
+    presentationId: gender === 'male' ? ('masculine' as const) : ('feminine' as const),
+  })),
+)
+
 export const STARTER_CHARACTER_PORTRAITS: readonly {
   ref: CharacterPortraitRef
   label: string
@@ -49,6 +58,7 @@ export const STARTER_CHARACTER_PORTRAITS: readonly {
   { ref: 'portrait.starter.wayfarer-38', label: 'Wayfarer 38' },
   { ref: 'portrait.starter.wayfarer-39', label: 'Wayfarer 39' },
   { ref: 'portrait.starter.wayfarer-40', label: 'Wayfarer 40' },
+  ...ADVENTURE_CHARACTER_PORTRAITS,
 ]
 
 export const STARTER_CHARACTER_APPEARANCES: readonly {

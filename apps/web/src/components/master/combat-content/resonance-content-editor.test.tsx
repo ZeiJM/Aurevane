@@ -39,6 +39,74 @@ function option(
 }
 
 describe('Master Panel Resonance v2 editor', () => {
+  it('shows explicit Any Skill matching for the approved Chronist setup', () => {
+    const resonance = option('chronist', 'cinderweaver')
+    const markup = renderToStaticMarkup(
+      createElement(ResonanceContentEditor, {
+        resonances: [resonance],
+        initialResonanceId: resonance.id,
+      }),
+    )
+    expect(markup).toContain('aria-label="Resonance Setup matching"')
+    expect(markup).toContain(
+      '<option value="any-skill" selected="">Any Skill in this Discipline</option>',
+    )
+    expect(markup).toMatch(/aria-label="Resonance Setup tags"[^>]*disabled=""/)
+    expect(markup).toContain('<dt>Requirements</dt><dd>Chronist Skills</dd>')
+  })
+  it('presents Resonance results with Skill effect highlights and explanation bullets', () => {
+    const markup = renderToStaticMarkup(
+      createElement(ResonanceContentEditor, {
+        resonances: [option('wildwarden', 'edgedancer')],
+      }),
+    )
+    const preview = markup.match(
+      /<section[^>]*aria-label="Resonance Skill preview"[^>]*>([\s\S]*?)<\/section>/,
+    )?.[1]
+    expect(markup).toContain('aria-label="Battle narration tokens"')
+    expect(markup).toContain('aria-label="Neutral historical narration preview"')
+    expect(preview).toContain('data-compact-effect-magnitude="true">[4%]</span>')
+    expect(preview).not.toContain('→ Self')
+    expect(preview).toContain('Edgedancer Skills tagged Attack:')
+    expect(preview).toContain('<ul aria-label="Effect explanations">')
+    expect(preview).toContain('Restores a captured 4% of your maximum MP.')
+    expect(preview).toContain('<dt>Requirements</dt><dd>Wildwarden Skills tagged Mark</dd>')
+  })
+
+  it('previews every passive Skill field in the shared order without inventing independent targeting', () => {
+    const resonance = option('lifebinder', 'vanguard')
+    const markup = renderToStaticMarkup(
+      createElement(ResonanceContentEditor, { resonances: [resonance] }),
+    )
+    const preview = markup.match(
+      /<section[^>]*aria-label="Resonance Skill preview"[^>]*>([\s\S]*?)<\/section>/,
+    )?.[1]
+    expect(preview).toBeDefined()
+    expect(
+      [...preview!.matchAll(/<dt>(.*?)<\/dt>/g)].slice(0, 10).map((match) => match[1]),
+    ).toEqual([
+      'Skill Type',
+      'Cost',
+      'Cooldown',
+      'Requirements',
+      'Effects',
+      'Range',
+      'Target',
+      'Target Method',
+      'Target Elevation',
+      'Line of Sight',
+    ])
+    expect(preview).toContain('<dt>Cost</dt><dd>N/A</dd>')
+    expect(preview).toContain('<dt>Cooldown</dt><dd>N/A</dd>')
+    expect(preview).toContain('Trigger Skill selected unit')
+    expect(preview).not.toContain('Trigger targeting')
+    expect(preview).toContain('Vanguard Skills tagged Attack + Melee:')
+    expect(preview).not.toContain('<dt>Mode</dt>')
+    expect(preview).not.toContain('<dt>Setup</dt>')
+    expect(preview).not.toContain('<dt>Trigger</dt>')
+    expect(preview).not.toContain('0 AP')
+  })
+
   it('authors sequence Resonance as Setup, Trigger and Result without Payoff terminology', () => {
     const resonance = option('lifebinder', 'vanguard')
     const markup = renderToStaticMarkup(

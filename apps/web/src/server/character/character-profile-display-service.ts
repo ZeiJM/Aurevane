@@ -4,6 +4,7 @@ import { AurevaneError } from '@aurevane/game-core/errors'
 import { cache } from 'react'
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { findPlayableOwnedCharacterById } from './character-slot-service'
 
 export interface CharacterProfileDisplayState {
   imageUrl: string | null
@@ -72,17 +73,10 @@ export async function setCharacterProfileImage(input: {
   imageUrl: string | null
 }): Promise<CharacterProfileDisplayState> {
   const imageUrl = normalizeProfileImageUrl(input.imageUrl)
-  const supabase = createSupabaseAdminClient()
-  const { data: owned, error: ownershipError } = await supabase
-    .from('characters')
-    .select('id')
-    .eq('id', input.characterId)
-    .eq('user_id', input.userId)
-    .maybeSingle()
-
-  if (ownershipError) throw unavailable()
+  const owned = await findPlayableOwnedCharacterById(input.userId, input.characterId)
   if (!owned)
     throw new AurevaneError('FORBIDDEN', 'That character is not available to this account.')
+  const supabase = createSupabaseAdminClient()
 
   const { error } = await supabase.from('character_profile_display').upsert(
     {

@@ -1,4 +1,6 @@
+import type { CombatResistedEffectOrdinals } from './combat-status-resistance'
 import { attachCombatStatusCopyProvenance } from './combat-status-copy'
+import { combatEffectTimingMode, combatEffectTimingTag } from './combat-effect-timing'
 import type {
   CombatActionDefinition,
   CombatContentCatalog,
@@ -7,6 +9,7 @@ import type {
 } from './actions'
 import type { CombatActionEvaluation, CombatEffectRecipient } from './actions-legacy'
 import { normalizeCombatEffectState } from './combat-effect-state'
+import { usesUnlimitedCombatEffectStacking } from './combat-dots'
 import { createCombatEffectInstanceProvenance } from './combat-kernel-types'
 
 function resolveRecipients(
@@ -25,9 +28,10 @@ function createsRecoverySchedule(
   effect: CombatActionDefinition['effects'][number],
 ): effect is Extract<
   CombatActionDefinition['effects'][number],
-  { type: 'healing' | 'resource-change' }
+  { type: 'healing' | 'resource-change' | 'percentage-recovery' }
 > {
-  if (effect.type === 'healing') return (effect.ticks ?? 1) > 1
+  if (effect.type === 'healing' || effect.type === 'percentage-recovery')
+    return (effect.ticks ?? 1) > 1
   return effect.type === 'resource-change' && effect.delta >= 0 && (effect.ticks ?? 1) > 1
 }
 
@@ -55,23 +59,47 @@ export function attachCombatEffectProvenance(
   evaluation: CombatActionEvaluation,
   context: CombatResolutionContext,
   content?: CombatContentCatalog,
+  resistedEffectOrdinalsByTarget?: CombatResistedEffectOrdinals,
 ): CombatEncounterState {
   if (!evaluation.actorId) return after
   const copyEffect = action.effects[0]
   let provenanceAfter = after
-  if (copyEffect?.type === 'copy-statuses' && evaluation.primaryCombatantId) {
+  if (
+    copyEffect?.type === 'copy-statuses' &&
+    evaluation.primaryCombatantId &&
+    !resistedEffectOrdinalsByTarget?.get(evaluation.primaryCombatantId)?.has(0)
+  ) {
     if (!content) throw new TypeError('Copied status provenance requires its pinned catalog.')
-    provenanceAfter = attachCombatStatusCopyProvenance(
-      before,
-      after,
-      evaluation.actorId,
-      evaluation.primaryCombatantId,
-      copyEffect,
-      content,
-      context,
-    )
+    if (
+      combatEffectTimingMode(
+        before.effectTimingPolicy,
+        action.effectTimingTags?.[0] ?? combatEffectTimingTag(copyEffect),
+      ) !== 'instant'
+    ) {
+      provenanceAfter = {
+        ...after,
+        pendingEffects: after.pendingEffects?.map((pending, index) =>
+          index >= (before.pendingEffects?.length ?? 0) &&
+          pending.effect.type === 'copy-statuses' &&
+          pending.actorId === evaluation.actorId &&
+          pending.actionId === action.id
+            ? { ...pending, copyProvenance: { ...context.provenance } }
+            : pending,
+        ),
+      }
+    } else
+      provenanceAfter = attachCombatStatusCopyProvenance(
+        before,
+        after,
+        evaluation.actorId,
+        evaluation.primaryCombatantId,
+        copyEffect,
+        content,
+        context,
+      )
   }
 
+  const independent = usesUnlimitedCombatEffectStacking(before)
   const actorId = evaluation.actorId
   const createdRound = before.tactical.battle.round
   const createdTurn = before.tactical.battle.turnNumber
@@ -96,11 +124,71 @@ export function attachCombatEffectProvenance(
       createdTurn,
     })
 
+  const independentApplications = new Map<
+    string,
+    {
+      kind: 'poison' | 'burn' | 'barrier' | 'hp' | 'mp'
+      targetCombatantId: string
+      ordinals: number[]
+      cleared: boolean
+    }
+  >()
+  if (independent || before.dotTriggerPolicyVersion === 2) {
+    for (const [effectOrdinal, effect] of action.effects.entries()) {
+      if (
+        combatEffectTimingMode(
+          before.effectTimingPolicy,
+          action.effectTimingTags?.[effectOrdinal] ?? combatEffectTimingTag(effect),
+        ) !== 'instant'
+      )
+        continue
+      const kinds =
+        effect.type === 'remove-status'
+          ? effect.statusIds.filter(
+              (id): id is 'poison' | 'burn' => id === 'poison' || id === 'burn',
+            )
+          : effect.type === 'poison' || effect.type === 'burn'
+            ? [effect.type]
+            : effect.type === 'barrier-change'
+              ? ['barrier' as const]
+              : createsRecoverySchedule(effect)
+                ? [
+                    effect.type === 'percentage-recovery'
+                      ? effect.resource
+                      : effect.type === 'healing'
+                        ? ('hp' as const)
+                        : ('mp' as const),
+                  ]
+                : []
+      if (kinds.length === 0 || effect.recipient === 'affected-tiles') continue
+      for (const targetCombatantId of resolveRecipients(evaluation, effect.recipient)) {
+        if (resistedEffectOrdinalsByTarget?.get(targetCombatantId)?.has(effectOrdinal)) continue
+        for (const kind of kinds) {
+          if (!independent && kind !== 'poison') continue
+          const key = JSON.stringify([targetCombatantId, kind])
+          const application = independentApplications.get(key) ?? {
+            kind,
+            targetCombatantId,
+            ordinals: [],
+            cleared: false,
+          }
+          if (effect.type === 'remove-status') {
+            application.ordinals = []
+            application.cleared = true
+          } else application.ordinals.push(effectOrdinal)
+          independentApplications.set(key, application)
+        }
+      }
+    }
+  }
+
   const bleedApplications: BleedApplication[] = []
   const lastBleedClearOrdinalByTarget = new Map<string, number>()
   for (const [effectOrdinal, effect] of action.effects.entries()) {
     if (effect.type !== 'bleed' && effect.type !== 'remove-status') continue
-    const recipients = resolveRecipients(evaluation, effect.recipient)
+    const recipients = resolveRecipients(evaluation, effect.recipient).filter(
+      (id) => !resistedEffectOrdinalsByTarget?.get(id)?.has(effectOrdinal),
+    )
     if (effect.type === 'remove-status') {
       if (!effect.statusIds.includes('bleed')) continue
       for (const targetCombatantId of recipients) {
@@ -125,6 +213,7 @@ export function attachCombatEffectProvenance(
     }
 
     for (const targetCombatantId of resolveRecipients(evaluation, effect.recipient)) {
+      if (resistedEffectOrdinalsByTarget?.get(targetCombatantId)?.has(effectOrdinal)) continue
       const provenance = provenanceFor(targetCombatantId, effectOrdinal)
 
       if (effect.type === 'apply-status') {
@@ -147,6 +236,7 @@ export function attachCombatEffectProvenance(
       }
 
       if (effect.type === 'poison') {
+        if (independent || before.dotTriggerPolicyVersion === 2) continue
         let updated = false
         poison = poison.map((instance) => {
           if (
@@ -164,6 +254,7 @@ export function attachCombatEffectProvenance(
       }
 
       if (effect.type === 'burn') {
+        if (independent) continue
         let updated = false
         burn = burn.map((instance) => {
           if (
@@ -181,6 +272,7 @@ export function attachCombatEffectProvenance(
       }
 
       if (effect.type === 'barrier-change') {
+        if (independent) continue
         let updated = false
         barriers = barriers.map((instance) => {
           if (
@@ -197,7 +289,13 @@ export function attachCombatEffectProvenance(
         continue
       }
 
-      const kind = effect.type === 'healing' ? 'hp' : 'mp'
+      if (independent) continue
+      const kind =
+        effect.type === 'percentage-recovery'
+          ? effect.resource
+          : effect.type === 'healing'
+            ? 'hp'
+            : 'mp'
       let updated = false
       ongoingRecovery = ongoingRecovery.map((schedule) => {
         if (
@@ -212,6 +310,72 @@ export function attachCombatEffectProvenance(
         return { ...schedule, provenance }
       })
       effectStateChanged ||= updated
+    }
+  }
+
+  for (const application of independentApplications.values()) {
+    const { kind, targetCombatantId, ordinals, cleared } = application
+    if (ordinals.length === 0) continue
+    if (kind === 'poison' || kind === 'burn' || kind === 'barrier') {
+      const prior = new Set(
+        (kind === 'barrier' ? (beforeEffects.barriers ?? []) : beforeEffects[kind]).map(
+          (row) => row.applicationOrder,
+        ),
+      )
+      const rows = kind === 'poison' ? poison : kind === 'burn' ? burn : barriers
+      const candidates = rows
+        .map((row, index) => ({ row, index }))
+        .filter(
+          ({ row }) =>
+            row.targetCombatantId === targetCombatantId &&
+            row.sourceCombatantId === actorId &&
+            row.sourceActionId === action.id &&
+            row.provenance?.copyOrdinal === undefined &&
+            (cleared || !prior.has(row.applicationOrder)),
+        )
+        .sort((left, right) => (left.row.applicationOrder ?? 0) - (right.row.applicationOrder ?? 0))
+      const assignments = new Map(
+        candidates.map(({ index }, candidateIndex) => [index, ordinals[candidateIndex]]),
+      )
+      if (kind === 'poison')
+        poison = poison.map((row, index) => {
+          const ordinal = assignments.get(index)
+          if (ordinal === undefined) return row
+          effectStateChanged = true
+          return { ...row, provenance: provenanceFor(targetCombatantId, ordinal) }
+        })
+      else if (kind === 'burn')
+        burn = burn.map((row, index) => {
+          const ordinal = assignments.get(index)
+          if (ordinal === undefined) return row
+          effectStateChanged = true
+          return { ...row, provenance: provenanceFor(targetCombatantId, ordinal) }
+        })
+      else
+        barriers = barriers.map((row, index) => {
+          const ordinal = assignments.get(index)
+          if (ordinal === undefined) return row
+          effectStateChanged = true
+          return { ...row, provenance: provenanceFor(targetCombatantId, ordinal) }
+        })
+    } else {
+      const prior = new Set(beforeEffects.ongoingRecovery)
+      let assignedIndex = 0
+      ongoingRecovery = ongoingRecovery.map((row) => {
+        if (
+          row.kind !== kind ||
+          row.targetCombatantId !== targetCombatantId ||
+          row.sourceCombatantId !== actorId ||
+          row.sourceActionId !== action.id ||
+          row.provenance?.copyOrdinal !== undefined ||
+          prior.has(row)
+        )
+          return row
+        const ordinal = ordinals[assignedIndex++]
+        if (ordinal === undefined) return row
+        effectStateChanged = true
+        return { ...row, provenance: provenanceFor(targetCombatantId, ordinal) }
+      })
     }
   }
 

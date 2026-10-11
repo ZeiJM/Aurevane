@@ -5,6 +5,11 @@ import type { ImageAssetId } from './registry'
 
 const starterPortraitImageAssets = new Map<string, ImageAssetId>(
   STARTER_CHARACTER_PORTRAITS.map((option, index) => {
+    if (option.ref.startsWith('portrait.adventure.'))
+      return [
+        option.ref,
+        option.ref.replace('portrait.adventure.', 'character.adventure.') as ImageAssetId,
+      ]
     const suffix = String(index + 1).padStart(2, '0')
     const assetId =
       index < 4

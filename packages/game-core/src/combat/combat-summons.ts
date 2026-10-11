@@ -5,6 +5,7 @@ import {
   type BattleState,
 } from './battle-state'
 import {
+  getLivingOccupantId,
   validateTacticalBattleState,
   type CombatMovementProfile,
   type CombatPlacement,
@@ -162,7 +163,7 @@ function assertSpawnTile(state: StatDrivenCombatEncounterState, position: GridPo
     positionsEqual(candidate.position, position),
   )
   if (!tile) throw new RangeError('Summon target must be a valid empty battle tile.')
-  if (state.tactical.placements.some((row) => positionsEqual(row.position, position))) {
+  if (getLivingOccupantId(state.tactical, position) !== null) {
     throw new RangeError('Summon target tile is occupied; summons require empty ground.')
   }
   const terrain = state.tactical.terrains.find((candidate) => candidate.id === tile.terrainId)
@@ -255,7 +256,10 @@ export function spawnCombatSummon(
       ...state.statBridge,
       combatants: [
         ...(state.statBridge.combatants as readonly StatDrivenCombatProfileV4[]),
-        summonStatProfile(combatantId, profile),
+        {
+          ...summonStatProfile(combatantId, profile),
+          ...(state.statBalancePolicyVersion === 1 ? { statusResistance: 0 } : {}),
+        },
       ].sort((left, right) => stableCompare(left.combatantId, right.combatantId)),
     },
     statusState: [...state.statusState, { combatantId, statuses: [] }].sort((left, right) =>
@@ -303,9 +307,6 @@ function cleanupEffectState(
     ),
     burn: effectState.burn.filter(
       (row) => row.sourceCombatantId !== combatantId && row.targetCombatantId !== combatantId,
-    ),
-    temporarySkills: effectState.temporarySkills.filter(
-      (row) => row.combatantId !== combatantId && row.sourceCombatantId !== combatantId,
     ),
     damageHistory: effectState.damageHistory.filter((row) => row.combatantId !== combatantId),
     ...(effectState.barriers === undefined
@@ -363,6 +364,27 @@ export function removeCombatSummon(
         ...state.tactical.battle,
         combatants: state.tactical.battle.combatants.filter((row) => row.id !== combatantId),
         initiativeOrder,
+        ...(state.tactical.battle.actedCombatantIds
+          ? {
+              actedCombatantIds: state.tactical.battle.actedCombatantIds.filter(
+                (id) => id !== combatantId,
+              ),
+            }
+          : {}),
+        ...(state.tactical.battle.activeInitiativeModifiers
+          ? {
+              activeInitiativeModifiers: state.tactical.battle.activeInitiativeModifiers.filter(
+                (row) => row.combatantId !== combatantId,
+              ),
+            }
+          : {}),
+        ...(state.tactical.battle.initiativeTieOrder
+          ? {
+              initiativeTieOrder: state.tactical.battle.initiativeTieOrder.filter(
+                (id) => id !== combatantId,
+              ),
+            }
+          : {}),
         deferredInitiativeCombatantIds: (
           state.tactical.battle.deferredInitiativeCombatantIds ?? []
         ).filter((id) => id !== combatantId),
@@ -381,7 +403,40 @@ export function removeCombatSummon(
       combatants: state.statBridge.combatants.filter((row) => row.combatantId !== combatantId),
     },
     statusState: state.statusState.filter((row) => row.combatantId !== combatantId),
+    ...(state.turnTriggerState === undefined
+      ? {}
+      : {
+          turnTriggerState: {
+            ...state.turnTriggerState,
+            combatants: state.turnTriggerState.combatants.filter(
+              (row) => row.combatantId !== combatantId,
+            ),
+          },
+        }),
     effectState: cleanupEffectState(effectState, combatantId),
+    ...(state.pendingEffects === undefined
+      ? {}
+      : {
+          pendingEffects: state.pendingEffects.flatMap((pending) => {
+            if (
+              pending.actorId === combatantId ||
+              pending.copySource?.combatantId === combatantId ||
+              pending.turnOrigin?.combatantId === combatantId
+            )
+              return []
+            const recipientIds = pending.recipientIds.filter((id) => id !== combatantId)
+            return recipientIds.length || pending.effect.type === 'create-terrain'
+              ? [{ ...pending, recipientIds }]
+              : []
+          }),
+        }),
+    ...(state.pendingSummons === undefined
+      ? {}
+      : {
+          pendingSummons: state.pendingSummons.filter(
+            (pending) => pending.input.ownerCombatantId !== combatantId,
+          ),
+        }),
     ...(state.turnOrigin?.combatantId === combatantId ? { turnOrigin: undefined } : {}),
   }
 

@@ -1,3 +1,7 @@
+October9 Suppress authoring: negative `suppress` supports1–100% actual outgoing direct-damage reduction, default25%, stored as safe integer100–10000 basis points with0.01% precision. Its duration is independent1–4 turns, default2; stacks are fixed at1 and no Power-scale field applies. Shared ten-characteristic and ! readers show `Suppress [25%] [2 Turns]`. Ordinary Normal/Instant/Delayed configuration, immutable publication and captured copy/restore apply. The additive timing-tag allowlist does not publish or rewrite Owner timing history or assign Suppress to existing content. Implementation is under verification; not yet deployed.
+
+October9 elemental authoring: Damage Element supports Fire, Ice, Water and Storm. Ice/Water/Storm expose debuff duration1–4 turns (legacy immediate damage0 means the2-turn default). Water’s Drenched Storm bonus and Storm’s Conductive Storm bonus are **additional damage percentages**, default20%, validated/captured using the existing safe integer potency100–5000 basis-point budget. Editing duration never changes potency. Immutable publish/rollback and Copy Debuffs preserve per-application values and source provenance. Typed damage supplies one implicit elemental status after successful damage settlement; an explicit matching status supplies captured timing/duration/bonus without duplicating the application. Default implicit timing is Instant (affected owner turns); explicit wet/frozen/conductive timing overrides remain authoritative. No new global schema or policy publication is needed. Historical saved encounters retain their pinned flags, definitions and timing.
+
 # AUREVANE — Owner, Staff & Master Panel Specification
 
 **Status:** Authoritative operations specification subordinate to `docs/GAME_MASTER_PLAN.md` and its owner-approved domain specifications.
@@ -641,6 +645,10 @@ future Master Panel module from this specification is complete.
 - Published version rows are immutable. Rollback changes only the current publication pointer (or
   clears that pointer when returning to a valid static fallback); historical rows are retained.
 
+### Minimum Skill information
+
+Owner-approved 2026-10-02: full active/passive Skill reports and read-only draft projections follow `docs/SKILL_INFORMATION_CONTRACT.md`. All ten fields use the same names, order, value conventions and canonical adapters as Nexus/battle details. N/A denotes inapplicability; missing immutable metadata remains Unavailable. These are derived reports, not independently editable mechanics. Current Skill, Essence and Resonance editors display this report without bypassing validation, deterministic preview or publication gates.
+
 ### Typed Skill workflow
 
 The current Skill editor uses the canonical `packages/game-core` Skill/effect contracts and
@@ -683,7 +691,7 @@ slice without pretending the later full Asset Studio is complete:
 - **Battle audio** uses an allow-listed stable hook selector. Produced approved cues can be
   auditioned in the editor. Existing reserved hooks whose runtime audio has not yet been produced
   remain visible honestly instead of being presented as playable media.
-- **VFX** remains visible but read-only until the approved VFX registry/runtime exists.
+- **Generic VFX hooks** remain visible but read-only. Eligible persistent Ground Skills and Essences separately expose the registered `groundArea.visualPresetId` selector and shared animation preview; arbitrary VFX scripts/styles remain unavailable.
 - Artwork/audio relationships are part of the immutable Skill definition, so publication/version
   pinning governs them together with mechanics. New battles consume the current published hooks;
   existing battles continue resolving their pinned Skill version.
@@ -737,4 +745,19 @@ immutable version records. The broader searchable Master Panel audit log, granul
 system, re-authentication/break-glass workflows and other future operational modules remain governed
 by the later phases of this specification; this slice must not pretend those wider systems already
 exist.
+## Owner-approved combat timing and short narration — 2026-10-03
 
+`/master/combat-timing` is Owner-only. Registered effect tags choose Instant or Next global round. Publishing requires a reason and the current version; immutable private rows record actor/time/version. New encounters pin the full policy. Existing encounters and logs never re-read today’s policy. Direct damage/HP/MP recovery default instant; other effects default following global round. A pending icon is presentation only.
+
+Current Skill, Essence and Resonance short battle scenes reuse their immutable `flavorLine` (160 characters). The common editor supplies whitelisted actor/target/ability name tokens, explicit subject/object/possessive/reflexive pronoun handlers and explicit three-way gender wording. Unknown or malformed tokens fail canonical validation. Missing immutable identity uses neutral pronouns/wording; never infer gender from portraits or read a current profile to reinterpret history. The separate historical 180-character hit/miss/critical template contract remains unchanged. Versioned description/effect fields remain editable through existing publication authority; text changes do not mutate recorded damage or outcomes.
+
+## Current targeting editor — 2026-10-06
+
+Current drafts use immutable geometry version 2 and expose Single, Line, Circle and All. Single retains authored min/max range. Line/Circle use one integer X from 1 to 5 and store range 0..X. All exposes no X or positional range, stores range 0..0 with LoS false, and reads Range/LoS N/A. Team policy, recipient kind, friendly fire and explicit elevation remain independent; self-only targeting normalizes to Single. Server preview, save and publication reject contradictory range/LoS, invalid X, area primary-unit effects/requirements and area summons. Single Empty Tile summon remains available. Existing permission, reasons, auditing, optimistic versions, drafts, publication and rollback authority remains unchanged. Historical pinned definitions remain immutable.
+
+Burn/Poison/Bleed percentage controls from the approved attack-based DoT release remain precise in integer basis points (0.01% through 100%), with positive complete tick sequences, authored duration and compatible direct attack coverage validated server-side. Changing a percentage creates a new immutable version and leaves in-progress battles pinned. The Owner can also publish separate elevation chances in Master → Combat Settings: level 1/2/3 default to 60%/30%/10%, accept 0% through 100% to two decimal places and must total exactly 100%. Each raised tile independently draws from this policy in new Battle Hall, PvP and world encounters. Changes require an audit reason and reject stale versions; saved battles retain their pinned policy and actual tiles.
+
+
+### Current persistent Ground controls — 2026-10-07
+
+Eligible Ground Skill and Essence drafts expose persistent-area enablement, duration from one to four global rounds, activation policy and registered Embers/Frost/Arcane pulse animation with a shared preview. Selected entry effects stay aligned with supported unit effects; caster buffs, terrain and summons do not repeat on entry. Publication retains existing validation, expected-version, reason, audit and rollback controls. Burn also exposes an authored backlash percentage from 0% to 100% at 0.01% precision, default 10%, with a once-per-character-turn-cycle allowance. Published changes create immutable versions; existing encounters retain their pinned content and policies. These controls do not change the independent elevation chances in Combat Settings.

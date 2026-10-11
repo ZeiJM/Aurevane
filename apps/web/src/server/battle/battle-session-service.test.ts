@@ -12,6 +12,8 @@ import {
   endCombatTurn,
 } from '@aurevane/game-core/combat/actions'
 import { moveCurrentCombatant, selectCurrentFinalFacing } from '@aurevane/game-core/combat/board'
+import { getTacticalHallArena } from '@aurevane/game-core/combat/tactical-hall-arenas'
+import { createStandardBattlefieldTiles } from '@aurevane/game-core/combat/standard-battlefield'
 import {
   reattachStatDrivenCombatBridge,
   type StatDrivenCombatEncounterState,
@@ -22,6 +24,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
 
+import { buildBattleViewModel, battleSparringTeamCounts } from '@/components/battle/battle-runtime'
 import { createBattleSessionService } from './battle-session-service'
 
 const USER_ID = '11111111-1111-4111-8111-111111111111'
@@ -161,6 +164,175 @@ async function createPersistedFixture(character = characterRecord()) {
 }
 
 describe('P2.4 battle session service', () => {
+  it.each(['duel-yard', 'crossroads-court', 'terraced-yard'] as const)(
+    'gives a fresh standard %s sparring battle a new mostly neutral map',
+    async (arenaId) => {
+      const battles = createBattleRepository()
+      const service = createBattleSessionService({
+        characters: createCharacterRepository().repository,
+        battles: battles.repository,
+      })
+      const first = await service.createSession({
+        userId: USER_ID,
+        characterId: CHARACTER_ID,
+        idempotencyKey: IDEMPOTENCY_KEY,
+        arenaId,
+        battleHallRecordId: 'recruit-sparring',
+        allyCount: 2,
+        enemyCount: 3,
+      })
+      const rematch = await service.createSession({
+        userId: USER_ID,
+        characterId: CHARACTER_ID,
+        idempotencyKey: '44444444-4444-4444-8444-444444444445',
+        arenaId,
+        battleHallRecordId: 'recruit-sparring',
+        allyCount: 2,
+        enemyCount: 3,
+      })
+      expect(rematch.snapshot.tactical.tiles).not.toEqual(first.snapshot.tactical.tiles)
+      for (const state of [first.snapshot, rematch.snapshot]) {
+        expect(
+          state.tactical.tiles.filter(
+            (tile) => tile.terrainId === 'open-ground' && tile.elevation === 0,
+          ).length,
+        ).toBeGreaterThan(state.tactical.tiles.length * 0.7)
+        for (const placement of state.tactical.placements) {
+          expect(
+            state.tactical.tiles.find(
+              (tile) =>
+                tile.position.x === placement.position.x &&
+                tile.position.y === placement.position.y,
+            ),
+          ).toMatchObject({ terrainId: 'open-ground', elevation: 0 })
+        }
+      }
+      for (const call of battles.createBattleSession.mock.calls) {
+        const state = call[0].initialSnapshot as StatDrivenCombatEncounterState
+        expect(state.tactical.battle.rng).toMatchObject({
+          state: state.tactical.battle.rng.seed,
+          draws: 0,
+        })
+        expect(state.tactical.tiles).toEqual(
+          createStandardBattlefieldTiles({
+            width: state.tactical.width,
+            height: state.tactical.height,
+            seed: state.tactical.battle.rng.seed,
+            spawns: state.tactical.placements.map((placement) => placement.position),
+          }),
+        )
+      }
+    },
+  )
+
+  it.each([
+    ['guided-fundamentals', 'duel-yard'],
+    ['mastery-trial', 'terraced-yard'],
+    ['movement-drill', 'basic-training-floor'],
+  ] as const)(
+    'preserves authored %s teaching geometry while drawing raised heights',
+    async (recordId, arenaId) => {
+      const service = createBattleSessionService({
+        characters: createCharacterRepository().repository,
+        battles: createBattleRepository().repository,
+      })
+      const created = await service.createSession({
+        userId: USER_ID,
+        characterId: CHARACTER_ID,
+        idempotencyKey: IDEMPOTENCY_KEY,
+        arenaId,
+        battleHallRecordId: recordId,
+      })
+      const tiles = created.snapshot.tactical.tiles
+      expect(tiles.map((tile) => ({ ...tile, elevation: tile.elevation > 0 ? 1 : 0 }))).toEqual(
+        getTacticalHallArena(arenaId).tiles,
+      )
+      expect(tiles.every((tile) => [0, 1, 2, 3].includes(tile.elevation))).toBe(true)
+    },
+  )
+
+  it.each([0, 1, 2])(
+    'creates every supported two-team sparring setup with %s allies',
+    async (allyCount) => {
+      for (const arenaId of ['duel-yard', 'crossroads-court', 'terraced-yard'] as const) {
+        for (let enemyCount = 1; enemyCount <= 5 - allyCount; enemyCount++) {
+          const characters = createCharacterRepository(),
+            battles = createBattleRepository()
+          const service = createBattleSessionService({
+            characters: characters.repository,
+            battles: battles.repository,
+          })
+          const result = await service.createSession({
+            userId: USER_ID,
+            characterId: CHARACTER_ID,
+            idempotencyKey: IDEMPOTENCY_KEY,
+            arenaId,
+            battleHallRecordId: 'recruit-sparring',
+            allyCount,
+            enemyCount,
+          })
+          const state = result.snapshot,
+            combatants = state.tactical.battle.combatants
+          expect(combatants).toHaveLength(1 + allyCount + enemyCount)
+          expect(battleSparringTeamCounts(result)).toEqual({ allyCount, enemyCount })
+          expect(combatants.filter((c) => c.teamId === 'players')).toHaveLength(1 + allyCount)
+          expect(combatants.filter((c) => c.teamId === 'opponents')).toHaveLength(enemyCount)
+          expect(new Set(combatants.map((c) => c.teamId)).size).toBe(2)
+          const view = buildBattleViewModel(result, {
+            kind: 'pve',
+            playerName: 'Wayfarer',
+            playerLevel: 1,
+            playerPortraitAssetId: 'character.adventure.male-01',
+            playerProfileImageUrl: null,
+          })
+          expect(view.participants.filter((p) => p.teamIndex === 0)).toHaveLength(1 + allyCount)
+          expect(view.participants.filter((p) => p.teamIndex === 1)).toHaveLength(enemyCount)
+          expect(new Set(view.participants.map((p) => `${p.teamIndex}:${p.seatIndex}`)).size).toBe(
+            combatants.length,
+          )
+
+          const positions = state.tactical.placements.map((p) => `${p.position.x}:${p.position.y}`)
+          expect(new Set(positions).size).toBe(combatants.length)
+          expect(state.statBridge.combatants).toHaveLength(combatants.length)
+          expect(battles.createBattleSession.mock.calls[0]?.[0].participants).toHaveLength(
+            combatants.length,
+          )
+          expect(
+            state.tactical.placements.every(
+              (p) =>
+                p.position.x >= 0 &&
+                p.position.x < state.tactical.width &&
+                p.position.y >= 0 &&
+                p.position.y < state.tactical.height,
+            ),
+          ).toBe(true)
+        }
+      }
+    },
+  )
+  it('rejects forged over-capacity or non-sparring team setups before persistence', async () => {
+    const characters = createCharacterRepository(),
+      battles = createBattleRepository()
+    const service = createBattleSessionService({
+      characters: characters.repository,
+      battles: battles.repository,
+    })
+    for (const extra of [
+      { allyCount: 2, enemyCount: 4 },
+      { allyCount: 3, enemyCount: 1 },
+      { allyCount: 1, enemyCount: 1, battleHallRecordId: 'guided-fundamentals' as const },
+    ]) {
+      await expect(
+        service.createSession({
+          userId: USER_ID,
+          characterId: CHARACTER_ID,
+          idempotencyKey: IDEMPOTENCY_KEY,
+          ...extra,
+        }),
+      ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
+    }
+    expect(battles.createBattleSession).not.toHaveBeenCalled()
+  })
   it('creates authority state from persisted Phase 1 stats without exposing deterministic RNG', async () => {
     const characters = createCharacterRepository()
     const battles = createBattleRepository()
@@ -203,6 +375,20 @@ describe('P2.4 battle session service', () => {
     expect(input.requestFingerprint).toMatch(/^sha256:[0-9a-f]{64}$/)
 
     const persistedSnapshot = input.initialSnapshot as StatDrivenCombatEncounterState
+    expect(persistedSnapshot.statBalancePolicyVersion).toBe(1)
+    expect(persistedSnapshot.effectStackingPolicyVersion).toBe(1)
+    expect(result.snapshot.effectStackingPolicyVersion).toBe(1)
+    expect(result.snapshot.percentageDotPolicyVersion).toBe(1)
+    expect(result.snapshot.dotTriggerPolicyVersion).toBe(2)
+    expect(result.snapshot.groundEffectPolicyVersion).toBe(1)
+    expect(result.snapshot.frozenGroundPolicyVersion).toBe(1)
+    expect(result.snapshot.airbornePolicyVersion).toBe(1)
+    expect(result.snapshot.airborneJumpPolicyVersion).toBe(1)
+    expect(result.snapshot.elementalDamagePolicyVersion).toBe(2)
+    expect(result.snapshot.dynamicInitiativePolicyVersion).toBe(1)
+    expect(result.snapshot.healingDownPolicyVersion).toBe(1)
+    expect(result.snapshot.blindsideActivationPolicyVersion).toBe(1)
+    expect(result.snapshot.displacementPolicyVersion).toBe(1)
     const player = persistedSnapshot.tactical.battle.combatants.find(
       (combatant) => combatant.id === `character:${CHARACTER_ID}`,
     )
@@ -223,39 +409,42 @@ describe('P2.4 battle session service', () => {
     expect(persistedSnapshot.tactical.battle.rng.seed).toBeLessThanOrEqual(0xffff_ffff)
     expect(persistedSnapshot.tactical.battle.lifecycle).toBe('active')
     expect(player).toMatchObject({
-      initiative: 14,
+      initiative: 23,
       baseMovementBudget: 2,
-      hp: 164,
-      maxHp: 164,
-      mp: 90,
-      maxMp: 90,
+      hp: 143,
+      maxHp: 143,
+      mp: 73,
+      maxMp: 73,
     })
     expect(playerProfile).toMatchObject({
       provenance: {
         kind: 'character-derived',
         sourceId: `character:${CHARACTER_ID}`,
-        sourceRulesVersion: 3,
+        sourceRulesVersion: 5,
       },
-      accuracy: 6_650,
-      evasion: 170,
-      armor: 23,
-      ward: 23,
+      accuracy: 8_875,
+      evasion: 375,
+      armor: 52,
+      ward: 52,
       jump: 0,
-      criticalChance: 250,
+      criticalChance: 225,
+      statusResistance: 150,
     })
     expect(recruitProfile).toMatchObject({
       provenance: { kind: 'scenario' },
       level: 1,
-      physicalPower: 32,
-      mysticPower: 32,
-      criticalChance: 225,
+      physicalPower: 50,
+      mysticPower: 50,
+      criticalChance: 187,
+      statusResistance: 125,
     })
     expect(playerMovementProfile?.maxElevationStep).toBe(0)
-    expect(
+    expect([1, 2, 3]).toContain(
       persistedSnapshot.tactical.tiles.find(
         (tile) => tile.position.x === 2 && tile.position.y === 0,
       )?.elevation,
-    ).toBe(1)
+    )
+    expect(persistedSnapshot.tactical.battle.rng.draws).toBe(0)
     expect(persistedSnapshot.tactical.placements).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -276,6 +465,72 @@ describe('P2.4 battle session service', () => {
     expect(result.snapshot.statBridge.rulesVersion).toBe(4)
     expect(result.snapshot.tactical.battle).not.toHaveProperty('rng')
   })
+
+  it.each([
+    ['duel-yard', 9, 63],
+    ['crossroads-court', 12, 84],
+    ['terraced-yard', 15, 105],
+  ] as const)('creates new %s sparring sessions with seven rows', async (arenaId, width, count) => {
+    const characters = createCharacterRepository()
+    const battles = createBattleRepository()
+    const service = createBattleSessionService({
+      characters: characters.repository,
+      battles: battles.repository,
+    })
+    const created = await service.createSession({
+      userId: USER_ID,
+      characterId: CHARACTER_ID,
+      idempotencyKey: IDEMPOTENCY_KEY,
+      arenaId,
+      battleHallRecordId: 'recruit-sparring',
+    })
+    expect(created.snapshot.tactical).toMatchObject({ width, height: 7 })
+    expect(created.snapshot.tactical.tiles).toHaveLength(count)
+  })
+
+  it.each([
+    ['crossroads-court', 7, 49],
+    ['terraced-yard', 11, 77],
+  ] as const)(
+    'loads historical %s geometry without replacing it with the current arena',
+    async (arenaId, width, count) => {
+      const fixture = await createPersistedFixture()
+      const historical = structuredClone(fixture.persistedSnapshot)
+      historical.tactical = {
+        ...historical.tactical,
+        width,
+        height: 7,
+        tiles: Array.from({ length: count }, (_, index) => ({
+          position: { x: index % width, y: Math.floor(index / width) },
+          elevation: 0,
+          terrainId: 'open-ground',
+        })),
+      }
+      historical.statBridge = {
+        ...historical.statBridge,
+        combatants: historical.statBridge.combatants.map((profile) =>
+          profile.provenance.kind === 'scenario'
+            ? {
+                ...profile,
+                provenance: {
+                  ...profile.provenance,
+                  sourceId: `scenario:p2-7-recruit:${arenaId}:recruit-sparring:standard`,
+                },
+              }
+            : profile,
+        ),
+      }
+      fixture.battles.findBattleSession.mockResolvedValue({
+        ...fixture.record,
+        snapshot: historical,
+      })
+      const loaded = await fixture.service.getSession(USER_ID, SESSION_ID)
+      expect(loaded.snapshot.tactical).toMatchObject({ width, height: 7 })
+      expect(loaded.snapshot.tactical.tiles).toEqual(historical.tactical.tiles)
+      expect(loaded.snapshot.tactical.placements).toEqual(historical.tactical.placements)
+      expect(fixture.record.snapshot).toEqual(fixture.persistedSnapshot)
+    },
+  )
 
   it('owns Battle Hall AI difficulty and the Mastery Trial arena on the server', async () => {
     const characters = createCharacterRepository()
@@ -304,8 +559,8 @@ describe('P2.4 battle session service', () => {
       },
       {
         recordId: 'guided-fundamentals' as const,
-        proposedArenaId: 'basic-training-floor' as const,
-        expectedArenaId: 'basic-training-floor' as const,
+        proposedArenaId: 'crossroads-court' as const,
+        expectedArenaId: 'duel-yard' as const,
         proposedDifficulty: 'high' as const,
         expectedDifficulty: 'easy',
         idempotencyKey: '11111111-2222-4333-8444-555555555553',
@@ -326,6 +581,10 @@ describe('P2.4 battle session service', () => {
       if (!input) throw new Error('Expected battle create input.')
 
       const state = input.initialSnapshot as StatDrivenCombatEncounterState
+      if (testCase.recordId === 'guided-fundamentals') {
+        expect(state.tactical).toMatchObject({ width: 9, height: 7 })
+        expect(state.tactical.tiles).toHaveLength(63)
+      }
       const recruitProfile = state.statBridge.combatants.find(
         (profile) => profile.combatantId === 'recruit:p2-4-1',
       )
@@ -350,18 +609,18 @@ describe('P2.4 battle session service', () => {
     )
 
     expect(player).toMatchObject({
-      initiative: 14,
+      initiative: 23,
       baseMovementBudget: 2,
-      hp: 164,
-      maxHp: 164,
-      mp: 82,
-      maxMp: 82,
+      hp: 143,
+      maxHp: 143,
+      mp: 64,
+      maxMp: 64,
     })
     expect(profile).toMatchObject({
-      accuracy: 6_875,
-      evasion: 170,
-      armor: 23,
-      ward: 21,
+      accuracy: 9_062,
+      evasion: 375,
+      armor: 52,
+      ward: 50,
       jump: 0,
     })
   })
@@ -382,7 +641,7 @@ describe('P2.4 battle session service', () => {
 
     expect(player?.baseMovementBudget).toBe(4)
     expect(persistedSnapshot.tactical.battle.currentTurn?.movementRemaining).toBe(4)
-    expect(recruit?.baseMovementBudget).toBe(10)
+    expect(recruit?.baseMovementBudget).toBe(2)
   })
 
   it('resolves a legal move on the server before persisting the next snapshot', async () => {
@@ -486,9 +745,9 @@ describe('P2.4 battle session service', () => {
       event: 'stat_driven_attack_resolved',
       actorId: `character:${CHARACTER_ID}`,
       targetId: 'recruit:p2-4-1',
-      hitChanceBasisPoints: 6_340,
+      hitChanceBasisPoints: 8_563,
       defenseKind: 'armor',
-      defenseRating: 20,
+      defenseRating: 50,
       rulesVersion: 4,
     })
 
@@ -499,7 +758,7 @@ describe('P2.4 battle session service', () => {
           event: 'combat_critical_resolved',
           sourceCombatantId: `character:${CHARACTER_ID}`,
           targetCombatantId: 'recruit:p2-4-1',
-          criticalChanceBasisPoints: 593,
+          criticalChanceBasisPoints: 225,
           criticalRulesVersion: 1,
         }),
       )
@@ -661,4 +920,53 @@ describe('P2.4 battle session service', () => {
   it('uses Aurevane errors for rejected authority requests', () => {
     expect(new StaleBattleVersionError(2)).toBeInstanceOf(AurevaneError)
   })
+})
+
+it('pins Owner elevation chances at creation and never consults them when reloading a saved battle', async () => {
+  const characters = createCharacterRepository()
+  const battles = createBattleRepository()
+  const policy = {
+    version: 9,
+    level1BasisPoints: 0,
+    level2BasisPoints: 0,
+    level3BasisPoints: 10000,
+  }
+  const readElevationPolicy = vi.fn(async () => policy)
+  const service = createBattleSessionService({
+    characters: characters.repository,
+    battles: battles.repository,
+    readElevationPolicy,
+  })
+  const created = await service.createSession({
+    userId: USER_ID,
+    characterId: CHARACTER_ID,
+    idempotencyKey: IDEMPOTENCY_KEY,
+    arenaId: 'duel-yard',
+  })
+  expect(created.snapshot.battlefieldElevationPolicy).toEqual(policy)
+  expect(created.snapshot.tactical.tiles.some((tile) => tile.elevation > 0)).toBe(true)
+  expect(
+    created.snapshot.tactical.tiles
+      .filter((tile) => tile.elevation > 0)
+      .every((tile) => tile.elevation === 3),
+  ).toBe(true)
+  const persistedSnapshot = battles.createBattleSession.mock.calls[0]![0]
+    .initialSnapshot as StatDrivenCombatEncounterState
+  const record: BattleSessionRecord = {
+    battleSessionId: SESSION_ID,
+    battleId: created.snapshot.tactical.battle.battleId,
+    battleVersion: 1,
+    rulesVersion: created.snapshot.tactical.battle.rulesVersion,
+    contentVersion: created.snapshot.tactical.battle.contentVersion,
+    lifecycle: created.snapshot.tactical.battle.lifecycle,
+    snapshot: persistedSnapshot,
+    controlledCombatantIds: [`character:${CHARACTER_ID}`],
+    updatedAt: CREATED_AT,
+  }
+  battles.findBattleSession.mockResolvedValueOnce(record)
+  readElevationPolicy.mockRejectedValue(new Error('current policy is unavailable'))
+  const loaded = await service.getSession(USER_ID, SESSION_ID)
+  expect(loaded.snapshot.tactical.tiles).toEqual(created.snapshot.tactical.tiles)
+  expect(loaded.snapshot.battlefieldElevationPolicy).toEqual(policy)
+  expect(readElevationPolicy).toHaveBeenCalledTimes(1)
 })

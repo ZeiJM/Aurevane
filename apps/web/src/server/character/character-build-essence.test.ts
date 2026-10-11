@@ -116,6 +116,7 @@ function repository(overrides: Partial<CharacterBuildRepository> = {}): Characte
       },
     })),
     changeDisciplines: vi.fn(async () => ({ build: activeBuild(), replayed: false })),
+    saveSupportAction: vi.fn(async () => ({ buildVersion: 2, replayed: false })),
     saveDisciplineSkills: vi.fn(async () => ({ buildVersion: 1, replayed: false })),
     ...overrides,
   }
@@ -153,7 +154,7 @@ describe('P3.6 character build Essence authority', () => {
     expect(context.disciplineSkills.extensions.essence).toBeNull()
     expect(context.disciplineSkills.extensions.resonance).toMatchObject({
       id: 'resonance.lifebinder-vanguard.mercys-edge',
-      contentVersion: 3,
+      contentVersion: 5,
       trigger: { kind: 'skill-trigger-v2' },
       authoring: { schemaVersion: 2 },
     })

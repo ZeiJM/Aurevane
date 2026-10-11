@@ -1,5 +1,4 @@
 import 'server-only'
-
 import { createHash, randomUUID } from 'node:crypto'
 
 import {
@@ -38,25 +37,17 @@ import { createServerCombatContentResolver } from '@/server/combat/combat-conten
 import {
   resolveBattleDisciplineSkillDefinitions,
   resolveBattleEssenceDefinition,
-  resolveBattleTemporarySkillDefinition,
   type BattleBuildAuthoritySnapshot,
 } from './battle-build-authority'
-import { resolveBattleSkillCopyContext } from './battle-skill-copy-authority'
-
 import {
   createBattleSessionChangedInvalidation,
   type BattleSessionChangedInvalidation,
 } from '@aurevane/realtime'
 
-const MAX_RECRUIT_DECISIONS_PER_REQUEST = 16
+import { projectBattleSnapshot, type BattleSessionProjection } from './battle-session-service'
+import { deriveParticipantBattleViewerEntitlement } from './battle-viewer-entitlement'
 
-type ProjectedBattleState = Omit<StatDrivenCombatEncounterState['tactical']['battle'], 'rng'>
-type ProjectedTacticalState = Omit<StatDrivenCombatEncounterState['tactical'], 'battle'> & {
-  battle: ProjectedBattleState
-}
-type RecruitBattleProjection = Omit<StatDrivenCombatEncounterState, 'tactical'> & {
-  tactical: ProjectedTacticalState
-}
+const MAX_RECRUIT_DECISIONS_PER_REQUEST = 16
 type BuildExtendedEncounterState = StatDrivenCombatEncounterState & {
   readonly buildAuthority?: BattleBuildAuthoritySnapshot
   readonly buildBridge?: unknown
@@ -65,7 +56,7 @@ type BuildExtendedEncounterState = StatDrivenCombatEncounterState & {
 export interface RecruitTurnView {
   battleSessionId: string
   battleVersion: number
-  snapshot: RecruitBattleProjection
+  snapshot: BattleSessionProjection
   decisions: readonly {
     combatantId: string
     reason: RecruitAiDecision['reason']
@@ -134,31 +125,6 @@ function preserveFrozenBuildMetadata(
   }
 }
 
-function projectBattleSnapshot(state: StatDrivenCombatEncounterState): RecruitBattleProjection {
-  const battle = state.tactical.battle
-  return {
-    ...state,
-    tactical: {
-      ...state.tactical,
-      battle: {
-        schemaVersion: battle.schemaVersion,
-        battleId: battle.battleId,
-        rulesVersion: battle.rulesVersion,
-        contentVersion: battle.contentVersion,
-        lifecycle: battle.lifecycle,
-        combatants: battle.combatants,
-        initiativeOrder: battle.initiativeOrder,
-        ...(battle.roundInitiativeModifiers
-          ? { roundInitiativeModifiers: battle.roundInitiativeModifiers }
-          : {}),
-        round: battle.round,
-        turnNumber: battle.turnNumber,
-        currentTurn: battle.currentTurn,
-      },
-    },
-  }
-}
-
 function resolveRecruitIntent(
   state: StatDrivenCombatEncounterState,
   intent: RecruitAiIntent,
@@ -203,53 +169,14 @@ async function resolveRecruitSkillOptions(
   resolver: CombatContentResolver | undefined,
 ): Promise<BuildAwareRecruitAiSkillOptions> {
   const authority = state.buildAuthority
-  if (!authority) {
-    if (
-      normalizeCombatEffectState(state.effectState).temporarySkills.some(
-        (grant) => grant.combatantId === actorId,
-      )
-    ) {
-      throw persistenceInvalid('Temporary copied Skills require frozen battle build authority.')
-    }
-    return {}
-  }
+  if (!authority) return {}
   if (!resolver) throw persistenceInvalid('Published combat content resolver is unavailable.')
 
   const regular = await resolveBattleDisciplineSkillDefinitions(authority, actorId, resolver)
   if (regular === null) return { committedSkills: [] }
 
   const essence = resolveBattleEssenceDefinition(authority, actorId)
-  const committedSkills = essence ? [...regular, essence.skill] : [...regular]
-  const copiedSkills = []
-  for (const grant of normalizeCombatEffectState(state.effectState).temporarySkills) {
-    if (grant.combatantId !== actorId) continue
-    const definition = await resolveBattleTemporarySkillDefinition(authority, grant, resolver)
-    if (!definition) throw persistenceInvalid('Stored temporary Skill grant is invalid.')
-    copiedSkills.push(definition)
-  }
-
-  const all = [...committedSkills, ...copiedSkills]
-  const copyContextsBySource: Record<
-    string,
-    Awaited<ReturnType<typeof resolveBattleSkillCopyContext>>
-  > = {}
-  if (all.some((definition) => definition.effects.some((effect) => effect.type === 'copy'))) {
-    for (const source of state.tactical.battle.combatants) {
-      const context = await resolveBattleSkillCopyContext(state, actorId, source.id, resolver)
-      if (context === null) throw persistenceInvalid('Stored Copy source build is invalid.')
-      copyContextsBySource[source.id] = context
-    }
-  }
-
-  return {
-    committedSkills,
-    copiedSkills,
-    copyContextsBySource: Object.fromEntries(
-      Object.entries(copyContextsBySource).filter(
-        (entry): entry is [string, NonNullable<(typeof entry)[1]>] => entry[1] !== null,
-      ),
-    ),
-  }
+  return { committedSkills: essence ? [...regular, essence.skill] : [...regular] }
 }
 
 function recruitDifficultyForActor(
@@ -333,6 +260,7 @@ export function createBattleRecruitAiService(
         )
       }
 
+      const initialTurnNumber = state.tactical.battle.turnNumber
       let battleVersion = initial.battleVersion
       let committedAt = initial.updatedAt
       const decisions: Array<RecruitTurnView['decisions'][number]> = []
@@ -343,12 +271,19 @@ export function createBattleRecruitAiService(
         if (
           battle.lifecycle !== 'active' ||
           turn === null ||
-          controlledIds.includes(turn.combatantId)
+          controlledIds.includes(turn.combatantId) ||
+          battle.turnNumber !== initialTurnNumber
         ) {
           return {
             battleSessionId: initial.battleSessionId,
             battleVersion,
-            snapshot: projectBattleSnapshot(state),
+            snapshot: projectBattleSnapshot(
+              state,
+              deriveParticipantBattleViewerEntitlement(
+                state.tactical.battle.combatants,
+                controlledIds,
+              ),
+            ),
             decisions,
             invalidation: createBattleSessionChangedInvalidation({
               battleSessionId: initial.battleSessionId,

@@ -1,8 +1,13 @@
+import { createPercentageRecoveryResonanceVersion } from './combat-recovery-roster'
+import { battleFlavorTemplateIssues } from './battle-narration'
 import { validateGameplayEffectMetadata } from './gameplay-tags'
 import { ADVANCED_RESONANCES } from './advanced-resonances'
 import { FOUNDATION_TRIO_RESONANCES } from './foundation-trio-resonances'
 import { IRONFIST_RESONANCES } from './ironfist-content'
 import { rebalanceResonanceDefinition } from './resonance-balance-v5'
+import { createCanonicalCleanseResonanceVersion } from './combat-cleanse'
+import { createClarifiedResonanceVersion } from './resonance-clarified-content'
+import { matchesResonanceSkill, validResonanceSkillMatcher } from './resonance-skill-matcher'
 import {
   convertV5ResonanceToV2,
   isResonanceDefinitionV2,
@@ -30,6 +35,7 @@ export const RESONANCE_SCHEMA_VERSION = 1 as const
 export interface ResonanceSkillMatcher {
   readonly sourceDisciplineId: string
   readonly requiredTags: readonly string[]
+  readonly matchMode?: 'any-skill'
 }
 
 export interface ResonanceSkillSequenceTrigger {
@@ -156,10 +162,32 @@ const V51_REBALANCED_RESONANCES = V5_REBALANCED_RESONANCES.map(convertV5Resonanc
 
 export const P35_REPRESENTATIVE_RESONANCES: readonly ResonanceDefinition[] = PRE_V5_RESONANCES
 
-const CURRENT_RESONANCE_REGISTRY: readonly AnyResonanceDefinition[] = [
+const PRE_PERCENTAGE_RECOVERY_RESONANCE_REGISTRY: readonly AnyResonanceDefinition[] = [
   ...P35_REPRESENTATIVE_RESONANCES,
   ...V5_REBALANCED_RESONANCES,
   ...V51_REBALANCED_RESONANCES,
+  ...V51_REBALANCED_RESONANCES.flatMap((definition) => {
+    const updated = createCanonicalCleanseResonanceVersion(definition, true)
+    return updated ? [updated] : []
+  }),
+  ...V51_REBALANCED_RESONANCES.map((definition) =>
+    createClarifiedResonanceVersion(
+      createCanonicalCleanseResonanceVersion(definition, true) ?? definition,
+    ),
+  ),
+]
+const latestRecoveryResonances = new Map<string, AnyResonanceDefinition>()
+for (const row of PRE_PERCENTAGE_RECOVERY_RESONANCE_REGISTRY) {
+  const previous = latestRecoveryResonances.get(row.id)
+  if (row.enabled && (!previous || row.contentVersion > previous.contentVersion))
+    latestRecoveryResonances.set(row.id, row)
+}
+const CURRENT_RESONANCE_REGISTRY = [
+  ...PRE_PERCENTAGE_RECOVERY_RESONANCE_REGISTRY,
+  ...[...latestRecoveryResonances.values()].flatMap((definition) => {
+    const next = createPercentageRecoveryResonanceVersion(definition)
+    return next ? [next] : []
+  }),
 ]
 
 const STABLE_ID_PATTERN = /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/
@@ -187,9 +215,7 @@ export function validateResonanceDefinition(definition: AnyResonanceDefinition):
   if (!definition.description.trim()) issues.push('description')
   if (
     definition.flavorLine !== undefined &&
-    (definition.flavorLine.trim().length === 0 ||
-      definition.flavorLine.length > 160 ||
-      /[\r\n]/u.test(definition.flavorLine))
+    battleFlavorTemplateIssues(definition.flavorLine).length > 0
   ) {
     issues.push('flavorLine')
   }
@@ -218,8 +244,8 @@ export function validateResonanceDefinition(definition: AnyResonanceDefinition):
       issues.push(`${field}.sourceDisciplineId`)
     }
     if (
-      matcher.requiredTags.length === 0 ||
-      matcher.requiredTags.some((tag) => !STABLE_ID_PATTERN.test(tag))
+      !validResonanceSkillMatcher(matcher) ||
+      (field === 'trigger.payoff' && matcher.matchMode !== undefined)
     ) {
       issues.push(`${field}.requiredTags`)
     }
@@ -347,7 +373,11 @@ export function constrainResonanceForecastToTarget(
   selection: CombatTargetSelection,
   affectedCombatantIds: readonly string[],
 ): ReturnType<typeof forecastResonanceForSkill> {
-  if (!forecast.willActivate || selection.kind !== 'tile') return forecast
+  if (
+    !forecast.willActivate ||
+    (selection.kind !== 'tile' && selection.kind !== 'direction' && selection.kind !== 'activate')
+  )
+    return forecast
   if (
     !forecast.bonusEffects.some((effect) => effect.recipient === 'primary-unit') &&
     (!skill.tags.includes('attack') || affectedCombatantIds.length > 0)
@@ -377,6 +407,11 @@ export function resonanceAiUtilityBonus(
   return 0
 }
 
+/** Attack-triggered Results use the command's authoritative hit decision, including zero-HP-damage hits. */
+export function resonanceTriggerRequiresHit(definition: AnyResonanceDefinition): boolean {
+  return normalizedResonanceMechanics(definition).trigger.requiredTags.includes('attack')
+}
+
 export function executeMatureSkillWithResonance(input: {
   readonly state: CombatEncounterState
   readonly resonance: AnyResonanceDefinition
@@ -399,14 +434,30 @@ export function executeMatureSkillWithResonance(input: {
     ? { ...baseAction, effects: [...baseAction.effects, ...forecast.bonusEffects] }
     : baseAction
 
-  const resolution = executeCombatAction(input.state, action, input.selection, input.content)
+  const requiresHit = forecast.willActivate && resonanceTriggerRequiresHit(input.resonance)
+  const resolution = executeCombatAction(
+    input.state,
+    action,
+    input.selection,
+    input.content,
+    undefined,
+    requiresHit
+      ? {
+          effectOrdinals: forecast.bonusEffects.map(
+            (_effect, index) => baseAction.effects.length + index,
+          ),
+        }
+      : undefined,
+  )
+  const activated =
+    forecast.willActivate && (!requiresHit || resolution.hitDependentEffectsActivated === true)
   const actorId = resolution.events.find((event) => event.event === 'combat_action_used')?.actorId
   if (!actorId) throw new Error('Resonance Skill resolution did not emit a combat action event.')
 
   const resonanceEvents: ResonanceCombatEvent[] = []
   let nextArmedByActionId = input.resonanceState.armedByActionId
 
-  if (forecast.willActivate) {
+  if (activated) {
     resonanceEvents.push({
       event: 'resonance_activated',
       resonanceId: input.resonance.id,
@@ -466,10 +517,7 @@ function insertResonanceEventsAfterActionUse(
 }
 
 function matchesSkill(skill: MatureSkillDefinition, matcher: ResonanceSkillMatcher): boolean {
-  return (
-    skill.sourceDisciplineId === matcher.sourceDisciplineId &&
-    matcher.requiredTags.every((tag) => skill.tags.includes(tag))
-  )
+  return matchesResonanceSkill(skill, matcher)
 }
 
 function assertUsableResonance(definition: AnyResonanceDefinition): void {

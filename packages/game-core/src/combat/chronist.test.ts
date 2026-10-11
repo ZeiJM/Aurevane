@@ -1,3 +1,4 @@
+import { prePercentageRecoverySkill } from './percentage-recovery-history.test-utils'
 import { describe, expect, it } from 'vitest'
 import {
   surrenderPvpCombatant,
@@ -113,7 +114,6 @@ function withStatus<T extends CombatEncounterState>(
 }
 
 const skill = (id: string) => resolveMatureSkillVersion(id)!
-const historicalSkill = (id: string) => resolveMatureSkillVersion(id, 1)!
 function nextRound(state: StatDrivenCombatEncounterState) {
   const round = state.tactical.battle.round
   const actors: string[] = []
@@ -124,57 +124,6 @@ function nextRound(state: StatDrivenCombatEncounterState) {
   return { state, actors }
 }
 describe('Chronist authoritative tempo', () => {
-  it('keeps historical v1 next-round Haste behavior pinned without duplicate turns', () => {
-    let state = executePv1fMatureSkill(encounter(), historicalSkill('chronist.haste'), {
-      kind: 'unit',
-      combatantId: 'ally',
-    }).state
-    expect(state.tactical.battle.initiativeOrder).toEqual(['actor', 'enemy', 'other', 'ally'])
-    const round1 = nextRound(JSON.parse(JSON.stringify(state)))
-    expect(round1.actors).toEqual(['actor', 'enemy', 'other', 'ally'])
-    state = round1.state
-    expect(state.tactical.battle.initiativeOrder).toEqual(['actor', 'ally', 'enemy', 'other'])
-    expect(
-      state.statusState
-        .flatMap((row) => row.statuses)
-        .some((status) => status.statusId === 'hastened'),
-    ).toBe(false)
-    const round2 = nextRound(state)
-    expect(round2.actors).toEqual(['actor', 'ally', 'enemy', 'other'])
-    expect(round2.state.tactical.battle.initiativeOrder).toEqual([
-      'actor',
-      'enemy',
-      'other',
-      'ally',
-    ])
-    expect(validateBattleState(round2.state.tactical.battle)).toEqual([])
-  })
-  it('keeps historical v1 Delay preview-safe and discrete on consecutive use', () => {
-    const state = encounter(),
-      saved = JSON.stringify(state)
-    const preview = evaluatePv1fMatureSkill(state, historicalSkill('chronist.delay'), {
-      kind: 'unit',
-      combatantId: 'enemy',
-    })
-    expect(preview.evaluation.legal).toBe(true)
-    expect(JSON.stringify(state)).toBe(saved)
-    const first = executePv1fMatureSkill(state, historicalSkill('chronist.delay'), {
-      kind: 'unit',
-      combatantId: 'enemy',
-    })
-    const repeat = evaluatePv1fMatureSkill(first.state, historicalSkill('chronist.delay'), {
-      kind: 'unit',
-      combatantId: 'enemy',
-    })
-    expect(repeat.action.effects).toEqual([])
-    expect(repeat.cost).toBe(preview.cost)
-    expect(nextRound(first.state).state.tactical.battle.initiativeOrder).toEqual([
-      'actor',
-      'other',
-      'ally',
-      'enemy',
-    ])
-  })
   it('uses current Haste/Slow movement statuses without changing initiative order', () => {
     let state = executePv1fMatureSkill(encounter(), skill('chronist.haste'), {
       kind: 'unit',
@@ -202,50 +151,6 @@ describe('Chronist authoritative tempo', () => {
     ])
   })
 
-  it('caps combined tempo and ignores defeated units when selecting turns', () => {
-    let state = withStatus(withStatus(encounter(), 'ally', 'hastened'), 'ally', 'borrowed-hour')
-    state = {
-      ...state,
-      tactical: {
-        ...state.tactical,
-        battle: {
-          ...state.tactical.battle,
-          combatants: state.tactical.battle.combatants.map((unit) =>
-            unit.id === 'enemy' ? { ...unit, hp: 0 } : unit,
-          ),
-        },
-      },
-    }
-    const result = nextRound(state)
-    expect(result.actors).toEqual(['actor', 'other', 'ally'])
-    expect(result.state.tactical.battle.currentTurn?.combatantId).toBe('ally')
-    expect(result.state.tactical.battle.roundInitiativeModifiers).toEqual([
-      { combatantId: 'ally', amount: 40 },
-    ])
-    const turns = nextRound(result.state).actors
-    expect(new Set(turns).size).toBe(3)
-    expect(turns).not.toContain('enemy')
-  })
-  it('does not select a tempo-boosted last actor after its lethal end-of-turn tick', () => {
-    let state = withStatus(withStatus(encounter(), 'ally', 'borrowed-hour'), 'ally', 'poison')
-    state = {
-      ...state,
-      tactical: {
-        ...state.tactical,
-        battle: {
-          ...state.tactical.battle,
-          combatants: state.tactical.battle.combatants.map((unit) =>
-            unit.id === 'ally' ? { ...unit, hp: 1 } : unit,
-          ),
-        },
-      },
-    }
-    const result = nextRound(state)
-    expect(result.actors).toEqual(['actor', 'enemy', 'other', 'ally'])
-    expect(result.state.tactical.battle.currentTurn?.combatantId).toBe('actor')
-    expect(result.state.tactical.battle.combatants.find((unit) => unit.id === 'ally')!.hp).toBe(0)
-    expect(validateBattleState(result.state.tactical.battle)).toEqual([])
-  })
   it('rejects malformed schedule offsets and wrong initiative permutations', () => {
     const battle = encounter().tactical.battle
     expect(
@@ -265,7 +170,7 @@ describe('Chronist authoritative tempo', () => {
     ).not.toEqual([])
   })
   it('rewinds only position to this turn origin without refunds, preserving reloads and Root legality', () => {
-    const definition = skill('chronist.rewind-step')
+    const definition = prePercentageRecoverySkill('chronist.rewind-step')
     expect(
       evaluatePv1fMatureSkill(encounter(), definition, { kind: 'self' }).evaluation.legal,
     ).toBe(false)
@@ -355,13 +260,14 @@ describe('Committed Resonance uses normal battle execution', () => {
         { kind: 'unit', combatantId: 'enemy' },
         context,
       )
-      expect(forecast.action.effects).toContainEqual({
-        type: 'apply-status',
-        recipient: 'actor',
-        statusId: 'hastened',
-        stacks: 1,
-        durationTurns: 1,
-      })
+      expect(forecast.action.effects).toContainEqual(
+        expect.objectContaining({
+          type: 'apply-status',
+          recipient: 'actor',
+          statusId: 'haste',
+          stacks: 1,
+        }),
+      )
       expect(JSON.stringify(loaded)).toBe(saved)
       const result = executePv1fMatureSkill(
         loaded,
@@ -379,7 +285,7 @@ describe('Committed Resonance uses normal battle execution', () => {
           { kind: 'unit', combatantId: 'enemy' },
           context,
         ).action.effects.some(
-          (effect) => effect.type === 'apply-status' && effect.statusId === 'hastened',
+          (effect) => effect.type === 'apply-status' && effect.statusId === 'haste',
         ),
       ).toBe(false)
     })
@@ -396,9 +302,9 @@ describe('Committed Resonance uses normal battle execution', () => {
 
 describe('Chronist quality transitions', () => {
   it.each([false, true])(
-    'excludes a boosted surrendering actor at the round boundary (terminal: %s)',
+    'excludes a surrendering actor at the round boundary (terminal: %s)',
     (terminal) => {
-      let state = withStatus(encounter(), 'ally', 'borrowed-hour')
+      let state = encounter()
       while (state.tactical.battle.currentTurn!.combatantId !== 'ally')
         state = finishPv1fTurn(state, 'west').state
       if (terminal)

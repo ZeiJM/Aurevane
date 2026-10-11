@@ -1,3 +1,4 @@
+import { omitPendingBattlePayloads } from './battle-live-viewer-projection'
 import 'server-only'
 
 import { createHash } from 'node:crypto'
@@ -116,7 +117,7 @@ function resolvePracticeAbort(state: StatDrivenCombatEncounterState): {
 function projectBattleSnapshot(state: StatDrivenCombatEncounterState): BattleSessionProjection {
   const battle = state.tactical.battle
   return {
-    ...state,
+    ...omitPendingBattlePayloads(state),
     tactical: {
       ...state.tactical,
       battle: {
@@ -127,6 +128,7 @@ function projectBattleSnapshot(state: StatDrivenCombatEncounterState): BattleSes
         lifecycle: battle.lifecycle,
         combatants: battle.combatants,
         initiativeOrder: battle.initiativeOrder,
+        ...(battle.initiativeTieOrder ? { initiativeTieOrder: battle.initiativeTieOrder } : {}),
         ...(battle.roundInitiativeModifiers
           ? { roundInitiativeModifiers: battle.roundInitiativeModifiers }
           : {}),

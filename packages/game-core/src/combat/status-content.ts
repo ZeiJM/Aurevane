@@ -1,4 +1,6 @@
 import type { CombatStatusDefinition } from './actions'
+import { blindsideDamageDescription } from './combat-blindside'
+import { airborneDescription } from './combat-airborne'
 import type { CombatDamageModifier, DamageCondition } from './damage-modifiers'
 
 export interface NamedCombatStatus extends CombatStatusDefinition {
@@ -38,31 +40,46 @@ export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
     'wet',
     'Wet',
     'Debuff',
-    'Storm damage gains a single 20% bonus per action against Wet or Conductive. Fire removes Wet.',
+    'Storm damage gains 20% per active Wet or Conductive application. Fire removes Wet.',
     { gameplayTags: ['Wet'] },
   ),
   status(
     'frozen',
-    'Frozen',
+    'Chilled',
     'Debuff',
-    'A Frozen setup tag. Fire removes it. Frozen terrain has a separate duration and movement cost.',
+    'A Chilled setup tag. Fire removes it. Frozen Ground has a separate duration and movement cost.',
     { gameplayTags: ['Frozen'] },
   ),
   status(
     'conductive',
     'Conductive',
     'Debuff',
-    'Storm damage gains a single 20% bonus per action against Wet or Conductive, consuming Conductive.',
+    'Storm damage gains 20% per active Wet or Conductive application, consuming Conductive.',
     { gameplayTags: ['Conductive'] },
   ),
+  status('inspired', 'Damage Up', 'Buff', 'Deal 10% more damage per application.', {
+    gameplayTags: ['Inspired'],
+    amplifyCopyable: true,
+    reactionClass: 'ordinary',
+  }),
+  status('blindside', 'Blindside', 'Buff', blindsideDamageDescription(), {
+    gameplayTags: ['Blindside'],
+    amplifyCopyable: true,
+    reactionClass: 'ordinary',
+  }),
   status(
-    'inspired',
-    'Inspired',
-    'Buff',
-    'Deal 10% more damage within the combined damage-modifier cap.',
-    { gameplayTags: ['Inspired'], amplifyCopyable: true, reactionClass: 'ordinary' },
+    'suppress',
+    'Suppress',
+    'Debuff',
+    'Deal 25% less outgoing direct damage. Never stacks; retains the highest percentage and longest remaining duration. Captured Burn, Poison and Bleed ticks are unchanged.',
+    {
+      durationOwnerTurnStarts: 3,
+      gameplayTags: ['Suppress'],
+      curseCopyable: true,
+      reactionClass: 'ordinary',
+    },
   ),
-  status('hexed', 'Hexed', 'Debuff', 'Receive 25% less healing.', {
+  status('hexed', 'Healing Down', 'Debuff', 'Receive 25% less HP and MP recovery.', {
     gameplayTags: ['Hexed'],
     curseCopyable: true,
     reactionClass: 'ordinary',
@@ -74,20 +91,8 @@ export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
     'Cannot be selected by hostile direct unit actions. Ground effects can hit. A damaging action or taking damage breaks Invisible.',
     { gameplayTags: ['Invisible'], amplifyCopyable: true, reactionClass: 'ordinary' },
   ),
-  status(
-    'summoned',
-    'Summoned',
-    'Buff',
-    'A temporary spirit grants 15% damage protection. Can be dispelled; adds no actor or turn.',
-    { gameplayTags: ['Summoned'], damageModifiers: [modifier('incoming', 8_500)] },
-  ),
-  status(
-    'airborne',
-    'Airborne',
-    'Buff',
-    'Ignore the Frozen terrain AP surcharge. Board bounds, elevation, obstacles, occupancy, Root and Movement allowance still apply.',
-    { gameplayTags: ['Airborne'] },
-  ),
+
+  status('airborne', 'Airborne', 'Buff', airborneDescription(), { gameplayTags: ['Airborne'] }),
   status(
     'displaced',
     'Displaced',
@@ -106,27 +111,7 @@ export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
       reactionClass: 'ordinary',
     },
   ),
-  status(
-    'hastened',
-    'Hastened',
-    'Buff',
-    'Gain 20 Initiative for the next round only. Current turns are unchanged; no extra turn is granted.',
-    { nextRoundInitiative: 20 },
-  ),
-  status(
-    'delayed',
-    'Delayed',
-    'Debuff',
-    'Lose 20 Initiative for the next round only. Current turns are unchanged; no turn is skipped.',
-    { nextRoundInitiative: -20 },
-  ),
-  status(
-    'borrowed-hour',
-    'Borrowed Hour',
-    'Buff',
-    'Gain 40 Initiative for the next round only. Combined tempo offsets cap at +40 or -40. No extra turn or AP is granted.',
-    { nextRoundInitiative: 40 },
-  ),
+
   status(
     'burn',
     'Burn',
@@ -148,13 +133,7 @@ export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
     'Lose 2 HP at the end of each of your next four turns. Fixed damage; ignores damage modifiers.',
     { durationOwnerTurnStarts: 4, endOfTurn: { type: 'damage', amount: 2 } },
   ),
-  status(
-    'regeneration',
-    'Regeneration',
-    'Buff',
-    'Restore up to 4 HP at the end of each of your next two turns.',
-    { endOfTurn: { type: 'healing', amount: 4 } },
-  ),
+
   status(
     'slow',
     'Slow',
@@ -166,7 +145,7 @@ export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
       reactionClass: 'ordinary',
     },
   ),
-  status('root', 'Root', 'Debuff', 'Cannot move. Attacks, Skills and facing remain available.', {
+  status('root', 'Rooted', 'Debuff', 'Cannot move. Attacks, Skills and facing remain available.', {
     movement: { blocked: true },
     curseCopyable: true,
     reactionClass: 'ordinary',
@@ -187,28 +166,15 @@ export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
   ),
   status(
     'challenged',
-    'Challenged',
+    'Taunted',
     'Debuff',
-    'Deal 25% less damage to anyone except the unit that applied Challenge.',
+    'Deal 25% less damage to anyone except the unit that applied Taunt.',
     {
       damageModifiers: [
         modifier('outgoing', 7_500, { kind: 'opponent-is-source', matches: false }),
       ],
     },
   ),
-  // Historical v1 Mark remains immutable for already-pinned battles.
-  status(
-    'marked',
-    'Marked',
-    'Debuff',
-    'Take 20% more damage from the unit that applied Mark. Other attackers gain no benefit.',
-    {
-      damageModifiers: [
-        modifier('incoming', 12_000, { kind: 'opponent-is-source', matches: true }),
-      ],
-    },
-  ),
-  // Current Mark uses a distinct identity so historical marked v1 is never reinterpreted.
   status(
     'mark',
     'Marked',
@@ -221,7 +187,7 @@ export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
       effectCategories: ['Debuff', 'Mark'],
     },
   ),
-  status('warded', 'Warded', 'Buff', 'Take 20% less damage from opponents affected by Burn.', {
+  status('warded', 'Burn Ward', 'Buff', 'Take 20% less damage from opponents affected by Burn.', {
     damageModifiers: [modifier('incoming', 8_000, { kind: 'opponent-status', statusId: 'burn' })],
   }),
 ]
@@ -233,7 +199,7 @@ export const CLEANSE_STATUS_IDS = [
   'slow',
   'root',
   'exposed',
-  'marked',
+  'mark',
   'challenged',
 ] as const
 
@@ -241,29 +207,130 @@ const legacyDescriptions: Record<
   string,
   Pick<NamedCombatStatus, 'name' | 'kind' | 'description'>
 > = {
-  guarded: {
-    name: 'Guarded',
-    kind: 'Buff',
+  summon: {
+    name: 'Summon',
+    kind: 'Effect',
     description:
-      'Each stack reduces incoming damage by 15%, up to three stacks. Reapplying adds a stack and refreshes the duration.',
+      'Creates a temporary allied combatant with its own turns and the pinned summon profile.',
+  },
+  'mp-drain': {
+    name: 'MP Drain',
+    kind: 'Debuff',
+    description: 'Reduces the target’s MP when the effect activates.',
+  },
+  'mp-recovery': {
+    name: 'MP Restore',
+    kind: 'Buff',
+    description: 'Restores MP when the effect activates.',
+  },
+  healing: {
+    name: 'HP Recovery',
+    kind: 'Buff',
+    description: 'Restores HP when the effect activates.',
+  },
+  damage: {
+    name: 'Damage',
+    kind: 'Debuff',
+    description: 'Applies a direct damage packet when the effect activates.',
+  },
+  'create-terrain': {
+    name: 'Terrain',
+    kind: 'Effect',
+    description:
+      'Creates the authored terrain overlay at the selected tiles when the effect activates.',
+  },
+  push: {
+    name: 'Push',
+    kind: 'Effect',
+    description:
+      'Moves the target away along the authored legal path. Stops at blocked tiles or Rooted; no resource refund.',
+  },
+  pull: {
+    name: 'Pull',
+    kind: 'Effect',
+    description:
+      'Moves the target toward the caster along the authored legal path without entering the caster’s tile. Stops at blocked tiles or Rooted; no resource refund.',
+  },
+  displace: {
+    name: 'Displacement',
+    kind: 'Effect',
+    description: 'Pushes or pulls the target along a legal path when the effect activates.',
+  },
+  'barrier-change': {
+    name: 'Barrier',
+    kind: 'Buff',
+    description: 'Grants a shield that absorbs damage before HP is lost.',
+  },
+  'return-to-turn-start': {
+    name: 'Rewind',
+    kind: 'Effect',
+    description:
+      'Returns the caster to the recorded turn-start position if the destination remains legal.',
+  },
+  'remove-status': {
+    name: 'Cleanse',
+    kind: 'Effect',
+    description: 'Removes the authored eligible statuses when the effect activates.',
+  },
+  'copy-statuses': {
+    name: 'Effect Copy',
+    kind: 'Effect',
+    description:
+      'Copies eligible positive or negative effects through Copy Buffs or Copy Debuffs when the effect activates.',
+  },
+  sensory: {
+    name: 'Reveal',
+    kind: 'Effect',
+    description: 'Removes eligible beneficial effects from Covert targets and applies Revealed.',
+  },
+  barrier: {
+    name: 'Barrier',
+    kind: 'Buff',
+    description: 'Absorbs incoming damage before HP is lost.',
+  },
+  covert: {
+    name: 'Covert',
+    kind: 'Buff',
+    description: 'Conceals beneficial effects from opposing viewers until revealed.',
+  },
+  revealed: {
+    name: 'Revealed',
+    kind: 'Debuff',
+    description: 'Counters Covert and increases Skill AP costs.',
+  },
+  guarded: {
+    name: 'Guard',
+    kind: 'Buff',
+    description: 'Reduces incoming damage by 15% per application. Each use refreshes the duration.',
   },
   exposed: {
-    name: 'Exposed',
+    name: 'Vulnerable',
     kind: 'Debuff',
-    description: 'Take 15% more damage. Reapplying refreshes the duration; does not stack.',
+    description: 'Take 15% more damage per application. Each use refreshes the duration.',
   },
   'lowered-guard': {
-    name: 'Lowered Guard',
+    name: 'Defenseless',
     kind: 'Debuff',
     description:
-      'Each stack multiplies incoming damage by 2.5×, up to three stacks. Applied after a genuine PvP turn-timer expiry.',
+      'Each application multiplies incoming damage by 2.5×. Applied after a genuine PvP turn-timer expiry.',
   },
+}
+const persistentEffectDescriptions: Record<string, string> = {
+  poison:
+    'Current percentage Poison ticks once at the affected turn end. Every five traversed tiles, including Push or Pull, refresh its full recorded duration without extra damage. Reapplication retains the greater percentage and original duration independently and resets movement progress. Historical applications retain their recorded rules.',
+  burn: 'Takes decreasing burn damage at affected turn ends. Attacking while burning causes additional damage. The applied instance determines its power and lifetime.',
+  bleed:
+    'Bleeding stacks deal damage at affected turn ends. Each applied stack retains its own power and remaining ticks.',
 }
 export function combatStatusDetails(
   id: string,
 ): Pick<NamedCombatStatus, 'name' | 'kind' | 'description'> {
+  const named = PHASE4_STATUSES.find((status) => status.id === id)
+  if (id === 'wet' && named) return { ...named, name: 'Drenched' }
+  if (named && persistentEffectDescriptions[id])
+    return { ...named, description: persistentEffectDescriptions[id] }
   return (
-    PHASE4_STATUSES.find((status) => status.id === id) ??
+    named ??
     legacyDescriptions[id] ?? {
       name: id
         .replace(/^(buff|debuff)\./, '')
@@ -275,9 +342,8 @@ export function combatStatusDetails(
   )
 }
 export function combatStatusDuration(id: string): string {
+  if (id === 'blindside') return 'Expires at the end of the affected unit’s turn.'
   const status = PHASE4_STATUSES.find((candidate) => candidate.id === id)
-  if (status?.nextRoundInitiative !== undefined)
-    return 'Consumed when the next round starts; the resulting order lasts for that round. Reapplying does not stack.'
   if (status?.endOfTurn)
     return `Lasts ${status.durationOwnerTurnStarts} end-of-turn ticks; reapplying refreshes the remaining ticks.`
   return `Expires at the start of the affected unit’s ${status?.durationOwnerTurnStarts === 1 || id === 'lowered-guard' ? 'next' : 'second upcoming'} turn.`

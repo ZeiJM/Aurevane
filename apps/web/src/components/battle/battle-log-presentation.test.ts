@@ -71,6 +71,92 @@ function attackEntries(overrides: Partial<BattleLogEntry> = {}): BattleLogEntry[
 }
 
 describe('Battle Log V2 presentation', () => {
+  it('identifies the matching recorded critical in the compact damage beat', () => {
+    const rounds = buildBattleLogPresentation(
+      [
+        entry(),
+        entry({
+          eventIndex: 1,
+          eventType: 'combat_critical_resolved',
+          templateValues: { outcome: 'CRITICAL' },
+          targetCombatantId: 'character:storm',
+        }),
+        ...attackEntries().map((item) => ({ ...item, eventIndex: item.eventIndex + 1 })),
+      ],
+      { combatantNames: names },
+    )
+    expect(JSON.stringify(rounds)).toContain('Critical hit')
+  })
+  it('does not apply another recipient’s critical to ordinary damage', () => {
+    const rounds = buildBattleLogPresentation(
+      [
+        entry(),
+        entry({
+          eventIndex: 1,
+          eventType: 'combat_critical_resolved',
+          templateValues: { outcome: 'CRITICAL' },
+          targetCombatantId: 'character:other',
+        }),
+        ...attackEntries().map((item) => ({ ...item, eventIndex: item.eventIndex + 1 })),
+      ],
+      { combatantNames: names },
+    )
+    expect(
+      rounds
+        .flatMap((round) => round.actions)
+        .map((action) => sentence(action.primary))
+        .join(' '),
+    ).not.toContain('Critical hit')
+  })
+  it('retains every mixed-element hit in visible compact outcomes', () => {
+    const hitValues: Readonly<Record<string, string>>[] = [
+      { amount: '5', element: 'fire' },
+      { amount: '6', element: 'water' },
+      { amount: '7' },
+    ]
+    const damages = hitValues.map((templateValues, index) =>
+      entry({
+        eventIndex: index + 1,
+        eventType: 'damage_applied',
+        targetCombatantId: 'character:storm',
+        templateValues,
+        facts: [{ label: `${templateValues.amount} DMG`, tone: 'damage' }],
+      }),
+    )
+    const action = buildBattleLogPresentation([entry(), ...damages], { combatantNames: names })[0]
+      .actions[0]
+    const visible = sentence(action.primary) + sentence(action.secondary ?? [])
+    for (const wording of ['5 fire damage', '6 water damage', '7 damage'])
+      expect(visible).toContain(wording)
+  })
+  it('reports a command critical separately from its critical-ineligible Vengeance hit', () => {
+    const entries = [
+      entry(),
+      entry({
+        eventIndex: 1,
+        eventType: 'combat_critical_resolved',
+        targetCombatantId: 'character:storm',
+        templateValues: { outcome: 'CRITICAL' },
+      }),
+      entry({
+        eventIndex: 2,
+        eventType: 'damage_applied',
+        targetCombatantId: 'character:storm',
+        templateValues: { amount: '15' },
+      }),
+      entry({
+        eventIndex: 3,
+        eventType: 'damage_applied',
+        targetCombatantId: 'character:storm',
+        templateValues: { amount: '8' },
+      }),
+    ]
+    const action = buildBattleLogPresentation(entries, { combatantNames: names })[0].actions[0]
+    expect(sentence(action.primary)).not.toContain('Critical hit')
+    expect(sentence(action.secondary ?? [])).toContain('Critical hit on Storm!')
+    expect(sentence(action.primary) + sentence(action.secondary ?? [])).toContain('15 damage')
+    expect(sentence(action.primary)).toContain('8 damage')
+  })
   it('turns a hit, damage, and status consequence into one readable combat beat', () => {
     const rounds = buildBattleLogPresentation(
       [

@@ -166,9 +166,31 @@ export function BattleLessonCoach({ battleSessionId, recordId }: BattleLessonCoa
   return <StandardBattleCriteria recordId={recordId} />
 }
 
+function useVictoryDialogDismiss(
+  open: boolean,
+  target: HTMLButtonElement | null,
+  setOpen: (open: boolean) => void,
+) {
+  const panel = useRef<HTMLElement>(null)
+  useEffect(() => {
+    if (!open) return
+    panel.current?.focus()
+    const dismiss = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      event.preventDefault()
+      setOpen(false)
+      target?.focus()
+    }
+    document.addEventListener('keydown', dismiss)
+    return () => document.removeEventListener('keydown', dismiss)
+  }, [open, setOpen, target])
+  return panel
+}
+
 function StandardBattleCriteria({ recordId }: { recordId: TacticalHallRecordId }) {
   const [open, setOpen] = useState(false)
   const victoryTarget = useVictoryControlTarget()
+  const panel = useVictoryDialogDismiss(open, victoryTarget, setOpen)
   const record = getTacticalHallRecord(recordId)
 
   useVictoryControlBridge({
@@ -181,6 +203,8 @@ function StandardBattleCriteria({ recordId }: { recordId: TacticalHallRecordId }
   return open ? (
     <div className={styles.guidedBackdrop} onPointerDown={() => setOpen(false)}>
       <section
+        ref={panel}
+        tabIndex={-1}
         className={styles.guidedPanel}
         role="dialog"
         aria-modal="true"
@@ -218,6 +242,7 @@ function GuidedFundamentalsCriteria({ battleSessionId }: { battleSessionId: stri
   const [error, setError] = useState<string | null>(null)
   const [hasUnseenProgress, setHasUnseenProgress] = useState(false)
   const victoryTarget = useVictoryControlTarget()
+  const panel = useVictoryDialogDismiss(open, victoryTarget, setOpen)
   const latestProgress = useRef<GuidedTrainingProgress>(EMPTY_PROGRESS)
   const completing = useRef(false)
 
@@ -303,6 +328,8 @@ function GuidedFundamentalsCriteria({ battleSessionId }: { battleSessionId: stri
         role="dialog"
         aria-modal="true"
         aria-labelledby="guided-training-title"
+        ref={panel}
+        tabIndex={-1}
         onPointerDown={(event) => event.stopPropagation()}
       >
         <button

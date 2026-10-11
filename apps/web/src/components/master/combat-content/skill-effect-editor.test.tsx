@@ -11,6 +11,46 @@ function render(effect: CombatEffectDefinition): string {
   )
 }
 
+describe('Master percentage DoT controls', () => {
+  it.each(['poison', 'bleed', 'burn'] as const)(
+    'edits %s percentages instead of fixed HP',
+    (type) => {
+      const effect: CombatEffectDefinition =
+        type === 'bleed'
+          ? {
+              type,
+              recipient: 'primary-unit',
+              ticks: 3,
+              damageProfile: { kind: 'attack-percentage', basisPoints: 1234 },
+            }
+          : {
+              type,
+              recipient: 'primary-unit',
+              durationTurns: 3,
+              damageProfile: {
+                kind: 'attack-percentage',
+                basisPoints: type === 'burn' ? 2500 : 1234,
+                ...(type === 'burn' ? { decayBasisPointsPerTick: 500 } : {}),
+              },
+            }
+      const html = render(effect)
+      expect(html).toContain(
+        type === 'burn'
+          ? 'First tick (% of attack damage)'
+          : 'Damage per tick (% of attack damage)',
+      )
+      expect(html).not.toContain('aria-label="Effect power"')
+      expect(html).not.toContain('aria-label="Bleed damage per tick"')
+      if (type === 'burn') {
+        expect(html).toContain('Decay per tick (percentage points)')
+        expect(html).toContain('Backlash (% of burning unit’s hostile damage)')
+        expect(html).toContain('Backlash can trigger once per turn.')
+        expect(html).toContain('25% → 20% → 15%')
+      } else expect(html).toContain('value="12.34"')
+    },
+  )
+})
+
 describe('Master Panel Skill effect editor', () => {
   it.each([
     ['damage', { type: 'damage', recipient: 'primary-unit', amount: 8 }],
@@ -44,7 +84,6 @@ describe('Master Panel Skill effect editor', () => {
     ['burn', { type: 'burn', recipient: 'primary-unit', curseCopyable: true }],
     ['barrier-change', { type: 'barrier-change', recipient: 'actor', amount: 10 }],
     ['copy-statuses', { type: 'copy-statuses', recipient: 'primary-unit', mode: 'curse' }],
-    ['copy', { type: 'copy', recipient: 'primary-unit' }],
     ['sensory', { type: 'sensory', recipient: 'primary-unit', revealedDurationOwnerTurnStarts: 3 }],
   ] satisfies readonly [CombatEffectDefinition['type'], CombatEffectDefinition][])(
     'has an explicit %s editor branch',
@@ -138,6 +177,16 @@ describe('Master Panel Skill effect editor', () => {
     })
     expect(removed).toContain('aria-label="Status IDs"')
     expect(removed).toContain('value="burn, poison"')
+    expect(removed).toContain('Use standard Cleanse')
+    expect(removed).toContain(
+      'Cleanse removes Burn, Bleed, Poison, Slow, Rooted, Vulnerable, Marked and Taunted.',
+    )
+    const dispel = render({
+      type: 'remove-status',
+      recipient: 'primary-unit',
+      statusIds: ['guarded'],
+    })
+    expect(dispel).not.toContain('Use standard Cleanse')
 
     const copy = render({
       type: 'copy-statuses',
@@ -145,16 +194,10 @@ describe('Master Panel Skill effect editor', () => {
       mode: 'amplify',
       allowNoEligibleEffects: true,
     })
-    expect(copy).toContain('aria-label="Status copy mode"')
-    expect(copy).toContain('<option value="amplify" selected="">Amplify</option>')
-    expect(copy).toContain('<option value="curse">Curse</option>')
+    expect(copy).toContain('aria-label="Copy mode"')
+    expect(copy).toContain('<option value="amplify" selected="">Copy Buffs</option>')
+    expect(copy).toContain('<option value="curse">Copy Debuffs</option>')
     expect(copy).toContain('aria-label="Allow empty status copy"')
-
-    const skillCopy = render({ type: 'copy', recipient: 'primary-unit' })
-    expect(skillCopy).toContain('Temporary Skill Copy')
-    expect(skillCopy).toContain('Selected primary unit')
-    expect(skillCopy).toContain('half AP rounded up')
-    expect(skillCopy).not.toContain('Status copy mode')
 
     const sensory = render({
       type: 'sensory',
@@ -173,15 +216,15 @@ describe('Master Panel Skill effect editor', () => {
       direction: 'push',
       distance: 2,
     })
-    expect(displace).toContain('aria-label="Displacement direction"')
-    expect(displace).toContain('aria-label="Displacement distance"')
+    expect(displace).toContain('aria-label="Push or Pull"')
+    expect(displace).toContain('aria-label="Tiles moved"')
 
     const terrain = render({
       type: 'create-terrain',
       recipient: 'affected-tiles',
       terrain: 'frozen',
     })
-    expect(terrain).toContain('Frozen terrain')
+    expect(terrain).toContain('Frozen Ground')
     expect(terrain).toContain('Affected tiles')
 
     const bleed = render({
@@ -191,14 +234,18 @@ describe('Master Panel Skill effect editor', () => {
       ticks: 4,
       curseCopyable: true,
     })
-    expect(bleed).toContain('aria-label="Bleed damage per tick"')
-    expect(bleed).toContain('aria-label="Bleed ticks"')
+    expect(bleed).toContain('Damage per tick (% of attack damage)')
+    expect(bleed).toContain('aria-label="Effect duration (turns)"')
     expect(bleed).toContain('max="4"')
 
     for (const type of ['poison', 'burn'] as const) {
       const dot = render({ type, recipient: 'primary-unit', curseCopyable: true })
       expect(dot).toContain('aria-label="Curse-copyable"')
-      expect(dot).toContain('aria-label="Effect power"')
+      expect(dot).toContain(
+        type === 'burn'
+          ? 'First tick (% of attack damage)'
+          : 'Damage per tick (% of attack damage)',
+      )
       expect(dot).toContain('aria-label="Effect duration (turns)"')
     }
 
@@ -208,5 +255,84 @@ describe('Master Panel Skill effect editor', () => {
     const rewind = render({ type: 'return-to-turn-start', recipient: 'actor' })
     expect(rewind).toContain('Return to turn start')
     expect(rewind).toContain('Actor only')
+    const captured = render({
+      type: 'return-to-turn-start',
+      recipient: 'actor',
+      anchorMode: 'cast-position',
+    })
+    expect(captured).toContain('Return to captured cast tile')
   })
+})
+
+it('authors percentage recovery with a resource, 1–100 percent and 1–4 applications', () => {
+  const html = render({
+    type: 'percentage-recovery',
+    recipient: 'actor',
+    resource: 'hp',
+    percent: 12,
+    ticks: 3,
+  })
+  expect(html).toContain('aria-label="Recovery percent"')
+  expect(html).toContain('max="100"')
+  expect(html).toContain('aria-label="Recovery resource"')
+  expect(html).toContain('aria-label="Recovery applications"')
+})
+
+it('authors elemental damage typing independently from captured status potency', () => {
+  const water = render({
+    type: 'damage',
+    recipient: 'primary-unit',
+    amount: 10,
+    element: 'water',
+    potencyBasisPoints: 3500,
+    durationTurns: 3,
+  })
+  expect(water).toContain('value="ice"')
+  expect(water).not.toContain('Drenched Storm bonus (%)')
+  expect(water).not.toContain('Elemental debuff duration (turns)')
+  expect(
+    render({ type: 'damage', recipient: 'primary-unit', amount: 10, element: 'storm' }),
+  ).not.toContain('Conductive Storm bonus (%)')
+})
+
+it('authors Suppress as 1–100% with two decimal places and a single application', () => {
+  const markup = render({
+    type: 'apply-status',
+    recipient: 'primary-unit',
+    statusId: 'suppress',
+    stacks: 1,
+  })
+  expect(markup).toContain('aria-label="Status potency (percent)"')
+  expect(markup).toContain('max="100"')
+  expect(markup).toContain('step="0.01"')
+  expect(markup).toContain('value="25"')
+  expect(markup).toContain('Never stacks')
+})
+
+it('keeps elemental status duration and potency controls on the separate status tag', () => {
+  const water = render({ type: 'damage', recipient: 'primary-unit', amount: 10, element: 'water' })
+  expect(water).not.toContain('Elemental debuff duration (turns)')
+  expect(water).not.toContain('Drenched Storm bonus (%)')
+  for (const statusId of ['wet', 'conductive']) {
+    const tag = render({
+      type: 'apply-status',
+      recipient: 'primary-unit',
+      statusId,
+      stacks: 1,
+      durationTurns: 4,
+      potencyBasisPoints: 4200,
+    })
+    expect(tag).toContain('aria-label="Status potency (percent)"')
+    expect(tag).toContain('value="42"')
+    expect(tag).toContain('aria-label="Effect duration (turns)"')
+    expect(tag).toContain('value="4"')
+  }
+})
+
+it('keeps limited Chilled removal independent from standard Cleanse authoring', () => {
+  const markup = render({ type: 'remove-status', recipient: 'actor', statusIds: ['frozen'] })
+  expect(markup).toContain('Cleanse Chilled removes only Chilled')
+  expect(markup).toContain('value="frozen"')
+  expect(markup).not.toContain('Use standard Cleanse')
+  expect(markup).not.toContain('Cleanse removes Burn')
 })

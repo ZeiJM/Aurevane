@@ -3,7 +3,11 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { describe, expect, it } from 'vitest'
-import { fitBattleBoard } from './battle-map-token-polish'
+import {
+  battleChronicleGutterWidth,
+  fitBattleArenaBoard,
+  fitBattleBoard,
+} from './battle-map-token-polish'
 
 const here = dirname(fileURLToPath(import.meta.url))
 
@@ -21,10 +25,63 @@ describe('battle board viewport fit', () => {
     expect(Math.min(width - fit.width, height - fit.height)).toBeCloseTo(0)
   })
 
+  it('keeps the same seven-row tile scale across all standard arena widths', () => {
+    const fits = [9, 12, 15].map((width) => fitBattleArenaBoard(width, 7, 900, 470))
+    expect(fits.map((fit) => fit.height)).toEqual([420, 420, 420])
+    expect(fits.map((fit, index) => fit.width / [9, 12, 15][index])).toEqual([60, 60, 60])
+    expect(fitBattleArenaBoard(3, 3, 900, 470)).toEqual(fitBattleBoard(3, 3, 900, 470))
+  })
+
+  it('accounts for grid gutters so tiles stay exactly the same size across standard widths', () => {
+    const widths = [9, 12, 15]
+    const fits = widths.map((width) => fitBattleArenaBoard(width, 7, 900, 470, 2))
+    const cells = fits.map((fit, index) => (fit.width - (widths[index]! - 1) * 2) / widths[index]!)
+    for (const [index, fit] of fits.entries()) {
+      expect(cells[index]).toBeCloseTo(cells[0]!, 8)
+      expect((fit.height - 12) / 7).toBeCloseTo(cells[0]!, 8)
+      expect(fit.width).toBeLessThanOrEqual(900)
+      expect(fit.height).toBeLessThanOrEqual(470)
+    }
+  })
+
   it('uses the dedicated map area beyond the retired desktop size ceiling', () => {
     const fit = fitBattleBoard(11, 7, 1300, 640)
     expect(fit.height).toBe(640)
     expect(fit.width).toBeCloseTo(1005.714, 2)
+  })
+
+  it.each([9, 12, 15])(
+    'widens Chronicle from real spare width without shrinking a %s×7 arena',
+    (columns) => {
+      const transfer = battleChronicleGutterWidth(columns, 7, 1314, 500, 2, 16)
+      expect(transfer).toBe(160)
+      const original = fitBattleArenaBoard(columns, 7, 1314, 500, 2)
+      const widened = fitBattleArenaBoard(columns, 7, 1314 - transfer, 500, 2)
+      expect(widened).toEqual(original)
+      expect(widened.height).toBeCloseTo(500, 8)
+    },
+  )
+
+  it.each([9, 12, 15])(
+    'retains the widest footprint when a %s×7 map is width-limited',
+    (columns) => {
+      expect(battleChronicleGutterWidth(columns, 7, 900, 470, 2, 16)).toBe(0)
+    },
+  )
+
+  it('keeps a safety gutter and caps expansion at the current text scale', () => {
+    expect(battleChronicleGutterWidth(15, 7, 1314, 590, 2, 16)).toBe(0)
+    expect(battleChronicleGutterWidth(15, 7, 1314, 560, 2, 16)).toBe(63)
+    expect(battleChronicleGutterWidth(15, 7, 1800, 500, 2, 20)).toBe(200)
+  })
+
+  it('also retains historical arena dimensions and remains stable after a transferred gutter', () => {
+    const transfer = battleChronicleGutterWidth(13, 9, 1000.5, 500.25, 2, 16)
+    expect(transfer).toBe(160)
+    expect(fitBattleArenaBoard(13, 9, 1000.5 - transfer, 500.25, 2)).toEqual(
+      fitBattleArenaBoard(13, 9, 1000.5, 500.25, 2),
+    )
+    expect(battleChronicleGutterWidth(13, 9, 840.5 + transfer, 500.25, 2, 16)).toBe(160)
   })
 })
 
@@ -47,7 +104,9 @@ describe('battlefield semantic target polish', () => {
     expect(source).toContain(
       "if (activeCommand === 'guard' && targetRelation === 'friendly') return DEFENSE_COLOR",
     )
-    expect(source).toContain("attributeFilter: ['data-active', 'data-battle-active']")
+    expect(source).toContain(
+      "attributeFilter: ['data-active', 'data-battle-active', 'data-battle-action-mode']",
+    )
     expect(source).toContain("tile.style.setProperty('background-color', background, 'important')")
     expect(source).toContain("tile.style.setProperty('border-color', semanticAccent, 'important')")
     expect(source).toContain("tile.style.setProperty('box-shadow', shadow, 'important')")
@@ -74,6 +133,13 @@ describe('battlefield semantic target polish', () => {
     expect(playable).not.toContain('COMBATANT_COLORS')
     expect(playable).not.toContain('token.style.borderColor')
     expect(playable).not.toContain('token.style.boxShadow')
+  })
+
+  it('keeps identity rings distinct from target highlights and fills 85% of each tile', () => {
+    const source = readLocalFile('battle-map-token-polish.tsx')
+    expect(source).toContain('Math.min(cell.width, cell.height) * 0.85')
+    expect(source).toContain('const tokenAccent = identityAccent')
+    expect(source).not.toContain('semanticAccent ?? identityAccent')
   })
 
   it('keeps participant card accents on tokens even when the hidden token name is absent', () => {

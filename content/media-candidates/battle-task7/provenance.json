@@ -1,0 +1,112 @@
+{
+  "requestId": "ART-BATTLE-007",
+  "createdAt": "2026-09-30",
+  "provider": "OpenAI built-in image_gen",
+  "method": "generated",
+  "rights": "Original generated source; OpenAI generation terms apply. No third-party art used.",
+  "status": "implementation-candidates-for-owner-review",
+  "reference": "Owner-approved battle concept exec-49f88d50-6ac0-4054-8df4-9e5928f8b2c5.png was inspected for direction only; none of its pixels were used.",
+  "review": "Agent inspected all five sources: no UI/text/characters/grids, original architecture, crop-safe central floor; broad distinguishable overhead stone materials. Runtime and integrated visual acceptance remain separate.",
+  "assets": [
+    {
+      "name": "citadel-dusk-v01",
+      "generationRequestId": "222bcc29-1e83-440d-92f6-1c82b3d0f3dd",
+      "source": "content/media-candidates/battle-task7/art/masters/citadel-dusk-v01.png",
+      "sourceWidth": 1672,
+      "sourceHeight": 941,
+      "sourceSha256": "0d815a96220f0bee2136d03503c07191f16e30b69f155232f5f22aa14d393a9a",
+      "sourceBytes": 2897336,
+      "runtime": "/media/art/battle/citadel-dusk-v01.webp",
+      "runtimeWidth": 1672,
+      "runtimeHeight": 941,
+      "runtimeSha256": "424d6fe1a7de5c6825427d1655801d909b7f74bcd42e89fb816af752a72057df",
+      "runtimeBytes": 382530,
+      "derivative": {
+        "encoder": "Pillow WebP",
+        "quality": 86,
+        "method": 6,
+        "resize": "none"
+      }
+    },
+    {
+      "name": "enchanted-arena-v01",
+      "generationRequestId": "9d91ffdd-90f9-4e94-9c23-ec5c763033ba",
+      "source": "content/media-candidates/battle-task7/art/masters/enchanted-arena-v01.png",
+      "sourceWidth": 1672,
+      "sourceHeight": 941,
+      "sourceSha256": "7e8d04683c0fbee97aff8d15d3de45c5ebe241630f65c6fc73c613dbeab1b1d5",
+      "sourceBytes": 2989586,
+      "runtime": "/media/art/battle/enchanted-arena-v01.webp",
+      "runtimeWidth": 1672,
+      "runtimeHeight": 941,
+      "runtimeSha256": "a0ba7ecda0f07cb720ecbee00d86b4de2c07c348ca5c38ede1061e9c7ea2b041",
+      "runtimeBytes": 400804,
+      "derivative": {
+        "encoder": "Pillow WebP",
+        "quality": 86,
+        "method": 6,
+        "resize": "none"
+      }
+    },
+    {
+      "name": "terrain-open-stone-v01",
+      "generationRequestId": "8f85635a-207e-478b-9605-b63544982c73",
+      "source": "content/media-candidates/battle-task7/art/masters/terrain-open-stone-v01.png",
+      "sourceWidth": 1254,
+      "sourceHeight": 1254,
+      "sourceSha256": "304771aecd65c3addce3f72e83e1b1aea1aca7457e89e6be9ff123f1c128452b",
+      "sourceBytes": 3394235,
+      "runtime": "/media/art/battle/terrain-open-stone-v01.webp",
+      "runtimeWidth": 384,
+      "runtimeHeight": 384,
+      "runtimeSha256": "50fdfe31fbe82a486ad47babd5d697a7e20f72f64e2d56eee2077c0ac376074d",
+      "runtimeBytes": 52754,
+      "derivative": {
+        "encoder": "Pillow WebP",
+        "quality": 86,
+        "method": 6,
+        "resize": "Lanczos 384x384"
+      }
+    },
+    {
+      "name": "terrain-rough-moss-v01",
+      "generationRequestId": "54b89307-6864-4f0a-8be7-0aff51707df2",
+      "source": "content/media-candidates/battle-task7/art/masters/terrain-rough-moss-v01.png",
+      "sourceWidth": 1254,
+      "sourceHeight": 1254,
+      "sourceSha256": "ba34d46a64e09f0ca60257d242a228e82912825eb87ed378674acdba172754da",
+      "sourceBytes": 3542851,
+      "runtime": "/media/art/battle/terrain-rough-moss-v01.webp",
+      "runtimeWidth": 384,
+      "runtimeHeight": 384,
+      "runtimeSha256": "4cd5b6017eab7d30262fb996bf82415e6e540db7cf98264ddb423d8979fbfb60",
+      "runtimeBytes": 63176,
+      "derivative": {
+        "encoder": "Pillow WebP",
+        "quality": 86,
+        "method": 6,
+        "resize": "Lanczos 384x384"
+      }
+    },
+    {
+      "name": "terrain-raised-stone-v01",
+      "generationRequestId": "bb38aecc-0f05-412f-9fe5-6bceacf64b26",
+      "source": "content/media-candidates/battle-task7/art/masters/terrain-raised-stone-v01.png",
+      "sourceWidth": 1254,
+      "sourceHeight": 1254,
+      "sourceSha256": "a9fb13c33124a828c2cecbdb6206b2a05fd0f3bc5c4c0c19d03e02e20e088a89",
+      "sourceBytes": 3044201,
+      "runtime": "/media/art/battle/terrain-raised-stone-v01.webp",
+      "runtimeWidth": 384,
+      "runtimeHeight": 384,
+      "runtimeSha256": "377cc9026a724d26f757a1390518a9f08e61a4ed820ce8e70f4850a1cbf08216",
+      "runtimeBytes": 43434,
+      "derivative": {
+        "encoder": "Pillow WebP",
+        "quality": 86,
+        "method": 6,
+        "resize": "Lanczos 384x384"
+      }
+    }
+  ]
+}

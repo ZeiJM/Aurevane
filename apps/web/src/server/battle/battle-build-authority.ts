@@ -1,5 +1,11 @@
 import 'server-only'
+import { PRONOUN_PRESETS, type PronounPresetId } from '@aurevane/game-core/character/creation'
+import type { CharacterRecord } from '@aurevane/db/character'
 
+import {
+  parseSupportActionId,
+  type SupportActionId,
+} from '@aurevane/game-core/combat/support-actions'
 import { createHash } from 'node:crypto'
 
 import {
@@ -18,7 +24,6 @@ import {
   type MatureSkillCombatContext,
   type MatureSkillDefinition,
 } from '@aurevane/game-core/combat/mature-skills'
-import type { CombatTemporarySkillGrant } from '@aurevane/game-core/combat/combat-effect-state'
 import {
   resonanceSnapshotReference,
   resolveResonanceForPair,
@@ -31,7 +36,35 @@ import type { CombatContentResolver } from '@/server/combat/combat-content-resol
 
 export const BATTLE_BUILD_AUTHORITY_SCHEMA_VERSION = 1 as const
 
+export interface BattleNarratorIdentitySnapshot {
+  name: string
+  pronounPresetId?: PronounPresetId
+}
+
+export function narratorIdentityForCharacter(
+  character: Pick<CharacterRecord, 'name' | 'pronounPresetId'>,
+): BattleNarratorIdentitySnapshot {
+  const pronouns = PRONOUN_PRESETS.find((preset) => preset.id === character.pronounPresetId)
+  return { name: character.name, ...(pronouns ? { pronounPresetId: pronouns.id } : {}) }
+}
+
+function parseNarratorIdentity(value: unknown): BattleNarratorIdentitySnapshot | null {
+  if (
+    !isRecord(value) ||
+    Object.keys(value).some((key) => !['name', 'pronounPresetId'].includes(key)) ||
+    !nonEmptyString(value.name) ||
+    value.name.length > 48 ||
+    /[<>\r\n\u0000-\u001f]/u.test(value.name)
+  )
+    return null
+  const pronouns = PRONOUN_PRESETS.find((preset) => preset.id === value.pronounPresetId)
+  if (Object.hasOwn(value, 'pronounPresetId') && !pronouns) return null
+  return { name: value.name, ...(pronouns ? { pronounPresetId: pronouns.id } : {}) }
+}
+
 export interface BattleBuildAuthorityCombatantSnapshot {
+  narratorIdentity?: BattleNarratorIdentitySnapshot
+  supportActionId?: SupportActionId
   combatantId: string
   characterId: string
   snapshotSchemaVersion: typeof COMBAT_BUILD_SNAPSHOT_SCHEMA_VERSION
@@ -56,6 +89,7 @@ export interface BattleBuildAuthoritySnapshot {
 }
 
 interface BattleBuildAuthorityInput {
+  narratorIdentity?: BattleNarratorIdentitySnapshot
   combatantId: string
   characterId: string
   snapshot: CharacterCommittedBuildSnapshotRecord
@@ -155,6 +189,9 @@ function combatSnapshotFromCommitted(
     disciplineSkills: [...snapshot.disciplineSkills]
       .sort((left, right) => left.slotIndex - right.slotIndex)
       .map((skill) => ({ ...skill })),
+    ...(snapshot.supportActionId === undefined
+      ? {}
+      : { supportActionId: snapshot.supportActionId }),
     extensions: {
       resonance: snapshot.extensions.resonance
         ? {
@@ -192,6 +229,9 @@ function validateCanonicalCombatSnapshot(
       primary: snapshot.primary,
       secondary: snapshot.secondary,
       disciplineSkills: snapshot.disciplineSkills,
+      ...(snapshot.supportActionId === undefined
+        ? {}
+        : { supportActionId: snapshot.supportActionId }),
       extensions: snapshot.extensions,
     }) === snapshot.fingerprint
   )
@@ -239,6 +279,12 @@ function parseCombatant(
   const essence = parseEssenceReference(value.extensions.essence)
   if (!disciplineSkills || resonance === undefined || essence === undefined) return null
 
+  const supportActionId = parseSupportActionId(value.supportActionId)
+  if (Object.hasOwn(value, 'supportActionId') && !supportActionId) return null
+  const narratorIdentity = Object.hasOwn(value, 'narratorIdentity')
+    ? parseNarratorIdentity(value.narratorIdentity)
+    : undefined
+  if (narratorIdentity === null) return null
   const combatSnapshot: CombatBuildSnapshot = {
     schemaVersion: COMBAT_BUILD_SNAPSHOT_SCHEMA_VERSION,
     sourceBuildSchemaVersion: value.buildSchemaVersion,
@@ -251,6 +297,7 @@ function parseCombatant(
     },
     secondary,
     disciplineSkills,
+    ...(supportActionId ? { supportActionId } : {}),
     extensions: {
       resonance,
       essence,
@@ -316,6 +363,7 @@ function parseCombatant(
 
   return {
     combatantId: value.combatantId,
+    ...(narratorIdentity ? { narratorIdentity } : {}),
     characterId: value.characterId,
     snapshotSchemaVersion: COMBAT_BUILD_SNAPSHOT_SCHEMA_VERSION,
     buildSchemaVersion: value.buildSchemaVersion,
@@ -324,6 +372,7 @@ function parseCombatant(
     primary: combatSnapshot.primary,
     secondary,
     disciplineSkills,
+    ...(supportActionId ? { supportActionId } : {}),
     extensions: { resonance, essence },
   }
 }
@@ -378,10 +427,11 @@ function createBattleBuildAuthoritySnapshotForCatalog(
     schemaVersion: BATTLE_BUILD_AUTHORITY_SCHEMA_VERSION,
     catalogVersion,
     combatContext,
-    combatants: inputs.map(({ combatantId, characterId, snapshot }) => {
+    combatants: inputs.map(({ combatantId, characterId, snapshot, narratorIdentity }) => {
       const combatSnapshot = combatSnapshotFromCommitted(snapshot)
       return {
         combatantId,
+        ...(narratorIdentity ? { narratorIdentity: { ...narratorIdentity } } : {}),
         characterId,
         snapshotSchemaVersion: combatSnapshot.schemaVersion,
         buildSchemaVersion: combatSnapshot.sourceBuildSchemaVersion,
@@ -390,6 +440,9 @@ function createBattleBuildAuthoritySnapshotForCatalog(
         primary: { ...combatSnapshot.primary },
         secondary: combatSnapshot.secondary ? { ...combatSnapshot.secondary } : null,
         disciplineSkills: combatSnapshot.disciplineSkills.map((skill) => ({ ...skill })),
+        ...(combatSnapshot.supportActionId === undefined
+          ? {}
+          : { supportActionId: combatSnapshot.supportActionId }),
         extensions: {
           resonance: combatSnapshot.extensions.resonance
             ? {
@@ -529,29 +582,6 @@ export async function resolveBattleDisciplineSkillDefinitions(
     definitions.push(definition)
   }
   return definitions
-}
-
-export async function resolveBattleTemporarySkillDefinition(
-  authority: BattleBuildAuthoritySnapshot | null | undefined,
-  grant: CombatTemporarySkillGrant,
-  resolver?: CombatContentResolver,
-): Promise<MatureSkillDefinition | null> {
-  const sourceBuild = battleBuildAuthorityForCombatant(authority, grant.sourceCombatantId)
-  const sourceReference = sourceBuild?.disciplineSkills.find(
-    (reference) =>
-      reference.skillId === grant.skillId && reference.contentVersion === grant.contentVersion,
-  )
-  if (!sourceReference) return null
-
-  const definition = await resolvePinnedBattleSkillDefinition(
-    authority,
-    grant.skillId,
-    grant.contentVersion,
-    resolver,
-  )
-  if (!definition || definition.sourceDisciplineId !== sourceReference.sourceDisciplineId)
-    return null
-  return definition
 }
 
 export function resolveBattleEssenceDefinition(

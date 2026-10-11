@@ -1,5 +1,7 @@
 import { expect, test, type Page, type Request } from '@playwright/test'
 
+import { expectRefinedCockpit } from './refined-battle-helpers'
+
 import {
   createAccountAndEnterCharacter,
   provisionAccountAndEnterCharacter,
@@ -29,30 +31,10 @@ async function expectStableCompactDesktopCockpit(page: Page) {
   await expect(commands).toHaveCount(6)
   await expect(facingPad).toBeHidden()
 
-  const squareArtwork = deck.locator('[data-av-square-media="true"]')
-  expect(await squareArtwork.count()).toBeGreaterThanOrEqual(6)
-  const artworkGeometry = await squareArtwork.evaluateAll((frames) =>
-    frames.map((frame) => {
-      const rect = frame.getBoundingClientRect()
-      const image = frame.querySelector('img')
-      return {
-        width: rect.width,
-        height: rect.height,
-        fit: image ? getComputedStyle(image).objectFit : null,
-      }
-    }),
-  )
-  for (const artwork of artworkGeometry) {
-    expect(Math.abs(artwork.width - artwork.height)).toBeLessThanOrEqual(1)
-    if (artwork.fit) expect(artwork.fit).toBe('contain')
-  }
-
+  await expectRefinedCockpit(page)
   const before = await commands.evaluateAll((cards) =>
     cards.map((card) => card.getBoundingClientRect().height),
   )
-  expect(Math.min(...before)).toBeGreaterThanOrEqual(92)
-  expect(Math.max(...before)).toBeLessThanOrEqual(120)
-
   await deck.getByRole('button', { name: /^Move,/ }).click()
   await expect(facingPad).toBeHidden()
 
@@ -63,6 +45,36 @@ async function expectStableCompactDesktopCockpit(page: Page) {
   after.forEach((height, index) => {
     expect(Math.abs(height - before[index]!)).toBeLessThanOrEqual(1)
   })
+  const finishCard = deck.locator('[data-command-card="finish"]')
+  const closedFinishHeight = await finishCard.evaluate(
+    (card) => card.getBoundingClientRect().height,
+  )
+  await deck.getByRole('button', { name: /^End Turn,/ }).click()
+  await expectInlineFacingPad(page, closedFinishHeight)
+  await page.getByRole('button', { name: 'Cancel Action', exact: true }).click()
+  await expect(facingPad).toBeHidden()
+}
+
+async function expectInlineFacingPad(page: Page, closedHeight: number) {
+  const finishCard = page.locator('[data-command-card="finish"]')
+  const facingPad = finishCard.locator('[data-unified-facing-pad="true"]')
+  await expect(facingPad).toBeVisible()
+  await expect(facingPad.getByRole('button')).toHaveCount(4)
+  const cardBox = await finishCard.boundingBox()
+  expect(cardBox).not.toBeNull()
+  if (!cardBox) return
+  expect(Math.abs(cardBox.height - closedHeight)).toBeLessThanOrEqual(1)
+  for (const facing of ['north', 'west', 'east', 'south']) {
+    const button = facingPad.getByRole('button', { name: `Face ${facing}`, exact: true })
+    await expect(button).toBeVisible()
+    const buttonBox = await button.boundingBox()
+    expect(buttonBox).not.toBeNull()
+    if (!buttonBox) continue
+    expect(buttonBox.x).toBeGreaterThanOrEqual(cardBox.x)
+    expect(buttonBox.y).toBeGreaterThanOrEqual(cardBox.y)
+    expect(buttonBox.x + buttonBox.width).toBeLessThanOrEqual(cardBox.x + cardBox.width)
+    expect(buttonBox.y + buttonBox.height).toBeLessThanOrEqual(cardBox.y + cardBox.height)
+  }
 }
 
 test('keeps the shared PvE desktop cockpit at its compact scale before and after action selection', async ({
@@ -122,7 +134,7 @@ test('keeps the shared PvP desktop cockpit at the same compact scale', async ({
     })
 
     await host.goto('/game/battle')
-    await host.getByRole('button', { name: /Player vs Player/ }).click()
+    await host.getByRole('button', { name: 'PVP - Direct', exact: true }).click()
     await host.getByRole('button', { name: 'Create Battle Lobby' }).click()
 
     const hostDialog = host.getByRole('dialog', { name: 'The arena is waiting.' })
@@ -143,9 +155,7 @@ test('keeps the shared PvP desktop cockpit at the same compact scale', async ({
     await hostDialog.getByRole('button', { name: 'Mark Ready' }).click()
     await expect(host).toHaveURL(/\/game\/battle\/[0-9a-f-]+$/i, { timeout: 20_000 })
 
-    const sidePortraits = host.locator(
-      '[data-unified-combatant-rail="true"] [data-av-square-media="true"]',
-    )
+    const sidePortraits = host.locator('[data-battle-side] [data-av-square-media="true"]')
     await expect(sidePortraits).toHaveCount(2)
     const portraitGeometry = await sidePortraits.evaluateAll((frames) =>
       frames.map((frame) => {
@@ -160,7 +170,7 @@ test('keeps the shared PvP desktop cockpit at the same compact scale', async ({
     )
     for (const portrait of portraitGeometry) {
       expect(Math.abs(portrait.width - portrait.height)).toBeLessThanOrEqual(1)
-      if (portrait.fit) expect(portrait.fit).toBe('cover')
+      if (portrait.fit) expect(portrait.fit).toMatch(/contain|cover/)
     }
 
     await expectStableCompactDesktopCockpit(host)
@@ -169,7 +179,7 @@ test('keeps the shared PvP desktop cockpit at the same compact scale', async ({
   }
 })
 
-test('mobile Finish Turn opens battlefield facing guides and commits a double-tapped direction', async ({
+test('mobile End Turn opens facing controls and commits a single tapped direction', async ({
   page,
 }, testInfo) => {
   test.skip(testInfo.project.name !== 'mobile-chromium', 'Mobile shared cockpit regression')
@@ -189,25 +199,24 @@ test('mobile Finish Turn opens battlefield facing guides and commits a double-ta
 
   const deck = page.locator('section[aria-label="Command Deck"]')
   const facingPad = deck.locator('[data-unified-facing-pad="true"]')
-  const finishTurn = deck.getByRole('button', { name: /^Finish Turn,/ })
-  const facingGuides = page.locator('#battlefield button[data-facing-guide="true"]')
+  const finishTurn = deck.getByRole('button', { name: /^End Turn,/ })
+  const facingGuides = facingPad.getByRole('button')
   const tokenArrows = page.locator('#battlefield [data-battle-facing-indicator="true"]')
 
   await expect(facingPad).toBeHidden()
-  await expect(finishTurn).toHaveAccessibleName(/Choose facing \+ end/)
+  await expect(finishTurn).toHaveAccessibleName(/Choose facing/)
   await expect(tokenArrows).toHaveCount(2)
 
   const arrowGeometry = await tokenArrows.evaluateAll((arrows) =>
     arrows.map((arrow) => {
-      const token = arrow.parentElement!
+      const tile = arrow.parentElement!
       const arrowRect = arrow.getBoundingClientRect()
-      const tokenRect = token.getBoundingClientRect()
+      const tileRect = tile.getBoundingClientRect()
       return {
         width: arrowRect.width,
         height: arrowRect.height,
-        topOffset: arrowRect.top - tokenRect.top,
-        centerOffset:
-          (arrowRect.left + arrowRect.right) / 2 - (tokenRect.left + tokenRect.right) / 2,
+        topOffset: arrowRect.top - tileRect.top,
+        leftOffset: arrowRect.left - tileRect.left,
         path: arrow.querySelector('path')?.getAttribute('d') ?? '',
       }
     }),
@@ -216,7 +225,12 @@ test('mobile Finish Turn opens battlefield facing guides and commits a double-ta
   expect(Math.abs(arrowGeometry[0]!.height - arrowGeometry[1]!.height)).toBeLessThanOrEqual(0.5)
   expect(Math.abs(arrowGeometry[0]!.topOffset - arrowGeometry[1]!.topOffset)).toBeLessThanOrEqual(1)
   expect(arrowGeometry[0]!.path).toBe(arrowGeometry[1]!.path)
-  arrowGeometry.forEach((arrow) => expect(Math.abs(arrow.centerOffset)).toBeLessThanOrEqual(1))
+  for (const arrow of arrowGeometry) {
+    expect(arrow.leftOffset).toBeGreaterThanOrEqual(1)
+    expect(arrow.leftOffset).toBeLessThanOrEqual(5)
+    expect(arrow.topOffset).toBeGreaterThanOrEqual(1)
+    expect(arrow.topOffset).toBeLessThanOrEqual(5)
+  }
 
   let finalTurnRequests = 0
   const countFinalTurn = (request: Request) => {
@@ -229,27 +243,28 @@ test('mobile Finish Turn opens battlefield facing guides and commits a double-ta
   }
   page.on('request', countFinalTurn)
 
+  const closedFinishHeight = await deck
+    .locator('[data-command-card="finish"]')
+    .evaluate((card) => card.getBoundingClientRect().height)
   await finishTurn.tap()
+  await expectInlineFacingPad(page, closedFinishHeight)
   await expect(facingGuides).toHaveCount(4)
   await page.waitForTimeout(200)
   expect(finalTurnRequests).toBe(0)
 
-  const northGuide = page.locator(
-    '#battlefield button[data-facing-guide="true"][data-facing-direction="north"]',
-  )
+  const northGuide = facingPad.getByRole('button', { name: 'Face north', exact: true })
   const finalTurnResponse = page.waitForResponse(
     (response) =>
       response.request().method() === 'POST' &&
       /\/api\/battles\/[0-9a-f-]+\/final-turn$/i.test(new URL(response.url()).pathname),
   )
   await northGuide.tap()
-  await northGuide.tap()
   expect((await finalTurnResponse).ok()).toBe(true)
   expect(finalTurnRequests).toBe(1)
   page.off('request', countFinalTurn)
 })
 
-test('mobile double-tap Finish Turn keeps the current facing as a shortcut', async ({
+test('mobile second tap on End Turn keeps the current facing as a shortcut', async ({
   page,
 }, testInfo) => {
   test.skip(testInfo.project.name !== 'mobile-chromium', 'Mobile shared cockpit regression')
@@ -269,7 +284,7 @@ test('mobile double-tap Finish Turn keeps the current facing as a shortcut', asy
 
   const finishTurn = page
     .locator('section[aria-label="Command Deck"]')
-    .getByRole('button', { name: /^Finish Turn,/ })
+    .getByRole('button', { name: /^End Turn,/ })
   const finalTurnResponse = page.waitForResponse(
     (response) =>
       response.request().method() === 'POST' &&

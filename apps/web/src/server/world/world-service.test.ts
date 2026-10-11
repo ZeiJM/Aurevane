@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 vi.mock('server-only', () => ({}))
 import { newWorldState, revealNearby } from '@/world/travel'
-import { FRONTIER_APPROACH } from '@/world/catalog'
+import { FRONTIER_APPROACH, STEP_MS } from '@/world/catalog'
 import { assertEncounterRange, projectWorld, resolveWorldIntent } from './world-service'
 import {
   AURETH_SETTLEMENT,
@@ -78,9 +78,10 @@ describe('world authority and spoiler projection', () => {
     const position = { sectorId: 'crown-road', x: 5, y: 4 }
     for (const route of [
       [{ position: { ...position, x: 6 }, durationMs: 4000 }],
+      [{ position: { ...position, x: 6 }, durationMs: 1100 }],
       [
-        { position: { ...position, x: 6 }, durationMs: 1100 },
-        { position: { ...position, x: 8 }, durationMs: 1100 },
+        { position: { ...position, x: 6 }, durationMs: STEP_MS },
+        { position: { ...position, x: 8 }, durationMs: STEP_MS },
       ],
     ]) {
       const state = { ...newWorldState(), position, route, nextStepAt: 1000 }
@@ -482,4 +483,28 @@ it('stops an event route when its live objective is withdrawn, leaving quest pol
   const next = resolveWorldIntent(state, { kind: 'tick' }, 2000, [])
   expect(next.position).toEqual(state.position)
   expect(next.route).toEqual([])
+})
+
+describe('offline characters in the shared world', () => {
+  it('keeps offline characters at their saved spot in the starting town and never attackable', () => {
+    const state = newWorldState()
+    const view = projectWorld(
+      state,
+      [
+        {
+          characterId: 'sleeper',
+          name: 'Sleeper',
+          level: 4,
+          portraitRef: 'p',
+          imageUrl: null,
+          position: state.position,
+          online: false,
+          attackable: false,
+        },
+      ],
+      1000,
+    )
+    expect(view.players).toHaveLength(1)
+    expect(view.players[0]).toMatchObject({ name: 'Sleeper', online: false, attackable: false })
+  })
 })

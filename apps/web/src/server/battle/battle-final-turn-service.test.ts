@@ -1,3 +1,4 @@
+import { applyCurrentBurnState } from '@aurevane/game-core/combat/combat-dots'
 import type {
   BattleSessionRecord,
   BattleSessionRepository,
@@ -91,7 +92,16 @@ async function initialEncounter(): Promise<StatDrivenCombatEncounterState> {
 
 describe('battle final-turn frozen build authority', () => {
   it('preserves buildAuthority and buildBridge when ending the player turn', async () => {
-    const initial = await initialEncounter()
+    const unburned = await initialEncounter()
+    const actor = `character:${CHARACTER_ID}`
+    const enemy = unburned.tactical.battle.combatants.find(
+      (unit) =>
+        unit.teamId !== unburned.tactical.battle.combatants.find((row) => row.id === actor)!.teamId,
+    )!.id
+    const initial = applyCurrentBurnState(unburned, enemy, actor, 'test.burn', true, undefined, 3, {
+      capturedDamage: 23,
+      profile: { kind: 'attack-percentage', basisPoints: 2000, decayBasisPointsPerTick: 500 },
+    }) as StatDrivenCombatEncounterState
     const buildAuthority = { schemaVersion: 1, marker: 'frozen-authority' }
     const buildBridge = { schemaVersion: 1, marker: 'frozen-bridge' }
     const state = {
@@ -146,6 +156,11 @@ describe('battle final-turn frozen build authority', () => {
     expect(commits).toHaveLength(1)
     expect(commits[0]?.nextSnapshot).toMatchObject({ buildAuthority, buildBridge })
     expect(result.snapshot).toMatchObject({ buildAuthority, buildBridge })
+    expect(result.snapshot.statusState.find((row) => row.combatantId === actor)!.statuses).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ statusId: 'burn', remainingOwnerTurnEnds: 2 }),
+      ]),
+    )
     expect(result.battleVersion).toBe(2)
     expect(result.snapshot.tactical.battle.currentTurn?.combatantId).not.toBe(
       `character:${CHARACTER_ID}`,

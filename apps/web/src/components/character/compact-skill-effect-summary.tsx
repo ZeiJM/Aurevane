@@ -1,24 +1,76 @@
+'use client'
+
 import type { MatureSkillEffectDefinition } from '@aurevane/game-core/combat/mature-skills'
+import {
+  useSkillEffectTimingPolicy,
+  useSkillGroundInteractionRules,
+} from './skill-effect-timing-context'
 
-import { compactSkillEffectSummaryParts } from './skill-detail-presentation'
+import {
+  compactSkillEffectSummaryParts,
+  type CompactSkillEffectSummaryParts,
+} from './skill-detail-presentation'
+import styles from './compact-skill-effect-summary.module.css'
 
-export function CompactSkillEffectSummary({ effect }: { effect: MatureSkillEffectDefinition }) {
-  const parts = compactSkillEffectSummaryParts(effect)
+export function CompactSkillEffectSummary({
+  effect,
+  count = 1,
+  skillEffects,
+}: {
+  skillEffects?: readonly MatureSkillEffectDefinition[]
+  effect: MatureSkillEffectDefinition
+  count?: number
+}) {
+  const timingPolicy = useSkillEffectTimingPolicy()
+  const parts = compactSkillEffectSummaryParts(effect, timingPolicy, {
+    ...useSkillGroundInteractionRules(),
+    skillEffects,
+  })
+  return <CompactEffectSummary parts={parts} count={count} />
+}
 
+/** Shared label, magnitude and duration markup for authored and inherent effects. */
+export function CompactEffectSummary({
+  parts,
+  count = 1,
+}: {
+  parts: CompactSkillEffectSummaryParts
+  count?: number
+}) {
   return (
     <span data-compact-skill-effect="true">
-      <span data-compact-effect-label="true">{parts.label}</span>
+      <span className={styles.label} data-compact-effect-label="true">
+        {parts.label}
+      </span>
       {parts.magnitude ? (
         <>
           {' '}
-          <span data-compact-effect-magnitude="true">[{parts.magnitude}]</span>
+          <span className={styles.magnitude} data-compact-effect-magnitude="true">
+            [{parts.magnitude}]
+          </span>
         </>
       ) : null}
       {parts.duration ? (
         <>
           {' '}
-          <span data-compact-effect-duration="true">[{parts.duration}]</span>
+          <span className={styles.timing} data-compact-effect-duration="true">
+            [{parts.duration}]
+          </span>
         </>
+      ) : null}
+      {parts.timing ? (
+        <>
+          {' '}
+          <span className={styles.timing} data-compact-effect-timing="true">
+            [{parts.timing}]
+          </span>
+        </>
+      ) : null}
+      {count > 1 ? (
+        <span data-compact-effect-count={count} aria-label={`${count} applications`}>
+          {' '}
+          ×{count}
+        </span>
       ) : null}
     </span>
   )

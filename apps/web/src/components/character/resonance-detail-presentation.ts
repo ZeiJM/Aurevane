@@ -1,0 +1,107 @@
+import { groupSkillEffects } from './skill-effect-groups'
+import { defaultCombatEffectTimingPolicy } from '@aurevane/game-core/combat/combat-effect-timing'
+import type { SkillEffectTimingPolicy } from './skill-effect-timing-context'
+import type {
+  AnyResonanceDefinition,
+  ResonanceSkillMatcher,
+} from '@aurevane/game-core/combat/resonance'
+import { resonanceSkillMatcherDescription } from '@aurevane/game-core/combat/resonance-skill-matcher'
+import { matchesResonanceSkill } from '@aurevane/game-core/combat/resonance-skill-matcher'
+import {
+  latestEnabledMatureSkills,
+  type MatureSkillDefinition,
+} from '@aurevane/game-core/combat/mature-skills'
+import type { CombatEffectDefinition } from '@aurevane/game-core/combat/actions'
+import { normalizedResonanceMechanics } from '@aurevane/game-core/combat/resonance-v2'
+import { previewEffect } from './skill-effect-preview'
+import { skillEffectSummaries, skillDisplayName } from './skill-detail-presentation'
+import { skillInformationRows, type SkillCharacteristic } from './skill-information-contract'
+
+export function resonanceResultRecipient(effect: CombatEffectDefinition): string {
+  switch (effect.recipient) {
+    case 'actor':
+      return 'Self'
+    case 'primary-unit':
+      return 'Trigger Skill selected unit'
+    case 'affected-units':
+      return 'Trigger Skill affected units'
+    case 'affected-tiles':
+      return 'Trigger Skill affected tiles'
+  }
+}
+
+export function resonanceMatcher(
+  value: ResonanceSkillMatcher,
+  knownSkills: readonly MatureSkillDefinition[] = latestEnabledMatureSkills(),
+): string {
+  if (value.requiredTags.includes('control')) {
+    const names = [
+      ...new Set(
+        knownSkills.filter((skill) => matchesResonanceSkill(skill, value)).map(skillDisplayName),
+      ),
+    ]
+    const discipline = resonanceSkillMatcherDescription({
+      sourceDisciplineId: value.sourceDisciplineId,
+      matchMode: 'any-skill',
+      requiredTags: [],
+    })
+    return `${discipline}: ${names.length ? names.join(', ') : 'no matching setup Skill in this loadout'}`
+  }
+  return resonanceSkillMatcherDescription(value)
+}
+
+/** Resonance adds effects to its Trigger Skill; it has no independent action or Target Spec. */
+export function resonanceCharacteristicRows(
+  definition: AnyResonanceDefinition | null | undefined,
+  timingPolicy: SkillEffectTimingPolicy = defaultCombatEffectTimingPolicy(),
+  knownSkills?: readonly MatureSkillDefinition[],
+): readonly SkillCharacteristic[] {
+  if (!definition) {
+    return skillInformationRows({
+      'Skill Type': 'Unavailable',
+      Cost: 'Unavailable',
+      Cooldown: 'Unavailable',
+      Requirements: 'Unavailable',
+      Effects: 'Unavailable',
+      Range: 'Unavailable',
+      Target: 'Unavailable',
+      'Target Method': 'Unavailable',
+      'Target Elevation': 'Unavailable',
+      'Line of Sight': 'Unavailable',
+    })
+  }
+  const mechanics = normalizedResonanceMechanics(definition)
+  const recipients = [...new Set(mechanics.resultEffects.map(resonanceResultRecipient))]
+  const grouped = groupSkillEffects(mechanics.resultEffects)
+  return skillInformationRows<string | readonly string[]>({
+    'Skill Type': 'Resonance',
+    Cost: 'N/A',
+    Cooldown: 'N/A',
+    Requirements: mechanics.setup ? resonanceMatcher(mechanics.setup, knownSkills) : 'N/A',
+    Effects: skillEffectSummaries({ effects: mechanics.resultEffects }, timingPolicy).map(
+      (summary, index) =>
+        `${resonanceMatcher(mechanics.trigger, knownSkills)}: ${summary}${grouped[index]!.effect.recipient === 'actor' ? '' : ` → ${resonanceResultRecipient(grouped[index]!.effect)}`}`,
+    ),
+    Range: 'N/A',
+    Target: recipients.join('; ') || 'N/A',
+    'Target Method': 'N/A',
+    'Target Elevation': 'N/A',
+    'Line of Sight': 'N/A',
+  })
+}
+
+/** Effect explanations follow the shared ten-field report. */
+export function resonanceSupplementalRows(
+  definition: AnyResonanceDefinition | null | undefined,
+): readonly SkillCharacteristic[] {
+  if (!definition) return []
+  const mechanics = normalizedResonanceMechanics(definition)
+  return [
+    [
+      'Result details',
+      groupSkillEffects(mechanics.resultEffects).map(
+        ({ effect }) => previewEffect(effect).explanation,
+      ),
+    ],
+  ]
+}

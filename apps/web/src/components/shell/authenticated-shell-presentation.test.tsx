@@ -1,3 +1,4 @@
+import type { Route } from 'next'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
@@ -91,5 +92,23 @@ describe('authenticated shell presentation', () => {
     expect(markup).not.toContain('Level 12')
     expect(markup).toContain('data-testid="portrait"')
     expect(markup).toContain('data-testid="account-menu"')
+  })
+  it('removes navigation from live combat and spectation', () => {
+    const markup = renderToStaticMarkup(
+      <AuthenticatedShellPresentation layout="battlefield">
+        <section>Battle</section>
+      </AuthenticatedShellPresentation>,
+    )
+    expect(markup).not.toContain('data-testid="game-rail"')
+  })
+
+  it('marks session restrictions so mobile reserves the return-session dock height', () => {
+    const markup = renderToStaticMarkup(
+      <AuthenticatedShellPresentation activeBattleHref={'/game/battle/session-one' as Route}>
+        <section>Page content</section>
+      </AuthenticatedShellPresentation>,
+    )
+    expect(markup).toContain('data-av-session-restricted="true"')
+    expect(markup).toContain('href="/game/battle/session-one"')
   })
 })

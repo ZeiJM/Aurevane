@@ -1,5 +1,6 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
 
+import { selectDiscipline } from './discipline-library-helpers'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 function uniqueCharacterName(): string {
@@ -73,7 +74,7 @@ test('legal Vanguard 3 + Lifebinder 1 mixed build can enter AI Sparring from its
   expect(prepared.body).toMatchObject({ result: { masteredDisciplines: 6, learnedSkills: 16 } })
 
   await page.reload()
-  await expect(page.getByTestId('character-profile')).toBeVisible()
+  await expect(page.locator('[data-profile-workspace]')).toBeVisible()
   await closeOpenDialog(page)
   await page.goto('/game/nexus')
   await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
@@ -82,8 +83,7 @@ test('legal Vanguard 3 + Lifebinder 1 mixed build can enter AI Sparring from its
   await disciplinePanel.getByRole('button', { name: /Manage Disciplines/ }).click()
   const disciplineDialog = page.getByRole('dialog', { name: 'Discipline Management' })
   await expect(disciplineDialog).toBeVisible()
-  await disciplineDialog.getByLabel('Secondary Discipline').selectOption('lifebinder')
-  await disciplineDialog.getByRole('button', { name: /Confirm Change/ }).click()
+  await selectDiscipline(disciplineDialog, 'Secondary', 'Lifebinder')
   await expect(page.getByRole('status')).toContainText('Discipline changes committed.')
   await disciplineDialog.getByRole('button', { name: 'Close' }).click()
 
@@ -112,7 +112,7 @@ test('legal Vanguard 3 + Lifebinder 1 mixed build can enter AI Sparring from its
 
   await page
     .getByRole('navigation', { name: 'Primary game navigation', exact: true })
-    .getByRole('link', { name: 'Battle Hall', exact: true })
+    .getByRole('link', { name: 'Battle', exact: true })
     .click()
   await expect(page).toHaveURL(/\/game\/battle$/)
   await page.getByLabel('Battle mode').selectOption('recruit-sparring')
@@ -122,28 +122,15 @@ test('legal Vanguard 3 + Lifebinder 1 mixed build can enter AI Sparring from its
   await expect(page.locator('[data-unified-battle="true"]')).toBeVisible()
 
   const commandDeck = page.getByRole('region', { name: 'Command Deck' })
-  await expect(commandDeck.locator('button[data-command-slot="attack"]')).toContainText(
-    'Forceful Strike',
-    { timeout: 8000 },
-  )
-  await expect(commandDeck.locator('button[data-command-slot="guard"]')).toContainText('Brace')
-  await expect(commandDeck.locator('button[data-command-slot="recover"]')).toContainText(
-    'Mending Light',
-  )
+  await expect(
+    commandDeck.getByRole('button', { name: 'Basic Attack, 30 AP', exact: true }),
+  ).toBeVisible()
+  await expect(commandDeck.getByRole('button', { name: 'Guard, 30 AP', exact: true })).toBeVisible()
 
-  await expect(
-    commandDeck
-      .locator('[data-command-card="attack"]')
-      .getByRole('button', { name: /Choose Attack skill/i }),
-  ).toHaveAttribute('data-battle-selected-skill-id', /forceful-strike/)
-  await expect(
-    commandDeck
-      .locator('[data-command-card="guard"]')
-      .getByRole('button', { name: /Choose Guard skill/i }),
-  ).toHaveAttribute('data-battle-selected-skill-id', /brace/)
-  await expect(
-    commandDeck
-      .locator('[data-command-card="recover"]')
-      .getByRole('button', { name: /Choose Heal skill/i }),
-  ).toHaveAttribute('data-battle-selected-skill-id', /mending-light/)
+  await expect(commandDeck.locator('[data-battle-skill-slot]')).toHaveCount(4)
+  for (const name of ['Forceful Strike', 'Brace', 'Mending Light']) {
+    await expect(
+      commandDeck.getByRole('button', { name: new RegExp(`^Selected ${name},`) }),
+    ).toBeVisible()
+  }
 })

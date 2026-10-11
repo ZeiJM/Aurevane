@@ -1,0 +1,20 @@
+'use client'
+
+import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
+import { SkillCharacteristicRows } from './skill-characteristic-rows'
+import { skillParameterRows } from './skill-detail-presentation'
+import {
+  useSkillGroundInteractionRules,
+  useSkillEffectTimingPolicy,
+} from './skill-effect-timing-context'
+import { SkillGroundAreaDetails } from './skill-ground-area-details'
+
+export function SkillParameters({ skill }: { skill: MatureSkillDefinition }) {
+  const timingPolicy = useSkillEffectTimingPolicy()
+  return (
+    <SkillCharacteristicRows
+      rows={skillParameterRows(skill, skill, timingPolicy, useSkillGroundInteractionRules())}
+      targetDetails={<SkillGroundAreaDetails skill={skill} />}
+    />
+  )
+}

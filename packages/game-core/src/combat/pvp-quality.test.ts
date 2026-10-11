@@ -6,7 +6,12 @@ import { createTacticalBattleState } from './board'
 import {
   createPv1fTemporaryResources,
   executePv1fAction,
+  evaluatePv1fAction,
+  executePv1fMovement,
+  finishPv1fTurn,
   PV1F_BASIC_ATTACK_ID,
+  PV1F_GUARD_ACTION_ID,
+  PV1F_ACTION_ECONOMY_RESOURCE_KEY,
 } from './pv1f-action-economy'
 import {
   createAiQualityResources,
@@ -144,6 +149,96 @@ function expectLoweredGuardDamage(
 }
 
 describe('battle turn quality rules', () => {
+  it.each(['pvp', 'ai'] as const)(
+    'does not count a preview, rejected command or passive AP loss as %s activity',
+    (kind) => {
+      const initial = { ...encounter(kind), effectTimingPolicy: { version: 1 as const, modes: {} } }
+      const previewed = evaluatePv1fAction(initial, PV1F_GUARD_ACTION_ID, { kind: 'self' }).prepared
+      expect(() => executePv1fAction(previewed, PV1F_BASIC_ATTACK_ID, { kind: 'self' })).toThrow()
+      const actor = previewed.tactical.battle.combatants.find((unit) => unit.id === 'player')!
+      actor.temporaryResources = actor.temporaryResources.map((resource) =>
+        resource.key === PV1F_ACTION_ECONOMY_RESOURCE_KEY ? { ...resource, current: 90 } : resource,
+      )
+      const idle = kind === 'ai' ? timeoutAiTurn(previewed) : timeoutPvpTurn(previewed)
+      expect(idle.events).toEqual(
+        expect.arrayContaining([expect.objectContaining({ effectTag: 'lowered-guard' })]),
+      )
+    },
+  )
+  it.each(['pvp', 'ai'] as const)(
+    'does not apply Lowered Guard after a successful command on a %s timeout',
+    (kind) => {
+      for (const actionId of [PV1F_BASIC_ATTACK_ID, PV1F_GUARD_ACTION_ID]) {
+        const initial = {
+          ...encounter(kind),
+          effectTimingPolicy: { version: 1 as const, modes: {} },
+        }
+        const acted = executePv1fAction(
+          initial,
+          actionId,
+          actionId === PV1F_BASIC_ATTACK_ID
+            ? { kind: 'unit', combatantId: 'opponent' }
+            : { kind: 'self' },
+        ).state
+        // Activity survives AP restoration; it is not inferred from current AP alone.
+        const actor = acted.tactical.battle.combatants.find((unit) => unit.id === 'player')!
+        actor.temporaryResources = actor.temporaryResources.map((resource) =>
+          resource.key === PV1F_ACTION_ECONOMY_RESOURCE_KEY
+            ? { ...resource, current: 100 }
+            : resource,
+        )
+        const timedOut = kind === 'ai' ? timeoutAiTurn(acted) : timeoutPvpTurn(acted)
+        expect(
+          (timedOut.state.pendingEffects ?? []).filter(
+            (pending) =>
+              pending.effect.type === 'apply-status' && pending.effect.statusId === 'lowered-guard',
+          ),
+        ).toHaveLength(0)
+        expect(loweredGuard(timedOut.state, 'player')).toBeUndefined()
+        expect(timedOut.events).not.toEqual(
+          expect.arrayContaining([expect.objectContaining({ effectTag: 'lowered-guard' })]),
+        )
+        expect(timedOut.state.tactical.battle.currentTurn?.combatantId).toBe('opponent')
+      }
+    },
+  )
+
+  it.each(['pvp', 'ai'] as const)(
+    'does not penalize a moved %s turn, but penalizes its next idle turn',
+    (kind) => {
+      const initial = { ...encounter(kind), effectTimingPolicy: { version: 1 as const, modes: {} } }
+      const expanded = {
+        ...initial,
+        tactical: createTacticalBattleState({
+          ...initial.tactical,
+          width: 3,
+          tiles: [0, 1, 2].map((x) => ({
+            position: { x, y: 0 },
+            elevation: 0,
+            terrainId: 'open-ground',
+          })),
+          placements: initial.tactical.placements.map((unit) =>
+            unit.combatantId === 'opponent' ? { ...unit, position: { x: 2, y: 0 } } : unit,
+          ),
+        }),
+      }
+      const moved = executePv1fMovement(expanded, [
+        { x: 0, y: 0 },
+        { x: 1, y: 0 },
+      ]).state
+      const timedOut = kind === 'ai' ? timeoutAiTurn(moved) : timeoutPvpTurn(moved)
+      expect(timedOut.state.pendingEffects ?? []).toHaveLength(0)
+      const returned = finishPv1fTurn(timedOut.state, 'west').state
+      const idle = kind === 'ai' ? timeoutAiTurn(returned) : timeoutPvpTurn(returned)
+      expect(idle.state.pendingEffects).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            effect: expect.objectContaining({ statusId: 'lowered-guard' }),
+          }),
+        ]),
+      )
+    },
+  )
   it('applies one-turn Lowered Guard after every missed PvP turn', () => {
     const firstMiss = timeoutPvpTurn(encounter('pvp'))
 
@@ -304,4 +399,148 @@ describe('battle turn quality rules', () => {
     const nextPlayerMiss = timeoutAiTurn(playerReturns)
     expect(loweredGuard(nextPlayerMiss.state, 'player')?.remainingOwnerTurnStarts).toBe(1)
   })
+})
+it.each(['ai', 'pvp'] as const)(
+  'penalizes the first %s AFK timeout in round 3 through the complete round 4, while manual ends remain exempt',
+  (kind) => {
+    let state: ReturnType<typeof encounter> = {
+      ...encounter(kind),
+      effectTimingPolicy: { version: 1, modes: {} },
+    }
+    for (let index = 0; index < 4; index += 1) {
+      const finished = finishPv1fTurn(state, index % 2 === 0 ? 'east' : 'west')
+      expect(finished.events).not.toEqual(
+        expect.arrayContaining([expect.objectContaining({ effectTag: 'lowered-guard' })]),
+      )
+      expect(finished.state.pendingEffects ?? []).toHaveLength(0)
+      expect(loweredGuard(finished.state, 'player')).toBeUndefined()
+      state = finished.state
+    }
+    expect(state.tactical.battle.round).toBe(3)
+    const timedOut = kind === 'ai' ? timeoutAiTurn(state) : timeoutPvpTurn(state)
+    expect(timedOut.events).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          event: 'effect_pending',
+          effectTag: 'lowered-guard',
+          activationRound: 4,
+          remainingOwnerTurnEnds: 1,
+        }),
+      ]),
+    )
+    expect(timedOut.state.pendingEffects).toHaveLength(1)
+    expect(loweredGuard(timedOut.state, 'player')).toBeUndefined()
+    const roundFour = finishPv1fTurn(timedOut.state, 'west')
+    expect(roundFour.state.tactical.battle.round).toBe(4)
+    expect(loweredGuard(roundFour.state, 'player')).toMatchObject({
+      stacks: 1,
+      remainingOwnerTurnEnds: 1,
+    })
+    const endedAffectedTurn = finishPv1fTurn(roundFour.state, 'east')
+    expect(loweredGuard(endedAffectedTurn.state, 'player')?.remainingRoundBoundaries).toBe(1)
+    expect(endedAffectedTurn.state.pendingEffects ?? []).toHaveLength(0)
+    const roundFive = finishPv1fTurn(endedAffectedTurn.state, 'west').state
+    expect(roundFive.tactical.battle.round).toBe(5)
+    expect(loweredGuard(roundFive, 'player')).toBeUndefined()
+  },
+)
+
+it('queues timeout Lowered Guard under a pinned next-round policy', () => {
+  const initial = { ...encounter(), effectTimingPolicy: { version: 1, modes: {} } }
+  const transition = timeoutPvpTurn(initial)
+  expect(transition.events).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ event: 'effect_pending', effectTag: 'lowered-guard' }),
+    ]),
+  )
+  expect(transition.state.pendingEffects).toHaveLength(1)
+})
+
+it('applies the AFK damage vulnerability for the next affected turn when the timer ends the round', () => {
+  let state = finishPv1fTurn(
+    { ...encounter('ai'), effectTimingPolicy: { version: 1, modes: {} } },
+    'east',
+  ).state
+  const timedOut = timeoutAiTurn(state)
+  expect(timedOut.state.tactical.battle.round).toBe(2)
+  expect(timedOut.state.pendingEffects ?? []).toHaveLength(0)
+  expect(loweredGuard(timedOut.state, 'opponent')).toMatchObject({
+    stacks: 1,
+    remainingOwnerTurnEnds: 1,
+  })
+  const attacked = executePv1fAction(timedOut.state, PV1F_BASIC_ATTACK_ID, {
+    kind: 'unit',
+    combatantId: 'opponent',
+  })
+  expect(attacked.state.tactical.battle.combatants.find((row) => row.id === 'opponent')?.hp).toBe(
+    75,
+  )
+  state = finishPv1fTurn(attacked.state, 'east').state
+  expect(loweredGuard(state, 'opponent')?.remainingOwnerTurnEnds).toBe(1)
+  state = finishPv1fTurn(state, 'west').state
+  expect(loweredGuard(state, 'opponent')).toBeUndefined()
+  const normalDamage = executePv1fAction(state, PV1F_BASIC_ATTACK_ID, {
+    kind: 'unit',
+    combatantId: 'opponent',
+  })
+  expect(
+    normalDamage.state.tactical.battle.combatants.find((row) => row.id === 'opponent')?.hp,
+  ).toBe(65)
+})
+
+it('runs six participant timeout boundaries with pending effects lasting full rounds', () => {
+  const ids = ['player', 'opponent', 'third', 'fourth', 'fifth', 'sixth']
+  const resources = [...createPv1fTemporaryResources(10), ...createPvpQualityResources()].sort(
+    (a, b) => a.key.localeCompare(b.key),
+  )
+  const battle = startBattle(
+    createPendingBattle({
+      battleId: 'six-timing',
+      rulesVersion: 2,
+      contentVersion: 2,
+      rngSeed: 123,
+      combatants: ids.map((id, index) => ({
+        id,
+        teamId: index % 2 ? 'b' : 'a',
+        initiative: 10 - index,
+        baseMovementBudget: 10,
+        hp: 100,
+        maxHp: 100,
+        mp: 20,
+        maxMp: 20,
+        temporaryResources: resources,
+      })),
+    }),
+  ).state
+  let initial = createStatDrivenCombatEncounterState(
+    createCombatEncounterState(
+      createTacticalBattleState({
+        battle,
+        width: 6,
+        height: 1,
+        terrains: [{ id: 'open', traversalCost: 1 }],
+        tiles: ids.map((_, x) => ({ position: { x, y: 0 }, elevation: 0, terrainId: 'open' })),
+        movementProfiles: [{ id: 'ground', maxElevationStep: 1, terrainCostOverrides: [] }],
+        placements: ids.map((id, x) => ({
+          combatantId: id,
+          position: { x, y: 0 },
+          facing: 'east' as const,
+          movementProfileId: 'ground',
+        })),
+      }),
+    ),
+    ids.map(profile),
+  )
+  initial = { ...initial, effectTimingPolicy: { version: 1, modes: {} } }
+  for (let index = 0; index < 6; index += 1) initial = timeoutPvpTurn(initial).state
+  expect(initial.tactical.battle.round).toBe(2)
+  expect(initial.tactical.battle.currentTurn?.combatantId).toBe('player')
+  expect(loweredGuard(initial, 'player')?.remainingOwnerTurnEnds).toBe(1)
+  initial = timeoutPvpTurn(initial).state
+  expect(loweredGuard(initial, 'player')?.remainingRoundBoundaries).toBe(1)
+  expect(loweredGuard(initial, 'opponent')?.remainingOwnerTurnEnds).toBe(1)
+  for (let index = 0; index < 5; index++) initial = finishPv1fTurn(initial, 'east').state
+  expect(initial.tactical.battle.round).toBe(3)
+  expect(loweredGuard(initial, 'player')?.remainingRoundBoundaries).toBe(1)
+  expect(loweredGuard(initial, 'opponent')).toBeUndefined()
 })

@@ -1,10 +1,17 @@
 import type { BattleEventRecord } from '@aurevane/db/battle-session'
 import {
   createCombatEncounterState,
+  executeCombatAction,
+  endCombatTurn,
+  type CombatActionDefinition,
   type CombatStatusInstance,
 } from '@aurevane/game-core/combat/actions'
 import { createPendingBattle, startBattle } from '@aurevane/game-core/combat/battle-state'
-import { createTacticalBattleState } from '@aurevane/game-core/combat/board'
+import {
+  createTacticalBattleState,
+  selectCurrentFinalFacing,
+} from '@aurevane/game-core/combat/board'
+import { PV1F_COMBAT_CONTENT } from '@aurevane/game-core/combat/pv1f-action-economy'
 import {
   createStatDrivenCombatEncounterState,
   type StatDrivenCombatEncounterState,
@@ -126,6 +133,111 @@ function record(
 }
 
 describe('CSR-3 commit-time privacy metadata', () => {
+  it('retains original Covert cast visibility when a delayed status activates in a later public turn transition', () => {
+    const before = {
+      ...encounter({ actorStatuses: [status('covert', ACTOR, 4)] }),
+      effectTimingPolicy: { version: 1 as const, modes: {} },
+    }
+    const action: CombatActionDefinition = {
+      id: 'secret.hex',
+      version: 1,
+      sourceType: 'test',
+      tags: [],
+      cost: { spendsAction: false, mp: 0 },
+      requirements: [],
+      target: {
+        kind: 'unit',
+        teamPolicy: 'enemy',
+        shape: { kind: 'single' },
+        minimumRange: 0,
+        maximumRange: 6,
+        requiresLineOfSight: false,
+        maximumElevationDifference: null,
+        friendlyFire: 'enemies-only',
+      },
+      effects: [
+        {
+          type: 'apply-status',
+          recipient: 'primary-unit',
+          statusId: 'hexed',
+          stacks: 1,
+          durationTurns: 1,
+        },
+      ],
+    }
+    const cast = executeCombatAction(
+      before,
+      action,
+      { kind: 'unit', combatantId: TARGET },
+      PV1F_COMBAT_CONTENT,
+    )
+    let state = { ...before, ...cast.state, statBridge: before.statBridge }
+    let transition: ReturnType<typeof endCombatTurn> | undefined
+    let activationBefore = state
+    for (let turn = 0; turn < 3; turn += 1) {
+      activationBefore = state
+      transition = endCombatTurn(
+        { ...state, tactical: selectCurrentFinalFacing(state.tactical, 'east').state },
+        PV1F_COMBAT_CONTENT,
+      )
+      state = { ...state, ...transition.state, statBridge: state.statBridge }
+    }
+    if (!transition) throw new Error('Expected next-round activation.')
+    const applied = transition.events.findIndex(
+      (event) => event.event === 'status_applied' && event.actionId === action.id,
+    )
+    expect(applied).toBeGreaterThanOrEqual(0)
+    const journal = buildBattlePrivacyJournalInput({
+      before: activationBefore,
+      after: state,
+      commandKind: 'face',
+      events: transition.events,
+    })
+    expect(journal.commandVisibility).toEqual({ kind: 'public' })
+    expect(
+      journal.eventVisibilityOverrides.find((override) => override.eventIndex === applied)
+        ?.visibility,
+    ).toEqual({ kind: 'team-only', teamId: 'team:a' })
+  })
+
+  it('intersects original source privacy with an opposing Covert target restriction', () => {
+    const before = encounter({ targetStatuses: [status('covert', TARGET, 4)] })
+    const event = {
+      event: 'status_applied',
+      actionId: 'secret.buff',
+      sourceCombatantId: ACTOR,
+      targetCombatantId: TARGET,
+      statusId: 'guarded',
+      sourceCommandVisibility: { kind: 'team-only', teamId: 'team:a' },
+    }
+    const input = buildBattlePrivacyJournalInput({
+      before,
+      after: before,
+      commandKind: 'face',
+      events: [event],
+    })
+    const journal: BattleHistoryPrivacyJournal = {
+      ...input,
+      battleVersion: 9,
+      actorCombatantId: TARGET,
+      actorTeamId: 'team:b',
+      eventCount: 1,
+    }
+    expect(input.eventVisibilityOverrides).toEqual([
+      {
+        eventIndex: 0,
+        visibility: { kind: 'team-only', teamId: 'team:a', requiredTeamIds: ['team:b'] },
+      },
+    ])
+    for (const viewer of [
+      deriveParticipantBattleViewerEntitlement(before.tactical.battle.combatants, [ACTOR]),
+      deriveParticipantBattleViewerEntitlement(before.tactical.battle.combatants, [TARGET]),
+      createSpectatorBattleViewerEntitlement(),
+    ]) {
+      expect(projectBattleHistoryForViewer([record(9, 0, event)], [journal], viewer)).toEqual([])
+    }
+  })
+
   it('samples command-start Covert before command mutations and hides only ordinary action identity', () => {
     const before = encounter({ actorStatuses: [status('covert', ACTOR, 3)] })
     const after = encounter()
@@ -328,47 +440,6 @@ describe('CSR-3 viewer-relative historical projection', () => {
 
     const spectator = createSpectatorBattleViewerEntitlement()
     expect(projectBattleHistoryForViewer(records, [journal], spectator)).toHaveLength(3)
-  })
-
-  it('keeps a hidden Covert Copy grant inside the collapsed command boundary', () => {
-    const hiddenCopyJournal: BattleHistoryPrivacyJournal = {
-      battleVersion: 10,
-      schemaVersion: 1,
-      actorCombatantId: ACTOR,
-      actorTeamId: 'team:a',
-      commandVisibility: { kind: 'team-only', teamId: 'team:a' },
-      eventVisibilityOverrides: [],
-      eventCount: 2,
-    }
-    const copyRecords = [
-      record(10, 0, {
-        event: 'combat_action_used',
-        actionId: 'secret.copy',
-        actorId: ACTOR,
-      }),
-      record(10, 1, {
-        event: 'temporary_skill_copied',
-        combatantId: ACTOR,
-        sourceCombatantId: TARGET,
-        skillId: 'vanguard.forceful-strike',
-        contentVersion: 2,
-      }),
-    ]
-    const opponent = deriveParticipantBattleViewerEntitlement(combatants, [TARGET])
-    const projected = projectBattleHistoryForViewer(copyRecords, [hiddenCopyJournal], opponent)
-
-    expect(projected).toHaveLength(1)
-    expect(projected[0]?.event).toEqual({
-      event: 'hidden_combat_action',
-      actorCombatantId: ACTOR,
-    })
-    expect(JSON.stringify(projected)).not.toContain('secret.copy')
-    expect(JSON.stringify(projected)).not.toContain('vanguard.forceful-strike')
-
-    const ally = deriveParticipantBattleViewerEntitlement(combatants, [ALLY])
-    expect(projectBattleHistoryForViewer(copyRecords, [hiddenCopyJournal], ally)).toEqual(
-      copyRecords,
-    )
   })
 
   it('keeps legacy versions public when no journal row exists', () => {

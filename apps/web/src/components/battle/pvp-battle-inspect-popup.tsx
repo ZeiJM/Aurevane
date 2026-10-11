@@ -1,5 +1,7 @@
 'use client'
 
+import { SummonAbilityList } from './summon-ability-list'
+
 import type { CharacterPortraitRef } from '@aurevane/game-core/character/creation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
@@ -17,8 +19,14 @@ import {
   formatStatusStackCount,
   statusIsBeneficial,
   statusLabel,
+  statusDurationLabel,
 } from './battle-effect-summary'
 import { useBattleInteractionLifecycle } from './battle-interaction-lifecycle'
+import { battleInfoPopoverSession } from './battle-info-popover-session'
+import {
+  visibleBattleInitiative,
+  terrainAdjustedBattleProfile,
+} from '../../lib/battle/battle-elevation-stats'
 import styles from './mobile-battle-combatant-popup.module.css'
 
 const ACTION_ECONOMY_KEY = 'pv1f.action-economy'
@@ -123,9 +131,12 @@ function readSelectedCombatant(
     : null
 
   return {
-    combatant,
+    combatant: {
+      ...combatant,
+      initiative: visibleBattleInitiative(battle.snapshot, combatant, statuses),
+    },
     placement,
-    profile,
+    profile: terrainAdjustedBattleProfile(battle.snapshot, combatant.id, profile, statuses),
     statuses,
     participant: participant ?? null,
     active: battle.snapshot.tactical.battle.currentTurn?.combatantId === combatant.id,
@@ -166,7 +177,8 @@ export function PvpBattleInspectPopup({
   useEffect(() => {
     let requestSequence = 0
 
-    async function openCombatant(position: GridPosition) {
+    async function openCombatant(target: GridPosition | string) {
+      battleInfoPopoverSession.dismissActive()
       const sequence = ++requestSequence
       openRef.current = true
       setOpen(true)
@@ -190,7 +202,12 @@ export function PvpBattleInspectPopup({
         }
 
         if (sequence !== requestSequence) return
-        const next = readSelectedCombatant(currentBattle, position, metadata)
+        const position =
+          typeof target === 'string'
+            ? currentBattle.snapshot.tactical.placements.find((row) => row.combatantId === target)
+                ?.position
+            : target
+        const next = position ? readSelectedCombatant(currentBattle, position, metadata) : null
         if (!next) throw new Error('That combatant is no longer on this tile.')
         setSelected(next)
       } catch (loadError) {
@@ -204,12 +221,22 @@ export function PvpBattleInspectPopup({
     }
 
     function handleBattlefieldClick(event: MouseEvent) {
-      if (window.matchMedia(DESKTOP_POINTER_QUERY).matches || !inspectModeActive()) return
+      if (window.matchMedia(DESKTOP_POINTER_QUERY).matches) return
       const target = event.target instanceof Element ? event.target : null
+      const cardId = target?.closest<HTMLElement>('[data-desktop-inspect-combatant]')?.dataset
+        .desktopInspectCombatant
+      if (cardId) {
+        event.preventDefault()
+        event.stopPropagation()
+        void openCombatant(cardId)
+        return
+      }
+      if (!inspectModeActive()) return
       const tile = target?.closest<HTMLButtonElement>(
         '#battlefield button[aria-label^="Tile "][aria-label*="occupied by"]',
       )
       if (!tile) return
+      if (tile.closest('main[data-battle-layout="refined"]')) return
 
       const position = parseTilePosition(tile.getAttribute('aria-label') ?? '')
       if (!position) return
@@ -220,7 +247,7 @@ export function PvpBattleInspectPopup({
     }
 
     function handleEscape(event: KeyboardEvent) {
-      if (event.key === 'Escape') closeInspect()
+      if (event.key === 'Escape' && !event.defaultPrevented) closeInspect()
     }
 
     document.addEventListener('click', handleBattlefieldClick, true)
@@ -350,11 +377,11 @@ export function PvpBattleInspectPopup({
                 <dd>{selected.profile ? percentFromBasisPoints(selected.profile.evasion) : '—'}</dd>
               </div>
               <div>
-                <dt>Armor</dt>
+                <dt>Physical Defense</dt>
                 <dd>{selected.profile?.armor ?? '—'}</dd>
               </div>
               <div>
-                <dt>Ward</dt>
+                <dt>Mystic Defense</dt>
                 <dd>{selected.profile?.ward ?? '—'}</dd>
               </div>
               <div>
@@ -376,20 +403,11 @@ export function PvpBattleInspectPopup({
                   {selected.summon.lifetimeTurns} turns remaining.
                 </p>
                 <p>{selected.summon.tags.join(' · ')}</p>
-                <ul>
-                  {selected.summon.abilities.map((ability) => (
-                    <li key={ability.id}>
-                      <strong>
-                        {ability.name}
-                        <b>
-                          {ability.apCost} AP
-                          {ability.mpCost > 0 ? ` · ${ability.mpCost} MP` : ''}
-                        </b>
-                      </strong>
-                      <small>{ability.description}</small>
-                    </li>
-                  ))}
-                </ul>
+                <SummonAbilityList
+                  abilities={selected.summon.abilities}
+                  policies={selected.summon.policies}
+                  airborne={selected.statuses.some((status) => status.statusId === 'airborne')}
+                />
               </section>
             ) : null}
 
@@ -405,16 +423,13 @@ export function PvpBattleInspectPopup({
                   {effectStatuses.map((status) => (
                     <li
                       key={`${status.statusId}:${status.statusVersion}`}
-                      data-tone={statusIsBeneficial(status.statusId) ? 'buff' : 'debuff'}
+                      data-tone={statusIsBeneficial(status.statusId, status) ? 'buff' : 'debuff'}
                     >
                       <strong>
-                        {statusLabel(status.statusId)}
+                        {statusLabel(status.statusId, status)}
                         <b>{formatStatusStackCount(status.statusId, status.stacks)}</b>
                       </strong>
-                      <small>
-                        {status.remainingOwnerTurnStarts} turn
-                        {status.remainingOwnerTurnStarts === 1 ? '' : 's'} remaining
-                      </small>
+                      <small>{statusDurationLabel(status)}</small>
                     </li>
                   ))}
                 </ul>

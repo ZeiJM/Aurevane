@@ -25,6 +25,14 @@ export const battleHallRecordIdSchema = z.enum([
 
 const combatTargetSelectionSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('self') }).strict(),
+  z
+    .object({
+      kind: z.literal('direction'),
+      direction: battleFacingSchema,
+      ground: z.literal(true).optional(),
+    })
+    .strict(),
+  z.object({ kind: z.literal('activate'), ground: z.literal(true).optional() }).strict(),
   z.object({ kind: z.literal('unit'), combatantId: combatantIdSchema }).strict(),
   z.object({ kind: z.literal('tile'), position: gridPositionSchema }).strict(),
 ])
@@ -49,8 +57,16 @@ const battleSessionCreateRequestSchema = z
     arenaId: tacticalHallArenaIdSchema.default('basic-training-floor'),
     aiDifficulty: battleAiDifficultySchema.default('standard'),
     battleHallRecordId: battleHallRecordIdSchema.default('recruit-sparring'),
+    allyCount: z.number().int().min(0).max(2).default(0),
+    enemyCount: z.number().int().min(1).max(5).default(1),
   })
   .strict()
+  .refine((request) => 1 + request.allyCount + request.enemyCount <= 6)
+  .refine(
+    (request) =>
+      request.battleHallRecordId === 'recruit-sparring' ||
+      (request.allyCount === 0 && request.enemyCount === 1),
+  )
 
 const battleIntentRequestSchema = z
   .object({

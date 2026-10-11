@@ -5,6 +5,19 @@ import type {
   CombatEffectRecipient,
 } from '@aurevane/game-core/combat/actions'
 import type { CombatElement } from '@aurevane/game-core/combat/gameplay-tags'
+import {
+  CLEANSE_STATUS_IDS,
+  isCleanseEffect,
+  isCleanseChilledEffect,
+} from '@aurevane/game-core/combat/combat-cleanse'
+import { DEFAULT_BLINDSIDE_MODIFIERS } from '@aurevane/game-core/combat/combat-blindside'
+
+import { useId, useState } from 'react'
+import {
+  parsePercentageBasisPoints,
+  percentageBasisPointsText,
+  percentageDotSequence,
+} from '@aurevane/game-core/combat/combat-percentage-dots'
 
 import styles from './combat-content-editor.module.css'
 
@@ -17,6 +30,9 @@ const PERCENTAGE_STATUS_IDS = new Set([
   'mark',
   'marked',
   'hexed',
+  'wet',
+  'conductive',
+  'suppress',
   'inspired',
   'summoned',
   'warded',
@@ -114,8 +130,8 @@ function damageEditor(value: DamageEffect, onChange: (next: CombatEffectDefiniti
           }}
         >
           <option value="">None</option>
-          <option value="armor">Armor</option>
-          <option value="ward">Ward</option>
+          <option value="armor">Physical Defense</option>
+          <option value="ward">Mystic Defense</option>
         </select>
       </label>
 
@@ -132,6 +148,7 @@ function damageEditor(value: DamageEffect, onChange: (next: CombatEffectDefiniti
           }}
         >
           <option value="">None</option>
+          <option value="ice">Ice</option>
           <option value="water">Water</option>
           <option value="storm">Storm</option>
           <option value="fire">Fire</option>
@@ -364,6 +381,144 @@ function damageEditor(value: DamageEffect, onChange: (next: CombatEffectDefiniti
   )
 }
 
+function PercentageInput({
+  label,
+  basisPoints,
+  allowZero = false,
+  onChange,
+}: {
+  label: string
+  basisPoints: number
+  allowZero?: boolean
+  onChange: (value: number) => void
+}) {
+  const id = useId()
+  const [draft, setDraft] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const display =
+    draft ?? (Number.isSafeInteger(basisPoints) ? percentageBasisPointsText(basisPoints) : '')
+  return (
+    <label className={styles.field}>
+      <span>{label}</span>
+      <input
+        aria-label={label}
+        type="text"
+        inputMode="decimal"
+        value={display}
+        aria-invalid={error !== null}
+        aria-describedby={error ? id : undefined}
+        onChange={(event) => {
+          const text = event.currentTarget.value
+          setDraft(text)
+          try {
+            onChange(parsePercentageBasisPoints(text, allowZero))
+            setError(null)
+          } catch {
+            setError(
+              'Enter ' + (allowZero ? '0' : '0.01') + '–100 with at most two decimal places.',
+            )
+            onChange(Number.NaN)
+          }
+        }}
+        onBlur={() => {
+          if (!error) setDraft(null)
+        }}
+      />
+      {error ? (
+        <span id={id} role="alert">
+          {error}
+        </span>
+      ) : null}
+    </label>
+  )
+}
+
+type DotEffect = Extract<CombatEffectDefinition, { type: 'burn' | 'poison' | 'bleed' }>
+function PercentageDotControls({
+  value,
+  onChange,
+}: {
+  value: DotEffect
+  onChange: (value: CombatEffectDefinition) => void
+}) {
+  const profile = value.damageProfile ?? {
+    kind: 'attack-percentage' as const,
+    basisPoints: value.type === 'burn' ? 2500 : value.type === 'poison' ? 1500 : 2000,
+    ...(value.type === 'burn' ? { decayBasisPointsPerTick: 500 } : {}),
+  }
+  const ticks =
+    value.type === 'bleed'
+      ? value.ticks
+      : (value.durationTurns ?? (value.type === 'poison' ? 4 : 3))
+  function changeProfile(next: typeof profile) {
+    const rest = { ...value }
+    delete rest.power
+    if (rest.type === 'bleed') {
+      const { damagePerTick, ...bleed } = rest
+      void damagePerTick
+      onChange({ ...bleed, damageProfile: next })
+      return
+    }
+    onChange({ ...rest, durationTurns: ticks, damageProfile: next })
+  }
+  let sequence: string
+  try {
+    sequence = percentageDotSequence(profile, ticks)
+  } catch {
+    sequence = 'Every scheduled percentage must be positive.'
+  }
+  return (
+    <div className={styles.typedGrid}>
+      {recipientField(
+        value.type[0]!.toUpperCase() + value.type.slice(1) + ' recipient',
+        value.recipient,
+        (recipient) => onChange({ ...value, recipient }),
+        ['primary-unit', 'affected-units'],
+      )}
+      <PercentageInput
+        label={
+          value.type === 'burn'
+            ? 'First tick (% of attack damage)'
+            : 'Damage per tick (% of attack damage)'
+        }
+        basisPoints={profile.basisPoints}
+        onChange={(basisPoints) => changeProfile({ ...profile, basisPoints })}
+      />
+      {value.type === 'burn' ? (
+        <>
+          <PercentageInput
+            label="Decay per tick (percentage points)"
+            basisPoints={profile.decayBasisPointsPerTick ?? 0}
+            allowZero
+            onChange={(decayBasisPointsPerTick) =>
+              changeProfile({ ...profile, decayBasisPointsPerTick })
+            }
+          />
+          <PercentageInput
+            label="Backlash (% of burning unit’s hostile damage)"
+            basisPoints={value.backlashBasisPoints ?? 1000}
+            allowZero
+            onChange={(backlashBasisPoints) => onChange({ ...value, backlashBasisPoints })}
+          />
+          <p className={styles.effectNote}>{sequence}. Backlash can trigger once per turn.</p>
+        </>
+      ) : null}
+      {!value.damageProfile ? (
+        <button type="button" onClick={() => changeProfile(profile)}>
+          Convert to attack percentage
+        </button>
+      ) : null}
+      {curseCopyableField(value.curseCopyable, (curseCopyable) =>
+        onChange({ ...value, curseCopyable }),
+      )}
+      <p className={styles.effectNote}>
+        Based on HP damage dealt by this attack. Add a direct Damage effect covering these
+        recipients.
+      </p>
+    </div>
+  )
+}
+
 function assertNever(value: never): never {
   throw new TypeError(`Unsupported combat effect editor variant: ${JSON.stringify(value)}`)
 }
@@ -379,6 +534,62 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
   switch (value.type) {
     case 'damage':
       controls = damageEditor(value, onChange)
+      break
+
+    case 'percentage-recovery':
+      controls = (
+        <div className={styles.typedGrid}>
+          {recipientField('Recovery recipient', value.recipient, (recipient) =>
+            onChange({ ...value, recipient }),
+          )}
+          <label className={styles.field}>
+            <span>Resource</span>
+            <select
+              aria-label="Recovery resource"
+              value={value.resource}
+              onChange={(event) =>
+                onChange({ ...value, resource: event.currentTarget.value as 'hp' | 'mp' })
+              }
+            >
+              <option value="hp">HP</option>
+              <option value="mp">MP</option>
+            </select>
+          </label>
+          <label className={styles.field}>
+            <span>Percent of recipient maximum</span>
+            <input
+              aria-label="Recovery percent"
+              type="number"
+              min={1}
+              max={100}
+              step={1}
+              value={value.percent}
+              onChange={(event) =>
+                onChange({ ...value, percent: integer(event.currentTarget.value, value.percent) })
+              }
+            />
+          </label>
+          <label className={styles.field}>
+            <span>Applications</span>
+            <input
+              aria-label="Recovery applications"
+              type="number"
+              min={1}
+              max={4}
+              step={1}
+              value={value.ticks ?? 1}
+              onChange={(event) => {
+                const ticks = integer(event.currentTarget.value, value.ticks ?? 1)
+                onChange({ ...value, ticks, durationTurns: Math.max(0, ticks - 1) })
+              }}
+            />
+          </label>
+          <p className={styles.effectNote}>
+            The recipient maximum and HP Hex adjustment are captured when cast; each application
+            reuses that amount.
+          </p>
+        </div>
+      )
       break
 
     case 'healing':
@@ -493,10 +704,24 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
               aria-label="Status ID"
               type="text"
               value={value.statusId}
-              onChange={(event) => onChange({ ...value, statusId: event.currentTarget.value })}
+              onChange={(event) => {
+                const next = { ...value, statusId: event.currentTarget.value }
+                if (next.statusId === 'blindside') {
+                  next.durationTurns = 1
+                  delete next.potencyBasisPoints
+                }
+                if (next.statusId === 'suppress') {
+                  next.stacks = 1
+                  next.durationTurns ??= 2
+                  next.potencyBasisPoints ??= 2500
+                  delete next.power
+                }
+                if (next.statusId !== 'blindside') delete next.blindsideModifiersBasisPoints
+                onChange(next)
+              }}
             />
             <small className={styles.fieldHint}>
-              Includes authored statuses such as Covert; Revealed is Sensory-owned.
+              Includes authored statuses such as Covert; Revealed is Reveal-owned.
             </small>
           </label>
           <label className={styles.field}>
@@ -506,12 +731,53 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
               type="number"
               min={1}
               step={1}
-              value={value.stacks}
+              max={value.statusId === 'suppress' ? 1 : undefined}
+              disabled={value.statusId === 'suppress'}
+              value={value.statusId === 'suppress' ? 1 : value.stacks}
               onChange={(event) =>
                 onChange({ ...value, stacks: integer(event.currentTarget.value, value.stacks) })
               }
             />
           </label>
+          {value.statusId === 'blindside' ? (
+            <>
+              {(['side', 'rear'] as const).map((direction) => (
+                <label className={styles.field} key={direction}>
+                  <span>{direction === 'side' ? 'Side' : 'Rear'} damage (%)</span>
+                  <input
+                    aria-label={`${direction === 'side' ? 'Side' : 'Rear'} damage (%)`}
+                    type="number"
+                    min={100}
+                    step={0.01}
+                    value={
+                      (value.blindsideModifiersBasisPoints ?? DEFAULT_BLINDSIDE_MODIFIERS)[
+                        direction
+                      ] / 100
+                    }
+                    onChange={(event) => {
+                      const percent = Number(event.currentTarget.value)
+                      const points = Math.round(percent * 100)
+                      onChange({
+                        ...value,
+                        blindsideModifiersBasisPoints: {
+                          ...(value.blindsideModifiersBasisPoints ?? DEFAULT_BLINDSIDE_MODIFIERS),
+                          [direction]:
+                            event.currentTarget.value.trim() &&
+                            Number.isFinite(percent) &&
+                            Math.abs(percent * 100 - points) < 0.000001
+                              ? points
+                              : Number.NaN,
+                        },
+                      })
+                    }}
+                  />
+                </label>
+              ))}
+              <small className={styles.fieldHint}>
+                160% damage means a 60% increase. Front damage stays at 100%.
+              </small>
+            </>
+          ) : null}
         </div>
       )
       break
@@ -540,8 +806,18 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
               }
             />
             <small className={styles.fieldHint}>
-              One to eight distinct status IDs. Use this for Cleanse/Dispel-style blocks.
+              {isCleanseChilledEffect(value)
+                ? 'Cleanse Chilled removes only Chilled from the authored recipient; other statuses remain.'
+                : 'Cleanse removes Burn, Bleed, Poison, Slow, Rooted, Vulnerable, Marked and Taunted. Dispel removes authored positive statuses.'}
             </small>
+            {isCleanseEffect(value) ? (
+              <button
+                type="button"
+                onClick={() => onChange({ ...value, statusIds: [...CLEANSE_STATUS_IDS] })}
+              >
+                Use standard Cleanse
+              </button>
+            ) : null}
           </label>
         </div>
       )
@@ -552,7 +828,11 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
         <div className={styles.effectStaticGrid}>
           <div className={styles.effectStatic}>
             <span>Effect</span>
-            <strong>Return to turn start</strong>
+            <strong>
+              {value.anchorMode === 'cast-position'
+                ? 'Return to captured cast tile'
+                : 'Return to turn start'}
+            </strong>
           </div>
           <div className={styles.effectStatic}>
             <span>Recipient</span>
@@ -567,7 +847,7 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
         <div className={styles.effectStaticGrid}>
           <div className={styles.effectStatic}>
             <span>Terrain</span>
-            <strong>Frozen terrain</strong>
+            <strong>Frozen Ground</strong>
           </div>
           <div className={styles.effectStatic}>
             <span>Recipient</span>
@@ -581,7 +861,7 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
       controls = (
         <div className={styles.typedGrid}>
           {recipientField(
-            'Displacement recipient',
+            `${value.direction === 'pull' ? 'Pull' : 'Push'} recipient`,
             value.recipient,
             (recipient) =>
               onChange({
@@ -591,9 +871,9 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
             ['primary-unit', 'affected-units'],
           )}
           <label className={styles.field}>
-            <span>Displacement direction</span>
+            <span>Push or Pull</span>
             <select
-              aria-label="Displacement direction"
+              aria-label="Push or Pull"
               value={value.direction ?? ''}
               onChange={(event) => {
                 const direction = event.currentTarget.value
@@ -608,9 +888,9 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
             </select>
           </label>
           <label className={styles.field}>
-            <span>Displacement distance</span>
+            <span>Tiles moved</span>
             <input
-              aria-label="Displacement distance"
+              aria-label="Tiles moved"
               type="number"
               min={1}
               step={1}
@@ -628,80 +908,9 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
       break
 
     case 'poison':
-      controls = (
-        <div className={styles.typedGrid}>
-          {recipientField('Poison recipient', value.recipient, (recipient) =>
-            onChange({ ...value, recipient }),
-          )}
-          {curseCopyableField(value.curseCopyable, (curseCopyable) =>
-            onChange({ ...value, curseCopyable }),
-          )}
-          <p className={styles.effectNote}>
-            Uses the current engine-owned Poison movement profile.
-          </p>
-        </div>
-      )
-      break
-
     case 'bleed':
-      controls = (
-        <div className={styles.typedGrid}>
-          {recipientField('Bleed recipient', value.recipient, (recipient) =>
-            onChange({ ...value, recipient }),
-          )}
-          <label className={styles.field}>
-            <span>Bleed damage per tick</span>
-            <input
-              aria-label="Bleed damage per tick"
-              type="number"
-              min={1}
-              max={20}
-              step={1}
-              value={value.damagePerTick}
-              onChange={(event) =>
-                onChange({
-                  ...value,
-                  damagePerTick: integer(event.currentTarget.value, value.damagePerTick),
-                })
-              }
-            />
-          </label>
-          <label className={styles.field}>
-            <span>Bleed ticks</span>
-            <input
-              aria-label="Bleed ticks"
-              type="number"
-              min={1}
-              max={4}
-              step={1}
-              value={value.ticks}
-              onChange={(event) =>
-                onChange({ ...value, ticks: integer(event.currentTarget.value, value.ticks) })
-              }
-            />
-            <small className={styles.fieldHint}>
-              Per-stack raw total may not exceed 10 damage.
-            </small>
-          </label>
-          {curseCopyableField(value.curseCopyable, (curseCopyable) =>
-            onChange({ ...value, curseCopyable }),
-          )}
-        </div>
-      )
-      break
-
     case 'burn':
-      controls = (
-        <div className={styles.typedGrid}>
-          {recipientField('Burn recipient', value.recipient, (recipient) =>
-            onChange({ ...value, recipient }),
-          )}
-          {curseCopyableField(value.curseCopyable, (curseCopyable) =>
-            onChange({ ...value, curseCopyable }),
-          )}
-          <p className={styles.effectNote}>Uses the current engine-owned Burn stage profile.</p>
-        </div>
-      )
+      controls = <PercentageDotControls value={value} onChange={onChange} />
       break
 
     case 'barrier-change':
@@ -732,9 +941,9 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
       controls = (
         <div className={styles.typedGrid}>
           <label className={styles.field}>
-            <span>Status copy mode</span>
+            <span>Copy mode</span>
             <select
-              aria-label="Status copy mode"
+              aria-label="Copy mode"
               value={value.mode}
               onChange={(event) =>
                 onChange({
@@ -743,8 +952,8 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
                 })
               }
             >
-              <option value="amplify">Amplify</option>
-              <option value="curse">Curse</option>
+              <option value="amplify">Copy Buffs</option>
+              <option value="curse">Copy Debuffs</option>
             </select>
           </label>
           <label className={styles.checkField}>
@@ -759,27 +968,7 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
             <span>Allow empty status copy on composed command</span>
           </label>
           <p className={styles.effectNote}>
-            Amplify/Curse clone eligible active statuses. This is not temporary-Skill Copy.
-          </p>
-        </div>
-      )
-      break
-
-    case 'copy':
-      controls = (
-        <div className={styles.effectStaticGrid}>
-          <div className={styles.effectStatic}>
-            <span>Effect</span>
-            <strong>Temporary Skill Copy</strong>
-          </div>
-          <div className={styles.effectStatic}>
-            <span>Source</span>
-            <strong>Selected primary unit</strong>
-          </div>
-          <p className={styles.effectNote}>
-            On a successful resolution, the server randomly grants one eligible committed regular
-            Skill from the selected unit for this battle. The copied Skill keeps its original MP,
-            targeting, effects, and requirements and costs half AP rounded up.
+            Copy Buffs/Copy Debuffs clone their eligible active statuses.
           </p>
         </div>
       )
@@ -809,7 +998,7 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
             />
           </label>
           <p className={styles.effectNote}>
-            Sensory conditionally purges eligible positive statuses, removes Covert, and applies
+            Reveal conditionally purges eligible positive statuses, removes Covert, and applies
             Revealed only on a successful hit against a Covert target.
           </p>
         </div>
@@ -827,14 +1016,15 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
     'displace',
     'barrier-change',
     'copy-statuses',
-    'copy',
     'sensory',
   ].includes(value.type)
   const fixedTerrain = value.type === 'create-terrain'
+  const fixedBlindside = value.type === 'apply-status' && value.statusId === 'blindside'
+  const maximumDuration = value.type === 'percentage-recovery' ? 3 : 4
   const minimumDuration = ['apply-status', 'bleed', 'burn', 'poison'].includes(value.type) ? 1 : 0
   const durationTurns =
     value.durationTurns ??
-    (value.type === 'healing'
+    (value.type === 'healing' || value.type === 'percentage-recovery'
       ? Math.max(0, (value.ticks ?? 1) - 1)
       : value.type === 'resource-change' && value.delta > 0
         ? Math.max(0, (value.ticks ?? 1) - 1)
@@ -849,11 +1039,10 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
                 : value.type === 'apply-status'
                   ? 2
                   : 0)
-  const supportsGenericPower = value.type === 'burn' || value.type === 'poison'
 
   function changeDuration(nextDuration: number) {
-    const duration = Math.max(minimumDuration, Math.min(4, nextDuration))
-    if (value.type === 'healing') {
+    const duration = Math.max(minimumDuration, Math.min(maximumDuration, nextDuration))
+    if (value.type === 'healing' || value.type === 'percentage-recovery') {
       onChange({ ...value, durationTurns: duration, ticks: duration + 1 })
       return
     }
@@ -872,45 +1061,30 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
     <div className={styles.effectEditor} data-effect-type={value.type}>
       {controls}
       <div className={styles.effectTuningGrid}>
-        <label className={styles.field}>
-          <span>Effect duration (turns)</span>
-          <input
-            aria-label="Effect duration (turns)"
-            type="number"
-            min={fixedImmediate ? 0 : fixedTerrain ? 2 : minimumDuration}
-            max={fixedImmediate ? 0 : fixedTerrain ? 2 : 4}
-            step={1}
-            disabled={fixedImmediate || fixedTerrain}
-            value={fixedImmediate ? 0 : fixedTerrain ? 2 : durationTurns}
-            onChange={(event) => changeDuration(integer(event.currentTarget.value, durationTurns))}
-          />
-          <small className={styles.fieldHint}>
-            {fixedImmediate
-              ? 'Immediate effect; [0 Turns] is intentionally omitted in player-facing details.'
-              : fixedTerrain
-                ? 'Frozen terrain uses the engine-owned two-round duration.'
-                : 'Positive durations persist through that many future turns.'}
-          </small>
-        </label>
-
-        {supportsGenericPower ? (
+        {!(value.type === 'damage' && ['ice', 'water', 'storm'].includes(value.element ?? '')) ? (
           <label className={styles.field}>
-            <span>Effect power</span>
+            <span>Effect duration (turns)</span>
             <input
-              aria-label="Effect power"
+              aria-label="Effect duration (turns)"
               type="number"
-              min={1}
-              max={20}
+              min={fixedBlindside ? 1 : fixedImmediate ? 0 : fixedTerrain ? 2 : minimumDuration}
+              max={fixedBlindside ? 1 : fixedImmediate ? 0 : fixedTerrain ? 2 : maximumDuration}
               step={1}
-              value={value.power ?? 1}
+              disabled={fixedImmediate || fixedTerrain || fixedBlindside}
+              value={fixedBlindside ? 1 : fixedImmediate ? 0 : fixedTerrain ? 2 : durationTurns}
               onChange={(event) =>
-                onChange({
-                  ...value,
-                  power: Math.max(1, Math.min(20, integer(event.currentTarget.value, 1))),
-                })
+                changeDuration(integer(event.currentTarget.value, durationTurns))
               }
             />
-            <small className={styles.fieldHint}>Bounded authored power: 1–20.</small>
+            <small className={styles.fieldHint}>
+              {fixedImmediate
+                ? 'Immediate effect; [0 Turns] is intentionally omitted in player-facing details.'
+                : fixedTerrain
+                  ? 'Frozen Ground uses the engine-owned two-round duration.'
+                  : fixedBlindside
+                    ? 'Expires at the end of the affected character’s turn.'
+                    : 'Positive durations persist through that many future turns.'}
+            </small>
           </label>
         ) : null}
 
@@ -921,19 +1095,31 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
               aria-label="Status potency (percent)"
               type="number"
               min={1}
-              max={50}
-              step={1}
-              value={(value.potencyBasisPoints ?? 1500) / 100}
+              max={value.statusId === 'suppress' ? 100 : 50}
+              step={['suppress', 'wet', 'conductive'].includes(value.statusId) ? 0.01 : 1}
+              value={
+                (value.potencyBasisPoints ??
+                  (value.statusId === 'suppress'
+                    ? 2500
+                    : ['wet', 'conductive'].includes(value.statusId)
+                      ? 2000
+                      : 1500)) / 100
+              }
               onChange={(event) =>
                 onChange({
                   ...value,
-                  potencyBasisPoints:
-                    Math.max(1, Math.min(50, integer(event.currentTarget.value, 15))) * 100,
+                  potencyBasisPoints: ['suppress', 'wet', 'conductive'].includes(value.statusId)
+                    ? Math.round(Number(event.currentTarget.value) * 100)
+                    : Math.max(1, Math.min(50, integer(event.currentTarget.value, 15))) * 100,
                 })
               }
             />
             <small className={styles.fieldHint}>
-              Used by percentage-based statuses such as Guarded or Exposed. 15 = 15%.
+              {value.statusId === 'suppress'
+                ? 'Outgoing direct-damage reduction. Never stacks; retains the highest percentage and longest remaining duration. 25 = 25%.'
+                : ['wet', 'conductive'].includes(value.statusId)
+                  ? 'Additional Storm damage captured on this explicit status tag. Default 20%. Matching elemental damage requires positive hostile actual HP loss after Barrier and a surviving recipient.'
+                  : 'Used by percentage-based statuses such as Guard or Vulnerable. 15 = 15%.'}
             </small>
           </label>
         ) : null}

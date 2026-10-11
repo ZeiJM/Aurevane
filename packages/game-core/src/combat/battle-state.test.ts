@@ -4,7 +4,9 @@ import {
   advanceBattleRng,
   createBattleRngState,
   createPendingBattle,
+  defeatCurrentCombatant,
   endTurn,
+  reorderBattleInitiative,
   selectFinalFacing,
   spendAction,
   spendMovement,
@@ -50,6 +52,24 @@ function battleInput(): CreatePendingBattleInput {
 }
 
 describe('P2.1 deterministic battle state', () => {
+  it('sorts large current initiative offsets without collapsing distinct priorities into a tie', () => {
+    const input = battleInput()
+    const pending = createPendingBattle({
+      ...input,
+      combatants: input.combatants.map((unit, index) => ({
+        ...unit,
+        initiative: index === 0 ? 100 : 10,
+      })),
+    })
+    let state: BattleState = { ...startBattle(pending).state, effectStackingPolicyVersion: 1 }
+    state = endTurn(selectFinalFacing(state, 'east').state).state
+    state = endTurn(selectFinalFacing(state, 'east').state, [
+      { combatantId: 'wayfarer', amount: Number.MAX_SAFE_INTEGER - 20 },
+      { combatantId: 'recruit', amount: Number.MAX_SAFE_INTEGER },
+    ]).state
+    expect(state.initiativeOrder).toEqual(['wayfarer', 'recruit'])
+  })
+
   it('creates byte-stable equivalent pending snapshots from identical inputs', () => {
     const first = createPendingBattle(battleInput())
     const second = createPendingBattle(battleInput())
@@ -90,6 +110,42 @@ describe('P2.1 deterministic battle state', () => {
     })
 
     expect(state.initiativeOrder).toEqual(['alpha', 'bravo', 'charlie'])
+  })
+
+  it('randomizes equal initiative once at start without consuming combat RNG', () => {
+    const input = battleInput()
+    const combatants = input.combatants.map((unit) => ({ ...unit, initiative: 12 }))
+    const winners = new Set<string>()
+    for (let rngSeed = 1; rngSeed <= 100; rngSeed++) {
+      const pending = createPendingBattle({ ...input, rngSeed, combatants })
+      const started = startBattle(pending).state
+      winners.add(started.currentTurn!.combatantId)
+      expect(startBattle(pending).state).toEqual(started)
+      expect(started.rng).toEqual(pending.rng)
+      expect(validateBattleState(JSON.parse(JSON.stringify(started)))).toEqual([])
+      let next = endTurn(selectFinalFacing(started, 'east').state).state
+      next = endTurn(selectFinalFacing(next, 'east').state).state
+      expect(next.initiativeOrder).toEqual(started.initiativeOrder)
+      const changed = endTurn(selectFinalFacing(next, 'east').state).state
+      const reprioritized = endTurn(selectFinalFacing(changed, 'east').state, [
+        { combatantId: started.initiativeOrder[1], amount: 20 },
+      ]).state
+      expect(reprioritized.initiativeOrder[0]).toBe(started.initiativeOrder[1])
+    }
+    expect([...winners].sort()).toEqual(['recruit', 'wayfarer'])
+  })
+
+  it('rejects duplicate or unknown persisted tie identities and retains legacy ordering', () => {
+    const started = startBattle(createPendingBattle(battleInput())).state
+    expect(
+      validateBattleState({ ...started, initiativeTieOrder: ['wayfarer', 'wayfarer'] }),
+    ).toContainEqual(expect.objectContaining({ field: 'initiativeTieOrder' }))
+    expect(validateBattleState({ ...started, initiativeTieOrder: ['unknown'] })).toContainEqual(
+      expect.objectContaining({ field: 'initiativeTieOrder' }),
+    )
+    const legacy = { ...started }
+    delete legacy.initiativeTieOrder
+    expect(validateBattleState(legacy)).toEqual([])
   })
 
   it('starts a deterministic turn with Movement Budget and one ready Action', () => {
@@ -343,4 +399,57 @@ describe('P2.1 deterministic battle state', () => {
 
     expect(() => startBattle(state)).toThrow('at least two active teams')
   })
+})
+
+it('normalizes current Initiative on terminal actor defeat without granting another turn', () => {
+  const pending = createPendingBattle({
+    battleId: 'dynamic-terminal-defeat',
+    rulesVersion: 3,
+    contentVersion: 2,
+    rngSeed: 9,
+    combatants: [
+      {
+        id: 'actor',
+        teamId: 'players',
+        initiative: 20,
+        baseMovementBudget: 4,
+        hp: 100,
+        maxHp: 100,
+        mp: 25,
+        maxMp: 25,
+      },
+      {
+        id: 'enemy',
+        teamId: 'opponents',
+        initiative: 19,
+        baseMovementBudget: 4,
+        hp: 100,
+        maxHp: 100,
+        mp: 25,
+        maxMp: 25,
+      },
+    ],
+  })
+  const active = reorderBattleInitiative({
+    ...startBattle(pending).state,
+    dynamicInitiativePolicyVersion: 1,
+    activeInitiativeModifiers: [{ combatantId: 'actor', amount: -2 }],
+  })
+  expect(active.initiativeOrder).toEqual(['actor', 'enemy'])
+  expect(validateBattleState(active)).toEqual([])
+  const out = defeatCurrentCombatant(active, 'actor')
+  expect(out.state.initiativeOrder).toEqual(['enemy', 'actor'])
+  expect(validateBattleState(out.state)).toEqual([])
+  expect(out.state.lifecycle).toBe('completed')
+  expect(out.state.currentTurn).toBeNull()
+  expect(out.state.round).toBe(active.round)
+  expect(out.state.turnNumber).toBe(active.turnNumber)
+  expect(out.state.combatants.find((unit) => unit.id === 'enemy')).toEqual(
+    active.combatants.find((unit) => unit.id === 'enemy'),
+  )
+  expect(out.events).toEqual([
+    { event: 'turn_ended', round: 1, turnNumber: 1, combatantId: 'actor' },
+    { event: 'battle_completed', winningTeamId: 'opponents' },
+  ])
+  expect(() => defeatCurrentCombatant(out.state, 'actor')).toThrow()
 })

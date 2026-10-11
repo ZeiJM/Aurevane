@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation'
 import { useMemo, useRef, useState } from 'react'
 
 import styles from './combat-content-editor.module.css'
+import { BattleFlavorTemplateHelp } from './battle-flavor-template-help'
 import { postCombatContentAuthoring } from './combat-content-client'
 import { CombatContentReviewPanel } from './combat-content-review-panel'
 import {
@@ -24,6 +25,7 @@ import {
 } from './combat-content-workflow'
 import { SkillEffectListEditor } from './skill-effect-list-editor'
 import { SkillMediaEditor } from './skill-media-editor'
+import { ResonanceParameters } from '../../character/resonance-parameters'
 
 export interface ResonanceContentEditorOption {
   readonly id: string
@@ -434,6 +436,10 @@ export function ResonanceContentEditor({
           </div>
 
           <div className={styles.authoringStack}>
+            <section className={styles.reviewBlock} aria-label="Resonance Skill preview">
+              <h3>Skill preview</h3>
+              <ResonanceParameters definition={selectedDraft} className={styles.resonancePreview} />
+            </section>
             <fieldset className={styles.typedGroup}>
               <legend>Identity &amp; presentation</legend>
               <div className={styles.typedGrid}>
@@ -459,6 +465,11 @@ export function ResonanceContentEditor({
                     }
                   />
                 </label>
+                <BattleFlavorTemplateHelp
+                  value={selectedDraft.flavorLine ?? ''}
+                  ability={selectedDraft.name}
+                  onChange={(flavorLine) => updateDraft({ ...selectedDraft, flavorLine })}
+                />
               </div>
             </fieldset>
 
@@ -531,9 +542,33 @@ export function ResonanceContentEditor({
                     </select>
                   </label>
                   <label className={styles.field}>
+                    <span>Skill matching</span>
+                    <select
+                      aria-label="Resonance Setup matching"
+                      value={setup.matchMode ?? 'required-tags'}
+                      onChange={(event) =>
+                        updateSetup(
+                          event.currentTarget.value === 'any-skill'
+                            ? { ...setup, matchMode: 'any-skill', requiredTags: [] }
+                            : {
+                                ...setup,
+                                matchMode: undefined,
+                                requiredTags: setup.requiredTags.length
+                                  ? setup.requiredTags
+                                  : ['attack'],
+                              },
+                        )
+                      }
+                    >
+                      <option value="required-tags">Require Skill tags</option>
+                      <option value="any-skill">Any Skill in this Discipline</option>
+                    </select>
+                  </label>
+                  <label className={styles.field}>
                     <span>Required tags</span>
                     <input
                       aria-label="Resonance Setup tags"
+                      disabled={setup.matchMode === 'any-skill'}
                       value={setup.requiredTags.join(', ')}
                       onChange={(event) =>
                         updateSetup({
@@ -543,7 +578,9 @@ export function ResonanceContentEditor({
                       }
                     />
                     <small className={styles.fieldHint}>
-                      One or two comma-separated canonical Skill tags.
+                      {setup.matchMode === 'any-skill'
+                        ? 'Every Skill in the Setup Discipline qualifies.'
+                        : 'One or two comma-separated canonical Skill tags.'}
                     </small>
                   </label>
                   <label className={styles.field}>

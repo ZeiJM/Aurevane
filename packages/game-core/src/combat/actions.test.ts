@@ -364,6 +364,83 @@ describe('P2.3 targeting, actions and effects', () => {
     )
   })
 
+  it('retains every Guarded application under the unlimited policy without changing historical caps', () => {
+    let state = { ...activeEncounter(), effectStackingPolicyVersion: 1 as const }
+    for (let application = 0; application < 7; application += 1) {
+      state = {
+        ...executeCombatAction(
+          state,
+          { ...P2_3_GUARD_ACTION, cost: { spendsAction: false, mp: 0 } },
+          { kind: 'self' },
+          P2_3_COMBAT_CONTENT,
+        ).state,
+        effectStackingPolicyVersion: 1,
+      }
+    }
+    expect(
+      state.statusState
+        .flatMap((row) => row.statuses)
+        .find((status) => status.statusId === 'guarded')?.stacks,
+    ).toBe(7)
+    expect(validateCombatEncounterState(state)).toEqual([])
+  })
+
+  it('keeps earlier Guard potency when a different magnitude is applied', () => {
+    const target = {
+      ...P2_3_GUARD_ACTION.target,
+      kind: 'unit' as const,
+      teamPolicy: 'enemy' as const,
+      friendlyFire: 'enemies-only' as const,
+      maximumRange: 5,
+    }
+    let state: CombatEncounterState = { ...activeEncounter(), effectStackingPolicyVersion: 1 }
+    for (const potencyBasisPoints of [1500, 4000])
+      state = executeCombatAction(
+        state,
+        {
+          ...P2_3_GUARD_ACTION,
+          target,
+          cost: { spendsAction: false, mp: 0 },
+          effects: [
+            {
+              type: 'apply-status',
+              recipient: 'primary-unit',
+              statusId: 'guarded',
+              stacks: 1,
+              potencyBasisPoints,
+            },
+          ],
+        },
+        { kind: 'unit', combatantId: 'recruit' },
+        P2_3_COMBAT_CONTENT,
+      ).state
+    const hit = executeCombatAction(
+      state,
+      {
+        ...P2_3_GUARD_ACTION,
+        target,
+        id: 'test.hit',
+        cost: { spendsAction: false, mp: 0 },
+        effects: [{ type: 'damage', recipient: 'primary-unit', amount: 100 }],
+      },
+      { kind: 'unit', combatantId: 'recruit' },
+      P2_3_COMBAT_CONTENT,
+    )
+    expect(hit.events).toContainEqual(
+      expect.objectContaining({ event: 'damage_applied', amount: 51 }),
+    )
+    const malformed = {
+      ...state,
+      statusState: state.statusState.map((row) => ({
+        ...row,
+        statuses: row.statuses.map((status) => ({ ...status, stacks: 3 })),
+      })),
+    }
+    expect(validateCombatEncounterState(malformed)).toContainEqual(
+      expect.objectContaining({ field: expect.stringContaining('applicationModifiers') }),
+    )
+  })
+
   it('Wait ends the turn without spending the Action after final facing is selected', () => {
     const state = withFinalFacing(activeEncounter(), 'east')
     const waited = waitCurrentTurn(state, P2_3_COMBAT_CONTENT)

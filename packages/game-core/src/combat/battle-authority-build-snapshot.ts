@@ -1,3 +1,4 @@
+import { parseSupportActionId } from './support-actions'
 import {
   readCombatBuildSnapshot,
   validateCombatBuildSnapshot,
@@ -62,6 +63,8 @@ function parseSnapshot(value: unknown): CombatBuildSnapshot | null {
     })
   }
 
+  const supportActionId = parseSupportActionId(value.supportActionId)
+  if (Object.hasOwn(value, 'supportActionId') && !supportActionId) return null
   const resonance = value.extensions.resonance
   const essence = value.extensions.essence
   const snapshot: CombatBuildSnapshot = {
@@ -76,6 +79,7 @@ function parseSnapshot(value: unknown): CombatBuildSnapshot | null {
     },
     secondary,
     disciplineSkills: disciplineSkills.sort((left, right) => left.slotIndex - right.slotIndex),
+    ...(supportActionId ? { supportActionId } : {}),
     extensions: {
       resonance:
         resonance === null

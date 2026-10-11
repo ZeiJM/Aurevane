@@ -40,7 +40,7 @@ const overrides: Record<string, ManualArticle> = {
         bullets: [
           'Create or sign in to an account and safely return to the same private profile.',
           'Create characters in three roster slots with six core attributes and a starting Discipline.',
-          'Configure your Primary and optional Secondary Discipline in Profile, with server-calculated stats and committed Skill choices.',
+          'Configure your Primary and optional Secondary Discipline in Loadout → Nexus, with server-calculated stats and committed Skill choices.',
           `Pure builds select up to ${PURE_DISCIPLINE_SKILL_CAPACITY} learned Discipline Techniques plus Essence. Mixed builds select up to ${MIXED_DISCIPLINE_SKILL_CAPACITY} total Techniques plus an eligible Resonance; a full loadout must use both Disciplines (1+3, 2+2 or 3+1). Each mature Discipline has eight learnable Skills: eight available to a pure build, or 16 across a fully authored pair. The pure-Discipline Essence or matching mixed-Discipline Resonance is separate from those four selections. Signature coverage depends on the authored Disciplines.`,
           'Set the current character’s one personal title from Account → Titles & Profile Display.',
           'Progress through the versioned Character XP and level foundation.',
@@ -52,7 +52,7 @@ const overrides: Record<string, ManualArticle> = {
         id: 'navigation',
         title: 'Finding things',
         paragraphs: [
-          'Manual, News, and Rules live in the authenticated header. Account contains audio, Controls & Keybinds, Titles & Profile Display, Switch Character, and sign-out. The compact footer Navigation menu contains the destinations other than the page you are currently viewing, including Profile, Battle Hall, Passive Training, and Online Users where applicable.',
+          'Manual, News, and Rules live in the authenticated header. Account contains audio, Controls & Keybinds, Titles & Profile Display, Switch Character, and sign-out. The compact character rail links Haven, Profile, Loadout, Travel, Battle and Training. On phones these destinations move to a fixed bottom bar. Items is a Coming Soon destination inside Loadout; Online Users remains in the footer.',
           'Normal game screens show a small circular portrait beside the green screen-name indicator in the shared header. The AUREVANE A-in-diamond remains the brand crest. Active battle uses its own combat HUD instead of the shared screen header.',
         ],
       },
@@ -98,14 +98,14 @@ const overrides: Record<string, ManualArticle> = {
         title: 'What is a Discipline?',
         paragraphs: [
           'A Discipline is a learnable combat tradition that establishes your first tactical direction. It is not a permanent class lock. Discipline Mastery Trials let characters deepen, broaden, and combine what they know.',
-          'The starting choices are Vanguard, Farstrider, Shadehand, Ironfist, Aetherist and Lifebinder. Profile supports Primary and optional Secondary configuration. Published mature Disciplines have eight learnable Techniques and a pure Essence, with mixed pairs receiving authored Resonances as their content is published. Technique cards show targeting and effect tags; expand Skill details for range, effects and requirements. Mastery Trials and the Discipline Atlas track the eventual acquisition paths. During development testing, a separate server-owned testing entitlement keeps every published Discipline available without counting that access as earned Mastery or satisfying its release requirements. Planned Disciplines remain unavailable until their combat content is actually published. Supernatural paths and later world-based acquisition remain later work.',
+          'The starting choices are Vanguard, Farstrider, Shadehand, Ironfist, Aetherist and Lifebinder. Loadout → Nexus supports Primary and optional Secondary configuration. Published mature Disciplines have eight learnable Techniques and a pure Essence, with mixed pairs receiving authored Resonances as their content is published. Technique cards show targeting and effect tags; expand Skill details for range, effects and requirements. Mastery Trials and the Discipline Atlas track the eventual acquisition paths. During development testing, a separate server-owned testing entitlement keeps every published Discipline available without counting that access as earned Mastery or satisfying its release requirements. Planned Disciplines remain unavailable until their combat content is actually published. Supernatural paths and later world-based acquisition remain later work.',
         ],
       },
       {
         id: 'slots-and-entry',
         title: 'Slots, creation, and switching',
         paragraphs: [
-          'Accounts have three character slots. Successful creation makes the new character active and takes you directly into the game instead of bouncing back to Character Select.',
+          'Accounts have three character slots. Successful creation makes the new character active and takes you to Haven, your personal hub for Current Path, training and updates.',
           'Character Select is available when entering an authenticated session and through Account → Switch Character. If you swap away from a character, that character has a server-authoritative one-hour return cooldown before you can select it again.',
         ],
       },
@@ -135,7 +135,7 @@ const overrides: Record<string, ManualArticle> = {
         bullets: [
           'Maximum HP and Maximum MP',
           'Physical Power and Mystic Power',
-          'Armor and Ward',
+          'Physical Defense and Mystic Defense',
           'Accuracy and Evasion',
           'Critical Chance',
           'Initiative',
@@ -147,10 +147,11 @@ const overrides: Record<string, ManualArticle> = {
         id: 'relationships',
         title: 'How the new split works',
         paragraphs: [
-          'Might → Physical Power. Finesse → Accuracy and Critical Chance. Vitality → Maximum HP and Armor. Agility → Initiative, Movement, Jump and Evasion. Intellect → Maximum MP and Mystic Power. Resolve → Ward and Status Resistance.',
-          'Character Level matures survivability, reliability and mobility across Levels 1–100, but it does not increase Physical Power or Mystic Power directly. Instead, relative Level modifies direct combat damage: opponents within 20 Levels stay close to even, while larger gaps ramp more sharply.',
+          'Might → Physical Power. Finesse → Accuracy and Critical Chance. Vitality → Maximum HP and Physical Defense. Agility → Initiative, Movement, Jump and Evasion. Intellect → Maximum MP and Mystic Power. Resolve → Mystic Defense and Status Resistance.',
+          'Core Stats determine the current baseline Adventure Stats independently of Level. Relative Level separately modifies direct combat damage: opponents within 20 Levels stay close to even, while larger gaps ramp more sharply.',
           techniquePowerSummary,
-          'Critical Chance caps at 30%, Evasion at 15%, Movement at 5 and Jump at 3. Primary focus Core Stats currently cap at 60; non-focus Core Stats currently cap at 40.',
+          'At Core 40/60, Accuracy is 110%/140%, Evasion 25%/55%, Critical Chance 15%/20%, Initiative 100/120 and Status Resistance 10%/15%. Accuracy starts at 85%; Evasion and Status Resistance start at 0. Movement starts at 2 and reaches its cap 4 at Core 40; Jump starts at 0 and reaches its cap 3 at Core 40. Primary focus Core Stats currently cap at 60; non-focus Core Stats currently cap at 40.',
+          'Power and matching Defense each start at 40 and gain 2 per relevant Core. Maximum HP starts at 80, gains 10.5 per Vitality through 40 and 7.5 thereafter. Maximum MP starts at 16, gains 9.6 per Intellect through 40 and 5 thereafter, with final values rounded down. The Core 40/60 HP endpoints are 500/650 and MP 400/500. MP recovery and drain remain deliberate tempo tools with their authored AP, cooldown and targeting limits.',
           'Attribute Management lets you spend earned points or reset your full personal allocation, including creation points. Five resets replenish together 30 days after the first reset in a fresh window. Your Primary’s fixed base remains separate.',
         ],
       },
@@ -311,7 +312,7 @@ const battleHallArticle: ManualArticle = {
   title: 'Battle Hall & Action Economy',
   summary: 'How the current practice battles, AP spending, previews, facing, and combat log work.',
   category: 'Combat',
-  lastUpdated: '2026-09-12',
+  lastUpdated: '2026-10-07',
   rulesVersion: 'Current AP and character mobility rules',
   body: [
     {
@@ -326,7 +327,7 @@ const battleHallArticle: ManualArticle = {
       title: 'Discipline Mastery Trials',
       paragraphs: [
         'Choose Discipline Mastery Trial. Its opponent uses the server-owned High AI profile. Win using at least two different regular Primary Skills across at least three Primary Skill commands, without a player turn-timer expiry, then claim up to 50 Mastery XP from the result panel. Each battle awards once. Your frozen Primary at battle entry receives the XP.',
-        'Stages are Initiate, Practiced at 100 XP, Adept at 300, Expert at 600 and Master at 1,000. Master also requires demonstrating all eight regular Skills across qualifying victories. Mastery makes a Discipline eligible as Secondary. Profile → Discipline Management → Discipline Atlas & Mastery shows earned progress, unmet prerequisites and separate testing access. Named Mastery Rites are planned future content.',
+        'Stages are Initiate, Practiced at 100 XP, Adept at 300, Expert at 600 and Master at 1,000. Master also requires demonstrating all eight regular Skills across qualifying victories. Mastery makes a Discipline eligible as Secondary. Loadout → Nexus → Manage Disciplines → Discipline Atlas & Mastery shows earned progress, unmet prerequisites and separate testing access. Named Mastery Rites are planned future content.',
         'Advanced Disciplines teach four Skills at Initiate, two more at Practiced and two at Adept. Ordinary AI Sparring, Guided Fundamentals and Passive Training do not award Discipline Mastery. Trials grant no Character XP, loot or Crowns.',
       ],
     },
@@ -334,44 +335,59 @@ const battleHallArticle: ManualArticle = {
       id: 'named-effects',
       title: 'Targeting and named effects',
       paragraphs: [
-        'Technique tags show who a Skill targets, its single/area/line shape and its effects. Expand Skill details for exact recipients, range, AP/MP cost and requirements. Burn, Bleed and Poison cause fixed damage at affected turn end; Regeneration restores HP then. Slow raises movement AP cost; Root prevents movement while leaving other commands available. Cleanse removes its listed negative effects.',
-        'Current Mark gives its source +15 percentage points Accuracy against the marked target. Historical Marked versions increased incoming damage only from their source. Challenged reduces damage dealt to anyone except its source. Warded reduces damage taken from burning opponents. The rare Reckless effect increases both damage dealt and damage taken; Fortified reduces both. Each tradeoff keeps its benefit and drawback together when it expires or is removed.',
+        'New battles calibrate hostile direct damage for approximately twelve-round level-100 direct-pressure reference duels. Hit chance adds −5 percentage points against a target facing you, +5 from the side and +10 from behind before clamping to 0–100%. Builds, terrain, healing and tactics still change fight duration.',
+        'Items is the locked coming-soon slot before Inspect, default P. It does not execute a battle action. Existing custom hotkeys are preserved.',
+        'New battles pin their effect timing. Effects default to the following global round; direct damage and HP/MP recovery happen instantly. Delayed icons appear immediately as Pending, then become Active. Ordinary non-instant statuses cover their full stated global rounds. Instant timing overrides retain their owner-turn lifetime, and DoTs retain their scheduled affected-turn-end ticks. Hover or select its icon for the meaning and turns remaining. Older battles keep their original timing.',
+        'Technique tags show who a Skill targets, its single/area/line shape and its effects. Expand Skill details for exact recipients, range, AP/MP cost and requirements. Current attack-based Burn, Bleed and Poison deal their authored percentage of the original attack’s captured HP damage at affected turn end; Poison ticks once per affected turn, and every five accumulated traversed tiles, including Push or Pull, reset its remaining duration to the recorded original duration without extra damage. Reapplication keeps the greater percentage and original duration independently, resets movement progress and restarts that full duration. Partial movement carries between turns; instantaneous relocation does not count. Historical fixed versions and battles retain their recorded damage and trigger rules; Repeated Heal effects restore HP at affected turn end. Slow raises movement AP cost; Rooted prevents movement while leaving other commands available. Cleanse removes Burn, Bleed, Poison, Slow, Rooted, Vulnerable, Marked and Taunted.',
+        'Current Mark gives its source +15 percentage points Accuracy against the marked target. Taunted reduces damage dealt to anyone except its source. Burn Ward reduces damage taken from burning opponents. The rare Reckless effect increases both damage dealt and damage taken; Fortified reduces both. Each tradeoff keeps its benefit and drawback together when it expires or is removed.',
         'Skill damage checks armor for physical attacks and ward for mystic attacks, separately for each hit and affected unit. Current effect power is authored on a bounded 1–20 scale where applicable, and persistent duration is part of the Skill’s balance budget. Percentage-based statuses can use per-Skill potency overrides; the preview shows the actual value for that Skill version. Conditional modifiers remain bounded to a safe combined range.',
+      ],
+    },
+    {
+      id: 'battle-chronicle',
+      title: 'Reading the Battle Chronicle',
+      paragraphs: [
+        'The Battle Chronicle groups short technique scenes and recorded outcomes by character within each round. Damage is crimson, HP/MP recovery green, and Essence or Resonance headings gold. Its header shows the recorded round in gold. Current and previous rounds start expanded; use earlier round chevrons to reveal or hide complete history. The current round stays open, and live updates preserve a round you are reading or deliberately opened. Hover or select a named effect for its standard explanation. The first ordinary movement per character per round remains visible; repeated movement, final facing, end turn and fading effects stay on the board and character rails rather than repeating the story.',
       ],
     },
     {
       id: 'elemental-tags',
       title: 'Elemental setup and payoffs',
       paragraphs: [
-        'Scorched, Bleeding and Poisoned are the gameplay tags for Burn, Bleed and Poison. Skills can require tags such as Frozen or Conductive; their details explain which setup is needed before a payoff becomes legal.',
-        'Battle Technique buttons and their skill pickers show target, shape and effect tags from the build committed to that battle. Tags describe the full Technique; the target preview shows its actual legal effects, costs, cooldown legality and requirements before confirmation. Dispel removes listed protection; Cleanse removes listed harmful effects.',
-        'Water Skills can apply Wet. Against Wet or Conductive, the first positive storm hit per target per command gains a bounded 20% bonus. Conductive is consumed; Wet remains. Having both conditions does not double the bonus. Positive fire damage clears Wet and Frozen from the damaged unit.',
+        'Burn, Bleed and Poison are damage-over-time tags. Chilled applies to units; Frozen Ground applies to terrain. Skills can require tags such as Chilled or Conductive; their details explain which setup is needed before a payoff becomes legal.',
+        'Battle Technique buttons and their skill pickers show target, shape and effect tags from the build committed to that battle. Tags describe the full Technique; the informational target forecast shows its effects, costs, cooldown legality and requirements while you aim. A deliberate execution gesture submits directly to server validation without waiting for a matching forecast. Dispel removes listed protection; Cleanse removes listed harmful effects.',
+        'Ice Skills with an explicit Chilled tag apply it after positive hostile HP damage. Chilled locks final facing to the current direction; movement still faces normally. Water Skills with an explicit Drenched tag apply it after positive hostile HP damage, reducing effective Initiative by 10% per application while active, capped at 100% reduction (minimum 0 Initiative), including current-round tempo. Future unacted turns reorder safely; the active character keeps their turn, and nobody gains an extra turn. Pending effects grant no Initiative change.',
+        'Drenched adds its strongest active captured Storm damage bonus, normally 20%. Storm consumes an old Conductive charge for its captured bonus and applies a fresh charge only when the Skill has an explicit Conductive tag. Repeated damage in the same cast cannot consume the new charge. Conductive and Drenched each contribute their strongest active captured bonus once per recipient per command. These debuffs require positive hostile HP damage after Barrier; misses, fully absorbed hits and lethal hits grant no new debuff. The separate status row owns its captured potency and duration. Their default Instant lifetime is two affected turns from damage settlement; explicitly configured Normal or Delayed timing uses full rounds as shown in Skill details.',
+        'Current Fire Skills show a separate Cleanse Chilled tag that removes Chilled from the caster only; other statuses remain. Its default Instant timing applies on a legal cast, including an empty Ground cast or a miss; authored timing overrides are shown in Skill details. Drenched and hostile recipients’ Chilled remain until their normal expiry or explicit removal. Select an enemy or ground tile with the ordinary board controls for Fire Skills; Ground intent preserves the same costs and geometry and misses Airborne. Historical battles keep their captured elemental rules.',
       ],
     },
     {
       id: 'ground-effects',
       title: 'Ground targeting and temporary terrain',
       paragraphs: [
-        'Ground Skills select a tile, including empty ground. Choose the Skill, select its tile and review the affected area before confirming. Previews spend no AP or MP and stay silent. A Skill’s affected-team rule governs its unit effects; temporary terrain affects either team.',
-        `${COMBAT_TERRAIN_OVERLAY_DETAILS.frozen.name} terrain: ${COMBAT_TERRAIN_OVERLAY_DETAILS.frozen.description} Fire on affected Frozen tiles converts them to Steam, including empty tiles. ${COMBAT_TERRAIN_OVERLAY_DETAILS.steam.name}: ${COMBAT_TERRAIN_OVERLAY_DETAILS.steam.description} Both overlays last ${COMBAT_TERRAIN_OVERLAY_DETAILS.frozen.roundBoundaries} round boundaries. Refreshing an overlay renews its duration without stacking it.`,
-        'Slow and base-terrain AP costs still apply with Airborne, and Root still prevents movement. Inspect the tile and movement preview for its current cost and remaining duration. Your Movement allowance remains a separate limit even when AP is available.',
-        'Single-unit Resonance payoffs wait for a unit-targeted Skill. Ground casts preserve that setup for a later eligible action, and empty ground cannot generate an actor reward. Current Skill versions use authored 1–3 turn cooldowns rather than the retired consecutive-repeat falloff.',
+        'Ground previews are orange and show only the authored footprint. Single Ground Skills select one tile, including empty ground. Current Line Skills choose a cardinal direction; Circle Skills immediately preview around the caster; All Ground previews every eligible battlefield tile. Choose the Skill and confirm deliberately. Detecting a target does not hide other potential tiles. An explicit Line aim may focus one complete lane; leaving or canceling that aim restores the potential lanes. Previews spend no AP or MP and stay silent. A Skill’s affected-team rule governs its unit effects; temporary terrain affects either team.',
+        'Persistent Ground Skills keep their marked tiles for the stated global-round duration, activating next round unless Instant. Pending markers are static; active areas animate until expiry or battle completion. Eligible occupants receive the cast effects. Entering an active area applies its supported unit effects once per character’s turn cycle per cast; repeat moves and re-entry share that allowance, while separate casts are independent. Push/Pull checks each traversed tile; relocation checks only the landing tile. Entry repeats no command costs, cooldowns, caster buffs or Resonance. Unit statuses can outlast the area. Pure Frozen/Steam terrain and summons keep their separate rules.',
+        `${COMBAT_TERRAIN_OVERLAY_DETAILS.frozen.name} terrain: ${COMBAT_TERRAIN_OVERLAY_DETAILS.frozen.description} Fire on affected Frozen tiles converts them to Steam, including empty tiles. ${COMBAT_TERRAIN_OVERLAY_DETAILS.steam.name}: ${COMBAT_TERRAIN_OVERLAY_DETAILS.steam.description} Frozen Ground normally lasts ${COMBAT_TERRAIN_OVERLAY_DETAILS.frozen.roundBoundaries} round boundaries. Fire conversion keeps the remaining life of ordinary or persistent ice, rather than restarting it; Steam gently animates, or stays static with reduced motion. Refreshing an overlay renews its duration without stacking it.`,
+        'Airborne makes every Ground-targeted Skill miss its holder, including area activations and entry effects. While active, the holder’s Jump is 3 for entering elevated tiles, and only their Attack Skills have Target Elevation 3. Both return to their normal values when Airborne ends. Slow and base-terrain AP costs still apply with Airborne, and Rooted still prevents movement. Inspect the tile and movement preview for its current cost and remaining duration. Your Movement allowance remains a separate limit even when AP is available.',
+        'Single-unit Resonance payoffs wait for a unit-targeted Skill. Ground casts preserve that setup for a later eligible action, and empty ground cannot generate an actor reward. Current Skill versions use authored 1–3 turn cooldowns rather than the retired consecutive-repeat falloff. Cooling-down actions show grey artwork and a remaining-turn number in the cockpit. They cannot be selected or cast by click or hotkey until the authoritative cooldown clears; the number advances on your turns, not on a wall-clock timer.',
+        'The Terrain Key lists every terrain type, one per row. A green dot marks Active terrain present on the battlefield; a red dot and greyed texture mark Inactive terrain. These markers update as terrain overlays appear or expire. Select a terrain to read its effects.',
       ],
     },
     {
       id: 'protection-and-position',
       title: 'Protection, concealment and displacement',
       paragraphs: [
-        'Inspired adds 10% outgoing damage within the conditional modifier budget. Hexed reduces incoming direct and periodic healing by 25%. Summoned is temporary spirit protection that reduces incoming damage by 15% within the same budget and can be dispelled; it grants no extra combatant or turn.',
+        'Damage Up adds 10% outgoing damage within the conditional modifier budget. Healing Down reduces incoming HP and MP recovery by 25%, including periodic recovery. Blindside activates only on a successful side or rear Skill hit with a modifier above 100%; front hits and misses do not grant or refresh it. It is an Instant one-turn buff: by default, Skill damage is 100% from the front, 160% from the side and 220% from the rear per application. It expires at the end of its holder’s turn and does not enhance Basic Attack. Master can edit each Skill’s side and rear Blindside percentages. Perfect Opening uses one power-20 hit plus Blindside. Summon Skills create actual allied summon combatants with their own turns.',
         'Invisible prevents hostile direct unit selection. Ground and area effects can still hit the concealed unit. Taking positive damage or making a damaging command breaks concealment, including a missed basic attack.',
-        'A push moves its target one tile away if the destination is within the board, passable, vacant and legal for its elevation. Root resists it. A successful push applies Displaced briefly; a blocked push keeps the action’s cost and leaves the target in place. The preview and combat log show the result.',
+        'Push moves the target away; Pull moves it toward the caster without entering the caster’s tile. Each follows its authored tile distance and stops at board edges, obstacles, living occupants, illegal elevation or Rooted. No additional status is applied, and resources are not refunded. The preview and Chronicle show the actual movement.',
       ],
     },
     {
       id: 'ap',
       title: 'Action Economy',
       paragraphs: [
-        `A turn starts with 100 AP. Normal ground costs ${PV1F_MOVEMENT_COST_PER_TERRAIN_POINT} AP per tile; rough ground has terrain weight 2 and costs ${2 * PV1F_MOVEMENT_COST_PER_TERRAIN_POINT} AP. Basic Attack and Guard cost 30 AP; Recover costs 50 AP. Movement also obeys your remaining Movement allowance, even when AP remains. Movement starts at 2 and caps at 5; Jump starts at 0 and caps at 3.`,
+        `A turn starts with 100 AP. Normal ground costs ${PV1F_MOVEMENT_COST_PER_TERRAIN_POINT} AP per tile; rough ground has terrain weight 2 and costs ${2 * PV1F_MOVEMENT_COST_PER_TERRAIN_POINT} AP. Basic Attack and Guard cost 30 AP; Recover costs 50 AP. Every tile entered spends 1 Movement, including rough or Frozen Ground; terrain, Haste and Slow change AP cost, not the number of Movement steps. Movement also obeys your remaining Movement allowance, even when AP remains. Movement starts at 2 and caps at 4; Jump starts at 0 and caps at 3.`,
+        'Guard has its own two-owner-turn cooldown. HP Recovery and MP Recovery share a separate two-turn cooldown. A successful use starts that action’s cooldown; server turn progression makes it available again. Recovery immediately restores 10% of the maximum resource, capped at its maximum.',
         'Selecting a legal action proposes the AP spend before commitment. The AP bar shows the proposed segment with a temporary glow; after confirmation the authoritative committed value becomes the new solid remainder.',
       ],
     },
@@ -387,8 +403,8 @@ const battleHallArticle: ManualArticle = {
       id: 'planning',
       title: 'Choose first — nothing is forced',
       paragraphs: [
-        'The battle does not begin in Move mode. You can Inspect, Move, Basic Attack, Guard, Recover, or Finish Turn as the situation allows. Confirm Action, Enter, or a deliberate double-click/double-tap commits a legal proposal.',
-        'Cancel Action clears the current proposal without committing it. Abort Battle ends the practice battle as abandoned.',
+        'Choose a cockpit action or press its hotkey to select it; aim forecasts are informational. Click a valid target or use WASD in its direction to submit the selected intent directly to the server. For a Skill aimed at yourself, press its hotkey again to cast. The server validates the current battle version and every action rule before accepting it. The action stays selected while the same turn continues. Move highlights the full legal destination range and can cover a legal path in one click; Movement allowance, AP, terrain, elevation and active statuses still apply.',
+        'Cancel Action clears the selection without committing it. Surrender ends the practice battle as abandoned.',
       ],
     },
     {
@@ -402,7 +418,9 @@ const battleHallArticle: ManualArticle = {
       id: 'reading-battle',
       title: 'Reading the battlefield',
       paragraphs: [
-        'Combatant cards keep only high-value information visible by default. Click a combatant to inspect Initiative, Movement, Jump, Armor, Evasion, and current facing. Status icons open above the battle layer so their details stay readable.',
+        'Combatant cards keep only high-value information visible by default. Click a combatant to inspect Initiative, Movement, Jump, Physical Defense, Mystic Defense, Evasion, and current facing. Status icons open above the battle layer so their details stay readable.',
+        'In new battles, entering a raised tile requires Jump at least equal to its absolute height. Height 1/2/3 grants 15/20/25 percentage points of Evasion and reduces both defenses by 20% while you remain there. Skill Target Elevation at least equal to target height bypasses only the terrain Evasion bonus. Active rail icons explain these effects; leaving the tile removes them.',
+        'Hit chance is Accuracy minus target Evasion, with authored accuracy/status modifiers and a final 0–100% clamp. Status Resistance can cancel ordinary hostile Skill debuffs while damage still applies. Essence, Resonance, Ascension and Severance effects bypass it. Saved historical battles keep their pinned rules.',
         'The Combat Log groups the sibling events from one committed action into a single action entry. Solo Battle Chat is also available for self-notes and interface testing.',
       ],
     },

@@ -1,3 +1,6 @@
+import { airborneGroundMiss, airborneAttackAction } from './combat-airborne'
+import { terrainEvasionBonusBasisPoints } from './combat-stat-balance'
+import { facingHitChanceModifierBasisPoints } from './combat-duel-balance'
 import { advanceBattleRng } from './battle-state'
 import { combatAccuracyStatusModifier } from './combat-accuracy-status'
 import type {
@@ -26,6 +29,7 @@ export interface CombatSkillAccuracyResolvedEvent extends CombatTargetHitChance 
   sourceCombatantId: string
   rollBasisPoints: number
   hit: boolean
+  effectOrdinals?: readonly number[]
   accuracyRulesVersion: typeof COMBAT_SKILL_ACCURACY_RULES_VERSION
 }
 
@@ -70,6 +74,9 @@ export function forecastCombatSkillAccuracyForTarget(
   content: CombatContentCatalog,
 ): CombatTargetHitChance | null {
   validateCombatAccuracyDefinition(action)
+  if (airborneGroundMiss(state, action, targetCombatantId, content))
+    return { targetCombatantId, hitChanceBasisPoints: 0 }
+  action = airborneAttackAction(state, action, content)
   if (action.accuracyMode !== 'per-target') return null
 
   const actor = state.tactical.battle.combatants.find((unit) => unit.id === actorId)
@@ -83,8 +90,17 @@ export function forecastCombatSkillAccuracyForTarget(
     targetCombatantId,
     hitChanceBasisPoints: calculateHitChanceBasisPoints(
       { accuracy: committedRating(state, actorId, 'accuracy') },
-      { evasion: committedRating(state, targetCombatantId, 'evasion') },
+      {
+        evasion:
+          committedRating(state, targetCombatantId, 'evasion') +
+          terrainEvasionBonusBasisPoints(
+            state,
+            targetCombatantId,
+            action.target.maximumElevationDifference,
+          ),
+      },
       (action.accuracyModifierBasisPoints ?? 0) +
+        facingHitChanceModifierBasisPoints(state, actorId, targetCombatantId) +
         combatAccuracyStatusModifier(state, actorId, targetCombatantId, content),
     ),
   }
@@ -140,7 +156,12 @@ export function forecastCombatSkillAccuracy(
   content: CombatContentCatalog,
 ): CombatActionEvaluation {
   validateCombatAccuracyDefinition(action)
-  if (!evaluation.legal || !evaluation.actorId || action.accuracyMode !== 'per-target')
+  if (
+    !evaluation.legal ||
+    !evaluation.actorId ||
+    (action.accuracyMode !== 'per-target' &&
+      !(state.airbornePolicyVersion === 1 && action.target.kind === 'ground-tile'))
+  )
     return evaluation
   const actorId = evaluation.actorId
   const actor = state.tactical.battle.combatants.find((unit) => unit.id === actorId)
@@ -158,7 +179,10 @@ export function forecastCombatSkillAccuracy(
     .filter((id) => {
       const target = state.tactical.battle.combatants.find((unit) => unit.id === id)
       if (!target) throw new TypeError('Combat accuracy requires a committed recipient.')
-      return target.hp > 0 && target.teamId !== actor.teamId
+      return (
+        target.hp > 0 &&
+        (target.teamId !== actor.teamId || airborneGroundMiss(state, action, id, content))
+      )
     })
     .sort((left, right) => (left < right ? -1 : left > right ? 1 : 0))
   const targetHitChances = hostileIds.flatMap((targetCombatantId) => {
@@ -187,7 +211,12 @@ export function rollCombatSkillAccuracy(
 } {
   const missedCombatantIds = new Set<string>()
   const events: CombatSkillAccuracyResolvedEvent[] = []
-  if (!evaluation?.legal || !evaluation.actorId || action.accuracyMode !== 'per-target') {
+  if (
+    !evaluation?.legal ||
+    !evaluation.actorId ||
+    (action.accuracyMode !== 'per-target' &&
+      !(state.airbornePolicyVersion === 1 && action.target.kind === 'ground-tile'))
+  ) {
     return { state, events, missedCombatantIds }
   }
   const forecast = forecastCombatSkillAccuracy(state, action, evaluation, content)
@@ -237,7 +266,7 @@ function committedRating(
     typeof value !== 'number' ||
     !Number.isSafeInteger(value) ||
     value < 0 ||
-    value > BASIS_POINTS
+    value > (state.statBalancePolicyVersion === 1 && field === 'accuracy' ? 14_000 : BASIS_POINTS)
   ) {
     throw new RangeError(
       `Combat accuracy ${field} must be an integer between 0 and 10000 basis points.`,

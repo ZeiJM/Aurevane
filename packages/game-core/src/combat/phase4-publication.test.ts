@@ -285,23 +285,17 @@ describe('Versioned Phase 4 published interactions', () => {
         expect.objectContaining({ event: 'resonance_activated' }),
       )
     })
-    it(`${context}: spirit protection is dispelled and Hexed reduces real support healing`, () => {
-      let state = build(encounter(), [
-        'runeblade.sigil-brand',
-        'runeblade.aether-cut',
-        'wildwarden.renewing-herbs',
-      ])
-      // Support may target the caster; reusing enemy placement lets actual opposing turns author protection.
+    it(`${context}: Healing Down reduces real support healing without legacy spirit protection`, () => {
+      let state = build(encounter(), ['runeblade.sigil-brand', 'wildwarden.renewing-herbs'])
       state = cast(
         state,
         skill('wildwarden.renewing-herbs'),
         { kind: 'unit', combatantId: 'actor' },
         context,
       ).state
-      expect(tag(state, 'actor', 'Summoned')).toBe(true)
       const branded = cast(state, skill('runeblade.sigil-brand'), enemy, context).state
       expect(tag(branded, 'enemy', 'Hexed')).toBe(true)
-      // The enemy's legal support action now demonstrates the healing penalty on itself.
+      // The enemy's legal support action demonstrates the HP-healing penalty on itself.
       const enemyTurn = finishPv1fTurn(branded, 'west').state
       const healing = executePv1fMatureSkill(
         enemyTurn,
@@ -310,13 +304,6 @@ describe('Versioned Phase 4 published interactions', () => {
         context,
       )
       expect(hp(healing.state) - hp(enemyTurn)).toBe(3)
-      const dispelled = executePv1fMatureSkill(
-        enemyTurn,
-        skill('runeblade.aether-cut'),
-        { kind: 'unit', combatantId: 'actor' },
-        context,
-      ).state
-      expect(tag(dispelled, 'actor', 'Summoned')).toBe(false)
     })
     it(`${context}: concealment blocks selection and breaks on an authored attack`, () => {
       let state = build(encounter(), ['shadehand.smoke-vial', 'shadehand.backstab'])
@@ -421,9 +408,20 @@ describe('Versioned Phase 4 published interactions', () => {
   }
   it('keeps Skill facing, basic facing and conditional modifier bounds distinct', () => {
     const opening = resolveEssenceForBuild('shadehand', null)!.skill
-    const damage = opening.effects[0]!
+    const damage = opening.effects.find((effect) => effect.type === 'damage')!
     if (damage.type !== 'damage') throw new Error('Expected Perfect Opening damage')
-    expect(damage.facingModifiersBasisPoints!.rear).toBe(22000)
+    expect(damage.facingModifiersBasisPoints).toBeUndefined()
+    expect(opening.effects).toContainEqual({
+      type: 'apply-status',
+      recipient: 'actor',
+      statusId: 'blindside',
+      stacks: 1,
+      durationTurns: 1,
+    })
+    const previous = resolveEssenceForBuild('shadehand', null, opening.contentVersion - 1)!.skill
+    expect(previous.effects.find((effect) => effect.type === 'damage')).toMatchObject({
+      facingModifiersBasisPoints: { rear: 22000 },
+    })
     expect(() =>
       evaluatePv1fMatureSkill(
         encounter(),

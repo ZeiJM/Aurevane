@@ -1,13 +1,15 @@
 import 'server-only'
-
-import type { CombatResolutionEvent } from '@aurevane/game-core/combat/actions'
+import type {
+  CombatEffectProjection,
+  CombatResolutionEvent,
+  CombatActionEvaluation,
+} from '@aurevane/game-core/combat/actions'
 import type { CombatTerrainProjection } from '@aurevane/game-core/combat/terrain-overlays'
 
 import type { BattleSessionRecord, BattleSessionRepository } from '@aurevane/db/battle-session'
 import {
   PV1F_COMBAT_CONTENT,
   evaluatePv1fAction,
-  evaluatePv1fCopiedSkill,
   evaluatePv1fMatureSkill,
   evaluatePv1fMovement,
   finishPv1fTurn,
@@ -31,10 +33,6 @@ import {
   resolveBattleEssenceDefinition,
   type BattleBuildAuthoritySnapshot,
 } from './battle-build-authority'
-import {
-  resolveBattleCopiedSkillCommand,
-  resolveBattleSkillCopyContext,
-} from './battle-skill-copy-authority'
 
 export interface BattlePreviewIssue {
   code: string
@@ -65,16 +63,14 @@ export interface BattleActionPreview {
   primaryCombatantId: string | null
   affectedTiles: readonly { x: number; y: number }[]
   affectedCombatantIds: readonly string[]
-  projectedEffects: readonly {
-    effectType: string
-    combatantId: string
-    before: number | string
-    after: number | string
-  }[]
+  projectedEffects: readonly CombatEffectProjection[]
+  targetHitChances?: CombatActionEvaluation['targetHitChances']
+  targetStatusResistances?: CombatActionEvaluation['targetStatusResistances']
   projectedTerrain?: readonly CombatTerrainProjection[]
   projectedEvents?: readonly CombatResolutionEvent[]
   projectedStatuses: readonly {
     statusId: string
+    potencyBasisPoints?: number
     durationOwnerTurnStarts: number | null
     damageTakenMultiplierBasisPoints: number | null
   }[]
@@ -86,11 +82,6 @@ export interface BattleActionPreview {
   defenseKind: CombatDefenseKind | null
   defenseRating: number | null
   mitigatedBaseDamage: number | null
-  skillCopy?: {
-    sourceCombatantId: string
-    random: true
-    eligibleSkills: readonly { skillId: string; contentVersion: number }[]
-  } | null
   issues: readonly BattlePreviewIssue[]
   /** Legacy compatibility only; PV-1F uses numeric Action Economy costs. */
   spendsAction: boolean
@@ -177,22 +168,40 @@ function issue(code: string, message: string): BattlePreviewIssue {
   return { code, message }
 }
 
+/** Public forecast probabilities only; never expose the authoritative future RNG draw. */
+export function projectBattleHitChanceForecast(evaluation: CombatActionEvaluation) {
+  return evaluation.targetHitChances?.map((row) => ({
+    targetCombatantId: row.targetCombatantId,
+    hitChanceBasisPoints: row.hitChanceBasisPoints,
+  }))
+}
+
+export function projectBattleStatusResistanceForecast(evaluation: CombatActionEvaluation) {
+  return evaluation.targetStatusResistances?.map((row) => ({
+    targetCombatantId: row.targetCombatantId,
+    resistanceChanceBasisPoints: row.resistanceChanceBasisPoints,
+    eligibleEffectOrdinals: [...row.eligibleEffectOrdinals],
+  }))
+}
+
 async function previewIntent(
   state: StatDrivenCombatEncounterState,
   intent: BattleIntent,
   combatContentResolver?: CombatContentResolver,
 ): Promise<BattleIntentPreview> {
   if (intent.kind === 'move') {
-    const { prepared, movement, economyCost } = evaluatePv1fMovement(state, intent.path)
+    const { prepared, movement, terrainCost, economyCost } = evaluatePv1fMovement(
+      state,
+      intent.path,
+    )
     const economy = readPv1fActionEconomy(prepared)
     const before = economy?.current ?? 0
     const affordable = before >= economyCost
-    const movementRemainingBefore = prepared.tactical.battle.currentTurn?.movementRemaining ?? 0
     return {
       kind: 'move',
       legal: movement.legal && affordable,
       path: movement.path,
-      terrainCost: movement.cost,
+      terrainCost,
       actionEconomyCost: economyCost,
       actionEconomyBefore: before,
       actionEconomyAfter: Math.max(0, before - economyCost),
@@ -209,7 +218,7 @@ async function previewIntent(
             ]),
       ],
       cost: movement.cost,
-      movementRemainingAfter: Math.max(0, movementRemainingBefore - movement.cost),
+      movementRemainingAfter: movement.movementRemainingAfter,
     }
   }
 
@@ -225,17 +234,6 @@ async function previewIntent(
     const taggedTechnique = build?.disciplineSkills.find(
       (reference) => reference.skillId === intent.actionId,
     )
-    const copiedCommand = actorId
-      ? await resolveBattleCopiedSkillCommand(
-          state as StatDrivenCombatEncounterState & {
-            buildAuthority?: BattleBuildAuthoritySnapshot
-          },
-          actorId,
-          intent.actionId,
-          combatContentResolver,
-        )
-      : null
-    if (copiedCommand && !copiedCommand.definition) throw persistenceInvalid()
     const matureDefinition =
       taggedTechnique && actorId
         ? await resolveBattleDisciplineSkillDefinition(
@@ -246,55 +244,14 @@ async function previewIntent(
           )
         : null
     if (taggedTechnique && !matureDefinition) throw persistenceInvalid()
-    const copiedCopyContext =
-      copiedCommand?.definition?.effects.some((effect) => effect.type === 'copy') &&
-      intent.target.kind === 'unit'
-        ? await resolveBattleSkillCopyContext(
-            state as StatDrivenCombatEncounterState & {
-              buildAuthority?: BattleBuildAuthoritySnapshot
-            },
-            actorId ?? '',
-            intent.target.combatantId,
-            combatContentResolver,
-          )
-        : undefined
-    if (copiedCopyContext === null) throw persistenceInvalid()
-    const matureCopyContext =
-      matureDefinition?.effects.some((effect) => effect.type === 'copy') &&
-      intent.target.kind === 'unit'
-        ? await resolveBattleSkillCopyContext(
-            state as StatDrivenCombatEncounterState & {
-              buildAuthority?: BattleBuildAuthoritySnapshot
-            },
-            actorId ?? '',
-            intent.target.combatantId,
-            combatContentResolver,
-          )
-        : undefined
-    if (matureCopyContext === null) throw persistenceInvalid()
-
     const resolved =
-      copiedCommand?.definition && authority
-        ? evaluatePv1fCopiedSkill(
-            state,
-            copiedCommand.definition,
-            intent.target,
-            authority.combatContext,
-            copiedCopyContext,
-          )
-        : essence && essence.skill.id === intent.actionId && authority
-          ? evaluatePv1fMatureSkill(state, essence.skill, intent.target, authority.combatContext)
-          : matureDefinition &&
-              matureDefinition.sourceDisciplineId === taggedTechnique?.sourceDisciplineId &&
-              authority
-            ? evaluatePv1fMatureSkill(
-                state,
-                matureDefinition,
-                intent.target,
-                authority.combatContext,
-                matureCopyContext ? { copyContext: matureCopyContext } : {},
-              )
-            : evaluatePv1fAction(state, intent.actionId, intent.target)
+      essence && essence.skill.id === intent.actionId && authority
+        ? evaluatePv1fMatureSkill(state, essence.skill, intent.target, authority.combatContext)
+        : matureDefinition &&
+            matureDefinition.sourceDisciplineId === taggedTechnique?.sourceDisciplineId &&
+            authority
+          ? evaluatePv1fMatureSkill(state, matureDefinition, intent.target, authority.combatContext)
+          : evaluatePv1fAction(state, intent.actionId, intent.target)
     const { prepared, action, cost, evaluation } = resolved
     const economy = readPv1fActionEconomy(prepared)
     const before = economy?.current ?? 0
@@ -304,19 +261,43 @@ async function previewIntent(
       action.sourceType === 'basic-attack'
         ? forecastStatDrivenAttack(prepared, action, intent.target, PV1F_COMBAT_CONTENT)
         : null
-    const projectedStatuses = action.effects.flatMap((effect) => {
-      if (effect.type !== 'apply-status') return []
-      const status = PV1F_COMBAT_CONTENT.statuses.find(
-        (candidate) => candidate.id === effect.statusId,
+    const projectedStatuses: BattleActionPreview['projectedStatuses'][number][] =
+      action.effects.flatMap((effect) => {
+        if (effect.type !== 'apply-status') return []
+        if (effect.statusId === 'suppress') return []
+        const status = PV1F_COMBAT_CONTENT.statuses.find(
+          (candidate) => candidate.id === effect.statusId,
+        )
+        return [
+          {
+            statusId: effect.statusId,
+            durationOwnerTurnStarts: status?.durationOwnerTurnStarts ?? null,
+            damageTakenMultiplierBasisPoints: status?.damageTakenMultiplierBasisPoints ?? null,
+          },
+        ]
+      })
+    const suppressProjections = new Map(
+      evaluation.projectedEffects
+        .filter((effect) => effect.statusId === 'suppress')
+        .map((effect) => [effect.combatantId, effect]),
+    )
+    for (const projection of suppressProjections.values()) {
+      const receipt = evaluation.projectedEvents.find(
+        (event): event is Extract<CombatResolutionEvent, { event: 'status_applied' }> =>
+          event.event === 'status_applied' &&
+          event.statusId === 'suppress' &&
+          event.targetCombatantId === projection.combatantId,
       )
-      return [
-        {
-          statusId: effect.statusId,
-          durationOwnerTurnStarts: status?.durationOwnerTurnStarts ?? null,
-          damageTakenMultiplierBasisPoints: status?.damageTakenMultiplierBasisPoints ?? null,
-        },
-      ]
-    })
+      projectedStatuses.push({
+        statusId: 'suppress',
+        potencyBasisPoints: projection.potencyBasisPoints ?? 2500,
+        durationOwnerTurnStarts:
+          projection.remainingRoundBoundaries ??
+          projection.remainingOwnerTurnEnds ??
+          Math.max(1, (receipt?.remainingOwnerTurnStarts ?? 3) - 1),
+        damageTakenMultiplierBasisPoints: null,
+      })
+    }
     return {
       kind: 'action',
       legal: evaluation.legal && affordable && !resourceIssue,
@@ -326,6 +307,10 @@ async function previewIntent(
       affectedTiles: evaluation.affectedTiles,
       affectedCombatantIds: evaluation.affectedCombatantIds,
       projectedEffects: resourceIssue ? [] : evaluation.projectedEffects,
+      targetHitChances: resourceIssue ? [] : projectBattleHitChanceForecast(evaluation),
+      targetStatusResistances: resourceIssue
+        ? []
+        : projectBattleStatusResistanceForecast(evaluation),
       projectedStatuses,
       projectedTerrain: resourceIssue ? [] : evaluation.projectedTerrain,
       projectedEvents: resourceIssue ? [] : evaluation.projectedEvents,
@@ -342,13 +327,6 @@ async function previewIntent(
       defenseKind: forecast?.defenseKind ?? null,
       defenseRating: forecast?.defenseRating ?? null,
       mitigatedBaseDamage: forecast?.mitigatedBaseDamage ?? null,
-      skillCopy: evaluation.skillCopy
-        ? {
-            sourceCombatantId: evaluation.skillCopy.sourceCombatantId,
-            random: true,
-            eligibleSkills: evaluation.skillCopy.eligibleSkills,
-          }
-        : null,
       issues: [
         ...evaluation.issues.map((entry) => issue(entry.code, entry.message)),
         ...(resourceIssue ? [issue(resourceIssue.code, resourceIssue.message)] : []),

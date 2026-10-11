@@ -1,5 +1,7 @@
 'use client'
 
+import { SummonAbilityList } from './summon-ability-list'
+
 import type { CharacterPortraitRef } from '@aurevane/game-core/character/creation'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
@@ -14,14 +16,21 @@ import {
   formatStatusStackCount,
   statusIsBeneficial,
   statusLabel,
+  statusDurationLabel,
   summarizeBattleEffects,
 } from './battle-effect-summary'
 import {
   readSummonInspectMetadata,
   type BattleSummonInspectMetadata,
 } from './battle-summon-inspect'
+import {
+  visibleBattleInitiative,
+  terrainAdjustedBattleProfile,
+} from '../../lib/battle/battle-elevation-stats'
 import styles from './desktop-battle-combatant-inspect.module.css'
 import { useBattleInteractionLifecycle } from './battle-interaction-lifecycle'
+import { buildBattleViewModel } from './battle-runtime'
+import { battleInfoPopoverSession } from './battle-info-popover-session'
 import { PvpBattleInspectPopup } from './pvp-battle-inspect-popup'
 
 const DESKTOP_POINTER_QUERY = '(any-hover: hover) and (any-pointer: fine)'
@@ -161,7 +170,19 @@ function readSelectedCombatant(
   const participant = metadata?.participants.find(
     (candidate) => candidate.combatantId === combatantId,
   )
-  const isPlayer = Boolean(playerName && combatantId.startsWith('character:'))
+  const pveParticipants =
+    playerName && !metadata
+      ? buildBattleViewModel(battle, {
+          kind: 'pve',
+          playerName,
+          playerLevel: 1,
+          playerPortraitAssetId: playerPortraitAssetId ?? 'character.portrait.starter.wayfarer-01',
+          playerProfileImageUrl,
+        }).participantByCombatant
+      : null
+  const pveParticipant = pveParticipants?.get(combatantId)
+  const isPlayer =
+    pveParticipant?.local ?? Boolean(playerName && combatantId.startsWith('character:'))
   const summon = readSummonInspectMetadata(battle.snapshot, combatantId)
   const ownerParticipant = summon
     ? metadata?.participants.find((candidate) => candidate.combatantId === summon.ownerCombatantId)
@@ -171,18 +192,23 @@ function readSelectedCombatant(
         ...summon,
         ownerName:
           ownerParticipant?.characterName ??
+          pveParticipants?.get(summon.ownerCombatantId)?.name ??
           displayNameForCombatant(summon.ownerCombatantId, playerName),
       }
     : null
 
   return {
-    combatant,
+    combatant: {
+      ...combatant,
+      initiative: visibleBattleInitiative(battle.snapshot, combatant, statuses),
+    },
     placement,
-    profile,
+    profile: terrainAdjustedBattleProfile(battle.snapshot, combatantId, profile, statuses),
     statuses,
     name:
       summonWithOwner?.name ??
       participant?.characterName ??
+      pveParticipant?.name ??
       displayNameForCombatant(combatantId, playerName),
     teamLabel: participant
       ? `Team ${participant.teamIndex + 1}`
@@ -240,6 +266,7 @@ export function DesktopBattleCombatantInspect({
     let requestSequence = 0
 
     async function openCombatant(target: OpenTarget) {
+      battleInfoPopoverSession.dismissActive()
       const sequence = ++requestSequence
       openRef.current = true
       setOpen(true)
@@ -286,15 +313,17 @@ export function DesktopBattleCombatantInspect({
     }
 
     function handleClick(event: MouseEvent) {
-      if (!window.matchMedia(DESKTOP_POINTER_QUERY).matches || !inspectModeActive()) return
+      if (!window.matchMedia(DESKTOP_POINTER_QUERY).matches) return
       const target = event.target instanceof Element ? event.target : null
       if (!target) return
 
       const railCombatant = target.closest<HTMLElement>('[data-desktop-inspect-combatant]')
+      if (!railCombatant && !inspectModeActive()) return
       const railName = target.closest<HTMLElement>('[data-desktop-inspect-name]')
       const tile = target.closest<HTMLButtonElement>(
         '#battlefield button[aria-label^="Tile "][aria-label*="occupied by"]',
       )
+      if (tile?.closest('main[data-battle-layout="refined"]') && !railCombatant) return
 
       let openTarget: OpenTarget | null = null
       const combatantId = railCombatant?.dataset.desktopInspectCombatant
@@ -315,7 +344,7 @@ export function DesktopBattleCombatantInspect({
     }
 
     function handleEscape(event: KeyboardEvent) {
-      if (event.key === 'Escape') closeInspect()
+      if (event.key === 'Escape' && !event.defaultPrevented) closeInspect()
     }
 
     document.addEventListener('click', handleClick, true)
@@ -459,11 +488,11 @@ export function DesktopBattleCombatantInspect({
                 <dd>{percentFromBasisPoints(selected.profile?.evasion)}</dd>
               </div>
               <div>
-                <dt>Armor</dt>
+                <dt>Physical Defense</dt>
                 <dd>{selected.profile?.armor ?? '—'}</dd>
               </div>
               <div>
-                <dt>Ward</dt>
+                <dt>Mystic Defense</dt>
                 <dd>{selected.profile?.ward ?? '—'}</dd>
               </div>
               <div>
@@ -492,20 +521,11 @@ export function DesktopBattleCombatantInspect({
                     <span key={tag}>{tag}</span>
                   ))}
                 </div>
-                <div className={styles.summonAbilities}>
-                  {selected.summon.abilities.map((ability) => (
-                    <article key={ability.id}>
-                      <div>
-                        <strong>{ability.name}</strong>
-                        <span>
-                          {ability.apCost} AP
-                          {ability.mpCost > 0 ? ` · ${ability.mpCost} MP` : ''}
-                        </span>
-                      </div>
-                      <p>{ability.description}</p>
-                    </article>
-                  ))}
-                </div>
+                <SummonAbilityList
+                  abilities={selected.summon.abilities}
+                  policies={selected.summon.policies}
+                  airborne={selected.statuses.some((status) => status.statusId === 'airborne')}
+                />
               </section>
             ) : null}
 
@@ -531,16 +551,16 @@ export function DesktopBattleCombatantInspect({
               ) : (
                 <div className={styles.effectIcons}>
                   {effectStatuses.map((status) => {
-                    const label = statusLabel(status.statusId)
-                    const beneficial = statusIsBeneficial(status.statusId)
+                    const label = statusLabel(status.statusId, status)
+                    const beneficial = statusIsBeneficial(status.statusId, status)
                     const stackCount = formatStatusStackCount(status.statusId, status.stacks)
                     return (
                       <button
                         type="button"
                         key={`${status.statusId}:${status.statusVersion}`}
                         className={beneficial ? styles.buff : styles.debuff}
-                        title={`${label} ${stackCount} · ${status.remainingOwnerTurnStarts} turn${status.remainingOwnerTurnStarts === 1 ? '' : 's'} remaining`}
-                        aria-label={`${beneficial ? 'Buff' : 'Debuff'}: ${label}, ${stackCount}, ${status.remainingOwnerTurnStarts} turn${status.remainingOwnerTurnStarts === 1 ? '' : 's'} remaining`}
+                        title={`${label} ${stackCount} · ${statusDurationLabel(status)}`}
+                        aria-label={`${beneficial ? 'Buff' : 'Debuff'}: ${label}, ${stackCount}, ${statusDurationLabel(status)}`}
                       >
                         <span>{label}</span>
                         <strong>{stackCount}</strong>

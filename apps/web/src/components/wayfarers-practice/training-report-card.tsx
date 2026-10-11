@@ -27,16 +27,20 @@ export interface TrainingReportCardData {
 
 interface TrainingReportCardProps {
   report: TrainingReportCardData
+  onClaimed?: () => void
 }
 
-export function TrainingReportCard({ report }: TrainingReportCardProps) {
+export function TrainingReportCard({ report, onClaimed }: TrainingReportCardProps) {
   const router = useRouter()
   const [submitting, setSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const idempotencyKey = useRef<string | null>(null)
+  const requestInFlight = useRef(false)
+  const [claimed, setClaimed] = useState(false)
 
   async function claimTraining() {
-    if (submitting) return
+    if (requestInFlight.current || claimed) return
+    requestInFlight.current = true
     setSubmitting(true)
     setErrorMessage(null)
     idempotencyKey.current ??= crypto.randomUUID()
@@ -51,43 +55,66 @@ export function TrainingReportCard({ report }: TrainingReportCardProps) {
           idempotencyKey: idempotencyKey.current,
         }),
       })
-      const payload = (await response.json()) as { error?: { message?: string } }
+      const payload = (await response.json()) as {
+        claim?: { reportId?: string; characterId?: string }
+        error?: { message?: string }
+      }
       if (!response.ok) {
         setErrorMessage(payload.error?.message ?? 'The Training Report could not be claimed.')
         return
       }
+      if (
+        payload.claim?.reportId !== report.reportId ||
+        payload.claim?.characterId !== report.characterId
+      ) {
+        setErrorMessage(
+          'The server did not confirm this Training Report. You can safely try again.',
+        )
+        return
+      }
+      setClaimed(true)
+      onClaimed?.()
       router.refresh()
     } catch {
       setErrorMessage('The Training Report could not reach the server. You can safely try again.')
     } finally {
+      requestInFlight.current = false
       setSubmitting(false)
     }
   }
 
   const passive = report.practiceSource === 'passive_training'
+  const stopped =
+    passive &&
+    report.plannedWindowSeconds !== null &&
+    report.elapsedSeconds < report.plannedWindowSeconds
   const planLabel = report.plannedWindow ? passiveTrainingWindowLabel(report.plannedWindow) : null
 
   return (
     <section
-      className={styles.panel}
+      className={`${styles.panel} ${styles.reportPanel}`}
       data-testid="training-report"
       data-training-surface="moonstone"
       data-av-surface="moonstone"
     >
       <header className={styles.heading}>
         <div>
-          <span className={styles.eyebrow}>03 / Training Report</span>
-          <h2>{passive ? 'Training Complete' : 'Training Report'}</h2>
+          <span className={styles.eyebrow}>Training Report</span>
+          <h2>
+            {passive ? (stopped ? 'Training Stopped' : 'Training Complete') : 'Training Report'}
+          </h2>
         </div>
         <span className={styles.badge}>
-          {planLabel ? `${planLabel} complete` : 'Legacy report'}
+          {planLabel ? `${planLabel} ${stopped ? 'stopped' : 'complete'}` : 'Legacy report'}
         </span>
       </header>
 
       {passive ? (
         <>
           <p className={styles.intro}>
-            The server completed this training block. The reward is frozen until you claim it.
+            {stopped
+              ? 'Training stopped. Your earned reward is frozen until you claim it.'
+              : 'The server completed this training block. The reward is frozen until you claim it.'}
           </p>
           <dl className={styles.rewards} data-testid="passive-training-reward">
             <div>
@@ -133,11 +160,11 @@ export function TrainingReportCard({ report }: TrainingReportCardProps) {
       <div className={styles.actions}>
         <GameButton
           className={styles.startButton}
-          disabled={submitting}
+          disabled={submitting || claimed}
           onClick={claimTraining}
           type="button"
         >
-          {submitting ? 'Claiming…' : 'Claim Training'}
+          {claimed ? 'Claimed' : submitting ? 'Claiming…' : 'Claim Training'}
         </GameButton>
         <span>Claims are idempotent: refreshing or retrying cannot duplicate the reward.</span>
       </div>

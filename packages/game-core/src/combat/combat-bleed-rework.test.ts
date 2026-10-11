@@ -239,7 +239,6 @@ describe('current Bleed runtime', () => {
           },
         ],
         burn: [],
-        temporarySkills: [],
         damageHistory: [],
       },
     })

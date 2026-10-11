@@ -347,3 +347,71 @@
     padding: 0.3rem;
   }
 }
+
+/* Approved archive reading composition, board 16. */
+.article {
+  width: 100%;
+  gap: 0.75rem;
+  padding: 1rem;
+  color: #364137;
+  background: linear-gradient(135deg, #dbd0ba, #c6b598);
+  border: 1px solid #a18c68;
+}
+.header h1 {
+  font-size: clamp(1.8rem, 3vw, 2.8rem);
+  color: #344037;
+}
+.summary {
+  color: #566153;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+.heroMedia {
+  min-height: 8rem;
+  border-radius: 2px;
+}
+.heroImage {
+  filter: none;
+}
+.layout {
+  gap: 1rem;
+  grid-template-columns: minmax(11rem, 20%) minmax(0, 1fr);
+}
+.contents {
+  top: 0;
+  padding: 0.8rem;
+  background: #c8b99c;
+}
+.contents a {
+  color: #485044;
+  font-size: 0.8rem;
+}
+.contentsLabel,
+.eyebrow,
+.meta dt,
+.breadcrumb a {
+  color: #7d6847;
+}
+.meta dd,
+.section h2,
+.section h3 {
+  color: #364137;
+}
+.section p,
+.section li {
+  color: #50594b;
+  font-size: 0.9rem;
+  line-height: 1.65;
+}
+.table {
+  color: #3c473b;
+  background: #e0d5bf;
+}
+@media (max-width: 760px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .contents {
+    position: static;
+  }
+}

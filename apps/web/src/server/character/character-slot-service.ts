@@ -3,6 +3,7 @@ import 'server-only'
 import { createHash } from 'node:crypto'
 
 import type { PersistedCharacter } from '@aurevane/game-core/character/persistence'
+import { getFoundationDiscipline } from '@aurevane/game-core/character/foundation-disciplines'
 import {
   buildInitialCharacterState,
   CharacterCreationRuleError,
@@ -17,13 +18,21 @@ import {
 } from '@aurevane/validation/player/character'
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { createSupabaseCharacterBuildRepository } from './supabase-character-build-repository'
 
 export const CHARACTER_SLOT_COUNT = 3 as const
 
-export interface CharacterSlotCharacter extends PersistedCharacter {
+interface OwnedCharacterSlot extends PersistedCharacter {
   deletionRequestedAt: string | null
   deletionExecuteAfter: string | null
   reselectAvailableAt: string | null
+}
+
+export interface CharacterSlotCharacter extends OwnedCharacterSlot {
+  disciplines: {
+    primary: { id: string; name: string }
+    secondary: { id: string; name: string } | null
+  }
 }
 
 export function isCharacterSlotIndex(value: number): boolean {
@@ -37,9 +46,34 @@ export function hasEarnedPrestigeCharacterSlot(
 }
 
 export async function loadCharacterSlots(userId: string): Promise<CharacterSlotCharacter[]> {
+  const characters = await loadOwnedCharacterSlots(userId)
+  const builds = createSupabaseCharacterBuildRepository()
+  // The roster is bounded to three slots. Reuse the owner-scoped, validated build authority.
+  return Promise.all(
+    characters.map(async (character) => {
+      const build = await builds.findActiveBuild(userId, character.id)
+      if (build && build.characterId !== character.id) throw unavailable()
+      const foundation =
+        build === null ? getFoundationDiscipline(character.foundationDisciplineId) : null
+      return {
+        ...character,
+        disciplines: {
+          primary: build
+            ? { id: build.primaryDefinition.id, name: build.primaryDefinition.name }
+            : { id: character.foundationDisciplineId, name: foundation?.name ?? 'Adventurer' },
+          secondary: build?.secondaryDefinition
+            ? { id: build.secondaryDefinition.id, name: build.secondaryDefinition.name }
+            : null,
+        },
+      }
+    }),
+  )
+}
+
+async function loadOwnedCharacterSlots(userId: string): Promise<OwnedCharacterSlot[]> {
   const supabase = createSupabaseAdminClient()
   const { data, error } = await supabase.rpc('get_character_slots_v2', { p_user_id: userId })
-  if (error || !Array.isArray(data)) throw unavailable()
+  if (error || !Array.isArray(data) || data.length > CHARACTER_SLOT_COUNT) throw unavailable()
 
   return data.map((candidate) => {
     if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) throw unavailable()
@@ -55,7 +89,7 @@ export async function loadCharacterSlots(userId: string): Promise<CharacterSlotC
     delete base.deletion_execute_after
     delete base.reselect_available_at
     const row = parseCharacterPersistenceRow(base)
-    if (!row) throw unavailable()
+    if (!row || row.user_id !== userId || !isCharacterSlotIndex(row.slot_index)) throw unavailable()
     return {
       ...toPersistedCharacter(row),
       deletionRequestedAt,
@@ -69,7 +103,7 @@ export async function findPlayableOwnedCharacterById(
   userId: string,
   characterId: string,
 ): Promise<PersistedCharacter | null> {
-  const character = (await loadCharacterSlots(userId)).find(
+  const character = (await loadOwnedCharacterSlots(userId)).find(
     (candidate) => candidate.id === characterId,
   )
   if (!character || character.deletionExecuteAfter) return null
@@ -133,7 +167,7 @@ export async function createCharacterInSlot(command: {
     )
   }
   if (command.slotIndex === 2) {
-    const roster = await loadCharacterSlots(command.actor.userId)
+    const roster = await loadOwnedCharacterSlots(command.actor.userId)
     if (!hasEarnedPrestigeCharacterSlot(roster)) {
       throw new AurevaneError(
         'FORBIDDEN',

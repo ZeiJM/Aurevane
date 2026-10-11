@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { BattleActionPreview } from '@/server/battle/battle-preview-service'
-import { previewChips } from './battle-preview-content'
+import { previewChips, skillPreviewChips, battleSkillParameterRows } from './battle-preview-content'
+import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
 
 function actionPreview(
   projectedEffects: BattleActionPreview['projectedEffects'] = [],
@@ -36,6 +37,57 @@ function labels(preview: BattleActionPreview): string[] {
 }
 
 describe('copy-statuses player forecast presentation', () => {
+  it('states recipient-specific resistance without replacing damage or exposing a roll', () => {
+    const preview = actionPreview(
+      [{ effectType: 'damage', combatantId: 'target', before: 100, after: 80 }],
+      {
+        targetStatusResistances: [
+          {
+            targetCombatantId: 'target',
+            resistanceChanceBasisPoints: 1500,
+            eligibleEffectOrdinals: [1],
+          },
+        ],
+      },
+    )
+    expect(labels(preview)).toContain('Debuff resistance 15% on hit')
+    expect(labels(preview)).toContain('20 dmg')
+    expect(labels({ ...preview, affectedCombatantIds: ['other'] })).not.toContain(
+      'Debuff resistance 15% on hit',
+    )
+    expect(labels({ ...preview, targetStatusResistances: [] })).not.toContain(
+      'Debuff resistance 15% on hit',
+    )
+  })
+  it('uses Nexus parameter names and pinned values with current battle costs before a forecast', () => {
+    const definition = resolveMatureSkillVersion('vanguard.forceful-strike', 2)!
+    const result = skillPreviewChips({
+      definition,
+      id: definition.id,
+      name: 'Forceful Strike',
+      apCost: 31,
+      mpCost: 6,
+      targetKind: 'unit',
+      targetTeamPolicy: 'enemy',
+      minimumRange: 1,
+      maximumRange: 1,
+      tags: ['Old ad-hoc tag'],
+      effectDescriptions: [],
+      requirementDescriptions: [],
+    }).map((chip) => chip.label)
+    expect(result).toEqual([
+      'Skill Type: Attack [Physical]',
+      'Cost: 31 AP / 6 MP',
+      'Cooldown: 2 turns',
+      'Requirements: None',
+      'Effects: Dmg [12]',
+      'Range: 1',
+      'Target: Enemy',
+      'Target Method: Single',
+      'Target Elevation: 1',
+      'Line of Sight: Not required',
+    ])
+  })
   it('humanizes an ordinary copied status from an empty receiver', () => {
     const result = labels(
       actionPreview([
@@ -79,7 +131,7 @@ describe('copy-statuses player forecast presentation', () => {
       ]),
     )
 
-    expect(result).toContain('Copied Poison (Poisoned) · movement progress 3')
+    expect(result).toContain('Copied Poison · movement progress 3')
     expect(result.join(' ')).not.toContain('poison:3')
   })
 
@@ -105,8 +157,8 @@ describe('copy-statuses player forecast presentation', () => {
       ]),
     )
 
-    expect(newBurn).toContain('Copied Burn (Scorched) · stage 2')
-    expect(replacedBurn).toContain('Copied Burn (Scorched) · stage 2→0')
+    expect(newBurn).toContain('Copied Burn · stage 2')
+    expect(replacedBurn).toContain('Copied Burn · stage 2→0')
   })
 
   it('preserves authoritative Bleed projection order and exposes damage and remaining ticks', () => {
@@ -128,8 +180,8 @@ describe('copy-statuses player forecast presentation', () => {
     ).filter((label) => label.startsWith('Copied Bleed'))
 
     expect(result).toEqual([
-      'Copied Bleed (Bleeding) · 2 dmg × 4 ticks',
-      'Copied Bleed (Bleeding) · 1 dmg × 1 tick → 3 dmg × 2 ticks',
+      'Copied Bleed · 2 dmg × 4 ticks',
+      'Copied Bleed · 1 dmg × 1 tick → 3 dmg × 2 ticks',
     ])
   })
 
@@ -146,7 +198,7 @@ describe('copy-statuses player forecast presentation', () => {
       ]),
     )
 
-    expect(result).toContain('Copied Hex · 1 stack · 2 turns')
+    expect(result).toContain('Copied Healing Down · 1 stack · 2 turns')
     expect(result).toContain('7 dmg')
   })
 
@@ -164,7 +216,7 @@ describe('copy-statuses player forecast presentation', () => {
       ]),
     )
 
-    expect(result).toContain('Copied Inspire · 1 stack · 2 turns')
+    expect(result).toContain('Copied Damage Up · 1 stack · 2 turns')
     expect(result).toContain('Heal +5')
     expect(result).toContain('Resource +2')
   })
@@ -261,4 +313,71 @@ describe('copy-statuses player forecast presentation', () => {
 
     expect(result).toEqual(['30 AP', '70 AP left', 'Hit 69%', 'On hit 17 dmg'])
   })
+})
+
+it('keeps legacy rows complete without inferring missing pinned mechanics', () => {
+  const rows = battleSkillParameterRows({
+    id: 'legacy',
+    name: 'Legacy',
+    apCost: 45,
+    mpCost: 0,
+    targetKind: 'ground-tile',
+    targetTeamPolicy: 'enemy',
+    minimumRange: 0,
+    maximumRange: 3,
+    tags: [],
+    effectDescriptions: ['Recorded effect'],
+    requirementDescriptions: [],
+  })
+  expect(rows.map(([label]) => label)).toEqual([
+    'Skill Type',
+    'Cost',
+    'Cooldown',
+    'Requirements',
+    'Effects',
+    'Range',
+    'Target',
+    'Target Method',
+    'Target Elevation',
+    'Line of Sight',
+  ])
+  expect(Object.fromEntries(rows)).toMatchObject({
+    Target: 'Ground',
+    Effects: 'Recorded effect',
+    Cooldown: 'Unavailable',
+    'Target Method': 'Unavailable',
+    'Line of Sight': 'Unavailable',
+  })
+})
+
+it.each([
+  { after: 'barrier:8' },
+  { after: 'recovery:hp:4:2' },
+  { after: 'recovery:mp:3:2' },
+  { after: 'concealed', statusId: 'beneficial-copy' },
+])('does not present retired generic Copy projections $after', ({ after, ...metadata }) => {
+  const result = labels(
+    actionPreview([
+      { effectType: 'copy-statuses', combatantId: 'actor', before: 'none', after, ...metadata },
+    ]),
+  )
+  expect(result.join(' ')).not.toMatch(
+    /Copied|Copy beneficial effects|barrier:|recovery:|concealed/u,
+  )
+})
+
+it('forecast shows captured Suppress percentage and exact pending lifetime', () => {
+  const preview = actionPreview([
+    {
+      effectType: 'apply-status',
+      statusId: 'suppress',
+      potencyBasisPoints: 2534,
+      combatantId: 'target',
+      before: 'none',
+      after: 'pending',
+      activationRound: 3,
+      remainingRoundBoundaries: 2,
+    },
+  ])
+  expect(labels(preview)).toContain('Suppress [25.34%] · Starts round 3 · 2 round boundaries')
 })

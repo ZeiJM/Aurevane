@@ -6,6 +6,7 @@ import { createTacticalBattleState } from './board'
 import {
   finishPv1fTurn,
   executePv1fMatureSkill,
+  evaluatePv1fMatureSkill,
   preparePv1fTurnEconomy,
   readPv1fActionEconomy,
 } from './pv1f-action-economy'
@@ -318,4 +319,58 @@ describe('Combat v5.1 summon Skill execution', () => {
 
     expect(summonTurns).toBe(5)
   })
+})
+it.each(['next-round', 'delayed'] as const)(
+  'keeps a %s summon pending until activation and preserves its full lifetime',
+  (mode) => {
+    let state = executePv1fMatureSkill(
+      { ...encounter(), effectTimingPolicy: { version: 1, modes: { summon: mode } } },
+      summoningSkill(),
+      { kind: 'tile', position: { x: 1, y: 0 } },
+      'pve',
+    ).state
+    expect(state.effectState?.summons ?? []).toHaveLength(0)
+    expect(state.pendingSummons).toHaveLength(1)
+    const activationRound = mode === 'delayed' ? 3 : 2
+    while (state.tactical.battle.round < activationRound) {
+      state = JSON.parse(
+        JSON.stringify(
+          finishPv1fTurn(
+            state,
+            state.tactical.battle.currentTurn!.combatantId === 'enemy' ? 'west' : 'east',
+          ).state,
+        ),
+      )
+      if (state.tactical.battle.round < activationRound)
+        expect(state.effectState?.summons ?? []).toHaveLength(0)
+    }
+    expect(state.tactical.battle.round).toBe(activationRound)
+    expect(state.effectState?.summons).toHaveLength(1)
+    expect(state.tactical.battle.initiativeOrder).toContain(
+      state.effectState!.summons![0]!.combatantId,
+    )
+  },
+)
+
+it('forecasts scheduled summon lifetime without spawning or spending resources', () => {
+  const state = { ...encounter(), effectTimingPolicy: { version: 1, modes: {} } }
+  const before = JSON.parse(JSON.stringify(state))
+  const preview = evaluatePv1fMatureSkill(
+    state,
+    summoningSkill(),
+    { kind: 'tile', position: { x: 1, y: 0 } },
+    'pve',
+  )
+  expect(preview.evaluation.projectedEffects).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        effectType: 'summon',
+        statusId: 'summon',
+        after: 'pending',
+        activationRound: 2,
+        remainingOwnerTurnEnds: 5,
+      }),
+    ]),
+  )
+  expect(state).toEqual(before)
 })

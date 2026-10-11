@@ -9,10 +9,10 @@ Dependencies are selected deliberately. AUREVANE does not inherit package versio
 - Node.js: 24.x LTS
 - Package manager: pnpm 11.17.0
 - Monorepo task runner: Turborepo 2.10.7
-- Web framework: Next.js 16.2.12
+- Web framework: Next.js 16.3.6
 - UI runtime: React / React DOM 19.2.8
 - TypeScript: 6.0.3
-- ESLint: 9.39.5 with `eslint-config-next` 16.2.12
+- ESLint: 9.39.5 with `eslint-config-next` 16.3.6
 - Shared TypeScript lint configuration: `typescript-eslint` 8.65.0
 - Prettier: 3.9.6
 - Unit tests: Vitest 4.1.10
@@ -43,3 +43,9 @@ Playwright is pinned as a development-only browser verification dependency so de
 ## Verification
 
 Every dependency change must keep formatting, linting, type checking, tests, and production build passing. Infrastructure dependency changes must also keep the local Supabase configuration and migrations reproducible.
+
+## 30 September 2026 security patch
+
+The UI/combat candidate's production dependency audit reported GHSA-vcvr-r3jv-pc5j in pinned Next.js 16.3.3. The official Next.js advisory identifies 16.3.6 as patched. Next.js and its matching ESLint configuration are pinned to 16.3.6; the committed lockfile is regenerated. This is a compatible patch under the urgent-security-fix rule in `TECHNOLOGY_POLICY.md`, not a framework migration. No `next/og` ImageResponse use was found in application/package source, but the production dependency gate remains enforced. Production deployment is separate and is not authorized by this candidate.
+
+Source: https://github.com/vercel/next.js/security/advisories/GHSA-vcvr-r3jv-pc5j

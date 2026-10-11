@@ -10,17 +10,16 @@ import type {
 } from '@aurevane/game-core/character/discipline-build'
 import type { CharacterProfileReadModel } from '@aurevane/game-core/character/profile'
 import type { SupernaturalStoryState } from '@aurevane/game-core/character/supernatural-state'
+import type { SupportActionId } from '@aurevane/game-core/combat/support-actions'
 import type { EssenceDefinition } from '@aurevane/game-core/combat/essence'
 import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
 import type { AnyResonanceDefinition } from '@aurevane/game-core/combat/resonance'
 import { Surface } from '@aurevane/ui'
 
 import { CharacterAttributeAllocationPanel } from '@/components/character/character-attribute-allocation-panel'
-import { CharacterIdentityCard } from '@/components/character/character-identity-card'
 import { CharacterRailSynchronizedLayout } from '@/components/character/character-rail-synchronized-layout'
 import { CharacterProfileDetails } from '@/components/character/character-profile-details'
 import { type SupernaturalChoiceOption } from '@/components/character/character-supernatural-choice-controls'
-import { CharacterSupernaturalPath } from './character-supernatural-path'
 import { getStarterPortraitImageAssetId } from '@/media/character'
 
 import styles from './character-profile-shell.module.css'
@@ -55,6 +54,7 @@ export interface CharacterWorkspaceProps {
   profile: CharacterProfileReadModel
   attributeAllocation: AttributeAllocationView
   disciplineBuild: {
+    supportActionId?: SupportActionId
     buildVersion: number
     current: PrimaryDisciplinePreview
     currentSecondary: DisciplineDefinition | null
@@ -134,84 +134,76 @@ export function CharacterProfileShell({
   disciplineBuild,
   personalTitle = null,
   imageUrl = null,
-  supernatural = { state: null, choices: [] },
 }: CharacterWorkspaceProps) {
-  const disciplineSummary = characterDisciplineSummary(
-    disciplineBuild.current.definition,
-    disciplineBuild.currentSecondary,
-  )
   const attributePolicy = foundationDisciplineAttributePolicy(disciplineBuild.current.definition.id)
   const focusAttributes: readonly CharacterAttributeId[] = attributePolicy?.focusAttributes ?? []
   const buildTypeLabel = disciplineBuild.currentSecondary ? 'Resonance Build' : 'Essence Build'
-  const maxHp = disciplineBuild.current.derived.stats.maxHp.value
-  const maxMp = disciplineBuild.current.derived.stats.maxMp.value
 
   return (
     <CharacterRailSynchronizedLayout
       className={styles.layout}
       data-profile-workspace
       data-character-concept="profile"
+      data-composition="correction"
     >
-      <CharacterIdentityCard
-        profile={profile}
-        primary={disciplineBuild.current.definition}
-        secondary={disciplineBuild.currentSecondary}
-        personalTitle={personalTitle}
-        imageUrl={imageUrl}
-        disciplineSummary={disciplineSummary}
-        maxHp={maxHp}
-        maxMp={maxMp}
-      />
-
+      <header className={styles.pageHeading}>
+        <h1>Profile</h1>
+        <p>Your journey, your choices, your story.</p>
+      </header>
       <Surface
         className={styles.profile}
         tone="elevated"
         data-av-surface="moonstone"
         data-profile-sheet="true"
       >
-        <header className={styles.sheetHeading}>
-          <div>
-            <span className={styles.sheetMarker} aria-hidden="true">
-              ✧
-            </span>
-            <h2>Identity</h2>
+        <div className={styles.identityTags} aria-label="Disciplines and titles">
+          <div
+            className={styles.identityTag}
+            data-profile-tag="primary"
+            role="group"
+            aria-label="Primary Discipline"
+          >
+            <span aria-hidden="true">✦</span>
+            <strong data-testid="primary-discipline-chip">
+              {disciplineBuild.current.definition.name}
+            </strong>
           </div>
-          <small>Same soul. A wider horizon.</small>
-        </header>
-
-        <details className={styles.buildIdentity}>
-          <summary>
-            {disciplineBuild.currentSecondary ? 'Mixed build' : 'Pure build'} ·{' '}
-            {disciplineBuild.current.definition.name}
-            {disciplineBuild.currentSecondary ? ` + ${disciplineBuild.currentSecondary.name}` : ''}
-          </summary>
-          <p>
-            Your Primary Discipline supplies your base-stat profile.
-            {disciplineBuild.currentSecondary
-              ? ' Your Secondary adds its Skill library, not a second base-stat profile.'
-              : ' With no Secondary equipped, your build uses Essence instead of Resonance.'}
-          </p>
-          <p>
-            {disciplineBuild.currentSecondary
-              ? `Resonance: ${disciplineBuild.disciplineSkills.extensions.resonance?.name ?? 'None active'}.`
-              : `Essence: ${disciplineBuild.disciplineSkills.extensions.essence?.name ?? 'None active'}.`}{' '}
-            {disciplineBuild.disciplineSkills.equippedSkills.length} /{' '}
-            {disciplineBuild.disciplineSkills.capacity} selected Discipline Techniques.{' '}
-            {disciplineBuild.currentSecondary
-              ? 'The selection limit is shared across both Disciplines.'
-              : 'An active Essence sits outside these selections.'}
-          </p>
-        </details>
-
+          {disciplineBuild.currentSecondary ? (
+            <div
+              className={styles.identityTag}
+              data-profile-tag="secondary"
+              role="group"
+              aria-label="Secondary Discipline"
+            >
+              <span aria-hidden="true">◇</span>
+              <strong data-testid="secondary-discipline-chip">
+                {disciplineBuild.currentSecondary.name}
+              </strong>
+            </div>
+          ) : null}
+          {personalTitle ? (
+            <div
+              className={styles.identityTag}
+              data-profile-tag="title"
+              role="group"
+              aria-label="Personal title"
+            >
+              <span aria-hidden="true">✧</span>
+              <strong>{personalTitle}</strong>
+            </div>
+          ) : null}
+        </div>
         <CharacterProfileDetails
           presentationLabel={profile.identity.presentationLabel}
           buildTypeLabel={buildTypeLabel}
           cycleNumber={profile.progression.cycleNumber}
           attributes={profile.attributes}
           derived={disciplineBuild.current.derived}
+          showBuildTendencies
           attributeResetControl={
             <CharacterAttributeAllocationPanel
               initialAllocation={attributeAllocation}
+              resetLabel="Reset Stats"
               portrait={{
                 name: profile.identity.name,
                 imageUrl,
@@ -223,28 +215,6 @@ export function CharacterProfileShell({
           }
         />
       </Surface>
-
-      <aside className={styles.story} aria-label="Current Path">
-        <header className={styles.storyHeading}>
-          <div>
-            <span aria-hidden="true">♜</span>
-            <strong>Current Path</strong>
-          </div>
-          <small>
-            {supernatural.state?.path === 'ascended'
-              ? 'Ascension bound.'
-              : supernatural.state?.path === 'severed'
-                ? 'Severence bound.'
-                : supernatural.choices.length
-                  ? 'A permanent threshold.'
-                  : 'Your story continues.'}
-          </small>
-        </header>
-        <div className={styles.storyArt} aria-hidden="true" />
-        <div className={styles.storyCopy}>
-          <CharacterSupernaturalPath state={supernatural.state} choices={supernatural.choices} />
-        </div>
-      </aside>
     </CharacterRailSynchronizedLayout>
   )
 }

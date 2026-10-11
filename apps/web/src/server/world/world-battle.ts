@@ -1,3 +1,5 @@
+import { readBattlefieldElevationPolicy } from '@/server/master/battlefield-elevation-policy-store'
+import { readCombatEffectTimingPolicy } from '@/server/master/combat-effect-timing-policy-store'
 import 'server-only'
 import { AurevaneError } from '@aurevane/game-core/errors'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
@@ -68,7 +70,17 @@ export async function attackWorldPlayer(
     })),
     createServerCombatContentResolver(),
   )
-  const encounter = createPvpEncounter(roster, [1, 1, 0], authority)
+  const [elevationPolicy, timingPolicy] = await Promise.all([
+    readBattlefieldElevationPolicy(),
+    readCombatEffectTimingPolicy(),
+  ])
+  const encounter = createPvpEncounter(roster, [1, 1, 0], authority, elevationPolicy)
+  encounter.effectTimingPolicy = timingPolicy
+  encounter.effectStackingPolicyVersion = 1
+  encounter.percentageDotPolicyVersion = 1
+  encounter.dotTriggerPolicyVersion = 2
+  encounter.skillPacketPolicyVersion = 1
+  encounter.groundEffectPolicyVersion = 1
   const { data, error } = await supabase.rpc('start_world_encounter_v1', {
     p_user_id: userId,
     p_character_id: characterId,

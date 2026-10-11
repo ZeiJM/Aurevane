@@ -60,8 +60,8 @@ export function SkillMediaEditor({ value, onChange }: SkillMediaEditorProps) {
             <>
               <Image
                 src={icon.previewSrc}
-                width={96}
-                height={96}
+                width={144}
+                height={144}
                 alt={`${icon.label} artwork preview`}
                 unoptimized
               />

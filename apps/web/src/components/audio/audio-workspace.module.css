@@ -1,0 +1,82 @@
+.workspace {
+  display: grid;
+  min-width: 0;
+  gap: 0.7rem;
+  color: #30392f;
+}
+.panel {
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid #978264;
+  background: linear-gradient(135deg, #ded4c0f5, #c1b094f5);
+  box-shadow: 0 0.5rem 1.5rem #14232250;
+}
+.panel:first-child {
+  padding: 0;
+}
+.panel h2 {
+  margin: 0 0 0.75rem;
+  color: inherit;
+  font: 500 1.4rem/1.2 var(--av-font-display);
+}
+.track {
+  display: grid;
+  grid-template-columns: 9rem minmax(0, 1fr);
+  gap: 1rem;
+  align-items: center;
+}
+.art {
+  width: 100%;
+  height: 5.625rem;
+  aspect-ratio: 1.6;
+  object-fit: cover;
+  border: 1px solid #978264;
+}
+.track strong {
+  font: 500 1.25rem/1.3 var(--av-font-display);
+  overflow-wrap: anywhere;
+}
+.track p {
+  margin: 0.35rem 0 0.7rem;
+  color: #596154;
+  font-size: 0.875rem;
+}
+.track progress {
+  width: 100%;
+  height: 0.5rem;
+  accent-color: #345951;
+}
+.time {
+  display: block;
+  margin-top: 0.35rem;
+  text-align: right;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+.play {
+  display: block;
+  min-height: 44px;
+  margin: 0.8rem auto 0;
+  padding: 0.5rem 1.5rem;
+  border: 1px solid #978264;
+  color: #f1e5ce;
+  background: #345951;
+  font: 500 1rem var(--av-font-display);
+  cursor: pointer;
+}
+.play:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+@media (max-width: 760px) {
+  .panel {
+    padding: 0.75rem;
+  }
+  .art {
+    height: 3.75rem;
+  }
+  .track {
+    grid-template-columns: 6rem minmax(0, 1fr);
+    gap: 0.6rem;
+  }
+}

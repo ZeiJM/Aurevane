@@ -1,4 +1,6 @@
 import 'server-only'
+import { createCombatGroundArea } from '@aurevane/game-core/combat/combat-ground-areas'
+import { projectPublicCombatGroundAreas } from '@aurevane/game-core/combat/combat-ground-visuals'
 
 import {
   createCombatEncounterState,
@@ -16,11 +18,12 @@ import {
   createPv1fTemporaryResources,
   evaluatePv1fMatureSkill,
   readPv1fActionEconomy,
+  PV1F_COMBAT_CONTENT,
 } from '@aurevane/game-core/combat/pv1f-action-economy'
 import {
-  createStatDrivenCombatEncounterState,
+  createDuelBalancedCombatEncounterState,
   type StatDrivenCombatEncounterState,
-  type StatDrivenCombatProfileV2,
+  type StatDrivenCombatProfileV4,
 } from '@aurevane/game-core/combat/stat-driven-combat'
 
 const ACTOR_ID = 'master-preview-actor'
@@ -58,6 +61,7 @@ function previewDistance(definition: MatureSkillDefinition): number {
     return 0
   }
 
+  if (definition.target.geometryVersion === 2 && definition.target.shape.kind !== 'single') return 1
   const minimum = definition.target.minimumRange
   const maximum = definition.target.maximumRange
   if (minimum > maximum) return minimum
@@ -80,6 +84,16 @@ function previewSelection(
   definition: MatureSkillDefinition,
   targetPosition: GridPosition,
 ): CombatTargetSelection {
+  const groundFire =
+    definition.target.kind === 'ground-tile' &&
+    definition.target.teamPolicy === 'enemy' &&
+    definition.effects.some((effect) => effect.type === 'damage' && effect.element === 'fire')
+  if (definition.target.geometryVersion === 2) {
+    if (definition.target.shape.kind === 'line')
+      return { kind: 'direction', direction: 'east', ...(groundFire ? { ground: true } : {}) }
+    if (definition.target.shape.kind === 'circle' || definition.target.shape.kind === 'all')
+      return { kind: 'activate', ...(groundFire ? { ground: true } : {}) }
+  }
   if (definition.target.kind === 'self') return { kind: 'self' }
 
   if (definition.target.kind === 'unit') {
@@ -97,8 +111,8 @@ function previewSelection(
 
 function profile(
   combatantId: string,
-  overrides: Partial<Pick<StatDrivenCombatProfileV2, 'accuracy' | 'evasion'>> = {},
-): StatDrivenCombatProfileV2 {
+  overrides: Partial<Pick<StatDrivenCombatProfileV4, 'accuracy' | 'evasion'>> = {},
+): StatDrivenCombatProfileV4 {
   return {
     combatantId,
     provenance: {
@@ -106,13 +120,16 @@ function profile(
       sourceId: `scenario:master-panel-preview:${combatantId}`,
       sourceRulesVersion: 2,
     },
-    accuracy: overrides.accuracy ?? 7_000,
+    accuracy: overrides.accuracy ?? 8_500,
     evasion: overrides.evasion ?? 0,
     armor: 0,
     ward: 0,
     jump: 1,
     physicalPower: 30,
     mysticPower: 30,
+    level: 1,
+    criticalChance: 0,
+    statusResistance: 0,
   }
 }
 
@@ -242,6 +259,18 @@ function previewState(
   const base = createCombatEncounterState(tactical)
   const withFixtureState = {
     ...base,
+    percentageDotPolicyVersion: 1 as const,
+    dotTriggerPolicyVersion: 2 as const,
+    skillPacketPolicyVersion: 1 as const,
+    groundEffectPolicyVersion: 1 as const,
+    frozenGroundPolicyVersion: 1 as const,
+    airbornePolicyVersion: 1 as const,
+    airborneJumpPolicyVersion: 1 as const,
+    elementalDamagePolicyVersion: 2 as const,
+    dynamicInitiativePolicyVersion: 1 as const,
+    healingDownPolicyVersion: 1 as const,
+    blindsideActivationPolicyVersion: 1 as const,
+    displacementPolicyVersion: 1 as const,
     turnOrigin: {
       combatantId: ACTOR_ID,
       turnNumber: battle.turnNumber,
@@ -258,7 +287,7 @@ function previewState(
   }
 
   return {
-    state: createStatDrivenCombatEncounterState(withFixtureState, [
+    state: createDuelBalancedCombatEncounterState(withFixtureState, [
       profile(ACTOR_ID),
       profile(ALLY_ID),
       profile(ENEMY_ID, { evasion: 1_500 }),
@@ -334,6 +363,20 @@ export function previewCombatContentDefinition(
       primaryCombatantId: evaluated.evaluation.primaryCombatantId,
       rngConsumed: false as const,
     },
+    groundAreas:
+      evaluated.evaluation.legal && definition.groundArea
+        ? projectPublicCombatGroundAreas(
+            createCombatGroundArea(
+              evaluated.prepared,
+              ACTOR_ID,
+              evaluated.action,
+              evaluated.evaluation.affectedTiles,
+              PV1F_COMBAT_CONTENT,
+            ).groundAreas ?? [],
+            evaluated.prepared.tactical.battle.round,
+            evaluated.prepared.tactical.battle.lifecycle,
+          )
+        : [],
     targeting: {
       target: structuredClone(definition.target),
       selection: structuredClone(selection),

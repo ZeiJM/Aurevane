@@ -2,12 +2,32 @@ import { describe, expect, it } from 'vitest'
 
 import {
   compareLastSeenAt,
+  compareDirectoryCharacters,
   formatLastSeenAt,
   readableDisciplinePair,
   readableIdentity,
 } from './online-users-directory-utils'
 
 describe('online users directory helpers', () => {
+  it('sorts Level and EXP numerically in either direction, with unavailable EXP last', () => {
+    const characters = [
+      { characterId: 'a', name: 'Alpha', level: 2, xp: 900, lastSeenAt: '2026-10-05T10:00:00Z' },
+      { characterId: 'b', name: 'Beta', level: 10, xp: 12000, lastSeenAt: '2026-10-05T11:00:00Z' },
+      { characterId: 'c', name: 'Gamma', level: 3, xp: 0, lastSeenAt: null },
+      { characterId: 'd', name: 'Delta', level: 1, xp: null, lastSeenAt: '2026-10-05T12:00:00Z' },
+    ]
+    const ordered = (order: Parameters<typeof compareDirectoryCharacters>[2]) =>
+      [...characters]
+        .sort((a, b) => compareDirectoryCharacters(a, b, order))
+        .map((row) => row.characterId)
+    expect(ordered('level-desc')).toEqual(['b', 'c', 'a', 'd'])
+    expect(ordered('level-asc')).toEqual(['d', 'a', 'c', 'b'])
+    expect(ordered('exp-desc')).toEqual(['b', 'a', 'c', 'd'])
+    expect(ordered('exp-asc')).toEqual(['c', 'a', 'b', 'd'])
+    expect(ordered('recent')).toEqual(['d', 'b', 'a', 'c'])
+    expect(ordered('oldest')).toEqual(['a', 'b', 'd', 'c'])
+  })
+
   it('formats the canonical discipline id for the class filter', () => {
     expect(readableIdentity('starter.aetherist')).toBe('Aetherist')
   })

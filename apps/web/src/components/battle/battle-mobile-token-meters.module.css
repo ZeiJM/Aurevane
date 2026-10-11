@@ -14,8 +14,9 @@
       > [data-mobile-token-meters='true']
   ) {
     position: absolute !important;
+    top: calc(100% - 1px) !important;
     right: auto !important;
-    bottom: -22% !important;
+    bottom: auto !important;
     left: 50% !important;
     z-index: 8 !important;
     display: grid !important;
@@ -51,7 +52,7 @@
     position: relative !important;
     display: block !important;
     width: 100% !important;
-    height: clamp(2px, 0.8vw, 4px) !important;
+    height: clamp(2px, 0.65vw, 3px) !important;
     overflow: hidden !important;
     border: 1px solid rgba(0, 0, 0, 0.72) !important;
     border-radius: 999px !important;

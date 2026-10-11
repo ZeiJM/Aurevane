@@ -1,9 +1,26 @@
+Owner Suppress follow-up — October9: Suppress reduces outgoing direct damage by its displayed percentage, from1% to100%, independently for1–4 turns. It never stacks; reapplication retains the stronger percentage and longer remaining duration. Cleanse removes it, Dispel does not, and Copy Debuffs can copy it.100% prevents direct damage. New Burn/Poison/Bleed still use actual HP lost from their qualifying hit; existing captured ticks continue unchanged. No current Skill, Essence or summon gains Suppress automatically. Implementation is under verification; not yet deployed.
+
+Owner Ground copy follow-up — October9: compact tile inspection retains the effect name and remaining rounds without repeated rules. Shared Ground forecast/Chronicle/Copy Full Log summaries omit tile counts, target-team notes and Airborne exemptions, retaining transition, activation round, lifetime and a short AP/sight result. Full rules remain in accessible tile descriptions and help; grouping/privacy/recorded outcomes remain unchanged. Implementation is under verification; not yet deployed.
+
+Owner Airborne follow-up — October9: new PvE/PvP/Master encounters pin optional `airborneJumpPolicyVersion:1`. Active Airborne temporarily sets Jump to3 for movement and retains Attack-only Target Elevation3 under existing Airborne policy1. Shared movement preview/commit, board reach and AI planning derive the effective profile without rewriting saved stats/movement profiles; pending/expired Airborne does not grant Jump. After expiry, characters can cross level elevated tiles and descend even when their baseline Jump is lower, paying ordinary costs. Rooted, Slow, AP/Movement, obstacles and occupancy remain authoritative. Historical absent Jump policy retains original movement. Captured readers report the correct policy. Verification is in progress; not yet deployed.
+
+Owner targeting follow-up — October9: restore the full potential Skill footprint for Single, Line, Circle, All and Ground independently of occupied targets and forecast selection. Ground Single aiming retains its potential range. Clear target-specific inline borders/background/shadows on tiles vacated by movement, Push or Pull, preserving current range glows and canonical legality. Shared desktop/mobile PvE/PvP and spectator inspection remain authoritative. Verification/release evidence: `docs/verification/2026-10-09-summon-readers-blindside.md`; not yet deployed.
+
 # AUREVANE — Comprehensive Manual & Knowledge System
+
+Owner follow-ups — October9: summon inspect lists only ability names and the cockpit-style ! trigger; the popout retains all ten characteristics and complete pinned explanations. Chronicle and Copy Full Log preserve names through visible exact-version summon spawn receipts, including moves/incoming attacks without an ability cast, and narrate defeat (dispelled after defeat) or duration expiry. Skill information displays Damage before Blindside while preserving authored execution order and effect-description indices. New encounters pin optional `blindsideActivationPolicyVersion:1`: grant/refresh the one-turn buff only for a successful damaging side/rear enemy hit whose authored modifier exceeds100%; front, missed, friendly and100% hits do not grant/refresh it. Existing active applications retain normal expiry. Historical encounters without the policy retain their saved activation rules. Release evidence is tracked in `docs/verification/2026-10-09-summon-readers-blindside.md`; implementation is under verification and is not yet deployed.
+
+
+2026-10-03 Owner battle readability continuation: new standard battles vary mostly neutral terrain with joined elevations while authored teaching boards, configured PvP biases and saved battles retain their authority. The latest approved layout moves the gold recorded-round counter to the Chronicle header, pairs equal-size local and selected-enemy cards on the left, and places the full Chronicle on the right. Terrain opens beside Cancel. Current and previous rounds start expanded; use an earlier round’s chevron to reveal or hide its complete history. The current round stays open; live updates preserve history you deliberately open or are reading. Shared information popups retain complete reports in a compact design; Chronicle consequences use smaller italic text with beneficial/recovery green and harmful red, and recorded misses are explicit. A second distinct configured hotkey press confirms a legally self-targeted Skill through the usual server checks. A deliberate target, destination or configured execution gesture submits directly to the server with the current battle version. Aim forecasts remain informational and need not finish before commitment; final results still wait for authoritative acceptance. Move supports a full legal destination in one click within AP, Movement, terrain/elevation and status limits. Information popups use one compact complete reader at a time, dismiss with outside click or Escape, and omit the X control; portraits and Skill artwork keep their approved size. This supersedes the earlier matching-preview requirement. Current-batch verification: `superpowers/verification/2026-10-03-approved-battle-layout-direct-input.md`; integrated verification and release remain tracked in `../TASKS.md`.
+
+Owner refinement 2026-10-05 supersedes the earlier generic Copy rule. Generic Skill Copy and "Copy beneficial effects" are removed. The remaining copy mechanics are **Copy Buffs** and **Copy Debuffs**. Effect tags use bracketed authored values: Dmg/elemental Dmg, Heal, MP Restore and MP Drain show the authored value; Push/Pull show tile distance. Current names include Rewind, Reveal, Vulnerable, Defenseless, Chilled, Damage Up, Healing Down, Invisible, Rooted, Taunted, Burn Ward and Frozen Ground. Retired Regeneration/Hastened/Delayed/Borrowed Hour status/historical Summoned protection/historical Marked vulnerability are not current player mechanics. Shared effect reports retain configured timing behavior for the surviving effects.
 
 **Status:** Authoritative documentation/player-help specification subordinate to `docs/GAME_MASTER_PLAN.md` and the owner-approved domain specifications it indexes.
 
 **Initial direction approved:** 2026-08-15.  
 **Terminology/current-state synchronization:** 2026-09-11.
+
+2026-10-02 Support timing: Guard has an independent two-owner-turn cooldown. HP/MP Recovery share their existing separate two-turn cooldown. The live Action Economy article explains this timing alongside costs and authoritative preview/commit behavior.
 
 AUREVANE must eventually ship with a comprehensive, attractive, easy-to-read Manual covering beginner fundamentals through advanced systems, plus separate protected Owner/Staff operational documentation.
 
@@ -24,6 +41,8 @@ Current player-facing terminology is:
 Retired player-facing terms such as Current Discipline, Legacy Discipline, Art as the generic ability term, Confluence, separate Trait/Reaction/Movement Art/Ultimate slots, Tactical Hall, the old four-attribute model, and the old Movement Budget + one Action combat model may remain only in clearly historical material.
 
 ---
+
+2026-10-03 battle effects: new battles show delayed effects as pending immediately, activate them at the following global round, and keep newly queued non-instant status durations active for the specified number of complete rounds, regardless of initiative. Instant effects and previously stored lifetimes retain their recorded timing. Damage and HP/MP recovery default instant. The Battle Chronicle groups short scenes and results by character and retains the first ordinary movement per character per round; repeated movement, facing and expiry remain visible through board/rail state rather than repeated story chatter.
 
 ## 1. Goals
 
@@ -210,7 +229,7 @@ Explain current behavior precisely:
 - Short / Medium / Extended are server-timed;
 - longer plans trade hourly efficiency for convenience;
 - simply being offline/idle creates no new reward;
-- stopping an unfinished plan grants no partial reward;
+- stopping an unfinished plan freezes its server-earned portion into a Training Report; stopped and completed reports wait for an explicit Claim action. A successful claim returns to plan selection; a failed claim keeps the report available to retry;
 - completed Training Reports are server-owned/idempotent;
 - active training blocks starting a new Battle Hall/live fight under current rules;
 - ordinary non-combat account/reference/social surfaces may remain usable;
@@ -394,3 +413,17 @@ Current Manual copy must prioritize what is actually playable now—character/ac
 ## 22. Definition of Success
 
 The Manual succeeds when new players can learn AUREVANE without an external wiki, advanced players can verify exact current rules, terminology is consistent across UI/manual/tutorial/errors, six attributes and current AP combat are documented correctly, pure/mixed build rules are understandable, Resonance and Essence are distinct/spoiler-safe, Passive Training/Battle Hall behavior matches the real product, unreleased systems are not presented as already playable, documentation updates with live rules, staff can operate systems safely, spoilers/privileged information remain protected, and historical rules remain identifiable as historical rather than silently overriding the current game.
+
+
+2026-10-06 Owner battle fixes: Basic Attack uses your higher Physical or Mystic Attack stat, defaulting to Physical on ties. Move reports 20 AP, Move [1] [Instant], your Move range and Jump elevation reach; terrain can increase its actual AP cost. Armed damaging attacks show their complete potential hit area in red, including empty tiles. Basic Attack shows its four cardinal neighbors; automatic target detection never removes other potential glows. Explicit Line aiming focuses the full chosen lane. Chronicle characters follow recorded turn order in each round. Each raised tile in a new battle independently rolls height 1 (60%), 2 (30%) or 3 (10%). Neighboring tiles may differ; saved maps retain their heights. Essence previews include effect explanations, and the lobby shares the battle’s animated VS artwork.
+
+
+Lowered Guard only follows a timed-out turn where you did nothing. If you successfully moved or used an action before the timer expired, that turn is exempt. Previewing or attempting an illegal command does not count as acting.
+
+2026-10-06 Initiative follow-up: equal initiative is randomly ordered when a new battle starts. That tie order stays fixed across reloads; changes to initiative still change who moves first.
+
+
+Owner-approved targeting and percentage effects — 2026-10-07: Single selects one legal target; Line [X] covers X tiles in a chosen cardinal direction and can strike every eligible occupant; Circle [X] spreads outward from the caster over square grid rings, excluding the caster tile; All applies its authored ally/enemy/ground policy across the field. Server requirements, elevation, line of sight and recipient policy still determine legal results. Burn, Poison and Bleed use the percentages of actual attack HP damage shown in their current pinned descriptions. Historical battles retain their recorded rules. Master → Combat Settings lets the Game Owner publish independent level 1/2/3 elevation chances totaling 100%, defaulting to 60%/30%/10%. Changes affect new Battle Hall, PvP and world encounters; saved tiles retain their heights.
+
+
+Owner-approved Poison continuation — October8/9 (released through PR #852; acceptance checklist in TASKS): Poison deals its percentage damage once at the affected turn end. Every five tiles travelled, including Push or Pull, refreshes the captured full duration without extra damage. Partial movement carries between turns; instantaneous relocation does not count. Reapplication restarts duration and movement progress while retaining the strongest percentage and longest original duration independently. Older battles keep their recorded rules. Summon inspection shows all ten standard skill characteristics; hover or tap ! for full details without spending AP. Ground delivery duration and entry timing belong with Target, separate from actual effects.

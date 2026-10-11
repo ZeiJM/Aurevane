@@ -134,7 +134,7 @@ async function enter(page: Page) {
   )
   await page
     .getByRole('navigation', { name: 'Primary game navigation', exact: true })
-    .getByRole('link', { name: /World/ })
+    .getByRole('link', { name: /Travel/ })
     .click()
   await expect(page.locator('[data-world-workspace]')).toBeVisible()
   return name
@@ -177,23 +177,30 @@ test('Living Atlas fits the shared shell and supports travel, globe and temporar
   ])
     expect(initial.sectors.find((sector) => sector.id === id)).toBeDefined()
   expect(JSON.stringify(initial)).not.toContain('survey-01')
-  const identity = page.getByTestId('character-profile')
-  const identityBox = (await identity.boundingBox())!
-  for (const content of [
-    identity.getByRole('heading', { name, exact: true }),
-    identity.locator('[data-character-resource="hp"]'),
-    identity.locator('[data-character-resource="mp"]'),
-  ]) {
-    const bounds = (await content.boundingBox())!
-    expect(bounds.x).toBeGreaterThanOrEqual(identityBox.x)
-    expect(bounds.y).toBeGreaterThanOrEqual(identityBox.y)
-    expect(bounds.x + bounds.width).toBeLessThanOrEqual(identityBox.x + identityBox.width)
-    expect(bounds.y + bounds.height).toBeLessThanOrEqual(identityBox.y + identityBox.height)
-  }
+  const rail = page.locator('[data-av-game-rail]')
+  await expect(rail).toBeVisible()
+  const railBox = (await rail.boundingBox())!
   if (info.project.name === 'mobile-chromium') {
-    const portrait = (await identity.locator('[data-character-portrait-frame]').boundingBox())!
-    expect(portrait.width).toBeLessThanOrEqual(100)
-    expect(identityBox.height).toBeLessThan(260)
+    await expect(
+      page.getByRole('navigation', { name: 'Primary game navigation', exact: true }),
+    ).toBeVisible()
+    expect(railBox.height).toBeLessThan(100)
+  } else {
+    const identity = page.getByTestId('authenticated-shell').getByTestId('character-rail-profile')
+    await expect(identity).toBeVisible()
+    const identityBox = (await identity.boundingBox())!
+    for (const content of [
+      identity.locator('[data-character-identity-copy] > strong').filter({ hasText: name }),
+      identity.locator('[data-character-resource="hp"]'),
+      identity.locator('[data-character-resource="mp"]'),
+    ]) {
+      const bounds = (await content.boundingBox())!
+      expect(bounds.x).toBeGreaterThanOrEqual(identityBox.x)
+      expect(bounds.y).toBeGreaterThanOrEqual(identityBox.y)
+      expect(bounds.x + bounds.width).toBeLessThanOrEqual(identityBox.x + identityBox.width)
+      expect(bounds.y + bounds.height).toBeLessThanOrEqual(identityBox.y + identityBox.height)
+    }
+    expect(railBox.width).toBe(190)
   }
   const grid = page.getByRole('group', { name: 'Verdant Expanse, square movement grid' })
   await expect(grid.getByRole('button')).toHaveCount(117)
@@ -221,7 +228,10 @@ test('Living Atlas fits the shared shell and supports travel, globe and temporar
   await expectSectorToFit()
   // Selecting a destination is presentation only; the explicit action starts travel.
   const beforeSelection = await world(page)
-  await grid.getByRole('button', { name: 'E18 N24, open territory', exact: true }).click()
+  // Other characters (including offline ones) may now stand on this tile; select it directly.
+  await grid
+    .getByRole('button', { name: 'E18 N24, open territory', exact: true })
+    .dispatchEvent('click')
   const afterSelection = await world(page)
   expect(afterSelection.position).toEqual(beforeSelection.position)
   expect(afterSelection.route).toEqual(beforeSelection.route)
@@ -353,6 +363,13 @@ test('Living Atlas fits the shared shell and supports travel, globe and temporar
   await expectCurrentGlobeLabelClear()
   const globeBounds = (await sphere.boundingBox())!
   const viewportBounds = (await page.locator('[class*="mapViewport"]').boundingBox())!
+  if (info.project.name !== 'mobile-chromium') {
+    const mainBounds = (await page.locator('#game-main').boundingBox())!
+    expect(viewportBounds.y).toBeGreaterThanOrEqual(mainBounds.y)
+    expect(viewportBounds.y + viewportBounds.height).toBeLessThanOrEqual(
+      mainBounds.y + mainBounds.height,
+    )
+  }
   expect(globeBounds.y).toBeGreaterThanOrEqual(viewportBounds.y + 16)
   expect(globeBounds.y + globeBounds.height).toBeLessThanOrEqual(
     viewportBounds.y + viewportBounds.height - 16,
@@ -708,7 +725,8 @@ test('expired training releases travel without claiming XP and frontier discover
   await enter(page)
   const initial = await world(page)
   await openOfflineTraining(page)
-  await page.getByRole('button', { name: 'Start Medium' }).click()
+  await page.getByRole('radio', { name: 'Medium Plan', exact: true }).check()
+  await page.getByRole('button', { name: 'Start Training', exact: true }).click()
   await expect(page.getByTestId('passive-training-active')).toBeVisible()
   await page.goto('/game/world')
   await expect(page.getByRole('status')).toContainText('Stop Passive Training')
@@ -1059,9 +1077,7 @@ test('a proximity attack reaches both authenticated players while the target vie
     await expect(
       page.getByRole('button', { name: `Inspect ${opponentName}`, exact: true }),
     ).toBeVisible()
-    const selection = page.getByLabel('Select nearby player')
-    if (await selection.count()) await selection.selectOption(target.characterId)
-    await page.getByRole('button', { name: /Attack/, exact: false }).click()
+    await page.getByRole('button', { name: `Attack ${opponentName}`, exact: true }).click()
     await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]+$/, { timeout: 15000 })
     await expect(opponent).toHaveURL(page.url(), { timeout: 15000 })
     const battleId = page.url().split('/').at(-1)!

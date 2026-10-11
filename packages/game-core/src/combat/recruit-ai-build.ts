@@ -1,3 +1,5 @@
+import { outgoingSuppressionBasisPoints } from './combat-suppress'
+import { enumerateCombatTargetSelections } from './combat-targeting-shapes'
 import { terrainOverlayAiUtility, terrainOverlayAt } from './terrain-overlays'
 import { combatStatusDetails } from './status-content'
 import { isMaterializedCombatEffect } from './summon-content'
@@ -8,21 +10,13 @@ import type {
 } from './actions'
 import { readBattleAuthorityCombatBuildSnapshot } from './battle-authority-build-snapshot'
 import { resolveEssenceForBuild } from './essence'
-import {
-  resolveMatureSkillForContext,
-  resolveMatureSkillVersion,
-  type MatureSkillDefinition,
-} from './mature-skills'
-import { copiedSkillCommandId } from './combat-skill-copy'
+import { resolveMatureSkillVersion, type MatureSkillDefinition } from './mature-skills'
 import {
   committedResonanceForecast,
   executePv1fAction,
-  executePv1fCopiedSkill,
   executePv1fMatureSkill,
-  evaluatePv1fCopiedSkill,
   evaluatePv1fMatureSkill,
   readPv1fActionEconomy,
-  type Pv1fMatureSkillCopyContext,
   type Pv1fTransition,
 } from './pv1f-action-economy'
 import {
@@ -46,8 +40,6 @@ interface BuildSkillCandidate {
 
 export interface BuildAwareRecruitAiSkillOptions {
   committedSkills?: readonly MatureSkillDefinition[]
-  copiedSkills?: readonly MatureSkillDefinition[]
-  copyContextsBySource?: Readonly<Record<string, Pv1fMatureSkillCopyContext>>
 }
 
 export function chooseBuildAwareRecruitAiDecision(input: {
@@ -62,30 +54,14 @@ export function chooseBuildAwareRecruitAiDecision(input: {
 
   const committed =
     input.skillOptions?.committedSkills ?? committedMatureSkills(input.state, actorId)
-  const copied = input.skillOptions?.copiedSkills ?? []
-  const skillCandidates = [
-    ...committed.flatMap((definition) =>
-      buildSkillCandidates(
-        input.state,
-        definition,
-        input.profile ?? RECRUIT_STANDARD_PROFILE,
-        false,
-        input.skillOptions?.copyContextsBySource,
-      ),
-    ),
-    ...copied.flatMap((definition) =>
-      buildSkillCandidates(
-        input.state,
-        definition,
-        input.profile ?? RECRUIT_STANDARD_PROFILE,
-        true,
-        input.skillOptions?.copyContextsBySource,
-      ),
-    ),
-  ].sort((left, right) => {
-    if (left.utility !== right.utility) return right.utility - left.utility
-    return left.stableKey.localeCompare(right.stableKey)
-  })
+  const skillCandidates = committed
+    .flatMap((definition) =>
+      buildSkillCandidates(input.state, definition, input.profile ?? RECRUIT_STANDARD_PROFILE),
+    )
+    .sort((left, right) => {
+      if (left.utility !== right.utility) return right.utility - left.utility
+      return left.stableKey.localeCompare(right.stableKey)
+    })
   const selected = skillCandidates[0]
   if (!selected || selected.utility <= baseline.utility) {
     return {
@@ -117,32 +93,11 @@ export function executeBuildAwareRecruitAiAction(
 ): Pv1fTransition {
   const actorId = state.tactical.battle.currentTurn?.combatantId
   if (!actorId) throw new Error('Build-aware Recruit AI action requires an active turn.')
-  const copied = (skillOptions.copiedSkills ?? []).find(
-    (candidate) => copiedSkillCommandId(candidate.id, candidate.contentVersion) === actionId,
-  )
-  if (copied) {
-    const copyContext =
-      copied.effects.some((effect) => effect.type === 'copy') && target.kind === 'unit'
-        ? skillOptions.copyContextsBySource?.[target.combatantId]
-        : undefined
-    return executePv1fCopiedSkill(state, copied, target, 'pve', copyContext)
-  }
-
   const definition = (skillOptions.committedSkills ?? committedMatureSkills(state, actorId)).find(
     (candidate) => candidate.id === actionId,
   )
   if (definition) {
-    const copyContext =
-      definition.effects.some((effect) => effect.type === 'copy') && target.kind === 'unit'
-        ? skillOptions.copyContextsBySource?.[target.combatantId]
-        : undefined
-    return executePv1fMatureSkill(
-      state,
-      definition,
-      target,
-      'pve',
-      copyContext ? { copyContext } : {},
-    )
+    return executePv1fMatureSkill(state, definition, target, 'pve')
   }
   return executePv1fAction(state, actionId, target)
 }
@@ -194,27 +149,13 @@ function buildSkillCandidates(
   state: StatDrivenCombatEncounterState,
   definition: MatureSkillDefinition,
   profile: RecruitAiProfile,
-  copied: boolean,
-  copyContextsBySource?: Readonly<Record<string, Pv1fMatureSkillCopyContext>>,
 ): BuildSkillCandidate[] {
   if (!definition.enabled || !definition.ai.enabled) return []
   const candidates: BuildSkillCandidate[] = []
   for (const target of targetSelections(state, definition)) {
     let evaluated
     try {
-      const copyContext =
-        definition.effects.some((effect) => effect.type === 'copy') && target.kind === 'unit'
-          ? copyContextsBySource?.[target.combatantId]
-          : undefined
-      evaluated = copied
-        ? evaluatePv1fCopiedSkill(state, definition, target, 'pve', copyContext)
-        : evaluatePv1fMatureSkill(
-            state,
-            definition,
-            target,
-            'pve',
-            copyContext ? { copyContext } : {},
-          )
+      evaluated = evaluatePv1fMatureSkill(state, definition, target, 'pve')
     } catch {
       continue
     }
@@ -225,7 +166,7 @@ function buildSkillCandidates(
     if (!evaluated.evaluation.legal || !economy || economy.current < evaluated.cost) continue
     // A repeated discrete ground effect can be empty. Do not burn AP for no resulting change.
     if (
-      target.kind === 'tile' &&
+      (target.kind === 'tile' || target.kind === 'direction' || target.kind === 'activate') &&
       !evaluated.evaluation.projectedEffects.some((effect) => effect.before !== effect.after) &&
       !evaluated.evaluation.projectedTerrain.some(
         (effect) =>
@@ -242,8 +183,13 @@ function buildSkillCandidates(
       : resonance?.forecast.willArm
         ? (resonanceMechanics?.aiSetupUtilityBonus ?? 0)
         : 0
-    const originalCost = resolveMatureSkillForContext(definition, 'pve').apCost
-    const copiedApDiscountUtility = copied ? Math.max(0, originalCost - evaluated.cost) : 0
+    if (
+      outgoingSuppressionBasisPoints(state, evaluated.evaluation.actorId!) === 10000 &&
+      !evaluated.evaluation.projectedEffects.some((effect) => effect.before !== effect.after) &&
+      !evaluated.evaluation.projectedTerrain.some((effect) => effect.before !== effect.after) &&
+      resonanceUtility === 0
+    )
+      continue
     candidates.push({
       actionId: evaluated.action.id,
       definition,
@@ -260,8 +206,7 @@ function buildSkillCandidates(
           definition.effects.filter(isMaterializedCombatEffect),
         ) +
         terrainOverlayAiUtility(state, evaluated.evaluation) +
-        resonanceUtility +
-        copiedApDiscountUtility,
+        resonanceUtility,
       stableKey: `${evaluated.action.id}:${targetKey(target)}`,
     })
   }
@@ -272,15 +217,11 @@ function targetSelections(
   state: StatDrivenCombatEncounterState,
   definition: MatureSkillDefinition,
 ): readonly CombatTargetSelection[] {
-  if (definition.target.kind === 'self') return [{ kind: 'self' }]
-  if (definition.target.kind === 'unit') {
-    return [...state.tactical.battle.combatants]
-      .sort((left, right) => left.id.localeCompare(right.id))
-      .map((combatant) => ({ kind: 'unit' as const, combatantId: combatant.id }))
-  }
-  return [...state.tactical.tiles]
-    .sort((left, right) => left.position.y - right.position.y || left.position.x - right.position.x)
-    .map((tile) => ({ kind: 'tile' as const, position: { ...tile.position } }))
+  return enumerateCombatTargetSelections(
+    state,
+    state.tactical.battle.currentTurn!.combatantId,
+    definition.target,
+  )
 }
 
 export function projectedCombatEffectUtility(
@@ -297,31 +238,56 @@ export function projectedCombatEffectUtility(
       state.tactical.battle.combatants.find((unit) => unit.id === effect.combatantId)?.teamId ===
       actorTeam
     const sign = ally ? 1 : -1
+    const resistance = evaluation.targetStatusResistances?.find(
+      (row) => row.targetCombatantId === effect.combatantId,
+    )
+    const debuffProbability =
+      effect.effectOrdinal !== undefined &&
+      resistance?.eligibleEffectOrdinals.includes(effect.effectOrdinal)
+        ? (10000 - resistance.resistanceChanceBasisPoints) / 10000
+        : 1
     if (typeof effect.before !== 'number' || typeof effect.after !== 'number') {
       if (effect.before === effect.after) return utility
+      if (effect.statusId === 'suppress')
+        return (
+          utility - 8 * sign * ((effect.potencyBasisPoints ?? 2500) / 10000) * debuffProbability
+        )
       if (effect.effectType === 'copy-statuses') {
         if (!copyMode) return utility
         // Clone projections already passed authoritative legality/eligibility. Reuse the
         // ordinary status utility magnitude and score only the actual projected recipient.
-        return utility + (copyMode === 'amplify' ? 8 * sign : -8 * sign)
+        return utility + (copyMode === 'amplify' ? 8 * sign : -8 * sign * debuffProbability)
       }
+      if (
+        state.statBalancePolicyVersion === 1 &&
+        ['poison', 'burn', 'bleed'].includes(effect.effectType)
+      )
+        return utility - 8 * sign * debuffProbability
       if (effect.effectType === 'remove-status')
         return utility + (effect.before === 'none' ? 0 : 8 * sign)
       if (effect.effectType === 'apply-status' && typeof effect.after === 'string') {
         const kind = combatStatusDetails(effect.after.split(':')[0]!).kind
         // Coupled tradeoffs are deliberately neutral here; their authored utility is
         // not inflated as if the drawback were another beneficial status.
-        return utility + (kind === 'Buff' ? 8 * sign : kind === 'Debuff' ? -8 * sign : 0)
+        return (
+          utility +
+          (kind === 'Buff' ? 8 * sign : kind === 'Debuff' ? -8 * sign * debuffProbability : 0)
+        )
       }
       return utility
     }
     const change = effect.after - effect.before
-    return utility + change * sign * (effect.effectType === 'resource-change' ? 1 : 2)
+    return (
+      utility +
+      change * sign * (effect.effectType === 'resource-change' ? 1 : 2) * debuffProbability
+    )
   }, 0)
 }
 
 function targetKey(target: CombatTargetSelection): string {
   if (target.kind === 'self') return 'self'
+  if (target.kind === 'activate') return 'activate'
+  if (target.kind === 'direction') return `direction:${target.direction}`
   if (target.kind === 'unit') return `unit:${target.combatantId}`
   return `tile:${target.position.x},${target.position.y}`
 }

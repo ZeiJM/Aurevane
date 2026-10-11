@@ -1,3 +1,15 @@
+import { createBlindsideSkillVersion } from './combat-blindside-roster'
+import { createPercentageRecoverySkillVersion } from './combat-recovery-roster'
+import { createCurrentGroundSkillVersion } from './combat-ground-roster'
+import {
+  validateCombatGroundAreaDefinition,
+  type CombatGroundAreaDefinition,
+} from './combat-ground-areas'
+import { createCurrentTargetingSkillVersion } from './combat-targeting-roster'
+import { validateCurrentAreaTargetRecipients } from './combat-targeting-shapes'
+import { createPercentageDotSkillVersion } from './combat-percentage-dot-roster'
+import { battleFlavorTemplateIssues } from './battle-narration'
+import { createCanonicalCleanseSkillVersion } from './combat-cleanse'
 import {
   validateCombatAccuracyDefinition,
   type CombatAccuracyAuthoring,
@@ -67,12 +79,15 @@ export interface MatureSkillAuthoringMetadata {
 export type MatureSkillEffectDefinition = CombatEffectDefinition | CombatSummonEffect
 
 export interface MatureSkillDefinition extends CombatAccuracyAuthoring {
+  readonly groundArea?: CombatGroundAreaDefinition
   readonly id: string
   readonly contentVersion: number
   readonly enabled: boolean
   readonly nameRef: string
   readonly descriptionRef: string
   readonly flavorLine?: string
+  /** Optional versioned action prose, separate from catalogue flavor. */
+  readonly battleText?: string
   readonly sourceDisciplineId: string
   readonly unlockRequirement: MatureSkillUnlockRequirement
   readonly apCost: number
@@ -544,7 +559,7 @@ function currentAccuracyMode(
 
   const hostileRecipient = definition.effects.some((effect) => {
     if (!('recipient' in effect) || effect.recipient === 'actor') return false
-    if (effect.type === 'healing') return false
+    if (effect.type === 'healing' || effect.type === 'percentage-recovery') return false
     if (effect.type === 'resource-change') return effect.delta < 0
     if (effect.type === 'barrier-change') return effect.amount < 0
     return effect.type !== 'create-terrain'
@@ -576,43 +591,12 @@ function currentRequirement(requirement: CombatUseRequirement): CombatUseRequire
     }
   }
 
-  if (requirement.statusId === 'delayed') {
-    return { ...requirement, statusId: 'slow' }
-  }
-  if (requirement.statusId === 'hastened') {
-    return { ...requirement, statusId: 'haste' }
-  }
-  if (requirement.statusId === 'marked') {
-    return { ...requirement, statusId: 'mark' }
-  }
   return requirement
 }
 
 function currentEffect(effect: CombatEffectDefinition): CombatEffectDefinition {
-  if (effect.type === 'remove-status') {
-    return effect.statusIds.includes('marked') && !effect.statusIds.includes('mark')
-      ? { ...effect, statusIds: [...effect.statusIds, 'mark'] }
-      : effect
-  }
   if (effect.type !== 'apply-status') return effect
 
-  if (effect.statusId === 'hastened') {
-    return { ...effect, statusId: 'haste' }
-  }
-  if (effect.statusId === 'delayed') {
-    return { ...effect, statusId: 'slow' }
-  }
-  if (effect.statusId === 'marked') {
-    return { ...effect, statusId: 'mark' }
-  }
-  if (effect.statusId === 'regeneration') {
-    return {
-      type: 'healing',
-      recipient: effect.recipient,
-      amount: 4,
-      ticks: 2,
-    }
-  }
   if (effect.statusId === 'poison') {
     return {
       type: 'poison',
@@ -752,13 +736,10 @@ function applyNamedPhase4Rebalance(definition: MatureSkillDefinition): MatureSki
       return {
         ...definition,
         apCost: 35,
-        effects: [
-          { type: 'healing', recipient: 'primary-unit', amount: 4, ticks: 2 },
-          { type: 'apply-status', recipient: 'primary-unit', statusId: 'summoned', stacks: 1 },
-        ],
+        effects: [{ type: 'healing', recipient: 'primary-unit', amount: 4, ticks: 2 }],
         ai: {
           ...definition.ai,
-          purposeTags: rebalancePurposeTags(definition, ['heal', 'recovery', 'summon']),
+          purposeTags: rebalancePurposeTags(definition, ['heal', 'recovery']),
         },
       }
     case 'edgedancer.severing-cut':
@@ -816,17 +797,7 @@ function applyNamedPhase4Rebalance(definition: MatureSkillDefinition): MatureSki
           {
             type: 'remove-status',
             recipient: 'actor',
-            statusIds: [
-              'burn',
-              'bleed',
-              'poison',
-              'slow',
-              'root',
-              'exposed',
-              'mark',
-              'marked',
-              'challenged',
-            ],
+            statusIds: ['burn', 'bleed', 'poison', 'slow', 'root', 'exposed', 'mark', 'challenged'],
           },
         ],
         ai: {
@@ -1030,11 +1001,172 @@ const V51_REBALANCED_DISCIPLINE_SKILLS = latestEnabledMatureSkills([
 
 export const P33_REPRESENTATIVE_DISCIPLINE_SKILLS = PRE_V5_CURRENT_DISCIPLINE_SKILLS
 
-const CURRENT_DISCIPLINE_SKILL_REGISTRY = [
+const CANONICAL_CLEANSE_DISCIPLINE_SKILLS = latestEnabledMatureSkills([
   ...P33_REPRESENTATIVE_DISCIPLINE_SKILLS,
   ...V5_REBALANCED_DISCIPLINE_SKILLS,
   ...V51_REBALANCED_DISCIPLINE_SKILLS,
+]).flatMap((definition) => {
+  const next = createCanonicalCleanseSkillVersion(definition, true)
+  return next ? [next] : []
+})
+
+const PERCENTAGE_DOT_DISCIPLINE_SKILLS = latestEnabledMatureSkills([
+  ...P33_REPRESENTATIVE_DISCIPLINE_SKILLS,
+  ...V5_REBALANCED_DISCIPLINE_SKILLS,
+  ...V51_REBALANCED_DISCIPLINE_SKILLS,
+  ...CANONICAL_CLEANSE_DISCIPLINE_SKILLS,
+]).flatMap((definition) => {
+  const next = createPercentageDotSkillVersion(definition)
+  return next ? [next] : []
+})
+
+const PRE_CURRENT_TARGETING_DISCIPLINE_SKILL_REGISTRY = [
+  ...P33_REPRESENTATIVE_DISCIPLINE_SKILLS,
+  ...V5_REBALANCED_DISCIPLINE_SKILLS,
+  ...V51_REBALANCED_DISCIPLINE_SKILLS,
+  ...CANONICAL_CLEANSE_DISCIPLINE_SKILLS,
+  ...PERCENTAGE_DOT_DISCIPLINE_SKILLS,
 ] as const satisfies readonly MatureSkillDefinition[]
+const CURRENT_TARGETING_DISCIPLINE_SKILLS = latestEnabledMatureSkills(
+  PRE_CURRENT_TARGETING_DISCIPLINE_SKILL_REGISTRY,
+).flatMap((definition) => {
+  const next = createCurrentTargetingSkillVersion(definition)
+  return next ? [next] : []
+})
+const PRE_CURRENT_GROUND_DISCIPLINE_SKILL_REGISTRY = [
+  ...PRE_CURRENT_TARGETING_DISCIPLINE_SKILL_REGISTRY,
+  ...CURRENT_TARGETING_DISCIPLINE_SKILLS,
+]
+
+const CURRENT_GROUND_DISCIPLINE_SKILLS = latestEnabledMatureSkills(
+  PRE_CURRENT_GROUND_DISCIPLINE_SKILL_REGISTRY,
+).flatMap((definition) => {
+  const next = createCurrentGroundSkillVersion(definition)
+  return next ? [next] : []
+})
+const PRE_PERCENTAGE_RECOVERY_DISCIPLINE_SKILL_REGISTRY = [
+  ...PRE_CURRENT_GROUND_DISCIPLINE_SKILL_REGISTRY,
+  ...CURRENT_GROUND_DISCIPLINE_SKILLS,
+]
+const PRE_BLINDSIDE_REGISTRY = [
+  ...PRE_PERCENTAGE_RECOVERY_DISCIPLINE_SKILL_REGISTRY,
+  ...latestEnabledMatureSkills(PRE_PERCENTAGE_RECOVERY_DISCIPLINE_SKILL_REGISTRY).flatMap(
+    (definition) => {
+      const next = createPercentageRecoverySkillVersion(definition)
+      return next ? [next] : []
+    },
+  ),
+]
+
+const PRE_ELEMENTAL_DISCIPLINE_SKILL_REGISTRY = [
+  ...PRE_BLINDSIDE_REGISTRY,
+  ...latestEnabledMatureSkills(PRE_BLINDSIDE_REGISTRY).flatMap((definition) => {
+    const next = createBlindsideSkillVersion(definition)
+    return next ? [next] : []
+  }),
+]
+
+const PRE_EXPLICIT_ELEMENTAL_DISCIPLINE_SKILL_REGISTRY = [
+  ...PRE_ELEMENTAL_DISCIPLINE_SKILL_REGISTRY,
+  ...latestEnabledMatureSkills(PRE_ELEMENTAL_DISCIPLINE_SKILL_REGISTRY).flatMap((definition) => {
+    const element =
+      definition.sourceDisciplineId === 'frostweaver'
+        ? ('ice' as const)
+        : definition.sourceDisciplineId === 'tidecaller'
+          ? ('water' as const)
+          : definition.sourceDisciplineId === 'stormsinger'
+            ? ('storm' as const)
+            : null
+    if (!element || !definition.effects.some((effect) => effect.type === 'damage')) return []
+    return [
+      {
+        ...definition,
+        contentVersion: definition.contentVersion + 1,
+        effects: definition.effects.map((effect) =>
+          effect.type === 'damage' ? { ...effect, element } : effect,
+        ),
+        authoring: {
+          ...definition.authoring,
+          validationTags: [...definition.authoring.validationTags, 'elemental-damage'],
+        },
+      },
+    ]
+  }),
+]
+
+/** Append editable elemental tags while retaining every previously published definition. */
+export function createExplicitElementalSkillVersion(
+  definition: MatureSkillDefinition,
+): MatureSkillDefinition | null {
+  const statusIds = { ice: 'frozen', water: 'wet', storm: 'conductive' } as const
+  const damages = definition.effects.filter(
+    (effect) =>
+      effect.type === 'damage' &&
+      effect.element &&
+      (effect.element in statusIds || effect.element === 'fire'),
+  )
+  if (!damages.length) return null
+  const effects = [...definition.effects]
+  for (const damage of damages) {
+    if (damage.type !== 'damage' || !damage.element || !(damage.element in statusIds)) continue
+    const statusId = statusIds[damage.element as keyof typeof statusIds]
+    if (
+      effects.some(
+        (effect) =>
+          effect.type === 'apply-status' &&
+          effect.statusId === statusId &&
+          effect.recipient === damage.recipient,
+      )
+    )
+      continue
+    effects.push({
+      type: 'apply-status',
+      recipient: damage.recipient,
+      statusId,
+      stacks: 1,
+      durationTurns: 2,
+      ...(statusId === 'frozen' ? {} : { potencyBasisPoints: 2000 }),
+    })
+  }
+  if (
+    damages.some((effect) => effect.type === 'damage' && effect.element === 'fire') &&
+    !effects.some(
+      (effect) =>
+        effect.type === 'remove-status' &&
+        effect.recipient === 'actor' &&
+        effect.statusIds.length === 1 &&
+        effect.statusIds[0] === 'frozen',
+    )
+  )
+    effects.push({ type: 'remove-status', recipient: 'actor', statusIds: ['frozen'] })
+  return {
+    ...definition,
+    contentVersion: definition.contentVersion + 1,
+    effects,
+    ...(definition.effectDescriptions
+      ? {
+          effectDescriptions: [
+            ...definition.effectDescriptions,
+            ...effects.slice(definition.effects.length).map(() => null),
+          ],
+        }
+      : {}),
+    authoring: {
+      ...definition.authoring,
+      validationTags: [...definition.authoring.validationTags, 'elemental-status-tags'],
+    },
+  }
+}
+
+const CURRENT_DISCIPLINE_SKILL_REGISTRY = [
+  ...PRE_EXPLICIT_ELEMENTAL_DISCIPLINE_SKILL_REGISTRY,
+  ...latestEnabledMatureSkills(PRE_EXPLICIT_ELEMENTAL_DISCIPLINE_SKILL_REGISTRY).flatMap(
+    (definition) => {
+      const next = createExplicitElementalSkillVersion(definition)
+      return next ? [next] : []
+    },
+  ),
+]
 
 /** Current selection catalog; the historical P3.3/P4 export remains stable for pinned contracts. */
 export function latestEnabledMatureSkills(
@@ -1055,6 +1187,22 @@ export function validateMatureSkillDefinition(
 ): readonly string[] {
   const issues: string[] = []
   try {
+    validateCombatGroundAreaDefinition(definition)
+  } catch {
+    issues.push('groundArea')
+  }
+  if (
+    definition.authoring.validationTags.includes('persistent-ground-areas') &&
+    !definition.groundArea
+  )
+    issues.push('groundArea')
+
+  try {
+    validateCurrentAreaTargetRecipients(definition)
+  } catch {
+    issues.push('target.area-recipients')
+  }
+  try {
     validateCombatAccuracyDefinition(definition)
     validateGameplayActionMetadata({
       target: definition.target,
@@ -1073,13 +1221,15 @@ export function validateMatureSkillDefinition(
   if (!definition.descriptionRef.trim()) issues.push('descriptionRef')
   if (
     definition.flavorLine !== undefined &&
-    (typeof definition.flavorLine !== 'string' ||
-      definition.flavorLine.trim().length === 0 ||
-      definition.flavorLine.length > 160 ||
-      /[\r\n]/u.test(definition.flavorLine))
+    battleFlavorTemplateIssues(definition.flavorLine).length > 0
   ) {
     issues.push('flavorLine')
   }
+  if (
+    definition.battleText !== undefined &&
+    battleFlavorTemplateIssues(definition.battleText).length > 0
+  )
+    issues.push('battleText')
   if (!idPattern.test(definition.sourceDisciplineId)) issues.push('sourceDisciplineId')
   if (
     !Number.isSafeInteger(definition.apCost) ||
@@ -1169,7 +1319,10 @@ export function validateMatureSkillDefinition(
       issues.push('apCost')
     }
     if (definition.target.kind !== 'self') {
-      if (definition.target.maximumRange < 1 || definition.target.maximumRange > 5) {
+      if (
+        !(definition.target.geometryVersion === 2 && definition.target.shape.kind === 'all') &&
+        (definition.target.maximumRange < 1 || definition.target.maximumRange > 5)
+      ) {
         issues.push('target.maximumRange')
       }
       if (
@@ -1209,11 +1362,14 @@ export function validateMatureSkillDefinition(
       issues.push(`effects[${index}].durationTurns`)
     }
     if (effect.type === 'summon') continue
+    if (effect.type === 'copy-statuses' && 'beneficialEffects' in effect)
+      issues.push(`effects[${index}].beneficialEffects`)
     if (
       effect.potencyBasisPoints !== undefined &&
       (!Number.isSafeInteger(effect.potencyBasisPoints) ||
         effect.potencyBasisPoints < 100 ||
-        effect.potencyBasisPoints > 5_000)
+        effect.potencyBasisPoints >
+          (effect.type === 'apply-status' && effect.statusId === 'suppress' ? 10_000 : 5_000))
     ) {
       issues.push(`effects[${index}].potencyBasisPoints`)
     }
@@ -1238,7 +1394,7 @@ export function validateMatureSkillDefinition(
         issues.push(`effects[${index}].delta`)
       }
     }
-    if (usesV5BalanceRules && effect.type === 'bleed') {
+    if (usesV5BalanceRules && effect.type === 'bleed' && !effect.damageProfile) {
       if (
         !Number.isSafeInteger(effect.damagePerTick) ||
         effect.damagePerTick < 1 ||
@@ -1318,6 +1474,7 @@ function projectResolvedMatureSkillAction(
     sourceType: 'discipline-skill',
     tags: resolved.tags,
     target: resolved.target,
+    ...(resolved.groundArea ? { groundArea: resolved.groundArea } : {}),
     cost: { spendsAction: true, mp: resolved.mpCost ?? 0 },
     requirements: resolved.requirements,
     ...(resolved.cooldown === null ? {} : { cooldown: resolved.cooldown }),

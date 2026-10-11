@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { expect, test } from '@playwright/test'
 
+import { selectDiscipline } from './discipline-library-helpers'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 function uniqueCharacterName(): string {
@@ -70,7 +71,10 @@ test('Nexus equips a mastered Secondary with independent attunement authority', 
   const launcher = panel.getByRole('button', { name: /Manage Disciplines/ })
   const primaryDisciplineChip = page.getByTestId('primary-discipline-chip')
   const secondaryDisciplineChip = page.getByTestId('secondary-discipline-chip')
-  const maxHp = page.locator('[data-character-resource="hp"] b')
+  const maxHp = page
+    .getByTestId('authenticated-shell')
+    .getByTestId('character-rail-profile')
+    .locator('[data-character-resource="hp"] b')
 
   await expect(launcher).toHaveText(/Manage Disciplines/)
   await expect(primaryDisciplineChip).toHaveText('Vanguard')
@@ -81,51 +85,111 @@ test('Nexus equips a mastered Secondary with independent attunement authority', 
   await expect(dialog).toContainText('Currently Committed')
   await expect(dialog).toContainText('Vanguard')
   await expect(dialog).toContainText('Secondary Discipline')
-  await expect(dialog).toContainText('Locked')
+  await expect(dialog).toContainText('None')
 
-  const primarySelect = dialog.getByLabel('Primary Discipline')
-  const secondarySelect = dialog.getByLabel('Secondary Discipline')
+  const primaryEditor = dialog.getByRole('button', { name: 'Edit Primary Discipline', exact: true })
+  const secondaryEditor = dialog.getByRole('button', {
+    name: 'Edit Secondary Discipline',
+    exact: true,
+  })
+  await expect(primaryEditor).toBeEnabled()
+  await expect(secondaryEditor).toBeEnabled()
+  await expect(primaryEditor).toHaveAttribute('aria-pressed', 'false')
+  await expect(secondaryEditor).toHaveAttribute('aria-pressed', 'false')
+  await expect(dialog.getByText('✓ Editing Primary', { exact: true })).toHaveCount(0)
+  await expect(dialog.getByText('✓ Editing Secondary', { exact: true })).toHaveCount(0)
+  await secondaryEditor.click()
+  await expect(secondaryEditor).toHaveAttribute('aria-pressed', 'true')
+  await expect(primaryEditor).toHaveAttribute('aria-pressed', 'false')
+  const secondaryLibrary = dialog.getByRole('region', {
+    name: 'Secondary Discipline library',
+    exact: true,
+  })
+  await expect(
+    secondaryLibrary.getByRole('button', { name: 'Remove Secondary Discipline', exact: true }),
+  ).toBeDisabled()
+  await expect(
+    secondaryLibrary.getByRole('button', {
+      name: 'Select Aetherist as Secondary Discipline',
+      exact: true,
+    }),
+  ).toBeEnabled()
+  await expect(
+    secondaryLibrary.getByRole('button', {
+      name: 'Select Vanguard as Secondary Discipline',
+      exact: true,
+    }),
+  ).toHaveCount(0)
 
-  await expect(primarySelect).toBeEnabled()
-  await expect(secondarySelect).toBeEnabled()
-  await expect(secondarySelect.locator('option[value=""]')).toHaveText('None')
-  await expect(secondarySelect.locator('option[value="aetherist"]')).toHaveText('Aetherist')
-  await expect(secondarySelect.locator('option[value="vanguard"]')).toHaveCount(0)
-
-  await secondarySelect.selectOption('aetherist')
-  const preview = dialog.locator('[aria-label="Discipline stat preview"]')
+  const disciplineWrites: string[] = []
+  page.on('request', (request) => {
+    if (
+      request.url().endsWith('/api/character/build/disciplines') &&
+      ['POST', 'PUT'].includes(request.method())
+    )
+      disciplineWrites.push(request.method())
+  })
+  await selectDiscipline(dialog, 'Secondary', 'Aetherist')
+  const preview = dialog.locator('[aria-label="Selected Discipline and change impact"]')
   await expect(preview).toBeVisible()
-  await expect(preview).toContainText('Preview Secondary')
+  await expect(preview).toContainText('Selected Secondary')
   await expect(preview).toContainText('Aetherist')
 
-  await dialog.getByRole('button', { name: /Confirm Change/ }).click()
   await expect(page.getByRole('status')).toContainText('Discipline changes committed.')
   await expect(launcher).toHaveText(/Manage Disciplines/)
   await expect(primaryDisciplineChip).toHaveText('Vanguard')
   await expect(secondaryDisciplineChip).toHaveText('Aetherist')
+  expect(disciplineWrites).toEqual(Array(disciplineWrites.length).fill('PUT'))
   await expect(maxHp).toContainText(maxHpBeforeSecondary)
 
-  await primarySelect.selectOption('lifebinder')
-  await expect(preview).toContainText('Preview Primary')
+  await selectDiscipline(dialog, 'Primary', 'Lifebinder')
+  await expect(preview).toContainText('Selected Primary')
   await expect(preview).toContainText('Lifebinder')
 
-  await dialog.getByRole('button', { name: /Confirm Change/ }).click()
   await expect(page.getByRole('status')).toContainText('Discipline changes committed.')
   await expect(primaryDisciplineChip).toHaveText('Lifebinder')
+  expect(disciplineWrites).toEqual(['PUT', 'PUT'])
   await expect(secondaryDisciplineChip).toHaveText('Aetherist')
 
   await page.reload()
   await expect(dialog).toBeVisible()
   await expect(dialog).toContainText('Lifebinder')
   await expect(dialog).toContainText('Aetherist')
-  await expect(primarySelect).toBeEnabled()
-  await expect(secondarySelect).toBeEnabled()
+  await expect(primaryEditor).toBeEnabled()
+  await expect(secondaryEditor).toBeEnabled()
+
+  await expect(primaryEditor).toHaveAttribute('aria-pressed', 'false')
+  await expect(secondaryEditor).toHaveAttribute('aria-pressed', 'false')
+
+  await primaryEditor.click()
+  await expect(primaryEditor).toHaveAttribute('aria-pressed', 'true')
+  await dialog.getByRole('button', { name: 'Close', exact: true }).click()
+  await launcher.click()
+  await expect(dialog).toBeVisible()
+  await expect(primaryEditor).toHaveAttribute('aria-pressed', 'false')
+  await expect(secondaryEditor).toHaveAttribute('aria-pressed', 'false')
+
+  // Removing Secondary commits a pure build immediately and survives reload.
+  await secondaryEditor.click()
+  const clearSecondary = dialog.getByRole('button', {
+    name: 'Remove Secondary Discipline',
+    exact: true,
+  })
+  await expect(clearSecondary).toBeEnabled()
+  await clearSecondary.click()
+  await expect(clearSecondary).toBeDisabled()
+  await expect(preview).toContainText('Selected Secondary')
+  await expect(preview).toContainText('None')
+  await expect(secondaryDisciplineChip).toHaveCount(0)
+  await page.reload()
+  await expect(dialog).toBeVisible()
+  await expect(secondaryDisciplineChip).toHaveCount(0)
 
   await page.goto('/game/character')
-  await expect(page.getByText('Resonance Build', { exact: true })).toBeVisible()
+  await expect(page.getByText('Essence Build', { exact: true })).toBeVisible()
 })
 
-test('mobile Character keeps its portrait readable and Nexus centers Discipline Management', async ({
+test('mobile Profile retains the navigation portrait and readable identity tags and Nexus centers Discipline Management', async ({
   page,
 }, testInfo) => {
   test.skip(
@@ -141,14 +205,18 @@ test('mobile Character keeps its portrait readable and Nexus centers Discipline 
     characterName,
   })
 
-  const profile = page.getByTestId('character-profile')
-  const portrait = profile.locator('.character-portrait-media').locator('..')
-  await expect(portrait).toBeVisible()
-  const portraitBox = await portrait.boundingBox()
-  if (!portraitBox) throw new Error('Character portrait geometry is unavailable')
-  expect(Math.abs(portraitBox.width - portraitBox.height)).toBeLessThanOrEqual(1)
-  await expect(page.locator('[data-character-resource="hp"]')).toBeVisible()
-  await expect(page.locator('[data-character-resource="mp"]')).toBeVisible()
+  const profile = page.locator('[data-profile-workspace]')
+  await expect(
+    profile.locator(':scope > [aria-hidden="true"] .character-portrait-media'),
+  ).toHaveCount(0)
+  await expect(
+    page.locator('[data-testid="authenticated-shell"] > header .character-portrait-media'),
+  ).toBeVisible()
+  await expect(profile.locator('[aria-label="Disciplines and titles"]')).toBeVisible()
+  await expect(profile.getByTestId('primary-discipline-chip')).toHaveText('Vanguard')
+  await expect(profile.getByTestId('derived-stat-maxHp')).toBeVisible()
+  await expect(profile.getByTestId('derived-stat-maxMp')).toBeVisible()
+  await expect(page.getByTestId('character-profile')).toHaveCount(0)
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(
     true,
   )

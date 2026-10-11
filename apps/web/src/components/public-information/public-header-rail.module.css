@@ -4,26 +4,28 @@
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) !important;
   gap: clamp(0.6rem, 1.35vw, 1.15rem) !important;
   align-items: center !important;
+  height: 4rem;
   min-height: 4rem !important;
   padding: 0.35rem clamp(0.65rem, 1.5vw, 1.35rem) !important;
   border-bottom: 1px solid var(--av-gold-rule);
   color: var(--av-parchment-100);
-  background: rgba(5, 13, 21, 0.95);
+  background: #272d2eef;
   backdrop-filter: blur(0.75rem);
 }
 
-.masthead :global(.brand__crest) {
+.masthead :global(.brand .brand__crest) {
   width: 2.7rem;
   height: 2.7rem;
 }
 
-.masthead :global(.brand__wordmark strong) {
-  font-weight: 500;
+.masthead :global(.brand .brand__wordmark strong) {
+  color: var(--av-parchment-100);
+  font: 500 1rem/1 var(--av-font-display);
   letter-spacing: 0.22em;
 }
 
-.masthead :global(.brand__wordmark small) {
-  font: 500 0.56rem/1.25 var(--av-font-body);
+.masthead :global(.brand .brand__wordmark small) {
+  font: 500 0.7rem/1.25 var(--av-font-body);
   letter-spacing: 0.14em;
   color: #c2c7c6;
 }
@@ -50,6 +52,7 @@
 
 /* Keep shared masthead navigation typography identical across public and authenticated shells. */
 .masthead .navigation a {
+  font: 600 0.75rem/1.2 var(--av-font-body);
   letter-spacing: 0.025em;
 }
 
@@ -74,6 +77,8 @@
   .masthead {
     grid-template-columns: minmax(0, 1fr) auto !important;
     gap: 0.18rem 0.4rem !important;
+    height: 5.3rem;
+    grid-template-rows: 2.1rem 2.4rem;
     min-height: 0 !important;
     padding: 0.4rem 0.6rem !important;
   }
@@ -85,16 +90,16 @@
     min-width: 0;
   }
 
-  .masthead :global(.brand__crest) {
+  .masthead :global(.brand .brand__crest) {
     width: 2.15rem;
     height: 2.15rem;
   }
 
-  .masthead :global(.brand__wordmark strong) {
+  .masthead :global(.brand .brand__wordmark strong) {
     font-size: 0.9rem;
   }
 
-  .masthead :global(.brand__wordmark small) {
+  .masthead :global(.brand .brand__wordmark small) {
     display: none;
   }
 

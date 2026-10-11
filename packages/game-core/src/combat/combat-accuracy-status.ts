@@ -1,3 +1,4 @@
+import { combatStatusApplications } from './combat-status-applications'
 import type {
   CombatContentCatalog,
   CombatEncounterIssue,
@@ -26,7 +27,6 @@ export function validateCombatAccuracyStatusDefinition(status: CombatStatusDefin
     status.damageTakenMultiplierBasisPoints !== 10_000 ||
     (status.damageModifiers?.length ?? 0) > 0 ||
     status.endOfTurn !== undefined ||
-    status.nextRoundInitiative !== undefined ||
     status.movement !== undefined ||
     status.absorbHpBasisPoints !== undefined ||
     status.absorbMpBasisPoints !== undefined ||
@@ -56,6 +56,7 @@ export function compareCombatStatusInstances(
 export function collectCombatStatusIdentityIssues(
   statuses: readonly CombatStatusInstance[],
   prefix: string,
+  unlimitedApplications = false,
 ): readonly CombatEncounterIssue[] {
   const issues: CombatEncounterIssue[] = []
   const seen = new Set<string>()
@@ -66,7 +67,7 @@ export function collectCombatStatusIdentityIssues(
     if (status.sourceScopedMark !== undefined && status.sourceScopedMark !== true) {
       issues.push({ field, message: 'Source-scoped Mark marker must be true when supplied.' })
     }
-    if (status.sourceScopedMark === true && status.stacks !== 1) {
+    if (!unlimitedApplications && status.sourceScopedMark === true && status.stacks !== 1) {
       issues.push({ field, message: 'Source-scoped Mark cannot stack.' })
     }
     if (
@@ -116,7 +117,9 @@ export function assertValidCombatAccuracyStatusState(
         !definition ||
         (status.sourceScopedMark === true) !== isMark ||
         status.statusVersion !== definition.version ||
-        status.stacks !== 1 ||
+        (state.effectStackingPolicyVersion !== 1 && status.stacks !== 1) ||
+        !Number.isSafeInteger(status.stacks) ||
+        status.stacks < 1 ||
         status.remainingOwnerTurnStarts > 5
       ) {
         throw new TypeError(
@@ -127,15 +130,16 @@ export function assertValidCombatAccuracyStatusState(
   }
 }
 
-/** Non-stacking magnitudes: only the strongest eligible Mark and strongest Blind contribute. */
+/** Current applications accumulate exactly; historical statuses retain their strongest magnitude. */
 export function combatAccuracyStatusModifier(
   state: CombatEncounterState,
   actorId: string,
   targetId: string,
   content: CombatContentCatalog,
 ): number {
-  let mark = 0
-  let blind = 0
+  let mark = 0n
+  let blind = 0n
+  const unlimited = state.effectStackingPolicyVersion === 1
   for (const row of state.statusState) {
     if (row.combatantId !== actorId && row.combatantId !== targetId) continue
     for (const status of row.statuses) {
@@ -143,23 +147,53 @@ export function combatAccuracyStatusModifier(
         (candidate) =>
           candidate.id === status.statusId && candidate.version === status.statusVersion,
       )
-      if (row.combatantId === actorId) {
-        blind = Math.max(
-          blind,
-          status.potencyBasisPoints ?? definition?.blindAccuracyPenaltyBasisPoints ?? 0,
-        )
+      if (
+        row.combatantId === actorId &&
+        definition?.blindAccuracyPenaltyBasisPoints !== undefined
+      ) {
+        if (unlimited)
+          blind += combatStatusApplications(status).reduce(
+            (sum, application) =>
+              sum +
+              BigInt(
+                application.potencyBasisPoints ?? definition.blindAccuracyPenaltyBasisPoints ?? 0,
+              ) *
+                BigInt(application.stacks),
+            0n,
+          )
+        else {
+          const magnitude = BigInt(
+            status.potencyBasisPoints ?? definition.blindAccuracyPenaltyBasisPoints ?? 0,
+          )
+          if (magnitude > blind) blind = magnitude
+        }
       }
       if (
         row.combatantId === targetId &&
         status.sourceScopedMark === true &&
         status.sourceCombatantId === actorId
       ) {
-        mark = Math.max(
-          mark,
-          status.potencyBasisPoints ?? definition?.markAccuracyBonusBasisPoints ?? 0,
-        )
+        if (unlimited)
+          mark += combatStatusApplications(status).reduce(
+            (sum, application) =>
+              sum +
+              BigInt(
+                application.potencyBasisPoints ?? definition?.markAccuracyBonusBasisPoints ?? 0,
+              ) *
+                BigInt(application.stacks),
+            0n,
+          )
+        else {
+          const magnitude = BigInt(
+            status.potencyBasisPoints ?? definition?.markAccuracyBonusBasisPoints ?? 0,
+          )
+          if (magnitude > mark) mark = magnitude
+        }
       }
     }
   }
-  return mark - blind
+  const modifier = mark - blind
+  if (modifier > BigInt(Number.MAX_SAFE_INTEGER) || modifier < -BigInt(Number.MAX_SAFE_INTEGER))
+    throw new RangeError('Combined accuracy effect modifier exceeds the safe integer range.')
+  return Number(modifier)
 }

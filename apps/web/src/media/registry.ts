@@ -1,4 +1,5 @@
 import { WORLD_ART } from './world-art'
+import { BATTLE_ART } from './battle-art'
 import { disciplineSigilArtwork } from './discipline-sigil-art'
 import { GENERATED_STARTER_PORTRAITS_1 } from './generated-starter-portraits-1'
 import { GENERATED_STARTER_PORTRAITS_2 } from './generated-starter-portraits-2'
@@ -69,7 +70,72 @@ const legacySquareStarterPortraitAssetIds = [
 ] as const
 
 const IMAGE_ASSETS = [
+  ...(['additional', 'prestige'] as const).map((name) => ({
+    id: `environment.entry.${name}-doorway` as const,
+    kind: 'environment' as const,
+    status: 'approved' as const,
+    requestId: 'ART-UI-ENTRY-20261001',
+    generationRequestId: 'ART-UI-ENTRY-20261001',
+    decorative: true,
+    alt: '',
+    src: `/media/art/entry/${name}-doorway-v01.webp`,
+    width: 640,
+    height: 640,
+  })),
+  ...(
+    [
+      ['gateway', 'environment.entry.gateway'],
+      ['roster-gallery', 'environment.entry.roster-gallery'],
+    ] as const
+  ).map(([name, id]) => ({
+    id,
+    kind: 'environment' as const,
+    status: 'approved' as const,
+    requestId: 'ART-UI-ENTRY-20261001',
+    generationRequestId: 'ART-UI-ENTRY-20261001',
+    decorative: true,
+    alt: '',
+    src: `/media/art/entry/${name}-v01.webp`,
+    width: 1672,
+    height: 941,
+  })),
+  ...(['male', 'female'] as const).flatMap((gender) =>
+    Array.from({ length: 12 }, (_, index) => ({
+      id: `character.adventure.${gender}-${String(index + 1).padStart(2, '0')}`,
+      kind: 'character' as const,
+      status: 'approved' as const,
+      requestId: 'ART-UI-20260929',
+      decorative: false,
+      alt: `${gender === 'male' ? 'Male' : 'Female'} adventurer ${index + 1}`,
+      src: `/media/art/adventure/${gender}-${String(index + 1).padStart(2, '0')}-v01.webp`,
+      width: 384,
+      height: 384,
+    })),
+  ),
+  {
+    id: 'environment.adventure.threshold',
+    kind: 'environment',
+    status: 'approved',
+    requestId: 'ART-UI-20260929',
+    decorative: true,
+    alt: '',
+    src: '/media/art/adventure/threshold-v01.webp',
+    width: 1672,
+    height: 941,
+  },
+  {
+    id: 'environment.adventure.haven',
+    kind: 'environment',
+    status: 'approved',
+    requestId: 'ART-UI-20260929',
+    decorative: true,
+    alt: '',
+    src: '/media/art/adventure/haven-v01.webp',
+    width: 1672,
+    height: 941,
+  },
   ...WORLD_ART,
+  ...BATTLE_ART,
   ...phase4Sigils.map(([discipline, requestId]) => ({
     id: `art.phase4.${discipline}.identity.v01`,
     kind: 'icon' as const,

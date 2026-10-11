@@ -55,7 +55,7 @@ export default async function WorldMapPage() {
     identity.imageUrl ?? getImageAsset(getStarterPortraitImageAssetId(character.portraitRef)).src
   if (!portrait) throw new Error('The registered character portrait is unavailable.')
   return (
-    <div className={styles.layout}>
+    <div className={styles.layout} data-world-shell>
       <CharacterIdentityCard {...identity} />
       <WorldWorkspace
         key={character.id}

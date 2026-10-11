@@ -1,3 +1,9 @@
+import { createBlindsideEssenceVersion } from './combat-blindside-roster'
+import { createPercentageRecoveryEssenceVersion } from './combat-recovery-roster'
+import { createCurrentGroundEssenceVersion } from './combat-ground-roster'
+import { createCurrentTargetingEssenceVersion } from './combat-targeting-roster'
+import { createPercentageDotEssenceVersion } from './combat-percentage-dot-roster'
+import { battleFlavorTemplateIssues } from './battle-narration'
 import { ADVANCED_DISCIPLINE_ESSENCES } from './advanced-discipline-content'
 import type { CombatActionEvaluation, CombatTargetSelection } from './actions'
 import { FOUNDATION_TRIO_ESSENCES } from './foundation-trio-essences'
@@ -187,19 +193,6 @@ function rebalanceEssencePurposeTags(
   return [...new Set([...definition.skill.ai.purposeTags, ...additions])]
 }
 
-function currentEssenceEffect(
-  effect: MatureSkillDefinition['effects'][number],
-): MatureSkillDefinition['effects'][number] {
-  if (
-    effect.type === 'remove-status' &&
-    effect.statusIds.includes('marked') &&
-    !effect.statusIds.includes('mark')
-  ) {
-    return { ...effect, statusIds: [...effect.statusIds, 'mark'] }
-  }
-  return effect
-}
-
 function currentEssenceAccuracyMode(
   definition: EssenceDefinition,
 ): NonNullable<MatureSkillDefinition['accuracyMode']> {
@@ -208,7 +201,7 @@ function currentEssenceAccuracyMode(
   if (skill.target.teamPolicy !== 'enemy' && skill.target.teamPolicy !== 'any') return 'automatic'
   return skill.effects.some((effect) => {
     if (!('recipient' in effect) || effect.recipient === 'actor') return false
-    if (effect.type === 'healing') return false
+    if (effect.type === 'healing' || effect.type === 'percentage-recovery') return false
     if (effect.type === 'resource-change') return effect.delta < 0
     if (effect.type === 'barrier-change') return effect.amount < 0
     return effect.type !== 'create-terrain'
@@ -338,7 +331,6 @@ function createPhase4RebalancedEssence(definition: EssenceDefinition): EssenceDe
                 'root',
                 'exposed',
                 'mark',
-                'marked',
                 'challenged',
               ],
             },
@@ -372,7 +364,7 @@ function createPhase4RebalancedEssence(definition: EssenceDefinition): EssenceDe
           ...definition.skill,
           contentVersion: version,
           accuracyMode,
-          effects: definition.skill.effects.map(currentEssenceEffect),
+          effects: definition.skill.effects,
           ...(accuracyMode === 'per-target'
             ? { accuracyModifierBasisPoints: definition.skill.accuracyModifierBasisPoints ?? 0 }
             : { accuracyModifierBasisPoints: undefined }),
@@ -546,11 +538,57 @@ const V51_REBALANCED_ESSENCES = latestEnabledEssences([
 
 export const P36_REPRESENTATIVE_ESSENCES = PRE_V5_CURRENT_ESSENCES
 
-const CURRENT_ESSENCE_REGISTRY = [
+const PERCENTAGE_DOT_ESSENCES = latestEnabledEssences([
   ...P36_REPRESENTATIVE_ESSENCES,
   ...V5_REBALANCED_ESSENCES,
   ...V51_REBALANCED_ESSENCES,
+]).flatMap((definition) => {
+  const next = createPercentageDotEssenceVersion(definition)
+  return next ? [next] : []
+})
+
+const PRE_CURRENT_TARGETING_ESSENCE_REGISTRY = [
+  ...P36_REPRESENTATIVE_ESSENCES,
+  ...V5_REBALANCED_ESSENCES,
+  ...V51_REBALANCED_ESSENCES,
+  ...PERCENTAGE_DOT_ESSENCES,
 ] as const satisfies readonly EssenceDefinition[]
+const CURRENT_TARGETING_ESSENCES = latestEnabledEssences(
+  PRE_CURRENT_TARGETING_ESSENCE_REGISTRY,
+).flatMap((definition) => {
+  const next = createCurrentTargetingEssenceVersion(definition)
+  return next ? [next] : []
+})
+const PRE_CURRENT_GROUND_ESSENCE_REGISTRY = [
+  ...PRE_CURRENT_TARGETING_ESSENCE_REGISTRY,
+  ...CURRENT_TARGETING_ESSENCES,
+]
+
+const CURRENT_GROUND_ESSENCES = latestEnabledEssences(PRE_CURRENT_GROUND_ESSENCE_REGISTRY).flatMap(
+  (definition) => {
+    const next = createCurrentGroundEssenceVersion(definition)
+    return next ? [next] : []
+  },
+)
+const PRE_PERCENTAGE_RECOVERY_ESSENCE_REGISTRY = [
+  ...PRE_CURRENT_GROUND_ESSENCE_REGISTRY,
+  ...CURRENT_GROUND_ESSENCES,
+]
+const PRE_BLINDSIDE_REGISTRY = [
+  ...PRE_PERCENTAGE_RECOVERY_ESSENCE_REGISTRY,
+  ...latestEnabledEssences(PRE_PERCENTAGE_RECOVERY_ESSENCE_REGISTRY).flatMap((definition) => {
+    const next = createPercentageRecoveryEssenceVersion(definition)
+    return next ? [next] : []
+  }),
+]
+
+const CURRENT_ESSENCE_REGISTRY = [
+  ...PRE_BLINDSIDE_REGISTRY,
+  ...latestEnabledEssences(PRE_BLINDSIDE_REGISTRY).flatMap((definition) => {
+    const next = createBlindsideEssenceVersion(definition)
+    return next ? [next] : []
+  }),
+]
 
 const STABLE_ID_PATTERN = /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/
 
@@ -565,9 +603,7 @@ export function validateEssenceDefinition(definition: EssenceDefinition): readon
   if (!definition.description.trim()) issues.push('description')
   if (
     definition.flavorLine !== undefined &&
-    (definition.flavorLine.trim().length === 0 ||
-      definition.flavorLine.length > 160 ||
-      /[\r\n]/u.test(definition.flavorLine))
+    battleFlavorTemplateIssues(definition.flavorLine).length > 0
   ) {
     issues.push('flavorLine')
   }

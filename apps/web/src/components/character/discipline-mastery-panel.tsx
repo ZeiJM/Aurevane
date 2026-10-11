@@ -104,7 +104,9 @@ function PowerMeter({ label, value }: { label: string; value: number }) {
   )
 }
 
-export function DisciplineMasteryPanel() {
+export function DisciplineMasteryPanel({
+  initiallyOpen = false,
+}: { initiallyOpen?: boolean } = {}) {
   const [atlas, setAtlas] = useState<NonNullable<AtlasResponse['atlas']> | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
@@ -145,6 +147,7 @@ export function DisciplineMasteryPanel() {
   return (
     <details
       className={styles.panel}
+      open={initiallyOpen || undefined}
       onToggle={(event) => {
         if (event.currentTarget.open) void load()
       }}
@@ -156,7 +159,7 @@ export function DisciplineMasteryPanel() {
         </span>
       </summary>
 
-      <details className={styles.intro} open>
+      <details className={styles.intro}>
         <summary>Mastery &amp; access guide</summary>
         <p>
           The Atlas is a map of combat traditions, not an upgrade tree. Later Disciplines trade

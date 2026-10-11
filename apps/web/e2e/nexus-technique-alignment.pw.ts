@@ -1,12 +1,20 @@
-import { expect, test } from '@playwright/test'
+import { mkdir, writeFile } from 'node:fs/promises'
+import path from 'node:path'
+import { expect, test, type Page, type TestInfo } from '@playwright/test'
 
+import { selectDiscipline } from './discipline-library-helpers'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 function uniqueCharacterName(): string {
-  return `Align ${Date.now().toString(36)}`
+  const letters = Date.now()
+    .toString()
+    .split('')
+    .map((digit) => String.fromCharCode(65 + Number(digit)))
+    .join('')
+  return `Align ${letters}`
 }
 
-test('single-Discipline Nexus and Technique modal align live and locked slots', async ({
+test('single-Discipline Nexus aligns its four selected slots and preserves locked modal choices', async ({
   page,
 }, testInfo) => {
   test.skip(
@@ -24,30 +32,21 @@ test('single-Discipline Nexus and Technique modal align live and locked slots', 
   await page.goto('/game/nexus')
   await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
 
-  const lanes = page.locator('[data-nexus-technique-lane="true"]')
-  await expect(lanes).toHaveCount(2)
-
-  const activeLane = lanes.nth(0)
-  const lockedLane = lanes.nth(1)
-  await expect(lockedLane).toHaveAttribute('data-locked', 'true')
-
-  const activeHeaderBox = await activeLane.locator('header').boundingBox()
-  const lockedHeaderBox = await lockedLane.locator('header').boundingBox()
-  const activeSlotBox = await activeLane
-    .locator('[data-arsenal-technique-row="true"]')
-    .first()
-    .boundingBox()
-  const lockedSlotBox = await lockedLane
-    .locator('[data-arsenal-technique-row="true"]')
-    .first()
-    .boundingBox()
-
-  if (!activeHeaderBox || !lockedHeaderBox || !activeSlotBox || !lockedSlotBox) {
-    throw new Error('Nexus Technique geometry is unavailable.')
-  }
-
-  expect(Math.abs(activeHeaderBox.height - lockedHeaderBox.height)).toBeLessThanOrEqual(1)
-  expect(Math.abs(activeSlotBox.y - lockedSlotBox.y)).toBeLessThanOrEqual(1)
+  const lane = page.locator('[data-nexus-technique-lane="true"]')
+  await expect(lane).toHaveCount(1)
+  const slots = lane.locator('[data-arsenal-technique-row="true"]')
+  await expect(slots).toHaveCount(4)
+  const geometry = await slots.evaluateAll((elements) =>
+    elements.map((element) => {
+      const rect = element.getBoundingClientRect()
+      return { y: rect.y, width: rect.width, height: rect.height }
+    }),
+  )
+  expect(
+    Math.max(...geometry.map((slot) => slot.y)) - Math.min(...geometry.map((slot) => slot.y)),
+  ).toBeLessThanOrEqual(1)
+  await expect(page.locator('[data-arsenal-panel="disciplines"]')).toContainText('Locked')
+  await assertDesktopOverviewGeometry(page, testInfo, 'pure')
 
   await page
     .getByTestId('skill-build-panel')
@@ -57,14 +56,380 @@ test('single-Discipline Nexus and Technique modal align live and locked slots', 
   const dialog = page.getByRole('dialog', { name: 'Techniques' })
   await expect(dialog).toBeVisible()
 
-  const liveArt = dialog.locator('[data-av-square-media="true"]').first()
-  const lockedCard = dialog.getByText('Locked', { exact: true }).first().locator('..')
-  const lockedArt = lockedCard.locator('span').first()
+  await expect(
+    dialog.locator('[data-technique-group][data-locked="true"] [data-technique-card]'),
+  ).toHaveCount(8)
+  await expect(
+    dialog.getByRole('radiogroup', { name: 'Support Action' }).getByRole('radio'),
+  ).toHaveCount(3)
+  await assertDesktopTechniqueGeometry(page, testInfo, 'pure')
+})
 
-  const liveArtBox = await liveArt.boundingBox()
-  const lockedArtBox = await lockedArt.boundingBox()
-  if (!liveArtBox || !lockedArtBox) {
-    throw new Error('Technique modal slot geometry is unavailable.')
+async function assertDesktopOverviewGeometry(page: Page, testInfo: TestInfo, build: string) {
+  const workspace = page.locator('[data-arsenal-workspace]')
+  for (const viewport of [
+    { width: 1280, height: 720 },
+    { width: 1366, height: 768 },
+    { width: 1536, height: 614 },
+    { width: 1920, height: 1080 },
+  ]) {
+    await page.setViewportSize(viewport)
+    await page.evaluate(() => document.fonts.ready)
+    await workspace.locator('img').evaluateAll(async (images) => {
+      await Promise.all(images.map((image) => (image as HTMLImageElement).decode()))
+    })
+    const metrics = await workspace.evaluate((element) => {
+      const box = (node: Element) => {
+        const rect = node.getBoundingClientRect()
+        return { x: rect.x, y: rect.y, width: rect.width, height: rect.height }
+      }
+      const style = getComputedStyle(element)
+      const token = style.getPropertyValue('--av-cockpit-art-size').trim()
+      const rem = parseFloat(getComputedStyle(document.documentElement).fontSize)
+      const disciplines = Array.from(
+        element.querySelectorAll('[data-arsenal-panel="disciplines"] [data-slot]'),
+      ).map((slot) => ({
+        slot: slot.getAttribute('data-slot'),
+        frame: box(slot.firstElementChild!),
+        borderWidth: parseFloat(getComputedStyle(slot.firstElementChild!).borderTopWidth),
+        copy: box(slot.querySelector(':scope > div')!),
+      }))
+      const frames = Array.from(
+        element.querySelectorAll(
+          '[data-arsenal-media], [data-empty-technique-slot], [data-gameplay-art="attunement"], [data-gameplay-art="power"]',
+        ),
+      ).map((frame) => {
+        const frameStyle = getComputedStyle(frame)
+        const image = frame.querySelector('img') as HTMLImageElement | null
+        const imageStyle = image ? getComputedStyle(image) : null
+        return {
+          technique: Boolean(frame.closest('[data-arsenal-panel="techniques"]')),
+          box: box(frame),
+          border: {
+            top: parseFloat(frameStyle.borderTopWidth),
+            right: parseFloat(frameStyle.borderRightWidth),
+            bottom: parseFloat(frameStyle.borderBottomWidth),
+            left: parseFloat(frameStyle.borderLeftWidth),
+          },
+          image:
+            image && imageStyle
+              ? {
+                  src: image.currentSrc,
+                  box: box(image),
+                  naturalWidth: image.naturalWidth,
+                  naturalHeight: image.naturalHeight,
+                  objectFit: imageStyle.objectFit,
+                  padding: [
+                    imageStyle.paddingTop,
+                    imageStyle.paddingRight,
+                    imageStyle.paddingBottom,
+                    imageStyle.paddingLeft,
+                  ],
+                }
+              : null,
+        }
+      })
+      const techniques = element.querySelector('[data-arsenal-panel="techniques"]')!
+      const summary = techniques.firstElementChild!
+      const manage = techniques.querySelector('[data-testid="skill-build-panel"] > button')!
+      const attunement = element.querySelector('[data-arsenal-panel="attunement"]')!
+      return {
+        artSize: token.endsWith('rem') ? parseFloat(token) * rem : parseFloat(token),
+        managementGap: box(manage).y - (box(summary).y + box(summary).height),
+        attunementGap: box(attunement).y - (box(techniques).y + box(techniques).height),
+        disciplines,
+        frames,
+      }
+    })
+    const evidenceName = `nexus-overview-${build}-${viewport.width}x${viewport.height}`
+    const output = process.env.LAYOUT_REVIEW_OUTPUT ?? testInfo.outputPath()
+    await mkdir(output, { recursive: true })
+    await writeFile(path.join(output, `${evidenceName}.json`), JSON.stringify(metrics, null, 2))
+    const screenshot = await page.screenshot({
+      fullPage: true,
+      path: path.join(output, `${evidenceName}.png`),
+    })
+    await testInfo.attach(`${evidenceName}-metrics`, {
+      body: JSON.stringify(metrics, null, 2),
+      contentType: 'application/json',
+    })
+    await testInfo.attach(`${evidenceName}-screenshot`, {
+      body: screenshot,
+      contentType: 'image/png',
+    })
+    expect(
+      metrics.managementGap,
+      'Manage Techniques follows the visible Skills content',
+    ).toBeGreaterThanOrEqual(0)
+    expect(
+      metrics.managementGap,
+      'free viewport height must not become an empty Skills gap',
+    ).toBeLessThanOrEqual(14)
+    expect(
+      metrics.attunementGap,
+      'Attunement starts immediately below the Skills panel',
+    ).toBeGreaterThanOrEqual(0)
+    expect(metrics.attunementGap).toBeLessThanOrEqual(14)
+    expect(metrics.disciplines).toHaveLength(2)
+    const [primary, secondary] = metrics.disciplines
+    expect(primary.slot).toBe('primary')
+    expect(secondary.slot).toBe('secondary')
+    for (const discipline of metrics.disciplines) expect(discipline.borderWidth).toBeGreaterThan(0)
+    expect(Math.abs(primary.frame.x - secondary.frame.x)).toBeLessThanOrEqual(1)
+    expect(Math.abs(primary.copy.x - secondary.copy.x)).toBeLessThanOrEqual(1)
+    expect(metrics.frames.length).toBeGreaterThanOrEqual(8)
+    const techniqueFrames = metrics.frames.filter((frame) => frame.technique)
+    expect(techniqueFrames).toHaveLength(5)
+    for (const frame of metrics.frames) {
+      expect(
+        Math.abs(frame.box.width - frame.box.height),
+        'artwork stays square',
+      ).toBeLessThanOrEqual(1)
+      if (frame.technique) {
+        expect(
+          frame.box.width,
+          'selected, empty and Support artwork stays readable',
+        ).toBeGreaterThanOrEqual(64)
+        expect(frame.box.width).toBeLessThanOrEqual(metrics.artSize + 1)
+        expect(
+          Math.abs(frame.box.width - techniqueFrames[0].box.width),
+          'selected, empty and Support frames match',
+        ).toBeLessThanOrEqual(1)
+      } else {
+        expect(Math.abs(frame.box.width - metrics.artSize)).toBeLessThanOrEqual(1)
+      }
+      for (const border of Object.values(frame.border)) expect(border).toBeGreaterThan(0)
+      if (!frame.image) continue
+      // Approved source pixels remain intact; this checks CSS size rather than promising 2x assets.
+      expect(frame.image.naturalWidth).toBeGreaterThanOrEqual(128)
+      expect(frame.image.naturalHeight).toBeGreaterThanOrEqual(128)
+      expect(frame.image.box.width).toBeLessThanOrEqual(frame.image.naturalWidth)
+      expect(frame.image.box.height).toBeLessThanOrEqual(frame.image.naturalHeight)
+      expect(frame.image.objectFit).toBe('contain')
+      for (const padding of frame.image.padding) expect(parseFloat(padding)).toBe(0)
+      expect(Math.abs(frame.image.box.x - frame.box.x - frame.border.left)).toBeLessThanOrEqual(1)
+      expect(Math.abs(frame.image.box.y - frame.box.y - frame.border.top)).toBeLessThanOrEqual(1)
+      expect(
+        Math.abs(frame.image.box.width - frame.box.width + frame.border.left + frame.border.right),
+      ).toBeLessThanOrEqual(1)
+      expect(
+        Math.abs(
+          frame.image.box.height - frame.box.height + frame.border.top + frame.border.bottom,
+        ),
+      ).toBeLessThanOrEqual(1)
+    }
   }
-  expect(Math.abs(liveArtBox.y - lockedArtBox.y)).toBeLessThanOrEqual(1)
+}
+
+async function assertDesktopTechniqueGeometry(page: Page, testInfo: TestInfo, build: string) {
+  const dialog = page.getByRole('dialog', { name: 'Techniques' })
+  for (const viewport of [
+    { width: 1366, height: 768 },
+    { width: 1536, height: 614 },
+  ]) {
+    await page.setViewportSize(viewport)
+    await expect(dialog).toBeVisible()
+    await page.evaluate(() => document.fonts.ready)
+    await dialog.locator('img').evaluateAll(async (images) => {
+      await Promise.all(images.map((image) => (image as HTMLImageElement).decode()))
+    })
+    const evidenceName = `techniques-${build}-${viewport.width}x${viewport.height}`
+    const output = process.env.LAYOUT_REVIEW_OUTPUT ?? testInfo.outputPath()
+    await mkdir(output, { recursive: true })
+    const previews = []
+    const liveCards = dialog.locator('[data-technique-card]:has(input)')
+    for (let index = 0; index < (await liveCards.count()); index += 1) {
+      await liveCards.nth(index).hover()
+      const preview = await dialog.getByTestId('technique-preview').evaluate((element) => {
+        const box = (node: Element) => {
+          const rect = node.getBoundingClientRect()
+          return { x: rect.x, y: rect.y, width: rect.width, height: rect.height }
+        }
+        return {
+          name: element.querySelector('strong')?.textContent,
+          box: box(element),
+          sizing: {
+            width: getComputedStyle(element).width,
+            height: getComputedStyle(element).height,
+            workspaceColumns: getComputedStyle(element.parentElement!).gridTemplateColumns,
+          },
+          overflow: {
+            x: Math.max(0, element.scrollWidth - element.clientWidth),
+            y: Math.max(0, element.scrollHeight - element.clientHeight),
+          },
+          contents: Array.from(element.querySelectorAll('dt, dd, li, img')).map(box),
+        }
+      })
+      previews.push(preview)
+      const hoverName = `${evidenceName}-hover-${index + 1}`
+      await writeFile(path.join(output, `${hoverName}.json`), JSON.stringify(preview, null, 2))
+      await page.screenshot({ fullPage: true, path: path.join(output, `${hoverName}.png`) })
+    }
+    const metrics = await dialog.evaluate((element) => {
+      const box = (node: Element) => {
+        const rect = node.getBoundingClientRect()
+        return { x: rect.x, y: rect.y, width: rect.width, height: rect.height }
+      }
+      const overflow = (node: Element) => ({
+        x: Math.max(0, node.scrollWidth - node.clientWidth),
+        y: Math.max(0, node.scrollHeight - node.clientHeight),
+      })
+      const groups = Array.from(element.querySelectorAll('[data-technique-group]')).map(
+        (group) => ({
+          box: box(group),
+          overflow: overflow(group),
+          cards: Array.from(group.querySelectorAll('[data-technique-card]')).map((card) => {
+            const art = card.querySelector('[data-technique-art]')!
+            return {
+              box: box(card),
+              overflow: overflow(card),
+              art: box(art),
+              image: art.querySelector('img') ? box(art.querySelector('img')!) : null,
+              contents: Array.from(card.querySelectorAll('strong, [data-technique-meta]')).map(box),
+            }
+          }),
+        }),
+      )
+      const preview = element.querySelector('[data-testid="technique-preview"]')!
+      const style = getComputedStyle(element)
+      const token = style.getPropertyValue('--av-cockpit-art-size').trim()
+      const rem = parseFloat(getComputedStyle(document.documentElement).fontSize)
+      return {
+        dialog: box(element),
+        overflow: overflow(element),
+        artSize: token.endsWith('rem') ? parseFloat(token) * rem : parseFloat(token),
+        groups,
+        images: Array.from(element.querySelectorAll('img')).map((image) => ({
+          ...box(image),
+          naturalWidth: image.naturalWidth,
+          naturalHeight: image.naturalHeight,
+          objectFit: getComputedStyle(image).objectFit,
+          src: image.currentSrc,
+        })),
+        containers: Array.from(
+          element.querySelectorAll(
+            '[data-technique-workspace], [data-testid="learned-skill-list"], [data-technique-grid]',
+          ),
+        ).map((node) => ({ box: box(node), overflow: overflow(node) })),
+        preview: {
+          box: box(preview),
+          overflow: overflow(preview),
+          contents: Array.from(preview.querySelectorAll('dt, dd, li, img')).map(box),
+        },
+      }
+    })
+    const evidence = JSON.stringify({ ...metrics, previews }, null, 2)
+    await writeFile(path.join(output, `${evidenceName}.json`), evidence)
+    const screenshot = await page.screenshot({
+      fullPage: true,
+      path: path.join(output, `${evidenceName}.png`),
+    })
+    await testInfo.attach(`${evidenceName}-metrics`, {
+      body: evidence,
+      contentType: 'application/json',
+    })
+    await testInfo.attach(`${evidenceName}-screenshot`, {
+      body: screenshot,
+      contentType: 'image/png',
+    })
+    const contained = (
+      inner: { x: number; y: number; width: number; height: number },
+      outer: { x: number; y: number; width: number; height: number },
+    ) => {
+      expect(inner.x).toBeGreaterThanOrEqual(outer.x - 1)
+      expect(inner.y).toBeGreaterThanOrEqual(outer.y - 1)
+      expect(inner.x + inner.width).toBeLessThanOrEqual(outer.x + outer.width + 1)
+      expect(inner.y + inner.height).toBeLessThanOrEqual(outer.y + outer.height + 1)
+    }
+    const noOverflow = (overflow: { x: number; y: number }) => {
+      expect(overflow.x).toBe(0)
+      expect(overflow.y).toBe(0)
+    }
+    contained(metrics.dialog, { x: 0, y: 0, ...viewport })
+    noOverflow(metrics.overflow)
+    for (const image of metrics.images) {
+      expect(image.naturalWidth).toBeGreaterThanOrEqual(128)
+      expect(image.naturalHeight).toBeGreaterThanOrEqual(128)
+      expect(image.width).toBeLessThanOrEqual(image.naturalWidth)
+      expect(image.height).toBeLessThanOrEqual(image.naturalHeight)
+      expect(image.objectFit).toBe('contain')
+    }
+    expect(metrics.groups).toHaveLength(2)
+    expect(metrics.groups[1].box.y).toBeGreaterThanOrEqual(
+      metrics.groups[0].box.y + metrics.groups[0].box.height,
+    )
+    for (const container of metrics.containers) {
+      contained(container.box, metrics.dialog)
+      noOverflow(container.overflow)
+    }
+    for (const group of metrics.groups) {
+      contained(group.box, metrics.dialog)
+      noOverflow(group.overflow)
+      expect(group.cards).toHaveLength(8)
+      expect(
+        Math.max(...group.cards.map((card) => card.box.y)) -
+          Math.min(...group.cards.map((card) => card.box.y)),
+      ).toBeLessThanOrEqual(1)
+      for (const card of group.cards) {
+        contained(card.box, group.box)
+        contained(card.art, card.box)
+        noOverflow(card.overflow)
+        expect(
+          card.art.width,
+          `${viewport.width}×${viewport.height}: readable artwork survives the compact gallery budget`,
+        ).toBeGreaterThanOrEqual(64)
+        expect(card.art.width).toBeLessThanOrEqual(metrics.artSize + 1)
+        expect(
+          Math.abs(card.art.width - card.art.height),
+          'artwork stays square',
+        ).toBeLessThanOrEqual(1)
+        expect(
+          Math.abs(card.art.width - metrics.groups[0].cards[0].art.width),
+          'available and locked slots share the artwork size',
+        ).toBeLessThanOrEqual(1)
+        if (card.image) contained(card.image, card.art)
+        for (const content of card.contents) contained(content, card.box)
+      }
+    }
+    contained(metrics.preview.box, metrics.dialog)
+    noOverflow(metrics.preview.overflow)
+    for (const content of metrics.preview.contents) contained(content, metrics.preview.box)
+    for (const preview of previews) {
+      noOverflow(preview.overflow)
+      for (const content of preview.contents) contained(content, preview.box)
+    }
+  }
+}
+
+test('mixed Techniques shows every primary and secondary card without desktop scrolling', async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-chromium', 'Desktop geometry proof')
+  test.skip(process.env.AUREVANE_PV2_TEST_MODE !== '1', 'Explicit PV-2 preparation required')
+  await provisionAccountAndEnterCharacter({
+    page,
+    email: `nexus-technique-mixed-${Date.now()}@example.com`,
+    password: 'Nexus-technique-align-2026!',
+    characterName: uniqueCharacterName(),
+  })
+  const prepared = await page.evaluate(async () => {
+    const response = await fetch('/api/character/build/pv2-test-kit', { method: 'POST' })
+    return { ok: response.ok, body: await response.json() }
+  })
+  expect(prepared.ok).toBe(true)
+  expect(prepared.body).toMatchObject({ result: { masteredDisciplines: 6, learnedSkills: 16 } })
+  await page.goto('/game/nexus')
+  await expect(page.locator('[data-arsenal-workspace]')).toBeVisible()
+  await page
+    .getByTestId('primary-build-panel')
+    .getByRole('button', { name: /Manage Disciplines/ })
+    .click()
+  const disciplineDialog = page.getByRole('dialog', { name: 'Discipline Management' })
+  await selectDiscipline(disciplineDialog, 'Secondary', 'Lifebinder')
+  await expect(page.getByRole('status')).toContainText('Discipline changes committed.')
+  await disciplineDialog.getByRole('button', { name: 'Close' }).click()
+  await assertDesktopOverviewGeometry(page, testInfo, 'mixed')
+  await page.getByRole('button', { name: /Manage Techniques/ }).click()
+  await expect(page.getByTestId('learned-skill-list').getByRole('checkbox')).toHaveCount(16)
+  await assertDesktopTechniqueGeometry(page, testInfo, 'mixed')
 })

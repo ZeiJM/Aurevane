@@ -32,6 +32,31 @@ function withEffects(
 }
 
 describe('Master Panel combat content preview', () => {
+  it.each(['pve', 'pvp'] as const)(
+    'previews authored Flame Burst persistence with explicit Ground intent in %s',
+    (combatContext) => {
+      const definition = resolveMatureSkillVersion('cinderweaver.flame-burst')!
+      const before = JSON.stringify(definition)
+      const preview = previewCombatContentDefinition(definition, { combatContext })
+      expect(preview.legal).toBe(true)
+      expect(preview.targeting.selection).toEqual({ kind: 'activate', ground: true })
+      expect(preview.groundAreas).toHaveLength(1)
+      const area = preview.groundAreas[0]!
+      expect(area.visualPresetId).toBe(definition.groundArea!.visualPresetId)
+      expect(area.expiresAtRound - area.activationRound).toBe(definition.groundArea!.durationRounds)
+      expect(preview.simulation.rngConsumed).toBe(false)
+      expect(JSON.stringify(definition)).toBe(before)
+    },
+  )
+  it.each(['cinderweaver.cinder-bolt', 'cinderweaver.ember-line'])(
+    'keeps ordinary Fire %s previews on Enemy intent',
+    (skillId) => {
+      const preview = previewCombatContentDefinition(resolveMatureSkillVersion(skillId)!)
+      expect(preview.legal).toBe(true)
+      expect(preview.targeting.selection).not.toHaveProperty('ground')
+      expect(preview.groundAreas).toEqual([])
+    },
+  )
   it('uses a deterministic isolated fixture and projects canonical targeting, tags, AP and MP', () => {
     const definition = baseSkill()
     const first = previewCombatContentDefinition(definition, { seed: PREVIEW_SEED })
@@ -206,7 +231,7 @@ describe('Master Panel combat content preview', () => {
       }),
     ])
     expect(vengeance.projections.events).toContainEqual(
-      expect.objectContaining({ event: 'damage_applied', amount: 20 }),
+      expect.objectContaining({ event: 'damage_applied', amount: 28 }),
     )
   })
 

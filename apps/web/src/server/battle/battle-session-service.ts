@@ -1,3 +1,9 @@
+import {
+  defaultCombatEffectTimingPolicy,
+  type CombatEffectTimingPolicy,
+} from '@aurevane/game-core/combat/combat-effect-timing'
+import type { PublicCombatGroundArea } from '@aurevane/game-core/combat/combat-ground-visuals'
+import { omitPendingBattlePayloads } from './battle-live-viewer-projection'
 import 'server-only'
 
 import { createHash, randomInt, randomUUID } from 'node:crypto'
@@ -23,7 +29,6 @@ import {
   calculatePv1fBasicAttackDamage,
   createPv1fTemporaryResources,
   executePv1fAction,
-  executePv1fCopiedSkill,
   executePv1fMatureSkill,
   executePv1fMovement,
   finishPv1fTurn,
@@ -31,16 +36,23 @@ import {
 } from '@aurevane/game-core/combat/pv1f-action-economy'
 import {
   createCharacterDerivedCombatProfile,
-  createStatDrivenCombatEncounterState,
+  createDuelBalancedCombatEncounterState,
   validateStatDrivenCombatEncounterState,
   type StatDrivenCombatEncounterState,
-  type StatDrivenCombatProfile,
+  type StatDrivenCombatProfileV4,
 } from '@aurevane/game-core/combat/stat-driven-combat'
 import {
   getTacticalHallArena,
   type TacticalHallArenaId,
 } from '@aurevane/game-core/combat/tactical-hall-arenas'
 import { getTacticalHallRecord } from '@aurevane/game-core/combat/tactical-hall-records'
+import {
+  createStandardBattlefieldTiles,
+  randomizeRaisedTileHeights,
+  defaultBattlefieldElevationPolicy,
+  parseBattlefieldElevationPolicy,
+  type BattlefieldElevationPolicy,
+} from '@aurevane/game-core/combat/standard-battlefield'
 import { AurevaneError, StaleBattleVersionError } from '@aurevane/game-core/errors'
 import {
   createBattleSessionChangedInvalidation,
@@ -71,6 +83,7 @@ import {
   battleBuildAuthorityForCombatant,
   createBattleBuildAuthoritySnapshot,
   createResolvedBattleBuildAuthoritySnapshot,
+  narratorIdentityForCharacter,
   parseBattleBuildAuthoritySnapshot,
   resolveBattleDisciplineSkillDefinition,
   resolveBattleEssenceDefinition,
@@ -80,14 +93,9 @@ import {
   deriveParticipantBattleViewerEntitlement,
   type BattleViewerEntitlement,
 } from './battle-viewer-entitlement'
-import {
-  resolveBattleCopiedSkillCommand,
-  resolveBattleSkillCopyContext,
-} from './battle-skill-copy-authority'
 
 const PV1F_RULES_VERSION = 3
 const PV1F_CONTENT_VERSION = 2
-const PV1F_RECRUIT_MOVEMENT_UNITS = 10
 const PV1F_RECRUIT_OFFENSIVE_BENCHMARK = calculateDerivedStats({
   attributes: {
     might: 5,
@@ -108,7 +116,12 @@ type ProjectedBattleState = Omit<BattleAuthoritativeEncounterState['tactical']['
 type ProjectedTacticalState = Omit<BattleAuthoritativeEncounterState['tactical'], 'battle'> & {
   battle: ProjectedBattleState
 }
-export type BattleSessionProjection = Omit<BattleAuthoritativeEncounterState, 'tactical'> & {
+export type BattleSessionProjection = Omit<
+  BattleAuthoritativeEncounterState,
+  'tactical' | 'statusState' | 'groundAreas' | 'nextGroundAreaId'
+> & {
+  groundAreas?: readonly PublicCombatGroundArea[]
+  statusState: ReturnType<typeof projectBattleStatusStateForViewer>
   tactical: ProjectedTacticalState
 }
 
@@ -126,6 +139,8 @@ export interface CreateBattleSessionCommand {
   arenaId?: TacticalHallArenaId
   aiDifficulty?: BattleAiDifficulty
   battleHallRecordId?: BattleHallRecordId
+  allyCount?: number
+  enemyCount?: number
   idempotencyKey: string
 }
 
@@ -148,6 +163,8 @@ interface Dependencies {
   battles: BattleSessionRepository
   builds?: CharacterBuildRepository
   combatContentResolver?: CombatContentResolver
+  readEffectTimingPolicy?: () => Promise<CombatEffectTimingPolicy>
+  readElevationPolicy?: () => Promise<BattlefieldElevationPolicy>
 }
 
 function battleIntentPrivacyKind(kind: BattleIntent['kind']): BattlePrivacyCommandKind {
@@ -186,7 +203,7 @@ function recruitScenarioProfile(
   difficulty: BattleAiDifficulty,
   battleHallRecordId: BattleHallRecordId,
   level: number,
-): Omit<StatDrivenCombatProfile, 'combatantId'> {
+): Omit<StatDrivenCombatProfileV4, 'combatantId'> {
   return {
     provenance: {
       kind: 'scenario',
@@ -194,15 +211,16 @@ function recruitScenarioProfile(
       sourceRulesVersion: PV1F_CONTENT_VERSION,
     },
     // Difficulty changes decision quality only. All three Recruit tiers obey the same visible stats.
-    accuracy: 7_000,
-    evasion: 800,
-    armor: 20,
-    ward: 20,
-    jump: 1,
+    accuracy: PV1F_RECRUIT_OFFENSIVE_BENCHMARK.stats.accuracy.value,
+    evasion: PV1F_RECRUIT_OFFENSIVE_BENCHMARK.stats.evasion.value,
+    armor: PV1F_RECRUIT_OFFENSIVE_BENCHMARK.stats.armor.value,
+    ward: PV1F_RECRUIT_OFFENSIVE_BENCHMARK.stats.ward.value,
+    jump: PV1F_RECRUIT_OFFENSIVE_BENCHMARK.stats.jump.value,
     level,
     physicalPower: PV1F_RECRUIT_OFFENSIVE_BENCHMARK.stats.physicalPower.value,
     mysticPower: PV1F_RECRUIT_OFFENSIVE_BENCHMARK.stats.mysticPower.value,
     criticalChance: PV1F_RECRUIT_OFFENSIVE_BENCHMARK.stats.criticalChance.value,
+    statusResistance: PV1F_RECRUIT_OFFENSIVE_BENCHMARK.stats.statusResistance.value,
   }
 }
 
@@ -212,10 +230,22 @@ function createVerticalSliceEncounter(
   aiDifficulty: BattleAiDifficulty,
   battleHallRecordId: BattleHallRecordId,
   committedBuild: CharacterActiveBuildRecord | null,
+  allyCount: number,
+  enemyCount: number,
+  elevationPolicy: BattlefieldElevationPolicy,
 ): StatDrivenCombatEncounterState {
   const arena = getTacticalHallArena(arenaId)
   const playerCombatantId = `character:${character.id}`
-  const recruitCombatantId = 'recruit:p2-4-1'
+  const recruits = [
+    ...Array.from({ length: allyCount }, (_, index) => ({
+      id: `recruit:ally-${index + 1}`,
+      teamId: 'players',
+    })),
+    ...Array.from({ length: enemyCount }, (_, index) => ({
+      id: `recruit:p2-4-${index + 1}`,
+      teamId: 'opponents',
+    })),
+  ]
   const attributes = {
     might: character.might,
     finesse: character.finesse,
@@ -238,10 +268,10 @@ function createVerticalSliceEncounter(
     character.level,
     derived,
   )
-  const recruitProfile: StatDrivenCombatProfile = {
-    combatantId: recruitCombatantId,
+  const recruitProfiles: StatDrivenCombatProfileV4[] = recruits.map(({ id }) => ({
+    combatantId: id,
     ...recruitScenarioProfile(arenaId, aiDifficulty, battleHallRecordId, character.level),
-  }
+  }))
   const playerMovementProfile = {
     ...P2_2_ORDINARY_GROUND_PROFILE,
     id: `character-ground:${character.id}`,
@@ -272,20 +302,44 @@ function createVerticalSliceEncounter(
           maxMp: derived.stats.maxMp.value,
           temporaryResources: createPv1fTemporaryResources(playerAttackDamage),
         },
-        {
-          id: recruitCombatantId,
-          teamId: 'opponents',
-          initiative: 5,
-          baseMovementBudget: PV1F_RECRUIT_MOVEMENT_UNITS,
-          hp: 80,
-          maxHp: 80,
-          mp: 25,
-          maxMp: 25,
+        ...recruits.map(({ id, teamId }) => ({
+          id,
+          teamId,
+          initiative: PV1F_RECRUIT_OFFENSIVE_BENCHMARK.stats.initiative.value,
+          baseMovementBudget: PV1F_RECRUIT_OFFENSIVE_BENCHMARK.stats.movement.value,
+          hp: PV1F_RECRUIT_OFFENSIVE_BENCHMARK.stats.maxHp.value,
+          maxHp: PV1F_RECRUIT_OFFENSIVE_BENCHMARK.stats.maxHp.value,
+          mp: PV1F_RECRUIT_OFFENSIVE_BENCHMARK.stats.maxMp.value,
+          maxMp: PV1F_RECRUIT_OFFENSIVE_BENCHMARK.stats.maxMp.value,
           temporaryResources: createPv1fTemporaryResources(recruitAttackDamage),
-        },
+        })),
       ],
     }),
   ).state
+
+  const occupied = new Set([`${arena.playerSpawn.x}:${arena.playerSpawn.y}`])
+  const recruitPlacements = recruits.map(({ id, teamId }) => {
+    const origin = teamId === 'players' ? arena.playerSpawn : arena.recruitSpawn
+    const candidates = arena.tiles
+      .filter((tile) => !occupied.has(`${tile.position.x}:${tile.position.y}`))
+      .sort(
+        (a, b) =>
+          Math.abs(a.position.x - origin.x) +
+            Math.abs(a.position.y - origin.y) -
+            (Math.abs(b.position.x - origin.x) + Math.abs(b.position.y - origin.y)) ||
+          a.position.x - b.position.x ||
+          a.position.y - b.position.y,
+      )
+    const position = candidates[0]?.position
+    if (!position) throw invalidBattleIntent('The selected arena cannot fit these teams.')
+    occupied.add(`${position.x}:${position.y}`)
+    return {
+      combatantId: id,
+      position,
+      facing: teamId === 'players' ? ('east' as const) : ('west' as const),
+      movementProfileId: P2_2_ORDINARY_GROUND_PROFILE.id,
+    }
+  })
 
   const encounter = createCombatEncounterState(
     createTacticalBattleState({
@@ -293,8 +347,26 @@ function createVerticalSliceEncounter(
       width: arena.width,
       height: arena.height,
       terrains: P2_2_VERTICAL_SLICE_TERRAINS,
-      tiles: arena.tiles,
-      movementProfiles: [playerMovementProfile, P2_2_ORDINARY_GROUND_PROFILE],
+      tiles:
+        battleHallRecordId === 'recruit-sparring' && arena.scale === 'duel'
+          ? createStandardBattlefieldTiles({
+              elevationPolicy,
+              width: arena.width,
+              height: arena.height,
+              seed: battle.rng.seed,
+              spawns: [
+                arena.playerSpawn,
+                ...recruitPlacements.map((placement) => placement.position),
+              ],
+            })
+          : randomizeRaisedTileHeights(arena.tiles, battle.rng.seed, elevationPolicy),
+      movementProfiles: [
+        playerMovementProfile,
+        {
+          ...P2_2_ORDINARY_GROUND_PROFILE,
+          maxElevationStep: PV1F_RECRUIT_OFFENSIVE_BENCHMARK.stats.jump.value,
+        },
+      ],
       placements: [
         {
           combatantId: playerCombatantId,
@@ -302,18 +374,13 @@ function createVerticalSliceEncounter(
           facing: 'east',
           movementProfileId: playerMovementProfile.id,
         },
-        {
-          combatantId: recruitCombatantId,
-          position: arena.recruitSpawn,
-          facing: 'west',
-          movementProfileId: P2_2_ORDINARY_GROUND_PROFILE.id,
-        },
+        ...recruitPlacements,
       ],
     }),
   )
 
   return preparePv1fTurnEconomy(
-    createStatDrivenCombatEncounterState(encounter, [playerProfile, recruitProfile]),
+    createDuelBalancedCombatEncounterState(encounter, [playerProfile, ...recruitProfiles]),
   )
 }
 
@@ -372,13 +439,13 @@ function deriveBattleViewerEntitlement(
   }
 }
 
-function projectBattleSnapshot(
+export function projectBattleSnapshot(
   state: BattleAuthoritativeEncounterState,
   viewer: BattleViewerEntitlement,
 ): BattleSessionProjection {
   const battle = state.tactical.battle
   return {
-    ...state,
+    ...omitPendingBattlePayloads(state),
     statusState: projectBattleStatusStateForViewer(state, viewer),
     ...(state.effectState ? { effectState: projectBattleEffectStateForViewer(state, viewer) } : {}),
     tactical: {
@@ -391,6 +458,7 @@ function projectBattleSnapshot(
         lifecycle: battle.lifecycle,
         combatants: battle.combatants,
         initiativeOrder: battle.initiativeOrder,
+        ...(battle.initiativeTieOrder ? { initiativeTieOrder: battle.initiativeTieOrder } : {}),
         ...(battle.roundInitiativeModifiers
           ? { roundInitiativeModifiers: battle.roundInitiativeModifiers }
           : {}),
@@ -465,38 +533,6 @@ async function resolveIntent(
       const actorId = state.tactical.battle.currentTurn?.combatantId
       const build = actorId ? battleBuildAuthorityForCombatant(state.buildAuthority, actorId) : null
       const essence = actorId ? resolveBattleEssenceDefinition(state.buildAuthority, actorId) : null
-      const copiedCommand = actorId
-        ? await resolveBattleCopiedSkillCommand(
-            state,
-            actorId,
-            intent.actionId,
-            combatContentResolver,
-          )
-        : null
-      if (copiedCommand) {
-        if (!copiedCommand.definition || !state.buildAuthority) throw persistenceInvalid()
-        const copyContext =
-          copiedCommand.definition.effects.some((effect) => effect.type === 'copy') &&
-          intent.target.kind === 'unit'
-            ? await resolveBattleSkillCopyContext(
-                state,
-                actorId ?? '',
-                intent.target.combatantId,
-                combatContentResolver,
-              )
-            : undefined
-        if (copyContext === null) throw persistenceInvalid()
-        return preserveBuildAuthority(
-          state,
-          executePv1fCopiedSkill(
-            state,
-            copiedCommand.definition,
-            intent.target,
-            state.buildAuthority.combatContext,
-            copyContext,
-          ),
-        )
-      }
       if (build && essence && intent.actionId === essence.skill.id && state.buildAuthority) {
         return preserveBuildAuthority(
           state,
@@ -525,17 +561,6 @@ async function resolveIntent(
           if (state.buildAuthority.catalogVersion === 3) throw persistenceInvalid()
           throw invalidBattleIntent('That tagged Technique is no longer available.')
         }
-        const copyContext =
-          definition.effects.some((effect) => effect.type === 'copy') &&
-          intent.target.kind === 'unit'
-            ? await resolveBattleSkillCopyContext(
-                state,
-                actorId ?? '',
-                intent.target.combatantId,
-                combatContentResolver,
-              )
-            : undefined
-        if (copyContext === null) throw persistenceInvalid()
         return preserveBuildAuthority(
           state,
           executePv1fMatureSkill(
@@ -543,7 +568,6 @@ async function resolveIntent(
             definition,
             intent.target,
             state.buildAuthority.combatContext,
-            copyContext ? { copyContext } : {},
           ),
         )
       }
@@ -582,6 +606,8 @@ export function createBattleSessionService({
   battles,
   builds,
   combatContentResolver,
+  readEffectTimingPolicy,
+  readElevationPolicy,
 }: Dependencies): BattleSessionService {
   return {
     async createSession(command) {
@@ -616,20 +642,58 @@ export function createBattleSessionService({
       }
 
       const battleHallRecordId = command.battleHallRecordId ?? 'recruit-sparring'
+      const allyCount = command.allyCount ?? 0,
+        enemyCount = command.enemyCount ?? 1
+      if (
+        !Number.isInteger(allyCount) ||
+        allyCount < 0 ||
+        allyCount > 2 ||
+        !Number.isInteger(enemyCount) ||
+        enemyCount < 1 ||
+        enemyCount > 5 ||
+        1 + allyCount + enemyCount > 6 ||
+        (battleHallRecordId !== 'recruit-sparring' && (allyCount !== 0 || enemyCount !== 1))
+      ) {
+        throw invalidBattleIntent('AI Sparring supports two teams and at most six participants.')
+      }
+
       const arenaId =
-        battleHallRecordId === 'mastery-trial'
+        battleHallRecordId === 'mastery-trial' || battleHallRecordId === 'guided-fundamentals'
           ? getTacticalHallRecord(battleHallRecordId).defaultArenaId
           : (command.arenaId ?? 'basic-training-floor')
       // Battle Hall difficulty is server-owned: full duels always use High AI,
       // while guided/legacy teaching records stay Easy regardless of client input.
       const aiDifficulty = authoritativeBattleHallAiDifficulty(battleHallRecordId)
+      const elevationPolicy = parseBattlefieldElevationPolicy(
+        readElevationPolicy ? await readElevationPolicy() : defaultBattlefieldElevationPolicy(),
+      )
       const baseEncounter = createVerticalSliceEncounter(
         character,
         arenaId,
         aiDifficulty,
         battleHallRecordId,
         committedBuild,
+        allyCount,
+        enemyCount,
+        elevationPolicy,
       )
+      baseEncounter.battlefieldElevationPolicy = elevationPolicy
+      baseEncounter.effectTimingPolicy = readEffectTimingPolicy
+        ? await readEffectTimingPolicy()
+        : defaultCombatEffectTimingPolicy()
+      baseEncounter.effectStackingPolicyVersion = 1
+      baseEncounter.percentageDotPolicyVersion = 1
+      baseEncounter.dotTriggerPolicyVersion = 2
+      baseEncounter.skillPacketPolicyVersion = 1
+      baseEncounter.displacementPolicyVersion = 1
+      baseEncounter.frozenGroundPolicyVersion = 1
+      baseEncounter.airbornePolicyVersion = 1
+      baseEncounter.airborneJumpPolicyVersion = 1
+      baseEncounter.elementalDamagePolicyVersion = 2
+      baseEncounter.dynamicInitiativePolicyVersion = 1
+      baseEncounter.healingDownPolicyVersion = 1
+      baseEncounter.blindsideActivationPolicyVersion = 1
+      baseEncounter.groundEffectPolicyVersion = 1
       let encounter: BattleAuthoritativeEncounterState = baseEncounter
       if (builds) {
         if (!committedBuildSnapshot) {
@@ -648,6 +712,7 @@ export function createBattleSessionService({
                     combatantId: `character:${character.id}`,
                     characterId: character.id,
                     snapshot: committedBuildSnapshot,
+                    narratorIdentity: narratorIdentityForCharacter(character),
                   },
                 ],
                 combatContentResolver,
@@ -657,6 +722,7 @@ export function createBattleSessionService({
                   combatantId: `character:${character.id}`,
                   characterId: character.id,
                   snapshot: committedBuildSnapshot,
+                  narratorIdentity: narratorIdentityForCharacter(character),
                 },
               ]),
         }
@@ -666,12 +732,14 @@ export function createBattleSessionService({
         actorKey: command.userId,
         idempotencyKey: command.idempotencyKey,
         requestFingerprint: fingerprint({
-          command: 'battle.create.v4',
+          command: 'battle.create.v5',
           userId: command.userId,
           characterId: command.characterId,
           arenaId,
           aiDifficulty,
           battleHallRecordId,
+          allyCount,
+          enemyCount,
         }),
         userId: command.userId,
         battleId: battle.battleId,
@@ -684,11 +752,14 @@ export function createBattleSessionService({
             participantRole: 'player',
             characterId: character.id,
           },
-          {
-            combatantId: 'recruit:p2-4-1',
-            participantRole: 'opponent',
-            characterId: null,
-          },
+          // Persistence roles describe control/ownership; team membership lives in the snapshot.
+          ...battle.combatants
+            .filter((combatant) => combatant.id !== `character:${character.id}`)
+            .map((combatant) => ({
+              combatantId: combatant.id,
+              participantRole: 'opponent' as const,
+              characterId: null,
+            })),
         ],
       })
       const persistedState = readPersistedEncounter(persisted.result.snapshot)

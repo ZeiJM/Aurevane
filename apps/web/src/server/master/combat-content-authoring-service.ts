@@ -1,3 +1,5 @@
+import { validateCurrentCombatTargetAuthoring } from '@aurevane/game-core/combat/combat-targeting-shapes'
+import { validateCurrentPercentageDotAuthoring } from '@aurevane/game-core/combat/combat-percentage-dots'
 import 'server-only'
 
 import type {
@@ -8,6 +10,10 @@ import type {
 } from '@aurevane/db/combat-content'
 import { CombatContentConflictError } from '@aurevane/db/combat-content'
 import { validateCombatActionDefinition } from '@aurevane/game-core/combat/combat-authoring-validation'
+import {
+  hasCanonicalCleanseStatuses,
+  isCleanseEffect,
+} from '@aurevane/game-core/combat/combat-cleanse'
 import {
   resolveEssenceForBuild,
   validateEssenceDefinition as validateCanonicalEssenceDefinition,
@@ -25,6 +31,10 @@ import {
   validateResonanceDefinition as validateCanonicalResonanceDefinition,
   type AnyResonanceDefinition,
 } from '@aurevane/game-core/combat/resonance'
+import {
+  normalizedResonanceMechanics,
+  isResonanceDefinitionV2,
+} from '@aurevane/game-core/combat/resonance-v2'
 import { AurevaneError } from '@aurevane/game-core/errors'
 
 import type { CombatContentResolver } from '@/server/combat/combat-content-resolver'
@@ -170,6 +180,18 @@ function forbiddenDraftFieldIssues(
   const issues: CombatContentValidationIssue[] = []
   for (const [field, nested] of Object.entries(value)) {
     const fieldPath = path === '$' ? field : `${path}.${field}`
+    if (
+      ['statusId', 'statusIds', 'tag', 'requiredTags', 'excludedTags'].includes(field) &&
+      (nested === 'displaced' ||
+        nested === 'Displaced' ||
+        (Array.isArray(nested) && nested.some((tag) => tag === 'displaced' || tag === 'Displaced')))
+    )
+      issues.push({
+        path: fieldPath,
+        code: 'RETIRED_DISPLACED_TAG',
+        message: 'Displaced is retired. Use Push or Pull effects directly.',
+      })
+
     if (FORBIDDEN_DRAFT_FIELDS.has(field)) {
       issues.push({
         path: fieldPath,
@@ -246,6 +268,8 @@ function validateSkillDefinition(definition: unknown): CombatContentValidationRe
 
   const candidate = structuredClone(definition) as unknown as MatureSkillDefinition
   try {
+    validateCurrentCombatTargetAuthoring(candidate)
+    validateCurrentPercentageDotAuthoring(candidate)
     for (const field of validateMatureSkillDefinition(candidate)) {
       issues.push({
         path: field,
@@ -259,6 +283,19 @@ function validateSkillDefinition(definition: unknown): CombatContentValidationRe
       code: 'INVALID_MATURE_SKILL_SHAPE',
       message: normalizeMessage(error),
     })
+  }
+
+  if (issues.length === 0) {
+    for (const [index, effect] of candidate.effects.entries()) {
+      if (isCleanseEffect(effect) && !hasCanonicalCleanseStatuses(effect.statusIds)) {
+        issues.push({
+          path: `effects[${index}].statusIds`,
+          code: 'INCONSISTENT_CLEANSE',
+          message:
+            'Cleanse must remove Burn, Bleed, Poison, Slow, Rooted, Vulnerable, Marked and Taunted. Use the standard Cleanse list.',
+        })
+      }
+    }
   }
 
   if (issues.length === 0) {
@@ -377,6 +414,18 @@ function validateResonanceAuthoringDefinition(definition: unknown): CombatConten
     })
   }
 
+  if (issues.length === 0) {
+    for (const [index, effect] of normalizedResonanceMechanics(candidate).resultEffects.entries()) {
+      if (isCleanseEffect(effect) && !hasCanonicalCleanseStatuses(effect.statusIds)) {
+        issues.push({
+          path: `trigger.${isResonanceDefinitionV2(candidate) ? 'resultEffects' : 'payoffEffects'}[${index}].statusIds`,
+          code: 'INCONSISTENT_CLEANSE',
+          message:
+            'Cleanse must remove Burn, Bleed, Poison, Slow, Rooted, Vulnerable, Marked and Taunted. Use the standard Cleanse list.',
+        })
+      }
+    }
+  }
   return { valid: issues.length === 0, issues, derivedTags: [] }
 }
 

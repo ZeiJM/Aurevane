@@ -3,6 +3,7 @@ import {
   disciplineSkillCapacity,
   type DisciplineSkillReference,
 } from '../character/discipline-skill-loadout'
+import { parseSupportActionId, type SupportActionId } from './support-actions'
 import type { EssenceSnapshotReference } from './essence'
 import type { ResonanceSnapshotReference } from './resonance'
 import type { StatDrivenCombatEncounterState } from './stat-driven-combat'
@@ -16,6 +17,7 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3
 const SHA256_PATTERN = /^sha256:[0-9a-f]{64}$/
 
 export interface CombatBuildSnapshot {
+  readonly supportActionId?: SupportActionId
   readonly schemaVersion: typeof COMBAT_BUILD_SNAPSHOT_SCHEMA_VERSION
   readonly sourceBuildSchemaVersion: number
   readonly sourceBuildVersion: number
@@ -63,6 +65,15 @@ export function validateCombatBuildSnapshot(
   snapshot: CombatBuildSnapshot,
 ): readonly CombatBuildSnapshotIssue[] {
   const issues: CombatBuildSnapshotIssue[] = []
+  if (
+    Object.hasOwn(snapshot, 'supportActionId') &&
+    !parseSupportActionId(snapshot.supportActionId)
+  ) {
+    issues.push({
+      field: 'supportActionId',
+      message: 'Support Action must be Guard, HP Recovery or MP Recovery.',
+    })
+  }
   if (snapshot.schemaVersion !== COMBAT_BUILD_SNAPSHOT_SCHEMA_VERSION) {
     issues.push({ field: 'schemaVersion', message: 'Unsupported combat build snapshot schema.' })
     return issues
@@ -329,6 +340,12 @@ function isBridge(value: unknown): value is CombatBuildBridgeState {
 }
 
 function isSnapshotShape(value: unknown): value is CombatBuildSnapshot {
+  if (
+    isRecord(value) &&
+    Object.hasOwn(value, 'supportActionId') &&
+    !parseSupportActionId(value.supportActionId)
+  )
+    return false
   if (!isRecord(value) || !isRecord(value.primary) || !isRecord(value.extensions)) return false
   if (
     typeof value.schemaVersion !== 'number' ||

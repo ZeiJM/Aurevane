@@ -1,0 +1,94 @@
+{
+  "requestId": "ART-UI-ENTRY-20261001",
+  "status": "owner-approved-concept-derived-review",
+  "authorization": "Owner approved exact login and roster concepts and implementation; necessary derived art layers authorized. No deployment.",
+  "promptSpec": "content/art-requests/ART-UI-ENTRY-20261001.md",
+  "review": {
+    "unwantedText": "none",
+    "figures": "none",
+    "composition": "inspected against Owner-approved gateway and gallery concepts",
+    "runtimeDerivatives": "deterministic Sharp WebP encoding"
+  },
+  "assets": [
+    {
+      "id": "environment.entry.gateway",
+      "source": {
+        "method": "precise-object-edit",
+        "provider": "OpenAI built-in image generation",
+        "createdAt": "2026-10-01",
+        "master": "exec-0ea016c0-c463-4d93-95b2-d2034705b952.png",
+        "sha256": "ab9730ad4a380b46ded323abed6f1a426f39d8b0b3f9e7d65b0d9b152521dc2a",
+        "reference": "exec-8ffb60c9-3b0d-4a7c-aec7-555bc6710569.png",
+        "referenceSha256": "7d44dfccb28bd09822b4c839dd1ed8114bdad348e694edd3755c107bce4674bf",
+        "retention": "Original source retained with the conversation"
+      },
+      "runtime": {
+        "path": "/media/art/entry/gateway-v01.webp",
+        "width": 1672,
+        "height": 941,
+        "bytes": 429444,
+        "sha256": "43379ab243bf4e0c92a77352fdecd6c02e73ebec01c4419da5b2a19405e68ed2"
+      }
+    },
+    {
+      "id": "environment.entry.roster-gallery",
+      "source": {
+        "method": "precise-object-edit",
+        "provider": "OpenAI built-in image generation",
+        "createdAt": "2026-10-01",
+        "master": "exec-7ba100b0-a988-46c7-bdaf-0cdd404b5f6e.png",
+        "sha256": "5387005c2d7bf59da6c90b7e8c62b661a0440b8d8a448288504e0be414218f55",
+        "reference": "exec-396872c2-541b-4545-86db-38ed0f8d10bc.png",
+        "referenceSha256": "253ce1dcdc81686f1b25d42aa94ab0a128e03ef93ba365cf1c422112118eaadf",
+        "retention": "Original source retained with the conversation"
+      },
+      "runtime": {
+        "path": "/media/art/entry/roster-gallery-v01.webp",
+        "width": 1672,
+        "height": 941,
+        "bytes": 475684,
+        "sha256": "615850b811d5ec262a9dc083c5a82ab09f28c6024d12b166c8b92184f3e6d776"
+      }
+    },
+    {
+      "id": "environment.entry.additional-doorway",
+      "source": {
+        "method": "precise-object-edit",
+        "provider": "OpenAI built-in image generation",
+        "createdAt": "2026-10-01",
+        "master": "exec-57e3556a-7ef8-4c62-867b-8bc39b6220dc.png",
+        "sha256": "9fdbc5fda90077df5564caecf7728e227f74ca9366237ed9c650515eb30fe624",
+        "reference": "exec-396872c2-541b-4545-86db-38ed0f8d10bc.png",
+        "retention": "Original source retained with the conversation"
+      },
+      "runtime": {
+        "path": "/media/art/entry/additional-doorway-v01.webp",
+        "width": 640,
+        "height": 640,
+        "bytes": 152996,
+        "sha256": "d4dd32ad4d2a32861f176331f07ae0dff4faacfcb7520676e7168658f0e3a97b",
+        "derivative": "Deterministic Sharp square tile extraction from two-tile contact sheet"
+      }
+    },
+    {
+      "id": "environment.entry.prestige-doorway",
+      "source": {
+        "method": "precise-object-edit",
+        "provider": "OpenAI built-in image generation",
+        "createdAt": "2026-10-01",
+        "master": "exec-57e3556a-7ef8-4c62-867b-8bc39b6220dc.png",
+        "sha256": "9fdbc5fda90077df5564caecf7728e227f74ca9366237ed9c650515eb30fe624",
+        "reference": "exec-396872c2-541b-4545-86db-38ed0f8d10bc.png",
+        "retention": "Original source retained with the conversation"
+      },
+      "runtime": {
+        "path": "/media/art/entry/prestige-doorway-v01.webp",
+        "width": 640,
+        "height": 640,
+        "bytes": 137740,
+        "sha256": "a7af5f70ffc0b5fe7d4473b0d063e5e18ff1340c4c99d0586c2ccc024959bbd5",
+        "derivative": "Deterministic Sharp square tile extraction from two-tile contact sheet"
+      }
+    }
+  ]
+}

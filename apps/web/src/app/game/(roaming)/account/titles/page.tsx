@@ -12,6 +12,7 @@ import {
   getActiveSpectatingForUser,
 } from '@/server/account/active-game-session'
 import { getAuthenticatedActor } from '@/server/auth/actor'
+import { loadCharacterPortraitChoice } from '@/server/character/character-portrait-choice-service'
 import { loadCharacterProfileDisplay } from '@/server/character/character-profile-display-service'
 import { loadCharacterTitleState } from '@/server/character/character-title-service'
 import { loadSelectedCharacter } from '@/server/character/selected-character'
@@ -57,12 +58,14 @@ export default async function CharacterTitlesPage() {
   const character = selectedCharacterResult.value
 
   let titleState
+  let portraitChoice
   let displayState
   try {
     if (!character) redirect('/game')
-    ;[titleState, displayState] = await Promise.all([
+    ;[titleState, displayState, portraitChoice] = await Promise.all([
       loadCharacterTitleState(actor.userId, character.id),
       loadCharacterProfileDisplay(actor.userId, character.id),
+      loadCharacterPortraitChoice(actor.userId, character.id),
     ])
   } catch (error) {
     if (isAurevaneError(error) && error.code === 'PERSISTENCE_UNAVAILABLE') {
@@ -82,6 +85,8 @@ export default async function CharacterTitlesPage() {
       personalTitleSetAt={titleState.personalTitleSetAt}
       imageUrl={displayState.imageUrl}
       portraitRef={character.portraitRef}
+      portraitChoiceAvailable={portraitChoice.available}
+      portraitChoiceUsedAt={portraitChoice.changedAt}
     />
   )
 }

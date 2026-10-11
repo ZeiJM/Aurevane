@@ -24,4 +24,14 @@ describe('Master Panel site music management', () => {
       'accept="audio/mpeg,audio/mp4,audio/x-m4a,audio/aac,audio/ogg,audio/webm,audio/wav,audio/x-wav"',
     )
   })
+
+  it('shows continuous background playback even for an older non-looping track', () => {
+    const initialConfig = createDefaultSiteMusicConfig()
+    initialConfig.defaultTrack.loop = false
+    const markup = renderToStaticMarkup(createElement(SiteMusicManagement, { initialConfig }))
+
+    expect(markup).toContain('Background music loops continuously.')
+    expect(markup).toContain('loop=""')
+    expect(markup).not.toContain('Loop continuously</span>')
+  })
 })

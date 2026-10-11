@@ -1,0 +1,422 @@
+{
+  "builds": [
+    {
+      "discipline": "ravager",
+      "attributes": {
+        "might": 60,
+        "finesse": 40,
+        "vitality": 26,
+        "agility": 4,
+        "intellect": 2,
+        "resolve": 3
+      },
+      "skills": [
+        "ravager.gash",
+        "ravager.cleaving-blow",
+        "ravager.blood-siphon",
+        "ravager.frenzy"
+      ],
+      "rounds": [
+        5,
+        4,
+        5,
+        4,
+        6,
+        6,
+        5,
+        6,
+        6,
+        4,
+        4,
+        6,
+        5,
+        4,
+        5,
+        5,
+        5,
+        5,
+        4,
+        5,
+        5,
+        4,
+        4,
+        5,
+        5,
+        6,
+        4,
+        4,
+        5,
+        5
+      ],
+      "meanRounds": 4.866666666666666,
+      "minimumRounds": 4,
+      "maximumRounds": 6
+    },
+    {
+      "discipline": "edgedancer",
+      "attributes": {
+        "might": 40,
+        "finesse": 60,
+        "vitality": 4,
+        "agility": 26,
+        "intellect": 2,
+        "resolve": 3
+      },
+      "skills": [
+        "edgedancer.severing-cut",
+        "edgedancer.lunge",
+        "edgedancer.hamstring",
+        "edgedancer.flourish"
+      ],
+      "rounds": [
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "meanRounds": 2,
+      "minimumRounds": 2,
+      "maximumRounds": 2
+    },
+    {
+      "discipline": "wildwarden",
+      "attributes": {
+        "might": 40,
+        "finesse": 60,
+        "vitality": 5,
+        "agility": 22,
+        "intellect": 2,
+        "resolve": 6
+      },
+      "skills": [
+        "wildwarden.venom-shot",
+        "wildwarden.thorn-line",
+        "wildwarden.close-quarry",
+        "wildwarden.snare"
+      ],
+      "rounds": [
+        3,
+        3,
+        3,
+        2,
+        3,
+        2,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        2,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        2,
+        3,
+        3,
+        3,
+        2,
+        2,
+        3,
+        3
+      ],
+      "meanRounds": 2.8,
+      "minimumRounds": 2,
+      "maximumRounds": 3
+    },
+    {
+      "discipline": "cinderweaver",
+      "attributes": {
+        "might": 2,
+        "finesse": 40,
+        "vitality": 4,
+        "agility": 4,
+        "intellect": 60,
+        "resolve": 25
+      },
+      "skills": [
+        "cinderweaver.cinder-bolt",
+        "cinderweaver.flame-burst",
+        "cinderweaver.ember-line",
+        "cinderweaver.blistering-heat"
+      ],
+      "rounds": [
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "meanRounds": 2,
+      "minimumRounds": 2,
+      "maximumRounds": 2
+    }
+  ],
+  "skills": [
+    {
+      "id": "ravager.gash",
+      "version": 5,
+      "apCost": 45,
+      "cooldownOwnerTurns": 2,
+      "highHp": {
+        "seeds": 20,
+        "targets": 1,
+        "directHp": 39.25,
+        "tickHp": 23.25,
+        "successfulDamageReceipts": 20,
+        "resistedRecipients": 0
+      },
+      "lowHp": {
+        "seeds": 20,
+        "targets": 1,
+        "directHp": 3,
+        "tickHp": 0,
+        "successfulDamageReceipts": 20,
+        "resistedRecipients": 0
+      },
+      "totalHpPer100Ap": 138.88888888888889
+    },
+    {
+      "id": "edgedancer.severing-cut",
+      "version": 6,
+      "apCost": 45,
+      "cooldownOwnerTurns": 2,
+      "highHp": {
+        "seeds": 20,
+        "targets": 2,
+        "directHp": 69.6,
+        "tickHp": 27.15,
+        "successfulDamageReceipts": 40,
+        "resistedRecipients": 0
+      },
+      "lowHp": {
+        "seeds": 20,
+        "targets": 2,
+        "directHp": 6,
+        "tickHp": 0,
+        "successfulDamageReceipts": 40,
+        "resistedRecipients": 0
+      },
+      "totalHpPer100Ap": 215
+    },
+    {
+      "id": "wildwarden.venom-shot",
+      "version": 6,
+      "apCost": 50,
+      "cooldownOwnerTurns": 3,
+      "highHp": {
+        "seeds": 20,
+        "targets": 2,
+        "directHp": 71.6,
+        "tickHp": 34.8,
+        "successfulDamageReceipts": 40,
+        "resistedRecipients": 1
+      },
+      "lowHp": {
+        "seeds": 20,
+        "targets": 2,
+        "directHp": 6,
+        "tickHp": 0,
+        "successfulDamageReceipts": 40,
+        "resistedRecipients": 1
+      },
+      "totalHpPer100Ap": 212.8
+    },
+    {
+      "id": "cinderweaver.cinder-bolt",
+      "version": 6,
+      "apCost": 45,
+      "cooldownOwnerTurns": 2,
+      "highHp": {
+        "seeds": 20,
+        "targets": 1,
+        "directHp": 37,
+        "tickHp": 20.5,
+        "successfulDamageReceipts": 20,
+        "resistedRecipients": 0
+      },
+      "lowHp": {
+        "seeds": 20,
+        "targets": 1,
+        "directHp": 3,
+        "tickHp": 0,
+        "successfulDamageReceipts": 20,
+        "resistedRecipients": 0
+      },
+      "totalHpPer100Ap": 127.77777777777777
+    },
+    {
+      "id": "cinderweaver.flame-burst",
+      "version": 7,
+      "apCost": 50,
+      "cooldownOwnerTurns": 3,
+      "highHp": {
+        "seeds": 20,
+        "targets": 2,
+        "directHp": 75.95,
+        "tickHp": 28.7,
+        "successfulDamageReceipts": 40,
+        "resistedRecipients": 5
+      },
+      "lowHp": {
+        "seeds": 20,
+        "targets": 2,
+        "directHp": 6,
+        "tickHp": 0,
+        "successfulDamageReceipts": 40,
+        "resistedRecipients": 5
+      },
+      "totalHpPer100Ap": 209.3
+    },
+    {
+      "id": "cinderweaver.ember-line",
+      "version": 7,
+      "apCost": 45,
+      "cooldownOwnerTurns": 2,
+      "highHp": {
+        "seeds": 20,
+        "targets": 2,
+        "directHp": 68.8,
+        "tickHp": 26.45,
+        "successfulDamageReceipts": 40,
+        "resistedRecipients": 2
+      },
+      "lowHp": {
+        "seeds": 20,
+        "targets": 2,
+        "directHp": 6,
+        "tickHp": 0,
+        "successfulDamageReceipts": 40,
+        "resistedRecipients": 2
+      },
+      "totalHpPer100Ap": 211.66666666666666
+    },
+    {
+      "id": "cinderweaver.blistering-heat",
+      "version": 5,
+      "apCost": 50,
+      "cooldownOwnerTurns": 2,
+      "highHp": {
+        "seeds": 20,
+        "targets": 1,
+        "directHp": 37,
+        "tickHp": 9.25,
+        "successfulDamageReceipts": 20,
+        "resistedRecipients": 0
+      },
+      "lowHp": {
+        "seeds": 20,
+        "targets": 1,
+        "directHp": 3,
+        "tickHp": 0,
+        "successfulDamageReceipts": 20,
+        "resistedRecipients": 0
+      },
+      "totalHpPer100Ap": 92.5
+    },
+    {
+      "id": "essence.ravager.red-tempest",
+      "version": 6,
+      "apCost": 65,
+      "cooldownOwnerTurns": 3,
+      "highHp": {
+        "seeds": 20,
+        "targets": 2,
+        "directHp": 102.05,
+        "tickHp": 59.25,
+        "successfulDamageReceipts": 40,
+        "resistedRecipients": 0
+      },
+      "lowHp": {
+        "seeds": 20,
+        "targets": 2,
+        "directHp": 6,
+        "tickHp": 0,
+        "successfulDamageReceipts": 40,
+        "resistedRecipients": 0
+      },
+      "totalHpPer100Ap": 248.1538461538462
+    },
+    {
+      "id": "essence.cinderweaver.phoenix-wake",
+      "version": 6,
+      "apCost": 65,
+      "cooldownOwnerTurns": 3,
+      "highHp": {
+        "seeds": 20,
+        "targets": 2,
+        "directHp": 100.05,
+        "tickHp": 56.9,
+        "successfulDamageReceipts": 40,
+        "resistedRecipients": 0
+      },
+      "lowHp": {
+        "seeds": 20,
+        "targets": 2,
+        "directHp": 6,
+        "tickHp": 0,
+        "successfulDamageReceipts": 40,
+        "resistedRecipients": 0
+      },
+      "totalHpPer100Ap": 241.46153846153842
+    }
+  ],
+  "assumptions": "Legal Level100 offensive full-pool allocations; four current Skills; same-build mirrors with Basic Attack fallback; seeded accuracy, crit, resistance, AP and cooldowns. Skill rows include all scheduled ticks against one or two recipients; no movement bonus, healing, reactive buffs or human playtest."
+}

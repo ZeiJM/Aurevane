@@ -3,7 +3,7 @@ import { z } from 'zod'
 export const pvpModeSchema = z.enum(['1v1', '2v2', '3v3', '1v1v1', 'flex-teams'])
 export type PvpMode = z.infer<typeof pvpModeSchema>
 
-export const pvpMapSizeSchema = z.enum(['medium', 'large'])
+export const pvpMapSizeSchema = z.enum(['small', 'medium', 'large'])
 export type PvpMapSize = z.infer<typeof pvpMapSizeSchema>
 
 export const pvpMapBiasSchema = z.enum(['less', 'neutral', 'more'])

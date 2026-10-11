@@ -21,6 +21,8 @@ export interface ManualIndexEntry {
 
 export function ManualIndexDirectory({ entries }: { entries: readonly ManualIndexEntry[] }) {
   const [query, setQuery] = useState('')
+  const [selectedId, setSelectedId] = useState(entries[0]?.id)
+  const selectedEntry = entries.find((entry) => entry.id === selectedId) ?? entries[0]
   const normalizedQuery = query.trim().toLocaleLowerCase()
   const filteredEntries = useMemo(() => {
     if (!normalizedQuery) {
@@ -76,55 +78,78 @@ export function ManualIndexDirectory({ entries }: { entries: readonly ManualInde
         </label>
       </header>
 
-      <div className={styles.directoryHeading}>
-        <div>
-          <span className={styles.eyebrow}>Current field guide</span>
-          <h2>Published guides</h2>
+      <div className={styles.collection}>
+        <div className={styles.collectionList}>
+          <div className={styles.directoryHeading}>
+            <div>
+              <span className={styles.eyebrow}>Current field guide</span>
+              <h2>Published guides</h2>
+            </div>
+            <p aria-live="polite">
+              {filteredEntries.length} {filteredEntries.length === 1 ? 'guide' : 'guides'}
+            </p>
+          </div>
+
+          {filteredEntries.length > 0 ? (
+            <div className={styles.rows}>
+              {filteredEntries.map((entry) => (
+                <Link
+                  className={styles.row}
+                  href={entry.href}
+                  key={entry.id}
+                  data-testid="manual-guide-row"
+                  data-selected={selectedEntry?.id === entry.id || undefined}
+                  onMouseEnter={() => setSelectedId(entry.id)}
+                  onFocus={() => setSelectedId(entry.id)}
+                >
+                  <span className={styles.thumbnail} aria-hidden="true">
+                    <AurevaneImage
+                      assetId={entry.assetId}
+                      className={styles.thumbnailImage}
+                      sizes="(max-width: 768px) 6rem, 9rem"
+                    />
+                    <span className={styles.thumbnailVeil} />
+                  </span>
+
+                  <span className={styles.rowCopy}>
+                    <span className={styles.category}>{entry.category}</span>
+                    <strong>{entry.title}</strong>
+                    <span className={styles.summary}>{entry.summary}</span>
+                  </span>
+
+                  <span className={styles.rowMeta}>
+                    <span>Updated {entry.lastUpdated}</span>
+                    <span className={styles.arrow} aria-hidden="true">
+                      →
+                    </span>
+                  </span>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className={styles.emptyState} role="status">
+              <strong>No guides match this search.</strong>
+              <span>Try a system name, guide title, or category.</span>
+            </div>
+          )}
         </div>
-        <p aria-live="polite">
-          {filteredEntries.length} {filteredEntries.length === 1 ? 'guide' : 'guides'}
-        </p>
-      </div>
-
-      {filteredEntries.length > 0 ? (
-        <div className={styles.rows}>
-          {filteredEntries.map((entry) => (
-            <Link
-              className={styles.row}
-              href={entry.href}
-              key={entry.id}
-              data-testid="manual-guide-row"
-            >
-              <span className={styles.thumbnail} aria-hidden="true">
-                <AurevaneImage
-                  assetId={entry.assetId}
-                  className={styles.thumbnailImage}
-                  sizes="(max-width: 768px) 6rem, 9rem"
-                />
-                <span className={styles.thumbnailVeil} />
-              </span>
-
-              <span className={styles.rowCopy}>
-                <span className={styles.category}>{entry.category}</span>
-                <strong>{entry.title}</strong>
-                <span className={styles.summary}>{entry.summary}</span>
-              </span>
-
-              <span className={styles.rowMeta}>
-                <span>Updated {entry.lastUpdated}</span>
-                <span className={styles.arrow} aria-hidden="true">
-                  →
-                </span>
-              </span>
+        {selectedEntry ? (
+          <aside className={styles.guidePreview} aria-label="Selected guide">
+            <AurevaneImage
+              assetId={selectedEntry.assetId}
+              className={styles.guideScene}
+              sizes="(max-width: 760px) 100vw, 40vw"
+            />
+            <span className={styles.category}>{selectedEntry.category}</span>
+            <h2>{selectedEntry.title}</h2>
+            <p>{selectedEntry.summary}</p>
+            <small>Updated {selectedEntry.lastUpdated}</small>
+            <Link href={selectedEntry.href} className={styles.readGuide}>
+              Read this guide →
             </Link>
-          ))}
-        </div>
-      ) : (
-        <div className={styles.emptyState} role="status">
-          <strong>No guides match this search.</strong>
-          <span>Try a system name, guide title, or category.</span>
-        </div>
-      )}
+          </aside>
+        ) : null}
+      </div>
     </section>
   )
 }

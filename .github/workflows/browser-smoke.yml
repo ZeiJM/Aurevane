@@ -60,7 +60,56 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Install Chromium and Microsoft Edge
-        run: pnpm --filter @aurevane/web exec playwright install --with-deps chromium msedge
+        run: |
+          # The runner's Azure apt mirror stalled before browser installation.
+          # Use the official HTTPS mirror that responded in the same job logs.
+          printf '%s\n' 'https://archive.ubuntu.com/ubuntu/' | sudo tee /etc/apt/apt-mirrors.txt >/dev/null
+          pnpm --filter @aurevane/web exec playwright install --with-deps chromium msedge
+
+      - name: Verify shared ally inspection and multi-target previews
+        env:
+          AV_ALLY_INSPECTION_EVIDENCE_DIR: /tmp/battle-ally-inspection-review
+        run: pnpm --filter @aurevane/web exec node scripts/battle-ally-inspection-browser-regression.mjs
+
+      - name: Verify current and historical targeting geometry across modes
+        env:
+          AV_TARGETING_EVIDENCE_DIR: /tmp/battle-targeting-review
+        run: pnpm --filter @aurevane/web exec node scripts/battle-targeting-browser-regression.mjs
+
+      - name: Verify standardized skill parameter colors and readers
+        env:
+          AV_SKILL_PARAMETER_PALETTE_EVIDENCE_DIR: /tmp/skill-parameter-palette-review
+        run: pnpm --filter @aurevane/web exec node scripts/skill-parameter-palette-browser-regression.mjs
+
+      - name: Verify percentage Skill Essence and rail readers across modes
+        env:
+          AV_PERCENTAGE_DOT_EVIDENCE_DIR: /tmp/battle-percentage-dot-review
+        run: pnpm --filter @aurevane/web exec node scripts/battle-percentage-dot-browser-regression.mjs
+
+      - name: Verify elemental statuses and Ground readers across modes
+        env:
+          AV_ELEMENTAL_EVIDENCE_DIR: /tmp/battle-elemental-review
+        run: pnpm --filter @aurevane/web exec node scripts/battle-elemental-browser-regression.mjs
+
+      - name: Verify Suppress percentage authoring and readers across modes
+        env:
+          AV_SUPPRESS_EVIDENCE_DIR: /tmp/battle-suppress-review
+        run: pnpm --filter @aurevane/web exec node scripts/battle-suppress-browser-regression.mjs
+
+      - name: Verify elevated rail effects and viewer privacy
+        env:
+          AV_ELEVATED_RAIL_EVIDENCE_DIR: /tmp/battle-elevated-rail-review
+        run: pnpm --filter @aurevane/web exec node scripts/battle-elevated-rail-browser-regression.mjs
+
+      - name: Verify completion windows fit the viewport
+        env:
+          AV_COMPLETION_FIT_EVIDENCE_DIR: /tmp/battle-completion-fit-review
+        run: pnpm --filter @aurevane/web exec node scripts/battle-completion-fit-browser-regression.mjs
+
+      - name: Verify immediate battle command feedback and Tab prevention
+        env:
+          AV_COMMAND_FEEDBACK_EVIDENCE_DIR: /tmp/battle-command-feedback-review
+        run: pnpm --filter @aurevane/web exec node scripts/battle-command-feedback-browser-regression.mjs
 
       - name: Start local Supabase stack
         run: pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
@@ -94,21 +143,62 @@ jobs:
             select public.activate_phase4_discipline_rebalance_v1();
           "
 
-          # Catch shared battle composition regressions before the longer all-page run.
-          # A successful candidate still runs the entire suite and the Edge keyboard checks below.
+          # Verify actual Owner publication and terrain-priced keyboard input early.
           AUREVANE_ENV=local \
           NEXT_PUBLIC_AUREVANE_ENV=local \
           NEXT_PUBLIC_SUPABASE_URL="$api_url" \
           NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="$ANON_KEY" \
           SUPABASE_SECRET_KEY="$server_key" \
           pnpm --filter @aurevane/web exec playwright test \
-            e2e/ai-header-control-shape.pw.ts e2e/ai-grid-legend-regression.pw.ts \
-            e2e/battle-cockpit-skill-slots.pw.ts e2e/pvp-six-combatant-rails.pw.ts \
+            e2e/master-combat-content-authoring.pw.ts e2e/battle-wasd-backtracking.pw.ts \
+            --project=desktop-chromium --repeat-each=2
+          mkdir -p /tmp/combat-master-release-review
+          find apps/web/test-results \( -name 'master-*.png' -o -name 'battle-ground-*.png' \) \
+            -exec cp '{}' /tmp/combat-master-release-review/ \;
+
+          # Prove real recovery email and expired-link handling before longer gameplay scenarios.
+          AUREVANE_ENV=local \
+          NEXT_PUBLIC_AUREVANE_ENV=local \
+          NEXT_PUBLIC_SUPABASE_URL="$api_url" \
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="$ANON_KEY" \
+          SUPABASE_SECRET_KEY="$server_key" \
+          pnpm --filter @aurevane/web exec playwright test e2e/password-reset.pw.ts
+
+          # Prove complete training and terrain-weighted movement before the longer suites.
+          AUREVANE_ENV=local \
+          NEXT_PUBLIC_AUREVANE_ENV=local \
+          NEXT_PUBLIC_SUPABASE_URL="$api_url" \
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="$ANON_KEY" \
+          SUPABASE_SECRET_KEY="$server_key" \
+          pnpm --filter @aurevane/web exec playwright test e2e/battle-experience.pw.ts
+
+          # Catch shared battle composition regressions before the longer all-page run.
+          # A successful candidate still runs the entire suite and the Edge keyboard checks below.
+          focused_status=0
+          AUREVANE_ENV=local \
+          NEXT_PUBLIC_AUREVANE_ENV=local \
+          NEXT_PUBLIC_SUPABASE_URL="$api_url" \
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="$ANON_KEY" \
+          SUPABASE_SECRET_KEY="$server_key" \
+          pnpm --filter @aurevane/web exec playwright test \
+            e2e/ai-header-control-shape.pw.ts e2e/ai-grid-legend-regression.pw.ts e2e/ai-sparring-teams.pw.ts \
+            e2e/battle-cockpit-skill-slots.pw.ts e2e/combat-summon-flow.pw.ts e2e/pvp-six-combatant-rails.pw.ts e2e/pvp-map-sizes.pw.ts \
+            e2e/pvp-spectator-title-layout.pw.ts \
             e2e/shared-battle-presentation-parity.pw.ts e2e/pvp-battle-log-footer-parity.pw.ts \
             e2e/phase4-ground-targeting.pw.ts \
             e2e/pvp-mobile-unified-battle.pw.ts e2e/discipline-sigil-art.pw.ts \
             e2e/character-secondary-build.pw.ts \
-            --project=desktop-chromium --project=mobile-chromium
+            e2e/battle-move-preview-polish.pw.ts e2e/battle-self-action-quick-commit.pw.ts e2e/battle-self-skill-hotkey.pw.ts \
+            e2e/battle-terrain-control-parity.pw.ts e2e/refined-battle-execution.pw.ts e2e/battle-info-popover.pw.ts \
+            e2e/battle-recovery-hotkey.pw.ts e2e/battle-support-action.pw.ts e2e/techniques-support-action.pw.ts e2e/technique-preview-layout.pw.ts \
+            e2e/shell-viewport-fit.pw.ts \
+            --project=desktop-chromium --project=mobile-chromium || focused_status=$?
+
+          # Preserve the shared rail/map screenshots before the complete suite clears its output.
+          mkdir -p /tmp/battle-rail-review
+          find apps/web/test-results -maxdepth 1 -type d \( -name 'ai-grid-legend-regressio*' -o -name 'pvp-map-sizes*' -o -name 'pvp-spectator-title-layout*' \) \
+            -exec cp -R '{}' /tmp/battle-rail-review/ \;
+          if [ "$focused_status" -ne 0 ]; then exit "$focused_status"; fi
 
           AUREVANE_ENV=local \
           NEXT_PUBLIC_AUREVANE_ENV=local \
@@ -124,8 +214,111 @@ jobs:
           SUPABASE_SECRET_KEY="$server_key" \
           pnpm --filter @aurevane/web exec playwright test \
             e2e/battle-self-action-quick-commit.pw.ts \
-            e2e/battle-recovery-hotkey.pw.ts \
+            e2e/battle-recovery-hotkey.pw.ts e2e/battle-support-action.pw.ts e2e/techniques-support-action.pw.ts \
             --config=playwright.edge.config.ts --output=test-results-edge
+
+      - name: Save focused battle rail evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: battle-rail-review
+          path: /tmp/battle-rail-review
+          retention-days: 7
+
+      - name: Save ally inspection and preview evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: battle-ally-inspection-review
+          path: /tmp/battle-ally-inspection-review
+          retention-days: 7
+
+      - name: Save targeting geometry evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: battle-targeting-review
+          path: /tmp/battle-targeting-review
+          retention-days: 7
+
+      - name: Save percentage reader evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: battle-percentage-dot-review
+          path: /tmp/battle-percentage-dot-review
+          retention-days: 7
+
+      - name: Save elemental status and Ground reader evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: battle-elemental-review
+          path: /tmp/battle-elemental-review
+          retention-days: 7
+
+      - name: Save Suppress percentage authoring and reader evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: battle-suppress-review
+          path: /tmp/battle-suppress-review
+          retention-days: 7
+
+      - name: Save compact combat release screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: combat-release-reader-screens
+          path: |
+            /tmp/battle-percentage-dot-review/results.json
+            /tmp/battle-percentage-dot-review/spectator-*.png
+            /tmp/battle-percentage-dot-review/pve-1366-burn-active-rail.png
+            /tmp/battle-percentage-dot-review/pve-390-poison-pending-rail.png
+            /tmp/battle-percentage-dot-review/pvp-390-essence-burn-active-report.png
+            /tmp/combat-master-release-review/*.png
+            apps/web/test-results/**/master-percentage-*.png
+            apps/web/test-results/**/master-elevation-*.png
+            apps/web/test-results/**/master-ground-*.png
+            apps/web/test-results/**/battle-ground-*.png
+            apps/web/test-results/master-combat-content*/error-context.md
+            apps/web/test-results/master-combat-content*/test-failed-*.png
+            apps/web/test-results/battle-wasd-backtracking*/error-context.md
+            apps/web/test-results/battle-wasd-backtracking*/test-failed-*.png
+            apps/web/test-results/refined-battle-execution*/error-context.md
+          retention-days: 7
+
+      - name: Save skill parameter palette evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: skill-parameter-palette-review
+          path: /tmp/skill-parameter-palette-review
+          retention-days: 7
+
+      - name: Save elevated rail effect evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: battle-elevated-rail-review
+          path: /tmp/battle-elevated-rail-review
+          retention-days: 7
+
+      - name: Save completion window fit evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: battle-completion-fit-review
+          path: /tmp/battle-completion-fit-review
+          retention-days: 7
+
+      - name: Save command feedback and Tab evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: battle-command-feedback-review
+          path: /tmp/battle-command-feedback-review
+          retention-days: 7
 
       - name: Save browser evidence
         if: always()
@@ -134,6 +327,19 @@ jobs:
           name: browser-smoke-evidence
           path: |
             apps/web/test-results
+            apps/web/test-results-edge
+          retention-days: 7
+
+      - name: Save compact browser diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-smoke-diagnostics
+          path: |
+            apps/web/test-results/**/*.zip
+            apps/web/test-results/**/*.json
+            apps/web/test-results/**/*.md
+            apps/web/test-results/battle-ui-polish-regressio*/**
             apps/web/test-results-edge
           retention-days: 7
 

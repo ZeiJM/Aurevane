@@ -1,0 +1,28 @@
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 2rem;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid #9f8758;
+  border-radius: 2px;
+  color: #e0c58f;
+  background: #15212b;
+  font: 600 0.75rem/1.2 var(--av-font-body);
+  cursor: pointer;
+}
+.trigger:hover,
+.trigger[aria-expanded='true'] {
+  border-color: #d4b574;
+  background: #253641;
+}
+.trigger:focus-visible {
+  outline: 2px solid #e1c68e;
+  outline-offset: 2px;
+}
+@media (max-width: 820px) {
+  .trigger {
+    min-height: 2.75rem;
+  }
+}

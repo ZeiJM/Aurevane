@@ -1,3 +1,4 @@
+import { prePercentageRecoveryEssence } from './percentage-recovery-history.test-utils'
 import { describe, expect, it } from 'vitest'
 
 import { createCombatEncounterState } from './actions'
@@ -383,7 +384,7 @@ describe('Combat v5.1 Essence targeting balance', () => {
     ])
 
     for (const disciplineId of disciplineIds) {
-      const current = resolveEssenceForBuild(disciplineId, null)
+      const current = prePercentageRecoveryEssence(disciplineId)
       if (!current) throw new Error(`Expected current Essence for ${disciplineId}.`)
 
       expect(current.authoring.validationTags, current.essenceId).toContain('owner-rebalance-v5-1')
@@ -406,7 +407,14 @@ describe('Combat v5.1 Essence targeting balance', () => {
         elevations.set(elevation ?? 0, (elevations.get(elevation ?? 0) ?? 0) + 1)
       }
 
-      const previous = resolveEssenceForBuild(disciplineId, null, current.contentVersion - 1)
+      const previous = resolveEssenceForBuild(
+        disciplineId,
+        null,
+        current.contentVersion -
+          (current.authoring.validationTags.includes('attack-percentage-dots') ? 2 : 1) -
+          (current.skill.target.geometryVersion === 2 ? 1 : 0) -
+          (current.authoring.validationTags.includes('instant-blindside-v1') ? 1 : 0),
+      )
       if (!previous) throw new Error(`Expected prior Essence for ${disciplineId}.`)
       expect(previous.skill.authoring.validationTags, previous.essenceId).toContain(
         'owner-rebalance-v5',
@@ -420,4 +428,14 @@ describe('Combat v5.1 Essence targeting balance', () => {
     expect(elevations.get(1) ?? 0).toBeGreaterThan(elevations.get(2) ?? 0)
     expect(elevations.get(2) ?? 0).toBeGreaterThan(0)
   })
+})
+
+it('current Essence audit has no typed Fire direct damage requiring a caster cleanse append', () => {
+  const disciplines = [...new Set(P36_REPRESENTATIVE_ESSENCES.map((e) => e.sourceDisciplineId))]
+  const fire = disciplines
+    .map((id) => resolveEssenceForBuild(id, null)!)
+    .filter((e) =>
+      e.skill.effects.some((effect) => effect.type === 'damage' && effect.element === 'fire'),
+    )
+  expect(fire).toEqual([])
 })

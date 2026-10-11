@@ -1,9 +1,25 @@
+import { validateRecoveryEffect } from './combat-recovery'
+import { validateBlindsideModifiers } from './combat-blindside'
+import { percentageDotMagnitude } from './combat-percentage-dots'
 import type {
   CombatActionDefinition,
   CombatContentCatalog,
   CombatEffectDefinition,
   CombatEncounterState,
+  CombatTargetSpec,
 } from './actions'
+
+/** Limited removal is a separate authored effect; it must never widen to full Cleanse. */
+export function isCleanseChilledEffect(effect: {
+  readonly type: string
+  readonly statusIds?: readonly string[]
+}): boolean {
+  return (
+    effect.type === 'remove-status' &&
+    effect.statusIds?.length === 1 &&
+    effect.statusIds[0] === 'frozen'
+  )
+}
 
 export const GAMEPLAY_TAGS = [
   'Scorched',
@@ -19,12 +35,13 @@ export const GAMEPLAY_TAGS = [
   'Exposed',
   'Poisoned',
   'Fortified',
-  'Summoned',
   'Airborne',
+  'Blindside',
+  'Suppress',
   'Displaced',
 ] as const
 export type GameplayTag = (typeof GAMEPLAY_TAGS)[number]
-export type CombatElement = 'water' | 'storm' | 'fire'
+export type CombatElement = 'water' | 'storm' | 'fire' | 'ice'
 
 /** Stable aliases read old snapshots without renaming their stored status identities. */
 const STATUS_TAG_ALIASES: Readonly<Record<string, GameplayTag>> = {
@@ -36,7 +53,6 @@ const STATUS_TAG_ALIASES: Readonly<Record<string, GameplayTag>> = {
   bleed: 'Bleeding',
   bleeding: 'Bleeding',
   mark: 'Marked',
-  marked: 'Marked',
   guarded: 'Guarded',
   inspired: 'Inspired',
   hexed: 'Hexed',
@@ -45,54 +61,51 @@ const STATUS_TAG_ALIASES: Readonly<Record<string, GameplayTag>> = {
   poison: 'Poisoned',
   poisoned: 'Poisoned',
   fortified: 'Fortified',
-  summoned: 'Summoned',
   airborne: 'Airborne',
+  blindside: 'Blindside',
+  suppress: 'Suppress',
   displaced: 'Displaced',
 }
 
 const STATUS_PRESENTATION_TAGS: Readonly<Record<string, string>> = {
   guarded: 'Guard',
-  exposed: 'Expose',
-  wet: 'Wet',
-  frozen: 'Frozen',
+  exposed: 'Vulnerable',
+  wet: 'Drenched',
+  frozen: 'Chilled',
   conductive: 'Conductive',
-  inspired: 'Inspire',
-  hexed: 'Hex',
-  invisible: 'Ghost',
-  summoned: 'Summon',
+  inspired: 'Damage Up',
+  hexed: 'Healing Down',
+  suppress: 'Suppress',
+  invisible: 'Invisible',
   airborne: 'Airborne',
   displaced: 'Displaced',
   haste: 'Haste',
   slow: 'Slow',
-  burn: 'Burn (Scorched)',
-  bleed: 'Bleed (Bleeding)',
-  poison: 'Poison (Poisoned)',
+  burn: 'Burn',
+  bleed: 'Bleed',
+  poison: 'Poison',
   reckless: 'Reckless',
   fortified: 'Fortified',
-  challenged: 'Challenged',
+  challenged: 'Taunted',
   mark: 'Marked',
-  marked: 'Marked',
-  warded: 'Warded',
-  'lowered-guard': 'Off-guard',
-  root: 'Root',
+  warded: 'Burn Ward',
+  'lowered-guard': 'Defenseless',
+  root: 'Rooted',
   blind: 'Blind',
-  'absorb-hp': 'Absorb HP',
-  'absorb-mp': 'Absorb MP',
+  'absorb-hp': 'HP Leech',
+  'absorb-mp': 'MP Leech',
   reflect: 'Reflect',
-  amplify: 'Amplify',
-  curse: 'Curse',
+  amplify: 'Copy Buffs',
+  curse: 'Copy Debuffs',
 }
 
 const POSITIVE_STATUS_IDS = new Set([
   'guarded',
   'inspired',
   'invisible',
-  'summoned',
   'airborne',
+  'blindside',
   'haste',
-  'regeneration',
-  'hastened',
-  'borrowed-hour',
   'fortified',
   'warded',
   'absorb-hp',
@@ -163,6 +176,7 @@ export function combatantGameplayTags(
   }
   for (const status of state.statusState.find((row) => row.combatantId === combatantId)?.statuses ??
     []) {
+    if (status.timingState === 'pending') continue
     const alias = STATUS_TAG_ALIASES[status.statusId]
     if (alias) tags.add(alias)
     const definition = content.statuses.find(
@@ -190,6 +204,7 @@ export function statusIdsForGameplayTag(
   content: CombatContentCatalog,
 ): readonly string[] {
   return (state.statusState.find((row) => row.combatantId === combatantId)?.statuses ?? [])
+    .filter((status) => status.timingState !== 'pending')
     .filter(
       (status) =>
         STATUS_TAG_ALIASES[status.statusId] === tag ||
@@ -227,6 +242,21 @@ export function validateGameplayActionMetadata(
 
 /** Shared content-boundary validation; the containing action supplies target-dependent legality. */
 export function validateGameplayEffectMetadata(effect: CombatEffectDefinition): void {
+  validateRecoveryEffect(effect)
+  if (effect.type === 'apply-status' && effect.blindsideModifiersBasisPoints !== undefined) {
+    if (effect.statusId !== 'blindside')
+      throw new TypeError('Blindside percentages require Blindside.')
+    validateBlindsideModifiers(effect.blindsideModifiersBasisPoints)
+  }
+  if (
+    effect.type === 'apply-status' &&
+    effect.statusId === 'blindside' &&
+    ((effect.durationTurns !== undefined && effect.durationTurns !== 1) ||
+      effect.potencyBasisPoints !== undefined)
+  )
+    throw new TypeError(
+      'Blindside lasts one owner turn and uses separate side/rear damage multipliers.',
+    )
   if (
     effect.durationTurns !== undefined &&
     (!Number.isSafeInteger(effect.durationTurns) ||
@@ -245,10 +275,23 @@ export function validateGameplayEffectMetadata(effect: CombatEffectDefinition): 
     effect.potencyBasisPoints !== undefined &&
     (!Number.isSafeInteger(effect.potencyBasisPoints) ||
       effect.potencyBasisPoints < 100 ||
-      effect.potencyBasisPoints > 5_000)
+      effect.potencyBasisPoints >
+        (effect.type === 'apply-status' && effect.statusId === 'suppress' ? 10_000 : 5_000))
   ) {
-    throw new RangeError('Effect percentage potency must be from 1 to 50 percentage points.')
+    throw new RangeError(
+      `Effect percentage potency must be from 1 to ${effect.type === 'apply-status' && effect.statusId === 'suppress' ? 100 : 50} percentage points.`,
+    )
   }
+  if (
+    effect.type === 'apply-status' &&
+    effect.statusId === 'suppress' &&
+    ((effect.durationTurns !== undefined && effect.durationTurns < 1) ||
+      effect.stacks !== 1 ||
+      effect.power !== undefined)
+  )
+    throw new RangeError(
+      'Suppress requires one application, a percentage and 1 to 4 turns; power is unsupported.',
+    )
   if (
     effect.type === 'damage' &&
     effect.piercing !== undefined &&
@@ -258,7 +301,7 @@ export function validateGameplayEffectMetadata(effect: CombatEffectDefinition): 
   if (
     effect.type === 'damage' &&
     effect.element !== undefined &&
-    !['water', 'storm', 'fire'].includes(effect.element)
+    !['water', 'storm', 'fire', 'ice'].includes(effect.element)
   )
     throw new TypeError('Unknown damage element.')
   if (
@@ -282,6 +325,17 @@ export function validateGameplayEffectMetadata(effect: CombatEffectDefinition): 
   }
 }
 
+/** Authored team, friendly-fire and geometry policies must all allow the caster. */
+export function combatTargetIncludesActor(target: CombatTargetSpec): boolean {
+  if (!['self', 'unit'].includes(target.kind) || target.teamPolicy === 'enemy') return false
+  if (!['all-units', 'allies-only'].includes(target.friendlyFire)) return false
+  if (target.shape.kind === 'line') return false
+  if (target.shape.kind === 'circle') {
+    return target.geometryVersion !== 2 && target.shape.radius >= target.minimumRange
+  }
+  return target.shape.kind === 'all' || target.minimumRange === 0
+}
+
 function targetPresentationTag(action: Pick<CombatActionDefinition, 'target'>): string {
   const target = action.target
   if (target.kind === 'self') return 'Self'
@@ -289,18 +343,34 @@ function targetPresentationTag(action: Pick<CombatActionDefinition, 'target'>): 
   if (target.kind === 'empty-tile') return 'Empty Tile'
   if (target.teamPolicy === 'enemy') return 'Enemy'
   if (target.teamPolicy === 'self') return 'Self'
-  if (target.teamPolicy === 'ally') return target.minimumRange === 0 ? 'Self/Ally' : 'Ally'
+  if (target.teamPolicy === 'ally') return combatTargetIncludesActor(target) ? 'Self/Ally' : 'Ally'
   return 'Anyone'
 }
 
 function shapePresentationTag(action: Pick<CombatActionDefinition, 'target'>): string {
   const shape = action.target.shape
   if (shape.kind === 'single') return 'Single'
-  if (shape.kind === 'circle') return `Circle ${shape.radius}`
-  return `Line ${shape.length}`
+  if (shape.kind === 'all') return 'All'
+  if (shape.kind === 'circle') return `Circle [${shape.radius}]`
+  return `Line [${shape.length}]`
+}
+
+export function combatEffectPresentationTags(effect: CombatEffectDefinition): readonly string[] {
+  return effectPresentationTags(effect as unknown as PresentationEffect)
 }
 
 function effectPresentationTags(effect: PresentationEffect): readonly string[] {
+  if (['burn', 'poison', 'bleed'].includes(effect.type) && effect.damageProfile) {
+    const typed = effect as unknown as Extract<
+      CombatEffectDefinition,
+      { type: 'burn' | 'poison' | 'bleed' }
+    >
+    const name = effect.type[0]!.toUpperCase() + effect.type.slice(1)
+    const ticks = typed.type === 'bleed' ? typed.ticks : typed.durationTurns
+    return [
+      `${name} [${percentageDotMagnitude(typed)}] [${ticks} ${ticks === 1 ? 'turn' : 'turns'}]`,
+    ]
+  }
   if (effect.type === 'damage') {
     const element =
       effect.element === 'water'
@@ -309,55 +379,64 @@ function effectPresentationTags(effect: PresentationEffect): readonly string[] {
           ? 'Storm Dmg'
           : effect.element === 'fire'
             ? 'Fire Dmg'
-            : 'Dmg'
-    return effect.piercing === true ? [element, 'Pierce'] : [element]
+            : effect.element === 'ice'
+              ? 'Ice Dmg'
+              : 'Dmg'
+    const label = `${element} [${positiveDisplayInteger(effect.amount, 1)}]`
+    return effect.piercing === true ? [label, 'Pierce'] : [label]
   }
-  if (effect.type === 'healing') return [`Heal ${positiveDisplayInteger(effect.ticks, 1)}`]
+  if (effect.type === 'percentage-recovery')
+    return [`${effect.resource === 'mp' ? 'MP' : 'HP'} Recovery [${effect.percent}%]`]
+  if (effect.type === 'healing') return [`Heal [${positiveDisplayInteger(effect.amount, 1)}]`]
   if (effect.type === 'resource-change') {
     return typeof effect.delta === 'number' && effect.delta < 0
-      ? ['MP Drain']
-      : [`MP Rec ${positiveDisplayInteger(effect.ticks, 1)}`]
+      ? [`MP Drain [${positiveDisplayInteger(Math.abs(effect.delta), 1)}]`]
+      : [`MP Restore [${positiveDisplayInteger(effect.delta, 1)}]`]
   }
   if (effect.type === 'remove-status') {
+    if (isCleanseChilledEffect(effect)) return ['Cleanse Chilled']
     const ids = Array.isArray(effect.statusIds)
       ? effect.statusIds.filter((id): id is string => typeof id === 'string')
       : []
     return [ids.length > 0 && ids.every((id) => POSITIVE_STATUS_IDS.has(id)) ? 'Dispel' : 'Cleanse']
   }
-  if (effect.type === 'return-to-turn-start' || effect.type === 'revert') return ['Revert']
+  if (effect.type === 'return-to-turn-start' || effect.type === 'revert') return ['Rewind']
   if (effect.type === 'create-terrain' || effect.type === 'freeze-ground') return ['Freeze Ground']
   if (effect.type === 'displace') {
     const direction = effect.direction === 'pull' ? 'Pull' : 'Push'
-    return [`${direction} ${positiveDisplayInteger(effect.distance, 1)}`]
+    return [`${direction} [${positiveDisplayInteger(effect.distance, 1)}]`]
   }
   if (effect.type === 'apply-status' && typeof effect.statusId === 'string') {
-    return [combatStatusPresentationTag(effect.statusId)]
+    return [
+      effect.statusId === 'suppress'
+        ? `Suppress [${(typeof effect.potencyBasisPoints === 'number' ? effect.potencyBasisPoints : 2500) / 100}%]`
+        : combatStatusPresentationTag(effect.statusId),
+    ]
   }
   if (effect.type === 'copy-statuses') {
-    if (effect.mode === 'amplify') return ['Amplify']
-    if (effect.mode === 'curse') return ['Curse']
+    if (effect.mode === 'amplify') return ['Copy Buffs']
+    if (effect.mode === 'curse') return ['Copy Debuffs']
     return []
   }
 
   const directLabels: Readonly<Record<string, string>> = {
     'barrier-change': 'Barrier',
-    copy: 'Copy',
-    'absorb-hp': 'Absorb HP',
-    'absorb-mp': 'Absorb MP',
+    'absorb-hp': 'HP Leech',
+    'absorb-mp': 'MP Leech',
     reflect: 'Reflect',
     vengeance: 'Vengeance',
-    amplify: 'Amplify',
-    curse: 'Curse',
+    amplify: 'Copy Buffs',
+    curse: 'Copy Debuffs',
     cleanse: 'Cleanse',
     dispel: 'Dispel',
-    sensory: 'Sensory',
+    sensory: 'Reveal',
     summon: 'Summon',
-    'apply-burn': 'Burn (Scorched)',
-    'apply-bleed': 'Bleed (Bleeding)',
-    'apply-poison': 'Poison (Poisoned)',
-    burn: 'Burn (Scorched)',
-    bleed: 'Bleed (Bleeding)',
-    poison: 'Poison (Poisoned)',
+    'apply-burn': 'Burn',
+    'apply-bleed': 'Bleed',
+    'apply-poison': 'Poison',
+    burn: 'Burn',
+    bleed: 'Bleed',
+    poison: 'Poison',
   }
   return directLabels[effect.type] ? [directLabels[effect.type]!] : []
 }

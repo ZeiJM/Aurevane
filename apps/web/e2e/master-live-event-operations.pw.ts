@@ -254,8 +254,9 @@ test('Event Staff operates a run, completes cleanup and archives Chronicle safel
   const runId = createScheduledRun(userId, eventKey)
 
   await page.goto('/master')
-  await expect(page.getByRole('link', { name: /Live Event Ops/ })).toBeVisible()
-  await page.getByRole('link', { name: /Live Event Ops/ }).click()
+  const masterNavigation = page.getByRole('navigation', { name: 'Master Panel navigation' })
+  await expect(masterNavigation.getByRole('link', { name: /Live Event Ops/ })).toBeVisible()
+  await masterNavigation.getByRole('link', { name: /Live Event Ops/ }).click()
 
   await expect(page.getByRole('heading', { name: 'Event runs', exact: true })).toBeVisible()
   await expect(page.getByText('Operations console', { exact: true })).toBeVisible()

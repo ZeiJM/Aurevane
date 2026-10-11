@@ -11,10 +11,9 @@ function readLocalFile(name: string): string {
 }
 
 describe('desktop battle log PvP/PvE presentation parity', () => {
-  it('uses the same dock component in both playable battle boundaries', () => {
+  it('avoids mounting an additional desktop dock beside the native shared inline log', () => {
     const shared = readLocalFile('battle-client-boundary.tsx')
-    expect(shared).toContain('<DesktopBattleLogDock')
-    expect(shared).toContain("eventDriven={runtime.kind === 'pvp'}")
+    expect(shared).not.toContain('DesktopBattleLogDock')
     expect(readLocalFile('battle-pve-enhancements.tsx')).not.toContain('<DesktopBattleLogDock')
     expect(readLocalFile('battle-pvp-enhancements.tsx')).not.toContain('<DesktopBattleLogDock')
   })

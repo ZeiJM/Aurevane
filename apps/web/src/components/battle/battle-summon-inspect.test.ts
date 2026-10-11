@@ -6,6 +6,9 @@ import { readSummonInspectMetadata } from './battle-summon-inspect'
 describe('battle summon Inspect metadata', () => {
   it('projects the pinned summon profile and remaining authored lifetime', () => {
     const snapshot = {
+      effectTimingPolicy: { version: 6, modes: { healing: 'delayed' } },
+      airbornePolicyVersion: 1,
+      dotTriggerPolicyVersion: 1,
       effectState: {
         summons: [
           {
@@ -86,7 +89,12 @@ describe('battle summon Inspect metadata', () => {
       remainingTurns: 3,
       tags: ['summon', 'verdant'],
     })
-    expect(readSummonInspectMetadata(snapshot, 'summon:test')?.abilities).toHaveLength(1)
+    const captured = readSummonInspectMetadata(snapshot, 'summon:test')!
+    expect(captured.abilities).toHaveLength(1)
+    expect(captured.policies.effectTimingPolicy).toEqual(snapshot.effectTimingPolicy)
+    expect(captured.policies.airbornePolicyVersion).toBe(1)
+    Object.assign(captured.policies.effectTimingPolicy!.modes, { healing: 'instant' })
+    expect(snapshot.effectTimingPolicy!.modes['healing']).toBe('delayed')
   })
 
   it('returns null for ordinary combatants', () => {

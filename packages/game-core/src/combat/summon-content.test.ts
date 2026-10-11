@@ -1,3 +1,4 @@
+import { prePercentageRecoverySkill } from './percentage-recovery-history.test-utils'
 import { describe, expect, it } from 'vitest'
 
 import type { MatureSkillDefinition } from './mature-skills'
@@ -117,8 +118,8 @@ describe('Combat v5.1 summon content', () => {
     )
   })
 
-  it('keeps historical Renewing Herbs pinned while current v5.1 uses the real summon profile', () => {
-    const currentDefinition = resolveMatureSkillVersion('wildwarden.renewing-herbs')
+  it('keeps real Summon while removing historical Renewing Herbs protection', () => {
+    const currentDefinition = prePercentageRecoverySkill('wildwarden.renewing-herbs')
     if (!currentDefinition) throw new Error('Expected current Renewing Herbs.')
     const historical = resolveMatureSkillVersion(
       'wildwarden.renewing-herbs',
@@ -138,12 +139,10 @@ describe('Combat v5.1 summon content', () => {
     expect(currentDefinition.summonProfile?.abilities).toHaveLength(2)
 
     expect(historical.summonProfile).toBeUndefined()
-    expect(historical.effects).toContainEqual(
-      expect.objectContaining({
-        type: 'apply-status',
-        statusId: 'summoned',
-      }),
+    expect(historical.effects).not.toContainEqual(
+      expect.objectContaining({ type: 'apply-status', statusId: 'summoned' }),
     )
+    expect(historical.effects).toContainEqual(expect.objectContaining({ type: 'healing' }))
   })
 
   it('requires summon effects and profiles to appear together on empty-ground Skills', () => {

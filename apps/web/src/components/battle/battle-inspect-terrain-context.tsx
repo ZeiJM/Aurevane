@@ -3,6 +3,8 @@
 import { PV1F_MOVEMENT_COST_PER_TERRAIN_POINT } from '@aurevane/game-core/combat/pv1f-skills'
 import { useEffect } from 'react'
 
+import { battleTerrainName } from './battle-terrain-key-presentation'
+
 function isInspectActive(deck: HTMLElement): boolean {
   return Array.from(deck.querySelectorAll<HTMLButtonElement>('button')).some((button) => {
     const label = button.querySelector(':scope > strong')?.textContent?.trim()
@@ -44,15 +46,19 @@ export function describeTerrainLabel(label: string): {
   const [, x, y, terrainId, elevation] = match
   const elevationLevel = Number(elevation)
   const rough = terrainId === 'rough-ground' || terrainId === 'rough ground'
-  const elevated = elevationLevel > 0
-  const terrainName = elevated ? 'Elevated ground' : rough ? 'Rough ground' : 'Open ground'
+  const terrainName = battleTerrainName(terrainId, elevationLevel)
   const entryCost = PV1F_MOVEMENT_COST_PER_TERRAIN_POINT * (rough ? 2 : 1)
 
-  const overlay = label.match(/; ((?:Frozen|Steam) terrain; .+)$/)?.[1]
+  const overlay = label.match(
+    /; ((?:Frozen Ground|Steam) terrain); (\d+) round boundar(?:y|ies) remaining/,
+  )
+  const overlaySummary = overlay
+    ? `${overlay[1]} · ${overlay[2]} ${overlay[2] === '1' ? 'round' : 'rounds'} remaining`
+    : ''
 
   return {
     title: `${terrainName} · Tile ${x},${y}`,
-    description: `Entry costs ${entryCost} AP · Elevation ${elevationLevel}.${overlay ? ` ${overlay}` : ''}`,
+    description: `Entry costs ${entryCost} AP · Elevation ${elevationLevel}.${overlaySummary ? ` ${overlaySummary}` : ''}`,
   }
 }
 
@@ -64,7 +70,7 @@ export function describeTerrainLabel(label: string): {
 export function BattleInspectTerrainContext() {
   useEffect(() => {
     const root = document.querySelector<HTMLElement>('main[data-unified-battle="true"]')
-    if (!root) return
+    if (!root || root.dataset.battleLayout === 'refined') return
 
     let frame = 0
 

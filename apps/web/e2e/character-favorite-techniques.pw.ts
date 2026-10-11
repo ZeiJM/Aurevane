@@ -83,18 +83,14 @@ test('Technique selection auto-saves and favorite controls are removed', async (
   await expect(preview.getByText('Damage', { exact: true })).toHaveCount(0)
   await expect(preview.locator('dd').filter({ hasText: 'Dmg [' })).toBeVisible()
   await expect(preview.getByRole('list', { name: 'Effect explanations' })).toBeVisible()
-  const group = page.getByTestId('learned-skill-list').locator(':scope > section').last()
+  const dialogBox = await dialog.boundingBox()
   const previewBox = await preview.boundingBox()
-  const groupBox = await group.boundingBox()
-  expect(
-    Math.abs(previewBox!.y + previewBox!.height - groupBox!.y - groupBox!.height),
-  ).toBeLessThanOrEqual(2)
-  const previewLayout = await preview.evaluate((node) => ({
-    overflow: getComputedStyle(node).overflowY,
-    clipped: node.scrollHeight > node.clientHeight + 1,
-  }))
-  expect(['scroll', 'auto']).not.toContain(previewLayout.overflow)
-  expect(previewLayout.clipped).toBe(false)
+  expect(previewBox!.y).toBeGreaterThanOrEqual(dialogBox!.y)
+  expect(previewBox!.y + previewBox!.height).toBeLessThanOrEqual(dialogBox!.y + dialogBox!.height)
+  // Full Skill details have a deliberate reading region beside the collection.
+  const explanations = preview.getByRole('list', { name: 'Effect explanations' })
+  await explanations.scrollIntoViewIfNeeded()
+  await expect(explanations).toBeInViewport()
   await expect(preview).not.toContainText('Effects, in order')
   await expect(preview.getByText('Skill details', { exact: true })).toHaveCount(0)
   await expect(forceful).toContainText('Attack')

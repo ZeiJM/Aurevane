@@ -31,7 +31,7 @@ test('creates a slotted character, persists its profile, and resumes it across s
 
   await createAccountAndEnterCharacter({ page, email, password, characterName })
 
-  const profile = page.getByTestId('character-profile')
+  const profile = page.getByTestId('authenticated-shell').getByTestId('character-rail-profile')
   await expect(profile).toContainText(characterName)
   await expect(profile).toContainText('Level 1')
   const expectedStarterAttributes = {
@@ -45,26 +45,36 @@ test('creates a slotted character, persists its profile, and resumes it across s
   for (const [attribute, expectedValue] of Object.entries(expectedStarterAttributes)) {
     await expect(page.getByTestId(`profile-attribute-${attribute}`)).toContainText(expectedValue)
   }
-  await expect(page.getByTestId('derived-stat-maxHp')).toContainText('220')
-  await expect(page.getByTestId('derived-stat-maxMp')).toContainText('66')
-  await expect(page.getByTestId('derived-stat-accuracy')).toContainText('65%')
-  await expect(page.getByTestId('derived-stat-evasion')).toContainText('1.3%')
-  await expect(page.getByTestId('derived-stat-criticalChance')).toContainText('2%')
-  await expect(page.getByTestId('derived-stat-initiative')).toContainText('10')
+  // Current V5 curves applied to the fixed starter Core values above, without retired offsets.
+  await expect(page.getByTestId('derived-stat-physicalPower')).toContainText('58')
+  await expect(page.getByTestId('derived-stat-mysticPower')).toContainText('46')
+  await expect(page.getByTestId('derived-stat-armor')).toContainText('Physical Defense58')
+  await expect(page.getByTestId('derived-stat-ward')).toContainText('Mystic Defense54')
+  await expect(page.getByTestId('derived-stat-maxHp').locator('strong')).toHaveText('174')
+  await expect(page.getByTestId('derived-stat-maxMp').locator('strong')).toHaveText('44')
+  await expect(page.getByTestId('derived-stat-accuracy')).toContainText('87.5%')
+  await expect(page.getByTestId('derived-stat-evasion')).toContainText('2.5%')
+  await expect(page.getByTestId('derived-stat-criticalChance')).toContainText('1.5%')
+  await expect(page.getByTestId('derived-stat-initiative')).toContainText('19')
   await expect(page.getByTestId('derived-stat-movement')).toContainText('2')
   await expect(page.getByTestId('derived-stat-jump')).toContainText('0')
-  await expect(page.getByTestId('derived-stat-statusResistance')).toContainText('4.9%')
+  await expect(page.getByTestId('derived-stat-statusResistance')).toContainText('1.75%')
 
-  const levelProgress = page.getByTestId('level-progress')
+  const levelProgress = page.getByTestId('authenticated-shell').getByTestId('rail-level-progress')
   await expect(levelProgress).toContainText('Character Level 1')
   await expect(levelProgress).toContainText('0 / 100 XP')
-  await expect(page.getByRole('progressbar', { name: 'Level progress' })).toHaveAttribute(
-    'aria-valuenow',
-    '0',
-  )
+  await expect(
+    page.getByRole('progressbar', {
+      name: 'Rail level progress',
+      exact: true,
+      includeHidden: true,
+    }),
+  ).toHaveAttribute('aria-valuenow', '0')
 
   // Starter portrait filenames are registry-driven; verify the rendered image and decoded asset.
-  const profilePortrait = page.getByTestId('character-profile').locator('img').first()
+  const profilePortrait = page.locator(
+    '[data-testid="authenticated-shell"] > header .character-portrait-media',
+  )
   await expect(profilePortrait).toBeVisible()
   await expect
     .poll(() =>
@@ -81,20 +91,21 @@ test('creates a slotted character, persists its profile, and resumes it across s
   await expect(page).toHaveURL(/\/game\/account\/titles$/)
   await page.getByRole('textbox', { name: /^Personal title/ }).fill(personalTitle)
   await page.getByRole('button', { name: 'Review Title' }).click()
-  await page.getByRole('checkbox').check()
+  await page.getByRole('checkbox', { name: /one personal-title choice/ }).check()
   await page.getByRole('button', { name: 'Confirm Final Title' }).click()
   await expect(page.getByText('Choice used')).toBeVisible()
-  await expect(page.getByText(personalTitle, { exact: true }).first()).toBeVisible()
+  const titleWorkspace = page.locator('[data-character-concept="titles"]')
+  await expect(titleWorkspace.getByText(personalTitle, { exact: true }).first()).toBeVisible()
   await expect(page.getByRole('textbox', { name: /^Personal title/ })).toHaveCount(0)
   await page.reload()
   await expect(page.getByText('Choice used')).toBeVisible()
-  await expect(page.getByText(personalTitle, { exact: true }).first()).toBeVisible()
+  await expect(titleWorkspace.getByText(personalTitle, { exact: true }).first()).toBeVisible()
   await page
     .getByRole('navigation', { name: 'Primary game navigation', exact: true })
-    .getByRole('link', { name: 'Character', exact: true })
+    .getByRole('link', { name: 'Profile', exact: true })
     .click()
   await expect(page).toHaveURL(/\/game\/character$/)
-  await expect(page.getByTestId('character-profile')).toContainText(personalTitle)
+  await expect(page.locator('[data-profile-tag="title"]')).toHaveText(new RegExp(personalTitle))
 
   await page.getByRole('button', { name: 'Account' }).click()
   await page.getByRole('menuitem', { name: 'Switch Character' }).click()
@@ -113,9 +124,15 @@ test('creates a slotted character, persists its profile, and resumes it across s
 
   await expect(page).toHaveURL(/\/game$/)
   await page.getByRole('link', { name: `Play ${characterName}` }).click()
-  await expect(page).toHaveURL(/\/game\/character$/)
-  await expect(page.getByTestId('character-profile')).toContainText(characterName)
-  await expect(page.getByTestId('character-profile')).toContainText(personalTitle)
+  await expect(page).toHaveURL(/\/game\/haven$/)
+  await page
+    .getByRole('navigation', { name: 'Primary game navigation', exact: true })
+    .getByRole('link', { name: 'Profile', exact: true })
+    .click()
+  await expect(
+    page.getByTestId('authenticated-shell').getByTestId('character-rail-profile'),
+  ).toContainText(characterName)
+  await expect(page.locator('[data-profile-tag="title"]')).toHaveText(new RegExp(personalTitle))
 
   const characterId = queryLocalDatabase(`
     select character.id::text
@@ -132,7 +149,7 @@ test('creates a slotted character, persists its profile, and resumes it across s
   await expect(page.getByTestId('practice-plan-card')).toContainText('Idle')
   await page
     .getByRole('navigation', { name: 'Primary game navigation', exact: true })
-    .getByRole('link', { name: 'Character', exact: true })
+    .getByRole('link', { name: 'Profile', exact: true })
     .click()
   await expect(page).toHaveURL(/\/game\/character$/)
 
@@ -160,11 +177,15 @@ test('creates a slotted character, persists its profile, and resumes it across s
 
   await page
     .getByRole('navigation', { name: 'Primary game navigation', exact: true })
-    .getByRole('link', { name: 'Character', exact: true })
+    .getByRole('link', { name: 'Profile', exact: true })
     .click()
   await expect(page).toHaveURL(/\/game\/character$/)
-  await expect(page.getByTestId('character-profile')).toContainText('Level 1')
-  await expect(page.getByTestId('level-progress')).toContainText('0 / 100 XP')
+  await expect(
+    page.getByTestId('authenticated-shell').getByTestId('character-rail-profile'),
+  ).toContainText('Level 1')
+  await expect(
+    page.getByTestId('authenticated-shell').getByTestId('rail-level-progress'),
+  ).toContainText('0 / 100 XP')
 
   await page.getByRole('button', { name: 'Account' }).click()
   await page.getByRole('menuitem', { name: 'Switch Character' }).click()

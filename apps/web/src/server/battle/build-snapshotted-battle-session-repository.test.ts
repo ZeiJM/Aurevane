@@ -142,6 +142,9 @@ function builds(buildVersion = 7): CharacterBuildRepository {
     async changeDisciplines() {
       throw new Error('not used')
     },
+    async saveSupportAction() {
+      throw new Error('Not used')
+    },
     async saveDisciplineSkills() {
       throw new Error('not used')
     },

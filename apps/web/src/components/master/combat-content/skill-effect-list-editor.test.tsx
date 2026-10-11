@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import {
   SkillEffectListEditor,
+  createDefaultCombatEffect,
   appendCombatEffect,
   moveCombatEffect,
   moveCombatEffectDescription,
@@ -18,6 +19,33 @@ const effects: readonly CombatEffectDefinition[] = [
 ]
 
 describe('Master Panel Skill effect list editor', () => {
+  it('authors Push and Pull as separate choices with exact direction', () => {
+    expect(createDefaultCombatEffect('push')).toEqual({
+      type: 'displace',
+      recipient: 'primary-unit',
+      direction: 'push',
+      distance: 1,
+    })
+    expect(createDefaultCombatEffect('pull')).toEqual({
+      type: 'displace',
+      recipient: 'primary-unit',
+      direction: 'pull',
+      distance: 1,
+    })
+    const markup = renderToStaticMarkup(
+      createElement(SkillEffectListEditor, { value: [], onChange: vi.fn() }),
+    )
+    expect(markup).toContain('<option value="push">Push</option>')
+    expect(markup).toContain('<option value="pull">Pull</option>')
+    expect(markup).not.toContain('<option value="displace"')
+  })
+  it('creates a complete canonical Cleanse by default', () => {
+    expect(createDefaultCombatEffect('remove-status')).toEqual({
+      type: 'remove-status',
+      recipient: 'primary-unit',
+      statusIds: ['burn', 'bleed', 'poison', 'slow', 'root', 'exposed', 'mark', 'challenged'],
+    })
+  })
   it('renders authored effects in exact visible order', () => {
     const markup = renderToStaticMarkup(
       createElement(SkillEffectListEditor, { value: effects, onChange: vi.fn() }),
@@ -30,11 +58,6 @@ describe('Master Panel Skill effect list editor', () => {
     expect(markup.indexOf('data-effect-type="apply-status"')).toBeLessThan(
       markup.indexOf('data-effect-type="sensory"'),
     )
-  })
-
-  it('creates the typed temporary Skill Copy effect without scriptable fields', () => {
-    const appended = appendCombatEffect(effects, 'copy')
-    expect(appended.at(-1)).toEqual({ type: 'copy', recipient: 'primary-unit' })
   })
 
   it('adds, removes, and reorders without mutating the original array', () => {
@@ -71,13 +94,12 @@ describe('Master Panel Skill effect list editor', () => {
       'remove-status',
       'return-to-turn-start',
       'create-terrain',
-      'displace',
+      // Push/Pull choices produce the shared internal movement payload.
       'poison',
       'bleed',
       'burn',
       'barrier-change',
       'copy-statuses',
-      'copy',
       'sensory',
     ]
 
@@ -88,5 +110,23 @@ describe('Master Panel Skill effect list editor', () => {
     expect(markup).not.toContain('<textarea')
     expect(markup).not.toContain('Raw JSON')
     expect(markup).not.toContain('Script')
+  })
+})
+
+it('provides reusable Instant one-turn Blindside authoring', () => {
+  expect(createDefaultCombatEffect('blindside')).toEqual({
+    type: 'apply-status',
+    recipient: 'actor',
+    statusId: 'blindside',
+    stacks: 1,
+    durationTurns: 1,
+  })
+})
+
+it('authors the visible limited Cleanse Chilled using the existing removal payload', () => {
+  expect(createDefaultCombatEffect('cleanse-chilled')).toEqual({
+    type: 'remove-status',
+    recipient: 'actor',
+    statusIds: ['frozen'],
   })
 })

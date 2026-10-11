@@ -1,6 +1,12 @@
+import type { CombatStatusInstance } from '@aurevane/game-core/combat/actions'
 import { gameplayStatusName } from '../../lib/battle/combat-interaction-presentation'
 import { combatStatusDetails } from '@aurevane/game-core/combat/status-content'
 import { PV1F_COMBAT_CONTENT } from '@aurevane/game-core/combat/pv1f-action-economy'
+import { statusDamageMultiplierBasisPoints } from '../../lib/status-potency-presentation'
+import {
+  terrainBattleEffectPresentation,
+  type BattlePresentedStatus,
+} from '../../lib/battle/battle-elevation-effects'
 
 const BASIS_POINTS = 10_000
 
@@ -11,11 +17,29 @@ export type BattleEffectSummaryItem = {
   tone: BattleEffectSummaryTone
 }
 
-export type BattleStatusSummaryInput = {
-  statusId: string
-  statusVersion: number
-  stacks: number
-}
+export type BattleStatusSummaryInput = Pick<
+  CombatStatusInstance,
+  'statusId' | 'statusVersion' | 'stacks'
+> &
+  Partial<
+    Pick<
+      CombatStatusInstance,
+      | 'timingState'
+      | 'activationRound'
+      | 'durationScope'
+      | 'remainingRoundBoundaries'
+      | 'remainingOwnerTurnStarts'
+      | 'remainingOwnerTurnEnds'
+      | 'sourceScopedMark'
+      | 'sourceCombatantId'
+      | 'potencyBasisPoints'
+      | 'applicationModifiers'
+    >
+  > &
+  Pick<
+    BattlePresentedStatus,
+    'presentationDuration' | 'percentageDamage' | 'percentageDotProfile' | 'percentageDotStage'
+  >
 
 function compactPercent(value: number): string {
   const percent = Math.abs(value) / 100
@@ -37,12 +61,22 @@ export function formatIncomingDamageEffect(multiplierBasisPoints: number): strin
   return `${delta > 0 ? '+' : '−'}${compactPercent(delta)}%`
 }
 
-export function statusIsBeneficial(statusId: string): boolean {
+export function statusIsBeneficial(statusId: string, effect?: BattleStatusSummaryInput): boolean {
+  const terrain = effect ? terrainBattleEffectPresentation(effect) : null
+  if (terrain) return terrain.kind === 'Buff'
   return combatStatusDetails(statusId).kind === 'Buff' || statusId.startsWith('buff.')
 }
 
-export function statusLabel(statusId: string): string {
+export function statusLabel(statusId: string, effect?: BattleStatusSummaryInput): string {
+  const terrain = effect ? terrainBattleEffectPresentation(effect) : null
+  if (terrain) return terrain.label
   return gameplayStatusName(statusId)
+}
+
+export function statusDurationLabel(effect: BattleStatusSummaryInput): string {
+  const terrain = terrainBattleEffectPresentation(effect)
+  if (terrain) return terrain.duration
+  return `${effect.remainingOwnerTurnStarts} turn${effect.remainingOwnerTurnStarts === 1 ? '' : 's'} remaining`
 }
 
 export function formatStatusStackCount(statusId: string, stacks: number): string {
@@ -57,7 +91,22 @@ export function aggregateBattleStatusStacks<T extends BattleStatusSummaryInput>(
 
   for (const status of statuses) {
     const stacks = Math.max(1, status.stacks)
-    const key = `${status.statusId}:${status.statusVersion}`
+    const key = JSON.stringify([
+      status.statusId,
+      status.statusVersion,
+      status.timingState ?? 'active',
+      status.activationRound,
+      status.durationScope,
+      status.presentationDuration,
+      status.remainingRoundBoundaries,
+      status.remainingOwnerTurnEnds ?? status.remainingOwnerTurnStarts,
+      status.sourceScopedMark ? status.sourceCombatantId : undefined,
+      status.potencyBasisPoints,
+      status.applicationModifiers,
+      status.percentageDamage,
+      status.percentageDotProfile,
+      status.percentageDotStage,
+    ])
     const existing = grouped.get(key)
     if (!existing) {
       grouped.set(key, { ...status, stacks })
@@ -81,6 +130,7 @@ export function summarizeBattleEffects(
   const groupedStatuses = aggregateBattleStatusStacks(statuses)
 
   for (const status of groupedStatuses) {
+    if (status.timingState === 'pending') continue
     const stacks = Math.max(1, status.stacks)
 
     const definition = PV1F_COMBAT_CONTENT.statuses.find(
@@ -89,10 +139,24 @@ export function summarizeBattleEffects(
     if (!definition || definition.damageTakenMultiplierBasisPoints === BASIS_POINTS) continue
 
     measuredDamageTaken = true
-    for (let stack = 0; stack < stacks; stack += 1) {
-      damageTakenMultiplier = Math.round(
-        (damageTakenMultiplier * definition.damageTakenMultiplierBasisPoints) / BASIS_POINTS,
+    for (const application of status.applicationModifiers ?? [
+      { stacks, potencyBasisPoints: status.potencyBasisPoints },
+    ]) {
+      const multiplier = statusDamageMultiplierBasisPoints(
+        definition.damageTakenMultiplierBasisPoints,
+        application.potencyBasisPoints,
       )
+      if (multiplier === BASIS_POINTS) continue
+      for (let stack = 0; stack < application.stacks; stack += 1) {
+        const next = Math.round((damageTakenMultiplier * multiplier) / BASIS_POINTS)
+        if (!Number.isSafeInteger(next)) {
+          damageTakenMultiplier = Infinity
+          break
+        }
+        if (next === damageTakenMultiplier) break
+        damageTakenMultiplier = next
+      }
+      if (!Number.isFinite(damageTakenMultiplier)) break
     }
   }
 
@@ -101,7 +165,9 @@ export function summarizeBattleEffects(
     const delta = damageTakenMultiplier - BASIS_POINTS
     summary.push({
       label: 'DMG IN',
-      value: formatIncomingDamageEffect(damageTakenMultiplier),
+      value: Number.isFinite(damageTakenMultiplier)
+        ? formatIncomingDamageEffect(damageTakenMultiplier)
+        : 'Very high',
       tone: delta < 0 ? 'buff' : delta > 0 ? 'debuff' : 'neutral',
     })
   }

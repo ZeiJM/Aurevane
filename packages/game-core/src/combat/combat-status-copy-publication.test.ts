@@ -37,6 +37,24 @@ describe('Status copying: mature Skill publication boundary', () => {
     },
   )
 
+  it.each([true, false])(
+    'rejects the retired generic Copy flag %s at publication',
+    (beneficialEffects) => {
+      const definition = cloneSkill()
+      const retired = {
+        ...definition,
+        effects: [{ ...definition.effects[0], beneficialEffects }],
+      } as unknown as MatureSkillDefinition
+      expect(validateMatureSkillDefinition(retired).length).toBeGreaterThan(0)
+      const action = toCombatActionDefinition(definition, 'pve')
+      const raw = {
+        ...action,
+        effects: [{ ...action.effects[0], beneficialEffects }],
+      } as unknown as CombatActionDefinition
+      expect(() => validateCombatActionDefinition(raw)).toThrow('Retired beneficial-effects Copy')
+    },
+  )
+
   it('keeps the old Basic Attack path closed to copy-statuses', () => {
     const action = {
       id: 'test.copy-basic',
@@ -77,7 +95,9 @@ describe('Status copying: mature Skill publication boundary', () => {
       })
     }
 
-    for (const id of ['lowered-guard', 'reckless', 'fortified', 'marked']) {
+    expect(PV1F_COMBAT_CONTENT.statuses.some((row) => row.id === 'marked')).toBe(false)
+
+    for (const id of ['lowered-guard', 'reckless', 'fortified']) {
       expect(status(id).amplifyCopyable, `${id}:amplify`).not.toBe(true)
       expect(status(id).curseCopyable, `${id}:curse`).not.toBe(true)
     }

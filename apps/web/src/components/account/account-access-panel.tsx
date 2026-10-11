@@ -5,20 +5,29 @@ import { useRouter } from 'next/navigation'
 import { type FormEvent, useId, useState } from 'react'
 
 import { createSupabaseBrowserClient, type BrowserSupabaseConfig } from '@/lib/supabase/client'
+import {
+  ACCOUNT_PASSWORD_MINIMUM_LENGTH,
+  requestAccountPasswordReset,
+} from '@/lib/auth/password-recovery'
 
 import styles from './account-entry-shell.module.css'
 
-type AccountMode = 'signin' | 'signup'
+type AccountMode = 'signin' | 'signup' | 'recover'
 type MessageTone = 'neutral' | 'error'
 
 interface AccountAccessPanelProps {
   authConfig: BrowserSupabaseConfig | null
   initialMessage?: string
+  initialRecovery?: boolean
 }
 
-export function AccountAccessPanel({ authConfig, initialMessage = '' }: AccountAccessPanelProps) {
+export function AccountAccessPanel({
+  authConfig,
+  initialMessage = '',
+  initialRecovery = false,
+}: AccountAccessPanelProps) {
   const router = useRouter()
-  const [mode, setMode] = useState<AccountMode>('signin')
+  const [mode, setMode] = useState<AccountMode>(initialRecovery ? 'recover' : 'signin')
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState(initialMessage)
   const [messageTone, setMessageTone] = useState<MessageTone>('neutral')
@@ -47,16 +56,28 @@ export function AccountAccessPanel({ authConfig, initialMessage = '' }: AccountA
     const email = String(form.get('email') ?? '').trim()
     const password = String(form.get('password') ?? '')
 
-    if (!email || password.length < 8) {
+    if (!email || (mode !== 'recover' && password.length < ACCOUNT_PASSWORD_MINIMUM_LENGTH)) {
       showMessage('Enter a valid email and a password of at least 8 characters.', 'error')
       return
     }
 
     setBusy(true)
-    showMessage(mode === 'signin' ? 'Opening your account…' : 'Creating your account…')
+    showMessage(
+      mode === 'recover'
+        ? 'Requesting your reset link…'
+        : mode === 'signin'
+          ? 'Opening your account…'
+          : 'Creating your account…',
+    )
 
     try {
       const supabase = createSupabaseBrowserClient(authConfig)
+
+      if (mode === 'recover') {
+        const result = await requestAccountPasswordReset(supabase, email, window.location.origin)
+        showMessage(result.message, result.tone)
+        return
+      }
 
       if (mode === 'signin') {
         const { error } = await supabase.auth.signInWithPassword({ email, password })
@@ -148,24 +169,38 @@ export function AccountAccessPanel({ authConfig, initialMessage = '' }: AccountA
 
   return (
     <div className={styles.accessPanel}>
-      <div className={styles.modeSwitch} aria-label="Account access mode">
-        <button
-          type="button"
-          className={mode === 'signin' ? styles.modeActive : undefined}
-          aria-pressed={mode === 'signin'}
-          onClick={() => changeMode('signin')}
-        >
-          Sign in
-        </button>
-        <button
-          type="button"
-          className={mode === 'signup' ? styles.modeActive : undefined}
-          aria-pressed={mode === 'signup'}
-          onClick={() => changeMode('signup')}
-        >
-          Create account
-        </button>
-      </div>
+      {mode === 'recover' ? (
+        <div className={styles.recoveryIntro}>
+          <p>Enter your account email to request a password reset link.</p>
+          <button
+            className={styles.textAction}
+            type="button"
+            disabled={busy}
+            onClick={() => changeMode('signin')}
+          >
+            Back to sign in
+          </button>
+        </div>
+      ) : (
+        <div className={styles.modeSwitch} aria-label="Account access mode">
+          <button
+            type="button"
+            className={mode === 'signin' ? styles.modeActive : undefined}
+            aria-pressed={mode === 'signin'}
+            onClick={() => changeMode('signin')}
+          >
+            Sign in
+          </button>
+          <button
+            type="button"
+            className={mode === 'signup' ? styles.modeActive : undefined}
+            aria-pressed={mode === 'signup'}
+            onClick={() => changeMode('signup')}
+          >
+            Create account
+          </button>
+        </div>
+      )}
 
       <form className={styles.form} onSubmit={submit}>
         <label htmlFor={emailId}>
@@ -185,22 +220,41 @@ export function AccountAccessPanel({ authConfig, initialMessage = '' }: AccountA
           />
         </label>
 
-        <label htmlFor={passwordId}>
-          <span>Password</span>
-          <input
-            id={passwordId}
-            name="password"
-            type="password"
-            minLength={8}
-            autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
-            enterKeyHint="go"
-            required
+        {mode !== 'recover' ? (
+          <label htmlFor={passwordId}>
+            <span>Password</span>
+            <input
+              id={passwordId}
+              name="password"
+              type="password"
+              minLength={ACCOUNT_PASSWORD_MINIMUM_LENGTH}
+              autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
+              enterKeyHint="go"
+              required
+              disabled={busy}
+            />
+          </label>
+        ) : null}
+
+        {mode === 'signin' ? (
+          <button
+            className={styles.textAction}
+            type="button"
             disabled={busy}
-          />
-        </label>
+            onClick={() => changeMode('recover')}
+          >
+            Forgot password?
+          </button>
+        ) : null}
 
         <GameButton className={styles.submit} type="submit" disabled={busy} aria-busy={busy}>
-          {busy ? 'Please wait…' : mode === 'signin' ? 'Enter AUREVANE' : 'Create account'}
+          {busy
+            ? 'Please wait…'
+            : mode === 'recover'
+              ? 'Send reset link'
+              : mode === 'signin'
+                ? 'Enter AUREVANE'
+                : 'Create account'}
         </GameButton>
       </form>
 

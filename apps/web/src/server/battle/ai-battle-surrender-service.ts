@@ -94,7 +94,21 @@ export async function surrenderAiBattle(
   const controlledCombatantId = current.controlledCombatantIds[0]
   if (!controlledCombatantId) throw unavailable()
 
-  const resolved = surrenderPvpCombatant(state, controlledCombatantId)
+  const teamId = state.tactical.battle.combatants.find(
+    (combatant) => combatant.id === controlledCombatantId,
+  )?.teamId
+  if (!teamId) throw unavailable()
+  // The player's only teammates in practice are AI-controlled. Surrender concedes the whole
+  // practice team, preserving the existing promise that it immediately ends the battle as a loss.
+  let resolvedState = state
+  const surrenderEvents: unknown[] = []
+  for (const combatant of state.tactical.battle.combatants.filter(
+    (row) => row.teamId === teamId && row.hp > 0,
+  )) {
+    const resolved = surrenderPvpCombatant(resolvedState, combatant.id)
+    resolvedState = resolved.state
+    surrenderEvents.push(...resolved.events)
+  }
   const committed = await repository.commitBattleIntent({
     actorKey: userId,
     idempotencyKey,
@@ -102,8 +116,8 @@ export async function surrenderAiBattle(
     userId,
     battleSessionId,
     expectedBattleVersion,
-    nextSnapshot: resolved.state,
-    events: translateSurrenderEvents(resolved.events),
+    nextSnapshot: resolvedState,
+    events: translateSurrenderEvents(surrenderEvents),
 
     privacyJournal: null,
   })

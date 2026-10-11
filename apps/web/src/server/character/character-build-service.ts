@@ -2,6 +2,10 @@ import 'server-only'
 
 import { createHash } from 'node:crypto'
 
+import {
+  foundationDisciplineAttributePolicy,
+  projectAllocationForPrimaryDisciplineChange,
+} from '@aurevane/game-core/character/attribute-allocation'
 import type { PersistedCharacter } from '@aurevane/game-core/character/persistence'
 import {
   buildPrimaryDisciplinePreview,
@@ -30,6 +34,10 @@ import {
   type AnyResonanceDefinition,
   type ResonanceSnapshotReference,
 } from '@aurevane/game-core/combat/resonance'
+import {
+  parseSupportActionId,
+  type SupportActionId,
+} from '@aurevane/game-core/combat/support-actions'
 import { AurevaneError } from '@aurevane/game-core/errors'
 
 export interface CharacterAttunementPolicy {
@@ -39,6 +47,7 @@ export interface CharacterAttunementPolicy {
 }
 
 export interface CharacterActiveBuildRecord {
+  supportActionId?: SupportActionId
   characterId: string
   schemaVersion: number
   buildVersion: number
@@ -71,6 +80,7 @@ export interface CharacterEquippedDisciplineSkillRecord extends DisciplineSkillR
 }
 
 export interface CharacterCommittedBuildSnapshotRecord {
+  supportActionId?: SupportActionId
   schemaVersion: number
   buildVersion: number
   primary: {
@@ -113,7 +123,19 @@ export interface SaveDisciplineSkillsInput {
   requestFingerprint: string
 }
 
+export interface SaveSupportActionInput {
+  userId: string
+  characterId: string
+  expectedBuildVersion: number
+  supportActionId: SupportActionId
+  idempotencyKey: string
+  requestFingerprint: string
+}
+
 export interface CharacterBuildRepository {
+  saveSupportAction(
+    input: SaveSupportActionInput,
+  ): Promise<{ buildVersion: number; replayed: boolean }>
   findActiveBuild(userId: string, characterId: string): Promise<CharacterActiveBuildRecord | null>
   listDisciplines(userId: string, characterId: string): Promise<readonly DisciplineCatalogEntry[]>
   listLearnedSkills(
@@ -209,9 +231,10 @@ export interface BuildSelectionInput {
 function calculatePreview(
   character: PersistedCharacter,
   entry: PrimaryDisciplineCatalogEntry,
+  attributes: PersistedCharacter['attributes'] = character.attributes,
 ): PrimaryDisciplinePreview {
   return buildPrimaryDisciplinePreview({
-    attributes: character.attributes,
+    attributes,
     level: character.level,
     primaryDefinition: entry.definition,
     primaryProfile: entry.profile,
@@ -409,6 +432,9 @@ export async function loadCharacterCommittedBuildSnapshot(
   const snapshot = await repository.loadCommittedBuildSnapshot(userId, characterId)
   if (!snapshot) throw persistenceUnavailable('The committed build snapshot is unavailable.')
 
+  if (snapshot.supportActionId !== undefined && !parseSupportActionId(snapshot.supportActionId)) {
+    throw persistenceUnavailable('The committed build snapshot contains an invalid Support Action.')
+  }
   const secondaryDisciplineId = snapshot.secondary?.disciplineId ?? null
   const activeSources = new Set(
     snapshot.secondary
@@ -524,14 +550,38 @@ export async function previewCharacterDisciplines(
     )
   }
 
+  const changesPrimary = primary.definition.id !== context.current.definition.id
+  let proposedAttributes = character.attributes
+  if (changesPrimary) {
+    const currentPolicy = foundationDisciplineAttributePolicy(context.current.definition.id)
+    const proposedPolicy = foundationDisciplineAttributePolicy(primary.definition.id)
+    if (!currentPolicy || !proposedPolicy) {
+      throw new AurevaneError('INVALID_REQUEST', 'The selected Primary Discipline is unavailable.')
+    }
+    const projection = projectAllocationForPrimaryDisciplineChange({
+      attributes: character.attributes,
+      level: character.level,
+      currentPolicy,
+      proposedPolicy,
+    })
+    if (projection.issues.length > 0) {
+      throw new AurevaneError(
+        'INVALID_REQUEST',
+        projection.issues[0]?.message ??
+          'That Primary Discipline cannot use the current Core Stats.',
+      )
+    }
+    proposedAttributes = projection.attributes
+  }
+
   return {
     current: context.current,
     currentSecondary: context.currentSecondary,
-    proposed: calculatePreview(character, primary),
+    proposed: calculatePreview(character, primary, proposedAttributes),
     proposedSecondary: secondary,
     buildVersion: context.build.buildVersion,
     changes: {
-      primary: primary.definition.id !== context.current.definition.id,
+      primary: changesPrimary,
       secondary: (secondary?.id ?? null) !== (context.currentSecondary?.id ?? null),
     },
     attunement: context.attunement,
@@ -764,4 +814,38 @@ export async function changeCharacterPrimaryDiscipline(
 
 function persistenceUnavailable(detail: string): AurevaneError {
   return new AurevaneError('PERSISTENCE_UNAVAILABLE', detail)
+}
+
+export async function saveCharacterSupportAction(
+  userId: string,
+  character: PersistedCharacter,
+  input: { expectedBuildVersion: number; supportActionId: unknown; idempotencyKey: string },
+  repository: CharacterBuildRepository,
+): Promise<CharacterBuildContext & { replayed: boolean }> {
+  validateCommitInput(input)
+  const supportActionId = parseSupportActionId(input.supportActionId)
+  if (!supportActionId) throw new AurevaneError('INVALID_REQUEST', 'Choose a valid Support Action.')
+  await loadCharacterBuildContext(userId, character, repository)
+  const requestFingerprint = `sha256:${createHash('sha256')
+    .update(
+      JSON.stringify({
+        command: 'character.support-action.save.v1',
+        characterId: character.id,
+        expectedBuildVersion: input.expectedBuildVersion,
+        supportActionId,
+      }),
+    )
+    .digest('hex')}`
+  const saved = await repository.saveSupportAction({
+    userId,
+    characterId: character.id,
+    expectedBuildVersion: input.expectedBuildVersion,
+    supportActionId,
+    idempotencyKey: input.idempotencyKey,
+    requestFingerprint,
+  })
+  return {
+    ...(await loadCharacterBuildContext(userId, character, repository)),
+    replayed: saved.replayed,
+  }
 }

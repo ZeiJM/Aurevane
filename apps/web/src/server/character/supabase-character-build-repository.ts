@@ -5,6 +5,7 @@ import {
   validateDisciplineDefinition,
   validatePrimaryDisciplineBaseProfile,
 } from '@aurevane/game-core/character/discipline-build'
+import { parseSupportActionId } from '@aurevane/game-core/combat/support-actions'
 import { AurevaneError } from '@aurevane/game-core/errors'
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
@@ -314,6 +315,8 @@ function parseSnapshotEssence(
 
 function parseCommittedSnapshot(value: unknown): CharacterCommittedBuildSnapshotRecord | null {
   if (!isRecord(value) || !isRecord(value.primary) || !isRecord(value.extensions)) return null
+  const supportActionId = parseSupportActionId(value.supportActionId)
+  if (Object.hasOwn(value, 'supportActionId') && !supportActionId) return null
   const schemaVersion = integer(value.schemaVersion)
   const buildVersion = integer(value.buildVersion)
   const primaryDefinitionVersion = integer(value.primary.definitionVersion)
@@ -351,6 +354,7 @@ function parseCommittedSnapshot(value: unknown): CharacterCommittedBuildSnapshot
   return {
     schemaVersion,
     buildVersion,
+    ...(supportActionId ? { supportActionId } : {}),
     primary: {
       disciplineId: value.primary.disciplineId,
       definitionVersion: primaryDefinitionVersion,
@@ -372,14 +376,16 @@ export function createSupabaseCharacterBuildRepository(): CharacterBuildReposito
   return {
     async findActiveBuild(userId, characterId) {
       const supabase = createSupabaseAdminClient()
-      const { data, error } = await supabase.rpc('get_character_active_build_v2', {
+      const { data, error } = await supabase.rpc('get_character_active_build_v4', {
         p_user_id: userId,
         p_character_id: characterId,
       })
       if (error) throw unavailable()
-      const row = Array.isArray(data) && data.length === 1 ? parseActiveBuild(data[0]) : null
-      if (Array.isArray(data) && data.length === 0) return null
-      if (!row) throw unavailable()
+      if (data === null) return null
+      const row = parseActiveBuild(data)
+      const supportActionId = isRecord(data) ? parseSupportActionId(data.support_action_id) : null
+      if (!row || !supportActionId) throw unavailable()
+      row.supportActionId = supportActionId
       return row
     },
 
@@ -486,6 +492,39 @@ export function createSupabaseCharacterBuildRepository(): CharacterBuildReposito
       const candidate = Array.isArray(data) && data.length === 1 ? parseChangeResult(data[0]) : null
       if (!candidate) throw unavailable()
       return candidate
+    },
+
+    async saveSupportAction(input) {
+      const { data, error } = await createSupabaseAdminClient().rpc(
+        'save_character_support_action_v1',
+        {
+          p_user_id: input.userId,
+          p_character_id: input.characterId,
+          p_expected_build_version: input.expectedBuildVersion,
+          p_support_action_id: input.supportActionId,
+          p_idempotency_key: input.idempotencyKey,
+          p_request_fingerprint: input.requestFingerprint,
+        },
+      )
+      if (error) {
+        if (error.message.includes('CHARACTER_BUILD_VERSION_CONFLICT'))
+          throw new AurevaneError(
+            'STALE_VERSION',
+            'The build changed. Refresh and review it again.',
+          )
+        if (error.message.includes('CHARACTER_SUPPORT_ACTION_IDEMPOTENCY_CONFLICT'))
+          throw new AurevaneError(
+            'IDEMPOTENCY_CONFLICT',
+            'That Support Action request key was already used for a different save.',
+          )
+        if (error.code === '22023')
+          throw new AurevaneError('INVALID_REQUEST', 'Choose a valid Support Action.')
+        throw unavailable()
+      }
+      const row = Array.isArray(data) && data.length === 1 && isRecord(data[0]) ? data[0] : null
+      const buildVersion = row ? integer(row.build_version) : null
+      if (!row || buildVersion === null || typeof row.replayed !== 'boolean') throw unavailable()
+      return { buildVersion, replayed: row.replayed }
     },
 
     async saveDisciplineSkills(input) {

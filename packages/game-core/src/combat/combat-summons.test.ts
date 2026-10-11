@@ -16,6 +16,7 @@ import {
   type StatDrivenCombatProfileV4,
 } from './stat-driven-combat'
 import { SUMMON_PROFILE_SCHEMA_VERSION, type SummonProfileDefinition } from './summon-content'
+import { claimCombatTurnTrigger } from './combat-turn-trigger-state'
 
 function profile(combatantId: string, team: 'players' | 'opponents'): StatDrivenCombatProfileV4 {
   return {
@@ -171,6 +172,49 @@ function spawn(state = encounter(), summon = summonProfile()) {
 }
 
 describe('Combat v5.1 summon runtime state', () => {
+  it.each(['defeated', 'expired'] as const)(
+    'removes a %s summon’s turn trigger tracking while preserving other allowances',
+    (reason) => {
+      const spawned = spawn()
+      const summonId = spawned.state.effectState!.summons![0]!.combatantId
+      const playerClaim = claimCombatTurnTrigger(spawned.state, 'player', 'burn-backlash')
+      const summonClaim = claimCombatTurnTrigger(playerClaim.state, summonId, 'ground-area:1')
+      const state = { ...spawned.state, ...summonClaim.state, statBridge: spawned.state.statBridge }
+      const removed = removeCombatSummon(state, summonId, reason)
+      expect(removed.state.turnTriggerState?.combatants).toEqual([
+        { combatantId: 'player', cycle: 1, usedKeys: ['burn-backlash'] },
+      ])
+      expect(removed.state.turnTriggerState?.preparedTurnNumber).toBe(
+        state.tactical.battle.turnNumber,
+      )
+      expect(
+        validateStatDrivenCombatEncounterState(JSON.parse(JSON.stringify(removed.state))),
+      ).toEqual([])
+      expect(claimCombatTurnTrigger(removed.state, 'player', 'burn-backlash').allowed).toBe(false)
+    },
+  )
+  it('preserves the new stat policy with an explicit zero-resistance summon profile', () => {
+    const base = encounter()
+    const current = {
+      ...base,
+      statBalancePolicyVersion: 1 as const,
+      statBridge: {
+        ...base.statBridge,
+        combatants: base.statBridge.combatants.map((row) => ({ ...row, statusResistance: 1000 })),
+      },
+    }
+    const spawned = spawn(current)
+    expect(spawned.state.statBalancePolicyVersion).toBe(1)
+    expect(validateStatDrivenCombatEncounterState(spawned.state)).toEqual([])
+    expect(
+      spawned.state.statBridge.combatants.find(
+        (row) => row.combatantId !== 'player' && row.combatantId !== 'enemy',
+      )?.statusResistance,
+    ).toBe(0)
+    const restored = JSON.parse(JSON.stringify(spawned.state))
+    expect(validateStatDrivenCombatEncounterState(restored)).toEqual([])
+  })
+
   it('atomically spawns a friendly summon on empty ground without changing current-round initiative', () => {
     const state = encounter()
     const beforeOrder = [...state.tactical.battle.initiativeOrder]
@@ -221,6 +265,38 @@ describe('Combat v5.1 summon runtime state', () => {
       }),
     ).toThrow(/empty|occupied/i)
     expect(JSON.stringify(state)).toBe(before)
+  })
+
+  it('can summon onto a defeated combatant tile and leaves its placement intact', () => {
+    const original = encounter()
+    const state = {
+      ...original,
+      tactical: {
+        ...original.tactical,
+        battle: {
+          ...original.tactical.battle,
+          combatants: original.tactical.battle.combatants.map((combatant) =>
+            combatant.id === 'enemy' ? { ...combatant, hp: 0 } : combatant,
+          ),
+        },
+      },
+    }
+    const transition = spawnCombatSummon(state, {
+      ownerCombatantId: 'player',
+      sourceSkillId: 'wildwarden.renewing-herbs',
+      sourceSkillVersion: 5,
+      profile: summonProfile(),
+      position: { x: 2, y: 0 },
+      facing: 'east',
+    })
+    expect(
+      transition.state.tactical.placements.filter(
+        (row) => row.position.x === 2 && row.position.y === 0,
+      ),
+    ).toHaveLength(2)
+    expect(transition.state.tactical.placements).toContainEqual(
+      state.tactical.placements.find((row) => row.combatantId === 'enemy'),
+    )
   })
 
   it('adds the summon to deterministic initiative only when the next round begins', () => {
@@ -297,6 +373,7 @@ describe('Combat v5.1 summon runtime state', () => {
     expect(cleaned.state.effectState?.summons?.some((row) => row.combatantId === summonId)).toBe(
       false,
     )
+    expect(cleaned.state).not.toHaveProperty('turnTriggerState')
     expect(cleaned.events).toContainEqual(
       expect.objectContaining({ event: 'summon_defeated', combatantId: summonId }),
     )
@@ -387,4 +464,34 @@ describe('Combat v5.1 summon runtime state', () => {
       expect.objectContaining({ event: 'summon_expired', combatantId: summonId }),
     )
   })
+})
+
+it('removes queued summon references while preserving remaining area recipients', () => {
+  const spawned = spawn({ ...encounter(), effectTimingPolicy: { version: 1, modes: {} } })
+  const id = spawned.events[0]!.combatantId
+  const state = spawned.state
+  state.pendingEffects = [
+    {
+      actorId: 'player',
+      actionId: 'queued',
+      effect: { type: 'apply-status', recipient: 'affected-units', statusId: 'hexed', stacks: 1 },
+      recipientIds: [id, 'enemy'],
+      affectedTiles: [],
+      activationRound: 2,
+      content: {
+        statuses: [
+          {
+            id: 'hexed',
+            version: 1,
+            maximumStacks: 1,
+            durationOwnerTurnStarts: 1,
+            damageTakenMultiplierBasisPoints: 15000,
+          },
+        ],
+      },
+    },
+  ]
+  const removed = removeCombatSummon(state, id, 'expired').state
+  expect(removed.pendingEffects?.[0]?.recipientIds).toEqual(['enemy'])
+  expect(validateStatDrivenCombatEncounterState(removed)).toEqual([])
 })

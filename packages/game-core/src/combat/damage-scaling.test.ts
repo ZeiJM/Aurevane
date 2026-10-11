@@ -3,12 +3,21 @@ import { describe, expect, it } from 'vitest'
 import {
   calculateScaledRawDamage,
   currentSkillDamageScaling,
+  standardSkillDamageScaling,
   legacySkillDamageScaling,
   validateCombatDamageScaling,
   type CombatDamageScaling,
 } from './damage-scaling'
 
 describe('combat damage scaling', () => {
+  it('gives every ordinary new-policy packet the same 25% offensive basis', () => {
+    expect(standardSkillDamageScaling('physical-power')).toEqual({
+      source: 'physical-power',
+      coefficientBasisPoints: 2500,
+    })
+    expect(calculateScaledRawDamage(9, standardSkillDamageScaling('physical-power'), 40)).toBe(19)
+    expect(calculateScaledRawDamage(8, standardSkillDamageScaling('physical-power'), 40)).toBe(18)
+  })
   it('preserves authored base damage when no scaling profile is present', () => {
     expect(calculateScaledRawDamage(12, null, null)).toBe(12)
     expect(calculateScaledRawDamage(12, undefined, null)).toBe(12)
