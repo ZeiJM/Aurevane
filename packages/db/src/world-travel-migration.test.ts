@@ -105,7 +105,7 @@ beforeAll(async () => {
   )
   await db.exec(migration('20260923190443_living_atlas_world_travel.sql'))
   await db.exec(migration('20260923194500_phase5_world_interactions.sql'))
-  await db.exec(migration('20261011163000_world_multistep_pacing.sql'))
+  await db.exec(migration('20261011161830_world_multistep_pacing.sql'))
 }, 30000)
 beforeEach(async () => {
   await db.exec('begin')
