@@ -1110,6 +1110,11 @@ const CW = 13, CH = 9;
 const defsEl = document.querySelector('#nav-svg defs');
 const chunkClip = add(defsEl, 'clipPath', { id: 'chunkclip' });
 add(chunkClip, 'rect', { x: -4, y: -4, width: CW * T + 8, height: CH * T + 8 });
+[['E', 1, 0, 0, 0], ['W', 0, 0, 1, 0], ['S', 0, 1, 0, 0], ['N', 0, 0, 0, 1]].forEach(([id, x1, y1, x2, y2]) => {
+  const g = add(defsEl, 'linearGradient', { id: 'seam' + id, x1, y1, x2, y2 });
+  add(g, 'stop', { offset: 0, 'stop-color': '#04120c', 'stop-opacity': 0 });
+  add(g, 'stop', { offset: 1, 'stop-color': '#04120c', 'stop-opacity': 0.3 });
+});
 const groundLayer = add(world, 'g', {});
 world.insertBefore(groundLayer, world.firstChild);
 const objLayer = add(world, 'g', {});
@@ -1221,7 +1226,7 @@ let SECTOR = null; /* the sector the character stands in */
 let SV = null; /* latest authoritative state from the page */
 /* Every placed area shares one coordinate space ("frame"). Neighbours sit where their road gates meet,
    so the map is one continuous surface; the server still owns which sector a position belongs to. */
-const placed = new Map(); /* sector id -> { S, gx, gy } : gx/gy are the area's top-left tile in the frame */
+const placed = new Map(), placedAreas = placed; /* placedAreas: alias that scenery code (which has its own `placed`) can use. sector id -> { S, gx, gy } : gx/gy are the area's top-left tile in the frame */
 let BUILD_LOCAL = false; /* while drawing one area, cell lookups use that area's own coordinates */
 function sectorAt(ax, ay) { for (const P of placed.values()) if (ax >= P.gx && ay >= P.gy && ax < P.gx + CW && ay < P.gy + CH) return P; return null; }
 function cellOf2(x, y) {
@@ -1492,6 +1497,17 @@ function buildChunkIn(d) {
   d.dom = [gg]; d.occ = [];
   const rr = rng(h2(d.sx + 5 + S.seed % 977, d.sy + 9 + (S.seed >>> 10) % 991));
   groundTheme(gg, -3, -3, CW * T + 6, CH * T + 6, T0, rr);
+  if (home) {
+    /* where a different landscape meets this one, shade the join so it reads as a gradual change */
+    const P = d.P, W = CW * T, H = CH * T, F = 44;
+    for (const Q of placedAreas.values()) {
+      if (Q === P || Q.S.theme.reg === S.theme.reg) continue;
+      const side = Q.gx === P.gx + CW && Q.gy < P.gy + CH && Q.gy + CH > P.gy ? 'E' : Q.gx + CW === P.gx && Q.gy < P.gy + CH && Q.gy + CH > P.gy ? 'W' : Q.gy === P.gy + CH && Q.gx < P.gx + CW && Q.gx + CW > P.gx ? 'S' : Q.gy + CH === P.gy && Q.gx < P.gx + CW && Q.gx + CW > P.gx ? 'N' : null;
+      if (!side) continue;
+      const r = side === 'E' ? { x: W - F, y: 0, width: F, height: H } : side === 'W' ? { x: 0, y: 0, width: F, height: H } : side === 'S' ? { x: 0, y: H - F, width: W, height: F } : { x: 0, y: 0, width: W, height: F };
+      add(gg, 'rect', { ...r, fill: `url(#seam${side})`, 'pointer-events': 'none' });
+    }
+  }
   const items = []; /* {by, draw(g), occ} */
   const kindAt = (tx, ty) => (!home && (tx < 0 || ty < 0 || tx >= CW || ty >= CH) && coveredBy(d.P, d.P.gx + tx, d.P.gy + ty) ? 'covered' : tileKind(tx, ty));
 
@@ -2948,7 +2964,9 @@ setTimeout(fitMap, 0);
     lastPoi = ''; renderPoiList();
     poiLabelG.replaceChildren();
     const hpo = homeP() || { gx: 0, gy: 0 };
-    list.filter((l) => !(l.kind === 'exit' && (placed.has(l.dest.sectorId) || S.landmarks.some((m) => m.x === l.x && m.y === l.y)))).forEach((l) => {
+    const drawList = list.slice();
+    for (const P of placed.values()) if (P.S !== S) P.S.landmarks.forEach((m) => drawList.push({ name: m.name, x: m.x + P.gx - hpo.gx, y: m.y + P.gy - hpo.gy, kind: 'far' }));
+    drawList.filter((l) => !(l.kind === 'exit' && (placed.has(l.dest.sectorId) || S.landmarks.some((m) => m.x === l.x && m.y === l.y)))).forEach((l) => {
       const g = add(poiLabelG, 'g', {}), cx = (l.x + hpo.gx + 0.5) * T, cy = (l.y + hpo.gy + 0.5) * T;
       add(g, 'polygon', { points: `${cx},${cy - 46} ${cx + 7},${cy - 39} ${cx},${cy - 32} ${cx - 7},${cy - 39}`, fill: l.kind === 'exit' ? '#9fd3e6' : '#e6cb80', stroke: '#06202b', 'stroke-width': 1.6 });
       add(g, 'text', { x: cx, y: cy - 54, 'text-anchor': 'middle', fill: '#fff3d7', 'font-size': 12.5, 'font-weight': 500, 'font-family': 'Palatino Linotype, Palatino, Georgia, serif', 'letter-spacing': '.05em', stroke: '#06202b', 'stroke-width': 3.6, 'paint-order': 'stroke' }).textContent = l.name;
