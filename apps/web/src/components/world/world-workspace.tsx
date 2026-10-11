@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { FRONTIER_APPROACH } from '@/world/catalog'
-import { remainingTravelMs, samePosition, worldSyncDelayMs } from '@/world/travel'
+import { samePosition, worldSyncDelayMs } from '@/world/travel'
 import type { WorldIntent, WorldView } from '@/world/types'
 import {
   buildStageState,
@@ -227,13 +227,6 @@ export function WorldWorkspace({
     return () => window.removeEventListener('message', onMessage)
   }, [])
   const local = view.sectors.find((s) => s.id === view.position.sectorId) ?? view.sectors[0]!
-  const destination = view.route.at(-1)?.position
-  const destinationName = view.sectors.find((s) => s.id === destination?.sectorId)?.name
-  const remainingSeconds = Math.ceil(remainingTravelMs(view, view.serverNow) / 1000)
-  const remainingTime =
-    remainingSeconds >= 60
-      ? `${Math.floor(remainingSeconds / 60)}m ${remainingSeconds % 60}s`
-      : `${remainingSeconds}s`
   const disabled = busy || Boolean(view.movementBlocked)
   const pulseObjectives = view.objectives.filter((objective) => objective.kind === 'event')
   const questObjectives = view.objectives.filter((objective) => objective.kind === 'quest')
@@ -452,16 +445,7 @@ export function WorldWorkspace({
           </button>
         </span>
         <span data-world-travel-status className={styles.travelStatus}>
-          {view.route.length ? (
-            <>
-              <strong>
-                {view.route[0]?.road ?? 'Walking'} → {destinationName}
-              </strong>
-              <small>
-                About {remainingTime} · {view.route.length} steps remaining
-              </small>
-            </>
-          ) : message || view.movementBlocked ? (
+          {message || view.movementBlocked ? (
             <span role="status">{message || view.movementBlocked}</span>
           ) : null}
         </span>

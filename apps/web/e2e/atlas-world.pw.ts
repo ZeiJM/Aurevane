@@ -557,7 +557,7 @@ test('Crown Road advances one authoritative ordinary step with one due client ti
 
   expect((await world(page)).route).toHaveLength(0)
   await stageWalk(page, { sectorId: road.id, x: 7, y: 4 })
-  await expect(page.locator('[data-world-travel-status]')).toContainText('1 steps remaining')
+  await expect(page.getByRole('button', { name: 'Stop travel', exact: true })).toBeVisible()
   expect((await world(page)).route[0]?.durationMs).toBe(STEP_MS)
   await expect.poll(async () => (await world(page)).position.x, { timeout: 4_000 }).toBe(7)
   expect(tickPosts).toBe(1)
@@ -652,8 +652,7 @@ for (const journey of [
     await expect(stageOf(page).locator('#stage-world')).toBeHidden()
     const arrival = { sectorId: journey.destinationId, x: 6, y: 4 }
     await stageWalk(page, arrival)
-    await expect(page.locator('[data-world-travel-status]')).toContainText(journey.destinationName)
-    await expect(page.locator('[data-world-travel-status]')).toContainText('About')
+    await expect(page.getByRole('button', { name: 'Stop travel', exact: true })).toBeVisible()
     await expect.poll(async () => (await world(page)).position.x, { timeout: 12000 }).not.toBe(6)
     const stopResponse = page.waitForResponse(
       (response) =>
