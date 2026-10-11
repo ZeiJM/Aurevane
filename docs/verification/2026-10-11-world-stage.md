@@ -48,3 +48,4 @@
 - The right-hand panel is `max(20rem, 25%)` of the window width; the map fills all remaining width and height (no longer forced square). The page bar under the panel uses the same width. The header is a fixed 76px with the title wrapping to two lines; the Journal opens below it.
 - Headless check at 1585x780, 1440x900 and 1000x700: map flush to the left edge, panel 25% wide, e2e selectors visible, no horizontal scroll. Human acceptance pending.
 - The workspace has no inner padding, so the coordinates/Journal/settings bar sits flush under the panel as its bottom edge (measured in a parent-shell harness at 1667x857: bar and panel share left/right edges and the bar top equals the panel bottom).
+- The first panel tab is "Nearby" (zone badge in the tab); the player card and the "Character" label are removed. Tab ids (`#tab-nb`, `#zone-badge`) are unchanged for the e2e.
