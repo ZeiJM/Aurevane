@@ -51,7 +51,7 @@ describe('world travel', () => {
         serverNow: 1000,
       }),
     ).toBe(1100)
-    expect(ACTIVE_WORLD_SYNC_MS).toBe(STEP_MS)
+    expect(ACTIVE_WORLD_SYNC_MS).toBe(600)
     expect(
       worldSyncDelayMs({
         routeLength: 3,
@@ -59,7 +59,16 @@ describe('world travel', () => {
         nextStepAt: 1000,
         serverNow: 1200,
       }),
-    ).toBe(STEP_MS)
+    ).toBe(600)
+    expect(
+      worldSyncDelayMs({
+        routeLength: 3,
+        movementBlocked: false,
+        nextStepAt: 1000,
+        serverNow: 1000,
+        remainingMs: 300,
+      }),
+    ).toBe(300) // confirms arrival exactly
     expect(
       worldSyncDelayMs({
         routeLength: 3,
@@ -67,7 +76,7 @@ describe('world travel', () => {
         nextStepAt: null,
         serverNow: 1200,
       }),
-    ).toBe(STEP_MS)
+    ).toBe(600)
     expect(
       worldSyncDelayMs({
         routeLength: 0,

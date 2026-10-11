@@ -860,3 +860,8 @@ main { max-width: none; gap: 0; }
 
 /* ambient loops rest while the character walks, so the map repaints only for movement */
 #viewport[data-moving='1'] :is(.sway, .leaf, .fly, .veil, .puff, .ripple, .glint, .mote, .ember, .aura, .glowcap, .fall, .mist, .pulse, .seadrift) { animation-play-state: paused; }
+
+/* a tile shared by several characters shows each in turn with a small flip */
+.mk .rot { transform-box: fill-box; transform-origin: 50% 50%; }
+[data-motion='true'] .mk .rot.flip { animation: tileflip .5s ease-out; }
+@keyframes tileflip { 0% { transform: scaleX(.05); opacity: .2; } 100% { transform: scaleX(1); opacity: 1; } }

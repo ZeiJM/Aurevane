@@ -84,16 +84,44 @@ async function readWorldData(
   }
   return data
 }
+/* Walking sends a request per confirmation, so the two lookups that rarely change are kept
+   briefly in memory: portraits for 30 s, Master environment settings for 5 s. */
+const PORTRAIT_TTL_MS = 30_000
+const ENVIRONMENT_TTL_MS = 5_000
+let portraitCache: { key: string; at: number; value: ReadonlyMap<string, string> } | null = null
+let environmentCache: {
+  at: number
+  value: Awaited<ReturnType<typeof readWorldEnvironmentSettings>>
+} | null = null
+async function cachedProfileImages(ids: readonly string[]) {
+  const key = [...ids].sort().join(',')
+  const now = Date.now()
+  if (portraitCache && portraitCache.key === key && now - portraitCache.at < PORTRAIT_TTL_MS)
+    return portraitCache.value
+  const value = await loadPublicCharacterProfileImageMap(ids).catch(() => new Map<string, string>())
+  portraitCache = { key, at: now, value }
+  return value
+}
+async function cachedEnvironmentSettings() {
+  const now = Date.now()
+  if (environmentCache && now - environmentCache.at < ENVIRONMENT_TTL_MS)
+    return environmentCache.value
+  const value = await readWorldEnvironmentSettings()
+  environmentCache = { at: now, value }
+  return value
+}
+export function resetWorldReadCaches() {
+  portraitCache = null
+  environmentCache = null
+}
 export async function readWorld(userId: string, characterId: string) {
   const data = await readWorldData(userId, characterId)
   const objectives = [...WORLD_OBJECTIVES, ...eventWorldObjectives(data.eventObjectives)]
   const state = data.state as WorldState
   const players = data.players as WorldPlayer[]
   const [profileImages, environmentSettings] = await Promise.all([
-    loadPublicCharacterProfileImageMap(players.map((player) => player.characterId)).catch(
-      () => new Map<string, string>(),
-    ),
-    readWorldEnvironmentSettings(),
+    cachedProfileImages(players.map((player) => player.characterId)),
+    cachedEnvironmentSettings(),
   ])
   const view = projectWorld(
     state,

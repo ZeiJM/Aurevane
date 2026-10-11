@@ -1654,30 +1654,45 @@ function buildHero() {
   if (window.AV_attachLantern) window.AV_attachLantern();
 }
 
+/* one token per tile; when several characters share it, the token shows each of them in turn */
+function renderMember(o, animate) {
+  const m = o.members[o.idx % o.members.length], count = o.members.length;
+  o.curId = m.characterId; o.name = m.name; o.lv = m.level; o.online = m.online !== false; o.attackable = m.attackable;
+  o.el.replaceChildren();
+  if (o.ghost) o.ghost.remove();
+  o.ghost = mkGhost(m.portrait, false);
+  const inner = add(o.el, 'g', { class: 'rot' + (animate && !reduceMotion ? ' flip' : '') });
+  o.ring = add(inner, 'circle', { r: 38, fill: 'none', stroke: '#e0624a', 'stroke-width': 3, 'stroke-dasharray': '7 6', style: 'display:none' });
+  mkToken(inner, 'player', m.portrait, { offline: !o.online });
+  if (count > 1) { add(inner, 'circle', { cx: -19, cy: -19, r: 8.5, fill: '#041a22', stroke: '#e6cb80', 'stroke-width': 1.4 }); add(inner, 'text', { x: -19, y: -15.2, 'text-anchor': 'middle', fill: '#f4e2a8', 'font-size': 11, 'font-weight': 700, 'font-family': 'Palatino Linotype, Palatino, Georgia, serif' }).textContent = String(count); }
+  const lab = m.name + (count > 1 ? `  +${count - 1}` : ''), lw = lab.length * 7.2 + 18;
+  add(inner, 'rect', { x: -lw / 2, y: 33, width: lw, height: 21, rx: 4, fill: '#041a22', opacity: 0.82, stroke: '#c9a24c', 'stroke-opacity': 0.55 });
+  add(inner, 'text', { y: 48, 'text-anchor': 'middle', fill: o.online ? '#fff3d7' : '#a9b5b3', 'font-size': 12.5, 'font-family': 'Palatino Linotype, Palatino, Georgia, serif', 'letter-spacing': '.03em' }).textContent = lab;
+}
+setInterval(() => {
+  if (document.hidden) return;
+  OTHERS.forEach((o) => { if (o.members && o.members.length > 1) { o.idx = ((o.idx || 0) + 1) % o.members.length; renderMember(o, true); } });
+}, 2600);
 function refreshPlayers(list) {
   /* group by tile; the highest level represents the stack, every character stays in the Nearby list */
   const tiles = new Map();
   list.filter((p) => p.position.sectorId === SECTOR.id).slice().sort((a, b) => b.level - a.level || a.name.localeCompare(b.name)).forEach((p) => {
     const k = p.position.x + ',' + p.position.y;
-    if (!tiles.has(k)) tiles.set(k, { rep: p, count: 0 });
-    tiles.get(k).count++;
+    if (!tiles.has(k)) tiles.set(k, { rep: p, count: 0, members: [] });
+    tiles.get(k).count++; tiles.get(k).members.push(p);
   });
   const keep = new Set();
-  tiles.forEach(({ rep, count }, k) => {
+  tiles.forEach(({ rep, count, members }, k) => {
     keep.add(rep.characterId);
     let o = byId.get(rep.characterId);
     const sig = [rep.name, rep.level, rep.online, count, rep.portrait].join('|');
     if (!o) { o = { id: rep.characterId, x: rep.position.x, y: rep.position.y, vx: rep.position.x, vy: rep.position.y, el: add(world, 'g', { class: 'mk', 'data-player': rep.characterId }) }; byId.set(rep.characterId, o); OTHERS.push(o); o.ghost = null; }
-    o.x = rep.position.x; o.y = rep.position.y; o.name = rep.name; o.lv = rep.level; o.online = rep.online !== false; o.count = count; o.attackable = rep.attackable;
-    if (o.sig !== sig) {
-      o.sig = sig; o.el.replaceChildren();
-      if (o.ghost) o.ghost.remove();
-      o.ghost = mkGhost(rep.portrait, false);
-      o.ring = add(o.el, 'circle', { r: 38, fill: 'none', stroke: '#e0624a', 'stroke-width': 3, 'stroke-dasharray': '7 6', style: 'display:none' });
-      mkToken(o.el, 'player', rep.portrait, { offline: !o.online });
-      const lab = rep.name + (count > 1 ? `  +${count - 1}` : ''), lw = lab.length * 7.2 + 18;
-      add(o.el, 'rect', { x: -lw / 2, y: 33, width: lw, height: 21, rx: 4, fill: '#041a22', opacity: 0.82, stroke: '#c9a24c', 'stroke-opacity': 0.55 });
-      add(o.el, 'text', { y: 48, 'text-anchor': 'middle', fill: o.online ? '#fff3d7' : '#a9b5b3', 'font-size': 12.5, 'font-family': 'Palatino Linotype, Palatino, Georgia, serif', 'letter-spacing': '.03em' }).textContent = lab;
+    o.x = rep.position.x; o.y = rep.position.y; o.count = count; o.members = members;
+    const msig = members.map((m) => [m.characterId, m.name, m.level, m.online, m.portrait].join(':')).join('|');
+    if (o.sig !== msig) {
+      o.sig = msig;
+      if (o.idx === undefined || o.idx >= members.length) o.idx = 0;
+      renderMember(o, false);
       if (boardObj) boardObj.appendChild(o.el);
       o._row = -99;
     }
@@ -1748,24 +1763,28 @@ function paint() {
   }
   onMoveUi();
 }
-let predState = null, heldPred = null;
+let predState = null, optim = null;
 /* The server owns every step; between its replies the stage only previews the steps already
    due on the authored clock, so the walk never waits for a network round trip. */
 function predictedTarget() {
   const p = predState;
-  if (!p || !SECTOR || reduceMotion) { heldPred = null; return me; }
+  if (optim && (Date.now() - optim.at > 6000 || (SV && SV.route.length))) optim = null;
+  if (!p && optim) return optim.path[Math.min(optim.path.length - 1, Math.floor((Date.now() - optim.at) / 275))];
+  if (!p || !SECTOR || reduceMotion) return me;
   let t = p.nextStepAt, now = p.serverNow + (Date.now() - p.recvAt), tgt = null;
-  if (t === null) { heldPred = null; return me; }
-  for (let i = 0; i < p.route.length && i < 12; i++) {
+  if (t === null) return me;
+  for (let i = 0; i < p.route.length && i < 60; i++) {
     if (t > now) break;
     const st = p.route[i];
     if (st.position.sectorId !== SECTOR.id) break;
     tgt = st.position;
     t += (p.route[i + 1] ? p.route[i + 1].durationMs : 0);
   }
-  /* never walk backwards: if the reply is late, keep heading for the tile already due */
-  if (!tgt && heldPred && Math.hypot(meV.x - heldPred.x, meV.y - heldPred.y) < 1.6) return heldPred;
-  heldPred = tgt || null;
+  /* never walk backwards along the route: the server schedule can start a little after the click,
+     so when we are already further along than it says, hold the tile we have reached */
+  let tIdx = -1, cur = -1;
+  for (let i = 0; i < p.route.length; i++) { const q = p.route[i].position; if (tgt && q.x === tgt.x && q.y === tgt.y && q.sectorId === tgt.sectorId) tIdx = i; if (q.sectorId === SECTOR.id && Math.abs(q.x - meV.x) <= 0.5 && Math.abs(q.y - meV.y) <= 0.5) cur = i; }
+  if (cur > tIdx) return p.route[cur].position;
   return tgt || me;
 }
 let lastV = performance.now();
@@ -1808,9 +1827,31 @@ function drawRoute() {
 
 /* ---------- input ---------- */
 let queued = null; /* last wish while the page is busy confirming an earlier command */
+/* shortest in-sector path, walked at the authored pace while the server's reply is on its way */
+function pathToward(dest) {
+  if (!SECTOR || dest.sectorId !== SECTOR.id || reduceMotion) return null;
+  const from = predictedTarget(), key = (x, y) => y * CW + x, prev = new Map([[key(from.x, from.y), null]]), q = [[from.x, from.y]];
+  for (let i = 0; i < q.length; i++) {
+    const [x, y] = q[i];
+    if (x === dest.x && y === dest.y) {
+      let k = key(x, y); const out = [];
+      while (prev.get(k) !== null && prev.get(k) !== undefined) { out.unshift({ x: k % CW, y: Math.floor(k / CW) }); k = prev.get(k); }
+      return out.length ? out : null;
+    }
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const nx = x + dx, ny = y + dy;
+      if (nx < 0 || ny < 0 || nx >= CW || ny >= CH || prev.has(key(nx, ny)) || isBlocked(nx, ny)) continue;
+      prev.set(key(nx, ny), key(x, y)); q.push([nx, ny]);
+    }
+  }
+  return null;
+}
 function sendWalk(dest) {
   if (SV && (SV.busy || SV.movementBlocked)) { queued = dest; if (SV.movementBlocked) say(SV.movementBlocked); return; }
-  queued = null; post({ type: 'walk', destination: dest });
+  queued = null;
+  const path = SV && !SV.route.length ? pathToward(dest) : null;
+  if (path) optim = { path, at: Date.now() };
+  post({ type: 'walk', destination: dest });
 }
 function exitAt(x, y) { return SECTOR && SECTOR.exits.find((e) => e.from.sectorId === SECTOR.id && e.from.x === x && e.from.y === y); }
 function blockWhy(x, y) {
@@ -1827,7 +1868,7 @@ function tileFromEvent(e) {
 view.addEventListener('click', (e) => {
   if (performance.now() - pinchedAt < 350 || !SECTOR) return;
   const mk = e.target.closest && e.target.closest('[data-player]');
-  if (mk) { const p = byId.get(mk.dataset.player); if (p) { const full = ROSTER.find((q) => q.characterId === p.id); if (full) { const near = dist(full.position) <= 1; if (near && full.attackable && !(zoneSafe(me.x, me.y) || zoneSafe(full.position.x, full.position.y))) post({ type: 'attack', targetId: p.id }); else if (near) say(zoneSafe(me.x, me.y) ? 'This is a safe zone. Combat is disabled in towns.' : `${p.name} cannot be attacked right now.`); else sendWalk({ sectorId: SECTOR.id, x: full.position.x, y: full.position.y }); } } return; }
+  if (mk) { const p = byId.get(mk.dataset.player); if (p) { const full = ROSTER.find((q) => q.characterId === (p.curId || p.id)); if (full) { const near = dist(full.position) <= 1; if (near && full.attackable && !(zoneSafe(me.x, me.y) || zoneSafe(full.position.x, full.position.y))) post({ type: 'attack', targetId: p.curId || p.id }); else if (near) say(zoneSafe(me.x, me.y) ? 'This is a safe zone. Combat is disabled in towns.' : `${p.name} cannot be attacked right now.`); else sendWalk({ sectorId: SECTOR.id, x: full.position.x, y: full.position.y }); } } return; }
   const t = tileFromEvent(e);
   const ex = exitAt(t.x, t.y);
   if (ex) { say(`Travelling along ${ex.name}.`); sendWalk(ex.to); return; }
@@ -1845,8 +1886,9 @@ window.addEventListener('keydown', (e) => {
   const d = keys[e.key.length === 1 ? e.key.toLowerCase() : e.key];
   if (!d) return;
   e.preventDefault();
-  const nx = me.x + d[0], ny = me.y + d[1];
-  if (nx < 0 || ny < 0 || nx >= CW || ny >= CH) { const ex = exitAt(me.x, me.y); if (ex) { say(`Travelling along ${ex.name}.`); sendWalk(ex.to); } return; }
+  const from = predictedTarget(); /* the tile we are heading to, not the server's older confirmation */
+  const nx = from.x + d[0], ny = from.y + d[1];
+  if (nx < 0 || ny < 0 || nx >= CW || ny >= CH) { const ex = exitAt(from.x, from.y); if (ex) { say(`Travelling along ${ex.name}.`); sendWalk(ex.to); } return; }
   if (isBlocked(nx, ny)) { say(blockWhy(nx, ny)); return; }
   sendWalk({ sectorId: SECTOR.id, x: nx, y: ny });
 });
@@ -2786,7 +2828,8 @@ setTimeout(fitMap, 0);
     } else {
       SECTOR.landmarks = sec.landmarks; SECTOR.exits = sec.exits;
       me = { x: s.position.x, y: s.position.y };
-      if (Math.hypot(meV.x - me.x, meV.y - me.y) > 3) meV = { ...me };
+      /* the server confirms steps a little behind the preview, so only a large gap is a real jump */
+      if (Math.hypot(meV.x - me.x, meV.y - me.y) > (predState ? 14 : 3)) meV = { ...me };
     }
     buildHero();
     if (heroGhost) { heroGhost.remove(); heroGhost = null; }

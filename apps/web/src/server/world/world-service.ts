@@ -95,6 +95,8 @@ export function resolveWorldIntent(
     // otherwise the first new step waits a full interval.
     const underWay =
       walking.route.length > 0 && walking.nextStepAt !== null && walking.nextStepAt > now
+    // A step already under way keeps its schedule; from a standstill the first step is due at
+    // once (the character starts moving immediately) and later steps follow the authored pace.
     next = {
       ...state,
       position: origin,
@@ -103,7 +105,7 @@ export function resolveWorldIntent(
       nextStepAt: route!.length
         ? underWay
           ? Math.min(walking.nextStepAt!, now + route![0]!.durationMs)
-          : now + route![0]!.durationMs
+          : now
         : null,
     }
   }
