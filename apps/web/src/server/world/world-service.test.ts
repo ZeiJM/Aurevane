@@ -556,6 +556,32 @@ describe('endless generated wilds', () => {
   })
 })
 
+describe('starting a walk', () => {
+  it('makes the first step due at once and paces the rest', () => {
+    const start = newWorldState()
+    const next = resolveWorldIntent(
+      start,
+      {
+        kind: 'walk',
+        destination: {
+          sectorId: start.position.sectorId,
+          x: start.position.x + 3,
+          y: start.position.y,
+        },
+      },
+      10_000,
+    )
+    // The stored position only moves through confirmed steps; the first one is due immediately.
+    expect(next.position).toEqual(start.position)
+    expect(next.route).toHaveLength(3)
+    expect(next.nextStepAt).toBe(10_000)
+    // Steps land at +0, +275 and +550 ms: shortly before the third, two are confirmed together.
+    const tick = resolveWorldIntent(next, { kind: 'tick' }, 10_000 + STEP_MS * 2 - 1)
+    expect(tick.position.x).toBe(start.position.x + 2)
+    expect(tick.nextStepAt).toBe(10_000 + STEP_MS * 2)
+  })
+})
+
 describe('replanning mid-walk', () => {
   const sec = 'aureth-crown'
   it('plans from the tile already reached and keeps the step under way', () => {

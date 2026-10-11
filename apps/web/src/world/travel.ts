@@ -2,17 +2,24 @@ import { GRID_HEIGHT, GRID_WIDTH, START_POSITION, STEP_MS } from './catalog'
 import { isWildSectorId } from './wild-ids'
 import type { TravelStep, WorldObjective, WorldPosition, WorldSector, WorldState } from './types'
 
-export const ACTIVE_WORLD_SYNC_MS = STEP_MS
+export const ACTIVE_WORLD_SYNC_MS = 600
 export const IDLE_WORLD_SYNC_MS = 10000
 export function worldSyncDelayMs(state: {
   routeLength: number
   movementBlocked: boolean
   nextStepAt: number | null
   serverNow: number
+  /** Real milliseconds until the last step lands, when known. */
+  remainingMs?: number
 }) {
   if (state.routeLength > 0 && !state.movementBlocked) {
-    if (state.nextStepAt !== null)
-      return Math.max(ACTIVE_WORLD_SYNC_MS, state.nextStepAt - state.serverNow)
+    if (state.nextStepAt !== null) {
+      // The client previews due steps itself, so the server only needs a confirmation every
+      // so often (and exactly on arrival), which keeps requests from queueing behind each other.
+      const untilNext = Math.max(0, state.nextStepAt - state.serverNow)
+      const untilArrival = state.remainingMs ?? ACTIVE_WORLD_SYNC_MS
+      return Math.max(untilNext, Math.min(ACTIVE_WORLD_SYNC_MS, untilArrival))
+    }
     return ACTIVE_WORLD_SYNC_MS
   }
   return IDLE_WORLD_SYNC_MS
@@ -162,8 +169,8 @@ export function findWorldRoute(
  * round trips never slow walking below the authored pace. A tick later than this (a suspended or
  * absent client) advances one step and reschedules from now: there is never offline catch-up.
  */
-export const MOVEMENT_LAG_ALLOWANCE_MS = 2000
-const MAX_STEPS_PER_TICK = 8
+export const MOVEMENT_LAG_ALLOWANCE_MS = 8000
+const MAX_STEPS_PER_TICK = 40
 export function advanceWorldRoute(state: WorldState, now: number): WorldState {
   if (!state.route.length || state.nextStepAt === null || now < state.nextStepAt) return state
   const route = [...state.route]
