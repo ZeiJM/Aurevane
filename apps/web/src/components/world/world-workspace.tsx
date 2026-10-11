@@ -31,6 +31,7 @@ export function WorldWorkspace({
     stageReady = useRef(false)
   const current = useRef(initialView),
     pending = useRef(false),
+    queuedIntent = useRef<WorldIntent | null>(null),
     mounted = useRef(true),
     viewAcceptedAt = useRef<number | null>(null),
     syncTimer = useRef<number | null>(null),
@@ -65,7 +66,12 @@ export function WorldWorkspace({
     }
   }
   async function send(intent: WorldIntent) {
-    if (pending.current) return
+    if (pending.current) {
+      // A command pressed while another is in flight (a due tick, usually) is held and sent
+      // right after it, so Stop and travel clicks are never silently dropped.
+      if (intent.kind !== 'tick') queuedIntent.current = intent
+      return
+    }
     pending.current = true
     setBusy(true)
     try {
@@ -93,7 +99,10 @@ export function WorldWorkspace({
       pending.current = false
       if (mounted.current) {
         setBusy(false)
-        scheduleSync.current()
+        const held = queuedIntent.current
+        queuedIntent.current = null
+        if (held) void sendRef.current(held)
+        else scheduleSync.current()
       }
     }
   }
