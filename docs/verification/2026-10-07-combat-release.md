@@ -21,10 +21,10 @@ Focused rendered matrices passed 42 current/historical targeting cases, 60 perce
 
 Evidence artifacts for the same final run:
 
-| Artifact | ID | SHA-256 |
-| --- | --- | --- |
+| Artifact                           | ID          | SHA-256                                                            |
+| ---------------------------------- | ----------- | ------------------------------------------------------------------ |
 | Compact combat release screenshots | 11473979787 | `4fe83d1ab56a1a26fbd331cdd7ea2b3665587807e51b1185701565cfc29dab19` |
-| Targeting screenshots | 11474392825 | `e8d0e5e7f3ce18550874e8e72208b0eba36e1c67db9890ec44f38ae461277149` |
+| Targeting screenshots              | 11474392825 | `e8d0e5e7f3ce18550874e8e72208b0eba36e1c67db9890ec44f38ae461277149` |
 
 ## Production database receipt
 

@@ -76,7 +76,6 @@ The continuation reconciles main through `41f2c560`, including the navigation-pe
 
 The reconciled `pnpm check` passed: formatting, lint, workspace type checks, 2,755 Vitest tests, six Node report tests and production builds. The focused world suite contains 38 passing tests. The previous focused browser job remained queued; the updated candidate requires fresh browser evidence for Coastal Road, reverse panorama views, cached regional panoramas and bottom-axis fitting. Local verification is not a claim that those pending browser checks have passed.
 
-
 ## Ember and caravan roads — 2026-09-23
 
 The next bounded authored expansion replaces the two former 70-second Ember Road and Southern Caravan Road links. Both use explicit 13×9 wilderness sectors, 13 road squares, four-second minimum local movement and ordinary boundary crossings. Ember Road (`S20-07`) has basalt ridges, small walkable verges and restrained ember haze. Southern Caravan Road (`S14-10`) has warm sand, sandstone ridges, open verges and slow drifting dust. Neither road grants settlement immunity. Their original terrain and panorama assets are documented in `ART-WORLD-004-ember-and-caravan-roads.md` with complete prompts and provenance. No new named settlement or story revelation is introduced.
@@ -97,7 +96,6 @@ The restored checkout passed all 51 focused world tests and 16 world migration t
 
 Remaining authored regional links: Highland Road (Aureth Crown–Starfall Highlands), Northern Pass (Starfall Highlands–Frostmere), Eastern March Road (Emberreach–Umbral March) and Old Coast Road (Hollow Coast–Umbral March). Staging concurrency and Owner visual acceptance remain open. No main merge, remote migration or deployment was performed.
 
-
 ## Highland Road and Northern Pass — 2026-09-23
 
 Previous-head browser verification is complete: [run 35808654201](https://github.com/ZeiJM/Aurevane/actions/runs/35808654201) passed nine scenarios, with twelve intentional viewport-duplicate skips, at `d7120e1c`. The version 02 Ember/caravan reverse panoramas were inspected in artifact `10729086746`; functional loading and camera controls pass, with final visual acceptance reserved for the Owner.
@@ -109,7 +107,6 @@ Twelve new regression cases failed before implementation and all 63 focused worl
 Remaining timed regional links: Eastern March Road (Emberreach–Umbral March) and Old Coast Road (Hollow Coast–Umbral March). Owner visual acceptance and staging concurrency verification remain release gates. No main merge, remote migration or deployment is included.
 
 Northern-road local gate passed: `pnpm check` exited 0 with 2,780 Vitest tests, six Node report tests, formatting, lint, workspace type checks and production builds. Playwright discovery lists 27 scenario/project combinations. Fresh independent review found no actionable defects after inspecting routing, saved-route validation, authority, UI integration, tests and all four runtime images. Final main remained `41f2c560`; no overlapping change needed reconciliation. Browser execution for the new roads remains pending the updated PR head.
-
 
 ## Eastern March Road and Old Coast Road — 2026-09-23
 
@@ -125,7 +122,6 @@ Independent review found that several initially enabled verge cells overlapped p
 
 Final local `pnpm check` passed on the collision-corrected tree: 2,793 Vitest tests plus six Node report tests, formatting, lint, workspace type checks and production builds. The fresh-main check still resolves to `41f2c560`, with PR parent `081bd4a9` unchanged. New-head browser results remain pending; no main merge, remote migration or deployment was performed.
 
-
 ## Restrained environmental motion and contention coverage — 2026-09-23
 
 Owner requested gentle flowing water, wind and light without overpowering the map. Regional flow now uses separate narrow masks following the eight illustrations, leaving bridges clear; Emberreach uses warm lava glow and Hollow Coast adds a separate coastal wash. Water moves over 18–28 seconds, volcanic glow over 30 seconds, broad wind over 48 seconds and low-opacity light over 32 seconds. Frost/desert wind and cool coastal/northern light retain each region's palette. Smoke and woodland motes are slower; fireflies are absent from volcanic, frozen and desert scenery. All decoration remains beneath grid/tokens, ignores pointer input, disappears when Environmental motion is off, and is hidden with reduced-motion preferences. No new assets, dependency, schema or gameplay rule is introduced.
@@ -136,7 +132,6 @@ Independent review found no actionable important defects in motion accessibility
 
 Local `pnpm check` passed with 2,793 Vitest tests plus six Node report tests, formatting, lint, type checks and builds. Final regional mask alignment was inspected against the source illustrations. Latest-head browser screenshots, new contention execution and Owner visual acceptance remain open. No main merge, remote migration or deployment was performed.
 
-
 ## Encounter competition verification continuation — 2026-09-23
 
 The authenticated disposable-Postgres suite now additionally covers a due target movement step racing an attack: exactly one may commit against the original position, and a successful move leaves no encounter at the old cell. UI polling is stopped while preserving real authenticated request contexts, so only the two submitted commands participate. The existing account-lock gate also supports a controlled mutation while an encounter has finished preparing its build snapshot but is blocked before taking its transaction locks. Starting target training must reject that encounter; changing the target's actual equipped Skills must reject its stale build snapshot. Both rejected encounters must leave world versions unchanged and create no lobby members or battle participants.
@@ -144,7 +139,6 @@ The authenticated disposable-Postgres suite now additionally covers a due target
 These are three additional runnable scenarios. Playwright discovery lists 48 project/scenario combinations: eighteen runnable scenarios and thirty intentional viewport-duplicate skips. No production code, migration, gameplay rule or visual behavior changed. Full local `pnpm check` passed (2,793 Vitest tests plus six report tests, formatting, lint, type checks and builds). Fresh independent review found no actionable defects in the lock boundary, request contracts, assertions or cleanup.
 
 Runtime verification is still pending: the preceding candidate's Atlas run `35854304396` remained queued without logs or artifacts; seventeen other repository workflows were in progress at inspection. The new tests have not run against real Postgres here because Docker is unavailable. Neither static review nor local unit checks close the browser/concurrency gate. Owner acceptance, complete staging verification, migration and release remain separate. No main merge or deployment was performed.
-
 
 ## Browser evidence and training fixture correction — 2026-09-23
 
@@ -155,7 +149,6 @@ Artifact `10748667113` was downloaded and inspected. Both final road maps align 
 The sole failure was the training-change fixture's setup request: `/api/wayfarers-practice/plan` returned `400 INVALID_REQUEST` because the test omitted its required `version: 1`. The fixture now includes that field and uses `satisfies SetPracticePlanRequest` from the shared validation package. Before restoring the field, the new type guard reproduced the omission as TS1360 in the web type check. No production validation or encounter behavior was changed. A fresh browser run is required to establish the training-race result; the seventeen passing scenarios do not establish that missing result or all-workflow success. No main merge, remote migration or deployment was performed.
 
 The corrected fixture passed the complete local `pnpm check`: formatting, lint, workspace type checks, 2,793 Vitest tests plus six Node report tests, and production builds. Fresh main remains `41f2c560`, with unchanged PR parent `2378def6`. Browser execution of this correction is pending the next PR run.
-
 
 ## Production release preparation — 2026-09-23
 
@@ -177,21 +170,17 @@ Live-testing compatibility checkpoint: main advanced to `142f0a77` with aligned 
 
 Owner explicitly confirmed that all necessary testing must finish before the authorized live release; there is no CI waiver. Main subsequently advanced to `442b75da`, restoring natural character rails and the Training composition. The local candidate preserves that release; a formatting-versus-restored-CSS conflict takes current main's intended Training design. Full local `pnpm check` passed again (2,798 Vitest tests plus seven report/audio Node tests, formatting, lint, types and builds). The remote Atlas candidate remains `3d42cf13` so its queued browser run is not reset; Representative Buildcraft has begun execution. Consolidate this verified local main reconciliation into the final release candidate after collecting the queued browser evidence, then complete candidate CI and deployment. No production mutation has occurred.
 
-
 Release verification continuation: main advanced to `219ec254` with the simplified audio controls and measured character-rail height fixes. The local Atlas candidate preserves both releases and the corrected Mastery Trial arena expectation. Representative Buildcraft run `35863652101` on the preceding remote candidate failed only that outdated arena expectation in three viewport variants (21 passed, six intentional skips); current main already supplies the correction. One incoming Battle Hall component required formatting only. The reconciled local `pnpm check` passed with 2,801 Vitest tests and seven report/audio Node tests, formatting, lint, types and production builds. The Atlas browser run `35863652127` is now executing against disposable Postgres. No browser result is assumed before completion; no production migration or deployment has occurred.
-
 
 The corrected [Atlas browser run 35863652127](https://github.com/ZeiJM/Aurevane/actions/runs/35863652127) at `3d42cf13` passed all eighteen runnable scenarios, with thirty intentional viewport-duplicate skips, in 12.2 minutes. This closes the missing real-Postgres training-change race result alongside all eight road journeys, regional panoramas, motion/accessibility and the other contention cases. Artifact `10754335764` preserves the browser evidence.
 
 The wider UI layout run `35863652250` exposed existing layout defects: the Intellect label left only 4.1 pixels before its divider at desktop/laptop widths, and the laptop Training text exceeded its illustration height. The candidate keeps these failing assertions, sizes stat headers intrinsically to their full labels, and places the Training button below its copy only at narrow desktop widths. Main through `08fc5f32`, including the Arsenal rail icon release, is preserved. Full local `pnpm check` passed again: 2,801 Vitest tests, seven report/audio Node tests, formatting, lint, types and production builds. Fresh candidate CI must confirm the layout fixes and current-main reconciliation before the authorized production release. No Atlas migration, main merge or deployment has yet occurred.
-
 
 Candidate `873ff525` verification: Representative Buildcraft passed 24 browser scenarios (six intentional skips), and CI, Foundation Security DB, Wayfarer's Practice DB, Skill Engine, Attribute Allocation, Battle Session DB, Discipline Build DB and Desktop page fit passed. The Atlas rerun passed seventeen scenarios but its Eastern March journey read twelve remaining route steps immediately after clicking Stop. The test had no request-completion barrier. It now explicitly requires a successful stop response with an empty route, waits for the Stop control to disappear, and compares persisted position with the server receipt before reload. A rejected or missing stop still fails; no production behavior or retry is changed. This correction requires a fresh browser result.
 
 Desktop experience passed 46 scenarios (31 intentional skips) but the older zero-scroll assumption failed at 1280×720 with 21 pixels of inner overflow. The same-head standalone Desktop page fit suite passed eight scenarios with seven intentional skips. PR #637's released contract sizes the Hall to the natural character rail. The reconciled check now requires exact Hall/rail alignment, permits no scrolling beyond the rail's measured overflow, retains document/horizontal overflow and font/clipping guards, and trial-clicks a lower enabled Hall control after scrolling it above the footer. This preserves the approved natural rail instead of resizing/cropping it to satisfy the older viewport-fixed assumption.
 
 Current main through `a6ce221f` is reconciled locally, preserving Aetherist artwork, implicit audio controls, Training spacing and the black/gold Profile scrollbar. Three incoming test-formatting issues and a formatting-versus-color-assertion conflict are resolved while retaining the new exact color checks. Full local `pnpm check` passed with 2,801 Vitest tests plus seven report/audio checks, formatting, lint, types and builds. Browser smoke and UI layout review on the preceding candidate are still running; final candidate CI and production release remain pending. No Atlas production mutation has occurred.
-
 
 Final browser corrections for the next candidate: UI layout review at `873ff525` passed 87 scenarios (50 intentional skips) plus the separate directory check, but the laptop Training duration buttons were clipped in idle/active/report states. Its screenshots confirm the fourth-row button increased card height beyond the planner. The narrow-desktop rule now gives heading/description the full text width and places reward copy beside the action in the existing third row, retaining image size, readable text and 40-pixel actions. Existing composition and action-visibility assertions remain unchanged.
 
@@ -203,13 +192,11 @@ The Chronist reconciliation reproduced three stale generated-icon assertions in 
 
 The complete reconciled local `pnpm check` passed: 2,803 Vitest tests plus seven Node report/audio tests, formatting, lint, workspace type checks and production builds. This is local evidence; fresh browser/workflow results and the production release are still pending.
 
-
 Candidate `f75d2ece` passed the dedicated [Atlas browser run 35878824269](https://github.com/ZeiJM/Aurevane/actions/runs/35878824269): all eighteen scenarios, thirty intentional skips, 12.3 minutes; artifact `10761155522`. The stop-receipt correction and every road/motion/concurrency scenario passed. Desktop page fit passed eight scenarios, and UI layout review passed 88 scenarios plus its separate directory scenario. CI, all database workflows, Representative Buildcraft and Desktop Experience also passed; the full Browser smoke run remains in progress. Fresh desktop Coastal Road and mobile regional screenshots were inspected.
 
 Visual inspection of UI artifact `10760098513` caught a remaining laptop reward-label overlap despite passing geometry tests: each action was fully inside the planner, but its 5.4rem column partly covered the overflow of the inline Complete/+XP pair. The narrow-desktop action column is reduced to 4.6rem, with reward pairs allowed to wrap at tighter widths. A new browser assertion checks every reward label/value for actual rectangle intersection with its action. Existing 40-pixel action height, fonts, image/copy balance and idle/active/report visibility assertions remain intact. This correction requires fresh verification before release.
 
 The reward-clearance correction passed the full local `pnpm check`: 2,803 Vitest tests plus seven Node report/audio checks, formatting, lint, types and production builds. Browser verification of the new no-overlap assertion remains pending.
-
 
 The complete Browser smoke run `35878824305` at `f75d2ece` passed: 20 preliminary browser checks, 220 main-suite scenarios (179 intentional duplicate/project skips) and four Edge checks. All thirteen workflows on that candidate are green. Desktop Experience passed 47 scenarios with 31 intentional skips. The later reward-clearance correction remains a separate candidate whose new overlap assertion still requires browser evidence.
 
