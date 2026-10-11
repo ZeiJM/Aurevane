@@ -2050,3 +2050,20 @@
     height: max(34rem, calc(100dvh - 9rem));
   }
 }
+.journal .panel {
+  background: linear-gradient(#0c2d3a, #082029);
+  border-color: #5a4c2e;
+  box-shadow: none;
+  color: #e4ece6;
+}
+.journal .panel h2,
+.journal .panel h3 {
+  color: #f4e7c3;
+  border-color: #5a4c2e88;
+}
+.journal .quiet {
+  color: #9db8b0;
+}
+.journal .quest + .quest {
+  border-top-color: #5a4c2e88;
+}

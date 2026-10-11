@@ -180,6 +180,24 @@ export function WorldWorkspace({
   useEffect(() => {
     postState()
   }, [view, busy, postState])
+  // The frame can finish loading before React hydrates, so its one-time "ready" message may be
+  // missed. Posting on load, and immediately when it is already loaded, closes that race; a
+  // message sent to a stage that is not listening yet is simply dropped.
+  useEffect(() => {
+    const element = frame.current
+    if (!element) return
+    const onLoad = () => {
+      stageReady.current = true
+      postRef.current()
+    }
+    element.addEventListener('load', onLoad)
+    try {
+      if (element.contentDocument?.readyState === 'complete') onLoad()
+    } catch {
+      // A cross-origin frame cannot be inspected; the load event covers it.
+    }
+    return () => element.removeEventListener('load', onLoad)
+  }, [])
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
       if (event.origin !== window.location.origin) return
