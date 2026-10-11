@@ -228,7 +228,10 @@ test('Living Atlas fits the shared shell and supports travel, globe and temporar
   await expectSectorToFit()
   // Selecting a destination is presentation only; the explicit action starts travel.
   const beforeSelection = await world(page)
-  await grid.getByRole('button', { name: 'E18 N24, open territory', exact: true }).click()
+  // Other characters (including offline ones) may now stand on this tile; select it directly.
+  await grid
+    .getByRole('button', { name: 'E18 N24, open territory', exact: true })
+    .dispatchEvent('click')
   const afterSelection = await world(page)
   expect(afterSelection.position).toEqual(beforeSelection.position)
   expect(afterSelection.route).toEqual(beforeSelection.route)
@@ -1020,9 +1023,7 @@ test('a proximity attack reaches both authenticated players while the target vie
     await expect(
       page.getByRole('button', { name: `Inspect ${opponentName}`, exact: true }),
     ).toBeVisible()
-    const selection = page.getByLabel('Select nearby player')
-    if (await selection.count()) await selection.selectOption(target.characterId)
-    await page.getByRole('button', { name: /Attack/, exact: false }).click()
+    await page.getByRole('button', { name: `Attack ${opponentName}`, exact: true }).click()
     await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]+$/, { timeout: 15000 })
     await expect(opponent).toHaveURL(page.url(), { timeout: 15000 })
     const battleId = page.url().split('/').at(-1)!

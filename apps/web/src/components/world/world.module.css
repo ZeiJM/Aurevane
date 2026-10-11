@@ -210,7 +210,7 @@
   display: grid;
   grid-template-columns: 2rem minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr) 1.7rem;
-  width: min(100%, calc((100dvh - 260px) * 13 / 9));
+  width: min(100%, calc((100dvh - 260px - var(--dockh, 0px)) * 13 / 9));
   flex: none;
   background: #061e29;
   color: #fff3d7;
@@ -1713,4 +1713,240 @@
   .sidebar {
     display: grid;
   }
+}
+
+/* Bottom dock: Nearby / Points of interest (map area only; the rail, header and footer are untouched). */
+.mapColumn {
+  --dockh: clamp(150px, 21dvh, 236px);
+}
+.dock {
+  display: flex;
+  flex-direction: column;
+  flex: none;
+  height: var(--dockh);
+  min-height: 0;
+  border-top: 1px solid #8d795a;
+  background: linear-gradient(180deg, #0f2a33, #0a1c24);
+  color: #f3ead2;
+}
+.dockTabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: #8d795a66;
+}
+.workspace .dockTabs button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  min-height: 2rem;
+  padding: 0.2rem 0.5rem;
+  border: 0;
+  border-radius: 0;
+  background: #0d232b;
+  color: #cbbf9d;
+  box-shadow: none;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 0.78rem;
+}
+.workspace .dockTabs button[aria-selected='true'] {
+  background: #153743;
+  color: #ffe9a8;
+  box-shadow: inset 0 -2px 0 #dfb965;
+}
+.dockTabName {
+  white-space: nowrap;
+}
+.zoneBadge {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  height: 1.25rem;
+  padding: 0 0.45rem 0 1.15rem;
+  border: 1px solid;
+  border-radius: 999px;
+  font-size: 0.6rem;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+.zoneBadge::before {
+  content: '';
+  position: absolute;
+  left: 0.42rem;
+  top: 50%;
+  width: 0.34rem;
+  height: 0.34rem;
+  margin-top: -0.17rem;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 6px currentColor;
+}
+.zoneBadge[data-zone='safe'] {
+  color: #8fe3b0;
+  background: #286e4640;
+  border-color: #8fe3b073;
+}
+.zoneBadge[data-zone='pvp'] {
+  color: #ff9a86;
+  background: #8c281e4d;
+  border-color: #ff9a8680;
+}
+.dockBody {
+  flex: 1;
+  min-height: 0;
+  padding: 0.4rem 0.5rem;
+  overflow-y: auto;
+  container-type: inline-size;
+  container-name: dockbody;
+}
+.nearbyList {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.4rem;
+  align-content: start;
+}
+.nearbyCard {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+  padding: 0.3rem 0.4rem;
+  border: 1px solid #8d795a80;
+  background: #0d232b;
+}
+.nearbyCard[data-selected='true'] {
+  border-color: #dfb965;
+}
+.nearbyCard[data-online='false'] .nearbyPortrait {
+  opacity: 0.78;
+}
+.workspace .nearbyPortrait {
+  width: 2.75rem;
+  height: 2.75rem;
+  min-height: 0;
+  padding: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid #b69a64;
+  background: #12303a;
+}
+.nearbyPortrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.nearbyText {
+  display: grid;
+  min-width: 0;
+}
+.nearbyText strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.82rem;
+  color: #ffe9a8;
+}
+.nearbyText small {
+  font-size: 0.68rem;
+  color: #8fe3d3;
+}
+.nearbyActions {
+  display: grid;
+  gap: 0.2rem;
+  width: 4.6rem;
+}
+.workspace .nearbyActions button {
+  min-height: 1.5rem;
+  padding: 0.1rem 0.3rem;
+  font-size: 0.68rem;
+  background: #fbf8ee;
+}
+.workspace .nearbyActions button.attack {
+  background: #7a2b22;
+  color: #fff1ea;
+  border-color: #c5665a;
+}
+@container dockbody (max-width: 770px) {
+  .nearbyCard {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .nearbyCard {
+    row-gap: 0.55rem;
+  }
+  .nearbyActions {
+    grid-column: 1 / -1;
+    grid-template-columns: 1fr 1fr;
+    width: auto;
+  }
+}
+@container dockbody (max-width: 520px) {
+  .nearbyList {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.poiList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.7rem;
+  align-content: flex-start;
+}
+.workspace .poiItem {
+  display: grid;
+  justify-items: center;
+  gap: 0.2rem;
+  width: 4.6rem;
+  min-height: 0;
+  padding: 0.1rem;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.poiDot {
+  display: grid;
+  place-items: center;
+  width: 2.3rem;
+  height: 2.3rem;
+  aspect-ratio: 1;
+  flex: 0 0 auto;
+  border: 2px solid #b69a64;
+  border-radius: 50%;
+  background: #153743;
+  color: #ffe9a8;
+}
+.poiName {
+  font-size: 0.64rem;
+  line-height: 1.15;
+  font-weight: 700;
+  text-align: center;
+  color: #8ff0dc;
+  overflow-wrap: anywhere;
+}
+.dockEmpty {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #cbbf9d;
+}
+@media (max-width: 760px) {
+  .mapColumn {
+    --dockh: 220px;
+  }
+}
+
+.workspace .playerToken[data-count]::after {
+  content: '×' attr(data-count);
+  position: absolute;
+  right: -0.35rem;
+  top: -0.35rem;
+  min-width: 1.1rem;
+  padding: 0 0.2rem;
+  border-radius: 999px;
+  background: #7a2b22;
+  color: #fff1ea;
+  font-size: 0.62rem;
+  line-height: 1.1rem;
+  text-align: center;
 }
