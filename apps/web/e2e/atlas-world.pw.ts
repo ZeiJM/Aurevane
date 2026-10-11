@@ -159,10 +159,9 @@ async function capture(page: Page, info: TestInfo, name: string) {
 
 const stageOf = (page: Page) => page.frameLocator('[data-world-stage]')
 async function openJournal(page: Page) {
-  const toggle = page.getByRole('button', { name: /Journal/ })
-  await expect(toggle).toBeVisible()
-  if ((await toggle.getAttribute('aria-expanded')) !== 'true') await toggle.click()
-  await expect(page.getByRole('complementary', { name: 'Journal' })).toBeVisible()
+  // The Missions tab of the right-hand panel shows the former Journal.
+  await stageOf(page).locator('#tab-ms').click()
+  await expect(page.getByRole('complementary', { name: 'Missions' })).toBeVisible()
 }
 async function reloadWorld(page: Page) {
   await page.reload()
@@ -180,7 +179,7 @@ async function stageWalk(page: Page, destination: { sectorId: string; x: number;
   )
 }
 
-test('the World page is the scenic map stage inside the shared shell, with Journal and globe', async ({
+test('the World page is the scenic map stage inside the shared shell, with Missions panel and globe', async ({
   page,
 }, info) => {
   test.setTimeout(120000)
@@ -265,7 +264,6 @@ test('the World page is the scenic map stage inside the shared shell, with Journ
     data: { ...command, intent: { kind: 'cross' } },
   })
   expect(conflict.status()).toBe(409)
-  await page.getByRole('button', { name: 'Close' }).click()
   await frame.locator('#v-toggle').click()
   await expect(frame.locator('#stage-world')).toBeVisible()
   await expect(frame.locator('#globe-svg')).toBeVisible()

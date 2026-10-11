@@ -2624,12 +2624,13 @@ setTimeout(fitMap, 0);
   const tabs = { nearby: [document.getElementById('tab-nb'), document.getElementById('nb-pane')], poi: [document.getElementById('tab-poi'), document.getElementById('poi-list')], missions: [document.getElementById('tab-ms'), document.getElementById('ms-list')] };
   const detail = document.getElementById('detail');
   let current = 'nearby';
-  const show = (k) => { current = k; detail.hidden = true; dock.dataset.tab = k; for (const key in tabs) { const on = key === k; tabs[key][0].setAttribute('aria-selected', String(on)); tabs[key][1].hidden = !on; } };
+  const show = (k) => { current = k; detail.hidden = true; dock.dataset.tab = k; post({ type: 'tab', tab: k }); for (const key in tabs) { const on = key === k; tabs[key][0].setAttribute('aria-selected', String(on)); tabs[key][1].hidden = !on; } };
   for (const k in tabs) tabs[k][0].addEventListener('click', () => { show(k); try { localStorage.setItem('aurevane.dockTab', k); } catch (e) {} });
   let k0 = 'nearby'; try { const v = localStorage.getItem('aurevane.dockTab'); if (v && tabs[v]) k0 = v; } catch (e) {}
   show(k0);
   const open = (html, wire) => {
     for (const key in tabs) tabs[key][1].hidden = true;
+    post({ type: 'tab', tab: 'detail' });
     detail.innerHTML = '<button type="button" class="back">‹ Back</button>' + html; detail.hidden = false;
     detail.querySelector('.back').addEventListener('click', () => show(current));
     if (wire) wire(detail);

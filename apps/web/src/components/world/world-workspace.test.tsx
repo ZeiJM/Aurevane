@@ -10,7 +10,7 @@ import { newWorldState } from '@/world/travel'
 import { WorldWorkspace } from './world-workspace'
 
 describe('World page', () => {
-  it('renders the scenic map stage as a same-origin frame with travel status and Journal control', () => {
+  it('renders the scenic map stage as a same-origin frame with travel status and no Journal button', () => {
     const markup = renderToStaticMarkup(
       createElement(WorldWorkspace, {
         initialView: projectWorld(newWorldState(), [], 1000),
@@ -21,7 +21,7 @@ describe('World page', () => {
     expect(markup).toContain('src="/world-stage/index.html"')
     expect(markup).toContain('title="World map"')
     expect(markup).toContain('data-world-travel-status')
-    expect(markup).toContain('Journal')
+    expect(markup).not.toContain('Journal')
     expect(markup).not.toContain('Weathered Observatory')
   })
 })

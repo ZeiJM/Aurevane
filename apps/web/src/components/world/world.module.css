@@ -2150,10 +2150,26 @@
 .workspace .journal {
   bottom: 56px;
 }
-/* The Journal opens below the panel header so the location / world-view button stays usable */
+/* The Missions tab shows the former Journal inside the panel body: under the header and tabs, above the bar */
 @media (min-width: 761px) {
   .workspace .journal {
-    top: 76px;
+    top: 134px;
+    right: 0;
+    bottom: 56px;
+    box-sizing: border-box;
+    width: max(20rem, 25cqw);
+    border-left: 1px solid #8a7440;
+    box-shadow: none;
+  }
+}
+@media (max-width: 760px) {
+  .workspace .journal {
+    top: calc(100vw + 134px);
+    right: 0;
+    bottom: 0;
+    box-sizing: border-box;
+    width: 100%;
+    box-shadow: none;
   }
 }
 /* The map, panel and bar fill the workspace edge to edge, so the bar joins the bottom of the panel */

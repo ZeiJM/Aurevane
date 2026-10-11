@@ -35,6 +35,7 @@ export type WorldStageMessage =
   | { type: 'attack'; targetId: string }
   | { type: 'travel'; sectorId: string }
   | { type: 'autopath'; objectiveId: string }
+  | { type: 'tab'; tab: 'nearby' | 'poi' | 'missions' | 'detail' }
 
 const isPosition = (value: unknown): value is WorldPosition => {
   const p = value as WorldPosition | null
@@ -60,6 +61,11 @@ export function parseStageMessage(data: unknown): WorldStageMessage | null {
     return { type: 'travel', sectorId: m.sectorId }
   if (m.type === 'autopath' && typeof m.objectiveId === 'string')
     return { type: 'autopath', objectiveId: m.objectiveId }
+  if (
+    m.type === 'tab' &&
+    (m.tab === 'nearby' || m.tab === 'poi' || m.tab === 'missions' || m.tab === 'detail')
+  )
+    return { type: 'tab', tab: m.tab }
   return null
 }
 
