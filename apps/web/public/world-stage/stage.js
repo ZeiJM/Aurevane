@@ -1091,10 +1091,12 @@ for (let mx = -2; mx <= 2; mx++) for (let my = -1; my <= 1; my++) {
     im.setAttribute('href', cloudURLs[i]);
   }
 }
+var lastCloudTile = '';
 function followClouds(cx, cy) {
   const px = cx * T, py = cy * T;
   cloudRoot.style.transform = `translate(${-px}px, ${-py}px)`;
-  cloudTile.setAttribute('transform', `translate(${Math.round(px / CLP_X) * CLP_X},${Math.round(py / CLP_Y) * CLP_Y})`);
+  const ct = `translate(${Math.round(px / CLP_X) * CLP_X},${Math.round(py / CLP_Y) * CLP_Y})`;
+  if (ct !== lastCloudTile) { lastCloudTile = ct; cloudTile.setAttribute('transform', ct); }
 }
 for (let i = 0; i < 9; i++)
   add(sky, 'ellipse', { class: 'leaf', cx: 380 + rand() * 480, cy: -10 + rand() * 220, rx: 5, ry: 2.6, fill: ['#b0892f', '#6a9a3a', '#c9703a'][i % 3], style: `animation-delay:${-rand() * 14}s;animation-duration:${11 + rand() * 7}s` });
@@ -1224,6 +1226,7 @@ let boardObj = null;
 const occluders = []; /* depth-sorted scenery that can hide a walker: {by, shape} */
 
 function loadSector(sec) {
+  lastChunkKey = '';
   const rows = [];
   for (let y = 0; y < CH; y++) { rows.push([]); for (let x = 0; x < CW; x++) rows[y].push({ ch: '#', walk: false, safe: false, known: false }); }
   for (const c of sec.cells) rows[c.y][c.x] = { ch: c.terrain, walk: c.walkable, safe: c.safe, known: true };
@@ -1721,16 +1724,21 @@ function onMoveUi() {
 
 /* ---------- painting ---------- */
 let lastSectorId = null;
+var lastChunkKey = '';
 function frameUpdate() {
   const { vc, vr, cx, cy } = camera();
-  world.style.transform = `translate(${-cx * T}px, ${-cy * T}px)`;
+  world.style.transform = `translate3d(${(-cx * T).toFixed(1)}px, ${(-cy * T).toFixed(1)}px, 0)`;
   followClouds(cx, cy);
-  updateChunks(cx, cy, vc, vr);
+  /* chunks only change when the camera crosses a tile, not on every frame */
+  const ck = Math.floor(cx) + ',' + Math.floor(cy) + ',' + vc.toFixed(2) + ',' + vr.toFixed(2);
+  if (ck !== lastChunkKey) { lastChunkKey = ck; updateChunks(cx, cy, vc, vr); }
   drawActors();
 }
+var lastViewBox = '';
 function paint() {
   const { cx, cy } = camera();
-  svgEl.setAttribute('viewBox', `0 0 ${(VCOLS * T / (zoom * ZB)).toFixed(1)} ${(VROWS * T / (zoom * ZB)).toFixed(1)}`);
+  const vb = `0 0 ${(VCOLS * T / (zoom * ZB)).toFixed(1)} ${(VROWS * T / (zoom * ZB)).toFixed(1)}`;
+  if (vb !== lastViewBox) { lastViewBox = vb; svgEl.setAttribute('viewBox', vb); lastChunkKey = ''; }
   frameUpdate();
   if (SECTOR) {
     const sec = SV && SV.sectors.find((s) => s.id === SECTOR.id);
@@ -1740,21 +1748,24 @@ function paint() {
   }
   onMoveUi();
 }
-let predState = null;
+let predState = null, heldPred = null;
 /* The server owns every step; between its replies the stage only previews the steps already
    due on the authored clock, so the walk never waits for a network round trip. */
 function predictedTarget() {
   const p = predState;
-  if (!p || !SECTOR || reduceMotion) return me;
+  if (!p || !SECTOR || reduceMotion) { heldPred = null; return me; }
   let t = p.nextStepAt, now = p.serverNow + (Date.now() - p.recvAt), tgt = null;
-  if (t === null || now - t > 2000) return me;
-  for (let i = 0; i < p.route.length && i < 8; i++) {
+  if (t === null) { heldPred = null; return me; }
+  for (let i = 0; i < p.route.length && i < 12; i++) {
     if (t > now) break;
     const st = p.route[i];
     if (st.position.sectorId !== SECTOR.id) break;
     tgt = st.position;
     t += (p.route[i + 1] ? p.route[i + 1].durationMs : 0);
   }
+  /* never walk backwards: if the reply is late, keep heading for the tile already due */
+  if (!tgt && heldPred && Math.hypot(meV.x - heldPred.x, meV.y - heldPred.y) < 1.6) return heldPred;
+  heldPred = tgt || null;
   return tgt || me;
 }
 let lastV = performance.now();
@@ -1772,15 +1783,20 @@ function visualStep(now) {
   const pt = predictedTarget();
   if (mv(meV, pt.x, pt.y)) changed = true;
   OTHERS.forEach((p) => { const pv = { x: p.vx, y: p.vy }; if (mv(pv, p.x, p.y)) { p.vx = pv.x; p.vy = pv.y; changed = true; } });
-  if (changed) frameUpdate();
+  if (changed) {
+    frameUpdate();
+    if (!movingFlag) { movingFlag = true; view.dataset.moving = '1'; }
+    clearTimeout(movingTimer); movingTimer = setTimeout(() => { movingFlag = false; delete view.dataset.moving; }, 350);
+  }
 }
+var movingFlag = false, movingTimer = 0;
 requestAnimationFrame(visualStep);
 
 /* ---------- route preview ---------- */
 const routeG = add(routeLayer, 'g', {});
 function drawRoute() {
   routeG.replaceChildren();
-  if (!SV || !SECTOR) return;
+  return; /* no path trail: a click simply walks the character there */
   const pts = SV.route.filter((s) => s.position.sectorId === SECTOR.id).map((s) => s.position);
   if (!pts.length) return;
   const all = [{ x: me.x, y: me.y }, ...pts];
@@ -2026,11 +2042,11 @@ const HUB_OF_REGION = { 'aureth-crown': 'aureth', 'verdant-expanse': 'verdant', 
   hero.insertBefore(lantern, hero.firstChild);
 
   let timeManual = null, wxManual = null, region = 'temperate', pendingFx = null, curFx = null, lightning = false;
-  /* the World keeps its own clock: one real hour is one in-game day, and day and night follow it */
+  /* the World keeps its own clock: the World clock is real UTC (shifted only by Master offset/freeze), and day and night follow it */
   const utcNow = () => { const n = new Date(); return { h: n.getUTCHours(), m: n.getUTCMinutes(), s: n.getUTCSeconds() }; };
   let ENV = null, envAt = 0;
   window.AV_setEnv = (e) => { ENV = e; envAt = performance.now(); apply(); };
-  const envMinute = () => { if (!ENV) return null; const m = ENV.frozen ? ENV.minuteOfDay : ENV.minuteOfDay + ((performance.now() - envAt) * 1440) / (ENV.dayLengthMs || 3600000); return ((m % 1440) + 1440) % 1440; };
+  const envMinute = () => { if (!ENV) return null; const m = ENV.frozen ? ENV.minuteOfDay : ENV.minuteOfDay + ((performance.now() - envAt) * 1440) / (ENV.dayLengthMs || 86400000); return ((m % 1440) + 1440) % 1440; };
   const gameHours = () => { if (timeManual !== null) return timeManual; const m = envMinute(); if (m !== null) return m / 60; const n = utcNow(); return n.h + n.m / 60 + n.s / 3600; };
   const curWeather = () => wxManual || (ENV ? ENV.weather : weatherAt(Math.floor(Date.now() / 3600000)));
   const pad2 = (n) => String(n).padStart(2, '0');
@@ -2049,7 +2065,7 @@ const HUB_OF_REGION = { 'aureth-crown': 'aureth', 'verdant-expanse': 'verdant', 
     pendingFx = lk.fx || null; lightning = Boolean(lk.lightning);
     const hh = Math.floor(h), mm = Math.floor((h - hh) * 60), u = utcNow();
     const mNow = envMinute(), ss = mNow === null ? u.s : Math.floor(((mNow * 60) % 60));
-    sbTime.textContent = `${pad2(hh)}:${pad2(mm)} in-game${ENV && ENV.frozen ? ' (held)' : ''}`;
+    sbTime.textContent = `${pad2(hh)}:${pad2(mm)} UTC${ENV && ENV.frozen ? ' (held)' : ''}`;
     sbWx.textContent = LABELS[region][w] + '';
     if (timeManual === null && document.activeElement !== tod) { tod.value = String(Math.round(h * 60)); }
     todOut.textContent = `${pad2(hh)}:${pad2(mm)}`;
@@ -2516,7 +2532,7 @@ setTimeout(fitMap, 0);
     if (e.origin !== location.origin || !e.data || e.data.av !== 'world-host' || e.data.type !== 'settings') return;
     if (!setPop.hidden) { setOpen(null); return; }
     gearOpen = gears[0]; setPop.hidden = false;
-    setPop.style.left = '8px'; setPop.style.bottom = '8px';
+    setPop.style.left = Math.max(8, innerWidth - setPop.offsetWidth - 8) + 'px'; setPop.style.bottom = '8px';
     gears.forEach((g) => g.setAttribute('aria-expanded', 'true'));
   });
   const coord = document.getElementById('sb-sec-cell'), coordBtn = document.getElementById('coord-toggle');
