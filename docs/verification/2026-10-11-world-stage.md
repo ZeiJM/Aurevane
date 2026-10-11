@@ -12,12 +12,13 @@
 ## Release path
 - PR #859 merged as `ca4b97fd319b0af41585b274b13aefe4f680aee4` (Owner-authorized merge while the long Responsive browser smoke was still running).
 - First deploy `dpl_4DQhCiAbS8Fr5hgLUyCC3XXG7Vhs` ERRORED: a stray absolute self-referencing symlink `public/world-stage/assets/assets` broke the build step. PR #860 removed it.
-- Production `dpl_GsAXXuJHjExtACRk3gRHUruk85xU` READY at https://aurevane.vercel.app for `d5dcbc26b37ab57c80d4e7b1d491d199475b52de`.
+- Production `dpl_GsAXXuJHjExtACRk3gRHUruk85xU` (`d5dcbc26`) went READY first. The Atlas browser test then found Stop/travel clicks dropped while a tick was in flight and the Journal drawer overlapping the travel bar; PR #861 fixes both.
+- **Current production:** `dpl_Cisi5yRoXsfW5A724hxBkc8t1YB7` READY at https://aurevane.vercel.app for `b3ddffd00cc7dbff8265be834138cd73576a8acc`.
 - Supabase security advisors show only the existing INFO pattern (new private tables with RLS and no policies, service-only) and the pre-existing leaked-password WARN. Bounded runtime log window: no warning/error/fatal entries.
 
 ## Verification
 - Local: format, lint, eight-package typecheck, Vitest plus Node checks, production build.
-- CI exact head `f18cba85`: Quality gates, Database foundation, Atlas browser, desktop-experience, representative-buildcraft and authority workflows passed. The long Responsive browser smoke and review were still running at release and are tracked below.
+- CI exact head `f18cba85`: Quality gates, Database foundation, Atlas browser, desktop-experience, representative-buildcraft and authority workflows passed. The Atlas browser test passes on the final head (PR #861). The long Responsive browser smoke was still running at release; any failure there will be fixed and redeployed.
 - Atlas e2e (`apps/web/e2e/atlas-world.pw.ts`) was rewritten for the frame, Journal and stage intents.
 
 ## Open decisions / notes
