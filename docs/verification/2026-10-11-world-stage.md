@@ -63,3 +63,14 @@ Released through PR #864, merge `e15479d1407f4d6160479465acd655db8c61fafc`; prod
 - **Performance:** chunk/cloud/viewBox work only when changed, ambient animations rest while walking, grass no longer sways. No frame-rate measurement was taken.
 - **Clock:** the World clock is real UTC (`WORLD_DAY_REAL_MS` = one day), displayed `HH:MM UTC`; Master offset/freeze/forced weather unchanged. This reverses the one-real-hour-per-day pace from PR #864.
 - **Footer:** the settings gear sits after Journal; its popup opens on the right.
+
+## Follow-up: PR #867 — walking pace, instant start, no walk-back, rotating shared tiles
+
+**Status: LIVE for testing. Human gameplay acceptance is pending.**
+
+- Merge `e1bfbbdfd23eb264b75ef3af02d4168747b0f65c`; production `dpl_E6HSPrzq47o8YA2BquQcRKe6f22n` READY at https://aurevane.vercel.app. First 15-minute runtime window: no warning/error/fatal entries. Supabase security advisors: only the existing INFO/WARN patterns. CI on the PR head: Quality gates, Database foundation and verify (Atlas browser test) passed; the long Responsive smoke was still running at merge.
+- **Root cause of the walk-back loop and start delay:** `commit_world_state_v1` confirmed one step per tick and rewrote every deadline to at least 1.1 s, while the map plans/previews the authored 275 ms step. The stage ran ahead, was pulled back, and waited.
+- **Migration `20261011161830_world_multistep_pacing.sql`** (applied to production on Owner approval): a tick or replan may confirm up to 40 due steps along the saved route; deadlines are bounded by the authored durations (never earlier than the running schedule, never later than one step from now). Moves off the saved route or not yet due remain rejected (`WORLD_INVALID_STEP`, `WORLD_STEP_NOT_DUE`). New PGlite tests cover multi-step confirmation, rejected skips/premature steps and replans.
+- **Server/client:** a walk from a standstill makes the first step due at once; replans start from the tile reached; confirmations every 600 ms and exactly on arrival; the stage walks its own shortest path at the authored pace until the reply, never walks backwards along the server route, and hotkeys step from the heading tile; Stop confirms due steps first; portrait/environment lookups cached briefly.
+- **Shared tiles:** tiles with several characters show each in turn (flip, count badge); clicks act on the displayed character. The local hero is not part of the rotation.
+- Verification of speed was by a headless-browser simulation with injected latency (old rules: first move 2–2.5 s, ~2 tile walk-back; new rules: movement starts within a frame, no walk-back); no live frame-rate measurement.
