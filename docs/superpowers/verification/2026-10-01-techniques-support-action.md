@@ -6,7 +6,7 @@ Owner-authorized continuation of PR #790: eight-card Primary/Secondary Disciplin
 
 New battles pin Support Action and map geometry. Historic snapshot fingerprints and recorded battle maps remain compatible. Training cancellation retains the existing proportional reward settlement through the existing idempotent claim endpoint. Build Tendencies visualizes relative Core Stats; it changes no combat formula.
 
-Only the two new additive migrations are part of this release: `20261001184328_character_support_action.sql` and `20261001190915_pvp_three_map_sizes.sql`. Unrelated pending world/story migrations and combat-content publication are outside this work item. Production migration, deployment and authenticated acceptance are not implied by fixture evidence.
+Only the two new additive migrations are part of this release: `20261001221022_character_support_action.sql` and `20261001221030_pvp_three_map_sizes.sql`. Unrelated pending world/story migrations and combat-content publication are outside this work item. Production migration, deployment and authenticated acceptance are not implied by fixture evidence.
 
 ## Component and domain evidence
 
@@ -88,8 +88,8 @@ The final read-only preflight confirmed predecessor migration `20260928042812`, 
 
 | Repository migration                          | SHA-256                                                            | Actual Production history                     |
 | --------------------------------------------- | ------------------------------------------------------------------ | --------------------------------------------- |
-| `20261001184328_character_support_action.sql` | `1e6786fce97764c889eb2a5a7d4505c335eda9b6292b2ae966ebc33af8bee834` | `20261001221022` / `character_support_action` |
-| `20261001190915_pvp_three_map_sizes.sql`      | `410d692e326e9a97bdc1f6586cfed629c6c7d1d663136225d4de009508126c9f` | `20261001221030` / `pvp_three_map_sizes`      |
+| `20261001221022_character_support_action.sql` | `1e6786fce97764c889eb2a5a7d4505c335eda9b6292b2ae966ebc33af8bee834` | `20261001221022` / `character_support_action` |
+| `20261001221030_pvp_three_map_sizes.sql`      | `410d692e326e9a97bdc1f6586cfed629c6c7d1d663136225d4de009508126c9f` | `20261001221030` / `pvp_three_map_sizes`      |
 
 Postflight confirms both Support columns are NOT NULL with `basic.guard` defaults; both allowed-action constraints and the small/medium/large constraint are validated. The two new private receipt/audit tables have RLS and no anon/authenticated SELECT grants. All seven relevant RPCs retain fixed search paths and service-only execute grants. Security advisors retain the existing leaked-password-protection warning; the only new INFO findings are the two intentionally closed private RLS tables (43 versus 41 baseline). No new public exposure, unrelated world/story migration, combat-content activation or Production gameplay mutation was performed.
 

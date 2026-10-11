@@ -1,5 +1,7 @@
 import type { WorldPosition, WorldRegion, WorldRoad, WorldSector } from './types'
 import { buildAuthoredSectorCrossing } from './sector-crossings'
+import { generateSectorTerrain, riverFor } from './terrain-gen'
+import { EDGE_TILE, MAP_DIRECTIONS, OPPOSITE, wildSectorId, type MapDirection } from './wild-ids'
 
 export const GRID_WIDTH = 13
 export const GRID_HEIGHT = 9
@@ -163,10 +165,31 @@ const LINKS: readonly [string, string, string, number, number?, number?][] = [
   ['hollow-coast', 'old-coast-road', 'Old Coast Road', STEP_MS],
   ['old-coast-road', 'umbral-march', 'Old Coast Road', STEP_MS],
 ]
-const legacyRoads: WorldRoad[] = LINKS.flatMap(([a, b, name, durationMs, fromY = 4, toY = 4]) => [
-  { from: { sectorId: a, x: 12, y: fromY }, to: { sectorId: b, x: 0, y: toY }, name, durationMs },
-  { from: { sectorId: b, x: 0, y: toY }, to: { sectorId: a, x: 12, y: fromY }, name, durationMs },
-])
+/** Generated trail sectors between every pair of linked places, so towns sit well apart. */
+export const TRAIL_SECTORS_PER_LINK = 3
+const trailId = (a: string, b: string, i: number) => `trail:${a}:${b}:${i}`
+const legacyRoads: WorldRoad[] = LINKS.flatMap(([a, b, name, durationMs, fromY = 4, toY = 4]) => {
+  const ids = [
+    a,
+    ...Array.from({ length: TRAIL_SECTORS_PER_LINK }, (_, i) => trailId(a, b, i + 1)),
+    b,
+  ]
+  const rowsList = [fromY, ...Array.from({ length: TRAIL_SECTORS_PER_LINK - 1 }, () => 4), toY]
+  return rowsList.flatMap((row, j) => [
+    {
+      from: { sectorId: ids[j]!, x: 12, y: row },
+      to: { sectorId: ids[j + 1]!, x: 0, y: row },
+      name,
+      durationMs,
+    },
+    {
+      from: { sectorId: ids[j + 1]!, x: 0, y: row },
+      to: { sectorId: ids[j]!, x: 12, y: row },
+      name,
+      durationMs,
+    },
+  ])
+})
 const crownHinterland = {
   id: 'crown-hinterland',
   coordinate: 'S15-08',
@@ -224,7 +247,33 @@ const authoredRoads: WorldRoad[] = [
     durationMs: STEP_MS,
   }),
 ]
-const roads: WorldRoad[] = [...legacyRoads, ...authoredRoads]
+const samePoint = (p: { x: number; y: number }, q: { x: number; y: number }) =>
+  p.x === q.x && p.y === q.y
+/** Region edges with no authored road open onto endless generated wilds. */
+export const WILD_DOORS: readonly { root: string; dir: MapDirection }[] = WORLD_REGIONS.flatMap(
+  (region) =>
+    MAP_DIRECTIONS.filter((dir) => {
+      if (region.id === 'umbral-march' && dir === 'north') return false
+      if (region.id === 'hollow-coast' && dir === 'south') return false
+      return ![...legacyRoads, ...authoredRoads].some(
+        (road) => road.from.sectorId === region.id && samePoint(road.from, EDGE_TILE[dir]),
+      )
+    }).map((dir) => ({ root: region.id, dir })),
+)
+const wildDoorRoads: WorldRoad[] = WILD_DOORS.flatMap(({ root, dir }) => {
+  const region = WORLD_REGIONS.find((r) => r.id === root)!
+  const landing = {
+    sectorId: wildSectorId({ root, dir, k: 1, b: 0 }),
+    ...EDGE_TILE[OPPOSITE[dir]],
+  }
+  const door = { sectorId: root, ...EDGE_TILE[dir] }
+  const name = `${region.name} Wilds`
+  return [
+    { from: door, to: landing, name, durationMs: STEP_MS },
+    { from: landing, to: door, name, durationMs: STEP_MS },
+  ]
+})
+const roads: WorldRoad[] = [...legacyRoads, ...authoredRoads, ...wildDoorRoads]
 export const CHARTED_SECTORS: readonly WorldSector[] = [
   ...WORLD_REGIONS.map((region): WorldSector => ({
     id: region.id,
@@ -476,6 +525,37 @@ export const CHARTED_SECTORS: readonly WorldSector[] = [
     roads: roads.filter((road) => road.from.sectorId === 'old-coast-road'),
   },
 ]
+const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI']
+export const TRAIL_SECTORS: readonly WorldSector[] = LINKS.flatMap(
+  ([a, b, name, , fromY = 4, toY = 4]) => {
+    const from = CHARTED_SECTORS.find((s) => s.id === a)!,
+      to = CHARTED_SECTORS.find((s) => s.id === b)!
+    const rowsList = [fromY, ...Array.from({ length: TRAIL_SECTORS_PER_LINK - 1 }, () => 4), toY]
+    return Array.from({ length: TRAIL_SECTORS_PER_LINK }, (_, n): WorldSector => {
+      const i = n + 1,
+        id = trailId(a, b, i)
+      const terrain = generateSectorTerrain({
+        id,
+        arms: { w: rowsList[i - 1], e: rowsList[i] },
+        river: riverFor(id, 'v'),
+      })
+      return {
+        id,
+        name: `${name} ${ROMAN[n]}`,
+        coordinate: `${from.coordinate}·T${i}`,
+        regionId: i <= Math.ceil(TRAIL_SECTORS_PER_LINK / 2) ? from.regionId : to.regionId,
+        art: null,
+        east: 0,
+        north: 8,
+        rows: terrain.rows,
+        charted: true,
+        generated: true,
+        landmarks: terrain.landmarks,
+        roads: roads.filter((road) => road.from.sectorId === id),
+      }
+    })
+  },
+)
 export const START_POSITION: WorldPosition = { sectorId: 'verdant-expanse', x: 5, y: 4 }
 export const FRONTIER_APPROACH: WorldPosition = { sectorId: 'umbral-march', x: 6, y: 0 }
 export function worldRegion(id: string) {

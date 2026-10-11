@@ -35,8 +35,8 @@ it('shows effective time and weather, every control, a required reason and the h
   )
   for (const text of [
     'World environment v5',
-    'Effective server time 18:00 UTC (frozen); weather storm (forced by Master).',
-    'Shift server time (minutes',
+    'World time 18:00 in-game (frozen); weather storm (forced by Master).',
+    'Shift world time (in-game minutes',
     'Freeze the clock at a time of day',
     'Force fog',
     '15 minutes',
@@ -45,7 +45,7 @@ it('shows effective time and weather, every control, a required reason and the h
     'Environment change reason',
     'Apply world environment',
     'Recent changes',
-    'clock frozen at 18:00 UTC; weather forced to storm until cleared',
+    'clock frozen at 18:00 in-game; weather forced to storm until cleared',
     'Evening storm for the event',
   ])
     expect(html).toContain(text)

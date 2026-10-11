@@ -1187,6 +1187,20 @@ const BT = (() => {
 })();
 
 /* ---------- biome themes: the region decides ground, scenery, water and weather look ---------- */
+/* points of interest in the generated wilds: each is composed from the painted prop kit */
+const POI_ART = (() => {
+  const shade = (g, x, y, rx, ry) => add(g, 'ellipse', { cx: x, cy: y, rx, ry, fill: 'url(#shadowG)' });
+  const glow = (g, x, y, r, fill = 'url(#lg-glowwin)') => add(g, 'circle', { class: 'lamp', cx: x, cy: y, r, fill, style: 'mix-blend-mode:screen;opacity:.8' });
+  return {
+    shrine: (g, x, y) => { shade(g, x, y + 8, 46, 11); add(g, 'circle', { class: 'pulse', cx: x, cy: y - 18, r: 50, fill: 'url(#gx-teal)', style: 'mix-blend-mode:screen' }); ART.spr(g, 'moonpetal_shrine', x, y + 12, 112); },
+    ruin: (g, x, y) => { shade(g, x, y + 8, 54, 12); ART.spr(g, 'ancient_moss_arch', x, y + 12, 124); ART.spr(g, 'mossy_boulder_a', x - 46, y + 14, 42); ART.spr(g, 'wildflower_patch', x + 40, y + 16, 40); },
+    camp: (g, x, y) => { shade(g, x, y + 8, 42, 10); glow(g, x, y - 6, 54); ART.spr(g, 'small_campfire', x, y + 10, 54); ART.spr(g, 'travelling_merchant', x + 34, y + 12, 36); ART.spr(g, 'crates_barrels', x - 38, y + 14, 36); },
+    grove: (g, x, y) => { shade(g, x, y + 8, 52, 12); glow(g, x, y - 10, 62, 'url(#gx-teal)'); ART.spr(g, 'firefly_lantern_glade', x, y + 14, 138); },
+    spring: (g, x, y) => { shade(g, x, y + 8, 50, 11); ART.spr(g, 'crystalline_pool', x, y + 14, 112); ART.spr(g, 'reeds_clump', x - 44, y + 12, 34); ART.spr(g, 'bluebell_patch', x + 44, y + 14, 34); },
+    hamlet: (g, x, y) => { shade(g, x, y + 8, 56, 12); ART.spr(g, 'thatched_farmhouse', x, y + 12, 118); glow(g, x - 12, y - 24, 30); ART.spr(g, 'hay_cart', x + 52, y + 16, 46); ART.spr(g, 'fence_straight', x - 54, y + 18, 44); },
+    waystone: (g, x, y) => { shade(g, x, y + 8, 30, 8); glow(g, x - 14, y - 38, 40); ART.spr(g, 'iron_lamppost', x - 14, y + 10, 34); ART.spr(g, 'wooden_signpost', x + 16, y + 12, 46); },
+  };
+})();
 const BIOME_OF = { 'aureth-crown': 'plains', 'verdant-expanse': 'forest', 'emberreach': 'volcanic', 'frostmere': 'ice', 'glasswind-desert': 'desert', 'hollow-coast': 'coast', 'starfall-highlands': 'highland', 'umbral-march': 'march' };
 const THEMES = {
   plains: { reg: 'plains', ground: 'meadow', blots: ['golden_blossom_meadow', 'dry_golden_grass', 'meadow_flower_grass'], obst: [['oak', 4], ['gold', 3], ['bush', 2], ['rock', 1]], ring: 0.55, tuft: 'meadow', water: 'water', label: 'Golden plains' },
@@ -1323,13 +1337,13 @@ function paintRiver(g, dp, kind) {
   s(86, P.deep[0], 1); s(70, P.deep[1], 1); s(46, P.deep[2], 1); s(24, P.deep[3], 0.75);
   if (kind === 'lava') {
     s(78, '#ffb347', 0.35, { class: 'lavaglow' }); s(40, '#ffe08a', 0.45, { class: 'lavaglow' });
-    s(60, '#fff2b0', 0.8, { 'stroke-dasharray': '3 26', class: 'flow' }); s(40, '#2a0e08', 0.55, { 'stroke-dasharray': '10 38', class: 'flow b' });
+    s(30, '#fff2b0', 0.35, { 'stroke-dasharray': '16 70', 'stroke-linecap': 'butt' }); s(18, '#2a0e08', 0.4, { 'stroke-dasharray': '24 80', 'stroke-linecap': 'butt' });
   } else {
     if (P.tex) s(82, riverTexPat, P.tex);
     s(80, 'url(#wa)', 0.3); s(66, 'url(#wb)', 0.32); s(40, 'url(#gx-sky)', 0.9);
-    if (kind === 'water' || kind === 'oasis' || kind === 'murk') s(54, '#fff', 0.55, { 'stroke-dasharray': '3 30', class: 'flow' });
+    if (kind === 'water' || kind === 'oasis' || kind === 'murk') s(3, '#fff', 0.5, { 'stroke-dasharray': '22 90', 'stroke-linecap': 'butt', transform: 'translate(-14,0)' }); s(2.4, '#fff', 0.4, { 'stroke-dasharray': '16 110', 'stroke-linecap': 'butt', transform: 'translate(15,0)' });
   }
-  if (kind === 'ice') { s(84, '#dcf0f8', 0.6); s(3, '#fff', 0.85, { 'stroke-dasharray': '3 30' }); }
+  if (kind === 'ice') { s(84, '#dcf0f8', 0.6); s(3, '#fff', 0.7, { 'stroke-dasharray': '18 60', 'stroke-linecap': 'butt' }); }
   else if (kind === 'water' && SECTOR.theme.reg === 'cold') { const ic = add(g, 'g', { class: 'ice' }); [[84, '#b7d6e8'], [62, '#dcf0f8']].forEach(([w, c]) => add(ic, 'path', { d: dp, fill: 'none', stroke: c, 'stroke-width': w * 0.66, 'stroke-linecap': 'round' })); }
 }
 function paintRoad(g, runs) {
@@ -1528,6 +1542,7 @@ function buildChunk(d) {
     const px = (lm.x + 0.5) * T, py = (lm.y + 0.5) * T;
     if (lm.kind === 'watchtower') items.push({ by: py - 10, occ: { t: 'e', cx: px, cy: py - 60, rx: 30, ry: 70 }, draw: (g) => ART.tower(g, px, py - 12, 0.86) });
     else if (lm.kind === 'frontier' || lm.kind === 'anchor') items.push({ by: py, draw: (g) => { add(g, 'circle', { class: 'pulse', cx: px, cy: py - 20, r: 44, fill: 'url(#gx-teal)', style: 'mix-blend-mode:screen' }); ART.spr(g, 'teal_rune_stone', px, py + 8, 50); } });
+    else if (POI_ART[lm.kind]) items.push({ by: py, draw: (g) => POI_ART[lm.kind](g, px, py) });
   });
   /* waterfall at a river's northern source, and a spring where a river enters from the side */
   if (home) S.rivers.forEach((r) => {
@@ -1725,6 +1740,23 @@ function paint() {
   }
   onMoveUi();
 }
+let predState = null;
+/* The server owns every step; between its replies the stage only previews the steps already
+   due on the authored clock, so the walk never waits for a network round trip. */
+function predictedTarget() {
+  const p = predState;
+  if (!p || !SECTOR || reduceMotion) return me;
+  let t = p.nextStepAt, now = p.serverNow + (Date.now() - p.recvAt), tgt = null;
+  if (t === null || now - t > 2000) return me;
+  for (let i = 0; i < p.route.length && i < 8; i++) {
+    if (t > now) break;
+    const st = p.route[i];
+    if (st.position.sectorId !== SECTOR.id) break;
+    tgt = st.position;
+    t += (p.route[i + 1] ? p.route[i + 1].durationMs : 0);
+  }
+  return tgt || me;
+}
 let lastV = performance.now();
 function visualStep(now) {
   requestAnimationFrame(visualStep);
@@ -1737,7 +1769,8 @@ function visualStep(now) {
     const sp = Math.max(3.4, d * 4.5), s = Math.min(d, sp * dt);
     o.x += (dx / d) * s; o.y += (dy / d) * s; return true;
   };
-  if (mv(meV, me.x, me.y)) changed = true;
+  const pt = predictedTarget();
+  if (mv(meV, pt.x, pt.y)) changed = true;
   OTHERS.forEach((p) => { const pv = { x: p.vx, y: p.vy }; if (mv(pv, p.x, p.y)) { p.vx = pv.x; p.vy = pv.y; changed = true; } });
   if (changed) frameUpdate();
 }
@@ -1993,11 +2026,11 @@ const HUB_OF_REGION = { 'aureth-crown': 'aureth', 'verdant-expanse': 'verdant', 
   hero.insertBefore(lantern, hero.firstChild);
 
   let timeManual = null, wxManual = null, region = 'temperate', pendingFx = null, curFx = null, lightning = false;
-  /* server time runs in real seconds, minutes and hours (UTC); day and night follow it */
+  /* the World keeps its own clock: one real hour is one in-game day, and day and night follow it */
   const utcNow = () => { const n = new Date(); return { h: n.getUTCHours(), m: n.getUTCMinutes(), s: n.getUTCSeconds() }; };
   let ENV = null, envAt = 0;
   window.AV_setEnv = (e) => { ENV = e; envAt = performance.now(); apply(); };
-  const envMinute = () => { if (!ENV) return null; const m = ENV.frozen ? ENV.minuteOfDay : ENV.minuteOfDay + (performance.now() - envAt) / 60000; return ((m % 1440) + 1440) % 1440; };
+  const envMinute = () => { if (!ENV) return null; const m = ENV.frozen ? ENV.minuteOfDay : ENV.minuteOfDay + ((performance.now() - envAt) * 1440) / (ENV.dayLengthMs || 3600000); return ((m % 1440) + 1440) % 1440; };
   const gameHours = () => { if (timeManual !== null) return timeManual; const m = envMinute(); if (m !== null) return m / 60; const n = utcNow(); return n.h + n.m / 60 + n.s / 3600; };
   const curWeather = () => wxManual || (ENV ? ENV.weather : weatherAt(Math.floor(Date.now() / 3600000)));
   const pad2 = (n) => String(n).padStart(2, '0');
@@ -2016,7 +2049,7 @@ const HUB_OF_REGION = { 'aureth-crown': 'aureth', 'verdant-expanse': 'verdant', 
     pendingFx = lk.fx || null; lightning = Boolean(lk.lightning);
     const hh = Math.floor(h), mm = Math.floor((h - hh) * 60), u = utcNow();
     const mNow = envMinute(), ss = mNow === null ? u.s : Math.floor(((mNow * 60) % 60));
-    sbTime.textContent = timeManual !== null ? `${pad2(hh)}:${pad2(mm)} UTC` : mNow === null ? `${pad2(u.h)}:${pad2(u.m)}:${pad2(u.s)} UTC` : ENV.frozen ? `${pad2(hh)}:${pad2(mm)} UTC` : `${pad2(hh)}:${pad2(mm)}:${pad2(ss)} UTC`;
+    sbTime.textContent = `${pad2(hh)}:${pad2(mm)} in-game${ENV && ENV.frozen ? ' (held)' : ''}`;
     sbWx.textContent = LABELS[region][w] + '';
     if (timeManual === null && document.activeElement !== tod) { tod.value = String(Math.round(h * 60)); }
     todOut.textContent = `${pad2(hh)}:${pad2(mm)}`;
@@ -2087,7 +2120,7 @@ const HUB_OF_REGION = { 'aureth-crown': 'aureth', 'verdant-expanse': 'verdant', 
   wxSel.addEventListener('change', () => { wxManual = wxSel.value === 'live' ? null : wxSel.value; apply(); });
   rgSel.addEventListener('change', () => { region = rgSel.value; apply(); });
   window.AV_setRegion = (k) => { if (k === region) return; region = k; apply(); };
-  setInterval(apply, 1000);
+  setInterval(apply, 500);
   apply(); size(); syncLoop();
 })();
 setTimeout(fitMap, 0);
@@ -2478,6 +2511,14 @@ setTimeout(fitMap, 0);
   document.addEventListener('click', (e) => { if (!setPop.hidden && !setPop.contains(e.target)) setOpen(null); });
   window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !setPop.hidden) { const g = gearOpen; setOpen(null); g.focus(); } });
   window.addEventListener('scroll', () => { if (!setPop.hidden) setOpen(gearOpen); }, { passive: true });
+  /* the footer settings button lives in the page: it asks the stage to open or close this popout */
+  window.addEventListener('message', (e) => {
+    if (e.origin !== location.origin || !e.data || e.data.av !== 'world-host' || e.data.type !== 'settings') return;
+    if (!setPop.hidden) { setOpen(null); return; }
+    gearOpen = gears[0]; setPop.hidden = false;
+    setPop.style.left = '8px'; setPop.style.bottom = '8px';
+    gears.forEach((g) => g.setAttribute('aria-expanded', 'true'));
+  });
   const coord = document.getElementById('sb-sec-cell'), coordBtn = document.getElementById('coord-toggle');
   const setCoord = (open, save) => {
     coord.dataset.open = String(open); coordBtn.setAttribute('aria-expanded', String(open));
@@ -2679,7 +2720,7 @@ setTimeout(fitMap, 0);
   function rebuildPois() {
     const S = SECTOR; if (!S) return;
     const secs = sectorById();
-    const imgFor = { settlement: ['timber_stone_tavern', 125, 60], watchtower: ['round_watchtower', 120, 40], frontier: ['teal_rune_stone', 80, 66], anchor: ['teal_rune_stone', 80, 66] };
+    const imgFor = { settlement: ['timber_stone_tavern', 125, 60], watchtower: ['round_watchtower', 120, 40], frontier: ['teal_rune_stone', 80, 66], anchor: ['teal_rune_stone', 80, 66], shrine: ['moonpetal_shrine', 110, 52], ruin: ['ancient_moss_arch', 110, 52], camp: ['small_campfire', 70, 62], grove: ['firefly_lantern_glade', 120, 52], spring: ['crystalline_pool', 110, 52], hamlet: ['thatched_farmhouse', 110, 56], waystone: ['iron_lamppost', 46, 60] };
     const list = S.landmarks.map((l) => { const [img, sz, py] = imgFor[l.kind] || imgFor.anchor; return { name: l.name, img, sz, py, x: l.x, y: l.y, dest: { sectorId: S.id, x: l.x, y: l.y }, kind: 'poi' }; });
     const seenTo = new Set();
     S.exits.filter((e) => e.from.sectorId === S.id).forEach((e) => {
@@ -2711,9 +2752,11 @@ setTimeout(fitMap, 0);
     say(l.kind === 'exit' ? `Travelling along ${l.via || 'the road'}.` : `Walking to ${l.name}.`); sendWalk(l.dest);
   });
 
+  let lastPoiSig = '', lastRouteSig = '';
   function applyState(s) {
     const prevId = SECTOR && SECTOR.id;
     SV = s;
+    predState = s.route && s.route.length && s.nextStepAt !== null ? { route: s.route, nextStepAt: s.nextStepAt, serverNow: s.serverNow, recvAt: Date.now() } : null;
     const sec = s.sectors.find((x) => x.id === s.position.sectorId);
     if (!sec) return;
     HERO_PORTRAIT = s.portrait || null;
@@ -2722,7 +2765,7 @@ setTimeout(fitMap, 0);
       OTHERS.length = 0; byId.clear();
       loadSector(sec);
       me = { x: s.position.x, y: s.position.y }; meV = { ...me };
-      lastRoster = ''; routeG.replaceChildren();
+      lastRoster = ''; routeG.replaceChildren(); lastPoiSig = ''; lastRouteSig = '';
       board.classList.remove('arrive'); void board.offsetWidth; board.classList.add('arrive');
     } else {
       SECTOR.landmarks = sec.landmarks; SECTOR.exits = sec.exits;
@@ -2734,8 +2777,10 @@ setTimeout(fitMap, 0);
     ROSTER = s.players.filter((p) => p.position.sectorId === SECTOR.id);
     refreshPlayers(ROSTER);
     if (!boardObj || !boardObj.contains(hero)) { updateChunks(...Object.values((({ cx, cy, vc, vr }) => ({ cx, cy, vc, vr }))(camera()))); }
-    rebuildPois();
-    drawRoute();
+    const poiSig = SECTOR.id + JSON.stringify(SECTOR.landmarks) + JSON.stringify(SECTOR.exits) + s.sectors.length;
+    if (poiSig !== lastPoiSig) { lastPoiSig = poiSig; rebuildPois(); }
+    const routeSig = s.route.map((r) => r.position.sectorId + r.position.x + ',' + r.position.y).join('|') + '@' + me.x + ',' + me.y;
+    if (routeSig !== lastRouteSig) { lastRouteSig = routeSig; drawRoute(); }
     if (window.AV_setEnv) window.AV_setEnv(s.environment);
     paint();
     if (window.AV && window.AV.sync) window.AV.sync();

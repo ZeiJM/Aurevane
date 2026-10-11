@@ -1,16 +1,15 @@
 'use client'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { FRONTIER_APPROACH, worldRegion } from '@/world/catalog'
-import { remainingTravelMs, samePosition, worldSyncDelayMs } from '@/world/travel'
-import type { WorldIntent, WorldPosition, WorldView } from '@/world/types'
+import { FRONTIER_APPROACH } from '@/world/catalog'
+import { samePosition, worldSyncDelayMs } from '@/world/travel'
+import type { WorldIntent, WorldView } from '@/world/types'
 import {
   buildStageState,
   parseStageMessage,
   travelDestination,
   type WorldStageState,
 } from './stage-bridge'
-import { Surroundings } from './surroundings'
 import styles from './world.module.css'
 
 export function WorldWorkspace({
@@ -23,7 +22,6 @@ export function WorldWorkspace({
   const router = useRouter()
   const refreshing = useRef(false)
   const [view, setView] = useState(initialView),
-    [panorama, setPanorama] = useState(false),
     [journal, setJournal] = useState(false),
     [message, setMessage] = useState(''),
     [busy, setBusy] = useState(false)
@@ -47,7 +45,6 @@ export function WorldWorkspace({
       return
     }
     if (next.version < current.current.version) return
-    if (next.position.sectorId !== current.current.position.sectorId) setPanorama(false)
     current.current = next
     viewAcceptedAt.current = Date.now()
     setView(next)
@@ -73,7 +70,7 @@ export function WorldWorkspace({
       return
     }
     pending.current = true
-    setBusy(true)
+    if (intent.kind !== 'tick') setBusy(true)
     try {
       const response = await fetch('/api/world', {
         method: 'POST',
@@ -98,7 +95,7 @@ export function WorldWorkspace({
     } finally {
       pending.current = false
       if (mounted.current) {
-        setBusy(false)
+        if (intent.kind !== 'tick') setBusy(false)
         const held = queuedIntent.current
         queuedIntent.current = null
         if (held) void sendRef.current(held)
@@ -230,13 +227,6 @@ export function WorldWorkspace({
     return () => window.removeEventListener('message', onMessage)
   }, [])
   const local = view.sectors.find((s) => s.id === view.position.sectorId) ?? view.sectors[0]!
-  const destination = view.route.at(-1)?.position
-  const destinationName = view.sectors.find((s) => s.id === destination?.sectorId)?.name
-  const remainingSeconds = Math.ceil(remainingTravelMs(view, view.serverNow) / 1000)
-  const remainingTime =
-    remainingSeconds >= 60
-      ? `${Math.floor(remainingSeconds / 60)}m ${remainingSeconds % 60}s`
-      : `${remainingSeconds}s`
   const disabled = busy || Boolean(view.movementBlocked)
   const pulseObjectives = view.objectives.filter((objective) => objective.kind === 'event')
   const questObjectives = view.objectives.filter((objective) => objective.kind === 'quest')
@@ -268,9 +258,6 @@ export function WorldWorkspace({
           : clues}
     </button>
   )
-  function walk(position: WorldPosition) {
-    void send({ kind: 'walk', destination: position })
-  }
   return (
     <section
       className={styles.workspace}
@@ -293,16 +280,6 @@ export function WorldWorkspace({
               <h2>Journal</h2>
               <button onClick={() => setJournal(false)}>Close</button>
             </div>
-            <section className={styles.panel} aria-label="Location details">
-              <h2>You are in {local.name}</h2>
-              <p className={styles.quiet}>
-                {worldRegion(local.regionId)?.summary ?? 'Explore the places revealed on your map.'}
-              </p>
-              <p className={styles.quiet}>
-                {local.coordinate} · E{local.east + view.position.x} / N
-                {local.north - view.position.y}
-              </p>
-            </section>
             {view.interactions.length ? (
               <section className={styles.panel} aria-label="Local interaction">
                 <h2>✦ Local interaction</h2>
@@ -402,30 +379,6 @@ export function WorldWorkspace({
                 ))}
               </section>
             ) : null}
-            {local.exits.length ? (
-              <section className={styles.panel} aria-label="Roads and crossings">
-                <h2>Roads & crossings</h2>
-                <p className={styles.quiet}>From {local.name}</p>
-                <div className={styles.exitList}>
-                  {local.exits.map((exit) => {
-                    const targetSector = view.sectors.find((s) => s.id === exit.to.sectorId)
-                    if (!targetSector) return null
-                    return (
-                      <button
-                        key={`${exit.to.sectorId}:${exit.to.x}:${exit.to.y}`}
-                        disabled={disabled}
-                        onClick={() => walk(exit.to)}
-                      >
-                        <strong>Travel to {targetSector.name}</strong>
-                        <small>
-                          {exit.name} · {targetSector.coordinate}
-                        </small>
-                      </button>
-                    )
-                  })}
-                </div>
-              </section>
-            ) : null}
             {!local.charted || samePosition(view.position, FRONTIER_APPROACH) ? (
               <section className={styles.panel}>
                 <h2>Beyond the last map</h2>
@@ -456,29 +409,50 @@ export function WorldWorkspace({
         ) : null}
       </div>
       <div className={styles.stageBar}>
-        <span data-world-travel-status>
-          {view.route.length ? (
-            <>
-              <strong>
-                {view.route[0]?.road ?? 'Walking'} → {destinationName}
-              </strong>
-              <small>
-                About {remainingTime} · {view.route.length} steps remaining
-              </small>
-            </>
-          ) : message || view.movementBlocked ? (
+        <span className={styles.stageLeft}>
+          <span className={styles.coords} data-world-coordinates>
+            <svg viewBox="0 0 24 24" aria-hidden="true" width="16" height="16">
+              <path
+                d="M12 2.5c-3.6 0-6.5 2.8-6.5 6.4 0 4.7 6.5 12.6 6.5 12.6s6.5-7.9 6.5-12.6c0-3.6-2.9-6.4-6.5-6.4zm0 8.8a2.4 2.4 0 110-4.8 2.4 2.4 0 010 4.8z"
+                fill="currentColor"
+              />
+            </svg>
+            <span>
+              <small>Coordinates</small>
+              <b>
+                {local.coordinate} · E{local.east + view.position.x} · N
+                {local.north - view.position.y}
+              </b>
+            </span>
+          </span>
+          <button
+            className={styles.gear}
+            aria-label="Settings"
+            title="Settings"
+            onClick={() =>
+              frame.current?.contentWindow?.postMessage(
+                { av: 'world-host', type: 'settings' },
+                window.location.origin,
+              )
+            }
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true" width="18" height="18">
+              <path
+                d="M12 8.6a3.4 3.4 0 100 6.8 3.4 3.4 0 000-6.8zm8.4 4.4v-2l-2.1-.5a6.6 6.6 0 00-.7-1.6l1.1-1.9-1.4-1.4-1.9 1.1a6.6 6.6 0 00-1.6-.7L13 3.6h-2l-.5 2.1a6.6 6.6 0 00-1.6.7L7 5.3 5.6 6.7l1.1 1.9c-.3.5-.5 1-.7 1.6l-2.1.5v2l2.1.5c.2.6.4 1.1.7 1.6l-1.1 1.9L7 18.1l1.9-1.1c.5.3 1 .5 1.6.7l.5 2.1h2l.5-2.1c.6-.2 1.1-.4 1.6-.7l1.9 1.1 1.4-1.4-1.1-1.9c.3-.5.5-1 .7-1.6l2.1-.5z"
+                fill="currentColor"
+              />
+            </svg>
+          </button>
+        </span>
+        <span data-world-travel-status className={styles.travelStatus}>
+          {message || view.movementBlocked ? (
             <span role="status">{message || view.movementBlocked}</span>
-          ) : (
-            <>Click the map or use W A S D to walk. Open the Journal for quests and routes.</>
-          )}
+          ) : null}
         </span>
         <span className={styles.stageActions}>
           {view.route.length ? (
             <button onClick={() => void send({ kind: 'stop' })}>Stop travel</button>
           ) : null}
-          <button disabled={!local.panorama} onClick={() => setPanorama(true)}>
-            ◉ View 360°
-          </button>
           <button
             aria-expanded={journal}
             aria-controls="world-journal"
@@ -488,9 +462,6 @@ export function WorldWorkspace({
           </button>
         </span>
       </div>
-      {panorama && local.panorama ? (
-        <Surroundings src={local.panorama} name={local.name} onClose={() => setPanorama(false)} />
-      ) : null}
     </section>
   )
 }

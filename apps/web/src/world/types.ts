@@ -43,7 +43,18 @@ export interface WorldLandmark {
   name: string
   x: number
   y: number
-  kind: 'settlement' | 'watchtower' | 'frontier' | 'anchor'
+  kind:
+    | 'settlement'
+    | 'watchtower'
+    | 'frontier'
+    | 'anchor'
+    | 'shrine'
+    | 'ruin'
+    | 'camp'
+    | 'grove'
+    | 'spring'
+    | 'hamlet'
+    | 'waystone'
 }
 export interface WorldSector {
   id: string
@@ -57,6 +68,8 @@ export interface WorldSector {
   north: number
   rows: readonly string[]
   charted: boolean
+  /** Deterministically generated ground between and beyond the authored regions. */
+  generated?: boolean
   landmarks: readonly WorldLandmark[]
   roads: readonly WorldRoad[]
 }

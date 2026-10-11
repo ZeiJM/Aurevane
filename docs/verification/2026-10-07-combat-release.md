@@ -21,14 +21,14 @@ Focused rendered matrices passed 42 current/historical targeting cases, 60 perce
 
 Evidence artifacts for the same final run:
 
-| Artifact | ID | SHA-256 |
-| --- | --- | --- |
+| Artifact                           | ID          | SHA-256                                                            |
+| ---------------------------------- | ----------- | ------------------------------------------------------------------ |
 | Compact combat release screenshots | 11473979787 | `4fe83d1ab56a1a26fbd331cdd7ea2b3665587807e51b1185701565cfc29dab19` |
-| Targeting screenshots | 11474392825 | `e8d0e5e7f3ce18550874e8e72208b0eba36e1c67db9890ec44f38ae461277149` |
+| Targeting screenshots              | 11474392825 | `e8d0e5e7f3ce18550874e8e72208b0eba36e1c67db9890ec44f38ae461277149` |
 
 ## Production database receipt
 
-Applied only `supabase/migrations/20261007034319_battlefield_elevation_policy.sql`, source SHA-256 `18a200e95bf07f4981efb7e6d9ab4e1e3b992bbe092cc1b1e3af7c35b02e007a`. Hosted migration name `battlefield_elevation_policy`, actual hosted version `20261007101310` (distinct from the source filename timestamp). Verified policy version 1 with basis-point weights 6000/3000/1000, RLS enabled, both client roles denied read/publication RPC access, and service-role read/publication RPC access granted. The seed audit reason records approved 60/30/10 defaults; absence of a seed publisher is intentional.
+Applied only `supabase/migrations/20261007101310_battlefield_elevation_policy.sql`, source SHA-256 `18a200e95bf07f4981efb7e6d9ab4e1e3b992bbe092cc1b1e3af7c35b02e007a`. Hosted migration name `battlefield_elevation_policy`, actual hosted version `20261007101310` (distinct from the source filename timestamp). Verified policy version 1 with basis-point weights 6000/3000/1000, RLS enabled, both client roles denied read/publication RPC access, and service-role read/publication RPC access granted. The seed audit reason records approved 60/30/10 defaults; absence of a seed publisher is intentional.
 
 Security advisors changed from 44 to 45 INFO no-policy entries solely because this private server-only table intentionally has no client RLS policy. The existing single leaked-password WARN was unchanged. No unrelated migration/history repair, production account changes or experimental settings publication occurred. Final read-only Skill/Essence publication override query returned an empty list; no content conversion writes were needed.
 

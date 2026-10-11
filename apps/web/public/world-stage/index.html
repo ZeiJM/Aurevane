@@ -12,7 +12,7 @@
 <div hidden id="preview-controls"><button id="btn-motion" type="button" aria-pressed="true">Ambient motion</button><fieldset class="preview">
       <legend>Preview controls</legend>
       <div class="row">
-        <label for="tod">Server time (UTC) <input id="tod" type="range" min="0" max="1439" step="5" value="720"><output id="tod-out" for="tod">12:00</output></label>
+        <label for="tod">World time <input id="tod" type="range" min="0" max="1439" step="5" value="720"><output id="tod-out" for="tod">12:00</output></label>
         <button id="tod-live" type="button" aria-pressed="true">Live server time</button>
         <button type="button" data-h="6.3">Dawn</button>
         <button type="button" data-h="12">Noon</button>
@@ -39,7 +39,7 @@
         <div class="hinfo" role="status" aria-label="Weather and server time">
           <span class="hitem"><span class="k">Weather</span><b id="sb-wx"></b></span>
           <span class="hdot" aria-hidden="true"></span>
-          <span class="hitem"><span class="k">Server time</span><b id="sb-time"></b></span>
+          <span class="hitem"><span class="k">World time</span><b id="sb-time"></b></span>
         </div>
       </div>
       <div class="screen-body">

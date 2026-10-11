@@ -26,7 +26,7 @@ Branch `agent/loadout-header-watermarks-20261003` includes the complete precedin
 
 ## Release preconditions
 
-Require passing exact-head GitHub workflows, refresh Main, apply only `20261003120343_character_default_portrait_choice.sql`, verify service-only RPC grants, merge the combined batch, then verify the precise Production revision and alias. Do not consume an existing user's portrait choice for live smoke. Record hosted migration and deployment receipts in the release closeout.
+Require passing exact-head GitHub workflows, refresh Main, apply only `20261003142740_character_default_portrait_choice.sql`, verify service-only RPC grants, merge the combined batch, then verify the precise Production revision and alias. Do not consume an existing user's portrait choice for live smoke. Record hosted migration and deployment receipts in the release closeout.
 
 ## Hosted release and closeout
 

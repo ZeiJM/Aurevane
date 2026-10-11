@@ -158,9 +158,9 @@ describe('world authority and spoiler projection', () => {
     expect(road).toBeDefined()
     expect(road.cells.filter((c) => c.y === 4).every((c) => c.walkable && !c.safe)).toBe(true)
     expect(road.exits.map((e) => e.to.sectorId).sort()).toEqual([
-      'aureth-crown',
       'crown-hinterland',
-      'verdant-expanse',
+      'trail:aureth-crown:crown-road:3',
+      'trail:crown-road:verdant-expanse:1',
     ])
     expect(() =>
       assertEncounterRange(state, { ...state, position: { ...state.position, x: 6 } }),
@@ -182,8 +182,8 @@ describe('world authority and spoiler projection', () => {
     ).toBe(true)
     expect(road.cells.filter((cell) => cell.y >= 5).every((cell) => !cell.walkable)).toBe(true)
     expect(road.exits.map((exit) => exit.to.sectorId).sort()).toEqual([
-      'hollow-coast',
-      'verdant-expanse',
+      'trail:coastal-road:hollow-coast:1',
+      'trail:verdant-expanse:coastal-road:3',
     ])
     expect(road.panorama).toBe('/media/art/world/coastal-road-panorama-v01.webp')
     expect(() =>
@@ -241,7 +241,13 @@ describe('world authority and spoiler projection', () => {
       road.cells.filter((cell) => cell.y === 4).every((cell) => cell.walkable && !cell.safe),
     ).toBe(true)
     expect(road.cells.some((cell) => cell.safe)).toBe(false)
-    expect(road.exits.map((exit) => exit.to.sectorId).sort()).toEqual(exits)
+    // Every road now leaves through generated trail sectors, so towns sit well apart.
+    expect(road.exits).toHaveLength(exits.length)
+    expect(
+      road.exits.every(
+        (exit) => exit.to.sectorId.startsWith('trail:') && exit.to.sectorId.includes(id),
+      ),
+    ).toBe(true)
     expect(() =>
       assertEncounterRange(state, { ...state, position: { ...state.position, x: 7 } }),
     ).not.toThrow()
@@ -506,5 +512,46 @@ describe('offline characters in the shared world', () => {
     )
     expect(view.players).toHaveLength(1)
     expect(view.players[0]).toMatchObject({ name: 'Sleeper', online: false, attackable: false })
+  })
+})
+
+describe('endless generated wilds', () => {
+  const walkTo = (
+    state: ReturnType<typeof newWorldState>,
+    destination: { sectorId: string; x: number; y: number },
+    t0: number,
+  ) => {
+    let now = t0
+    let next = resolveWorldIntent(state, { kind: 'walk', destination }, now)
+    for (let i = 0; i < 400 && next.route.length; i++) {
+      now = next.nextStepAt!
+      next = resolveWorldIntent(next, { kind: 'tick' }, now)
+    }
+    return { state: next, now }
+  }
+  it('lets a character leave a region through its open edge and keep exploring outward', () => {
+    const start = { ...newWorldState(), position: { sectorId: 'verdant-expanse', x: 6, y: 1 } }
+    const first = walkTo(start, { sectorId: 'wild:verdant-expanse:north:1:0', x: 6, y: 8 }, 1000)
+    expect(first.state.position).toEqual({ sectorId: 'wild:verdant-expanse:north:1:0', x: 6, y: 8 })
+    const view = projectWorld(first.state, [], first.now)
+    const wild = view.sectors.find((s) => s.id === 'wild:verdant-expanse:north:1:0')!
+    expect(wild.regionId).toBe('verdant-expanse')
+    expect(wild.cells).toHaveLength(117)
+    expect(wild.exits.some((e) => e.to.sectorId === 'verdant-expanse')).toBe(true)
+    const farther = walkTo(
+      first.state,
+      { sectorId: 'wild:verdant-expanse:north:2:0', x: 6, y: 8 },
+      first.now,
+    )
+    expect(farther.state.position.sectorId).toBe('wild:verdant-expanse:north:2:0')
+    expect(farther.state.discoveries['wild:verdant-expanse:north:1:0']).toHaveLength(117)
+    // Unvisited generated ground stays unknown.
+    expect(() =>
+      resolveWorldIntent(
+        first.state,
+        { kind: 'walk', destination: { sectorId: 'wild:verdant-expanse:north:4:0', x: 6, y: 4 } },
+        first.now,
+      ),
+    ).toThrow()
   })
 })

@@ -4,7 +4,7 @@ import { PGlite } from '@electric-sql/pglite'
 import { expect, it } from 'vitest'
 const path = resolve(
   process.cwd(),
-  '../../supabase/migrations/20261003015029_combat_effect_timing_policy.sql',
+  '../../supabase/migrations/20261003040911_combat_effect_timing_policy.sql',
 )
 it('persists immutable Owner-audited versions and rejects stale or malformed publication', async () => {
   expect(existsSync(path)).toBe(true)
@@ -75,7 +75,7 @@ it('appends Delayed Rewind without mutating prior overrides and keeps exclusive 
       readFileSync(
         resolve(
           process.cwd(),
-          '../../supabase/migrations/20261008162310_combat_delayed_timing.sql',
+          '../../supabase/migrations/20261008203822_combat_delayed_timing.sql',
         ),
         'utf8',
       ),
@@ -145,7 +145,7 @@ it('allows independent Push/Pull publication while keeping history and service-o
       readFileSync(
         resolve(
           process.cwd(),
-          '../../supabase/migrations/20261008224315_combat_push_pull_timing.sql',
+          '../../supabase/migrations/20261009033830_combat_push_pull_timing.sql',
         ),
         'utf8',
       ),
@@ -187,7 +187,7 @@ it('adds only Suppress timing without rewriting Owner v7 history or widening pub
       readFileSync(
         resolve(
           process.cwd(),
-          '../../supabase/migrations/20261008224315_combat_push_pull_timing.sql',
+          '../../supabase/migrations/20261009033830_combat_push_pull_timing.sql',
         ),
         'utf8',
       ),

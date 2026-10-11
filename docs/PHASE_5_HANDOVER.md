@@ -29,7 +29,7 @@ Authenticated journeys and concurrency scenarios run against disposable CI accou
 
 ## Database and repository safeguards
 
-Migration source: `supabase/migrations/20260922203418_living_atlas_world_travel.sql`. Production database: `luazfeupwfgnilohfsya`. The migration adds private world state/encounter provenance, four service-role-only RPCs and battle/training/spectator guards. The release record contains its actual applied version and post-migration checks. Older migration-history bookkeeping drift does not authorize replaying unrelated migrations.
+Migration source: `supabase/migrations/20260923190443_living_atlas_world_travel.sql`. Production database: `luazfeupwfgnilohfsya`. The migration adds private world state/encounter provenance, four service-role-only RPCs and battle/training/spectator guards. The release record contains its actual applied version and post-migration checks. Older migration-history bookkeeping drift does not authorize replaying unrelated migrations.
 
 Read `AGENTS.md`, `docs/GAME_MASTER_PLAN.md`, `docs/ROADMAP.md`, `TASKS.md`, `docs/PHASE_5_TICKETS.md` and `docs/LIVING_ATLAS_DELIVERY.md`. The approved Atlas contract is `docs/superpowers/specs/2026-09-22-living-atlas.md`, with its implementation plan beside it.
 

@@ -20,4 +20,4 @@ The actual migration was executed against local PostgreSQL semantics using PGlit
 
 ## Release boundary
 
-No live database migration, content publication, merge or deployment is claimed. Before enabling the gallery, apply `supabase/migrations/20261003120343_character_default_portrait_choice.sql` through the normal authorized release workflow. Until its getter is available, the gallery fails closed while the existing title/custom-image controls keep working. Exact-head CI, authenticated integration and Owner visual acceptance remain release checks.
+No live database migration, content publication, merge or deployment is claimed. Before enabling the gallery, apply `supabase/migrations/20261003142740_character_default_portrait_choice.sql` through the normal authorized release workflow. Until its getter is available, the gallery fails closed while the existing title/custom-image controls keep working. Exact-head CI, authenticated integration and Owner visual acceptance remain release checks.
