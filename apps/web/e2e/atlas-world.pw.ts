@@ -180,7 +180,7 @@ async function stageWalk(page: Page, destination: { sectorId: string; x: number;
   )
 }
 
-test('the World page is the scenic map stage inside the shared shell, with Journal, globe and 360 view', async ({
+test('the World page is the scenic map stage inside the shared shell, with Journal and globe', async ({
   page,
 }, info) => {
   test.setTimeout(120000)
@@ -272,33 +272,12 @@ test('the World page is the scenic map stage inside the shared shell, with Journ
   await capture(page, info, 'world-globe')
   await frame.locator('#v-toggle').click()
   await expect(frame.locator('#stage-world')).toBeHidden()
-  await page.getByRole('button', { name: /View 360/ }).click()
-  const dialog = page.getByRole('dialog')
-  await expect(dialog).toBeVisible()
-  await expect(dialog.getByRole('heading', { name: 'Verdant Expanse' })).toBeVisible()
-  await dialog.getByRole('button', { name: 'Look right' }).click()
-  await capture(page, info, 'world-surroundings')
-  await page.keyboard.press('Escape')
-  await expect(dialog).toHaveCount(0)
-  await expect(page.getByRole('button', { name: /View 360/ })).toBeFocused()
   if (info.project.name === 'desktop-chromium') {
     for (const region of WORLD_REGIONS) {
       place(initial.characterId, region.id, 5, 4)
       await page.reload()
       await expectLocation(page, region.name)
       await capture(page, info, `sector-${region.id}`)
-      const loaded = page.waitForResponse(
-        // A previously viewed panorama may be revalidated from the browser cache.
-        (r) =>
-          r.url().endsWith(`/${region.id}-panorama-v01.webp`) && (r.ok() || r.status() === 304),
-        { timeout: 15000 },
-      )
-      await page.getByRole('button', { name: /View 360/ }).click()
-      await loaded
-      await expect(dialog.locator('canvas')).toBeVisible()
-      await dialog.getByRole('button', { name: 'Look right' }).click()
-      await capture(page, info, `panorama-${region.id}`)
-      await page.keyboard.press('Escape')
     }
   }
 })
@@ -650,7 +629,7 @@ for (const journey of [
     startSector: 'aureth-crown',
   },
 ])
-  test(`${journey.name} is a persistent journey with exits, stopping, globe location and its own surroundings`, async ({
+  test(`${journey.name} is a persistent journey with stopping, globe location and its own surroundings`, async ({
     page,
   }, info) => {
     test.skip(
@@ -666,24 +645,6 @@ for (const journey of [
     await expectLocation(page, journey.name)
     await expect(stageOf(page).locator('#nav-svg')).toBeVisible()
     await capture(page, info, `${journey.id}-sector`)
-    const panorama = (await world(page)).sectors.find(
-      (sector) => sector.id === journey.id,
-    )!.panorama!
-    const loaded = page.waitForResponse(
-      (response) =>
-        response.url().endsWith(panorama) && (response.ok() || response.status() === 304),
-      { timeout: 15000 },
-    )
-    await page.getByRole('button', { name: /View 360/ }).click()
-    await (await loaded).finished()
-    await expect(
-      page.getByRole('dialog').getByRole('heading', { name: journey.name }),
-    ).toBeVisible()
-    await capture(page, info, `${journey.id}-surroundings`)
-    for (let turn = 0; turn < 6; turn++)
-      await page.getByRole('dialog').getByRole('button', { name: 'Look right' }).click()
-    await capture(page, info, `${journey.id}-surroundings-reverse`)
-    await page.keyboard.press('Escape')
     await stageOf(page).locator('#v-toggle').click()
     await expect(stageOf(page).locator('#globe-svg')).toBeVisible()
     await capture(page, info, `${journey.id}-globe`)
@@ -723,10 +684,7 @@ for (const journey of [
     await capture(page, info, `${journey.id}-arrival`)
   })
 
-test('a proximity attack reaches both authenticated players while the target views 360', async ({
-  page,
-  browser,
-}, info) => {
+test('a proximity attack reaches both authenticated players', async ({ page, browser }, info) => {
   test.skip(
     info.project.name !== 'desktop-chromium',
     'Two-account authority is viewport independent.',
@@ -753,8 +711,6 @@ test('a proximity attack reaches both authenticated players while the target vie
     place(target.characterId, 'crown-road', 6, 4)
     await page.reload()
     await opponent.reload()
-    await opponent.getByRole('button', { name: /View 360/ }).click()
-    await expect(opponent.getByRole('dialog')).toBeVisible()
     const attackButton = stageOf(page).getByRole('button', {
       name: `Attack ${opponentName}`,
       exact: true,

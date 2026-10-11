@@ -2511,6 +2511,14 @@ setTimeout(fitMap, 0);
   document.addEventListener('click', (e) => { if (!setPop.hidden && !setPop.contains(e.target)) setOpen(null); });
   window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !setPop.hidden) { const g = gearOpen; setOpen(null); g.focus(); } });
   window.addEventListener('scroll', () => { if (!setPop.hidden) setOpen(gearOpen); }, { passive: true });
+  /* the footer settings button lives in the page: it asks the stage to open or close this popout */
+  window.addEventListener('message', (e) => {
+    if (e.origin !== location.origin || !e.data || e.data.av !== 'world-host' || e.data.type !== 'settings') return;
+    if (!setPop.hidden) { setOpen(null); return; }
+    gearOpen = gears[0]; setPop.hidden = false;
+    setPop.style.left = '8px'; setPop.style.bottom = '8px';
+    gears.forEach((g) => g.setAttribute('aria-expanded', 'true'));
+  });
   const coord = document.getElementById('sb-sec-cell'), coordBtn = document.getElementById('coord-toggle');
   const setCoord = (open, save) => {
     coord.dataset.open = String(open); coordBtn.setAttribute('aria-expanded', String(open));
