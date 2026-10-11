@@ -968,3 +968,6 @@ main#board { max-width: none !important; width: 100%; height: 100%; margin: 0 !i
 #board[data-motion='true'][data-wind='strong'] .sway:not(.grass) { animation-timing-function: steps(10, end); }
 #world[data-region='plains'] .tree { filter: none; }
 #tint-svg { position: absolute; left: 0; top: 0; pointer-events: none; }
+[data-motion='true'] .sway:not(.grass) { animation-duration: calc(5.5s * var(--sp, 1)); }
+[data-motion='true'] .sway.slow:not(.grass) { animation-duration: calc(8s * var(--sp, 1)); }
+#board[data-motion='true'][data-wind='strong'] .sway:not(.grass) { animation-duration: calc(2.3s * var(--sp, 1)); }

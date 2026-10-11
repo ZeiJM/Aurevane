@@ -59,6 +59,10 @@ const footprintTiles = (x, y, w, h) => {
 houses.forEach((h) => footprintTiles(h.x, h.y, h.w, h.h).forEach((k) => blocked.add(k)));
 
 const world = document.getElementById('world');
+/* only some trees sway, and each at its own pace and reach, so the wood looks alive without every tree animating in unison */
+function treeId(pal) { return Math.floor(pal * 100000) % 997; }
+function treeSway(pal) { const k = treeId(pal) % 5; return 'tree' + (k < 2 ? ' sway' + (k === 0 ? ' slow' : '') : ''); }
+function treeSwayStyle(pal) { const n = treeId(pal); return `animation-delay:${((n * 0.37) % 5).toFixed(2)}s;--sp:${(0.78 + (n % 9) * 0.06).toFixed(2)};--amp:${(1.5 + (n % 7) * 0.3).toFixed(1)}deg`; }
 const add = (parent, tag, attrs = {}, html) => {
   const el = document.createElementNS(NS, tag);
   for (const k in attrs) el.setAttribute(k, attrs[k]);
@@ -222,7 +226,7 @@ const ART = (() => {
   };
   A.tree = (parent, x, y, s, pal, i) => {
     const kind = pal > 0.985 ? 'glow' : pal > 0.93 ? 'amber' : pal < 0.36 ? 'pine' : 'oak';
-    const g = add(parent, 'g', { class: 'tree sway' + (i % 3 ? '' : ' slow'), style: `animation-delay:${(i * 0.37) % 5}s` });
+    const g = add(parent, 'g', { class: treeSway(pal), style: treeSwayStyle(pal) });
     shadow(g, x + 20 * s, y + 10 * s, 42 * s, 13 * s);
     const sp = rng(i * 977 + 13), P = PAL[kind];
     if (kind === 'pine') {
@@ -619,7 +623,7 @@ const SPR={"small_stone_cottage":{"w":342,"h":307,"cx":168,"cb":262,"cw":277,"ct
   A.TREES = TREES;
   A.tree = (parent, x, y, s, pal, i, kind) => {
     kind = kind || (pal > 0.985 ? 'glow' : pal > 0.93 ? 'amber' : pal < 0.36 ? 'fir' : 'oak');
-    const g = add(parent, 'g', { class: 'tree sway' + (i % 3 ? '' : ' slow'), style: `animation-delay:${(i * 0.37) % 5}s` });
+    const g = add(parent, 'g', { class: treeSway(pal), style: treeSwayStyle(pal) });
     const list = TREES[kind], nm = list[Math.floor(pal * 997) % list.length], cw = (kind === 'bush' || kind === 'ashrub' ? 66 : kind === 'fir' ? 92 : 108) * s;
     sh(g, x + 14 * s, y + 8 * s, cw * 0.46, cw * 0.14, 0.62);
     spr(g, nm, x, y + 11 * s, cw, { flip: i % 2 });
