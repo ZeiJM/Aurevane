@@ -929,3 +929,22 @@ main#board { max-width: none !important; width: 100%; height: 100%; margin: 0 !i
 
 /* The settings popout opens above the page bar (which overlays the bottom of this frame) so nothing is hidden */
 .setpop { max-height: calc(100vh - var(--bar-h, 0px) - 16px); overflow-y: auto; }
+
+/* v39: the header is two aligned rows. Row 1: area name | weather. Row 2: zone badge | UTC time.
+   Both columns share the same row heights so the badge and the time sit on one line. */
+.screen-head { align-items: stretch; }
+.screen-head .where { display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between; gap: 4px; align-self: stretch; padding: 0 8px 0 0; }
+.screen-head .where .whr { display: contents; }
+.screen-head .where h3 { flex: 1 1 auto; min-height: 0; align-self: stretch; display: flex; align-items: center; }
+.screen-head .where .whr .zb { flex: none; height: 22px; box-sizing: border-box; display: inline-flex; align-items: center; line-height: 1; }
+.screen-head .where .sub:empty { display: none; }
+.screen-head .hinfo { display: grid; grid-template-rows: minmax(0, 1fr) 22px; gap: 4px; justify-items: end; align-items: center; align-content: stretch; align-self: stretch; }
+.screen-head .hinfo .hitem { display: inline-flex; align-items: center; justify-content: flex-end; white-space: nowrap; line-height: 1; }
+.screen-head .hinfo .hitem b { font: 600 0.82rem/1 var(--font-body); color: #f4e7c3; }
+
+/* v40: slim, flat tab strip (38px) with smaller lettering */
+.dock-tabs { height: 38px; align-items: stretch; background: #0a2733; }
+.dock-tabs .dtab { height: 38px; min-height: 38px; margin: 0; padding: 2px 6px; border-radius: 0; border: 0; border-right: 1px solid #1f4753; font: 600 0.64rem/1.15 var(--font-body); letter-spacing: 0.1em; display: flex; align-items: center; justify-content: center; text-align: center; }
+.dock-tabs .dtab:last-child { border-right: 0; }
+.dock-tabs .dtab .dt { font: inherit; letter-spacing: inherit; }
+.dock-tabs .dtab[aria-selected='true'] { box-shadow: inset 0 -2px 0 var(--pn-gold); }

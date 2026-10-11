@@ -2153,7 +2153,7 @@
 /* The Missions tab shows the former Journal inside the panel body: under the header and tabs, above the bar */
 @media (min-width: 761px) {
   .workspace .journal {
-    top: 134px;
+    top: 115px;
     right: 0;
     bottom: 56px;
     box-sizing: border-box;
@@ -2164,7 +2164,7 @@
 }
 @media (max-width: 760px) {
   .workspace .journal {
-    top: calc(100vw + 134px);
+    top: calc(100vw + 115px);
     right: 0;
     bottom: 0;
     box-sizing: border-box;
@@ -2176,4 +2176,77 @@
 .workspace {
   padding: 0;
   gap: 0;
+}
+
+/* v40: the map area is the positioning box for the Missions overlay and the bar, so their edges always match the map panel's */
+.stageArea {
+  container-type: size;
+}
+.workspace .stageArea .stageBar {
+  right: 0;
+  bottom: 0;
+}
+
+/* v40: the Missions panel is opaque, compact and uses the same borders as the rest of the right-hand panel */
+.workspace .stageBar {
+  border-top: 1px solid #8a7440;
+  border-left: 1px solid #8a7440;
+}
+.workspace .journal {
+  box-sizing: border-box;
+  gap: 10px;
+  padding: 10px 12px;
+  background: #08222d;
+  border-left: 1px solid #8a7440;
+  color-scheme: dark;
+  scrollbar-width: thin;
+  scrollbar-color: #2a5663 transparent;
+}
+.workspace .journal .journalHead {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.workspace .journal .panel {
+  padding: 10px 12px;
+  margin: 0;
+  background: linear-gradient(#0c2d3a, #082029);
+  border: 1px solid #2a5663;
+  border-radius: 0;
+}
+.workspace .journal .panel h2 {
+  margin: 0 0 6px;
+  padding: 0 0 6px;
+  font: 600 0.66rem/1.2 var(--av-font-body, system-ui, sans-serif);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #c9a45a;
+  border-bottom: 1px solid #2a5663;
+}
+.workspace .journal .panel h3 {
+  margin: 0 0 3px;
+  font: 600 0.84rem/1.25 var(--av-font-body, system-ui, sans-serif);
+  color: #f4e7c3;
+}
+.workspace .journal .panel p,
+.workspace .journal .quiet {
+  margin: 0 0 6px;
+  font-size: 0.74rem;
+  line-height: 1.4;
+  color: #b5cbc4;
+}
+.workspace .journal .quest + .quest {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #2a5663;
+}
+.workspace .journal .primary,
+.workspace .journal .quest button {
+  width: 100%;
+  min-height: 32px;
+  padding: 0 10px;
+  font-size: 0.74rem;
 }

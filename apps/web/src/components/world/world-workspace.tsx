@@ -418,53 +418,53 @@ export function WorldWorkspace({
             ) : null}
           </aside>
         ) : null}
-      </div>
-      <div className={styles.stageBar}>
-        <span className={styles.stageLeft}>
-          <span className={styles.coords} data-world-coordinates>
-            <svg viewBox="0 0 24 24" aria-hidden="true" width="16" height="16">
-              <path
-                d="M12 2.5c-3.6 0-6.5 2.8-6.5 6.4 0 4.7 6.5 12.6 6.5 12.6s6.5-7.9 6.5-12.6c0-3.6-2.9-6.4-6.5-6.4zm0 8.8a2.4 2.4 0 110-4.8 2.4 2.4 0 010 4.8z"
-                fill="currentColor"
-              />
-            </svg>
-            <span>
-              <small>Coordinates</small>
-              <b>
-                {local.coordinate} · E{local.east + view.position.x} · N
-                {local.north - view.position.y}
-              </b>
+        <div className={styles.stageBar}>
+          <span className={styles.stageLeft}>
+            <span className={styles.coords} data-world-coordinates>
+              <svg viewBox="0 0 24 24" aria-hidden="true" width="16" height="16">
+                <path
+                  d="M12 2.5c-3.6 0-6.5 2.8-6.5 6.4 0 4.7 6.5 12.6 6.5 12.6s6.5-7.9 6.5-12.6c0-3.6-2.9-6.4-6.5-6.4zm0 8.8a2.4 2.4 0 110-4.8 2.4 2.4 0 010 4.8z"
+                  fill="currentColor"
+                />
+              </svg>
+              <span>
+                <small>Coordinates</small>
+                <b>
+                  {local.coordinate} · E{local.east + view.position.x} · N
+                  {local.north - view.position.y}
+                </b>
+              </span>
             </span>
           </span>
-        </span>
-        <span data-world-travel-status className={styles.travelStatus}>
-          {message || view.movementBlocked ? (
-            <span role="status">{message || view.movementBlocked}</span>
-          ) : null}
-        </span>
-        <span className={styles.stageActions}>
-          {view.route.length ? (
-            <button onClick={() => void stopMoving()}>Stop travel</button>
-          ) : null}
-          <button
-            className={styles.gear}
-            aria-label="Settings"
-            title="Settings"
-            onClick={() =>
-              frame.current?.contentWindow?.postMessage(
-                { av: 'world-host', type: 'settings' },
-                window.location.origin,
-              )
-            }
-          >
-            <svg viewBox="0 0 24 24" aria-hidden="true" width="18" height="18">
-              <path
-                d="M12 8.6a3.4 3.4 0 100 6.8 3.4 3.4 0 000-6.8zm8.4 4.4v-2l-2.1-.5a6.6 6.6 0 00-.7-1.6l1.1-1.9-1.4-1.4-1.9 1.1a6.6 6.6 0 00-1.6-.7L13 3.6h-2l-.5 2.1a6.6 6.6 0 00-1.6.7L7 5.3 5.6 6.7l1.1 1.9c-.3.5-.5 1-.7 1.6l-2.1.5v2l2.1.5c.2.6.4 1.1.7 1.6l-1.1 1.9L7 18.1l1.9-1.1c.5.3 1 .5 1.6.7l.5 2.1h2l.5-2.1c.6-.2 1.1-.4 1.6-.7l1.9 1.1 1.4-1.4-1.1-1.9c.3-.5.5-1 .7-1.6l2.1-.5z"
-                fill="currentColor"
-              />
-            </svg>
-          </button>
-        </span>
+          <span data-world-travel-status className={styles.travelStatus}>
+            {message || view.movementBlocked ? (
+              <span role="status">{message || view.movementBlocked}</span>
+            ) : null}
+          </span>
+          <span className={styles.stageActions}>
+            {view.route.length ? (
+              <button onClick={() => void stopMoving()}>Stop travel</button>
+            ) : null}
+            <button
+              className={styles.gear}
+              aria-label="Settings"
+              title="Settings"
+              onClick={() =>
+                frame.current?.contentWindow?.postMessage(
+                  { av: 'world-host', type: 'settings' },
+                  window.location.origin,
+                )
+              }
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true" width="18" height="18">
+                <path
+                  d="M12 8.6a3.4 3.4 0 100 6.8 3.4 3.4 0 000-6.8zm8.4 4.4v-2l-2.1-.5a6.6 6.6 0 00-.7-1.6l1.1-1.9-1.4-1.4-1.9 1.1a6.6 6.6 0 00-1.6-.7L13 3.6h-2l-.5 2.1a6.6 6.6 0 00-1.6.7L7 5.3 5.6 6.7l1.1 1.9c-.3.5-.5 1-.7 1.6l-2.1.5v2l2.1.5c.2.6.4 1.1.7 1.6l-1.1 1.9L7 18.1l1.9-1.1c.5.3 1 .5 1.6.7l.5 2.1h2l.5-2.1c.6-.2 1.1-.4 1.6-.7l1.9 1.1 1.4-1.4-1.1-1.9c.3-.5.5-1 .7-1.6l2.1-.5z"
+                  fill="currentColor"
+                />
+              </svg>
+            </button>
+          </span>
+        </div>
       </div>
     </section>
   )
