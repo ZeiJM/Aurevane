@@ -160,6 +160,14 @@ export function WorldDock({
                       </button>
                       <button
                         type="button"
+                        disabled
+                        aria-label={`Talk to ${p.name} (coming soon)`}
+                        title="Talking is coming soon"
+                      >
+                        Talk
+                      </button>
+                      <button
+                        type="button"
                         disabled={disabled}
                         aria-label={`Approach ${p.name}`}
                         onClick={() => onApproach(p.position)}

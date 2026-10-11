@@ -59,6 +59,24 @@ describe('World dock', () => {
     expect(attacks[0]).not.toContain('disabled')
     expect(attacks[1]).toContain('disabled')
   })
+  it('shows a Talk button that cannot be clicked yet', () => {
+    const markup = renderToStaticMarkup(
+      createElement(WorldDock, {
+        players: [player('Chatty', 5, { online: true })],
+        landmarks: [],
+        safe: true,
+        selectedPlayerId: null,
+        disabled: false,
+        onSelectPlayer: () => {},
+        onApproach: () => {},
+        onAttack: () => {},
+        onLandmark: () => {},
+      }),
+    )
+    const talk = markup.match(/<button[^>]*>Talk<\/button>/)?.[0] ?? ''
+    expect(talk).toContain('disabled')
+    expect(markup.indexOf('>Attack<')).toBeLessThan(markup.indexOf('>Talk<'))
+  })
   it('shows the safe-zone badge', () => {
     const markup = renderToStaticMarkup(
       createElement(WorldDock, {
