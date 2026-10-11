@@ -646,8 +646,7 @@ for (const journey of [
     test.setTimeout(150000)
     await enter(page)
     // Towns now sit well apart behind generated trail sectors, so start on the road itself.
-    // Start at the western gate so the walk lasts as long as it did before the faster pace.
-    place((await world(page)).characterId, journey.id, 0, 4)
+    place((await world(page)).characterId, journey.id, 6, 4)
     await reloadWorld(page)
     await openJournal(page)
     await expectLocation(page, journey.name)
@@ -661,7 +660,10 @@ for (const journey of [
     const arrival = { sectorId: journey.destinationId, x: 6, y: 4 }
     await stageWalk(page, arrival)
     await expect(page.getByRole('button', { name: 'Stop travel', exact: true })).toBeVisible()
-    await expect.poll(async () => (await world(page)).position.x, { timeout: 12000 }).not.toBe(6)
+    // Steps are fast now, so poll tightly and stop before the walk leaves the road sector.
+    await expect
+      .poll(async () => (await world(page)).position.x, { timeout: 12000, intervals: [40] })
+      .not.toBe(6)
     const stopResponse = page.waitForResponse(
       (response) =>
         new URL(response.url()).pathname === '/api/world' &&
