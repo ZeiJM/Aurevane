@@ -374,6 +374,29 @@ describe('world travel', () => {
     expect(next.route.length).toBe(state.route.length - 1)
     expect(next.nextStepAt).toBeGreaterThan(999999)
   })
+  it('keeps the authored pace through network lag but never catches up an absent client', () => {
+    const step = (x: number) => ({
+      position: { sectorId: 'verdant-expanse', x, y: 4 },
+      durationMs: 275,
+    })
+    const base = {
+      ...newWorldState(),
+      route: [step(7), step(8), step(9), step(10)],
+      nextStepAt: 10_000,
+    }
+    const early = advanceWorldRoute(base, 10_000 + 40)
+    expect(early.position.x).toBe(7)
+    expect(early.nextStepAt).toBe(10_275)
+    const lagged = advanceWorldRoute(base, 10_000 + 600)
+    expect(lagged.position.x).toBe(9)
+    expect(lagged.route).toHaveLength(1)
+    expect(lagged.nextStepAt).toBe(10_825)
+    const absent = advanceWorldRoute(base, 10_000 + 60_000)
+    expect(absent.position.x).toBe(7)
+    expect(absent.route).toHaveLength(3)
+    expect(absent.nextStepAt).toBe(70_000 + 275)
+    expect(advanceWorldRoute(base, 9_999)).toBe(base)
+  })
   it('counts the remaining partial step once and never forecasts catch-up movement', () => {
     const state = {
       route: [

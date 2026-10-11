@@ -115,14 +115,37 @@ export function findWorldRoute(
   }
   return result
 }
+/**
+ * A tick that arrives within this lag of its due time keeps the original schedule, so network
+ * round trips never slow walking below the authored pace. A tick later than this (a suspended or
+ * absent client) advances one step and reschedules from now: there is never offline catch-up.
+ */
+export const MOVEMENT_LAG_ALLOWANCE_MS = 2000
+const MAX_STEPS_PER_TICK = 8
 export function advanceWorldRoute(state: WorldState, now: number): WorldState {
   if (!state.route.length || state.nextStepAt === null || now < state.nextStepAt) return state
-  const [step, ...route] = state.route
+  const route = [...state.route]
+  const first = route.shift()!
+  let position = first.position
+  if (now - state.nextStepAt > MOVEMENT_LAG_ALLOWANCE_MS)
+    return {
+      ...state,
+      position,
+      route,
+      nextStepAt: route[0] ? now + route[0].durationMs : null,
+    }
+  let anchor = state.nextStepAt
+  for (let taken = 1; route.length && taken < MAX_STEPS_PER_TICK; taken++) {
+    const due = anchor + route[0]!.durationMs
+    if (due > now) break
+    anchor = due
+    position = route.shift()!.position
+  }
   return {
     ...state,
-    position: step!.position,
+    position,
     route,
-    nextStepAt: route[0] ? now + route[0].durationMs : null,
+    nextStepAt: route[0] ? anchor + route[0].durationMs : null,
   }
 }
 /** Saved routes must still match the authored topology and movement costs after a content update. */

@@ -73,7 +73,7 @@ export function WorldWorkspace({
       return
     }
     pending.current = true
-    setBusy(true)
+    if (intent.kind !== 'tick') setBusy(true)
     try {
       const response = await fetch('/api/world', {
         method: 'POST',
@@ -98,7 +98,7 @@ export function WorldWorkspace({
     } finally {
       pending.current = false
       if (mounted.current) {
-        setBusy(false)
+        if (intent.kind !== 'tick') setBusy(false)
         const held = queuedIntent.current
         queuedIntent.current = null
         if (held) void sendRef.current(held)

@@ -1323,13 +1323,13 @@ function paintRiver(g, dp, kind) {
   s(86, P.deep[0], 1); s(70, P.deep[1], 1); s(46, P.deep[2], 1); s(24, P.deep[3], 0.75);
   if (kind === 'lava') {
     s(78, '#ffb347', 0.35, { class: 'lavaglow' }); s(40, '#ffe08a', 0.45, { class: 'lavaglow' });
-    s(60, '#fff2b0', 0.8, { 'stroke-dasharray': '3 26', class: 'flow' }); s(40, '#2a0e08', 0.55, { 'stroke-dasharray': '10 38', class: 'flow b' });
+    s(30, '#fff2b0', 0.35, { 'stroke-dasharray': '16 70', 'stroke-linecap': 'butt' }); s(18, '#2a0e08', 0.4, { 'stroke-dasharray': '24 80', 'stroke-linecap': 'butt' });
   } else {
     if (P.tex) s(82, riverTexPat, P.tex);
     s(80, 'url(#wa)', 0.3); s(66, 'url(#wb)', 0.32); s(40, 'url(#gx-sky)', 0.9);
-    if (kind === 'water' || kind === 'oasis' || kind === 'murk') s(54, '#fff', 0.55, { 'stroke-dasharray': '3 30', class: 'flow' });
+    if (kind === 'water' || kind === 'oasis' || kind === 'murk') s(3, '#fff', 0.5, { 'stroke-dasharray': '22 90', 'stroke-linecap': 'butt', transform: 'translate(-14,0)' }); s(2.4, '#fff', 0.4, { 'stroke-dasharray': '16 110', 'stroke-linecap': 'butt', transform: 'translate(15,0)' });
   }
-  if (kind === 'ice') { s(84, '#dcf0f8', 0.6); s(3, '#fff', 0.85, { 'stroke-dasharray': '3 30' }); }
+  if (kind === 'ice') { s(84, '#dcf0f8', 0.6); s(3, '#fff', 0.7, { 'stroke-dasharray': '18 60', 'stroke-linecap': 'butt' }); }
   else if (kind === 'water' && SECTOR.theme.reg === 'cold') { const ic = add(g, 'g', { class: 'ice' }); [[84, '#b7d6e8'], [62, '#dcf0f8']].forEach(([w, c]) => add(ic, 'path', { d: dp, fill: 'none', stroke: c, 'stroke-width': w * 0.66, 'stroke-linecap': 'round' })); }
 }
 function paintRoad(g, runs) {
@@ -1725,6 +1725,23 @@ function paint() {
   }
   onMoveUi();
 }
+let predState = null;
+/* The server owns every step; between its replies the stage only previews the steps already
+   due on the authored clock, so the walk never waits for a network round trip. */
+function predictedTarget() {
+  const p = predState;
+  if (!p || !SECTOR || reduceMotion) return me;
+  let t = p.nextStepAt, now = p.serverNow + (Date.now() - p.recvAt), tgt = null;
+  if (t === null || now - t > 2000) return me;
+  for (let i = 0; i < p.route.length && i < 8; i++) {
+    if (t > now) break;
+    const st = p.route[i];
+    if (st.position.sectorId !== SECTOR.id) break;
+    tgt = st.position;
+    t += (p.route[i + 1] ? p.route[i + 1].durationMs : 0);
+  }
+  return tgt || me;
+}
 let lastV = performance.now();
 function visualStep(now) {
   requestAnimationFrame(visualStep);
@@ -1737,7 +1754,8 @@ function visualStep(now) {
     const sp = Math.max(3.4, d * 4.5), s = Math.min(d, sp * dt);
     o.x += (dx / d) * s; o.y += (dy / d) * s; return true;
   };
-  if (mv(meV, me.x, me.y)) changed = true;
+  const pt = predictedTarget();
+  if (mv(meV, pt.x, pt.y)) changed = true;
   OTHERS.forEach((p) => { const pv = { x: p.vx, y: p.vy }; if (mv(pv, p.x, p.y)) { p.vx = pv.x; p.vy = pv.y; changed = true; } });
   if (changed) frameUpdate();
 }
@@ -2711,9 +2729,11 @@ setTimeout(fitMap, 0);
     say(l.kind === 'exit' ? `Travelling along ${l.via || 'the road'}.` : `Walking to ${l.name}.`); sendWalk(l.dest);
   });
 
+  let lastPoiSig = '', lastRouteSig = '';
   function applyState(s) {
     const prevId = SECTOR && SECTOR.id;
     SV = s;
+    predState = s.route && s.route.length && s.nextStepAt !== null ? { route: s.route, nextStepAt: s.nextStepAt, serverNow: s.serverNow, recvAt: Date.now() } : null;
     const sec = s.sectors.find((x) => x.id === s.position.sectorId);
     if (!sec) return;
     HERO_PORTRAIT = s.portrait || null;
@@ -2722,7 +2742,7 @@ setTimeout(fitMap, 0);
       OTHERS.length = 0; byId.clear();
       loadSector(sec);
       me = { x: s.position.x, y: s.position.y }; meV = { ...me };
-      lastRoster = ''; routeG.replaceChildren();
+      lastRoster = ''; routeG.replaceChildren(); lastPoiSig = ''; lastRouteSig = '';
       board.classList.remove('arrive'); void board.offsetWidth; board.classList.add('arrive');
     } else {
       SECTOR.landmarks = sec.landmarks; SECTOR.exits = sec.exits;
@@ -2734,8 +2754,10 @@ setTimeout(fitMap, 0);
     ROSTER = s.players.filter((p) => p.position.sectorId === SECTOR.id);
     refreshPlayers(ROSTER);
     if (!boardObj || !boardObj.contains(hero)) { updateChunks(...Object.values((({ cx, cy, vc, vr }) => ({ cx, cy, vc, vr }))(camera()))); }
-    rebuildPois();
-    drawRoute();
+    const poiSig = SECTOR.id + JSON.stringify(SECTOR.landmarks) + JSON.stringify(SECTOR.exits) + s.sectors.length;
+    if (poiSig !== lastPoiSig) { lastPoiSig = poiSig; rebuildPois(); }
+    const routeSig = s.route.map((r) => r.position.sectorId + r.position.x + ',' + r.position.y).join('|') + '@' + me.x + ',' + me.y;
+    if (routeSig !== lastRouteSig) { lastRouteSig = routeSig; drawRoute(); }
     if (window.AV_setEnv) window.AV_setEnv(s.environment);
     paint();
     if (window.AV && window.AV.sync) window.AV.sync();
