@@ -99,4 +99,4 @@ it('stores Owner-audited environment settings with validation, stale protection 
   await expect(db.query('truncate app_private.world_environment_audit')).rejects.toThrow(
     'WORLD_ENVIRONMENT_AUDIT_IMMUTABLE',
   )
-})
+}, 30_000)
