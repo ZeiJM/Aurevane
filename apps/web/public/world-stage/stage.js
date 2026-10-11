@@ -2580,7 +2580,7 @@ setTimeout(fitMap, 0);
     if (e.origin !== location.origin || !e.data || e.data.av !== 'world-host' || e.data.type !== 'settings') return;
     if (!setPop.hidden) { setOpen(null); return; }
     gearOpen = gears[0]; setPop.hidden = false;
-    setPop.style.left = Math.max(8, innerWidth - setPop.offsetWidth - 8) + 'px'; setPop.style.bottom = '8px';
+    const barH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--bar-h')) || 0; setPop.style.left = Math.max(8, innerWidth - setPop.offsetWidth - 8) + 'px'; setPop.style.bottom = (barH + 8) + 'px';
     gears.forEach((g) => g.setAttribute('aria-expanded', 'true'));
   });
   const coord = document.getElementById('sb-sec-cell'), coordBtn = document.getElementById('coord-toggle');

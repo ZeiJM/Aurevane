@@ -49,3 +49,4 @@
 - Headless check at 1585x780, 1440x900 and 1000x700: map flush to the left edge, panel 25% wide, e2e selectors visible, no horizontal scroll. Human acceptance pending.
 - The workspace has no inner padding, so the coordinates/Journal/settings bar sits flush under the panel as its bottom edge (measured in a parent-shell harness at 1667x857: bar and panel share left/right edges and the bar top equals the panel bottom).
 - The first panel tab is "Nearby" (zone badge in the tab); the player card and the "Character" label are removed. Tab ids (`#tab-nb`, `#zone-badge`) are unchanged for the e2e.
+- The Safe/PvP zone badge sits beside the area name in the panel header (`#zone-badge` stays in the stage frame). The settings popout opens above the page bar (bottom offset = `--bar-h` + 8px, scrollable) so the bar no longer covers it.

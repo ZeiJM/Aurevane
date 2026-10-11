@@ -35,7 +35,7 @@
     </fieldset></div>
 <div class="screen">
       <div class="screen-head">
-        <button class="where" id="v-toggle" type="button" aria-label="Switch to world view" title="Click to switch between local and world view"><h3 id="loc-title">Location</h3><span class="sub" id="loc-sub"></span></button>
+        <button class="where" id="v-toggle" type="button" aria-label="Switch to world view" title="Click to switch between local and world view"><span class="whr"><h3 id="loc-title">Location</h3><span class="zb" id="zone-badge" data-z="safe" title="Towns are safe zones: combat is disabled">Safe zone</span></span><span class="sub" id="loc-sub"></span></button>
         <div class="hinfo" role="status" aria-label="Weather and server time">
           <span class="hitem"><span class="k">Weather</span><b id="sb-wx"></b></span>
           <span class="hdot" aria-hidden="true"></span>
@@ -83,7 +83,7 @@
         <aside class="side" id="side-map">
           <div class="dock" id="dock" data-tab="nearby">
             <div class="dock-tabs" role="tablist" aria-label="Nearby, points of interest and missions">
-              <button type="button" class="dtab" id="tab-nb" role="tab" aria-selected="true" aria-controls="nb-pane"><span class="dt" id="nb-h">Nearby</span><span class="zb" id="zone-badge" data-z="safe" title="Towns are safe zones: combat is disabled">Safe zone</span></button>
+              <button type="button" class="dtab" id="tab-nb" role="tab" aria-selected="true" aria-controls="nb-pane"><span class="dt" id="nb-h">Nearby</span></button>
               <button type="button" class="dtab" id="tab-poi" role="tab" aria-selected="false" aria-controls="poi-list"><span class="dt" id="poi-h">Points of interest</span></button>
               <button type="button" class="dtab" id="tab-ms" role="tab" aria-selected="false" aria-controls="ms-list"><span class="dt" id="ms-h">Missions</span></button>
             </div>
