@@ -646,7 +646,8 @@ for (const journey of [
     test.setTimeout(150000)
     await enter(page)
     // Towns now sit well apart behind generated trail sectors, so start on the road itself.
-    place((await world(page)).characterId, journey.id, 6, 4)
+    // Start at the western gate so the walk lasts as long as it did before the faster pace.
+    place((await world(page)).characterId, journey.id, 0, 4)
     await reloadWorld(page)
     await openJournal(page)
     await expectLocation(page, journey.name)

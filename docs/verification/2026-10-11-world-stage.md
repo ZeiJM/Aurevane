@@ -30,3 +30,16 @@
 - Sectors remain the authored 13×9 boards (not an endless procedural world).
 - Weather/time come from Master settings when set, otherwise real UTC.
 - Static stage files are excluded from Prettier and ESLint (`public/world-stage`).
+
+## Pace, instant start and arrival (branch agent/world-pace-arrival)
+
+- `STEP_MS` 275 → 200 ms (server authority; stage preview `WALK_STEP_MS` and minimum glide speed raised to match). In-flight 275 ms routes at deploy time are discarded by `isCurrentWorldRoute` and simply replanned; no migration is required (the DB rules use each step's recorded duration).
+- Stage now previews the shortest path immediately on every click, including mid-walk and while an earlier command is still confirming; the preview hands over at the next committed version (`version` added to the stage state).
+- If a walk settles on a tile other than the clicked one, the stage retries that click once.
+- Verified: world Vitest (150), DB travel migration tests (19), eslint/tsc/prettier, headless stage simulation (20 random destinations, with and without replans, 300 ms mean latency: 0 short). Human gameplay acceptance pending.
+
+## Square map, right-hand panel and continuous surface (branch agent/world-continuous-surface, stacked on #868)
+
+- Map is a 1:1 square filling the screen height; the location header, Character / Points of interest / Missions tabs and a detail view (POI, player, mission) live in a right-hand panel. The page bar (coordinates, Stop travel, Journal, settings) sits under the panel. Missions are passed from the page to the stage (`objectives`), with an `autopath` message back.
+- Continuous surface (P6-W1 first slice): adjacent areas whose road gates align are placed in one shared frame (two rings deep), the camera follows across the seam and crossing a gate re-homes without a reload. Clicks, keys, pathing preview and other players use the shared frame; neighbours connect only through authored gates. The server still owns routes and crossings. Unknown ground stays unrendered (no discovery leakage).
+- Verified headless (real sector data): placement stable across a crossing, no reload on crossing, random walk simulations 0 short, vitest 150, tsc/eslint/prettier. Not verified: real browser at production scale, mobile layout, e2e (CI-only). Human acceptance pending.

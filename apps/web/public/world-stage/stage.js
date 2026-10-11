@@ -1110,6 +1110,11 @@ const CW = 13, CH = 9;
 const defsEl = document.querySelector('#nav-svg defs');
 const chunkClip = add(defsEl, 'clipPath', { id: 'chunkclip' });
 add(chunkClip, 'rect', { x: -4, y: -4, width: CW * T + 8, height: CH * T + 8 });
+[['E', 1, 0, 0, 0], ['W', 0, 0, 1, 0], ['S', 0, 1, 0, 0], ['N', 0, 0, 0, 1]].forEach(([id, x1, y1, x2, y2]) => {
+  const g = add(defsEl, 'linearGradient', { id: 'seam' + id, x1, y1, x2, y2 });
+  add(g, 'stop', { offset: 0, 'stop-color': '#04120c', 'stop-opacity': 0 });
+  add(g, 'stop', { offset: 1, 'stop-color': '#04120c', 'stop-opacity': 0.3 });
+});
 const groundLayer = add(world, 'g', {});
 world.insertBefore(groundLayer, world.firstChild);
 const objLayer = add(world, 'g', {});
@@ -1217,30 +1222,90 @@ const THEMES = {
 const pickW = (list, r) => { let t = 0; for (const [, w] of list) t += w; let a = r * t; for (const [k, w] of list) { if ((a -= w) < 0) return k; } return list[0][0]; };
 
 /* ---------- sector model ---------- */
-let SECTOR = null;
+let SECTOR = null; /* the sector the character stands in */
 let SV = null; /* latest authoritative state from the page */
-function cellOf2(x, y) { return SECTOR && x >= 0 && y >= 0 && x < CW && y < CH ? SECTOR.grid[y][x] : null; }
+/* Every placed area shares one coordinate space ("frame"). Neighbours sit where their road gates meet,
+   so the map is one continuous surface; the server still owns which sector a position belongs to. */
+const placed = new Map(), placedAreas = placed; /* placedAreas: alias that scenery code (which has its own `placed`) can use. sector id -> { S, gx, gy } : gx/gy are the area's top-left tile in the frame */
+let BUILD_LOCAL = false; /* while drawing one area, cell lookups use that area's own coordinates */
+function sectorAt(ax, ay) { for (const P of placed.values()) if (ax >= P.gx && ay >= P.gy && ax < P.gx + CW && ay < P.gy + CH) return P; return null; }
+function cellOf2(x, y) {
+  if (!SECTOR) return null;
+  if (BUILD_LOCAL) return x >= 0 && y >= 0 && x < CW && y < CH ? SECTOR.grid[y][x] : null;
+  const P = sectorAt(x, y); return P ? P.S.grid[y - P.gy][x - P.gx] : null;
+}
 function isBlocked(x, y) { const c = cellOf2(x, y); return !c || !c.walk; }
+function absPos(pos) { const P = pos && placed.get(pos.sectorId); return P ? { x: P.gx + pos.x, y: P.gy + pos.y } : null; }
+function homeP() { return SECTOR ? placed.get(SECTOR.id) : null; }
 const chunks = new Map();
-let boardObj = null;
+const boardObj = add(objLayer, 'g', { class: 'ys' }); /* one depth-sorted group for scenery and travellers of every placed area */
 const occluders = []; /* depth-sorted scenery that can hide a walker: {by, shape} */
+const sectorCache = new Map(); /* id -> { sig, S } */
 
-function loadSector(sec) {
-  lastChunkKey = '';
+function makeSector(sec) {
+  const sig = sec.id + ':' + sec.cells.length, hit = sectorCache.get(sec.id);
+  if (hit && hit.sig === sig) return hit.S;
   const rows = [];
   for (let y = 0; y < CH; y++) { rows.push([]); for (let x = 0; x < CW; x++) rows[y].push({ ch: '#', walk: false, safe: false, known: false }); }
   for (const c of sec.cells) rows[c.y][c.x] = { ch: c.terrain, walk: c.walkable, safe: c.safe, known: true };
   const bk = BIOME_OF[sec.regionId] || 'forest';
-  SECTOR = { id: sec.id, name: sec.name, regionId: sec.regionId, coordinate: sec.coordinate, biome: bk, theme: THEMES[bk], grid: rows, landmarks: sec.landmarks, exits: sec.exits, seed: hstr(sec.id) };
-  analyseSector();
+  const S = { id: sec.id, name: sec.name, regionId: sec.regionId, coordinate: sec.coordinate, biome: bk, theme: THEMES[bk], grid: rows, landmarks: sec.landmarks, exits: sec.exits, seed: hstr(sec.id), known: sec.cells.length };
+  const prev = SECTOR; SECTOR = S; BUILD_LOCAL = true;
+  try { analyseSector(S); } finally { SECTOR = prev; BUILD_LOCAL = false; }
+  sectorCache.set(sec.id, { sig, S });
+  return S;
+}
+function dropChunksOf(id) {
+  for (const [k, d] of chunks) if (d.S.id === id) { if (d.dom) d.dom.forEach((n) => n.remove()); chunks.delete(k); }
+  rebuildOccluders();
+}
+function clearAllChunks() {
   for (const d of chunks.values()) if (d.dom) d.dom.forEach((n) => n.remove());
-  chunks.clear(); occluders.length = 0; boardObj = null;
+  chunks.clear(); occluders.length = 0; lastChunkKey = '';
+}
+/* the edge gate of an exit: which way the neighbour lies and where its top-left tile sits */
+function gateOffset(P, e) {
+  const f = e.from, t = e.to;
+  let dx = 0, dy = 0;
+  if (f.x === CW - 1 && t.x === 0) dx = 1; else if (f.x === 0 && t.x === CW - 1) dx = -1;
+  else if (f.y === CH - 1 && t.y === 0) dy = 1; else if (f.y === 0 && t.y === CH - 1) dy = -1;
+  else return null;
+  return { gx: P.gx + f.x + dx - t.x, gy: P.gy + f.y + dy - t.y };
+}
+const PLACE_DEPTH = 2;
+function overlaps(gx, gy) { for (const P of placed.values()) if (gx < P.gx + CW && gx + CW > P.gx && gy < P.gy + CH && gy + CH > P.gy) return true; return false; }
+/* keep the home area plus its gate-aligned neighbours (two rings deep); the route being walked wins any clash */
+function placeAround(sectors, prefer) {
+  const byId = new Map(sectors.map((x) => [x.id, x]));
+  const home = placed.get(SECTOR.id), depth = new Map([[SECTOR.id, 0]]), queue = [home];
+  for (let qi = 0; qi < queue.length; qi++) {
+    const P = queue[qi], dpt = depth.get(P.S.id);
+    if (dpt >= PLACE_DEPTH) continue;
+    const exits = P.S.exits.filter((e) => e.from.sectorId === P.S.id).slice().sort((a, b) => Number(prefer.has(b.to.sectorId)) - Number(prefer.has(a.to.sectorId)));
+    for (const e of exits) {
+      const id = e.to.sectorId;
+      if (depth.has(id)) continue;
+      const sec = byId.get(id); if (!sec || !sec.cells.length) continue;
+      const g = gateOffset(P, e); if (!g) continue;
+      let Q = placed.get(id);
+      if (!Q) { if (overlaps(g.gx, g.gy)) continue; Q = { S: makeSector(sec), gx: g.gx, gy: g.gy }; placed.set(id, Q); }
+      else if (Q.gx !== g.gx || Q.gy !== g.gy) continue;
+      depth.set(id, dpt + 1); queue.push(Q);
+    }
+  }
+  for (const id of [...placed.keys()]) if (!depth.has(id)) { dropChunksOf(id); placed.delete(id); }
+  lastChunkKey = '';
+}
+function loadSector(sec) {
+  clearAllChunks(); placed.clear();
+  SECTOR = makeSector(sec);
+  placed.set(sec.id, { S: SECTOR, gx: 0, gy: 0 });
   if (window.AV_setRegion) window.AV_setRegion(SECTOR.theme.reg);
 }
 
 /* water, roads, bridges and settlements, derived from the authored rows */
-function analyseSector() {
-  const S = SECTOR, g = S.grid, ch = (x, y) => (x >= 0 && y >= 0 && x < CW && y < CH ? g[y][x].ch : null);
+function analyseSector(S) {
+  const g = S.grid, ch = (x, y) => (x >= 0 && y >= 0 && x < CW && y < CH ? g[y][x].ch : null);
   S.bridges = []; S.riverCells = new Set(); S.seaCells = new Set();
   let water = 0;
   for (let y = 0; y < CH; y++) for (let x = 0; x < CW; x++) if (g[y][x].ch === '~') water++;
@@ -1409,23 +1474,42 @@ function groundTheme(gg, x, y, w, h, T0, rr) {
     add(gg, 'ellipse', { cx: x + rx + rr() * Math.max(0, w - 2 * rx), cy: y + ry + rr() * Math.max(0, h - 2 * ry), rx, ry, fill: rr() > 0.4 ? 'url(#lg-patchL)' : 'url(#lg-patchD)', opacity: T0.reg === 'volcanic' ? 0.35 : 0.55 });
   }
 }
-function ensureChunk(sx, sy) {
-  const id = sx + ',' + sy;
-  if (!chunks.has(id)) chunks.set(id, { sx, sy, id, dom: null });
+function ensureChunk(P, sx, sy) {
+  const id = P.S.id + ':' + sx + ',' + sy;
+  if (!chunks.has(id)) chunks.set(id, { sx, sy, id, S: P.S, P, dom: null, occ: [] });
   return chunks.get(id);
 }
+function coveredBy(P, ax, ay) { for (const Q of placed.values()) if (Q !== P && ax >= Q.gx && ay >= Q.gy && ax < Q.gx + CW && ay < Q.gy + CH) return true; return false; }
+function rebuildOccluders() { occluders.length = 0; for (const d of chunks.values()) if (d.dom) occluders.push(...d.occ); }
 function buildChunk(d) {
-  const S = SECTOR, T0 = S.theme, home = d.sx === 0 && d.sy === 0;
-  const ox = d.sx * CW * T, oy = d.sy * CH * T, x0 = d.sx * CW, y0 = d.sy * CH;
+  const prevSector = SECTOR; SECTOR = d.S; BUILD_LOCAL = true;
+  try { buildChunkIn(d); } finally { SECTOR = prevSector; BUILD_LOCAL = false; }
+  rebuildOccluders();
+}
+function buildChunkIn(d) {
+  const S = d.S, T0 = S.theme, home = d.sx === 0 && d.sy === 0;
+  const ox = (d.P.gx + d.sx * CW) * T, oy = (d.P.gy + d.sy * CH) * T, x0 = d.sx * CW, y0 = d.sy * CH;
   const L = (tx, ty) => [(tx - x0) * T, (ty - y0) * T];
   ART.org = [ox, oy];
   const gg = add(groundLayer, 'g', { transform: `translate(${ox},${oy})`, 'clip-path': 'url(#chunkclip)' });
-  const og = add(objLayer, 'g', { transform: `translate(${ox},${oy})` });
-  d.dom = [gg, og];
+  if (!home) groundLayer.insertBefore(gg, groundLayer.firstChild); /* surrounding scenery always sits under real areas */
+  const og = document.createElementNS('http://www.w3.org/2000/svg', 'g'); /* scratch group: items are merged into the shared depth-sorted group below */
+  d.dom = [gg]; d.occ = [];
   const rr = rng(h2(d.sx + 5 + S.seed % 977, d.sy + 9 + (S.seed >>> 10) % 991));
   groundTheme(gg, -3, -3, CW * T + 6, CH * T + 6, T0, rr);
+  if (home) {
+    /* where a different landscape meets this one, shade the join so it reads as a gradual change */
+    const P = d.P, W = CW * T, H = CH * T, F = 44;
+    for (const Q of placedAreas.values()) {
+      if (Q === P || Q.S.theme.reg === S.theme.reg) continue;
+      const side = Q.gx === P.gx + CW && Q.gy < P.gy + CH && Q.gy + CH > P.gy ? 'E' : Q.gx + CW === P.gx && Q.gy < P.gy + CH && Q.gy + CH > P.gy ? 'W' : Q.gy === P.gy + CH && Q.gx < P.gx + CW && Q.gx + CW > P.gx ? 'S' : Q.gy + CH === P.gy && Q.gx < P.gx + CW && Q.gx + CW > P.gx ? 'N' : null;
+      if (!side) continue;
+      const r = side === 'E' ? { x: W - F, y: 0, width: F, height: H } : side === 'W' ? { x: 0, y: 0, width: F, height: H } : side === 'S' ? { x: 0, y: H - F, width: W, height: F } : { x: 0, y: 0, width: W, height: F };
+      add(gg, 'rect', { ...r, fill: `url(#seam${side})`, 'pointer-events': 'none' });
+    }
+  }
   const items = []; /* {by, draw(g), occ} */
-  const kindAt = (tx, ty) => tileKind(tx, ty);
+  const kindAt = (tx, ty) => (!home && (tx < 0 || ty < 0 || tx >= CW || ty >= CH) && coveredBy(d.P, d.P.gx + tx, d.P.gy + ty) ? 'covered' : tileKind(tx, ty));
 
   /* settlement paving */
   if (home && S.town) for (let ty = 0; ty < CH; ty++) for (let tx = 0; tx < CW; tx++) if (kindAt(tx, ty) === 'town') {
@@ -1558,21 +1642,45 @@ function buildChunk(d) {
   });
   /* ice and cold-biome cover on water; embers for lava */
   const sorted = items.filter((i) => !i.bridge).sort((a, b) => a.by - b.by);
-  const grp = add(og, 'g', { class: 'ys' });
-  if (home) { boardObj = grp; occluders.length = 0; }
-  items.filter((i) => i.bridge).forEach((i) => i.draw(add(grp, 'g', { 'data-by': -1 })));
-  sorted.forEach((i) => { const g = add(grp, 'g', { 'data-by': i.by.toFixed(1) }); i.draw(g); if (home && i.occ) occluders.push({ by: i.by, ...i.occ }); });
-  if (home) { /* travellers live in the same depth-sorted group */
-    hero.setAttribute('data-by', '0'); grp.appendChild(hero);
-    OTHERS.forEach((p) => grp.appendChild(p.el));
-    ACTORS_SORT();
+  const nodes = [];
+  const put = (i, by) => { const g = add(og, 'g', { 'data-by': by.toFixed(1), transform: `translate(${ox},${oy})` }); i.draw(g); nodes.push(g); return g; };
+  items.filter((i) => i.bridge).forEach((i) => put(i, -1 + oy));
+  sorted.forEach((i) => {
+    put(i, i.by + oy);
+    if (i.occ) { const o = i.occ; d.occ.push(o.t === 'e' ? { by: i.by + oy, t: 'e', cx: o.cx + ox, cy: o.cy + oy, rx: o.rx, ry: o.ry } : { by: i.by + oy, t: 'r', x0: o.x0 + ox, x1: o.x1 + ox, y0: o.y0 + oy, y1: o.y1 + oy }); }
+  });
+  /* merge the new items into the shared depth-sorted group without moving what is already there */
+  const existing = Array.from(boardObj.children); let ei = 0;
+  nodes.sort((a, b) => Number(a.getAttribute('data-by')) - Number(b.getAttribute('data-by')));
+  for (const n of nodes) {
+    const nb = Number(n.getAttribute('data-by'));
+    while (ei < existing.length && Number(existing[ei].getAttribute('data-by')) <= nb) ei++;
+    boardObj.insertBefore(n, existing[ei] || null);
   }
+  d.dom.push(...nodes);
 }
+
 function updateChunks(cx, cy, vc, vr) {
   if (!SECTOR) return;
-  const sx0 = Math.floor(cx / CW) - 0, sx1 = Math.floor((cx + vc) / CW), sy0 = Math.floor(cy / CH), sy1 = Math.floor((cy + vr) / CH);
-  for (let sy = sy0; sy <= sy1; sy++) for (let sx = sx0; sx <= sx1; sx++) { const d = ensureChunk(sx, sy); if (!d.dom) buildChunk(d); }
-  for (const d of chunks.values()) if (d.dom && (d.sx < sx0 - 1 || d.sx > sx1 + 1 || d.sy < sy0 - 1 || d.sy > sy1 + 1) && !(d.sx === 0 && d.sy === 0)) { d.dom.forEach((n) => n.remove()); d.dom = null; }
+  const near = new Set(); let built = false;
+  for (const P of placed.values()) {
+    const sx0 = Math.floor((cx - P.gx) / CW), sx1 = Math.floor((cx + vc - P.gx) / CW), sy0 = Math.floor((cy - P.gy) / CH), sy1 = Math.floor((cy + vc * 0 + vr - P.gy) / CH);
+    for (let sy = sy0 - 1; sy <= sy1 + 1; sy++) for (let sx = sx0 - 1; sx <= sx1 + 1; sx++) {
+      const inView = sx >= sx0 && sx <= sx1 && sy >= sy0 && sy <= sy1;
+      const d = ensureChunk(P, sx, sy);
+      near.add(d.id);
+      if (!d.dom && inView) {
+        const sectorChunk = sx === 0 && sy === 0;
+        const ax = P.gx + sx * CW, ay = P.gy + sy * CH;
+        const hidden = !sectorChunk && [...placed.values()].some((Q) => Q !== P && ax >= Q.gx && ay >= Q.gy && ax + CW <= Q.gx + CW && ay + CH <= Q.gy + CH);
+        if (!hidden) { buildChunk(d); built = true; }
+      }
+    }
+  }
+  if (built) ACTORS_SORT();
+  let dropped = false;
+  for (const [k, d] of chunks) if (!near.has(d.id)) { if (d.dom) { d.dom.forEach((n) => n.remove()); dropped = true; } chunks.delete(k); }
+  if (dropped) rebuildOccluders();
 }
 
 
@@ -1603,7 +1711,7 @@ if (window.ResizeObserver) new ResizeObserver(() => fitMap()).observe(document.g
 const OTHERS = []; /* one entry per occupied tile: the highest level stands for the stack */
 const byId = new Map();
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const dist = (p) => Math.max(Math.abs(p.x - me.x), Math.abs(p.y - me.y));
+const dist = (p) => { const a = p.sectorId ? absPos(p) : p; return a ? Math.max(Math.abs(a.x - me.x), Math.abs(a.y - me.y)) : 99; };
 const feedEl = document.getElementById('feed');
 const nbList = document.getElementById('nb-list'), nbNote = document.getElementById('nb-note');
 let noteTimer = 0;
@@ -1647,6 +1755,7 @@ function drawActors() {
     if (hb2) p.ghost.style.transform = `translate(${(p.vx + 0.5) * T}px, ${(p.vy + 0.5) * T}px)`;
   });
 }
+boardObj.appendChild(hero);
 let HERO_PORTRAIT = null, heroBuilt = false;
 function buildHero() {
   if (heroBuilt) return; heroBuilt = true;
@@ -1676,18 +1785,19 @@ setInterval(() => {
 function refreshPlayers(list) {
   /* group by tile; the highest level represents the stack, every character stays in the Nearby list */
   const tiles = new Map();
-  list.filter((p) => p.position.sectorId === SECTOR.id).slice().sort((a, b) => b.level - a.level || a.name.localeCompare(b.name)).forEach((p) => {
-    const k = p.position.x + ',' + p.position.y;
+  list.filter((p) => placed.has(p.position.sectorId)).slice().sort((a, b) => b.level - a.level || a.name.localeCompare(b.name)).forEach((p) => {
+    const ap = absPos(p.position), k = ap.x + ',' + ap.y;
     if (!tiles.has(k)) tiles.set(k, { rep: p, count: 0, members: [] });
     tiles.get(k).count++; tiles.get(k).members.push(p);
   });
   const keep = new Set();
   tiles.forEach(({ rep, count, members }, k) => {
     keep.add(rep.characterId);
+    const rp = absPos(rep.position);
     let o = byId.get(rep.characterId);
     const sig = [rep.name, rep.level, rep.online, count, rep.portrait].join('|');
-    if (!o) { o = { id: rep.characterId, x: rep.position.x, y: rep.position.y, vx: rep.position.x, vy: rep.position.y, el: add(world, 'g', { class: 'mk', 'data-player': rep.characterId }) }; byId.set(rep.characterId, o); OTHERS.push(o); o.ghost = null; }
-    o.x = rep.position.x; o.y = rep.position.y; o.count = count; o.members = members;
+    if (!o) { o = { id: rep.characterId, x: rp.x, y: rp.y, vx: rp.x, vy: rp.y, el: add(world, 'g', { class: 'mk', 'data-player': rep.characterId }) }; byId.set(rep.characterId, o); OTHERS.push(o); o.ghost = null; }
+    o.x = rp.x; o.y = rp.y; o.count = count; o.members = members;
     const msig = members.map((m) => [m.characterId, m.name, m.level, m.online, m.portrait].join(':')).join('|');
     if (o.sig !== msig) {
       o.sig = msig;
@@ -1704,6 +1814,7 @@ function refreshPlayers(list) {
 /* ---------- zone, dock, points of interest ---------- */
 const zoneBadge = document.getElementById('zone-badge'); let lastSafe = null;
 const zoneSafe = (x, y) => { const c = cellOf2(x, y); return !!c && c.safe; };
+const zoneSafePos = (pos) => { const a = absPos(pos); return !!a && zoneSafe(a.x, a.y); };
 function updateZone() {
   if (!SECTOR) return;
   const safe = zoneSafe(me.x, me.y);
@@ -1718,9 +1829,9 @@ function renderRoster() {
   const sorted = ROSTER.slice().sort((a, b) => Number(b.online !== false) - Number(a.online !== false) || b.level - a.level || a.name.localeCompare(b.name));
   const mySafe = zoneSafe(me.x, me.y), busy = Boolean(SV && (SV.busy || SV.movementBlocked));
   const html = sorted.map((p) => {
-    const d = Math.max(Math.abs(p.position.x - me.x), Math.abs(p.position.y - me.y)), r = d <= 1, on = p.online !== false;
+    const d = dist(p.position), r = d <= 1, on = p.online !== false;
     const btn = r
-      ? `${!mySafe && !zoneSafe(p.position.x, p.position.y) ? `<button type="button" class="atk" data-act="attack" data-id="${esc(p.characterId)}" aria-label="Attack ${esc(p.name)}"${p.attackable && !busy ? '' : ' disabled'}>Attack</button>` : ''}<button type="button" class="tk" disabled title="Talking is coming soon" aria-label="Talk to ${esc(p.name)} (coming soon)">Talk</button>`
+      ? `${!mySafe && !zoneSafePos(p.position) ? `<button type="button" class="atk" data-act="attack" data-id="${esc(p.characterId)}" aria-label="Attack ${esc(p.name)}"${p.attackable && !busy ? '' : ' disabled'}>Attack</button>` : ''}<button type="button" class="tk" disabled title="Talking is coming soon" aria-label="Talk to ${esc(p.name)} (coming soon)">Talk</button>`
       : `<button type="button" data-act="approach" data-id="${esc(p.characterId)}" aria-label="Approach ${esc(p.name)}"${busy ? ' disabled' : ''}>Approach</button>`;
     return `<div class="nbt" data-reach="${r}" data-online="${on}" data-ai="false"><span class="nc"><img src="${esc(p.portrait)}" alt="" referrerpolicy="no-referrer"></span><span class="nn" title="${esc(p.name)}">${esc(p.name)}</span><span class="ns">Player · Lv ${p.level}${on ? '' : ' · Away'}</span><span class="na">${btn}</span></div>`;
   }).join('') || '<p class="dockempty">A quiet stretch of road. Other characters appear here when they are in your area.</p>';
@@ -1730,7 +1841,7 @@ nbList.addEventListener('click', (e) => {
   const b = e.target.closest('[data-act]'); if (!b || b.disabled) return;
   const p = ROSTER.find((q) => q.characterId === b.dataset.id); if (!p) return;
   if (b.dataset.act === 'attack') { post({ type: 'attack', targetId: p.characterId }); say(`Challenging ${p.name}…`); }
-  else { say(`Approaching ${p.name}…`); post({ type: 'walk', destination: { sectorId: SECTOR.id, x: p.position.x, y: p.position.y } }); }
+  else { say(`Approaching ${p.name}…`); post({ type: 'walk', destination: { sectorId: p.position.sectorId, x: p.position.x, y: p.position.y } }); }
 });
 function onMoveUi() {
   updateZone(); renderRoster();
@@ -1757,34 +1868,36 @@ function paint() {
   frameUpdate();
   if (SECTOR) {
     const sec = SV && SV.sectors.find((s) => s.id === SECTOR.id);
-    sbXY.textContent = sec ? `${sec.coordinate} · E${sec.east + me.x} · N${sec.north - me.y}` : '';
+    const hp = homeP(), lx = me.x - (hp ? hp.gx : 0), ly = me.y - (hp ? hp.gy : 0);
+    sbXY.textContent = sec ? `${sec.coordinate} · E${sec.east + lx} · N${sec.north - ly}` : '';
     if (lastSectorId !== null && lastSectorId !== SECTOR.id) { sbSecCell.classList.remove('sbflash'); void sbSecCell.offsetWidth; sbSecCell.classList.add('sbflash'); }
     lastSectorId = SECTOR.id;
   }
   onMoveUi();
 }
-let predState = null, optim = null;
+const WALK_STEP_MS = 200; /* keep in step with STEP_MS in src/world/catalog.ts */
+let predState = null, optim = null, lastWalk = null;
 /* The server owns every step; between its replies the stage only previews the steps already
    due on the authored clock, so the walk never waits for a network round trip. */
 function predictedTarget() {
   const p = predState;
-  if (optim && (Date.now() - optim.at > 6000 || (SV && SV.route.length))) optim = null;
-  if (!p && optim) return optim.path[Math.min(optim.path.length - 1, Math.floor((Date.now() - optim.at) / 275))];
+  if (optim && (Date.now() - optim.at > 6000 || (SV && SV.version !== optim.ver))) optim = null;
+  if (optim) return optim.path[Math.min(optim.path.length - 1, Math.floor((Date.now() - optim.at) / WALK_STEP_MS))];
   if (!p || !SECTOR || reduceMotion) return me;
   let t = p.nextStepAt, now = p.serverNow + (Date.now() - p.recvAt), tgt = null;
   if (t === null) return me;
   for (let i = 0; i < p.route.length && i < 60; i++) {
     if (t > now) break;
-    const st = p.route[i];
-    if (st.position.sectorId !== SECTOR.id) break;
-    tgt = st.position;
+    const st = p.route[i], a = absPos(st.position);
+    if (!a) break;
+    tgt = a;
     t += (p.route[i + 1] ? p.route[i + 1].durationMs : 0);
   }
   /* never walk backwards along the route: the server schedule can start a little after the click,
      so when we are already further along than it says, hold the tile we have reached */
   let tIdx = -1, cur = -1;
-  for (let i = 0; i < p.route.length; i++) { const q = p.route[i].position; if (tgt && q.x === tgt.x && q.y === tgt.y && q.sectorId === tgt.sectorId) tIdx = i; if (q.sectorId === SECTOR.id && Math.abs(q.x - meV.x) <= 0.5 && Math.abs(q.y - meV.y) <= 0.5) cur = i; }
-  if (cur > tIdx) return p.route[cur].position;
+  for (let i = 0; i < p.route.length; i++) { const q = absPos(p.route[i].position); if (!q) continue; if (tgt && q.x === tgt.x && q.y === tgt.y) tIdx = i; if (Math.abs(q.x - meV.x) <= 0.5 && Math.abs(q.y - meV.y) <= 0.5) cur = i; }
+  if (cur > tIdx) return absPos(p.route[cur].position);
   return tgt || me;
 }
 let lastV = performance.now();
@@ -1796,7 +1909,7 @@ function visualStep(now) {
     const dx = tx - o.x, dy = ty - o.y, d = Math.hypot(dx, dy);
     if (d < 0.002) { if (d > 0) { o.x = tx; o.y = ty; return true; } return false; }
     if (reduceMotion) { o.x = tx; o.y = ty; return true; }
-    const sp = Math.max(3.4, d * 4.5), s = Math.min(d, sp * dt);
+    const sp = Math.max(5.2, d * 6.5), s = Math.min(d, sp * dt);
     o.x += (dx / d) * s; o.y += (dy / d) * s; return true;
   };
   const pt = predictedTarget();
@@ -1828,38 +1941,61 @@ function drawRoute() {
 /* ---------- input ---------- */
 let queued = null; /* last wish while the page is busy confirming an earlier command */
 /* shortest in-sector path, walked at the authored pace while the server's reply is on its way */
+function gateBetween(P, x, y, Q, nx, ny) {
+  /* neighbouring areas connect only through their authored gates */
+  return P.S.exits.some((e) => e.from.sectorId === P.S.id && e.to.sectorId === Q.S.id && P.gx + e.from.x === x && P.gy + e.from.y === y && Q.gx + e.to.x === nx && Q.gy + e.to.y === ny);
+}
+function stepAllowed(x, y, nx, ny) {
+  if (isBlocked(nx, ny)) return false;
+  const P = sectorAt(x, y), Q = sectorAt(nx, ny);
+  return P === Q || Boolean(P && Q && gateBetween(P, x, y, Q, nx, ny));
+}
 function pathToward(dest) {
-  if (!SECTOR || dest.sectorId !== SECTOR.id || reduceMotion) return null;
-  const from = predictedTarget(), key = (x, y) => y * CW + x, prev = new Map([[key(from.x, from.y), null]]), q = [[from.x, from.y]];
+  const target = absPos(dest);
+  if (!SECTOR || !target || reduceMotion) return null;
+  const from = predictedTarget(), key = (x, y) => x + ',' + y, prev = new Map([[key(from.x, from.y), null]]), q = [[from.x, from.y]];
   for (let i = 0; i < q.length; i++) {
     const [x, y] = q[i];
-    if (x === dest.x && y === dest.y) {
+    if (x === target.x && y === target.y) {
       let k = key(x, y); const out = [];
-      while (prev.get(k) !== null && prev.get(k) !== undefined) { out.unshift({ x: k % CW, y: Math.floor(k / CW) }); k = prev.get(k); }
+      while (prev.get(k) !== null && prev.get(k) !== undefined) { const [a, b] = k.split(',').map(Number); out.unshift({ x: a, y: b }); k = prev.get(k); }
       return out.length ? out : null;
     }
     for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
       const nx = x + dx, ny = y + dy;
-      if (nx < 0 || ny < 0 || nx >= CW || ny >= CH || prev.has(key(nx, ny)) || isBlocked(nx, ny)) continue;
+      if (prev.has(key(nx, ny)) || !stepAllowed(x, y, nx, ny)) continue;
       prev.set(key(nx, ny), key(x, y)); q.push([nx, ny]);
     }
   }
   return null;
 }
-function sendWalk(dest) {
-  if (SV && (SV.busy || SV.movementBlocked)) { queued = dest; if (SV.movementBlocked) say(SV.movementBlocked); return; }
+function sendWalk(dest, retry) {
+  if (SV && SV.movementBlocked) { queued = dest; say(SV.movementBlocked); return; }
+  /* start moving at once: preview the shortest path from where the character is heading, even
+     while an earlier command is still being confirmed or the character is mid-walk */
+  const path = pathToward(dest);
+  if (path) optim = { path, at: Date.now(), ver: SV ? SV.version : 0 };
+  lastWalk = { dest, at: Date.now(), retried: Boolean(retry) };
+  if (SV && SV.busy) { queued = dest; return; }
   queued = null;
-  const path = SV && !SV.route.length ? pathToward(dest) : null;
-  if (path) optim = { path, at: Date.now() };
   post({ type: 'walk', destination: dest });
 }
-function exitAt(x, y) { return SECTOR && SECTOR.exits.find((e) => e.from.sectorId === SECTOR.id && e.from.x === x && e.from.y === y); }
-function blockWhy(x, y) {
-  const k = x >= 0 && y >= 0 && x < CW && y < CH ? tileKind(x, y) : 'ring';
-  if (k === 'water') return SECTOR.theme.water === 'lava' ? 'A river of lava. Nothing survives crossing it; look for a bridge.' : 'The water is too deep and fast to wade. Look for a bridge.';
-  if (k === 'sea') return 'Open water. You cannot cross the sea on foot.';
-  if (cellOf2(x, y) && !cellOf2(x, y).known) return 'Uncharted ground.';
-  return 'Something blocks the way.';
+/* a gate that leads somewhere not drawn beside it still works as a travel tile */
+function exitAt(x, y) {
+  const P = homeP();
+  return P && SECTOR.exits.find((e) => e.from.sectorId === SECTOR.id && P.gx + e.from.x === x && P.gy + e.from.y === y && !placed.has(e.to.sectorId));
+}
+function blockWhy(ax, ay) {
+  const P = sectorAt(ax, ay) || homeP();
+  const prev = SECTOR; SECTOR = P.S; BUILD_LOCAL = true;
+  try {
+    const x = ax - P.gx, y = ay - P.gy;
+    const k = x >= 0 && y >= 0 && x < CW && y < CH ? tileKind(x, y) : 'ring';
+    if (k === 'water') return SECTOR.theme.water === 'lava' ? 'A river of lava. Nothing survives crossing it; look for a bridge.' : 'The water is too deep and fast to wade. Look for a bridge.';
+    if (k === 'sea') return 'Open water. You cannot cross the sea on foot.';
+    if (x >= 0 && y >= 0 && x < CW && y < CH && !P.S.grid[y][x].known) return 'Uncharted ground.';
+    return 'Something blocks the way.';
+  } finally { SECTOR = prev; BUILD_LOCAL = false; }
 }
 function tileFromEvent(e) {
   const r = view.getBoundingClientRect(), { vc, vr, cx, cy } = camera();
@@ -1868,12 +2004,15 @@ function tileFromEvent(e) {
 view.addEventListener('click', (e) => {
   if (performance.now() - pinchedAt < 350 || !SECTOR) return;
   const mk = e.target.closest && e.target.closest('[data-player]');
-  if (mk) { const p = byId.get(mk.dataset.player); if (p) { const full = ROSTER.find((q) => q.characterId === (p.curId || p.id)); if (full) { const near = dist(full.position) <= 1; if (near && full.attackable && !(zoneSafe(me.x, me.y) || zoneSafe(full.position.x, full.position.y))) post({ type: 'attack', targetId: p.curId || p.id }); else if (near) say(zoneSafe(me.x, me.y) ? 'This is a safe zone. Combat is disabled in towns.' : `${p.name} cannot be attacked right now.`); else sendWalk({ sectorId: SECTOR.id, x: full.position.x, y: full.position.y }); } } return; }
+  if (mk) { const p = byId.get(mk.dataset.player); if (p) { const full = ROSTER.find((q) => q.characterId === (p.curId || p.id)); if (full) { const near = dist(full.position) <= 1; if (near && full.attackable && !(zoneSafe(me.x, me.y) || zoneSafePos(full.position))) post({ type: 'attack', targetId: p.curId || p.id }); else if (near) say(zoneSafe(me.x, me.y) ? 'This is a safe zone. Combat is disabled in towns.' : `${p.name} cannot be attacked right now.`); else sendWalk({ sectorId: full.position.sectorId, x: full.position.x, y: full.position.y }); } } return; }
   const t = tileFromEvent(e);
   const ex = exitAt(t.x, t.y);
   if (ex) { say(`Travelling along ${ex.name}.`); sendWalk(ex.to); return; }
-  if (isBlocked(t.x, t.y)) { say(blockWhy(t.x, t.y)); return; }
-  sendWalk({ sectorId: SECTOR.id, x: t.x, y: t.y });
+  const P = sectorAt(t.x, t.y);
+  if (!P || isBlocked(t.x, t.y)) { say(blockWhy(t.x, t.y)); return; }
+  const hp = homeP(), lmk = hp && (window.__pois || []).find((l) => l.kind === 'poi' && hp.gx + l.x === t.x && hp.gy + l.y === t.y);
+  if (lmk && window.__showPoi) window.__showPoi(lmk);
+  sendWalk({ sectorId: P.S.id, x: t.x - P.gx, y: t.y - P.gy });
 });
 /* movement keys are hardwired: W A S D and the arrows work anywhere while the map is on screen */
 const keys = { ArrowUp: [0, -1], w: [0, -1], ArrowDown: [0, 1], s: [0, 1], ArrowLeft: [-1, 0], a: [-1, 0], ArrowRight: [1, 0], d: [1, 0] };
@@ -1887,10 +2026,11 @@ window.addEventListener('keydown', (e) => {
   if (!d) return;
   e.preventDefault();
   const from = predictedTarget(); /* the tile we are heading to, not the server's older confirmation */
-  const nx = from.x + d[0], ny = from.y + d[1];
-  if (nx < 0 || ny < 0 || nx >= CW || ny >= CH) { const ex = exitAt(from.x, from.y); if (ex) { say(`Travelling along ${ex.name}.`); sendWalk(ex.to); } return; }
+  const nx = from.x + d[0], ny = from.y + d[1], P = sectorAt(nx, ny);
+  if (!P) { const ex = exitAt(from.x, from.y); if (ex) { say(`Travelling along ${ex.name}.`); sendWalk(ex.to); } return; }
   if (isBlocked(nx, ny)) { say(blockWhy(nx, ny)); return; }
-  sendWalk({ sectorId: SECTOR.id, x: nx, y: ny });
+  if (!stepAllowed(from.x, from.y, nx, ny)) { say('Something blocks the way.'); return; }
+  sendWalk({ sectorId: P.S.id, x: nx - P.gx, y: ny - P.gy });
 });
 
 
@@ -1962,7 +2102,6 @@ document.getElementById('zoom-in').addEventListener('click', () => (onGlobe() ? 
 
 
 /* ---------- globe support: one numbered tile per sector, wrapped around the world ---------- */
-const STEP_MS = 275;
 const GCOLS = 32, GROWS = 16, HOME_C = 10, HOME_R = 7;
 const hubNames = {};
 const cellOf = (sx, sy) => [(((HOME_C + sx) % GCOLS) + GCOLS) % GCOLS, (((HOME_R + sy) % GROWS) + GROWS) % GROWS];
@@ -2507,7 +2646,7 @@ setTimeout(fitMap, 0);
   function etaTo(cell) {
     const dc = Math.min(Math.abs(cell.c - currentCell.c), COLS - Math.abs(cell.c - currentCell.c)), dr = Math.abs(cell.r - currentCell.r);
     const tiles = Math.max(dc, dr) * CW;
-    return { tiles, text: secs(tiles * STEP_MS / 1000) };
+    return { tiles, text: secs(tiles * WALK_STEP_MS / 1000) };
   }
   function renderHead() {
     const wh = locTitle.closest('.where'); if (wh) wh.dataset.mode = mode;
@@ -2612,18 +2751,53 @@ setTimeout(fitMap, 0);
   });
 })();
 
-/* one dock, two tabs: click Nearby or Points of interest to swap the list shown below the map */
+/* right-hand panel: Character / Points of interest / Missions; anything clicked opens its detail in the same panel */
 (function () {
   const dock = document.getElementById('dock'); if (!dock) return;
-  const tabs = { nearby: [document.getElementById('tab-nb'), document.getElementById('nb-list')], poi: [document.getElementById('tab-poi'), document.getElementById('poi-list')] };
-  const show = (k) => { dock.dataset.tab = k; for (const key in tabs) { const on = key === k; tabs[key][0].setAttribute('aria-selected', String(on)); tabs[key][1].hidden = !on; } };
-  tabs.nearby[0].addEventListener('click', () => show('nearby'));
-  tabs.poi[0].addEventListener('click', () => show('poi'));
-  let k0 = 'nearby'; try { const v = localStorage.getItem('aurevane.dockTab'); if (v === 'poi' || v === 'nearby') k0 = v; } catch (e) {}
-  const save = (k) => { try { localStorage.setItem('aurevane.dockTab', k); } catch (e) {} };
-  tabs.nearby[0].addEventListener('click', () => save('nearby'));
-  tabs.poi[0].addEventListener('click', () => save('poi'));
+  const tabs = { nearby: [document.getElementById('tab-nb'), document.getElementById('nb-pane')], poi: [document.getElementById('tab-poi'), document.getElementById('poi-list')], missions: [document.getElementById('tab-ms'), document.getElementById('ms-list')] };
+  const detail = document.getElementById('detail');
+  let current = 'nearby';
+  const show = (k) => { current = k; detail.hidden = true; dock.dataset.tab = k; for (const key in tabs) { const on = key === k; tabs[key][0].setAttribute('aria-selected', String(on)); tabs[key][1].hidden = !on; } };
+  for (const k in tabs) tabs[k][0].addEventListener('click', () => { show(k); try { localStorage.setItem('aurevane.dockTab', k); } catch (e) {} });
+  let k0 = 'nearby'; try { const v = localStorage.getItem('aurevane.dockTab'); if (v && tabs[v]) k0 = v; } catch (e) {}
   show(k0);
+  const open = (html, wire) => {
+    for (const key in tabs) tabs[key][1].hidden = true;
+    detail.innerHTML = '<button type="button" class="back">‹ Back</button>' + html; detail.hidden = false;
+    detail.querySelector('.back').addEventListener('click', () => show(current));
+    if (wire) wire(detail);
+    detail.scrollIntoView({ block: 'nearest' });
+  };
+  const kindName = { settlement: 'Settlement', watchtower: 'Watchtower', frontier: 'Frontier', anchor: 'Anchor', shrine: 'Shrine', ruin: 'Ruin', exit: 'Road', poi: 'Landmark' };
+  window.__showPoi = (l) => {
+    open(`${l.img ? `<div class="pic"><img src="assets/${esc(l.img)}.webp" alt=""></div>` : ''}<h3>${esc(l.name)}</h3><p>${esc(l.kind === 'exit' ? 'A road leading out of this area' + (l.via ? ` (${l.via})` : '') + '.' : kindName[l.landmarkKind] || 'A place of interest here.')}</p><div class="acts"><button type="button" data-go>${l.kind === 'exit' ? 'Travel' : 'Walk here'}</button></div>`,
+      (d) => d.querySelector('[data-go]').addEventListener('click', () => { say(l.kind === 'exit' ? `Travelling along ${l.via || 'the road'}.` : `Walking to ${l.name}.`); sendWalk(l.dest); }));
+  };
+  window.__showPlayer = (p) => open(`<h3>${esc(p.name)}</h3><p>Player · Level ${esc(p.level)}${p.online === false ? ' · Away' : ''}</p><div class="acts"><button type="button" data-ap>Approach</button><button type="button" data-at${p.attackable ? '' : ' disabled'}>Attack</button><button type="button" disabled title="Talking is coming soon">Talk</button></div>`,
+    (d) => { d.querySelector('[data-ap]').addEventListener('click', () => { say(`Approaching ${p.name}…`); sendWalk({ sectorId: p.position.sectorId, x: p.position.x, y: p.position.y }); }); d.querySelector('[data-at]').addEventListener('click', () => { if (!p.attackable) return; post({ type: 'attack', targetId: p.characterId }); say(`Challenging ${p.name}…`); }); });
+  window.__showMission = (o) => {
+    const going = SV && SV.routeObjectiveId === o.id;
+    open(`<h3>${esc(o.name)}</h3><p>${esc(o.description)}</p><p>${o.kind === 'event' ? 'World Pulse' : 'Quest'} · ${o.completed ? 'Completed' : esc(o.progress || 'Available')}</p><div class="acts">${o.autoPath && o.destination && !o.completed ? `<button type="button" data-ap${going ? ' disabled' : ''}>${going ? 'Travelling…' : 'Auto-path'}</button>` : ''}</div>`,
+      (d) => { const b = d.querySelector('[data-ap]'); if (b) b.addEventListener('click', () => { post({ type: 'autopath', objectiveId: o.id }); say(`Following ${o.name}…`); }); });
+  };
+  window.__showDetailTab = show;
+  window.__renderMissions = () => {
+    const list = (SV && SV.objectives) || [], el = tabs.missions[1];
+    const html = list.length ? list.map((o, i) => `<button type="button" class="msi" data-ms="${i}"><b>${esc(o.name)}</b><span>${o.kind === 'event' ? 'World Pulse' : 'Quest'} · ${o.completed ? 'Completed' : esc(o.progress || 'Available')}</span></button>`).join('') : '<p class="dockempty">No missions here yet. Explore, and talk to people you meet.</p>';
+    if (el._html !== html) { el.innerHTML = html; el._html = html; }
+  };
+  tabs.missions[1].addEventListener('click', (e) => { const b = e.target.closest('[data-ms]'); if (!b) return; const o = ((SV && SV.objectives) || [])[Number(b.dataset.ms)]; if (o) window.__showMission(o); });
+  nbList.addEventListener('click', (e) => {
+    if (e.target.closest('[data-act]')) return;
+    const c = e.target.closest('.nbt'); if (!c) return;
+    const id = c.querySelector('[data-id]'), p = id && ROSTER.find((q) => q.characterId === id.dataset.id); if (p) window.__showPlayer(p);
+  });
+  window.__renderMe = () => {
+    const el = document.getElementById('me-card'); if (!el || !SV || !SECTOR) return;
+    const hp = homeP(), lx = me.x - (hp ? hp.gx : 0), ly = me.y - (hp ? hp.gy : 0);
+    const html = `<img src="${esc(SV.portrait || '')}" alt="" referrerpolicy="no-referrer"><b>${esc(SV.name || 'You')}</b><span>${esc(SECTOR.name)}</span><span>${esc(SECTOR.coordinate)} · ${lx}, ${ly}</span>`;
+    if (el._html !== html) { el.innerHTML = html; el._html = html; }
+  };
 })();
 
 
@@ -2779,7 +2953,7 @@ setTimeout(fitMap, 0);
     const S = SECTOR; if (!S) return;
     const secs = sectorById();
     const imgFor = { settlement: ['timber_stone_tavern', 125, 60], watchtower: ['round_watchtower', 120, 40], frontier: ['teal_rune_stone', 80, 66], anchor: ['teal_rune_stone', 80, 66], shrine: ['moonpetal_shrine', 110, 52], ruin: ['ancient_moss_arch', 110, 52], camp: ['small_campfire', 70, 62], grove: ['firefly_lantern_glade', 120, 52], spring: ['crystalline_pool', 110, 52], hamlet: ['thatched_farmhouse', 110, 56], waystone: ['iron_lamppost', 46, 60] };
-    const list = S.landmarks.map((l) => { const [img, sz, py] = imgFor[l.kind] || imgFor.anchor; return { name: l.name, img, sz, py, x: l.x, y: l.y, dest: { sectorId: S.id, x: l.x, y: l.y }, kind: 'poi' }; });
+    const list = S.landmarks.map((l) => { const [img, sz, py] = imgFor[l.kind] || imgFor.anchor; return { name: l.name, img, sz, py, x: l.x, y: l.y, dest: { sectorId: S.id, x: l.x, y: l.y }, kind: 'poi', landmarkKind: l.kind }; });
     const seenTo = new Set();
     S.exits.filter((e) => e.from.sectorId === S.id).forEach((e) => {
       if (seenTo.has(e.to.sectorId)) return; seenTo.add(e.to.sectorId);
@@ -2789,8 +2963,11 @@ setTimeout(fitMap, 0);
     window.__pois = list;
     lastPoi = ''; renderPoiList();
     poiLabelG.replaceChildren();
-    list.filter((l) => !(l.kind === 'exit' && S.landmarks.some((m) => m.x === l.x && m.y === l.y))).forEach((l) => {
-      const g = add(poiLabelG, 'g', {}), cx = (l.x + 0.5) * T, cy = (l.y + 0.5) * T;
+    const hpo = homeP() || { gx: 0, gy: 0 };
+    const drawList = list.slice();
+    for (const P of placed.values()) if (P.S !== S) P.S.landmarks.forEach((m) => drawList.push({ name: m.name, x: m.x + P.gx - hpo.gx, y: m.y + P.gy - hpo.gy, kind: 'far' }));
+    drawList.filter((l) => !(l.kind === 'exit' && (placed.has(l.dest.sectorId) || S.landmarks.some((m) => m.x === l.x && m.y === l.y)))).forEach((l) => {
+      const g = add(poiLabelG, 'g', {}), cx = (l.x + hpo.gx + 0.5) * T, cy = (l.y + hpo.gy + 0.5) * T;
       add(g, 'polygon', { points: `${cx},${cy - 46} ${cx + 7},${cy - 39} ${cx},${cy - 32} ${cx - 7},${cy - 39}`, fill: l.kind === 'exit' ? '#9fd3e6' : '#e6cb80', stroke: '#06202b', 'stroke-width': 1.6 });
       add(g, 'text', { x: cx, y: cy - 54, 'text-anchor': 'middle', fill: '#fff3d7', 'font-size': 12.5, 'font-weight': 500, 'font-family': 'Palatino Linotype, Palatino, Georgia, serif', 'letter-spacing': '.05em', stroke: '#06202b', 'stroke-width': 3.6, 'paint-order': 'stroke' }).textContent = l.name;
     });
@@ -2807,10 +2984,10 @@ setTimeout(fitMap, 0);
   poiEl.addEventListener('click', (e) => {
     const b = e.target.closest('[data-poi]'); if (!b) return;
     const l = (window.__pois || [])[Number(b.dataset.poi)]; if (!l) return;
-    say(l.kind === 'exit' ? `Travelling along ${l.via || 'the road'}.` : `Walking to ${l.name}.`); sendWalk(l.dest);
+    if (window.__showPoi) window.__showPoi(l); else { say(l.kind === 'exit' ? `Travelling along ${l.via || 'the road'}.` : `Walking to ${l.name}.`); sendWalk(l.dest); }
   });
 
-  let lastPoiSig = '', lastRouteSig = '';
+  let lastPoiSig = '', lastRouteSig = '', lastPlaceSig = '';
   function applyState(s) {
     const prevId = SECTOR && SECTOR.id;
     SV = s;
@@ -2818,24 +2995,39 @@ setTimeout(fitMap, 0);
     const sec = s.sectors.find((x) => x.id === s.position.sectorId);
     if (!sec) return;
     HERO_PORTRAIT = s.portrait || null;
-    if (!SECTOR || SECTOR.id !== sec.id) {
+    const here = { x: s.position.x, y: s.position.y };
+    const prefer = new Set((s.route || []).map((r) => r.position.sectorId));
+    if (!SECTOR || !placed.has(sec.id)) {
+      /* a different part of the world (first load, globe travel): start a fresh surface */
       for (let i = OTHERS.length - 1; i >= 0; i--) { OTHERS[i].el.remove(); if (OTHERS[i].ghost) OTHERS[i].ghost.remove(); }
       OTHERS.length = 0; byId.clear();
       loadSector(sec);
-      me = { x: s.position.x, y: s.position.y }; meV = { ...me };
+      placeAround(s.sectors, prefer); lastPlaceSig = SECTOR.id + '|' + [...prefer].join(',') + '|' + s.sectors.length;
+      me = { ...here }; meV = { ...me };
       lastRoster = ''; routeG.replaceChildren(); lastPoiSig = ''; lastRouteSig = '';
       board.classList.remove('arrive'); void board.offsetWidth; board.classList.add('arrive');
     } else {
+      if (SECTOR.id !== sec.id) {
+        /* walked across a gate into the neighbouring area: same surface, new home */
+        SECTOR = placed.get(sec.id).S;
+        if (window.AV_setRegion) window.AV_setRegion(SECTOR.theme.reg);
+        lastPoiSig = ''; lastRoster = '';
+      }
       SECTOR.landmarks = sec.landmarks; SECTOR.exits = sec.exits;
-      me = { x: s.position.x, y: s.position.y };
+      const sig = SECTOR.id + '|' + [...prefer].join(',') + '|' + s.sectors.length;
+      if (sig !== lastPlaceSig) { placeAround(s.sectors, prefer); lastPlaceSig = sig; }
+      const hp = homeP();
+      me = { x: hp.gx + here.x, y: hp.gy + here.y };
       /* the server confirms steps a little behind the preview, so only a large gap is a real jump */
       if (Math.hypot(meV.x - me.x, meV.y - me.y) > (predState ? 14 : 3)) meV = { ...me };
     }
+    if (window.__renderMissions) window.__renderMissions();
+    if (window.__renderMe) window.__renderMe();
     buildHero();
     if (heroGhost) { heroGhost.remove(); heroGhost = null; }
-    ROSTER = s.players.filter((p) => p.position.sectorId === SECTOR.id);
+    ROSTER = s.players.filter((p) => placed.has(p.position.sectorId));
     refreshPlayers(ROSTER);
-    if (!boardObj || !boardObj.contains(hero)) { updateChunks(...Object.values((({ cx, cy, vc, vr }) => ({ cx, cy, vc, vr }))(camera()))); }
+    { lastChunkKey = ''; updateChunks(...Object.values((({ cx, cy, vc, vr }) => ({ cx, cy, vc, vr }))(camera()))); }
     const poiSig = SECTOR.id + JSON.stringify(SECTOR.landmarks) + JSON.stringify(SECTOR.exits) + s.sectors.length;
     if (poiSig !== lastPoiSig) { lastPoiSig = poiSig; rebuildPois(); }
     const routeSig = s.route.map((r) => r.position.sectorId + r.position.x + ',' + r.position.y).join('|') + '@' + me.x + ',' + me.y;
@@ -2844,11 +3036,17 @@ setTimeout(fitMap, 0);
     paint();
     if (window.AV && window.AV.sync) window.AV.sync();
     if (queued && !s.busy && !s.movementBlocked) { const q = queued; queued = null; sendWalk(q); }
+    else if (lastWalk && Date.now() - lastWalk.at > 900 && !s.busy && !s.movementBlocked && !s.route.length) {
+      /* the walk settled: if it ended on another tile than the one clicked, try the click once more */
+      const w = lastWalk; lastWalk = null;
+      if (!w.retried && Date.now() - w.at < 20000 && (() => { const t = absPos(w.dest); return t && (t.x !== me.x || t.y !== me.y) && !isBlocked(t.x, t.y); })()) sendWalk(w.dest, true);
+    }
   }
   window.addEventListener('message', (e) => {
     if (e.origin !== location.origin || !e.data || e.data.av !== 'world-host') return;
     if (e.data.type === 'state') applyState(e.data.state);
     else if (e.data.type === 'say') say(e.data.text);
+    else if (e.data.type === 'stop') { lastWalk = null; queued = null; optim = null; }
   });
   post({ type: 'ready' });
 })();

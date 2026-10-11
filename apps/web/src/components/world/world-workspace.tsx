@@ -219,6 +219,8 @@ export function WorldWorkspace({
         void sendRef.current({ kind: 'walk', destination: message.destination })
       else if (message.type === 'attack')
         void sendRef.current({ kind: 'attack', targetId: message.targetId })
+      else if (message.type === 'autopath')
+        void sendRef.current({ kind: 'autopath', objectiveId: message.objectiveId })
       else if (message.type === 'travel') {
         const destination = travelDestination(current.current, message.sectorId)
         if (destination) void sendRef.current({ kind: 'walk', destination })
@@ -230,6 +232,10 @@ export function WorldWorkspace({
   }, [])
   // Confirm the steps already taken first, so the character stops where it is standing.
   async function stopMoving() {
+    frame.current?.contentWindow?.postMessage(
+      { av: 'world-host', type: 'stop' },
+      window.location.origin,
+    )
     if (current.current.route.length && !pending.current) await sendRef.current({ kind: 'tick' })
     await sendRef.current({ kind: 'stop' })
   }
