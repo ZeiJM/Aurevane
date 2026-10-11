@@ -28,7 +28,7 @@ Evidence artifacts for the same final run:
 
 ## Production database receipt
 
-Applied only `supabase/migrations/20261007034319_battlefield_elevation_policy.sql`, source SHA-256 `18a200e95bf07f4981efb7e6d9ab4e1e3b992bbe092cc1b1e3af7c35b02e007a`. Hosted migration name `battlefield_elevation_policy`, actual hosted version `20261007101310` (distinct from the source filename timestamp). Verified policy version 1 with basis-point weights 6000/3000/1000, RLS enabled, both client roles denied read/publication RPC access, and service-role read/publication RPC access granted. The seed audit reason records approved 60/30/10 defaults; absence of a seed publisher is intentional.
+Applied only `supabase/migrations/20261007101310_battlefield_elevation_policy.sql`, source SHA-256 `18a200e95bf07f4981efb7e6d9ab4e1e3b992bbe092cc1b1e3af7c35b02e007a`. Hosted migration name `battlefield_elevation_policy`, actual hosted version `20261007101310` (distinct from the source filename timestamp). Verified policy version 1 with basis-point weights 6000/3000/1000, RLS enabled, both client roles denied read/publication RPC access, and service-role read/publication RPC access granted. The seed audit reason records approved 60/30/10 defaults; absence of a seed publisher is intentional.
 
 Security advisors changed from 44 to 45 INFO no-policy entries solely because this private server-only table intentionally has no client RLS policy. The existing single leaked-password WARN was unchanged. No unrelated migration/history repair, production account changes or experimental settings publication occurred. Final read-only Skill/Essence publication override query returned an empty list; no content conversion writes were needed.
 

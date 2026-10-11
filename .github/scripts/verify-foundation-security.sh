@@ -72,7 +72,7 @@ test "$browser_privileges" = 'false|true|false|false|true'
 # Reapplying the additive column grant must not alter browser authority.
 browser_authority_before="$(browser_character_authority)"
 docker exec -i "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres \
-  < supabase/migrations/20261005170919_online_character_experience_projection.sql
+  < supabase/migrations/20261005194142_online_character_experience_projection.sql
 test "$(browser_character_authority)" = "$browser_authority_before"
 docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
   begin;

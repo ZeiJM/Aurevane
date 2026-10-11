@@ -1187,6 +1187,20 @@ const BT = (() => {
 })();
 
 /* ---------- biome themes: the region decides ground, scenery, water and weather look ---------- */
+/* points of interest in the generated wilds: each is composed from the painted prop kit */
+const POI_ART = (() => {
+  const shade = (g, x, y, rx, ry) => add(g, 'ellipse', { cx: x, cy: y, rx, ry, fill: 'url(#shadowG)' });
+  const glow = (g, x, y, r, fill = 'url(#lg-glowwin)') => add(g, 'circle', { class: 'lamp', cx: x, cy: y, r, fill, style: 'mix-blend-mode:screen;opacity:.8' });
+  return {
+    shrine: (g, x, y) => { shade(g, x, y + 8, 46, 11); add(g, 'circle', { class: 'pulse', cx: x, cy: y - 18, r: 50, fill: 'url(#gx-teal)', style: 'mix-blend-mode:screen' }); ART.spr(g, 'moonpetal_shrine', x, y + 12, 112); },
+    ruin: (g, x, y) => { shade(g, x, y + 8, 54, 12); ART.spr(g, 'ancient_moss_arch', x, y + 12, 124); ART.spr(g, 'mossy_boulder_a', x - 46, y + 14, 42); ART.spr(g, 'wildflower_patch', x + 40, y + 16, 40); },
+    camp: (g, x, y) => { shade(g, x, y + 8, 42, 10); glow(g, x, y - 6, 54); ART.spr(g, 'small_campfire', x, y + 10, 54); ART.spr(g, 'travelling_merchant', x + 34, y + 12, 36); ART.spr(g, 'crates_barrels', x - 38, y + 14, 36); },
+    grove: (g, x, y) => { shade(g, x, y + 8, 52, 12); glow(g, x, y - 10, 62, 'url(#gx-teal)'); ART.spr(g, 'firefly_lantern_glade', x, y + 14, 138); },
+    spring: (g, x, y) => { shade(g, x, y + 8, 50, 11); ART.spr(g, 'crystalline_pool', x, y + 14, 112); ART.spr(g, 'reeds_clump', x - 44, y + 12, 34); ART.spr(g, 'bluebell_patch', x + 44, y + 14, 34); },
+    hamlet: (g, x, y) => { shade(g, x, y + 8, 56, 12); ART.spr(g, 'thatched_farmhouse', x, y + 12, 118); glow(g, x - 12, y - 24, 30); ART.spr(g, 'hay_cart', x + 52, y + 16, 46); ART.spr(g, 'fence_straight', x - 54, y + 18, 44); },
+    waystone: (g, x, y) => { shade(g, x, y + 8, 30, 8); glow(g, x - 14, y - 38, 40); ART.spr(g, 'iron_lamppost', x - 14, y + 10, 34); ART.spr(g, 'wooden_signpost', x + 16, y + 12, 46); },
+  };
+})();
 const BIOME_OF = { 'aureth-crown': 'plains', 'verdant-expanse': 'forest', 'emberreach': 'volcanic', 'frostmere': 'ice', 'glasswind-desert': 'desert', 'hollow-coast': 'coast', 'starfall-highlands': 'highland', 'umbral-march': 'march' };
 const THEMES = {
   plains: { reg: 'plains', ground: 'meadow', blots: ['golden_blossom_meadow', 'dry_golden_grass', 'meadow_flower_grass'], obst: [['oak', 4], ['gold', 3], ['bush', 2], ['rock', 1]], ring: 0.55, tuft: 'meadow', water: 'water', label: 'Golden plains' },
@@ -1528,6 +1542,7 @@ function buildChunk(d) {
     const px = (lm.x + 0.5) * T, py = (lm.y + 0.5) * T;
     if (lm.kind === 'watchtower') items.push({ by: py - 10, occ: { t: 'e', cx: px, cy: py - 60, rx: 30, ry: 70 }, draw: (g) => ART.tower(g, px, py - 12, 0.86) });
     else if (lm.kind === 'frontier' || lm.kind === 'anchor') items.push({ by: py, draw: (g) => { add(g, 'circle', { class: 'pulse', cx: px, cy: py - 20, r: 44, fill: 'url(#gx-teal)', style: 'mix-blend-mode:screen' }); ART.spr(g, 'teal_rune_stone', px, py + 8, 50); } });
+    else if (POI_ART[lm.kind]) items.push({ by: py, draw: (g) => POI_ART[lm.kind](g, px, py) });
   });
   /* waterfall at a river's northern source, and a spring where a river enters from the side */
   if (home) S.rivers.forEach((r) => {
@@ -2011,11 +2026,11 @@ const HUB_OF_REGION = { 'aureth-crown': 'aureth', 'verdant-expanse': 'verdant', 
   hero.insertBefore(lantern, hero.firstChild);
 
   let timeManual = null, wxManual = null, region = 'temperate', pendingFx = null, curFx = null, lightning = false;
-  /* server time runs in real seconds, minutes and hours (UTC); day and night follow it */
+  /* the World keeps its own clock: one real hour is one in-game day, and day and night follow it */
   const utcNow = () => { const n = new Date(); return { h: n.getUTCHours(), m: n.getUTCMinutes(), s: n.getUTCSeconds() }; };
   let ENV = null, envAt = 0;
   window.AV_setEnv = (e) => { ENV = e; envAt = performance.now(); apply(); };
-  const envMinute = () => { if (!ENV) return null; const m = ENV.frozen ? ENV.minuteOfDay : ENV.minuteOfDay + (performance.now() - envAt) / 60000; return ((m % 1440) + 1440) % 1440; };
+  const envMinute = () => { if (!ENV) return null; const m = ENV.frozen ? ENV.minuteOfDay : ENV.minuteOfDay + ((performance.now() - envAt) * 1440) / (ENV.dayLengthMs || 3600000); return ((m % 1440) + 1440) % 1440; };
   const gameHours = () => { if (timeManual !== null) return timeManual; const m = envMinute(); if (m !== null) return m / 60; const n = utcNow(); return n.h + n.m / 60 + n.s / 3600; };
   const curWeather = () => wxManual || (ENV ? ENV.weather : weatherAt(Math.floor(Date.now() / 3600000)));
   const pad2 = (n) => String(n).padStart(2, '0');
@@ -2034,7 +2049,7 @@ const HUB_OF_REGION = { 'aureth-crown': 'aureth', 'verdant-expanse': 'verdant', 
     pendingFx = lk.fx || null; lightning = Boolean(lk.lightning);
     const hh = Math.floor(h), mm = Math.floor((h - hh) * 60), u = utcNow();
     const mNow = envMinute(), ss = mNow === null ? u.s : Math.floor(((mNow * 60) % 60));
-    sbTime.textContent = timeManual !== null ? `${pad2(hh)}:${pad2(mm)} UTC` : mNow === null ? `${pad2(u.h)}:${pad2(u.m)}:${pad2(u.s)} UTC` : ENV.frozen ? `${pad2(hh)}:${pad2(mm)} UTC` : `${pad2(hh)}:${pad2(mm)}:${pad2(ss)} UTC`;
+    sbTime.textContent = `${pad2(hh)}:${pad2(mm)} in-game${ENV && ENV.frozen ? ' (held)' : ''}`;
     sbWx.textContent = LABELS[region][w] + '';
     if (timeManual === null && document.activeElement !== tod) { tod.value = String(Math.round(h * 60)); }
     todOut.textContent = `${pad2(hh)}:${pad2(mm)}`;
@@ -2105,7 +2120,7 @@ const HUB_OF_REGION = { 'aureth-crown': 'aureth', 'verdant-expanse': 'verdant', 
   wxSel.addEventListener('change', () => { wxManual = wxSel.value === 'live' ? null : wxSel.value; apply(); });
   rgSel.addEventListener('change', () => { region = rgSel.value; apply(); });
   window.AV_setRegion = (k) => { if (k === region) return; region = k; apply(); };
-  setInterval(apply, 1000);
+  setInterval(apply, 500);
   apply(); size(); syncLoop();
 })();
 setTimeout(fitMap, 0);
@@ -2697,7 +2712,7 @@ setTimeout(fitMap, 0);
   function rebuildPois() {
     const S = SECTOR; if (!S) return;
     const secs = sectorById();
-    const imgFor = { settlement: ['timber_stone_tavern', 125, 60], watchtower: ['round_watchtower', 120, 40], frontier: ['teal_rune_stone', 80, 66], anchor: ['teal_rune_stone', 80, 66] };
+    const imgFor = { settlement: ['timber_stone_tavern', 125, 60], watchtower: ['round_watchtower', 120, 40], frontier: ['teal_rune_stone', 80, 66], anchor: ['teal_rune_stone', 80, 66], shrine: ['moonpetal_shrine', 110, 52], ruin: ['ancient_moss_arch', 110, 52], camp: ['small_campfire', 70, 62], grove: ['firefly_lantern_glade', 120, 52], spring: ['crystalline_pool', 110, 52], hamlet: ['thatched_farmhouse', 110, 56], waystone: ['iron_lamppost', 46, 60] };
     const list = S.landmarks.map((l) => { const [img, sz, py] = imgFor[l.kind] || imgFor.anchor; return { name: l.name, img, sz, py, x: l.x, y: l.y, dest: { sectorId: S.id, x: l.x, y: l.y }, kind: 'poi' }; });
     const seenTo = new Set();
     S.exits.filter((e) => e.from.sectorId === S.id).forEach((e) => {

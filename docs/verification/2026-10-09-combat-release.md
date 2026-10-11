@@ -26,7 +26,7 @@ The next run exposed a genuine mobile AI team surrender error with two allies. A
 
 ## Hosted migration
 
-Committed `supabase/migrations/20261009151412_combat_suppress_timing.sql` was applied to project `luazfeupwfgnilohfsya` as hosted migration **20261009193628 / combat_suppress_timing**. The provider records its own application version; no migration metadata was rewritten.
+Committed `supabase/migrations/20261009193628_combat_suppress_timing.sql` was applied to project `luazfeupwfgnilohfsya` as hosted migration **20261009193628 / combat_suppress_timing**. The provider records its own application version; no migration metadata was rewritten.
 
 The final hosted function body exactly matches the committed SQL, differing from the previous function only by the appended Suppress allowlist entry. All seven published Owner timing rows retained identical hashes; no policy version was published. Security definer, empty search path, Owner/CAS/lock/history validation and service-only execution grants remain unchanged. Anonymous/authenticated execution stays denied. No new security-advisor groups appeared. Elemental default publication pointers were empty at the immediate preflight; custom publications were not changed. Local PGlite regression gates covered publication authorization, version history, stale CAS and invalid input before application.
 

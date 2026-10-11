@@ -1,4 +1,5 @@
 import { GRID_HEIGHT, GRID_WIDTH, START_POSITION, STEP_MS } from './catalog'
+import { isWildSectorId } from './wild-ids'
 import type { TravelStep, WorldObjective, WorldPosition, WorldSector, WorldState } from './types'
 
 export const ACTIVE_WORLD_SYNC_MS = STEP_MS
@@ -56,6 +57,47 @@ export function newWorldState(): WorldState {
   }
 }
 
+const MAX_ROUTE_SEARCH = 30000
+const MAX_ROUTE_STEPS = 600
+class MinHeap<T> {
+  private items: T[] = []
+  constructor(private readonly less: (a: T, b: T) => number) {}
+  get size() {
+    return this.items.length
+  }
+  push(item: T) {
+    const a = this.items
+    a.push(item)
+    let i = a.length - 1
+    while (i > 0) {
+      const parent = (i - 1) >> 1
+      if (this.less(a[i]!, a[parent]!) >= 0) break
+      ;[a[i], a[parent]] = [a[parent]!, a[i]!]
+      i = parent
+    }
+  }
+  pop(): T | undefined {
+    const a = this.items
+    if (!a.length) return undefined
+    const top = a[0]!
+    const last = a.pop()!
+    if (a.length) {
+      a[0] = last
+      let i = 0
+      for (;;) {
+        const l = 2 * i + 1,
+          r = l + 1
+        let m = i
+        if (l < a.length && this.less(a[l]!, a[m]!) < 0) m = l
+        if (r < a.length && this.less(a[r]!, a[m]!) < 0) m = r
+        if (m === i) break
+        ;[a[i], a[m]] = [a[m]!, a[i]!]
+        i = m
+      }
+    }
+    return top
+  }
+}
 /** Bounded Dijkstra search: ordinary cells plus explicitly authored regional roads. */
 export function findWorldRoute(
   from: WorldPosition,
@@ -66,13 +108,13 @@ export function findWorldRoute(
   const lookup = new Map(sectors.map((s) => [s.id, s]))
   const target = lookup.get(to.sectorId)
   if (!target || !isWalkable(target, to) || (known && !known(to))) return null
-  const queue = [{ position: from, cost: 0 }]
+  const queue = new MinHeap<{ position: WorldPosition; cost: number }>((a, b) => a.cost - b.cost)
+  queue.push({ position: from, cost: 0 })
   const costs = new Map([[positionKey(from), 0]])
   const prior = new Map<string, { from: WorldPosition; step: TravelStep }>()
   let found = false
-  for (let count = 0; queue.length && count < 1500; count++) {
-    queue.sort((a, b) => a.cost - b.cost)
-    const current = queue.shift()!
+  for (let count = 0; queue.size && count < MAX_ROUTE_SEARCH; count++) {
+    const current = queue.pop()!
     if (current.cost !== costs.get(positionKey(current.position))) continue
     if (samePosition(current.position, to)) {
       found = true
@@ -109,7 +151,7 @@ export function findWorldRoute(
   let cursor = to
   while (!samePosition(cursor, from)) {
     const previous = prior.get(positionKey(cursor))
-    if (!previous || result.length >= 256) return null
+    if (!previous || result.length >= MAX_ROUTE_STEPS) return null
     result.unshift(previous.step)
     cursor = previous.from
   }
@@ -187,6 +229,8 @@ export function remainingTravelMs(state: Pick<WorldState, 'route' | 'nextStepAt'
 export function revealNearby(state: WorldState): WorldState {
   const p = state.position
   const cells = new Set(state.discoveries[p.sectorId] ?? [])
+  // Generated wilds reveal whole as they are entered; authored ground is surveyed around you.
+  if (isWildSectorId(p.sectorId)) for (let i = 0; i < GRID_WIDTH * GRID_HEIGHT; i++) cells.add(i)
   for (let y = p.y - 2; y <= p.y + 2; y++)
     for (let x = p.x - 2; x <= p.x + 2; x++) if (validCell({ x, y })) cells.add(y * GRID_WIDTH + x)
   return {

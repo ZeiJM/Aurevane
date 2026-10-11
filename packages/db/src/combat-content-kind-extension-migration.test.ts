@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 
 const migrationPath = resolve(
   process.cwd(),
-  '../../supabase/migrations/20260927203000_combat_content_essence_resonance_kinds.sql',
+  '../../supabase/migrations/20260928042812_combat_content_essence_resonance_kinds.sql',
 )
 
 describe('combat content Essence and Resonance kind migration', () => {

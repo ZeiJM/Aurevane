@@ -1,6 +1,6 @@
 import 'server-only'
 import { AurevaneError } from '@aurevane/game-core/errors'
-import { FRONTIER_APPROACH, GRID_WIDTH, STEP_MS } from '@/world/catalog'
+import { FRONTIER_APPROACH, STEP_MS } from '@/world/catalog'
 import { resolveWorldEnvironment, type WorldEnvironment } from '@/world/environment'
 import {
   advanceWorldRoute,
@@ -20,7 +20,14 @@ import type {
   WorldState,
   WorldView,
 } from '@/world/types'
-import { SURVEY_SECTOR, WORLD_OBJECTIVES, WORLD_SECTORS } from './world-content'
+import {
+  SURVEY_SECTOR,
+  WORLD_OBJECTIVES,
+  WORLD_SECTORS,
+  isKnownCell,
+  resolveSector,
+  visibleSectors,
+} from './world-content'
 import { worldArchiveEntries } from './world-archive'
 import {
   advanceWorldObjectiveProgress,
@@ -33,10 +40,7 @@ import {
 const invalid = (message: string): never => {
   throw new AurevaneError('INVALID_REQUEST', message)
 }
-function isKnown(state: WorldState, p: WorldPosition) {
-  const sector = WORLD_SECTORS.find((s) => s.id === p.sectorId)
-  return Boolean(sector?.charted || state.discoveries[p.sectorId]?.includes(p.y * GRID_WIDTH + p.x))
-}
+const isKnown = isKnownCell
 export function resolveWorldIntent(
   state: WorldState,
   intent: Exclude<WorldIntent, { kind: 'attack' }>,
@@ -53,7 +57,9 @@ export function resolveWorldIntent(
       : null
     next =
       (state.routeObjectiveId && (!objective || !canAutoPath(objective))) ||
-      !isCurrentWorldRoute(state.position, state.route, WORLD_SECTORS, (p) => isKnown(state, p))
+      !isCurrentWorldRoute(state.position, state.route, visibleSectors(state), (p) =>
+        isKnown(state, p),
+      )
         ? { ...state, route: [], routeObjectiveId: null, nextStepAt: null }
         : advanceWorldRoute(state, now)
   } else if (intent.kind === 'cross') {
@@ -78,7 +84,7 @@ export function resolveWorldIntent(
       destination = objective!.destination!
     } else destination = intent.destination
     if (!isKnown(state, destination)) invalid('Survey this ground before plotting a route.')
-    const sectors = WORLD_SECTORS.filter((s) => s.charted || state.discoveries[s.id])
+    const sectors = visibleSectors(state)
     const route = findWorldRoute(state.position, destination, sectors, (p) => isKnown(state, p))
     if (!route) invalid('There is no known walkable route to that location.')
     // Replanning never accelerates a due movement step; all new steps wait a full interval.
@@ -91,7 +97,7 @@ export function resolveWorldIntent(
   }
   next = advanceWorldObjectiveProgress(revealNearby(next))
   const discoveredAnchors = new Set(next.discoveredAnchors ?? [])
-  const currentSector = WORLD_SECTORS.find((sector) => sector.id === next.position.sectorId)
+  const currentSector = resolveSector(next.position.sectorId)
   const currentAnchor = currentSector?.landmarks.find(
     (landmark) =>
       landmark.kind === 'anchor' &&
@@ -128,32 +134,30 @@ export function projectWorld(
   objectives: readonly WorldObjective[] = WORLD_OBJECTIVES,
   environment: WorldEnvironment = resolveWorldEnvironment(now),
 ): WorldView {
-  const sectors = WORLD_SECTORS.filter((s) => s.charted || state.discoveries[s.id]).map(
-    (sector) => {
-      const { rows, roads, ...publicSector } = sector
-      const cells = []
-      for (let y = 0; y < 9; y++)
-        for (let x = 0; x < 13; x++)
-          if (isKnown(state, { sectorId: sector.id, x, y }))
-            cells.push({
-              x,
-              y,
-              terrain: rows[y]![x]!,
-              walkable: isWalkable(sector, { x, y }),
-              safe: isSafe(sector, { x, y }),
-            })
-      return {
-        ...publicSector,
-        cells,
-        landmarks: sector.landmarks.filter((p) => isKnown(state, { ...p, sectorId: sector.id })),
-        exits: roads.filter((road) => isKnown(state, road.from) && isKnown(state, road.to)),
-      }
-    },
-  )
+  const sectors = visibleSectors(state).map((sector) => {
+    const { rows, roads, ...publicSector } = sector
+    const cells = []
+    for (let y = 0; y < 9; y++)
+      for (let x = 0; x < 13; x++)
+        if (isKnown(state, { sectorId: sector.id, x, y }))
+          cells.push({
+            x,
+            y,
+            terrain: rows[y]![x]!,
+            walkable: isWalkable(sector, { x, y }),
+            safe: isSafe(sector, { x, y }),
+          })
+    return {
+      ...publicSector,
+      cells,
+      landmarks: sector.landmarks.filter((p) => isKnown(state, { ...p, sectorId: sector.id })),
+      exits: roads.filter((road) => isKnown(state, road.from) && isKnown(state, road.to)),
+    }
+  })
   const visiblePlayers = players
     .filter((p) => p.position.sectorId === state.position.sectorId && isKnown(state, p.position))
     .map((player) => {
-      const sector = WORLD_SECTORS.find((s) => s.id === state.position.sectorId)!
+      const sector = resolveSector(state.position.sectorId)!
       const distance =
         Math.abs(player.position.x - state.position.x) +
         Math.abs(player.position.y - state.position.y)
@@ -204,7 +208,7 @@ export function projectWorld(
   }
 }
 export function assertEncounterRange(state: WorldState, target: WorldState) {
-  const sector = WORLD_SECTORS.find((s) => s.id === state.position.sectorId)
+  const sector = resolveSector(state.position.sectorId)
   if (
     !sector ||
     state.position.sectorId !== target.position.sectorId ||

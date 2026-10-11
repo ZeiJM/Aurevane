@@ -6,7 +6,7 @@ import { loadPublicCharacterProfileImageMap } from '@/server/character/character
 import { isSafe, newWorldState } from '@/world/travel'
 import type { WorldCommand, WorldPlayer, WorldState } from '@/world/types'
 import { eventWorldObjectives } from './world-events'
-import { WORLD_OBJECTIVES, WORLD_SECTORS } from './world-content'
+import { WORLD_OBJECTIVES, resolveSector } from './world-content'
 import { resolveWorldEnvironment } from '@/world/environment'
 import { readWorldEnvironmentSettings } from './world-environment-store'
 import { projectWorld, resolveWorldIntent } from './world-service'
@@ -38,7 +38,7 @@ export function worldRpcError(error: { message?: string }): never {
   throw new AurevaneError('PERSISTENCE_UNAVAILABLE', 'World travel is temporarily unavailable.')
 }
 function storedState(state: WorldState) {
-  const sector = WORLD_SECTORS.find((s) => s.id === state.position.sectorId)
+  const sector = resolveSector(state.position.sectorId)
   if (!sector)
     throw new AurevaneError('PERSISTENCE_UNAVAILABLE', 'This location cannot be loaded safely.')
   return { ...state, safe: isSafe(sector, state.position) }

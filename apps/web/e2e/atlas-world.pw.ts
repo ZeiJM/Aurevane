@@ -227,7 +227,7 @@ test('the World page is the scenic map stage inside the shared shell, with Journ
   const frame = stageOf(page)
   await expectLocation(page, 'Verdant Expanse')
   await expect(frame.locator('#nav-svg')).toBeVisible()
-  await expect(frame.locator('#sb-time')).toContainText('UTC')
+  await expect(frame.locator('#sb-time')).toContainText('in-game')
   await expect(frame.locator('#sb-wx')).not.toBeEmpty()
   await expect(frame.locator('#tab-nb')).toBeVisible()
   await expect(frame.locator('#zone-badge')).toBeVisible()
@@ -659,16 +659,10 @@ for (const journey of [
     )
     test.setTimeout(150000)
     await enter(page)
-    if (journey.startSector !== 'verdant-expanse') {
-      place((await world(page)).characterId, journey.startSector, 5, 4)
-      await reloadWorld(page)
-    }
+    // Towns now sit well apart behind generated trail sectors, so start on the road itself.
+    place((await world(page)).characterId, journey.id, 6, 4)
+    await reloadWorld(page)
     await openJournal(page)
-    await page.getByRole('button', { name: `Travel to ${journey.name}`, exact: false }).click()
-    await expect(page.locator('[data-world-travel-status]')).toContainText(journey.name)
-    await expect
-      .poll(async () => (await world(page)).position.sectorId, { timeout: 20000 })
-      .toBe(journey.id)
     await expectLocation(page, journey.name)
     await expect(stageOf(page).locator('#nav-svg')).toBeVisible()
     await capture(page, info, `${journey.id}-sector`)
@@ -695,15 +689,11 @@ for (const journey of [
     await capture(page, info, `${journey.id}-globe`)
     await stageOf(page).locator('#v-toggle').click()
     await expect(stageOf(page).locator('#stage-world')).toBeHidden()
-    await openJournal(page)
-    await page
-      .getByRole('button', { name: `Travel to ${journey.destinationName}`, exact: false })
-      .click()
+    const arrival = { sectorId: journey.destinationId, x: 6, y: 4 }
+    await stageWalk(page, arrival)
     await expect(page.locator('[data-world-travel-status]')).toContainText(journey.destinationName)
     await expect(page.locator('[data-world-travel-status]')).toContainText('About')
-    await expect
-      .poll(async () => (await world(page)).position.x, { timeout: 12000 })
-      .not.toBe(journey.entranceX)
+    await expect.poll(async () => (await world(page)).position.x, { timeout: 12000 }).not.toBe(6)
     const stopResponse = page.waitForResponse(
       (response) =>
         new URL(response.url()).pathname === '/api/world' &&
@@ -724,9 +714,7 @@ for (const journey of [
     expect(stopped.position.sectorId).toBe(journey.id)
     await reloadWorld(page)
     expect((await world(page)).position).toEqual(stopped.position)
-    await page
-      .getByRole('button', { name: `Travel to ${journey.destinationName}`, exact: false })
-      .click()
+    await stageWalk(page, arrival)
     await expect
       .poll(async () => (await world(page)).position.sectorId, { timeout: 85000 })
       .toBe(journey.destinationId)

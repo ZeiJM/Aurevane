@@ -4,7 +4,7 @@
 
 ## What shipped
 - `/game/world` content is the scenic map stage (same-origin iframe at `/world-stage/index.html`, vanilla JS/SVG). The React parent keeps every server call, the sync timer and battle redirect; the shared character rail, header and footer are unchanged.
-- Server-seeded environment: day/night, hourly weather, Master Panel controls (time offset/freeze, forced weather) via migration `20261011010000_world_environment_controls.sql` (applied to production, immutable audit).
+- Server-seeded environment: day/night, hourly weather, Master Panel controls (time offset/freeze, forced weather) via migration `20261011030821_world_environment_controls.sql` (applied to production, immutable audit).
 - All characters (online or not) appear at their saved position (default starting town); Attack only for recently seen characters in open territory; Talk is visible but disabled.
 - Journal drawer holds every previous sidebar feature: quests, auto-path, local interactions, World Pulse, archive, frontier anchors, roads and crossings, cross-the-map confirmation, plus View 360°.
 - Biomes per region (forest, desert, volcanic lava, ice, coast sea, march, highlands, plains), rivers with bridges, waterfalls from river sources, blocked water, ghost avatar behind scenery.
@@ -23,7 +23,7 @@
 
 ## Final status
 - Responsive browser smoke passed on the released commit `b3ddffd0` (and on the PR head). Atlas browser test passes.
-- Supabase Preview shows "Remote migration versions not found in local migrations directory". It is long-standing: production records each migration under its apply time (for example `20261011030821` for this release's `20261011010000_world_environment_controls.sql`), so versions never match local filenames, and earlier main commits fail the same way. Not changed here; resolving it means a deliberate migration-history repair or disabling the check in the Supabase integration, both Owner decisions.
+- Supabase Preview shows "Remote migration versions not found in local migrations directory". It is long-standing: production records each migration under its apply time (for example `20261011030821` for this release's `20261011030821_world_environment_controls.sql`), so versions never match local filenames, and earlier main commits fail the same way. Not changed here; resolving it means a deliberate migration-history repair or disabling the check in the Supabase integration, both Owner decisions.
 - Human gameplay acceptance is pending.
 
 ## Open decisions / notes

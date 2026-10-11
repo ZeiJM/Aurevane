@@ -103,7 +103,7 @@ beforeAll(async () => {
       ownerGuard.lastIndexOf('commit;'),
     ),
   )
-  await db.exec(migration('20260922203418_living_atlas_world_travel.sql'))
+  await db.exec(migration('20260923190443_living_atlas_world_travel.sql'))
   await db.exec(migration('20260923194500_phase5_world_interactions.sql'))
 }, 30000)
 beforeEach(async () => {

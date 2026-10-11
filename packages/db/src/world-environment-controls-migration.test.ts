@@ -5,7 +5,7 @@ import { expect, it } from 'vitest'
 
 const path = resolve(
   process.cwd(),
-  '../../supabase/migrations/20261011010000_world_environment_controls.sql',
+  '../../supabase/migrations/20261011030821_world_environment_controls.sql',
 )
 const owner = '00000000-0000-0000-0000-000000000001'
 const settings = (extra = '') =>

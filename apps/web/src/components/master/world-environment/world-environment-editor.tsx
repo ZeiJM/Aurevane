@@ -37,8 +37,8 @@ function parseClock(value: string): number | null {
 export function describeSettingsChange(after: Record<string, unknown>): string {
   const parts = [
     after.frozenMinuteOfDay != null
-      ? `clock frozen at ${formatMinuteOfDay(after.frozenMinuteOfDay as number)} UTC`
-      : `clock offset ${after.timeOffsetMinutes as number} min`,
+      ? `clock frozen at ${formatMinuteOfDay(after.frozenMinuteOfDay as number)} in-game`
+      : `clock offset ${after.timeOffsetMinutes as number} in-game min`,
     after.weatherOverride
       ? `weather forced to ${after.weatherOverride as string}${
           after.weatherOverrideUntilMs
@@ -129,7 +129,7 @@ export function WorldEnvironmentEditor({
       <h2>World environment v{settings.version}</h2>
       <p data-testid="world-environment-current">
         {current
-          ? `Effective server time ${formatMinuteOfDay(current.minuteOfDay)} UTC${
+          ? `World time ${formatMinuteOfDay(current.minuteOfDay)} in-game${
               current.frozen ? ' (frozen)' : ''
             }; weather ${current.weather} (${
               current.weatherSource === 'master' ? 'forced by Master' : 'live'
@@ -137,7 +137,7 @@ export function WorldEnvironmentEditor({
           : 'Reading the current server time…'}
       </p>
       <label>
-        Shift server time (minutes, −1440 to 1440)
+        Shift world time (in-game minutes, −1440 to 1440)
         <input
           type="number"
           min={-MAX_TIME_OFFSET_MINUTES}
@@ -157,11 +157,11 @@ export function WorldEnvironmentEditor({
             disabled={saving}
             onChange={(event) => setFrozen(event.target.checked)}
           />{' '}
-          Freeze the clock at a time of day (UTC)
+          Freeze the clock at a time of day (in-game)
         </span>
       </label>
       <label>
-        Frozen time of day (UTC)
+        Frozen time of day (in-game)
         <input
           type="time"
           value={clock}
