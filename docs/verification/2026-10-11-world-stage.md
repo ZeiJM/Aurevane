@@ -52,3 +52,14 @@ Released through PR #864, merge `e15479d1407f4d6160479465acd655db8c61fafc`; prod
 - **Footer/Journal:** footer now carries coordinates (left, always visible) and the settings button beside them; the WASD hint, View 360° and walking status text are removed; the Journal drops the location and roads panels.
 - **Migration history repair:** 14 local migration files renamed to the versions production recorded, no-op files added for the two remote-only versions (`20260919125734`, `20260923220111`); tests/docs/scripts that name files updated. The package DB tests pass against the renamed history.
 - **Tests:** terrain/wild generation (connectivity, determinism, seams, coast), end-to-end server walk through an open edge and onward, environment clock, journey e2e rewritten for the new distances. The browser end-to-end tests could not be run locally; CI is their first run.
+
+## Follow-up: PR #866 — smooth walking, UTC clock, lighter map
+
+**Status: LIVE for testing. Human gameplay acceptance is pending.**
+
+- Merge `e20c8fe6b045ea76896ea96d0cda753fadc1cdec`; production `dpl_6kABK76EiRa7LnqPPUTw6fYnW7pN` READY at https://aurevane.vercel.app. Production serves the new `stage.js`; the first 15-minute runtime window shows no warning/error/fatal entries. Quality gates, Database foundation and verify (Atlas browser) passed; Responsive browser smoke was still running at merge.
+- **Rubberbanding:** a walk/auto-path replan first applies the steps already due and keeps the step under way (regression test in `world-service.test.ts`); the stage never retargets backwards on a late reply.
+- **Path trail:** removed; a click simply walks the character there.
+- **Performance:** chunk/cloud/viewBox work only when changed, ambient animations rest while walking, grass no longer sways. No frame-rate measurement was taken.
+- **Clock:** the World clock is real UTC (`WORLD_DAY_REAL_MS` = one day), displayed `HH:MM UTC`; Master offset/freeze/forced weather unchanged. This reverses the one-real-hour-per-day pace from PR #864.
+- **Footer:** the settings gear sits after Journal; its popup opens on the right.
