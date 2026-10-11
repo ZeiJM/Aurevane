@@ -2151,3 +2151,9 @@
 .workspace .journal {
   bottom: 56px;
 }
+/* The Journal opens below the panel header so the location / world-view button stays usable */
+@media (min-width: 761px) {
+  .workspace .journal {
+    top: 58px;
+  }
+}
