@@ -30,3 +30,10 @@
 - Sectors remain the authored 13×9 boards (not an endless procedural world).
 - Weather/time come from Master settings when set, otherwise real UTC.
 - Static stage files are excluded from Prettier and ESLint (`public/world-stage`).
+
+## Pace, instant start and arrival (branch agent/world-pace-arrival)
+
+- `STEP_MS` 275 → 200 ms (server authority; stage preview `WALK_STEP_MS` and minimum glide speed raised to match). In-flight 275 ms routes at deploy time are discarded by `isCurrentWorldRoute` and simply replanned; no migration is required (the DB rules use each step's recorded duration).
+- Stage now previews the shortest path immediately on every click, including mid-walk and while an earlier command is still confirming; the preview hands over at the next committed version (`version` added to the stage state).
+- If a walk settles on a tile other than the clicked one, the stage retries that click once.
+- Verified: world Vitest (150), DB travel migration tests (19), eslint/tsc/prettier, headless stage simulation (20 random destinations, with and without replans, 300 ms mean latency: 0 short). Human gameplay acceptance pending.

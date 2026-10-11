@@ -4,6 +4,7 @@ import type { WorldPosition, WorldView } from '@/world/types'
 /** Message envelope the host posts into the World stage iframe. */
 export interface WorldStageState {
   characterId: string
+  version: number
   name: string
   portrait: string
   position: WorldPosition
@@ -56,6 +57,7 @@ export function buildStageState(
 ): WorldStageState {
   return {
     characterId: view.characterId,
+    version: view.version,
     name: character.name,
     portrait: character.portrait,
     position: view.position,

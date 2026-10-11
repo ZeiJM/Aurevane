@@ -1763,13 +1763,14 @@ function paint() {
   }
   onMoveUi();
 }
-let predState = null, optim = null;
+const WALK_STEP_MS = 200; /* keep in step with STEP_MS in src/world/catalog.ts */
+let predState = null, optim = null, lastWalk = null;
 /* The server owns every step; between its replies the stage only previews the steps already
    due on the authored clock, so the walk never waits for a network round trip. */
 function predictedTarget() {
   const p = predState;
-  if (optim && (Date.now() - optim.at > 6000 || (SV && SV.route.length))) optim = null;
-  if (!p && optim) return optim.path[Math.min(optim.path.length - 1, Math.floor((Date.now() - optim.at) / 275))];
+  if (optim && (Date.now() - optim.at > 6000 || (SV && SV.version !== optim.ver))) optim = null;
+  if (optim) return optim.path[Math.min(optim.path.length - 1, Math.floor((Date.now() - optim.at) / WALK_STEP_MS))];
   if (!p || !SECTOR || reduceMotion) return me;
   let t = p.nextStepAt, now = p.serverNow + (Date.now() - p.recvAt), tgt = null;
   if (t === null) return me;
@@ -1796,7 +1797,7 @@ function visualStep(now) {
     const dx = tx - o.x, dy = ty - o.y, d = Math.hypot(dx, dy);
     if (d < 0.002) { if (d > 0) { o.x = tx; o.y = ty; return true; } return false; }
     if (reduceMotion) { o.x = tx; o.y = ty; return true; }
-    const sp = Math.max(3.4, d * 4.5), s = Math.min(d, sp * dt);
+    const sp = Math.max(5.2, d * 6.5), s = Math.min(d, sp * dt);
     o.x += (dx / d) * s; o.y += (dy / d) * s; return true;
   };
   const pt = predictedTarget();
@@ -1846,11 +1847,15 @@ function pathToward(dest) {
   }
   return null;
 }
-function sendWalk(dest) {
-  if (SV && (SV.busy || SV.movementBlocked)) { queued = dest; if (SV.movementBlocked) say(SV.movementBlocked); return; }
+function sendWalk(dest, retry) {
+  if (SV && SV.movementBlocked) { queued = dest; say(SV.movementBlocked); return; }
+  /* start moving at once: preview the shortest path from where the character is heading, even
+     while an earlier command is still being confirmed or the character is mid-walk */
+  const path = pathToward(dest);
+  if (path) optim = { path, at: Date.now(), ver: SV ? SV.version : 0 };
+  lastWalk = { dest, at: Date.now(), retried: Boolean(retry) };
+  if (SV && SV.busy) { queued = dest; return; }
   queued = null;
-  const path = SV && !SV.route.length ? pathToward(dest) : null;
-  if (path) optim = { path, at: Date.now() };
   post({ type: 'walk', destination: dest });
 }
 function exitAt(x, y) { return SECTOR && SECTOR.exits.find((e) => e.from.sectorId === SECTOR.id && e.from.x === x && e.from.y === y); }
@@ -1962,7 +1967,6 @@ document.getElementById('zoom-in').addEventListener('click', () => (onGlobe() ? 
 
 
 /* ---------- globe support: one numbered tile per sector, wrapped around the world ---------- */
-const STEP_MS = 275;
 const GCOLS = 32, GROWS = 16, HOME_C = 10, HOME_R = 7;
 const hubNames = {};
 const cellOf = (sx, sy) => [(((HOME_C + sx) % GCOLS) + GCOLS) % GCOLS, (((HOME_R + sy) % GROWS) + GROWS) % GROWS];
@@ -2507,7 +2511,7 @@ setTimeout(fitMap, 0);
   function etaTo(cell) {
     const dc = Math.min(Math.abs(cell.c - currentCell.c), COLS - Math.abs(cell.c - currentCell.c)), dr = Math.abs(cell.r - currentCell.r);
     const tiles = Math.max(dc, dr) * CW;
-    return { tiles, text: secs(tiles * STEP_MS / 1000) };
+    return { tiles, text: secs(tiles * WALK_STEP_MS / 1000) };
   }
   function renderHead() {
     const wh = locTitle.closest('.where'); if (wh) wh.dataset.mode = mode;
@@ -2844,6 +2848,11 @@ setTimeout(fitMap, 0);
     paint();
     if (window.AV && window.AV.sync) window.AV.sync();
     if (queued && !s.busy && !s.movementBlocked) { const q = queued; queued = null; sendWalk(q); }
+    else if (lastWalk && Date.now() - lastWalk.at > 900 && !s.busy && !s.movementBlocked && !s.route.length) {
+      /* the walk settled: if it ended on another tile than the one clicked, try the click once more */
+      const w = lastWalk; lastWalk = null;
+      if (!w.retried && Date.now() - w.at < 20000 && w.dest.sectorId === SECTOR.id && (w.dest.x !== me.x || w.dest.y !== me.y) && !isBlocked(w.dest.x, w.dest.y)) sendWalk(w.dest, true);
+    }
   }
   window.addEventListener('message', (e) => {
     if (e.origin !== location.origin || !e.data || e.data.av !== 'world-host') return;

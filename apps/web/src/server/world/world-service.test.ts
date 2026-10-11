@@ -575,7 +575,7 @@ describe('starting a walk', () => {
     expect(next.position).toEqual(start.position)
     expect(next.route).toHaveLength(3)
     expect(next.nextStepAt).toBe(10_000)
-    // Steps land at +0, +275 and +550 ms: shortly before the third, two are confirmed together.
+    // Steps land at +0, +STEP_MS and +2*STEP_MS ms: shortly before the third, two are confirmed together.
     const tick = resolveWorldIntent(next, { kind: 'tick' }, 10_000 + STEP_MS * 2 - 1)
     expect(tick.position.x).toBe(start.position.x + 2)
     expect(tick.nextStepAt).toBe(10_000 + STEP_MS * 2)
