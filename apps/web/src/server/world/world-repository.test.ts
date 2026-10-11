@@ -14,7 +14,7 @@ vi.mock('./world-environment-store', () => ({ readWorldEnvironmentSettings: envi
 import { DEFAULT_WORLD_ENVIRONMENT_SETTINGS } from '@/world/environment'
 import { newWorldState } from '@/world/travel'
 import type { WorldCommand } from '@/world/types'
-import { commitWorldCommand, readWorld } from './world-repository'
+import { commitWorldCommand, readWorld, resetWorldReadCaches } from './world-repository'
 
 const characterId = '00000000-0000-4000-8000-000000000011'
 const command: WorldCommand = {
@@ -33,6 +33,7 @@ const payload = () => ({
   lastCommandFingerprint: null,
 })
 beforeEach(() => {
+  resetWorldReadCaches()
   rpc.mockReset()
   profileImages.clear()
   environmentSettings.mockReset().mockResolvedValue(DEFAULT_WORLD_ENVIRONMENT_SETTINGS)
@@ -51,6 +52,7 @@ it('attaches the server-owned environment, honouring Master settings', async () 
     frozenMinuteOfDay: 1080,
     weatherOverride: 'fog',
   })
+  resetWorldReadCaches() // Master settings are cached for a few seconds
   expect((await readWorld('owner', characterId)).view.environment).toMatchObject({
     minuteOfDay: 1080,
     frozen: true,

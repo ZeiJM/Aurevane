@@ -556,6 +556,27 @@ describe('endless generated wilds', () => {
   })
 })
 
+describe('starting a walk', () => {
+  it('lands the first ordinary step at once and paces the rest', () => {
+    const start = newWorldState()
+    const next = resolveWorldIntent(
+      start,
+      {
+        kind: 'walk',
+        destination: {
+          sectorId: start.position.sectorId,
+          x: start.position.x + 3,
+          y: start.position.y,
+        },
+      },
+      10_000,
+    )
+    expect(next.position).toEqual({ ...start.position, x: start.position.x + 1 })
+    expect(next.route).toHaveLength(2)
+    expect(next.nextStepAt).toBe(10_000 + STEP_MS)
+  })
+})
+
 describe('replanning mid-walk', () => {
   const sec = 'aureth-crown'
   it('plans from the tile already reached and keeps the step under way', () => {

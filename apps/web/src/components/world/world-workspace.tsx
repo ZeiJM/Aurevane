@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { FRONTIER_APPROACH } from '@/world/catalog'
-import { samePosition, worldSyncDelayMs } from '@/world/travel'
+import { remainingTravelMs, samePosition, worldSyncDelayMs } from '@/world/travel'
 import type { WorldIntent, WorldView } from '@/world/types'
 import {
   buildStageState,
@@ -121,13 +121,15 @@ export function WorldWorkspace({
       clearSyncTimer()
       if (!mounted.current) return
       const latest = current.current
+      const serverNow =
+        latest.serverNow +
+        Math.max(0, viewAcceptedAt.current === null ? 0 : Date.now() - viewAcceptedAt.current)
       const delay = worldSyncDelayMs({
         routeLength: latest.route.length,
         movementBlocked: Boolean(latest.movementBlocked),
         nextStepAt: latest.nextStepAt,
-        serverNow:
-          latest.serverNow +
-          Math.max(0, viewAcceptedAt.current === null ? 0 : Date.now() - viewAcceptedAt.current),
+        serverNow,
+        remainingMs: remainingTravelMs(latest, serverNow),
       })
       syncTimer.current = window.setTimeout(() => {
         syncTimer.current = null
