@@ -2067,3 +2067,15 @@
 .journal .quest + .quest {
   border-top-color: #5a4c2e88;
 }
+.stageArea {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+}
+.stageArea .stageFrame {
+  flex: 1 1 0;
+}
+.stageArea .journal {
+  bottom: 0;
+}
