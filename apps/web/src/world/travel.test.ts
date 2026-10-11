@@ -21,8 +21,8 @@ describe('world travel', () => {
     )!
     expect(local).toHaveLength(3)
     expect(local.every((step) => step.durationMs === STEP_MS)).toBe(true)
-    expect(STEP_MS).toBe(275)
-    expect(local.reduce((ms, step) => ms + step.durationMs, 0)).toBe(825)
+    expect(STEP_MS).toBe(200)
+    expect(local.reduce((ms, step) => ms + step.durationMs, 0)).toBe(600)
 
     const crownJourney = findWorldRoute(
       { sectorId: 'aureth-crown', x: 12, y: 4 },
@@ -31,7 +31,7 @@ describe('world travel', () => {
     )!
     expect(crownJourney).toHaveLength(66)
     expect(crownJourney.every((step) => step.durationMs === STEP_MS)).toBe(true)
-    expect(crownJourney.reduce((ms, step) => ms + step.durationMs, 0)).toBe(18_150)
+    expect(crownJourney.reduce((ms, step) => ms + step.durationMs, 0)).toBe(13_200)
   })
 
   it('schedules active sync from the authoritative next-step deadline', () => {
@@ -128,7 +128,7 @@ describe('world travel', () => {
     ])
       expect(findWorldRoute(START_POSITION, to, WORLD)).toBeNull()
   })
-  it('keeps the representative local settlement route at three authoritative quarter-second steps', () => {
+  it('keeps the representative local settlement route at three authoritative 200 ms steps', () => {
     const route = findWorldRoute(
       START_POSITION,
       { sectorId: 'verdant-expanse', x: 2, y: 4 },
@@ -137,7 +137,7 @@ describe('world travel', () => {
 
     expect(route).toHaveLength(3)
     expect(route.every((step) => step.durationMs === STEP_MS)).toBe(true)
-    expect(route.reduce((ms, step) => ms + step.durationMs, 0)).toBe(825)
+    expect(route.reduce((ms, step) => ms + step.durationMs, 0)).toBe(600)
   })
 
   it('keeps the representative settlement-to-settlement journey on the same 78-step path', () => {
@@ -148,13 +148,13 @@ describe('world travel', () => {
     )!
 
     expect(route).toHaveLength(78)
-    expect(route.reduce((ms, step) => ms + step.durationMs, 0)).toBe(21_450)
+    expect(route.reduce((ms, step) => ms + step.durationMs, 0)).toBe(15_600)
   })
 
   it('uses the tuned authoritative pace for a representative regional journey', () => {
     const route = findWorldRoute(START_POSITION, { sectorId: 'aureth-crown', x: 6, y: 4 }, WORLD)!
     expect(route.length).toBeGreaterThan(1)
-    expect(route.reduce((ms, s) => ms + s.durationMs, 0)).toBe(21_175)
+    expect(route.reduce((ms, s) => ms + s.durationMs, 0)).toBe(15_400)
     expect(route.at(-1)?.position).toEqual({ sectorId: 'aureth-crown', x: 6, y: 4 })
   })
   it('adds a connected Crown wilderness cluster without replacing the established Crown Road', () => {
@@ -232,7 +232,7 @@ describe('world travel', () => {
       expect(new Set(road.map((s) => s.position.x)).size).toBe(13)
       expect(road.every((s) => s.position.y === 4)).toBe(true)
       expect(road.slice(1).every((s) => s.durationMs === STEP_MS)).toBe(true)
-      expect(route.reduce((ms, step) => ms + step.durationMs, 0)).toBe(18_150)
+      expect(route.reduce((ms, step) => ms + step.durationMs, 0)).toBe(13_200)
       expect(route.at(-1)?.position).toEqual(to)
     }
   })
@@ -380,7 +380,7 @@ describe('world travel', () => {
   it('keeps the authored pace through network lag but never catches up an absent client', () => {
     const step = (x: number) => ({
       position: { sectorId: 'verdant-expanse', x, y: 4 },
-      durationMs: 275,
+      durationMs: STEP_MS,
     })
     const base = {
       ...newWorldState(),
@@ -389,15 +389,15 @@ describe('world travel', () => {
     }
     const early = advanceWorldRoute(base, 10_000 + 40)
     expect(early.position.x).toBe(7)
-    expect(early.nextStepAt).toBe(10_275)
-    const lagged = advanceWorldRoute(base, 10_000 + 600)
+    expect(early.nextStepAt).toBe(10_000 + STEP_MS)
+    const lagged = advanceWorldRoute(base, 10_000 + 450)
     expect(lagged.position.x).toBe(9)
     expect(lagged.route).toHaveLength(1)
-    expect(lagged.nextStepAt).toBe(10_825)
+    expect(lagged.nextStepAt).toBe(10_000 + STEP_MS * 3)
     const absent = advanceWorldRoute(base, 10_000 + 60_000)
     expect(absent.position.x).toBe(7)
     expect(absent.route).toHaveLength(3)
-    expect(absent.nextStepAt).toBe(70_000 + 275)
+    expect(absent.nextStepAt).toBe(70_000 + STEP_MS)
     expect(advanceWorldRoute(base, 9_999)).toBe(base)
   })
   it('counts the remaining partial step once and never forecasts catch-up movement', () => {

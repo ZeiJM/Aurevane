@@ -1972,7 +1972,7 @@
 .stageBar {
   flex: none;
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   justify-content: space-between;
   gap: 0.4rem 0.8rem;
@@ -2115,4 +2115,45 @@
 }
 .stageArea .journal {
   bottom: 0;
+}
+
+/* v38: the bar sits under the map's right-hand panel (the map is a square filling the height) */
+.workspace {
+  container-type: size;
+}
+.workspace .stageBar {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  z-index: 6;
+  box-sizing: border-box;
+  height: 56px;
+  min-height: 56px;
+  width: calc(100cqw - min(100cqh, calc(100cqw - 22rem)));
+  min-width: 22rem;
+  padding: 0.3rem 0.7rem;
+  border-left: 1px solid #8a7440;
+  overflow: visible;
+}
+.workspace .stageBar .travelStatus {
+  position: absolute;
+  right: 0;
+  bottom: 100%;
+  left: 0;
+  flex: none;
+}
+.workspace .stageBar .travelStatus > span {
+  display: block;
+  padding: 0.3rem 0.7rem;
+  background: #082029ee;
+  border-top: 1px solid #5a4c2e;
+}
+.workspace .journal {
+  bottom: 56px;
+}
+/* The Journal opens below the panel header so the location / world-view button stays usable */
+@media (min-width: 761px) {
+  .workspace .journal {
+    top: 58px;
+  }
 }
