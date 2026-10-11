@@ -948,3 +948,23 @@ main#board { max-width: none !important; width: 100%; height: 100%; margin: 0 !i
 .dock-tabs .dtab:last-child { border-right: 0; }
 .dock-tabs .dtab .dt { font: inherit; letter-spacing: inherit; }
 .dock-tabs .dtab[aria-selected='true'] { box-shadow: inset 0 -2px 0 var(--pn-gold); }
+
+/* v41: the panel body scrolls, so the point-of-interest grid sizes to its labels and rows can never overlap */
+.dock-body .poi { max-height: none; min-height: 0; overflow: visible; grid-auto-rows: max-content; align-content: start; gap: 12px 6px; }
+.dock-body .poi button.pt { height: auto; min-height: 0; padding: 2px 0 4px; overflow: visible; }
+.dock-body .poi .pn { display: block; line-height: 1.15; font-size: 0.7rem; }
+
+/* v41: the world is its own SVG layer. The compositor pans it; the overlay (sky, weather, light) sits above and never takes clicks */
+.viewport #world-svg, .viewport #nav-svg { position: absolute; left: 0; top: 0; }
+#world-svg { overflow: visible; will-change: transform; }
+#nav-svg { pointer-events: none; }
+#board.arrive #world-svg { animation: arrive 520ms ease-out; }
+@media (prefers-reduced-motion: reduce) { #board.arrive #world-svg { animation: none; } }
+
+/* v41 ambient cost: trees sway in a handful of small steps a second (the motion is only a few tenths of a degree) instead of repainting every frame,
+   and the plains tint, which is almost the identity, no longer wraps every tree in its own filter */
+[data-motion='true'] .sway:not(.grass) { animation-timing-function: steps(22, end); }
+[data-motion='true'] .sway.slow:not(.grass) { animation-timing-function: steps(32, end); }
+#board[data-motion='true'][data-wind='strong'] .sway:not(.grass) { animation-timing-function: steps(10, end); }
+#world[data-region='plains'] .tree { filter: none; }
+#tint-svg { position: absolute; left: 0; top: 0; pointer-events: none; }

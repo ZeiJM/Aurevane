@@ -1082,7 +1082,7 @@ const cloudRoot = add(sky, 'g', { id: 'cloud-root' });
 const cloudTile = add(cloudRoot, 'g', {});
 const CLP_X = 2200, CLP_Y = 540;
 const cloudURLs = [0, 1, 2].map((i) => cloudTex(777 + i * 91));
-for (let mx = -2; mx <= 2; mx++) for (let my = -1; my <= 1; my++) {
+for (let mx = -1; mx <= 1; mx++) for (let my = -1; my <= 1; my++) {
   const cell = add(cloudTile, 'g', { transform: `translate(${mx * CLP_X},${my * CLP_Y})` });
   for (let i = 0; i < 3; i++) {
     const lane = add(cell, 'g', { transform: `translate(0,${40 + i * 180})` });
@@ -1579,7 +1579,8 @@ function updateChunks(cx, cy, vc, vr) {
 /* ---------- camera + walking (server authoritative: the stage only sends intents and draws what the server confirms) ---------- */
 const view = document.getElementById('viewport');
 const sbXY = document.getElementById('sb-xy'), sbSecCell = document.getElementById('sb-sec-cell');
-const svgEl = document.getElementById('nav-svg');
+const svgEl = document.getElementById('nav-svg'), worldSvg = document.getElementById('world-svg');
+let vpW = 0, vpH = 0;
 const post = (msg) => { try { parent.postMessage({ av: 'world-stage', ...msg }, location.origin); } catch (e) {} };
 let me = { x: 6, y: 4 }, meV = { x: 6, y: 4 };
 const ZB = 0.84; /* widest default: 100% shows about 15.5 x 10.7 tiles */
@@ -1592,6 +1593,7 @@ function camera() {
 function fitMap() {
   const vp = document.getElementById('viewport'), W = vp.clientWidth, H = vp.clientHeight;
   if (W < 50 || H < 50) return;
+  vpW = W; vpH = H;
   const a = Math.min(2.8, W / H);
   if (a >= 13 / 9) { VROWS = 9; VCOLS = Math.round(9 * a * 100) / 100; } else { VCOLS = 13; VROWS = Math.round(13 / a * 100) / 100; }
   paint();
@@ -1742,7 +1744,9 @@ let lastSectorId = null;
 var lastChunkKey = '';
 function frameUpdate() {
   const { vc, vr, cx, cy } = camera();
-  world.style.transform = `translate3d(${(-cx * T).toFixed(1)}px, ${(-cy * T).toFixed(1)}px, 0)`;
+  /* the world lives in its own SVG layer; panning moves that layer on the compositor, so the scene is not repainted per step */
+  const s = Math.max(vpW / (vc * T), vpH / (vr * T)) || 0, dpr = window.devicePixelRatio || 1;
+  worldSvg.style.transform = `translate3d(${(Math.round(-cx * T * s * dpr) / dpr)}px, ${(Math.round(-cy * T * s * dpr) / dpr)}px, 0)`;
   followClouds(cx, cy);
   /* chunks only change when the camera crosses a tile, not on every frame */
   const ck = Math.floor(cx) + ',' + Math.floor(cy) + ',' + vc.toFixed(2) + ',' + vr.toFixed(2);
@@ -1753,7 +1757,7 @@ var lastViewBox = '';
 function paint() {
   const { cx, cy } = camera();
   const vb = `0 0 ${(VCOLS * T / (zoom * ZB)).toFixed(1)} ${(VROWS * T / (zoom * ZB)).toFixed(1)}`;
-  if (vb !== lastViewBox) { lastViewBox = vb; svgEl.setAttribute('viewBox', vb); lastChunkKey = ''; }
+  if (vb !== lastViewBox) { lastViewBox = vb; svgEl.setAttribute('viewBox', vb); worldSvg.setAttribute('viewBox', vb); lastChunkKey = ''; }
   frameUpdate();
   if (SECTOR) {
     const sec = SV && SV.sectors.find((s) => s.id === SECTOR.id);
@@ -1791,13 +1795,13 @@ function predictedTarget() {
 let lastV = performance.now();
 function visualStep(now) {
   requestAnimationFrame(visualStep);
-  const dt = Math.min(0.05, (now - lastV) / 1000); lastV = now;
+  const dt = Math.min(0.1, (now - lastV) / 1000); lastV = now;
   let changed = false;
   const mv = (o, tx, ty) => {
     const dx = tx - o.x, dy = ty - o.y, d = Math.hypot(dx, dy);
     if (d < 0.002) { if (d > 0) { o.x = tx; o.y = ty; return true; } return false; }
     if (reduceMotion) { o.x = tx; o.y = ty; return true; }
-    const sp = Math.max(5.2, d * 6.5), s = Math.min(d, sp * dt);
+    const sp = Math.max(5.6, d * 7), s = Math.min(d, sp * dt);
     o.x += (dx / d) * s; o.y += (dy / d) * s; return true;
   };
   const pt = predictedTarget();
@@ -1806,10 +1810,11 @@ function visualStep(now) {
   if (changed) {
     frameUpdate();
     if (!movingFlag) { movingFlag = true; view.dataset.moving = '1'; }
-    clearTimeout(movingTimer); movingTimer = setTimeout(() => { movingFlag = false; delete view.dataset.moving; }, 350);
+    lastMoveAt = now;
+    if (!movingTimer) movingTimer = setTimeout(function rest() { movingTimer = 0; if (performance.now() - lastMoveAt < 350) { movingTimer = setTimeout(rest, 120); return; } movingFlag = false; delete view.dataset.moving; }, 350);
   }
 }
-var movingFlag = false, movingTimer = 0;
+var movingFlag = false, movingTimer = 0, lastMoveAt = 0;
 requestAnimationFrame(visualStep);
 
 /* ---------- route preview ---------- */
@@ -2169,7 +2174,7 @@ const HUB_OF_REGION = { 'aureth-crown': 'aureth', 'verdant-expanse': 'verdant', 
   }
   function syncLoop() {
     cancelAnimationFrame(raf);
-    try { if (board.dataset.motion === 'true') svgEl.unpauseAnimations(); else svgEl.pauseAnimations(); } catch (e) {}
+    try { if (board.dataset.motion === 'true') { svgEl.unpauseAnimations(); worldSvg.unpauseAnimations(); } else { svgEl.pauseAnimations(); worldSvg.pauseAnimations(); } } catch (e) {}
     if (board.dataset.motion === 'true') { last = performance.now(); nextBolt = last + 2500; raf = requestAnimationFrame(frame); }
     else { ctx.clearRect(0, 0, W, H); flashEl.style.opacity = '0'; curFx = null; alpha = 0; parts = []; }
   }

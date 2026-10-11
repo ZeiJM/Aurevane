@@ -48,12 +48,14 @@
             <div class="navwrap" id="navwrap">
               <div class="hud-corner"><button class="gear" id="set-btn" type="button" aria-label="Settings" aria-expanded="false" aria-controls="set-pop" title="Settings"><svg viewBox="0 0 24 24" aria-hidden="true" width="18" height="18"><path d="M12 8.6a3.4 3.4 0 100 6.8 3.4 3.4 0 000-6.8zm8.4 4.4v-2l-2.1-.5a6.6 6.6 0 00-.7-1.6l1.1-1.9-1.4-1.4-1.9 1.1a6.6 6.6 0 00-1.6-.7L13 3.6h-2l-.5 2.1a6.6 6.6 0 00-1.6.7L7 5.3 5.6 6.7l1.1 1.9c-.3.5-.5 1-.7 1.6l-2.1.5v2l2.1.5c.2.6.4 1.1.7 1.6l-1.1 1.9L7 18.1l1.9-1.1c.5.3 1 .5 1.6.7l.5 2.1h2l.5-2.1c.6-.2 1.1-.4 1.6-.7l1.9 1.1 1.4-1.4-1.1-1.9c.3-.5.5-1 .7-1.6l2.1-.5z" fill="currentColor"/></svg></button><div class="coord" id="sb-sec-cell"><button class="coord-btn" id="coord-toggle" type="button" aria-expanded="true" aria-label="Coordinates. Click to collapse"><svg class="coord-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5c-3.6 0-6.5 2.8-6.5 6.4 0 4.7 6.5 12.6 6.5 12.6s6.5-7.9 6.5-12.6c0-3.6-2.9-6.4-6.5-6.4zm0 8.8a2.4 2.4 0 110-4.8 2.4 2.4 0 010 4.8z" fill="currentColor"/></svg><span class="coord-body"><span class="k">Coordinates</span><b id="sb-xy"></b></span></button></div></div>
               <div class="viewport" id="viewport" aria-label="Local map. Press W A S D or the arrow keys to walk, or click a tile.">
+                <svg id="world-svg" viewBox="0 0 832 576" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><g id="world"></g></svg>
                 <svg id="nav-svg" viewBox="0 0 832 576" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Animated map of a village with a river, a lake, a bridge, a forest and nearby travellers">
                   <defs>
                     <filter id="soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.2" /></filter>
                   </defs>
-                  <g id="world"></g>
                   <g id="sky" aria-hidden="true"></g>
+                </svg>
+                <svg id="tint-svg" viewBox="0 0 832 576" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
                   <rect id="wx-veil" x="-3000" y="-3000" width="7000" height="7000" fill="#ffffff" opacity="0" pointer-events="none" />
                   <rect id="wx-mult" x="-3000" y="-3000" width="7000" height="7000" fill="#ffffff" opacity="0" pointer-events="none" style="mix-blend-mode:multiply" />
                   <rect id="daynight" x="-3000" y="-3000" width="7000" height="7000" fill="#ffffff" opacity="0" pointer-events="none" style="mix-blend-mode:multiply" />
