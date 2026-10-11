@@ -679,7 +679,9 @@ for (const journey of [
       .poll(async () => (await world(page)).position.sectorId, { timeout: 85000 })
       .toBe(journey.destinationId)
     await expectLocation(page, journey.destinationName)
-    expect((await world(page)).route).toHaveLength(0)
+    // The route now ends at a tile inside the destination, a few steps after crossing into it.
+    await expect.poll(async () => (await world(page)).route.length, { timeout: 30000 }).toBe(0)
+    expect((await world(page)).position).toEqual(arrival)
     await capture(page, info, `${journey.id}-arrival`)
   })
 
