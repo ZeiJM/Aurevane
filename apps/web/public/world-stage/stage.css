@@ -868,29 +868,32 @@ main { max-width: none; gap: 0; }
 
 /* v38: a square map fills the screen height; the location header, tabs and detail live in a right-hand panel.
    The page's own bar (coordinates, Journal, settings) sits under the panel, so the bottom row is reserved for it. */
-:root { --bar-h: 56px; --panel-min: 22rem; }
+:root { --bar-h: 56px; --panel: max(20rem, 25vw); }
 html, body { height: 100%; margin: 0; padding: 0 !important; overflow: hidden; background: #051a23 !important; }
 main#board { max-width: none !important; width: 100%; height: 100%; margin: 0 !important; padding: 0 !important; display: block; gap: 0; }
 .screen {
-  --side: min(100vh, calc(100vw - var(--panel-min)));
-  display: grid !important; grid-template-columns: var(--side) minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) var(--bar-h);
+  display: grid !important; grid-template-columns: minmax(0, 1fr) var(--panel); grid-template-rows: auto minmax(0, 1fr) var(--bar-h);
   height: 100vh; border: 0 !important; box-shadow: none !important; background: #061820; gap: 0;
 }
 .screen-body { display: contents !important; }
-.stage { grid-column: 1; grid-row: 1 / span 3; width: var(--side); height: 100%; border: 0; overflow: hidden; }
+.stage { grid-column: 1; grid-row: 1 / span 3; width: 100%; height: 100%; border: 0; overflow: hidden; }
 #stage-map, .navwrap, .stage .navwrap { width: 100% !important; height: 100%; border: 0; }
 .viewport { aspect-ratio: auto !important; width: 100%; height: 100%; }
 #stage-world { aspect-ratio: auto !important; height: 100%; width: 100%; }
-.screen-head { grid-column: 2; grid-row: 1; flex-wrap: nowrap; gap: 6px 12px; padding: 10px 14px; border-left: 1px solid var(--pn-gold-soft); overflow: hidden; }
+.screen-head { grid-column: 2; grid-row: 1; height: 76px; box-sizing: border-box; align-items: center; flex-wrap: nowrap; gap: 6px 12px; padding: 10px 14px; border-left: 1px solid var(--pn-gold-soft); overflow: hidden; }
 .screen-head .where { flex: 1 1 auto; min-width: 0; }
-.screen-head .where h3 { font-size: clamp(1rem, 1.6vw, 1.25rem); white-space: nowrap; }
+.screen-head .where { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+.screen-head .where h3 { font-size: clamp(0.95rem, 1.4vw, 1.2rem); white-space: normal; line-height: 1.15; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.screen-head .where .whr { display: flex; align-items: center; gap: 6px 8px; flex-wrap: wrap; min-width: 0; max-width: 100%; }
+.screen-head .where .whr .zb { flex: none; height: 20px; font-size: 0.56rem; }
+.screen-head .where .sub { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.74rem; }
 .screen-head .hinfo { flex: 0 0 auto; display: grid; gap: 2px; justify-items: end; font-size: 0.72rem; }
 .screen-head .hinfo .hdot { display: none; }
 .side { grid-column: 2; grid-row: 2; min-height: 0; overflow: hidden; border-left: 1px solid var(--pn-gold-soft); background: #08222d; display: flex; flex-direction: column; }
 .legend-bar { display: none !important; }
 .dock { display: flex; flex-direction: column; min-height: 0; height: 100%; }
-.dock-tabs { display: grid; grid-template-columns: repeat(3, 1fr); flex: none; border-bottom: 1px solid var(--pn-gold-soft); }
-.dock-tabs .dtab { min-height: 40px; padding: 4px 6px; font: 600 0.72rem var(--font-body); letter-spacing: .08em; text-transform: uppercase; background: #0a2733; color: var(--pn-soft); border: 0; border-right: 1px solid #1f4753; cursor: pointer; }
+.dock-tabs { display: grid; grid-template-columns: repeat(3, 1fr); flex: none; height: 58px; box-sizing: border-box; align-items: center; border-bottom: 1px solid var(--pn-gold-soft); }
+.dock-tabs .dtab { height: 44px; min-height: 44px; box-sizing: border-box; padding: 4px 6px; font: 600 0.72rem/1.15 var(--font-body); letter-spacing: .08em; text-transform: uppercase; background: #0a2733; color: var(--pn-soft); border: 0; border-right: 1px solid #1f4753; cursor: pointer; }
 .dock-tabs .dtab:last-child { border-right: 0; }
 .dock-tabs .dtab[aria-selected='true'] { background: linear-gradient(#123d4c, #0d3040); color: #f4e7c3; box-shadow: inset 0 -2px 0 var(--pn-gold); }
 .dock-body { flex: 1 1 0; min-height: 0; overflow-y: auto; padding: 10px 12px; display: grid; gap: 10px; align-content: start; scrollbar-width: thin; scrollbar-color: #2a5663 transparent; }
@@ -918,8 +921,11 @@ main#board { max-width: none !important; width: 100%; height: 100%; margin: 0 !i
 .detail .pic img { width: 100%; display: block; }
 @media (max-width: 760px) {
   html, body { overflow: auto; }
-  .screen { --side: 100vw; grid-template-columns: 1fr; grid-template-rows: 100vw auto auto var(--bar-h); height: auto; }
+  .screen { grid-template-columns: 1fr; grid-template-rows: 100vw auto auto var(--bar-h); height: auto; }
   .stage { grid-row: 1; width: 100%; height: 100vw; }
   .screen-head, .side { grid-column: 1; border-left: 0; }
   .screen-head { grid-row: 2; } .side { grid-row: 3; min-height: 18rem; }
 }
+
+/* The settings popout opens above the page bar (which overlays the bottom of this frame) so nothing is hidden */
+.setpop { max-height: calc(100vh - var(--bar-h, 0px) - 16px); overflow-y: auto; }

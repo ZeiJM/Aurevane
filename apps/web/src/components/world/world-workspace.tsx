@@ -219,6 +219,7 @@ export function WorldWorkspace({
         void sendRef.current({ kind: 'walk', destination: message.destination })
       else if (message.type === 'attack')
         void sendRef.current({ kind: 'attack', targetId: message.targetId })
+      else if (message.type === 'tab') setJournal(message.tab === 'missions')
       else if (message.type === 'autopath')
         void sendRef.current({ kind: 'autopath', objectiveId: message.objectiveId })
       else if (message.type === 'travel') {
@@ -286,10 +287,9 @@ export function WorldWorkspace({
           allow="fullscreen"
         />
         {journal ? (
-          <aside className={styles.journal} id="world-journal" aria-label="Journal">
+          <aside className={styles.journal} id="world-journal" aria-label="Missions">
             <div className={styles.journalHead}>
-              <h2>Journal</h2>
-              <button onClick={() => setJournal(false)}>Close</button>
+              <h2>Missions</h2>
             </div>
             {view.interactions.length ? (
               <section className={styles.panel} aria-label="Local interaction">
@@ -446,13 +446,6 @@ export function WorldWorkspace({
           {view.route.length ? (
             <button onClick={() => void stopMoving()}>Stop travel</button>
           ) : null}
-          <button
-            aria-expanded={journal}
-            aria-controls="world-journal"
-            onClick={() => setJournal(!journal)}
-          >
-            ⚑ Journal
-          </button>
           <button
             className={styles.gear}
             aria-label="Settings"
