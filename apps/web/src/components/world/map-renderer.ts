@@ -4,6 +4,7 @@ import { hashString } from '@/world/terrain-gen'
 import type { WorldLandmark, WorldPosition, WorldSectorView, WorldView } from '@/world/types'
 import { mapPoint, type MapPoint, WorldMotion } from './world-motion'
 import { createCloudTexture, createWildlife, wildlifePose, type Wildlife } from './map-ambient'
+import { buildWaterField, paintWaterGround, paintWaterMotion } from './map-water'
 
 import { MAP_X, MAP_Y, projectMapPoint, unprojectMapPoint } from './map-projection'
 
@@ -106,9 +107,11 @@ export function createMapRenderer(
   const frameTimes: number[] = []
   const terrainKeys = new Map<string, string>()
   const wildlife = new Map<string, Wildlife[]>()
+  let waterField = buildWaterField(view.sectors)
   const clouds = [0, 1, 2].map((i) => createCloudTexture('world-cloud:' + i))
   let cachedPixels = 0
   function indexTerrain() {
+    waterField = buildWaterField(view.sectors)
     for (const sector of view.sectors) {
       terrainKeys.set(sector.id, sector.cells.map((c) => `${c.x},${c.y},${c.terrain}`).join(';'))
       if (!wildlife.has(sector.id)) wildlife.set(sector.id, createWildlife(sector))
@@ -167,7 +170,14 @@ export function createMapRenderer(
     return null
   }
   const ground = (sector: WorldSectorView) => {
-    const key = terrainKeys.get(sector.id) + ':' + tile + ':' + groundScale
+    const key =
+      terrainKeys.get(sector.id) +
+      ':' +
+      waterField.get(sector.id)?.key +
+      ':' +
+      tile +
+      ':' +
+      groundScale
     const previous = cache.get(sector.id)
     if (previous?.key === key) return previous.ground
     const layer = document.createElement('canvas')
@@ -195,7 +205,7 @@ export function createMapRenderer(
       colours.forEach((colour, i) => gradient.addColorStop(i / (colours.length - 1), colour))
       return gradient
     }
-    const waterMaterial = materialGradient(['#315c62', '#427780', '#254f5b']),
+    const waterMaterial = materialGradient(['#245e67', '#3e7b82', '#244e60']),
       lavaMaterial = materialGradient(['#702f25', '#bd5b2e', '#4d2526'])
     for (const cell of sector.cells) {
       const x = cell.x * tile,
@@ -248,24 +258,28 @@ export function createMapRenderer(
       if (cell.terrain === '~' || cell.terrain === 'l') {
         const water = cell.terrain === '~'
         c.fillStyle = water ? waterMaterial : lavaMaterial
-        c.fillRect(x, y, tile + 1, tile + 1)
-        // Banks are fixed geometry; water highlights move independently above them.
-        c.strokeStyle = water ? 'rgba(196,177,122,.55)' : '#6b5140'
-        c.lineWidth = 5
-        for (const [dx, dy] of [
-          [-1, 0],
-          [1, 0],
-          [0, -1],
-          [0, 1],
-        ]) {
-          const neighbor = sector.cells.find((n) => n.x === cell.x + dx! && n.y === cell.y + dy!)
-          if (neighbor && neighbor.terrain !== cell.terrain) {
-            c.beginPath()
-            if (dx) c.moveTo(x + (dx > 0 ? tile : 0), y)
-            else c.moveTo(x, y + (dy! > 0 ? tile : 0))
-            if (dx) c.lineTo(x + (dx > 0 ? tile : 0), y + tile)
-            else c.lineTo(x + tile, y + (dy! > 0 ? tile : 0))
-            c.stroke()
+        c.fillRect(x, y, tile, tile)
+        if (water) {
+          const profile = waterField.get(sector.id)?.cells.get(`${cell.x}:${cell.y}`)
+          if (profile) paintWaterGround(c, profile, tile)
+        } else {
+          c.strokeStyle = '#6b5140'
+          c.lineWidth = 5
+          for (const [dx, dy] of [
+            [-1, 0],
+            [1, 0],
+            [0, -1],
+            [0, 1],
+          ]) {
+            const neighbor = sector.cells.find((n) => n.x === cell.x + dx! && n.y === cell.y + dy!)
+            if (neighbor && neighbor.terrain !== cell.terrain) {
+              c.beginPath()
+              if (dx) c.moveTo(x + (dx > 0 ? tile : 0), y)
+              else c.moveTo(x, y + (dy! > 0 ? tile : 0))
+              if (dx) c.lineTo(x + (dx > 0 ? tile : 0), y + tile)
+              else c.lineTo(x + tile, y + (dy! > 0 ? tile : 0))
+              c.stroke()
+            }
           }
         }
       }
@@ -498,11 +512,16 @@ export function createMapRenderer(
               q = { x: 0, y: 0 }
             ctx.save()
             ctx.transform(MAP_X, MAP_Y, -MAP_X, MAP_Y, at.x, at.y)
+            if (cell.terrain === '~') {
+              const profile = waterField.get(sector.id)?.cells.get(`${cell.x}:${cell.y}`)
+              if (profile) paintWaterMotion(ctx, profile, tile, now)
+              ctx.restore()
+              continue
+            }
             ctx.beginPath()
             ctx.rect(q.x, q.y, tile, tile)
             ctx.clip()
-            ctx.strokeStyle =
-              cell.terrain === '~' ? 'rgba(178,216,208,.38)' : 'rgba(255,196,95,.44)'
+            ctx.strokeStyle = 'rgba(255,196,95,.44)'
             ctx.lineWidth = 1.8
             for (let i = 0; i < 3; i++) {
               const phase =

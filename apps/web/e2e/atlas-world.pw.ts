@@ -8,6 +8,7 @@ import { GRID_WIDTH, GRID_HEIGHT, STEP_MS, WORLD_REGIONS } from '../src/world/ca
 import { newWorldState } from '../src/world/travel'
 import type { WorldView } from '../src/world/types'
 import { verifyWorldPresentation, registerWorldInputCases } from './world-presentation-case'
+import { verifyWorldScenePresence } from './world-presence-case'
 import type { CharacterBuildContext } from '../src/server/character/character-build-service'
 
 const runtimeErrors = new WeakMap<Page, string[]>()
@@ -1350,3 +1351,10 @@ test('scenic countryside has real blossom woodland, ruins, pools and open meadow
 })
 
 registerWorldInputCases({ enter, world, place, stageWalk, capture, openJournal })
+
+test('known neighbouring players follow the visible viewport with service-only presence authority', async ({
+  page,
+  browser,
+}, info) => {
+  await verifyWorldScenePresence(page, browser, info, { enter, world, place, sql, capture })
+})

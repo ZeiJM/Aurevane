@@ -158,6 +158,31 @@ export function resolveWorldIntent(
     completedObjectives: [...completed],
   }
 }
+export function projectWorldPlayers(
+  state: WorldState,
+  players: readonly WorldPlayer[],
+  sceneSectorIds: readonly string[],
+): WorldPlayer[] {
+  const ids = new Set(sceneSectorIds)
+  const sector = resolveSector(state.position.sectorId)!
+  return players
+    .filter((player) => ids.has(player.position.sectorId) && isKnown(state, player.position))
+    .map((player) => {
+      const distance =
+        Math.abs(player.position.x - state.position.x) +
+        Math.abs(player.position.y - state.position.y)
+      return {
+        ...player,
+        attackable:
+          player.attackable &&
+          player.position.sectorId === state.position.sectorId &&
+          distance <= 1 &&
+          !isSafe(sector, state.position) &&
+          !isSafe(sector, player.position),
+      }
+    })
+}
+
 export function projectWorld(
   state: WorldState,
   players: readonly WorldPlayer[],
@@ -223,27 +248,11 @@ export function projectWorld(
       exits: roads.filter((road) => isKnown(state, road.from) && isKnown(state, road.to)),
     }
   })
-  const visiblePlayers = players
-    .filter(
-      (p) =>
-        sceneSectors.some((sector) => sector.id === p.position.sectorId) &&
-        isKnown(state, p.position),
-    )
-    .map((player) => {
-      const sector = resolveSector(state.position.sectorId)!
-      const distance =
-        Math.abs(player.position.x - state.position.x) +
-        Math.abs(player.position.y - state.position.y)
-      return {
-        ...player,
-        attackable:
-          player.attackable &&
-          player.position.sectorId === state.position.sectorId &&
-          distance <= 1 &&
-          !isSafe(sector, state.position) &&
-          !isSafe(sector, player.position),
-      }
-    })
+  const visiblePlayers = projectWorldPlayers(
+    state,
+    players,
+    sceneSectors.map((sector) => sector.id),
+  )
   const effectiveObjectives = effectiveWorldObjectives(state, objectives)
   const discoveredAnchorIds = new Set(state.discoveredAnchors ?? [])
   const anchors = WORLD_SECTORS.flatMap((sector) =>

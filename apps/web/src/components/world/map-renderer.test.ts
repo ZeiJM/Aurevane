@@ -10,6 +10,7 @@ function scene(reduced = false) {
   const fills: { colour: string; alpha: number; order: number }[] = []
   const draws: { src: string; order: number; args: number[] }[] = []
   const transforms: number[][] = []
+  const groundCurves: number[][] = []
   let drawOrder = 0
   let createdLayers = 0
   let resizeCallback!: () => void
@@ -81,7 +82,13 @@ function scene(reduced = false) {
     },
     createElement: () => {
       createdLayers++
-      return { width: 0, height: 0, getContext: () => context }
+      const layerContext = new Proxy(context, {
+        get(target, key) {
+          if (key === 'bezierCurveTo') return (...args: number[]) => groundCurves.push(args)
+          return Reflect.get(target, key)
+        },
+      })
+      return { width: 0, height: 0, getContext: () => layerContext }
     },
     addEventListener: (name: string, callback: EventListener) =>
       listeners.set('document:' + name, callback),
@@ -117,6 +124,7 @@ function scene(reduced = false) {
     fills,
     draws,
     transforms,
+    groundCurves,
     images,
     resize: () => resizeCallback(),
     view,
@@ -144,6 +152,51 @@ function scene(reduced = false) {
   }
 }
 describe('native map input and bounded lifecycle', () => {
+  it('keeps curved bank and flowing surface detail in the cached river with reduced motion', () => {
+    const s = scene(true)
+    s.frame(40)
+    expect(s.groundCurves.length).toBeGreaterThan(20)
+    const detail = s.groundCurves.map((curve) => [...curve])
+    s.renderer.update(s.view)
+    s.frame(80)
+    expect(s.groundCurves).toEqual(detail)
+    expect(s.frames.size).toBe(0)
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  })
+  it('refreshes a cached river bank when connected terrain across a sector edge changes', () => {
+    const s = scene(true)
+    const current = s.view.sectors.find((sector) => sector.id === s.view.position.sectorId)!
+    const cell = (x: number, y: number, terrain: string) => ({
+      x,
+      y,
+      terrain,
+      walkable: terrain !== '~',
+      safe: false,
+    })
+    const sectors = [
+      { ...current, cells: [cell(10, 8, '~')], buildings: [], landmarks: [] },
+      {
+        ...current,
+        id: 'connected-bank',
+        atlasRow: current.atlasRow! + 1,
+        cells: [cell(10, 0, '~')],
+        buildings: [],
+        landmarks: [],
+      },
+    ]
+    s.renderer.update({ ...s.view, sectors })
+    s.frame(40)
+    const layers = s.layerCount()
+    s.renderer.update({
+      ...s.view,
+      sectors: [sectors[0]!, { ...sectors[1]!, cells: [cell(10, 0, '.')] }],
+    })
+    s.frame(80)
+    expect(s.layerCount() - layers).toBe(2)
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  })
   it('uses a centered cover crop for wide portraits, keeping the battle-grid face proportions', () => {
     const s = scene()
     s.canvas.dataset.portrait = '/wide-portrait.png'
@@ -486,6 +539,7 @@ describe('native map input and bounded lifecycle', () => {
     for (let i = 1; i <= 61; i++) s.frame(i * 40)
     expect(Number(s.canvas.dataset.cachedPixels)).toBeLessThanOrEqual(8_000_000)
     expect(Number(s.canvas.dataset.visibleScenery)).toBeLessThanOrEqual(180)
+    expect(Number(s.canvas.dataset.waterCells)).toBeLessThanOrEqual(60)
     expect(s.layerCount()).toBe(layers)
     s.renderer.dispose()
     vi.unstubAllGlobals()
