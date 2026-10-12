@@ -10,7 +10,13 @@ import type { WorldView } from '@/world/types'
 function scene(reduced = false, initial?: WorldView) {
   const images: { onload: (() => void) | null }[] = []
   const fills: { colour: string; alpha: number; order: number }[] = []
-  const draws: { src: string; order: number; args: number[]; matrix: number[] }[] = []
+  const draws: {
+    src: string
+    image: HTMLImageElement
+    order: number
+    args: number[]
+    matrix: number[]
+  }[] = []
   const texts: { text: string; x: number; y: number }[] = []
   const transforms: number[][] = []
   const groundCurves: number[][] = []
@@ -40,7 +46,7 @@ function scene(reduced = false, initial?: WorldView) {
         fills.push({ colour: this.fillStyle, alpha: this.globalAlpha, order: ++drawOrder })
       },
       drawImage(image: HTMLImageElement, ...args: number[]) {
-        draws.push({ src: image.src ?? '', order: ++drawOrder, args, matrix: [...matrix] })
+        draws.push({ src: image.src ?? '', image, order: ++drawOrder, args, matrix: [...matrix] })
       },
       fillText(text: string, x: number, y: number) {
         texts.push({ text, x, y })
@@ -778,6 +784,46 @@ describe('native map input and bounded lifecycle', () => {
     s.renderer.settings({ animate: false, zoom: 1 })
     s.frame(2160)
     expect(s.canvas.dataset.clouds).toBe('0')
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  })
+  it('drifts the same cloud silhouettes without frame-to-frame texture swaps', () => {
+    const initial = projectWorld(newWorldState(), [], 1000)
+    initial.sectors = initial.sectors.map((sector) =>
+      sector.id === initial.position.sectorId
+        ? { ...sector, atlasColumn: 10, atlasRow: 4 }
+        : sector,
+    )
+    const s = scene(false, initial)
+    const shadows = () =>
+      s.draws.filter((draw) => draw.image.width === 384 && draw.image.height === 192)
+    // At this elapsed time the old subtract-drift/floor expression rounds an
+    // exact lattice index down on some frames, selecting a different texture.
+    s.frame(36066.66666663011)
+    const first = shadows()
+    expect(first.length).toBeGreaterThan(0)
+    for (let i = 1; i <= 30; i++) {
+      s.draws.length = 0
+      s.frame(36066.66666663011 + i * 34)
+      const next = shadows()
+      expect(next.length).toBe(first.length)
+      for (let j = 0; j < next.length; j++) {
+        expect(next[j]!.image).toBe(first[j]!.image)
+        expect(next[j]!.args[0]! - first[j]!.args[0]!).toBeCloseTo((i * 34 * 64 * 0.85) / 18000)
+        expect(next[j]!.args[1]! - first[j]!.args[1]!).toBeCloseTo((i * 34 * 64 * 0.44) / 18000)
+      }
+    }
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  })
+  it('retains every visible shadow on a large zoomed-out viewport instead of dropping at six', () => {
+    const s = scene()
+    Object.assign(s.canvas, { clientWidth: 2400, clientHeight: 1600 })
+    s.renderer.settings({ animate: true, zoom: 0.6 })
+    s.resize()
+    s.frame(120)
+    expect(Number(s.canvas.dataset.clouds)).toBeGreaterThan(6)
+    expect(Number(s.canvas.dataset.clouds)).toBeLessThan(80)
     s.renderer.dispose()
     vi.unstubAllGlobals()
   })

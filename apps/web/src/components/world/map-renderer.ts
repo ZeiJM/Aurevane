@@ -1127,31 +1127,33 @@ export function createMapRenderer(
     canvas.dataset.terrainMotes = '0'
     if (animate && !reduced) {
       const weather = view.environment.weather
-      // Cloud shadows are anchored to world coordinates, so the camera cannot
-      // make them swim. Wrap well beyond the viewport, never across its center.
+      // Keep integer lattice identities separate from floating-point drift.
+      // Subtracting drift back out of a centre and flooring can round down to
+      // the previous identity, flickering between silhouettes on successive frames.
       const spacing = 18,
-        drift = now / 18000
-      const baseX = Math.floor((camera.x - drift) / spacing) * spacing + drift
-      const baseY = Math.floor(camera.y / spacing) * spacing
-      for (let y = -1; y <= 1; y++)
-        for (let x = -1; x <= 1; x++) {
-          const p = screen({ x: baseX + x * spacing, y: baseY + y * spacing })
-          const w = tile * 11,
-            h = tile * 5
-          if (
-            p.x + w / 2 < 0 ||
-            p.x - w / 2 > width ||
-            p.y + h / 2 < 0 ||
-            p.y - h / 2 > height ||
-            cloudCount >= 6
-          )
+        drift = now / 18000,
+        w = tile * 11,
+        h = tile * 5
+      // Expand the viewport by the full shadow extent before unprojecting.
+      // Cull offscreen shadows, never truncate visible ones by iteration order.
+      const corners = [
+        world(-w / 2, -h / 2),
+        world(width + w / 2, -h / 2),
+        world(-w / 2, height + h / 2),
+        world(width + w / 2, height + h / 2),
+      ]
+      const fromX = Math.ceil((Math.min(...corners.map((p) => p.x)) - drift) / spacing),
+        toX = Math.floor((Math.max(...corners.map((p) => p.x)) - drift) / spacing),
+        fromY = Math.ceil(Math.min(...corners.map((p) => p.y)) / spacing),
+        toY = Math.floor(Math.max(...corners.map((p) => p.y)) / spacing)
+      for (let y = fromY; y <= toY; y++)
+        for (let x = fromX; x <= toX; x++) {
+          const p = screen({ x: x * spacing + drift, y: y * spacing })
+          if (p.x + w / 2 < 0 || p.x - w / 2 > width || p.y + h / 2 < 0 || p.y - h / 2 > height)
             continue
           ctx.save()
           ctx.globalAlpha = weather === 'clear' ? 0.5 : 0.8
-          const cloudIndex =
-            (((Math.floor((baseX - drift) / spacing) + x + Math.floor(baseY / spacing) + y) % 3) +
-              3) %
-            3
+          const cloudIndex = (((x + y) % 3) + 3) % 3
           ctx.drawImage(clouds[cloudIndex]!, p.x - w / 2, p.y - h / 2, w, h)
           ctx.restore()
           cloudCount++
