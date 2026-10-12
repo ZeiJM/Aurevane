@@ -11,9 +11,11 @@ import { WorldWorkspace } from './world-workspace'
 
 describe('World page', () => {
   it('renders the native map with contextual panel and location navigation', () => {
+    const view = projectWorld(newWorldState(), [], 1000)
+    view.sectors = view.sectors.map((sector) => ({ ...sector, panorama: '/panorama.webp' }))
     const markup = renderToStaticMarkup(
       createElement(WorldWorkspace, {
-        initialView: projectWorld(newWorldState(), [], 1000),
+        initialView: view,
         character: { name: 'Traveller', portrait: '/portrait.webp' },
       }),
     )
@@ -30,8 +32,10 @@ describe('World page', () => {
     expect(markup).toContain('aria-label="Map settings"')
     expect(markup).toContain('<svg')
     expect(markup).toContain('Open world atlas')
-    expect(markup).toContain('data-world-travel-status')
+    expect(markup).not.toContain('data-world-travel-status')
+    expect(markup).not.toContain('Stop travel')
     expect(markup).not.toContain('Journal')
     expect(markup).not.toContain('Weathered Observatory')
+    expect(markup).not.toContain('View 360')
   })
 })

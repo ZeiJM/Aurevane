@@ -55,6 +55,7 @@ export function PvpBattleCompletionPanel({
   const result = useMemo(() => resultForLocalPlayer(battle, metadata), [battle, metadata])
   const battleState = battle.snapshot.tactical.battle
   const round = battleState.round
+  const worldEncounter = metadata.origin === 'world'
   const logOptions = { playerName: playerName ?? undefined, combatantNames, currentRound: round }
 
   useEffect(() => {
@@ -137,10 +138,13 @@ export function PvpBattleCompletionPanel({
                 <circle cx="20" cy="20" r="4" />
               </svg>
             </span>
-            <p className={styles.eyebrow}>Battle Hall · PvP Result</p>
+            <p className={styles.eyebrow}>
+              {worldEncounter ? 'World Encounter' : 'Battle Hall'} · PvP Result
+            </p>
             <h2 id="pvp-battle-result-title">{result}</h2>
             <p>
-              The match concluded in Round {round}. Review the battle history or return to the hall.
+              The match concluded in Round {round}. Review the battle history or return to{' '}
+              {worldEncounter ? 'the world' : 'the hall'}.
             </p>
           </div>
 
@@ -203,9 +207,9 @@ export function PvpBattleCompletionPanel({
           <button
             type="button"
             className={styles.primary}
-            onClick={() => router.push('/game/battle')}
+            onClick={() => router.push(worldEncounter ? '/game/world' : '/game/battle')}
           >
-            Return to Battle Hall
+            {worldEncounter ? 'Return to World' : 'Return to Battle Hall'}
           </button>
         </div>
       </section>

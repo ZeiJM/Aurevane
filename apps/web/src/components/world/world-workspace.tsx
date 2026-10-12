@@ -12,7 +12,6 @@ import { localRoute, mapPoint, WorldMotion } from './world-motion'
 import { WorldMap } from './world-map'
 import { WorldGlobe } from './world-globe'
 import { WorldMissions } from './world-missions'
-import { Surroundings } from './surroundings'
 import styles from './workspace.module.css'
 
 function SettingsButton({
@@ -82,7 +81,6 @@ export function WorldWorkspace({
   const [active, setActive] = useState<WorldIntent | null>(null),
     [selectedPlayer, setSelectedPlayer] = useState<string | null>(null),
     [settings, setSettings] = useState(false),
-    [surroundings, setSurroundings] = useState(false),
     [visiblePlayerIds, setVisiblePlayerIds] = useState<string[] | null>(null),
     [destinationId, setDestinationId] = useState<string | null>(null)
   const [animate, setAnimate] = useState(true),
@@ -222,13 +220,6 @@ export function WorldWorkspace({
       )
     })
   const destination = view.atlas?.find((cell) => cell.id === destinationId && cell.charted)
-  const status =
-    view.movementBlocked ||
-    (active?.kind === 'attack'
-      ? 'Starting encounter…'
-      : view.route.length || active?.kind === 'walk'
-        ? 'Travelling…'
-        : '')
   function approach(position: WorldPosition) {
     const candidates = [
       { ...position, x: position.x - 1 },
@@ -312,12 +303,13 @@ export function WorldWorkspace({
               motion={motion}
               portrait={character.portrait}
               animate={animate}
-              paused={surroundings}
+              paused={false}
               zoom={zoom}
               zoomLocked={zoomLocked}
               onZoom={setZoom}
               onVisiblePlayers={setVisiblePlayerIds}
               onWalk={walk}
+              onStop={stopMoving}
               onPlayer={(id) => {
                 setSelectedPlayer(id)
                 setTab('nearby')
@@ -337,13 +329,6 @@ export function WorldWorkspace({
               }}
             />
           )}
-          {mode === 'local' ? (
-            <div className={styles.mapTools}>
-              {local.panorama ? (
-                <button onClick={() => setSurroundings(true)}>View 360°</button>
-              ) : null}
-            </div>
-          ) : null}
         </div>
         <aside
           id="world-panel"
@@ -541,12 +526,6 @@ export function WorldWorkspace({
             )}
           </div>
           <div className={styles.panelFoot}>
-            <span className={styles.travelStatus} data-world-travel-status role="status">
-              {status}
-            </span>
-            {view.route.length || active?.kind === 'walk' ? (
-              <button onClick={stopMoving}>Stop travel</button>
-            ) : null}
             <SettingsButton open={settings} onClick={() => setSettings(!settings)} />
           </div>
         </aside>
@@ -560,71 +539,65 @@ export function WorldWorkspace({
         </div>
       ) : null}
       {settings ? (
-        <div
-          id="world-settings"
-          className={styles.settings}
-          role="dialog"
-          aria-label="Map settings"
-        >
-          <h3>Map settings</h3>
-          <label className={styles.zoomSetting}>
-            Zoom
-            <input
-              aria-label="Zoom level"
-              type="range"
-              min="60"
-              max="140"
-              step="2"
-              value={Math.round((mode === 'global' ? globeZoom : zoom) * 100)}
-              onChange={(event) => changeZoom(Number(event.target.value) / 100)}
-            />
-            <output>{Math.round((mode === 'global' ? globeZoom : zoom) * 100)}%</output>
-          </label>
-          <div className={styles.zoomButtons}>
-            <button
-              aria-label="Zoom out"
-              onClick={() => changeZoom((mode === 'global' ? globeZoom : zoom) - 0.1)}
-            >
-              −
-            </button>
-            <button
-              aria-label="Zoom in"
-              onClick={() => changeZoom((mode === 'global' ? globeZoom : zoom) + 0.1)}
-            >
-              +
-            </button>
-            <button
-              aria-pressed={zoomLocked}
-              onClick={() => {
-                fallbackZoomLock = !zoomLocked
-                try {
-                  localStorage.setItem('aurevane.zoomLock', !zoomLocked ? 'on' : 'off')
-                  fallbackZoomLock = null
-                } catch {}
-                window.dispatchEvent(new Event('aurevane-zoom-lock'))
-              }}
-            >
-              Zoom lock {zoomLocked ? 'On' : 'Off'}
-            </button>
+        <>
+          <button
+            className={styles.settingsBackdrop}
+            aria-label="Close map settings"
+            onPointerDown={(event) => event.stopPropagation()}
+            onClick={() => setSettings(false)}
+            onWheel={(event) => event.stopPropagation()}
+          />
+          <div
+            id="world-settings"
+            className={styles.settings}
+            role="dialog"
+            aria-label="Map settings"
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') setSettings(false)
+            }}
+          >
+            <h3>Map settings</h3>
+            <label className={styles.zoomSetting}>
+              Zoom
+              <input
+                autoFocus
+                aria-label="Zoom level"
+                type="range"
+                min="60"
+                max="140"
+                step="2"
+                value={Math.round((mode === 'global' ? globeZoom : zoom) * 100)}
+                onChange={(event) => changeZoom(Number(event.target.value) / 100)}
+              />
+              <output>{Math.round((mode === 'global' ? globeZoom : zoom) * 100)}%</output>
+            </label>
+            <div className={styles.zoomButtons}>
+              <button
+                aria-pressed={zoomLocked}
+                onClick={() => {
+                  fallbackZoomLock = !zoomLocked
+                  try {
+                    localStorage.setItem('aurevane.zoomLock', !zoomLocked ? 'on' : 'off')
+                    fallbackZoomLock = null
+                  } catch {}
+                  window.dispatchEvent(new Event('aurevane-zoom-lock'))
+                }}
+              >
+                Zoom lock {zoomLocked ? 'On' : 'Off'}
+              </button>
+            </div>
+            <label>
+              <input
+                type="checkbox"
+                checked={animate}
+                onChange={(event) => setAnimate(event.target.checked)}
+              />{' '}
+              Ambient animation
+            </label>
+            <p>Reduced motion follows your device preference.</p>
+            <button onClick={() => setSettings(false)}>Done</button>
           </div>
-          <label>
-            <input
-              type="checkbox"
-              checked={animate}
-              onChange={(event) => setAnimate(event.target.checked)}
-            />{' '}
-            Ambient animation
-          </label>
-          <p>Reduced motion follows your device preference.</p>
-          <button onClick={() => setSettings(false)}>Done</button>
-        </div>
-      ) : null}
-      {surroundings && local.panorama ? (
-        <Surroundings
-          src={local.panorama}
-          name={localName}
-          onClose={() => setSurroundings(false)}
-        />
+        </>
       ) : null}
     </section>
   )

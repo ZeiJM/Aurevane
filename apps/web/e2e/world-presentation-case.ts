@@ -27,7 +27,7 @@ export async function verifyWorldPresentation(
     workspace = page.locator('[data-world-workspace]'),
     panel = page.getByRole('complementary', { name: 'World details', exact: true })
   await expect(canvas).toHaveAttribute('data-camera-x', /\d/)
-  expect(await canvas.evaluate((el) => getComputedStyle(el).cursor)).toBe('none')
+  expect(await canvas.evaluate((el) => getComputedStyle(el).cursor)).toContain('data:image/svg+xml')
   await expect(workspace.locator('footer')).toHaveCount(0)
   if (info.project.name === 'desktop-chromium') {
     for (const width of [800, 1440]) {
@@ -60,6 +60,9 @@ export async function verifyWorldPresentation(
   expect(await canvas.evaluate((el) => [el.dataset.cameraX, el.dataset.cameraY])).toEqual(camera)
   expect((await world(page)).position).toEqual(before.position)
   expect((await world(page)).route).toHaveLength(0)
+  await expect(workspace.locator('[data-world-travel-status]')).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Stop travel', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'View 360°', exact: true })).toHaveCount(0)
   await canvas.press('d')
   await expect
     .poll(async () => (await world(page)).position, { timeout: 12000 })
@@ -161,22 +164,22 @@ export function registerWorldInputCases({
       }
       await expect
         .poll(() =>
-          canvas.evaluate((el) => {
+          canvas.evaluate((el, target) => {
             const x = Number(el.dataset.cameraX),
               y = Number(el.dataset.cameraY),
               tile = Number(el.dataset.tileSize)
-            const dx = (Number(el.dataset.testDrawnX) - el.clientWidth / 2) / (tile * 0.85)
-            const dy = (Number(el.dataset.testDrawnY) - el.clientHeight / 2) / (tile * 0.44)
+            const expectedX = el.clientWidth / 2 + (target.x - x - (target.y - y)) * tile * 0.85,
+              expectedY = el.clientHeight / 2 + (target.x - x + (target.y - y)) * tile * 0.44,
+              tolerance = 0.5 / Math.min(devicePixelRatio || 1, 1.5) + 1e-9
             return {
               camera: { x, y },
-              drawn: {
-                x: Math.round((x + (dx + dy) / 2) * 1e6) / 1e6,
-                y: Math.round((y + (dy - dx) / 2) * 1e6) / 1e6,
-              },
+              drawnAtTarget:
+                Math.abs(Number(el.dataset.testDrawnX) - expectedX) <= tolerance &&
+                Math.abs(Number(el.dataset.testDrawnY) - expectedY) <= tolerance,
             }
-          }),
+          }, target),
         )
-        .toEqual({ camera: target, drawn: target })
+        .toEqual({ camera: target, drawnAtTarget: true })
       await capture(page, info, `motionless-cursor-arrival-${mode.replaceAll(' ', '-')}`)
     })
   }
@@ -193,8 +196,22 @@ export function registerWorldInputCases({
     const slider = page.getByRole('slider', { name: 'Zoom level', exact: true })
     await slider.press('Home')
     await expect(slider).toHaveValue('60')
-    await page.getByRole('button', { name: 'Zoom in', exact: true }).click()
+    for (let i = 0; i < 5; i++) await slider.press('ArrowRight')
     await expect(slider).toHaveValue('70')
+    await expect(page.getByRole('button', { name: 'Zoom in', exact: true })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Zoom out', exact: true })).toHaveCount(0)
+    // The popup blocks input, not rendering: slider changes must paint while open.
+    await expect
+      .poll(async () => Number(await canvas.getAttribute('data-tile-size')))
+      .toBeCloseTo(64 * 0.7)
+    const pixels = await canvas.evaluate((element) => {
+      const canvas = element as HTMLCanvasElement
+      const pixel = canvas
+        .getContext('2d')!
+        .getImageData(Math.floor(canvas.width / 2), Math.floor(canvas.height / 2), 1, 1).data
+      return pixel[0]! + pixel[1]! + pixel[2]!
+    })
+    expect(pixels).toBeGreaterThan(0)
     await page.getByRole('button', { name: 'Zoom lock Off', exact: true }).click()
     await capture(page, info, 'restored-map-settings')
     await page.getByRole('button', { name: 'Done', exact: true }).click()
@@ -248,6 +265,83 @@ export function registerWorldInputCases({
     await expect
       .poll(async () => Number(await canvas.getAttribute('data-tile-size')))
       .toBeGreaterThan(Number(locked))
+  })
+
+  test('outside settings dismissal consumes the click and focused map Escape preserves Stop authority', async ({
+    page,
+  }, info) => {
+    test.skip(
+      info.project.name !== 'desktop-chromium',
+      'Exercise pointer dismissal and focused map keys once.',
+    )
+    await enter(page)
+    const canvas = page.locator('canvas[data-world-stage]')
+    const before = await world(page),
+      commands: string[] = []
+    page.on('request', (request) => {
+      if (new URL(request.url()).pathname === '/api/world' && request.method() === 'POST')
+        commands.push(request.postDataJSON()?.intent?.kind)
+    })
+    await page.getByRole('button', { name: 'Map settings', exact: true }).click()
+    await expect(page.getByRole('dialog', { name: 'Map settings', exact: true })).toBeVisible()
+    await page.getByRole('slider', { name: 'Zoom level', exact: true }).press('Escape')
+    await expect(page.getByRole('dialog', { name: 'Map settings', exact: true })).toBeHidden()
+    expect(commands).not.toContain('stop')
+    await page.getByRole('button', { name: 'Map settings', exact: true }).click()
+    const box = (await canvas.boundingBox())!
+    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2)
+    await expect(page.getByRole('dialog', { name: 'Map settings', exact: true })).toBeHidden()
+    await page.waitForTimeout(250)
+    expect(commands.filter((kind) => ['walk', 'stop'].includes(kind))).toEqual([])
+    expect((await world(page)).position).toEqual(before.position)
+    const stop = page.waitForResponse(
+      (response) =>
+        new URL(response.url()).pathname === '/api/world' &&
+        response.request().method() === 'POST' &&
+        response.request().postDataJSON()?.intent?.kind === 'stop',
+    )
+    await canvas.press('Escape')
+    expect((await stop).status()).toBe(200)
+    expect((await world(page)).route).toHaveLength(0)
+    await capture(page, info, 'settings-dismissal-without-map-command')
+  })
+
+  test('holding WASD walks repeatedly at bounded cadence and releasing the key ends the stream', async ({
+    page,
+  }, info) => {
+    test.skip(info.project.name !== 'desktop-chromium', 'Exercise real held keyboard input once.')
+    await enter(page)
+    const initial = await world(page)
+    place(initial.characterId, 'atlas:58:28', 6, 4)
+    await page.reload()
+    const canvas = page.locator('canvas[data-world-stage]')
+    await expect(canvas).toHaveAttribute('data-camera-x', /\d/)
+    let walks = 0
+    page.on('request', (request) => {
+      if (
+        new URL(request.url()).pathname === '/api/world' &&
+        request.method() === 'POST' &&
+        request.postDataJSON()?.intent?.kind === 'walk'
+      )
+        walks++
+    })
+    await canvas.focus()
+    await page.keyboard.down('d')
+    await page.waitForTimeout(700)
+    await page.keyboard.up('d')
+    await expect.poll(async () => (await world(page)).route.length, { timeout: 12000 }).toBe(0)
+    // A pre-release intent already queued behind authority may still finish.
+    // Once that settles, key-up must create no further walking requests.
+    const settledWalks = walks
+    expect(settledWalks).toBeGreaterThanOrEqual(2)
+    expect(settledWalks).toBeLessThanOrEqual(4)
+    const arrived = (await world(page)).position
+    expect(arrived.sectorId).toBe('atlas:58:28')
+    expect(arrived.x).toBeGreaterThanOrEqual(8)
+    await page.waitForTimeout(600)
+    expect(walks).toBe(settledWalks)
+    expect((await world(page)).position).toEqual(arrived)
+    await capture(page, info, 'held-walk-key-release')
   })
 
   test('two-finger map pinch zooms without walking and respects zoom lock', async ({

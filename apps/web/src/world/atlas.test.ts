@@ -1,15 +1,81 @@
 import { describe, expect, it, vi } from 'vitest'
 vi.mock('server-only', () => ({}))
+const shorelineCapture = vi.hoisted(() => ({ before: [] as WorldSector[] }))
+vi.mock('./road-shorelines', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./road-shorelines')>()
+  return {
+    ...actual,
+    trimRoadShorelines(sectors: readonly WorldSector[]) {
+      // world-content builds its compatibility graph during module import.
+      // Capture that first untrimmed atlas, then execute the real correction.
+      if (!shorelineCapture.before.length)
+        shorelineCapture.before = sectors.map((sector) => ({ ...sector, rows: [...sector.rows] }))
+      actual.trimRoadShorelines(sectors)
+    },
+  }
+})
 import { atlasAddress, atlasSectors, ATLAS_COLUMNS, ATLAS_ROWS } from './atlas'
 import { CHARTED_SECTORS } from './catalog'
 import { terrainWalkable } from './terrain'
-import { findWorldRoute, isWalkable, newWorldState, positionKey } from './travel'
+import { findWorldRoute, isSafe, isWalkable, newWorldState, positionKey } from './travel'
 import { projectWorld } from '@/server/world/world-service'
 import { isKnownCell, resolveSector, visibleSectors } from '@/server/world/world-content'
 import { resolveWorldIntent } from '@/server/world/world-service'
-import { wrappedColumnDistance } from './topology'
+import { atlasNeighbor, wrappedColumnDistance } from './topology'
+import { trimRoadShorelines } from './road-shorelines'
+import type { WorldSector } from './types'
 
 describe('one traversable world atlas', () => {
+  it('preserves saved walkability and PvP safety at every public atlas cell', () => {
+    const sectors = atlasSectors()
+    expect(shorelineCapture.before).toHaveLength(sectors.length)
+    const previous = new Map(shorelineCapture.before.map((sector) => [sector.id, sector]))
+    const changed: string[] = []
+    for (const sector of sectors)
+      for (let y = 0; y < 9; y++)
+        for (let x = 0; x < 13; x++) {
+          const before = previous.get(sector.id)!
+          if (
+            isWalkable(before, { x, y }) !== isWalkable(sector, { x, y }) ||
+            isSafe(before, { x, y }) !== isSafe(sector, { x, y })
+          )
+            changed.push(`${sector.id}:${x}:${y}`)
+        }
+    expect(changed).toEqual([])
+  })
+  it('ends paved coastal approaches before unavailable ocean chunks', () => {
+    const sectors = atlasSectors()
+    const byAddress = new Map(
+      sectors.map((sector) => [`${sector.atlasColumn}:${sector.atlasRow}`, sector]),
+    )
+    const stranded: string[] = []
+    for (const sector of sectors) {
+      for (const [dx, dy] of [
+        [1, 0],
+        [-1, 0],
+        [0, 1],
+        [0, -1],
+      ] as const) {
+        const address = atlasNeighbor(sector.atlasColumn!, sector.atlasRow!, dx, dy)
+        if (address && byAddress.has(`${address.column}:${address.row}`)) continue
+        for (let offset = 0; offset < (dx ? 9 : 13); offset++) {
+          const x = dx ? (dx > 0 ? 12 : 0) : offset
+          const y = dy ? (dy > 0 ? 8 : 0) : offset
+          if (sector.rows[y]![x] === '=' || sector.rows[y]![x] === 's')
+            stranded.push(`${sector.id}:${x}:${y}`)
+        }
+      }
+    }
+    expect(stranded).toEqual([])
+    const eastCoast = sectors.find(
+      (sector) =>
+        !byAddress.has(`${(sector.atlasColumn! + 1) % ATLAS_COLUMNS}:${sector.atlasRow}`) &&
+        sector.rows[4]!.endsWith('=..'),
+    )!
+    expect(eastCoast).toBeDefined()
+    expect(isWalkable(eastCoast, { x: 12, y: 4 })).toBe(true)
+    expect(eastCoast.roads.some((road) => road.from.x === 12 && road.from.y === 4)).toBe(false)
+  })
   it('has public connected countryside at both sides of the longitude seam', () => {
     const sectors = atlasSectors()
     const west = sectors.find((s) => s.atlasColumn === 127 && s.atlasRow === 32)
@@ -361,4 +427,71 @@ it('never projects a public atlas chunk over current private wild terrain', () =
   })
   expect(atlasSectors().some((s) => s.id === 'atlas:65:12')).toBe(true)
   expect(view.sectors.some((s) => s.id === 'atlas:65:12')).toBe(false)
+})
+
+describe('conservative pavement shoreline trimming', () => {
+  function roadSector() {
+    return {
+      id: 'shore',
+      atlasColumn: 20,
+      atlasRow: 20,
+      rows: Array.from({ length: 9 }, (_, y) => (y === 4 ? '=============' : '.............')),
+      landmarks: [],
+    } as unknown as WorldSector
+  }
+  it.each(['~', 'l'])(
+    'stops an internal %s dead end without changing any walkable cell',
+    (liquid) => {
+      const sector = roadSector()
+      sector.rows = sector.rows.map((row, y) =>
+        y === 4 ? row.slice(0, 7) + liquid + row.slice(8) : row,
+      )
+      const before = sector.rows.join('').split('').map(terrainWalkable)
+      trimRoadShorelines([sector])
+      expect(sector.rows[4]!.slice(4, 11)).toBe(`=..${liquid}..=`)
+      expect(sector.rows.join('').split('').map(terrainWalkable)).toEqual(before)
+    },
+  )
+  it('retains standalone settlement protection where ordinary ground would allow PvP', () => {
+    const sector = roadSector()
+    sector.rows = sector.rows.map((row, y) => (y === 4 ? row.slice(0, 12) + 's' : row))
+    expect(isSafe(sector, { x: 12, y: 4 })).toBe(true)
+    trimRoadShorelines([sector])
+    expect(isSafe(sector, { x: 12, y: 4 })).toBe(true)
+    expect(sector.rows[4]![12]).toBe('s')
+  })
+
+  it('preserves a real river bridge and its two dry banks', () => {
+    const sector = roadSector()
+    sector.rows = sector.rows.map((row, y) =>
+      y === 4 ? row : row.slice(0, 6) + '~' + row.slice(7),
+    )
+    sector.landmarks = [{ id: 'bridge', name: 'Bridge', kind: 'bridge', x: 6, y: 4 }]
+    trimRoadShorelines([sector])
+    expect(sector.rows[4]!.slice(5, 8)).toBe('===')
+    expect(sector.rows[3]![6]).toBe('~')
+    expect(sector.rows[5]![6]).toBe('~')
+    expect(sector.landmarks).toEqual([{ id: 'bridge', name: 'Bridge', kind: 'bridge', x: 6, y: 4 }])
+  })
+
+  it('does not mistake a paved neck without a walkable far bank for a bridge', () => {
+    const sector = roadSector()
+    sector.landmarks = [{ id: 'unusable-bridge', name: 'Bridge', kind: 'bridge', x: 6, y: 4 }]
+    sector.rows = sector.rows.map((row, y) =>
+      y === 4 ? '=======#=====' : row.slice(0, 6) + '~' + row.slice(7),
+    )
+    trimRoadShorelines([sector])
+    expect(sector.rows[4]![6]).toBe('.')
+    expect(sector.rows[4]![7]).toBe('#')
+    expect(sector.landmarks).toHaveLength(1)
+  })
+
+  it('retains authored approach tiles at nearby POIs', () => {
+    const sector = roadSector()
+    sector.landmarks = [{ id: 'waystone', name: 'Waystone', kind: 'waystone', x: 1, y: 4 }]
+    trimRoadShorelines([sector])
+    expect(sector.rows[4]![0]).toBe('.')
+    expect(sector.rows[4]![1]).toBe('=')
+    expect(isWalkable(sector, sector.landmarks[0]!)).toBe(true)
+  })
 })

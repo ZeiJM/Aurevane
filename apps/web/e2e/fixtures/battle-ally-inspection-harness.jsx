@@ -7,6 +7,7 @@ import { BattleExperience } from '@/components/battle/battle-experience'
 import { BattlefieldPresentationBundle } from '@/components/battle/battlefield-presentation-bundle'
 import { AudioProvider } from '@/components/audio/audio-provider'
 import { PvpSpectatorExperience } from '@/components/battle/pvp-spectator-experience'
+import { PvpBattleChatBridge } from '@/components/battle/pvp-battle-chat-bridge'
 import { DesktopBattleCombatantInspect } from '@/components/battle/desktop-battle-combatant-inspect'
 import { MobileBattleCombatantPopup } from '@/components/battle/mobile-battle-combatant-popup'
 import { BattleInteractionLifecycleProvider } from '@/components/battle/battle-interaction-lifecycle'
@@ -586,6 +587,23 @@ window.fetch = async (url, options = {}) => {
   const path = String(url)
   const body = options.body ? JSON.parse(options.body) : null
   window.calls.push({ path, method: options.method || 'GET', body })
+  if (path.includes('/chat')) {
+    if (options.method === 'POST')
+      return Response.json({ error: { message: 'Fixture send unavailable.' } }, { status: 503 })
+    return Response.json({
+      messages: [
+        {
+          id: 1,
+          body: 'A local fixture message for checking battle chat layout.',
+          senderCharacterId: metadata.localCharacterId,
+          senderCharacterName: 'Wayfarer',
+          createdAt: '2026-10-12T19:50:00.000Z',
+        },
+      ],
+      spectators: [],
+      spectatorCount: 0,
+    })
+  }
   if (
     path === '/api/account/controls' &&
     new URLSearchParams(location.search).get('cycleTarget') === 'custom'
@@ -854,6 +872,9 @@ else
       ) : (
         <BattleInteractionLifecycleProvider>
           <BattleExperience initialBattle={initialBattle} runtime={runtime} />
+          {mode === 'pvp' && new URLSearchParams(location.search).has('chat') ? (
+            <PvpBattleChatBridge battleSessionId="fixture" metadata={metadata} />
+          ) : null}
           <DesktopBattleCombatantInspect
             battleSessionId="fixture"
             pvpMetadata={mode === 'pvp' ? metadata : null}

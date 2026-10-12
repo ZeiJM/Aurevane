@@ -141,25 +141,10 @@
   height: 100%;
   outline: none;
   touch-action: none;
-  cursor: none;
-}
-.mapTools {
-  position: absolute;
-  left: 14px;
-  bottom: 14px;
-  display: flex;
-  gap: 5px;
-  align-items: center;
-  filter: drop-shadow(0 2px 5px #22332b55);
-}
-.mapTools button {
-  min-width: 36px;
-  background: #08232ce6;
-  border-color: #a1844b;
-  font-size: 16px;
-}
-.mapTools button:last-child:not(:nth-child(3)) {
-  font-size: 11px;
+  cursor:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='32' viewBox='0 0 28 32'%3E%3Cpath d='M3 2L3 25L9 19L14 29L18 27L13 17L22 17Z' fill='%230b2932' stroke='%23e6cc8d' stroke-width='1.5' stroke-linejoin='round'/%3E%3Cpath d='M6 7L6 18L10 14L16 14Z' fill='%237caaa8'/%3E%3C/svg%3E")
+      3 2,
+    pointer;
 }
 .sidebar {
   display: flex;
@@ -407,14 +392,6 @@
   min-height: 30px;
   padding: 3px 9px;
 }
-.travelStatus {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  flex: 1;
-  min-width: 0;
-  font: 11px var(--av-font-body, Georgia);
-}
 .missions {
   padding: 18px;
 }
@@ -476,6 +453,18 @@
   z-index: 5;
   max-height: calc(100% - 30px);
   overflow-y: auto;
+}
+.workspace .settingsBackdrop,
+.workspace .settingsBackdrop:hover:not(:disabled) {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  cursor: default;
+  touch-action: none;
 }
 .errorNotice {
   position: absolute;
@@ -760,14 +749,6 @@
   .sidebar.open {
     display: flex;
   }
-  .mapTools {
-    bottom: 10px;
-    left: 10px;
-  }
-  .mapTools button {
-    min-height: 38px;
-    min-width: 38px;
-  }
   .stageBar {
     min-height: 37px;
     padding: 3px 8px;
@@ -824,9 +805,6 @@
   .header .panelToggle {
     flex-shrink: 0;
     white-space: nowrap;
-  }
-  .mapTools {
-    bottom: 6px;
   }
   .globeCaption {
     bottom: 5px;

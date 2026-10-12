@@ -14,6 +14,7 @@ export function WorldMap({
   zoomLocked,
   onZoom,
   onWalk,
+  onStop,
   onPlayer,
   onVisiblePlayers,
 }: {
@@ -26,16 +27,17 @@ export function WorldMap({
   zoomLocked: boolean
   onZoom: (zoom: number) => void
   onWalk: (position: WorldPosition) => void
+  onStop: () => void
   onPlayer: (id: string) => void
   onVisiblePlayers: (ids: string[]) => void
 }) {
   const canvas = useRef<HTMLCanvasElement>(null),
     renderer = useRef<ReturnType<typeof createMapRenderer>>(null)
   const initial = useRef(view)
-  const callbacks = useRef({ onWalk, onPlayer, onZoom, onVisiblePlayers })
+  const callbacks = useRef({ onWalk, onStop, onPlayer, onZoom, onVisiblePlayers })
   useEffect(() => {
-    callbacks.current = { onWalk, onPlayer, onZoom, onVisiblePlayers }
-  }, [onWalk, onPlayer, onZoom, onVisiblePlayers])
+    callbacks.current = { onWalk, onStop, onPlayer, onZoom, onVisiblePlayers }
+  }, [onWalk, onStop, onPlayer, onZoom, onVisiblePlayers])
   useEffect(() => {
     if (!canvas.current) return
     renderer.current = createMapRenderer(
@@ -46,6 +48,7 @@ export function WorldMap({
       (id) => callbacks.current.onPlayer(id),
       (zoom) => callbacks.current.onZoom(zoom),
       (ids) => callbacks.current.onVisiblePlayers(ids),
+      () => callbacks.current.onStop(),
     )
     return () => renderer.current?.dispose()
   }, [motion]) // Initial snapshot is replaced below without recreating the renderer.
@@ -63,7 +66,7 @@ export function WorldMap({
       data-portrait={portrait}
       tabIndex={0}
       role="application"
-      aria-label="World map. Click ground or use WASD and arrow keys to walk. Use the mouse wheel or pinch to zoom."
+      aria-label="World map. Click ground or hold WASD and arrow keys to walk. Press Escape to stop travel. Use the mouse wheel or pinch to zoom."
     />
   )
 }

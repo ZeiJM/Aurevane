@@ -108,6 +108,7 @@ const scenarios = [
     })),
   ),
   ...['victory', 'defeat', 'draw'].map((result) => ({ mode: 'pvp', result })),
+  ...['victory', 'defeat', 'draw'].map((result) => ({ mode: 'pvp', result, origin: 'world' })),
 ]
 const receipts = []
 const failures = []
@@ -212,7 +213,7 @@ function checkFit(geometry, label, seal) {
 try {
   for (const viewport of viewports)
     for (const scenario of scenarios) {
-      const label = `${scenario.mode}-${scenario.record || 'match'}-${scenario.result}-${viewport.width}x${viewport.height}`
+      const label = `${scenario.mode}-${scenario.origin || scenario.record || 'match'}-${scenario.result}-${viewport.width}x${viewport.height}`
       const page = await browser.newPage({
         viewport,
         isMobile: viewport.width < 821 || viewport.height <= 450,
@@ -239,10 +240,17 @@ try {
         const summaryText = (await summary.innerText()).replace(/\s+/g, ' ').trim()
         const review = overlay.getByRole('button', { name: 'Review Battle Log', exact: true })
         const returnButton = overlay.getByRole('button', {
-          name: 'Return to Battle Hall',
+          name: scenario.origin === 'world' ? 'Return to World' : 'Return to Battle Hall',
           exact: true,
         })
         assert.equal(await returnButton.count(), 1)
+        if (scenario.mode === 'pvp') {
+          assert.match(summaryText, scenario.origin === 'world' ? /World Encounter/ : /Battle Hall/)
+          assert.match(
+            summaryText,
+            scenario.origin === 'world' ? /return to the world/ : /return to the hall/,
+          )
+        }
         if (scenario.mode === 'pve') {
           assert.equal(
             await overlay
@@ -386,7 +394,11 @@ try {
         await overlay.getByRole('button', { name: 'Hide Battle Log', exact: true }).click()
         assert.equal(await log.count(), 0)
         await returnButton.click()
-        assert.equal(new URL(page.url()).pathname, '/game/battle', 'Return control remains usable')
+        assert.equal(
+          new URL(page.url()).pathname,
+          scenario.origin === 'world' ? '/game/world' : '/game/battle',
+          'Return control follows the persisted encounter origin',
+        )
       } catch (error) {
         failures.push(`${label}: ${error.stack || error.message}`)
         await page.screenshot({ path: resolve(output, `${label}-failure.png`), fullPage: true })

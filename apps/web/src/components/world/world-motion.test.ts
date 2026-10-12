@@ -2,10 +2,81 @@ import { describe, expect, it } from 'vitest'
 import type { WorldView } from '@/world/types'
 import { WorldMotion } from './world-motion'
 const position = { sectorId: 'a', x: 1, y: 4 }
-const sectors = [{ id: 'a', atlasColumn: 0, atlasRow: 0 }]
+const sectors = [
+  {
+    id: 'a',
+    atlasColumn: 0,
+    atlasRow: 0,
+    exits: [],
+    cells: Array.from({ length: 117 }, (_, i) => ({
+      x: i % 13,
+      y: Math.floor(i / 13),
+      terrain: '.',
+      walkable: true,
+    })),
+  },
+]
 const view = { position, sectors, route: [] } as unknown as WorldView
 const route = [2, 3, 4].map((x) => ({ position: { ...position, x }, durationMs: 200 }))
 describe('world visual motion', () => {
+  it('settles a final authoritative arrival without jumping from a slower preview', () => {
+    const motion = new WorldMotion(view)
+    motion.plan(route, view.sectors, 0)
+    const before = motion.sample(500).point
+    motion.reconcile({ ...view, position: route[2]!.position }, 500)
+    expect(motion.sample(500).point).toEqual(before)
+    expect(motion.sample(516).point.x - before.x).toBeLessThan(0.1)
+    expect(motion.sample(800)).toEqual({
+      point: { x: 4.5, y: 4.5 },
+      position: route[2]!.position,
+      moving: false,
+    })
+  })
+  it('keeps a drained preview continuous when a later confirmation has advanced beyond it', () => {
+    const motion = new WorldMotion(view)
+    motion.plan(route, view.sectors, 0)
+    const before = motion.sample(1600).point
+    motion.reconcile(
+      {
+        ...view,
+        position: { ...position, x: 7 },
+        route: [{ position: { ...position, x: 8 }, durationMs: 200 }],
+      },
+      1600,
+    )
+    expect(motion.sample(1600).point).toEqual(before)
+    expect(motion.sample(1616).point.x - before.x).toBeCloseTo(0.08)
+    expect(motion.sample(3000).point.x).toBe(8.5)
+  })
+  it('keeps confirmed terrain step durations after a mid-step receipt', () => {
+    const motion = new WorldMotion(view)
+    const slow = route.map((step) => ({ ...step, durationMs: 400 }))
+    motion.reconcile({ ...view, route: slow }, 0)
+    motion.reconcile({ ...view, route: slow }, 100)
+    expect(motion.sample(400).point.x).toBeCloseTo(2.5)
+    expect(motion.sample(800).point.x).toBeCloseTo(3.5)
+  })
+  it('settles a delayed receipt along known walkable terrain around a water tile', () => {
+    const waterView = {
+      ...view,
+      sectors: view.sectors.map((sector) => ({
+        ...sector,
+        cells: sector.cells.map((cell) =>
+          cell.x === 5 && cell.y === 4 ? { ...cell, terrain: '~', walkable: false } : cell,
+        ),
+      })),
+    }
+    const motion = new WorldMotion(waterView)
+    motion.plan(route, waterView.sectors, 0)
+    const before = motion.sample(1600).point
+    motion.reconcile({ ...waterView, position: { ...position, x: 7 } }, 1600)
+    expect(motion.sample(1600).point).toEqual(before)
+    for (let now = 1600; now <= 3200; now += 20) {
+      const sample = motion.sample(now)
+      expect(Math.floor(sample.point.x) === 5 && Math.floor(sample.point.y) === 4).toBe(false)
+    }
+    expect(motion.sample(3200).position).toEqual({ ...position, x: 7 })
+  })
   it('previews and reconciles an eastbound longitude crossing as one tile without a visual rewind', () => {
     const seamView = {
       ...view,

@@ -1,4 +1,4 @@
-import { GRID_HEIGHT, GRID_WIDTH } from '@/world/catalog'
+import { GRID_HEIGHT, GRID_WIDTH, STEP_MS } from '@/world/catalog'
 import { ATLAS_COLUMNS, ATLAS_ROWS } from '@/world/atlas'
 import { hashString } from '@/world/terrain-gen'
 import type {
@@ -10,6 +10,7 @@ import type {
 } from '@/world/types'
 import { sectorMapOrigin, wrappedMapX, WORLD_MAP_WIDTH } from '@/world/topology'
 import { mapPoint, type MapPoint, WorldMotion } from './world-motion'
+import { samePosition } from '@/world/travel'
 import {
   createCloudTexture,
   createWildlife,
@@ -31,6 +32,7 @@ import {
   terrainHeatEmitters,
 } from './map-weather'
 import { drawWildlife } from './map-wildlife'
+import { buildBiomeTransitions } from './map-biome-transitions'
 
 import { MAP_X, MAP_Y, projectMapPoint, unprojectMapPoint } from './map-projection'
 
@@ -228,6 +230,7 @@ export function createMapRenderer(
   selectPlayer: (id: string) => void,
   onZoom: (zoom: number) => void = () => {},
   onVisiblePlayers: (ids: string[]) => void = () => {},
+  onStop: () => void = () => {},
 ) {
   const context = canvas.getContext('2d', { alpha: false })
   if (!context) return null
@@ -247,13 +250,24 @@ export function createMapRenderer(
     wasMoving = false,
     visiblePlayerKey: string | null = null
   const pan = { x: 0, y: 0 }
-  let camera = motion.sample(performance.now()).point,
-    hover: MapPoint | null = null
+  const heldKeys = new Map<string, MapPoint>()
+  let keyTimer: ReturnType<typeof setTimeout> | null = null
+  function releaseHeldKeys() {
+    heldKeys.clear()
+    if (keyTimer !== null) clearTimeout(keyTimer)
+    keyTimer = null
+  }
+  let camera = motion.sample(performance.now()).point
   let animate = true,
     zoomLocked = false,
     paused = false,
     reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  let drag: { x: number; y: number } | null = null
+  let drag: {
+    x: number
+    y: number
+    position: WorldPosition | null
+    player: { id: string; self: boolean } | null
+  } | null = null
   const images = new Map<string, HTMLImageElement>(),
     portraits = new Map<string, HTMLImageElement>()
   const cache = new Map<string, { key: string; ground: HTMLCanvasElement }>()
@@ -262,6 +276,7 @@ export function createMapRenderer(
   const terrainKeys = new Map<string, string>()
   const wildlife = new Map<string, Wildlife[]>()
   let waterField = buildWaterField(view.sectors)
+  let biomeField = buildBiomeTransitions(view.sectors)
   let featurePlacements = indexFeaturePlacements(view.sectors)
   let coastField = buildPublicCoasts(view)
   let heatEmitters = terrainHeatEmitters(view.sectors)
@@ -269,6 +284,7 @@ export function createMapRenderer(
   let cachedPixels = 0
   function indexTerrain() {
     waterField = buildWaterField(view.sectors)
+    biomeField = buildBiomeTransitions(view.sectors)
     featurePlacements = indexFeaturePlacements(view.sectors)
     coastField = buildPublicCoasts(view)
     heatEmitters = terrainHeatEmitters(view.sectors)
@@ -332,6 +348,8 @@ export function createMapRenderer(
       ':' +
       waterField.get(sector.id)?.key +
       ':' +
+      biomeField.get(sector.id)?.key +
+      ':' +
       tile +
       ':' +
       groundScale
@@ -340,8 +358,7 @@ export function createMapRenderer(
     const layer = document.createElement('canvas')
     layer.width = Math.ceil(GRID_WIDTH * tile * groundScale)
     layer.height = Math.ceil(GRID_HEIGHT * tile * groundScale)
-    const c = layer.getContext('2d')!,
-      palette = palettes[sector.regionId] ?? palettes['verdant-expanse']!
+    const c = layer.getContext('2d')!
     c.scale(groundScale, groundScale)
     c.imageSmoothingEnabled = true
     c.imageSmoothingQuality = 'high'
@@ -364,18 +381,24 @@ export function createMapRenderer(
     }
     const waterMaterial = materialGradient(['#245e67', '#3e7b82', '#244e60']),
       lavaMaterial = materialGradient(['#702f25', '#bd5b2e', '#4d2526'])
-    for (const cell of sector.cells) {
-      const x = cell.x * tile,
-        y = cell.y * tile
-      c.fillStyle = palette[0]
-      c.fillRect(x, y, tile + 1, tile + 1)
+    const paintMaterial = (
+      target: CanvasRenderingContext2D,
+      cell: WorldCell,
+      regionId: string,
+      offsetX = 0,
+      offsetY = 0,
+    ) => {
+      const material = palettes[regionId] ?? palettes['verdant-expanse']!,
+        x = cell.x * tile - offsetX,
+        y = cell.y * tile - offsetY
+      target.fillStyle = material[0]
+      target.fillRect(x, y, tile + 1, tile + 1)
       if (texture?.complete && texture.naturalWidth) {
-        c.globalAlpha = 0.66
-        // Material spans several tiles, avoiding a checkerboard of repeated tile borders.
+        target.globalAlpha = 0.66
         const sw = texture.width / 4,
           sh = texture.height / 2,
-          index = sector.regionId === 'verdant-expanse' && cell.terrain === 't' ? 1 : palette[1]
-        c.drawImage(
+          index = regionId === 'verdant-expanse' && cell.terrain === 't' ? 1 : material[1]
+        target.drawImage(
           texture,
           (index % 4) * sw + ((((sector.atlasColumn ?? 0) * GRID_WIDTH + cell.x) % 4) * sw) / 4,
           Math.floor(index / 4) * sh +
@@ -387,8 +410,93 @@ export function createMapRenderer(
           tile + 1,
           tile + 1,
         )
-        c.globalAlpha = 1
+        target.globalAlpha = 1
       }
+    }
+    for (const cell of sector.cells) paintMaterial(c, cell, sector.regionId)
+    const materialLayer = (
+      x: number,
+      y: number,
+      width: number,
+      height: number,
+      regionId: string,
+    ) => {
+      const strip = document.createElement('canvas')
+      strip.width = Math.ceil(width * groundScale)
+      strip.height = Math.ceil(height * groundScale)
+      const blend = strip.getContext('2d')!
+      blend.scale(groundScale, groundScale)
+      blend.imageSmoothingEnabled = true
+      blend.imageSmoothingQuality = 'high'
+      for (const cell of sector.cells)
+        if (
+          cell.x * tile < x + width &&
+          (cell.x + 1) * tile > x &&
+          cell.y * tile < y + height &&
+          (cell.y + 1) * tile > y
+        )
+          paintMaterial(blend, cell, regionId, x, y)
+      return { strip, blend }
+    }
+    const maskMaterial = (
+      material: ReturnType<typeof materialLayer>,
+      side: number,
+      width: number,
+      height: number,
+    ) => {
+      const { blend } = material,
+        mask =
+          side === 0
+            ? blend.createLinearGradient(0, 0, 0, height)
+            : side === 1
+              ? blend.createLinearGradient(width, 0, 0, 0)
+              : side === 2
+                ? blend.createLinearGradient(0, height, 0, 0)
+                : blend.createLinearGradient(0, 0, width, 0)
+      mask.addColorStop(0, 'rgba(0,0,0,.5)')
+      mask.addColorStop(1, 'rgba(0,0,0,0)')
+      blend.globalCompositeOperation = 'destination-in'
+      blend.fillStyle = mask
+      blend.fillRect(0, 0, width, height)
+      blend.globalCompositeOperation = 'source-over'
+    }
+    // Feather supplied public dry boundaries once in cached ground. The special
+    // pavement/liquid/rock overlays below remain authoritative in every biome.
+    for (const edge of biomeField.get(sector.id)?.edges ?? []) {
+      const vertical = edge.side % 2 === 1,
+        width = (vertical ? edge.width : edge.to - edge.from) * tile,
+        height = (vertical ? edge.to - edge.from : edge.width) * tile,
+        x = (edge.side === 1 ? GRID_WIDTH - edge.width : vertical ? 0 : edge.from) * tile,
+        y = (edge.side === 2 ? GRID_HEIGHT - edge.width : vertical ? edge.from : 0) * tile,
+        material = materialLayer(x, y, width, height, edge.regionId)
+      maskMaterial(material, edge.side, width, height)
+      c.drawImage(material.strip, x, y, width, height)
+      material.strip.width = material.strip.height = 0
+    }
+    // Rebuild shared corners with separable weights, rather than overlapping
+    // two 50% strips in local edge order. All four quadrants meet at the same
+    // material mixture: own(1-u)(1-v), east/west u(1-v), north/south v(1-u), diagonal uv.
+    for (const corner of biomeField.get(sector.id)?.corners ?? []) {
+      const size = corner.width * tile,
+        x = (corner.verticalSide === 1 ? GRID_WIDTH - corner.width : 0) * tile,
+        y = (corner.horizontalSide === 2 ? GRID_HEIGHT - corner.width : 0) * tile,
+        own = materialLayer(x, y, size, size, sector.regionId),
+        vertical = materialLayer(x, y, size, size, corner.verticalRegionId),
+        horizontal = materialLayer(x, y, size, size, corner.horizontalRegionId),
+        diagonal = materialLayer(x, y, size, size, corner.diagonalRegionId)
+      maskMaterial(vertical, corner.verticalSide, size, size)
+      own.blend.drawImage(vertical.strip, 0, 0, size, size)
+      maskMaterial(diagonal, corner.verticalSide, size, size)
+      horizontal.blend.drawImage(diagonal.strip, 0, 0, size, size)
+      maskMaterial(horizontal, corner.horizontalSide, size, size)
+      own.blend.drawImage(horizontal.strip, 0, 0, size, size)
+      c.drawImage(own.strip, x, y, size, size)
+      for (const material of [own, vertical, horizontal, diagonal])
+        material.strip.width = material.strip.height = 0
+    }
+    for (const cell of sector.cells) {
+      const x = cell.x * tile,
+        y = cell.y * tile
       if (cell.terrain === '=' || cell.terrain === 's') {
         c.fillStyle = sector.townId ? '#aa9d7b' : '#a49b77'
         c.globalAlpha = 0.72
@@ -788,14 +896,13 @@ export function createMapRenderer(
     const objects = [
       ...animals,
       ...scenery.map((item) => ({ y: item.x + item.y, type: 'scenery' as const, item })),
-      ...Array.from(stacks.values()).map((item) => ({
-        y: item.point.x + item.point.y,
-        type: 'player' as const,
-        item,
-      })),
     ].sort((a, b) => a.y - b.y)
     const drawPerson = (stack: typeof selfStack, ghost = false) => {
-      const point = screen(stack.point)
+      const projected = screen(stack.point),
+        point = {
+          x: Math.round(projected.x * ratio) / ratio,
+          y: Math.round(projected.y * ratio) / ratio,
+        }
       if (point.x < -40 || point.x > width + 40 || point.y < -60 || point.y > height + 60) return
       const people = stack.people,
         selfIndex = people.findIndex((person) => person.self),
@@ -813,22 +920,16 @@ export function createMapRenderer(
       ctx.globalAlpha = 1
       ctx.fillStyle = ghost ? '#a6b1b0' : '#182e32'
       ctx.strokeStyle = person.self ? '#ead399' : '#c6cbc0'
-      ctx.lineWidth = person.self ? 2.5 : 1.5
+      ctx.lineWidth = 1
       ctx.shadowColor = 'rgba(0,0,0,.45)'
       ctx.shadowBlur = 10
       ctx.shadowOffsetY = 5
       ctx.beginPath()
-      ctx.arc(point.x, point.y - radius, radius + 2, 0, Math.PI * 2)
+      ctx.arc(point.x, point.y - radius, radius + 0.5, 0, Math.PI * 2)
       ctx.fill()
       ctx.shadowBlur = 0
       ctx.shadowOffsetY = 0
       ctx.stroke()
-      ctx.beginPath()
-      ctx.arc(point.x, point.y - radius, radius + 4, 0, Math.PI * 2)
-      ctx.lineWidth = 0.75
-      ctx.globalAlpha = 0.45
-      ctx.stroke()
-      ctx.globalAlpha = 1
       ctx.beginPath()
       ctx.arc(point.x, point.y - radius, radius, 0, Math.PI * 2)
       ctx.clip()
@@ -891,17 +992,18 @@ export function createMapRenderer(
         ctx.fill()
         ctx.stroke()
         ctx.fillStyle = person.self ? '#f5dda5' : '#f1ebda'
-        ctx.fillText(person.name, point.x, point.y + 15, nameWidth - 12)
+        ctx.fillText(
+          person.name,
+          point.x,
+          Math.round((point.y + 15) * ratio) / ratio,
+          nameWidth - 12,
+        )
       }
     }
     for (const object of objects) {
       if (object.type === 'animal') {
         const p = screen(object.point)
         drawWildlife(ctx, nature!, object.animal, object.pose, p.x, p.y, tile)
-        continue
-      }
-      if (object.type === 'player') {
-        drawPerson(object.item)
         continue
       }
       const item = object.item,
@@ -976,22 +1078,6 @@ export function createMapRenderer(
         )
       ctx.restore()
     }
-    // Scenery never completely hides a character; the identity remains readable in gray.
-    for (const stack of stacks.values())
-      if (
-        scenery.some((item) => {
-          const p = screen(stack.point),
-            s = screen({ x: item.x, y: item.y })
-          return (
-            stack.point.x + stack.point.y < item.x + item.y &&
-            p.x > s.x - item.width * 0.35 &&
-            p.x < s.x + item.width * 0.35 &&
-            p.y > s.y - item.height * (item.anchorY ?? 0.8) &&
-            p.y < s.y + item.height * (1 - (item.anchorY ?? 1))
-          )
-        })
-      )
-        drawPerson(stack, true)
     const labelBounds: { x: number; y: number; width: number; height: number }[] = []
     for (const sector of visible) {
       const origin = sectorOrigin(sector)
@@ -1123,16 +1209,26 @@ export function createMapRenderer(
     canvas.dataset.wildlife = String(wildlifeCount)
     canvas.dataset.wildlifeWalking = String(wildlifeWalking)
     canvas.dataset.coastEdges = String(coastEdges)
-    if (hover) {
-      const target = pick(hover)
-      if (target) {
-        const p = screen(mapPoint(target, view.sectors, camera))
-        ctx.strokeStyle = 'rgba(243,220,160,.7)'
-        ctx.lineWidth = 1.5
-        ctx.beginPath()
-        ctx.ellipse(p.x, p.y, 14, 7, 0, 0, Math.PI * 2)
-        ctx.stroke()
-      }
+    // Identity is interface: weather and nighttime tint scenery, not portraits
+    // or nameplates. Retain the gray identity cue for travellers behind foliage.
+    for (const stack of Array.from(stacks.values()).sort(
+      (a, b) => a.point.x + a.point.y - b.point.x - b.point.y,
+    )) {
+      drawPerson(stack)
+      if (
+        scenery.some((item) => {
+          const p = screen(stack.point),
+            s = screen({ x: item.x, y: item.y })
+          return (
+            stack.point.x + stack.point.y < item.x + item.y &&
+            p.x > s.x - item.width * 0.35 &&
+            p.x < s.x + item.width * 0.35 &&
+            p.y > s.y - item.height * (item.anchorY ?? 0.8) &&
+            p.y < s.y + item.height * (1 - (item.anchorY ?? 1))
+          )
+        })
+      )
+        drawPerson(stack, true)
     }
     canvas.dataset.cameraX = String(camera.x + pan.x)
     canvas.dataset.cameraY = String(camera.y + pan.y)
@@ -1176,6 +1272,7 @@ export function createMapRenderer(
       frame = requestAnimationFrame(loop)
   }
   const visibility = () => {
+    if (document.visibilityState !== 'visible') releaseHeldKeys()
     if (frame) cancelAnimationFrame(frame)
     frame = 0
     if (!disposed && !paused && document.visibilityState === 'visible') {
@@ -1218,7 +1315,15 @@ export function createMapRenderer(
         return
       }
     }
-    drag = { x: event.clientX, y: event.clientY }
+    const bounds = canvas.getBoundingClientRect(),
+      x = event.clientX - bounds.left,
+      y = event.clientY - bounds.top
+    drag = {
+      x: event.clientX,
+      y: event.clientY,
+      position: pick(world(x, y)),
+      player: hitTargets.find((target) => Math.hypot(target.x - x, target.y - y) < 21) ?? null,
+    }
   }
   const move = (event: PointerEvent) => {
     if (pointers.has(event.pointerId))
@@ -1228,9 +1333,6 @@ export function createMapRenderer(
       return
     }
     if (gestured) return
-    const bounds = canvas.getBoundingClientRect()
-    hover = world(event.clientX - bounds.left, event.clientY - bounds.top)
-    requestDraw()
   }
   const up = (event: PointerEvent) => {
     pointers.delete(event.pointerId)
@@ -1243,20 +1345,12 @@ export function createMapRenderer(
     const start = drag
     drag = null
     if (!start || Math.hypot(event.clientX - start.x, event.clientY - start.y) > 7) return
-    const bounds = canvas.getBoundingClientRect(),
-      point = world(event.clientX - bounds.left, event.clientY - bounds.top)
-    const hit = hitTargets.find(
-      (target) =>
-        Math.hypot(
-          target.x - (event.clientX - bounds.left),
-          target.y - (event.clientY - bounds.top),
-        ) < 21,
-    )
+    const hit = start.player
     if (hit) {
       if (!hit.self) selectPlayer(hit.id)
       return
     }
-    const position = pick(point)
+    const position = start.position
     if (position) {
       select(position)
       requestDraw()
@@ -1268,37 +1362,70 @@ export function createMapRenderer(
     if (!pointers.size) gestured = false
     drag = null
   }
-  const key = (event: KeyboardEvent) => {
-    const offsets: Record<string, MapPoint> = {
-      ArrowLeft: { x: -1, y: 0 },
-      ArrowRight: { x: 1, y: 0 },
-      ArrowUp: { x: 0, y: -1 },
-      ArrowDown: { x: 0, y: 1 },
-      w: { x: 0, y: -1 },
-      a: { x: -1, y: 0 },
-      s: { x: 0, y: 1 },
-      d: { x: 1, y: 0 },
+  const offsets: Record<string, MapPoint> = {
+    ArrowLeft: { x: -1, y: 0 },
+    ArrowRight: { x: 1, y: 0 },
+    ArrowUp: { x: 0, y: -1 },
+    ArrowDown: { x: 0, y: 1 },
+    w: { x: 0, y: -1 },
+    a: { x: -1, y: 0 },
+    s: { x: 0, y: 1 },
+    d: { x: 1, y: 0 },
+  }
+  function walkHeldKey() {
+    keyTimer = null
+    const offset = [...heldKeys.values()].at(-1)
+    if (!offset || disposed || paused || document.visibilityState !== 'visible') return
+    if (view.movementBlocked || view.battleSessionId) {
+      releaseHeldKeys()
+      return
     }
-    const offset = offsets[event.key] ?? offsets[event.key.toLowerCase()]
-    if (!offset) return
-    event.preventDefault()
-    const p = motion.sample(performance.now()).point,
+    const now = performance.now(),
+      sample = motion.sample(now),
+      p = sample.point,
       position = pick({ x: Math.floor(p.x) + 0.5 + offset.x, y: Math.floor(p.y) + 0.5 + offset.y })
+    let cadence = STEP_MS
     if (position) {
+      const sector = view.sectors.find((sector) => sector.id === sample.position.sectorId)
+      const crossing = sector?.exits.find(
+        (exit) => samePosition(exit.from, sample.position) && samePosition(exit.to, position),
+      )
+      cadence = Math.max(STEP_MS, crossing?.durationMs ?? sector?.stepMs ?? STEP_MS)
       select(position)
       requestDraw()
     }
+    // Browser key-repeat never owns cadence or creates extra RPCs. The legal
+    // terrain/exit duration controls the next intent; the server still commits it.
+    keyTimer = setTimeout(walkHeldKey, cadence)
   }
-  const leave = () => {
-    hover = null
-    requestDraw()
+  const key = (event: KeyboardEvent) => {
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      releaseHeldKeys()
+      if (!event.repeat) onStop()
+      return
+    }
+    const name = event.key.toLowerCase(),
+      offset = offsets[event.key] ?? offsets[name]
+    if (!offset) return
+    event.preventDefault()
+    if (event.repeat || heldKeys.has(name)) return
+    heldKeys.set(name, offset)
+    if (keyTimer !== null) clearTimeout(keyTimer)
+    walkHeldKey()
+  }
+  const keyUp = (event: KeyboardEvent) => {
+    heldKeys.delete(event.key.toLowerCase())
+    if (!heldKeys.size) releaseHeldKeys()
   }
   canvas.addEventListener('pointerdown', down)
   canvas.addEventListener('pointermove', move)
   canvas.addEventListener('pointerup', up)
   canvas.addEventListener('pointercancel', cancel)
-  canvas.addEventListener('pointerleave', leave)
   canvas.addEventListener('keydown', key)
+  canvas.addEventListener('keyup', keyUp)
+  canvas.addEventListener('blur', releaseHeldKeys)
+  window.addEventListener('blur', releaseHeldKeys)
   canvas.addEventListener('wheel', wheel, { passive: false })
   const media = window.matchMedia('(prefers-reduced-motion: reduce)'),
     onReduced = () => {
@@ -1316,6 +1443,7 @@ export function createMapRenderer(
       animate = value.animate
       zoomLocked = value.zoomLocked ?? false
       paused = value.paused ?? false
+      if (paused) releaseHeldKeys()
       if (paused && frame) {
         cancelAnimationFrame(frame)
         frame = 0
@@ -1328,6 +1456,7 @@ export function createMapRenderer(
     },
     dispose() {
       disposed = true
+      releaseHeldKeys()
       cancelAnimationFrame(frame)
       observer.disconnect()
       document.removeEventListener('visibilitychange', visibility)
@@ -1339,8 +1468,10 @@ export function createMapRenderer(
       canvas.removeEventListener('pointermove', move)
       canvas.removeEventListener('pointerup', up)
       canvas.removeEventListener('pointercancel', cancel)
-      canvas.removeEventListener('pointerleave', leave)
       canvas.removeEventListener('keydown', key)
+      canvas.removeEventListener('keyup', keyUp)
+      canvas.removeEventListener('blur', releaseHeldKeys)
+      window.removeEventListener('blur', releaseHeldKeys)
       canvas.removeEventListener('wheel', wheel)
       pointers.clear()
       cache.clear()

@@ -8,6 +8,7 @@ import {
 } from './catalog'
 import { generateSectorTerrain, seeded } from './terrain-gen'
 import { terrainWalkable } from './terrain'
+import { trimRoadShorelines } from './road-shorelines'
 import type { WorldBuilding, WorldLandmark, WorldRoad, WorldSector } from './types'
 import { ATLAS_COLUMNS, ATLAS_ROWS, atlasNeighbor, wrappedColumnDistance } from './topology'
 
@@ -396,6 +397,7 @@ export function atlasSectors(): readonly WorldSector[] {
         roads: [],
       })
     }
+  trimRoadShorelines(sectors)
   const byAddress = new Map(sectors.map((s) => [addressKey(s.atlasColumn!, s.atlasRow!), s]))
   // Cross any walkable pair on a shared edge: no invisible gate or decorative-only ground.
   for (const sector of sectors) {

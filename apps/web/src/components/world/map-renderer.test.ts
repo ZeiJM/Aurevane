@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 vi.mock('server-only', () => ({}))
 import { projectWorld } from '@/server/world/world-service'
 import { newWorldState } from '@/world/travel'
-import { mapPoint, WorldMotion } from './world-motion'
+import { localRoute, mapPoint, WorldMotion } from './world-motion'
 import { createMapRenderer } from './map-renderer'
 import { projectMapPoint } from './map-projection'
 import type { WorldView } from '@/world/types'
@@ -11,8 +11,10 @@ function scene(reduced = false, initial?: WorldView) {
   const images: { onload: (() => void) | null }[] = []
   const fills: { colour: string; alpha: number; order: number }[] = []
   const draws: { src: string; order: number; args: number[]; matrix: number[] }[] = []
+  const texts: { text: string; x: number; y: number }[] = []
   const transforms: number[][] = []
   const groundCurves: number[][] = []
+  const gradients: { coordinates: number[]; stops: [number, string][] }[] = []
   let drawOrder = 0
   let createdLayers = 0
   let resizeCallback!: () => void
@@ -40,6 +42,9 @@ function scene(reduced = false, initial?: WorldView) {
       drawImage(image: HTMLImageElement, ...args: number[]) {
         draws.push({ src: image.src ?? '', order: ++drawOrder, args, matrix: [...matrix] })
       },
+      fillText(text: string, x: number, y: number) {
+        texts.push({ text, x, y })
+      },
       transform(...values: number[]) {
         transforms.push(values)
         multiply(values)
@@ -65,7 +70,14 @@ function scene(reduced = false, initial?: WorldView) {
         return key in target
           ? target[key as keyof typeof target]
           : key === 'createLinearGradient' || key === 'createRadialGradient'
-            ? () => ({ addColorStop() {} })
+            ? (...coordinates: number[]) => {
+                const gradient = { coordinates, stops: [] as [number, string][] }
+                gradients.push(gradient)
+                return {
+                  addColorStop: (offset: number, colour: string) =>
+                    gradient.stops.push([offset, colour]),
+                }
+              }
             : vi.fn()
       },
     },
@@ -77,6 +89,9 @@ function scene(reduced = false, initial?: WorldView) {
   vi.stubGlobal('window', {
     devicePixelRatio: 3,
     matchMedia: () => ({ matches: reduced, addEventListener() {}, removeEventListener() {} }),
+    addEventListener: (name: string, callback: EventListener) =>
+      listeners.set('window:' + name, callback),
+    removeEventListener: (name: string) => listeners.delete('window:' + name),
   })
   vi.stubGlobal(
     'Image',
@@ -140,7 +155,8 @@ function scene(reduced = false, initial?: WorldView) {
   const view = initial ?? projectWorld(newWorldState(), [], 1000),
     select = vi.fn(),
     onZoom = vi.fn(),
-    onVisiblePlayers = vi.fn()
+    onVisiblePlayers = vi.fn(),
+    onStop = vi.fn()
   const motion = new WorldMotion(view)
   const renderer = createMapRenderer(
     canvas,
@@ -150,12 +166,15 @@ function scene(reduced = false, initial?: WorldView) {
     vi.fn(),
     onZoom,
     onVisiblePlayers,
+    onStop,
   )!
   return {
     fills,
     draws,
+    texts,
     transforms,
     groundCurves,
+    gradients,
     images,
     resize: () => resizeCallback(),
     view,
@@ -165,6 +184,7 @@ function scene(reduced = false, initial?: WorldView) {
     select,
     onZoom,
     onVisiblePlayers,
+    onStop,
     frames,
     layerCount: () => createdLayers,
     listeners,
@@ -183,6 +203,195 @@ function scene(reduced = false, initial?: WorldView) {
   }
 }
 describe('native map input and bounded lifecycle', () => {
+  it.each([200, 400])(
+    'streams held walking at authored %ims cadence without OS-repeat commands',
+    (stepMs) => {
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'performance'] })
+      const s = scene()
+      const view = { ...s.view, sectors: s.view.sectors.map((sector) => ({ ...sector, stepMs })) }
+      s.renderer.update(view)
+      s.select.mockImplementation((destination) => {
+        const route = localRoute(view, s.motion.sample(performance.now()).position, destination)
+        if (route) s.motion.plan(route, view.sectors, performance.now())
+      })
+      const key = (repeat = false) =>
+        s.listeners.get('keydown')!({ key: 'd', repeat, preventDefault() {} } as unknown as Event)
+      key()
+      for (let i = 0; i < 30; i++) key(true)
+      expect(s.select).toHaveBeenCalledTimes(1)
+      vi.advanceTimersByTime(stepMs - 1)
+      expect(s.select).toHaveBeenCalledTimes(1)
+      vi.advanceTimersByTime(1)
+      expect(s.select).toHaveBeenCalledTimes(2)
+      expect(s.select).toHaveBeenLastCalledWith({ ...view.position, x: view.position.x + 2 })
+      s.listeners.get('keyup')?.({ key: 'd' } as unknown as Event)
+      vi.advanceTimersByTime(1000)
+      expect(s.select).toHaveBeenCalledTimes(2)
+      s.renderer.dispose()
+      vi.useRealTimers()
+      vi.unstubAllGlobals()
+    },
+  )
+  it.each(['keyup', 'blur', 'window:blur', 'hidden', 'dispose'])(
+    'ends a held-key stream on %s and keeps a tap to one step',
+    (release) => {
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'performance'] })
+      const s = scene()
+      s.listeners.get('keydown')!({ key: 'd', preventDefault() {} } as unknown as Event)
+      if (release === 'hidden') s.visibility('hidden')
+      else if (release === 'dispose') s.renderer.dispose()
+      else s.listeners.get(release)?.({ key: 'd' } as unknown as Event)
+      vi.advanceTimersByTime(1000)
+      expect(s.select).toHaveBeenCalledTimes(1)
+      s.renderer.dispose()
+      vi.useRealTimers()
+      vi.unstubAllGlobals()
+    },
+  )
+  it('continues held walking over a known longitude seam at the exit cadence', () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'performance'] })
+    const initial = projectWorld(newWorldState(), [], 1000),
+      sector = initial.sectors[0]!
+    const west = { sectorId: 'west', x: 12, y: 4 },
+      east = { sectorId: 'east', x: 0, y: 4 }
+    const cells = Array.from({ length: 117 }, (_, i) => ({
+      x: i % 13,
+      y: Math.floor(i / 13),
+      terrain: '.',
+      walkable: true,
+      safe: true,
+    }))
+    const view = {
+      ...initial,
+      position: { ...west, x: 11 },
+      sectors: [
+        {
+          ...sector,
+          id: 'west',
+          atlasColumn: 127,
+          atlasRow: 32,
+          charted: true,
+          stepMs: 200,
+          cells,
+          exits: [{ from: west, to: east, durationMs: 400, name: 'Seam' }],
+        },
+        {
+          ...sector,
+          id: 'east',
+          atlasColumn: 0,
+          atlasRow: 32,
+          charted: true,
+          stepMs: 200,
+          cells,
+          exits: [{ from: east, to: west, durationMs: 400, name: 'Seam' }],
+        },
+      ],
+    }
+    const s = scene(true, view)
+    s.select.mockImplementation((destination) => {
+      const route = localRoute(view, s.motion.sample(performance.now()).position, destination)
+      if (route) s.motion.plan(route, view.sectors, performance.now())
+    })
+    s.listeners.get('keydown')!({ key: 'd', preventDefault() {} } as unknown as Event)
+    vi.advanceTimersByTime(200)
+    expect(s.select).toHaveBeenLastCalledWith(east)
+    vi.advanceTimersByTime(399)
+    expect(s.select).toHaveBeenCalledTimes(2)
+    vi.advanceTimersByTime(1)
+    expect(s.select).toHaveBeenLastCalledWith({ ...east, x: 1 })
+    s.renderer.dispose()
+    vi.useRealTimers()
+    vi.unstubAllGlobals()
+  })
+  it('does not submit held-key destinations on water or beyond supplied terrain', () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'performance'] })
+    const s = scene()
+    const view = {
+      ...s.view,
+      sectors: s.view.sectors.map((sector) => ({
+        ...sector,
+        cells: sector.cells.map((cell) =>
+          sector.id === s.view.position.sectorId &&
+          cell.x === s.view.position.x + 2 &&
+          cell.y === s.view.position.y
+            ? { ...cell, terrain: '~', walkable: false }
+            : cell,
+        ),
+      })),
+    }
+    s.renderer.update(view)
+    s.select.mockImplementation((destination) => {
+      const route = localRoute(view, s.motion.sample(performance.now()).position, destination)
+      if (route) s.motion.plan(route, view.sectors, performance.now())
+    })
+    s.listeners.get('keydown')!({ key: 'd', preventDefault() {} } as unknown as Event)
+    vi.advanceTimersByTime(1200)
+    expect(s.select).toHaveBeenCalledExactlyOnceWith({ ...view.position, x: view.position.x + 1 })
+    s.renderer.update({ ...view, sectors: [] })
+    vi.advanceTimersByTime(1200)
+    expect(s.select).toHaveBeenCalledTimes(1)
+    s.renderer.dispose()
+    vi.useRealTimers()
+    vi.unstubAllGlobals()
+  })
+  it('uses Escape on the focused map to stop travel and end held input', () => {
+    const s = scene(),
+      preventDefault = vi.fn()
+    s.listeners.get('keydown')!({ key: 'Escape', preventDefault } as unknown as Event)
+    expect(s.onStop).toHaveBeenCalledOnce()
+    expect(preventDefault).toHaveBeenCalledOnce()
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  })
+  it('keeps all traveller portraits and nameplates above atmospheric dimming and cloud shadows', () => {
+    const s = scene()
+    s.canvas.dataset.portrait = '/self-sharp.png'
+    s.renderer.update({
+      ...s.view,
+      environment: { ...s.view.environment, minuteOfDay: 0, weather: 'overcast' },
+      players: [
+        {
+          characterId: 'other',
+          name: 'Other',
+          level: 1,
+          portraitRef: '',
+          imageUrl: '/other-sharp.png',
+          online: true,
+          attackable: false,
+          position: { ...s.view.position, x: s.view.position.x + 1 },
+        },
+      ],
+    })
+    s.frame(40)
+    const lastCloud = Math.max(
+      ...s.draws.filter((draw) => draw.src === '').map((draw) => draw.order),
+    )
+    for (const src of ['/self-sharp.png', '/other-sharp.png'])
+      expect(s.draws.filter((draw) => draw.src === src).at(-1)!.order).toBeGreaterThan(lastCloud)
+    expect(
+      s.fills
+        .filter((fill) => fill.colour === 'rgba(6,28,35,.92)')
+        .every((fill) => fill.order > lastCloud),
+    ).toBe(true)
+    for (const text of s.texts.filter((text) => text.text === 'You' || text.text === 'Other')) {
+      expect(text.x * 1.5).toBeCloseTo(Math.round(text.x * 1.5))
+      expect(text.y * 1.5).toBeCloseTo(Math.round(text.y * 1.5))
+    }
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  })
+  it('retains the clicked ground tile when the following camera moves before release', () => {
+    const s = scene()
+    s.frame(40)
+    const destination = { sectorId: 'verdant-expanse', x: 8, y: 4 }
+    s.event('pointerdown', 563.2, 384.48)
+    s.motion.plan([{ position: { ...s.view.position, x: 8 }, durationMs: 200 }], s.view.sectors, 40)
+    for (let now = 56; now <= 200; now += 16) s.frame(now)
+    s.event('pointerup', 563.2, 384.48)
+    expect(s.select).toHaveBeenCalledExactlyOnceWith(destination)
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  })
   it('remounts after a longitude crossing in the retained motion frame without a world-wide camera sweep', () => {
     const state = { ...newWorldState(), position: { sectorId: 'atlas:127:32', x: 12, y: 4 } },
       view = projectWorld(state, [], 1000),
@@ -334,6 +543,41 @@ describe('native map input and bounded lifecycle', () => {
     })
     s.frame(80)
     expect(s.layerCount() - layers).toBe(2)
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  })
+  it('feathers loaded biome materials over three tiles and retains the cached result while moving', () => {
+    const s = scene(true)
+    const current = s.view.sectors.find((sector) => sector.id === s.view.position.sectorId)!
+    const cells = current.cells.map((cell) => ({ ...cell, terrain: '.', walkable: true }))
+    const own = { ...current, cells, buildings: [], landmarks: [] }
+    const neighbor = {
+      ...own,
+      id: 'other-biome',
+      atlasColumn: own.atlasColumn! + 1,
+      regionId: 'umbral-march',
+    }
+    s.renderer.update({ ...s.view, sectors: [own] })
+    s.frame(40)
+    const before = s.layerCount()
+    s.renderer.update({ ...s.view, sectors: [own, neighbor] })
+    s.frame(80)
+    const feather = s.gradients.filter((gradient) =>
+      gradient.stops.some((stop) => stop[1] === 'rgba(0,0,0,.5)'),
+    )
+    expect(feather).toHaveLength(2)
+    for (const gradient of feather) {
+      expect(Math.abs(gradient.coordinates[2]! - gradient.coordinates[0]!)).toBe(3 * 64)
+      expect(gradient.stops).toEqual([
+        [0, 'rgba(0,0,0,.5)'],
+        [1, 'rgba(0,0,0,0)'],
+      ])
+    }
+    expect(s.layerCount()).toBeGreaterThan(before)
+    const cached = s.layerCount()
+    s.renderer.update({ ...s.view, sectors: [own, neighbor] })
+    s.frame(1240)
+    expect(s.layerCount()).toBe(cached)
     s.renderer.dispose()
     vi.unstubAllGlobals()
   })
@@ -692,7 +936,7 @@ describe('native map input and bounded lifecycle', () => {
     s.frame(40)
     expect(s.frames.size).toBe(0)
     s.event('pointermove', 400, 300)
-    expect(s.frames.size).toBe(1)
+    expect(s.frames.size).toBe(0)
     s.frame(80)
     expect(s.frames.size).toBe(0)
     s.renderer.dispose()
@@ -715,13 +959,12 @@ describe('native map input and bounded lifecycle', () => {
       const camera = { x: Number(s.canvas.dataset.cameraX), y: Number(s.canvas.dataset.cameraY) }
       const groundX = drawn.args.at(-4)! + 17,
         groundY = drawn.args.at(-3)! + 34
-      // Invert the actual portrait drawing, rather than only checking the motion model.
-      expect(
-        camera.x + ((groundX - 400) / (tile * 0.85) + (groundY - 300) / (tile * 0.44)) / 2,
-      ).toBeCloseTo(point.x, 8)
-      expect(
-        camera.y + ((groundY - 300) / (tile * 0.44) - (groundX - 400) / (tile * 0.85)) / 2,
-      ).toBeCloseTo(point.y, 8)
+      // The motion reaches the exact tile; display anchors quantize by at most
+      // half a physical pixel so the identity does not resample between pixels.
+      expect(s.motion.sample(201).point).toEqual(point)
+      const expectedScreen = projectMapPoint(point, camera, { x: 0, y: 0 }, tile, 800, 600)
+      expect(Math.abs(groundX - expectedScreen.x)).toBeLessThanOrEqual(1 / 3 + 1e-9)
+      expect(Math.abs(groundY - expectedScreen.y)).toBeLessThanOrEqual(1 / 3 + 1e-9)
       for (let now = 217; now <= 1600 && s.frames.size; now += 16) s.frame(now)
       expect(Number(s.canvas.dataset.cameraX)).toBe(point.x)
       expect(Number(s.canvas.dataset.cameraY)).toBe(point.y)

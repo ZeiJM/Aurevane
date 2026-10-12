@@ -38,6 +38,7 @@ const battle = {
   },
 }
 const metadata = {
+  origin: query.get('origin') || 'battle-hall',
   mode: '1v1',
   localCharacterId: 'wayfarer',
   participants: combatants.map((combatant, index) => ({

@@ -5,6 +5,17 @@ import { createWildlife, wildlifePose, type Wildlife } from './map-ambient'
 import { vi } from 'vitest'
 vi.mock('server-only', () => ({}))
 
+it('keeps wildlife sparse across countryside while retaining independently seeded animals', () => {
+  const sector = projectWorld(newWorldState(), [], 1000).sectors[0]!
+  const wildlife = Array.from({ length: 30 }, (_, i) =>
+    createWildlife({ ...sector, id: 'density-' + i, townId: undefined }),
+  )
+  expect(wildlife.every((animals) => animals.length <= 1)).toBe(true)
+  expect(wildlife.flat().some((animal) => animal.flying)).toBe(true)
+  expect(wildlife.flat().some((animal) => !animal.flying)).toBe(true)
+  expect(createWildlife(sector)).toEqual(createWildlife(sector))
+})
+
 it('wanders along legal connected ground with pauses instead of sliding in place', () => {
   const sector = projectWorld(newWorldState(), [], 1000).sectors[0]!
   const wildlife = createWildlife({ ...sector, townId: undefined })

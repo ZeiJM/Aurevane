@@ -709,7 +709,7 @@ for (const journey of [
     await expect(page.getByRole('group', { name: /World globe/ })).toBeHidden()
     const arrival = { sectorId: journey.destinationId, x: 6, y: 4 }
     await stageWalk(page, arrival)
-    await expect(page.getByRole('button', { name: 'Stop travel', exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Stop travel', exact: true })).toHaveCount(0)
     // Steps are fast now, so poll tightly and stop before the walk leaves the road sector.
     await expect
       .poll(async () => (await world(page)).position, { timeout: 12000, intervals: [40] })
@@ -721,13 +721,11 @@ for (const journey of [
         response.request().postDataJSON()?.intent?.kind === 'stop',
       { timeout: 15000 },
     )
-    const stopButton = page.getByRole('button', { name: 'Stop travel', exact: true })
-    await stopButton.click()
+    await page.locator('canvas[data-world-stage]').press('Escape')
     const committedStop = await stopResponse
     expect(committedStop.status()).toBe(200)
     const stopReceipt: WorldView = await committedStop.json()
     expect(stopReceipt.route).toHaveLength(0)
-    await expect(stopButton).toBeHidden()
     const stopped = await world(page)
     expect(stopped.route).toHaveLength(0)
     expect(stopped.position).toEqual(stopReceipt.position)
@@ -1275,7 +1273,7 @@ test('the globe rotates by dragging and has a usable charted fallback without We
   await page.getByLabel('Charted sector', { exact: true }).selectOption('frostmere')
   await page.getByRole('button', { name: 'Travel here', exact: true }).click()
   await expect.poll(async () => (await world(page)).route.length).toBeGreaterThan(0)
-  await page.getByRole('button', { name: 'Stop travel', exact: true }).click()
+  await page.locator('canvas[data-world-stage]').press('Escape')
   await expect.poll(async () => (await world(page)).route.length).toBe(0)
   await capture(page, info, 'fallback-route-return')
 })

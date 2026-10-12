@@ -136,22 +136,51 @@ export class WorldMotion {
       this.origin = visual.point
       this.standing = visual.position
       const first = points[nearest]!
-      const remaining = points.slice(nearest).map((step) => ({ ...step, duration: STEP_MS }))
+      const remaining = points.slice(nearest).map((step) => ({ ...step }))
       if (remaining.length)
         remaining[0]!.duration = Math.max(
           30,
-          Math.hypot(first.point.x - visual.point.x, first.point.y - visual.point.y) * STEP_MS,
+          Math.hypot(first.point.x - visual.point.x, first.point.y - visual.point.y) *
+            first.duration,
         )
       this.route = remaining
     } else {
-      this.origin = authoritative
-      this.standing = view.position
-      this.route = route
-    }
-    if (!view.route.length) {
-      this.origin = authoritative
-      this.standing = view.position
-      this.route = []
+      // Receipts can land after the bounded preview drains, or before the
+      // final visual step finishes. Correct through supplied legal terrain;
+      // do not teleport an ordinary arrival or invent a path across water.
+      const correction = view.sectors.every((sector) => sector.cells && sector.exits)
+        ? localRoute(view, visual.position, view.position)
+        : null
+      if (
+        correction &&
+        (correction.length || positionKey(visual.position) === positionKey(view.position))
+      ) {
+        this.origin = visual.point
+        this.standing = visual.position
+        const correctionPoints = routePoints(correction, view.sectors, visual.point)
+        if (
+          !correctionPoints.length &&
+          Math.hypot(authoritative.x - visual.point.x, authoritative.y - visual.point.y) > 0.001
+        )
+          correctionPoints.push({
+            point: authoritative,
+            position: view.position,
+            duration: STEP_MS,
+          })
+        if (correctionPoints.length) {
+          const first = correctionPoints[0]!
+          first.duration *= Math.hypot(
+            first.point.x - visual.point.x,
+            first.point.y - visual.point.y,
+          )
+        }
+        this.route = [...correctionPoints, ...route]
+      } else {
+        // Unknown/disconnected relocations cannot be safely interpolated.
+        this.origin = authoritative
+        this.standing = view.position
+        this.route = route
+      }
     }
   }
   stop(now: number) {
