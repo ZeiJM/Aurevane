@@ -530,12 +530,14 @@ export function WorldWorkspace({
           </div>
         </aside>
       </div>
-      {message ? (
+      {message || view.movementBlocked ? (
         <div className={styles.errorNotice} role="alert">
-          <span>{message}</span>
-          <button aria-label="Dismiss message" onClick={() => setMessage('')}>
-            ×
-          </button>
+          <span>{message || view.movementBlocked}</span>
+          {message ? (
+            <button aria-label="Dismiss message" onClick={() => setMessage('')}>
+              ×
+            </button>
+          ) : null}
         </div>
       ) : null}
       {settings ? (

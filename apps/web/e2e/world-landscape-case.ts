@@ -1,8 +1,14 @@
+import { createRequire } from 'node:module'
 import { expect, test, type Page, type TestInfo } from '@playwright/test'
 import { atlasSectors, ATLAS_COLUMNS } from '../src/world/atlas'
-import { GRID_WIDTH } from '../src/world/catalog'
+import { GRID_WIDTH, GRID_HEIGHT } from '../src/world/catalog'
 import { atlasNeighbor } from '../src/world/topology'
 import type { WorldView, WorldPosition } from '../src/world/types'
+
+const imageRuntime = createRequire(__filename)
+// Decode native screenshots outside the page; cross-origin public portraits
+// intentionally make page getImageData unavailable. Next already provides Sharp.
+const sharp = imageRuntime(imageRuntime.resolve('sharp', { paths: [imageRuntime.resolve('next')] }))
 
 interface Helpers {
   enter: (page: Page) => Promise<string>
@@ -176,28 +182,31 @@ export function registerWorldLandscapeCases(helpers: Helpers) {
     await page.getByRole('button', { name: 'Done', exact: true }).click()
     const canvas = page.locator('canvas[data-world-stage]')
     await expect(canvas).toHaveAttribute('data-clouds', '0')
-    const colours = await canvas.evaluate((element) => {
-      const canvas = element as HTMLCanvasElement,
-        context = canvas.getContext('2d')!,
-        cameraX = Number(element.dataset.cameraX),
-        cameraY = Number(element.dataset.cameraY),
-        tile = Number(element.dataset.tileSize),
-        ratio = canvas.width / canvas.clientWidth
-      return [
-        [-0.07, -0.07],
-        [0.07, -0.07],
-        [-0.07, 0.07],
-        [0.07, 0.07],
-      ].map(([dx, dy]) => {
-        const x = 59 * 13 + dx! - cameraX,
-          y = 29 * 9 + dy! - cameraY,
-          screenX = canvas.clientWidth / 2 + (x - y) * tile * 0.85,
-          screenY = canvas.clientHeight / 2 + (x + y) * tile * 0.44
-        return [
-          ...context.getImageData(Math.round(screenX * ratio), Math.round(screenY * ratio), 1, 1)
-            .data,
-        ].slice(0, 3)
-      })
+    const projection = await canvas.evaluate((element) => ({
+      cameraX: Number(element.dataset.cameraX),
+      cameraY: Number(element.dataset.cameraY),
+      tile: Number(element.dataset.tileSize),
+      width: element.clientWidth,
+      height: element.clientHeight,
+    }))
+    const { data, info: raster } = await sharp(await canvas.screenshot())
+      .ensureAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true })
+    const colours = [
+      [-0.07, -0.07],
+      [0.07, -0.07],
+      [-0.07, 0.07],
+      [0.07, 0.07],
+    ].map(([dx, dy]) => {
+      const x = 59 * GRID_WIDTH + dx! - projection.cameraX,
+        y = 29 * GRID_HEIGHT + dy! - projection.cameraY,
+        screenX = projection.width / 2 + (x - y) * projection.tile * 0.85,
+        screenY = projection.height / 2 + (x + y) * projection.tile * 0.44,
+        pixelX = Math.round((screenX * raster.width) / projection.width),
+        pixelY = Math.round((screenY * raster.height) / projection.height),
+        offset = (pixelY * raster.width + pixelX) * raster.channels
+      return [...data.subarray(offset, offset + 3)] as number[]
     })
     for (let channel = 0; channel < 3; channel++) {
       const samples = colours.map((colour) => colour[channel]!)

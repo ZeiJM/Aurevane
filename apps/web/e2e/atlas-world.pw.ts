@@ -496,7 +496,9 @@ test('expired training releases travel without claiming XP and frontier discover
   await page.getByRole('button', { name: 'Start Training', exact: true }).click()
   await expect(page.getByTestId('passive-training-active')).toBeVisible()
   await page.goto('/game/world')
-  await expect(page.getByRole('status')).toContainText('Stop Passive Training')
+  await expect(page.locator('[data-world-workspace]').getByRole('alert')).toContainText(
+    'Stop Passive Training',
+  )
   sql(
     `update app_private.wayfarers_practice_state set plan_set_at=clock_timestamp()-interval '9 hours' where character_id='${initial.characterId}'::uuid`,
   )

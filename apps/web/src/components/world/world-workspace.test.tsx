@@ -10,6 +10,27 @@ import { newWorldState } from '@/world/travel'
 import { WorldWorkspace } from './world-workspace'
 
 describe('World page', () => {
+  it('shows persistent training blocking in an alert and clears it with authoritative release', () => {
+    const view = projectWorld(newWorldState(), [], 1000)
+    const render = () =>
+      renderToStaticMarkup(
+        createElement(WorldWorkspace, {
+          initialView: view,
+          character: { name: 'Traveller', portrait: '/portrait.webp' },
+        }),
+      )
+    view.movementBlocked = 'Stop Passive Training to travel.'
+    const blocked = render()
+    expect(blocked).toContain('role="alert"')
+    expect(blocked).toContain('Stop Passive Training to travel.')
+    expect(blocked).not.toContain('Dismiss message')
+    expect(blocked).not.toContain('data-world-travel-status')
+    expect(blocked).not.toContain('Stop travel')
+    view.movementBlocked = null
+    const released = render()
+    expect(released).not.toContain('role="alert"')
+    expect(released).not.toContain('Stop Passive Training to travel.')
+  })
   it('renders the native map with contextual panel and location navigation', () => {
     const view = projectWorld(newWorldState(), [], 1000)
     view.sectors = view.sectors.map((sector) => ({ ...sector, panorama: '/panorama.webp' }))

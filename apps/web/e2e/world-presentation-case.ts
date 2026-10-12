@@ -196,6 +196,9 @@ export function registerWorldInputCases({
     const slider = page.getByRole('slider', { name: 'Zoom level', exact: true })
     await slider.press('Home')
     await expect(slider).toHaveValue('60')
+    await page.getByRole('checkbox', { name: 'Ambient animation', exact: true }).uncheck()
+    await expect(canvas).toHaveAttribute('data-tile-size', String(64 * 0.6))
+    const beforeZoom = await canvas.screenshot()
     for (let i = 0; i < 5; i++) await slider.press('ArrowRight')
     await expect(slider).toHaveValue('70')
     await expect(page.getByRole('button', { name: 'Zoom in', exact: true })).toHaveCount(0)
@@ -204,14 +207,8 @@ export function registerWorldInputCases({
     await expect
       .poll(async () => Number(await canvas.getAttribute('data-tile-size')))
       .toBeCloseTo(64 * 0.7)
-    const pixels = await canvas.evaluate((element) => {
-      const canvas = element as HTMLCanvasElement
-      const pixel = canvas
-        .getContext('2d')!
-        .getImageData(Math.floor(canvas.width / 2), Math.floor(canvas.height / 2), 1, 1).data
-      return pixel[0]! + pixel[1]! + pixel[2]!
-    })
-    expect(pixels).toBeGreaterThan(0)
+    // Browser screenshots remain readable when public avatars taint the canvas.
+    expect((await canvas.screenshot()).equals(beforeZoom)).toBe(false)
     await page.getByRole('button', { name: 'Zoom lock Off', exact: true }).click()
     await capture(page, info, 'restored-map-settings')
     await page.getByRole('button', { name: 'Done', exact: true }).click()

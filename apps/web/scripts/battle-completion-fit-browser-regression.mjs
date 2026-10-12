@@ -245,7 +245,10 @@ try {
         })
         assert.equal(await returnButton.count(), 1)
         if (scenario.mode === 'pvp') {
-          assert.match(summaryText, scenario.origin === 'world' ? /World Encounter/ : /Battle Hall/)
+          assert.match(
+            summaryText,
+            scenario.origin === 'world' ? /World Encounter/i : /Battle Hall/i,
+          )
           assert.match(
             summaryText,
             scenario.origin === 'world' ? /return to the world/ : /return to the hall/,
