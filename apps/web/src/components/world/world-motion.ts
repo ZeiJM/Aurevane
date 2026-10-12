@@ -31,7 +31,8 @@ function routePoints(
     return { point, position: step.position, duration: step.durationMs }
   })
 }
-export function localRoute(view: WorldView, from: WorldPosition, to: WorldPosition) {
+/** Prepare supplied navigation once for a batch of observed travellers. */
+export function prepareLocalRoute(view: Pick<WorldView, 'sectors'>) {
   const sectors = view.sectors.map((sector) => ({
     ...sector,
     rows: Array.from({ length: GRID_HEIGHT }, (_, y) =>
@@ -47,7 +48,11 @@ export function localRoute(view: WorldView, from: WorldPosition, to: WorldPositi
       sector.cells.map((cell) => positionKey({ sectorId: sector.id, ...cell })),
     ),
   )
-  return findWorldRoute(from, to, sectors, (position) => known.has(positionKey(position)))
+  return (from: WorldPosition, to: WorldPosition) =>
+    findWorldRoute(from, to, sectors, (position) => known.has(positionKey(position)))
+}
+export function localRoute(view: WorldView, from: WorldPosition, to: WorldPosition) {
+  return prepareLocalRoute(view)(from, to)
 }
 function loadedRoute(
   route: readonly TravelStep[],
@@ -103,6 +108,17 @@ export class WorldMotion {
     this.standing = sample.position
     this.startedAt = now
     this.route = routePoints(loadedRoute(route, sectors, 600), sectors, sample.point)
+    const first = this.route[0]
+    if (first) {
+      const standing = mapPoint(sample.position, sectors, sample.point),
+        distance = Math.hypot(first.point.x - sample.point.x, first.point.y - sample.point.y),
+        wholeStep = Math.hypot(first.point.x - standing.x, first.point.y - standing.y)
+      // Repeated clicks/held input must keep the same walking speed. A half-
+      // finished step needs half its authored time, rather than a new full step.
+      first.duration = wholeStep ? (first.duration * distance) / wholeStep : STEP_MS * distance
+      let elapsed = 0
+      this.route = this.route.filter((step) => (elapsed += step.duration) <= 600)
+    }
   }
   reconcile(view: WorldView, now: number) {
     const visual = this.sample(now),

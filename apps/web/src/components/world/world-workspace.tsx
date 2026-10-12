@@ -6,6 +6,7 @@ import { WORLD_LAND_NAME } from '@/world/atlas'
 import { WORLD_REGIONS } from '@/world/catalog'
 import { precipitationKind } from './map-weather'
 import { remainingTravelMs, worldSyncDelayMs } from '@/world/travel'
+import { mergeWorldRefresh, worldRefreshUrl } from '@/world/presence'
 import type { WorldIntent, WorldPosition, WorldView } from '@/world/types'
 import { WorldConflict, WorldController } from './world-controller'
 import { localRoute, mapPoint, WorldMotion } from './world-motion'
@@ -91,7 +92,11 @@ export function WorldWorkspace({
   const changeZoom = (value: number) =>
     (mode === 'global' ? setGlobeZoom : setZoom)(Math.max(0.6, Math.min(1.4, value)))
   const controller = useRef<WorldController | null>(null),
-    acceptedAt = useRef(0)
+    acceptedAt = useRef(0),
+    localViewActive = useRef(true)
+  useEffect(() => {
+    localViewActive.current = mode === 'local'
+  }, [mode])
   useEffect(() => {
     acceptedAt.current = Date.now()
     motion.reconcile(initialView, performance.now())
@@ -112,7 +117,7 @@ export function WorldWorkspace({
       setView(next)
       schedule()
     }
-    const instance = new WorldController(initialView, {
+    const instance: WorldController = new WorldController(initialView, {
       command: async (intent, current) => {
         const response = await fetch('/api/world', {
           method: 'POST',
@@ -130,11 +135,12 @@ export function WorldWorkspace({
         return body as WorldView
       },
       refresh: async () => {
-        const response = await fetch('/api/world', { cache: 'no-store' }),
+        const previous = instance.view
+        const response = await fetch(worldRefreshUrl(previous), { cache: 'no-store' }),
           body = await response.json()
         if (!response.ok)
           throw new Error(body.error?.message ?? 'The world could not be refreshed.')
-        return body as WorldView
+        return mergeWorldRefresh(previous, body)
       },
       accept,
       error: (text) => {
@@ -156,6 +162,8 @@ export function WorldWorkspace({
         nextStepAt: current.nextStepAt,
         serverNow: now,
         remainingMs: remainingTravelMs(current, now),
+        observePlayers: localViewActive.current,
+        onlinePlayers: current.players.filter((player) => player.online !== false).length,
       })
       timer = window.setTimeout(
         async () => {

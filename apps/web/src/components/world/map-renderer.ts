@@ -9,7 +9,8 @@ import type {
   WorldView,
 } from '@/world/types'
 import { sectorMapOrigin, wrappedMapX, WORLD_MAP_WIDTH } from '@/world/topology'
-import { mapPoint, type MapPoint, WorldMotion } from './world-motion'
+import { type MapPoint, WorldMotion } from './world-motion'
+import { WorldPlayerMotion } from './map-player-motion'
 import { samePosition } from '@/world/travel'
 import {
   createCloudTexture,
@@ -248,6 +249,7 @@ export function createMapRenderer(
     drawn = 0,
     dirty = true,
     wasMoving = false,
+    wasRemoteMoving = false,
     visiblePlayerKey: string | null = null
   const pan = { x: 0, y: 0 }
   const heldKeys = new Map<string, MapPoint>()
@@ -258,6 +260,7 @@ export function createMapRenderer(
     keyTimer = null
   }
   let camera = motion.sample(performance.now()).point
+  const remoteMotion = new WorldPlayerMotion(initial, performance.now(), camera)
   let animate = true,
     zoomLocked = false,
     paused = false,
@@ -595,7 +598,9 @@ export function createMapRenderer(
       camera = sample.point
     const visibleIds = view.players
       .filter((player) => {
-        const p = screen(mapPoint(player.position, view.sectors, camera))
+        const point = remoteMotion.sample(player.characterId, now, camera)
+        if (!point) return false
+        const p = screen(point)
         return p.x > -21 && p.x < width + 21 && p.y > -4 && p.y < height + 38
       })
       .map((player) => player.characterId)
@@ -872,8 +877,9 @@ export function createMapRenderer(
       }
     >()
     for (const player of view.players) {
-      const point = mapPoint(player.position, view.sectors, camera),
-        key = `${point.x}:${point.y}`,
+      const point = remoteMotion.sample(player.characterId, now, camera)
+      if (!point) continue
+      const key = `${point.x}:${point.y}`,
         stack = stacks.get(key) ?? { point, people: [] }
       stack.people.push({
         id: player.characterId,
@@ -1252,16 +1258,29 @@ export function createMapRenderer(
     frame = 0
     if (disposed || paused || document.visibilityState !== 'visible') return
     const sample = motion.sample(now),
+      remoteMoving = remoteMotion.moving(now),
       settling = sample.point.x !== camera.x || sample.point.y !== camera.y,
-      interval = sample.moving || settling ? 1000 / 60 : animate && !reduced ? 1000 / 30 : 250
+      interval =
+        sample.moving || remoteMoving || settling
+          ? 1000 / 60
+          : animate && !reduced
+            ? 1000 / 30
+            : 250
     // Finishing motion must paint its endpoint before switching to the idle cadence.
-    if (dirty || (wasMoving && !sample.moving) || now - last >= interval - 1) {
+    if (
+      dirty ||
+      (wasMoving && !sample.moving) ||
+      (wasRemoteMoving && !remoteMoving) ||
+      now - last >= interval - 1
+    ) {
       draw(now)
       dirty = false
     }
     wasMoving = sample.moving
+    wasRemoteMoving = remoteMoving
     if (
       sample.moving ||
+      remoteMoving ||
       sample.point.x !== camera.x ||
       sample.point.y !== camera.y ||
       (animate && !reduced)
@@ -1437,8 +1456,10 @@ export function createMapRenderer(
   media.addEventListener('change', onReduced)
   return {
     update(next: WorldView) {
+      const terrainChanged = next.sectors !== view.sectors || next.atlas !== view.atlas
       view = next
-      indexTerrain()
+      remoteMotion.update(next, performance.now(), camera)
+      if (terrainChanged) indexTerrain()
       requestDraw()
     },
     settings(value: { animate: boolean; zoom: number; paused?: boolean; zoomLocked?: boolean }) {
@@ -1458,6 +1479,7 @@ export function createMapRenderer(
     },
     dispose() {
       disposed = true
+      remoteMotion.dispose()
       releaseHeldKeys()
       cancelAnimationFrame(frame)
       observer.disconnect()

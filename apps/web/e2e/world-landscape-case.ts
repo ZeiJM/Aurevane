@@ -148,9 +148,11 @@ export function registerWorldLandscapeCases(helpers: Helpers) {
       ['59:29', 'glasswind-desert'],
     ])
     let receipts = 0
-    await page.route('**/api/world', async (route) => {
+    await page.route('**/api/world*', async (route) => {
       if (route.request().method() !== 'GET') return route.continue()
-      const response = await route.fetch(),
+      const response = await route.fetch({
+          url: new URL('/api/world', route.request().url()).href,
+        }),
         body = (await response.json()) as WorldView
       const sectors = body.sectors
         .filter((sector) => regions.has(`${sector.atlasColumn}:${sector.atlasRow}`))
@@ -280,7 +282,7 @@ export function registerWorldLandscapeCases(helpers: Helpers) {
     let weatherReceipts = 0
     // The disposable visual fixture alters weather only; positions/terrain and
     // every command continue through real auth, the database and World authority.
-    await page.route('**/api/world', async (route) => {
+    await page.route('**/api/world*', async (route) => {
       if (route.request().method() !== 'GET') return route.continue()
       const response = await route.fetch(),
         body = await response.json()

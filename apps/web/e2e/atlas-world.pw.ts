@@ -1135,7 +1135,7 @@ test('a synthetic population of 100 has bounded rendering at high DPI and lower 
       y: ground[Math.floor(i / 3) % ground.length]!.y,
     },
   }))
-  await page.route('**/api/world', async (route) => {
+  await page.route('**/api/world*', async (route) => {
     if (route.request().method() !== 'GET') return route.continue()
     const response = await route.fetch(),
       body = await response.json()
@@ -1360,5 +1360,12 @@ test('known neighbouring players follow the visible viewport with service-only p
   page,
   browser,
 }, info) => {
-  await verifyWorldScenePresence(page, browser, info, { enter, world, place, sql, capture })
+  await verifyWorldScenePresence(page, browser, info, {
+    enter,
+    world,
+    place,
+    sql,
+    capture,
+    stageWalk,
+  })
 })

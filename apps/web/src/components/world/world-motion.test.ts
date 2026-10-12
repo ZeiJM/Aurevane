@@ -19,6 +19,32 @@ const sectors = [
 const view = { position, sectors, route: [] } as unknown as WorldView
 const route = [2, 3, 4].map((x) => ({ position: { ...position, x }, durationMs: 200 }))
 describe('world visual motion', () => {
+  it('preserves the authored arrival deadline when a forward preview is replanned mid-step', () => {
+    const motion = new WorldMotion(view)
+    motion.plan(route, view.sectors, 0)
+    const before = motion.sample(100).point
+    motion.plan(route, view.sectors, 100)
+    expect(motion.sample(100).point).toEqual(before)
+    expect(motion.sample(150).point.x).toBeCloseTo(2.25)
+    expect(motion.sample(200).point.x).toBeCloseTo(2.5)
+    expect(motion.sample(400).point.x).toBeCloseTo(3.5)
+  })
+  it('keeps slow authored pace through repeated plans and delayed forward receipts', () => {
+    const motion = new WorldMotion(view)
+    const slow = [2, 3].map((x) => ({ position: { ...position, x }, durationMs: 400 }))
+    motion.plan(slow, view.sectors, 0)
+    motion.plan(slow, view.sectors, 100)
+    expect(motion.sample(400).point.x).toBeCloseTo(2.5)
+    motion.reconcile({ ...view, route: slow }, 250)
+    let previous = motion.sample(250).point.x
+    for (let now = 266; now <= 800; now += 16) {
+      const point = motion.sample(now).point.x
+      expect(point - previous).toBeGreaterThanOrEqual(0)
+      expect(point - previous).toBeLessThanOrEqual(16 / 400 + 0.0001)
+      previous = point
+    }
+    expect(motion.sample(800).point.x).toBeCloseTo(3.5)
+  })
   it('settles a final authoritative arrival without jumping from a slower preview', () => {
     const motion = new WorldMotion(view)
     motion.plan(route, view.sectors, 0)

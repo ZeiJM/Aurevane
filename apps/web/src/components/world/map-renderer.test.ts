@@ -6,6 +6,7 @@ import { localRoute, mapPoint, WorldMotion } from './world-motion'
 import { createMapRenderer } from './map-renderer'
 import { projectMapPoint } from './map-projection'
 import type { WorldView } from '@/world/types'
+import * as biomes from './map-biome-transitions'
 
 function scene(reduced = false, initial?: WorldView) {
   const images: { onload: (() => void) | null }[] = []
@@ -209,6 +210,64 @@ function scene(reduced = false, initial?: WorldView) {
   }
 }
 describe('native map input and bounded lifecycle', () => {
+  it('retains indexed terrain for compact presence receipts and rebuilds for full terrain or atlas changes', () => {
+    const build = vi.spyOn(biomes, 'buildBiomeTransitions')
+    const s = scene(true),
+      initialCalls = build.mock.calls.length
+    s.renderer.update({ ...s.view, players: [] })
+    expect(build).toHaveBeenCalledTimes(initialCalls)
+    s.renderer.update({ ...s.view, sectors: [...s.view.sectors] })
+    expect(build).toHaveBeenCalledTimes(initialCalls + 1)
+    s.renderer.update({ ...s.view, sectors: [...s.view.sectors], atlas: [...(s.view.atlas ?? [])] })
+    expect(build).toHaveBeenCalledTimes(initialCalls + 2)
+    s.renderer.dispose()
+    build.mockRestore()
+    vi.unstubAllGlobals()
+  })
+  it.each(['effects off', 'reduced motion'])(
+    'interpolates a confirmed remote traveller at 60fps with %s and paints the terminal frame',
+    (mode) => {
+      vi.useFakeTimers({ toFake: ['performance'] })
+      const base = projectWorld(newWorldState(), [], 1000)
+      const player = {
+        characterId: 'remote',
+        name: 'Remote',
+        level: 1,
+        portraitRef: '',
+        imageUrl: '/remote-moving.png',
+        online: true,
+        attackable: false,
+        position: { ...base.position, x: base.position.x + 1 },
+      }
+      const s = scene(mode === 'reduced motion', { ...base, players: [player] })
+      if (mode === 'effects off') s.renderer.settings({ animate: false, zoom: 1 })
+      s.frame(0)
+      const anchor = () =>
+        s.draws
+          .filter((draw) => draw.src === '/remote-moving.png')
+          .at(-1)!
+          .args.at(-4)! + 17
+      const before = anchor()
+      s.renderer.update({
+        ...base,
+        players: [{ ...player, position: { ...player.position, x: player.position.x + 2 } }],
+      })
+      s.frame(0)
+      expect(anchor()).toBe(before)
+      expect(s.frames.size).toBe(1)
+      s.frame(17)
+      expect(anchor()).toBeGreaterThan(before)
+      expect(anchor() - before).toBeLessThan(6)
+      expect(s.frames.size).toBe(1)
+      for (let now = 34; now <= 391; now += 17) s.frame(now)
+      s.frame(401)
+      expect(anchor() - before).toBeCloseTo(2 * 64 * 0.85, 0)
+      expect(s.frames.size).toBe(0)
+      s.renderer.dispose()
+      vi.useRealTimers()
+      vi.unstubAllGlobals()
+    },
+  )
   it.each([200, 400])(
     'streams held walking at authored %ims cadence without OS-repeat commands',
     (stepMs) => {
