@@ -1,17 +1,35 @@
 import { GRID_HEIGHT, GRID_WIDTH, STEP_MS } from '@/world/catalog'
 import { findWorldRoute, positionKey } from '@/world/travel'
 import type { TravelStep, WorldPosition, WorldSectorView, WorldView } from '@/world/types'
+import { sectorMapOrigin } from '@/world/topology'
 
 export interface MapPoint {
   x: number
   y: number
 }
-export function mapPoint(position: WorldPosition, sectors: readonly WorldSectorView[]): MapPoint {
+export function mapPoint(
+  position: WorldPosition,
+  sectors: readonly WorldSectorView[],
+  reference?: MapPoint,
+): MapPoint {
   const sector = sectors.find((s) => s.id === position.sectorId)
+  const origin = sector ? sectorMapOrigin(sector, reference?.x) : { x: 0, y: 0 }
   return {
-    x: (sector?.atlasColumn ?? 0) * GRID_WIDTH + position.x + 0.5,
-    y: (sector?.atlasRow ?? 0) * GRID_HEIGHT + position.y + 0.5,
+    x: origin.x + position.x + 0.5,
+    y: origin.y + position.y + 0.5,
   }
+}
+function routePoints(
+  route: readonly TravelStep[],
+  sectors: readonly WorldSectorView[],
+  origin: MapPoint,
+) {
+  let previous = origin
+  return route.map((step) => {
+    const point = mapPoint(step.position, sectors, previous)
+    previous = point
+    return { point, position: step.position, duration: step.durationMs }
+  })
 }
 export function localRoute(view: WorldView, from: WorldPosition, to: WorldPosition) {
   const sectors = view.sectors.map((sector) => ({
@@ -84,20 +102,12 @@ export class WorldMotion {
     this.origin = sample.point
     this.standing = sample.position
     this.startedAt = now
-    this.route = loadedRoute(route, sectors, 600).map((step) => ({
-      point: mapPoint(step.position, sectors),
-      position: step.position,
-      duration: step.durationMs,
-    }))
+    this.route = routePoints(loadedRoute(route, sectors, 600), sectors, sample.point)
   }
   reconcile(view: WorldView, now: number) {
     const visual = this.sample(now),
-      authoritative = mapPoint(view.position, view.sectors)
-    const route = loadedRoute(view.route, view.sectors).map((step) => ({
-      point: mapPoint(step.position, view.sectors),
-      position: step.position,
-      duration: step.durationMs,
-    }))
+      authoritative = mapPoint(view.position, view.sectors, visual.point)
+    const route = routePoints(loadedRoute(view.route, view.sectors), view.sectors, authoritative)
     // Find the visual point on the confirmed forward path. Late confirmations must not
     // rewind an already interpolated step, including at sector boundaries.
     const points = [{ point: authoritative, position: view.position, duration: 0 }, ...route]

@@ -1,6 +1,6 @@
 import 'server-only'
 import { AurevaneError } from '@aurevane/game-core/errors'
-import { FRONTIER_APPROACH, STEP_MS } from '@/world/catalog'
+import { FRONTIER_APPROACH, GRID_HEIGHT, GRID_WIDTH, STEP_MS } from '@/world/catalog'
 import { resolveWorldEnvironment, type WorldEnvironment } from '@/world/environment'
 import {
   advanceWorldRoute,
@@ -31,6 +31,7 @@ import {
 } from './world-content'
 import { worldArchiveEntries } from './world-archive'
 import { atlasAddress } from '@/world/atlas'
+import { wrappedColumnDistance, wrappedMapX } from '@/world/topology'
 import {
   advanceWorldObjectiveProgress,
   effectiveWorldObjectives,
@@ -43,6 +44,23 @@ const invalid = (message: string): never => {
   throw new AurevaneError('INVALID_REQUEST', message)
 }
 const isKnown = isKnownCell
+// Public sector terrain is immutable. Avoid scanning every charted cell on each
+// 200ms walking confirmation just to build the small globe water overlay.
+const atlasSurfaceCache = new WeakMap<object, { townId?: string; waterTiles?: string }>()
+function publicAtlasSurface(sector: ReturnType<typeof visibleSectors>[number]) {
+  if (!sector.charted) return {}
+  let surface = atlasSurfaceCache.get(sector)
+  if (!surface) {
+    surface = {
+      ...(sector.townId ? { townId: sector.townId } : {}),
+      ...(sector.rows.some((row) => /[~l]/.test(row))
+        ? { waterTiles: sector.rows.join('').replace(/[^~l]/g, '.') }
+        : {}),
+    }
+    atlasSurfaceCache.set(sector, surface)
+  }
+  return surface
+}
 export function resolveWorldIntent(
   state: WorldState,
   intent: Exclude<WorldIntent, { kind: 'attack' }>,
@@ -158,6 +176,31 @@ export function resolveWorldIntent(
     completedObjectives: [...completed],
   }
 }
+export function projectWorldPlayers(
+  state: WorldState,
+  players: readonly WorldPlayer[],
+  sceneSectorIds: readonly string[],
+): WorldPlayer[] {
+  const ids = new Set(sceneSectorIds)
+  const sector = resolveSector(state.position.sectorId)!
+  return players
+    .filter((player) => ids.has(player.position.sectorId) && isKnown(state, player.position))
+    .map((player) => {
+      const distance =
+        Math.abs(player.position.x - state.position.x) +
+        Math.abs(player.position.y - state.position.y)
+      return {
+        ...player,
+        attackable:
+          player.attackable &&
+          player.position.sectorId === state.position.sectorId &&
+          distance <= 1 &&
+          !isSafe(sector, state.position) &&
+          !isSafe(sector, player.position),
+      }
+    })
+}
+
 export function projectWorld(
   state: WorldState,
   players: readonly WorldPlayer[],
@@ -185,8 +228,8 @@ export function projectWorld(
         sector.charted === currentSector.charted &&
         address &&
         currentAddress &&
-        Math.abs(address.column - currentAddress.column) <= 2 &&
-        Math.abs(address.row - currentAddress.row) <= 2,
+        wrappedColumnDistance(address.column, currentAddress.column) <= (sector.charted ? 4 : 2) &&
+        Math.abs(address.row - currentAddress.row) <= (sector.charted ? 4 : 2),
       )
     })
     .sort((a, b) => {
@@ -198,7 +241,24 @@ export function projectWorld(
             : exitIds.has(sector.id)
               ? 2
               : 3
-      return priority(a) - priority(b)
+      const sceneDistance = (sector: typeof a) => {
+        const address = atlasAddress(sector)
+        if (!address || !currentAddress) return Infinity
+        const currentX = currentAddress.column * GRID_WIDTH
+        const dx =
+          wrappedMapX(address.column * GRID_WIDTH, currentX) -
+          currentX +
+          GRID_WIDTH / 2 -
+          state.position.x -
+          0.5
+        const dy =
+          (address.row - currentAddress.row) * GRID_HEIGHT +
+          GRID_HEIGHT / 2 -
+          state.position.y -
+          0.5
+        return (((dx - dy) * 0.85) / 1.4) ** 2 + ((dx + dy) * 0.44) ** 2
+      }
+      return priority(a) - priority(b) || sceneDistance(a) - sceneDistance(b)
     })
     .slice(0, 25)
   const sectors = sceneSectors.map((sector) => {
@@ -223,27 +283,11 @@ export function projectWorld(
       exits: roads.filter((road) => isKnown(state, road.from) && isKnown(state, road.to)),
     }
   })
-  const visiblePlayers = players
-    .filter(
-      (p) =>
-        sceneSectors.some((sector) => sector.id === p.position.sectorId) &&
-        isKnown(state, p.position),
-    )
-    .map((player) => {
-      const sector = resolveSector(state.position.sectorId)!
-      const distance =
-        Math.abs(player.position.x - state.position.x) +
-        Math.abs(player.position.y - state.position.y)
-      return {
-        ...player,
-        attackable:
-          player.attackable &&
-          player.position.sectorId === state.position.sectorId &&
-          distance <= 1 &&
-          !isSafe(sector, state.position) &&
-          !isSafe(sector, player.position),
-      }
-    })
+  const visiblePlayers = projectWorldPlayers(
+    state,
+    players,
+    sceneSectors.map((sector) => sector.id),
+  )
   const effectiveObjectives = effectiveWorldObjectives(state, objectives)
   const discoveredAnchorIds = new Set(state.discoveredAnchors ?? [])
   const anchors = WORLD_SECTORS.flatMap((sector) =>
@@ -276,6 +320,7 @@ export function projectWorld(
               regionId: sector.regionId,
               ...address,
               charted: sector.charted,
+              ...publicAtlasSurface(sector),
             },
           ]
         : []

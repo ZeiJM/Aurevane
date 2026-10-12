@@ -3,13 +3,14 @@ import { createHash } from 'node:crypto'
 import { AurevaneError } from '@aurevane/game-core/errors'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { loadPublicCharacterProfileImageMap } from '@/server/character/character-profile-display-service'
+import { resolvePublicCharacterImageUrl } from '@/media/public-character-portrait'
 import { isSafe, newWorldState } from '@/world/travel'
 import type { WorldCommand, WorldPlayer, WorldState } from '@/world/types'
 import { eventWorldObjectives } from './world-events'
 import { WORLD_OBJECTIVES, resolveSector } from './world-content'
 import { resolveWorldEnvironment } from '@/world/environment'
 import { readWorldEnvironmentSettings } from './world-environment-store'
-import { projectWorld, resolveWorldIntent } from './world-service'
+import { projectWorld, projectWorldPlayers, resolveWorldIntent } from './world-service'
 
 export function worldRpcError(error: { message?: string }): never {
   const message = error.message ?? ''
@@ -118,21 +119,45 @@ export async function readWorld(userId: string, characterId: string) {
   const data = await readWorldData(userId, characterId)
   const objectives = [...WORLD_OBJECTIVES, ...eventWorldObjectives(data.eventObjectives)]
   const state = data.state as WorldState
-  const players = data.players as WorldPlayer[]
-  const [profileImages, environmentSettings] = await Promise.all([
-    cachedProfileImages(players.map((player) => player.characterId)),
+  // Build the expensive terrain projection once. Only its server-derived scene IDs
+  // can widen presence; unsurveyed cells are filtered before images or serialization.
+  const view = projectWorld(state, [], data.serverNow, objectives)
+  const sceneSectorIds = view.sectors.map((sector) => sector.id)
+  const [presence, environmentSettings] = await Promise.all([
+    createSupabaseAdminClient().rpc('read_world_scene_players_v1', {
+      p_user_id: userId,
+      p_character_id: characterId,
+      p_expected_version: state.version,
+      p_scene_sector_ids: sceneSectorIds,
+      p_initial_position: newWorldState().position,
+    }),
     cachedEnvironmentSettings(),
   ])
-  const view = projectWorld(
-    state,
-    players.map((player) => ({
-      ...player,
-      imageUrl: profileImages.get(player.characterId) ?? null,
-    })),
-    data.serverNow,
-    objectives,
-    resolveWorldEnvironment(data.serverNow, environmentSettings),
+  if (presence.error) worldRpcError(presence.error)
+  const scene = presence.data
+  if (
+    !scene ||
+    !Number.isSafeInteger(scene.version) ||
+    !Array.isArray(scene.players) ||
+    scene.players.length > 200
   )
+    throw new AurevaneError('PERSISTENCE_UNAVAILABLE', 'World presence could not be loaded.')
+  // A concurrent command can move the owner between these two reads. Retain the
+  // original matching snapshot rather than attaching the newer scene to old terrain.
+  const players = projectWorldPlayers(
+    state,
+    scene.version === state.version ? scene.players : data.players,
+    sceneSectorIds,
+  )
+  const profileImages = await cachedProfileImages(players.map((player) => player.characterId))
+  view.players = players.map((player) => ({
+    ...player,
+    imageUrl: resolvePublicCharacterImageUrl(
+      profileImages.get(player.characterId),
+      player.portraitRef,
+    ),
+  }))
+  view.environment = resolveWorldEnvironment(data.serverNow, environmentSettings)
   view.characterId = characterId
   view.battleSessionId = typeof data.battleSessionId === 'string' ? data.battleSessionId : null
   view.movementBlocked =

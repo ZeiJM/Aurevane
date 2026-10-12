@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { WORLD_REGIONS, CHARTED_SECTORS, TRAIL_SECTORS, START_POSITION, STEP_MS } from './catalog'
+import type { WorldSector } from './types'
 import {
   advanceWorldRoute,
   canAutoPath,
@@ -13,6 +14,34 @@ import {
 
 const WORLD = [...CHARTED_SECTORS, ...TRAIL_SECTORS]
 describe('world travel', () => {
+  it('keeps the wrapped heuristic admissible for historical cells faster than the current ordinary pace', () => {
+    const rows = Array.from({ length: 9 }, (_, y) =>
+      y === 3 || y === 4 ? '.'.repeat(13) : '#'.repeat(13),
+    )
+    const west: WorldSector = {
+      ...WORLD[0]!,
+      id: 'west',
+      atlasColumn: 127,
+      atlasRow: 32,
+      rows,
+      stepMs: 50,
+      roads: [],
+    }
+    const east: WorldSector = { ...west, id: 'east', atlasColumn: 0 }
+    west.roads = [3, 4].map((y) => ({
+      from: { sectorId: 'west', x: 12, y },
+      to: { sectorId: 'east', x: 0, y },
+      durationMs: y === 3 ? 200 : 400,
+      name: 'Historical crossing',
+    }))
+    const route = findWorldRoute(
+      { sectorId: 'west', x: 12, y: 4 },
+      { sectorId: 'east', x: 0, y: 4 },
+      [west, east],
+    )!
+    expect(route).toHaveLength(3)
+    expect(route.reduce((ms, step) => ms + step.durationMs, 0)).toBe(300)
+  })
   it('keeps representative local and road travel on the canonical ordinary pace', () => {
     const local = findWorldRoute(
       { sectorId: 'verdant-expanse', x: 2, y: 4 },

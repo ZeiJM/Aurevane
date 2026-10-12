@@ -79,6 +79,10 @@ export interface WorldAtlasCell {
   column: number
   row: number
   charted: boolean
+  /** Public district identity; absent for private or non-town terrain. */
+  townId?: string
+  /** Public water/lava only: row-major 13x9 '~', 'l' or '.'; omitted when dry. */
+  waterTiles?: string
 }
 export interface WorldSector {
   id: string

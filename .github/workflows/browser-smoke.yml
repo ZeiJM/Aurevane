@@ -37,7 +37,7 @@ jobs:
     runs-on: ubuntu-latest
     # The complete serial suite includes elapsed-time Atlas journeys and Edge checks.
     # Keep every scenario enabled and allow enough time to finish after stack setup.
-    timeout-minutes: 75
+    timeout-minutes: 90
     env:
       TURBO_TELEMETRY_DISABLED: 1
       NEXT_TELEMETRY_DISABLED: 1

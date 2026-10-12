@@ -9,9 +9,9 @@ import {
 import { generateSectorTerrain, seeded } from './terrain-gen'
 import { terrainWalkable } from './terrain'
 import type { WorldBuilding, WorldLandmark, WorldRoad, WorldSector } from './types'
+import { ATLAS_COLUMNS, ATLAS_ROWS, atlasNeighbor, wrappedColumnDistance } from './topology'
 
-export const ATLAS_COLUMNS = 128
-export const ATLAS_ROWS = 64
+export { ATLAS_COLUMNS, ATLAS_ROWS } from './topology'
 export const WORLD_LAND_NAME = 'Aurethia'
 
 export function atlasAddress(sector: Pick<WorldSector, 'atlasColumn' | 'atlasRow'>) {
@@ -67,7 +67,7 @@ function segmentDistance(
   const t = Math.max(0, Math.min(1, ((x - a.column) * dx + (y - a.row) * dy) / (dx * dx + dy * dy)))
   return Math.hypot(x - a.column - t * dx, y - a.row - t * dy)
 }
-function landAt(column: number, row: number) {
+function originalLandAt(column: number, row: number) {
   return (
     roots.some((root) => Math.hypot(column - root.column, (row - root.row) * 1.12) <= 8.8) ||
     rootLinks.some(
@@ -80,6 +80,12 @@ function landAt(column: number, row: number) {
         ) <= 3.3,
     )
   )
+}
+function longitudeCountrysideAt(column: number, row: number) {
+  const longitude = (column * Math.PI * 2) / ATLAS_COLUMNS
+  const latitude = 32 + Math.sin(longitude) * 1.5 + Math.sin(longitude * 2) * 0.7
+  const width = 1.15 + Math.max(0, Math.cos(longitude)) ** 16 * 0.65
+  return Math.abs(row - latitude) <= width
 }
 const buildingArt: Record<string, number> = {
   'verdant-expanse': 0,
@@ -184,10 +190,12 @@ export function atlasSectors(): readonly WorldSector[] {
   for (let row = 0; row < ATLAS_ROWS; row++)
     for (let column = 0; column < ATLAS_COLUMNS; column++) {
       const authored = authoredByAddress.get(addressKey(column, row))
-      if (!authored && !landAt(column, row)) continue
+      const existingLand = Boolean(authored || originalLandAt(column, row))
+      if (!existingLand && !longitudeCountrysideAt(column, row)) continue
       const nearest = [...roots].sort(
         (a, b) =>
-          Math.hypot(column - a.column, row - a.row) - Math.hypot(column - b.column, row - b.row),
+          Math.hypot(wrappedColumnDistance(column, a.column), row - a.row) -
+          Math.hypot(wrappedColumnDistance(column, b.column), row - b.row),
       )[0]!
       const town = roots.find(
         (root) => Math.abs(column - root.column) <= 1 && Math.abs(row - root.row) <= 1,
@@ -259,6 +267,25 @@ export function atlasSectors(): readonly WorldSector[] {
         for (let y = 0; y < GRID_HEIGHT; y++) if (y < 3 || y > 5) grid[y]![10] = 'l'
       const scenicCenter = scenic?.column === column && scenic.row === row
       if (scenicCenter && scenic.landscape === 'willow') grid[2]![9] = '~'
+      if (!existingLand) {
+        const pondRandom = seeded(id + ':pond')
+        if (pondRandom() < 0.15) {
+          const centerX = pondRandom() < 0.5 ? 3 : 9
+          const centerY = pondRandom() < 0.5 ? 1.9 : 6.1
+          const radiusX = 1.8 + pondRandom() * 0.7
+          const radiusY = 0.85 + pondRandom() * 0.4
+          for (let y = 1; y < GRID_HEIGHT - 1; y++)
+            for (let x = 1; x < GRID_WIDTH - 1; x++) {
+              const shore = 1 + Math.sin(x * 1.7 + y * 2.3) * 0.12
+              if (
+                y !== 4 &&
+                (column % 4 !== 0 || x !== 6) &&
+                ((x - centerX) / radiusX) ** 2 + ((y - centerY) / radiusY) ** 2 < shore
+              )
+                grid[y]![x] = '~'
+            }
+        }
+      }
       const buildings: WorldBuilding[] = []
       const addBuilding = (x: number, y: number, width: number, height: number, index: number) => {
         if (
@@ -379,7 +406,8 @@ export function atlasSectors(): readonly WorldSector[] {
       [0, 1],
       [0, -1],
     ] as const) {
-      const neighbor = byAddress.get(addressKey(sector.atlasColumn! + dx, sector.atlasRow! + dy))
+      const address = atlasNeighbor(sector.atlasColumn!, sector.atlasRow!, dx, dy)
+      const neighbor = address && byAddress.get(addressKey(address.column, address.row))
       if (!neighbor) continue
       for (let offset = 0; offset < (dx ? GRID_HEIGHT : GRID_WIDTH); offset++) {
         const from = {

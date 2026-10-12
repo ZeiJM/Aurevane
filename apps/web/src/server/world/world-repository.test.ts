@@ -1,19 +1,30 @@
 import { beforeEach, expect, it, vi } from 'vitest'
 import { createHash } from 'node:crypto'
 vi.mock('server-only', () => ({}))
-const { rpc, profileImages, environmentSettings } = vi.hoisted(() => ({
+const { rpc, sceneRpc, lastRead, profileImages, environmentSettings } = vi.hoisted(() => ({
   rpc: vi.fn(),
+  sceneRpc: vi.fn(),
+  lastRead: { value: null as { state: { version: number }; players: unknown[] } | null },
   environmentSettings: vi.fn(),
   profileImages: new Map<string, string>(),
 }))
-vi.mock('@/lib/supabase/admin', () => ({ createSupabaseAdminClient: () => ({ rpc }) }))
+vi.mock('@/lib/supabase/admin', () => ({
+  createSupabaseAdminClient: () => ({
+    rpc: async (name: string, args: unknown) => {
+      if (name === 'read_world_scene_players_v1') return sceneRpc(name, args)
+      const result = await rpc(name, args)
+      if (name === 'read_world_state_v1' && result.data?.state) lastRead.value = result.data
+      return result
+    },
+  }),
+}))
 vi.mock('@/server/character/character-profile-display-service', () => ({
   loadPublicCharacterProfileImageMap: vi.fn(async () => new Map(profileImages)),
 }))
 vi.mock('./world-environment-store', () => ({ readWorldEnvironmentSettings: environmentSettings }))
 import { DEFAULT_WORLD_ENVIRONMENT_SETTINGS } from '@/world/environment'
-import { newWorldState } from '@/world/travel'
-import type { WorldCommand } from '@/world/types'
+import { newWorldState, revealNearby } from '@/world/travel'
+import type { WorldCommand, WorldPlayer } from '@/world/types'
 import { commitWorldCommand, readWorld, resetWorldReadCaches } from './world-repository'
 
 const characterId = '00000000-0000-4000-8000-000000000011'
@@ -35,8 +46,91 @@ const payload = () => ({
 beforeEach(() => {
   resetWorldReadCaches()
   rpc.mockReset()
+  lastRead.value = null
+  sceneRpc.mockReset().mockImplementation(async () => ({
+    data: { version: lastRead.value!.state.version, players: lastRead.value!.players },
+  }))
   profileImages.clear()
   environmentSettings.mockReset().mockResolvedValue(DEFAULT_WORLD_ENVIRONMENT_SETTINGS)
+})
+
+const scenePlayer = (characterId: string, sectorId: string, x = 0, y = 4): WorldPlayer => ({
+  characterId,
+  name: characterId,
+  level: 2,
+  portraitRef: 'portrait.starter.wayfarer-07',
+  imageUrl: null,
+  online: true,
+  attackable: true,
+  position: { sectorId, x, y },
+})
+
+it('reads only the server-projected scene and includes known neighbouring players without widening PvP', async () => {
+  const state = { ...newWorldState(), position: { sectorId: 'atlas:58:28', x: 12, y: 4 } }
+  rpc.mockResolvedValue({ data: { ...payload(), state } })
+  sceneRpc.mockResolvedValue({
+    data: {
+      version: state.version,
+      players: [scenePlayer('neighbour', 'atlas:59:28'), scenePlayer('remote', 'atlas:0:0')],
+    },
+  })
+  const { view } = await readWorld('owner', characterId)
+  expect(sceneRpc).toHaveBeenCalledWith('read_world_scene_players_v1', {
+    p_user_id: 'owner',
+    p_character_id: characterId,
+    p_expected_version: state.version,
+    p_scene_sector_ids: view.sectors.map((sector) => sector.id),
+    p_initial_position: newWorldState().position,
+  })
+  expect(view.sectors.length).toBeLessThanOrEqual(25)
+  expect(view.players).toEqual([
+    expect.objectContaining({
+      characterId: 'neighbour',
+      attackable: false,
+      imageUrl: '/api/media/starter-portrait/portrait.starter.wayfarer-07',
+    }),
+  ])
+})
+
+it('keeps unsurveyed players private even when returned by the scene read', async () => {
+  const state = revealNearby({
+    ...newWorldState(),
+    position: { sectorId: 'survey-01', x: 6, y: 8 },
+  })
+  rpc.mockResolvedValue({ data: { ...payload(), state } })
+  sceneRpc.mockResolvedValue({
+    data: { version: state.version, players: [scenePlayer('hidden', 'survey-01', 11, 1)] },
+  })
+  expect((await readWorld('owner', characterId)).view.players).toEqual([])
+})
+
+it('discards a concurrently changed scene and retains the matching authoritative read', async () => {
+  const state = newWorldState(),
+    stable = scenePlayer('stable', state.position.sectorId, state.position.x, state.position.y)
+  rpc.mockResolvedValue({ data: { ...payload(), state, players: [stable] } })
+  sceneRpc.mockResolvedValue({
+    data: { version: state.version + 1, players: [scenePlayer('future', 'atlas:59:28')] },
+  })
+  expect((await readWorld('owner', characterId)).view.players.map((p) => p.characterId)).toEqual([
+    'stable',
+  ])
+})
+
+it.each([
+  { data: { version: 1, players: null } },
+  {
+    data: {
+      version: 1,
+      players: Array.from({ length: 201 }, () => scenePlayer('a', 'atlas:58:28')),
+    },
+  },
+  { data: null, error: { message: 'database unavailable' } },
+])('fails closed for an invalid or unavailable scene read', async (response) => {
+  rpc.mockResolvedValue({ data: payload() })
+  sceneRpc.mockResolvedValue(response)
+  await expect(readWorld('owner', characterId)).rejects.toMatchObject({
+    code: 'PERSISTENCE_UNAVAILABLE',
+  })
 })
 
 it('attaches the server-owned environment, honouring Master settings', async () => {
@@ -135,7 +229,7 @@ it('records successful early ticks so a retry cannot advance a later due step', 
   })
 })
 
-it('projects current profile images while retaining starter portrait references for nearby players', async () => {
+it('projects custom avatars and selected starter portraits for nearby players', async () => {
   const state = newWorldState()
   const customId = '00000000-0000-4000-8000-000000000021'
   const starterId = '00000000-0000-4000-8000-000000000022'
@@ -173,6 +267,6 @@ it('projects current profile images while retaining starter portrait references 
   )
   expect(view.players.find((player) => player.characterId === starterId)).toMatchObject({
     portraitRef: 'portrait.starter.wayfarer-07',
-    imageUrl: null,
+    imageUrl: '/api/media/starter-portrait/portrait.starter.wayfarer-07',
   })
 })

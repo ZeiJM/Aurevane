@@ -1,4 +1,5 @@
 'use client'
+import { useState } from 'react'
 import { FRONTIER_APPROACH } from '@/world/catalog'
 import { samePosition } from '@/world/travel'
 import type { WorldIntent, WorldView } from '@/world/types'
@@ -14,13 +15,18 @@ export function WorldMissions({
   send: (intent: WorldIntent) => void
   stopMoving: () => void
 }) {
+  const [filter, setFilter] = useState<'active' | 'completed'>('active')
   const local = view.sectors.find((s) => s.id === view.position.sectorId)!
   const legacyExits =
     !local.charted || local.id.startsWith('trail:')
       ? [...new Map(local.exits.map((road) => [road.to.sectorId, road])).values()]
       : []
-  const pulseObjectives = view.objectives.filter((o) => o.kind === 'event'),
-    questObjectives = view.objectives.filter((o) => o.kind === 'quest')
+  const pulseObjectives = view.objectives.filter((o) => o.kind === 'event' && !o.completed),
+    questObjectives = view.objectives.filter((o) => o.kind === 'quest'),
+    shownQuests = questObjectives.filter((o) => o.completed === (filter === 'completed')),
+    interactions = view.interactions.filter(
+      (i) => i.progress === 'available' || i.progress === 'active',
+    )
   const autoPathButton = (
     objective: WorldView['objectives'][number],
     start: string,
@@ -48,7 +54,21 @@ export function WorldMissions({
   )
   return (
     <div className={styles.missions}>
-      {legacyExits.length ? (
+      <div className={styles.missionFilters} role="tablist" aria-label="Mission status">
+        {(['active', 'completed'] as const).map((status) => (
+          <button
+            key={status}
+            id={`${status}-missions-tab`}
+            role="tab"
+            aria-selected={filter === status}
+            aria-controls="mission-list"
+            onClick={() => setFilter(status)}
+          >
+            {status === 'active' ? 'Active' : 'Completed'}
+          </button>
+        ))}
+      </div>
+      {filter === 'active' && legacyExits.length ? (
         <section className={styles.panel} aria-label="Routes from here">
           <h2>Routes from here</h2>
           {legacyExits.map((road) => (
@@ -63,11 +83,11 @@ export function WorldMissions({
           ))}
         </section>
       ) : null}
-      {view.interactions.length ? (
+      {filter === 'active' && interactions.length ? (
         <section className={styles.panel} aria-label="Local interaction">
           <h2>✦ Local interaction</h2>
           <p className={styles.quiet}>At your current position in {local.name}.</p>
-          {view.interactions.map((interaction) => (
+          {interactions.map((interaction) => (
             <div className={styles.quest} key={interaction.id}>
               <h3>{interaction.title}</h3>
               <p>
@@ -92,7 +112,7 @@ export function WorldMissions({
           ))}
         </section>
       ) : null}
-      {pulseObjectives.length ? (
+      {filter === 'active' && pulseObjectives.length ? (
         <section className={styles.panel} aria-label="World Pulse">
           <h2>✦ World Pulse</h2>
           <p className={styles.quiet}>
@@ -112,20 +132,47 @@ export function WorldMissions({
           ))}
         </section>
       ) : null}
-      <section className={styles.panel}>
-        <h2>⚑ Tracked Quests</h2>
-        {questObjectives.map((objective) => (
-          <div className={styles.quest} key={objective.id}>
-            <h3>{objective.name}</h3>
-            <p>
-              {objective.completed ? '✓ ' : '○ '}
-              {objective.description}
-            </p>
-            {!objective.completed
-              ? autoPathButton(objective, 'Start Auto-path', 'Follow the clues', 'Stop Auto-path')
-              : null}
-          </div>
-        ))}
+      <section
+        className={styles.panel}
+        id="mission-list"
+        role="tabpanel"
+        aria-labelledby={`${filter}-missions-tab`}
+      >
+        {shownQuests.length ? (
+          shownQuests.map((objective) => {
+            const turnIn =
+              objective.progress === 'ready'
+                ? view.interactions.find(
+                    (interaction) =>
+                      interaction.objectiveId === objective.id &&
+                      interaction.progress === 'ready' &&
+                      interaction.actionLabel,
+                  )
+                : undefined
+            return (
+              <div className={styles.quest} key={objective.id}>
+                <h3>{objective.name}</h3>
+                <p>
+                  {objective.completed || objective.progress === 'ready' ? '✓ ' : '○ '}
+                  {objective.description}
+                </p>
+                {turnIn ? (
+                  <button
+                    className={styles.primary}
+                    disabled={disabled || view.route.length > 0}
+                    onClick={() => send({ kind: 'interact', interactionId: turnIn.id })}
+                  >
+                    Complete quest
+                  </button>
+                ) : !objective.completed ? (
+                  autoPathButton(objective, 'Start Auto-path', 'Follow the clues', 'Stop Auto-path')
+                ) : null}
+              </div>
+            )
+          })
+        ) : (
+          <p className={styles.quiet}>No {filter} quests.</p>
+        )}
       </section>
       {view.archive.length ? (
         <section className={styles.panel} aria-label="Archive">

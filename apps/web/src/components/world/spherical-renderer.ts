@@ -1,5 +1,5 @@
 import type { WorldAtlasCell } from '@/world/types'
-import { globeAtlasPixels } from './globe-atlas'
+import { globeAtlasDetailPixels, readGlobePainting, type GlobePainting } from './globe-atlas'
 /** A single full-screen triangle pair renders the atlas or the inside of a panorama. */
 export function createSphericalRenderer(
   canvas: HTMLCanvasElement,
@@ -55,7 +55,7 @@ export function createSphericalRenderer(
     float relief=dot(color,vec3(.299,.587,.114));
     float ridge=sin(map.x*193.+sin(map.y*79.)*3.)*sin(map.y*163.+cos(map.x*53.)*2.);
     vec3 ocean=mix(vec3(.065,.18,.22),vec3(.15,.32,.35),relief*.65);
-    vec3 surface=ground.rgb*(.74+relief*.42)+vec3(.035,.025,.015)*ridge;
+    vec3 surface=ground.rgb*(.96+relief*.08)+vec3(.015,.012,.01)*ridge;
     color=mix(ocean,surface,land);
    }
    float lon=(map.x-.5)*360.;float lat=(.5-map.y)*180.;
@@ -131,6 +131,26 @@ export function createSphericalRenderer(
   gl.activeTexture(gl.TEXTURE0)
   let atlasKey = '',
     hasAtlas = false
+  let atlasCells: readonly WorldAtlasCell[] = [],
+    painting: GlobePainting | undefined
+  function uploadAtlas(cells: readonly WorldAtlasCell[]) {
+    if (disposed) return
+    const detail = globeAtlasDetailPixels(cells, resolution.columns, resolution.rows, painting)
+    gl!.activeTexture(gl!.TEXTURE1)
+    gl!.bindTexture(gl!.TEXTURE_2D, atlasTexture)
+    gl!.texImage2D(
+      gl!.TEXTURE_2D,
+      0,
+      gl!.RGBA,
+      detail.width,
+      detail.height,
+      0,
+      gl!.RGBA,
+      gl!.UNSIGNED_BYTE,
+      detail.pixels,
+    )
+    gl!.activeTexture(gl!.TEXTURE0)
+  }
   let loaded = false,
     disposed = false,
     last = { longitude: 0, latitude: 0, zoom: 0.94, panorama: false, grid: true }
@@ -166,6 +186,10 @@ export function createSphericalRenderer(
     gl.bindTexture(gl.TEXTURE_2D, texture)
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, art)
     loaded = true
+    if (hasAtlas) {
+      painting = readGlobePainting(art)
+      uploadAtlas(atlasCells)
+    }
     draw(last)
   }
   art.onerror = onFailure
@@ -181,25 +205,17 @@ export function createSphericalRenderer(
     draw,
     updateAtlas(cells: readonly WorldAtlasCell[]) {
       const key = cells
-        .map((c) => `${c.id}:${c.column}:${c.row}:${c.regionId}:${c.charted}`)
+        .map(
+          (c) =>
+            `${c.id}:${c.column}:${c.row}:${c.regionId}:${c.charted}:${c.townId ?? ''}:${c.waterTiles ?? ''}`,
+        )
         .join('|')
       if (key === atlasKey || disposed) return
       atlasKey = key
+      atlasCells = cells
       hasAtlas = true
-      gl.activeTexture(gl.TEXTURE1)
-      gl.bindTexture(gl.TEXTURE_2D, atlasTexture)
-      gl.texImage2D(
-        gl.TEXTURE_2D,
-        0,
-        gl.RGBA,
-        resolution.columns,
-        resolution.rows,
-        0,
-        gl.RGBA,
-        gl.UNSIGNED_BYTE,
-        globeAtlasPixels(cells, resolution.columns, resolution.rows),
-      )
-      gl.activeTexture(gl.TEXTURE0)
+      if (loaded && !painting) painting = readGlobePainting(art)
+      uploadAtlas(cells)
       draw(last)
     },
     dispose() {
