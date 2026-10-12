@@ -91,7 +91,18 @@ export function registerWorldLandscapeCases(helpers: Helpers) {
     await capture(page, info, 'accurate-globe-main-towns')
     const closeDetails = page.getByRole('button', { name: /Close details/ })
     if (await closeDetails.isVisible()) await closeDetails.click()
-    await page.getByRole('button', { name: 'Select Verdant Expanse town', exact: true }).click()
+    const verdant = page.getByRole('button', { name: 'Select Verdant Expanse town', exact: true })
+    const marker = await verdant.boundingBox()
+    expect(marker).not.toBeNull()
+    const x = marker!.x + marker!.width / 2,
+      y = marker!.y + marker!.height / 2
+    await page.mouse.move(x, y)
+    await page.mouse.down()
+    await page.mouse.move(x + 30, y, { steps: 4 })
+    await page.mouse.move(x, y, { steps: 4 })
+    await page.mouse.up()
+    await expect(towns).toHaveValue('frostmere')
+    await verdant.click()
     await expect(towns).toHaveValue('verdant-expanse')
     await expect(
       page.getByRole('region', { name: 'Selected destination', exact: true }),

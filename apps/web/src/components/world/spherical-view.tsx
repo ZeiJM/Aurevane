@@ -207,7 +207,7 @@ export function SphericalView({
         endTouch(e.pointerId)
         const start = drag.current
         drag.current = null
-        if (!start || !onActivate || panorama) return
+        if (!start || !onActivate || panorama || consumedDrag.current) return
         const dx = e.clientX - start.x,
           dy = e.clientY - start.y
         if (dx * dx + dy * dy > 36) return
