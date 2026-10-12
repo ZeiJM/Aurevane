@@ -25,6 +25,8 @@ it('gives charted land regional relief and coastal detail without leaking privat
       }
     }
   expect(colours.size).toBeGreaterThan(20)
+  expect(image.pixels[(16 * image.width + 16) * 4 + 3]).toBeLessThan(255)
+  expect(image.pixels[(24 * image.width + 24) * 4 + 3]).toBe(255)
   expect(
     globeAtlasDetailPixels([{ ...cell, charted: false }], 4, 4).pixels.every((p) => p === 0),
   ).toBe(true)

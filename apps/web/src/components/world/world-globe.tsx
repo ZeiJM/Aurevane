@@ -8,9 +8,15 @@ import styles from './workspace.module.css'
 export function WorldGlobe({
   view,
   onTravel,
+  zoom,
+  zoomLocked,
+  onZoom,
 }: {
   view: WorldView
   onTravel: (position: WorldPosition) => void
+  zoom: number
+  zoomLocked: boolean
+  onZoom: (zoom: number) => void
 }) {
   const current = view.sectors.find((sector) => sector.id === view.position.sectorId)!
   const mapped = globeSectorCenter(current.coordinate, ATLAS_COLUMNS, ATLAS_ROWS)
@@ -21,7 +27,6 @@ export function WorldGlobe({
       latitude: 0,
     }
   const [camera, setCamera] = useState(location),
-    [zoom, setZoom] = useState(0.94),
     [selected, setSelected] = useState<string | null>(null)
   const pin = projectGlobePoint(location, camera)
   const destination = view.atlas?.find((sector) => sector.id === selected)
@@ -42,7 +47,8 @@ export function WorldGlobe({
           camera={camera}
           zoom={zoom}
           onCamera={setCamera}
-          onZoom={setZoom}
+          onZoom={onZoom}
+          zoomLocked={zoomLocked}
           gridColumns={ATLAS_COLUMNS}
           gridRows={ATLAS_ROWS}
           atlas={view.atlas}

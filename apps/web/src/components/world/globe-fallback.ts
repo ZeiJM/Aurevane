@@ -33,7 +33,7 @@ export function globeFallbackPixels(
         ty = Math.min(texture.height - 1, Math.floor(v * texture.height))
       const source = (ty * texture.width + tx) * 4,
         index = (y * size + x) * 4
-      const land = texture.pixels[source + 3] === 255
+      const land = texture.pixels[source + 3]! / 255
       const light = 0.7 + z * 0.3,
         rim = Math.pow(1 - z, 4) * 0.24
       const wave = Math.sin(u * 197 + Math.sin(v * 59)) * Math.sin(v * 131)
@@ -45,7 +45,7 @@ export function globeFallbackPixels(
         1 - ((v * rows) % 1),
       )
       for (let c = 0; c < 3; c++) {
-        const value = land ? texture.pixels[source + c]! : ocean[c]!
+        const value = texture.pixels[source + c]! * land + ocean[c]! * (1 - land)
         pixels[index + c] =
           value * light * (1 - rim) +
           [61, 134, 149][c]! * rim +

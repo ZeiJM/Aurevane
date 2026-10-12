@@ -96,9 +96,10 @@ function scene(reduced = false) {
     removeEventListener: (name: string) => listeners.delete(name),
   } as unknown as HTMLCanvasElement
   const view = projectWorld(newWorldState(), [], 1000),
-    select = vi.fn()
+    select = vi.fn(),
+    onZoom = vi.fn()
   const motion = new WorldMotion(view)
-  const renderer = createMapRenderer(canvas, motion, view, select, vi.fn())!
+  const renderer = createMapRenderer(canvas, motion, view, select, vi.fn(), onZoom)!
   return {
     fills,
     draws,
@@ -110,6 +111,7 @@ function scene(reduced = false) {
     motion,
     renderer,
     select,
+    onZoom,
     frames,
     listeners,
     event(name: string, x: number, y: number) {
@@ -127,6 +129,47 @@ function scene(reduced = false) {
   }
 }
 describe('native map input and bounded lifecycle', () => {
+  it('pinches with two fingers without submitting a walk on release', () => {
+    const s = scene()
+    const touch = (name: string, id: number, x: number) =>
+      s.listeners.get(name)!({
+        pointerType: 'touch',
+        pointerId: id,
+        clientX: x,
+        clientY: 300,
+      } as unknown as Event)
+    touch('pointerdown', 1, 350)
+    touch('pointerdown', 2, 450)
+    touch('pointermove', 2, 500)
+    expect(s.onZoom).toHaveBeenCalled()
+    touch('pointerup', 2, 500)
+    touch('pointerup', 1, 350)
+    expect(s.select).not.toHaveBeenCalled()
+    s.renderer.settings({ animate: true, zoom: 1, zoomLocked: true })
+    s.onZoom.mockClear()
+    touch('pointerdown', 1, 350)
+    touch('pointerdown', 2, 450)
+    touch('pointermove', 2, 500)
+    expect(s.onZoom).not.toHaveBeenCalled()
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  })
+  it('zooms with the wheel and blocks accidental wheel zoom when locked', () => {
+    const s = scene(),
+      preventDefault = vi.fn()
+    s.listeners.get('wheel')?.({ deltaY: -100, ctrlKey: false, preventDefault } as unknown as Event)
+    expect(s.onZoom).toHaveBeenCalledWith(expect.any(Number))
+    expect(s.onZoom.mock.calls[0]![0]).toBeGreaterThan(1)
+    s.renderer.settings({ animate: true, zoom: 1, zoomLocked: true })
+    s.onZoom.mockClear()
+    preventDefault.mockClear()
+    s.listeners.get('wheel')?.({ deltaY: -100, ctrlKey: false, preventDefault } as unknown as Event)
+    expect(s.onZoom).not.toHaveBeenCalled()
+    expect(preventDefault).toHaveBeenCalledOnce()
+    s.renderer.dispose()
+    expect(s.listeners.has('wheel')).toBe(false)
+    vi.unstubAllGlobals()
+  })
   it('keeps the detailed world static when the device requests reduced motion', () => {
     const s = scene(true)
     s.frame(120)

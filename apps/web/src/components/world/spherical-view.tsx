@@ -11,6 +11,7 @@ interface Props {
   src: string
   camera: GlobeLocation
   zoom: number
+  zoomLocked?: boolean
   panorama?: boolean
   grid?: boolean
   gridColumns?: number
@@ -25,6 +26,7 @@ export function SphericalView({
   src,
   camera,
   zoom,
+  zoomLocked = false,
   panorama = false,
   grid = true,
   gridColumns = 32,
@@ -37,7 +39,31 @@ export function SphericalView({
 }: Props) {
   const canvas = useRef<HTMLCanvasElement>(null),
     renderer = useRef<ReturnType<typeof createSphericalRenderer>>(null)
+  const host = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const element = host.current
+    if (!element) return
+    const wheel = (event: WheelEvent) => {
+      event.preventDefault()
+      if (!zoomLocked)
+        onZoom(Math.max(0.6, Math.min(1.4, zoom - event.deltaY * (event.ctrlKey ? 0.006 : 0.0008))))
+    }
+    element.addEventListener('wheel', wheel, { passive: false })
+    return () => element.removeEventListener('wheel', wheel)
+  }, [zoomLocked, zoom, onZoom])
   const drag = useRef<{ x: number; y: number; camera: GlobeLocation } | null>(null)
+  const touchPoints = useRef(new Map<number, { x: number; y: number }>())
+  const pinch = useRef<{ distance: number; zoom: number } | null>(null)
+  const gestured = useRef(false)
+  const touchDistance = () => {
+    const [a, b] = [...touchPoints.current.values()]
+    return a && b ? Math.hypot(a.x - b.x, a.y - b.y) : 0
+  }
+  const endTouch = (id: number) => {
+    touchPoints.current.delete(id)
+    if (touchPoints.current.size < 2) pinch.current = null
+    if (!touchPoints.current.size) gestured.current = false
+  }
   const cameraFrame = useRef<number | null>(null)
   const pendingCamera = useRef<GlobeLocation | null>(null)
   const [failed, setFailed] = useState(false)
@@ -109,6 +135,7 @@ export function SphericalView({
   }
   return (
     <div
+      ref={host}
       className={panorama ? styles.panoramaScene : styles.sphere}
       role="group"
       aria-label={
@@ -120,9 +147,31 @@ export function SphericalView({
       onPointerDown={(e) => {
         if ((e.target as HTMLElement).closest('button')) return
         e.currentTarget.setPointerCapture(e.pointerId)
+        if (e.pointerType === 'touch') {
+          touchPoints.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
+          if (touchPoints.current.size === 2) {
+            pinch.current = { distance: touchDistance(), zoom }
+            gestured.current = true
+            drag.current = null
+            return
+          }
+        }
         drag.current = { x: e.clientX, y: e.clientY, camera }
       }}
       onPointerMove={(e) => {
+        if (touchPoints.current.has(e.pointerId))
+          touchPoints.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
+        if (pinch.current && touchPoints.current.size >= 2) {
+          if (!zoomLocked && pinch.current.distance > 0)
+            onZoom(
+              Math.max(
+                0.6,
+                Math.min(1.4, (pinch.current.zoom * touchDistance()) / pinch.current.distance),
+              ),
+            )
+          return
+        }
+        if (gestured.current) return
         if (!drag.current) return
         scheduleCamera({
           longitude: drag.current.camera.longitude - (e.clientX - drag.current.x) * 0.25,
@@ -133,6 +182,12 @@ export function SphericalView({
         })
       }}
       onPointerUp={(e) => {
+        if (gestured.current) {
+          endTouch(e.pointerId)
+          drag.current = null
+          return
+        }
+        endTouch(e.pointerId)
         const start = drag.current
         drag.current = null
         if (!start || !onActivate || panorama) return
@@ -145,7 +200,8 @@ export function SphericalView({
         const location = unprojectGlobePoint(x, y, start.camera)
         if (location) onActivate(location)
       }}
-      onPointerCancel={() => {
+      onPointerCancel={(e) => {
+        endTouch(e.pointerId)
         drag.current = null
       }}
       onKeyDown={(e) => {
@@ -169,7 +225,6 @@ export function SphericalView({
         if (e.key === '+' || e.key === '=') onZoom(Math.min(1.4, zoom + 0.1))
         if (e.key === '-') onZoom(Math.max(0.65, zoom - 0.1))
       }}
-      onWheel={(e) => onZoom(Math.max(0.65, Math.min(1.4, zoom - e.deltaY * 0.0008)))}
     >
       {failed ? (
         <div

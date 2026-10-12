@@ -1342,6 +1342,114 @@ test('scenic countryside has real blossom woodland, ruins, pools and open meadow
   }
 })
 
+test('zoom controls live in Settings and the shared lock blocks map and globe wheel zoom', async ({
+  page,
+}, info) => {
+  test.skip(info.project.name !== 'desktop-chromium', 'Exercise mouse/trackpad zoom once.')
+  test.setTimeout(90000)
+  await enter(page)
+  const canvas = page.locator('canvas[data-world-stage]')
+  await expect(page.getByRole('button', { name: 'Zoom in', exact: true })).toHaveCount(0)
+  await page.getByRole('button', { name: 'Map settings', exact: true }).click()
+  const slider = page.getByRole('slider', { name: 'Zoom level', exact: true })
+  await slider.press('Home')
+  await expect(slider).toHaveValue('60')
+  await page.getByRole('button', { name: 'Zoom in', exact: true }).click()
+  await expect(slider).toHaveValue('70')
+  await page.getByRole('button', { name: 'Zoom lock Off', exact: true }).click()
+  await capture(page, info, 'restored-map-settings')
+  await page.getByRole('button', { name: 'Done', exact: true }).click()
+  await canvas.hover()
+  const locked = await canvas.getAttribute('data-tile-size')
+  const pageScale = await page.evaluate(() => ({
+    width: innerWidth,
+    ratio: devicePixelRatio,
+    scale: visualViewport?.scale,
+  }))
+  await page.keyboard.down('Control')
+  await page.mouse.wheel(0, -120)
+  await page.keyboard.up('Control')
+  await page.mouse.wheel(0, -160)
+  await page.waitForTimeout(250)
+  expect(await canvas.getAttribute('data-tile-size')).toBe(locked)
+  expect(
+    await page.evaluate(() => ({
+      width: innerWidth,
+      ratio: devicePixelRatio,
+      scale: visualViewport?.scale,
+    })),
+  ).toEqual(pageScale)
+  await page.getByRole('button', { name: /Open world atlas/ }).click()
+  const globe = page.getByRole('group', { name: /World globe/ })
+  await globe.hover()
+  const pin = page.getByLabel('Your current position', { exact: true }),
+    oldPin = await pin.getAttribute('style')
+  await page.keyboard.down('Control')
+  await page.mouse.wheel(0, -120)
+  await page.keyboard.up('Control')
+  await page.mouse.wheel(0, -160)
+  await page.waitForTimeout(250)
+  expect(await pin.getAttribute('style')).toBe(oldPin)
+  expect(
+    await page.evaluate(() => ({
+      width: innerWidth,
+      ratio: devicePixelRatio,
+      scale: visualViewport?.scale,
+    })),
+  ).toEqual(pageScale)
+  await page.getByRole('button', { name: 'Map settings', exact: true }).click()
+  await expect(page.getByRole('slider', { name: 'Zoom level', exact: true })).toHaveValue('94')
+  await page.getByRole('button', { name: 'Done', exact: true }).click()
+  await page.getByRole('button', { name: /Return to local map/ }).click()
+  await page.getByRole('button', { name: 'Map settings', exact: true }).click()
+  await page.getByRole('button', { name: 'Zoom lock On', exact: true }).click()
+  await page.getByRole('button', { name: 'Done', exact: true }).click()
+  await canvas.hover()
+  await page.mouse.wheel(0, -160)
+  await expect
+    .poll(async () => Number(await canvas.getAttribute('data-tile-size')))
+    .toBeGreaterThan(Number(locked))
+})
+
+test('two-finger map pinch zooms without walking and respects zoom lock', async ({
+  page,
+}, info) => {
+  test.skip(info.project.name !== 'mobile-chromium', 'Exercise actual touch input once.')
+  test.setTimeout(90000)
+  await enter(page)
+  const initial = await world(page),
+    canvas = page.locator('canvas[data-world-stage]')
+  const box = (await canvas.boundingBox())!,
+    session = await page.context().newCDPSession(page)
+  const pinch = async (spread: number) => {
+    const points = (distance: number) => [
+      { x: box.x + box.width / 2 - distance, y: box.y + box.height / 2, id: 1 },
+      { x: box.x + box.width / 2 + distance, y: box.y + box.height / 2, id: 2 },
+    ]
+    await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: points(45) })
+    await session.send('Input.dispatchTouchEvent', {
+      type: 'touchMove',
+      touchPoints: points(spread),
+    })
+    await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+  }
+  const before = Number(await canvas.getAttribute('data-tile-size'))
+  await pinch(60)
+  await expect
+    .poll(async () => Number(await canvas.getAttribute('data-tile-size')))
+    .toBeGreaterThan(before)
+  await page.getByRole('button', { name: 'Map settings', exact: true }).click()
+  await page.getByRole('button', { name: 'Zoom lock Off', exact: true }).click()
+  await page.getByRole('button', { name: 'Done', exact: true }).click()
+  const locked = await canvas.getAttribute('data-tile-size')
+  await pinch(30)
+  await page.waitForTimeout(300)
+  expect(await canvas.getAttribute('data-tile-size')).toBe(locked)
+  const final = await world(page)
+  expect(final.position).toEqual(initial.position)
+  expect(final.route).toHaveLength(0)
+})
+
 test('long auto-path travel replenishes saved route windows and reaches the actual final destination', async ({
   page,
 }, info) => {

@@ -1,5 +1,6 @@
 .sphere {
   position: relative;
+  border-radius: 50%;
   width: min(calc(100cqw - 2rem), calc(100cqh - 4rem));
   aspect-ratio: 1;
   touch-action: none;

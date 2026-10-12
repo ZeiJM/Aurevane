@@ -1,5 +1,5 @@
 'use client'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { WORLD_LAND_NAME } from '@/world/atlas'
@@ -14,6 +14,23 @@ import { WorldMissions } from './world-missions'
 import { Surroundings } from './surroundings'
 import styles from './workspace.module.css'
 
+let fallbackZoomLock: boolean | null = null
+const readZoomLock = () => {
+  if (fallbackZoomLock !== null) return fallbackZoomLock
+  try {
+    return localStorage.getItem('aurevane.zoomLock') === 'on'
+  } catch {
+    return false
+  }
+}
+const subscribeZoomLock = (changed: () => void) => {
+  window.addEventListener('storage', changed)
+  window.addEventListener('aurevane-zoom-lock', changed)
+  return () => {
+    window.removeEventListener('storage', changed)
+    window.removeEventListener('aurevane-zoom-lock', changed)
+  }
+}
 export function WorldWorkspace({
   initialView,
   character,
@@ -33,8 +50,12 @@ export function WorldWorkspace({
     [surroundings, setSurroundings] = useState(false)
   const [animate, setAnimate] = useState(true),
     [zoom, setZoom] = useState(1),
+    [globeZoom, setGlobeZoom] = useState(0.94),
     [center, setCenter] = useState(0)
   const [motion] = useState(() => new WorldMotion(initialView))
+  const zoomLocked = useSyncExternalStore(subscribeZoomLock, readZoomLock, () => false)
+  const changeZoom = (value: number) =>
+    (mode === 'global' ? setGlobeZoom : setZoom)(Math.max(0.6, Math.min(1.4, value)))
   const controller = useRef<WorldController | null>(null),
     acceptedAt = useRef(0)
   useEffect(() => {
@@ -228,6 +249,8 @@ export function WorldWorkspace({
               animate={animate}
               paused={surroundings}
               zoom={zoom}
+              zoomLocked={zoomLocked}
+              onZoom={setZoom}
               center={center}
               onWalk={walk}
               onPlayer={(id) => {
@@ -239,6 +262,9 @@ export function WorldWorkspace({
           ) : (
             <WorldGlobe
               view={view}
+              zoom={globeZoom}
+              zoomLocked={zoomLocked}
+              onZoom={setGlobeZoom}
               onTravel={(position) => {
                 walk(position)
                 setMode('local')
@@ -254,12 +280,6 @@ export function WorldWorkspace({
               >
                 ◎
               </button>
-              <button aria-label="Zoom in" onClick={() => setZoom((z) => Math.min(1.4, z + 0.1))}>
-                +
-              </button>
-              <button aria-label="Zoom out" onClick={() => setZoom((z) => Math.max(0.7, z - 0.1))}>
-                −
-              </button>
               {local.panorama ? (
                 <button onClick={() => setSurroundings(true)}>View 360°</button>
               ) : null}
@@ -268,6 +288,46 @@ export function WorldWorkspace({
           {settings ? (
             <div className={styles.settings} role="dialog" aria-label="Map settings">
               <h3>Map settings</h3>
+              <label className={styles.zoomSetting}>
+                Zoom
+                <input
+                  aria-label="Zoom level"
+                  type="range"
+                  min="60"
+                  max="140"
+                  step="2"
+                  value={Math.round((mode === 'global' ? globeZoom : zoom) * 100)}
+                  onChange={(event) => changeZoom(Number(event.target.value) / 100)}
+                />
+                <output>{Math.round((mode === 'global' ? globeZoom : zoom) * 100)}%</output>
+              </label>
+              <div className={styles.zoomButtons}>
+                <button
+                  aria-label="Zoom out"
+                  onClick={() => changeZoom((mode === 'global' ? globeZoom : zoom) - 0.1)}
+                >
+                  −
+                </button>
+                <button
+                  aria-label="Zoom in"
+                  onClick={() => changeZoom((mode === 'global' ? globeZoom : zoom) + 0.1)}
+                >
+                  +
+                </button>
+                <button
+                  aria-pressed={zoomLocked}
+                  onClick={() => {
+                    fallbackZoomLock = !zoomLocked
+                    try {
+                      localStorage.setItem('aurevane.zoomLock', !zoomLocked ? 'on' : 'off')
+                      fallbackZoomLock = null
+                    } catch {}
+                    window.dispatchEvent(new Event('aurevane-zoom-lock'))
+                  }}
+                >
+                  Zoom lock {zoomLocked ? 'On' : 'Off'}
+                </button>
+              </div>
               <label>
                 <input
                   type="checkbox"

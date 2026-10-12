@@ -71,6 +71,7 @@ export function createMapRenderer(
   initial: WorldView,
   select: (position: WorldPosition) => void,
   selectPlayer: (id: string) => void,
+  onZoom: (zoom: number) => void = () => {},
 ) {
   const context = canvas.getContext('2d', { alpha: false })
   if (!context) return null
@@ -90,6 +91,7 @@ export function createMapRenderer(
     pan = { x: 0, y: 0 },
     hover: MapPoint | null = null
   let animate = true,
+    zoomLocked = false,
     paused = false,
     reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
   let drag: { x: number; y: number; pan: MapPoint } | null = null
@@ -875,11 +877,48 @@ export function createMapRenderer(
   }
   document.addEventListener('visibilitychange', visibility)
   visibility()
+  const pointers = new Map<number, { x: number; y: number }>()
+  let pinch: { distance: number; zoom: number } | null = null,
+    gestured = false
+  const distance = () => {
+    const [a, b] = [...pointers.values()]
+    return a && b ? Math.hypot(a.x - b.x, a.y - b.y) : 0
+  }
+  const changeZoom = (next: number) => {
+    next = Math.max(0.6, Math.min(1.4, Math.round(next * 100) / 100))
+    if (zoomLocked || next === zoom) return
+    zoom = next
+    tile = (width < 600 ? 48 : 64) * zoom
+    clearCache()
+    requestDraw()
+    onZoom(zoom)
+  }
+  const wheel = (event: WheelEvent) => {
+    event.preventDefault()
+    if (zoomLocked) return
+    changeZoom(zoom * Math.exp(-event.deltaY * (event.ctrlKey ? 0.006 : 0.0015)))
+  }
   const down = (event: PointerEvent) => {
     canvas.setPointerCapture(event.pointerId)
+    if (event.pointerType === 'touch') {
+      pointers.set(event.pointerId, { x: event.clientX, y: event.clientY })
+      if (pointers.size === 2) {
+        pinch = { distance: distance(), zoom }
+        gestured = true
+        drag = null
+        return
+      }
+    }
     drag = { x: event.clientX, y: event.clientY, pan: { ...pan } }
   }
   const move = (event: PointerEvent) => {
+    if (pointers.has(event.pointerId))
+      pointers.set(event.pointerId, { x: event.clientX, y: event.clientY })
+    if (pinch && pointers.size >= 2) {
+      if (pinch.distance > 0) changeZoom((pinch.zoom * distance()) / pinch.distance)
+      return
+    }
+    if (gestured) return
     const bounds = canvas.getBoundingClientRect()
     hover = world(event.clientX - bounds.left, event.clientY - bounds.top)
     requestDraw()
@@ -896,6 +935,13 @@ export function createMapRenderer(
       }
   }
   const up = (event: PointerEvent) => {
+    pointers.delete(event.pointerId)
+    if (gestured) {
+      if (pointers.size < 2) pinch = null
+      if (!pointers.size) gestured = false
+      drag = null
+      return
+    }
     const start = drag
     drag = null
     if (!start || Math.hypot(event.clientX - start.x, event.clientY - start.y) > 7) return
@@ -918,7 +964,10 @@ export function createMapRenderer(
       requestDraw()
     }
   }
-  const cancel = () => {
+  const cancel = (event: PointerEvent) => {
+    pointers.delete(event.pointerId)
+    if (pointers.size < 2) pinch = null
+    if (!pointers.size) gestured = false
     drag = null
   }
   const key = (event: KeyboardEvent) => {
@@ -947,6 +996,7 @@ export function createMapRenderer(
   canvas.addEventListener('pointercancel', cancel)
   canvas.addEventListener('pointerleave', leave)
   canvas.addEventListener('keydown', key)
+  canvas.addEventListener('wheel', wheel, { passive: false })
   const media = window.matchMedia('(prefers-reduced-motion: reduce)'),
     onReduced = () => {
       reduced = media.matches
@@ -959,15 +1009,18 @@ export function createMapRenderer(
       indexTerrain()
       requestDraw()
     },
-    settings(value: { animate: boolean; zoom: number; paused?: boolean }) {
+    settings(value: { animate: boolean; zoom: number; paused?: boolean; zoomLocked?: boolean }) {
       animate = value.animate
+      zoomLocked = value.zoomLocked ?? false
       paused = value.paused ?? false
       if (paused && frame) {
         cancelAnimationFrame(frame)
         frame = 0
       }
-      zoom = value.zoom
-      resize()
+      if (zoom !== value.zoom) {
+        zoom = value.zoom
+        resize()
+      }
       requestDraw()
     },
     center() {
@@ -989,6 +1042,8 @@ export function createMapRenderer(
       canvas.removeEventListener('pointercancel', cancel)
       canvas.removeEventListener('pointerleave', leave)
       canvas.removeEventListener('keydown', key)
+      canvas.removeEventListener('wheel', wheel)
+      pointers.clear()
       cache.clear()
       portraits.clear()
       for (const image of images.values()) image.onload = null

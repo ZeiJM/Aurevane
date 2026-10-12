@@ -85,6 +85,10 @@ export function globeAtlasDetailPixels(
     )
       continue
     const base = colors[cell.regionId] ?? colors['verdant-expanse']!
+    const west = land.has(`${cell.column - 1}:${cell.row}`),
+      east = land.has(`${cell.column + 1}:${cell.row}`),
+      north = land.has(`${cell.column}:${cell.row - 1}`),
+      south = land.has(`${cell.column}:${cell.row + 1}`)
     const mountain = ['frostmere', 'starfall-highlands', 'emberreach'].includes(cell.regionId)
     const forest = ['verdant-expanse', 'umbral-march'].includes(cell.regionId)
     for (let sy = 0; sy < scale; sy++)
@@ -100,12 +104,26 @@ export function globeAtlasDetailPixels(
           const crown = Math.max(0, Math.sin(x * 0.69 + Math.sin(y * 0.23)) * Math.cos(y * 0.83))
           shade -= crown * 0.27
         }
-        const coast = Math.min(
-          land.has(`${cell.column - 1}:${cell.row}`) ? scale : sx,
-          land.has(`${cell.column + 1}:${cell.row}`) ? scale : scale - sx - 1,
-          land.has(`${cell.column}:${cell.row - 1}`) ? scale : sy,
-          land.has(`${cell.column}:${cell.row + 1}`) ? scale : scale - sy - 1,
+        let coast = Math.min(
+          west ? scale : sx,
+          east ? scale : scale - sx - 1,
+          north ? scale : sy,
+          south ? scale : scale - sy - 1,
         )
+        // Feather square sector corners inward; never invent land outside a
+        // charted cell. Cell centers and narrow connecting routes stay legible.
+        const r = scale * 0.35
+        let alpha = 255
+        const corner = (cx: number, cy: number) => {
+          const distance = Math.hypot(sx + 0.5 - cx, sy + 0.5 - cy)
+          const edge = r - distance
+          alpha = Math.min(alpha, Math.max(0, Math.min(1, edge + 0.5)) * 255)
+          coast = Math.min(coast, edge)
+        }
+        if (!west && !north && sx < r && sy < r) corner(r, r)
+        if (!east && !north && sx >= scale - r && sy < r) corner(scale - r, r)
+        if (!west && !south && sx < r && sy >= scale - r) corner(r, scale - r)
+        if (!east && !south && sx >= scale - r && sy >= scale - r) corner(scale - r, scale - r)
         if (coast < 2) shade *= coast === 0 ? 0.62 : 1.12
         const snow = cell.regionId === 'frostmere' ? Math.max(0, h - 0.28) * 65 : 0
         const index = (y * width + x) * 4
@@ -135,7 +153,7 @@ export function globeAtlasDetailPixels(
                 : base[channel]! * shade + snow,
             ),
           )
-        pixels[index + 3] = 255
+        pixels[index + 3] = alpha
       }
   }
   return { pixels, width, height }

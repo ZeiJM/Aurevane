@@ -423,6 +423,26 @@
   border-radius: 4px;
   box-shadow: 0 5px 25px #15382b55;
   z-index: 5;
+  max-height: calc(100% - 30px);
+  overflow-y: auto;
+}
+.zoomSetting input {
+  min-width: 0;
+  width: 100%;
+  accent-color: #686d42;
+}
+.zoomSetting output {
+  min-width: 34px;
+  font-variant-numeric: tabular-nums;
+}
+.zoomButtons {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0 16px;
+}
+.zoomButtons button {
+  min-width: 40px;
+  min-height: 40px;
 }
 .settings h3 {
   font: 18px Georgia;

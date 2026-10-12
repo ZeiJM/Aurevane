@@ -11,6 +11,8 @@ export function WorldMap({
   animate,
   paused,
   zoom,
+  zoomLocked,
+  onZoom,
   center,
   onWalk,
   onPlayer,
@@ -21,6 +23,8 @@ export function WorldMap({
   animate: boolean
   paused: boolean
   zoom: number
+  zoomLocked: boolean
+  onZoom: (zoom: number) => void
   center: number
   onWalk: (position: WorldPosition) => void
   onPlayer: (id: string) => void
@@ -28,10 +32,10 @@ export function WorldMap({
   const canvas = useRef<HTMLCanvasElement>(null),
     renderer = useRef<ReturnType<typeof createMapRenderer>>(null)
   const initial = useRef(view)
-  const callbacks = useRef({ onWalk, onPlayer })
+  const callbacks = useRef({ onWalk, onPlayer, onZoom })
   useEffect(() => {
-    callbacks.current = { onWalk, onPlayer }
-  }, [onWalk, onPlayer])
+    callbacks.current = { onWalk, onPlayer, onZoom }
+  }, [onWalk, onPlayer, onZoom])
   useEffect(() => {
     if (!canvas.current) return
     renderer.current = createMapRenderer(
@@ -40,6 +44,7 @@ export function WorldMap({
       initial.current,
       (position) => callbacks.current.onWalk(position),
       (id) => callbacks.current.onPlayer(id),
+      (zoom) => callbacks.current.onZoom(zoom),
     )
     return () => renderer.current?.dispose()
   }, [motion]) // Initial snapshot is replaced below without recreating the renderer.
@@ -47,8 +52,8 @@ export function WorldMap({
     renderer.current?.update(view)
   }, [view])
   useEffect(() => {
-    renderer.current?.settings({ animate, zoom, paused })
-  }, [animate, zoom, paused])
+    renderer.current?.settings({ animate, zoom, paused, zoomLocked })
+  }, [animate, zoom, paused, zoomLocked])
   useEffect(() => {
     renderer.current?.center()
   }, [center])
