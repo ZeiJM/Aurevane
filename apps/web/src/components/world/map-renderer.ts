@@ -1,8 +1,9 @@
 import { GRID_HEIGHT, GRID_WIDTH } from '@/world/catalog'
 import { ATLAS_COLUMNS, ATLAS_ROWS } from '@/world/atlas'
-import { hashString, seeded } from '@/world/terrain-gen'
+import { hashString } from '@/world/terrain-gen'
 import type { WorldLandmark, WorldPosition, WorldSectorView, WorldView } from '@/world/types'
 import { mapPoint, type MapPoint, WorldMotion } from './world-motion'
+import { createCloudTexture, createWildlife, wildlifePose, type Wildlife } from './map-ambient'
 
 import { MAP_X, MAP_Y, projectMapPoint, unprojectMapPoint } from './map-projection'
 
@@ -98,10 +99,16 @@ export function createMapRenderer(
   let hitTargets: { id: string; self: boolean; x: number; y: number }[] = []
   const frameTimes: number[] = []
   const terrainKeys = new Map<string, string>()
+  const wildlife = new Map<string, Wildlife[]>()
+  const clouds = [0, 1, 2].map((i) => createCloudTexture('world-cloud:' + i))
   let cachedPixels = 0
   function indexTerrain() {
-    for (const sector of view.sectors)
+    for (const sector of view.sectors) {
       terrainKeys.set(sector.id, sector.cells.map((c) => `${c.x},${c.y},${c.terrain}`).join(';'))
+      if (!wildlife.has(sector.id)) wildlife.set(sector.id, createWildlife(sector))
+    }
+    for (const id of wildlife.keys())
+      if (!view.sectors.some((s) => s.id === id)) wildlife.delete(id)
   }
   indexTerrain()
   const clearCache = () => {
@@ -327,7 +334,8 @@ export function createMapRenderer(
       props = images.get('props'),
       biomes = images.get('biomes'),
       beauties = images.get('beauties')
-    let waterCells = 0
+    let waterCells = 0,
+      wildlifeCount = 0
     for (const sector of visible) {
       const origin = sectorOrigin(sector),
         p = screen(origin)
@@ -465,18 +473,20 @@ export function createMapRenderer(
             ctx.rect(q.x, q.y, tile, tile)
             ctx.clip()
             ctx.strokeStyle =
-              cell.terrain === '~' ? 'rgba(178,216,208,.22)' : 'rgba(255,196,95,.32)'
-            ctx.lineWidth = 1.3
+              cell.terrain === '~' ? 'rgba(178,216,208,.38)' : 'rgba(255,196,95,.44)'
+            ctx.lineWidth = 1.8
             for (let i = 0; i < 3; i++) {
-              const phase = (now / 2800 + i * 0.33 + cell.x * 0.17) % 1
+              const phase =
+                (now / 3200 + i * 0.33 + (origin.x + cell.x) * 0.17 + (origin.y + cell.y) * 0.11) %
+                1
               const shift = phase * tile
-              ctx.globalAlpha = Math.sin(phase * Math.PI)
+              ctx.globalAlpha = Math.sin(phase * Math.PI) * 0.85
               ctx.beginPath()
               ctx.moveTo(q.x - 12 + shift, q.y + tile * (0.23 + i * 0.27))
               ctx.quadraticCurveTo(
                 q.x + shift,
                 q.y + tile * (0.25 + i * 0.27),
-                q.x + shift + 18,
+                q.x + shift + 28,
                 q.y + tile * (0.23 + i * 0.27),
               )
               ctx.stroke()
@@ -484,6 +494,35 @@ export function createMapRenderer(
             ctx.restore()
           }
     }
+    // Wildlife shares depth with scenery. Wandering never changes collision or authority.
+    const animals: {
+      y: number
+      type: 'animal'
+      animal: Wildlife
+      point: MapPoint
+      bob: number
+      facing: number
+    }[] = []
+    if (nature?.complete && nature.naturalWidth)
+      for (const sector of visible) {
+        const origin = sectorOrigin(sector)
+        for (const animal of wildlife.get(sector.id) ?? []) {
+          const pose = wildlifePose(animal, now, animate && !reduced)
+          const point = { x: origin.x + pose.x, y: origin.y + pose.y },
+            p = screen(point)
+          if (p.x < -40 || p.x > width + 40 || p.y < 0 || p.y > height || wildlifeCount >= 12)
+            continue
+          wildlifeCount++
+          animals.push({
+            y: point.x + point.y + (animal.flying ? 5 : 0),
+            type: 'animal',
+            animal,
+            point,
+            bob: pose.bob,
+            facing: pose.facing,
+          })
+        }
+      }
     // Route is a quiet trail of dots, never sector/tile outlines.
     ctx.fillStyle = 'rgba(237,219,166,.65)'
     for (const step of view.route.slice(0, 30)) {
@@ -523,6 +562,7 @@ export function createMapRenderer(
     })
     stacks.set(selfKey, selfStack)
     const objects = [
+      ...animals,
       ...scenery.map((item) => ({ y: item.x + item.y, type: 'scenery' as const, item })),
       ...Array.from(stacks.values()).map((item) => ({
         y: item.point.x + item.point.y,
@@ -586,6 +626,22 @@ export function createMapRenderer(
       }
     }
     for (const object of objects) {
+      if (object.type === 'animal') {
+        const p = screen(object.point),
+          flying = object.animal.flying,
+          size = tile * (flying ? 0.64 : 0.68)
+        ctx.save()
+        ctx.translate(p.x, p.y - (flying ? tile * 0.85 : 0) + object.bob)
+        ctx.scale(
+          object.facing,
+          flying && animate && !reduced
+            ? 0.83 + Math.sin(now / 260 + object.animal.seed) * 0.13
+            : 1,
+        )
+        sprite(ctx, nature!, object.animal.index, 4, 2, -size / 2, -size * 0.75, size, size * 0.78)
+        ctx.restore()
+        continue
+      }
       if (object.type === 'player') {
         drawPerson(object.item)
         continue
@@ -604,7 +660,7 @@ export function createMapRenderer(
         const seed = hashString(`${item.x}:${item.y}`),
           phase = (seed % 6283) / 1000,
           period = 1700 + (seed % 2600),
-          strength = seed % 7 === 0 ? 0 : 0.4 + (seed % 130) / 100,
+          strength = seed % 7 === 0 ? 0 : 0.9 + (seed % 160) / 100,
           gust = 0.65 + 0.35 * Math.sin(now / 7500 + phase * 0.7),
           sway =
             (Math.sin(now / period + phase) + 0.2 * Math.sin(now / (period * 0.43) + phase * 1.8)) *
@@ -643,23 +699,7 @@ export function createMapRenderer(
         drawPerson(stack, true)
     const labelBounds: { x: number; y: number; width: number; height: number }[] = []
     for (const sector of visible) {
-      const origin = sectorOrigin(sector),
-        random = seeded(sector.id)
-      if (nature?.complete && nature.naturalWidth && !sector.townId) {
-        const cells = sector.cells.filter((c) => c.walkable && c.terrain === '.')
-        const cell = cells[Math.floor(random() * cells.length)]
-        if (cell) {
-          const p = screen({
-            x:
-              origin.x +
-              cell.x +
-              0.5 +
-              (animate && !reduced ? Math.sin(now / 6000 + origin.x) * 0.22 : 0),
-            y: origin.y + cell.y + 0.6,
-          })
-          sprite(ctx, nature, 4 + Math.floor(random() * 4), 4, 2, p.x - 16, p.y - 24, 32, 28)
-        }
-      }
+      const origin = sectorOrigin(sector)
       for (const landmark of sector.landmarks) {
         const p = screen({ x: origin.x + landmark.x + 0.5, y: origin.y + landmark.y + 0.5 })
         if (p.x < 20 || p.x > width - 20 || p.y < 20 || p.y > height - 20) continue
@@ -694,8 +734,38 @@ export function createMapRenderer(
       night = Math.max(0, Math.cos(((hour - 1) * Math.PI) / 12)) * 0.24
     ctx.fillStyle = `rgba(16,28,50,${night})`
     ctx.fillRect(0, 0, width, height)
+    let cloudCount = 0
     if (animate && !reduced) {
       const weather = view.environment.weather
+      // Cloud shadows are anchored to world coordinates, so the camera cannot
+      // make them swim. Wrap well beyond the viewport, never across its center.
+      const spacing = 18,
+        drift = now / 18000
+      const baseX = Math.floor((camera.x - drift) / spacing) * spacing + drift
+      const baseY = Math.floor(camera.y / spacing) * spacing
+      for (let y = -1; y <= 1; y++)
+        for (let x = -1; x <= 1; x++) {
+          const p = screen({ x: baseX + x * spacing, y: baseY + y * spacing })
+          const w = tile * 11,
+            h = tile * 5
+          if (
+            p.x + w / 2 < 0 ||
+            p.x - w / 2 > width ||
+            p.y + h / 2 < 0 ||
+            p.y - h / 2 > height ||
+            cloudCount >= 6
+          )
+            continue
+          ctx.save()
+          ctx.globalAlpha = weather === 'clear' ? 0.5 : 0.8
+          const cloudIndex =
+            (((Math.floor((baseX - drift) / spacing) + x + Math.floor(baseY / spacing) + y) % 3) +
+              3) %
+            3
+          ctx.drawImage(clouds[cloudIndex]!, p.x - w / 2, p.y - h / 2, w, h)
+          ctx.restore()
+          cloudCount++
+        }
       if (weather === 'rain' || weather === 'storm') {
         ctx.strokeStyle = 'rgba(198,223,227,.32)'
         ctx.lineWidth = 1
@@ -717,15 +787,40 @@ export function createMapRenderer(
           ctx.fill()
         }
       }
-      if (weather === 'wind' || view.position.sectorId.includes('verdant')) {
-        ctx.fillStyle = 'rgba(225,198,121,.38)'
-        for (let i = 0; i < 10; i++) {
-          const x = (now * 0.015 + i * 163) % width,
-            y = (i * 101 + Math.sin(now / 2500 + i) * 15) % height
-          ctx.fillRect(x, y, 3, 1)
+      const current = view.sectors.find((s) => s.id === view.position.sectorId)
+      const petals = current?.landscape === 'sakura' || current?.landscape === 'wisteria'
+      ctx.fillStyle = petals ? 'rgba(245,189,213,.75)' : 'rgba(214,195,124,.56)'
+      for (let i = 0; i < 14; i++) {
+        const phase = (now / (11000 + i * 370) + i * 0.13) % 1
+        const x = phase * (width + 160) - 80,
+          y = (i * 101 + Math.sin(now / 2400 + i) * 26 + phase * 70) % height
+        ctx.save()
+        ctx.translate(x, y)
+        ctx.rotate(Math.sin(now / 900 + i) * 0.8)
+        ctx.beginPath()
+        ctx.ellipse(0, 0, petals ? 3.4 : 2.6, 1.4, 0, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.restore()
+      }
+      if (weather === 'wind' || weather === 'clear' || petals) {
+        ctx.strokeStyle = 'rgba(232,238,215,.22)'
+        ctx.lineWidth = 1
+        for (let i = 0; i < 3; i++) {
+          const phase = (now / 7000 + i * 0.31) % 1
+          const x = phase * (width + 200) - 100,
+            y = height * (0.2 + i * 0.27)
+          ctx.globalAlpha = Math.sin(phase * Math.PI)
+          ctx.beginPath()
+          ctx.moveTo(x - 55, y)
+          ctx.bezierCurveTo(x - 15, y - 9, x + 15, y + 10, x + 55, y)
+          ctx.stroke()
         }
+        ctx.globalAlpha = 1
       }
     }
+    canvas.dataset.clouds = String(cloudCount)
+    canvas.dataset.cloudPhase = animate && !reduced ? String(Math.round(now / 100)) : '0'
+    canvas.dataset.wildlife = String(wildlifeCount)
     if (hover) {
       const target = pick(hover)
       if (target) {

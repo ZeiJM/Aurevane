@@ -1253,6 +1253,13 @@ test('the globe rotates by dragging and has a usable charted fallback without We
   await page.reload()
   await page.getByRole('button', { name: /Open world atlas/ }).click()
   await expect(page.getByLabel('Charted world atlas', { exact: true })).toBeVisible()
+  await expect(page.getByLabel('Your current position', { exact: true })).toBeVisible()
+  await expect(page.getByText('Verdant Expanse', { exact: true }).first()).toBeVisible()
+  const fallback = page.locator('canvas[data-globe-fallback]')
+  const beforeRotation = await fallback.screenshot()
+  await globe.press('ArrowRight')
+  await expect.poll(async () => (await fallback.screenshot()).equals(beforeRotation)).toBe(false)
+  await capture(page, info, 'detailed-fallback-globe')
   await page.getByText('Charted sectors', { exact: true }).click()
   await page.getByLabel('Charted sector', { exact: true }).selectOption('frostmere')
   await page.getByRole('button', { name: 'Travel here', exact: true }).click()
@@ -1260,6 +1267,44 @@ test('the globe rotates by dragging and has a usable charted fallback without We
   await page.getByRole('button', { name: 'Stop travel', exact: true }).click()
   await expect.poll(async () => (await world(page)).route.length).toBe(0)
   await capture(page, info, 'fallback-route-return')
+})
+
+test('ambient clouds, water and wildlife remain alive with bounded effects and can be paused', async ({
+  page,
+}, info) => {
+  test.skip(info.project.name !== 'desktop-chromium', 'Inspect ambient movement once.')
+  test.setTimeout(90000)
+  await enter(page)
+  const initial = await world(page)
+  place(initial.characterId, 'verdant-expanse', 8, 4)
+  await page.reload()
+  const canvas = page.locator('canvas[data-world-stage]')
+  await expect.poll(async () => Number(await canvas.getAttribute('data-clouds'))).toBeGreaterThan(0)
+  await expect
+    .poll(async () => Number(await canvas.getAttribute('data-water-cells')))
+    .toBeGreaterThan(0)
+  const before = await canvas.screenshot()
+  await page.waitForTimeout(2000)
+  expect((await canvas.screenshot()).equals(before)).toBe(false)
+  for (let i = 0; i < 12; i++) {
+    await canvas.screenshot({
+      path: info.outputPath(`ambient-motion-${String(i).padStart(2, '0')}.png`),
+    })
+    await page.waitForTimeout(500)
+  }
+  await capture(page, info, 'alive-map-clouds-water')
+  await page.getByRole('button', { name: 'Map settings', exact: true }).click()
+  await page.getByRole('checkbox', { name: 'Ambient animation', exact: true }).uncheck()
+  await page.getByRole('button', { name: 'Done', exact: true }).click()
+  await expect(canvas).toHaveAttribute('data-clouds', '0')
+  await page.waitForTimeout(300)
+  const frames = await canvas.getAttribute('data-render-frames')
+  await page.waitForTimeout(1200)
+  expect(await canvas.getAttribute('data-render-frames')).toBe(frames)
+  await page.getByRole('button', { name: 'Map settings', exact: true }).click()
+  await page.getByRole('checkbox', { name: 'Ambient animation', exact: true }).check()
+  await page.getByRole('button', { name: 'Done', exact: true }).click()
+  await expect.poll(async () => Number(await canvas.getAttribute('data-clouds'))).toBeGreaterThan(0)
 })
 
 test('scenic countryside has real blossom woodland, ruins, pools and open meadows', async ({

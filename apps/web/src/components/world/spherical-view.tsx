@@ -1,10 +1,11 @@
 'use client'
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { unprojectGlobePoint, type GlobeLocation } from '@/world/globe-math'
 import { createSphericalRenderer } from './spherical-renderer'
 import styles from './world.module.css'
 import type { WorldAtlasCell } from '@/world/types'
-import { globeAtlasPixels } from './globe-atlas'
+import { globeAtlasDetailPixels, readGlobePainting, type GlobePainting } from './globe-atlas'
+import { globeFallbackPixels } from './globe-fallback'
 
 interface Props {
   src: string
@@ -40,7 +41,39 @@ export function SphericalView({
   const cameraFrame = useRef<number | null>(null)
   const pendingCamera = useRef<GlobeLocation | null>(null)
   const [failed, setFailed] = useState(false)
-  const fallbackPixels = failed && atlas ? globeAtlasPixels(atlas, gridColumns, gridRows) : null
+  const fallbackCanvas = useRef<HTMLCanvasElement>(null)
+  const hasAtlas = Boolean(atlas)
+  const [painting, setPainting] = useState<GlobePainting | undefined>(undefined)
+  useEffect(() => {
+    if (!failed || !hasAtlas) return
+    const image = new Image()
+    image.onload = () => setPainting(readGlobePainting(image))
+    image.src = src
+    return () => {
+      image.onload = null
+    }
+  }, [failed, src, hasAtlas])
+  const detail = useMemo(
+    () => (failed && atlas ? globeAtlasDetailPixels(atlas, gridColumns, gridRows, painting) : null),
+    [failed, atlas, gridColumns, gridRows, painting],
+  )
+  useEffect(() => {
+    const canvas = fallbackCanvas.current,
+      ctx = canvas?.getContext('2d')
+    if (!ctx || !detail || !canvas) return
+    const size = 420
+    canvas.width = size
+    canvas.height = size
+    ctx.putImageData(
+      new ImageData(
+        globeFallbackPixels(detail, camera, zoom, gridColumns, gridRows, size),
+        size,
+        size,
+      ),
+      0,
+      0,
+    )
+  }, [detail, camera, zoom, gridColumns, gridRows])
   useEffect(() => {
     if (!canvas.current) return
     renderer.current = createSphericalRenderer(canvas.current, src, () => setFailed(true), {
@@ -109,13 +142,7 @@ export function SphericalView({
         const bounds = e.currentTarget.getBoundingClientRect(),
           x = (((e.clientX - bounds.left) / bounds.width) * 2 - 1) / zoom,
           y = (1 - ((e.clientY - bounds.top) / bounds.height) * 2) / zoom
-        const location =
-          failed && atlas
-            ? {
-                longitude: ((e.clientX - bounds.left) / bounds.width) * 360 - 180,
-                latitude: 90 - ((e.clientY - bounds.top) / bounds.height) * 180,
-              }
-            : unprojectGlobePoint(x, y, start.camera)
+        const location = unprojectGlobePoint(x, y, start.camera)
         if (location) onActivate(location)
       }}
       onPointerCancel={() => {
@@ -157,36 +184,12 @@ export function SphericalView({
           }
         >
           {atlas ? (
-            <svg
-              viewBox={`0 0 ${gridColumns} ${gridRows}`}
-              preserveAspectRatio="none"
-              width="100%"
-              height="100%"
+            <canvas
+              ref={fallbackCanvas}
+              role="img"
               aria-label="Charted world atlas"
-              className={styles.flatAtlas}
-            >
-              <rect width={gridColumns} height={gridRows} fill="#183d48" />
-              {atlas
-                .filter((s) => s.charted)
-                .map((cell) => {
-                  const rgb = fallbackPixels!.slice(
-                    (cell.row * gridColumns + cell.column) * 4,
-                    (cell.row * gridColumns + cell.column) * 4 + 3,
-                  )
-                  return (
-                    <rect
-                      key={cell.id}
-                      x={cell.column}
-                      y={cell.row}
-                      width={1}
-                      height={1}
-                      fill={`rgb(${[...rgb].join(',')})`}
-                      stroke="#c7dac440"
-                      strokeWidth={0.04}
-                    />
-                  )
-                })}
-            </svg>
+              data-globe-fallback
+            />
           ) : (
             <span>Drag to look around · choose a region from the list</span>
           )}
@@ -194,7 +197,7 @@ export function SphericalView({
       ) : (
         <canvas ref={canvas} aria-hidden="true" />
       )}
-      {!failed ? children : null}
+      {!failed || atlas ? children : null}
     </div>
   )
 }

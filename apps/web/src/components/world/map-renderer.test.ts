@@ -5,10 +5,10 @@ import { newWorldState } from '@/world/travel'
 import { WorldMotion } from './world-motion'
 import { createMapRenderer } from './map-renderer'
 
-function scene() {
+function scene(reduced = false) {
   const images: { onload: (() => void) | null }[] = []
   const fills: { colour: string; alpha: number; order: number }[] = []
-  const draws: { src: string; order: number }[] = []
+  const draws: { src: string; order: number; args: number[] }[] = []
   const transforms: number[][] = []
   let drawOrder = 0
   let resizeCallback!: () => void
@@ -20,8 +20,8 @@ function scene() {
       fill() {
         fills.push({ colour: this.fillStyle, alpha: this.globalAlpha, order: ++drawOrder })
       },
-      drawImage(image: HTMLImageElement) {
-        draws.push({ src: image.src ?? '', order: ++drawOrder })
+      drawImage(image: HTMLImageElement, ...args: number[]) {
+        draws.push({ src: image.src ?? '', order: ++drawOrder, args })
       },
       transform(...values: number[]) {
         transforms.push(values)
@@ -43,7 +43,7 @@ function scene() {
     listeners = new Map<string, EventListener>()
   vi.stubGlobal('window', {
     devicePixelRatio: 3,
-    matchMedia: () => ({ matches: false, addEventListener() {}, removeEventListener() {} }),
+    matchMedia: () => ({ matches: reduced, addEventListener() {}, removeEventListener() {} }),
   })
   vi.stubGlobal(
     'Image',
@@ -127,6 +127,29 @@ function scene() {
   }
 }
 describe('native map input and bounded lifecycle', () => {
+  it('keeps the detailed world static when the device requests reduced motion', () => {
+    const s = scene(true)
+    s.frame(120)
+    expect(s.canvas.dataset.clouds).toBe('0')
+    expect(s.frames.size).toBe(0)
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  })
+  it('keeps drifting textured cloud shadows visible even in clear weather', () => {
+    const s = scene()
+    s.renderer.update({ ...s.view, environment: { ...s.view.environment, weather: 'clear' } })
+    s.frame(120)
+    expect(Number(s.canvas.dataset.clouds)).toBeGreaterThan(0)
+    expect(Number(s.canvas.dataset.clouds)).toBeLessThanOrEqual(6)
+    const first = s.canvas.dataset.cloudPhase
+    s.frame(2120)
+    expect(s.canvas.dataset.cloudPhase).not.toBe(first)
+    s.renderer.settings({ animate: false, zoom: 1 })
+    s.frame(2160)
+    expect(s.canvas.dataset.clouds).toBe('0')
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  })
   it('renders actual blossom sprites in a sakura landscape', () => {
     const s = scene()
     s.renderer.update({

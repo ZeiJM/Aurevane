@@ -25,6 +25,15 @@ export function WorldGlobe({
     [selected, setSelected] = useState<string | null>(null)
   const pin = projectGlobePoint(location, camera)
   const destination = view.atlas?.find((sector) => sector.id === selected)
+  const labels =
+    view.atlas
+      ?.filter((cell) => cell.charted && cell.id === cell.regionId)
+      .flatMap((cell) => {
+        const location = globeSectorCenter(cell.coordinate, ATLAS_COLUMNS, ATLAS_ROWS)
+        if (!location) return []
+        const p = projectGlobePoint(location, camera)
+        return p.visible && p.x * p.x + p.y * p.y < 0.86 ? [{ ...cell, point: p }] : []
+      }) ?? []
   return (
     <div className={styles.globeScene}>
       <div className={styles.globeFrame}>
@@ -43,6 +52,18 @@ export function WorldGlobe({
             setSelected(sector?.id ?? null)
           }}
         >
+          {labels.map((cell) => (
+            <span
+              key={cell.id}
+              className={styles.globeRegion}
+              style={{
+                left: `${(cell.point.x * zoom + 1) * 50}%`,
+                top: `${(1 - cell.point.y * zoom) * 50}%`,
+              }}
+            >
+              {cell.name}
+            </span>
+          ))}
           {mapped && pin.visible ? (
             <span
               className={styles.globePin}
