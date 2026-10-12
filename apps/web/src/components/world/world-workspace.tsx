@@ -428,10 +428,6 @@ export function WorldWorkspace({
                   <section className={styles.position}>
                     <small>YOUR POSITION</small>
                     <h2>{localName}</h2>
-                    <p data-world-coordinates>
-                      {local.coordinate} · E{local.east + view.position.x} · N
-                      {local.north - view.position.y}
-                    </p>
                   </section>
                 ) : null}
                 {mode === 'global' && destination ? (
@@ -526,6 +522,16 @@ export function WorldWorkspace({
             )}
           </div>
           <div className={styles.panelFoot}>
+            <p
+              className={styles.currentCoordinates}
+              data-world-coordinates
+              aria-label="Current sector and coordinates"
+            >
+              <span>Sector {local.coordinate}</span>
+              <span>
+                E{local.east + view.position.x} · N{local.north - view.position.y}
+              </span>
+            </p>
             <SettingsButton open={settings} onClick={() => setSettings(!settings)} />
           </div>
         </aside>

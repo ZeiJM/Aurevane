@@ -27,6 +27,22 @@ export async function verifyWorldPresentation(
     workspace = page.locator('[data-world-workspace]'),
     panel = page.getByRole('complementary', { name: 'World details', exact: true })
   await expect(canvas).toHaveAttribute('data-camera-x', /\d/)
+  if (info.project.name === 'mobile-chromium')
+    await page.getByRole('button', { name: /Details/ }).click()
+  const coordinates = workspace.locator('[data-world-coordinates]')
+  await expect(coordinates).toHaveCount(1)
+  await expect(coordinates).toContainText('Sector S59-29')
+  await expect(coordinates).toContainText('E760 · N320')
+  if (info.project.name === 'mobile-chromium') {
+    await expect(coordinates).toBeVisible()
+    const bounds = (await panel.boundingBox())!,
+      readout = (await coordinates.boundingBox())!,
+      gear = (await panel.getByRole('button', { name: 'Map settings', exact: true }).boundingBox())!
+    expect(readout.x).toBeGreaterThanOrEqual(bounds.x)
+    expect(readout.x + readout.width).toBeLessThanOrEqual(gear.x)
+    expect(readout.y + readout.height).toBeLessThanOrEqual(bounds.y + bounds.height)
+    await page.getByRole('button', { name: /Close details/ }).click()
+  }
   expect(await canvas.evaluate((el) => getComputedStyle(el).cursor)).toContain('data:image/svg+xml')
   await expect(workspace.locator('footer')).toHaveCount(0)
   if (info.project.name === 'desktop-chromium') {
@@ -48,6 +64,10 @@ export async function verifyWorldPresentation(
     const bounds = (await panel.boundingBox())!,
       button = (await gear.boundingBox())!
     expect(button.y + button.height).toBeGreaterThan(bounds.y + bounds.height - 55)
+    const readout = (await coordinates.boundingBox())!
+    expect(readout.x).toBeGreaterThanOrEqual(bounds.x)
+    expect(readout.x + readout.width).toBeLessThanOrEqual(button.x)
+    expect(readout.y + readout.height).toBeLessThanOrEqual(bounds.y + bounds.height)
   }
   const before = await world(page),
     box = (await canvas.boundingBox())!,
@@ -70,6 +90,7 @@ export async function verifyWorldPresentation(
   await expect
     .poll(async () => Number(await canvas.getAttribute('data-camera-x')), { timeout: 5000 })
     .toBe(58 * GRID_WIDTH + 7.5)
+  await expect(coordinates).toContainText('E761 · N320')
   const after = (await canvas.boundingBox())!
   expect(after).toEqual(box)
   await capture(page, info, 'world-refined-controls')

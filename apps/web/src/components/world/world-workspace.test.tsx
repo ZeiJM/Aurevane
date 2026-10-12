@@ -10,6 +10,34 @@ import { newWorldState } from '@/world/travel'
 import { WorldWorkspace } from './world-workspace'
 
 describe('World page', () => {
+  it('shows the confirmed current sector and east/north coordinates beside the panel gear', () => {
+    const state = newWorldState()
+    state.position = { sectorId: 'atlas:58:28', x: 6, y: 4 }
+    state.route = [{ position: { ...state.position, x: 10 }, durationMs: 200 }]
+    const view = projectWorld(state, [], 1000)
+    view.sectors.reverse()
+    const render = () =>
+      renderToStaticMarkup(
+        createElement(WorldWorkspace, {
+          initialView: view,
+          character: { name: 'Traveller', portrait: '/portrait.webp' },
+        }),
+      )
+    const foot = (markup: string) =>
+      markup.match(/<div class="[^"]*panelFoot[^"]*">([\s\S]*?)<\/div>/)?.[1] ?? ''
+    const initial = foot(render())
+    expect(initial).toContain('data-world-coordinates')
+    expect(initial).toContain('Sector S59-29')
+    expect(initial).toContain('N320')
+    expect(initial).toContain('E760')
+    expect(initial).not.toContain('E764')
+    expect(initial).toContain('aria-label="Map settings"')
+    view.position = { sectorId: 'atlas:58:28', x: 7, y: 3 }
+    const moved = foot(render())
+    expect(moved).toContain('N321')
+    expect(moved).toContain('E761')
+    expect(moved).not.toContain('N320')
+  })
   it('shows persistent training blocking in an alert and clears it with authoritative release', () => {
     const view = projectWorld(newWorldState(), [], 1000)
     const render = () =>

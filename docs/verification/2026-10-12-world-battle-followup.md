@@ -60,3 +60,13 @@ Before this cloud correction, repaired source `ca7a38e2cdb84b3653f177d8a24491aff
 The cloud correction requires fresh exact-source gates. It has not been deployed, and the separate origin reader remains a review-only draft pending Owner migration approval.
 
 The cloud-source full local `pnpm check` exits 0: formatting, lint, eight package type checks, **4,984 Vitest plus seven Node tests**, and production compilation. Evidence: `world-cloud-check.log`. The source remains on the non-deploying follow-up branch; no migration or deployment has occurred.
+
+## Owner-authorized release and current-position readout
+
+The Owner explicitly requests making this follow-up live for testing at `2026-10-12T22:06:48Z`. This authorizes the application release after the required gates; the earlier separate no-migrations-without-approval rule still applies to the origin reader. No new database migration is created/applied.
+
+The Owner then requests current Sector/E/N beside the Settings gear. Move the existing globe-only coordinate projection into the shared panel foot, with two compact lines and tabular numbers, in both local and globe views. It reads the current sector and confirmed `view.position`, not a selected destination or predicted route. The SSR guard fails before the addition and passes afterward, including reversed sector ordering, route-target independence and confirmed E/N updates. Native guards cover desktop/mobile fit beside the gear, movement updates, and unchanged current coordinates when selecting another globe destination. Collection remains 117 cases; focused ESLint/formatting and whitespace checks pass.
+
+The final coordinate-source full local `pnpm check` exits 0: formatting, lint, all package types, **4,985 Vitest plus seven Node tests**, and production compilation. Evidence: `world-coordinates-check.log`. Fresh exact-source browser gates are required for this final source before merge/release.
+
+Preceding cloud source `21767d35bccd36c976d0c58557f39d69e867a398` passes CI, Living Atlas and all four supporting workflows. Atlas run `38314304148` reports 43 passed / 74 intentional duplicate skips. Verified artifact `11776478200`, SHA256 `f973c915db564ea3b0605115588717b1ed312912e5c31b603ff1f3b1f7587fb0`, includes inspected ambient frames and original-art shoreline capture. Its constrained synthetic 101-token rendering case measures 30 ms draw p95, 11 cached sectors and 6,671,808 cache pixels at device DPR2.625 with 4× CPU throttle. This is bounded synthetic evidence, not live 100-player acceptance. Responsive smoke has passed completion-fit and compact chat/footer/command checks, but its full shell suite is still running when the Owner adds the coordinate readout; that partial run is not substituted for the final green gate.

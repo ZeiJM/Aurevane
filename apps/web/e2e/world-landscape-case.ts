@@ -259,7 +259,9 @@ export function registerWorldLandscapeCases(helpers: Helpers) {
     await page.mouse.move(x, y, { steps: 4 })
     await page.mouse.up()
     await expect(towns).toHaveValue('frostmere')
+    const currentCoordinates = await page.locator('[data-world-coordinates] span').allTextContents()
     await verdant.click()
+    await expect(page.locator('[data-world-coordinates] span')).toHaveText(currentCoordinates)
     await expect(towns).toHaveValue('verdant-expanse')
     await expect(
       page.getByRole('region', { name: 'Selected destination', exact: true }),
