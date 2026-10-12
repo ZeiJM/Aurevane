@@ -1,7 +1,7 @@
 import { expect, it } from 'vitest'
 import { projectWorld } from '@/server/world/world-service'
 import { newWorldState } from '@/world/travel'
-import { createWildlife, wildlifePose } from './map-ambient'
+import { createWildlife, wildlifePose, type Wildlife } from './map-ambient'
 import { vi } from 'vitest'
 vi.mock('server-only', () => ({}))
 
@@ -21,4 +21,44 @@ it('wanders along legal connected ground with pauses instead of sliding in place
     ).toBe(true)
   }
   expect(wildlifePose(animal, 12000, false)).toEqual(wildlifePose(animal, 0, false))
+})
+
+it('drives visible strides from ground distance and settles every gait during a pause', () => {
+  const fox: Wildlife = {
+    seed: 0,
+    index: 4,
+    flying: false,
+    path: [
+      { x: 0.5, y: 0.5 },
+      { x: 1.5, y: 0.5 },
+    ],
+  }
+  const first = wildlifePose(fox, 550, true)
+  const next = wildlifePose(fox, 900, true)
+  expect(first.gait).toBeGreaterThan(0)
+  expect(next.gait).not.toBe(first.gait)
+  expect(first.step).toBeGreaterThan(0)
+  expect(first.bob).toBe(0)
+  expect(wildlifePose(fox, 2500, true)).toEqual(wildlifePose(fox, 3100, true))
+  expect(wildlifePose(fox, 2500, true).step).toBe(0)
+  expect(wildlifePose(fox, 12000, false)).toEqual(wildlifePose(fox, 0, false))
+})
+
+it('crouches and hops only while a rabbit travels, and reverses on its connected route', () => {
+  const rabbit: Wildlife = {
+    seed: 0,
+    index: 6,
+    flying: false,
+    path: [
+      { x: 0.5, y: 0.5 },
+      { x: 1.5, y: 0.5 },
+      { x: 1.5, y: 1.5 },
+    ],
+  }
+  const poses = Array.from({ length: 20 }, (_, i) => wildlifePose(rabbit, i * 110, true))
+  expect(poses.some((pose) => pose.hop > 0.25)).toBe(true)
+  expect(poses.some((pose) => pose.crouch > 0.1)).toBe(true)
+  expect(wildlifePose(rabbit, 2500, true).hop).toBe(0)
+  expect(wildlifePose(rabbit, 2500, true).crouch).toBe(0)
+  expect(wildlifePose(rabbit, 11000, true).facing).toBe(-1)
 })

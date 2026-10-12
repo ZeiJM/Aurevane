@@ -9,6 +9,8 @@ import { newWorldState } from '../src/world/travel'
 import type { WorldView } from '../src/world/types'
 import { verifyWorldPresentation, registerWorldInputCases } from './world-presentation-case'
 import { verifyWorldScenePresence } from './world-presence-case'
+import { wrappedMapX } from '../src/world/topology'
+import { registerWorldLandscapeCases } from './world-landscape-case'
 import type { CharacterBuildContext } from '../src/server/character/character-build-service'
 
 const runtimeErrors = new WeakMap<Page, string[]>()
@@ -203,7 +205,8 @@ async function stageWalk(page: Page, destination: { sectorId: string; x: number;
     y: Number(el.dataset.cameraY),
     tile: Number(el.dataset.tileSize),
   }))
-  const dx = (sector.atlasColumn ?? 0) * GRID_WIDTH + destination.x + 0.5 - metrics.x
+  const dx =
+    wrappedMapX((sector.atlasColumn ?? 0) * GRID_WIDTH + destination.x + 0.5, metrics.x) - metrics.x
   const dy = (sector.atlasRow ?? 0) * GRID_HEIGHT + destination.y + 0.5 - metrics.y
   const x = box.width / 2 + (dx - dy) * metrics.tile * 0.85
   const y = box.height / 2 + (dx + dy) * metrics.tile * 0.44
@@ -1351,6 +1354,7 @@ test('scenic countryside has real blossom woodland, ruins, pools and open meadow
 })
 
 registerWorldInputCases({ enter, world, place, stageWalk, capture, openJournal })
+registerWorldLandscapeCases({ enter, world, place, stageWalk, capture })
 
 test('known neighbouring players follow the visible viewport with service-only presence authority', async ({
   page,

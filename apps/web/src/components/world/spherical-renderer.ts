@@ -205,7 +205,10 @@ export function createSphericalRenderer(
     draw,
     updateAtlas(cells: readonly WorldAtlasCell[]) {
       const key = cells
-        .map((c) => `${c.id}:${c.column}:${c.row}:${c.regionId}:${c.charted}`)
+        .map(
+          (c) =>
+            `${c.id}:${c.column}:${c.row}:${c.regionId}:${c.charted}:${c.townId ?? ''}:${c.waterTiles ?? ''}`,
+        )
         .join('|')
       if (key === atlasKey || disposed) return
       atlasKey = key

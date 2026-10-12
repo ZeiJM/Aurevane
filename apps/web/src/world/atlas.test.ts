@@ -7,8 +7,107 @@ import { findWorldRoute, isWalkable, newWorldState, positionKey } from './travel
 import { projectWorld } from '@/server/world/world-service'
 import { isKnownCell, resolveSector, visibleSectors } from '@/server/world/world-content'
 import { resolveWorldIntent } from '@/server/world/world-service'
+import { wrappedColumnDistance } from './topology'
 
 describe('one traversable world atlas', () => {
+  it('has public connected countryside at both sides of the longitude seam', () => {
+    const sectors = atlasSectors()
+    const west = sectors.find((s) => s.atlasColumn === 127 && s.atlasRow === 32)
+    const east = sectors.find((s) => s.atlasColumn === 0 && s.atlasRow === 32)
+    expect(west).toBeDefined()
+    expect(east).toBeDefined()
+    for (const [from, to, x, targetX] of [
+      [west!, east!, 12, 0],
+      [east!, west!, 0, 12],
+    ] as const) {
+      expect(from.charted).toBe(true)
+      expect(from.townId).toBeUndefined()
+      expect(from.roads).toContainEqual({
+        from: { sectorId: from.id, x, y: 4 },
+        to: { sectorId: to.id, x: targetX, y: 4 },
+        durationMs: 200,
+        name: to.name,
+      })
+    }
+    expect(west!.regionId).toBe(east!.regionId)
+    const view = projectWorld(
+      { ...newWorldState(), position: { sectorId: west!.id, x: 12, y: 4 } },
+      [],
+      1000,
+    )
+    expect(view.sectors.some((s) => s.id === east!.id)).toBe(true)
+    expect(view.sectors.some((s) => s.atlasColumn === 1 && s.atlasRow === 32)).toBe(true)
+    expect(view.sectors.length).toBeLessThanOrEqual(25)
+    expect(JSON.stringify(view)).not.toContain('Weathered Observatory')
+  })
+
+  it('takes a short authoritative seam route in either direction at the ordinary 200ms pace', () => {
+    const sectors = atlasSectors()
+    for (const [from, to] of [
+      [
+        { sectorId: 'atlas:127:32', x: 11, y: 4 },
+        { sectorId: 'atlas:0:32', x: 1, y: 4 },
+      ],
+      [
+        { sectorId: 'atlas:0:32', x: 1, y: 4 },
+        { sectorId: 'atlas:127:32', x: 11, y: 4 },
+      ],
+    ] as const) {
+      const route = findWorldRoute(from, to, sectors)
+      expect(route).toHaveLength(3)
+      expect(route!.every((step) => step.durationMs === 200)).toBe(true)
+      let state = resolveWorldIntent(
+        { ...newWorldState(), position: from },
+        { kind: 'walk', destination: to },
+        1000,
+      )
+      expect(state.route.length).toBeLessThanOrEqual(256)
+      expect(resolveWorldIntent(state, { kind: 'tick' }, 1199).position).toEqual(from)
+      state = resolveWorldIntent(state, { kind: 'tick' }, 1200)
+      expect(state.position).toEqual(route![0]!.position)
+      state = resolveWorldIntent(state, { kind: 'tick' }, 1600)
+      expect(state.position).toEqual(to)
+      expect(state.route).toEqual([])
+    }
+    expect(
+      findWorldRoute(
+        { sectorId: 'atlas:127:32', x: 12, y: 4 },
+        { sectorId: 'atlas:0:0', x: 0, y: 4 },
+        sectors,
+      ),
+    ).toBeNull()
+    expect(sectors.some((s) => s.atlasRow! < 0 || s.atlasRow! >= ATLAS_ROWS)).toBe(false)
+  })
+  it('adds sparse interior lakes to new countryside without blocking its road approaches', () => {
+    const newCountryside = atlasSectors().filter(
+      (sector) => sector.atlasColumn! < 38 || sector.atlasColumn! > 96,
+    )
+    const ponds = newCountryside.filter((sector) => sector.rows.some((row) => row.includes('~')))
+    expect(ponds.length).toBeGreaterThan(5)
+    expect(ponds.length).toBeLessThan(newCountryside.length / 3)
+    for (const sector of ponds) {
+      expect(sector.rows[4]).not.toContain('~')
+      expect(sector.rows[0]).not.toContain('~')
+      expect(sector.rows[8]).not.toContain('~')
+      expect(sector.rows.every((row) => row[0] !== '~' && row[12] !== '~')).toBe(true)
+      if (sector.atlasColumn! % 4 === 0)
+        expect(sector.rows.every((row) => row[6] !== '~')).toBe(true)
+    }
+  })
+  it('reaches the dateline from existing towns with bounded saved route windows', () => {
+    const state = newWorldState()
+    for (const sectorId of ['atlas:127:32', 'atlas:0:32']) {
+      const destination = { sectorId, x: 6, y: 4 }
+      const route = findWorldRoute(state.position, destination, visibleSectors(state), (p) =>
+        isKnownCell(state, p),
+      )
+      expect(route?.length, sectorId).toBeGreaterThan(400)
+      expect(route!.every((step) => step.durationMs === 200)).toBe(true)
+      const planned = resolveWorldIntent(state, { kind: 'walk', destination }, 1000)
+      expect(planned.route).toHaveLength(256)
+      expect(planned.routeDestination).toEqual(destination)
+    }
+  })
   it('plans long charted journeys with the actual server-visible compatibility graph', () => {
     const state = newWorldState()
     const visible = visibleSectors(state)
@@ -80,7 +179,7 @@ describe('one traversable world atlas', () => {
         if (
           !isWalkable(sector, road.from) ||
           !isWalkable(to, road.to) ||
-          Math.abs(a.column - b.column) + Math.abs(a.row - b.row) !== 1 ||
+          wrappedColumnDistance(a.column, b.column) + Math.abs(a.row - b.row) !== 1 ||
           !edges.has(`${positionKey(road.to)}>${positionKey(road.from)}`)
         )
           invalid.push(road)

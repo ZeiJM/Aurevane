@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 vi.mock('server-only', () => ({}))
 import { newWorldState, revealNearby } from '@/world/travel'
 import { FRONTIER_APPROACH, STEP_MS } from '@/world/catalog'
+import { wrapAtlasColumn } from '@/world/topology'
 import { assertEncounterRange, projectWorld, resolveWorldIntent } from './world-service'
 import {
   AURETH_SETTLEMENT,
@@ -14,6 +15,51 @@ import {
 } from './world-objectives'
 
 describe('world authority and spoiler projection', () => {
+  it('fills the public map viewport at minimum zoom without wasting scene slots on distant corners', () => {
+    const state = newWorldState(),
+      view = projectWorld(state, [], 1000),
+      current = view.sectors.find((s) => s.id === state.position.sectorId)!,
+      ids = new Set(view.sectors.map((s) => s.id)),
+      atlas = new Map(view.atlas!.map((s) => [`${s.column}:${s.row}`, s]))
+    const width = 1296,
+      height = 944,
+      tile = 64 * 0.6,
+      cx = current.atlasColumn! * 13 + state.position.x + 0.5,
+      cy = current.atlasRow! * 9 + state.position.y + 0.5
+    for (const px of [0, width / 4, width / 2, (width * 3) / 4, width])
+      for (const py of [0, height / 4, height / 2, (height * 3) / 4, height]) {
+        const a = (px - width / 2) / (tile * 0.85),
+          b = (py - height / 2) / (tile * 0.44),
+          column = wrapAtlasColumn(Math.floor((cx + (a + b) / 2) / 13)),
+          row = Math.floor((cy + (b - a) / 2) / 9),
+          sector = atlas.get(`${column}:${row}`)
+        if (sector?.charted) expect(ids.has(sector.id), `${px},${py} needs ${sector.id}`).toBe(true)
+      }
+    expect(view.sectors.length).toBeLessThanOrEqual(25)
+  })
+  it('projects actual public water and town footprints without exposing private terrain', () => {
+    const view = projectWorld(newWorldState(), [], 1000),
+      local = view.sectors.find((sector) => sector.id === view.position.sectorId)!,
+      overview = view.atlas!.find((cell) => cell.id === local.id)!
+    expect(overview.townId).toBe(local.townId)
+    expect(overview.waterTiles).toHaveLength(117)
+    for (const cell of local.cells)
+      expect(overview.waterTiles![cell.y * 13 + cell.x]).toBe(
+        cell.terrain === '~' || cell.terrain === 'l' ? cell.terrain : '.',
+      )
+    const dry = view.atlas!.find((cell) => cell.id === 'atlas:58:28')!
+    expect(dry.waterTiles).toBeUndefined()
+    const privateView = projectWorld(
+      revealNearby({ ...newWorldState(), position: { sectorId: 'survey-01', x: 6, y: 8 } }),
+      [],
+      1000,
+    )
+    for (const cell of privateView.atlas!.filter((cell) => !cell.charted)) {
+      expect(cell.waterTiles).toBeUndefined()
+      expect(cell.townId).toBeUndefined()
+    }
+    expect(JSON.stringify(view).length).toBeLessThan(700000)
+  })
   it.each([
     {
       from: { sectorId: 'aureth-crown', x: 12, y: 4 },

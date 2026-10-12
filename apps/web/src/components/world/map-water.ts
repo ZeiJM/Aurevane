@@ -5,6 +5,53 @@ import type { WorldSectorView } from '@/world/types'
 type Point = readonly [number, number]
 type Curve = readonly [Point, Point, Point, Point]
 type Side = 0 | 1 | 2 | 3
+/** Source-art channel coordinates: only the falling water moves, never its rocks. */
+export function waterfallHighlights(now: number) {
+  return Array.from({ length: 8 }, (_, i) => {
+    const lower = i >= 4,
+      phase = (now / (820 + i * 39) + (i % 4) / 4) % 1
+    return {
+      x: (lower ? 0.48 : 0.47) + ((i % 3) - 1) * 0.013,
+      y: (lower ? 0.51 : 0.32) + phase * 0.13,
+      length: 0.022,
+      alpha: Math.sin(phase * Math.PI) * 0.32,
+    }
+  })
+}
+export function paintWaterfallMotion(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  now: number,
+) {
+  context.save()
+  context.strokeStyle = '#e4f6f1'
+  context.lineCap = 'round'
+  context.lineWidth = Math.max(0.6, width * 0.007)
+  for (const point of waterfallHighlights(now)) {
+    context.globalAlpha = point.alpha
+    context.beginPath()
+    context.moveTo(x + point.x * width, y + point.y * height)
+    context.lineTo(x + point.x * width, y + (point.y + point.length) * height)
+    context.stroke()
+  }
+  const phase = (now / 2400) % 1
+  context.globalAlpha = (1 - phase) * 0.18
+  context.beginPath()
+  context.ellipse(
+    x + width * 0.49,
+    y + height * 0.78,
+    width * (0.05 + phase * 0.12),
+    height * (0.015 + phase * 0.025),
+    0,
+    0,
+    Math.PI * 2,
+  )
+  context.stroke()
+  context.restore()
+}
 interface Bank {
   side: Side
   edge: Curve[]

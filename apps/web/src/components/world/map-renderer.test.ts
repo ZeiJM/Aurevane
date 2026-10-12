@@ -4,16 +4,31 @@ import { projectWorld } from '@/server/world/world-service'
 import { newWorldState } from '@/world/travel'
 import { mapPoint, WorldMotion } from './world-motion'
 import { createMapRenderer } from './map-renderer'
+import { projectMapPoint } from './map-projection'
+import type { WorldView } from '@/world/types'
 
-function scene(reduced = false) {
+function scene(reduced = false, initial?: WorldView) {
   const images: { onload: (() => void) | null }[] = []
   const fills: { colour: string; alpha: number; order: number }[] = []
-  const draws: { src: string; order: number; args: number[] }[] = []
+  const draws: { src: string; order: number; args: number[]; matrix: number[] }[] = []
   const transforms: number[][] = []
   const groundCurves: number[][] = []
   let drawOrder = 0
   let createdLayers = 0
   let resizeCallback!: () => void
+  let matrix = [1, 0, 0, 1, 0, 0]
+  const matrices: number[][] = []
+  const multiply = (b: number[]) => {
+    const a = matrix
+    matrix = [
+      a[0]! * b[0]! + a[2]! * b[1]!,
+      a[1]! * b[0]! + a[3]! * b[1]!,
+      a[0]! * b[2]! + a[2]! * b[3]!,
+      a[1]! * b[2]! + a[3]! * b[3]!,
+      a[0]! * b[4]! + a[2]! * b[5]! + a[4]!,
+      a[1]! * b[4]! + a[3]! * b[5]! + a[5]!,
+    ]
+  }
   const context = new Proxy(
     {
       measureText: (text: string) => ({ width: text.length * 7 }),
@@ -23,10 +38,26 @@ function scene(reduced = false) {
         fills.push({ colour: this.fillStyle, alpha: this.globalAlpha, order: ++drawOrder })
       },
       drawImage(image: HTMLImageElement, ...args: number[]) {
-        draws.push({ src: image.src ?? '', order: ++drawOrder, args })
+        draws.push({ src: image.src ?? '', order: ++drawOrder, args, matrix: [...matrix] })
       },
       transform(...values: number[]) {
         transforms.push(values)
+        multiply(values)
+      },
+      setTransform(...values: number[]) {
+        matrix = values
+      },
+      translate(x: number, y: number) {
+        multiply([1, 0, 0, 1, x, y])
+      },
+      scale(x: number, y: number) {
+        multiply([x, 0, 0, y, 0, 0])
+      },
+      save() {
+        matrices.push([...matrix])
+      },
+      restore() {
+        matrix = matrices.pop() ?? matrix
       },
     },
     {
@@ -106,7 +137,7 @@ function scene(reduced = false) {
     addEventListener: (name: string, callback: EventListener) => listeners.set(name, callback),
     removeEventListener: (name: string) => listeners.delete(name),
   } as unknown as HTMLCanvasElement
-  const view = projectWorld(newWorldState(), [], 1000),
+  const view = initial ?? projectWorld(newWorldState(), [], 1000),
     select = vi.fn(),
     onZoom = vi.fn(),
     onVisiblePlayers = vi.fn()
@@ -152,6 +183,115 @@ function scene(reduced = false) {
   }
 }
 describe('native map input and bounded lifecycle', () => {
+  it('remounts after a longitude crossing in the retained motion frame without a world-wide camera sweep', () => {
+    const state = { ...newWorldState(), position: { sectorId: 'atlas:127:32', x: 12, y: 4 } },
+      view = projectWorld(state, [], 1000),
+      s = scene(true, view),
+      destination = { sectorId: 'atlas:0:32', x: 0, y: 4 },
+      arrived = projectWorld({ ...state, position: destination }, [], 1200)
+    s.motion.plan([{ position: destination, durationMs: 200 }], view.sectors, 0)
+    s.motion.reconcile(arrived, 200)
+    expect(s.motion.sample(200).point.x).toBe(1664.5)
+    s.renderer.dispose()
+    const remounted = createMapRenderer(s.canvas, s.motion, arrived, s.select, vi.fn())!
+    s.frame(400)
+    expect(Number(s.canvas.dataset.cameraX)).toBe(1664.5)
+    remounted.dispose()
+    vi.unstubAllGlobals()
+  })
+  it('anchors the painted bridge footprint on its legal crossing and aligns its span with the road', () => {
+    const s = scene(true)
+    const props = s.images.find((image) =>
+      (image as HTMLImageElement).src.endsWith('props-v02.webp'),
+    )!
+    Object.assign(props, { width: 1774, height: 887, naturalWidth: 1774 })
+    s.frame(40)
+    const bridge = s.draws.find(
+      (draw) =>
+        draw.src.endsWith('props-v02.webp') &&
+        draw.args[0]! >= 887 &&
+        draw.args[0]! < 1331 &&
+        draw.args[1]! < 100,
+    )!
+    const paintedPoint = (x: number, y: number) => {
+      const a = bridge.args,
+        m = bridge.matrix
+      const dx = a[4]! + ((x - a[0]!) / a[2]!) * a[6]!,
+        dy = a[5]! + ((y - a[1]!) / a[3]!) * a[7]!
+      return { x: m[0]! * dx + m[2]! * dy + m[4]!, y: m[1]! * dx + m[3]! * dy + m[5]! }
+    }
+    const center = paintedPoint(1194.72, 308.14)
+    const point = mapPoint({ sectorId: s.view.position.sectorId, x: 10, y: 4 }, s.view.sectors)
+    const expected = projectMapPoint(
+      point,
+      mapPoint(s.view.position, s.view.sectors),
+      { x: 0, y: 0 },
+      64,
+      800,
+      600,
+    )
+    expect(center.x).toBeCloseTo(expected.x * 1.5, 1)
+    expect(center.y).toBeCloseTo(expected.y * 1.5, 1)
+    const a = paintedPoint(1035, 386),
+      b = paintedPoint(1354, 230)
+    expect((b.x - a.x) * (b.y - a.y)).toBeGreaterThan(0)
+    expect(
+      s.fills.some((fill) => fill.colour === 'rgba(48,108,118,.96)' && fill.order < bridge.order),
+    ).toBe(true)
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  })
+  it('does not draw a bridge prop on a road without a real known liquid crossing', () => {
+    const s = scene(true)
+    s.renderer.update({
+      ...s.view,
+      sectors: s.view.sectors.map((sector) => ({
+        ...sector,
+        cells: sector.cells.map((cell) => ({
+          ...cell,
+          terrain: cell.terrain === '~' || cell.terrain === 'l' ? '.' : cell.terrain,
+        })),
+      })),
+    })
+    s.frame(40)
+    expect(
+      s.draws.some(
+        (draw) =>
+          draw.src.endsWith('props-v02.webp') &&
+          draw.args[0]! >= 600 &&
+          draw.args[0]! < 900 &&
+          draw.args[1]! < 150,
+      ),
+    ).toBe(false)
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  })
+  it('does not place a waterfall or receiving pond where the projected terrain contains no water', () => {
+    const s = scene(true)
+    const sector = s.view.sectors.find((sector) => sector.id === s.view.position.sectorId)!
+    s.renderer.update({
+      ...s.view,
+      sectors: [
+        {
+          ...sector,
+          cells: sector.cells.map((cell) => ({ ...cell, terrain: '.', walkable: true })),
+          buildings: [],
+          landmarks: [
+            { id: 'dry-waterfall', name: 'Falls', kind: 'spring', x: 8, y: 3, sceneryIndex: 4 },
+          ],
+        },
+      ],
+    })
+    s.frame(40)
+    expect(
+      s.draws.some(
+        (draw) =>
+          draw.src.endsWith('beauties-v03.webp') && draw.args[0] === 0 && draw.args[1] === 600,
+      ),
+    ).toBe(false)
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  })
   it('keeps curved bank and flowing surface detail in the cached river with reduced motion', () => {
     const s = scene(true)
     s.frame(40)
@@ -434,7 +574,7 @@ describe('native map input and bounded lifecycle', () => {
           name: 'Traveller',
           level: 1,
           portraitRef: '',
-          imageUrl: null,
+          imageUrl: '/bridge-traveller.png',
           online: true,
           attackable: false,
           position: { sectorId: sector.id, x: bridge.x, y: bridge.y },
@@ -445,7 +585,9 @@ describe('native map input and bounded lifecycle', () => {
     const props = s.draws.filter((draw) => draw.src.endsWith('props-v02.webp'))
     expect(props.length).toBeGreaterThan(0)
     const lastProp = Math.max(...props.map((draw) => draw.order))
-    expect(s.fills.some((fill) => fill.colour === '#a6b1b0' && fill.order > lastProp)).toBe(true)
+    expect(
+      s.draws.some((draw) => draw.src === '/bridge-traveller.png' && draw.order > lastProp),
+    ).toBe(true)
     s.renderer.dispose()
     vi.unstubAllGlobals()
   })

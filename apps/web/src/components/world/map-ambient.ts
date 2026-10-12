@@ -49,25 +49,47 @@ export function createWildlife(sector: WorldSectorView): Wildlife[] {
   }
   return animals
 }
-export function wildlifePose(animal: Wildlife, now: number, animate: boolean) {
-  const path = [...animal.path, ...animal.path.slice(1, -1).reverse()]
+export interface WildlifePose {
+  x: number
+  y: number
+  moving: boolean
+  facing: number
+  bob: number
+  gait: number
+  step: number
+  hop: number
+  crouch: number
+  wing: number
+}
+
+export function wildlifePose(animal: Wildlife, now: number, animate: boolean): WildlifePose {
+  // Reflect the route by index; do not allocate a reversed route on every frame.
+  const segments = Math.max(1, (animal.path.length - 1) * 2)
   const travel = animal.flying ? 5800 : 2200 + (animal.seed % 1700)
   const pause = animal.flying ? 0 : 1300 + (animal.seed % 2000)
   const clock = animate ? (now + (animal.seed % 17000)) / (travel + pause) : 0
-  const segment = Math.floor(clock) % path.length
-  const from = path[segment]!,
-    to = path[(segment + 1) % path.length]!
+  const segment = Math.floor(clock) % segments
+  const next = (segment + 1) % segments
+  const from = animal.path[Math.min(segment, segments - segment)]!,
+    to = animal.path[Math.min(next, segments - next)]!
   const progress = animate ? Math.min(1, ((clock % 1) * (travel + pause)) / travel) : 0
   const eased = progress * progress * (3 - 2 * progress)
+  const moving = animate && progress > 0 && progress < 1
+  const step = moving ? Math.sin(progress * Math.PI) : 0
+  // Ground route edges are one legal tile: four fox strides / three deer or rabbit strides.
+  const gait = moving ? (eased * (animal.index === 4 ? 4 : 3)) % 1 : 0
+  const bounce = Math.sin(gait * Math.PI * 2) * step
   return {
     x: from.x + (to.x - from.x) * eased,
     y: from.y + (to.y - from.y) * eased,
-    moving: animate && progress < 1,
+    moving,
     facing: to.x - to.y >= from.x - from.y ? 1 : -1,
-    bob: animate
-      ? Math.sin(now / (animal.flying ? 260 : 180) + animal.seed) *
-        (animal.flying ? 2.5 : progress < 1 ? 0.9 : 0.15)
-      : 0,
+    bob: animate && animal.flying ? Math.sin(now / 260 + animal.seed) * 2.5 : 0,
+    gait,
+    step,
+    hop: animal.index === 6 ? Math.max(0, bounce) : 0,
+    crouch: animal.index === 6 ? Math.max(0, -bounce) : 0,
+    wing: animate && animal.flying ? Math.sin(now / 110 + animal.seed) : 0,
   }
 }
 

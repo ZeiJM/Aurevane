@@ -2,6 +2,7 @@ import { GRID_HEIGHT, GRID_WIDTH, START_POSITION, STEP_MS } from './catalog'
 import { isWildSectorId } from './wild-ids'
 import type { TravelStep, WorldObjective, WorldPosition, WorldSector, WorldState } from './types'
 import { terrainWalkable } from './terrain'
+import { wrappedMapDistance } from './topology'
 
 export const ACTIVE_WORLD_SYNC_MS = 600
 export const IDLE_WORLD_SYNC_MS = 10000
@@ -129,22 +130,19 @@ export function findWorldRoute(
     (s) =>
       s.atlasColumn !== undefined &&
       s.atlasRow !== undefined &&
+      (s.stepMs ?? STEP_MS) >= STEP_MS &&
       s.roads.every((road) => {
         const target = lookup.get(road.to.sectorId)
         return (
           !target ||
           (target.atlasColumn !== undefined &&
             target.atlasRow !== undefined &&
-            Math.abs(
-              s.atlasColumn! * GRID_WIDTH +
-                road.from.x -
-                target.atlasColumn * GRID_WIDTH -
-                road.to.x,
-            ) +
-              Math.abs(
-                s.atlasRow! * GRID_HEIGHT + road.from.y - target.atlasRow * GRID_HEIGHT - road.to.y,
-              ) ===
-              1 &&
+            wrappedMapDistance(
+              s.atlasColumn! * GRID_WIDTH + road.from.x,
+              s.atlasRow! * GRID_HEIGHT + road.from.y,
+              target.atlasColumn * GRID_WIDTH + road.to.x,
+              target.atlasRow * GRID_HEIGHT + road.to.y,
+            ) === 1 &&
             road.durationMs >= STEP_MS)
         )
       }),
@@ -155,9 +153,12 @@ export function findWorldRoute(
     if (!atlasOnly) return 0
     const sector = lookup.get(p.sectorId)!
     return (
-      (Math.abs(sector.atlasColumn! * GRID_WIDTH + p.x - targetX) +
-        Math.abs(sector.atlasRow! * GRID_HEIGHT + p.y - targetY)) *
-      STEP_MS
+      wrappedMapDistance(
+        sector.atlasColumn! * GRID_WIDTH + p.x,
+        sector.atlasRow! * GRID_HEIGHT + p.y,
+        targetX,
+        targetY,
+      ) * STEP_MS
     )
   }
   const queue = new MinHeap<{ position: WorldPosition; cost: number; score: number }>(

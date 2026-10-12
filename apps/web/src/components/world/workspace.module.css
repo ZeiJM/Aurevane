@@ -560,30 +560,52 @@
 .globePin {
   position: absolute;
   display: flex;
+  height: 8px;
   align-items: center;
   gap: 6px;
-  transform: translate(-50%, -50%);
+  transform: translate(-4px, -4px);
   font: 10px Georgia;
   color: #f2e3ba;
   text-shadow: 0 1px 3px #051c22;
   white-space: nowrap;
   pointer-events: none;
 }
-.globeRegion {
+.workspace .globeTown {
   position: absolute;
   transform: translate(-50%, -50%);
-  pointer-events: none;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  min-height: 30px;
+  padding: 2px;
+  border: 0;
+  background: #122e32bd;
+  border-radius: 50%;
   color: #f5e8c6;
   font:
     small-caps 600 clamp(10px, 1vw, 14px) Georgia,
     serif;
   letter-spacing: 0.04em;
   white-space: nowrap;
-  margin-top: -24px;
   text-shadow:
     0 1px 3px #15262c,
     1px 0 3px #15262c,
     -1px 0 3px #15262c;
+}
+.globeTown > span {
+  position: absolute;
+  bottom: 34px;
+  padding: 2px 5px;
+  background: #071c24ca;
+  border-radius: 3px;
+}
+.workspace .globeTown[aria-pressed='true'] {
+  color: #ffe2a1;
+  box-shadow: 0 0 0 2px #d0ac66;
+}
+.globeTown:focus-visible {
+  outline: 2px solid #ffe2a1;
+  outline-offset: 3px;
 }
 .globePin i {
   display: block;
@@ -652,6 +674,10 @@
   flex-direction: column;
   gap: 8px;
   padding-top: 12px;
+}
+.sectorPicker .townPicker {
+  padding-top: 0;
+  margin-bottom: 10px;
 }
 .sectorPicker select {
   max-width: 240px;

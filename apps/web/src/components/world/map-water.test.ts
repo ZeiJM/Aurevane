@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { WorldSectorView } from '@/world/types'
-import { buildWaterField } from './map-water'
+import { buildWaterField, waterfallHighlights } from './map-water'
 
 function sector(id: string, atlasRow = 0, cells: [number, number, string][] = []): WorldSectorView {
   return {
@@ -27,6 +27,18 @@ function sector(id: string, atlasRow = 0, cells: [number, number, string][] = []
 }
 
 describe('world-connected water presentation', () => {
+  it('moves waterfall highlights down its fixed painted channels without moving the rocks', () => {
+    const first = waterfallHighlights(0),
+      second = waterfallHighlights(120)
+    expect(first[0]!.x).toBe(second[0]!.x)
+    expect(second[0]!.y).toBeGreaterThan(first[0]!.y)
+    for (const point of waterfallHighlights(9100)) {
+      expect(point.x).toBeGreaterThan(0.3)
+      expect(point.x).toBeLessThan(0.6)
+      expect(point.y).toBeGreaterThan(0.3)
+      expect(point.y + point.length).toBeLessThan(0.73)
+    }
+  })
   it('joins current ports and curved wet banks across a sector boundary without a cross-river shore', () => {
     const north = sector('north', 0, [
       [10, 7, '~'],

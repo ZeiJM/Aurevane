@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { WORLD_LAND_NAME } from '@/world/atlas'
 import { WORLD_REGIONS } from '@/world/catalog'
+import { precipitationKind } from './map-weather'
 import { remainingTravelMs, worldSyncDelayMs } from '@/world/travel'
 import type { WorldIntent, WorldPosition, WorldView } from '@/world/types'
 import { WorldConflict, WorldController } from './world-controller'
@@ -277,7 +278,15 @@ export function WorldWorkspace({
         </div>
         <div className={styles.environment}>
           <span>{time} UTC</span>
-          {mode === 'local' ? <span>{view.environment.weather}</span> : null}
+          {mode === 'local' ? (
+            <span>
+              {precipitationKind(view.environment.weather, local.regionId) === 'snow'
+                ? view.environment.weather === 'storm'
+                  ? 'Snowstorm'
+                  : 'Snow'
+                : view.environment.weather}
+            </span>
+          ) : null}
         </div>
         <button
           className={styles.panelToggle}
