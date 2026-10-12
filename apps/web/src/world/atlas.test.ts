@@ -64,23 +64,30 @@ describe('one traversable world atlas', () => {
   it('has symmetric crossings only between adjacent, walkable land cells', () => {
     const sectors = atlasSectors(),
       byId = new Map(sectors.map((s) => [s.id, s]))
+    const edges = new Set(
+      sectors.flatMap((s) => s.roads.map((r) => `${positionKey(r.from)}>${positionKey(r.to)}`)),
+    )
+    const invalid: unknown[] = []
     for (const sector of sectors)
       for (const road of sector.roads) {
-        const to = byId.get(road.to.sectorId)!
-        expect(to).toBeDefined()
-        expect(isWalkable(sector, road.from)).toBe(true)
-        expect(isWalkable(to, road.to)).toBe(true)
+        const to = byId.get(road.to.sectorId)
+        if (!to) {
+          invalid.push({ road, missing: road.to.sectorId })
+          continue
+        }
         const a = atlasAddress(sector)!,
           b = atlasAddress(to)!
-        expect(Math.abs(a.column - b.column) + Math.abs(a.row - b.row)).toBe(1)
-        expect(
-          to.roads.some(
-            (r) =>
-              positionKey(r.from) === positionKey(road.to) &&
-              positionKey(r.to) === positionKey(road.from),
-          ),
-        ).toBe(true)
+        if (
+          !isWalkable(sector, road.from) ||
+          !isWalkable(to, road.to) ||
+          Math.abs(a.column - b.column) + Math.abs(a.row - b.row) !== 1 ||
+          !edges.has(`${positionKey(road.to)}>${positionKey(road.from)}`)
+        )
+          invalid.push(road)
       }
+    // Check every edge in linear time and report actual invalid edges together.
+    // Avoid hundreds of thousands of assertion allocations on a small CI runner.
+    expect(invalid).toEqual([])
   })
   it('gives towns multiple airy districts with inter-town countryside', () => {
     const sectors = atlasSectors()

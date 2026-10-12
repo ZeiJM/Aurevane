@@ -218,7 +218,10 @@ async function stageWalk(page: Page, destination: { sectorId: string; x: number;
   expect(x).toBeLessThan(box.width)
   expect(y).toBeGreaterThan(0)
   expect(y).toBeLessThan(box.height)
-  await canvas.click({ position: { x, y } })
+  // The camera follows the traveller every frame. Locator.click's actionability
+  // wait can age these measured coordinates by several tiles during a replan.
+  // The canvas is already visible/bounded above; send the real mouse click now.
+  await page.mouse.click(box.x + x, box.y + y)
 }
 
 test('the World page is the scenic map stage inside the shared shell, with Missions panel and globe', async ({
