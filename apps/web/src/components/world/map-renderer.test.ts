@@ -11,6 +11,7 @@ function scene(reduced = false) {
   const draws: { src: string; order: number; args: number[] }[] = []
   const transforms: number[][] = []
   let drawOrder = 0
+  let createdLayers = 0
   let resizeCallback!: () => void
   const context = new Proxy(
     {
@@ -78,7 +79,10 @@ function scene(reduced = false) {
     get visibilityState() {
       return visibility
     },
-    createElement: () => ({ width: 0, height: 0, getContext: () => context }),
+    createElement: () => {
+      createdLayers++
+      return { width: 0, height: 0, getContext: () => context }
+    },
     addEventListener: (name: string, callback: EventListener) =>
       listeners.set('document:' + name, callback),
     removeEventListener: (name: string) => listeners.delete('document:' + name),
@@ -97,9 +101,18 @@ function scene(reduced = false) {
   } as unknown as HTMLCanvasElement
   const view = projectWorld(newWorldState(), [], 1000),
     select = vi.fn(),
-    onZoom = vi.fn()
+    onZoom = vi.fn(),
+    onVisiblePlayers = vi.fn()
   const motion = new WorldMotion(view)
-  const renderer = createMapRenderer(canvas, motion, view, select, vi.fn(), onZoom)!
+  const renderer = createMapRenderer(
+    canvas,
+    motion,
+    view,
+    select,
+    vi.fn(),
+    onZoom,
+    onVisiblePlayers,
+  )!
   return {
     fills,
     draws,
@@ -112,7 +125,9 @@ function scene(reduced = false) {
     renderer,
     select,
     onZoom,
+    onVisiblePlayers,
     frames,
+    layerCount: () => createdLayers,
     listeners,
     event(name: string, x: number, y: number) {
       listeners.get(name)!({ clientX: x, clientY: y, pointerId: 1 } as unknown as Event)
@@ -129,6 +144,116 @@ function scene(reduced = false) {
   }
 }
 describe('native map input and bounded lifecycle', () => {
+  it('uses a centered cover crop for wide portraits, keeping the battle-grid face proportions', () => {
+    const s = scene()
+    s.canvas.dataset.portrait = '/wide-portrait.png'
+    s.frame(40)
+    const portrait = s.images.find(
+      (image) => (image as HTMLImageElement).src === '/wide-portrait.png',
+    )!
+    Object.assign(portrait, { width: 1200, height: 600, naturalHeight: 600 })
+    s.renderer.update(s.view)
+    s.frame(80)
+    const draw = s.draws.filter((draw) => draw.src === '/wide-portrait.png').at(-1)!
+    expect(draw.args.slice(0, 4)).toEqual([300, 0, 600, 600])
+    expect(draw.args.slice(-2)).toEqual([34, 34])
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  })
+  it('walks with WASD in either case while retaining arrow-key movement', () => {
+    const s = scene()
+    s.renderer.update({
+      ...s.view,
+      sectors: s.view.sectors.map((sector) => ({
+        ...sector,
+        cells: sector.cells.map((cell) => ({ ...cell, walkable: true })),
+      })),
+    })
+    for (const [key, dx, dy] of [
+      ['w', 0, -1],
+      ['W', 0, -1],
+      ['a', -1, 0],
+      ['s', 0, 1],
+      ['d', 1, 0],
+      ['ArrowRight', 1, 0],
+    ] as const) {
+      const preventDefault = vi.fn()
+      s.listeners.get('keydown')!({ key, preventDefault } as unknown as Event)
+      expect(s.select).toHaveBeenLastCalledWith({
+        ...s.view.position,
+        x: s.view.position.x + dx,
+        y: s.view.position.y + dy,
+      })
+      expect(preventDefault).toHaveBeenCalledOnce()
+    }
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  })
+  it('starts smoothly after a long idle and a small pointer slip without shifting the camera', () => {
+    const s = scene()
+    s.renderer.settings({ animate: false, zoom: 1 })
+    s.frame(40)
+    const origin = mapPoint(s.view.position, s.view.sectors)
+    s.event('pointerdown', 500, 300)
+    s.event('pointermove', 503, 302)
+    s.event('pointerup', 503, 302)
+    expect(Number(s.canvas.dataset.cameraX)).toBe(origin.x)
+    expect(Number(s.canvas.dataset.cameraY)).toBe(origin.y)
+    s.motion.plan(
+      [{ position: { ...s.view.position, x: s.view.position.x + 1 }, durationMs: 200 }],
+      s.view.sectors,
+      10_000,
+    )
+    s.renderer.update(s.view)
+    s.frame(10_016)
+    expect(Number(s.canvas.dataset.cameraX) - origin.x).toBeCloseTo(
+      0.08 * (1 - Math.exp(-16 / 90)),
+      8,
+    )
+    expect(Number(s.canvas.dataset.cameraY)).toBe(origin.y)
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  })
+  it('reports on-screen tokens through zoom and resizing without allowing dragging to pan or walk', () => {
+    const s = scene()
+    const player = (id: string, x: number, y: number) => ({
+      characterId: id,
+      name: id,
+      level: 1,
+      portraitRef: '',
+      imageUrl: null,
+      online: true,
+      attackable: false,
+      position: { ...s.view.position, x, y },
+    })
+    const view = { ...s.view, players: [player('near', 7, 4), player('edge', 12, 0)] }
+    s.renderer.settings({ animate: false, zoom: 1 })
+    s.renderer.update(view)
+    s.frame(40)
+    expect(s.onVisiblePlayers).toHaveBeenLastCalledWith(['near'])
+    s.renderer.update(view)
+    s.frame(80)
+    expect(s.onVisiblePlayers).toHaveBeenCalledOnce()
+    s.renderer.settings({ animate: false, zoom: 0.6 })
+    s.frame(120)
+    expect(s.onVisiblePlayers).toHaveBeenLastCalledWith(['edge', 'near'])
+    s.renderer.settings({ animate: false, zoom: 1 })
+    s.frame(160)
+    const camera = s.canvas.dataset.cameraX + ':' + s.canvas.dataset.cameraY
+    s.event('pointerdown', 400, 300)
+    s.event('pointermove', 0, 300)
+    s.event('pointerup', 0, 300)
+    s.frame(200)
+    expect(s.onVisiblePlayers).toHaveBeenLastCalledWith(['near'])
+    expect(s.canvas.dataset.cameraX + ':' + s.canvas.dataset.cameraY).toBe(camera)
+    expect(s.select).not.toHaveBeenCalled()
+    Object.assign(s.canvas, { clientWidth: 1200 })
+    s.resize()
+    s.frame(240)
+    expect(s.onVisiblePlayers).toHaveBeenLastCalledWith(['edge', 'near'])
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  })
   it('pinches with two fingers without submitting a walk on release', () => {
     const s = scene()
     const touch = (name: string, id: number, x: number) =>
@@ -330,9 +455,12 @@ describe('native map input and bounded lifecycle', () => {
   it('caps high-DPI resolution and reports bounded terrain memory', () => {
     const s = scene()
     expect(s.canvas.width).toBe(1200)
+    s.frame(40)
+    const layers = s.layerCount()
     for (let i = 1; i <= 61; i++) s.frame(i * 40)
     expect(Number(s.canvas.dataset.cachedPixels)).toBeLessThanOrEqual(8_000_000)
     expect(Number(s.canvas.dataset.visibleScenery)).toBeLessThanOrEqual(180)
+    expect(s.layerCount()).toBe(layers)
     s.renderer.dispose()
     vi.unstubAllGlobals()
   })
@@ -363,8 +491,8 @@ describe('native map input and bounded lifecycle', () => {
       const drawn = s.draws.filter((draw) => draw.src === '/self-portrait.png').at(-1)!
       const tile = Number(s.canvas.dataset.tileSize)
       const camera = { x: Number(s.canvas.dataset.cameraX), y: Number(s.canvas.dataset.cameraY) }
-      const groundX = drawn.args[0]! + 17,
-        groundY = drawn.args[1]! + 34
+      const groundX = drawn.args.at(-4)! + 17,
+        groundY = drawn.args.at(-3)! + 34
       // Invert the actual portrait drawing, rather than only checking the motion model.
       expect(
         camera.x + ((groundX - 400) / (tile * 0.85) + (groundY - 300) / (tile * 0.44)) / 2,

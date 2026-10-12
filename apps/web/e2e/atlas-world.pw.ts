@@ -7,6 +7,7 @@ import { provisionAccountAndEnterCharacter, openOfflineTraining } from './pv1f-t
 import { GRID_WIDTH, GRID_HEIGHT, STEP_MS, WORLD_REGIONS } from '../src/world/catalog'
 import { newWorldState } from '../src/world/travel'
 import type { WorldView } from '../src/world/types'
+import { verifyWorldPresentation, registerWorldInputCases } from './world-presentation-case'
 import type { CharacterBuildContext } from '../src/server/character/character-build-service'
 
 const runtimeErrors = new WeakMap<Page, string[]>()
@@ -137,8 +138,6 @@ async function enter(page: Page) {
     password: 'Atlas-browser-2026!',
     characterName: name,
   })
-  // Exercise the real SQL schema as well as HTTP; a missing column should produce
-  // its actual database error here instead of only a generic recovery-page timeout.
   sql(
     `select public.read_world_state_v1(c.user_id,c.id,'${JSON.stringify({ ...newWorldState(), safe: false })}'::jsonb) from public.characters c where c.name='${name}';`,
   )
@@ -190,7 +189,7 @@ async function stageWalk(page: Page, destination: { sectorId: string; x: number;
   const sector = current.sectors.find((s) => s.id === destination.sectorId)
   if (!sector) {
     await page.getByRole('button', { name: /Open world atlas/ }).click()
-    await page.getByText('Charted sectors', { exact: true }).click()
+    await page.getByText('Known Lands', { exact: true }).click()
     await page.getByLabel('Charted sector', { exact: true }).selectOption(destination.sectorId)
     await page.getByRole('button', { name: 'Travel here', exact: true }).click()
     return
@@ -209,7 +208,7 @@ async function stageWalk(page: Page, destination: { sectorId: string; x: number;
   const y = box.height / 2 + (dx + dy) * metrics.tile * 0.44
   if (x <= 0 || x >= box.width || y <= 0 || y >= box.height) {
     await page.getByRole('button', { name: /Open world atlas/ }).click()
-    await page.getByText('Charted sectors', { exact: true }).click()
+    await page.getByText('Known Lands', { exact: true }).click()
     await page.getByLabel('Charted sector', { exact: true }).selectOption(destination.sectorId)
     await page.getByRole('button', { name: 'Travel here', exact: true }).click()
     return
@@ -265,8 +264,9 @@ test('the World page is the scenic map stage inside the shared shell, with Missi
   await expect(page.locator('[data-world-workspace] header')).toContainText('UTC')
   if (info.project.name === 'mobile-chromium')
     await page.getByRole('button', { name: 'Details', exact: true }).click()
-  await expect(page.getByRole('tab', { name: 'Nearby', exact: true })).toBeVisible()
-  await expect(page.getByText('Protected settlement', { exact: true })).toBeVisible()
+  await expect(page.getByRole('tab', { name: /^Nearby/ })).toBeVisible()
+  await expect(page.getByText('Protected settlement', { exact: true })).toHaveCount(0)
+  await expect(page.locator('[data-world-workspace] footer')).toHaveCount(0)
   if (info.project.name === 'mobile-chromium')
     await page.getByRole('button', { name: 'Close details', exact: true }).click()
   const stageBox = (await page.locator('[data-world-stage]').boundingBox())!
@@ -307,7 +307,6 @@ test('the World page is the scenic map stage inside the shared shell, with Missi
   expect(conflict.status()).toBe(409)
   await page.getByRole('button', { name: /Open world atlas|Return to local map/ }).click()
   await expect(page.getByRole('group', { name: /World globe/ })).toBeVisible()
-  await expect(page.getByRole('group', { name: /World globe/ })).toBeVisible()
   await capture(page, info, 'world-globe')
   await page.getByRole('button', { name: /Open world atlas|Return to local map/ }).click()
   await expect(page.getByRole('group', { name: /World globe/ })).toBeHidden()
@@ -319,6 +318,12 @@ test('the World page is the scenic map stage inside the shared shell, with Missi
       await capture(page, info, `sector-${region.id}`)
     }
   }
+})
+
+test('World controls keep the map continuous, panels fitted and errors visible', async ({
+  page,
+}, info) => {
+  await verifyWorldPresentation(page, info, { enter, world, place, capture })
 })
 
 test('Eastern Watch objective persists accept, inspect and idempotent return completion', async ({
@@ -378,8 +383,9 @@ test('Eastern Watch objective persists accept, inspect and idempotent return com
       request.method() === 'POST' &&
       request.postDataJSON()?.intent?.kind === 'interact',
   )
-  await page.getByRole('button', { name: 'Report back' }).click()
+  await page.getByRole('button', { name: 'Complete quest' }).click()
   const reportCommand = (await reportRequest).postDataJSON()
+  await page.getByRole('tab', { name: 'Completed', exact: true }).click()
   await expect(page.getByText('The eastern route has been verified.')).toBeVisible()
   state = await world(page)
   const completed = state.objectives.find((objective) => objective.id === 'eastern-watch')!
@@ -391,7 +397,7 @@ test('Eastern Watch objective persists accept, inspect and idempotent return com
   expect(replay.ok()).toBe(true)
   expect((await replay.json()).version).toBe(version)
   await reloadWorld(page)
-  await expect(page.getByRole('button', { name: 'Report back' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Complete quest' })).toHaveCount(0)
   expect((await world(page)).version).toBe(version)
 })
 
@@ -454,8 +460,9 @@ test('Crown Hinterland patrol persists accept, field check and idempotent return
       request.method() === 'POST' &&
       request.postDataJSON()?.intent?.kind === 'interact',
   )
-  await page.getByRole('button', { name: 'Report back' }).click()
+  await page.getByRole('button', { name: 'Complete quest' }).click()
   const reportCommand = (await reportRequest).postDataJSON()
+  await page.getByRole('tab', { name: 'Completed', exact: true }).click()
   await expect(page.getByText('The Crown Hinterland patrol has been recorded.')).toBeVisible()
   state = await world(page)
   const completed = state.objectives.find(
@@ -469,7 +476,7 @@ test('Crown Hinterland patrol persists accept, field check and idempotent return
   expect(replay.ok()).toBe(true)
   expect((await replay.json()).version).toBe(version)
   await reloadWorld(page)
-  await expect(page.getByRole('button', { name: 'Report back' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Complete quest' })).toHaveCount(0)
   expect((await world(page)).version).toBe(version)
 })
 
@@ -1101,88 +1108,6 @@ test('rapid ground clicks settle at the last legal tile and keyboard movement cr
   expect((await world(page)).position.sectorId).not.toBe('atlas:58:28')
 })
 
-for (const mode of ['effects off', 'reduced motion']) {
-  test(`a ground click fully draws its arrival without further pointer input with ${mode}`, async ({
-    page,
-  }, info) => {
-    test.skip(
-      info.project.name !== 'desktop-chromium',
-      'Verify the terminal drawing once per animation mode.',
-    )
-    test.setTimeout(60000)
-    if (mode === 'reduced motion') await page.emulateMedia({ reducedMotion: 'reduce' })
-    await enter(page)
-    const initial = await world(page)
-    place(initial.characterId, 'atlas:58:28', 6, 4)
-    await page.reload()
-    const canvas = page.locator('canvas[data-world-stage]')
-    await expect(canvas).toBeVisible()
-    if (mode === 'effects off') {
-      await page.getByRole('button', { name: 'Map settings', exact: true }).click()
-      await page.getByRole('checkbox', { name: 'Ambient animation', exact: true }).uncheck()
-      await page.getByRole('button', { name: 'Done', exact: true }).click()
-    }
-    // Observe the real self portrait drawing without adding a production test hook.
-    await canvas.evaluate((el) => {
-      const ctx = (el as HTMLCanvasElement).getContext('2d')!,
-        draw = ctx.drawImage.bind(ctx)
-      const portrait = new URL(el.dataset.portrait!, location.href).href
-      ctx.drawImage = ((image: CanvasImageSource, ...args: number[]) => {
-        if (
-          image instanceof HTMLImageElement &&
-          image.src === portrait &&
-          ctx.strokeStyle === '#ead399' &&
-          args.length === 4
-        ) {
-          el.dataset.testDrawnX = String(args[0]! + 17)
-          el.dataset.testDrawnY = String(args[1]! + 34)
-        }
-        ;(draw as (...args: unknown[]) => void)(image, ...args)
-      }) as typeof ctx.drawImage
-    })
-    // Each disposable character needs an empty destination: clicking a previous
-    // case's token correctly selects that character instead of submitting a walk.
-    const destination = { sectorId: 'atlas:58:28', x: mode === 'effects off' ? 9 : 8, y: 4 }
-    await stageWalk(page, destination)
-    // Only DOM/API reads follow the click: no pointer movement can wake the renderer.
-    await expect
-      .poll(
-        async () => ({
-          position: (await world(page)).position,
-          remaining: (await world(page)).route.length,
-        }),
-        { timeout: 12000 },
-      )
-      .toEqual({ position: destination, remaining: 0 })
-    const sector =
-      initial.sectors.find((s) => s.id === destination.sectorId) ??
-      (await world(page)).sectors.find((s) => s.id === destination.sectorId)!
-    const target = {
-      x: sector.atlasColumn! * GRID_WIDTH + destination.x + 0.5,
-      y: sector.atlasRow! * GRID_HEIGHT + destination.y + 0.5,
-    }
-    await expect
-      .poll(() =>
-        canvas.evaluate((el) => {
-          const x = Number(el.dataset.cameraX),
-            y = Number(el.dataset.cameraY),
-            tile = Number(el.dataset.tileSize)
-          const dx = (Number(el.dataset.testDrawnX) - el.clientWidth / 2) / (tile * 0.85)
-          const dy = (Number(el.dataset.testDrawnY) - el.clientHeight / 2) / (tile * 0.44)
-          return {
-            camera: { x, y },
-            drawn: {
-              x: Math.round((x + (dx + dy) / 2) * 1e6) / 1e6,
-              y: Math.round((y + (dy - dx) / 2) * 1e6) / 1e6,
-            },
-          }
-        }),
-      )
-      .toEqual({ camera: target, drawn: target })
-    await capture(page, info, `motionless-cursor-arrival-${mode.replaceAll(' ', '-')}`)
-  })
-}
-
 test('a synthetic population of 100 has bounded rendering at high DPI and lower CPU speed', async ({
   page,
 }, info) => {
@@ -1342,7 +1267,7 @@ test('the globe rotates by dragging and has a usable charted fallback without We
   await globe.press('ArrowRight')
   await expect.poll(async () => (await fallback.screenshot()).equals(beforeRotation)).toBe(false)
   await capture(page, info, 'detailed-fallback-globe')
-  await page.getByText('Charted sectors', { exact: true }).click()
+  await page.getByText('Known Lands', { exact: true }).click()
   await page.getByLabel('Charted sector', { exact: true }).selectOption('frostmere')
   await page.getByRole('button', { name: 'Travel here', exact: true }).click()
   await expect.poll(async () => (await world(page)).route.length).toBeGreaterThan(0)
@@ -1424,150 +1349,4 @@ test('scenic countryside has real blossom woodland, ruins, pools and open meadow
   }
 })
 
-test('zoom controls live in Settings and the shared lock blocks map and globe wheel zoom', async ({
-  page,
-}, info) => {
-  test.skip(info.project.name !== 'desktop-chromium', 'Exercise mouse/trackpad zoom once.')
-  test.setTimeout(90000)
-  await enter(page)
-  const canvas = page.locator('canvas[data-world-stage]')
-  await expect(page.getByRole('button', { name: 'Zoom in', exact: true })).toHaveCount(0)
-  await page.getByRole('button', { name: 'Map settings', exact: true }).click()
-  const slider = page.getByRole('slider', { name: 'Zoom level', exact: true })
-  await slider.press('Home')
-  await expect(slider).toHaveValue('60')
-  await page.getByRole('button', { name: 'Zoom in', exact: true }).click()
-  await expect(slider).toHaveValue('70')
-  await page.getByRole('button', { name: 'Zoom lock Off', exact: true }).click()
-  await capture(page, info, 'restored-map-settings')
-  await page.getByRole('button', { name: 'Done', exact: true }).click()
-  await canvas.hover()
-  const locked = await canvas.getAttribute('data-tile-size')
-  const pageScale = await page.evaluate(() => ({
-    width: innerWidth,
-    ratio: devicePixelRatio,
-    scale: visualViewport?.scale,
-  }))
-  await page.keyboard.down('Control')
-  await page.mouse.wheel(0, -120)
-  await page.keyboard.up('Control')
-  await page.mouse.wheel(0, -160)
-  await page.waitForTimeout(250)
-  expect(await canvas.getAttribute('data-tile-size')).toBe(locked)
-  expect(
-    await page.evaluate(() => ({
-      width: innerWidth,
-      ratio: devicePixelRatio,
-      scale: visualViewport?.scale,
-    })),
-  ).toEqual(pageScale)
-  await page.getByRole('button', { name: /Open world atlas/ }).click()
-  const globe = page.getByRole('group', { name: /World globe/ })
-  await globe.hover()
-  const pin = page.getByLabel('Your current position', { exact: true }),
-    oldPin = await pin.getAttribute('style')
-  await page.keyboard.down('Control')
-  await page.mouse.wheel(0, -120)
-  await page.keyboard.up('Control')
-  await page.mouse.wheel(0, -160)
-  await page.waitForTimeout(250)
-  expect(await pin.getAttribute('style')).toBe(oldPin)
-  expect(
-    await page.evaluate(() => ({
-      width: innerWidth,
-      ratio: devicePixelRatio,
-      scale: visualViewport?.scale,
-    })),
-  ).toEqual(pageScale)
-  await page.getByRole('button', { name: 'Map settings', exact: true }).click()
-  await expect(page.getByRole('slider', { name: 'Zoom level', exact: true })).toHaveValue('94')
-  await page.getByRole('button', { name: 'Done', exact: true }).click()
-  await page.getByRole('button', { name: /Return to local map/ }).click()
-  await page.getByRole('button', { name: 'Map settings', exact: true }).click()
-  await page.getByRole('button', { name: 'Zoom lock On', exact: true }).click()
-  await page.getByRole('button', { name: 'Done', exact: true }).click()
-  await canvas.hover()
-  await page.mouse.wheel(0, -160)
-  await expect
-    .poll(async () => Number(await canvas.getAttribute('data-tile-size')))
-    .toBeGreaterThan(Number(locked))
-})
-
-test('two-finger map pinch zooms without walking and respects zoom lock', async ({
-  page,
-}, info) => {
-  test.skip(info.project.name !== 'mobile-chromium', 'Exercise actual touch input once.')
-  test.setTimeout(90000)
-  await enter(page)
-  const initial = await world(page),
-    canvas = page.locator('canvas[data-world-stage]')
-  const box = (await canvas.boundingBox())!,
-    session = await page.context().newCDPSession(page)
-  const pinch = async (spread: number) => {
-    const points = (distance: number) => [
-      { x: box.x + box.width / 2 - distance, y: box.y + box.height / 2, id: 1 },
-      { x: box.x + box.width / 2 + distance, y: box.y + box.height / 2, id: 2 },
-    ]
-    await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: points(45) })
-    await session.send('Input.dispatchTouchEvent', {
-      type: 'touchMove',
-      touchPoints: points(spread),
-    })
-    await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
-  }
-  const before = Number(await canvas.getAttribute('data-tile-size'))
-  await pinch(60)
-  await expect
-    .poll(async () => Number(await canvas.getAttribute('data-tile-size')))
-    .toBeGreaterThan(before)
-  await page.getByRole('button', { name: 'Map settings', exact: true }).click()
-  await page.getByRole('button', { name: 'Zoom lock Off', exact: true }).click()
-  await page.getByRole('button', { name: 'Done', exact: true }).click()
-  const locked = await canvas.getAttribute('data-tile-size')
-  await pinch(30)
-  await page.waitForTimeout(300)
-  expect(await canvas.getAttribute('data-tile-size')).toBe(locked)
-  const final = await world(page)
-  expect(final.position).toEqual(initial.position)
-  expect(final.route).toHaveLength(0)
-})
-
-test('long auto-path travel replenishes saved route windows and reaches the actual final destination', async ({
-  page,
-}, info) => {
-  test.skip(
-    info.project.name !== 'desktop-chromium',
-    'Elapsed-time continuation authority is shared.',
-  )
-  test.setTimeout(120000)
-  await enter(page)
-  const receipts: WorldView[] = []
-  const requests: Promise<void>[] = []
-  let plans = 0
-  page.on('response', (response) => {
-    if (new URL(response.url()).pathname !== '/api/world' || response.request().method() !== 'POST')
-      return
-    const request = (async () => {
-      expect(response.ok()).toBe(true)
-      if (response.request().postDataJSON()?.intent?.kind === 'autopath') plans++
-      receipts.push(await response.json())
-    })()
-    requests.push(request)
-    void request.catch(() => {})
-  })
-  await openJournal(page)
-  await page.getByRole('button', { name: /Start Auto-path/ }).click()
-  await expect
-    .poll(async () => (await world(page)).routeDestination)
-    .toEqual({ sectorId: 'umbral-march', x: 6, y: 0 })
-  await expect
-    .poll(async () => (await world(page)).position, { timeout: 90000, intervals: [1000] })
-    .toEqual({ sectorId: 'umbral-march', x: 6, y: 0 })
-  await Promise.all(requests)
-  expect(receipts.every((receipt) => receipt.route.length <= 256)).toBe(true)
-  expect(plans).toBeGreaterThanOrEqual(2)
-  const arrived = await world(page)
-  expect(arrived.route).toEqual([])
-  expect(arrived.routeDestination).toBeNull()
-  await capture(page, info, 'long-journey-arrived')
-})
+registerWorldInputCases({ enter, world, place, stageWalk, capture, openJournal })

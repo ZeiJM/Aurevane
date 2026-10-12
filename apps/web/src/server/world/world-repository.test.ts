@@ -135,7 +135,7 @@ it('records successful early ticks so a retry cannot advance a later due step', 
   })
 })
 
-it('projects current profile images while retaining starter portrait references for nearby players', async () => {
+it('projects custom avatars and selected starter portraits for nearby players', async () => {
   const state = newWorldState()
   const customId = '00000000-0000-4000-8000-000000000021'
   const starterId = '00000000-0000-4000-8000-000000000022'
@@ -173,6 +173,6 @@ it('projects current profile images while retaining starter portrait references 
   )
   expect(view.players.find((player) => player.characterId === starterId)).toMatchObject({
     portraitRef: 'portrait.starter.wayfarer-07',
-    imageUrl: null,
+    imageUrl: '/api/media/starter-portrait/portrait.starter.wayfarer-07',
   })
 })

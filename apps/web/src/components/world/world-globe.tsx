@@ -1,19 +1,22 @@
 'use client'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { ATLAS_COLUMNS, ATLAS_ROWS } from '@/world/atlas'
 import { globeSectorCenter, globeSectorCoordinate, projectGlobePoint } from '@/world/globe-math'
-import type { WorldPosition, WorldView } from '@/world/types'
+import type { WorldView } from '@/world/types'
 import { SphericalView } from './spherical-view'
 import styles from './workspace.module.css'
+const sectorOrder = new Intl.Collator('en', { numeric: true })
 export function WorldGlobe({
   view,
-  onTravel,
+  selected,
+  onSelect,
   zoom,
   zoomLocked,
   onZoom,
 }: {
   view: WorldView
-  onTravel: (position: WorldPosition) => void
+  selected: string | null
+  onSelect: (id: string | null) => void
   zoom: number
   zoomLocked: boolean
   onZoom: (zoom: number) => void
@@ -26,10 +29,20 @@ export function WorldGlobe({
       longitude: 0,
       latitude: 0,
     }
-  const [camera, setCamera] = useState(location),
-    [selected, setSelected] = useState<string | null>(null)
+  const [camera, setCamera] = useState(location)
+  const options = useMemo(
+    () =>
+      view.atlas
+        ?.filter((s) => s.charted)
+        .sort((a, b) => sectorOrder.compare(a.coordinate, b.coordinate))
+        .map((sector) => (
+          <option key={sector.id} value={sector.id}>
+            {sector.coordinate} · {sector.name}
+          </option>
+        )),
+    [view.atlas],
+  )
   const pin = projectGlobePoint(location, camera)
-  const destination = view.atlas?.find((sector) => sector.id === selected)
   const labels =
     view.atlas
       ?.filter((cell) => cell.charted && cell.id === cell.regionId)
@@ -55,7 +68,7 @@ export function WorldGlobe({
           onActivate={(point) => {
             const coordinate = globeSectorCoordinate(point, ATLAS_COLUMNS, ATLAS_ROWS),
               sector = view.atlas?.find((cell) => cell.coordinate === coordinate && cell.charted)
-            setSelected(sector?.id ?? null)
+            onSelect(sector?.id ?? null)
           }}
         >
           {labels.map((cell) => (
@@ -82,40 +95,17 @@ export function WorldGlobe({
           ) : null}
         </SphericalView>
       </div>
-      <div className={styles.globeCaption}>
-        <p>Drag to turn the globe · select a charted sector to travel</p>
-        <span>Uncharted regions lie beneath the mist.</span>
-      </div>
-      {destination ? (
-        <div className={styles.destination}>
-          <span>
-            {destination.name} · {destination.coordinate}
-          </span>
-          <button onClick={() => onTravel({ sectorId: destination.id, x: 6, y: 4 })}>
-            Travel here
-          </button>
-          <button aria-label="Clear destination" onClick={() => setSelected(null)}>
-            ×
-          </button>
-        </div>
-      ) : null}
       <details className={styles.sectorPicker}>
-        <summary>Charted sectors</summary>
+        <summary>Known Lands</summary>
         <label>
           Choose a destination
           <select
             aria-label="Charted sector"
             value={selected ?? ''}
-            onChange={(event) => setSelected(event.target.value || null)}
+            onChange={(event) => onSelect(event.target.value || null)}
           >
             <option value="">Select a sector</option>
-            {view.atlas
-              ?.filter((s) => s.charted)
-              .map((sector) => (
-                <option key={sector.id} value={sector.id}>
-                  {sector.coordinate} · {sector.name}
-                </option>
-              ))}
+            {options}
           </select>
         </label>
       </details>

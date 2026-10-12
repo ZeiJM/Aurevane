@@ -20,7 +20,7 @@ const landmarkProps: Partial<Record<WorldLandmark['kind'], number>> = {
   grove: 6,
 }
 const palettes: Record<string, [string, number, number]> = {
-  'verdant-expanse': ['#526849', 1, 0],
+  'verdant-expanse': ['#557748', 0, 0],
   'aureth-crown': ['#727254', 0, 2],
   frostmere: ['#a5b1b5', 2, 1],
   'hollow-coast': ['#73827b', 5, 3],
@@ -72,6 +72,7 @@ export function createMapRenderer(
   select: (position: WorldPosition) => void,
   selectPlayer: (id: string) => void,
   onZoom: (zoom: number) => void = () => {},
+  onVisiblePlayers: (ids: string[]) => void = () => {},
 ) {
   const context = canvas.getContext('2d', { alpha: false })
   if (!context) return null
@@ -80,6 +81,7 @@ export function createMapRenderer(
     width = 0,
     height = 0,
     ratio = 1,
+    groundScale = 1,
     tile = 64,
     zoom = 1,
     disposed = false,
@@ -87,15 +89,16 @@ export function createMapRenderer(
     last = 0,
     drawn = 0,
     dirty = true,
-    wasMoving = false
+    wasMoving = false,
+    visiblePlayerKey: string | null = null
+  const pan = { x: 0, y: 0 }
   let camera = mapPoint(view.position, view.sectors),
-    pan = { x: 0, y: 0 },
     hover: MapPoint | null = null
   let animate = true,
     zoomLocked = false,
     paused = false,
     reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  let drag: { x: number; y: number; pan: MapPoint } | null = null
+  let drag: { x: number; y: number } | null = null
   const images = new Map<string, HTMLImageElement>(),
     portraits = new Map<string, HTMLImageElement>()
   const cache = new Map<string, { key: string; ground: HTMLCanvasElement }>()
@@ -164,14 +167,17 @@ export function createMapRenderer(
     return null
   }
   const ground = (sector: WorldSectorView) => {
-    const key = terrainKeys.get(sector.id) + ':' + tile
+    const key = terrainKeys.get(sector.id) + ':' + tile + ':' + groundScale
     const previous = cache.get(sector.id)
     if (previous?.key === key) return previous.ground
     const layer = document.createElement('canvas')
-    layer.width = Math.ceil(GRID_WIDTH * tile)
-    layer.height = Math.ceil(GRID_HEIGHT * tile)
+    layer.width = Math.ceil(GRID_WIDTH * tile * groundScale)
+    layer.height = Math.ceil(GRID_HEIGHT * tile * groundScale)
     const c = layer.getContext('2d')!,
       palette = palettes[sector.regionId] ?? palettes['verdant-expanse']!
+    c.scale(groundScale, groundScale)
+    c.imageSmoothingEnabled = true
+    c.imageSmoothingQuality = 'high'
     c.fillStyle = '#233d3c'
     c.fillRect(0, 0, layer.width, layer.height)
     const texture = images.get('terrain')
@@ -201,7 +207,7 @@ export function createMapRenderer(
         // Material spans several tiles, avoiding a checkerboard of repeated tile borders.
         const sw = texture.width / 4,
           sh = texture.height / 2,
-          index = palette[1]
+          index = sector.regionId === 'verdant-expanse' && cell.terrain === 't' ? 1 : palette[1]
         c.drawImage(
           texture,
           (index % 4) * sw + ((((sector.atlasColumn ?? 0) * GRID_WIDTH + cell.x) % 4) * sw) / 4,
@@ -300,7 +306,7 @@ export function createMapRenderer(
     hitTargets = []
     const start = performance.now(),
       sample = motion.sample(now),
-      delta = Math.min(64, now - last || 16)
+      delta = Math.min(sample.moving && !wasMoving ? 16 : 64, now - last || 16)
     last = now
     camera = {
       x: camera.x + (sample.point.x - camera.x) * (1 - Math.exp(-delta / 90)),
@@ -308,6 +314,18 @@ export function createMapRenderer(
     }
     if (Math.hypot(sample.point.x - camera.x, sample.point.y - camera.y) < 0.001)
       camera = sample.point
+    const visibleIds = view.players
+      .filter((player) => {
+        const p = screen(mapPoint(player.position, view.sectors))
+        return p.x > -21 && p.x < width + 21 && p.y > -4 && p.y < height + 38
+      })
+      .map((player) => player.characterId)
+      .sort()
+    const nextPlayerKey = JSON.stringify(visibleIds)
+    if (visiblePlayerKey !== nextPlayerKey) {
+      visiblePlayerKey = nextPlayerKey
+      onVisiblePlayers(visibleIds)
+    }
     ctx.setTransform(ratio, 0, 0, ratio, 0, 0)
     ctx.fillStyle = view.sectors.find((s) => s.id === view.position.sectorId)?.charted
       ? '#284b57'
@@ -322,6 +340,12 @@ export function createMapRenderer(
         p.y + (GRID_WIDTH + GRID_HEIGHT) * tile * MAP_Y > -tile * 4
       )
     })
+    // All visible layers must fit together. Otherwise higher-resolution terrain
+    // evicts the next visible layer and rebuilds the entire scene every frame.
+    const budgetScale = Math.sqrt(
+      7_800_000 / (Math.max(1, visible.length) * GRID_WIDTH * GRID_HEIGHT * tile * tile),
+    )
+    groundScale = Math.min(ratio, Math.floor(budgetScale * 10) / 10)
     const scenery: Scenery[] = []
     const addScenery = (item: Scenery) => {
       const p = screen(item)
@@ -346,7 +370,7 @@ export function createMapRenderer(
         p = screen(origin)
       ctx.save()
       ctx.transform(MAP_X, MAP_Y, -MAP_X, MAP_Y, p.x, p.y)
-      ctx.drawImage(ground(sector), 0, 0)
+      ctx.drawImage(ground(sector), 0, 0, GRID_WIDTH * tile, GRID_HEIGHT * tile)
       ctx.restore()
       const palette = palettes[sector.regionId] ?? palettes['verdant-expanse']!
       if (nature?.complete && nature.naturalWidth)
@@ -528,15 +552,6 @@ export function createMapRenderer(
           })
         }
       }
-    // Route is a quiet trail of dots, never sector/tile outlines.
-    ctx.fillStyle = 'rgba(237,219,166,.65)'
-    for (const step of view.route.slice(0, 30)) {
-      const p = screen(mapPoint(step.position, view.sectors))
-      if (p.x < 0 || p.x > width || p.y < 0 || p.y > height) continue
-      ctx.beginPath()
-      ctx.arc(p.x, p.y, 2, 0, Math.PI * 2)
-      ctx.fill()
-    }
     const stacks = new Map<
       string,
       {
@@ -589,24 +604,54 @@ export function createMapRenderer(
       ctx.fillStyle = ghost ? '#a6b1b0' : '#182e32'
       ctx.strokeStyle = person.self ? '#ead399' : '#c6cbc0'
       ctx.lineWidth = person.self ? 2.5 : 1.5
+      ctx.shadowColor = 'rgba(0,0,0,.45)'
+      ctx.shadowBlur = 10
+      ctx.shadowOffsetY = 5
       ctx.beginPath()
       ctx.arc(point.x, point.y - radius, radius + 2, 0, Math.PI * 2)
       ctx.fill()
+      ctx.shadowBlur = 0
+      ctx.shadowOffsetY = 0
       ctx.stroke()
+      ctx.beginPath()
+      ctx.arc(point.x, point.y - radius, radius + 4, 0, Math.PI * 2)
+      ctx.lineWidth = 0.75
+      ctx.globalAlpha = 0.45
+      ctx.stroke()
+      ctx.globalAlpha = 1
       ctx.beginPath()
       ctx.arc(point.x, point.y - radius, radius, 0, Math.PI * 2)
       ctx.clip()
       const image = portrait(person.image)
+      const drawPortrait = (picture: HTMLImageElement) => {
+        // Match battle's centered cover crop; wide/tall uploads keep their proportions.
+        const w = picture.naturalWidth || picture.width,
+          h = picture.naturalHeight || picture.height,
+          side = Math.min(w, h)
+        ctx.imageSmoothingEnabled = true
+        ctx.imageSmoothingQuality = 'high'
+        ctx.drawImage(
+          picture,
+          (w - side) / 2,
+          (h - side) / 2,
+          side,
+          side,
+          point.x - radius,
+          point.y - radius * 2,
+          radius * 2,
+          radius * 2,
+        )
+      }
       if (image) {
         if (ghost) ctx.filter = 'grayscale(1)'
         const fade = people.length > 1 && animate && !reduced ? Math.min(1, (now % 3600) / 500) : 1
         const previous = portrait(people[(index + people.length - 1) % people.length]!.image)
         if (previous && fade < 1) {
           ctx.globalAlpha = 1 - fade
-          ctx.drawImage(previous, point.x - radius, point.y - radius * 2, radius * 2, radius * 2)
+          drawPortrait(previous)
         }
         ctx.globalAlpha = fade
-        ctx.drawImage(image, point.x - radius, point.y - radius * 2, radius * 2, radius * 2)
+        drawPortrait(image)
       } else {
         ctx.fillStyle = ghost ? '#c2c9c7' : '#bcac84'
         ctx.font = '16px Georgia'
@@ -921,7 +966,7 @@ export function createMapRenderer(
         return
       }
     }
-    drag = { x: event.clientX, y: event.clientY, pan: { ...pan } }
+    drag = { x: event.clientX, y: event.clientY }
   }
   const move = (event: PointerEvent) => {
     if (pointers.has(event.pointerId))
@@ -934,17 +979,6 @@ export function createMapRenderer(
     const bounds = canvas.getBoundingClientRect()
     hover = world(event.clientX - bounds.left, event.clientY - bounds.top)
     requestDraw()
-    if (drag)
-      pan = {
-        x:
-          drag.pan.x -
-          ((event.clientX - drag.x) / (tile * MAP_X) + (event.clientY - drag.y) / (tile * MAP_Y)) /
-            2,
-        y:
-          drag.pan.y -
-          ((event.clientY - drag.y) / (tile * MAP_Y) - (event.clientX - drag.x) / (tile * MAP_X)) /
-            2,
-      }
   }
   const up = (event: PointerEvent) => {
     pointers.delete(event.pointerId)
@@ -988,8 +1022,12 @@ export function createMapRenderer(
       ArrowRight: { x: 1, y: 0 },
       ArrowUp: { x: 0, y: -1 },
       ArrowDown: { x: 0, y: 1 },
+      w: { x: 0, y: -1 },
+      a: { x: -1, y: 0 },
+      s: { x: 0, y: 1 },
+      d: { x: 1, y: 0 },
     }
-    const offset = offsets[event.key]
+    const offset = offsets[event.key] ?? offsets[event.key.toLowerCase()]
     if (!offset) return
     event.preventDefault()
     const p = motion.sample(performance.now()).point,
@@ -1001,6 +1039,7 @@ export function createMapRenderer(
   }
   const leave = () => {
     hover = null
+    requestDraw()
   }
   canvas.addEventListener('pointerdown', down)
   canvas.addEventListener('pointermove', move)
@@ -1033,10 +1072,6 @@ export function createMapRenderer(
         zoom = value.zoom
         resize()
       }
-      requestDraw()
-    },
-    center() {
-      pan = { x: 0, y: 0 }
       requestDraw()
     },
     dispose() {

@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto'
 import { AurevaneError } from '@aurevane/game-core/errors'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { loadPublicCharacterProfileImageMap } from '@/server/character/character-profile-display-service'
+import { resolvePublicCharacterImageUrl } from '@/media/public-character-portrait'
 import { isSafe, newWorldState } from '@/world/travel'
 import type { WorldCommand, WorldPlayer, WorldState } from '@/world/types'
 import { eventWorldObjectives } from './world-events'
@@ -127,7 +128,10 @@ export async function readWorld(userId: string, characterId: string) {
     state,
     players.map((player) => ({
       ...player,
-      imageUrl: profileImages.get(player.characterId) ?? null,
+      imageUrl: resolvePublicCharacterImageUrl(
+        profileImages.get(player.characterId),
+        player.portraitRef,
+      ),
     })),
     data.serverNow,
     objectives,
