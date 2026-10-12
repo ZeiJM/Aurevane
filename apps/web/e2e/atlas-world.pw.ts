@@ -1140,7 +1140,9 @@ for (const mode of ['effects off', 'reduced motion']) {
         ;(draw as (...args: unknown[]) => void)(image, ...args)
       }) as typeof ctx.drawImage
     })
-    const destination = { sectorId: 'atlas:58:28', x: 9, y: 4 }
+    // Each disposable character needs an empty destination: clicking a previous
+    // case's token correctly selects that character instead of submitting a walk.
+    const destination = { sectorId: 'atlas:58:28', x: mode === 'effects off' ? 9 : 8, y: 4 }
     await stageWalk(page, destination)
     // Only DOM/API reads follow the click: no pointer movement can wake the renderer.
     await expect
