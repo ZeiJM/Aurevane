@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 vi.mock('server-only', () => ({}))
 import { projectWorld } from '@/server/world/world-service'
 import { newWorldState } from '@/world/travel'
-import { WorldMotion } from './world-motion'
+import { mapPoint, WorldMotion } from './world-motion'
 import { createMapRenderer } from './map-renderer'
 
 function scene(reduced = false) {
@@ -348,4 +348,36 @@ describe('native map input and bounded lifecycle', () => {
     s.renderer.dispose()
     vi.unstubAllGlobals()
   })
+  it.each(['effects off', 'reduced motion'])(
+    'finishes the drawn step and camera with %s without pointer input',
+    (mode) => {
+      const s = scene(mode === 'reduced motion')
+      s.canvas.dataset.portrait = '/self-portrait.png'
+      if (mode === 'effects off') s.renderer.settings({ animate: false, zoom: 1 })
+      const destination = { ...s.view.position, x: s.view.position.x + 1 }
+      s.motion.plan([{ position: destination, durationMs: 200 }], s.view.sectors, 0)
+      for (let now = 16; now <= 192; now += 16) s.frame(now)
+      // The terminal sample must draw even though the idle cadence is slower.
+      s.frame(201)
+      const point = mapPoint(destination, s.view.sectors)
+      const drawn = s.draws.filter((draw) => draw.src === '/self-portrait.png').at(-1)!
+      const tile = Number(s.canvas.dataset.tileSize)
+      const camera = { x: Number(s.canvas.dataset.cameraX), y: Number(s.canvas.dataset.cameraY) }
+      const groundX = drawn.args[0]! + 17,
+        groundY = drawn.args[1]! + 34
+      // Invert the actual portrait drawing, rather than only checking the motion model.
+      expect(
+        camera.x + ((groundX - 400) / (tile * 0.85) + (groundY - 300) / (tile * 0.44)) / 2,
+      ).toBeCloseTo(point.x, 8)
+      expect(
+        camera.y + ((groundY - 300) / (tile * 0.44) - (groundX - 400) / (tile * 0.85)) / 2,
+      ).toBeCloseTo(point.y, 8)
+      for (let now = 217; now <= 1600 && s.frames.size; now += 16) s.frame(now)
+      expect(Number(s.canvas.dataset.cameraX)).toBe(point.x)
+      expect(Number(s.canvas.dataset.cameraY)).toBe(point.y)
+      expect(s.frames.size).toBe(0)
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    },
+  )
 })

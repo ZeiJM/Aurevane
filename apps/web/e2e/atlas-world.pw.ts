@@ -1101,6 +1101,81 @@ test('rapid ground clicks settle at the last legal tile and keyboard movement cr
   expect((await world(page)).position.sectorId).not.toBe('atlas:58:28')
 })
 
+for (const mode of ['effects off', 'reduced motion']) {
+  test(`a ground click fully draws its arrival without further pointer input with ${mode}`, async ({
+    page,
+  }, info) => {
+    test.skip(
+      info.project.name !== 'desktop-chromium',
+      'Verify the terminal drawing once per animation mode.',
+    )
+    test.setTimeout(60000)
+    if (mode === 'reduced motion') await page.emulateMedia({ reducedMotion: 'reduce' })
+    await enter(page)
+    const initial = await world(page)
+    place(initial.characterId, 'atlas:58:28', 6, 4)
+    await page.reload()
+    const canvas = page.locator('canvas[data-world-stage]')
+    await expect(canvas).toBeVisible()
+    if (mode === 'effects off') {
+      await page.getByRole('button', { name: 'Map settings', exact: true }).click()
+      await page.getByRole('checkbox', { name: 'Ambient animation', exact: true }).uncheck()
+      await page.getByRole('button', { name: 'Done', exact: true }).click()
+    }
+    // Observe the real self portrait drawing without adding a production test hook.
+    await canvas.evaluate((el) => {
+      const ctx = (el as HTMLCanvasElement).getContext('2d')!,
+        draw = ctx.drawImage.bind(ctx)
+      const portrait = new URL(el.dataset.portrait!, location.href).href
+      ctx.drawImage = ((image: CanvasImageSource, ...args: number[]) => {
+        if (image instanceof HTMLImageElement && image.src === portrait && args.length === 4) {
+          el.dataset.testDrawnX = String(args[0]! + 17)
+          el.dataset.testDrawnY = String(args[1]! + 34)
+        }
+        ;(draw as (...args: unknown[]) => void)(image, ...args)
+      }) as typeof ctx.drawImage
+    })
+    const destination = { sectorId: 'atlas:58:28', x: 9, y: 4 }
+    await stageWalk(page, destination)
+    // Only DOM/API reads follow the click: no pointer movement can wake the renderer.
+    await expect
+      .poll(
+        async () => ({
+          position: (await world(page)).position,
+          remaining: (await world(page)).route.length,
+        }),
+        { timeout: 12000 },
+      )
+      .toEqual({ position: destination, remaining: 0 })
+    const sector =
+      initial.sectors.find((s) => s.id === destination.sectorId) ??
+      (await world(page)).sectors.find((s) => s.id === destination.sectorId)!
+    const target = {
+      x: sector.atlasColumn! * GRID_WIDTH + destination.x + 0.5,
+      y: sector.atlasRow! * GRID_HEIGHT + destination.y + 0.5,
+    }
+    await expect
+      .poll(() =>
+        canvas.evaluate((el) => {
+          const x = Number(el.dataset.cameraX),
+            y = Number(el.dataset.cameraY),
+            tile = Number(el.dataset.tileSize)
+          const dx = (Number(el.dataset.testDrawnX) - el.clientWidth / 2) / (tile * 0.85)
+          const dy = (Number(el.dataset.testDrawnY) - el.clientHeight / 2) / (tile * 0.44)
+          return {
+            camera: { x, y },
+            drawn: {
+              x: Math.round((x + (dx + dy) / 2) * 1e6) / 1e6,
+              y: Math.round((y + (dy - dx) / 2) * 1e6) / 1e6,
+            },
+          }
+        }),
+      )
+      .toEqual({ camera: target, drawn: target })
+    await capture(page, info, `motionless-cursor-arrival-${mode.replaceAll(' ', '-')}`)
+  })
+}
+
 test('a synthetic population of 100 has bounded rendering at high DPI and lower CPU speed', async ({
   page,
 }, info) => {

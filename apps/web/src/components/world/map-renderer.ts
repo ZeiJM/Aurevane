@@ -86,7 +86,8 @@ export function createMapRenderer(
     frame = 0,
     last = 0,
     drawn = 0,
-    dirty = true
+    dirty = true,
+    wasMoving = false
   let camera = mapPoint(view.position, view.sectors),
     pan = { x: 0, y: 0 },
     hover: MapPoint | null = null
@@ -305,6 +306,8 @@ export function createMapRenderer(
       x: camera.x + (sample.point.x - camera.x) * (1 - Math.exp(-delta / 90)),
       y: camera.y + (sample.point.y - camera.y) * (1 - Math.exp(-delta / 90)),
     }
+    if (Math.hypot(sample.point.x - camera.x, sample.point.y - camera.y) < 0.001)
+      camera = sample.point
     ctx.setTransform(ratio, 0, 0, ratio, 0, 0)
     ctx.fillStyle = view.sectors.find((s) => s.id === view.position.sectorId)?.charted
       ? '#284b57'
@@ -854,12 +857,21 @@ export function createMapRenderer(
     frame = 0
     if (disposed || paused || document.visibilityState !== 'visible') return
     const sample = motion.sample(now),
-      interval = sample.moving ? 1000 / 60 : animate && !reduced ? 1000 / 30 : 250
-    if (dirty || now - last >= interval - 1) {
+      settling = sample.point.x !== camera.x || sample.point.y !== camera.y,
+      interval = sample.moving || settling ? 1000 / 60 : animate && !reduced ? 1000 / 30 : 250
+    // Finishing motion must paint its endpoint before switching to the idle cadence.
+    if (dirty || (wasMoving && !sample.moving) || now - last >= interval - 1) {
       draw(now)
       dirty = false
     }
-    if (sample.moving || (animate && !reduced)) frame = requestAnimationFrame(loop)
+    wasMoving = sample.moving
+    if (
+      sample.moving ||
+      sample.point.x !== camera.x ||
+      sample.point.y !== camera.y ||
+      (animate && !reduced)
+    )
+      frame = requestAnimationFrame(loop)
   }
   function requestDraw() {
     dirty = true
