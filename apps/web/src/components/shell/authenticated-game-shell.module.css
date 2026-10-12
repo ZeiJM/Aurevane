@@ -922,3 +922,27 @@
     min-height: 2.5rem !important;
   }
 }
+
+/* The travelling map owns the remaining viewport; only its detail panel scrolls. */
+.worldFrame .shell:has([data-world-workspace]) {
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+.shell:has([data-world-workspace]) .main {
+  min-height: 0;
+  overflow: hidden;
+  padding: 0.5rem;
+}
+@media (max-width: 760px) {
+  .worldFrame .shell:has([data-world-workspace]) {
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+  .shell:has([data-world-workspace]) .main {
+    padding: 0.25rem;
+  }
+  .shell:has([data-world-workspace]) .railLink {
+    min-height: 2.9rem;
+    font-size: 0.65rem;
+  }
+}

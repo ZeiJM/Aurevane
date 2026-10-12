@@ -103,15 +103,18 @@ function buildWildSector(id: string): WorldSector | null {
           : 0
   const stepsSouth = a.dir === 'south' ? a.k : a.dir === 'north' ? -a.k : a.b
   const side = a.b === 0 ? '' : `${a.b > 0 ? '+' : '−'}${Math.abs(a.b)}`
+  const rootCoordinate = /^S(\d{2})-(\d{2})$/.exec(root.sector)!
   return {
     id,
     name: `${root.name} Wilds`,
     coordinate: `${root.sector}·${LETTER[a.dir]}${a.k}${side}`,
     regionId: root.id,
+    atlasColumn: (Number(rootCoordinate[1]) - 1) * 2 + stepsEast,
+    atlasRow: (Number(rootCoordinate[2]) - 1) * 2 + stepsSouth,
     art: null,
     east: 12 + stepsEast * 13,
     north: 28 - stepsSouth * 9,
-    rows: terrain.rows,
+    rows: terrain.rows.map((row) => row.replaceAll('#', 't')),
     charted: false,
     generated: true,
     landmarks: terrain.landmarks,

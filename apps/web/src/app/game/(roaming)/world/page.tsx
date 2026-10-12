@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation'
 import { CharacterIdentityCard } from '@/components/character/character-identity-card'
 import { AuthenticatedGameRecoveryContent } from '@/components/shell/authenticated-game-shell'
 import { WorldWorkspace } from '@/components/world/world-workspace'
-import styles from '@/components/world/world.module.css'
+import styles from '@/components/world/workspace.module.css'
 import { getOptionalPublicSupabaseConfig } from '@/lib/supabase/config'
 import { getCurrentAccountServicesReadiness } from '@/server/account/account-services-readiness'
 import {

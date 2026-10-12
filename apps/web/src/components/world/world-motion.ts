@@ -1,0 +1,154 @@
+import { GRID_HEIGHT, GRID_WIDTH, STEP_MS } from '@/world/catalog'
+import { findWorldRoute, positionKey } from '@/world/travel'
+import type { TravelStep, WorldPosition, WorldSectorView, WorldView } from '@/world/types'
+
+export interface MapPoint {
+  x: number
+  y: number
+}
+export function mapPoint(position: WorldPosition, sectors: readonly WorldSectorView[]): MapPoint {
+  const sector = sectors.find((s) => s.id === position.sectorId)
+  return {
+    x: (sector?.atlasColumn ?? 0) * GRID_WIDTH + position.x + 0.5,
+    y: (sector?.atlasRow ?? 0) * GRID_HEIGHT + position.y + 0.5,
+  }
+}
+export function localRoute(view: WorldView, from: WorldPosition, to: WorldPosition) {
+  const sectors = view.sectors.map((sector) => ({
+    ...sector,
+    rows: Array.from({ length: GRID_HEIGHT }, (_, y) =>
+      Array.from(
+        { length: GRID_WIDTH },
+        (_, x) => sector.cells.find((cell) => cell.x === x && cell.y === y)?.terrain ?? '#',
+      ).join(''),
+    ),
+    roads: sector.exits,
+  }))
+  const known = new Set(
+    view.sectors.flatMap((sector) =>
+      sector.cells.map((cell) => positionKey({ sectorId: sector.id, ...cell })),
+    ),
+  )
+  return findWorldRoute(from, to, sectors, (position) => known.has(positionKey(position)))
+}
+function loadedRoute(
+  route: readonly TravelStep[],
+  sectors: readonly WorldSectorView[],
+  budget = Infinity,
+) {
+  const ids = new Set(sectors.map((s) => s.id)),
+    result: TravelStep[] = []
+  let elapsed = 0
+  for (const step of route) {
+    elapsed += step.durationMs
+    if (!ids.has(step.position.sectorId) || elapsed > budget) break
+    result.push(step)
+  }
+  return result
+}
+
+/** Visual interpolation has no authority over collision, encounter range or rewards. */
+export class WorldMotion {
+  private origin: MapPoint
+  private route: { point: MapPoint; position: WorldPosition; duration: number }[] = []
+  private startedAt = 0
+  private standing: WorldPosition
+  constructor(view: WorldView) {
+    this.origin = mapPoint(view.position, view.sectors)
+    this.standing = view.position
+  }
+  sample(now: number): { point: MapPoint; position: WorldPosition; moving: boolean } {
+    let elapsed = Math.max(0, now - this.startedAt),
+      point = this.origin,
+      position = this.standing
+    for (const step of this.route) {
+      if (elapsed < step.duration) {
+        const amount = Math.min(1, elapsed / step.duration)
+        return {
+          point: {
+            x: point.x + (step.point.x - point.x) * amount,
+            y: point.y + (step.point.y - point.y) * amount,
+          },
+          position,
+          moving: true,
+        }
+      }
+      elapsed -= step.duration
+      point = step.point
+      position = step.position
+    }
+    return { point, position, moving: false }
+  }
+  plan(route: readonly TravelStep[], sectors: readonly WorldSectorView[], now: number) {
+    const sample = this.sample(now)
+    this.origin = sample.point
+    this.standing = sample.position
+    this.startedAt = now
+    this.route = loadedRoute(route, sectors, 600).map((step) => ({
+      point: mapPoint(step.position, sectors),
+      position: step.position,
+      duration: step.durationMs,
+    }))
+  }
+  reconcile(view: WorldView, now: number) {
+    const visual = this.sample(now),
+      authoritative = mapPoint(view.position, view.sectors)
+    const route = loadedRoute(view.route, view.sectors).map((step) => ({
+      point: mapPoint(step.position, view.sectors),
+      position: step.position,
+      duration: step.durationMs,
+    }))
+    // Find the visual point on the confirmed forward path. Late confirmations must not
+    // rewind an already interpolated step, including at sector boundaries.
+    const points = [{ point: authoritative, position: view.position, duration: 0 }, ...route]
+    let nearest = 0,
+      distance = Infinity
+    for (let i = 1; i < points.length; i++) {
+      const a = points[i - 1]!.point,
+        b = points[i]!.point,
+        dx = b.x - a.x,
+        dy = b.y - a.y
+      const length = dx * dx + dy * dy
+      const t = length
+        ? Math.max(
+            0,
+            Math.min(1, ((visual.point.x - a.x) * dx + (visual.point.y - a.y) * dy) / length),
+          )
+        : 1
+      const d = Math.hypot(a.x + t * dx - visual.point.x, a.y + t * dy - visual.point.y)
+      if (d <= distance) {
+        nearest = i
+        distance = d
+      }
+    }
+    this.startedAt = now
+    if (distance < 0.8) {
+      this.origin = visual.point
+      this.standing = visual.position
+      const first = points[nearest]!
+      const remaining = points.slice(nearest).map((step) => ({ ...step, duration: STEP_MS }))
+      if (remaining.length)
+        remaining[0]!.duration = Math.max(
+          30,
+          Math.hypot(first.point.x - visual.point.x, first.point.y - visual.point.y) * STEP_MS,
+        )
+      this.route = remaining
+    } else {
+      this.origin = authoritative
+      this.standing = view.position
+      this.route = route
+    }
+    if (!view.route.length) {
+      this.origin = authoritative
+      this.standing = view.position
+      this.route = []
+    }
+  }
+  stop(now: number) {
+    const sample = this.sample(now)
+    this.origin = sample.point
+    this.standing = sample.position
+    this.route = []
+    this.startedAt = now
+  }
+}

@@ -2,15 +2,26 @@ export interface GlobeLocation {
   longitude: number
   latitude: number
 }
-export function globeSectorCenter(coordinate: string): GlobeLocation | null {
+export function globeSectorCenter(
+  coordinate: string,
+  columns = 32,
+  rows = 16,
+): GlobeLocation | null {
   const match = /^S(\d{2})-(\d{2})$/.exec(coordinate)
   if (!match) return null
   const east = Number(match[1]),
     north = Number(match[2])
-  if (east < 1 || east > 32 || north < 1 || north > 16) return null
-  return { longitude: (east - 0.5) * 11.25 - 180, latitude: 90 - (north - 0.5) * 11.25 }
+  if (east < 1 || east > columns || north < 1 || north > rows) return null
+  return {
+    longitude: (east - 0.5) * (360 / columns) - 180,
+    latitude: 90 - (north - 0.5) * (180 / rows),
+  }
 }
-export function globeSectorCoordinate(location: GlobeLocation): string | null {
+export function globeSectorCoordinate(
+  location: GlobeLocation,
+  columns = 32,
+  rows = 16,
+): string | null {
   if (
     !Number.isFinite(location.longitude) ||
     !Number.isFinite(location.latitude) ||
@@ -19,9 +30,9 @@ export function globeSectorCoordinate(location: GlobeLocation): string | null {
   )
     return null
   const longitude = (((location.longitude + 180) % 360) + 360) % 360
-  const east = Math.min(32, Math.floor(longitude / 11.25) + 1)
-  const north = Math.min(16, Math.floor((90 - location.latitude) / 11.25) + 1)
-  if (north < 1 || north > 16) return null
+  const east = Math.min(columns, Math.floor(longitude / (360 / columns)) + 1)
+  const north = Math.min(rows, Math.floor((90 - location.latitude) / (180 / rows)) + 1)
+  if (north < 1 || north > rows) return null
   return `S${String(east).padStart(2, '0')}-${String(north).padStart(2, '0')}`
 }
 const radians = (degrees: number) => (degrees * Math.PI) / 180

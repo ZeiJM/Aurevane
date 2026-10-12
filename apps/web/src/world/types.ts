@@ -55,6 +55,26 @@ export interface WorldLandmark {
     | 'spring'
     | 'hamlet'
     | 'waystone'
+    | 'marketplace'
+    | 'bridge'
+}
+export interface WorldBuilding {
+  id: string
+  x: number
+  y: number
+  width: number
+  height: number
+  artIndex: number
+  propIndex?: number
+}
+export interface WorldAtlasCell {
+  id: string
+  name: string
+  coordinate: string
+  regionId: string
+  column: number
+  row: number
+  charted: boolean
 }
 export interface WorldSector {
   id: string
@@ -70,6 +90,10 @@ export interface WorldSector {
   charted: boolean
   /** Deterministically generated ground between and beyond the authored regions. */
   generated?: boolean
+  atlasColumn?: number
+  atlasRow?: number
+  townId?: string
+  buildings?: readonly WorldBuilding[]
   landmarks: readonly WorldLandmark[]
   roads: readonly WorldRoad[]
 }
@@ -137,6 +161,8 @@ export interface WorldView {
   routeObjectiveId?: string | null
   nextStepAt: number | null
   sectors: WorldSectorView[]
+  /** Compact overview; private terrain and undiscovered landmarks never enter this list. */
+  atlas?: WorldAtlasCell[]
   players: WorldPlayer[]
   objectives: WorldObjective[]
   interactions: WorldInteraction[]

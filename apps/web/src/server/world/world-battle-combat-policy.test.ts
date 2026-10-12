@@ -6,6 +6,11 @@ import {
 } from '@aurevane/game-core/combat/essence'
 import type { CharacterCommittedBuildSnapshotRecord } from '@/server/character/character-build-service'
 import type { BattleAuthoritativeEncounterState } from '@/server/battle/battle-session-service'
+import {
+  isPvpQualityEncounter,
+  surrenderPvpCombatant,
+  timeoutPvpTurn,
+} from '@aurevane/game-core/combat/pvp-quality'
 vi.mock('server-only', () => ({}))
 const { rpc } = vi.hoisted(() => ({ rpc: vi.fn() }))
 vi.mock('@/lib/supabase/admin', () => ({ createSupabaseAdminClient: () => ({ rpc }) }))
@@ -111,6 +116,27 @@ it('persists current combat policies and configured heights for a new world enco
   expect(saved!.dotTriggerPolicyVersion).toBe(2)
   expect(saved!.groundEffectPolicyVersion).toBe(1)
   expect(saved!.effectStackingPolicyVersion).toBe(1)
+  expect(isPvpQualityEncounter(saved!)).toBe(true)
+  for (const actor of saved!.tactical.battle.combatants) {
+    expect(actor.temporaryResources.filter((r) => r.key === 'pvp.missed-turn-streak')).toEqual([
+      { key: 'pvp.missed-turn-streak', current: 0, maximum: 2 },
+    ])
+  }
+  const expired = timeoutPvpTurn(saved!)
+  expect(expired.state.tactical.battle.turnNumber).toBe(2)
+  expect(expired.state.tactical.battle.lifecycle).toBe('active')
+  expect(expired.state.tactical.battle.combatants.map((actor) => actor.hp)).toEqual(
+    saved!.tactical.battle.combatants.map((actor) => actor.hp),
+  )
+  expect(
+    expired.events.some((event) => (event as { event?: string }).event === 'battle_completed'),
+  ).toBe(false)
+  const nextExpiry = timeoutPvpTurn(expired.state)
+  expect(nextExpiry.state.tactical.battle.turnNumber).toBe(3)
+  expect(nextExpiry.state.tactical.battle.lifecycle).toBe('active')
+  const surrendered = surrenderPvpCombatant(nextExpiry.state, 'character:actor')
+  expect(surrendered.state.tactical.battle.lifecycle).toBe('completed')
+  expect(() => timeoutPvpTurn(surrendered.state)).toThrow('requires an active turn')
   expect(saved!.tactical.tiles.some((tile) => tile.elevation > 0)).toBe(true)
   expect(
     saved!.tactical.tiles
