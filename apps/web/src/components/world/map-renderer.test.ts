@@ -7,9 +7,22 @@ import { createMapRenderer } from './map-renderer'
 
 function scene() {
   const images: { onload: (() => void) | null }[] = []
+  const fills: { colour: string; alpha: number; order: number }[] = []
+  const draws: { src: string; order: number }[] = []
+  let drawOrder = 0
   let resizeCallback!: () => void
   const context = new Proxy(
-    { measureText: (text: string) => ({ width: text.length * 7 }) },
+    {
+      measureText: (text: string) => ({ width: text.length * 7 }),
+      globalAlpha: 1,
+      fillStyle: '',
+      fill() {
+        fills.push({ colour: this.fillStyle, alpha: this.globalAlpha, order: ++drawOrder })
+      },
+      drawImage(image: HTMLImageElement) {
+        draws.push({ src: image.src ?? '', order: ++drawOrder })
+      },
+    },
     {
       get(target, key) {
         return key in target
@@ -83,6 +96,8 @@ function scene() {
   const motion = new WorldMotion(view)
   const renderer = createMapRenderer(canvas, motion, view, select, vi.fn())!
   return {
+    fills,
+    draws,
     images,
     resize: () => resizeCallback(),
     view,
@@ -107,6 +122,59 @@ function scene() {
   }
 }
 describe('native map input and bounded lifecycle', () => {
+  it('keeps a traveller visible above a bridge or landmark prop', () => {
+    const s = scene()
+    const sector = s.view.sectors.find((sector) => sector.id === s.view.position.sectorId)!
+    const bridge = sector.landmarks.find((landmark) => landmark.kind === 'bridge')!
+    s.renderer.update({
+      ...s.view,
+      players: [
+        {
+          characterId: 'bridge-traveller',
+          name: 'Traveller',
+          level: 1,
+          portraitRef: '',
+          imageUrl: null,
+          online: true,
+          attackable: false,
+          position: { sectorId: sector.id, x: bridge.x, y: bridge.y },
+        },
+      ],
+    })
+    s.frame(40)
+    const props = s.draws.filter((draw) => draw.src.endsWith('props-v02.webp'))
+    expect(props.length).toBeGreaterThan(0)
+    const lastProp = Math.max(...props.map((draw) => draw.order))
+    expect(s.fills.some((fill) => fill.colour === '#a6b1b0' && fill.order > lastProp)).toBe(true)
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  })
+  it('keeps the identity overlay opaque when scenery occludes a traveller', () => {
+    const s = scene()
+    const sector = s.view.sectors.find((sector) => sector.id === s.view.position.sectorId)!
+    const building = sector.buildings![0]!
+    s.renderer.update({
+      ...s.view,
+      players: [
+        {
+          characterId: 'occluded-traveller',
+          name: 'Traveller',
+          level: 1,
+          portraitRef: '',
+          imageUrl: null,
+          online: true,
+          attackable: false,
+          position: { sectorId: sector.id, x: building.x, y: building.y },
+        },
+      ],
+    })
+    s.frame(40)
+    const overlays = s.fills.filter((fill) => fill.colour === '#a6b1b0')
+    expect(overlays.length).toBeGreaterThan(0)
+    expect(overlays.every((fill) => fill.alpha === 1)).toBe(true)
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  })
   it('redraws late art and a resized canvas while otherwise idle', () => {
     const s = scene()
     s.renderer.settings({ animate: false, zoom: 1 })

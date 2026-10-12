@@ -1,11 +1,23 @@
 import { GRID_HEIGHT, GRID_WIDTH } from '@/world/catalog'
+import { ATLAS_COLUMNS, ATLAS_ROWS } from '@/world/atlas'
 import { seeded } from '@/world/terrain-gen'
-import type { WorldPosition, WorldSectorView, WorldView } from '@/world/types'
+import type { WorldLandmark, WorldPosition, WorldSectorView, WorldView } from '@/world/types'
 import { mapPoint, type MapPoint, WorldMotion } from './world-motion'
 
 import { MAP_X, MAP_Y, projectMapPoint, unprojectMapPoint } from './map-projection'
 
 const BASE = '/media/art/world/runtime/'
+const landmarkProps: Partial<Record<WorldLandmark['kind'], number>> = {
+  bridge: 2,
+  ruin: 3,
+  shrine: 4,
+  camp: 5,
+  spring: 6,
+  waystone: 7,
+  anchor: 3,
+  hamlet: 0,
+  grove: 6,
+}
 const palettes: Record<string, [string, number, number]> = {
   'verdant-expanse': ['#526849', 1, 0],
   'aureth-crown': ['#727254', 0, 2],
@@ -152,6 +164,22 @@ export function createMapRenderer(
     c.fillStyle = '#233d3c'
     c.fillRect(0, 0, layer.width, layer.height)
     const texture = images.get('terrain')
+    // One world-anchored material gradient crosses every cell and sector without
+    // resetting its colour at tile edges. Water/lava animation stays on the overlay.
+    const originX = (sector.atlasColumn ?? 0) * GRID_WIDTH * tile,
+      originY = (sector.atlasRow ?? 0) * GRID_HEIGHT * tile
+    const materialGradient = (colours: readonly string[]) => {
+      const gradient = c.createLinearGradient(
+        -originX,
+        -originY,
+        ATLAS_COLUMNS * GRID_WIDTH * tile - originX,
+        ATLAS_ROWS * GRID_HEIGHT * tile - originY,
+      )
+      colours.forEach((colour, i) => gradient.addColorStop(i / (colours.length - 1), colour))
+      return gradient
+    }
+    const waterMaterial = materialGradient(['#315c62', '#427780', '#254f5b']),
+      lavaMaterial = materialGradient(['#702f25', '#bd5b2e', '#4d2526'])
     for (const cell of sector.cells) {
       const x = cell.x * tile,
         y = cell.y * tile
@@ -201,12 +229,8 @@ export function createMapRenderer(
         c.fillRect(x, y, tile + 1, tile + 1)
       }
       if (cell.terrain === '~' || cell.terrain === 'l') {
-        const water = cell.terrain === '~',
-          gradient = c.createLinearGradient(x, y, x + tile, y + tile)
-        gradient.addColorStop(0, water ? '#315c62' : '#702f25')
-        gradient.addColorStop(0.5, water ? '#427780' : '#bd5b2e')
-        gradient.addColorStop(1, water ? '#254f5b' : '#4d2526')
-        c.fillStyle = gradient
+        const water = cell.terrain === '~'
+        c.fillStyle = water ? waterMaterial : lavaMaterial
         c.fillRect(x, y, tile + 1, tile + 1)
         // Banks are fixed geometry; water highlights move independently above them.
         c.strokeStyle = water ? 'rgba(196,177,122,.55)' : '#6b5140'
@@ -359,6 +383,25 @@ export function createMapRenderer(
           tree: false,
         })
       }
+      // Landmark structures share scenery depth/culling and identity occlusion.
+      // Painting them after the character pass would hide someone on a bridge/anchor.
+      if (props?.complete && props.naturalWidth)
+        for (const landmark of sector.landmarks) {
+          const index = landmarkProps[landmark.kind]
+          if (index === undefined) continue
+          const size = tile * (landmark.kind === 'bridge' ? 2.7 : 1.55)
+          addScenery({
+            x: origin.x + landmark.x + 0.5,
+            y: origin.y + landmark.y + 0.5 + (size / tile) * 0.25,
+            width: size,
+            height: size,
+            image: props,
+            index,
+            columns: 4,
+            rows: 2,
+            tree: false,
+          })
+        }
       if (animate && !reduced)
         for (const cell of sector.cells)
           if ((cell.terrain === '~' || cell.terrain === 'l') && waterCells < 60) {
@@ -454,7 +497,7 @@ export function createMapRenderer(
       if (!ghost)
         hitTargets.push({ id: person.id, self: person.self, x: point.x, y: point.y - radius })
       ctx.save()
-      ctx.globalAlpha = ghost ? 0.6 : 1
+      ctx.globalAlpha = 1
       ctx.fillStyle = ghost ? '#a6b1b0' : '#182e32'
       ctx.strokeStyle = person.self ? '#ead399' : '#c6cbc0'
       ctx.lineWidth = person.self ? 2.5 : 1.5
@@ -471,10 +514,10 @@ export function createMapRenderer(
         const fade = people.length > 1 && animate && !reduced ? Math.min(1, (now % 3600) / 500) : 1
         const previous = portrait(people[(index + people.length - 1) % people.length]!.image)
         if (previous && fade < 1) {
-          ctx.globalAlpha = (ghost ? 0.6 : 1) * (1 - fade)
+          ctx.globalAlpha = 1 - fade
           ctx.drawImage(previous, point.x - radius, point.y - radius * 2, radius * 2, radius * 2)
         }
-        ctx.globalAlpha = (ghost ? 0.6 : 1) * fade
+        ctx.globalAlpha = fade
         ctx.drawImage(image, point.x - radius, point.y - radius * 2, radius * 2, radius * 2)
       } else {
         ctx.fillStyle = ghost ? '#c2c9c7' : '#bcac84'
@@ -566,34 +609,6 @@ export function createMapRenderer(
       for (const landmark of sector.landmarks) {
         const p = screen({ x: origin.x + landmark.x + 0.5, y: origin.y + landmark.y + 0.5 })
         if (p.x < 20 || p.x > width - 20 || p.y < 20 || p.y > height - 20) continue
-        const propIndex: Partial<Record<typeof landmark.kind, number>> = {
-          marketplace: 0,
-          settlement: 1,
-          bridge: 2,
-          ruin: 3,
-          shrine: 4,
-          camp: 5,
-          spring: 6,
-          waystone: 7,
-          anchor: 3,
-          hamlet: 0,
-          grove: 6,
-        }
-        const index = propIndex[landmark.kind]
-        if (
-          index !== undefined &&
-          !['settlement', 'marketplace'].includes(landmark.kind) &&
-          props?.complete &&
-          props.naturalWidth
-        ) {
-          const size =
-            landmark.kind === 'bridge'
-              ? tile * 2.7
-              : landmark.kind === 'settlement'
-                ? tile * 1.4
-                : tile * 1.55
-          sprite(ctx, props, index, 4, 2, p.x - size / 2, p.y - size * 0.75, size, size)
-        }
         ctx.font = 'italic 12px Georgia'
         ctx.textAlign = 'center'
         const bounds = {

@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { writeFileSync } from 'node:fs'
 import { execFileSync, spawn } from 'node:child_process'
 import { expect, test, type APIResponse, type Page, type TestInfo } from '@playwright/test'
 import type { SetPracticePlanRequest } from '@aurevane/validation/player/wayfarers-practice'
@@ -1148,8 +1149,10 @@ test('a synthetic population of 100 has bounded rendering at high DPI and lower 
   expect(metrics.visibleScenery).toBeLessThanOrEqual(180)
   expect(metrics.waterCells).toBeLessThanOrEqual(60)
   expect(metrics.frameP95Ms).toBeLessThan(80)
+  const costPath = info.outputPath('synthetic-world-render-cost.json')
+  writeFileSync(costPath, JSON.stringify(metrics, null, 2))
   await info.attach('synthetic-world-render-cost', {
-    body: JSON.stringify(metrics, null, 2),
+    path: costPath,
     contentType: 'application/json',
   })
   await capture(page, info, 'synthetic-100-mobile')
@@ -1188,6 +1191,13 @@ test('the mobile map stays usable after rotating to landscape', async ({ page },
     ),
   ).toBe(true)
   await capture(page, info, 'mobile-landscape-map')
+  await page.getByRole('button', { name: 'Details', exact: true }).click()
+  await page.getByRole('tab', { name: 'Places', exact: true }).click()
+  await expect(page.getByRole('tabpanel', { name: 'Places', exact: true })).toContainText(
+    'Marketplace',
+  )
+  await capture(page, info, 'mobile-landscape-places')
+  await page.getByRole('button', { name: 'Close details', exact: true }).click()
   await page.getByRole('button', { name: /Open world atlas/ }).click()
   await expect(page.getByRole('group', { name: /World globe/ })).toBeVisible()
   await capture(page, info, 'mobile-landscape-globe')

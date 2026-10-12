@@ -569,7 +569,7 @@
     gap: 9px;
   }
 }
-@media (max-width: 760px) {
+@media (max-width: 760px), (max-height: 500px) and (pointer: coarse) {
   .workspace {
     border-radius: 3px;
   }
@@ -657,9 +657,10 @@
     font-size: 9px;
   }
 }
-@media (max-height: 500px) and (max-width: 760px) {
+@media (max-height: 500px) and (max-width: 760px), (max-height: 500px) and (pointer: coarse) {
   .header {
     min-height: 40px;
+    padding-block: 0;
   }
   .mapTools {
     bottom: 6px;
