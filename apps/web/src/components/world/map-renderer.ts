@@ -666,13 +666,18 @@ export function createMapRenderer(
         ctx.fillText(String(people.length), point.x + 19, point.y - 26)
       }
       if (!ghost) {
-        ctx.font = '11px Georgia'
+        ctx.font = '600 12px Georgia'
         ctx.textAlign = 'center'
-        ctx.fillStyle = '#faf1dc'
-        ctx.strokeStyle = 'rgba(24,38,34,.85)'
-        ctx.lineWidth = 3
-        ctx.strokeText(person.name, point.x, point.y + 13)
-        ctx.fillText(person.name, point.x, point.y + 13)
+        const nameWidth = Math.min(180, ctx.measureText(person.name).width + 14)
+        ctx.fillStyle = 'rgba(6,28,35,.92)'
+        ctx.strokeStyle = person.self ? '#d0ac66' : 'rgba(176,192,186,.7)'
+        ctx.lineWidth = 0.7
+        ctx.beginPath()
+        ctx.roundRect(point.x - nameWidth / 2, point.y + 2, nameWidth, 18, 3)
+        ctx.fill()
+        ctx.stroke()
+        ctx.fillStyle = person.self ? '#f5dda5' : '#f1ebda'
+        ctx.fillText(person.name, point.x, point.y + 15, nameWidth - 12)
       }
     }
     for (const object of objects) {
@@ -753,13 +758,13 @@ export function createMapRenderer(
       for (const landmark of sector.landmarks) {
         const p = screen({ x: origin.x + landmark.x + 0.5, y: origin.y + landmark.y + 0.5 })
         if (p.x < 20 || p.x > width - 20 || p.y < 20 || p.y > height - 20) continue
-        ctx.font = 'italic 12px Georgia'
+        ctx.font = '13px Georgia'
         ctx.textAlign = 'center'
         const bounds = {
-          x: p.x - ctx.measureText(landmark.name).width / 2 - 5,
-          y: p.y + 13,
-          width: ctx.measureText(landmark.name).width + 10,
-          height: 19,
+          x: p.x - ctx.measureText(landmark.name).width / 2 - 9,
+          y: p.y + 25,
+          width: ctx.measureText(landmark.name).width + 18,
+          height: 21,
         }
         if (
           labelBounds.some(
@@ -772,11 +777,15 @@ export function createMapRenderer(
         )
           continue
         labelBounds.push(bounds)
-        ctx.strokeStyle = 'rgba(35,49,39,.9)'
-        ctx.lineWidth = 3
-        ctx.strokeText(landmark.name, p.x, p.y + 25)
-        ctx.fillStyle = '#f2e7c8'
-        ctx.fillText(landmark.name, p.x, p.y + 25)
+        ctx.fillStyle = 'rgba(6,28,35,.88)'
+        ctx.strokeStyle = 'rgba(208,172,102,.7)'
+        ctx.lineWidth = 0.7
+        ctx.beginPath()
+        ctx.roundRect(bounds.x, bounds.y, bounds.width, bounds.height, 3)
+        ctx.fill()
+        ctx.stroke()
+        ctx.fillStyle = '#f3dca6'
+        ctx.fillText(landmark.name, p.x, p.y + 40)
       }
     }
     // Time changes light gradually. Night never removes the ability to read terrain.
