@@ -96,6 +96,7 @@ export function WorldWorkspace({
     localViewActive = useRef(true)
   useEffect(() => {
     localViewActive.current = mode === 'local'
+    if (mode === 'local') void controller.current?.refresh()
   }, [mode])
   useEffect(() => {
     acceptedAt.current = Date.now()

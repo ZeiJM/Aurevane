@@ -53,6 +53,24 @@ export async function verifyWorldScenePresence(
     expect(scene.sectors.length).toBeLessThanOrEqual(25)
     await capture(page, info, 'nearby-across-sector-boundary')
 
+    // Let globe mode schedule its slower idle timer, then return. Local
+    // observation must restart promptly instead of retaining a ten-second wait.
+    const globePresence = page.waitForResponse(
+      (response) =>
+        response.request().method() === 'GET' &&
+        new URL(response.url()).searchParams.has('presenceVersion'),
+    )
+    await page.getByRole('button', { name: /Open world atlas/ }).click()
+    await globePresence
+    const localPresence = page.waitForResponse(
+      (response) =>
+        response.request().method() === 'GET' &&
+        new URL(response.url()).searchParams.has('presenceVersion'),
+      { timeout: 5000 },
+    )
+    await page.getByRole('button', { name: /Return to local map/ }).click()
+    expect((await (await localPresence).json()).kind).toBe('presence')
+
     // An idle observer must see a real second account walking, including with
     // ambient effects disabled. Probe the actual canvas nameplate, not React state.
     await page.getByRole('button', { name: 'Map settings', exact: true }).click()
