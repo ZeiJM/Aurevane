@@ -11,6 +11,7 @@ import {
   isWalkable,
   revealNearby,
   samePosition,
+  MAX_PERSISTED_ROUTE_STEPS,
 } from '@/world/travel'
 import type {
   WorldIntent,
@@ -54,11 +55,17 @@ export function resolveWorldIntent(
       isKnown(state, p),
     )
   )
-    state = { ...state, route: [], routeObjectiveId: null, nextStepAt: null }
+    state = {
+      ...state,
+      route: [],
+      routeObjectiveId: null,
+      routeDestination: null,
+      nextStepAt: null,
+    }
   const effectiveObjectives = effectiveWorldObjectives(state, objectives)
   let next: WorldState = { ...state }
   if (intent.kind === 'stop')
-    next = { ...state, route: [], routeObjectiveId: null, nextStepAt: null }
+    next = { ...state, route: [], routeObjectiveId: null, routeDestination: null, nextStepAt: null }
   else if (intent.kind === 'tick') {
     const objective = state.routeObjectiveId
       ? effectiveObjectives.find((o) => o.id === state.routeObjectiveId)
@@ -68,7 +75,7 @@ export function resolveWorldIntent(
       !isCurrentWorldRoute(state.position, state.route, visibleSectors(state), (p) =>
         isKnown(state, p),
       )
-        ? { ...state, route: [], routeObjectiveId: null, nextStepAt: null }
+        ? { ...state, route: [], routeObjectiveId: null, routeDestination: null, nextStepAt: null }
         : advanceWorldRoute(state, now)
   } else if (intent.kind === 'cross') {
     if (!samePosition(state.position, FRONTIER_APPROACH) || state.route.length)
@@ -77,6 +84,7 @@ export function resolveWorldIntent(
       ...state,
       position: { sectorId: SURVEY_SECTOR.id, x: 6, y: 8 },
       route: [],
+      routeDestination: null,
       nextStepAt: null,
     }
   } else if (intent.kind === 'interact') {
@@ -108,7 +116,8 @@ export function resolveWorldIntent(
     next = {
       ...state,
       position: origin,
-      route: route!,
+      route: route!.slice(0, MAX_PERSISTED_ROUTE_STEPS),
+      routeDestination: route!.length > MAX_PERSISTED_ROUTE_STEPS ? destination : null,
       routeObjectiveId: intent.kind === 'autopath' ? intent.objectiveId : null,
       nextStepAt: route!.length
         ? underWay
@@ -254,6 +263,7 @@ export function projectWorld(
     route: state.route.filter((s) => isKnown(state, s.position)),
     nextStepAt: state.nextStepAt,
     routeObjectiveId: state.route.length ? (state.routeObjectiveId ?? null) : null,
+    routeDestination: state.route.length ? (state.routeDestination ?? null) : null,
     sectors,
     atlas: visible.flatMap((sector) => {
       const address = atlasAddress(sector)

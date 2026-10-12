@@ -1293,3 +1293,43 @@ test('scenic countryside has real blossom woodland, ruins, pools and open meadow
     await capture(page, info, `countryside-${landscape}`)
   }
 })
+
+test('long auto-path travel replenishes saved route windows and reaches the actual final destination', async ({
+  page,
+}, info) => {
+  test.skip(
+    info.project.name !== 'desktop-chromium',
+    'Elapsed-time continuation authority is shared.',
+  )
+  test.setTimeout(120000)
+  await enter(page)
+  const receipts: WorldView[] = []
+  const requests: Promise<void>[] = []
+  let plans = 0
+  page.on('response', (response) => {
+    if (new URL(response.url()).pathname !== '/api/world' || response.request().method() !== 'POST')
+      return
+    const request = (async () => {
+      expect(response.ok()).toBe(true)
+      if (response.request().postDataJSON()?.intent?.kind === 'autopath') plans++
+      receipts.push(await response.json())
+    })()
+    requests.push(request)
+    void request.catch(() => {})
+  })
+  await openJournal(page)
+  await page.getByRole('button', { name: /Start Auto-path/ }).click()
+  await expect
+    .poll(async () => (await world(page)).routeDestination)
+    .toEqual({ sectorId: 'umbral-march', x: 6, y: 0 })
+  await expect
+    .poll(async () => (await world(page)).position, { timeout: 90000, intervals: [1000] })
+    .toEqual({ sectorId: 'umbral-march', x: 6, y: 0 })
+  await Promise.all(requests)
+  expect(receipts.every((receipt) => receipt.route.length <= 256)).toBe(true)
+  expect(plans).toBeGreaterThanOrEqual(2)
+  const arrived = await world(page)
+  expect(arrived.route).toEqual([])
+  expect(arrived.routeDestination).toBeNull()
+  await capture(page, info, 'long-journey-arrived')
+})

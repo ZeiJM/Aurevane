@@ -5,9 +5,49 @@ import { CHARTED_SECTORS } from './catalog'
 import { terrainWalkable } from './terrain'
 import { findWorldRoute, isWalkable, newWorldState, positionKey } from './travel'
 import { projectWorld } from '@/server/world/world-service'
-import { resolveSector, visibleSectors } from '@/server/world/world-content'
+import { isKnownCell, resolveSector, visibleSectors } from '@/server/world/world-content'
+import { resolveWorldIntent } from '@/server/world/world-service'
 
 describe('one traversable world atlas', () => {
+  it('plans long charted journeys with the actual server-visible compatibility graph', () => {
+    const state = newWorldState()
+    const visible = visibleSectors(state)
+    for (const id of ['frostmere', 'umbral-march']) {
+      const route = findWorldRoute(state.position, { sectorId: id, x: 6, y: 4 }, visible, (p) =>
+        isKnownCell(state, p),
+      )
+      expect(route?.length, `${id} server-visible journey`).toBeGreaterThan(80)
+    }
+    const planned = resolveWorldIntent(
+      state,
+      { kind: 'autopath', objectiveId: 'last-survey' },
+      1000,
+    )
+    expect(planned.route.length).toBeGreaterThan(80)
+    expect(planned.route.length).toBeLessThanOrEqual(256)
+    expect(planned.routeDestination).toEqual({ sectorId: 'umbral-march', x: 6, y: 0 })
+    let travelling = planned,
+      replenished = 0
+    while (travelling.route.length) {
+      const now = travelling.nextStepAt! + 39 * 200
+      travelling = resolveWorldIntent(travelling, { kind: 'tick' }, now)
+      if (travelling.routeDestination && travelling.route.length <= 128) {
+        const deadline = travelling.nextStepAt
+        travelling = resolveWorldIntent(
+          travelling,
+          { kind: 'autopath', objectiveId: 'last-survey' },
+          now,
+        )
+        expect(travelling.nextStepAt).toBe(deadline)
+        expect(travelling.route.length).toBeLessThanOrEqual(256)
+        replenished++
+      }
+    }
+    expect(replenished).toBeGreaterThan(0)
+    expect(travelling.position).toEqual({ sectorId: 'umbral-march', x: 6, y: 0 })
+    expect(projectWorld(travelling, [], 1000).routeDestination).toBeNull()
+    expect(resolveWorldIntent(planned, { kind: 'stop' }, 1000).routeDestination).toBeNull()
+  })
   it('provides unique sectors at one address with room for a population of 100', () => {
     const sectors = atlasSectors()
     expect(ATLAS_COLUMNS).toBe(128)

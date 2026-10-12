@@ -71,6 +71,8 @@ export function newWorldState(): WorldState {
 
 const MAX_ROUTE_SEARCH = 90000
 const MAX_ROUTE_STEPS = 1500
+/** Existing database constraint. Long journeys replenish this window while moving. */
+export const MAX_PERSISTED_ROUTE_STEPS = 256
 class MinHeap<T> {
   private items: T[] = []
   constructor(private readonly less: (a: T, b: T) => number) {}

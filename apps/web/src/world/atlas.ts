@@ -258,8 +258,7 @@ export function atlasSectors(): readonly WorldSector[] {
       if (isRoot && regionId === 'emberreach')
         for (let y = 0; y < GRID_HEIGHT; y++) if (y < 3 || y > 5) grid[y]![10] = 'l'
       const scenicCenter = scenic?.column === column && scenic.row === row
-      if (scenicCenter && scenic.landscape === 'willow')
-        for (let y = 1; y <= 2; y++) for (let x = 8; x <= 9; x++) grid[y]![x] = '~'
+      if (scenicCenter && scenic.landscape === 'willow') grid[2]![9] = '~'
       const buildings: WorldBuilding[] = []
       const addBuilding = (x: number, y: number, width: number, height: number, index: number) => {
         if (

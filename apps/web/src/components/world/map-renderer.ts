@@ -432,9 +432,10 @@ export function createMapRenderer(
           const index = scenic ? landmark.sceneryIndex : landmarkProps[landmark.kind]
           if (index === undefined) continue
           const size = tile * (landmark.kind === 'bridge' ? 2.7 : scenic ? 2.4 : 1.55)
+          const waterfall = scenic && index === 4
           addScenery({
-            x: origin.x + landmark.x + 0.5,
-            y: origin.y + landmark.y + 0.5 + (size / tile) * 0.25,
+            x: origin.x + landmark.x + (waterfall ? 2.5 : 0.5),
+            y: origin.y + landmark.y + 0.5 + (waterfall ? 0 : (size / tile) * 0.25),
             width: size,
             height: size,
             image: asset,

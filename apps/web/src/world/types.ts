@@ -16,6 +16,8 @@ export interface WorldState {
   position: WorldPosition
   route: TravelStep[]
   routeObjectiveId?: string | null
+  /** Final target when a long journey continues beyond the saved route window. */
+  routeDestination?: WorldPosition | null
   nextStepAt: number | null
   discoveries: Record<string, number[]>
   discoveredAnchors?: string[]
@@ -162,6 +164,7 @@ export interface WorldView {
   position: WorldPosition
   route: TravelStep[]
   routeObjectiveId?: string | null
+  routeDestination?: WorldPosition | null
   nextStepAt: number | null
   sectors: WorldSectorView[]
   /** Compact overview; private terrain and undiscovered landmarks never enter this list. */

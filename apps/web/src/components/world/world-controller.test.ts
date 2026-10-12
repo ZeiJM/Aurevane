@@ -8,6 +8,91 @@ const deferred = () => {
   return { promise, resolve }
 }
 describe('world command ordering', () => {
+  it('gives a queued Stop priority over an automatic route continuation', async () => {
+    const tick = deferred()
+    const destination = { sectorId: 'far', x: 6, y: 4 }
+    const segment = {
+      ...view,
+      version: 2,
+      route: Array(128).fill({ position: destination, durationMs: 200 }),
+      routeDestination: destination,
+    } as WorldView
+    const command = vi
+      .fn()
+      .mockReturnValueOnce(tick.promise)
+      .mockResolvedValue({ ...segment, version: 3, route: [], routeDestination: null })
+    const controller = new WorldController(view, {
+      command,
+      refresh: vi.fn(),
+      accept: vi.fn(),
+      busy: vi.fn(),
+      error: vi.fn(),
+    })
+    const pending = controller.send({ kind: 'tick' })
+    const stopped = controller.send({ kind: 'stop' })
+    tick.resolve(segment)
+    await pending
+    await stopped
+    expect(command.mock.calls.map(([intent]) => intent.kind)).toEqual(['tick', 'stop'])
+    expect(controller.view.route).toEqual([])
+    controller.dispose()
+  })
+  it('replenishes a long journey before the saved segment runs out', async () => {
+    const destination = { sectorId: 'far', x: 6, y: 4 }
+    const segment = {
+      ...view,
+      version: 2,
+      route: Array(128).fill({ position: destination, durationMs: 200 }),
+      routeDestination: destination,
+      routeObjectiveId: 'last-survey',
+      movementBlocked: null,
+      battleSessionId: null,
+    } as WorldView
+    const command = vi
+      .fn()
+      .mockResolvedValue({ ...segment, version: 3, route: Array(256).fill(segment.route[0]) })
+    const controller = new WorldController(view, {
+      command,
+      refresh: async () => segment,
+      accept: vi.fn(),
+      busy: vi.fn(),
+      error: vi.fn(),
+    })
+    await controller.refresh()
+    await vi.waitFor(() =>
+      expect(command).toHaveBeenCalledWith(
+        { kind: 'autopath', objectiveId: 'last-survey' },
+        segment,
+      ),
+    )
+    expect(controller.view.route.length).toBe(256)
+    controller.dispose()
+  })
+  it('never resumes an interrupted, blocked or stopped journey from old destination metadata', async () => {
+    for (const patch of [
+      { route: [] },
+      { movementBlocked: 'Stop Passive Training to travel.' },
+      { battleSessionId: 'battle' },
+    ]) {
+      const command = vi.fn()
+      const segment = {
+        ...view,
+        route: [{ position: { sectorId: 'a', x: 1, y: 1 }, durationMs: 200 }],
+        routeDestination: { sectorId: 'far', x: 6, y: 4 },
+        ...patch,
+      } as WorldView
+      const controller = new WorldController(view, {
+        command,
+        refresh: async () => segment,
+        accept: vi.fn(),
+        busy: vi.fn(),
+        error: vi.fn(),
+      })
+      await controller.refresh()
+      expect(command).not.toHaveBeenCalled()
+      controller.dispose()
+    }
+  })
   it('does not rewind a new preview when an earlier idle refresh finishes', async () => {
     const read = deferred(),
       accept = vi.fn(),

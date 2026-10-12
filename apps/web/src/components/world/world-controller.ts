@@ -71,6 +71,23 @@ export class WorldController {
       for (const job of this.queue) job.resolve({ applied: false })
       this.queue = []
     }
+    // Replan well before the 256-step persistence window ends. All steps still
+    // use the normal command channel/deadline; newer clicks and actions win.
+    if (
+      view.routeDestination &&
+      view.route.length > 0 &&
+      view.route.length <= 128 &&
+      !view.movementBlocked &&
+      !view.battleSessionId &&
+      (!this.currentJob || this.currentJob.intent.kind === 'tick') &&
+      this.queue.length === 0
+    ) {
+      void this.send(
+        view.routeObjectiveId
+          ? { kind: 'autopath', objectiveId: view.routeObjectiveId }
+          : { kind: 'walk', destination: view.routeDestination },
+      )
+    }
   }
   async refresh() {
     if (this.pending || this.disposed) return
