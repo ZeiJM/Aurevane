@@ -16,12 +16,18 @@ it('paints exactly the charted land cells used by movement, with no invented coa
   expect(pixels.length).toBe(ATLAS_COLUMNS * ATLAS_ROWS * 4)
   for (const cell of atlas) {
     expect(pixels[(cell.row * ATLAS_COLUMNS + cell.column) * 4 + 3]).toBe(255)
-    expect(globeSectorCoordinate(globeSectorCenter(cell.coordinate, 64, 32)!, 64, 32)).toBe(
-      cell.coordinate,
-    )
+    expect(
+      globeSectorCoordinate(
+        globeSectorCenter(cell.coordinate, ATLAS_COLUMNS, ATLAS_ROWS)!,
+        ATLAS_COLUMNS,
+        ATLAS_ROWS,
+      ),
+    ).toBe(cell.coordinate)
   }
   expect(pixels[3]).toBe(0)
-  expect(globeAtlasPixels([{ ...atlas[0]!, charted: false }], 64, 32).every((p) => p === 0)).toBe(
-    true,
-  )
+  expect(
+    globeAtlasPixels([{ ...atlas[0]!, charted: false }], ATLAS_COLUMNS, ATLAS_ROWS).every(
+      (p) => p === 0,
+    ),
+  ).toBe(true)
 })

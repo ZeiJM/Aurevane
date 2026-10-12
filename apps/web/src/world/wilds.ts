@@ -1,4 +1,4 @@
-import { STEP_MS, WILD_DOORS, WORLD_REGIONS } from './catalog'
+import { ATLAS_GEOGRAPHIC_SCALE, STEP_MS, WILD_DOORS, WORLD_REGIONS } from './catalog'
 import { generateSectorTerrain, riverFor } from './terrain-gen'
 import type { WorldRoad, WorldSector } from './types'
 import {
@@ -109,8 +109,8 @@ function buildWildSector(id: string): WorldSector | null {
     name: `${root.name} Wilds`,
     coordinate: `${root.sector}·${LETTER[a.dir]}${a.k}${side}`,
     regionId: root.id,
-    atlasColumn: (Number(rootCoordinate[1]) - 1) * 2 + stepsEast,
-    atlasRow: (Number(rootCoordinate[2]) - 1) * 2 + stepsSouth,
+    atlasColumn: (Number(rootCoordinate[1]) - 1) * ATLAS_GEOGRAPHIC_SCALE + stepsEast,
+    atlasRow: (Number(rootCoordinate[2]) - 1) * ATLAS_GEOGRAPHIC_SCALE + stepsSouth,
     art: null,
     east: 12 + stepsEast * 13,
     north: 28 - stepsSouth * 9,

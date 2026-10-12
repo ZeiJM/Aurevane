@@ -9,6 +9,7 @@ function scene() {
   const images: { onload: (() => void) | null }[] = []
   const fills: { colour: string; alpha: number; order: number }[] = []
   const draws: { src: string; order: number }[] = []
+  const transforms: number[][] = []
   let drawOrder = 0
   let resizeCallback!: () => void
   const context = new Proxy(
@@ -21,6 +22,9 @@ function scene() {
       },
       drawImage(image: HTMLImageElement) {
         draws.push({ src: image.src ?? '', order: ++drawOrder })
+      },
+      transform(...values: number[]) {
+        transforms.push(values)
       },
     },
     {
@@ -98,6 +102,7 @@ function scene() {
   return {
     fills,
     draws,
+    transforms,
     images,
     resize: () => resizeCallback(),
     view,
@@ -122,6 +127,31 @@ function scene() {
   }
 }
 describe('native map input and bounded lifecycle', () => {
+  it('renders actual blossom sprites in a sakura landscape', () => {
+    const s = scene()
+    s.renderer.update({
+      ...s.view,
+      sectors: s.view.sectors.map((sector) => ({ ...sector, landscape: 'sakura' })),
+    })
+    s.frame(120)
+    expect(s.draws.some((draw) => draw.src.endsWith('beauties-v03.webp'))).toBe(true)
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  })
+  it('varies tree canopy sway independently while keeping the trunk base fixed', () => {
+    const s = scene()
+    s.frame(120)
+    const canopies = s.transforms.filter((t) => t[0] === 1 && t[1] === 0 && t[3] === 1)
+    expect(canopies.length).toBeGreaterThan(1)
+    expect(new Set(canopies.map((t) => t[2])).size).toBeGreaterThan(1)
+    expect(canopies.every((t) => Math.abs(t[2]!) <= 0.025)).toBe(true)
+    s.transforms.length = 0
+    s.renderer.settings({ animate: false, zoom: 1 })
+    s.frame(160)
+    expect(s.transforms.filter((t) => t[0] === 1 && t[1] === 0 && t[3] === 1)).toEqual([])
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  })
   it('keeps a traveller visible above a bridge or landmark prop', () => {
     const s = scene()
     const sector = s.view.sectors.find((sector) => sector.id === s.view.position.sectorId)!

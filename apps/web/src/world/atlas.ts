@@ -1,10 +1,17 @@
-import { CHARTED_SECTORS, GRID_HEIGHT, GRID_WIDTH, STEP_MS, WORLD_REGIONS } from './catalog'
+import {
+  ATLAS_GEOGRAPHIC_SCALE,
+  CHARTED_SECTORS,
+  GRID_HEIGHT,
+  GRID_WIDTH,
+  STEP_MS,
+  WORLD_REGIONS,
+} from './catalog'
 import { generateSectorTerrain, seeded } from './terrain-gen'
 import { terrainWalkable } from './terrain'
 import type { WorldBuilding, WorldLandmark, WorldRoad, WorldSector } from './types'
 
-export const ATLAS_COLUMNS = 64
-export const ATLAS_ROWS = 32
+export const ATLAS_COLUMNS = 128
+export const ATLAS_ROWS = 64
 export const WORLD_LAND_NAME = 'Aurethia'
 
 export function atlasAddress(sector: Pick<WorldSector, 'atlasColumn' | 'atlasRow'>) {
@@ -14,10 +21,31 @@ export function atlasAddress(sector: Pick<WorldSector, 'atlasColumn' | 'atlasRow
 }
 const originalAddress = (coordinate: string) => {
   const match = /^S(\d{2})-(\d{2})$/.exec(coordinate)
-  return match ? { column: (Number(match[1]) - 1) * 2, row: (Number(match[2]) - 1) * 2 } : null
+  return match
+    ? {
+        column: (Number(match[1]) - 1) * ATLAS_GEOGRAPHIC_SCALE,
+        row: (Number(match[2]) - 1) * ATLAS_GEOGRAPHIC_SCALE,
+      }
+    : null
 }
 const roots = WORLD_REGIONS.map((region) => ({ ...region, ...originalAddress(region.sector)! }))
 const addressKey = (column: number, row: number) => `${column}:${row}`
+// Public countryside destinations span several sectors, with quiet open ground
+// between them. They decorate the existing atlas without moving saved positions.
+const scenicZones = [
+  { column: 62, row: 28, landscape: 'sakura', name: 'Cherryblossom Grove', kind: 'grove', art: 7 },
+  { column: 58, row: 27, landscape: 'autumn', name: 'Amberwood Glade', kind: 'grove', art: 6 },
+  { column: 48, row: 22, landscape: 'wisteria', name: 'Wisteria Hollow', kind: 'ruin', art: 5 },
+  { column: 69, row: 36, landscape: 'willow', name: 'Willow Cascades', kind: 'spring', art: 4 },
+  {
+    column: 50,
+    row: 34,
+    landscape: 'wildflowers',
+    name: 'Wildflower Meadow',
+    kind: 'grove',
+    art: 7,
+  },
+] as const
 const rootLinks = [
   ['aureth-crown', 'verdant-expanse'],
   ['aureth-crown', 'glasswind-desert'],
@@ -41,7 +69,7 @@ function segmentDistance(
 }
 function landAt(column: number, row: number) {
   return (
-    roots.some((root) => Math.hypot(column - root.column, (row - root.row) * 1.12) <= 4.6) ||
+    roots.some((root) => Math.hypot(column - root.column, (row - root.row) * 1.12) <= 8.8) ||
     rootLinks.some(
       ([a, b]) =>
         segmentDistance(
@@ -49,7 +77,7 @@ function landAt(column: number, row: number) {
           row,
           roots.find((r) => r.id === a)!,
           roots.find((r) => r.id === b)!,
-        ) <= 1.65,
+        ) <= 3.3,
     )
   )
 }
@@ -165,6 +193,12 @@ export function atlasSectors(): readonly WorldSector[] {
         (root) => Math.abs(column - root.column) <= 1 && Math.abs(row - root.row) <= 1,
       )
       const regionId = authored?.regionId ?? nearest.id
+      const scenic =
+        !town && !authored
+          ? scenicZones.find(
+              (zone) => Math.abs(column - zone.column) <= 1 && Math.abs(row - zone.row) <= 1,
+            )
+          : undefined
       const id = authored?.id ?? `atlas:${column}:${row}`
       const random = seeded(id)
       const isRoot = town?.id === id
@@ -186,7 +220,14 @@ export function atlasSectors(): readonly WorldSector[] {
           const roll = random()
           if (['emberreach', 'starfall-highlands', 'frostmere'].includes(regionId) && roll < 0.04)
             return '#'
-          return roll < (regionId === 'glasswind-desert' ? 0.045 : 0.1) ? 't' : '.'
+          return roll <
+            (scenic && scenic.landscape !== 'wildflowers'
+              ? 0.32
+              : regionId === 'glasswind-desert'
+                ? 0.045
+                : 0.1)
+            ? 't'
+            : '.'
         }),
       )
       // Streets span whole towns. Countryside has occasional routes and broad open
@@ -216,6 +257,9 @@ export function atlasSectors(): readonly WorldSector[] {
         for (let y = 0; y < GRID_HEIGHT; y++) grid[y]![10] = y >= 3 && y <= 5 ? '=' : '~'
       if (isRoot && regionId === 'emberreach')
         for (let y = 0; y < GRID_HEIGHT; y++) if (y < 3 || y > 5) grid[y]![10] = 'l'
+      const scenicCenter = scenic?.column === column && scenic.row === row
+      if (scenicCenter && scenic.landscape === 'willow')
+        for (let y = 1; y <= 2; y++) for (let x = 8; x <= 9; x++) grid[y]![x] = '~'
       const buildings: WorldBuilding[] = []
       const addBuilding = (x: number, y: number, width: number, height: number, index: number) => {
         if (
@@ -254,6 +298,19 @@ export function atlasSectors(): readonly WorldSector[] {
         }
       }
       const landmarks: WorldLandmark[] = (authored?.landmarks ?? []).map((l) => ({ ...l }))
+      if (scenicCenter) {
+        landmarks.push({
+          id: `${id}:scenic`,
+          name: scenic.name,
+          kind: scenic.kind,
+          x: scenic.landscape === 'willow' ? 8 : 6,
+          y: scenic.landscape === 'willow' ? 3 : 2,
+          sceneryIndex: scenic.art,
+        })
+        // A real walkable approach connects the destination to the travelling path.
+        const target = landmarks.at(-1)!
+        for (let y = target.y; y <= 4; y++) grid[y]![target.x] = '.'
+      }
       if (isRoot) {
         const settlement = landmarks.find((l) => l.kind === 'settlement')
         if (settlement) settlement.name = 'Town Square'
@@ -266,7 +323,7 @@ export function atlasSectors(): readonly WorldSector[] {
         })
         if (grid[4]![10] === '=')
           landmarks.push({ id: `${id}:bridge`, name: 'Bridge', kind: 'bridge', x: 10, y: 4 })
-      } else if (!town && random() < 0.32) {
+      } else if (!town && !scenicCenter && random() < 0.32) {
         // Reuse the existing wilderness content vocabulary; no rewards, NPCs or hidden lore.
         const candidates = generateSectorTerrain({
           id,
@@ -288,7 +345,13 @@ export function atlasSectors(): readonly WorldSector[] {
       sectors.push({
         ...authored,
         id,
-        name: authored?.name ?? (town ? `${town.name} District` : `${nearest.name} Countryside`),
+        name:
+          authored?.name ??
+          (scenicCenter
+            ? scenic.name
+            : town
+              ? `${town.name} District`
+              : `${nearest.name} Countryside`),
         coordinate: `S${String(column + 1).padStart(2, '0')}-${String(row + 1).padStart(2, '0')}`,
         regionId,
         art: authored?.art ?? null,
@@ -296,6 +359,7 @@ export function atlasSectors(): readonly WorldSector[] {
         atlasColumn: column,
         atlasRow: row,
         townId: town?.id,
+        ...(scenic ? { landscape: scenic.landscape } : {}),
         buildings,
         east: column * GRID_WIDTH,
         north: (ATLAS_ROWS - row) * GRID_HEIGHT,

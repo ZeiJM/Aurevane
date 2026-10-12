@@ -106,7 +106,7 @@ describe('world authority and spoiler projection', () => {
 
     expect(hinterland).toMatchObject({
       name: 'Crown Hinterland',
-      coordinate: 'S29-15',
+      coordinate: 'S57-29',
       regionId: 'aureth-crown',
       charted: true,
     })
@@ -122,12 +122,12 @@ describe('world authority and spoiler projection', () => {
     const expected = [
       {
         id: 'crown-northfields',
-        coordinate: 'S27-13',
+        coordinate: 'S53-25',
         exits: ['aureth-crown', 'crown-uplands'],
       },
       {
         id: 'crown-uplands',
-        coordinate: 'S29-13',
+        coordinate: 'S57-25',
         exits: ['crown-hinterland', 'crown-northfields'],
       },
     ]
@@ -175,7 +175,7 @@ describe('world authority and spoiler projection', () => {
     const state = { ...newWorldState(), position: { sectorId: 'coastal-road', x: 5, y: 3 } }
     const road = projectWorld(state, [], 1000).sectors.find((s) => s.id === 'coastal-road')!
     expect(road).toBeDefined()
-    expect(road.coordinate).toBe('S35-19')
+    expect(road.coordinate).toBe('S69-37')
     expect(
       road.cells.filter((cell) => cell.y === 3).every((cell) => cell.walkable && !cell.safe),
     ).toBe(true)
@@ -193,37 +193,37 @@ describe('world authority and spoiler projection', () => {
   it.each([
     {
       id: 'eastern-march-road',
-      coordinate: 'S43-15',
+      coordinate: 'S85-29',
       panoramaVersion: 'v01',
       exits: ['emberreach', 'umbral-march'],
     },
     {
       id: 'old-coast-road',
-      coordinate: 'S39-21',
+      coordinate: 'S77-41',
       panoramaVersion: 'v01',
       exits: ['hollow-coast', 'umbral-march'],
     },
     {
       id: 'highland-road',
-      coordinate: 'S27-11',
+      coordinate: 'S53-21',
       panoramaVersion: 'v01',
       exits: ['aureth-crown', 'starfall-highlands'],
     },
     {
       id: 'northern-pass',
-      coordinate: 'S29-07',
+      coordinate: 'S57-13',
       panoramaVersion: 'v01',
       exits: ['frostmere', 'starfall-highlands'],
     },
     {
       id: 'ember-road',
-      coordinate: 'S39-13',
+      coordinate: 'S77-25',
       panoramaVersion: 'v02',
       exits: ['emberreach', 'verdant-expanse'],
     },
     {
       id: 'southern-caravan-road',
-      coordinate: 'S27-19',
+      coordinate: 'S53-37',
       panoramaVersion: 'v02',
       exits: ['aureth-crown', 'glasswind-desert'],
     },

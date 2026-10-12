@@ -43,6 +43,8 @@ export interface WorldLandmark {
   name: string
   x: number
   y: number
+  /** Original scenic landmark sprite; does not grant an interaction or reward. */
+  sceneryIndex?: number
   kind:
     | 'settlement'
     | 'watchtower'
@@ -93,6 +95,7 @@ export interface WorldSector {
   atlasColumn?: number
   atlasRow?: number
   townId?: string
+  landscape?: 'sakura' | 'autumn' | 'wisteria' | 'willow' | 'wildflowers'
   buildings?: readonly WorldBuilding[]
   landmarks: readonly WorldLandmark[]
   roads: readonly WorldRoad[]

@@ -1069,12 +1069,12 @@ test('rapid ground clicks settle at the last legal tile and keyboard movement cr
   test.setTimeout(60000)
   await enter(page)
   const initial = await world(page)
-  place(initial.characterId, 'atlas:29:13', 6, 4)
+  place(initial.characterId, 'atlas:58:28', 6, 4)
   await page.reload()
   await expect(page.locator('canvas[data-world-stage]')).toBeVisible()
-  await stageWalk(page, { sectorId: 'atlas:29:13', x: 7, y: 4 })
-  await stageWalk(page, { sectorId: 'atlas:29:13', x: 5, y: 4 })
-  const final = { sectorId: 'atlas:29:13', x: 10, y: 4 }
+  await stageWalk(page, { sectorId: 'atlas:58:28', x: 7, y: 4 })
+  await stageWalk(page, { sectorId: 'atlas:58:28', x: 5, y: 4 })
+  const final = { sectorId: 'atlas:58:28', x: 10, y: 4 }
   await stageWalk(page, final)
   await expect
     .poll(
@@ -1091,11 +1091,11 @@ test('rapid ground clicks settle at the last legal tile and keyboard movement cr
   await canvas.press('ArrowRight')
   await expect.poll(async () => (await world(page)).position).toEqual({ ...final, x: 12 })
   await canvas.press('ArrowRight')
-  await expect.poll(async () => (await world(page)).position.sectorId).not.toBe('atlas:29:13')
+  await expect.poll(async () => (await world(page)).position.sectorId).not.toBe('atlas:58:28')
   await capture(page, info, 'seamless-edge-crossing')
   await page.reload()
   await expect(canvas).toBeVisible()
-  expect((await world(page)).position.sectorId).not.toBe('atlas:29:13')
+  expect((await world(page)).position.sectorId).not.toBe('atlas:58:28')
 })
 
 test('a synthetic population of 100 has bounded rendering at high DPI and lower CPU speed', async ({
@@ -1257,4 +1257,39 @@ test('the globe rotates by dragging and has a usable charted fallback without We
   await page.getByRole('button', { name: 'Stop travel', exact: true }).click()
   await expect.poll(async () => (await world(page)).route.length).toBe(0)
   await capture(page, info, 'fallback-route-return')
+})
+
+test('scenic countryside has real blossom woodland, ruins, pools and open meadows', async ({
+  page,
+}, info) => {
+  test.skip(info.project.name !== 'desktop-chromium', 'Inspect original landscape sprites once.')
+  test.setTimeout(120000)
+  await enter(page)
+  const initial = await world(page)
+  for (const [id, name, landscape] of [
+    ['atlas:62:28', 'Cherryblossom Grove', 'sakura'],
+    ['atlas:58:27', 'Amberwood Glade', 'autumn'],
+    ['atlas:48:22', 'Wisteria Hollow', 'wisteria'],
+    ['atlas:69:36', 'Willow Cascades', 'willow'],
+    ['atlas:50:34', 'Wildflower Meadow', 'wildflowers'],
+  ] as const) {
+    place(initial.characterId, id, 6, 4)
+    await page.reload()
+    await expect(page.locator('canvas[data-world-stage]')).toBeVisible()
+    const scene = await world(page)
+    const sector = scene.sectors.find((s) => s.id === id)!
+    expect(sector.landscape).toBe(landscape)
+    expect(sector.townId).toBeUndefined()
+    const landmark = sector.landmarks.find((l) => l.name === name)!
+    expect(landmark).toBeDefined()
+    expect(sector.cells.find((c) => c.x === landmark.x && c.y === landmark.y)?.walkable).toBe(true)
+    await stageWalk(page, { sectorId: id, x: landmark.x, y: landmark.y })
+    await expect
+      .poll(async () => (await world(page)).position, { timeout: 12000 })
+      .toEqual({ sectorId: id, x: landmark.x, y: landmark.y })
+    await expectLocation(page, name)
+    if (landscape === 'willow')
+      expect(sector.cells.some((c) => c.terrain === '~' && !c.walkable)).toBe(true)
+    await capture(page, info, `countryside-${landscape}`)
+  }
 })

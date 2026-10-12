@@ -13,7 +13,7 @@
 ## Global Constraints
 
 - Sector local coordinates remain 13×9; walking pace remains 200 ms. Server authority, expected versions, idempotency, discovery and battle/training exclusion remain intact.
-- Atlas 64×32, towns 3×3 sectors, foliage traversable; deep water/lava/buildings blocked. Private survey content never enters client imports.
+- Atlas 128×64, towns 3×3 sectors, foliage traversable; deep water/lava/buildings blocked. Private survey content never enters client imports.
 - No unrelated combat/skill overhaul. Preserve the separate world-battle timeout fix at release.
 - No page scroll at 100% zoom; panel overflow only. Talk remains Coming soon.
 - No speculative infrastructure or new dependencies. Production release is authorized only after verification.

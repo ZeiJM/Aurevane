@@ -7,7 +7,7 @@ export function globeSectorCenter(
   columns = 32,
   rows = 16,
 ): GlobeLocation | null {
-  const match = /^S(\d{2})-(\d{2})$/.exec(coordinate)
+  const match = /^S(\d{2,3})-(\d{2,3})$/.exec(coordinate)
   if (!match) return null
   const east = Number(match[1]),
     north = Number(match[2])

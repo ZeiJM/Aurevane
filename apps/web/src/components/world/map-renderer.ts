@@ -1,6 +1,6 @@
 import { GRID_HEIGHT, GRID_WIDTH } from '@/world/catalog'
 import { ATLAS_COLUMNS, ATLAS_ROWS } from '@/world/atlas'
-import { seeded } from '@/world/terrain-gen'
+import { hashString, seeded } from '@/world/terrain-gen'
 import type { WorldLandmark, WorldPosition, WorldSectorView, WorldView } from '@/world/types'
 import { mapPoint, type MapPoint, WorldMotion } from './world-motion'
 
@@ -108,16 +108,17 @@ export function createMapRenderer(
     cache.clear()
     cachedPixels = 0
   }
-  const load = (name: string) => {
+  const load = (name: string, version = 'v02') => {
     const image = new Image()
     image.onload = () => {
       clearCache()
       requestDraw()
     }
-    image.src = BASE + name + '-v02.webp'
+    image.src = BASE + name + '-' + version + '.webp'
     images.set(name, image)
   }
   for (const name of ['terrain', 'buildings', 'nature', 'props', 'biomes']) load(name)
+  load('beauties', 'v03')
   const resize = () => {
     width = canvas.clientWidth
     height = canvas.clientHeight
@@ -324,7 +325,8 @@ export function createMapRenderer(
     const nature = images.get('nature'),
       buildings = images.get('buildings'),
       props = images.get('props'),
-      biomes = images.get('biomes')
+      biomes = images.get('biomes'),
+      beauties = images.get('beauties')
     let waterCells = 0
     for (const sector of visible) {
       const origin = sectorOrigin(sector),
@@ -336,6 +338,25 @@ export function createMapRenderer(
       const palette = palettes[sector.regionId] ?? palettes['verdant-expanse']!
       if (nature?.complete && nature.naturalWidth)
         for (const cell of sector.cells) {
+          if (
+            sector.landscape === 'wildflowers' &&
+            cell.terrain === '.' &&
+            beauties?.complete &&
+            beauties.naturalWidth &&
+            hashString(`${sector.id}:${cell.x}:${cell.y}`) % 5 === 0
+          ) {
+            addScenery({
+              x: origin.x + cell.x + 0.5,
+              y: origin.y + cell.y + 0.75,
+              width: tile * 1.15,
+              height: tile * 1.1,
+              image: beauties,
+              index: 7,
+              columns: 4,
+              rows: 2,
+              tree: false,
+            })
+          }
           if (cell.terrain !== 't' && cell.terrain !== '#') continue
           const variant: Record<string, number> = {
             'aureth-crown': 6,
@@ -350,16 +371,34 @@ export function createMapRenderer(
             ? sector.regionId === 'emberreach'
               ? 2
               : 3
-            : variant[sector.regionId]
+            : sector.landscape === 'willow'
+              ? 5
+              : variant[sector.regionId]
+          const scenicTree =
+            !rock && beauties?.complete && beauties.naturalWidth
+              ? sector.landscape === 'sakura'
+                ? hashString(`${origin.x + cell.x}:${origin.y + cell.y}`) % 3 === 0
+                  ? 1
+                  : 0
+                : sector.landscape === 'autumn'
+                  ? 2
+                  : sector.landscape === 'wisteria'
+                    ? 3
+                    : undefined
+              : undefined
           const asset =
-            special !== undefined && biomes?.complete && biomes.naturalWidth ? biomes : nature
+            scenicTree !== undefined
+              ? beauties!
+              : special !== undefined && biomes?.complete && biomes.naturalWidth
+                ? biomes
+                : nature
           addScenery({
             x: origin.x + cell.x + 0.5,
             y: origin.y + cell.y + 0.75,
             width: tile * (rock ? 1.8 : 1.65),
             height: tile * (rock ? 1.7 : 2.55),
             image: asset,
-            index: asset === biomes ? special! : palette[2],
+            index: scenicTree ?? (asset === biomes ? special! : palette[2]),
             columns: 4,
             rows: 2,
             tree: !rock,
@@ -387,15 +426,18 @@ export function createMapRenderer(
       // Painting them after the character pass would hide someone on a bridge/anchor.
       if (props?.complete && props.naturalWidth)
         for (const landmark of sector.landmarks) {
-          const index = landmarkProps[landmark.kind]
+          const scenic =
+            landmark.sceneryIndex !== undefined && beauties?.complete && beauties.naturalWidth
+          const asset = scenic ? beauties! : props
+          const index = scenic ? landmark.sceneryIndex : landmarkProps[landmark.kind]
           if (index === undefined) continue
-          const size = tile * (landmark.kind === 'bridge' ? 2.7 : 1.55)
+          const size = tile * (landmark.kind === 'bridge' ? 2.7 : scenic ? 2.4 : 1.55)
           addScenery({
             x: origin.x + landmark.x + 0.5,
             y: origin.y + landmark.y + 0.5 + (size / tile) * 0.25,
             width: size,
             height: size,
-            image: props,
+            image: asset,
             index,
             columns: 4,
             rows: 2,
@@ -554,18 +596,29 @@ export function createMapRenderer(
       ctx.beginPath()
       ctx.ellipse(p.x, p.y - 4, item.width * 0.36, 10, 0, 0, Math.PI * 2)
       ctx.fill()
-      const sway =
-        animate && !reduced && item.tree && Math.floor(item.x + item.y) % 5 === 0
-          ? Math.sin(now / 2800 + item.x) * 1.4
-          : 0
+      // Stable individual phase, pace, strength and sheltered pauses. The base
+      // stays fixed while the canopy bends, rather than sliding the whole tree.
+      const movingTree = animate && !reduced && item.tree
+      if (movingTree) {
+        const seed = hashString(`${item.x}:${item.y}`),
+          phase = (seed % 6283) / 1000,
+          period = 1700 + (seed % 2600),
+          strength = seed % 7 === 0 ? 0 : 0.4 + (seed % 130) / 100,
+          gust = 0.65 + 0.35 * Math.sin(now / 7500 + phase * 0.7),
+          sway =
+            (Math.sin(now / period + phase) + 0.2 * Math.sin(now / (period * 0.43) + phase * 1.8)) *
+            strength *
+            gust
+        ctx.transform(1, 0, sway / item.height, 1, p.x, p.y)
+      }
       sprite(
         ctx,
         item.image,
         item.index,
         item.columns,
         item.rows,
-        p.x - item.width / 2 + sway,
-        p.y - item.height,
+        (movingTree ? 0 : p.x) - item.width / 2,
+        (movingTree ? 0 : p.y) - item.height,
         item.width,
         item.height,
       )

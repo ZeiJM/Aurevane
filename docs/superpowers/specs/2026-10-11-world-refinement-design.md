@@ -20,7 +20,7 @@ Approved in the October 11 map conversation. Implement and release the whole ver
 
 ## Architecture
 
-Keep persisted 13×9 sector-local positions and stable authored sector IDs. Add a 64×32 ordinary-world atlas at twice the former geographic resolution, with authored anchors at matching geographic positions, 3×3 town districts and connected countryside. Existing parked trail/wild/private positions remain resolvable; old incompatible routes fail closed. Ordinary charted realms expand without revealing the private survey table/content. No database schema change is needed.
+Keep persisted 13×9 sector-local positions and stable authored sector IDs. Add a 128×64 ordinary-world atlas at four times the former geographic resolution, with authored anchors at matching geographic positions, 3×3 town districts and connected countryside. Existing parked trail/wild/private positions remain resolvable; old incompatible routes fail closed. Ordinary charted realms expand without revealing the private survey table/content. No database schema change is needed.
 
 The server owns deterministic terrain, crossings, route legality, discovery, safe zones and encounters. Project only the current/next-route neighbourhood's tile data, plus a compact charted-sector overview. Client code cannot manufacture authoritative destinations or reveal private cells.
 
@@ -31,3 +31,7 @@ Generate original reusable runtime art rather than using UI screenshots as map b
 ## Release
 
 Owner explicitly authorized push live when everything is complete. Reconcile volatile main; preserve the separate urgent world-battle timeout repair. Run focused and repository-wide checks, browser movement/arrival/crossing/stop/attack/error/mission/globe/viewport tests, and performance measurements. Review the whole change once, fix meaningful findings, then publish and verify the exact live source. Close superseded Claude PRs only after their useful behavior is accounted for.
+
+## October 12 Owner exploration refinement
+
+Owner asks for whole countryside sectors between towns, sakura and other scenic zones, independently varied foliage motion, and the memorable town/route/landmark rhythm of a compact but substantial exploration world. Expand the ordinary atlas to 128×64 with fourfold authored spacing, broad connected land, nine full countryside sectors minimum between settlement footprints, and unchanged persisted authored IDs/local coordinates. Five multi-sector countryside destinations use original painted pink/white sakura, autumn maple, wisteria, waterfall/pool, standing stones, mushrooms and meadow flowers. These are real walkable destinations and scenery, without new reward/quest/NPC mechanics. Preserve private discovery and anchor private wilderness to the same geographic scale. Keep all existing renderer/payload/search budgets and recheck the enlarged atlas end to end before deployment.
