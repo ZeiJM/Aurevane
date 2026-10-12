@@ -1128,7 +1128,12 @@ for (const mode of ['effects off', 'reduced motion']) {
         draw = ctx.drawImage.bind(ctx)
       const portrait = new URL(el.dataset.portrait!, location.href).href
       ctx.drawImage = ((image: CanvasImageSource, ...args: number[]) => {
-        if (image instanceof HTMLImageElement && image.src === portrait && args.length === 4) {
+        if (
+          image instanceof HTMLImageElement &&
+          image.src === portrait &&
+          ctx.strokeStyle === '#ead399' &&
+          args.length === 4
+        ) {
           el.dataset.testDrawnX = String(args[0]! + 17)
           el.dataset.testDrawnY = String(args[1]! + 34)
         }
