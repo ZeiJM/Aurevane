@@ -52,6 +52,7 @@ export function SphericalView({
     return () => element.removeEventListener('wheel', wheel)
   }, [zoomLocked, zoom, onZoom])
   const drag = useRef<{ x: number; y: number; camera: GlobeLocation } | null>(null)
+  const consumedDrag = useRef(false)
   const touchPoints = useRef(new Map<number, { x: number; y: number }>())
   const pinch = useRef<{ distance: number; zoom: number } | null>(null)
   const gestured = useRef(false)
@@ -144,9 +145,20 @@ export function SphericalView({
           : 'World globe. Drag or use arrow keys to rotate.'
       }
       tabIndex={0}
+      onClickCapture={(event) => {
+        if (consumedDrag.current && event.detail > 0) {
+          event.preventDefault()
+          event.stopPropagation()
+        }
+        consumedDrag.current = false
+      }}
       onPointerDown={(e) => {
-        if ((e.target as HTMLElement).closest('button')) return
-        e.currentTarget.setPointerCapture(e.pointerId)
+        consumedDrag.current = false
+        const button = (e.target as HTMLElement).closest('button')
+        if (button && !button.hasAttribute('data-globe-town')) return
+        // Towns support click selection and drag rotation. Capture only after a
+        // real drag starts, so an ordinary button click still reaches its target.
+        if (!button) e.currentTarget.setPointerCapture(e.pointerId)
         if (e.pointerType === 'touch') {
           touchPoints.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
           if (touchPoints.current.size === 2) {
@@ -173,6 +185,10 @@ export function SphericalView({
         }
         if (gestured.current) return
         if (!drag.current) return
+        if (Math.hypot(e.clientX - drag.current.x, e.clientY - drag.current.y) > 6) {
+          consumedDrag.current = true
+          e.currentTarget.setPointerCapture(e.pointerId)
+        }
         scheduleCamera({
           longitude: drag.current.camera.longitude - (e.clientX - drag.current.x) * 0.25,
           latitude: Math.max(
@@ -183,6 +199,7 @@ export function SphericalView({
       }}
       onPointerUp={(e) => {
         if (gestured.current) {
+          consumedDrag.current = true
           endTouch(e.pointerId)
           drag.current = null
           return
@@ -194,6 +211,7 @@ export function SphericalView({
         const dx = e.clientX - start.x,
           dy = e.clientY - start.y
         if (dx * dx + dy * dy > 36) return
+        if ((e.target as HTMLElement).closest('[data-globe-town]')) return
         const bounds = e.currentTarget.getBoundingClientRect(),
           x = (((e.clientX - bounds.left) / bounds.width) * 2 - 1) / zoom,
           y = (1 - ((e.clientY - bounds.top) / bounds.height) * 2) / zoom

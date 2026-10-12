@@ -92,6 +92,7 @@ export function WorldGlobe({
             <button
               key={sector.id}
               className={styles.globeTown}
+              data-globe-town
               aria-label={`Select ${sector.name} town`}
               aria-pressed={selected === sector.id}
               onClick={() => selectSector(sector.id)}

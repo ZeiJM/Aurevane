@@ -89,6 +89,13 @@ export function registerWorldLandscapeCases(helpers: Helpers) {
     ).toBeVisible()
     await expect(page.getByRole('button', { name: 'Travel here', exact: true })).toBeEnabled()
     await capture(page, info, 'accurate-globe-main-towns')
+    const closeDetails = page.getByRole('button', { name: /Close details/ })
+    if (await closeDetails.isVisible()) await closeDetails.click()
+    await page.getByRole('button', { name: 'Select Verdant Expanse town', exact: true }).click()
+    await expect(towns).toHaveValue('verdant-expanse')
+    await expect(
+      page.getByRole('region', { name: 'Selected destination', exact: true }),
+    ).toContainText('Verdant Expanse')
     expect((await world(page)).position).toEqual(initial.position)
   })
 
