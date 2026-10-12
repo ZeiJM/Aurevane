@@ -223,7 +223,7 @@ export function SphericalView({
           })
         }
         if (e.key === '+' || e.key === '=') onZoom(Math.min(1.4, zoom + 0.1))
-        if (e.key === '-') onZoom(Math.max(0.65, zoom - 0.1))
+        if (e.key === '-') onZoom(Math.max(0.6, zoom - 0.1))
       }}
     >
       {failed ? (
