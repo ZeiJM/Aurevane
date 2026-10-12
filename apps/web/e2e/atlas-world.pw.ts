@@ -1178,6 +1178,13 @@ test('the mobile map stays usable after rotating to landscape', async ({ page },
   test.setTimeout(90000)
   await enter(page)
   await page.setViewportSize({ width: 915, height: 412 })
+  const navigation = page.getByRole('navigation', { name: 'Primary game navigation', exact: true })
+  const links = navigation.getByRole('link')
+  await expect(links).toHaveCount(6)
+  for (const link of await links.all()) {
+    await expect(link).toBeInViewport({ ratio: 1 })
+    expect((await link.boundingBox())!.height).toBeGreaterThanOrEqual(44)
+  }
   const stage = page.locator('canvas[data-world-stage]')
   await expect(stage).toBeVisible()
   const bounds = (await stage.boundingBox())!
@@ -1197,7 +1204,12 @@ test('the mobile map stays usable after rotating to landscape', async ({ page },
     'Marketplace',
   )
   await capture(page, info, 'mobile-landscape-places')
-  await page.getByRole('button', { name: 'Close details', exact: true }).click()
+  const close = page.getByRole('button', { name: 'Close details', exact: true })
+  await expect(close).toBeInViewport({ ratio: 1 })
+  const closeBounds = (await close.boundingBox())!,
+    headerBounds = (await page.locator('[data-world-workspace] > header').boundingBox())!
+  expect(closeBounds.x + closeBounds.width).toBeLessThanOrEqual(headerBounds.x + headerBounds.width)
+  await close.click()
   await page.getByRole('button', { name: /Open world atlas/ }).click()
   await expect(page.getByRole('group', { name: /World globe/ })).toBeVisible()
   await capture(page, info, 'mobile-landscape-globe')
