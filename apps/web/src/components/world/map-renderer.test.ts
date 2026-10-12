@@ -160,6 +160,32 @@ describe('native map input and bounded lifecycle', () => {
     s.renderer.dispose()
     vi.unstubAllGlobals()
   })
+  it('keeps your own portrait when other travellers share your tile', () => {
+    const s = scene()
+    s.canvas.dataset.portrait = '/your-portrait.png'
+    s.renderer.update({
+      ...s.view,
+      players: [
+        {
+          characterId: 'other',
+          name: 'Other',
+          level: 1,
+          portraitRef: '',
+          imageUrl: '/other-portrait.png',
+          position: s.view.position,
+          online: true,
+          attackable: false,
+        },
+      ],
+    })
+    s.frame(40)
+    s.draws.length = 0
+    s.frame(4800)
+    expect(s.draws.some((d) => d.src === '/your-portrait.png')).toBe(true)
+    expect(s.draws.some((d) => d.src === '/other-portrait.png')).toBe(false)
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  })
   it('walks with WASD in either case while retaining arrow-key movement', () => {
     const s = scene()
     s.renderer.update({

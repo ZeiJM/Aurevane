@@ -80,8 +80,9 @@ export async function verifyWorldPresentation(
       : route.continue(),
   )
   await canvas.press('a')
-  await expect(page.getByRole('alert')).toContainText('Travel is temporarily unavailable.')
-  await expect(page.getByRole('alert')).toBeInViewport({ ratio: 1 })
+  const notice = workspace.getByRole('alert')
+  await expect(notice).toContainText('Travel is temporarily unavailable.')
+  await expect(notice).toBeInViewport({ ratio: 1 })
   await capture(page, info, 'world-visible-travel-error')
 }
 

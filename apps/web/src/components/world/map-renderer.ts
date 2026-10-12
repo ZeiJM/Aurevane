@@ -594,7 +594,13 @@ export function createMapRenderer(
       const point = screen(stack.point)
       if (point.x < -40 || point.x > width + 40 || point.y < -60 || point.y > height + 60) return
       const people = stack.people,
-        index = reduced || !animate ? 0 : Math.floor(now / 3600) % people.length,
+        selfIndex = people.findIndex((person) => person.self),
+        index =
+          selfIndex >= 0
+            ? selfIndex
+            : reduced || !animate
+              ? 0
+              : Math.floor(now / 3600) % people.length,
         person = people[index]!,
         radius = 17
       if (!ghost)
@@ -644,8 +650,12 @@ export function createMapRenderer(
       }
       if (image) {
         if (ghost) ctx.filter = 'grayscale(1)'
-        const fade = people.length > 1 && animate && !reduced ? Math.min(1, (now % 3600) / 500) : 1
-        const previous = portrait(people[(index + people.length - 1) % people.length]!.image)
+        const fade =
+          selfIndex < 0 && people.length > 1 && animate && !reduced
+            ? Math.min(1, (now % 3600) / 500)
+            : 1
+        const previous =
+          fade < 1 ? portrait(people[(index + people.length - 1) % people.length]!.image) : null
         if (previous && fade < 1) {
           ctx.globalAlpha = 1 - fade
           drawPortrait(previous)
