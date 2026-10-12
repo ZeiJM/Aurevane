@@ -284,12 +284,6 @@ body {
   font-size: 4rem;
   box-shadow: 0 0 40px #3faaa62b;
 }
-[data-world-workspace] {
-  min-height: calc(100dvh - 10rem);
-  padding: 1rem !important;
-  border: 1px solid #958466;
-  background: linear-gradient(130deg, #8b998b40, transparent), #c5b69c !important;
-}
 /* Discipline contexts own their sigil sizes (library, identity and compact controls). */
 [data-gameplay-art]:not([data-gameplay-art='discipline']) {
   flex: 0 0 var(--av-gameplay-art-size) !important;

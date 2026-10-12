@@ -24,6 +24,7 @@ import {
   createPv1fTemporaryResources,
   preparePv1fTurnEconomy,
 } from '@aurevane/game-core/combat/pv1f-action-economy'
+import { createPvpQualityResources } from '@aurevane/game-core/combat/pvp-quality'
 import {
   createCharacterDerivedCombatProfile,
   createDuelBalancedCombatEncounterState,
@@ -439,7 +440,10 @@ export function createPvpEncounter(
       maxHp: derived.stats.maxHp.value,
       mp: derived.stats.maxMp.value,
       maxMp: derived.stats.maxMp.value,
-      temporaryResources: createPv1fTemporaryResources(basicDamage),
+      temporaryResources: [
+        ...createPv1fTemporaryResources(basicDamage),
+        ...createPvpQualityResources(),
+      ].sort((left, right) => left.key.localeCompare(right.key)),
     })
   }
 

@@ -16,6 +16,8 @@ export interface WorldState {
   position: WorldPosition
   route: TravelStep[]
   routeObjectiveId?: string | null
+  /** Final target when a long journey continues beyond the saved route window. */
+  routeDestination?: WorldPosition | null
   nextStepAt: number | null
   discoveries: Record<string, number[]>
   discoveredAnchors?: string[]
@@ -43,6 +45,8 @@ export interface WorldLandmark {
   name: string
   x: number
   y: number
+  /** Original scenic landmark sprite; does not grant an interaction or reward. */
+  sceneryIndex?: number
   kind:
     | 'settlement'
     | 'watchtower'
@@ -55,6 +59,26 @@ export interface WorldLandmark {
     | 'spring'
     | 'hamlet'
     | 'waystone'
+    | 'marketplace'
+    | 'bridge'
+}
+export interface WorldBuilding {
+  id: string
+  x: number
+  y: number
+  width: number
+  height: number
+  artIndex: number
+  propIndex?: number
+}
+export interface WorldAtlasCell {
+  id: string
+  name: string
+  coordinate: string
+  regionId: string
+  column: number
+  row: number
+  charted: boolean
 }
 export interface WorldSector {
   id: string
@@ -70,6 +94,11 @@ export interface WorldSector {
   charted: boolean
   /** Deterministically generated ground between and beyond the authored regions. */
   generated?: boolean
+  atlasColumn?: number
+  atlasRow?: number
+  townId?: string
+  landscape?: 'sakura' | 'autumn' | 'wisteria' | 'willow' | 'wildflowers'
+  buildings?: readonly WorldBuilding[]
   landmarks: readonly WorldLandmark[]
   roads: readonly WorldRoad[]
 }
@@ -135,8 +164,11 @@ export interface WorldView {
   position: WorldPosition
   route: TravelStep[]
   routeObjectiveId?: string | null
+  routeDestination?: WorldPosition | null
   nextStepAt: number | null
   sectors: WorldSectorView[]
+  /** Compact overview; private terrain and undiscovered landmarks never enter this list. */
+  atlas?: WorldAtlasCell[]
   players: WorldPlayer[]
   objectives: WorldObjective[]
   interactions: WorldInteraction[]

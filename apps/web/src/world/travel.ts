@@ -1,6 +1,7 @@
 import { GRID_HEIGHT, GRID_WIDTH, START_POSITION, STEP_MS } from './catalog'
 import { isWildSectorId } from './wild-ids'
 import type { TravelStep, WorldObjective, WorldPosition, WorldSector, WorldState } from './types'
+import { terrainWalkable } from './terrain'
 
 export const ACTIVE_WORLD_SYNC_MS = 600
 export const IDLE_WORLD_SYNC_MS = 10000
@@ -43,10 +44,14 @@ export function cellCenter(p: { x: number; y: number }) {
   return { x: (p.x + 0.5) / GRID_WIDTH, y: (p.y + 0.5) / GRID_HEIGHT }
 }
 export function isWalkable(sector: WorldSector, p: { x: number; y: number }) {
-  return validCell(p) && ['.', '=', 's'].includes(sector.rows[p.y]?.[p.x] ?? '#')
+  return validCell(p) && terrainWalkable(sector.rows[p.y]?.[p.x] ?? '#')
 }
 export function isSafe(sector: WorldSector, p: { x: number; y: number }) {
-  return validCell(p) && sector.rows[p.y]?.[p.x] === 's'
+  return (
+    validCell(p) &&
+    (sector.rows[p.y]?.[p.x] === 's' ||
+      Boolean(sector.townId && (sector.id !== sector.townId || p.x < 10) && isWalkable(sector, p)))
+  )
 }
 export function canAutoPath(objective: Pick<WorldObjective, 'kind' | 'autoPath' | 'guidance'>) {
   return objective.autoPath && objective.guidance === 'exact'
@@ -64,8 +69,10 @@ export function newWorldState(): WorldState {
   }
 }
 
-const MAX_ROUTE_SEARCH = 30000
-const MAX_ROUTE_STEPS = 600
+const MAX_ROUTE_SEARCH = 90000
+const MAX_ROUTE_STEPS = 1500
+/** Existing database constraint. Long journeys replenish this window while moving. */
+export const MAX_PERSISTED_ROUTE_STEPS = 256
 class MinHeap<T> {
   private items: T[] = []
   constructor(private readonly less: (a: T, b: T) => number) {}
@@ -115,8 +122,48 @@ export function findWorldRoute(
   const lookup = new Map(sectors.map((s) => [s.id, s]))
   const target = lookup.get(to.sectorId)
   if (!target || !isWalkable(target, to) || (known && !known(to))) return null
-  const queue = new MinHeap<{ position: WorldPosition; cost: number }>((a, b) => a.cost - b.cost)
-  queue.push({ position: from, cost: 0 })
+  // Atlas-only routes have adjacent geometry and uniform 200ms costs; the Manhattan lower
+  // bound cuts distant journeys from a world-wide flood to a narrow corridor. Historical
+  // portal/trail graphs fall back to Dijkstra rather than assuming geometry they don't have.
+  const atlasOnly = sectors.every(
+    (s) =>
+      s.atlasColumn !== undefined &&
+      s.atlasRow !== undefined &&
+      s.roads.every((road) => {
+        const target = lookup.get(road.to.sectorId)
+        return (
+          !target ||
+          (target.atlasColumn !== undefined &&
+            target.atlasRow !== undefined &&
+            Math.abs(
+              s.atlasColumn! * GRID_WIDTH +
+                road.from.x -
+                target.atlasColumn * GRID_WIDTH -
+                road.to.x,
+            ) +
+              Math.abs(
+                s.atlasRow! * GRID_HEIGHT + road.from.y - target.atlasRow * GRID_HEIGHT - road.to.y,
+              ) ===
+              1 &&
+            road.durationMs >= STEP_MS)
+        )
+      }),
+  )
+  const targetX = (target.atlasColumn ?? 0) * GRID_WIDTH + to.x,
+    targetY = (target.atlasRow ?? 0) * GRID_HEIGHT + to.y
+  const estimate = (p: WorldPosition) => {
+    if (!atlasOnly) return 0
+    const sector = lookup.get(p.sectorId)!
+    return (
+      (Math.abs(sector.atlasColumn! * GRID_WIDTH + p.x - targetX) +
+        Math.abs(sector.atlasRow! * GRID_HEIGHT + p.y - targetY)) *
+      STEP_MS
+    )
+  }
+  const queue = new MinHeap<{ position: WorldPosition; cost: number; score: number }>(
+    (a, b) => a.score - b.score || b.cost - a.cost,
+  )
+  queue.push({ position: from, cost: 0, score: estimate(from) })
   const costs = new Map([[positionKey(from), 0]])
   const prior = new Map<string, { from: WorldPosition; step: TravelStep }>()
   let found = false
@@ -150,7 +197,7 @@ export function findWorldRoute(
       if (cost >= (costs.get(key) ?? Infinity)) continue
       costs.set(key, cost)
       prior.set(key, { from: current.position, step })
-      queue.push({ position: step.position, cost })
+      queue.push({ position: step.position, cost, score: cost + estimate(step.position) })
     }
   }
   if (!found) return null

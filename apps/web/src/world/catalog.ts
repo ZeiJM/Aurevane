@@ -6,6 +6,7 @@ import { EDGE_TILE, MAP_DIRECTIONS, OPPOSITE, wildSectorId, type MapDirection } 
 export const GRID_WIDTH = 13
 export const GRID_HEIGHT = 9
 export const STEP_MS = 200
+export const ATLAS_GEOGRAPHIC_SCALE = 4
 export const WORLD_REGIONS: readonly WorldRegion[] = [
   {
     id: 'aureth-crown',

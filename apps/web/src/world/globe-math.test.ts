@@ -6,6 +6,13 @@ import {
   projectGlobePoint,
   unprojectGlobePoint,
 } from './globe-math'
+it('round trips three-digit columns across the expanded globe', () => {
+  for (const coordinate of ['S01-01', 'S68-29', 'S100-32', 'S128-64']) {
+    const center = globeSectorCenter(coordinate, 128, 64)
+    expect(center, coordinate).not.toBeNull()
+    expect(globeSectorCoordinate(center!, 128, 64)).toBe(coordinate)
+  }
+})
 it('centres the player on the actual road sector rather than its parent region', () => {
   expect(globeSectorCenter('S16-08')).toEqual({ longitude: -5.625, latitude: 5.625 })
   expect(globeSectorCenter('S18-08')).toEqual({ longitude: 16.875, latitude: 5.625 })

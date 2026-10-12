@@ -922,3 +922,54 @@
     min-height: 2.5rem !important;
   }
 }
+
+/* The travelling map owns the remaining viewport; only its detail panel scrolls. */
+.worldFrame .shell:has([data-world-workspace]) {
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+.shell:has([data-world-workspace]) .main {
+  min-height: 0;
+  overflow: hidden;
+  padding: 0.5rem;
+}
+@media (max-width: 760px) {
+  .worldFrame .shell:has([data-world-workspace]) {
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+  .shell:has([data-world-workspace]) .main {
+    padding: 0.25rem;
+  }
+  .shell:has([data-world-workspace]) .railLink {
+    min-height: 2.9rem;
+    font-size: 0.65rem;
+  }
+}
+
+/* The masthead retains character identity; short touch screens reserve the rail for navigation. */
+@media (min-width: 761px) and (max-height: 500px) and (pointer: coarse) {
+  .worldFrame .shell:has([data-world-workspace]) {
+    --av-shell-rail-width: 7rem;
+  }
+  .shell:has([data-world-workspace]) .railCharacter,
+  .shell:has([data-world-workspace]) .railUtilities,
+  .shell:has([data-world-workspace]) .railAetherField {
+    display: none;
+  }
+  .shell:has([data-world-workspace]) .rail {
+    padding: 0.35rem;
+  }
+  .shell:has([data-world-workspace]) .railNavigation {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.25rem;
+  }
+  .shell:has([data-world-workspace]) .railLink {
+    min-height: 44px;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.15rem;
+    padding: 0.25rem 0;
+    font-size: 0.65rem;
+  }
+}

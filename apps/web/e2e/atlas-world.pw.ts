@@ -1,12 +1,23 @@
 import { randomUUID } from 'node:crypto'
+import { writeFileSync } from 'node:fs'
 import { execFileSync, spawn } from 'node:child_process'
 import { expect, test, type APIResponse, type Page, type TestInfo } from '@playwright/test'
 import type { SetPracticePlanRequest } from '@aurevane/validation/player/wayfarers-practice'
 import { provisionAccountAndEnterCharacter, openOfflineTraining } from './pv1f-test-helpers'
-import { STEP_MS, WORLD_REGIONS } from '../src/world/catalog'
+import { GRID_WIDTH, GRID_HEIGHT, STEP_MS, WORLD_REGIONS } from '../src/world/catalog'
 import { newWorldState } from '../src/world/travel'
 import type { WorldView } from '../src/world/types'
 import type { CharacterBuildContext } from '../src/server/character/character-build-service'
+
+const runtimeErrors = new WeakMap<Page, string[]>()
+test.beforeEach(({ page }) => {
+  const errors: string[] = []
+  runtimeErrors.set(page, errors)
+  page.on('pageerror', (error) => errors.push(error.message))
+})
+test.afterEach(({ page }) => {
+  expect(runtimeErrors.get(page) ?? []).toEqual([])
+})
 
 function localDatabase(): string {
   const host = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'http://invalid').hostname
@@ -157,26 +168,60 @@ async function capture(page: Page, info: TestInfo, name: string) {
   })
 }
 
-const stageOf = (page: Page) => page.frameLocator('[data-world-stage]')
 async function openJournal(page: Page) {
   // The Missions tab of the right-hand panel shows the former Journal.
-  await stageOf(page).locator('#tab-ms').click()
-  await expect(page.getByRole('complementary', { name: 'Missions' })).toBeVisible()
+  const details = page.getByRole('button', { name: 'Details', exact: true })
+  if (await details.isVisible()) await details.click()
+  await page.getByRole('tab', { name: /Missions/ }).click()
+  await expect(page.getByRole('tabpanel', { name: /Missions/ })).toBeVisible()
 }
 async function reloadWorld(page: Page) {
   await page.reload()
   await openJournal(page)
 }
 async function expectLocation(page: Page, name: string) {
-  await expect(stageOf(page).locator('#loc-title')).toContainText(name, { timeout: 15000 })
+  await expect(page.getByRole('button', { name: /Open world atlas/ })).toContainText(name, {
+    timeout: 15000,
+  })
 }
-// Simulates the stage posting a walk intent, exactly as a map click does.
+// Exercise actual canvas picking or the globe's charted-destination controls.
 async function stageWalk(page: Page, destination: { sectorId: string; x: number; y: number }) {
-  const stage = page.frames().find((f) => f.url().includes('/world-stage/'))!
-  await stage.evaluate(
-    (d) => parent.postMessage({ av: 'world-stage', type: 'walk', destination: d }, location.origin),
-    destination,
-  )
+  const current = await world(page)
+  const sector = current.sectors.find((s) => s.id === destination.sectorId)
+  if (!sector) {
+    await page.getByRole('button', { name: /Open world atlas/ }).click()
+    await page.getByText('Charted sectors', { exact: true }).click()
+    await page.getByLabel('Charted sector', { exact: true }).selectOption(destination.sectorId)
+    await page.getByRole('button', { name: 'Travel here', exact: true }).click()
+    return
+  }
+  const canvas = page.locator('canvas[data-world-stage]')
+  await expect(canvas).toHaveAttribute('data-tile-size', /\d/)
+  const box = (await canvas.boundingBox())!
+  const metrics = await canvas.evaluate((el) => ({
+    x: Number(el.dataset.cameraX),
+    y: Number(el.dataset.cameraY),
+    tile: Number(el.dataset.tileSize),
+  }))
+  const dx = (sector.atlasColumn ?? 0) * GRID_WIDTH + destination.x + 0.5 - metrics.x
+  const dy = (sector.atlasRow ?? 0) * GRID_HEIGHT + destination.y + 0.5 - metrics.y
+  const x = box.width / 2 + (dx - dy) * metrics.tile * 0.85
+  const y = box.height / 2 + (dx + dy) * metrics.tile * 0.44
+  if (x <= 0 || x >= box.width || y <= 0 || y >= box.height) {
+    await page.getByRole('button', { name: /Open world atlas/ }).click()
+    await page.getByText('Charted sectors', { exact: true }).click()
+    await page.getByLabel('Charted sector', { exact: true }).selectOption(destination.sectorId)
+    await page.getByRole('button', { name: 'Travel here', exact: true }).click()
+    return
+  }
+  expect(x).toBeGreaterThan(0)
+  expect(x).toBeLessThan(box.width)
+  expect(y).toBeGreaterThan(0)
+  expect(y).toBeLessThan(box.height)
+  // The camera follows the traveller every frame. Locator.click's actionability
+  // wait can age these measured coordinates by several tiles during a replan.
+  // The canvas is already visible/bounded above; send the real mouse click now.
+  await page.mouse.click(box.x + x, box.y + y)
 }
 
 test('the World page is the scenic map stage inside the shared shell, with Missions panel and globe', async ({
@@ -185,18 +230,10 @@ test('the World page is the scenic map stage inside the shared shell, with Missi
   test.setTimeout(120000)
   const name = await enter(page)
   const initial = await world(page)
-  for (const id of [
-    ...WORLD_REGIONS.map((region) => region.id),
-    'crown-road',
-    'coastal-road',
-    'ember-road',
-    'southern-caravan-road',
-    'highland-road',
-    'northern-pass',
-    'eastern-march-road',
-    'old-coast-road',
-  ])
-    expect(initial.sectors.find((sector) => sector.id === id)).toBeDefined()
+  expect(initial.sectors.length).toBeLessThanOrEqual(25)
+  expect(initial.atlas!.length).toBeGreaterThan(150)
+  for (const region of WORLD_REGIONS)
+    expect(initial.atlas!.some((s) => s.id === region.id)).toBe(true)
   expect(JSON.stringify(initial)).not.toContain('survey-01')
   const rail = page.locator('[data-av-game-rail]')
   await expect(rail).toBeVisible()
@@ -223,18 +260,22 @@ test('the World page is the scenic map stage inside the shared shell, with Missi
     }
     expect(railBox.width).toBe(190)
   }
-  const frame = stageOf(page)
   await expectLocation(page, 'Verdant Expanse')
-  await expect(frame.locator('#nav-svg')).toBeVisible()
-  await expect(frame.locator('#sb-time')).toContainText('UTC')
-  await expect(frame.locator('#sb-wx')).not.toBeEmpty()
-  await expect(frame.locator('#tab-nb')).toBeVisible()
-  await expect(frame.locator('#zone-badge')).toBeVisible()
+  await expect(page.locator('canvas[data-world-stage]')).toBeVisible()
+  await expect(page.locator('[data-world-workspace] header')).toContainText('UTC')
+  if (info.project.name === 'mobile-chromium')
+    await page.getByRole('button', { name: 'Details', exact: true }).click()
+  await expect(page.getByRole('tab', { name: 'Nearby', exact: true })).toBeVisible()
+  await expect(page.getByText('Protected settlement', { exact: true })).toBeVisible()
+  if (info.project.name === 'mobile-chromium')
+    await page.getByRole('button', { name: 'Close details', exact: true }).click()
   const stageBox = (await page.locator('[data-world-stage]').boundingBox())!
   expect(stageBox.height).toBeGreaterThan(300)
   expect(
     await page.evaluate(
-      () => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1,
+      () =>
+        document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1 &&
+        document.documentElement.scrollHeight <= window.innerHeight + 1,
     ),
   ).toBe(true)
   expect(name).toBeTruthy()
@@ -264,12 +305,12 @@ test('the World page is the scenic map stage inside the shared shell, with Missi
     data: { ...command, intent: { kind: 'cross' } },
   })
   expect(conflict.status()).toBe(409)
-  await frame.locator('#v-toggle').click()
-  await expect(frame.locator('#stage-world')).toBeVisible()
-  await expect(frame.locator('#globe-svg')).toBeVisible()
+  await page.getByRole('button', { name: /Open world atlas|Return to local map/ }).click()
+  await expect(page.getByRole('group', { name: /World globe/ })).toBeVisible()
+  await expect(page.getByRole('group', { name: /World globe/ })).toBeVisible()
   await capture(page, info, 'world-globe')
-  await frame.locator('#v-toggle').click()
-  await expect(frame.locator('#stage-world')).toBeHidden()
+  await page.getByRole('button', { name: /Open world atlas|Return to local map/ }).click()
+  await expect(page.getByRole('group', { name: /World globe/ })).toBeHidden()
   if (info.project.name === 'desktop-chromium') {
     for (const region of WORLD_REGIONS) {
       place(initial.characterId, region.id, 5, 4)
@@ -561,7 +602,7 @@ test('Crown Road advances one authoritative ordinary step with one due client ti
       response.request().postDataJSON()?.intent?.kind === 'walk',
   )
   await stageWalk(page, { sectorId: road.id, x: 7, y: 4 })
-  // The first step is due at once, so one tick confirms it a moment after the plan is saved.
+  // The first full 200ms step is confirmed by one deadline-driven tick.
   const planned: WorldView = await (await walkReceipt).json()
   expect(planned.route[0]?.durationMs).toBe(STEP_MS)
   await expect.poll(async () => (await world(page)).position.x, { timeout: 4_000 }).toBe(7)
@@ -648,20 +689,20 @@ for (const journey of [
     await reloadWorld(page)
     await openJournal(page)
     await expectLocation(page, journey.name)
-    await expect(stageOf(page).locator('#nav-svg')).toBeVisible()
+    await expect(page.locator('canvas[data-world-stage]')).toBeVisible()
     await capture(page, info, `${journey.id}-sector`)
-    await stageOf(page).locator('#v-toggle').click()
-    await expect(stageOf(page).locator('#globe-svg')).toBeVisible()
+    await page.getByRole('button', { name: /Open world atlas|Return to local map/ }).click()
+    await expect(page.getByRole('group', { name: /World globe/ })).toBeVisible()
     await capture(page, info, `${journey.id}-globe`)
-    await stageOf(page).locator('#v-toggle').click()
-    await expect(stageOf(page).locator('#stage-world')).toBeHidden()
+    await page.getByRole('button', { name: /Open world atlas|Return to local map/ }).click()
+    await expect(page.getByRole('group', { name: /World globe/ })).toBeHidden()
     const arrival = { sectorId: journey.destinationId, x: 6, y: 4 }
     await stageWalk(page, arrival)
     await expect(page.getByRole('button', { name: 'Stop travel', exact: true })).toBeVisible()
     // Steps are fast now, so poll tightly and stop before the walk leaves the road sector.
     await expect
-      .poll(async () => (await world(page)).position.x, { timeout: 12000, intervals: [40] })
-      .not.toBe(6)
+      .poll(async () => (await world(page)).position, { timeout: 12000, intervals: [40] })
+      .not.toEqual({ sectorId: journey.id, x: 6, y: 4 })
     const stopResponse = page.waitForResponse(
       (response) =>
         new URL(response.url()).pathname === '/api/world' &&
@@ -704,7 +745,7 @@ test('a proximity attack reaches both authenticated players', async ({ page, bro
   const opponentContext = await browser.newContext({ baseURL: new URL(page.url()).origin })
   try {
     const opponent = await opponentContext.newPage()
-    const opponentName = await enter(opponent)
+    await enter(opponent)
     const attacker = await world(page),
       target = await world(opponent)
     place(target.characterId, 'verdant-expanse', 4, 4, true)
@@ -721,10 +762,12 @@ test('a proximity attack reaches both authenticated players', async ({ page, bro
     place(target.characterId, 'crown-road', 6, 4)
     await page.reload()
     await opponent.reload()
-    const attackButton = stageOf(page).getByRole('button', {
-      name: `Attack ${opponentName}`,
-      exact: true,
-    })
+    const attackButton = page
+      .locator(`[data-world-player="${target.characterId}"]`)
+      .getByRole('button', {
+        name: 'Attack',
+        exact: true,
+      })
     await expect(attackButton).toBeEnabled({ timeout: 15000 })
     await attackButton.click()
     await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]+$/, { timeout: 15000 })
@@ -1021,3 +1064,275 @@ for (const change of ['training', 'build'] as const)
       await context.close()
     }
   })
+
+test('rapid ground clicks settle at the last legal tile and keyboard movement crosses seamlessly', async ({
+  page,
+}, info) => {
+  test.skip(info.project.name !== 'desktop-chromium', 'Input authority is viewport independent.')
+  test.setTimeout(60000)
+  await enter(page)
+  const initial = await world(page)
+  place(initial.characterId, 'atlas:58:28', 6, 4)
+  await page.reload()
+  await expect(page.locator('canvas[data-world-stage]')).toBeVisible()
+  await stageWalk(page, { sectorId: 'atlas:58:28', x: 7, y: 4 })
+  await stageWalk(page, { sectorId: 'atlas:58:28', x: 5, y: 4 })
+  const final = { sectorId: 'atlas:58:28', x: 10, y: 4 }
+  await stageWalk(page, final)
+  await expect
+    .poll(
+      async () => ({
+        position: (await world(page)).position,
+        remaining: (await world(page)).route.length,
+      }),
+      { timeout: 12000 },
+    )
+    .toEqual({ position: final, remaining: 0 })
+  const canvas = page.locator('canvas[data-world-stage]')
+  await canvas.press('ArrowRight')
+  await expect.poll(async () => (await world(page)).position).toEqual({ ...final, x: 11 })
+  await canvas.press('ArrowRight')
+  await expect.poll(async () => (await world(page)).position).toEqual({ ...final, x: 12 })
+  await canvas.press('ArrowRight')
+  await expect.poll(async () => (await world(page)).position.sectorId).not.toBe('atlas:58:28')
+  await capture(page, info, 'seamless-edge-crossing')
+  await page.reload()
+  await expect(canvas).toBeVisible()
+  expect((await world(page)).position.sectorId).not.toBe('atlas:58:28')
+})
+
+test('a synthetic population of 100 has bounded rendering at high DPI and lower CPU speed', async ({
+  page,
+}, info) => {
+  test.skip(info.project.name !== 'mobile-chromium', 'Exercise constrained mobile rendering once.')
+  test.setTimeout(90000)
+  await enter(page)
+  const initial = await world(page)
+  const current = initial.sectors.find((s) => s.id === initial.position.sectorId)!
+  const ground = current.cells.filter((c) => c.walkable)
+  const players = Array.from({ length: 100 }, (_, i) => ({
+    characterId: `synthetic-${i}`,
+    name: `Traveller ${i + 1}`,
+    level: 10,
+    portraitRef: '',
+    imageUrl: null,
+    online: true,
+    attackable: false,
+    position: {
+      sectorId: current.id,
+      x: ground[Math.floor(i / 3) % ground.length]!.x,
+      y: ground[Math.floor(i / 3) % ground.length]!.y,
+    },
+  }))
+  await page.route('**/api/world', async (route) => {
+    if (route.request().method() !== 'GET') return route.continue()
+    const response = await route.fetch(),
+      body = await response.json()
+    await route.fulfill({ response, json: { ...body, players } })
+  })
+  const canvas = page.locator('canvas[data-world-stage]')
+  await expect(canvas).toHaveAttribute('data-visible-players', '101', { timeout: 25000 })
+  const session = await page.context().newCDPSession(page)
+  await session.send('Emulation.setCPUThrottlingRate', { rate: 4 })
+  const before = Number(await canvas.getAttribute('data-render-frames'))
+  await expect
+    .poll(async () => Number(await canvas.getAttribute('data-render-frames')), { timeout: 15000 })
+    .toBeGreaterThan(before + 120)
+  const metrics = await canvas.evaluate((el) => ({
+    frameP95Ms: Number(el.dataset.frameP95),
+    cachedSectors: Number(el.dataset.cachedSectors),
+    cachedPixels: Number(el.dataset.cachedPixels),
+    visibleScenery: Number(el.dataset.visibleScenery),
+    waterCells: Number(el.dataset.waterCells),
+    canvasPixels: (el as HTMLCanvasElement).width * (el as HTMLCanvasElement).height,
+    players: Number(el.dataset.visiblePlayers),
+    deviceRatio: window.devicePixelRatio,
+  }))
+  expect(metrics.cachedPixels).toBeLessThanOrEqual(8_000_000)
+  expect(metrics.visibleScenery).toBeLessThanOrEqual(180)
+  expect(metrics.waterCells).toBeLessThanOrEqual(60)
+  expect(metrics.frameP95Ms).toBeLessThan(80)
+  const costPath = info.outputPath('synthetic-world-render-cost.json')
+  writeFileSync(costPath, JSON.stringify(metrics, null, 2))
+  await info.attach('synthetic-world-render-cost', {
+    path: costPath,
+    contentType: 'application/json',
+  })
+  await capture(page, info, 'synthetic-100-mobile')
+  await page.getByRole('button', { name: 'Details', exact: true }).click()
+  await expect(page.getByRole('tab', { name: 'Places', exact: true })).toBeVisible()
+  await page.getByRole('tab', { name: 'Places', exact: true }).click()
+  await expect(page.getByRole('tabpanel', { name: 'Places', exact: true })).toContainText(
+    'Marketplace',
+  )
+  expect(
+    await page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight + 1),
+  ).toBe(true)
+  await capture(page, info, 'mobile-places-panel')
+  await page.getByRole('button', { name: 'Close details', exact: true }).click()
+  await page.getByRole('button', { name: /Open world atlas/ }).click()
+  await expect(page.getByRole('group', { name: /World globe/ })).toBeVisible()
+  await capture(page, info, 'mobile-globe')
+  await session.send('Emulation.setCPUThrottlingRate', { rate: 1 })
+})
+
+test('the mobile map stays usable after rotating to landscape', async ({ page }, info) => {
+  test.skip(info.project.name !== 'mobile-chromium', 'Exercise touch orientation once.')
+  test.setTimeout(90000)
+  await enter(page)
+  await page.setViewportSize({ width: 915, height: 412 })
+  const navigation = page.getByRole('navigation', { name: 'Primary game navigation', exact: true })
+  const links = navigation.getByRole('link')
+  await expect(links).toHaveCount(6)
+  for (const link of await links.all()) {
+    await expect(link).toBeInViewport({ ratio: 1 })
+    expect((await link.boundingBox())!.height).toBeGreaterThanOrEqual(44)
+  }
+  const stage = page.locator('canvas[data-world-stage]')
+  await expect(stage).toBeVisible()
+  const bounds = (await stage.boundingBox())!
+  expect(bounds.width).toBeGreaterThan(300)
+  expect(bounds.height).toBeGreaterThan(180)
+  expect(
+    await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth <= window.innerWidth + 1 &&
+        document.documentElement.scrollHeight <= window.innerHeight + 1,
+    ),
+  ).toBe(true)
+  await capture(page, info, 'mobile-landscape-map')
+  await page.getByRole('button', { name: 'Details', exact: true }).click()
+  await page.getByRole('tab', { name: 'Places', exact: true }).click()
+  await expect(page.getByRole('tabpanel', { name: 'Places', exact: true })).toContainText(
+    'Marketplace',
+  )
+  await capture(page, info, 'mobile-landscape-places')
+  const close = page.getByRole('button', { name: 'Close details', exact: true })
+  await expect(close).toBeInViewport({ ratio: 1 })
+  const closeBounds = (await close.boundingBox())!,
+    headerBounds = (await page.locator('[data-world-workspace] > header').boundingBox())!
+  expect(closeBounds.x + closeBounds.width).toBeLessThanOrEqual(headerBounds.x + headerBounds.width)
+  await close.click()
+  await page.getByRole('button', { name: /Open world atlas/ }).click()
+  await expect(page.getByRole('group', { name: /World globe/ })).toBeVisible()
+  await capture(page, info, 'mobile-landscape-globe')
+  await page.getByRole('button', { name: /Return to local map/ }).click()
+  await expect(stage).toBeVisible()
+})
+
+test('the globe rotates by dragging and has a usable charted fallback without WebGL', async ({
+  page,
+}, info) => {
+  test.skip(info.project.name !== 'desktop-chromium', 'Shared globe input and fallback.')
+  test.setTimeout(90000)
+  await enter(page)
+  await page.getByRole('button', { name: /Open world atlas/ }).click()
+  const globe = page.getByRole('group', { name: /World globe/ }),
+    pin = page.getByLabel('Your current position', { exact: true })
+  await expect(pin).toBeVisible()
+  const style = await pin.getAttribute('style'),
+    box = (await globe.boundingBox())!
+  await page.mouse.move(box.x + box.width * 0.5, box.y + box.height * 0.5)
+  await page.mouse.down()
+  await page.mouse.move(box.x + box.width * 0.65, box.y + box.height * 0.5, { steps: 8 })
+  await page.mouse.up()
+  await expect.poll(() => pin.getAttribute('style')).not.toBe(style)
+  await expect(page.getByRole('button', { name: 'Travel here', exact: true })).toHaveCount(0)
+  await capture(page, info, 'rotated-globe')
+  await page.addInitScript(() => {
+    const original = HTMLCanvasElement.prototype.getContext
+    HTMLCanvasElement.prototype.getContext = function (
+      this: HTMLCanvasElement,
+      kind: string,
+      ...args: unknown[]
+    ) {
+      if (kind === 'webgl') return null
+      return original.apply(this, [kind, ...args] as never)
+    } as typeof original
+  })
+  await page.reload()
+  await page.getByRole('button', { name: /Open world atlas/ }).click()
+  await expect(page.getByLabel('Charted world atlas', { exact: true })).toBeVisible()
+  await page.getByText('Charted sectors', { exact: true }).click()
+  await page.getByLabel('Charted sector', { exact: true }).selectOption('frostmere')
+  await page.getByRole('button', { name: 'Travel here', exact: true }).click()
+  await expect.poll(async () => (await world(page)).route.length).toBeGreaterThan(0)
+  await page.getByRole('button', { name: 'Stop travel', exact: true }).click()
+  await expect.poll(async () => (await world(page)).route.length).toBe(0)
+  await capture(page, info, 'fallback-route-return')
+})
+
+test('scenic countryside has real blossom woodland, ruins, pools and open meadows', async ({
+  page,
+}, info) => {
+  test.skip(info.project.name !== 'desktop-chromium', 'Inspect original landscape sprites once.')
+  test.setTimeout(120000)
+  await enter(page)
+  const initial = await world(page)
+  for (const [id, name, landscape] of [
+    ['atlas:62:28', 'Cherryblossom Grove', 'sakura'],
+    ['atlas:58:27', 'Amberwood Glade', 'autumn'],
+    ['atlas:48:22', 'Wisteria Hollow', 'wisteria'],
+    ['atlas:69:36', 'Willow Cascades', 'willow'],
+    ['atlas:50:34', 'Wildflower Meadow', 'wildflowers'],
+  ] as const) {
+    place(initial.characterId, id, 6, 4)
+    await page.reload()
+    await expect(page.locator('canvas[data-world-stage]')).toBeVisible()
+    const scene = await world(page)
+    const sector = scene.sectors.find((s) => s.id === id)!
+    expect(sector.landscape).toBe(landscape)
+    expect(sector.townId).toBeUndefined()
+    const landmark = sector.landmarks.find((l) => l.name === name)!
+    expect(landmark).toBeDefined()
+    expect(sector.cells.find((c) => c.x === landmark.x && c.y === landmark.y)?.walkable).toBe(true)
+    await stageWalk(page, { sectorId: id, x: landmark.x, y: landmark.y })
+    await expect
+      .poll(async () => (await world(page)).position, { timeout: 12000 })
+      .toEqual({ sectorId: id, x: landmark.x, y: landmark.y })
+    await expectLocation(page, name)
+    if (landscape === 'willow')
+      expect(sector.cells.some((c) => c.terrain === '~' && !c.walkable)).toBe(true)
+    await capture(page, info, `countryside-${landscape}`)
+  }
+})
+
+test('long auto-path travel replenishes saved route windows and reaches the actual final destination', async ({
+  page,
+}, info) => {
+  test.skip(
+    info.project.name !== 'desktop-chromium',
+    'Elapsed-time continuation authority is shared.',
+  )
+  test.setTimeout(120000)
+  await enter(page)
+  const receipts: WorldView[] = []
+  const requests: Promise<void>[] = []
+  let plans = 0
+  page.on('response', (response) => {
+    if (new URL(response.url()).pathname !== '/api/world' || response.request().method() !== 'POST')
+      return
+    const request = (async () => {
+      expect(response.ok()).toBe(true)
+      if (response.request().postDataJSON()?.intent?.kind === 'autopath') plans++
+      receipts.push(await response.json())
+    })()
+    requests.push(request)
+    void request.catch(() => {})
+  })
+  await openJournal(page)
+  await page.getByRole('button', { name: /Start Auto-path/ }).click()
+  await expect
+    .poll(async () => (await world(page)).routeDestination)
+    .toEqual({ sectorId: 'umbral-march', x: 6, y: 0 })
+  await expect
+    .poll(async () => (await world(page)).position, { timeout: 90000, intervals: [1000] })
+    .toEqual({ sectorId: 'umbral-march', x: 6, y: 0 })
+  await Promise.all(requests)
+  expect(receipts.every((receipt) => receipt.route.length <= 256)).toBe(true)
+  expect(plans).toBeGreaterThanOrEqual(2)
+  const arrived = await world(page)
+  expect(arrived.route).toEqual([])
+  expect(arrived.routeDestination).toBeNull()
+  await capture(page, info, 'long-journey-arrived')
+})

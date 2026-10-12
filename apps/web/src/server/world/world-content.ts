@@ -3,6 +3,7 @@ import { CHARTED_SECTORS, FRONTIER_APPROACH, GRID_WIDTH, TRAIL_SECTORS } from '@
 import type { WorldObjective, WorldPosition, WorldSector, WorldState } from '@/world/types'
 import { resolveWildSector } from '@/world/wilds'
 import { isWildSectorId } from '@/world/wild-ids'
+import { atlasSectors } from '@/world/atlas'
 
 // Private authored content: never imported by a Client Component.
 export const SURVEY_SECTOR: WorldSector = {
@@ -37,7 +38,20 @@ export const SURVEY_SECTOR: WorldSector = {
     },
   ],
 }
-export const WORLD_SECTORS = [...CHARTED_SECTORS, ...TRAIL_SECTORS, SURVEY_SECTOR]
+const atlas = atlasSectors().map((sector) => ({
+  ...sector,
+  roads: [
+    ...sector.roads,
+    ...(CHARTED_SECTORS.find((s) => s.id === sector.id)?.roads.filter((road) =>
+      isWildSectorId(road.to.sectorId),
+    ) ?? []),
+  ],
+}))
+const atlasIds = new Set(atlas.map((sector) => sector.id))
+// Legacy roads/trails stay resolvable for characters parked there. New journeys use the
+// contiguous atlas; importing the old graph into every route would recreate teleport seams.
+const legacy = [...CHARTED_SECTORS, ...TRAIL_SECTORS].filter((s) => !atlasIds.has(s.id))
+export const WORLD_SECTORS = [...atlas, ...legacy, SURVEY_SECTOR]
 const AUTHORED_BY_ID = new Map(WORLD_SECTORS.map((sector) => [sector.id, sector]))
 /** Any sector, authored or generated, by id; null when the id names nothing. */
 export function resolveSector(id: string): WorldSector | null {
@@ -65,8 +79,19 @@ export function isKnownCell(state: WorldState, p: WorldPosition) {
 /** Everything a character can see on their map: charted ground plus what they have explored. */
 export function visibleSectors(state: WorldState): WorldSector[] {
   const visible = new Map<string, WorldSector>()
+  const legacyJourney = legacy.some(
+    (s) =>
+      s.id === state.position.sectorId ||
+      state.route.some((step) => step.position.sectorId === s.id),
+  )
   for (const sector of WORLD_SECTORS)
-    if (sector.charted || state.discoveries[sector.id]) visible.set(sector.id, sector)
+    if (
+      (sector.charted && (atlasIds.has(sector.id) || legacyJourney)) ||
+      state.discoveries[sector.id] ||
+      sector.id === state.position.sectorId ||
+      state.route.some((step) => step.position.sectorId === sector.id)
+    )
+      visible.set(sector.id, sector)
   for (const id of Object.keys(state.discoveries)) {
     const sector = isWildSectorId(id) ? resolveSector(id) : null
     if (sector) visible.set(id, sector)

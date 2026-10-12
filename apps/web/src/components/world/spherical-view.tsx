@@ -3,6 +3,8 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { unprojectGlobePoint, type GlobeLocation } from '@/world/globe-math'
 import { createSphericalRenderer } from './spherical-renderer'
 import styles from './world.module.css'
+import type { WorldAtlasCell } from '@/world/types'
+import { globeAtlasPixels } from './globe-atlas'
 
 interface Props {
   src: string
@@ -10,10 +12,13 @@ interface Props {
   zoom: number
   panorama?: boolean
   grid?: boolean
+  gridColumns?: number
+  gridRows?: number
   onCamera: (camera: GlobeLocation) => void
   onZoom: (zoom: number) => void
   onActivate?: (location: GlobeLocation) => void
   children?: ReactNode
+  atlas?: readonly WorldAtlasCell[]
 }
 export function SphericalView({
   src,
@@ -21,10 +26,13 @@ export function SphericalView({
   zoom,
   panorama = false,
   grid = true,
+  gridColumns = 32,
+  gridRows = 16,
   onCamera,
   onZoom,
   onActivate,
   children,
+  atlas,
 }: Props) {
   const canvas = useRef<HTMLCanvasElement>(null),
     renderer = useRef<ReturnType<typeof createSphericalRenderer>>(null)
@@ -32,14 +40,24 @@ export function SphericalView({
   const cameraFrame = useRef<number | null>(null)
   const pendingCamera = useRef<GlobeLocation | null>(null)
   const [failed, setFailed] = useState(false)
+  const fallbackPixels = failed && atlas ? globeAtlasPixels(atlas, gridColumns, gridRows) : null
   useEffect(() => {
     if (!canvas.current) return
-    renderer.current = createSphericalRenderer(canvas.current, src, () => setFailed(true))
+    renderer.current = createSphericalRenderer(canvas.current, src, () => setFailed(true), {
+      columns: gridColumns,
+      rows: gridRows,
+    })
     return () => renderer.current?.dispose()
-  }, [src])
+  }, [src, gridColumns, gridRows])
   useEffect(() => {
     renderer.current?.draw({ ...camera, zoom, panorama, grid })
   }, [camera, zoom, panorama, grid])
+  useEffect(() => {
+    if (atlas) renderer.current?.updateAtlas(atlas)
+  }, [atlas])
+  useEffect(() => {
+    if (failed) renderer.current?.dispose()
+  }, [failed])
   useEffect(
     () => () => {
       if (cameraFrame.current !== null) cancelAnimationFrame(cameraFrame.current)
@@ -91,7 +109,13 @@ export function SphericalView({
         const bounds = e.currentTarget.getBoundingClientRect(),
           x = (((e.clientX - bounds.left) / bounds.width) * 2 - 1) / zoom,
           y = (1 - ((e.clientY - bounds.top) / bounds.height) * 2) / zoom
-        const location = unprojectGlobePoint(x, y, start.camera)
+        const location =
+          failed && atlas
+            ? {
+                longitude: ((e.clientX - bounds.left) / bounds.width) * 360 - 180,
+                latitude: 90 - ((e.clientY - bounds.top) / bounds.height) * 180,
+              }
+            : unprojectGlobePoint(x, y, start.camera)
         if (location) onActivate(location)
       }}
       onPointerCancel={() => {
@@ -123,12 +147,49 @@ export function SphericalView({
       {failed ? (
         <div
           className={styles.sphereFallback}
-          style={{
-            backgroundImage: `url(${src})`,
-            backgroundPosition: `${50 - camera.longitude / 3.6}% ${50 + camera.latitude / 1.8}%`,
-          }}
+          style={
+            atlas
+              ? undefined
+              : {
+                  backgroundImage: `url(${src})`,
+                  backgroundPosition: `${50 - camera.longitude / 3.6}% ${50 + camera.latitude / 1.8}%`,
+                }
+          }
         >
-          <span>Drag to look around · choose a region from the list</span>
+          {atlas ? (
+            <svg
+              viewBox={`0 0 ${gridColumns} ${gridRows}`}
+              preserveAspectRatio="none"
+              width="100%"
+              height="100%"
+              aria-label="Charted world atlas"
+              className={styles.flatAtlas}
+            >
+              <rect width={gridColumns} height={gridRows} fill="#183d48" />
+              {atlas
+                .filter((s) => s.charted)
+                .map((cell) => {
+                  const rgb = fallbackPixels!.slice(
+                    (cell.row * gridColumns + cell.column) * 4,
+                    (cell.row * gridColumns + cell.column) * 4 + 3,
+                  )
+                  return (
+                    <rect
+                      key={cell.id}
+                      x={cell.column}
+                      y={cell.row}
+                      width={1}
+                      height={1}
+                      fill={`rgb(${[...rgb].join(',')})`}
+                      stroke="#c7dac440"
+                      strokeWidth={0.04}
+                    />
+                  )
+                })}
+            </svg>
+          ) : (
+            <span>Drag to look around · choose a region from the list</span>
+          )}
         </div>
       ) : (
         <canvas ref={canvas} aria-hidden="true" />

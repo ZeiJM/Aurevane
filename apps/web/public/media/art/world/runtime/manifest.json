@@ -1,0 +1,91 @@
+{
+  "version": "world-runtime-v03",
+  "origin": "Original assets generated for Aurevane with OpenAI imagegen; not third-party game assets",
+  "assets": {
+    "terrain-v02.webp": {
+      "columns": 4,
+      "rows": 2,
+      "cells": [
+        "meadow",
+        "forest floor",
+        "snow",
+        "sand",
+        "stone paving",
+        "coastal scrub",
+        "basalt",
+        "highland heath"
+      ]
+    },
+    "buildings-v02.webp": {
+      "columns": 3,
+      "rows": 3,
+      "cells": [
+        "timber settlement",
+        "royal limestone",
+        "snowbound timber",
+        "harbour stone",
+        "desert sandstone",
+        "basalt citadel",
+        "highland observatory",
+        "frontier lodge",
+        "watchtower"
+      ]
+    },
+    "nature-v02.webp": {
+      "columns": 4,
+      "rows": 2,
+      "cells": [
+        "oak",
+        "snowy pine",
+        "golden birch",
+        "windswept pine",
+        "fox",
+        "deer",
+        "rabbit",
+        "birds"
+      ]
+    },
+    "props-v02.webp": {
+      "columns": 4,
+      "rows": 2,
+      "cells": [
+        "market stalls",
+        "town fountain",
+        "stone bridge",
+        "ruined arch",
+        "moonstone shrine",
+        "roadside camp",
+        "spring",
+        "waystone"
+      ]
+    },
+    "biomes-v02.webp": {
+      "columns": 4,
+      "rows": 2,
+      "cells": [
+        "desert palm",
+        "desert shrubs",
+        "basalt outcrop",
+        "violet granite",
+        "bare wind-bent tree",
+        "river willow",
+        "cypress",
+        "dark twisted tree"
+      ]
+    },
+    "beauties-v03.webp": {
+      "columns": 4,
+      "rows": 2,
+      "cells": [
+        "pink sakura",
+        "white flowering cherry",
+        "autumn maple",
+        "wisteria",
+        "stone waterfall and pool",
+        "standing stone circle",
+        "luminous mushrooms and ferns",
+        "meadow wildflowers"
+      ]
+    }
+  }
+}

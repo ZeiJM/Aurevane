@@ -11,6 +11,7 @@ import {
   isWalkable,
   revealNearby,
   samePosition,
+  MAX_PERSISTED_ROUTE_STEPS,
 } from '@/world/travel'
 import type {
   WorldIntent,
@@ -29,6 +30,7 @@ import {
   visibleSectors,
 } from './world-content'
 import { worldArchiveEntries } from './world-archive'
+import { atlasAddress } from '@/world/atlas'
 import {
   advanceWorldObjectiveProgress,
   effectiveWorldObjectives,
@@ -47,10 +49,23 @@ export function resolveWorldIntent(
   now: number,
   objectives: readonly WorldObjective[] = WORLD_OBJECTIVES,
 ): WorldState {
+  if (
+    state.route.length &&
+    !isCurrentWorldRoute(state.position, state.route, visibleSectors(state), (p) =>
+      isKnown(state, p),
+    )
+  )
+    state = {
+      ...state,
+      route: [],
+      routeObjectiveId: null,
+      routeDestination: null,
+      nextStepAt: null,
+    }
   const effectiveObjectives = effectiveWorldObjectives(state, objectives)
   let next: WorldState = { ...state }
   if (intent.kind === 'stop')
-    next = { ...state, route: [], routeObjectiveId: null, nextStepAt: null }
+    next = { ...state, route: [], routeObjectiveId: null, routeDestination: null, nextStepAt: null }
   else if (intent.kind === 'tick') {
     const objective = state.routeObjectiveId
       ? effectiveObjectives.find((o) => o.id === state.routeObjectiveId)
@@ -60,7 +75,7 @@ export function resolveWorldIntent(
       !isCurrentWorldRoute(state.position, state.route, visibleSectors(state), (p) =>
         isKnown(state, p),
       )
-        ? { ...state, route: [], routeObjectiveId: null, nextStepAt: null }
+        ? { ...state, route: [], routeObjectiveId: null, routeDestination: null, nextStepAt: null }
         : advanceWorldRoute(state, now)
   } else if (intent.kind === 'cross') {
     if (!samePosition(state.position, FRONTIER_APPROACH) || state.route.length)
@@ -69,6 +84,7 @@ export function resolveWorldIntent(
       ...state,
       position: { sectorId: SURVEY_SECTOR.id, x: 6, y: 8 },
       route: [],
+      routeDestination: null,
       nextStepAt: null,
     }
   } else if (intent.kind === 'interact') {
@@ -95,17 +111,18 @@ export function resolveWorldIntent(
     // otherwise the first new step waits a full interval.
     const underWay =
       walking.route.length > 0 && walking.nextStepAt !== null && walking.nextStepAt > now
-    // A step already under way keeps its schedule; from a standstill the first step is due at
-    // once (the character starts moving immediately) and later steps follow the authored pace.
+    // A step under way keeps its deadline. Every new authoritative step costs its full
+    // interval; the immediate client preview does not grant an instant server step.
     next = {
       ...state,
       position: origin,
-      route: route!,
+      route: route!.slice(0, MAX_PERSISTED_ROUTE_STEPS),
+      routeDestination: route!.length > MAX_PERSISTED_ROUTE_STEPS ? destination : null,
       routeObjectiveId: intent.kind === 'autopath' ? intent.objectiveId : null,
       nextStepAt: route!.length
         ? underWay
           ? Math.min(walking.nextStepAt!, now + route![0]!.durationMs)
-          : now
+          : now + route![0]!.durationMs
         : null,
     }
   }
@@ -148,7 +165,43 @@ export function projectWorld(
   objectives: readonly WorldObjective[] = WORLD_OBJECTIVES,
   environment: WorldEnvironment = resolveWorldEnvironment(now),
 ): WorldView {
-  const sectors = visibleSectors(state).map((sector) => {
+  const visible = visibleSectors(state)
+  const currentSector = resolveSector(state.position.sectorId)!
+  const currentAddress = atlasAddress(currentSector)
+  const arrivingIds = new Set(state.route.slice(0, 8).map((step) => step.position.sectorId))
+  const exitIds = new Set(currentSector.roads.map((road) => road.to.sectorId))
+  const sceneSectors = visible
+    .filter((sector) => {
+      if (
+        sector.id === state.position.sectorId ||
+        arrivingIds.has(sector.id) ||
+        (currentSector.id.startsWith('trail:') &&
+          sector.id.startsWith('trail:') &&
+          exitIds.has(sector.id))
+      )
+        return true
+      const address = atlasAddress(sector)
+      return Boolean(
+        sector.charted === currentSector.charted &&
+        address &&
+        currentAddress &&
+        Math.abs(address.column - currentAddress.column) <= 2 &&
+        Math.abs(address.row - currentAddress.row) <= 2,
+      )
+    })
+    .sort((a, b) => {
+      const priority = (sector: typeof a) =>
+        sector.id === state.position.sectorId
+          ? 0
+          : arrivingIds.has(sector.id)
+            ? 1
+            : exitIds.has(sector.id)
+              ? 2
+              : 3
+      return priority(a) - priority(b)
+    })
+    .slice(0, 25)
+  const sectors = sceneSectors.map((sector) => {
     const { rows, roads, ...publicSector } = sector
     const cells = []
     for (let y = 0; y < 9; y++)
@@ -161,15 +214,21 @@ export function projectWorld(
             walkable: isWalkable(sector, { x, y }),
             safe: isSafe(sector, { x, y }),
           })
+    const legacyTrail = /^trail:.*:(\d+)$/.exec(sector.id)
     return {
       ...publicSector,
+      ...(legacyTrail ? { atlasColumn: Number(legacyTrail[1]), atlasRow: 0 } : {}),
       cells,
       landmarks: sector.landmarks.filter((p) => isKnown(state, { ...p, sectorId: sector.id })),
       exits: roads.filter((road) => isKnown(state, road.from) && isKnown(state, road.to)),
     }
   })
   const visiblePlayers = players
-    .filter((p) => p.position.sectorId === state.position.sectorId && isKnown(state, p.position))
+    .filter(
+      (p) =>
+        sceneSectors.some((sector) => sector.id === p.position.sectorId) &&
+        isKnown(state, p.position),
+    )
     .map((player) => {
       const sector = resolveSector(state.position.sectorId)!
       const distance =
@@ -179,6 +238,7 @@ export function projectWorld(
         ...player,
         attackable:
           player.attackable &&
+          player.position.sectorId === state.position.sectorId &&
           distance <= 1 &&
           !isSafe(sector, state.position) &&
           !isSafe(sector, player.position),
@@ -203,7 +263,23 @@ export function projectWorld(
     route: state.route.filter((s) => isKnown(state, s.position)),
     nextStepAt: state.nextStepAt,
     routeObjectiveId: state.route.length ? (state.routeObjectiveId ?? null) : null,
+    routeDestination: state.route.length ? (state.routeDestination ?? null) : null,
     sectors,
+    atlas: visible.flatMap((sector) => {
+      const address = atlasAddress(sector)
+      return address
+        ? [
+            {
+              id: sector.id,
+              name: sector.name,
+              coordinate: sector.coordinate,
+              regionId: sector.regionId,
+              ...address,
+              charted: sector.charted,
+            },
+          ]
+        : []
+    }),
     players: visiblePlayers,
     objectives: effectiveObjectives.map((o) => ({
       ...o,

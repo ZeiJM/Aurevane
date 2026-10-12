@@ -40,3 +40,7 @@ Refresh main explicitly with `git fetch origin refs/heads/main:refs/remotes/orig
 Start with the Owner's live Atlas feedback and concrete defects. Then take the next small approved Phase 5 slice: settlements/locations, NPC dialogue, quests, vendors, Archive/lore and player-facing world events. Supernatural choice and the first authored frontier/Cartographic Drift slice remain later work. Reuse completed Phase 4 infrastructure; this Atlas is not all of Phase 5.
 
 Keep persistent state server-authoritative, preserve normal supernatural exclusivity and spoiler boundaries, and never repurpose Owner-granted Anomaly states as frontier rewards.
+
+## Owner-authorized October 11 map refinement — release pending
+
+The continuation branch `agent/world-refinement-20261011` replaces the iframe scene with a native painted perspective map and an atlas shared by movement, projection and the globe. The complete binding scope is in `docs/superpowers/specs/2026-10-11-world-refinement-design.md`; implementation and independent-review evidence are in `docs/verification/2026-10-11-world-refinement-progress.md`. Legacy trails/private surveys retain their saved state and usable exit controls. The world PvP turn-clock repair is included. Local quality checks do not establish visual, mobile, browser or production acceptance; those gates remain pending. Automatic Git deployment remains locked.
