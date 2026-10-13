@@ -1,6 +1,20 @@
 # World click-arrival continuity — October 13, 2026
 
-Status: implemented on `agent/world-arrival-continuity-20261013`; not merged or deployed. Current Production remains the verified PR #881 release. The smaller magical cursor remains a separate change in PR #883.
+Status: implemented on `agent/world-arrival-continuity-20261013`, PR #884; not merged or deployed. Current Production remains the verified PR #881 release. The latest revision also incorporates a refined cursor and supersedes the initial cursor proposal in PR #883.
+
+## Distant-click follow-up
+
+The Owner repeated the distant-click/backward-step report while Production still contained the earlier implementation. Further investigation reproduced a separate receipt defect: local preview navigation uses the supplied scene, while server navigation includes the whole known graph. Different search strategies can choose equally legal paths to the same endpoint. An off-path receipt previously routed the portrait back to the older authoritative origin, then replayed that other path.
+
+Off-path reconciliation now finds the known walkable cell containing the visible point and routes toward the furthest loaded confirmed endpoint. It uses only supplied cells/exits and authored costs. It retains the original sector where geometries overlap and refuses to borrow public ground when that source cell is withheld or blocked. Unknown/disconnected relocation still settles at the authoritative position. No route, position or reward is committed by interpolation.
+
+Four further regression cases were seen failing before their respective fixes: an alternate legal confirmation no longer sends the preview backward; the same defect is reproduced using actual server route resolution/projection after private discovery; withheld private source ground cannot be substituted by an overlapping public sector; and a source sector omitted entirely from the new snapshot also fails closed. The last case was identified by review and reproduced in a supplied-snapshot fixture, not through a live server transition. A browser rendering case holds a real command receipt until the bounded preview settles, substitutes another legal path to the same confirmed endpoint/version, samples camera continuity, and verifies final authoritative and visual arrivals. That browser receipt is an explicit rendering fixture; real server route choice is covered separately by the projection integration test.
+
+The cursor is now a 16 × 18 faceted crystal pointer with a thin warm outline, pale teal facets and one small glint, with its hotspot at (2, 2). The embedded SVG was rendered and inspected at native size and 4× magnification. It adds no canvas marker, animated overlay or movement handler.
+
+The earlier application head `c7c70be37726a020950201e50b6d82ff5cd7b50b` passed CI `38358562320`, Living Atlas `38358562309` and Browser smoke `38358562316`. Those results do not validate this additional source revision. New exact-source gates are required.
+
+Final follow-up validation: repository-wide `pnpm check` passes on the completed application revision, with 5,067 Vitest cases (2,140 in the web package across 281 files) plus seven Node checks, formatting, lint, eight-package typechecks and production build. The independent reviewer reran all 21 motion/projection cases and approved the final source/terrain guards with no remaining Critical or Important findings. The new browser rendering case compiles and is awaiting the native exact-source browser workflows; it was not run locally or in Production. Current main was refreshed before final publication and did not advance. No migration or deployment was performed.
 
 The Owner reports intermittent rubberbanding and clicked destinations stopping partway. A bounded signed-in check on the current release reached the intended six-tile destination and returned across the sector edge, with no alert; this does not disprove the intermittent report. It also showed the bounded preview briefly waiting for a delayed confirmation.
 

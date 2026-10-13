@@ -19,6 +19,94 @@ const sectors = [
 const view = { position, sectors, route: [] } as unknown as WorldView
 const route = [2, 3, 4].map((x) => ({ position: { ...position, x }, durationMs: 200 }))
 describe('world visual motion', () => {
+  it('does not interpolate an omitted source sector through overlapping public ground', () => {
+    const motion = new WorldMotion(view)
+    motion.plan(route, view.sectors, 0)
+    const replacement = { ...view.sectors[0]!, id: 'public-overlay', charted: true }
+    const confirmed = [
+      [2, 4],
+      [2, 3],
+      [3, 3],
+      [3, 2],
+      [3, 1],
+      [4, 1],
+    ].map(([x, y]) => ({
+      position: { sectorId: replacement.id, x: x!, y: y! },
+      durationMs: 200,
+    }))
+    motion.reconcile(
+      {
+        ...view,
+        position: { ...position, sectorId: replacement.id },
+        sectors: [replacement],
+        route: confirmed,
+      },
+      650,
+    )
+    expect(motion.sample(650).point).toEqual({ x: 1.5, y: 4.5 })
+  })
+  it('does not borrow overlapping public ground when the private preview source is withheld', () => {
+    const motion = new WorldMotion(view)
+    motion.plan(route, view.sectors, 0)
+    const privateSector = {
+      ...view.sectors[0]!,
+      charted: false,
+      cells: view.sectors[0]!.cells.filter((cell) => cell.x !== 4 || cell.y !== 4),
+    }
+    const overlay = {
+      ...view.sectors[0]!,
+      id: 'public-overlay',
+      charted: true,
+      exits: [
+        {
+          from: { sectorId: 'public-overlay', x: 4, y: 4 },
+          to: { ...position, x: 4, y: 3 },
+          durationMs: 200,
+          name: 'Overlap',
+        },
+      ],
+    }
+    const confirmed = [
+      [2, 4],
+      [2, 3],
+      [3, 3],
+      [3, 2],
+      [3, 1],
+      [4, 1],
+    ].map(([x, y]) => ({ position: { ...position, x: x!, y: y! }, durationMs: 200 }))
+    motion.reconcile({ ...view, sectors: [privateSector, overlay], route: confirmed }, 650)
+    expect(motion.sample(650).point).toEqual({ x: 1.5, y: 4.5 })
+  })
+  it('continues toward a distant click when a delayed receipt confirms a different legal path', () => {
+    const motion = new WorldMotion(view)
+    const preview = [
+      [2, 4],
+      [3, 4],
+      [4, 4],
+      [4, 3],
+      [4, 2],
+      [4, 1],
+    ].map(([x, y]) => ({ position: { ...position, x: x!, y: y! }, durationMs: 200 }))
+    const confirmed = [
+      [2, 4],
+      [2, 3],
+      [3, 3],
+      [3, 2],
+      [3, 1],
+      [4, 1],
+    ].map(([x, y]) => ({ position: { ...position, x: x!, y: y! }, durationMs: 200 }))
+    motion.plan(preview, view.sectors, 0)
+    const before = motion.sample(650).point
+    motion.reconcile({ ...view, route: confirmed }, 650)
+    expect(motion.sample(650).point).toEqual(before)
+    expect(motion.sample(666).point.x).toBeCloseTo(before.x)
+    expect(motion.sample(666).point.y).toBeLessThan(before.y)
+    expect(motion.sample(1250)).toEqual({
+      point: { x: 4.5, y: 1.5 },
+      position: preview.at(-1)!.position,
+      moving: false,
+    })
+  })
   it('settles an already reached destination without revisiting the preceding tile', () => {
     const motion = new WorldMotion(view)
     motion.plan(route, view.sectors, 0)
