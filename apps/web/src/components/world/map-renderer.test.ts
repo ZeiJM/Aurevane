@@ -807,6 +807,27 @@ describe('native map input and bounded lifecycle', () => {
     s.renderer.dispose()
     vi.unstubAllGlobals()
   })
+  it.each([390, 800])('zooms out to 35%% at width %i without moving the camera', (width) => {
+    const s = scene()
+    Object.assign(s.canvas, { clientWidth: width })
+    s.resize()
+    s.renderer.settings({ animate: false, zoom: 1 })
+    s.frame(40)
+    const camera = [s.canvas.dataset.cameraX, s.canvas.dataset.cameraY]
+    s.listeners.get('wheel')!({ deltaY: 10000, preventDefault() {} } as unknown as Event)
+    s.frame(80)
+    expect(s.onZoom).toHaveBeenLastCalledWith(0.35)
+    expect(Number(s.canvas.dataset.tileSize)).toBeCloseTo((width < 600 ? 48 : 64) * 0.35)
+    expect([s.canvas.dataset.cameraX, s.canvas.dataset.cameraY]).toEqual(camera)
+    expect(s.select).not.toHaveBeenCalled()
+    s.renderer.settings({ animate: false, zoom: 0.35, zoomLocked: true })
+    s.onZoom.mockClear()
+    s.listeners.get('wheel')!({ deltaY: -10000, preventDefault() {} } as unknown as Event)
+    s.frame(120)
+    expect(s.onZoom).not.toHaveBeenCalled()
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  })
   it('zooms with the wheel and blocks accidental wheel zoom when locked', () => {
     const s = scene(),
       preventDefault = vi.fn()

@@ -11,6 +11,7 @@ import type {
 import { sectorMapOrigin, wrappedMapX, WORLD_MAP_WIDTH } from '@/world/topology'
 import { type MapPoint, WorldMotion } from './world-motion'
 import { WorldPlayerMotion } from './map-player-motion'
+import { clampWorldZoom } from './world-zoom'
 import { samePosition } from '@/world/travel'
 import {
   createCloudTexture,
@@ -1312,7 +1313,7 @@ export function createMapRenderer(
     return a && b ? Math.hypot(a.x - b.x, a.y - b.y) : 0
   }
   const changeZoom = (next: number) => {
-    next = Math.max(0.6, Math.min(1.4, Math.round(next * 100) / 100))
+    next = clampWorldZoom(Math.round(next * 100) / 100)
     if (zoomLocked || next === zoom) return
     zoom = next
     tile = (width < 600 ? 48 : 64) * zoom

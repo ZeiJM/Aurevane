@@ -2,6 +2,12 @@
 
 Status: implementation and verification in progress. This follow-up has not been deployed. The live rollback target remains `dpl_EoovxVApidZZVTdHMihEjiwmpY1u` (PR #879). Human gameplay acceptance remains with the Owner.
 
+## Owner zoom extension — 35% minimum
+
+The Owner requests more visible terrain especially on mobile, then explicitly selects **35%**. Settings, local wheel/pinch and globe wheel/pinch/keyboard share the 0.35–1.4 clamp. The slider now uses one-percentage-point increments so both endpoints and the existing 100% default remain reachable. Zoom remains centred on the local character; drag navigation stays disabled. Compared with the previous 60% minimum, the view spans approximately 71% more ground in each screen direction.
+
+Both mobile/desktop wheel guards fail before the change (the old renderer stops at 60%) and pass afterward, asserting the centred camera and zoom lock. The native mobile pinch case reaches 35%, verifies no camera displacement or walk command, saves a wider-view capture, and checks that the lock blocks a pinch back in. The Settings case verifies the 35% endpoint and painted slider adjustment. The Nearby authority fixture still deliberately chooses 60%. All 117 World cases collect. Independent read-only review finds no blocking issue. Final combined local checks pass with **5,032 Vitest plus seven Node tests** and a completed production build; evidence: `world-zoom-final-check.log`, `world-zoom-final-check-confirmed.log`, `world-zoom-browser-collection.log`. Publication restarts exact-source release gates. No migration or deployment has occurred.
+
 ## Final application-only World battle return
 
 The requested World return is delivered as a fixed navigation preference rather than an unapproved database change. Both the workspace encounter receipt and server active-battle redirect add `returnTo=world`; the battle page accepts only a single exact `world`/`battle-hall` value after its existing authenticated participant lookup. Brand and AccountMenu current-session links retain it. Canonical metadata origin wins when present, and an absent origin is still described generically. No external URL, duplicate value or arbitrary input becomes a destination. PvE/AI and spectator handling remain separate.

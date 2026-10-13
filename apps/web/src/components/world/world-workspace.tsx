@@ -13,6 +13,7 @@ import { localRoute, mapPoint, WorldMotion } from './world-motion'
 import { WorldMap } from './world-map'
 import { WorldGlobe } from './world-globe'
 import { WorldMissions } from './world-missions'
+import { clampWorldZoom, WORLD_MIN_ZOOM, WORLD_MAX_ZOOM } from './world-zoom'
 import { battleSessionHref } from '@/components/battle/battle-return-navigation'
 import styles from './workspace.module.css'
 
@@ -91,7 +92,7 @@ export function WorldWorkspace({
   const [motion] = useState(() => new WorldMotion(initialView))
   const zoomLocked = useSyncExternalStore(subscribeZoomLock, readZoomLock, () => false)
   const changeZoom = (value: number) =>
-    (mode === 'global' ? setGlobeZoom : setZoom)(Math.max(0.6, Math.min(1.4, value)))
+    (mode === 'global' ? setGlobeZoom : setZoom)(clampWorldZoom(value))
   const controller = useRef<WorldController | null>(null),
     acceptedAt = useRef(0),
     localViewActive = useRef(true)
@@ -581,9 +582,9 @@ export function WorldWorkspace({
                 autoFocus
                 aria-label="Zoom level"
                 type="range"
-                min="60"
-                max="140"
-                step="2"
+                min={WORLD_MIN_ZOOM * 100}
+                max={WORLD_MAX_ZOOM * 100}
+                step="1"
                 value={Math.round((mode === 'global' ? globeZoom : zoom) * 100)}
                 onChange={(event) => changeZoom(Number(event.target.value) / 100)}
               />

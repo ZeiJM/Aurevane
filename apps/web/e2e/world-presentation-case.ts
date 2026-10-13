@@ -216,18 +216,18 @@ export function registerWorldInputCases({
     await page.getByRole('button', { name: 'Map settings', exact: true }).click()
     const slider = page.getByRole('slider', { name: 'Zoom level', exact: true })
     await slider.press('Home')
-    await expect(slider).toHaveValue('60')
+    await expect(slider).toHaveValue('35')
     await page.getByRole('checkbox', { name: 'Ambient animation', exact: true }).uncheck()
-    await expect(canvas).toHaveAttribute('data-tile-size', String(64 * 0.6))
+    await expect(canvas).toHaveAttribute('data-tile-size', String(64 * 0.35))
     const beforeZoom = await canvas.screenshot()
     for (let i = 0; i < 5; i++) await slider.press('ArrowRight')
-    await expect(slider).toHaveValue('70')
+    await expect(slider).toHaveValue('40')
     await expect(page.getByRole('button', { name: 'Zoom in', exact: true })).toHaveCount(0)
     await expect(page.getByRole('button', { name: 'Zoom out', exact: true })).toHaveCount(0)
     // The popup blocks input, not rendering: slider changes must paint while open.
     await expect
       .poll(async () => Number(await canvas.getAttribute('data-tile-size')))
-      .toBeCloseTo(64 * 0.7)
+      .toBeCloseTo(64 * 0.4)
     // Browser screenshots remain readable when public avatars taint the canvas.
     expect((await canvas.screenshot()).equals(beforeZoom)).toBe(false)
     await page.getByRole('button', { name: 'Zoom lock Off', exact: true }).click()
@@ -392,11 +392,23 @@ export function registerWorldInputCases({
     await expect
       .poll(async () => Number(await canvas.getAttribute('data-tile-size')))
       .toBeGreaterThan(before)
+    const camera = [
+      await canvas.getAttribute('data-camera-x'),
+      await canvas.getAttribute('data-camera-y'),
+    ]
+    await pinch(10)
+    await expect(canvas).toHaveAttribute('data-tile-size', String(48 * 0.35))
+    expect([
+      await canvas.getAttribute('data-camera-x'),
+      await canvas.getAttribute('data-camera-y'),
+    ]).toEqual(camera)
+    await capture(page, info, 'mobile-map-max-zoom-out')
     await page.getByRole('button', { name: 'Map settings', exact: true }).click()
+    await expect(page.getByRole('slider', { name: 'Zoom level', exact: true })).toHaveValue('35')
     await page.getByRole('button', { name: 'Zoom lock Off', exact: true }).click()
     await page.getByRole('button', { name: 'Done', exact: true }).click()
     const locked = await canvas.getAttribute('data-tile-size')
-    await pinch(30)
+    await pinch(60)
     await page.waitForTimeout(300)
     expect(await canvas.getAttribute('data-tile-size')).toBe(locked)
     const final = await world(page)

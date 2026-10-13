@@ -174,6 +174,7 @@ export async function verifyWorldScenePresence(
     const zoom = page.getByRole('slider', { name: 'Zoom level', exact: true })
     await zoom.focus()
     await zoom.press('Home')
+    for (let i = 0; i < 25; i++) await zoom.press('ArrowRight')
     await expect(zoom).toHaveValue('60')
     await page.getByRole('button', { name: 'Done', exact: true }).click()
     await expect(player).toBeVisible({ timeout: 10000 })
