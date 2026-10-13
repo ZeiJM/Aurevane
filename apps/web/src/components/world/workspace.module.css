@@ -288,7 +288,11 @@
   min-width: 0;
 }
 .player strong {
-  display: block;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
   font: 500 14px/1.25 var(--av-font-heading, Georgia);
   color: #eed6a0;
   font-weight: 600;

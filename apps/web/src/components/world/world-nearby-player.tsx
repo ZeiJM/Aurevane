@@ -46,7 +46,7 @@ export function WorldNearbyPlayer({
         </span>
       )}
       <div className={styles.playerIdentity}>
-        <strong>{player.name}</strong>
+        <strong title={player.name}>{player.name}</strong>
         <small>
           Level {player.level}
           {player.online ? ' · Online' : ''}
