@@ -212,8 +212,9 @@ export function WorldWorkspace({
     (destination: WorldPosition) => {
       const current = controller.current?.view
       if (!current || current.movementBlocked) return
-      const route = localRoute(current, motion.sample(performance.now()).position, destination)
-      if (route) motion.plan(route, current.sectors, performance.now())
+      const now = performance.now(),
+        route = localRoute(current, motion.sample(now).position, destination)
+      if (route) motion.plan(route, current.sectors, now)
       send({ kind: 'walk', destination })
     },
     [send, motion],

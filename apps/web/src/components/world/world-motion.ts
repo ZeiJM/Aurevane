@@ -110,10 +110,29 @@ export class WorldMotion {
   }
   plan(route: readonly TravelStep[], sectors: readonly WorldSectorView[], now: number) {
     const sample = this.sample(now)
+    // Routing may finish after an in-flight step lands. Discard that completed
+    // prefix before applying the preview budget; retaining it rewinds the visual
+    // or spends the whole slow-terrain preview on a tile already reached.
+    const reached = route.findIndex(
+      (step) => positionKey(step.position) === positionKey(sample.position),
+    )
+    if (reached >= 0) route = route.slice(reached + 1)
+    if (!route.length) {
+      const sector = sectors.find((sector) => sector.id === sample.position.sectorId)
+      const centre = mapPoint(sample.position, sectors, sample.point)
+      if (sector && Math.hypot(centre.x - sample.point.x, centre.y - sample.point.y) > 0.001)
+        route = [{ position: sample.position, durationMs: sector.stepMs ?? STEP_MS }]
+    }
     this.origin = sample.point
     this.standing = sample.position
     this.startedAt = now
-    this.route = routePoints(loadedRoute(route, sectors, 600), sectors, sample.point)
+    // Include one extra authored interval while selecting candidates. The first
+    // interval is shortened below to its actual remainder before enforcing 600ms.
+    this.route = routePoints(
+      loadedRoute(route, sectors, 600 + (route[0]?.durationMs ?? 0)),
+      sectors,
+      sample.point,
+    )
     const first = this.route[0]
     if (first) {
       const standing = mapPoint(sample.position, sectors, sample.point),
@@ -121,7 +140,7 @@ export class WorldMotion {
         wholeStep = Math.hypot(first.point.x - standing.x, first.point.y - standing.y)
       // Repeated clicks/held input must keep the same walking speed. A half-
       // finished step needs half its authored time, rather than a new full step.
-      first.duration = wholeStep ? (first.duration * distance) / wholeStep : STEP_MS * distance
+      first.duration = (first.duration * distance) / (wholeStep || 1)
       let elapsed = 0
       this.route = this.route.filter((step) => (elapsed += step.duration) <= 600)
     }

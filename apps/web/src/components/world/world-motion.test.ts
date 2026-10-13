@@ -19,6 +19,79 @@ const sectors = [
 const view = { position, sectors, route: [] } as unknown as WorldView
 const route = [2, 3, 4].map((x) => ({ position: { ...position, x }, durationMs: 200 }))
 describe('world visual motion', () => {
+  it('settles an already reached destination without revisiting the preceding tile', () => {
+    const motion = new WorldMotion(view)
+    motion.plan(route, view.sectors, 0)
+    const before = motion.sample(425).point
+    motion.plan(route.slice(0, 2), view.sectors, 425)
+    expect(motion.sample(425).point).toEqual(before)
+    expect(motion.sample(525)).toEqual({
+      point: { x: 3.5, y: 4.5 },
+      position: route[1]!.position,
+      moving: false,
+    })
+  })
+  it('settles a click on the current tile centre instead of freezing between tiles', () => {
+    const motion = new WorldMotion(view)
+    motion.plan(route, view.sectors, 0)
+    const before = motion.sample(100).point
+    // A click on the tile currently occupied yields a valid zero-step route.
+    motion.plan([], view.sectors, 100)
+    expect(motion.sample(100).point).toEqual(before)
+    expect(motion.sample(116).point.x).toBeCloseTo(before.x - 16 / 200)
+    expect(motion.sample(250)).toEqual({
+      point: { x: 1.5, y: 4.5 },
+      position,
+      moving: false,
+    })
+  })
+  it('uses the remaining preview time to keep a slow-terrain click moving to its full destination', () => {
+    const motion = new WorldMotion(view)
+    const slow = route.map((step) => ({ ...step, durationMs: 400 }))
+    motion.plan(slow, view.sectors, 0)
+    const before = motion.sample(350).point
+    motion.plan(slow, view.sectors, 350)
+    expect(motion.sample(350).point).toEqual(before)
+    expect(motion.sample(800).point.x).toBeCloseTo(3.5)
+    motion.reconcile({ ...view, position: slow[1]!.position, route: slow.slice(2) }, 900)
+    expect(motion.sample(1400)).toEqual({
+      point: { x: 4.5, y: 4.5 },
+      position: slow.at(-1)!.position,
+      moving: false,
+    })
+  })
+  it.each([
+    { durationMs: 200, nextArrival: 400 },
+    { durationMs: 400, nextArrival: 815 },
+  ])(
+    'does not backtrack when a route calculation crosses a $durationMs ms tile deadline',
+    ({ durationMs, nextArrival }) => {
+      const motion = new WorldMotion(view)
+      const forward = [2, 3, 4, 5, 6].map((x) => ({
+        position: { ...position, x },
+        durationMs,
+      }))
+      motion.plan(forward, view.sectors, 0)
+      // The route was calculated just before landing on x=2, but is applied
+      // after that boundary. Its first tile has already been traversed.
+      const now = durationMs + 15
+      const before = motion.sample(now).point
+      motion.plan(forward, view.sectors, now)
+      expect(motion.sample(now).point).toEqual(before)
+      expect(motion.sample(now + 16).point.x).toBeGreaterThan(before.x)
+      expect(motion.sample(nextArrival).point.x).toBeCloseTo(3.5)
+      motion.reconcile({ ...view, route: forward }, now + 40)
+      let previous = motion.sample(now + 40).point.x
+      const finalArrival = nextArrival + durationMs * 3
+      for (let time = now + 56; time <= finalArrival; time += 16) {
+        const point = motion.sample(time).point.x
+        expect(point - previous).toBeGreaterThanOrEqual(0)
+        expect(point - previous).toBeLessThanOrEqual(16 / durationMs + 0.0001)
+        previous = point
+      }
+      expect(motion.sample(finalArrival).position).toEqual(forward.at(-1)!.position)
+    },
+  )
   it('keeps cached routes isolated when a later terrain snapshot withholds a connecting cell', () => {
     const corridor = {
       ...view,
