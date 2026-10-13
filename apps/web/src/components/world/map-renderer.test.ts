@@ -26,7 +26,14 @@ function scene(reduced = false, initial?: WorldView) {
     args: number[]
     matrix: number[]
   }[] = []
-  const texts: { text: string; x: number; y: number }[] = []
+  const texts: {
+    text: string
+    x: number
+    y: number
+    font: string
+    align: string
+    maxWidth?: number
+  }[] = []
   const transforms: number[][] = []
   const groundCurves: number[][] = []
   const gradients: { coordinates: number[]; stops: [number, string][] }[] = []
@@ -86,8 +93,9 @@ function scene(reduced = false, initial?: WorldView) {
       drawImage(image: HTMLImageElement, ...args: number[]) {
         draws.push({ src: image.src ?? '', image, order: ++drawOrder, args, matrix: [...matrix] })
       },
-      fillText(text: string, x: number, y: number) {
-        texts.push({ text, x, y })
+      fillText(text: string, x: number, y: number, maxWidth?: number) {
+        const state = this as unknown as { font: string; textAlign: string }
+        texts.push({ text, x, y, font: state.font, align: state.textAlign, maxWidth })
       },
       beginPath() {
         recordedPath = []
@@ -228,6 +236,7 @@ function scene(reduced = false, initial?: WorldView) {
   const identityDraws: typeof draws = []
   const identityClear = vi.fn()
   const identityCanvas = {
+    style: {},
     width: 0,
     height: 0,
     getContext: () =>
@@ -1728,6 +1737,86 @@ describe('native map input and bounded lifecycle', () => {
       expect(s.frames.size).toBe(1)
       s.renderer.dispose()
       expect(s.frames.size).toBe(0)
+      vi.unstubAllGlobals()
+    },
+  )
+  it.each([1, 2, 2.625, 3].flatMap((density) => [0.35, 1, 1.4].map((zoom) => ({ density, zoom }))))(
+    'draws readable, uncompressed player labels at $zoom zoom and $density DPR',
+    ({ density, zoom }) => {
+      const s = scene()
+      window.devicePixelRatio = density
+      s.resize()
+      s.renderer.update({
+        ...s.view,
+        players: [
+          {
+            characterId: 'name-peer',
+            name: 'Sellophina',
+            level: 1,
+            portraitRef: '',
+            imageUrl: '/peer.webp',
+            online: true,
+            attackable: false,
+            position: { ...s.view.position, x: s.view.position.x + 1 },
+          },
+          {
+            characterId: 'long-name-peer',
+            name: 'A traveller with a very long display name',
+            level: 1,
+            portraitRef: '',
+            imageUrl: '/long-peer.webp',
+            online: true,
+            attackable: false,
+            position: { ...s.view.position, x: s.view.position.x + 2 },
+          },
+        ],
+      })
+      s.renderer.settings({ animate: true, zoom })
+      s.frame(40)
+      const self = s.texts.findLast((text) => text.text === 'You')!
+      const peer = s.texts.findLast((text) => text.text === 'Sellophina')!
+      const longName = s.texts.findLast((text) => text.text.startsWith('A traveller'))!
+      expect(self).toBeDefined()
+      expect(peer).toBeDefined()
+      expect(longName).toBeDefined()
+      for (const text of [self, peer, longName]) {
+        expect(text.maxWidth).toBeUndefined()
+        expect(text.align).toBe('left')
+        expect(Number(/(\d+)px/.exec(text.font)![1])).toBeGreaterThanOrEqual(11)
+        for (const coordinate of [text.x, text.y])
+          expect(coordinate * density).toBeCloseTo(Math.round(coordinate * density), 8)
+      }
+      expect(longName.text).toMatch(/…$/)
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    },
+  )
+  it.each([1, 2, 2.625, 3])(
+    'keeps the native identity surface at its exact bitmap scale in a fractional layout at %s DPR',
+    (density) => {
+      const s = scene()
+      const style: Record<string, string> = {}
+      Object.assign(s.identityCanvas, { style })
+      Object.assign(s.canvas, {
+        clientWidth: 847,
+        clientHeight: 750,
+        getBoundingClientRect: () => ({ left: 204.46875, top: 131.8125 }),
+      })
+      window.devicePixelRatio = density
+      s.resize()
+      expect(style.width).toBe(`${s.identityCanvas.width / density}px`)
+      expect(style.height).toBe(`${s.identityCanvas.height / density}px`)
+      const translate = /translate\(([-\d.]+)px, ([-\d.]+)px\)/.exec(style.transform)!
+      expect(translate).not.toBeNull()
+      expect((204.46875 + Number(translate[1])) * density).toBeCloseTo(
+        Math.round(204.46875 * density),
+        8,
+      )
+      expect((131.8125 + Number(translate[2])) * density).toBeCloseTo(
+        Math.round(131.8125 * density),
+        8,
+      )
+      s.renderer.dispose()
       vi.unstubAllGlobals()
     },
   )

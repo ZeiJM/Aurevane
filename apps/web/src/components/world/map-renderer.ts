@@ -504,6 +504,13 @@ export function createMapRenderer(
     if (identityCanvas && identityContext) {
       identityCanvas.width = Math.round(width * identityRatio)
       identityCanvas.height = Math.round(height * identityRatio)
+      // A fractional grid track must not rescale or offset the native bitmap between pixels.
+      identityCanvas.style.width = `${identityCanvas.width / identityRatio}px`
+      identityCanvas.style.height = `${identityCanvas.height / identityRatio}px`
+      const bounds = canvas.getBoundingClientRect()
+      const offsetX = Math.round(bounds.left * identityRatio) / identityRatio - bounds.left
+      const offsetY = Math.round(bounds.top * identityRatio) / identityRatio - bounds.top
+      identityCanvas.style.transform = `translate(${offsetX}px, ${offsetY}px)`
       paintedIdentity = null
     }
     tile = (width < 600 ? 48 : 64) * zoom
@@ -1263,33 +1270,43 @@ export function createMapRenderer(
         ctx.fillText(String(people.length), point.x + 19 * tokenScale, point.y - 26 * tokenScale)
       }
       if (!ghost) {
-        const fontSize = Math.max(7, 12 * tokenScale)
-        const labelHeight = Math.max(12, 18 * tokenScale)
-        ctx.font = `600 ${fontSize}px Georgia`
-        ctx.textAlign = 'center'
-        const nameWidth = Math.min(
-          180 * tokenScale,
-          ctx.measureText(person.name).width + 14 * tokenScale,
-        )
-        ctx.fillStyle = 'rgba(6,28,35,.92)'
+        // Small serif strokes and Canvas maxWidth condensation soften identity labels.
+        // Keep glyphs at a readable whole-pixel size and shorten long names instead.
+        const fontSize = Math.max(11, Math.round(12 * tokenScale))
+        const labelHeight = fontSize + 6
+        ctx.font = `600 ${fontSize}px Arial, sans-serif`
+        ctx.textAlign = 'left'
+        ctx.textBaseline = 'alphabetic'
+        const maxTextWidth = Math.max(112, 180 * tokenScale) - 12
+        let label = person.name
+        if (ctx.measureText(label).width > maxTextWidth) {
+          const letters = Array.from(label)
+          let low = 0,
+            high = letters.length
+          while (low < high) {
+            const middle = Math.ceil((low + high) / 2)
+            if (ctx.measureText(letters.slice(0, middle).join('') + '…').width <= maxTextWidth)
+              low = middle
+            else high = middle - 1
+          }
+          label = letters.slice(0, low).join('') + '…'
+        }
+        const nameWidth =
+          Math.ceil((ctx.measureText(label).width + 12) * identityRatio) / identityRatio
+        const left = Math.round((point.x - nameWidth / 2) * identityRatio) / identityRatio
+        const top = Math.round((point.y + 2 * tokenScale) * identityRatio) / identityRatio
+        ctx.fillStyle = 'rgba(6,28,35,.96)'
         ctx.strokeStyle = person.self ? '#d0ac66' : 'rgba(176,192,186,.7)'
         ctx.lineWidth = Math.max(1 / identityRatio, 0.7 * Math.min(1, tokenScale))
         ctx.beginPath()
-        ctx.roundRect(
-          point.x - nameWidth / 2,
-          point.y + 2 * tokenScale,
-          nameWidth,
-          labelHeight,
-          3 * tokenScale,
-        )
+        ctx.roundRect(left, top, nameWidth, labelHeight, 3 * tokenScale)
         ctx.fill()
         ctx.stroke()
         ctx.fillStyle = person.self ? '#f5dda5' : '#f1ebda'
         ctx.fillText(
-          person.name,
-          point.x,
-          Math.round((point.y + (labelHeight + fontSize) / 2) * identityRatio) / identityRatio,
-          nameWidth - 12 * tokenScale,
+          label,
+          Math.round((left + 6) * identityRatio) / identityRatio,
+          Math.round((top + fontSize + 2) * identityRatio) / identityRatio,
         )
       }
     }

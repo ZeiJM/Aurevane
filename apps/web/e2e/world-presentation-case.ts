@@ -397,6 +397,77 @@ export function registerWorldInputCases({
     })
   }
 
+  test('player nameplates stay readable on native-density desktop and mobile at all terrain zooms', async ({
+    page,
+  }, info) => {
+    test.skip(
+      info.project.name === 'laptop-chromium',
+      'Desktop and high-DPI touch layouts cover density.',
+    )
+    await enter(page)
+    const canvas = page.locator('canvas[data-world-stage]')
+    await canvas.evaluate((el) => {
+      const context = document
+        .querySelector<HTMLCanvasElement>('canvas[data-world-identity]')!
+        .getContext('2d')!
+      const draw = context.fillText.bind(context)
+      context.fillText = ((text: string, x: number, y: number, maxWidth?: number) => {
+        if (text === 'You')
+          el.dataset.testNameplateDraw = JSON.stringify({
+            font: context.font,
+            align: context.textAlign,
+            x,
+            y,
+            compressed: maxWidth !== undefined,
+          })
+        if (maxWidth === undefined) draw(text, x, y)
+        else draw(text, x, y, maxWidth)
+      }) as typeof context.fillText
+    })
+    await page.getByRole('button', { name: 'Map settings', exact: true }).click()
+    await page.getByRole('checkbox', { name: 'Ambient animation', exact: true }).uncheck()
+    const slider = page.getByRole('slider', { name: 'Zoom level', exact: true })
+    for (const zoom of [35, 140, 100]) {
+      if (zoom === 35) await slider.press('Home')
+      else if (zoom === 140) await slider.press('End')
+      else for (let i = 0; i < 40; i++) await slider.press('ArrowLeft')
+      await expect(slider).toHaveValue(String(zoom))
+      await expect
+        .poll(() => canvas.evaluate((el) => Number(el.dataset.tileSize)))
+        .toBeCloseTo(
+          ((await canvas.evaluate((el) => (el.clientWidth < 600 ? 48 : 64))) * zoom) / 100,
+        )
+      await expect.poll(() => canvas.getAttribute('data-test-nameplate-draw')).not.toBeNull()
+      const metrics = await canvas.evaluate((el) => {
+        const identity = document.querySelector<HTMLCanvasElement>('canvas[data-world-identity]')!
+        const bounds = identity.getBoundingClientRect()
+        return {
+          ...JSON.parse(el.dataset.testNameplateDraw!),
+          left: bounds.left,
+          top: bounds.top,
+          width: bounds.width,
+          height: bounds.height,
+          backingWidth: identity.width,
+          backingHeight: identity.height,
+          density: devicePixelRatio || 1,
+        }
+      })
+      expect(metrics.compressed).toBe(false)
+      expect(metrics.align).toBe('left')
+      expect(Number(/(\d+)px/.exec(metrics.font)![1])).toBeGreaterThanOrEqual(11)
+      for (const value of [metrics.left, metrics.top, metrics.x, metrics.y])
+        expect(value * metrics.density).toBeCloseTo(Math.round(value * metrics.density), 4)
+      expect(metrics.width * metrics.density).toBeCloseTo(metrics.backingWidth, 1)
+      expect(metrics.height * metrics.density).toBeCloseTo(metrics.backingHeight, 1)
+      await info.attach(`nameplate-native-${zoom}`, {
+        body: JSON.stringify({ zoom, ...metrics }, null, 2),
+        contentType: 'application/json',
+      })
+      await capture(page, info, `portrait-zoom-nameplates-${zoom}`)
+    }
+    await page.getByRole('button', { name: 'Done', exact: true }).click()
+  })
+
   test('zoom controls live in Settings and the shared lock blocks map and globe wheel zoom', async ({
     page,
   }, info) => {
@@ -409,7 +480,20 @@ export function registerWorldInputCases({
           .querySelector<HTMLCanvasElement>('canvas[data-world-identity]')!
           .getContext('2d')!,
         draw = context.drawImage.bind(context),
+        fillText = context.fillText.bind(context),
         portrait = new URL(el.dataset.portrait!, location.href).href
+      context.fillText = ((text: string, x: number, y: number, maxWidth?: number) => {
+        if (text === 'You')
+          el.dataset.testNameplateDraw = JSON.stringify({
+            font: context.font,
+            align: context.textAlign,
+            x,
+            y,
+            compressed: maxWidth !== undefined,
+          })
+        if (maxWidth === undefined) fillText(text, x, y)
+        else fillText(text, x, y, maxWidth)
+      }) as typeof context.fillText
       context.drawImage = ((image: CanvasImageSource, ...args: number[]) => {
         if (
           image instanceof HTMLImageElement &&
@@ -442,9 +526,31 @@ export function registerWorldInputCases({
           }),
         )
         .toBe(true)
+      const nameplate = await canvas.evaluate((el) => {
+        const identity = document.querySelector<HTMLCanvasElement>('canvas[data-world-identity]')!
+        const bounds = identity.getBoundingClientRect()
+        return {
+          ...JSON.parse(el.dataset.testNameplateDraw!),
+          left: bounds.left,
+          top: bounds.top,
+          width: bounds.width,
+          height: bounds.height,
+          backingWidth: identity.width,
+          backingHeight: identity.height,
+          density: devicePixelRatio || 1,
+        }
+      })
+      expect(nameplate.compressed).toBe(false)
+      expect(nameplate.align).toBe('left')
+      expect(Number(/(\d+)px/.exec(nameplate.font)![1])).toBeGreaterThanOrEqual(11)
+      for (const value of [nameplate.left, nameplate.top, nameplate.x, nameplate.y])
+        expect(value * nameplate.density).toBeCloseTo(Math.round(value * nameplate.density), 4)
+      expect(nameplate.width * nameplate.density).toBeCloseTo(nameplate.backingWidth, 1)
+      expect(nameplate.height * nameplate.density).toBeCloseTo(nameplate.backingHeight, 1)
       const metrics = await canvas.evaluate((el) => ({
         tileSize: Number(el.dataset.tileSize),
         ...JSON.parse(el.dataset.testPortraitDraw!),
+        nameplate: JSON.parse(el.dataset.testNameplateDraw!),
       }))
       await info.attach(`portrait-zoom-${zoom}`, {
         body: JSON.stringify({ zoom, ...metrics }, null, 2),
