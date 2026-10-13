@@ -549,8 +549,8 @@ export function WorldWorkspace({
                                 <Image
                                   src={player.imageUrl}
                                   alt=""
-                                  width={56}
-                                  height={56}
+                                  width={44}
+                                  height={44}
                                   unoptimized
                                 />
                               ) : (

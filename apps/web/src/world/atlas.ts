@@ -13,7 +13,7 @@ import type { WorldBuilding, WorldLandmark, WorldRoad, WorldSector } from './typ
 import { ATLAS_COLUMNS, ATLAS_ROWS, atlasNeighbor, wrappedColumnDistance } from './topology'
 
 export { ATLAS_COLUMNS, ATLAS_ROWS } from './topology'
-export const WORLD_LAND_NAME = 'Aurethia'
+export const WORLD_LAND_NAME = 'Isola'
 
 export function atlasAddress(sector: Pick<WorldSector, 'atlasColumn' | 'atlasRow'>) {
   return typeof sector.atlasColumn === 'number' && typeof sector.atlasRow === 'number'

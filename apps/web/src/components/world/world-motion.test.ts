@@ -326,6 +326,67 @@ describe('world visual motion', () => {
     motion.reconcile(seamView, 400)
     expect(motion.sample(400).point.x).toBeCloseTo(0.5)
   })
+  it.each(
+    [200, 400].flatMap((durationMs) =>
+      ['straight', 'turn', 'seam'].map((path) => ({ durationMs, path })),
+    ),
+  )(
+    'keeps confirmed $durationMs ms $path steps on phase through repeated near-boundary receipts',
+    ({ durationMs, path }) => {
+      const initial =
+        path === 'seam'
+          ? ({
+              ...view,
+              position: { sectorId: 'west', x: 12, y: 4 },
+              sectors: [
+                { id: 'west', atlasColumn: 127, atlasRow: 32, charted: true },
+                { id: 'east', atlasColumn: 0, atlasRow: 32, charted: true },
+              ],
+            } as unknown as WorldView)
+          : view
+      const destinations =
+        path === 'seam'
+          ? [0, 1, 2].map((x) => ({ sectorId: 'east', x, y: 4 }))
+          : (path === 'turn'
+              ? [
+                  [2, 4],
+                  [2, 3],
+                  [3, 3],
+                ]
+              : [
+                  [2, 4],
+                  [3, 4],
+                  [4, 4],
+                ]
+            ).map(([x, y]) => ({ ...position, x: x!, y: y! }))
+      const confirmed = {
+        ...initial,
+        route: destinations.map((position) => ({ position, durationMs })),
+      }
+      const reference = new WorldMotion(initial)
+      const motion = new WorldMotion(initial)
+      reference.reconcile(confirmed, 0)
+      motion.reconcile(confirmed, 0)
+      const receipts = new Set([
+        durationMs - 10,
+        durationMs,
+        2 * durationMs - 10,
+        2 * durationMs,
+        3 * durationMs - 10,
+      ])
+      for (let now = 0; now <= 3 * durationMs; now++) {
+        if (receipts.has(now)) motion.reconcile(confirmed, now)
+        for (const axis of ['x', 'y'] as const)
+          expect(motion.sample(now).point[axis], `at ${now}ms ${axis}`).toBeCloseTo(
+            reference.sample(now).point[axis],
+            8,
+          )
+      }
+      expect(motion.sample(3 * durationMs)).toEqual(reference.sample(3 * durationMs))
+      motion.reconcile(confirmed, 3 * durationMs)
+      expect(motion.sample(3 * durationMs).moving).toBe(false)
+    },
+  )
   it('bounds an unconfirmed preview and never interpolates into an unloaded sector', () => {
     const motion = new WorldMotion(view)
     motion.plan(

@@ -214,6 +214,27 @@ export async function verifyWorldScenePresence(
       player = page.locator(`[data-world-player="${id}"]`)
     await expect(player).toBeVisible({ timeout: 15000 })
     await expect(player.locator('img')).toHaveAttribute('src', /starter-portrait/)
+    // This explicit second-account fixture makes density coverage non-vacuous.
+    const density = await player.evaluate((row) => {
+      const portrait = row.querySelector('img')!.getBoundingClientRect()
+      const bounds = row.getBoundingClientRect()
+      const action = row.querySelector('button')!.getBoundingClientRect()
+      return {
+        width: portrait.width,
+        height: portrait.height,
+        rowHeight: bounds.height,
+        actionHeight: action.height,
+      }
+    })
+    expect(density.width).toBe(44)
+    expect(density.height).toBe(44)
+    expect(density.rowHeight).toBeLessThanOrEqual(80)
+    expect(density.actionHeight).toBeGreaterThanOrEqual(29)
+    await info.attach('nearby-row-density', {
+      body: JSON.stringify(density),
+      contentType: 'application/json',
+    })
+
     await expect(player.getByRole('button', { name: 'Attack', exact: true })).toHaveCount(0)
     const scene = await world(page)
     expect(scene.players.some((p) => p.characterId === owner.characterId)).toBe(false)

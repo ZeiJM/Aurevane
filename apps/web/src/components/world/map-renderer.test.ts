@@ -641,6 +641,34 @@ describe('native map input and bounded lifecycle', () => {
       vi.unstubAllGlobals()
     },
   )
+  it.each([200, 400].flatMap((stepMs) => [8, 20].map((cost) => ({ stepMs, cost }))))(
+    'keeps held-key deadlines at $stepMs ms despite $cost ms selection work',
+    ({ stepMs, cost }) => {
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'performance'] })
+      const s = scene()
+      const view = { ...s.view, sectors: s.view.sectors.map((sector) => ({ ...sector, stepMs })) }
+      s.renderer.update(view)
+      const selectedAt: number[] = []
+      s.select.mockImplementation((destination) => {
+        const now = performance.now()
+        selectedAt.push(now)
+        const route = localRoute(view, s.motion.sample(now).position, destination)
+        if (route) s.motion.plan(route, view.sectors, now)
+        vi.advanceTimersByTime(cost)
+      })
+      try {
+        s.listeners.get('keydown')!({ key: 'd', preventDefault() {} } as unknown as Event)
+        vi.advanceTimersByTime(stepMs - cost)
+        expect(selectedAt).toEqual([0, stepMs])
+        s.listeners.get('keyup')!({ key: 'd' } as unknown as Event)
+        expect(s.motion.sample(stepMs + cost).moving).toBe(true)
+      } finally {
+        s.renderer.dispose()
+        vi.useRealTimers()
+        vi.unstubAllGlobals()
+      }
+    },
+  )
   it.each(['keyup', 'blur', 'window:blur', 'hidden', 'dispose'])(
     'ends a held-key stream on %s and keeps a tap to one step',
     (release) => {

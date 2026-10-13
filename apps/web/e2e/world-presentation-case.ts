@@ -103,16 +103,26 @@ export async function verifyWorldPresentation(
         }
         return {
           identity: rect(row.querySelector('strong')),
+          portrait: rect(row.querySelector('img, span')),
           actions: rect(row.querySelector('[data-world-player-actions]')),
           bounds: rect(row),
           buttons: Array.from(row.querySelectorAll('button'), rect),
         }
       }),
     )
-    for (const { identity, actions, bounds, buttons } of rows) {
+    for (const { identity, portrait, actions, bounds, buttons } of rows) {
       if (!bounds) continue
       expect(identity).not.toBeNull()
+      expect(portrait).not.toBeNull()
+      expect(portrait!.width).toBeLessThanOrEqual(44)
+      expect(portrait!.height).toBeLessThanOrEqual(44)
       expect(actions).not.toBeNull()
+      // Common one/two-line identities must allow more rows in the same panel.
+      // Narrow panels and longer names retain full readable wrapping.
+      if (bounds.width >= 220 && identity!.height <= 45)
+        expect(bounds.height).toBeLessThanOrEqual(
+          info.project.name === 'mobile-chromium' ? 110 : 80,
+        )
       expect(actions!.x).toBeGreaterThanOrEqual(identity!.x + identity!.width - 1)
       expect(actions!.x + actions!.width).toBeLessThanOrEqual(bounds.x + bounds.width + 1)
       for (const box of buttons) {
@@ -610,6 +620,9 @@ export function registerWorldInputCases({
       })),
     ).toEqual(pageScale)
     await page.getByRole('button', { name: /Open world atlas/ }).click()
+    await expect(
+      page.getByRole('button', { name: 'Isola · Return to local map', exact: true }),
+    ).toBeVisible()
     const globe = page.getByRole('group', { name: /World globe/ })
     await globe.hover()
     const pin = page.getByLabel('Your current position', { exact: true }),
