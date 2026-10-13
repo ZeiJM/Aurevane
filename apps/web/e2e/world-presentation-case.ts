@@ -23,27 +23,8 @@ export async function verifyWorldPresentation(
   const initial = await world(page)
   if (info.project.name === 'mobile-chromium')
     await page.getByRole('button', { name: /Details/ }).click()
-  const townButton = page.getByRole('button', { name: 'View Town', exact: true })
-  await expect(townButton).toBeVisible()
-  await expect(
-    page.locator('[data-world-panel-foot]').getByRole('button', { name: 'View Town', exact: true }),
-  ).toBeVisible()
-  const panorama = initial.sectors.find(
-    (sector) => sector.id === initial.position.sectorId,
-  )!.panorama!
-  const painting = page.waitForResponse(
-    (response) => new URL(response.url()).pathname === panorama && response.ok(),
-  )
-  await townButton.click()
-  const townDialog = page.getByRole('dialog', { name: 'Verdant Expanse', exact: true })
-  await expect(townDialog).toBeVisible()
-  await painting
-  await townDialog.getByRole('button', { name: 'Look right', exact: true }).click()
-  await capture(page, info, 'view-town-from-panel-foot')
-  await townDialog.getByRole('button', { name: /Return to Map/ }).click()
-  await expect(townDialog).toHaveCount(0)
-  await expect(townButton).toBeFocused()
-  expect((await world(page)).position).toEqual(initial.position)
+  await expect(page.getByRole('button', { name: 'View Town', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'View 360°', exact: true })).toHaveCount(0)
   place(initial.characterId, 'atlas:58:28', 6, 4)
   await page.reload()
   const canvas = page.locator('canvas[data-world-stage]'),
@@ -58,18 +39,37 @@ export async function verifyWorldPresentation(
   await expect(coordinates).toContainText('E760 · N320')
   await expect(page.getByRole('button', { name: 'View Town', exact: true })).toHaveCount(0)
   const verifyPlayerRows = async () => {
-    for (const row of await panel.locator('[data-world-player]').all()) {
-      const identity = await row.locator('strong').boundingBox(),
-        actions = await row.locator('[data-world-player-actions]').boundingBox(),
-        bounds = await row.boundingBox()
-      if (!identity || !actions || !bounds) continue
-      expect(actions.x).toBeGreaterThanOrEqual(identity.x + identity.width - 1)
-      expect(actions.x + actions.width).toBeLessThanOrEqual(bounds.x + bounds.width + 1)
-      for (const button of await row.getByRole('button').all()) {
-        const box = (await button.boundingBox())!
-        expect(box.x).toBeGreaterThanOrEqual(bounds.x)
-        expect(box.x + box.width).toBeLessThanOrEqual(bounds.x + bounds.width + 1)
-        expect(box.height).toBeGreaterThanOrEqual(info.project.name === 'mobile-chromium' ? 44 : 29)
+    // Presence can change between awaited locator calls. Measure the currently
+    // rendered rows and their children in one DOM snapshot instead of retaining
+    // positional locators that may refer to a different or removed player.
+    const rows = await panel.locator('[data-world-player]').evaluateAll((elements) =>
+      elements.map((row) => {
+        const rect = (element: Element | null) => {
+          if (!element?.getClientRects().length) return null
+          const { x, y, width, height } = element.getBoundingClientRect()
+          return { x, y, width, height }
+        }
+        return {
+          identity: rect(row.querySelector('strong')),
+          actions: rect(row.querySelector('[data-world-player-actions]')),
+          bounds: rect(row),
+          buttons: Array.from(row.querySelectorAll('button'), rect),
+        }
+      }),
+    )
+    for (const { identity, actions, bounds, buttons } of rows) {
+      if (!bounds) continue
+      expect(identity).not.toBeNull()
+      expect(actions).not.toBeNull()
+      expect(actions!.x).toBeGreaterThanOrEqual(identity!.x + identity!.width - 1)
+      expect(actions!.x + actions!.width).toBeLessThanOrEqual(bounds.x + bounds.width + 1)
+      for (const box of buttons) {
+        expect(box).not.toBeNull()
+        expect(box!.x).toBeGreaterThanOrEqual(bounds.x)
+        expect(box!.x + box!.width).toBeLessThanOrEqual(bounds.x + bounds.width + 1)
+        expect(box!.height).toBeGreaterThanOrEqual(
+          info.project.name === 'mobile-chromium' ? 44 : 29,
+        )
       }
     }
   }

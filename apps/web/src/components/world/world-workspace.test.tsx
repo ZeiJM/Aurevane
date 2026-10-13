@@ -10,7 +10,7 @@ import { newWorldState } from '@/world/travel'
 import { WorldWorkspace } from './world-workspace'
 
 describe('World page', () => {
-  it('offers View Town only in the footer of a town with authored surroundings', () => {
+  it('omits the removed town panorama button while retaining map settings', () => {
     const render = (view: ReturnType<typeof projectWorld>) =>
       renderToStaticMarkup(
         createElement(WorldWorkspace, {
@@ -20,9 +20,9 @@ describe('World page', () => {
       )
     const town = projectWorld(newWorldState(), [], 1000)
     const markup = render(town)
-    const foot = markup.slice(markup.indexOf('panelFoot'))
-    expect(foot).toContain('View Town')
-    expect(markup.slice(0, markup.indexOf('panelFoot'))).not.toContain('View Town')
+    expect(markup).not.toContain('View Town')
+    expect(markup).not.toContain('View 360')
+    expect(markup).toContain('aria-label="Map settings"')
     const state = newWorldState()
     state.position = { sectorId: 'crown-road', x: 5, y: 4 }
     expect(render(projectWorld(state, [], 1000))).not.toContain('View Town')
