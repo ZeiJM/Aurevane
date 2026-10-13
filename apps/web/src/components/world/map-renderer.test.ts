@@ -4,7 +4,7 @@ import { projectWorld } from '@/server/world/world-service'
 import { newWorldState } from '@/world/travel'
 import { localRoute, mapPoint, WorldMotion } from './world-motion'
 import { createMapRenderer } from './map-renderer'
-import { projectMapPoint } from './map-projection'
+import { projectMapPoint, unprojectMapPoint } from './map-projection'
 import type { WorldView } from '@/world/types'
 import * as biomes from './map-biome-transitions'
 
@@ -22,6 +22,8 @@ function scene(reduced = false, initial?: WorldView) {
   const transforms: number[][] = []
   const groundCurves: number[][] = []
   const gradients: { coordinates: number[]; stops: [number, string][] }[] = []
+  const clips: { points: number[][]; matrix: number[]; order: number }[] = []
+  let path: number[][] = []
   let drawOrder = 0
   let createdLayers = 0
   let resizeCallback!: () => void
@@ -51,6 +53,25 @@ function scene(reduced = false, initial?: WorldView) {
       },
       fillText(text: string, x: number, y: number) {
         texts.push({ text, x, y })
+      },
+      beginPath() {
+        path = []
+      },
+      moveTo(x: number, y: number) {
+        path.push([x, y])
+      },
+      lineTo(x: number, y: number) {
+        path.push([x, y])
+      },
+      rect(x: number, y: number, width: number, height: number) {
+        path.push([x, y], [x + width, y], [x + width, y + height], [x, y + height])
+      },
+      clip() {
+        clips.push({
+          points: path.map((point) => [...point]),
+          matrix: [...matrix],
+          order: drawOrder,
+        })
       },
       transform(...values: number[]) {
         transforms.push(values)
@@ -182,6 +203,7 @@ function scene(reduced = false, initial?: WorldView) {
     transforms,
     groundCurves,
     gradients,
+    clips,
     images,
     resize: () => resizeCallback(),
     view,
@@ -515,6 +537,48 @@ describe('native map input and bounded lifecycle', () => {
     s.renderer.dispose()
     vi.unstubAllGlobals()
   })
+  it.each([
+    ['verdant-expanse', 3, 6],
+    ['aureth-crown', 4, 5],
+  ] as const)(
+    'clips the %s arch water to its complete proven legal crossing',
+    (sectorId, from, to) => {
+      const state = newWorldState()
+      state.position = { ...state.position, sectorId }
+      const s = scene(true, projectWorld(state, [], 1000))
+      s.frame(40)
+      const origin = mapPoint({ ...s.view.position, x: 0, y: 0 }, s.view.sectors)
+      const camera = mapPoint(s.view.position, s.view.sectors)
+      const opening = s.fills.find((fill) => fill.colour === 'rgba(48,108,118,.96)')!
+      const crossing = s.clips.find((clip) => {
+        if (clip.order !== opening.order - 1 || clip.points.length !== 4) return false
+        const points = clip.points.map(([x, y]) => {
+          const m = clip.matrix
+          const world = unprojectMapPoint(
+            {
+              x: (m[0]! * x! + m[2]! * y! + m[4]!) / 1.5,
+              y: (m[1]! * x! + m[3]! * y! + m[5]!) / 1.5,
+            },
+            camera,
+            { x: 0, y: 0 },
+            64,
+            800,
+            600,
+          )
+          return { x: world.x - origin.x + 0.5, y: world.y - origin.y + 0.5 }
+        })
+        return (
+          Math.abs(Math.min(...points.map((p) => p.x)) - 10) < 1e-8 &&
+          Math.abs(Math.max(...points.map((p) => p.x)) - 11) < 1e-8 &&
+          Math.abs(Math.min(...points.map((p) => p.y)) - from) < 1e-8 &&
+          Math.abs(Math.max(...points.map((p) => p.y)) - to) < 1e-8
+        )
+      })
+      expect(crossing).toBeDefined()
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    },
+  )
   it('does not draw a bridge prop on a road without a real known liquid crossing', () => {
     const s = scene(true)
     s.renderer.update({

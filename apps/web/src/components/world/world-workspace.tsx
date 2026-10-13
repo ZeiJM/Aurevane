@@ -9,7 +9,7 @@ import { remainingTravelMs, worldSyncDelayMs } from '@/world/travel'
 import { mergeWorldRefresh, worldRefreshUrl } from '@/world/presence'
 import type { WorldIntent, WorldPosition, WorldView } from '@/world/types'
 import { WorldConflict, WorldController } from './world-controller'
-import { localRoute, mapPoint, WorldMotion } from './world-motion'
+import { localRoute, mapPoint, prepareLocalRoute, WorldMotion } from './world-motion'
 import { WorldMap } from './world-map'
 import { WorldGlobe } from './world-globe'
 import { WorldMissions } from './world-missions'
@@ -137,9 +137,9 @@ export function WorldWorkspace({
         if (!response.ok) throw new Error(body.error?.message ?? 'The world could not respond.')
         return body as WorldView
       },
-      refresh: async () => {
+      refresh: async (signal) => {
         const previous = instance.view
-        const response = await fetch(worldRefreshUrl(previous), { cache: 'no-store' }),
+        const response = await fetch(worldRefreshUrl(previous), { cache: 'no-store', signal }),
           body = await response.json()
         if (!response.ok)
           throw new Error(body.error?.message ?? 'The world could not be refreshed.')
@@ -231,20 +231,30 @@ export function WorldWorkspace({
       )
     })
   const destination = view.atlas?.find((cell) => cell.id === destinationId && cell.charted)
-  function approach(position: WorldPosition) {
-    const candidates = [
-      { ...position, x: position.x - 1 },
-      { ...position, x: position.x + 1 },
-      { ...position, y: position.y - 1 },
-      { ...position, y: position.y + 1 },
-    ]
-    const routes = candidates
-      .map((destination) => ({ destination, route: localRoute(view, view.position, destination) }))
-      .filter((candidate) => candidate.route !== null)
-      .sort((a, b) => a.route!.length - b.route!.length)
-    if (routes[0]) walk(routes[0].destination)
-    else setMessage('There is no known route to that character yet.')
-  }
+  const approach = useCallback(
+    (position: WorldPosition) => {
+      const current = controller.current?.view
+      if (!current || current.movementBlocked) return
+      const now = performance.now(),
+        from = motion.sample(now).position,
+        navigate = prepareLocalRoute(current)
+      const candidates = [
+        { ...position, x: position.x - 1 },
+        { ...position, x: position.x + 1 },
+        { ...position, y: position.y - 1 },
+        { ...position, y: position.y + 1 },
+      ]
+      const routes = candidates
+        .map((destination) => ({ destination, route: navigate(from, destination) }))
+        .filter((candidate) => candidate.route !== null)
+        .sort((a, b) => a.route!.length - b.route!.length)
+      if (routes[0]) {
+        motion.plan(routes[0].route!, current.sectors, now)
+        send({ kind: 'walk', destination: routes[0].destination })
+      } else setMessage('There is no known route to that character yet.')
+    },
+    [motion, send],
+  )
   const time = new Intl.DateTimeFormat('en', {
     hour: '2-digit',
     minute: '2-digit',
@@ -490,38 +500,38 @@ export function WorldWorkspace({
                               ) : (
                                 <span className={styles.avatar}>{player.name[0]}</span>
                               )}
-                              <div>
+                              <div className={styles.playerIdentity}>
                                 <strong>{player.name}</strong>
                                 <small>
                                   Level {player.level}
                                   {player.online ? ' · Online' : ''}
                                 </small>
-                                <div className={styles.rowActions}>
-                                  {inRange ? (
-                                    <>
-                                      {player.attackable ? (
-                                        <button
-                                          disabled={disabled}
-                                          onClick={() =>
-                                            send({ kind: 'attack', targetId: player.characterId })
-                                          }
-                                        >
-                                          {attacking ? 'Attacking…' : 'Attack'}
-                                        </button>
-                                      ) : null}
-                                      <button disabled title="Coming soon">
-                                        Talk
+                              </div>
+                              <div className={styles.rowActions} data-world-player-actions>
+                                {inRange ? (
+                                  <>
+                                    {player.attackable ? (
+                                      <button
+                                        disabled={disabled}
+                                        onClick={() =>
+                                          send({ kind: 'attack', targetId: player.characterId })
+                                        }
+                                      >
+                                        {attacking ? 'Attacking…' : 'Attack'}
                                       </button>
-                                    </>
-                                  ) : (
-                                    <button
-                                      disabled={Boolean(view.movementBlocked)}
-                                      onClick={() => approach(player.position)}
-                                    >
-                                      Approach
+                                    ) : null}
+                                    <button disabled title="Coming soon">
+                                      Talk
                                     </button>
-                                  )}
-                                </div>
+                                  </>
+                                ) : (
+                                  <button
+                                    disabled={Boolean(view.movementBlocked)}
+                                    onClick={() => approach(player.position)}
+                                  >
+                                    Approach
+                                  </button>
+                                )}
                               </div>
                             </article>
                           )

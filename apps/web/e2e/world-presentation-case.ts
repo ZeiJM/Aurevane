@@ -33,7 +33,24 @@ export async function verifyWorldPresentation(
   await expect(coordinates).toHaveCount(1)
   await expect(coordinates).toContainText('Sector S59-29')
   await expect(coordinates).toContainText('E760 · N320')
+  const verifyPlayerRows = async () => {
+    for (const row of await panel.locator('[data-world-player]').all()) {
+      const identity = await row.locator('strong').boundingBox(),
+        actions = await row.locator('[data-world-player-actions]').boundingBox(),
+        bounds = await row.boundingBox()
+      if (!identity || !actions || !bounds) continue
+      expect(actions.x).toBeGreaterThanOrEqual(identity.x + identity.width - 1)
+      expect(actions.x + actions.width).toBeLessThanOrEqual(bounds.x + bounds.width + 1)
+      for (const button of await row.getByRole('button').all()) {
+        const box = (await button.boundingBox())!
+        expect(box.x).toBeGreaterThanOrEqual(bounds.x)
+        expect(box.x + box.width).toBeLessThanOrEqual(bounds.x + bounds.width + 1)
+        expect(box.height).toBeGreaterThanOrEqual(info.project.name === 'mobile-chromium' ? 44 : 29)
+      }
+    }
+  }
   if (info.project.name === 'mobile-chromium') {
+    await verifyPlayerRows()
     await expect(coordinates).toBeVisible()
     const bounds = (await panel.boundingBox())!,
       readout = (await coordinates.boundingBox())!,
@@ -56,6 +73,7 @@ export async function verifyWorldPresentation(
         expect(box.x).toBeGreaterThanOrEqual(bounds.x)
         expect(box.x + box.width).toBeLessThanOrEqual(bounds.x + bounds.width + 1)
       }
+      await verifyPlayerRows()
       const map = (await canvas.boundingBox())!
       expect(Math.abs(map.y + map.height - (frame.y + frame.height - 1))).toBeLessThanOrEqual(1)
     }

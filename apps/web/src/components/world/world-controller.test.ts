@@ -8,6 +8,45 @@ const deferred = () => {
   return { promise, resolve }
 }
 describe('world command ordering', () => {
+  it.each(['walk', 'attack'] as const)(
+    'dispatches %s immediately ahead of an idle read and ignores its late receipt',
+    async (kind) => {
+      const read = deferred(),
+        result = deferred(),
+        accept = vi.fn(),
+        error = vi.fn()
+      let signal: AbortSignal | undefined
+      const command = vi.fn().mockReturnValue(result.promise)
+      const controller = new WorldController(view, {
+        command,
+        refresh: (receivedSignal) => {
+          signal = receivedSignal
+          return read.promise
+        },
+        accept,
+        error,
+        busy: vi.fn(),
+      })
+      const refreshing = controller.refresh()
+      const intent =
+        kind === 'walk'
+          ? { kind, destination: { sectorId: 'a', x: 2, y: 2 } }
+          : { kind, targetId: 'one' }
+      const submitted = controller.send(intent)
+      expect(command).toHaveBeenCalledWith(intent, view)
+      expect(signal?.aborted).toBe(true)
+      read.resolve({ ...view, version: 999 })
+      await refreshing
+      expect(accept).not.toHaveBeenCalled()
+      expect(controller.pending).toBe(true)
+      expect(error).not.toHaveBeenCalled()
+      result.resolve({ ...view, version: 2 })
+      expect(await submitted).toMatchObject({ applied: true })
+      expect(controller.view.version).toBe(2)
+      expect(accept).toHaveBeenCalledOnce()
+      controller.dispose()
+    },
+  )
   it('gives a queued Stop priority over an automatic route continuation', async () => {
     const tick = deferred()
     const destination = { sectorId: 'far', x: 6, y: 4 }
@@ -108,7 +147,7 @@ describe('world command ordering', () => {
     read.resolve({ ...view, version: 2 })
     await refreshing
     await walking
-    expect(accept.mock.calls.map((call) => call[1])).toEqual([false, true])
+    expect(accept.mock.calls.map((call) => call[1])).toEqual([true])
   })
   it('coalesces an attack that is already in flight', async () => {
     const result = deferred(),

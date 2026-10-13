@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { WorldView } from '@/world/types'
-import { WorldMotion } from './world-motion'
+import { localRoute, WorldMotion } from './world-motion'
 const position = { sectorId: 'a', x: 1, y: 4 }
 const sectors = [
   {
@@ -19,6 +19,28 @@ const sectors = [
 const view = { position, sectors, route: [] } as unknown as WorldView
 const route = [2, 3, 4].map((x) => ({ position: { ...position, x }, durationMs: 200 }))
 describe('world visual motion', () => {
+  it('keeps cached routes isolated when a later terrain snapshot withholds a connecting cell', () => {
+    const corridor = {
+      ...view,
+      sectors: view.sectors.map((sector) => ({
+        ...sector,
+        cells: sector.cells.filter((cell) => cell.y === 4 && cell.x >= 1 && cell.x <= 3),
+      })),
+    }
+    const destination = { ...position, x: 3 }
+    expect(localRoute(corridor, position, destination)?.map((step) => step.position.x)).toEqual([
+      2, 3,
+    ])
+    const restricted = {
+      ...corridor,
+      sectors: corridor.sectors.map((sector) => ({
+        ...sector,
+        cells: sector.cells.filter((cell) => cell.x !== 2),
+      })),
+    }
+    expect(localRoute(restricted, position, destination)).toBeNull()
+    expect(localRoute(corridor, position, destination)).toHaveLength(2)
+  })
   it('preserves the authored arrival deadline when a forward preview is replanned mid-step', () => {
     const motion = new WorldMotion(view)
     motion.plan(route, view.sectors, 0)

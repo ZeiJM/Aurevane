@@ -31,8 +31,12 @@ function routePoints(
     return { point, position: step.position, duration: step.durationMs }
   })
 }
-/** Prepare supplied navigation once for a batch of observed travellers. */
+type LocalNavigator = (from: WorldPosition, to: WorldPosition) => TravelStep[] | null
+const navigationCache = new WeakMap<readonly WorldSectorView[], LocalNavigator>()
+/** Reuse navigation while the supplied terrain snapshot retains its identity. */
 export function prepareLocalRoute(view: Pick<WorldView, 'sectors'>) {
+  const cached = navigationCache.get(view.sectors)
+  if (cached) return cached
   const sectors = view.sectors.map((sector) => ({
     ...sector,
     rows: Array.from({ length: GRID_HEIGHT }, (_, y) =>
@@ -48,8 +52,10 @@ export function prepareLocalRoute(view: Pick<WorldView, 'sectors'>) {
       sector.cells.map((cell) => positionKey({ sectorId: sector.id, ...cell })),
     ),
   )
-  return (from: WorldPosition, to: WorldPosition) =>
+  const navigate: LocalNavigator = (from, to) =>
     findWorldRoute(from, to, sectors, (position) => known.has(positionKey(position)))
+  navigationCache.set(view.sectors, navigate)
+  return navigate
 }
 export function localRoute(view: WorldView, from: WorldPosition, to: WorldPosition) {
   return prepareLocalRoute(view)(from, to)

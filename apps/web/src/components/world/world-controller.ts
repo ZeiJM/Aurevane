@@ -18,11 +18,12 @@ export class WorldController {
   private sequence = 0
   private latestMovement = 0
   private currentJob: Job | null = null
+  private idleRead: AbortController | null = null
   constructor(
     public view: WorldView,
     private transport: {
       command: (intent: WorldIntent, view: WorldView) => Promise<WorldView>
-      refresh: () => Promise<WorldView>
+      refresh: (signal?: AbortSignal) => Promise<WorldView>
       accept: (view: WorldView, reconcile: boolean) => void
       error: (message: string) => void
       busy: (intent: WorldIntent | null) => void
@@ -39,6 +40,12 @@ export class WorldController {
         (job) => job && JSON.stringify(job.intent) === JSON.stringify(intent),
       )
       if (duplicate) return duplicate.promise
+    }
+    if (intent.kind !== 'tick' && this.idleRead) {
+      const read = this.idleRead
+      this.idleRead = null
+      this.running = false
+      read.abort()
     }
     const sequence = ++this.sequence
     if (movement(intent)) {
@@ -91,18 +98,24 @@ export class WorldController {
   }
   async refresh() {
     if (this.pending || this.disposed) return
+    const read = new AbortController()
+    this.idleRead = read
     this.running = true
     try {
-      this.accept(await this.transport.refresh(), !this.queue.some((job) => movement(job.intent)))
+      const view = await this.transport.refresh(read.signal)
+      if (this.idleRead === read && !read.signal.aborted) this.accept(view, true)
     } catch (error) {
-      if (!this.disposed)
+      if (!this.disposed && this.idleRead === read && !read.signal.aborted)
         this.transport.error(
           error instanceof Error ? error.message : 'The world could not be refreshed.',
         )
     } finally {
-      this.running = false
-      this.currentJob = null
-      void this.drain()
+      if (this.idleRead === read) {
+        this.idleRead = null
+        this.running = false
+        this.currentJob = null
+        void this.drain()
+      }
     }
   }
   private async drain() {
@@ -147,6 +160,8 @@ export class WorldController {
   }
   dispose() {
     this.disposed = true
+    this.idleRead?.abort()
+    this.idleRead = null
     for (const job of this.queue) job.resolve({ applied: false })
     this.queue = []
   }

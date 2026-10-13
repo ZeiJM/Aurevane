@@ -1,4 +1,4 @@
-import { expect, it, vi } from 'vitest'
+import { beforeEach, expect, it, vi } from 'vitest'
 import type { CharacterRecord } from '@aurevane/db/character'
 import {
   essenceSnapshotReference,
@@ -12,7 +12,11 @@ import {
   timeoutPvpTurn,
 } from '@aurevane/game-core/combat/pvp-quality'
 vi.mock('server-only', () => ({}))
-const { rpc } = vi.hoisted(() => ({ rpc: vi.fn() }))
+const { rpc, findCharacter, loadBuildSnapshot } = vi.hoisted(() => ({
+  rpc: vi.fn(),
+  findCharacter: vi.fn<(userId: string, id: string) => Promise<CharacterRecord | null>>(),
+  loadBuildSnapshot: vi.fn<() => Promise<CharacterCommittedBuildSnapshotRecord>>(),
+}))
 vi.mock('@/lib/supabase/admin', () => ({ createSupabaseAdminClient: () => ({ rpc }) }))
 vi.mock('./world-repository', () => ({
   readWorld: async () => ({ view: { players: [{ characterId: 'target', attackable: true }] } }),
@@ -22,14 +26,14 @@ vi.mock('./world-repository', () => ({
 }))
 vi.mock('./world-service', () => ({ assertEncounterRange: () => {} }))
 vi.mock('@/server/character/character-build-service', () => ({
-  loadCharacterCommittedBuildSnapshot: async () => pureSnapshot(),
+  loadCharacterCommittedBuildSnapshot: loadBuildSnapshot,
 }))
 vi.mock('@/server/character/supabase-character-build-repository', () => ({
   createSupabaseCharacterBuildRepository: () => ({}),
 }))
 vi.mock('@/server/character/supabase-character-repository', () => ({
   createSupabaseCharacterRepository: () => ({
-    findByOwnerId: async (userId: string, id: string) => characterRecord(id, userId, 'Fighter'),
+    findByOwnerId: findCharacter,
   }),
 }))
 vi.mock('@/server/combat/combat-content-resolver', () => ({
@@ -83,6 +87,80 @@ function pureSnapshot(): CharacterCommittedBuildSnapshotRecord {
     },
   }
 }
+
+beforeEach(() => {
+  rpc.mockReset()
+  findCharacter
+    .mockReset()
+    .mockImplementation(async (userId, id) => characterRecord(id, userId, 'Fighter'))
+  loadBuildSnapshot.mockReset().mockImplementation(async () => pureSnapshot())
+})
+
+it('starts each participant build read before its owned-character read resolves and waits for both snapshots', async () => {
+  function deferred<T>() {
+    let resolve!: (value: T) => void
+    const promise = new Promise<T>((accept) => {
+      resolve = accept
+    })
+    return { promise, resolve }
+  }
+  const characters = [deferred<CharacterRecord>(), deferred<CharacterRecord>()]
+  const builds = [
+    deferred<CharacterCommittedBuildSnapshotRecord>(),
+    deferred<CharacterCommittedBuildSnapshotRecord>(),
+  ]
+  findCharacter.mockImplementation((_userId, id) => characters[id === 'actor' ? 0 : 1]!.promise)
+  loadBuildSnapshot
+    .mockImplementationOnce(() => builds[0]!.promise)
+    .mockImplementationOnce(() => builds[1]!.promise)
+  rpc.mockImplementation(async (name: string) => {
+    if (name === 'read_world_encounter_pair_v1')
+      return {
+        data: { attacker: {}, target: { version: 3 }, targetUserId: 'opponent' },
+        error: null,
+      }
+    if (name === 'read_battlefield_elevation_policy_v1')
+      return {
+        data: { version: 1, level1BasisPoints: 10000, level2BasisPoints: 0, level3BasisPoints: 0 },
+        error: null,
+      }
+    if (name === 'read_combat_effect_timing_policy_v1')
+      return { data: { version: 3, modes: { burn: 'instant' } }, error: null }
+    if (name === 'start_world_encounter_v1')
+      return { data: { battleSessionId: 'world-battle' }, error: null }
+    throw new Error('Unexpected RPC ' + name)
+  })
+  const attack = attackWorldPlayer('owner', 'actor', 'target', 2)
+  try {
+    await vi.waitFor(() => expect(findCharacter).toHaveBeenCalledTimes(2))
+    expect(loadBuildSnapshot).toHaveBeenCalledTimes(2)
+    expect(loadBuildSnapshot).toHaveBeenNthCalledWith(1, 'owner', 'actor', expect.anything())
+    expect(loadBuildSnapshot).toHaveBeenNthCalledWith(2, 'opponent', 'target', expect.anything())
+    characters[0]!.resolve(characterRecord('actor', 'owner', 'Attacker'))
+    characters[1]!.resolve(characterRecord('target', 'opponent', 'Target'))
+    builds[0]!.resolve(pureSnapshot())
+    await builds[0]!.promise
+    expect(rpc.mock.calls.some(([name]) => name === 'start_world_encounter_v1')).toBe(false)
+  } finally {
+    // Release real promise boundaries even on the expected pre-fix failure.
+    characters[0]!.resolve(characterRecord('actor', 'owner', 'Attacker'))
+    characters[1]!.resolve(characterRecord('target', 'opponent', 'Target'))
+    builds[0]!.resolve(pureSnapshot())
+    builds[1]!.resolve({ ...pureSnapshot(), buildVersion: 8 })
+    await attack
+  }
+  expect(rpc).toHaveBeenCalledWith(
+    'start_world_encounter_v1',
+    expect.objectContaining({
+      p_user_id: 'owner',
+      p_character_id: 'actor',
+      p_target_id: 'target',
+      p_expected_version: 2,
+      p_target_version: 3,
+      p_build_versions: { actor: 7, target: 8 },
+    }),
+  )
+})
 
 it('persists current combat policies and configured heights for a new world encounter', async () => {
   const policy = {

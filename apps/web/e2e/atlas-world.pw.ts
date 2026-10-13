@@ -780,11 +780,45 @@ test('a proximity attack reaches both authenticated players', async ({ page, bro
         exact: true,
       })
     await expect(attackButton).toBeEnabled({ timeout: 15000 })
-    await attackButton.click()
+    // An idle read must never make a real encounter command wait for that read.
+    let releaseRead!: () => void,
+      heldRead = false
+    const slowRead = new Promise<void>((resolve) => {
+      releaseRead = resolve
+    })
+    const holdRefresh = async (route: import('@playwright/test').Route) => {
+      if (
+        route.request().method() === 'GET' &&
+        new URL(route.request().url()).searchParams.has('presenceVersion') &&
+        !heldRead
+      ) {
+        heldRead = true
+        await slowRead
+        await route.continue().catch(() => {}) // Expected if user input aborts the held GET.
+      } else await route.continue()
+    }
+    await page.route('**/api/world*', holdRefresh)
+    try {
+      await expect.poll(() => heldRead, { timeout: 10000 }).toBe(true)
+      const dispatched = page.waitForRequest(
+        (request) =>
+          new URL(request.url()).pathname === '/api/world' &&
+          request.method() === 'POST' &&
+          request.postDataJSON()?.intent?.kind === 'attack',
+        { timeout: 1500 },
+      )
+      await attackButton.click()
+      await dispatched
+    } finally {
+      releaseRead()
+      await page.unroute('**/api/world*', holdRefresh)
+    }
     await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}\?returnTo=world$/, {
       timeout: 15000,
     })
-    // The target's active-session server redirect must retain the same preference.
+    // The target automatically receives the confirmed encounter, without clicking refresh.
+    await expect(opponent).toHaveURL(page.url(), { timeout: 10000 })
+    // Re-entering World must retain the same preference through the server redirect too.
     await opponent.goto('/game/world')
     await expect(opponent).toHaveURL(page.url(), { timeout: 15000 })
     const battleId = new URL(page.url()).pathname.split('/').at(-1)!

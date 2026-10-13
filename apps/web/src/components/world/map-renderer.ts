@@ -60,6 +60,13 @@ const palettes: Record<string, [string, number, number]> = {
   'starfall-highlands': ['#7c7c77', 7, 1],
   'umbral-march': ['#384e48', 1, 0],
 }
+interface BridgeStrip {
+  x: number
+  y: number
+  width: number
+  height: number
+  axis: number
+}
 interface Scenery {
   x: number
   y: number
@@ -75,6 +82,7 @@ interface Scenery {
   mirror?: boolean
   source?: readonly [number, number, number, number]
   underpass?: 'water' | 'lava'
+  bridgeStrips?: BridgeStrip[]
   waterfall?: boolean
 }
 interface FeaturePlacement {
@@ -86,6 +94,7 @@ interface FeaturePlacement {
   mirror: boolean
   source?: readonly [number, number, number, number]
   underpass?: 'water' | 'lava'
+  bridgeStrips?: BridgeStrip[]
 }
 /** Positions are presentation-only and use exclusively supplied, known terrain. */
 function indexFeaturePlacements(sectors: readonly WorldSectorView[]) {
@@ -123,14 +132,16 @@ function indexFeaturePlacements(sectors: readonly WorldSectorView[]) {
             const waterSide = (sign: number) => {
               for (let i = 1; i <= 4; i++) {
                 const next = at(sector, cx + dy * sign * i, cy + dx * sign * i)
-                if (liquid(next)) return next!.terrain
+                if (liquid(next)) return { terrain: next!.terrain, distance: i }
                 if (next?.terrain !== '=' || !next.walkable) break
               }
               return null
             }
             const a = waterSide(-1),
               b = waterSide(1)
-            return a !== null && a === b ? a : null
+            return a !== null && b !== null && a.terrain === b.terrain
+              ? { terrain: a.terrain, from: a.distance, to: b.distance }
+              : null
           }
           if (!crossing(x, y)) continue
           let before = 0,
@@ -142,6 +153,19 @@ function indexFeaturePlacements(sectors: readonly WorldSectorView[]) {
             b = at(sector, x + (after + 1) * dx, y + (after + 1) * dy)
           if (!a?.walkable || !b?.walkable || liquid(a) || liquid(b)) continue
           const span = before + after + 2
+          const bridgeStrips: BridgeStrip[] = []
+          for (let offset = -before; offset <= after; offset++) {
+            const cx = x + offset * dx,
+              cy = y + offset * dy,
+              support = crossing(cx, cy)!
+            bridgeStrips.push({
+              x: cx - dy * (support.from - 1),
+              y: cy - dx * (support.from - 1),
+              width: axis === 0 ? 1 : support.from + support.to - 1,
+              height: axis === 0 ? support.from + support.to - 1 : 1,
+              axis,
+            })
+          }
           // Inspected props-v02 bridge: painted bank-foot centres define the
           // span; the expanded crop includes the right foot beyond its grid cell.
           placements.set(landmark.id, {
@@ -155,7 +179,8 @@ function indexFeaturePlacements(sectors: readonly WorldSectorView[]) {
             anchorY: 0.653,
             mirror: axis === 0,
             source: [950 / 1774, 60 / 887, 460 / 1774, 380 / 887],
-            underpass: crossing(x, y) === 'l' ? 'lava' : 'water',
+            underpass: crossing(x, y)!.terrain === 'l' ? 'lava' : 'water',
+            bridgeStrips,
           })
           break
         }
@@ -278,6 +303,7 @@ export function createMapRenderer(
   let hitTargets: { id: string; self: boolean; x: number; y: number }[] = []
   const frameTimes: number[] = []
   const terrainKeys = new Map<string, string>()
+  const featureKeys = new Map<string, string>()
   const wildlife = new Map<string, Wildlife[]>()
   let waterField = buildWaterField(view.sectors)
   let biomeField = buildBiomeTransitions(view.sectors)
@@ -292,8 +318,13 @@ export function createMapRenderer(
     featurePlacements = indexFeaturePlacements(view.sectors)
     coastField = buildPublicCoasts(view)
     heatEmitters = terrainHeatEmitters(view.sectors)
+    featureKeys.clear()
     for (const sector of view.sectors) {
       terrainKeys.set(sector.id, sector.cells.map((c) => `${c.x},${c.y},${c.terrain}`).join(';'))
+      featureKeys.set(
+        sector.id,
+        JSON.stringify([...(featurePlacements.get(sector.id)?.values() ?? [])]),
+      )
       if (!wildlife.has(sector.id)) wildlife.set(sector.id, createWildlife(sector))
     }
     for (const id of wildlife.keys())
@@ -353,6 +384,8 @@ export function createMapRenderer(
       waterField.get(sector.id)?.key +
       ':' +
       biomeField.get(sector.id)?.key +
+      ':' +
+      featureKeys.get(sector.id) +
       ':' +
       tile +
       ':' +
@@ -557,6 +590,38 @@ export function createMapRenderer(
         c.fillRect(x + 4, y + 4, tile - 8, tile - 8)
       }
     }
+    // A crossing is a continuous stone support, not a blue pond stamped on
+    // the avenue. Shade only its supplied liquid mouths and its legal deck.
+    const origin = sectorMapOrigin(sector)
+    for (const placement of featurePlacements.get(sector.id)?.values() ?? [])
+      for (const strip of placement?.bridgeStrips ?? []) {
+        const x = (strip.x - origin.x) * tile,
+          y = (strip.y - origin.y) * tile
+        c.fillStyle = 'rgba(175,167,144,.15)'
+        c.fillRect(x, y, strip.width * tile, strip.height * tile)
+        for (const end of [-1, 1]) {
+          const wx = strip.x + (strip.axis === 1 ? (end < 0 ? -1 : strip.width) : 0)
+          const wy = strip.y + (strip.axis === 0 ? (end < 0 ? -1 : strip.height) : 0)
+          const cell = sector.cells.find(
+            (cell) => cell.x === wx - origin.x && cell.y === wy - origin.y,
+          )
+          if (cell?.terrain !== '~' && cell?.terrain !== 'l') continue
+          const mx = (wx - origin.x) * tile,
+            my = (wy - origin.y) * tile
+          const nearX = mx + (strip.axis === 1 ? (end < 0 ? tile : 0) : tile / 2)
+          const nearY = my + (strip.axis === 0 ? (end < 0 ? tile : 0) : tile / 2)
+          const shade = c.createLinearGradient(
+            nearX,
+            nearY,
+            nearX + (strip.axis === 1 ? end * tile * 0.55 : 0),
+            nearY + (strip.axis === 0 ? end * tile * 0.55 : 0),
+          )
+          shade.addColorStop(0, 'rgba(19,37,37,.34)')
+          shade.addColorStop(1, 'rgba(19,37,37,0)')
+          c.fillStyle = shade
+          c.fillRect(mx, my, tile, tile)
+        }
+      }
     const stale = cache.get(sector.id)
     if (stale) {
       cachedPixels -= stale.ground.width * stale.ground.height
@@ -782,6 +847,7 @@ export function createMapRenderer(
                   mirror: placement.mirror,
                   source: placement.source,
                   underpass: placement.underpass,
+                  bridgeStrips: placement.bridgeStrips,
                 }
               : {}),
             image: asset,
@@ -1041,18 +1107,38 @@ export function createMapRenderer(
         if (item.mirror) ctx.scale(-1, 1)
       }
       if (item.underpass) {
-        // The exposed opening belongs beneath the supported deck. Its inset
-        // mask stays within the inspected arch, leaving every uncovered road dry.
+        // Source-art transparency cannot invent a river on an adjacent road.
+        // Intersect the arch opening with the proven same-liquid crossing.
+        ctx.save()
+        ctx.beginPath()
+        for (const strip of item.bridgeStrips ?? []) {
+          const corners = [
+            [strip.x, strip.y],
+            [strip.x + strip.width, strip.y],
+            [strip.x + strip.width, strip.y + strip.height],
+            [strip.x, strip.y + strip.height],
+          ] as const
+          corners.forEach(([x, y], i) => {
+            const dx = (wrappedMapX(x, item.x) - item.x) * tile,
+              dy = (y - item.y) * tile
+            const sx = (dx - dy) * MAP_X * (item.mirror ? -1 : 1),
+              sy = (dx + dy) * MAP_Y
+            if (i === 0) ctx.moveTo(sx, sy)
+            else ctx.lineTo(sx, sy)
+          })
+          ctx.closePath()
+        }
+        ctx.clip()
         const ax = item.anchorX ?? 0.5,
           ay = item.anchorY ?? 1
         const opening = (x: number, y: number) =>
           [(x - ax) * item.width, (y - ay) * item.height] as const
-        const a = opening(0.4, 0.86),
-          b = opening(0.46, 0.74),
+        const a = opening(0.41, 0.82),
+          b = opening(0.48, 0.66),
           c = opening(0.65, 0.49),
           d = opening(0.81, 0.61),
-          e = opening(0.83, 0.78),
-          f = opening(0.46, 0.96)
+          e = opening(0.76, 0.71),
+          f = opening(0.47, 0.87)
         ctx.beginPath()
         ctx.moveTo(...a)
         ctx.bezierCurveTo(...b, ...c, ...d)
@@ -1061,6 +1147,7 @@ export function createMapRenderer(
         ctx.closePath()
         ctx.fillStyle = item.underpass === 'lava' ? 'rgba(183,79,40,.96)' : 'rgba(48,108,118,.96)'
         ctx.fill()
+        ctx.restore()
       }
       sprite(
         ctx,
