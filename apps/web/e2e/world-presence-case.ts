@@ -1,5 +1,6 @@
 import { expect, test, type Browser, type Page, type TestInfo } from '@playwright/test'
 import { randomUUID } from 'node:crypto'
+import { writeFile } from 'node:fs/promises'
 import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { GRID_HEIGHT, GRID_WIDTH } from '../src/world/catalog'
@@ -46,6 +47,7 @@ async function verifyPrivateSceneAuthorization(
   if (error || !data.session) throw new Error('The disposable browser account has no session.')
   const token = data.session.access_token
   const started = Date.now()
+  const joinTimeoutsMs = { allowed: 5000, denied: 8000 }
   const allowedTopic = `world-scene:${allowedSector}`
   const deniedTopic = `world-scene:unregistered-${randomUUID()}`
   const events: Record<string, string | number | boolean>[] = []
@@ -105,7 +107,10 @@ async function verifyPrivateSceneAuthorization(
   const join = (channel: typeof allowed, shouldJoin: boolean) =>
     new Promise<void>((resolve, reject) => {
       const phase = shouldJoin ? 'allowed' : 'denied'
-      record({ phase, status: 'join-start', timeoutMs: 5000 })
+      // Realtime v2.124.4 delays rejected joins by 5s before phx_reply.
+      // Allow transport margin for that explicit rejection; timeouts still fail.
+      const timeoutMs = joinTimeoutsMs[phase]
+      record({ phase, status: 'join-start', timeoutMs })
       channel.subscribe((status, channelError) => {
         const channelState = ['closed', 'joining', 'joined', 'leaving', 'errored'].includes(
           channel.state,
@@ -140,26 +145,23 @@ async function verifyPrivateSceneAuthorization(
             )
         } else if (status === 'TIMED_OUT')
           reject(new Error(`The ${phase} private scene join timed out (${channelState}).`))
-      }, 5000)
+      }, timeoutMs)
     })
-  let failed = false
   try {
     for (const [check, passed] of Object.entries(identity)) expect(passed, check).toBe(true)
     await join(allowed, true)
     await join(denied, false)
-  } catch (error) {
-    failed = true
-    throw error
   } finally {
     try {
       await client.removeAllChannels()
       record({ phase: 'cleanup', status: 'closed' })
     } finally {
-      if (failed)
-        await info.attach('world-private-scene-join-diagnostics', {
-          body: Buffer.from(JSON.stringify({ timeoutMs: 5000, events }, null, 2)),
-          contentType: 'application/json',
-        })
+      const path = info.outputPath('world-private-scene-join-diagnostics.json')
+      await writeFile(path, JSON.stringify({ joinTimeoutsMs, events }, null, 2))
+      await info.attach('world-private-scene-join-diagnostics', {
+        path,
+        contentType: 'application/json',
+      })
     }
   }
 }

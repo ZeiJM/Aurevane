@@ -99,6 +99,18 @@ jobs:
               containers.append({'captureExitCode': logs.returncode, 'counts': dict(counts), 'events': events})
           destination.write_text(json.dumps({'inventoryExitCode': inventory.returncode, 'containers': containers}, indent=2))
           PY
+      - name: Save compact Atlas timing and presentation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: living-atlas-evidence
+          path: |
+            apps/web/test-results/**/synthetic-world-render-cost.json
+            apps/web/test-results/**/world-private-scene-join-diagnostics.json
+            apps/web/test-results/**/world-realtime-diagnostics.json
+            apps/web/test-results/**/portrait-zoom-*.png
+            apps/web/test-results/**/world-refined-controls.png
+          retention-days: 7
       - name: Save Atlas screenshots and traces
         if: always()
         uses: actions/upload-artifact@v4
