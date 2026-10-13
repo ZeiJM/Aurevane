@@ -76,6 +76,25 @@ function loadedRoute(
   return result
 }
 
+function knownPositionAtPoint(
+  point: MapPoint,
+  sectors: readonly WorldSectorView[],
+  previous: WorldPosition,
+) {
+  // Prefer the original private/legacy sector when addresses overlap.
+  const preferred = sectors.find((sector) => sector.id === previous.sectorId)
+  if (!preferred) return null
+  for (const sector of [preferred, ...sectors.filter((sector) => sector !== preferred)]) {
+    const origin = sectorMapOrigin(sector, point.x),
+      x = Math.floor(point.x - origin.x),
+      y = Math.floor(point.y - origin.y)
+    if (sector.cells?.some((cell) => cell.x === x && cell.y === y && cell.walkable))
+      return { sectorId: sector.id, x, y }
+    if (sector === preferred && x >= 0 && x < GRID_WIDTH && y >= 0 && y < GRID_HEIGHT) return null
+  }
+  return null
+}
+
 /** Visual interpolation has no authority over collision, encounter range or rewards. */
 export class WorldMotion {
   private origin: MapPoint
@@ -110,10 +129,29 @@ export class WorldMotion {
   }
   plan(route: readonly TravelStep[], sectors: readonly WorldSectorView[], now: number) {
     const sample = this.sample(now)
+    // Routing may finish after an in-flight step lands. Discard that completed
+    // prefix before applying the preview budget; retaining it rewinds the visual
+    // or spends the whole slow-terrain preview on a tile already reached.
+    const reached = route.findIndex(
+      (step) => positionKey(step.position) === positionKey(sample.position),
+    )
+    if (reached >= 0) route = route.slice(reached + 1)
+    if (!route.length) {
+      const sector = sectors.find((sector) => sector.id === sample.position.sectorId)
+      const centre = mapPoint(sample.position, sectors, sample.point)
+      if (sector && Math.hypot(centre.x - sample.point.x, centre.y - sample.point.y) > 0.001)
+        route = [{ position: sample.position, durationMs: sector.stepMs ?? STEP_MS }]
+    }
     this.origin = sample.point
     this.standing = sample.position
     this.startedAt = now
-    this.route = routePoints(loadedRoute(route, sectors, 600), sectors, sample.point)
+    // Include one extra authored interval while selecting candidates. The first
+    // interval is shortened below to its actual remainder before enforcing 600ms.
+    this.route = routePoints(
+      loadedRoute(route, sectors, 600 + (route[0]?.durationMs ?? 0)),
+      sectors,
+      sample.point,
+    )
     const first = this.route[0]
     if (first) {
       const standing = mapPoint(sample.position, sectors, sample.point),
@@ -121,7 +159,7 @@ export class WorldMotion {
         wholeStep = Math.hypot(first.point.x - standing.x, first.point.y - standing.y)
       // Repeated clicks/held input must keep the same walking speed. A half-
       // finished step needs half its authored time, rather than a new full step.
-      first.duration = wholeStep ? (first.duration * distance) / wholeStep : STEP_MS * distance
+      first.duration = (first.duration * distance) / (wholeStep || 1)
       let elapsed = 0
       this.route = this.route.filter((step) => (elapsed += step.duration) <= 600)
     }
@@ -170,24 +208,31 @@ export class WorldMotion {
       // Receipts can land after the bounded preview drains, or before the
       // final visual step finishes. Correct through supplied legal terrain;
       // do not teleport an ordinary arrival or invent a path across water.
-      const correction = view.sectors.every((sector) => sector.cells && sector.exits)
-        ? localRoute(view, visual.position, view.position)
-        : null
+      const target = route.at(-1) ?? { point: authoritative, position: view.position },
+        source = knownPositionAtPoint(visual.point, view.sectors, visual.position)
+      // Equally legal client/server paths may differ. Join toward the confirmed
+      // destination, rather than replaying the obsolete origin behind the preview.
+      const correction =
+        source && view.sectors.every((sector) => sector.cells && sector.exits)
+          ? localRoute(view, source, target.position)
+          : null
       if (
+        source &&
         correction &&
-        (correction.length || positionKey(visual.position) === positionKey(view.position))
+        (correction.length || positionKey(source) === positionKey(target.position))
       ) {
         this.origin = visual.point
-        this.standing = visual.position
+        this.standing = source
         const correctionPoints = routePoints(correction, view.sectors, visual.point)
         if (
           !correctionPoints.length &&
-          Math.hypot(authoritative.x - visual.point.x, authoritative.y - visual.point.y) > 0.001
+          Math.hypot(target.point.x - visual.point.x, target.point.y - visual.point.y) > 0.001
         )
           correctionPoints.push({
-            point: authoritative,
-            position: view.position,
-            duration: STEP_MS,
+            point: target.point,
+            position: target.position,
+            duration:
+              view.sectors.find((sector) => sector.id === source.sectorId)?.stepMs ?? STEP_MS,
           })
         if (correctionPoints.length) {
           const first = correctionPoints[0]!
@@ -196,7 +241,7 @@ export class WorldMotion {
             first.point.y - visual.point.y,
           )
         }
-        this.route = [...correctionPoints, ...route]
+        this.route = correctionPoints
       } else {
         // Unknown/disconnected relocations cannot be safely interpolated.
         this.origin = authoritative

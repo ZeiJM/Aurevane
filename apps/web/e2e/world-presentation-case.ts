@@ -23,27 +23,8 @@ export async function verifyWorldPresentation(
   const initial = await world(page)
   if (info.project.name === 'mobile-chromium')
     await page.getByRole('button', { name: /Details/ }).click()
-  const townButton = page.getByRole('button', { name: 'View Town', exact: true })
-  await expect(townButton).toBeVisible()
-  await expect(
-    page.locator('[data-world-panel-foot]').getByRole('button', { name: 'View Town', exact: true }),
-  ).toBeVisible()
-  const panorama = initial.sectors.find(
-    (sector) => sector.id === initial.position.sectorId,
-  )!.panorama!
-  const painting = page.waitForResponse(
-    (response) => new URL(response.url()).pathname === panorama && response.ok(),
-  )
-  await townButton.click()
-  const townDialog = page.getByRole('dialog', { name: 'Verdant Expanse', exact: true })
-  await expect(townDialog).toBeVisible()
-  await painting
-  await townDialog.getByRole('button', { name: 'Look right', exact: true }).click()
-  await capture(page, info, 'view-town-from-panel-foot')
-  await townDialog.getByRole('button', { name: /Return to Map/ }).click()
-  await expect(townDialog).toHaveCount(0)
-  await expect(townButton).toBeFocused()
-  expect((await world(page)).position).toEqual(initial.position)
+  await expect(page.getByRole('button', { name: 'View Town', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'View 360°', exact: true })).toHaveCount(0)
   place(initial.characterId, 'atlas:58:28', 6, 4)
   await page.reload()
   const canvas = page.locator('canvas[data-world-stage]'),
@@ -58,18 +39,37 @@ export async function verifyWorldPresentation(
   await expect(coordinates).toContainText('E760 · N320')
   await expect(page.getByRole('button', { name: 'View Town', exact: true })).toHaveCount(0)
   const verifyPlayerRows = async () => {
-    for (const row of await panel.locator('[data-world-player]').all()) {
-      const identity = await row.locator('strong').boundingBox(),
-        actions = await row.locator('[data-world-player-actions]').boundingBox(),
-        bounds = await row.boundingBox()
-      if (!identity || !actions || !bounds) continue
-      expect(actions.x).toBeGreaterThanOrEqual(identity.x + identity.width - 1)
-      expect(actions.x + actions.width).toBeLessThanOrEqual(bounds.x + bounds.width + 1)
-      for (const button of await row.getByRole('button').all()) {
-        const box = (await button.boundingBox())!
-        expect(box.x).toBeGreaterThanOrEqual(bounds.x)
-        expect(box.x + box.width).toBeLessThanOrEqual(bounds.x + bounds.width + 1)
-        expect(box.height).toBeGreaterThanOrEqual(info.project.name === 'mobile-chromium' ? 44 : 29)
+    // Presence can change between awaited locator calls. Measure the currently
+    // rendered rows and their children in one DOM snapshot instead of retaining
+    // positional locators that may refer to a different or removed player.
+    const rows = await panel.locator('[data-world-player]').evaluateAll((elements) =>
+      elements.map((row) => {
+        const rect = (element: Element | null) => {
+          if (!element?.getClientRects().length) return null
+          const { x, y, width, height } = element.getBoundingClientRect()
+          return { x, y, width, height }
+        }
+        return {
+          identity: rect(row.querySelector('strong')),
+          actions: rect(row.querySelector('[data-world-player-actions]')),
+          bounds: rect(row),
+          buttons: Array.from(row.querySelectorAll('button'), rect),
+        }
+      }),
+    )
+    for (const { identity, actions, bounds, buttons } of rows) {
+      if (!bounds) continue
+      expect(identity).not.toBeNull()
+      expect(actions).not.toBeNull()
+      expect(actions!.x).toBeGreaterThanOrEqual(identity!.x + identity!.width - 1)
+      expect(actions!.x + actions!.width).toBeLessThanOrEqual(bounds.x + bounds.width + 1)
+      for (const box of buttons) {
+        expect(box).not.toBeNull()
+        expect(box!.x).toBeGreaterThanOrEqual(bounds.x)
+        expect(box!.x + box!.width).toBeLessThanOrEqual(bounds.x + bounds.width + 1)
+        expect(box!.height).toBeGreaterThanOrEqual(
+          info.project.name === 'mobile-chromium' ? 44 : 29,
+        )
       }
     }
   }
@@ -167,6 +167,99 @@ export function registerWorldInputCases({
   capture: (page: Page, info: TestInfo, name: string) => Promise<void>
   openJournal: (page: Page) => Promise<void>
 }) {
+  test('a distant click stays continuous when a delayed confirmation takes another legal route', async ({
+    page,
+  }, info) => {
+    test.skip(info.project.name !== 'desktop-chromium', 'Verify delayed route reconciliation once.')
+    test.setTimeout(60000)
+    await enter(page)
+    const initial = await world(page)
+    place(initial.characterId, 'atlas:58:28', 6, 4)
+    await page.reload()
+    const canvas = page.locator('canvas[data-world-stage]')
+    await expect(canvas).toHaveAttribute('data-camera-x', /\d/)
+    const destination = { sectorId: 'atlas:58:28', x: 9, y: 1 }
+    const sector = (await world(page)).sectors.find((s) => s.id === destination.sectorId)!
+    const alternative = [
+      [7, 4],
+      [7, 3],
+      [8, 3],
+      [8, 2],
+      [8, 1],
+      [9, 1],
+    ].map(([x, y]) => ({
+      position: { sectorId: destination.sectorId, x: x!, y: y! },
+      durationMs: 200,
+    }))
+    expect(
+      alternative.every((step) =>
+        sector.cells.some(
+          (cell) => cell.x === step.position.x && cell.y === step.position.y && cell.walkable,
+        ),
+      ),
+    ).toBe(true)
+    let release!: () => void
+    const gate = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    let intercepted = false
+    // Rendering fixture only: retain the real command/version/destination, but
+    // present an equally legal route as if the server's tie-breaking differed.
+    // The projection/motion unit integration separately exercises real authority.
+    await page.route('**/api/world', async (route) => {
+      if (
+        !intercepted &&
+        route.request().method() === 'POST' &&
+        route.request().postDataJSON()?.intent?.kind === 'walk'
+      ) {
+        intercepted = true
+        const response = await route.fetch()
+        expect(response.ok()).toBe(true)
+        const receipt = (await response.json()) as WorldView
+        expect(receipt.route.at(-1)!.position).toEqual(destination)
+        await gate
+        await route.fulfill({ response, json: { ...receipt, route: alternative } })
+      } else await route.continue()
+    })
+    try {
+      await stageWalk(page, destination)
+      const expectedX = sector.atlasColumn! * GRID_WIDTH + destination.x + 0.5
+      await expect
+        .poll(() => canvas.evaluate((el) => Number(el.dataset.cameraX)), { timeout: 8000 })
+        .toBeCloseTo(expectedX, 2)
+      await canvas.evaluate((el) => {
+        const samples = [Number(el.dataset.cameraX)],
+          start = performance.now()
+        const record = () => {
+          samples.push(Number(el.dataset.cameraX))
+          if (performance.now() - start < 2200) requestAnimationFrame(record)
+          else el.dataset.testDistantCamera = JSON.stringify(samples)
+        }
+        requestAnimationFrame(record)
+      })
+      release()
+      await expect(canvas).toHaveAttribute('data-test-distant-camera', /\[/, { timeout: 8000 })
+      const samples = JSON.parse(
+        (await canvas.getAttribute('data-test-distant-camera'))!,
+      ) as number[]
+      expect(Math.min(...samples)).toBeGreaterThanOrEqual(expectedX - 0.1)
+      await expect
+        .poll(
+          async () => ({
+            position: (await world(page)).position,
+            remaining: (await world(page)).route.length,
+          }),
+          { timeout: 12000 },
+        )
+        .toEqual({ position: destination, remaining: 0 })
+      await expect
+        .poll(() => canvas.evaluate((el) => Number(el.dataset.cameraY)))
+        .toBeCloseTo(sector.atlasRow! * GRID_HEIGHT + destination.y + 0.5, 2)
+      await capture(page, info, 'distant-click-different-confirmed-path')
+    } finally {
+      release()
+    }
+  })
   for (const mode of ['effects off', 'reduced motion']) {
     test(`a ground click fully draws its arrival without further pointer input with ${mode}`, async ({
       page,
