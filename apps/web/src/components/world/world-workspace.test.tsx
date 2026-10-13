@@ -76,6 +76,34 @@ describe('World page', () => {
     expect(released).not.toContain('role="alert"')
     expect(released).not.toContain('Stop Passive Training to travel.')
   })
+  it('reserves compact Nearby portrait slots while keeping full names and actions', () => {
+    const view = projectWorld(newWorldState(), [], 1000)
+    view.players = [
+      {
+        characterId: 'density-peer',
+        name: 'Sellophina',
+        level: 3,
+        portraitRef: '',
+        imageUrl: '/original-clear-portrait.webp',
+        online: true,
+        attackable: false,
+        position: { ...view.position, x: view.position.x + 3 },
+      },
+    ]
+    const markup = renderToStaticMarkup(
+      createElement(WorldWorkspace, {
+        initialView: view,
+        character: { name: 'Traveller', portrait: '/portrait.webp' },
+      }),
+    )
+    const row = markup.match(/<article[^>]*data-world-player="density-peer"[\s\S]*?<\/article>/)![0]
+    expect(row).toContain('width="44"')
+    expect(row).toContain('height="44"')
+    expect(row).toContain('src="/original-clear-portrait.webp"')
+    expect(row).toContain('<strong>Sellophina</strong>')
+    expect(row).toContain('Level 3')
+    expect(row).toContain('Approach')
+  })
   it('renders the native map with contextual panel and location navigation', () => {
     const view = projectWorld(newWorldState(), [], 1000)
     view.sectors = view.sectors.map((sector) => ({ ...sector, panorama: '/panorama.webp' }))

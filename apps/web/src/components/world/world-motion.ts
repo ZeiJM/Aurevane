@@ -110,7 +110,8 @@ export class WorldMotion {
       point = this.origin,
       position = this.standing
     for (const step of this.route) {
-      if (elapsed < step.duration) {
+      // Only absorb floating-point clock noise, never an authored walking interval.
+      if (elapsed + 1e-7 < step.duration) {
         const amount = Math.min(1, elapsed / step.duration)
         return {
           point: {
@@ -121,7 +122,7 @@ export class WorldMotion {
           moving: true,
         }
       }
-      elapsed -= step.duration
+      elapsed = Math.max(0, elapsed - step.duration)
       point = step.point
       position = step.position
     }
@@ -198,11 +199,11 @@ export class WorldMotion {
       const first = points[nearest]!
       const remaining = points.slice(nearest).map((step) => ({ ...step }))
       if (remaining.length)
-        remaining[0]!.duration = Math.max(
-          30,
+        // Preserve the true remainder. A minimum interval stretches nearly
+        // completed steps on every receipt and inserts idle motion at arrival.
+        remaining[0]!.duration =
           Math.hypot(first.point.x - visual.point.x, first.point.y - visual.point.y) *
-            first.duration,
-        )
+          first.duration
       this.route = remaining
     } else {
       // Receipts can land after the bounded preview drains, or before the

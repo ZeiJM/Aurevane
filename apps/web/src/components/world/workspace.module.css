@@ -257,10 +257,10 @@
 }
 .player {
   display: grid;
-  grid-template-columns: 56px minmax(0, 1fr) auto;
-  gap: 10px;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  gap: 8px;
   align-items: center;
-  padding: 12px 0;
+  padding: 6px 0;
   border-bottom: 1px solid var(--map-line);
 }
 .player:last-child {
@@ -269,8 +269,8 @@
 }
 .player img,
 .avatar {
-  width: 56px;
-  height: 56px;
+  width: 44px;
+  height: 44px;
   flex-shrink: 0;
   border: 2px solid var(--map-gold);
   border-radius: 50%;
@@ -303,7 +303,7 @@
 .selected {
   background: #c5a05c10;
   outline: 1px solid #a1844b88;
-  outline-offset: 5px;
+  outline-offset: 3px;
 }
 .rowActions {
   display: flex;
@@ -876,7 +876,7 @@
 
 @container (max-width: 180px) {
   .player {
-    grid-template-columns: 56px minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) auto;
     column-gap: 4px;
     row-gap: 4px;
   }

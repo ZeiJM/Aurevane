@@ -1844,7 +1844,9 @@ export function createMapRenderer(
     }
     // Browser key-repeat never owns cadence or creates extra RPCs. The legal
     // terrain/exit duration controls the next intent; the server still commits it.
-    keyTimer = setTimeout(walkHeldKey, cadence)
+    // Selection/navigation work is part of this interval, not extra time
+    // between steps. Keep the next intent on the captured authored deadline.
+    keyTimer = setTimeout(walkHeldKey, Math.max(0, now + cadence - performance.now()))
   }
   const key = (event: KeyboardEvent) => {
     if (event.key === 'Escape') {
