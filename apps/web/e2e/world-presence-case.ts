@@ -230,8 +230,9 @@ export async function verifyWorldScenePresence(
     expect(density.height).toBe(36)
     expect(density.rowHeight).toBeLessThanOrEqual(65)
     expect(density.actionHeight).toBeGreaterThanOrEqual(29)
-    await expect(player.locator('strong')).toHaveText(target.name)
-    await expect(player.locator('strong')).toHaveAttribute('title', target.name)
+    const targetName = (await world(page)).players.find((peer) => peer.characterId === id)!.name
+    await expect(player.locator('strong')).toHaveText(targetName)
+    await expect(player.locator('strong')).toHaveAttribute('title', targetName)
     await info.attach('nearby-row-density', {
       body: JSON.stringify(density),
       contentType: 'application/json',

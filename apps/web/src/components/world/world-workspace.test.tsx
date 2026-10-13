@@ -100,7 +100,7 @@ describe('World page', () => {
     expect(row).toContain('width="36"')
     expect(row).toContain('height="36"')
     expect(row).toContain('src="/original-clear-portrait.webp"')
-    expect(row).toContain('<strong>Sellophina</strong>')
+    expect(row).toContain('<strong title="Sellophina">Sellophina</strong>')
     expect(row).toContain('Level 3')
     expect(row).toContain('Approach')
   })

@@ -1,6 +1,6 @@
 # World movement and arrival responsiveness — October 13
 
-Status: implementation under verification on `agent/world-instant-actions-motion-20261013`, based on current main `e59a01f9bb744d2ca35fcbf761058f1adfc70997`. The Owner reports continuing stop/go walking after #889 and explicitly requests thinner Nearby cards, immediate Approach-to-Attack controls and other reproducible map latency fixes. Prior releases are not human acceptance of these symptoms. This follow-up is not yet released.
+Status: implementation under verification on `agent/world-instant-actions-density-20261013`, based on current main `e59a01f9bb744d2ca35fcbf761058f1adfc70997`. The Owner reports continuing stop/go walking after #889 and explicitly requests thinner Nearby cards, immediate Approach-to-Attack controls and other reproducible map latency fixes. Prior releases are not human acceptance of these symptoms. This follow-up is not yet released.
 
 ## Reproduced causes and resulting behavior
 
@@ -29,3 +29,7 @@ Human visual/gameplay acceptance, zero-network-latency and hosted100-player perf
 The first exact-head candidate `19cccbe162008b2decae22b78ff542690846a962` passed CI (31 pgTAP assertions and5,318 Vitest plus seven Node checks), UI layout review, Skill Engine, Essence Build and Shared Build Snapshots. Living Atlas run `38480178764` completed46 enabled cases but failed one non-vacuous Nearby density assertion: the long-name fixture rendered79.09375px instead of the65px maximum. The new delayed-presentation/protected-and-legal attack/disabled-cursor flow passed in14.2s. The full Responsive browser run remains in progress and is not cancelled.
 
 The density correction bounds visible names to two lines, retaining the complete DOM name and hover title; the existing portrait, action and touch dimensions remain. The same65px regression stays enforced and also verifies full text/title. Independent review finds no blocker; fresh native density and responsive gates are required. The local execution workspace disconnected after publication of the first candidate, so no post-correction local-check claim is made. Publication and verification of the correction are pending. No release has occurred.
+
+The follow-up test assertion initially read a peer name from the owned WorldView fixture; CI rejected it with TS2339 before gameplay checks. The corrected assertion reads the server-projected nearby player name. The execution workspace is restored, and full local verification is rerunning before publication. Neither failing candidate has been released.
+
+After recovery, the corrected source passes a fresh complete `pnpm check`:5,318 Vitest tests plus seven Node checks, formatting/lint/eight-package types and production build. Nearby/workspace expectations explicitly retain the full name/title; independent final review reruns15 tests across2 files and finds no Critical/Important issue. The failing b6f2c64 candidate’s entire Browser smoke workflow has completed at its existing type-check failure; it was not cancelled. Fresh complete exact-head gates remain required on the corrected publication.

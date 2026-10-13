@@ -58,7 +58,9 @@ describe('World Nearby player card', () => {
     expect(markup).toContain('width="36"')
     expect(markup).toContain('height="36"')
     expect(markup).toContain('src="/original-clear-portrait.webp"')
-    expect(markup).toContain('<strong>Sellophina of the Unbroken Dawn</strong>')
+    expect(markup).toContain(
+      '<strong title="Sellophina of the Unbroken Dawn">Sellophina of the Unbroken Dawn</strong>',
+    )
     expect(markup).toContain('Level 3')
     expect(markup).toContain('Online')
   })
@@ -130,7 +132,9 @@ describe('World Nearby player card', () => {
     const markup = render({ player: { ...player, imageUrl: null } })
     expect(markup).not.toContain('<img')
     expect(markup).toMatch(/<span[^>]*aria-hidden="true"[^>]*>S<\/span>/)
-    expect(markup).toContain('<strong>Sellophina of the Unbroken Dawn</strong>')
+    expect(markup).toContain(
+      '<strong title="Sellophina of the Unbroken Dawn">Sellophina of the Unbroken Dawn</strong>',
+    )
   })
   it('dispatches only the currently enabled primary action', () => {
     const distant = props()
