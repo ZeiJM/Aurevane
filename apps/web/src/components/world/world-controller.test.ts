@@ -7,6 +7,39 @@ const deferred = () => {
   const promise = new Promise<WorldView>((r) => (resolve = r))
   return { promise, resolve }
 }
+it('updates peers during a pending command without resetting owned movement or invoking reconciliation', async () => {
+  const current = {
+    ...view,
+    characterId: 'owner',
+    serverNow: 1000,
+    nextStepAt: 1200,
+    sectors: [],
+    players: [],
+    route: [{ position: { sectorId: 'a', x: 2, y: 2 }, durationMs: 200 }],
+  } as WorldView
+  const held = deferred(),
+    accept = vi.fn()
+  const controller = new WorldController(current, {
+    command: () => held.promise,
+    refresh: vi.fn(),
+    accept,
+    error: vi.fn(),
+    busy: vi.fn(),
+  })
+  const pending = controller.send({ kind: 'tick' })
+  const players = [{ characterId: 'peer' }] as WorldView['players']
+  expect(controller.acceptPlayers(current, players)).toBe(true)
+  expect(controller.view).toEqual({ ...current, players })
+  expect(controller.pending).toBe(true)
+  expect(accept).not.toHaveBeenCalled()
+  expect(controller.acceptPlayers({ ...current, version: 0 }, [])).toBe(false)
+  expect(controller.acceptPlayers({ ...current, characterId: 'other' }, [])).toBe(false)
+  expect(controller.acceptPlayers({ ...current, sectors: [...current.sectors] }, [])).toBe(false)
+  held.resolve({ ...current, version: 2 })
+  await pending
+  expect(controller.acceptPlayers(current, players)).toBe(false)
+  controller.dispose()
+})
 describe('world command ordering', () => {
   it.each(['walk', 'attack'] as const)(
     'dispatches %s immediately ahead of an idle read and ignores its late receipt',

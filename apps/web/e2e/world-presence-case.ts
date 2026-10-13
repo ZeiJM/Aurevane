@@ -1,6 +1,178 @@
-import { expect, test, type Browser, type Page, type TestInfo } from '@playwright/test'
+import {
+  expect,
+  test,
+  type Browser,
+  type Frame,
+  type Page,
+  type Request,
+  type TestInfo,
+} from '@playwright/test'
+import { randomUUID } from 'node:crypto'
+import { writeFile } from 'node:fs/promises'
+import { createServerClient } from '@supabase/ssr'
+import { createClient } from '@supabase/supabase-js'
 import { GRID_HEIGHT, GRID_WIDTH } from '../src/world/catalog'
 import type { WorldView } from '../src/world/types'
+
+const privateJoinErrorCategory = (value: unknown) => {
+  const reason =
+    value instanceof Error
+      ? value.message
+      : typeof value === 'string'
+        ? value
+        : value && typeof value === 'object' && 'reason' in value
+          ? String(value.reason)
+          : ''
+  for (const [category, pattern] of [
+    ['permission', /unauthori[sz]ed|permission|access denied/i],
+    ['invalid-token', /invalid.*(?:jwt|token)|(?:jwt|token).*expired/i],
+    ['join-limit', /too_many_(?:channels|connections|joins)|tenant_events/i],
+    ['database-pool', /pool|queue|dbconnection/i],
+    ['timeout', /timed?[_ -]?out|timeout/i],
+    ['transport', /network|websocket|transport|connect/i],
+  ] as const)
+    if (pattern.test(reason)) return category
+  return reason ? 'other-error' : 'none'
+}
+
+async function verifyPrivateSceneAuthorization(
+  page: Page,
+  allowedSector: string,
+  expectedOwnerId: string,
+  info: TestInfo,
+) {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
+  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
+  expect(['127.0.0.1', 'localhost']).toContain(new URL(url).hostname)
+  const cookies = await page.context().cookies()
+  const sessionReader = createServerClient(url, key, {
+    cookies: {
+      getAll: () => cookies.map(({ name, value }) => ({ name, value })),
+      setAll: () => {},
+    },
+  })
+  const { data, error } = await sessionReader.auth.getSession()
+  if (error || !data.session) throw new Error('The disposable browser account has no session.')
+  const token = data.session.access_token
+  const started = Date.now()
+  const joinTimeoutsMs = { allowed: 5000, denied: 8000 }
+  const allowedTopic = `world-scene:${allowedSector}`
+  const deniedTopic = `world-scene:unregistered-${randomUUID()}`
+  const events: Record<string, string | number | boolean>[] = []
+  const record = (fields: Record<string, string | number | boolean>) => {
+    if (events.length < 100)
+      events.push({ at: new Date().toISOString(), elapsedMs: Date.now() - started, ...fields })
+  }
+  let claims: Record<string, unknown> = {}
+  try {
+    const decoded: unknown = JSON.parse(
+      Buffer.from(token.split('.')[1] ?? '', 'base64url').toString('utf8'),
+    )
+    if (decoded && typeof decoded === 'object' && !Array.isArray(decoded))
+      claims = decoded as Record<string, unknown>
+  } catch {
+    // Report booleans below; never serialize the JWT or its decoded claims.
+  }
+  const identity = {
+    sessionActorMatchesFixture: data.session.user.id === expectedOwnerId,
+    jwtActorMatchesFixture: claims.sub === expectedOwnerId,
+    jwtRoleAuthenticated: claims.role === 'authenticated',
+    jwtExpiryValid:
+      typeof claims.exp === 'number' &&
+      Number.isFinite(claims.exp) &&
+      claims.exp > Date.now() / 1000,
+  }
+  record({ phase: 'auth-identity', ...identity })
+  const client = createClient(url, key, {
+    accessToken: async () => token,
+    realtime: {
+      logger: (kind, message) => {
+        // SDK log data and message text may contain credentials or socket payloads.
+        // Record only allowlisted categories, never either raw value.
+        const phase = message.includes(allowedTopic)
+          ? 'allowed'
+          : message.includes(deniedTopic)
+            ? 'denied'
+            : 'socket'
+        const category = /phx_join/.test(message)
+          ? 'join'
+          : /phx_reply/.test(message)
+            ? 'reply'
+            : privateJoinErrorCategory(message)
+        if (['transport', 'channel', 'push', 'receive', 'error'].includes(kind))
+          record({ phase, kind, category })
+      },
+    },
+  })
+  await client.realtime.setAuth(data.session.access_token)
+  record({ phase: 'auth', tokenReady: Boolean(client.realtime.accessTokenValue) })
+  const allowed = client
+    .channel(allowedTopic, { config: { private: true } })
+    .on('broadcast', { event: 'changed' }, () => {})
+  const denied = client
+    .channel(deniedTopic, { config: { private: true } })
+    .on('broadcast', { event: 'changed' }, () => {})
+  const join = (channel: typeof allowed, shouldJoin: boolean) =>
+    new Promise<void>((resolve, reject) => {
+      const phase = shouldJoin ? 'allowed' : 'denied'
+      // Realtime v2.124.4 delays rejected joins by 5s before phx_reply.
+      // Allow transport margin for that explicit rejection; timeouts still fail.
+      const timeoutMs = joinTimeoutsMs[phase]
+      record({ phase, status: 'join-start', timeoutMs })
+      channel.subscribe((status, channelError) => {
+        const channelState = ['closed', 'joining', 'joined', 'leaving', 'errored'].includes(
+          channel.state,
+        )
+          ? channel.state
+          : 'other'
+        const socketState = client.realtime.connectionState()
+        record({
+          phase,
+          status,
+          channelState,
+          socketState: ['closed', 'connecting', 'open', 'closing'].includes(socketState)
+            ? socketState
+            : 'other',
+          errorCategory: privateJoinErrorCategory(channelError),
+          causeCategory: privateJoinErrorCategory(channelError?.cause),
+        })
+        if (status === 'SUBSCRIBED') {
+          if (shouldJoin) resolve()
+          else reject(new Error('The denied unregistered private scene was accepted.'))
+        } else if (status === 'CHANNEL_ERROR') {
+          if (
+            !shouldJoin &&
+            /unauthori[sz]ed|permission|access denied/i.test(channelError?.message ?? '')
+          )
+            resolve()
+          else
+            reject(
+              new Error(
+                `The ${phase} private scene join failed: ${privateJoinErrorCategory(channelError)} (${status}).`,
+              ),
+            )
+        } else if (status === 'TIMED_OUT')
+          reject(new Error(`The ${phase} private scene join timed out (${channelState}).`))
+      }, timeoutMs)
+    })
+  try {
+    for (const [check, passed] of Object.entries(identity)) expect(passed, check).toBe(true)
+    await join(allowed, true)
+    await join(denied, false)
+  } finally {
+    try {
+      await client.removeAllChannels()
+      record({ phase: 'cleanup', status: 'closed' })
+    } finally {
+      const path = info.outputPath('world-private-scene-join-diagnostics.json')
+      await writeFile(path, JSON.stringify({ joinTimeoutsMs, events }, null, 2))
+      await info.attach('world-private-scene-join-diagnostics', {
+        path,
+        contentType: 'application/json',
+      })
+    }
+  }
+}
 
 export async function verifyWorldScenePresence(
   page: Page,
@@ -51,6 +223,11 @@ export async function verifyWorldScenePresence(
       attackable: false,
     })
     expect(scene.sectors.length).toBeLessThanOrEqual(25)
+    expect(scene.livePresence).toBe(true)
+    const ownerUserId = sql(
+      `select user_id::text from public.characters where id='${owner.characterId}'::uuid`,
+    ).trim()
+    await verifyPrivateSceneAuthorization(page, scene.position.sectorId, ownerUserId, info)
     await capture(page, info, 'nearby-across-sector-boundary')
 
     // Let globe mode schedule its slower idle timer, then return. Local
@@ -71,6 +248,49 @@ export async function verifyWorldScenePresence(
     await page.getByRole('button', { name: /Return to local map/ }).click()
     expect((await (await localPresence).json()).kind).toBe('presence')
 
+    // Rejoin a real authenticated private channel before disabling fallback polling.
+    let mainDocumentReady = false
+    const joinedRequests = new WeakSet<Request>()
+    const joinedNavigation = (frame: Frame) => {
+      if (frame === page.mainFrame()) mainDocumentReady = true
+    }
+    const joinedRequest = (request: Request) => {
+      if (
+        mainDocumentReady &&
+        request.method() === 'GET' &&
+        new URL(request.url()).pathname === '/api/world/presence'
+      )
+        joinedRequests.add(request)
+    }
+    page.on('framenavigated', joinedNavigation)
+    page.on('request', joinedRequest)
+    try {
+      const joinedPresence = page.waitForResponse(
+        async (response) => {
+          const request = response.request()
+          // Reload can evict a preceding document's response body from CDP.
+          // Reject its request before asking the browser to read that body.
+          if (
+            !joinedRequests.has(request) ||
+            request.method() !== 'GET' ||
+            new URL(response.url()).pathname !== '/api/world/presence' ||
+            !response.ok()
+          )
+            return false
+          const finishedError = await response.finished()
+          if (request.failure()?.errorText === 'net::ERR_ABORTED') return false
+          if (finishedError) throw finishedError
+          const receipt = await response.json()
+          return receipt.characterId === owner.characterId && receipt.registered === true
+        },
+        { timeout: 15000 },
+      )
+      await Promise.all([page.reload(), joinedPresence])
+    } finally {
+      page.off('framenavigated', joinedNavigation)
+      page.off('request', joinedRequest)
+    }
+
     // An idle observer must see a real second account walking, including with
     // ambient effects disabled. Probe the actual canvas nameplate, not React state.
     await page.getByRole('button', { name: 'Map settings', exact: true }).click()
@@ -78,7 +298,9 @@ export async function verifyWorldScenePresence(
     await page.getByRole('button', { name: 'Done', exact: true }).click()
     await canvas.evaluate(
       (el, name) => {
-        const ctx = (el as HTMLCanvasElement).getContext('2d')!,
+        const ctx = document
+            .querySelector<HTMLCanvasElement>('canvas[data-world-identity]')!
+            .getContext('2d')!,
           original = ctx.fillText.bind(ctx)
         const samples: { at: number; x: number; y: number }[] = []
         ctx.fillText = (text, x, y, maxWidth) => {
@@ -94,27 +316,71 @@ export async function verifyWorldScenePresence(
       scene.players.find((p) => p.characterId === id)!.name,
     )
     await other.goto('/game/world')
+    let blockedFallbackReads = 0
+    const blockedRead = page.waitForRequest(
+      (request) =>
+        request.method() === 'GET' &&
+        new URL(request.url()).pathname === '/api/world' &&
+        new URL(request.url()).searchParams.has('presenceVersion'),
+      { timeout: 5000 },
+    )
+    const fallbackRoute = async (route: import('@playwright/test').Route) => {
+      if (route.request().method() === 'GET') {
+        blockedFallbackReads++
+        await route.abort()
+      } else await route.continue()
+    }
+    await page.route('**/api/world?*', fallbackRoute)
+    await blockedRead
+    const startedAt = Date.now()
     const movedPresence = page.waitForResponse(
       async (response) => {
         if (
           response.request().method() !== 'GET' ||
-          !new URL(response.url()).searchParams.has('presenceVersion')
+          new URL(response.url()).pathname !== '/api/world/presence' ||
+          !response.ok()
         )
           return false
         const receipt = await response.json()
         return (
-          receipt.kind === 'presence' &&
+          receipt.registered === true &&
           receipt.players.some(
-            (p: { characterId: string; position: { x: number } }) =>
-              p.characterId === id && p.position.x > 0,
+            (p: WorldView['players'][number]) =>
+              p.characterId === id &&
+              (p.movement?.version ?? 0) >
+                (scene.players.find((p) => p.characterId === id)?.movement?.version ?? 0) &&
+              (p.movement?.route.length ?? 0) > 0,
           )
         )
       },
       { timeout: 12000 },
     )
     const destination = { sectorId: 'atlas:59:28', x: 4, y: 4 }
-    await stageWalk(other, destination)
-    const observed = await (await movedPresence).json()
+    let observed: { players: WorldView['players'] }
+    const walking = stageWalk(other, destination)
+    try {
+      observed = await (await movedPresence).json()
+      const elapsedMs = Date.now() - startedAt
+      const deliveryPath = info.outputPath('world-live-peer-delivery.json')
+      await writeFile(
+        deliveryPath,
+        JSON.stringify({
+          elapsedMs,
+          blockedFallbackReads,
+          movement: observed.players.find((p) => p.characterId === id)?.movement,
+        }),
+      )
+      await info.attach('world-live-peer-delivery', {
+        path: deliveryPath,
+        contentType: 'application/json',
+      })
+      expect(elapsedMs).toBeLessThan(2500)
+      expect(blockedFallbackReads).toBeGreaterThan(0)
+      await walking
+    } finally {
+      await page.unroute('**/api/world?*', fallbackRoute)
+      await walking
+    }
     expect(observed).not.toHaveProperty('sectors')
     expect(observed).not.toHaveProperty('atlas')
     await expect

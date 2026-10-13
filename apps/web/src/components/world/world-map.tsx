@@ -32,6 +32,7 @@ export function WorldMap({
   onVisiblePlayers: (ids: string[]) => void
 }) {
   const canvas = useRef<HTMLCanvasElement>(null),
+    identityCanvas = useRef<HTMLCanvasElement>(null),
     renderer = useRef<ReturnType<typeof createMapRenderer>>(null)
   const initial = useRef(view)
   const callbacks = useRef({ onWalk, onStop, onPlayer, onZoom, onVisiblePlayers })
@@ -49,6 +50,7 @@ export function WorldMap({
       (zoom) => callbacks.current.onZoom(zoom),
       (ids) => callbacks.current.onVisiblePlayers(ids),
       () => callbacks.current.onStop(),
+      identityCanvas.current ?? undefined,
     )
     return () => renderer.current?.dispose()
   }, [motion]) // Initial snapshot is replaced below without recreating the renderer.
@@ -59,14 +61,23 @@ export function WorldMap({
     renderer.current?.settings({ animate, zoom, paused, zoomLocked })
   }, [animate, zoom, paused, zoomLocked])
   return (
-    <canvas
-      ref={canvas}
-      className={styles.canvas}
-      data-world-stage
-      data-portrait={portrait}
-      tabIndex={0}
-      role="application"
-      aria-label="World map. Click ground or hold WASD and arrow keys to walk. Press Escape to stop travel. Use the mouse wheel or pinch to zoom."
-    />
+    <>
+      <canvas
+        ref={canvas}
+        className={styles.canvas}
+        data-world-stage
+        data-portrait={portrait}
+        tabIndex={0}
+        role="application"
+        aria-label="World map. Click ground or hold WASD and arrow keys to walk. Press Escape to stop travel. Use the mouse wheel or pinch to zoom."
+      />
+      <canvas
+        ref={identityCanvas}
+        className={styles.canvas}
+        style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}
+        data-world-identity
+        aria-hidden="true"
+      />
+    </>
   )
 }

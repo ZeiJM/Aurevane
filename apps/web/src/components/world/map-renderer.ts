@@ -1,5 +1,4 @@
 import { GRID_HEIGHT, GRID_WIDTH, STEP_MS } from '@/world/catalog'
-import { ATLAS_COLUMNS, ATLAS_ROWS } from '@/world/atlas'
 import { hashString } from '@/world/terrain-gen'
 import type {
   WorldCell,
@@ -22,6 +21,9 @@ import {
 } from './map-ambient'
 import {
   buildWaterField,
+  liquidMaterial,
+  paintLavaMotion,
+  type WaterCell,
   paintWaterGround,
   paintWaterMotion,
   paintWaterfallMotion,
@@ -67,6 +69,24 @@ interface BridgeStrip {
   height: number
   axis: number
 }
+interface LiquidSurface {
+  canvas: HTMLCanvasElement
+  x: number
+  y: number
+  width: number
+  height: number
+  cells: { x: number; y: number; profile?: WaterCell }[]
+}
+function bridgeBounds(strips: readonly BridgeStrip[]) {
+  const x = Math.min(...strips.map((strip) => strip.x))
+  const y = Math.min(...strips.map((strip) => strip.y))
+  return {
+    x,
+    y,
+    width: Math.max(...strips.map((strip) => strip.x + strip.width)) - x,
+    height: Math.max(...strips.map((strip) => strip.y + strip.height)) - y,
+  }
+}
 interface Scenery {
   x: number
   y: number
@@ -83,6 +103,7 @@ interface Scenery {
   mirror?: boolean
   source?: readonly [number, number, number, number]
   underpass?: 'water' | 'lava'
+  underpassSurface?: LiquidSurface
   bridgeStrips?: BridgeStrip[]
   waterfall?: boolean
 }
@@ -286,6 +307,59 @@ function indexFeaturePlacements(sectors: readonly WorldSectorView[]) {
   }
   return fields
 }
+/** Presentation beneath proven decks only; supplied collision cells are never rewritten. */
+function indexBridgeWater(
+  sectors: readonly WorldSectorView[],
+  placements: Map<string, Map<string, FeaturePlacement | null>>,
+) {
+  const namespace = (sector: WorldSectorView) =>
+    sector.charted && sector.atlasColumn !== undefined && sector.atlasRow !== undefined
+      ? 'atlas'
+      : sector.id
+  const address = (sector: WorldSectorView, x: number, y: number) =>
+    `${namespace(sector)}:${namespace(sector) === 'atlas' ? ((x % WORLD_MAP_WIDTH) + WORLD_MAP_WIDTH) % WORLD_MAP_WIDTH : x}:${y}`
+  const decks = new Set<string>()
+  for (const sector of sectors)
+    for (const placement of placements.get(sector.id)?.values() ?? [])
+      if (placement?.underpass === 'water')
+        for (const strip of placement.bridgeStrips ?? [])
+          for (let y = strip.y; y < strip.y + strip.height; y++)
+            for (let x = strip.x; x < strip.x + strip.width; x++) decks.add(address(sector, x, y))
+  const presentation = sectors.map((sector) => {
+    const origin = sectorMapOrigin(sector)
+    return {
+      ...sector,
+      cells: sector.cells.map((cell) =>
+        cell.terrain === '=' &&
+        cell.walkable &&
+        decks.has(address(sector, origin.x + cell.x, origin.y + cell.y))
+          ? { ...cell, terrain: '~', walkable: false }
+          : cell,
+      ),
+    }
+  })
+  const field = buildWaterField(presentation)
+  const profiles = new Map<string, WaterCell>()
+  for (const sector of presentation) {
+    const origin = sectorMapOrigin(sector)
+    for (const cell of field.get(sector.id)?.cells.values() ?? []) {
+      const key = address(sector, origin.x + cell.x, origin.y + cell.y)
+      if (decks.has(key)) profiles.set(key, cell)
+    }
+  }
+  const keys = new Map<string, string>()
+  for (const sector of sectors) {
+    const relevant: (WaterCell | undefined)[] = []
+    for (const placement of placements.get(sector.id)?.values() ?? [])
+      if (placement?.underpass === 'water')
+        for (const strip of placement.bridgeStrips ?? [])
+          for (let y = strip.y; y < strip.y + strip.height; y++)
+            for (let x = strip.x; x < strip.x + strip.width; x++)
+              relevant.push(profiles.get(address(sector, x, y)))
+    keys.set(sector.id, JSON.stringify(relevant))
+  }
+  return { profiles, address, keys }
+}
 function sprite(
   context: CanvasRenderingContext2D,
   image: HTMLImageElement,
@@ -321,14 +395,19 @@ export function createMapRenderer(
   onZoom: (zoom: number) => void = () => {},
   onVisiblePlayers: (ids: string[]) => void = () => {},
   onStop: () => void = () => {},
+  identityCanvas?: HTMLCanvasElement,
 ) {
   const context = canvas.getContext('2d', { alpha: false })
   if (!context) return null
   const ctx = context
+  const identityContext = identityCanvas?.getContext('2d')
+  const personContext = identityContext ?? ctx
+  let paintedIdentity: (string | number | boolean | null)[] | null = null
   let view = initial,
     width = 0,
     height = 0,
     ratio = 1,
+    identityRatio = 1,
     groundScale = 1,
     tile = 64,
     zoom = 1,
@@ -362,8 +441,11 @@ export function createMapRenderer(
   } | null = null
   const images = new Map<string, HTMLImageElement>(),
     portraits = new Map<string, HTMLImageElement>()
-  const cache = new Map<string, { key: string; ground: HTMLCanvasElement }>()
-  let hitTargets: { id: string; self: boolean; x: number; y: number }[] = []
+  const cache = new Map<
+    string,
+    { key: string; ground: HTMLCanvasElement; surfaces: Map<string, LiquidSurface>; pixels: number }
+  >()
+  let hitTargets: { id: string; self: boolean; x: number; y: number; radius: number }[] = []
   const frameTimes: number[] = []
   const terrainKeys = new Map<string, string>()
   const featureKeys = new Map<string, string>()
@@ -371,6 +453,7 @@ export function createMapRenderer(
   let waterField = buildWaterField(view.sectors)
   let biomeField = buildBiomeTransitions(view.sectors)
   let featurePlacements = indexFeaturePlacements(view.sectors)
+  let bridgeWater = indexBridgeWater(view.sectors, featurePlacements)
   let coastField = buildPublicCoasts(view)
   let heatEmitters = terrainHeatEmitters(view.sectors)
   const clouds = [0, 1, 2].map((i) => createCloudTexture('world-cloud:' + i))
@@ -379,6 +462,7 @@ export function createMapRenderer(
     waterField = buildWaterField(view.sectors)
     biomeField = buildBiomeTransitions(view.sectors)
     featurePlacements = indexFeaturePlacements(view.sectors)
+    bridgeWater = indexBridgeWater(view.sectors, featurePlacements)
     coastField = buildPublicCoasts(view)
     heatEmitters = terrainHeatEmitters(view.sectors)
     featureKeys.clear()
@@ -415,6 +499,13 @@ export function createMapRenderer(
     ratio = Math.min(window.devicePixelRatio || 1, 1.5)
     canvas.width = Math.round(width * ratio)
     canvas.height = Math.round(height * ratio)
+    // Interface detail keeps native display density without multiplying scenery cost.
+    identityRatio = identityContext ? window.devicePixelRatio || 1 : ratio
+    if (identityCanvas && identityContext) {
+      identityCanvas.width = Math.round(width * identityRatio)
+      identityCanvas.height = Math.round(height * identityRatio)
+      paintedIdentity = null
+    }
     tile = (width < 600 ? 48 : 64) * zoom
     clearCache()
     requestDraw()
@@ -446,6 +537,8 @@ export function createMapRenderer(
       ':' +
       waterField.get(sector.id)?.key +
       ':' +
+      bridgeWater.keys.get(sector.id) +
+      ':' +
       biomeField.get(sector.id)?.key +
       ':' +
       featureKeys.get(sector.id) +
@@ -467,20 +560,20 @@ export function createMapRenderer(
     const texture = images.get('terrain')
     // One world-anchored material gradient crosses every cell and sector without
     // resetting its colour at tile edges. Water/lava animation stays on the overlay.
-    const originX = (sector.atlasColumn ?? 0) * GRID_WIDTH * tile,
-      originY = (sector.atlasRow ?? 0) * GRID_HEIGHT * tile
-    const materialGradient = (colours: readonly string[]) => {
-      const gradient = c.createLinearGradient(
-        -originX,
-        -originY,
-        ATLAS_COLUMNS * GRID_WIDTH * tile - originX,
-        ATLAS_ROWS * GRID_HEIGHT * tile - originY,
-      )
-      colours.forEach((colour, i) => gradient.addColorStop(i / (colours.length - 1), colour))
-      return gradient
-    }
-    const waterMaterial = materialGradient(['#245e67', '#3e7b82', '#244e60']),
-      lavaMaterial = materialGradient(['#702f25', '#bd5b2e', '#4d2526'])
+    const waterMaterial = liquidMaterial(
+      c,
+      'water',
+      tile,
+      (sector.atlasColumn ?? 0) * GRID_WIDTH,
+      (sector.atlasRow ?? 0) * GRID_HEIGHT,
+    )
+    const lavaMaterial = liquidMaterial(
+      c,
+      'lava',
+      tile,
+      (sector.atlasColumn ?? 0) * GRID_WIDTH,
+      (sector.atlasRow ?? 0) * GRID_HEIGHT,
+    )
     const paintMaterial = (
       target: CanvasRenderingContext2D,
       cell: WorldCell,
@@ -695,19 +788,50 @@ export function createMapRenderer(
           c.fillRect(mx, my, tile, tile)
         }
       }
+    // Small unoccluded liquid surfaces share the terrain cache and its pixel cap.
+    const surfaces = new Map<string, LiquidSurface>()
+    for (const [id, placement] of featurePlacements.get(sector.id) ?? []) {
+      if (!placement?.underpass || !placement.bridgeStrips?.length) continue
+      const bounds = bridgeBounds(placement.bridgeStrips)
+      const surface = document.createElement('canvas')
+      surface.width = Math.ceil(bounds.width * tile * groundScale)
+      surface.height = Math.ceil(bounds.height * tile * groundScale)
+      const liquid = surface.getContext('2d')!
+      liquid.scale(groundScale, groundScale)
+      liquid.fillStyle = liquidMaterial(liquid, placement.underpass, tile, bounds.x, bounds.y)
+      liquid.fillRect(0, 0, bounds.width * tile, bounds.height * tile)
+      const cells: LiquidSurface['cells'] = []
+      for (const strip of placement.bridgeStrips)
+        for (let y = strip.y; y < strip.y + strip.height; y++)
+          for (let x = strip.x; x < strip.x + strip.width; x++) {
+            const profile =
+              placement.underpass === 'water'
+                ? bridgeWater.profiles.get(bridgeWater.address(sector, x, y))
+                : undefined
+            if (profile)
+              paintWaterGround(liquid, { ...profile, x: x - bounds.x, y: y - bounds.y }, tile)
+            cells.push({ x, y, profile })
+          }
+      surfaces.set(id, { canvas: surface, ...bounds, cells })
+    }
     const stale = cache.get(sector.id)
     if (stale) {
-      cachedPixels -= stale.ground.width * stale.ground.height
+      cachedPixels -= stale.pixels
       cache.delete(sector.id)
     }
-    const pixels = layer.width * layer.height
+    const pixels =
+      layer.width * layer.height +
+      [...surfaces.values()].reduce(
+        (sum, surface) => sum + surface.canvas.width * surface.canvas.height,
+        0,
+      )
     while (cache.size && cachedPixels + pixels > 8_000_000) {
       const oldest = cache.keys().next().value!
       const entry = cache.get(oldest)!
-      cachedPixels -= entry.ground.width * entry.ground.height
+      cachedPixels -= entry.pixels
       cache.delete(oldest)
     }
-    cache.set(sector.id, { key, ground: layer })
+    cache.set(sector.id, { key, ground: layer, surfaces, pixels })
     cachedPixels += pixels
     return layer
   }
@@ -766,7 +890,23 @@ export function createMapRenderer(
     // All visible layers must fit together. Otherwise higher-resolution terrain
     // evicts the next visible layer and rebuilds the entire scene every frame.
     const budgetScale = Math.sqrt(
-      7_800_000 / (Math.max(1, visible.length) * GRID_WIDTH * GRID_HEIGHT * tile * tile),
+      7_800_000 /
+        (Math.max(
+          1,
+          visible.reduce(
+            (sum, sector) =>
+              sum +
+              GRID_WIDTH * GRID_HEIGHT +
+              [...(featurePlacements.get(sector.id)?.values() ?? [])].reduce((area, placement) => {
+                if (!placement?.bridgeStrips?.length) return area
+                const bounds = bridgeBounds(placement.bridgeStrips)
+                return area + bounds.width * bounds.height
+              }, 0),
+            0,
+          ),
+        ) *
+          tile *
+          tile),
     )
     groundScale = Math.min(ratio, Math.floor(budgetScale * 10) / 10)
     const scenery: Scenery[] = []
@@ -837,6 +977,9 @@ export function createMapRenderer(
             'umbral-march': 7,
           }
           const rock = cell.terrain === '#'
+          // Rock floors require their measured biome crop; a tree-sheet fallback
+          // includes neighbouring canopies and empty padding beneath its roots.
+          if (rock && (!biomes?.complete || !biomes.naturalWidth)) continue
           const special = rock
             ? sector.regionId === 'emberreach'
               ? 2
@@ -932,6 +1075,7 @@ export function createMapRenderer(
                   mirror: placement.mirror,
                   source: placement.source,
                   underpass: placement.underpass,
+                  underpassSurface: cache.get(sector.id)?.surfaces.get(landmark.id),
                   bridgeStrips: placement.bridgeStrips,
                 }
               : {}),
@@ -956,7 +1100,7 @@ export function createMapRenderer(
               continue
             waterCells++
             const at = screen({ x: origin.x + cell.x, y: origin.y + cell.y }),
-              q = { x: 0, y: 0 }
+              liquidWorldX = origin.x + cell.x
             ctx.save()
             ctx.transform(MAP_X, MAP_Y, -MAP_X, MAP_Y, at.x, at.y)
             if (cell.terrain === '~') {
@@ -965,27 +1109,7 @@ export function createMapRenderer(
               ctx.restore()
               continue
             }
-            ctx.beginPath()
-            ctx.rect(q.x, q.y, tile, tile)
-            ctx.clip()
-            ctx.strokeStyle = 'rgba(255,196,95,.44)'
-            ctx.lineWidth = 1.8
-            for (let i = 0; i < 3; i++) {
-              const phase =
-                (now / 3200 + i * 0.33 + (origin.x + cell.x) * 0.17 + (origin.y + cell.y) * 0.11) %
-                1
-              const shift = phase * tile
-              ctx.globalAlpha = Math.sin(phase * Math.PI) * 0.85
-              ctx.beginPath()
-              ctx.moveTo(q.x - 12 + shift, q.y + tile * (0.23 + i * 0.27))
-              ctx.quadraticCurveTo(
-                q.x + shift,
-                q.y + tile * (0.25 + i * 0.27),
-                q.x + shift + 28,
-                q.y + tile * (0.23 + i * 0.27),
-              )
-              ctx.stroke()
-            }
+            paintLavaMotion(ctx, tile, now, liquidWorldX, origin.y + cell.y)
             ctx.restore()
           }
     }
@@ -1055,11 +1179,14 @@ export function createMapRenderer(
       ...animals,
       ...scenery.map((item) => ({ y: item.x + item.y, type: 'scenery' as const, item })),
     ].sort((a, b) => a.y - b.y)
+    const tokenScale = tile / 64
+    const radius = Math.round(34 * tokenScale * identityRatio) / identityRatio / 2
     const drawPerson = (stack: typeof selfStack, ghost = false) => {
+      const ctx = personContext
       const projected = screen(stack.point),
         point = {
-          x: Math.round(projected.x * ratio) / ratio,
-          y: Math.round(projected.y * ratio) / ratio,
+          x: Math.round((projected.x - radius) * identityRatio) / identityRatio + radius,
+          y: Math.round(projected.y * identityRatio) / identityRatio,
         }
       if (point.x < -40 || point.x > width + 40 || point.y < -60 || point.y > height + 60) return
       const people = stack.people,
@@ -1070,20 +1197,17 @@ export function createMapRenderer(
             : reduced || !animate
               ? 0
               : Math.floor(now / 3600) % people.length,
-        person = people[index]!,
-        radius = 17
-      if (!ghost)
-        hitTargets.push({ id: person.id, self: person.self, x: point.x, y: point.y - radius })
+        person = people[index]!
       ctx.save()
       ctx.globalAlpha = 1
       ctx.fillStyle = ghost ? '#a6b1b0' : '#182e32'
       ctx.strokeStyle = person.self ? '#ead399' : '#c6cbc0'
-      ctx.lineWidth = 1
+      ctx.lineWidth = Math.max(1 / identityRatio, Math.min(1, tokenScale))
       ctx.shadowColor = 'rgba(0,0,0,.45)'
-      ctx.shadowBlur = 10
-      ctx.shadowOffsetY = 5
+      ctx.shadowBlur = 10 * tokenScale
+      ctx.shadowOffsetY = 5 * tokenScale
       ctx.beginPath()
-      ctx.arc(point.x, point.y - radius, radius + 0.5, 0, Math.PI * 2)
+      ctx.arc(point.x, point.y - radius, radius + ctx.lineWidth / 2, 0, Math.PI * 2)
       ctx.fill()
       ctx.shadowBlur = 0
       ctx.shadowOffsetY = 0
@@ -1127,34 +1251,45 @@ export function createMapRenderer(
         drawPortrait(image)
       } else {
         ctx.fillStyle = ghost ? '#c2c9c7' : '#bcac84'
-        ctx.font = '16px Georgia'
+        ctx.font = `${Math.max(7, 16 * tokenScale)}px Georgia`
         ctx.textAlign = 'center'
-        ctx.fillText(person.name[0] ?? '?', point.x, point.y - radius + 6)
+        ctx.fillText(person.name[0] ?? '?', point.x, point.y - radius + 6 * tokenScale)
       }
       ctx.restore()
       if (people.length > 1) {
         ctx.fillStyle = '#e8d7a3'
-        ctx.font = 'bold 10px sans-serif'
+        ctx.font = `bold ${Math.max(7, 10 * tokenScale)}px sans-serif`
         ctx.textAlign = 'center'
-        ctx.fillText(String(people.length), point.x + 19, point.y - 26)
+        ctx.fillText(String(people.length), point.x + 19 * tokenScale, point.y - 26 * tokenScale)
       }
       if (!ghost) {
-        ctx.font = '600 12px Georgia'
+        const fontSize = Math.max(7, 12 * tokenScale)
+        const labelHeight = Math.max(12, 18 * tokenScale)
+        ctx.font = `600 ${fontSize}px Georgia`
         ctx.textAlign = 'center'
-        const nameWidth = Math.min(180, ctx.measureText(person.name).width + 14)
+        const nameWidth = Math.min(
+          180 * tokenScale,
+          ctx.measureText(person.name).width + 14 * tokenScale,
+        )
         ctx.fillStyle = 'rgba(6,28,35,.92)'
         ctx.strokeStyle = person.self ? '#d0ac66' : 'rgba(176,192,186,.7)'
-        ctx.lineWidth = 0.7
+        ctx.lineWidth = Math.max(1 / identityRatio, 0.7 * Math.min(1, tokenScale))
         ctx.beginPath()
-        ctx.roundRect(point.x - nameWidth / 2, point.y + 2, nameWidth, 18, 3)
+        ctx.roundRect(
+          point.x - nameWidth / 2,
+          point.y + 2 * tokenScale,
+          nameWidth,
+          labelHeight,
+          3 * tokenScale,
+        )
         ctx.fill()
         ctx.stroke()
         ctx.fillStyle = person.self ? '#f5dda5' : '#f1ebda'
         ctx.fillText(
           person.name,
           point.x,
-          Math.round((point.y + 15) * ratio) / ratio,
-          nameWidth - 12,
+          Math.round((point.y + (labelHeight + fontSize) / 2) * identityRatio) / identityRatio,
+          nameWidth - 12 * tokenScale,
         )
       }
     }
@@ -1231,22 +1366,46 @@ export function createMapRenderer(
         ctx.clip()
         const ax = item.anchorX ?? 0.5,
           ay = item.anchorY ?? 1
-        const opening = (x: number, y: number) =>
-          [(x - ax) * item.width, (y - ay) * item.height] as const
-        const a = opening(0.41, 0.82),
-          b = opening(0.48, 0.66),
-          c = opening(0.65, 0.49),
-          d = opening(0.81, 0.61),
-          e = opening(0.76, 0.71),
-          f = opening(0.47, 0.87)
+        // Follow the actual props-v02 inner arch, then continue through its
+        // transparent lower opening. The proved strip still cuts off dry banks.
+        const opening = (sourceX: number, sourceY: number) =>
+          [
+            ((sourceX - 950) / 460 - ax) * item.width,
+            ((sourceY - 60) / 380 - ay) * item.height,
+          ] as const
         ctx.beginPath()
-        ctx.moveTo(...a)
-        ctx.bezierCurveTo(...b, ...c, ...d)
-        ctx.lineTo(...e)
-        ctx.lineTo(...f)
+        ctx.moveTo(...opening(1186, 1000))
+        ctx.lineTo(...opening(1186, 390))
+        ctx.bezierCurveTo(...opening(1188, 316), ...opening(1226, 254), ...opening(1260, 255))
+        ctx.bezierCurveTo(...opening(1288, 256), ...opening(1322, 281), ...opening(1338, 305))
+        // The open outlet continues beyond the sprite crop; the terrain strip
+        // owns its endpoint, preventing a crop-shaped edge across the river.
+        ctx.lineTo(...opening(2000, 305))
+        ctx.lineTo(...opening(2000, 1000))
         ctx.closePath()
-        ctx.fillStyle = item.underpass === 'lava' ? 'rgba(183,79,40,.96)' : 'rgba(48,108,118,.96)'
-        ctx.fill()
+        ctx.clip()
+        const surface = item.underpassSurface
+        if (surface) {
+          const sign = item.mirror ? -1 : 1
+          ctx.transform(MAP_X * sign, MAP_Y, -MAP_X * sign, MAP_Y, 0, 0)
+          ctx.drawImage(
+            surface.canvas,
+            (wrappedMapX(surface.x, item.x) - item.x) * tile,
+            (surface.y - item.y) * tile,
+            surface.width * tile,
+            surface.height * tile,
+          )
+          if (animate && !reduced)
+            for (const cell of surface.cells) {
+              if (waterCells >= 60) break
+              waterCells++
+              ctx.save()
+              ctx.translate((wrappedMapX(cell.x, item.x) - item.x) * tile, (cell.y - item.y) * tile)
+              if (cell.profile) paintWaterMotion(ctx, cell.profile, tile, now)
+              else paintLavaMotion(ctx, tile, now, cell.x, cell.y)
+              ctx.restore()
+            }
+        }
         ctx.restore()
       }
       sprite(
@@ -1407,24 +1566,86 @@ export function createMapRenderer(
     canvas.dataset.coastEdges = String(coastEdges)
     // Identity is interface: weather and nighttime tint scenery, not portraits
     // or nameplates. Retain the gray identity cue for travellers behind foliage.
-    for (const stack of Array.from(stacks.values()).sort(
-      (a, b) => a.point.x + a.point.y - b.point.x - b.point.y,
-    )) {
-      drawPerson(stack)
-      if (
-        scenery.some((item) => {
-          const p = screen(stack.point),
-            s = screen({ x: item.x, y: item.y })
-          return (
-            stack.point.x + stack.point.y < item.x + item.y &&
-            p.x > s.x - item.width * 0.35 &&
-            p.x < s.x + item.width * 0.35 &&
-            p.y > s.y - item.height * (item.anchorY ?? 0.8) &&
-            p.y < s.y + item.height * (1 - (item.anchorY ?? 1))
+    const identity: (string | number | boolean | null)[] = [
+      identityRatio,
+      width,
+      height,
+      tokenScale,
+      radius,
+    ]
+    const occluders = scenery.map((item) => ({ item, point: screen({ x: item.x, y: item.y }) }))
+    const identities = Array.from(stacks.values())
+      .sort((a, b) => a.point.x + a.point.y - b.point.x - b.point.y)
+      .flatMap((stack) => {
+        const p = screen(stack.point)
+        const x = Math.round((p.x - radius) * identityRatio) / identityRatio + radius
+        const y = Math.round(p.y * identityRatio) / identityRatio
+        if (x < -40 || x > width + 40 || y < -60 || y > height + 60) return []
+        const people = stack.people,
+          selfIndex = people.findIndex((person) => person.self),
+          index =
+            selfIndex >= 0
+              ? selfIndex
+              : reduced || !animate
+                ? 0
+                : Math.floor(now / 3600) % people.length,
+          person = people[index]!,
+          fade =
+            selfIndex < 0 && people.length > 1 && animate && !reduced
+              ? Math.min(1, (now % 3600) / 500)
+              : 1,
+          image = portrait(person.image),
+          previous =
+            fade < 1 ? portrait(people[(index + people.length - 1) % people.length]!.image) : null,
+          ghost = occluders.some(
+            ({ item, point: s }) =>
+              stack.point.x + stack.point.y < item.x + item.y &&
+              p.x > s.x - item.width * 0.35 &&
+              p.x < s.x + item.width * 0.35 &&
+              p.y > s.y - item.height * (item.anchorY ?? 0.8) &&
+              p.y < s.y + item.height * (1 - (item.anchorY ?? 1)),
           )
+        // Picking follows every frame's selected identity even when its bitmap is reused.
+        hitTargets.push({
+          id: person.id,
+          self: person.self,
+          x,
+          y: y - radius,
+          radius: radius + 4 * tokenScale,
         })
-      )
-        drawPerson(stack, true)
+        identity.push(
+          x,
+          y,
+          person.id,
+          person.name,
+          person.self,
+          person.image,
+          people.length,
+          fade,
+          image?.naturalWidth ?? 0,
+          image?.naturalHeight || image?.height || 0,
+          previous?.src ?? null,
+          previous?.naturalWidth ?? 0,
+          previous?.naturalHeight || previous?.height || 0,
+          ghost,
+        )
+        return [{ stack, ghost }]
+      })
+    const repaintIdentity =
+      !identityContext ||
+      !paintedIdentity ||
+      identity.length !== paintedIdentity.length ||
+      identity.some((value, index) => value !== paintedIdentity![index])
+    if (repaintIdentity) {
+      if (identityContext) {
+        identityContext.setTransform(identityRatio, 0, 0, identityRatio, 0, 0)
+        identityContext.clearRect(0, 0, width, height)
+      }
+      for (const { stack, ghost } of identities) {
+        drawPerson(stack)
+        if (ghost) drawPerson(stack, true)
+      }
+      paintedIdentity = identity
     }
     canvas.dataset.cameraX = String(camera.x + pan.x)
     canvas.dataset.cameraY = String(camera.y + pan.y)
@@ -1531,7 +1752,8 @@ export function createMapRenderer(
       x: event.clientX,
       y: event.clientY,
       position: pick(world(x, y)),
-      player: hitTargets.find((target) => Math.hypot(target.x - x, target.y - y) < 21) ?? null,
+      player:
+        hitTargets.find((target) => Math.hypot(target.x - x, target.y - y) < target.radius) ?? null,
     }
   }
   const move = (event: PointerEvent) => {
@@ -1688,6 +1910,11 @@ export function createMapRenderer(
       pointers.clear()
       cache.clear()
       portraits.clear()
+      paintedIdentity = null
+      if (identityCanvas && identityContext) {
+        identityCanvas.width = 0
+        identityCanvas.height = 0
+      }
       for (const image of images.values()) image.onload = null
     },
   }

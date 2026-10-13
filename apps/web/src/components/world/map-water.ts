@@ -1,3 +1,4 @@
+import { ATLAS_COLUMNS, ATLAS_ROWS } from '@/world/topology'
 import { GRID_HEIGHT, GRID_WIDTH } from '@/world/catalog'
 import { hashString } from '@/world/terrain-gen'
 import type { WorldCell as TerrainCell, WorldSectorView } from '@/world/types'
@@ -369,6 +370,50 @@ export function paintWaterMotion(
     context.lineWidth = tile * (i === 1 ? 0.014 : 0.009)
     context.beginPath()
     trace(context, stream(cell.flow, from, from + 0.09, offset), tile)
+    context.stroke()
+  }
+  context.restore()
+}
+
+/** Ground and bridge undersides share the same world-anchored liquid colours. */
+export function liquidMaterial(
+  context: CanvasRenderingContext2D,
+  material: 'water' | 'lava',
+  tile: number,
+  originX: number,
+  originY: number,
+) {
+  const gradient = context.createLinearGradient(
+    -originX * tile,
+    -originY * tile,
+    (ATLAS_COLUMNS * GRID_WIDTH - originX) * tile,
+    (ATLAS_ROWS * GRID_HEIGHT - originY) * tile,
+  )
+  const colours =
+    material === 'water' ? ['#245e67', '#3e7b82', '#244e60'] : ['#702f25', '#bd5b2e', '#4d2526']
+  colours.forEach((colour, i) => gradient.addColorStop(i / (colours.length - 1), colour))
+  return gradient
+}
+
+/** Reuse exactly the same world phase on open lava and beneath a proven crossing. */
+export function paintLavaMotion(
+  context: CanvasRenderingContext2D,
+  tile: number,
+  now: number,
+  worldX: number,
+  worldY: number,
+) {
+  context.save()
+  clipCell(context, tile)
+  context.strokeStyle = 'rgba(255,196,95,.44)'
+  context.lineWidth = 1.8
+  for (let i = 0; i < 3; i++) {
+    const phase = (now / 3200 + i * 0.33 + worldX * 0.17 + worldY * 0.11) % 1
+    const shift = phase * tile
+    context.globalAlpha = Math.sin(phase * Math.PI) * 0.85
+    context.beginPath()
+    context.moveTo(-12 + shift, tile * (0.23 + i * 0.27))
+    context.quadraticCurveTo(shift, tile * (0.25 + i * 0.27), shift + 28, tile * (0.23 + i * 0.27))
     context.stroke()
   }
   context.restore()

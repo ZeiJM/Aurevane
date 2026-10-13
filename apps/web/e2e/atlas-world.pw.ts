@@ -9,7 +9,8 @@ import { newWorldState } from '../src/world/travel'
 import type { WorldView } from '../src/world/types'
 import { verifyWorldPresentation, registerWorldInputCases } from './world-presentation-case'
 import { verifyWorldScenePresence } from './world-presence-case'
-import { wrappedMapX } from '../src/world/topology'
+import { sectorMapOrigin, wrappedMapX } from '../src/world/topology'
+import { projectMapPoint } from '../src/components/world/map-projection'
 import { registerWorldLandscapeCases } from './world-landscape-case'
 import type { CharacterBuildContext } from '../src/server/character/character-build-service'
 
@@ -1187,56 +1188,141 @@ test('a synthetic population of 100 has bounded rendering at high DPI and lower 
   test.setTimeout(90000)
   await enter(page)
   const initial = await world(page)
-  const current = initial.sectors.find((s) => s.id === initial.position.sectorId)!
-  const ground = current.cells.filter((c) => c.walkable)
+  const canvas = page.locator('canvas[data-world-stage]')
+  await page.getByRole('button', { name: 'Details', exact: true }).click()
+  await page.getByRole('button', { name: 'Map settings', exact: true }).click()
+  await page.getByRole('slider', { name: 'Zoom level', exact: true }).press('Home')
+  await page.getByRole('button', { name: 'Done', exact: true }).click()
+  await page.getByRole('button', { name: 'Close details', exact: true }).click()
+  await expect.poll(() => canvas.evaluate((el) => Number(el.dataset.tileSize))).toBe(48 * 0.35)
+  const viewport = await canvas.evaluate((el) => ({
+    width: el.clientWidth,
+    height: el.clientHeight,
+    tile: Number(el.dataset.tileSize),
+    camera: { x: Number(el.dataset.cameraX), y: Number(el.dataset.cameraY) },
+  }))
+  // Skip the owner and any coincident sector aliases: each peer must really draw.
+  const occupied = new Set([`${viewport.camera.x}:${viewport.camera.y}`])
+  const ground = initial.sectors.flatMap((sector) => {
+    const origin = sectorMapOrigin(sector, viewport.camera.x)
+    return sector.cells
+      .filter((cell) => cell.walkable)
+      .flatMap((cell) => {
+        const worldPoint = { x: origin.x + cell.x + 0.5, y: origin.y + cell.y + 0.5 }
+        const key = `${worldPoint.x}:${worldPoint.y}`
+        if (occupied.has(key)) return []
+        const point = projectMapPoint(
+          worldPoint,
+          viewport.camera,
+          { x: 0, y: 0 },
+          viewport.tile,
+          viewport.width,
+          viewport.height,
+        )
+        const visible =
+          point.x > 20 &&
+          point.x < viewport.width - 20 &&
+          point.y > 40 &&
+          point.y < viewport.height - 22
+        if (!visible) return []
+        occupied.add(key)
+        return [{ sectorId: sector.id, x: cell.x, y: cell.y }]
+      })
+  })
+  expect(ground.length).toBeGreaterThanOrEqual(100)
   const players = Array.from({ length: 100 }, (_, i) => ({
     characterId: `synthetic-${i}`,
     name: `Traveller ${i + 1}`,
     level: 10,
     portraitRef: '',
-    imageUrl: null,
+    imageUrl: `/api/media/starter-portrait/portrait.starter.wayfarer-01?syntheticPortrait=${i}`,
     online: true,
     attackable: false,
-    position: {
-      sectorId: current.id,
-      x: ground[Math.floor(i / 3) % ground.length]!.x,
-      y: ground[Math.floor(i / 3) % ground.length]!.y,
-    },
+    position: ground[i]!,
   }))
+  const identity = page.locator('canvas[data-world-identity]')
+  await identity.evaluate((el) => {
+    const context = (el as HTMLCanvasElement).getContext('2d')!,
+      original = context.drawImage.bind(context),
+      clear = context.clearRect.bind(context),
+      sources = new Set<string>()
+    let paints = 0
+    context.clearRect = (x, y, width, height) => {
+      el.dataset.testIdentityPaints = String(++paints)
+      clear(x, y, width, height)
+    }
+    context.drawImage = (image: CanvasImageSource, ...args: number[]) => {
+      if (image instanceof HTMLImageElement && image.src.includes('syntheticPortrait=')) {
+        sources.add(image.src)
+        el.dataset.testPortraitSources = String(sources.size)
+        el.dataset.testPortraitMinimumWidth = String(
+          Math.min(Number(el.dataset.testPortraitMinimumWidth ?? Infinity), image.naturalWidth),
+        )
+      }
+      Reflect.apply(original, context, [image, ...args])
+    }
+  })
   await page.route('**/api/world*', async (route) => {
     if (route.request().method() !== 'GET') return route.continue()
     const response = await route.fetch(),
       body = await response.json()
     await route.fulfill({ response, json: { ...body, players } })
   })
-  const canvas = page.locator('canvas[data-world-stage]')
   await expect(canvas).toHaveAttribute('data-visible-players', '101', { timeout: 25000 })
+  await expect(identity).toHaveAttribute('data-test-portrait-sources', '100', { timeout: 25000 })
+  await expect(identity).toHaveAttribute('data-test-portrait-minimum-width', '400')
+  const density = await identity.evaluate((el) => ({
+    width: (el as HTMLCanvasElement).width,
+    height: (el as HTMLCanvasElement).height,
+    expectedWidth: Math.round(el.clientWidth * window.devicePixelRatio),
+    expectedHeight: Math.round(el.clientHeight * window.devicePixelRatio),
+  }))
+  expect(density.width).toBe(density.expectedWidth)
+  expect(density.height).toBe(density.expectedHeight)
   const session = await page.context().newCDPSession(page)
   await session.send('Emulation.setCPUThrottlingRate', { rate: 4 })
   const before = Number(await canvas.getAttribute('data-render-frames'))
-  await expect
-    .poll(async () => Number(await canvas.getAttribute('data-render-frames')), { timeout: 15000 })
-    .toBeGreaterThan(before + 120)
-  const metrics = await canvas.evaluate((el) => ({
-    frameP95Ms: Number(el.dataset.frameP95),
-    cachedSectors: Number(el.dataset.cachedSectors),
-    cachedPixels: Number(el.dataset.cachedPixels),
-    visibleScenery: Number(el.dataset.visibleScenery),
-    waterCells: Number(el.dataset.waterCells),
-    canvasPixels: (el as HTMLCanvasElement).width * (el as HTMLCanvasElement).height,
-    players: Number(el.dataset.visiblePlayers),
-    deviceRatio: window.devicePixelRatio,
-  }))
+  const readMetrics = () =>
+    canvas.evaluate((el) => ({
+      sampledAt: performance.now(),
+      renderFrames: Number(el.dataset.renderFrames),
+      frameP95Ms: Number(el.dataset.frameP95),
+      cachedSectors: Number(el.dataset.cachedSectors),
+      cachedPixels: Number(el.dataset.cachedPixels),
+      visibleScenery: Number(el.dataset.visibleScenery),
+      waterCells: Number(el.dataset.waterCells),
+      canvasPixels: (el as HTMLCanvasElement).width * (el as HTMLCanvasElement).height,
+      identityPixels: (() => {
+        const identity = document.querySelector<HTMLCanvasElement>('canvas[data-world-identity]')!
+        return identity.width * identity.height
+      })(),
+      identityPaints: Number(
+        document.querySelector<HTMLCanvasElement>('canvas[data-world-identity]')!.dataset
+          .testIdentityPaints ?? 0,
+      ),
+      players: Number(el.dataset.visiblePlayers),
+      deviceRatio: window.devicePixelRatio,
+    }))
+  const baseline = await readMetrics()
+  const costPath = info.outputPath('synthetic-world-render-cost.json')
+  writeFileSync(costPath, JSON.stringify({ baseline }, null, 2))
+  let metrics = baseline
+  try {
+    await expect
+      .poll(async () => Number(await canvas.getAttribute('data-render-frames')), { timeout: 15000 })
+      .toBeGreaterThan(before + 120)
+  } finally {
+    metrics = await readMetrics()
+    writeFileSync(costPath, JSON.stringify({ ...metrics, baseline }, null, 2))
+    await info.attach('synthetic-world-render-cost', {
+      path: costPath,
+      contentType: 'application/json',
+    })
+  }
   expect(metrics.cachedPixels).toBeLessThanOrEqual(8_000_000)
   expect(metrics.visibleScenery).toBeLessThanOrEqual(180)
   expect(metrics.waterCells).toBeLessThanOrEqual(60)
   expect(metrics.frameP95Ms).toBeLessThan(80)
-  const costPath = info.outputPath('synthetic-world-render-cost.json')
-  writeFileSync(costPath, JSON.stringify(metrics, null, 2))
-  await info.attach('synthetic-world-render-cost', {
-    path: costPath,
-    contentType: 'application/json',
-  })
   await capture(page, info, 'synthetic-100-mobile')
   await page.getByRole('button', { name: 'Details', exact: true }).click()
   await expect(page.getByRole('tab', { name: 'Places', exact: true })).toBeVisible()

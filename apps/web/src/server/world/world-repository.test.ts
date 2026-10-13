@@ -11,7 +11,8 @@ const { rpc, sceneRpc, lastRead, profileImages, environmentSettings } = vi.hoist
 vi.mock('@/lib/supabase/admin', () => ({
   createSupabaseAdminClient: () => ({
     rpc: async (name: string, args: unknown) => {
-      if (name === 'read_world_scene_players_v1') return sceneRpc(name, args)
+      if (name === 'read_world_scene_players_v1' || name === 'read_world_scene_players_v2')
+        return sceneRpc(name, args)
       const result = await rpc(name, args)
       if (name === 'read_world_state_v1' && result.data?.state) lastRead.value = result.data
       return result
@@ -24,8 +25,9 @@ vi.mock('@/server/character/character-profile-display-service', () => ({
 vi.mock('./world-environment-store', () => ({ readWorldEnvironmentSettings: environmentSettings }))
 import { DEFAULT_WORLD_ENVIRONMENT_SETTINGS } from '@/world/environment'
 import { newWorldState, revealNearby } from '@/world/travel'
-import type { WorldCommand, WorldPlayer } from '@/world/types'
+import type { WorldCommand, WorldPlayer, WorldState } from '@/world/types'
 import { commitWorldCommand, readWorld, resetWorldReadCaches } from './world-repository'
+import { loadPublicCharacterProfileImageMap } from '@/server/character/character-profile-display-service'
 
 const characterId = '00000000-0000-4000-8000-000000000011'
 const command: WorldCommand = {
@@ -52,7 +54,215 @@ beforeEach(() => {
   }))
   profileImages.clear()
   environmentSettings.mockReset().mockResolvedValue(DEFAULT_WORLD_ENVIRONMENT_SETTINGS)
+  vi.mocked(loadPublicCharacterProfileImageMap).mockClear()
 })
+
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  const promise = new Promise<T>((accept) => {
+    resolve = accept
+  })
+  return { promise, resolve }
+}
+
+it.each(['scene', 'environment'] as const)(
+  'commits before a deferred %s presentation read, then returns the fully enriched committed receipt',
+  async (delayedRead) => {
+    const firstBoundary = deferred<'commit' | 'presentation'>()
+    const presentation = deferred<void>()
+    const initial = payload()
+    const confirmed = { ...initial, state: { ...initial.state, version: 2 }, serverNow: 6000 }
+    rpc.mockImplementation(async (name: string) => {
+      if (name === 'commit_world_state_v1') {
+        firstBoundary.resolve('commit')
+        return { data: {} }
+      }
+      return {
+        data: rpc.mock.calls.some(([name]) => name === 'commit_world_state_v1')
+          ? confirmed
+          : initial,
+      }
+    })
+    const waitForPresentation = async () => {
+      firstBoundary.resolve('presentation')
+      await presentation.promise
+    }
+    if (delayedRead === 'scene')
+      sceneRpc.mockImplementation(async () => {
+        await waitForPresentation()
+        return { data: { version: confirmed.state.version, players: [] } }
+      })
+    else
+      environmentSettings.mockImplementation(async () => {
+        await waitForPresentation()
+        return DEFAULT_WORLD_ENVIRONMENT_SETTINGS
+      })
+
+    let settled = false
+    const result = commitWorldCommand('owner', characterId, command).finally(() => {
+      settled = true
+    })
+    try {
+      expect(await firstBoundary.promise).toBe('commit')
+      expect(settled).toBe(false)
+      expect(loadPublicCharacterProfileImageMap).not.toHaveBeenCalled()
+    } finally {
+      presentation.resolve()
+      await result
+    }
+    expect(await result).toMatchObject({
+      characterId,
+      version: 2,
+      serverNow: 6000,
+      environment: { settingsVersion: 0 },
+      movementBlocked: null,
+    })
+    expect(rpc.mock.calls.map(([name]) => name)).toEqual([
+      'read_world_state_v1',
+      'commit_world_state_v1',
+      'read_world_state_v1',
+    ])
+    expect(sceneRpc).toHaveBeenCalledTimes(1)
+    expect(environmentSettings).toHaveBeenCalledTimes(1)
+    expect(loadPublicCharacterProfileImageMap).toHaveBeenCalledTimes(1)
+  },
+)
+
+it('resolves only steps due on the authoritative read clock, regardless of the application clock', async () => {
+  const state: WorldState = {
+    ...newWorldState(),
+    route: [6, 7].map((x) => ({
+      position: { sectorId: 'verdant-expanse', x, y: 4 },
+      durationMs: 200,
+    })),
+    nextStepAt: 5000,
+  }
+  let persisted = state
+  rpc.mockImplementation(async (name: string, args: { p_next_state?: WorldState }) => {
+    if (name === 'commit_world_state_v1') {
+      persisted = { ...args.p_next_state!, version: 2 }
+      return { data: persisted }
+    }
+    return { data: { ...payload(), state: persisted, serverNow: 5100 } }
+  })
+  const applicationClock = vi.spyOn(Date, 'now').mockReturnValue(999_999)
+  try {
+    const view = await commitWorldCommand('owner', characterId, {
+      ...command,
+      intent: { kind: 'tick' },
+    })
+    expect(view.position).toEqual({ sectorId: 'verdant-expanse', x: 6, y: 4 })
+    expect(view.route).toEqual([state.route[1]])
+    expect(view.nextStepAt).toBe(5200)
+    expect(rpc.mock.calls[0]?.[1]).toMatchObject({
+      p_user_id: 'owner',
+      p_character_id: characterId,
+      p_initial_state: { ...newWorldState(), safe: true },
+    })
+  } finally {
+    applicationClock.mockRestore()
+  }
+})
+
+it('keeps live event objectives in authoritative auto-path resolution', async () => {
+  const events = [
+    {
+      runId: 'live-event',
+      objectiveId: 'navigate',
+      title: 'Live objective',
+      phaseName: 'Live phase',
+      navigation: { sectorId: 'verdant-expanse', x: 6, y: 4, autoPath: true, guidance: 'exact' },
+    },
+  ]
+  const objectiveId = `event-${createHash('sha256').update('live-event:navigate').digest('hex').slice(0, 32)}`
+  let persisted = newWorldState()
+  rpc.mockImplementation(async (name: string, args: { p_next_state?: WorldState }) => {
+    if (name === 'commit_world_state_v1') {
+      persisted = { ...args.p_next_state!, version: 2 }
+      return { data: persisted }
+    }
+    return { data: { ...payload(), state: persisted, eventObjectives: events } }
+  })
+  const view = await commitWorldCommand('owner', characterId, {
+    ...command,
+    intent: { kind: 'autopath', objectiveId },
+  })
+  expect(persisted.routeObjectiveId).toBe(objectiveId)
+  expect(persisted.route).toEqual([
+    { position: { sectorId: 'verdant-expanse', x: 6, y: 4 }, durationMs: 200 },
+  ])
+  expect(view.nextStepAt).toBe(5200)
+  expect(view.objectives).toContainEqual(
+    expect.objectContaining({ id: objectiveId, name: 'Live objective' }),
+  )
+})
+
+it('materializes expired training before resolving and committing a command', async () => {
+  rpc
+    .mockResolvedValueOnce({
+      data: { ...payload(), trainingExpired: true, blocked: 'WORLD_TRAINING_ACTIVE' },
+    })
+    .mockResolvedValueOnce({ data: [] })
+    .mockResolvedValueOnce({ data: { ...payload(), serverNow: 5500 } })
+    .mockResolvedValueOnce({ data: {} })
+    .mockResolvedValueOnce({ data: { ...payload(), state: { ...newWorldState(), version: 2 } } })
+  expect((await commitWorldCommand('owner', characterId, command)).version).toBe(2)
+  expect(rpc.mock.calls.map(([name]) => name)).toEqual([
+    'read_world_state_v1',
+    'materialize_training_report_v2',
+    'read_world_state_v1',
+    'commit_world_state_v1',
+    'read_world_state_v1',
+  ])
+  expect(sceneRpc).toHaveBeenCalledTimes(1)
+})
+
+it.each(['WORLD_TRAINING_ACTIVE', 'WORLD_ACTIVE_BATTLE', 'WORLD_SPECTATING'])(
+  'preserves authoritative %s rejection without presentation work',
+  async (blocked) => {
+    rpc
+      .mockResolvedValueOnce({ data: { ...payload(), blocked } })
+      .mockResolvedValueOnce({ error: { message: blocked } })
+    await expect(
+      commitWorldCommand('owner', characterId, { ...command, intent: { kind: 'tick' } }),
+    ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
+    expect(rpc.mock.calls.map(([name]) => name)).toEqual([
+      'read_world_state_v1',
+      'commit_world_state_v1',
+    ])
+    expect(sceneRpc).not.toHaveBeenCalled()
+    expect(environmentSettings).not.toHaveBeenCalled()
+  },
+)
+
+it.each(['WORLD_TRAINING_ACTIVE', 'WORLD_ACTIVE_BATTLE', 'WORLD_SPECTATING'])(
+  'still allows the authority to stop travel while %s',
+  async (blocked) => {
+    const state = {
+      ...newWorldState(),
+      route: [{ position: { sectorId: 'verdant-expanse', x: 6, y: 4 }, durationMs: 200 }],
+      nextStepAt: 5000,
+    }
+    rpc
+      .mockResolvedValueOnce({ data: { ...payload(), state, blocked } })
+      .mockResolvedValueOnce({ data: {} })
+      .mockResolvedValueOnce({
+        data: {
+          ...payload(),
+          state: { ...state, version: 2, route: [], nextStepAt: null },
+          blocked,
+        },
+      })
+    const view = await commitWorldCommand('owner', characterId, command)
+    expect(view.position).toEqual(state.position)
+    expect(view.route).toEqual([])
+    expect(view.movementBlocked).not.toBeNull()
+    expect(rpc.mock.calls[1]?.[1]).toMatchObject({
+      p_kind: 'stop',
+      p_next_state: { position: state.position, route: [], nextStepAt: null },
+    })
+  },
+)
 
 const scenePlayer = (characterId: string, sectorId: string, x = 0, y = 4): WorldPlayer => ({
   characterId,
@@ -75,7 +285,7 @@ it('reads only the server-projected scene and includes known neighbouring player
     },
   })
   const { view } = await readWorld('owner', characterId)
-  expect(sceneRpc).toHaveBeenCalledWith('read_world_scene_players_v1', {
+  expect(sceneRpc).toHaveBeenCalledWith('read_world_scene_players_v2', {
     p_user_id: 'owner',
     p_character_id: characterId,
     p_expected_version: state.version,
@@ -90,6 +300,35 @@ it('reads only the server-projected scene and includes known neighbouring player
       imageUrl: '/api/media/starter-portrait/portrait.starter.wayfarer-07',
     }),
   ])
+})
+
+it('enables push only after the owned scene registration succeeds', async () => {
+  rpc.mockResolvedValue({ data: payload() })
+  expect((await readWorld('owner', characterId)).view.livePresence).toBe(true)
+})
+
+it.each(['42883', 'PGRST202'])(
+  'keeps polling compatibility before the new migration is installed (%s)',
+  async (code) => {
+    rpc.mockResolvedValue({ data: payload() })
+    sceneRpc
+      .mockResolvedValueOnce({ error: { code, message: 'missing function' } })
+      .mockResolvedValueOnce({ data: { version: 1, players: [] } })
+    expect((await readWorld('owner', characterId)).view.livePresence).toBe(false)
+    expect(sceneRpc.mock.calls.map(([name]) => name)).toEqual([
+      'read_world_scene_players_v2',
+      'read_world_scene_players_v1',
+    ])
+  },
+)
+
+it('never hides a permission error by falling back to the old reader', async () => {
+  rpc.mockResolvedValue({ data: payload() })
+  sceneRpc.mockResolvedValueOnce({ error: { code: '42501', message: 'denied' } })
+  await expect(readWorld('owner', characterId)).rejects.toMatchObject({
+    code: 'PERSISTENCE_UNAVAILABLE',
+  })
+  expect(sceneRpc).toHaveBeenCalledTimes(1)
 })
 
 it('keeps unsurveyed players private even when returned by the scene read', async () => {
@@ -211,6 +450,8 @@ it('returns authoritative state for a successful retry without another mutation'
       commandId: '00000000-0000-4000-8000-000000000098',
     }),
   ).rejects.toMatchObject({ code: 'STALE_VERSION' })
+  expect(sceneRpc).toHaveBeenCalledTimes(1)
+  expect(rpc.mock.calls.every(([name]) => name === 'read_world_state_v1')).toBe(true)
 })
 
 it('records successful early ticks so a retry cannot advance a later due step', async () => {

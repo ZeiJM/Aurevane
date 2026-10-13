@@ -19,6 +19,58 @@ export async function verifyWorldPresentation(
 ) {
   test.skip(info.project.name === 'laptop-chromium', 'Check mouse and touch layouts once each.')
   test.setTimeout(90000)
+  if (info.project.name === 'desktop-chromium') {
+    await page.goto('/')
+    await expect(page.getByTestId('account-shell')).toBeVisible()
+    const cursor = await page.locator('body').evaluate((el) => getComputedStyle(el).cursor)
+    expect(cursor).toMatch(/url\(".*\/cursors\/stone-arrow\.png"\) 6 3, auto$/)
+    const enterButton = page.getByRole('button', { name: 'Enter AUREVANE', exact: true })
+    const handCursor = await enterButton.evaluate((el) => getComputedStyle(el).cursor)
+    expect(handCursor).toMatch(/url\(".*\/cursors\/stone-hand\.png"\) 10 3, pointer$/)
+    await expect(
+      page.getByRole('link', { name: 'AUREVANE account entry home', exact: true }),
+    ).toHaveCSS('cursor', handCursor)
+    await expect(page.getByLabel('Email', { exact: true })).toHaveCSS('cursor', 'text')
+    await expect(page.getByLabel('Password', { exact: true })).toHaveCSS('cursor', 'text')
+    const recover = page.getByRole('button', { name: 'Forgot password?', exact: true })
+    await expect(recover).toHaveCSS('cursor', handCursor)
+    await recover.click()
+    await expect(page.getByRole('button', { name: 'Send reset link', exact: true })).toHaveCSS(
+      'cursor',
+      handCursor,
+    )
+    await expect(page.getByLabel('Email', { exact: true })).toHaveCSS('cursor', 'text')
+    for (const [style, hotspot] of [
+      [cursor, { x: 6, y: 3 }],
+      [handCursor, { x: 10, y: 3 }],
+    ] as const) {
+      const asset = await page.evaluate(
+        async ({ style, hotspot }) => {
+          const image = new Image()
+          image.src = style.match(/url\("([^"]+)"\)/)![1]!
+          await image.decode()
+          const canvas = document.createElement('canvas')
+          canvas.width = image.naturalWidth
+          canvas.height = image.naturalHeight
+          const context = canvas.getContext('2d')!
+          context.drawImage(image, 0, 0)
+          const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data
+          return {
+            width: canvas.width,
+            height: canvas.height,
+            transparentPixels: pixels.filter((alpha, index) => index % 4 === 3 && alpha === 0)
+              .length,
+            hotspotAlpha: context.getImageData(hotspot.x, hotspot.y, 1, 1).data[3],
+          }
+        },
+        { style, hotspot },
+      )
+      expect(asset.width).toBe(32)
+      expect(asset.height).toBe(32)
+      expect(asset.transparentPixels).toBeGreaterThan(0)
+      expect(asset.hotspotAlpha).toBeGreaterThan(200)
+    }
+  }
   await enter(page)
   const initial = await world(page)
   if (info.project.name === 'mobile-chromium')
@@ -84,7 +136,9 @@ export async function verifyWorldPresentation(
     expect(readout.y + readout.height).toBeLessThanOrEqual(bounds.y + bounds.height)
     await page.getByRole('button', { name: /Close details/ }).click()
   }
-  expect(await canvas.evaluate((el) => getComputedStyle(el).cursor)).toContain('data:image/svg+xml')
+  const cursor = await page.locator('body').evaluate((el) => getComputedStyle(el).cursor)
+  expect(cursor).toMatch(/url\(".*\/cursors\/stone-arrow\.png"\) 6 3, auto$/)
+  await expect(canvas).toHaveCSS('cursor', cursor)
   await expect(workspace.locator('footer')).toHaveCount(0)
   if (info.project.name === 'desktop-chromium') {
     for (const width of [800, 1440]) {
@@ -102,6 +156,7 @@ export async function verifyWorldPresentation(
       expect(Math.abs(map.y + map.height - (frame.y + frame.height - 1))).toBeLessThanOrEqual(1)
     }
     const gear = panel.getByRole('button', { name: 'Map settings', exact: true })
+    await expect(gear).toHaveCSS('cursor', /url\(".*\/cursors\/stone-hand\.png"\) 10 3, pointer$/)
     await expect(gear.locator('svg')).toBeVisible()
     const bounds = (await panel.boundingBox())!,
       button = (await gear.boundingBox())!
@@ -282,7 +337,9 @@ export function registerWorldInputCases({
         await page.getByRole('button', { name: 'Done', exact: true }).click()
       }
       await canvas.evaluate((el) => {
-        const ctx = (el as HTMLCanvasElement).getContext('2d')!,
+        const ctx = document
+            .querySelector<HTMLCanvasElement>('canvas[data-world-identity]')!
+            .getContext('2d')!,
           draw = ctx.drawImage.bind(ctx)
         const portrait = new URL(el.dataset.portrait!, location.href).href
         ctx.drawImage = ((image: CanvasImageSource, ...args: number[]) => {
@@ -347,12 +404,70 @@ export function registerWorldInputCases({
     test.setTimeout(90000)
     await enter(page)
     const canvas = page.locator('canvas[data-world-stage]')
+    await canvas.evaluate((el) => {
+      const context = document
+          .querySelector<HTMLCanvasElement>('canvas[data-world-identity]')!
+          .getContext('2d')!,
+        draw = context.drawImage.bind(context),
+        portrait = new URL(el.dataset.portrait!, location.href).href
+      context.drawImage = ((image: CanvasImageSource, ...args: number[]) => {
+        if (
+          image instanceof HTMLImageElement &&
+          image.src === portrait &&
+          context.strokeStyle === '#ead399' &&
+          args.length === 8
+        ) {
+          el.dataset.testPortraitDraw = JSON.stringify({
+            width: args.at(-2),
+            height: args.at(-1),
+            ratio: context.getTransform().a,
+          })
+        }
+        ;(draw as (...args: unknown[]) => void)(image, ...args)
+      }) as typeof context.drawImage
+    })
+    const verifyPortraitZoom = async (zoom: number) => {
+      await expect(canvas).toHaveAttribute('data-tile-size', String((64 * zoom) / 100))
+      await expect
+        .poll(() =>
+          canvas.evaluate((el) => {
+            if (!el.dataset.testPortraitDraw) return false
+            const { width, height, ratio } = JSON.parse(el.dataset.testPortraitDraw) as {
+              width: number
+              height: number
+              ratio: number
+            }
+            const expected = Math.round(((34 * Number(el.dataset.tileSize)) / 64) * ratio) / ratio
+            return width === expected && height === expected
+          }),
+        )
+        .toBe(true)
+      const metrics = await canvas.evaluate((el) => ({
+        tileSize: Number(el.dataset.tileSize),
+        ...JSON.parse(el.dataset.testPortraitDraw!),
+      }))
+      await info.attach(`portrait-zoom-${zoom}`, {
+        body: JSON.stringify({ zoom, ...metrics }, null, 2),
+        contentType: 'application/json',
+      })
+      await capture(page, info, `portrait-zoom-${zoom}`)
+    }
     await expect(page.getByRole('button', { name: 'Zoom in', exact: true })).toHaveCount(0)
     await page.getByRole('button', { name: 'Map settings', exact: true }).click()
     const slider = page.getByRole('slider', { name: 'Zoom level', exact: true })
     await slider.press('Home')
     await expect(slider).toHaveValue('35')
     await page.getByRole('checkbox', { name: 'Ambient animation', exact: true }).uncheck()
+    await expect(canvas).toHaveAttribute('data-tile-size', String(64 * 0.35))
+    await verifyPortraitZoom(35)
+    await slider.press('End')
+    await expect(slider).toHaveValue('140')
+    await verifyPortraitZoom(140)
+    for (let i = 0; i < 40; i++) await slider.press('ArrowLeft')
+    await expect(slider).toHaveValue('100')
+    await verifyPortraitZoom(100)
+    await slider.press('Home')
+    await expect(slider).toHaveValue('35')
     await expect(canvas).toHaveAttribute('data-tile-size', String(64 * 0.35))
     const beforeZoom = await canvas.screenshot()
     for (let i = 0; i < 5; i++) await slider.press('ArrowRight')

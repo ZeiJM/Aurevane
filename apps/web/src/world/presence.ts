@@ -10,6 +10,7 @@ type WorldPresence = Pick<
   | 'battleSessionId'
   | 'environment'
   | 'objectives'
+  | 'livePresence'
 > & { kind: 'presence' }
 
 /** The server derives the scene; the client supplies only its last owned receipt identity. */
@@ -39,6 +40,7 @@ export function worldRefreshResponse(view: WorldView, url: string): WorldView | 
     battleSessionId: view.battleSessionId,
     environment: view.environment,
     objectives: view.objectives,
+    livePresence: view.livePresence,
   }
 }
 export function mergeWorldRefresh(view: WorldView, receipt: WorldView | WorldPresence): WorldView {
@@ -53,5 +55,6 @@ export function mergeWorldRefresh(view: WorldView, receipt: WorldView | WorldPre
     battleSessionId: receipt.battleSessionId,
     environment: receipt.environment,
     objectives: receipt.objectives,
+    livePresence: receipt.livePresence ?? view.livePresence,
   }
 }

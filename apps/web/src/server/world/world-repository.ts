@@ -103,6 +103,16 @@ async function cachedProfileImages(ids: readonly string[]) {
   portraitCache = { key, at: now, value }
   return value
 }
+export async function resolveWorldPlayerImages(players: readonly WorldPlayer[]) {
+  const profileImages = await cachedProfileImages(players.map((player) => player.characterId))
+  return players.map((player) => ({
+    ...player,
+    imageUrl: resolvePublicCharacterImageUrl(
+      profileImages.get(player.characterId),
+      player.portraitRef,
+    ),
+  }))
+}
 async function cachedEnvironmentSettings() {
   const now = Date.now()
   if (environmentCache && now - environmentCache.at < ENVIRONMENT_TTL_MS)
@@ -116,7 +126,13 @@ export function resetWorldReadCaches() {
   environmentCache = null
 }
 export async function readWorld(userId: string, characterId: string) {
-  const data = await readWorldData(userId, characterId)
+  return presentWorldData(userId, characterId, await readWorldData(userId, characterId))
+}
+async function presentWorldData(
+  userId: string,
+  characterId: string,
+  data: Awaited<ReturnType<typeof readWorldData>>,
+) {
   const objectives = [...WORLD_OBJECTIVES, ...eventWorldObjectives(data.eventObjectives)]
   const state = data.state as WorldState
   // Build the expensive terrain projection once. Only its server-derived scene IDs
@@ -124,13 +140,20 @@ export async function readWorld(userId: string, characterId: string) {
   const view = projectWorld(state, [], data.serverNow, objectives)
   const sceneSectorIds = view.sectors.map((sector) => sector.id)
   const [presence, environmentSettings] = await Promise.all([
-    createSupabaseAdminClient().rpc('read_world_scene_players_v1', {
-      p_user_id: userId,
-      p_character_id: characterId,
-      p_expected_version: state.version,
-      p_scene_sector_ids: sceneSectorIds,
-      p_initial_position: newWorldState().position,
-    }),
+    (async () => {
+      const args = {
+        p_user_id: userId,
+        p_character_id: characterId,
+        p_expected_version: state.version,
+        p_scene_sector_ids: sceneSectorIds,
+        p_initial_position: newWorldState().position,
+      }
+      const client = createSupabaseAdminClient()
+      const result = await client.rpc('read_world_scene_players_v2', args)
+      if (result.error?.code === '42883' || result.error?.code === 'PGRST202')
+        return { ...(await client.rpc('read_world_scene_players_v1', args)), live: false }
+      return { ...result, live: true }
+    })(),
     cachedEnvironmentSettings(),
   ])
   if (presence.error) worldRpcError(presence.error)
@@ -149,14 +172,8 @@ export async function readWorld(userId: string, characterId: string) {
     scene.version === state.version ? scene.players : data.players,
     sceneSectorIds,
   )
-  const profileImages = await cachedProfileImages(players.map((player) => player.characterId))
-  view.players = players.map((player) => ({
-    ...player,
-    imageUrl: resolvePublicCharacterImageUrl(
-      profileImages.get(player.characterId),
-      player.portraitRef,
-    ),
-  }))
+  view.players = await resolveWorldPlayerImages(players)
+  view.livePresence = presence.live && scene.version === state.version
   view.environment = resolveWorldEnvironment(data.serverNow, environmentSettings)
   view.characterId = characterId
   view.battleSessionId = typeof data.battleSessionId === 'string' ? data.battleSessionId : null
@@ -181,7 +198,10 @@ export async function commitWorldCommand(
   characterId: string,
   command: WorldCommand,
 ) {
-  const current = await readWorld(userId, characterId)
+  // Intent resolution needs authority, not terrain/scene/portrait/environment presentation.
+  // Keep training materialization in this read and blocking/version checks in the commit RPC.
+  const current = await readWorldData(userId, characterId)
+  const state = current.state as WorldState
   const fingerprint = createHash('sha256')
     .update(
       JSON.stringify({
@@ -194,21 +214,19 @@ export async function commitWorldCommand(
   if (current.lastCommandId === command.commandId) {
     if (current.lastCommandFingerprint !== fingerprint)
       throw new AurevaneError('IDEMPOTENCY_CONFLICT', 'That travel command was already used.')
-    return current.view
+    return (await presentWorldData(userId, characterId, current)).view
   }
-  if (current.state.version !== command.expectedVersion)
+  if (state.version !== command.expectedVersion)
     throw new AurevaneError(
       'STALE_VERSION',
       'Your position changed. Try again from the updated map.',
     )
   if (command.intent.kind === 'attack')
     throw new AurevaneError('INVALID_REQUEST', 'Use the encounter command for attacks.')
-  const next = resolveWorldIntent(
-    current.state,
-    command.intent,
-    current.view.serverNow,
-    current.objectives,
-  )
+  const next = resolveWorldIntent(state, command.intent, current.serverNow, [
+    ...WORLD_OBJECTIVES,
+    ...eventWorldObjectives(current.eventObjectives),
+  ])
   const { error } = await createSupabaseAdminClient().rpc('commit_world_state_v1', {
     p_user_id: userId,
     p_character_id: characterId,

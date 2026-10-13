@@ -149,6 +149,13 @@ export interface WorldPlayer {
   /** Seen in the World within the last 40 seconds. Absent on historical payloads. */
   online?: boolean
   attackable: boolean
+  /** Bounded public prefix of approved travel; never authoritative for range. */
+  movement?: {
+    version: number
+    serverNow: number
+    nextStepAt: number | null
+    route: TravelStep[]
+  }
 }
 export interface WorldCell {
   x: number
@@ -162,6 +169,8 @@ export interface WorldSectorView extends Omit<WorldSector, 'rows' | 'roads'> {
   exits: WorldRoad[]
 }
 export interface WorldView {
+  /** Service registration and private receive capability are available for this scene. */
+  livePresence?: boolean
   characterId: string
   version: number
   serverNow: number
