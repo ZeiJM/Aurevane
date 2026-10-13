@@ -1,6 +1,28 @@
 # World click-arrival continuity — October 13, 2026
 
-Status: implemented on `agent/world-arrival-continuity-20261013`, PR #884; not merged or deployed. Current Production remains the verified PR #881 release. The latest revision also incorporates a refined cursor and supersedes the initial cursor proposal in PR #883.
+Status: **LIVE for testing** through PR #884, production `dpl_Giw72hrwPuXeZ4gT6hRMseaLrMyM`, READY `2026-10-13T12:15:10.250Z` (08:15:10 Trinidad) at https://aurevane.vercel.app/game/world. Prior rollback target: `dpl_2HH6uzKfqGspBxP8NdFZKh3wG2KZ` (PR #881). Human gameplay acceptance remains with the Owner. PR #883 is superseded and closed, unmerged.
+
+## Verified release and bounded Production smoke
+
+The Owner explicitly authorized release of all pending fixes for testing, then requested removal of the town/360-view button in this same batch. Final tested source is `afe69bd7d1d1d50d056680cc895cb3eb1548aa28`. Merge `3f7c721dc6f4c41d9c8518d89a87d0104349c194` has the exact tested full tree `bd1b16b4ce4c3155320756ce2ac834cb61586f64` and application subtree `865191caedc167fe7c514d9102308816714490ec`. Refreshed main and the production target are inspected before merge/deploy. One production deployment is explicitly created from that merge with `withLatestCommit:false`; its READY source and canonical alias are verified. No preview, hosted migration or automatic Git deployment is triggered.
+
+All three required exact-source workflows pass:
+
+| Workflow             | Run         | Completed job                               |
+| -------------------- | ----------- | ------------------------------------------- |
+| CI                   | 38388184717 | Quality 115265053930; database 115265053392 |
+| Living Atlas browser | 38388184665 | 115265053526                                |
+| Browser smoke        | 38388185392 | 115265844637                                |
+
+Local full `pnpm check` and native CI both pass formatting, lint, eight-package types, **5,067 Vitest plus seven Node checks** and production build. Independent reviews approve the motion/terrain guards and final UI/test delta with no remaining Critical or Important findings. Atlas passes **44 cases / 76 intentional project skips**. Its artifact `11808905047` is downloaded and SHA256 verified as `6abfbdc1ab3621375319751ab1b435c8fb82a7e1f8ea9f5cbc7d6065c30d98ac`; inspected desktop/mobile controls fit and retain Settings/coordinates. Distant-click rendering and effects-off/reduced-motion final-arrival cases pass. Full responsive smoke passes its preliminary checks, **73 focused cases / 21 skips**, **342 full-suite cases / 261 skips**, and **10 Edge cases / two skips**. Native completed logs are checked; no scenario is removed to resolve the Nearby measurement race.
+
+A fresh signed-in Production reload serves the exact deep teal SVG colours, 16×18 size and (2,2) hotspot. View Town and View 360 controls are absent; Settings and the coordinate readout remain. A single ground click reaches E900/N320 in S70-29 from E894/N320 in S69-29, with settled camera 900.5/256.5 and no further pointer action. Return-click sampling records 24 monotonically decreasing camera-X observations over 31–918ms (900.477 to 896.381), with camera-Y fixed at256.5; a subsequent check confirms complete return to camera894.5/256.5 and E894/N320. HP153/153, MP102/102 and XP96/100 are preserved. This bounded live check does not establish every route, every latency condition or human gameplay acceptance. The attempted in-page high-frequency sampler was unavailable in the browser's read-only evaluation scope; the reported samples use documented DOM reads instead. No peer attack, chat or reward claim is performed.
+
+The pre-release long-idle tab carried a temporary travel notice; a fresh reload of the new release clears it, with no actionable alert in the bounded checks. No cause is asserted for that old-tab notice. The returned browser console sample contains extension metadata errors; these are not represented as application errors or as a clean exhaustive console scan. The new deployment's production warning/error/fatal query from READY through `2026-10-13T12:18:32.261Z` returns no entries. This establishes only that checked initial window.
+
+Actual Production screenshot `Aurevane_World_Live_1791893966119.jpg` is captured and inspected. All earlier scenery, water, weather, Nearby, zoom, held-key and battle-return releases remain included. The Owner's latest explicit button-removal request supersedes the prior footer View Town restoration. Server movement/persistence/rewards, minimum authoritative pace, private discovery/collision, bounded 600ms unconfirmed preview and actual 1–2s peer polling remain. No zero-network-latency, live 100-player or phase-closeout claim is made.
+
+The following sections retain the chronological implementation log; their pending statuses precede the verified release above. The documentation-only receipt changes no application bytes and requests no further deployment.
 
 ## Distant-click follow-up
 
