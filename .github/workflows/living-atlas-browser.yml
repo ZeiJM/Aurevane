@@ -107,6 +107,7 @@ jobs:
           path: |
             apps/web/test-results/**/synthetic-world-render-cost.json
             apps/web/test-results/**/world-private-scene-join-diagnostics.json
+            apps/web/test-results/**/world-live-peer-delivery.json
             apps/web/test-results/**/world-realtime-diagnostics.json
             apps/web/test-results/**/portrait-zoom-*.png
             apps/web/test-results/**/world-refined-controls.png

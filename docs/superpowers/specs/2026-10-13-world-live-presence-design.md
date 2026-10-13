@@ -14,7 +14,7 @@ The browser coalesces invalidations into an independent, abortable presence read
 
 Only known, supplied, walkable consecutive route steps may enter a peer movement receipt. Stop at the first withheld/private/unknown step; never disclose the rest, destinations or private state. Keep persisted `position` and `attackable` semantics independent of animation. Peer motion follows the server clock rather than replaying a several-second-old trail. Reject stale versions and stop/replacement receipts; dispose subscriptions and pending reads on unmount/character replacement.
 
-The new service-only reader/registration, private Broadcast receive policy and state trigger are an additive database migration. Preparing and testing this source is authorized by the requested fix; applying it to the hosted database still requires the Owner's explicit migration approval. This work does not authorize a new Vercel deployment.
+The new service-only reader/registration, private Broadcast receive policy and state trigger are an additive database migration. Preparing and testing this source is authorized by the requested fix; applying it to the hosted database still requires the Owner's explicit migration approval. The Owner has requested this follow-up be made live for testing; release remains gated on exact-source native CI, Living Atlas and full Responsive Browser smoke, then explicit approval to apply the new hosted migration. Automatic Vercel Git deployment remains disabled.
 
 ## Verification
 

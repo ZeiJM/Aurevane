@@ -1,4 +1,12 @@
-import { expect, test, type Browser, type Page, type TestInfo } from '@playwright/test'
+import {
+  expect,
+  test,
+  type Browser,
+  type Frame,
+  type Page,
+  type Request,
+  type TestInfo,
+} from '@playwright/test'
 import { randomUUID } from 'node:crypto'
 import { writeFile } from 'node:fs/promises'
 import { createServerClient } from '@supabase/ssr'
@@ -241,17 +249,47 @@ export async function verifyWorldScenePresence(
     expect((await (await localPresence).json()).kind).toBe('presence')
 
     // Rejoin a real authenticated private channel before disabling fallback polling.
-    const joinedPresence = page.waitForResponse(
-      async (response) => {
-        if (new URL(response.url()).pathname !== '/api/world/presence' || !response.ok())
-          return false
-        const receipt = await response.json()
-        return receipt.characterId === owner.characterId && receipt.registered === true
-      },
-      { timeout: 15000 },
-    )
-    await page.reload()
-    await joinedPresence
+    let mainDocumentReady = false
+    const joinedRequests = new WeakSet<Request>()
+    const joinedNavigation = (frame: Frame) => {
+      if (frame === page.mainFrame()) mainDocumentReady = true
+    }
+    const joinedRequest = (request: Request) => {
+      if (
+        mainDocumentReady &&
+        request.method() === 'GET' &&
+        new URL(request.url()).pathname === '/api/world/presence'
+      )
+        joinedRequests.add(request)
+    }
+    page.on('framenavigated', joinedNavigation)
+    page.on('request', joinedRequest)
+    try {
+      const joinedPresence = page.waitForResponse(
+        async (response) => {
+          const request = response.request()
+          // Reload can evict a preceding document's response body from CDP.
+          // Reject its request before asking the browser to read that body.
+          if (
+            !joinedRequests.has(request) ||
+            request.method() !== 'GET' ||
+            new URL(response.url()).pathname !== '/api/world/presence' ||
+            !response.ok()
+          )
+            return false
+          const finishedError = await response.finished()
+          if (request.failure()?.errorText === 'net::ERR_ABORTED') return false
+          if (finishedError) throw finishedError
+          const receipt = await response.json()
+          return receipt.characterId === owner.characterId && receipt.registered === true
+        },
+        { timeout: 15000 },
+      )
+      await Promise.all([page.reload(), joinedPresence])
+    } finally {
+      page.off('framenavigated', joinedNavigation)
+      page.off('request', joinedRequest)
+    }
 
     // An idle observer must see a real second account walking, including with
     // ambient effects disabled. Probe the actual canvas nameplate, not React state.
@@ -323,14 +361,17 @@ export async function verifyWorldScenePresence(
     try {
       observed = await (await movedPresence).json()
       const elapsedMs = Date.now() - startedAt
+      const deliveryPath = info.outputPath('world-live-peer-delivery.json')
+      await writeFile(
+        deliveryPath,
+        JSON.stringify({
+          elapsedMs,
+          blockedFallbackReads,
+          movement: observed.players.find((p) => p.characterId === id)?.movement,
+        }),
+      )
       await info.attach('world-live-peer-delivery', {
-        body: Buffer.from(
-          JSON.stringify({
-            elapsedMs,
-            blockedFallbackReads,
-            movement: observed.players.find((p) => p.characterId === id)?.movement,
-          }),
-        ),
+        path: deliveryPath,
         contentType: 'application/json',
       })
       expect(elapsedMs).toBeLessThan(2500)
