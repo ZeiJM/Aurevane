@@ -43,6 +43,16 @@ describe('one traversable world atlas', () => {
         }
     expect(changed).toEqual([])
   })
+  it('keeps the authored Emberreach channel lava through both bridge mouths without changing collision', () => {
+    const sector = atlasSectors().find((sector) => sector.id === 'emberreach')!
+    const authored = CHARTED_SECTORS.find((sector) => sector.id === 'emberreach')!
+    for (let y = 0; y < 9; y++) {
+      expect(sector.rows[y]![10]).toBe(y === 4 ? '=' : 'l')
+      expect(terrainWalkable(sector.rows[y]![10]!)).toBe(terrainWalkable(authored.rows[y]![10]!))
+    }
+    expect(sector.landmarks.some((landmark) => landmark.kind === 'bridge')).toBe(true)
+  })
+
   it('ends paved coastal approaches before unavailable ocean chunks', () => {
     const sectors = atlasSectors()
     const byAddress = new Map(

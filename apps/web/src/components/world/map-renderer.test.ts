@@ -1,16 +1,22 @@
+import { createRequire } from 'node:module'
+import { readFile } from 'node:fs/promises'
 import { describe, expect, it, vi } from 'vitest'
 vi.mock('server-only', () => ({}))
 import { projectWorld } from '@/server/world/world-service'
 import { newWorldState } from '@/world/travel'
 import { localRoute, mapPoint, WorldMotion } from './world-motion'
 import { createMapRenderer } from './map-renderer'
-import { projectMapPoint, unprojectMapPoint } from './map-projection'
+import { MAP_X, MAP_Y, projectMapPoint, unprojectMapPoint } from './map-projection'
 import type { WorldView } from '@/world/types'
 import * as biomes from './map-biome-transitions'
 
+type RecordedPath = { operation: 'M' | 'L' | 'C' | 'Z'; points: number[] }[]
+const imageRuntime = createRequire(import.meta.url)
+const sharp = imageRuntime(imageRuntime.resolve('sharp', { paths: [imageRuntime.resolve('next')] }))
+
 function scene(reduced = false, initial?: WorldView) {
   const images: { onload: (() => void) | null }[] = []
-  const fills: { colour: string; alpha: number; order: number }[] = []
+  const fills: { colour: string; alpha: number; order: number; path: RecordedPath }[] = []
   const rectangles: { colour: string; order: number }[] = []
   const ellipses: { point: { x: number; y: number }; order: number }[] = []
   const draws: {
@@ -24,8 +30,10 @@ function scene(reduced = false, initial?: WorldView) {
   const transforms: number[][] = []
   const groundCurves: number[][] = []
   const gradients: { coordinates: number[]; stops: [number, string][] }[] = []
-  const clips: { points: number[][]; matrix: number[]; order: number }[] = []
+  const clips: { points: number[][]; matrix: number[]; order: number; path: RecordedPath }[] = []
+  const strokes: { path: RecordedPath; matrix: number[]; order: number; colour: string }[] = []
   let path: number[][] = []
+  let recordedPath: RecordedPath = []
   let drawOrder = 0
   let createdLayers = 0
   let resizeCallback!: () => void
@@ -48,7 +56,20 @@ function scene(reduced = false, initial?: WorldView) {
       globalAlpha: 1,
       fillStyle: '',
       fill() {
-        fills.push({ colour: this.fillStyle, alpha: this.globalAlpha, order: ++drawOrder })
+        fills.push({
+          colour: this.fillStyle,
+          alpha: this.globalAlpha,
+          order: ++drawOrder,
+          path: recordedPath.map((part) => ({ ...part, points: [...part.points] })),
+        })
+      },
+      stroke() {
+        strokes.push({
+          path: recordedPath.map((part) => ({ ...part, points: [...part.points] })),
+          matrix: [...matrix],
+          order: ++drawOrder,
+          colour: (this as unknown as { strokeStyle: string }).strokeStyle,
+        })
       },
       fillRect() {
         rectangles.push({ colour: this.fillStyle, order: ++drawOrder })
@@ -69,13 +90,22 @@ function scene(reduced = false, initial?: WorldView) {
         texts.push({ text, x, y })
       },
       beginPath() {
+        recordedPath = []
         path = []
       },
       moveTo(x: number, y: number) {
+        recordedPath.push({ operation: 'M', points: [x, y] })
         path.push([x, y])
       },
       lineTo(x: number, y: number) {
+        recordedPath.push({ operation: 'L', points: [x, y] })
         path.push([x, y])
+      },
+      bezierCurveTo(...points: number[]) {
+        recordedPath.push({ operation: 'C', points })
+      },
+      closePath() {
+        recordedPath.push({ operation: 'Z', points: [] })
       },
       rect(x: number, y: number, width: number, height: number) {
         path.push([x, y], [x + width, y], [x + width, y + height], [x, y + height])
@@ -83,6 +113,7 @@ function scene(reduced = false, initial?: WorldView) {
       clip() {
         clips.push({
           points: path.map((point) => [...point]),
+          path: recordedPath.map((part) => ({ ...part, points: [...part.points] })),
           matrix: [...matrix],
           order: drawOrder,
         })
@@ -194,6 +225,24 @@ function scene(reduced = false, initial?: WorldView) {
     addEventListener: (name: string, callback: EventListener) => listeners.set(name, callback),
     removeEventListener: (name: string) => listeners.delete(name),
   } as unknown as HTMLCanvasElement
+  const identityDraws: typeof draws = []
+  const identityClear = vi.fn()
+  const identityCanvas = {
+    width: 0,
+    height: 0,
+    getContext: () =>
+      new Proxy(context, {
+        get(target, key) {
+          if (key === 'clearRect') return identityClear
+          if (key === 'drawImage')
+            return (image: HTMLImageElement, ...args: number[]) => {
+              target.drawImage(image, ...args)
+              identityDraws.push(draws.at(-1)!)
+            }
+          return Reflect.get(target, key)
+        },
+      }),
+  } as unknown as HTMLCanvasElement
   const view = initial ?? projectWorld(newWorldState(), [], 1000),
     select = vi.fn(),
     onZoom = vi.fn(),
@@ -209,6 +258,7 @@ function scene(reduced = false, initial?: WorldView) {
     onZoom,
     onVisiblePlayers,
     onStop,
+    identityCanvas,
   )!
   return {
     fills,
@@ -220,10 +270,14 @@ function scene(reduced = false, initial?: WorldView) {
     groundCurves,
     gradients,
     clips,
+    strokes,
     images,
     resize: () => resizeCallback(),
     view,
     canvas,
+    identityCanvas,
+    identityDraws,
+    identityClear,
     motion,
     renderer,
     select,
@@ -442,6 +496,53 @@ describe('native map input and bounded lifecycle', () => {
       vi.unstubAllGlobals()
     },
   )
+  it('waits for the rock sheet instead of drawing a padded tree crop on blocked Frostmere ground', () => {
+    const base = projectWorld(newWorldState(), [], 1000)
+    const sector = base.sectors.find((sector) => sector.id === base.position.sectorId)!
+    const rockPosition = { ...base.position, x: base.position.x + 2 }
+    const s = scene(true, {
+      ...base,
+      players: [],
+      sectors: [
+        {
+          ...sector,
+          regionId: 'frostmere',
+          buildings: [],
+          landmarks: [],
+          cells: sector.cells.map((cell) => ({
+            ...cell,
+            terrain: cell.x === rockPosition.x && cell.y === rockPosition.y ? '#' : '.',
+            walkable: cell.x !== rockPosition.x || cell.y !== rockPosition.y,
+          })),
+        },
+      ],
+    })
+    try {
+      const sheet = s.images.find((image) =>
+        (image as HTMLImageElement).src.endsWith('biomes-v02.webp'),
+      )!
+      Object.assign(sheet, { complete: false, width: 1774, height: 887, naturalWidth: 1774 })
+      s.frame(40)
+      expect(
+        s.draws.some((draw) => draw.src.endsWith('nature-v02.webp') && draw.args[1] === 0),
+      ).toBe(false)
+      expect(s.draws.some((draw) => draw.src.endsWith('biomes-v02.webp'))).toBe(false)
+      Object.assign(sheet, { complete: true })
+      sheet.onload?.()
+      s.frame(80)
+      expect(
+        s.draws.some((draw) => draw.src.endsWith('biomes-v02.webp') && draw.args[0] === 1348),
+      ).toBe(true)
+      expect(
+        s.view.sectors[0]!.cells.find(
+          (cell) => cell.x === rockPosition.x && cell.y === rockPosition.y,
+        )?.walkable,
+      ).toBe(false)
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  })
   it('retains indexed terrain for compact presence receipts and rebuilds for full terrain or atlas changes', () => {
     const build = vi.spyOn(biomes, 'buildBiomeTransitions')
     const s = scene(true),
@@ -671,8 +772,8 @@ describe('native map input and bounded lifecycle', () => {
         .every((fill) => fill.order > lastCloud),
     ).toBe(true)
     for (const text of s.texts.filter((text) => text.text === 'You' || text.text === 'Other')) {
-      expect(text.x * 1.5).toBeCloseTo(Math.round(text.x * 1.5))
-      expect(text.y * 1.5).toBeCloseTo(Math.round(text.y * 1.5))
+      expect(text.x * 3).toBeCloseTo(Math.round(text.x * 3))
+      expect(text.y * 3).toBeCloseTo(Math.round(text.y * 3))
     }
     s.renderer.dispose()
     vi.unstubAllGlobals()
@@ -742,7 +843,9 @@ describe('native map input and bounded lifecycle', () => {
       b = paintedPoint(1354, 230)
     expect((b.x - a.x) * (b.y - a.y)).toBeGreaterThan(0)
     expect(
-      s.fills.some((fill) => fill.colour === 'rgba(48,108,118,.96)' && fill.order < bridge.order),
+      s.clips.some(
+        (clip) => clip.path.some((part) => part.operation === 'C') && clip.order < bridge.order,
+      ),
     ).toBe(true)
     s.renderer.dispose()
     vi.unstubAllGlobals()
@@ -759,9 +862,11 @@ describe('native map input and bounded lifecycle', () => {
       s.frame(40)
       const origin = mapPoint({ ...s.view.position, x: 0, y: 0 }, s.view.sectors)
       const camera = mapPoint(s.view.position, s.view.sectors)
-      const opening = s.fills.find((fill) => fill.colour === 'rgba(48,108,118,.96)')!
-      const crossing = s.clips.find((clip) => {
-        if (clip.order !== opening.order - 1 || clip.points.length !== 4) return false
+      const openingIndex = s.clips.findIndex((clip) =>
+        clip.path.some((part) => part.operation === 'C'),
+      )
+      const crossing = s.clips.find((clip, index) => {
+        if (index !== openingIndex - 1 || clip.points.length !== 4) return false
         const points = clip.points.map(([x, y]) => {
           const m = clip.matrix
           const world = unprojectMapPoint(
@@ -789,6 +894,273 @@ describe('native map input and bounded lifecycle', () => {
       vi.unstubAllGlobals()
     },
   )
+  it.each([
+    ['water', '~', 0],
+    ['water', '~', 1],
+    ['lava', 'l', 0],
+    ['lava', 'l', 1],
+  ] as const)(
+    'fills the original transparent %s (%s) arch through its mouths on axis %s',
+    async (material, terrain, axis) => {
+      const base = projectWorld(newWorldState(), [], 1000)
+      const sector = base.sectors.find((sector) => sector.id === base.position.sectorId)!
+      const cells = sector.cells.map((cell) => {
+        const along = axis === 0 ? cell.x : cell.y
+        const across = axis === 0 ? cell.y : cell.x
+        const center = axis === 0 ? 6 : 4
+        const crossCenter = axis === 0 ? 4 : 6
+        const value =
+          along === center
+            ? Math.abs(across - crossCenter) === 2
+              ? terrain
+              : Math.abs(across - crossCenter) < 2
+                ? '='
+                : '.'
+            : '.'
+        return { ...cell, terrain: value, walkable: value !== terrain }
+      })
+      const s = scene(true, {
+        ...base,
+        players: [],
+        sectors: [
+          {
+            ...sector,
+            cells,
+            buildings: [],
+            landmarks: [{ id: 'crossing', kind: 'bridge', name: 'Bridge', x: 6, y: 4 }],
+          },
+        ],
+      })
+      try {
+        const sheet = s.images.find((image) =>
+          (image as HTMLImageElement).src.endsWith('props-v02.webp'),
+        )!
+        Object.assign(sheet, { width: 1774, height: 887, naturalWidth: 1774 })
+        s.frame(40)
+        const bridge = s.draws.find((draw) => draw.src.endsWith('props-v02.webp'))!
+        const colour = material === 'water' ? 'rgba(48,108,118,.96)' : 'rgba(183,79,40,.96)'
+        expect(s.fills.some((fill) => fill.colour === colour)).toBe(false)
+        const openingIndex = s.clips.findIndex((clip) =>
+          clip.path.some((part) => part.operation === 'C'),
+        )
+        const opening = s.clips[openingIndex]!
+        const strip = s.clips[openingIndex - 1]!
+        const surface = s.draws.find(
+          (draw) =>
+            draw.src === '' &&
+            draw.args.length === 4 &&
+            draw.image.width < 400 &&
+            draw.order < bridge.order,
+        )!
+        expect(surface).toBeDefined()
+        const a = bridge.args
+        const point = (x: number, y: number) => [
+          ((x - a[4]!) / a[6]!) * a[2]! + a[0]!,
+          ((y - a[5]!) / a[7]!) * a[3]! + a[1]!,
+        ]
+        const commands = opening.path
+          .map(
+            ({ operation, points }) =>
+              operation +
+              points
+                .flatMap((value, i) => (i % 2 === 0 ? point(value, points[i + 1]!) : []))
+                .join(' '),
+          )
+          .join(' ')
+        const crossing = strip.points.map(([x, y]) => point(x!, y!).join(',')).join(' ')
+        const image = await readFile(
+          new URL('../../../public/media/art/world/runtime/props-v02.webp', import.meta.url),
+        )
+        const colours =
+          material === 'water'
+            ? ['#245e67', '#3e7b82', '#244e60']
+            : ['#702f25', '#bd5b2e', '#4d2526']
+        const materialGradients = s.gradients.filter(
+          (gradient) =>
+            gradient.stops.length === 3 &&
+            gradient.stops.every((stop, i) => stop[1] === colours[i]),
+        )
+        expect(materialGradients).toHaveLength(2)
+        const gradient = materialGradients[1]!
+        const projectedGradient = (x: number, y: number) =>
+          point(
+            (x + surface.args[0]! - y - surface.args[1]!) * MAP_X * (axis === 0 ? -1 : 1),
+            (x + surface.args[0]! + y + surface.args[1]!) * MAP_Y,
+          )
+        const [gx1, gy1] = projectedGradient(gradient.coordinates[0]!, gradient.coordinates[1]!)
+        const [gx2, gy2] = projectedGradient(gradient.coordinates[2]!, gradient.coordinates[3]!)
+        const stops = gradient.stops
+          .map(([offset, value]) => `<stop offset="${offset}" stop-color="${value}"/>`)
+          .join('')
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="720" height="600" viewBox="950 60 720 600"><defs><clipPath id="crossing"><polygon points="${crossing}"/></clipPath><clipPath id="prop"><rect x="950" y="60" width="460" height="380"/></clipPath><linearGradient id="liquid" gradientUnits="userSpaceOnUse" x1="${gx1}" y1="${gy1}" x2="${gx2}" y2="${gy2}">${stops}</linearGradient></defs><rect x="950" y="60" width="720" height="600" fill="#a49b77"/><path d="${commands}" fill="url(#liquid)" clip-path="url(#crossing)"/><image width="1774" height="887" href="data:image/webp;base64,${image.toString('base64')}" clip-path="url(#prop)"/></svg>`
+        const raster: Buffer = await sharp(Buffer.from(svg)).ensureAlpha().raw().toBuffer()
+        const original: Buffer = await sharp(image).ensureAlpha().raw().toBuffer()
+        const pixel = (x: number, y: number) =>
+          Array.from(
+            raster.subarray(((y - 60) * 720 + x - 950) * 4, ((y - 60) * 720 + x - 950) * 4 + 3),
+          )
+        for (const [x, y] of [
+          [1290, 350],
+          [1280, 365],
+          [1250, 375],
+          [1260, 270],
+        ]) {
+          expect(original[(y! * 1774 + x!) * 4 + 3]).toBeLessThan(10)
+          const [red, green, blue] = pixel(x!, y!)
+          if (material === 'water') {
+            expect(green!).toBeGreaterThan(red! * 1.5)
+            expect(blue!).toBeGreaterThan(red! * 1.5)
+          } else expect(red!).toBeGreaterThan(blue! * 2)
+        }
+        // The river outlet continues beyond the bridge crop without a rectangular material edge.
+        const outlet = pixel(1420, 355)
+        expect(outlet).not.toEqual([164, 155, 119])
+        expect(outlet).not.toEqual(material === 'water' ? [48, 108, 118] : [183, 79, 40])
+        // Adjacent ground and the underpass evaluate the same world gradient.
+        const origin = mapPoint({ ...base.position, x: 0, y: 0 }, base.sectors)
+        const offsetX = (origin.x - 0.5 + (axis === 0 ? 6 : 5)) * 64
+        const offsetY = (origin.y - 0.5 + (axis === 0 ? 3 : 4)) * 64
+        expect(gradient.coordinates[0]).toBe(-offsetX)
+        expect(gradient.coordinates[1]).toBe(-offsetY)
+        // This transparent source pixel belongs to the dry bank, outside the proved strip.
+        expect(pixel(1170, 410)).toEqual([164, 155, 119])
+      } finally {
+        s.renderer.dispose()
+        vi.unstubAllGlobals()
+      }
+    },
+  )
+  it.each([
+    ['water', 'verdant-expanse', 'animated'],
+    ['water', 'verdant-expanse', 'off'],
+    ['water', 'verdant-expanse', 'reduced'],
+    ['water', 'verdant-expanse', 'paused'],
+    ['lava', 'emberreach', 'animated'],
+    ['lava', 'emberreach', 'off'],
+    ['lava', 'emberreach', 'reduced'],
+    ['lava', 'emberreach', 'paused'],
+  ] as const)(
+    'retains cached %s underpass material in %s with %s motion',
+    (material, sectorId, mode) => {
+      const state = newWorldState()
+      state.position = { sectorId, x: 9, y: 4 }
+      const view = projectWorld(state, [], 1000)
+      const own = view.sectors.find((sector) => sector.id === sectorId)!
+      const s = scene(mode === 'reduced', { ...view, players: [], sectors: [own] })
+      try {
+        const props = s.images.find((image) =>
+          (image as HTMLImageElement).src.endsWith('props-v02.webp'),
+        )!
+        Object.assign(props, { width: 1774, height: 887, naturalWidth: 1774 })
+        s.renderer.settings({ animate: mode !== 'off', zoom: 1 })
+        s.frame(40)
+        const terrain = JSON.stringify(s.view.sectors[0]!.cells)
+        const layers = s.layerCount()
+        const underpass = () => {
+          const bridge = s.draws
+            .filter(
+              (draw) => draw.src.endsWith('props-v02.webp') && Math.abs(draw.args[0]! - 950) < 1e-5,
+            )
+            .at(-1)!
+          const surface = s.draws
+            .filter(
+              (draw) => draw.src === '' && draw.image.width < 400 && draw.order < bridge.order,
+            )
+            .at(-1)!
+          return s.strokes
+            .filter(
+              (stroke) =>
+                stroke.order > surface.order &&
+                stroke.order < bridge.order &&
+                (material === 'water'
+                  ? stroke.colour === '#bbded0' || stroke.colour === '#82c6c7'
+                  : stroke.colour === 'rgba(255,196,95,.44)'),
+            )
+            .map((stroke) => stroke.path)
+        }
+        const first = underpass()
+        if (mode === 'animated' || mode === 'paused') expect(first.length).toBeGreaterThan(0)
+        else expect(first).toEqual([])
+        const draws = s.draws.length
+        if (mode === 'paused') s.renderer.settings({ animate: true, zoom: 1, paused: true })
+        else s.renderer.update(s.view)
+        s.frame(640)
+        if (mode === 'animated') expect(underpass()).not.toEqual(first)
+        else if (mode === 'paused') expect(s.draws).toHaveLength(draws)
+        else expect(underpass()).toEqual([])
+        expect(s.layerCount()).toBe(layers)
+        expect(JSON.stringify(s.view.sectors[0]!.cells)).toBe(terrain)
+      } finally {
+        s.renderer.dispose()
+        vi.unstubAllGlobals()
+      }
+    },
+  )
+  it('invalidates a bridge surface when an adjacent sector changes an internal underpass bank', () => {
+    const base = projectWorld(newWorldState(), [], 1000)
+    const original = base.sectors.find((sector) => sector.id === base.position.sectorId)!
+    const makeCells = (columns: number[]) =>
+      original.cells.map((cell) => {
+        const terrain = columns.includes(cell.x)
+          ? cell.y === 1 || cell.y === 7
+            ? '~'
+            : cell.y >= 2 && cell.y <= 6
+              ? '='
+              : '.'
+          : '.'
+        return { ...cell, terrain, walkable: terrain !== '~' }
+      })
+    const own = {
+      ...original,
+      cells: makeCells([11, 12]),
+      buildings: [],
+      landmarks: [{ id: 'crossing', kind: 'bridge' as const, name: 'Bridge', x: 12, y: 4 }],
+    }
+    const neighbor = {
+      ...own,
+      id: 'next-bank',
+      atlasColumn: own.atlasColumn! + 1,
+      cells: makeCells([0, 1]),
+      landmarks: [],
+    }
+    const s = scene(true, {
+      ...base,
+      position: { ...base.position, x: 11 },
+      sectors: [own, neighbor],
+    })
+    try {
+      const props = s.images.find((image) =>
+        (image as HTMLImageElement).src.endsWith('props-v02.webp'),
+      )!
+      Object.assign(props, { width: 1774, height: 887, naturalWidth: 1774 })
+      s.frame(40)
+      const surface = () =>
+        s.draws
+          .filter(
+            (draw) => draw.src === '' && draw.image.width === 384 && draw.image.height === 480,
+          )
+          .at(-1)?.image
+      const before = surface()
+      expect(before).toBeDefined()
+      s.renderer.update({
+        ...s.view,
+        sectors: [
+          own,
+          {
+            ...neighbor,
+            cells: neighbor.cells.map((cell) =>
+              cell.x === 2 && cell.y === 3 ? { ...cell, terrain: '~', walkable: false } : cell,
+            ),
+          },
+        ],
+      })
+      s.frame(80)
+      expect(surface()).not.toBe(before)
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  })
   it('does not draw a bridge prop on a road without a real known liquid crossing', () => {
     const s = scene(true)
     s.renderer.update({
@@ -1330,6 +1702,33 @@ describe('native map input and bounded lifecycle', () => {
     s.renderer.dispose()
     vi.unstubAllGlobals()
   })
+  it.each([1, 2, 2.625, 3])(
+    'renders portraits on a separate native-DPR surface with device-aligned edges at %s DPR',
+    (density) => {
+      const s = scene()
+      window.devicePixelRatio = density
+      s.resize()
+      s.canvas.dataset.portrait = '/sharp-custom-portrait.png'
+      s.frame(40)
+      expect(s.canvas.width).toBe(Math.round(800 * Math.min(density, 1.5)))
+      expect(s.identityCanvas.width).toBe(Math.round(800 * density))
+      expect(s.identityCanvas.height).toBe(Math.round(600 * density))
+      const draw = s.identityDraws.find((entry) => entry.src === '/sharp-custom-portrait.png')!
+      expect(draw).toBeDefined()
+      expect(draw.args.slice(0, 4)).toEqual([0, 0, 1200, 1200])
+      const [x, y, width, height] = draw.args.slice(-4)
+      for (const edge of [x!, y!, x! + width!, y! + height!])
+        expect(edge * density).toBeCloseTo(Math.round(edge * density), 8)
+      expect(width! * density).toBe(Math.round(34 * density))
+      expect(height).toBe(width)
+      expect(draw.matrix.slice(0, 4)).toEqual([density, 0, 0, density])
+      expect(s.identityClear).toHaveBeenCalledWith(0, 0, 800, 600)
+      expect(s.frames.size).toBe(1)
+      s.renderer.dispose()
+      expect(s.frames.size).toBe(0)
+      vi.unstubAllGlobals()
+    },
+  )
   it('does not keep an idle animation loop when ambient effects are disabled', () => {
     const s = scene()
     s.renderer.settings({ animate: false, zoom: 1 })

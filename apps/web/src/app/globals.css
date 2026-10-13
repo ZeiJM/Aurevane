@@ -3,10 +3,12 @@
 }
 
 html {
+  --av-cursor: url('/cursors/dark-crystal.svg') 2 2, auto;
   min-width: 320px;
   min-height: 100%;
   background: var(--av-ink-950);
   text-size-adjust: 100%;
+  cursor: var(--av-cursor);
 }
 
 body {
@@ -44,6 +46,52 @@ a {
 
 button {
   color: inherit;
+}
+
+/* Keep enabled controls on the shared theme even when a module specifies pointer.
+   Specialized handles and disabled controls retain their own interaction cues. */
+:root
+  body
+  :is(
+    a[href],
+    button,
+    summary,
+    select,
+    label[for],
+    label:has(input:not(:disabled), select:not(:disabled)),
+    input:is(
+      [type='button'],
+      [type='submit'],
+      [type='reset'],
+      [type='checkbox'],
+      [type='radio'],
+      [type='range'],
+      [type='file'],
+      [type='color'],
+      [type='image']
+    ),
+    [role='button'],
+    [role='link'],
+    [role='menuitem'],
+    [role='menuitemcheckbox'],
+    [role='menuitemradio'],
+    [role='gridcell'],
+    [role='tab'],
+    [role='option'],
+    [role='checkbox'],
+    [role='radio'],
+    [role='switch']
+  ):not(
+    :disabled,
+    [aria-disabled='true'],
+    [data-drag-handle],
+    [data-resize-handle],
+    [draggable='true'],
+    [aria-label^='Resize '],
+    [data-battle-chronicle] [aria-label^='Explain '],
+    [contenteditable='true']
+  ) {
+  cursor: var(--av-cursor) !important;
 }
 
 ::selection {

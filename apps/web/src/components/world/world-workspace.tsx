@@ -9,6 +9,8 @@ import { remainingTravelMs, worldSyncDelayMs } from '@/world/travel'
 import { mergeWorldRefresh, worldRefreshUrl } from '@/world/presence'
 import type { WorldIntent, WorldPosition, WorldView } from '@/world/types'
 import { WorldConflict, WorldController } from './world-controller'
+import { WorldLivePresence } from './world-live-presence'
+import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 import { localRoute, mapPoint, prepareLocalRoute, WorldMotion } from './world-motion'
 import { WorldMap } from './world-map'
 import { WorldGlobe } from './world-globe'
@@ -94,10 +96,16 @@ export function WorldWorkspace({
   const changeZoom = (value: number) =>
     (mode === 'global' ? setGlobeZoom : setZoom)(clampWorldZoom(value))
   const controller = useRef<WorldController | null>(null),
+    livePresence = useRef<WorldLivePresence | null>(null),
     acceptedAt = useRef(0),
     localViewActive = useRef(true)
   useEffect(() => {
     localViewActive.current = mode === 'local'
+    if (controller.current)
+      livePresence.current?.update(
+        controller.current.view,
+        mode === 'local' && document.visibilityState === 'visible',
+      )
     if (mode === 'local') void controller.current?.refresh()
   }, [mode])
   useEffect(() => {
@@ -118,6 +126,7 @@ export function WorldWorkspace({
       acceptedAt.current = Date.now()
       if (reconcile) motion.reconcile(next, performance.now())
       setView(next)
+      live.update(next, localViewActive.current && document.visibilityState === 'visible')
       schedule()
     }
     const instance: WorldController = new WorldController(initialView, {
@@ -154,6 +163,49 @@ export function WorldWorkspace({
       },
     })
     controller.current = instance
+    let client: ReturnType<typeof createSupabaseBrowserClient> | null = null
+    const live = new WorldLivePresence({
+      getView: () => instance.view,
+      subscribe: (topic, changed) => {
+        client ??= createSupabaseBrowserClient()
+        const connection = client
+        const channel = connection
+          .channel(topic, { config: { private: true } })
+          .on('broadcast', { event: 'changed' }, changed)
+        let alive = true
+        void connection.auth
+          .getSession()
+          .then(async ({ data }) => {
+            if (!alive || !data.session) return
+            await connection.realtime.setAuth(data.session.access_token)
+            if (alive)
+              channel.subscribe((status) => {
+                if (status === 'SUBSCRIBED') changed()
+              })
+          })
+          .catch(() => {
+            /* Owned polling remains available. */
+          })
+        return () => {
+          alive = false
+          void connection.removeChannel(channel)
+        }
+      },
+      read: async (current, signal) => {
+        const query = new URLSearchParams({
+          version: String(current.version),
+          characterId: current.characterId,
+        })
+        const response = await fetch(`/api/world/presence?${query}`, { cache: 'no-store', signal })
+        if (!response.ok) throw new Error('World presence is temporarily unavailable.')
+        return response.json()
+      },
+      accept: (source, receipt) => {
+        if (mounted && instance.acceptPlayers(source, receipt.players)) setView(instance.view)
+      },
+    })
+    livePresence.current = live
+    live.update(initialView, localViewActive.current && document.visibilityState === 'visible')
     const schedule = () => {
       if (!mounted) return
       if (timer) clearTimeout(timer)
@@ -182,11 +234,14 @@ export function WorldWorkspace({
     }
     schedule()
     const visible = () => {
+      live.update(instance.view, localViewActive.current && document.visibilityState === 'visible')
       if (document.visibilityState === 'visible') void instance.refresh()
     }
     document.addEventListener('visibilitychange', visible)
     return () => {
       mounted = false
+      live.dispose()
+      livePresence.current = null
       instance.dispose()
       if (timer) clearTimeout(timer)
       document.removeEventListener('visibilitychange', visible)

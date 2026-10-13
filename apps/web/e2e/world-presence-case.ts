@@ -1,6 +1,60 @@
 import { expect, test, type Browser, type Page, type TestInfo } from '@playwright/test'
+import { randomUUID } from 'node:crypto'
+import { createServerClient } from '@supabase/ssr'
+import { createClient } from '@supabase/supabase-js'
 import { GRID_HEIGHT, GRID_WIDTH } from '../src/world/catalog'
 import type { WorldView } from '../src/world/types'
+
+async function verifyPrivateSceneAuthorization(page: Page, allowedSector: string) {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
+  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
+  expect(['127.0.0.1', 'localhost']).toContain(new URL(url).hostname)
+  const cookies = await page.context().cookies()
+  const sessionReader = createServerClient(url, key, {
+    cookies: {
+      getAll: () => cookies.map(({ name, value }) => ({ name, value })),
+      setAll: () => {},
+    },
+  })
+  const { data, error } = await sessionReader.auth.getSession()
+  if (error || !data.session) throw new Error('The disposable browser account has no session.')
+  const token = data.session.access_token
+  const client = createClient(url, key, { accessToken: async () => token })
+  await client.realtime.setAuth(data.session.access_token)
+  const allowed = client
+    .channel(`world-scene:${allowedSector}`, { config: { private: true } })
+    .on('broadcast', { event: 'changed' }, () => {})
+  const denied = client
+    .channel(`world-scene:unregistered-${randomUUID()}`, { config: { private: true } })
+    .on('broadcast', { event: 'changed' }, () => {})
+  const join = (channel: typeof allowed, shouldJoin: boolean) =>
+    new Promise<void>((resolve, reject) => {
+      channel.subscribe((status, channelError) => {
+        if (status === 'SUBSCRIBED') {
+          if (shouldJoin) resolve()
+          else reject(new Error('An unregistered private scene was accepted.'))
+        } else if (status === 'CHANNEL_ERROR') {
+          if (
+            !shouldJoin &&
+            /unauthori[sz]ed|permission|access denied/i.test(channelError?.message ?? '')
+          )
+            resolve()
+          else
+            reject(
+              new Error(
+                `The private scene join failed unexpectedly: ${channelError?.message ?? status}`,
+              ),
+            )
+        } else if (status === 'TIMED_OUT') reject(new Error('The private scene join timed out.'))
+      }, 5000)
+    })
+  try {
+    await join(allowed, true)
+    await join(denied, false)
+  } finally {
+    await client.removeAllChannels()
+  }
+}
 
 export async function verifyWorldScenePresence(
   page: Page,
@@ -51,6 +105,8 @@ export async function verifyWorldScenePresence(
       attackable: false,
     })
     expect(scene.sectors.length).toBeLessThanOrEqual(25)
+    expect(scene.livePresence).toBe(true)
+    await verifyPrivateSceneAuthorization(page, scene.position.sectorId)
     await capture(page, info, 'nearby-across-sector-boundary')
 
     // Let globe mode schedule its slower idle timer, then return. Local
@@ -71,6 +127,19 @@ export async function verifyWorldScenePresence(
     await page.getByRole('button', { name: /Return to local map/ }).click()
     expect((await (await localPresence).json()).kind).toBe('presence')
 
+    // Rejoin a real authenticated private channel before disabling fallback polling.
+    const joinedPresence = page.waitForResponse(
+      async (response) => {
+        if (new URL(response.url()).pathname !== '/api/world/presence' || !response.ok())
+          return false
+        const receipt = await response.json()
+        return receipt.characterId === owner.characterId && receipt.registered === true
+      },
+      { timeout: 15000 },
+    )
+    await page.reload()
+    await joinedPresence
+
     // An idle observer must see a real second account walking, including with
     // ambient effects disabled. Probe the actual canvas nameplate, not React state.
     await page.getByRole('button', { name: 'Map settings', exact: true }).click()
@@ -78,7 +147,9 @@ export async function verifyWorldScenePresence(
     await page.getByRole('button', { name: 'Done', exact: true }).click()
     await canvas.evaluate(
       (el, name) => {
-        const ctx = (el as HTMLCanvasElement).getContext('2d')!,
+        const ctx = document
+            .querySelector<HTMLCanvasElement>('canvas[data-world-identity]')!
+            .getContext('2d')!,
           original = ctx.fillText.bind(ctx)
         const samples: { at: number; x: number; y: number }[] = []
         ctx.fillText = (text, x, y, maxWidth) => {
@@ -94,27 +165,68 @@ export async function verifyWorldScenePresence(
       scene.players.find((p) => p.characterId === id)!.name,
     )
     await other.goto('/game/world')
+    let blockedFallbackReads = 0
+    const blockedRead = page.waitForRequest(
+      (request) =>
+        request.method() === 'GET' &&
+        new URL(request.url()).pathname === '/api/world' &&
+        new URL(request.url()).searchParams.has('presenceVersion'),
+      { timeout: 5000 },
+    )
+    const fallbackRoute = async (route: import('@playwright/test').Route) => {
+      if (route.request().method() === 'GET') {
+        blockedFallbackReads++
+        await route.abort()
+      } else await route.continue()
+    }
+    await page.route('**/api/world?*', fallbackRoute)
+    await blockedRead
+    const startedAt = Date.now()
     const movedPresence = page.waitForResponse(
       async (response) => {
         if (
           response.request().method() !== 'GET' ||
-          !new URL(response.url()).searchParams.has('presenceVersion')
+          new URL(response.url()).pathname !== '/api/world/presence' ||
+          !response.ok()
         )
           return false
         const receipt = await response.json()
         return (
-          receipt.kind === 'presence' &&
+          receipt.registered === true &&
           receipt.players.some(
-            (p: { characterId: string; position: { x: number } }) =>
-              p.characterId === id && p.position.x > 0,
+            (p: WorldView['players'][number]) =>
+              p.characterId === id &&
+              (p.movement?.version ?? 0) >
+                (scene.players.find((p) => p.characterId === id)?.movement?.version ?? 0) &&
+              (p.movement?.route.length ?? 0) > 0,
           )
         )
       },
       { timeout: 12000 },
     )
     const destination = { sectorId: 'atlas:59:28', x: 4, y: 4 }
-    await stageWalk(other, destination)
-    const observed = await (await movedPresence).json()
+    let observed: { players: WorldView['players'] }
+    const walking = stageWalk(other, destination)
+    try {
+      observed = await (await movedPresence).json()
+      const elapsedMs = Date.now() - startedAt
+      await info.attach('world-live-peer-delivery', {
+        body: Buffer.from(
+          JSON.stringify({
+            elapsedMs,
+            blockedFallbackReads,
+            movement: observed.players.find((p) => p.characterId === id)?.movement,
+          }),
+        ),
+        contentType: 'application/json',
+      })
+      expect(elapsedMs).toBeLessThan(2500)
+      expect(blockedFallbackReads).toBeGreaterThan(0)
+      await walking
+    } finally {
+      await page.unroute('**/api/world?*', fallbackRoute)
+      await walking
+    }
     expect(observed).not.toHaveProperty('sectors')
     expect(observed).not.toHaveProperty('atlas')
     await expect

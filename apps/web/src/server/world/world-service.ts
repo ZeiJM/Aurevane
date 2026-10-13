@@ -14,6 +14,7 @@ import {
   MAX_PERSISTED_ROUTE_STEPS,
 } from '@/world/travel'
 import type {
+  TravelStep,
   WorldIntent,
   WorldObjective,
   WorldPlayer,
@@ -183,14 +184,74 @@ export function projectWorldPlayers(
 ): WorldPlayer[] {
   const ids = new Set(sceneSectorIds)
   const sector = resolveSector(state.position.sectorId)!
+  const supplied = players.some((player) => player.movement !== undefined)
+    ? visibleSectors(state).filter((sector) => ids.has(sector.id))
+    : []
+  const object = (value: unknown): value is Record<string, unknown> =>
+    value !== null && typeof value === 'object' && !Array.isArray(value)
+  const clock = (value: unknown): value is number =>
+    Number.isSafeInteger(value) && (value as number) >= 0
+  function projectMovement(raw: unknown, from: WorldPosition): WorldPlayer['movement'] {
+    if (
+      !object(raw) ||
+      !clock(raw.version) ||
+      !clock(raw.serverNow) ||
+      !(raw.nextStepAt === null || clock(raw.nextStepAt)) ||
+      !Array.isArray(raw.route) ||
+      (raw.route.length > 0 && raw.nextStepAt === null)
+    )
+      return undefined
+    const route: TravelStep[] = []
+    let previous = from
+    for (const entry of raw.route.slice(0, 12)) {
+      if (!object(entry) || !object(entry.position)) break
+      const position = entry.position
+      if (
+        typeof position.sectorId !== 'string' ||
+        !ids.has(position.sectorId) ||
+        !clock(position.x) ||
+        position.x >= GRID_WIDTH ||
+        !clock(position.y) ||
+        position.y >= GRID_HEIGHT ||
+        !clock(entry.durationMs) ||
+        entry.durationMs < STEP_MS
+      )
+        break
+      const step: TravelStep = {
+        position: { sectorId: position.sectorId, x: position.x, y: position.y },
+        durationMs: entry.durationMs,
+      }
+      if (
+        !isCurrentWorldRoute(
+          previous,
+          [step],
+          supplied,
+          (p) => ids.has(p.sectorId) && isKnown(state, p),
+        )
+      )
+        break
+      route.push(step)
+      previous = step.position
+    }
+    if (route.length && raw.nextStepAt! > raw.serverNow + route[0]!.durationMs) return undefined
+    return {
+      version: raw.version,
+      serverNow: raw.serverNow,
+      nextStepAt: route.length ? raw.nextStepAt : null,
+      route,
+    }
+  }
   return players
     .filter((player) => ids.has(player.position.sectorId) && isKnown(state, player.position))
     .map((player) => {
+      const { movement: rawMovement, ...identity } = player
+      const movement = projectMovement(rawMovement, player.position)
       const distance =
         Math.abs(player.position.x - state.position.x) +
         Math.abs(player.position.y - state.position.y)
       return {
-        ...player,
+        ...identity,
+        ...(movement ? { movement } : {}),
         attackable:
           player.attackable &&
           player.position.sectorId === state.position.sectorId &&

@@ -19,6 +19,36 @@ export async function verifyWorldPresentation(
 ) {
   test.skip(info.project.name === 'laptop-chromium', 'Check mouse and touch layouts once each.')
   test.setTimeout(90000)
+  if (info.project.name === 'desktop-chromium') {
+    await page.goto('/')
+    await expect(page.getByTestId('account-shell')).toBeVisible()
+    const cursor = await page.locator('body').evaluate((el) => getComputedStyle(el).cursor)
+    expect(cursor).toMatch(/url\(".*\/cursors\/dark-crystal\.svg"\) 2 2, auto$/)
+    await expect(page.getByRole('button', { name: 'Enter AUREVANE', exact: true })).toHaveCSS(
+      'cursor',
+      cursor,
+    )
+    await expect(
+      page.getByRole('link', { name: 'AUREVANE account entry home', exact: true }),
+    ).toHaveCSS('cursor', cursor)
+    await expect(page.getByLabel('Email', { exact: true })).toHaveCSS('cursor', 'text')
+    await expect(page.getByLabel('Password', { exact: true })).toHaveCSS('cursor', 'text')
+    const recover = page.getByRole('button', { name: 'Forgot password?', exact: true })
+    await expect(recover).toHaveCSS('cursor', cursor)
+    await recover.click()
+    await expect(page.getByRole('button', { name: 'Send reset link', exact: true })).toHaveCSS(
+      'cursor',
+      cursor,
+    )
+    await expect(page.getByLabel('Email', { exact: true })).toHaveCSS('cursor', 'text')
+    const dimensions = await page.evaluate(async (cursor) => {
+      const image = new Image()
+      image.src = cursor.match(/url\("([^"]+)"\)/)![1]!
+      await image.decode()
+      return { width: image.naturalWidth, height: image.naturalHeight }
+    }, cursor)
+    expect(dimensions).toEqual({ width: 16, height: 18 })
+  }
   await enter(page)
   const initial = await world(page)
   if (info.project.name === 'mobile-chromium')
@@ -84,7 +114,9 @@ export async function verifyWorldPresentation(
     expect(readout.y + readout.height).toBeLessThanOrEqual(bounds.y + bounds.height)
     await page.getByRole('button', { name: /Close details/ }).click()
   }
-  expect(await canvas.evaluate((el) => getComputedStyle(el).cursor)).toContain('data:image/svg+xml')
+  const cursor = await page.locator('body').evaluate((el) => getComputedStyle(el).cursor)
+  expect(cursor).toMatch(/url\(".*\/cursors\/dark-crystal\.svg"\) 2 2, auto$/)
+  await expect(canvas).toHaveCSS('cursor', cursor)
   await expect(workspace.locator('footer')).toHaveCount(0)
   if (info.project.name === 'desktop-chromium') {
     for (const width of [800, 1440]) {
@@ -102,6 +134,7 @@ export async function verifyWorldPresentation(
       expect(Math.abs(map.y + map.height - (frame.y + frame.height - 1))).toBeLessThanOrEqual(1)
     }
     const gear = panel.getByRole('button', { name: 'Map settings', exact: true })
+    await expect(gear).toHaveCSS('cursor', cursor)
     await expect(gear.locator('svg')).toBeVisible()
     const bounds = (await panel.boundingBox())!,
       button = (await gear.boundingBox())!
@@ -282,7 +315,9 @@ export function registerWorldInputCases({
         await page.getByRole('button', { name: 'Done', exact: true }).click()
       }
       await canvas.evaluate((el) => {
-        const ctx = (el as HTMLCanvasElement).getContext('2d')!,
+        const ctx = document
+            .querySelector<HTMLCanvasElement>('canvas[data-world-identity]')!
+            .getContext('2d')!,
           draw = ctx.drawImage.bind(ctx)
         const portrait = new URL(el.dataset.portrait!, location.href).href
         ctx.drawImage = ((image: CanvasImageSource, ...args: number[]) => {

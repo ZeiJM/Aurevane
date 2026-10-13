@@ -32,6 +32,18 @@ export class WorldController {
   get pending() {
     return this.running || this.queue.length > 0
   }
+  /** A peer-only read cannot replace owned authority or reset its visual clock. */
+  acceptPlayers(source: WorldView, players: WorldView['players']) {
+    if (
+      this.disposed ||
+      source.characterId !== this.view.characterId ||
+      source.version !== this.view.version ||
+      source.sectors !== this.view.sectors
+    )
+      return false
+    this.view = { ...this.view, players }
+    return true
+  }
   send(intent: WorldIntent): Promise<Receipt> {
     if (this.disposed || this.view.battleSessionId || (intent.kind === 'tick' && this.pending))
       return Promise.resolve({ applied: false })
