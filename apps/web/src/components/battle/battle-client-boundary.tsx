@@ -6,6 +6,7 @@ import { useMemo } from 'react'
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
 
 import { BattleRouteFrame } from './battle-route-frame'
+import { battleSessionHref } from './battle-return-navigation'
 
 import { BattleChatEmojiPolish } from './battle-chat-emoji-polish'
 import { pvpParticipantAccent } from './battle-combatant-colors'
@@ -56,7 +57,12 @@ export function BattleClientBoundary({
   )
 
   return (
-    <BattleRouteFrame sessionHref={`/game/battle/${initialBattle.battleSessionId}`}>
+    <BattleRouteFrame
+      sessionHref={battleSessionHref(
+        initialBattle.battleSessionId,
+        runtime.kind === 'pvp' ? runtime.returnTo : undefined,
+      )}
+    >
       <BattleRuntimeProvider
         playerName={runtime.playerName}
         combatantAccents={combatantAccents}

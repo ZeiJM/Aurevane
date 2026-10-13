@@ -6,13 +6,16 @@ import { WORLD_LAND_NAME } from '@/world/atlas'
 import { WORLD_REGIONS } from '@/world/catalog'
 import { precipitationKind } from './map-weather'
 import { remainingTravelMs, worldSyncDelayMs } from '@/world/travel'
+import { mergeWorldRefresh, worldRefreshUrl } from '@/world/presence'
 import type { WorldIntent, WorldPosition, WorldView } from '@/world/types'
 import { WorldConflict, WorldController } from './world-controller'
-import { localRoute, mapPoint, WorldMotion } from './world-motion'
+import { localRoute, mapPoint, prepareLocalRoute, WorldMotion } from './world-motion'
 import { WorldMap } from './world-map'
 import { WorldGlobe } from './world-globe'
 import { WorldMissions } from './world-missions'
 import { Surroundings } from './surroundings'
+import { clampWorldZoom, WORLD_MIN_ZOOM, WORLD_MAX_ZOOM } from './world-zoom'
+import { battleSessionHref } from '@/components/battle/battle-return-navigation'
 import styles from './workspace.module.css'
 
 function SettingsButton({
@@ -82,18 +85,27 @@ export function WorldWorkspace({
   const [active, setActive] = useState<WorldIntent | null>(null),
     [selectedPlayer, setSelectedPlayer] = useState<string | null>(null),
     [settings, setSettings] = useState(false),
-    [surroundings, setSurroundings] = useState(false),
     [visiblePlayerIds, setVisiblePlayerIds] = useState<string[] | null>(null),
     [destinationId, setDestinationId] = useState<string | null>(null)
   const [animate, setAnimate] = useState(true),
     [zoom, setZoom] = useState(1),
     [globeZoom, setGlobeZoom] = useState(0.94)
+  const [townScene, setTownScene] = useState<{
+    sectorId: string
+    src: string
+    name: string
+  } | null>(null)
   const [motion] = useState(() => new WorldMotion(initialView))
   const zoomLocked = useSyncExternalStore(subscribeZoomLock, readZoomLock, () => false)
   const changeZoom = (value: number) =>
-    (mode === 'global' ? setGlobeZoom : setZoom)(Math.max(0.6, Math.min(1.4, value)))
+    (mode === 'global' ? setGlobeZoom : setZoom)(clampWorldZoom(value))
   const controller = useRef<WorldController | null>(null),
-    acceptedAt = useRef(0)
+    acceptedAt = useRef(0),
+    localViewActive = useRef(true)
+  useEffect(() => {
+    localViewActive.current = mode === 'local'
+    if (mode === 'local') void controller.current?.refresh()
+  }, [mode])
   useEffect(() => {
     acceptedAt.current = Date.now()
     motion.reconcile(initialView, performance.now())
@@ -102,7 +114,7 @@ export function WorldWorkspace({
     const accept = (next: WorldView, reconcile: boolean) => {
       if (!mounted) return
       if (next.battleSessionId) {
-        router.replace(`/game/battle/${next.battleSessionId}`)
+        router.replace(battleSessionHref(next.battleSessionId, 'world'))
         return
       }
       if (next.characterId !== initialView.characterId) {
@@ -110,11 +122,12 @@ export function WorldWorkspace({
         return
       }
       acceptedAt.current = Date.now()
+      setTownScene((scene) => (scene?.sectorId === next.position.sectorId ? scene : null))
       if (reconcile) motion.reconcile(next, performance.now())
       setView(next)
       schedule()
     }
-    const instance = new WorldController(initialView, {
+    const instance: WorldController = new WorldController(initialView, {
       command: async (intent, current) => {
         const response = await fetch('/api/world', {
           method: 'POST',
@@ -131,12 +144,13 @@ export function WorldWorkspace({
         if (!response.ok) throw new Error(body.error?.message ?? 'The world could not respond.')
         return body as WorldView
       },
-      refresh: async () => {
-        const response = await fetch('/api/world', { cache: 'no-store' }),
+      refresh: async (signal) => {
+        const previous = instance.view
+        const response = await fetch(worldRefreshUrl(previous), { cache: 'no-store', signal }),
           body = await response.json()
         if (!response.ok)
           throw new Error(body.error?.message ?? 'The world could not be refreshed.')
-        return body as WorldView
+        return mergeWorldRefresh(previous, body)
       },
       accept,
       error: (text) => {
@@ -158,6 +172,8 @@ export function WorldWorkspace({
         nextStepAt: current.nextStepAt,
         serverNow: now,
         remainingMs: remainingTravelMs(current, now),
+        observePlayers: localViewActive.current,
+        onlinePlayers: current.players.filter((player) => player.online !== false).length,
       })
       timer = window.setTimeout(
         async () => {
@@ -222,27 +238,30 @@ export function WorldWorkspace({
       )
     })
   const destination = view.atlas?.find((cell) => cell.id === destinationId && cell.charted)
-  const status =
-    view.movementBlocked ||
-    (active?.kind === 'attack'
-      ? 'Starting encounter…'
-      : view.route.length || active?.kind === 'walk'
-        ? 'Travelling…'
-        : '')
-  function approach(position: WorldPosition) {
-    const candidates = [
-      { ...position, x: position.x - 1 },
-      { ...position, x: position.x + 1 },
-      { ...position, y: position.y - 1 },
-      { ...position, y: position.y + 1 },
-    ]
-    const routes = candidates
-      .map((destination) => ({ destination, route: localRoute(view, view.position, destination) }))
-      .filter((candidate) => candidate.route !== null)
-      .sort((a, b) => a.route!.length - b.route!.length)
-    if (routes[0]) walk(routes[0].destination)
-    else setMessage('There is no known route to that character yet.')
-  }
+  const approach = useCallback(
+    (position: WorldPosition) => {
+      const current = controller.current?.view
+      if (!current || current.movementBlocked) return
+      const now = performance.now(),
+        from = motion.sample(now).position,
+        navigate = prepareLocalRoute(current)
+      const candidates = [
+        { ...position, x: position.x - 1 },
+        { ...position, x: position.x + 1 },
+        { ...position, y: position.y - 1 },
+        { ...position, y: position.y + 1 },
+      ]
+      const routes = candidates
+        .map((destination) => ({ destination, route: navigate(from, destination) }))
+        .filter((candidate) => candidate.route !== null)
+        .sort((a, b) => a.route!.length - b.route!.length)
+      if (routes[0]) {
+        motion.plan(routes[0].route!, current.sectors, now)
+        send({ kind: 'walk', destination: routes[0].destination })
+      } else setMessage('There is no known route to that character yet.')
+    },
+    [motion, send],
+  )
   const time = new Intl.DateTimeFormat('en', {
     hour: '2-digit',
     minute: '2-digit',
@@ -312,12 +331,13 @@ export function WorldWorkspace({
               motion={motion}
               portrait={character.portrait}
               animate={animate}
-              paused={surroundings}
+              paused={Boolean(townScene)}
               zoom={zoom}
               zoomLocked={zoomLocked}
               onZoom={setZoom}
               onVisiblePlayers={setVisiblePlayerIds}
               onWalk={walk}
+              onStop={stopMoving}
               onPlayer={(id) => {
                 setSelectedPlayer(id)
                 setTab('nearby')
@@ -337,13 +357,6 @@ export function WorldWorkspace({
               }}
             />
           )}
-          {mode === 'local' ? (
-            <div className={styles.mapTools}>
-              {local.panorama ? (
-                <button onClick={() => setSurroundings(true)}>View 360°</button>
-              ) : null}
-            </div>
-          ) : null}
         </div>
         <aside
           id="world-panel"
@@ -443,10 +456,6 @@ export function WorldWorkspace({
                   <section className={styles.position}>
                     <small>YOUR POSITION</small>
                     <h2>{localName}</h2>
-                    <p data-world-coordinates>
-                      {local.coordinate} · E{local.east + view.position.x} · N
-                      {local.north - view.position.y}
-                    </p>
                   </section>
                 ) : null}
                 {mode === 'global' && destination ? (
@@ -498,38 +507,38 @@ export function WorldWorkspace({
                               ) : (
                                 <span className={styles.avatar}>{player.name[0]}</span>
                               )}
-                              <div>
+                              <div className={styles.playerIdentity}>
                                 <strong>{player.name}</strong>
                                 <small>
                                   Level {player.level}
                                   {player.online ? ' · Online' : ''}
                                 </small>
-                                <div className={styles.rowActions}>
-                                  {inRange ? (
-                                    <>
-                                      {player.attackable ? (
-                                        <button
-                                          disabled={disabled}
-                                          onClick={() =>
-                                            send({ kind: 'attack', targetId: player.characterId })
-                                          }
-                                        >
-                                          {attacking ? 'Attacking…' : 'Attack'}
-                                        </button>
-                                      ) : null}
-                                      <button disabled title="Coming soon">
-                                        Talk
+                              </div>
+                              <div className={styles.rowActions} data-world-player-actions>
+                                {inRange ? (
+                                  <>
+                                    {player.attackable ? (
+                                      <button
+                                        disabled={disabled}
+                                        onClick={() =>
+                                          send({ kind: 'attack', targetId: player.characterId })
+                                        }
+                                      >
+                                        {attacking ? 'Attacking…' : 'Attack'}
                                       </button>
-                                    </>
-                                  ) : (
-                                    <button
-                                      disabled={Boolean(view.movementBlocked)}
-                                      onClick={() => approach(player.position)}
-                                    >
-                                      Approach
+                                    ) : null}
+                                    <button disabled title="Coming soon">
+                                      Talk
                                     </button>
-                                  )}
-                                </div>
+                                  </>
+                                ) : (
+                                  <button
+                                    disabled={Boolean(view.movementBlocked)}
+                                    onClick={() => approach(player.position)}
+                                  >
+                                    Approach
+                                  </button>
+                                )}
                               </div>
                             </article>
                           )
@@ -540,90 +549,109 @@ export function WorldWorkspace({
               </div>
             )}
           </div>
-          <div className={styles.panelFoot}>
-            <span className={styles.travelStatus} data-world-travel-status role="status">
-              {status}
-            </span>
-            {view.route.length || active?.kind === 'walk' ? (
-              <button onClick={stopMoving}>Stop travel</button>
-            ) : null}
-            <SettingsButton open={settings} onClick={() => setSettings(!settings)} />
+          <div className={styles.panelFoot} data-world-panel-foot>
+            <p
+              className={styles.currentCoordinates}
+              data-world-coordinates
+              aria-label="Current sector and coordinates"
+            >
+              <span>Sector {local.coordinate}</span>
+              <span>
+                E{local.east + view.position.x} · N{local.north - view.position.y}
+              </span>
+            </p>
+            <div className={styles.panelFootActions}>
+              {local.townId && local.panorama ? (
+                <button
+                  className={styles.viewTown}
+                  onClick={() =>
+                    setTownScene({ sectorId: local.id, src: local.panorama!, name: localName })
+                  }
+                >
+                  View Town
+                </button>
+              ) : null}
+              <SettingsButton open={settings} onClick={() => setSettings(!settings)} />
+            </div>
           </div>
         </aside>
       </div>
-      {message ? (
+      {message || view.movementBlocked ? (
         <div className={styles.errorNotice} role="alert">
-          <span>{message}</span>
-          <button aria-label="Dismiss message" onClick={() => setMessage('')}>
-            ×
-          </button>
+          <span>{message || view.movementBlocked}</span>
+          {message ? (
+            <button aria-label="Dismiss message" onClick={() => setMessage('')}>
+              ×
+            </button>
+          ) : null}
         </div>
       ) : null}
       {settings ? (
-        <div
-          id="world-settings"
-          className={styles.settings}
-          role="dialog"
-          aria-label="Map settings"
-        >
-          <h3>Map settings</h3>
-          <label className={styles.zoomSetting}>
-            Zoom
-            <input
-              aria-label="Zoom level"
-              type="range"
-              min="60"
-              max="140"
-              step="2"
-              value={Math.round((mode === 'global' ? globeZoom : zoom) * 100)}
-              onChange={(event) => changeZoom(Number(event.target.value) / 100)}
-            />
-            <output>{Math.round((mode === 'global' ? globeZoom : zoom) * 100)}%</output>
-          </label>
-          <div className={styles.zoomButtons}>
-            <button
-              aria-label="Zoom out"
-              onClick={() => changeZoom((mode === 'global' ? globeZoom : zoom) - 0.1)}
-            >
-              −
-            </button>
-            <button
-              aria-label="Zoom in"
-              onClick={() => changeZoom((mode === 'global' ? globeZoom : zoom) + 0.1)}
-            >
-              +
-            </button>
-            <button
-              aria-pressed={zoomLocked}
-              onClick={() => {
-                fallbackZoomLock = !zoomLocked
-                try {
-                  localStorage.setItem('aurevane.zoomLock', !zoomLocked ? 'on' : 'off')
-                  fallbackZoomLock = null
-                } catch {}
-                window.dispatchEvent(new Event('aurevane-zoom-lock'))
-              }}
-            >
-              Zoom lock {zoomLocked ? 'On' : 'Off'}
-            </button>
+        <>
+          <button
+            className={styles.settingsBackdrop}
+            aria-label="Close map settings"
+            onPointerDown={(event) => event.stopPropagation()}
+            onClick={() => setSettings(false)}
+            onWheel={(event) => event.stopPropagation()}
+          />
+          <div
+            id="world-settings"
+            className={styles.settings}
+            role="dialog"
+            aria-label="Map settings"
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') setSettings(false)
+            }}
+          >
+            <h3>Map settings</h3>
+            <label className={styles.zoomSetting}>
+              Zoom
+              <input
+                autoFocus
+                aria-label="Zoom level"
+                type="range"
+                min={WORLD_MIN_ZOOM * 100}
+                max={WORLD_MAX_ZOOM * 100}
+                step="1"
+                value={Math.round((mode === 'global' ? globeZoom : zoom) * 100)}
+                onChange={(event) => changeZoom(Number(event.target.value) / 100)}
+              />
+              <output>{Math.round((mode === 'global' ? globeZoom : zoom) * 100)}%</output>
+            </label>
+            <div className={styles.zoomButtons}>
+              <button
+                aria-pressed={zoomLocked}
+                onClick={() => {
+                  fallbackZoomLock = !zoomLocked
+                  try {
+                    localStorage.setItem('aurevane.zoomLock', !zoomLocked ? 'on' : 'off')
+                    fallbackZoomLock = null
+                  } catch {}
+                  window.dispatchEvent(new Event('aurevane-zoom-lock'))
+                }}
+              >
+                Zoom lock {zoomLocked ? 'On' : 'Off'}
+              </button>
+            </div>
+            <label>
+              <input
+                type="checkbox"
+                checked={animate}
+                onChange={(event) => setAnimate(event.target.checked)}
+              />{' '}
+              Ambient animation
+            </label>
+            <p>Reduced motion follows your device preference.</p>
+            <button onClick={() => setSettings(false)}>Done</button>
           </div>
-          <label>
-            <input
-              type="checkbox"
-              checked={animate}
-              onChange={(event) => setAnimate(event.target.checked)}
-            />{' '}
-            Ambient animation
-          </label>
-          <p>Reduced motion follows your device preference.</p>
-          <button onClick={() => setSettings(false)}>Done</button>
-        </div>
+        </>
       ) : null}
-      {surroundings && local.panorama ? (
+      {townScene ? (
         <Surroundings
-          src={local.panorama}
-          name={localName}
-          onClose={() => setSurroundings(false)}
+          src={townScene.src}
+          name={townScene.name}
+          onClose={() => setTownScene(null)}
         />
       ) : null}
     </section>

@@ -13,10 +13,10 @@ export function createWildlife(sector: WorldSectorView): Wildlife[] {
   const ground = sector.cells.filter((c) => c.walkable && (c.terrain === '.' || c.terrain === '='))
   const cells = new Map(ground.map((c) => [`${c.x}:${c.y}`, c]))
   const animals: Wildlife[] = []
-  for (let i = 0; i < (sector.townId ? 1 : 3); i++) {
+  for (let i = 0; i < 1; i++) {
     const cell = ground[Math.floor(random() * ground.length)]
     if (!cell) continue
-    const flying = i === 0
+    const flying = random() < 0.3
     const path = [{ x: cell.x + 0.5, y: cell.y + 0.5 }]
     if (flying) path.push({ x: cell.x + 3.5, y: cell.y + 2.5 })
     else {

@@ -31,7 +31,12 @@ function routePoints(
     return { point, position: step.position, duration: step.durationMs }
   })
 }
-export function localRoute(view: WorldView, from: WorldPosition, to: WorldPosition) {
+type LocalNavigator = (from: WorldPosition, to: WorldPosition) => TravelStep[] | null
+const navigationCache = new WeakMap<readonly WorldSectorView[], LocalNavigator>()
+/** Reuse navigation while the supplied terrain snapshot retains its identity. */
+export function prepareLocalRoute(view: Pick<WorldView, 'sectors'>) {
+  const cached = navigationCache.get(view.sectors)
+  if (cached) return cached
   const sectors = view.sectors.map((sector) => ({
     ...sector,
     rows: Array.from({ length: GRID_HEIGHT }, (_, y) =>
@@ -47,7 +52,13 @@ export function localRoute(view: WorldView, from: WorldPosition, to: WorldPositi
       sector.cells.map((cell) => positionKey({ sectorId: sector.id, ...cell })),
     ),
   )
-  return findWorldRoute(from, to, sectors, (position) => known.has(positionKey(position)))
+  const navigate: LocalNavigator = (from, to) =>
+    findWorldRoute(from, to, sectors, (position) => known.has(positionKey(position)))
+  navigationCache.set(view.sectors, navigate)
+  return navigate
+}
+export function localRoute(view: WorldView, from: WorldPosition, to: WorldPosition) {
+  return prepareLocalRoute(view)(from, to)
 }
 function loadedRoute(
   route: readonly TravelStep[],
@@ -103,6 +114,17 @@ export class WorldMotion {
     this.standing = sample.position
     this.startedAt = now
     this.route = routePoints(loadedRoute(route, sectors, 600), sectors, sample.point)
+    const first = this.route[0]
+    if (first) {
+      const standing = mapPoint(sample.position, sectors, sample.point),
+        distance = Math.hypot(first.point.x - sample.point.x, first.point.y - sample.point.y),
+        wholeStep = Math.hypot(first.point.x - standing.x, first.point.y - standing.y)
+      // Repeated clicks/held input must keep the same walking speed. A half-
+      // finished step needs half its authored time, rather than a new full step.
+      first.duration = wholeStep ? (first.duration * distance) / wholeStep : STEP_MS * distance
+      let elapsed = 0
+      this.route = this.route.filter((step) => (elapsed += step.duration) <= 600)
+    }
   }
   reconcile(view: WorldView, now: number) {
     const visual = this.sample(now),
@@ -136,22 +158,51 @@ export class WorldMotion {
       this.origin = visual.point
       this.standing = visual.position
       const first = points[nearest]!
-      const remaining = points.slice(nearest).map((step) => ({ ...step, duration: STEP_MS }))
+      const remaining = points.slice(nearest).map((step) => ({ ...step }))
       if (remaining.length)
         remaining[0]!.duration = Math.max(
           30,
-          Math.hypot(first.point.x - visual.point.x, first.point.y - visual.point.y) * STEP_MS,
+          Math.hypot(first.point.x - visual.point.x, first.point.y - visual.point.y) *
+            first.duration,
         )
       this.route = remaining
     } else {
-      this.origin = authoritative
-      this.standing = view.position
-      this.route = route
-    }
-    if (!view.route.length) {
-      this.origin = authoritative
-      this.standing = view.position
-      this.route = []
+      // Receipts can land after the bounded preview drains, or before the
+      // final visual step finishes. Correct through supplied legal terrain;
+      // do not teleport an ordinary arrival or invent a path across water.
+      const correction = view.sectors.every((sector) => sector.cells && sector.exits)
+        ? localRoute(view, visual.position, view.position)
+        : null
+      if (
+        correction &&
+        (correction.length || positionKey(visual.position) === positionKey(view.position))
+      ) {
+        this.origin = visual.point
+        this.standing = visual.position
+        const correctionPoints = routePoints(correction, view.sectors, visual.point)
+        if (
+          !correctionPoints.length &&
+          Math.hypot(authoritative.x - visual.point.x, authoritative.y - visual.point.y) > 0.001
+        )
+          correctionPoints.push({
+            point: authoritative,
+            position: view.position,
+            duration: STEP_MS,
+          })
+        if (correctionPoints.length) {
+          const first = correctionPoints[0]!
+          first.duration *= Math.hypot(
+            first.point.x - visual.point.x,
+            first.point.y - visual.point.y,
+          )
+        }
+        this.route = [...correctionPoints, ...route]
+      } else {
+        // Unknown/disconnected relocations cannot be safely interpolated.
+        this.origin = authoritative
+        this.standing = view.position
+        this.route = route
+      }
     }
   }
   stop(now: number) {

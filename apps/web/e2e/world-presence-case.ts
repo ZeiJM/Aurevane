@@ -12,12 +12,14 @@ export async function verifyWorldScenePresence(
     place,
     sql,
     capture,
+    stageWalk,
   }: {
     enter: (page: Page) => Promise<string>
     world: (page: Page) => Promise<WorldView>
     place: (id: string, sector: string, x: number, y: number, safe?: boolean) => void
     sql: (query: string) => string
     capture: (page: Page, info: TestInfo, name: string) => Promise<void>
+    stageWalk: (page: Page, position: WorldView['position']) => Promise<void>
   },
 ) {
   test.skip(info.project.name !== 'desktop-chromium', 'Exercise two-account presence once.')
@@ -51,6 +53,96 @@ export async function verifyWorldScenePresence(
     expect(scene.sectors.length).toBeLessThanOrEqual(25)
     await capture(page, info, 'nearby-across-sector-boundary')
 
+    // Let globe mode schedule its slower idle timer, then return. Local
+    // observation must restart promptly instead of retaining a ten-second wait.
+    const globePresence = page.waitForResponse(
+      (response) =>
+        response.request().method() === 'GET' &&
+        new URL(response.url()).searchParams.has('presenceVersion'),
+    )
+    await page.getByRole('button', { name: /Open world atlas/ }).click()
+    await globePresence
+    const localPresence = page.waitForResponse(
+      (response) =>
+        response.request().method() === 'GET' &&
+        new URL(response.url()).searchParams.has('presenceVersion'),
+      { timeout: 5000 },
+    )
+    await page.getByRole('button', { name: /Return to local map/ }).click()
+    expect((await (await localPresence).json()).kind).toBe('presence')
+
+    // An idle observer must see a real second account walking, including with
+    // ambient effects disabled. Probe the actual canvas nameplate, not React state.
+    await page.getByRole('button', { name: 'Map settings', exact: true }).click()
+    await page.getByRole('checkbox', { name: 'Ambient animation', exact: true }).uncheck()
+    await page.getByRole('button', { name: 'Done', exact: true }).click()
+    await canvas.evaluate(
+      (el, name) => {
+        const ctx = (el as HTMLCanvasElement).getContext('2d')!,
+          original = ctx.fillText.bind(ctx)
+        const samples: { at: number; x: number; y: number }[] = []
+        ctx.fillText = (text, x, y, maxWidth) => {
+          if (text === name) {
+            samples.push({ at: performance.now(), x, y })
+            if (samples.length > 300) samples.shift()
+            el.dataset.testRemoteDraws = JSON.stringify(samples)
+          }
+          if (maxWidth === undefined) original(text, x, y)
+          else original(text, x, y, maxWidth)
+        }
+      },
+      scene.players.find((p) => p.characterId === id)!.name,
+    )
+    await other.goto('/game/world')
+    const movedPresence = page.waitForResponse(
+      async (response) => {
+        if (
+          response.request().method() !== 'GET' ||
+          !new URL(response.url()).searchParams.has('presenceVersion')
+        )
+          return false
+        const receipt = await response.json()
+        return (
+          receipt.kind === 'presence' &&
+          receipt.players.some(
+            (p: { characterId: string; position: { x: number } }) =>
+              p.characterId === id && p.position.x > 0,
+          )
+        )
+      },
+      { timeout: 12000 },
+    )
+    const destination = { sectorId: 'atlas:59:28', x: 4, y: 4 }
+    await stageWalk(other, destination)
+    const observed = await (await movedPresence).json()
+    expect(observed).not.toHaveProperty('sectors')
+    expect(observed).not.toHaveProperty('atlas')
+    await expect
+      .poll(
+        async () => {
+          const samples = JSON.parse(
+            (await canvas.getAttribute('data-test-remote-draws')) ?? '[]',
+          ) as { x: number; y: number }[]
+          return new Set(samples.map((sample) => `${sample.x}:${sample.y}`)).size
+        },
+        { timeout: 4000 },
+      )
+      .toBeGreaterThan(8)
+    await expect
+      .poll(async () => (await world(other)).position, { timeout: 12000 })
+      .toEqual(destination)
+    await expect
+      .poll(async () => (await world(page)).players.find((p) => p.characterId === id)?.position, {
+        timeout: 5000,
+      })
+      .toEqual(destination)
+    expect((await world(page)).position).toEqual({ sectorId: 'atlas:58:28', x: 12, y: 4 })
+    await capture(page, info, 'idle-observer-smooth-remote-arrival')
+    await other.goto('about:blank')
+    // Restore the initial neighbouring placement before the viewport/privacy cases.
+    place(id, 'atlas:59:28', 0, 4)
+    await page.reload()
+
     // Choose a real loaded land tile outside this viewport, but inside the wider
     // view at 60% zoom. No intercepted presence responses or fabricated players.
     const box = (await canvas.boundingBox())!,
@@ -82,6 +174,7 @@ export async function verifyWorldScenePresence(
     const zoom = page.getByRole('slider', { name: 'Zoom level', exact: true })
     await zoom.focus()
     await zoom.press('Home')
+    for (let i = 0; i < 25; i++) await zoom.press('ArrowRight')
     await expect(zoom).toHaveValue('60')
     await page.getByRole('button', { name: 'Done', exact: true }).click()
     await expect(player).toBeVisible({ timeout: 10000 })

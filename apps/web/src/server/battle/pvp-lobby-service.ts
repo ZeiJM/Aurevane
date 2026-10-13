@@ -107,6 +107,7 @@ export interface PvpBattleParticipantView {
 }
 
 export interface PvpBattleMetadata {
+  origin?: 'world' | 'battle-hall'
   lobbyId: string
   mode: PvpMode
   battleKey: string
@@ -695,8 +696,17 @@ export async function getPvpBattleMetadata(
   const localCharacterId = readString(data.local_character_id)
   if (!lobbyId || !battleKey || !localCharacterId)
     throw unavailable('The PvP battle metadata is invalid.')
+  if (data.origin !== undefined && data.origin !== 'world' && data.origin !== 'battle-hall')
+    throw unavailable('The PvP battle origin is invalid.')
   const participants = await decorateBattleParticipants(parseParticipantRows(data.participants))
-  return { lobbyId, mode: data.mode, battleKey, localCharacterId, participants }
+  return {
+    lobbyId,
+    mode: data.mode,
+    battleKey,
+    localCharacterId,
+    participants,
+    origin: data.origin,
+  }
 }
 
 export async function getPvpSpectatorView(battleKey: string): Promise<PvpSpectatorView | null> {

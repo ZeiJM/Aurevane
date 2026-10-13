@@ -487,7 +487,7 @@
     grid-template-rows: var(--av-cockpit-art-size) max-content 1.125rem auto;
     row-gap: 1px;
     --battle-command-gap: 1px;
-    padding: 4px max(0.5rem, calc((100% - 88rem) / 2)) 0;
+    padding: 4px max(0.5rem, calc((100% - 88rem) / 2));
     align-content: start;
     background: var(--av-battle-cockpit-material);
   }

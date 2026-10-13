@@ -1,6 +1,6 @@
 import { GRID_HEIGHT, GRID_WIDTH } from '@/world/catalog'
 import { hashString } from '@/world/terrain-gen'
-import type { WorldSectorView } from '@/world/types'
+import type { WorldCell as TerrainCell, WorldSectorView } from '@/world/types'
 
 type Point = readonly [number, number]
 type Curve = readonly [Point, Point, Point, Point]
@@ -154,7 +154,7 @@ function currentCurve(worldX: number, worldY: number, connected: boolean[]): Cur
 
 /** Only supplied cells participate. Private/legacy sectors have their own namespace. */
 export function buildWaterField(sectors: readonly WorldSectorView[]): Map<string, WaterSector> {
-  const terrain = new Map<string, string>()
+  const terrain = new Map<string, TerrainCell>()
   const namespace = (sector: WorldSectorView) =>
     sector.charted && sector.atlasColumn !== undefined && sector.atlasRow !== undefined
       ? 'atlas'
@@ -163,7 +163,7 @@ export function buildWaterField(sectors: readonly WorldSectorView[]): Map<string
     const ox = (sector.atlasColumn ?? 0) * GRID_WIDTH,
       oy = (sector.atlasRow ?? 0) * GRID_HEIGHT
     for (const cell of sector.cells)
-      terrain.set(`${namespace(sector)}:${cellKey(ox + cell.x, oy + cell.y)}`, cell.terrain)
+      terrain.set(`${namespace(sector)}:${cellKey(ox + cell.x, oy + cell.y)}`, cell)
   }
   const field = new Map<string, WaterSector>()
   for (const sector of sectors) {
@@ -174,9 +174,20 @@ export function buildWaterField(sectors: readonly WorldSectorView[]): Map<string
       if (cell.terrain !== '~') continue
       const wx = ox + cell.x,
         wy = oy + cell.y
-      const neighbours = directions.map(([dx, dy]) =>
-        terrain.get(`${namespace(sector)}:${cellKey(wx + dx, wy + dy)}`),
-      )
+      const neighbours = directions.map(([dx, dy]) => {
+        const at = (distance: number) =>
+          terrain.get(`${namespace(sector)}:${cellKey(wx + dx * distance, wy + dy * distance)}`)
+        const neighbour = at(1)
+        if (neighbour?.terrain === '=' && neighbour.walkable)
+          for (let distance = 2; distance <= 4; distance++) {
+            const next = at(distance)
+            // The dry bridge remains dry and legal. Only a supplied water
+            // endpoint proves that this bank continues beneath its deck.
+            if (next?.terrain === '~') return '~'
+            if (next?.terrain !== '=' || !next.walkable) break
+          }
+        return neighbour?.terrain
+      })
       const banks: Bank[] = []
       neighbours.forEach((material, side) => {
         // Unknown cells are neither invented land nor an exposed shoreline.

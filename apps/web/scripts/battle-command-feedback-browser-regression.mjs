@@ -96,6 +96,45 @@ const browser = await chromium.launch({
   headless: true,
 })
 const errors = []
+async function verifyChatComposer(page) {
+  await page.locator('main > footer button').filter({ hasText: /^Chat/ }).click()
+  const panel = page.locator('#pvp-battle-chat-panel[data-open]')
+  await panel.waitFor({ state: 'visible' })
+  await panel.getByText('A local fixture message for checking battle chat layout.').waitFor()
+  const read = () =>
+    panel.evaluate((element) => {
+      const input = element.querySelector('input[aria-label="Battle chat message"]')
+      const form = input.closest('form')
+      const messages = element.querySelector('[aria-live="polite"]')
+      return {
+        inputHeight: input.getBoundingClientRect().height,
+        composerHeight: form.getBoundingClientRect().height,
+        messageHeight: messages.getBoundingClientRect().height,
+        insidePanel:
+          form.getBoundingClientRect().bottom <= element.getBoundingClientRect().bottom + 1,
+        noHorizontalOverflow: element.scrollWidth <= element.clientWidth + 1,
+      }
+    })
+  for (const errorState of [false, true]) {
+    if (errorState) {
+      await panel.getByRole('textbox', { name: 'Battle chat message' }).fill('Local fixture text')
+      await panel.getByRole('button', { name: 'Send', exact: true }).click()
+      await panel.getByText('Fixture send unavailable.').waitFor()
+    }
+    const geometry = await read()
+    assert.ok(geometry.inputHeight <= 48, 'Chat input stays one compact row')
+    assert.ok(geometry.composerHeight <= 80, 'Chat composer cannot fill the message area')
+    assert.ok(
+      geometry.messageHeight > geometry.composerHeight,
+      'Messages receive the flexible space',
+    )
+    assert.equal(geometry.insidePanel, true, 'Chat composer stays inside its window')
+    assert.equal(geometry.noHorizontalOverflow, true, 'Chat controls do not overflow horizontally')
+  }
+  await page.screenshot({ path: resolve(output, `chat-composer-${page.viewportSize().width}.png`) })
+  await page.locator('main > footer button').filter({ hasText: /^Chat/ }).click()
+  await panel.waitFor({ state: 'hidden' })
+}
 async function verifyTabGuard(page) {
   await page.evaluate(() => {
     if (document.querySelector('[data-fixture-text-entry]')) return
@@ -214,9 +253,12 @@ try {
         })
         page.setDefaultTimeout(5000)
         page.on('pageerror', (error) => errors.push(error.message))
-        await page.goto(server.resolvedUrls.local[0] + `?mode=${mode}`)
+        await page.goto(
+          server.resolvedUrls.local[0] + `?mode=${mode}${mode === 'pvp' ? '&chat=1' : ''}`,
+        )
         const root = page.locator('main')
         await root.waitFor()
+        if (mode === 'pvp' && gesture === 'move-pointer') await verifyChatComposer(page)
         if (captureFlames) {
           // Record the actual shared emblem for visual review through a full slow glow cycle.
           await page.waitForTimeout(8000)
@@ -266,10 +308,15 @@ try {
               itemsCaption.scrollWidth <= itemsCaption.clientWidth + 1 &&
               itemsCaption.getBoundingClientRect().bottom <=
                 deck.getBoundingClientRect().bottom + 1,
+            footerGap:
+              document.querySelector('[data-unified-battle-footer]').getBoundingClientRect().top -
+              deck.getBoundingClientRect().bottom,
           }
         })
         assert.equal(geometry.overflows, false, 'Items introduces no horizontal page overflow')
         assert.equal(geometry.itemsCaptionFits, true, 'Coming soon stays fully inside the cockpit')
+        if (viewport.width >= 821)
+          assert.ok(geometry.footerGap >= 4, 'Cockpit keeps a visible inset above the footer')
         for (const frame of geometry.frames) {
           assert.ok(
             Math.abs(frame.width - geometry.expected) <= 1,

@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { CharacterIdentityCard } from '@/components/character/character-identity-card'
 import { AuthenticatedGameRecoveryContent } from '@/components/shell/authenticated-game-shell'
 import { WorldWorkspace } from '@/components/world/world-workspace'
+import { battleSessionHref } from '@/components/battle/battle-return-navigation'
 import styles from '@/components/world/workspace.module.css'
 import { getOptionalPublicSupabaseConfig } from '@/lib/supabase/config'
 import { getCurrentAccountServicesReadiness } from '@/server/account/account-services-readiness'
@@ -36,7 +37,7 @@ export default async function WorldMapPage() {
     getActiveSpectatingForUser(actor.userId),
     loadSelectedCharacter(actor),
   ])
-  if (battle) redirect(`/game/battle/${battle.battleSessionId}`)
+  if (battle) redirect(battleSessionHref(battle.battleSessionId, 'world'))
   if (spectating) redirect(`/game/battle/spectate/${spectating.battleKey}`)
   if (!character) redirect('/game')
   let loaded

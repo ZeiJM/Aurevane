@@ -496,7 +496,9 @@ test('expired training releases travel without claiming XP and frontier discover
   await page.getByRole('button', { name: 'Start Training', exact: true }).click()
   await expect(page.getByTestId('passive-training-active')).toBeVisible()
   await page.goto('/game/world')
-  await expect(page.getByRole('status')).toContainText('Stop Passive Training')
+  await expect(page.locator('[data-world-workspace]').getByRole('alert')).toContainText(
+    'Stop Passive Training',
+  )
   sql(
     `update app_private.wayfarers_practice_state set plan_set_at=clock_timestamp()-interval '9 hours' where character_id='${initial.characterId}'::uuid`,
   )
@@ -709,7 +711,7 @@ for (const journey of [
     await expect(page.getByRole('group', { name: /World globe/ })).toBeHidden()
     const arrival = { sectorId: journey.destinationId, x: 6, y: 4 }
     await stageWalk(page, arrival)
-    await expect(page.getByRole('button', { name: 'Stop travel', exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Stop travel', exact: true })).toHaveCount(0)
     // Steps are fast now, so poll tightly and stop before the walk leaves the road sector.
     await expect
       .poll(async () => (await world(page)).position, { timeout: 12000, intervals: [40] })
@@ -721,13 +723,11 @@ for (const journey of [
         response.request().postDataJSON()?.intent?.kind === 'stop',
       { timeout: 15000 },
     )
-    const stopButton = page.getByRole('button', { name: 'Stop travel', exact: true })
-    await stopButton.click()
+    await page.locator('canvas[data-world-stage]').press('Escape')
     const committedStop = await stopResponse
     expect(committedStop.status()).toBe(200)
     const stopReceipt: WorldView = await committedStop.json()
     expect(stopReceipt.route).toHaveLength(0)
-    await expect(stopButton).toBeHidden()
     const stopped = await world(page)
     expect(stopped.route).toHaveLength(0)
     expect(stopped.position).toEqual(stopReceipt.position)
@@ -780,10 +780,49 @@ test('a proximity attack reaches both authenticated players', async ({ page, bro
         exact: true,
       })
     await expect(attackButton).toBeEnabled({ timeout: 15000 })
-    await attackButton.click()
-    await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]+$/, { timeout: 15000 })
+    // An idle read must never make a real encounter command wait for that read.
+    let releaseRead!: () => void,
+      heldRead = false
+    const slowRead = new Promise<void>((resolve) => {
+      releaseRead = resolve
+    })
+    const holdRefresh = async (route: import('@playwright/test').Route) => {
+      if (
+        route.request().method() === 'GET' &&
+        new URL(route.request().url()).searchParams.has('presenceVersion') &&
+        !heldRead
+      ) {
+        heldRead = true
+        await slowRead
+        await route.continue().catch(() => {}) // Expected if user input aborts the held GET.
+      } else await route.continue()
+    }
+    await page.route('**/api/world*', holdRefresh)
+    try {
+      await expect.poll(() => heldRead, { timeout: 10000 }).toBe(true)
+      const dispatched = page.waitForRequest(
+        (request) =>
+          new URL(request.url()).pathname === '/api/world' &&
+          request.method() === 'POST' &&
+          request.postDataJSON()?.intent?.kind === 'attack',
+        { timeout: 1500 },
+      )
+      await attackButton.click()
+      await dispatched
+    } finally {
+      releaseRead()
+      await page.unroute('**/api/world*', holdRefresh)
+    }
+    await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}\?returnTo=world$/, {
+      timeout: 15000,
+    })
+    // The target automatically receives the confirmed encounter, without clicking refresh.
+    await expect(opponent).toHaveURL(page.url(), { timeout: 10000 })
+    // Re-entering World must retain the same preference through the server redirect too.
+    await opponent.goto('/game/world')
     await expect(opponent).toHaveURL(page.url(), { timeout: 15000 })
-    const battleId = page.url().split('/').at(-1)!
+    const battleId = new URL(page.url()).pathname.split('/').at(-1)!
+    expect(battleId).toMatch(/^[0-9a-f-]{36}$/)
     expect(
       sql(
         `select count(*) from app_private.battle_participants where battle_session_id='${battleId}'::uuid and participant_role='player'`,
@@ -796,6 +835,35 @@ test('a proximity attack reaches both authenticated players', async ({ page, bro
     ).toBe('1')
     await capture(page, info, 'world-encounter-attacker')
     await capture(opponent, info, 'world-encounter-target')
+    const field = page.locator('main[data-unified-battle="true"][data-battle-kind="pvp"]')
+    await expect(field).not.toHaveAttribute('aria-busy', 'true')
+    await field.getByRole('button', { name: 'Surrender', exact: true }).click()
+    const dialog = page.getByRole('dialog', { name: 'Surrender this battle?' })
+    await expect(dialog).toBeVisible()
+    const surrendered = page.waitForResponse(
+      (response) => response.url().endsWith('/surrender') && response.request().method() === 'POST',
+    )
+    await dialog.getByRole('button', { name: 'Confirm Surrender' }).click()
+    expect((await surrendered).status()).toBe(200)
+    for (const participant of [page, opponent]) {
+      await expect(participant.getByTestId('pvp-battle-result-overlay')).toBeVisible({
+        timeout: 20000,
+      })
+      await participant.reload()
+      const result = participant.getByTestId('pvp-battle-result-overlay')
+      await expect(
+        result.getByRole('button', { name: 'Return to World', exact: true }),
+      ).toBeVisible()
+      await expect(
+        result.getByRole('button', { name: 'Return to Battle Hall', exact: true }),
+      ).toHaveCount(0)
+      await result.getByRole('button', { name: 'Return to World', exact: true }).click()
+      await expect(participant).toHaveURL(/\/game\/world$/)
+      await expect(participant.locator('canvas[data-world-stage]')).toBeVisible()
+    }
+    expect((await world(page)).position).toEqual({ sectorId: 'crown-road', x: 5, y: 4 })
+    expect((await world(opponent)).position).toEqual({ sectorId: 'crown-road', x: 6, y: 4 })
+    await capture(page, info, 'world-battle-return-after-reload')
   } finally {
     await opponentContext.close()
   }
@@ -1135,7 +1203,7 @@ test('a synthetic population of 100 has bounded rendering at high DPI and lower 
       y: ground[Math.floor(i / 3) % ground.length]!.y,
     },
   }))
-  await page.route('**/api/world', async (route) => {
+  await page.route('**/api/world*', async (route) => {
     if (route.request().method() !== 'GET') return route.continue()
     const response = await route.fetch(),
       body = await response.json()
@@ -1275,7 +1343,7 @@ test('the globe rotates by dragging and has a usable charted fallback without We
   await page.getByLabel('Charted sector', { exact: true }).selectOption('frostmere')
   await page.getByRole('button', { name: 'Travel here', exact: true }).click()
   await expect.poll(async () => (await world(page)).route.length).toBeGreaterThan(0)
-  await page.getByRole('button', { name: 'Stop travel', exact: true }).click()
+  await page.locator('canvas[data-world-stage]').press('Escape')
   await expect.poll(async () => (await world(page)).route.length).toBe(0)
   await capture(page, info, 'fallback-route-return')
 })
@@ -1360,5 +1428,12 @@ test('known neighbouring players follow the visible viewport with service-only p
   page,
   browser,
 }, info) => {
-  await verifyWorldScenePresence(page, browser, info, { enter, world, place, sql, capture })
+  await verifyWorldScenePresence(page, browser, info, {
+    enter,
+    world,
+    place,
+    sql,
+    capture,
+    stageWalk,
+  })
 })

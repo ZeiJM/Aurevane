@@ -5,6 +5,7 @@ import { toServerErrorResponse } from '@/server/http/error-response'
 import { attackWorldPlayer } from '@/server/world/world-battle'
 import { commitWorldCommand, readWorld } from '@/server/world/world-repository'
 import { parseWorldCommand } from '@/world/command'
+import { worldRefreshResponse } from '@/world/presence'
 
 export const dynamic = 'force-dynamic'
 async function identity() {
@@ -15,10 +16,11 @@ async function identity() {
 }
 const json = (view: unknown) =>
   Response.json(view, { headers: { 'Cache-Control': 'private, no-store' } })
-export async function GET() {
+export async function GET(request?: Request) {
   try {
     const actor = await identity()
-    return json((await readWorld(actor.userId, actor.characterId)).view)
+    const view = (await readWorld(actor.userId, actor.characterId)).view
+    return json(worldRefreshResponse(view, request?.url ?? '/api/world'))
   } catch (error) {
     return toServerErrorResponse(error)
   }

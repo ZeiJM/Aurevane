@@ -13,6 +13,9 @@ export function worldSyncDelayMs(state: {
   serverNow: number
   /** Real milliseconds until the last step lands, when known. */
   remainingMs?: number
+  /** Foreground local-map observers still need to see other travellers move. */
+  observePlayers?: boolean
+  onlinePlayers?: number
 }) {
   if (state.routeLength > 0 && !state.movementBlocked) {
     if (state.nextStepAt !== null) {
@@ -24,7 +27,7 @@ export function worldSyncDelayMs(state: {
     }
     return ACTIVE_WORLD_SYNC_MS
   }
-  return IDLE_WORLD_SYNC_MS
+  return state.observePlayers ? ((state.onlinePlayers ?? 0) > 0 ? 1000 : 2000) : IDLE_WORLD_SYNC_MS
 }
 
 export const positionKey = (p: WorldPosition) => `${p.sectorId}:${p.x}:${p.y}`

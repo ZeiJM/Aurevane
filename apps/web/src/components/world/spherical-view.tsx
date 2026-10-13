@@ -6,6 +6,7 @@ import styles from './world.module.css'
 import type { WorldAtlasCell } from '@/world/types'
 import { globeAtlasDetailPixels, readGlobePainting, type GlobePainting } from './globe-atlas'
 import { globeFallbackPixels } from './globe-fallback'
+import { clampWorldZoom } from './world-zoom'
 
 interface Props {
   src: string
@@ -46,7 +47,7 @@ export function SphericalView({
     const wheel = (event: WheelEvent) => {
       event.preventDefault()
       if (!zoomLocked)
-        onZoom(Math.max(0.6, Math.min(1.4, zoom - event.deltaY * (event.ctrlKey ? 0.006 : 0.0008))))
+        onZoom(clampWorldZoom(zoom - event.deltaY * (event.ctrlKey ? 0.006 : 0.0008)))
     }
     element.addEventListener('wheel', wheel, { passive: false })
     return () => element.removeEventListener('wheel', wheel)
@@ -175,12 +176,7 @@ export function SphericalView({
           touchPoints.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
         if (pinch.current && touchPoints.current.size >= 2) {
           if (!zoomLocked && pinch.current.distance > 0)
-            onZoom(
-              Math.max(
-                0.6,
-                Math.min(1.4, (pinch.current.zoom * touchDistance()) / pinch.current.distance),
-              ),
-            )
+            onZoom(clampWorldZoom((pinch.current.zoom * touchDistance()) / pinch.current.distance))
           return
         }
         if (gestured.current) return
@@ -240,8 +236,8 @@ export function SphericalView({
             ),
           })
         }
-        if (e.key === '+' || e.key === '=') onZoom(Math.min(1.4, zoom + 0.1))
-        if (e.key === '-') onZoom(Math.max(0.6, zoom - 0.1))
+        if (e.key === '+' || e.key === '=') onZoom(clampWorldZoom(zoom + 0.1))
+        if (e.key === '-') onZoom(clampWorldZoom(zoom - 0.1))
       }}
     >
       {failed ? (

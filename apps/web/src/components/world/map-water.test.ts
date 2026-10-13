@@ -95,7 +95,7 @@ describe('world-connected water presentation', () => {
     expect(field.get('open-water')!.cells.get('5:4')).toMatchObject({ channel: true })
   })
 
-  it('keeps legal bridge gaps out of the water field and its current', () => {
+  it('keeps legal bridge gaps out of the water field while leaving proven river mouths open', () => {
     const field = buildWaterField([
       sector('bridge', 0, [
         [10, 2, '~'],
@@ -107,8 +107,8 @@ describe('world-connected water presentation', () => {
     ])
     const water = field.get('bridge')!.cells
     expect([...water.keys()]).toEqual(['10:2', '10:6'])
-    expect(water.get('10:2')!.banks.map((bank) => bank.side)).toEqual([2])
-    expect(water.get('10:6')!.banks.map((bank) => bank.side)).toEqual([0])
+    expect(water.get('10:2')!.banks.map((bank) => bank.side)).toEqual([])
+    expect(water.get('10:6')!.banks.map((bank) => bank.side)).toEqual([])
   })
 
   it('does not infer hidden cells or join a private survey to public terrain at the same atlas address', () => {
@@ -125,5 +125,19 @@ describe('world-connected water presentation', () => {
     expect(withPublic.key).toBe(alone.key)
     expect([...withPublic.cells.keys()]).toEqual(['10:8'])
     expect(withPublic.cells.get('10:8')!.banks.map((bank) => bank.side)).toEqual([3])
+  })
+  it('keeps a shore where a road has no supplied water endpoint or is not legal ground', () => {
+    const crossing = sector('unknown-mouth', 0, [
+      [10, 2, '~'],
+      [10, 3, '='],
+      [10, 4, '='],
+    ])
+    const incomplete = buildWaterField([crossing]).get(crossing.id)!.cells.get('10:2')!
+    expect(incomplete.banks.map((bank) => bank.side)).toEqual([2])
+    crossing.cells.push({ x: 10, y: 5, terrain: '~', walkable: false, safe: false })
+    crossing.cells[1]!.walkable = false
+    const blocked = buildWaterField([crossing]).get(crossing.id)!.cells.get('10:2')!
+    expect(blocked.banks.map((bank) => bank.side)).toEqual([2])
+    expect(buildWaterField([crossing]).get(crossing.id)!.cells.has('10:3')).toBe(false)
   })
 })

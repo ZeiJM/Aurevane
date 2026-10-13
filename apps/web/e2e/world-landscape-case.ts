@@ -1,7 +1,14 @@
+import { createRequire } from 'node:module'
 import { expect, test, type Page, type TestInfo } from '@playwright/test'
 import { atlasSectors, ATLAS_COLUMNS } from '../src/world/atlas'
-import { GRID_WIDTH } from '../src/world/catalog'
+import { GRID_WIDTH, GRID_HEIGHT } from '../src/world/catalog'
+import { atlasNeighbor } from '../src/world/topology'
 import type { WorldView, WorldPosition } from '../src/world/types'
+
+const imageRuntime = createRequire(__filename)
+// Decode native screenshots outside the page; cross-origin public portraits
+// intentionally make page getImageData unavailable. Next already provides Sharp.
+const sharp = imageRuntime(imageRuntime.resolve('sharp', { paths: [imageRuntime.resolve('next')] }))
 
 interface Helpers {
   enter: (page: Page) => Promise<string>
@@ -61,6 +68,158 @@ export function registerWorldLandscapeCases(helpers: Helpers) {
     )
   })
 
+  test('biome boundaries and coastal road approaches retain continuous legal ground', async ({
+    page,
+  }, info) => {
+    test.skip(info.project.name !== 'desktop-chromium', 'Inspect authored terrain rendering once.')
+    test.setTimeout(90000)
+    await enter(page)
+    const initial = await world(page),
+      sectors = atlasSectors(),
+      byAddress = new Map(
+        sectors.map((sector) => [`${sector.atlasColumn}:${sector.atlasRow}`, sector]),
+      )
+    const boundary = sectors.flatMap((sector) => {
+      const address = atlasNeighbor(sector.atlasColumn!, sector.atlasRow!, 1, 0),
+        neighbor = address && byAddress.get(`${address.column}:${address.row}`)
+      if (!neighbor || sector.regionId === neighbor.regionId || sector.townId || neighbor.townId)
+        return []
+      const road = sector.roads.find(
+        (road) => road.from.x === 12 && road.from.y === 4 && road.to.sectorId === neighbor.id,
+      )
+      return road ? [{ sector, neighbor, road }] : []
+    })[0]!
+    expect(boundary).toBeDefined()
+    place(initial.characterId, boundary.sector.id, 11, 4)
+    await page.reload()
+    const canvas = page.locator('canvas[data-world-stage]')
+    await expect(canvas).toHaveAttribute('data-camera-x', /\d/)
+    expect((await world(page)).sectors.some((sector) => sector.id === boundary.neighbor.id)).toBe(
+      true,
+    )
+    await capture(page, info, 'biome-boundary-cached-material')
+    await stageWalk(page, boundary.road.to)
+    await expect
+      .poll(async () => (await world(page)).position, { timeout: 12000 })
+      .toEqual(boundary.road.to)
+    await capture(page, info, 'biome-boundary-after-continuous-crossing')
+    const coast = sectors.find((sector) => {
+      const address = atlasNeighbor(sector.atlasColumn!, sector.atlasRow!, 1, 0)
+      return (
+        address &&
+        !byAddress.has(`${address.column}:${address.row}`) &&
+        sector.rows[4]![12] === '.' &&
+        sector.rows[4]![11] === '.' &&
+        sector.rows[4]![10] === '='
+      )
+    })!
+    expect(coast).toBeDefined()
+    place(initial.characterId, coast.id, 10, 4)
+    await page.reload()
+    await expect(canvas).toHaveAttribute(
+      'data-camera-x',
+      String(coast.atlasColumn! * GRID_WIDTH + 10.5),
+    )
+    const projected = await world(page),
+      shore = projected.sectors.find((sector) => sector.id === coast.id)!
+    expect(shore.cells.find((cell) => cell.x === 12 && cell.y === 4)).toMatchObject({
+      terrain: '.',
+      walkable: true,
+    })
+    expect(shore.exits.some((exit) => exit.from.x === 12 && exit.from.y === 4)).toBe(false)
+    await capture(page, info, 'coastal-road-setback-real-shoreline')
+  })
+
+  test('four-biome corner materials meet without an order-dependent colour seam', async ({
+    page,
+  }, info) => {
+    test.skip(info.project.name !== 'desktop-chromium', 'Inspect actual canvas corner raster once.')
+    test.setTimeout(90000)
+    await enter(page)
+    const initial = await world(page)
+    place(initial.characterId, 'atlas:58:28', 11, 7)
+    // This disposable visual-only fixture exposes the material weights with
+    // original texture/scenery images absent. No fixture movement command is sent.
+    await page.route('**/media/art/world/runtime/**', (route) => route.abort())
+    const regions = new Map([
+      ['58:28', 'verdant-expanse'],
+      ['59:28', 'umbral-march'],
+      ['58:29', 'frostmere'],
+      ['59:29', 'glasswind-desert'],
+    ])
+    let receipts = 0
+    await page.route('**/api/world*', async (route) => {
+      if (route.request().method() !== 'GET') return route.continue()
+      const response = await route.fetch({
+          url: new URL('/api/world', route.request().url()).href,
+        }),
+        body = (await response.json()) as WorldView
+      const sectors = body.sectors
+        .filter((sector) => regions.has(`${sector.atlasColumn}:${sector.atlasRow}`))
+        .map((sector) => ({
+          ...sector,
+          regionId: regions.get(`${sector.atlasColumn}:${sector.atlasRow}`)!,
+          townId: undefined,
+          landscape: undefined,
+          landmarks: [],
+          buildings: [],
+          cells: sector.cells.map((cell) => ({ ...cell, terrain: '.', walkable: true })),
+        }))
+      expect(sectors).toHaveLength(4)
+      await route.fulfill({
+        response,
+        json: {
+          ...body,
+          sectors,
+          players: [],
+          environment: { ...body.environment, minuteOfDay: 720, weather: 'clear' },
+        },
+      })
+      receipts++
+    })
+    await page.reload()
+    await expect.poll(() => receipts, { timeout: 25000 }).toBeGreaterThan(0)
+    await page.getByRole('button', { name: 'Map settings', exact: true }).click()
+    await page.getByRole('checkbox', { name: 'Ambient animation', exact: true }).uncheck()
+    await page.getByRole('button', { name: 'Done', exact: true }).click()
+    const canvas = page.locator('canvas[data-world-stage]')
+    await expect(canvas).toHaveAttribute('data-clouds', '0')
+    const projection = await canvas.evaluate((element) => ({
+      cameraX: Number(element.dataset.cameraX),
+      cameraY: Number(element.dataset.cameraY),
+      tile: Number(element.dataset.tileSize),
+      width: element.clientWidth,
+      height: element.clientHeight,
+    }))
+    const { data, info: raster } = await sharp(await canvas.screenshot())
+      .ensureAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true })
+    const colours = [
+      [-0.07, -0.07],
+      [0.07, -0.07],
+      [-0.07, 0.07],
+      [0.07, 0.07],
+    ].map(([dx, dy]) => {
+      const x = 59 * GRID_WIDTH + dx! - projection.cameraX,
+        y = 29 * GRID_HEIGHT + dy! - projection.cameraY,
+        screenX = projection.width / 2 + (x - y) * projection.tile * 0.85,
+        screenY = projection.height / 2 + (x + y) * projection.tile * 0.44,
+        pixelX = Math.round((screenX * raster.width) / projection.width),
+        pixelY = Math.round((screenY * raster.height) / projection.height),
+        offset = (pixelY * raster.width + pixelX) * raster.channels
+      return [...data.subarray(offset, offset + 3)] as number[]
+    })
+    for (let channel = 0; channel < 3; channel++) {
+      const samples = colours.map((colour) => colour[channel]!)
+      expect(Math.max(...samples) - Math.min(...samples)).toBeLessThanOrEqual(7)
+      for (const sample of samples)
+        expect(Math.abs(sample - [119, 131, 109][channel]!)).toBeLessThanOrEqual(5)
+    }
+    expect((await world(page)).position).toEqual({ sectorId: 'atlas:58:28', x: 11, y: 7 })
+    await capture(page, info, 'four-biome-corner-palette-raster-regression')
+  })
+
   test('globe towns and water agree with local terrain and town selection exposes legal travel', async ({
     page,
   }, info) => {
@@ -102,7 +261,9 @@ export function registerWorldLandscapeCases(helpers: Helpers) {
     await page.mouse.move(x, y, { steps: 4 })
     await page.mouse.up()
     await expect(towns).toHaveValue('frostmere')
+    const currentCoordinates = await page.locator('[data-world-coordinates] span').allTextContents()
     await verdant.click()
+    await expect(page.locator('[data-world-coordinates] span')).toHaveText(currentCoordinates)
     await expect(towns).toHaveValue('verdant-expanse')
     await expect(
       page.getByRole('region', { name: 'Selected destination', exact: true }),
@@ -121,7 +282,7 @@ export function registerWorldLandscapeCases(helpers: Helpers) {
     let weatherReceipts = 0
     // The disposable visual fixture alters weather only; positions/terrain and
     // every command continue through real auth, the database and World authority.
-    await page.route('**/api/world', async (route) => {
+    await page.route('**/api/world*', async (route) => {
       if (route.request().method() !== 'GET') return route.continue()
       const response = await route.fetch(),
         body = await response.json()
