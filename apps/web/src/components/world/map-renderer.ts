@@ -77,6 +77,7 @@ interface Scenery {
   columns: number
   rows: number
   tree: boolean
+  rock?: boolean
   anchorX?: number
   anchorY?: number
   mirror?: boolean
@@ -84,6 +85,27 @@ interface Scenery {
   underpass?: 'water' | 'lava'
   bridgeStrips?: BridgeStrip[]
   waterfall?: boolean
+}
+// Inspected biomes-v02 floor contacts, excluding empty cell padding. Preserve
+// the original painted scale; anchor the rubble floor rather than the cell edge.
+const rockArt: Record<
+  number,
+  Pick<Scenery, 'width' | 'height' | 'anchorX' | 'anchorY' | 'source'>
+> = {
+  2: {
+    width: (1.8 * 450) / 443.5,
+    height: (1.7 * 365) / 443.5,
+    anchorX: 229 / 450,
+    anchorY: 349 / 365,
+    source: [880 / 1774, 60 / 887, 450 / 1774, 365 / 887],
+  },
+  3: {
+    width: (1.8 * 405) / 443.5,
+    height: (1.7 * 310) / 443.5,
+    anchorX: 204 / 405,
+    anchorY: 290 / 310,
+    source: [1348 / 1774, 102 / 887, 405 / 1774, 310 / 887],
+  },
 }
 interface FeaturePlacement {
   point: MapPoint
@@ -586,8 +608,18 @@ export function createMapRenderer(
         }
       }
       if (cell.terrain === '#') {
-        c.fillStyle = '#4f5350'
-        c.fillRect(x + 4, y + 4, tile - 8, tile - 8)
+        const shade = c.createRadialGradient(
+          x + tile / 2,
+          y + tile / 2,
+          tile * 0.14,
+          x + tile / 2,
+          y + tile / 2,
+          tile * 0.58,
+        )
+        shade.addColorStop(0, 'rgba(51,56,53,.18)')
+        shade.addColorStop(1, 'rgba(51,56,53,0)')
+        c.fillStyle = shade
+        c.fillRect(x, y, tile, tile)
       }
     }
     // A crossing is a continuous stone support, not a blue pond stamped on
@@ -789,16 +821,25 @@ export function createMapRenderer(
               : special !== undefined && biomes?.complete && biomes.naturalWidth
                 ? biomes
                 : nature
+          const rockPlacement = rock && asset === biomes ? rockArt[special!] : undefined
           addScenery({
             x: origin.x + cell.x + 0.5,
-            y: origin.y + cell.y + 0.75,
-            width: tile * (rock ? 1.8 : 1.65),
-            height: tile * (rock ? 1.7 : 2.55),
+            y: origin.y + cell.y + (rock ? 0.5 : 0.75),
+            width: tile * (rockPlacement?.width ?? (rock ? 1.8 : 1.65)),
+            height: tile * (rockPlacement?.height ?? (rock ? 1.7 : 2.55)),
             image: asset,
             index: scenicTree ?? (asset === biomes ? special! : palette[2]),
             columns: 4,
             rows: 2,
             tree: !rock,
+            rock,
+            ...(rockPlacement
+              ? {
+                  anchorX: rockPlacement.anchorX,
+                  anchorY: rockPlacement.anchorY,
+                  source: rockPlacement.source,
+                }
+              : {}),
           })
         }
       for (const building of sector.buildings ?? []) {
@@ -1082,10 +1123,25 @@ export function createMapRenderer(
       const item = object.item,
         p = screen({ x: item.x, y: item.y })
       ctx.save()
-      ctx.fillStyle = 'rgba(20,32,25,.2)'
-      ctx.beginPath()
-      ctx.ellipse(p.x, p.y - 4, item.width * 0.36, 10, 0, 0, Math.PI * 2)
-      ctx.fill()
+      if (item.rock) {
+        ctx.save()
+        ctx.translate(p.x, p.y)
+        ctx.scale(item.width * 0.46, tile * 0.09)
+        const shadow = ctx.createRadialGradient(0, 0, 0.15, 0, 0, 1)
+        shadow.addColorStop(0, 'rgba(17,26,23,.3)')
+        shadow.addColorStop(0.55, 'rgba(17,26,23,.16)')
+        shadow.addColorStop(1, 'rgba(17,26,23,0)')
+        ctx.fillStyle = shadow
+        ctx.beginPath()
+        ctx.ellipse(0, 0, 1, 1, 0, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.restore()
+      } else {
+        ctx.fillStyle = 'rgba(20,32,25,.2)'
+        ctx.beginPath()
+        ctx.ellipse(p.x, p.y - 4, item.width * 0.36, 10, 0, 0, Math.PI * 2)
+        ctx.fill()
+      }
       // Stable individual phase, pace, strength and sheltered pauses. The base
       // stays fixed while the canopy bends, rather than sliding the whole tree.
       const movingTree = animate && !reduced && item.tree

@@ -21,6 +21,29 @@ export async function verifyWorldPresentation(
   test.setTimeout(90000)
   await enter(page)
   const initial = await world(page)
+  if (info.project.name === 'mobile-chromium')
+    await page.getByRole('button', { name: /Details/ }).click()
+  const townButton = page.getByRole('button', { name: 'View Town', exact: true })
+  await expect(townButton).toBeVisible()
+  await expect(
+    page.locator('[data-world-panel-foot]').getByRole('button', { name: 'View Town', exact: true }),
+  ).toBeVisible()
+  const panorama = initial.sectors.find(
+    (sector) => sector.id === initial.position.sectorId,
+  )!.panorama!
+  const painting = page.waitForResponse(
+    (response) => new URL(response.url()).pathname === panorama && response.ok(),
+  )
+  await townButton.click()
+  const townDialog = page.getByRole('dialog', { name: 'Verdant Expanse', exact: true })
+  await expect(townDialog).toBeVisible()
+  await painting
+  await townDialog.getByRole('button', { name: 'Look right', exact: true }).click()
+  await capture(page, info, 'view-town-from-panel-foot')
+  await townDialog.getByRole('button', { name: /Return to Map/ }).click()
+  await expect(townDialog).toHaveCount(0)
+  await expect(townButton).toBeFocused()
+  expect((await world(page)).position).toEqual(initial.position)
   place(initial.characterId, 'atlas:58:28', 6, 4)
   await page.reload()
   const canvas = page.locator('canvas[data-world-stage]'),
@@ -33,6 +56,7 @@ export async function verifyWorldPresentation(
   await expect(coordinates).toHaveCount(1)
   await expect(coordinates).toContainText('Sector S59-29')
   await expect(coordinates).toContainText('E760 · N320')
+  await expect(page.getByRole('button', { name: 'View Town', exact: true })).toHaveCount(0)
   const verifyPlayerRows = async () => {
     for (const row of await panel.locator('[data-world-player]').all()) {
       const identity = await row.locator('strong').boundingBox(),

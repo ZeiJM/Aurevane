@@ -13,6 +13,7 @@ import { localRoute, mapPoint, prepareLocalRoute, WorldMotion } from './world-mo
 import { WorldMap } from './world-map'
 import { WorldGlobe } from './world-globe'
 import { WorldMissions } from './world-missions'
+import { Surroundings } from './surroundings'
 import { clampWorldZoom, WORLD_MIN_ZOOM, WORLD_MAX_ZOOM } from './world-zoom'
 import { battleSessionHref } from '@/components/battle/battle-return-navigation'
 import styles from './workspace.module.css'
@@ -89,6 +90,11 @@ export function WorldWorkspace({
   const [animate, setAnimate] = useState(true),
     [zoom, setZoom] = useState(1),
     [globeZoom, setGlobeZoom] = useState(0.94)
+  const [townScene, setTownScene] = useState<{
+    sectorId: string
+    src: string
+    name: string
+  } | null>(null)
   const [motion] = useState(() => new WorldMotion(initialView))
   const zoomLocked = useSyncExternalStore(subscribeZoomLock, readZoomLock, () => false)
   const changeZoom = (value: number) =>
@@ -116,6 +122,7 @@ export function WorldWorkspace({
         return
       }
       acceptedAt.current = Date.now()
+      setTownScene((scene) => (scene?.sectorId === next.position.sectorId ? scene : null))
       if (reconcile) motion.reconcile(next, performance.now())
       setView(next)
       schedule()
@@ -324,7 +331,7 @@ export function WorldWorkspace({
               motion={motion}
               portrait={character.portrait}
               animate={animate}
-              paused={false}
+              paused={Boolean(townScene)}
               zoom={zoom}
               zoomLocked={zoomLocked}
               onZoom={setZoom}
@@ -542,7 +549,7 @@ export function WorldWorkspace({
               </div>
             )}
           </div>
-          <div className={styles.panelFoot}>
+          <div className={styles.panelFoot} data-world-panel-foot>
             <p
               className={styles.currentCoordinates}
               data-world-coordinates
@@ -553,7 +560,19 @@ export function WorldWorkspace({
                 E{local.east + view.position.x} · N{local.north - view.position.y}
               </span>
             </p>
-            <SettingsButton open={settings} onClick={() => setSettings(!settings)} />
+            <div className={styles.panelFootActions}>
+              {local.townId && local.panorama ? (
+                <button
+                  className={styles.viewTown}
+                  onClick={() =>
+                    setTownScene({ sectorId: local.id, src: local.panorama!, name: localName })
+                  }
+                >
+                  View Town
+                </button>
+              ) : null}
+              <SettingsButton open={settings} onClick={() => setSettings(!settings)} />
+            </div>
           </div>
         </aside>
       </div>
@@ -627,6 +646,13 @@ export function WorldWorkspace({
             <button onClick={() => setSettings(false)}>Done</button>
           </div>
         </>
+      ) : null}
+      {townScene ? (
+        <Surroundings
+          src={townScene.src}
+          name={townScene.name}
+          onClose={() => setTownScene(null)}
+        />
       ) : null}
     </section>
   )

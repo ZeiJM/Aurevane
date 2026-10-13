@@ -10,6 +10,23 @@ import { newWorldState } from '@/world/travel'
 import { WorldWorkspace } from './world-workspace'
 
 describe('World page', () => {
+  it('offers View Town only in the footer of a town with authored surroundings', () => {
+    const render = (view: ReturnType<typeof projectWorld>) =>
+      renderToStaticMarkup(
+        createElement(WorldWorkspace, {
+          initialView: view,
+          character: { name: 'Traveller', portrait: '/portrait.webp' },
+        }),
+      )
+    const town = projectWorld(newWorldState(), [], 1000)
+    const markup = render(town)
+    const foot = markup.slice(markup.indexOf('panelFoot'))
+    expect(foot).toContain('View Town')
+    expect(markup.slice(0, markup.indexOf('panelFoot'))).not.toContain('View Town')
+    const state = newWorldState()
+    state.position = { sectorId: 'crown-road', x: 5, y: 4 }
+    expect(render(projectWorld(state, [], 1000))).not.toContain('View Town')
+  })
   it('shows the confirmed current sector and east/north coordinates beside the panel gear', () => {
     const state = newWorldState()
     state.position = { sectorId: 'atlas:58:28', x: 6, y: 4 }
@@ -24,7 +41,7 @@ describe('World page', () => {
         }),
       )
     const foot = (markup: string) =>
-      markup.match(/<div class="[^"]*panelFoot[^"]*">([\s\S]*?)<\/div>/)?.[1] ?? ''
+      markup.match(/<div class="[^"]*panelFoot[^"]*"[^>]*>([\s\S]*?)<\/div>/)?.[1] ?? ''
     const initial = foot(render())
     expect(initial).toContain('data-world-coordinates')
     expect(initial).toContain('Sector S59-29')

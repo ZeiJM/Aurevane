@@ -357,12 +357,22 @@
   border-top: 1px solid #a1844b;
   background: #061c25;
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
   align-items: center;
   justify-content: flex-end;
   flex-shrink: 0;
   font: 12px Georgia;
   color: var(--map-muted);
+}
+.panelFootActions {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+.viewTown {
+  font-size: 11px;
+  white-space: nowrap;
 }
 .panelFoot button {
   display: grid;
@@ -372,6 +382,7 @@
 .currentCoordinates {
   margin: 0 auto 0 0;
   min-width: 0;
+  flex: 1 1 85px;
   display: grid;
   gap: 3px;
   font: 11px/1.3 var(--av-font-body, Georgia);

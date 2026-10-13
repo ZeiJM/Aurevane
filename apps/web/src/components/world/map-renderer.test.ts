@@ -11,6 +11,8 @@ import * as biomes from './map-biome-transitions'
 function scene(reduced = false, initial?: WorldView) {
   const images: { onload: (() => void) | null }[] = []
   const fills: { colour: string; alpha: number; order: number }[] = []
+  const rectangles: { colour: string; order: number }[] = []
+  const ellipses: { point: { x: number; y: number }; order: number }[] = []
   const draws: {
     src: string
     image: HTMLImageElement
@@ -47,6 +49,18 @@ function scene(reduced = false, initial?: WorldView) {
       fillStyle: '',
       fill() {
         fills.push({ colour: this.fillStyle, alpha: this.globalAlpha, order: ++drawOrder })
+      },
+      fillRect() {
+        rectangles.push({ colour: this.fillStyle, order: ++drawOrder })
+      },
+      ellipse(x: number, y: number) {
+        ellipses.push({
+          point: {
+            x: matrix[0]! * x + matrix[2]! * y + matrix[4]!,
+            y: matrix[1]! * x + matrix[3]! * y + matrix[5]!,
+          },
+          order: drawOrder,
+        })
       },
       drawImage(image: HTMLImageElement, ...args: number[]) {
         draws.push({ src: image.src ?? '', image, order: ++drawOrder, args, matrix: [...matrix] })
@@ -198,6 +212,8 @@ function scene(reduced = false, initial?: WorldView) {
   )!
   return {
     fills,
+    rectangles,
+    ellipses,
     draws,
     texts,
     transforms,
@@ -232,6 +248,63 @@ function scene(reduced = false, initial?: WorldView) {
   }
 }
 describe('native map input and bounded lifecycle', () => {
+  it.each([
+    ['frostmere', 1552, 392],
+    ['emberreach', 1109, 409],
+  ] as const)(
+    'plants the %s rock floor on its blocked cell with a contact shadow and no hard terrain diamond',
+    (regionId, contactX, contactY) => {
+      const base = projectWorld(newWorldState(), [], 1000),
+        sector = base.sectors.find((sector) => sector.id === base.position.sectorId)!,
+        rockPosition = { ...base.position, x: base.position.x + 2 },
+        cells = sector.cells.map((cell) => ({
+          ...cell,
+          terrain: cell.x === rockPosition.x && cell.y === rockPosition.y ? '#' : '.',
+          walkable: cell.x !== rockPosition.x || cell.y !== rockPosition.y,
+        })),
+        s = scene(true, {
+          ...base,
+          sectors: [{ ...sector, regionId, cells, buildings: [], landmarks: [] }],
+          players: [],
+        })
+      const sheet = s.images.find((image) =>
+        (image as HTMLImageElement).src.endsWith('biomes-v02.webp'),
+      )!
+      Object.assign(sheet, { width: 1774, height: 887, naturalWidth: 1774 })
+      s.frame(40)
+      const rock = s.draws.find((draw) => draw.src.endsWith('biomes-v02.webp'))!,
+        a = rock.args,
+        m = rock.matrix,
+        x = a[4]! + ((contactX - a[0]!) / a[2]!) * a[6]!,
+        y = a[5]! + ((contactY - a[1]!) / a[3]!) * a[7]!,
+        contact = { x: m[0]! * x + m[2]! * y + m[4]!, y: m[1]! * x + m[3]! * y + m[5]! },
+        expected = projectMapPoint(
+          mapPoint(rockPosition, s.view.sectors),
+          mapPoint(s.view.position, s.view.sectors),
+          { x: 0, y: 0 },
+          64,
+          800,
+          600,
+        )
+      expect(contact.x).toBeCloseTo(expected.x * 1.5, 1)
+      expect(contact.y).toBeCloseTo(expected.y * 1.5, 1)
+      expect(
+        s.ellipses.some(
+          (shadow) =>
+            shadow.order < rock.order &&
+            Math.hypot(shadow.point.x - contact.x, shadow.point.y - contact.y) < 0.1,
+        ),
+      ).toBe(true)
+      expect(s.rectangles.some((rectangle) => rectangle.colour === '#4f5350')).toBe(false)
+      expect(
+        s.view.sectors[0]!.cells.find(
+          (cell) => cell.x === rockPosition.x && cell.y === rockPosition.y,
+        )?.walkable,
+      ).toBe(false)
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    },
+  )
   it('retains indexed terrain for compact presence receipts and rebuilds for full terrain or atlas changes', () => {
     const build = vi.spyOn(biomes, 'buildBiomeTransitions')
     const s = scene(true),
