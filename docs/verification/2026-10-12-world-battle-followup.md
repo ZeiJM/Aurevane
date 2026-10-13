@@ -1,6 +1,35 @@
 # World and battle follow-up — October 12
 
-Status: implementation and verification in progress. This follow-up has not been deployed. The live rollback target remains `dpl_EoovxVApidZZVTdHMihEjiwmpY1u` (PR #879). Human gameplay acceptance remains with the Owner.
+Status: **LIVE for testing** through PR #881, production `dpl_2HH6uzKfqGspBxP8NdFZKh3wG2KZ`, READY `2026-10-13T02:56:58.234Z` at https://aurevane.vercel.app/game/world. Prior rollback target: `dpl_EoovxVApidZZVTdHMihEjiwmpY1u` (PR #879). Human gameplay acceptance remains with the Owner.
+
+## Verified release and bounded production check
+
+The Owner's explicit release authorization is `2026-10-12T22:06:48Z`; later corrections remain in this same batch. Final tested source is `df3a3190d240f5a2c7b451e4fb138762dcbfd05e`. Merge `468b6017a5cf5e29a0ffc0f5b0b08c327ce96429` has the exact tested full tree `0310dc3283cbf3f004ec5411aeb1235ff8d5ef6f` and application subtree `41d2632ea205350cacbb70944c1c7c34d7d8065f`. Main and production are refreshed before merge/create. Vercel is explicitly created from this merge with `withLatestCommit:false`; one production deployment is made, with no preview or new migration. READY source and the `aurevane.vercel.app` alias are verified.
+
+All eight final-source workflows pass:
+
+| Workflow                  | Run         |
+| ------------------------- | ----------- |
+| CI                        | 38332724265 |
+| Living Atlas browser      | 38332724405 |
+| Browser smoke             | 38332724366 |
+| Skill Engine              | 38332724420 |
+| Shared Build Snapshots    | 38332724361 |
+| Essence Build             | 38332724395 |
+| Representative Buildcraft | 38332724263 |
+| Resonance Build           | 38332724267 |
+
+Local full check and completed CI quality job `115085887431` both verify formatting, lint, eight-package types, **5,058 Vitest plus seven Node checks** and successful production builds. Atlas job `115085887924` passes **43 cases with 74 intentional duplicate-project skips**. Verified artifact `11783707541` has SHA256 `264e55ce72773cc2d50651fd2a6f232b8352c435f3ddf343d5ec32be609ca9e6`. Real coastline capture has no neighbouring snow-tree strips, complete roots and grounded rocks. Settings/Nearby/bridge, desktop Town viewer and mobile 35% captures are inspected. The bounded synthetic 101-token mobile case measures **24 ms draw p95**, 11 cached sectors / 6,671,808 pixels, 503,992 canvas pixels at DPR2.625 with 4x CPU throttle; this is not live 100-player evidence.
+
+Completed responsive job `115086248698` passes the full **341-case suite** (259 intentional platform skips) plus **10 Edge cases** (two intentional skips), with all preceding focused checks green. The 96 completion-renderer cases produce 492 geometry receipts, zero failures and zero browser errors. Completion artifact `11786536391` verifies SHA256 `9497232c999e780d56296519304f3767534353d36e21d4679a2884d9a9cca521`; battle-rail artifact `11785837045` verifies SHA256 `2afb1ac90fa0b6c2ae33671f28986756416f2688d4d5a80bf23e4304f5d1f3e7`. Desktop/mobile World completion and AI command-dock captures are inspected. Full workflow logs are checked. The 1,046,789,921-byte main evidence ZIP exceeds the connector's 536,870,912-byte download limit; it is not claimed downloaded or digest-verified. Relevant smaller artifacts and completed run logs supply the review evidence.
+
+A fresh signed-in production reload shows the new footer View Town and Sector/E/N, compact Nearby actions and removed legacy on-map 360/plus/minus controls. Town view opens the actual panorama, turns right, closes and restores focus to its footer button. Settings Home reaches 35% and paints tile size 22.4 without changing position; lock prevents wheel changes; preferences return to 100%, unlocked and ambient-on. Clicking outside closes Settings without walking. A 450 ms held D crosses from S69-29/E894/N320 to S70-29/E897/N320, settles with no alert and stops after release; the matching A returns to the original coordinates and camera 894.5/256.5. Globe exposes all eight main towns and Known Lands, hides weather and restores local presence on return. Cloud phase advances and live water/wildlife remain active. HP 153/153, MP 102/102 and XP 96/100 are preserved. No real-player attack, chat, reward claim or production AI battle is performed in this bounded smoke.
+
+Actual production screenshot `aurevane-world-live-1791860624098.jpg` is captured, inspected and retained for the Owner. The runtime query is scoped to this deployment, production, warning/error/fatal levels, `2026-10-13T02:56:58.234Z` through `2026-10-13T03:05:03.632Z`; it returns no entries. This does not establish future runtime health or human gameplay acceptance.
+
+Peers continue authenticated 1s/2s polling plus bounded confirmed interpolation; no operational World push transport or literal instantaneous network confirmation is added. Historical completed bare URLs without app context retain Hall fallback. The separate origin-reader draft remains unapproved/unapplied. Automatic Git deployments stay locked; the following documentation-only receipt leaves the application subtree unchanged and requests no further deployment. Documentation paths intentionally skip application/native workflows; Markdown and whitespace are checked separately. No phase closeout is implied.
+
+The following implementation sections retain the chronological pre-release work log; their pending statuses precede the verified release above.
 
 ## Measured tree crops and planted roots
 
