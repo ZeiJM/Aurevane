@@ -13,6 +13,42 @@ type WorldPresence = Pick<
   | 'livePresence'
 > & { kind: 'presence' }
 
+function sameSceneData(previous: unknown, incoming: unknown): boolean {
+  if (previous === incoming) return true
+  if (
+    previous === null ||
+    incoming === null ||
+    typeof previous !== 'object' ||
+    typeof incoming !== 'object'
+  )
+    return false
+  if (Array.isArray(previous) || Array.isArray(incoming))
+    return (
+      Array.isArray(previous) &&
+      Array.isArray(incoming) &&
+      previous.length === incoming.length &&
+      previous.every((value, index) => sameSceneData(value, incoming[index]))
+    )
+  const left = previous as Record<string, unknown>,
+    right = incoming as Record<string, unknown>
+  const keys = Object.keys(left).filter((key) => left[key] !== undefined)
+  return (
+    keys.length === Object.keys(right).filter((key) => right[key] !== undefined).length &&
+    keys.every((key) => Object.hasOwn(right, key) && sameSceneData(left[key], right[key]))
+  )
+}
+
+/** Reuse only complete unchanged scene content, including private discovery and topology. */
+export function retainWorldSceneReferences(previous: WorldView, incoming: WorldView): WorldView {
+  if (previous.characterId !== incoming.characterId) return incoming
+  const sectors = sameSceneData(previous.sectors, incoming.sectors)
+    ? previous.sectors
+    : incoming.sectors
+  const atlas = sameSceneData(previous.atlas, incoming.atlas) ? previous.atlas : incoming.atlas
+  if (sectors === incoming.sectors && atlas === incoming.atlas) return incoming
+  return { ...incoming, sectors, atlas }
+}
+
 /** The server derives the scene; the client supplies only its last owned receipt identity. */
 export function worldRefreshUrl(view: WorldView) {
   if (view.route.length) return '/api/world'
@@ -44,7 +80,8 @@ export function worldRefreshResponse(view: WorldView, url: string): WorldView | 
   }
 }
 export function mergeWorldRefresh(view: WorldView, receipt: WorldView | WorldPresence): WorldView {
-  if (!('kind' in receipt) || receipt.kind !== 'presence') return receipt as WorldView
+  if (!('kind' in receipt) || receipt.kind !== 'presence')
+    return retainWorldSceneReferences(view, receipt as WorldView)
   if (receipt.characterId !== view.characterId || receipt.version !== view.version)
     throw new Error('The world changed. Refresh your position and try again.')
   return {

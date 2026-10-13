@@ -226,9 +226,9 @@ export async function verifyWorldScenePresence(
         actionHeight: action.height,
       }
     })
-    expect(density.width).toBe(44)
-    expect(density.height).toBe(44)
-    expect(density.rowHeight).toBeLessThanOrEqual(80)
+    expect(density.width).toBe(36)
+    expect(density.height).toBe(36)
+    expect(density.rowHeight).toBeLessThanOrEqual(65)
     expect(density.actionHeight).toBeGreaterThanOrEqual(29)
     await info.attach('nearby-row-density', {
       body: JSON.stringify(density),
@@ -523,6 +523,105 @@ export async function verifyWorldScenePresence(
     sql(
       `do $$ declare c record; begin select ch.user_id,ch.id,w.state into c from public.characters ch join app_private.character_world_state w on w.character_id=ch.id where ch.id='${owner.characterId}'; begin perform public.read_world_scene_players_v1(c.user_id,c.id,1,array_fill('atlas:58:28'::text,array[26]),c.state->'position'); raise exception 'Invalid scene was accepted'; exception when invalid_parameter_value then null; end; begin perform public.read_world_scene_players_v1('00000000-0000-4000-8000-000000000099',c.id,1,array['atlas:58:28'],c.state->'position'); raise exception 'Wrong owner was accepted'; exception when insufficient_privilege then null; end; end $$`,
     )
+  } finally {
+    await context.close()
+  }
+}
+
+/** Disposable real accounts: slow scene presentation must not delay arrival controls. */
+export async function verifyWorldInstantActions(
+  page: Page,
+  browser: Browser,
+  info: TestInfo,
+  helpers: Parameters<typeof verifyWorldScenePresence>[3],
+) {
+  test.skip(info.project.name !== 'desktop-chromium', 'Exercise canonical arrival actions once.')
+  test.setTimeout(120000)
+  await helpers.enter(page)
+  const context = await browser.newContext({ baseURL: new URL(page.url()).origin })
+  try {
+    const other = await context.newPage()
+    await helpers.enter(other)
+    const owner = await helpers.world(page),
+      target = await helpers.world(other)
+    await other.goto('about:blank')
+    helpers.place(owner.characterId, 'verdant-expanse', 5, 4)
+    helpers.place(target.characterId, 'verdant-expanse', 2, 4, true)
+    await page.reload()
+    const row = page.locator(`[data-world-player="${target.characterId}"]`),
+      primary = row.locator('[data-world-primary-action]')
+    await expect(primary).toHaveText('Approach')
+    const before = (await primary.boundingBox())!
+    let compact = 0
+    const movementReceipts: Promise<void>[] = []
+    page.on('response', (response) => {
+      if (
+        new URL(response.url()).pathname === '/api/world' &&
+        response.request().method() === 'POST' &&
+        response.request().postDataJSON()?.intent?.kind === 'walk'
+      ) {
+        const check = response.json().then((body) => {
+          expect(body.kind).toBe('movement')
+          expect(body).not.toHaveProperty('sectors')
+          compact++
+        })
+        movementReceipts.push(check)
+        void check.catch(() => {})
+      }
+    })
+    const delayedScenes: Promise<void>[] = []
+    await page.route('**/api/world', (route) => {
+      if (route.request().method() === 'GET') {
+        const held = (async () => {
+          const response = await route.fetch()
+          expect(response.ok()).toBe(true)
+          await page.waitForTimeout(900)
+          await route.fulfill({ response })
+        })()
+        delayedScenes.push(held)
+        return held
+      }
+      return route.continue()
+    })
+    await primary.click()
+    await expect(primary).toHaveText('Attack')
+    await expect(primary).toBeDisabled()
+    const themedArrow = /url\(".*\/cursors\/stone-arrow\.png"\) 6 3, auto$/
+    await expect(primary).toHaveCSS('cursor', themedArrow)
+    await expect(row.getByRole('button', { name: 'Talk', exact: true })).toHaveCSS(
+      'cursor',
+      themedArrow,
+    )
+    await expect
+      .poll(async () => (await helpers.world(page)).position, { timeout: 12000 })
+      .toEqual({ sectorId: 'verdant-expanse', x: 3, y: 4 })
+    const after = (await primary.boundingBox())!
+    expect(after.width).toBe(before.width)
+    expect(after.height).toBe(before.height)
+    await expect(row.getByRole('button', { name: 'Talk', exact: true })).toBeDisabled()
+    expect(
+      (await row.getByRole('button', { name: 'Talk', exact: true }).boundingBox())!.x,
+    ).toBeLessThan(after.x)
+    await expect.poll(() => compact).toBeGreaterThan(0)
+    await helpers.capture(page, info, 'instant-approach-protected-attack')
+    await page.unroute('**/api/world')
+    await Promise.all(delayedScenes)
+    // Move the fixture away; a completed approach must be available again.
+    helpers.place(owner.characterId, 'verdant-expanse', 10, 4)
+    helpers.place(target.characterId, 'verdant-expanse', 12, 4)
+    const legal = await helpers.world(page)
+    const cells = legal.sectors.find((sector) => sector.id === 'verdant-expanse')!.cells
+    for (const x of [10, 11, 12])
+      expect(cells.find((cell) => cell.x === x && cell.y === 4)?.safe).toBe(false)
+    await page.reload()
+    await expect(primary).toHaveText('Approach')
+    await primary.click()
+    await expect(primary).toHaveText('Attack')
+    await expect(primary).toBeEnabled({ timeout: 12000 })
+    await primary.click()
+    await expect(page).toHaveURL(/\/game\/battle\//, { timeout: 20000 })
+    await Promise.all(movementReceipts)
+    await helpers.capture(page, info, 'instant-approach-legal-encounter')
   } finally {
     await context.close()
   }

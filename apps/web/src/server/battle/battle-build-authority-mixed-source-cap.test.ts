@@ -8,7 +8,10 @@ import {
 } from '@aurevane/game-core/combat/mature-skills'
 
 import type { CharacterCommittedBuildSnapshotRecord } from '@/server/character/character-build-service'
-import type { CombatContentResolver } from '@/server/combat/combat-content-resolver'
+import {
+  createCombatContentResolver,
+  type CombatContentResolver,
+} from '@/server/combat/combat-content-resolver'
 
 import {
   createBattleBuildAuthoritySnapshot,
@@ -218,4 +221,121 @@ describe('battle build authority mixed Technique source capacity', () => {
       ['lifebinder.barrier', 4],
     ])
   })
+})
+
+describe('bulk current Skill authority preparation', () => {
+  const inputs = () =>
+    ['actor', 'target'].map((characterId) => ({
+      characterId,
+      combatantId: `character:${characterId}`,
+      snapshot: productionShapeMixedSnapshot(),
+    }))
+  it('reads duplicated participant Skills in one batch and preserves the complete fallback authority', async () => {
+    const current = vi.fn(async (skillId: string) => {
+      const definition = currentStaticSkill(skillId)
+      return (
+        definition && {
+          ...definition,
+          contentVersion: skillId === 'vanguard.forceful-strike' ? 7 : definition.contentVersion,
+        }
+      )
+    })
+    const fallback: CombatContentResolver = {
+      resolveCurrentSkillDefinition: current,
+      resolvePinnedSkillDefinition: async (id, version) => resolveMatureSkillVersion(id, version),
+    }
+    const expected = await createResolvedBattleBuildAuthoritySnapshot('pvp', inputs(), fallback)
+    current.mockClear()
+    const bulk = vi.fn(
+      async (ids: readonly string[]) =>
+        new Map(await Promise.all(ids.map(async (id) => [id, (await current(id))!] as const))),
+    )
+    const actual = await createResolvedBattleBuildAuthoritySnapshot('pvp', inputs(), {
+      ...fallback,
+      resolveCurrentSkillDefinitions: bulk,
+    })
+    expect(actual).toEqual(expected)
+    expect(bulk).toHaveBeenCalledExactlyOnceWith([
+      'vanguard.forceful-strike',
+      'vanguard.rally',
+      'vanguard.brace',
+      'lifebinder.barrier',
+    ])
+    expect(current).toHaveBeenCalledTimes(4)
+    expect(actual.combatants.map((actor) => actor.disciplineSkills[0]!.contentVersion)).toEqual([
+      7, 7,
+    ])
+  })
+  it.each(['missing', 'disabled', 'wrong-source'] as const)(
+    'rejects %s bulk content rather than falling back to a different definition',
+    async (invalid) => {
+      const bulk = vi.fn(async (ids: readonly string[]) => {
+        const definitions = new Map(ids.map((id) => [id, currentStaticSkill(id)!]))
+        const id = 'vanguard.forceful-strike'
+        if (invalid === 'missing') definitions.delete(id)
+        else
+          definitions.set(id, {
+            ...definitions.get(id)!,
+            ...(invalid === 'disabled' ? { enabled: false } : { sourceDisciplineId: 'lifebinder' }),
+          })
+        return definitions
+      })
+      const single = vi.fn(async (id: string) => currentStaticSkill(id))
+      await expect(
+        createResolvedBattleBuildAuthoritySnapshot('pvp', inputs(), {
+          resolveCurrentSkillDefinition: single,
+          resolveCurrentSkillDefinitions: bulk,
+          resolvePinnedSkillDefinition: async (id, version) =>
+            resolveMatureSkillVersion(id, version),
+        }),
+      ).rejects.toThrow(
+        invalid === 'wrong-source' ? /source Discipline/u : /enabled current combat definition/u,
+      )
+      expect(single).not.toHaveBeenCalled()
+    },
+  )
+})
+
+it('reduces actual content-source reads from eight serial round trips to one without changing authority', async () => {
+  vi.useFakeTimers()
+  try {
+    const read = vi.fn(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 100))
+      return []
+    })
+    const resolver = createCombatContentResolver({
+      findCurrentSkill: async () => null,
+      findCurrentSkills: read,
+      findSkillVersion: async () => null,
+    })
+    const inputs = ['actor', 'target'].map((characterId) => ({
+      characterId,
+      combatantId: `character:${characterId}`,
+      snapshot: productionShapeMixedSnapshot(),
+    }))
+    const legacy: CombatContentResolver = {
+      resolveCurrentSkillDefinition: resolver.resolveCurrentSkillDefinition,
+      resolvePinnedSkillDefinition: resolver.resolvePinnedSkillDefinition,
+    }
+    const baselineAt = Date.now()
+    const baseline = createResolvedBattleBuildAuthoritySnapshot('pvp', inputs, legacy)
+    await vi.runAllTimersAsync()
+    const expected = await baseline
+    expect(Date.now() - baselineAt).toBe(800)
+    expect(read).toHaveBeenCalledTimes(8)
+    read.mockClear()
+    const bulkAt = Date.now()
+    const bulk = createResolvedBattleBuildAuthoritySnapshot('pvp', inputs, resolver)
+    await vi.runAllTimersAsync()
+    expect(await bulk).toEqual(expected)
+    expect(Date.now() - bulkAt).toBe(100)
+    expect(read).toHaveBeenCalledExactlyOnceWith([
+      'vanguard.forceful-strike',
+      'vanguard.rally',
+      'vanguard.brace',
+      'lifebinder.barrier',
+    ])
+  } finally {
+    vi.useRealTimers()
+  }
 })

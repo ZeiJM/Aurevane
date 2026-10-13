@@ -114,16 +114,15 @@ export async function verifyWorldPresentation(
       if (!bounds) continue
       expect(identity).not.toBeNull()
       expect(portrait).not.toBeNull()
-      expect(portrait!.width).toBeLessThanOrEqual(44)
-      expect(portrait!.height).toBeLessThanOrEqual(44)
+      expect(portrait!.width).toBeLessThanOrEqual(36)
+      expect(portrait!.height).toBeLessThanOrEqual(36)
       expect(actions).not.toBeNull()
       // Common one/two-line identities must allow more rows in the same panel.
       // Narrow panels and longer names retain full readable wrapping.
       if (bounds.width >= 220 && identity!.height <= 45)
-        expect(bounds.height).toBeLessThanOrEqual(
-          info.project.name === 'mobile-chromium' ? 110 : 80,
-        )
-      expect(actions!.x).toBeGreaterThanOrEqual(identity!.x + identity!.width - 1)
+        expect(bounds.height).toBeLessThanOrEqual(info.project.name === 'mobile-chromium' ? 95 : 65)
+      if (actions!.y < identity!.y + identity!.height - 1)
+        expect(actions!.x).toBeGreaterThanOrEqual(identity!.x + identity!.width - 1)
       expect(actions!.x + actions!.width).toBeLessThanOrEqual(bounds.x + bounds.width + 1)
       for (const box of buttons) {
         expect(box).not.toBeNull()

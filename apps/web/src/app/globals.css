@@ -49,8 +49,8 @@ button {
   color: inherit;
 }
 
-/* Keep enabled controls on the shared theme even when a module specifies pointer.
-   Specialized handles and disabled controls retain their own interaction cues. */
+/* Keep controls on the shared theme even when a module specifies a native cursor.
+   Specialized handles retain their own interaction cues. */
 :root
   body
   :is(
@@ -93,6 +93,11 @@ button {
     [contenteditable='true']
   ) {
   cursor: var(--av-cursor-interactive) !important;
+}
+
+:root body :is(:disabled, [aria-disabled='true']),
+:root body :is(:disabled, [aria-disabled='true']) * {
+  cursor: var(--av-cursor) !important;
 }
 
 ::selection {

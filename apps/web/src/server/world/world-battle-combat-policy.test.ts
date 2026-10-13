@@ -12,14 +12,17 @@ import {
   timeoutPvpTurn,
 } from '@aurevane/game-core/combat/pvp-quality'
 vi.mock('server-only', () => ({}))
-const { rpc, findCharacter, loadBuildSnapshot } = vi.hoisted(() => ({
+const { rpc, findCharacter, loadBuildSnapshot, readWorld, attackAuthority } = vi.hoisted(() => ({
+  readWorld: vi.fn(),
+  attackAuthority: vi.fn(),
   rpc: vi.fn(),
   findCharacter: vi.fn<(userId: string, id: string) => Promise<CharacterRecord | null>>(),
   loadBuildSnapshot: vi.fn<() => Promise<CharacterCommittedBuildSnapshotRecord>>(),
 }))
 vi.mock('@/lib/supabase/admin', () => ({ createSupabaseAdminClient: () => ({ rpc }) }))
 vi.mock('./world-repository', () => ({
-  readWorld: async () => ({ view: { players: [{ characterId: 'target', attackable: true }] } }),
+  readWorld,
+  settleWorldAttackAuthority: attackAuthority,
   worldRpcError: (error: unknown) => {
     throw error
   },
@@ -89,6 +92,13 @@ function pureSnapshot(): CharacterCommittedBuildSnapshotRecord {
 }
 
 beforeEach(() => {
+  readWorld
+    .mockReset()
+    .mockResolvedValue({ view: { players: [{ characterId: 'target', attackable: true }] } })
+  attackAuthority.mockReset().mockResolvedValue({
+    state: { version: 2 },
+    players: [{ characterId: 'target', attackable: true }],
+  })
   rpc.mockReset()
   findCharacter
     .mockReset()
@@ -163,6 +173,10 @@ it('starts each participant build read before its owned-character read resolves 
 })
 
 it('persists current combat policies and configured heights for a new world encounter', async () => {
+  attackAuthority.mockResolvedValueOnce({
+    state: { version: 1 },
+    players: [{ characterId: 'target', attackable: true }],
+  })
   const policy = {
     version: 9,
     level1BasisPoints: 0,
@@ -221,4 +235,147 @@ it('persists current combat policies and configured heights for a new world enco
       .filter((tile) => tile.elevation > 0)
       .every((tile) => tile.elevation === 3),
   ).toBe(true)
+})
+
+function successfulAttackRpc(name: string) {
+  if (name === 'read_world_encounter_pair_v1')
+    return { data: { attacker: {}, target: { version: 3 }, targetUserId: 'opponent' }, error: null }
+  if (name === 'read_battlefield_elevation_policy_v1')
+    return {
+      data: { version: 1, level1BasisPoints: 10000, level2BasisPoints: 0, level3BasisPoints: 0 },
+      error: null,
+    }
+  if (name === 'read_combat_effect_timing_policy_v1')
+    return { data: { version: 3, modes: { burn: 'instant' } }, error: null }
+  if (name === 'start_world_encounter_v1')
+    return { data: { battleSessionId: 'world-battle' }, error: null }
+  throw new Error('Unexpected RPC ' + name)
+}
+it('returns only a committed battle redirect without precheck or postcommit World presentation', async () => {
+  readWorld.mockRejectedValue(new Error('Presentation must not delay a legal attack'))
+  rpc.mockImplementation(async (name: string) => successfulAttackRpc(name))
+  expect(await attackWorldPlayer('owner', 'actor', 'target', 2)).toEqual({
+    characterId: 'actor',
+    battleSessionId: 'world-battle',
+  })
+  expect(attackAuthority).toHaveBeenCalledExactlyOnceWith('owner', 'actor', 2)
+  expect(readWorld).not.toHaveBeenCalled()
+})
+it('begins both independent policy reads while participant reads are unresolved and waits before atomic creation', async () => {
+  let release!: () => void
+  const boundary = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  findCharacter.mockImplementation(async (userId, id) => {
+    await boundary
+    return characterRecord(id, userId, 'Fighter')
+  })
+  rpc.mockImplementation(async (name: string) => successfulAttackRpc(name))
+  const attack = attackWorldPlayer('owner', 'actor', 'target', 2)
+  try {
+    await vi.waitFor(() => expect(findCharacter).toHaveBeenCalledTimes(2))
+    expect(rpc.mock.calls.map(([name]) => name)).toContain('read_battlefield_elevation_policy_v1')
+    expect(rpc.mock.calls.map(([name]) => name)).toContain('read_combat_effect_timing_policy_v1')
+    expect(rpc.mock.calls.map(([name]) => name)).not.toContain('start_world_encounter_v1')
+  } finally {
+    release()
+    await attack
+  }
+})
+it.each(['', null, 42])(
+  'rejects an invalid committed battle identifier %s',
+  async (battleSessionId) => {
+    rpc.mockImplementation(async (name: string) =>
+      name === 'start_world_encounter_v1'
+        ? { data: { battleSessionId }, error: null }
+        : successfulAttackRpc(name),
+    )
+    await expect(attackWorldPlayer('owner', 'actor', 'target', 2)).rejects.toMatchObject({
+      code: 'PERSISTENCE_UNAVAILABLE',
+    })
+  },
+)
+it('does not prepare private target/build authority when the visible target is unavailable', async () => {
+  attackAuthority.mockResolvedValue({
+    state: { version: 2 },
+    players: [{ characterId: 'target', attackable: false }],
+  })
+  await expect(attackWorldPlayer('owner', 'actor', 'target', 2)).rejects.toMatchObject({
+    code: 'INVALID_REQUEST',
+  })
+  expect(rpc).not.toHaveBeenCalled()
+  expect(loadBuildSnapshot).not.toHaveBeenCalled()
+})
+
+it('forwards the requested version to settlement and stops on its stale-authority rejection', async () => {
+  attackAuthority.mockRejectedValueOnce(
+    Object.assign(new Error('Stale position'), { code: 'STALE_VERSION' }),
+  )
+  rpc.mockImplementation(async (name: string) => successfulAttackRpc(name))
+  await expect(attackWorldPlayer('owner', 'actor', 'target', 2)).rejects.toMatchObject({
+    code: 'STALE_VERSION',
+  })
+  expect(attackAuthority).toHaveBeenCalledExactlyOnceWith('owner', 'actor', 2)
+  expect(rpc).not.toHaveBeenCalled()
+  expect(findCharacter).not.toHaveBeenCalled()
+  expect(loadBuildSnapshot).not.toHaveBeenCalled()
+})
+
+it('waits for the exact timing policy before creating the atomic encounter', async () => {
+  let release!: (result: ReturnType<typeof successfulAttackRpc>) => void
+  const timing = new Promise<ReturnType<typeof successfulAttackRpc>>((resolve) => {
+    release = resolve
+  })
+  rpc.mockImplementation(async (name: string) =>
+    name === 'read_combat_effect_timing_policy_v1' ? timing : successfulAttackRpc(name),
+  )
+  const attack = attackWorldPlayer('owner', 'actor', 'target', 2)
+  try {
+    await vi.waitFor(() => expect(loadBuildSnapshot).toHaveBeenCalledTimes(2))
+    expect(rpc.mock.calls.map(([name]) => name)).not.toContain('start_world_encounter_v1')
+  } finally {
+    release(successfulAttackRpc('read_combat_effect_timing_policy_v1'))
+    await attack
+  }
+  expect(rpc).toHaveBeenCalledWith(
+    'start_world_encounter_v1',
+    expect.objectContaining({
+      p_expected_version: 2,
+      p_target_version: 3,
+      p_build_versions: { actor: 7, target: 7 },
+      p_snapshot: expect.objectContaining({
+        effectTimingPolicy: { version: 3, modes: { burn: 'instant' } },
+      }),
+    }),
+  )
+})
+it('does not create an encounter when required policy loading fails', async () => {
+  rpc.mockImplementation(async (name: string) =>
+    name === 'read_combat_effect_timing_policy_v1'
+      ? { data: null, error: { message: 'unavailable' } }
+      : successfulAttackRpc(name),
+  )
+  await expect(attackWorldPlayer('owner', 'actor', 'target', 2)).rejects.toMatchObject({
+    code: 'PERSISTENCE_UNAVAILABLE',
+  })
+  expect(rpc.mock.calls.map(([name]) => name)).not.toContain('start_world_encounter_v1')
+  expect(readWorld).not.toHaveBeenCalled()
+})
+
+it('starts against only the resulting persisted version after approved owned travel settles', async () => {
+  attackAuthority.mockResolvedValueOnce({
+    state: { version: 3 },
+    serverNow: 5200,
+    players: [{ characterId: 'target', attackable: true }],
+  })
+  rpc.mockImplementation(async (name: string) => successfulAttackRpc(name))
+  expect(await attackWorldPlayer('owner', 'actor', 'target', 2)).toEqual({
+    characterId: 'actor',
+    battleSessionId: 'world-battle',
+  })
+  expect(attackAuthority).toHaveBeenCalledExactlyOnceWith('owner', 'actor', 2)
+  expect(rpc).toHaveBeenCalledWith(
+    'start_world_encounter_v1',
+    expect.objectContaining({ p_expected_version: 3, p_target_version: 3 }),
+  )
 })

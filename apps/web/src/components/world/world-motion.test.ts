@@ -1,10 +1,19 @@
 import { describe, expect, it } from 'vitest'
-import type { WorldView } from '@/world/types'
+import { advanceWorldRoute, MOVEMENT_LAG_ALLOWANCE_MS, newWorldState } from '@/world/travel'
+import type { TravelStep, WorldSectorView, WorldView } from '@/world/types'
 import { localRoute, WorldMotion } from './world-motion'
 const position = { sectorId: 'a', x: 1, y: 4 }
-const sectors = [
+const sectors: WorldSectorView[] = [
   {
     id: 'a',
+    name: 'Test ground',
+    coordinate: 'Test ground',
+    regionId: 'verdant-expanse',
+    art: null,
+    east: 0,
+    north: 0,
+    charted: false,
+    landmarks: [],
     atlasColumn: 0,
     atlasRow: 0,
     exits: [],
@@ -13,12 +22,558 @@ const sectors = [
       y: Math.floor(i / 13),
       terrain: '.',
       walkable: true,
+      safe: false,
     })),
   },
 ]
 const view = { position, sectors, route: [] } as unknown as WorldView
 const route = [2, 3, 4].map((x) => ({ position: { ...position, x }, durationMs: 200 }))
 describe('world visual motion', () => {
+  const forward = [2, 3, 4, 5, 6, 7, 8, 9].map((x) => ({
+    position: { ...position, x },
+    durationMs: 200,
+  }))
+  const receipt = (steps = forward, overrides: Partial<WorldView> = {}): WorldView => ({
+    ...view,
+    characterId: 'owner',
+    version: 2,
+    serverNow: 1000,
+    nextStepAt: steps.length ? 1200 : null,
+    movementBlocked: null,
+    battleSessionId: null,
+    route: steps,
+    ...overrides,
+  })
+  it('keeps an approved common route moving while a repeated click waits for confirmation', () => {
+    const motion = new WorldMotion(view)
+    motion.reconcile(receipt(), 0)
+    motion.plan(forward, sectors, 400)
+    expect(motion.sample(1001).moving).toBe(true)
+    expect(motion.sample(1200).point.x).toBeCloseTo(7.5)
+    expect(motion.sample(1600).position).toEqual(forward.at(-1)!.position)
+  })
+  it('spends the preview budget only on the new suffix after an approved common prefix', () => {
+    const motion = new WorldMotion(view)
+    motion.reconcile(receipt(forward.slice(0, 5)), 0)
+    motion.plan(forward, sectors, 100)
+    expect(motion.sample(1000).position).toEqual(forward[4]!.position)
+    expect(motion.sample(1500).moving).toBe(true)
+    expect(motion.sample(1600).position).toEqual(forward[7]!.position)
+    const longer = [...forward, { position: { ...position, x: 10 }, durationMs: 200 }]
+    const bounded = new WorldMotion(view)
+    bounded.reconcile(receipt(forward.slice(0, 5)), 0)
+    bounded.plan(longer, sectors, 100)
+    expect(bounded.sample(5000).position).toEqual(forward[7]!.position)
+  })
+  it('ends a shorter common-prefix plan at its requested destination', () => {
+    const motion = new WorldMotion(view)
+    motion.reconcile(receipt(), 0)
+    motion.plan(forward.slice(0, 2), sectors, 100)
+    expect(motion.sample(400).position).toEqual(forward[1]!.position)
+    expect(motion.sample(2000).position).toEqual(forward[1]!.position)
+    expect(motion.sample(2000).moving).toBe(false)
+  })
+  it('drops an obsolete approved tail after a divergent turn and bounds the new preview', () => {
+    const motion = new WorldMotion(view)
+    motion.reconcile(receipt(), 0)
+    const turn = [
+      forward[0]!,
+      ...[3, 2, 1, 0].map((y) => ({
+        position: { ...position, x: 2, y },
+        durationMs: 200,
+      })),
+    ]
+    motion.plan(turn, sectors, 100)
+    expect(motion.sample(700).moving).toBe(true)
+    expect(motion.sample(800).position).toEqual({ ...position, x: 2, y: 1 })
+    expect(motion.sample(3000).position).toEqual({ ...position, x: 2, y: 1 })
+    expect(motion.sample(3000).moving).toBe(false)
+  })
+  it('retains a partial approved slow-terrain interval through repeated plans', () => {
+    const slow = forward.map((step) => ({ ...step, durationMs: 400 }))
+    const slowSectors = sectors.map((sector) => ({ ...sector, stepMs: 400 }))
+    const motion = new WorldMotion({ ...view, sectors: slowSectors })
+    motion.reconcile(receipt(slow, { sectors: slowSectors, nextStepAt: 1400 }), 0)
+    motion.plan(slow, slowSectors, 350)
+    expect(motion.sample(1600).point.x).toBeCloseTo(5.5)
+    expect(motion.sample(3000).moving).toBe(true)
+    expect(motion.sample(3200).position).toEqual(slow.at(-1)!.position)
+  })
+  it('keeps the 600ms first-preview bound while early approval removes a 950ms reply gap', () => {
+    const delayed = new WorldMotion(view),
+      fast = new WorldMotion(view)
+    delayed.plan(forward, sectors, 0)
+    fast.plan(forward, sectors, 0)
+    fast.reconcile(receipt(), 250)
+    expect(delayed.sample(600).moving).toBe(false)
+    expect(delayed.sample(949).moving).toBe(false)
+    expect(fast.sample(600).moving).toBe(true)
+    expect(fast.sample(949).moving).toBe(true)
+    delayed.reconcile(receipt(), 950)
+    expect(delayed.sample(951).moving).toBe(true)
+  })
+  it('bootstraps the approved first-step clock at an explicit performance origin', () => {
+    const motion = new WorldMotion(receipt(forward, { nextStepAt: 1050 }), 5000)
+    expect(motion.sample(5000).point.x).toBeCloseTo(2.25)
+    expect(motion.sample(5050).position).toEqual(forward[0]!.position)
+    expect(motion.sample(5250).position).toEqual(forward[1]!.position)
+    expect(motion.approvedPosition(5049)).toEqual(position)
+    expect(motion.approvedPosition(5050)).toEqual(forward[0]!.position)
+    expect(motion.nextApprovedTransitionDelay(5000)).toBe(50)
+  })
+  it('bootstraps already-due approved prefixes and keeps ordinary reconciliation continuous', () => {
+    const confirmed = receipt(forward, { nextStepAt: 550 })
+    const bootstrap = new WorldMotion(confirmed, 5000)
+    expect(bootstrap.approvedPositionAtReceipt()).toEqual(forward[2]!.position)
+    expect(bootstrap.sample(5000).position).toEqual(forward[2]!.position)
+    expect(bootstrap.nextApprovedTransitionDelay(5000)).toBe(150)
+    const motion = new WorldMotion(view)
+    motion.plan(forward, sectors, 0)
+    const before = motion.sample(100).point
+    motion.reconcile(confirmed, 100)
+    expect(motion.sample(100).point).toEqual(before)
+    expect(motion.sample(116).point.x - before.x).toBeCloseTo(16 / 200)
+    expect(motion.approvedPosition(100)).toEqual(forward[2]!.position)
+    expect(motion.approvedPosition(250)).toEqual(forward[3]!.position)
+  })
+  it.each([200, 400])(
+    'keeps a %d ms approved turn on phase through current-clock receipts and replacement clicks',
+    (durationMs) => {
+      const turn = [
+        { ...position, x: 2 },
+        { ...position, x: 2, y: 3 },
+        { ...position, x: 3, y: 3 },
+        { ...position, x: 4, y: 3 },
+      ].map((position) => ({ position, durationMs }))
+      const terrain = sectors.map((sector) => ({ ...sector, stepMs: durationMs }))
+      const confirmed = receipt(turn, { sectors: terrain, nextStepAt: 1050 })
+      const reference = new WorldMotion(confirmed, 5000)
+      const motion = new WorldMotion(confirmed, 5000)
+      const final = 5050 + 3 * durationMs
+      for (let now = 5000; now <= final; now++) {
+        const elapsed = now - 5000
+        if (elapsed % 23 === 0) motion.reconcile({ ...confirmed, serverNow: 1000 + elapsed }, now)
+        if (elapsed % 41 === 0) motion.plan(turn, terrain, now)
+        for (const axis of ['x', 'y'] as const)
+          expect(motion.sample(now).point[axis], `at ${elapsed}ms ${axis}`).toBeCloseTo(
+            reference.sample(now).point[axis],
+            8,
+          )
+        expect(motion.approvedPosition(now)).toEqual(reference.approvedPosition(now))
+      }
+      expect(motion.sample(final).moving).toBe(false)
+    },
+  )
+  it('keeps approved arrival helpers independent of preview replacements and local stops', () => {
+    const motion = new WorldMotion(receipt(), 5000)
+    const turn = [{ position: { ...position, y: 5 }, durationMs: 200 }]
+    motion.plan(turn, sectors, 5010)
+    motion.stop(5100)
+    expect(motion.sample(5500).moving).toBe(false)
+    expect(motion.approvedPosition(5200)).toEqual(forward[0]!.position)
+    motion.reconcile(receipt([], { position: forward[0]!.position, serverNow: 1200 }), 5200)
+    expect(motion.approvedPosition(9000)).toEqual(forward[0]!.position)
+    expect(motion.nextApprovedTransitionDelay(5200)).toBeNull()
+    expect(motion.loadedHorizonMs(5200)).toBe(0)
+  })
+  it('updates an accepted superseded receipt clock without replacing the newer visual plan', () => {
+    const motion = new WorldMotion(view)
+    motion.plan(forward, sectors, 0)
+    const turn = [
+      { ...position, x: 2, y: 4 },
+      { ...position, x: 2, y: 3 },
+      { ...position, x: 2, y: 2 },
+    ].map((position) => ({ position, durationMs: 200 }))
+    motion.plan(turn, sectors, 100)
+    const before = motion.sample(150)
+    motion.approveReceipt(receipt(forward, { serverNow: 1100, nextStepAt: 1200 }), 150)
+    expect(motion.sample(150)).toEqual(before)
+    expect(motion.sample(250).point.y).toBeLessThan(before.point.y)
+    expect(motion.sample(800).position).toEqual(turn.at(-1)!.position)
+    expect(motion.approvedPositionAtReceipt()).toEqual(position)
+    expect(motion.approvedPosition(250)).toEqual(forward[0]!.position)
+    expect(motion.nextApprovedTransitionDelay(150)).toBe(100)
+    expect(motion.loadedHorizonMs(150)).toBe(1500)
+  })
+  it('uses an accepted superseded receipt as provenance for a later common-prefix plan', () => {
+    const motion = new WorldMotion(view)
+    motion.plan(forward, sectors, 0)
+    motion.approveReceipt(receipt(), 100)
+    motion.plan(forward, sectors, 200)
+    expect(motion.sample(1200).moving).toBe(true)
+    expect(motion.sample(1600).position).toEqual(forward.at(-1)!.position)
+  })
+  it('keeps approval-only receipts from appending to the displayed route before explicit scene hydration', () => {
+    const from = { ...position, x: 11 },
+      edge = { ...position, x: 12 }
+    const to = { sectorId: 'b', x: 0, y: 4 }
+    const first = {
+      ...sectors[0]!,
+      exits: [{ from: edge, to, durationMs: 200, name: 'Known crossing' }],
+    }
+    const second = { ...sectors[0]!, id: 'b', atlasColumn: 1 }
+    const crossing = [edge, to].map((position) => ({ position, durationMs: 200 }))
+    const confirmed = receipt(crossing, { position: from, sectors: [first], nextStepAt: 1050 })
+    const motion = new WorldMotion(confirmed, 5000)
+    motion.approveReceipt({ ...confirmed, sectors: [first, second], serverNow: 1025 }, 5025)
+    expect(motion.sample(5300).position).toEqual(edge)
+    expect(motion.approvedPosition(5300)).toEqual(to)
+  })
+  it('expands loaded approved terrain without resetting its captured clock or current visual plan', () => {
+    const from = { ...position, x: 11 },
+      edge = { ...position, x: 12 }
+    const to = { sectorId: 'b', x: 0, y: 4 },
+      end = { ...to, x: 1 }
+    const first = {
+      ...sectors[0]!,
+      exits: [{ from: edge, to, durationMs: 200, name: 'Known crossing' }],
+    }
+    const second = { ...sectors[0]!, id: 'b', atlasColumn: 1 }
+    const crossing = [edge, to, end].map((position) => ({ position, durationMs: 200 }))
+    const motion = new WorldMotion(
+      receipt(crossing, {
+        position: from,
+        sectors: [first],
+        nextStepAt: 1050,
+      }),
+      5000,
+    )
+    const before = motion.sample(5025)
+    expect(motion.loadedHorizonMs(5025)).toBe(25)
+    expect(motion.nextApprovedTransitionDelay(5025)).toBe(25)
+    motion.updateScene([first, second])
+    expect(motion.sample(5025)).toEqual(before)
+    expect(motion.sample(5300).position).toEqual(to)
+    expect(motion.approvedPositionAtReceipt()).toEqual(from)
+    expect(motion.approvedPosition(5025)).toEqual(from)
+    expect(motion.nextApprovedTransitionDelay(5025)).toBe(25)
+    expect(motion.loadedHorizonMs(5025)).toBe(425)
+    expect(motion.approvedPosition(5250)).toEqual(to)
+    expect(motion.approvedPosition(5450)).toEqual(end)
+    motion.updateScene([first])
+    expect(motion.loadedHorizonMs(5025)).toBe(25)
+    expect(motion.approvedPosition(5450)).toEqual(edge)
+  })
+  it('leaves a newer divergent visual preview untouched when authorized geometry arrives', () => {
+    const from = { ...position, x: 11 },
+      edge = { ...position, x: 12 }
+    const to = { sectorId: 'b', x: 0, y: 4 }
+    const first = {
+      ...sectors[0]!,
+      exits: [{ from: edge, to, durationMs: 200, name: 'Known crossing' }],
+    }
+    const second = { ...sectors[0]!, id: 'b', atlasColumn: 1 }
+    const crossing = [edge, to].map((position) => ({ position, durationMs: 200 }))
+    const motion = new WorldMotion(
+      receipt(crossing, {
+        position: from,
+        sectors: [first],
+        nextStepAt: 1050,
+      }),
+      5000,
+    )
+    const turn = [edge, { ...edge, y: 3 }].map((position) => ({ position, durationMs: 200 }))
+    motion.plan(turn, [first], 5025)
+    const before = motion.sample(5025)
+    motion.updateScene([first, second])
+    expect(motion.sample(5025)).toEqual(before)
+    expect(motion.sample(5300).position).toEqual(turn.at(-1)!.position)
+    expect(motion.sample(6000).position).toEqual(turn.at(-1)!.position)
+  })
+  it('does not append an obsolete approved tail after a shorter common-prefix target or stop', () => {
+    const from = { ...position, x: 11 },
+      edge = { ...position, x: 12 }
+    const to = { sectorId: 'b', x: 0, y: 4 }
+    const first = {
+      ...sectors[0]!,
+      exits: [{ from: edge, to, durationMs: 200, name: 'Known crossing' }],
+    }
+    const second = { ...sectors[0]!, id: 'b', atlasColumn: 1 }
+    const crossing = [edge, to].map((position) => ({ position, durationMs: 200 }))
+    for (const stop of [false, true]) {
+      const motion = new WorldMotion(
+        receipt(crossing, {
+          position: from,
+          sectors: [first],
+          nextStepAt: 1050,
+        }),
+        5000,
+      )
+      if (stop) motion.stop(5025)
+      else motion.plan(crossing.slice(0, 1), [first], 5025)
+      const before = motion.sample(5025)
+      motion.updateScene([first, second])
+      expect(motion.sample(5025)).toEqual(before)
+      expect(motion.sample(6000).position).toEqual(stop ? from : edge)
+      expect(motion.sample(6000).moving).toBe(false)
+    }
+  })
+  it('does not jump over an already observed visual pause when loaded geometry arrives late', () => {
+    const from = { ...position, x: 11 },
+      edge = { ...position, x: 12 }
+    const to = { sectorId: 'b', x: 0, y: 4 }
+    const first = {
+      ...sectors[0]!,
+      exits: [{ from: edge, to, durationMs: 200, name: 'Known crossing' }],
+    }
+    const second = { ...sectors[0]!, id: 'b', atlasColumn: 1 }
+    const crossing = [edge, to].map((position) => ({ position, durationMs: 200 }))
+    const confirmed = receipt(crossing, { position: from, sectors: [first], nextStepAt: 1050 })
+    const motion = new WorldMotion(confirmed, 5000)
+    const before = motion.sample(5200)
+    expect(before.moving).toBe(false)
+    motion.updateScene([first, second])
+    expect(motion.sample(5200)).toEqual(before)
+    motion.reconcile({ ...confirmed, sectors: [first, second], serverNow: 1200 }, 5200)
+    expect(motion.sample(5200).point).toEqual(before.point)
+    expect(motion.sample(5216).point.x - before.point.x).toBeCloseTo(16 / 200)
+    expect(motion.sample(5400).position).toEqual(to)
+  })
+  it.each(['sector', 'cell', 'road'] as const)(
+    'trims a now-withheld future visual %s without changing the current point or authored phase',
+    (withheld) => {
+      const from = { ...position, x: 11 },
+        edge = { ...position, x: 12 }
+      const to = { sectorId: 'b', x: 0, y: 4 },
+        end = { ...to, x: 1 }
+      const first = {
+        ...sectors[0]!,
+        exits: [{ from: edge, to, durationMs: 200, name: 'Known crossing' }],
+      }
+      const second = { ...sectors[0]!, id: 'b', atlasColumn: 1 }
+      const crossing = [edge, to, end].map((position) => ({ position, durationMs: 200 }))
+      const motion = new WorldMotion(
+        receipt(crossing, {
+          position: from,
+          sectors: [first],
+          nextStepAt: 1050,
+        }),
+        5000,
+      )
+      motion.updateScene([first, second], 5010)
+      const before = motion.sample(5025)
+      const narrowed =
+        withheld === 'sector'
+          ? [first]
+          : withheld === 'cell'
+            ? [
+                first,
+                { ...second, cells: second.cells.filter((cell) => cell.x !== 0 || cell.y !== 4) },
+              ]
+            : [{ ...first, exits: [] }, second]
+      motion.updateScene(narrowed, 5025)
+      expect(motion.sample(5025)).toEqual(before)
+      expect(motion.sample(5049).point.x).toBeCloseTo(12.5 - 1 / 200)
+      expect(motion.sample(5050).position).toEqual(edge)
+      expect(motion.sample(5450).position).toEqual(edge)
+      expect(motion.sample(5450).moving).toBe(false)
+    },
+  )
+  it('freezes an in-progress step when private geometry is withheld instead of rewinding it', () => {
+    const motion = new WorldMotion(receipt(), 5000)
+    const before = motion.sample(5100)
+    const privateGeometry = sectors.map((sector) => ({
+      ...sector,
+      cells: sector.cells.filter((cell) => cell.x !== 2 || cell.y !== 4),
+    }))
+    motion.updateScene(privateGeometry, 5100)
+    expect(motion.sample(5100).point).toEqual(before.point)
+    expect(motion.sample(5200).point).toEqual(before.point)
+    expect(motion.sample(9000).position).toEqual(before.position)
+    expect(motion.sample(9000).moving).toBe(false)
+    expect(motion.approvedPosition(9000)).toEqual(position)
+  })
+  it('retains an ordinary known-tile centering preview through unchanged scene hydration', () => {
+    const motion = new WorldMotion(view)
+    motion.plan(route, sectors, 0)
+    motion.plan([], sectors, 100)
+    const before = motion.sample(100).point
+    motion.updateScene(sectors, 100)
+    expect(motion.sample(100).point).toEqual(before)
+    expect(motion.sample(200).point).toEqual({ x: 1.5, y: 4.5 })
+    expect(motion.sample(200).moving).toBe(false)
+  })
+  it.each(['backward', 'turn', 'correction'] as const)(
+    'keeps authored speed through unchanged hydration during a partial %s interval',
+    (path) => {
+      const motion = new WorldMotion(view),
+        reference = new WorldMotion(view)
+      for (const candidate of [motion, reference]) {
+        candidate.plan(route, sectors, 0)
+        if (path === 'correction')
+          candidate.reconcile({ ...view, position: { ...position, x: 4 } }, 100)
+        else
+          candidate.plan(
+            [
+              {
+                position: path === 'backward' ? { ...position, x: 0 } : { ...position, y: 3 },
+                durationMs: 200,
+              },
+            ],
+            sectors,
+            100,
+          )
+      }
+      const before = motion.sample(116)
+      expect(before.moving).toBe(true)
+      motion.updateScene(sectors, 116)
+      expect(motion.sample(116)).toEqual(before)
+      for (let now = 132; now <= 700; now += 16) {
+        expect(motion.sample(now)).toEqual(reference.sample(now))
+      }
+      if (path === 'backward') expect(motion.sample(200).point.x).toBeCloseTo(1.5)
+      expect(motion.sample(700).moving).toBe(false)
+    },
+  )
+  it('freezes an omitted canonical-sector receipt at the exact current visual point', () => {
+    const motion = new WorldMotion(view)
+    motion.plan(route, sectors, 0)
+    const before = motion.sample(100)
+    motion.reconcile(
+      {
+        ...view,
+        position: { sectorId: 'unloaded', x: 0, y: 4 },
+        route: [],
+        serverNow: 1000,
+        nextStepAt: null,
+      },
+      100,
+    )
+    expect(motion.sample(100).point).toEqual(before.point)
+    expect(motion.sample(500).point).toEqual(before.point)
+    expect(motion.sample(500).position).toEqual(before.position)
+    expect(motion.sample(500).moving).toBe(false)
+  })
+  it.each([MOVEMENT_LAG_ALLOWANCE_MS, MOVEMENT_LAG_ALLOWANCE_MS + 1])(
+    'matches authoritative bootstrap catch-up limits for a receipt %d ms after its first deadline',
+    (late) => {
+      // Traverse a legal serpentine path, supplying every loaded cell.
+      const path: TravelStep[] = []
+      let cursor = { ...position }
+      for (let y = 4; y >= 0; y--) {
+        const xs =
+          y % 2 === 0
+            ? Array.from({ length: 11 }, (_, i) => i + 2)
+            : Array.from({ length: 11 }, (_, i) => 12 - i)
+        if (y !== 4) path.push({ position: { ...cursor, y }, durationMs: 200 })
+        for (const x of xs) {
+          if (x === cursor.x) continue
+          cursor = { ...cursor, x, y }
+          path.push({ position: cursor, durationMs: 200 })
+        }
+      }
+      expect(path.length).toBeGreaterThan(40)
+      const snapshot = receipt(path, { serverNow: 10000, nextStepAt: 10000 - late })
+      const expected = advanceWorldRoute(
+        {
+          ...newWorldState(),
+          position,
+          route: path,
+          nextStepAt: snapshot.nextStepAt,
+        },
+        snapshot.serverNow,
+      )
+      const motion = new WorldMotion(snapshot, 5000)
+      expect(motion.approvedPositionAtReceipt()).toEqual(expected.position)
+      expect(motion.sample(5000).position).toEqual(expected.position)
+      expect(motion.approvedPosition(5000)).toEqual(expected.position)
+      if (late > MOVEMENT_LAG_ALLOWANCE_MS) {
+        expect(motion.nextApprovedTransitionDelay(5000)).toBe(200)
+        expect(motion.approvedPosition(5199)).toEqual(expected.position)
+        expect(motion.approvedPosition(5200)).toEqual(path[1]!.position)
+      }
+    },
+  )
+  it('keeps scene hydration from creating a clock or reopening a blocked receipt', () => {
+    const legacy = new WorldMotion({ ...view, route: forward })
+    legacy.updateScene(sectors)
+    expect(legacy.approvedPosition(9000)).toEqual(position)
+    expect(legacy.loadedHorizonMs(0)).toBe(0)
+    const blocked = new WorldMotion(receipt(forward, { movementBlocked: 'Blocked' }), 5000)
+    blocked.updateScene(sectors)
+    expect(blocked.approvedPosition(9000)).toEqual(position)
+    expect(blocked.loadedHorizonMs(5000)).toBe(0)
+  })
+  it.each(['movementBlocked', 'battleSessionId'] as const)(
+    'freezes approved position and deadlines on a %s receipt',
+    (field) => {
+      const motion = new WorldMotion(receipt(), 5000)
+      motion.reconcile(receipt(forward, { [field]: 'blocked' }), 5100)
+      expect(motion.approvedPosition(9000)).toEqual(position)
+      expect(motion.sample(5116).moving).toBe(false)
+      expect(motion.nextApprovedTransitionDelay(5100)).toBeNull()
+      expect(motion.loadedHorizonMs(5100)).toBe(0)
+      motion.plan(forward, sectors, 5200)
+      expect(motion.sample(5216).moving).toBe(false)
+    },
+  )
+  it('bounds approved UI arrivals and loaded horizon at the first withheld walkable cell', () => {
+    const restricted = sectors.map((sector) => ({
+      ...sector,
+      cells: sector.cells.filter((cell) => cell.x !== 4 || cell.y !== 4),
+    }))
+    const motion = new WorldMotion(receipt(forward, { sectors: restricted }), 5000)
+    expect(motion.loadedHorizonMs(5000)).toBe(400)
+    expect(motion.loadedHorizonMs(5300)).toBe(100)
+    expect(motion.approvedPosition(9000)).toEqual(forward[1]!.position)
+    expect(motion.nextApprovedTransitionDelay(5400)).toBeNull()
+  })
+  it('does not derive approved position from unloaded or historical clockless route cells', () => {
+    const unloaded: TravelStep[] = [
+      forward[0]!,
+      {
+        position: { sectorId: 'unloaded', x: 0, y: 4 },
+        durationMs: 200,
+      },
+    ]
+    const motion = new WorldMotion(receipt(unloaded), 5000)
+    expect(motion.loadedHorizonMs(5000)).toBe(200)
+    expect(motion.approvedPosition(9000)).toEqual(forward[0]!.position)
+    const legacy = new WorldMotion({ ...view, route: forward })
+    expect(legacy.approvedPosition(9000)).toEqual(position)
+    expect(legacy.nextApprovedTransitionDelay(0)).toBeNull()
+  })
+  it('does not derive an arrival from unsupplied roads or invalid deadline clocks', () => {
+    const disconnected = [{ position: { ...position, x: 5 }, durationMs: 200 }]
+    const motion = new WorldMotion(receipt(disconnected), 5000)
+    expect(motion.approvedPosition(9000)).toEqual(position)
+    expect(motion.loadedHorizonMs(5000)).toBe(0)
+    for (const nextStepAt of [Number.NaN, Number.POSITIVE_INFINITY, -1, 1300]) {
+      const invalid = new WorldMotion(receipt(forward, { nextStepAt }), 5000)
+      expect(invalid.approvedPosition(9000)).toEqual(position)
+      expect(invalid.nextApprovedTransitionDelay(5000)).toBeNull()
+    }
+  })
+  it('follows a supplied approved longitude seam with the authored crossing deadline', () => {
+    const from = { sectorId: 'west', x: 12, y: 4 },
+      to = { sectorId: 'east', x: 0, y: 4 }
+    const seamSectors = [
+      {
+        ...sectors[0]!,
+        id: 'west',
+        atlasColumn: 127,
+        atlasRow: 32,
+        charted: true,
+        exits: [{ from, to, durationMs: 400, name: 'Cross' }],
+      },
+      { ...sectors[0]!, id: 'east', atlasColumn: 0, atlasRow: 32, charted: true },
+    ]
+    const crossing = [{ position: to, durationMs: 400 }]
+    const motion = new WorldMotion(
+      receipt(crossing, {
+        position: from,
+        sectors: seamSectors,
+        nextStepAt: 1100,
+      }),
+      5000,
+    )
+    expect(motion.sample(5000).point.x).toBeCloseTo(1664.25)
+    expect(motion.approvedPosition(5099)).toEqual(from)
+    expect(motion.approvedPosition(5100)).toEqual(to)
+    expect(motion.loadedHorizonMs(5000)).toBe(100)
+    motion.plan(crossing, seamSectors, 5020)
+    expect(motion.sample(5100).position).toEqual(to)
+  })
   it('does not interpolate an omitted source sector through overlapping public ground', () => {
     const motion = new WorldMotion(view)
     motion.plan(route, view.sectors, 0)
@@ -423,4 +978,27 @@ describe('world visual motion', () => {
     expect(motion.sample(250).point).toEqual(before)
     expect(motion.sample(300).point.y).toBeGreaterThan(before.y)
   })
+})
+
+it('approval-only blocking authority overrides a newer visual plan', () => {
+  const motion = new WorldMotion(view, 0)
+  motion.plan(route, sectors, 0)
+  motion.approveReceipt({ ...view, movementBlocked: 'Stop Passive Training to travel.' }, 100)
+  expect(motion.sample(300).moving).toBe(false)
+  expect(motion.sample(300).position).toEqual(view.position)
+})
+it('holds an attack preview at its exact visual point while retaining the approved arrival clock', () => {
+  const approved = {
+    ...view,
+    serverNow: 1000,
+    nextStepAt: 1200,
+    route,
+    movementBlocked: null,
+    battleSessionId: null,
+  }
+  const motion = new WorldMotion(approved, 0),
+    point = motion.sample(100).point
+  motion.hold(100)
+  expect(motion.sample(300)).toMatchObject({ point, moving: false })
+  expect(motion.approvedPosition(200)).toEqual(route[0]!.position)
 })

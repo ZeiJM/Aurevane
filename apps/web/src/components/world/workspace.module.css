@@ -257,10 +257,10 @@
 }
 .player {
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) auto;
-  gap: 8px;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+  gap: 6px;
   align-items: center;
-  padding: 6px 0;
+  padding: 4px 0;
   border-bottom: 1px solid var(--map-line);
 }
 .player:last-child {
@@ -269,8 +269,8 @@
 }
 .player img,
 .avatar {
-  width: 44px;
-  height: 44px;
+  width: 36px;
+  height: 36px;
   flex-shrink: 0;
   border: 2px solid var(--map-gold);
   border-radius: 50%;
@@ -282,14 +282,14 @@
   box-shadow:
     0 0 0 3px #d3b57012,
     0 3px 9px #010b1180;
-  font: 20px Georgia;
+  font: 18px Georgia;
 }
 .playerIdentity {
   min-width: 0;
 }
 .player strong {
   display: block;
-  font: 500 16px/1.4 var(--av-font-heading, Georgia);
+  font: 500 14px/1.25 var(--av-font-heading, Georgia);
   color: #eed6a0;
   font-weight: 600;
   overflow-wrap: anywhere;
@@ -297,8 +297,9 @@
 .player small {
   display: block;
   font-size: 11px;
+  line-height: 1.2;
   color: var(--map-muted);
-  margin-top: 3px;
+  margin-top: 2px;
 }
 .selected {
   background: #c5a05c10;
@@ -307,8 +308,9 @@
 }
 .rowActions {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   justify-content: center;
+  align-items: center;
   gap: 4px;
   margin: 0;
 }
@@ -321,6 +323,19 @@
 }
 .rowActions button:disabled {
   background: #183038;
+  color: #87928f;
+  border-color: #65736e;
+  opacity: 1;
+}
+.rowActions .secondaryPlayerAction {
+  width: 52px;
+  padding-inline: 4px;
+  flex: 0 0 auto;
+}
+.rowActions .primaryPlayerAction {
+  width: 64px;
+  padding-inline: 4px;
+  flex: 0 0 auto;
 }
 .empty {
   font-size: 11px;
@@ -868,6 +883,12 @@
   .rowActions button {
     font-size: 12px;
   }
+  .rowActions .secondaryPlayerAction {
+    width: 60px;
+  }
+  .rowActions .primaryPlayerAction {
+    width: 72px;
+  }
   .panel p,
   .quest p {
     font-size: 12px;
@@ -876,7 +897,7 @@
 
 @container (max-width: 180px) {
   .player {
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: 36px minmax(0, 1fr);
     column-gap: 4px;
     row-gap: 4px;
   }
@@ -886,12 +907,13 @@
     grid-row: 1;
   }
   .playerIdentity {
-    grid-column: 1;
-    grid-row: 2;
+    grid-column: 2;
+    grid-row: 1;
   }
   .rowActions {
-    grid-column: 2;
-    grid-row: 1 / span 2;
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-self: end;
     min-width: 0;
   }
   .rowActions button {

@@ -97,8 +97,8 @@ describe('World page', () => {
       }),
     )
     const row = markup.match(/<article[^>]*data-world-player="density-peer"[\s\S]*?<\/article>/)![0]
-    expect(row).toContain('width="44"')
-    expect(row).toContain('height="44"')
+    expect(row).toContain('width="36"')
+    expect(row).toContain('height="36"')
     expect(row).toContain('src="/original-clear-portrait.webp"')
     expect(row).toContain('<strong>Sellophina</strong>')
     expect(row).toContain('Level 3')

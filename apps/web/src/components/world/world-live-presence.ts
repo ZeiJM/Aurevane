@@ -3,11 +3,13 @@ import type { WorldLivePlayers } from '@/world/live-presence'
 
 const sceneKey = (view: WorldView) =>
   [...new Set(view.sectors.map((sector) => sector.id))].sort().join('\n')
-const receiptKey = (view: WorldView) => `${view.characterId}:${view.version}:${sceneKey(view)}`
+const receiptKey = (view: WorldView) => `${view.characterId}:${sceneKey(view)}`
 
 /** Private invalidations and peer reads run independently of travel commands. */
 export class WorldLivePresence {
   private context = ''
+  private sectors: WorldView['sectors'] | null = null
+  private atlas: WorldView['atlas'] = undefined
   private channels = new Map<string, () => void>()
   private timer: ReturnType<typeof setTimeout> | null = null
   private renewal: ReturnType<typeof setTimeout> | null = null
@@ -31,15 +33,20 @@ export class WorldLivePresence {
     const enabled = active && view.livePresence === true && ids.length > 0 && ids.length <= 25
     const nextContext = enabled ? receiptKey(view) : ''
     const topics = new Set(enabled ? ids.map((id) => `world-scene:${id}`) : [])
+    const contextChanged =
+      nextContext !== this.context ||
+      (enabled && (view.sectors !== this.sectors || view.atlas !== this.atlas))
     const retryRead =
       enabled &&
-      nextContext !== this.context &&
+      contextChanged &&
       Boolean(this.request || this.dirty) &&
       topics.size === this.channels.size &&
       [...topics].every((topic) => this.channels.has(topic))
-    if (nextContext !== this.context) {
+    if (contextChanged) {
       this.cancelRead()
       this.context = nextContext
+      this.sectors = enabled ? view.sectors : null
+      this.atlas = enabled ? view.atlas : undefined
       this.lastServerNow = -Infinity
     }
     for (const [topic, remove] of this.channels)
@@ -57,8 +64,8 @@ export class WorldLivePresence {
       clearTimeout(this.renewal)
       this.renewal = null
     } else if (enabled && !this.renewal) this.renew()
-    // A travel receipt may supersede a read triggered by a newer peer change.
-    // Retry that change in the new owned context rather than dropping it.
+    // Geometry changes supersede an old authorized read even when topic IDs remain.
+    // Preserve its pending invalidation for the newly authorized scene.
     if (retryRead) this.invalidate()
   }
 
@@ -89,16 +96,21 @@ export class WorldLivePresence {
     if (this.disposed || !this.context || this.request || !this.dirty) return
     const view = this.transport.getView()
     const context = receiptKey(view)
-    if (context !== this.context) return
+    if (context !== this.context || view.sectors !== this.sectors || view.atlas !== this.atlas)
+      return
     const request = new AbortController()
     this.request = request
     this.dirty = false
     try {
       const receipt = await this.transport.read(view, request.signal)
+      const current = this.transport.getView()
       if (
         !request.signal.aborted &&
         this.context === context &&
-        receiptKey(this.transport.getView()) === context &&
+        receiptKey(current) === context &&
+        current.sectors === view.sectors &&
+        current.atlas === view.atlas &&
+        current.version >= view.version &&
         receipt.characterId === view.characterId &&
         receipt.version === view.version &&
         receipt.registered &&

@@ -26,7 +26,13 @@ vi.mock('./world-environment-store', () => ({ readWorldEnvironmentSettings: envi
 import { DEFAULT_WORLD_ENVIRONMENT_SETTINGS } from '@/world/environment'
 import { newWorldState, revealNearby } from '@/world/travel'
 import type { WorldCommand, WorldPlayer, WorldState } from '@/world/types'
-import { commitWorldCommand, readWorld, resetWorldReadCaches } from './world-repository'
+import {
+  commitWorldCommand,
+  readWorld,
+  readWorldAttackAuthority,
+  settleWorldAttackAuthority,
+  resetWorldReadCaches,
+} from './world-repository'
 import { loadPublicCharacterProfileImageMap } from '@/server/character/character-profile-display-service'
 
 const characterId = '00000000-0000-4000-8000-000000000011'
@@ -510,4 +516,288 @@ it('projects custom avatars and selected starter portraits for nearby players', 
     portraitRef: 'portrait.starter.wayfarer-07',
     imageUrl: '/api/media/starter-portrait/portrait.starter.wayfarer-07',
   })
+})
+
+it('reads only known local attack authority without any scene or cosmetic presentation', async () => {
+  const state = revealNearby({
+    ...newWorldState(),
+    position: { sectorId: 'survey-01', x: 6, y: 8 },
+  })
+  const local = scenePlayer('target', 'survey-01', 6, 7)
+  rpc.mockResolvedValue({
+    data: {
+      ...payload(),
+      state,
+      players: [
+        local,
+        scenePlayer('hidden', 'survey-01', 11, 1),
+        scenePlayer('remote', 'atlas:0:0'),
+      ],
+    },
+  })
+  expect(await readWorldAttackAuthority('owner', characterId)).toEqual({
+    state,
+    players: [{ ...local, attackEligible: true }],
+    serverNow: 5000,
+  })
+  expect(rpc.mock.calls.map(([name]) => name)).toEqual(['read_world_state_v1'])
+  expect(sceneRpc).not.toHaveBeenCalled()
+  expect(environmentSettings).not.toHaveBeenCalled()
+  expect(loadPublicCharacterProfileImageMap).not.toHaveBeenCalled()
+})
+it.each(['WORLD_TRAINING_ACTIVE', 'WORLD_ACTIVE_BATTLE', 'WORLD_SPECTATING'])(
+  'rejects blocked attacker %s before presentation or private pair reads',
+  async (blocked) => {
+    rpc.mockResolvedValue({ data: { ...payload(), blocked } })
+    await expect(readWorldAttackAuthority('owner', characterId)).rejects.toMatchObject({
+      code: 'INVALID_REQUEST',
+    })
+    expect(sceneRpc).not.toHaveBeenCalled()
+    expect(environmentSettings).not.toHaveBeenCalled()
+  },
+)
+it('materializes expired training before returning lean attack authority from the new snapshot', async () => {
+  const state = revealNearby({
+    ...newWorldState(),
+    position: { sectorId: 'survey-01', x: 6, y: 8 },
+    version: 3,
+  })
+  rpc
+    .mockResolvedValueOnce({
+      data: { ...payload(), trainingExpired: true, blocked: 'WORLD_TRAINING_ACTIVE' },
+    })
+    .mockResolvedValueOnce({ data: [] })
+    .mockResolvedValueOnce({
+      data: { ...payload(), state, players: [scenePlayer('target', 'survey-01', 6, 7)] },
+    })
+  expect((await readWorldAttackAuthority('owner', characterId)).state).toEqual(state)
+  expect(rpc.mock.calls.map(([name]) => name)).toEqual([
+    'read_world_state_v1',
+    'materialize_training_report_v2',
+    'read_world_state_v1',
+  ])
+  expect(sceneRpc).not.toHaveBeenCalled()
+})
+it.each(['safe', 'out-of-range', 'stale-target', 'unsurveyed'] as const)(
+  'never grants attack authority to %s targets',
+  async (reason) => {
+    let state =
+      reason === 'safe'
+        ? newWorldState()
+        : revealNearby({ ...newWorldState(), position: { sectorId: 'survey-01', x: 6, y: 8 } })
+    let target = scenePlayer(
+      'target',
+      state.position.sectorId,
+      state.position.x,
+      state.position.y - 1,
+    )
+    if (reason === 'out-of-range')
+      target = { ...target, position: { ...target.position, x: target.position.x + 3 } }
+    if (reason === 'stale-target') target = { ...target, online: false, attackable: false }
+    if (reason === 'unsurveyed')
+      state = { ...state, discoveries: { ...state.discoveries, 'survey-01': [] } }
+    rpc.mockResolvedValue({ data: { ...payload(), state, players: [target] } })
+    expect(
+      (await readWorldAttackAuthority('owner', characterId)).players.some(
+        (player) => player.characterId === 'target' && player.attackable,
+      ),
+    ).toBe(false)
+    expect(sceneRpc).not.toHaveBeenCalled()
+  },
+)
+
+it('returns canonical compact movement before deferred terrain, environment or portraits', async () => {
+  const initial = payload()
+  const confirmed = { ...initial, state: { ...initial.state, version: 2 }, serverNow: 6000 }
+  rpc.mockImplementation(async (name: string) => ({
+    data:
+      name === 'commit_world_state_v1'
+        ? confirmed.state
+        : rpc.mock.calls.some(([n]) => n === 'commit_world_state_v1')
+          ? confirmed
+          : initial,
+  }))
+  sceneRpc.mockImplementation(() => new Promise(() => {}))
+  environmentSettings.mockImplementation(() => new Promise(() => {}))
+  const result = await commitWorldCommand('owner', characterId, command, true)
+  expect(result).toMatchObject({
+    kind: 'movement',
+    version: 2,
+    serverNow: 6000,
+    position: confirmed.state.position,
+  })
+  expect(result).not.toHaveProperty('sectors')
+  expect(sceneRpc).not.toHaveBeenCalled()
+  expect(environmentSettings).not.toHaveBeenCalled()
+  expect(loadPublicCharacterProfileImageMap).not.toHaveBeenCalled()
+})
+
+function attackTravelState(nextStepAt = 5000): WorldState {
+  return revealNearby({
+    ...newWorldState(),
+    position: { sectorId: 'survey-01', x: 6, y: 8 },
+    route: [7, 6].map((y) => ({ position: { sectorId: 'survey-01', x: 6, y }, durationMs: 200 })),
+    nextStepAt,
+  })
+}
+it('settles only approved owned steps due on the database read clock before projecting attack reach', async () => {
+  const state = attackTravelState()
+  const target = scenePlayer('target', 'survey-01', 6, 6)
+  let committed: WorldState | undefined
+  rpc.mockImplementation(async (name: string, args: { p_next_state?: WorldState }) => {
+    if (name === 'commit_world_state_v1') {
+      committed = { ...args.p_next_state!, version: 2 }
+      return { data: committed }
+    }
+    return { data: { ...payload(), state: committed ?? state, players: [target] } }
+  })
+  const clock = vi.spyOn(Date, 'now').mockReturnValue(999999)
+  try {
+    const authority = await settleWorldAttackAuthority('owner', characterId, 1)
+    expect(authority.state).toEqual(committed)
+    expect(authority.players[0]).toMatchObject({ characterId: 'target', attackable: true })
+    expect(committed).toMatchObject({
+      position: { sectorId: 'survey-01', x: 6, y: 7 },
+      route: [state.route[1]],
+      nextStepAt: 5200,
+    })
+    expect(rpc.mock.calls.map(([name]) => name)).toEqual([
+      'read_world_state_v1',
+      'commit_world_state_v1',
+      'read_world_state_v1',
+    ])
+    expect(rpc.mock.calls[1]![1]).toMatchObject({
+      p_user_id: 'owner',
+      p_character_id: characterId,
+      p_expected_version: 1,
+      p_kind: 'tick',
+      p_request_fingerprint: expect.stringMatching(/^[a-f0-9]{64}$/u),
+      p_command_id: expect.stringMatching(/^[a-f0-9-]{36}$/u),
+    })
+    expect(sceneRpc).not.toHaveBeenCalled()
+    expect(environmentSettings).not.toHaveBeenCalled()
+    expect(loadPublicCharacterProfileImageMap).not.toHaveBeenCalled()
+  } finally {
+    clock.mockRestore()
+  }
+})
+it.each(['future-step', 'idle'] as const)(
+  'does not commit travel for %s attack preparation',
+  async (reason) => {
+    const state =
+      reason === 'future-step'
+        ? attackTravelState(5001)
+        : { ...attackTravelState(), route: [], nextStepAt: null }
+    rpc.mockResolvedValue({
+      data: { ...payload(), state, players: [scenePlayer('target', 'survey-01', 6, 6)] },
+    })
+    const authority = await settleWorldAttackAuthority('owner', characterId, 1)
+    expect(authority.state).toEqual(state)
+    expect(authority.players.some((player) => player.attackable)).toBe(false)
+    expect(rpc.mock.calls.map(([name]) => name)).toEqual(['read_world_state_v1'])
+  },
+)
+it('rejects stale attack versions before settling a due owned route', async () => {
+  rpc.mockResolvedValue({ data: { ...payload(), state: { ...attackTravelState(), version: 3 } } })
+  await expect(settleWorldAttackAuthority('owner', characterId, 1)).rejects.toMatchObject({
+    code: 'STALE_VERSION',
+  })
+  expect(rpc.mock.calls.map(([name]) => name)).toEqual(['read_world_state_v1'])
+})
+it.each(['WORLD_STALE_VERSION', 'WORLD_STEP_NOT_DUE', 'WORLD_TRAINING_ACTIVE'])(
+  'keeps failed due-step commit %s from becoming attack authority',
+  async (message) => {
+    rpc
+      .mockResolvedValueOnce({ data: { ...payload(), state: attackTravelState() } })
+      .mockResolvedValueOnce({ error: { message } })
+    await expect(settleWorldAttackAuthority('owner', characterId, 1)).rejects.toMatchObject({
+      code: message === 'WORLD_STALE_VERSION' ? 'STALE_VERSION' : 'INVALID_REQUEST',
+    })
+    expect(rpc.mock.calls.map(([name]) => name)).toEqual([
+      'read_world_state_v1',
+      'commit_world_state_v1',
+    ])
+  },
+)
+it('rejects another command advancing authority between owned-step commit and its fresh target read', async () => {
+  rpc
+    .mockResolvedValueOnce({ data: { ...payload(), state: attackTravelState() } })
+    .mockResolvedValueOnce({ data: { ...attackTravelState(), version: 2 } })
+    .mockResolvedValueOnce({
+      data: { ...payload(), state: { ...attackTravelState(), version: 3 } },
+    })
+  await expect(settleWorldAttackAuthority('owner', characterId, 1)).rejects.toMatchObject({
+    code: 'STALE_VERSION',
+  })
+})
+it('rejects a successful-looking commit with no authoritative resulting version', async () => {
+  rpc
+    .mockResolvedValueOnce({ data: { ...payload(), state: attackTravelState() } })
+    .mockResolvedValueOnce({ data: {} })
+  await expect(settleWorldAttackAuthority('owner', characterId, 1)).rejects.toMatchObject({
+    code: 'PERSISTENCE_UNAVAILABLE',
+  })
+  expect(rpc.mock.calls.map(([name]) => name)).toEqual([
+    'read_world_state_v1',
+    'commit_world_state_v1',
+  ])
+})
+it.each(['WORLD_TRAINING_ACTIVE', 'WORLD_ACTIVE_BATTLE', 'WORLD_SPECTATING'])(
+  'never settles owned attack travel while blocked by %s',
+  async (blocked) => {
+    rpc.mockResolvedValueOnce({ data: { ...payload(), state: attackTravelState(), blocked } })
+    await expect(settleWorldAttackAuthority('owner', characterId, 1)).rejects.toMatchObject({
+      code: 'INVALID_REQUEST',
+    })
+    expect(rpc.mock.calls.map(([name]) => name)).toEqual(['read_world_state_v1'])
+  },
+)
+
+it('preserves the existing old-route lag allowance when settling attack arrival', async () => {
+  const state = attackTravelState()
+  let committed: WorldState | undefined
+  rpc.mockImplementation(async (name: string, args: { p_next_state?: WorldState }) => {
+    if (name === 'commit_world_state_v1') {
+      committed = { ...args.p_next_state!, version: 2 }
+      return { data: committed }
+    }
+    return { data: { ...payload(), serverNow: 14000, state: committed ?? state } }
+  })
+  expect((await settleWorldAttackAuthority('owner', characterId, 1)).state).toMatchObject({
+    position: state.route[0]!.position,
+    route: [state.route[1]],
+    nextStepAt: 14200,
+  })
+})
+it('materializes expired training before settling due owned steps for an attack', async () => {
+  const state = attackTravelState()
+  let expired = true
+  let committed: WorldState | undefined
+  rpc.mockImplementation(async (name: string, args: { p_next_state?: WorldState }) => {
+    if (name === 'materialize_training_report_v2') {
+      expired = false
+      return { data: [] }
+    }
+    if (name === 'commit_world_state_v1') {
+      committed = { ...args.p_next_state!, version: 2 }
+      return { data: committed }
+    }
+    return {
+      data: {
+        ...payload(),
+        state: committed ?? state,
+        trainingExpired: expired,
+        blocked: expired ? 'WORLD_TRAINING_ACTIVE' : null,
+      },
+    }
+  })
+  expect((await settleWorldAttackAuthority('owner', characterId, 1)).state.version).toBe(2)
+  expect(rpc.mock.calls.map(([name]) => name)).toEqual([
+    'read_world_state_v1',
+    'materialize_training_report_v2',
+    'read_world_state_v1',
+    'commit_world_state_v1',
+    'read_world_state_v1',
+  ])
+  expect(sceneRpc).not.toHaveBeenCalled()
 })

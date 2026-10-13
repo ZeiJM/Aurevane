@@ -43,15 +43,27 @@ export async function POST(request: Request) {
     if (!command) throw new AurevaneError('INVALID_REQUEST', 'The travel command is invalid.')
     if (command.characterId !== actor.characterId)
       throw new AurevaneError('STALE_VERSION', 'Your selected character changed. Refresh the map.')
+    if (command.intent.kind === 'attack') {
+      const receipt = await attackWorldPlayer(
+        actor.userId,
+        actor.characterId,
+        command.intent.targetId,
+        command.expectedVersion,
+      )
+      return json(
+        request.headers.get('x-world-response') === 'movement'
+          ? receipt
+          : (await readWorld(actor.userId, actor.characterId)).view,
+      )
+    }
     return json(
-      command.intent.kind === 'attack'
-        ? await attackWorldPlayer(
-            actor.userId,
-            actor.characterId,
-            command.intent.targetId,
-            command.expectedVersion,
-          )
-        : await commitWorldCommand(actor.userId, actor.characterId, command),
+      await commitWorldCommand(
+        actor.userId,
+        actor.characterId,
+        command,
+        request.headers.get('x-world-response') === 'movement' &&
+          ['walk', 'autopath', 'tick', 'stop'].includes(command.intent.kind),
+      ),
     )
   } catch (error) {
     return toServerErrorResponse(error)
