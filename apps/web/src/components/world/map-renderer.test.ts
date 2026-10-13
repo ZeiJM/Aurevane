@@ -245,6 +245,7 @@ function scene(reduced = false, initial?: WorldView) {
   } as unknown as HTMLCanvasElement
   const view = initial ?? projectWorld(newWorldState(), [], 1000),
     select = vi.fn(),
+    selectPlayer = vi.fn(),
     onZoom = vi.fn(),
     onVisiblePlayers = vi.fn(),
     onStop = vi.fn()
@@ -254,7 +255,7 @@ function scene(reduced = false, initial?: WorldView) {
     motion,
     view,
     select,
-    vi.fn(),
+    selectPlayer,
     onZoom,
     onVisiblePlayers,
     onStop,
@@ -281,6 +282,7 @@ function scene(reduced = false, initial?: WorldView) {
     motion,
     renderer,
     select,
+    selectPlayer,
     onZoom,
     onVisiblePlayers,
     onStop,
@@ -1329,7 +1331,7 @@ describe('native map input and bounded lifecycle', () => {
     s.frame(40)
     s.draws.length = 0
     s.frame(4800)
-    expect(s.draws.some((d) => d.src === '/your-portrait.png')).toBe(true)
+    expect(s.identityDraws.some((d) => d.src === '/your-portrait.png')).toBe(true)
     expect(s.draws.some((d) => d.src === '/other-portrait.png')).toBe(false)
     s.renderer.dispose()
     vi.unstubAllGlobals()
@@ -1729,6 +1731,141 @@ describe('native map input and bounded lifecycle', () => {
       vi.unstubAllGlobals()
     },
   )
+  it('reuses the native identity bitmap during ambient-only frames without repeating portrait paint', () => {
+    const s = scene()
+    s.canvas.dataset.portrait = '/sharp-static.webp'
+    s.frame(40)
+    const portraits = s.identityDraws.length
+    const clearCount = s.identityClear.mock.calls.length
+    const phase = s.canvas.dataset.cloudPhase
+    const scenery = s.draws.length
+    s.frame(200)
+    expect(s.identityDraws).toHaveLength(portraits)
+    expect(s.identityClear).toHaveBeenCalledTimes(clearCount)
+    expect(s.canvas.dataset.cloudPhase).not.toBe(phase)
+    expect(s.draws.length).toBeGreaterThan(scenery)
+    s.event('pointerdown', 400, 283)
+    s.event('pointerup', 400, 283)
+    expect(s.select).not.toHaveBeenCalled()
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  })
+  it.each([0.35, 1, 1.4])(
+    'sizes identities in proportion to terrain and matches their picking area at %s zoom',
+    (zoom) => {
+      const s = scene()
+      s.canvas.dataset.portrait = '/scaled.webp'
+      s.renderer.update({
+        ...s.view,
+        players: [
+          {
+            characterId: 'scaled-peer',
+            name: 'Peer',
+            level: 1,
+            portraitRef: '',
+            imageUrl: '/scaled-peer.webp',
+            online: true,
+            attackable: false,
+            position: { ...s.view.position, x: s.view.position.x + 1 },
+          },
+        ],
+      })
+      s.renderer.settings({ animate: true, zoom })
+      s.frame(40)
+      const draw = s.identityDraws.find((entry) => entry.src === '/scaled-peer.webp')!
+      const scale = Number(s.canvas.dataset.tileSize) / 64
+      const diameter = Math.round(34 * scale * 3) / 3
+      expect(draw.args.at(-2)).toBe(diameter)
+      expect(draw.args.at(-1)).toBe(diameter)
+      const x = draw.args.at(-4)! + diameter / 2,
+        y = draw.args.at(-3)! + diameter / 2
+      s.frame(200)
+      s.event('pointerdown', x, y)
+      s.event('pointerup', x, y)
+      expect(s.selectPlayer).toHaveBeenCalledWith('scaled-peer')
+      s.selectPlayer.mockClear()
+      const outside = diameter / 2 + 4 * scale + 1
+      s.event('pointerdown', x + outside, y)
+      s.event('pointerup', x + outside, y)
+      expect(s.selectPlayer).not.toHaveBeenCalled()
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    },
+  )
+  it('repaints a stationary centered portrait when wheel zoom changes its terrain-relative size', () => {
+    const s = scene()
+    s.canvas.dataset.portrait = '/wheel-scaled.webp'
+    s.frame(40)
+    const before = s.identityDraws.at(-1)!.args.at(-2)!
+    s.listeners.get('wheel')!({ deltaY: -1000, preventDefault() {} } as unknown as Event)
+    s.frame(80)
+    const after = s.identityDraws.at(-1)!.args.at(-2)!
+    expect(after).toBeGreaterThan(before)
+    expect(after * 3).toBe(Math.round(((34 * Number(s.canvas.dataset.tileSize)) / 64) * 3))
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  })
+  it('repaints the identity bitmap for movement, late image decoding and changed portrait sources', () => {
+    const s = scene()
+    s.canvas.dataset.portrait = '/late-static.webp'
+    s.frame(40)
+    const picture = s.images.find(
+      (image) => (image as HTMLImageElement).src === '/late-static.webp',
+    )!
+    Object.assign(picture, { complete: false })
+    s.renderer.update(s.view)
+    s.frame(80)
+    const clearCount = s.identityClear.mock.calls.length
+    Object.assign(picture, { complete: true })
+    picture.onload!()
+    s.frame(120)
+    expect(s.identityClear).toHaveBeenCalledTimes(clearCount + 1)
+    const destination = { ...s.view.position, x: s.view.position.x + 1 }
+    s.motion.plan([{ position: destination, durationMs: 200 }], s.view.sectors, 120)
+    s.frame(160)
+    expect(s.identityClear).toHaveBeenCalledTimes(clearCount + 2)
+    s.canvas.dataset.portrait = '/replacement.webp'
+    s.frame(200)
+    expect(s.identityDraws.some((entry) => entry.src === '/replacement.webp')).toBe(true)
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  })
+  it('keeps stack fades and cycling live while reusing the settled identity bitmap', () => {
+    const s = scene()
+    const position = { ...s.view.position, x: s.view.position.x + 1 }
+    s.renderer.update({
+      ...s.view,
+      players: ['first', 'second'].map((id) => ({
+        characterId: id,
+        name: id,
+        level: 1,
+        portraitRef: '',
+        imageUrl: `/${id}.webp`,
+        online: true,
+        attackable: false,
+        position,
+      })),
+    })
+    s.frame(40)
+    const first = s.identityClear.mock.calls.length
+    s.frame(240)
+    expect(s.identityClear).toHaveBeenCalledTimes(first + 1)
+    s.frame(540)
+    const settled = s.identityClear.mock.calls.length
+    s.frame(740)
+    expect(s.identityClear).toHaveBeenCalledTimes(settled)
+    s.frame(3640)
+    expect(s.identityClear).toHaveBeenCalledTimes(settled + 1)
+    const cycled = s.identityDraws.length
+    s.renderer.settings({ animate: false, zoom: 1 })
+    s.frame(3680)
+    expect(s.identityDraws.slice(cycled).some((draw) => draw.src === '/first.webp')).toBe(true)
+    expect(s.identityDraws.slice(cycled).some((draw) => draw.src === '/second.webp')).toBe(false)
+    s.renderer.dispose()
+    expect(s.identityCanvas.width).toBe(0)
+    expect(s.identityCanvas.height).toBe(0)
+    vi.unstubAllGlobals()
+  })
   it('does not keep an idle animation loop when ambient effects are disabled', () => {
     const s = scene()
     s.renderer.settings({ animate: false, zoom: 1 })

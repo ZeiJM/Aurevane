@@ -3,7 +3,8 @@
 }
 
 html {
-  --av-cursor: url('/cursors/dark-crystal.svg') 2 2, auto;
+  --av-cursor: url('/cursors/stone-arrow.png') 6 3, auto;
+  --av-cursor-interactive: url('/cursors/stone-hand.png') 10 3, pointer;
   min-width: 320px;
   min-height: 100%;
   background: var(--av-ink-950);
@@ -91,7 +92,7 @@ button {
     [data-battle-chronicle] [aria-label^='Explain '],
     [contenteditable='true']
   ) {
-  cursor: var(--av-cursor) !important;
+  cursor: var(--av-cursor-interactive) !important;
 }
 
 ::selection {

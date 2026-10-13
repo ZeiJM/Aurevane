@@ -1244,7 +1244,13 @@ test('a synthetic population of 100 has bounded rendering at high DPI and lower 
   await identity.evaluate((el) => {
     const context = (el as HTMLCanvasElement).getContext('2d')!,
       original = context.drawImage.bind(context),
+      clear = context.clearRect.bind(context),
       sources = new Set<string>()
+    let paints = 0
+    context.clearRect = (x, y, width, height) => {
+      el.dataset.testIdentityPaints = String(++paints)
+      clear(x, y, width, height)
+    }
     context.drawImage = (image: CanvasImageSource, ...args: number[]) => {
       if (image instanceof HTMLImageElement && image.src.includes('syntheticPortrait=')) {
         sources.add(image.src)
@@ -1276,33 +1282,47 @@ test('a synthetic population of 100 has bounded rendering at high DPI and lower 
   const session = await page.context().newCDPSession(page)
   await session.send('Emulation.setCPUThrottlingRate', { rate: 4 })
   const before = Number(await canvas.getAttribute('data-render-frames'))
-  await expect
-    .poll(async () => Number(await canvas.getAttribute('data-render-frames')), { timeout: 15000 })
-    .toBeGreaterThan(before + 120)
-  const metrics = await canvas.evaluate((el) => ({
-    frameP95Ms: Number(el.dataset.frameP95),
-    cachedSectors: Number(el.dataset.cachedSectors),
-    cachedPixels: Number(el.dataset.cachedPixels),
-    visibleScenery: Number(el.dataset.visibleScenery),
-    waterCells: Number(el.dataset.waterCells),
-    canvasPixels: (el as HTMLCanvasElement).width * (el as HTMLCanvasElement).height,
-    identityPixels: (() => {
-      const identity = document.querySelector<HTMLCanvasElement>('canvas[data-world-identity]')!
-      return identity.width * identity.height
-    })(),
-    players: Number(el.dataset.visiblePlayers),
-    deviceRatio: window.devicePixelRatio,
-  }))
+  const readMetrics = () =>
+    canvas.evaluate((el) => ({
+      sampledAt: performance.now(),
+      renderFrames: Number(el.dataset.renderFrames),
+      frameP95Ms: Number(el.dataset.frameP95),
+      cachedSectors: Number(el.dataset.cachedSectors),
+      cachedPixels: Number(el.dataset.cachedPixels),
+      visibleScenery: Number(el.dataset.visibleScenery),
+      waterCells: Number(el.dataset.waterCells),
+      canvasPixels: (el as HTMLCanvasElement).width * (el as HTMLCanvasElement).height,
+      identityPixels: (() => {
+        const identity = document.querySelector<HTMLCanvasElement>('canvas[data-world-identity]')!
+        return identity.width * identity.height
+      })(),
+      identityPaints: Number(
+        document.querySelector<HTMLCanvasElement>('canvas[data-world-identity]')!.dataset
+          .testIdentityPaints ?? 0,
+      ),
+      players: Number(el.dataset.visiblePlayers),
+      deviceRatio: window.devicePixelRatio,
+    }))
+  const baseline = await readMetrics()
+  const costPath = info.outputPath('synthetic-world-render-cost.json')
+  writeFileSync(costPath, JSON.stringify({ baseline }, null, 2))
+  let metrics = baseline
+  try {
+    await expect
+      .poll(async () => Number(await canvas.getAttribute('data-render-frames')), { timeout: 15000 })
+      .toBeGreaterThan(before + 120)
+  } finally {
+    metrics = await readMetrics()
+    writeFileSync(costPath, JSON.stringify({ ...metrics, baseline }, null, 2))
+    await info.attach('synthetic-world-render-cost', {
+      path: costPath,
+      contentType: 'application/json',
+    })
+  }
   expect(metrics.cachedPixels).toBeLessThanOrEqual(8_000_000)
   expect(metrics.visibleScenery).toBeLessThanOrEqual(180)
   expect(metrics.waterCells).toBeLessThanOrEqual(60)
   expect(metrics.frameP95Ms).toBeLessThan(80)
-  const costPath = info.outputPath('synthetic-world-render-cost.json')
-  writeFileSync(costPath, JSON.stringify(metrics, null, 2))
-  await info.attach('synthetic-world-render-cost', {
-    path: costPath,
-    contentType: 'application/json',
-  })
   await capture(page, info, 'synthetic-100-mobile')
   await page.getByRole('button', { name: 'Details', exact: true }).click()
   await expect(page.getByRole('tab', { name: 'Places', exact: true })).toBeVisible()

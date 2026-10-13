@@ -402,6 +402,7 @@ export function createMapRenderer(
   const ctx = context
   const identityContext = identityCanvas?.getContext('2d')
   const personContext = identityContext ?? ctx
+  let paintedIdentity: (string | number | boolean | null)[] | null = null
   let view = initial,
     width = 0,
     height = 0,
@@ -444,7 +445,7 @@ export function createMapRenderer(
     string,
     { key: string; ground: HTMLCanvasElement; surfaces: Map<string, LiquidSurface>; pixels: number }
   >()
-  let hitTargets: { id: string; self: boolean; x: number; y: number }[] = []
+  let hitTargets: { id: string; self: boolean; x: number; y: number; radius: number }[] = []
   const frameTimes: number[] = []
   const terrainKeys = new Map<string, string>()
   const featureKeys = new Map<string, string>()
@@ -503,6 +504,7 @@ export function createMapRenderer(
     if (identityCanvas && identityContext) {
       identityCanvas.width = Math.round(width * identityRatio)
       identityCanvas.height = Math.round(height * identityRatio)
+      paintedIdentity = null
     }
     tile = (width < 600 ? 48 : 64) * zoom
     clearCache()
@@ -1177,9 +1179,10 @@ export function createMapRenderer(
       ...animals,
       ...scenery.map((item) => ({ y: item.x + item.y, type: 'scenery' as const, item })),
     ].sort((a, b) => a.y - b.y)
+    const tokenScale = tile / 64
+    const radius = Math.round(34 * tokenScale * identityRatio) / identityRatio / 2
     const drawPerson = (stack: typeof selfStack, ghost = false) => {
       const ctx = personContext
-      const radius = Math.round(34 * identityRatio) / identityRatio / 2
       const projected = screen(stack.point),
         point = {
           x: Math.round((projected.x - radius) * identityRatio) / identityRatio + radius,
@@ -1195,18 +1198,16 @@ export function createMapRenderer(
               ? 0
               : Math.floor(now / 3600) % people.length,
         person = people[index]!
-      if (!ghost)
-        hitTargets.push({ id: person.id, self: person.self, x: point.x, y: point.y - radius })
       ctx.save()
       ctx.globalAlpha = 1
       ctx.fillStyle = ghost ? '#a6b1b0' : '#182e32'
       ctx.strokeStyle = person.self ? '#ead399' : '#c6cbc0'
-      ctx.lineWidth = 1
+      ctx.lineWidth = Math.max(1 / identityRatio, Math.min(1, tokenScale))
       ctx.shadowColor = 'rgba(0,0,0,.45)'
-      ctx.shadowBlur = 10
-      ctx.shadowOffsetY = 5
+      ctx.shadowBlur = 10 * tokenScale
+      ctx.shadowOffsetY = 5 * tokenScale
       ctx.beginPath()
-      ctx.arc(point.x, point.y - radius, radius + 0.5, 0, Math.PI * 2)
+      ctx.arc(point.x, point.y - radius, radius + ctx.lineWidth / 2, 0, Math.PI * 2)
       ctx.fill()
       ctx.shadowBlur = 0
       ctx.shadowOffsetY = 0
@@ -1250,34 +1251,45 @@ export function createMapRenderer(
         drawPortrait(image)
       } else {
         ctx.fillStyle = ghost ? '#c2c9c7' : '#bcac84'
-        ctx.font = '16px Georgia'
+        ctx.font = `${Math.max(7, 16 * tokenScale)}px Georgia`
         ctx.textAlign = 'center'
-        ctx.fillText(person.name[0] ?? '?', point.x, point.y - radius + 6)
+        ctx.fillText(person.name[0] ?? '?', point.x, point.y - radius + 6 * tokenScale)
       }
       ctx.restore()
       if (people.length > 1) {
         ctx.fillStyle = '#e8d7a3'
-        ctx.font = 'bold 10px sans-serif'
+        ctx.font = `bold ${Math.max(7, 10 * tokenScale)}px sans-serif`
         ctx.textAlign = 'center'
-        ctx.fillText(String(people.length), point.x + 19, point.y - 26)
+        ctx.fillText(String(people.length), point.x + 19 * tokenScale, point.y - 26 * tokenScale)
       }
       if (!ghost) {
-        ctx.font = '600 12px Georgia'
+        const fontSize = Math.max(7, 12 * tokenScale)
+        const labelHeight = Math.max(12, 18 * tokenScale)
+        ctx.font = `600 ${fontSize}px Georgia`
         ctx.textAlign = 'center'
-        const nameWidth = Math.min(180, ctx.measureText(person.name).width + 14)
+        const nameWidth = Math.min(
+          180 * tokenScale,
+          ctx.measureText(person.name).width + 14 * tokenScale,
+        )
         ctx.fillStyle = 'rgba(6,28,35,.92)'
         ctx.strokeStyle = person.self ? '#d0ac66' : 'rgba(176,192,186,.7)'
-        ctx.lineWidth = 0.7
+        ctx.lineWidth = Math.max(1 / identityRatio, 0.7 * Math.min(1, tokenScale))
         ctx.beginPath()
-        ctx.roundRect(point.x - nameWidth / 2, point.y + 2, nameWidth, 18, 3)
+        ctx.roundRect(
+          point.x - nameWidth / 2,
+          point.y + 2 * tokenScale,
+          nameWidth,
+          labelHeight,
+          3 * tokenScale,
+        )
         ctx.fill()
         ctx.stroke()
         ctx.fillStyle = person.self ? '#f5dda5' : '#f1ebda'
         ctx.fillText(
           person.name,
           point.x,
-          Math.round((point.y + 15) * identityRatio) / identityRatio,
-          nameWidth - 12,
+          Math.round((point.y + (labelHeight + fontSize) / 2) * identityRatio) / identityRatio,
+          nameWidth - 12 * tokenScale,
         )
       }
     }
@@ -1554,28 +1566,86 @@ export function createMapRenderer(
     canvas.dataset.coastEdges = String(coastEdges)
     // Identity is interface: weather and nighttime tint scenery, not portraits
     // or nameplates. Retain the gray identity cue for travellers behind foliage.
-    if (identityContext) {
-      identityContext.setTransform(identityRatio, 0, 0, identityRatio, 0, 0)
-      identityContext.clearRect(0, 0, width, height)
-    }
-    for (const stack of Array.from(stacks.values()).sort(
-      (a, b) => a.point.x + a.point.y - b.point.x - b.point.y,
-    )) {
-      drawPerson(stack)
-      if (
-        scenery.some((item) => {
-          const p = screen(stack.point),
-            s = screen({ x: item.x, y: item.y })
-          return (
-            stack.point.x + stack.point.y < item.x + item.y &&
-            p.x > s.x - item.width * 0.35 &&
-            p.x < s.x + item.width * 0.35 &&
-            p.y > s.y - item.height * (item.anchorY ?? 0.8) &&
-            p.y < s.y + item.height * (1 - (item.anchorY ?? 1))
+    const identity: (string | number | boolean | null)[] = [
+      identityRatio,
+      width,
+      height,
+      tokenScale,
+      radius,
+    ]
+    const occluders = scenery.map((item) => ({ item, point: screen({ x: item.x, y: item.y }) }))
+    const identities = Array.from(stacks.values())
+      .sort((a, b) => a.point.x + a.point.y - b.point.x - b.point.y)
+      .flatMap((stack) => {
+        const p = screen(stack.point)
+        const x = Math.round((p.x - radius) * identityRatio) / identityRatio + radius
+        const y = Math.round(p.y * identityRatio) / identityRatio
+        if (x < -40 || x > width + 40 || y < -60 || y > height + 60) return []
+        const people = stack.people,
+          selfIndex = people.findIndex((person) => person.self),
+          index =
+            selfIndex >= 0
+              ? selfIndex
+              : reduced || !animate
+                ? 0
+                : Math.floor(now / 3600) % people.length,
+          person = people[index]!,
+          fade =
+            selfIndex < 0 && people.length > 1 && animate && !reduced
+              ? Math.min(1, (now % 3600) / 500)
+              : 1,
+          image = portrait(person.image),
+          previous =
+            fade < 1 ? portrait(people[(index + people.length - 1) % people.length]!.image) : null,
+          ghost = occluders.some(
+            ({ item, point: s }) =>
+              stack.point.x + stack.point.y < item.x + item.y &&
+              p.x > s.x - item.width * 0.35 &&
+              p.x < s.x + item.width * 0.35 &&
+              p.y > s.y - item.height * (item.anchorY ?? 0.8) &&
+              p.y < s.y + item.height * (1 - (item.anchorY ?? 1)),
           )
+        // Picking follows every frame's selected identity even when its bitmap is reused.
+        hitTargets.push({
+          id: person.id,
+          self: person.self,
+          x,
+          y: y - radius,
+          radius: radius + 4 * tokenScale,
         })
-      )
-        drawPerson(stack, true)
+        identity.push(
+          x,
+          y,
+          person.id,
+          person.name,
+          person.self,
+          person.image,
+          people.length,
+          fade,
+          image?.naturalWidth ?? 0,
+          image?.naturalHeight || image?.height || 0,
+          previous?.src ?? null,
+          previous?.naturalWidth ?? 0,
+          previous?.naturalHeight || previous?.height || 0,
+          ghost,
+        )
+        return [{ stack, ghost }]
+      })
+    const repaintIdentity =
+      !identityContext ||
+      !paintedIdentity ||
+      identity.length !== paintedIdentity.length ||
+      identity.some((value, index) => value !== paintedIdentity![index])
+    if (repaintIdentity) {
+      if (identityContext) {
+        identityContext.setTransform(identityRatio, 0, 0, identityRatio, 0, 0)
+        identityContext.clearRect(0, 0, width, height)
+      }
+      for (const { stack, ghost } of identities) {
+        drawPerson(stack)
+        if (ghost) drawPerson(stack, true)
+      }
+      paintedIdentity = identity
     }
     canvas.dataset.cameraX = String(camera.x + pan.x)
     canvas.dataset.cameraY = String(camera.y + pan.y)
@@ -1682,7 +1752,8 @@ export function createMapRenderer(
       x: event.clientX,
       y: event.clientY,
       position: pick(world(x, y)),
-      player: hitTargets.find((target) => Math.hypot(target.x - x, target.y - y) < 21) ?? null,
+      player:
+        hitTargets.find((target) => Math.hypot(target.x - x, target.y - y) < target.radius) ?? null,
     }
   }
   const move = (event: PointerEvent) => {
@@ -1839,6 +1910,7 @@ export function createMapRenderer(
       pointers.clear()
       cache.clear()
       portraits.clear()
+      paintedIdentity = null
       if (identityCanvas && identityContext) {
         identityCanvas.width = 0
         identityCanvas.height = 0

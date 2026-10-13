@@ -5,7 +5,33 @@ import { createClient } from '@supabase/supabase-js'
 import { GRID_HEIGHT, GRID_WIDTH } from '../src/world/catalog'
 import type { WorldView } from '../src/world/types'
 
-async function verifyPrivateSceneAuthorization(page: Page, allowedSector: string) {
+const privateJoinErrorCategory = (value: unknown) => {
+  const reason =
+    value instanceof Error
+      ? value.message
+      : typeof value === 'string'
+        ? value
+        : value && typeof value === 'object' && 'reason' in value
+          ? String(value.reason)
+          : ''
+  for (const [category, pattern] of [
+    ['permission', /unauthori[sz]ed|permission|access denied/i],
+    ['invalid-token', /invalid.*(?:jwt|token)|(?:jwt|token).*expired/i],
+    ['join-limit', /too_many_(?:channels|connections|joins)|tenant_events/i],
+    ['database-pool', /pool|queue|dbconnection/i],
+    ['timeout', /timed?[_ -]?out|timeout/i],
+    ['transport', /network|websocket|transport|connect/i],
+  ] as const)
+    if (pattern.test(reason)) return category
+  return reason ? 'other-error' : 'none'
+}
+
+async function verifyPrivateSceneAuthorization(
+  page: Page,
+  allowedSector: string,
+  expectedOwnerId: string,
+  info: TestInfo,
+) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
   expect(['127.0.0.1', 'localhost']).toContain(new URL(url).hostname)
@@ -19,20 +45,87 @@ async function verifyPrivateSceneAuthorization(page: Page, allowedSector: string
   const { data, error } = await sessionReader.auth.getSession()
   if (error || !data.session) throw new Error('The disposable browser account has no session.')
   const token = data.session.access_token
-  const client = createClient(url, key, { accessToken: async () => token })
+  const started = Date.now()
+  const allowedTopic = `world-scene:${allowedSector}`
+  const deniedTopic = `world-scene:unregistered-${randomUUID()}`
+  const events: Record<string, string | number | boolean>[] = []
+  const record = (fields: Record<string, string | number | boolean>) => {
+    if (events.length < 100)
+      events.push({ at: new Date().toISOString(), elapsedMs: Date.now() - started, ...fields })
+  }
+  let claims: Record<string, unknown> = {}
+  try {
+    const decoded: unknown = JSON.parse(
+      Buffer.from(token.split('.')[1] ?? '', 'base64url').toString('utf8'),
+    )
+    if (decoded && typeof decoded === 'object' && !Array.isArray(decoded))
+      claims = decoded as Record<string, unknown>
+  } catch {
+    // Report booleans below; never serialize the JWT or its decoded claims.
+  }
+  const identity = {
+    sessionActorMatchesFixture: data.session.user.id === expectedOwnerId,
+    jwtActorMatchesFixture: claims.sub === expectedOwnerId,
+    jwtRoleAuthenticated: claims.role === 'authenticated',
+    jwtExpiryValid:
+      typeof claims.exp === 'number' &&
+      Number.isFinite(claims.exp) &&
+      claims.exp > Date.now() / 1000,
+  }
+  record({ phase: 'auth-identity', ...identity })
+  const client = createClient(url, key, {
+    accessToken: async () => token,
+    realtime: {
+      logger: (kind, message) => {
+        // SDK log data and message text may contain credentials or socket payloads.
+        // Record only allowlisted categories, never either raw value.
+        const phase = message.includes(allowedTopic)
+          ? 'allowed'
+          : message.includes(deniedTopic)
+            ? 'denied'
+            : 'socket'
+        const category = /phx_join/.test(message)
+          ? 'join'
+          : /phx_reply/.test(message)
+            ? 'reply'
+            : privateJoinErrorCategory(message)
+        if (['transport', 'channel', 'push', 'receive', 'error'].includes(kind))
+          record({ phase, kind, category })
+      },
+    },
+  })
   await client.realtime.setAuth(data.session.access_token)
+  record({ phase: 'auth', tokenReady: Boolean(client.realtime.accessTokenValue) })
   const allowed = client
-    .channel(`world-scene:${allowedSector}`, { config: { private: true } })
+    .channel(allowedTopic, { config: { private: true } })
     .on('broadcast', { event: 'changed' }, () => {})
   const denied = client
-    .channel(`world-scene:unregistered-${randomUUID()}`, { config: { private: true } })
+    .channel(deniedTopic, { config: { private: true } })
     .on('broadcast', { event: 'changed' }, () => {})
   const join = (channel: typeof allowed, shouldJoin: boolean) =>
     new Promise<void>((resolve, reject) => {
+      const phase = shouldJoin ? 'allowed' : 'denied'
+      record({ phase, status: 'join-start', timeoutMs: 5000 })
       channel.subscribe((status, channelError) => {
+        const channelState = ['closed', 'joining', 'joined', 'leaving', 'errored'].includes(
+          channel.state,
+        )
+          ? channel.state
+          : 'other'
+        const socketState = client.realtime.connectionState()
+        record({
+          phase,
+          status,
+          channelState,
+          socketState: ['closed', 'connecting', 'open', 'closing'].includes(socketState)
+            ? socketState
+            : 'other',
+          errorCategory: privateJoinErrorCategory(channelError),
+          causeCategory: privateJoinErrorCategory(channelError?.cause),
+        })
         if (status === 'SUBSCRIBED') {
           if (shouldJoin) resolve()
-          else reject(new Error('An unregistered private scene was accepted.'))
+          else reject(new Error('The denied unregistered private scene was accepted.'))
         } else if (status === 'CHANNEL_ERROR') {
           if (
             !shouldJoin &&
@@ -42,17 +135,32 @@ async function verifyPrivateSceneAuthorization(page: Page, allowedSector: string
           else
             reject(
               new Error(
-                `The private scene join failed unexpectedly: ${channelError?.message ?? status}`,
+                `The ${phase} private scene join failed: ${privateJoinErrorCategory(channelError)} (${status}).`,
               ),
             )
-        } else if (status === 'TIMED_OUT') reject(new Error('The private scene join timed out.'))
+        } else if (status === 'TIMED_OUT')
+          reject(new Error(`The ${phase} private scene join timed out (${channelState}).`))
       }, 5000)
     })
+  let failed = false
   try {
+    for (const [check, passed] of Object.entries(identity)) expect(passed, check).toBe(true)
     await join(allowed, true)
     await join(denied, false)
+  } catch (error) {
+    failed = true
+    throw error
   } finally {
-    await client.removeAllChannels()
+    try {
+      await client.removeAllChannels()
+      record({ phase: 'cleanup', status: 'closed' })
+    } finally {
+      if (failed)
+        await info.attach('world-private-scene-join-diagnostics', {
+          body: Buffer.from(JSON.stringify({ timeoutMs: 5000, events }, null, 2)),
+          contentType: 'application/json',
+        })
+    }
   }
 }
 
@@ -106,7 +214,10 @@ export async function verifyWorldScenePresence(
     })
     expect(scene.sectors.length).toBeLessThanOrEqual(25)
     expect(scene.livePresence).toBe(true)
-    await verifyPrivateSceneAuthorization(page, scene.position.sectorId)
+    const ownerUserId = sql(
+      `select user_id::text from public.characters where id='${owner.characterId}'::uuid`,
+    ).trim()
+    await verifyPrivateSceneAuthorization(page, scene.position.sectorId, ownerUserId, info)
     await capture(page, info, 'nearby-across-sector-boundary')
 
     // Let globe mode schedule its slower idle timer, then return. Local

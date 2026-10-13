@@ -9,7 +9,9 @@ on:
       - 'apps/web/src/app/game/**/world/**'
       - 'apps/web/src/app/api/world/**'
       - 'apps/web/e2e/atlas-world.pw.ts'
+      - 'apps/web/e2e/world-*.ts'
       - 'supabase/migrations/*living_atlas*'
+      - 'supabase/migrations/*world*'
       - '.github/workflows/living-atlas-browser.yml'
   workflow_dispatch:
 
@@ -52,6 +54,51 @@ jobs:
             select public.activate_phase4_discipline_rebalance_v1();
           "
           pnpm --filter @aurevane/web exec playwright test e2e/atlas-world.pw.ts --reporter=list,github
+      - name: Capture safe Realtime failure diagnostics
+        if: failure()
+        continue-on-error: true
+        shell: bash
+        run: |
+          python - <<'PY'
+          import collections, json, pathlib, re, subprocess
+
+          destination = pathlib.Path('apps/web/test-results/world-realtime-diagnostics.json')
+          destination.parent.mkdir(parents=True, exist_ok=True)
+          inventory = subprocess.run(
+              ['docker', 'ps', '-a', '--filter', 'name=supabase_realtime_', '--format', '{{.ID}}'],
+              capture_output=True, text=True, check=False,
+          )
+          categories = [
+              ('database-pool', r'pool|queue|DBConnection|ConnectionPool'),
+              ('database-connection', r'UnableToConnectToTenantDatabase|database.*connect|connect.*database'),
+              ('authorization', r'authoriz|unauthoriz|permission|RlsPolicy|JWT|token'),
+              ('timeout', r'timed?[_ -]?out|timeout'),
+              ('join-limit', r'too_many_(channels|connections|joins)|tenant_events'),
+              ('channel-join', r'phx_join|join.*channel|channel.*join'),
+              ('connection', r'websocket|transport|socket.*(open|close)|disconnect'),
+          ]
+          containers = []
+          for container_id in inventory.stdout.splitlines():
+              logs = subprocess.run(
+                  ['docker', 'logs', '--timestamps', '--since', '20m', '--tail', '2000', container_id],
+                  capture_output=True, text=True, check=False,
+              )
+              counts = collections.Counter()
+              events = []
+              # Raw lines may include JWTs, keys, headers and payloads. Persist only
+              # category labels and Docker timestamps; no original message text.
+              for line in (logs.stdout + logs.stderr).splitlines():
+                  counts['lines'] += 1
+                  for category, pattern in categories:
+                      if re.search(pattern, line, re.IGNORECASE):
+                          counts[category] += 1
+                          timestamp = re.match(r'^(\d{4}-\d{2}-\d{2}T[0-9:.]+Z)\s', line)
+                          if len(events) < 1000:
+                              events.append({'at': timestamp.group(1) if timestamp else 'unknown', 'category': category})
+                          break
+              containers.append({'captureExitCode': logs.returncode, 'counts': dict(counts), 'events': events})
+          destination.write_text(json.dumps({'inventoryExitCode': inventory.returncode, 'containers': containers}, indent=2))
+          PY
       - name: Save Atlas screenshots and traces
         if: always()
         uses: actions/upload-artifact@v4
