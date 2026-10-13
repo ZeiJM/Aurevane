@@ -1,6 +1,38 @@
 # October 13 World live-presence, portrait, terrain and cursor follow-up
 
-Status: draft PR #886 on `agent/world-peer-presence-art-20261013`, based on `50dd719f848d94cde697ee1319e00196c78d8fcd`; native Atlas failures are being investigated before release. No hosted migration or new deployment. Production remains #884 / `dpl_Giw72hrwPuXeZ4gT6hRMseaLrMyM`.
+Status: LIVE for Owner testing through merged PR #886. Tested head `e0d671f882a26ebedb2207c24d16dbffd50ba235`; merged source `90c35c63151100c63c9f76e1c9e01cec8248f4af` has the identical tree `76da015dadec5b9091f3f372f480529b57c7f392`. Hosted migration and corrected Production promotion are complete. Historical failure investigations below are retained as history, not current release status.
+
+## Final release receipt — October 13, 17:36Z
+
+The Owner approved applying the prepared migration and making this batch live at `2026-10-13T17:08:27Z` (13:08:27 Trinidad). All ten required workflows passed on the tested head before merge:
+
+- CI `38427319273`: database foundation job `115399988502` passes all31 native pgTAP assertions; quality job `115399989364` passes.
+- Living Atlas `38427319367`, job `115399994901`:44 enabled cases pass;76 existing project-specific skips remain. The real two-account scene case blocks normal observer polling and disables ambient animation, receives approved peer movement in509ms, observes more than eight distinct native identity positions and exact target arrival while the observer stays still. Private allowed join22ms; explicit unregistered-topic permission rejection5028ms. Neither timeout nor fallback polling can satisfy the case.
+- Full Browser smoke `38427319363`, job `115401310402`:342 full Chromium and10 Edge cases pass, plus73 focused,4 Master/input,6 recovery and3 training cases. Existing skips remain; the suite was not narrowed or cancelled.
+- UI layout `38427319336`, Representative Buildcraft `38427319342`, Attribute Allocation `38427319314`, Wayfarer `38427319422`, Foundation Security `38427319475`, Discipline `38427319392` and Battle Session `38427319288` all pass.
+- Frozen-source root `pnpm check` exits0: formatting, lint, eight-package types,5,173 Vitest plus seven Node checks and build.
+
+Final compact Atlas artifact `11829607844` has SHA256 `57cd8828bae7d5c2d387d644e2f7f595ae8ee7432c788d982b73955f1a1e9719` (10,198,552 bytes). Inspected35/100/140% portrait and desktop/mobile control screenshots show proportional tokens on the native identity surface. Synthetic mobile100-portrait render p95 is10ms (baseline42ms); frames advance60→240 while unchanged identity paints stay5→5. DPR2.625, identity pixels1,540,689, scenery pixels503,992,82 scenery objects,22 water cells and1,714,464 cached terrain pixels remain bounded. This is a synthetic rendering workload, not100 concurrent human players.
+
+### Hosted database and security
+
+Applied the exact prepared `20261013131048_world_live_presence.sql` (SHA256 `cadba7621ff07528e6ec3cfa484d9c644f50468a4d1e1717fd4726b5372a56f5`, Git blob `64876f19d816a1b2b465e43e62b1ebb8000fa97e`,10,507 bytes) to project `luazfeupwfgnilohfsya`. Hosted history records version `20261013171017`, name `world_live_presence`.
+
+Read-only catalog checks confirm the private registry exists; browser authenticated roles cannot SELECT it or execute either scene/live reader; service readers have EXECUTE; authenticated receive-check EXECUTE is available and anonymous EXECUTE is denied; only the intended authenticated SELECT receive policy exists; the authoritative version-change trigger is enabled. No saved position or travel function was rewritten. A subsequent aggregate read records two current live registrations with bounded scene lists, without querying identities.
+
+The security advisor reports49 INFO private-table RLS/no-policy entries (previously48), the unchanged leaked-password-protection warning, and a new generic `authenticated_security_definer_function_executable` warning for `public.can_receive_world_scene_v1(text)`. That intentionally granted boolean helper is required by the receive policy, binds to `auth.uid()` and the current owned version, registration expiry and known registered topics, and grants no registry/reader access. This is an acknowledged warning, not an unchanged advisor baseline. References: [function-execution advisor](https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable), [existing password-protection warning](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection).
+
+### Production correction and bounded verification
+
+Initial deployment `dpl_FZGPVHDhPYmSctMHRdcLhoQkUA8W` became READY at17:13:36.658Z but a signed-in browser check at17:14:39 caught invalid public environment configuration before any success claim. Production lacked `NEXT_PUBLIC_AUREVANE_ENV`; the deliberate production guard in `next.config.ts` neutralized public Supabase browser configuration. Immediately rolled back to the verified #884 deployment `dpl_Giw72hrwPuXeZ4gT6hRMseaLrMyM` and confirmed its healthy World page.
+
+Verified the existing public Supabase URL points to the intended project without retrieving private keys; added only Production `NEXT_PUBLIC_AUREVANE_ENV=production`. Eleven existing configuration tests in two files pass. No application guard or source was changed. Corrected deployment `dpl_GPybRk7WcPjTQ38QEvAVSjDSuQi5` builds the same tested merge source and is READY since `2026-10-13T17:21:16.169Z` (13:21:16 Trinidad). Explicit promotion restored the canonical alias after rollback; alias/source verification and fresh navigation confirm https://aurevane.vercel.app/game/world serves the corrected release. Automatic Git deployments remain disabled.
+
+Bounded signed-in verification confirms the stone cursor hotspot6,3, native identity canvas,400×400 Nearby source, absent town/360 control, healthy page and Settings outside dismissal. Own six-tile east travel reaches Sector S70-29,E900,N320 from S69-29,E894,N320. A first relative return probe did not reach the original point; rereading the current transform showed zoom140%. Absolute reselection using that current transform returned exactly to E894/N320. Final zoom100%, ambient on, zoom lock off and HP153/153,MP102/102,XP96/100 match the initial values. This probe establishes crossing and restoration, not uninterrupted or monotonic production motion. Native CI provides the bounded movement/input evidence.
+
+A real online peer appeared in Nearby and on the map, but no hosted two-player latency measurement was taken;509ms is exclusively the disposable CI receipt. Public `/`, `/cursors/stone-arrow.png` (1,842 bytes) and `/api/foundation/auth-status` return200. The corrected deployment-scoped warning/error/fatal runtime query from READY through the checked17:36Z window returns no log groups. The initial frontend configuration failure remains explicitly recorded above; empty server runtime logs do not erase it.
+
+Owner gameplay acceptance, hosted two-player timing and live100-player evidence remain pending. This release implies no phase closeout.
 
 ## Owner scope and resulting changes
 
@@ -12,7 +44,7 @@ Status: draft PR #886 on `agent/world-peer-presence-art-20261013`, based on `50d
 - Fill Verdant's measured transparent bridge arch only inside proved liquid strips, using the river's world-anchored depth, texture and current. Both crossing axes and lava share the same material/phase. Count tiny bridge surfaces in the existing terrain cache and include neighboring profile dependencies in its key.
 - Convert only Emberreach's leftover root-channel water to lava; preserve roads/collision. Suppress the incorrect padded tree fallback while the correct rock sheet loads. Loaded Frostmere countryside rocks at 35/100/140% retain their measured floor/pivot/shadow.
 
-## Additive migration awaiting Owner approval
+## Additive migration design (approved and applied; see final receipt)
 
 `supabase/migrations/20261013131048_world_live_presence.sql` adds a private per-character scene registry, service-only scene/live readers, a narrowly granted receive-policy helper, a SELECT policy on `realtime.messages`, and an authoritative version-change trigger sending empty private notifications to distinct old/new scene topics. It does not alter travel/encounter functions or existing saved character positions.
 
@@ -28,7 +60,7 @@ Two independent reviews found and prompted fixes for stale registrations after a
 
 Native Canvas used original decoded terrain/sprite sheets for Verdant, Emberreach and actual Frostmere countryside (`atlas:62:5`) at 35/100/140%. Sharp checks original sprite alpha and the production bridge clips/shader. These raster checks are not browser/human acceptance.
 
-## Required remaining gates
+## Historical gate investigations (superseded by final receipt)
 
 Current head `21fa42c57dc20d1648a1bc1e48d03fea82988181` (tree `3c9ab5c635505350e4806cd13cb7dfb4542b421b`) passed CI run `38421341240`, including all 31 native pgTAP assertions, and all supporting workflows. Attribute Allocation's initial disposable-stack start collided with an occupied storage port; a failed-job retry passed without source or assertion changes. Full Browser smoke remains active at this checkpoint. Living Atlas `38421341029` passes 43 cases and fails only the scene-presence helper's reload observer before the real two-player walk.
 
@@ -57,4 +89,4 @@ The same private-channel trace contains successful browser WebSocket upgrades fo
 - The synthetic 100-person case uses 100 distinct visible anchors and distinct URLs to the actual 400px Wayfarer01 starter crop. It verifies 100 decoded portrait URLs drawn at native identity DPR and keeps the existing <80ms frame p95, water/scenery/cache bounds under mobile high-DPI and 4× CPU throttling. It is not 100 independent uploaded images or live concurrent users.
 - Owner migration approval, an authorized release, then bounded signed-in production checks and Owner gameplay acceptance.
 
-Local Chromium and Docker are unavailable; native database/socket/browser evidence must come from the disposable CI environment. Earlier intermediate full test runs caught active red tests while implementers were editing; those runs are not final green evidence. Do not represent these source changes as live before the hosted migration/release is complete.
+Local Chromium and Docker are unavailable; native database/socket/browser evidence must come from the disposable CI environment. Earlier intermediate full test runs caught active red tests while implementers were editing; those runs are not final green evidence. The hosted migration/release is now complete as recorded above; these earlier investigations are historical.
