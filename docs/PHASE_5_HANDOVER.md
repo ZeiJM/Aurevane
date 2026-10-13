@@ -1,3 +1,5 @@
+Current World/battle release — October 12: PR #881 is LIVE for testing at https://aurevane.vercel.app/game/world, production `dpl_2HH6uzKfqGspBxP8NdFZKh3wG2KZ`, READY `2026-10-13T02:56:58.234Z`, exact verified merge `468b6017a5cf5e29a0ffc0f5b0b08c327ce96429`. All eight final-source workflows and bounded signed-in production World checks pass. No new migration or phase closeout; human acceptance and live 100-player evidence remain pending. See docs/verification/2026-10-12-world-battle-followup.md for the current receipt.
+
 # Aurevane — Living Atlas / Phase 5 handover
 
 ## Release boundary and evidence
