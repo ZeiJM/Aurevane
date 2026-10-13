@@ -10,7 +10,16 @@ vi.mock('@/components/shell/account-menu', () => ({
   }) => <a href={activeSessionHref}>{activeSessionLabel}</a>,
 }))
 import { BattleRouteFrame } from './battle-route-frame'
+import { battleSessionHref } from './battle-return-navigation'
 describe('shared active battle frame', () => {
+  it('retains a validated participant return preference in the brand and active-session links', () => {
+    const markup = renderToStaticMarkup(
+      <BattleRouteFrame sessionHref={battleSessionHref('session', 'world')}>
+        <main id="battlefield">Field</main>
+      </BattleRouteFrame>,
+    )
+    expect(markup.match(/href="\/game\/battle\/session\?returnTo=world"/g)).toHaveLength(2)
+  })
   it.each([false, true])(
     'keeps navigation outside active combat and spectation (%s)',
     (spectating) => {

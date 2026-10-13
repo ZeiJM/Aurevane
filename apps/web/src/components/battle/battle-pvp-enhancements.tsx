@@ -33,7 +33,11 @@ export function BattlePvpEnhancements({
         battleSessionId={initialBattle.battleSessionId}
         metadata={runtime.metadata}
       />
-      <PvpBattleCompletionPanel initialBattle={initialBattle} metadata={runtime.metadata} />
+      <PvpBattleCompletionPanel
+        initialBattle={initialBattle}
+        metadata={runtime.metadata}
+        returnTo={runtime.returnTo}
+      />
       <DesktopBattleCombatantInspect
         battleSessionId={initialBattle.battleSessionId}
         playerName={runtime.playerName}

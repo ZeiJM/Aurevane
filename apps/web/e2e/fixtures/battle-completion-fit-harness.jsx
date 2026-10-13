@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { BattleCompletionPanel } from '@/components/battle/battle-completion-panel'
 import { PvpBattleCompletionPanel } from '@/components/battle/pvp-battle-completion-panel'
 import { BattleRuntimeProvider } from '@/components/battle/battle-runtime-context'
+import { parseBattleReturnTo } from '@/components/battle/battle-return-navigation'
 import './production-styles'
 
 const query = new URLSearchParams(location.search)
@@ -38,7 +39,7 @@ const battle = {
   },
 }
 const metadata = {
-  origin: query.get('origin') || 'battle-hall',
+  origin: query.has('origin') ? parseBattleReturnTo(query.get('origin')) : 'battle-hall',
   mode: '1v1',
   localCharacterId: 'wayfarer',
   participants: combatants.map((combatant, index) => ({
@@ -116,7 +117,11 @@ Object.defineProperty(navigator, 'clipboard', {
 createRoot(document.getElementById('root')).render(
   <BattleRuntimeProvider playerName="Wayfarer" combatantNames={names}>
     {mode === 'pvp' ? (
-      <PvpBattleCompletionPanel initialBattle={battle} metadata={metadata} />
+      <PvpBattleCompletionPanel
+        initialBattle={battle}
+        metadata={metadata}
+        returnTo={parseBattleReturnTo(query.get('returnTo'))}
+      />
     ) : (
       <BattleCompletionPanel battle={battle} />
     )}

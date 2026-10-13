@@ -13,6 +13,7 @@ import { getStarterPortraitImageAssetId } from '@/media/character'
 import type { ImageAssetId } from '@/media/registry'
 import type { PvpBattleMetadata } from '@/server/battle/pvp-lobby-service'
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
+import type { BattleReturnTo } from './battle-return-navigation'
 
 export type BattleTechniqueCategory = 'attack' | 'defense' | 'heal'
 
@@ -75,6 +76,7 @@ export type BattleRuntime =
       kind: 'pvp'
       playerName: string
       metadata: PvpBattleMetadata
+      returnTo?: BattleReturnTo
     })
 
 export interface BattleCapabilities {

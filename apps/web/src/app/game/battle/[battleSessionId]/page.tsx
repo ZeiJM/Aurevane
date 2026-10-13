@@ -10,6 +10,7 @@ import { redirect } from 'next/navigation'
 
 import { BattleAudioGate } from '@/components/battle/battle-audio-gate'
 import { BattleClientBoundary } from '@/components/battle/battle-client-boundary'
+import { parseBattleReturnTo } from '@/components/battle/battle-return-navigation'
 import type { BattleTechniqueCategory } from '@/components/battle/battle-runtime'
 import {
   skillEffectDescription,
@@ -195,8 +196,10 @@ async function battleBuildExtensions(
 
 export default async function BattleSessionPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ battleSessionId: string }>
+  searchParams?: Promise<{ returnTo?: string | string[] }>
 }) {
   const publicConfig = getOptionalPublicSupabaseConfig()
   const requestHost = (await headers()).get('host')
@@ -214,6 +217,7 @@ export default async function BattleSessionPage({
   const { battleSessionId: rawBattleSessionId } = await params
   const battleSessionId = parseBattleSessionId(rawBattleSessionId)
   if (!battleSessionId) redirect('/game/battle')
+  const returnTo = parseBattleReturnTo((await searchParams)?.returnTo)
 
   const characters = createSupabaseCharacterRepository()
   const service = createBattleSessionService({
@@ -254,6 +258,7 @@ export default async function BattleSessionPage({
           initialBattle={battle}
           runtime={{
             kind: 'pvp',
+            returnTo,
             playerName: localParticipant.characterName,
             supportActionId: buildExtensions.supportActionId,
             techniques: buildExtensions.techniques,

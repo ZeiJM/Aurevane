@@ -109,6 +109,10 @@ const scenarios = [
   ),
   ...['victory', 'defeat', 'draw'].map((result) => ({ mode: 'pvp', result })),
   ...['victory', 'defeat', 'draw'].map((result) => ({ mode: 'pvp', result, origin: 'world' })),
+  { mode: 'pvp', result: 'victory', origin: 'unknown', returnTo: 'world' },
+  { mode: 'pvp', result: 'victory', origin: 'unknown' },
+  { mode: 'pvp', result: 'defeat', origin: 'world', returnTo: 'battle-hall' },
+  { mode: 'pvp', result: 'draw', origin: 'battle-hall', returnTo: 'world' },
 ]
 const receipts = []
 const failures = []
@@ -213,7 +217,10 @@ function checkFit(geometry, label, seal) {
 try {
   for (const viewport of viewports)
     for (const scenario of scenarios) {
-      const label = `${scenario.mode}-${scenario.origin || scenario.record || 'match'}-${scenario.result}-${viewport.width}x${viewport.height}`
+      const label = `${scenario.mode}-${scenario.origin || scenario.record || 'match'}-${scenario.returnTo || 'default'}-${scenario.result}-${viewport.width}x${viewport.height}`
+      const worldReturn =
+        scenario.origin === 'world' ||
+        (scenario.origin === 'unknown' && scenario.returnTo === 'world')
       const page = await browser.newPage({
         viewport,
         isMobile: viewport.width < 821 || viewport.height <= 450,
@@ -240,19 +247,21 @@ try {
         const summaryText = (await summary.innerText()).replace(/\s+/g, ' ').trim()
         const review = overlay.getByRole('button', { name: 'Review Battle Log', exact: true })
         const returnButton = overlay.getByRole('button', {
-          name: scenario.origin === 'world' ? 'Return to World' : 'Return to Battle Hall',
+          name: worldReturn ? 'Return to World' : 'Return to Battle Hall',
           exact: true,
         })
         assert.equal(await returnButton.count(), 1)
         if (scenario.mode === 'pvp') {
-          assert.match(
-            summaryText,
-            scenario.origin === 'world' ? /World Encounter/i : /Battle Hall/i,
-          )
-          assert.match(
-            summaryText,
-            scenario.origin === 'world' ? /return to the world/ : /return to the hall/,
-          )
+          if (scenario.origin === 'unknown') {
+            assert.match(summaryText, /^PvP Result\b/i)
+            assert.doesNotMatch(summaryText, /World Encounter|Battle Hall/i)
+          } else {
+            assert.match(
+              summaryText,
+              scenario.origin === 'world' ? /World Encounter/i : /Battle Hall/i,
+            )
+          }
+          assert.match(summaryText, worldReturn ? /return to the world/ : /return to the hall/)
         }
         if (scenario.mode === 'pve') {
           assert.equal(
@@ -399,8 +408,8 @@ try {
         await returnButton.click()
         assert.equal(
           new URL(page.url()).pathname,
-          scenario.origin === 'world' ? '/game/world' : '/game/battle',
-          'Return control follows the persisted encounter origin',
+          worldReturn ? '/game/world' : '/game/battle',
+          'Return control follows canonical origin or the bounded navigation preference',
         )
       } catch (error) {
         failures.push(`${label}: ${error.stack || error.message}`)

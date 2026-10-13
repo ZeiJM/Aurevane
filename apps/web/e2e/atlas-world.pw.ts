@@ -781,9 +781,14 @@ test('a proximity attack reaches both authenticated players', async ({ page, bro
       })
     await expect(attackButton).toBeEnabled({ timeout: 15000 })
     await attackButton.click()
-    await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]+$/, { timeout: 15000 })
+    await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}\?returnTo=world$/, {
+      timeout: 15000,
+    })
+    // The target's active-session server redirect must retain the same preference.
+    await opponent.goto('/game/world')
     await expect(opponent).toHaveURL(page.url(), { timeout: 15000 })
-    const battleId = page.url().split('/').at(-1)!
+    const battleId = new URL(page.url()).pathname.split('/').at(-1)!
+    expect(battleId).toMatch(/^[0-9a-f-]{36}$/)
     expect(
       sql(
         `select count(*) from app_private.battle_participants where battle_session_id='${battleId}'::uuid and participant_role='player'`,
@@ -796,6 +801,35 @@ test('a proximity attack reaches both authenticated players', async ({ page, bro
     ).toBe('1')
     await capture(page, info, 'world-encounter-attacker')
     await capture(opponent, info, 'world-encounter-target')
+    const field = page.locator('main[data-unified-battle="true"][data-battle-kind="pvp"]')
+    await expect(field).not.toHaveAttribute('aria-busy', 'true')
+    await field.getByRole('button', { name: 'Surrender', exact: true }).click()
+    const dialog = page.getByRole('dialog', { name: 'Surrender this battle?' })
+    await expect(dialog).toBeVisible()
+    const surrendered = page.waitForResponse(
+      (response) => response.url().endsWith('/surrender') && response.request().method() === 'POST',
+    )
+    await dialog.getByRole('button', { name: 'Confirm Surrender' }).click()
+    expect((await surrendered).status()).toBe(200)
+    for (const participant of [page, opponent]) {
+      await expect(participant.getByTestId('pvp-battle-result-overlay')).toBeVisible({
+        timeout: 20000,
+      })
+      await participant.reload()
+      const result = participant.getByTestId('pvp-battle-result-overlay')
+      await expect(
+        result.getByRole('button', { name: 'Return to World', exact: true }),
+      ).toBeVisible()
+      await expect(
+        result.getByRole('button', { name: 'Return to Battle Hall', exact: true }),
+      ).toHaveCount(0)
+      await result.getByRole('button', { name: 'Return to World', exact: true }).click()
+      await expect(participant).toHaveURL(/\/game\/world$/)
+      await expect(participant.locator('canvas[data-world-stage]')).toBeVisible()
+    }
+    expect((await world(page)).position).toEqual({ sectorId: 'crown-road', x: 5, y: 4 })
+    expect((await world(opponent)).position).toEqual({ sectorId: 'crown-road', x: 6, y: 4 })
+    await capture(page, info, 'world-battle-return-after-reload')
   } finally {
     await opponentContext.close()
   }

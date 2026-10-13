@@ -10,6 +10,7 @@ import type { BattleSessionView } from '@/server/battle/battle-session-service'
 import { formatBattleLogForClipboard } from './battle-log-clipboard'
 import { BattleLogFeed, countBattleLogActions } from './battle-log-feed'
 import { useBattleCombatantNames, useBattlePlayerName } from './battle-runtime-context'
+import { battleReturnNavigation, type BattleReturnTo } from './battle-return-navigation'
 
 import styles from './battle-completion-panel.module.css'
 
@@ -39,9 +40,11 @@ function resultForLocalPlayer(
 export function PvpBattleCompletionPanel({
   initialBattle,
   metadata,
+  returnTo,
 }: {
   initialBattle: BattleSessionView
   metadata: PvpBattleMetadata
+  returnTo?: BattleReturnTo
 }) {
   const router = useRouter()
   const playerName = useBattlePlayerName()
@@ -55,7 +58,7 @@ export function PvpBattleCompletionPanel({
   const result = useMemo(() => resultForLocalPlayer(battle, metadata), [battle, metadata])
   const battleState = battle.snapshot.tactical.battle
   const round = battleState.round
-  const worldEncounter = metadata.origin === 'world'
+  const navigation = battleReturnNavigation(metadata.origin, returnTo)
   const logOptions = { playerName: playerName ?? undefined, combatantNames, currentRound: round }
 
   useEffect(() => {
@@ -138,13 +141,11 @@ export function PvpBattleCompletionPanel({
                 <circle cx="20" cy="20" r="4" />
               </svg>
             </span>
-            <p className={styles.eyebrow}>
-              {worldEncounter ? 'World Encounter' : 'Battle Hall'} · PvP Result
-            </p>
+            <p className={styles.eyebrow}>{navigation.eyebrow}</p>
             <h2 id="pvp-battle-result-title">{result}</h2>
             <p>
               The match concluded in Round {round}. Review the battle history or return to{' '}
-              {worldEncounter ? 'the world' : 'the hall'}.
+              {navigation.location}.
             </p>
           </div>
 
@@ -207,9 +208,9 @@ export function PvpBattleCompletionPanel({
           <button
             type="button"
             className={styles.primary}
-            onClick={() => router.push(worldEncounter ? '/game/world' : '/game/battle')}
+            onClick={() => router.push(navigation.href)}
           >
-            {worldEncounter ? 'Return to World' : 'Return to Battle Hall'}
+            {navigation.label}
           </button>
         </div>
       </section>

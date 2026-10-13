@@ -2,6 +2,14 @@
 
 Status: implementation and verification in progress. This follow-up has not been deployed. The live rollback target remains `dpl_EoovxVApidZZVTdHMihEjiwmpY1u` (PR #879). Human gameplay acceptance remains with the Owner.
 
+## Final application-only World battle return
+
+The requested World return is delivered as a fixed navigation preference rather than an unapproved database change. Both the workspace encounter receipt and server active-battle redirect add `returnTo=world`; the battle page accepts only a single exact `world`/`battle-hall` value after its existing authenticated participant lookup. Brand and AccountMenu current-session links retain it. Canonical metadata origin wins when present, and an absent origin is still described generically. No external URL, duplicate value or arbitrary input becomes a destination. PvE/AI and spectator handling remain separate.
+
+The native authenticated proximity case now completes its disposable World PvP encounter, reloads both participants, verifies each Return to World button, returns both to the canvas, and checks preserved authoritative sector/tile positions. The extended completion fixture covers unknown hinted/unhinted origins and contradictory canonical preferences across six viewports (96 cases). The existing 117 World cases still collect. The server World redirect regression fails before its fix and passes afterward. Final independent read-only review finds no important routing, authority or race defect; target coverage uses the server World redirect rather than independently asserting its automatic workspace redirect.
+
+Final local formatting, lint, eight-package types, **5,030 Vitest plus seven Node checks**, and production compilation pass. Evidence: `world-final-navigation-check.log`, complete build confirmation `world-final-navigation-build.log`, and `world-final-navigation-browser-collection.log`. No application changes follow these checks. Fresh exact-source CI, Living Atlas, Responsive browser smoke and the four supporting workflows remain required before merge/deployment. No new migration, hosted write or deployment has occurred.
+
 ## Latest movement video and observed travellers
 
 The Owner adds remote-player tile skipping and a 4.7-second walking video while the coordinate-source Responsive smoke is still running. The video shows the preceding live release; it does not establish acceptance of the unreleased candidate. Diagnosis reproduces a remaining own-motion speed pulse: replanning a half-finished 200 ms step resets that segment to 200 ms instead of its remaining 100 ms. The focused deadline guard fails before the change and passes after distance-scaled first-segment timing. Later steps retain authored durations and unconfirmed previews retain the 600 ms limit. The existing pause after that budget drains is retained rather than extrapolating indefinitely.
@@ -27,7 +35,7 @@ Final review catches a mode-transition timing gap: changing the local-observatio
 - Loaded public dry biome boundaries receive three-tile material feathering baked into cached ground. An independent review reproduced an order-dependent colour jump at multi-biome corners; those patches now use four-quadrant bilinear weights, including diagonal-only biome changes, with mirrored public/dry neighbor checks and cache invalidation. Roads, water/lava and rock overlays follow the blend. Missing/private sectors do not supply materials, and longitude neighbors use the canonical wrap. Terrain retains the eight-million-pixel persistent cache limit.
 - Shoreline roads now retain two tiles of natural walkable ground before unavailable ocean or internal liquid. The whole-atlas audit originally found 272 paved coastal edge tiles; none remain after correction. Full public-atlas walkability and PvP safety compare equal before/after. Real bridge decks require matching liquid flanks and dry reachable banks; standalone protected settlement cells and authored POIs remain protected. Roads terminate conservatively rather than inventing alternate routing through water. Native coastal screenshots remain a release check.
 - Desktop battle stage/deck regain their existing bottom inset above the footer. The chat explicitly places messages in the flexible row and the compact input/error notice in their own rows; hiding the desktop header no longer expands the composer into the message area.
-- PvP result presentation consumes a validated optional `world`/`battle-hall` origin and chooses Return to World or Return to Battle Hall accordingly. This requires the separately reviewed database read projection below before World provenance can be supplied live.
+- New World PvP navigation preserves an allowlisted `returnTo=world` preference for both participants, including active-battle World redirects, reloads, and current-session links. Completed sessions show Return to World and return to the preserved authoritative positions. Canonical origin, when supplied, overrides the preference. Unknown provenance retains the generic PvP Result caption. PvE/AI and spectator routes keep their existing destinations; this change needs no database migration.
 
 ## Verification and release boundaries
 
@@ -39,13 +47,13 @@ Local Chromium execution is blocked by the executor sandbox denying browser sock
 
 No database migration has been created or applied for battle origin, and no preview/production deployment was triggered for this follow-up. Automatic Git deployment remains locked.
 
-## Battle-origin projection awaiting explicit approval
+## Optional historical battle-origin projection — unapplied
 
 `docs/verification/2026-10-12-world-battle-origin-draft.sql` is review-only, outside `supabase/migrations`. The sole payload addition to the existing participant-authorized, service-only `get_pvp_battle_metadata_v1(uuid,uuid)` reader is `origin`, derived from the durable `app_private.world_encounters` row. It changes no encounter writes, tables, progression or rewards; historical completed World sessions remain identifiable for both participants. Read-only hosted function inspection confirms the baseline and the missing origin field.
 
-The Owner's handoff states: **"No database migrations without my approval."** That approval is required before generating/applying this separate migration. The previously approved scene-player reader does not authorize it. Until approved and applied, the older metadata reader supplies no origin and the compatible result UI retains its Battle Hall fallback; do not claim the historical World result is fixed live.
+The Owner's handoff states: **"No database migrations without my approval."** That approval is required before generating/applying this separate migration. The previously approved scene-player reader does not authorize it. The older metadata reader supplies no origin. New World navigation now retains a separate allowlisted return preference without altering provenance or requiring this reader. Historical completed bare URLs without that preference still use the Battle Hall fallback; automatic historical identification remains outside this application release.
 
-`AGENTS.md`, section 14, requires a separate explicit release request and states that implement/fix/continue/commit/push/merge does not imply deployment permission. Prepare the reviewable source and complete release checks before requesting that final approval.
+`AGENTS.md`, section 14, requires a separate explicit release request and states that implement/fix/continue/commit/push/merge does not imply deployment permission. The Owner already explicitly authorized making this application batch live for testing at 2026-10-12T22:06:48Z. Complete exact-source gates before this authorized release; the separate database draft remains unapplied.
 
 ## First published source and native assertion correction
 

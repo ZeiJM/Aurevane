@@ -13,6 +13,7 @@ import { localRoute, mapPoint, WorldMotion } from './world-motion'
 import { WorldMap } from './world-map'
 import { WorldGlobe } from './world-globe'
 import { WorldMissions } from './world-missions'
+import { battleSessionHref } from '@/components/battle/battle-return-navigation'
 import styles from './workspace.module.css'
 
 function SettingsButton({
@@ -106,7 +107,7 @@ export function WorldWorkspace({
     const accept = (next: WorldView, reconcile: boolean) => {
       if (!mounted) return
       if (next.battleSessionId) {
-        router.replace(`/game/battle/${next.battleSessionId}`)
+        router.replace(battleSessionHref(next.battleSessionId, 'world'))
         return
       }
       if (next.characterId !== initialView.characterId) {
