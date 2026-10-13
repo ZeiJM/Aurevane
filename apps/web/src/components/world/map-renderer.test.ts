@@ -249,6 +249,143 @@ function scene(reduced = false, initial?: WorldView) {
 }
 describe('native map input and bounded lifecycle', () => {
   it.each([
+    ['oak', 'verdant-expanse', undefined, 7, false, 'nature', 224, 603, 0, 443],
+    ['snow pine', 'frostmere', undefined, 7, false, 'nature', 599, 596, 439, 764],
+    ['fallback birch', 'aureth-crown', undefined, 7, true, 'nature', 947, 594, 762, 1120],
+    ['fallback pine', 'hollow-coast', undefined, 7, true, 'nature', 1336, 603, 1118, 1514],
+    ['palm', 'glasswind-desert', undefined, 7, false, 'biomes', 230, 419, 30, 420],
+    ['bare tree', 'emberreach', undefined, 7, false, 'biomes', 252, 867, 0, 443],
+    ['willow', 'hollow-coast', undefined, 7, false, 'biomes', 630, 853, 442, 895],
+    ['cypress', 'aureth-crown', undefined, 7, false, 'biomes', 1102, 866, 915, 1333],
+    ['marsh pine', 'umbral-march', undefined, 7, false, 'biomes', 1510, 851, 1320, 1774],
+    ['pink cherry', 'verdant-expanse', 'sakura', 7, false, 'beauties', 217, 444, 0, 458],
+    ['white cherry', 'verdant-expanse', 'sakura', 8, false, 'beauties', 668, 435, 446, 899],
+    ['autumn', 'verdant-expanse', 'autumn', 7, false, 'beauties', 1077, 439, 891, 1335],
+    ['wisteria', 'verdant-expanse', 'wisteria', 7, false, 'beauties', 1540, 443, 1323, 1774],
+  ] as const)(
+    'isolates the %s canopy and roots at the original painted scale',
+    (
+      _name,
+      regionId,
+      landscape,
+      treeX,
+      fallback,
+      family,
+      contactX,
+      contactY,
+      safeLeft,
+      safeRight,
+    ) => {
+      const base = projectWorld(newWorldState(), [], 1000),
+        sector = base.sectors.find((sector) => sector.id === base.position.sectorId)!,
+        position = { ...base.position, x: treeX },
+        cells = sector.cells.map((cell) => ({
+          ...cell,
+          terrain: cell.x === treeX && cell.y === position.y ? 't' : '.',
+        })),
+        s = scene(true, {
+          ...base,
+          sectors: [{ ...sector, regionId, landscape, cells, buildings: [], landmarks: [] }],
+        })
+      for (const image of s.images) {
+        const picture = image as HTMLImageElement
+        if (picture.src.endsWith('nature-v02.webp'))
+          Object.assign(image, { width: 1514, height: 1039, naturalWidth: 1514 })
+        if (picture.src.endsWith('biomes-v02.webp') || picture.src.endsWith('beauties-v03.webp'))
+          Object.assign(image, { width: 1774, height: 887, naturalWidth: 1774 })
+        if (fallback && picture.src.endsWith('biomes-v02.webp'))
+          Object.assign(image, { complete: false, naturalWidth: 0 })
+      }
+      s.frame(40)
+      const tree = s.draws.find(
+          (draw) =>
+            draw.src.includes(`${family}-v`) && (family !== 'nature' || draw.args[1]! < 300),
+        )!,
+        a = tree.args,
+        m = tree.matrix,
+        x = a[4]! + ((contactX - a[0]!) / a[2]!) * a[6]!,
+        y = a[5]! + ((contactY - a[1]!) / a[3]!) * a[7]!,
+        point = mapPoint(position, s.view.sectors),
+        expected = projectMapPoint(
+          { x: point.x, y: point.y + 0.25 },
+          mapPoint(base.position, s.view.sectors),
+          { x: 0, y: 0 },
+          64,
+          800,
+          600,
+        )
+      expect(a[0]).toBeGreaterThanOrEqual(safeLeft)
+      expect(a[0]! + a[2]!).toBeLessThanOrEqual(safeRight)
+      expect(a[1]! + a[3]!).toBeGreaterThan(contactY)
+      expect(a[6]! / a[2]!).toBeCloseTo((64 * 1.65) / (family === 'nature' ? 1514 / 4 : 1774 / 4))
+      expect(a[7]! / a[3]!).toBeCloseTo((64 * 2.55) / (family === 'nature' ? 1039 / 2 : 887 / 2))
+      expect(m[0]! * x + m[2]! * y + m[4]!).toBeCloseTo(expected.x * 1.5, 1)
+      expect(m[1]! * x + m[3]! * y + m[5]!).toBeCloseTo(expected.y * 1.5, 1)
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    },
+  )
+  it.each(['animated', 'effects off', 'reduced motion'])(
+    'keeps an isolated snow tree floor fixed with %s without rebuilding ground',
+    (mode) => {
+      const base = projectWorld(newWorldState(), [], 1000),
+        sector = base.sectors.find((sector) => sector.id === base.position.sectorId)!,
+        cells = sector.cells.map((cell) => ({
+          ...cell,
+          terrain: cell.x === base.position.x + 2 && cell.y === base.position.y ? 't' : '.',
+        })),
+        s = scene(mode === 'reduced motion', {
+          ...base,
+          sectors: [{ ...sector, regionId: 'frostmere', cells, buildings: [], landmarks: [] }],
+        })
+      const sheet = s.images.find((image) =>
+        (image as HTMLImageElement).src.endsWith('nature-v02.webp'),
+      )!
+      Object.assign(sheet, { width: 1514, height: 1039, naturalWidth: 1514 })
+      if (mode === 'effects off') s.renderer.settings({ animate: false, zoom: 1 })
+      const point = mapPoint({ ...base.position, x: base.position.x + 2 }, s.view.sectors)
+      const expected = projectMapPoint(
+        { x: point.x, y: point.y + 0.25 },
+        mapPoint(base.position, s.view.sectors),
+        { x: 0, y: 0 },
+        64,
+        800,
+        600,
+      )
+      const contacts = [],
+        canopies = [],
+        layers = []
+      for (const now of [40, 440, 840]) {
+        s.renderer.settings({ animate: mode !== 'effects off', zoom: 1 })
+        s.frame(now)
+        const tree = s.draws
+            .filter((draw) => draw.src.endsWith('nature-v02.webp') && draw.args[1]! < 300)
+            .at(-1)!,
+          a = tree.args,
+          m = tree.matrix,
+          project = (px: number, py: number) => {
+            const x = a[4]! + ((px - a[0]!) / a[2]!) * a[6]!,
+              y = a[5]! + ((py - a[1]!) / a[3]!) * a[7]!
+            return { x: m[0]! * x + m[2]! * y + m[4]!, y: m[1]! * x + m[3]! * y + m[5]! }
+          }
+        contacts.push(project(599, 596))
+        canopies.push(project(587, 80))
+        layers.push(s.layerCount())
+      }
+      for (const contact of contacts) {
+        expect(contact.x).toBeCloseTo(expected.x * 1.5, 1)
+        expect(contact.y).toBeCloseTo(expected.y * 1.5, 1)
+      }
+      expect(layers[2]).toBe(layers[0])
+      expect(contacts[0]!.x).toBeCloseTo(contacts[2]!.x)
+      expect(contacts[0]!.y).toBeCloseTo(contacts[2]!.y)
+      if (mode === 'animated') expect(canopies[0]!.x).not.toBeCloseTo(canopies[2]!.x)
+      else expect(canopies[0]!.x).toBeCloseTo(canopies[2]!.x)
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    },
+  )
+  it.each([
     ['frostmere', 1552, 392],
     ['emberreach', 1109, 409],
   ] as const)(

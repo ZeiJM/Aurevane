@@ -107,6 +107,47 @@ const rockArt: Record<
     source: [1348 / 1774, 102 / 887, 405 / 1774, 310 / 887],
   },
 }
+function treeCrop(
+  sheetWidth: number,
+  sheetHeight: number,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  floorX: number,
+  floorY: number,
+): Required<Pick<Scenery, 'width' | 'height' | 'anchorX' | 'anchorY' | 'source'>> {
+  return {
+    width: (1.65 * width) / (sheetWidth / 4),
+    height: (2.55 * height) / (sheetHeight / 2),
+    anchorX: (floorX - x) / width,
+    anchorY: (floorY - y) / height,
+    source: [x / sheetWidth, y / sheetHeight, width / sheetWidth, height / sheetHeight],
+  }
+}
+// These paintings cross the nominal grid. Isolate each canopy and complete
+// roots, retaining source-pixel scale and using the visible floor as its pivot.
+const treeArt: Record<string, Record<number, ReturnType<typeof treeCrop>>> = {
+  nature: {
+    0: treeCrop(1514, 1039, 0, 26, 442, 591, 224, 603),
+    1: treeCrop(1514, 1039, 443, 24, 320, 585, 599, 596),
+    2: treeCrop(1514, 1039, 763, 38, 356, 566, 947, 594),
+    3: treeCrop(1514, 1039, 1119, 67, 395, 549, 1336, 603),
+  },
+  biomes: {
+    0: treeCrop(1774, 887, 30, 5, 380, 433, 230, 419),
+    4: treeCrop(1774, 887, 0, 447, 433, 431, 252, 867),
+    5: treeCrop(1774, 887, 443, 444, 443, 430, 630, 853),
+    6: treeCrop(1774, 887, 925, 427, 388, 451, 1102, 866),
+    7: treeCrop(1774, 887, 1328, 447, 432, 423, 1510, 851),
+  },
+  beauties: {
+    0: treeCrop(1774, 887, 15, 15, 430, 438, 217, 444),
+    1: treeCrop(1774, 887, 454, 24, 430, 423, 668, 435),
+    2: treeCrop(1774, 887, 893, 29, 430, 426, 1077, 439),
+    3: treeCrop(1774, 887, 1333, 24, 422, 431, 1540, 443),
+  },
+}
 interface FeaturePlacement {
   point: MapPoint
   width: number
@@ -822,22 +863,25 @@ export function createMapRenderer(
                 ? biomes
                 : nature
           const rockPlacement = rock && asset === biomes ? rockArt[special!] : undefined
+          const index = scenicTree ?? (asset === biomes ? special! : palette[2])
+          const family = asset === beauties ? 'beauties' : asset === biomes ? 'biomes' : 'nature'
+          const artPlacement = rockPlacement ?? (!rock ? treeArt[family]?.[index] : undefined)
           addScenery({
             x: origin.x + cell.x + 0.5,
             y: origin.y + cell.y + (rock ? 0.5 : 0.75),
-            width: tile * (rockPlacement?.width ?? (rock ? 1.8 : 1.65)),
-            height: tile * (rockPlacement?.height ?? (rock ? 1.7 : 2.55)),
+            width: tile * (artPlacement?.width ?? (rock ? 1.8 : 1.65)),
+            height: tile * (artPlacement?.height ?? (rock ? 1.7 : 2.55)),
             image: asset,
-            index: scenicTree ?? (asset === biomes ? special! : palette[2]),
+            index,
             columns: 4,
             rows: 2,
             tree: !rock,
             rock,
-            ...(rockPlacement
+            ...(artPlacement
               ? {
-                  anchorX: rockPlacement.anchorX,
-                  anchorY: rockPlacement.anchorY,
-                  source: rockPlacement.source,
+                  anchorX: artPlacement.anchorX,
+                  anchorY: artPlacement.anchorY,
+                  source: artPlacement.source,
                 }
               : {}),
           })
@@ -1159,7 +1203,7 @@ export function createMapRenderer(
       }
       const anchored = item.anchorY !== undefined
       if (anchored) {
-        ctx.translate(p.x, p.y)
+        if (!movingTree) ctx.translate(p.x, p.y)
         if (item.mirror) ctx.scale(-1, 1)
       }
       if (item.underpass) {
