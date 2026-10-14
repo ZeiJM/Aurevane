@@ -71,9 +71,10 @@ test('creates a slotted character, persists its profile, and resumes it across s
     }),
   ).toHaveAttribute('aria-valuenow', '0')
 
-  // Starter portrait filenames are registry-driven; verify the rendered image and decoded asset.
+  // Starter portrait filenames are registry-driven; inspect the resolved image in Account.
+  await page.getByRole('button', { name: 'Account', exact: true }).click()
   const profilePortrait = page.locator(
-    '[data-testid="authenticated-shell"] > header .character-portrait-media',
+    '[role="menu"][aria-label="Account menu"] [data-account-character-portrait="true"] .character-portrait-media',
   )
   await expect(profilePortrait).toBeVisible()
   await expect
@@ -86,7 +87,6 @@ test('creates a slotted character, persists its profile, and resumes it across s
   expect(await hasHorizontalOverflow(page)).toBe(false)
   await expect(page.getByRole('link', { name: 'Back to Character Select' })).toHaveCount(0)
 
-  await page.getByRole('button', { name: 'Account' }).click()
   await page.getByRole('menuitem', { name: 'Titles & Profile Display' }).click()
   await expect(page).toHaveURL(/\/game\/account\/titles$/)
   await page.getByRole('textbox', { name: /^Personal title/ }).fill(personalTitle)

@@ -27,3 +27,11 @@ is preserved as this branch's base, without altering its running CI. Its latest
 native fourteen-case matrix and full CI pass; broader Browser smoke is running.
 All other overhaul tasks and final creative balance remain separate outstanding
 work. This document does not claim full-overhaul completion or live UI changes.
+
+
+Native Desktop experience38547840184/job115798201746 failed three creation
+cases solely because their old closed-header portrait locator still expected
+the superseded placement. The creation and secondary-build scenarios now open
+Account, inspect its actual portrait and continue/close the menu appropriately.
+Decoded-image, account persistence and character-build assertions remain. The
+native rerun is pending; this is test-locator migration, not a product correction.
