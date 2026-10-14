@@ -1,3 +1,7 @@
+import { prepareCombatMove, type PreparedCombatMove } from './combat-move-effect'
+import type { GridPosition } from './board'
+import { executePreparedCombatWalking } from './combat-walking'
+import type { StatDrivenCombatEncounterState } from './stat-driven-combat'
 import { combatAbilityLiveRootIds } from './combat-ability-state'
 import { combatSourceCommandVisibility } from './actions-legacy'
 import { prepareNativePv1fTurn } from './pv1f-turn-preparation'
@@ -9,6 +13,7 @@ import {
   evaluateCombatAction,
   executeCombatAction,
   executeCommittedCombatActorEffects,
+  finishCombatNativeConsequences,
   type CombatActionDefinition,
   type CombatActionEvaluation,
   type CombatEncounterState,
@@ -100,6 +105,7 @@ export interface CombatAbilityCommandInput {
   readonly actorId: string
   readonly root: CombatAbilityCommandRoot
   readonly selection: CombatTargetSelection
+  readonly movementPath?: readonly GridPosition[]
   readonly content: CombatContentCatalog
   readonly context: CombatResolutionContext
   readonly trigger?: CombatAbilityActivationInput['trigger']
@@ -127,6 +133,7 @@ interface Participant extends PreparedCombatAbilityParticipant {
   readonly depth?: number
 }
 export interface PreparedCombatAbilityCommand {
+  readonly movement?: PreparedCombatMove
   readonly action: CombatActionDefinition
   readonly evaluation: CombatActionEvaluation
   readonly costs: AbilityBehavior['costs']
@@ -388,8 +395,11 @@ export function prepareCombatAbilityCommand(
   const { cooldown: _cooldown, ...prepaid } = action
   void _cooldown
   action = { ...prepaid, cost: { ...action.cost, mp: 0 } }
+  const moveEffect = participant.behavior?.effects.find((effect) => effect.payload.type === 'move')
+  const movement = moveEffect ? prepareCombatMove(input, moveEffect) : undefined
+  const evaluationState = movement?.projectedState ?? input.state
   const geometry = evaluateCombatAction(
-    input.state,
+    evaluationState,
     action,
     input.selection,
     input.content,
@@ -399,13 +409,22 @@ export function prepareCombatAbilityCommand(
   const participants = [participant, ...composed.participants]
   const costs = aggregateCombatAbilityCosts(participants)
   const evaluation = evaluateCombatAction(
-    input.state,
+    evaluationState,
     composed.action,
     input.selection,
     input.content,
     context.executionAuthority,
   )
   const issues = [
+    ...(movement?.issues ?? []),
+    ...(!moveEffect && input.movementPath !== undefined
+      ? [
+          {
+            code: 'invalid-target-kind' as const,
+            message: 'A walking path requires a captured Move effect.',
+          },
+        ]
+      : []),
     ...evaluation.issues,
     ...participants.flatMap((row) => combatAbilityParticipantIssues(input, row)),
     ...combatAbilityCostIssues(input, costs),
@@ -476,12 +495,12 @@ export function prepareCombatAbilityCommand(
     issues.length === 0
       ? evaluateCombatAction(
           {
-            ...input.state,
+            ...evaluationState,
             tactical: {
-              ...input.state.tactical,
+              ...evaluationState.tactical,
               battle: {
-                ...input.state.tactical.battle,
-                combatants: input.state.tactical.battle.combatants.map((unit) => {
+                ...evaluationState.tactical.battle,
+                combatants: evaluationState.tactical.battle.combatants.map((unit) => {
                   if (unit.id !== input.actorId) return unit
                   return {
                     ...unit,
@@ -510,6 +529,7 @@ export function prepareCombatAbilityCommand(
       : evaluation
   return {
     action: composed.action,
+    ...(movement ? { movement } : {}),
     evaluation: {
       ...forecast,
       mpCost: costs.find((cost) => cost.resource === 'mp')?.amount ?? 0,
@@ -520,7 +540,7 @@ export function prepareCombatAbilityCommand(
     participants,
     modifierSuppressions: composed.modifierSuppressions,
     context,
-    requirementSubjects: input.state.tactical.battle.combatants.map((unit) => ({
+    requirementSubjects: evaluationState.tactical.battle.combatants.map((unit) => ({
       combatantId: unit.id,
       subject: combatAbilitySubject(input.state, unit.id)!,
     })),
@@ -729,6 +749,12 @@ export function commitCombatAbilityCommand(
     input.selection,
     context,
     manual,
+    prepared.movement?.eligible
+      ? {
+          path: prepared.movement.path,
+          maximumTiles: prepared.movement.maximumTiles,
+        }
+      : undefined,
   )
   const attempt: CombatResolutionEvent = {
     event: 'combat_action_used',
@@ -857,6 +883,33 @@ export function commitCombatAbilityCommand(
       return mutation.state
     },
   }
+  let walkingEvents: readonly CombatResolutionEvent[] = []
+  if (
+    prepared.movement?.eligible &&
+    live.tactical.battle.lifecycle === 'active' &&
+    live.tactical.battle.currentTurn?.combatantId === input.actorId &&
+    live.tactical.battle.turnNumber === input.state.tactical.battle.turnNumber &&
+    (live.tactical.battle.combatants.find((unit) => unit.id === input.actorId)?.hp ?? 0) > 0
+  ) {
+    const walking = executePreparedCombatWalking(
+      live as StatDrivenCombatEncounterState,
+      prepared.movement.path,
+      input.content,
+      {
+        maximumTiles: prepared.movement.maximumTiles,
+        committed: committedExecution,
+        nativeHooks,
+        actionId: prepared.action.id,
+      },
+    )
+    live = walking.state
+    const visibility = combatSourceCommandVisibility(input.state, input.actorId)
+    walkingEvents = walking.events.map((event) =>
+      visibility && !Object.hasOwn(event, 'sourceCommandVisibility')
+        ? { ...event, sourceCommandVisibility: visibility }
+        : event,
+    )
+  }
   const actor = live.tactical.battle.combatants.find((unit) => unit.id === input.actorId)
   const interruption =
     !actor || actor.hp <= 0
@@ -929,8 +982,13 @@ export function commitCombatAbilityCommand(
         },
         input.root.kind === 'native' ? input.nativeHitDependentEffects : undefined,
       )
+  const terminal =
+    prepared.movement?.eligible && interruption && interruption !== 'selection-invalid'
+      ? finishCombatNativeConsequences(out.state)
+      : { state: out.state, events: [] }
   return {
     ...out,
+    state: terminal.state,
     modifierSuppressions: prepared.modifierSuppressions,
     events: [
       ...paymentEvents.map((event) => ({
@@ -956,7 +1014,9 @@ export function commitCombatAbilityCommand(
           : {}),
       },
       ...before.events,
+      ...walkingEvents,
       ...out.events,
+      ...terminal.events,
     ],
   }
 }

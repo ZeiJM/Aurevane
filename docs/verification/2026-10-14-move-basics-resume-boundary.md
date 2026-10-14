@@ -1,4 +1,6 @@
-# Move / editable Basics resume boundary — October 14
+# Move / editable Basics historical start boundary — October 14
+
+Historical start receipt, superseded by `2026-10-14-move-command-included-cost.md` for the current implementation and Owner cost correction.
 
 No Move product code has been written at this boundary. The next task is3A of
 the approved unified-engine recovery plan. Coding is paused for the Owner's
@@ -42,9 +44,10 @@ this separate branch and its saved custom-image/right-corner checks.
   decision. Quotes must account for movement while execution must use the
   actually reached origin; a planned endpoint cannot become an attack origin
   after interruption. A defeated actor must perform no follow-up.
-- Authored costs pay once; traversal AP pays only for entered tiles. Authored
-  rate10–100/default20, actual step minimum10, cap1–20 plus remaining Movement.
-  Preserve valid Poison-interrupted walking and original native clock/events.
+- Current Owner correction: attached Move is included in the overall authored
+  Skill cost, without additional walking AP. Cap1–20 plus remaining Movement
+  remains. Standalone native walking retains its own historical price. Preserve
+  valid Poison-interrupted walking and original native clock/events.
 - Move is once, first, Manual walking only. Automatic/Ongoing Move and human
   summon Move commands remain unsupported unless a real later extension lands.
 - Basic Move's zero-authored-AP offensive use is bounded once per acting turn,

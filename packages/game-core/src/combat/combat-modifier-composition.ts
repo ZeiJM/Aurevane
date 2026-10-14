@@ -72,6 +72,7 @@ export function composeCombatModifiers(
 } {
   const root = input.root
   const rootBehavior = rootParticipant.behavior
+  const rootNativeEffects = rootBehavior?.effects.filter((effect) => effect.payload.type !== 'move')
   const selectedIds =
     geometry.selectedCombatantIds ??
     (geometry.primaryCombatantId ? [geometry.primaryCombatantId] : [])
@@ -143,7 +144,7 @@ export function composeCombatModifiers(
   }
   const eligibility = rootAction.effects.map((_, i) =>
     rootBehavior
-      ? eligible(rootBehavior.effects[i]!, rootContext)
+      ? eligible(rootNativeEffects![i]!, rootContext)
       : rootAction.effectEligibleRecipientIds?.[i],
   )
   const bonuses: CombatCommandDamageBonus[] = []

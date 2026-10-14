@@ -1,3 +1,9 @@
+export type { Pv1fPoisonMovementForecast } from './combat-walking'
+import {
+  combatWalkingModifiers,
+  evaluatePreparedCombatWalking,
+  executePreparedCombatWalking,
+} from './combat-walking'
 import {
   observeCombatNativeMutation,
   type CombatNativeExecutionHooks,
@@ -14,7 +20,7 @@ export {
   PV1F_ACTION_ECONOMY_TURN_KEY,
 } from './pv1f-turn-preparation'
 import { markPv1fTurnActivity, PV1F_TURN_ACTIVITY_RESOURCE_KEY } from './pv1f-turn-activity'
-import { airborneAttackAction, airborneMovementTactical } from './combat-airborne'
+import { airborneAttackAction } from './combat-airborne'
 import {
   capturedMatureSkillAbilitySource,
   canonicalCombatActionSourceKind,
@@ -31,7 +37,6 @@ import {
   combatAbilityBehavior,
   combatAbilityCommandContext,
 } from './combat-behavior-runtime'
-import { currentPoisonTickDamage } from './combat-dots'
 import { combatEffectTimingMode, combatEffectTimingRoundOffset } from './combat-effect-timing'
 import { materializeVengeanceDamage } from './combat-vengeance'
 import {
@@ -49,8 +54,6 @@ import {
 } from './combat-summons'
 import { isMaterializedCombatEffect, type SummonAbilityDefinition } from './summon-content'
 import { hasGameplayTag } from './gameplay-tags'
-import { advanceCurrentPoisonMovement } from './combat-dots'
-import { terrainOverlayAt, COMBAT_TERRAIN_OVERLAY_DETAILS } from './terrain-overlays'
 import { readBattleAuthorityCombatBuildSnapshot } from './battle-authority-build-snapshot'
 import {
   forecastResonanceForSkill,
@@ -71,7 +74,6 @@ import {
   endCombatTurn,
   evaluateCombatAction,
   executeCombatAction,
-  resolveCombatMovementStepEffects,
   finishCombatNativeConsequences,
   type CombatActionDefinition,
   type CombatActionEvaluation,
@@ -95,17 +97,11 @@ import {
   readSkillCooldown,
   type SkillCooldownDefinition,
 } from './skill-cooldowns'
-import {
-  evaluateCurrentMovementPath,
-  movementTraversalCostAt,
-  moveCurrentCombatant,
-  selectCurrentFinalFacing,
-  type GridPosition,
-} from './board'
+import { selectCurrentFinalFacing, type GridPosition } from './board'
 import {
   PV1F_BASIC_ATTACK_ID,
+  PV1F_LAST_MATURE_SKILL_RESOURCE_PREFIX,
   PV1F_GUARD_ACTION_ID,
-  movementApCostForTile,
   PV1F_MP_RECOVER_ACTION_ID,
   PV1F_RECOVER_ACTION_ID,
   pv1fFlatActionCost,
@@ -137,7 +133,7 @@ export const PV1F_STATUS_MAXIMUM_STACKS = 3 as const
 export const PV1F_RECOVERY_COOLDOWN_OWNER_TURNS = 2 as const
 export const PV1F_GUARD_COOLDOWN_OWNER_TURNS = 2 as const
 export const PV1F_REPEAT_SKILL_EFFECTIVENESS_BASIS_POINTS = 5_000 as const
-export const PV1F_LAST_MATURE_SKILL_RESOURCE_PREFIX = 'pv1f.last-mature-skill.' as const
+export { PV1F_LAST_MATURE_SKILL_RESOURCE_PREFIX } from './pv1f-skills'
 export const PV1F_SUMMON_ABILITY_USED_TURN_KEY = 'pv1f.summon-ability-used-turn' as const
 
 export const PV1F_RECOVERY_COOLDOWN: SkillCooldownDefinition = {
@@ -1375,180 +1371,15 @@ export function executePv1fMatureSkill(
 }
 
 /** Shared by authoritative movement and board highlights; does not spend resources. */
-export function pv1fMovementModifiers(
-  state: Pick<
-    StatDrivenCombatEncounterState,
-    'statusState' | 'terrainOverlays' | 'effectStackingPolicyVersion' | 'frozenGroundPolicyVersion'
-  > & {
-    tactical: {
-      battle: Pick<
-        StatDrivenCombatEncounterState['tactical']['battle'],
-        'currentTurn' | 'combatants'
-      >
-    }
-  },
-) {
-  const actorId = state.tactical.battle.currentTurn?.combatantId
-  const statuses = (
-    state.statusState.find((row) => row.combatantId === actorId)?.statuses ?? []
-  ).filter((status) => status.timingState !== 'pending')
-  const definitions = statuses.map((status) =>
-    PV1F_COMBAT_CONTENT.statuses.find(
-      (definition) =>
-        definition.id === status.statusId && definition.version === status.statusVersion,
-    ),
-  )
-  const rooted = definitions.some((definition) => definition?.movement?.blocked)
-  const surcharge =
-    state.effectStackingPolicyVersion === 1
-      ? definitions.reduce(
-          (sum, definition, index) =>
-            sum +
-            BigInt(definition?.movement?.additionalApPerTile ?? 0) *
-              BigInt(statuses[index]!.stacks),
-          0n,
-        )
-      : BigInt(
-          Math.min(
-            20,
-            definitions.reduce(
-              (sum, definition) => sum + (definition?.movement?.additionalApPerTile ?? 0),
-              0,
-            ),
-          ),
-        )
-  const safeDelta = (value: bigint) => {
-    if (value > BigInt(Number.MAX_SAFE_INTEGER) || value < -BigInt(Number.MAX_SAFE_INTEGER))
-      throw new RangeError('Combined movement effect modifier exceeds the safe integer range.')
-    return Number(value)
-  }
-  safeDelta(surcharge)
-  const airborne = Boolean(
-    actorId && hasGameplayTag(state, actorId, 'Airborne', PV1F_COMBAT_CONTENT),
-  )
-  const actorTeam = state.tactical.battle.combatants.find((unit) => unit.id === actorId)?.teamId
-  const frozenSurchargeApplies = (position: GridPosition) => {
-    const overlay = terrainOverlayAt(state, position)
-    if (airborne || overlay?.kind !== 'frozen') return false
-    if (state.frozenGroundPolicyVersion !== 1) return true
-    const sourceTeam = state.tactical.battle.combatants.find(
-      (unit) => unit.id === overlay.sourceCombatantId,
-    )?.teamId
-    return actorTeam !== undefined && sourceTeam !== undefined && actorTeam !== sourceTeam
-  }
-  return {
-    blocked: rooted,
-    additionalApAt: (position: GridPosition) =>
-      safeDelta(
-        surcharge +
-          BigInt(
-            frozenSurchargeApplies(position)
-              ? COMBAT_TERRAIN_OVERLAY_DETAILS.frozen.additionalApPerTile
-              : 0,
-          ),
-      ),
-  }
+export function pv1fMovementModifiers(state: Parameters<typeof combatWalkingModifiers>[0]) {
+  return combatWalkingModifiers(state, PV1F_COMBAT_CONTENT)
 }
-
-export interface Pv1fPoisonMovementForecast {
-  traversedTiles: number
-  triggeredTicks: number
-  damage: number
-  willDefeat: boolean
-}
-
-function forecastPv1fPoisonMovement(
-  state: StatDrivenCombatEncounterState,
-  path: readonly GridPosition[],
-): Pv1fPoisonMovementForecast {
-  const actorId = state.tactical.battle.currentTurn?.combatantId
-  if (!actorId) return { traversedTiles: 0, triggeredTicks: 0, damage: 0, willDefeat: false }
-  const actor = getCombatant(state, actorId)
-  let shadow = state as CombatEncounterState
-  let hp = actor.hp
-  let traversedTiles = 0
-  let triggeredTicks = 0
-
-  for (let index = 1; index < path.length; index += 1) {
-    const advanced = advanceCurrentPoisonMovement(shadow, actorId, 1)
-    shadow = advanced.state
-    traversedTiles += 1
-    triggeredTicks += advanced.triggeredTicks
-    if (advanced.triggeredTicks > 0) {
-      hp = Math.max(
-        0,
-        hp -
-          advanced.ticks.reduce(
-            (total, tick) => total + tick.triggeredTicks * currentPoisonTickDamage(tick.instance),
-            0,
-          ),
-      )
-      if (hp === 0) break
-    }
-  }
-
-  return {
-    traversedTiles,
-    triggeredTicks,
-    damage: actor.hp - hp,
-    willDefeat: actor.hp > 0 && hp === 0,
-  }
-}
-
 export function evaluatePv1fMovement(
   state: StatDrivenCombatEncounterState,
   path: readonly GridPosition[],
 ) {
-  const prepared = preparePv1fTurnEconomy(state)
-  const movementTactical = airborneMovementTactical(prepared, PV1F_COMBAT_CONTENT)
-  let movement = evaluateCurrentMovementPath(
-    movementTactical,
-    path,
-    'entered-tiles',
-    prepared.statBalancePolicyVersion,
-    prepared.airborneJumpPolicyVersion,
-  )
-  const modifiers = pv1fMovementModifiers(prepared)
-  if (modifiers.blocked) {
-    movement.legal = false
-    movement.issues = [
-      ...movement.issues,
-      {
-        code: 'status-restricted',
-        stepIndex: null,
-        message: 'Root prevents movement until it expires or is cleansed.',
-      },
-    ]
-  }
-
-  const poisonForecast = movement.legal
-    ? forecastPv1fPoisonMovement(prepared, path)
-    : { traversedTiles: 0, triggeredTicks: 0, damage: 0, willDefeat: false }
-  if (movement.legal && poisonForecast.traversedTiles < path.length - 1) {
-    movement = evaluateCurrentMovementPath(
-      movementTactical,
-      path.slice(0, poisonForecast.traversedTiles + 1),
-      'entered-tiles',
-      prepared.statBalancePolicyVersion,
-      prepared.airborneJumpPolicyVersion,
-    )
-  }
-  // Retain the terrain-weight preview contract, including a validated prefix of an illegal path.
-  const terrainCost = movement.path.slice(1, movement.cost + 1).reduce((sum, position) => {
-    const traversal = movementTraversalCostAt(prepared.tactical, movement.combatantId, position)
-    if (traversal === null) throw new Error('Validated movement cannot enter blocked terrain.')
-    return sum + traversal
-  }, 0)
-  const economyCost = movement.legal
-    ? movement.path.slice(1).reduce((sum, position) => {
-        const traversal = movementTraversalCostAt(prepared.tactical, movement.combatantId, position)
-        if (traversal === null) throw new Error('Legal movement cannot enter blocked terrain.')
-        return sum + movementApCostForTile(traversal, modifiers.additionalApAt(position))
-      }, 0)
-    : 0
-  return { prepared, movement, terrainCost, economyCost, poisonForecast }
+  return evaluatePreparedCombatWalking(preparePv1fTurnEconomy(state), path, PV1F_COMBAT_CONTENT)
 }
-
 export function executePv1fMovement(
   state: StatDrivenCombatEncounterState,
   path: readonly GridPosition[],
@@ -1556,104 +1387,30 @@ export function executePv1fMovement(
   const { prepared, movement, economyCost } = evaluatePv1fMovement(state, path)
   if (!movement.legal)
     throw new Error(movement.issues[0]?.message ?? 'That movement path is not legal.')
-  if (!canAffordPv1fEconomy(prepared, economyCost)) {
+  if (!canAffordPv1fEconomy(prepared, economyCost))
     throw new Error('Not enough Action Economy remains for that movement path.')
-  }
   const actorId = prepared.tactical.battle.currentTurn?.combatantId
   if (!actorId) throw new Error('PV-1F movement requires an active turn.')
   const nativeHooks = createCombatNativeAbilityRuntime(prepared, PV1F_COMBAT_CONTENT)
-  let next = prepared
-  let spentEconomy = 0
-  const movementEvents: unknown[] = []
-  const movementEffectEvents: unknown[] = []
-  for (let index = 1; index < movement.path.length; index += 1) {
-    if (
-      next.tactical.battle.lifecycle !== 'active' ||
-      next.tactical.battle.currentTurn?.combatantId !== actorId ||
-      getCombatant(next, actorId).hp <= 0
-    )
-      break
-    const modifiers = pv1fMovementModifiers(next)
-    if (modifiers.blocked) break
-    const position = movement.path[index]!
-    const traversal = movementTraversalCostAt(next.tactical, actorId, position)
-    if (traversal === null) break
-    const stepCost = movementApCostForTile(traversal, modifiers.additionalApAt(position))
-    if (!canAffordPv1fEconomy(next, spentEconomy + stepCost)) break
-    const beforeStep = next
-    const moved = moveCurrentCombatant(
-      airborneMovementTactical(next, PV1F_COMBAT_CONTENT),
-      [movement.path[index - 1]!, position],
-      'entered-tiles',
-      next.statBalancePolicyVersion,
-      next.airborneJumpPolicyVersion,
-    )
-    next = reattachStatDrivenCombatBridge(
-      {
-        ...next,
-        ...createCombatEncounterState(
-          { ...moved.state, movementProfiles: next.tactical.movementProfiles },
-          next.statusState,
-        ),
-      },
-      next.statBridge,
-    )
-    next = observeCombatNativeMutation(
-      nativeHooks,
-      beforeStep,
-      { state: next, events: moved.events },
-      { triggeringCombatantId: actorId, affectedCombatantIds: [actorId] },
-    ).state as typeof next
-    spentEconomy += stepCost
-    movementEvents.push(...moved.events)
-    const resolved = resolveCombatMovementStepEffects(next, actorId, PV1F_COMBAT_CONTENT, {
-      nativeHooks,
-      deferCompletion: Boolean(nativeHooks),
-    })
-    next = reattachStatDrivenCombatBridge(resolved.state, next.statBridge)
-    movementEffectEvents.push(...resolved.events)
-  }
-  // One command retains one movement receipt, even though hazards resolve at each tile.
-  const moves = (
-    movementEvents as {
-      event: string
-      from: GridPosition
-      to: GridPosition
-      movementCost: number
-    }[]
-  ).filter((event) => event.event === 'combatant_moved')
-  const movedEvents =
-    moves.length === 0
-      ? []
-      : [
-          {
-            ...moves[0],
-            to: moves.at(-1)!.to,
-            movementCost: moves.reduce((sum, event) => sum + event.movementCost, 0),
-          },
-        ]
-  const spends = (
-    movementEvents as { event: string; amount: number; remaining: number; combatantId: string }[]
-  ).filter((event) => event.event === 'movement_spent')
-  const spentEvents =
-    spends.length === 0
-      ? []
-      : [{ ...spends.at(-1)!, amount: spends.reduce((sum, event) => sum + event.amount, 0) }]
-  const beforePayment = next
-  next = spendPv1fActionEconomyForActor(next, actorId, spentEconomy)
-  next = clearLastMatureSkill(next, actorId)
+  const walked = executePreparedCombatWalking(prepared, movement.path, PV1F_COMBAT_CONTENT, {
+    nativeHooks,
+  })
+  const beforePayment = walked.state
+  const next = clearLastMatureSkill(
+    spendPv1fActionEconomyForActor(walked.state, actorId, walked.spentEconomy),
+    actorId,
+  )
   const remaining = readPv1fActionEconomy(next, actorId)?.current ?? 0
   const transition = {
     state: next,
     events: [
-      ...movementEvents.filter(
-        (event) =>
-          !['combatant_moved', 'movement_spent'].includes((event as { event: string }).event),
-      ),
-      ...spentEvents,
-      ...movedEvents,
-      ...movementEffectEvents,
-      { event: 'action_economy_spent', combatantId: actorId, amount: spentEconomy, remaining },
+      ...walked.events,
+      {
+        event: 'action_economy_spent',
+        combatantId: actorId,
+        amount: walked.spentEconomy,
+        remaining,
+      },
     ],
   }
   if (!nativeHooks) return transition

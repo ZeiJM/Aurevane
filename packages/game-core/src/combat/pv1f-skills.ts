@@ -96,3 +96,5 @@ export function movementApCostForTile(traversalCost: number, additionalAp: numbe
     throw new RangeError('Movement AP cost exceeds the safe integer range.')
   return Math.max(10, cost)
 }
+
+export const PV1F_LAST_MATURE_SKILL_RESOURCE_PREFIX = 'pv1f.last-mature-skill.' as const

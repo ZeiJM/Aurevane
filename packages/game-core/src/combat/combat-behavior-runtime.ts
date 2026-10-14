@@ -135,6 +135,7 @@ export function materializeCombatAbilityAction(
 ): CombatActionDefinition {
   if (!behavior.targeting) throw new TypeError('ability-action-targeting-required')
   const target = behavior.targeting
+  const nativeEffects = behavior.effects.filter((effect) => effect.payload.type !== 'move')
   if (behavior.effects.some((effect) => ['summon', 'damage-bonus'].includes(effect.payload.type)))
     throw new TypeError('canonical-specialized-tag-routing-required')
   return {
@@ -150,11 +151,11 @@ export function materializeCombatAbilityAction(
     requirements: [],
     ...(behavior.cooldown ? { cooldown: behavior.cooldown } : {}),
     ...(behavior.accuracy ? { accuracyRule: behavior.accuracy } : {}),
-    effects: behavior.effects.map((effect) =>
+    effects: nativeEffects.map((effect) =>
       canonicalCombatEffectRecipients(nativeCombatTagPayload(effect.payload), target),
     ),
-    effectTimingModes: behavior.effects.map((effect) => effect.timing),
-    effectOrigins: behavior.effects.map((effect) => ({
+    effectTimingModes: nativeEffects.map((effect) => effect.timing),
+    effectOrigins: nativeEffects.map((effect) => ({
       sourceInstanceId: source.sourceInstanceId,
       behaviorId: behavior.id,
       effectId: effect.id,

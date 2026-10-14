@@ -31,6 +31,11 @@ export type CombatTagPayload =
       readonly percentageBasisPoints: number
     })
   | {
+      readonly type: 'move'
+      readonly recipient: 'actor'
+      readonly maximumTiles: number
+    }
+  | {
       readonly type: 'damage-bonus'
       readonly recipient: 'actor'
       readonly multiplierBasisPoints: number
@@ -58,7 +63,7 @@ export interface CombatTagDefinition {
   readonly timing: readonly ('instant' | 'next-round' | 'delayed')[]
   readonly stacking: 'native-policy' | 'source-owned'
   /** Existing kernel authority, not a callable plugin name supplied by content. */
-  readonly handler: 'combat-action' | 'damage-modifiers' | 'combat-summons'
+  readonly handler: 'combat-action' | 'damage-modifiers' | 'combat-summons' | 'combat-movement'
   readonly runtimeCapability:
     | 'canonical-routing-required'
     | 'maintained-source-resolver-required'
@@ -107,6 +112,19 @@ function tag(
 }
 
 export const COMBAT_TAG_REGISTRY: readonly CombatTagDefinition[] = Object.freeze([
+  tag(
+    'move',
+    ['maximumTiles'],
+    { maximumTiles: 'tiles' },
+    "Walk across legal Ground tiles before follow-up effects, as part of the skill's overall cost and using the position actually reached.",
+    {
+      payloadFields: ['type', 'recipient', 'maximumTiles'],
+      recipients: ['actor'],
+      combinations: [{ activation: 'manual', mode: 'action' }],
+      timing: ['instant'],
+      handler: 'combat-movement',
+    },
+  ),
   tag(
     'damage',
     ['amount', 'defenseKind', 'element', 'scaling', 'vengeance', 'facingModifiersBasisPoints'],
@@ -358,6 +376,10 @@ export function validateCombatTagPayload(
       value.anchorMode !== 'cast-position'
     )
       throw new TypeError('Rewind supports only its captured cast-position anchor.')
+    if (value.type === 'move') {
+      integer(value.maximumTiles, 1, 20, 'Move maximum entered tiles')
+      return issues
+    }
     if (value.type === 'damage-bonus') {
       integer(value.multiplierBasisPoints, 10000, 15000, 'Damage bonus multiplier')
       validateDamageModifiers([
@@ -567,7 +589,7 @@ export function validateCombatTagPayload(
 export function nativeCombatTagPayload(
   payload: Exclude<CombatTagPayload, { type: 'damage-bonus' | 'summon' }> | CombatTagPayload,
 ): CombatEffectDefinition {
-  if (payload.type === 'summon' || payload.type === 'damage-bonus')
+  if (payload.type === 'summon' || payload.type === 'damage-bonus' || payload.type === 'move')
     throw new TypeError('Tag requires its specialized canonical resolver.')
   if (payload.type === 'pierce') {
     const { armorIgnoredBasisPoints: _ignored, ...damage } = payload
@@ -617,12 +639,14 @@ export function combatTagPayloadExplanation(payload: CombatTagPayload): {
   if (!definition || validateCombatTagPayload(payload).length > 0)
     throw new TypeError('Unsupported combat Tag explanation.')
   const concise =
-    payload.type === 'damage-bonus'
-      ? `Damage Up [${(payload.multiplierBasisPoints - 10000) / 100}%]`
-      : payload.type === 'pierce'
-        ? `Pierce [${payload.amount}] · Armor Ignored [${payload.armorIgnoredBasisPoints / 100}%]`
-        : payload.type === 'summon'
-          ? 'Summon'
-          : combatEffectPresentationTags(nativeCombatTagPayload(payload)).join(' · ')
+    payload.type === 'move'
+      ? `Move · Maximum Tiles [${payload.maximumTiles}]`
+      : payload.type === 'damage-bonus'
+        ? `Damage Up [${(payload.multiplierBasisPoints - 10000) / 100}%]`
+        : payload.type === 'pierce'
+          ? `Pierce [${payload.amount}] · Armor Ignored [${payload.armorIgnoredBasisPoints / 100}%]`
+          : payload.type === 'summon'
+            ? 'Summon'
+            : combatEffectPresentationTags(nativeCombatTagPayload(payload)).join(' · ')
   return { concise, full: definition.fullExplanation }
 }

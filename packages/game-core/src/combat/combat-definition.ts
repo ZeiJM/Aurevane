@@ -506,7 +506,12 @@ export function validateAbilityDefinition(value: unknown): readonly AbilityDefin
           cost: { spendsAction: true, mp: 0 },
           requirements: [],
           effects: payloads
-            .filter((payload) => payload.type !== 'summon' && payload.type !== 'damage-bonus')
+            .filter(
+              (payload) =>
+                payload.type !== 'summon' &&
+                payload.type !== 'damage-bonus' &&
+                payload.type !== 'move',
+            )
             .map(nativeCombatTagPayload),
         })
       } catch (error) {
@@ -517,6 +522,18 @@ export function validateAbilityDefinition(value: unknown): readonly AbilityDefin
         )
       }
     }
+    const moves = payloads.filter((payload) => payload.type === 'move')
+    if (
+      moves.length &&
+      (moves.length !== 1 ||
+        payloads[0]?.type !== 'move' ||
+        payloads.some((payload) => payload.type === 'summon'))
+    )
+      issue(
+        path,
+        'unsupported-combination',
+        'Move must occur once, first, and cannot share a group with Summon.',
+      )
     const summons = payloads.filter((payload) => payload.type === 'summon')
     if (candidate.mode === 'modifier') {
       for (const [ordinal, payload] of payloads.entries()) {
