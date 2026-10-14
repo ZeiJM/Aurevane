@@ -34,6 +34,10 @@ import {
   resetWorldReadCaches,
 } from './world-repository'
 import { loadPublicCharacterProfileImageMap } from '@/server/character/character-profile-display-service'
+import { projectWorld } from './world-service'
+import { localRoute, WorldMotion } from '@/components/world/world-motion'
+import { mergeWorldMovement } from '@/world/movement-receipt'
+import { WorldController } from '@/components/world/world-controller'
 
 const characterId = '00000000-0000-4000-8000-000000000011'
 const command: WorldCommand = {
@@ -70,6 +74,213 @@ function deferred<T>() {
   })
   return { promise, resolve }
 }
+
+it('keeps a first-click route moving when a follow-up read is slower than its preview budget', async () => {
+  const initial = payload()
+  const view = { ...projectWorld(initial.state, [], initial.serverNow), characterId }
+  const destination = { sectorId: 'verdant-expanse', x: 6, y: 0 }
+  const preview = localRoute(view, view.position, destination)!
+  expect(preview.length).toBeGreaterThan(3)
+  const motion = new WorldMotion(view, 0)
+  motion.plan(preview, view.sectors, 0)
+  const boundary = deferred<'approval' | 'follow-up read'>()
+  const slowRead = deferred<void>()
+  let committed: WorldState | undefined
+  const clock = vi.spyOn(performance, 'now').mockReturnValue(1000)
+  rpc.mockImplementation(async (name: string, args: { p_next_state?: WorldState }) => {
+    if (name === 'commit_world_state_v1') {
+      committed = { ...args.p_next_state!, version: 2 }
+      clock.mockReturnValue(1250)
+      return { data: committed }
+    }
+    if (committed) {
+      boundary.resolve('follow-up read')
+      await slowRead.promise
+      return { data: { ...initial, state: committed, serverNow: 5950 } }
+    }
+    return { data: initial }
+  })
+  const result = commitWorldCommand(
+    'owner',
+    characterId,
+    {
+      ...command,
+      intent: { kind: 'walk', destination },
+    },
+    true,
+  ).then((receipt) => {
+    motion.reconcile(mergeWorldMovement(view, receipt), 250)
+    boundary.resolve('approval')
+    return receipt
+  })
+  try {
+    expect(await boundary.promise).toBe('approval')
+    for (const now of [600, 650, 800, 949]) {
+      expect(motion.sample(now).moving, `walking at ${now}ms`).toBe(true)
+      expect(motion.sample(now + 16).point).not.toEqual(motion.sample(now).point)
+    }
+    expect((await result).version).toBe(2)
+    expect(rpc.mock.calls.map(([name]) => name)).toEqual([
+      'read_world_state_v1',
+      'commit_world_state_v1',
+    ])
+    expect(sceneRpc).not.toHaveBeenCalled()
+    expect(environmentSettings).not.toHaveBeenCalled()
+  } finally {
+    slowRead.resolve()
+    await result
+    clock.mockRestore()
+  }
+})
+
+it('uses the normalized committed snapshot and database-anchored elapsed display time', async () => {
+  const initial = payload()
+  let committed: WorldState | undefined
+  const mono = vi.spyOn(performance, 'now').mockReturnValue(2000)
+  const wall = vi.spyOn(Date, 'now').mockReturnValue(999_999)
+  rpc.mockImplementation(async (name: string, args: { p_next_state?: WorldState }) => {
+    if (name === 'commit_world_state_v1') {
+      committed = { ...args.p_next_state!, version: 2, nextStepAt: 5150 }
+      mono.mockReturnValue(2090)
+      return { data: committed }
+    }
+    return {
+      data: {
+        ...initial,
+        state: committed ? { ...committed, version: 3 } : initial.state,
+        serverNow: committed ? 6000 : 5000,
+      },
+    }
+  })
+  try {
+    const receipt = await commitWorldCommand(
+      'owner',
+      characterId,
+      {
+        ...command,
+        intent: { kind: 'walk', destination: { sectorId: 'verdant-expanse', x: 6, y: 4 } },
+      },
+      true,
+    )
+    expect(receipt.version).toBe(2)
+    expect(receipt.nextStepAt).toBe(5150)
+    expect(receipt.serverNow).toBe(5090)
+    expect(receipt.currentSector).toEqual(
+      projectWorld(committed!, [], 5090).sectors.find((s) => s.id === committed!.position.sectorId),
+    )
+    expect(rpc.mock.calls[1]?.[1]).toMatchObject({ p_next_state: { nextStepAt: 5200 } })
+  } finally {
+    mono.mockRestore()
+    wall.mockRestore()
+  }
+})
+
+it.each(['stop', 'partial receipt', 'advanced version', 'existing block'] as const)(
+  'retains the fresh authority read for %s',
+  async (caseName) => {
+    const initial = payload()
+    let committed: WorldState | undefined
+    rpc.mockImplementation(async (name: string, args: { p_next_state?: WorldState }) => {
+      if (name === 'commit_world_state_v1') {
+        committed = { ...args.p_next_state!, version: caseName === 'advanced version' ? 3 : 2 }
+        return { data: caseName === 'partial receipt' ? { version: 2 } : committed }
+      }
+      return {
+        data: {
+          ...initial,
+          state: committed ?? initial.state,
+          serverNow: committed ? 6000 : 5000,
+          blocked: caseName === 'existing block' ? 'WORLD_TRAINING_ACTIVE' : null,
+        },
+      }
+    })
+    const receipt = await commitWorldCommand(
+      'owner',
+      characterId,
+      {
+        ...command,
+        intent: caseName === 'stop' ? { kind: 'stop' } : { kind: 'tick' },
+      },
+      true,
+    )
+    expect(receipt.serverNow).toBe(6000)
+    expect(receipt.version).toBe(caseName === 'advanced version' ? 3 : 2)
+    expect(rpc.mock.calls.map(([name]) => name)).toEqual([
+      'read_world_state_v1',
+      'commit_world_state_v1',
+      'read_world_state_v1',
+    ])
+    if (caseName === 'existing block') expect(receipt.movementBlocked).not.toBeNull()
+  },
+)
+
+it.each(['WORLD_TRAINING_ACTIVE', 'WORLD_SPECTATING', 'WORLD_ACTIVE_BATTLE'])(
+  'accepts %s begun after commit through independent hydration',
+  async (blocked) => {
+    const initial = payload()
+    const view = { ...projectWorld(initial.state, [], initial.serverNow), characterId }
+    let committed: WorldState | undefined
+    rpc.mockImplementation(async (name: string, args: { p_next_state?: WorldState }) => {
+      if (name === 'commit_world_state_v1') {
+        committed = { ...args.p_next_state!, version: 2 }
+        return { data: committed }
+      }
+      if (!committed) return { data: initial }
+      const battle = blocked === 'WORLD_ACTIVE_BATTLE'
+      return {
+        data: {
+          ...initial,
+          state: battle ? { ...committed, version: 3, route: [], nextStepAt: null } : committed,
+          blocked,
+          battleSessionId: battle ? 'committed-world-battle' : null,
+          serverNow: 5500,
+        },
+      }
+    })
+    const motion = new WorldMotion(view, 0)
+    const accepts: boolean[] = []
+    const controller = new WorldController(view, {
+      command: async (intent, source) =>
+        mergeWorldMovement(
+          source,
+          await commitWorldCommand(
+            'owner',
+            characterId,
+            { ...command, expectedVersion: source.version, intent },
+            true,
+          ),
+        ),
+      refresh: async () => (await readWorld('owner', characterId)).view,
+      accept: (next, reconcile) => {
+        accepts.push(reconcile)
+        motion.reconcile(next, 100)
+      },
+      presentation: () => {},
+      error: (message) => {
+        throw new Error(message)
+      },
+      busy: () => {},
+    })
+    await controller.send({
+      kind: 'walk',
+      destination: { sectorId: 'verdant-expanse', x: 6, y: 0 },
+    })
+    expect(controller.view.movementBlocked).toBeNull()
+    expect(rpc.mock.calls.map(([name]) => name)).toEqual([
+      'read_world_state_v1',
+      'commit_world_state_v1',
+    ])
+    await controller.hydrate()
+    expect(controller.view.movementBlocked).not.toBeNull()
+    expect(motion.sample(1000).moving).toBe(false)
+    expect(accepts).toEqual([true, true])
+    expect(controller.view.version).toBe(blocked === 'WORLD_ACTIVE_BATTLE' ? 3 : 2)
+    expect(controller.view.battleSessionId).toBe(
+      blocked === 'WORLD_ACTIVE_BATTLE' ? 'committed-world-battle' : null,
+    )
+    controller.dispose()
+  },
+)
 
 it.each(['scene', 'environment'] as const)(
   'commits before a deferred %s presentation read, then returns the fully enriched committed receipt',
