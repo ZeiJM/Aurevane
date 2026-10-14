@@ -1,5 +1,6 @@
 import { prePercentageRecoveryEssence } from './percentage-recovery-history.test-utils'
 import { describe, expect, it } from 'vitest'
+import { source } from './combat-behavior.test-utils'
 
 import { createCombatEncounterState } from './actions'
 import { createPendingBattle, startBattle } from './battle-state'
@@ -35,6 +36,38 @@ function profile(combatantId: string): StatDrivenCombatProfile {
     jump: 1,
   }
 }
+
+describe('canonical exact-version Essence routing', () => {
+  it.each([true, false])(
+    'uses root/nested canonical capture before legacy projection and current fallback; root=%s',
+    (rootEnvelope) => {
+      const original = resolveEssenceForBuild('vanguard', null)!
+      const essence = rootEnvelope
+        ? { ...original, ability: source().definition }
+        : { ...original, skill: { ...original.skill, ability: source().definition } }
+      expect(essenceSnapshotReference(essence).essenceId).toBe(essence.essenceId)
+      const input = {
+        state: encounter(),
+        essence,
+        primaryDisciplineId: 'vanguard',
+        secondaryDisciplineId: null,
+        combatContext: 'pve' as const,
+        selection: { kind: 'unit' as const, combatantId: 'recruit' },
+      }
+      const preview = evaluatePv1fEssenceSkillForAi(input)!
+      expect(preview.apCost).toBe(11)
+      expect(preview.legal).toBe(true)
+      const out = executePv1fEssenceSkill(input)
+      expect(readPv1fActionEconomy(out.state)!.current).toBe(89)
+      expect(out.state.capturedAbilitySources![0]).toMatchObject({
+        sourceKind: 'essence',
+        abilityId: essence.essenceId,
+        contentVersion: essence.contentVersion,
+        definition: source().definition,
+      })
+    },
+  )
+})
 
 function encounter(): StatDrivenCombatEncounterState {
   const playerProfile = profile('player')

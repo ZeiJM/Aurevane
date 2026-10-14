@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { createCombatEncounterState } from './actions'
+import { captureCombatAbilitySource } from './combat-behavior-capture'
+import { reconcileCombatAbilitySources } from './combat-behavior-runtime'
+import { source } from './combat-behavior.test-utils'
+import { reattachStatDrivenCombatBridge } from './stat-driven-combat'
 import { normalizeCombatEffectState } from './combat-effect-state'
 import { defaultCombatEffectTimingPolicy } from './combat-effect-timing'
 import { createPendingBattle, startBattle } from './battle-state'
@@ -152,6 +156,132 @@ function prime(state: StatDrivenCombatEncounterState, setupId: string) {
 }
 
 describe('Resonance requires a confirmed hostile hit', () => {
+  it('skips dependent actor healing when a paid native trigger loses its target before settlement', () => {
+    const setupId = 'lifebinder.mending-light'
+    const trigger = skill('vanguard.forceful-strike')
+    const initial = prime(
+      encounter(['vanguard', 'lifebinder'], setupId, trigger.id, 10000),
+      setupId,
+    )
+    const hide = captureCombatAbilitySource({
+      ...source({
+        id: 'hide',
+        activation: 'automatic',
+        classification: 'utility',
+        attackFamily: undefined,
+        costs: [{ resource: 'mp', amount: 1 }],
+        activationLimits: ['once-per-action'],
+        requirements: { kind: 'event', eventType: 'combat_action_used', phase: 'before' },
+        automaticTarget: { subject: 'owner' },
+        targeting: {
+          kind: 'self',
+          teamPolicy: 'self',
+          friendlyFire: 'allies-only',
+          shape: { kind: 'single' },
+          minimumRange: 0,
+          maximumRange: 0,
+          requiresLineOfSight: false,
+          maximumElevationDifference: null,
+          maximumSelections: 1,
+        },
+        effects: [
+          {
+            id: 'hide',
+            payload: { type: 'apply-status', recipient: 'actor', statusId: 'invisible', stacks: 1 },
+          },
+        ],
+      }),
+      ownerCombatantId: 'enemy',
+    })
+    const state = reattachStatDrivenCombatBridge(
+      reconcileCombatAbilitySources(initial, [hide]),
+      initial.statBridge,
+    )
+    const result = executePv1fMatureSkill(state, trigger, { kind: 'unit', combatantId: 'enemy' })
+    expect(result.events).toContainEqual(
+      expect.objectContaining({
+        event: 'combat_action_interrupted',
+        actionId: trigger.id,
+        reason: 'selection-invalid',
+      }),
+    )
+    expect(actor(result.state).hp).toBe(actor(initial).hp)
+    expect(armed(result.state, setupId)).toBe(true)
+    expect(
+      result.events.some(
+        (event) =>
+          (event as { event: string; actionId?: string }).event === 'combat_accuracy_resolved' &&
+          (event as { actionId?: string }).actionId === trigger.id,
+      ),
+    ).toBe(false)
+    expect(result.state.tactical.battle.combatants.find((unit) => unit.id === 'enemy')!.mp).toBe(9)
+    expect(result.events).toContainEqual(
+      expect.objectContaining({ event: 'action_economy_spent', amount: 45 }),
+    )
+  })
+  it.each([false, true])(
+    'keeps native Resonance hit gating with an unrelated captured source (hit %s)',
+    (hit) => {
+      const setupId = 'lifebinder.mending-light'
+      const trigger = skill('vanguard.forceful-strike')
+      const initial = prime(
+        encounter(['vanguard', 'lifebinder'], setupId, trigger.id, hit ? 10000 : 0),
+        setupId,
+      )
+      const dormant = captureCombatAbilitySource({
+        ...source({
+          id: 'dormant',
+          activation: 'automatic',
+          classification: 'recovery',
+          attackFamily: undefined,
+          costs: [],
+          requirements: { kind: 'event', eventType: 'battle_started', phase: 'after' },
+          automaticTarget: { subject: 'owner' },
+          targeting: {
+            kind: 'self',
+            teamPolicy: 'self',
+            friendlyFire: 'allies-only',
+            shape: { kind: 'single' },
+            minimumRange: 0,
+            maximumRange: 0,
+            requiresLineOfSight: false,
+            maximumElevationDifference: null,
+            maximumSelections: 1,
+          },
+          effects: [{ id: 'heal', payload: { type: 'healing', recipient: 'actor', amount: 1 } }],
+        }),
+        ownerCombatantId: 'enemy',
+      })
+      const state = reattachStatDrivenCombatBridge(
+        reconcileCombatAbilitySources(initial, [dormant]),
+        initial.statBridge,
+      )
+      const selection = { kind: 'unit' as const, combatantId: 'enemy' }
+      const expected = executePv1fMatureSkill(initial, trigger, selection)
+      const saved = JSON.stringify(state)
+      const preview = evaluatePv1fMatureSkill(state, trigger, selection)
+      expect(preview.evaluation.legal).toBe(true)
+      expect(JSON.stringify(state)).toBe(saved)
+      const actual = executePv1fMatureSkill(state, trigger, selection)
+      expect(actual.events).toContainEqual(
+        expect.objectContaining({ event: 'combat_accuracy_resolved', hit }),
+      )
+      expect(actor(actual.state).hp).toBe(actor(expected.state).hp)
+      expect(actor(actual.state).mp).toBe(actor(expected.state).mp)
+      expect(armed(actual.state, setupId)).toBe(!hit)
+      expect(
+        actual.events.filter(
+          (event) => (event as { event: string }).event === 'resonance_activated',
+        ),
+      ).toHaveLength(hit ? 1 : 0)
+      expect(actual.state.tactical.battle.rng).toEqual(expected.state.tactical.battle.rng)
+      expect(
+        actual.events.some(
+          (event) => (event as { actionId?: string }).actionId === dormant.abilityId,
+        ),
+      ).toBe(false)
+    },
+  )
   it('preserves earned priming on a miss and activates once on a later hit while spending normal costs', () => {
     const setupId = 'lifebinder.mending-light'
     const trigger = skill('vanguard.forceful-strike')

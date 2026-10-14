@@ -19,6 +19,7 @@ const { rpc, findCharacter, loadBuildSnapshot, readWorld, attackAuthority } = vi
   findCharacter: vi.fn<(userId: string, id: string) => Promise<CharacterRecord | null>>(),
   loadBuildSnapshot: vi.fn<() => Promise<CharacterCommittedBuildSnapshotRecord>>(),
 }))
+const startup = vi.hoisted(() => ({ enabled: false }))
 vi.mock('@/lib/supabase/admin', () => ({ createSupabaseAdminClient: () => ({ rpc }) }))
 vi.mock('./world-repository', () => ({
   readWorld,
@@ -39,9 +40,20 @@ vi.mock('@/server/character/supabase-character-repository', () => ({
     findByOwnerId: findCharacter,
   }),
 }))
-vi.mock('@/server/combat/combat-content-resolver', () => ({
-  createServerCombatContentResolver: () => ({}),
-}))
+vi.mock('@/server/combat/combat-content-resolver', async () => {
+  const { startupEssence } = await import('../battle/battle-startup.test-utils')
+  return {
+    createServerCombatContentResolver: () =>
+      startup.enabled
+        ? {
+            resolveCurrentSkillDefinition: async () => null,
+            resolvePinnedSkillDefinition: async () => null,
+            resolveCurrentEssenceDefinition: async () => startupEssence(),
+            resolvePinnedEssenceDefinition: async () => startupEssence(),
+          }
+        : {},
+  }
+})
 import { attackWorldPlayer } from './world-battle'
 const CREATED_AT = '2026-10-07T00:00:00.000Z'
 function characterRecord(id: string, userId: string, name: string): CharacterRecord {
@@ -92,6 +104,7 @@ function pureSnapshot(): CharacterCommittedBuildSnapshotRecord {
 }
 
 beforeEach(() => {
+  startup.enabled = false
   readWorld
     .mockReset()
     .mockResolvedValue({ view: { players: [{ characterId: 'target', attackable: true }] } })
@@ -104,6 +117,27 @@ beforeEach(() => {
     .mockReset()
     .mockImplementation(async (userId, id) => characterRecord(id, userId, 'Fighter'))
   loadBuildSnapshot.mockReset().mockImplementation(async () => pureSnapshot())
+})
+
+it('captures both map participants and atomically persists real startup costs and receipts', async () => {
+  startup.enabled = true
+  rpc.mockImplementation(async (name: string) =>
+    name === 'start_world_encounter_v2'
+      ? { data: { battleSessionId: 'world-battle' }, error: null }
+      : successfulAttackRpc(name),
+  )
+  await attackWorldPlayer('owner', 'actor', 'target', 2)
+  const args = rpc.mock.calls.find(([name]) => name === 'start_world_encounter_v2')?.[1] as
+    Record<string, unknown> | undefined
+  expect(args).toBeDefined()
+  const state = args!.p_snapshot as BattleAuthoritativeEncounterState
+  expect(state.capturedAbilitySources).toHaveLength(2)
+  for (const actor of state.tactical.battle.combatants) expect(actor.mp).toBe(actor.maxMp - 1)
+  expect(
+    (args!.p_initial_events as { event: string }[]).filter((e) => e.event === 'mp_spent'),
+  ).toHaveLength(2)
+  expect(args!.p_privacy_journal).toMatchObject({ schemaVersion: 1 })
+  expect(args!.p_start_snapshot).not.toHaveProperty('abilityRuntime')
 })
 
 it('starts each participant build read before its owned-character read resolves and waits for both snapshots', async () => {

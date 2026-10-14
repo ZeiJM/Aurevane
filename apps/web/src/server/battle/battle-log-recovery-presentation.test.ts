@@ -105,3 +105,27 @@ describe('Recovery battle log presentation', () => {
     )
   })
 })
+
+it('presents a paid interrupted attempt without a hit or a hidden reactor', () => {
+  const result = buildBattleLogView(SESSION_ID, [
+    record(1, 0, {
+      event: 'combat_action_interrupted',
+      actorId: PLAYER_ID,
+      actionId: 'basic.attack',
+      reason: 'selection-invalid',
+      hiddenReactor: 'secret-enemy',
+      triggerGuard: { secret: true },
+    }),
+  ])
+  expect(result.entries).toHaveLength(1)
+  expect(result.entries[0]).toMatchObject({
+    eventType: 'combat_action_interrupted',
+    actorCombatantId: PLAYER_ID,
+    actionId: 'basic.attack',
+    messageTemplate: '{actor} could not complete {action}.',
+    headline: 'Interrupted',
+  })
+  expect(JSON.stringify(result)).not.toContain('secret-enemy')
+  expect(JSON.stringify(result)).not.toContain('triggerGuard')
+  expect(JSON.stringify(result)).not.toMatch(/hit|miss/i)
+})

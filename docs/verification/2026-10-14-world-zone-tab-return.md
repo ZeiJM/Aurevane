@@ -1,6 +1,6 @@
 # World zone clarity and browser-tab return
 
-Status: implementation under verification. Production still serves the previously released World responsiveness batch. Human gameplay acceptance remains pending.
+Status: implementation under verification. Current Production is the released Ability foundation (#896), which does not yet include this World follow-up. Human gameplay acceptance remains pending.
 
 ## Owner requests and scope
 
@@ -36,3 +36,15 @@ A further hidden-receipt regression inserts scene hydration before resume. It fa
 First-candidate Atlas compact artifact11868261202 was retrieved with verifiedSHA256`f2a908b661a3f64f97b67e84d6f1bcefac7d28136e07e2749ab33a5ecee9a02b`. Desktop evidence visibly fits PvP Zone beside sector/coordinates; mobile map evidence fits with its panel closed. Protected-grey and legal-red Attack assertions pass in the disposable arrival case. Human gameplay acceptance remains pending.
 
 The corrected local quality gate passes5,328Vitest plus seven Node checks, formatting/lint/types and production build. The final focused suite passes223tests across five files. The reviewer independently reruns181motion/renderer tests and reports no Critical/Important concern; capture-phase DOM timing includes the production handler window. Current main remains `a5069763ceff842150bd96a929615ac54c5bf9e1`. Fresh exact-head native gates and release remain pending.
+
+## Completed World candidate and current-main reconciliation
+
+Candidate `e9581a9ac81ad629f69746c11a8e383c25fdb914`, tree `647607b7062ce65a2b4fe41740ed8fbc51785fb1`, passed all three exact-head workflows: CI38513047347 (5,328Vitest, seven Node checks,31pgTAP), Atlas38513047357 (47passed,79skipped), and full Browser38513047348 (345Chromium passed,264skipped;10Edge passed,two skipped). The full Browser hold measured834.4ms with four requests, zero409s, and a measured-window maximum of five; Atlas measured771.8ms with four requests and zero409s. All arrival/release assertions remain. No workflow was cancelled or narrowed.
+
+Corrected Atlas compact artifact11870789305 has verifiedSHA256`876da50386f06974e45e2e6dd7b3ac435ec30c420768b4bb07ffd96fb9076630`; full artifact11871038672 has verifiedSHA256`7cd0aa8f1f9ce6d5f1dd8429da6c43d93824f3c7b9002192add9a691d8efca70`. Rendered desktop evidence visibly shows Safe Zone with grey adjacent Attack and PvP Zone beside coordinates. Mobile map evidence fits with its panel closed. CI peer delivery is449ms with fallback reads blocked; synthetic101-player mobile render p95 is10ms after240frames. These are CI measurements, not hosted load or human acceptance.
+
+The cloud browser keeps World visible when another tab opens, and does not expose the visibility control, so no real hidden-tab live acceptance is claimed. Lifecycle regressions cover the hidden/resumed event sequence.
+
+During the full run, current main advanced to `69347f11e4625808df91b033d4139da913116786` through the already released Ability foundation (#896, Production `dpl_3pgy6TV6Z9zUfbCgnMfjwykQX7xv`, source `128f7add15aefed3384310a5f138466b1ff5b625`) and its receipt (#898). The World battle integration and shared execution changed. Deploying the older candidate would regress that release. The patch is therefore integrated onto current main. Complete Git tree comparison verifies that none of the World source/test paths overlap incoming edits; only TASKS.md needs its new release header retained. All current-main code, schema and configuration are preserved; the World diff still introduces no migration. Fresh exact-head CI, Atlas and complete Browser checks are required for the combined tree.
+
+The local executor reports `environment_offline: Environment is not connected`. GitHub/Vercel access remains available. There is no claimed local combined check; the fresh native CI quality gate must validate that combined source before release.

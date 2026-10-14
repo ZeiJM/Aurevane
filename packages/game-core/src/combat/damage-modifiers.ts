@@ -3,6 +3,52 @@ import { hasGameplayTag, validateGameplayTag, type GameplayTag } from './gamepla
 import { hasCurrentBleed, hasCurrentBurn, hasCurrentPoison } from './combat-dots'
 import type { CombatContentCatalog, CombatEncounterState } from './actions'
 import { classifyFacingRelation } from './board'
+import { evaluateAbilityRequirements } from './combat-requirements'
+import { combatAbilitySubject } from './combat-behavior-runtime'
+import type { CombatCommandDamageBonus } from './combat-ability-command'
+
+export function validateCombatCommandDamageBonuses(value: unknown): void {
+  if (value === undefined) return
+  if (!Array.isArray(value) || value.length > 512)
+    throw new TypeError('invalid-command-damage-bonuses')
+  const identities = new Set<string>()
+  for (const bonus of value) {
+    if (
+      !bonus ||
+      typeof bonus !== 'object' ||
+      Array.isArray(bonus) ||
+      Object.keys(bonus).some(
+        (key) =>
+          ![
+            'sourceInstanceId',
+            'contentId',
+            'contentVersion',
+            'behaviorId',
+            'effectId',
+            'multiplierBasisPoints',
+          ].includes(key),
+      ) ||
+      ['sourceInstanceId', 'contentId', 'behaviorId', 'effectId'].some(
+        (key) => typeof bonus[key] !== 'string' || !bonus[key] || bonus[key].trim() !== bonus[key],
+      ) ||
+      !Number.isSafeInteger(bonus.contentVersion) ||
+      bonus.contentVersion < 1 ||
+      !Number.isSafeInteger(bonus.multiplierBasisPoints) ||
+      bonus.multiplierBasisPoints < 10000 ||
+      bonus.multiplierBasisPoints > 15000
+    )
+      throw new TypeError('invalid-command-damage-bonuses')
+    const identity = JSON.stringify([
+      bonus.sourceInstanceId,
+      bonus.contentId,
+      bonus.contentVersion,
+      bonus.behaviorId,
+      bonus.effectId,
+    ])
+    if (identities.has(identity)) throw new TypeError('duplicate-command-damage-bonus')
+    identities.add(identity)
+  }
+}
 
 export type DamageCondition =
   | { kind: 'always' }
@@ -29,7 +75,11 @@ export function conditionalDamageMultiplier(
   recipientId: string,
   content: CombatContentCatalog,
   elementalMultiplier = 10_000,
-  options: { ignoreIncomingMitigation?: boolean; outgoingState?: CombatEncounterState } = {},
+  options: {
+    ignoreIncomingMitigation?: boolean
+    outgoingState?: CombatEncounterState
+    commandDamageBonuses?: readonly CombatCommandDamageBonus[]
+  } = {},
 ): number {
   const outgoingState = options.outgoingState ?? state
   let numerator = BigInt(elementalMultiplier)
@@ -60,6 +110,45 @@ export function conditionalDamageMultiplier(
     }
   }
   let denominator = 1n
+  validateCombatCommandDamageBonuses(options.commandDamageBonuses)
+  for (const bonus of options.commandDamageBonuses ?? [])
+    [numerator, denominator] = multiplyRepeatedRatio(
+      numerator,
+      denominator,
+      bonus.multiplierBasisPoints,
+      1,
+    )
+  const owner = outgoingState.tactical.battle.combatants.find((unit) => unit.id === attackerId)
+  if (owner && owner.hp > 0 && outgoingState.tactical.battle.lifecycle === 'active') {
+    const context = { owner: combatAbilitySubject(outgoingState, attackerId) }
+    for (const source of outgoingState.capturedAbilitySources ?? []) {
+      if (
+        source.ownerCombatantId !== attackerId ||
+        !outgoingState.abilityRuntime?.activeSourceIds.includes(source.sourceInstanceId)
+      )
+        continue
+      for (const behavior of source.definition.behaviors) {
+        if (
+          behavior.activation !== 'ongoing' ||
+          !evaluateAbilityRequirements(behavior.requirements, context)
+        )
+          continue
+        for (const effect of behavior.effects) {
+          if (
+            effect.payload.type !== 'damage-bonus' ||
+            !evaluateAbilityRequirements(effect.requirements ?? null, context)
+          )
+            continue
+          ;[numerator, denominator] = multiplyRepeatedRatio(
+            numerator,
+            denominator,
+            effect.payload.multiplierBasisPoints,
+            1,
+          )
+        }
+      }
+    }
+  }
   for (const [ownerId, opponentId, direction] of [
     [attackerId, recipientId, 'outgoing'],
     [recipientId, attackerId, 'incoming'],

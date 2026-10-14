@@ -1,4 +1,7 @@
 import 'server-only'
+import { capturedMatureSkillAbilitySource } from '@aurevane/game-core/combat/combat-action-source'
+import { combatAbilityBehavior } from '@aurevane/game-core/combat/combat-behavior-runtime'
+import { omitCombatExecutionMetadata } from '../battle/battle-live-viewer-projection'
 import { createCombatGroundArea } from '@aurevane/game-core/combat/combat-ground-areas'
 import { projectPublicCombatGroundAreas } from '@aurevane/game-core/combat/combat-ground-visuals'
 
@@ -36,6 +39,7 @@ const ACTOR_POSITION = { x: 2, y: 1 } as const
 export const DEFAULT_COMBAT_CONTENT_PREVIEW_SEED = 0x4d415354
 
 export interface CombatContentPreviewOptions {
+  readonly behaviorId?: string
   readonly seed?: number
   readonly combatContext?: MatureSkillCombatContext
 }
@@ -324,9 +328,17 @@ export function previewCombatContentDefinition(
   const combatContext = options.combatContext ?? 'pve'
   assertPreviewSeed(seed)
 
-  const { state, selection } = previewState(definition, seed)
+  const fixture = previewState(definition, seed)
+  const source = capturedMatureSkillAbilitySource(fixture.state, definition)
+  const behavior = source ? combatAbilityBehavior(source, options.behaviorId) : null
+  const geometryDefinition = behavior?.targeting
+    ? { ...definition, target: behavior.targeting }
+    : definition
+  const { state, selection } = behavior ? previewState(geometryDefinition, seed) : fixture
   const rngBefore = structuredClone(state.tactical.battle.rng)
-  const evaluated = evaluatePv1fMatureSkill(state, definition, selection, combatContext)
+  const evaluated = evaluatePv1fMatureSkill(state, definition, selection, combatContext, {
+    behaviorId: options.behaviorId,
+  })
   const rngAfter = evaluated.prepared.tactical.battle.rng
 
   if (!sameRng(rngBefore, rngAfter)) {
@@ -356,7 +368,7 @@ export function previewCombatContentDefinition(
             },
           ]),
     ],
-    derivedTags: [...combatActionPresentationTags(definition)],
+    derivedTags: [...combatActionPresentationTags(source ? evaluated.action : definition)],
     simulation: {
       seed,
       actorCombatantId: ACTOR_ID,
@@ -364,7 +376,7 @@ export function previewCombatContentDefinition(
       rngConsumed: false as const,
     },
     groundAreas:
-      evaluated.evaluation.legal && definition.groundArea
+      evaluated.evaluation.legal && evaluated.action.groundArea
         ? projectPublicCombatGroundAreas(
             createCombatGroundArea(
               evaluated.prepared,
@@ -378,7 +390,7 @@ export function previewCombatContentDefinition(
           )
         : [],
     targeting: {
-      target: structuredClone(definition.target),
+      target: structuredClone(geometryDefinition.target),
       selection: structuredClone(selection),
       affectedTiles: evaluated.evaluation.affectedTiles.map((position) => ({ ...position })),
       affectedCombatantIds: [...evaluated.evaluation.affectedCombatantIds],
@@ -396,47 +408,50 @@ export function previewCombatContentDefinition(
     projections: {
       effects: evaluated.evaluation.projectedEffects.map((effect) => ({ ...effect })),
       terrain: evaluated.evaluation.projectedTerrain.map((terrain) => structuredClone(terrain)),
-      events: evaluated.evaluation.projectedEvents.map((event) => structuredClone(event)),
+      events: evaluated.evaluation.projectedEvents.map(omitCombatExecutionMetadata),
     },
-    summon: definition.summonProfile
-      ? {
-          spawnPosition:
-            selection.kind === 'tile'
-              ? { ...selection.position }
-              : previewTargetPosition(definition),
-          profile: {
-            id: definition.summonProfile.id,
-            name: definition.summonProfile.name,
-            description: definition.summonProfile.description,
-            flavorLine: definition.summonProfile.flavorLine,
-            portraitKey: definition.summonProfile.portraitKey,
-            tags: [...definition.summonProfile.tags],
-            maxHp: definition.summonProfile.maxHp,
-            maxMp: definition.summonProfile.maxMp,
-            initiative: definition.summonProfile.initiative,
-            movementBudget: definition.summonProfile.movementBudget,
-            stats: structuredClone(definition.summonProfile.stats),
-            aiProfile: definition.summonProfile.aiProfile,
-            aiPurposeTags: [...definition.summonProfile.aiPurposeTags],
-            lifetimeTurns: definition.summonProfile.lifetimeTurns,
-          },
-          abilities: definition.summonProfile.abilities.map((ability) => ({
-            id: ability.id,
-            name: ability.name,
-            description: ability.description,
-            apCost: ability.apCost,
-            mpCost: ability.mpCost,
-            tags: [...ability.tags],
-            target: structuredClone(ability.target),
-            effects: ability.effects.map((effect) => structuredClone(effect)),
-            ai: structuredClone(ability.ai),
-          })),
-        }
-      : null,
+    summon:
+      !source && definition.summonProfile
+        ? {
+            spawnPosition:
+              selection.kind === 'tile'
+                ? { ...selection.position }
+                : previewTargetPosition(definition),
+            profile: {
+              id: definition.summonProfile.id,
+              name: definition.summonProfile.name,
+              description: definition.summonProfile.description,
+              flavorLine: definition.summonProfile.flavorLine,
+              portraitKey: definition.summonProfile.portraitKey,
+              tags: [...definition.summonProfile.tags],
+              maxHp: definition.summonProfile.maxHp,
+              maxMp: definition.summonProfile.maxMp,
+              initiative: definition.summonProfile.initiative,
+              movementBudget: definition.summonProfile.movementBudget,
+              stats: structuredClone(definition.summonProfile.stats),
+              aiProfile: definition.summonProfile.aiProfile,
+              aiPurposeTags: [...definition.summonProfile.aiPurposeTags],
+              lifetimeTurns: definition.summonProfile.lifetimeTurns,
+            },
+            abilities: definition.summonProfile.abilities.map((ability) => ({
+              id: ability.id,
+              name: ability.name,
+              description: ability.description,
+              apCost: ability.apCost,
+              mpCost: ability.mpCost,
+              tags: [...ability.tags],
+              target: structuredClone(ability.target),
+              effects: ability.effects.map((effect) => structuredClone(effect)),
+              ai: structuredClone(ability.ai),
+            })),
+          }
+        : null,
     vengeanceBasis: (evaluated.evaluation.vengeanceBasis ?? []).map((basis) =>
       structuredClone(basis),
     ),
-    conditionalEffects: sensoryConditions(definition),
+    conditionalEffects: sensoryConditions(
+      source ? { ...definition, effects: evaluated.action.effects } : definition,
+    ),
     repeatPenaltyApplied: evaluated.repeatPenaltyApplied,
   }
 }
