@@ -43,6 +43,7 @@ const snapshot = {
       rulesVersion: 1,
       contentVersion: 1,
       lifecycle: 'active',
+      rng: { algorithm: 'xorshift32-v1', seed: 7, state: 7, draws: 0 },
       combatants: [
         { id: `character:${character}`, teamId: 'team:0' },
         { id: `character:${target}`, teamId: 'team:1' },
@@ -104,6 +105,7 @@ beforeAll(async () => {
       ownerGuard.lastIndexOf('commit;'),
     ),
   )
+  await db.exec(migration('20260817021718_battle_snapshot_fail_closed.sql'))
   await db.exec(migration('20260923190443_living_atlas_world_travel.sql'))
   await db.exec(migration('20260923194500_phase5_world_interactions.sql'))
   await db.exec(migration('20261011161830_world_multistep_pacing.sql'))

@@ -17,6 +17,7 @@ const start = {
       rulesVersion: 1,
       contentVersion: 1,
       lifecycle: 'active',
+      rng: { algorithm: 'xorshift32-v1', seed: 7, state: 7, draws: 0 },
       currentTurn: { combatantId: `character:${character}` },
       combatants: [
         { id: `character:${character}`, teamId: 'team:0', hp: 10 },
@@ -73,6 +74,7 @@ beforeAll(async () => {
   const foundation = migration('20260815205500_server_architecture_foundation.sql')
   await db.exec(foundation)
   await db.exec(migration('20260817021658_battle_session_persistence.sql'))
+  await db.exec(migration('20260817021718_battle_snapshot_fail_closed.sql'))
   await db.exec(`create table app_private.pvp_lobbies(id uuid primary key,owner_user_id uuid,status text,battle_session_id uuid,battle_key text,team_a_size int,team_b_size int,team_c_size int,updated_at timestamptz);
     create table app_private.pvp_lobby_members(lobby_id uuid,user_id uuid,character_id uuid,team_index int,ready boolean);
     create table app_private.pvp_active_spectating(user_id uuid,battle_session_id uuid);
