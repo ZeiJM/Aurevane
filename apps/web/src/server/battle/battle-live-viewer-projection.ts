@@ -43,6 +43,60 @@ export function projectBattleManualModifierAvailability(
     .flatMap((ownerId) => combatManualModifierAvailability(state, ownerId))
 }
 
+/** Safe geometry only, from the owner's immutable active Manual action captures. */
+export function projectBattleManualActionTargets(
+  state: StatDrivenCombatEncounterState,
+  viewer: BattleViewerEntitlement,
+) {
+  if (viewer.kind !== 'participant') return []
+  return (state.capturedAbilitySources ?? [])
+    .filter(
+      (source) =>
+        viewer.controlledCombatantIds.has(source.ownerCombatantId) &&
+        state.abilityRuntime?.activeSourceIds.includes(source.sourceInstanceId),
+    )
+    .flatMap((source) =>
+      source.definition.behaviors
+        .filter(
+          (behavior) =>
+            behavior.activation === 'manual' && behavior.mode === 'action' && behavior.targeting,
+        )
+        .map((behavior) => {
+          const spec = behavior.targeting!
+          return {
+            actionId: source.abilityId,
+            behaviorId: behavior.id,
+            target: {
+              kind: spec.kind,
+              teamPolicy: spec.teamPolicy,
+              friendlyFire: spec.friendlyFire,
+              shape: { ...spec.shape },
+              minimumRange: spec.minimumRange,
+              maximumRange: spec.maximumRange,
+              requiresLineOfSight: spec.requiresLineOfSight,
+              maximumElevationDifference: spec.maximumElevationDifference,
+              maximumSelections: spec.maximumSelections,
+              ...(spec.geometryVersion !== undefined
+                ? { geometryVersion: spec.geometryVersion }
+                : {}),
+              ...(spec.categories ? { categories: [...spec.categories] } : {}),
+            },
+          }
+        }),
+    )
+    .sort((a, b) =>
+      a.actionId < b.actionId
+        ? -1
+        : a.actionId > b.actionId
+          ? 1
+          : a.behaviorId < b.behaviorId
+            ? -1
+            : a.behaviorId > b.behaviorId
+              ? 1
+              : 0,
+    )
+}
+
 /** Shallow public receipt projection; private execution records stay in persistence. */
 export function omitCombatExecutionMetadata<T extends object>(receipt: T): T {
   const projected = { ...receipt }
