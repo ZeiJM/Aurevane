@@ -1,9 +1,15 @@
 import { describe, expect, it, vi } from 'vitest'
 vi.mock('server-only', () => ({}))
-import { newWorldState, revealNearby } from '@/world/travel'
+import { advanceWorldRoute, isCurrentWorldRoute, newWorldState, revealNearby } from '@/world/travel'
+import { isKnownCell, visibleSectors } from './world-content'
 import { FRONTIER_APPROACH, STEP_MS } from '@/world/catalog'
 import { wrapAtlasColumn } from '@/world/topology'
-import { assertEncounterRange, projectWorld, resolveWorldIntent } from './world-service'
+import {
+  assertEncounterRange,
+  projectWorld,
+  projectWorldPlayers,
+  resolveWorldIntent,
+} from './world-service'
 import {
   AURETH_SETTLEMENT,
   CROWN_HINTERLAND_PATROL,
@@ -15,6 +21,81 @@ import {
 } from './world-objectives'
 
 describe('world authority and spoiler projection', () => {
+  it('retains authored deadlines and private approved peer routes when held replacements arrive late', () => {
+    const walk = (state: ReturnType<typeof newWorldState>, x: number, now: number) =>
+      resolveWorldIntent(
+        state,
+        { kind: 'walk', destination: { sectorId: 'verdant-expanse', x, y: 4 } },
+        now,
+      )
+    let buffered = walk(newWorldState(), 8, 1000)
+    let single = walk(newWorldState(), 6, 1000)
+    const bufferedDeadlines = [buffered.nextStepAt],
+      singleDeadlines = [single.nextStepAt]
+    for (const [now, target, landed] of [
+      [1250, 9, 6],
+      [1500, 10, 7],
+      [1750, 11, 8],
+    ] as const) {
+      buffered = walk(buffered, target, now)
+      single = walk(single, landed + 1, now)
+      expect(buffered.position.x).toBe(landed)
+      expect(buffered.route.length).toBeGreaterThanOrEqual(3)
+      expect(buffered.route.every((step) => step.durationMs === 200)).toBe(true)
+      expect(
+        isCurrentWorldRoute(
+          buffered.position,
+          buffered.route,
+          visibleSectors(buffered),
+          (position) => isKnownCell(buffered, position),
+        ),
+      ).toBe(true)
+      const view = projectWorld(buffered, [], now)
+      for (const step of buffered.route)
+        expect(
+          view.sectors
+            .find((sector) => sector.id === step.position.sectorId)
+            ?.cells.some(
+              (cell) => cell.x === step.position.x && cell.y === step.position.y && cell.walkable,
+            ),
+        ).toBe(true)
+      bufferedDeadlines.push(buffered.nextStepAt)
+      singleDeadlines.push(single.nextStepAt)
+    }
+    expect(bufferedDeadlines).toEqual([1200, 1400, 1600, 1800])
+    expect(singleDeadlines).toEqual([1200, 1450, 1700, 1950])
+    expect(advanceWorldRoute(buffered, 1800).position.x).toBe(9)
+    expect(advanceWorldRoute(single, 1800).position.x).toBe(8)
+    const peers = projectWorldPlayers(
+      newWorldState(),
+      [
+        {
+          characterId: 'peer',
+          name: 'Peer',
+          level: 1,
+          portraitRef: 'starter',
+          imageUrl: null,
+          position: buffered.position,
+          online: true,
+          attackable: true,
+          movement: {
+            version: 4,
+            serverNow: 1750,
+            nextStepAt: buffered.nextStepAt,
+            route: buffered.route,
+          },
+        },
+      ],
+      ['verdant-expanse'],
+    )
+    expect(peers).toHaveLength(1)
+    expect(peers[0]!.movement).toMatchObject({
+      version: 4,
+      serverNow: 1750,
+      nextStepAt: 1800,
+      route: buffered.route,
+    })
+  })
   it('fills the public map viewport at minimum zoom without wasting scene slots on distant corners', () => {
     const state = newWorldState(),
       view = projectWorld(state, [], 1000),
@@ -37,6 +118,58 @@ describe('world authority and spoiler projection', () => {
       }
     expect(view.sectors.length).toBeLessThanOrEqual(25)
   })
+  it.each([
+    { width: 1296, height: 944, tile: 64 * 0.35 },
+    { width: 1218, height: 753, tile: 64 * 0.35 },
+    { width: 375, height: 667, tile: 48 * 0.35 },
+    { width: 915, height: 412, tile: 64 * 0.35 },
+  ])(
+    'supplies public scenery at minimum zoom across $width by $height while an approved camera advances',
+    ({ width, height, tile }) => {
+      const state = { ...newWorldState(), position: { sectorId: 'atlas:62:28', x: 6, y: 4 } }
+      const moving = resolveWorldIntent(
+        state,
+        {
+          kind: 'walk',
+          destination: { sectorId: 'atlas:65:28', x: 6, y: 4 },
+        },
+        1000,
+      )
+      const view = projectWorld(moving, [], 1000)
+      const scenery = view.scenery ?? []
+      const supplied = new Set([
+        ...view.sectors.map((sector) => sector.id),
+        ...scenery.map((sector) => sector[0]),
+      ])
+      const atlas = new Map(view.atlas!.map((sector) => [`${sector.column}:${sector.row}`, sector]))
+      for (const elapsed of [0, 800, 1200, 2600]) {
+        const position = advanceWorldRoute(moving, 1000 + elapsed).position
+        const sector = view.atlas!.find((sector) => sector.id === position.sectorId)!
+        const cx = sector.column * 13 + position.x + 0.5,
+          cy = sector.row * 9 + position.y + 0.5
+        for (let ix = 0; ix <= 8; ix++)
+          for (let iy = 0; iy <= 8; iy++) {
+            const a = ((width * ix) / 8 - width / 2) / (tile * 0.85)
+            const b = ((height * iy) / 8 - height / 2) / (tile * 0.44)
+            const column = wrapAtlasColumn(Math.floor((cx + (a + b) / 2) / 13))
+            const row = Math.floor((cy + (b - a) / 2) / 9)
+            const needed = atlas.get(`${column}:${row}`)
+            if (needed?.charted)
+              expect(supplied.has(needed.id), `${elapsed}ms ${ix},${iy} needs ${needed.id}`).toBe(
+                true,
+              )
+          }
+      }
+      expect(view.sectors.length).toBeLessThanOrEqual(25)
+      expect(
+        scenery.every(
+          (sector) => view.atlas!.find((metadata) => metadata.id === sector[0])?.charted,
+        ),
+      ).toBe(true)
+      expect(scenery.length).toBeLessThanOrEqual(165)
+      expect(JSON.stringify(view).length).toBeLessThan(700000)
+    },
+  )
   it('projects actual public water and town footprints without exposing private terrain', () => {
     const view = projectWorld(newWorldState(), [], 1000),
       local = view.sectors.find((sector) => sector.id === view.position.sectorId)!,

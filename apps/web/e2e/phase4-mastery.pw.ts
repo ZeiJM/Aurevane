@@ -82,7 +82,8 @@ test('earns Mastery through a UI victory, claims once, reloads and retries witho
   }
   // This trial uses Recovery through the cockpit. Equip it through the same
   // single Support slot as a player; a Guard-equipped build cannot cast it.
-  const capacity = await techniques.getByTestId('skill-capacity').innerText()
+  const capacity = await techniques.getByTestId('skill-capacity').textContent()
+  expect(capacity).toBeTruthy()
   const supportSaved = page.waitForResponse(
     (response) =>
       response.url().endsWith('/api/character/build/support-action') &&
@@ -91,7 +92,7 @@ test('earns Mastery through a UI victory, claims once, reloads and retries witho
   await techniques.getByRole('radio', { name: 'HP Recovery', exact: true }).check()
   expect((await supportSaved).status()).toBe(200)
   await expect(techniques.getByRole('radio', { name: 'HP Recovery', exact: true })).toBeChecked()
-  await expect(techniques.getByTestId('skill-capacity')).toHaveText(capacity)
+  await expect(techniques.getByTestId('skill-capacity')).toHaveText(capacity!)
   await techniques.getByRole('button', { name: 'Close', exact: true }).click()
   await page.goto('/game/battle')
   await page.getByLabel('Battle mode').selectOption('mastery-trial')

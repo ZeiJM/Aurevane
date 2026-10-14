@@ -1,7 +1,7 @@
 import { expect, it, vi } from 'vitest'
 vi.mock('server-only', () => ({}))
 import { capturedBasicBattle } from './battle-basic-actions.test-utils'
-import { buildMovementPaths } from './battle-geometry'
+import { buildMovementPaths, buildReachablePaths } from './battle-geometry'
 import { evaluatePv1fMovement } from '@aurevane/game-core/combat/pv1f-action-economy'
 import { projectBattleSnapshot } from '@/server/battle/battle-session-service'
 import { deriveParticipantBattleViewerEntitlement } from '@/server/battle/battle-viewer-entitlement'
@@ -70,4 +70,35 @@ it('preserves the entered-tile cap when rough terrain changes AP consumption', (
   expect(evaluatePv1fMovement(rough, path!).movement.legal).toBe(true)
   expect(evaluatePv1fMovement(rough, path!).economyCost).toBe(40)
   expect(buildMovementPaths(snapshot, actor, 100).has('3:0')).toBe(false)
+})
+
+it('attached Move routes include walking in the overall payment and ignore disabled standalone Move', () => {
+  const { view } = capturedBasicBattle('basic.recover', false, { enabled: false, apCost: 100 })
+  const actor = view.snapshot.tactical.placements.find((row) => row.combatantId === 'actor')!
+  const attached = {
+    maximumTiles: 2,
+    costs: [
+      { resource: 'ap' as const, amount: 100 },
+      { resource: 'mp' as const, amount: 2 },
+    ],
+  }
+  const paths = buildReachablePaths(view.snapshot, actor, 100, Infinity, undefined, attached)
+  expect(paths.has('2:0')).toBe(true)
+  expect(paths.has('3:0')).toBe(false)
+  expect(buildReachablePaths(view.snapshot, actor, 99, Infinity, undefined, attached).size).toBe(0)
+})
+
+it('attached Move highlights require the complete MP and nonlethal HP cost bundle', () => {
+  const { view } = capturedBasicBattle()
+  const actor = view.snapshot.tactical.placements.find((row) => row.combatantId === 'actor')!
+  for (const costs of [
+    [{ resource: 'mp' as const, amount: 21 }],
+    [{ resource: 'hp' as const, amount: 1000 }],
+  ])
+    expect(
+      buildReachablePaths(view.snapshot, actor, 100, Infinity, undefined, {
+        maximumTiles: 2,
+        costs,
+      }).size,
+    ).toBe(0)
 })

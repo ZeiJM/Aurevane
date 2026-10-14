@@ -2,7 +2,9 @@ import {
   findBattleBasicAction,
   battleBasicBehavior,
   canAffordBattleBasicAction,
+  canAffordBattleCosts,
 } from '@/lib/battle/battle-basic-actions'
+import type { AbilityBehavior } from '@aurevane/game-core/combat/combat-definition'
 import { pv1fMovementModifiers } from '@aurevane/game-core/combat/pv1f-action-economy'
 import { PV1F_COMBAT_CONTENT } from '@aurevane/game-core/combat/pv1f-action-economy'
 import { airborneMovementTactical } from '@aurevane/game-core/combat/combat-airborne'
@@ -102,6 +104,7 @@ export function buildReachablePaths(
   actionEconomy: number,
   maximumSteps = Infinity,
   behaviorId?: string,
+  attachedMove?: { maximumTiles: number; costs: AbilityBehavior['costs'] },
 ): Map<string, BattleGridPosition[]> {
   const tactical = airborneMovementTactical(state, PV1F_COMBAT_CONTENT)
   const turn = tactical.battle.currentTurn
@@ -114,12 +117,20 @@ export function buildReachablePaths(
   )
   if (!profile) return new Map()
 
-  const basic = findBattleBasicAction(state, activePlacement.combatantId, 'basic.move')
+  const basic = attachedMove
+    ? undefined
+    : findBattleBasicAction(state, activePlacement.combatantId, 'basic.move')
   if (basic === null || basic?.enabled === false) return new Map()
   const actor = tactical.battle.combatants.find((unit) => unit.id === activePlacement.combatantId)!
   const behavior = basic ? battleBasicBehavior(basic, behaviorId) : undefined
-  const flat = basic?.movement?.costBasis === 'flat'
+  const flat = Boolean(attachedMove) || basic?.movement?.costBasis === 'flat'
   if (
+    attachedMove &&
+    !canAffordBattleCosts(attachedMove.costs, { ap: actionEconomy, mp: actor.mp, hp: actor.hp })
+  )
+    return new Map()
+  if (
+    !attachedMove &&
     flat &&
     !canAffordBattleBasicAction(
       basic,
@@ -128,7 +139,11 @@ export function buildReachablePaths(
     )
   )
     return new Map()
-  const tileCap = behavior?.move?.maximumTiles ?? basic?.movement?.maximumTiles ?? Infinity
+  const tileCap =
+    attachedMove?.maximumTiles ??
+    behavior?.move?.maximumTiles ??
+    basic?.movement?.maximumTiles ??
+    Infinity
   const apPerPoint = basic?.movement?.apPerTraversalPoint ?? MOVE_COST_PER_TERRAIN_POINT
 
   const modifiers = pv1fMovementModifiers(state)

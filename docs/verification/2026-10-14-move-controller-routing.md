@@ -1,0 +1,33 @@
+# Captured Move routing — October 14, 2026
+
+This is a non-deploying continuation of draft PR904. Foundation Tasks1/2 remain live; this batch and the creative roster are not live. Latest approved World main81fd91dd0964de9a1fbe181392d285a10a4fc339 is reconciled without removing its release notes or source changes.
+
+## Delivered boundary
+
+Owner-visible captured Manual actions expose safe Move routing metadata and a copy of their overall typed payment. Native Basic Move with per-terrain cost keeps its historical walking facade. Flat Basic Move and attached Skill Move use the same controller: choose a highlighted destination, then an explicit attack/utility target, and submit one reference-only action with its behavior identity and `movementPath`. Exclusively Self single-recipient actions may execute directly after destination choice. Mixed Self/enemy choices retain target selection even if the informational forecast initially chooses Self. Pointer, keyboard direction, plural confirmation and line hover use the same selector and bound route.
+
+Route drafts bind actor, action, Manual group and battle version. Cancellation, remote reconciliation and action/group changes invalidate them. Local forecasts copy positions to the planned origin without changing authoritative state. Actual walking, interruption, reached origin, costs and final target legality remain canonical server responsibilities. No extra cockpit slot, Release control, path/selection flash or artwork resize is introduced. This is shared PvE/PvP desktop/mobile source; native acceptance remains open.
+
+Attached-route highlights check the whole authored AP/MP/nonlethal HP bundle once, and do not reserve or charge extra traversal AP. A disabled standalone Move does not prevent another Skill's Move effect. Entered-tile cap, remaining Movement, terrain/status/occupancy and Jump remain enforced. A 100 AP Skill can still walk; unaffordable AP/MP/HP bundles offer no route.
+
+A conditional Move may omit its path only when its selected Requirements are unmet in the authoritative starting state. The user can choose their own tile to request this stationary cast. True/unconditional Move still requires a legal path; an explicitly supplied malformed path fails even if the condition is unmet. Follow-up effects and overall payment retain normal authority. No condition result is trusted from the client.
+
+## Verification and review
+
+Actual public projection → captured descriptor → route binding → selector → production intent-schema parsing → preview service → session commit passes for both23 AP and100 AP flat Basic Move. It reaches the chosen cell, pays once and preserves immutable captures. This establishes the real service boundary; it is not hosted or browser publication acceptance.
+
+Focused post-review web verification passes52 cases across5 files. Fresh complete core verification passes3,058 tests in158 files; fresh complete web verification passes2,557 tests in302 files plus seven Node checks. The workspace test gate also passes cached unchanged DB96/15, validation92/9, audio17/3, realtime3/1 and worker2/1 results. Formatting and lint pass; all eight package type checks pass. The forced uncached build passes both build tasks after the generated-cache issue below. `git diff --check` passes. Core conditional stationary coverage includes actual damage/payment with exhausted Movement, unchanged actor position, immutable input and missing/unconditional/malformed-path rejection.
+
+Meaningful observed failures preceded metadata, attached affordability/route cap, planned-origin/reference-only intent, area route propagation and conditional stationary corrections. Invalid Movement-counter fixtures and an occupied-tile Ground expectation were repaired before counting product failures. Type checking caught an early incorrect API `path` field; the implementation now uses the production `movementPath` schema field. Native walking retains its separate `path` field.
+
+The independent combined reviewer identified one Important defect (mixed Self/enemy auto-cast) and one Minor defect (flat Move Line hover). Extracting the old controller gate into its shared selector preserved behavior; a valid mixed-target test then failed with an actual Self intent instead of null (8 passed,1 failed). The corrected gate requires exclusively Self, single shape/one recipient, attached Move and a Self/actor intent. The regression preserves later explicit enemy choice and pure Self execution. Line hover includes flat Move. Scoped independent fix review accepts both with no remaining Critical/Important defect and independently passes41 cases across3 files. Initial scoped review passes51 web and16 core Move cases.
+
+## Generated compiler-cache failure
+
+The first uncached build fails before compilation with `Failed to open database / Loading persistence directory failed / invalid digit found in string`. The generated Turbopack persistence directory contains a leftover `.00000046.sst.OARJcY` temporary entry alongside numbered metadata/SST files. Isolating only that generated directory, preserving its diagnostic copy, and rebuilding the same unchanged source passes both uncached build tasks. No application/configuration fix or source deletion is used. The existing Vite CommonJS/native-loader advisory remains unchanged; it is not suppressed.
+
+## Native fixture corrections and remaining gates
+
+Exact preceding durable49b8362238ecd7c1cec5beab7502a68eb487b144 passes10 workflows, but Browser smoke and Representative Buildcraft fail. Inspected Browser logs show the Recovery command succeeds but its expected intent omits `behaviorId: use`. Inspected Mastery logs compare uppercase `innerText()` with underlying text in `toHaveText`. This batch corrects those assertions without removing cooldown/resource/victory/XP/replay expectations. Their reruns must pass on the resulting exact head; no native success is inferred from local unit/build checks.
+
+New authored Move pointer/touch/keyboard, cancellation/stale draft and edited Basic matrices remain required. Local Chromium and a running native Supabase stack were unavailable during this checkpoint. Existing browser cases exercise historical/default controls rather than claiming new authored Move coverage. Complete Task3A/T7 acceptance, Controlled ready-only artwork, captured non-Basic readers, full editors/publication/previews, creative balanced all-tag roster, final integration review and authorized combat release remain open. Hardcoded historical Guard/Recovery forecast/outcome guidance remains on the shared-reader audit list. Account PR902 and remaining Master/world requests stay separate. No migration, hosted content mutation or Production deployment is performed here.

@@ -36,6 +36,35 @@ export function prepareCombatMove(input: MoveInput, effect: AbilityEffect): Prep
     projectedState: input.state,
     issues: [{ code: 'invalid-target-kind', message }],
   })
+  if (!input.state.statBridge)
+    return invalid('Move requires the supported stat-driven walking encounter.')
+  const selected =
+    input.selection.kind === 'selections' ? input.selection.selections : [input.selection]
+  const subjects = selected.flatMap((choice) =>
+    choice.kind === 'unit'
+      ? [combatAbilitySubject(input.state, choice.combatantId)]
+      : choice.kind === 'self'
+        ? [combatAbilitySubject(input.state, input.actorId)]
+        : [],
+  )
+  const eligible = evaluateAbilitySelectedRequirements(
+    effect.requirements ?? null,
+    {
+      owner: combatAbilitySubject(input.state, input.actorId),
+      affected: combatAbilitySubject(input.state, input.actorId),
+    },
+    subjects,
+  )
+  // An ineligible conditional effect has no walking intent. Do not require
+  // invented coordinates; an explicit supplied path still validates below.
+  if (input.movementPath === undefined && !eligible)
+    return {
+      path: [],
+      eligible,
+      maximumTiles: payload.maximumTiles,
+      projectedState: input.state,
+      issues: [],
+    }
   const path = input.movementPath
   if (
     !Array.isArray(path) ||
@@ -65,25 +94,6 @@ export function prepareCombatMove(input: MoveInput, effect: AbilityEffect): Prep
     )
       return invalid('Move path contains an invalid or non-orthogonal Ground reference.')
   }
-  if (!input.state.statBridge)
-    return invalid('Move requires the supported stat-driven walking encounter.')
-  const selected =
-    input.selection.kind === 'selections' ? input.selection.selections : [input.selection]
-  const subjects = selected.flatMap((choice) =>
-    choice.kind === 'unit'
-      ? [combatAbilitySubject(input.state, choice.combatantId)]
-      : choice.kind === 'self'
-        ? [combatAbilitySubject(input.state, input.actorId)]
-        : [],
-  )
-  const eligible = evaluateAbilitySelectedRequirements(
-    effect.requirements ?? null,
-    {
-      owner: combatAbilitySubject(input.state, input.actorId),
-      affected: combatAbilitySubject(input.state, input.actorId),
-    },
-    subjects,
-  )
   const copy = path.map((point) => Object.freeze({ ...point }))
   if (!eligible)
     return {

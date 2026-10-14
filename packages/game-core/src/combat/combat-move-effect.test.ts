@@ -501,3 +501,70 @@ it('rejects walking references for a skill without a Move effect', () => {
   expect(prepareCombatAbilityCommand(command).evaluation.legal).toBe(false)
   expect(() => commitCombatAbilityCommand(command)).toThrow()
 })
+
+it('permits a reference-free stationary follow-up only when conditional Move is ineligible at S0', () => {
+  const command = input([], {
+    effects: [
+      {
+        ...move,
+        requirements: {
+          kind: 'status-presence',
+          subject: 'owner',
+          statusId: 'guarded',
+          present: true,
+        },
+      },
+      hit,
+    ],
+    targeting: {
+      ...source().definition.behaviors[0]!.targeting!,
+      geometryVersion: 3,
+      categories: ['enemy'],
+      minimumRange: 0,
+      maximumRange: 3,
+    },
+  })
+  const stationary = {
+    ...command,
+    movementPath: undefined,
+    state: {
+      ...command.state,
+      tactical: {
+        ...command.state.tactical,
+        battle: {
+          ...command.state.tactical.battle,
+          currentTurn: {
+            ...command.state.tactical.battle.currentTurn!,
+            movementRemaining: 0,
+            movementSpent: command.state.tactical.battle.currentTurn!.movementMaximum,
+          },
+        },
+      },
+    },
+  }
+  const before = JSON.stringify(stationary.state)
+  expect(prepareCombatAbilityCommand(stationary).evaluation.legal).toBe(true)
+  const cast = commitCombatAbilityCommand(stationary)
+  expect(
+    cast.state.tactical.placements.find((row) => row.combatantId === 'actor')!.position,
+  ).toEqual({ x: 1, y: 1 })
+  expect(cast.state.tactical.battle.combatants.find((row) => row.id === 'enemy')!.hp).toBe(990)
+  expect(actor(cast.state).mp).toBe(18)
+  expect(
+    actor(cast.state).temporaryResources.find((row) => row.key === 'pv1f.action-economy')!.current,
+  ).toBe(89)
+  expect(JSON.stringify(stationary.state)).toBe(before)
+  expect(
+    prepareCombatAbilityCommand({
+      ...stationary,
+      movementPath: [
+        { x: -1, y: 1 },
+        { x: 0, y: 1 },
+      ],
+    }).evaluation.legal,
+  ).toBe(false)
+  const required = input()
+  expect(
+    prepareCombatAbilityCommand({ ...required, movementPath: undefined }).evaluation.legal,
+  ).toBe(false)
+})

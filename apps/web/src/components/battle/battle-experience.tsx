@@ -24,6 +24,7 @@ import {
   isCurrentBattlePreview,
   selectBattleSkillPreviewIntent,
   selectInitialBattleSkillPreviewIntent,
+  selectBattleSkillMovementCommitIntent,
   selectDirectionalBattleSkillPreviewIntent,
   battleSkillUsesAreaActivation,
   battleSkillTargetSpec,
@@ -31,6 +32,8 @@ import {
   resolveBattleCapturedSkill,
   toggleBattleSkillTargetSelection,
   battleTargetDraftIncludesTile,
+  bindBattleSkillMovement,
+  type BattleActionMovementDraft,
   type BattlePreviewSkill,
 } from './battle-preview-selection'
 import { BattleActionPreview } from './battle-action-preview'
@@ -82,6 +85,7 @@ import { BattleFacingIndicator } from './battle-facing-indicator'
 import { useBattleInteractionLifecycle } from './battle-interaction-lifecycle'
 import {
   buildMovementPaths,
+  buildReachablePaths,
   buildDisplayedPlacementByTile,
   facingGlyph,
   meterPercent,
@@ -340,6 +344,9 @@ function BattleExperienceContent({
   const pathRef = useRef<BattleGridPosition[]>([])
   const [pendingIntent, setPendingIntent] = useState<BattleIntent | null>(null)
   const pluralSelection = useRef<Extract<BattleIntent, { kind: 'action' }> | null>(null)
+  const [actionMovementDraft, setActionMovementDraft] = useState<BattleActionMovementDraft | null>(
+    null,
+  )
   const [selectedBehavior, setSelectedBehavior] = useState<{
     actionId: string
     behaviorId: string
@@ -753,6 +760,7 @@ function BattleExperienceContent({
       setMode(nextMode)
       updatePlanningPath([])
       setPendingIntent(null)
+      setActionMovementDraft(null)
       pluralSelection.current = null
       setPreview(null)
       setSelectedUnitId(null)
@@ -1143,7 +1151,7 @@ function BattleExperienceContent({
               0) &&
           ['move', 'attack', 'guard', 'recover'].includes(modeRef.current)
         clearPlanning(keepAction ? modeRef.current : 'none')
-        if (keepAction && intent.kind === 'action') {
+        if (keepAction && intent.kind === 'action' && !intent.movementPath) {
           rearmActionAfterCommit.current = { intent, version: body.battle.battleVersion }
         }
 
@@ -1295,11 +1303,19 @@ function BattleExperienceContent({
         maximumRange: actionId === BASIC_ATTACK_ID ? 1 : 0,
         target: actionId === BASIC_ATTACK_ID ? undefined : PV1F_GUARD_ACTION.target,
       }
-      const captured = resolveBattleCapturedSkill(
+      const resolved = resolveBattleCapturedSkill(
         native,
         battle.snapshot.manualActionTargets ?? [],
         selectedBehavior?.actionId === actionId ? selectedBehavior.behaviorId : undefined,
       )
+      const captured = resolved
+        ? bindBattleSkillMovement(
+            resolved,
+            actionMovementDraft,
+            battle.battleVersion,
+            localCombatantId,
+          )
+        : null
       if (!captured || (isBasic && (basic === null || basic?.enabled === false)))
         return { ...native, unavailable: true }
       return airborneAttackElevation && captured.definition?.tags.includes('attack')
@@ -1319,6 +1335,8 @@ function BattleExperienceContent({
       battle.snapshot,
       localCombatantId,
       selectedBehavior,
+      actionMovementDraft,
+      battle.battleVersion,
     ],
   )
 
@@ -1396,6 +1414,14 @@ function BattleExperienceContent({
       clearPlanning(nextMode)
       if (descriptor.unavailable) {
         setNotice('Choose which action to use for this ability.')
+        return
+      }
+      if (descriptor.move) {
+        setNotice(
+          descriptor.move.conditional
+            ? 'Choose a highlighted Move destination, or your own tile to attempt a stationary cast when the Move condition is unmet. Movement is included in the Skill cost.'
+            : 'Choose a highlighted Move destination, then the Skill target. Movement is included in the Skill cost.',
+        )
         return
       }
       if ((battleSkillTargetSpec(descriptor)?.maximumSelections ?? 1) > 1) {
@@ -1484,7 +1510,9 @@ function BattleExperienceContent({
       clearPlanning(nextMode)
       if (nextMode === 'move')
         setNotice(
-          'Choose any highlighted destination to move the full route, or use WASD for one step. Movement and AP limits apply.',
+          basicMove?.movement?.costBasis === 'flat'
+            ? 'Choose a highlighted Move destination, then any required Skill target. The overall Skill cost includes movement.'
+            : 'Choose any highlighted destination to move the full route, or use WASD for one step. Movement and AP limits apply.',
         )
       else if (nextMode === 'finish')
         setNotice(
@@ -1507,15 +1535,50 @@ function BattleExperienceContent({
   )
 
   const currentActionId =
-    mode === 'attack'
-      ? selectedAttackActionId
-      : mode === 'guard'
-        ? selectedDefenseActionId
-        : effectiveHealActionId
+    mode === 'move'
+      ? 'basic.move'
+      : mode === 'attack'
+        ? selectedAttackActionId
+        : mode === 'guard'
+          ? selectedDefenseActionId
+          : effectiveHealActionId
   const behaviorChoices = (battle.snapshot.manualActionTargets ?? []).filter(
     (choice) => choice.actionId === currentActionId,
   )
-  const currentDescriptor = actionDescriptor(currentActionId)
+  const currentDescriptor = useMemo(
+    () => actionDescriptor(currentActionId),
+    [actionDescriptor, currentActionId],
+  )
+  const flatMoveMode = mode === 'move' && basicMove?.movement?.costBasis === 'flat'
+  const choosingActionMovement =
+    !currentDescriptor.unavailable &&
+    Boolean(currentDescriptor.move) &&
+    currentDescriptor.movementPath === undefined &&
+    (flatMoveMode || ['attack', 'guard', 'recover'].includes(mode))
+  const movementMaximum = currentDescriptor.move
+    ? Number(currentDescriptor.move.maximumTiles)
+    : undefined
+  const movementCosts = useMemo(
+    () =>
+      currentDescriptor.costs?.map((cost) => ({
+        resource: cost.resource,
+        amount: Number(cost.amount),
+      })),
+    [currentDescriptor.costs],
+  )
+  const actionMovementPaths = useMemo(
+    () =>
+      localTurn && movementMaximum !== undefined && movementCosts
+        ? buildReachablePaths(battle.snapshot, localPlacement, actionEconomy, Infinity, undefined, {
+            maximumTiles: movementMaximum,
+            costs: movementCosts,
+          })
+        : new Map<string, BattleGridPosition[]>(),
+    [battle.snapshot, localPlacement, actionEconomy, localTurn, movementMaximum, movementCosts],
+  )
+  const movementGuideRange = choosingActionMovement
+    ? Math.max(0, ...Array.from(actionMovementPaths.values(), (route) => route.length - 1))
+    : maximumMoveDistance
   const maximumSelections = useMemo(
     () => battleSkillTargetSpec(actionDescriptor(currentActionId))?.maximumSelections ?? 1,
     [actionDescriptor, currentActionId],
@@ -1542,10 +1605,19 @@ function BattleExperienceContent({
       if (next) void requestPreview(next)
       else {
         clearPlanning(mode)
+        setActionMovementDraft(actionMovementDraft)
         setNotice('Select targets, then confirm.')
       }
     },
-    [clearPlanning, executeIntent, localCombatantId, maximumSelections, mode, requestPreview],
+    [
+      clearPlanning,
+      executeIntent,
+      localCombatantId,
+      maximumSelections,
+      mode,
+      requestPreview,
+      actionMovementDraft,
+    ],
   )
   const commitSelected = useCallback(() => {
     if (maximumSelections > 1) {
@@ -1557,7 +1629,7 @@ function BattleExperienceContent({
     battleVersion: battle.battleVersion,
     actorId: localCombatantId,
     skill:
-      mode === 'attack' || mode === 'guard' || mode === 'recover'
+      mode === 'attack' || mode === 'guard' || mode === 'recover' || flatMoveMode
         ? actionDescriptor(currentActionId)
         : null,
     combatants: previewCombatants,
@@ -1597,10 +1669,13 @@ function BattleExperienceContent({
     attackDefinition && battleActionDealsDamage(attackDefinition.effects),
   )
   const potentialPath =
-    (mode === 'attack' || mode === 'guard' || mode === 'recover') && localPlacement && targetSpec
+    !choosingActionMovement &&
+    (mode === 'attack' || mode === 'guard' || mode === 'recover' || flatMoveMode) &&
+    localPlacement &&
+    targetSpec
       ? battleTargetReachTiles(
           tactical,
-          localPlacement.position,
+          currentDescriptor.movementPath?.at(-1) ?? localPlacement.position,
           targetSpec,
           selectedActionPreview?.affectedTiles,
           targetAim,
@@ -1644,14 +1719,63 @@ function BattleExperienceContent({
         return
       }
       if (planningDisabled || executionLock.current) return
-      if (mode === 'move') {
+      const currentDescriptor = actionDescriptor(currentActionId)
+      if (flatMoveMode && currentDescriptor.unavailable) {
+        setNotice('Choose which action to use for this ability.')
+        return
+      }
+      if (choosingActionMovement) {
+        const stationary =
+          currentDescriptor.move?.conditional &&
+          localPlacement &&
+          positionsEqual(position, localPlacement.position)
+        const chosenPath = stationary ? [] : actionMovementPaths.get(positionKey(position))
+        if (!chosenPath || (!stationary && chosenPath.length < 2) || !localCombatantId) {
+          setNotice(
+            currentDescriptor.move?.conditional
+              ? 'Choose a highlighted destination, or your own tile to attempt a stationary cast when the Move condition is unmet.'
+              : 'Choose a highlighted destination within remaining Movement and Jump.',
+          )
+          return
+        }
+        const copiedPath = chosenPath.map((point) => ({ ...point }))
+        setActionMovementDraft({
+          battleVersion: battle.battleVersion,
+          actorId: localCombatantId,
+          actionId: currentActionId,
+          behaviorId: currentDescriptor.behaviorId,
+          path: copiedPath,
+        })
+        const descriptor = { ...currentDescriptor, movementPath: copiedPath }
+        const intent = selectInitialBattleSkillPreviewIntent(descriptor, {
+          ...selection,
+          selectedTarget: null,
+          selectedTile: null,
+        })
+        const commit = selectBattleSkillMovementCommitIntent(descriptor, {
+          ...selection,
+          selectedTarget: null,
+          selectedTile: null,
+        })
+        if (commit) void executeIntent(commit)
+        else {
+          setNotice(
+            stationary
+              ? 'Choose the Skill target. A stationary cast is legal only when the Move condition is unmet.'
+              : 'Move destination selected. Choose the Skill target; the server resolves both together.',
+          )
+          if (intent) void requestPreview(intent)
+        }
+        return
+      }
+      if (mode === 'move' && !flatMoveMode) {
         const nextPath = reachablePaths.get(positionKey(position))
         if (!nextPath || nextPath.length < 2) {
           setNotice('Choose a highlighted destination within your remaining Movement and AP.')
           return
         }
         void executeIntent({ kind: 'move', path: nextPath })
-      } else if (mode === 'attack' || mode === 'guard' || mode === 'recover') {
+      } else if (mode === 'attack' || mode === 'guard' || mode === 'recover' || flatMoveMode) {
         const descriptor = actionDescriptor(currentActionId)
         // An authored self action executes on a deliberate gesture, regardless of which tile was clicked.
         const intent = selectBattleSkillPreviewIntent(descriptor, {
@@ -1668,6 +1792,7 @@ function BattleExperienceContent({
             !placement)
         ) {
           clearPlanning(mode)
+          if (descriptor.move) setActionMovementDraft(actionMovementDraft)
           setNotice(
             battleSkillTargetSpec(descriptor)?.shape.kind === 'line'
               ? 'Choose a straight lane: up, down, left or right.'
@@ -1685,17 +1810,23 @@ function BattleExperienceContent({
     },
     [
       actionDescriptor,
+      actionMovementPaths,
+      actionMovementDraft,
+      choosingActionMovement,
+      flatMoveMode,
       battle.battleVersion,
       clearPlanning,
       currentActionId,
       executeIntent,
       submitTargetGesture,
       localCombatantId,
+      localPlacement,
       localTeamIndex,
       mode,
       placementByTile,
       planningDisabled,
       reachablePaths,
+      requestPreview,
       selection,
       viewModel.participantByCombatant,
     ],
@@ -1764,7 +1895,7 @@ function BattleExperienceContent({
           south: { x: 0, y: 1 },
           east: { x: 1, y: 0 },
         }[facing]
-        if (mode === 'move' && localPlacement) {
+        if ((choosingActionMovement || (mode === 'move' && !flatMoveMode)) && localPlacement) {
           handleTile({
             x: localPlacement.position.x + delta.x,
             y: localPlacement.position.y + delta.y,
@@ -1781,7 +1912,12 @@ function BattleExperienceContent({
         return
       }
       if (selected === 'nextTarget' || selected === 'previousTarget') {
-        if (!['attack', 'guard', 'recover'].includes(mode) || planningDisabled) return
+        if (
+          (!['attack', 'guard', 'recover'].includes(mode) && !flatMoveMode) ||
+          planningDisabled ||
+          choosingActionMovement
+        )
+          return
         const descriptor = actionDescriptor(currentActionId)
         const target = battleSkillTargetSpec(descriptor)
         const candidates: Extract<BattleIntent, { kind: 'action' }>[] =
@@ -1791,6 +1927,9 @@ function BattleExperienceContent({
                 kind: 'action',
                 actionId: descriptor.id,
                 ...(descriptor.behaviorId ? { behaviorId: descriptor.behaviorId } : {}),
+                ...(descriptor.movementPath?.length
+                  ? { movementPath: descriptor.movementPath.map((point) => ({ ...point })) }
+                  : {}),
                 target: { kind: 'direction', direction },
               }))
             : previewCombatants.flatMap((row) => {
@@ -1902,6 +2041,8 @@ function BattleExperienceContent({
     commitSelected,
     commitValue,
     currentActionId,
+    choosingActionMovement,
+    flatMoveMode,
     effectiveHealActionId,
     supportActionId,
     executeIntent,
@@ -2087,11 +2228,13 @@ function BattleExperienceContent({
                 : mode === 'guard'
                   ? selectedDefense.label
                   : mode === 'move'
-                    ? `Move · up to ${maximumMoveDistance} tiles`
+                    ? flatMoveMode
+                      ? (basicMove?.name ?? 'Move')
+                      : `Move · up to ${maximumMoveDistance} tiles`
                     : 'Inspect'
   const characterInspection =
-    mode === 'move'
-      ? `Range: ${maximumMoveDistance} tiles · ${notice}`
+    (mode === 'move' && !flatMoveMode) || choosingActionMovement
+      ? `Range: ${movementGuideRange} tiles · ${notice}`
       : mode === 'inspect' && selectedParticipant && selectedCombatant && selectedPlacement
         ? `Team ${selectedParticipant.teamIndex + 1} · HP ${selectedCombatant.hp}/${selectedCombatant.maxHp} · MP ${selectedCombatant.mp}/${selectedCombatant.maxMp} · Facing ${selectedPlacement.facing} ${facingGlyph(selectedPlacement.facing)}`
         : notice
@@ -2382,7 +2525,11 @@ function BattleExperienceContent({
                       )
                     : null
                   const pathIndex = path.findIndex((point) => positionsEqual(point, tile.position))
-                  const reachable = mode === 'move' && reachablePaths.has(key) && pathIndex < 0
+                  const reachable =
+                    (choosingActionMovement
+                      ? actionMovementPaths.has(key)
+                      : mode === 'move' && !flatMoveMode && reachablePaths.has(key)) &&
+                    pathIndex < 0
                   const inAttackRange = Boolean(
                     placement && basicAttackTargets.has(placement.combatantId),
                   )
@@ -2503,7 +2650,7 @@ function BattleExperienceContent({
                           (targetSpec?.geometryVersion !== 2 &&
                             targetSpec?.geometryVersion !== 3) ||
                           targetSpec.shape.kind !== 'line' ||
-                          !['attack', 'guard', 'recover'].includes(mode)
+                          (!['attack', 'guard', 'recover'].includes(mode) && !flatMoveMode)
                         )
                           return
                         const intent = selectBattleSkillPreviewIntent(
@@ -2684,7 +2831,8 @@ function BattleExperienceContent({
                   active={mode === 'move'}
                   disabled={
                     planningDisabled ||
-                    reachablePaths.size === 0 ||
+                    (reachablePaths.size === 0 &&
+                      !basicMove?.behaviors.some((behavior) => behavior.move?.conditional)) ||
                     !canAffordBattleBasicAction(
                       basicMove,
                       {
@@ -2840,7 +2988,7 @@ function BattleExperienceContent({
             </button>
           ) : null}
           <div className={styles.footerActions} data-battle-footer-actions="true">
-            {['attack', 'guard', 'recover'].includes(mode) && behaviorChoices.length > 1 ? (
+            {['move', 'attack', 'guard', 'recover'].includes(mode) && behaviorChoices.length > 1 ? (
               <label className={bridgeStyles.targetChoices}>
                 Action{' '}
                 <select
@@ -2853,7 +3001,12 @@ function BattleExperienceContent({
                       actionId: currentActionId,
                       behaviorId: event.target.value,
                     })
-                    setNotice('Select a target for this action.')
+                    setNotice(
+                      behaviorChoices.find((choice) => choice.behaviorId === event.target.value)
+                        ?.move
+                        ? 'Choose a Move destination, then the Skill target.'
+                        : 'Select a target for this action.',
+                    )
                     restoreBattleKeyboardFocus()
                   }}
                 >
@@ -2870,7 +3023,8 @@ function BattleExperienceContent({
             ) : null}
 
             <BattleTerrainToggle snapshot={battle.snapshot} />
-            {['attack', 'guard', 'recover'].includes(mode) && maximumSelections > 1 ? (
+            {(['attack', 'guard', 'recover'].includes(mode) || flatMoveMode) &&
+            maximumSelections > 1 ? (
               <button
                 type="button"
                 className={styles.cancelAction}

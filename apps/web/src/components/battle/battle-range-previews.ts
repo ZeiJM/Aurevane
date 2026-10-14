@@ -27,6 +27,15 @@ export function battleRangePreviewIntents(
   combatants: readonly BattleRangePreviewCombatant[],
 ): ActionIntent[] {
   if (!skill || skill.unavailable) return []
+  if (
+    skill.move &&
+    (skill.movementPath === undefined || (!skill.movementPath.length && !skill.move.conditional))
+  )
+    return []
+  const movement = () =>
+    skill.movementPath?.length
+      ? { movementPath: skill.movementPath.map((point) => ({ ...point })) }
+      : {}
   const actor = combatants.find((row) => row.combatantId === actorId)
   if (!actor || actor.hp <= 0) return []
   const target = battleSkillTargetSpec(skill)
@@ -36,6 +45,7 @@ export function battleRangePreviewIntents(
         kind: 'action',
         actionId: skill.id,
         ...(skill.behaviorId ? { behaviorId: skill.behaviorId } : {}),
+        ...movement(),
         target: { kind: 'direction', direction },
       }))
     if (target.shape.kind === 'circle' || target.shape.kind === 'all')
@@ -44,6 +54,7 @@ export function battleRangePreviewIntents(
           kind: 'action',
           actionId: skill.id,
           ...(skill.behaviorId ? { behaviorId: skill.behaviorId } : {}),
+          ...movement(),
           target: { kind: 'activate' },
         },
       ]

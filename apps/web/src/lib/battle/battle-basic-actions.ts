@@ -64,6 +64,19 @@ export function battleBasicCostLabel(
 }
 
 /** Presentation affordability only; the command service remains the payment authority. */
+export function canAffordBattleCosts(
+  costs: AbilityBehavior['costs'],
+  resources: { ap: number; mp: number; hp: number },
+): boolean {
+  return (
+    resources.hp > 0 &&
+    costs.every(
+      (cost) =>
+        (cost.resource === 'hp' ? resources.hp - 1 : resources[cost.resource]) >= cost.amount,
+    )
+  )
+}
+
 export function canAffordBattleBasicAction(
   action: BattleBasicActionPresentation | null | undefined,
   resources: { ap: number; mp: number; hp: number },
@@ -73,9 +86,6 @@ export function canAffordBattleBasicAction(
   if (!action?.enabled || resources.hp <= 0) return false
   const chosen = battleBasicBehavior(action, behaviorId)
   return (chosen ? [chosen] : behaviorId ? [] : action.behaviors).some((behavior) =>
-    behavior.costs.every(
-      (cost) =>
-        (cost.resource === 'hp' ? resources.hp - 1 : resources[cost.resource]) >= cost.amount,
-    ),
+    canAffordBattleCosts(behavior.costs, resources),
   )
 }

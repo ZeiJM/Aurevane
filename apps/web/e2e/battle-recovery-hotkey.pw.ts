@@ -226,6 +226,7 @@ test('retains equipped HP Recovery keyboard input without exposing the deferred 
   expect(committedResponse.request().postDataJSON().intent).toEqual({
     kind: 'action',
     actionId: 'basic.recover',
+    behaviorId: 'use',
     target: { kind: 'self' },
   })
   const after = committedPayload.battle as BattleSessionView

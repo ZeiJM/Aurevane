@@ -72,12 +72,26 @@ export function projectBattleManualActionTargets(
         )
         .map((behavior) => {
           const spec = canonicalAbilityTargetSpec(behavior.targeting!)
+          const move =
+            source.basic?.execution.kind === 'basic-move' &&
+            source.basic.execution.costBasis === 'per-terrain-point'
+              ? undefined
+              : behavior.effects.find((effect) => effect.payload.type === 'move')
           return {
             actionId:
               source.basic?.execution.kind === 'basic-attack'
                 ? PV1F_BASIC_ATTACK_ID
                 : source.abilityId,
             behaviorId: behavior.id,
+            ...(move?.payload.type === 'move'
+              ? {
+                  move: {
+                    maximumTiles: move.payload.maximumTiles,
+                    conditional: move.requirements != null,
+                  },
+                  costs: behavior.costs.map((cost) => ({ ...cost })),
+                }
+              : {}),
             target: {
               kind: spec.kind,
               teamPolicy: spec.teamPolicy,

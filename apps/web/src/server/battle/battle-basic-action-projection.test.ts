@@ -182,6 +182,10 @@ it('reports the mandatory free offensive Move limit without changing the saved d
   )
   const move = view.basicActions!.find((row) => row.actionId === 'basic.move')!
   expect(move.behaviors[0]!.limits).toContain('Once per owner turn')
+  expect(view.manualActionTargets?.find((row) => row.actionId === 'basic.move')).toMatchObject({
+    move: { maximumTiles: 2, conditional: false },
+    costs: [{ resource: 'ap', amount: 0 }],
+  })
   expect(
     state.capturedAbilitySources!.find((row) => row.abilityId === 'basic.move')!.definition
       .behaviors[0]!.activationLimits ?? [],

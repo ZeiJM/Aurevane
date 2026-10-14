@@ -33,6 +33,8 @@ export function useBattleRangePreviews({
   const maximumRange = skill?.maximumRange
   const behaviorId = skill?.behaviorId
   const unavailable = skill?.unavailable
+  const move = skill?.move
+  const movementPath = skill?.movementPath
   const target = skill ? battleSkillTargetSpec(skill) : undefined
   const request = useMemo(() => {
     const descriptor =
@@ -50,6 +52,8 @@ export function useBattleRangePreviews({
             target,
             behaviorId,
             unavailable,
+            move,
+            movementPath,
           }
         : null
     const intents = enabled ? battleRangePreviewIntents(descriptor, actorId, combatants) : []
@@ -70,6 +74,8 @@ export function useBattleRangePreviews({
     maximumRange,
     behaviorId,
     unavailable,
+    move,
+    movementPath,
     minimumRange,
     targetKind,
     targetTeamPolicy,
