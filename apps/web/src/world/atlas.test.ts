@@ -184,6 +184,44 @@ describe('one traversable world atlas', () => {
       expect(planned.routeDestination).toEqual(destination)
     }
   })
+  it.each([
+    { from: { sectorId: 'aureth-crown', x: 6, y: 4 }, to: 'frostmere', steps: 300 },
+    { from: { sectorId: 'aureth-crown', x: 6, y: 4 }, to: 'umbral-march', steps: 488 },
+    { from: { sectorId: 'atlas:47:33', x: 6, y: 4 }, to: 'verdant-expanse', steps: 318 },
+  ])(
+    'plots connected travel from $from.sectorId to $to despite unrelated frontier discoveries',
+    ({ from, to, steps }) => {
+      const state = { ...newWorldState(), position: from, discoveries: { 'survey-01': [110] } }
+      const sectors = visibleSectors(state),
+        destination = { sectorId: to, x: 6, y: 4 }
+      const route = findWorldRoute(from, destination, sectors, (position) =>
+        isKnownCell(state, position),
+      )
+      expect(route).toHaveLength(steps)
+      expect(route!.every((step) => step.durationMs === 200)).toBe(true)
+      const planned = resolveWorldIntent(state, { kind: 'walk', destination }, 1000)
+      expect(planned.route).toEqual(route!.slice(0, 256))
+      expect(planned.routeDestination).toEqual(destination)
+      expect(planned.nextStepAt).toBe(1200)
+    },
+  )
+  it('preserves actual frontier return roads and their authored duration', () => {
+    const state = {
+      ...newWorldState(),
+      position: { sectorId: 'survey-01', x: 6, y: 8 },
+      discoveries: { 'survey-01': [110] },
+    }
+    const route = findWorldRoute(
+      state.position,
+      { sectorId: 'umbral-march', x: 6, y: 4 },
+      visibleSectors(state),
+      (position) => isKnownCell(state, position),
+    )!
+    expect(route).toHaveLength(5)
+    expect(route[0]!.durationMs).toBe(1100)
+    expect(route[0]!.position).toEqual({ sectorId: 'umbral-march', x: 6, y: 0 })
+    expect(route.slice(1).every((step) => step.durationMs === 200)).toBe(true)
+  })
   it('plans long charted journeys with the actual server-visible compatibility graph', () => {
     const state = newWorldState()
     const visible = visibleSectors(state)

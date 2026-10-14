@@ -45,8 +45,12 @@ export function retainWorldSceneReferences(previous: WorldView, incoming: WorldV
     ? previous.sectors
     : incoming.sectors
   const atlas = sameSceneData(previous.atlas, incoming.atlas) ? previous.atlas : incoming.atlas
-  if (sectors === incoming.sectors && atlas === incoming.atlas) return incoming
-  return { ...incoming, sectors, atlas }
+  const scenery = sameSceneData(previous.scenery, incoming.scenery)
+    ? previous.scenery
+    : incoming.scenery
+  if (sectors === incoming.sectors && atlas === incoming.atlas && scenery === incoming.scenery)
+    return incoming
+  return { ...incoming, sectors, scenery, atlas }
 }
 
 /** The server derives the scene; the client supplies only its last owned receipt identity. */
