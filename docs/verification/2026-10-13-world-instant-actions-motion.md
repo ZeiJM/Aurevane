@@ -1,6 +1,6 @@
 # World movement and arrival responsiveness — October 13
 
-Status: implementation under verification on `agent/world-instant-actions-final-20261014`, based on current main `e59a01f9bb744d2ca35fcbf761058f1adfc70997`. The Owner reports continuing stop/go walking after #889 and explicitly requests thinner Nearby cards, immediate Approach-to-Attack controls and other reproducible map latency fixes. Prior releases are not human acceptance of these symptoms. This follow-up is not yet released.
+Status: LIVE for testing through PR #893, merge `544e90ba1cb767c9f640fd1d8a43bbe55bafdd99`, Production `dpl_AdXMf59d8oYTT8X3xkFSKBWVdCuz`, READY at `2026-10-14T01:12:32.426Z` (October 13, 21:12:32 Trinidad) at https://aurevane.vercel.app/game/world. This release addresses reproduced causes of the Owner's movement/action reports; human gameplay acceptance remains pending.
 
 ## Reproduced causes and resulting behavior
 
@@ -20,7 +20,7 @@ Focused regressions have been observed failing before implementation, including 
 
 The new native disposable two-account flow exercises36px density, delayed scene presentation, fixed Approach/Attack dimensions, disabled Talk and protected Attack, followed by legal canonical encounter creation. Existing desktop/mobile geometry, routing, privacy, held input, ambient motion, globe and full browser flows remain required.
 
-Full local quality checks pass on the final source with5,318 Vitest tests plus seven Node checks, formatting/lint/eight-package types and production build. Independent review reruns248 tests across13 files and a final bounded follow-up verifies91 tests across3 files, finding no remaining Critical/Important issue in the pending-attack hold, queue priority and movement guards. Exact-head CI, Living Atlas and full Responsive Browser smoke are pending. Merge/release receipts and actual rendered measurements will be appended only after those checks finish. No database migration, schema change, auth bypass or deployment-configuration change is included. Git automatic deployments remain disabled; the existing Owner authorization covers manual release for testing after gates. Current healthy rollback target is #889 deployment `dpl_GTouFPy3rG8cTtWfsPjPbJWZWDHW`.
+Full local quality checks pass on the final source with5,318 Vitest tests plus seven Node checks, formatting/lint/eight-package types and production build. Independent review reruns248 tests across13 files and a final bounded follow-up verifies91 tests across3 files, finding no remaining Critical/Important issue in the pending-attack hold, queue priority and movement guards. All seven exact-head workflows pass; the release receipt and rendered measurements are recorded below. No database migration, schema change, auth bypass or deployment-configuration change is included. Git automatic deployments remain disabled; the existing Owner authorization covers manual release for testing after gates. Current healthy rollback target is #889 deployment `dpl_GTouFPy3rG8cTtWfsPjPbJWZWDHW`.
 
 Human visual/gameplay acceptance, zero-network-latency and hosted100-player performance are not claimed. The600ms unconfirmed prediction cap and minimum200ms authored tile timing remain enforced.
 
@@ -39,3 +39,32 @@ After recovery, the corrected source passes a fresh complete `pnpm check`:5,318 
 Candidate `31a21699993526c1d86c955cddfe0a463143cad9` passes exact-head CI, Living Atlas (47 enabled cases), UI layout review, Skill Engine, Essence Build and Shared Build Snapshots. Its complete Responsive Browser smoke run `38483884674` reveals a test-harness race: the new arrival case removes its request handler before awaiting the900ms delayed responses, and Playwright releases those in-flight routes before their fulfillment (`Route is already handled!`). The run is allowed to finish; no workflow is cancelled or narrowed. The older candidate's full Browser run `38480179309` also finishes naturally, with344 passing cases and one density failure. Neither candidate is released.
 
 The corrected fixture stops scheduling new delays, drains every held response before removing only its own named handler, and propagates failed responses. The same protected/illegal Attack, disabled themed cursor, exact arrival, fixed button footprint and legal canonical encounter assertions remain. A direct reproduction using the installed Playwright1.62 server Route class fails when the handler is removed first and passes when fulfillment drains first; independent review confirms the ownership cause and finds no blocker in the correction. The local Chromium download returns an invalid empty archive, so no local native-browser success is claimed. Fresh complete native gates are required on the corrected publication. No product behavior, workflow, migration or deployment configuration is changed by this harness correction.
+
+## Final exact-source verification and release
+
+Tested head: `e5649afb3d6a3a77fa3a6c49da7afd26f72aa7b4`; tree: `9df659509a19caf5e9f23f6265ab9f7c64bf4d07`. The final fresh full local quality gate passes5,318 Vitest plus seven Node checks, formatting/lint/types and production build. Independent review confirms the fixture drains all held responses, removes only its own handler, preserves every arrival/action/cursor assertion and propagates failures. The previously failing arrival case passes in both Atlas and the complete Browser suite.
+
+| Workflow | Exact-head run | Result |
+| --- | --- | --- |
+| CI | 38488884024 | Success;31 pgTAP,5,318 Vitest, seven Node checks and build |
+| Living Atlas browser | 38488883899 | Success;47 passed,79 skipped; arrival case10.3s |
+| Full Responsive Browser smoke | 38488883948 | Success;345 Chromium passed,264 skipped;10 Edge passed, two skipped |
+| UI layout review | 38488883942 | Success;110 cases plus supporting checks |
+| Skill Engine | 38488883976 | Success |
+| Essence Build | 38488883943 | Success |
+| Shared Build Snapshots | 38488883956 | Success |
+
+Fresh `main` remains `e59a01f9bb744d2ca35fcbf761058f1adfc70997` before merging PR #893. Merge `544e90ba1cb767c9f640fd1d8a43bbe55bafdd99` has exactly the tested tree. Manual Production deployment `dpl_AdXMf59d8oYTT8X3xkFSKBWVdCuz` pins that merge, is READY at `2026-10-14T01:12:32.426Z`, and the canonical alias independently resolves to that deployment/commit. No additional promotion, migration or configuration change is needed. Public home returns200; unauthenticated World redirects to the home page with200. Signed-in World loads correctly.
+
+Atlas artifact `11860554997` (`living-atlas-evidence`) is20,393,930 bytes and its downloaded SHA-256 matches `106c97a085a26088ffc7fb74b8dd631db6f2b42bbbd6f9cb4c6f4169334246e6`. The current actual two-account CI movement delivery is630ms with fallback polling blocked. The synthetic101-player mobile scene at DPR2.625 measures render p9510ms after240 frames; its initial60-frame baseline is57ms. These are local/native CI measurements, not hosted100-player evidence or a promise of zero latency.
+
+## Bounded signed-in Production checks
+
+- Start: Archer at Sector S69-29, E894/N320; HP153/153, MP102/102, XP96/100; local view,100% zoom, zoom lock off and ambient animation on.
+- Two six-tile outbound clicks reach Sector S70-29, E900/N320 across the edge, then return exactly to the start. Outbound samples and the warm return show no opposite-direction camera movement. Warm samples are retained in [live-motion-samples.json](2026-10-13-world-instant-actions-assets/live-motion-samples.json). The first outbound series visibly eases near the three-tile preview boundary before approval; it does not reverse. The warm outbound/return progress through that boundary. These bounded DOM camera samples do not establish uninterrupted token/network timing under arbitrary network conditions.
+- Nearby renders36px original-source images, including400px custom sources and96px defaults. Three measured rows are45px and the fourth is40px. Disabled Talk buttons resolve to `stone-arrow.png` with hotspot6,3; names retain their complete text/title. Future Talk/Interact stays disabled. No live attack or message is sent to another player.
+- Settings allow35% and140% zoom, then restore100%; zoom lock remains off and ambient remains on. Clicking outside closes Settings without moving the character. Isola, Known Lands, sector ordering and main-town selection remain; globe weather is hidden. Return to local view and all resources/position/preferences are restored.
+- The identity surface is native847×750 at integral(204,132), avoiding CSS resampling. Live rendered indicators include rain88 particles, one passing cloud,15 animated water cells and three wildlife instances, two walking in the sampled frame. The existing gray identity cue remains when scenery occludes a character.
+- The deployment-scoped warning/error/fatal log scan from READY through `2026-10-14T01:22:20.025Z` has no entries. Human acceptance, extended hosted gameplay and hosted multiplayer/load checks remain pending. Server authority,200ms minimum tiles and600ms unconfirmed preview remain.
+
+![Verified live World UI](2026-10-13-world-instant-actions-assets/live-world.jpg)
