@@ -5,6 +5,7 @@ import { AurevaneError } from '@aurevane/game-core/errors'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { createPvpEncounter, type PvpLobbyMemberView } from '@/server/battle/pvp-lobby-service'
 import { createResolvedBattleBuildAuthoritySnapshot } from '@/server/battle/battle-build-authority'
+import { prepareBattleAbilityStartup } from '@/server/battle/battle-ability-startup'
 import { loadCharacterCommittedBuildSnapshot } from '@/server/character/character-build-service'
 import { createSupabaseCharacterBuildRepository } from '@/server/character/supabase-character-build-repository'
 import { createSupabaseCharacterRepository } from '@/server/character/supabase-character-repository'
@@ -35,6 +36,7 @@ export async function attackWorldPlayer(
   assertEncounterRange(pair.attacker as WorldState, pair.target as WorldState)
   const characters = createSupabaseCharacterRepository(),
     builds = createSupabaseCharacterBuildRepository()
+  const combatContentResolver = createServerCombatContentResolver()
   const preparation = Promise.all(
     [
       { userId, characterId },
@@ -67,7 +69,7 @@ export async function attackWorldPlayer(
         characterId: character.id,
         snapshot: buildSnapshot,
       })),
-      createServerCombatContentResolver(),
+      combatContentResolver,
     )
     return { roster, authority }
   })
@@ -83,17 +85,26 @@ export async function attackWorldPlayer(
   encounter.dotTriggerPolicyVersion = 2
   encounter.skillPacketPolicyVersion = 1
   encounter.groundEffectPolicyVersion = 1
-  const { data, error } = await supabase.rpc('start_world_encounter_v1', {
-    p_user_id: userId,
-    p_character_id: characterId,
-    p_target_id: targetId,
-    p_expected_version: current.state.version,
-    p_target_version: pair.target.version,
-    p_snapshot: encounter,
-    p_build_versions: Object.fromEntries(
-      roster.map((r) => [r.character.id, r.buildSnapshot.buildVersion]),
-    ),
-  })
+  const { snapshot, startup } = await prepareBattleAbilityStartup(
+    encounter,
+    authority,
+    combatContentResolver,
+  )
+  const { data, error } = await supabase.rpc(
+    startup ? 'start_world_encounter_v2' : 'start_world_encounter_v1',
+    {
+      p_user_id: userId,
+      p_character_id: characterId,
+      p_target_id: targetId,
+      p_expected_version: current.state.version,
+      p_target_version: pair.target.version,
+      p_snapshot: snapshot,
+      ...(startup ?? {}),
+      p_build_versions: Object.fromEntries(
+        roster.map((r) => [r.character.id, r.buildSnapshot.buildVersion]),
+      ),
+    },
+  )
   if (error) worldRpcError(error)
   if (typeof data?.battleSessionId !== 'string' || data.battleSessionId.trim().length === 0)
     throw new AurevaneError('PERSISTENCE_UNAVAILABLE', 'The encounter could not be started.')

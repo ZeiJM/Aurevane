@@ -1,3 +1,8 @@
+import {
+  validateAbilityDefinition,
+  assertLegacyAbilityAbsent,
+  type AbilityDefinition,
+} from './combat-definition'
 import { battleFlavorTemplateIssues } from './battle-narration'
 import type { CombatEffectDefinition } from './actions'
 import { validateGameplayEffectMetadata } from './gameplay-tags'
@@ -19,6 +24,7 @@ export interface ResonanceSkillTriggerV2 {
 }
 
 export interface ResonanceDefinitionV2 {
+  readonly ability?: AbilityDefinition
   readonly id: string
   readonly contentVersion: number
   readonly enabled: boolean
@@ -124,6 +130,7 @@ export function isResonanceDefinitionV2(
 export function normalizedResonanceMechanics(
   definition: ResonanceDefinition | ResonanceDefinitionV2,
 ): NormalizedResonanceMechanics {
+  assertLegacyAbilityAbsent(definition)
   if (isResonanceDefinitionV2(definition)) {
     return {
       mode: definition.trigger.mode,
@@ -149,6 +156,8 @@ export function validateResonanceDefinitionV2(
   definition: ResonanceDefinitionV2,
 ): readonly string[] {
   const issues: string[] = []
+  const canonical = Object.hasOwn(definition, 'ability')
+  if (canonical && validateAbilityDefinition(definition.ability).length > 0) issues.push('ability')
 
   if (!STABLE_ID_PATTERN.test(definition.id)) issues.push('id')
   if (!Number.isSafeInteger(definition.contentVersion) || definition.contentVersion < 1) {
@@ -173,51 +182,53 @@ export function validateResonanceDefinitionV2(
     issues.push('disciplinePair')
   }
 
-  if (definition.trigger.kind !== 'skill-trigger-v2') issues.push('trigger.kind')
-  if (definition.trigger.mode === 'sequence') {
-    if (definition.trigger.setup === null || !matcherValid(definition.trigger.setup)) {
-      issues.push('trigger.setup')
+  if (!canonical) {
+    if (definition.trigger.kind !== 'skill-trigger-v2') issues.push('trigger.kind')
+    if (definition.trigger.mode === 'sequence') {
+      if (definition.trigger.setup === null || !matcherValid(definition.trigger.setup)) {
+        issues.push('trigger.setup')
+      }
+    } else if (definition.trigger.mode === 'immediate') {
+      if (definition.trigger.setup !== null) issues.push('trigger.setup')
+    } else {
+      issues.push('trigger.mode')
     }
-  } else if (definition.trigger.mode === 'immediate') {
-    if (definition.trigger.setup !== null) issues.push('trigger.setup')
-  } else {
-    issues.push('trigger.mode')
-  }
 
-  if (
-    !matcherValid(definition.trigger.trigger) ||
-    definition.trigger.trigger.matchMode !== undefined
-  )
-    issues.push('trigger.trigger')
+    if (
+      !matcherValid(definition.trigger.trigger) ||
+      definition.trigger.trigger.matchMode !== undefined
+    )
+      issues.push('trigger.trigger')
 
-  const matcherDisciplines = [
-    ...(definition.trigger.setup ? [definition.trigger.setup.sourceDisciplineId] : []),
-    definition.trigger.trigger.sourceDisciplineId,
-  ]
-  if (
-    matcherDisciplines.some((disciplineId) => !definition.disciplinePair.includes(disciplineId))
-  ) {
-    issues.push('trigger.sourceDiscipline')
-  }
+    const matcherDisciplines = [
+      ...(definition.trigger.setup ? [definition.trigger.setup.sourceDisciplineId] : []),
+      definition.trigger.trigger.sourceDisciplineId,
+    ]
+    if (
+      matcherDisciplines.some((disciplineId) => !definition.disciplinePair.includes(disciplineId))
+    ) {
+      issues.push('trigger.sourceDiscipline')
+    }
 
-  if (
-    definition.trigger.resultEffects.length < 1 ||
-    definition.trigger.resultEffects.length > 2 ||
-    definition.trigger.resultEffects.some((effect) => !validateEffect(effect))
-  ) {
-    issues.push('trigger.resultEffects')
-  }
+    if (
+      definition.trigger.resultEffects.length < 1 ||
+      definition.trigger.resultEffects.length > 2 ||
+      definition.trigger.resultEffects.some((effect) => !validateEffect(effect))
+    ) {
+      issues.push('trigger.resultEffects')
+    }
 
-  if (
-    !Number.isFinite(definition.trigger.aiSetupUtilityBonus) ||
-    definition.trigger.aiSetupUtilityBonus < 0 ||
-    !Number.isFinite(definition.trigger.aiTriggerUtilityBonus) ||
-    definition.trigger.aiTriggerUtilityBonus < 0
-  ) {
-    issues.push('trigger.aiUtility')
-  }
-  if (definition.trigger.mode === 'immediate' && definition.trigger.aiSetupUtilityBonus !== 0) {
-    issues.push('trigger.aiSetupUtilityBonus')
+    if (
+      !Number.isFinite(definition.trigger.aiSetupUtilityBonus) ||
+      definition.trigger.aiSetupUtilityBonus < 0 ||
+      !Number.isFinite(definition.trigger.aiTriggerUtilityBonus) ||
+      definition.trigger.aiTriggerUtilityBonus < 0
+    ) {
+      issues.push('trigger.aiUtility')
+    }
+    if (definition.trigger.mode === 'immediate' && definition.trigger.aiSetupUtilityBonus !== 0) {
+      issues.push('trigger.aiSetupUtilityBonus')
+    }
   }
   if (definition.authoring.schemaVersion !== RESONANCE_V2_SCHEMA_VERSION) {
     issues.push('authoring.schemaVersion')

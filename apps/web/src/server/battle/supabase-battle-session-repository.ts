@@ -58,21 +58,31 @@ export function createSupabaseBattleSessionRepository(): BattleSessionRepository
   return {
     async createBattleSession(input) {
       const supabase = createSupabaseAdminClient()
-      const { data, error } = await supabase.rpc('create_battle_session_v1', {
-        p_actor_key: input.actorKey,
-        p_idempotency_key: input.idempotencyKey,
-        p_request_fingerprint: input.requestFingerprint,
-        p_user_id: input.userId,
-        p_battle_id: input.battleId,
-        p_rules_version: input.rulesVersion,
-        p_content_version: input.contentVersion,
-        p_initial_snapshot: input.initialSnapshot,
-        p_participants: input.participants.map((participant) => ({
-          combatant_id: participant.combatantId,
-          participant_role: participant.participantRole,
-          character_id: participant.characterId,
-        })),
-      })
+      const { data, error } = await supabase.rpc(
+        input.startup ? 'create_battle_session_v2' : 'create_battle_session_v1',
+        {
+          p_actor_key: input.actorKey,
+          p_idempotency_key: input.idempotencyKey,
+          p_request_fingerprint: input.requestFingerprint,
+          p_user_id: input.userId,
+          p_battle_id: input.battleId,
+          p_rules_version: input.rulesVersion,
+          p_content_version: input.contentVersion,
+          p_initial_snapshot: input.initialSnapshot,
+          ...(input.startup
+            ? {
+                p_start_snapshot: input.startup.startSnapshot,
+                p_initial_events: input.startup.events,
+                p_privacy_journal: input.startup.privacyJournal,
+              }
+            : {}),
+          p_participants: input.participants.map((participant) => ({
+            combatant_id: participant.combatantId,
+            participant_role: participant.participantRole,
+            character_id: participant.characterId,
+          })),
+        },
+      )
 
       if (error) throwRpcError(error)
       const row = parseBattleSessionCreationPersistenceRow(data)

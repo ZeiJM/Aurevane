@@ -16,7 +16,10 @@ import type { BattleNarratorIdentitySnapshot } from './battle-build-authority'
 import type { BattleHistoryPrivacyRepository } from './battle-history-privacy-authority'
 import { projectBattleHistoryForViewer } from './battle-history-privacy'
 import type { CombatContentResolver } from '../combat/combat-content-resolver'
-import { attachRecordedBattleLogSkillContext } from './battle-log-skill-context'
+import {
+  attachRecordedBattleLogSkillContext,
+  verifiedRecordedEffectOrigin,
+} from './battle-log-skill-context'
 
 export type BattleLogKind =
   'offense' | 'movement' | 'defense' | 'recovery' | 'status' | 'resource' | 'turn' | 'system'
@@ -579,6 +582,28 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
     }
     case 'action_spent':
       return null
+    case 'combat_action_interrupted': {
+      const actorCombatantId = stringValue(event.actorId)
+      const actionId = presentationActionId(event.actionId)
+      if (
+        !actorCombatantId ||
+        !actionId ||
+        !['actor-unavailable', 'battle-ended', 'turn-changed', 'selection-invalid'].includes(
+          String(event.reason),
+        )
+      )
+        return null
+      const label = actionLabel(actionId)
+      return createEntry(record, eventType, {
+        actorCombatantId,
+        actionId,
+        actionLabel: label,
+        messageTemplate: '{actor} could not complete {action}.',
+        templateValues: { action: label },
+        kind: actionKind(actionId),
+        headline: 'Interrupted',
+      })
+    }
     case 'combat_action_used': {
       const actorCombatantId = stringValue(event.actorId)
       const actionId = presentationActionId(event.actionId)
@@ -1253,7 +1278,19 @@ export function createViewerSafeBattleLogService(
         battleSessionId,
         battleVersions,
       )
-      const projected = projectBattleHistoryForViewer(records, authority.journals, authority.viewer)
+      const projected = projectBattleHistoryForViewer(
+        records,
+        authority.journals,
+        authority.viewer,
+        authority.buildAuthority
+          ? (record) => {
+              const entry = buildBattleLogView(battleSessionId, [record]).entries[0]
+              return entry
+                ? verifiedRecordedEffectOrigin(entry, record, authority.buildAuthority!)
+                : null
+            }
+          : undefined,
+      )
       return attachRecordedBattleLogSkillContext(
         buildBattleLogView(battleSessionId, projected),
         projected,

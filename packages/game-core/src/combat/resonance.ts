@@ -1,3 +1,4 @@
+import { validateAbilityDefinition, type AbilityDefinition } from './combat-definition'
 import { createPercentageRecoveryResonanceVersion } from './combat-recovery-roster'
 import { battleFlavorTemplateIssues } from './battle-narration'
 import { validateGameplayEffectMetadata } from './gameplay-tags'
@@ -54,6 +55,7 @@ export interface ResonanceMediaHooks {
 }
 
 export interface ResonanceDefinition {
+  readonly ability?: AbilityDefinition
   readonly id: string
   readonly contentVersion: number
   readonly enabled: boolean
@@ -207,6 +209,8 @@ export function validateResonanceDefinition(definition: AnyResonanceDefinition):
   }
 
   const issues: string[] = []
+  const canonical = Object.hasOwn(definition, 'ability')
+  if (canonical && validateAbilityDefinition(definition.ability).length > 0) issues.push('ability')
   if (!STABLE_ID_PATTERN.test(definition.id)) issues.push('id')
   if (!Number.isSafeInteger(definition.contentVersion) || definition.contentVersion < 1) {
     issues.push('contentVersion')
@@ -236,43 +240,49 @@ export function validateResonanceDefinition(definition: AnyResonanceDefinition):
     issues.push('disciplinePair')
   }
 
-  for (const [field, matcher] of [
-    ['trigger.setup', definition.trigger.setup],
-    ['trigger.payoff', definition.trigger.payoff],
-  ] as const) {
-    if (!STABLE_ID_PATTERN.test(matcher.sourceDisciplineId)) {
-      issues.push(`${field}.sourceDisciplineId`)
+  if (!canonical) {
+    for (const [field, matcher] of [
+      ['trigger.setup', definition.trigger.setup],
+      ['trigger.payoff', definition.trigger.payoff],
+    ] as const) {
+      if (!STABLE_ID_PATTERN.test(matcher.sourceDisciplineId)) {
+        issues.push(`${field}.sourceDisciplineId`)
+      }
+      if (
+        !validResonanceSkillMatcher(matcher) ||
+        (field === 'trigger.payoff' && matcher.matchMode !== undefined)
+      ) {
+        issues.push(`${field}.requiredTags`)
+      }
+    }
+
+    if (
+      !definition.disciplinePair.includes(definition.trigger.setup.sourceDisciplineId) ||
+      !definition.disciplinePair.includes(definition.trigger.payoff.sourceDisciplineId)
+    ) {
+      issues.push('trigger.sourceDiscipline')
     }
     if (
-      !validResonanceSkillMatcher(matcher) ||
-      (field === 'trigger.payoff' && matcher.matchMode !== undefined)
+      definition.trigger.payoffEffects.length < 1 ||
+      definition.trigger.payoffEffects.length > 3
     ) {
-      issues.push(`${field}.requiredTags`)
-    }
-  }
-
-  if (
-    !definition.disciplinePair.includes(definition.trigger.setup.sourceDisciplineId) ||
-    !definition.disciplinePair.includes(definition.trigger.payoff.sourceDisciplineId)
-  ) {
-    issues.push('trigger.sourceDiscipline')
-  }
-  if (definition.trigger.payoffEffects.length < 1 || definition.trigger.payoffEffects.length > 3) {
-    issues.push('trigger.payoffEffects')
-  } else {
-    try {
-      for (const effect of definition.trigger.payoffEffects) validateGameplayEffectMetadata(effect)
-    } catch {
       issues.push('trigger.payoffEffects')
+    } else {
+      try {
+        for (const effect of definition.trigger.payoffEffects)
+          validateGameplayEffectMetadata(effect)
+      } catch {
+        issues.push('trigger.payoffEffects')
+      }
     }
-  }
-  if (
-    !Number.isFinite(definition.trigger.aiSetupUtilityBonus) ||
-    definition.trigger.aiSetupUtilityBonus < 0 ||
-    !Number.isFinite(definition.trigger.aiPayoffUtilityBonus) ||
-    definition.trigger.aiPayoffUtilityBonus < 0
-  ) {
-    issues.push('trigger.aiUtility')
+    if (
+      !Number.isFinite(definition.trigger.aiSetupUtilityBonus) ||
+      definition.trigger.aiSetupUtilityBonus < 0 ||
+      !Number.isFinite(definition.trigger.aiPayoffUtilityBonus) ||
+      definition.trigger.aiPayoffUtilityBonus < 0
+    ) {
+      issues.push('trigger.aiUtility')
+    }
   }
   if (definition.authoring.schemaVersion !== RESONANCE_SCHEMA_VERSION) {
     issues.push('authoring.schemaVersion')

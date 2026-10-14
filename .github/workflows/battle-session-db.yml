@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'supabase/migrations/**'
+      - 'supabase/tests/captured_ability_startup.sql'
       - '.github/scripts/verify-battle-session-persistence.sh'
       - '.github/scripts/verify-battle-session-concurrency.sh'
       - '.github/scripts/verify-battle-session-http.sh'
@@ -21,6 +22,7 @@ on:
       - main
     paths:
       - 'supabase/migrations/**'
+      - 'supabase/tests/captured_ability_startup.sql'
       - '.github/scripts/verify-battle-session-persistence.sh'
       - '.github/scripts/verify-battle-session-concurrency.sh'
       - '.github/scripts/verify-battle-session-http.sh'
@@ -69,6 +71,9 @@ jobs:
 
       - name: Rebuild database from migrations
         run: pnpm exec supabase db reset --local
+
+      - name: Verify captured startup transaction on the migrated database
+        run: pnpm exec supabase test db --local supabase/tests/captured_ability_startup.sql
 
       - name: Verify battle session persistence + authority
         run: bash .github/scripts/verify-battle-session-persistence.sh

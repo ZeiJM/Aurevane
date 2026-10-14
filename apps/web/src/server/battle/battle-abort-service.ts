@@ -7,6 +7,10 @@ import type { BattleSessionRecord, BattleSessionRepository } from '@aurevane/db/
 import { createCombatEncounterState } from '@aurevane/game-core/combat/actions'
 import { abortPracticeBattle } from '@aurevane/game-core/combat/battle-exit'
 import {
+  reconcileCombatAbilitySources,
+  refreezeCapturedCombatAbilityState,
+} from '@aurevane/game-core/combat/combat-behavior-runtime'
+import {
   reattachStatDrivenCombatBridge,
   validateStatDrivenCombatEncounterState,
   type StatDrivenCombatEncounterState,
@@ -62,7 +66,7 @@ function readPersistedEncounter(record: BattleSessionRecord): StatDrivenCombatEn
     ) {
       throw persistenceInvalid()
     }
-    return candidate
+    return refreezeCapturedCombatAbilityState(candidate)
   } catch (error) {
     if (error instanceof AurevaneError) throw error
     throw persistenceInvalid()
@@ -104,8 +108,38 @@ function resolvePracticeAbort(state: StatDrivenCombatEncounterState): {
       { ...state.tactical, battle: transition.state },
       state.statusState,
     )
+    // Abandonment has no activation boundary. Retain the private archive and usage while
+    // the historical fresh encounter continues to discard unsettled execution queues.
+    const retained = state.capturedAbilitySources
+      ? reconcileCombatAbilitySources(
+          {
+            ...encounter,
+            ...Object.fromEntries(
+              Object.entries(state).filter(
+                ([key]) => key.endsWith('PolicyVersion') || key === 'effectTimingPolicy',
+              ),
+            ),
+            capturedAbilitySources: state.capturedAbilitySources,
+            abilityRuntime: state.abilityRuntime,
+          },
+          [],
+        )
+      : encounter
+    const authority = state as StatDrivenCombatEncounterState & {
+      buildAuthority?: unknown
+      buildBridge?: unknown
+    }
     return {
-      state: reattachStatDrivenCombatBridge(encounter, state.statBridge),
+      state: reattachStatDrivenCombatBridge(
+        {
+          ...retained,
+          ...(authority.buildAuthority === undefined
+            ? {}
+            : { buildAuthority: authority.buildAuthority }),
+          ...(authority.buildBridge === undefined ? {} : { buildBridge: authority.buildBridge }),
+        },
+        state.statBridge,
+      ),
       events: transition.events,
     }
   } catch (error) {

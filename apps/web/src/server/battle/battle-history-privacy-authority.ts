@@ -78,7 +78,7 @@ function journal(value: unknown): BattleHistoryPrivacyJournal | null {
 
   if (
     battleVersion === null ||
-    battleVersion <= 1 ||
+    battleVersion < 1 ||
     !actorCombatantId ||
     !actorTeamId ||
     eventCount === null ||
