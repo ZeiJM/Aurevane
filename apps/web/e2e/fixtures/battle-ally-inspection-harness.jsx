@@ -56,7 +56,9 @@ let canonicalState
 let canonicalCapture
 let canonicalTargets
 function canonicalPublicState(state) {
-  const { capturedAbilitySources, abilityRuntime, ...publicState } = state
+  const publicState = { ...state }
+  Reflect.deleteProperty(publicState, 'capturedAbilitySources')
+  Reflect.deleteProperty(publicState, 'abilityRuntime')
   return { ...publicState, manualActionTargets: canonicalTargets }
 }
 const elementalCase = new URLSearchParams(location.search).get('elemental')

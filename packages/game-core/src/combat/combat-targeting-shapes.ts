@@ -13,6 +13,13 @@ export function maximumSupportedCombatRange(): number {
   return Math.max(...P2_7_TACTICAL_HALL_ARENAS.map((arena) => arena.width - 1 + arena.height - 1))
 }
 
+/** Canonical Ability captures default to geometry2; uncaptured native history never uses this adapter. */
+export function canonicalAbilityTargetSpec<T extends CombatTargetSpec>(
+  target: T,
+): T & { geometryVersion: 2 | 3 } {
+  return { ...target, geometryVersion: target.geometryVersion ?? 2 }
+}
+
 export function combatTargetCategories(
   spec: CombatTargetSpec,
 ): readonly ('self' | 'ally' | 'enemy' | 'ground')[] {

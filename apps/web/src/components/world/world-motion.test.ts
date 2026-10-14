@@ -44,6 +44,40 @@ describe('world visual motion', () => {
     route: steps,
     ...overrides,
   })
+  it('retains the held visual point when a canonical receipt arrives while the tab is hidden', () => {
+    const motion = new WorldMotion(receipt(), 5000)
+    const before = motion.sample(5100)
+    motion.suspend(5100)
+    motion.reconcile(
+      receipt(forward.slice(1), {
+        position: forward[0]!.position,
+        version: 3,
+        serverNow: 11000,
+        nextStepAt: 11200,
+      }),
+      15000,
+    )
+    expect(motion.sample(15000).point).toEqual(before.point)
+    motion.updateScene(sectors, 15000)
+    motion.resume(15100)
+    expect(motion.sample(15100).point).toEqual(before.point)
+    expect(motion.sample(15116).point.x - before.point.x).toBeCloseTo(0.08)
+    expect(motion.sample(15400).position).toEqual(forward[1]!.position)
+  })
+  it.each(['movementBlocked', 'battleSessionId'] as const)(
+    'does not restart a hidden visual after new %s authority arrives',
+    (field) => {
+      const motion = new WorldMotion(receipt(), 5000)
+      const before = motion.sample(5100).point
+      motion.suspend(5100)
+      motion.reconcile(receipt(forward, { [field]: 'blocked' }), 15000)
+      motion.resume(15100)
+      motion.plan(forward, sectors, 15100)
+      expect(motion.sample(16000).point).toEqual(before)
+      expect(motion.sample(16000).moving).toBe(false)
+      expect(motion.nextApprovedTransitionDelay(15100)).toBeNull()
+    },
+  )
   it('keeps an approved common route moving while a repeated click waits for confirmation', () => {
     const motion = new WorldMotion(view)
     motion.reconcile(receipt(), 0)

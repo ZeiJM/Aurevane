@@ -103,7 +103,10 @@ try {
       { width: 1366, height: 768 },
       { width: 390, height: 844 },
     ]) {
-      const page = await browser.newPage({ viewport })
+      const touch = viewport.width === 390
+      const options = { viewport, ...(touch ? { isMobile: true, hasTouch: true } : {}) }
+      const gesture = (locator) => (touch ? locator.tap() : locator.click())
+      const page = await browser.newPage(options)
       page.on('pageerror', (e) => errors.push(e.message))
       await page.goto(
         server.resolvedUrls.local[0] + `?mode=${mode}&targeting=single&canonical=plural`,
@@ -121,14 +124,14 @@ try {
         0,
         'arming does not select an implicit victim',
       )
-      await tile(4, 3).click()
-      await tile(4, 3).click()
+      await gesture(tile(4, 3))
+      await gesture(tile(4, 3))
       assert.equal(
         await page.getByRole('button', { name: 'Use selected targets', exact: true }).isDisabled(),
         true,
         'repeated selection removes a target',
       )
-      await tile(4, 3).click()
+      await gesture(tile(4, 3))
       assert.equal(
         await page.evaluate(
           () => window.calls.filter((c) => /\/(commit|intents)$/.test(c.path)).length,
@@ -136,9 +139,9 @@ try {
         0,
         'first plural gesture must draft without paying',
       )
-      await tile(5, 3).click()
+      await gesture(tile(5, 3))
       await page.screenshot({ path: resolve(output, `${mode}-${viewport.width}-plural-draft.png`) })
-      await page.getByRole('button', { name: 'Use selected targets', exact: true }).click()
+      await gesture(page.getByRole('button', { name: 'Use selected targets', exact: true }))
       await page.waitForFunction(() => window.fixtureBattle.battleVersion === 2)
       const result = await page.evaluate(() => ({
         calls: window.calls.filter((c) => /\/(commit|intents)$/.test(c.path)),
@@ -162,7 +165,7 @@ try {
       assert.equal(result.actor.mp, 48)
       await page.close()
       cases++
-      const choices = await browser.newPage({ viewport })
+      const choices = await browser.newPage(options)
       choices.on('pageerror', (e) => errors.push(e.message))
       await choices.goto(
         server.resolvedUrls.local[0] + `?mode=${mode}&targeting=single&canonical=choices`,
@@ -199,6 +202,67 @@ try {
         selections: [{ kind: 'unit', combatantId: 'enemy-one' }],
       })
       await choices.close()
+      cases++
+      const reconcile = await browser.newPage(options)
+      reconcile.on('pageerror', (e) => errors.push(e.message))
+      await reconcile.goto(
+        server.resolvedUrls.local[0] + `?mode=${mode}&targeting=single&canonical=plural`,
+      )
+      const arm = () =>
+        gesture(reconcile.getByRole('button', { name: /^Selected Targeting Test,/ }))
+      const chosen = () =>
+        gesture(reconcile.locator('#battlefield').getByRole('button', { name: /^Tile 5, 4;/ }))
+      await arm()
+      await chosen()
+      await gesture(reconcile.getByRole('button', { name: 'Cancel Action', exact: true }))
+      await reconcile.keyboard.press('Enter')
+      assert.equal(
+        await reconcile.evaluate(
+          () => window.calls.filter((c) => /\/(commit|intents)$/.test(c.path)).length,
+        ),
+        0,
+        'cancellation cannot commit a saved draft',
+      )
+      await arm()
+      await chosen()
+      assert.equal(
+        await reconcile
+          .getByRole('button', { name: 'Use selected targets', exact: true })
+          .isDisabled(),
+        false,
+      )
+      await reconcile.evaluate((mode) => {
+        const next = structuredClone(window.fixtureBattle)
+        next.battleVersion++
+        window.fixtureBattle = next
+        window.dispatchEvent(
+          new CustomEvent(mode === 'pvp' ? 'aurevane:pvp-battle-state' : 'aurevane:battle-state', {
+            detail: next,
+          }),
+        )
+      }, mode)
+      await reconcile.waitForFunction(
+        () =>
+          document.querySelector('button[aria-label="Use selected targets"]')?.disabled === true,
+        undefined,
+        { timeout: 5000 },
+      )
+      assert.equal(
+        await reconcile
+          .getByRole('button', { name: 'Use selected targets', exact: true })
+          .isDisabled(),
+        true,
+        'a same-turn remote version clears the unfinished target draft',
+      )
+      await reconcile.keyboard.press('Enter')
+      assert.equal(
+        await reconcile.evaluate(
+          () => window.calls.filter((c) => /\/(commit|intents)$/.test(c.path)).length,
+        ),
+        0,
+        'no stale target command can commit',
+      )
+      await reconcile.close()
       cases++
     }
   }

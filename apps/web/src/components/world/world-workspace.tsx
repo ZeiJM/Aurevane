@@ -295,7 +295,7 @@ export function WorldWorkspace({
     scheduleArrival()
     const visible = () => {
       live.update(instance.view, localViewActive.current && document.visibilityState === 'visible')
-      if (document.visibilityState === 'visible') void instance.refresh()
+      if (document.visibilityState === 'visible') void instance.refresh(true)
     }
     document.addEventListener('visibilitychange', visible)
     return () => {
@@ -356,7 +356,12 @@ export function WorldWorkspace({
     setApproachingPlayer(null)
     send({ kind: 'stop' })
   }
-  const local = view.sectors.find((s) => s.id === approvedPosition.sectorId) ?? view.sectors[0]!
+  const currentSector = view.sectors.find((s) => s.id === approvedPosition.sectorId)
+  const local = currentSector ?? view.sectors[0]!
+  const currentCell = currentSector?.cells.find(
+    (cell) => cell.x === approvedPosition.x && cell.y === approvedPosition.y,
+  )
+  const zone = currentCell?.safe === true ? 'safe' : currentCell?.safe === false ? 'pvp' : 'unknown'
   const region = WORLD_REGIONS.find((r) => r.id === local.regionId),
     localName = local.townId ? (region?.name ?? local.name) : local.name
   const actionBusy = Boolean(active && ['attack', 'interact', 'cross'].includes(active.kind)),
@@ -627,11 +632,6 @@ export function WorldWorkspace({
                   <section className={styles.characters}>
                     {nearby.length
                       ? nearby.map((player) => {
-                          const cell = view.sectors
-                            .find((s) => s.id === approvedPosition.sectorId)
-                            ?.cells.find(
-                              (c) => c.x === approvedPosition.x && c.y === approvedPosition.y,
-                            )
                           const targetCell = view.sectors
                             .find((s) => s.id === player.position.sectorId)
                             ?.cells.find(
@@ -644,7 +644,7 @@ export function WorldWorkspace({
                                 ...player,
                                 attackEligible:
                                   Boolean(player.attackEligible ?? player.attackable) &&
-                                  cell?.safe === false &&
+                                  currentCell?.safe === false &&
                                   targetCell?.safe === false,
                               }}
                               ownerPosition={approvedPosition}
@@ -676,7 +676,12 @@ export function WorldWorkspace({
               data-world-coordinates
               aria-label="Current sector and coordinates"
             >
-              <span>Sector {local.coordinate}</span>
+              <span className={styles.coordinateHeader}>
+                <span>Sector {local.coordinate}</span>
+                <span className={styles.zoneStatus} data-world-zone={zone} role="status">
+                  {zone === 'safe' ? 'Safe Zone' : zone === 'pvp' ? 'PvP Zone' : 'Zone unavailable'}
+                </span>
+              </span>
               <span>
                 E{local.east + approvedPosition.x} · N{local.north - approvedPosition.y}
               </span>

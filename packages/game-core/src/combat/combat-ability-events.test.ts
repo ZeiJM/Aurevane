@@ -33,6 +33,104 @@ const frame: CombatAbilityEventFrame = {
   selectedCombatantId: 'other',
   affectedCombatantIds: ['ally'],
 }
+it.each([2, 3, undefined] as const)(
+  'activates supported owner-triggered Circle/All with canonical geometry %s and pays once',
+  (geometryVersion) => {
+    for (const shape of [{ kind: 'circle', radius: 1 }, { kind: 'all' }] as const) {
+      const captured = captureCombatAbilitySource(
+        source({
+          activation: 'automatic',
+          classification: 'recovery',
+          attackFamily: undefined,
+          activationLimits: ['once-per-battle'],
+          costs: [{ resource: 'mp', amount: 1 }],
+          requirements: { kind: 'event', eventType: 'healing_applied', phase: 'after' },
+          targeting: {
+            kind: 'unit',
+            teamPolicy: 'ally',
+            friendlyFire: 'allies-only',
+            ...(geometryVersion !== undefined ? { geometryVersion } : {}),
+            ...(geometryVersion === 3 ? { categories: ['self' as const, 'ally' as const] } : {}),
+            shape,
+            minimumRange: 0,
+            maximumRange: shape.kind === 'circle' ? 1 : 0,
+            requiresLineOfSight: false,
+            maximumElevationDifference: null,
+            maximumSelections: 1,
+          },
+          effects: [{ id: 'heal', payload: { type: 'healing', recipient: 'actor', amount: 5 } }],
+        }),
+      )
+      const state = reconcileCombatAbilitySources(hp(percentageDotEncounter(), 500), [captured])
+      const context = combatAbilityCommandContext(state, captured)
+      const session = createCombatAbilityEventSession(context.triggerGuard)
+      const mutation = captureCombatAbilityMutation(state, state, 'heal-area', session, {
+        events: [{ type: 'healing_applied', phase: 'after' }],
+        affectedCombatantIds: ['actor'],
+        resourceMutations: [],
+      })
+      expect(
+        resolveAutomaticAbilitySelection(
+          mutation.state,
+          captured,
+          captured.definition.behaviors[0]!,
+          mutation.frame,
+        ),
+      ).toEqual({ selection: { kind: 'activate' } })
+      const first = processCombatAbilityEvent(
+        mutation.state,
+        mutation.frame,
+        PV1F_COMBAT_CONTENT,
+        context,
+        session,
+        0,
+        commitCombatAbilityCommand,
+      )
+      expect(
+        first.events.filter((e) => e.event === 'healing_applied').map((e) => e.targetCombatantId),
+      ).toEqual(['actor'])
+      const owner = first.state.tactical.battle.combatants.find((u) => u.id === 'actor')!
+      expect(owner.hp).toBeGreaterThan(500)
+      expect(owner.mp).toBe(19)
+      expect(
+        processCombatAbilityEvent(
+          first.state,
+          mutation.frame,
+          PV1F_COMBAT_CONTENT,
+          context,
+          session,
+          0,
+          commitCombatAbilityCommand,
+        ).events,
+      ).toEqual([])
+      const second = captureCombatAbilityMutation(
+        first.state,
+        first.state,
+        'heal-area-again',
+        session,
+        {
+          events: [{ type: 'healing_applied', phase: 'after' }],
+          affectedCombatantIds: ['actor'],
+          resourceMutations: [],
+        },
+      )
+      const again = processCombatAbilityEvent(
+        second.state,
+        second.frame,
+        PV1F_COMBAT_CONTENT,
+        context,
+        session,
+        0,
+        (input) =>
+          prepareCombatAbilityCommand(input).evaluation.legal
+            ? commitCombatAbilityCommand(input)
+            : { state: input.state, events: [] },
+      )
+      expect(again.events).toEqual([])
+      expect(again.state.tactical.battle.combatants.find((u) => u.id === 'actor')!.mp).toBe(19)
+    }
+  },
+)
 describe('Automatic event capability and causal binding', () => {
   it('resolves the entire causal plural set and aligned Line or Ground without a guessed subject', () => {
     const base = source({

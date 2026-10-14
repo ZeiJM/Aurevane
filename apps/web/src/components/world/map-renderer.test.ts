@@ -313,6 +313,29 @@ function scene(reduced = false, initial?: WorldView) {
   }
 }
 describe('native map input and bounded lifecycle', () => {
+  it('retains the displayed walking phase across a long background-tab interval', () => {
+    const clock = vi.spyOn(performance, 'now').mockReturnValue(0)
+    const s = scene()
+    const route = [6, 7, 8, 9, 10].map((x) => ({
+      position: { ...s.view.position, x },
+      durationMs: 200,
+    }))
+    s.motion.reconcile({ ...s.view, route, nextStepAt: 1200 }, 0)
+    s.frame(100)
+    const before = s.motion.sample(100)
+    clock.mockReturnValue(100)
+    s.visibility('hidden')
+    expect(s.motion.sample(10100)).toEqual(before)
+    clock.mockReturnValue(10100)
+    s.visibility('visible')
+    s.frame(10100)
+    expect(s.motion.sample(10100)).toEqual(before)
+    expect(s.motion.sample(10116).point.x - before.point.x).toBeCloseTo(0.08)
+    expect(s.motion.sample(10200).position).toEqual(route[0]!.position)
+    s.renderer.dispose()
+    clock.mockRestore()
+    vi.unstubAllGlobals()
+  })
   it.each([
     ['oak', 'verdant-expanse', undefined, 7, false, 'nature', 224, 603, 0, 443],
     ['snow pine', 'frostmere', undefined, 7, false, 'nature', 599, 596, 439, 764],
@@ -641,6 +664,29 @@ describe('native map input and bounded lifecycle', () => {
       vi.unstubAllGlobals()
     },
   )
+  it('continues authored held-key cadence until the actual delayed key release', () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'performance'] })
+    const s = scene()
+    const selectedAt: number[] = []
+    s.select.mockImplementation((destination) => {
+      const now = performance.now()
+      selectedAt.push(now)
+      const route = localRoute(s.view, s.motion.sample(now).position, destination)
+      if (route) s.motion.plan(route, s.view.sectors, now)
+    })
+    try {
+      s.listeners.get('keydown')!({ key: 'd', preventDefault() {} } as unknown as Event)
+      vi.advanceTimersByTime(850)
+      expect(selectedAt).toEqual([0, 200, 400, 600, 800])
+      s.listeners.get('keyup')!({ key: 'd' } as unknown as Event)
+      vi.advanceTimersByTime(1000)
+      expect(selectedAt).toEqual([0, 200, 400, 600, 800])
+    } finally {
+      s.renderer.dispose()
+      vi.useRealTimers()
+      vi.unstubAllGlobals()
+    }
+  })
   it.each([200, 400].flatMap((stepMs) => [8, 20].map((cost) => ({ stepMs, cost }))))(
     'keeps held-key deadlines at $stepMs ms despite $cost ms selection work',
     ({ stepMs, cost }) => {

@@ -42,6 +42,29 @@ const projection = (id: string): BattleActionPreview => ({
 })
 
 describe('automatic canonical range forecasts', () => {
+  it('forecasts canonical Self/Ally/Enemy categories independently of a legacy Self envelope', () => {
+    const captured = {
+      ...skill,
+      targetKind: 'self' as const,
+      targetTeamPolicy: 'self' as const,
+      target: {
+        ...createPv1fBasicAttackDefinition(1).target,
+        geometryVersion: 3 as const,
+        categories: ['ally' as const, 'enemy' as const],
+        maximumSelections: 3,
+        minimumRange: 0,
+        maximumRange: 4,
+      },
+    }
+    expect(
+      battleRangePreviewIntents(captured, 'actor', combatants).map((intent) => intent.target),
+    ).toEqual([
+      { kind: 'unit', combatantId: 'north' },
+      { kind: 'unit', combatantId: 'south' },
+      { kind: 'unit', combatantId: 'ally' },
+      { kind: 'unit', combatantId: 'far' },
+    ])
+  })
   it('carries an explicit captured behavior through geometry-three area requests', () => {
     const captured = {
       ...skill,

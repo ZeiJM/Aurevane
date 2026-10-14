@@ -269,8 +269,27 @@ export class WorldController {
       if (this.sceneRead === read) this.sceneRead = null
     }
   }
-  async refresh() {
+  async refresh(resumeMovement = false) {
+    if (this.disposed) return
+    if (resumeMovement && this.idleRead) {
+      const read = this.idleRead
+      this.idleRead = null
+      this.running = false
+      read.abort()
+    }
     if (this.pending || this.disposed) return
+    if (
+      resumeMovement &&
+      this.view.route.length &&
+      !this.view.movementBlocked &&
+      !this.view.battleSessionId
+    ) {
+      // A read alone retains the old saved tile while its approved route is due.
+      // Settle through the serialized command channel before loading presentation.
+      const receipt = await this.send({ kind: 'tick' })
+      if (receipt.applied) await this.hydrate()
+      return
+    }
     const read = new AbortController()
     this.idleRead = read
     this.running = true

@@ -1719,7 +1719,10 @@ export function createMapRenderer(
       frame = requestAnimationFrame(loop)
   }
   const visibility = () => {
-    if (document.visibilityState !== 'visible') releaseHeldKeys()
+    if (document.visibilityState !== 'visible') {
+      releaseHeldKeys()
+      motion.suspend(performance.now())
+    } else motion.resume(performance.now())
     if (frame) cancelAnimationFrame(frame)
     frame = 0
     if (!disposed && !paused && document.visibilityState === 'visible') {

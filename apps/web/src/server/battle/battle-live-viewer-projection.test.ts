@@ -41,6 +41,7 @@ it('strips private captured Ability and command execution authority from actual 
     abilityRuntime: { usage: [1] },
     modifierSuppressions: [{ sourceInstanceId: 'private-source', reason: 'insufficient-ap' }],
     nativeBasicAttackCommand: true,
+    groundTargetedRecipientIds: ['actor'],
     commandDamageBonuses: [1],
     effectEligibleRecipientIds: [['actor']],
     effectTimingModes: ['delayed'],

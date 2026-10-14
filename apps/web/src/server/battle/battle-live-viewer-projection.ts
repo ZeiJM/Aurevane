@@ -1,5 +1,6 @@
 import { combatManualModifierAvailability } from '@aurevane/game-core/combat/combat-behavior-runtime'
 import 'server-only'
+import { canonicalAbilityTargetSpec } from '@aurevane/game-core/combat/combat-targeting-shapes'
 import {
   projectPublicCombatGroundAreas,
   type PublicCombatGroundArea,
@@ -62,7 +63,7 @@ export function projectBattleManualActionTargets(
             behavior.activation === 'manual' && behavior.mode === 'action' && behavior.targeting,
         )
         .map((behavior) => {
-          const spec = behavior.targeting!
+          const spec = canonicalAbilityTargetSpec(behavior.targeting!)
           return {
             actionId: source.abilityId,
             behaviorId: behavior.id,
@@ -76,9 +77,7 @@ export function projectBattleManualActionTargets(
               requiresLineOfSight: spec.requiresLineOfSight,
               maximumElevationDifference: spec.maximumElevationDifference,
               maximumSelections: spec.maximumSelections,
-              ...(spec.geometryVersion !== undefined
-                ? { geometryVersion: spec.geometryVersion }
-                : {}),
+              geometryVersion: spec.geometryVersion,
               ...(spec.categories ? { categories: [...spec.categories] } : {}),
             },
           }
@@ -337,6 +336,7 @@ export function omitPendingBattlePayloads<
     'abilityRuntime',
     'modifierSuppressions',
     'nativeBasicAttackCommand',
+    'groundTargetedRecipientIds',
     'commandDamageBonuses',
     'effectEligibleRecipientIds',
     'effectTimingModes',

@@ -10,6 +10,37 @@ import { newWorldState } from '@/world/travel'
 import { WorldWorkspace } from './world-workspace'
 
 describe('World page', () => {
+  it('labels the current tile safe or PvP without using a future route destination', () => {
+    const state = newWorldState()
+    state.route = [{ position: { ...state.position, x: 10 }, durationMs: 200 }]
+    for (const [x, label, zone] of [
+      [5, 'Safe Zone', 'safe'],
+      [10, 'PvP Zone', 'pvp'],
+    ] as const) {
+      state.position = { ...state.position, x }
+      const markup = renderToStaticMarkup(
+        createElement(WorldWorkspace, {
+          initialView: projectWorld(state, [], 1000),
+          character: { name: 'Traveller', portrait: '/portrait.webp' },
+        }),
+      )
+      expect(markup).toMatch(new RegExp(`data-world-zone="${zone}"[^>]*>${label}<`))
+      expect(markup).not.toContain(zone === 'safe' ? 'PvP Zone' : 'Safe Zone')
+    }
+  })
+  it('does not classify missing current terrain from a neighbouring sector', () => {
+    const view = projectWorld(newWorldState(), [], 1000)
+    view.sectors = view.sectors.filter((sector) => sector.id !== view.position.sectorId)
+    const markup = renderToStaticMarkup(
+      createElement(WorldWorkspace, {
+        initialView: view,
+        character: { name: 'Traveller', portrait: '/portrait.webp' },
+      }),
+    )
+    expect(markup).toMatch(/data-world-zone="unknown"[^>]*>Zone unavailable</)
+    expect(markup).not.toContain('Safe Zone')
+    expect(markup).not.toContain('PvP Zone')
+  })
   it('omits the removed town panorama button while retaining map settings', () => {
     const render = (view: ReturnType<typeof projectWorld>) =>
       renderToStaticMarkup(

@@ -2312,7 +2312,8 @@ function BattleExperienceContent({
                     activeTechnique &&
                     (groundTarget ||
                       (placement &&
-                        (currentDescriptor.targetKind !== 'self' ||
+                        (targetSpec?.geometryVersion === 3 ||
+                          currentDescriptor.targetKind !== 'self' ||
                           placement.combatantId === localCombatantId)))
                       ? selectBattleSkillPreviewIntent(currentDescriptor, {
                           actorId: localCombatantId,

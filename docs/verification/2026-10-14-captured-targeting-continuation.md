@@ -55,15 +55,49 @@ The new browser matrix mounts production PvE/PvP controls at1366×768 and390×84
 against real canonical kernel quotes/commits. It checks no payment during draft,
 explicit group choice, repeated-target removal, two-target settlement with one
 multicost payment, and native keyboard confirmation. It is wired into Browser
-smoke before the reader checks, with an artifact and an8-case Playwright wrapper.
+smoke before the reader checks, with an artifact and a Playwright wrapper. The original eight-case matrix and full Browser smoke
+passed on remote18dd5d5262590b3e606b8ea096d4223172346feb.
 
-This environment has no local Chromium executable. The attempted Playwright
-download returned an invalid/truncated archive. Consequently these new browser
-cases have NOT been observed passing here; a launch failure is not a product
-RED assertion. Existing native UI and new mobile/zoom cases remain acceptance
-work, as does independent whole-Task3 review. No hosted migration, deployment,
-signed-in Production gameplay, full-overhaul completion or balance acceptance
-is claimed by this checkpoint.
+## Reviewed corrections checkpoint
+
+The independent review is not whole-Task3 acceptance. Its Ground delivery and
+omitted canonical geometry findings were reproduced before correction:
+
+- Ground immunity now follows each actual selected recipient, including mixed
+  Ground/unit casts, overlapping explicit unit priority, out-of-turn owner origins,
+  delayed resolution and serialized pending state. Payment remains once per cast.
+  Malformed pending identities fail closed; absent historical metadata keeps its
+  original semantics. Private delivery identities are omitted from public views.
+- Canonical definitions with no geometry marker use effective geometry2 in
+  materialization, Automatic resolution and safe Manual projection. Real capture,
+  participant projection, controller intents and authoritative quotes agree.
+  Uncaptured native history is not normalized.
+- The review's Self-only Circle/All example is invalid: actual capture rejects it
+  with “Self-only targeting uses Single.” Validation was not weakened. A valid
+  owner-triggered unit-area definition with omitted geometry did reproduce an
+  Automatic suppression defect; the shared geometry default fixes that case.
+- Category-based forecasts accept Ally/Enemy categories even when a historical
+  envelope says Self. The JSX fixture's two unused destructuring bindings were
+  removed without exposing the omitted captures or runtime.
+
+Final local checks for these corrections pass 2,999 core tests in155 files and
+2,443 web tests in293 files, direct core/web types, affected web lint (including
+its JSX browser fixture), and formatting. Intermediate malformed test-helper
+imports and an incorrect stat-bridge fixture failed before correction; those
+were fixture errors, not additional product defects. Root lint's captured output
+was incomplete; the complete repository Quality CI remains authoritative.
+
+The native matrix is extended to12 cases using actual touch taps on mobile,
+cancellation and a same-turn higher-version update in both PvE/PvP. This new
+stale-selection assertion is intentionally awaiting an equipped-runner RED;
+the production controller has not yet received that correction. Local Chromium
+installation still yields a truncated archive. Do not call the new12 cases green
+based on the original eight-case success or a launch error.
+
+Latest main0bac86a89d645703e18f690ec0f2b997c3bb5d93 adds the World signed-in
+verification receipt; preserve it along with its live source. No deployment,
+hosted mutation, roster publication, full-overhaul closure, or Task3 acceptance
+is claimed here. Real200% zoom, persistence/CAS and final review remain gates.
 
 ## Resume boundary
 

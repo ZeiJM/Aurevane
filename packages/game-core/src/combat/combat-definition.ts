@@ -1,6 +1,7 @@
 import { automaticAbilityEventSupported } from './combat-ability-events'
 import type { CombatTargetSpec } from './actions'
 import { validateCombatActionDefinition } from './combat-authoring-validation'
+import { canonicalAbilityTargetSpec } from './combat-targeting-shapes'
 import { validateSkillCooldownDefinition, type SkillCooldownDefinition } from './skill-cooldowns'
 import {
   validateAbilityRequirements,
@@ -501,10 +502,7 @@ export function validateAbilityDefinition(value: unknown): readonly AbilityDefin
           version: 1,
           sourceType: 'discipline-skill',
           tags: [],
-          target: {
-            ...target,
-            geometryVersion: target.geometryVersion ?? 2,
-          } as unknown as CombatTargetSpec,
+          target: canonicalAbilityTargetSpec(target as unknown as CombatTargetSpec),
           cost: { spendsAction: true, mp: 0 },
           requirements: [],
           effects: payloads

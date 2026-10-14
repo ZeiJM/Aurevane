@@ -1,4 +1,5 @@
 import type { GridPosition } from './board'
+import { canonicalAbilityTargetSpec } from './combat-targeting-shapes'
 import type {
   CombatEncounterState,
   CombatTargetSelection,
@@ -102,7 +103,7 @@ export function resolveAutomaticAbilitySelection(
   behavior: AbilityBehavior,
   frame: CombatAbilityEventFrame,
 ): AutomaticAbilitySelectionResult {
-  const target = behavior.targeting
+  const target = behavior.targeting ? canonicalAbilityTargetSpec(behavior.targeting) : null
   if (
     !target ||
     behavior.activation !== 'automatic' ||

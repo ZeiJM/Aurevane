@@ -1,5 +1,9 @@
 import { validAccuracy, type CombatAccuracyRule } from './combat-definition'
-import { airborneGroundMiss, airborneAttackAction } from './combat-airborne'
+import {
+  airborneGroundMiss,
+  airborneAttackAction,
+  combatActionHasGroundDelivery,
+} from './combat-airborne'
 import { terrainEvasionBonusBasisPoints } from './combat-stat-balance'
 import { facingHitChanceModifierBasisPoints } from './combat-duel-balance'
 import { advanceBattleRng } from './battle-state'
@@ -215,7 +219,7 @@ export function forecastCombatSkillAccuracy(
     (action.accuracyMode !== 'per-target' &&
       action.accuracyRule === undefined &&
       !action.nativeBasicAttackCommand &&
-      !(state.airbornePolicyVersion === 1 && action.target.kind === 'ground-tile'))
+      !(state.airbornePolicyVersion === 1 && combatActionHasGroundDelivery(action)))
   )
     return evaluation
   const actorId = evaluation.actorId
@@ -272,7 +276,7 @@ export function rollCombatSkillAccuracy(
     (action.accuracyMode !== 'per-target' &&
       action.accuracyRule === undefined &&
       !action.nativeBasicAttackCommand &&
-      !(state.airbornePolicyVersion === 1 && action.target.kind === 'ground-tile'))
+      !(state.airbornePolicyVersion === 1 && combatActionHasGroundDelivery(action)))
   ) {
     return { state, events, missedCombatantIds }
   }

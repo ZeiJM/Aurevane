@@ -359,6 +359,8 @@ export interface CombatEffectOrigin {
 }
 
 export interface CombatActionDefinition {
+  /** Trusted geometry3 delivery, derived from the actual selection; never authored. */
+  groundTargetedRecipientIds?: readonly string[]
   /** Private trusted composed Basic adapter; never authored or projected. */
   nativeBasicAttackCommand?: true
   commandDamageBonuses?: readonly CombatCommandDamageBonus[]
@@ -495,6 +497,8 @@ export interface PendingCombatEffect {
   }
 
   groundTargeted?: true
+  /** Mixed canonical casts retain Ground delivery separately for each pending recipient. */
+  groundTargetedRecipientIds?: readonly string[]
   timingTag?: string
   effectOrigin?: CombatEffectOrigin
   criticalRecipientIds?: readonly string[]
@@ -1019,8 +1023,47 @@ export function elementalActionIntent<T extends CombatActionDefinition>(
   state: CombatEncounterState,
   action: T,
   selection: CombatTargetSelection,
+  executionActorId?: string,
 ): T {
-  if (action.target.geometryVersion === 3) return action
+  if (action.target.geometryVersion === 3) {
+    const actorId = executionActorId ?? state.tactical.battle.currentTurn?.combatantId
+    const choices = selection.kind === 'selections' ? selection.selections : [selection]
+    const directIds = new Set(
+      choices.flatMap((choice) =>
+        choice.kind === 'unit'
+          ? [choice.combatantId]
+          : choice.kind === 'self' && actorId
+            ? [actorId]
+            : [],
+      ),
+    )
+    let groundTiles = choices.flatMap((choice) => (choice.kind === 'tile' ? [choice.position] : []))
+    if (
+      (selection.kind === 'direction' || selection.kind === 'activate') &&
+      actorId &&
+      (selection.ground === true ||
+        action.target.kind === 'ground-tile' ||
+        action.target.kind === 'empty-tile' ||
+        combatTargetCategories(action.target).every((category) => category === 'ground'))
+    ) {
+      const origin = state.tactical.placements.find((p) => p.combatantId === actorId)?.position
+      if (origin)
+        groundTiles = [
+          ...resolveCombatTargetFootprint(state.tactical, origin, action.target, selection),
+        ]
+    }
+    return {
+      ...action,
+      groundTargetedRecipientIds: state.tactical.placements
+        .filter(
+          (p) =>
+            !directIds.has(p.combatantId) &&
+            groundTiles.some((tile) => samePosition(tile, p.position)),
+        )
+        .map((p) => p.combatantId)
+        .sort(compareStableString),
+    }
+  }
   const areaGround =
     (selection.kind === 'direction' || selection.kind === 'activate') &&
     selection.ground !== undefined
@@ -1117,6 +1160,7 @@ export function evaluateCombatAction(
     state,
     airborneAttackAction(state, action, content, actorId),
     selection,
+    actorId,
   )
   const targeting = resolveCombatTargeting(state, actorId, action.target, selection, content)
   issues.push(...targeting.issues)
@@ -1323,7 +1367,7 @@ export function executeCombatAction(
     )
   }
 
-  action = elementalActionIntent(state, action, selection)
+  action = elementalActionIntent(state, action, selection, evaluation.actorId)
   const actorId = evaluation.actorId
   let nextState = state
   let events: CombatResolutionEvent[] = []
@@ -1743,6 +1787,9 @@ function applyCombatRoundBoundary(
         tags: [],
         cost: { spendsAction: false, mp: 0 },
         requirements: [],
+        ...(pending.groundTargetedRecipientIds !== undefined
+          ? { groundTargetedRecipientIds: pending.groundTargetedRecipientIds }
+          : {}),
         target: {
           kind: pending.groundTargeted ? 'ground-tile' : 'unit',
           teamPolicy: 'any',
@@ -2421,7 +2468,16 @@ export function validateCombatEncounterState(
             ) ||
             !Array.isArray(pending.affectedTiles) ||
             (pending.groundTargeted !== undefined &&
-              (pending.groundTargeted !== true || state.airbornePolicyVersion !== 1))
+              (pending.groundTargeted !== true || state.airbornePolicyVersion !== 1)) ||
+            (pending.groundTargetedRecipientIds !== undefined &&
+              (state.airbornePolicyVersion !== 1 ||
+                pending.groundTargeted !== undefined ||
+                !Array.isArray(pending.groundTargetedRecipientIds) ||
+                new Set(pending.groundTargetedRecipientIds).size !==
+                  pending.groundTargetedRecipientIds.length ||
+                pending.groundTargetedRecipientIds.some(
+                  (id: string) => !pending.recipientIds.includes(id),
+                )))
           )
             throw new Error('Invalid pending identity.')
           if (state.skillPacketPolicyVersion === 1 && pending.skillPacketCommandId === undefined)
@@ -3788,8 +3844,18 @@ function resolveActionEffects(
               ...(effect.type === 'damage' && options.skillDamage === false
                 ? { skillDamage: false }
                 : {}),
-              ...(state.airbornePolicyVersion === 1 && action.target.kind === 'ground-tile'
+              ...(state.airbornePolicyVersion === 1 &&
+              action.groundTargetedRecipientIds === undefined &&
+              action.target.kind === 'ground-tile'
                 ? { groundTargeted: true as const }
+                : {}),
+              ...(state.airbornePolicyVersion === 1 &&
+              action.groundTargetedRecipientIds?.some((id) => recipientIds.includes(id))
+                ? {
+                    groundTargetedRecipientIds: action.groundTargetedRecipientIds.filter((id) =>
+                      recipientIds.includes(id),
+                    ),
+                  }
                 : {}),
               ...(skillPacketCommandId !== undefined ? { skillPacketCommandId } : {}),
               ...(commandId !== undefined &&
@@ -4519,19 +4585,40 @@ function settlePercentageDotApplications(
     })
     if (!recipients.length) continue
     if (command.outstandingDamageEffectOrdinals.length) {
-      retained.push({ ...entry, recipientIds: recipients })
+      retained.push({
+        ...entry,
+        recipientIds: recipients,
+        ...(entry.groundTargetedRecipientIds !== undefined
+          ? {
+              groundTargetedRecipientIds: entry.groundTargetedRecipientIds.filter((id) =>
+                recipients.includes(id),
+              ),
+            }
+          : {}),
+      })
       continue
     }
     const eligible = recipients.filter(
       (recipient) => (command.damageByRecipient[recipient] ?? 0) > 0,
     )
     if (entry.activationRound > state.tactical.battle.round) {
-      if (eligible.length) retained.push({ ...entry, recipientIds: eligible })
+      if (eligible.length)
+        retained.push({
+          ...entry,
+          recipientIds: eligible,
+          ...(entry.groundTargetedRecipientIds !== undefined
+            ? {
+                groundTargetedRecipientIds: entry.groundTargetedRecipientIds.filter((id) =>
+                  eligible.includes(id),
+                ),
+              }
+            : {}),
+        })
       continue
     }
     for (const recipientId of eligible) {
       if (
-        entry.groundTargeted &&
+        (entry.groundTargeted || entry.groundTargetedRecipientIds?.includes(recipientId)) &&
         airborneGroundMiss(
           nextState,
           { target: { kind: 'ground-tile' } as CombatTargetSpec },

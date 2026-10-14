@@ -24,7 +24,10 @@ import {
 } from './combat-behavior-capture'
 import type { AbilityBehavior } from './combat-definition'
 import { nativeCombatTagPayload } from './combat-tag-registry'
-import { canonicalCombatEffectRecipients } from './combat-targeting-shapes'
+import {
+  canonicalCombatEffectRecipients,
+  canonicalAbilityTargetSpec,
+} from './combat-targeting-shapes'
 import {
   evaluateAbilityRequirements,
   evaluateAutomaticRequirementTrigger,
@@ -142,7 +145,7 @@ export function materializeCombatAbilityAction(
       ...source.tags.filter((tag) => !['attack', 'mystic', 'physical'].includes(tag)),
       ...(behavior.classification === 'attack' ? ['attack', behavior.attackFamily!] : []),
     ],
-    target: { ...target, geometryVersion: target.geometryVersion ?? 2 },
+    target: canonicalAbilityTargetSpec(target),
     cost: { spendsAction: false, mp: 0 },
     requirements: [],
     ...(behavior.cooldown ? { cooldown: behavior.cooldown } : {}),

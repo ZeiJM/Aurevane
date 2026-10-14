@@ -5,7 +5,10 @@ import {
   battleSkillTargetSpec,
   type BattlePreviewSkill,
 } from './battle-preview-selection'
-import { combatCardinalDirections } from '@aurevane/game-core/combat/combat-targeting-shapes'
+import {
+  combatCardinalDirections,
+  combatTargetCategories,
+} from '@aurevane/game-core/combat/combat-targeting-shapes'
 import { requestBattlePreview } from './battle-preview-request'
 
 export type BattleRangePreviewSkill = BattlePreviewSkill
@@ -45,7 +48,14 @@ export function battleRangePreviewIntents(
         },
       ]
   }
-  if (skill.targetKind !== 'unit') return []
+  if (
+    skill.targetKind !== 'unit' &&
+    !(
+      target?.geometryVersion === 3 &&
+      combatTargetCategories(target).some((category) => category !== 'ground')
+    )
+  )
+    return []
   return combatants.flatMap((combatant) => {
     const intent = selectBattleSkillPreviewIntent(skill, {
       actorId,
