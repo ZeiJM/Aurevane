@@ -58,6 +58,7 @@ describe('world visual motion', () => {
       15000,
     )
     expect(motion.sample(15000).point).toEqual(before.point)
+    motion.updateScene(sectors, 15000)
     motion.resume(15100)
     expect(motion.sample(15100).point).toEqual(before.point)
     expect(motion.sample(15116).point.x - before.point.x).toBeCloseTo(0.08)

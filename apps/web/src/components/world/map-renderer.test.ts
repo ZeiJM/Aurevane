@@ -664,6 +664,29 @@ describe('native map input and bounded lifecycle', () => {
       vi.unstubAllGlobals()
     },
   )
+  it('continues authored held-key cadence until the actual delayed key release', () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'performance'] })
+    const s = scene()
+    const selectedAt: number[] = []
+    s.select.mockImplementation((destination) => {
+      const now = performance.now()
+      selectedAt.push(now)
+      const route = localRoute(s.view, s.motion.sample(now).position, destination)
+      if (route) s.motion.plan(route, s.view.sectors, now)
+    })
+    try {
+      s.listeners.get('keydown')!({ key: 'd', preventDefault() {} } as unknown as Event)
+      vi.advanceTimersByTime(850)
+      expect(selectedAt).toEqual([0, 200, 400, 600, 800])
+      s.listeners.get('keyup')!({ key: 'd' } as unknown as Event)
+      vi.advanceTimersByTime(1000)
+      expect(selectedAt).toEqual([0, 200, 400, 600, 800])
+    } finally {
+      s.renderer.dispose()
+      vi.useRealTimers()
+      vi.unstubAllGlobals()
+    }
+  })
   it.each([200, 400].flatMap((stepMs) => [8, 20].map((cost) => ({ stepMs, cost }))))(
     'keeps held-key deadlines at $stepMs ms despite $cost ms selection work',
     ({ stepMs, cost }) => {

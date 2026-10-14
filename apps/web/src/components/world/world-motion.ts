@@ -477,27 +477,30 @@ export class WorldMotion {
     // rewind an already interpolated step, including at sector boundaries.
     const points = [{ point: authoritative, position: view.position, duration: 0 }, ...route]
     let nearest = 0,
-      distance = Infinity
+      distance = Infinity,
+      beforeOrigin = false
     for (let i = 1; i < points.length; i++) {
       const a = points[i - 1]!.point,
         b = points[i]!.point,
         dx = b.x - a.x,
         dy = b.y - a.y
       const length = dx * dx + dy * dy
-      const t = length
-        ? Math.max(
-            0,
-            Math.min(1, ((visual.point.x - a.x) * dx + (visual.point.y - a.y) * dy) / length),
-          )
+      const projection = length
+        ? ((visual.point.x - a.x) * dx + (visual.point.y - a.y) * dy) / length
         : 1
+      const t = Math.max(0, Math.min(1, projection))
       const d = Math.hypot(a.x + t * dx - visual.point.x, a.y + t * dy - visual.point.y)
       if (d <= distance) {
         nearest = i
         distance = d
+        beforeOrigin = i === 1 && projection < 0
       }
     }
     this.startedAt = now
-    if (distance < 0.8) {
+    // A hidden receipt can advance the confirmed origin ahead of the paused
+    // visual point. Joining its first segment would skip a tile and be trimmed
+    // on scene hydration; use the legal correction path in that case.
+    if (distance < 0.8 && !beforeOrigin) {
       this.origin = visual.point
       this.standing = visual.position
       const first = points[nearest]!
