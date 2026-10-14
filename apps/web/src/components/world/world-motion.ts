@@ -391,6 +391,16 @@ export class WorldMotion {
     }
     return { point, position, moving: false }
   }
+  /** Finish the current supplied visual step when continuous input is released. */
+  nextLanding(now: number): WorldPosition {
+    now = this.suspendedAt ?? now
+    let elapsed = Math.max(0, now - this.startedAt)
+    for (const step of this.route) {
+      if (elapsed + 1e-7 < step.duration) return step.position
+      elapsed = Math.max(0, elapsed - step.duration)
+    }
+    return this.sample(now).position
+  }
   plan(route: readonly TravelStep[], sectors: readonly WorldSectorView[], now: number) {
     if (this.movementFrozen) return
     now = this.suspendedAt ?? now

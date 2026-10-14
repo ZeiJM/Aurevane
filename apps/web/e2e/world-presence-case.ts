@@ -428,9 +428,134 @@ export async function verifyWorldScenePresence(
       })
       .toEqual(destination)
     expect((await world(page)).position).toEqual({ sectorId: 'atlas:58:28', x: 12, y: 4 })
+    const remoteSamples = JSON.parse(
+      (await canvas.getAttribute('data-test-remote-draws')) ?? '[]',
+    ) as { at: number; x: number; y: number }[]
+    const remoteDeltas = remoteSamples.slice(1).map((sample, index) => ({
+      ms: sample.at - remoteSamples[index]!.at,
+      x: sample.x - remoteSamples[index]!.x,
+      y: sample.y - remoteSamples[index]!.y,
+    }))
+    const tile = Number(await canvas.getAttribute('data-tile-size'))
+    expect(remoteDeltas.length).toBeGreaterThan(8)
+    for (const delta of remoteDeltas) {
+      expect(delta.x).toBeGreaterThanOrEqual(0)
+      expect(delta.y).toBeGreaterThanOrEqual(0)
+      expect(delta.x).toBeLessThan(tile * 0.85)
+      expect(delta.y).toBeLessThan(tile * 0.44)
+    }
+    const motionPath = info.outputPath('world-live-peer-interpolation.json')
+    await writeFile(motionPath, JSON.stringify({ remoteSamples, remoteDeltas, tile }))
+    await info.attach('world-live-peer-interpolation', {
+      path: motionPath,
+      contentType: 'application/json',
+    })
     await capture(page, info, 'idle-observer-smooth-remote-arrival')
+
+    // Both observers now move across the scene boundary. Compensate each
+    // nameplate for its own moving camera so camera motion cannot masquerade
+    // as a smoothly moving peer.
+    const movingObservers = [
+      { page, peerId: id, distance: 3 },
+      { page: other, peerId: owner.characterId, distance: 4 },
+    ]
+    for (const observer of movingObservers) {
+      const peerName = (await world(observer.page)).players.find(
+        (peer) => peer.characterId === observer.peerId,
+      )!.name
+      await observer.page.locator('canvas[data-world-stage]').evaluate((el, name) => {
+        const identity = document.querySelector<HTMLCanvasElement>('canvas[data-world-identity]')!,
+          ctx = identity.getContext('2d')!,
+          original = ctx.fillText.bind(ctx)
+        const longTasks: { at: number; durationMs: number }[] = []
+        const tasks = new PerformanceObserver((entries) => {
+          for (const entry of entries.getEntries())
+            longTasks.push({ at: entry.startTime, durationMs: entry.duration })
+          if (longTasks.length > 100) longTasks.splice(0, longTasks.length - 100)
+          el.dataset.testMovingObserverLongTasks = JSON.stringify(longTasks)
+        })
+        tasks.observe({ type: 'longtask' })
+        const samples: {
+          at: number
+          frameAt: number
+          paintingMs: number
+          x: number
+          y: number
+        }[] = []
+        ctx.fillText = (text, x, y, maxWidth) => {
+          if (text === name) {
+            const tile = Number(el.dataset.tileSize),
+              east = (x - identity.clientWidth / 2) / (tile * 0.85),
+              north = (y - identity.clientHeight / 2) / (tile * 0.44)
+            // The fixed label offset cancels when comparing consecutive draws.
+            samples.push({
+              at: performance.now(),
+              frameAt: Number(el.dataset.frameNow),
+              paintingMs: performance.now() - Number(el.dataset.frameStarted),
+              x: Number(el.dataset.cameraX) + (east + north) / 2,
+              y: Number(el.dataset.cameraY) + (north - east) / 2,
+            })
+            if (samples.length > 1500) samples.shift()
+            el.dataset.testMovingObserverDraws = JSON.stringify(samples)
+          }
+          if (maxWidth === undefined) original(text, x, y)
+          else original(text, x, y, maxWidth)
+        }
+      }, peerName)
+    }
+    const ownerDestination = { sectorId: 'atlas:59:28', x: 3, y: 4 },
+      peerDestination = { sectorId: 'atlas:59:28', x: 7, y: 4 }
+    await Promise.all([stageWalk(page, ownerDestination), stageWalk(other, peerDestination)])
+    await Promise.all([
+      expect.poll(async () => (await world(page)).position).toEqual(ownerDestination),
+      expect.poll(async () => (await world(other)).position).toEqual(peerDestination),
+    ])
+    for (const [index, observer] of movingObservers.entries()) {
+      await expect
+        .poll(
+          async () => {
+            const draws = JSON.parse(
+              (await observer.page
+                .locator('canvas[data-world-stage]')
+                .getAttribute('data-test-moving-observer-draws')) ?? '[]',
+            ) as { x: number }[]
+            return draws.length ? draws.at(-1)!.x - draws[0]!.x : 0
+          },
+          { timeout: 5000 },
+        )
+        .toBeGreaterThan(observer.distance - 0.6)
+      const samples = JSON.parse(
+        (await observer.page
+          .locator('canvas[data-world-stage]')
+          .getAttribute('data-test-moving-observer-draws')) ?? '[]',
+      ) as { at: number; x: number; y: number }[]
+      const deltas = samples.slice(1).map((sample, i) => sample.x - samples[i]!.x)
+      const path = info.outputPath(`world-both-moving-peer-${index}.json`)
+      const longTasks = JSON.parse(
+        (await observer.page
+          .locator('canvas[data-world-stage]')
+          .getAttribute('data-test-moving-observer-long-tasks')) ?? '[]',
+      ) as { at: number; durationMs: number }[]
+      await writeFile(
+        path,
+        JSON.stringify({ samples, deltas, longTasks, distance: observer.distance }),
+      )
+      await info.attach(`world-both-moving-peer-${index}`, {
+        path,
+        contentType: 'application/json',
+      })
+      expect(deltas.filter((delta) => delta > 0.002).length).toBeGreaterThan(8)
+      expect(samples.at(-1)!.x - samples[0]!.x).toBeGreaterThan(observer.distance - 0.6)
+      expect(samples.at(-1)!.x - samples[0]!.x).toBeLessThan(observer.distance + 0.6)
+      for (const delta of deltas) {
+        expect(delta).toBeGreaterThan(-0.1)
+        expect(delta).toBeLessThan(0.75)
+      }
+    }
+    await capture(page, info, 'both-walking-smooth-remote-arrival')
     await other.goto('about:blank')
     // Restore the initial neighbouring placement before the viewport/privacy cases.
+    place(owner.characterId, 'atlas:58:28', 12, 4)
     place(id, 'atlas:59:28', 0, 4)
     await page.reload()
 
@@ -639,8 +764,28 @@ export async function verifyWorldInstantActions(
     await expect(page.locator('[data-world-zone]')).toHaveText('PvP Zone')
     await page.mouse.move(0, 0)
     await expect(primary).toHaveCSS('background-color', 'rgb(116, 35, 40)')
+    // Keep held movement active when the legal primary action gains focus.
+    // It must supersede queued walking without a release retarget ahead of it.
+    const canvas = page.locator('canvas[data-world-stage]')
+    const commands: string[] = []
+    page.on('request', (request) => {
+      if (new URL(request.url()).pathname === '/api/world' && request.method() === 'POST')
+        commands.push(request.postDataJSON()?.intent?.kind)
+    })
+    const walkStarted = page.waitForRequest(
+      (request) =>
+        new URL(request.url()).pathname === '/api/world' &&
+        request.method() === 'POST' &&
+        request.postDataJSON()?.intent?.kind === 'walk',
+    )
+    await canvas.focus()
+    await page.keyboard.down('d')
+    await walkStarted
     await primary.click()
+    await page.keyboard.up('d')
     await expect(page).toHaveURL(/\/game\/battle\//, { timeout: 20000 })
+    expect(commands).toContain('attack')
+    expect(commands.at(-1)).toBe('attack')
     await Promise.all(movementReceipts)
     await helpers.capture(page, info, 'instant-approach-legal-encounter')
   } finally {

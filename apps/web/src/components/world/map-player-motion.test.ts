@@ -42,6 +42,129 @@ const step = (x: number, y = 1, durationMs = 200) => ({
 })
 
 describe('approved remote movement clocks', () => {
+  it('starts a newly approved route from its already presented standing pose without skipping late steps', () => {
+    const motion = new WorldPlayerMotion(view(approved(1, [], 1000, null, 1)), 0)
+    const before = motion.sample('remote', 70)
+    motion.update(view(approved(1, [step(2), step(3), step(4)], 1300, 1200, 2)), 70)
+    expect(motion.sample('remote', 70)).toEqual(before)
+    expect(motion.sample('remote', 170)).toEqual({ x: 2, y: 1.5 })
+    expect(motion.sample('remote', 670)).toEqual({ x: 4.5, y: 1.5 })
+  })
+  it('finishes the supplied visual prefix before a newer canonical origin and final arrival', () => {
+    const motion = new WorldPlayerMotion(view(approved(1, [step(2), step(3), step(4)])), 0)
+    const before = motion.sample('remote', 100)
+    const next = view(approved(3, [step(4)], 1450, 1600, 2))
+    motion.update(next, 100)
+    expect(motion.sample('remote', 100)).toEqual(before)
+    expect(motion.sample('remote', 200)).toEqual({ x: 2.5, y: 1.5 })
+    expect(motion.sample('remote', 400)).toEqual({ x: 3.5, y: 1.5 })
+    const finalBefore = motion.sample('remote', 500)
+    motion.update(view(approved(4, [], 1800, null, 3)), 500)
+    expect(motion.sample('remote', 500)).toEqual(finalBefore)
+    expect(motion.sample('remote', 600)).toEqual({ x: 4.5, y: 1.5 })
+    expect(motion.sample('remote', 5000)).toEqual({ x: 4.5, y: 1.5 })
+    expect(next.players[0]!.position).toEqual(player(3).position)
+    expect(next.players[0]!.movement?.nextStepAt).toBe(1600)
+  })
+  it('hides an absent peer immediately but safely joins its fresh seam approval from its last presented pose', () => {
+    const west = { sectorId: 'a', x: 12, y: 1 },
+      east = { sectorId: 'b', x: 0, y: 1 }
+    const terrain = [
+      { ...sectors[0]!, exits: [{ from: west, to: east, durationMs: 200, name: 'Seam' }] },
+      { ...sectors[0]!, id: 'b', atlasColumn: 1, exits: [] },
+    ]
+    const route = [0, 1, 2, 3].map((x) => ({
+      position: { ...east, x },
+      durationMs: 200,
+    }))
+    const receipt = (
+      position: WorldPlayer['position'],
+      steps: typeof route,
+      serverNow: number,
+      nextStepAt: number | null,
+      version: number,
+    ) => view({ ...approved(12, steps, serverNow, nextStepAt, version), position }, terrain)
+    const motion = new WorldPlayerMotion(receipt(west, [], 1000, null, 1), 0)
+    const before = motion.sample('remote', 0)
+    motion.update({ players: [], sectors: terrain }, 50)
+    expect(motion.sample('remote', 50)).toBeUndefined()
+    expect(motion.moving(50)).toBe(false)
+    motion.update(receipt(west, route, 1264, 1200, 2), 100)
+    expect(motion.sample('remote', 100)).toEqual(before)
+    expect(motion.sample('remote', 183.3)!.x - before!.x).toBeLessThan(0.75)
+    const advanced = motion.sample('remote', 350)
+    motion.update(receipt({ ...east, x: 2 }, [route[3]!], 1762, 1800, 3), 350)
+    expect(motion.sample('remote', 350)).toEqual(advanced)
+    const final = motion.sample('remote', 600)
+    motion.update(receipt({ ...east, x: 3 }, [], 2000, null, 4), 600)
+    expect(motion.sample('remote', 600)).toEqual(final)
+    expect(motion.sample('remote', 900)).toEqual({ x: 16.5, y: 1.5 })
+    expect(motion.moving(900)).toBe(false)
+  })
+  it('closes a retained prefix when its old private ground is withdrawn', () => {
+    const motion = new WorldPlayerMotion(view(approved(1, [step(2), step(3), step(4)])), 0)
+    motion.sample('remote', 100)
+    motion.update(view(approved(3, [step(4)], 1450, 1600, 2)), 100)
+    const terrain = sectors.map((sector) => ({
+      ...sector,
+      cells: sector.cells.filter((cell) => cell.x !== 2 || cell.y !== 1),
+    }))
+    motion.update(view(approved(3, [step(4)], 1450, 1600, 2), terrain), 150)
+    expect(motion.sample('remote', 200)).toEqual({ x: 3.5, y: 1.5 })
+    expect(motion.moving(200)).toBe(false)
+  })
+  it('preserves its presented fraction when a newer agreeing clock is further ahead', () => {
+    const motion = new WorldPlayerMotion(view(approved(1, [step(2), step(3)])), 0)
+    const before = motion.sample('remote', 50)
+    motion.update(view(approved(1, [step(2), step(3)], 1190, 1200, 2)), 50)
+    expect(motion.sample('remote', 50)).toEqual(before)
+    expect(motion.sample('remote', 100)).toEqual({ x: 2, y: 1.5 })
+  })
+  it('does not render a stale reappearance and resumes only after a fresh approved version', () => {
+    const motion = new WorldPlayerMotion(view(approved(1, [], 1000, null, 5)), 0)
+    motion.sample('remote', 0)
+    motion.update({ players: [], sectors }, 50)
+    motion.update(view(approved(1, [step(2)], 1100, 1200, 4)), 100)
+    expect(motion.sample('remote', 100)).toBeUndefined()
+    expect(motion.moving(100)).toBe(false)
+    motion.update(view(approved(1, [step(2)], 1100, 1200, 6)), 110)
+    expect(motion.sample('remote', 110)).toEqual({ x: 1.5, y: 1.5 })
+    expect(motion.sample('remote', 210)).toEqual({ x: 2, y: 1.5 })
+  })
+  it('expires an unseen pose instead of reviving it after a long absence', () => {
+    const motion = new WorldPlayerMotion(view(approved(1, [], 1000, null, 1)), 0)
+    motion.sample('remote', 0)
+    motion.update({ players: [], sectors }, 50)
+    motion.update(view(approved(1, [step(2)], 1100, 1200, 2)), 9000)
+    expect(motion.sample('remote', 9000)).toEqual({ x: 2, y: 1.5 })
+  })
+  it('freezes a briefly absent approved phase without rendering or restarting its route', () => {
+    const motion = new WorldPlayerMotion(view(approved(1, [step(2), step(3)])), 0)
+    const before = motion.sample('remote', 100)
+    motion.update({ players: [], sectors }, 120)
+    expect(motion.sample('remote', 120)).toBeUndefined()
+    expect(motion.moving(120)).toBe(false)
+    motion.update(view(approved(1, [step(2), step(3)], 1200, 1200)), 200)
+    expect(motion.sample('remote', 200)).toEqual(before)
+    expect(motion.sample('remote', 300)).toEqual({ x: 2.5, y: 1.5 })
+    expect(motion.sample('remote', 500)).toEqual({ x: 3.5, y: 1.5 })
+  })
+  it('bounds unseen pose retention even when many approved players leave together', () => {
+    const players = Array.from({ length: 101 }, (_, i) => ({
+      ...approved(1, [], 1000, null, 1),
+      characterId: `remote-${i}`,
+    }))
+    const motion = new WorldPlayerMotion({ players, sectors }, 0)
+    for (const person of players) motion.sample(person.characterId, 0)
+    motion.update({ players: [], sectors }, 50)
+    const returning = [0, 100].map((i) => ({
+      ...approved(1, [step(2)], 1100, 1200, 2),
+      characterId: `remote-${i}`,
+    }))
+    motion.update({ players: returning, sectors }, 100)
+    expect(motion.sample('remote-0', 100)).toEqual({ x: 2, y: 1.5 })
+    expect(motion.sample('remote-100', 100)).toEqual({ x: 1.5, y: 1.5 })
+  })
   it('starts a delayed first receipt at the approved fraction without changing confirmed position', () => {
     const receipt = view(approved(1, [step(2), step(3)], 1100))
     const motion = new WorldPlayerMotion(receipt, 5000)

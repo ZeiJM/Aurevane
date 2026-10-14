@@ -1538,6 +1538,50 @@ test('scenic countryside has real blossom woodland, ruins, pools and open meadow
   }
 })
 
+test('charted globe travel survives unrelated frontier discoveries and retains bounded authoritative continuation', async ({
+  page,
+}, info) => {
+  test.skip(info.project.name !== 'desktop-chromium', 'Exercise distant canonical routing once.')
+  test.setTimeout(60000)
+  await enter(page)
+  const initial = await world(page)
+  place(initial.characterId, 'atlas:47:33', 6, 4)
+  sql(
+    `update app_private.character_world_state set state=jsonb_set(state,'{discoveries}',coalesce(state->'discoveries','{}'::jsonb)||'{"survey-01":[110]}'::jsonb) where character_id='${initial.characterId}'::uuid`,
+  )
+  await page.reload()
+  const approval = page.waitForResponse(
+    (response) =>
+      response.request().method() === 'POST' &&
+      new URL(response.url()).pathname === '/api/world' &&
+      response.request().postDataJSON()?.intent?.kind === 'walk' &&
+      response.request().postDataJSON()?.intent?.destination?.sectorId === 'verdant-expanse',
+  )
+  await stageWalk(page, { sectorId: 'verdant-expanse', x: 6, y: 4 })
+  const response = await approval
+  expect(response.status()).toBe(200)
+  const receipt = await response.json()
+  expect(receipt.kind).toBe('movement')
+  expect(receipt.route).toHaveLength(256)
+  expect(receipt.routeDestination).toEqual({ sectorId: 'verdant-expanse', x: 6, y: 4 })
+  expect(receipt.route.every((step: WorldView['route'][number]) => step.durationMs === 200)).toBe(
+    true,
+  )
+  // Next's empty route announcer also has role=alert outside the game main.
+  // Require the actual World error surface to remain absent.
+  await expect(page.locator('main').getByRole('alert')).toHaveCount(0)
+  await capture(page, info, 'distant-globe-route-approved')
+  const stopped = page.waitForResponse(
+    (response) =>
+      response.request().method() === 'POST' &&
+      new URL(response.url()).pathname === '/api/world' &&
+      response.request().postDataJSON()?.intent?.kind === 'stop',
+  )
+  await page.locator('canvas[data-world-stage]').press('Escape')
+  expect((await stopped).status()).toBe(200)
+  await expect.poll(async () => (await world(page)).route.length).toBe(0)
+})
+
 registerWorldInputCases({ enter, world, place, stageWalk, capture, openJournal })
 registerWorldLandscapeCases({ enter, world, place, stageWalk, capture })
 

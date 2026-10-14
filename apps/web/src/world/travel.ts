@@ -132,12 +132,28 @@ export function findWorldRoute(
   known?: (p: WorldPosition) => boolean,
 ): TravelStep[] | null {
   const lookup = new Map(sectors.map((s) => [s.id, s]))
+  // Discovered compatibility/frontier sectors may have only a return road into
+  // the atlas. They cannot affect a journey that cannot enter them, and must
+  // not disable its geographic lower bound or exhaust a world-wide flood.
+  const reachable = new Set([from.sectorId]),
+    pending = [from.sectorId]
+  for (let index = 0; index < pending.length; index++) {
+    const source = lookup.get(pending[index]!)
+    for (const road of source?.roads ?? []) {
+      const id = road.to.sectorId
+      if (!lookup.has(id) || reachable.has(id)) continue
+      reachable.add(id)
+      pending.push(id)
+    }
+  }
+  if (!reachable.has(to.sectorId)) return null
+  const connected = sectors.filter((sector) => reachable.has(sector.id))
   const target = lookup.get(to.sectorId)
   if (!target || !isWalkable(target, to) || (known && !known(to))) return null
   // Atlas-only routes have adjacent geometry and uniform 200ms costs; the Manhattan lower
   // bound cuts distant journeys from a world-wide flood to a narrow corridor. Historical
   // portal/trail graphs fall back to Dijkstra rather than assuming geometry they don't have.
-  const atlasOnly = sectors.every(
+  const atlasOnly = connected.every(
     (s) =>
       s.atlasColumn !== undefined &&
       s.atlasRow !== undefined &&

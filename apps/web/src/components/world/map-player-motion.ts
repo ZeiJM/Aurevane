@@ -6,8 +6,15 @@ import { mapPoint, prepareLocalRoute, type MapPoint } from './world-motion'
 
 const MAX_STEPS = 12
 const MAX_CATCHUP_MS = 1200
+const REAPPEAR_MS = 750
+const MAX_RECENT_POSES = 100
 type Receipt = Pick<WorldView, 'players' | 'sectors'>
-type Segment = { point: MapPoint; position: WorldPosition; duration: number }
+type Segment = {
+  point: MapPoint
+  position: WorldPosition
+  duration: number
+  authoredDuration?: number
+}
 type Track = {
   confirmed: WorldPosition
   origin: MapPoint
@@ -16,6 +23,7 @@ type Track = {
   startedAt: number
   endsAt: number
   charted: boolean
+  lastSampleAt?: number
   approved?: { version: number; expiresAt: number; lastPoint: MapPoint }
 }
 
@@ -23,6 +31,9 @@ type Track = {
 export class WorldPlayerMotion {
   private tracks = new Map<string, Track>()
   private versions = new Map<string, number>()
+  // Authorization loss still removes all rendering immediately. This bounded
+  // pose history can only join a fresh authorized, currently supplied receipt.
+  private recent = new Map<string, { track: Track; frozenAt: number; until: number }>()
   private sectors: readonly WorldSectorView[] | null = null
   private navigate: ReturnType<typeof prepareLocalRoute> | null = null
   private known = new Set<string>()
@@ -66,6 +77,7 @@ export class WorldPlayerMotion {
     const track = this.tracks.get(id)
     if (!track) return undefined
     const point = this.at(track, now).point
+    track.lastSampleAt = now
     if (track.approved) track.approved.lastPoint = point
     return track.charted && reference ? { x: wrappedMapX(point.x, reference.x), y: point.y } : point
   }
@@ -75,6 +87,7 @@ export class WorldPlayerMotion {
     return false
   }
   update(view: Receipt, now: number, reference?: MapPoint) {
+    for (const [id, saved] of this.recent) if (now > saved.until) this.recent.delete(id)
     const terrainChanged = this.sectors !== view.sectors
     if (terrainChanged) {
       this.sectors = view.sectors
@@ -98,16 +111,20 @@ export class WorldPlayerMotion {
           this.tracks.delete(id)
           continue
         }
-        let from = track.confirmed
+        let from = track.standing
         for (const step of track.route) {
           if (
-            !this.legalApprovedStep(from, { position: step.position, durationMs: step.duration })
+            !this.legalApprovedStep(from, {
+              position: step.position,
+              durationMs: step.authoredDuration ?? step.duration,
+            })
           ) {
             track.origin = mapPoint(track.confirmed, view.sectors, track.approved.lastPoint)
             track.standing = track.confirmed
             track.route = []
             track.startedAt = track.endsAt = now
             track.approved.lastPoint = track.origin
+            track.lastSampleAt = undefined
             break
           }
           from = step.position
@@ -115,23 +132,49 @@ export class WorldPlayerMotion {
       }
     }
     const present = new Set(view.players.map((player) => player.characterId))
-    for (const id of this.tracks.keys()) if (!present.has(id)) this.tracks.delete(id)
+    for (const [id, track] of this.tracks)
+      if (!present.has(id)) {
+        if (track.approved && track.lastSampleAt !== undefined && this.suppliedTrack(track)) {
+          this.recent.delete(id)
+          this.recent.set(id, {
+            track,
+            frozenAt: Math.max(track.startedAt, track.lastSampleAt),
+            until: now + REAPPEAR_MS,
+          })
+          while (this.recent.size > MAX_RECENT_POSES)
+            this.recent.delete(this.recent.keys().next().value!)
+        }
+        this.tracks.delete(id)
+      }
     for (const id of this.versions.keys()) if (!present.has(id)) this.versions.delete(id)
     for (const player of view.players) {
-      const previous = this.tracks.get(player.characterId)
+      const saved = this.recent.get(player.characterId)
+      const resume = saved && this.suppliedTrack(saved.track)
+      const previous =
+        this.tracks.get(player.characterId) ??
+        (resume
+          ? {
+              ...saved.track,
+              startedAt: saved.track.startedAt + now - saved.frozenAt,
+              endsAt: saved.track.endsAt + now - saved.frozenAt,
+            }
+          : undefined)
       const movement = player.movement
       // An older receipt cannot reopen an approved route or replace its position.
       if (
         movement &&
         Number.isSafeInteger(movement.version) &&
-        movement.version < (this.versions.get(player.characterId) ?? -1)
+        movement.version <
+          (this.versions.get(player.characterId) ?? previous?.approved?.version ?? -1)
       )
         continue
       const destination = player.position
       if (!this.known.has(positionKey(destination))) {
         this.tracks.delete(player.characterId)
+        this.recent.delete(player.characterId)
         continue
       }
+      this.recent.delete(player.characterId)
       const visual = previous && this.at(previous, now)
       const point = mapPoint(destination, view.sectors, visual?.point ?? reference)
       const charted = Boolean(
@@ -163,7 +206,7 @@ export class WorldPlayerMotion {
           settle()
           continue
         }
-        const previousVersion = this.versions.get(player.characterId)
+        const previousVersion = this.versions.get(player.characterId) ?? previous?.approved?.version
         this.versions.set(player.characterId, movement.version)
         if (player.online === false) {
           settle({ version: movement.version, expiresAt: now, lastPoint: point })
@@ -171,6 +214,7 @@ export class WorldPlayerMotion {
         }
         if (movement.version === previousVersion) {
           if (!previous?.approved) settle()
+          else if (resume) this.tracks.set(player.characterId, previous)
           continue
         }
         const approved = {
@@ -188,23 +232,59 @@ export class WorldPlayerMotion {
         for (const step of movement.route.slice(0, MAX_STEPS)) {
           if (!this.legalApprovedStep(from, step)) break
           const next = mapPoint(step.position, view.sectors, origin)
-          route.push({ point: next, position: { ...step.position }, duration: step.durationMs })
+          route.push({
+            point: next,
+            position: { ...step.position },
+            duration: step.durationMs,
+            authoredDuration: step.durationMs,
+          })
           from = step.position
           origin = next
         }
         if (
-          !route.length ||
-          movement.nextStepAt === null ||
-          movement.nextStepAt > movement.serverNow + route[0]!.duration ||
+          (movement.route.length && !route.length) ||
+          (route.length &&
+            (movement.nextStepAt === null ||
+              movement.nextStepAt > movement.serverNow + route[0]!.duration)) ||
           now > approved.expiresAt
         ) {
           settle(approved)
           continue
         }
+        const prefix =
+          previous && visual
+            ? this.remainingPrefix(previous, now, visual, destination, route)
+            : undefined
+        if (prefix) {
+          const joined = [...prefix, ...route].slice(0, MAX_STEPS)
+          this.tracks.set(player.characterId, {
+            confirmed: { ...destination },
+            origin: visual!.point,
+            standing: { ...visual!.position },
+            route: joined,
+            startedAt: now,
+            endsAt: now + joined.reduce((sum, step) => sum + step.duration, 0),
+            charted,
+            lastSampleAt: previous!.lastSampleAt,
+            approved: { ...approved, lastPoint: visual!.point },
+          })
+          continue
+        }
+        if (!route.length || movement.nextStepAt === null) {
+          settle(approved)
+          continue
+        }
         const clockStart = now + movement.nextStepAt - movement.serverNow - route[0]!.duration
         const joined =
-          previous && visual ? this.joinedElapsed(previous, now, visual.point, point, route) : 0
-        const startedAt = Math.min(clockStart, now - joined)
+          previous && visual
+            ? this.joinedElapsed(previous, now, visual.point, point, route)
+            : undefined
+        const standingJoin =
+          previous?.approved &&
+          visual &&
+          visual.index === previous.route.length &&
+          Math.hypot(visual.point.x - point.x, visual.point.y - point.y) < 1e-8
+        const startedAt = standingJoin ? now : joined !== undefined ? now - joined : clockStart
         this.tracks.set(player.characterId, {
           confirmed: { ...destination },
           origin: point,
@@ -213,6 +293,7 @@ export class WorldPlayerMotion {
           startedAt,
           endsAt: startedAt + route.reduce((sum, step) => sum + step.duration, 0),
           charted,
+          lastSampleAt: previous?.lastSampleAt,
           approved,
         })
         continue
@@ -298,6 +379,56 @@ export class WorldPlayerMotion {
       )
     )
   }
+  private suppliedTrack(track: Track) {
+    if (!this.known.has(positionKey(track.confirmed))) return false
+    let from = track.standing
+    for (const step of track.route) {
+      if (
+        !this.legalApprovedStep(from, {
+          position: step.position,
+          durationMs: step.authoredDuration ?? step.duration,
+        })
+      )
+        return false
+      from = step.position
+    }
+    return this.walkable.has(positionKey(track.standing))
+  }
+  private remainingPrefix(
+    previous: Track,
+    now: number,
+    visual: ReturnType<WorldPlayerMotion['at']>,
+    destination: WorldPosition,
+    route: Segment[],
+  ) {
+    if (!previous.approved || now > previous.approved.expiresAt || !this.suppliedTrack(previous))
+      return undefined
+    const index = previous.route.findIndex(
+      (step, i) => i >= visual.index && samePosition(step.position, destination),
+    )
+    if (index < 0) return undefined
+    const endpoint = previous.route[index]!.point
+    if (!route.length) {
+      // A completed approved journey can finish its remaining displayed legs;
+      // an explicit stop before its endpoint still closes the old route.
+      if (index !== previous.route.length - 1) return undefined
+    } else {
+      const next = previous.route[index + 1]
+      if (next) {
+        if (!samePosition(next.position, route[0]!.position)) return undefined
+      } else {
+        const before = index ? previous.route[index - 1]!.point : previous.origin
+        const x = endpoint.x - before.x,
+          y = endpoint.y - before.y,
+          dx = route[0]!.point.x - endpoint.x,
+          dy = route[0]!.point.y - endpoint.y
+        if (x * dx + y * dy <= 0 || Math.abs(x * dy - y * dx) > 1e-8) return undefined
+      }
+    }
+    const pending = previous.route.slice(visual.index, index + 1).map((step) => ({ ...step }))
+    pending[0]!.duration -= visual.elapsed
+    return pending[0]!.duration > 0 ? pending : undefined
+  }
   private joinedElapsed(
     previous: Track,
     now: number,
@@ -305,7 +436,8 @@ export class WorldPlayerMotion {
     origin: MapPoint,
     route: Segment[],
   ) {
-    if (!previous.approved || now > previous.approved.expiresAt || !previous.route.length) return 0
+    if (!previous.approved || now > previous.approved.expiresAt || !previous.route.length)
+      return undefined
     const index = Math.min(this.at(previous, now).index, previous.route.length - 1)
     const before = index ? previous.route[index - 1]!.point : previous.origin
     const after = previous.route[index]!.point
@@ -330,11 +462,12 @@ export class WorldPlayerMotion {
       elapsed += step.duration
       from = step.point
     }
-    return 0
+    return undefined
   }
   dispose() {
     this.tracks.clear()
     this.versions.clear()
+    this.recent.clear()
     this.sectors = null
     this.navigate = null
     this.known.clear()
