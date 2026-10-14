@@ -49,7 +49,6 @@ During the full run, current main advanced to `69347f11e4625808df91b033d4139da91
 
 The local executor reports `environment_offline: Environment is not connected`. GitHub/Vercel access remains available. There is no claimed local combined check; the fresh native CI quality gate must validate that combined source before release.
 
-
 ## Final combined gates and Production receipt
 
 Combined candidate `bf0e706dea9e180ae78e63133da5bca5713d814e`, tree `b7d2fa3c01231858347f9454e401aaa54751338e`, passes all three exact-head workflows:
