@@ -20,9 +20,9 @@ test('captured targeting collects explicit plural targets and Manual behavior ch
       maxBuffer: 4 * 1024 * 1024,
     },
   )
-  expect(result.stdout).toContain('12 canonical controller cases passed')
+  expect(result.stdout).toContain('14 canonical controller cases passed')
   const report = JSON.parse(await readFile(resolve(output, 'results.json'), 'utf8'))
-  expect(report.cases).toBe(12)
+  expect(report.cases).toBe(14)
   expect(report.errors).toEqual([])
   await info.attach('Canonical targeting', {
     path: resolve(output, 'results.json'),

@@ -265,6 +265,46 @@ try {
       await reconcile.close()
       cases++
     }
+    // Actual CSS content zoom exercises enlarged hit targets; this is not browser-chrome zoom.
+    const zoomed = await browser.newPage({ viewport: { width: 1366, height: 768 } })
+    zoomed.on('pageerror', (error) => errors.push(error.message))
+    await zoomed.goto(
+      server.resolvedUrls.local[0] + `?mode=${mode}&targeting=single&canonical=plural`,
+    )
+    await zoomed.evaluate(() => {
+      document.documentElement.style.zoom = '2'
+    })
+    await zoomed.getByRole('button', { name: /^Selected Targeting Test,/ }).click()
+    await zoomed
+      .locator('#battlefield')
+      .getByRole('button', { name: /^Tile 5, 4;/ })
+      .click()
+    const zoomConfirm = zoomed.getByRole('button', { name: 'Use selected targets', exact: true })
+    assert.equal(await zoomConfirm.isEnabled(), true)
+    await zoomConfirm.scrollIntoViewIfNeeded()
+    await zoomed.screenshot({ path: resolve(output, `${mode}-200pct-content-zoom.png`) })
+    await zoomConfirm.click()
+    await zoomed.waitForFunction(() => window.fixtureBattle.battleVersion === 2)
+    const zoomResult = await zoomed.evaluate(() => ({
+      calls: window.calls.filter((call) => /\/(commit|intents)$/.test(call.path)),
+      receipts: window.receipts,
+      actor: window.fixtureBattle.snapshot.tactical.battle.combatants[0],
+    }))
+    assert.equal(zoomResult.calls.length, 1)
+    assert.deepEqual(zoomResult.calls[0].body.intent.target, {
+      kind: 'selections',
+      selections: [{ kind: 'unit', combatantId: 'enemy-one' }],
+    })
+    assert.deepEqual(
+      zoomResult.receipts
+        .filter((event) => event.event === 'damage_applied')
+        .map((event) => event.targetCombatantId),
+      ['enemy-one'],
+    )
+    assert.equal(zoomResult.actor.hp, 99)
+    assert.equal(zoomResult.actor.mp, 48)
+    await zoomed.close()
+    cases++
   }
   assert.deepEqual(errors, [])
   await fs.writeFile(

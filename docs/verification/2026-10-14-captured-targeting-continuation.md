@@ -115,3 +115,34 @@ is claimed here. Real200% zoom, persistence/CAS and final review remain gates.
 
 High effort remains sufficient for this continuation. Pause for Owner-selected
 Extra High only if a later judgment task genuinely needs it.
+
+## Native stale-selection RED and storage follow-up
+
+Remote56348580d88798b499900f46dc5cf0fb6ffd3011/tree48d07a36e155fa47c2d2e2fc0622012a93666070
+reproduces the same-turn stale draft on the equipped Chromium runner:
+Browser38544333179/job115786531601 fails at the five-second wait for Confirm
+to disable (script line244), after the higher-version external battle event.
+The existing ally and historical geometry steps pass first. This is an observed
+product RED, not a missing-browser launch failure.
+
+The controller correction uses the existing planning cleanup to invalidate the
+actual draft/ref, pending intent and forecast sequence on every authoritative
+higher version. A still-valid local same-turn action remains armed; its old
+recipient selection does not. Native GREEN for this correction is pending.
+The matrix now also checks200% CSS content zoom in both modes (14 total cases);
+this is enlarged page content, not a claim about browser-chrome zoom controls.
+
+Two real-kernel casts now traverse actual PGlite migration-defined PvE/PvP
+creation and commit_battle_intent_v3 authority. Delayed mixed Ground/unit
+metadata and immutable captures round-trip in the stored snapshot. One AP/MP/HP
+payment is retained; exact replay adds neither payment nor events; conflicting
+fingerprints, stale versions and unavailable users are rejected; events, snapshots
+and private journals are checked after rejection. Full database suite94/15 and
+DB types pass. Initial PvE fixture omitted two participant records and correctly
+failed coverage; the fixture was repaired without weakening database authority.
+These are local native SQL receipts, not hosted gameplay acceptance.
+
+Current covering controller39 tests, web/DB types and affected lint pass.
+Remote56348580 complete CI Quality/Database and Skill Engine/Shared Build/Essence
+workflows pass; Browser fails at the intended stale-selection RED. Complete CI
+on the controller correction and storage-test head remains required.

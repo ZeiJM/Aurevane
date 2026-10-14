@@ -804,6 +804,11 @@ function BattleExperienceContent({
             nextBattleState.currentTurn?.combatantId,
           )}.`,
         )
+      } else {
+        // A new authoritative version invalidates drafts and quotes even within the same turn.
+        const retainMode = canRetainBattleActionPreview(current, next, localCombatantId)
+        clearPlanning(retainMode ? modeRef.current : 'none')
+        setNotice('The battle changed elsewhere. Choose your targets again.')
       }
     },
     [clearPlanning, localCombatantId, viewModel],
