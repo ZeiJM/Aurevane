@@ -20,10 +20,17 @@ afterEach(() => vi.clearAllMocks())
 describe('Account settings destinations', () => {
   it('opens Audio as a page link alongside Titles and Controls', () => {
     vi.mocked(useState).mockImplementationOnce(() => [true, vi.fn()])
-    const markup = renderToStaticMarkup(createElement(AccountMenu))
+    const markup = renderToStaticMarkup(
+      createElement(AccountMenu, {
+        characterName: 'Aster',
+        characterPortrait: createElement('span', { 'data-testid': 'menu-portrait' }, 'portrait'),
+      }),
+    )
     expect(markup).toMatch(/href="\/game\/settings\/audio"[^>]*role="menuitem"[^>]*>Audio<\/a>/)
     expect(markup).toContain('href="/game/account/titles"')
     expect(markup).toContain('href="/game/settings/controls"')
     expect(markup).not.toContain('aria-label="Audio settings"')
+    expect(markup).toContain('Welcome back, Aster.')
+    expect(markup).toContain('data-testid="menu-portrait"')
   })
 })

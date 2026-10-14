@@ -3,7 +3,7 @@
 import type { Route } from 'next'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 
 import styles from './account-menu.module.css'
 
@@ -11,6 +11,7 @@ interface AccountMenuProps {
   activeSessionHref?: Route | null
   activeSessionLabel?: string | null
   characterName?: string | null
+  characterPortrait?: ReactNode
   masterPanelHref?: Route | null
 }
 
@@ -18,6 +19,7 @@ export function AccountMenu({
   activeSessionHref = null,
   activeSessionLabel = null,
   characterName = null,
+  characterPortrait = null,
   masterPanelHref = null,
 }: AccountMenuProps) {
   const pathname = usePathname()
@@ -83,7 +85,18 @@ export function AccountMenu({
           {characterName ? (
             <div className={styles.characterGreeting}>
               <span>Current character</span>
-              <strong>Welcome back, {characterName}.</strong>
+              <div className={styles.characterWelcome}>
+                <strong>Welcome back, {characterName}.</strong>
+                {characterPortrait ? (
+                  <div
+                    className={styles.characterPortrait}
+                    data-account-character-portrait="true"
+                    aria-hidden="true"
+                  >
+                    {characterPortrait}
+                  </div>
+                ) : null}
+              </div>
             </div>
           ) : null}
           <Link
