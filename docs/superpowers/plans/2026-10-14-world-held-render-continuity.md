@@ -48,17 +48,17 @@
 
 - [x] Reproduce camera movement across a dense supplied sector scene causing raster scale changes. Measure repeated cached shore/biome painting, not merely successful arrival. Require unchanged cached content not to be regenerated on a camera-only density change; observe failure before implementation.
 - [x] Implement cheap resampling only after equal-content verification; preserve logical surface coordinates and exact replacement pixel accounting/eviction bound.
-- [ ] Verify changed/withheld cells and water/biome/bridge joins still invalidate; repeat zoom/resize and high-DPI identity cases with no image source/quality reduction.
-- [ ] Add native forest movement diagnostics for frame gaps and cache rebuilding, with original ambient art retained.
+- [x] Verify changed/withheld cells and water/biome/bridge joins still invalidate; repeat zoom/resize and high-DPI identity cases with no image source/quality reduction.
+- [x] Add native forest movement diagnostics for frame gaps and cache rebuilding, with original ambient art retained.
 
 ## Task3: Combined action/peer verification and release
 
 **Files:** existing World controller/player-motion tests and native World presence/input cases; verification receipt and ledgers.
 
-- [ ] Exercise Attack while walking and while scene hydration is held; retain immediate dispatch, canonical range/protection and two-account encounter confirmation.
-- [ ] Exercise approved peer routes under delayed reads/updates and boundary crossings; require interpolated intermediate steps without opposite-direction corrections.
-- [ ] Run full local quality and independent review; fresh-main reconciliation before publication.
-- [ ] Wait for all triggered exact-head workflows, inspect native frame/visual evidence, merge only the verified source and manually deploy the exact merge.
+- [x] Exercise Attack while walking and while scene hydration is held; retain immediate dispatch, canonical range/protection and two-account encounter confirmation.
+- [x] Exercise approved peer routes under delayed reads/updates and boundary crossings; require interpolated intermediate steps without opposite-direction corrections.
+- [x] Run full local quality and independent review; fresh-main reconciliation before publication.
+- [x] Wait for all triggered exact-head workflows, inspect native frame/visual evidence, merge only the verified source and manually deploy the exact merge.
 - [ ] Verify canonical READY/source, bounded signed-in movement and retained baseline/resources/preferences, then record Owner acceptance as open until tested.
 
 ## Owner-added rendering coverage (October14,09:28 Trinidad)
@@ -80,3 +80,5 @@ Review fix: automatic scene pacing also requires actual viewport coverage at the
 ## Confirmed moving-observer peer-clock continuation
 
 The second native run proves late reappearance and advanced-canonical-origin jumps through already supplied approved legs. Preserve standing/shared-edge phase, play an agreeing remaining approved prefix at original authored costs, and finish a completed endpoint continuously. Keep absence immediately hidden, with only100 sampled approved poses for750ms eligible after fresh authorization and geometry/version validation. Preserve old reverse/mid-route Stop policy and12-leg bound. Nine deterministic regressions and independent review precede full local and fresh native verification; no success/live claim is made until those gates pass.
+
+Release checkpoint: all exact-head gates pass and PR #906 is live at merge36fbe14cdd44e2f4562e5cc4235e3cd484cbdb89 / deploymentdpl_9ihjPb7X6Qb88wcczLYQKXkVGAR1. Canonical READY/source and public entry/error checks pass. The final signed-in live checklist stays open because cloud-browser read/recovery attempts timed out; native and live receipts are distinguished in `docs/verification/2026-10-14-world-held-render-routing.md`. Human acceptance remains open.
