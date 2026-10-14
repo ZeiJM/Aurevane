@@ -1,5 +1,10 @@
 # Unified engine and Master Panel recovery design
 
+## Owner combat-first release correction — October 14
+
+After completing Move and the mechanics/capture/publication/readers needed by the creative balanced roster, release that verified combat update, then finish the other approved panel and world updates. The later Owner instruction supersedes the earlier all-other-work-first roster sequencing. It preserves the complete deliverable scope, every-programmed-tag coverage, historical definitions, actual native tests, safe immutable publication and verified live release. No partial core-only Move or untested roster is ready to ship.
+
+
 This resumes the Owner-approved overhaul. It does not claim to restore the missing implementation. The exact approved brief is `2026-10-10-unified-engine-recovery-owner-brief.md`; subsequent conversation adds editable Move/Basic Attack, movement as a reusable Skill effect, a complete creative and balanced roster revision, and the final verified live release. Existing approval remains in force. The earlier 42-line ruling ledger and local commits are unavailable; this document carries the recoverable contracts explicitly without claiming to reproduce that ledger.
 
 Baseline: `ee5d49de449851c9b9aa61438735c4cd27ca6af4`. Recovery branch: `agent/unified-engine-recovery-20261010`. Task1 product work is reconstructed and independently accepted; actual runtime integration and later tasks remain pending. Hosted migrations, publication, merge and deployment have not started on this branch.

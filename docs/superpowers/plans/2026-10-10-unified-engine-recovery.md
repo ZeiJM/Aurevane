@@ -1,5 +1,10 @@
 # Unified Engine Recovery Implementation Plan
 
+## Owner combat-first release correction — October 14
+
+The Owner now requests: finish Move, perform the creative balanced Skill/Resonance rebalance, verify and release that combat update, then continue all remaining panel/world work. This supersedes the earlier instruction to defer roster work until every unrelated overhaul section is complete. Tasks3A/4 and the combat-critical capture/publication/readers portions of5/7/13 remain dependencies where the roster uses them. Complete those real execution and safe publication contracts, then14–16 for a bounded combat release; remaining Master UI, weather/day-night, Account/world follow-ups and other approved tasks continue afterward. Retain all originally requested deliverables and all-tag coverage. The final whole-overhaul acceptance remains separate; a combat release does not close unfinished tasks or a phase.
+
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. Existing Owner approval authorizes execution; do not ask for design approval again.
 
 **Goal:** Reconstruct and deliver the complete approved engine/content/presentation/Master overhaul, final creative balanced roster and verified live release from recoverable repository checkpoints.

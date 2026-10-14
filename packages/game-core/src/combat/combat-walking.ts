@@ -152,6 +152,8 @@ function forecastPv1fPoisonMovement(
 
 export interface Pv1fMovementQuoteOptions {
   readonly maximumTiles?: number
+  /** Captured native Basic Move price; committed attached Move always costs zero here. */
+  readonly apPerTraversalPoint?: number
   readonly ignorePoisonForecast?: boolean
 }
 
@@ -219,7 +221,14 @@ export function evaluatePreparedCombatWalking(
     ? movement.path.slice(1).reduce((sum, position) => {
         const traversal = movementTraversalCostAt(prepared.tactical, movement.combatantId, position)
         if (traversal === null) throw new Error('Legal movement cannot enter blocked terrain.')
-        return sum + movementApCostForTile(traversal, modifiers.additionalApAt(position))
+        return (
+          sum +
+          movementApCostForTile(
+            traversal,
+            modifiers.additionalApAt(position),
+            options.apPerTraversalPoint,
+          )
+        )
       }, 0)
     : 0
   return { prepared, movement, terrainCost, economyCost, poisonForecast }
@@ -227,6 +236,8 @@ export function evaluatePreparedCombatWalking(
 
 export interface CombatWalkingExecutionOptions {
   readonly maximumTiles?: number
+  /** Captured native Basic Move price; committed attached Move always costs zero here. */
+  readonly apPerTraversalPoint?: number
   readonly nativeHooks?: CombatNativeExecutionHooks
   readonly committed?: CommittedCombatExecution
   readonly actionId?: string
@@ -265,7 +276,11 @@ export function executePreparedCombatWalking(
     if (traversal === null) break
     const stepCost = options.committed
       ? 0
-      : movementApCostForTile(traversal, modifiers.additionalApAt(position))
+      : movementApCostForTile(
+          traversal,
+          modifiers.additionalApAt(position),
+          options.apPerTraversalPoint,
+        )
     if (
       !options.committed &&
       (next.tactical.battle.combatants

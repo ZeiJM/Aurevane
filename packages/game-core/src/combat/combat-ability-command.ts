@@ -1,3 +1,8 @@
+import {
+  effectiveBasicSkillBehavior,
+  bindBasicSkillAction,
+  isFreeOffensiveBasicMove,
+} from './combat-basic-actions'
 import { prepareCombatMove, type PreparedCombatMove } from './combat-move-effect'
 import type { GridPosition } from './board'
 import { executePreparedCombatWalking } from './combat-walking'
@@ -204,6 +209,11 @@ export function combatAbilityParticipantIssues(
   if (!participant.source || !participant.behavior) return issues
   const source = participant.source,
     behavior = participant.behavior
+  if (source.basic?.enabled === false)
+    issues.push({
+      code: 'source-disabled',
+      message: 'Basic Skill is disabled in its captured definition.',
+    })
   if (source.ownerCombatantId !== input.actorId)
     issues.push({
       code: 'source-owner-mismatch',
@@ -219,6 +229,23 @@ export function combatAbilityParticipantIssues(
     !input.state.abilityRuntime.activeSourceIds.includes(source.sourceInstanceId)
   )
     issues.push({ code: 'source-owner-mismatch', message: 'Captured source is inactive.' })
+  if (
+    isFreeOffensiveBasicMove(source, behavior) &&
+    source.definition.behaviors.some(
+      (other) =>
+        isFreeOffensiveBasicMove(source, other) &&
+        input.state.abilityRuntime?.usage.some(
+          (row) =>
+            row.key === combatAbilityUsageKey(input.state, source, other) &&
+            row.ownerCycle === combatTurnCycle(input.state, input.actorId),
+        ),
+    )
+  )
+    issues.push({
+      code: 'activation-limit',
+      message:
+        'A zero-AP offensive Basic Move can commit only once per acting turn across its action groups.',
+    })
   const key = combatAbilityUsageKey(input.state, source, behavior),
     rootActionId = input.trigger?.rootActionId ?? input.context.provenance.triggerChainId
   const usage = input.state.abilityRuntime?.usage.find((row) => row.key === key)
@@ -349,12 +376,20 @@ export function prepareCombatAbilityCommand(
   const root = input.root
   if (root.kind === 'canonical') {
     const source = captureCombatAbilitySource(root.source),
-      behavior = combatAbilityBehavior(source, root.behaviorId)
+      behavior = effectiveBasicSkillBehavior(
+        input.state,
+        source,
+        combatAbilityBehavior(source, root.behaviorId),
+      )
     if (behavior.activation === 'automatic' && !input.trigger)
       throw new TypeError('automatic-event-required')
     if (behavior.activation === 'manual' && input.trigger)
       throw new TypeError('manual-trigger-authority-invalid')
-    action = materializeCombatAbilityAction(source, behavior)
+    action = bindBasicSkillAction(
+      input.state,
+      source,
+      materializeCombatAbilityAction(source, behavior),
+    )
     participant = combatAbilityParticipant(
       source,
       behavior,

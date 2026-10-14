@@ -19,6 +19,8 @@ import type {
   WorldObjective,
   WorldPlayer,
   WorldPosition,
+  WorldSector,
+  WorldSectorView,
   WorldState,
   WorldView,
 } from '@/world/types'
@@ -263,6 +265,30 @@ export function projectWorldPlayers(
     })
 }
 
+/** Shared private-filtered sector projection; movement receipts need only their origin. */
+export function projectWorldSector(state: WorldState, sector: WorldSector): WorldSectorView {
+  const { rows, roads, ...publicSector } = sector
+  const cells = []
+  for (let y = 0; y < GRID_HEIGHT; y++)
+    for (let x = 0; x < GRID_WIDTH; x++)
+      if (isKnown(state, { sectorId: sector.id, x, y }))
+        cells.push({
+          x,
+          y,
+          terrain: rows[y]![x]!,
+          walkable: isWalkable(sector, { x, y }),
+          safe: isSafe(sector, { x, y }),
+        })
+  const legacyTrail = /^trail:.*:(\d+)$/.exec(sector.id)
+  return {
+    ...publicSector,
+    ...(legacyTrail ? { atlasColumn: Number(legacyTrail[1]), atlasRow: 0 } : {}),
+    cells,
+    landmarks: sector.landmarks.filter((p) => isKnown(state, { ...p, sectorId: sector.id })),
+    exits: roads.filter((road) => isKnown(state, road.from) && isKnown(state, road.to)),
+  }
+}
+
 export function projectWorld(
   state: WorldState,
   players: readonly WorldPlayer[],
@@ -323,28 +349,7 @@ export function projectWorld(
       return priority(a) - priority(b) || sceneDistance(a) - sceneDistance(b)
     })
     .slice(0, 25)
-  const sectors = sceneSectors.map((sector) => {
-    const { rows, roads, ...publicSector } = sector
-    const cells = []
-    for (let y = 0; y < 9; y++)
-      for (let x = 0; x < 13; x++)
-        if (isKnown(state, { sectorId: sector.id, x, y }))
-          cells.push({
-            x,
-            y,
-            terrain: rows[y]![x]!,
-            walkable: isWalkable(sector, { x, y }),
-            safe: isSafe(sector, { x, y }),
-          })
-    const legacyTrail = /^trail:.*:(\d+)$/.exec(sector.id)
-    return {
-      ...publicSector,
-      ...(legacyTrail ? { atlasColumn: Number(legacyTrail[1]), atlasRow: 0 } : {}),
-      cells,
-      landmarks: sector.landmarks.filter((p) => isKnown(state, { ...p, sectorId: sector.id })),
-      exits: roads.filter((road) => isKnown(state, road.from) && isKnown(state, road.to)),
-    }
-  })
+  const sectors = sceneSectors.map((sector) => projectWorldSector(state, sector))
   const visiblePlayers = projectWorldPlayers(
     state,
     players,

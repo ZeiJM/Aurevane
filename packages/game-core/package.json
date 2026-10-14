@@ -20,6 +20,7 @@
     "./character/supernatural-content": "./src/character/supernatural-content.ts",
     "./character/wayfarers-practice": "./src/character/wayfarers-practice.ts",
     "./combat/actions": "./src/combat/actions.ts",
+    "./combat/combat-basic-actions": "./src/combat/combat-basic-actions.ts",
     "./combat/combat-definition": "./src/combat/combat-definition.ts",
     "./combat/combat-behavior-capture": "./src/combat/combat-behavior-capture.ts",
     "./combat/combat-ability-events": "./src/combat/combat-ability-events.ts",

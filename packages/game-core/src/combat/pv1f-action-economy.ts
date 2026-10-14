@@ -1,3 +1,4 @@
+import { capturedBasicSkillSource } from './combat-basic-actions'
 export type { Pv1fPoisonMovementForecast } from './combat-walking'
 import {
   combatWalkingModifiers,
@@ -542,7 +543,7 @@ export function evaluatePv1fAction(
   state: StatDrivenCombatEncounterState,
   actionId: string,
   target: CombatTargetSelection,
-  options: Pick<Pv1fMatureSkillOptions, 'manualModifiers' | 'behaviorId'> = {},
+  options: Pick<Pv1fMatureSkillOptions, 'manualModifiers' | 'behaviorId' | 'movementPath'> = {},
 ): {
   prepared: StatDrivenCombatEncounterState
   action: CombatActionDefinition
@@ -550,10 +551,33 @@ export function evaluatePv1fAction(
   evaluation: CombatActionEvaluation
   command?: CombatAbilityCommandInput
 } {
-  if (options.behaviorId !== undefined) throw new TypeError('native-root-behavior-unavailable')
   const prepared = preparePv1fTurnEconomy(state)
   const actorId = prepared.tactical.battle.currentTurn?.combatantId
   if (!actorId) throw new Error('PV-1F action evaluation requires an active turn.')
+  const basic = capturedBasicSkillSource(prepared, actorId, actionId)
+  if (basic) {
+    const command: CombatAbilityCommandInput = {
+      state: prepared,
+      actorId,
+      root: { kind: 'canonical', source: basic, behaviorId: options.behaviorId },
+      selection: target,
+      content: PV1F_COMBAT_CONTENT,
+      context: combatAbilityCommandContext(prepared, basic),
+      manualModifiers: options.manualModifiers,
+      movementPath: options.movementPath,
+    }
+    const quote = prepareCombatAbilityCommand(command)
+    return {
+      prepared,
+      action: quote.action,
+      cost: quote.costs.find((cost) => cost.resource === 'ap')?.amount ?? 0,
+      evaluation: quote.evaluation,
+      command,
+    }
+  }
+  if (options.movementPath !== undefined)
+    throw new TypeError('Native non-Move actions cannot accept a movement path.')
+  if (options.behaviorId !== undefined) throw new TypeError('native-root-behavior-unavailable')
   const action = resolvePv1fActionDefinition(prepared, actorId, actionId)
   const cost = pv1fActionCost(action.id)
   const baseEvaluation = evaluateCombatAction(prepared, action, target, PV1F_COMBAT_CONTENT)
@@ -600,7 +624,7 @@ export function executePv1fAction(
   state: StatDrivenCombatEncounterState,
   actionId: string,
   target: CombatTargetSelection,
-  options: Pick<Pv1fMatureSkillOptions, 'manualModifiers' | 'behaviorId'> = {},
+  options: Pick<Pv1fMatureSkillOptions, 'manualModifiers' | 'behaviorId' | 'movementPath'> = {},
 ): Pv1fTransition {
   const { prepared, action, cost, evaluation, command } = evaluatePv1fAction(
     state,
@@ -926,6 +950,7 @@ function nativePv1fAbilityCommand(
 export interface Pv1fMatureSkillOptions {
   manualModifiers?: readonly ManualCombatModifierSelection[]
   behaviorId?: string
+  movementPath?: readonly GridPosition[]
   apCostOverride?: number
   actionIdOverride?: string
   repeatHistoryKey?: string
@@ -960,6 +985,7 @@ export function evaluatePv1fMatureSkill(
       actorId,
       root: { kind: 'canonical', source: capturedSource, behaviorId: behavior.id },
       manualModifiers: options.manualModifiers,
+      movementPath: options.movementPath,
       selection: target,
       content: PV1F_COMBAT_CONTENT,
       context: combatAbilityCommandContext(prepared, capturedSource),
@@ -974,6 +1000,8 @@ export function evaluatePv1fMatureSkill(
       command,
     }
   }
+  if (options.movementPath !== undefined)
+    throw new TypeError('Native non-Move actions cannot accept a movement path.')
   if (options.behaviorId !== undefined) throw new TypeError('native-root-behavior-unavailable')
   const resolved = resolveMatureSkillForContext(definition, combatContext)
   const authoredCost = options.apCostOverride ?? resolved.apCost
@@ -1167,6 +1195,7 @@ export function executePv1fMatureSkill(
       source: capturedSource,
       behaviorId: options.behaviorId,
       manualModifiers: options.manualModifiers,
+      movementPath: options.movementPath,
       selection: target,
       content: PV1F_COMBAT_CONTENT,
       context: combatAbilityCommandContext(canonicalPrepared, capturedSource),
@@ -1378,13 +1407,42 @@ export function evaluatePv1fMovement(
   state: StatDrivenCombatEncounterState,
   path: readonly GridPosition[],
 ) {
-  return evaluatePreparedCombatWalking(preparePv1fTurnEconomy(state), path, PV1F_COMBAT_CONTENT)
+  const prepared = preparePv1fTurnEconomy(state)
+  const actorId = prepared.tactical.battle.currentTurn?.combatantId
+  const source = actorId ? capturedBasicSkillSource(prepared, actorId, 'basic.move') : null
+  const basic = source?.basic
+  if (basic?.execution.kind === 'basic-move' && basic.execution.costBasis === 'flat')
+    throw new TypeError(
+      'Flat Basic Move requires the captured action facade and its original selection.',
+    )
+  const behavior = source?.definition.behaviors[0]
+  const move = behavior?.effects[0]?.payload
+  const walkingOptions = basic
+    ? {
+        apPerTraversalPoint: behavior!.costs.find((cost) => cost.resource === 'ap')!.amount,
+        maximumTiles: move?.type === 'move' ? move.maximumTiles : undefined,
+      }
+    : {}
+  const quote = evaluatePreparedCombatWalking(prepared, path, PV1F_COMBAT_CONTENT, walkingOptions)
+  if (basic?.enabled === false) {
+    quote.movement.legal = false
+    quote.movement.issues = [
+      ...quote.movement.issues,
+      {
+        code: 'status-restricted',
+        stepIndex: null,
+        message: 'Basic Move is disabled in its captured definition.',
+      },
+    ]
+    quote.economyCost = 0
+  }
+  return { ...quote, walkingOptions }
 }
 export function executePv1fMovement(
   state: StatDrivenCombatEncounterState,
   path: readonly GridPosition[],
 ): Pv1fTransition {
-  const { prepared, movement, economyCost } = evaluatePv1fMovement(state, path)
+  const { prepared, movement, economyCost, walkingOptions } = evaluatePv1fMovement(state, path)
   if (!movement.legal)
     throw new Error(movement.issues[0]?.message ?? 'That movement path is not legal.')
   if (!canAffordPv1fEconomy(prepared, economyCost))
@@ -1393,6 +1451,7 @@ export function executePv1fMovement(
   if (!actorId) throw new Error('PV-1F movement requires an active turn.')
   const nativeHooks = createCombatNativeAbilityRuntime(prepared, PV1F_COMBAT_CONTENT)
   const walked = executePreparedCombatWalking(prepared, movement.path, PV1F_COMBAT_CONTENT, {
+    ...walkingOptions,
     nativeHooks,
   })
   const beforePayment = walked.state

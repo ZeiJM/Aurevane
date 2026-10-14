@@ -600,6 +600,7 @@ export type CombatActionIssueCode =
   | 'activation-limit'
   | 'duplicate-command'
   | 'source-owner-mismatch'
+  | 'source-disabled'
   | 'battle-not-active'
   | 'action-already-spent'
   | 'insufficient-mp'

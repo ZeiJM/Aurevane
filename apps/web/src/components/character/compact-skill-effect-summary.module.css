@@ -1,9 +1,9 @@
-.label {
-  color: #f0e8dc;
+.label,
+.magnitude {
+  color: #e4bd67;
 }
 
 .magnitude {
-  color: #e4bd67;
   font-weight: 650;
 }
 

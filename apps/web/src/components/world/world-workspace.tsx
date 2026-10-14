@@ -8,6 +8,7 @@ import { remainingTravelMs, worldSyncDelayMs } from '@/world/travel'
 import type { WorldAttackReceipt } from '@/world/attack-receipt'
 import { mergeWorldMovement } from '@/world/movement-receipt'
 import { WorldNearbyPlayer } from './world-nearby-player'
+import { WorldPlacePortrait } from './world-place-portrait'
 import { mergeWorldRefresh, worldRefreshUrl } from '@/world/presence'
 import type { WorldIntent, WorldPosition, WorldView } from '@/world/types'
 import { WorldConflict, WorldController } from './world-controller'
@@ -585,7 +586,7 @@ export function WorldWorkspace({
                       disabled={disabled}
                       onClick={() => walk({ sectorId: sector.id, x: p.x, y: p.y })}
                     >
-                      <span>◇</span>
+                      <WorldPlacePortrait place={p} />
                       <div>
                         {p.name}
                         <small>{sector.name}</small>

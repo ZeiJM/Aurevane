@@ -37,6 +37,8 @@ import {
 } from './combat-requirements'
 import { createCombatActionProvenance, createCombatTriggerGuard } from './combat-kernel-types'
 
+import type { GridPosition } from './board'
+
 interface CombatAbilityUsage {
   readonly key: string
   readonly rootActionId: string
@@ -98,6 +100,7 @@ export interface CombatAbilityActivationInput {
   readonly behaviorId?: string
   readonly manualModifiers?: readonly ManualCombatModifierSelection[]
   readonly selection: CombatTargetSelection
+  readonly movementPath?: readonly GridPosition[]
   readonly content: CombatContentCatalog
   readonly context: CombatResolutionContext
   readonly trigger?: {

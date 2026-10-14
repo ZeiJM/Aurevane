@@ -145,9 +145,7 @@
   overscroll-behavior-y: auto !important;
 }
 
-.panel [data-compact-effect-label] {
-  color: inherit;
-}
+.panel [data-compact-effect-label],
 .panel [data-compact-effect-magnitude],
 .panel [data-compact-effect-duration] {
   color: #79551c;

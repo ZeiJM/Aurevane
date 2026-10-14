@@ -1,4 +1,5 @@
 import { parseAbilityDefinition, type AbilityDefinition } from './combat-definition'
+import { parseBasicSkillDefinition, type BasicSkillDefinition } from './combat-basic-actions'
 import {
   combatActionSourceKind,
   contentVersion,
@@ -17,6 +18,7 @@ export interface CapturedCombatAbilitySource {
   readonly sourceDisciplineId?: string
   readonly tags: readonly string[]
   readonly definition: AbilityDefinition
+  readonly basic?: BasicSkillDefinition
 }
 
 export function captureCombatAbilitySource(
@@ -38,6 +40,7 @@ export function captureCombatAbilitySource(
           'sourceDisciplineId',
           'tags',
           'definition',
+          'basic',
         ].includes(key),
     ) ||
     !Array.isArray(input.tags) ||
@@ -57,7 +60,18 @@ export function captureCombatAbilitySource(
       : { sourceDisciplineId: actionDefinitionId(input.sourceDisciplineId) }),
     tags: [...input.tags],
     definition: parseAbilityDefinition(input.definition),
+    ...(input.basic === undefined ? {} : { basic: parseBasicSkillDefinition(input.basic) }),
   }
+  if (
+    result.basic &&
+    (result.sourceKind !== 'basic' ||
+      result.sourceDisciplineId !== undefined ||
+      result.basic.id !== result.abilityId ||
+      result.basic.contentVersion !== result.contentVersion ||
+      JSON.stringify(result.basic.ability) !== JSON.stringify(result.definition) ||
+      JSON.stringify(result.basic.tags) !== JSON.stringify(result.tags))
+  )
+    throw new TypeError('invalid-captured-basic-definition')
   return freezeCapture(result)
 }
 
