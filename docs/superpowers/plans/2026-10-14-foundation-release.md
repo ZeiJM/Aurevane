@@ -49,3 +49,11 @@ resolution, world encounter creation/startup persistence, existing terminal and
 timeout rules, preview/commit/RNG/cost agreement, private metadata projections,
 historical snapshots, and additive hosted migration compatibility. Do not infer
 release readiness from the old Task 2 acceptance alone.
+
+## Release milestone completed
+
+Foundation is live through PR896 / source128f7add, exact tested treee38080bc.
+All14 final workflows and initial Production smoke pass; startup migrations
+are applied. Detailed receipt: docs/verification/2026-10-14-ability-foundation-release.md.
+The remaining overhaul continues separately; no remaining task is accepted
+by this scoped release.

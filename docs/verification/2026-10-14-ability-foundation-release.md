@@ -1,7 +1,12 @@
 # Ability foundation release checkpoint
 
-Status: implementation verified locally; CI, hosted migration and Production
-release pending. This document does not claim the foundation is live yet.
+Status: LIVE for testing through PR #896, merge
+`128f7add15aefed3384310a5f138466b1ff5b625`. Production
+`dpl_3pgy6TV6Z9zUfbCgnMfjwykQX7xv` is READY at
+`2026-10-14T04:54:47.255Z` (October 14, 00:54:47 Trinidad), with
+https://aurevane.vercel.app assigned to that exact source.
+Tested candidate `d7e489a3dc80b4114dea93d1999d3510a9476e8d` and merge
+share tree `e38080bc77182a4d496f25ac4432ff0bbd6b7f87`.
 
 The Owner authorized releasing accepted modular Ability definitions and the
 shared execution foundation first, then continuing the remaining overhaul.
@@ -48,14 +53,55 @@ Production dependency audit reports no known vulnerabilities; worker boot passes
 
 `supabase/tests/captured_ability_startup.sql` runs through the Battle Session DB
 workflow after a complete native migration reset. Docker is unavailable locally;
-native schema/trigger/concurrency and responsive browser CI remain release gates.
+native schema/trigger/concurrency and responsive browser CI subsequently passed.
 The inherited Vite native-loader advisory is visible and deferred to full-overhaul
 integration; it has not been suppressed or treated as a test failure.
 
-Hosted inspection finds old creation functions and the original `> 1` receipt
-constraints; the two additive startup migrations are required before release.
+Hosted additions are applied as `20261014045202_captured_ability_startup_events`
+and `20261014045207_world_captured_ability_startup`. Source SHA-256 values:
+`00764e9c2caaf9cccf8fb3855373cb395dbeb01c98ccbd1f81a9c4f2a1b26f39`
+and `8584820738ea5f42fb32a1a8f85735b5b3a96a42d87cc6a4e1f35236a2980a69`.
+Creation remains service-only; private append is denied even to service_role.
+All three predecessor v1 function-body hashes are unchanged.
 The current generic publication/version/draft tables are empty. No new roster,
 Master editor, Move/Controlled mechanics or unfinished targeting is published
 by this foundation. Hosted performance and human gameplay remain separate
 testing outcomes. Later Owner requests are preserved in
 `docs/superpowers/specs/2026-10-14-overhaul-owner-followups.md`.
+
+
+## Release acceptance evidence
+
+All fourteen workflows pass on the exact final candidate. The native startup
+fixture passes 20 pgTAP assertions after a full migration reset, along with
+existing real persistence/ownership/concurrency/privacy/HTTP checks. The first
+native attempt exposed missing RNG in the test fixture; loading the actual
+snapshot-guard migration reproduced 16 local failures, then corrected fixtures
+pass 32/32. Production code was not weakened to accommodate the fixture.
+
+Full browser smoke passes 345 Chromium and 10 Edge cases; its existing 264 / 2
+project-specific skips remain. Earlier focused 73, recovery 6, training 3 and
+Master/WASD checks pass. The serial full Chromium run takes 52.3 minutes.
+Living Atlas passes 47 enabled cases. These are disposable CI gameplay checks,
+not production player mutations or human playtest acceptance.
+
+Live public root, Manual, Rules, News and both recovery pages return 200. The
+protected World route returns the ordinary anonymous home redirect. The initial
+warning/error/fatal scan scoped to this deployment has no matching groups;
+it does not establish indefinite runtime health or hosted gameplay latency.
+Security-advisor groups/counts match the pre-migration baseline. Git deployment
+configuration remains locked, and this documentation receipt does not redeploy.
+
+## Owner testing checklist
+
+- Start new AI Sparring, a standard PvP lobby and a World encounter; check entry,
+  AP/MP costs, cooldowns, turn handoff and genuine no-input timeout behavior.
+- Reload an existing encounter and inspect its recorded outcomes/history.
+- Check ordinary hit/miss, Summon and Resonance behavior in normal play.
+- Custom modular definitions and deeper new mechanics receive their complete
+  authoring/readers/roster delivery in the remaining overhaul.
+
+The broader secondary-heal-on-miss report remains a pending follow-up; the
+release correction here specifically protects native hit-dependent Resonance
+payoffs when modular sources coexist. Account portrait relocation, weather/
+day-night/Master controls and movement-time map loading are also pending.
