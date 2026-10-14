@@ -89,18 +89,11 @@ export function AuthenticatedShellPresentation({
                   <span aria-hidden="true">●</span> SPECTATING
                 </Link>
               ) : null}
-              {character ? (
-                <div
-                  className={styles.headerCharacter}
-                  aria-label={`Current character: ${character.name}`}
-                >
-                  {characterPortrait}
-                </div>
-              ) : null}
               <AccountMenu
                 activeSessionHref={activeSessionHref}
                 activeSessionLabel={activeSessionLabel}
                 characterName={character?.name ?? null}
+                characterPortrait={characterPortrait}
                 masterPanelHref={masterPanelHref}
               />
             </>

@@ -210,4 +210,52 @@ test('ordinary desktop shell fits its identity and every navigation control with
       contentType: 'image/png',
     })
   }
+
+  for (const viewport of [
+    { width: 1366, height: 768 },
+    { width: 390, height: 844 },
+  ]) {
+    await page.setViewportSize(viewport)
+    const header = page.locator('[data-av-site-header="true"]')
+    await expect(header.locator('[data-character-portrait-frame]')).toHaveCount(0)
+    await header.getByRole('button', { name: 'Account', exact: true }).click()
+    const menu = page.getByRole('menu', { name: 'Account menu' })
+    const portrait = menu.locator('[data-account-character-portrait="true"]')
+    await expect(portrait).toBeVisible()
+    await expect(portrait.locator('img')).toHaveAttribute('src', imageUrl)
+    await expect
+      .poll(() =>
+        portrait.locator('img').evaluate((image) => (image as HTMLImageElement).naturalWidth),
+      )
+      .toBeGreaterThan(0)
+    const placement = await menu.evaluate((element) => {
+      const picture = element
+        .querySelector('[data-account-character-portrait="true"]')!
+        .getBoundingClientRect()
+      const greeting = element.querySelector('strong')!.getBoundingClientRect()
+      const bounds = element.getBoundingClientRect()
+      return {
+        centerDifference: Math.abs(
+          (picture.top + picture.bottom - greeting.top - greeting.bottom) / 2,
+        ),
+        rightInset: bounds.right - picture.right,
+        overlapsGreeting: picture.left < greeting.right,
+        left: bounds.left,
+        right: bounds.right,
+        viewportWidth: innerWidth,
+      }
+    })
+    expect(placement.centerDifference).toBeLessThanOrEqual(1)
+    expect(placement.rightInset).toBeGreaterThan(0)
+    expect(placement.rightInset).toBeLessThanOrEqual(24)
+    expect(placement.overlapsGreeting).toBe(false)
+    expect(placement.left).toBeGreaterThanOrEqual(0)
+    expect(placement.right).toBeLessThanOrEqual(placement.viewportWidth)
+    await info.attach(`account-portrait-${viewport.width}`, {
+      body: await page.screenshot(),
+      contentType: 'image/png',
+    })
+    await page.keyboard.press('Escape')
+    await expect(menu).toHaveCount(0)
+  }
 })

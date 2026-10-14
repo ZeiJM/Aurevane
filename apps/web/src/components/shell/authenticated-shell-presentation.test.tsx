@@ -1,5 +1,5 @@
 import type { Route } from 'next'
-import { createElement } from 'react'
+import { createElement, type ReactNode } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -19,15 +19,18 @@ vi.mock('@/components/battle/pvp-battle-key-input-assist', () => ({
 vi.mock('./account-menu', () => ({
   AccountMenu: ({
     characterName,
+    characterPortrait,
     masterPanelHref,
   }: {
     characterName?: string | null
+    characterPortrait?: ReactNode
     masterPanelHref?: string | null
   }) =>
     createElement(
       'div',
       { 'data-testid': 'account-menu' },
       characterName ? `Welcome back, ${characterName}.` : 'Account',
+      characterPortrait,
       masterPanelHref
         ? createElement(
             'a',
@@ -74,7 +77,7 @@ describe('authenticated shell presentation', () => {
     expect(markup).toContain('href="/master"')
   })
 
-  it('renders character identity beside Account without the retired workspace strip or level', () => {
+  it('forwards character portrait into Account without a separate header portrait', () => {
     const markup = renderToStaticMarkup(
       <AuthenticatedShellPresentation
         sessionLabel="Battle Hall"
@@ -90,7 +93,10 @@ describe('authenticated shell presentation', () => {
     expect(markup).toContain('Welcome back, Aster.')
     expect(markup).not.toContain('<strong>Aster</strong>')
     expect(markup).not.toContain('Level 12')
-    expect(markup).toContain('data-testid="portrait"')
+    expect(markup).toMatch(
+      /data-testid="account-menu"[^>]*>Welcome back, Aster\.<span data-testid="portrait">portrait<\/span>/,
+    )
+    expect(markup).not.toContain('aria-label="Current character: Aster"')
     expect(markup).toContain('data-testid="account-menu"')
   })
   it('removes navigation from live combat and spectation', () => {
