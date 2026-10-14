@@ -320,7 +320,10 @@ try {
         const options = { viewport, ...(touch ? { isMobile: true, hasTouch: true } : {}) }
         for (const scenario of ['move-paid', 'move-mixed', 'move-stationary', 'move-stale']) {
           const page = await browser.newPage(options)
-          page.on('pageerror', (error) => errors.push(error.message))
+          page.on('pageerror', (error) => {
+            errors.push(error.message)
+            console.error('Move fixture browser error:', error.message)
+          })
           const gesture = (locator) => (touch ? locator.tap() : locator.click())
           const tile = (x, y) =>
             page
@@ -427,7 +430,10 @@ try {
         }
         if (!touch) {
           const page = await browser.newPage(options)
-          page.on('pageerror', (error) => errors.push(error.message))
+          page.on('pageerror', (error) => {
+            errors.push(error.message)
+            console.error('Move fixture browser error:', error.message)
+          })
           await page.goto(
             server.resolvedUrls.local[0] + `?mode=${mode}&targeting=single&canonical=move-paid`,
           )
@@ -476,7 +482,10 @@ try {
         const options = { viewport, ...(touch ? { isMobile: true, hasTouch: true } : {}) }
         for (const price of [23, 100]) {
           const page = await browser.newPage(options)
-          page.on('pageerror', (error) => errors.push(error.message))
+          page.on('pageerror', (error) => {
+            errors.push(error.message)
+            console.error('Move fixture browser error:', error.message)
+          })
           const gesture = (locator) => (touch ? locator.tap() : locator.click())
           await page.goto(
             server.resolvedUrls.local[0] +
@@ -542,7 +551,10 @@ try {
         }
         if (!touch) {
           const page = await browser.newPage(options)
-          page.on('pageerror', (error) => errors.push(error.message))
+          page.on('pageerror', (error) => {
+            errors.push(error.message)
+            console.error('Move fixture browser error:', error.message)
+          })
           await page.goto(
             server.resolvedUrls.local[0] +
               `?mode=${mode}&targeting=single&canonical=move-basic-100`,
@@ -567,7 +579,10 @@ try {
           await page.close()
           cases++
           const line = await browser.newPage(options)
-          line.on('pageerror', (error) => errors.push(error.message))
+          line.on('pageerror', (error) => {
+            errors.push(error.message)
+            console.error('Move fixture browser error:', error.message)
+          })
           await line.goto(
             server.resolvedUrls.local[0] +
               `?mode=${mode}&targeting=single&canonical=move-basic-line`,
@@ -656,6 +671,36 @@ try {
     ),
   )
   console.log(`${cases} canonical ${moveOnly ? 'Move ' : ''}controller cases passed`)
+} catch (error) {
+  const failedPage = browser
+    .contexts()
+    .flatMap((context) => context.pages())
+    .at(-1)
+  if (failedPage) {
+    const diagnostics = await Promise.allSettled([
+      failedPage.screenshot({ path: resolve(output, 'failure.png'), timeout: 5000 }),
+      failedPage.content().then((html) => fs.writeFile(resolve(output, 'failure.html'), html)),
+      failedPage
+        .evaluate(() => ({
+          fixtureReady: Boolean(window.fixtureBattle),
+          buttons: [...document.querySelectorAll('button')].map(
+            (button) => button.getAttribute('aria-label') || button.textContent,
+          ),
+        }))
+        .then((state) =>
+          fs.writeFile(resolve(output, 'failure-state.json'), JSON.stringify(state, null, 2)),
+        ),
+    ])
+    console.error(
+      'Move diagnostic artifacts captured:',
+      diagnostics.map((result) => result.status).join(', '),
+    )
+  }
+  await fs.writeFile(
+    resolve(output, 'failure.json'),
+    JSON.stringify({ error: String(error), errors, cases }, null, 2),
+  )
+  throw error
 } finally {
   await browser.close()
   await server.close()

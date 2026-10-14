@@ -798,6 +798,8 @@ export function registerWorldInputCases({
     let walks = 0,
       walkConflicts = 0
     const walkDestinations: WorldView['position'][] = []
+    const approvalTimings: { status: number; responseMs: number; serverTiming: string }[] = []
+    const timingReads: Promise<void>[] = []
     page.on('request', (request) => {
       if (
         new URL(request.url()).pathname === '/api/world' &&
@@ -813,10 +815,20 @@ export function registerWorldInputCases({
       if (
         new URL(response.url()).pathname === '/api/world' &&
         request.method() === 'POST' &&
-        request.postDataJSON()?.intent?.kind === 'walk' &&
-        response.status() === 409
-      )
-        walkConflicts++
+        request.postDataJSON()?.intent?.kind === 'walk'
+      ) {
+        if (response.status() === 409) walkConflicts++
+        const timing = (async () => {
+          await response.finished()
+          approvalTimings.push({
+            status: response.status(),
+            responseMs: request.timing().responseEnd,
+            serverTiming: response.headers()['server-timing'] ?? '',
+          })
+        })()
+        timingReads.push(timing)
+        void timing.catch(() => {})
+      }
     })
     await canvas.evaluate((element) => {
       const stage = element as HTMLCanvasElement
@@ -878,6 +890,11 @@ export function registerWorldInputCases({
     await page.waitForTimeout(600)
     expect(walks).toBe(settledWalks)
     expect((await world(page)).position).toEqual(arrived)
+    await Promise.all(timingReads)
+    await info.attach('held-walk-approval-timings', {
+      body: JSON.stringify(approvalTimings, null, 2),
+      contentType: 'application/json',
+    })
     await capture(page, info, 'held-walk-key-release')
   })
 
