@@ -1,3 +1,8 @@
+import {
+  captureBasicSkillSources,
+  defaultBasicSkills,
+} from '@aurevane/game-core/combat/combat-basic-actions'
+import { reconcileCombatAbilitySources } from '@aurevane/game-core/combat/combat-behavior-runtime'
 import type {
   BattleSessionRecord,
   BattleSessionRepository,
@@ -484,4 +489,71 @@ it('transports scheduled Guard identity and lifetime without committing or chang
   )
   expect(snapshot).toEqual(before)
   expect(battles.commitBattleIntent).not.toHaveBeenCalled()
+})
+
+it('previews and commits a captured flat Basic Move path through the real service boundary', async () => {
+  const { battles, service, sessionService, snapshot, record } = await createFixture()
+  const owner = `character:${CHARACTER_ID}`
+  const definitions = defaultBasicSkills().map((row) =>
+    row.id !== 'basic.move'
+      ? row
+      : {
+          ...row,
+          execution: { kind: 'basic-move' as const, costBasis: 'flat' as const },
+          ability: {
+            ...row.ability,
+            behaviors: row.ability.behaviors.map((behavior) => ({
+              ...behavior,
+              costs: [{ resource: 'ap' as const, amount: 23 }],
+            })),
+          },
+        },
+  )
+  const captured = reattachStatDrivenCombatBridge(
+    reconcileCombatAbilitySources(
+      snapshot,
+      captureBasicSkillSources({
+        ownerCombatantId: owner,
+        supportActionId: 'basic.guard',
+        definitions,
+      }),
+    ),
+    snapshot.statBridge,
+  )
+  battles.findBattleSession.mockResolvedValue({ ...record, snapshot: captured })
+  const command = {
+    userId: USER_ID,
+    battleSessionId: SESSION_ID,
+    expectedBattleVersion: 1,
+    intent: {
+      kind: 'action' as const,
+      actionId: 'basic.move',
+      target: { kind: 'self' as const },
+      movementPath: [
+        { x: 0, y: 1 },
+        { x: 1, y: 1 },
+      ],
+    },
+  }
+  const quote = await service.previewIntent(command)
+  expect(quote.preview).toMatchObject({
+    legal: true,
+    actionEconomyCost: 23,
+    actionEconomyAfter: 77,
+  })
+  expect(battles.commitBattleIntent).not.toHaveBeenCalled()
+  await sessionService.submitIntent({
+    ...command,
+    idempotencyKey: '55555555-5555-4555-8555-555555555555',
+  })
+  const input = battles.commitBattleIntent.mock.calls[0]![0]
+  const saved = input.nextSnapshot as StatDrivenCombatEncounterState
+  expect(saved.tactical.placements.find((row) => row.combatantId === owner)!.position).toEqual({
+    x: 1,
+    y: 1,
+  })
+  expect(
+    saved.tactical.battle.combatants.find((row) => row.id === owner)!.temporaryResources,
+  ).toContainEqual(expect.objectContaining({ key: PV1F_ACTION_ECONOMY_RESOURCE_KEY, current: 77 }))
+  expect(saved.capturedAbilitySources).toEqual(captured.capturedAbilitySources)
 })

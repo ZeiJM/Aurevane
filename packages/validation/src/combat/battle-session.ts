@@ -80,6 +80,7 @@ export const battleIntentSchema = z.discriminatedUnion('kind', [
       target: combatTargetSelectionSchema,
       behaviorId: exactReferenceIdSchema.optional(),
       manualModifiers: manualModifiersSchema.optional(),
+      movementPath: z.array(gridPositionSchema).min(2).max(21).optional(),
     })
     .strict(),
   z.object({ kind: z.literal('face'), facing: battleFacingSchema }).strict(),

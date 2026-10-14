@@ -579,6 +579,7 @@ async function resolveIntent(
           state,
           actorId,
           root: { kind: 'canonical', source: capturedSource, behaviorId: intent.behaviorId },
+          movementPath: intent.movementPath,
           manualModifiers: intent.manualModifiers,
           selection: intent.target,
           content: PV1F_COMBAT_CONTENT,
@@ -609,7 +610,11 @@ async function resolveIntent(
             secondaryDisciplineId: build.secondary?.disciplineId ?? null,
             combatContext: state.buildAuthority.combatContext,
             selection: intent.target,
-            options: { behaviorId: intent.behaviorId, manualModifiers: intent.manualModifiers },
+            options: {
+              behaviorId: intent.behaviorId,
+              movementPath: intent.movementPath,
+              manualModifiers: intent.manualModifiers,
+            },
           }),
         )
       }
@@ -635,7 +640,11 @@ async function resolveIntent(
             definition,
             intent.target,
             state.buildAuthority.combatContext,
-            { behaviorId: intent.behaviorId, manualModifiers: intent.manualModifiers },
+            {
+              behaviorId: intent.behaviorId,
+              movementPath: intent.movementPath,
+              manualModifiers: intent.manualModifiers,
+            },
           ),
         )
       }
@@ -647,6 +656,7 @@ async function resolveIntent(
         state,
         executePv1fAction(state, intent.actionId, intent.target, {
           behaviorId: intent.behaviorId,
+          movementPath: intent.movementPath,
           manualModifiers: intent.manualModifiers,
         }),
       )

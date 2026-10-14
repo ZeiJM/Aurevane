@@ -239,3 +239,53 @@ it('admits reference-only plural unit/Self/Ground intent and rejects nested/over
       }),
     ).toBeNull()
 })
+
+describe('reference-only attached Move intent', () => {
+  const request = {
+    idempotencyKey: IDEMPOTENCY_KEY,
+    expectedBattleVersion: 1,
+    intent: {
+      kind: 'action',
+      actionId: 'move-strike',
+      target: { kind: 'unit', combatantId: 'enemy' },
+      movementPath: [
+        { x: 0, y: 1 },
+        { x: 1, y: 1 },
+      ],
+    },
+  }
+  it('preserves a separate movement path and original follow-up selection', () => {
+    expect(parseBattleIntentRequest(request)?.intent).toEqual(request.intent)
+  })
+  it.each(
+    [
+      [],
+      [{ x: 0, y: 1 }],
+      Array.from({ length: 22 }, (_, x) => ({ x, y: 1 })),
+      [
+        { x: 0, y: 1 },
+        { x: 1.5, y: 1 },
+      ],
+      [
+        { x: 0, y: 1 },
+        { x: 1, y: 1, cost: 0 },
+      ],
+      [
+        { x: 0, y: 1 },
+        { x: 1, y: 1, definition: { type: 'move' } },
+      ],
+    ].map((movementPath) => ({ movementPath })),
+  )('rejects malformed, oversized or authority-bearing paths %j', ({ movementPath }) => {
+    expect(
+      parseBattleIntentRequest({ ...request, intent: { ...request.intent, movementPath } }),
+    ).toBeNull()
+  })
+  it('rejects an attached path on End Turn', () => {
+    expect(
+      parseBattleIntentRequest({
+        ...request,
+        intent: { kind: 'end-turn', movementPath: request.intent.movementPath },
+      }),
+    ).toBeNull()
+  })
+})

@@ -266,6 +266,7 @@ async function previewIntent(
             state: preparedState,
             actorId,
             root: { kind: 'canonical', source: capturedSource, behaviorId: intent.behaviorId },
+            movementPath: intent.movementPath,
             manualModifiers: intent.manualModifiers,
             selection: intent.target,
             content: PV1F_COMBAT_CONTENT,
@@ -285,7 +286,11 @@ async function previewIntent(
             essenceCombatSkill(essence),
             intent.target,
             authority.combatContext,
-            { behaviorId: intent.behaviorId, manualModifiers: intent.manualModifiers },
+            {
+              behaviorId: intent.behaviorId,
+              movementPath: intent.movementPath,
+              manualModifiers: intent.manualModifiers,
+            },
           )
         : matureDefinition &&
             matureDefinition.sourceDisciplineId === taggedTechnique?.sourceDisciplineId &&
@@ -295,10 +300,15 @@ async function previewIntent(
               matureDefinition,
               intent.target,
               authority.combatContext,
-              { behaviorId: intent.behaviorId, manualModifiers: intent.manualModifiers },
+              {
+                behaviorId: intent.behaviorId,
+                movementPath: intent.movementPath,
+                manualModifiers: intent.manualModifiers,
+              },
             )
           : evaluatePv1fAction(state, intent.actionId, intent.target, {
               behaviorId: intent.behaviorId,
+              movementPath: intent.movementPath,
               manualModifiers: intent.manualModifiers,
             })
     const { prepared, action, cost, evaluation } = resolved

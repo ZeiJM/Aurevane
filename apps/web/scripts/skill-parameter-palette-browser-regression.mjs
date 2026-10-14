@@ -117,13 +117,13 @@ async function colors(locator) {
   )
 }
 const palette = {
-  label: 'rgb(240, 232, 220)',
+  label: 'rgb(228, 189, 103)',
   magnitude: 'rgb(228, 189, 103)',
   duration: 'rgb(112, 215, 206)',
   timing: 'rgb(112, 215, 206)',
 }
 const paperPalette = {
-  label: 'rgb(23, 45, 60)',
+  label: 'rgb(121, 85, 28)',
   magnitude: 'rgb(121, 85, 28)',
   timing: 'rgb(23, 103, 94)',
 }
