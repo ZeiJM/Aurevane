@@ -2,16 +2,17 @@ import { beforeEach, expect, it, vi } from 'vitest'
 import { AurevaneError } from '@aurevane/game-core/errors'
 import type { WorldView } from '@/world/types'
 vi.mock('server-only', () => ({}))
-const { actor, selected, readWorld } = vi.hoisted(() => ({
+const { actor, selected, readWorld, commitWorldCommand } = vi.hoisted(() => ({
   actor: vi.fn(),
   selected: vi.fn(),
   readWorld: vi.fn(),
+  commitWorldCommand: vi.fn(),
 }))
 vi.mock('@/server/auth/actor', () => ({ getAuthenticatedActor: actor }))
 vi.mock('@/server/character/selected-character', () => ({ loadSelectedCharacter: selected }))
-vi.mock('@/server/world/world-repository', () => ({ readWorld, commitWorldCommand: vi.fn() }))
+vi.mock('@/server/world/world-repository', () => ({ readWorld, commitWorldCommand }))
 vi.mock('@/server/world/world-battle', () => ({ attackWorldPlayer: vi.fn() }))
-import { GET } from './route'
+import { GET, POST } from './route'
 const view = {
   characterId: 'selected',
   version: 4,
@@ -28,6 +29,7 @@ beforeEach(() => {
   actor.mockReset().mockResolvedValue({ userId: 'owner' })
   selected.mockReset().mockResolvedValue({ id: 'selected' })
   readWorld.mockReset().mockResolvedValue({ view })
+  commitWorldCommand.mockReset().mockResolvedValue(view)
 })
 it('keeps compact presence authenticated, private and scoped to the selected owned character', async () => {
   const response = await GET(
@@ -57,4 +59,57 @@ it('rejects absent authentication or selection before any World read', async () 
   selected.mockResolvedValueOnce(null)
   expect((await GET()).status).toBe(403)
   expect(readWorld).not.toHaveBeenCalled()
+})
+
+it('opts only authenticated movement commands into compact approval without changing legacy readers', async () => {
+  const id = '00000000-0000-4000-8000-000000000011'
+  selected.mockResolvedValue({ id })
+  const body = {
+    characterId: id,
+    expectedVersion: 4,
+    commandId: '00000000-0000-4000-8000-000000000099',
+    intent: { kind: 'stop' },
+  }
+  const request = (compact: boolean) =>
+    new Request('https://example.test/api/world', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        ...(compact ? { 'x-world-response': 'movement' } : {}),
+      },
+      body: JSON.stringify(body),
+    })
+  expect((await POST(request(true))).status).toBe(200)
+  expect(commitWorldCommand).toHaveBeenLastCalledWith('owner', id, body, true)
+  expect((await POST(request(false))).status).toBe(200)
+  expect(commitWorldCommand).toHaveBeenLastCalledWith('owner', id, body, false)
+})
+it('opts compact attacks into committed identity while preserving complete legacy responses', async () => {
+  const { attackWorldPlayer } = await import('@/server/world/world-battle')
+  const id = '00000000-0000-4000-8000-000000000011',
+    target = '00000000-0000-4000-8000-000000000012'
+  selected.mockResolvedValue({ id })
+  vi.mocked(attackWorldPlayer).mockResolvedValue({ characterId: id, battleSessionId: 'committed' })
+  const body = {
+    characterId: id,
+    expectedVersion: 4,
+    commandId: '00000000-0000-4000-8000-000000000099',
+    intent: { kind: 'attack', targetId: target },
+  }
+  const request = (compact: boolean) =>
+    new Request('https://example.test/api/world', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        ...(compact ? { 'x-world-response': 'movement' } : {}),
+      },
+      body: JSON.stringify(body),
+    })
+  expect(await (await POST(request(true))).json()).toEqual({
+    characterId: id,
+    battleSessionId: 'committed',
+  })
+  expect(readWorld).not.toHaveBeenCalled()
+  expect(await (await POST(request(false))).json()).toEqual(view)
+  expect(readWorld).toHaveBeenCalledWith('owner', id)
 })

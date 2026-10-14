@@ -115,30 +115,84 @@ it('allows one in-flight read and retains one follow-up for newer changes', asyn
   expect(f.read).toHaveBeenCalledTimes(2)
   f.live.dispose()
 })
-it('retries a pending peer invalidation when owned authority advances within the same scene', async () => {
-  const f = fixture(),
-    held = deferred<Awaited<ReturnType<typeof f.read>>>()
-  f.read.mockImplementationOnce(async () => held.promise)
+it('accepts a 400ms authorized read while owned versions advance every 200ms', async () => {
+  const f = fixture()
+  f.read.mockImplementation(async (source) => {
+    await new Promise((resolve) => setTimeout(resolve, 400))
+    return {
+      characterId: source.characterId,
+      version: source.version,
+      serverNow: 1200,
+      sceneSectorIds: ['scene-a'],
+      players: [],
+      registered: true,
+    }
+  })
+  f.live.update(initial)
+  f.events.get('world-scene:scene-a')!()
+  await vi.advanceTimersByTimeAsync(200)
+  f.setView({ ...initial, version: 5 })
+  await vi.advanceTimersByTimeAsync(200)
+  f.setView({ ...initial, version: 6 })
+  await vi.advanceTimersByTimeAsync(100)
+  expect(f.read).toHaveBeenCalledTimes(1)
+  expect(f.read.mock.calls[0]![1].aborted).toBe(false)
+  expect(f.accept).toHaveBeenCalledOnce()
+  expect(f.accept.mock.calls[0]![0].version).toBe(4)
+  f.live.dispose()
+})
+it('preserves the peer clock watermark across owned version advances', async () => {
+  const f = fixture()
   f.live.update(initial)
   f.events.get('world-scene:scene-a')!()
   await vi.advanceTimersByTimeAsync(100)
   f.setView({ ...initial, version: 5 })
-  await vi.advanceTimersByTimeAsync(100)
-  expect(f.read).toHaveBeenCalledTimes(2)
-  expect(f.accept).toHaveBeenCalledTimes(1)
-  expect(f.accept.mock.calls[0]![1].version).toBe(5)
-  held.resolve({
+  f.read.mockResolvedValueOnce({
     characterId: 'owner',
-    version: 4,
-    serverNow: 1200,
+    version: 5,
+    serverNow: 1100,
     sceneSectorIds: ['scene-a'],
     players: [],
     registered: true,
   })
+  f.events.get('world-scene:scene-a')!()
   await vi.advanceTimersByTimeAsync(100)
   expect(f.accept).toHaveBeenCalledTimes(1)
   f.live.dispose()
 })
+it.each(['character', 'geometry', 'atlas', 'inactive'] as const)(
+  'aborts an authorized old read after %s context changes',
+  async (kind) => {
+    const f = fixture(),
+      held = deferred<Awaited<ReturnType<typeof f.read>>>()
+    f.read.mockImplementationOnce(async () => held.promise)
+    f.live.update(initial)
+    f.events.get('world-scene:scene-a')!()
+    await vi.advanceTimersByTimeAsync(100)
+    if (kind === 'inactive') f.live.update(initial, false)
+    else
+      f.setView({
+        ...initial,
+        ...(kind === 'character'
+          ? { characterId: 'other' }
+          : kind === 'atlas'
+            ? { atlas: [] }
+            : { sectors: [{ id: 'scene-a', cells: [] }] as unknown as WorldView['sectors'] }),
+      })
+    expect(f.read.mock.calls[0]![1].aborted).toBe(true)
+    held.resolve({
+      characterId: 'owner',
+      version: 4,
+      serverNow: 1200,
+      sceneSectorIds: ['scene-a'],
+      players: [],
+      registered: true,
+    })
+    await vi.advanceTimersByTimeAsync(0)
+    expect(f.accept).not.toHaveBeenCalled()
+    f.live.dispose()
+  },
+)
 it.each(['character', 'version', 'scene', 'unregistered'] as const)(
   'rejects mismatched %s receipts',
   async (kind) => {
@@ -177,5 +231,31 @@ it('renews the authorized subscription through a bounded background read', async
   f.live.update(initial)
   await vi.advanceTimersByTimeAsync(35000)
   expect(f.read).toHaveBeenCalledTimes(1)
+  f.live.dispose()
+})
+
+it('continues accepting peer changes throughout sustained 200ms movement with 400ms replies', async () => {
+  const f = fixture()
+  f.read.mockImplementation(async (source) => {
+    await new Promise((resolve) => setTimeout(resolve, 400))
+    return {
+      characterId: source.characterId,
+      version: source.version,
+      serverNow: Date.now(),
+      sceneSectorIds: ['scene-a'],
+      players: [],
+      registered: true,
+    }
+  })
+  f.live.update(initial)
+  f.events.get('world-scene:scene-a')!()
+  for (let version = 5; version <= 14; version++) {
+    await vi.advanceTimersByTimeAsync(200)
+    f.setView({ ...initial, version })
+    f.events.get('world-scene:scene-a')!()
+  }
+  expect(f.accept.mock.calls.length).toBeGreaterThanOrEqual(3)
+  expect(f.read.mock.calls.every(([, signal]) => !signal.aborted)).toBe(true)
+  expect(f.read.mock.calls.length).toBeLessThanOrEqual(5)
   f.live.dispose()
 })

@@ -478,11 +478,22 @@ export async function createResolvedBattleBuildAuthoritySnapshot(
   resolver: CombatContentResolver,
 ): Promise<BattleBuildAuthoritySnapshot> {
   const resolvedInputs: BattleBuildAuthorityInput[] = []
+  const skillIds = [
+    ...new Set(
+      inputs.flatMap((input) => input.snapshot.disciplineSkills.map((skill) => skill.skillId)),
+    ),
+  ]
+  const currentDefinitions =
+    resolver.resolveCurrentSkillDefinitions && skillIds.length > 0
+      ? await resolver.resolveCurrentSkillDefinitions(skillIds)
+      : undefined
 
   for (const input of inputs) {
     const disciplineSkills: CharacterCommittedBuildSnapshotRecord['disciplineSkills'][number][] = []
     for (const skill of input.snapshot.disciplineSkills) {
-      const definition = await resolver.resolveCurrentSkillDefinition(skill.skillId)
+      const definition = currentDefinitions
+        ? currentDefinitions.get(skill.skillId)
+        : await resolver.resolveCurrentSkillDefinition(skill.skillId)
       if (!definition || !definition.enabled) {
         throw new TypeError(`Skill ${skill.skillId} has no enabled current combat definition.`)
       }

@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import type { WorldView } from './types'
-import { mergeWorldRefresh, worldRefreshResponse, worldRefreshUrl } from './presence'
+import {
+  mergeWorldRefresh,
+  retainWorldSceneReferences,
+  worldRefreshResponse,
+  worldRefreshUrl,
+} from './presence'
 import { worldSyncDelayMs } from './travel'
+import { prepareLocalRoute } from '@/components/world/world-motion'
 
 const view = {
   characterId: 'owner',
@@ -80,4 +86,70 @@ describe('scoped World presence refresh', () => {
     expect(() => mergeWorldRefresh({ ...view, version: 8 }, reply)).toThrow()
     expect(() => mergeWorldRefresh({ ...view, characterId: 'other' }, reply)).toThrow()
   })
+})
+
+describe('retained authorized scene references', () => {
+  it('retains identical deserialized geometry without replacing incoming owned authority', () => {
+    const incoming = { ...structuredClone(view), version: 8, serverNow: 2000 }
+    const retained = retainWorldSceneReferences(view, incoming)
+    expect(retained.sectors).toBe(view.sectors)
+    expect(retained.atlas).toBe(view.atlas)
+    expect(retained.position).toBe(incoming.position)
+    expect(retained.version).toBe(8)
+    expect(mergeWorldRefresh(view, incoming).sectors).toBe(view.sectors)
+  })
+  it.each(['cells', 'landmarks', 'exits', 'safe', 'charted'] as const)(
+    'retains changed %s even when sector IDs are unchanged',
+    (field) => {
+      const incoming = structuredClone(view)
+      incoming.sectors[0] = {
+        ...incoming.sectors[0]!,
+        [field]: field === 'charted' ? false : [{ changed: true }],
+      } as WorldView['sectors'][number]
+      const retained = retainWorldSceneReferences(view, incoming)
+      expect(retained.sectors).toBe(incoming.sectors)
+      expect(retained.atlas).toBe(view.atlas)
+    },
+  )
+  it('retains atlas changes and never shares scene references across characters', () => {
+    const changed = structuredClone(view)
+    changed.atlas = [{ ...changed.atlas![0]!, name: 'changed' }]
+    expect(retainWorldSceneReferences(view, changed).atlas).toBe(changed.atlas)
+    const other = { ...structuredClone(view), characterId: 'other' }
+    expect(retainWorldSceneReferences(view, other)).toBe(other)
+  })
+})
+
+it('retains semantic JSON property order and optional omissions without reusing changed cell safety', () => {
+  const previous = {
+    ...view,
+    sectors: [
+      {
+        id: 'a',
+        cells: [{ x: 1, y: 2, terrain: '.', walkable: true, safe: true }],
+        landmarks: [],
+        exits: [],
+      },
+    ],
+  } as unknown as WorldView
+  const incoming = {
+    ...structuredClone(previous),
+    sectors: [
+      {
+        exits: [],
+        landmarks: [],
+        cells: [{ safe: true, walkable: true, terrain: '.', y: 2, x: 1 }],
+        id: 'a',
+        stepMs: undefined,
+      },
+    ],
+  } as unknown as WorldView
+  const retained = retainWorldSceneReferences(previous, incoming)
+  expect(retained.sectors).toBe(previous.sectors)
+  expect(prepareLocalRoute(retained)).toBe(prepareLocalRoute(previous))
+  incoming.sectors[0]!.cells[0]!.safe = false
+  const changed = retainWorldSceneReferences(previous, incoming)
+  expect(changed.sectors).toBe(incoming.sectors)
+  expect(changed.sectors[0]!.cells[0]!.safe).toBe(false)
+  expect(prepareLocalRoute(changed)).not.toBe(prepareLocalRoute(previous))
 })

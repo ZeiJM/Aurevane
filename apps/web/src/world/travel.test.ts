@@ -123,6 +123,22 @@ describe('world travel', () => {
       }),
     ).toBe(10000)
   })
+  it('refreshes before the supplied loaded horizon instead of waiting through a scene seam', () => {
+    const active = {
+      routeLength: 256,
+      movementBlocked: false,
+      nextStepAt: 1100,
+      serverNow: 1000,
+      remainingMs: 51200,
+    }
+    expect(worldSyncDelayMs(active)).toBe(600)
+    expect(worldSyncDelayMs({ ...active, loadedRemainingMs: 1000 })).toBe(400)
+    expect(worldSyncDelayMs({ ...active, loadedRemainingMs: 200 })).toBe(0)
+    expect(worldSyncDelayMs({ ...active, loadedRemainingMs: 0 })).toBe(0)
+    expect(worldSyncDelayMs({ ...active, loadedRemainingMs: Infinity })).toBe(600)
+    expect(worldSyncDelayMs({ ...active, loadedRemainingMs: Number.NaN })).toBe(600)
+    expect(worldSyncDelayMs({ ...active, movementBlocked: true, loadedRemainingMs: 0 })).toBe(10000)
+  })
   it('keeps all eight canonical regions distinct', () => {
     expect(WORLD_REGIONS.map((r) => r.name)).toEqual([
       'Aureth Crown',

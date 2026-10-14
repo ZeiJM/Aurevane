@@ -1,11 +1,12 @@
 import 'server-only'
-import { createHash } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import { AurevaneError } from '@aurevane/game-core/errors'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { loadPublicCharacterProfileImageMap } from '@/server/character/character-profile-display-service'
 import { resolvePublicCharacterImageUrl } from '@/media/public-character-portrait'
 import { isSafe, newWorldState } from '@/world/travel'
-import type { WorldCommand, WorldPlayer, WorldState } from '@/world/types'
+import type { WorldMovementReceipt } from '@/world/movement-receipt'
+import type { WorldCommand, WorldPlayer, WorldState, WorldView } from '@/world/types'
 import { eventWorldObjectives } from './world-events'
 import { WORLD_OBJECTIVES, resolveSector } from './world-content'
 import { resolveWorldEnvironment } from '@/world/environment'
@@ -128,6 +129,66 @@ export function resetWorldReadCaches() {
 export async function readWorld(userId: string, characterId: string) {
   return presentWorldData(userId, characterId, await readWorldData(userId, characterId))
 }
+/** Encounter preparation needs local visibility and attack authority, not scene presentation. */
+function projectWorldAttackAuthority(data: Awaited<ReturnType<typeof readWorldData>>) {
+  if (data.blocked) worldRpcError({ message: data.blocked })
+  const state = data.state as WorldState
+  return {
+    state,
+    serverNow: data.serverNow,
+    players: projectWorldPlayers(state, data.players, [state.position.sectorId]),
+  }
+}
+export async function readWorldAttackAuthority(userId: string, characterId: string) {
+  return projectWorldAttackAuthority(await readWorldData(userId, characterId))
+}
+/** A confirmed route can reach attack range between heartbeats. Persist due owned steps first. */
+export async function settleWorldAttackAuthority(
+  userId: string,
+  characterId: string,
+  expectedVersion: number,
+) {
+  const current = await readWorldData(userId, characterId)
+  const authority = projectWorldAttackAuthority(current)
+  const { state } = authority
+  if (state.version !== expectedVersion)
+    throw new AurevaneError(
+      'STALE_VERSION',
+      'Your position changed. Try again from the updated map.',
+    )
+  if (!state.route.length || state.nextStepAt === null || state.nextStepAt > current.serverNow)
+    return authority
+  const intent = { kind: 'tick' } as const
+  const next = resolveWorldIntent(state, intent, current.serverNow, [
+    ...WORLD_OBJECTIVES,
+    ...eventWorldObjectives(current.eventObjectives),
+  ])
+  const fingerprint = createHash('sha256')
+    .update(JSON.stringify({ characterId, expectedVersion, intent }))
+    .digest('hex')
+  const { data, error } = await createSupabaseAdminClient().rpc('commit_world_state_v1', {
+    p_user_id: userId,
+    p_character_id: characterId,
+    p_expected_version: expectedVersion,
+    p_command_id: randomUUID(),
+    p_kind: intent.kind,
+    p_next_state: storedState(next),
+    p_request_fingerprint: fingerprint,
+  })
+  if (error) worldRpcError(error)
+  if (!data || !Number.isSafeInteger(data.version) || data.version !== expectedVersion + 1)
+    throw new AurevaneError(
+      'PERSISTENCE_UNAVAILABLE',
+      'Your confirmed position could not be loaded.',
+    )
+  const settled = await readWorldAttackAuthority(userId, characterId)
+  if (settled.state.version !== data.version)
+    throw new AurevaneError(
+      'STALE_VERSION',
+      'Your position changed. Try again from the updated map.',
+    )
+  return settled
+}
 async function presentWorldData(
   userId: string,
   characterId: string,
@@ -193,10 +254,29 @@ async function presentWorldData(
     lastCommandFingerprint: data.lastCommandFingerprint as string | null,
   }
 }
+export function commitWorldCommand(
+  userId: string,
+  characterId: string,
+  command: WorldCommand,
+  compactMovement?: false,
+): Promise<WorldView>
+export function commitWorldCommand(
+  userId: string,
+  characterId: string,
+  command: WorldCommand,
+  compactMovement: true,
+): Promise<WorldMovementReceipt>
+export function commitWorldCommand(
+  userId: string,
+  characterId: string,
+  command: WorldCommand,
+  compactMovement: boolean,
+): Promise<WorldView | WorldMovementReceipt>
 export async function commitWorldCommand(
   userId: string,
   characterId: string,
   command: WorldCommand,
+  compactMovement = false,
 ) {
   // Intent resolution needs authority, not terrain/scene/portrait/environment presentation.
   // Keep training materialization in this read and blocking/version checks in the commit RPC.
@@ -214,6 +294,7 @@ export async function commitWorldCommand(
   if (current.lastCommandId === command.commandId) {
     if (current.lastCommandFingerprint !== fingerprint)
       throw new AurevaneError('IDEMPOTENCY_CONFLICT', 'That travel command was already used.')
+    if (compactMovement) return movementReceipt(characterId, current)
     return (await presentWorldData(userId, characterId, current)).view
   }
   if (state.version !== command.expectedVersion)
@@ -227,15 +308,76 @@ export async function commitWorldCommand(
     ...WORLD_OBJECTIVES,
     ...eventWorldObjectives(current.eventObjectives),
   ])
-  const { error } = await createSupabaseAdminClient().rpc('commit_world_state_v1', {
-    p_user_id: userId,
-    p_character_id: characterId,
-    p_expected_version: command.expectedVersion,
-    p_command_id: command.commandId,
-    p_kind: command.intent.kind,
-    p_next_state: storedState(next),
-    p_request_fingerprint: fingerprint,
-  })
+  const { data: committed, error } = await createSupabaseAdminClient().rpc(
+    'commit_world_state_v1',
+    {
+      p_user_id: userId,
+      p_character_id: characterId,
+      p_expected_version: command.expectedVersion,
+      p_command_id: command.commandId,
+      p_kind: command.intent.kind,
+      p_next_state: storedState(next),
+      p_request_fingerprint: fingerprint,
+    },
+  )
   if (error) worldRpcError(error)
+  if (compactMovement) {
+    if (
+      !committed ||
+      typeof committed !== 'object' ||
+      !Number.isSafeInteger(committed.version) ||
+      committed.version <= state.version
+    )
+      throw new AurevaneError(
+        'PERSISTENCE_UNAVAILABLE',
+        'Movement approval could not be loaded safely.',
+      )
+    // This lean read supplies the database clock and any concurrent blocking state.
+    // Presentation is deliberately independent of the mutation response.
+    const confirmed = await readWorldData(userId, characterId)
+    if ((confirmed.state as WorldState).version < committed.version)
+      throw new AurevaneError(
+        'PERSISTENCE_UNAVAILABLE',
+        'Movement approval could not be loaded safely.',
+      )
+    return movementReceipt(characterId, confirmed)
+  }
   return (await readWorld(userId, characterId)).view
+}
+function movementReceipt(
+  characterId: string,
+  data: Awaited<ReturnType<typeof readWorldData>>,
+): WorldMovementReceipt {
+  const state = data.state as WorldState
+  // The confirmed origin must be supplied even after a slow reply crosses the
+  // previous scene horizon. This is private-filtered terrain, with no scene I/O.
+  const currentSector = projectWorld(state, [], data.serverNow).sectors.find(
+    (sector) => sector.id === state.position.sectorId,
+  )
+  if (!currentSector)
+    throw new AurevaneError(
+      'PERSISTENCE_UNAVAILABLE',
+      'Movement terrain could not be loaded safely.',
+    )
+  return {
+    kind: 'movement',
+    currentSector,
+    characterId,
+    version: state.version,
+    serverNow: data.serverNow,
+    position: state.position,
+    route: state.route,
+    nextStepAt: state.nextStepAt,
+    routeObjectiveId: state.route.length ? (state.routeObjectiveId ?? null) : null,
+    routeDestination: state.route.length ? (state.routeDestination ?? null) : null,
+    battleSessionId: typeof data.battleSessionId === 'string' ? data.battleSessionId : null,
+    movementBlocked:
+      data.blocked === 'WORLD_TRAINING_ACTIVE'
+        ? 'Stop Passive Training to travel.'
+        : data.blocked === 'WORLD_SPECTATING'
+          ? 'Leave spectating to travel.'
+          : data.blocked === 'WORLD_ACTIVE_BATTLE'
+            ? 'Return to your active battle.'
+            : null,
+  }
 }

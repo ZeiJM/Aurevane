@@ -252,6 +252,7 @@ export function projectWorldPlayers(
       return {
         ...identity,
         ...(movement ? { movement } : {}),
+        attackEligible: player.attackable,
         attackable:
           player.attackable &&
           player.position.sectorId === state.position.sectorId &&

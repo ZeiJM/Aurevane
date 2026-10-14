@@ -149,6 +149,9 @@ export interface WorldPlayer {
   /** Seen in the World within the last 40 seconds. Absent on historical payloads. */
   online?: boolean
   attackable: boolean
+  /** Public encounter eligibility before proximity; atomic server checks still decide attacks. */
+  attackEligible?: boolean
+  entityKind?: 'player' | 'ai'
   /** Bounded public prefix of approved travel; never authoritative for range. */
   movement?: {
     version: number

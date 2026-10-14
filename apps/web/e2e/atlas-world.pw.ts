@@ -8,7 +8,7 @@ import { GRID_WIDTH, GRID_HEIGHT, STEP_MS, WORLD_REGIONS } from '../src/world/ca
 import { newWorldState } from '../src/world/travel'
 import type { WorldView } from '../src/world/types'
 import { verifyWorldPresentation, registerWorldInputCases } from './world-presentation-case'
-import { verifyWorldScenePresence } from './world-presence-case'
+import { verifyWorldScenePresence, verifyWorldInstantActions } from './world-presence-case'
 import { sectorMapOrigin, wrappedMapX } from '../src/world/topology'
 import { projectMapPoint } from '../src/components/world/map-projection'
 import { registerWorldLandscapeCases } from './world-landscape-case'
@@ -1515,6 +1515,20 @@ test('known neighbouring players follow the visible viewport with service-only p
   browser,
 }, info) => {
   await verifyWorldScenePresence(page, browser, info, {
+    enter,
+    world,
+    place,
+    sql,
+    capture,
+    stageWalk,
+  })
+})
+
+test('approach arrival controls remain immediate with slow presentation and legal attacks keep canonical authority', async ({
+  page,
+  browser,
+}, info) => {
+  await verifyWorldInstantActions(page, browser, info, {
     enter,
     world,
     place,

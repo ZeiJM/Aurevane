@@ -10,17 +10,18 @@ import { createSupabaseCharacterBuildRepository } from '@/server/character/supab
 import { createSupabaseCharacterRepository } from '@/server/character/supabase-character-repository'
 import { createServerCombatContentResolver } from '@/server/combat/combat-content-resolver'
 import type { WorldState } from '@/world/types'
+import type { WorldAttackReceipt } from '@/world/attack-receipt'
 import { assertEncounterRange } from './world-service'
-import { readWorld, worldRpcError } from './world-repository'
+import { settleWorldAttackAuthority, worldRpcError } from './world-repository'
 
 export async function attackWorldPlayer(
   userId: string,
   characterId: string,
   targetId: string,
   expectedVersion: number,
-) {
-  const current = await readWorld(userId, characterId)
-  if (!current.view.players.some((p) => p.characterId === targetId && p.attackable))
+): Promise<WorldAttackReceipt> {
+  const current = await settleWorldAttackAuthority(userId, characterId, expectedVersion)
+  if (!current.players.some((p) => p.characterId === targetId && p.attackable))
     throw new AurevaneError('INVALID_REQUEST', 'That player is not within reach.')
   const supabase = createSupabaseAdminClient()
   const { data: pair, error: pairError } = await supabase.rpc('read_world_encounter_pair_v1', {
@@ -34,7 +35,7 @@ export async function attackWorldPlayer(
   assertEncounterRange(pair.attacker as WorldState, pair.target as WorldState)
   const characters = createSupabaseCharacterRepository(),
     builds = createSupabaseCharacterBuildRepository()
-  const roster = await Promise.all(
+  const preparation = Promise.all(
     [
       { userId, characterId },
       { userId: pair.targetUserId as string, characterId: targetId },
@@ -58,17 +59,20 @@ export async function attackWorldPlayer(
       }
       return { character, buildSnapshot, member }
     }),
-  )
-  const authority = await createResolvedBattleBuildAuthoritySnapshot(
-    'pvp',
-    roster.map(({ character, buildSnapshot }) => ({
-      combatantId: `character:${character.id}`,
-      characterId: character.id,
-      snapshot: buildSnapshot,
-    })),
-    createServerCombatContentResolver(),
-  )
-  const [elevationPolicy, timingPolicy] = await Promise.all([
+  ).then(async (roster) => {
+    const authority = await createResolvedBattleBuildAuthoritySnapshot(
+      'pvp',
+      roster.map(({ character, buildSnapshot }) => ({
+        combatantId: `character:${character.id}`,
+        characterId: character.id,
+        snapshot: buildSnapshot,
+      })),
+      createServerCombatContentResolver(),
+    )
+    return { roster, authority }
+  })
+  const [{ roster, authority }, elevationPolicy, timingPolicy] = await Promise.all([
+    preparation,
     readBattlefieldElevationPolicy(),
     readCombatEffectTimingPolicy(),
   ])
@@ -83,7 +87,7 @@ export async function attackWorldPlayer(
     p_user_id: userId,
     p_character_id: characterId,
     p_target_id: targetId,
-    p_expected_version: expectedVersion,
+    p_expected_version: current.state.version,
     p_target_version: pair.target.version,
     p_snapshot: encounter,
     p_build_versions: Object.fromEntries(
@@ -91,10 +95,10 @@ export async function attackWorldPlayer(
     ),
   })
   if (error) worldRpcError(error)
-  if (typeof data?.battleSessionId !== 'string')
+  if (typeof data?.battleSessionId !== 'string' || data.battleSessionId.trim().length === 0)
     throw new AurevaneError('PERSISTENCE_UNAVAILABLE', 'The encounter could not be started.')
   return {
-    ...(await readWorld(userId, characterId)).view,
-    battleSessionId: data.battleSessionId as string,
+    characterId,
+    battleSessionId: data.battleSessionId,
   }
 }

@@ -13,19 +13,27 @@ export function worldSyncDelayMs(state: {
   serverNow: number
   /** Real milliseconds until the last step lands, when known. */
   remainingMs?: number
+  /** Approved loaded-terrain horizon; request the next scene before it is exhausted. */
+  loadedRemainingMs?: number
   /** Foreground local-map observers still need to see other travellers move. */
   observePlayers?: boolean
   onlinePlayers?: number
 }) {
   if (state.routeLength > 0 && !state.movementBlocked) {
+    const loadedDelay = Number.isFinite(state.loadedRemainingMs)
+      ? Math.max(0, state.loadedRemainingMs! - ACTIVE_WORLD_SYNC_MS)
+      : Infinity
     if (state.nextStepAt !== null) {
       // The client previews due steps itself, so the server only needs a confirmation every
       // so often (and exactly on arrival), which keeps requests from queueing behind each other.
       const untilNext = Math.max(0, state.nextStepAt - state.serverNow)
       const untilArrival = state.remainingMs ?? ACTIVE_WORLD_SYNC_MS
-      return Math.max(untilNext, Math.min(ACTIVE_WORLD_SYNC_MS, untilArrival))
+      return Math.min(
+        loadedDelay,
+        Math.max(untilNext, Math.min(ACTIVE_WORLD_SYNC_MS, untilArrival)),
+      )
     }
-    return ACTIVE_WORLD_SYNC_MS
+    return Math.min(loadedDelay, ACTIVE_WORLD_SYNC_MS)
   }
   return state.observePlayers ? ((state.onlinePlayers ?? 0) > 0 ? 1000 : 2000) : IDLE_WORLD_SYNC_MS
 }
@@ -221,7 +229,7 @@ export function findWorldRoute(
  * absent client) advances one step and reschedules from now: there is never offline catch-up.
  */
 export const MOVEMENT_LAG_ALLOWANCE_MS = 8000
-const MAX_STEPS_PER_TICK = 40
+export const MAX_STEPS_PER_TICK = 40
 export function advanceWorldRoute(state: WorldState, now: number): WorldState {
   if (!state.route.length || state.nextStepAt === null || now < state.nextStepAt) return state
   const route = [...state.route]

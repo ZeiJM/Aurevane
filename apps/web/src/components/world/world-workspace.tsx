@@ -1,11 +1,13 @@
 'use client'
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { useRouter } from 'next/navigation'
-import Image from 'next/image'
 import { WORLD_LAND_NAME } from '@/world/atlas'
 import { WORLD_REGIONS } from '@/world/catalog'
 import { precipitationKind } from './map-weather'
 import { remainingTravelMs, worldSyncDelayMs } from '@/world/travel'
+import type { WorldAttackReceipt } from '@/world/attack-receipt'
+import { mergeWorldMovement } from '@/world/movement-receipt'
+import { WorldNearbyPlayer } from './world-nearby-player'
 import { mergeWorldRefresh, worldRefreshUrl } from '@/world/presence'
 import type { WorldIntent, WorldPosition, WorldView } from '@/world/types'
 import { WorldConflict, WorldController } from './world-controller'
@@ -85,13 +87,15 @@ export function WorldWorkspace({
     [message, setMessage] = useState('')
   const [active, setActive] = useState<WorldIntent | null>(null),
     [selectedPlayer, setSelectedPlayer] = useState<string | null>(null),
+    [approachingPlayer, setApproachingPlayer] = useState<string | null>(null),
     [settings, setSettings] = useState(false),
     [visiblePlayerIds, setVisiblePlayerIds] = useState<string[] | null>(null),
     [destinationId, setDestinationId] = useState<string | null>(null)
   const [animate, setAnimate] = useState(true),
     [zoom, setZoom] = useState(1),
     [globeZoom, setGlobeZoom] = useState(0.94)
-  const [motion] = useState(() => new WorldMotion(initialView))
+  const [motion] = useState(() => new WorldMotion(initialView, performance.now()))
+  const [approvedPosition, setApprovedPosition] = useState(initialView.position)
   const zoomLocked = useSyncExternalStore(subscribeZoomLock, readZoomLock, () => false)
   const changeZoom = (value: number) =>
     (mode === 'global' ? setGlobeZoom : setZoom)(clampWorldZoom(value))
@@ -112,7 +116,17 @@ export function WorldWorkspace({
     acceptedAt.current = Date.now()
     motion.reconcile(initialView, performance.now())
     let mounted = true,
-      timer: number | null = null
+      timer: number | null = null,
+      arrivalTimer: number | null = null,
+      sceneTimer: number | null = null
+    const scheduleArrival = () => {
+      if (arrivalTimer !== null) clearTimeout(arrivalTimer)
+      if (!mounted) return
+      const now = performance.now()
+      setApprovedPosition(motion.approvedPosition(now))
+      const delay = motion.nextApprovedTransitionDelay(now)
+      if (delay !== null) arrivalTimer = window.setTimeout(scheduleArrival, Math.max(1, delay))
+    }
     const accept = (next: WorldView, reconcile: boolean) => {
       if (!mounted) return
       if (next.battleSessionId) {
@@ -125,6 +139,8 @@ export function WorldWorkspace({
       }
       acceptedAt.current = Date.now()
       if (reconcile) motion.reconcile(next, performance.now())
+      else motion.approveReceipt(next, performance.now())
+      scheduleArrival()
       setView(next)
       live.update(next, localViewActive.current && document.visibilityState === 'visible')
       schedule()
@@ -133,7 +149,7 @@ export function WorldWorkspace({
       command: async (intent, current) => {
         const response = await fetch('/api/world', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'x-world-response': 'movement' },
           body: JSON.stringify({
             intent,
             characterId: current.characterId,
@@ -144,19 +160,44 @@ export function WorldWorkspace({
         const body = await response.json()
         if (response.status === 409) throw new WorldConflict(body.error?.message)
         if (!response.ok) throw new Error(body.error?.message ?? 'The world could not respond.')
-        return body as WorldView
+        if (intent.kind === 'attack') {
+          if (
+            body.characterId !== current.characterId ||
+            typeof body.battleSessionId !== 'string' ||
+            !body.battleSessionId.trim()
+          )
+            throw new Error('The encounter could not be opened safely.')
+          return body as WorldAttackReceipt
+        }
+        return body.kind === 'movement'
+          ? mergeWorldMovement(current, body)
+          : mergeWorldRefresh(current, body as WorldView)
       },
-      refresh: async (signal) => {
+      refresh: async (signal, fullScene) => {
         const previous = instance.view
-        const response = await fetch(worldRefreshUrl(previous), { cache: 'no-store', signal }),
+        const response = await fetch(fullScene ? '/api/world' : worldRefreshUrl(previous), {
+            cache: 'no-store',
+            signal,
+          }),
           body = await response.json()
         if (!response.ok)
           throw new Error(body.error?.message ?? 'The world could not be refreshed.')
         return mergeWorldRefresh(previous, body)
       },
       accept,
+      presentation: (next) => {
+        if (!mounted) return
+        motion.updateScene(next.sectors, performance.now())
+        scheduleArrival()
+        scheduleScene()
+        setView(next)
+        live.update(next, localViewActive.current && document.visibilityState === 'visible')
+      },
       error: (text) => {
-        if (mounted) setMessage(text)
+        if (mounted) {
+          setMessage(text)
+          setApproachingPlayer(null)
+        }
       },
       busy: (intent) => {
         if (mounted) setActive(intent?.kind === 'tick' ? null : intent)
@@ -206,9 +247,26 @@ export function WorldWorkspace({
     })
     livePresence.current = live
     live.update(initialView, localViewActive.current && document.visibilityState === 'visible')
+    const scheduleScene = () => {
+      if (sceneTimer !== null) clearTimeout(sceneTimer)
+      if (!mounted || !instance.view.route.length || instance.view.movementBlocked) return
+      const current = instance.view,
+        now = current.serverNow + Math.max(0, Date.now() - acceptedAt.current)
+      const loaded = motion.loadedHorizonMs(performance.now()),
+        remaining = remainingTravelMs(current, now)
+      if (loaded >= remaining - 1) return
+      sceneTimer = window.setTimeout(
+        async () => {
+          if (document.visibilityState === 'visible') await instance.hydrate()
+          scheduleScene()
+        },
+        Math.max(100, loaded - 1200),
+      )
+    }
     const schedule = () => {
       if (!mounted) return
       if (timer) clearTimeout(timer)
+      scheduleScene()
       const current = instance.view,
         now = current.serverNow + Math.max(0, Date.now() - acceptedAt.current)
       const delay = worldSyncDelayMs({
@@ -223,9 +281,10 @@ export function WorldWorkspace({
       timer = window.setTimeout(
         async () => {
           if (document.visibilityState === 'visible' && !instance.pending) {
-            if (instance.view.route.length && !instance.view.movementBlocked)
+            if (instance.view.route.length && !instance.view.movementBlocked) {
               await instance.send({ kind: 'tick' })
-            else await instance.refresh()
+              void instance.hydrate()
+            } else await instance.refresh()
           }
           schedule()
         },
@@ -233,6 +292,7 @@ export function WorldWorkspace({
       )
     }
     schedule()
+    scheduleArrival()
     const visible = () => {
       live.update(instance.view, localViewActive.current && document.visibilityState === 'visible')
       if (document.visibilityState === 'visible') void instance.refresh()
@@ -244,22 +304,47 @@ export function WorldWorkspace({
       livePresence.current = null
       instance.dispose()
       if (timer) clearTimeout(timer)
+      if (arrivalTimer !== null) clearTimeout(arrivalTimer)
+      if (sceneTimer !== null) clearTimeout(sceneTimer)
       document.removeEventListener('visibilitychange', visible)
       controller.current = null
     }
   }, [initialView, router, motion])
+  useEffect(() => {
+    if (!approachingPlayer || controller.current?.pending) return
+    const target = view.players.find((player) => player.characterId === approachingPlayer)
+    const inRange =
+      target &&
+      target.position.sectorId === approvedPosition.sectorId &&
+      Math.abs(target.position.x - approvedPosition.x) +
+        Math.abs(target.position.y - approvedPosition.y) <=
+        1
+    const now = view.serverNow + Math.max(0, Date.now() - acceptedAt.current)
+    if (!inRange && (!view.route.length || remainingTravelMs(view, now) <= 0))
+      setApproachingPlayer(null)
+  }, [approachingPlayer, approvedPosition, view, active])
   const send = useCallback(
     (intent: WorldIntent) => {
       setMessage('')
       if (intent.kind === 'stop') motion.stop(performance.now())
-      void controller.current?.send(intent)
+      else if (intent.kind === 'attack') motion.hold(performance.now())
+      void controller.current?.send(intent).then(() => {
+        if (['walk', 'autopath', 'stop'].includes(intent.kind)) void controller.current?.hydrate()
+      })
     },
     [motion],
   )
   const walk = useCallback(
     (destination: WorldPosition) => {
       const current = controller.current?.view
-      if (!current || current.movementBlocked) return
+      if (
+        !current ||
+        current.movementBlocked ||
+        current.battleSessionId ||
+        controller.current?.attackPending
+      )
+        return
+      setApproachingPlayer(null)
       const now = performance.now(),
         route = localRoute(current, motion.sample(now).position, destination)
       if (route) motion.plan(route, current.sectors, now)
@@ -268,9 +353,10 @@ export function WorldWorkspace({
     [send, motion],
   )
   const stopMoving = () => {
+    setApproachingPlayer(null)
     send({ kind: 'stop' })
   }
-  const local = view.sectors.find((s) => s.id === view.position.sectorId) ?? view.sectors[0]!
+  const local = view.sectors.find((s) => s.id === approvedPosition.sectorId) ?? view.sectors[0]!
   const region = WORLD_REGIONS.find((r) => r.id === local.regionId),
     localName = local.townId ? (region?.name ?? local.name) : local.name
   const actionBusy = Boolean(active && ['attack', 'interact', 'cross'].includes(active.kind)),
@@ -290,7 +376,13 @@ export function WorldWorkspace({
   const approach = useCallback(
     (position: WorldPosition) => {
       const current = controller.current?.view
-      if (!current || current.movementBlocked) return
+      if (
+        !current ||
+        current.movementBlocked ||
+        current.battleSessionId ||
+        controller.current?.attackPending
+      )
+        return
       const now = performance.now(),
         from = motion.sample(now).position,
         navigate = prepareLocalRoute(current)
@@ -307,7 +399,10 @@ export function WorldWorkspace({
       if (routes[0]) {
         motion.plan(routes[0].route!, current.sectors, now)
         send({ kind: 'walk', destination: routes[0].destination })
-      } else setMessage('There is no known route to that character yet.')
+      } else {
+        setApproachingPlayer(null)
+        setMessage('There is no known route to that character yet.')
+      }
     },
     [motion, send],
   )
@@ -532,64 +627,41 @@ export function WorldWorkspace({
                   <section className={styles.characters}>
                     {nearby.length
                       ? nearby.map((player) => {
-                          const inRange =
-                            player.position.sectorId === view.position.sectorId &&
-                            Math.abs(player.position.x - view.position.x) +
-                              Math.abs(player.position.y - view.position.y) <=
-                              1
-                          const attacking =
-                            active?.kind === 'attack' && active.targetId === player.characterId
+                          const cell = view.sectors
+                            .find((s) => s.id === approvedPosition.sectorId)
+                            ?.cells.find(
+                              (c) => c.x === approvedPosition.x && c.y === approvedPosition.y,
+                            )
+                          const targetCell = view.sectors
+                            .find((s) => s.id === player.position.sectorId)
+                            ?.cells.find(
+                              (c) => c.x === player.position.x && c.y === player.position.y,
+                            )
                           return (
-                            <article
+                            <WorldNearbyPlayer
                               key={player.characterId}
-                              className={`${styles.player} ${selectedPlayer === player.characterId ? styles.selected : ''}`}
-                              data-world-player={player.characterId}
-                            >
-                              {player.imageUrl ? (
-                                <Image
-                                  src={player.imageUrl}
-                                  alt=""
-                                  width={44}
-                                  height={44}
-                                  unoptimized
-                                />
-                              ) : (
-                                <span className={styles.avatar}>{player.name[0]}</span>
-                              )}
-                              <div className={styles.playerIdentity}>
-                                <strong>{player.name}</strong>
-                                <small>
-                                  Level {player.level}
-                                  {player.online ? ' · Online' : ''}
-                                </small>
-                              </div>
-                              <div className={styles.rowActions} data-world-player-actions>
-                                {inRange ? (
-                                  <>
-                                    {player.attackable ? (
-                                      <button
-                                        disabled={disabled}
-                                        onClick={() =>
-                                          send({ kind: 'attack', targetId: player.characterId })
-                                        }
-                                      >
-                                        {attacking ? 'Attacking…' : 'Attack'}
-                                      </button>
-                                    ) : null}
-                                    <button disabled title="Coming soon">
-                                      Talk
-                                    </button>
-                                  </>
-                                ) : (
-                                  <button
-                                    disabled={Boolean(view.movementBlocked)}
-                                    onClick={() => approach(player.position)}
-                                  >
-                                    Approach
-                                  </button>
-                                )}
-                              </div>
-                            </article>
+                              player={{
+                                ...player,
+                                attackEligible:
+                                  Boolean(player.attackEligible ?? player.attackable) &&
+                                  cell?.safe === false &&
+                                  targetCell?.safe === false,
+                              }}
+                              ownerPosition={approvedPosition}
+                              disabled={disabled}
+                              approaching={approachingPlayer === player.characterId}
+                              attacking={
+                                active?.kind === 'attack' && active.targetId === player.characterId
+                              }
+                              selected={selectedPlayer === player.characterId}
+                              onApproach={() => {
+                                setApproachingPlayer(player.characterId)
+                                approach(player.position)
+                              }}
+                              onAttack={() =>
+                                send({ kind: 'attack', targetId: player.characterId })
+                              }
+                            />
                           )
                         })
                       : null}
@@ -606,7 +678,7 @@ export function WorldWorkspace({
             >
               <span>Sector {local.coordinate}</span>
               <span>
-                E{local.east + view.position.x} · N{local.north - view.position.y}
+                E{local.east + approvedPosition.x} · N{local.north - approvedPosition.y}
               </span>
             </p>
             <div className={styles.panelFootActions}>
