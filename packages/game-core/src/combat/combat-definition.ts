@@ -1,7 +1,7 @@
 import { automaticAbilityEventSupported } from './combat-ability-events'
 import type { CombatTargetSpec } from './actions'
 import { validateCombatActionDefinition } from './combat-authoring-validation'
-import { canonicalAbilityTargetSpec } from './combat-targeting-shapes'
+import { canonicalAbilityTargetSpec, combatTargetAllowsHostileHit } from './combat-targeting-shapes'
 import { validateSkillCooldownDefinition, type SkillCooldownDefinition } from './skill-cooldowns'
 import {
   validateAbilityRequirements,
@@ -419,11 +419,7 @@ export function validateAbilityDefinition(value: unknown): readonly AbilityDefin
         )
       if (
         !record(target) ||
-        !['unit', 'ground-tile'].includes(target.kind as string) ||
-        !['enemy', 'any'].includes(target.teamPolicy as string) ||
-        !['enemies-only', 'all-units', 'all-except-actor'].includes(
-          target.friendlyFire as string,
-        ) ||
+        !combatTargetAllowsHostileHit(target as unknown as CombatTargetSpec) ||
         candidate.mode !== 'action'
       )
         issue(

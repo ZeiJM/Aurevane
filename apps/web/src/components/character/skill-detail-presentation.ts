@@ -5,6 +5,7 @@ import {
   percentageDotDescription,
 } from '@aurevane/game-core/combat/combat-percentage-dots'
 import { skillInformationRows } from './skill-information-contract'
+import { combatTargetCategories } from '@aurevane/game-core/combat/combat-targeting-shapes'
 import {
   elementalStatusOverlapsDamage,
   previewEffect,
@@ -424,6 +425,18 @@ export function skillRequirementsSummary(
 }
 
 export function skillTargetDescription(skill: Pick<MatureSkillDefinition, 'target'>): string {
+  if (skill.target.geometryVersion === 3)
+    return combatTargetCategories(skill.target)
+      .map(
+        (category) =>
+          ({
+            self: 'Self',
+            ally: 'Ally',
+            enemy: 'Enemy',
+            ground: skill.target.kind === 'empty-tile' ? 'Empty Ground' : 'Ground',
+          })[category],
+      )
+      .join(' / ')
   if (skill.target.kind === 'self') return 'Self'
   if (skill.target.kind === 'ground-tile') return 'Ground'
   if (skill.target.kind === 'empty-tile') return 'Empty Ground'
@@ -486,13 +499,23 @@ export function skillTargetElevationDescription(
 }
 
 export function skillCompactRangeDescription(skill: Pick<MatureSkillDefinition, 'target'>): string {
-  if (skill.target.kind === 'self' || skill.target.shape.kind === 'all') return 'N/A'
+  if (skillTargetsOnlySelf(skill.target) || skill.target.shape.kind === 'all') return 'N/A'
   return String(skill.target.maximumRange)
 }
 
 export function skillLineOfSightDescription(skill: Pick<MatureSkillDefinition, 'target'>): string {
-  if (skill.target.kind === 'self' || skill.target.shape.kind === 'all') return 'N/A'
+  if (
+    skillTargetsOnlySelf(skill.target) ||
+    (skill.target.geometryVersion !== 3 && skill.target.shape.kind === 'all')
+  )
+    return 'N/A'
   return skill.target.requiresLineOfSight ? 'Required' : 'Not required'
+}
+
+function skillTargetsOnlySelf(target: MatureSkillDefinition['target']): boolean {
+  if (target.geometryVersion !== 3) return target.kind === 'self'
+  const categories = combatTargetCategories(target)
+  return categories.length === 1 && categories[0] === 'self'
 }
 
 export function skillCooldownDescription(
@@ -533,13 +556,18 @@ export function skillDisplayName(skill: MatureSkillDefinition): string {
 export function skillTargetMethodExplanation(skill: Pick<MatureSkillDefinition, 'target'>): string {
   const shape = skill.target.shape
   if (shape.kind === 'single') return 'Single selects exactly one legal unit or tile.'
-  if (shape.kind === 'all')
+  if (shape.kind === 'all') {
+    if (skill.target.geometryVersion === 3)
+      return 'All covers the battlefield regardless of distance. Authored target categories, elevation and line of sight rules apply.'
     return 'All covers the battlefield regardless of distance or line of sight. Team, friendly fire and authored elevation decide recipients.'
-  if (skill.target.geometryVersion !== 2)
+  }
+  if (skill.target.geometryVersion !== 2 && skill.target.geometryVersion !== 3)
     return shape.kind === 'circle'
       ? 'Historical Circle spreads around the selected tile.'
       : 'Historical Line ends at the selected tile.'
   if (shape.kind === 'line')
     return `Line [${shape.length}] covers the complete cardinal lane from you, including empty tiles. Combatants do not stop it; authored terrain, line of sight and elevation rules apply.`
+  if (skill.target.geometryVersion === 3 && combatTargetCategories(skill.target).includes('self'))
+    return `Circle [${shape.radius}] covers ${(shape.radius * 2 + 1) ** 2 - 1} surrounding tiles from you and includes yourself. Inner rings are included; authored visibility and elevation rules apply to surrounding tiles.`
   return `Circle [${shape.radius}] covers ${(shape.radius * 2 + 1) ** 2 - 1} surrounding tiles from you, excluding your tile. Inner rings are included. Separately authored self effects still apply.`
 }

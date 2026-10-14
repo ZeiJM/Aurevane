@@ -25,6 +25,7 @@ import {
   skillTargetMethodDescription,
   skillTargetElevationDescription,
   skillCompactRangeDescription,
+  skillLineOfSightDescription,
   type CompactSkillEffectSummaryParts,
 } from './skill-detail-presentation'
 import type { SkillEffectTimingPolicy } from './skill-effect-timing-context'
@@ -246,13 +247,9 @@ export function abilityBehaviorInformation(
           : 'N/A',
       'Line of Sight': nativeMove
         ? 'Not required'
-        : !target ||
-            target.kind === 'self' ||
-            (target.geometryVersion !== 3 && target.shape.kind === 'all')
-          ? 'N/A'
-          : target.requiresLineOfSight
-            ? 'Required'
-            : 'Not required',
+        : target
+          ? skillLineOfSightDescription({ target })
+          : 'N/A',
     }),
     effects: effects.map((effect) => effect.presentation),
     effectDescriptions: effects.map((effect) => effect.description),
