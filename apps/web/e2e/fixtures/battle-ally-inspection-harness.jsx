@@ -1,3 +1,9 @@
+import {
+  captureBasicSkillSources,
+  defaultBasicSkills,
+} from '@aurevane/game-core/combat/combat-basic-actions'
+import { PV1F_BASIC_ATTACK_ID } from '@aurevane/game-core/combat/pv1f-skills'
+import { abilityBehaviorInformation } from '@/components/character/ability-detail-presentation'
 import { DEFAULT_COMBAT_KEYBINDS } from '@aurevane/validation/player/combat-controls'
 import { setTerrainOverlay } from '@aurevane/game-core/combat/terrain-overlays'
 import { SkillGroundEditor } from '@/components/master/combat-content/skill-ground-editor'
@@ -55,11 +61,16 @@ const canonicalCase = new URLSearchParams(location.search).get('canonical')
 let canonicalState
 let canonicalCapture
 let canonicalTargets
+let canonicalBasics
 function canonicalPublicState(state) {
   const publicState = { ...state }
   Reflect.deleteProperty(publicState, 'capturedAbilitySources')
   Reflect.deleteProperty(publicState, 'abilityRuntime')
-  return { ...publicState, manualActionTargets: canonicalTargets }
+  return {
+    ...publicState,
+    manualActionTargets: canonicalTargets,
+    ...(canonicalBasics ? { basicActions: canonicalBasics } : {}),
+  }
 }
 const elementalCase = new URLSearchParams(location.search).get('elemental')
 const dotCase = new URLSearchParams(location.search).get('dot')
@@ -698,6 +709,108 @@ if (canonicalCase) {
         },
       },
     }
+  initialBattle.snapshot = canonicalPublicState(canonicalState)
+}
+if (canonicalCase?.startsWith('move-basic')) {
+  const line = canonicalCase === 'move-basic-line'
+  const price = canonicalCase === 'move-basic-100' ? 100 : 23
+  const definitions = defaultBasicSkills().map((basic) =>
+    basic.id !== 'basic.move'
+      ? basic
+      : {
+          ...basic,
+          contentVersion: 2,
+          name: 'Swift Step',
+          execution: { kind: 'basic-move', costBasis: 'flat' },
+          ability: {
+            ...basic.ability,
+            behaviors: basic.ability.behaviors.map((behavior) => ({
+              ...behavior,
+              costs: [{ resource: 'ap', amount: price }],
+              ...(line
+                ? {
+                    classification: 'attack',
+                    attackFamily: 'physical',
+                    targeting: {
+                      ...behavior.targeting,
+                      kind: 'unit',
+                      teamPolicy: 'enemy',
+                      friendlyFire: 'enemies-only',
+                      categories: ['enemy'],
+                      shape: { kind: 'line', length: 2 },
+                      maximumRange: 2,
+                    },
+                  }
+                : {}),
+              effects: [
+                {
+                  ...behavior.effects[0],
+                  payload: { ...behavior.effects[0].payload, maximumTiles: 2 },
+                },
+                ...(line
+                  ? [
+                      {
+                        id: 'hit',
+                        payload: { type: 'damage', recipient: 'affected-units', amount: 10 },
+                      },
+                    ]
+                  : []),
+              ],
+            })),
+          },
+        },
+  )
+  const captures = captureBasicSkillSources({
+    ownerCombatantId: ids[0],
+    supportActionId: 'basic.guard',
+    definitions,
+  })
+  canonicalCapture = captures.find((source) => source.abilityId === 'basic.move')
+  canonicalState = reconcileCombatAbilitySources(initialBattle.snapshot, captures)
+  canonicalTargets = captures.flatMap((source) =>
+    source.definition.behaviors.map((behavior) => ({
+      actionId: source.abilityId === 'unarmed.basic' ? PV1F_BASIC_ATTACK_ID : source.abilityId,
+      behaviorId: behavior.id,
+      target: behavior.targeting,
+      ...(source.abilityId === 'basic.move'
+        ? {
+            move: { maximumTiles: 2, conditional: false },
+            costs: behavior.costs.map((cost) => ({ ...cost })),
+          }
+        : {}),
+    })),
+  )
+  // Local display fixture derived from the same real capture and shared report adapter.
+  // Owner entitlement/public transport is covered by the production service tests.
+  canonicalBasics = captures.map((source) => {
+    const basic = source.basic
+    return {
+      ownerCombatantId: source.ownerCombatantId,
+      actionId: source.abilityId === 'unarmed.basic' ? PV1F_BASIC_ATTACK_ID : source.abilityId,
+      contentVersion: source.contentVersion,
+      name: basic.name,
+      description: basic.description,
+      enabled: basic.enabled,
+      iconKey: basic.media.iconKey,
+      ...(source.abilityId === 'basic.move'
+        ? { movement: { costBasis: 'flat', maximumTiles: 2 } }
+        : {}),
+      behaviors: source.definition.behaviors.map((behavior) => ({
+        behaviorId: behavior.id,
+        classification: behavior.classification,
+        costs: behavior.costs.map((cost) => ({ ...cost })),
+        cooldown: behavior.cooldown,
+        target: behavior.targeting,
+        ...(source.abilityId === 'basic.move'
+          ? { move: { maximumTiles: 2, conditional: false } }
+          : {}),
+        ...abilityBehaviorInformation(behavior, {
+          basic,
+          stats: { move: 4, jump: 1, physicalPower: 20, mysticPower: 20 },
+        }),
+      })),
+    }
+  })
   initialBattle.snapshot = canonicalPublicState(canonicalState)
 }
 window.fixtureBattle = initialBattle

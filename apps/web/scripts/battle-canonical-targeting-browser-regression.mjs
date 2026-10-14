@@ -382,8 +382,12 @@ try {
           const result = await page.evaluate(() => ({
             calls: window.calls.filter((call) => /\/(commit|intents)$/.test(call.path)),
             receipts: window.receipts,
-            actor: window.fixtureBattle.snapshot.tactical.battle.combatants[0],
-            placement: window.fixtureBattle.snapshot.tactical.placements[0],
+            actor: window.fixtureBattle.snapshot.tactical.battle.combatants.find(
+              (unit) => unit.id === 'character:player',
+            ),
+            placement: window.fixtureBattle.snapshot.tactical.placements.find(
+              (placement) => placement.combatantId === 'character:player',
+            ),
           }))
           assert.equal(result.calls.length, 1)
           assert.equal(result.calls[0].body.intent.behaviorId, 'strike')
@@ -442,7 +446,9 @@ try {
           )
           const result = await page.evaluate(() => ({
             calls: window.calls.filter((call) => /\/(commit|intents)$/.test(call.path)),
-            placement: window.fixtureBattle.snapshot.tactical.placements[0],
+            placement: window.fixtureBattle.snapshot.tactical.placements.find(
+              (placement) => placement.combatantId === 'character:player',
+            ),
           }))
           assert.equal(result.calls.length, 1)
           assert.deepEqual(result.calls[0].body.intent.target, {
@@ -455,6 +461,181 @@ try {
           ])
           assert.deepEqual(result.placement.position, { x: 3, y: 2 })
           await page.close()
+          cases++
+        }
+      }
+    }
+  }
+  if (moveOnly) {
+    for (const mode of ['pve', 'pvp']) {
+      for (const viewport of [
+        { width: 1366, height: 768 },
+        { width: 390, height: 844 },
+      ]) {
+        const touch = viewport.width === 390
+        const options = { viewport, ...(touch ? { isMobile: true, hasTouch: true } : {}) }
+        for (const price of [23, 100]) {
+          const page = await browser.newPage(options)
+          page.on('pageerror', (error) => errors.push(error.message))
+          const gesture = (locator) => (touch ? locator.tap() : locator.click())
+          await page.goto(
+            server.resolvedUrls.local[0] +
+              `?mode=${mode}&targeting=single&canonical=move-basic-${price}`,
+          )
+          const step = page
+            .getByRole('region', { name: 'Command Deck' })
+            .getByRole('button', { name: new RegExp(`^Swift Step,.*${price} AP`) })
+          await gesture(step)
+          const destination = page
+            .locator('#battlefield')
+            .getByRole('button', { name: /^Tile 4, 3;/ })
+          assert.equal(
+            await destination.getAttribute('data-reachable'),
+            'true',
+            'the flat overall cost permits walking even at100 AP',
+          )
+          await page.screenshot({
+            path: resolve(output, `${mode}-${viewport.width}-basic-${price}.png`),
+          })
+          await gesture(destination)
+          await page.waitForFunction(() => window.fixtureBattle.battleVersion === 2)
+          const result = await page.evaluate(() => ({
+            calls: window.calls.filter((call) => /\/(commit|intents)$/.test(call.path)),
+            receipts: window.receipts,
+            actor: window.fixtureBattle.snapshot.tactical.battle.combatants.find(
+              (unit) => unit.id === 'character:player',
+            ),
+            placement: window.fixtureBattle.snapshot.tactical.placements.find(
+              (placement) => placement.combatantId === 'character:player',
+            ),
+          }))
+          assert.equal(result.calls.length, 1)
+          assert.equal(
+            result.calls[0].body.intent.kind,
+            'action',
+            'flat Basic Move uses its captured action facade',
+          )
+          assert.equal(result.calls[0].body.intent.actionId, 'basic.move')
+          assert.equal(result.calls[0].body.intent.behaviorId, 'use')
+          assert.deepEqual(result.calls[0].body.intent.target, { kind: 'self' })
+          assert.deepEqual(result.calls[0].body.intent.movementPath, [
+            { x: 3, y: 3 },
+            { x: 3, y: 2 },
+          ])
+          assert.deepEqual(result.placement.position, { x: 3, y: 2 })
+          assert.equal(result.actor.hp, 100)
+          assert.equal(result.actor.mp, 50)
+          assert.equal(
+            result.receipts.filter((event) => event.event === 'combat_action_used').length,
+            1,
+          )
+          assert.equal(
+            Number(
+              await page
+                .getByRole('progressbar', { name: 'Action Economy remaining' })
+                .getAttribute('aria-valuenow'),
+            ),
+            100 - price,
+          )
+          await page.close()
+          cases++
+        }
+        if (!touch) {
+          const page = await browser.newPage(options)
+          page.on('pageerror', (error) => errors.push(error.message))
+          await page.goto(
+            server.resolvedUrls.local[0] +
+              `?mode=${mode}&targeting=single&canonical=move-basic-100`,
+          )
+          await page
+            .getByRole('region', { name: 'Command Deck' })
+            .getByRole('button', { name: /^Swift Step,/ })
+            .click()
+          await page.keyboard.press('w')
+          await page.waitForFunction(() => window.fixtureBattle.battleVersion === 2)
+          const intents = await page.evaluate(() =>
+            window.calls
+              .filter((call) => /\/(commit|intents)$/.test(call.path))
+              .map((call) => call.body.intent),
+          )
+          assert.equal(intents.length, 1)
+          assert.equal(intents[0].actionId, 'basic.move')
+          assert.deepEqual(intents[0].movementPath, [
+            { x: 3, y: 3 },
+            { x: 3, y: 2 },
+          ])
+          await page.close()
+          cases++
+          const line = await browser.newPage(options)
+          line.on('pageerror', (error) => errors.push(error.message))
+          await line.goto(
+            server.resolvedUrls.local[0] +
+              `?mode=${mode}&targeting=single&canonical=move-basic-line`,
+          )
+          await line
+            .getByRole('region', { name: 'Command Deck' })
+            .getByRole('button', { name: /^Swift Step,/ })
+            .click()
+          await line
+            .locator('#battlefield')
+            .getByRole('button', { name: /^Tile 4, 3;/ })
+            .click()
+          assert.equal(
+            await line.evaluate(
+              () => window.calls.filter((call) => /\/(commit|intents)$/.test(call.path)).length,
+            ),
+            0,
+            'Line Basic Move retains directional choice after walking',
+          )
+          const victim = line.locator('#battlefield').getByRole('button', { name: /^Tile 5, 3;/ })
+          await victim.hover()
+          await line.waitForFunction(() =>
+            document
+              .querySelector('#battlefield button[aria-label^="Tile 5, 3;"]')
+              ?.hasAttribute('data-affected'),
+          )
+          assert.equal(
+            await line.evaluate(
+              () => window.calls.filter((call) => /\/(commit|intents)$/.test(call.path)).length,
+            ),
+            0,
+            'hover is informational',
+          )
+          await line.screenshot({ path: resolve(output, `${mode}-basic-line-hover.png`) })
+          await victim.click()
+          await line.waitForFunction(() =>
+            window.receipts?.some((event) => event.event === 'damage_applied'),
+          )
+          const result = await line.evaluate(() => ({
+            calls: window.calls.filter((call) => /\/(commit|intents)$/.test(call.path)),
+            actor: window.fixtureBattle.snapshot.tactical.battle.combatants.find(
+              (unit) => unit.id === 'character:player',
+            ),
+            placement: window.fixtureBattle.snapshot.tactical.placements.find(
+              (placement) => placement.combatantId === 'character:player',
+            ),
+          }))
+          assert.equal(result.calls.length, 1)
+          assert.deepEqual(result.calls[0].body.intent.target, {
+            kind: 'direction',
+            direction: 'east',
+          })
+          assert.deepEqual(result.calls[0].body.intent.movementPath, [
+            { x: 3, y: 3 },
+            { x: 3, y: 2 },
+          ])
+          assert.deepEqual(result.placement.position, { x: 3, y: 2 })
+          assert.equal(result.actor.hp, 100)
+          assert.equal(result.actor.mp, 50)
+          assert.equal(
+            Number(
+              await line
+                .getByRole('progressbar', { name: 'Action Economy remaining' })
+                .getAttribute('aria-valuenow'),
+            ),
+            77,
+          )
+          await line.close()
           cases++
         }
       }

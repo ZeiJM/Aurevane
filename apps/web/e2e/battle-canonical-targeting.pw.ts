@@ -46,9 +46,9 @@ test('captured Move chooses a destination then an explicit follow-up with one pa
       maxBuffer: 4 * 1024 * 1024,
     },
   )
-  expect(result.stdout).toContain('18 canonical Move controller cases passed')
+  expect(result.stdout).toContain('30 canonical Move controller cases passed')
   const report = JSON.parse(await readFile(resolve(output, 'results.json'), 'utf8'))
-  expect(report.cases).toBe(18)
+  expect(report.cases).toBe(30)
   expect(report.errors).toEqual([])
   await info.attach('Canonical Move', {
     path: resolve(output, 'results.json'),
