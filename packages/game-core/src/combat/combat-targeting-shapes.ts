@@ -1,6 +1,46 @@
 import { resolveTargetShapeTiles } from './actions-legacy'
-import type { CombatEncounterState, CombatTargetSelection, CombatTargetSpec } from './actions'
+import type {
+  CombatEncounterState,
+  CombatTargetSelection,
+  CombatTargetSpec,
+  CombatEffectDefinition,
+} from './actions'
 import type { GridPosition, TacticalBattleState } from './board'
+import { P2_7_TACTICAL_HALL_ARENAS } from './tactical-hall-arenas'
+
+/** Production PvE and both PvP constructors consume this same registry. */
+export function maximumSupportedCombatRange(): number {
+  return Math.max(...P2_7_TACTICAL_HALL_ARENAS.map((arena) => arena.width - 1 + arena.height - 1))
+}
+
+export function combatTargetCategories(
+  spec: CombatTargetSpec,
+): readonly ('self' | 'ally' | 'enemy' | 'ground')[] {
+  if (spec.categories) return spec.categories
+  if (spec.kind === 'self') return ['self']
+  if (spec.kind === 'ground-tile' || spec.kind === 'empty-tile') return ['ground']
+  return spec.teamPolicy === 'any' ? ['self', 'ally', 'enemy'] : [spec.teamPolicy]
+}
+
+export function combatTargetUnitCategoryAllowed(
+  spec: CombatTargetSpec,
+  actor: { id: string; teamId: string },
+  target: { id: string; teamId: string },
+): boolean {
+  return combatTargetCategories(spec).includes(
+    target.id === actor.id ? 'self' : target.teamId === actor.teamId ? 'ally' : 'enemy',
+  )
+}
+
+export function canonicalCombatEffectRecipients(
+  effect: CombatEffectDefinition,
+  spec: CombatTargetSpec,
+): CombatEffectDefinition {
+  if ((spec.maximumSelections ?? 1) <= 1) return effect
+  if (effect.type === 'copy-statuses' || effect.type === 'sensory')
+    throw new TypeError('plural-specialized-recipient-unsupported')
+  return effect.recipient === 'primary-unit' ? { ...effect, recipient: 'affected-units' } : effect
+}
 
 export const combatCardinalDirections = ['north', 'east', 'south', 'west'] as const
 export type CombatTargetFootprintBoard = Pick<TacticalBattleState, 'width' | 'height' | 'tiles'> &
@@ -87,13 +127,22 @@ export function filterCombatTargetSpatialFootprint(
       (tile) => tile.position.x === position.x && tile.position.y === position.y,
     )
     if (!originTile || !tile) return false
+    // A Line always stops at physical terrain; optional visibility also sees Steam.
+    if (spec.geometryVersion === 3 && spec.shape.kind === 'line') {
+      const terrain = tactical.terrains.find((terrain) => terrain.id === tile.terrainId)
+      if (
+        terrain?.traversalCost === null ||
+        !hasCombatTargetLineOfSight(tactical, origin, position)
+      )
+        return false
+    }
     if (
       spec.maximumElevationDifference !== null &&
       Math.abs(originTile.elevation - tile.elevation) > spec.maximumElevationDifference
     )
       return false
     return (
-      spec.shape.kind === 'all' ||
+      (spec.geometryVersion !== 3 && spec.shape.kind === 'all') ||
       !spec.requiresLineOfSight ||
       hasCombatTargetLineOfSight(tactical, origin, position, overlays)
     )
@@ -121,7 +170,13 @@ export function resolveCombatTargetFootprint(
   spec: CombatTargetSpec,
   selection: CombatTargetSelection,
 ): readonly GridPosition[] {
-  if (spec.geometryVersion !== 2 || spec.shape.kind === 'single') {
+  if (selection.kind === 'selections') {
+    if (spec.shape.kind !== 'single') throw new TypeError('Plural selections require Single.')
+    return selection.selections.flatMap((selected) =>
+      resolveCombatTargetFootprint(tactical, origin, spec, selected),
+    )
+  }
+  if ((spec.geometryVersion !== 2 && spec.geometryVersion !== 3) || spec.shape.kind === 'single') {
     if (spec.shape.kind === 'all') throw new TypeError('All requires geometry version 2.')
     if (selection.kind === 'direction' || selection.kind === 'activate')
       throw new TypeError('This targeting method requires a selected target.')
@@ -169,10 +224,25 @@ export function enumerateCombatTargetSelections(
   actorId: string,
   spec: CombatTargetSpec,
 ): readonly CombatTargetSelection[] {
-  if (spec.geometryVersion === 2) {
+  if (spec.geometryVersion === 2 || spec.geometryVersion === 3) {
     if (spec.shape.kind === 'line')
       return combatCardinalDirections.map((direction) => ({ kind: 'direction', direction }))
     if (spec.shape.kind === 'circle' || spec.shape.kind === 'all') return [{ kind: 'activate' }]
+  }
+  if (spec.geometryVersion === 3) {
+    const categories = combatTargetCategories(spec)
+    return [
+      ...(categories.includes('self') ? [{ kind: 'self' as const }] : []),
+      ...state.tactical.battle.combatants
+        .filter((row) => row.hp > 0 && row.id !== actorId)
+        .map((row) => ({ kind: 'unit' as const, combatantId: row.id })),
+      ...(categories.includes('ground')
+        ? state.tactical.tiles.map((tile) => ({
+            kind: 'tile' as const,
+            position: { ...tile.position },
+          }))
+        : []),
+    ]
   }
   if (spec.kind === 'self') return [{ kind: 'self' }]
   if (spec.kind === 'unit')
@@ -188,7 +258,11 @@ export function validateCurrentAreaTargetRecipients(definition: {
   effects: readonly { type: string; recipient?: string }[]
   requirements: readonly { kind: string }[]
 }): void {
-  if (definition.target.geometryVersion !== 2 || definition.target.shape.kind === 'single') return
+  if (
+    (definition.target.geometryVersion !== 2 && definition.target.geometryVersion !== 3) ||
+    definition.target.shape.kind === 'single'
+  )
+    return
   if (
     definition.effects.some((effect) => effect.recipient === 'primary-unit') ||
     definition.requirements.some((requirement) => requirement.kind.startsWith('target-'))
@@ -222,6 +296,38 @@ export function normalizeCurrentCombatTargetSpec(spec: CombatTargetSpec): Combat
 }
 
 export function validateVersionedCombatTargetSpec(spec: CombatTargetSpec): void {
+  if (spec.geometryVersion === 3) {
+    if (
+      spec.categories !== undefined &&
+      (!Array.isArray(spec.categories) ||
+        !spec.categories.length ||
+        new Set(spec.categories).size !== spec.categories.length ||
+        spec.categories.some((category) => !['self', 'ally', 'enemy', 'ground'].includes(category)))
+    )
+      throw new TypeError('Invalid target categories.')
+    const count = spec.maximumSelections ?? 1
+    if (
+      !Number.isSafeInteger(count) ||
+      count < 1 ||
+      count > 3 ||
+      (spec.shape.kind !== 'single' && count !== 1)
+    )
+      throw new RangeError(
+        'Ordinary selections must be from one to three; area methods select one footprint.',
+      )
+    if (spec.maximumRange > maximumSupportedCombatRange())
+      throw new RangeError('Range exceeds the largest supported map.')
+    if (spec.shape.kind === 'all') return
+    if (spec.shape.kind !== 'single') {
+      const reach = spec.shape.kind === 'line' ? spec.shape.length : spec.shape.radius
+      if (!Number.isSafeInteger(reach) || reach < 1 || reach > 5)
+        throw new RangeError('Area reach must be an integer from one to five.')
+      if (spec.minimumRange !== 0 || spec.maximumRange !== reach)
+        throw new TypeError('Line/Circle range must be 0 through its authored reach.')
+    }
+    return
+  }
+  if (spec.categories !== undefined) throw new TypeError('Categories require geometry version 3.')
   if (spec.geometryVersion === undefined) {
     if (spec.shape.kind === 'all') throw new TypeError('All requires geometry version 2.')
     return
@@ -244,7 +350,11 @@ export function validateVersionedCombatTargetSpec(spec: CombatTargetSpec): void 
 export function validateCurrentCombatTargetAuthoring(
   definition: Parameters<typeof validateCurrentAreaTargetRecipients>[0],
 ): void {
-  if (definition.target.shape.kind !== 'single' && definition.target.geometryVersion !== 2)
+  if (
+    definition.target.shape.kind !== 'single' &&
+    definition.target.geometryVersion !== 2 &&
+    definition.target.geometryVersion !== 3
+  )
     throw new TypeError('Current area authoring requires geometry version 2.')
   validateVersionedCombatTargetSpec(definition.target)
   validateCurrentAreaTargetRecipients(definition)

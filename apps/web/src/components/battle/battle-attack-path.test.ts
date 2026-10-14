@@ -20,6 +20,26 @@ const basic = createPv1fBasicAttackDefinition(1)
 const origin = { x: 3, y: 3 }
 
 describe('armed damage reach', () => {
+  it.each([
+    [{ kind: 'line', length: 3 }, 3, 12],
+    [{ kind: 'circle', radius: 2 }, 2, 24],
+    [{ kind: 'all' }, 0, 49],
+  ] as const)(
+    'keeps the full geometry-three %j potential independent of victims',
+    (shape, range, count) => {
+      expect(
+        battleTargetReachTiles(tactical, origin, {
+          ...basic.target,
+          geometryVersion: 3,
+          categories: ['enemy'],
+          maximumSelections: 1,
+          minimumRange: 0,
+          maximumRange: range,
+          shape,
+        }).size,
+      ).toBe(count)
+    },
+  )
   it('shows all four Basic Attack neighbors without any detected target or forecast', () => {
     expect(
       [...battleAttackReachTiles(tactical, origin, basic.target, basic.effects)].sort(),

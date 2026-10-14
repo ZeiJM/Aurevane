@@ -1,4 +1,5 @@
 import { enumerateCombatTargetSelections } from './combat-targeting-shapes'
+import { buildCombatAiPluralSelection } from './combat-ai-plural-selection'
 import type { CombatTargetSelection } from './actions'
 import { normalizeCombatEffectState, type CombatSummonInstance } from './combat-effect-state'
 import { evaluatePv1fSummonAbility, readPv1fActionEconomy } from './pv1f-action-economy'
@@ -121,6 +122,22 @@ function buildAbilityCandidates(
     })
   }
 
+  const plural = buildCombatAiPluralSelection(ability.target, candidates)
+  if (plural) {
+    const evaluated = evaluatePv1fSummonAbility(state, summon, ability.id, plural)
+    const economy = readPv1fActionEconomy(evaluated.prepared, summon.combatantId)
+    if (evaluated.evaluation.legal && economy && economy.current >= evaluated.cost)
+      candidates.push({
+        actionId: ability.id,
+        target: plural,
+        reason: ability.tags.includes('heal') ? 'recover-survival' : 'legal-damage',
+        utility:
+          ability.ai.baseUtility +
+          projectedCombatEffectUtility(evaluated.evaluation, state, ability.effects),
+        stableKey: `action:${ability.id}:${targetKey(plural)}`,
+      })
+  }
+
   return candidates
 }
 
@@ -145,6 +162,7 @@ function deterministicTieBreak(seed: number, stableKey: string): number {
 }
 
 function targetKey(target: CombatTargetSelection): string {
+  if (target.kind === 'selections') return JSON.stringify(target.selections)
   if (target.kind === 'self') return 'self'
   if (target.kind === 'activate') return 'activate'
   if (target.kind === 'direction') return `direction:${target.direction}`

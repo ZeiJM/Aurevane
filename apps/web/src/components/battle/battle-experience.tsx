@@ -23,6 +23,10 @@ import {
   battleSkillUsesAreaActivation,
   battleSkillTargetSpec,
   canRetainBattleActionPreview,
+  resolveBattleCapturedSkill,
+  toggleBattleSkillTargetSelection,
+  battleTargetDraftIncludesTile,
+  type BattlePreviewSkill,
 } from './battle-preview-selection'
 import { BattleActionPreview } from './battle-action-preview'
 import { useBattleRangePreviews } from './use-battle-range-previews'
@@ -330,6 +334,11 @@ function BattleExperienceContent({
   const [path, setPath] = useState<BattleGridPosition[]>([])
   const pathRef = useRef<BattleGridPosition[]>([])
   const [pendingIntent, setPendingIntent] = useState<BattleIntent | null>(null)
+  const pluralSelection = useRef<Extract<BattleIntent, { kind: 'action' }> | null>(null)
+  const [selectedBehavior, setSelectedBehavior] = useState<{
+    actionId: string
+    behaviorId: string
+  } | null>(null)
   const [preview, setPreview] = useState<BattlePreviewView | null>(null)
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null)
   const [targetAim, setTargetAim] = useState<BattleTargetAim>({ aimSource: 'implicit' })
@@ -687,6 +696,7 @@ function BattleExperienceContent({
       setMode(nextMode)
       updatePlanningPath([])
       setPendingIntent(null)
+      pluralSelection.current = null
       setPreview(null)
       setSelectedUnitId(null)
       setTargetAim({ aimSource: 'implicit' })
@@ -1186,17 +1196,13 @@ function BattleExperienceContent({
     [actionCooldownTurns, commitValue],
   )
 
-  const commitSelected = useCallback(() => {
-    if (pendingIntent) void executeIntent(pendingIntent, 'Enter')
-  }, [executeIntent, pendingIntent])
-
   const airborneAttackElevation = Boolean(
     battle.snapshot.airbornePolicyVersion === 1 &&
     localCombatantId &&
     hasGameplayTag(battle.snapshot, localCombatantId, 'Airborne', PV1F_COMBAT_CONTENT),
   )
   const actionDescriptor = useCallback(
-    (actionId: string) => {
+    (actionId: string): BattlePreviewSkill => {
       const skill =
         selectableTechniques.find((item) => item.id === actionId) ??
         (runtime.essence?.id === actionId
@@ -1214,29 +1220,38 @@ function BattleExperienceContent({
                 ),
             }
           : undefined)
-      if (skill) {
-        return airborneAttackElevation && skill.definition?.tags.includes('attack')
-          ? {
-              ...skill,
-              target: { ...skill.definition.target, maximumElevationDifference: 3 },
-            }
-          : skill
-      }
-      return {
+      const native: BattlePreviewSkill = skill ?? {
         id: actionId,
         groundIntentCapable: false,
-        targetKind: actionId === BASIC_ATTACK_ID ? ('unit' as const) : ('self' as const),
-        targetTeamPolicy: actionId === BASIC_ATTACK_ID ? ('enemy' as const) : ('self' as const),
+        targetKind: actionId === BASIC_ATTACK_ID ? 'unit' : 'self',
+        targetTeamPolicy: actionId === BASIC_ATTACK_ID ? 'enemy' : 'self',
         minimumRange: actionId === BASIC_ATTACK_ID ? 1 : 0,
         maximumRange: actionId === BASIC_ATTACK_ID ? 1 : 0,
         target: actionId === BASIC_ATTACK_ID ? undefined : PV1F_GUARD_ACTION.target,
       }
+      const captured = resolveBattleCapturedSkill(
+        native,
+        battle.snapshot.manualActionTargets ?? [],
+        selectedBehavior?.actionId === actionId ? selectedBehavior.behaviorId : undefined,
+      )
+      if (!captured) return { ...native, unavailable: true }
+      return airborneAttackElevation && captured.definition?.tags.includes('attack')
+        ? {
+            ...captured,
+            target: {
+              ...(battleSkillTargetSpec(captured) ?? captured.definition.target),
+              maximumElevationDifference: 3,
+            },
+          }
+        : captured
     },
     [
       airborneAttackElevation,
       runtime.essence,
       selectableTechniques,
       battle.snapshot.elementalDamagePolicyVersion,
+      battle.snapshot.manualActionTargets,
+      selectedBehavior,
     ],
   )
 
@@ -1303,7 +1318,8 @@ function BattleExperienceContent({
     (nextMode: 'attack' | 'guard' | 'recover', actionId: string) => {
       if (planningDisabled || executionLock.current) return
       if (actionCooldownTurns(actionId) > 0) return
-      const intent = selectInitialBattleSkillPreviewIntent(actionDescriptor(actionId), {
+      const descriptor = actionDescriptor(actionId)
+      const intent = selectInitialBattleSkillPreviewIntent(descriptor, {
         ...selection,
         selectedTarget:
           pendingIntent?.kind === 'action' && pendingIntent.actionId === actionId
@@ -1311,6 +1327,14 @@ function BattleExperienceContent({
             : null,
       })
       clearPlanning(nextMode)
+      if (descriptor.unavailable) {
+        setNotice('Choose which action to use for this ability.')
+        return
+      }
+      if ((battleSkillTargetSpec(descriptor)?.maximumSelections ?? 1) > 1) {
+        setNotice('Select targets, then confirm. Select a target again to remove it.')
+        return
+      }
       if (intent) {
         setSelectedUnitId(
           intent.target.kind === 'self'
@@ -1409,6 +1433,46 @@ function BattleExperienceContent({
       : mode === 'guard'
         ? selectedDefenseActionId
         : effectiveHealActionId
+  const behaviorChoices = (battle.snapshot.manualActionTargets ?? []).filter(
+    (choice) => choice.actionId === currentActionId,
+  )
+  const currentDescriptor = actionDescriptor(currentActionId)
+  const maximumSelections = useMemo(
+    () => battleSkillTargetSpec(actionDescriptor(currentActionId))?.maximumSelections ?? 1,
+    [actionDescriptor, currentActionId],
+  )
+  const draftTargets =
+    pendingIntent?.kind === 'action' && pendingIntent.target.kind === 'selections'
+      ? pendingIntent.target.selections
+      : []
+  const submitTargetGesture = useCallback(
+    (intent: Extract<BattleIntent, { kind: 'action' }>, keyboardCode?: string) => {
+      if (planningDisabledRef.current || executionLock.current || commitLock.current) return
+      if (maximumSelections <= 1) {
+        void executeIntent(intent, keyboardCode)
+        return
+      }
+      if (!localCombatantId) return
+      const next = toggleBattleSkillTargetSelection(
+        pluralSelection.current,
+        intent,
+        maximumSelections,
+        localCombatantId,
+      )
+      pluralSelection.current = next
+      if (next) void requestPreview(next)
+      else {
+        clearPlanning(mode)
+        setNotice('Select targets, then confirm.')
+      }
+    },
+    [clearPlanning, executeIntent, localCombatantId, maximumSelections, mode, requestPreview],
+  )
+  const commitSelected = useCallback(() => {
+    if (maximumSelections > 1) {
+      if (pluralSelection.current) void executeIntent(pluralSelection.current, 'Enter')
+    } else if (pendingIntent) void executeIntent(pendingIntent, 'Enter')
+  }, [executeIntent, maximumSelections, pendingIntent])
   const { rangePreviews, rangePreviewsPending, rangePreviewActionId } = useBattleRangePreviews({
     battleSessionId: battle.battleSessionId,
     battleVersion: battle.battleVersion,
@@ -1440,8 +1504,9 @@ function BattleExperienceContent({
     currentActionId === BASIC_ATTACK_ID
       ? createPv1fBasicAttackDefinition(1)
       : activeTechnique?.definition
-  const authoredTargetSpec =
-    battleSkillTargetSpec(actionDescriptor(currentActionId)) ?? attackDefinition?.target
+  const authoredTargetSpec = currentDescriptor.unavailable
+    ? undefined
+    : (battleSkillTargetSpec(currentDescriptor) ?? attackDefinition?.target)
   const targetSpec =
     authoredTargetSpec &&
     airborneAttackElevation &&
@@ -1517,7 +1582,8 @@ function BattleExperienceContent({
         })
         if (
           !intent ||
-          (descriptor.targetKind === 'unit' &&
+          (intent.target.kind === 'unit' &&
+            descriptor.targetKind === 'unit' &&
             !battleSkillUsesAreaActivation(descriptor) &&
             !descriptor.groundIntentCapable &&
             !placement)
@@ -1535,7 +1601,7 @@ function BattleExperienceContent({
             ? intent.target.combatantId
             : localCombatantId,
         )
-        void executeIntent(intent)
+        submitTargetGesture(intent)
       }
     },
     [
@@ -1544,6 +1610,7 @@ function BattleExperienceContent({
       clearPlanning,
       currentActionId,
       executeIntent,
+      submitTargetGesture,
       localCombatantId,
       localTeamIndex,
       mode,
@@ -1630,7 +1697,7 @@ function BattleExperienceContent({
           selection,
           delta,
         )
-        if (intent) void executeIntent(intent, event.code)
+        if (intent) submitTargetGesture(intent, event.code)
         else setNotice('No eligible target in that direction.')
         return
       }
@@ -1639,10 +1706,12 @@ function BattleExperienceContent({
         const descriptor = actionDescriptor(currentActionId)
         const target = battleSkillTargetSpec(descriptor)
         const candidates: Extract<BattleIntent, { kind: 'action' }>[] =
-          target?.geometryVersion === 2 && target.shape.kind === 'line'
+          (target?.geometryVersion === 2 || target?.geometryVersion === 3) &&
+          target.shape.kind === 'line'
             ? combatCardinalDirections.map((direction) => ({
                 kind: 'action',
                 actionId: descriptor.id,
+                ...(descriptor.behaviorId ? { behaviorId: descriptor.behaviorId } : {}),
                 target: { kind: 'direction', direction },
               }))
             : previewCombatants.flatMap((row) => {
@@ -1701,7 +1770,7 @@ function BattleExperienceContent({
           )
         )
           return false
-        void executeIntent(intent, event.code)
+        submitTargetGesture(intent, event.code)
         return true
       }
       if (selected === 'move') chooseMode('move')
@@ -1757,6 +1826,7 @@ function BattleExperienceContent({
     effectiveHealActionId,
     supportActionId,
     executeIntent,
+    submitTargetGesture,
     handleTile,
     localCombatantId,
     localPlacement,
@@ -2189,7 +2259,10 @@ function BattleExperienceContent({
           <section
             id="battlefield"
             onPointerLeave={() => {
-              if (targetSpec?.geometryVersion === 2 && targetSpec.shape.kind === 'line')
+              if (
+                (targetSpec?.geometryVersion === 2 || targetSpec?.geometryVersion === 3) &&
+                targetSpec.shape.kind === 'line'
+              )
                 setTargetAim({ aimSource: 'implicit' })
             }}
             className={styles.battlefield}
@@ -2231,16 +2304,17 @@ function BattleExperienceContent({
                     (mode === 'guard' || mode === 'recover') &&
                     placement?.combatantId === localCombatantId
                   const groundTarget =
-                    activeTechnique?.groundIntentCapable ||
-                    activeTechnique?.targetKind === 'ground-tile' ||
-                    activeTechnique?.targetKind === 'empty-tile'
+                    currentDescriptor.groundIntentCapable ||
+                    currentDescriptor.targetKind === 'ground-tile' ||
+                    currentDescriptor.targetKind === 'empty-tile' ||
+                    targetSpec?.categories?.includes('ground')
                   const skillTarget =
                     activeTechnique &&
                     (groundTarget ||
                       (placement &&
-                        (activeTechnique.targetKind !== 'self' ||
+                        (currentDescriptor.targetKind !== 'self' ||
                           placement.combatantId === localCombatantId)))
-                      ? selectBattleSkillPreviewIntent(activeTechnique, {
+                      ? selectBattleSkillPreviewIntent(currentDescriptor, {
                           actorId: localCombatantId,
                           selectedCombatantId: placement?.combatantId ?? null,
                           selectedTile: tile.position,
@@ -2265,7 +2339,14 @@ function BattleExperienceContent({
                             ? 'enemy'
                             : 'illegal'
                           : undefined
-                  const selected = mode === 'inspect' && selectedUnitId === placement?.combatantId
+                  const selected =
+                    (mode === 'inspect' && selectedUnitId === placement?.combatantId) ||
+                    battleTargetDraftIncludesTile(
+                      draftTargets,
+                      localCombatantId,
+                      combatant && combatant.hp > 0 ? (placement?.combatantId ?? null) : null,
+                      tile.position,
+                    )
                   const terrain = tile.terrainId === 'rough-ground' ? 'rough' : 'open'
                   const overlay = terrainOverlayAt(battle.snapshot, tile.position)
 
@@ -2325,7 +2406,8 @@ function BattleExperienceContent({
                           event.pointerType === 'touch' ||
                           planningDisabled ||
                           executionLock.current ||
-                          targetSpec?.geometryVersion !== 2 ||
+                          (targetSpec?.geometryVersion !== 2 &&
+                            targetSpec?.geometryVersion !== 3) ||
                           targetSpec.shape.kind !== 'line' ||
                           !['attack', 'guard', 'recover'].includes(mode)
                         )
@@ -2602,7 +2684,47 @@ function BattleExperienceContent({
             </button>
           ) : null}
           <div className={styles.footerActions} data-battle-footer-actions="true">
+            {['attack', 'guard', 'recover'].includes(mode) && behaviorChoices.length > 1 ? (
+              <label className={bridgeStyles.targetChoices}>
+                Action{' '}
+                <select
+                  aria-label="Ability action"
+                  value={currentDescriptor.behaviorId ?? ''}
+                  disabled={planningDisabled || executionPending}
+                  onChange={(event) => {
+                    clearPlanning(mode)
+                    setSelectedBehavior({
+                      actionId: currentActionId,
+                      behaviorId: event.target.value,
+                    })
+                    setNotice('Select a target for this action.')
+                    restoreBattleKeyboardFocus()
+                  }}
+                >
+                  <option value="" disabled>
+                    Choose an action
+                  </option>
+                  {behaviorChoices.map((choice) => (
+                    <option key={choice.behaviorId} value={choice.behaviorId}>
+                      {choice.behaviorId.replace(/[._-]+/g, ' ')}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
+
             <BattleTerrainToggle snapshot={battle.snapshot} />
+            {['attack', 'guard', 'recover'].includes(mode) && maximumSelections > 1 ? (
+              <button
+                type="button"
+                className={styles.cancelAction}
+                aria-label="Use selected targets"
+                onClick={commitSelected}
+                disabled={planningDisabled || executionPending || !draftTargets.length}
+              >
+                Confirm [{draftTargets.length}/{maximumSelections}]
+              </button>
+            ) : null}
             <button
               type="button"
               className={styles.cancelAction}

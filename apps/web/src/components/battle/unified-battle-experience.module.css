@@ -52,3 +52,27 @@
   outline: 2px solid #dfc58e;
   outline-offset: 2px;
 }
+
+.targetChoices {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 0;
+  color: #e4d6b9;
+  font-size: 0.7rem;
+}
+
+.targetChoices select {
+  max-width: 9rem;
+  min-width: 0;
+  padding: 0.25rem;
+  border: 1px solid #9f8758;
+  color: inherit;
+  background: #15212a;
+  font: inherit;
+}
+
+.targetChoices select:focus-visible {
+  outline: 2px solid #dfc58e;
+  outline-offset: 2px;
+}

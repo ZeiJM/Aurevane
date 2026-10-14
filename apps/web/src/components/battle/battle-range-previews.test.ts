@@ -42,6 +42,27 @@ const projection = (id: string): BattleActionPreview => ({
 })
 
 describe('automatic canonical range forecasts', () => {
+  it('carries an explicit captured behavior through geometry-three area requests', () => {
+    const captured = {
+      ...skill,
+      behaviorId: 'strike',
+      target: {
+        ...createPv1fBasicAttackDefinition(1).target,
+        geometryVersion: 3 as const,
+        categories: ['enemy' as const],
+        maximumSelections: 1,
+        minimumRange: 0,
+        maximumRange: 3,
+        shape: { kind: 'line' as const, length: 3 },
+      },
+    }
+    const intents = battleRangePreviewIntents(captured, 'actor', [combatants[0]!])
+    expect(intents).toHaveLength(4)
+    expect(intents.every((intent) => intent.behaviorId === 'strike')).toBe(true)
+    expect(
+      battleRangePreviewIntents({ ...captured, unavailable: true }, 'actor', combatants),
+    ).toEqual([])
+  })
   const target = {
     ...createPv1fBasicAttackDefinition(1).target,
     geometryVersion: 2 as const,

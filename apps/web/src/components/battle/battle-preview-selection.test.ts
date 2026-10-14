@@ -71,6 +71,141 @@ const currentLine = {
     maximumRange: 3,
   },
 }
+it('uses canonical categories independently of legacy kind and team envelopes', () => {
+  const captured = {
+    ...barrier,
+    target: {
+      ...createPv1fBasicAttackDefinition(1).target,
+      geometryVersion: 3 as const,
+      kind: 'self' as const,
+      teamPolicy: 'self' as const,
+      categories: ['ally' as const, 'enemy' as const],
+      minimumRange: 0,
+      maximumRange: 4,
+      maximumSelections: 3,
+    },
+  }
+  expect(
+    selectBattleSkillPreviewIntent(captured, { ...selection, selectedCombatantId: 'ally' })?.target,
+  ).toEqual({ kind: 'unit', combatantId: 'ally' })
+  expect(
+    selectBattleSkillPreviewIntent(captured, { ...selection, selectedCombatantId: 'enemy' })
+      ?.target,
+  ).toEqual({ kind: 'unit', combatantId: 'enemy' })
+  expect(
+    selectBattleSkillPreviewIntent(captured, { ...selection, selectedCombatantId: 'actor' }),
+  ).toBeNull()
+  expect(selectInitialBattleSkillPreviewIntent(captured, selection)?.target).toEqual({
+    kind: 'unit',
+    combatantId: 'enemy',
+  })
+  expect(
+    selectDirectionalBattleSkillPreviewIntent(captured, selection, { x: 0, y: 1 })?.target,
+  ).toEqual({ kind: 'unit', combatantId: 'ally' })
+})
+it('keeps a canonical mixed Ground/Enemy directional aim in the chosen half-plane', () => {
+  const captured = {
+    ...barrier,
+    target: {
+      ...createPv1fBasicAttackDefinition(1).target,
+      geometryVersion: 3 as const,
+      categories: ['enemy' as const, 'ground' as const],
+      maximumSelections: 3,
+      minimumRange: 1,
+      maximumRange: 4,
+    },
+  }
+  expect(
+    selectDirectionalBattleSkillPreviewIntent(
+      captured,
+      { ...selection, tiles: [{ x: -1, y: 0 }] },
+      { x: -1, y: 0 },
+    )?.target,
+  ).toEqual({ kind: 'tile', position: { x: -1, y: 0 } })
+})
+it('uses captured geometry-three Line direction on empty ground without inventing a unit target', () => {
+  const captured = {
+    ...currentLine,
+    target: {
+      ...currentLine.target,
+      geometryVersion: 3 as const,
+      categories: ['enemy' as const],
+      maximumSelections: 1,
+    },
+  }
+  const empty = { ...selection, combatants: [combatants[0]!] }
+  expect(
+    selectDirectionalBattleSkillPreviewIntent(captured, empty, { x: -1, y: 0 })?.target,
+  ).toEqual({ kind: 'direction', direction: 'west' })
+  expect(
+    selectBattleSkillPreviewIntent(captured, { ...empty, selectedTile: { x: 0, y: 2 } })?.target,
+  ).toEqual({ kind: 'direction', direction: 'south' })
+})
+it.each([{ kind: 'circle', radius: 2 }, { kind: 'all' }] as const)(
+  'activates captured geometry-three %j without a primary victim',
+  (shape) => {
+    const captured = {
+      ...currentLine,
+      target: {
+        ...currentLine.target,
+        geometryVersion: 3 as const,
+        categories: ['enemy' as const],
+        maximumSelections: 1,
+        shape,
+      },
+    }
+    expect(selectInitialBattleSkillPreviewIntent(captured, selection)?.target).toEqual({
+      kind: 'activate',
+    })
+  },
+)
+it('keeps Self separate from captured Ally targeting', () => {
+  const captured = {
+    ...barrier,
+    minimumRange: 0,
+    target: {
+      ...createPv1fBasicAttackDefinition(1).target,
+      geometryVersion: 3 as const,
+      categories: ['ally' as const],
+      maximumSelections: 3,
+      teamPolicy: 'ally' as const,
+      friendlyFire: 'allies-only' as const,
+      minimumRange: 0,
+      maximumRange: 3,
+    },
+  }
+  expect(
+    selectBattleSkillPreviewIntent(captured, { ...selection, selectedCombatantId: 'actor' }),
+  ).toBeNull()
+  expect(
+    selectBattleSkillPreviewIntent(captured, { ...selection, selectedCombatantId: 'ally' })?.target,
+  ).toEqual({ kind: 'unit', combatantId: 'ally' })
+})
+it('selects captured Ground alongside Enemy without guessing a primary unit on empty tiles', () => {
+  const captured = {
+    ...barrier,
+    targetTeamPolicy: 'any' as const,
+    minimumRange: 0,
+    target: {
+      ...createPv1fBasicAttackDefinition(1).target,
+      geometryVersion: 3 as const,
+      categories: ['enemy' as const, 'ground' as const],
+      maximumSelections: 3,
+      teamPolicy: 'any' as const,
+      friendlyFire: 'all-units' as const,
+      minimumRange: 0,
+      maximumRange: 3,
+    },
+  }
+  expect(
+    selectBattleSkillPreviewIntent(captured, { ...selection, selectedTile: { x: 2, y: 0 } })
+      ?.target,
+  ).toEqual({ kind: 'tile', position: { x: 2, y: 0 } })
+  expect(
+    selectBattleSkillPreviewIntent(captured, { ...selection, selectedCombatantId: 'enemy' })
+      ?.target,
+  ).toEqual({ kind: 'unit', combatantId: 'enemy' })
+})
 it('selects cardinal Line commands without requiring a victim and rejects diagonal clicks', () => {
   const empty = { ...selection, combatants: [combatants[0]!] }
   expect(

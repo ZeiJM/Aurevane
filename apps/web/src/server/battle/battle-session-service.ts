@@ -90,6 +90,7 @@ import {
   projectBattleEffectStateForViewer,
   projectBattleStatusStateForViewer,
   projectBattleManualModifierAvailability,
+  projectBattleManualActionTargets,
 } from './battle-live-viewer-projection'
 import {
   battleBuildAuthorityForCombatant,
@@ -135,6 +136,7 @@ export type BattleSessionProjection = Omit<
   'tactical' | 'statusState' | 'groundAreas' | 'nextGroundAreaId'
 > & {
   manualModifierAvailability?: ReturnType<typeof projectBattleManualModifierAvailability>
+  manualActionTargets?: ReturnType<typeof projectBattleManualActionTargets>
   groundAreas?: readonly PublicCombatGroundArea[]
   statusState: ReturnType<typeof projectBattleStatusStateForViewer>
   tactical: ProjectedTacticalState
@@ -478,7 +480,10 @@ export function projectBattleSnapshot(
   return {
     ...omitPendingBattlePayloads(state),
     ...(state.capturedAbilitySources
-      ? { manualModifierAvailability: projectBattleManualModifierAvailability(state, viewer) }
+      ? {
+          manualModifierAvailability: projectBattleManualModifierAvailability(state, viewer),
+          manualActionTargets: projectBattleManualActionTargets(state, viewer),
+        }
       : {}),
     statusState: projectBattleStatusStateForViewer(state, viewer),
     ...(state.effectState ? { effectState: projectBattleEffectStateForViewer(state, viewer) } : {}),

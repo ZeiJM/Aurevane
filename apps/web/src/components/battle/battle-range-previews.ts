@@ -23,19 +23,27 @@ export function battleRangePreviewIntents(
   actorId: string | null,
   combatants: readonly BattleRangePreviewCombatant[],
 ): ActionIntent[] {
-  if (!skill) return []
+  if (!skill || skill.unavailable) return []
   const actor = combatants.find((row) => row.combatantId === actorId)
   if (!actor || actor.hp <= 0) return []
   const target = battleSkillTargetSpec(skill)
-  if (target?.geometryVersion === 2) {
+  if (target?.geometryVersion === 2 || target?.geometryVersion === 3) {
     if (target.shape.kind === 'line')
       return combatCardinalDirections.map((direction) => ({
         kind: 'action',
         actionId: skill.id,
+        ...(skill.behaviorId ? { behaviorId: skill.behaviorId } : {}),
         target: { kind: 'direction', direction },
       }))
     if (target.shape.kind === 'circle' || target.shape.kind === 'all')
-      return [{ kind: 'action', actionId: skill.id, target: { kind: 'activate' } }]
+      return [
+        {
+          kind: 'action',
+          actionId: skill.id,
+          ...(skill.behaviorId ? { behaviorId: skill.behaviorId } : {}),
+          target: { kind: 'activate' },
+        },
+      ]
   }
   if (skill.targetKind !== 'unit') return []
   return combatants.flatMap((combatant) => {

@@ -34,6 +34,92 @@ const frame: CombatAbilityEventFrame = {
   affectedCombatantIds: ['ally'],
 }
 describe('Automatic event capability and causal binding', () => {
+  it('resolves the entire causal plural set and aligned Line or Ground without a guessed subject', () => {
+    const base = source({
+      activation: 'automatic',
+      automaticTarget: { subject: 'affected' },
+      targeting: {
+        ...source().definition.behaviors[0]!.targeting!,
+        geometryVersion: 3,
+        categories: ['enemy'],
+        maximumSelections: 3,
+      },
+    })
+    const behavior = base.definition.behaviors[0]!
+    expect(
+      resolveAutomaticAbilitySelection(percentageDotEncounter(), base, behavior, {
+        ...frame,
+        affectedCombatantIds: ['enemy', 'other'],
+      }),
+    ).toEqual({
+      selection: {
+        kind: 'selections',
+        selections: [
+          { kind: 'unit', combatantId: 'enemy' },
+          { kind: 'unit', combatantId: 'other' },
+        ],
+      },
+    })
+    expect(
+      resolveAutomaticAbilitySelection(percentageDotEncounter(), base, behavior, {
+        ...frame,
+        affectedCombatantIds: ['enemy', 'other', 'ally', 'actor'],
+      }),
+    ).toEqual({ suppression: 'automatic-target-role-unavailable' })
+    const line = {
+      ...behavior,
+      targeting: {
+        ...behavior.targeting!,
+        maximumSelections: 1,
+        shape: { kind: 'line' as const, length: 3 },
+        maximumRange: 3,
+      },
+    }
+    expect(
+      resolveAutomaticAbilitySelection(percentageDotEncounter(), base, line, {
+        ...frame,
+        affectedCombatantIds: ['other'],
+      }),
+    ).toEqual({ selection: { kind: 'direction', direction: 'east' } })
+    expect(
+      resolveAutomaticAbilitySelection(percentageDotEncounter(), base, line, {
+        ...frame,
+        affectedCombatantIds: ['enemy', 'other'],
+      }),
+    ).toEqual({ suppression: 'automatic-target-role-unavailable' })
+    const ground = {
+      ...behavior,
+      targeting: {
+        ...behavior.targeting!,
+        kind: 'ground-tile' as const,
+        categories: ['ground' as const],
+      },
+    }
+    expect(
+      resolveAutomaticAbilitySelection(percentageDotEncounter(), base, ground, {
+        ...frame,
+        affectedCombatantIds: ['other'],
+      }),
+    ).toEqual({ selection: { kind: 'tile', position: { x: 3, y: 1 } } })
+    for (const kind of ['circle', 'all'] as const)
+      expect(
+        resolveAutomaticAbilitySelection(
+          percentageDotEncounter(),
+          base,
+          {
+            ...behavior,
+            automaticTarget: undefined,
+            targeting: {
+              ...behavior.targeting!,
+              maximumSelections: 1,
+              shape: kind === 'circle' ? { kind, radius: 2 } : { kind },
+              maximumRange: kind === 'circle' ? 2 : 0,
+            },
+          },
+          frame,
+        ),
+      ).toEqual({ selection: { kind: 'activate' } })
+  })
   it('admits only actual supported event phases', () => {
     expect(automaticAbilityEventSupported('combat_action_used', 'before')).toBe(true)
     expect(automaticAbilityEventSupported('damage_applied', 'after')).toBe(true)

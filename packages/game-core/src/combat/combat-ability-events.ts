@@ -74,6 +74,7 @@ export interface CombatAbilityEventFrame {
   readonly actionFacts?: NonNullable<AbilityRequirementContext['event']>['action']
   readonly triggeringCombatantId?: string
   readonly selectedCombatantId?: string
+  readonly selectedCombatantIds?: readonly string[]
   readonly affectedCombatantIds: readonly string[]
   readonly resourceMutations: readonly {
     readonly combatantId: string
@@ -106,27 +107,72 @@ export function resolveAutomaticAbilitySelection(
     !target ||
     behavior.activation !== 'automatic' ||
     behavior.mode !== 'action' ||
-    target.shape.kind !== 'single' ||
-    target.maximumSelections !== 1 ||
-    !['self', 'unit'].includes(target.kind)
+    !['self', 'unit', 'ground-tile', 'empty-tile'].includes(target.kind)
   )
     return { suppression: 'automatic-targeting-unsupported' }
   if (target.kind === 'self') return { selection: { kind: 'self' } }
+  if (target.geometryVersion === 2 || target.geometryVersion === 3) {
+    if (target.shape.kind === 'circle' || target.shape.kind === 'all')
+      return behavior.automaticTarget
+        ? { suppression: 'automatic-targeting-unsupported' }
+        : { selection: { kind: 'activate' } }
+  } else if (target.shape.kind !== 'single')
+    return { suppression: 'automatic-targeting-unsupported' }
   const subject = behavior.automaticTarget?.subject
-  const id =
+  const ids =
     subject === 'owner'
-      ? source.ownerCombatantId
+      ? [source.ownerCombatantId]
       : subject === 'triggering'
         ? frame.triggeringCombatantId
+          ? [frame.triggeringCombatantId]
+          : []
         : subject === 'selected'
-          ? frame.selectedCombatantId
-          : subject === 'affected' && frame.affectedCombatantIds.length === 1
-            ? frame.affectedCombatantIds[0]
-            : undefined
-  if (!id) return { suppression: 'automatic-target-role-unavailable' }
-  if (!state.tactical.battle.combatants.some((unit) => unit.id === id && unit.hp > 0))
+          ? (frame.selectedCombatantIds ??
+            (frame.selectedCombatantId ? [frame.selectedCombatantId] : []))
+          : subject === 'affected'
+            ? frame.affectedCombatantIds
+            : []
+  if (!ids.length || new Set(ids).size !== ids.length || ids.length > target.maximumSelections)
+    return { suppression: 'automatic-target-role-unavailable' }
+  if (
+    ids.some(
+      (id) => !state.tactical.battle.combatants.some((unit) => unit.id === id && unit.hp > 0),
+    )
+  )
     return { suppression: 'automatic-target-unit-unavailable' }
-  return { selection: { kind: 'unit', combatantId: id } }
+  if (target.shape.kind === 'line') {
+    if (ids.length !== 1) return { suppression: 'automatic-target-role-unavailable' }
+    const origin = state.tactical.placements.find(
+      (row) => row.combatantId === source.ownerCombatantId,
+    )?.position
+    const position = state.tactical.placements.find((row) => row.combatantId === ids[0])?.position
+    if (!origin || !position) return { suppression: 'automatic-target-unit-unavailable' }
+    const dx = position.x - origin.x,
+      dy = position.y - origin.y
+    if ((!dx && !dy) || (dx && dy)) return { suppression: 'automatic-target-role-unavailable' }
+    return {
+      selection: {
+        kind: 'direction',
+        direction: dx ? (dx > 0 ? 'east' : 'west') : dy > 0 ? 'south' : 'north',
+        ...(target.kind === 'ground-tile' || target.kind === 'empty-tile'
+          ? { ground: true as const }
+          : {}),
+      },
+    }
+  }
+  const selections = ids.map((id) =>
+    target.kind === 'unit'
+      ? { kind: 'unit' as const, combatantId: id }
+      : {
+          kind: 'tile' as const,
+          position: {
+            ...state.tactical.placements.find((row) => row.combatantId === id)!.position,
+          },
+        },
+  )
+  return {
+    selection: selections.length === 1 ? selections[0]! : { kind: 'selections', selections },
+  }
 }
 
 export interface CombatAbilityEventSession {
