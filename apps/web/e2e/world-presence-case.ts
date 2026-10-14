@@ -5,6 +5,7 @@ import {
   type Frame,
   type Page,
   type Request,
+  type Route,
   type TestInfo,
 } from '@playwright/test'
 import { randomUUID } from 'node:crypto'
@@ -573,8 +574,9 @@ export async function verifyWorldInstantActions(
       }
     })
     const delayedScenes: Promise<void>[] = []
-    await page.route('**/api/world', (route) => {
-      if (route.request().method() === 'GET') {
+    let delayEnabled = true
+    const delayScene = (route: Route) => {
+      if (delayEnabled && route.request().method() === 'GET') {
         const held = (async () => {
           const response = await route.fetch()
           expect(response.ok()).toBe(true)
@@ -582,33 +584,43 @@ export async function verifyWorldInstantActions(
           await route.fulfill({ response })
         })()
         delayedScenes.push(held)
+        void held.catch(() => {}) // Observe now; cleanup still propagates every failed response.
         return held
       }
       return route.continue()
-    })
-    await primary.click()
-    await expect(primary).toHaveText('Attack')
-    await expect(primary).toBeDisabled()
-    const themedArrow = /url\(".*\/cursors\/stone-arrow\.png"\) 6 3, auto$/
-    await expect(primary).toHaveCSS('cursor', themedArrow)
-    await expect(row.getByRole('button', { name: 'Talk', exact: true })).toHaveCSS(
-      'cursor',
-      themedArrow,
-    )
-    await expect
-      .poll(async () => (await helpers.world(page)).position, { timeout: 12000 })
-      .toEqual({ sectorId: 'verdant-expanse', x: 3, y: 4 })
-    const after = (await primary.boundingBox())!
-    expect(after.width).toBe(before.width)
-    expect(after.height).toBe(before.height)
-    await expect(row.getByRole('button', { name: 'Talk', exact: true })).toBeDisabled()
-    expect(
-      (await row.getByRole('button', { name: 'Talk', exact: true }).boundingBox())!.x,
-    ).toBeLessThan(after.x)
-    await expect.poll(() => compact).toBeGreaterThan(0)
-    await helpers.capture(page, info, 'instant-approach-protected-attack')
-    await page.unroute('**/api/world')
-    await Promise.all(delayedScenes)
+    }
+    await page.route('**/api/world', delayScene)
+    try {
+      await primary.click()
+      await expect(primary).toHaveText('Attack')
+      await expect(primary).toBeDisabled()
+      const themedArrow = /url\(".*\/cursors\/stone-arrow\.png"\) 6 3, auto$/
+      await expect(primary).toHaveCSS('cursor', themedArrow)
+      await expect(row.getByRole('button', { name: 'Talk', exact: true })).toHaveCSS(
+        'cursor',
+        themedArrow,
+      )
+      await expect
+        .poll(async () => (await helpers.world(page)).position, { timeout: 12000 })
+        .toEqual({ sectorId: 'verdant-expanse', x: 3, y: 4 })
+      const after = (await primary.boundingBox())!
+      expect(after.width).toBe(before.width)
+      expect(after.height).toBe(before.height)
+      await expect(row.getByRole('button', { name: 'Talk', exact: true })).toBeDisabled()
+      expect(
+        (await row.getByRole('button', { name: 'Talk', exact: true }).boundingBox())!.x,
+      ).toBeLessThan(after.x)
+      await expect.poll(() => compact).toBeGreaterThan(0)
+      await helpers.capture(page, info, 'instant-approach-protected-attack')
+    } finally {
+      // Removing a handler releases its in-flight routes. Fulfill held reads first,
+      // while subsequent GETs pass through, and retain failures instead of hiding them.
+      delayEnabled = false
+      const responses = await Promise.allSettled(delayedScenes)
+      await page.unroute('**/api/world', delayScene)
+      const failure = responses.find((response) => response.status === 'rejected')
+      if (failure?.status === 'rejected') throw failure.reason
+    }
     // Move the fixture away; a completed approach must be available again.
     helpers.place(owner.characterId, 'verdant-expanse', 10, 4)
     helpers.place(target.characterId, 'verdant-expanse', 12, 4)
