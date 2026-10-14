@@ -73,6 +73,10 @@ const positions = [
   { x: 2, y: 3 },
 ]
 if (targetingCase || dotCase) positions[3] = { x: 5, y: 3 }
+if (canonicalCase?.startsWith('move-') && canonicalCase !== 'move-stationary') {
+  positions[2] = { x: 4, y: 2 }
+  positions[3] = { x: 5, y: 2 }
+}
 
 const pending = createPendingBattle({
   battleId: 'fixture',
@@ -616,10 +620,51 @@ if (canonicalCase) {
     requiresLineOfSight: false,
     maximumElevationDifference: null,
   }
+  const movement = canonicalCase.startsWith('move-')
+  const mixed = canonicalCase === 'move-mixed'
+  const stationary = canonicalCase === 'move-stationary'
   const source = canonicalSourceFixture({
-    targeting: target,
+    targeting: movement
+      ? {
+          ...target,
+          maximumSelections: 1,
+          minimumRange: mixed ? 0 : 1,
+          maximumRange: 1,
+          categories: mixed ? ['self', 'enemy'] : ['enemy', 'ground'],
+          ...(mixed ? { kind: 'self', teamPolicy: 'self' } : {}),
+        }
+      : target,
+    ...(canonicalCase === 'move-paid'
+      ? {
+          costs: [
+            { resource: 'ap', amount: 100 },
+            { resource: 'mp', amount: 2 },
+            { resource: 'hp', amount: 1 },
+          ],
+        }
+      : {}),
     accuracy: { kind: 'fixed', chanceBasisPoints: 10000 },
-    effects: [{ id: 'hit', payload: { type: 'damage', recipient: 'affected-units', amount: 10 } }],
+    effects: [
+      ...(movement
+        ? [
+            {
+              id: 'walk',
+              payload: { type: 'move', recipient: 'actor', maximumTiles: 2 },
+              ...(stationary
+                ? {
+                    requirements: {
+                      kind: 'status-presence',
+                      subject: 'owner',
+                      statusId: 'guarded',
+                      present: true,
+                    },
+                  }
+                : {}),
+            },
+          ]
+        : []),
+      { id: 'hit', payload: { type: 'damage', recipient: 'affected-units', amount: 10 } },
+    ],
   })
   source.ownerCombatantId = ids[0]
   source.abilityId = definition.id
@@ -631,7 +676,28 @@ if (canonicalCase) {
     actionId: source.abilityId,
     behaviorId: behavior.id,
     target: behavior.targeting,
+    ...(movement
+      ? {
+          move: { maximumTiles: 2, conditional: stationary },
+          costs: behavior.costs.map((cost) => ({ ...cost })),
+        }
+      : {}),
   }))
+  if (stationary)
+    canonicalState = {
+      ...canonicalState,
+      tactical: {
+        ...canonicalState.tactical,
+        battle: {
+          ...canonicalState.tactical.battle,
+          currentTurn: {
+            ...canonicalState.tactical.battle.currentTurn,
+            movementRemaining: 0,
+            movementSpent: canonicalState.tactical.battle.currentTurn.movementMaximum,
+          },
+        },
+      },
+    }
   initialBattle.snapshot = canonicalPublicState(canonicalState)
 }
 window.fixtureBattle = initialBattle
@@ -647,6 +713,7 @@ window.fetch = async (url, options = {}) => {
       actorId: ids[0],
       root: { kind: 'canonical', source: canonicalCapture, behaviorId: intent.behaviorId },
       selection: intent.target,
+      movementPath: intent.movementPath,
       content: PV1F_COMBAT_CONTENT,
       context: combatAbilityCommandContext(canonicalState, canonicalCapture),
     }

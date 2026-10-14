@@ -96,9 +96,11 @@ const browser = await chromium.launch({
   headless: true,
 })
 const errors = []
+const moveOnly = process.env.AV_CANONICAL_MOVE === '1'
 let cases = 0
 try {
   for (const mode of ['pve', 'pvp']) {
+    if (moveOnly) continue
     for (const viewport of [
       { width: 1366, height: 768 },
       { width: 390, height: 844 },
@@ -140,7 +142,9 @@ try {
         'first plural gesture must draft without paying',
       )
       await gesture(tile(5, 3))
-      await page.screenshot({ path: resolve(output, `${mode}-${viewport.width}-plural-draft.png`) })
+      await page.screenshot({
+        path: resolve(output, `${mode}-${viewport.width}-plural-draft.png`),
+      })
       await gesture(page.getByRole('button', { name: 'Use selected targets', exact: true }))
       await page.waitForFunction(() => window.fixtureBattle.battleVersion === 2)
       const result = await page.evaluate(() => ({
@@ -306,6 +310,156 @@ try {
     await zoomed.close()
     cases++
   }
+  if (moveOnly) {
+    for (const mode of ['pve', 'pvp']) {
+      for (const viewport of [
+        { width: 1366, height: 768 },
+        { width: 390, height: 844 },
+      ]) {
+        const touch = viewport.width === 390
+        const options = { viewport, ...(touch ? { isMobile: true, hasTouch: true } : {}) }
+        for (const scenario of ['move-paid', 'move-mixed', 'move-stationary', 'move-stale']) {
+          const page = await browser.newPage(options)
+          page.on('pageerror', (error) => errors.push(error.message))
+          const gesture = (locator) => (touch ? locator.tap() : locator.click())
+          const tile = (x, y) =>
+            page
+              .locator('#battlefield')
+              .getByRole('button', { name: new RegExp(`^Tile ${x + 1}, ${y + 1};`) })
+          const commands = () =>
+            page.evaluate(() =>
+              window.calls.filter((call) => /\/(commit|intents)$/.test(call.path)),
+            )
+          await page.goto(
+            server.resolvedUrls.local[0] + `?mode=${mode}&targeting=single&canonical=${scenario}`,
+          )
+          await gesture(page.getByRole('button', { name: /^Selected Targeting Test,/ }))
+          assert.equal((await commands()).length, 0, 'arming Move neither pays nor commits')
+          await gesture(tile(3, scenario === 'move-stationary' ? 3 : 2))
+          assert.equal(
+            (await commands()).length,
+            0,
+            'destination choice must await the explicit follow-up recipient',
+          )
+          if (scenario === 'move-stale') {
+            await gesture(page.getByRole('button', { name: 'Cancel Action', exact: true }))
+            await page.keyboard.press('Enter')
+            assert.equal((await commands()).length, 0, 'Cancel does not retain a paid route')
+            await gesture(page.getByRole('button', { name: /^Selected Targeting Test,/ }))
+            await gesture(tile(3, 2))
+            await page.evaluate((mode) => {
+              const next = structuredClone(window.fixtureBattle)
+              next.battleVersion++
+              window.fixtureBattle = next
+              window.dispatchEvent(
+                new CustomEvent(
+                  mode === 'pvp' ? 'aurevane:pvp-battle-state' : 'aurevane:battle-state',
+                  { detail: next },
+                ),
+              )
+            }, mode)
+            await tile(3, 2).waitFor({ state: 'visible' })
+            await page.waitForFunction(() =>
+              document
+                .querySelector('#battlefield button[aria-label^="Tile 4, 3;"]')
+                ?.hasAttribute('data-reachable'),
+            )
+            await gesture(tile(4, 2))
+            assert.equal(
+              (await commands()).length,
+              0,
+              'remote version discards the old route, so an occupied destination cannot become a follow-up',
+            )
+            await gesture(tile(3, 2))
+          }
+          await page.screenshot({
+            path: resolve(output, `${mode}-${viewport.width}-${scenario}-target.png`),
+          })
+          await gesture(tile(4, scenario === 'move-stationary' ? 3 : 2))
+          await page.waitForFunction(() =>
+            window.receipts?.some((event) => event.event === 'damage_applied'),
+          )
+          const result = await page.evaluate(() => ({
+            calls: window.calls.filter((call) => /\/(commit|intents)$/.test(call.path)),
+            receipts: window.receipts,
+            actor: window.fixtureBattle.snapshot.tactical.battle.combatants[0],
+            placement: window.fixtureBattle.snapshot.tactical.placements[0],
+          }))
+          assert.equal(result.calls.length, 1)
+          assert.equal(result.calls[0].body.intent.behaviorId, 'strike')
+          assert.deepEqual(result.calls[0].body.intent.target, {
+            kind: 'unit',
+            combatantId: 'enemy-one',
+          })
+          assert.deepEqual(
+            result.calls[0].body.intent.movementPath,
+            scenario === 'move-stationary'
+              ? undefined
+              : [
+                  { x: 3, y: 3 },
+                  { x: 3, y: 2 },
+                ],
+          )
+          assert.deepEqual(result.placement.position, {
+            x: 3,
+            y: scenario === 'move-stationary' ? 3 : 2,
+          })
+          assert.equal(result.actor.hp, 99)
+          assert.equal(result.actor.mp, 48)
+          assert.equal(
+            result.receipts.filter((event) => event.event === 'combat_action_used').length,
+            1,
+          )
+          const ap = await page
+            .getByRole('progressbar', { name: 'Action Economy remaining' })
+            .getAttribute('aria-valuenow')
+          assert.equal(
+            Number(ap),
+            scenario === 'move-paid' ? 0 : 89,
+            'the overall authored AP price is the only payment',
+          )
+          await page.close()
+          cases++
+        }
+        if (!touch) {
+          const page = await browser.newPage(options)
+          page.on('pageerror', (error) => errors.push(error.message))
+          await page.goto(
+            server.resolvedUrls.local[0] + `?mode=${mode}&targeting=single&canonical=move-paid`,
+          )
+          await page.getByRole('button', { name: /^Selected Targeting Test,/ }).click()
+          await page.keyboard.press('w')
+          assert.equal(
+            await page.evaluate(
+              () => window.calls.filter((call) => /\/(commit|intents)$/.test(call.path)).length,
+            ),
+            0,
+            'W chooses the Move destination before targeting',
+          )
+          await page.keyboard.press('d')
+          await page.waitForFunction(() =>
+            window.receipts?.some((event) => event.event === 'damage_applied'),
+          )
+          const result = await page.evaluate(() => ({
+            calls: window.calls.filter((call) => /\/(commit|intents)$/.test(call.path)),
+            placement: window.fixtureBattle.snapshot.tactical.placements[0],
+          }))
+          assert.equal(result.calls.length, 1)
+          assert.deepEqual(result.calls[0].body.intent.target, {
+            kind: 'unit',
+            combatantId: 'enemy-one',
+          })
+          assert.deepEqual(result.calls[0].body.intent.movementPath, [
+            { x: 3, y: 3 },
+            { x: 3, y: 2 },
+          ])
+          assert.deepEqual(result.placement.position, { x: 3, y: 2 })
+          await page.close()
+          cases++
+        }
+      }
+    }
+  }
   assert.deepEqual(errors, [])
   await fs.writeFile(
     resolve(output, 'results.json'),
@@ -320,7 +474,7 @@ try {
       2,
     ),
   )
-  console.log(`${cases} canonical controller cases passed`)
+  console.log(`${cases} canonical ${moveOnly ? 'Move ' : ''}controller cases passed`)
 } finally {
   await browser.close()
   await server.close()
