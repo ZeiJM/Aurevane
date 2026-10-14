@@ -1,3 +1,4 @@
+import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
 import { createPercentageDotSkillVersion } from '@aurevane/game-core/combat/combat-percentage-dot-roster'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -1116,4 +1117,63 @@ it('validates and immutably publishes Suppress percentage boundaries without rew
     definition.effects,
   )
   expect(staticSkill().effects).toEqual(original.effects)
+})
+
+describe('Basic Skills use the authorized versioned Skill store', () => {
+  it('publishes complete edits, preserves old versions, rejects stale edits and rolls back', async () => {
+    const { store, service } = serviceFixture()
+    store.operators.set(OWNER, 'owner')
+    const builtin = defaultBasicSkills().find((row) => row.id === 'basic.guard')!
+    const edited = {
+      ...builtin,
+      name: 'Iron Guard',
+      ability: {
+        ...builtin.ability,
+        behaviors: builtin.ability.behaviors.map((behavior) => ({
+          ...behavior,
+          costs: [{ resource: 'ap' as const, amount: 17 }],
+        })),
+      },
+    }
+    expect(service.validateSkillDefinition(edited).valid).toBe(true)
+    const draft = await service.saveSkillDraft({
+      actorUserId: OWNER,
+      definition: edited,
+      baseVersion: 1,
+      expectedDraftVersion: null,
+    })
+    expect(draft.definition).toEqual(edited)
+    const published = await service.publishSkill({
+      actorUserId: OWNER,
+      definition: edited,
+      expectedBaseVersion: 1,
+    })
+    expect(published.contentVersion).toBe(2)
+    expect(published.definition).toEqual({ ...edited, contentVersion: 2 })
+    await expect(
+      service.publishSkill({ actorUserId: OWNER, definition: builtin, expectedBaseVersion: 1 }),
+    ).rejects.toMatchObject({ code: 'STALE_VERSION' })
+    await service.rollbackSkill({ actorUserId: OWNER, skillId: builtin.id, targetVersion: 1 })
+    expect(await store.findPublished(builtin.id)).toBeNull()
+    expect(await store.listPublishedVersions(builtin.id)).toHaveLength(1)
+  })
+  it('rejects zero-AP Basic Attack publication and unauthorized Basic edits', async () => {
+    const { store, service } = serviceFixture()
+    store.operators.set(OWNER, 'owner')
+    const attack = defaultBasicSkills().find((row) => row.id === 'unarmed.basic')!
+    const invalid = {
+      ...attack,
+      ability: {
+        ...attack.ability,
+        behaviors: attack.ability.behaviors.map((behavior) => ({ ...behavior, costs: [] })),
+      },
+    }
+    await expect(
+      service.publishSkill({ actorUserId: OWNER, definition: invalid, expectedBaseVersion: 1 }),
+    ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
+    await expect(
+      service.publishSkill({ actorUserId: OUTSIDER, definition: attack, expectedBaseVersion: 1 }),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' })
+    expect(await store.findPublished(attack.id)).toBeNull()
+  })
 })

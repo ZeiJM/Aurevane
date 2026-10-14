@@ -1,3 +1,7 @@
+import {
+  captureBasicSkillSources,
+  defaultBasicSkills,
+} from '@aurevane/game-core/combat/combat-basic-actions'
 import { captureCombatAbilitySource } from '@aurevane/game-core/combat/combat-behavior-capture'
 import { reconcileCombatAbilitySources } from '@aurevane/game-core/combat/combat-behavior-runtime'
 import {
@@ -15,6 +19,7 @@ import { createPendingBattle, startBattle } from '@aurevane/game-core/combat/bat
 import { createTacticalBattleState } from '@aurevane/game-core/combat/board'
 import {
   createStatDrivenCombatEncounterState,
+  reattachStatDrivenCombatBridge,
   type StatDrivenCombatEncounterState,
   type StatDrivenCombatProfile,
 } from '@aurevane/game-core/combat/stat-driven-combat'
@@ -702,4 +707,30 @@ it('scrubs concealed enemy provenance even when its debuff holder is self or all
   for (const id of [PLAYER, ALLY])
     expect(rows.find((row) => row.combatantId === id)?.statuses[0]).not.toHaveProperty('provenance')
   expect(state.statusState).toEqual(before)
+})
+
+it('projects captured Basic Attack geometry under its actual command identity without private definitions', () => {
+  const base = encounter()
+  const state = reattachStatDrivenCombatBridge(
+    reconcileCombatAbilitySources(
+      base,
+      captureBasicSkillSources({
+        ownerCombatantId: PLAYER,
+        supportActionId: 'basic.guard',
+        definitions: defaultBasicSkills(),
+      }),
+    ),
+    base.statBridge,
+  )
+  const view = projectBattleSnapshot(
+    state,
+    deriveParticipantBattleViewerEntitlement(state.tactical.battle.combatants, [PLAYER]),
+  )
+  expect(view.manualActionTargets).toContainEqual(
+    expect.objectContaining({ actionId: 'basic.attack.unarmed.basic', behaviorId: 'use' }),
+  )
+  expect(view.manualActionTargets?.some((row) => row.actionId === 'unarmed.basic')).toBe(false)
+  expect(JSON.stringify(view)).not.toMatch(
+    /capturedAbilitySources|sourceInstanceId|scalingBasisPoints/,
+  )
 })

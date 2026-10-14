@@ -817,6 +817,7 @@ export function createBattleSessionService({
           encounter,
           encounter.buildAuthority,
           combatContentResolver,
+          battleHallRecordId === 'guided-fundamentals',
         )
         const startSnapshot = encounter
         const initialized = activateCombatAbilitySources(

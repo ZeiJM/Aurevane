@@ -1,3 +1,10 @@
+import {
+  BASIC_SKILL_IDS,
+  defaultBasicSkills,
+  parseBasicSkillDefinition,
+  type BasicSkillDefinition,
+  type BasicSkillId,
+} from '@aurevane/game-core/combat/combat-basic-actions'
 import 'server-only'
 
 import type { CombatContentVersionRecord } from '@aurevane/db/combat-content'
@@ -24,6 +31,13 @@ import {
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 
 export interface CombatContentResolver {
+  resolveCurrentBasicSkillDefinitions?(
+    ids: readonly BasicSkillId[],
+  ): Promise<ReadonlyMap<BasicSkillId, BasicSkillDefinition>>
+  resolvePinnedBasicSkillDefinition?(
+    id: BasicSkillId,
+    version: number,
+  ): Promise<BasicSkillDefinition | null>
   resolveCurrentSkillDefinition(skillId: string): Promise<MatureSkillDefinition | null>
   resolveCurrentSkillDefinitions?(
     skillIds: readonly string[],
@@ -370,6 +384,36 @@ function validatePublishedResonance(
   return structuredClone(candidate)
 }
 
+export function isBasicSkillId(id: string): id is BasicSkillId {
+  return BASIC_SKILL_IDS.includes(id as BasicSkillId)
+}
+
+export function validatePublishedBasicSkill(
+  record: CombatContentVersionRecord,
+  id: BasicSkillId,
+  version?: number,
+): BasicSkillDefinition {
+  if (
+    record.contentKind !== 'skill' ||
+    record.contentKey !== id ||
+    (version !== undefined && record.contentVersion !== version)
+  )
+    throw new InvalidPublishedCombatContentError(
+      'Published Basic Skill metadata does not match its exact identity.',
+    )
+  try {
+    const basic = parseBasicSkillDefinition(record.definition)
+    if (basic.id !== id || basic.contentVersion !== record.contentVersion)
+      throw new TypeError('Basic definition identity or version mismatch.')
+    return basic
+  } catch (cause) {
+    throw new InvalidPublishedCombatContentError(
+      `Published Basic Skill ${id}@${record.contentVersion} is invalid.`,
+      { cause },
+    )
+  }
+}
+
 export function createCombatContentResolver(
   source: PublishedCombatContentSource,
 ): CombatContentResolver {
@@ -412,6 +456,48 @@ export function createCombatContentResolver(
   }
 
   return {
+    async resolveCurrentBasicSkillDefinitions(ids) {
+      const unique = [...new Set(ids)]
+      if (unique.some((id) => !isBasicSkillId(id)))
+        throw new InvalidPublishedCombatContentError('Unknown Basic Skill identity.')
+      const rows = source.findCurrentSkills
+        ? await source.findCurrentSkills(unique)
+        : (await Promise.all(unique.map((id) => source.findCurrentSkill(id)))).filter(
+            (row): row is CombatContentVersionRecord => row !== null,
+          )
+      const published = new Map<BasicSkillId, CombatContentVersionRecord>()
+      for (const row of rows) {
+        if (
+          !isBasicSkillId(row.contentKey) ||
+          !unique.includes(row.contentKey) ||
+          published.has(row.contentKey)
+        )
+          throw new InvalidPublishedCombatContentError(
+            'Invalid or duplicate Basic Skill publication rows.',
+          )
+        published.set(row.contentKey, row)
+      }
+      const result = new Map<BasicSkillId, BasicSkillDefinition>()
+      for (const id of unique) {
+        const row = published.get(id)
+        result.set(
+          id,
+          row
+            ? validatePublishedBasicSkill(row, id)
+            : structuredClone(defaultBasicSkills().find((basic) => basic.id === id)!),
+        )
+      }
+      return result
+    },
+    async resolvePinnedBasicSkillDefinition(id, version) {
+      if (!isBasicSkillId(id) || !positiveInteger(version)) return null
+      const published = await source.findSkillVersion(id, version)
+      if (published) return validatePublishedBasicSkill(published, id, version)
+      const builtin = defaultBasicSkills().find(
+        (basic) => basic.id === id && basic.contentVersion === version,
+      )
+      return builtin ? structuredClone(builtin) : null
+    },
     async resolveCurrentSkillDefinition(skillId) {
       return (await resolveCurrentSkillDefinitions([skillId])).get(skillId) ?? null
     },

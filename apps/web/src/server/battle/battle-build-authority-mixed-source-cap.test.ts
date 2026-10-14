@@ -1,3 +1,4 @@
+import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
 import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
@@ -380,6 +381,18 @@ describe('bulk current Skill authority preparation', () => {
       // Always settle production work, including on the deliberately failing baseline.
       expect(await pending).toEqual([])
     }
+    const basics = vi.fn(async () => new Map(defaultBasicSkills().map((row) => [row.id, row])))
+    const sources = await captureBattleBuildAbilitySources(state, authority, {
+      ...resolver,
+      resolveCurrentBasicSkillDefinitions: basics,
+    })
+    expect(basics).toHaveBeenCalledTimes(1)
+    expect(basics.mock.calls[0]).toEqual([['basic.move', 'unarmed.basic', 'basic.guard']])
+    expect(sources.map((source) => [source.ownerCombatantId, source.abilityId])).toEqual(
+      ids.flatMap((id) =>
+        ['basic.move', 'unarmed.basic', 'basic.guard'].map((skill) => [id, skill]),
+      ),
+    )
   })
   it('reads duplicated participant Skills in one batch and preserves the complete fallback authority', async () => {
     const current = vi.fn(async (skillId: string) => {

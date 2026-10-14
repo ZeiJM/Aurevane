@@ -1,3 +1,12 @@
+import {
+  defaultBasicSkills,
+  validateBasicSkillDefinition,
+  type BasicSkillDefinition,
+} from '@aurevane/game-core/combat/combat-basic-actions'
+import {
+  isBasicSkillId,
+  validatePublishedBasicSkill,
+} from '@/server/combat/combat-content-resolver'
 import { validateCurrentCombatTargetAuthoring } from '@aurevane/game-core/combat/combat-targeting-shapes'
 import { validateCurrentPercentageDotAuthoring } from '@aurevane/game-core/combat/combat-percentage-dots'
 import 'server-only'
@@ -266,6 +275,25 @@ function validateSkillDefinition(definition: unknown): CombatContentValidationRe
     return { valid: false, issues, derivedTags: [] }
   }
 
+  if (isBasicSkillId(readSkillId(definition)!)) {
+    issues.push(...validateBasicSkillDefinition(definition))
+    const basic = definition as unknown as BasicSkillDefinition
+    if (!issues.length) {
+      if (!isRegisteredSkillIconHook(basic.media.iconKey))
+        issues.push({
+          path: 'media.iconKey',
+          code: 'UNKNOWN_MEDIA_HOOK',
+          message: 'Basic Skill artwork must use a registered media hook.',
+        })
+      if (!isRegisteredSkillAudioCueHook(basic.media.audioCueKey))
+        issues.push({
+          path: 'media.audioCueKey',
+          code: 'UNKNOWN_MEDIA_HOOK',
+          message: 'Basic Skill audio must use a registered media hook.',
+        })
+    }
+    return { valid: !issues.length, issues, derivedTags: issues.length ? [] : [...basic.tags] }
+  }
   const candidate = structuredClone(definition) as unknown as MatureSkillDefinition
   try {
     validateCurrentCombatTargetAuthoring(candidate)
@@ -545,8 +573,14 @@ export function createCombatContentAuthoringService({
           `Combat content validation failed: ${validation.issues[0]?.message ?? 'invalid Skill definition.'}`,
         )
       }
-      const definition = input.definition as MatureSkillDefinition
-      const current = await resolver.resolveCurrentSkillDefinition(definition.id)
+      const definition = input.definition as MatureSkillDefinition | BasicSkillDefinition
+      const basic = isBasicSkillId(definition.id)
+      const publishedBasic = basic ? await store.findPublished(definition.id) : null
+      const current = basic
+        ? publishedBasic
+          ? validatePublishedBasicSkill(publishedBasic, definition.id as BasicSkillDefinition['id'])
+          : defaultBasicSkills().find((row) => row.id === definition.id)
+        : await resolver.resolveCurrentSkillDefinition(definition.id)
       const actualBaseVersion = current?.contentVersion ?? null
       if (actualBaseVersion !== input.expectedBaseVersion) {
         throw new AurevaneError(
@@ -574,7 +608,23 @@ export function createCombatContentAuthoringService({
         throw new AurevaneError('INVALID_REQUEST', 'Rollback target must be a positive version.')
       }
 
-      const target = await resolver.resolvePinnedSkillDefinition(input.skillId, input.targetVersion)
+      const basic = isBasicSkillId(input.skillId)
+      const basicVersion = basic
+        ? (await store.listPublishedVersions(input.skillId)).find(
+            (row) => row.contentVersion === input.targetVersion,
+          )
+        : null
+      const target = basic
+        ? basicVersion
+          ? validatePublishedBasicSkill(
+              basicVersion,
+              input.skillId as BasicSkillDefinition['id'],
+              input.targetVersion,
+            )
+          : defaultBasicSkills().find(
+              (row) => row.id === input.skillId && row.contentVersion === input.targetVersion,
+            )
+        : await resolver.resolvePinnedSkillDefinition(input.skillId, input.targetVersion)
       if (!target || target.id !== input.skillId || !target.enabled) {
         throw new AurevaneError(
           'INVALID_REQUEST',

@@ -448,7 +448,17 @@ export function defaultBasicSkills(): readonly BasicSkillDefinition[] {
             },
           },
         ],
-        { classification: 'recovery', cooldown: { key: 'basic.recovery', ownerTurns: 2 } },
+        {
+          classification: 'recovery',
+          cooldown: { key: 'basic.recovery', ownerTurns: 2 },
+          requirements: {
+            kind: 'resource-state',
+            subject: 'owner',
+            resource: 'mp',
+            comparison: 'at-most',
+            basisPoints: 9999,
+          },
+        },
       ),
     ),
   ]

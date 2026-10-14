@@ -1,3 +1,4 @@
+import { PV1F_BASIC_ATTACK_ID } from '@aurevane/game-core/combat/pv1f-skills'
 import { combatManualModifierAvailability } from '@aurevane/game-core/combat/combat-behavior-runtime'
 import 'server-only'
 import { canonicalAbilityTargetSpec } from '@aurevane/game-core/combat/combat-targeting-shapes'
@@ -65,7 +66,10 @@ export function projectBattleManualActionTargets(
         .map((behavior) => {
           const spec = canonicalAbilityTargetSpec(behavior.targeting!)
           return {
-            actionId: source.abilityId,
+            actionId:
+              source.basic?.execution.kind === 'basic-attack'
+                ? PV1F_BASIC_ATTACK_ID
+                : source.abilityId,
             behaviorId: behavior.id,
             target: {
               kind: spec.kind,

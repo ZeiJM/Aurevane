@@ -499,3 +499,26 @@ it('rejects an attached walking path on a historical non-Move action instead of 
     ),
   ).toThrow(/move|path/i)
 })
+
+it('the default captured MP Recovery rejects full MP through its authored Requirement', () => {
+  const base = fixture(defaultBasicSkills(), 'basic.recover.mp').state
+  const state = {
+    ...base,
+    tactical: {
+      ...base.tactical,
+      battle: {
+        ...base.tactical.battle,
+        combatants: base.tactical.battle.combatants.map((row) =>
+          row.id === 'actor' ? { ...row, mp: row.maxMp } : row,
+        ),
+      },
+    },
+  }
+  expect(evaluatePv1fAction(state, 'basic.recover.mp', { kind: 'self' }).evaluation.legal).toBe(
+    false,
+  )
+  expect(() => executePv1fAction(state, 'basic.recover.mp', { kind: 'self' })).toThrow(
+    /requirement/i,
+  )
+  expect(ap(state)).toBe(100)
+})

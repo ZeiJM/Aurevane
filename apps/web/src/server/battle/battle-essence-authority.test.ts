@@ -1,3 +1,4 @@
+import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
 import type {
   BattleSessionCommitRecord,
   BattleSessionRepository,
@@ -1433,3 +1434,87 @@ describe('P3.6 battle Essence authority', () => {
     expect(after ? readPv1fActionEconomy(after, PLAYER_ID)?.current : null).toBe(100)
   })
 })
+
+it.each(['recruit-sparring', 'guided-fundamentals'] as const)(
+  'new %s sessions capture published Basics and the selected Support; resumed sessions retain old records',
+  async (battleHallRecordId) => {
+    const basics = defaultBasicSkills()
+    let current = basics.map((row) =>
+      row.id === 'basic.recover'
+        ? {
+            ...row,
+            contentVersion: 2,
+            ability: {
+              ...row.ability,
+              behaviors: row.ability.behaviors.map((behavior) => ({
+                ...behavior,
+                costs: [{ resource: 'ap' as const, amount: 35 }],
+              })),
+            },
+          }
+        : row,
+    )
+    const resolver: CombatContentResolver = {
+      resolveCurrentSkillDefinition: async (id) => resolveMatureSkillVersion(id),
+      resolvePinnedSkillDefinition: async (id, version) => resolveMatureSkillVersion(id, version),
+      resolveCurrentBasicSkillDefinitions: async (ids) =>
+        new Map(current.filter((row) => ids.includes(row.id)).map((row) => [row.id, row])),
+    }
+    const builds = buildRepository({ ...pureSnapshot(), supportActionId: 'basic.recover' }),
+      battles = battleRepository()
+    const service = createBattleSessionService({
+      characters: characterRepository(),
+      battles: battles.repository,
+      builds: builds.repository,
+      combatContentResolver: resolver,
+    })
+    const view = await service.createSession({
+      userId: USER_ID,
+      characterId: CHARACTER_ID,
+      battleHallRecordId,
+      idempotencyKey: '88888888-8888-4888-8888-888888888888',
+    })
+    const captured = battles.record!.snapshot as BattleAuthoritativeEncounterState
+    const basicSources = captured.capturedAbilitySources!.filter((row) => row.basic)
+    expect(basicSources.map((row) => row.abilityId)).toEqual([
+      'basic.move',
+      'unarmed.basic',
+      'basic.recover',
+      ...(battleHallRecordId === 'guided-fundamentals' ? ['basic.guard'] : []),
+    ])
+    expect(basicSources[2]!.contentVersion).toBe(2)
+    expect(basicSources[2]!.definition.behaviors[0]!.costs).toEqual([
+      { resource: 'ap', amount: 35 },
+    ])
+    expect(JSON.stringify(view)).not.toMatch(
+      /capturedAbilitySources|sourceInstanceId|scalingBasisPoints/,
+    )
+    current = [...basics]
+    battles.replaceSnapshot(JSON.parse(JSON.stringify(captured)))
+    await service.getSession(USER_ID, SESSION_ID)
+    const retained = battles.record!.snapshot as BattleAuthoritativeEncounterState
+    expect(retained.capturedAbilitySources).toEqual(captured.capturedAbilitySources)
+    battles.replaceSnapshot({
+      ...retained,
+      tactical: {
+        ...retained.tactical,
+        battle: {
+          ...retained.tactical.battle,
+          combatants: retained.tactical.battle.combatants.map((row) =>
+            row.id === PLAYER_ID ? { ...row, hp: row.maxHp - 10 } : row,
+          ),
+        },
+      },
+    })
+    await service.submitIntent({
+      userId: USER_ID,
+      battleSessionId: SESSION_ID,
+      expectedBattleVersion: 1,
+      idempotencyKey: '99999999-9999-4999-8999-999999999999',
+      intent: { kind: 'action', actionId: 'basic.recover', target: { kind: 'self' } },
+    })
+    const paid = battles.record!.snapshot as BattleAuthoritativeEncounterState
+    expect(readPv1fActionEconomy(paid, PLAYER_ID)?.current).toBe(65)
+    expect(paid.capturedAbilitySources).toEqual(captured.capturedAbilitySources)
+  },
+)
