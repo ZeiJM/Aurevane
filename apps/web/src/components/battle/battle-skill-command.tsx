@@ -2,6 +2,9 @@
 
 import { useSkillEffectTimingPolicy } from '../character/skill-effect-timing-context'
 import Image from 'next/image'
+import type { BattleBasicActionPresentation } from '@/lib/battle/battle-basic-actions'
+import { CompactEffectSummary } from '../character/compact-skill-effect-summary'
+import { MINIMUM_SKILL_INFORMATION_FIELDS } from '../character/skill-information-contract'
 
 import {
   useCallback,
@@ -97,6 +100,8 @@ export function BattleSkillCommand({
   tags = [],
   children,
   characterStats,
+  basicAction,
+  behaviorId,
 }: {
   slot: BattleCommandSlot
   hotkey: string
@@ -110,6 +115,8 @@ export function BattleSkillCommand({
   selector?: BattleSkillSelectorConfig
   tags?: readonly string[]
   characterStats?: BasicActionCharacterStats
+  basicAction?: BattleBasicActionPresentation | null
+  behaviorId?: string
   children?: ReactNode
 }) {
   const timingPolicy = useSkillEffectTimingPolicy()
@@ -119,7 +126,28 @@ export function BattleSkillCommand({
   const artworkRef = useRef<HTMLButtonElement | null>(null)
   const selectorRef = useRef<HTMLDivElement | null>(null)
   const canSwap = Boolean(selector && selector.options.length > 1)
-  const basicActionId = basicActionIdForCommand(slot, label)
+  const basicActionId = basicAction === undefined ? basicActionIdForCommand(slot, label) : null
+  const reports =
+    basicAction?.behaviors.filter(
+      (behavior) => !behaviorId || behavior.behaviorId === behaviorId,
+    ) ?? []
+  const capturedRows =
+    basicAction === null
+      ? MINIMUM_SKILL_INFORMATION_FIELDS.map((field) => [field, 'Unavailable'] as const)
+      : basicAction
+        ? MINIMUM_SKILL_INFORMATION_FIELDS.map(
+            (field) =>
+              [
+                field,
+                reports
+                  .map(
+                    (behavior) =>
+                      `${reports.length > 1 ? `${behavior.behaviorId}: ` : ''}${behavior.rows.find((row) => row[0] === field)?.[1] ?? 'Unavailable'}`,
+                  )
+                  .join('; ') || 'Unavailable',
+              ] as const,
+          )
+        : undefined
 
   const closeSelector = useCallback((restoreFocus = false) => {
     setSelectorOpen(false)
@@ -215,7 +243,12 @@ export function BattleSkillCommand({
         data-battle-command={slot}
         data-command-slot={slot}
         data-action-cost={cost}
-        disabled={slot === 'items' || disabled || cooldownTurns > 0}
+        disabled={
+          slot === 'items' ||
+          disabled ||
+          cooldownTurns > 0 ||
+          (basicAction !== undefined && (!basicAction?.enabled || reports.length === 0))
+        }
         data-battle-cooldown-active={cooldownTurns > 0 || undefined}
         onClick={onActivate}
         aria-label={`${label}, ${cost}${battleCooldownLabel(cooldownTurns)}`}
@@ -269,15 +302,53 @@ export function BattleSkillCommand({
           <strong>Parameters</strong>
           <dl>
             <SkillCharacteristicRows
-              rows={commandCharacteristicRows(slot, label, cost, timingPolicy, characterStats)}
+              rows={
+                capturedRows ??
+                commandCharacteristicRows(slot, label, cost, timingPolicy, characterStats)
+              }
               effectSummary={
-                basicActionId ? (
+                basicAction ? (
+                  <span>
+                    {reports.flatMap((behavior) =>
+                      behavior.effects.map((effect, index) => (
+                        <span key={`${behavior.behaviorId}:${index}`}>
+                          {reports.length > 1 ? `${behavior.behaviorId}: ` : ''}
+                          {effect.condition ? `If ${effect.condition}: ` : ''}
+                          <CompactEffectSummary parts={effect.parts} />
+                          {effect.recipient !== 'Self' || behavior.target.kind !== 'self'
+                            ? ` → ${effect.recipient}`
+                            : ''}
+                          {index < behavior.effects.length - 1 ||
+                          behavior !== reports[reports.length - 1]
+                            ? '; '
+                            : ''}
+                        </span>
+                      )),
+                    )}
+                  </span>
+                ) : basicActionId ? (
                   <BasicActionEffectSummary id={basicActionId} stats={characterStats} />
                 ) : null
               }
             />
           </dl>
-          {basicActionId ? <BasicActionEffectExplanations id={basicActionId} /> : null}
+          {basicAction ? (
+            <>
+              <p>{basicAction.description}</p>
+              <ul aria-label="Effect explanations">
+                {reports.flatMap((behavior) =>
+                  [...behavior.effectDescriptions, ...behavior.limits].map((description, index) => (
+                    <li key={`${behavior.behaviorId}:${index}`}>
+                      {reports.length > 1 ? `${behavior.behaviorId}: ` : ''}
+                      {description}
+                    </li>
+                  )),
+                )}
+              </ul>
+            </>
+          ) : basicActionId ? (
+            <BasicActionEffectExplanations id={basicActionId} />
+          ) : null}
           {tags.length > 0 ? (
             <div className={styles.tags} data-battle-skill-tags="details">
               {tags.map((tag) => (

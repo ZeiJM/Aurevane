@@ -1,5 +1,10 @@
 'use client'
 
+import {
+  findBattleBasicAction,
+  battleBasicCostLabel,
+  canAffordBattleBasicAction,
+} from '@/lib/battle/battle-basic-actions'
 import { airborneJump } from '@aurevane/game-core/combat/combat-airborne'
 import { hasGameplayTag } from '@aurevane/game-core/combat/gameplay-tags'
 import { BattleGroundAreaLayer } from './battle-ground-area-layer'
@@ -454,9 +459,25 @@ function BattleExperienceContent({
   const healTechniques = selectableTechniques.filter((technique) => technique.category === 'heal')
   const skillArtwork = (technique: (typeof selectableTechniques)[number]) =>
     battleSkillArtwork(technique.id, technique.iconKey)
+  const capabilities = useMemo(() => deriveBattleCapabilities(runtime), [runtime])
+  const viewModel = useMemo(() => buildBattleViewModel(battle, runtime), [battle, runtime])
+  const localCombatantId = viewModel.localCombatantId
+  const basicMove = findBattleBasicAction(battle.snapshot, localCombatantId, 'basic.move')
+  const basicAttack = findBattleBasicAction(battle.snapshot, localCombatantId, BASIC_ATTACK_ID)
+  const attackLabel = basicAttack?.name ?? 'Basic Attack'
+  const basicBehaviorId = useCallback(
+    (actionId: string) =>
+      selectedBehavior?.actionId === actionId ? selectedBehavior.behaviorId : undefined,
+    [selectedBehavior],
+  )
   const [selectedAttackActionId, setSelectedAttackActionId] = useState<string>(BASIC_ATTACK_ID)
-  const supportActionId = parseSupportActionId(runtime.supportActionId) ?? DEFAULT_SUPPORT_ACTION_ID
+  const supportActionId = String(
+    parseSupportActionId(runtime.supportActionId) ?? DEFAULT_SUPPORT_ACTION_ID,
+  )
+  const basicSupport = findBattleBasicAction(battle.snapshot, localCombatantId, supportActionId)
+  const basicPracticeGuard = findBattleBasicAction(battle.snapshot, localCombatantId, GUARD_ID)
   const supportSkill = pv1fSkillByActionId(supportActionId)!
+  const supportLabel = basicSupport?.name ?? supportSkill.name
   const supportCost = supportSkill.cost.kind === 'flat' ? supportSkill.cost.amount : 0
   const guidedGuardPractice =
     runtime.kind === 'pve' &&
@@ -472,8 +493,12 @@ function BattleExperienceContent({
   const attackOptions = [
     {
       id: BASIC_ATTACK_ID,
-      label: 'Basic Attack',
-      cost: `${ATTACK_COST} AP`,
+      label: attackLabel,
+      cost: battleBasicCostLabel(
+        basicAttack,
+        `${ATTACK_COST} AP`,
+        basicBehaviorId(BASIC_ATTACK_ID),
+      ),
       artworkSrc: BATTLE_COMMAND_ARTWORK.attack,
       tags: ['Enemy', 'Single target', 'Damage'],
     },
@@ -499,8 +524,12 @@ function BattleExperienceContent({
   const defenseOptions = [
     {
       id: supportActionId,
-      label: supportSkill.name,
-      cost: `${supportCost} AP`,
+      label: supportLabel,
+      cost: battleBasicCostLabel(
+        basicSupport,
+        `${supportCost} AP`,
+        basicBehaviorId(supportActionId),
+      ),
       artworkSrc: battleSkillArtwork(supportActionId),
       tags: ['Self', 'Support Action'],
     },
@@ -509,8 +538,8 @@ function BattleExperienceContent({
           {
             id: GUARD_ID,
             label: 'Guard',
-            cost: '30 AP',
-            artworkSrc: battleSkillArtwork(GUARD_ID),
+            cost: battleBasicCostLabel(basicPracticeGuard, '30 AP', basicBehaviorId(GUARD_ID)),
+            artworkSrc: battleSkillArtwork(GUARD_ID, basicPracticeGuard?.iconKey),
             tags: ['Self', 'Guard'],
           },
         ]
@@ -524,7 +553,18 @@ function BattleExperienceContent({
     })),
   ]
   const recoveryOptions = [
-    ...HEAL_SELECTOR_OPTIONS,
+    ...HEAL_SELECTOR_OPTIONS.filter(
+      (option) => findBattleBasicAction(battle.snapshot, localCombatantId, option.id) !== null,
+    ).map((option) => ({
+      ...option,
+      label:
+        findBattleBasicAction(battle.snapshot, localCombatantId, option.id)?.name ?? option.label,
+      cost: battleBasicCostLabel(
+        findBattleBasicAction(battle.snapshot, localCombatantId, option.id),
+        option.cost,
+        basicBehaviorId(option.id),
+      ),
+    })),
     ...healTechniques.map((technique) => ({
       id: technique.id,
       label: technique.name,
@@ -537,35 +577,50 @@ function BattleExperienceContent({
     attackOptions.find((option) => option.id === selectedAttackActionId) ?? attackOptions[0]!
   const selectedDefense =
     defenseOptions.find((option) => option.id === selectedDefenseActionId) ?? defenseOptions[0]!
-  const effectiveHealActionId = String(selectedTechniqueHealId ?? selectedHealActionId)
+  const preferredHealId = String(selectedTechniqueHealId ?? selectedHealActionId)
   const selectedHealOption =
-    recoveryOptions.find((option) => option.id === effectiveHealActionId) ?? recoveryOptions[0]!
-  const capabilities = useMemo(() => deriveBattleCapabilities(runtime), [runtime])
-  const viewModel = useMemo(() => buildBattleViewModel(battle, runtime), [battle, runtime])
+    recoveryOptions.find((option) => option.id === preferredHealId) ?? recoveryOptions[0]
+  const effectiveHealActionId = String(selectedHealOption?.id ?? '')
   const tactical = battle.snapshot.tactical
   const battleState = tactical.battle
   const localParticipant = viewModel.localParticipant
-  const localCombatantId = viewModel.localCombatantId
   const localCombatant = localCombatantId
     ? (battleState.combatants.find((combatant) => combatant.id === localCombatantId) ?? null)
     : null
   const actionCooldownTurns = useCallback(
     (actionId: string) =>
-      battleActionCooldownTurns(battleRef.current, runtime, localCombatantId, actionId),
-    [localCombatantId, runtime],
+      battleActionCooldownTurns(
+        battleRef.current,
+        runtime,
+        localCombatantId,
+        actionId,
+        selectedBehavior?.actionId === actionId ? selectedBehavior.behaviorId : undefined,
+      ),
+    [localCombatantId, runtime, selectedBehavior],
   )
   const cooldowns = useMemo(
     () =>
       Object.fromEntries(
         [
+          'basic.move',
+          BASIC_ATTACK_ID,
           GUARD_ID,
           RECOVER_ID,
           MP_RECOVER_ID,
           ...selectableTechniques.map((skill) => skill.id),
           ...(runtime.essence ? [runtime.essence.id] : []),
-        ].map((id) => [id, battleActionCooldownTurns(battle, runtime, localCombatantId, id)]),
+        ].map((id) => [
+          id,
+          battleActionCooldownTurns(
+            battle,
+            runtime,
+            localCombatantId,
+            id,
+            selectedBehavior?.actionId === id ? selectedBehavior.behaviorId : undefined,
+          ),
+        ]),
       ),
-    [battle, localCombatantId, runtime, selectableTechniques],
+    [battle, localCombatantId, runtime, selectableTechniques, selectedBehavior],
   )
   const localProfile = battle.snapshot.statBridge.combatants.find(
     (row) => row.combatantId === localCombatantId,
@@ -593,7 +648,7 @@ function BattleExperienceContent({
   const localTurn = Boolean(
     localCombatantId && battleState.currentTurn?.combatantId === localCombatantId,
   )
-  const actionEconomy = localTurn ? readEconomy(localCombatant) : 0
+  const actionEconomy = localTurn ? Number(readEconomy(localCombatant)) : 0
   const planningDisabled =
     !localTurn ||
     battleState.lifecycle !== 'active' ||
@@ -605,7 +660,7 @@ function BattleExperienceContent({
     planningDisabledRef.current = planningDisabled
   }, [planningDisabled])
   const activeName = battleParticipantName(viewModel, battleState.currentTurn?.combatantId)
-  const selectedHealName = selectedHealOption.label
+  const selectedHealName = selectedHealOption?.label ?? 'Recovery unavailable'
   const selectedAttackTechnique =
     selectableTechniques.find((technique) => technique.id === selectedAttackActionId) ??
     (selectableEssence?.id === selectedAttackActionId ? selectableEssence : undefined)
@@ -652,12 +707,14 @@ function BattleExperienceContent({
   )
 
   const placementByTile = useMemo(() => buildDisplayedPlacementByTile(tactical), [tactical])
+  const moveBehaviorId =
+    selectedBehavior?.actionId === 'basic.move' ? String(selectedBehavior.behaviorId) : undefined
   const reachablePaths = useMemo(
     () =>
       localTurn
-        ? buildMovementPaths(battle.snapshot, localPlacement, actionEconomy)
+        ? buildMovementPaths(battle.snapshot, localPlacement, actionEconomy, moveBehaviorId)
         : new Map<string, BattleGridPosition[]>(),
-    [actionEconomy, battle.snapshot, localPlacement, localTurn],
+    [actionEconomy, battle.snapshot, localPlacement, localTurn, moveBehaviorId],
   )
   const maximumMoveDistance = Math.max(
     0,
@@ -1225,6 +1282,10 @@ function BattleExperienceContent({
                 ),
             }
           : undefined)
+      const basic = findBattleBasicAction(battle.snapshot, localCombatantId, actionId)
+      const isBasic = ['basic.move', BASIC_ATTACK_ID, GUARD_ID, RECOVER_ID, MP_RECOVER_ID].includes(
+        actionId,
+      )
       const native: BattlePreviewSkill = skill ?? {
         id: actionId,
         groundIntentCapable: false,
@@ -1239,7 +1300,8 @@ function BattleExperienceContent({
         battle.snapshot.manualActionTargets ?? [],
         selectedBehavior?.actionId === actionId ? selectedBehavior.behaviorId : undefined,
       )
-      if (!captured) return { ...native, unavailable: true }
+      if (!captured || (isBasic && (basic === null || basic?.enabled === false)))
+        return { ...native, unavailable: true }
       return airborneAttackElevation && captured.definition?.tags.includes('attack')
         ? {
             ...captured,
@@ -1254,8 +1316,8 @@ function BattleExperienceContent({
       airborneAttackElevation,
       runtime.essence,
       selectableTechniques,
-      battle.snapshot.elementalDamagePolicyVersion,
-      battle.snapshot.manualActionTargets,
+      battle.snapshot,
+      localCombatantId,
       selectedBehavior,
     ],
   )
@@ -1392,8 +1454,19 @@ function BattleExperienceContent({
       if (executionLock.current || commitLock.current) return
       if (planningDisabled && nextMode !== 'inspect') return
       if (nextMode === 'guard' && actionCooldownTurns(supportActionId) > 0) return
+      if (nextMode === 'recover' && !effectiveHealActionId) {
+        setNotice('No Recovery action is equipped in this battle.')
+        return
+      }
       if (nextMode === 'recover' && actionCooldownTurns(effectiveHealActionId) > 0) return
       setInspectedTile(null)
+      if (
+        nextMode === 'move' &&
+        (basicMove === null ||
+          basicMove?.enabled === false ||
+          actionCooldownTurns('basic.move') > 0)
+      )
+        return
       if (nextMode === 'attack') {
         setSelectedAttackActionId(BASIC_ATTACK_ID)
         armAction('attack', BASIC_ATTACK_ID)
@@ -1425,6 +1498,7 @@ function BattleExperienceContent({
       armAction,
       clearPlanning,
       effectiveHealActionId,
+      basicMove,
       planningDisabled,
       setSelectedAttackActionId,
       setSelectedDefenseActionId,
@@ -2109,9 +2183,23 @@ function BattleExperienceContent({
               <button
                 type="button"
                 className={bridgeStyles.guidedPractice}
-                aria-label="Practice Guard, 30 AP"
+                aria-label={`Practice ${basicPracticeGuard?.name ?? 'Guard'}, ${battleBasicCostLabel(basicPracticeGuard, '30 AP', basicBehaviorId(GUARD_ID))}`}
                 title="Practice Guard for this lesson. Your saved Support Action stays in slot 3."
-                disabled={planningDisabled || actionEconomy < 30 || (cooldowns[GUARD_ID] ?? 0) > 0}
+                disabled={
+                  planningDisabled ||
+                  (basicPracticeGuard === undefined
+                    ? actionEconomy < 30
+                    : !canAffordBattleBasicAction(
+                        basicPracticeGuard,
+                        {
+                          ap: actionEconomy,
+                          mp: localCombatant?.mp ?? 0,
+                          hp: localCombatant?.hp ?? 0,
+                        },
+                        basicBehaviorId(GUARD_ID),
+                      )) ||
+                  (cooldowns[GUARD_ID] ?? 0) > 0
+                }
                 onKeyDown={(event) => {
                   if (event.repeat && (event.key === 'Enter' || event.key === ' '))
                     event.preventDefault()
@@ -2130,7 +2218,7 @@ function BattleExperienceContent({
                   armAction('guard', GUARD_ID)
                 }}
               >
-                <span>Practice Guard</span>
+                <span>Practice {basicPracticeGuard?.name ?? 'Guard'}</span>
               </button>
             ) : null}
             <BattleInfoPopover
@@ -2579,33 +2667,95 @@ function BattleExperienceContent({
                   characterStats={characterStats}
                   slot="move"
                   hotkey={formatCombatKeybind(bindings.move)}
-                  label="Move"
-                  cost={`${MOVE_COST_PER_TERRAIN_POINT} AP`}
-                  artworkSrc={BATTLE_COMMAND_ARTWORK.move}
+                  label={basicMove?.name ?? 'Move'}
+                  cost={battleBasicCostLabel(
+                    basicMove,
+                    `${MOVE_COST_PER_TERRAIN_POINT} AP`,
+                    basicBehaviorId('basic.move'),
+                  )}
+                  basicAction={basicMove}
+                  behaviorId={basicBehaviorId('basic.move')}
+                  cooldownTurns={cooldowns['basic.move'] ?? 0}
+                  artworkSrc={
+                    basicMove?.iconKey
+                      ? battleSkillArtwork('basic.move', basicMove.iconKey)
+                      : BATTLE_COMMAND_ARTWORK.move
+                  }
                   active={mode === 'move'}
-                  disabled={planningDisabled || reachablePaths.size === 0}
+                  disabled={
+                    planningDisabled ||
+                    reachablePaths.size === 0 ||
+                    !canAffordBattleBasicAction(
+                      basicMove,
+                      {
+                        ap: actionEconomy,
+                        mp: localCombatant?.mp ?? 0,
+                        hp: localCombatant?.hp ?? 0,
+                      },
+                      basicBehaviorId('basic.move'),
+                    )
+                  }
                   onActivate={() => chooseMode('move')}
                 />
                 <BattleSkillCommand
                   characterStats={characterStats}
                   slot="attack"
                   hotkey={formatCombatKeybind(bindings.basicAttack)}
-                  label="Basic Attack"
-                  cost={`${ATTACK_COST} AP`}
-                  artworkSrc={BATTLE_COMMAND_ARTWORK.attack}
+                  label={attackLabel}
+                  cost={battleBasicCostLabel(
+                    basicAttack,
+                    `${ATTACK_COST} AP`,
+                    basicBehaviorId(BASIC_ATTACK_ID),
+                  )}
+                  basicAction={basicAttack}
+                  behaviorId={basicBehaviorId(BASIC_ATTACK_ID)}
+                  cooldownTurns={cooldowns[BASIC_ATTACK_ID] ?? 0}
+                  artworkSrc={battleSkillArtwork(BASIC_ATTACK_ID, basicAttack?.iconKey)}
                   active={mode === 'attack' && selectedAttackActionId === BASIC_ATTACK_ID}
-                  disabled={planningDisabled || actionEconomy < ATTACK_COST}
+                  disabled={
+                    planningDisabled ||
+                    (basicAttack === undefined
+                      ? actionEconomy < ATTACK_COST
+                      : !canAffordBattleBasicAction(
+                          basicAttack,
+                          {
+                            ap: actionEconomy,
+                            mp: localCombatant?.mp ?? 0,
+                            hp: localCombatant?.hp ?? 0,
+                          },
+                          basicBehaviorId(BASIC_ATTACK_ID),
+                        ))
+                  }
                   onActivate={() => chooseMode('attack')}
                 />
                 <BattleSkillCommand
                   characterStats={characterStats}
                   slot="guard"
                   hotkey={formatCombatKeybind(bindings.guard)}
-                  label={supportSkill.name}
-                  cost={`${supportCost} AP`}
-                  artworkSrc={battleSkillArtwork(supportActionId)}
+                  label={supportLabel}
+                  cost={battleBasicCostLabel(
+                    basicSupport,
+                    `${supportCost} AP`,
+                    basicBehaviorId(supportActionId),
+                  )}
+                  basicAction={basicSupport}
+                  behaviorId={basicBehaviorId(supportActionId)}
+                  artworkSrc={battleSkillArtwork(supportActionId, basicSupport?.iconKey)}
                   active={mode === 'guard' && selectedDefenseActionId === supportActionId}
-                  disabled={planningDisabled || actionEconomy < supportCost}
+                  disabled={
+                    planningDisabled ||
+                    (basicSupport === undefined
+                      ? actionEconomy < supportCost
+                      : !canAffordBattleBasicAction(
+                          basicSupport,
+                          {
+                            ap: actionEconomy,
+                            mp: localCombatant?.mp ?? 0,
+                            hp: localCombatant?.hp ?? 0,
+                          },
+                          basicBehaviorId(supportActionId),
+                        ))
+                  }
                   cooldownTurns={cooldowns[supportActionId] ?? 0}
                   onActivate={() => chooseMode('guard')}
                 />

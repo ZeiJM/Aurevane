@@ -1,4 +1,11 @@
+import { airborneJump } from '@aurevane/game-core/combat/combat-airborne'
+import { abilityBehaviorInformation } from '@/components/character/ability-detail-presentation'
+import type { BattleBasicActionPresentation } from '@/lib/battle/battle-basic-actions'
 import { PV1F_BASIC_ATTACK_ID } from '@aurevane/game-core/combat/pv1f-skills'
+import {
+  effectiveBasicSkillBehavior,
+  isFreeOffensiveBasicMove,
+} from '@aurevane/game-core/combat/combat-basic-actions'
 import { combatManualModifierAvailability } from '@aurevane/game-core/combat/combat-behavior-runtime'
 import 'server-only'
 import { canonicalAbilityTargetSpec } from '@aurevane/game-core/combat/combat-targeting-shapes'
@@ -97,6 +104,109 @@ export function projectBattleManualActionTargets(
             : a.behaviorId > b.behaviorId
               ? 1
               : 0,
+    )
+}
+
+/** A controlled owner's saved Basic display data, without private execution envelopes or accuracy. */
+export function projectBattleBasicActions(
+  state: StatDrivenCombatEncounterState,
+  viewer: BattleViewerEntitlement,
+): readonly BattleBasicActionPresentation[] | undefined {
+  if (viewer.kind !== 'participant') return undefined
+  const owned = (state.capturedAbilitySources ?? []).filter(
+    (source) => source.basic && viewer.controlledCombatantIds.has(source.ownerCombatantId),
+  )
+  if (!owned.length) return undefined
+  return owned
+    .filter((source) => state.abilityRuntime?.activeSourceIds.includes(source.sourceInstanceId))
+    .map((source) => {
+      const basic = source.basic!
+      const owner = state.tactical.battle.combatants.find(
+        (unit) => unit.id === source.ownerCombatantId,
+      )!
+      const profile = state.statBridge.combatants.find(
+        (row) => row.combatantId === source.ownerCombatantId,
+      )!
+      const behaviors = source.definition.behaviors
+        .filter((behavior) => behavior.activation === 'manual' && behavior.mode === 'action')
+        .map((behavior) => {
+          const move = behavior.effects.find((effect) => effect.payload.type === 'move')
+          const freeOffensiveMove = isFreeOffensiveBasicMove(source, behavior)
+          const report = abilityBehaviorInformation(
+            freeOffensiveMove ? effectiveBasicSkillBehavior(state, source, behavior) : behavior,
+            {
+              basic,
+              timingPolicy: state.effectTimingPolicy ?? null,
+              stats: {
+                move: owner.baseMovementBudget,
+                jump: airborneJump(
+                  state,
+                  source.ownerCombatantId,
+                  profile.jump,
+                  PV1F_COMBAT_CONTENT,
+                ),
+                physicalPower: profile.physicalPower,
+                mysticPower: profile.mysticPower,
+              },
+            },
+          )
+          return {
+            behaviorId: behavior.id,
+            classification: behavior.classification,
+            costs: behavior.costs.map((cost) => ({ ...cost })),
+            cooldown: behavior.cooldown ? { ...behavior.cooldown } : null,
+            target: structuredClone(canonicalAbilityTargetSpec(behavior.targeting!)),
+            ...(move?.payload.type === 'move'
+              ? {
+                  move: {
+                    maximumTiles: move.payload.maximumTiles,
+                    conditional: move.requirements != null,
+                  },
+                }
+              : {}),
+            ...report,
+            ...(freeOffensiveMove
+              ? {
+                  limits: [
+                    ...report.limits,
+                    'Free offensive Move shares this limit across its action groups.',
+                  ],
+                }
+              : {}),
+          }
+        })
+      const native = basic.execution.kind === 'basic-move' ? behaviors[0]! : null
+      return {
+        ownerCombatantId: source.ownerCombatantId,
+        actionId: basic.execution.kind === 'basic-attack' ? PV1F_BASIC_ATTACK_ID : source.abilityId,
+        contentVersion: source.contentVersion,
+        name: basic.name,
+        description: basic.description,
+        enabled: basic.enabled,
+        iconKey: basic.media.iconKey,
+        ...(native
+          ? {
+              movement: {
+                costBasis:
+                  basic.execution.kind === 'basic-move' ? basic.execution.costBasis : 'flat',
+                ...(basic.execution.kind === 'basic-move' &&
+                basic.execution.costBasis === 'per-terrain-point'
+                  ? {
+                      apPerTraversalPoint: native.costs.find((cost) => cost.resource === 'ap')!
+                        .amount,
+                    }
+                  : {}),
+                maximumTiles: native.move!.maximumTiles,
+              },
+            }
+          : {}),
+        behaviors,
+      }
+    })
+    .sort(
+      (left, right) =>
+        left.ownerCombatantId.localeCompare(right.ownerCombatantId) ||
+        left.actionId.localeCompare(right.actionId),
     )
 }
 
