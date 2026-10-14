@@ -1,5 +1,5 @@
 import { expect, test, type Page, type TestInfo } from '@playwright/test'
-import { GRID_WIDTH, GRID_HEIGHT } from '../src/world/catalog'
+import { GRID_WIDTH, GRID_HEIGHT, STEP_MS } from '../src/world/catalog'
 import type { WorldView } from '../src/world/types'
 
 export async function verifyWorldPresentation(
@@ -702,7 +702,8 @@ export function registerWorldInputCases({
     await page.reload()
     const canvas = page.locator('canvas[data-world-stage]')
     await expect(canvas).toHaveAttribute('data-camera-x', /\d/)
-    let walks = 0
+    let walks = 0,
+      walkConflicts = 0
     page.on('request', (request) => {
       if (
         new URL(request.url()).pathname === '/api/world' &&
@@ -710,6 +711,34 @@ export function registerWorldInputCases({
         request.postDataJSON()?.intent?.kind === 'walk'
       )
         walks++
+    })
+    page.on('response', (response) => {
+      const request = response.request()
+      if (
+        new URL(response.url()).pathname === '/api/world' &&
+        request.method() === 'POST' &&
+        request.postDataJSON()?.intent?.kind === 'walk' &&
+        response.status() === 409
+      )
+        walkConflicts++
+    })
+    await canvas.evaluate((element) => {
+      const stage = element as HTMLCanvasElement
+      stage.addEventListener(
+        'keydown',
+        (event) => {
+          if (event.key.toLowerCase() === 'd' && !event.repeat)
+            stage.dataset.heldDownAt = String(performance.now())
+        },
+        { capture: true },
+      )
+      stage.addEventListener(
+        'keyup',
+        (event) => {
+          if (event.key.toLowerCase() === 'd') stage.dataset.heldUpAt = String(performance.now())
+        },
+        { capture: true },
+      )
     })
     await canvas.focus()
     await page.keyboard.down('d')
@@ -719,8 +748,19 @@ export function registerWorldInputCases({
     // A pre-release intent already queued behind authority may still finish.
     // Once that settles, key-up must create no further walking requests.
     const settledWalks = walks
-    expect(settledWalks).toBeGreaterThanOrEqual(2)
-    expect(settledWalks).toBeLessThanOrEqual(4)
+    const heldMs = await canvas.evaluate(
+      (element) =>
+        Number((element as HTMLCanvasElement).dataset.heldUpAt) -
+        Number((element as HTMLCanvasElement).dataset.heldDownAt),
+    )
+    expect(Number.isFinite(heldMs)).toBe(true)
+    expect(heldMs).toBeGreaterThanOrEqual(700)
+    // The driver delay excludes keyboard round trips; measure the actual browser
+    // key window and exclude authoritative retries from the input cadence count.
+    const maximumWalks = 1 + Math.floor(heldMs / STEP_MS)
+    console.info('held-world-key-window', { heldMs, settledWalks, walkConflicts, maximumWalks })
+    expect(settledWalks - walkConflicts).toBeGreaterThanOrEqual(2)
+    expect(settledWalks - walkConflicts).toBeLessThanOrEqual(maximumWalks)
     const arrived = (await world(page)).position
     expect(arrived.sectorId).toBe('atlas:58:28')
     expect(arrived.x).toBeGreaterThanOrEqual(8)

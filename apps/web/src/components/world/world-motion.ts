@@ -162,6 +162,7 @@ export class WorldMotion {
   private movementFrozen = false
   private extendApprovedVisual = false
   private lastSampledAt = 0
+  private suspendedAt: number | null = null
   constructor(view: WorldView, now = 0) {
     this.origin = mapPoint(view.position, view.sectors)
     this.standing = view.position
@@ -286,6 +287,7 @@ export class WorldMotion {
   }
   /** Widen loaded approval and an agreeing visual prefix without restarting either clock. */
   updateScene(sectors: WorldView['sectors'], now = this.lastSampledAt): void {
+    now = this.suspendedAt ?? now
     this.loadApprovedScene(sectors)
     this.trimVisualToScene(sectors, now)
     if (
@@ -365,6 +367,7 @@ export class WorldMotion {
     )
   }
   sample(now: number): { point: MapPoint; position: WorldPosition; moving: boolean } {
+    now = this.suspendedAt ?? now
     this.lastSampledAt = now
     let elapsed = Math.max(0, now - this.startedAt),
       point = this.origin,
@@ -390,6 +393,7 @@ export class WorldMotion {
   }
   plan(route: readonly TravelStep[], sectors: readonly WorldSectorView[], now: number) {
     if (this.movementFrozen) return
+    now = this.suspendedAt ?? now
     const sample = this.sample(now)
     // Routing may finish after an in-flight step lands. Discard that completed
     // prefix before applying the preview budget; retaining it rewinds the visual
@@ -453,6 +457,7 @@ export class WorldMotion {
   reconcile(view: WorldView, now: number) {
     const visual = this.sample(now)
     this.approve(view, now)
+    now = this.suspendedAt ?? now
     this.extendApprovedVisual = this.approvedFirstAt !== null
     if (
       view.movementBlocked ||
@@ -472,27 +477,30 @@ export class WorldMotion {
     // rewind an already interpolated step, including at sector boundaries.
     const points = [{ point: authoritative, position: view.position, duration: 0 }, ...route]
     let nearest = 0,
-      distance = Infinity
+      distance = Infinity,
+      beforeOrigin = false
     for (let i = 1; i < points.length; i++) {
       const a = points[i - 1]!.point,
         b = points[i]!.point,
         dx = b.x - a.x,
         dy = b.y - a.y
       const length = dx * dx + dy * dy
-      const t = length
-        ? Math.max(
-            0,
-            Math.min(1, ((visual.point.x - a.x) * dx + (visual.point.y - a.y) * dy) / length),
-          )
+      const projection = length
+        ? ((visual.point.x - a.x) * dx + (visual.point.y - a.y) * dy) / length
         : 1
+      const t = Math.max(0, Math.min(1, projection))
       const d = Math.hypot(a.x + t * dx - visual.point.x, a.y + t * dy - visual.point.y)
       if (d <= distance) {
         nearest = i
         distance = d
+        beforeOrigin = i === 1 && projection < 0
       }
     }
     this.startedAt = now
-    if (distance < 0.8) {
+    // A hidden receipt can advance the confirmed origin ahead of the paused
+    // visual point. Joining its first segment would skip a tile and be trimmed
+    // on scene hydration; use the legal correction path in that case.
+    if (distance < 0.8 && !beforeOrigin) {
       this.origin = visual.point
       this.standing = visual.position
       const first = points[nearest]!
@@ -553,6 +561,7 @@ export class WorldMotion {
   }
   /** Hold presentation during encounter preparation without altering approved movement. */
   hold(now: number) {
+    now = this.suspendedAt ?? now
     const current = this.sample(now)
     this.origin = current.point
     this.standing = current.position
@@ -561,11 +570,22 @@ export class WorldMotion {
     this.extendApprovedVisual = false
   }
   stop(now: number) {
+    now = this.suspendedAt ?? now
     const sample = this.sample(now)
     this.origin = sample.point
     this.standing = sample.position
     this.route = []
     this.startedAt = now
     this.extendApprovedVisual = false
+  }
+  /** Hidden time must not fast-forward presentation ahead of persisted movement. */
+  suspend(now: number) {
+    if (this.suspendedAt === null) this.suspendedAt = now
+  }
+  resume(now: number) {
+    if (this.suspendedAt === null) return
+    this.startedAt += Math.max(0, now - this.suspendedAt)
+    this.suspendedAt = null
+    this.lastSampledAt = now
   }
 }

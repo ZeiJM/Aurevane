@@ -555,6 +555,7 @@ export async function verifyWorldInstantActions(
     const row = page.locator(`[data-world-player="${target.characterId}"]`),
       primary = row.locator('[data-world-primary-action]')
     await expect(primary).toHaveText('Approach')
+    await expect(page.locator('[data-world-zone]')).toHaveText('Safe Zone')
     const before = (await primary.boundingBox())!
     let compact = 0
     const movementReceipts: Promise<void>[] = []
@@ -594,6 +595,8 @@ export async function verifyWorldInstantActions(
       await primary.click()
       await expect(primary).toHaveText('Attack')
       await expect(primary).toBeDisabled()
+      await expect(page.locator('[data-world-zone]')).toHaveText('Safe Zone')
+      await expect(primary).toHaveCSS('background-color', 'rgb(24, 48, 56)')
       const themedArrow = /url\(".*\/cursors\/stone-arrow\.png"\) 6 3, auto$/
       await expect(primary).toHaveCSS('cursor', themedArrow)
       await expect(row.getByRole('button', { name: 'Talk', exact: true })).toHaveCSS(
@@ -633,6 +636,9 @@ export async function verifyWorldInstantActions(
     await primary.click()
     await expect(primary).toHaveText('Attack')
     await expect(primary).toBeEnabled({ timeout: 12000 })
+    await expect(page.locator('[data-world-zone]')).toHaveText('PvP Zone')
+    await page.mouse.move(0, 0)
+    await expect(primary).toHaveCSS('background-color', 'rgb(116, 35, 40)')
     await primary.click()
     await expect(page).toHaveURL(/\/game\/battle\//, { timeout: 20000 })
     await Promise.all(movementReceipts)

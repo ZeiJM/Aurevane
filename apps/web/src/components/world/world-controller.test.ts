@@ -7,6 +7,88 @@ const deferred = () => {
   const promise = new Promise<WorldView>((r) => (resolve = r))
   return { promise, resolve }
 }
+it('settles approved walking before refreshing its presentation on tab return', async () => {
+  const start = {
+    ...view,
+    characterId: 'owner',
+    position: { sectorId: 'a', x: 1, y: 4 },
+    route: [{ position: { sectorId: 'a', x: 2, y: 4 }, durationMs: 200 }],
+    sectors: [],
+    players: [],
+  } as WorldView
+  const landed = { ...start, version: 2, position: start.route[0]!.position, route: [] }
+  let settled = false
+  const controller = new WorldController(start, {
+    command: async () => {
+      settled = true
+      return landed
+    },
+    refresh: async () => (settled ? landed : start),
+    accept: vi.fn(),
+    presentation: vi.fn(),
+    error: vi.fn(),
+    busy: vi.fn(),
+  })
+  await controller.refresh(true)
+  expect(controller.view.position).toEqual({ sectorId: 'a', x: 2, y: 4 })
+  expect(controller.view.version).toBe(2)
+  expect(controller.view.route).toEqual([])
+  controller.dispose()
+})
+it('ignores a pre-return idle read after due movement resumes through the command queue', async () => {
+  const start = {
+    ...view,
+    characterId: 'owner',
+    position: { sectorId: 'a', x: 1, y: 4 },
+    route: [{ position: { sectorId: 'a', x: 2, y: 4 }, durationMs: 200 }],
+  } as WorldView
+  const stale = deferred(),
+    tick = deferred()
+  let signal: AbortSignal | undefined
+  const controller = new WorldController(start, {
+    command: () => tick.promise,
+    refresh: (received) => {
+      signal = received
+      return stale.promise
+    },
+    accept: vi.fn(),
+    error: vi.fn(),
+    busy: vi.fn(),
+  })
+  const previousRead = controller.refresh()
+  const returning = controller.refresh(true)
+  expect(signal?.aborted).toBe(true)
+  stale.resolve({ ...start, version: 999 })
+  await previousRead
+  expect(controller.pending).toBe(true)
+  tick.resolve({ ...start, version: 2, position: start.route[0]!.position, route: [] })
+  await returning
+  expect(controller.view.position).toEqual({ sectorId: 'a', x: 2, y: 4 })
+  expect(controller.view.version).toBe(2)
+  expect(controller.pending).toBe(false)
+  controller.dispose()
+})
+it('refreshes a blocked tab return without advancing its saved route', async () => {
+  const start = {
+    ...view,
+    characterId: 'owner',
+    position: { sectorId: 'a', x: 1, y: 4 },
+    route: [{ position: { sectorId: 'a', x: 2, y: 4 }, durationMs: 200 }],
+    movementBlocked: 'Stop Passive Training to travel.',
+  } as WorldView
+  const controller = new WorldController(start, {
+    command: async () => ({ ...start, position: start.route[0]!.position, version: 3 }),
+    refresh: async () => ({ ...start, version: 2 }),
+    accept: vi.fn(),
+    error: vi.fn(),
+    busy: vi.fn(),
+  })
+  await controller.refresh(true)
+  expect(controller.view.position).toEqual(start.position)
+  expect(controller.view.version).toBe(2)
+  expect(controller.view.movementBlocked).toBe('Stop Passive Training to travel.')
+  controller.dispose()
+})
 it('updates peers during a pending command without resetting owned movement or invoking reconciliation', async () => {
   const current = {
     ...view,

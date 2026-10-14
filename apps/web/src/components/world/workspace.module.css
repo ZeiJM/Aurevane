@@ -331,6 +331,15 @@
   border-color: #65736e;
   opacity: 1;
 }
+.rowActions button[data-world-primary-action='attack']:not(:disabled) {
+  color: #fff1ed;
+  background: #742328;
+  border-color: #b85b60;
+}
+.rowActions button[data-world-primary-action='attack']:hover:not(:disabled) {
+  background: #8f3037;
+  border-color: #e79499;
+}
 .rowActions .secondaryPlayerAction {
   width: 52px;
   padding-inline: 4px;
@@ -405,6 +414,32 @@
   color: var(--map-gold);
   font-size: 10px;
   letter-spacing: 0.3px;
+}
+.coordinateHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+.zoneStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--map-muted);
+  white-space: nowrap;
+}
+.zoneStatus::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.zoneStatus[data-world-zone='safe'] {
+  color: #9bceaa;
+}
+.zoneStatus[data-world-zone='pvp'] {
+  color: #f09c9c;
 }
 .panelFoot small {
   font: 9px var(--av-font-body, Georgia);
