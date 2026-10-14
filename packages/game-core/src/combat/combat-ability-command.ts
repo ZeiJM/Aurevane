@@ -31,6 +31,7 @@ import {
 } from './actions'
 import {
   captureCombatAbilitySource,
+  sameCapturedCombatAbilitySource,
   type CapturedCombatAbilitySource,
 } from './combat-behavior-capture'
 import {
@@ -222,7 +223,7 @@ export function combatAbilityParticipantIssues(
   const stored = input.state.capturedAbilitySources?.find(
     (row) => row.sourceInstanceId === source.sourceInstanceId,
   )
-  if (stored && JSON.stringify(stored) !== JSON.stringify(source))
+  if (stored && !sameCapturedCombatAbilitySource(stored, source))
     throw new TypeError('captured-source-cannot-change-in-place')
   if (
     input.state.abilityRuntime &&

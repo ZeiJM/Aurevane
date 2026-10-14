@@ -20,6 +20,7 @@ import {
 } from './actions'
 import {
   captureCombatAbilitySource,
+  sameCapturedCombatAbilitySource,
   type CapturedCombatAbilitySource,
 } from './combat-behavior-capture'
 import type { AbilityBehavior } from './combat-definition'
@@ -334,7 +335,7 @@ export function reconcileCombatAbilitySources(
     const previous = state.capturedAbilitySources?.find(
       (row) => row.sourceInstanceId === source.sourceInstanceId,
     )
-    if (previous && JSON.stringify(previous) !== JSON.stringify(source))
+    if (previous && !sameCapturedCombatAbilitySource(previous, source))
       throw new TypeError('captured-source-cannot-change-in-place')
   }
   const maintained: CombatMaintainedAbilityContribution[] = []

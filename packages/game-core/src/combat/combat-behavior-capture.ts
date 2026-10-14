@@ -68,8 +68,8 @@ export function captureCombatAbilitySource(
       result.sourceDisciplineId !== undefined ||
       result.basic.id !== result.abilityId ||
       result.basic.contentVersion !== result.contentVersion ||
-      JSON.stringify(result.basic.ability) !== JSON.stringify(result.definition) ||
-      JSON.stringify(result.basic.tags) !== JSON.stringify(result.tags))
+      !sameCaptureValue(result.basic.ability, result.definition) ||
+      !sameCaptureValue(result.basic.tags, result.tags))
   )
     throw new TypeError('invalid-captured-basic-definition')
   return freezeCapture(result)
@@ -81,4 +81,34 @@ function freezeCapture<T>(value: T): T {
     Object.freeze(value)
   }
   return value
+}
+
+/** PostgreSQL JSONB may reorder object keys; ordered arrays and every value stay authoritative. */
+export function sameCapturedCombatAbilitySource(
+  left: CapturedCombatAbilitySource,
+  right: CapturedCombatAbilitySource,
+): boolean {
+  return sameCaptureValue(left, right)
+}
+
+function sameCaptureValue(left: unknown, right: unknown): boolean {
+  if (left === right) return true
+  if (!left || !right || typeof left !== 'object' || typeof right !== 'object') return false
+  if (Array.isArray(left) || Array.isArray(right))
+    return (
+      Array.isArray(left) &&
+      Array.isArray(right) &&
+      left.length === right.length &&
+      left.every((value, index) => sameCaptureValue(value, right[index]))
+    )
+  const leftRecord = left as Record<string, unknown>,
+    rightRecord = right as Record<string, unknown>
+  const keys = Object.keys(leftRecord)
+  return (
+    keys.length === Object.keys(rightRecord).length &&
+    keys.every(
+      (key) =>
+        Object.hasOwn(rightRecord, key) && sameCaptureValue(leftRecord[key], rightRecord[key]),
+    )
+  )
 }

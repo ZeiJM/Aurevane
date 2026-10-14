@@ -7,7 +7,13 @@ import { captureCombatAbilitySource } from '../../game-core/src/combat/combat-be
 import {
   reconcileCombatAbilitySources,
   combatAbilityCommandContext,
+  refreezeCapturedCombatAbilityState,
 } from '../../game-core/src/combat/combat-behavior-runtime'
+import { validateCombatAbilityState } from '../../game-core/src/combat/combat-ability-state'
+import {
+  captureBasicSkillSources,
+  defaultBasicSkills,
+} from '../../game-core/src/combat/combat-basic-actions'
 import { commitCombatAbilityCommand } from '../../game-core/src/combat/combat-ability-command'
 import {
   preparePv1fTurnEconomy,
@@ -482,5 +488,81 @@ it.each(['pve', 'pvp'] as const)(
         )
       ).rows[0]!.n,
     ).toBe(1)
+  },
+)
+
+it.each(['basic', 'discipline'] as const)(
+  'restores immutable %s captures after PostgreSQL JSONB storage',
+  async (kind) => {
+    const captures =
+      kind === 'basic'
+        ? captureBasicSkillSources({
+            ownerCombatantId: 'actor',
+            supportActionId: 'basic.guard',
+            definitions: defaultBasicSkills(),
+          })
+        : [captureCombatAbilitySource(source())]
+    const base = preparePv1fTurnEconomy(percentageDotEncounter())
+    const state = reconcileCombatAbilitySources(
+      {
+        ...base,
+        tactical: {
+          ...base.tactical,
+          battle: {
+            ...base.tactical.battle,
+            combatants: base.tactical.battle.combatants.map((unit) => ({
+              ...unit,
+              teamId: unit.teamId === 'players' ? 'team:0' : 'team:1',
+            })),
+          },
+        },
+      },
+      captures,
+    )
+    const stored = (
+      await db.query<{ snapshot: typeof state }>(
+        'select * from public.create_battle_session_v2($1,$2,$3,$4,$5,1,1,$6,$7,$6,$8,$9)',
+        [
+          owner,
+          key,
+          'manual-captures',
+          owner,
+          state.tactical.battle.battleId,
+          state,
+          state.tactical.battle.combatants.map((unit) => ({
+            combatant_id: unit.id,
+            participant_role: unit.id === 'actor' ? 'player' : 'opponent',
+            character_id: unit.id === 'actor' ? character : null,
+          })),
+          [],
+          { schemaVersion: 1, commandVisibility: { kind: 'public' }, eventVisibilityOverrides: [] },
+        ],
+      )
+    ).rows[0]!.snapshot
+    expect(stored).toEqual(state)
+    expect(validateCombatAbilityState(stored)).toEqual([])
+    const restored = refreezeCapturedCombatAbilityState(stored)
+    expect(restored.capturedAbilitySources).toEqual(captures)
+    expect(Object.isFrozen(restored.capturedAbilitySources![0]!.definition)).toBe(true)
+    const active = restored.capturedAbilitySources!.find(
+      (row) => row.abilityId === (kind === 'basic' ? 'basic.guard' : 'test.ability'),
+    )!
+    const used = commitCombatAbilityCommand({
+      state: restored,
+      actorId: 'actor',
+      root: { kind: 'canonical', source: active, behaviorId: active.definition.behaviors[0]!.id },
+      selection: { kind: 'unit', combatantId: kind === 'basic' ? 'actor' : 'enemy' },
+      content: PV1F_COMBAT_CONTENT,
+      context: combatAbilityCommandContext(restored, active),
+    })
+    expect(used.events.some((event) => event.event === 'combat_action_used')).toBe(true)
+    const changed = captureCombatAbilitySource({
+      ...active,
+      tags: [...active.tags, 'tampered'],
+      ...(active.basic ? { basic: { ...active.basic, tags: [...active.tags, 'tampered'] } } : {}),
+    })
+    expect(() => reconcileCombatAbilitySources(restored, [changed])).toThrow(
+      'captured-source-cannot-change-in-place',
+    )
   },
 )
