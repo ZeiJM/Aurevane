@@ -1,3 +1,6 @@
+import type { GridPosition } from './board'
+import { evaluatePreparedCombatWalking } from './combat-walking'
+import { resolveCombatTargeting } from './actions'
 import { prepareCombatAbilityCommand, commitCombatAbilityCommand } from './combat-ability-command'
 import { combatAbilityCommandContext } from './combat-behavior-runtime'
 import type { CapturedCombatAbilitySource } from './combat-behavior-capture'
@@ -26,6 +29,7 @@ import {
   readPv1fActionEconomy,
   preparePv1fTurnEconomy,
   PV1F_COMBAT_CONTENT,
+  PV1F_BASIC_ATTACK_ID,
   type Pv1fTransition,
 } from './pv1f-action-economy'
 import {
@@ -45,6 +49,7 @@ interface BuildSkillCandidate {
   actionId: string
   definition?: MatureSkillDefinition
   behaviorId?: string
+  movementPath?: readonly GridPosition[]
   recovery?: boolean
   target: CombatTargetSelection
   evaluation: CombatActionEvaluation
@@ -95,6 +100,9 @@ export function chooseBuildAwareRecruitAiDecision(input: {
       actionId: selected.actionId,
       target: copyTarget(selected.target),
       ...(selected.behaviorId ? { behaviorId: selected.behaviorId } : {}),
+      ...(selected.movementPath
+        ? { movementPath: selected.movementPath.map((position) => ({ ...position })) }
+        : {}),
     },
     reason:
       selected.recovery || selected.definition?.tags.includes('heal')
@@ -113,12 +121,15 @@ export function executeBuildAwareRecruitAiAction(
   actionId: string,
   target: CombatTargetSelection,
   skillOptions: BuildAwareRecruitAiSkillOptions = {},
-  commandOptions: { readonly behaviorId?: string } = {},
+  commandOptions: {
+    readonly behaviorId?: string
+    readonly movementPath?: readonly GridPosition[]
+  } = {},
 ): Pv1fTransition {
   const actorId = state.tactical.battle.currentTurn?.combatantId
   if (!actorId) throw new Error('Build-aware Recruit AI action requires an active turn.')
   const source = activeCanonicalSources(state, actorId, skillOptions).find(
-    (row) => row.abilityId === actionId,
+    (row) => canonicalSourceActionId(row) === actionId,
   )
   if (source) {
     const prepared = preparePv1fTurnEconomy(state)
@@ -127,6 +138,7 @@ export function executeBuildAwareRecruitAiAction(
       actorId,
       root: { kind: 'canonical', source, behaviorId: commandOptions.behaviorId },
       selection: target,
+      movementPath: commandOptions.movementPath,
       content: PV1F_COMBAT_CONTENT,
       context: combatAbilityCommandContext(prepared, source),
     })
@@ -145,7 +157,7 @@ export function executeBuildAwareRecruitAiAction(
   if (definition) {
     return executePv1fMatureSkill(state, definition, target, 'pve', commandOptions)
   }
-  return executePv1fAction(state, actionId, target)
+  return executePv1fAction(state, actionId, target, commandOptions)
 }
 
 function activeCanonicalSources(
@@ -156,7 +168,11 @@ function activeCanonicalSources(
   return (options?.canonicalSources ?? state.capturedAbilitySources ?? []).filter(
     (source) =>
       source.ownerCombatantId === actorId &&
-      ['discipline-skill', 'essence', 'resonance'].includes(source.sourceKind) &&
+      ['discipline-skill', 'essence', 'resonance', 'basic'].includes(source.sourceKind) &&
+      !(
+        source.basic?.execution.kind === 'basic-move' &&
+        source.basic.execution.costBasis === 'per-terrain-point'
+      ) &&
       state.abilityRuntime?.activeSourceIds.includes(source.sourceInstanceId),
   )
 }
@@ -171,49 +187,140 @@ function canonicalSkillCandidates(
     source.definition.behaviors.flatMap((behavior) => {
       if (behavior.activation !== 'manual' || behavior.mode !== 'action' || !behavior.targeting)
         return []
-      const evaluate = (target: CombatTargetSelection): BuildSkillCandidate[] => {
-        try {
-          const command = prepareCombatAbilityCommand({
-            state: prepared,
-            actorId,
-            root: { kind: 'canonical', source, behaviorId: behavior.id },
-            selection: target,
-            content: PV1F_COMBAT_CONTENT,
-            context: combatAbilityCommandContext(prepared, source),
-          })
-          if (!command.evaluation.legal) return []
-          const utility =
-            projectedCombatEffectUtility(command.evaluation, prepared, command.action.effects) +
-            terrainOverlayAiUtility(prepared, command.evaluation)
-          if (utility <= 0) return []
-          return [
-            {
-              actionId: source.abilityId,
-              behaviorId: behavior.id,
-              recovery: behavior.classification === 'recovery',
-              target,
-              evaluation: command.evaluation,
-              utility:
-                (behavior.classification === 'recovery'
-                  ? profile.recoverUtility
-                  : behavior.classification === 'utility'
-                    ? profile.guardUtility
-                    : profile.attackUtility) + utility,
-              stableKey: JSON.stringify([source.sourceInstanceId, behavior.id, targetKey(target)]),
-            },
-          ]
-        } catch {
-          return []
-        }
-      }
+      const move = behavior.effects.find((effect) => effect.payload.type === 'move')
       const targeting = canonicalAbilityTargetSpec(behavior.targeting)
-      const candidates = enumerateCombatTargetSelections(prepared, actorId, targeting).flatMap(
-        evaluate,
-      )
-      const plural = buildCombatAiPluralSelection(targeting, candidates)
-      return plural ? [...candidates, ...evaluate(plural)] : candidates
+      const selections = enumerateCombatTargetSelections(prepared, actorId, targeting)
+      const paths =
+        move?.payload.type === 'move'
+          ? walkingPaths(
+              prepared,
+              move.payload.maximumTiles,
+              profile.maxCandidates,
+              move.requirements != null,
+            )
+          : [undefined]
+      return paths.flatMap((movementPath) => {
+        const destination = movementPath?.at(-1)
+        const spatialState = destination
+          ? {
+              ...prepared,
+              tactical: {
+                ...prepared.tactical,
+                placements: prepared.tactical.placements.map((row) =>
+                  row.combatantId === actorId ? { ...row, position: destination } : row,
+                ),
+              },
+            }
+          : prepared
+        const evaluate = (target: CombatTargetSelection): BuildSkillCandidate[] => {
+          try {
+            // Only prune unconditional Move geometry. Conditional eligibility still uses S0.
+            if (
+              movementPath &&
+              move?.requirements == null &&
+              resolveCombatTargeting(spatialState, actorId, targeting, target, PV1F_COMBAT_CONTENT)
+                .issues.length
+            )
+              return []
+            const command = prepareCombatAbilityCommand({
+              state: prepared,
+              actorId,
+              root: { kind: 'canonical', source, behaviorId: behavior.id },
+              selection: target,
+              movementPath,
+              content: PV1F_COMBAT_CONTENT,
+              context: combatAbilityCommandContext(prepared, source),
+            })
+            if (!command.evaluation.legal) return []
+            const utility =
+              projectedCombatEffectUtility(command.evaluation, prepared, command.action.effects) +
+              terrainOverlayAiUtility(prepared, command.evaluation)
+            if (utility <= 0) return []
+            return [
+              {
+                actionId: canonicalSourceActionId(source),
+                behaviorId: behavior.id,
+                movementPath,
+                recovery: behavior.classification === 'recovery',
+                target,
+                evaluation: command.evaluation,
+                utility:
+                  (behavior.classification === 'recovery'
+                    ? profile.recoverUtility
+                    : behavior.classification === 'utility'
+                      ? profile.guardUtility
+                      : profile.attackUtility) + utility,
+                stableKey: JSON.stringify([
+                  source.sourceInstanceId,
+                  behavior.id,
+                  targetKey(target),
+                  movementPath,
+                ]),
+              },
+            ]
+          } catch {
+            return []
+          }
+        }
+        const candidates = selections.flatMap(evaluate)
+        const plural = buildCombatAiPluralSelection(targeting, candidates)
+        return plural ? [...candidates, ...evaluate(plural)] : candidates
+      })
     }),
   )
+}
+
+function canonicalSourceActionId(source: CapturedCombatAbilitySource): string {
+  return source.basic?.id === 'unarmed.basic' ? PV1F_BASIC_ATTACK_ID : source.abilityId
+}
+
+/** One shortest legal route per destination, bounded by authored Move, live Movement and AI profile. */
+function walkingPaths(
+  state: StatDrivenCombatEncounterState,
+  maximumTiles: number,
+  limit: number,
+  conditional: boolean,
+): (readonly GridPosition[])[] {
+  const actorId = state.tactical.battle.currentTurn!.combatantId
+  const origin = state.tactical.placements.find((row) => row.combatantId === actorId)!.position
+  const paths: (readonly GridPosition[])[] = []
+  const queue = [[origin]],
+    seen = new Set([`${origin.x},${origin.y}`])
+  for (let index = 0; index < queue.length && paths.length < limit; index++) {
+    const path = queue[index]!
+    if (path.length - 1 >= maximumTiles) continue
+    const end = path.at(-1)!
+    for (const position of [
+      { x: end.x, y: end.y - 1 },
+      { x: end.x + 1, y: end.y },
+      { x: end.x, y: end.y + 1 },
+      { x: end.x - 1, y: end.y },
+    ]) {
+      const key = `${position.x},${position.y}`
+      if (
+        position.x < 0 ||
+        position.y < 0 ||
+        position.x >= state.tactical.width ||
+        position.y >= state.tactical.height ||
+        seen.has(key)
+      )
+        continue
+      const next = [...path, position]
+      const legal = evaluatePreparedCombatWalking(state, next, PV1F_COMBAT_CONTENT, {
+        maximumTiles,
+        ignorePoisonForecast: true,
+      }).movement.legal
+      // An ineligible conditional Move may legitimately leave a rooted actor in place.
+      if (!legal && !(conditional && path.length === 1)) continue
+      paths.push(next)
+      if (legal) {
+        seen.add(key)
+        queue.push(next)
+      }
+      if (paths.length >= limit) break
+    }
+  }
+  return paths
 }
 
 export function committedMatureSkills(

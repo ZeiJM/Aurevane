@@ -142,6 +142,7 @@ function resolveRecruitIntent(
         ? executePv1fSummonAbility(state, summon, intent.actionId, intent.target)
         : executeBuildAwareRecruitAiAction(state, intent.actionId, intent.target, skillOptions, {
             behaviorId: intent.behaviorId,
+            movementPath: intent.movementPath,
           })
     }
     if (intent.kind === 'face') return finishPv1fTurn(state, intent.facing)
@@ -183,7 +184,10 @@ async function resolveRecruitSkillOptions(
   const canonicalSources = (state.capturedAbilitySources ?? []).filter(
     (source) =>
       source.ownerCombatantId === actorId &&
-      capturedBattleActionSource(state, authority, actorId, source.abilityId) === source,
+      ((source.sourceKind === 'basic' &&
+        source.basic !== undefined &&
+        state.abilityRuntime?.activeSourceIds.includes(source.sourceInstanceId)) ||
+        capturedBattleActionSource(state, authority, actorId, source.abilityId) === source),
   )
   const regular = []
   for (const reference of build.disciplineSkills) {

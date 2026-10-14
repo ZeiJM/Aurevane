@@ -1,3 +1,4 @@
+import { capturedBasicSkillSource } from './combat-basic-actions'
 import { outgoingSuppressionBasisPoints } from './combat-suppress'
 import { hasGameplayTag } from './gameplay-tags'
 import type { BattleFacing } from './battle-state'
@@ -15,6 +16,7 @@ import { forecastStatDrivenAttack, type StatDrivenCombatEncounterState } from '.
 import type { CombatTargetSelection } from './actions'
 import {
   evaluateCurrentMovementPath,
+  movementTraversalCostAt,
   type CombatPlacement,
   type CombatTile,
   type GridPosition,
@@ -27,7 +29,13 @@ export type RecruitAiDifficulty = 'easy' | 'standard' | 'high'
 
 export type RecruitAiIntent =
   | { kind: 'move'; path: readonly GridPosition[] }
-  | { kind: 'action'; actionId: string; behaviorId?: string; target: CombatTargetSelection }
+  | {
+      kind: 'action'
+      actionId: string
+      behaviorId?: string
+      movementPath?: readonly GridPosition[]
+      target: CombatTargetSelection
+    }
   | { kind: 'face'; facing: BattleFacing }
   | { kind: 'end-turn' }
 
@@ -275,9 +283,42 @@ function buildCandidates(
     )
     const distanceBefore = routeDistances.get(positionKey(actorPlacement.position))
     for (const destination of orthogonalNeighbors(actorPlacement.position)) {
-      const preview = evaluatePv1fMovement(state, [actorPlacement.position, destination])
-      if (!preview.movement.legal || preview.economyCost <= 0) continue
-      if (preview.economyCost > knowledge.actionEconomyRemaining) continue
+      const path = [actorPlacement.position, destination]
+      const move = capturedBasicSkillSource(state, actor.id, 'basic.move')
+      let intent: RecruitAiIntent, cost: number
+      try {
+        if (
+          move?.basic?.execution.kind === 'basic-move' &&
+          move.basic.execution.costBasis === 'flat'
+        ) {
+          const action = evaluatePv1fAction(
+            state,
+            'basic.move',
+            { kind: 'self' },
+            { movementPath: path },
+          )
+          if (!action.evaluation.legal) continue
+          cost = action.cost
+          intent = {
+            kind: 'action',
+            actionId: 'basic.move',
+            behaviorId:
+              action.command?.root.kind === 'canonical'
+                ? action.command.root.behaviorId
+                : undefined,
+            target: { kind: 'self' },
+            movementPath: path,
+          }
+        } else {
+          const preview = evaluatePv1fMovement(state, path)
+          if (!preview.movement.legal || preview.economyCost <= 0) continue
+          cost = preview.economyCost
+          intent = { kind: 'move', path: preview.movement.path }
+        }
+      } catch {
+        continue
+      }
+      if (cost > knowledge.actionEconomyRemaining) continue
       const distanceAfter = routeDistances.get(positionKey(destination))
       if (
         distanceBefore === undefined ||
@@ -286,9 +327,9 @@ function buildCandidates(
       )
         continue
       pushCandidate(candidates, profile, {
-        intent: { kind: 'move', path: preview.movement.path },
+        intent,
         reason: 'close-distance',
-        utility: profile.movementUtility + 7 - preview.economyCost / 5,
+        utility: profile.movementUtility + 7 - cost / 5,
         stableKey: `move:${destination.x},${destination.y}`,
       })
     }
@@ -441,6 +482,7 @@ function enemyApproachDistances(
           placement.combatantId === actorId ? { ...placement, position: from } : placement,
         ),
       }
+      if (movementTraversalCostAt(planningBoard, actorId, from) === null) continue
       if (
         !evaluateCurrentMovementPath(
           planningBoard,
@@ -512,7 +554,14 @@ function copyIntent(intent: RecruitAiIntent): RecruitAiIntent {
   if (intent.kind === 'move') {
     return { kind: 'move', path: intent.path.map((position) => ({ ...position })) }
   }
-  if (intent.kind === 'action') return { ...intent, target: copyTarget(intent.target) }
+  if (intent.kind === 'action')
+    return {
+      ...intent,
+      target: copyTarget(intent.target),
+      ...(intent.movementPath
+        ? { movementPath: intent.movementPath.map((position) => ({ ...position })) }
+        : {}),
+    }
   return { ...intent }
 }
 
