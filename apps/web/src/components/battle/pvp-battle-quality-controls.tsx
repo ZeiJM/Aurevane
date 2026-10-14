@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useDesktopBattleLayout } from './battle-responsive-layout'
+import { battleReturnNavigation } from './battle-return-navigation'
 
 import type { PvpBattleMetadata } from '@/server/battle/pvp-lobby-service'
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
@@ -433,7 +434,7 @@ export function PvpBattleQualityControls({
                 aria-labelledby="pvp-surrender-title"
                 onPointerDown={(event) => event.stopPropagation()}
               >
-                <span>Battle Hall · PvP</span>
+                <span>{battleReturnNavigation(metadata.origin).encounterEyebrow}</span>
                 <h2 id="pvp-surrender-title">Surrender this battle?</h2>
                 <p>
                   Surrendering ends the battle immediately as a loss. The normal PvP result screen

@@ -4,14 +4,20 @@ import { AurevaneError } from '@aurevane/game-core/errors'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { loadPublicCharacterProfileImageMap } from '@/server/character/character-profile-display-service'
 import { resolvePublicCharacterImageUrl } from '@/media/public-character-portrait'
-import { isSafe, newWorldState } from '@/world/travel'
+import { isSafe, newWorldState, validCell, MAX_PERSISTED_ROUTE_STEPS } from '@/world/travel'
+import { STEP_MS } from '@/world/catalog'
 import type { WorldMovementReceipt } from '@/world/movement-receipt'
 import type { WorldCommand, WorldPlayer, WorldState, WorldView } from '@/world/types'
 import { eventWorldObjectives } from './world-events'
 import { WORLD_OBJECTIVES, resolveSector } from './world-content'
 import { resolveWorldEnvironment } from '@/world/environment'
 import { readWorldEnvironmentSettings } from './world-environment-store'
-import { projectWorld, projectWorldPlayers, resolveWorldIntent } from './world-service'
+import {
+  projectWorld,
+  projectWorldPlayers,
+  projectWorldSector,
+  resolveWorldIntent,
+} from './world-service'
 
 export function worldRpcError(error: { message?: string }): never {
   const message = error.message ?? ''
@@ -281,6 +287,7 @@ export async function commitWorldCommand(
   // Intent resolution needs authority, not terrain/scene/portrait/environment presentation.
   // Keep training materialization in this read and blocking/version checks in the commit RPC.
   const current = await readWorldData(userId, characterId)
+  const authorityAt = performance.now()
   const state = current.state as WorldState
   const fingerprint = createHash('sha256')
     .update(
@@ -332,6 +339,23 @@ export async function commitWorldCommand(
         'PERSISTENCE_UNAVAILABLE',
         'Movement approval could not be loaded safely.',
       )
+    const approved = committedMovementState(committed, state.version + 1)
+    if (
+      approved &&
+      ['walk', 'autopath', 'tick'].includes(command.intent.kind) &&
+      !current.blocked &&
+      !current.battleSessionId
+    ) {
+      // SQL returns the normalized state committed under the authority locks.
+      // Do not delay its acknowledgement behind another read of peers/events.
+      // Existing independent hydration/next commands observe any later block.
+      // Elapsed time advances display only; persistence still uses the DB read clock.
+      return movementReceipt(characterId, {
+        ...current,
+        state: approved,
+        serverNow: current.serverNow + Math.floor(Math.max(0, performance.now() - authorityAt)),
+      })
+    }
     // This lean read supplies the database clock and any concurrent blocking state.
     // Presentation is deliberately independent of the mutation response.
     const confirmed = await readWorldData(userId, characterId)
@@ -344,6 +368,38 @@ export async function commitWorldCommand(
   }
   return (await readWorld(userId, characterId)).view
 }
+function committedMovementState(value: unknown, version: number): WorldState | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const state = value as Partial<WorldState>
+  if (
+    state.version !== version ||
+    !state.position ||
+    typeof state.position.sectorId !== 'string' ||
+    !validCell(state.position) ||
+    !resolveSector(state.position.sectorId) ||
+    !Array.isArray(state.route) ||
+    state.route.length > MAX_PERSISTED_ROUTE_STEPS ||
+    !state.route.every(
+      (step) =>
+        step?.position &&
+        typeof step.position.sectorId === 'string' &&
+        validCell(step.position) &&
+        Number.isSafeInteger(step.durationMs) &&
+        step.durationMs >= STEP_MS,
+    ) ||
+    !(
+      state.nextStepAt === null ||
+      (Number.isSafeInteger(state.nextStepAt) && state.nextStepAt! >= 0)
+    ) ||
+    (state.route.length > 0 && state.nextStepAt === null) ||
+    !state.discoveries ||
+    typeof state.discoveries !== 'object' ||
+    Array.isArray(state.discoveries) ||
+    !Array.isArray(state.completedObjectives)
+  )
+    return null
+  return state as WorldState
+}
 function movementReceipt(
   characterId: string,
   data: Awaited<ReturnType<typeof readWorldData>>,
@@ -351,9 +407,8 @@ function movementReceipt(
   const state = data.state as WorldState
   // The confirmed origin must be supplied even after a slow reply crosses the
   // previous scene horizon. This is private-filtered terrain, with no scene I/O.
-  const currentSector = projectWorld(state, [], data.serverNow).sectors.find(
-    (sector) => sector.id === state.position.sectorId,
-  )
+  const sector = resolveSector(state.position.sectorId)
+  const currentSector = sector ? projectWorldSector(state, sector) : undefined
   if (!currentSector)
     throw new AurevaneError(
       'PERSISTENCE_UNAVAILABLE',
