@@ -1567,7 +1567,9 @@ test('charted globe travel survives unrelated frontier discoveries and retains b
   expect(receipt.route.every((step: WorldView['route'][number]) => step.durationMs === 200)).toBe(
     true,
   )
-  await expect(page.getByRole('alert')).toHaveCount(0)
+  // Next's empty route announcer also has role=alert outside the game main.
+  // Require the actual World error surface to remain absent.
+  await expect(page.locator('main').getByRole('alert')).toHaveCount(0)
   await capture(page, info, 'distant-globe-route-approved')
   const stopped = page.waitForResponse(
     (response) =>

@@ -1708,6 +1708,8 @@ export function createMapRenderer(
     canvas.dataset.cameraX = String(camera.x + pan.x)
     canvas.dataset.cameraY = String(camera.y + pan.y)
     canvas.dataset.tileSize = String(tile)
+    canvas.dataset.frameNow = String(now)
+    canvas.dataset.frameStarted = String(start)
     const repaintIdentity =
       !identityContext ||
       !paintedIdentity ||

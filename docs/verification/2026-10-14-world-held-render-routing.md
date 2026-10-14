@@ -26,3 +26,13 @@ No migration, configuration, authority/range, artwork source, encounter/privacy,
 ## Publication checkpoint
 
 Fresh main remains `064389db37afcdf5693caa4d9dba46a7f737df0f`. Independent final review finds no important production issue in the viewport guard; the same-frame native diagnostic correction is incorporated before publication. Local diff whitespace checks pass. CI/Atlas/Buildcraft/complete responsive browser, source-tree equality and deployment receipts are pending; this batch is not live.
+
+## First native run — still blocked
+
+PR #906 candidate `fc8630f02a6b79eb9e554ecb40cf0a2093b61fed` / tree `572eccb7e6323bf944c2e680032e3082b726a1fe`: exact-source CI succeeds (run38584580343), including31 pgTAP. Atlas run38584580789 fails three cases after47 passes; full Browser38584580312 is not a release receipt. This candidate is not merged or live.
+
+Trace diagnosis identifies two fixture issues: the distant route successfully receives256 canonical200ms steps, but an empty Next route-announcer alert outside game main breaks an unscoped alert assertion; scope the assertion to the actual World error surface. The mobile scenery click selects the desktop scenery fixture already occupying atlas:63:28(6,4), so no walk POST occurs. Restore the earlier disposable placement and require matching walk/200 before retaining the unchanged exact final-arrival assertion.
+
+Both-moving peer evidence records0.7589756 tiles between draws71.6ms apart, exceeding the retained0.75 bound. Approved peer version5 and three200ms steps remain unchanged across this interval; snapping cannot explain the excess. Existing timestamps describe identity paint completion, while positions use RAF start time. Independent review requires same-frame RAF/paint-start and long-task evidence to identify draw stalls versus correction before choosing a production fix. Added diagnostic evidence does not itself resolve or accept this performance failure.
+
+Failed Atlas full ZIP SHA256 `bb0fcecdf60b91ce187ab96901823558fd072ff298e276aaf7a26f3905365cc2` is verified locally at `/tmp/isola-held-atlas-failed.zip`; compact evidence SHA256 `8c5489ba9c193f4b731d60a4a5ba6233455d979ab75e65301f1d533594aea0d2` also verifies. Cloud browser DOM and recovery-documentation calls both time out; no signed-in live acceptance is claimed. All final-source native gates remain required.

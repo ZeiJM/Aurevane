@@ -292,7 +292,15 @@ export function registerWorldInputCases({
     }
     await page.route('**/api/world', delayScene)
     try {
+      const dispatched = page.waitForResponse(
+        (response) =>
+          response.request().method() === 'POST' &&
+          new URL(response.url()).pathname === '/api/world' &&
+          response.request().postDataJSON()?.intent?.kind === 'walk' &&
+          response.request().postDataJSON()?.intent?.destination?.sectorId === 'atlas:63:28',
+      )
       await stageWalk(page, { sectorId: 'atlas:63:28', x: 6, y: 4 })
+      expect((await dispatched).status()).toBe(200)
       await expect
         .poll(() => canvas.evaluate((el) => Number(el.dataset.testGroundLayers)))
         .toBeGreaterThan(0)
@@ -311,6 +319,9 @@ export function registerWorldInputCases({
       await page.unroute('**/api/world', delayScene)
       const failure = reads.find((response) => response.status === 'rejected')
       if (failure?.status === 'rejected') throw failure.reason
+      // A later viewport project must not click this fixture's portrait at
+      // the same destination instead of the intended ground tile.
+      place(initial.characterId, initial.position.sectorId, initial.position.x, initial.position.y)
     }
   })
   test('a distant click stays continuous when a delayed confirmation takes another legal route', async ({

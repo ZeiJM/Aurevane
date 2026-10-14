@@ -467,7 +467,21 @@ export async function verifyWorldScenePresence(
         const identity = document.querySelector<HTMLCanvasElement>('canvas[data-world-identity]')!,
           ctx = identity.getContext('2d')!,
           original = ctx.fillText.bind(ctx)
-        const samples: { at: number; x: number; y: number }[] = []
+        const longTasks: { at: number; durationMs: number }[] = []
+        const tasks = new PerformanceObserver((entries) => {
+          for (const entry of entries.getEntries())
+            longTasks.push({ at: entry.startTime, durationMs: entry.duration })
+          if (longTasks.length > 100) longTasks.splice(0, longTasks.length - 100)
+          el.dataset.testMovingObserverLongTasks = JSON.stringify(longTasks)
+        })
+        tasks.observe({ type: 'longtask' })
+        const samples: {
+          at: number
+          frameAt: number
+          paintingMs: number
+          x: number
+          y: number
+        }[] = []
         ctx.fillText = (text, x, y, maxWidth) => {
           if (text === name) {
             const tile = Number(el.dataset.tileSize),
@@ -476,6 +490,8 @@ export async function verifyWorldScenePresence(
             // The fixed label offset cancels when comparing consecutive draws.
             samples.push({
               at: performance.now(),
+              frameAt: Number(el.dataset.frameNow),
+              paintingMs: performance.now() - Number(el.dataset.frameStarted),
               x: Number(el.dataset.cameraX) + (east + north) / 2,
               y: Number(el.dataset.cameraY) + (north - east) / 2,
             })
@@ -515,7 +531,15 @@ export async function verifyWorldScenePresence(
       ) as { at: number; x: number; y: number }[]
       const deltas = samples.slice(1).map((sample, i) => sample.x - samples[i]!.x)
       const path = info.outputPath(`world-both-moving-peer-${index}.json`)
-      await writeFile(path, JSON.stringify({ samples, deltas, distance: observer.distance }))
+      const longTasks = JSON.parse(
+        (await observer.page
+          .locator('canvas[data-world-stage]')
+          .getAttribute('data-test-moving-observer-long-tasks')) ?? '[]',
+      ) as { at: number; durationMs: number }[]
+      await writeFile(
+        path,
+        JSON.stringify({ samples, deltas, longTasks, distance: observer.distance }),
+      )
       await info.attach(`world-both-moving-peer-${index}`, {
         path,
         contentType: 'application/json',
