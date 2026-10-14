@@ -42,11 +42,13 @@
 
 - [x] Retain held/peer/Attack/privacy native cases and all assertion limits; record approval-timing evidence where meaningful.
 - [x] Separate injected175ms latency from measured production RTT.
-- [ ] Refresh main, publish an isolated PR and wait for all triggered exact-head CI, Atlas and complete responsive workflows.
-- [ ] Merge verified source, deploy the exact merge under the standing related-release authorization, confirm canonical READY/source/entry/error health and retain open human acceptance.
+- [x] Refresh main, publish an isolated PR and wait for all triggered exact-head CI, Atlas and complete responsive workflows.
+- [x] Merge verified source, deploy the exact merge under the standing related-release authorization, confirm canonical READY/source/entry/error health and retain open human acceptance.
 
 Review checkpoint: the initial parallel-read prototype passed its timing guard but is rejected before publication because get_character_slots_v2 finalizes overdue deletions and may abandon battles. Actor.ts is restored exactly; the final approach eliminates that redundant roster operation. The baseline cookie-aware regression again fails at600ms before the narrowed change and passes with525ms approval afterward. Production read_world_state_v1 and commit_world_state_v1 definitions are inspected read-only: ownership/pending-deletion denial precedes world-state initialization/update. Their SQL/grants are unchanged.
 
 Local final-source quality exits0:5,681 Vitest tests, seven Node checks, formatting/lint/types/builds. Evidence: docs/verification/2026-10-14-world-first-approval-latency.md. Independent review and exact-head release steps remain pending.
 
 Final review: no critical/important finding; independent88 checks pass. Ruling: retain existing SQL as selection authority; malformed command/cookie mismatch may precede ownership denial without private response. World stops materializing roster deletions; existing roster entry points retain cleanup. Cost if wrong: eligibility must be restored before release; owner/deletion SQL and regression guards are verified.
+
+Release complete for testing: PR #908 / `5135e35e73a88a4d8aa9aaaf0218852df06a7f51`, tested tree `08d7ea009d54a450287c119276ced0576bec2557`, Production `dpl_8Ws132vHEPJ4riaB2sqMhBxYx46g` READY20:57:56.518Z. CI/Atlas/complete Browser all pass. Final receipt: docs/verification/2026-10-14-world-first-approval-latency.md. Hosted gameplay and human acceptance remain open.
