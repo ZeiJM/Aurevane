@@ -313,6 +313,29 @@ function scene(reduced = false, initial?: WorldView) {
   }
 }
 describe('native map input and bounded lifecycle', () => {
+  it('retains the displayed walking phase across a long background-tab interval', () => {
+    const clock = vi.spyOn(performance, 'now').mockReturnValue(0)
+    const s = scene()
+    const route = [6, 7, 8, 9, 10].map((x) => ({
+      position: { ...s.view.position, x },
+      durationMs: 200,
+    }))
+    s.motion.reconcile({ ...s.view, route, nextStepAt: 1200 }, 0)
+    s.frame(100)
+    const before = s.motion.sample(100)
+    clock.mockReturnValue(100)
+    s.visibility('hidden')
+    expect(s.motion.sample(10100)).toEqual(before)
+    clock.mockReturnValue(10100)
+    s.visibility('visible')
+    s.frame(10100)
+    expect(s.motion.sample(10100)).toEqual(before)
+    expect(s.motion.sample(10116).point.x - before.point.x).toBeCloseTo(0.08)
+    expect(s.motion.sample(10200).position).toEqual(route[0]!.position)
+    s.renderer.dispose()
+    clock.mockRestore()
+    vi.unstubAllGlobals()
+  })
   it.each([
     ['oak', 'verdant-expanse', undefined, 7, false, 'nature', 224, 603, 0, 443],
     ['snow pine', 'frostmere', undefined, 7, false, 'nature', 599, 596, 439, 764],
