@@ -1,3 +1,10 @@
+import type { CombatNativeExecutionHooks } from './combat-native-mutations'
+import {
+  consumeCommittedCombatExecution,
+  committedCombatAction,
+  type CommittedCombatExecution,
+} from './combat-committed-execution'
+import { terrainAdjustedDefense } from './combat-stat-balance'
 import { airborneAttackAction } from './combat-airborne'
 import {
   skillPacketGroups,
@@ -106,6 +113,18 @@ export interface CombatActionEvaluation extends legacy.CombatActionEvaluation {
 export interface CombatResolutionContext {
   provenance: CombatActionProvenance
   triggerGuard: CombatTriggerGuard
+  /** Engine-owned captured Automatic authority; never a client command field. */
+  executionAuthority?: CombatAutomaticActionAuthority
+  committedExecution?: CommittedCombatExecution
+  nativeHooks?: CombatNativeExecutionHooks
+  resolveCommittedAbilityOutcomes?: (
+    transition: CombatResolutionTransition,
+    guard: CombatTriggerGuard,
+  ) => CombatResolutionTransition
+}
+export interface CombatAutomaticActionAuthority {
+  readonly activation: 'automatic'
+  readonly actorId: string
 }
 
 export interface CombatResolutionMetadata {
@@ -128,25 +147,56 @@ export interface CombatHitDependentEffects {
   readonly effectOrdinals: readonly number[]
 }
 
+function omitCombatActionEffects(
+  action: CombatActionDefinition,
+  omitted: ReadonlySet<number>,
+): CombatActionDefinition {
+  return {
+    ...action,
+    effects: action.effects.filter((_effect, index) => !omitted.has(index)),
+    ...(action.effectOrigins
+      ? { effectOrigins: action.effectOrigins.filter((_origin, index) => !omitted.has(index)) }
+      : {}),
+    ...(action.effectTimingTags
+      ? { effectTimingTags: action.effectTimingTags.filter((_tag, index) => !omitted.has(index)) }
+      : {}),
+    ...(action.effectTimingModes
+      ? {
+          effectTimingModes: action.effectTimingModes.filter((_mode, index) => !omitted.has(index)),
+        }
+      : {}),
+    ...(action.effectEligibleRecipientIds
+      ? {
+          effectEligibleRecipientIds: action.effectEligibleRecipientIds.filter(
+            (_ids, index) => !omitted.has(index),
+          ),
+        }
+      : {}),
+  }
+}
+
 export function evaluateCombatAction(
   state: CombatEncounterState,
   action: CombatActionDefinition,
   selection: legacy.CombatTargetSelection,
   content: legacy.CombatContentCatalog,
+  executionAuthority?: CombatAutomaticActionAuthority,
 ): CombatActionEvaluation {
+  const executionActorId = executionAuthority?.actorId
   action = legacy.elementalActionIntent(
     state,
-    airborneAttackAction(state, action, content),
+    airborneAttackAction(state, action, content, executionActorId),
     selection,
   )
   validateCombatAccuracyDefinition(action)
   const csrPreviewAction = materializeCsrPreviewAction(action)
-  let materialized = materializeVengeanceDamage(state, csrPreviewAction)
+  let materialized = materializeVengeanceDamage(state, csrPreviewAction, executionActorId)
   let evaluation = legacy.evaluateCombatAction(
     state,
-    materializeStatScaledDamage(state, materialized.action),
+    materializeStatScaledDamage(state, materialized.action, executionActorId),
     selection,
     content,
+    executionActorId,
   )
   const csrForecast =
     state.statBalancePolicyVersion === 1 && evaluation.legal
@@ -160,12 +210,13 @@ export function evaluateCombatAction(
         })
       : { action: csrPreviewAction, content }
   if (state.statBalancePolicyVersion === 1 && evaluation.legal) {
-    materialized = materializeVengeanceDamage(state, csrForecast.action)
+    materialized = materializeVengeanceDamage(state, csrForecast.action, executionActorId)
     evaluation = legacy.evaluateCombatAction(
       state,
-      materializeStatScaledDamage(state, materialized.action),
+      materializeStatScaledDamage(state, materialized.action, executionActorId),
       selection,
       csrForecast.content,
+      executionActorId,
     )
   }
   const preview =
@@ -204,18 +255,34 @@ export function executeCombatAction(
   context?: CombatResolutionContext,
   hitDependentEffects?: CombatHitDependentEffects,
 ): CombatResolutionTransition {
+  if (
+    (context?.resolveCommittedAbilityOutcomes || context?.nativeHooks) &&
+    !context.committedExecution
+  )
+    throw new TypeError('invalid-committed-execution-authority')
+  if (context?.committedExecution) {
+    consumeCommittedCombatExecution(context.committedExecution, state, action, selection, context)
+    action = committedCombatAction(action)
+  }
+  const executionActorId = context?.executionAuthority?.actorId
+  if (
+    executionActorId &&
+    (context?.provenance.sourceCombatantId !== executionActorId || action.cost.spendsAction)
+  )
+    throw new TypeError('invalid-automatic-execution-authority')
   action = legacy.elementalActionIntent(
     state,
-    airborneAttackAction(state, action, content),
+    airborneAttackAction(state, action, content, executionActorId),
     selection,
   )
   validateCombatAccuracyDefinition(action)
   const round = state.tactical.battle.round
-  const actorId = state.tactical.battle.currentTurn?.combatantId ?? null
+  const actorId = executionActorId ?? state.tactical.battle.currentTurn?.combatantId ?? null
   const previewAction = materializeCsrPreviewAction(action)
   const previewMaterializedAction = materializeStatScaledDamage(
     state,
-    materializeVengeanceDamage(state, previewAction).action,
+    materializeVengeanceDamage(state, previewAction, executionActorId).action,
+    executionActorId,
   )
   const packetGroups = skillPacketGroups(state, action)
   let originalOrdinals = action.effects.map((_effect, ordinal) => ordinal)
@@ -224,19 +291,33 @@ export function executeCombatAction(
     state.statBalancePolicyVersion === 1 ||
     Boolean(context) ||
     Boolean(hitDependentEffects) ||
+    action.nativeBasicAttackCommand === true ||
     action.accuracyMode === 'per-target' ||
+    action.accuracyRule !== undefined ||
     (state.airbornePolicyVersion === 1 && action.target.kind === 'ground-tile') ||
     action.effects.some((effect) => effect.type === 'sensory') ||
     (state.statBridge?.rulesVersion === 4 && hasCriticalEligibleDamage(action))
   const evaluation = requiresEvaluation
-    ? legacy.evaluateCombatAction(state, previewMaterializedAction, selection, content)
+    ? legacy.evaluateCombatAction(
+        state,
+        previewMaterializedAction,
+        selection,
+        content,
+        executionActorId,
+      )
     : null
   const dependentOrdinals = new Set(hitDependentEffects?.effectOrdinals ?? [])
   const prerequisiteGroups = packetGroups
     ?.map((group) => group.filter((ordinal) => !dependentOrdinals.has(ordinal)))
     .filter((group) => group.length)
   let packetAccuracy = packetGroups
-    ? rollSkillPacketAccuracy(state, action, evaluation, content, prerequisiteGroups!)
+    ? rollSkillPacketAccuracy(
+        state,
+        action,
+        evaluation,
+        content,
+        action.accuracyRule ? [originalOrdinals] : prerequisiteGroups!,
+      )
     : null
   let accuracy = packetAccuracy ?? rollCombatSkillAccuracy(state, action, evaluation, content)
   const hitDependentEffectsActivated = hitDependentEffects
@@ -253,7 +334,14 @@ export function executeCombatAction(
         )
       }) === true
     : undefined
-  if (packetGroups && packetAccuracy && hitDependentEffectsActivated) {
+  // Canonical accuracy shares one recipient result across every hit-dependent packet.
+  // Historical packet groups still own their separate resistance and critical checks.
+  if (
+    packetGroups &&
+    packetAccuracy &&
+    hitDependentEffectsActivated &&
+    action.accuracyRule === undefined
+  ) {
     // Unique tags keep their shared prerequisite roll; repeated bonus tags roll only after confirmation.
     for (const group of packetGroups) {
       const prerequisite = group.filter((ordinal) => !dependentOrdinals.has(ordinal))
@@ -302,16 +390,7 @@ export function executeCombatAction(
   if (hitDependentEffects && !hitDependentEffectsActivated) {
     const omitted = new Set(hitDependentEffects.effectOrdinals)
     originalOrdinals = originalOrdinals.filter((_ordinal, index) => !omitted.has(index))
-    action = {
-      ...action,
-      effects: action.effects.filter((_effect, index) => !omitted.has(index)),
-      ...(action.effectOrigins
-        ? { effectOrigins: action.effectOrigins.filter((_origin, index) => !omitted.has(index)) }
-        : {}),
-      ...(action.effectTimingTags
-        ? { effectTimingTags: action.effectTimingTags.filter((_tag, index) => !omitted.has(index)) }
-        : {}),
-    }
+    action = omitCombatActionEffects(action, omitted)
   }
   const csr = materializeCsrCommittedAction({
     state: accuracy.state,
@@ -355,42 +434,66 @@ export function executeCombatAction(
     : rollCombatCritical(resistance.state, csr.action, evaluation, accuracy.missedCombatantIds)
   const materializedAction = materializeStatScaledDamage(
     critical.state,
-    materializeVengeanceDamage(critical.state, csr.action).action,
+    materializeVengeanceDamage(critical.state, csr.action, executionActorId).action,
+    executionActorId,
   )
+  const provenanceEvaluation =
+    evaluation && accuracy.missedCombatantIds.size > 0
+      ? {
+          ...evaluation,
+          primaryCombatantId:
+            evaluation.primaryCombatantId &&
+            accuracy.missedCombatantIds.has(evaluation.primaryCombatantId)
+              ? null
+              : evaluation.primaryCombatantId,
+          affectedCombatantIds: evaluation.affectedCombatantIds.filter(
+            (id) => !accuracy.missedCombatantIds.has(id),
+          ),
+        }
+      : evaluation
   let triggerGuard = context?.triggerGuard
+  let settledEffectOrdinals: ReadonlySet<number> | undefined
   const committed = legacy.executeCombatAction(
     critical.state,
     materializedAction,
     selection,
     csr.content,
-    (resolved) => {
+    (resolved, settled) => {
+      settledEffectOrdinals = settled
       if (!actorId) return resolved
-      const command = { sourceCombatantId: actorId, actionId: action.id }
-      const historyState = recordCommittedDamageHistory(resolved.state, resolved.events, {
+      if (context?.resolveCommittedAbilityOutcomes && provenanceEvaluation)
+        resolved = {
+          ...resolved,
+          state: attachCombatEffectProvenance(
+            state,
+            resolved.state,
+            csr.action,
+            provenanceEvaluation,
+            context,
+            csr.content,
+            resistance.resistedEffectOrdinalsByTarget,
+            settledEffectOrdinals,
+          ),
+        }
+      const reactions = resolveNativeCommittedReactions(
+        resolved,
+        content,
+        actorId,
+        action.id,
         round,
-        commandSourceCombatantId: actorId,
-      })
-      const recovered = applyCommittedAbsorbRecovery(
-        historyState,
-        resolved.events,
-        content,
-        command,
-      )
-      // Both reactions read only original receipts, never each other's output.
-      const reflected = applyCommittedReflect(
-        recovered.state,
-        resolved.events,
-        content,
-        command,
+        context,
         triggerGuard,
       )
-      triggerGuard = reflected.triggerGuard
-      return { state: reflected.state, events: [...recovered.events, ...reflected.events] }
+      triggerGuard = reactions.guard
+      return reactions.transition
     },
     accuracy.missedCombatantIds,
     critical.criticalEffectOrdinalsByTarget,
     resistance.resistedEffectOrdinalsByTarget,
     packets?.missedEffectOrdinalsByTarget,
+    executionActorId,
+    context?.committedExecution,
+    context?.nativeHooks,
   )
   const covertFiltered = filterBlockedCovertApplication({
     before: critical.state,
@@ -403,38 +506,51 @@ export function executeCombatAction(
     events: covertFiltered.events as legacy.CombatResolutionEvent[],
     ...(hitDependentEffects ? { hitDependentEffectsActivated } : {}),
   }
-  const preCommitEvents = [...accuracy.events, ...resistance.events, ...critical.events]
+  const accuracyEvents: legacy.CombatResolutionEvent[] = action.nativeBasicAttackCommand
+    ? accuracy.events.map((event) => {
+        const defenseKind = action.tags.includes('mystic') ? 'ward' : 'armor'
+        const profile = state.statBridge?.combatants.find(
+          (row) => row.combatantId === event.targetCombatantId,
+        )
+        if (!profile || ![1, 2, 3, 4].includes(state.statBridge?.rulesVersion ?? 0))
+          throw new TypeError('native-basic-command-stat-bridge-required')
+        return {
+          event: 'stat_driven_attack_resolved',
+          actorId: event.sourceCombatantId,
+          targetId: event.targetCombatantId,
+          hitChanceBasisPoints: event.hitChanceBasisPoints,
+          rollBasisPoints: event.rollBasisPoints,
+          hit: event.hit,
+          defenseKind,
+          defenseRating: terrainAdjustedDefense(
+            state,
+            event.targetCombatantId,
+            profile[defenseKind],
+          ),
+          rulesVersion: state.statBridge!.rulesVersion as 1 | 2 | 3 | 4,
+        }
+      })
+    : [...accuracy.events]
+  const preCommitEvents = [...accuracyEvents, ...resistance.events, ...critical.events]
   const transition =
     preCommitEvents.length > 0
       ? { ...committedTransition, events: [...preCommitEvents, ...committedTransition.events] }
       : committedTransition
   if (!context || !evaluation) return transition
-  // A miss must not reattribute an existing status or persistent effect.
-  const provenanceEvaluation =
-    accuracy.missedCombatantIds.size === 0
-      ? evaluation
-      : {
-          ...evaluation,
-          primaryCombatantId:
-            evaluation.primaryCombatantId &&
-            accuracy.missedCombatantIds.has(evaluation.primaryCombatantId)
-              ? null
-              : evaluation.primaryCombatantId,
-          affectedCombatantIds: evaluation.affectedCombatantIds.filter(
-            (id) => !accuracy.missedCombatantIds.has(id),
-          ),
-        }
   return {
     ...(hitDependentEffects ? { hitDependentEffectsActivated } : {}),
-    state: attachCombatEffectProvenance(
-      state,
-      transition.state,
-      csr.action,
-      provenanceEvaluation,
-      context,
-      csr.content,
-      resistance.resistedEffectOrdinalsByTarget,
-    ),
+    state: context.resolveCommittedAbilityOutcomes
+      ? transition.state
+      : attachCombatEffectProvenance(
+          state,
+          transition.state,
+          csr.action,
+          provenanceEvaluation!,
+          context,
+          csr.content,
+          resistance.resistedEffectOrdinalsByTarget,
+          settledEffectOrdinals,
+        ),
     events: transition.events,
     resolution: {
       pipelineVersion: COMBAT_RESOLUTION_PIPELINE_VERSION,
@@ -444,13 +560,148 @@ export function executeCombatAction(
   }
 }
 
+function resolveNativeCommittedReactions(
+  resolved: CombatResolutionTransition,
+  content: legacy.CombatContentCatalog,
+  actorId: string,
+  actionId: string,
+  round: number,
+  context: CombatResolutionContext | undefined,
+  guard: CombatTriggerGuard | undefined,
+): { transition: CombatResolutionTransition; guard: CombatTriggerGuard | undefined } {
+  const command = { sourceCombatantId: actorId, actionId }
+  const historyState = recordCommittedDamageHistory(resolved.state, resolved.events, {
+    round,
+    commandSourceCombatantId: actorId,
+  })
+  const currentGuard = context?.nativeHooks?.getGuard() ?? guard
+  context?.nativeHooks?.setGuard(currentGuard ?? context.triggerGuard)
+  const recovered = applyCommittedAbsorbRecovery(
+    historyState,
+    resolved.events,
+    content,
+    command,
+    context?.nativeHooks,
+  )
+  const reflected = applyCommittedReflect(
+    recovered.state,
+    resolved.events,
+    content,
+    command,
+    currentGuard,
+    Boolean(context?.executionAuthority),
+    context?.nativeHooks,
+  )
+  context?.nativeHooks?.setGuard(reflected.triggerGuard)
+  const native = { state: reflected.state, events: [...recovered.events, ...reflected.events] }
+  if (!context?.resolveCommittedAbilityOutcomes)
+    return { transition: native, guard: reflected.triggerGuard }
+  const children = context.resolveCommittedAbilityOutcomes(
+    native,
+    reflected.triggerGuard ?? context.triggerGuard,
+  )
+  return {
+    transition: children,
+    guard: children.resolution?.triggerGuard ?? reflected.triggerGuard,
+  }
+}
+
+/** Only an admitted, still-living actor can settle original independent actor packets. */
+export function executeCommittedCombatActorEffects(
+  state: CombatEncounterState,
+  action: CombatActionDefinition,
+  selection: legacy.CombatTargetSelection,
+  content: legacy.CombatContentCatalog,
+  context: CombatResolutionContext,
+  hitDependentEffects?: CombatHitDependentEffects,
+): CombatResolutionTransition {
+  if (!context.committedExecution) throw new TypeError('invalid-committed-execution-authority')
+  consumeCommittedCombatExecution(context.committedExecution, state, action, selection, context)
+  // An interrupted selection has no confirmed hostile hit. Keep independent
+  // caster effects (e.g. Fire cleanse), while excluding native dependent payoffs.
+  if (hitDependentEffects)
+    action = omitCombatActionEffects(action, new Set(hitDependentEffects.effectOrdinals))
+  const actorId = context.provenance.sourceCombatantId
+  if (
+    state.tactical.battle.lifecycle !== 'active' ||
+    !state.tactical.battle.combatants.some((unit) => unit.id === actorId && unit.hp > 0)
+  )
+    throw new TypeError('committed-actor-settlement-unavailable')
+  const evaluation: CombatActionEvaluation = {
+    legal: true,
+    actionId: action.id,
+    actorId,
+    primaryPosition: null,
+    primaryCombatantId: null,
+    affectedTiles: [],
+    affectedCombatantIds: [],
+    projectedEffects: [],
+    projectedTerrain: [],
+    projectedEvents: [],
+    mpCost: 0,
+    spendsAction: false,
+    issues: [],
+  }
+  let guard = context.triggerGuard
+  const out = legacy.executeCommittedCombatActorEffects(
+    state,
+    actorId,
+    action,
+    content,
+    context.committedExecution,
+    (resolved, settledEffectOrdinals) => {
+      resolved = {
+        ...resolved,
+        state: attachCombatEffectProvenance(
+          state,
+          resolved.state,
+          action,
+          evaluation,
+          context,
+          content,
+          undefined,
+          settledEffectOrdinals,
+        ),
+      }
+      const reactions = resolveNativeCommittedReactions(
+        resolved,
+        content,
+        actorId,
+        action.id,
+        state.tactical.battle.round,
+        context,
+        guard,
+      )
+      guard = reactions.guard ?? guard
+      return reactions.transition
+    },
+    context.nativeHooks,
+  )
+  const filtered = filterBlockedCovertApplication({
+    before: state,
+    after: out.state,
+    events: out.events,
+  })
+  return {
+    state: filtered.state,
+    events: filtered.events as legacy.CombatResolutionEvent[],
+    ...(hitDependentEffects ? { hitDependentEffectsActivated: false } : {}),
+    resolution: {
+      pipelineVersion: COMBAT_RESOLUTION_PIPELINE_VERSION,
+      provenance: context.provenance,
+      triggerGuard: guard,
+    },
+  }
+}
+
 export function endCombatTurn(
   state: CombatEncounterState,
   content: legacy.CombatContentCatalog,
   outgoingDefeatedAtTurnEnd = false,
+  nativeHooks?: CombatNativeExecutionHooks,
 ): CombatResolutionTransition {
   const round = state.tactical.battle.round
-  const transition = legacy.endCombatTurn(state, content, outgoingDefeatedAtTurnEnd)
+  const transition = legacy.endCombatTurn(state, content, outgoingDefeatedAtTurnEnd, nativeHooks)
   return {
     state: recordTurnDamageHistory(transition.state, transition.events, round),
     events: transition.events,
@@ -460,12 +711,21 @@ export function endCombatTurn(
 export function waitCurrentTurn(
   state: CombatEncounterState,
   content: legacy.CombatContentCatalog,
+  nativeHooks?: CombatNativeExecutionHooks,
 ): CombatResolutionTransition {
-  const round = state.tactical.battle.round
-  const transition = legacy.waitCurrentTurn(state, content)
+  if (!nativeHooks) {
+    const round = state.tactical.battle.round
+    const transition = legacy.waitCurrentTurn(state, content)
+    return {
+      state: recordTurnDamageHistory(transition.state, transition.events, round),
+      events: transition.events,
+    }
+  }
+  const actorId = state.tactical.battle.currentTurn?.combatantId
+  const transition = endCombatTurn(state, content, false, nativeHooks)
   return {
-    state: recordTurnDamageHistory(transition.state, transition.events, round),
-    events: transition.events,
+    state: transition.state,
+    events: [{ event: 'combatant_waited', combatantId: actorId! }, ...transition.events],
   }
 }
 
@@ -489,10 +749,11 @@ function recordTurnDamageHistory(
 function materializeStatScaledDamage(
   state: CombatEncounterState,
   action: CombatActionDefinition,
+  executionActorId?: string,
 ): legacy.CombatActionDefinition {
   const actorId =
     state.tactical.battle.lifecycle === 'active'
-      ? (state.tactical.battle.currentTurn?.combatantId ?? null)
+      ? (executionActorId ?? state.tactical.battle.currentTurn?.combatantId ?? null)
       : null
 
   const effects: legacy.CombatEffectDefinition[] = action.effects.map((effect) => {

@@ -1,3 +1,7 @@
+import {
+  observeCombatNativeMutation,
+  type CombatNativeExecutionHooks,
+} from './combat-native-mutations'
 import { collectCommittedHostileCommandDamage } from './combat-committed-damage'
 import type {
   CombatContentCatalog,
@@ -18,6 +22,7 @@ export function applyCommittedAbsorbRecovery(
   events: readonly CombatResolutionEvent[],
   content: CombatContentCatalog,
   command: { sourceCombatantId: string; actionId: string },
+  nativeHooks?: CombatNativeExecutionHooks,
 ): CombatResolutionTransition {
   const battle = state.tactical.battle
   const combatants = new Map(battle.combatants.map((unit) => [unit.id, unit]))
@@ -68,23 +73,33 @@ export function applyCommittedAbsorbRecovery(
 
   if (recoveryEvents.length === 0) return { state, events }
 
-  return {
-    state: {
-      ...state,
-      tactical: {
-        ...state.tactical,
-        battle: {
-          ...battle,
-          combatants: battle.combatants.map((unit) => {
-            const pools = recoveredPools.get(unit.id)
-            return pools === undefined ? unit : { ...unit, ...pools }
-          }),
+  let next = state
+  for (const [targetId, pools] of recoveredPools) {
+    const receipts = recoveryEvents.filter(
+      (event) => 'targetCombatantId' in event && event.targetCombatantId === targetId,
+    )
+    next = observeCombatNativeMutation(
+      nativeHooks,
+      next,
+      {
+        state: {
+          ...next,
+          tactical: {
+            ...next.tactical,
+            battle: {
+              ...next.tactical.battle,
+              combatants: next.tactical.battle.combatants.map((unit) =>
+                unit.id === targetId ? { ...unit, ...pools } : unit,
+              ),
+            },
+          },
         },
+        events: receipts,
       },
-    },
-    // One bounded pass: emitted healing/restoration never feeds back into this input.
-    events: [...events, ...recoveryEvents],
+      { triggeringCombatantId: targetId, affectedCombatantIds: [targetId] },
+    ).state
   }
+  return { state: next, events: [...events, ...recoveryEvents] }
 }
 
 function recoveryAmount(

@@ -1,3 +1,4 @@
+import { combatManualModifierAvailability } from '@aurevane/game-core/combat/combat-behavior-runtime'
 import 'server-only'
 import {
   projectPublicCombatGroundAreas,
@@ -30,6 +31,32 @@ import {
 } from '../../lib/battle/battle-elevation-effects'
 
 import { battleViewerRelationship, type BattleViewerEntitlement } from './battle-viewer-entitlement'
+
+/** Only controlled owners receive reference choices; allies/opponents/spectators receive none. */
+export function projectBattleManualModifierAvailability(
+  state: StatDrivenCombatEncounterState,
+  viewer: BattleViewerEntitlement,
+) {
+  if (viewer.kind !== 'participant') return []
+  return [...viewer.controlledCombatantIds]
+    .sort()
+    .flatMap((ownerId) => combatManualModifierAvailability(state, ownerId))
+}
+
+/** Shallow public receipt projection; private execution records stay in persistence. */
+export function omitCombatExecutionMetadata<T extends object>(receipt: T): T {
+  const projected = { ...receipt }
+  for (const key of [
+    'effectOrigin',
+    'abilityParticipants',
+    'modifierSuppressions',
+    'sourceCommandVisibility',
+    'abilityCommandFacts',
+    'provenance',
+  ])
+    Reflect.deleteProperty(projected, key)
+  return projected
+}
 
 type BattleStatusState = readonly {
   combatantId: string
@@ -119,11 +146,13 @@ export function projectBattleStatusStateForViewer(
     const row = {
       ...activeRow,
       statuses: [
-        ...activeRow.statuses.map((status) => presentInteractionPolicy(status)),
+        ...activeRow.statuses.map((status) =>
+          presentInteractionPolicy(omitCombatExecutionMetadata(status)),
+        ),
         ...terrainStatuses,
         ...pending
           .filter((item) => item.combatantId === activeRow.combatantId)
-          .map((item) => presentInteractionPolicy(item.status)),
+          .map((item) => presentInteractionPolicy(omitCombatExecutionMetadata(item.status))),
       ],
     }
     // Validated snapshots should always resolve this row; omission is safer than disclosure if they do not.
@@ -198,7 +227,7 @@ export function projectBattleEffectStateForViewer(
   >(
     instance: T,
   ): T => {
-    if (sourceAllowed(instance.sourceCombatantId)) return instance
+    if (sourceAllowed(instance.sourceCombatantId)) return omitCombatExecutionMetadata(instance)
     const publicEffect = { ...instance, sourceActionId: 'combat.effect' }
     delete publicEffect.provenance
     return publicEffect
@@ -249,6 +278,16 @@ export function omitPendingBattlePayloads<
   }
   Reflect.deleteProperty(projected, 'nextGroundAreaId')
   Reflect.deleteProperty(projected, 'nextSkillPacketCommandId')
+  for (const key of [
+    'capturedAbilitySources',
+    'abilityRuntime',
+    'modifierSuppressions',
+    'nativeBasicAttackCommand',
+    'commandDamageBonuses',
+    'effectEligibleRecipientIds',
+    'effectTimingModes',
+  ])
+    Reflect.deleteProperty(projected, key)
   if (state.groundAreas)
     projected.groundAreas = projectPublicCombatGroundAreas(
       state.groundAreas,

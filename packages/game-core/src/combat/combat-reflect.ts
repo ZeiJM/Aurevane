@@ -1,3 +1,7 @@
+import {
+  observeCombatNativeMutation,
+  type CombatNativeExecutionHooks,
+} from './combat-native-mutations'
 import type {
   CombatContentCatalog,
   CombatEncounterState,
@@ -29,6 +33,7 @@ export function applyCommittedReflect(
   command: CommittedCombatCommand,
   guard?: CombatTriggerGuard,
   allowOutOfTurnSource = false,
+  nativeHooks?: CombatNativeExecutionHooks,
 ): CombatResolutionTransition & { triggerGuard: CombatTriggerGuard } {
   const battle = state.tactical.battle
   let triggerGuard =
@@ -74,20 +79,23 @@ export function applyCommittedReflect(
     })
     if (!attempted.accepted) continue
     triggerGuard = attempted.guard
+    nativeHooks?.setGuard(triggerGuard)
     const hpAfter = currentAttacker.hp - amount
-    events.push({
-      event: 'damage_applied',
+    const damageReceipt = {
+      event: 'damage_applied' as const,
       actionId: REFLECT_ACTION_ID,
       sourceCombatantId: defenderId,
       targetCombatantId: attacker.id,
       amount,
       hpBefore: currentAttacker.hp,
       hpAfter,
-    })
+    }
+    events.push(damageReceipt)
+    const beforeDamage = nextState
     // Run encounter upkeep as well as selecting the next living combatant.
     const defeated =
       hpAfter === 0 && nextState.tactical.battle.currentTurn?.combatantId === attacker.id
-        ? defeatCombatActionActor(nextState, attacker.id, content)
+        ? defeatCombatActionActor(nextState, attacker.id, content, nativeHooks, damageReceipt)
         : null
     nextState =
       defeated?.state ??
@@ -103,13 +111,34 @@ export function applyCommittedReflect(
           },
         }),
       })
-    const revealed = removeGameplayTags(
+    if (!defeated)
+      nextState = observeCombatNativeMutation(
+        nativeHooks,
+        beforeDamage,
+        { state: nextState, events: [damageReceipt] },
+        {
+          actionId: REFLECT_ACTION_ID,
+          triggeringCombatantId: defenderId,
+          affectedCombatantIds: [attacker.id],
+        },
+      ).state
+    if (nativeHooks) triggerGuard = nativeHooks.getGuard()
+    const revealed = observeCombatNativeMutation(
+      nativeHooks,
       nextState,
-      defenderId,
-      attacker.id,
-      REFLECT_ACTION_ID,
-      ['Invisible'],
-      content,
+      removeGameplayTags(
+        nextState,
+        defenderId,
+        attacker.id,
+        REFLECT_ACTION_ID,
+        ['Invisible'],
+        content,
+      ),
+      {
+        actionId: REFLECT_ACTION_ID,
+        triggeringCombatantId: defenderId,
+        affectedCombatantIds: [attacker.id],
+      },
     )
     nextState = revealed.state
     events.push(...revealed.events)

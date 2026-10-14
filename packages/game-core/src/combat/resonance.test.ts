@@ -15,7 +15,28 @@ import {
   validateResonanceDefinition,
 } from './resonance'
 import { rebalanceResonanceDefinition } from './resonance-balance-v5'
-import { normalizedResonanceMechanics } from './resonance-v2'
+import { normalizedResonanceMechanics, convertV5ResonanceToV2 } from './resonance-v2'
+import { source } from './combat-behavior.test-utils'
+import { captureCombatAbilitySource } from './combat-behavior-capture'
+
+it.each([
+  P35_REPRESENTATIVE_RESONANCES[0]!,
+  convertV5ResonanceToV2(P35_REPRESENTATIVE_RESONANCES[0]!),
+])('canonical Resonance identity admission precedes legacy mechanics for $id', (legacy) => {
+  const canonical = { ...legacy, ability: source().definition }
+  expect(resonanceSnapshotReference(canonical)).toEqual({
+    resonanceId: legacy.id,
+    contentVersion: legacy.contentVersion,
+    disciplinePair: legacy.disciplinePair,
+  })
+  expect(createResonanceCombatState(canonical).resonanceId).toBe(legacy.id)
+  expect(() => normalizedResonanceMechanics(canonical)).toThrow('canonical-activation-required')
+})
+it('captures Resonance with its truthful private source kind', () => {
+  expect(
+    captureCombatAbilitySource({ ...source(), sourceKind: 'resonance' as never }).sourceKind,
+  ).toBe('resonance')
+})
 
 it('arms current Chronist setups from any Chronist Skill while retaining historical tempo matching', () => {
   const current = resolveResonanceForPair('chronist', 'cinderweaver')!

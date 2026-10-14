@@ -15,13 +15,20 @@ import { createCombatEffectInstanceProvenance } from './combat-kernel-types'
 function resolveRecipients(
   evaluation: CombatActionEvaluation,
   recipient: CombatEffectRecipient,
+  eligibleRecipientIds?: readonly string[],
 ): readonly string[] {
   if (!evaluation.actorId) return []
-  if (recipient === 'actor') return [evaluation.actorId]
-  if (recipient === 'primary-unit') {
-    return evaluation.primaryCombatantId ? [evaluation.primaryCombatantId] : []
-  }
-  return evaluation.affectedCombatantIds
+  const recipients =
+    recipient === 'actor'
+      ? [evaluation.actorId]
+      : recipient === 'primary-unit'
+        ? evaluation.primaryCombatantId
+          ? [evaluation.primaryCombatantId]
+          : []
+        : evaluation.affectedCombatantIds
+  return eligibleRecipientIds === undefined
+    ? recipients
+    : recipients.filter((id) => eligibleRecipientIds.includes(id))
 }
 
 function createsRecoverySchedule(
@@ -60,13 +67,17 @@ export function attachCombatEffectProvenance(
   context: CombatResolutionContext,
   content?: CombatContentCatalog,
   resistedEffectOrdinalsByTarget?: CombatResistedEffectOrdinals,
+  settledEffectOrdinals?: ReadonlySet<number>,
 ): CombatEncounterState {
   if (!evaluation.actorId) return after
   const copyEffect = action.effects[0]
   let provenanceAfter = after
   if (
     copyEffect?.type === 'copy-statuses' &&
+    (!settledEffectOrdinals || settledEffectOrdinals.has(0)) &&
     evaluation.primaryCombatantId &&
+    (action.effectEligibleRecipientIds?.[0] === undefined ||
+      action.effectEligibleRecipientIds[0].includes(evaluation.primaryCombatantId)) &&
     !resistedEffectOrdinalsByTarget?.get(evaluation.primaryCombatantId)?.has(0)
   ) {
     if (!content) throw new TypeError('Copied status provenance requires its pinned catalog.')
@@ -135,6 +146,7 @@ export function attachCombatEffectProvenance(
   >()
   if (independent || before.dotTriggerPolicyVersion === 2) {
     for (const [effectOrdinal, effect] of action.effects.entries()) {
+      if (settledEffectOrdinals && !settledEffectOrdinals.has(effectOrdinal)) continue
       if (
         combatEffectTimingMode(
           before.effectTimingPolicy,
@@ -161,7 +173,11 @@ export function attachCombatEffectProvenance(
                   ]
                 : []
       if (kinds.length === 0 || effect.recipient === 'affected-tiles') continue
-      for (const targetCombatantId of resolveRecipients(evaluation, effect.recipient)) {
+      for (const targetCombatantId of resolveRecipients(
+        evaluation,
+        effect.recipient,
+        action.effectEligibleRecipientIds?.[effectOrdinal],
+      )) {
         if (resistedEffectOrdinalsByTarget?.get(targetCombatantId)?.has(effectOrdinal)) continue
         for (const kind of kinds) {
           if (!independent && kind !== 'poison') continue
@@ -185,10 +201,13 @@ export function attachCombatEffectProvenance(
   const bleedApplications: BleedApplication[] = []
   const lastBleedClearOrdinalByTarget = new Map<string, number>()
   for (const [effectOrdinal, effect] of action.effects.entries()) {
+    if (settledEffectOrdinals && !settledEffectOrdinals.has(effectOrdinal)) continue
     if (effect.type !== 'bleed' && effect.type !== 'remove-status') continue
-    const recipients = resolveRecipients(evaluation, effect.recipient).filter(
-      (id) => !resistedEffectOrdinalsByTarget?.get(id)?.has(effectOrdinal),
-    )
+    const recipients = resolveRecipients(
+      evaluation,
+      effect.recipient,
+      action.effectEligibleRecipientIds?.[effectOrdinal],
+    ).filter((id) => !resistedEffectOrdinalsByTarget?.get(id)?.has(effectOrdinal))
     if (effect.type === 'remove-status') {
       if (!effect.statusIds.includes('bleed')) continue
       for (const targetCombatantId of recipients) {
@@ -202,6 +221,7 @@ export function attachCombatEffectProvenance(
   }
 
   for (const [effectOrdinal, effect] of action.effects.entries()) {
+    if (settledEffectOrdinals && !settledEffectOrdinals.has(effectOrdinal)) continue
     if (
       effect.type !== 'apply-status' &&
       effect.type !== 'poison' &&
@@ -212,7 +232,11 @@ export function attachCombatEffectProvenance(
       continue
     }
 
-    for (const targetCombatantId of resolveRecipients(evaluation, effect.recipient)) {
+    for (const targetCombatantId of resolveRecipients(
+      evaluation,
+      effect.recipient,
+      action.effectEligibleRecipientIds?.[effectOrdinal],
+    )) {
       if (resistedEffectOrdinalsByTarget?.get(targetCombatantId)?.has(effectOrdinal)) continue
       const provenance = provenanceFor(targetCombatantId, effectOrdinal)
 

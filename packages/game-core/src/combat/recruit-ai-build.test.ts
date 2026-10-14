@@ -1,7 +1,14 @@
+import {
+  capturedMatureSkillAbilitySource,
+  capturedResonanceAbilitySource,
+} from './combat-action-source'
+import { reconcileCombatAbilitySources } from './combat-behavior-runtime'
+import { validateAbilityDefinition, type AbilityDefinition } from './combat-definition'
 import { ADVANCED_DISCIPLINES } from '../character/advanced-disciplines'
 import { latestEnabledMatureSkills, resolveMatureSkillVersion } from './mature-skills'
 import { resolveEssenceForBuild, essenceSnapshotReference } from './essence'
 import { resolveResonanceForPair, resonanceSnapshotReference } from './resonance'
+import { convertV5ResonanceToV2 } from './resonance-v2'
 import {
   finishPv1fTurn,
   PV1F_BASIC_ATTACK_ID,
@@ -443,3 +450,103 @@ it('100% Suppress never invents damaging moves and ends after legal useful suppo
   }
   throw new Error('AI failed to finish its turn')
 })
+
+it.each(['skill', 'essence', 'resonance-v1', 'resonance-v2'] as const)(
+  'chooses a legal explicit Manual behavior from immutable canonical %s and commits it once after JSON reconnect',
+  (kind) => {
+    const initial = encounter()
+    const original = JSON.parse(
+      JSON.stringify(resolveMatureSkillVersion('vanguard.forceful-strike', 2)!),
+    ) as import('./mature-skills').MatureSkillDefinition
+    const targeting = { ...original.target, maximumSelections: 1 }
+    const base = {
+      activation: 'manual' as const,
+      mode: 'action' as const,
+      classification: 'attack' as const,
+      attackFamily: 'physical' as const,
+      costs: [{ resource: 'ap' as const, amount: 12 }],
+      cooldown: null,
+      activationLimits: ['once-per-battle' as const],
+      requirements: null,
+      targeting,
+      accuracy: { kind: 'fixed' as const, chanceBasisPoints: 10000 },
+    }
+    const ability: AbilityDefinition = {
+      schemaVersion: 1,
+      behaviors: [
+        {
+          ...base,
+          id: 'small',
+          effects: [
+            { id: 'hit', payload: { type: 'damage', recipient: 'primary-unit', amount: 1 } },
+          ],
+        },
+        {
+          ...base,
+          id: 'strike',
+          effects: [
+            { id: 'hit', payload: { type: 'damage', recipient: 'primary-unit', amount: 20 } },
+          ],
+        },
+      ],
+    }
+    expect(validateAbilityDefinition(ability)).toEqual([])
+    const definition = { ...original, ability }
+    const resonance = resolveResonanceForPair('vanguard', 'lifebinder', 1)!
+    const source =
+      kind === 'skill'
+        ? capturedMatureSkillAbilitySource(initial, definition)!
+        : kind === 'essence'
+          ? capturedMatureSkillAbilitySource(initial, {
+              ...resolveEssenceForBuild('vanguard', null)!.skill,
+              ability,
+            })!
+          : capturedResonanceAbilitySource(
+              initial,
+              actorId,
+              {
+                ...(kind === 'resonance-v2' ? convertV5ResonanceToV2(resonance) : resonance),
+                ability,
+              },
+              ['vanguard', 'lifebinder'],
+            )!
+    const state = JSON.parse(
+      JSON.stringify(reconcileCombatAbilitySources(initial, [source])),
+    ) as StatDrivenCombatEncounterState
+    definition.enabled = false
+    definition.ability = { schemaVersion: 1, behaviors: [] }
+    const before = JSON.stringify(state)
+    const decision = chooseBuildAwareRecruitAiDecision({
+      state,
+      tieBreakSeed: 1,
+      profile: RECRUIT_STANDARD_PROFILE,
+      skillOptions: { committedSkills: [definition] },
+    })
+    expect(decision.intent).toMatchObject({
+      kind: 'action',
+      actionId: source.abilityId,
+      behaviorId: 'strike',
+      target: { kind: 'unit', combatantId: targetId },
+    })
+    expect(JSON.stringify(state)).toBe(before)
+    if (decision.intent.kind !== 'action') throw new Error('Expected a canonical action.')
+    const committed = executeBuildAwareRecruitAiAction(
+      state,
+      decision.intent.actionId,
+      decision.intent.target,
+      { committedSkills: [definition] },
+      { behaviorId: decision.intent.behaviorId },
+    )
+    expect(readPv1fActionEconomy(committed.state)!.current).toBe(88)
+    expect(committed.state.capturedAbilitySources![0]!.definition).toEqual(ability)
+    expect(
+      committed.events.filter(
+        (event) =>
+          typeof event === 'object' &&
+          event !== null &&
+          'event' in event &&
+          event.event === 'combat_action_used',
+      ),
+    ).toHaveLength(1)
+  },
+)

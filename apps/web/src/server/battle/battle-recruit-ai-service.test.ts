@@ -1,3 +1,12 @@
+import { createBattleBuildAuthoritySnapshot } from './battle-build-authority'
+import { capturedMatureSkillAbilitySource } from '@aurevane/game-core/combat/combat-action-source'
+import { reconcileCombatAbilitySources } from '@aurevane/game-core/combat/combat-behavior-runtime'
+import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
+import {
+  resolveResonanceForPair,
+  resonanceSnapshotReference,
+} from '@aurevane/game-core/combat/resonance'
+import type { AbilityDefinition } from '@aurevane/game-core/combat/combat-definition'
 import type {
   BattleSessionRecord,
   BattleSessionRepository,
@@ -975,4 +984,112 @@ describe('P2.6 authoritative Recruit AI turn service', () => {
     ).rejects.toMatchObject({ code: 'STALE_VERSION', currentVersion: 4 })
     expect(fixture.commitBattleIntent).not.toHaveBeenCalled()
   })
+})
+
+it('runs an admitted canonical Recruit behavior through the actual service CAS from stored capture without mutable published reads', async () => {
+  const recruit = advanceToRecruitTurn(await initialEncounter())
+  const characterId = '22222222-2222-4222-8222-222222222223'
+  const actorId = `character:${characterId}`
+  const initial = JSON.parse(
+    JSON.stringify(recruit).split(recruit.tactical.battle.currentTurn!.combatantId).join(actorId),
+  ) as StatDrivenCombatEncounterState
+  const playerId = `character:${CHARACTER_ID}`
+  const ability: AbilityDefinition = {
+    schemaVersion: 1,
+    behaviors: [
+      {
+        id: 'strike',
+        activation: 'manual',
+        mode: 'action',
+        classification: 'attack',
+        attackFamily: 'physical',
+        costs: [{ resource: 'ap', amount: 12 }],
+        cooldown: null,
+        activationLimits: ['once-per-battle'],
+        requirements: null,
+        targeting: {
+          kind: 'unit',
+          teamPolicy: 'enemy',
+          friendlyFire: 'enemies-only',
+          shape: { kind: 'single' },
+          minimumRange: 1,
+          maximumRange: 1,
+          requiresLineOfSight: false,
+          maximumElevationDifference: null,
+          maximumSelections: 1,
+        },
+        accuracy: { kind: 'fixed', chanceBasisPoints: 10000 },
+        effects: [
+          { id: 'hit', payload: { type: 'damage', recipient: 'primary-unit', amount: 20 } },
+        ],
+      },
+    ],
+  }
+  const original = resolveMatureSkillVersion('vanguard.forceful-strike', 2)!
+  const source = capturedMatureSkillAbilitySource(initial, { ...original, ability })!
+  const buildAuthority = createBattleBuildAuthoritySnapshot('pve', [
+    {
+      combatantId: actorId,
+      characterId,
+      snapshot: {
+        schemaVersion: 2,
+        buildVersion: 1,
+        primary: { disciplineId: 'vanguard', definitionVersion: 1, profileVersion: 1 },
+        secondary: { disciplineId: 'lifebinder', definitionVersion: 1 },
+        disciplineSkills: [
+          { slotIndex: 1, skillId: original.id, contentVersion: 2, sourceDisciplineId: 'vanguard' },
+        ],
+        extensions: {
+          essence: null,
+          resonance: resonanceSnapshotReference(resolveResonanceForPair('vanguard', 'lifebinder')!),
+          equipmentSkills: [],
+          supernatural: null,
+          prestige: null,
+        },
+      },
+    },
+  ])
+  const state = {
+    ...reconcileCombatAbilitySources(initial, [source]),
+    statBridge: initial.statBridge,
+    buildAuthority,
+    tactical: {
+      ...initial.tactical,
+      placements: initial.tactical.placements.map((row) =>
+        row.combatantId === actorId
+          ? { ...row, position: { x: 2, y: 1 } }
+          : row.combatantId === playerId
+            ? { ...row, position: { x: 1, y: 1 } }
+            : row,
+      ),
+    },
+  }
+  const fixture = createStatefulRepository(JSON.parse(JSON.stringify(state)))
+  const resolver = {
+    resolveCurrentSkillDefinition: vi.fn(async () => {
+      throw new Error('Mutable current read forbidden by stored authority.')
+    }),
+    resolvePinnedSkillDefinition: vi.fn(async () => {
+      throw new Error('Mutable pinned read forbidden by stored authority.')
+    }),
+  }
+  const result = await createBattleRecruitAiService(fixture.repository, resolver).runTurn({
+    userId: USER_ID,
+    battleSessionId: SESSION_ID,
+    expectedBattleVersion: 1,
+  })
+  expect(resolver.resolvePinnedSkillDefinition).not.toHaveBeenCalled()
+  expect(resolver.resolveCurrentSkillDefinition).not.toHaveBeenCalled()
+  const first = fixture.commits[0]!
+  expect(first.expectedBattleVersion).toBe(1)
+  expect(first.events).toContainEqual(
+    expect.objectContaining({ event: 'combat_action_used', actionId: original.id }),
+  )
+  expect(first.events).toContainEqual(expect.objectContaining({ event: 'ap_spent', amount: 12 }))
+  expect(
+    (first.nextSnapshot as StatDrivenCombatEncounterState).capturedAbilitySources![0]!.definition,
+  ).toEqual(ability)
+  expect(JSON.stringify(result)).not.toMatch(
+    /capturedAbilitySources|conditionTruth|abilityParticipants|effectOrigin/,
+  )
 })

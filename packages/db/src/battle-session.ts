@@ -77,6 +77,12 @@ export interface CreateBattleSessionInput extends BattleIdempotentInput {
   rulesVersion: number
   contentVersion: number
   initialSnapshot: unknown
+  /** Server-only startup transaction; omitted preserves the historical creation RPC. */
+  startup?: {
+    startSnapshot: unknown
+    events: readonly unknown[]
+    privacyJournal: BattlePrivacyJournalInput
+  }
   participants: readonly BattleParticipantInput[]
 }
 

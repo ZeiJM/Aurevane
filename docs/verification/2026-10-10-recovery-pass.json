@@ -1,0 +1,207 @@
+{
+  "date": "2026-10-10",
+  "scope": "Additional Owner-requested source recovery before rebuilding",
+  "old_source_recovered": false,
+  "original_loss_cause": "not established",
+  "known_commit_checks": [
+    {
+      "requested": "17443fa3",
+      "isError": true,
+      "sha": null,
+      "messages": [
+        "GitHub API error 422: {\"message\":\"No commit found for SHA: 17443fa3\",\"documentation_url\":\"https://docs.github.com/rest/commits/commits#get-a-commit\",\"status\":\"422\"}"
+      ]
+    },
+    {
+      "requested": "19657543",
+      "isError": true,
+      "sha": null,
+      "messages": [
+        "GitHub API error 422: {\"message\":\"No commit found for SHA: 19657543\",\"documentation_url\":\"https://docs.github.com/rest/commits/commits#get-a-commit\",\"status\":\"422\"}"
+      ]
+    },
+    {
+      "requested": "66c44337",
+      "isError": true,
+      "sha": null,
+      "messages": [
+        "GitHub API error 422: {\"message\":\"No commit found for SHA: 66c44337\",\"documentation_url\":\"https://docs.github.com/rest/commits/commits#get-a-commit\",\"status\":\"422\"}"
+      ]
+    },
+    {
+      "requested": "1e8294d6",
+      "isError": true,
+      "sha": null,
+      "messages": [
+        "GitHub API error 422: {\"message\":\"No commit found for SHA: 1e8294d6\",\"documentation_url\":\"https://docs.github.com/rest/commits/commits#get-a-commit\",\"status\":\"422\"}"
+      ]
+    },
+    {
+      "requested": "b97bbf30",
+      "isError": true,
+      "sha": null,
+      "messages": [
+        "GitHub API error 422: {\"message\":\"No commit found for SHA: b97bbf30\",\"documentation_url\":\"https://docs.github.com/rest/commits/commits#get-a-commit\",\"status\":\"422\"}"
+      ]
+    },
+    {
+      "requested": "bba34aa2",
+      "isError": true,
+      "sha": null,
+      "messages": [
+        "GitHub API error 422: {\"message\":\"No commit found for SHA: bba34aa2\",\"documentation_url\":\"https://docs.github.com/rest/commits/commits#get-a-commit\",\"status\":\"422\"}"
+      ]
+    }
+  ],
+  "task6_github": {
+    "requested": "c57f00006fa543790e3c21f0fc754d2af45cbcb0",
+    "result": "GitHub API 422: no commit found"
+  },
+  "local_repositories": [
+    {
+      "path": "/workspace/scratch/1540c7a1b584/aurevane",
+      "known_old_commit_prefixes_checked": 25,
+      "found": 0,
+      "fsck_exit": 0,
+      "unreachable_original_commits": 0
+    },
+    {
+      "path": "/workspace/scratch/30e939f4a253/aurevane-combat-corrections",
+      "known_old_commit_prefixes_checked": 25,
+      "found": 0,
+      "fsck_exit": 0,
+      "unreachable_commits": 0
+    }
+  ],
+  "session_inventory": {
+    "database": "/root/.codex/state_5.sqlite",
+    "thread_records": 0,
+    "local_rollout_or_transcript_files_found": 0,
+    "available_old_product_agents": 0
+  },
+  "remote_branches": {
+    "total_heads": 1038,
+    "original_overhaul_branch_found": false
+  },
+  "archive_checks": {
+    "archives_checked": 3,
+    "overhaul_named_source_or_report_entries_found": 0,
+    "limitation": "Unrelated diagnostic archives, not original overhaul checkpoints; no claim of complete embedded-trace source reconstruction."
+  },
+  "preserved_visual_references": [
+    {
+      "name": "Aurevane battle screen with read-only stats.png",
+      "library_file_id": "libfile_8abe280e37888191b7099013892cb41c",
+      "file_id": "file_00000000fac881f59d0b4ca6d50cbc10",
+      "size_bytes": 1732552
+    },
+    {
+      "name": "Affect Ground chip label update.png",
+      "library_file_id": "libfile_75f9a77822e8819197aff4b4f507a5d0",
+      "file_id": "file_00000000971c81f5ac5abda38b313b1c",
+      "size_bytes": 1842585
+    },
+    {
+      "name": "Aurevane Staff Access Panel.png",
+      "library_file_id": "libfile_3415328db8d081918dbabf18d265c571",
+      "file_id": "file_00000000a09c81f5b15287360ce89007",
+      "size_bytes": 1625995
+    },
+    {
+      "name": "Players panel: Mira battle recovery.png",
+      "library_file_id": "libfile_1a2f80b58ff88191aca195d2aa71c063",
+      "file_id": "file_00000000a7c881f5a9be22e4f885dfa0",
+      "size_bytes": 1656864
+    },
+    {
+      "name": "Event phases editor with live preview.png",
+      "library_file_id": "libfile_bbbfc5563ad481918296d9f28b95d985",
+      "file_id": "file_0000000034d881f59db5cbb570ba179a",
+      "size_bytes": 1714873
+    },
+    {
+      "name": "Aurevane Site Music Master Panel.png",
+      "library_file_id": "libfile_111a6213050c8191b338aca95712c37b",
+      "file_id": "file_0000000056a881f5b849767b4708ed85",
+      "size_bytes": 1622738
+    },
+    {
+      "name": "Aurevane Combat Rules Panel.png",
+      "library_file_id": "libfile_860607bfd1d88191ba8d0ea6824abc77",
+      "file_id": "file_00000000e75c81f5ad46cafe67bb0f5c",
+      "size_bytes": 1648084
+    },
+    {
+      "name": "Aurevane Fire Skill Builder Panel.png",
+      "library_file_id": "libfile_d25a2d7280388191859435c763bb7e5f",
+      "file_id": "file_000000009dd481f584dc36d95207a24f",
+      "size_bytes": 1812699
+    },
+    {
+      "name": "Aurevane Master Panel — Ironfist Skills.png",
+      "library_file_id": "libfile_b65665733c988191bfc4ef8936701d94",
+      "file_id": "file_000000006ee881f5a37b98088d0dad70",
+      "size_bytes": 1798694
+    },
+    {
+      "name": "Aurevane skill editor: Ember Lance.png",
+      "library_file_id": "libfile_cc5f8462073881919f4c113cf1a0833a",
+      "file_id": "file_00000000008481f5be3c9c72d519b03f",
+      "size_bytes": 1730920
+    },
+    {
+      "name": "Aurevane Rewind battle board.png",
+      "library_file_id": "libfile_591f245bed948191a7988bfc3526f59a",
+      "file_id": "file_00000000272481f5ac288d6588c73248",
+      "size_bytes": 2183610
+    },
+    {
+      "name": "Aurevane discipline management interface.png",
+      "library_file_id": "libfile_88b8f712b0608191bd784dc54c0b21a7",
+      "file_id": "file_00000000e98881f581f1b2da8c6cec36",
+      "size_bytes": 1640445
+    },
+    {
+      "name": "Aurevane operations interface contact sheet.png",
+      "library_file_id": "libfile_eb452b1d2ca88191a91c0e662c58f5a9",
+      "file_id": "file_000000005e4481f5934d52444fbe76f8",
+      "size_bytes": 1819572
+    },
+    {
+      "name": "Aurevane Master Panel UI Contact Sheet.png",
+      "library_file_id": "libfile_41d0fa3b8a54819180e8fb042c2ee7f3",
+      "file_id": "file_00000000a82c81f5bdd0012c38f5b197",
+      "size_bytes": 1817922
+    },
+    {
+      "name": "Aurevane Rewind Tactics Interface.png",
+      "library_file_id": "libfile_a9452b59a6088191b5ad86036edeba20",
+      "file_id": "file_000000008ca881f58b8ae5acf1911e03",
+      "size_bytes": 2453207
+    },
+    {
+      "name": "Aurevane Cinderweaver Skills Editor.png",
+      "library_file_id": "libfile_684833cfbe20819189afb8f86e3adcd8",
+      "file_id": "file_000000007fd481f5b2994103f6b1f72f",
+      "size_bytes": 1586512
+    },
+    {
+      "name": "Aurevane Master Panel skill editor.png",
+      "library_file_id": "libfile_9ad88c24874481918a4085c22f0785c9",
+      "file_id": "file_0000000003b081f5bc63cacc24a02128",
+      "size_bytes": 1670752
+    }
+  ],
+  "checkpoint": {
+    "branch": "agent/unified-engine-recovery-20261010",
+    "remote_commit": "7260201bce774dbcc6bafe61f414cbcecba9929e",
+    "local_head": "0dfcc6392a0cc0173461787956a0baaa4d8521fd",
+    "equal_tree": "a332c59409eaf237fa80be5b596055fb87a0b6b7",
+    "deployment_enabled": false
+  },
+  "limitations": [
+    "Missing source is unavailable, not proven permanently destroyed.",
+    "Prior conversational progress and test counts are not current acceptance evidence.",
+    "Preserved mockups are design references, not restored executable components."
+  ]
+}

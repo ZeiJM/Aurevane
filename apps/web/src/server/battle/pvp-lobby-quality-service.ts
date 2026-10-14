@@ -55,6 +55,7 @@ import {
   type BattleBuildAuthoritySnapshot,
 } from './battle-build-authority'
 import { getPvpLobby, type PvpLobbyMemberView } from './pvp-lobby-service'
+import { prepareBattleAbilityStartup } from './battle-ability-startup'
 
 const PVP_RULES_VERSION = 2
 const PVP_CONTENT_VERSION = 2
@@ -339,6 +340,7 @@ export async function startPvpLobbyWithQuality(
     }),
   )
 
+  const combatContentResolver = createServerCombatContentResolver()
   const buildAuthority = await createResolvedBattleBuildAuthoritySnapshot(
     'pvp',
     roster.map(({ character, buildSnapshot }) => ({
@@ -347,7 +349,7 @@ export async function startPvpLobbyWithQuality(
       snapshot: buildSnapshot,
       narratorIdentity: narratorIdentityForCharacter(character),
     })),
-    createServerCombatContentResolver(),
+    combatContentResolver,
   )
   const elevationPolicy = parseBattlefieldElevationPolicy(await readBattlefieldElevationPolicy())
   const encounter = createPvpEncounter(
@@ -372,22 +374,31 @@ export async function startPvpLobbyWithQuality(
   encounter.healingDownPolicyVersion = 1
   encounter.blindsideActivationPolicyVersion = 1
   encounter.groundEffectPolicyVersion = 1
-  const battle = encounter.tactical.battle
+  const { snapshot, startup } = await prepareBattleAbilityStartup(
+    encounter,
+    buildAuthority,
+    combatContentResolver,
+  )
+  const battle = snapshot.tactical.battle
   const supabase = createSupabaseAdminClient()
-  const { data, error } = await supabase.rpc('create_pvp_battle_session_v1', {
-    p_actor_user_id: userId,
-    p_lobby_id: lobbyId,
-    p_battle_id: battle.battleId,
-    p_rules_version: battle.rulesVersion,
-    p_content_version: battle.contentVersion,
-    p_initial_snapshot: encounter,
-    p_participants: roster.map(({ member, character }) => ({
-      combatant_id: `character:${character.id}`,
-      user_id: member.userId,
-      character_id: character.id,
-      team_index: member.teamIndex,
-    })),
-  })
+  const { data, error } = await supabase.rpc(
+    startup ? 'create_pvp_battle_session_v2' : 'create_pvp_battle_session_v1',
+    {
+      p_actor_user_id: userId,
+      p_lobby_id: lobbyId,
+      p_battle_id: battle.battleId,
+      p_rules_version: battle.rulesVersion,
+      p_content_version: battle.contentVersion,
+      p_initial_snapshot: snapshot,
+      ...(startup ?? {}),
+      p_participants: roster.map(({ member, character }) => ({
+        combatant_id: `character:${character.id}`,
+        user_id: member.userId,
+        character_id: character.id,
+        team_index: member.teamIndex,
+      })),
+    },
+  )
   if (error) mapRpcError(error)
   const row =
     Array.isArray(data) && data.length === 1 && data[0] && typeof data[0] === 'object'

@@ -9,6 +9,8 @@ import { createStandardBattlefieldTiles } from '@aurevane/game-core/combat/stand
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
+  canonicalStartup: false,
+  createdRpc: '',
   groundSkill: false,
   elevationPolicy: {
     version: 1,
@@ -25,6 +27,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('server-only', () => ({}))
 
 vi.mock('@/server/combat/combat-content-resolver', async () => {
+  const { startupEssence } = await import('./battle-startup.test-utils')
   const { resolveMatureSkillVersion: resolve } =
     await import('@aurevane/game-core/combat/mature-skills')
   return {
@@ -32,6 +35,14 @@ vi.mock('@/server/combat/combat-content-resolver', async () => {
       resolveCurrentSkillDefinition: async (skillId: string) => resolve(skillId),
       resolvePinnedSkillDefinition: async (skillId: string, contentVersion: number) =>
         resolve(skillId, contentVersion),
+      ...(mocks.canonicalStartup
+        ? {
+            resolveCurrentEssenceDefinition: async (_primary: string, secondary: string | null) =>
+              secondary ? null : startupEssence(),
+            resolvePinnedEssenceDefinition: async (_primary: string, secondary: string | null) =>
+              secondary ? null : startupEssence(),
+          }
+        : {}),
     }),
   }
 })
@@ -215,7 +226,8 @@ vi.mock('@/lib/supabase/admin', () => ({
           error: null,
         }
       }
-      if (name === 'create_pvp_battle_session_v1') {
+      if (name === 'create_pvp_battle_session_v1' || name === 'create_pvp_battle_session_v2') {
+        mocks.createdRpc = name
         mocks.createdBattleArgs = args
         return {
           data: [
@@ -239,6 +251,8 @@ import { startPvpLobbyWithQuality } from './pvp-lobby-quality-service'
 
 describe('P3.7 direct PvP committed build snapshots', () => {
   beforeEach(() => {
+    mocks.canonicalStartup = false
+    mocks.createdRpc = ''
     mocks.elevationPolicy = {
       version: 1,
       level1BasisPoints: 6000,
@@ -250,6 +264,28 @@ describe('P3.7 direct PvP committed build snapshots', () => {
     mocks.mapSize = 'medium'
     mocks.terrainBias = 'neutral'
     mocks.elevationBias = 'neutral'
+  })
+
+  it('captures and settles published startup behavior through the actual quality-enabled PvP entry point', async () => {
+    mocks.canonicalStartup = true
+    await startPvpLobbyWithQuality(hostUserId, lobbyId)
+    const args = mocks.createdBattleArgs!
+    const state = args.p_initial_snapshot as BattleAuthoritativeEncounterState
+    expect(mocks.createdRpc).toBe('create_pvp_battle_session_v2')
+    expect(state.capturedAbilitySources).toHaveLength(1)
+    expect(state.capturedAbilitySources![0]!.contentVersion).toBe(77)
+    const host = state.tactical.battle.combatants.find(
+      (row) => row.id === `character:${hostCharacterId}`,
+    )!
+    expect(host.mp).toBe(host.maxMp - 1)
+    expect(args.p_initial_events).toContainEqual(
+      expect.objectContaining({ event: 'mp_spent', amount: 1 }),
+    )
+    expect(args.p_privacy_journal).toMatchObject({
+      schemaVersion: 1,
+      commandVisibility: { kind: 'public' },
+    })
+    expect(args.p_start_snapshot).not.toHaveProperty('abilityRuntime')
   })
 
   it('uses the published Owner height chances before creating a PvP snapshot', async () => {

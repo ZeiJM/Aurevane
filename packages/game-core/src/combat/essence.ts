@@ -1,3 +1,4 @@
+import { validateAbilityDefinition, type AbilityDefinition } from './combat-definition'
 import { createBlindsideEssenceVersion } from './combat-blindside-roster'
 import { createPercentageRecoveryEssenceVersion } from './combat-recovery-roster'
 import { createCurrentGroundEssenceVersion } from './combat-ground-roster'
@@ -24,12 +25,14 @@ import {
   executePv1fMatureSkill,
   readPv1fActionEconomy,
   type Pv1fTransition,
+  type Pv1fMatureSkillOptions,
 } from './pv1f-action-economy'
 import type { StatDrivenCombatEncounterState } from './stat-driven-combat'
 
 export const ESSENCE_SCHEMA_VERSION = 1 as const
 
 export interface EssenceDefinition {
+  readonly ability?: AbilityDefinition
   readonly essenceId: string
   readonly contentVersion: number
   readonly enabled: boolean
@@ -594,6 +597,8 @@ const STABLE_ID_PATTERN = /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/
 
 export function validateEssenceDefinition(definition: EssenceDefinition): readonly string[] {
   const issues: string[] = []
+  const canonical = Object.hasOwn(definition, 'ability')
+  if (canonical && validateAbilityDefinition(definition.ability).length > 0) issues.push('ability')
   if (!STABLE_ID_PATTERN.test(definition.essenceId)) issues.push('essenceId')
   if (!Number.isSafeInteger(definition.contentVersion) || definition.contentVersion < 1) {
     issues.push('contentVersion')
@@ -621,7 +626,12 @@ export function validateEssenceDefinition(definition: EssenceDefinition): readon
     issues.push('skill.sourceDisciplineId')
   }
   if (!definition.skill.tags.includes('essence')) issues.push('skill.tags.essence')
-  if (validateMatureSkillDefinition(definition.skill).length > 0) issues.push('skill.definition')
+  if (
+    validateMatureSkillDefinition(
+      canonical ? { ...definition.skill, ability: definition.ability } : definition.skill,
+    ).length > 0
+  )
+    issues.push('skill.definition')
   if (definition.authoring.schemaVersion !== ESSENCE_SCHEMA_VERSION) {
     issues.push('authoring.schemaVersion')
   }
@@ -662,6 +672,10 @@ function resolveLegalEssence(
   secondaryDisciplineId: string | null,
 ): EssenceDefinition | null {
   assertUsableEssence(essence)
+  if (Object.hasOwn(essence, 'ability') || Object.hasOwn(essence.skill, 'ability'))
+    return secondaryDisciplineId === null && primaryDisciplineId === essence.sourceDisciplineId
+      ? essence
+      : null
   const resolved = resolveEssenceForBuild(
     primaryDisciplineId,
     secondaryDisciplineId,
@@ -670,7 +684,16 @@ function resolveLegalEssence(
   return resolved?.essenceId === essence.essenceId ? resolved : null
 }
 
+/** Root canonical mechanics own the nested Skill envelope without flattening them. */
+export function essenceCombatSkill(definition: EssenceDefinition): MatureSkillDefinition {
+  assertUsableEssence(definition)
+  return Object.hasOwn(definition, 'ability')
+    ? { ...definition.skill, ability: definition.ability }
+    : definition.skill
+}
+
 export function evaluatePv1fEssenceSkillForAi(input: {
+  readonly options?: Pv1fMatureSkillOptions
   readonly state: StatDrivenCombatEncounterState
   readonly essence: EssenceDefinition
   readonly primaryDisciplineId: string
@@ -687,9 +710,10 @@ export function evaluatePv1fEssenceSkillForAi(input: {
 
   const evaluated = evaluatePv1fMatureSkill(
     input.state,
-    essence.skill,
+    essenceCombatSkill(essence),
     input.selection,
     input.combatContext,
+    input.options,
   )
   const actionEconomyRemaining = readPv1fActionEconomy(evaluated.prepared)?.current ?? 0
   const affordable = actionEconomyRemaining >= evaluated.cost
@@ -709,6 +733,7 @@ export function evaluatePv1fEssenceSkillForAi(input: {
 }
 
 export function executePv1fEssenceSkill(input: {
+  readonly options?: Pv1fMatureSkillOptions
   readonly state: StatDrivenCombatEncounterState
   readonly essence: EssenceDefinition
   readonly primaryDisciplineId: string
@@ -724,7 +749,13 @@ export function executePv1fEssenceSkill(input: {
   if (!resolved) {
     throw new Error('That Essence Skill is not legal for the committed Discipline build.')
   }
-  return executePv1fMatureSkill(input.state, resolved.skill, input.selection, input.combatContext)
+  return executePv1fMatureSkill(
+    input.state,
+    essenceCombatSkill(resolved),
+    input.selection,
+    input.combatContext,
+    input.options,
+  )
 }
 
 function assertUsableEssence(definition: EssenceDefinition): void {

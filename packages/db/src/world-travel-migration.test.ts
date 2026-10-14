@@ -43,6 +43,7 @@ const snapshot = {
       rulesVersion: 1,
       contentVersion: 1,
       lifecycle: 'active',
+      rng: { algorithm: 'xorshift32-v1', seed: 7, state: 7, draws: 0 },
       combatants: [
         { id: `character:${character}`, teamId: 'team:0' },
         { id: `character:${target}`, teamId: 'team:1' },
@@ -66,7 +67,8 @@ beforeAll(async () => {
  create table public.characters(id uuid primary key,user_id uuid,name text,level integer,portrait_ref text);
  create table app_private.battle_sessions(id uuid primary key,owner_user_id uuid,lifecycle text,battle_id text,rules_version int,content_version int,current_version bigint,current_snapshot jsonb,created_at timestamptz,updated_at timestamptz);
  create table app_private.battle_participants(battle_session_id uuid,user_id uuid,character_id uuid,participant_role text,combatant_id text);
- create table app_private.battle_snapshots(battle_session_id uuid,battle_version bigint,snapshot jsonb,created_at timestamptz);
+ create table app_private.battle_snapshots(battle_session_id uuid,battle_version bigint,snapshot jsonb,created_at timestamptz,primary key(battle_session_id,battle_version));
+ create table app_private.battle_events(battle_session_id uuid,battle_version bigint check(battle_version > 1),event_index integer,event jsonb,created_at timestamptz,primary key(battle_session_id,battle_version,event_index));
  create table app_private.pvp_active_spectating(user_id uuid,battle_session_id uuid);
  create table app_private.training_reports(character_id uuid,status text);
  create table app_private.wayfarers_practice_state(character_id uuid,planned_window text,plan_set_at timestamptz,planned_window_seconds bigint);
@@ -103,9 +105,13 @@ beforeAll(async () => {
       ownerGuard.lastIndexOf('commit;'),
     ),
   )
+  await db.exec(migration('20260817021718_battle_snapshot_fail_closed.sql'))
   await db.exec(migration('20260923190443_living_atlas_world_travel.sql'))
   await db.exec(migration('20260923194500_phase5_world_interactions.sql'))
   await db.exec(migration('20261011161830_world_multistep_pacing.sql'))
+  await db.exec(migration('20260916140000_battle_privacy_journal_foundation.sql'))
+  await db.exec(migration('20261010210515_captured_ability_startup_events.sql'))
+  await db.exec(migration('20261014024323_world_captured_ability_startup.sql'))
 }, 30000)
 beforeEach(async () => {
   await db.exec('begin')
@@ -128,6 +134,152 @@ async function rejected(operation: () => Promise<unknown>, message: string) {
   await expect(operation()).rejects.toThrow(message)
   await db.exec('rollback to savepoint rejected')
 }
+
+const startSnapshot = {
+  tactical: {
+    battle: {
+      ...snapshot.tactical.battle,
+      currentTurn: { combatantId: `character:${character}` },
+      combatants: snapshot.tactical.battle.combatants.map((c) => ({ ...c, hp: 10, mp: 10 })),
+    },
+  },
+}
+const finalSnapshot = {
+  ...startSnapshot,
+  abilityRuntime: { schemaVersion: 1, capturedVersion: 77 },
+  tactical: {
+    battle: {
+      ...startSnapshot.tactical.battle,
+      combatants: startSnapshot.tactical.battle.combatants.map((c) => ({ ...c, mp: 9 })),
+    },
+  },
+}
+const startupEvents = [{ event: 'mp_spent', combatantId: `character:${character}`, amount: 1 }]
+const startupJournal = {
+  schemaVersion: 1,
+  commandVisibility: { kind: 'public' },
+  eventVisibilityOverrides: [],
+}
+const startupAttack = (
+  final: unknown = finalSnapshot,
+  journal: unknown = startupJournal,
+  version = 1,
+  builds: unknown = { [character]: 1, [target]: 1 },
+) =>
+  db.query<{ result: { battleSessionId: string } }>(
+    'select public.start_world_encounter_v2($1,$2,$3,$4,1,$5,$6,$7,$8,$9) as result',
+    [owner, character, target, version, final, builds, startSnapshot, startupEvents, journal],
+  )
+
+it('atomically persists captured world startup with its real version-one receipts and journal', async () => {
+  const id = (await startupAttack()).rows[0]!.result.battleSessionId
+  const session = await db.query<{ current_snapshot: unknown; current_version: number }>(
+    'select current_snapshot,current_version from app_private.battle_sessions where id=$1',
+    [id],
+  )
+  expect(session.rows[0]).toEqual({ current_snapshot: finalSnapshot, current_version: 1 })
+  expect(
+    (
+      await db.query(
+        'select snapshot from app_private.battle_snapshots where battle_session_id=$1 and battle_version=1',
+        [id],
+      )
+    ).rows[0],
+  ).toEqual({ snapshot: finalSnapshot })
+  expect(
+    (
+      await db.query(
+        'select event from app_private.battle_events where battle_session_id=$1 order by event_index',
+        [id],
+      )
+    ).rows,
+  ).toEqual(startupEvents.map((event) => ({ event })))
+  expect(
+    (
+      await db.query(
+        'select journal from app_private.battle_privacy_journal where battle_session_id=$1',
+        [id],
+      )
+    ).rows[0],
+  ).toEqual({
+    journal: {
+      ...startupJournal,
+      actorCombatantId: `character:${character}`,
+      actorTeamId: 'team:0',
+      eventCount: 1,
+    },
+  })
+  expect(
+    (await db.query('select * from app_private.world_encounters where battle_session_id=$1', [id]))
+      .rows,
+  ).toHaveLength(1)
+  expect(
+    (
+      await db.query('select * from app_private.battle_participants where battle_session_id=$1', [
+        id,
+      ])
+    ).rows,
+  ).toHaveLength(2)
+  await rejected(() => startupAttack(), 'WORLD_STALE_VERSION')
+  expect((await db.query('select * from app_private.battle_events')).rows).toHaveLength(1)
+})
+
+it('keeps captured world creation service-only and preserves stale build and target checks', async () => {
+  const signature =
+    'public.start_world_encounter_v2(uuid,uuid,uuid,bigint,bigint,jsonb,jsonb,jsonb,jsonb,jsonb)'
+  for (const role of ['anon', 'authenticated', 'service_role']) {
+    const result = await db.query<{ allowed: boolean }>(
+      "select has_function_privilege($1,$2,'execute') allowed",
+      [role, signature],
+    )
+    expect(result.rows[0]?.allowed).toBe(role === 'service_role')
+  }
+  await rejected(() => startupAttack(undefined, undefined, 99), 'WORLD_STALE_VERSION')
+  await rejected(
+    () => startupAttack(undefined, undefined, 1, { [character]: 99, [target]: 1 }),
+    'WORLD_STALE_BUILD',
+  )
+  await db.query(
+    "update app_private.character_world_state set state=jsonb_set(state,'{safe}','true') where character_id=$1",
+    [target],
+  )
+  await rejected(() => startupAttack(), 'WORLD_TARGET_UNAVAILABLE')
+  expect((await db.query('select * from app_private.battle_sessions')).rows).toHaveLength(0)
+})
+
+it('rolls back the complete world encounter and interrupted routes when startup validation fails', async () => {
+  await commit(1, 'walk', {
+    ...initial,
+    route: [{ position: { ...initial.position, x: 6 }, durationMs: 1100 }],
+    nextStepAt: Date.now() + 60000,
+  })
+  const before = (await read()).rows[0]!.result.state
+  const wrongIdentity = structuredClone(finalSnapshot)
+  wrongIdentity.tactical.battle.battleId = 'different-battle'
+  await rejected(() => startupAttack(wrongIdentity, undefined, 2), 'BATTLE_STARTUP_INVALID')
+  await rejected(
+    () =>
+      startupAttack(
+        undefined,
+        { ...startupJournal, commandVisibility: { kind: 'team-only', teamId: 'team:missing' } },
+        2,
+      ),
+    'BATTLE_STARTUP_INVALID',
+  )
+  expect((await read()).rows[0]?.result.state).toEqual(before)
+  for (const table of [
+    'battle_sessions',
+    'battle_participants',
+    'battle_snapshots',
+    'battle_events',
+    'battle_privacy_journal',
+    'pvp_lobbies',
+    'pvp_lobby_members',
+    'world_encounters',
+  ]) {
+    expect((await db.query(`select * from app_private.${table}`)).rows).toHaveLength(0)
+  }
+})
 it('denies browser roles direct state and RPC access', async () => {
   const r = await db.query<{ allowed: boolean }>(
     "select has_function_privilege('authenticated','public.commit_world_state_v1(uuid,uuid,bigint,uuid,text,jsonb,text)','execute') allowed",

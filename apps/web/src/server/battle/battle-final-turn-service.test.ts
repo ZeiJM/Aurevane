@@ -1,4 +1,8 @@
 import { applyCurrentBurnState } from '@aurevane/game-core/combat/combat-dots'
+import * as turnEconomy from '@aurevane/game-core/combat/pv1f-action-economy'
+import { capturedMatureSkillAbilitySource } from '@aurevane/game-core/combat/combat-action-source'
+import { reconcileCombatAbilitySources } from '@aurevane/game-core/combat/combat-behavior-runtime'
+import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
 import type {
   BattleSessionRecord,
   BattleSessionRepository,
@@ -91,6 +95,151 @@ async function initialEncounter(): Promise<StatDrivenCombatEncounterState> {
 }
 
 describe('battle final-turn frozen build authority', () => {
+  it('actual final-turn CAS journals a Covert Automatic child under a public facing command', async () => {
+    const initial = await initialEncounter(),
+      actorId = `character:${CHARACTER_ID}`
+    const definition = {
+      ...resolveMatureSkillVersion('vanguard.forceful-strike')!,
+      ability: {
+        schemaVersion: 1 as const,
+        behaviors: [
+          {
+            id: 'end-heal',
+            activation: 'automatic' as const,
+            mode: 'action' as const,
+            classification: 'recovery' as const,
+            costs: [{ resource: 'mp' as const, amount: 1 }],
+            cooldown: null,
+            requirements: {
+              kind: 'event' as const,
+              eventType: 'turn_ended' as const,
+              phase: 'after' as const,
+            },
+            targeting: {
+              kind: 'self' as const,
+              teamPolicy: 'self' as const,
+              friendlyFire: 'allies-only' as const,
+              shape: { kind: 'single' as const },
+              minimumRange: 0,
+              maximumRange: 0,
+              requiresLineOfSight: false,
+              maximumElevationDifference: null,
+              maximumSelections: 1,
+            },
+            effects: [
+              {
+                id: 'heal',
+                payload: { type: 'healing' as const, recipient: 'actor' as const, amount: 1 },
+              },
+            ],
+          },
+        ],
+      },
+    }
+    const source = capturedMatureSkillAbilitySource(initial, definition)!
+    const state = reconcileCombatAbilitySources(
+      {
+        ...initial,
+        statusState: initial.statusState.map((row) =>
+          row.combatantId === actorId
+            ? {
+                ...row,
+                statuses: [
+                  {
+                    statusId: 'covert',
+                    statusVersion: 1,
+                    stacks: 1,
+                    remainingOwnerTurnStarts: 2,
+                    sourceCombatantId: actorId,
+                  },
+                ],
+              }
+            : row,
+        ),
+      },
+      [source],
+    ) as StatDrivenCombatEncounterState
+    const repository: BattleSessionRepository = {
+      createBattleSession: vi.fn(),
+      findBattleIntentReplay: vi.fn(),
+      findBattleSession: vi.fn(async () => ({
+        battleSessionId: SESSION_ID,
+        battleId: state.tactical.battle.battleId,
+        battleVersion: 1,
+        rulesVersion: state.tactical.battle.rulesVersion,
+        contentVersion: state.tactical.battle.contentVersion,
+        lifecycle: state.tactical.battle.lifecycle,
+        snapshot: JSON.parse(JSON.stringify(state)),
+        controlledCombatantIds: [actorId],
+        updatedAt: CREATED_AT,
+      })),
+      commitBattleIntent: vi.fn(async (input) => ({
+        replayed: false,
+        result: {
+          battleSessionId: SESSION_ID,
+          battleVersion: 2,
+          snapshot: input.nextSnapshot,
+          committedAt: CREATED_AT,
+        },
+      })),
+    }
+    await createBattleFinalTurnService(repository).commitFinalTurn({
+      userId: USER_ID,
+      battleSessionId: SESSION_ID,
+      expectedBattleVersion: 1,
+      facing: 'east',
+      idempotencyKey: '55555555-5555-4555-8555-555555555555',
+    })
+    const commit = vi.mocked(repository.commitBattleIntent).mock.calls[0]![0]
+    const hidden = commit.events.flatMap((event, eventIndex) =>
+      (event as { sourceCommandVisibility?: unknown }).sourceCommandVisibility ? [eventIndex] : [],
+    )
+    expect(hidden.length).toBeGreaterThan(0)
+    expect(commit.privacyJournal).toMatchObject({ commandVisibility: { kind: 'public' } })
+    for (const eventIndex of hidden)
+      expect(commit.privacyJournal!.eventVisibilityOverrides).toContainEqual({
+        eventIndex,
+        visibility: {
+          kind: 'team-only',
+          teamId: state.tactical.battle.combatants.find((unit) => unit.id === actorId)!.teamId,
+        },
+      })
+  })
+  it('actual facing preview checks legality without executing a turn or its Automatic/RNG boundaries', async () => {
+    const state = await initialEncounter()
+    const before = JSON.stringify(state)
+    const repository: BattleSessionRepository = {
+      createBattleSession: vi.fn(),
+      findBattleIntentReplay: vi.fn(),
+      commitBattleIntent: vi.fn(),
+      findBattleSession: vi.fn(async () => ({
+        battleSessionId: SESSION_ID,
+        battleId: state.tactical.battle.battleId,
+        battleVersion: 1,
+        rulesVersion: state.tactical.battle.rulesVersion,
+        contentVersion: state.tactical.battle.contentVersion,
+        lifecycle: state.tactical.battle.lifecycle,
+        snapshot: state,
+        controlledCombatantIds: [`character:${CHARACTER_ID}`],
+        updatedAt: CREATED_AT,
+      })),
+    }
+    const boundary = vi.spyOn(turnEconomy, 'finishPv1fTurn')
+    try {
+      const preview = await createBattleFinalTurnService(repository).previewFinalTurn({
+        userId: USER_ID,
+        battleSessionId: SESSION_ID,
+        expectedBattleVersion: 1,
+        facing: 'east',
+      })
+      expect(preview.legal).toBe(true)
+      expect(boundary).not.toHaveBeenCalled()
+      expect(repository.commitBattleIntent).not.toHaveBeenCalled()
+      expect(JSON.stringify(state)).toBe(before)
+    } finally {
+      boundary.mockRestore()
+    }
+  })
   it('preserves buildAuthority and buildBridge when ending the player turn', async () => {
     const unburned = await initialEncounter()
     const actor = `character:${CHARACTER_ID}`

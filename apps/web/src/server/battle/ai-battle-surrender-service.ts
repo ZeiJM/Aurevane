@@ -1,6 +1,8 @@
 import 'server-only'
+import { buildBattlePrivacyJournalInput } from './battle-history-privacy'
 
 import { createHash } from 'node:crypto'
+import { refreezeCapturedCombatAbilityState } from '@aurevane/game-core/combat/combat-behavior-runtime'
 
 import {
   isPvpQualityEncounter,
@@ -28,7 +30,7 @@ function readEncounter(value: unknown): StatDrivenCombatEncounterState {
   const state = value as StatDrivenCombatEncounterState
   const issues = validateStatDrivenCombatEncounterState(state)
   if (issues.length > 0) throw unavailable('The stored AI battle state is invalid.')
-  return state
+  return refreezeCapturedCombatAbilityState(state)
 }
 
 function translateSurrenderEvents(events: readonly unknown[]): readonly unknown[] {
@@ -109,6 +111,7 @@ export async function surrenderAiBattle(
     resolvedState = resolved.state
     surrenderEvents.push(...resolved.events)
   }
+  const events = translateSurrenderEvents(surrenderEvents)
   const committed = await repository.commitBattleIntent({
     actorKey: userId,
     idempotencyKey,
@@ -117,9 +120,16 @@ export async function surrenderAiBattle(
     battleSessionId,
     expectedBattleVersion,
     nextSnapshot: resolvedState,
-    events: translateSurrenderEvents(surrenderEvents),
+    events,
 
-    privacyJournal: null,
+    privacyJournal: state.capturedAbilitySources?.length
+      ? buildBattlePrivacyJournalInput({
+          before: state,
+          after: resolvedState,
+          commandKind: 'system',
+          events,
+        })
+      : null,
   })
 
   return projectCommittedBattleSession(committed, current.controlledCombatantIds)
