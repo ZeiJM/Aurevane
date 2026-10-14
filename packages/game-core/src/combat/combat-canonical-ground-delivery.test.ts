@@ -250,3 +250,126 @@ it('derives Ground area delivery from the out-of-turn Automatic owner, not the c
   )
   expect(out.state.tactical.battle.combatants.find((u) => u.id === 'other')!.mp).toBe(19)
 })
+
+it.each([{ kind: 'line', length: 3 }, { kind: 'circle', radius: 3 }, { kind: 'all' }] as const)(
+  'preserves Ground-only area admission for %j across envelope aliases and delayed storage',
+  (shape) => {
+    for (const kind of ['unit', 'ground-tile'] as const) {
+      for (const timing of ['instant', 'next-round'] as const) {
+        const captured = captureCombatAbilitySource(
+          source({
+            targeting: {
+              ...source().definition.behaviors[0]!.targeting!,
+              geometryVersion: 3,
+              categories: ['enemy', 'ground'],
+              friendlyFire: 'all-units',
+              kind,
+              shape,
+              minimumRange: 0,
+              maximumRange: shape.kind === 'all' ? 0 : 3,
+            },
+            effects: [
+              {
+                id: 'hit',
+                timing,
+                payload: { type: 'damage', recipient: 'affected-units', amount: 10 },
+              },
+            ],
+          }),
+        )
+        const base = {
+          ...preparePv1fTurnEconomy(percentageDotEncounter()),
+          airbornePolicyVersion: 1 as const,
+        }
+        const state = reconcileCombatAbilitySources(
+          {
+            ...base,
+            tactical: {
+              ...base.tactical,
+              placements: base.tactical.placements.map((p) => ({
+                ...p,
+                position:
+                  p.combatantId === 'ally'
+                    ? { x: 2, y: 1 }
+                    : p.combatantId === 'enemy'
+                      ? { x: 3, y: 1 }
+                      : p.combatantId === 'other'
+                        ? { x: 4, y: 1 }
+                        : p.position,
+              })),
+            },
+            statusState: base.statusState.map((row) =>
+              timing === 'instant' && ['ally', 'enemy'].includes(row.combatantId)
+                ? {
+                    ...row,
+                    statuses: [
+                      {
+                        statusId: 'airborne',
+                        statusVersion: 1,
+                        stacks: 1,
+                        remainingOwnerTurnStarts: 2,
+                        sourceCombatantId: 'actor',
+                      },
+                    ],
+                  }
+                : row,
+            ),
+          },
+          [captured],
+        )
+        const selection: CombatTargetSelection =
+          shape.kind === 'line' ? { kind: 'direction', direction: 'east' } : { kind: 'activate' }
+        const input = {
+          state,
+          actorId: 'actor',
+          root: { kind: 'canonical' as const, source: captured },
+          selection,
+          content: PV1F_COMBAT_CONTENT,
+          context: combatAbilityCommandContext(state, captured),
+        }
+        expect(prepareCombatAbilityCommand(input).evaluation.affectedCombatantIds).toEqual([
+          'ally',
+          'enemy',
+          'other',
+        ])
+        const cast = commitCombatAbilityCommand(input)
+        const events: unknown[] = [...cast.events]
+        let next = reattachStatDrivenCombatBridge(
+          JSON.parse(JSON.stringify(cast.state)) as CombatEncounterState,
+          base.statBridge,
+        )
+        if (timing === 'next-round') {
+          next = {
+            ...next,
+            statusState: next.statusState.map((row) =>
+              ['ally', 'enemy'].includes(row.combatantId)
+                ? {
+                    ...row,
+                    statuses: [
+                      {
+                        statusId: 'airborne',
+                        statusVersion: 1,
+                        stacks: 1,
+                        remainingOwnerTurnStarts: 2,
+                        sourceCombatantId: 'actor',
+                      },
+                    ],
+                  }
+                : row,
+            ),
+          }
+          expect(next.pendingEffects![0]!.groundTargetedRecipientIds).toEqual(['ally'])
+          for (let turn = 0; turn < 4; turn++) {
+            const advanced = finishPv1fTurn(next, 'west')
+            next = advanced.state
+            events.push(...advanced.events)
+          }
+        }
+        expect(damageIds(events)).toEqual(['enemy', 'other'])
+        expect(next.tactical.battle.combatants.find((unit) => unit.id === 'ally')!.hp).toBe(1000)
+        expect(next.tactical.battle.combatants.find((unit) => unit.id === 'actor')!.mp).toBe(18)
+        expect(next.tactical.battle.combatants.find((unit) => unit.id === 'actor')!.hp).toBe(999)
+      }
+    }
+  },
+)

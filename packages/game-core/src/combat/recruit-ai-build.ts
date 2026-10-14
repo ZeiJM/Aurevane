@@ -2,7 +2,10 @@ import { prepareCombatAbilityCommand, commitCombatAbilityCommand } from './comba
 import { combatAbilityCommandContext } from './combat-behavior-runtime'
 import type { CapturedCombatAbilitySource } from './combat-behavior-capture'
 import { outgoingSuppressionBasisPoints } from './combat-suppress'
-import { enumerateCombatTargetSelections } from './combat-targeting-shapes'
+import {
+  canonicalAbilityTargetSpec,
+  enumerateCombatTargetSelections,
+} from './combat-targeting-shapes'
 import { buildCombatAiPluralSelection } from './combat-ai-plural-selection'
 import { terrainOverlayAiUtility, terrainOverlayAt } from './terrain-overlays'
 import { combatStatusDetails } from './status-content'
@@ -203,12 +206,11 @@ function canonicalSkillCandidates(
           return []
         }
       }
-      const candidates = enumerateCombatTargetSelections(
-        prepared,
-        actorId,
-        behavior.targeting,
-      ).flatMap(evaluate)
-      const plural = buildCombatAiPluralSelection(behavior.targeting, candidates)
+      const targeting = canonicalAbilityTargetSpec(behavior.targeting)
+      const candidates = enumerateCombatTargetSelections(prepared, actorId, targeting).flatMap(
+        evaluate,
+      )
+      const plural = buildCombatAiPluralSelection(targeting, candidates)
       return plural ? [...candidates, ...evaluate(plural)] : candidates
     }),
   )

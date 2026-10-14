@@ -610,3 +610,84 @@ it('archived truth and usage survive JSON removal/readd without resetting once-p
     first.state.tactical.battle.combatants.find((row) => row.id === 'actor')!.mp,
   )
 })
+
+it('keeps parent selected trigger Requirements separate from child Self effect gates', () => {
+  const { captured: original } = stateAuto({
+    kind: 'all',
+    children: [
+      { kind: 'event', eventType: 'healing_applied', phase: 'after' },
+      {
+        kind: 'resource-state',
+        subject: 'selected',
+        resource: 'hp',
+        comparison: 'at-most',
+        amount: 500,
+      },
+    ],
+  })
+  const captured = captureCombatAbilitySource({
+    ...original,
+    definition: {
+      schemaVersion: 1,
+      behaviors: [
+        {
+          ...original.definition.behaviors[0]!,
+          costs: [{ resource: 'mp', amount: 1 }],
+          effects: [
+            {
+              id: 'heal',
+              requirements: {
+                kind: 'resource-state',
+                subject: 'selected',
+                resource: 'hp',
+                comparison: 'at-least',
+                amount: 800,
+              },
+              payload: { type: 'healing', recipient: 'actor', amount: 1 },
+            },
+          ],
+        },
+      ],
+    },
+  })
+  const base = hp(percentageDotEncounter(), 800)
+  const state = reconcileCombatAbilitySources(
+    {
+      ...base,
+      tactical: {
+        ...base.tactical,
+        battle: {
+          ...base.tactical.battle,
+          combatants: base.tactical.battle.combatants.map((unit) =>
+            unit.id === 'enemy' ? { ...unit, hp: 400 } : unit,
+          ),
+        },
+      },
+    },
+    [captured],
+  )
+  const context = combatAbilityCommandContext(state, captured)
+  const session = createCombatAbilityEventSession(context.triggerGuard)
+  const mutation = captureCombatAbilityMutation(state, state, 'parent-heal-selected', session, {
+    events: [{ type: 'healing_applied', phase: 'after' }],
+    selectedCombatantId: 'enemy',
+    affectedCombatantIds: ['enemy'],
+    resourceMutations: [],
+  })
+  const child = processCombatAbilityEvent(
+    mutation.state,
+    mutation.frame,
+    PV1F_COMBAT_CONTENT,
+    context,
+    session,
+    0,
+    commitCombatAbilityCommand,
+  )
+  expect(child.events).toContainEqual(
+    expect.objectContaining({ event: 'healing_applied', targetCombatantId: 'actor', amount: 1 }),
+  )
+  const actor = child.state.tactical.battle.combatants.find((unit) => unit.id === 'actor')!
+  expect(actor.hp).toBe(801)
+  expect(actor.mp).toBe(19)
+  expect(child.state.tactical.battle.combatants.find((unit) => unit.id === 'enemy')!.hp).toBe(400)
+})

@@ -1027,6 +1027,7 @@ export function elementalActionIntent<T extends CombatActionDefinition>(
 ): T {
   if (action.target.geometryVersion === 3) {
     const actorId = executionActorId ?? state.tactical.battle.currentTurn?.combatantId
+    const actor = state.tactical.battle.combatants.find((unit) => unit.id === actorId)
     const choices = selection.kind === 'selections' ? selection.selections : [selection]
     const directIds = new Set(
       choices.flatMap((choice) =>
@@ -1038,19 +1039,22 @@ export function elementalActionIntent<T extends CombatActionDefinition>(
       ),
     )
     let groundTiles = choices.flatMap((choice) => (choice.kind === 'tile' ? [choice.position] : []))
+    const area = selection.kind === 'direction' || selection.kind === 'activate'
+    const forcedGround = area && selection.ground === true
     if (
-      (selection.kind === 'direction' || selection.kind === 'activate') &&
+      area &&
       actorId &&
-      (selection.ground === true ||
-        action.target.kind === 'ground-tile' ||
-        action.target.kind === 'empty-tile' ||
-        combatTargetCategories(action.target).every((category) => category === 'ground'))
+      (forcedGround || combatTargetCategories(action.target).includes('ground'))
     ) {
       const origin = state.tactical.placements.find((p) => p.combatantId === actorId)?.position
       if (origin)
         groundTiles = [
           ...resolveCombatTargetFootprint(state.tactical, origin, action.target, selection),
         ]
+      // Unit categories take priority over overlapping Ground admission unless Ground was chosen explicitly.
+      if (!forcedGround && actor)
+        for (const unit of state.tactical.battle.combatants)
+          if (combatTargetUnitCategoryAllowed(action.target, actor, unit)) directIds.add(unit.id)
     }
     return {
       ...action,

@@ -146,3 +146,39 @@ Current covering controller39 tests, web/DB types and affected lint pass.
 Remote56348580 complete CI Quality/Database and Skill Engine/Shared Build/Essence
 workflows pass; Browser fails at the intended stale-selection RED. Complete CI
 on the controller correction and storage-test head remains required.
+
+
+## Bounded correction review — remaining engine fixes
+
+The native14-case matrix passes on0861aa6e67939d1add2b142fcc90297ae260d797
+(including the observed stale-update correction). Full Browser smoke remains
+running; this does not substitute for final exact-head combined acceptance.
+Independent correction reviewer found three further Important engine defects.
+All three were reproduced on valid definitions before implementation:
+
+- Recruit AI enumerated raw omitted-marker canonical geometry; valid Line,
+  Circle and All lost their action candidates. It now uses the same canonical
+  geometry default before enumeration and plural selection. Tests compare
+  explicit geometry2 to omitted captures after JSON reconnection, then execute
+  the chosen actual AI command without mutating the original capture.
+- A mixed area admitted an Airborne ally only through Ground, then damaged it
+  because no Ground delivery metadata existed. Unit categories now win their
+  overlapping admissions; Ground-only recipients keep Ground delivery regardless
+  of the obsolete envelope kind. Explicit Ground choice still targets the whole
+  selected Ground footprint. Line/Circle/All, both envelope aliases, instant and
+  delayed/storage cases cover the boundary, including late Airborne activation.
+- Automatic root Requirements were reevaluated with the child's selected Self,
+  overriding the parent's immutable trigger frame. Root Automatic predicates now
+  keep that parent frame; Manual plural predicates still check every selected
+  subject. The actual capture/process/commit regression requires parent enemyHP400
+  while the child Self effect gate separately requires ownerHP800, then heals
+  the owner and pays once without changing the enemy.
+
+Focused covering119/5 and complete core3006/155 pass; current core types/lint
+pass and complete DB94/15 passes again. Complete current web2443/293 and Node7/7 pass. Native new-head and combined CI
+remain pending. The bounded review fix pass is verified by RED/GREEN and the
+full suites; no additional rereview loop is required. Initial test payloads
+with out-of-budget Damage40, invalid All range and wrong requirement child key
+were fixture errors repaired to valid definitions; delayed test now activates
+Airborne after cast so provenance is genuinely exercised rather than pruned
+already-missed recipients. No validator or assertion was weakened.
