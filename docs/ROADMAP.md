@@ -21,4 +21,4 @@
 🔥 **Now:** smooth live World/PvP → finish P5 → recover/verify modular Skill engine + Master Panel overhaul → build co-op.
 📌 **Built ≠ deployed ≠ accepted.** Early-delivered features count, but don't close later phases.
 
-Full detailed requirements: [preserved roadmap](ROADMAP_DETAILED_2026-10-13.md). [Evidence/status audit](ROADMAP_AUDIT_2026-10-13.md).
+📚 [Full plan](ROADMAP_DETAILED_2026-10-13.md) · [Audit](ROADMAP_AUDIT_2026-10-13.md)
