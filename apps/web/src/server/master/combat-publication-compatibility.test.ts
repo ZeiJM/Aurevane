@@ -70,10 +70,11 @@ it('publishes compatible content only through the catalogue-CAS writer with its 
   })
   expect(f.writes).toEqual([
     {
-      name: 'publish_combat_content_v2',
+      name: 'publish_combat_content_v3',
       parameters: expect.objectContaining({
         p_expected_catalogue_token: token,
         p_definition: f.skill,
+        p_version_floor: f.skill.contentVersion,
       }),
     },
   ])
@@ -108,7 +109,7 @@ it('accepts the same custom Skill with an actual compatible captured Manual beha
   })
   expect(f.writes).toEqual([
     {
-      name: 'publish_combat_content_v2',
+      name: 'publish_combat_content_v3',
       parameters: expect.objectContaining({ p_expected_catalogue_token: token }),
     },
   ])
@@ -136,7 +137,7 @@ it('passes the validated token on a compatible history change and maps a concurr
     },
   ])
   const racingRpc = async (name: string, parameters: Readonly<Record<string, unknown>>) =>
-    name === 'publish_combat_content_v2'
+    name === 'publish_combat_content_v3'
       ? { data: null, error: { code: '40001', message: 'COMBAT_CONTENT_CATALOGUE_CONFLICT' } }
       : f.rpc(name, parameters)
   const racing = new RpcCombatContentAuthoringStore(racingRpc, actor)
@@ -183,7 +184,7 @@ it('publishes compatible timing through the same catalogue-CAS boundary and pres
 
 it('fails closed when the snapshot or guarded writer is unavailable, without retrying a legacy write', async () => {
   const f = fixture()
-  for (const unavailable of ['read_combat_content_catalogue_v1', 'publish_combat_content_v2']) {
+  for (const unavailable of ['read_combat_content_catalogue_v1', 'publish_combat_content_v3']) {
     const attempts: string[] = []
     const rpc = async (name: string, parameters: Readonly<Record<string, unknown>>) => {
       attempts.push(name)
@@ -202,6 +203,7 @@ it('fails closed when the snapshot or guarded writer is unavailable, without ret
       }),
     ).rejects.toMatchObject({ code: 'PERSISTENCE_UNAVAILABLE' })
     expect(attempts).not.toContain('publish_combat_content_v1')
+    expect(attempts).not.toContain('publish_combat_content_v2')
     expect(f.writes).toEqual([])
   }
 })

@@ -302,6 +302,14 @@ export function currentResonanceDefinitions(): readonly AnyResonanceDefinition[]
   return [...latest.values()]
 }
 
+/** Publication numbering reserves disabled shipped history as well as current definitions. */
+export function highestBuiltinResonanceVersion(resonanceId: string): number | null {
+  const versions = CURRENT_RESONANCE_REGISTRY.filter((row) => row.id === resonanceId).map(
+    (row) => row.contentVersion,
+  )
+  return versions.length ? Math.max(...versions) : null
+}
+
 export function resolveResonanceForPair(
   primaryDisciplineId: string,
   secondaryDisciplineId: string | null,

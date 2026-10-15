@@ -46,6 +46,7 @@ const ability = parseAbilityDefinition({
   ],
 })
 function assertCanonicalEditor(html: string) {
+  expect(html).toMatch(/Next publish<\/dt><dd>v51<\/dd>/)
   for (const label of [
     'Group activation',
     'Group mode',
@@ -80,6 +81,7 @@ it('edits canonical Skill groups instead of the stale native economy and effect 
             id: definition.id,
             sourceDisciplineId: definition.sourceDisciplineId,
             label: 'Leap',
+            versionFloor: 50,
             currentVersion: definition.contentVersion,
             baseVersion: definition.contentVersion,
             draftVersion: null,
@@ -102,6 +104,7 @@ it('uses the same canonical editor for Essence mechanics while retaining the sou
           {
             id: definition.essenceId,
             label: definition.name,
+            versionFloor: 50,
             sourceDisciplineId: definition.sourceDisciplineId,
             currentVersion: definition.contentVersion,
             baseVersion: definition.contentVersion,
@@ -123,6 +126,7 @@ it('edits canonical Resonance groups without entering the legacy combo editor', 
         {
           id: definition.id,
           label: definition.name,
+          versionFloor: 50,
           disciplinePair: definition.disciplinePair,
           currentVersion: definition.contentVersion,
           baseVersion: definition.contentVersion,

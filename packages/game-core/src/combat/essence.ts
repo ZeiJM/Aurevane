@@ -643,6 +643,14 @@ export function validateEssenceDefinition(definition: EssenceDefinition): readon
   return issues
 }
 
+/** Publication numbering reserves disabled shipped history as well as current definitions. */
+export function highestBuiltinEssenceVersion(essenceId: string): number | null {
+  const versions = CURRENT_ESSENCE_REGISTRY.filter((row) => row.essenceId === essenceId).map(
+    (row) => row.contentVersion,
+  )
+  return versions.length ? Math.max(...versions) : null
+}
+
 export function resolveEssenceForBuild(
   primaryDisciplineId: string,
   secondaryDisciplineId: string | null,

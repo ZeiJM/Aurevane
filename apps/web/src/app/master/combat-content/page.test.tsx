@@ -144,6 +144,7 @@ it('keeps an explicitly older current Skill and the builtin history without inve
   )
   const { props } = await pageProps()
   const option = props.skills.find((row) => row.id === native.id)!
+  expect(option.versionFloor).toBe(native.contentVersion)
   expect(option.definition).toEqual(older)
   expect(option.history).toEqual(
     expect.arrayContaining([

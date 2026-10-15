@@ -12,9 +12,11 @@ Protected production callers/signatures:
 
 | Caller | RPC | Parameters |
 | --- | --- | --- |
-| RpcCombatContentAuthoringStore.publish | publish_combat_content_v2 | actor UUID, key, kind, full definition JSONB, expected base integer/null, expected catalogue token |
+| RpcCombatContentAuthoringStore.publish | publish_combat_content_v3 | actor UUID, key, kind, full definition JSONB, expected base integer/null, expected catalogue token, trusted shipped-version floor integer/null |
 | RpcCombatContentAuthoringStore.setCurrentPublication | set_combat_content_publication_v2 | actor UUID, key, kind, target integer/null, expected catalogue token |
 | publishCombatEffectTimingPolicy | publish_combat_effect_timing_policy_v2 | actor UUID, expected timing version, modes JSONB, expected catalogue token |
+
+The October15 version-floor follow-up supersedes the content v2 caller with v3 and revokes service access to v2 through additive migration `20261015191634_combat_content_version_floor.sql`. Catalogue-token validation, actual operator authorization and selected-base CAS remain required. The original v2 evidence below records its earlier checkpoint; current allocation and tested release coordination are in `2026-10-15-combat-publication-version-floor.md`. Neither migration is applied to production by this draft work.
 
 The token is an optimistic concurrency comparison, not authorization or a SQL Ability compiler. Semantic validation remains in the trusted server; database wrappers retain actual operator/Owner checks and reject a publication/policy change occurring after that validation. Missing snapshot/writer migrations fail closed without falling back to old writers. A catalogue conflict maps to a specific refresh error. The future full-record restore-to-draft workflow and explicit editor-observed CAS for all history choices are still pending; the current history UI's target-only request is not represented as already migrated. Builtin changes between software releases still need the release/integration gate; this DB token does not fingerprint deployed application binaries. Applying the writer migration must be coordinated with code deployment because older Master writer calls will then be denied.
 

@@ -32,6 +32,7 @@ export interface BasicContentEditorOption {
   readonly id: BasicSkillDefinition['id']
   readonly label: string
   readonly currentVersion: number
+  readonly versionFloor?: number | null
   readonly baseVersion: number | null
   readonly draftVersion: number | null
   readonly definition: BasicSkillDefinition
@@ -435,7 +436,11 @@ export function BasicContentEditor({
           className={basicStyles.panel}
           contentKey={selected.id}
           baseVersion={record.currentVersion}
-          nextVersion={nextCombatContentVersion(record.currentVersion, record.history)}
+          nextVersion={nextCombatContentVersion(
+            record.currentVersion,
+            record.history,
+            selected.versionFloor,
+          )}
           validation={record.validation}
           diff={record.diff}
           preview={record.preview}

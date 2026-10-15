@@ -41,6 +41,7 @@ export interface CombatContentEditorSkillOption {
   readonly sourceDisciplineId: string
   readonly label: string
   readonly currentVersion: number
+  readonly versionFloor?: number | null
   readonly baseVersion: number | null
   readonly draftVersion: number | null
   readonly derivedTags: readonly string[]
@@ -207,7 +208,7 @@ export function CombatContentEditor({ skills, initialSkillId }: CombatContentEdi
     selectedSkill?.currentVersion ??
     1
   const selectedNextVersion = selectedSkill
-    ? nextCombatContentVersion(selectedCurrentVersion, selectedHistory)
+    ? nextCombatContentVersion(selectedCurrentVersion, selectedHistory, selectedSkill.versionFloor)
     : 1
   const busy = selectedSkill ? busySkillId === selectedSkill.id : false
   const displayedTags =

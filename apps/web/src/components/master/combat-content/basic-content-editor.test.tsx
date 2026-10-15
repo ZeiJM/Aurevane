@@ -23,6 +23,14 @@ const basics = defaultBasicSkills().map((definition) => ({
   ],
 }))
 beforeEach(() => vi.clearAllMocks())
+it('displays the next Basic version above the server-projected shipped-history floor', () => {
+  const markup = renderToStaticMarkup(
+    createElement(BasicContentEditor, {
+      basics: basics.map((row) => ({ ...row, versionFloor: 50 })),
+    }),
+  )
+  expect(markup).toMatch(/Next publish<\/dt><dd>v51<\/dd>/)
+})
 it('provides every Basic and auxiliary option in the actual combat workspace', () => {
   const markup = renderToStaticMarkup(
     createElement(CombatContentAuthoringWorkspace, {

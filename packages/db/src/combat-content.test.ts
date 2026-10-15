@@ -16,6 +16,55 @@ const skillDefinition = (name: string, ap = 2): CombatContentDefinition => ({
 })
 
 describe('InMemoryCombatContentRepository', () => {
+  it('allocates above the shipped-version floor without confusing it with current-pointer CAS', async () => {
+    const repository = new InMemoryCombatContentRepository()
+    const input = {
+      contentKey: 'owner.skill',
+      contentKind: 'skill' as const,
+      definition: skillDefinition('Owner'),
+      actorUserId: ACTOR,
+      expectedBaseVersion: null,
+    }
+    const first = await repository.publish(input)
+    const next = await repository.publish({
+      ...input,
+      expectedBaseVersion: first.contentVersion,
+      versionFloor: 8,
+    })
+    expect(next.contentVersion).toBe(9)
+    expect((await repository.listPublishedVersions(input.contentKey))[0]).toEqual(first)
+    await expect(
+      repository.publish({ ...input, expectedBaseVersion: first.contentVersion, versionFloor: 20 }),
+    ).rejects.toThrow('Expected published base version')
+    await repository.setCurrentPublication(input.contentKey, first.contentVersion, ACTOR)
+    expect(
+      (
+        await repository.publish({
+          ...input,
+          expectedBaseVersion: first.contentVersion,
+          versionFloor: 3,
+        })
+      ).contentVersion,
+    ).toBe(10)
+  })
+  it.each([0, -1, 1.5, 2147483647, Number.MAX_SAFE_INTEGER])(
+    'rejects invalid or exhausted publication floor %s without changing history',
+    async (versionFloor) => {
+      const repository = new InMemoryCombatContentRepository()
+      await expect(
+        repository.publish({
+          contentKey: 'owner.skill',
+          contentKind: 'skill',
+          definition: skillDefinition('Owner'),
+          actorUserId: ACTOR,
+          expectedBaseVersion: null,
+          versionFloor,
+        }),
+      ).rejects.toBeInstanceOf(CombatContentConflictError)
+      expect(await repository.listPublishedVersions('owner.skill')).toEqual([])
+      expect(await repository.findPublished('owner.skill')).toBeNull()
+    },
+  )
   it('saves mutable drafts with optimistic draft versions', async () => {
     const repository = new InMemoryCombatContentRepository()
 

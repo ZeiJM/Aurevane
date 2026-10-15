@@ -229,6 +229,50 @@ function invalidVariant(mutator: (definition: Record<string, unknown>) => void):
 }
 
 describe('combat content authoring service', () => {
+  it.each(['skill', 'essence', 'resonance'] as const)(
+    'allocates a new %s version above newer built-ins while preserving the selected Owner override',
+    async (kind) => {
+      const { store, service } = serviceFixture()
+      store.operators.set(OWNER, 'owner')
+      const base =
+        kind === 'skill' ? staticSkill() : kind === 'essence' ? staticEssence() : staticResonance()
+      const key = 'essenceId' in base ? base.essenceId : base.id
+      // Simulate an Owner publication retained while the shipped catalogue advances.
+      const previous = await store.repository.publish({
+        contentKey: key,
+        contentKind: kind,
+        definition: base as unknown as Record<string, unknown>,
+        expectedBaseVersion: null,
+        actorUserId: OWNER,
+      })
+      expect(previous.contentVersion).toBeLessThan(base.contentVersion)
+      const input = {
+        actorUserId: OWNER,
+        definition: previous.definition,
+        expectedBaseVersion: previous.contentVersion,
+      }
+      const next =
+        kind === 'skill'
+          ? await service.publishSkill(input)
+          : kind === 'essence'
+            ? await service.publishEssence(input)
+            : await service.publishResonance(input)
+      expect(next.contentVersion).toBeGreaterThan(base.contentVersion)
+      expect(
+        (await store.listPublishedVersions(key)).find(
+          (row) => row.contentVersion === previous.contentVersion,
+        ),
+      ).toEqual(previous)
+      expect(await store.findPublished(key)).toEqual(next)
+      await expect(
+        kind === 'skill'
+          ? service.publishSkill(input)
+          : kind === 'essence'
+            ? service.publishEssence(input)
+            : service.publishResonance(input),
+      ).rejects.toMatchObject({ code: 'STALE_VERSION' })
+    },
+  )
   it('reconciles a historical published custom DoT through the existing expected-version authority', async () => {
     const { store, service } = serviceFixture()
     store.operators.set(OWNER, 'owner')

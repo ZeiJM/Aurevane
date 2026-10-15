@@ -38,6 +38,7 @@ export interface EssenceContentEditorOption {
   readonly sourceDisciplineId: string
   readonly label: string
   readonly currentVersion: number
+  readonly versionFloor?: number | null
   readonly baseVersion: number | null
   readonly draftVersion: number | null
   readonly derivedTags: readonly string[]
@@ -143,7 +144,7 @@ export function EssenceContentEditor({ essences, initialEssenceId }: EssenceCont
   const selectedCurrentVersion =
     selectedHistory.find((entry) => entry.current)?.contentVersion ?? selected?.currentVersion ?? 1
   const selectedNextVersion = selected
-    ? nextCombatContentVersion(selectedCurrentVersion, selectedHistory)
+    ? nextCombatContentVersion(selectedCurrentVersion, selectedHistory, selected.versionFloor)
     : 1
   const busy = selected ? busyId === selected.id : false
   const displayedTags =

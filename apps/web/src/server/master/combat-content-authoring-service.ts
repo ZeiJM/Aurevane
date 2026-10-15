@@ -49,6 +49,7 @@ import { AurevaneError } from '@aurevane/game-core/errors'
 
 import type { CombatContentResolver } from '@/server/combat/combat-content-resolver'
 import { isRegisteredSkillAudioCueHook, isRegisteredSkillIconHook } from '@/media/skill-media-hooks'
+import { builtinCombatContentVersionFloor } from './combat-content-version-floor'
 
 import {
   previewCombatContentDefinition,
@@ -658,6 +659,7 @@ export function createCombatContentAuthoringService({
           contentKind: 'skill',
           definition: structuredClone(definition) as unknown as CombatContentDefinition,
           expectedBaseVersion: input.expectedBaseVersion,
+          versionFloor: builtinCombatContentVersionFloor('skill', definition.id),
           actorUserId: input.actorUserId,
         })
       } catch (error) {
@@ -765,6 +767,7 @@ export function createCombatContentAuthoringService({
           contentKind: 'essence',
           definition: structuredClone(definition) as unknown as CombatContentDefinition,
           expectedBaseVersion: input.expectedBaseVersion,
+          versionFloor: builtinCombatContentVersionFloor('essence', definition.essenceId),
           actorUserId: input.actorUserId,
         })
       } catch (error) {
@@ -861,6 +864,7 @@ export function createCombatContentAuthoringService({
           contentKind: 'resonance',
           definition: structuredClone(definition) as unknown as CombatContentDefinition,
           expectedBaseVersion: input.expectedBaseVersion,
+          versionFloor: builtinCombatContentVersionFloor('resonance', definition.id),
           actorUserId: input.actorUserId,
         })
       } catch (error) {

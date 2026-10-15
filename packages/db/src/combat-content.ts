@@ -46,6 +46,8 @@ export interface PublishCombatContentInput {
   readonly contentKind: CombatContentKind
   readonly definition: CombatContentDefinition
   readonly expectedBaseVersion: number | null
+  /** Trusted shipped history; independent of the selected current publication. */
+  readonly versionFloor?: number | null
   readonly actorUserId: string
 }
 
@@ -178,6 +180,7 @@ export class InMemoryCombatContentRepository implements CombatContentRepository 
 
   async publish(input: PublishCombatContentInput): Promise<CombatContentVersionRecord> {
     assertOptionalPositiveVersion(input.expectedBaseVersion, 'Expected base version')
+    assertOptionalPositiveVersion(input.versionFloor ?? null, 'Publication version floor')
     const versions = this.#versions.get(input.contentKey) ?? []
     const publication = this.#publications.get(input.contentKey)
     const current = publication
@@ -206,7 +209,17 @@ export class InMemoryCombatContentRepository implements CombatContentRepository 
       (highest, version) => Math.max(highest, version.contentVersion),
       0,
     )
-    const nextVersion = Math.max(highestStoredVersion, input.expectedBaseVersion ?? 0) + 1
+    const highestVersion = Math.max(
+      highestStoredVersion,
+      input.expectedBaseVersion ?? 0,
+      input.versionFloor ?? 0,
+    )
+    if (highestVersion >= 2_147_483_647)
+      throw new CombatContentConflictError(
+        'COMBAT_CONTENT_VERSION_INVALID',
+        'Publication version is exhausted.',
+      )
+    const nextVersion = highestVersion + 1
     const now = new Date().toISOString()
     const version: CombatContentVersionRecord = {
       id: randomUUID(),

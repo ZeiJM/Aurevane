@@ -17,6 +17,7 @@ import {
   resolveCombatContentCatalogueSnapshot,
 } from '@/server/combat/combat-content-resolver'
 import { assertCombatCatalogueTimingCompatible } from '@/server/combat/combat-catalogue-timing-compatibility'
+import { builtinCombatContentVersionFloor } from './combat-content-version-floor'
 
 import type {
   CombatContentAuthoringStore,
@@ -259,6 +260,19 @@ export class RpcCombatContentAuthoringStore implements CombatContentAuthoringSto
 
   async publish(input: PublishCombatContentInput): Promise<CombatContentVersionRecord> {
     this.#assertActor(input.actorUserId)
+    if (
+      input.versionFloor !== undefined &&
+      input.versionFloor !== null &&
+      (!Number.isSafeInteger(input.versionFloor) || input.versionFloor < 1)
+    )
+      throw new AurevaneError(
+        'INVALID_REQUEST',
+        'Publication version floor must be a positive integer.',
+      )
+    const floor = Math.max(
+      input.versionFloor ?? 0,
+      builtinCombatContentVersionFloor(input.contentKind, input.contentKey) ?? 0,
+    )
     const token = await this.#validatePublication(input.contentKey, input.contentKind, {
       id: 'prospective',
       contentKey: input.contentKey,
@@ -270,13 +284,14 @@ export class RpcCombatContentAuthoringStore implements CombatContentAuthoringSto
       publishedBy: input.actorUserId,
       publishedAt: '',
     })
-    const { data, error } = await this.#rpc('publish_combat_content_v2', {
+    const { data, error } = await this.#rpc('publish_combat_content_v3', {
       p_actor_user_id: input.actorUserId,
       p_content_key: input.contentKey,
       p_content_kind: input.contentKind,
       p_definition: input.definition,
       p_expected_base_version: input.expectedBaseVersion,
       p_expected_catalogue_token: token,
+      p_version_floor: floor || null,
     })
     if (error) mapRpcError(error)
     const row = parseSingleVersion(data)

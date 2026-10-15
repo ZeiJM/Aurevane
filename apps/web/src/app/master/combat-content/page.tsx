@@ -29,6 +29,7 @@ import {
 } from '@/server/combat/combat-content-resolver'
 import { requireMasterPanelPageAccess } from '@/server/master/master-panel-page-access'
 import { createSupabaseCombatContentAuthoringStore } from '@/server/master/supabase-combat-content-authoring-store'
+import { builtinCombatContentVersionFloor } from '@/server/master/combat-content-version-floor'
 
 export const dynamic = 'force-dynamic'
 
@@ -103,6 +104,7 @@ export default async function MasterCombatContentPage() {
       })
     return {
       currentVersion: entry.contentVersion,
+      versionFloor: builtinCombatContentVersionFloor(entry.contentKind, entry.contentKey),
       baseVersion: draft ? draft.baseVersion : entry.contentVersion,
       draftVersion: draft?.draftVersion ?? null,
       history: [...history.values()].sort(
