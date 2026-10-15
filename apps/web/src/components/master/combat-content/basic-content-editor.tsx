@@ -1,8 +1,10 @@
 'use client'
 
 import { useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   validateBasicSkillDefinition,
+  parseBasicSkillDefinition,
   type BasicSkillDefinition,
 } from '@aurevane/game-core/combat/combat-basic-actions'
 import { AbilityDefinitionEditor } from './ability-definition-editor'
@@ -10,10 +12,16 @@ import { AbilityNumber, AbilitySelect, AbilityText } from './ability-editor-fiel
 import { SkillMediaEditor } from './skill-media-editor'
 import { BattleFlavorTemplateHelp } from './battle-flavor-template-help'
 import { postCombatContentAuthoring } from './combat-content-client'
-import type {
-  CombatContentValidationResult,
-  CombatContentVersionHistoryEntry,
+import {
+  nextCombatContentVersion,
+  projectPublishedVersionHistory,
+  type CombatContentPreviewSummary,
+  type CombatContentSemanticDiff,
+  type CombatContentValidationResult,
+  type CombatContentVersionHistoryEntry,
 } from './combat-content-workflow'
+import { AbilityPreviewSelector, previewActionSelection } from './ability-preview-selector'
+import { CombatContentReviewPanel } from './combat-content-review-panel'
 import { AbilityParameters } from '../../character/ability-parameters'
 import { abilityBehaviorInformation } from '../../character/ability-detail-presentation'
 import { useSkillEffectTimingPolicy } from '../../character/skill-effect-timing-context'
@@ -31,6 +39,13 @@ export interface BasicContentEditorOption {
   readonly history: readonly CombatContentVersionHistoryEntry[]
 }
 interface BasicDraftState {
+  readonly currentDefinition: BasicSkillDefinition
+  readonly currentVersion: number
+  readonly baseVersion: number | null
+  readonly history: readonly CombatContentVersionHistoryEntry[]
+  readonly diff: CombatContentSemanticDiff | null
+  readonly preview: CombatContentPreviewSummary | null
+  readonly previewGroup?: string
   readonly definition: BasicSkillDefinition
   readonly draftVersion: number | null
   readonly validation: CombatContentValidationResult | null
@@ -46,6 +61,8 @@ export function BasicContentEditor({
   basics: readonly BasicContentEditorOption[]
   initialBasicId?: string
 }) {
+  const router = useRouter()
+  const [publishConfirmationId, setPublishConfirmationId] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState(initialBasicId ?? basics[0]?.id ?? '')
   const [records, setRecords] = useState<Record<string, BasicDraftState>>(() =>
     Object.fromEntries(
@@ -53,6 +70,12 @@ export function BasicContentEditor({
         option.id,
         {
           definition: structuredClone(option.initialDraft ?? option.definition),
+          currentDefinition: structuredClone(option.definition),
+          currentVersion: option.currentVersion,
+          baseVersion: option.baseVersion,
+          history: option.history,
+          diff: null,
+          preview: null,
           draftVersion: option.draftVersion,
           validation: null,
           notice: null,
@@ -71,19 +94,56 @@ export function BasicContentEditor({
   const draft = record.definition
   const issues = validateBasicSkillDefinition(draft)
   const busy = busyId !== null
+  const selection = previewActionSelection(draft, record.previewGroup)
 
   function update(next: BasicSkillDefinition) {
     if (!selected) return
     const id = selected.id
     revisions.current[id] = (revisions.current[id] ?? 0) + 1
+    setPublishConfirmationId(null)
     setRecords((current) => ({
       ...current,
-      [id]: { ...current[id]!, definition: next, validation: null, notice: null, error: null },
+      [id]: {
+        ...current[id]!,
+        definition: next,
+        validation: null,
+        diff: null,
+        preview: null,
+        notice: null,
+        error: null,
+      },
     }))
   }
-  async function run(operation: 'validate' | 'save-draft') {
+  function choosePreviewGroup(behaviorId: string) {
+    if (!selected || busy || !selection.groups.some((group) => group.id === behaviorId)) return
+    const id = selected.id
+    revisions.current[id] = (revisions.current[id] ?? 0) + 1
+    setRecords((current) => ({
+      ...current,
+      [id]: { ...current[id]!, previewGroup: behaviorId, preview: null, notice: null, error: null },
+    }))
+    setPublishConfirmationId(null)
+  }
+  async function run(operation: 'validate' | 'save-draft' | 'diff' | 'preview' | 'publish') {
     if (!selected || !record || busyId !== null) return
     const id = selected.id
+    if (
+      (operation === 'diff' || operation === 'preview' || operation === 'publish') &&
+      record.validation?.valid !== true
+    )
+      return
+    if (
+      (operation === 'preview' || operation === 'publish') &&
+      (!record.diff || !selection.available)
+    )
+      return
+    if (
+      operation === 'publish' &&
+      (!record.diff?.changedPaths.length ||
+        record.preview?.legal !== true ||
+        record.preview.behaviorId !== selection.behaviorId)
+    )
+      return
     const revision = revisions.current[id] ?? 0
     setBusyId(id)
     setRecords((current) => ({ ...current, [id]: { ...current[id]!, error: null, notice: null } }))
@@ -95,13 +155,19 @@ export function BasicContentEditor({
         if ((revisions.current[id] ?? 0) === revision)
           setRecords((current) => ({
             ...current,
-            [id]: { ...current[id]!, validation: response.validation },
+            [id]: {
+              ...current[id]!,
+              validation: response.validation,
+              diff: null,
+              preview: null,
+              notice: response.validation.valid ? 'Definition valid.' : null,
+            },
           }))
-      } else {
+      } else if (operation === 'save-draft') {
         const response = await postCombatContentAuthoring<{ draft: { draftVersion: number } }>({
           operation,
           definition: draft,
-          baseVersion: selected.baseVersion,
+          baseVersion: record.baseVersion,
           expectedDraftVersion: record.draftVersion,
         })
         const unchanged = (revisions.current[id] ?? 0) === revision
@@ -115,8 +181,58 @@ export function BasicContentEditor({
               : 'Earlier draft saved; newer edits are still unsaved.',
           },
         }))
+      } else if (operation === 'diff') {
+        const response = await postCombatContentAuthoring<{ diff: CombatContentSemanticDiff }>({
+          operation,
+          before: record.currentDefinition,
+          after: draft,
+        })
+        if ((revisions.current[id] ?? 0) === revision)
+          setRecords((current) => ({
+            ...current,
+            [id]: { ...current[id]!, diff: response.diff, preview: null },
+          }))
+      } else if (operation === 'preview') {
+        const response = await postCombatContentAuthoring<{ preview: CombatContentPreviewSummary }>(
+          { operation, definition: draft, behaviorId: selection.behaviorId },
+        )
+        if ((revisions.current[id] ?? 0) === revision)
+          setRecords((current) => ({
+            ...current,
+            [id]: { ...current[id]!, preview: response.preview },
+          }))
+      } else {
+        const response = await postCombatContentAuthoring<{
+          published: { contentVersion: number; publishedAt: string; definition: unknown }
+        }>({ operation, definition: draft, expectedBaseVersion: record.currentVersion })
+        const published = parseBasicSkillDefinition(response.published.definition)
+        const unchanged = (revisions.current[id] ?? 0) === revision
+        setRecords((current) => ({
+          ...current,
+          [id]: {
+            ...current[id]!,
+            definition: unchanged ? published : current[id]!.definition,
+            currentDefinition: published,
+            currentVersion: response.published.contentVersion,
+            baseVersion: response.published.contentVersion,
+            history: projectPublishedVersionHistory(current[id]!.history, response.published),
+            validation: null,
+            diff: null,
+            preview: null,
+            notice: unchanged
+              ? `Published immutable v${response.published.contentVersion}.`
+              : `Published earlier draft as v${response.published.contentVersion}; newer edits are still unpublished.`,
+          },
+        }))
+        setPublishConfirmationId(null)
+        router.refresh()
       }
     } catch (error) {
+      if (
+        ['validate', 'diff', 'preview'].includes(operation) &&
+        (revisions.current[id] ?? 0) !== revision
+      )
+        return
       setRecords((current) => ({
         ...current,
         [id]: {
@@ -315,36 +431,44 @@ export function BasicContentEditor({
             ))
           )}
         </section>
-        <section
-          className={`${styles.reviewPanel} ${basicStyles.panel}`}
-          aria-label="Basic Skill draft review"
-        >
-          <div className={styles.reviewActions}>
-            <button type="button" disabled={busy} onClick={() => void run('validate')}>
-              Validate
-            </button>
+        <CombatContentReviewPanel
+          className={basicStyles.panel}
+          contentKey={selected.id}
+          baseVersion={record.currentVersion}
+          nextVersion={nextCombatContentVersion(record.currentVersion, record.history)}
+          validation={record.validation}
+          diff={record.diff}
+          preview={record.preview}
+          previewAvailable={selection.available}
+          previewSelectionControl={
+            <AbilityPreviewSelector
+              selection={selection}
+              busy={busy}
+              onChange={choosePreviewGroup}
+            />
+          }
+          draftActions={
             <button type="button" disabled={busy} onClick={() => void run('save-draft')}>
               Save draft
             </button>
-          </div>
-          {record.validation ? (
-            <div role="status">
-              {record.validation.valid ? (
-                'Definition valid.'
-              ) : (
-                <ul>
-                  {record.validation.issues.map((issue, index) => (
-                    <li key={`${issue.path}:${index}`}>
-                      {issue.path}: {issue.message}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          ) : null}
-          {record.notice ? <p role="status">{record.notice}</p> : null}
-          {record.error ? <p role="alert">{record.error}</p> : null}
-        </section>
+          }
+          history={record.history}
+          rollbackEnabled={false}
+          busy={busy}
+          publishConfirmationOpen={publishConfirmationId === selected.id}
+          rollbackTargetVersion={null}
+          errorMessage={record.error}
+          noticeMessage={record.notice}
+          onValidate={() => void run('validate')}
+          onDiff={() => void run('diff')}
+          onPreview={() => void run('preview')}
+          onRequestPublish={() => setPublishConfirmationId(selected.id)}
+          onConfirmPublish={() => void run('publish')}
+          onCancelPublish={() => setPublishConfirmationId(null)}
+          onRequestRollback={() => {}}
+          onConfirmRollback={() => {}}
+          onCancelRollback={() => {}}
+        />
       </div>
     </section>
   )

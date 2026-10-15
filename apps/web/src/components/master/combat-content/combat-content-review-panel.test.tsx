@@ -202,3 +202,42 @@ it('keeps Manual preview and publication unavailable even if an older successful
     expect(markup).toMatch(new RegExp('<button[^>]*disabled=""[^>]*>' + label + '</button>'))
   }
 })
+
+it('shows the actual HP price and projected entered tiles without inventing a walking surcharge', () => {
+  const markup = renderToStaticMarkup(
+    createElement(CombatContentReviewPanel, {
+      contentKey: 'basic.move',
+      baseVersion: 1,
+      nextVersion: 2,
+      validation: { valid: true, issues: [], derivedTags: [] },
+      diff: { changedPaths: ['ability'] },
+      preview: {
+        legal: true,
+        behaviorId: 'use',
+        costs: { actionEconomy: 11, mp: 2, hp: 1 },
+        movement: {
+          path: [
+            { x: 2, y: 1 },
+            { x: 3, y: 1 },
+          ],
+        },
+      },
+      history,
+      busy: false,
+      publishConfirmationOpen: false,
+      rollbackTargetVersion: null,
+      onValidate() {},
+      onDiff() {},
+      onPreview() {},
+      onRequestPublish() {},
+      onConfirmPublish() {},
+      onCancelPublish() {},
+      onRequestRollback() {},
+      onConfirmRollback() {},
+      onCancelRollback() {},
+    }),
+  )
+  expect(markup).toContain('1 HP')
+  expect(markup).toContain('1 tile')
+  expect(markup).toContain('11 AP')
+})

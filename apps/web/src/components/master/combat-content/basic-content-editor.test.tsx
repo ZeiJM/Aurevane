@@ -97,3 +97,13 @@ it('keeps plural Basic group reports identifiable instead of merging their mecha
   expect(markup.includes('aria-label="Manual Action 1"')).toBe(true)
   expect(markup.includes('aria-label="Manual Action 2"')).toBe(true)
 })
+
+it('provides real Basic validation, diff, selected preview and confirmed publication controls', () => {
+  const markup = renderToStaticMarkup(createElement(BasicContentEditor, { basics }))
+  expect(markup.includes('aria-label="Preview action group"')).toBe(true)
+  for (const action of ['Validate', 'Save draft', 'Diff', 'Preview', 'Publish'])
+    expect(markup.includes('>' + action + '</button>')).toBe(true)
+  expect(markup.includes('Version history')).toBe(true)
+  expect(markup.includes('>Rollback</button>')).toBe(false)
+  expect(markup).toMatch(/<button[^>]*disabled=""[^>]*>Publish<\/button>/)
+})

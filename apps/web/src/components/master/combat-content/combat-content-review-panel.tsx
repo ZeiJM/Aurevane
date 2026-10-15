@@ -11,6 +11,9 @@ import {
 } from './combat-content-workflow'
 
 export interface CombatContentReviewPanelProps {
+  readonly className?: string
+  readonly draftActions?: ReactNode
+  readonly rollbackEnabled?: boolean
   readonly contentKey: string
   readonly baseVersion: number
   readonly nextVersion: number
@@ -42,6 +45,9 @@ function percent(basisPoints: number): string {
 }
 
 export function CombatContentReviewPanel({
+  className,
+  draftActions,
+  rollbackEnabled = true,
   contentKey,
   baseVersion,
   nextVersion,
@@ -88,7 +94,7 @@ export function CombatContentReviewPanel({
 
   return (
     <section
-      className={styles.reviewPanel}
+      className={[styles.reviewPanel, className].filter(Boolean).join(' ')}
       id="combat-review"
       aria-labelledby="combat-review-heading"
     >
@@ -153,6 +159,7 @@ export function CombatContentReviewPanel({
           <button type="button" disabled={busy} onClick={onValidate}>
             Validate
           </button>
+          {draftActions}
           <button type="button" disabled={!canDiff} onClick={onDiff}>
             Diff
           </button>
@@ -164,13 +171,15 @@ export function CombatContentReviewPanel({
           <button type="button" disabled={!canPublish} onClick={onRequestPublish}>
             Publish
           </button>
-          <button
-            type="button"
-            disabled={busy || !defaultRollback}
-            onClick={() => defaultRollback && onRequestRollback(defaultRollback.contentVersion)}
-          >
-            Rollback
-          </button>
+          {rollbackEnabled ? (
+            <button
+              type="button"
+              disabled={busy || !defaultRollback}
+              onClick={() => defaultRollback && onRequestRollback(defaultRollback.contentVersion)}
+            >
+              Rollback
+            </button>
+          ) : null}
         </div>
 
         {validation && !validation.valid ? (
@@ -234,6 +243,21 @@ export function CombatContentReviewPanel({
               <div>
                 <dt>MP</dt>
                 <dd>{preview.costs.mp} MP</dd>
+              </div>
+            ) : null}
+            {preview.costs?.hp !== undefined ? (
+              <div>
+                <dt>HP</dt>
+                <dd>{preview.costs.hp} HP</dd>
+              </div>
+            ) : null}
+            {preview.movement ? (
+              <div>
+                <dt>Move</dt>
+                <dd>
+                  {Math.max(0, preview.movement.path.length - 1)}{' '}
+                  {preview.movement.path.length === 2 ? 'tile' : 'tiles'}
+                </dd>
               </div>
             ) : null}
             {hitChance ? (
@@ -311,7 +335,7 @@ export function CombatContentReviewPanel({
                 </div>
                 {entry.current ? (
                   <span className={styles.currentPill}>Current</span>
-                ) : (
+                ) : rollbackEnabled ? (
                   <button
                     type="button"
                     disabled={busy}
@@ -319,7 +343,7 @@ export function CombatContentReviewPanel({
                   >
                     Rollback
                   </button>
-                )}
+                ) : null}
               </div>
             ))}
         </div>

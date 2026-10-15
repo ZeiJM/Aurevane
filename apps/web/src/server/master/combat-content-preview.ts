@@ -1,6 +1,18 @@
 import 'server-only'
 import { capturedMatureSkillAbilitySource } from '@aurevane/game-core/combat/combat-action-source'
-import { combatAbilityBehavior } from '@aurevane/game-core/combat/combat-behavior-runtime'
+import {
+  captureBasicSkillSources,
+  defaultBasicSkills,
+  type BasicSkillDefinition,
+} from '@aurevane/game-core/combat/combat-basic-actions'
+import { parseSupportActionId } from '@aurevane/game-core/combat/support-actions'
+import { prepareCombatAbilityCommand } from '@aurevane/game-core/combat/combat-ability-command'
+import type { CapturedCombatAbilitySource } from '@aurevane/game-core/combat/combat-behavior-capture'
+import type { AbilityBehavior } from '@aurevane/game-core/combat/combat-definition'
+import {
+  combatAbilityCommandContext,
+  combatAbilityBehavior,
+} from '@aurevane/game-core/combat/combat-behavior-runtime'
 import { omitCombatExecutionMetadata } from '../battle/battle-live-viewer-projection'
 import { createCombatGroundArea } from '@aurevane/game-core/combat/combat-ground-areas'
 import { projectPublicCombatGroundAreas } from '@aurevane/game-core/combat/combat-ground-visuals'
@@ -8,6 +20,7 @@ import { projectPublicCombatGroundAreas } from '@aurevane/game-core/combat/comba
 import {
   createCombatEncounterState,
   type CombatTargetSelection,
+  type CombatActionDefinition,
 } from '@aurevane/game-core/combat/actions'
 import { createPendingBattle, startBattle } from '@aurevane/game-core/combat/battle-state'
 import { createTacticalBattleState, type GridPosition } from '@aurevane/game-core/combat/board'
@@ -20,6 +33,8 @@ import {
 import {
   createPv1fTemporaryResources,
   evaluatePv1fMatureSkill,
+  evaluatePv1fMovement,
+  preparePv1fTurnEconomy,
   readPv1fActionEconomy,
   PV1F_COMBAT_CONTENT,
 } from '@aurevane/game-core/combat/pv1f-action-economy'
@@ -50,14 +65,21 @@ function assertPreviewSeed(seed: number): void {
   }
 }
 
-function primaryUnitId(definition: MatureSkillDefinition): string | null {
+interface PreviewGeometry {
+  readonly id: string
+  readonly contentVersion: number
+  readonly target: CombatActionDefinition['target']
+  readonly groundFire?: boolean
+}
+
+function primaryUnitId(definition: Pick<PreviewGeometry, 'target'>): string | null {
   if (definition.target.kind !== 'unit') return null
   if (definition.target.teamPolicy === 'self') return ACTOR_ID
   if (definition.target.teamPolicy === 'ally') return ALLY_ID
   return ENEMY_ID
 }
 
-function previewDistance(definition: MatureSkillDefinition): number {
+function previewDistance(definition: Pick<PreviewGeometry, 'target'>): number {
   if (
     definition.target.kind === 'self' ||
     (definition.target.kind === 'unit' && definition.target.teamPolicy === 'self')
@@ -77,21 +99,24 @@ function previewDistance(definition: MatureSkillDefinition): number {
   return Math.min(desired, maximum)
 }
 
-function previewTargetPosition(definition: MatureSkillDefinition): GridPosition {
+function previewTargetPosition(
+  definition: Pick<PreviewGeometry, 'target'>,
+  origin: GridPosition = ACTOR_POSITION,
+): GridPosition {
   return {
-    x: ACTOR_POSITION.x + previewDistance(definition),
-    y: ACTOR_POSITION.y,
+    x: origin.x + previewDistance(definition),
+    y: origin.y,
   }
 }
 
 function previewSelection(
-  definition: MatureSkillDefinition,
+  definition: PreviewGeometry,
   targetPosition: GridPosition,
 ): CombatTargetSelection {
   const groundFire =
     definition.target.kind === 'ground-tile' &&
     definition.target.teamPolicy === 'enemy' &&
-    definition.effects.some((effect) => effect.type === 'damage' && effect.element === 'fire')
+    definition.groundFire === true
   if (definition.target.geometryVersion === 2) {
     if (definition.target.shape.kind === 'line')
       return { kind: 'direction', direction: 'east', ...(groundFire ? { ground: true } : {}) }
@@ -138,13 +163,14 @@ function profile(
 }
 
 function previewState(
-  definition: MatureSkillDefinition,
+  definition: PreviewGeometry,
   seed: number,
+  targetOrigin: GridPosition = ACTOR_POSITION,
 ): {
   readonly state: StatDrivenCombatEncounterState
   readonly selection: CombatTargetSelection
 } {
-  const targetPosition = previewTargetPosition(definition)
+  const targetPosition = previewTargetPosition(definition, targetOrigin)
   const primaryId = primaryUnitId(definition)
   const width = Math.max(10, targetPosition.x + 8)
 
@@ -301,7 +327,7 @@ function previewState(
   }
 }
 
-function sensoryConditions(definition: MatureSkillDefinition) {
+function sensoryConditions(definition: Pick<MatureSkillDefinition, 'effects'>) {
   return definition.effects.flatMap((effect) =>
     effect.type === 'sensory'
       ? [
@@ -320,6 +346,37 @@ function sameRng(left: unknown, right: unknown): boolean {
   return JSON.stringify(left) === JSON.stringify(right)
 }
 
+function previewMovementPath(behavior: AbilityBehavior): readonly GridPosition[] | undefined {
+  return behavior.effects.some((effect) => effect.payload.type === 'move')
+    ? [{ ...ACTOR_POSITION }, { x: ACTOR_POSITION.x + 1, y: ACTOR_POSITION.y }]
+    : undefined
+}
+
+function evaluateCanonicalPreview(
+  state: StatDrivenCombatEncounterState,
+  source: CapturedCombatAbilitySource,
+  behavior: AbilityBehavior,
+  selection: CombatTargetSelection,
+  movementPath?: readonly GridPosition[],
+) {
+  const prepared = preparePv1fTurnEconomy(state)
+  const quote = prepareCombatAbilityCommand({
+    state: prepared,
+    actorId: ACTOR_ID,
+    root: { kind: 'canonical', source, behaviorId: behavior.id },
+    selection,
+    ...(movementPath ? { movementPath } : {}),
+    content: PV1F_COMBAT_CONTENT,
+    context: combatAbilityCommandContext(prepared, source),
+  })
+  return {
+    ...quote,
+    prepared,
+    cost: quote.costs.find((row) => row.resource === 'ap')?.amount ?? 0,
+    repeatPenaltyApplied: false,
+  }
+}
+
 export function previewCombatContentDefinition(
   definition: MatureSkillDefinition,
   options: CombatContentPreviewOptions = {},
@@ -328,17 +385,42 @@ export function previewCombatContentDefinition(
   const combatContext = options.combatContext ?? 'pve'
   assertPreviewSeed(seed)
 
-  const fixture = previewState(definition, seed)
+  const fixture = previewState(
+    {
+      ...definition,
+      groundFire: definition.effects.some(
+        (effect) => effect.type === 'damage' && effect.element === 'fire',
+      ),
+    },
+    seed,
+  )
   const source = capturedMatureSkillAbilitySource(fixture.state, definition)
   const behavior = source ? combatAbilityBehavior(source, options.behaviorId) : null
+  const movementPath = behavior ? previewMovementPath(behavior) : undefined
   const geometryDefinition = behavior?.targeting
-    ? { ...definition, target: behavior.targeting }
-    : definition
-  const { state, selection } = behavior ? previewState(geometryDefinition, seed) : fixture
+    ? {
+        ...definition,
+        target: behavior.targeting,
+        groundFire: behavior.effects.some(
+          (effect) => effect.payload.type === 'damage' && effect.payload.element === 'fire',
+        ),
+      }
+    : {
+        ...definition,
+        groundFire: definition.effects.some(
+          (effect) => effect.type === 'damage' && effect.element === 'fire',
+        ),
+      }
+  const { state, selection } = behavior
+    ? previewState(geometryDefinition, seed, movementPath?.at(-1))
+    : fixture
   const rngBefore = structuredClone(state.tactical.battle.rng)
-  const evaluated = evaluatePv1fMatureSkill(state, definition, selection, combatContext, {
-    behaviorId: options.behaviorId,
-  })
+  const canonical =
+    source && behavior
+      ? evaluateCanonicalPreview(state, source, behavior, selection, movementPath)
+      : null
+  const evaluated =
+    canonical ?? evaluatePv1fMatureSkill(state, definition, selection, combatContext)
   const rngAfter = evaluated.prepared.tactical.battle.rng
 
   if (!sameRng(rngBefore, rngAfter)) {
@@ -399,9 +481,18 @@ export function previewCombatContentDefinition(
     costs: {
       actionEconomy: evaluated.cost,
       mp: evaluated.evaluation.mpCost,
+      hp: canonical?.costs.find((row) => row.resource === 'hp')?.amount ?? 0,
       actionEconomyBefore,
       actionEconomyAfter,
     },
+    ...(canonical?.movement
+      ? {
+          movement: {
+            path: canonical.movement.path.map((point) => ({ ...point })),
+            maximumTiles: canonical.movement.maximumTiles,
+          },
+        }
+      : {}),
     accuracy: {
       targetHitChances: targetHitChances.map((chance) => ({ ...chance })),
       projectionsAssumeHits: evaluated.evaluation.projectionsAssumeHits === true,
@@ -457,4 +548,171 @@ export function previewCombatContentDefinition(
   }
 }
 
-export type CombatContentPreviewResult = ReturnType<typeof previewCombatContentDefinition>
+export function previewBasicCombatContentDefinition(
+  definition: BasicSkillDefinition,
+  options: CombatContentPreviewOptions = {},
+) {
+  const seed = options.seed ?? DEFAULT_COMBAT_CONTENT_PREVIEW_SEED
+  assertPreviewSeed(seed)
+  const sources = captureBasicSkillSources({
+    ownerCombatantId: ACTOR_ID,
+    supportActionId: parseSupportActionId(definition.id) ?? 'basic.guard',
+    definitions: defaultBasicSkills().map((basic) =>
+      basic.id === definition.id ? definition : basic,
+    ),
+  })
+  const source = sources.find((row) => row.abilityId === definition.id)!
+  const behavior = combatAbilityBehavior(source, options.behaviorId)
+  if (!behavior.targeting)
+    throw new TypeError('Basic preview requires a supported Manual action target.')
+  const movementPath = previewMovementPath(behavior)
+  const geometry: PreviewGeometry = {
+    id: definition.id,
+    contentVersion: definition.contentVersion,
+    target: behavior.targeting,
+    groundFire: behavior.effects.some(
+      (effect) => effect.payload.type === 'damage' && effect.payload.element === 'fire',
+    ),
+  }
+  const fixture = previewState(geometry, seed, movementPath?.at(-1))
+  const state = { ...fixture.state, capturedAbilitySources: sources }
+  const rngBefore = structuredClone(state.tactical.battle.rng)
+  if (
+    definition.execution.kind === 'basic-move' &&
+    definition.execution.costBasis === 'per-terrain-point'
+  ) {
+    const evaluated = evaluatePv1fMovement(state, movementPath ?? [])
+    if (!sameRng(rngBefore, evaluated.prepared.tactical.battle.rng))
+      throw new Error('Basic preview must not consume battle RNG.')
+    const before = readPv1fActionEconomy(evaluated.prepared, ACTOR_ID)?.current ?? 0
+    const affordable = before >= evaluated.economyCost
+    return {
+      actionId: definition.id,
+      behaviorId: behavior.id,
+      contentVersion: definition.contentVersion,
+      legal: evaluated.movement.legal && affordable,
+      issues: [
+        ...evaluated.movement.issues.map((issue) => ({ code: issue.code, message: issue.message })),
+        ...(affordable
+          ? []
+          : [
+              {
+                code: 'insufficient-action-economy',
+                message: 'Preview fixture does not have enough Action Economy for this path.',
+              },
+            ]),
+      ],
+      derivedTags: [...definition.tags],
+      simulation: {
+        seed,
+        actorCombatantId: ACTOR_ID,
+        primaryCombatantId: ACTOR_ID,
+        rngConsumed: false as const,
+      },
+      groundAreas: [],
+      targeting: {
+        target: structuredClone(behavior.targeting),
+        selection: structuredClone(fixture.selection),
+        affectedTiles: evaluated.movement.path.slice(1).map((point) => ({ ...point })),
+        affectedCombatantIds: [ACTOR_ID],
+      },
+      costs: {
+        actionEconomy: evaluated.economyCost,
+        mp: 0,
+        hp: 0,
+        actionEconomyBefore: before,
+        actionEconomyAfter: Math.max(0, before - evaluated.economyCost),
+      },
+      movement: {
+        path: evaluated.movement.path.map((point) => ({ ...point })),
+        terrainCost: evaluated.terrainCost,
+        movementRemainingAfter: evaluated.movement.movementRemainingAfter,
+      },
+      accuracy: { targetHitChances: [], projectionsAssumeHits: false },
+      projections: { effects: [], terrain: [], events: [] },
+      summon: null,
+      vengeanceBasis: [],
+      conditionalEffects: [],
+      repeatPenaltyApplied: false,
+    }
+  }
+  const evaluated = evaluateCanonicalPreview(
+    state,
+    source,
+    behavior,
+    fixture.selection,
+    movementPath,
+  )
+  if (!sameRng(rngBefore, evaluated.prepared.tactical.battle.rng))
+    throw new Error('Basic preview must not consume battle RNG.')
+  const before = readPv1fActionEconomy(evaluated.prepared, ACTOR_ID)?.current ?? 0
+  return {
+    actionId: definition.id,
+    behaviorId: behavior.id,
+    contentVersion: definition.contentVersion,
+    legal: evaluated.evaluation.legal,
+    issues: evaluated.evaluation.issues.map((issue) => ({
+      code: issue.code,
+      message: issue.message,
+    })),
+    derivedTags: [...combatActionPresentationTags(evaluated.action)],
+    simulation: {
+      seed,
+      actorCombatantId: ACTOR_ID,
+      primaryCombatantId: evaluated.evaluation.primaryCombatantId,
+      rngConsumed: false as const,
+    },
+    groundAreas:
+      evaluated.evaluation.legal && evaluated.action.groundArea
+        ? projectPublicCombatGroundAreas(
+            createCombatGroundArea(
+              evaluated.prepared,
+              ACTOR_ID,
+              evaluated.action,
+              evaluated.evaluation.affectedTiles,
+              PV1F_COMBAT_CONTENT,
+            ).groundAreas ?? [],
+            evaluated.prepared.tactical.battle.round,
+            evaluated.prepared.tactical.battle.lifecycle,
+          )
+        : [],
+    targeting: {
+      target: structuredClone(behavior.targeting),
+      selection: structuredClone(fixture.selection),
+      affectedTiles: evaluated.evaluation.affectedTiles.map((point) => ({ ...point })),
+      affectedCombatantIds: [...evaluated.evaluation.affectedCombatantIds],
+    },
+    costs: {
+      actionEconomy: evaluated.cost,
+      mp: evaluated.evaluation.mpCost,
+      hp: evaluated.costs.find((cost) => cost.resource === 'hp')?.amount ?? 0,
+      actionEconomyBefore: before,
+      actionEconomyAfter: Math.max(0, before - evaluated.cost),
+    },
+    ...(evaluated.movement
+      ? {
+          movement: {
+            path: evaluated.movement.path.map((point) => ({ ...point })),
+            maximumTiles: evaluated.movement.maximumTiles,
+          },
+        }
+      : {}),
+    accuracy: {
+      targetHitChances: evaluated.evaluation.targetHitChances?.map((row) => ({ ...row })) ?? [],
+      projectionsAssumeHits: evaluated.evaluation.projectionsAssumeHits === true,
+    },
+    projections: {
+      effects: evaluated.evaluation.projectedEffects.map((row) => ({ ...row })),
+      terrain: evaluated.evaluation.projectedTerrain.map((row) => structuredClone(row)),
+      events: evaluated.evaluation.projectedEvents.map(omitCombatExecutionMetadata),
+    },
+    summon: null,
+    vengeanceBasis: evaluated.evaluation.vengeanceBasis?.map((row) => structuredClone(row)) ?? [],
+    conditionalEffects: sensoryConditions({ effects: evaluated.action.effects }),
+    repeatPenaltyApplied: false,
+  }
+}
+
+export type CombatContentPreviewResult =
+  | ReturnType<typeof previewCombatContentDefinition>
+  | ReturnType<typeof previewBasicCombatContentDefinition>

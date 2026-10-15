@@ -22,6 +22,12 @@ export interface CombatContentPreviewSummary {
   readonly costs?: {
     readonly actionEconomy?: number
     readonly mp?: number
+    readonly hp?: number
+  }
+  readonly movement?: {
+    readonly path: readonly { readonly x: number; readonly y: number }[]
+    readonly terrainCost?: number
+    readonly movementRemainingAfter?: number
   }
   readonly targeting?: {
     readonly affectedCombatantIds?: readonly string[]

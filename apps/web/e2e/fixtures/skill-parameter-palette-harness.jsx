@@ -153,6 +153,9 @@ const basicOptions = defaultBasicSkills().map((definition) => ({
 }))
 if (new URLSearchParams(location.search).get('surface') === 'basic-editor') {
   const versions = new Map(basicOptions.map((row) => [row.id, row.draftVersion]))
+  const currentVersions = new Map(basicOptions.map((row) => [row.id, row.currentVersion]))
+  window.basicPublishedDefinitions = {}
+  window.basicPublishedVersions = []
   window.basicDraftRequests = []
   window.basicSavedDrafts = {}
   window.fetch = async (url, options) => {
@@ -160,7 +163,73 @@ if (new URLSearchParams(location.search).get('surface') === 'basic-editor') {
       throw new Error('Unexpected Basic fixture request')
     const body = JSON.parse(options.body)
     window.basicDraftRequests.push(structuredClone(body))
+    if (body.operation === 'diff')
+      return Response.json({
+        diff: {
+          changedPaths:
+            JSON.stringify(body.before) === JSON.stringify(body.after) ? [] : ['ability', 'name'],
+        },
+      })
     const issues = validateBasicSkillDefinition(body.definition)
+    if (body.operation === 'preview') {
+      const group = body.definition.ability.behaviors.find(
+        (row) => row.id === body.behaviorId && row.activation === 'manual' && row.mode === 'action',
+      )
+      if (!group)
+        return Response.json({ error: { message: 'Unsupported preview group.' } }, { status: 400 })
+      return Response.json({
+        preview: {
+          behaviorId: group.id,
+          legal: issues.length === 0 && body.definition.enabled,
+          costs: {
+            actionEconomy: group.costs.find((row) => row.resource === 'ap')?.amount ?? 0,
+            mp: group.costs.find((row) => row.resource === 'mp')?.amount ?? 0,
+            hp: group.costs.find((row) => row.resource === 'hp')?.amount ?? 0,
+          },
+          ...(group.effects.some((row) => row.payload.type === 'move')
+            ? {
+                movement: {
+                  path: [
+                    { x: 2, y: 1 },
+                    { x: 3, y: 1 },
+                  ],
+                },
+              }
+            : {}),
+          projections: { effects: group.effects.map((row) => ({ effectType: row.payload.type })) },
+        },
+      })
+    }
+    if (body.operation === 'publish') {
+      const id = body.definition.id
+      if (window.rejectBasicPublish || body.expectedBaseVersion !== currentVersions.get(id))
+        return Response.json(
+          {
+            error: {
+              code: 'STALE_VERSION',
+              message: 'Combat content changed. Refresh the authoritative version and retry.',
+            },
+          },
+          { status: 409 },
+        )
+      if (issues.length)
+        return Response.json(
+          { error: { code: 'INVALID_REQUEST', message: 'Invalid Basic definition.' } },
+          { status: 400 },
+        )
+      if (window.holdBasicPublish)
+        await new Promise((resolve) => {
+          window.releaseBasicPublish = resolve
+        })
+      const contentVersion = currentVersions.get(id) + 1
+      const definition = { ...structuredClone(body.definition), contentVersion }
+      currentVersions.set(id, contentVersion)
+      window.basicPublishedDefinitions[id] = definition
+      window.basicPublishedVersions.push({ id, contentVersion })
+      return Response.json({
+        published: { definition, contentVersion, publishedAt: '2026-10-15T18:30:00.000Z' },
+      })
+    }
     if (body.operation === 'validate')
       return Response.json({
         validation: { valid: issues.length === 0, issues, derivedTags: body.definition.tags },

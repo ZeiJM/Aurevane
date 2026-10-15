@@ -52,6 +52,7 @@ import { isRegisteredSkillAudioCueHook, isRegisteredSkillIconHook } from '@/medi
 
 import {
   previewCombatContentDefinition,
+  previewBasicCombatContentDefinition,
   type CombatContentPreviewResult,
 } from './combat-content-preview'
 
@@ -568,7 +569,7 @@ export function createCombatContentAuthoringService({
         )
       }
 
-      const definition = input.definition as MatureSkillDefinition
+      const definition = input.definition as MatureSkillDefinition | BasicSkillDefinition
       let behaviorId: string | undefined
       if (Object.hasOwn(definition, 'ability')) {
         const actions = definition.ability!.behaviors.filter(
@@ -594,11 +595,14 @@ export function createCombatContentAuthoringService({
           'This native definition has no selectable behavior group.',
         )
       }
-      return previewCombatContentDefinition(definition, {
+      const options = {
         ...(behaviorId === undefined ? {} : { behaviorId }),
         ...(input.seed === undefined ? {} : { seed: input.seed }),
         ...(input.combatContext === undefined ? {} : { combatContext: input.combatContext }),
-      })
+      }
+      return isBasicSkillId(definition.id)
+        ? previewBasicCombatContentDefinition(definition as BasicSkillDefinition, options)
+        : previewCombatContentDefinition(definition as MatureSkillDefinition, options)
     },
 
     diffSkillDefinitions(before, after) {

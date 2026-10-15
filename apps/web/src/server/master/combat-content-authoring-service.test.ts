@@ -1436,3 +1436,223 @@ describe('authoring preview selects the requested Manual group', () => {
     },
   )
 })
+
+describe('real Basic and auxiliary authoring simulation', () => {
+  function fixture() {
+    const result = serviceFixture()
+    result.store.operators.set(OWNER, 'owner')
+    return result
+  }
+  it.each(defaultBasicSkills())(
+    'previews $id through its captured binding without writes or RNG',
+    async (definition) => {
+      const { service, store } = fixture()
+      const before = JSON.stringify(definition)
+      const preview = await service.previewSkillDefinition({ actorUserId: OWNER, definition })
+      expect(preview).toMatchObject({
+        actionId: definition.id,
+        behaviorId: 'use',
+        legal: true,
+        contentVersion: definition.contentVersion,
+        simulation: { rngConsumed: false },
+        costs: { actionEconomy: definition.ability.behaviors[0]!.costs[0]!.amount },
+      })
+      expect(await service.previewSkillDefinition({ actorUserId: OWNER, definition })).toEqual(
+        preview,
+      )
+      expect(JSON.stringify(definition)).toBe(before)
+      expect(await store.findDraft(definition.id)).toBeNull()
+      expect(await store.findPublished(definition.id)).toBeNull()
+      if (definition.id === 'basic.move')
+        expect(preview).toMatchObject({
+          movement: {
+            path: [
+              { x: 2, y: 1 },
+              { x: 3, y: 1 },
+            ],
+            terrainCost: 1,
+            movementRemainingAfter: 5,
+          },
+          costs: { actionEconomy: 20, actionEconomyAfter: 80 },
+        })
+    },
+  )
+  it('evaluates Basic Attack scaling instead of treating the saved base damage as the whole attack', async () => {
+    const { service } = fixture()
+    const definition = defaultBasicSkills().find((row) => row.id === 'unarmed.basic')!
+    const first = await service.previewSkillDefinition({ actorUserId: OWNER, definition })
+    const second = await service.previewSkillDefinition({
+      actorUserId: OWNER,
+      definition: { ...definition, execution: { kind: 'basic-attack', scalingBasisPoints: 3000 } },
+    })
+    const damage = (preview: typeof first) =>
+      preview.projections.effects.find((row) => row.effectType === 'damage')!
+    expect(Number(damage(second).before) - Number(damage(second).after)).toBeGreaterThan(
+      Number(damage(first).before) - Number(damage(first).after),
+    )
+  })
+  it.each(['hp', 'mp'] as const)(
+    'uses the captured %s Recovery percentage and native rounding',
+    async (resource) => {
+      const { service } = fixture()
+      const original = defaultBasicSkills().find(
+        (row) => row.id === (resource === 'hp' ? 'basic.recover' : 'basic.recover.mp'),
+      )!
+      const definition = {
+        ...original,
+        ability: parseAbilityDefinition({
+          ...original.ability,
+          behaviors: original.ability.behaviors.map((group) => ({
+            ...group,
+            effects: [
+              {
+                id: 'recover',
+                payload: {
+                  type: 'percentage-recovery',
+                  recipient: 'actor',
+                  resource,
+                  percentageBasisPoints: 2500,
+                },
+              },
+            ],
+          })),
+        }),
+      }
+      const nearest = await service.previewSkillDefinition({ actorUserId: OWNER, definition })
+      const floor = await service.previewSkillDefinition({
+        actorUserId: OWNER,
+        definition: {
+          ...definition,
+          execution: { kind: 'basic-action', recoveryRounding: 'floor' },
+        },
+      })
+      const recovery = (preview: typeof nearest) =>
+        preview.projections.effects.find(
+          (row) =>
+            row.effectType === 'percentage-recovery' ||
+            row.effectType === (resource === 'hp' ? 'healing' : 'resource-change'),
+        )!
+      expect(Number(recovery(nearest).after) - Number(recovery(nearest).before)).toBe(
+        resource === 'hp' ? 25 : 13,
+      )
+      expect(Number(recovery(floor).after) - Number(recovery(floor).before)).toBe(
+        resource === 'hp' ? 25 : 12,
+      )
+    },
+  )
+  it('quotes flat Basic Move AP/MP/HP once instead of using its native per-terrain facade', async () => {
+    const { service } = fixture()
+    const original = defaultBasicSkills()[0]!
+    const definition = {
+      ...original,
+      execution: { kind: 'basic-move', costBasis: 'flat' },
+      ability: parseAbilityDefinition({
+        ...original.ability,
+        behaviors: original.ability.behaviors.map((group) => ({
+          ...group,
+          costs: [
+            { resource: 'ap', amount: 11 },
+            { resource: 'mp', amount: 2 },
+            { resource: 'hp', amount: 1 },
+          ],
+        })),
+      }),
+    }
+    const preview = await service.previewSkillDefinition({ actorUserId: OWNER, definition })
+    expect(preview).toMatchObject({
+      legal: true,
+      costs: { actionEconomy: 11, mp: 2, hp: 1, actionEconomyAfter: 89 },
+      movement: {
+        path: [
+          { x: 2, y: 1 },
+          { x: 3, y: 1 },
+        ],
+      },
+    })
+  })
+  it('selects an auxiliary Manual group and reports its real multi-resource quote', async () => {
+    const { service } = fixture()
+    const original = defaultBasicSkills().find((row) => row.id === 'basic.guard')!
+    const definition = {
+      ...original,
+      ability: parseAbilityDefinition({
+        ...original.ability,
+        behaviors: [
+          original.ability.behaviors[0]!,
+          {
+            ...original.ability.behaviors[0]!,
+            id: 'mend',
+            classification: 'recovery',
+            costs: [
+              { resource: 'ap', amount: 13 },
+              { resource: 'mp', amount: 3 },
+              { resource: 'hp', amount: 1 },
+            ],
+            effects: [{ id: 'heal', payload: { type: 'healing', recipient: 'actor', amount: 17 } }],
+          },
+        ],
+      }),
+    }
+    const preview = await service.previewSkillDefinition({
+      actorUserId: OWNER,
+      definition,
+      behaviorId: 'mend',
+    })
+    expect(preview).toMatchObject({
+      legal: true,
+      behaviorId: 'mend',
+      costs: { actionEconomy: 13, mp: 3, hp: 1 },
+    })
+    expect(preview.projections.effects).toContainEqual(
+      expect.objectContaining({ effectType: 'healing', before: 59, after: 76 }),
+    )
+  })
+  it('keeps a disabled Basic action illegal in the actual command quote', async () => {
+    const { service } = fixture()
+    const definition = {
+      ...defaultBasicSkills().find((row) => row.id === 'basic.guard')!,
+      enabled: false,
+    }
+    expect(await service.previewSkillDefinition({ actorUserId: OWNER, definition })).toMatchObject({
+      legal: false,
+    })
+  })
+  it('previews a Skill Move follow-up from the reached tile and quotes only its authored price', async () => {
+    const { service } = fixture()
+    const attack = defaultBasicSkills().find((row) => row.id === 'unarmed.basic')!.ability
+      .behaviors[0]!
+    const definition = {
+      ...staticSkill(),
+      ability: parseAbilityDefinition({
+        schemaVersion: 1,
+        behaviors: [
+          {
+            ...attack,
+            costs: [
+              { resource: 'ap', amount: 11 },
+              { resource: 'mp', amount: 2 },
+              { resource: 'hp', amount: 1 },
+            ],
+            effects: [
+              { id: 'move', payload: { type: 'move', recipient: 'actor', maximumTiles: 2 } },
+              ...attack.effects,
+            ],
+          },
+        ],
+      }),
+    }
+    const preview = await service.previewSkillDefinition({ actorUserId: OWNER, definition })
+    expect(preview).toMatchObject({
+      legal: true,
+      costs: { actionEconomy: 11, mp: 2, hp: 1, actionEconomyAfter: 89 },
+      movement: {
+        path: [
+          { x: 2, y: 1 },
+          { x: 3, y: 1 },
+        ],
+      },
+      targeting: { selection: { kind: 'unit', combatantId: 'master-preview-enemy' } },
+    })
+    expect(preview.projections.effects.some((row) => row.effectType === 'damage')).toBe(true)
+  })
+})

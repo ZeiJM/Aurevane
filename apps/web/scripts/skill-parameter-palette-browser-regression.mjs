@@ -460,6 +460,138 @@ async function verifyBasicEditor(page, viewport) {
   assert.equal(await editor.getByRole('alert').count(), 0)
 }
 
+async function verifyBasicPublication(page, viewport) {
+  await page.goto(`${server.resolvedUrls.local[0]}?surface=basic-editor`, {
+    waitUntil: 'networkidle',
+  })
+  const editor = page.getByRole('region', { name: 'Basic Skill authoring', exact: true })
+  const select = editor.getByLabel('Basic Skill', { exact: true })
+  const gesture = (locator) => (viewport.width < 720 ? locator.tap() : locator.click())
+  const button = (name) => editor.getByRole('button', { name, exact: true })
+  for (const id of [
+    'basic.move',
+    'unarmed.basic',
+    'basic.guard',
+    'basic.recover',
+    'basic.recover.mp',
+  ]) {
+    await select.selectOption(id)
+    await editor.getByLabel('Basic Skill name', { exact: true }).fill(`Publish ${id}`)
+    if (id === 'basic.move') await editor.getByLabel('Move cost basis').selectOption('flat')
+    await editor.getByLabel('AP cost', { exact: true }).fill('11')
+    await editor.getByLabel('MP cost', { exact: true }).fill('2')
+    await editor.getByLabel('HP cost', { exact: true }).fill('1')
+    let groupId = 'use'
+    if (id === 'basic.guard') {
+      await gesture(editor.getByRole('button', { name: 'Add behavior group', exact: true }))
+      const group = editor.locator('[data-ability-group="group-1"]')
+      await group.getByLabel('AP cost', { exact: true }).fill('17')
+      await group.getByLabel('MP cost', { exact: true }).fill('3')
+      await group.getByLabel('HP cost', { exact: true }).fill('2')
+      groupId = 'group-1'
+      await editor.getByLabel('Preview action group', { exact: true }).selectOption(groupId)
+    }
+    assert.equal(await button('Publish').isDisabled(), true)
+    await gesture(button('Save draft'))
+    await editor.getByText('Draft saved.', { exact: true }).waitFor()
+    await gesture(button('Validate'))
+    await editor.getByText('Definition valid.', { exact: true }).waitFor()
+    await gesture(button('Diff'))
+    await editor.getByRole('region', { name: 'Semantic diff', exact: true }).waitFor()
+    await gesture(button('Preview'))
+    const preview = editor.getByRole('region', { name: 'Deterministic preview', exact: true })
+    await preview.waitFor()
+    assert.match(await preview.innerText(), new RegExp(groupId))
+    assert.match(
+      await preview.innerText(),
+      id === 'basic.guard' ? /17 AP[\s\S]*3 MP[\s\S]*2 HP/ : /11 AP[\s\S]*2 MP[\s\S]*1 HP/,
+    )
+    if (id === 'basic.move') assert.match(await preview.innerText(), /1 tile/)
+    await gesture(button('Publish'))
+    const confirmation = editor.getByRole('region', { name: 'Confirm publication', exact: true })
+    await confirmation.waitFor()
+    assert.match(await confirmation.innerText(), /Base v1[\s\S]*New v2/)
+    const beforeCancel = await page.evaluate(() => window.basicPublishedVersions.length)
+    await gesture(confirmation.getByRole('button', { name: 'Cancel', exact: true }))
+    assert.equal(await page.evaluate(() => window.basicPublishedVersions.length), beforeCancel)
+    await gesture(button('Publish'))
+    if (id === 'basic.recover.mp') {
+      await page.evaluate(() => {
+        window.rejectBasicPublish = true
+      })
+      await gesture(confirmation.getByRole('button', { name: 'Confirm publish', exact: true }))
+      await editor.getByRole('alert').waitFor()
+      assert.match(await editor.getByRole('alert').innerText(), /Combat content changed/)
+      assert.equal(
+        await editor.getByLabel('Basic Skill name', { exact: true }).inputValue(),
+        `Publish ${id}`,
+      )
+      assert.equal(await page.evaluate(() => window.basicPublishedVersions.length), beforeCancel)
+      await page.evaluate(() => {
+        window.rejectBasicPublish = false
+      })
+    }
+    if (id === 'basic.move')
+      await page.evaluate(() => {
+        window.holdBasicPublish = true
+      })
+    await gesture(confirmation.getByRole('button', { name: 'Confirm publish', exact: true }))
+    if (id === 'basic.move') {
+      await page.waitForFunction(() => typeof window.releaseBasicPublish === 'function')
+      await editor.getByLabel('Basic Skill name', { exact: true }).fill('Newer unpublished Move')
+      await page.evaluate(() => {
+        window.releaseBasicPublish()
+        window.holdBasicPublish = false
+      })
+      await editor
+        .getByText('Published earlier draft as v2; newer edits are still unpublished.', {
+          exact: true,
+        })
+        .waitFor()
+      assert.equal(
+        await editor.getByLabel('Basic Skill name', { exact: true }).inputValue(),
+        'Newer unpublished Move',
+      )
+      await gesture(button('Save draft'))
+      await editor.getByText('Draft saved.', { exact: true }).waitFor()
+      const lastSave = await page.evaluate(() =>
+        window.basicDraftRequests.filter((row) => row.operation === 'save-draft').at(-1),
+      )
+      assert.equal(lastSave.baseVersion, 2)
+      assert.equal(lastSave.expectedDraftVersion, 1)
+    } else await editor.getByText('Published immutable v2.', { exact: true }).waitFor()
+    assert.equal(await button('Publish').isDisabled(), true)
+    assert.equal(await editor.getByRole('button', { name: 'Rollback', exact: true }).count(), 0)
+    assert.match(
+      await editor.getByRole('region', { name: 'Version history', exact: true }).innerText(),
+      /v2[\s\S]*Current[\s\S]*v1/,
+    )
+  }
+  const result = await page.evaluate(() => ({
+    versions: window.basicPublishedVersions,
+    requests: window.basicDraftRequests,
+    definitions: window.basicPublishedDefinitions,
+  }))
+  assert.deepEqual(
+    result.versions.map((row) => row.id),
+    ['basic.move', 'unarmed.basic', 'basic.guard', 'basic.recover', 'basic.recover.mp'],
+  )
+  assert.ok(
+    result.requests
+      .filter((row) => row.operation === 'publish')
+      .every((row) => row.expectedBaseVersion === 1),
+  )
+  assert.equal(result.definitions['basic.guard'].ability.behaviors.length, 2)
+  assert.equal(result.definitions['basic.move'].name, 'Publish basic.move')
+  assert.equal(result.definitions['basic.recover.mp'].contentVersion, 2)
+  await editor
+    .getByRole('region', { name: 'Version history', exact: true })
+    .scrollIntoViewIfNeeded()
+  await page.screenshot({ path: resolve(output, `basic-publication-${viewport.width}.png`) })
+  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
+  assert.equal(await editor.getByRole('alert').count(), 0)
+}
+
 async function verifySelectedGroupPreview(page, viewport, kind) {
   await page.goto(`${server.resolvedUrls.local[0]}?surface=selected-preview&kind=${kind}`, {
     waitUntil: 'networkidle',
@@ -628,6 +760,7 @@ try {
     await verifyModularManual(page, viewport)
     await verifyCanonicalEditor(page, viewport)
     await verifyBasicEditor(page, viewport)
+    await verifyBasicPublication(page, viewport)
     await verifySelectedGroupPreview(page, viewport, 'skill')
     await verifySelectedGroupPreview(page, viewport, 'essence')
     if (process.env.AV_MODULAR_READERS_ONLY === '1') {
@@ -635,7 +768,7 @@ try {
       evidence.push({
         viewport,
         status: 'passed',
-        modularReaderContexts: 11,
+        modularReaderContexts: 12,
         scope: 'Production components with fixture data; no hosted gameplay claim.',
       })
       await page.close()

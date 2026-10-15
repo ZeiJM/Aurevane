@@ -34,3 +34,10 @@ Durable32403b2cea2052253bf9675144ea82558879e59a / tree446479bf19a2ba0d014ab5a399
 The initial Controlled rerun stops in the newly added unsupported background precondition, not in the foreground prime/release path. Its diagnostic artifact11996002619 has verified SHA256 `c9b763f17d7f5e1aad227eb610181e79d6650a703728d1538235401df4c96cf8`,23 completed cases and no runtime errors; failure capture points to the foreground about:blank page. The failed setup is removed instead of falsifying focus state or changing production guards. The original d39 initial-prime timeout remains unresolved until the complete corrected native matrix passes.
 
 Corrected-source full `pnpm check` exits0:6,099 Vitest plus seven Node checks, formatting, lint, all eight typechecks and both builds. Complete capture: `preview-layout-full-check.log`. All40 focused editor/review cases also pass. No product changes follow this gate before the corrected checkpoint.
+
+
+## Accepted corrected-source native receipts
+
+On durable80e631328cad3824c21b08ccad4a49c62dac0a6b / tree834db308b55582d1d5e798f3044300872997398a, reader/editor run38783330979/job116588894322 passes all22 contexts. Artifact11996942158 SHA256 `1f62b6e86b1ff1bea1d6bc818d1a032597e49b9dd48b75fb6a0c92cf3a73b44f` is hash-verified with32 PNGs and11 successful contexts per viewport. Desktop Essence and phone Skill screenshots accept the full-width selector in the review rail, and the unchanged minimum200px/readiness/request/revision checks pass.
+
+Controlled run38783331233/job116588894897 passes the complete32-case production PvE/PvP controller and real canonical-kernel matrix. Artifact11995489979 SHA256 `064c42c6e9d23cd056707b87bb6dc8a7d33558f1fe0b123ed7fcb2ee7b81e4f1` is hash-verified with28 PNGs and results32/errors[]. The d39 initial-prime timeout no longer reproduces. Original missing diagnostics still prevent retrospective certainty about its exact cause. No production focus guard, timeout or assertion bound changes. No background-native or hosted gameplay acceptance follows from these results.
