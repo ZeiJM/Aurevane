@@ -299,6 +299,124 @@ async function verifyModularManual(page, viewport) {
   await page.screenshot({ path: resolve(output, `modular-manual-basics-${viewport.width}.png`) })
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
 }
+async function verifyBasicEditor(page, viewport) {
+  await page.goto(`${server.resolvedUrls.local[0]}?surface=basic-editor`, {
+    waitUntil: 'networkidle',
+  })
+  const editor = page.getByRole('region', { name: 'Basic Skill authoring', exact: true })
+  const selector = editor.getByLabel('Basic Skill', { exact: true })
+  assert.deepEqual(
+    await selector.locator('option').evaluateAll((rows) => rows.map((row) => row.value)),
+    ['basic.move', 'unarmed.basic', 'basic.guard', 'basic.recover', 'basic.recover.mp'],
+  )
+  assert.equal(await page.getByLabel('Combat content type').inputValue(), 'basics')
+  await editor.getByLabel('Move cost basis').selectOption('flat')
+  await editor.getByLabel('Basic Skill name', { exact: true }).fill('Authored Move')
+  await editor.getByLabel('AP cost', { exact: true }).fill('11')
+  await editor.getByLabel('MP cost', { exact: true }).fill('2')
+  await editor.getByLabel('HP cost', { exact: true }).fill('1')
+  await editor.getByLabel('Move maximum tiles').fill('3')
+  await editor.getByRole('button', { name: 'Validate', exact: true }).click()
+  await editor.getByText('Definition valid.', { exact: true }).waitFor()
+  await editor.getByRole('button', { name: 'Save draft', exact: true }).click()
+  await editor.getByText('Draft saved.', { exact: true }).waitFor()
+  const first = await page.evaluate(() => window.basicSavedDrafts['basic.move'])
+  assert.equal(first.execution.costBasis, 'flat')
+  assert.deepEqual(first.ability.behaviors[0].costs, [
+    { resource: 'ap', amount: 11 },
+    { resource: 'mp', amount: 2 },
+    { resource: 'hp', amount: 1 },
+  ])
+  assert.equal(first.ability.behaviors[0].effects[0].payload.maximumTiles, 3)
+  // A completed save updates CAS even when a newer edit was made while it was pending.
+  await page.evaluate(() => {
+    window.holdBasicSave = true
+  })
+  await editor.getByRole('button', { name: 'Save draft', exact: true }).click()
+  await page.waitForFunction(() => typeof window.releaseBasicSave === 'function')
+  await editor.getByLabel('Basic Skill name', { exact: true }).fill('Newer unsaved Move')
+  await page.evaluate(() => {
+    window.holdBasicSave = false
+    window.releaseBasicSave()
+  })
+  await editor
+    .getByText('Earlier draft saved; newer edits are still unsaved.', { exact: true })
+    .waitFor()
+  assert.equal(
+    await editor.getByLabel('Basic Skill name', { exact: true }).inputValue(),
+    'Newer unsaved Move',
+  )
+  await editor.getByRole('button', { name: 'Save draft', exact: true }).click()
+  await editor.getByText('Draft saved.', { exact: true }).waitFor()
+  await editor.getByLabel('AP cost', { exact: true }).scrollIntoViewIfNeeded()
+  await page.screenshot({ path: resolve(output, `basic-editor-move-${viewport.width}.png`) })
+  await selector.selectOption('unarmed.basic')
+  await editor.getByLabel('AP cost', { exact: true }).fill('0')
+  assert.ok(
+    (
+      await editor.getByRole('region', { name: 'Basic Skill definition report' }).textContent()
+    ).includes('Basic Attack requires a positive authored AP cost.'),
+  )
+  await editor.getByLabel('AP cost', { exact: true }).fill('17')
+  await editor.getByLabel('Higher Power scaling (%)').fill('42.25')
+  await editor.getByRole('button', { name: 'Save draft', exact: true }).click()
+  await editor.getByText('Draft saved.', { exact: true }).waitFor()
+  assert.equal(
+    await page.evaluate(
+      () => window.basicSavedDrafts['unarmed.basic'].execution.scalingBasisPoints,
+    ),
+    4225,
+  )
+  await editor.getByLabel('Higher Power scaling (%)').scrollIntoViewIfNeeded()
+  await page.screenshot({ path: resolve(output, `basic-editor-attack-${viewport.width}.png`) })
+  for (const [index, id] of ['basic.guard', 'basic.recover', 'basic.recover.mp'].entries()) {
+    await selector.selectOption(id)
+    if (id === 'basic.guard')
+      assert.equal(
+        await editor.getByLabel('Basic Skill name', { exact: true }).inputValue(),
+        'Saved Guard draft',
+      )
+    await editor.getByLabel('Basic Skill name', { exact: true }).fill(`Edited ${id}`)
+    await editor.getByLabel('AP cost', { exact: true }).fill(String(9 + index))
+    await editor.getByLabel('Recovery rounding').selectOption('floor')
+    if (id !== 'basic.guard')
+      await editor.getByLabel('Recovery percent', { exact: true }).fill(String(21 + index))
+    await editor.getByRole('button', { name: 'Validate', exact: true }).click()
+    await editor.getByText('Definition valid.', { exact: true }).waitFor()
+    await editor.getByRole('button', { name: 'Save draft', exact: true }).click()
+    await editor.getByText('Draft saved.', { exact: true }).waitFor()
+  }
+  await selector.selectOption('basic.move')
+  assert.equal(
+    await editor.getByLabel('Basic Skill name', { exact: true }).inputValue(),
+    'Newer unsaved Move',
+  )
+  const requests = await page.evaluate(() => window.basicDraftRequests)
+  assert.deepEqual(
+    requests
+      .filter((row) => row.operation === 'save-draft' && row.definition.id === 'basic.move')
+      .map((row) => row.expectedDraftVersion),
+    [null, 1, 2],
+  )
+  assert.equal(
+    requests.find((row) => row.operation === 'save-draft' && row.definition.id === 'basic.guard')
+      .expectedDraftVersion,
+    4,
+  )
+  assert.ok(
+    requests
+      .filter((row) => row.operation === 'save-draft')
+      .every((row) => row.baseVersion === 1 && row.definition.contentVersion === 1),
+  )
+  await selector.selectOption('basic.recover.mp')
+  await editor
+    .getByRole('region', { name: 'Basic Skill definition report' })
+    .scrollIntoViewIfNeeded()
+  await page.screenshot({ path: resolve(output, `basic-editor-recovery-${viewport.width}.png`) })
+  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
+  assert.equal(await editor.getByRole('alert').count(), 0)
+}
+
 async function verifyCanonicalEditor(page, viewport) {
   await page.goto(`${server.resolvedUrls.local[0]}?surface=canonical-editor`, {
     waitUntil: 'networkidle',
@@ -384,12 +502,13 @@ try {
     await verifyModularReaders(page, viewport)
     await verifyModularManual(page, viewport)
     await verifyCanonicalEditor(page, viewport)
+    await verifyBasicEditor(page, viewport)
     if (process.env.AV_MODULAR_READERS_ONLY === '1') {
       assert.deepEqual(errors, [])
       evidence.push({
         viewport,
         status: 'passed',
-        modularReaderContexts: 8,
+        modularReaderContexts: 9,
         scope: 'Production components with fixture data; no hosted gameplay claim.',
       })
       await page.close()

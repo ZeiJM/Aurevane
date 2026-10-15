@@ -1,5 +1,8 @@
 import React from 'react'
-import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
+import {
+  defaultBasicSkills,
+  validateBasicSkillDefinition,
+} from '@aurevane/game-core/combat/combat-basic-actions'
 import { parseAbilityDefinition } from '@aurevane/game-core/combat/combat-definition'
 import { projectPublicCombat } from '@aurevane/game-core/combat/public-combat-presentation'
 import { createRoot } from 'react-dom/client'
@@ -23,6 +26,7 @@ import { DISCIPLINE_ATLAS } from '@aurevane/game-core/character/discipline-atlas
 import { ManualArticle } from '@/components/public-information/manual-article'
 import { createTechniquesManualArticle } from '@/content/techniques-manual'
 import { defaultCombatEffectTimingPolicy } from '@aurevane/game-core/combat/combat-effect-timing'
+import { CombatContentAuthoringWorkspace } from '@/components/master/combat-content/combat-content-authoring-workspace'
 import { AbilityDefinitionEditor } from '@/components/master/combat-content/ability-definition-editor'
 import './production-styles'
 
@@ -123,6 +127,72 @@ window.requests = []
 window.fetch = async (url) => {
   window.requests.push(String(url))
   return new Response(JSON.stringify({ slots: [], entries: [], preferences: {} }))
+}
+
+const basicOptions = defaultBasicSkills().map((definition) => ({
+  id: definition.id,
+  label: definition.name,
+  definition,
+  currentVersion: definition.contentVersion,
+  baseVersion: definition.contentVersion,
+  draftVersion: definition.id === 'basic.guard' ? 4 : null,
+  ...(definition.id === 'basic.guard'
+    ? { initialDraft: { ...definition, name: 'Saved Guard draft' } }
+    : {}),
+  history: [
+    {
+      contentVersion: definition.contentVersion,
+      source: 'static-baseline',
+      current: true,
+      publishedAt: null,
+    },
+  ],
+}))
+if (new URLSearchParams(location.search).get('surface') === 'basic-editor') {
+  const versions = new Map(basicOptions.map((row) => [row.id, row.draftVersion]))
+  window.basicDraftRequests = []
+  window.basicSavedDrafts = {}
+  window.fetch = async (url, options) => {
+    if (String(url) !== '/api/master/combat-content')
+      throw new Error('Unexpected Basic fixture request')
+    const body = JSON.parse(options.body)
+    window.basicDraftRequests.push(structuredClone(body))
+    const issues = validateBasicSkillDefinition(body.definition)
+    if (body.operation === 'validate')
+      return Response.json({
+        validation: { valid: issues.length === 0, issues, derivedTags: body.definition.tags },
+      })
+    if (body.operation !== 'save-draft') throw new Error('Unexpected Basic fixture operation')
+    const id = body.definition.id
+    if (body.expectedDraftVersion !== versions.get(id))
+      return Response.json(
+        { error: { code: 'DRAFT_CONFLICT', message: 'Draft changed. Refresh and retry.' } },
+        { status: 409 },
+      )
+    if (window.holdBasicSave)
+      await new Promise((resolve) => {
+        window.releaseBasicSave = resolve
+      })
+    const draftVersion = (versions.get(id) ?? 0) + 1
+    versions.set(id, draftVersion)
+    window.basicSavedDrafts[id] = structuredClone(body.definition)
+    return Response.json({ draft: { draftVersion } })
+  }
+}
+function BasicEditor() {
+  return (
+    <main style={{ padding: 12 }}>
+      <SkillEffectTimingProvider policy={defaultCombatEffectTimingPolicy()}>
+        <CombatContentAuthoringWorkspace
+          basics={basicOptions}
+          skills={[]}
+          essences={[]}
+          resonances={[]}
+          initialContentType="basics"
+        />
+      </SkillEffectTimingProvider>
+    </main>
+  )
 }
 
 const sectionStyle = { background: '#0a202b', color: '#f0e8dc', padding: 12, marginBottom: 12 }
@@ -451,7 +521,9 @@ function FireReaders() {
   )
 }
 createRoot(document.getElementById('root')).render(
-  query.get('surface') === 'canonical-editor' ? (
+  query.get('surface') === 'basic-editor' ? (
+    <BasicEditor />
+  ) : query.get('surface') === 'canonical-editor' ? (
     <CanonicalEditor />
   ) : query.get('surface') === 'modular-manual' ? (
     <ModularManual />

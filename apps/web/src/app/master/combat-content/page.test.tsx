@@ -4,6 +4,7 @@ import {
   InMemoryCombatContentRepository,
   type CombatContentVersionRecord,
 } from '@aurevane/db/combat-content'
+import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
 import { defaultCombatEffectTimingPolicy } from '@aurevane/game-core/combat/combat-effect-timing'
 import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
 import { resolveEssenceForBuild } from '@aurevane/game-core/combat/essence'
@@ -260,5 +261,41 @@ it('keeps selected current disabled Essences and Resonances editable with their 
     draftVersion: 1,
     definition: { enabled: false },
     initialDraft: { description: 'Saved Resonance draft.' },
+  })
+})
+
+it('loads all five current Basics and saved auxiliary drafts independently of the equipped slot', async () => {
+  const guard = defaultBasicSkills().find((row) => row.id === 'basic.guard')!
+  const changed = { ...guard, name: 'Current Guard', contentVersion: 40 }
+  const draft = { ...changed, name: 'Unpublished Guard' }
+  source.read.mockResolvedValue(catalogue([publication('skill', guard.id, changed, 40)]))
+  await store.saveDraft({
+    contentKey: guard.id,
+    contentKind: 'skill',
+    definition: draft as unknown as Record<string, unknown>,
+    baseVersion: 40,
+    expectedDraftVersion: null,
+    actorUserId: 'owner',
+  })
+  const { props } = await pageProps()
+  expect(props.basics?.map((row) => row.id).sort()).toEqual(
+    defaultBasicSkills()
+      .map((row) => row.id)
+      .sort(),
+  )
+  expect(props.basics?.find((row) => row.id === guard.id)).toMatchObject({
+    label: 'Current Guard',
+    currentVersion: 40,
+    draftVersion: 1,
+    definition: changed,
+    initialDraft: draft,
+    history: expect.arrayContaining([
+      {
+        contentVersion: guard.contentVersion,
+        source: 'static-baseline',
+        current: false,
+        publishedAt: null,
+      },
+    ]),
   })
 })

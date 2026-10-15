@@ -1,3 +1,8 @@
+import {
+  defaultBasicSkills,
+  type BasicSkillDefinition,
+} from '@aurevane/game-core/combat/combat-basic-actions'
+import type { BasicContentEditorOption } from '@/components/master/combat-content/basic-content-editor'
 import { SkillEffectTimingProvider } from '@/components/character/skill-effect-timing-context'
 import {
   currentEssenceDefinitions,
@@ -57,6 +62,7 @@ export default async function MasterCombatContentPage() {
     throw new Error('Authoritative combat catalogue is unavailable.')
   const catalogue = await resolver.resolveCurrentCatalogue()
   const builtinVersions = new Map<string, number>([
+    ...defaultBasicSkills().map((row) => [row.id, row.contentVersion] as const),
     ...latestEnabledMatureSkills().map((row) => [row.id, row.contentVersion] as const),
     ...currentEssenceDefinitions().map((row) => [row.essenceId, row.contentVersion] as const),
     ...currentResonanceDefinitions().map((row) => [row.id, row.contentVersion] as const),
@@ -105,6 +111,25 @@ export default async function MasterCombatContentPage() {
       draft,
     }
   }
+  const basics = await mapInBatches(
+    catalogue.entries.filter((entry) => entry.category === 'basic'),
+    4,
+    async (entry): Promise<BasicContentEditorOption> => {
+      const { draft, ...state } = await authoringState(entry)
+      const current = structuredClone(entry.definition)
+      return {
+        ...state,
+        id: current.id,
+        label: current.name,
+        definition: current,
+        ...(draft
+          ? { initialDraft: structuredClone(draft.definition) as unknown as BasicSkillDefinition }
+          : {}),
+      }
+    },
+  )
+  const basicOrder = defaultBasicSkills().map((row) => row.id)
+  basics.sort((left, right) => basicOrder.indexOf(left.id) - basicOrder.indexOf(right.id))
   const options = await mapInBatches(
     catalogue.entries.filter((entry) => entry.category === 'skill'),
     4,
@@ -182,6 +207,10 @@ export default async function MasterCombatContentPage() {
       >
         <CombatContentAuthoringWorkspace
           key={[
+            ...basics.map(
+              (option) =>
+                `basic:${option.id}:${option.currentVersion}:${option.draftVersion ?? 'none'}`,
+            ),
             ...options.map(
               (option) =>
                 `skill:${option.id}:${option.currentVersion}:${option.draftVersion ?? 'none'}`,
@@ -195,6 +224,7 @@ export default async function MasterCombatContentPage() {
                 `resonance:${option.id}:${option.currentVersion}:${option.draftVersion ?? 'none'}`,
             ),
           ].join('|')}
+          basics={basics}
           skills={options}
           essences={essences}
           resonances={resonances}
