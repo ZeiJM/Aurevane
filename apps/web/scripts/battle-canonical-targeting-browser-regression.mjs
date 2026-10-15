@@ -763,15 +763,20 @@ try {
                 'captured 11 AP remains legal below old 15 AP price',
               )
               assert.match(await command.getAttribute('aria-label'), /11 AP \/ 2 MP \/ 1 HP/)
+            }
+            if (scenario === 'controlled-price' || scenario === 'controlled-move') {
               await gesture(page.getByRole('button', { name: 'About Targeting Test', exact: true }))
               const dialog = page.getByRole('dialog')
               await dialog.waitFor({ state: 'visible' })
-              assert.match(await dialog.innerText(), /11 AP \/ 2 MP \/ 1 HP/)
+              if (scenario === 'controlled-price')
+                assert.match(await dialog.innerText(), /11 AP \/ 2 MP \/ 1 HP/)
               assert.match(
                 await dialog.innerText(),
-                /Dmg \[10\]/,
-                'the report uses captured effect power',
+                scenario === 'controlled-price' ? /Barrier \[10\]/ : /Dmg \[10\]/,
+                'the report uses the actual captured effect type and power',
               )
+              if (scenario === 'controlled-move')
+                assert.match(await dialog.innerText(), /Move \[2\]/)
               assert.doesNotMatch(
                 await dialog.innerText(),
                 /Slow|Dmg \[9\]/,
@@ -803,7 +808,10 @@ try {
                   'compact and expanded tag names match their value color',
                 )
               await page.screenshot({
-                path: resolve(output, `${mode}-${viewport.width}-effect-tag-reader.png`),
+                path: resolve(
+                  output,
+                  `${mode}-${viewport.width}-${scenario}-effect-tag-reader.png`,
+                ),
                 fullPage: true,
               })
               await page.keyboard.press('Escape')
