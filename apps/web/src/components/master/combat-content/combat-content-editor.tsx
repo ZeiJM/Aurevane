@@ -44,6 +44,7 @@ export interface CombatContentEditorSkillOption {
   readonly draftVersion: number | null
   readonly derivedTags: readonly string[]
   readonly definition?: MatureSkillDefinition
+  readonly initialDraft?: MatureSkillDefinition
   readonly history?: readonly CombatContentVersionHistoryEntry[]
 }
 
@@ -115,21 +116,22 @@ export function CombatContentEditor({ skills, initialSkillId }: CombatContentEdi
   const [skillQuery, setSkillQuery] = useState('')
   const [drafts, setDrafts] = useState<Record<string, MatureSkillDefinition>>(() =>
     Object.fromEntries(
-      skills.flatMap((skill) =>
-        skill.definition
+      skills.flatMap((skill) => {
+        const definition = skill.initialDraft ?? skill.definition
+        return definition
           ? [
               [
                 skill.id,
                 {
-                  ...structuredClone(skill.definition),
-                  target: Object.hasOwn(skill.definition, 'ability')
-                    ? skill.definition.target
-                    : normalizeCurrentCombatTargetSpec(skill.definition.target),
+                  ...structuredClone(definition),
+                  target: Object.hasOwn(definition, 'ability')
+                    ? definition.target
+                    : normalizeCurrentCombatTargetSpec(definition.target),
                 },
               ] as const,
             ]
-          : [],
-      ),
+          : []
+      }),
     ),
   )
   const [reviews, setReviews] = useState<Record<string, CombatContentReviewState>>({})
