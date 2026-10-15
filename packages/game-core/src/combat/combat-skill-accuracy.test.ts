@@ -300,7 +300,7 @@ describe('Skill accuracy kernel', () => {
     expect(result.state.tactical.battle.rng).toEqual(initial.tactical.battle.rng)
     expect(unit(result.state, 'actor').hp).toBe(65)
   })
-  it('preserves caster healing and restoration when every enemy misses', () => {
+  it('suppresses secondary HP healing on a miss while retaining independent MP restoration', () => {
     const result = cast(
       world(0),
       action([
@@ -310,7 +310,8 @@ describe('Skill accuracy kernel', () => {
       ]),
     )
     expect(unit(result.state).hp).toBe(100)
-    expect(unit(result.state, 'actor')).toMatchObject({ hp: 69, mp: 19 })
+    expect(unit(result.state, 'actor')).toMatchObject({ hp: 60, mp: 19 })
+    expect(result.events.filter((event) => event.event === 'healing_applied')).toEqual([])
   })
   it.each(['automatic', undefined] as const)(
     'preserves historical automatic behavior for mode %s',

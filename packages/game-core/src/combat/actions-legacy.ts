@@ -46,6 +46,7 @@ import {
   resolveCombatTargetFootprint,
   combatTargetCategories,
   combatTargetUnitCategoryAllowed,
+  combatTargetAllowsHostileHit,
   filterCombatTargetSpatialFootprint,
   hasCombatTargetLineOfSight,
 } from './combat-targeting-shapes'
@@ -3730,7 +3731,50 @@ function resolveActionEffects(
   }
   const originalDamageEvents: CombatResolutionEvent[] = []
   const resolvedDamageOrdinals: number[] = []
+  // Caster/ally HP recovery attached to a hostile attack is a payoff of a hit,
+  // not an independent cast benefit. Use the original recipients and exact packet
+  // miss/eligibility masks: a killing or Barrier-absorbed hit still qualifies.
+  const secondaryHealingNeedsHit =
+    !resolvingPending &&
+    combatTargetAllowsHostileHit(action.target) &&
+    action.effects.some(
+      (effect) =>
+        effect.type === 'healing' ||
+        (effect.type === 'percentage-recovery' && effect.resource === 'hp'),
+    ) &&
+    action.effects.some((effect) => effect.type === 'damage' && effect.recipient !== 'actor')
+  const secondaryHealingHasHit =
+    !secondaryHealingNeedsHit ||
+    action.effects.some(
+      (effect, ordinal) =>
+        effect.type === 'damage' &&
+        effect.recipient !== 'actor' &&
+        resolveEffectRecipients(
+          actorId,
+          primaryCombatantId,
+          affectedCombatantIds,
+          effect.recipient,
+        ).some((id) => {
+          const target = state.tactical.battle.combatants.find((unit) => unit.id === id)
+          return (
+            target &&
+            target.hp > 0 &&
+            target.teamId !== getCombatant(state.tactical.battle, actorId).teamId &&
+            !missedCombatantIds?.has(id) &&
+            !options.missedEffectOrdinalsByTarget?.get(id)?.has(ordinal) &&
+            (action.effectEligibleRecipientIds?.[ordinal] === undefined ||
+              action.effectEligibleRecipientIds[ordinal]!.includes(id)) &&
+            !airborneGroundMiss(state, action, id, content)
+          )
+        }),
+    )
   for (const [effectOrdinal, effect] of action.effects.entries()) {
+    if (
+      !secondaryHealingHasHit &&
+      (effect.type === 'healing' ||
+        (effect.type === 'percentage-recovery' && effect.resource === 'hp'))
+    )
+      continue
     if (options.actorOnly) {
       if (getCombatant(nextState.tactical.battle, actorId).hp <= 0) break
       if (

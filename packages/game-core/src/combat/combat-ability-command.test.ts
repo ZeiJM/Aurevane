@@ -915,7 +915,7 @@ function interruptedFire(
   return { ...input, state }
 }
 describe('paid interrupted native settlement', () => {
-  it('target defeat retains one paid attempt and the independent Fire actor cleanse with locked gates', () => {
+  it('target defeat retains the paid attempt and independent Fire cleanse without secondary HP healing', () => {
     const input = interruptedFire(),
       out = commitCombatAbilityCommand(input)
     expect(out.events.filter((e) => e.event === 'combat_action_interrupted')).toEqual([
@@ -927,7 +927,8 @@ describe('paid interrupted native settlement', () => {
       },
     ])
     expect(out.state.statusState.find((row) => row.combatantId === 'actor')!.statuses).toEqual([])
-    expect(out.state.tactical.battle.combatants.find((row) => row.id === 'actor')!.hp).toBe(20)
+    expect(out.state.tactical.battle.combatants.find((row) => row.id === 'actor')!.hp).toBe(19)
+    expect(out.events.filter((event) => event.event === 'healing_applied')).toEqual([])
     expect(readPv1fActionEconomy(out.state as never)!.current).toBe(70)
     expect(out.state.abilityRuntime!.nextCommandSequence).toBe(2)
     expect(out.state.abilityRuntime!.usage).toHaveLength(2)
