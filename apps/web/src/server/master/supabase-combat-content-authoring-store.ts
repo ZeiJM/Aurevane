@@ -12,6 +12,11 @@ import {
 import { AurevaneError } from '@aurevane/game-core/errors'
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import {
+  RpcPublishedCombatContentSource,
+  resolveCombatContentCatalogueSnapshot,
+} from '@/server/combat/combat-content-resolver'
+import { assertCombatCatalogueTimingCompatible } from '@/server/combat/combat-catalogue-timing-compatibility'
 
 import type {
   CombatContentAuthoringStore,
@@ -156,6 +161,11 @@ function parseVersionList(data: unknown): readonly CombatContentVersionRecord[] 
 
 function mapRpcError(error: RpcError): never {
   const message = error.message ?? ''
+  if (message.includes('COMBAT_CONTENT_CATALOGUE_CONFLICT'))
+    throw new AurevaneError(
+      'STALE_VERSION',
+      'Combat content or timing changed. Refresh before publishing again.',
+    )
   if (message.includes('COMBAT_CONTENT_DRAFT_VERSION_CONFLICT')) {
     throw new CombatContentConflictError(
       'COMBAT_CONTENT_DRAFT_VERSION_CONFLICT',
@@ -249,12 +259,24 @@ export class RpcCombatContentAuthoringStore implements CombatContentAuthoringSto
 
   async publish(input: PublishCombatContentInput): Promise<CombatContentVersionRecord> {
     this.#assertActor(input.actorUserId)
-    const { data, error } = await this.#rpc('publish_combat_content_v1', {
+    const token = await this.#validatePublication(input.contentKey, input.contentKind, {
+      id: 'prospective',
+      contentKey: input.contentKey,
+      contentKind: input.contentKind,
+      contentVersion: positiveInteger(input.definition.contentVersion)
+        ? (input.definition.contentVersion as number)
+        : 1,
+      definition: input.definition,
+      publishedBy: input.actorUserId,
+      publishedAt: '',
+    })
+    const { data, error } = await this.#rpc('publish_combat_content_v2', {
       p_actor_user_id: input.actorUserId,
       p_content_key: input.contentKey,
       p_content_kind: input.contentKind,
       p_definition: input.definition,
       p_expected_base_version: input.expectedBaseVersion,
+      p_expected_catalogue_token: token,
     })
     if (error) mapRpcError(error)
     const row = parseSingleVersion(data)
@@ -295,13 +317,46 @@ export class RpcCombatContentAuthoringStore implements CombatContentAuthoringSto
     contentKind: CombatContentKind = 'skill',
   ): Promise<void> {
     this.#assertActor(actorUserId)
-    const { error } = await this.#rpc('set_combat_content_publication_v1', {
+    const target =
+      version === null
+        ? null
+        : (await this.listPublishedVersions(contentKey)).find(
+            (row) => row.contentKind === contentKind && row.contentVersion === version,
+          )
+    if (target === undefined)
+      throw new CombatContentConflictError(
+        'COMBAT_CONTENT_VERSION_NOT_FOUND',
+        'The requested combat-content version does not exist.',
+      )
+    const token = await this.#validatePublication(contentKey, contentKind, target)
+    const { error } = await this.#rpc('set_combat_content_publication_v2', {
       p_actor_user_id: actorUserId,
       p_content_key: contentKey,
       p_content_kind: contentKind,
       p_target_version: version,
+      p_expected_catalogue_token: token,
     })
     if (error) mapRpcError(error)
+  }
+
+  async #validatePublication(
+    contentKey: string,
+    contentKind: CombatContentKind,
+    target: CombatContentVersionRecord | null,
+  ): Promise<string> {
+    const snapshot = await new RpcPublishedCombatContentSource(this.#rpc).readCatalogueSnapshot()
+    if (
+      snapshot.publications.some(
+        (row) => row.contentKey === contentKey && row.contentKind !== contentKind,
+      )
+    )
+      throw new AurevaneError('INVALID_REQUEST', 'A published content identity cannot change kind.')
+    const publications = snapshot.publications.filter((row) => row.contentKey !== contentKey)
+    if (target) publications.push(target)
+    assertCombatCatalogueTimingCompatible(
+      resolveCombatContentCatalogueSnapshot({ ...snapshot, publications }),
+    )
+    return snapshot.token
   }
 
   #assertActor(actorUserId: string): void {

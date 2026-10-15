@@ -1,7 +1,39 @@
-import { expect, it, vi } from 'vitest'
+import { beforeEach, expect, it, vi } from 'vitest'
+import { latestEnabledMatureSkills } from '@aurevane/game-core/combat/mature-skills'
+import { currentEssenceDefinitions } from '@aurevane/game-core/combat/essence'
+import { currentResonanceDefinitions } from '@aurevane/game-core/combat/resonance'
 vi.mock('server-only', () => ({}))
 const rpc = vi.fn()
 vi.mock('@/lib/supabase/admin', () => ({ createSupabaseAdminClient: () => ({ rpc }) }))
+beforeEach(() => {
+  rpc.mockReset()
+})
+function publicationResult(result: unknown, disabledNative = false) {
+  const record = (kind: string, key: string, version: number, definition: object) => ({
+    id: `stored:${key}`,
+    content_key: key,
+    content_kind: kind,
+    content_version: version,
+    definition: { ...definition, enabled: false },
+    published_by: 'owner',
+    published_at: '2026-10-15T12:00:00Z',
+  })
+  const publications = disabledNative
+    ? [
+        ...latestEnabledMatureSkills().map((d) => record('skill', d.id, d.contentVersion, d)),
+        ...currentEssenceDefinitions().map((d) =>
+          record('essence', d.essenceId, d.contentVersion, d),
+        ),
+        ...currentResonanceDefinitions().map((d) => record('resonance', d.id, d.contentVersion, d)),
+      ]
+    : []
+  rpc
+    .mockResolvedValueOnce({
+      data: { token: 'a'.repeat(32), policy: { version: 3, modes: {} }, publications },
+      error: null,
+    })
+    .mockResolvedValueOnce(result)
+}
 it('loads the published policy after obsolete Copy and Summoned timing settings retire', async () => {
   const service = await import('./combat-effect-timing-policy-store')
   const stored = { version: 3, modes: { copy: 'instant', summoned: 'instant', summon: 'instant' } }
@@ -49,7 +81,7 @@ it('pins parsed current policy and maps stale publication while rejecting unknow
     }),
   ).rejects.toThrow()
   expect(rpc.mock.calls).toHaveLength(before)
-  rpc.mockResolvedValueOnce({ data: null, error: { message: 'TIMING_POLICY_VERSION_CONFLICT' } })
+  publicationResult({ data: null, error: { message: 'TIMING_POLICY_VERSION_CONFLICT' } })
   await expect(
     service.publishCombatEffectTimingPolicy({
       actorUserId: 'owner',
@@ -61,7 +93,7 @@ it('pins parsed current policy and maps stale publication while rejecting unknow
 
 it('publishes Controlled defaults without requiring a human reason', async () => {
   const service = await import('./combat-effect-timing-policy-store')
-  rpc.mockResolvedValueOnce({ data: { version: 4, modes: { slow: 'controlled' } }, error: null })
+  publicationResult({ data: { version: 4, modes: { slow: 'controlled' } }, error: null }, true)
   expect(
     await service.publishCombatEffectTimingPolicy({
       actorUserId: 'owner',
@@ -69,7 +101,7 @@ it('publishes Controlled defaults without requiring a human reason', async () =>
     }),
   ).toEqual({ version: 4, modes: { slow: 'controlled' } })
   expect(rpc).toHaveBeenLastCalledWith(
-    'publish_combat_effect_timing_policy_v1',
+    'publish_combat_effect_timing_policy_v2',
     expect.objectContaining({
       p_actor_user_id: 'owner',
       p_expected_version: 3,

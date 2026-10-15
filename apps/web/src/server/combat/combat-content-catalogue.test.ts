@@ -137,6 +137,23 @@ it('overlays actual Owner choices, including custom identities, older current po
   ).toMatchObject({ name: 'Owner unique strike' })
   expect(JSON.stringify(data)).toBe(before)
 })
+it('retains a disabled legacy Skill without enabling it or resurrecting its builtin', async () => {
+  const definition = {
+    ...structuredClone(resolveMatureSkillVersion('vanguard.forceful-strike')!),
+    enabled: false,
+  }
+  const { resolver } = fixture({
+    token,
+    policy,
+    publications: [row('skill', definition.id, definition, definition.contentVersion)],
+  })
+  expect(
+    (await resolver.resolveCurrentCatalogue!()).entries.find(
+      (entry) => entry.contentKey === definition.id,
+    ),
+  ).toMatchObject({ source: 'published', definition })
+  expect(definition.enabled).toBe(false)
+})
 it.each([
   null,
   { token, policy },
