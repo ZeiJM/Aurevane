@@ -9,6 +9,8 @@ import { isMaterializedCombatEffect } from '@aurevane/game-core/combat/summon-co
 import { useRouter } from 'next/navigation'
 import { useMemo, useRef, useState } from 'react'
 
+import { AbilityDefinitionEditor } from './ability-definition-editor'
+import { validateAbilityDefinition } from '@aurevane/game-core/combat/combat-definition'
 import { SkillDetails } from '../../character/skill-details'
 import styles from './combat-content-editor.module.css'
 import { BattleFlavorTemplateHelp } from './battle-flavor-template-help'
@@ -120,7 +122,9 @@ export function CombatContentEditor({ skills, initialSkillId }: CombatContentEdi
                 skill.id,
                 {
                   ...structuredClone(skill.definition),
-                  target: normalizeCurrentCombatTargetSpec(skill.definition.target),
+                  target: Object.hasOwn(skill.definition, 'ability')
+                    ? skill.definition.target
+                    : normalizeCurrentCombatTargetSpec(skill.definition.target),
                 },
               ] as const,
             ]
@@ -193,12 +197,13 @@ export function CombatContentEditor({ skills, initialSkillId }: CombatContentEdi
   }
 
   function updateSelectedDraft(next: MatureSkillDefinition) {
-    next = withSkillGroundArea(
-      next,
-      next.groundArea && next.target.kind === 'ground-tile'
-        ? groundAreaForEffects(next.effects, next.groundArea)
-        : undefined,
-    )
+    if (!Object.hasOwn(next, 'ability'))
+      next = withSkillGroundArea(
+        next,
+        next.groundArea && next.target.kind === 'ground-tile'
+          ? groundAreaForEffects(next.effects, next.groundArea)
+          : undefined,
+      )
     if (!selectedSkill) return
     const id = selectedSkill.id
     draftRevision.current[id] = (draftRevision.current[id] ?? 0) + 1
@@ -595,90 +600,114 @@ export function CombatContentEditor({ skills, initialSkillId }: CombatContentEdi
                   onChange={(battleText) => updateSelectedDraft({ ...selectedDraft, battleText })}
                 />
               </fieldset>
-              <SkillTargetingEditor
-                value={selectedDraft.target}
-                v51Rules={selectedDraft.authoring.validationTags.includes('owner-rebalance-v5-1')}
-                onChange={(target) => updateSelectedDraft({ ...selectedDraft, target })}
-              />
-              <SkillGroundEditor
-                target={selectedDraft.target}
-                effects={selectedDraft.effects}
-                value={selectedDraft.groundArea}
-                onChange={(groundArea) =>
-                  updateSelectedDraft(withSkillGroundArea(selectedDraft, groundArea))
-                }
-              />
-              <SkillEconomyEditor
-                value={{
-                  apCost: selectedDraft.apCost,
-                  mpCost: selectedDraft.mpCost,
-                  accuracyMode: selectedDraft.accuracyMode,
-                  accuracyModifierBasisPoints: selectedDraft.accuracyModifierBasisPoints,
-                  cooldown: selectedDraft.cooldown,
-                }}
-                apCostBounds={matureSkillApCostBounds(selectedDraft)}
-                cooldownLockedByRequirement={selectedDraft.requirements.length > 0}
-                onChange={(economy: SkillEconomyDraft) =>
-                  updateSelectedDraft({
-                    ...selectedDraft,
-                    ...economy,
-                    cooldown:
-                      selectedDraft.requirements.length > 0
-                        ? null
-                        : {
-                            key: selectedDraft.id,
-                            ownerTurns: economy.cooldown?.ownerTurns ?? 1,
-                          },
-                  })
-                }
-              />
-              <SkillMediaEditor
-                value={selectedDraft.media}
-                onChange={(media) => updateSelectedDraft({ ...selectedDraft, media })}
-              />
-              <SkillEffectListEditor
-                value={selectedDraft.effects.filter(isMaterializedCombatEffect)}
-                effectDescriptions={selectedDraft.effectDescriptions?.filter(
-                  (_, index) => selectedDraft.effects[index]?.type !== 'summon',
-                )}
-                onChange={(effects, effectDescriptions) => {
-                  const summonEffects = selectedDraft.effects.filter(
-                    (effect) => effect.type === 'summon',
-                  )
-                  const summonDescriptions = selectedDraft.effects.flatMap((effect, index) =>
-                    effect.type === 'summon'
-                      ? [selectedDraft.effectDescriptions?.[index] ?? null]
-                      : [],
-                  )
-                  const normalizedDescriptions = [
-                    ...effectDescriptions.map((description) => {
-                      const trimmed = description?.trim()
-                      return trimmed ? trimmed : null
-                    }),
-                    ...summonDescriptions,
-                  ]
-                  const mergedEffects = [...effects, ...summonEffects]
-                  const draftWithoutDescriptions = { ...selectedDraft }
-                  Reflect.deleteProperty(draftWithoutDescriptions, 'effectDescriptions')
-                  updateSelectedDraft(
-                    normalizedDescriptions.some((description) => description !== null)
-                      ? {
-                          ...draftWithoutDescriptions,
-                          effects: mergedEffects,
-                          effectDescriptions: normalizedDescriptions,
-                        }
-                      : { ...draftWithoutDescriptions, effects: mergedEffects },
-                  )
-                }}
-              />
-              {selectedDraft.summonProfile ? (
-                <SummonProfileEditor
-                  value={selectedDraft.summonProfile}
-                  onChange={(summonProfile) =>
-                    updateSelectedDraft({ ...selectedDraft, summonProfile })
-                  }
-                />
-              ) : null}
+              {Object.hasOwn(selectedDraft, 'ability') ? (
+                <>
+                  <AbilityDefinitionEditor
+                    value={selectedDraft.ability!}
+                    effectDescriptions={selectedDraft.effectDescriptions}
+                    onChange={(ability, effectDescriptions) => {
+                      const next = { ...selectedDraft, ability }
+                      if (effectDescriptions.some((note) => note !== null))
+                        next.effectDescriptions = effectDescriptions
+                      else delete next.effectDescriptions
+                      updateSelectedDraft(next)
+                    }}
+                  />
+                  <SkillMediaEditor
+                    value={selectedDraft.media}
+                    onChange={(media) => updateSelectedDraft({ ...selectedDraft, media })}
+                  />
+                </>
+              ) : (
+                <>
+                  <SkillTargetingEditor
+                    value={selectedDraft.target}
+                    v51Rules={selectedDraft.authoring.validationTags.includes(
+                      'owner-rebalance-v5-1',
+                    )}
+                    onChange={(target) => updateSelectedDraft({ ...selectedDraft, target })}
+                  />
+                  <SkillGroundEditor
+                    target={selectedDraft.target}
+                    effects={selectedDraft.effects}
+                    value={selectedDraft.groundArea}
+                    onChange={(groundArea) =>
+                      updateSelectedDraft(withSkillGroundArea(selectedDraft, groundArea))
+                    }
+                  />
+                  <SkillEconomyEditor
+                    value={{
+                      apCost: selectedDraft.apCost,
+                      mpCost: selectedDraft.mpCost,
+                      accuracyMode: selectedDraft.accuracyMode,
+                      accuracyModifierBasisPoints: selectedDraft.accuracyModifierBasisPoints,
+                      cooldown: selectedDraft.cooldown,
+                    }}
+                    apCostBounds={matureSkillApCostBounds(selectedDraft)}
+                    cooldownLockedByRequirement={selectedDraft.requirements.length > 0}
+                    onChange={(economy: SkillEconomyDraft) =>
+                      updateSelectedDraft({
+                        ...selectedDraft,
+                        ...economy,
+                        cooldown:
+                          selectedDraft.requirements.length > 0
+                            ? null
+                            : {
+                                key: selectedDraft.id,
+                                ownerTurns: economy.cooldown?.ownerTurns ?? 1,
+                              },
+                      })
+                    }
+                  />
+                  <SkillMediaEditor
+                    value={selectedDraft.media}
+                    onChange={(media) => updateSelectedDraft({ ...selectedDraft, media })}
+                  />
+                  <SkillEffectListEditor
+                    value={selectedDraft.effects.filter(isMaterializedCombatEffect)}
+                    effectDescriptions={selectedDraft.effectDescriptions?.filter(
+                      (_, index) => selectedDraft.effects[index]?.type !== 'summon',
+                    )}
+                    onChange={(effects, effectDescriptions) => {
+                      const summonEffects = selectedDraft.effects.filter(
+                        (effect) => effect.type === 'summon',
+                      )
+                      const summonDescriptions = selectedDraft.effects.flatMap((effect, index) =>
+                        effect.type === 'summon'
+                          ? [selectedDraft.effectDescriptions?.[index] ?? null]
+                          : [],
+                      )
+                      const normalizedDescriptions = [
+                        ...effectDescriptions.map((description) => {
+                          const trimmed = description?.trim()
+                          return trimmed ? trimmed : null
+                        }),
+                        ...summonDescriptions,
+                      ]
+                      const mergedEffects = [...effects, ...summonEffects]
+                      const draftWithoutDescriptions = { ...selectedDraft }
+                      Reflect.deleteProperty(draftWithoutDescriptions, 'effectDescriptions')
+                      updateSelectedDraft(
+                        normalizedDescriptions.some((description) => description !== null)
+                          ? {
+                              ...draftWithoutDescriptions,
+                              effects: mergedEffects,
+                              effectDescriptions: normalizedDescriptions,
+                            }
+                          : { ...draftWithoutDescriptions, effects: mergedEffects },
+                      )
+                    }}
+                  />
+                  {selectedDraft.summonProfile ? (
+                    <SummonProfileEditor
+                      value={selectedDraft.summonProfile}
+                      onChange={(summonProfile) =>
+                        updateSelectedDraft({ ...selectedDraft, summonProfile })
+                      }
+                    />
+                  ) : null}
+                </>
+              )}
             </div>
           ) : (
             <p className={styles.placeholder}>
@@ -705,7 +734,12 @@ export function CombatContentEditor({ skills, initialSkillId }: CombatContentEdi
               <p className={styles.sectionLabel}>Read-only draft projection</p>
               <h2>Skill information</h2>
             </div>
-            <SkillDetails skill={selectedDraft} expanded />
+            {!Object.hasOwn(selectedDraft, 'ability') ||
+            validateAbilityDefinition(selectedDraft.ability).length === 0 ? (
+              <SkillDetails skill={selectedDraft} expanded />
+            ) : (
+              <p role="status">Resolve Ability compatibility to show the player preview.</p>
+            )}
           </section>
         ) : null}
 

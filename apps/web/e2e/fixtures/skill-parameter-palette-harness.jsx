@@ -23,6 +23,7 @@ import { DISCIPLINE_ATLAS } from '@aurevane/game-core/character/discipline-atlas
 import { ManualArticle } from '@/components/public-information/manual-article'
 import { createTechniquesManualArticle } from '@/content/techniques-manual'
 import { defaultCombatEffectTimingPolicy } from '@aurevane/game-core/combat/combat-effect-timing'
+import { AbilityDefinitionEditor } from '@/components/master/combat-content/ability-definition-editor'
 import './production-styles'
 
 const query = new URLSearchParams(location.search)
@@ -187,6 +188,29 @@ function ModularManual() {
   return (
     <main style={{ padding: 16 }}>
       <ManualArticle {...article} />
+    </main>
+  )
+}
+function CanonicalEditor() {
+  const [definition, setDefinition] = React.useState(() => structuredClone(modularAbility))
+  const [notes, setNotes] = React.useState(['Walk <once> & return', null, 'Maintain guard'])
+  React.useEffect(() => {
+    window.inspectEditedAbility = () => ({ definition: parseAbilityDefinition(definition), notes })
+    return () => {
+      delete window.inspectEditedAbility
+    }
+  }, [definition, notes])
+  return (
+    <main style={{ padding: 16, maxWidth: 1000, background: '#0a202b', color: '#f0e8dc' }}>
+      <h1>Modular Ability</h1>
+      <AbilityDefinitionEditor
+        value={definition}
+        effectDescriptions={notes}
+        onChange={(next, descriptions) => {
+          setDefinition(next)
+          setNotes(descriptions)
+        }}
+      />
     </main>
   )
 }
@@ -427,7 +451,9 @@ function FireReaders() {
   )
 }
 createRoot(document.getElementById('root')).render(
-  query.get('surface') === 'modular-manual' ? (
+  query.get('surface') === 'canonical-editor' ? (
+    <CanonicalEditor />
+  ) : query.get('surface') === 'modular-manual' ? (
     <ModularManual />
   ) : query.get('surface') === 'modular-readers' ? (
     <ModularReaders />

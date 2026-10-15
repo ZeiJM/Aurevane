@@ -1,5 +1,7 @@
 'use client'
 
+import { AbilityDefinitionEditor } from './ability-definition-editor'
+import { validateAbilityDefinition } from '@aurevane/game-core/combat/combat-definition'
 import { normalizeCurrentCombatTargetSpec } from '@aurevane/game-core/combat/combat-targeting-shapes'
 
 import type { EssenceDefinition } from '@aurevane/game-core/combat/essence'
@@ -86,7 +88,12 @@ export function EssenceContentEditor({ essences, initialEssenceId }: EssenceCont
           const draft = structuredClone(essence.initialDraft ?? essence.definition)
           return {
             ...draft,
-            skill: { ...draft.skill, target: normalizeCurrentCombatTargetSpec(draft.skill.target) },
+            skill: {
+              ...draft.skill,
+              target: Object.hasOwn(draft.skill, 'ability')
+                ? draft.skill.target
+                : normalizeCurrentCombatTargetSpec(draft.skill.target),
+            },
           }
         })(),
       ]),
@@ -446,62 +453,90 @@ export function EssenceContentEditor({ essences, initialEssenceId }: EssenceCont
               />
             </fieldset>
 
-            <SkillTargetingEditor
-              value={skill.target}
-              onChange={(target) => updateDraft({ ...selectedDraft, skill: { ...skill, target } })}
-            />
-            <SkillGroundEditor
-              target={skill.target}
-              effects={skill.effects}
-              value={skill.groundArea}
-              onChange={(groundArea) =>
-                updateDraft({ ...selectedDraft, skill: withSkillGroundArea(skill, groundArea) })
-              }
-            />
-            <SkillEconomyEditor
-              value={{
-                apCost: skill.apCost,
-                mpCost: skill.mpCost,
-                accuracyMode: skill.accuracyMode,
-                accuracyModifierBasisPoints: skill.accuracyModifierBasisPoints,
-                cooldown: skill.cooldown,
-              }}
-              cooldownLockedByRequirement={skill.requirements.length > 0}
-              onChange={(economy: SkillEconomyDraft) =>
-                updateDraft({
-                  ...selectedDraft,
-                  skill: {
-                    ...skill,
-                    ...economy,
-                    cooldown:
-                      skill.requirements.length > 0
-                        ? null
-                        : {
-                            key: skill.id,
-                            ownerTurns: economy.cooldown?.ownerTurns ?? 1,
-                          },
-                  },
-                })
-              }
-            />
-            <SkillMediaEditor
-              value={skill.media}
-              onChange={(media) => updateDraft({ ...selectedDraft, skill: { ...skill, media } })}
-            />
-            <SkillEffectListEditor
-              value={skill.effects.filter(isMaterializedCombatEffect)}
-              effectDescriptions={skill.effectDescriptions}
-              onChange={(effects, effectDescriptions) =>
-                updateDraft({
-                  ...selectedDraft,
-                  skill: {
-                    ...skill,
-                    effects,
-                    effectDescriptions,
-                  },
-                })
-              }
-            />
+            {Object.hasOwn(skill, 'ability') ? (
+              <>
+                <AbilityDefinitionEditor
+                  value={skill.ability!}
+                  effectDescriptions={skill.effectDescriptions}
+                  onChange={(ability, effectDescriptions) => {
+                    const next = { ...skill, ability }
+                    if (effectDescriptions.some((note) => note !== null))
+                      next.effectDescriptions = effectDescriptions
+                    else delete next.effectDescriptions
+                    updateDraft({ ...selectedDraft, skill: next })
+                  }}
+                />
+                <SkillMediaEditor
+                  value={skill.media}
+                  onChange={(media) =>
+                    updateDraft({ ...selectedDraft, skill: { ...skill, media } })
+                  }
+                />
+              </>
+            ) : (
+              <>
+                <SkillTargetingEditor
+                  value={skill.target}
+                  onChange={(target) =>
+                    updateDraft({ ...selectedDraft, skill: { ...skill, target } })
+                  }
+                />
+                <SkillGroundEditor
+                  target={skill.target}
+                  effects={skill.effects}
+                  value={skill.groundArea}
+                  onChange={(groundArea) =>
+                    updateDraft({ ...selectedDraft, skill: withSkillGroundArea(skill, groundArea) })
+                  }
+                />
+                <SkillEconomyEditor
+                  value={{
+                    apCost: skill.apCost,
+                    mpCost: skill.mpCost,
+                    accuracyMode: skill.accuracyMode,
+                    accuracyModifierBasisPoints: skill.accuracyModifierBasisPoints,
+                    cooldown: skill.cooldown,
+                  }}
+                  cooldownLockedByRequirement={skill.requirements.length > 0}
+                  onChange={(economy: SkillEconomyDraft) =>
+                    updateDraft({
+                      ...selectedDraft,
+                      skill: {
+                        ...skill,
+                        ...economy,
+                        cooldown:
+                          skill.requirements.length > 0
+                            ? null
+                            : {
+                                key: skill.id,
+                                ownerTurns: economy.cooldown?.ownerTurns ?? 1,
+                              },
+                      },
+                    })
+                  }
+                />
+                <SkillMediaEditor
+                  value={skill.media}
+                  onChange={(media) =>
+                    updateDraft({ ...selectedDraft, skill: { ...skill, media } })
+                  }
+                />
+                <SkillEffectListEditor
+                  value={skill.effects.filter(isMaterializedCombatEffect)}
+                  effectDescriptions={skill.effectDescriptions}
+                  onChange={(effects, effectDescriptions) =>
+                    updateDraft({
+                      ...selectedDraft,
+                      skill: {
+                        ...skill,
+                        effects,
+                        effectDescriptions,
+                      },
+                    })
+                  }
+                />
+              </>
+            )}
           </div>
         </section>
 
@@ -523,7 +558,12 @@ export function EssenceContentEditor({ essences, initialEssenceId }: EssenceCont
               <p className={styles.sectionLabel}>Read-only draft projection</p>
               <h2>Skill information</h2>
             </div>
-            <SkillDetails skill={skill} expanded />
+            {!Object.hasOwn(skill, 'ability') ||
+            validateAbilityDefinition(skill.ability).length === 0 ? (
+              <SkillDetails skill={skill} expanded />
+            ) : (
+              <p role="status">Resolve Ability compatibility to show the player preview.</p>
+            )}
           </section>
         ) : null}
 

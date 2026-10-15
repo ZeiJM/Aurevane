@@ -299,6 +299,80 @@ async function verifyModularManual(page, viewport) {
   await page.screenshot({ path: resolve(output, `modular-manual-basics-${viewport.width}.png`) })
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
 }
+async function verifyCanonicalEditor(page, viewport) {
+  await page.goto(`${server.resolvedUrls.local[0]}?surface=canonical-editor`, {
+    waitUntil: 'networkidle',
+  })
+  const editor = page.getByRole('region', { name: 'Modular ability editor', exact: true })
+  const leap = editor.locator('[data-ability-group="leap"]')
+  const gesture = (locator) => (viewport.width < 720 ? locator.tap() : locator.click())
+  await leap.getByLabel('AP cost', { exact: true }).fill('14')
+  await leap.getByLabel('HP cost', { exact: true }).fill('2')
+  await leap.getByLabel('Fixed hit chance (%)', { exact: true }).fill('55.5')
+  await leap.getByLabel('Cooldown (owner turns; 0 means none)', { exact: true }).fill('2')
+  await leap
+    .getByRole('group', { name: 'Requirements', exact: true })
+    .getByLabel('Resource threshold', { exact: true })
+    .fill('4')
+  const walk = leap.locator('[data-ability-effect="walk"]')
+  await walk.getByLabel('Move maximum tiles', { exact: true }).fill('3')
+  const hit = leap.locator('[data-ability-effect="hit"]')
+  await hit.getByLabel('Damage amount', { exact: true }).fill('17')
+  await hit.getByLabel('Effect timing', { exact: true }).selectOption('delayed')
+  await hit.getByLabel('Effect timing', { exact: true }).selectOption('controlled')
+  await leap.getByLabel('New group effect', { exact: true }).selectOption('pierce')
+  await gesture(leap.getByRole('button', { name: 'Add group effect', exact: true }))
+  const pierce = leap.locator('[data-ability-effect="effect-1"]')
+  await pierce.getByLabel('Equipment Armor ignored (%)', { exact: true }).fill('33.33')
+  await pierce.getByLabel('Damage amount', { exact: true }).fill('5')
+  assert.equal(await pierce.getByLabel('Piercing', { exact: true }).count(), 0)
+  assert.equal(await pierce.getByLabel('Vengeance enabled', { exact: true }).count(), 0)
+  await gesture(walk.getByRole('button', { name: '↓ Down', exact: true }))
+  assert.ok((await editor.getByRole('status').innerText()).includes('Move must occur once, first'))
+  assert.equal(
+    await walk.getByLabel('Effect description', { exact: true }).inputValue(),
+    'Walk <once> & return',
+  )
+  await gesture(walk.getByRole('button', { name: '↑ Up', exact: true }))
+  const maintained = editor.locator('[data-ability-group="maintain"]')
+  await maintained.getByLabel('Outgoing damage bonus (%)', { exact: true }).fill('15.25')
+  await gesture(editor.getByRole('button', { name: 'Add behavior group', exact: true }))
+  await gesture(
+    editor
+      .locator('[data-ability-group="group-1"]')
+      .getByRole('button', { name: 'Remove group', exact: true }),
+  )
+  const saved = await page.evaluate(() => window.inspectEditedAbility())
+  assert.equal(saved.definition.behaviors.length, 2)
+  const group = saved.definition.behaviors[0]
+  assert.deepEqual(Object.fromEntries(group.costs.map((row) => [row.resource, row.amount])), {
+    mp: 2,
+    ap: 14,
+    hp: 2,
+  })
+  assert.equal(group.accuracy.chanceBasisPoints, 5550)
+  assert.equal(group.cooldown.ownerTurns, 2)
+  assert.equal(group.requirements.amount, 4)
+  assert.equal(group.effects[0].payload.maximumTiles, 3)
+  assert.equal(group.effects[1].payload.amount, 17)
+  assert.equal(group.effects[1].timing, 'controlled')
+  assert.equal(group.effects[2].payload.armorIgnoredBasisPoints, 3333)
+  assert.equal(saved.definition.behaviors[1].effects[0].payload.multiplierBasisPoints, 11525)
+  assert.deepEqual(saved.notes, ['Walk <once> & return', null, null, 'Maintain guard'])
+  assert.equal(await editor.getByRole('status').count(), 0)
+  for (const [name, target] of [
+    ['costs', leap.getByLabel('AP cost', { exact: true })],
+    ['move', walk],
+    ['ongoing', maintained],
+  ]) {
+    await target.scrollIntoViewIfNeeded()
+    await page.screenshot({
+      path: resolve(output, `canonical-editor-${name}-${viewport.width}.png`),
+    })
+  }
+  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
+  assert.deepEqual(await page.evaluate(() => window.requests), [])
+}
 try {
   for (const viewport of [
     { width: 1366, height: 768 },
@@ -309,12 +383,13 @@ try {
     page.on('pageerror', (error) => errors.push(error.message))
     await verifyModularReaders(page, viewport)
     await verifyModularManual(page, viewport)
+    await verifyCanonicalEditor(page, viewport)
     if (process.env.AV_MODULAR_READERS_ONLY === '1') {
       assert.deepEqual(errors, [])
       evidence.push({
         viewport,
         status: 'passed',
-        modularReaderContexts: 7,
+        modularReaderContexts: 8,
         scope: 'Production components with fixture data; no hosted gameplay claim.',
       })
       await page.close()
