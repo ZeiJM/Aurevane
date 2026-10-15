@@ -19,6 +19,7 @@ import {
 import { buildCombatAiPluralSelection } from './combat-ai-plural-selection'
 import { terrainOverlayAiUtility, terrainOverlayAt } from './terrain-overlays'
 import { combatStatusDetails } from './status-content'
+import { hasGameplayTag } from './gameplay-tags'
 import { isMaterializedCombatEffect } from './summon-content'
 import type {
   CombatActionEvaluation,
@@ -84,7 +85,12 @@ export function chooseBuildAwareRecruitAiDecision(input: {
     input.skillOptions?.committedSkills ?? committedMatureSkills(input.state, actorId)
   const sources = activeCanonicalSources(input.state, actorId, input.skillOptions)
   const skillCandidates = [
-    ...canonicalSkillCandidates(input.state, sources, input.profile ?? RECRUIT_STANDARD_PROFILE),
+    ...canonicalSkillCandidates(
+      input.state,
+      sources,
+      input.profile ?? RECRUIT_STANDARD_PROFILE,
+      baseline,
+    ),
     ...committed
       .filter((definition) => !sources.some((source) => source.abilityId === definition.id))
       .flatMap((definition) =>
@@ -217,6 +223,7 @@ function canonicalSkillCandidates(
   state: StatDrivenCombatEncounterState,
   sources: readonly CapturedCombatAbilitySource[],
   profile: RecruitAiProfile,
+  baseline: RecruitAiDecision,
 ): BuildSkillCandidate[] {
   const initial = preparePv1fTurnEconomy(state)
   const actorId = initial.tactical.battle.currentTurn!.combatantId
@@ -291,8 +298,20 @@ function canonicalSkillCandidates(
             if (!command.evaluation.legal) return []
             const utility =
               projectedCombatEffectUtility(command.evaluation, prepared, command.action.effects) +
-              terrainOverlayAiUtility(prepared, command.evaluation)
-            if (utility <= 0) return []
+              terrainOverlayAiUtility(prepared, command.evaluation) +
+              rewindPositionUtility(command.evaluation, prepared)
+            const preparingReturn =
+              controlledOperation === 'prime' &&
+              baseline.reason === 'close-distance' &&
+              (baseline.intent.kind === 'move' ||
+                (baseline.intent.kind === 'action' && !!baseline.intent.movementPath?.length)) &&
+              command.evaluation.projectedEvents.some(
+                (event) =>
+                  event.event === 'combatant_rewound' &&
+                  event.combatantId === actorId &&
+                  (visibleEnemyDistance(prepared, actorId, event.from) ?? 0) > 1,
+              )
+            if (utility <= 0 && !preparingReturn) return []
             return [
               {
                 controlledOperation,
@@ -303,11 +322,13 @@ function canonicalSkillCandidates(
                 target,
                 evaluation: command.evaluation,
                 utility:
-                  (behavior.classification === 'recovery'
-                    ? profile.recoverUtility
-                    : behavior.classification === 'utility'
-                      ? profile.guardUtility
-                      : profile.attackUtility) + utility,
+                  preparingReturn && utility <= 0
+                    ? baseline.utility + 1
+                    : (behavior.classification === 'recovery'
+                        ? profile.recoverUtility
+                        : behavior.classification === 'utility'
+                          ? profile.guardUtility
+                          : profile.attackUtility) + utility,
                 stableKey: JSON.stringify([
                   source.sourceInstanceId,
                   behavior.id,
@@ -326,6 +347,51 @@ function canonicalSkillCandidates(
       })
     }),
   )
+}
+
+function visibleEnemyDistance(
+  state: StatDrivenCombatEncounterState,
+  actorId: string,
+  position: GridPosition,
+): number | undefined {
+  const teamId = state.tactical.battle.combatants.find((unit) => unit.id === actorId)?.teamId
+  let nearest: number | undefined
+  for (const unit of state.tactical.battle.combatants) {
+    if (
+      unit.hp <= 0 ||
+      unit.teamId === teamId ||
+      hasGameplayTag(state, unit.id, 'Invisible', PV1F_COMBAT_CONTENT)
+    )
+      continue
+    const placement = state.tactical.placements.find((row) => row.combatantId === unit.id)
+    if (!placement) continue
+    const distance =
+      Math.abs(position.x - placement.position.x) + Math.abs(position.y - placement.position.y)
+    nearest = nearest === undefined ? distance : Math.min(nearest, distance)
+  }
+  return nearest
+}
+
+/** Score only a real legal projected return; preserve anchors when returning gains nothing. */
+function rewindPositionUtility(
+  evaluation: CombatActionEvaluation,
+  state: StatDrivenCombatEncounterState,
+): number {
+  const actor = state.tactical.battle.combatants.find((unit) => unit.id === evaluation.actorId)
+  if (!actor) return 0
+  const hpRatio = actor.maxHp > 0 ? actor.hp / actor.maxHp : 0
+  let utility = 0
+  for (const event of evaluation.projectedEvents) {
+    if (event.event !== 'combatant_rewound' || event.combatantId !== actor.id) continue
+    const before = visibleEnemyDistance(state, actor.id, event.from)
+    const after = visibleEnemyDistance(state, actor.id, event.to)
+    if (before === undefined || after === undefined) continue
+    const improvement = hpRatio < 0.62 ? after - before : before - after
+    if (improvement <= 0) continue
+    utility +=
+      Math.min(improvement, 4) * (hpRatio < 0.62 ? 16 + Math.round((1 - hpRatio) * 24) : 16)
+  }
+  return utility
 }
 
 function canonicalSourceActionId(source: CapturedCombatAbilitySource): string {

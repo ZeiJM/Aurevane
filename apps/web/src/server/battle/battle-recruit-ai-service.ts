@@ -310,6 +310,21 @@ export function createBattleRecruitAiService(
       let battleVersion = initial.battleVersion
       let committedAt = initial.updatedAt
       const decisions: Array<RecruitTurnView['decisions'][number]> = []
+      const committedView = (): RecruitTurnView => ({
+        battleSessionId: initial.battleSessionId,
+        battleVersion,
+        snapshot: projectBattleSnapshot(
+          state,
+          deriveParticipantBattleViewerEntitlement(state.tactical.battle.combatants, controlledIds),
+        ),
+        decisions,
+        invalidation: createBattleSessionChangedInvalidation({
+          battleSessionId: initial.battleSessionId,
+          battleVersion,
+          occurredAt: committedAt,
+          reason: 'state_changed',
+        }),
+      })
 
       for (let step = 0; step < MAX_RECRUIT_DECISIONS_PER_REQUEST; step += 1) {
         const battle = state.tactical.battle
@@ -320,24 +335,7 @@ export function createBattleRecruitAiService(
           controlledIds.includes(turn.combatantId) ||
           battle.turnNumber !== initialTurnNumber
         ) {
-          return {
-            battleSessionId: initial.battleSessionId,
-            battleVersion,
-            snapshot: projectBattleSnapshot(
-              state,
-              deriveParticipantBattleViewerEntitlement(
-                state.tactical.battle.combatants,
-                controlledIds,
-              ),
-            ),
-            decisions,
-            invalidation: createBattleSessionChangedInvalidation({
-              battleSessionId: initial.battleSessionId,
-              battleVersion,
-              occurredAt: committedAt,
-              reason: 'state_changed',
-            }),
-          }
+          return committedView()
         }
 
         const summon = activeSummonForActor(state, turn.combatantId)
@@ -423,9 +421,9 @@ export function createBattleRecruitAiService(
           })
       }
 
-      throw persistenceInvalid(
-        `Recruit AI exceeded the bounded ${MAX_RECRUIT_DECISIONS_PER_REQUEST}-decision turn budget.`,
-      )
+      // Each step is already committed. Return that progress so the existing client
+      // can request the next bounded page at the new version, preserving the turn.
+      return committedView()
     },
   }
 }

@@ -18,6 +18,7 @@ import { resolveResonanceForPair, resonanceSnapshotReference } from './resonance
 import { convertV5ResonanceToV2 } from './resonance-v2'
 import {
   finishPv1fTurn,
+  executePv1fMovement,
   preparePv1fTurnEconomy,
   PV1F_BASIC_ATTACK_ID,
   PV1F_GUARD_ACTION_ID,
@@ -1101,4 +1102,175 @@ it('an unaffordable primed release is retained while AI selects a different lega
   expect(decision.intent.kind).not.toBe('ability-prime')
   expect(decision.intent).not.toMatchObject({ kind: 'action', actionId: captured.abilityId })
   expect(blocked.abilityRuntime!.controlled!.primes).toHaveLength(1)
+})
+
+function rewindAiEncounter() {
+  const base = encounter(false)
+  const captured = captureCombatAbilitySource({
+    ...canonicalSource({
+      classification: 'utility',
+      attackFamily: undefined,
+      costs: [{ resource: 'ap', amount: 11 }],
+      targeting: {
+        kind: 'self',
+        teamPolicy: 'self',
+        friendlyFire: 'allies-only',
+        shape: { kind: 'single' },
+        minimumRange: 0,
+        maximumRange: 0,
+        maximumSelections: 1,
+        maximumElevationDifference: null,
+        requiresLineOfSight: false,
+      },
+      effects: [
+        {
+          id: 'rewind',
+          timing: 'controlled',
+          payload: {
+            type: 'return-to-turn-start',
+            recipient: 'actor',
+            anchorMode: 'cast-position',
+          },
+        },
+      ],
+    }),
+    ownerCombatantId: actorId,
+  })
+  const state = reconcileCombatAbilitySources(
+    {
+      ...base,
+      tactical: {
+        ...base.tactical,
+        width: 5,
+        tiles: Array.from({ length: 5 }, (_, x) => ({
+          position: { x, y: 0 },
+          elevation: 0,
+          terrainId: 'open-ground',
+        })),
+        placements: base.tactical.placements.map((row) =>
+          row.combatantId === targetId ? { ...row, position: { x: 4, y: 0 } } : row,
+        ),
+      },
+    },
+    [captured],
+  ) as StatDrivenCombatEncounterState
+  return { state: preparePv1fTurnEconomy(state), captured }
+}
+
+it('AI prepares Rewind before useful travel without paying or immediately returning to the same tile', () => {
+  const { state, captured } = rewindAiEncounter()
+  const decision = chooseBuildAwareRecruitAiDecision({ state, tieBreakSeed: 1 })
+  expect(decision.intent).toEqual({
+    kind: 'ability-prime',
+    actionId: captured.abilityId,
+    behaviorId: 'strike',
+  })
+  const primed = executeBuildAwareRecruitAiAction(
+    state,
+    captured.abilityId,
+    { kind: 'self' },
+    {},
+    { behaviorId: 'strike', controlledOperation: 'prime' },
+  )
+  expect(primed.state.tactical).toEqual(state.tactical)
+  expect(primed.state.abilityRuntime!.controlled!.primes[0]!.returnAnchor).toEqual({ x: 0, y: 0 })
+  expect(
+    chooseBuildAwareRecruitAiDecision({ state: primed.state, tieBreakSeed: 1 }).intent.kind,
+  ).toBe('move')
+})
+
+it('an injured AI releases its real Rewind anchor to retreat and retains spent Movement', () => {
+  const { state, captured } = rewindAiEncounter()
+  const primed = executeBuildAwareRecruitAiAction(
+    state,
+    captured.abilityId,
+    { kind: 'self' },
+    {},
+    { behaviorId: 'strike', controlledOperation: 'prime' },
+  ).state
+  const moved = executePv1fMovement(primed, [
+    { x: 0, y: 0 },
+    { x: 1, y: 0 },
+    { x: 2, y: 0 },
+    { x: 3, y: 0 },
+  ]).state
+  const injured = {
+    ...moved,
+    tactical: {
+      ...moved.tactical,
+      battle: {
+        ...moved.tactical.battle,
+        combatants: moved.tactical.battle.combatants.map((unit) =>
+          unit.id === actorId ? { ...unit, hp: 15 } : unit,
+        ),
+      },
+    },
+  }
+  const decision = chooseBuildAwareRecruitAiDecision({ state: injured, tieBreakSeed: 1 })
+  expect(decision.intent).toMatchObject({
+    kind: 'action',
+    actionId: captured.abilityId,
+    behaviorId: 'strike',
+    target: { kind: 'self' },
+  })
+  const released = executeBuildAwareRecruitAiAction(
+    injured,
+    captured.abilityId,
+    { kind: 'self' },
+    {},
+    { behaviorId: 'strike' },
+  )
+  expect(
+    released.state.tactical.placements.find((row) => row.combatantId === actorId)!.position,
+  ).toEqual({ x: 0, y: 0 })
+  expect(released.state.tactical.battle.currentTurn!.movementRemaining).toBe(
+    moved.tactical.battle.currentTurn!.movementRemaining,
+  )
+  expect(released.state.abilityRuntime!.controlled!.primes).toEqual([])
+})
+
+it('healthy AI keeps its anchor while it can attack rather than paying for an unnecessary retreat', () => {
+  const { state, captured } = rewindAiEncounter()
+  const primed = executeBuildAwareRecruitAiAction(
+    state,
+    captured.abilityId,
+    { kind: 'self' },
+    {},
+    { behaviorId: 'strike', controlledOperation: 'prime' },
+  ).state
+  const moved = executePv1fMovement(primed, [
+    { x: 0, y: 0 },
+    { x: 1, y: 0 },
+    { x: 2, y: 0 },
+    { x: 3, y: 0 },
+  ]).state
+  const decision = chooseBuildAwareRecruitAiDecision({ state: moved, tieBreakSeed: 1 })
+  expect(decision.intent).not.toMatchObject({ kind: 'action', actionId: captured.abilityId })
+  expect(moved.abilityRuntime!.controlled!.primes).toHaveLength(1)
+})
+
+it('Rewind preparation does not use an Invisible enemy as a positional beacon', () => {
+  const { state, captured } = rewindAiEncounter()
+  const hidden = {
+    ...state,
+    statusState: state.statusState.map((row) =>
+      row.combatantId === targetId
+        ? {
+            ...row,
+            statuses: [
+              ...row.statuses,
+              {
+                statusId: 'invisible',
+                statusVersion: 1,
+                stacks: 1,
+                remainingOwnerTurnStarts: 2,
+                sourceCombatantId: targetId,
+              },
+            ],
+          }
+        : row,
+    ),
+  }
+  const decision = chooseBuildAwareRecruitAiDecision({ state: hidden, tieBreakSeed: 1 })
+  expect(decision.intent).not.toMatchObject({ kind: 'ability-prime', actionId: captured.abilityId })
 })
