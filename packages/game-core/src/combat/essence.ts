@@ -595,6 +595,11 @@ const CURRENT_ESSENCE_REGISTRY = [
 
 const STABLE_ID_PATTERN = /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/
 
+/** Complete current identities; historical registry versions remain available separately. */
+export function currentEssenceDefinitions(): readonly EssenceDefinition[] {
+  return latestEnabledEssences(CURRENT_ESSENCE_REGISTRY)
+}
+
 export function validateEssenceDefinition(definition: EssenceDefinition): readonly string[] {
   const issues: string[] = []
   const canonical = Object.hasOwn(definition, 'ability')

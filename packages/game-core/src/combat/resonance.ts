@@ -290,6 +290,18 @@ export function validateResonanceDefinition(definition: AnyResonanceDefinition):
   return issues
 }
 
+/** Enumerate every current identity without reconstructing a fixed set of Discipline pairs. */
+export function currentResonanceDefinitions(): readonly AnyResonanceDefinition[] {
+  const latest = new Map<string, AnyResonanceDefinition>()
+  for (const definition of CURRENT_RESONANCE_REGISTRY) {
+    if (!definition.enabled) continue
+    const previous = latest.get(definition.id)
+    if (!previous || definition.contentVersion > previous.contentVersion)
+      latest.set(definition.id, definition)
+  }
+  return [...latest.values()]
+}
+
 export function resolveResonanceForPair(
   primaryDisciplineId: string,
   secondaryDisciplineId: string | null,
