@@ -7,6 +7,8 @@ import {
   selectInitialBattleSkillPreviewIntent,
   selectDirectionalBattleSkillPreviewIntent,
   canRetainBattleActionPreview,
+  selectBattleControlledPrimeIntent,
+  resolveBattleCapturedSkill,
 } from './battle-preview-selection'
 
 const barrier = {
@@ -29,6 +31,47 @@ const selection = {
   selectedTile: null,
   combatants,
 }
+
+it('Controlled priming selects one explicit captured group and sends only references', () => {
+  const first = {
+    actionId: barrier.id,
+    behaviorId: 'one',
+    target: {
+      kind: 'self' as const,
+      teamPolicy: 'self' as const,
+      friendlyFire: 'allies-only' as const,
+      shape: { kind: 'single' as const },
+      minimumRange: 0,
+      maximumRange: 0,
+      maximumSelections: 1,
+      maximumElevationDifference: null,
+      requiresLineOfSight: false,
+    },
+    controlled: { phase: 'unprimed' as const, canPrime: true, canCancel: false },
+  }
+  expect(selectBattleControlledPrimeIntent([first], barrier.id)).toEqual({
+    kind: 'ability-prime',
+    actionId: barrier.id,
+    behaviorId: 'one',
+  })
+  const choices = [first, { ...first, behaviorId: 'two' }]
+  expect(selectBattleControlledPrimeIntent(choices, barrier.id)).toBeNull()
+  expect(selectBattleControlledPrimeIntent(choices, barrier.id, 'missing')).toBeNull()
+  expect(selectBattleControlledPrimeIntent(choices, barrier.id, 'two')).toEqual({
+    kind: 'ability-prime',
+    actionId: barrier.id,
+    behaviorId: 'two',
+  })
+  expect(resolveBattleCapturedSkill(barrier, choices, 'two')?.controlled).toEqual(first.controlled)
+  for (const phase of ['primed', 'spent'] as const)
+    expect(
+      selectBattleControlledPrimeIntent(
+        [{ ...first, controlled: { phase, canPrime: false, canCancel: phase === 'primed' } }],
+        barrier.id,
+      ),
+    ).toBeNull()
+  expect(selectBattleControlledPrimeIntent([], barrier.id)).toBeNull()
+})
 it('retains only informational action coverage after a same-turn reload and rejects lost authority', () => {
   const prior = {
     battleSessionId: 'battle',

@@ -11,6 +11,7 @@ import { ResonanceParameters } from '../character/resonance-parameters'
 import { BattleInfoPopover } from './battle-info-popover'
 import { battleCooldownLabel } from './battle-action-cooldown'
 import { BattleSkillCooldown } from './battle-skill-cooldown'
+import { BattleControlledReady } from './battle-controlled-ready'
 import { BattleSkillParameters } from './battle-skill-parameters'
 import type { BattleRuntime } from './battle-runtime'
 import { battleResonanceArtwork, battleSkillArtwork } from './battle-skill-presentation'
@@ -55,6 +56,8 @@ export function BattleSelectedSkills({
   disabled,
   actionEconomy,
   cooldowns = {},
+  primeAvailableIds = [],
+  readyActionId,
   onSelect,
   bindings = DEFAULT_COMBAT_KEYBINDS,
 }: {
@@ -63,15 +66,30 @@ export function BattleSelectedSkills({
   disabled: boolean
   actionEconomy: number
   cooldowns?: Readonly<Record<string, number>>
+  primeAvailableIds?: readonly string[]
+  readyActionId?: string
   bindings?: CombatKeybindMap
   onSelect: (skillId: string, category: 'attack' | 'defense' | 'heal') => void
 }) {
+  const essencePrime = !!runtime.essence && primeAvailableIds.includes(runtime.essence.id)
+  const essenceDisabled =
+    disabled ||
+    (!essencePrime &&
+      !!runtime.essence &&
+      (actionEconomy < runtime.essence.apCost || (cooldowns[runtime.essence.id] ?? 0) > 0))
+  const essenceReady =
+    !!runtime.essence && readyActionId === runtime.essence.id && !essenceDisabled && !essencePrime
   return (
     <div className={styles.root} data-battle-selected-skills="true">
       <div className={styles.skills} aria-label="Selected Discipline Skills">
         {Array.from({ length: 4 }, (_, index) => {
           const skill = runtime.techniques?.[index]
           const cooldownTurns = skill ? (cooldowns[skill.id] ?? 0) : 0
+          const primeAvailable = !!skill && primeAvailableIds.includes(skill.id)
+          const actionDisabled =
+            disabled ||
+            (!primeAvailable && !!skill && (actionEconomy < skill.apCost || cooldownTurns > 0))
+          const ready = !!skill && readyActionId === skill.id && !actionDisabled && !primeAvailable
           const binding = bindings[(['skill1', 'skill2', 'skill3', 'skill4'] as const)[index]!]
           const hotkey = formatCombatKeybind(binding)
           return (
@@ -86,9 +104,9 @@ export function BattleSelectedSkills({
                     type="button"
                     className={styles.skillAction}
                     data-battle-skill-hotkey={hotkey}
-                    aria-label={`Selected ${skill.name}, ${skill.apCost} AP${battleCooldownLabel(cooldownTurns)}`}
+                    aria-label={`Selected ${skill.name}, ${primeAvailable ? 'prime without payment' : `${skill.apCost} AP`}${battleCooldownLabel(cooldownTurns)}${ready ? ', ready to release' : ''}`}
                     aria-pressed={activeId === skill.id}
-                    disabled={disabled || actionEconomy < skill.apCost || cooldownTurns > 0}
+                    disabled={actionDisabled}
                     data-battle-cooldown-active={cooldownTurns > 0 || undefined}
                     onClick={() => onSelect(skill.id, skill.category)}
                   >
@@ -105,6 +123,7 @@ export function BattleSelectedSkills({
                         unoptimized
                       />
                       <BattleSkillCooldown turns={cooldownTurns} />
+                      <BattleControlledReady ready={ready} />
                     </span>
                     <strong>{skill.name}</strong>
                   </button>
@@ -139,13 +158,9 @@ export function BattleSelectedSkills({
             <button
               className={styles.specialAction}
               type="button"
-              aria-label={`${runtime.essence.name}, Essence, ${runtime.essence.apCost} AP${battleCooldownLabel(cooldowns[runtime.essence.id] ?? 0)}`}
+              aria-label={`${runtime.essence.name}, Essence, ${essencePrime ? 'prime without payment' : `${runtime.essence.apCost} AP`}${battleCooldownLabel(cooldowns[runtime.essence.id] ?? 0)}${essenceReady ? ', ready to release' : ''}`}
               aria-pressed={activeId === runtime.essence.id}
-              disabled={
-                disabled ||
-                actionEconomy < runtime.essence.apCost ||
-                (cooldowns[runtime.essence.id] ?? 0) > 0
-              }
+              disabled={essenceDisabled}
               data-battle-cooldown-active={(cooldowns[runtime.essence.id] ?? 0) > 0 || undefined}
               onClick={() => onSelect(runtime.essence!.id, 'attack')}
             >
@@ -162,6 +177,7 @@ export function BattleSelectedSkills({
                   unoptimized
                 />
                 <BattleSkillCooldown turns={cooldowns[runtime.essence.id] ?? 0} />
+                <BattleControlledReady ready={essenceReady} />
               </span>
               <strong>{runtime.essence.name}</strong>
             </button>

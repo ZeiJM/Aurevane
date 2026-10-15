@@ -97,10 +97,11 @@ const browser = await chromium.launch({
 })
 const errors = []
 const moveOnly = process.env.AV_CANONICAL_MOVE === '1'
+const controlledOnly = process.env.AV_CANONICAL_CONTROLLED === '1'
 let cases = 0
 try {
   for (const mode of ['pve', 'pvp']) {
-    if (moveOnly) continue
+    if (moveOnly || controlledOnly) continue
     for (const viewport of [
       { width: 1366, height: 768 },
       { width: 390, height: 844 },
@@ -656,6 +657,181 @@ try {
       }
     }
   }
+  if (controlledOnly) {
+    for (const mode of ['pve', 'pvp'])
+      for (const viewport of [
+        { width: 1366, height: 768 },
+        { width: 390, height: 844 },
+      ]) {
+        const touch = viewport.width === 390
+        for (const scenario of [
+          'controlled-self',
+          'controlled-poor',
+          'controlled-choices',
+          'controlled-move',
+          'controlled-basic',
+        ]) {
+          const page = await browser.newPage({
+            viewport,
+            ...(touch ? { isMobile: true, hasTouch: true } : {}),
+          })
+          page.on('pageerror', (error) => errors.push(error.message))
+          const gesture = (locator) => (touch ? locator.tap() : locator.click())
+          await page.goto(
+            server.resolvedUrls.local[0] + `?mode=${mode}&targeting=single&canonical=${scenario}`,
+          )
+          const command =
+            scenario === 'controlled-basic'
+              ? page.locator('[data-command-slot="guard"]')
+              : page.getByRole('button', { name: /^Selected Targeting Test,/ })
+          const artwork = command.locator('[data-av-square-media]').first()
+          const bounds = await artwork.boundingBox()
+          const before = await page.evaluate(() =>
+            structuredClone(window.fixtureBattle.snapshot.tactical.battle.combatants[0]),
+          )
+          const commits = () =>
+            page.evaluate(() =>
+              window.calls.filter((call) => /\/(commit|intents)$/.test(call.path)),
+            )
+          assert.equal(await page.locator('[data-battle-controlled-ready="true"]').count(), 0)
+          await gesture(command)
+          if (scenario === 'controlled-choices') {
+            assert.equal((await commits()).length, 0, 'ambiguous groups cannot prime implicitly')
+            await page.getByLabel('Ability action', { exact: true }).selectOption('second')
+            await gesture(command)
+          }
+          await page.waitForFunction(() => window.fixtureBattle.battleVersion === 2)
+          const prime = (await commits())[0].body.intent
+          assert.deepEqual(Object.keys(prime).sort(), ['actionId', 'behaviorId', 'kind'])
+          assert.equal(prime.kind, 'ability-prime')
+          if (scenario === 'controlled-choices') assert.equal(prime.behaviorId, 'second')
+          const prepared = await page.evaluate(() => ({
+            actor: window.fixtureBattle.snapshot.tactical.battle.combatants[0],
+            receipts: window.receipts,
+          }))
+          assert.deepEqual(prepared.actor, before, 'prime does not spend resources')
+          assert.deepEqual(prepared.receipts, [])
+          if (scenario === 'controlled-poor') {
+            await page.waitForFunction(() =>
+              window.calls.some(
+                (call) => call.path.endsWith('/preview') && call.body.expectedBattleVersion === 2,
+              ),
+            )
+            assert.equal(
+              await page.locator('[data-battle-controlled-ready="true"]').count(),
+              0,
+              'insufficient MP never glows',
+            )
+            await gesture(page.getByRole('button', { name: 'Cancel prime', exact: true }))
+            await page.waitForFunction(() => window.fixtureBattle.battleVersion === 3)
+            assert.deepEqual(
+              (await commits()).map((call) => call.body.intent.kind),
+              ['ability-prime', 'ability-cancel-prime'],
+            )
+            assert.deepEqual(
+              await page.evaluate(
+                () => window.fixtureBattle.snapshot.tactical.battle.combatants[0],
+              ),
+              before,
+            )
+            assert.equal(await page.locator('[data-battle-controlled-ready="true"]').count(), 0)
+          } else {
+            if (scenario === 'controlled-move') {
+              assert.equal(
+                await page.locator('[data-battle-controlled-ready="true"]').count(),
+                0,
+                'an incomplete Move intent is not ready',
+              )
+              await gesture(command)
+              await gesture(
+                page.locator('#battlefield').getByRole('button', { name: /^Tile 4, 3;/ }),
+              )
+            }
+            await page
+              .locator('[data-battle-controlled-ready="true"]')
+              .waitFor({ state: 'visible' })
+            const readyBounds = await artwork.boundingBox()
+            assert.equal(readyBounds.width, bounds.width)
+            assert.equal(readyBounds.height, bounds.height)
+            await page.screenshot({
+              path: resolve(output, `${mode}-${viewport.width}-${scenario}-ready.png`),
+              fullPage: true,
+            })
+            if (scenario === 'controlled-choices') {
+              await page.keyboard.press('Tab')
+              await page.keyboard.press('Shift+Tab')
+              assert.equal((await commits()).length, 1, 'target cycling never releases')
+              await page.keyboard.press('Escape')
+              assert.equal(await page.locator('[data-battle-controlled-ready="true"]').count(), 0)
+              await page.evaluate(() => window.restoreCanonicalBattle())
+              await page.evaluate(
+                () =>
+                  new Promise((resolve) =>
+                    requestAnimationFrame(() => requestAnimationFrame(resolve)),
+                  ),
+              )
+            }
+            if (scenario === 'controlled-move')
+              await gesture(
+                page.locator('#battlefield').getByRole('button', { name: /^Tile 5, 3;/ }),
+              )
+            else await gesture(command)
+            await page.waitForFunction(
+              (version) => window.fixtureBattle.battleVersion === version,
+              scenario === 'controlled-choices' ? 4 : 3,
+            )
+            const result = await page.evaluate(() => ({
+              actor: window.fixtureBattle.snapshot.tactical.battle.combatants[0],
+              receipts: window.receipts,
+              snapshot: window.fixtureBattle.snapshot,
+            }))
+            const paid = await commits()
+            assert.equal(paid.length, 2, 'one free prime and one explicit paid release')
+            assert.equal(paid[1].body.intent.kind, 'action')
+            assert.equal(paid[1].body.intent.behaviorId, prime.behaviorId)
+            assert.equal(result.actor.mp, before.mp - 2)
+            assert.equal(result.actor.hp, before.hp - 1)
+            const ap = (actor) =>
+              actor.temporaryResources.find((row) => row.key === 'pv1f.action-economy').current
+            assert.equal(ap(result.actor), ap(before) - 11)
+            assert.equal(
+              result.receipts.filter((event) => event.event === 'combat_action_used').length,
+              1,
+            )
+            assert.equal(await page.locator('[data-battle-controlled-ready="true"]').count(), 0)
+            assert.doesNotMatch(
+              JSON.stringify(result.snapshot),
+              /abilityRuntime|capturedAbilitySources|returnAnchor|conditionTruth/,
+            )
+          }
+          await page.close()
+          cases++
+        }
+        if (!touch) {
+          const page = await browser.newPage({ viewport })
+          page.on('pageerror', (error) => errors.push(error.message))
+          await page.goto(
+            server.resolvedUrls.local[0] +
+              `?mode=${mode}&targeting=single&canonical=controlled-self`,
+          )
+          await page.keyboard.press('4')
+          await page.waitForFunction(() => window.fixtureBattle.battleVersion === 2)
+          await page.locator('[data-battle-controlled-ready="true"]').waitFor({ state: 'visible' })
+          await page.keyboard.press('4')
+          await page.waitForFunction(() => window.fixtureBattle.battleVersion === 3)
+          assert.deepEqual(
+            await page.evaluate(() =>
+              window.calls
+                .filter((call) => /\/(commit|intents)$/.test(call.path))
+                .map((call) => call.body.intent.kind),
+            ),
+            ['ability-prime', 'action'],
+          )
+          await page.close()
+          cases++
+        }
+      }
+  }
   assert.deepEqual(errors, [])
   await fs.writeFile(
     resolve(output, 'results.json'),
@@ -670,7 +846,9 @@ try {
       2,
     ),
   )
-  console.log(`${cases} canonical ${moveOnly ? 'Move ' : ''}controller cases passed`)
+  console.log(
+    `${cases} canonical ${controlledOnly ? 'Controlled ' : moveOnly ? 'Move ' : ''}controller cases passed`,
+  )
 } catch (error) {
   const failedPage = browser
     .contexts()

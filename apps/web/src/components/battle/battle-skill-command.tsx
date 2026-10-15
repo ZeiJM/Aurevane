@@ -23,6 +23,7 @@ import { BattleInfoPopover } from './battle-info-popover'
 import { restoreBattleKeyboardFocus } from './battle-keyboard-scope'
 import { battleCooldownLabel } from './battle-action-cooldown'
 import { BattleSkillCooldown } from './battle-skill-cooldown'
+import { BattleControlledReady } from './battle-controlled-ready'
 import {
   commandCharacteristicRows,
   basicActionIdForCommand,
@@ -95,6 +96,8 @@ export function BattleSkillCommand({
   active,
   disabled,
   cooldownTurns = 0,
+  primeAvailable = false,
+  controlledReady = false,
   onActivate,
   selector,
   tags = [],
@@ -111,6 +114,8 @@ export function BattleSkillCommand({
   active: boolean
   disabled: boolean
   cooldownTurns?: number
+  primeAvailable?: boolean
+  controlledReady?: boolean
   onActivate: () => void
   selector?: BattleSkillSelectorConfig
   tags?: readonly string[]
@@ -131,6 +136,12 @@ export function BattleSkillCommand({
     basicAction?.behaviors.filter(
       (behavior) => !behaviorId || behavior.behaviorId === behaviorId,
     ) ?? []
+  const actionDisabled =
+    slot === 'items' ||
+    disabled ||
+    (!primeAvailable && cooldownTurns > 0) ||
+    (basicAction !== undefined && (!basicAction?.enabled || reports.length === 0))
+  const ready = controlledReady && !actionDisabled && !primeAvailable
   const capturedRows =
     basicAction === null
       ? MINIMUM_SKILL_INFORMATION_FIELDS.map((field) => [field, 'Unavailable'] as const)
@@ -243,15 +254,10 @@ export function BattleSkillCommand({
         data-battle-command={slot}
         data-command-slot={slot}
         data-action-cost={cost}
-        disabled={
-          slot === 'items' ||
-          disabled ||
-          cooldownTurns > 0 ||
-          (basicAction !== undefined && (!basicAction?.enabled || reports.length === 0))
-        }
+        disabled={actionDisabled}
         data-battle-cooldown-active={cooldownTurns > 0 || undefined}
         onClick={onActivate}
-        aria-label={`${label}, ${cost}${battleCooldownLabel(cooldownTurns)}`}
+        aria-label={`${label}, ${primeAvailable ? 'prime without payment' : cost}${battleCooldownLabel(cooldownTurns)}${ready ? ', ready to release' : ''}`}
       >
         <span
           className={`${styles.artwork} ${artworkFitStyles.frame}`}
@@ -288,6 +294,7 @@ export function BattleSkillCommand({
             />
           )}
           <BattleSkillCooldown turns={cooldownTurns} />
+          <BattleControlledReady ready={ready} />
         </span>
         <strong>{label}</strong>
       </button>

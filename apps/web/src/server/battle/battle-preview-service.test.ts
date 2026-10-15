@@ -2,7 +2,10 @@ import {
   captureBasicSkillSources,
   defaultBasicSkills,
 } from '@aurevane/game-core/combat/combat-basic-actions'
-import { reconcileCombatAbilitySources } from '@aurevane/game-core/combat/combat-behavior-runtime'
+import {
+  reconcileCombatAbilitySources,
+  primeCombatControlledAbility,
+} from '@aurevane/game-core/combat/combat-behavior-runtime'
 import type {
   BattleSessionRecord,
   BattleSessionRepository,
@@ -183,6 +186,85 @@ function withMovedPlayer(state: StatDrivenCombatEncounterState): StatDrivenComba
     state.statBridge,
   )
 }
+
+it('Controlled ready is true only for the primed current legal release intent, without paying or exposing private state', async () => {
+  const { battles, service, snapshot, record } = await createFixture()
+  const owner = `character:${CHARACTER_ID}`
+  const definitions = defaultBasicSkills().map((row) =>
+    row.id !== 'basic.guard'
+      ? row
+      : {
+          ...row,
+          ability: {
+            ...row.ability,
+            behaviors: row.ability.behaviors.map((behavior) => ({
+              ...behavior,
+              costs: [
+                { resource: 'ap' as const, amount: 11 },
+                { resource: 'mp' as const, amount: 2 },
+              ],
+              effects: behavior.effects.map((effect) => ({
+                ...effect,
+                timing: 'controlled' as const,
+              })),
+            })),
+          },
+        },
+  )
+  const captures = captureBasicSkillSources({
+    ownerCombatantId: owner,
+    supportActionId: 'basic.guard',
+    definitions,
+  })
+  const base = reattachStatDrivenCombatBridge(
+    reconcileCombatAbilitySources(snapshot, captures),
+    snapshot.statBridge,
+  )
+  const source = captures.find((row) => row.abilityId === 'basic.guard')!
+  const primed = primeCombatControlledAbility({
+    state: base,
+    actorId: owner,
+    sourceInstanceId: source.sourceInstanceId,
+    behaviorId: 'use',
+  }).state as StatDrivenCombatEncounterState
+  const blocked = {
+    ...primed,
+    tactical: {
+      ...primed.tactical,
+      battle: {
+        ...primed.tactical.battle,
+        combatants: primed.tactical.battle.combatants.map((unit) =>
+          unit.id === owner ? { ...unit, mp: 0 } : unit,
+        ),
+      },
+    },
+  }
+  for (const [state, ready] of [
+    [base, false],
+    [primed, true],
+    [blocked, false],
+  ] as const) {
+    battles.findBattleSession.mockResolvedValue({ ...record, snapshot: state })
+    const before = JSON.stringify(state)
+    const result = await service.previewIntent({
+      userId: USER_ID,
+      battleSessionId: SESSION_ID,
+      expectedBattleVersion: 1,
+      intent: {
+        kind: 'action',
+        actionId: 'basic.guard',
+        behaviorId: 'use',
+        target: { kind: 'self' },
+      },
+    })
+    expect(result.preview).toMatchObject({ kind: 'action', legal: ready, controlledReady: ready })
+    expect(JSON.stringify(result)).not.toMatch(
+      /abilityRuntime|controlledPrime|returnAnchor|sourceInstanceId|conditionTruth/,
+    )
+    expect(JSON.stringify(state)).toBe(before)
+  }
+  expect(battles.commitBattleIntent).not.toHaveBeenCalled()
+})
 
 describe('P2.5 authoritative battle preview service', () => {
   it('previews legal movement without calling the commit boundary', async () => {

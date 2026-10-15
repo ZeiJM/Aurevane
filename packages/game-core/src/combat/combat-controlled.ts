@@ -93,6 +93,45 @@ export interface CombatControlledAbilityInput {
   readonly behaviorId: string
 }
 
+/** Owner-only command presentation. Release readiness still requires a complete legal intent. */
+export function combatControlledAbilityAvailability(input: CombatControlledAbilityInput):
+  | {
+      readonly phase: 'unprimed' | 'primed' | 'spent'
+      readonly canPrime: boolean
+      readonly canCancel: boolean
+    }
+  | undefined {
+  const source = input.state.capturedAbilitySources?.find(
+    (row) => row.sourceInstanceId === input.sourceInstanceId,
+  )
+  const authored = source?.definition.behaviors.find((row) => row.id === input.behaviorId)
+  if (!source || source.ownerCombatantId !== input.actorId || !authored) return undefined
+  const behavior = applyAbilityTimingDefaults(authored, input.state.effectTimingPolicy)
+  if (!isControlledCombatAbility(behavior)) return undefined
+  const prime = combatControlledPrime(input.state, source, behavior)
+  const key = combatControlledAbilityKey({
+    battleId: input.state.tactical.battle.battleId,
+    ownerCombatantId: source.ownerCombatantId,
+    abilityId: source.abilityId,
+  })
+  const used = input.state.abilityRuntime?.controlled?.used.some(
+    (row) => combatControlledAbilityKey(row) === key,
+  )
+  const allowed = (operation: 'prime' | 'cancel') => {
+    try {
+      updateCombatControlledAbility(input, operation)
+      return true
+    } catch {
+      return false
+    }
+  }
+  return {
+    phase: prime ? 'primed' : used ? 'spent' : 'unprimed',
+    canPrime: !prime && !used && allowed('prime'),
+    canCancel: !!prime && allowed('cancel'),
+  }
+}
+
 /** No selection, cost, action-use hooks or modifier bundle is admitted while priming. */
 export function updateCombatControlledAbility(
   input: CombatControlledAbilityInput,

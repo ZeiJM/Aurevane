@@ -17,8 +17,11 @@ import {
   preparePv1fTurnEconomy,
 } from '@aurevane/game-core/combat/pv1f-action-economy'
 import { prepareCombatAbilityCommand } from '@aurevane/game-core/combat/combat-ability-command'
+import { capturedBasicSkillSource } from '@aurevane/game-core/combat/combat-basic-actions'
 import {
   combatAbilityCommandContext,
+  combatAbilityBehavior,
+  combatControlledAbilityAvailability,
   refreezeCapturedCombatAbilityState,
 } from '@aurevane/game-core/combat/combat-behavior-runtime'
 import { essenceCombatSkill } from '@aurevane/game-core/combat/essence'
@@ -67,6 +70,8 @@ export interface BattleMovePreview {
 export interface BattleActionPreview {
   kind: 'action'
   legal: boolean
+  /** Owner-only, bound to this version and complete current target/Move/modifier intent. */
+  controlledReady?: boolean
   actionId: string
   actorId: string | null
   primaryCombatantId: string | null
@@ -362,9 +367,27 @@ async function previewIntent(
         damageTakenMultiplierBasisPoints: null,
       })
     }
+    const legal = evaluation.legal && affordable && !resourceIssue
+    const controlledSource =
+      capturedSource ??
+      (actorId ? capturedBasicSkillSource(state, actorId, intent.actionId) : undefined)
+    const controlled =
+      controlledSource && actorId
+        ? combatControlledAbilityAvailability({
+            state,
+            actorId,
+            sourceInstanceId: controlledSource.sourceInstanceId,
+            behaviorId: combatAbilityBehavior(
+              controlledSource,
+              intent.behaviorId,
+              state.effectTimingPolicy,
+            ).id,
+          })
+        : undefined
     return {
       kind: 'action',
-      legal: evaluation.legal && affordable && !resourceIssue,
+      legal,
+      ...(controlled ? { controlledReady: controlled.phase === 'primed' && legal } : {}),
       actionId: evaluation.actionId,
       actorId: evaluation.actorId,
       primaryCombatantId: evaluation.primaryCombatantId,

@@ -15,6 +15,12 @@ interface PreviewSelectionCombatant {
   position: { x: number; y: number }
 }
 
+export interface BattleControlledActionAvailability {
+  readonly phase: 'unprimed' | 'primed' | 'spent'
+  readonly canPrime: boolean
+  readonly canCancel: boolean
+}
+
 export type BattlePreviewSkill = Pick<
   BattleSkillForecastPresentation,
   | 'id'
@@ -27,6 +33,7 @@ export type BattlePreviewSkill = Pick<
   | 'groundIntentCapable'
 > & {
   behaviorId?: string
+  controlled?: BattleControlledActionAvailability
   unavailable?: boolean
   move?: { maximumTiles: number; conditional: boolean }
   costs?: AbilityBehavior['costs']
@@ -35,9 +42,27 @@ export type BattlePreviewSkill = Pick<
 export interface BattleCapturedActionTarget {
   actionId: string
   behaviorId: string
+  controlled?: BattleControlledActionAvailability
   target: CombatTargetSpec
   move?: { maximumTiles: number; conditional: boolean }
   costs?: AbilityBehavior['costs']
+}
+
+/** Free commands contain captured references only; an ambiguous Manual group requires a choice. */
+export function selectBattleControlledPrimeIntent(
+  captures: readonly BattleCapturedActionTarget[],
+  actionId: string,
+  behaviorId?: string,
+): Extract<BattleIntent, { kind: 'ability-prime' | 'ability-cancel-prime' }> | null {
+  const choices = captures.filter((row) => row.actionId === actionId)
+  const choice = behaviorId
+    ? choices.find((row) => row.behaviorId === behaviorId)
+    : choices.length === 1
+      ? choices[0]
+      : undefined
+  return choice?.controlled?.canPrime
+    ? { kind: 'ability-prime', actionId, behaviorId: choice.behaviorId }
+    : null
 }
 /** Missing historical captures preserve their envelope; ambiguous canonical choices fail closed. */
 export function resolveBattleCapturedSkill(
@@ -56,6 +81,7 @@ export function resolveBattleCapturedSkill(
   return {
     ...skill,
     behaviorId: choice.behaviorId,
+    controlled: choice.controlled,
     groundIntentCapable: false,
     target: choice.target,
     targetKind: choice.target.kind,

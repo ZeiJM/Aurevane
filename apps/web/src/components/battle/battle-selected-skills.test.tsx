@@ -33,6 +33,40 @@ const runtime: BattleRuntime = {
   essence: null,
 }
 
+it('free Controlled preparation bypasses payment/cooldown selection gates while ready light is release-only', () => {
+  const render = (primeAvailable: boolean, readyActionId?: string, disabled = false) =>
+    renderToStaticMarkup(
+      <BattleSelectedSkills
+        runtime={{ ...runtime, techniques: [technique] }}
+        disabled={disabled}
+        actionEconomy={0}
+        cooldowns={{ [technique.id]: 2 }}
+        primeAvailableIds={primeAvailable ? [technique.id] : []}
+        readyActionId={readyActionId}
+        onSelect={vi.fn()}
+      />,
+    )
+  const prime = render(true)
+  expect(prime).not.toMatch(/data-battle-skill-hotkey="4"[^>]*disabled/)
+  expect(prime).not.toContain('data-battle-controlled-ready="true"')
+  expect(render(true, undefined, true)).toMatch(/data-battle-skill-hotkey="4"[^>]*disabled/)
+  const ready = render(false, technique.id)
+  // Disabled commands never advertise readiness even if a stale parent supplied an ID.
+  expect(ready).not.toContain('data-battle-controlled-ready="true"')
+  const legal = renderToStaticMarkup(
+    <BattleSelectedSkills
+      runtime={{ ...runtime, techniques: [technique] }}
+      disabled={false}
+      actionEconomy={100}
+      readyActionId={technique.id}
+      onSelect={vi.fn()}
+    />,
+  )
+  expect(legal.match(/data-battle-controlled-ready="true"/g)).toHaveLength(1)
+  expect(legal).toContain('ready to release')
+  expect(legal).not.toMatch(/Primed|>Release</)
+})
+
 describe('battle Skill presentation', () => {
   it('places click information before the hotkey below every cockpit name, including empty slots', () => {
     const markup = renderToStaticMarkup(

@@ -6,7 +6,10 @@ import {
   effectiveBasicSkillBehavior,
   isFreeOffensiveBasicMove,
 } from '@aurevane/game-core/combat/combat-basic-actions'
-import { combatManualModifierAvailability } from '@aurevane/game-core/combat/combat-behavior-runtime'
+import {
+  combatManualModifierAvailability,
+  combatControlledAbilityAvailability,
+} from '@aurevane/game-core/combat/combat-behavior-runtime'
 import 'server-only'
 import { canonicalAbilityTargetSpec } from '@aurevane/game-core/combat/combat-targeting-shapes'
 import {
@@ -71,6 +74,12 @@ export function projectBattleManualActionTargets(
             behavior.activation === 'manual' && behavior.mode === 'action' && behavior.targeting,
         )
         .map((behavior) => {
+          const controlled = combatControlledAbilityAvailability({
+            state,
+            actorId: source.ownerCombatantId,
+            sourceInstanceId: source.sourceInstanceId,
+            behaviorId: behavior.id,
+          })
           const spec = canonicalAbilityTargetSpec(behavior.targeting!)
           const move =
             source.basic?.execution.kind === 'basic-move' &&
@@ -83,6 +92,7 @@ export function projectBattleManualActionTargets(
                 ? PV1F_BASIC_ATTACK_ID
                 : source.abilityId,
             behaviorId: behavior.id,
+            ...(controlled ? { controlled } : {}),
             ...(move?.payload.type === 'move'
               ? {
                   move: {

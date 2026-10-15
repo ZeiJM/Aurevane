@@ -4,6 +4,34 @@ import { describe, expect, it } from 'vitest'
 
 import { BattleSkillCommand } from './battle-skill-command'
 
+it('keeps free Controlled preparation selectable on cooldown and draws light only for enabled ready release', () => {
+  const props = {
+    slot: 'guard' as const,
+    hotkey: '3',
+    label: 'Anchor',
+    cost: '30 AP',
+    artworkSrc: '/media/skills/guard.webp',
+    active: false,
+    disabled: false,
+    onActivate: () => undefined,
+  }
+  const prime = renderToStaticMarkup(
+    createElement(BattleSkillCommand, { ...props, primeAvailable: true, cooldownTurns: 2 }),
+  )
+  expect(prime).not.toMatch(/data-command-slot="guard"[^>]*disabled/)
+  expect(prime).not.toContain('data-battle-controlled-ready="true"')
+  const ready = renderToStaticMarkup(
+    createElement(BattleSkillCommand, { ...props, controlledReady: true }),
+  )
+  expect(ready).toContain('data-battle-controlled-ready="true"')
+  expect(ready).toContain('ready to release')
+  expect(
+    renderToStaticMarkup(
+      createElement(BattleSkillCommand, { ...props, disabled: true, controlledReady: true }),
+    ),
+  ).not.toContain('data-battle-controlled-ready="true"')
+})
+
 describe('Battle Technique command information', () => {
   it('keeps facing controls inside End Turn with a reserved controls row', () => {
     const props = {

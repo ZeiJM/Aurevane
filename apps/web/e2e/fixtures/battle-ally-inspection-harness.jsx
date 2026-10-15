@@ -49,6 +49,9 @@ import { captureCombatAbilitySource } from '@aurevane/game-core/combat/combat-be
 import {
   combatAbilityCommandContext,
   reconcileCombatAbilitySources,
+  combatControlledAbilityAvailability,
+  primeCombatControlledAbility,
+  cancelCombatControlledAbility,
 } from '@aurevane/game-core/combat/combat-behavior-runtime'
 import {
   prepareCombatAbilityCommand,
@@ -68,7 +71,24 @@ function canonicalPublicState(state) {
   Reflect.deleteProperty(publicState, 'abilityRuntime')
   return {
     ...publicState,
-    manualActionTargets: canonicalTargets,
+    manualActionTargets: canonicalTargets?.map((row) => {
+      const source = state.capturedAbilitySources?.find(
+        (source) =>
+          source.ownerCombatantId === ids[0] &&
+          (source.abilityId === row.actionId ||
+            (source.basic?.execution.kind === 'basic-attack' &&
+              row.actionId === PV1F_BASIC_ATTACK_ID)),
+      )
+      const controlled =
+        source &&
+        combatControlledAbilityAvailability({
+          state,
+          actorId: ids[0],
+          sourceInstanceId: source.sourceInstanceId,
+          behaviorId: row.behaviorId,
+        })
+      return { ...row, ...(controlled ? { controlled } : {}) }
+    }),
     ...(canonicalBasics ? { basicActions: canonicalBasics } : {}),
   }
 }
@@ -84,7 +104,10 @@ const positions = [
   { x: 2, y: 3 },
 ]
 if (targetingCase || dotCase) positions[3] = { x: 5, y: 3 }
-if (canonicalCase?.startsWith('move-') && canonicalCase !== 'move-stationary') {
+if (
+  (canonicalCase?.startsWith('move-') && canonicalCase !== 'move-stationary') ||
+  canonicalCase === 'controlled-move'
+) {
   positions[2] = { x: 4, y: 2 }
   positions[3] = { x: 5, y: 2 }
 }
@@ -631,20 +654,32 @@ if (canonicalCase) {
     requiresLineOfSight: false,
     maximumElevationDifference: null,
   }
-  const movement = canonicalCase.startsWith('move-')
+  const controlled = canonicalCase.startsWith('controlled-')
+  const controlledSelf = controlled && canonicalCase !== 'controlled-move'
+  const movement = canonicalCase.startsWith('move-') || canonicalCase === 'controlled-move'
   const mixed = canonicalCase === 'move-mixed'
   const stationary = canonicalCase === 'move-stationary'
   const source = canonicalSourceFixture({
-    targeting: movement
+    targeting: controlledSelf
       ? {
           ...target,
+          categories: ['self'],
+          kind: 'self',
+          teamPolicy: 'self',
+          friendlyFire: 'allies-only',
           maximumSelections: 1,
-          minimumRange: mixed ? 0 : 1,
-          maximumRange: 1,
-          categories: mixed ? ['self', 'enemy'] : ['enemy', 'ground'],
-          ...(mixed ? { kind: 'self', teamPolicy: 'self' } : {}),
+          maximumRange: 0,
         }
-      : target,
+      : movement
+        ? {
+            ...target,
+            maximumSelections: 1,
+            minimumRange: mixed ? 0 : 1,
+            maximumRange: 1,
+            categories: mixed ? ['self', 'enemy'] : ['enemy', 'ground'],
+            ...(mixed ? { kind: 'self', teamPolicy: 'self' } : {}),
+          }
+        : target,
     ...(canonicalCase === 'move-paid'
       ? {
           costs: [
@@ -654,7 +689,7 @@ if (canonicalCase) {
           ],
         }
       : {}),
-    accuracy: { kind: 'fixed', chanceBasisPoints: 10000 },
+    accuracy: controlledSelf ? undefined : { kind: 'fixed', chanceBasisPoints: 10000 },
     effects: [
       ...(movement
         ? [
@@ -674,15 +709,38 @@ if (canonicalCase) {
             },
           ]
         : []),
-      { id: 'hit', payload: { type: 'damage', recipient: 'affected-units', amount: 10 } },
+      controlledSelf
+        ? {
+            id: 'ward',
+            timing: 'controlled',
+            payload: { type: 'barrier-change', recipient: 'actor', amount: 10 },
+          }
+        : {
+            id: 'hit',
+            ...(controlled ? { timing: 'controlled' } : {}),
+            payload: { type: 'damage', recipient: 'affected-units', amount: 10 },
+          },
     ],
   })
   source.ownerCombatantId = ids[0]
   source.abilityId = definition.id
-  if (canonicalCase === 'choices')
+  if (canonicalCase === 'choices' || canonicalCase === 'controlled-choices')
     source.definition.behaviors.push({ ...source.definition.behaviors[0], id: 'second' })
   canonicalCapture = captureCombatAbilitySource(source)
   canonicalState = reconcileCombatAbilitySources(initialBattle.snapshot, [canonicalCapture])
+  if (canonicalCase === 'controlled-poor')
+    canonicalState = {
+      ...canonicalState,
+      tactical: {
+        ...canonicalState.tactical,
+        battle: {
+          ...canonicalState.tactical.battle,
+          combatants: canonicalState.tactical.battle.combatants.map((unit) =>
+            unit.id === ids[0] ? { ...unit, mp: 0 } : unit,
+          ),
+        },
+      },
+    }
   canonicalTargets = canonicalCapture.definition.behaviors.map((behavior) => ({
     actionId: source.abilityId,
     behaviorId: behavior.id,
@@ -709,6 +767,43 @@ if (canonicalCase) {
         },
       },
     }
+  initialBattle.snapshot = canonicalPublicState(canonicalState)
+}
+if (canonicalCase === 'controlled-basic') {
+  const definitions = defaultBasicSkills().map((row) =>
+    row.id !== 'basic.guard'
+      ? row
+      : {
+          ...row,
+          ability: {
+            ...row.ability,
+            behaviors: row.ability.behaviors.map((behavior) => ({
+              ...behavior,
+              costs: [
+                { resource: 'ap', amount: 11 },
+                { resource: 'mp', amount: 2 },
+                { resource: 'hp', amount: 1 },
+              ],
+              effects: behavior.effects.map((effect) => ({ ...effect, timing: 'controlled' })),
+            })),
+          },
+        },
+  )
+  const captures = captureBasicSkillSources({
+    ownerCombatantId: ids[0],
+    supportActionId: 'basic.guard',
+    definitions,
+  })
+  canonicalCapture = captures.find((source) => source.abilityId === 'basic.guard')
+  canonicalState = reconcileCombatAbilitySources(initialBattle.snapshot, captures)
+  canonicalTargets = captures.flatMap((source) =>
+    source.definition.behaviors.map((behavior) => ({
+      actionId:
+        source.basic?.execution.kind === 'basic-attack' ? PV1F_BASIC_ATTACK_ID : source.abilityId,
+      behaviorId: behavior.id,
+      target: behavior.targeting,
+    })),
+  )
   initialBattle.snapshot = canonicalPublicState(canonicalState)
 }
 if (canonicalCase?.startsWith('move-basic')) {
@@ -841,6 +936,19 @@ window.fetch = async (url, options = {}) => {
             battleVersion: window.fixtureBattle.battleVersion,
             preview: {
               ...quote.evaluation,
+              ...(canonicalCase.startsWith('controlled-')
+                ? {
+                    controlledReady:
+                      quote.evaluation.legal &&
+                      before >= cost &&
+                      combatControlledAbilityAvailability({
+                        state: canonicalState,
+                        actorId: ids[0],
+                        sourceInstanceId: canonicalCapture.sourceInstanceId,
+                        behaviorId: intent.behaviorId,
+                      })?.phase === 'primed',
+                  }
+                : {}),
               kind: 'action',
               actionEconomyCost: cost,
               actionEconomyBefore: before,
@@ -852,7 +960,17 @@ window.fetch = async (url, options = {}) => {
       }
       if (body.expectedBattleVersion !== window.fixtureBattle.battleVersion)
         return Response.json({ error: { message: 'Stale battle version.' } }, { status: 409 })
-      const transition = commitCombatAbilityCommand(input)
+      const transition =
+        intent.kind === 'ability-prime' || intent.kind === 'ability-cancel-prime'
+          ? (intent.kind === 'ability-prime'
+              ? primeCombatControlledAbility
+              : cancelCombatControlledAbility)({
+              state: canonicalState,
+              actorId: ids[0],
+              sourceInstanceId: canonicalCapture.sourceInstanceId,
+              behaviorId: intent.behaviorId,
+            })
+          : commitCombatAbilityCommand(input)
       canonicalState = transition.state
       window.receipts = transition.events
       window.fixtureBattle = {
@@ -1051,6 +1169,15 @@ window.publishBattle = () =>
       detail: window.fixtureBattle,
     }),
   )
+window.restoreCanonicalBattle = () => {
+  canonicalState = JSON.parse(JSON.stringify(canonicalState))
+  window.fixtureBattle = {
+    ...window.fixtureBattle,
+    battleVersion: window.fixtureBattle.battleVersion + 1,
+    snapshot: canonicalPublicState(canonicalState),
+  }
+  window.publishBattle()
+}
 window.advanceBattle = (nextActor = 'character:player') => {
   const next = structuredClone(window.fixtureBattle)
   next.battleVersion++

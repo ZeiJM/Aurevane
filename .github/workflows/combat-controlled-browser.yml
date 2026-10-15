@@ -1,0 +1,50 @@
+name: Controlled combat browser
+
+on:
+  pull_request:
+    paths:
+      - 'apps/web/src/components/battle/**'
+      - 'apps/web/src/server/battle/**'
+      - 'apps/web/e2e/fixtures/battle-ally-inspection-harness.jsx'
+      - 'apps/web/scripts/battle-canonical-targeting-browser-regression.mjs'
+      - 'packages/game-core/src/combat/**'
+      - '.github/workflows/combat-controlled-browser.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: controlled-combat-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  controlled:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - run: pnpm install --frozen-lockfile
+      - name: Install Chromium
+        run: |
+          printf '%s\n' 'https://archive.ubuntu.com/ubuntu/' | sudo tee /etc/apt/apt-mirrors.txt >/dev/null
+          pnpm --filter @aurevane/web exec playwright install --with-deps chromium
+      - name: Verify Controlled commands and readiness across shared modes
+        env:
+          AV_CANONICAL_CONTROLLED: '1'
+          AV_TARGETING_EVIDENCE_DIR: /tmp/battle-controlled-review
+        run: pnpm --filter @aurevane/web exec node scripts/battle-canonical-targeting-browser-regression.mjs
+      - name: Save native evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: battle-controlled-review
+          path: /tmp/battle-controlled-review
+          retention-days: 7
