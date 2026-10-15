@@ -218,6 +218,34 @@ async function verifyModularReaders(page, viewport) {
         path: resolve(output, `modular-techniques-${viewport.width}.png`),
         fullPage: true,
       })
+      for (const groupId of ['leap', 'maintain']) {
+        const heading = editor.locator(`[data-ability-behavior="${groupId}"] h4`)
+        await heading.scrollIntoViewIfNeeded()
+        assert.equal(
+          await heading.evaluate((element) => {
+            const box = element.getBoundingClientRect()
+            if (
+              box.width <= 0 ||
+              box.height <= 0 ||
+              box.top < 0 ||
+              box.bottom > innerHeight ||
+              box.left < 0 ||
+              box.right > innerWidth
+            )
+              return false
+            const hit = document.elementFromPoint(
+              box.left + box.width / 2,
+              box.top + box.height / 2,
+            )
+            return hit === element || element.contains(hit)
+          }),
+          true,
+          'each authored group is visibly reachable through the existing preview scrolling',
+        )
+        await page.screenshot({
+          path: resolve(output, `modular-techniques-${groupId}-${viewport.width}.png`),
+        })
+      }
       await gesture(editor.getByRole('button', { name: 'Close', exact: true }))
       await editor.waitFor({ state: 'detached' })
     }
