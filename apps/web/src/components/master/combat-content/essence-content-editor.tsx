@@ -1,6 +1,7 @@
 'use client'
 
 import { AbilityDefinitionEditor } from './ability-definition-editor'
+import { AbilityPreviewSelector, previewActionSelection } from './ability-preview-selector'
 import { validateAbilityDefinition } from '@aurevane/game-core/combat/combat-definition'
 import { normalizeCurrentCombatTargetSpec } from '@aurevane/game-core/combat/combat-targeting-shapes'
 
@@ -99,6 +100,7 @@ export function EssenceContentEditor({ essences, initialEssenceId }: EssenceCont
       ]),
     ),
   )
+  const [previewGroups, setPreviewGroups] = useState<Record<string, string>>({})
   const [reviews, setReviews] = useState<Record<string, CombatContentReviewState>>({})
   const [histories, setHistories] = useState<
     Record<string, readonly CombatContentVersionHistoryEntry[]>
@@ -115,6 +117,28 @@ export function EssenceContentEditor({ essences, initialEssenceId }: EssenceCont
   const selectedReview = selected
     ? (reviews[selected.id] ?? emptyCombatContentReview())
     : emptyCombatContentReview()
+  const previewSelection = previewActionSelection(
+    selectedDraft?.skill,
+    selected ? previewGroups[selected.id] : undefined,
+  )
+  function selectPreviewGroup(behaviorId: string) {
+    if (
+      !selected ||
+      busyId === selected.id ||
+      !previewSelection.groups.some((group) => group.id === behaviorId)
+    )
+      return
+    const id = selected.id
+    draftRevision.current[id] = (draftRevision.current[id] ?? 0) + 1
+    setPreviewGroups((current) => ({ ...current, [id]: behaviorId }))
+    setReviews((current) => ({
+      ...current,
+      [id]: { ...(current[id] ?? emptyCombatContentReview()), preview: null },
+    }))
+    setErrors((current) => ({ ...current, [id]: null }))
+    setNotices((current) => ({ ...current, [id]: null }))
+    setPublishConfirmationId(null)
+  }
   const selectedHistory = selected ? (histories[selected.id] ?? selected.history) : []
   const selectedCurrentVersion =
     selectedHistory.find((entry) => entry.current)?.contentVersion ?? selected?.currentVersion ?? 1
@@ -210,7 +234,13 @@ export function EssenceContentEditor({ essences, initialEssenceId }: EssenceCont
   }
 
   async function previewSelected() {
-    if (!selected || !selectedDraft || selectedReview.validation?.valid !== true) return
+    if (
+      !selected ||
+      !selectedDraft ||
+      !previewSelection.available ||
+      selectedReview.validation?.valid !== true
+    )
+      return
     if (selectedReview.diff === null) return
     const revision = draftRevision.current[selected.id] ?? 0
     setBusyId(selected.id)
@@ -219,6 +249,9 @@ export function EssenceContentEditor({ essences, initialEssenceId }: EssenceCont
         preview: CombatContentPreviewSummary
       }>({
         operation: 'preview',
+        ...(previewSelection.behaviorId === undefined
+          ? {}
+          : { behaviorId: previewSelection.behaviorId }),
         definition: selectedDraft.skill,
       })
       if ((draftRevision.current[selected.id] ?? 0) !== revision) return
@@ -243,7 +276,11 @@ export function EssenceContentEditor({ essences, initialEssenceId }: EssenceCont
       selectedReview.validation?.valid !== true ||
       selectedReview.diff === null ||
       selectedReview.diff.changedPaths.length === 0 ||
-      selectedReview.preview === null
+      !previewSelection.available ||
+      selectedReview.preview === null ||
+      selectedReview.preview.legal === false ||
+      (previewSelection.canonical &&
+        selectedReview.preview.behaviorId !== previewSelection.behaviorId)
     ) {
       return
     }
@@ -567,6 +604,12 @@ export function EssenceContentEditor({ essences, initialEssenceId }: EssenceCont
           </section>
         ) : null}
 
+        <AbilityPreviewSelector
+          selection={previewSelection}
+          busy={busy}
+          onChange={selectPreviewGroup}
+        />
+
         <CombatContentReviewPanel
           contentKey={selected.id}
           baseVersion={selectedCurrentVersion}
@@ -574,6 +617,7 @@ export function EssenceContentEditor({ essences, initialEssenceId }: EssenceCont
           validation={selectedReview.validation}
           diff={selectedReview.diff}
           preview={selectedReview.preview}
+          previewAvailable={previewSelection.available}
           history={selectedHistory}
           busy={busy}
           publishConfirmationOpen={publishConfirmationId === selected.id}

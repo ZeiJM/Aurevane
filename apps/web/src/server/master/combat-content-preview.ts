@@ -352,6 +352,7 @@ export function previewCombatContentDefinition(
 
   return {
     actionId: definition.id,
+    ...(behavior ? { behaviorId: behavior.id } : {}),
     contentVersion: definition.contentVersion,
     legal: evaluated.evaluation.legal && actionEconomyBefore >= evaluated.cost,
     issues: [

@@ -1355,3 +1355,84 @@ it.each(['essence', 'resonance'] as const)(
     ])
   },
 )
+
+describe('authoring preview selects the requested Manual group', () => {
+  const guard = defaultBasicSkills().find((row) => row.id === 'basic.guard')!.ability.behaviors[0]!
+  const ability = parseAbilityDefinition({
+    schemaVersion: 1,
+    behaviors: [
+      {
+        ...guard,
+        id: 'first',
+        costs: [{ resource: 'ap', amount: 5 }],
+        effects: [
+          { id: 'ward', payload: { type: 'barrier-change', recipient: 'actor', amount: 1 } },
+        ],
+      },
+      {
+        ...guard,
+        id: 'second',
+        classification: 'recovery',
+        costs: [
+          { resource: 'ap', amount: 13 },
+          { resource: 'mp', amount: 3 },
+        ],
+        effects: [{ id: 'mend', payload: { type: 'healing', recipient: 'actor', amount: 17 } }],
+      },
+    ],
+  })
+  it('uses the selected group through the real authorized service and kernel without saving it', async () => {
+    const { store, service } = serviceFixture()
+    store.operators.set(OWNER, 'owner')
+    const definition = { ...staticSkill(), ability }
+    const before = JSON.stringify(definition)
+    const preview = await service.previewSkillDefinition({
+      actorUserId: OWNER,
+      definition,
+      behaviorId: 'second',
+    })
+    expect(preview).toMatchObject({
+      behaviorId: 'second',
+      legal: true,
+      costs: { actionEconomy: 13, mp: 3 },
+      targeting: { selection: { kind: 'self' } },
+      simulation: { rngConsumed: false },
+    })
+    expect(preview.projections.effects.some((effect) => effect.effectType === 'healing')).toBe(true)
+    expect(JSON.stringify(definition)).toBe(before)
+    expect(await store.findDraft(definition.id)).toBeNull()
+    expect(await store.findPublished(definition.id)).toBeNull()
+  })
+  it.each(['absent', 'first', 'second'] as const)(
+    'rejects group %s when it is not a Manual action instead of previewing another group',
+    async (behaviorId) => {
+      const { store, service } = serviceFixture()
+      store.operators.set(OWNER, 'owner')
+      const definition =
+        behaviorId === 'absent'
+          ? staticSkill()
+          : {
+              ...staticSkill(),
+              ability: parseAbilityDefinition({
+                schemaVersion: 1,
+                behaviors: [
+                  {
+                    ...guard,
+                    id: 'first',
+                    activation: 'automatic',
+                    requirements: {
+                      kind: 'event',
+                      eventType: 'combat_action_used',
+                      phase: 'after',
+                    },
+                    automaticTarget: { subject: 'owner' },
+                  },
+                ],
+              }),
+            }
+      await expect(
+        service.previewSkillDefinition({ actorUserId: OWNER, definition, behaviorId }),
+      ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
+    },
+  )
+})

@@ -1,0 +1,27 @@
+# Selected Manual action authoring preview
+
+Continuation of Tasks3A/5/10 from durable `d39dcaea3bc60a6d4fb0fae047ff5e553e7555b6` on draft PR904. This checkpoint does not publish any roster, change hosted data, merge or deploy.
+
+## Actual boundary and editors
+
+The existing core preview already accepted a behavior ID, but the authorized service, API handler and actual Skill/Essence editors did not forward a selection. Plural Manual actions therefore could not be deliberately reviewed. The handler now rejects malformed provided IDs, and the authorized service checks that an explicitly selected group is a Manual action in the validated canonical definition. A missing selection remains compatible for exactly one Manual action. Unknown, Automatic/modifier, absent, ambiguous and native-definition selections cannot silently evaluate another group. Native definitions without an explicit group retain their original preview path. Actual core evaluation returns the evaluated behavior ID in its receipt.
+
+Both actual editors offer the supported Manual action groups with stable IDs, forward the selected ID, and show the evaluated group beside costs/legality/projected effects. Changing groups preserves validation/diff for the unchanged definition but invalidates the preview and open publication confirmation. Revision checks discard older responses after edits; the selector is disabled while a request is pending. Publication callbacks also require a legal receipt for the selected canonical group. Invalid canonical definitions show a compatibility message; valid Automatic/Ongoing-only definitions have no Manual battle preview and cannot bypass the required preview to publish. A separate honest reaction/maintenance review remains open.
+
+No new global listener, render-triggered request, duplicate persisted definition, dependency, media or execution mechanism is introduced. The selector uses existing responsive field styling and native labelled controls. Selection is derived from the current per-record draft and retained per record. Existing authenticated/authorized boundaries and deterministic simulation remain authoritative.
+
+## Verification scope
+
+Before implementation, the authorized-service/handler regressions report12 failures and70 passes: the requested second group is ignored, invalid groups can reach the wrong/raw kernel path, and malformed handler IDs are not rejected early. All93 cases across service/handler/core-preview files pass after the boundary correction, including actual selected second-group AP/MP/healing and no draft/publication mutation. The actual parent-editor/review regressions then report five expected failures and27 passes for missing selectors, missing Automatic-only status and absent preview availability guard. After integration, all40 cases across actual canonical parent forms, review panel and existing Skill editor tests pass.
+
+The native harness adds actual Skill and Essence editor workflows at desktop1366×768 and phone390×844. It validates/diffs, previews both groups, checks outgoing IDs and receipt costs/effects, changes selection after opening publication confirmation, and releases an older preview after a newer AP edit. No fixture request publishes or saves content. API responses in this browser fixture are explicitly simulated; real authorized service/kernel behavior is established by the separate server tests. The full repository `pnpm check` exits0 with6,099 Vitest tests plus seven Node checks, formatting, lint, all eight package typechecks and both production builds. Complete output is captured in `selected-preview-full-check.log`. No product changes follow that gate before checkpointing. Exact-head native acceptance and screenshots remain pending before claiming this UI verified.
+
+## Controlled keyboard harness investigation
+
+The preceding d39 native Controlled run38767043823/job116532863564 times out after23 cases waiting for the initial PvP Controlled-price prime. Artifact11989777103 SHA256 `836df13d4dfd15106539bcda1ae3970d5a55a116dc96b1054e43907b849cf081` is verified and inspected: no runtime errors, selected unprimed action, unchanged resources and no recorded commit. Its original failure capture does not include focus/visibility/request/version data, so lost focus is a hypothesis rather than a proven retrospective cause.
+
+Unlike mouse activation, the native keyboard loop did not explicitly foreground its page before sending a key. The harness now waits for the real command and foreground visibility/focus before intentional keyboard activation. It also deliberately delivers a real key to the background PvP Controlled-price page and verifies no prime, payment or commit, then foregrounds that page and keeps the original prime/release assertions. Failure capture includes URL/focus/visibility/active element/version/request data. No production focus/visibility guard, resource rule, test timeout or assertion bound is relaxed. Exact-head32-case native acceptance remains required.
+
+## Remaining gates
+
+Basic deterministic preview, all-kind draft/publication/history/restore/CAS workflows, honest reaction/maintenance review, complete Master/reader requirements, canonical Rewind and the creative balanced all-Tag roster remain open. This selected Manual subset and the existing Basic draft form do not complete those release gates. The older broader peer interpolation and performance-timeout workflow failures remain recorded separately; no all-workflow-green claim follows from these focused checks.

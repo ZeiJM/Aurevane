@@ -17,6 +17,7 @@ export interface CombatContentReviewPanelProps {
   readonly diff: CombatContentSemanticDiff | null
   readonly preview: CombatContentPreviewSummary | null
   readonly previewRequired?: boolean
+  readonly previewAvailable?: boolean
   readonly history: readonly CombatContentVersionHistoryEntry[]
   readonly busy: boolean
   readonly publishConfirmationOpen: boolean
@@ -46,6 +47,7 @@ export function CombatContentReviewPanel({
   diff,
   preview,
   previewRequired = true,
+  previewAvailable = true,
   history,
   busy,
   publishConfirmationOpen,
@@ -67,10 +69,11 @@ export function CombatContentReviewPanel({
     validation?.valid === true &&
     diff !== null &&
     diff.changedPaths.length > 0 &&
-    (!previewRequired || canPublishCombatContent(review)) &&
+    (!previewRequired || (previewAvailable && canPublishCombatContent(review))) &&
     !busy
   const canDiff = validation?.valid === true && !busy
-  const canPreview = previewRequired && validation?.valid === true && diff !== null && !busy
+  const canPreview =
+    previewRequired && previewAvailable && validation?.valid === true && diff !== null && !busy
   const hitChance = preview?.accuracy?.targetHitChances?.[0]
   const effectTypes =
     preview?.projections?.effects
@@ -206,6 +209,12 @@ export function CombatContentReviewPanel({
             <span>{preview.legal === false ? 'Illegal' : 'Legal'}</span>
           </div>
           <dl className={styles.previewFacts}>
+            {preview.behaviorId ? (
+              <div>
+                <dt>Action group</dt>
+                <dd>{preview.behaviorId}</dd>
+              </div>
+            ) : null}
             <div>
               <dt>Legality</dt>
               <dd>{preview.legal === false ? 'Illegal in fixture' : 'Legal in fixture'}</dd>

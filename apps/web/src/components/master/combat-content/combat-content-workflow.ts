@@ -16,6 +16,7 @@ export interface CombatContentSemanticDiff {
 }
 
 export interface CombatContentPreviewSummary {
+  readonly behaviorId?: string
   readonly groundAreas?: readonly PublicCombatGroundArea[]
   readonly legal?: boolean
   readonly costs?: {

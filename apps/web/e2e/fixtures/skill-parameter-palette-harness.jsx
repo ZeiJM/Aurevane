@@ -26,6 +26,8 @@ import { DISCIPLINE_ATLAS } from '@aurevane/game-core/character/discipline-atlas
 import { ManualArticle } from '@/components/public-information/manual-article'
 import { createTechniquesManualArticle } from '@/content/techniques-manual'
 import { defaultCombatEffectTimingPolicy } from '@aurevane/game-core/combat/combat-effect-timing'
+import { CombatContentEditor } from '@/components/master/combat-content/combat-content-editor'
+import { EssenceContentEditor } from '@/components/master/combat-content/essence-content-editor'
 import { CombatContentAuthoringWorkspace } from '@/components/master/combat-content/combat-content-authoring-workspace'
 import { AbilityDefinitionEditor } from '@/components/master/combat-content/ability-definition-editor'
 import masterTheme from '@/components/master/master-panel-shell.module.css'
@@ -180,6 +182,100 @@ if (new URLSearchParams(location.search).get('surface') === 'basic-editor') {
     return Response.json({ draft: { draftVersion } })
   }
 }
+// The API responses below are fixture receipts. Real service/kernel evaluation is
+// covered separately by combat-content-authoring-service.test.ts.
+const previewGuard = defaultBasicSkills().find((row) => row.id === 'basic.guard').ability
+  .behaviors[0]
+const selectableAbility = parseAbilityDefinition({
+  schemaVersion: 1,
+  behaviors: [
+    {
+      ...previewGuard,
+      id: 'brace',
+      costs: [{ resource: 'ap', amount: 5 }],
+      effects: [{ id: 'ward', payload: { type: 'barrier-change', recipient: 'actor', amount: 1 } }],
+    },
+    {
+      ...previewGuard,
+      id: 'recover',
+      classification: 'recovery',
+      costs: [
+        { resource: 'ap', amount: 13 },
+        { resource: 'mp', amount: 3 },
+      ],
+      effects: [{ id: 'mend', payload: { type: 'healing', recipient: 'actor', amount: 17 } }],
+    },
+  ],
+})
+if (query.get('surface') === 'selected-preview') {
+  window.groupPreviewRequests = []
+  window.fetch = async (url, options) => {
+    if (String(url) !== '/api/master/combat-content')
+      throw new Error('Unexpected preview fixture request')
+    const body = JSON.parse(options.body)
+    window.groupPreviewRequests.push(structuredClone(body))
+    if (body.operation === 'validate')
+      return Response.json({ validation: { valid: true, issues: [], derivedTags: [] } })
+    if (body.operation === 'diff')
+      return Response.json({ diff: { changedPaths: ['ability.behaviors'] } })
+    if (body.operation !== 'preview') throw new Error('Unexpected preview fixture operation')
+    const group = body.definition.ability.behaviors.find((row) => row.id === body.behaviorId)
+    if (!group)
+      return Response.json(
+        { error: { message: 'Select a supported Manual action group.' } },
+        { status: 400 },
+      )
+    if (window.holdGroupPreview)
+      await new Promise((resolve) => {
+        window.releaseGroupPreview = resolve
+      })
+    return Response.json({
+      preview: {
+        behaviorId: group.id,
+        legal: true,
+        costs: {
+          actionEconomy: group.costs.find((row) => row.resource === 'ap')?.amount ?? 0,
+          mp: group.costs.find((row) => row.resource === 'mp')?.amount ?? 0,
+        },
+        projections: {
+          effects: group.effects.map((effect) => ({ effectType: effect.payload.type })),
+        },
+      },
+    })
+  }
+}
+function SelectedPreviewEditor() {
+  const isEssence = query.get('kind') === 'essence'
+  const definition = isEssence
+    ? { ...essence, skill: { ...essence.skill, ability: selectableAbility } }
+    : { ...physical, ability: selectableAbility }
+  const option = {
+    id: isEssence ? definition.essenceId : definition.id,
+    sourceDisciplineId: definition.sourceDisciplineId,
+    label: isEssence ? definition.name : 'Preview Skill',
+    currentVersion: definition.contentVersion,
+    baseVersion: definition.contentVersion,
+    draftVersion: null,
+    derivedTags: [],
+    definition,
+    history: [],
+  }
+  return (
+    <main
+      className={`av-master ${masterTheme.workspace}`}
+      style={{ display: 'block', height: 'auto', padding: 12 }}
+    >
+      <SkillEffectTimingProvider policy={defaultCombatEffectTimingPolicy()}>
+        {isEssence ? (
+          <EssenceContentEditor essences={[option]} />
+        ) : (
+          <CombatContentEditor skills={[option]} />
+        )}
+      </SkillEffectTimingProvider>
+    </main>
+  )
+}
+
 function BasicEditor() {
   return (
     <main
@@ -525,7 +621,9 @@ function FireReaders() {
   )
 }
 createRoot(document.getElementById('root')).render(
-  query.get('surface') === 'basic-editor' ? (
+  query.get('surface') === 'selected-preview' ? (
+    <SelectedPreviewEditor />
+  ) : query.get('surface') === 'basic-editor' ? (
     <BasicEditor />
   ) : query.get('surface') === 'canonical-editor' ? (
     <CanonicalEditor />

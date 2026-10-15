@@ -460,6 +460,83 @@ async function verifyBasicEditor(page, viewport) {
   assert.equal(await editor.getByRole('alert').count(), 0)
 }
 
+async function verifySelectedGroupPreview(page, viewport, kind) {
+  await page.goto(`${server.resolvedUrls.local[0]}?surface=selected-preview&kind=${kind}`, {
+    waitUntil: 'networkidle',
+  })
+  const gesture = (locator) => (viewport.width < 720 ? locator.tap() : locator.click())
+  const selector = page.getByLabel('Preview action group', { exact: true })
+  const preview = page.getByRole('region', { name: 'Deterministic preview', exact: true })
+  const publish = page.getByRole('button', { name: 'Publish', exact: true })
+  const runPreview = () => gesture(page.getByRole('button', { name: 'Preview', exact: true }))
+  assert.equal(await selector.inputValue(), 'brace')
+  await gesture(page.getByRole('button', { name: 'Validate', exact: true }))
+  await page.waitForFunction(() =>
+    [...document.querySelectorAll('button')].some(
+      (button) => button.textContent === 'Diff' && !button.disabled,
+    ),
+  )
+  await gesture(page.getByRole('button', { name: 'Diff', exact: true }))
+  await page.getByRole('region', { name: 'Semantic diff', exact: true }).waitFor()
+  await runPreview()
+  await preview.waitFor()
+  assert.match(await preview.innerText(), /brace[\s\S]*5 AP[\s\S]*barrier-change/)
+  await selector.selectOption('recover')
+  assert.equal(await preview.count(), 0)
+  assert.equal(await publish.isDisabled(), true)
+  await runPreview()
+  await preview.waitFor()
+  assert.match(await preview.innerText(), /recover[\s\S]*13 AP[\s\S]*3 MP[\s\S]*healing/)
+  const requests = await page.evaluate(() =>
+    window.groupPreviewRequests.filter((row) => row.operation === 'preview'),
+  )
+  assert.deepEqual(
+    requests.map((row) => row.behaviorId),
+    ['brace', 'recover'],
+  )
+  assert.equal(requests[1].definition.ability.behaviors[1].effects[0].payload.amount, 17)
+  await gesture(publish)
+  const confirmation = page.getByRole('region', { name: 'Confirm publication', exact: true })
+  await confirmation.waitFor()
+  await selector.selectOption('brace')
+  assert.equal(await confirmation.count(), 0)
+  assert.equal(await preview.count(), 0)
+  assert.equal(await publish.isDisabled(), true)
+  await selector.selectOption('recover')
+  await runPreview()
+  await preview.waitFor()
+  await selector.scrollIntoViewIfNeeded()
+  await page.screenshot({ path: resolve(output, `selected-preview-${kind}-${viewport.width}.png`) })
+  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
+  await page.evaluate(() => {
+    window.holdGroupPreview = true
+  })
+  await runPreview()
+  await page.waitForFunction(() => typeof window.releaseGroupPreview === 'function')
+  assert.equal(await selector.isDisabled(), true)
+  await page
+    .locator('[data-ability-group="recover"]')
+    .getByLabel('AP cost', { exact: true })
+    .fill('14')
+  await page.evaluate(() => {
+    window.releaseGroupPreview()
+    window.holdGroupPreview = false
+  })
+  await page.waitForFunction(
+    () => !document.querySelector('[aria-label="Preview action group"]').disabled,
+  )
+  assert.equal(await preview.count(), 0, 'An older response cannot review the newer draft')
+  assert.equal(await publish.isDisabled(), true)
+  assert.equal(await page.getByRole('alert').count(), 0)
+  assert.ok(
+    await page.evaluate(() =>
+      window.groupPreviewRequests.every((row) =>
+        ['validate', 'diff', 'preview'].includes(row.operation),
+      ),
+    ),
+  )
+}
+
 async function verifyCanonicalEditor(page, viewport) {
   await page.goto(`${server.resolvedUrls.local[0]}?surface=canonical-editor`, {
     waitUntil: 'networkidle',
@@ -546,12 +623,14 @@ try {
     await verifyModularManual(page, viewport)
     await verifyCanonicalEditor(page, viewport)
     await verifyBasicEditor(page, viewport)
+    await verifySelectedGroupPreview(page, viewport, 'skill')
+    await verifySelectedGroupPreview(page, viewport, 'essence')
     if (process.env.AV_MODULAR_READERS_ONLY === '1') {
       assert.deepEqual(errors, [])
       evidence.push({
         viewport,
         status: 'passed',
-        modularReaderContexts: 9,
+        modularReaderContexts: 11,
         scope: 'Production components with fixture data; no hosted gameplay claim.',
       })
       await page.close()

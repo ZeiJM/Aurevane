@@ -85,6 +85,7 @@ export interface CombatContentAuthoringService {
   previewSkillDefinition(input: {
     actorUserId: string
     definition: unknown
+    behaviorId?: string
     seed?: number
     combatContext?: MatureSkillCombatContext
   }): Promise<CombatContentPreviewResult>
@@ -567,7 +568,34 @@ export function createCombatContentAuthoringService({
         )
       }
 
-      return previewCombatContentDefinition(input.definition as MatureSkillDefinition, {
+      const definition = input.definition as MatureSkillDefinition
+      let behaviorId: string | undefined
+      if (Object.hasOwn(definition, 'ability')) {
+        const actions = definition.ability!.behaviors.filter(
+          (behavior) => behavior.activation === 'manual' && behavior.mode === 'action',
+        )
+        const selected =
+          input.behaviorId !== undefined
+            ? actions.find((behavior) => behavior.id === input.behaviorId)
+            : actions.length === 1
+              ? actions[0]
+              : undefined
+        if (!selected)
+          throw new AurevaneError(
+            'INVALID_REQUEST',
+            actions.length === 0
+              ? 'This definition has no Manual action group to simulate.'
+              : 'Choose a supported Manual action group to preview.',
+          )
+        behaviorId = selected.id
+      } else if (input.behaviorId !== undefined) {
+        throw new AurevaneError(
+          'INVALID_REQUEST',
+          'This native definition has no selectable behavior group.',
+        )
+      }
+      return previewCombatContentDefinition(definition, {
+        ...(behaviorId === undefined ? {} : { behaviorId }),
         ...(input.seed === undefined ? {} : { seed: input.seed }),
         ...(input.combatContext === undefined ? {} : { combatContext: input.combatContext }),
       })

@@ -888,6 +888,36 @@ try {
                 `?mode=${mode}&targeting=single&canonical=${keyboardCase}`,
             )
             const key = keyboardCase === 'controlled-basic' ? '3' : '4'
+            const command =
+              keyboardCase === 'controlled-basic'
+                ? page.locator('[data-command-slot="guard"]')
+                : page.getByRole('button', { name: /Targeting Test,/ })
+            await command.waitFor({ state: 'visible' })
+            if (mode === 'pvp' && keyboardCase === 'controlled-price') {
+              // Native keyboard delivery can target a background page. The production guard
+              // must reject it, even though selecting the command itself can update the UI.
+              const before = await page.evaluate(() =>
+                structuredClone(window.fixtureBattle.snapshot.tactical.battle.combatants[0]),
+              )
+              const foreground = await browser.newPage({ viewport })
+              await foreground.goto('about:blank')
+              await foreground.bringToFront()
+              await page.waitForFunction(() => document.hidden || !document.hasFocus())
+              await page.keyboard.press(key)
+              const blocked = await page.evaluate(() => ({
+                version: window.fixtureBattle.battleVersion,
+                actor: window.fixtureBattle.snapshot.tactical.battle.combatants[0],
+                commits: window.calls.filter((call) => /\/(commit|intents)$/.test(call.path)),
+              }))
+              assert.equal(blocked.version, 1)
+              assert.deepEqual(blocked.commits, [])
+              assert.deepEqual(blocked.actor, before, 'background input cannot prime or pay')
+              await foreground.close()
+            }
+            // Unlike a click, page.keyboard.press does not foreground its page. Keep the real
+            // visibility/focus guard and establish its precondition before the deliberate key.
+            await page.bringToFront()
+            await page.waitForFunction(() => !document.hidden && document.hasFocus())
             await page.keyboard.press(key)
             await page.waitForFunction(() => window.fixtureBattle.battleVersion === 2)
             if (keyboardCase === 'controlled-move') {
@@ -947,6 +977,12 @@ try {
       failedPage
         .evaluate(() => ({
           fixtureReady: Boolean(window.fixtureBattle),
+          url: location.href,
+          focused: document.hasFocus(),
+          hidden: document.hidden,
+          activeElement: document.activeElement?.tagName ?? null,
+          battleVersion: window.fixtureBattle?.battleVersion ?? null,
+          calls: window.calls?.filter((call) => /\/(preview|commit|intents)$/.test(call.path)),
           buttons: [...document.querySelectorAll('button')].map(
             (button) => button.getAttribute('aria-label') || button.textContent,
           ),

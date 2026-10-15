@@ -196,3 +196,93 @@ it('keeps an incompatible draft editable and shows named validation instead of a
   expect(html).toContain('Resolve Ability compatibility to show the player preview.')
   expect(html).toContain('aria-label="Move maximum tiles"')
 })
+
+const previewGuard = defaultBasicSkills().find((row) => row.id === 'basic.guard')!.ability
+  .behaviors[0]!
+const previewAbility = parseAbilityDefinition({
+  schemaVersion: 1,
+  behaviors: [
+    { ...previewGuard, id: 'brace' },
+    {
+      ...previewGuard,
+      id: 'recover',
+      classification: 'recovery',
+      effects: [{ id: 'mend', payload: { type: 'healing', recipient: 'actor', amount: 17 } }],
+    },
+    {
+      ...previewGuard,
+      id: 'react',
+      activation: 'automatic',
+      requirements: { kind: 'event', eventType: 'combat_action_used', phase: 'after' },
+      automaticTarget: { subject: 'owner' },
+    },
+  ],
+})
+function renderPreviewEditor(kind: 'Skill' | 'Essence', selectedAbility: typeof previewAbility) {
+  if (kind === 'Skill') {
+    const definition = {
+      ...resolveMatureSkillVersion('vanguard.forceful-strike')!,
+      ability: selectedAbility,
+    }
+    return renderToStaticMarkup(
+      <CombatContentEditor
+        skills={[
+          {
+            id: definition.id,
+            sourceDisciplineId: definition.sourceDisciplineId,
+            label: definition.id,
+            currentVersion: definition.contentVersion,
+            baseVersion: definition.contentVersion,
+            draftVersion: null,
+            derivedTags: [],
+            definition,
+          },
+        ]}
+      />,
+    )
+  }
+  const original = resolveEssenceForBuild('vanguard', null)!
+  const definition = { ...original, skill: { ...original.skill, ability: selectedAbility } }
+  return renderToStaticMarkup(
+    <EssenceContentEditor
+      essences={[
+        {
+          id: definition.essenceId,
+          sourceDisciplineId: definition.sourceDisciplineId,
+          label: definition.name,
+          currentVersion: definition.contentVersion,
+          baseVersion: definition.contentVersion,
+          draftVersion: null,
+          derivedTags: [],
+          definition,
+          history: [],
+        },
+      ]}
+    />,
+  )
+}
+it.each(['Skill', 'Essence'] as const)(
+  'offers each supported Manual action in the actual %s preview selector',
+  (kind) => {
+    const html = renderPreviewEditor(kind, previewAbility)
+    const selector = html.match(
+      /<select[^>]*aria-label="Preview action group"[\s\S]*?<\/select>/,
+    )?.[0]
+    expect(selector).toBeDefined()
+    expect(selector).toContain('<option value="brace" selected="">')
+    expect(selector).toContain('<option value="recover">')
+    expect(selector).not.toContain('value="react"')
+  },
+)
+it.each(['Skill', 'Essence'] as const)(
+  'does not offer a fake Manual battle preview for an Automatic-only %s',
+  (kind) => {
+    const automatic = parseAbilityDefinition({
+      schemaVersion: 1,
+      behaviors: [previewAbility.behaviors[2]!],
+    })
+    const html = renderPreviewEditor(kind, automatic)
+    expect(html).toContain('No Manual action group is available for a battle preview.')
+    expect(html).not.toContain('aria-label="Preview action group"')
+  },
+)

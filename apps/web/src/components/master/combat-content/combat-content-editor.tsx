@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation'
 import { useMemo, useRef, useState } from 'react'
 
 import { AbilityDefinitionEditor } from './ability-definition-editor'
+import { AbilityPreviewSelector, previewActionSelection } from './ability-preview-selector'
 import { validateAbilityDefinition } from '@aurevane/game-core/combat/combat-definition'
 import { SkillDetails } from '../../character/skill-details'
 import styles from './combat-content-editor.module.css'
@@ -134,6 +135,7 @@ export function CombatContentEditor({ skills, initialSkillId }: CombatContentEdi
       }),
     ),
   )
+  const [previewGroups, setPreviewGroups] = useState<Record<string, string>>({})
   const [reviews, setReviews] = useState<Record<string, CombatContentReviewState>>({})
   const [histories, setHistories] = useState<
     Record<string, readonly CombatContentVersionHistoryEntry[]>
@@ -175,6 +177,28 @@ export function CombatContentEditor({ skills, initialSkillId }: CombatContentEdi
   const selectedReview = selectedSkill
     ? (reviews[selectedSkill.id] ?? emptyCombatContentReview())
     : emptyCombatContentReview()
+  const previewSelection = previewActionSelection(
+    selectedDraft,
+    selectedSkill ? previewGroups[selectedSkill.id] : undefined,
+  )
+  function selectPreviewGroup(behaviorId: string) {
+    if (
+      !selectedSkill ||
+      busySkillId === selectedSkill.id ||
+      !previewSelection.groups.some((group) => group.id === behaviorId)
+    )
+      return
+    const id = selectedSkill.id
+    draftRevision.current[id] = (draftRevision.current[id] ?? 0) + 1
+    setPreviewGroups((current) => ({ ...current, [id]: behaviorId }))
+    setReviews((current) => ({
+      ...current,
+      [id]: { ...(current[id] ?? emptyCombatContentReview()), preview: null },
+    }))
+    setErrors((current) => ({ ...current, [id]: null }))
+    setNotices((current) => ({ ...current, [id]: null }))
+    setPublishConfirmationSkillId(null)
+  }
   const selectedHistory = selectedSkill
     ? (histories[selectedSkill.id] ?? fallbackHistory(selectedSkill))
     : []
@@ -294,7 +318,7 @@ export function CombatContentEditor({ skills, initialSkillId }: CombatContentEdi
   }
 
   async function previewSelected() {
-    if (!selectedSkill || !selectedDraft) return
+    if (!selectedSkill || !selectedDraft || !previewSelection.available) return
     const id = selectedSkill.id
     const review = reviews[id] ?? emptyCombatContentReview()
     if (review.validation?.valid !== true || review.diff === null) return
@@ -306,6 +330,9 @@ export function CombatContentEditor({ skills, initialSkillId }: CombatContentEdi
         preview: CombatContentPreviewSummary
       }>({
         operation: 'preview',
+        ...(previewSelection.behaviorId === undefined
+          ? {}
+          : { behaviorId: previewSelection.behaviorId }),
         definition: selectedDraft,
       })
       if ((draftRevision.current[id] ?? 0) !== revision) return
@@ -334,7 +361,10 @@ export function CombatContentEditor({ skills, initialSkillId }: CombatContentEdi
       review.validation?.valid !== true ||
       review.diff === null ||
       review.diff.changedPaths.length === 0 ||
-      review.preview === null
+      !previewSelection.available ||
+      review.preview === null ||
+      review.preview.legal === false ||
+      (previewSelection.canonical && review.preview.behaviorId !== previewSelection.behaviorId)
     ) {
       return
     }
@@ -745,6 +775,12 @@ export function CombatContentEditor({ skills, initialSkillId }: CombatContentEdi
           </section>
         ) : null}
 
+        <AbilityPreviewSelector
+          selection={previewSelection}
+          busy={busy}
+          onChange={selectPreviewGroup}
+        />
+
         <CombatContentReviewPanel
           contentKey={selectedSkill.id}
           baseVersion={selectedCurrentVersion}
@@ -752,6 +788,7 @@ export function CombatContentEditor({ skills, initialSkillId }: CombatContentEdi
           validation={selectedReview.validation}
           diff={selectedReview.diff}
           preview={selectedReview.preview}
+          previewAvailable={previewSelection.available}
           history={selectedHistory}
           busy={busy}
           publishConfirmationOpen={publishConfirmationSkillId === selectedSkill.id}
