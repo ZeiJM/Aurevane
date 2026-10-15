@@ -1,5 +1,8 @@
 import 'server-only'
 
+import type { CapturedCombatAbilitySource } from '@aurevane/game-core/combat/combat-behavior-capture'
+import { PV1F_BASIC_ATTACK_ID } from '@aurevane/game-core/combat/pv1f-skills'
+
 import type { BattleEventRecord } from '@aurevane/db/battle-session'
 import {
   resolveMatureSkillVersion,
@@ -94,9 +97,49 @@ export async function attachRecordedBattleLogSkillContext(
   projected: readonly BattleEventRecord[],
   authority: BattleBuildAuthoritySnapshot | undefined,
   resolver?: ContextResolver,
+  captures: readonly CapturedCombatAbilitySource[] = [],
 ): Promise<BattleLogView> {
-  if (!authority) return view
   const records = new Map(projected.map((record) => [recordKey(record), record]))
+  view = {
+    ...view,
+    entries: view.entries.map((entry) => {
+      const record = records.get(recordKey(entry))
+      const event = record ? eventObject(record) : null
+      if (
+        !entry.actorCombatantId ||
+        !entry.actionId ||
+        !event ||
+        recordedActionId(entry, event) !== entry.actionId
+      )
+        return entry
+      const id = entry.actionId === PV1F_BASIC_ATTACK_ID ? 'unarmed.basic' : entry.actionId
+      const matches = captures.filter(
+        (source) =>
+          source.ownerCombatantId === entry.actorCombatantId &&
+          source.sourceKind === 'basic' &&
+          source.abilityId === id &&
+          source.basic,
+      )
+      // Ambiguous historical captures have no exact per-event version receipt: leave unavailable.
+      if (matches.length !== 1) return entry
+      const basic = matches[0]!.basic!
+      if (!basic.enabled) return entry
+      return {
+        ...entry,
+        actionContext: {
+          family: 'skill' as const,
+          skillId: basic.id,
+          contentId: basic.id,
+          contentVersion: basic.contentVersion,
+          name: basic.name,
+          description: basic.description,
+          flavor: null,
+          battleText: safeFlavor(basic.battleText) ?? '{actor} uses {ability}.',
+        },
+      }
+    }),
+  }
+  if (!authority) return view
   const referencesByEntry = new Map<BattleLogEntry, SkillReference>()
   const uniqueReferences = new Map<string, SkillReference>()
   for (const entry of view.entries) {
@@ -462,12 +505,25 @@ async function attachRecordedSummonSkillContext(
           if (
             !definition?.enabled ||
             definition.id !== source.skillId ||
-            definition.contentVersion !== source.version ||
-            definition.summonProfile?.id !== source.profileId
+            definition.contentVersion !== source.version
           )
             continue
-          identities.set(id, { name: definition.summonProfile.name })
-          for (const ability of definition.summonProfile.abilities)
+          const profiles = Object.hasOwn(definition, 'ability')
+            ? definition.ability!.behaviors.flatMap((behavior) =>
+                behavior.effects.flatMap((effect) =>
+                  effect.payload.type === 'summon' && effect.payload.profile.id === source.profileId
+                    ? [effect.payload.profile]
+                    : [],
+                ),
+              )
+            : definition.summonProfile?.id === source.profileId
+              ? [definition.summonProfile]
+              : []
+          // A canonical definition cannot borrow a native adapter's stale summon profile.
+          if (profiles.length !== 1) continue
+          const profile = profiles[0]!
+          identities.set(id, { name: profile.name })
+          for (const ability of profile.abilities)
             contexts.set(`${id}:${ability.id}`, {
               family: 'skill',
               skillId: ability.id,
@@ -477,7 +533,7 @@ async function attachRecordedSummonSkillContext(
               description: ability.description,
               flavor: null,
               battleText: safeFlavor(ability.battleText) ?? defaultSkillBattleText(ability),
-              narrator: { actor: { name: definition.summonProfile.name } },
+              narrator: { actor: { name: profile.name } },
             })
         } catch {
           /* Optional pinned prose must not block recorded outcomes. */

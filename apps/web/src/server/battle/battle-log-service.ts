@@ -1296,6 +1296,7 @@ export function createViewerSafeBattleLogService(
         projected,
         authority.buildAuthority,
         resolver,
+        authority.capturedAbilitySources,
       )
     },
   }
