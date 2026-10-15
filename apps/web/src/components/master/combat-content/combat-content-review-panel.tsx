@@ -1,5 +1,6 @@
 'use client'
 
+import type { ReactNode } from 'react'
 import styles from './combat-content-editor.module.css'
 import {
   canPublishCombatContent,
@@ -18,6 +19,7 @@ export interface CombatContentReviewPanelProps {
   readonly preview: CombatContentPreviewSummary | null
   readonly previewRequired?: boolean
   readonly previewAvailable?: boolean
+  readonly previewSelectionControl?: ReactNode
   readonly history: readonly CombatContentVersionHistoryEntry[]
   readonly busy: boolean
   readonly publishConfirmationOpen: boolean
@@ -48,6 +50,7 @@ export function CombatContentReviewPanel({
   preview,
   previewRequired = true,
   previewAvailable = true,
+  previewSelectionControl,
   history,
   busy,
   publishConfirmationOpen,
@@ -143,6 +146,8 @@ export function CombatContentReviewPanel({
             <span>{validation?.valid ? '✓' : validation === null ? '○' : '!'}</span>
           </div>
         </div>
+
+        {previewSelectionControl}
 
         <div className={styles.reviewActions}>
           <button type="button" disabled={busy} onClick={onValidate}>

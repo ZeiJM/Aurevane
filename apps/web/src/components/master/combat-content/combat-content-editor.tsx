@@ -775,12 +775,6 @@ export function CombatContentEditor({ skills, initialSkillId }: CombatContentEdi
           </section>
         ) : null}
 
-        <AbilityPreviewSelector
-          selection={previewSelection}
-          busy={busy}
-          onChange={selectPreviewGroup}
-        />
-
         <CombatContentReviewPanel
           contentKey={selectedSkill.id}
           baseVersion={selectedCurrentVersion}
@@ -789,6 +783,13 @@ export function CombatContentEditor({ skills, initialSkillId }: CombatContentEdi
           diff={selectedReview.diff}
           preview={selectedReview.preview}
           previewAvailable={previewSelection.available}
+          previewSelectionControl={
+            <AbilityPreviewSelector
+              selection={previewSelection}
+              busy={busy}
+              onChange={selectPreviewGroup}
+            />
+          }
           history={selectedHistory}
           busy={busy}
           publishConfirmationOpen={publishConfirmationSkillId === selectedSkill.id}

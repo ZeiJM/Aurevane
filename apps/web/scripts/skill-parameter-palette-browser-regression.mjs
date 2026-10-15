@@ -470,6 +470,11 @@ async function verifySelectedGroupPreview(page, viewport, kind) {
   const publish = page.getByRole('button', { name: 'Publish', exact: true })
   const runPreview = () => gesture(page.getByRole('button', { name: 'Preview', exact: true }))
   assert.equal(await selector.inputValue(), 'brace')
+  const selectorBounds = await selector.boundingBox()
+  assert.ok(
+    selectorBounds && selectorBounds.width >= 200,
+    'The actual preview group selector needs readable space',
+  )
   await gesture(page.getByRole('button', { name: 'Validate', exact: true }))
   await page.waitForFunction(() =>
     [...document.querySelectorAll('button')].some(

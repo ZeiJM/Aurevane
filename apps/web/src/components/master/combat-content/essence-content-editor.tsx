@@ -604,12 +604,6 @@ export function EssenceContentEditor({ essences, initialEssenceId }: EssenceCont
           </section>
         ) : null}
 
-        <AbilityPreviewSelector
-          selection={previewSelection}
-          busy={busy}
-          onChange={selectPreviewGroup}
-        />
-
         <CombatContentReviewPanel
           contentKey={selected.id}
           baseVersion={selectedCurrentVersion}
@@ -618,6 +612,13 @@ export function EssenceContentEditor({ essences, initialEssenceId }: EssenceCont
           diff={selectedReview.diff}
           preview={selectedReview.preview}
           previewAvailable={previewSelection.available}
+          previewSelectionControl={
+            <AbilityPreviewSelector
+              selection={previewSelection}
+              busy={busy}
+              onChange={selectPreviewGroup}
+            />
+          }
           history={selectedHistory}
           busy={busy}
           publishConfirmationOpen={publishConfirmationId === selected.id}

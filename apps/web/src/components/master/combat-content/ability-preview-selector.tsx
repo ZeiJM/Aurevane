@@ -6,6 +6,7 @@ import {
   type AbilityDefinition,
 } from '@aurevane/game-core/combat/combat-definition'
 import styles from './combat-content-editor.module.css'
+import previewStyles from './ability-preview-selector.module.css'
 
 interface PreviewActionSelection {
   readonly available: boolean
@@ -54,7 +55,7 @@ export function AbilityPreviewSelector({
 }) {
   if (!selection.canonical) return null
   return (
-    <section className={styles.tags} aria-label="Battle preview selection">
+    <div className={previewStyles.selection} aria-label="Battle preview selection">
       {selection.available ? (
         <label className={styles.field}>
           <span>Preview action group</span>
@@ -74,6 +75,6 @@ export function AbilityPreviewSelector({
       ) : (
         <p role="status">{selection.message}</p>
       )}
-    </section>
+    </div>
   )
 }
