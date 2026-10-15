@@ -44,8 +44,8 @@ it('shows configured Instant tags across current Skill, Support and Resonance re
       <ResonanceParameters definition={resonance} />
     </SkillEffectTimingProvider>,
   )
-  expect(markup).toContain('Rooted [1 Turn] [Instant]')
-  expect(timingMarks(markup)).toHaveLength(2) // Snare and HP Recovery; MP recovery is configured delayed.
+  expect(markup.replace(/<[^>]*>/g, '')).toContain('Rooted [1 Turn] [Instant]')
+  expect(timingMarks(markup)).toHaveLength(3) // Both Snare readers and HP Recovery; MP recovery remains next-round.
   expect(JSON.stringify({ definition, resonance })).toBe(before)
 })
 
@@ -189,8 +189,8 @@ it('shows default Instant only on elemental tags that overlap typed damage acros
       />
     </SkillEffectTimingProvider>,
   )
-  expect(markup).toContain('Drenched [35%] [2 Turns] [Instant]')
-  expect(timingMarks(markup)).toHaveLength(1) // Battle’s overlapping tag; its actor tag remains Normal.
+  expect(markup.replace(/<[^>]*>/g, '')).toContain('Drenched [35%] [2 Turns] [Instant]')
+  expect(timingMarks(markup)).toHaveLength(2) // Both readers mark only the overlapping tag; their actor tags remain Normal.
   expect(markup).toContain('2 affected turns starting when damage settles (Instant)')
   expect(markup).toContain('2 full rounds starting next round after the effect activates')
 })

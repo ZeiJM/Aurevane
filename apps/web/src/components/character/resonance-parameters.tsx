@@ -7,7 +7,7 @@ import type { AnyResonanceDefinition } from '@aurevane/game-core/combat/resonanc
 import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
 import { normalizedResonanceMechanics } from '@aurevane/game-core/combat/resonance-v2'
 import { previewEffect } from './skill-effect-preview'
-import { CompactSkillEffectSummary } from './compact-skill-effect-summary'
+import { CompactSkillEffectSummary, EffectTagLabel } from './compact-skill-effect-summary'
 import {
   resonanceCharacteristicRows,
   resonanceResultRecipient,
@@ -72,8 +72,12 @@ export function ResonanceParameters({
         <ul aria-label="Effect explanations">
           {explanations.map((explanation, index) => (
             <li key={index}>
-              <strong>{previewEffect(groupSkillEffects(effects)[index]!.effect).label}</strong> —{' '}
-              {explanation}
+              <strong>
+                <EffectTagLabel
+                  label={previewEffect(groupSkillEffects(effects)[index]!.effect).label}
+                />
+              </strong>{' '}
+              — {explanation}
             </li>
           ))}
         </ul>

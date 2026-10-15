@@ -34,7 +34,9 @@ describe('cockpit Skill Parameters', () => {
         />
       </SkillEffectTimingProvider>,
     )
-    const effects = markup.match(/<ul aria-label="Effect explanations">([\s\S]*?)<\/ul>/)?.[1]
+    const effects = markup
+      .match(/<ul aria-label="Effect explanations">([\s\S]*?)<\/ul>/)?.[1]
+      ?.replace(/<span[^>]*data-effect-tag-label="true">([^<]*)<\/span>/g, '$1')
     expect(effects).toContain('<strong>Frozen Ground</strong>')
     expect(effects).toContain('<strong>Slow</strong>')
     expect(effects).toContain('<strong>Chilled</strong>')
@@ -129,7 +131,7 @@ describe('cockpit Skill Parameters', () => {
       definition.effects.length,
     )
     for (const effect of skillPreviewEffects(definition)) {
-      expect(markup).toContain(`<strong>${effect.label}</strong>`)
+      expect(markup).toContain(`data-effect-tag-label="true">${effect.label}</span></strong>`)
       expect(markup).toContain(effect.explanation)
     }
     expect(markup).not.toContain('Do not replace pinned Nexus effects')

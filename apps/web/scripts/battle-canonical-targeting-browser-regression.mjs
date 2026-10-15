@@ -767,6 +767,34 @@ try {
               const dialog = page.getByRole('dialog')
               await dialog.waitFor({ state: 'visible' })
               assert.match(await dialog.innerText(), /11 AP \/ 2 MP \/ 1 HP/)
+              const tagColors = await dialog.evaluate((element) => ({
+                magnitude: getComputedStyle(
+                  element.querySelector('[data-compact-effect-magnitude]'),
+                ).color,
+                labels: [
+                  ...element.querySelectorAll(
+                    '[data-compact-effect-label], [data-effect-tag-label]',
+                  ),
+                ].map((label) => getComputedStyle(label).color),
+                expanded: element.querySelectorAll('[data-effect-tag-label]').length,
+              }))
+              assert.ok(tagColors.expanded > 0, 'expanded effect names use the shared label reader')
+              assert.equal(
+                tagColors.magnitude,
+                'rgb(121, 85, 28)',
+                'paper magnitude retains its readable orange',
+              )
+              assert.ok(tagColors.labels.length > 1)
+              for (const color of tagColors.labels)
+                assert.equal(
+                  color,
+                  tagColors.magnitude,
+                  'compact and expanded tag names match their value color',
+                )
+              await page.screenshot({
+                path: resolve(output, `${mode}-${viewport.width}-effect-tag-reader.png`),
+                fullPage: true,
+              })
               await page.keyboard.press('Escape')
               await dialog.waitFor({ state: 'hidden' })
             }

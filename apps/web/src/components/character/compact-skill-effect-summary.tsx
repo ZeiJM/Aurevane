@@ -12,6 +12,15 @@ import {
 } from './skill-detail-presentation'
 import styles from './compact-skill-effect-summary.module.css'
 
+/** Effect names share their magnitude color in compact and expanded readers. */
+export function EffectTagLabel({ label }: { label: string }) {
+  return (
+    <span className={styles.label} data-effect-tag-label="true">
+      {label}
+    </span>
+  )
+}
+
 export function CompactSkillEffectSummary({
   effect,
   count = 1,

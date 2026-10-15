@@ -145,6 +145,7 @@
   overscroll-behavior-y: auto !important;
 }
 
+.panel [data-effect-tag-label],
 .panel [data-compact-effect-label],
 .panel [data-compact-effect-magnitude],
 .panel [data-compact-effect-duration] {

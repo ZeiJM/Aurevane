@@ -9,7 +9,10 @@ import {
   useSkillEffectTimingPolicy,
   useSkillDotTriggerPolicyVersion,
 } from '../character/skill-effect-timing-context'
-import { CompactSkillEffectSummary } from '../character/compact-skill-effect-summary'
+import {
+  CompactSkillEffectSummary,
+  EffectTagLabel,
+} from '../character/compact-skill-effect-summary'
 import { battleSkillParameterRows } from './battle-preview-content'
 import { skillPreviewEffects } from '../character/skill-effect-preview'
 import { SkillGroundAreaDetails } from '../character/skill-ground-area-details'
@@ -86,7 +89,10 @@ export function BattleSkillParameters({
             timingPolicy,
           }).map((effect, index) => (
             <li key={index}>
-              <strong>{effect.label}</strong> — {effect.explanation}
+              <strong>
+                <EffectTagLabel label={effect.label} />
+              </strong>{' '}
+              — {effect.explanation}
             </li>
           ))}
         </ul>

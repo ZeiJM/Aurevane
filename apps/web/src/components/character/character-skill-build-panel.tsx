@@ -3,7 +3,7 @@
 import { groupSkillEffects } from './skill-effect-groups'
 
 import { useSkillEffectTimingPolicy } from './skill-effect-timing-context'
-import { CompactSkillEffectSummary } from './compact-skill-effect-summary'
+import { CompactSkillEffectSummary, EffectTagLabel } from './compact-skill-effect-summary'
 import { skillPreviewEffects } from './skill-effect-preview'
 import { SkillGroundAreaDetails } from './skill-ground-area-details'
 
@@ -758,7 +758,10 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                           >
                             {skillPreviewEffects(focusedSkill.definition).map((effect) => (
                               <li key={JSON.stringify(effect)}>
-                                <strong>{effect.label}</strong> — {effect.explanation}
+                                <strong>
+                                  <EffectTagLabel label={effect.label} />
+                                </strong>{' '}
+                                — {effect.explanation}
                               </li>
                             ))}
                           </ul>
