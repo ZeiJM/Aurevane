@@ -60,7 +60,7 @@ export interface CombatTagDefinition {
     readonly activation: AbilityActivation
     readonly mode: AbilityMode
   }[]
-  readonly timing: readonly ('instant' | 'next-round' | 'delayed')[]
+  readonly timing: readonly ('instant' | 'next-round' | 'delayed' | 'controlled')[]
   readonly stacking: 'native-policy' | 'source-owned'
   /** Existing kernel authority, not a callable plugin name supplied by content. */
   readonly handler: 'combat-action' | 'damage-modifiers' | 'combat-summons' | 'combat-movement'
@@ -101,7 +101,7 @@ function tag(
       { activation: 'manual', mode: 'action' },
       { activation: 'automatic', mode: 'action' },
     ] as const),
-    timing: Object.freeze(['instant', 'next-round', 'delayed'] as const),
+    timing: Object.freeze(['instant', 'next-round', 'delayed', 'controlled'] as const),
     stacking: 'native-policy',
     handler: 'combat-action',
     runtimeCapability: 'canonical-routing-required',

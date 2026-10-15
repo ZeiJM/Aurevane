@@ -283,7 +283,7 @@ export interface CompactSkillEffectSummaryParts {
   label: string
   magnitude: string | null
   duration: string | null
-  timing?: 'Instant' | 'Delayed'
+  timing?: 'Instant' | 'Delayed' | 'Controlled'
 }
 
 export function skillEffectInstantTiming(

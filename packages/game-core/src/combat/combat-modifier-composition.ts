@@ -207,6 +207,7 @@ export function composeCombatModifiers(
         contentId: source.abilityId,
         contentVersion: source.contentVersion,
       })
+      if (effect.timing === 'controlled') throw new TypeError('controlled-modifier-unsupported')
       timings.push(effect.timing)
       timingTags.push(undefined)
       eligibility.push(recipientIds)

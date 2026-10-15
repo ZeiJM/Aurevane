@@ -1,4 +1,5 @@
 import type { CombatEncounterState, CombatEncounterIssue } from './actions-legacy'
+import { validateCombatControlledAbilities } from './combat-controlled'
 import {
   captureCombatAbilitySource,
   type CapturedCombatAbilitySource,
@@ -46,12 +47,14 @@ export function validateCombatAbilityState(
           'maintained',
           'nextCommandSequence',
           'conditionTruth',
+          'controlled',
         ].includes(key),
     )
   ) {
     issue('abilityRuntime', 'Invalid private Ability runtime schema.')
     return issues
   }
+  issues.push(...validateCombatControlledAbilities(state, validCaptures))
   if (
     !Array.isArray(runtime.activeSourceIds) ||
     new Set(runtime.activeSourceIds).size !== runtime.activeSourceIds.length ||

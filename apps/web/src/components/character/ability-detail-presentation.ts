@@ -122,11 +122,13 @@ function effectPresentation(
     parts = {
       ...parts,
       timing:
-        mode === 'delayed'
-          ? 'Delayed'
-          : mode === 'instant' && native.type !== 'damage'
-            ? 'Instant'
-            : undefined,
+        mode === 'controlled'
+          ? 'Controlled'
+          : mode === 'delayed'
+            ? 'Delayed'
+            : mode === 'instant' && native.type !== 'damage'
+              ? 'Instant'
+              : undefined,
     }
     description = skillEffectDescription(native, { timingPolicy, explicitElemental: true })
     if (payload.type === 'pierce') {
@@ -157,6 +159,9 @@ function effectPresentation(
           : ' Rounds the resource amount down.'
     if (mode === 'next-round') description += ' Activates at the next global round boundary.'
     if (mode === 'delayed') description += ' Activates two global round boundaries later.'
+    if (mode === 'controlled')
+      description +=
+        ' Controlled primes the whole selected action for free, once per character and ability per battle. Choose a legal release to pay the full action cost and start its cooldown. Invalid releases retain the prime; cancellation discards it without renewing that allowance.'
   }
   const condition = effect.requirements ? abilityRequirementDescription(effect.requirements) : null
   return {

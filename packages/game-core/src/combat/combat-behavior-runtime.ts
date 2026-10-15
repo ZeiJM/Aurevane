@@ -39,6 +39,12 @@ import {
 import { createCombatActionProvenance, createCombatTriggerGuard } from './combat-kernel-types'
 
 import type { GridPosition } from './board'
+import {
+  reconcileCombatControlledAbilities,
+  updateCombatControlledAbility,
+  type CombatControlledAbilityState,
+  type CombatControlledAbilityInput,
+} from './combat-controlled'
 
 interface CombatAbilityUsage {
   readonly key: string
@@ -62,6 +68,7 @@ export interface CombatAbilityRuntimeState {
   readonly usage: readonly CombatAbilityUsage[]
   readonly maintained: readonly CombatMaintainedAbilityContribution[]
   readonly nextCommandSequence?: number
+  readonly controlled?: CombatControlledAbilityState
   readonly conditionTruth?: readonly {
     readonly sourceInstanceId: string
     readonly behaviorId: string
@@ -158,7 +165,9 @@ export function materializeCombatAbilityAction(
     effects: nativeEffects.map((effect) =>
       canonicalCombatEffectRecipients(nativeCombatTagPayload(effect.payload), target),
     ),
-    effectTimingModes: nativeEffects.map((effect) => effect.timing),
+    effectTimingModes: nativeEffects.map((effect) =>
+      effect.timing === 'controlled' ? 'instant' : effect.timing,
+    ),
     effectOrigins: nativeEffects.map((effect) => ({
       sourceInstanceId: source.sourceInstanceId,
       behaviorId: behavior.id,
@@ -196,7 +205,13 @@ export function combatAbilitySubject(
         ...(currentBurnInstance(state, unit.id) ? ['burn'] : []),
       ]),
     ],
-    primeAbilityIds: [],
+    primeAbilityIds: [
+      ...new Set(
+        state.abilityRuntime?.controlled?.primes
+          .filter((prime) => prime.ownerCombatantId === id)
+          .map((prime) => prime.abilityId) ?? [],
+      ),
+    ],
   }
 }
 
@@ -338,6 +353,9 @@ export function reconcileCombatAbilitySources(
     if (previous && !sameCapturedCombatAbilitySource(previous, source))
       throw new TypeError('captured-source-cannot-change-in-place')
   }
+  const controlled = reconcileCombatControlledAbilities(state, captured)
+  if (controlled && state.abilityRuntime)
+    state = { ...state, abilityRuntime: { ...state.abilityRuntime, controlled } }
   const maintained: CombatMaintainedAbilityContribution[] = []
   for (const source of captured) {
     const owner = state.tactical.battle.combatants.find((row) => row.id === source.ownerCombatantId)
@@ -408,6 +426,35 @@ export function reconcileCombatAbilitySources(
         ? {}
         : { nextCommandSequence: state.abilityRuntime.nextCommandSequence }),
     },
+  }
+}
+
+/** Free state commands deliberately do not dispatch paid action-use hooks. */
+export function primeCombatControlledAbility(
+  input: CombatControlledAbilityInput,
+): CombatResolutionTransition {
+  return updateControlledAbility(input, 'prime')
+}
+
+export function cancelCombatControlledAbility(
+  input: CombatControlledAbilityInput,
+): CombatResolutionTransition {
+  return updateControlledAbility(input, 'cancel')
+}
+
+function updateControlledAbility(
+  input: CombatControlledAbilityInput,
+  operation: 'prime' | 'cancel',
+): CombatResolutionTransition {
+  const state = updateCombatControlledAbility(input, operation)
+  return {
+    state: reconcileCombatAbilitySources(
+      state,
+      (state.capturedAbilitySources ?? []).filter((source) =>
+        state.abilityRuntime!.activeSourceIds.includes(source.sourceInstanceId),
+      ),
+    ),
+    events: [],
   }
 }
 

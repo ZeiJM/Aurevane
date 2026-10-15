@@ -3,6 +3,11 @@ import {
   bindBasicSkillAction,
   isFreeOffensiveBasicMove,
 } from './combat-basic-actions'
+import {
+  combatControlledPrime,
+  isControlledCombatAbility,
+  consumeCombatControlledPrime,
+} from './combat-controlled'
 import { prepareCombatMove, type PreparedCombatMove } from './combat-move-effect'
 import type { GridPosition } from './board'
 import { executePreparedCombatWalking } from './combat-walking'
@@ -452,6 +457,17 @@ export function prepareCombatAbilityCommand(
     context.executionAuthority,
   )
   const issues = [
+    ...(participant.source &&
+    participant.behavior &&
+    isControlledCombatAbility(participant.behavior) &&
+    !combatControlledPrime(input.state, participant.source, participant.behavior)
+      ? [
+          {
+            code: 'requirement-not-met' as const,
+            message: 'The selected whole Controlled action must be primed before release.',
+          },
+        ]
+      : []),
     ...(movement?.issues ?? []),
     ...(!moveEffect && input.movementPath !== undefined
       ? [
@@ -595,7 +611,21 @@ export function commitCombatAbilityCommand(
       `${prepared.evaluation.issues[0]?.code}: ${prepared.evaluation.issues[0]?.message}`,
     )
   const paymentEvents: CombatResolutionEvent[] = []
-  let paid = prepareCombatTurnTriggers(input.state)
+  const rootParticipant = prepared.participants[0]!
+  const released =
+    rootParticipant.source && rootParticipant.behavior
+      ? consumeCombatControlledPrime(input.state, rootParticipant.source, rootParticipant.behavior)
+      : input.state
+  let paid = prepareCombatTurnTriggers(
+    released === input.state
+      ? input.state
+      : reconcileCombatAbilitySources(
+          released,
+          (released.capturedAbilitySources ?? []).filter((source) =>
+            released.abilityRuntime!.activeSourceIds.includes(source.sourceInstanceId),
+          ),
+        ),
+  )
   paid = {
     ...paid,
     tactical: {
@@ -1024,7 +1054,14 @@ export function commitCombatAbilityCommand(
       : { state: out.state, events: [] }
   return {
     ...out,
-    state: terminal.state,
+    state: terminal.state.abilityRuntime?.controlled
+      ? reconcileCombatAbilitySources(
+          terminal.state,
+          (terminal.state.capturedAbilitySources ?? []).filter((source) =>
+            terminal.state.abilityRuntime!.activeSourceIds.includes(source.sourceInstanceId),
+          ),
+        )
+      : terminal.state,
     modifierSuppressions: prepared.modifierSuppressions,
     events: [
       ...paymentEvents.map((event) => ({

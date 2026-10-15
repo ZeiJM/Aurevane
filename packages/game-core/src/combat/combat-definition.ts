@@ -52,7 +52,7 @@ export interface AbilityEffect {
   /** Recipient belongs solely to this implemented payload, never to this wrapper. */
   readonly payload: CombatTagPayload
   readonly requirements?: RequirementNode | null
-  readonly timing?: 'instant' | 'next-round' | 'delayed'
+  readonly timing?: 'instant' | 'next-round' | 'delayed' | 'controlled'
 }
 export interface AbilityBehavior {
   readonly id: string
@@ -468,6 +468,15 @@ export function validateAbilityDefinition(value: unknown): readonly AbilityDefin
           'This Tag does not support that timing.',
         )
       if (
+        effect.timing === 'controlled' &&
+        (candidate.activation !== 'manual' || candidate.mode !== 'action')
+      )
+        issue(
+          `${effectPath}.timing`,
+          'unsupported-combination',
+          'Controlled requires a player-released whole Manual action.',
+        )
+      if (
         candidate.activation === 'ongoing' &&
         effect.requirements !== undefined &&
         effect.requirements !== null
@@ -479,6 +488,17 @@ export function validateAbilityDefinition(value: unknown): readonly AbilityDefin
         )
       payloads.push(payload)
     }
+    if (
+      candidate.effects.some((effect) => record(effect) && effect.timing === 'controlled') &&
+      payloads.some(
+        (payload) => payload.type === 'return-to-turn-start' || payload.type === 'summon',
+      )
+    )
+      issue(
+        path,
+        'unsupported-combination',
+        'Controlled Rewind and Summon require their dedicated release authority.',
+      )
     if (
       candidate.accuracy !== undefined &&
       !payloads.some(
