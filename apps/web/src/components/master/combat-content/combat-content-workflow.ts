@@ -17,6 +17,10 @@ export interface CombatContentSemanticDiff {
 
 export interface CombatContentPreviewSummary {
   readonly behaviorId?: string
+  readonly simulation?: {
+    readonly preparation?: 'free-controlled-prime'
+    readonly [key: string]: unknown
+  }
   readonly groundAreas?: readonly PublicCombatGroundArea[]
   readonly legal?: boolean
   readonly costs?: {

@@ -203,7 +203,7 @@ it('keeps Manual preview and publication unavailable even if an older successful
   }
 })
 
-it('shows the actual HP price and projected entered tiles without inventing a walking surcharge', () => {
+it('identifies the free Controlled fixture setup alongside the actual release price and path', () => {
   const markup = renderToStaticMarkup(
     createElement(CombatContentReviewPanel, {
       contentKey: 'basic.move',
@@ -214,6 +214,7 @@ it('shows the actual HP price and projected entered tiles without inventing a wa
       preview: {
         legal: true,
         behaviorId: 'use',
+        simulation: { preparation: 'free-controlled-prime' },
         costs: { actionEconomy: 11, mp: 2, hp: 1 },
         movement: {
           path: [
@@ -240,4 +241,6 @@ it('shows the actual HP price and projected entered tiles without inventing a wa
   expect(markup).toContain('1 HP')
   expect(markup).toContain('1 tile')
   expect(markup).toContain('11 AP')
+  expect(markup).toContain('Free Controlled prime')
+  expect(markup).toContain('Costs and outcomes below describe its release.')
 })

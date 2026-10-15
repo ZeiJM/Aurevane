@@ -302,6 +302,9 @@ if (query.get('surface') === 'selected-preview') {
       preview: {
         behaviorId: group.id,
         legal: true,
+        ...(group.effects.some((effect) => effect.timing === 'controlled')
+          ? { simulation: { preparation: 'free-controlled-prime' } }
+          : {}),
         costs: {
           actionEconomy: group.costs.find((row) => row.resource === 'ap')?.amount ?? 0,
           mp: group.costs.find((row) => row.resource === 'mp')?.amount ?? 0,

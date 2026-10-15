@@ -222,6 +222,12 @@ export function CombatContentReviewPanel({
             <h3>Deterministic preview</h3>
             <span>{preview.legal === false ? 'Illegal' : 'Legal'}</span>
           </div>
+          {preview.simulation?.preparation === 'free-controlled-prime' ? (
+            <p>
+              Free Controlled prime prepared in this fixture. Costs and outcomes below describe its
+              release.
+            </p>
+          ) : null}
           <dl className={styles.previewFacts}>
             {preview.behaviorId ? (
               <div>

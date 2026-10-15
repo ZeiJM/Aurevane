@@ -12,6 +12,10 @@ import type { AbilityBehavior } from '@aurevane/game-core/combat/combat-definiti
 import {
   combatAbilityCommandContext,
   combatAbilityBehavior,
+  primeCombatControlledAbility,
+  reconcileCombatAbilitySources,
+  combatControlledAbilityAvailability,
+  isControlledCombatAbility,
 } from '@aurevane/game-core/combat/combat-behavior-runtime'
 import { omitCombatExecutionMetadata } from '../battle/battle-live-viewer-projection'
 import { createCombatGroundArea } from '@aurevane/game-core/combat/combat-ground-areas'
@@ -40,6 +44,7 @@ import {
 } from '@aurevane/game-core/combat/pv1f-action-economy'
 import {
   createDuelBalancedCombatEncounterState,
+  reattachStatDrivenCombatBridge,
   type StatDrivenCombatEncounterState,
   type StatDrivenCombatProfileV4,
 } from '@aurevane/game-core/combat/stat-driven-combat'
@@ -359,7 +364,33 @@ function evaluateCanonicalPreview(
   selection: CombatTargetSelection,
   movementPath?: readonly GridPosition[],
 ) {
-  const prepared = preparePv1fTurnEconomy(state)
+  let prepared = preparePv1fTurnEconomy(state)
+  let preparation: 'free-controlled-prime' | undefined
+  if (isControlledCombatAbility(behavior)) {
+    const sources = [
+      ...(prepared.capturedAbilitySources ?? []).filter(
+        (row) => row.sourceInstanceId !== source.sourceInstanceId,
+      ),
+      source,
+    ]
+    prepared = reattachStatDrivenCombatBridge(
+      reconcileCombatAbilitySources(prepared, sources),
+      prepared.statBridge,
+    )
+    const input = {
+      state: prepared,
+      actorId: ACTOR_ID,
+      sourceInstanceId: source.sourceInstanceId,
+      behaviorId: behavior.id,
+    }
+    if (combatControlledAbilityAvailability(input)?.canPrime) {
+      prepared = reattachStatDrivenCombatBridge(
+        primeCombatControlledAbility(input).state,
+        prepared.statBridge,
+      )
+      preparation = 'free-controlled-prime'
+    }
+  }
   const quote = prepareCombatAbilityCommand({
     state: prepared,
     actorId: ACTOR_ID,
@@ -372,6 +403,7 @@ function evaluateCanonicalPreview(
   return {
     ...quote,
     prepared,
+    preparation,
     cost: quote.costs.find((row) => row.resource === 'ap')?.amount ?? 0,
     repeatPenaltyApplied: false,
   }
@@ -457,6 +489,7 @@ export function previewCombatContentDefinition(
       actorCombatantId: ACTOR_ID,
       primaryCombatantId: evaluated.evaluation.primaryCombatantId,
       rngConsumed: false as const,
+      ...(canonical?.preparation ? { preparation: canonical.preparation } : {}),
     },
     groundAreas:
       evaluated.evaluation.legal && evaluated.action.groundArea
@@ -661,6 +694,7 @@ export function previewBasicCombatContentDefinition(
       actorCombatantId: ACTOR_ID,
       primaryCombatantId: evaluated.evaluation.primaryCombatantId,
       rngConsumed: false as const,
+      ...(evaluated.preparation ? { preparation: evaluated.preparation } : {}),
     },
     groundAreas:
       evaluated.evaluation.legal && evaluated.action.groundArea

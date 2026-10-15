@@ -1437,6 +1437,134 @@ describe('authoring preview selects the requested Manual group', () => {
   )
 })
 
+describe('Controlled authoring previews prepare an isolated free prime', () => {
+  const guard = defaultBasicSkills().find((row) => row.id === 'basic.guard')!
+  const ordinary = guard.ability.behaviors[0]!
+  const release = {
+    ...ordinary,
+    id: 'release',
+    costs: [
+      { resource: 'ap' as const, amount: 11 },
+      { resource: 'mp' as const, amount: 2 },
+      { resource: 'hp' as const, amount: 1 },
+    ],
+    effects: [
+      {
+        id: 'mend',
+        timing: 'controlled' as const,
+        payload: { type: 'healing' as const, recipient: 'actor' as const, amount: 17 },
+      },
+    ],
+  }
+  const ability = parseAbilityDefinition({ schemaVersion: 1, behaviors: [ordinary, release] })
+  const fixture = () => {
+    const value = serviceFixture()
+    value.store.operators.set(OWNER, 'owner')
+    return value
+  }
+  it.each([
+    ['Basic', guard],
+    ['Skill', staticSkill()],
+    ['Essence action', staticEssence().skill],
+  ] as const)(
+    'quotes the selected %s release once without performing its prime effects',
+    async (_kind, base) => {
+      const { service, store } = fixture()
+      const definition = { ...base, ability }
+      const before = JSON.stringify(definition)
+      for (const combatContext of ['pve', 'pvp'] as const) {
+        const request = { actorUserId: OWNER, definition, behaviorId: 'release', combatContext }
+        const preview = await service.previewSkillDefinition(request)
+        expect(preview).toMatchObject({
+          actionId: base.id,
+          contentVersion: base.contentVersion,
+          behaviorId: 'release',
+          legal: true,
+          simulation: { preparation: 'free-controlled-prime', rngConsumed: false },
+          costs: {
+            actionEconomy: 11,
+            mp: 2,
+            hp: 1,
+            actionEconomyBefore: 100,
+            actionEconomyAfter: 89,
+          },
+        })
+        expect(preview.projections.effects).toContainEqual(
+          expect.objectContaining({ effectType: 'healing', before: 59, after: 76 }),
+        )
+        expect(await service.previewSkillDefinition(request)).toEqual(preview)
+      }
+      expect(JSON.stringify(definition)).toBe(before)
+      expect(await store.findDraft(base.id)).toBeNull()
+      expect(await store.findPublished(base.id)).toBeNull()
+      const instant = await service.previewSkillDefinition({
+        actorUserId: OWNER,
+        definition,
+        behaviorId: ordinary.id,
+      })
+      expect(instant.legal).toBe(true)
+      expect(instant.simulation).not.toHaveProperty('preparation')
+    },
+  )
+  it('does not manufacture eligibility for a disabled Controlled Basic', async () => {
+    const { service } = fixture()
+    const preview = await service.previewSkillDefinition({
+      actorUserId: OWNER,
+      definition: { ...guard, enabled: false, ability },
+      behaviorId: 'release',
+    })
+    expect(preview.legal).toBe(false)
+    expect(preview.simulation).not.toHaveProperty('preparation')
+  })
+  it('retains actual unmet release Requirements after preparing a free prime', async () => {
+    const { service } = fixture()
+    const preview = await service.previewSkillDefinition({
+      actorUserId: OWNER,
+      definition: {
+        ...staticSkill(),
+        ability: parseAbilityDefinition({
+          schemaVersion: 1,
+          behaviors: [
+            {
+              ...release,
+              requirements: {
+                kind: 'resource-state',
+                subject: 'owner',
+                resource: 'hp',
+                comparison: 'at-most',
+                amount: 10,
+              },
+            },
+          ],
+        }),
+      },
+    })
+    expect(preview).toMatchObject({
+      legal: false,
+      simulation: { preparation: 'free-controlled-prime' },
+    })
+    expect(preview.issues).toContainEqual(expect.objectContaining({ code: 'requirement-not-met' }))
+  })
+  it('does not turn a free prime into an affordable release', async () => {
+    const { service } = fixture()
+    const preview = await service.previewSkillDefinition({
+      actorUserId: OWNER,
+      definition: {
+        ...staticSkill(),
+        ability: parseAbilityDefinition({
+          schemaVersion: 1,
+          behaviors: [{ ...release, costs: [{ resource: 'mp', amount: 31 }] }],
+        }),
+      },
+    })
+    expect(preview).toMatchObject({
+      legal: false,
+      simulation: { preparation: 'free-controlled-prime' },
+      costs: { mp: 31 },
+    })
+  })
+})
+
 describe('real Basic and auxiliary authoring simulation', () => {
   function fixture() {
     const result = serviceFixture()

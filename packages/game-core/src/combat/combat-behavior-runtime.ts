@@ -1,5 +1,5 @@
 import { applyAbilityTimingDefaults } from './combat-definition'
-export { combatControlledAbilityAvailability } from './combat-controlled'
+export { combatControlledAbilityAvailability, isControlledCombatAbility } from './combat-controlled'
 import type { CombatEffectTimingPolicy } from './combat-effect-timing'
 import { readSkillCooldown } from './skill-cooldowns'
 import { pruneCombatAbilityActionHistory } from './combat-ability-state'

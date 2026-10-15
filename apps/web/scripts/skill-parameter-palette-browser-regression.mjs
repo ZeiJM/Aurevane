@@ -632,6 +632,33 @@ async function verifySelectedGroupPreview(page, viewport, kind) {
     ['brace', 'recover'],
   )
   assert.equal(requests[1].definition.ability.behaviors[1].effects[0].payload.amount, 17)
+  await page
+    .locator('[data-ability-group="recover"]')
+    .getByLabel('Effect timing', { exact: true })
+    .selectOption('controlled')
+  assert.equal(await preview.count(), 0)
+  assert.equal(await publish.isDisabled(), true)
+  await gesture(page.getByRole('button', { name: 'Validate', exact: true }))
+  await page.waitForFunction(() =>
+    [...document.querySelectorAll('button')].some(
+      (button) => button.textContent === 'Diff' && !button.disabled,
+    ),
+  )
+  await gesture(page.getByRole('button', { name: 'Diff', exact: true }))
+  await page.getByRole('region', { name: 'Semantic diff', exact: true }).waitFor()
+  await runPreview()
+  await preview.waitFor()
+  assert.match(await preview.innerText(), /Free Controlled prime/)
+  assert.match(await preview.innerText(), /Costs and outcomes below describe its release/)
+  assert.match(await preview.innerText(), /recover[\s\S]*13 AP[\s\S]*3 MP[\s\S]*healing/)
+  assert.equal(
+    await page.evaluate(
+      () =>
+        window.groupPreviewRequests.filter((row) => row.operation === 'preview').at(-1).definition
+          .ability.behaviors[1].effects[0].timing,
+    ),
+    'controlled',
+  )
   await gesture(publish)
   const confirmation = page.getByRole('region', { name: 'Confirm publication', exact: true })
   await confirmation.waitFor()
