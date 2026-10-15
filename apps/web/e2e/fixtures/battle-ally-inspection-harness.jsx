@@ -936,6 +936,13 @@ window.fetch = async (url, options = {}) => {
             battleVersion: window.fixtureBattle.battleVersion,
             preview: {
               ...quote.evaluation,
+              hitChanceBasisPoints:
+                quote.evaluation.targetHitChances?.find(
+                  (row) => row.targetCombatantId === quote.evaluation.primaryCombatantId,
+                )?.hitChanceBasisPoints ?? null,
+              defenseKind: null,
+              defenseRating: null,
+              mitigatedBaseDamage: null,
               ...(canonicalCase.startsWith('controlled-')
                 ? {
                     controlledReady:

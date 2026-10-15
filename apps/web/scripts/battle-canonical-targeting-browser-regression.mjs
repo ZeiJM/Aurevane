@@ -751,6 +751,7 @@ try {
               .locator('[data-battle-controlled-ready="true"]')
               .waitFor({ state: 'visible' })
             const readyBounds = await artwork.boundingBox()
+            assert.doesNotMatch(await page.locator('body').innerText(), /NaN|Infinity/)
             assert.equal(readyBounds.width, bounds.width)
             assert.equal(readyBounds.height, bounds.height)
             await page.screenshot({
@@ -807,29 +808,43 @@ try {
           await page.close()
           cases++
         }
-        if (!touch) {
-          const page = await browser.newPage({ viewport })
-          page.on('pageerror', (error) => errors.push(error.message))
-          await page.goto(
-            server.resolvedUrls.local[0] +
-              `?mode=${mode}&targeting=single&canonical=controlled-self`,
-          )
-          await page.keyboard.press('4')
-          await page.waitForFunction(() => window.fixtureBattle.battleVersion === 2)
-          await page.locator('[data-battle-controlled-ready="true"]').waitFor({ state: 'visible' })
-          await page.keyboard.press('4')
-          await page.waitForFunction(() => window.fixtureBattle.battleVersion === 3)
-          assert.deepEqual(
-            await page.evaluate(() =>
-              window.calls
-                .filter((call) => /\/(commit|intents)$/.test(call.path))
-                .map((call) => call.body.intent.kind),
-            ),
-            ['ability-prime', 'action'],
-          )
-          await page.close()
-          cases++
-        }
+        if (!touch)
+          for (const keyboardCase of ['controlled-self', 'controlled-move', 'controlled-basic']) {
+            const page = await browser.newPage({ viewport })
+            page.on('pageerror', (error) => errors.push(error.message))
+            await page.goto(
+              server.resolvedUrls.local[0] +
+                `?mode=${mode}&targeting=single&canonical=${keyboardCase}`,
+            )
+            const key = keyboardCase === 'controlled-basic' ? '3' : '4'
+            await page.keyboard.press(key)
+            await page.waitForFunction(() => window.fixtureBattle.battleVersion === 2)
+            if (keyboardCase === 'controlled-move') {
+              await page.keyboard.press(key)
+              await page.keyboard.press('w')
+              await page.waitForFunction(() =>
+                window.calls.some(
+                  (call) =>
+                    call.path.endsWith('/preview') && call.body.intent.movementPath?.length > 1,
+                ),
+              )
+            }
+            await page
+              .locator('[data-battle-controlled-ready="true"]')
+              .waitFor({ state: 'visible' })
+            await page.keyboard.press(keyboardCase === 'controlled-move' ? 'd' : key)
+            await page.waitForFunction(() => window.fixtureBattle.battleVersion === 3)
+            assert.deepEqual(
+              await page.evaluate(() =>
+                window.calls
+                  .filter((call) => /\/(commit|intents)$/.test(call.path))
+                  .map((call) => call.body.intent.kind),
+              ),
+              ['ability-prime', 'action'],
+            )
+            await page.close()
+            cases++
+          }
       }
   }
   assert.deepEqual(errors, [])
