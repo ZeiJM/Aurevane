@@ -5,7 +5,10 @@ import {
   capturedMatureSkillAbilitySource,
   capturedResonanceAbilitySource,
 } from './combat-action-source'
-import { reconcileCombatAbilitySources } from './combat-behavior-runtime'
+import {
+  primeCombatControlledAbility,
+  reconcileCombatAbilitySources,
+} from './combat-behavior-runtime'
 import type { RequirementNode } from './combat-requirements'
 import { validateAbilityDefinition, type AbilityDefinition } from './combat-definition'
 import { ADVANCED_DISCIPLINES } from '../character/advanced-disciplines'
@@ -957,4 +960,145 @@ it('conditional Move planning can reach an initially illegal tile through a lega
       { x: 1, y: 0 },
     ],
   })
+})
+
+function controlledAiEncounter(configured = false) {
+  const captured = captureCombatAbilitySource({
+    ...canonicalSource({
+      costs: [
+        { resource: 'ap', amount: 11 },
+        { resource: 'mp', amount: 2 },
+      ],
+      accuracy: { kind: 'fixed', chanceBasisPoints: 10000 },
+      effects: [
+        {
+          id: 'hit',
+          ...(configured ? {} : { timing: 'controlled' as const }),
+          payload: { type: 'damage', recipient: 'primary-unit', amount: 20 },
+        },
+      ],
+    }),
+    ownerCombatantId: actorId,
+  })
+  const base = preparePv1fTurnEconomy(encounter(false))
+  return {
+    captured,
+    state: reconcileCombatAbilitySources(
+      {
+        ...base,
+        ...(configured
+          ? { effectTimingPolicy: { version: 12, modes: { damage: 'controlled' as const } } }
+          : {}),
+      },
+      [captured],
+    ) as StatDrivenCombatEncounterState,
+  }
+}
+
+it.each([false, true])(
+  'AI deterministically prepares a useful Controlled action (configured=%s) without locking target or route',
+  (configured) => {
+    const { state, captured } = controlledAiEncounter(configured)
+    const before = JSON.stringify(state)
+    const decision = chooseBuildAwareRecruitAiDecision({ state, tieBreakSeed: 1 })
+    expect(decision.intent).toEqual({
+      kind: 'ability-prime',
+      actionId: captured.abilityId,
+      behaviorId: 'strike',
+    })
+    expect(chooseBuildAwareRecruitAiDecision({ state, tieBreakSeed: 1 })).toEqual(decision)
+    expect(JSON.stringify(state)).toBe(before)
+  },
+)
+
+it('the AI free-prime executor pays nothing, then the next decision releases and pays exactly once', () => {
+  const { state, captured } = controlledAiEncounter()
+  const primed = executeBuildAwareRecruitAiAction(
+    state,
+    captured.abilityId,
+    { kind: 'self' },
+    {},
+    { behaviorId: 'strike', controlledOperation: 'prime' },
+  )
+  expect(primed.state.tactical).toEqual(state.tactical)
+  expect(primed.events).toEqual([])
+  expect(primed.state.abilityRuntime!.controlled!.primes).toHaveLength(1)
+  const decision = chooseBuildAwareRecruitAiDecision({ state: primed.state, tieBreakSeed: 1 })
+  expect(decision.intent).toMatchObject({
+    kind: 'action',
+    actionId: captured.abilityId,
+    behaviorId: 'strike',
+  })
+  if (decision.intent.kind !== 'action') throw new Error('Expected a legal paid release.')
+  const released = executeBuildAwareRecruitAiAction(
+    primed.state,
+    decision.intent.actionId,
+    decision.intent.target,
+    {},
+    { behaviorId: decision.intent.behaviorId },
+  )
+  expect(readPv1fActionEconomy(released.state, actorId)!.current).toBe(
+    readPv1fActionEconomy(state, actorId)!.current - 11,
+  )
+  expect(released.state.tactical.battle.combatants.find((unit) => unit.id === actorId)!.mp).toBe(38)
+  expect(released.state.abilityRuntime!.controlled!.primes).toEqual([])
+  expect(
+    released.events.filter(
+      (event) =>
+        typeof event === 'object' &&
+        event !== null &&
+        'event' in event &&
+        event.event === 'combat_action_used',
+    ),
+  ).toHaveLength(1)
+})
+
+it('AI cancellation is free and does not renew the prime allowance', () => {
+  const { state, captured } = controlledAiEncounter()
+  const primed = primeCombatControlledAbility({
+    state,
+    actorId,
+    sourceInstanceId: captured.sourceInstanceId,
+    behaviorId: 'strike',
+  }).state as StatDrivenCombatEncounterState
+  const cancelled = executeBuildAwareRecruitAiAction(
+    primed,
+    captured.abilityId,
+    { kind: 'self' },
+    {},
+    { behaviorId: 'strike', controlledOperation: 'cancel' },
+  )
+  expect(cancelled.state.tactical).toEqual(primed.tactical)
+  expect(cancelled.events).toEqual([])
+  expect(cancelled.state.abilityRuntime!.controlled!.primes).toEqual([])
+  expect(cancelled.state.abilityRuntime!.controlled!.used).toHaveLength(1)
+  expect(
+    chooseBuildAwareRecruitAiDecision({ state: cancelled.state, tieBreakSeed: 1 }).intent.kind,
+  ).not.toBe('ability-prime')
+})
+
+it('an unaffordable primed release is retained while AI selects a different legal decision', () => {
+  const { state, captured } = controlledAiEncounter()
+  const primed = primeCombatControlledAbility({
+    state,
+    actorId,
+    sourceInstanceId: captured.sourceInstanceId,
+    behaviorId: 'strike',
+  }).state as StatDrivenCombatEncounterState
+  const blocked = {
+    ...primed,
+    tactical: {
+      ...primed.tactical,
+      battle: {
+        ...primed.tactical.battle,
+        combatants: primed.tactical.battle.combatants.map((unit) =>
+          unit.id === actorId ? { ...unit, mp: 0 } : unit,
+        ),
+      },
+    },
+  }
+  const decision = chooseBuildAwareRecruitAiDecision({ state: blocked, tieBreakSeed: 1 })
+  expect(decision.intent.kind).not.toBe('ability-prime')
+  expect(decision.intent).not.toMatchObject({ kind: 'action', actionId: captured.abilityId })
+  expect(blocked.abilityRuntime!.controlled!.primes).toHaveLength(1)
 })

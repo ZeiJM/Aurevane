@@ -36,10 +36,12 @@ export type RecruitAiIntent =
       movementPath?: readonly GridPosition[]
       target: CombatTargetSelection
     }
+  | { kind: 'ability-prime' | 'ability-cancel-prime'; actionId: string; behaviorId: string }
   | { kind: 'face'; facing: BattleFacing }
   | { kind: 'end-turn' }
 
 export type RecruitAiReasonTag =
+  | 'prepare-controlled'
   | 'legal-damage'
   | 'close-distance'
   | 'guard-survival'

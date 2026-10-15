@@ -45,7 +45,6 @@ export async function publishCombatEffectTimingPolicy(input: {
       p_actor_user_id: input.actorUserId,
       p_expected_version: policy.version,
       p_modes: policy.modes,
-      p_reason: 'Updated effect timing.',
     },
   )
   if (error?.message?.includes('TIMING_POLICY_VERSION_CONFLICT'))

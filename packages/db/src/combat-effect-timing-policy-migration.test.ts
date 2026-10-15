@@ -370,3 +370,82 @@ it('adds compatible Controlled timing without changing policy history, CAS or se
     await db.close()
   }
 }, 20000)
+
+it('removes timing reason requirements without fabricated values or rewriting old publications', async () => {
+  const db = await PGlite.create()
+  try {
+    await db.exec(`create role anon; create role authenticated; create role service_role; create schema app_private;
+      create function app_private.assert_game_owner_v1(actor uuid) returns void language plpgsql as $$ begin if actor is distinct from '00000000-0000-0000-0000-000000000001' then raise exception 'GAME_OWNER_REQUIRED'; end if; end $$;`)
+    await db.exec(readFileSync(path, 'utf8'))
+    await db.exec(
+      readFileSync(
+        resolve(
+          process.cwd(),
+          '../../supabase/migrations/20261015071731_combat_controlled_timing.sql',
+        ),
+        'utf8',
+      ),
+    )
+    const before = (
+      await db.query(
+        'select * from app_private.combat_effect_timing_policy_versions order by version',
+      )
+    ).rows
+    const migration = readFileSync(
+      resolve(
+        process.cwd(),
+        '../../supabase/migrations/20261015073458_remove_combat_timing_reason.sql',
+      ),
+      'utf8',
+    )
+    await db.exec(migration)
+    const owner = '00000000-0000-0000-0000-000000000001'
+    await db.exec('set role service_role')
+    await db.query(
+      `select public.publish_combat_effect_timing_policy_v1($1,1,'{"slow":"controlled"}')`,
+      [owner],
+    )
+    await db.query(
+      `select public.publish_combat_effect_timing_policy_v1($1,2,'{"slow":"instant"}','legacy input must not be stored')`,
+      [owner],
+    )
+    await expect(
+      db.query(`select public.publish_combat_effect_timing_policy_v1($1,2,'{}')`, [owner]),
+    ).rejects.toThrow('TIMING_POLICY_VERSION_CONFLICT')
+    await db.exec('reset role')
+    expect(
+      (
+        await db.query(
+          'select * from app_private.combat_effect_timing_policy_versions where version=1',
+        )
+      ).rows,
+    ).toEqual(before)
+    expect(
+      (
+        await db.query(
+          'select reason,published_by from app_private.combat_effect_timing_policy_versions where version>1 order by version',
+        )
+      ).rows,
+    ).toEqual([
+      { reason: null, published_by: owner },
+      { reason: null, published_by: owner },
+    ])
+    await db.exec(migration)
+    expect(
+      (
+        await db.query(
+          'select max(version) as version from app_private.combat_effect_timing_policy_versions',
+        )
+      ).rows,
+    ).toEqual([{ version: 3 }])
+    for (const role of ['anon', 'authenticated']) {
+      await db.exec(`set role ${role}`)
+      await expect(
+        db.query(`select public.publish_combat_effect_timing_policy_v1($1,3,'{}')`, [owner]),
+      ).rejects.toThrow('permission denied')
+      await db.exec('reset role')
+    }
+  } finally {
+    await db.close()
+  }
+}, 20000)

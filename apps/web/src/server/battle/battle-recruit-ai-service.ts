@@ -136,6 +136,19 @@ function resolveRecruitIntent(
   summon: CombatSummonInstance | null = null,
 ): { state: StatDrivenCombatEncounterState; events: readonly unknown[] } {
   try {
+    if (intent.kind === 'ability-prime' || intent.kind === 'ability-cancel-prime') {
+      if (summon) throw new TypeError('summon-controlled-command-unsupported')
+      return executeBuildAwareRecruitAiAction(
+        state,
+        intent.actionId,
+        { kind: 'self' },
+        skillOptions,
+        {
+          behaviorId: intent.behaviorId,
+          controlledOperation: intent.kind === 'ability-prime' ? 'prime' : 'cancel',
+        },
+      )
+    }
     if (intent.kind === 'move') return executePv1fMovement(state, intent.path)
     if (intent.kind === 'action') {
       return summon
@@ -358,8 +371,15 @@ export function createBattleRecruitAiService(
             })
         const resolved = resolveRecruitIntent(state, decision.intent, skillOptions, summon)
         const nextState = preserveFrozenBuildMetadata(state, resolved.state)
-        const event = decisionEvent(decision, turn.combatantId, summon ? 'summon' : 'recruit')
-        const events = [event, ...resolved.events]
+        const freeControlled =
+          decision.intent.kind === 'ability-prime' ||
+          decision.intent.kind === 'ability-cancel-prime'
+        const events = freeControlled
+          ? [...resolved.events]
+          : [
+              decisionEvent(decision, turn.combatantId, summon ? 'summon' : 'recruit'),
+              ...resolved.events,
+            ]
         const privacyJournal = buildBattlePrivacyJournalInput({
           before: state,
           after: nextState,
@@ -395,11 +415,12 @@ export function createBattleRecruitAiService(
         battleVersion = committed.result.battleVersion
         committedAt = committed.result.committedAt
         state = readPersistedEncounter(committed.result.snapshot)
-        decisions.push({
-          combatantId: turn.combatantId,
-          reason: decision.reason,
-          utility: decision.utility,
-        })
+        if (!freeControlled)
+          decisions.push({
+            combatantId: turn.combatantId,
+            reason: decision.reason,
+            utility: decision.utility,
+          })
       }
 
       throw persistenceInvalid(

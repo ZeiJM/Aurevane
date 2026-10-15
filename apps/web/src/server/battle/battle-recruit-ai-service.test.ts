@@ -990,9 +990,11 @@ describe('P2.6 authoritative Recruit AI turn service', () => {
   })
 })
 
-it.each(['stationary', 'move', 'basic-move'] as const)(
+it.each(['stationary', 'move', 'basic-move', 'controlled', 'controlled-move'] as const)(
   'runs an admitted canonical %s Recruit behavior through service CAS without mutable published reads',
   async (variant) => {
+    const controlled = variant === 'controlled' || variant === 'controlled-move'
+    const hasMove = variant === 'move' || variant === 'basic-move' || variant === 'controlled-move'
     const recruit = advanceToRecruitTurn(await initialEncounter())
     const characterId = '22222222-2222-4222-8222-222222222223'
     const actorId = `character:${characterId}`
@@ -1009,7 +1011,7 @@ it.each(['stationary', 'move', 'basic-move'] as const)(
           mode: 'action',
           classification: 'attack',
           attackFamily: 'physical',
-          costs: [{ resource: 'ap', amount: variant === 'stationary' ? 12 : 100 }],
+          costs: [{ resource: 'ap', amount: hasMove ? 100 : 12 }],
           cooldown: null,
           activationLimits: ['once-per-battle'],
           requirements: null,
@@ -1026,7 +1028,7 @@ it.each(['stationary', 'move', 'basic-move'] as const)(
           },
           accuracy: { kind: 'fixed', chanceBasisPoints: 10000 },
           effects: [
-            ...(variant === 'stationary'
+            ...(!hasMove
               ? []
               : [
                   {
@@ -1039,7 +1041,11 @@ it.each(['stationary', 'move', 'basic-move'] as const)(
                     },
                   },
                 ]),
-            { id: 'hit', payload: { type: 'damage', recipient: 'primary-unit', amount: 20 } },
+            {
+              id: 'hit',
+              ...(controlled ? { timing: 'controlled' as const } : {}),
+              payload: { type: 'damage', recipient: 'primary-unit', amount: 20 },
+            },
           ],
         },
       ],
@@ -1107,7 +1113,7 @@ it.each(['stationary', 'move', 'basic-move'] as const)(
       tactical: {
         ...initial.tactical,
         tiles: initial.tactical.tiles.map((tile) =>
-          variant !== 'stationary' && tile.position.y === 1 && tile.position.x <= 3
+          hasMove && tile.position.y === 1 && tile.position.x <= 3
             ? {
                 ...tile,
                 elevation: 0,
@@ -1118,9 +1124,9 @@ it.each(['stationary', 'move', 'basic-move'] as const)(
         ),
         placements: initial.tactical.placements.map((row) =>
           row.combatantId === actorId
-            ? { ...row, position: { x: variant === 'stationary' ? 2 : 0, y: 1 } }
+            ? { ...row, position: { x: hasMove ? 0 : 2, y: 1 } }
             : row.combatantId === playerId
-              ? { ...row, position: { x: variant === 'stationary' ? 1 : 3, y: 1 } }
+              ? { ...row, position: { x: hasMove ? 3 : 1, y: 1 } }
               : row,
         ),
       },
@@ -1141,8 +1147,20 @@ it.each(['stationary', 'move', 'basic-move'] as const)(
     })
     expect(resolver.resolvePinnedSkillDefinition).not.toHaveBeenCalled()
     expect(resolver.resolveCurrentSkillDefinition).not.toHaveBeenCalled()
-    const first = fixture.commits[0]!
-    expect(first.expectedBattleVersion).toBe(1)
+    const first = fixture.commits[controlled ? 1 : 0]!
+    if (controlled) {
+      const prime = fixture.commits[0]!
+      expect(prime.events).toEqual([])
+      const primed = prime.nextSnapshot as StatDrivenCombatEncounterState
+      expect(primed.tactical).toEqual(state.tactical)
+      expect(primed.abilityRuntime!.controlled!.primes).toHaveLength(1)
+      expect(fixture.currentState().abilityRuntime!.controlled!.used).toHaveLength(1)
+      expect(
+        result.decisions.some((decision) => String(decision.reason).includes('controlled')),
+      ).toBe(false)
+      expect(fixture.commits.length).toBeLessThanOrEqual(16)
+    }
+    expect(first.expectedBattleVersion).toBe(controlled ? 2 : 1)
     expect(first.events).toContainEqual(
       expect.objectContaining({
         event: 'combat_action_used',
@@ -1150,12 +1168,12 @@ it.each(['stationary', 'move', 'basic-move'] as const)(
       }),
     )
     expect(first.events).toContainEqual(
-      expect.objectContaining({ event: 'ap_spent', amount: variant === 'stationary' ? 12 : 100 }),
+      expect.objectContaining({ event: 'ap_spent', amount: hasMove ? 100 : 12 }),
     )
     expect((first.nextSnapshot as StatDrivenCombatEncounterState).capturedAbilitySources).toEqual(
       captures,
     )
-    if (variant !== 'stationary') {
+    if (hasMove) {
       expect(
         (first.nextSnapshot as StatDrivenCombatEncounterState).tactical.placements.find(
           (row) => row.combatantId === actorId,

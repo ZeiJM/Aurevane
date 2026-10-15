@@ -2,7 +2,14 @@ import type { GridPosition } from './board'
 import { evaluatePreparedCombatWalking } from './combat-walking'
 import { resolveCombatTargeting } from './actions'
 import { prepareCombatAbilityCommand, commitCombatAbilityCommand } from './combat-ability-command'
-import { combatAbilityCommandContext } from './combat-behavior-runtime'
+import {
+  combatAbilityCommandContext,
+  combatAbilityBehavior,
+  primeCombatControlledAbility,
+  cancelCombatControlledAbility,
+} from './combat-behavior-runtime'
+import { isControlledCombatAbility, combatControlledPrime } from './combat-controlled'
+import { applyAbilityTimingDefaults } from './combat-definition'
 import type { CapturedCombatAbilitySource } from './combat-behavior-capture'
 import { outgoingSuppressionBasisPoints } from './combat-suppress'
 import {
@@ -46,6 +53,7 @@ import {
 } from './stat-driven-combat'
 
 interface BuildSkillCandidate {
+  controlledOperation?: 'prime'
   actionId: string
   definition?: MatureSkillDefinition
   behaviorId?: string
@@ -95,17 +103,20 @@ export function chooseBuildAwareRecruitAiDecision(input: {
   }
 
   return {
-    intent: {
-      kind: 'action',
-      actionId: selected.actionId,
-      target: copyTarget(selected.target),
-      ...(selected.behaviorId ? { behaviorId: selected.behaviorId } : {}),
-      ...(selected.movementPath
-        ? { movementPath: selected.movementPath.map((position) => ({ ...position })) }
-        : {}),
-    },
-    reason:
-      selected.recovery || selected.definition?.tags.includes('heal')
+    intent: selected.controlledOperation
+      ? { kind: 'ability-prime', actionId: selected.actionId, behaviorId: selected.behaviorId! }
+      : {
+          kind: 'action',
+          actionId: selected.actionId,
+          target: copyTarget(selected.target),
+          ...(selected.behaviorId ? { behaviorId: selected.behaviorId } : {}),
+          ...(selected.movementPath
+            ? { movementPath: selected.movementPath.map((position) => ({ ...position })) }
+            : {}),
+        },
+    reason: selected.controlledOperation
+      ? 'prepare-controlled'
+      : selected.recovery || selected.definition?.tags.includes('heal')
         ? 'recover-survival'
         : 'legal-damage',
     utility: selected.utility,
@@ -123,6 +134,7 @@ export function executeBuildAwareRecruitAiAction(
   skillOptions: BuildAwareRecruitAiSkillOptions = {},
   commandOptions: {
     readonly behaviorId?: string
+    readonly controlledOperation?: 'prime' | 'cancel'
     readonly movementPath?: readonly GridPosition[]
   } = {},
 ): Pv1fTransition {
@@ -132,6 +144,30 @@ export function executeBuildAwareRecruitAiAction(
     (row) => canonicalSourceActionId(row) === actionId,
   )
   if (source) {
+    if (commandOptions.controlledOperation) {
+      const behavior = combatAbilityBehavior(
+        source,
+        commandOptions.behaviorId,
+        state.effectTimingPolicy,
+      )
+      const transition = (
+        commandOptions.controlledOperation === 'prime'
+          ? primeCombatControlledAbility
+          : cancelCombatControlledAbility
+      )({
+        state,
+        actorId,
+        sourceInstanceId: source.sourceInstanceId,
+        behaviorId: behavior.id,
+      })
+      return {
+        ...transition,
+        state: reattachStatDrivenCombatBridge(
+          transition.state,
+          (transition.state as StatDrivenCombatEncounterState).statBridge ?? state.statBridge,
+        ),
+      }
+    }
     const prepared = preparePv1fTurnEconomy(state)
     const transition = commitCombatAbilityCommand({
       state: prepared,
@@ -151,6 +187,7 @@ export function executeBuildAwareRecruitAiAction(
     }
   }
 
+  if (commandOptions.controlledOperation) throw new TypeError('controlled-source-unavailable')
   const definition = (skillOptions.committedSkills ?? committedMatureSkills(state, actorId)).find(
     (candidate) => candidate.id === actionId,
   )
@@ -181,12 +218,32 @@ function canonicalSkillCandidates(
   sources: readonly CapturedCombatAbilitySource[],
   profile: RecruitAiProfile,
 ): BuildSkillCandidate[] {
-  const prepared = preparePv1fTurnEconomy(state)
-  const actorId = prepared.tactical.battle.currentTurn!.combatantId
+  const initial = preparePv1fTurnEconomy(state)
+  const actorId = initial.tactical.battle.currentTurn!.combatantId
   return sources.flatMap((source) =>
-    source.definition.behaviors.flatMap((behavior) => {
+    source.definition.behaviors.flatMap((authored) => {
+      const behavior = applyAbilityTimingDefaults(authored, initial.effectTimingPolicy)
       if (behavior.activation !== 'manual' || behavior.mode !== 'action' || !behavior.targeting)
         return []
+      let prepared = initial
+      let controlledOperation: 'prime' | undefined
+      if (
+        isControlledCombatAbility(behavior) &&
+        !combatControlledPrime(initial, source, behavior)
+      ) {
+        try {
+          const primed = primeCombatControlledAbility({
+            state: initial,
+            actorId,
+            sourceInstanceId: source.sourceInstanceId,
+            behaviorId: behavior.id,
+          })
+          prepared = reattachStatDrivenCombatBridge(primed.state, initial.statBridge)
+          controlledOperation = 'prime'
+        } catch {
+          return []
+        }
+      }
       const move = behavior.effects.find((effect) => effect.payload.type === 'move')
       const targeting = canonicalAbilityTargetSpec(behavior.targeting)
       const selections = enumerateCombatTargetSelections(prepared, actorId, targeting)
@@ -238,6 +295,7 @@ function canonicalSkillCandidates(
             if (utility <= 0) return []
             return [
               {
+                controlledOperation,
                 actionId: canonicalSourceActionId(source),
                 behaviorId: behavior.id,
                 movementPath,

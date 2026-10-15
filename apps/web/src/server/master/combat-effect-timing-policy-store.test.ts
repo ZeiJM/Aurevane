@@ -76,4 +76,5 @@ it('publishes Controlled defaults without requiring a human reason', async () =>
       p_modes: { slow: 'controlled' },
     }),
   )
+  expect(rpc.mock.calls.at(-1)![1]).not.toHaveProperty('p_reason')
 })
