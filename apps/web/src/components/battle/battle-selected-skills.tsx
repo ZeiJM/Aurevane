@@ -16,6 +16,12 @@ import { BattleSkillParameters } from './battle-skill-parameters'
 import type { BattleRuntime } from './battle-runtime'
 import { battleResonanceArtwork, battleSkillArtwork } from './battle-skill-presentation'
 import styles from './battle-selected-skills.module.css'
+import {
+  battleCapturedActionChoices,
+  battleCapturedActionCost,
+} from './battle-captured-action-cost'
+import type { BattleCapturedActionTarget } from './battle-preview-selection'
+import type { BattleSkillForecastPresentation } from './battle-runtime'
 
 function disciplineName(id: string): string {
   return id
@@ -55,6 +61,10 @@ export function BattleSelectedSkills({
   activeId,
   disabled,
   actionEconomy,
+  actorId = null,
+  manualActionTargets = [],
+  resources,
+  selectedBehavior,
   cooldowns = {},
   primeAvailableIds = [],
   readyActionId,
@@ -65,18 +75,33 @@ export function BattleSelectedSkills({
   activeId?: string
   disabled: boolean
   actionEconomy: number
+  actorId?: string | null
+  manualActionTargets?: readonly BattleCapturedActionTarget[]
+  resources?: { mp: number; hp: number }
+  selectedBehavior?: { actionId: string; behaviorId: string } | null
   cooldowns?: Readonly<Record<string, number>>
   primeAvailableIds?: readonly string[]
   readyActionId?: string
   bindings?: CombatKeybindMap
   onSelect: (skillId: string, category: 'attack' | 'defense' | 'heal') => void
 }) {
+  const actionCost = (skill: BattleSkillForecastPresentation) =>
+    battleCapturedActionCost(
+      battleCapturedActionChoices(manualActionTargets, skill.id, actorId),
+      [
+        { resource: 'ap', amount: skill.apCost },
+        { resource: 'mp', amount: skill.mpCost },
+      ],
+      { ap: actionEconomy, mp: resources?.mp ?? Infinity, hp: resources?.hp ?? Infinity },
+      selectedBehavior?.actionId === skill.id ? selectedBehavior.behaviorId : undefined,
+    )
+  const essenceCost = runtime.essence ? actionCost(runtime.essence) : undefined
   const essencePrime = !!runtime.essence && primeAvailableIds.includes(runtime.essence.id)
   const essenceDisabled =
     disabled ||
     (!essencePrime &&
       !!runtime.essence &&
-      (actionEconomy < runtime.essence.apCost || (cooldowns[runtime.essence.id] ?? 0) > 0))
+      (!essenceCost?.affordable || (cooldowns[runtime.essence.id] ?? 0) > 0))
   const essenceReady =
     !!runtime.essence && readyActionId === runtime.essence.id && !essenceDisabled && !essencePrime
   return (
@@ -84,11 +109,11 @@ export function BattleSelectedSkills({
       <div className={styles.skills} aria-label="Selected Discipline Skills">
         {Array.from({ length: 4 }, (_, index) => {
           const skill = runtime.techniques?.[index]
+          const payment = skill ? actionCost(skill) : undefined
           const cooldownTurns = skill ? (cooldowns[skill.id] ?? 0) : 0
           const primeAvailable = !!skill && primeAvailableIds.includes(skill.id)
           const actionDisabled =
-            disabled ||
-            (!primeAvailable && !!skill && (actionEconomy < skill.apCost || cooldownTurns > 0))
+            disabled || (!primeAvailable && !!skill && (!payment?.affordable || cooldownTurns > 0))
           const ready = !!skill && readyActionId === skill.id && !actionDisabled && !primeAvailable
           const binding = bindings[(['skill1', 'skill2', 'skill3', 'skill4'] as const)[index]!]
           const hotkey = formatCombatKeybind(binding)
@@ -104,7 +129,7 @@ export function BattleSelectedSkills({
                     type="button"
                     className={styles.skillAction}
                     data-battle-skill-hotkey={hotkey}
-                    aria-label={`Selected ${skill.name}, ${primeAvailable ? 'prime without payment' : `${skill.apCost} AP`}${battleCooldownLabel(cooldownTurns)}${ready ? ', ready to release' : ''}`}
+                    aria-label={`Selected ${skill.name}, ${primeAvailable ? 'prime without payment' : payment!.costLabel}${battleCooldownLabel(cooldownTurns)}${ready ? ', ready to release' : ''}`}
                     aria-pressed={activeId === skill.id}
                     disabled={actionDisabled}
                     data-battle-cooldown-active={cooldownTurns > 0 || undefined}
@@ -128,7 +153,11 @@ export function BattleSelectedSkills({
                     <strong>{skill.name}</strong>
                   </button>
                   <SkillControls title={skill.name} hotkey={hotkey}>
-                    <BattleSkillParameters skill={skill} />
+                    <BattleSkillParameters
+                      skill={skill}
+                      costLabel={payment?.costLabel}
+                      cooldownLabel={payment?.cooldownLabel}
+                    />
                   </SkillControls>
                   <small className={styles.discipline}>
                     {disciplineName(skill.sourceDisciplineId)}
@@ -158,7 +187,7 @@ export function BattleSelectedSkills({
             <button
               className={styles.specialAction}
               type="button"
-              aria-label={`${runtime.essence.name}, Essence, ${essencePrime ? 'prime without payment' : `${runtime.essence.apCost} AP`}${battleCooldownLabel(cooldowns[runtime.essence.id] ?? 0)}${essenceReady ? ', ready to release' : ''}`}
+              aria-label={`${runtime.essence.name}, Essence, ${essencePrime ? 'prime without payment' : essenceCost!.costLabel}${battleCooldownLabel(cooldowns[runtime.essence.id] ?? 0)}${essenceReady ? ', ready to release' : ''}`}
               aria-pressed={activeId === runtime.essence.id}
               disabled={essenceDisabled}
               data-battle-cooldown-active={(cooldowns[runtime.essence.id] ?? 0) > 0 || undefined}
@@ -186,7 +215,11 @@ export function BattleSelectedSkills({
               hotkey={formatCombatKeybind(bindings.essence)}
             >
               <p>{runtime.essence.description}</p>
-              <BattleSkillParameters skill={runtime.essence} />
+              <BattleSkillParameters
+                skill={runtime.essence}
+                costLabel={essenceCost?.costLabel}
+                cooldownLabel={essenceCost?.cooldownLabel}
+              />
             </SkillControls>
             <small>Essence</small>
           </>

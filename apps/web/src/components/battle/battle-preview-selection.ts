@@ -40,12 +40,15 @@ export type BattlePreviewSkill = Pick<
   movementPath?: readonly { x: number; y: number }[]
 }
 export interface BattleCapturedActionTarget {
+  /** Absent only on older public snapshots. */
+  ownerCombatantId?: string
   actionId: string
   behaviorId: string
   controlled?: BattleControlledActionAvailability
   target: CombatTargetSpec
   move?: { maximumTiles: number; conditional: boolean }
   costs?: AbilityBehavior['costs']
+  cooldown?: AbilityBehavior['cooldown']
 }
 
 /** Free commands contain captured references only; an ambiguous Manual group requires a choice. */

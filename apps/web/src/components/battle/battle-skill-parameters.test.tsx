@@ -193,3 +193,32 @@ describe('current battle ! reader elemental overlap', () => {
     expect(JSON.stringify(skill)).toBe(before)
   })
 })
+
+it('shows the selected captured payment and cooldown without rewriting the pinned legacy definition', () => {
+  const definition = resolveMatureSkillVersion('vanguard.forceful-strike', 2)!
+  const before = JSON.stringify(definition)
+  const markup = renderToStaticMarkup(
+    <BattleSkillParameters
+      costLabel="11 AP / 2 MP / 1 HP"
+      cooldownLabel="3 turns"
+      skill={{
+        definition,
+        id: definition.id,
+        name: definition.id,
+        apCost: 15,
+        mpCost: 0,
+        cooldownOwnerTurns: 1,
+        minimumRange: 1,
+        maximumRange: 1,
+        targetKind: 'unit',
+        targetTeamPolicy: 'enemy',
+        tags: [],
+        effectDescriptions: [],
+        requirementDescriptions: [],
+      }}
+    />,
+  )
+  expect(markup).toMatch(/<dt>Cost<\/dt><dd>11 AP \/ 2 MP \/ 1 HP<\/dd>/)
+  expect(markup).toMatch(/<dt>Cooldown<\/dt><dd>3 turns<\/dd>/)
+  expect(JSON.stringify(definition)).toBe(before)
+})

@@ -87,7 +87,20 @@ function canonicalPublicState(state) {
           sourceInstanceId: source.sourceInstanceId,
           behaviorId: row.behaviorId,
         })
-      return { ...row, ...(controlled ? { controlled } : {}) }
+      const behavior = source?.definition.behaviors.find(
+        (behavior) => behavior.id === row.behaviorId,
+      )
+      return {
+        ...row,
+        ...(source && behavior
+          ? {
+              ownerCombatantId: source.ownerCombatantId,
+              costs: behavior.costs.map((cost) => ({ ...cost })),
+              cooldown: behavior.cooldown ? { ...behavior.cooldown } : null,
+            }
+          : {}),
+        ...(controlled ? { controlled } : {}),
+      }
     }),
     ...(canonicalBasics ? { basicActions: canonicalBasics } : {}),
   }
@@ -728,6 +741,33 @@ if (canonicalCase) {
     source.definition.behaviors.push({ ...source.definition.behaviors[0], id: 'second' })
   canonicalCapture = captureCombatAbilitySource(source)
   canonicalState = reconcileCombatAbilitySources(initialBattle.snapshot, [canonicalCapture])
+  if (canonicalCase === 'controlled-price') {
+    // Execution costs 11 AP / 2 MP / 1 HP; the old presentation envelope says 15 AP.
+    runtime.techniques[0].apCost = 15
+    canonicalState = {
+      ...canonicalState,
+      tactical: {
+        ...canonicalState.tactical,
+        battle: {
+          ...canonicalState.tactical.battle,
+          combatants: canonicalState.tactical.battle.combatants.map((unit) =>
+            unit.id === ids[0]
+              ? {
+                  ...unit,
+                  mp: 2,
+                  hp: 2,
+                  temporaryResources: unit.temporaryResources.map((resource) =>
+                    resource.key === 'pv1f.action-economy'
+                      ? { ...resource, current: 12 }
+                      : resource,
+                  ),
+                }
+              : unit,
+          ),
+        },
+      },
+    }
+  }
   if (canonicalCase === 'controlled-poor')
     canonicalState = {
       ...canonicalState,

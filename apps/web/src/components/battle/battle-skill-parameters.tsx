@@ -17,7 +17,15 @@ import type { BattleSkillForecastPresentation } from './battle-runtime'
 import { SkillCharacteristicRows } from '../character/skill-characteristic-rows'
 
 /** Uses the same pinned definitions and parameter/effect renderers as Skill Management. */
-export function BattleSkillParameters({ skill }: { skill: BattleSkillForecastPresentation }) {
+export function BattleSkillParameters({
+  skill,
+  costLabel,
+  cooldownLabel,
+}: {
+  skill: BattleSkillForecastPresentation
+  costLabel?: string
+  cooldownLabel?: string
+}) {
   const timingPolicy = useSkillEffectTimingPolicy()
   const groundRules = useSkillGroundInteractionRules()
   const airborneAttackElevation = useAirborneAttackElevation()
@@ -25,10 +33,21 @@ export function BattleSkillParameters({ skill }: { skill: BattleSkillForecastPre
   const legacyTriggers = dotTriggerPolicyVersion === null
   const legacyPoisonMovement = dotTriggerPolicyVersion !== 2
   const definition = skill.definition
-  const rows = battleSkillParameterRows(skill, timingPolicy, {
+  const legacyRows = battleSkillParameterRows(skill, timingPolicy, {
     ...groundRules,
     airborneAttackElevation,
   })
+  const rows = legacyRows.map(
+    ([field, value]) =>
+      [
+        field,
+        field === 'Cost'
+          ? (costLabel ?? value)
+          : field === 'Cooldown'
+            ? (cooldownLabel ?? value)
+            : value,
+      ] as const,
+  )
   return (
     <div data-battle-skill-parameters="true">
       <strong>Parameters</strong>

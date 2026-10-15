@@ -881,3 +881,41 @@ it.each([false, true])(
     ).toEqual([])
   },
 )
+
+// A captured non-Move action must expose the same payment/cooldown used by execution.
+it('projects owner-scoped typed costs and cooldowns for every Manual group without leaking execution', () => {
+  const { state, captures } = controlledProjectionState()
+  const owned = captures[0]!
+  const edited = {
+    ...owned,
+    definition: {
+      ...owned.definition,
+      behaviors: owned.definition.behaviors.map((behavior) => ({
+        ...behavior,
+        costs: [
+          { resource: 'ap' as const, amount: 11 },
+          { resource: 'mp' as const, amount: 2 },
+          { resource: 'hp' as const, amount: 1 },
+        ],
+        cooldown: { key: 'captured-only', ownerTurns: 3 },
+      })),
+    },
+  }
+  const captured = { ...state, capturedAbilitySources: [edited, ...captures.slice(1)] }
+  const before = JSON.stringify(captured)
+  const view = projectBattleSnapshot(
+    captured,
+    deriveParticipantBattleViewerEntitlement(captured.tactical.battle.combatants, [PLAYER]),
+  )
+  expect(view.manualActionTargets).toHaveLength(2)
+  for (const row of view.manualActionTargets!)
+    expect(row).toMatchObject({
+      ownerCombatantId: PLAYER,
+      costs: edited.definition.behaviors[0]!.costs,
+      cooldown: { key: 'captured-only', ownerTurns: 3 },
+    })
+  expect(JSON.stringify(view.manualActionTargets)).not.toMatch(
+    /accuracy|requirements|private-controlled|returnAnchor/,
+  )
+  expect(JSON.stringify(captured)).toBe(before)
+})

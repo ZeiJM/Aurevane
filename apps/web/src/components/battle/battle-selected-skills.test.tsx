@@ -124,3 +124,159 @@ describe('selected Skill cooldown presentation', () => {
     expect(markup).not.toMatch(/data-battle-info-trigger="true"[^>]*disabled/)
   })
 })
+
+describe('captured Manual payment presentation', () => {
+  const costs = [
+    { resource: 'ap' as const, amount: 11 },
+    { resource: 'mp' as const, amount: 2 },
+    { resource: 'hp' as const, amount: 1 },
+  ]
+  const captures = [
+    {
+      ownerCombatantId: 'actor',
+      actionId: technique.id,
+      behaviorId: 'use',
+      costs,
+      cooldown: null,
+      target: {
+        kind: 'self' as const,
+        teamPolicy: 'self' as const,
+        friendlyFire: 'allies-only' as const,
+        shape: { kind: 'single' as const },
+        minimumRange: 0,
+        maximumRange: 0,
+        maximumElevationDifference: null,
+        requiresLineOfSight: false,
+      },
+    },
+  ]
+  const render = (ap: number, mp: number, hp: number, prime = false) =>
+    renderToStaticMarkup(
+      <BattleSelectedSkills
+        runtime={{
+          ...runtime,
+          techniques: [technique],
+          essence: { ...technique, description: '' },
+        }}
+        actorId="actor"
+        manualActionTargets={captures}
+        resources={{ mp, hp }}
+        disabled={false}
+        actionEconomy={ap}
+        primeAvailableIds={prime ? [technique.id] : []}
+        readyActionId={technique.id}
+        onSelect={vi.fn()}
+      />,
+    )
+  it('enables an edited 11 AP Skill and Essence at 12 AP and labels all three captured costs', () => {
+    const markup = render(12, 2, 2)
+    expect(markup).not.toMatch(/data-battle-skill-hotkey="4"[^>]*disabled/)
+    expect(markup).not.toMatch(/Essence,[^>]*disabled/)
+    expect(markup).toContain('11 AP / 2 MP / 1 HP')
+    expect(markup).not.toContain('15 AP')
+    expect(markup.match(/data-battle-controlled-ready="true"/g)).toHaveLength(2)
+  })
+  it.each([
+    [10, 2, 2],
+    [100, 1, 2],
+    [100, 2, 1],
+  ])(
+    'blocks unaffordable captured payment at AP%s/MP%s/HP%s without a ready light',
+    (ap, mp, hp) => {
+      const markup = render(ap, mp, hp)
+      expect(markup).toMatch(/data-battle-skill-hotkey="4"[^>]*disabled/)
+      expect(markup).not.toContain('data-battle-controlled-ready="true"')
+    },
+  )
+  it('still allows a free prime when captured release costs cannot be paid', () => {
+    expect(render(0, 0, 1, true)).not.toMatch(/data-battle-skill-hotkey="4"[^>]*disabled/)
+  })
+})
+
+it('keeps separate owners and explicit Manual group prices out of the old flat cost gate', () => {
+  const target = {
+    kind: 'self' as const,
+    teamPolicy: 'self' as const,
+    friendlyFire: 'allies-only' as const,
+    shape: { kind: 'single' as const },
+    minimumRange: 0,
+    maximumRange: 0,
+    maximumElevationDifference: null,
+    requiresLineOfSight: false,
+  }
+  const captures = [
+    {
+      ownerCombatantId: 'other',
+      actionId: technique.id,
+      behaviorId: 'free',
+      target,
+      costs: [],
+      cooldown: null,
+    },
+    {
+      ownerCombatantId: 'actor',
+      actionId: technique.id,
+      behaviorId: 'expensive',
+      target,
+      costs: [{ resource: 'ap' as const, amount: 27 }],
+      cooldown: null,
+    },
+    {
+      ownerCombatantId: 'actor',
+      actionId: technique.id,
+      behaviorId: 'cheap',
+      target,
+      costs: [{ resource: 'ap' as const, amount: 11 }],
+      cooldown: null,
+    },
+  ]
+  const render = (behaviorId?: string) =>
+    renderToStaticMarkup(
+      <BattleSelectedSkills
+        runtime={{ ...runtime, techniques: [technique] }}
+        actorId="actor"
+        manualActionTargets={captures}
+        selectedBehavior={behaviorId ? { actionId: technique.id, behaviorId } : null}
+        resources={{ mp: 0, hp: 100 }}
+        disabled={false}
+        actionEconomy={20}
+        onSelect={vi.fn()}
+      />,
+    )
+  expect(render()).toContain('Choose action')
+  expect(render()).not.toMatch(/data-battle-skill-hotkey="4"[^>]*disabled/)
+  expect(render('expensive')).toContain('27 AP')
+  expect(render('expensive')).toMatch(/data-battle-skill-hotkey="4"[^>]*disabled/)
+  expect(render('cheap')).toContain('11 AP')
+  expect(render('cheap')).not.toMatch(/data-battle-skill-hotkey="4"[^>]*disabled/)
+  expect(render('free')).toContain('Unavailable')
+  expect(render('free')).toMatch(/data-battle-skill-hotkey="4"[^>]*disabled/)
+})
+it('retains pinned historical costs when an older geometry-only row omitted payment metadata', () => {
+  const markup = renderToStaticMarkup(
+    <BattleSelectedSkills
+      runtime={{ ...runtime, techniques: [technique] }}
+      disabled={false}
+      actionEconomy={20}
+      onSelect={vi.fn()}
+      manualActionTargets={[
+        {
+          actionId: technique.id,
+          behaviorId: 'use',
+          target: {
+            kind: 'self',
+            teamPolicy: 'self',
+            friendlyFire: 'allies-only',
+            shape: { kind: 'single' },
+            minimumRange: 0,
+            maximumRange: 0,
+            maximumElevationDifference: null,
+            requiresLineOfSight: false,
+          },
+        },
+      ]}
+    />,
+  )
+  expect(markup).toContain('15 AP')
+  expect(markup).not.toMatch(/data-battle-skill-hotkey="4"[^>]*disabled/)
+})

@@ -5,6 +5,10 @@ import {
   battleBasicCostLabel,
   canAffordBattleBasicAction,
 } from '@/lib/battle/battle-basic-actions'
+import {
+  battleCapturedActionChoices,
+  battleCapturedActionCost,
+} from './battle-captured-action-cost'
 import { airborneJump } from '@aurevane/game-core/combat/combat-airborne'
 import { hasGameplayTag } from '@aurevane/game-core/combat/gameplay-tags'
 import { BattleGroundAreaLayer } from './battle-ground-area-layer'
@@ -472,6 +476,32 @@ function BattleExperienceContent({
   const capabilities = useMemo(() => deriveBattleCapabilities(runtime), [runtime])
   const viewModel = useMemo(() => buildBattleViewModel(battle, runtime), [battle, runtime])
   const localCombatantId = viewModel.localCombatantId
+  const localCombatant = localCombatantId
+    ? (battle.snapshot.tactical.battle.combatants.find(
+        (combatant) => combatant.id === localCombatantId,
+      ) ?? null)
+    : null
+  const manualActionTargets = useMemo(
+    () =>
+      (battle.snapshot.manualActionTargets ?? []).filter(
+        (row) => !row.ownerCombatantId || row.ownerCombatantId === localCombatantId,
+      ),
+    [battle.snapshot.manualActionTargets, localCombatantId],
+  )
+  const skillCostLabel = (skill: { id: string; apCost: number; mpCost: number }) =>
+    battleCapturedActionCost(
+      battleCapturedActionChoices(manualActionTargets, skill.id, localCombatantId),
+      [
+        { resource: 'ap', amount: skill.apCost },
+        { resource: 'mp', amount: skill.mpCost },
+      ],
+      {
+        ap: readEconomy(localCombatant),
+        mp: localCombatant?.mp ?? 0,
+        hp: localCombatant?.hp ?? 0,
+      },
+      selectedBehavior?.actionId === skill.id ? selectedBehavior.behaviorId : undefined,
+    ).costLabel
   const basicMove = findBattleBasicAction(battle.snapshot, localCombatantId, 'basic.move')
   const basicAttack = findBattleBasicAction(battle.snapshot, localCombatantId, BASIC_ATTACK_ID)
   const attackLabel = basicAttack?.name ?? 'Basic Attack'
@@ -515,7 +545,7 @@ function BattleExperienceContent({
     ...attackTechniques.map((technique) => ({
       id: technique.id,
       label: technique.name,
-      cost: `${technique.apCost} AP`,
+      cost: skillCostLabel(technique),
       artworkSrc: skillArtwork(technique),
       tags: technique.tags,
     })),
@@ -524,7 +554,7 @@ function BattleExperienceContent({
           {
             id: runtime.essence.id,
             label: runtime.essence.name,
-            cost: `${runtime.essence.apCost} AP`,
+            cost: skillCostLabel(runtime.essence),
             artworkSrc: battleSkillArtwork(runtime.essence.id, runtime.essence.iconKey),
             tags: runtime.essence.tags,
           },
@@ -557,7 +587,7 @@ function BattleExperienceContent({
     ...defenseTechniques.map((technique) => ({
       id: technique.id,
       label: technique.name,
-      cost: `${technique.apCost} AP`,
+      cost: skillCostLabel(technique),
       artworkSrc: skillArtwork(technique),
       tags: technique.tags,
     })),
@@ -578,7 +608,7 @@ function BattleExperienceContent({
     ...healTechniques.map((technique) => ({
       id: technique.id,
       label: technique.name,
-      cost: `${technique.apCost} AP`,
+      cost: skillCostLabel(technique),
       artworkSrc: skillArtwork(technique),
       tags: technique.tags,
     })),
@@ -594,27 +624,22 @@ function BattleExperienceContent({
   const tactical = battle.snapshot.tactical
   const battleState = tactical.battle
   const localParticipant = viewModel.localParticipant
-  const localCombatant = localCombatantId
-    ? (battleState.combatants.find((combatant) => combatant.id === localCombatantId) ?? null)
-    : null
   const canPrimeAction = useCallback(
     (actionId: string) => {
       const behaviorId =
         selectedBehavior?.actionId === actionId ? selectedBehavior.behaviorId : undefined
-      return (battle.snapshot.manualActionTargets ?? []).some(
+      return manualActionTargets.some(
         (row) =>
           row.actionId === actionId &&
           (!behaviorId || row.behaviorId === behaviorId) &&
           row.controlled?.canPrime,
       )
     },
-    [battle.snapshot.manualActionTargets, selectedBehavior],
+    [manualActionTargets, selectedBehavior],
   )
   const primeAvailableIds = [
     ...new Set(
-      (battle.snapshot.manualActionTargets ?? [])
-        .filter((row) => canPrimeAction(row.actionId))
-        .map((row) => row.actionId),
+      manualActionTargets.filter((row) => canPrimeAction(row.actionId)).map((row) => row.actionId),
     ),
   ]
   const actionCooldownTurns = useCallback(
@@ -1281,7 +1306,7 @@ function BattleExperienceContent({
       const command =
         intent.kind === 'action'
           ? (selectBattleControlledPrimeIntent(
-              battle.snapshot.manualActionTargets ?? [],
+              manualActionTargets,
               intent.actionId,
               intent.behaviorId,
             ) ?? intent)
@@ -1303,7 +1328,7 @@ function BattleExperienceContent({
         if (mounted.current) setExecutionPending(false)
       }
     },
-    [actionCooldownTurns, battle.snapshot.manualActionTargets, commitValue],
+    [actionCooldownTurns, manualActionTargets, commitValue],
   )
 
   const airborneAttackElevation = Boolean(
@@ -1345,7 +1370,7 @@ function BattleExperienceContent({
       }
       const resolved = resolveBattleCapturedSkill(
         native,
-        battle.snapshot.manualActionTargets ?? [],
+        manualActionTargets,
         selectedBehavior?.actionId === actionId ? selectedBehavior.behaviorId : undefined,
       )
       const captured = resolved
@@ -1373,6 +1398,7 @@ function BattleExperienceContent({
       runtime.essence,
       selectableTechniques,
       battle.snapshot,
+      manualActionTargets,
       localCombatantId,
       selectedBehavior,
       actionMovementDraft,
@@ -1450,7 +1476,7 @@ function BattleExperienceContent({
         return
       }
       const prime = selectBattleControlledPrimeIntent(
-        battle.snapshot.manualActionTargets ?? [],
+        manualActionTargets,
         actionId,
         descriptor.behaviorId,
       )
@@ -1501,7 +1527,7 @@ function BattleExperienceContent({
     [
       actionCooldownTurns,
       actionDescriptor,
-      battle.snapshot.manualActionTargets,
+      manualActionTargets,
       executeIntent,
       clearPlanning,
       localCombatantId,
@@ -1571,7 +1597,7 @@ function BattleExperienceContent({
       if (nextMode === 'move') {
         const descriptor = actionDescriptor('basic.move')
         const prime = selectBattleControlledPrimeIntent(
-          battle.snapshot.manualActionTargets ?? [],
+          manualActionTargets,
           'basic.move',
           descriptor.behaviorId,
         )
@@ -1598,7 +1624,7 @@ function BattleExperienceContent({
     [
       actionCooldownTurns,
       actionDescriptor,
-      battle.snapshot.manualActionTargets,
+      manualActionTargets,
       executeIntent,
       armAction,
       clearPlanning,
@@ -1619,7 +1645,7 @@ function BattleExperienceContent({
         : mode === 'guard'
           ? selectedDefenseActionId
           : effectiveHealActionId
-  const behaviorChoices = (battle.snapshot.manualActionTargets ?? []).filter(
+  const behaviorChoices = manualActionTargets.filter(
     (choice) => choice.actionId === currentActionId,
   )
   const currentDescriptor = useMemo(
@@ -3011,6 +3037,10 @@ function BattleExperienceContent({
                 activeId={activeTechnique?.id}
                 disabled={planningDisabled}
                 actionEconomy={actionEconomy}
+                actorId={localCombatantId}
+                manualActionTargets={manualActionTargets}
+                resources={{ mp: localCombatant?.mp ?? 0, hp: localCombatant?.hp ?? 0 }}
+                selectedBehavior={selectedBehavior}
                 cooldowns={cooldowns}
                 primeAvailableIds={primeAvailableIds}
                 readyActionId={controlledReadyActionId}

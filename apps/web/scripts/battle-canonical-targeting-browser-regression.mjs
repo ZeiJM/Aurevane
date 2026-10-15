@@ -666,6 +666,7 @@ try {
         const touch = viewport.width === 390
         for (const scenario of [
           'controlled-self',
+          'controlled-price',
           'controlled-poor',
           'controlled-choices',
           'controlled-move',
@@ -751,6 +752,24 @@ try {
               .locator('[data-battle-controlled-ready="true"]')
               .waitFor({ state: 'visible' })
             const readyBounds = await artwork.boundingBox()
+            if (scenario === 'controlled-price') {
+              assert.equal(
+                before.temporaryResources.find((row) => row.key === 'pv1f.action-economy').current,
+                12,
+              )
+              assert.equal(
+                await command.isEnabled(),
+                true,
+                'captured 11 AP remains legal below old 15 AP price',
+              )
+              assert.match(await command.getAttribute('aria-label'), /11 AP \/ 2 MP \/ 1 HP/)
+              await gesture(page.getByRole('button', { name: 'About Targeting Test', exact: true }))
+              const dialog = page.getByRole('dialog')
+              await dialog.waitFor({ state: 'visible' })
+              assert.match(await dialog.innerText(), /11 AP \/ 2 MP \/ 1 HP/)
+              await page.keyboard.press('Escape')
+              await dialog.waitFor({ state: 'hidden' })
+            }
             assert.doesNotMatch(await page.locator('body').innerText(), /NaN|Infinity/)
             assert.equal(readyBounds.width, bounds.width)
             assert.equal(readyBounds.height, bounds.height)
@@ -809,7 +828,12 @@ try {
           cases++
         }
         if (!touch)
-          for (const keyboardCase of ['controlled-self', 'controlled-move', 'controlled-basic']) {
+          for (const keyboardCase of [
+            'controlled-self',
+            'controlled-price',
+            'controlled-move',
+            'controlled-basic',
+          ]) {
             const page = await browser.newPage({ viewport })
             page.on('pageerror', (error) => errors.push(error.message))
             await page.goto(

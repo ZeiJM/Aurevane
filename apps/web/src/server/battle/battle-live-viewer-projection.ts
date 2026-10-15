@@ -55,7 +55,7 @@ export function projectBattleManualModifierAvailability(
     .flatMap((ownerId) => combatManualModifierAvailability(state, ownerId))
 }
 
-/** Safe geometry only, from the owner's immutable active Manual action captures. */
+/** Safe geometry and payment metadata from the owner's immutable active Manual captures. */
 export function projectBattleManualActionTargets(
   state: StatDrivenCombatEncounterState,
   viewer: BattleViewerEntitlement,
@@ -87,11 +87,14 @@ export function projectBattleManualActionTargets(
               ? undefined
               : behavior.effects.find((effect) => effect.payload.type === 'move')
           return {
+            ownerCombatantId: source.ownerCombatantId,
             actionId:
               source.basic?.execution.kind === 'basic-attack'
                 ? PV1F_BASIC_ATTACK_ID
                 : source.abilityId,
             behaviorId: behavior.id,
+            costs: behavior.costs.map((cost) => ({ ...cost })),
+            cooldown: behavior.cooldown ? { ...behavior.cooldown } : null,
             ...(controlled ? { controlled } : {}),
             ...(move?.payload.type === 'move'
               ? {
@@ -99,7 +102,6 @@ export function projectBattleManualActionTargets(
                     maximumTiles: move.payload.maximumTiles,
                     conditional: move.requirements != null,
                   },
-                  costs: behavior.costs.map((cost) => ({ ...cost })),
                 }
               : {}),
             target: {

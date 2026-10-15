@@ -133,7 +133,14 @@ it('actual reference parser, preview and atomic CAS commit share plural geometry
     .map((unit) => unit.id)
   expect(enemies).toHaveLength(2)
   expect(createdView.snapshot).toHaveProperty('manualActionTargets', [
-    { actionId: original.essenceId, behaviorId: 'plural', target: targeting },
+    {
+      ownerCombatantId: PLAYER_ID,
+      actionId: original.essenceId,
+      behaviorId: 'plural',
+      target: targeting,
+      costs: ability.behaviors[0]!.costs,
+      cooldown: null,
+    },
   ])
   expect(projectBattleSnapshot(state, createSpectatorBattleViewerEntitlement())).toHaveProperty(
     'manualActionTargets',

@@ -6,6 +6,7 @@ import {
 import { readSkillCooldown } from '@aurevane/game-core/combat/skill-cooldowns'
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
 import type { BattleRuntime } from './battle-runtime'
+import { battleCapturedActionChoices } from './battle-captured-action-cost'
 
 /** Reads the pinned action definition and the server snapshot; never advances cooldowns locally. */
 export function battleActionCooldownTurns(
@@ -17,6 +18,26 @@ export function battleActionCooldownTurns(
 ): number {
   const actor = battle.snapshot.tactical.battle.combatants.find((row) => row.id === actorId)
   if (!actor) return 0
+  const captured = battleCapturedActionChoices(
+    battle.snapshot.manualActionTargets ?? [],
+    actionId,
+    actorId,
+  )
+  const chosen = behaviorId ? captured.filter((row) => row.behaviorId === behaviorId) : captured
+  if (captured.length && chosen.every((row) => row.cooldown !== undefined)) {
+    return chosen.length
+      ? Math.min(
+          ...chosen.map((row) =>
+            row.cooldown
+              ? Math.min(
+                  row.cooldown.ownerTurns,
+                  readSkillCooldown(actor, row.cooldown).ticksRemaining,
+                )
+              : 0,
+          ),
+        )
+      : 0
+  }
   const basic = findBattleBasicAction(battle.snapshot, actorId, actionId)
   if (basic) {
     const chosen = battleBasicBehavior(basic, behaviorId)
