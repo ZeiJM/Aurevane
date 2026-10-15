@@ -1,12 +1,16 @@
 import 'server-only'
 
 import type { BattleEventRecord } from '@aurevane/db/battle-session'
-import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
+import {
+  resolveMatureSkillVersion,
+  type MatureSkillDefinition,
+} from '@aurevane/game-core/combat/mature-skills'
+import { combatTagPayloadExplanation } from '@aurevane/game-core/combat/combat-tag-registry'
 import {
   battleFlavorTemplateIssues,
   defaultSkillBattleText,
 } from '@aurevane/game-core/combat/battle-narration'
-import { resolveEssenceForBuild } from '@aurevane/game-core/combat/essence'
+import { resolveEssenceForBuild, essenceCombatSkill } from '@aurevane/game-core/combat/essence'
 import { resolveResonanceForPair } from '@aurevane/game-core/combat/resonance'
 import type { CombatEffectOrigin } from '@aurevane/game-core/combat/actions'
 import {
@@ -28,6 +32,27 @@ type ContextResolver = Pick<
 
 function safeFlavor(flavor: string | undefined): string | null {
   return battleFlavorTemplateIssues(flavor).length === 0 ? flavor! : null
+}
+
+function pinnedSkillDescription(definition: MatureSkillDefinition): string {
+  if (Object.hasOwn(definition, 'ability')) {
+    const effects = definition.ability!.behaviors.flatMap((behavior) => behavior.effects)
+    const authored =
+      definition.effectDescriptions?.length === effects.length
+        ? definition.effectDescriptions
+        : undefined
+    // Recorded context cannot infer an inherited timing policy from today's global rules.
+    return effects
+      .map(
+        (effect, index) => authored?.[index] ?? combatTagPayloadExplanation(effect.payload).concise,
+      )
+      .join(' · ')
+  }
+  return definition.effects
+    .map(
+      (effect, index) => definition.effectDescriptions?.[index] ?? skillEffectDescription(effect),
+    )
+    .join(' ')
 }
 
 function eventObject(record: BattleEventRecord): Record<string, unknown> | null {
@@ -120,12 +145,7 @@ export async function attachRecordedBattleLogSkillContext(
             skillId: definition.id,
             contentVersion: definition.contentVersion,
             name: skillDisplayName(definition),
-            description: definition.effects
-              .map(
-                (effect, index) =>
-                  definition.effectDescriptions?.[index] ?? skillEffectDescription(effect),
-              )
-              .join(' '),
+            description: pinnedSkillDescription(definition),
             flavor: safeFlavor(definition.flavorLine),
             battleText: safeFlavor(definition.battleText) ?? defaultSkillBattleText(definition),
           })
@@ -347,7 +367,8 @@ async function attachRecordedBuildExtensionContext(
               description: definition.description,
               flavor: safeFlavor(definition.flavorLine),
               battleText:
-                safeFlavor(definition.skill.battleText) ?? defaultSkillBattleText(definition.skill),
+                safeFlavor(definition.skill.battleText) ??
+                defaultSkillBattleText(essenceCombatSkill(definition)),
             })
           } else {
             const reference = build.extensions.resonance!

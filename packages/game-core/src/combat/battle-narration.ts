@@ -134,6 +134,7 @@ export function defaultSkillBattleText(definition: {
   readonly effects: readonly { readonly type: string }[]
   readonly summonProfile?: { readonly name: string }
 }): string {
+  if (Object.hasOwn(definition, 'ability')) return '{actor} uses {ability}.'
   if (definition.summonProfile)
     return definition.sourceDisciplineId === 'wildwarden'
       ? `{actor} calls upon {actor.possessive} bond with nature to bring forth ${definition.summonProfile.name}.`

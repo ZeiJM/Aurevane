@@ -1,6 +1,8 @@
 import type { BattleEventRecord } from '@aurevane/db/battle-session'
 import { resolveEssenceForBuild } from '@aurevane/game-core/combat/essence'
 import { resolveResonanceForPair } from '@aurevane/game-core/combat/resonance'
+import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
+import { parseAbilityDefinition } from '@aurevane/game-core/combat/combat-definition'
 import {
   resolveMatureSkillVersion,
   type MatureSkillDefinition,
@@ -96,6 +98,57 @@ async function getLog(
 }
 
 describe('recorded Battle Log Skill context', () => {
+  it.each([
+    { label: 'typed fallback', notes: undefined, description: 'Heal [17]' },
+    {
+      label: 'captured Owner explanation',
+      notes: ['Captured author note.'],
+      description: 'Captured author note.',
+    },
+    {
+      label: 'mismatched legacy explanation',
+      notes: ['Stale adapter note.', 'Extra stale note.'],
+      description: 'Heal [17]',
+    },
+  ])(
+    'uses $label without borrowing stale native mechanics or summon narration',
+    async ({ notes, description }) => {
+      const guard = defaultBasicSkills().find((row) => row.id === 'basic.guard')!.ability
+        .behaviors[0]!
+      const pinned = definition({
+        ability: parseAbilityDefinition({
+          schemaVersion: 1,
+          behaviors: [
+            {
+              ...guard,
+              effects: [
+                { id: 'mend', payload: { type: 'healing', recipient: 'actor', amount: 17 } },
+              ],
+            },
+          ],
+        }),
+        effectDescriptions: notes,
+        summonProfile: resolveMatureSkillVersion('wildwarden.renewing-herbs')!.summonProfile,
+      })
+      const resolve = vi.fn(async (id: string, version: number) =>
+        id === SKILL && version === 12 ? pinned : definition({ contentVersion: 99 }),
+      )
+      const result = await getLog(
+        [record({ event: 'combat_action_used', actorId: ACTOR, actionId: SKILL })],
+        resolve,
+      )
+      expect(resolve).toHaveBeenCalledWith(SKILL, 12)
+      expect(result.entries[0]!.actionContext).toMatchObject({
+        contentVersion: 12,
+        battleText: '{actor} uses {ability}.',
+      })
+      expect(result.entries[0]!.actionContext!.description).toBe(description)
+      expect(result.entries[0]!.actionContext!.description).not.toMatch(
+        /Strike with|physical damage|summon/i,
+      )
+      expect(JSON.stringify(result)).not.toMatch(/private-build-fingerprint|contentVersion":99/)
+    },
+  )
   it.each(['poison', 'burn'] as const)(
     'resolves a viewer-visible %s tick to its pinned source Skill title',
     async (statusId) => {
@@ -414,86 +467,101 @@ describe('recorded Battle Log Skill context', () => {
     })
     expect(JSON.stringify(result)).not.toContain('999')
   })
-  it('uses the exact pinned Essence outer and nested identity rather than a current Skill lookup', async () => {
-    const essence = resolveEssenceForBuild('vanguard', null)!
-    const pinned = {
-      ...essence,
-      contentVersion: 17,
-      flavorLine: '{actor} draws a decisive line.',
-      skill: { ...essence.skill, contentVersion: 17 },
-    }
-    const build = buildAuthority()
-    const actor = build.combatants[0]!
-    const authority = {
-      ...build,
-      combatants: [
-        {
-          ...actor,
-          extensions: {
-            resonance: null,
-            essence: {
-              essenceId: pinned.essenceId,
-              contentVersion: 17,
-              sourceDisciplineId: pinned.sourceDisciplineId,
-              skillId: pinned.skill.id,
-              skillContentVersion: 17,
+  it.each([
+    { kind: 'native', expectedText: '{actor} channels vanguard power into {ability}.' },
+    { kind: 'root', expectedText: '{actor} uses {ability}.' },
+    { kind: 'skill', expectedText: '{actor} uses {ability}.' },
+  ])(
+    'uses the exact pinned $kind Essence outer and nested identity rather than a current Skill lookup',
+    async ({ kind, expectedText }) => {
+      const essence = resolveEssenceForBuild('vanguard', null)!
+      const ability = defaultBasicSkills().find((row) => row.id === 'basic.guard')!.ability
+      const pinned = {
+        ...essence,
+        ...(kind === 'root' ? { ability } : {}),
+        contentVersion: 17,
+        flavorLine: '{actor} draws a decisive line.',
+        skill: {
+          ...essence.skill,
+          battleText: undefined,
+          contentVersion: 17,
+          ...(kind === 'skill' ? { ability } : {}),
+        },
+      }
+      const build = buildAuthority()
+      const actor = build.combatants[0]!
+      const authority = {
+        ...build,
+        combatants: [
+          {
+            ...actor,
+            extensions: {
+              resonance: null,
+              essence: {
+                essenceId: pinned.essenceId,
+                contentVersion: 17,
+                sourceDisciplineId: pinned.sourceDisciplineId,
+                skillId: pinned.skill.id,
+                skillContentVersion: 17,
+              },
             },
           },
-        },
-      ],
-    }
-    const skillLookup = vi.fn(async () => definition())
-    const essenceLookup = vi.fn(async () => pinned)
-    const result = await getLog(
-      [
-        record({
-          event: 'combat_action_used',
-          actorId: ACTOR,
-          actionId: pinned.skill.id,
-          contentVersion: 99,
-        }),
-        record(
-          {
-            event: 'persistent_effect_applied',
-            sourceCombatantId: ACTOR,
-            targetCombatantId: OTHER,
+        ],
+      }
+      const skillLookup = vi.fn(async () => definition())
+      const essenceLookup = vi.fn(async () => pinned)
+      const result = await getLog(
+        [
+          record({
+            event: 'combat_action_used',
+            actorId: ACTOR,
             actionId: pinned.skill.id,
-            statusId: 'burn',
-          },
-          1,
-        ),
-        record(
-          {
-            event: 'damage_applied',
-            sourceCombatantId: ACTOR,
-            targetCombatantId: OTHER,
-            actionId: 'status.burn.current.v1',
-            sourceActionId: pinned.skill.id,
-            statusId: 'burn',
-            amount: 4,
-          },
-          2,
-        ),
-      ],
-      skillLookup,
-      { build: authority, resolver: { resolvePinnedEssenceDefinition: essenceLookup } },
-    )
-    expect(result.entries[0]?.actionContext).toMatchObject({
-      family: 'essence',
-      contentId: pinned.essenceId,
-      skillId: pinned.skill.id,
-      contentVersion: 17,
-      flavor: pinned.flavorLine,
-    })
-    expect(essenceLookup).toHaveBeenCalledWith('vanguard', null, pinned.essenceId, 17)
-    expect(skillLookup).not.toHaveBeenCalled()
-    expect(result.entries[2].actionContext).toMatchObject({
-      family: 'essence',
-      contentId: pinned.essenceId,
-      contentVersion: 17,
-      name: pinned.name,
-    })
-  })
+            contentVersion: 99,
+          }),
+          record(
+            {
+              event: 'persistent_effect_applied',
+              sourceCombatantId: ACTOR,
+              targetCombatantId: OTHER,
+              actionId: pinned.skill.id,
+              statusId: 'burn',
+            },
+            1,
+          ),
+          record(
+            {
+              event: 'damage_applied',
+              sourceCombatantId: ACTOR,
+              targetCombatantId: OTHER,
+              actionId: 'status.burn.current.v1',
+              sourceActionId: pinned.skill.id,
+              statusId: 'burn',
+              amount: 4,
+            },
+            2,
+          ),
+        ],
+        skillLookup,
+        { build: authority, resolver: { resolvePinnedEssenceDefinition: essenceLookup } },
+      )
+      expect(result.entries[0]?.actionContext).toMatchObject({
+        family: 'essence',
+        contentId: pinned.essenceId,
+        skillId: pinned.skill.id,
+        contentVersion: 17,
+        flavor: pinned.flavorLine,
+        battleText: expectedText,
+      })
+      expect(essenceLookup).toHaveBeenCalledWith('vanguard', null, pinned.essenceId, 17)
+      expect(skillLookup).not.toHaveBeenCalled()
+      expect(result.entries[2].actionContext).toMatchObject({
+        family: 'essence',
+        contentId: pinned.essenceId,
+        contentVersion: 17,
+        name: pinned.name,
+      })
+    },
+  )
 
   it('projects visible Resonance activation with owner identity and exact pinned metadata, without invented bonus amounts', async () => {
     const resonance = resolveResonanceForPair('vanguard', 'lifebinder')!
