@@ -34,6 +34,7 @@ export function battleCapturedActionCost(
       : undefined
   const cooldown = selected?.cooldown
   return {
+    report: selected ? selected.report : choices.length || behaviorId ? null : undefined,
     costLabel: costs ? abilityCostDescription(costs) : behaviorId ? 'Unavailable' : 'Choose action',
     cooldownLabel: selected
       ? cooldown === undefined

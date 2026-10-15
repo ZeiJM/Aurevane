@@ -33,6 +33,7 @@ vi.mock('server-only', () => ({}))
 
 import {
   omitPendingBattlePayloads,
+  projectBattleManualActionTargets,
   projectBattleEffectStateForViewer,
   projectBattleStatusStateForViewer,
 } from './battle-live-viewer-projection'
@@ -852,7 +853,10 @@ it.each([false, true])(
       }),
     ])
     expect(JSON.stringify(publicView)).not.toMatch(
-      /private-controlled|returnAnchor|conditionTruth|requirements|9999|contentVersion":7/,
+      /private-controlled|returnAnchor|conditionTruth|"requirements"|contentVersion":7/,
+    )
+    expect(Object.fromEntries(publicView.manualActionTargets![0]!.report!.rows).Requirements).toBe(
+      'You: HP ≥ 9999',
     )
     const cancelled = cancelCombatControlledAbility({
       state: primed,
@@ -918,4 +922,152 @@ it('projects owner-scoped typed costs and cooldowns for every Manual group witho
     /accuracy|requirements|private-controlled|returnAnchor/,
   )
   expect(JSON.stringify(captured)).toBe(before)
+})
+
+it('projects a detached complete report from the actual owner Manual capture without private accuracy or payloads', () => {
+  const base = encounter()
+  const behavior = defaultBasicSkills().find((row) => row.id === 'unarmed.basic')!.ability
+    .behaviors[0]!
+  const source = captureCombatAbilitySource({
+    schemaVersion: 1,
+    sourceInstanceId: 'private-report-source',
+    ownerCombatantId: PLAYER,
+    abilityId: 'fixture.precise-strike',
+    contentVersion: 73,
+    sourceKind: 'discipline-skill',
+    sourceDisciplineId: 'vanguard',
+    tags: ['attack'],
+    definition: {
+      schemaVersion: 1,
+      behaviors: [
+        {
+          ...behavior,
+          id: 'precise',
+          costs: [
+            { resource: 'ap', amount: 7 },
+            { resource: 'mp', amount: 3 },
+            { resource: 'hp', amount: 2 },
+          ],
+          cooldown: { key: 'captured-report', ownerTurns: 3 },
+          activationLimits: ['once-per-round'],
+          accuracy: { kind: 'fixed', chanceBasisPoints: 7777 },
+          requirements: {
+            kind: 'resource-state',
+            subject: 'owner',
+            resource: 'mp',
+            comparison: 'at-least',
+            amount: 3,
+          },
+          targeting: {
+            ...behavior.targeting!,
+            maximumRange: 4,
+            maximumSelections: 2,
+            geometryVersion: 3,
+            categories: ['enemy'],
+          },
+          effects: [
+            { id: 'move', payload: { type: 'move', recipient: 'actor', maximumTiles: 2 } },
+            {
+              id: 'hit',
+              timing: 'controlled',
+              payload: { type: 'damage', recipient: 'affected-units', amount: 13 },
+            },
+          ],
+        },
+      ],
+    },
+  })
+  const state = reattachStatDrivenCombatBridge(
+    reconcileCombatAbilitySources(base, [source]),
+    base.statBridge,
+  )
+  const before = JSON.stringify(state)
+  const viewer = deriveParticipantBattleViewerEntitlement(state.tactical.battle.combatants, [
+    PLAYER,
+  ])
+  const rows = projectBattleManualActionTargets(state, viewer)
+  expect(rows).toHaveLength(1)
+  expect(rows[0]).toHaveProperty('report')
+  const report = rows[0]!.report!
+  expect(report.rows.map(([label]) => label)).toEqual([
+    'Skill Type',
+    'Cost',
+    'Cooldown',
+    'Requirements',
+    'Effects',
+    'Range',
+    'Target',
+    'Target Method',
+    'Target Elevation',
+    'Line of Sight',
+  ])
+  expect(Object.fromEntries(report.rows)).toMatchObject({
+    Cost: '7 AP / 3 MP / 2 HP',
+    Cooldown: '3 turns',
+    Requirements: 'You: MP ≥ 3',
+    Range: '4',
+    Target: 'Enemy',
+    'Target Method': 'Single · Up to 2 distinct targets',
+  })
+  expect(report.effects.map((effect) => effect.parts.label)).toEqual(['Move', 'Dmg'])
+  expect(report.effects[1]!.parts).toMatchObject({ magnitude: '13', timing: 'Controlled' })
+  expect(report.limits).toEqual(['Once per round'])
+  expect(JSON.stringify(report)).not.toMatch(
+    /accuracy|chanceBasisPoints|payload|private-report-source|sourceInstanceId/,
+  )
+  expect(projectBattleManualActionTargets(state, createSpectatorBattleViewerEntitlement())).toEqual(
+    [],
+  )
+  Object.assign(report.effects[0]!.parts, { label: 'Local edit' })
+  expect(projectBattleManualActionTargets(state, viewer)[0]!.report!.effects[0]!.parts.label).toBe(
+    'Move',
+  )
+  expect(JSON.stringify(state)).toBe(before)
+})
+
+it('derives report descriptions from the encounter elemental pin rather than current global defaults', () => {
+  const base = encounter()
+  const behavior = defaultBasicSkills().find((row) => row.id === 'unarmed.basic')!.ability
+    .behaviors[0]!
+  const source = captureCombatAbilitySource({
+    schemaVersion: 1,
+    sourceInstanceId: 'private-fire-report',
+    ownerCombatantId: PLAYER,
+    abilityId: 'fixture.fire-report',
+    contentVersion: 1,
+    sourceKind: 'discipline-skill',
+    tags: ['attack'],
+    definition: {
+      schemaVersion: 1,
+      behaviors: [
+        {
+          ...behavior,
+          effects: [
+            {
+              id: 'hit',
+              payload: { type: 'damage', recipient: 'primary-unit', amount: 13, element: 'fire' },
+            },
+            {
+              id: 'thaw',
+              payload: { type: 'remove-status', recipient: 'actor', statusIds: ['frozen'] },
+            },
+          ],
+        },
+      ],
+    },
+  })
+  const state = reattachStatDrivenCombatBridge(
+    reconcileCombatAbilitySources(base, [source]),
+    base.statBridge,
+  )
+  const viewer = deriveParticipantBattleViewerEntitlement(state.tactical.battle.combatants, [
+    PLAYER,
+  ])
+  const old = projectBattleManualActionTargets(state, viewer)[0]!.report!
+  const current = projectBattleManualActionTargets(
+    { ...state, elementalDamagePolicyVersion: 2 },
+    viewer,
+  )[0]!.report!
+  expect(old.effectDescriptions[0]).toContain('Positive fire damage removes Wet and Frozen')
+  expect(current.effectDescriptions[0]).not.toContain('removes Wet and Frozen')
 })

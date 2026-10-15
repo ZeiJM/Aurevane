@@ -31,6 +31,9 @@ import {
 } from './skill-detail-presentation'
 import type { SkillEffectTimingPolicy } from './skill-effect-timing-context'
 import type { BasicActionCharacterStats } from './basic-action-presentation'
+export type AbilityEffectPresentationContext = NonNullable<
+  Parameters<typeof skillEffectDescription>[1]
+>
 
 const subjects = {
   owner: 'You',
@@ -90,6 +93,7 @@ function effectPresentation(
   basic?: BasicSkillDefinition,
   stats: BasicActionCharacterStats = {},
   controlledAction = false,
+  effectContext: AbilityEffectPresentationContext = {},
 ) {
   const payload = effect.payload
   let parts: CompactSkillEffectSummaryParts, description: string
@@ -117,10 +121,15 @@ function effectPresentation(
     description = combatTagPayloadExplanation(payload).full
   } else {
     const native = nativeCombatTagPayload(payload)
-    parts = compactSkillEffectSummaryParts(native, timingPolicy, { explicitElemental: true })
+    parts = compactSkillEffectSummaryParts(native, timingPolicy, {
+      explicitElemental: true,
+      ...effectContext,
+    })
     const mode =
       effect.timing ??
-      combatEffectTimingMode(timingPolicy ?? undefined, currentCombatEffectTimingTag(native))
+      (parts.timing === 'Instant'
+        ? 'instant'
+        : combatEffectTimingMode(timingPolicy ?? undefined, currentCombatEffectTimingTag(native)))
     parts = {
       ...parts,
       timing:
@@ -135,6 +144,7 @@ function effectPresentation(
     description = skillEffectDescription(native, {
       timingPolicy,
       explicitElemental: true,
+      ...effectContext,
       rewindPrimeAnchor: controlledAction,
     })
     if (payload.type === 'pierce') {
@@ -182,13 +192,29 @@ export function abilityBehaviorInformation(
     timingPolicy?: SkillEffectTimingPolicy
     basic?: BasicSkillDefinition
     stats?: BasicActionCharacterStats
+    effectContext?: AbilityEffectPresentationContext
   } = {},
 ) {
   const timingPolicy = options.timingPolicy ?? null
   behavior = applyAbilityTimingDefaults(behavior, timingPolicy ?? undefined)
   const controlledAction = behavior.effects.some((effect) => effect.timing === 'controlled')
+  const effectContext: AbilityEffectPresentationContext = {
+    ...options.effectContext,
+    skillEffects: behavior.effects.flatMap(({ payload }) =>
+      payload.type === 'move' || payload.type === 'damage-bonus' || payload.type === 'summon'
+        ? []
+        : [nativeCombatTagPayload(payload)],
+    ),
+  }
   const effects = behavior.effects.map((effect) =>
-    effectPresentation(effect, timingPolicy, options.basic, options.stats, controlledAction),
+    effectPresentation(
+      effect,
+      timingPolicy,
+      options.basic,
+      options.stats,
+      controlledAction,
+      effectContext,
+    ),
   )
   const target = behavior.targeting ? canonicalAbilityTargetSpec(behavior.targeting) : null
   const nativeMove =

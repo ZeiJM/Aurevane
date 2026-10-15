@@ -44,6 +44,20 @@ import {
 
 import { battleViewerRelationship, type BattleViewerEntitlement } from './battle-viewer-entitlement'
 
+function capturedAbilityEffectContext(state: StatDrivenCombatEncounterState) {
+  return {
+    legacyTriggers: state.dotTriggerPolicyVersion === undefined,
+    legacyPoisonMovement: state.dotTriggerPolicyVersion !== 2,
+    legacyFrozenGround: state.frozenGroundPolicyVersion !== 1,
+    legacyAirborne: state.airbornePolicyVersion !== 1,
+    legacyAirborneJump: state.airborneJumpPolicyVersion !== 1,
+    legacyHealingDown: state.healingDownPolicyVersion !== 1,
+    legacyBlindsideActivation: state.blindsideActivationPolicyVersion !== 1,
+    legacyElemental: state.elementalDamagePolicyVersion === undefined,
+    explicitElemental: state.elementalDamagePolicyVersion === 2,
+  }
+}
+
 /** Only controlled owners receive reference choices; allies/opponents/spectators receive none. */
 export function projectBattleManualModifierAvailability(
   state: StatDrivenCombatEncounterState,
@@ -95,6 +109,14 @@ export function projectBattleManualActionTargets(
             behaviorId: behavior.id,
             costs: behavior.costs.map((cost) => ({ ...cost })),
             cooldown: behavior.cooldown ? { ...behavior.cooldown } : null,
+            ...(source.basic
+              ? {}
+              : {
+                  report: abilityBehaviorInformation(behavior, {
+                    timingPolicy: state.effectTimingPolicy ?? null,
+                    effectContext: capturedAbilityEffectContext(state),
+                  }),
+                }),
             ...(controlled ? { controlled } : {}),
             ...(move?.payload.type === 'move'
               ? {
@@ -163,6 +185,7 @@ export function projectBattleBasicActions(
             {
               basic,
               timingPolicy: state.effectTimingPolicy ?? null,
+              effectContext: capturedAbilityEffectContext(state),
               stats: {
                 move: owner.baseMovementBudget,
                 jump: airborneJump(

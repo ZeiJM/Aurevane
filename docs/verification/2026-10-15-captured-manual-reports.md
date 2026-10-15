@@ -1,0 +1,19 @@
+# Captured Manual Skill and Essence reports — October 15
+
+This Task7 subset follows local a4f157250daa2c3b5cbdeebd2955c7ca8419da4f / durable 1614057bd635fa4e07623db8a6e888a23ad41694, tree 989a992146d48b37c1b1112a3c359e1eee373971, draft PR904. Nothing new is live. It does not close the complete public reader/privacy migration or the requested roster/release gates.
+
+The native Controlled-price case exposed a concrete discrepancy: execution used captured Damage10, while the old Skill popup displayed legacy Damage9 and Slow. Captured cost/cooldown alone could not correct the remaining mechanics.
+
+The actual owner-only Manual action projection now supplies the complete safe report derived from the captured behavior. The selected Skill and Essence popup uses its ten ordered fields, typed effect parts and recipients, conditional/Requirement explanations and usage limits. The existing Basic report remains its authority. Ambiguous or stale group references show Choose action or Unavailable instead of substituting the legacy group. Historical transport without this metadata retains its previous fallback.
+
+Report effects use the encounter's saved timing, elemental, DoT, Frozen Ground, Airborne, Healing Down and Blindside policy context rather than current global defaults. Native elemental companion summaries receive the complete group context so implicit Instant companions retain their actual timing. Explicit and inherited Controlled behavior remains authoritative. One shared pure renderer uses existing tag/value colors; no artwork dimensions, popup lifecycle, focus handlers or command transport changes are introduced.
+
+Reports contain formatted public Requirements, not raw Requirement ASTs. Raw execution definitions, authoring accuracy, source instance references and return anchors are not added. Existing tests that treated an owner's displayed Requirement number as forbidden were corrected to distinguish the required public explanation from the still-forbidden private object. Spectators receive no owner action reports; projection is detached and does not mutate the saved capture.
+
+Meaningful RED cases covered missing producer reports, selected-group propagation, popup legacy mechanics, saved elemental context and implicit companion timing. The additional actual producer history fixture initially lacked Fire's mandatory companion; it was corrected to a valid definition without weakening validation. Removing only production context propagation then reproduced the wording failure; restoring it passed. Seven covering files pass75 tests, including actual service DTO assertions, Skill/Essence integration and the complete ten-field/usage/recipient/privacy projection checks.
+
+The native runner now asserts Damage10, absence of the legacy Slow/Damage9 and Controlled timing inside the real popup in desktop/mobile PvP/PvE, retaining computed color, popup geometry, keyboard/touch and command assertions. Its latest-source execution and visual acceptance remain pending until the checkpoint is saved.
+
+The complete `pnpm check` exits0: 6,017 Vitest tests and seven Node checks pass, alongside formatting, lint, all eight typecheck tasks and both build tasks. Core3136, web2650, database107, validation102, audio17, realtime3 and worker2. The preserved log is `captured-reports-full-check.log`. No migration or hosted mutation belongs to this subset. Current/pinned Nexus and Resonance readers, summon and recursive public boundaries, the one-time canonical Rewind version, full authoring workflows and creative every-tag roster remain outstanding.
+
+Previous-head CI1614057 has16 of18 workflows successful when checked; Browser smoke still running, and Atlas reports49 passed /1 failed /82 skipped. Its failure is the existing World peer-motion bound at world-presence-case.ts:552, received0.9081362536002189 against<0.75. The bound is preserved; this is not evidence of full browser acceptance.

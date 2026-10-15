@@ -7,6 +7,7 @@ import {
 } from '@aurevane/game-core/combat/combat-targeting-shapes'
 import type { CombatTargetSpec } from '@aurevane/game-core/combat/actions'
 import type { AbilityBehavior } from '@aurevane/game-core/combat/combat-definition'
+import type { BattleAbilityBehaviorReport } from '@/lib/battle/battle-basic-actions'
 
 interface PreviewSelectionCombatant {
   combatantId: string
@@ -49,6 +50,7 @@ export interface BattleCapturedActionTarget {
   move?: { maximumTiles: number; conditional: boolean }
   costs?: AbilityBehavior['costs']
   cooldown?: AbilityBehavior['cooldown']
+  report?: BattleAbilityBehaviorReport
 }
 
 /** Free commands contain captured references only; an ambiguous Manual group requires a choice. */

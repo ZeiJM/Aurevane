@@ -1,8 +1,23 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
+import type { ReactNode } from 'react'
+
+// Mount the portalled reader's children during SSR; its native lifecycle is covered by the browser matrix.
+vi.mock('./battle-info-popover', () => ({
+  BattleInfoPopover: ({ label, children }: { label: string; children: ReactNode }) => (
+    <>
+      <button type="button" aria-label={label}>
+        i
+      </button>
+      {children}
+    </>
+  ),
+}))
 
 import { BattleSelectedSkills } from './battle-selected-skills'
 import type { BattleRuntime } from './battle-runtime'
+import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
+import { abilityBehaviorInformation } from '../character/ability-detail-presentation'
 
 const technique = {
   id: 'vanguard.forceful-strike',
@@ -74,10 +89,10 @@ describe('battle Skill presentation', () => {
     )
     expect(markup.match(/data-battle-cockpit-controls="true"/g)).toHaveLength(6)
     expect(markup).toMatch(
-      /<strong>Empty<\/strong><div[^>]*data-battle-cockpit-controls="true"[^>]*><button[^>]*aria-label="About selected Skill slot 1"[^>]*>i<\/button><span[^>]*>4<\/span>/,
+      /<strong>Empty<\/strong><div[^>]*data-battle-cockpit-controls="true"[^>]*><button[^>]*aria-label="About selected Skill slot 1"[^>]*>i<\/button>[\s\S]*?<span[^>]*>4<\/span>/,
     )
     expect(markup).toMatch(
-      /<strong>Severance \/ Ascension<\/strong><div[^>]*data-battle-cockpit-controls="true"[^>]*><button[^>]*>i<\/button><span[^>]*>9<\/span>/,
+      /<strong>Severance \/ Ascension<\/strong><div[^>]*data-battle-cockpit-controls="true"[^>]*><button[^>]*>i<\/button>[\s\S]*?<span[^>]*>9<\/span>/,
     )
   })
 
@@ -138,6 +153,14 @@ describe('captured Manual payment presentation', () => {
       behaviorId: 'use',
       costs,
       cooldown: null,
+      report: abilityBehaviorInformation({
+        ...defaultBasicSkills().find((row) => row.id === 'basic.guard')!.ability.behaviors[0]!,
+        costs,
+        cooldown: null,
+        effects: [
+          { id: 'barrier', payload: { type: 'barrier-change', recipient: 'actor', amount: 17 } },
+        ],
+      }),
       target: {
         kind: 'self' as const,
         teamPolicy: 'self' as const,
@@ -175,6 +198,12 @@ describe('captured Manual payment presentation', () => {
     expect(markup).toContain('11 AP / 2 MP / 1 HP')
     expect(markup).not.toContain('15 AP')
     expect(markup.match(/data-battle-controlled-ready="true"/g)).toHaveLength(2)
+  })
+  it('uses the captured complete group report for both Skill and Essence information readers', () => {
+    const markup = render(12, 2, 2)
+    expect(markup.match(/data-compact-effect-magnitude="true">\[17\]<\/span>/g)).toHaveLength(2)
+    expect(markup).not.toContain('Deal damage.')
+    expect(markup.match(/<dt>Skill Type<\/dt><dd>Utility<\/dd>/g)).toHaveLength(2)
   })
   it.each([
     [10, 2, 2],

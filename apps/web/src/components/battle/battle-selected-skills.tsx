@@ -157,6 +157,7 @@ export function BattleSelectedSkills({
                       skill={skill}
                       costLabel={payment?.costLabel}
                       cooldownLabel={payment?.cooldownLabel}
+                      capturedReport={payment?.report}
                     />
                   </SkillControls>
                   <small className={styles.discipline}>
@@ -219,6 +220,7 @@ export function BattleSelectedSkills({
                 skill={runtime.essence}
                 costLabel={essenceCost?.costLabel}
                 cooldownLabel={essenceCost?.cooldownLabel}
+                capturedReport={essenceCost?.report}
               />
             </SkillControls>
             <small>Essence</small>

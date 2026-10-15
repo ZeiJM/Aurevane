@@ -767,6 +767,17 @@ try {
               const dialog = page.getByRole('dialog')
               await dialog.waitFor({ state: 'visible' })
               assert.match(await dialog.innerText(), /11 AP \/ 2 MP \/ 1 HP/)
+              assert.match(
+                await dialog.innerText(),
+                /Dmg \[10\]/,
+                'the report uses captured effect power',
+              )
+              assert.doesNotMatch(
+                await dialog.innerText(),
+                /Slow|Dmg \[9\]/,
+                'legacy envelope effects do not replace the captured group',
+              )
+              assert.match(await dialog.innerText(), /\[Controlled\]/)
               const tagColors = await dialog.evaluate((element) => ({
                 magnitude: getComputedStyle(
                   element.querySelector('[data-compact-effect-magnitude]'),

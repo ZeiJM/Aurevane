@@ -97,6 +97,13 @@ function canonicalPublicState(state) {
               ownerCombatantId: source.ownerCombatantId,
               costs: behavior.costs.map((cost) => ({ ...cost })),
               cooldown: behavior.cooldown ? { ...behavior.cooldown } : null,
+              ...(source.basic
+                ? {}
+                : {
+                    report: abilityBehaviorInformation(behavior, {
+                      timingPolicy: state.effectTimingPolicy ?? null,
+                    }),
+                  }),
             }
           : {}),
         ...(controlled ? { controlled } : {}),

@@ -143,6 +143,19 @@ it('actual reference parser, preview and atomic CAS commit share plural geometry
       target: targeting,
       costs: ability.behaviors[0]!.costs,
       cooldown: null,
+      report: expect.objectContaining({
+        rows: expect.arrayContaining([
+          ['Cost', '11 AP / 2 MP / 1 HP'],
+          ['Range', '20'],
+        ]),
+        effects: [
+          expect.objectContaining({
+            parts: expect.objectContaining({ label: 'Dmg', magnitude: '3' }),
+            recipient: 'Affected units',
+          }),
+        ],
+        limits: [],
+      }),
     },
   ])
   expect(projectBattleSnapshot(state, createSpectatorBattleViewerEntitlement())).toHaveProperty(

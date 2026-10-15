@@ -3,9 +3,8 @@ import type { AbilityBehavior } from '@aurevane/game-core/combat/combat-definiti
 import type { CombatTargetSpec } from '@aurevane/game-core/combat/actions'
 import type { abilityBehaviorInformation } from '@/components/character/ability-detail-presentation'
 
-export interface BattleBasicBehaviorPresentation extends ReturnType<
-  typeof abilityBehaviorInformation
-> {
+export type BattleAbilityBehaviorReport = ReturnType<typeof abilityBehaviorInformation>
+export interface BattleBasicBehaviorPresentation extends BattleAbilityBehaviorReport {
   readonly behaviorId: string
   readonly classification: AbilityBehavior['classification']
   readonly costs: AbilityBehavior['costs']

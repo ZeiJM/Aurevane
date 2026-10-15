@@ -62,6 +62,7 @@ export function skillEffectDescription(
     legacyAirborne?: boolean
     legacyAirborneJump?: boolean
     legacyHealingDown?: boolean
+    legacyBlindsideActivation?: boolean
     legacyElemental?: boolean
     explicitElemental?: boolean
     rewindPrimeAnchor?: boolean
