@@ -23,6 +23,8 @@ import {
   type CombatContentValidationResult,
   type CombatContentVersionHistoryEntry,
 } from './combat-content-workflow'
+import { AbilityDefinitionEditor } from './ability-definition-editor'
+import { validateAbilityDefinition } from '@aurevane/game-core/combat/combat-definition'
 import { SkillEffectListEditor } from './skill-effect-list-editor'
 import { SkillMediaEditor } from './skill-media-editor'
 import { ResonanceParameters } from '../../character/resonance-parameters'
@@ -32,6 +34,7 @@ export interface ResonanceContentEditorOption {
   readonly label: string
   readonly disciplinePair: readonly [string, string]
   readonly currentVersion: number
+  readonly versionFloor?: number | null
   readonly baseVersion: number | null
   readonly draftVersion: number | null
   readonly definition: AnyResonanceDefinition
@@ -125,7 +128,7 @@ export function ResonanceContentEditor({
   const selectedCurrentVersion =
     selectedHistory.find((entry) => entry.current)?.contentVersion ?? selected?.currentVersion ?? 1
   const selectedNextVersion = selected
-    ? nextCombatContentVersion(selectedCurrentVersion, selectedHistory)
+    ? nextCombatContentVersion(selectedCurrentVersion, selectedHistory, selected.versionFloor)
     : 1
   const busy = selected ? busyId === selected.id : false
 
@@ -274,9 +277,9 @@ export function ResonanceContentEditor({
 
   const draft = selectedDraft
   const pair = draft.disciplinePair
-  const mechanics = normalizedResonanceMechanics(draft)
-  const setup = mechanics.setup
-  const triggerMatcher = mechanics.trigger
+  const mechanics = Object.hasOwn(draft, 'ability') ? null : normalizedResonanceMechanics(draft)
+  const setup = mechanics?.setup ?? null
+  const triggerMatcher = mechanics?.trigger
   const v2 = isResonanceDefinitionV2(draft)
 
   function updateSetup(nextSetup: typeof setup) {
@@ -294,7 +297,7 @@ export function ResonanceContentEditor({
     })
   }
 
-  function updateTriggerMatcher(nextTrigger: typeof triggerMatcher) {
+  function updateTriggerMatcher(nextTrigger: NonNullable<typeof triggerMatcher>) {
     if (isResonanceDefinitionV2(draft)) {
       updateDraft({
         ...draft,
@@ -438,7 +441,15 @@ export function ResonanceContentEditor({
           <div className={styles.authoringStack}>
             <section className={styles.reviewBlock} aria-label="Resonance Skill preview">
               <h3>Skill preview</h3>
-              <ResonanceParameters definition={selectedDraft} className={styles.resonancePreview} />
+              {!Object.hasOwn(selectedDraft, 'ability') ||
+              validateAbilityDefinition(selectedDraft.ability).length === 0 ? (
+                <ResonanceParameters
+                  definition={selectedDraft}
+                  className={styles.resonancePreview}
+                />
+              ) : (
+                <p role="status">Resolve Ability compatibility to show the player preview.</p>
+              )}
             </section>
             <fieldset className={styles.typedGroup}>
               <legend>Identity &amp; presentation</legend>
@@ -473,197 +484,212 @@ export function ResonanceContentEditor({
               </div>
             </fieldset>
 
-            <fieldset className={styles.typedGroup}>
-              <legend>Resonance mode</legend>
-              <div className={styles.typedGrid}>
-                <label className={styles.field}>
-                  <span>Mode</span>
-                  <select
-                    aria-label="Resonance mode"
-                    disabled={!v2}
-                    value={mechanics.mode}
-                    onChange={(event) => {
-                      if (!isResonanceDefinitionV2(draft)) return
-                      const mode = event.currentTarget.value as 'sequence' | 'immediate'
-                      const defaultSetup = {
-                        sourceDisciplineId:
-                          pair.find(
-                            (disciplineId) => disciplineId !== triggerMatcher.sourceDisciplineId,
-                          ) ?? pair[0],
-                        requiredTags: ['attack'],
-                      }
-                      updateDraft({
-                        ...draft,
-                        trigger: {
-                          ...draft.trigger,
-                          mode,
-                          setup: mode === 'immediate' ? null : (setup ?? defaultSetup),
-                          aiSetupUtilityBonus:
-                            mode === 'immediate'
-                              ? 0
-                              : Math.max(1, draft.trigger.aiSetupUtilityBonus || 10),
-                        },
-                      })
-                    }}
-                  >
-                    <option value="sequence">Sequence · Setup → Trigger → Result</option>
-                    <option value="immediate">Immediate · Trigger → Result</option>
-                  </select>
-                  {!v2 ? (
-                    <small className={styles.fieldHint}>
-                      Historical schema v1 is preserved as a sequence Resonance.
-                    </small>
-                  ) : null}
-                </label>
-              </div>
-            </fieldset>
-
-            {setup ? (
-              <fieldset className={styles.typedGroup}>
-                <legend>Setup</legend>
-                <div className={styles.typedGrid}>
-                  <label className={styles.field}>
-                    <span>Setup Discipline</span>
-                    <select
-                      aria-label="Resonance Setup Discipline"
-                      value={setup.sourceDisciplineId}
-                      onChange={(event) =>
-                        updateSetup({
-                          ...setup,
-                          sourceDisciplineId: event.currentTarget.value,
-                        })
-                      }
-                    >
-                      {pair.map((disciplineId) => (
-                        <option key={disciplineId} value={disciplineId}>
-                          {titleIdentity(disciplineId)}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className={styles.field}>
-                    <span>Skill matching</span>
-                    <select
-                      aria-label="Resonance Setup matching"
-                      value={setup.matchMode ?? 'required-tags'}
-                      onChange={(event) =>
-                        updateSetup(
-                          event.currentTarget.value === 'any-skill'
-                            ? { ...setup, matchMode: 'any-skill', requiredTags: [] }
-                            : {
-                                ...setup,
-                                matchMode: undefined,
-                                requiredTags: setup.requiredTags.length
-                                  ? setup.requiredTags
-                                  : ['attack'],
-                              },
-                        )
-                      }
-                    >
-                      <option value="required-tags">Require Skill tags</option>
-                      <option value="any-skill">Any Skill in this Discipline</option>
-                    </select>
-                  </label>
-                  <label className={styles.field}>
-                    <span>Required tags</span>
-                    <input
-                      aria-label="Resonance Setup tags"
-                      disabled={setup.matchMode === 'any-skill'}
-                      value={setup.requiredTags.join(', ')}
-                      onChange={(event) =>
-                        updateSetup({
-                          ...setup,
-                          requiredTags: tagsFromInput(event.currentTarget.value).slice(0, 2),
-                        })
-                      }
-                    />
-                    <small className={styles.fieldHint}>
-                      {setup.matchMode === 'any-skill'
-                        ? 'Every Skill in the Setup Discipline qualifies.'
-                        : 'One or two comma-separated canonical Skill tags.'}
-                    </small>
-                  </label>
-                  <label className={styles.field}>
-                    <span>AI setup utility</span>
-                    <input
-                      aria-label="Resonance AI setup utility"
-                      min={0}
-                      type="number"
-                      value={selectedDraft.trigger.aiSetupUtilityBonus}
-                      onChange={(event) => updateSetupUtility(Number(event.currentTarget.value))}
-                    />
-                  </label>
-                </div>
-              </fieldset>
-            ) : (
-              <fieldset className={styles.typedGroup}>
-                <legend>Setup</legend>
-                <p className={styles.effectNote}>
-                  None. This Resonance activates immediately when its Trigger matches, so its Result
-                  is intentionally lighter than a comparable sequence Resonance.
-                </p>
-              </fieldset>
-            )}
-
-            <fieldset className={styles.typedGroup}>
-              <legend>Trigger</legend>
-              <div className={styles.typedGrid}>
-                <label className={styles.field}>
-                  <span>Trigger Discipline</span>
-                  <select
-                    aria-label="Resonance Trigger Discipline"
-                    value={triggerMatcher.sourceDisciplineId}
-                    onChange={(event) =>
-                      updateTriggerMatcher({
-                        ...triggerMatcher,
-                        sourceDisciplineId: event.currentTarget.value,
-                      })
-                    }
-                  >
-                    {pair.map((disciplineId) => (
-                      <option key={disciplineId} value={disciplineId}>
-                        {titleIdentity(disciplineId)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className={styles.field}>
-                  <span>Required tags</span>
-                  <input
-                    aria-label="Resonance Trigger tags"
-                    value={triggerMatcher.requiredTags.join(', ')}
-                    onChange={(event) =>
-                      updateTriggerMatcher({
-                        ...triggerMatcher,
-                        requiredTags: tagsFromInput(event.currentTarget.value).slice(0, 2),
-                      })
-                    }
-                  />
-                  <small className={styles.fieldHint}>
-                    One or two comma-separated canonical Skill tags.
-                  </small>
-                </label>
-                <label className={styles.field}>
-                  <span>AI trigger utility</span>
-                  <input
-                    aria-label="Resonance AI trigger utility"
-                    min={0}
-                    type="number"
-                    value={mechanics.aiTriggerUtilityBonus}
-                    onChange={(event) => updateTriggerUtility(Number(event.currentTarget.value))}
-                  />
-                </label>
-              </div>
-            </fieldset>
-
-            <fieldset className={styles.typedGroup}>
-              <legend>Result</legend>
-              <SkillEffectListEditor
-                value={mechanics.resultEffects}
-                maxEffects={2}
-                onChange={(resultEffects) => updateResultEffects(resultEffects)}
+            {Object.hasOwn(draft, 'ability') ? (
+              <AbilityDefinitionEditor
+                value={draft.ability!}
+                allowEffectDescriptions={false}
+                onChange={(ability) => updateDraft({ ...draft, ability })}
               />
-            </fieldset>
+            ) : mechanics && triggerMatcher ? (
+              <>
+                <fieldset className={styles.typedGroup}>
+                  <legend>Resonance mode</legend>
+                  <div className={styles.typedGrid}>
+                    <label className={styles.field}>
+                      <span>Mode</span>
+                      <select
+                        aria-label="Resonance mode"
+                        disabled={!v2}
+                        value={mechanics.mode}
+                        onChange={(event) => {
+                          if (!isResonanceDefinitionV2(draft)) return
+                          const mode = event.currentTarget.value as 'sequence' | 'immediate'
+                          const defaultSetup = {
+                            sourceDisciplineId:
+                              pair.find(
+                                (disciplineId) =>
+                                  disciplineId !== triggerMatcher.sourceDisciplineId,
+                              ) ?? pair[0],
+                            requiredTags: ['attack'],
+                          }
+                          updateDraft({
+                            ...draft,
+                            trigger: {
+                              ...draft.trigger,
+                              mode,
+                              setup: mode === 'immediate' ? null : (setup ?? defaultSetup),
+                              aiSetupUtilityBonus:
+                                mode === 'immediate'
+                                  ? 0
+                                  : Math.max(1, draft.trigger.aiSetupUtilityBonus || 10),
+                            },
+                          })
+                        }}
+                      >
+                        <option value="sequence">Sequence · Setup → Trigger → Result</option>
+                        <option value="immediate">Immediate · Trigger → Result</option>
+                      </select>
+                      {!v2 ? (
+                        <small className={styles.fieldHint}>
+                          Historical schema v1 is preserved as a sequence Resonance.
+                        </small>
+                      ) : null}
+                    </label>
+                  </div>
+                </fieldset>
+
+                {setup ? (
+                  <fieldset className={styles.typedGroup}>
+                    <legend>Setup</legend>
+                    <div className={styles.typedGrid}>
+                      <label className={styles.field}>
+                        <span>Setup Discipline</span>
+                        <select
+                          aria-label="Resonance Setup Discipline"
+                          value={setup.sourceDisciplineId}
+                          onChange={(event) =>
+                            updateSetup({
+                              ...setup,
+                              sourceDisciplineId: event.currentTarget.value,
+                            })
+                          }
+                        >
+                          {pair.map((disciplineId) => (
+                            <option key={disciplineId} value={disciplineId}>
+                              {titleIdentity(disciplineId)}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className={styles.field}>
+                        <span>Skill matching</span>
+                        <select
+                          aria-label="Resonance Setup matching"
+                          value={setup.matchMode ?? 'required-tags'}
+                          onChange={(event) =>
+                            updateSetup(
+                              event.currentTarget.value === 'any-skill'
+                                ? { ...setup, matchMode: 'any-skill', requiredTags: [] }
+                                : {
+                                    ...setup,
+                                    matchMode: undefined,
+                                    requiredTags: setup.requiredTags.length
+                                      ? setup.requiredTags
+                                      : ['attack'],
+                                  },
+                            )
+                          }
+                        >
+                          <option value="required-tags">Require Skill tags</option>
+                          <option value="any-skill">Any Skill in this Discipline</option>
+                        </select>
+                      </label>
+                      <label className={styles.field}>
+                        <span>Required tags</span>
+                        <input
+                          aria-label="Resonance Setup tags"
+                          disabled={setup.matchMode === 'any-skill'}
+                          value={setup.requiredTags.join(', ')}
+                          onChange={(event) =>
+                            updateSetup({
+                              ...setup,
+                              requiredTags: tagsFromInput(event.currentTarget.value).slice(0, 2),
+                            })
+                          }
+                        />
+                        <small className={styles.fieldHint}>
+                          {setup.matchMode === 'any-skill'
+                            ? 'Every Skill in the Setup Discipline qualifies.'
+                            : 'One or two comma-separated canonical Skill tags.'}
+                        </small>
+                      </label>
+                      <label className={styles.field}>
+                        <span>AI setup utility</span>
+                        <input
+                          aria-label="Resonance AI setup utility"
+                          min={0}
+                          type="number"
+                          value={selectedDraft.trigger.aiSetupUtilityBonus}
+                          onChange={(event) =>
+                            updateSetupUtility(Number(event.currentTarget.value))
+                          }
+                        />
+                      </label>
+                    </div>
+                  </fieldset>
+                ) : (
+                  <fieldset className={styles.typedGroup}>
+                    <legend>Setup</legend>
+                    <p className={styles.effectNote}>
+                      None. This Resonance activates immediately when its Trigger matches, so its
+                      Result is intentionally lighter than a comparable sequence Resonance.
+                    </p>
+                  </fieldset>
+                )}
+
+                <fieldset className={styles.typedGroup}>
+                  <legend>Trigger</legend>
+                  <div className={styles.typedGrid}>
+                    <label className={styles.field}>
+                      <span>Trigger Discipline</span>
+                      <select
+                        aria-label="Resonance Trigger Discipline"
+                        value={triggerMatcher.sourceDisciplineId}
+                        onChange={(event) =>
+                          updateTriggerMatcher({
+                            ...triggerMatcher,
+                            sourceDisciplineId: event.currentTarget.value,
+                          })
+                        }
+                      >
+                        {pair.map((disciplineId) => (
+                          <option key={disciplineId} value={disciplineId}>
+                            {titleIdentity(disciplineId)}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className={styles.field}>
+                      <span>Required tags</span>
+                      <input
+                        aria-label="Resonance Trigger tags"
+                        value={triggerMatcher.requiredTags.join(', ')}
+                        onChange={(event) =>
+                          updateTriggerMatcher({
+                            ...triggerMatcher,
+                            requiredTags: tagsFromInput(event.currentTarget.value).slice(0, 2),
+                          })
+                        }
+                      />
+                      <small className={styles.fieldHint}>
+                        One or two comma-separated canonical Skill tags.
+                      </small>
+                    </label>
+                    <label className={styles.field}>
+                      <span>AI trigger utility</span>
+                      <input
+                        aria-label="Resonance AI trigger utility"
+                        min={0}
+                        type="number"
+                        value={mechanics.aiTriggerUtilityBonus}
+                        onChange={(event) =>
+                          updateTriggerUtility(Number(event.currentTarget.value))
+                        }
+                      />
+                    </label>
+                  </div>
+                </fieldset>
+
+                <fieldset className={styles.typedGroup}>
+                  <legend>Result</legend>
+                  <SkillEffectListEditor
+                    value={mechanics.resultEffects}
+                    maxEffects={2}
+                    onChange={(resultEffects) => updateResultEffects(resultEffects)}
+                  />
+                </fieldset>
+              </>
+            ) : null}
             <SkillMediaEditor
               value={selectedDraft.media}
               onChange={(media) => updateDraft({ ...selectedDraft, media })}

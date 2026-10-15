@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { canonicalAbilityTargetSpec } from '@aurevane/game-core/combat/combat-targeting-shapes'
 import { createPendingBattle } from '@aurevane/game-core/combat/battle-state'
 import { resolveEssenceForBuild } from '@aurevane/game-core/combat/essence'
 import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
@@ -50,6 +51,11 @@ const snapshot = (key: string, ticks: number) =>
     },
   }) as unknown as BattleSessionView
 const essence = resolveEssenceForBuild('vanguard', null)!.skill
+const capturedEssenceTarget = {
+  ...canonicalAbilityTargetSpec(essence.target),
+  maximumSelections: essence.target.maximumSelections ?? 1,
+  categories: essence.target.categories ? [...essence.target.categories] : undefined,
+}
 const presentation = {
   id: essence.id,
   name: 'Essence',
@@ -148,4 +154,62 @@ describe('authoritative cockpit cooldowns', () => {
       ),
     ).toBe(0)
   })
+})
+
+it('uses a captured non-Move cooldown instead of the runtime envelope and scopes it to its owner', () => {
+  const battle = snapshot('edited-key', 2)
+  battle.snapshot.manualActionTargets = [
+    {
+      ownerCombatantId: 'actor',
+      actionId: essence.id,
+      behaviorId: 'edited',
+      target: capturedEssenceTarget,
+      costs: [{ resource: 'ap', amount: 11 }],
+      cooldown: { key: 'edited-key', ownerTurns: 3 },
+    },
+  ]
+  expect(
+    battleActionCooldownTurns(battle, { ...runtime, essence: presentation }, 'actor', essence.id),
+  ).toBe(2)
+  battle.snapshot.manualActionTargets = [
+    {
+      ...battle.snapshot.manualActionTargets![0]!,
+      cooldown: null,
+    },
+  ]
+  expect(
+    battleActionCooldownTurns(battle, { ...runtime, essence: presentation }, 'actor', essence.id),
+  ).toBe(0)
+})
+it('chooses the selected captured cooldown and does not guess one for an ambiguous action', () => {
+  const battle = snapshot('edited-key', 2)
+  battle.snapshot.manualActionTargets = [
+    {
+      ownerCombatantId: 'actor',
+      actionId: essence.id,
+      behaviorId: 'locked',
+      target: capturedEssenceTarget,
+      costs: [],
+      cooldown: { key: 'edited-key', ownerTurns: 3 },
+    },
+    {
+      ownerCombatantId: 'actor',
+      actionId: essence.id,
+      behaviorId: 'free',
+      target: capturedEssenceTarget,
+      costs: [],
+      cooldown: null,
+    },
+    {
+      ownerCombatantId: 'other',
+      actionId: essence.id,
+      behaviorId: 'free',
+      target: capturedEssenceTarget,
+      costs: [],
+      cooldown: { key: 'edited-key', ownerTurns: 3 },
+    },
+  ]
+  expect(battleActionCooldownTurns(battle, runtime, 'actor', essence.id, 'locked')).toBe(2)
+  expect(battleActionCooldownTurns(battle, runtime, 'actor', essence.id, 'free')).toBe(0)
+  expect(battleActionCooldownTurns(battle, runtime, 'actor', essence.id)).toBe(0)
 })

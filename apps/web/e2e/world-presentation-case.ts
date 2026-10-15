@@ -231,6 +231,99 @@ export function registerWorldInputCases({
   capture: (page: Page, info: TestInfo, name: string) => Promise<void>
   openJournal: (page: Page) => Promise<void>
 }) {
+  test('minimum-zoom public scenery stays painted while walking with delayed scene hydration', async ({
+    page,
+  }, info) => {
+    test.skip(info.project.name === 'laptop-chromium', 'Check mouse and touch coverage once each.')
+    test.setTimeout(60000)
+    await enter(page)
+    const initial = await world(page)
+    place(initial.characterId, 'atlas:62:28', 6, 4)
+    await page.reload()
+    const canvas = page.locator('canvas[data-world-stage]')
+    await expect(canvas).toHaveAttribute('data-camera-x', /\d/)
+    await page.getByRole('button', { name: 'Map settings', exact: true }).click()
+    const zoom = page.getByRole('slider', { name: 'Zoom level', exact: true })
+    await zoom.focus()
+    await zoom.press('Home')
+    await expect(zoom).toHaveValue('35')
+    await page.getByRole('button', { name: 'Done', exact: true }).click()
+    await canvas.evaluate((el) => {
+      const stage = el as HTMLCanvasElement
+      const context = stage.getContext('2d')!,
+        original = context.drawImage.bind(context)
+      const originalFill = context.fillRect.bind(context)
+      let groundLayers = 0
+      context.fillRect = (x, y, width, height) => {
+        if (x === 0 && y === 0 && width === stage.clientWidth && height === stage.clientHeight)
+          groundLayers = 0
+        originalFill(x, y, width, height)
+      }
+      context.drawImage = ((image: CanvasImageSource, ...args: number[]) => {
+        const tile = Number(stage.dataset.tileSize)
+        if (
+          image instanceof HTMLCanvasElement &&
+          args.length === 4 &&
+          args[0] === 0 &&
+          args[1] === 0 &&
+          args[2] === 13 * tile &&
+          args[3] === 9 * tile
+        ) {
+          groundLayers++
+          stage.dataset.testGroundLayers = String(groundLayers)
+        }
+        Reflect.apply(original, context, [image, ...args])
+      }) as typeof context.drawImage
+    })
+    const delayedReads: Promise<void>[] = []
+    let delayEnabled = true
+    const delayScene = (route: import('@playwright/test').Route) => {
+      if (delayEnabled && route.request().method() === 'GET') {
+        const response = (async () => {
+          const receipt = await route.fetch()
+          await page.waitForTimeout(900)
+          await route.fulfill({ response: receipt })
+        })()
+        delayedReads.push(response)
+        void response.catch(() => {})
+        return response
+      }
+      return route.continue()
+    }
+    await page.route('**/api/world', delayScene)
+    try {
+      const dispatched = page.waitForResponse(
+        (response) =>
+          response.request().method() === 'POST' &&
+          new URL(response.url()).pathname === '/api/world' &&
+          response.request().postDataJSON()?.intent?.kind === 'walk' &&
+          response.request().postDataJSON()?.intent?.destination?.sectorId === 'atlas:63:28',
+      )
+      await stageWalk(page, { sectorId: 'atlas:63:28', x: 6, y: 4 })
+      expect((await dispatched).status()).toBe(200)
+      await expect
+        .poll(() => canvas.evaluate((el) => Number(el.dataset.testGroundLayers)))
+        .toBeGreaterThan(0)
+      if (info.project.name === 'desktop-chromium')
+        await expect
+          .poll(() => canvas.evaluate((el) => Number(el.dataset.testGroundLayers)))
+          .toBeGreaterThan(25)
+      await capture(page, info, 'minimum-zoom-scenery-during-walk')
+      await expect
+        .poll(async () => (await world(page)).position, { timeout: 12000 })
+        .toEqual({ sectorId: 'atlas:63:28', x: 6, y: 4 })
+      await capture(page, info, 'minimum-zoom-scenery-arrival')
+    } finally {
+      delayEnabled = false
+      const reads = await Promise.allSettled(delayedReads)
+      await page.unroute('**/api/world', delayScene)
+      const failure = reads.find((response) => response.status === 'rejected')
+      if (failure?.status === 'rejected') throw failure.reason
+      // A later viewport project must not click this fixture's portrait at
+      // the same destination instead of the intended ground tile.
+      place(initial.characterId, initial.position.sectorId, initial.position.x, initial.position.y)
+    }
+  })
   test('a distant click stays continuous when a delayed confirmation takes another legal route', async ({
     page,
   }, info) => {
@@ -704,23 +797,38 @@ export function registerWorldInputCases({
     await expect(canvas).toHaveAttribute('data-camera-x', /\d/)
     let walks = 0,
       walkConflicts = 0
+    const walkDestinations: WorldView['position'][] = []
+    const approvalTimings: { status: number; responseMs: number; serverTiming: string }[] = []
+    const timingReads: Promise<void>[] = []
     page.on('request', (request) => {
       if (
         new URL(request.url()).pathname === '/api/world' &&
         request.method() === 'POST' &&
         request.postDataJSON()?.intent?.kind === 'walk'
-      )
+      ) {
         walks++
+        walkDestinations.push(request.postDataJSON().intent.destination)
+      }
     })
     page.on('response', (response) => {
       const request = response.request()
       if (
         new URL(response.url()).pathname === '/api/world' &&
         request.method() === 'POST' &&
-        request.postDataJSON()?.intent?.kind === 'walk' &&
-        response.status() === 409
-      )
-        walkConflicts++
+        request.postDataJSON()?.intent?.kind === 'walk'
+      ) {
+        if (response.status() === 409) walkConflicts++
+        const timing = (async () => {
+          await response.finished()
+          approvalTimings.push({
+            status: response.status(),
+            responseMs: request.timing().responseEnd,
+            serverTiming: response.headers()['server-timing'] ?? '',
+          })
+        })()
+        timingReads.push(timing)
+        void timing.catch(() => {})
+      }
     })
     await canvas.evaluate((element) => {
       const stage = element as HTMLCanvasElement
@@ -758,15 +866,35 @@ export function registerWorldInputCases({
     // The driver delay excludes keyboard round trips; measure the actual browser
     // key window and exclude authoritative retries from the input cadence count.
     const maximumWalks = 1 + Math.floor(heldMs / STEP_MS)
-    console.info('held-world-key-window', { heldMs, settledWalks, walkConflicts, maximumWalks })
-    expect(settledWalks - walkConflicts).toBeGreaterThanOrEqual(2)
-    expect(settledWalks - walkConflicts).toBeLessThanOrEqual(maximumWalks)
+    // Release has one intentional terminal retarget to the unfinished landing.
+    // Identify that shorter target rather than relaxing held-input cadence.
+    const shortening = walkDestinations.filter((target, index) => {
+      const previous = walkDestinations[index - 1]
+      return previous && target.sectorId === previous.sectorId && target.x < previous.x
+    })
+    expect(shortening.length).toBeLessThanOrEqual(1)
+    if (shortening.length) expect(walkDestinations.at(-1)).toEqual(shortening[0])
+    console.info('held-world-key-window', {
+      heldMs,
+      settledWalks,
+      walkConflicts,
+      maximumWalks,
+      terminalRetargets: shortening.length,
+    })
+    expect(settledWalks - walkConflicts - shortening.length).toBeGreaterThanOrEqual(2)
+    expect(settledWalks - walkConflicts - shortening.length).toBeLessThanOrEqual(maximumWalks)
     const arrived = (await world(page)).position
     expect(arrived.sectorId).toBe('atlas:58:28')
     expect(arrived.x).toBeGreaterThanOrEqual(8)
+    expect(arrived).toEqual(walkDestinations.at(-1))
     await page.waitForTimeout(600)
     expect(walks).toBe(settledWalks)
     expect((await world(page)).position).toEqual(arrived)
+    await Promise.all(timingReads)
+    await info.attach('held-walk-approval-timings', {
+      body: JSON.stringify(approvalTimings, null, 2),
+      contentType: 'application/json',
+    })
     await capture(page, info, 'held-walk-key-release')
   })
 

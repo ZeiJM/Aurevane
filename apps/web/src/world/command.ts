@@ -2,7 +2,7 @@ import { validCell } from './travel'
 import type { WorldCommand, WorldIntent } from './types'
 const object = (v: unknown): v is Record<string, unknown> =>
   v !== null && typeof v === 'object' && !Array.isArray(v)
-const uuid = (v: unknown): v is string =>
+export const isWorldUuid = (v: unknown): v is string =>
   typeof v === 'string' &&
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v)
 export function parseWorldCommand(value: unknown): WorldCommand | null {
@@ -10,8 +10,8 @@ export function parseWorldCommand(value: unknown): WorldCommand | null {
     !object(value) ||
     !Number.isSafeInteger(value.expectedVersion) ||
     (value.expectedVersion as number) < 1 ||
-    !uuid(value.commandId) ||
-    !uuid(value.characterId) ||
+    !isWorldUuid(value.commandId) ||
+    !isWorldUuid(value.characterId) ||
     !object(value.intent)
   )
     return null
@@ -42,7 +42,7 @@ export function parseWorldCommand(value: unknown): WorldCommand | null {
     input.objectiveId.length <= 100
   )
     intent = { kind: 'autopath', objectiveId: input.objectiveId }
-  else if (input.kind === 'attack' && uuid(input.targetId))
+  else if (input.kind === 'attack' && isWorldUuid(input.targetId))
     intent = { kind: 'attack', targetId: input.targetId }
   else return null
   return {

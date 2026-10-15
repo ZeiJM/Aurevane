@@ -1,7 +1,12 @@
+import {
+  combatEffectTimingMode,
+  currentCombatEffectTimingTag,
+  type CombatEffectTimingPolicy,
+} from './combat-effect-timing'
 import { automaticAbilityEventSupported } from './combat-ability-events'
 import type { CombatTargetSpec } from './actions'
 import { validateCombatActionDefinition } from './combat-authoring-validation'
-import { canonicalAbilityTargetSpec } from './combat-targeting-shapes'
+import { canonicalAbilityTargetSpec, combatTargetAllowsHostileHit } from './combat-targeting-shapes'
 import { validateSkillCooldownDefinition, type SkillCooldownDefinition } from './skill-cooldowns'
 import {
   validateAbilityRequirements,
@@ -52,7 +57,7 @@ export interface AbilityEffect {
   /** Recipient belongs solely to this implemented payload, never to this wrapper. */
   readonly payload: CombatTagPayload
   readonly requirements?: RequirementNode | null
-  readonly timing?: 'instant' | 'next-round' | 'delayed'
+  readonly timing?: 'instant' | 'next-round' | 'delayed' | 'controlled'
 }
 export interface AbilityBehavior {
   readonly id: string
@@ -419,11 +424,7 @@ export function validateAbilityDefinition(value: unknown): readonly AbilityDefin
         )
       if (
         !record(target) ||
-        !['unit', 'ground-tile'].includes(target.kind as string) ||
-        !['enemy', 'any'].includes(target.teamPolicy as string) ||
-        !['enemies-only', 'all-units', 'all-except-actor'].includes(
-          target.friendlyFire as string,
-        ) ||
+        !combatTargetAllowsHostileHit(target as unknown as CombatTargetSpec) ||
         candidate.mode !== 'action'
       )
         issue(
@@ -472,6 +473,15 @@ export function validateAbilityDefinition(value: unknown): readonly AbilityDefin
           'This Tag does not support that timing.',
         )
       if (
+        effect.timing === 'controlled' &&
+        (candidate.activation !== 'manual' || candidate.mode !== 'action')
+      )
+        issue(
+          `${effectPath}.timing`,
+          'unsupported-combination',
+          'Controlled requires a player-released whole Manual action.',
+        )
+      if (
         candidate.activation === 'ongoing' &&
         effect.requirements !== undefined &&
         effect.requirements !== null
@@ -483,6 +493,27 @@ export function validateAbilityDefinition(value: unknown): readonly AbilityDefin
         )
       payloads.push(payload)
     }
+    if (
+      candidate.effects.some((effect) => record(effect) && effect.timing === 'controlled') &&
+      payloads.some((payload) => payload.type === 'summon')
+    )
+      issue(
+        path,
+        'unsupported-combination',
+        'Controlled Summon requires its dedicated release authority.',
+      )
+    if (
+      candidate.effects.some((effect) => record(effect) && effect.timing === 'controlled') &&
+      payloads.some(
+        (payload) =>
+          payload.type === 'return-to-turn-start' && payload.anchorMode !== 'cast-position',
+      )
+    )
+      issue(
+        path,
+        'unsupported-combination',
+        'Controlled Rewind requires a captured cast-position anchor.',
+      )
     if (
       candidate.accuracy !== undefined &&
       !payloads.some(
@@ -506,7 +537,12 @@ export function validateAbilityDefinition(value: unknown): readonly AbilityDefin
           cost: { spendsAction: true, mp: 0 },
           requirements: [],
           effects: payloads
-            .filter((payload) => payload.type !== 'summon' && payload.type !== 'damage-bonus')
+            .filter(
+              (payload) =>
+                payload.type !== 'summon' &&
+                payload.type !== 'damage-bonus' &&
+                payload.type !== 'move',
+            )
             .map(nativeCombatTagPayload),
         })
       } catch (error) {
@@ -517,7 +553,31 @@ export function validateAbilityDefinition(value: unknown): readonly AbilityDefin
         )
       }
     }
+    const moves = payloads.filter((payload) => payload.type === 'move')
+    if (
+      moves.length &&
+      (moves.length !== 1 ||
+        payloads[0]?.type !== 'move' ||
+        payloads.some((payload) => payload.type === 'summon'))
+    )
+      issue(
+        path,
+        'unsupported-combination',
+        'Move must occur once, first, and cannot share a group with Summon.',
+      )
     const summons = payloads.filter((payload) => payload.type === 'summon')
+    if (
+      summons.length > 0 &&
+      record(target) &&
+      (target.maximumSelections !== 1 || !record(target.shape) || target.shape.kind !== 'single')
+    )
+      issue(path, 'unsupported-combination', 'Summon requires one single empty-tile selection.')
+    if (summons.length > 0 && payloads.at(-1)?.type !== 'summon')
+      issue(
+        path,
+        'unsupported-combination',
+        'Summon must be the final effect in its Manual action group.',
+      )
     if (candidate.mode === 'modifier') {
       for (const [ordinal, payload] of payloads.entries()) {
         if (payload.type !== 'apply-status' && payload.type !== 'remove-status') continue
@@ -658,4 +718,30 @@ export function validAccuracy(value: unknown): value is CombatAccuracyRule {
     nonnegative(value.chanceBasisPoints) &&
     value.chanceBasisPoints <= 10000
   )
+}
+
+/** Resolve pinned defaults without rewriting the authored/captured definition or its version. */
+export function applyAbilityTimingDefaults(
+  behavior: AbilityBehavior,
+  policy?: CombatEffectTimingPolicy,
+): AbilityBehavior {
+  if (!policy || !Object.values(policy.modes).includes('controlled')) return behavior
+  const effects = behavior.effects.map((effect) => {
+    if (
+      effect.timing !== undefined ||
+      effect.payload.type === 'move' ||
+      effect.payload.type === 'damage-bonus'
+    )
+      return effect
+    const tag =
+      effect.payload.type === 'summon'
+        ? 'summon'
+        : currentCombatEffectTimingTag(nativeCombatTagPayload(effect.payload))
+    return combatEffectTimingMode(policy, tag) === 'controlled'
+      ? { ...effect, timing: 'controlled' as const }
+      : effect
+  })
+  if (effects.every((effect, ordinal) => effect === behavior.effects[ordinal])) return behavior
+  return parseAbilityDefinition({ schemaVersion: 1, behaviors: [{ ...behavior, effects }] })
+    .behaviors[0]!
 }

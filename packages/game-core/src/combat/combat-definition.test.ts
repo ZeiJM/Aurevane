@@ -50,6 +50,67 @@ function ability() {
 }
 
 describe('canonical Ability definition', () => {
+  it.each([
+    { categories: ['ground'], friendlyFire: 'enemies-only', allowed: true },
+    { categories: ['ground'], friendlyFire: 'allies-only', allowed: false },
+    { categories: ['ally'], friendlyFire: 'enemies-only', allowed: false },
+    { categories: ['enemy'], friendlyFire: 'allies-only', allowed: true },
+  ])(
+    'uses category and Ground recipient authority for accuracy: $categories/$friendlyFire',
+    ({ categories, friendlyFire, allowed }) => {
+      const value = ability()
+      const behavior = value.behaviors[0]!
+      const issues = validateAbilityDefinition({
+        ...value,
+        behaviors: [
+          {
+            ...behavior,
+            accuracy: { kind: 'fixed', chanceBasisPoints: 10000 },
+            targeting: { ...behavior.targeting, geometryVersion: 3, categories, friendlyFire },
+          },
+        ],
+      })
+      if (allowed) expect(issues).toEqual([])
+      else expect(issues).toContainEqual(expect.objectContaining({ code: 'accuracy-inapplicable' }))
+    },
+  )
+  it('admits hostile accuracy from current categories despite a historical Self envelope', () => {
+    const value = ability()
+    const behavior = value.behaviors[0]!
+    const mixed = {
+      ...value,
+      behaviors: [
+        {
+          ...behavior,
+          accuracy: { kind: 'fixed', chanceBasisPoints: 10000 },
+          targeting: {
+            ...behavior.targeting,
+            geometryVersion: 3,
+            categories: ['self', 'enemy'],
+            kind: 'self',
+            teamPolicy: 'self',
+            minimumRange: 0,
+          },
+        },
+      ],
+    }
+    expect(validateAbilityDefinition(mixed)).toEqual([])
+    expect(parseAbilityDefinition(mixed).behaviors[0]!.accuracy).toEqual({
+      kind: 'fixed',
+      chanceBasisPoints: 10000,
+    })
+    expect(
+      validateAbilityDefinition({
+        ...mixed,
+        behaviors: [
+          {
+            ...mixed.behaviors[0],
+            targeting: { ...mixed.behaviors[0]!.targeting, categories: ['self'] },
+          },
+        ],
+      }),
+    ).toContainEqual(expect.objectContaining({ code: 'accuracy-inapplicable' }))
+  })
   it('requires explicit Automatic unit binding and admits exact supported subjects', () => {
     const value = ability()
     value.behaviors[0]!.activation = 'automatic'

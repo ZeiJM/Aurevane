@@ -1,3 +1,6 @@
+import { applyAbilityTimingDefaults } from './combat-definition'
+export { combatControlledAbilityAvailability, isControlledCombatAbility } from './combat-controlled'
+import type { CombatEffectTimingPolicy } from './combat-effect-timing'
 import { readSkillCooldown } from './skill-cooldowns'
 import { pruneCombatAbilityActionHistory } from './combat-ability-state'
 import { hasCurrentPoison, hasCurrentBleed, currentBurnInstance } from './combat-dots'
@@ -20,6 +23,7 @@ import {
 } from './actions'
 import {
   captureCombatAbilitySource,
+  sameCapturedCombatAbilitySource,
   type CapturedCombatAbilitySource,
 } from './combat-behavior-capture'
 import type { AbilityBehavior } from './combat-definition'
@@ -36,6 +40,14 @@ import {
   type RequirementNode,
 } from './combat-requirements'
 import { createCombatActionProvenance, createCombatTriggerGuard } from './combat-kernel-types'
+
+import type { GridPosition } from './board'
+import {
+  reconcileCombatControlledAbilities,
+  updateCombatControlledAbility,
+  type CombatControlledAbilityState,
+  type CombatControlledAbilityInput,
+} from './combat-controlled'
 
 interface CombatAbilityUsage {
   readonly key: string
@@ -59,6 +71,7 @@ export interface CombatAbilityRuntimeState {
   readonly usage: readonly CombatAbilityUsage[]
   readonly maintained: readonly CombatMaintainedAbilityContribution[]
   readonly nextCommandSequence?: number
+  readonly controlled?: CombatControlledAbilityState
   readonly conditionTruth?: readonly {
     readonly sourceInstanceId: string
     readonly behaviorId: string
@@ -98,6 +111,7 @@ export interface CombatAbilityActivationInput {
   readonly behaviorId?: string
   readonly manualModifiers?: readonly ManualCombatModifierSelection[]
   readonly selection: CombatTargetSelection
+  readonly movementPath?: readonly GridPosition[]
   readonly content: CombatContentCatalog
   readonly context: CombatResolutionContext
   readonly trigger?: {
@@ -114,6 +128,7 @@ export interface CombatAbilityActivationInput {
 export function combatAbilityBehavior(
   source: CapturedCombatAbilitySource,
   behaviorId?: string,
+  timingPolicy?: CombatEffectTimingPolicy,
 ): AbilityBehavior {
   const actions = source.definition.behaviors.filter(
     (behavior) => behavior.activation === 'manual' && behavior.mode === 'action',
@@ -126,7 +141,7 @@ export function combatAbilityBehavior(
   if (!behaviorId && actions.length > 1) throw new TypeError('ambiguous-manual-behavior')
   if (!behavior || behavior.mode !== 'action' || behavior.activation === 'ongoing')
     throw new TypeError('ability-action-behavior-required')
-  return behavior
+  return applyAbilityTimingDefaults(behavior, timingPolicy)
 }
 
 export function materializeCombatAbilityAction(
@@ -135,7 +150,10 @@ export function materializeCombatAbilityAction(
 ): CombatActionDefinition {
   if (!behavior.targeting) throw new TypeError('ability-action-targeting-required')
   const target = behavior.targeting
-  if (behavior.effects.some((effect) => ['summon', 'damage-bonus'].includes(effect.payload.type)))
+  const nativeEffects = behavior.effects.filter(
+    (effect) => !['move', 'summon'].includes(effect.payload.type),
+  )
+  if (behavior.effects.some((effect) => effect.payload.type === 'damage-bonus'))
     throw new TypeError('canonical-specialized-tag-routing-required')
   return {
     id: source.abilityId,
@@ -150,11 +168,13 @@ export function materializeCombatAbilityAction(
     requirements: [],
     ...(behavior.cooldown ? { cooldown: behavior.cooldown } : {}),
     ...(behavior.accuracy ? { accuracyRule: behavior.accuracy } : {}),
-    effects: behavior.effects.map((effect) =>
+    effects: nativeEffects.map((effect) =>
       canonicalCombatEffectRecipients(nativeCombatTagPayload(effect.payload), target),
     ),
-    effectTimingModes: behavior.effects.map((effect) => effect.timing),
-    effectOrigins: behavior.effects.map((effect) => ({
+    effectTimingModes: nativeEffects.map((effect) =>
+      effect.timing === 'controlled' ? 'instant' : effect.timing,
+    ),
+    effectOrigins: nativeEffects.map((effect) => ({
       sourceInstanceId: source.sourceInstanceId,
       behaviorId: behavior.id,
       effectId: effect.id,
@@ -191,7 +211,13 @@ export function combatAbilitySubject(
         ...(currentBurnInstance(state, unit.id) ? ['burn'] : []),
       ]),
     ],
-    primeAbilityIds: [],
+    primeAbilityIds: [
+      ...new Set(
+        state.abilityRuntime?.controlled?.primes
+          .filter((prime) => prime.ownerCombatantId === id)
+          .map((prime) => prime.abilityId) ?? [],
+      ),
+    ],
   }
 }
 
@@ -327,12 +353,17 @@ export function reconcileCombatAbilitySources(
   if (new Set(captured.map((source) => source.sourceInstanceId)).size !== captured.length)
     throw new TypeError('duplicate-captured-source')
   for (const source of captured) {
+    for (const behavior of source.definition.behaviors)
+      applyAbilityTimingDefaults(behavior, state.effectTimingPolicy)
     const previous = state.capturedAbilitySources?.find(
       (row) => row.sourceInstanceId === source.sourceInstanceId,
     )
-    if (previous && JSON.stringify(previous) !== JSON.stringify(source))
+    if (previous && !sameCapturedCombatAbilitySource(previous, source))
       throw new TypeError('captured-source-cannot-change-in-place')
   }
+  const controlled = reconcileCombatControlledAbilities(state, captured)
+  if (controlled && state.abilityRuntime)
+    state = { ...state, abilityRuntime: { ...state.abilityRuntime, controlled } }
   const maintained: CombatMaintainedAbilityContribution[] = []
   for (const source of captured) {
     const owner = state.tactical.battle.combatants.find((row) => row.id === source.ownerCombatantId)
@@ -403,6 +434,35 @@ export function reconcileCombatAbilitySources(
         ? {}
         : { nextCommandSequence: state.abilityRuntime.nextCommandSequence }),
     },
+  }
+}
+
+/** Free state commands deliberately do not dispatch paid action-use hooks. */
+export function primeCombatControlledAbility(
+  input: CombatControlledAbilityInput,
+): CombatResolutionTransition {
+  return updateControlledAbility(input, 'prime')
+}
+
+export function cancelCombatControlledAbility(
+  input: CombatControlledAbilityInput,
+): CombatResolutionTransition {
+  return updateControlledAbility(input, 'cancel')
+}
+
+function updateControlledAbility(
+  input: CombatControlledAbilityInput,
+  operation: 'prime' | 'cancel',
+): CombatResolutionTransition {
+  const state = updateCombatControlledAbility(input, operation)
+  return {
+    state: reconcileCombatAbilitySources(
+      state,
+      (state.capturedAbilitySources ?? []).filter((source) =>
+        state.abilityRuntime!.activeSourceIds.includes(source.sourceInstanceId),
+      ),
+    ),
+    events: [],
   }
 }
 

@@ -72,6 +72,9 @@ export function composeCombatModifiers(
 } {
   const root = input.root
   const rootBehavior = rootParticipant.behavior
+  const rootNativeEffects = rootBehavior?.effects.filter(
+    (effect) => !['move', 'summon'].includes(effect.payload.type),
+  )
   const selectedIds =
     geometry.selectedCombatantIds ??
     (geometry.primaryCombatantId ? [geometry.primaryCombatantId] : [])
@@ -143,7 +146,7 @@ export function composeCombatModifiers(
   }
   const eligibility = rootAction.effects.map((_, i) =>
     rootBehavior
-      ? eligible(rootBehavior.effects[i]!, rootContext)
+      ? eligible(rootNativeEffects![i]!, rootContext)
       : rootAction.effectEligibleRecipientIds?.[i],
   )
   const bonuses: CombatCommandDamageBonus[] = []
@@ -206,6 +209,7 @@ export function composeCombatModifiers(
         contentId: source.abilityId,
         contentVersion: source.contentVersion,
       })
+      if (effect.timing === 'controlled') throw new TypeError('controlled-modifier-unsupported')
       timings.push(effect.timing)
       timingTags.push(undefined)
       eligibility.push(recipientIds)

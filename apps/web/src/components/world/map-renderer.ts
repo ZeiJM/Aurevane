@@ -38,6 +38,8 @@ import {
 import { drawWildlife } from './map-wildlife'
 import { buildBiomeTransitions } from './map-biome-transitions'
 
+import { worldRenderTerrain } from './map-render-terrain'
+
 import { MAP_X, MAP_Y, projectMapPoint, unprojectMapPoint } from './map-projection'
 
 const BASE = '/media/art/world/runtime/'
@@ -422,10 +424,20 @@ export function createMapRenderer(
   const pan = { x: 0, y: 0 }
   const heldKeys = new Map<string, MapPoint>()
   let keyTimer: ReturnType<typeof setTimeout> | null = null
-  function releaseHeldKeys() {
+  let heldDestination: WorldPosition | null = null
+  function releaseHeldKeys(finishStep = true) {
+    const destination = heldDestination
+    heldDestination = null
     heldKeys.clear()
     if (keyTimer !== null) clearTimeout(keyTimer)
     keyTimer = null
+    if (finishStep && destination && !view.movementBlocked && !view.battleSessionId) {
+      const landing = motion.nextLanding(performance.now())
+      if (!samePosition(landing, destination)) {
+        select(landing)
+        requestDraw()
+      }
+    }
   }
   let camera = motion.sample(performance.now()).point
   const remoteMotion = new WorldPlayerMotion(initial, performance.now(), camera)
@@ -443,30 +455,38 @@ export function createMapRenderer(
     portraits = new Map<string, HTMLImageElement>()
   const cache = new Map<
     string,
-    { key: string; ground: HTMLCanvasElement; surfaces: Map<string, LiquidSurface>; pixels: number }
+    {
+      key: string
+      scale: number
+      ground: HTMLCanvasElement
+      surfaces: Map<string, LiquidSurface>
+      pixels: number
+    }
   >()
   let hitTargets: { id: string; self: boolean; x: number; y: number; radius: number }[] = []
   const frameTimes: number[] = []
   const terrainKeys = new Map<string, string>()
   const featureKeys = new Map<string, string>()
   const wildlife = new Map<string, Wildlife[]>()
-  let waterField = buildWaterField(view.sectors)
-  let biomeField = buildBiomeTransitions(view.sectors)
-  let featurePlacements = indexFeaturePlacements(view.sectors)
-  let bridgeWater = indexBridgeWater(view.sectors, featurePlacements)
-  let coastField = buildPublicCoasts(view)
-  let heatEmitters = terrainHeatEmitters(view.sectors)
+  let renderSectors = worldRenderTerrain(view)
+  let waterField = buildWaterField(renderSectors)
+  let biomeField = buildBiomeTransitions(renderSectors)
+  let featurePlacements = indexFeaturePlacements(renderSectors)
+  let bridgeWater = indexBridgeWater(renderSectors, featurePlacements)
+  let coastField = buildPublicCoasts({ ...view, sectors: renderSectors })
+  let heatEmitters = terrainHeatEmitters(renderSectors)
   const clouds = [0, 1, 2].map((i) => createCloudTexture('world-cloud:' + i))
   let cachedPixels = 0
+  let visibleGroundIds = new Set<string>()
   function indexTerrain() {
-    waterField = buildWaterField(view.sectors)
-    biomeField = buildBiomeTransitions(view.sectors)
-    featurePlacements = indexFeaturePlacements(view.sectors)
-    bridgeWater = indexBridgeWater(view.sectors, featurePlacements)
-    coastField = buildPublicCoasts(view)
-    heatEmitters = terrainHeatEmitters(view.sectors)
+    waterField = buildWaterField(renderSectors)
+    biomeField = buildBiomeTransitions(renderSectors)
+    featurePlacements = indexFeaturePlacements(renderSectors)
+    bridgeWater = indexBridgeWater(renderSectors, featurePlacements)
+    coastField = buildPublicCoasts({ ...view, sectors: renderSectors })
+    heatEmitters = terrainHeatEmitters(renderSectors)
     featureKeys.clear()
-    for (const sector of view.sectors) {
+    for (const sector of renderSectors) {
       terrainKeys.set(sector.id, sector.cells.map((c) => `${c.x},${c.y},${c.terrain}`).join(';'))
       featureKeys.set(
         sector.id,
@@ -475,7 +495,7 @@ export function createMapRenderer(
       if (!wildlife.has(sector.id)) wildlife.set(sector.id, createWildlife(sector))
     }
     for (const id of wildlife.keys())
-      if (!view.sectors.some((s) => s.id === id)) wildlife.delete(id)
+      if (!renderSectors.some((s) => s.id === id)) wildlife.delete(id)
   }
   indexTerrain()
   const clearCache = () => {
@@ -550,9 +570,7 @@ export function createMapRenderer(
       ':' +
       featureKeys.get(sector.id) +
       ':' +
-      tile +
-      ':' +
-      groundScale
+      tile
     const previous = cache.get(sector.id)
     if (previous?.key === key) return previous.ground
     const layer = document.createElement('canvas')
@@ -833,14 +851,49 @@ export function createMapRenderer(
         0,
       )
     while (cache.size && cachedPixels + pixels > 8_000_000) {
-      const oldest = cache.keys().next().value!
+      const oldest =
+        [...cache.keys()].find((id) => !visibleGroundIds.has(id)) ?? cache.keys().next().value!
       const entry = cache.get(oldest)!
       cachedPixels -= entry.pixels
       cache.delete(oldest)
     }
-    cache.set(sector.id, { key, ground: layer, surfaces, pixels })
+    cache.set(sector.id, { key, scale: groundScale, ground: layer, surfaces, pixels })
     cachedPixels += pixels
     return layer
+  }
+  function fitCachedGround() {
+    // Density may fall when more terrain enters the camera. Reuse the painted
+    // content rather than rerunning all shore/biome geometry. Do not upscale it
+    // again at every visibility threshold: that churn also degrades the image.
+    // Zoom, resize, loaded art and actual terrain changes still rebuild normally.
+    for (const entry of cache.values()) {
+      if (entry.scale <= groundScale) continue
+      const resample = (source: HTMLCanvasElement, width: number, height: number) => {
+        const target = document.createElement('canvas')
+        target.width = Math.ceil(width * groundScale)
+        target.height = Math.ceil(height * groundScale)
+        const context = target.getContext('2d')!
+        context.imageSmoothingEnabled = true
+        context.imageSmoothingQuality = 'high'
+        context.drawImage(source, 0, 0, target.width, target.height)
+        return target
+      }
+      const ground = resample(entry.ground, GRID_WIDTH * tile, GRID_HEIGHT * tile)
+      const surfaces = new Map<string, LiquidSurface>()
+      for (const [id, surface] of entry.surfaces)
+        surfaces.set(id, {
+          ...surface,
+          canvas: resample(surface.canvas, surface.width * tile, surface.height * tile),
+        })
+      const pixels =
+        ground.width * ground.height +
+        [...surfaces.values()].reduce(
+          (sum, surface) => sum + surface.canvas.width * surface.canvas.height,
+          0,
+        )
+      cachedPixels += pixels - entry.pixels
+      Object.assign(entry, { ground, surfaces, pixels, scale: groundScale })
+    }
   }
   const portrait = (src: string | null) => {
     if (!src) return null
@@ -885,7 +938,7 @@ export function createMapRenderer(
       ? '#284b57'
       : '#233d3c'
     ctx.fillRect(0, 0, width, height)
-    const visible = view.sectors.filter((sector) => {
+    const visible = renderSectors.filter((sector) => {
       const p = screen(sectorOrigin(sector))
       return (
         p.x - GRID_HEIGHT * tile * MAP_X < width + tile * 4 &&
@@ -916,6 +969,8 @@ export function createMapRenderer(
           tile),
     )
     groundScale = Math.min(ratio, Math.floor(budgetScale * 10) / 10)
+    visibleGroundIds = new Set(visible.map((sector) => sector.id))
+    fitCachedGround()
     const scenery: Scenery[] = []
     const addScenery = (item: Scenery) => {
       const p = screen(item)
@@ -1648,6 +1703,13 @@ export function createMapRenderer(
         )
         return [{ stack, ghost }]
       })
+    // Publish this frame's projection before drawing identities so native
+    // diagnostics measure peer motion against the same camera, not the last frame.
+    canvas.dataset.cameraX = String(camera.x + pan.x)
+    canvas.dataset.cameraY = String(camera.y + pan.y)
+    canvas.dataset.tileSize = String(tile)
+    canvas.dataset.frameNow = String(now)
+    canvas.dataset.frameStarted = String(start)
     const repaintIdentity =
       !identityContext ||
       !paintedIdentity ||
@@ -1664,9 +1726,6 @@ export function createMapRenderer(
       }
       paintedIdentity = identity
     }
-    canvas.dataset.cameraX = String(camera.x + pan.x)
-    canvas.dataset.cameraY = String(camera.y + pan.y)
-    canvas.dataset.tileSize = String(tile)
     frameTimes.push(performance.now() - start)
     if (frameTimes.length > 120) frameTimes.shift()
     if (++drawn % 60 === 0) {
@@ -1803,6 +1862,7 @@ export function createMapRenderer(
     }
     const position = start.position
     if (position) {
+      releaseHeldKeys(false)
       select(position)
       requestDraw()
     }
@@ -1828,20 +1888,44 @@ export function createMapRenderer(
     const offset = [...heldKeys.values()].at(-1)
     if (!offset || disposed || paused || document.visibilityState !== 'visible') return
     if (view.movementBlocked || view.battleSessionId) {
-      releaseHeldKeys()
+      releaseHeldKeys(false)
       return
     }
     const now = performance.now(),
       sample = motion.sample(now),
       p = sample.point,
-      position = pick({ x: Math.floor(p.x) + 0.5 + offset.x, y: Math.floor(p.y) + 0.5 + offset.y })
+      base = { x: Math.floor(p.x) + 0.5, y: Math.floor(p.y) + 0.5 }
+    let from = pick(base) ?? sample.position,
+      position: WorldPosition | null = null,
+      first: WorldPosition | null = null
+    // Keep a known legal route ahead of the key timer instead of exhausting a
+    // single tile at every callback. WorldMotion still caps unconfirmed preview.
+    for (let distance = 1; distance <= 3; distance++) {
+      const candidate = pick({
+        x: base.x + offset.x * distance,
+        y: base.y + offset.y * distance,
+      })
+      if (!candidate) break
+      const source = view.sectors.find((sector) => sector.id === from.sectorId),
+        adjacent =
+          from.sectorId === candidate.sectorId &&
+          Math.abs(from.x - candidate.x) + Math.abs(from.y - candidate.y) === 1,
+        crossing = source?.exits.some(
+          (exit) => samePosition(exit.from, from) && samePosition(exit.to, candidate),
+        )
+      if (!adjacent && !crossing) break
+      first ??= candidate
+      position = candidate
+      from = candidate
+    }
     let cadence = STEP_MS
-    if (position) {
+    if (position && first) {
       const sector = view.sectors.find((sector) => sector.id === sample.position.sectorId)
       const crossing = sector?.exits.find(
-        (exit) => samePosition(exit.from, sample.position) && samePosition(exit.to, position),
+        (exit) => samePosition(exit.from, sample.position) && samePosition(exit.to, first),
       )
       cadence = Math.max(STEP_MS, crossing?.durationMs ?? sector?.stepMs ?? STEP_MS)
+      heldDestination = position
       select(position)
       requestDraw()
     }
@@ -1854,7 +1938,7 @@ export function createMapRenderer(
   const key = (event: KeyboardEvent) => {
     if (event.key === 'Escape') {
       event.preventDefault()
-      releaseHeldKeys()
+      releaseHeldKeys(false)
       if (!event.repeat) onStop()
       return
     }
@@ -1871,14 +1955,21 @@ export function createMapRenderer(
     heldKeys.delete(event.key.toLowerCase())
     if (!heldKeys.size) releaseHeldKeys()
   }
+  const blur = (event: FocusEvent) => {
+    // A deliberate Approach/Attack replaces movement itself. Do not start an
+    // extra release write immediately before its high-priority action click.
+    const target = event.relatedTarget as HTMLElement | null
+    releaseHeldKeys(!target?.getAttribute?.('data-world-primary-action'))
+  }
+  const windowBlur = () => releaseHeldKeys()
   canvas.addEventListener('pointerdown', down)
   canvas.addEventListener('pointermove', move)
   canvas.addEventListener('pointerup', up)
   canvas.addEventListener('pointercancel', cancel)
   canvas.addEventListener('keydown', key)
   canvas.addEventListener('keyup', keyUp)
-  canvas.addEventListener('blur', releaseHeldKeys)
-  window.addEventListener('blur', releaseHeldKeys)
+  canvas.addEventListener('blur', blur)
+  window.addEventListener('blur', windowBlur)
   canvas.addEventListener('wheel', wheel, { passive: false })
   const media = window.matchMedia('(prefers-reduced-motion: reduce)'),
     onReduced = () => {
@@ -1888,7 +1979,9 @@ export function createMapRenderer(
   media.addEventListener('change', onReduced)
   return {
     update(next: WorldView) {
-      const terrainChanged = next.sectors !== view.sectors || next.atlas !== view.atlas
+      const terrain = worldRenderTerrain(next, renderSectors)
+      const terrainChanged = terrain !== renderSectors || next.atlas !== view.atlas
+      renderSectors = terrain
       view = next
       remoteMotion.update(next, performance.now(), camera)
       if (terrainChanged) indexTerrain()
@@ -1910,9 +2003,12 @@ export function createMapRenderer(
       requestDraw()
     },
     dispose() {
+      if (disposed) return
+      // A still-live host (such as switching to the globe) can shorten the route
+      // before teardown. No timer or later disposal submits additional input.
+      releaseHeldKeys()
       disposed = true
       remoteMotion.dispose()
-      releaseHeldKeys()
       cancelAnimationFrame(frame)
       observer.disconnect()
       document.removeEventListener('visibilitychange', visibility)
@@ -1926,8 +2022,8 @@ export function createMapRenderer(
       canvas.removeEventListener('pointercancel', cancel)
       canvas.removeEventListener('keydown', key)
       canvas.removeEventListener('keyup', keyUp)
-      canvas.removeEventListener('blur', releaseHeldKeys)
-      window.removeEventListener('blur', releaseHeldKeys)
+      canvas.removeEventListener('blur', blur)
+      window.removeEventListener('blur', windowBlur)
       canvas.removeEventListener('wheel', wheel)
       pointers.clear()
       cache.clear()

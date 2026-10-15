@@ -1,4 +1,8 @@
 import 'server-only'
+import {
+  projectPublicCombat,
+  type PublicCombat,
+} from '@aurevane/game-core/combat/public-combat-presentation'
 
 import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
 import { AurevaneError } from '@aurevane/game-core/errors'
@@ -73,10 +77,10 @@ async function resolveCurrentDefinitions(
 export async function resolveCurrentCharacterSkillDetails(
   loadout: CharacterDisciplineSkillLoadoutView,
   resolver: CombatContentResolver,
-): Promise<CharacterDisciplineSkillLoadoutView> {
+): Promise<PublicCombat<CharacterDisciplineSkillLoadoutView>> {
   const definitions = await resolveCurrentDefinitions(loadout, resolver)
 
-  return {
+  return projectPublicCombat({
     ...loadout,
     learnedSkills: loadout.learnedSkills.map((entry) => ({
       ...entry,
@@ -89,5 +93,5 @@ export async function resolveCurrentCharacterSkillDetails(
     extensions: {
       ...loadout.extensions,
     },
-  }
+  })
 }

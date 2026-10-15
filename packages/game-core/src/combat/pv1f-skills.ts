@@ -83,16 +83,25 @@ export function pv1fFlatActionCost(actionId: string): number | null {
 }
 
 /** One entered tile, after terrain, Frozen and signed status deltas. Never free movement. */
-export function movementApCostForTile(traversalCost: number, additionalAp: number): number {
+export function movementApCostForTile(
+  traversalCost: number,
+  additionalAp: number,
+  apPerTraversalPoint: number = PV1F_MOVEMENT_COST_PER_TERRAIN_POINT,
+): number {
   if (
     !Number.isSafeInteger(traversalCost) ||
     traversalCost < 1 ||
-    !Number.isSafeInteger(additionalAp)
+    !Number.isSafeInteger(additionalAp) ||
+    !Number.isSafeInteger(apPerTraversalPoint) ||
+    apPerTraversalPoint < 10 ||
+    apPerTraversalPoint > 100
   ) {
     throw new RangeError('Movement requires a positive terrain cost and a safe-integer AP delta.')
   }
-  const cost = traversalCost * PV1F_MOVEMENT_COST_PER_TERRAIN_POINT + additionalAp
+  const cost = traversalCost * apPerTraversalPoint + additionalAp
   if (!Number.isSafeInteger(cost))
     throw new RangeError('Movement AP cost exceeds the safe integer range.')
   return Math.max(10, cost)
 }
+
+export const PV1F_LAST_MATURE_SKILL_RESOURCE_PREFIX = 'pv1f.last-mature-skill.' as const

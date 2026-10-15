@@ -42,6 +42,36 @@ const projection = (id: string): BattleActionPreview => ({
 })
 
 describe('automatic canonical range forecasts', () => {
+  it('retains the chosen Move path in ordinary and area forecasts without requesting before path selection', () => {
+    const path = [
+      { x: 1, y: 1 },
+      { x: 2, y: 1 },
+      { x: 3, y: 1 },
+    ]
+    const moving = { ...skill, move: { maximumTiles: 2, conditional: false }, movementPath: path }
+    expect(
+      battleRangePreviewIntents({ ...moving, movementPath: undefined }, 'actor', combatants),
+    ).toEqual([])
+    expect(battleRangePreviewIntents(moving, 'actor', combatants)).toEqual([
+      {
+        kind: 'action',
+        actionId: skill.id,
+        movementPath: path,
+        target: { kind: 'unit', combatantId: 'far' },
+      },
+    ])
+    const area = {
+      ...moving,
+      target: {
+        ...createPv1fBasicAttackDefinition(1).target,
+        geometryVersion: 3 as const,
+        shape: { kind: 'line' as const, length: 3 },
+      },
+    }
+    expect(battleRangePreviewIntents(area, 'actor', combatants)).toHaveLength(4)
+    for (const intent of battleRangePreviewIntents(area, 'actor', combatants))
+      expect(intent.movementPath).toEqual(path)
+  })
   it('forecasts canonical Self/Ally/Enemy categories independently of a legacy Self envelope', () => {
     const captured = {
       ...skill,

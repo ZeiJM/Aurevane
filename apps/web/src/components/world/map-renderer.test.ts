@@ -577,13 +577,27 @@ describe('native map input and bounded lifecycle', () => {
       vi.unstubAllGlobals()
     }
   })
-  it('retains indexed terrain for compact presence receipts and rebuilds for full terrain or atlas changes', () => {
+  it('retains indexed terrain for unchanged receipts and rebuilds for actual terrain or atlas changes', () => {
     const build = vi.spyOn(biomes, 'buildBiomeTransitions')
     const s = scene(true),
       initialCalls = build.mock.calls.length
     s.renderer.update({ ...s.view, players: [] })
     expect(build).toHaveBeenCalledTimes(initialCalls)
     s.renderer.update({ ...s.view, sectors: [...s.view.sectors] })
+    expect(build).toHaveBeenCalledTimes(initialCalls)
+    s.renderer.update({
+      ...s.view,
+      sectors: s.view.sectors.map((sector, index) =>
+        index
+          ? sector
+          : {
+              ...sector,
+              cells: sector.cells.map((cell, i) =>
+                i ? cell : { ...cell, terrain: '~', walkable: false },
+              ),
+            },
+      ),
+    })
     expect(build).toHaveBeenCalledTimes(initialCalls + 1)
     s.renderer.update({ ...s.view, sectors: [...s.view.sectors], atlas: [...(s.view.atlas ?? [])] })
     expect(build).toHaveBeenCalledTimes(initialCalls + 2)
@@ -635,6 +649,116 @@ describe('native map input and bounded lifecycle', () => {
       vi.unstubAllGlobals()
     },
   )
+  it('keeps held motion advancing while the next key timer is dispatched late', () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    const clock = vi.spyOn(performance, 'now').mockReturnValue(0)
+    const s = scene()
+    s.select.mockImplementation((destination) => {
+      const now = performance.now()
+      const route = localRoute(s.view, s.motion.sample(now).position, destination)
+      if (route) s.motion.plan(route, s.view.sectors, now)
+    })
+    try {
+      s.listeners.get('keydown')!({ key: 'd', preventDefault() {} } as unknown as Event)
+      let previous = s.motion.sample(200).point.x
+      // The event loop dispatches the scheduled200ms callback at260ms.
+      // Frames in that window must still traverse the already supplied route.
+      for (const now of [208, 224, 240, 256]) {
+        clock.mockReturnValue(now)
+        const sample = s.motion.sample(now)
+        expect(sample.moving).toBe(true)
+        expect(sample.point.x).toBeGreaterThan(previous)
+        previous = sample.point.x
+      }
+      clock.mockReturnValue(260)
+      const before = s.motion.sample(260).point
+      vi.advanceTimersByTime(200)
+      expect(s.motion.sample(260).point).toEqual(before)
+      expect(s.motion.sample(276).moving).toBe(true)
+      s.listeners.get('keyup')!({ key: 'd' } as unknown as Event)
+      const calls = s.select.mock.calls.length
+      vi.advanceTimersByTime(1000)
+      expect(s.select).toHaveBeenCalledTimes(calls)
+    } finally {
+      s.renderer.dispose()
+      clock.mockRestore()
+      vi.useRealTimers()
+      vi.unstubAllGlobals()
+    }
+  })
+  it.each(['attack', 'approach'])(
+    'does not enqueue a held-key release write before focusing %s',
+    (action) => {
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'performance'] })
+      const s = scene()
+      s.select.mockImplementation((destination) => {
+        const route = localRoute(s.view, s.motion.sample(performance.now()).position, destination)
+        if (route) s.motion.plan(route, s.view.sectors, performance.now())
+      })
+      try {
+        s.listeners.get('keydown')!({ key: 'd', preventDefault() {} } as unknown as Event)
+        vi.advanceTimersByTime(50)
+        s.listeners.get('blur')!({
+          relatedTarget: {
+            getAttribute: (name: string) => (name === 'data-world-primary-action' ? action : null),
+          },
+        } as unknown as Event)
+        if (action === 'attack') s.motion.hold(50)
+        vi.advanceTimersByTime(1000)
+        expect(s.select).toHaveBeenCalledTimes(1)
+        if (action === 'attack') expect(s.motion.sample(1050).moving).toBe(false)
+      } finally {
+        s.renderer.dispose()
+        vi.useRealTimers()
+        vi.unstubAllGlobals()
+      }
+    },
+  )
+  it('keeps approved slow-terrain walking continuous through a late held callback and finishes only the released landing', () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    const clock = vi.spyOn(performance, 'now').mockReturnValue(0)
+    const s = scene()
+    const view = {
+      ...s.view,
+      sectors: s.view.sectors.map((sector) => ({ ...sector, stepMs: 400 })),
+    }
+    s.renderer.update(view)
+    s.select.mockImplementation((destination) => {
+      const route = localRoute(view, s.motion.sample(performance.now()).position, destination)
+      if (route) s.motion.plan(route, view.sectors, performance.now())
+    })
+    try {
+      s.listeners.get('keydown')!({ key: 'd', preventDefault() {} } as unknown as Event)
+      const route = localRoute(view, view.position, { ...view.position, x: view.position.x + 3 })!
+      clock.mockReturnValue(90)
+      s.motion.reconcile(
+        { ...view, route, version: view.version + 1, serverNow: 1090, nextStepAt: 1400 },
+        90,
+      )
+      let previous = s.motion.sample(400).point.x
+      for (const now of [408, 424, 440, 456]) {
+        clock.mockReturnValue(now)
+        const sample = s.motion.sample(now)
+        expect(sample.moving).toBe(true)
+        expect(sample.point.x).toBeGreaterThan(previous)
+        previous = sample.point.x
+      }
+      clock.mockReturnValue(460)
+      const before = s.motion.sample(460).point
+      vi.advanceTimersByTime(400)
+      expect(s.motion.sample(460).point).toEqual(before)
+      s.listeners.get('keyup')!({ key: 'd' } as unknown as Event)
+      const calls = s.select.mock.calls.length
+      vi.advanceTimersByTime(1000)
+      expect(s.select).toHaveBeenCalledTimes(calls)
+      expect(s.motion.sample(1200).position).toEqual({ ...view.position, x: view.position.x + 2 })
+    } finally {
+      s.renderer.dispose()
+      clock.mockRestore()
+      vi.useRealTimers()
+      vi.unstubAllGlobals()
+    }
+  })
   it.each([200, 400])(
     'streams held walking at authored %ims cadence without OS-repeat commands',
     (stepMs) => {
@@ -655,10 +779,15 @@ describe('native map input and bounded lifecycle', () => {
       expect(s.select).toHaveBeenCalledTimes(1)
       vi.advanceTimersByTime(1)
       expect(s.select).toHaveBeenCalledTimes(2)
-      expect(s.select).toHaveBeenLastCalledWith({ ...view.position, x: view.position.x + 2 })
+      expect(s.motion.sample(stepMs).position).toEqual({ ...view.position, x: view.position.x + 1 })
       s.listeners.get('keyup')?.({ key: 'd' } as unknown as Event)
+      const calls = s.select.mock.calls.length
       vi.advanceTimersByTime(1000)
-      expect(s.select).toHaveBeenCalledTimes(2)
+      expect(s.select).toHaveBeenCalledTimes(calls)
+      expect(s.motion.sample(stepMs * 3).position).toEqual({
+        ...view.position,
+        x: view.position.x + 2,
+      })
       s.renderer.dispose()
       vi.useRealTimers()
       vi.unstubAllGlobals()
@@ -680,7 +809,11 @@ describe('native map input and bounded lifecycle', () => {
       expect(selectedAt).toEqual([0, 200, 400, 600, 800])
       s.listeners.get('keyup')!({ key: 'd' } as unknown as Event)
       vi.advanceTimersByTime(1000)
-      expect(selectedAt).toEqual([0, 200, 400, 600, 800])
+      expect(selectedAt).toEqual([0, 200, 400, 600, 800, 850])
+      expect(s.motion.sample(1850).position).toEqual({
+        ...s.view.position,
+        x: s.view.position.x + 5,
+      })
     } finally {
       s.renderer.dispose()
       vi.useRealTimers()
@@ -720,15 +853,33 @@ describe('native map input and bounded lifecycle', () => {
     (release) => {
       vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'performance'] })
       const s = scene()
-      s.listeners.get('keydown')!({ key: 'd', preventDefault() {} } as unknown as Event)
-      if (release === 'hidden') s.visibility('hidden')
-      else if (release === 'dispose') s.renderer.dispose()
-      else s.listeners.get(release)?.({ key: 'd' } as unknown as Event)
-      vi.advanceTimersByTime(1000)
-      expect(s.select).toHaveBeenCalledTimes(1)
-      s.renderer.dispose()
-      vi.useRealTimers()
-      vi.unstubAllGlobals()
+      s.select.mockImplementation((destination) => {
+        const now = performance.now()
+        const route = localRoute(s.view, s.motion.sample(now).position, destination)
+        if (route) s.motion.plan(route, s.view.sectors, now)
+      })
+      try {
+        s.listeners.get('keydown')!({ key: 'd', preventDefault() {} } as unknown as Event)
+        vi.advanceTimersByTime(50)
+        if (release === 'hidden') s.visibility('hidden')
+        else if (release === 'dispose') s.renderer.dispose()
+        else s.listeners.get(release)?.({ key: 'd' } as unknown as Event)
+        const calls = s.select.mock.calls.length
+        vi.advanceTimersByTime(1000)
+        expect(s.select).toHaveBeenCalledTimes(calls)
+        if (release === 'hidden') {
+          s.visibility('visible')
+          vi.advanceTimersByTime(200)
+        }
+        expect(s.motion.sample(performance.now()).position).toEqual({
+          ...s.view.position,
+          x: s.view.position.x + 1,
+        })
+      } finally {
+        s.renderer.dispose()
+        vi.useRealTimers()
+        vi.unstubAllGlobals()
+      }
     },
   )
   it('continues held walking over a known longitude seam at the exit cadence', () => {
@@ -775,16 +926,26 @@ describe('native map input and bounded lifecycle', () => {
       const route = localRoute(view, s.motion.sample(performance.now()).position, destination)
       if (route) s.motion.plan(route, view.sectors, performance.now())
     })
-    s.listeners.get('keydown')!({ key: 'd', preventDefault() {} } as unknown as Event)
-    vi.advanceTimersByTime(200)
-    expect(s.select).toHaveBeenLastCalledWith(east)
-    vi.advanceTimersByTime(399)
-    expect(s.select).toHaveBeenCalledTimes(2)
-    vi.advanceTimersByTime(1)
-    expect(s.select).toHaveBeenLastCalledWith({ ...east, x: 1 })
-    s.renderer.dispose()
-    vi.useRealTimers()
-    vi.unstubAllGlobals()
+    try {
+      s.listeners.get('keydown')!({ key: 'd', preventDefault() {} } as unknown as Event)
+      vi.advanceTimersByTime(200)
+      expect(s.motion.sample(200).position).toEqual(west)
+      vi.advanceTimersByTime(399)
+      expect(s.select).toHaveBeenCalledTimes(2)
+      expect(s.motion.sample(599).position).toEqual(west)
+      vi.advanceTimersByTime(1)
+      expect(s.motion.sample(600).position).toEqual(east)
+      expect(s.select).toHaveBeenCalledTimes(3)
+      s.listeners.get('keyup')!({ key: 'd' } as unknown as Event)
+      const calls = s.select.mock.calls.length
+      vi.advanceTimersByTime(1000)
+      expect(s.select).toHaveBeenCalledTimes(calls)
+      expect(s.motion.sample(1600).position).toEqual({ ...east, x: 1 })
+    } finally {
+      s.renderer.dispose()
+      vi.useRealTimers()
+      vi.unstubAllGlobals()
+    }
   })
   it('does not submit held-key destinations on water or beyond supplied terrain', () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'performance'] })
@@ -1377,6 +1538,96 @@ describe('native map input and bounded lifecycle', () => {
     s.renderer.dispose()
     vi.unstubAllGlobals()
   })
+  it('reuses warmed procedural terrain when camera visibility changes raster density', () => {
+    const initial = projectWorld(newWorldState(), [], 1000)
+    const sectors = Array.from({ length: 25 }, (_, index) => {
+      const column = index % 5,
+        row = Math.floor(index / 5),
+        id = `dense-${column}-${row}`
+      const position = (column: number, x: number) => ({
+        sectorId: `dense-${column}-${row}`,
+        x,
+        y: 4,
+      })
+      return {
+        ...initial.sectors[0]!,
+        id,
+        name: id,
+        atlasColumn: column,
+        atlasRow: row,
+        regionId: (column + row) % 2 ? 'umbral-march' : 'verdant-expanse',
+        charted: true,
+        art: null,
+        landmarks: [],
+        buildings: [],
+        cells: Array.from({ length: 117 }, (_, i) => ({
+          x: i % 13,
+          y: Math.floor(i / 13),
+          terrain: Math.floor(i / 13) === 4 ? '=' : i % 13 === 10 ? '~' : '.',
+          walkable: i % 13 !== 10 || Math.floor(i / 13) === 4,
+          safe: false,
+        })),
+        exits: [
+          ...(column < 4
+            ? [
+                {
+                  from: position(column, 12),
+                  to: position(column + 1, 0),
+                  durationMs: 200,
+                  name: 'Road',
+                },
+              ]
+            : []),
+          ...(column > 0
+            ? [
+                {
+                  from: position(column, 0),
+                  to: position(column - 1, 12),
+                  durationMs: 200,
+                  name: 'Road',
+                },
+              ]
+            : []),
+        ],
+      }
+    })
+    const view = {
+      ...initial,
+      position: { sectorId: 'dense-1-2', x: 1, y: 4 },
+      sectors,
+      route: Array.from({ length: 37 }, (_, i) => ({
+        position: { sectorId: `dense-${Math.floor((15 + i) / 13)}-2`, x: (15 + i) % 13, y: 4 },
+        durationMs: 200,
+      })),
+      version: 1,
+      nextStepAt: 1200,
+    }
+    const clock = vi.spyOn(performance, 'now').mockReturnValue(0)
+    const s = scene(true, view)
+    try {
+      for (let now = 0; now <= 1000; now += 40) s.frame(now)
+      const curves = s.groundCurves.length
+      s.frame(1040)
+      expect(s.groundCurves.length).toBe(curves)
+      for (let now = 1080; now <= 1280; now += 40) s.frame(now)
+      const nextCurves = s.groundCurves.length
+      s.frame(1320)
+      expect(s.groundCurves.length).toBe(nextCurves)
+      for (let now = 1360; now <= 2680; now += 40) s.frame(now)
+      const beforeBudgetTransition = s.groundCurves.length
+      s.frame(2720)
+      expect(s.groundCurves.length).toBe(beforeBudgetTransition)
+      for (let now = 2760; now <= 8000; now += 40) {
+        s.frame(now)
+        if (s.canvas.dataset.cachedPixels)
+          expect(Number(s.canvas.dataset.cachedPixels)).toBeLessThanOrEqual(8_000_000)
+      }
+    } finally {
+      s.renderer.dispose()
+      clock.mockRestore()
+      vi.unstubAllGlobals()
+    }
+  })
   it('uses a centered cover crop for wide portraits, keeping the battle-grid face proportions', () => {
     const s = scene()
     s.canvas.dataset.portrait = '/wide-portrait.png'
@@ -1420,14 +1671,6 @@ describe('native map input and bounded lifecycle', () => {
     vi.unstubAllGlobals()
   })
   it('walks with WASD in either case while retaining arrow-key movement', () => {
-    const s = scene()
-    s.renderer.update({
-      ...s.view,
-      sectors: s.view.sectors.map((sector) => ({
-        ...sector,
-        cells: sector.cells.map((cell) => ({ ...cell, walkable: true })),
-      })),
-    })
     for (const [key, dx, dy] of [
       ['w', 0, -1],
       ['W', 0, -1],
@@ -1436,17 +1679,34 @@ describe('native map input and bounded lifecycle', () => {
       ['d', 1, 0],
       ['ArrowRight', 1, 0],
     ] as const) {
-      const preventDefault = vi.fn()
-      s.listeners.get('keydown')!({ key, preventDefault } as unknown as Event)
-      expect(s.select).toHaveBeenLastCalledWith({
-        ...s.view.position,
-        x: s.view.position.x + dx,
-        y: s.view.position.y + dy,
+      const clock = vi.spyOn(performance, 'now').mockReturnValue(0)
+      const s = scene()
+      const view = {
+        ...s.view,
+        sectors: s.view.sectors.map((sector) => ({
+          ...sector,
+          cells: sector.cells.map((cell) => ({ ...cell, terrain: '.', walkable: true })),
+        })),
+      }
+      s.renderer.update(view)
+      s.select.mockImplementation((destination) => {
+        const route = localRoute(view, s.motion.sample(performance.now()).position, destination)
+        if (route) s.motion.plan(route, view.sectors, performance.now())
       })
-      expect(preventDefault).toHaveBeenCalledOnce()
+      try {
+        const preventDefault = vi.fn()
+        s.listeners.get('keydown')!({ key, preventDefault } as unknown as Event)
+        s.listeners.get('keyup')!({ key } as unknown as Event)
+        const target = { ...view.position, x: view.position.x + dx, y: view.position.y + dy }
+        expect(s.select).toHaveBeenLastCalledWith(target)
+        expect(s.motion.sample(201).position).toEqual(target)
+        expect(preventDefault).toHaveBeenCalledOnce()
+      } finally {
+        s.renderer.dispose()
+        clock.mockRestore()
+        vi.unstubAllGlobals()
+      }
     }
-    s.renderer.dispose()
-    vi.unstubAllGlobals()
   })
   it('starts smoothly after a long idle and a small pointer slip without shifting the camera', () => {
     const s = scene()

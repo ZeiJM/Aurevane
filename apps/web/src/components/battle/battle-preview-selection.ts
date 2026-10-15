@@ -6,12 +6,20 @@ import {
   combatTargetCategories,
 } from '@aurevane/game-core/combat/combat-targeting-shapes'
 import type { CombatTargetSpec } from '@aurevane/game-core/combat/actions'
+import type { AbilityBehavior } from '@aurevane/game-core/combat/combat-definition'
+import type { BattleAbilityBehaviorReport } from '@/lib/battle/battle-basic-actions'
 
 interface PreviewSelectionCombatant {
   combatantId: string
   teamIndex: number
   hp: number
   position: { x: number; y: number }
+}
+
+export interface BattleControlledActionAvailability {
+  readonly phase: 'unprimed' | 'primed' | 'spent'
+  readonly canPrime: boolean
+  readonly canCancel: boolean
 }
 
 export type BattlePreviewSkill = Pick<
@@ -24,11 +32,42 @@ export type BattlePreviewSkill = Pick<
   | 'target'
   | 'definition'
   | 'groundIntentCapable'
-> & { behaviorId?: string; unavailable?: boolean }
+> & {
+  behaviorId?: string
+  controlled?: BattleControlledActionAvailability
+  unavailable?: boolean
+  move?: { maximumTiles: number; conditional: boolean }
+  costs?: AbilityBehavior['costs']
+  movementPath?: readonly { x: number; y: number }[]
+}
 export interface BattleCapturedActionTarget {
+  /** Absent only on older public snapshots. */
+  ownerCombatantId?: string
   actionId: string
   behaviorId: string
+  controlled?: BattleControlledActionAvailability
   target: CombatTargetSpec
+  move?: { maximumTiles: number; conditional: boolean }
+  costs?: AbilityBehavior['costs']
+  cooldown?: AbilityBehavior['cooldown']
+  report?: BattleAbilityBehaviorReport
+}
+
+/** Free commands contain captured references only; an ambiguous Manual group requires a choice. */
+export function selectBattleControlledPrimeIntent(
+  captures: readonly BattleCapturedActionTarget[],
+  actionId: string,
+  behaviorId?: string,
+): Extract<BattleIntent, { kind: 'ability-prime' | 'ability-cancel-prime' }> | null {
+  const choices = captures.filter((row) => row.actionId === actionId)
+  const choice = behaviorId
+    ? choices.find((row) => row.behaviorId === behaviorId)
+    : choices.length === 1
+      ? choices[0]
+      : undefined
+  return choice?.controlled?.canPrime
+    ? { kind: 'ability-prime', actionId, behaviorId: choice.behaviorId }
+    : null
 }
 /** Missing historical captures preserve their envelope; ambiguous canonical choices fail closed. */
 export function resolveBattleCapturedSkill(
@@ -47,12 +86,15 @@ export function resolveBattleCapturedSkill(
   return {
     ...skill,
     behaviorId: choice.behaviorId,
+    controlled: choice.controlled,
     groundIntentCapable: false,
     target: choice.target,
     targetKind: choice.target.kind,
     targetTeamPolicy: choice.target.teamPolicy,
     minimumRange: choice.target.minimumRange,
     maximumRange: choice.target.maximumRange,
+    move: choice.move,
+    costs: choice.costs,
   }
 }
 export function battleSkillTargetSpec(skill: BattlePreviewSkill) {
@@ -99,6 +141,99 @@ type PreviewSelection = {
   selectedTarget?: ActionIntent['target'] | null
 }
 type ActionIntent = Extract<BattleIntent, { kind: 'action' }>
+
+export interface BattleActionMovementDraft {
+  readonly battleVersion: number
+  readonly actorId: string
+  readonly actionId: string
+  readonly behaviorId?: string
+  readonly path: readonly { x: number; y: number }[]
+}
+/** A route never follows another action, group, actor or battle version. */
+export function bindBattleSkillMovement(
+  skill: BattlePreviewSkill,
+  draft: BattleActionMovementDraft | null,
+  battleVersion: number,
+  actorId: string | null,
+): BattlePreviewSkill {
+  if (!skill.move) return skill
+  const matches =
+    draft &&
+    draft.battleVersion === battleVersion &&
+    draft.actorId === actorId &&
+    draft.actionId === skill.id &&
+    draft.behaviorId === skill.behaviorId
+  return { ...skill, movementPath: matches ? draft.path : undefined }
+}
+
+/** Informational future geometry; only the server decides whether walking really executes. */
+function movedBattleSkillIntent(
+  skill: BattlePreviewSkill,
+  selection: PreviewSelection,
+  choose: (skill: BattlePreviewSkill, context: PreviewSelection) => ActionIntent | null,
+): ActionIntent | null {
+  const path = skill.movementPath
+  if (skill.move && (path === undefined || (path.length === 0 && !skill.move.conditional)))
+    return null
+  const destination = path?.at(-1)
+  const projected = destination
+    ? {
+        ...selection,
+        combatants: selection.combatants.map((row) =>
+          row.combatantId === selection.actorId ? { ...row, position: { ...destination } } : row,
+        ),
+      }
+    : selection
+  const intent =
+    choose(skill, projected) ?? (skill.move?.conditional ? choose(skill, selection) : null)
+  return intent && path?.length
+    ? { ...intent, movementPath: path.map((point) => ({ ...point })) }
+    : intent
+}
+export function selectInitialBattleSkillPreviewIntent(
+  skill: BattlePreviewSkill,
+  selection: PreviewSelection,
+): ActionIntent | null {
+  return movedBattleSkillIntent(skill, selection, initialBattleSkillPreviewIntent)
+}
+/** Destination selection commits only when it also determines the sole recipient. */
+export function selectBattleSkillMovementCommitIntent(
+  skill: BattlePreviewSkill,
+  selection: PreviewSelection,
+): ActionIntent | null {
+  const spec = battleSkillTargetSpec(skill)
+  const categories = spec?.geometryVersion === 3 ? combatTargetCategories(spec) : undefined
+  const exclusivelySelf = categories
+    ? categories.length === 1 && categories[0] === 'self'
+    : (spec?.kind ?? skill.targetKind) === 'self'
+  if (
+    !skill.move ||
+    !exclusivelySelf ||
+    (spec && (spec.shape.kind !== 'single' || spec.maximumSelections !== 1))
+  )
+    return null
+  const intent = selectInitialBattleSkillPreviewIntent(skill, selection)
+  return intent &&
+    (intent.target.kind === 'self' ||
+      (intent.target.kind === 'unit' && intent.target.combatantId === selection.actorId))
+    ? intent
+    : null
+}
+export function selectBattleSkillPreviewIntent(
+  skill: BattlePreviewSkill,
+  selection: PreviewSelection,
+): ActionIntent | null {
+  return movedBattleSkillIntent(skill, selection, battleSkillPreviewIntent)
+}
+export function selectDirectionalBattleSkillPreviewIntent(
+  skill: BattlePreviewSkill,
+  selection: PreviewSelection,
+  delta: { x: number; y: number },
+): ActionIntent | null {
+  return movedBattleSkillIntent(skill, selection, (definition, context) =>
+    directionalBattleSkillPreviewIntent(definition, context, delta),
+  )
+}
 type OrdinarySelection = Extract<ActionIntent['target'], { kind: 'self' | 'unit' | 'tile' }>
 /** Unit choices follow living placement identities; Ground choices keep their exact coordinate. */
 export function battleTargetDraftIncludesTile(
@@ -199,7 +334,7 @@ export function canRetainBattleActionPreview(
 }
 
 /** Deterministic initial aim is informational; the server preview checks full legality. */
-export function selectInitialBattleSkillPreviewIntent(
+function initialBattleSkillPreviewIntent(
   skill: BattlePreviewSkill,
   selection: PreviewSelection,
 ): ActionIntent | null {
@@ -299,7 +434,7 @@ export function selectInitialBattleSkillPreviewIntent(
 }
 
 /** A deliberate direction chooses a target; it never guesses across the opposite half-plane. */
-export function selectDirectionalBattleSkillPreviewIntent(
+function directionalBattleSkillPreviewIntent(
   skill: BattlePreviewSkill,
   selection: PreviewSelection,
   direction: { x: number; y: number },
@@ -418,7 +553,7 @@ export function selectDirectionalBattleSkillPreviewIntent(
 }
 
 /** Chooses only the player's target (or an authored self target). The server still checks legality. */
-export function selectBattleSkillPreviewIntent(
+function battleSkillPreviewIntent(
   skill: BattlePreviewSkill,
   selection: PreviewSelection,
 ): ActionIntent | null {

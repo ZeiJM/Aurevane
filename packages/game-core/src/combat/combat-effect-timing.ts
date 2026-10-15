@@ -36,8 +36,13 @@ export const COMBAT_EFFECT_TIMING_TAGS = [
     ...PHASE4_STATUSES.map((status) => status.id),
   ]),
 ] as readonly string[]
-export type CombatEffectTimingMode = 'instant' | 'next-round' | 'delayed'
+export const CONTROLLED_COMBAT_TIMING_TAGS = COMBAT_EFFECT_TIMING_TAGS.filter(
+  (tag) => tag !== 'summon' && tag !== 'ground-area',
+) as readonly string[]
+export type CombatEffectTimingMode = 'instant' | 'next-round' | 'delayed' | 'controlled'
 export function combatEffectTimingRoundOffset(mode: CombatEffectTimingMode): 0 | 1 | 2 {
+  if (mode === 'controlled')
+    throw new TypeError('Controlled requires a captured Manual release, not a round offset.')
   return mode === 'instant' ? 0 : mode === 'next-round' ? 1 : 2
 }
 export interface CombatEffectTimingPolicy {
@@ -60,7 +65,11 @@ export function parseCombatEffectTimingPolicy(value: unknown): CombatEffectTimin
   for (const [tag, mode] of Object.entries(candidate.modes)) {
     if (
       !COMBAT_EFFECT_TIMING_TAGS.includes(tag) ||
-      (mode !== 'instant' && mode !== 'next-round' && mode !== 'delayed')
+      (mode !== 'instant' &&
+        mode !== 'next-round' &&
+        mode !== 'delayed' &&
+        mode !== 'controlled') ||
+      (mode === 'controlled' && !CONTROLLED_COMBAT_TIMING_TAGS.includes(tag))
     )
       throw new TypeError('Unknown timing tag or mode.')
   }
@@ -78,7 +87,7 @@ export function parseStoredCombatEffectTimingPolicy(value: unknown): CombatEffec
     return parseCombatEffectTimingPolicy(value)
   const entries = Object.entries(candidate.modes)
   for (const [, mode] of entries) {
-    if (mode !== 'instant' && mode !== 'next-round' && mode !== 'delayed')
+    if (mode !== 'instant' && mode !== 'next-round' && mode !== 'delayed' && mode !== 'controlled')
       throw new TypeError('Unknown timing mode.')
   }
   const modes = Object.fromEntries(

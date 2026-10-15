@@ -8,6 +8,7 @@ import { terrainEvasionBonusBasisPoints } from './combat-stat-balance'
 import { facingHitChanceModifierBasisPoints } from './combat-duel-balance'
 import { advanceBattleRng } from './battle-state'
 import { combatAccuracyStatusModifier } from './combat-accuracy-status'
+import { combatTargetAllowsHostileHit } from './combat-targeting-shapes'
 import type {
   CombatActionDefinition,
   CombatActionEvaluation,
@@ -70,12 +71,7 @@ export function validateCombatAccuracyDefinition(
       throw new TypeError(
         'Canonical Basic Attack accuracy requires its canonical activation adapter.',
       )
-    if (
-      definition.target &&
-      (!['unit', 'ground-tile'].includes(definition.target.kind) ||
-        !['enemy', 'any'].includes(definition.target.teamPolicy) ||
-        !['enemies-only', 'all-units', 'all-except-actor'].includes(definition.target.friendlyFire))
-    )
+    if (definition.target && !combatTargetAllowsHostileHit(definition.target))
       throw new TypeError('Canonical accuracy requires an applicable hostile recipient hit check.')
     if (
       definition.effects &&

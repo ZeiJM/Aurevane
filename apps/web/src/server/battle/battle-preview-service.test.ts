@@ -1,3 +1,11 @@
+import {
+  captureBasicSkillSources,
+  defaultBasicSkills,
+} from '@aurevane/game-core/combat/combat-basic-actions'
+import {
+  reconcileCombatAbilitySources,
+  primeCombatControlledAbility,
+} from '@aurevane/game-core/combat/combat-behavior-runtime'
 import type {
   BattleSessionRecord,
   BattleSessionRepository,
@@ -35,7 +43,14 @@ it('projects per-recipient hit chances without private rolls or outcomes', () =>
 })
 
 import { createBattlePreviewService } from './battle-preview-service'
-import { createBattleSessionService } from './battle-session-service'
+import { createBattleSessionService, projectBattleSnapshot } from './battle-session-service'
+import { deriveParticipantBattleViewerEntitlement } from './battle-viewer-entitlement'
+import {
+  resolveBattleCapturedSkill,
+  bindBattleSkillMovement,
+  selectInitialBattleSkillPreviewIntent,
+} from '@/components/battle/battle-preview-selection'
+import { battleIntentSchema } from '@aurevane/validation/combat/battle-session'
 
 const USER_ID = '11111111-1111-4111-8111-111111111111'
 const CHARACTER_ID = '22222222-2222-4222-8222-222222222222'
@@ -171,6 +186,85 @@ function withMovedPlayer(state: StatDrivenCombatEncounterState): StatDrivenComba
     state.statBridge,
   )
 }
+
+it('Controlled ready is true only for the primed current legal release intent, without paying or exposing private state', async () => {
+  const { battles, service, snapshot, record } = await createFixture()
+  const owner = `character:${CHARACTER_ID}`
+  const definitions = defaultBasicSkills().map((row) =>
+    row.id !== 'basic.guard'
+      ? row
+      : {
+          ...row,
+          ability: {
+            ...row.ability,
+            behaviors: row.ability.behaviors.map((behavior) => ({
+              ...behavior,
+              costs: [
+                { resource: 'ap' as const, amount: 11 },
+                { resource: 'mp' as const, amount: 2 },
+              ],
+              effects: behavior.effects.map((effect) => ({
+                ...effect,
+                timing: 'controlled' as const,
+              })),
+            })),
+          },
+        },
+  )
+  const captures = captureBasicSkillSources({
+    ownerCombatantId: owner,
+    supportActionId: 'basic.guard',
+    definitions,
+  })
+  const base = reattachStatDrivenCombatBridge(
+    reconcileCombatAbilitySources(snapshot, captures),
+    snapshot.statBridge,
+  )
+  const source = captures.find((row) => row.abilityId === 'basic.guard')!
+  const primed = primeCombatControlledAbility({
+    state: base,
+    actorId: owner,
+    sourceInstanceId: source.sourceInstanceId,
+    behaviorId: 'use',
+  }).state as StatDrivenCombatEncounterState
+  const blocked = {
+    ...primed,
+    tactical: {
+      ...primed.tactical,
+      battle: {
+        ...primed.tactical.battle,
+        combatants: primed.tactical.battle.combatants.map((unit) =>
+          unit.id === owner ? { ...unit, mp: 0 } : unit,
+        ),
+      },
+    },
+  }
+  for (const [state, ready] of [
+    [base, false],
+    [primed, true],
+    [blocked, false],
+  ] as const) {
+    battles.findBattleSession.mockResolvedValue({ ...record, snapshot: state })
+    const before = JSON.stringify(state)
+    const result = await service.previewIntent({
+      userId: USER_ID,
+      battleSessionId: SESSION_ID,
+      expectedBattleVersion: 1,
+      intent: {
+        kind: 'action',
+        actionId: 'basic.guard',
+        behaviorId: 'use',
+        target: { kind: 'self' },
+      },
+    })
+    expect(result.preview).toMatchObject({ kind: 'action', legal: ready, controlledReady: ready })
+    expect(JSON.stringify(result)).not.toMatch(
+      /abilityRuntime|controlledPrime|returnAnchor|sourceInstanceId|conditionTruth/,
+    )
+    expect(JSON.stringify(state)).toBe(before)
+  }
+  expect(battles.commitBattleIntent).not.toHaveBeenCalled()
+})
 
 describe('P2.5 authoritative battle preview service', () => {
   it('previews legal movement without calling the commit boundary', async () => {
@@ -485,3 +579,117 @@ it('transports scheduled Guard identity and lifetime without committing or chang
   expect(snapshot).toEqual(before)
   expect(battles.commitBattleIntent).not.toHaveBeenCalled()
 })
+
+it.each([23, 100])(
+  'previews and commits a captured flat Basic Move (%i AP) through the public selection and real service boundary',
+  async (price) => {
+    const { battles, service, sessionService, snapshot, record } = await createFixture()
+    const owner = `character:${CHARACTER_ID}`
+    const definitions = defaultBasicSkills().map((row) =>
+      row.id !== 'basic.move'
+        ? row
+        : {
+            ...row,
+            execution: { kind: 'basic-move' as const, costBasis: 'flat' as const },
+            ability: {
+              ...row.ability,
+              behaviors: row.ability.behaviors.map((behavior) => ({
+                ...behavior,
+                costs: [{ resource: 'ap' as const, amount: price }],
+              })),
+            },
+          },
+    )
+    const captured = reattachStatDrivenCombatBridge(
+      reconcileCombatAbilitySources(
+        snapshot,
+        captureBasicSkillSources({
+          ownerCombatantId: owner,
+          supportActionId: 'basic.guard',
+          definitions,
+        }),
+      ),
+      snapshot.statBridge,
+    )
+    battles.findBattleSession.mockResolvedValue({ ...record, snapshot: captured })
+    const route = [
+      { x: 0, y: 1 },
+      { x: 1, y: 1 },
+    ]
+    const view = projectBattleSnapshot(
+      captured,
+      deriveParticipantBattleViewerEntitlement(captured.tactical.battle.combatants, [owner]),
+    )
+    const descriptor = resolveBattleCapturedSkill(
+      {
+        id: 'basic.move',
+        targetKind: 'self',
+        targetTeamPolicy: 'self',
+        minimumRange: 0,
+        maximumRange: 0,
+      },
+      view.manualActionTargets ?? [],
+    )!
+    const selected = bindBattleSkillMovement(
+      descriptor,
+      {
+        actorId: owner,
+        battleVersion: 1,
+        actionId: 'basic.move',
+        behaviorId: descriptor.behaviorId,
+        path: route,
+      },
+      1,
+      owner,
+    )
+    const intent = battleIntentSchema.parse(
+      selectInitialBattleSkillPreviewIntent(selected, {
+        actorId: owner,
+        selectedCombatantId: null,
+        selectedTile: null,
+        combatants: view.tactical.battle.combatants.map((row) => ({
+          combatantId: row.id,
+          hp: row.hp,
+          teamIndex: row.id === owner ? 0 : 1,
+          position: view.tactical.placements.find((placement) => placement.combatantId === row.id)!
+            .position,
+        })),
+      }),
+    )
+    expect(intent).toMatchObject({
+      kind: 'action',
+      actionId: 'basic.move',
+      movementPath: route,
+      target: { kind: 'self' },
+    })
+    const command = {
+      userId: USER_ID,
+      battleSessionId: SESSION_ID,
+      expectedBattleVersion: 1,
+      intent,
+    }
+    const quote = await service.previewIntent(command)
+    expect(quote.preview).toMatchObject({
+      legal: true,
+      actionEconomyCost: price,
+      actionEconomyAfter: 100 - price,
+    })
+    expect(battles.commitBattleIntent).not.toHaveBeenCalled()
+    await sessionService.submitIntent({
+      ...command,
+      idempotencyKey: '55555555-5555-4555-8555-555555555555',
+    })
+    const input = battles.commitBattleIntent.mock.calls[0]![0]
+    const saved = input.nextSnapshot as StatDrivenCombatEncounterState
+    expect(saved.tactical.placements.find((row) => row.combatantId === owner)!.position).toEqual({
+      x: 1,
+      y: 1,
+    })
+    expect(
+      saved.tactical.battle.combatants.find((row) => row.id === owner)!.temporaryResources,
+    ).toContainEqual(
+      expect.objectContaining({ key: PV1F_ACTION_ECONOMY_RESOURCE_KEY, current: 100 - price }),
+    )
+    expect(saved.capturedAbilitySources).toEqual(captured.capturedAbilitySources)
+  },
+)

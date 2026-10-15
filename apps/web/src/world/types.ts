@@ -171,6 +171,14 @@ export interface WorldSectorView extends Omit<WorldSector, 'rows' | 'roads'> {
   cells: WorldCell[]
   exits: WorldRoad[]
 }
+/** Public presentation only: no private cells, roads, peers or interactions. */
+export type WorldScenerySector = readonly [
+  sectorId: string,
+  terrain: string,
+  landscape: WorldSector['landscape'] | null,
+  buildings: readonly WorldBuilding[],
+  landmarks: readonly WorldLandmark[],
+]
 export interface WorldView {
   /** Service registration and private receive capability are available for this scene. */
   livePresence?: boolean
@@ -183,6 +191,8 @@ export interface WorldView {
   routeDestination?: WorldPosition | null
   nextStepAt: number | null
   sectors: WorldSectorView[]
+  /** Compact public terrain buffer, independent of the authorized presence scene. */
+  scenery?: WorldScenerySector[]
   /** Compact overview; private terrain and undiscovered landmarks never enter this list. */
   atlas?: WorldAtlasCell[]
   players: WorldPlayer[]

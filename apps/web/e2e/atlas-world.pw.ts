@@ -24,6 +24,34 @@ test.afterEach(({ page }) => {
   expect(runtimeErrors.get(page) ?? []).toEqual([])
 })
 
+async function verifyPlacePortraits(page: Page) {
+  const portraits = page
+    .getByRole('tabpanel', { name: 'Places', exact: true })
+    .locator('span[aria-hidden="true"][style*="/media/art/world/runtime/"]')
+  await expect(portraits.first()).toBeVisible()
+  for (const portrait of await portraits.all()) {
+    const metrics = await portrait.evaluate(async (element) => {
+      const style = getComputedStyle(element)
+      const image = new Image()
+      image.src = style.backgroundImage.slice(5, -2)
+      await image.decode()
+      const bounds = element.getBoundingClientRect()
+      return {
+        width: bounds.width,
+        height: bounds.height,
+        radius: style.borderRadius,
+        border: style.borderWidth,
+        pixels: image.naturalWidth * image.naturalHeight,
+      }
+    })
+    expect(metrics.width).toBe(36)
+    expect(metrics.height).toBe(36)
+    expect(metrics.radius).toBe('50%')
+    expect(metrics.border).toBe('2px')
+    expect(metrics.pixels).toBeGreaterThan(1_000_000)
+  }
+}
+
 function localDatabase(): string {
   const host = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'http://invalid').hostname
   if (!['127.0.0.1', 'localhost'].includes(host))
@@ -841,6 +869,7 @@ test('a proximity attack reaches both authenticated players', async ({ page, bro
     await field.getByRole('button', { name: 'Surrender', exact: true }).click()
     const dialog = page.getByRole('dialog', { name: 'Surrender this battle?' })
     await expect(dialog).toBeVisible()
+    await expect(dialog).not.toContainText('Battle Hall')
     const surrendered = page.waitForResponse(
       (response) => response.url().endsWith('/surrender') && response.request().method() === 'POST',
     )
@@ -1330,6 +1359,7 @@ test('a synthetic population of 100 has bounded rendering at high DPI and lower 
   await expect(page.getByRole('tabpanel', { name: 'Places', exact: true })).toContainText(
     'Marketplace',
   )
+  await verifyPlacePortraits(page)
   expect(
     await page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight + 1),
   ).toBe(true)
@@ -1371,6 +1401,7 @@ test('the mobile map stays usable after rotating to landscape', async ({ page },
   await expect(page.getByRole('tabpanel', { name: 'Places', exact: true })).toContainText(
     'Marketplace',
   )
+  await verifyPlacePortraits(page)
   await capture(page, info, 'mobile-landscape-places')
   const close = page.getByRole('button', { name: 'Close details', exact: true })
   await expect(close).toBeInViewport({ ratio: 1 })
@@ -1505,6 +1536,50 @@ test('scenic countryside has real blossom woodland, ruins, pools and open meadow
       expect(sector.cells.some((c) => c.terrain === '~' && !c.walkable)).toBe(true)
     await capture(page, info, `countryside-${landscape}`)
   }
+})
+
+test('charted globe travel survives unrelated frontier discoveries and retains bounded authoritative continuation', async ({
+  page,
+}, info) => {
+  test.skip(info.project.name !== 'desktop-chromium', 'Exercise distant canonical routing once.')
+  test.setTimeout(60000)
+  await enter(page)
+  const initial = await world(page)
+  place(initial.characterId, 'atlas:47:33', 6, 4)
+  sql(
+    `update app_private.character_world_state set state=jsonb_set(state,'{discoveries}',coalesce(state->'discoveries','{}'::jsonb)||'{"survey-01":[110]}'::jsonb) where character_id='${initial.characterId}'::uuid`,
+  )
+  await page.reload()
+  const approval = page.waitForResponse(
+    (response) =>
+      response.request().method() === 'POST' &&
+      new URL(response.url()).pathname === '/api/world' &&
+      response.request().postDataJSON()?.intent?.kind === 'walk' &&
+      response.request().postDataJSON()?.intent?.destination?.sectorId === 'verdant-expanse',
+  )
+  await stageWalk(page, { sectorId: 'verdant-expanse', x: 6, y: 4 })
+  const response = await approval
+  expect(response.status()).toBe(200)
+  const receipt = await response.json()
+  expect(receipt.kind).toBe('movement')
+  expect(receipt.route).toHaveLength(256)
+  expect(receipt.routeDestination).toEqual({ sectorId: 'verdant-expanse', x: 6, y: 4 })
+  expect(receipt.route.every((step: WorldView['route'][number]) => step.durationMs === 200)).toBe(
+    true,
+  )
+  // Next's empty route announcer also has role=alert outside the game main.
+  // Require the actual World error surface to remain absent.
+  await expect(page.locator('main').getByRole('alert')).toHaveCount(0)
+  await capture(page, info, 'distant-globe-route-approved')
+  const stopped = page.waitForResponse(
+    (response) =>
+      response.request().method() === 'POST' &&
+      new URL(response.url()).pathname === '/api/world' &&
+      response.request().postDataJSON()?.intent?.kind === 'stop',
+  )
+  await page.locator('canvas[data-world-stage]').press('Escape')
+  expect((await stopped).status()).toBe(200)
+  await expect.poll(async () => (await world(page)).route.length).toBe(0)
 })
 
 registerWorldInputCases({ enter, world, place, stageWalk, capture, openJournal })

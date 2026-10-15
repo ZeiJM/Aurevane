@@ -1,5 +1,8 @@
 'use client'
 
+import { AbilityDefinitionEditor } from './ability-definition-editor'
+import { AbilityPreviewSelector, previewActionSelection } from './ability-preview-selector'
+import { validateAbilityDefinition } from '@aurevane/game-core/combat/combat-definition'
 import { normalizeCurrentCombatTargetSpec } from '@aurevane/game-core/combat/combat-targeting-shapes'
 
 import type { EssenceDefinition } from '@aurevane/game-core/combat/essence'
@@ -35,6 +38,7 @@ export interface EssenceContentEditorOption {
   readonly sourceDisciplineId: string
   readonly label: string
   readonly currentVersion: number
+  readonly versionFloor?: number | null
   readonly baseVersion: number | null
   readonly draftVersion: number | null
   readonly derivedTags: readonly string[]
@@ -86,12 +90,18 @@ export function EssenceContentEditor({ essences, initialEssenceId }: EssenceCont
           const draft = structuredClone(essence.initialDraft ?? essence.definition)
           return {
             ...draft,
-            skill: { ...draft.skill, target: normalizeCurrentCombatTargetSpec(draft.skill.target) },
+            skill: {
+              ...draft.skill,
+              target: Object.hasOwn(draft.skill, 'ability')
+                ? draft.skill.target
+                : normalizeCurrentCombatTargetSpec(draft.skill.target),
+            },
           }
         })(),
       ]),
     ),
   )
+  const [previewGroups, setPreviewGroups] = useState<Record<string, string>>({})
   const [reviews, setReviews] = useState<Record<string, CombatContentReviewState>>({})
   const [histories, setHistories] = useState<
     Record<string, readonly CombatContentVersionHistoryEntry[]>
@@ -108,11 +118,33 @@ export function EssenceContentEditor({ essences, initialEssenceId }: EssenceCont
   const selectedReview = selected
     ? (reviews[selected.id] ?? emptyCombatContentReview())
     : emptyCombatContentReview()
+  const previewSelection = previewActionSelection(
+    selectedDraft?.skill,
+    selected ? previewGroups[selected.id] : undefined,
+  )
+  function selectPreviewGroup(behaviorId: string) {
+    if (
+      !selected ||
+      busyId === selected.id ||
+      !previewSelection.groups.some((group) => group.id === behaviorId)
+    )
+      return
+    const id = selected.id
+    draftRevision.current[id] = (draftRevision.current[id] ?? 0) + 1
+    setPreviewGroups((current) => ({ ...current, [id]: behaviorId }))
+    setReviews((current) => ({
+      ...current,
+      [id]: { ...(current[id] ?? emptyCombatContentReview()), preview: null },
+    }))
+    setErrors((current) => ({ ...current, [id]: null }))
+    setNotices((current) => ({ ...current, [id]: null }))
+    setPublishConfirmationId(null)
+  }
   const selectedHistory = selected ? (histories[selected.id] ?? selected.history) : []
   const selectedCurrentVersion =
     selectedHistory.find((entry) => entry.current)?.contentVersion ?? selected?.currentVersion ?? 1
   const selectedNextVersion = selected
-    ? nextCombatContentVersion(selectedCurrentVersion, selectedHistory)
+    ? nextCombatContentVersion(selectedCurrentVersion, selectedHistory, selected.versionFloor)
     : 1
   const busy = selected ? busyId === selected.id : false
   const displayedTags =
@@ -203,7 +235,13 @@ export function EssenceContentEditor({ essences, initialEssenceId }: EssenceCont
   }
 
   async function previewSelected() {
-    if (!selected || !selectedDraft || selectedReview.validation?.valid !== true) return
+    if (
+      !selected ||
+      !selectedDraft ||
+      !previewSelection.available ||
+      selectedReview.validation?.valid !== true
+    )
+      return
     if (selectedReview.diff === null) return
     const revision = draftRevision.current[selected.id] ?? 0
     setBusyId(selected.id)
@@ -212,6 +250,9 @@ export function EssenceContentEditor({ essences, initialEssenceId }: EssenceCont
         preview: CombatContentPreviewSummary
       }>({
         operation: 'preview',
+        ...(previewSelection.behaviorId === undefined
+          ? {}
+          : { behaviorId: previewSelection.behaviorId }),
         definition: selectedDraft.skill,
       })
       if ((draftRevision.current[selected.id] ?? 0) !== revision) return
@@ -236,7 +277,11 @@ export function EssenceContentEditor({ essences, initialEssenceId }: EssenceCont
       selectedReview.validation?.valid !== true ||
       selectedReview.diff === null ||
       selectedReview.diff.changedPaths.length === 0 ||
-      selectedReview.preview === null
+      !previewSelection.available ||
+      selectedReview.preview === null ||
+      selectedReview.preview.legal === false ||
+      (previewSelection.canonical &&
+        selectedReview.preview.behaviorId !== previewSelection.behaviorId)
     ) {
       return
     }
@@ -446,62 +491,90 @@ export function EssenceContentEditor({ essences, initialEssenceId }: EssenceCont
               />
             </fieldset>
 
-            <SkillTargetingEditor
-              value={skill.target}
-              onChange={(target) => updateDraft({ ...selectedDraft, skill: { ...skill, target } })}
-            />
-            <SkillGroundEditor
-              target={skill.target}
-              effects={skill.effects}
-              value={skill.groundArea}
-              onChange={(groundArea) =>
-                updateDraft({ ...selectedDraft, skill: withSkillGroundArea(skill, groundArea) })
-              }
-            />
-            <SkillEconomyEditor
-              value={{
-                apCost: skill.apCost,
-                mpCost: skill.mpCost,
-                accuracyMode: skill.accuracyMode,
-                accuracyModifierBasisPoints: skill.accuracyModifierBasisPoints,
-                cooldown: skill.cooldown,
-              }}
-              cooldownLockedByRequirement={skill.requirements.length > 0}
-              onChange={(economy: SkillEconomyDraft) =>
-                updateDraft({
-                  ...selectedDraft,
-                  skill: {
-                    ...skill,
-                    ...economy,
-                    cooldown:
-                      skill.requirements.length > 0
-                        ? null
-                        : {
-                            key: skill.id,
-                            ownerTurns: economy.cooldown?.ownerTurns ?? 1,
-                          },
-                  },
-                })
-              }
-            />
-            <SkillMediaEditor
-              value={skill.media}
-              onChange={(media) => updateDraft({ ...selectedDraft, skill: { ...skill, media } })}
-            />
-            <SkillEffectListEditor
-              value={skill.effects.filter(isMaterializedCombatEffect)}
-              effectDescriptions={skill.effectDescriptions}
-              onChange={(effects, effectDescriptions) =>
-                updateDraft({
-                  ...selectedDraft,
-                  skill: {
-                    ...skill,
-                    effects,
-                    effectDescriptions,
-                  },
-                })
-              }
-            />
+            {Object.hasOwn(skill, 'ability') ? (
+              <>
+                <AbilityDefinitionEditor
+                  value={skill.ability!}
+                  effectDescriptions={skill.effectDescriptions}
+                  onChange={(ability, effectDescriptions) => {
+                    const next = { ...skill, ability }
+                    if (effectDescriptions.some((note) => note !== null))
+                      next.effectDescriptions = effectDescriptions
+                    else delete next.effectDescriptions
+                    updateDraft({ ...selectedDraft, skill: next })
+                  }}
+                />
+                <SkillMediaEditor
+                  value={skill.media}
+                  onChange={(media) =>
+                    updateDraft({ ...selectedDraft, skill: { ...skill, media } })
+                  }
+                />
+              </>
+            ) : (
+              <>
+                <SkillTargetingEditor
+                  value={skill.target}
+                  onChange={(target) =>
+                    updateDraft({ ...selectedDraft, skill: { ...skill, target } })
+                  }
+                />
+                <SkillGroundEditor
+                  target={skill.target}
+                  effects={skill.effects}
+                  value={skill.groundArea}
+                  onChange={(groundArea) =>
+                    updateDraft({ ...selectedDraft, skill: withSkillGroundArea(skill, groundArea) })
+                  }
+                />
+                <SkillEconomyEditor
+                  value={{
+                    apCost: skill.apCost,
+                    mpCost: skill.mpCost,
+                    accuracyMode: skill.accuracyMode,
+                    accuracyModifierBasisPoints: skill.accuracyModifierBasisPoints,
+                    cooldown: skill.cooldown,
+                  }}
+                  cooldownLockedByRequirement={skill.requirements.length > 0}
+                  onChange={(economy: SkillEconomyDraft) =>
+                    updateDraft({
+                      ...selectedDraft,
+                      skill: {
+                        ...skill,
+                        ...economy,
+                        cooldown:
+                          skill.requirements.length > 0
+                            ? null
+                            : {
+                                key: skill.id,
+                                ownerTurns: economy.cooldown?.ownerTurns ?? 1,
+                              },
+                      },
+                    })
+                  }
+                />
+                <SkillMediaEditor
+                  value={skill.media}
+                  onChange={(media) =>
+                    updateDraft({ ...selectedDraft, skill: { ...skill, media } })
+                  }
+                />
+                <SkillEffectListEditor
+                  value={skill.effects.filter(isMaterializedCombatEffect)}
+                  effectDescriptions={skill.effectDescriptions}
+                  onChange={(effects, effectDescriptions) =>
+                    updateDraft({
+                      ...selectedDraft,
+                      skill: {
+                        ...skill,
+                        effects,
+                        effectDescriptions,
+                      },
+                    })
+                  }
+                />
+              </>
+            )}
           </div>
         </section>
 
@@ -523,7 +596,12 @@ export function EssenceContentEditor({ essences, initialEssenceId }: EssenceCont
               <p className={styles.sectionLabel}>Read-only draft projection</p>
               <h2>Skill information</h2>
             </div>
-            <SkillDetails skill={skill} expanded />
+            {!Object.hasOwn(skill, 'ability') ||
+            validateAbilityDefinition(skill.ability).length === 0 ? (
+              <SkillDetails skill={skill} expanded />
+            ) : (
+              <p role="status">Resolve Ability compatibility to show the player preview.</p>
+            )}
           </section>
         ) : null}
 
@@ -534,6 +612,14 @@ export function EssenceContentEditor({ essences, initialEssenceId }: EssenceCont
           validation={selectedReview.validation}
           diff={selectedReview.diff}
           preview={selectedReview.preview}
+          previewAvailable={previewSelection.available}
+          previewSelectionControl={
+            <AbilityPreviewSelector
+              selection={previewSelection}
+              busy={busy}
+              onChange={selectPreviewGroup}
+            />
+          }
           history={selectedHistory}
           busy={busy}
           publishConfirmationOpen={publishConfirmationId === selected.id}

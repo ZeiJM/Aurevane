@@ -66,6 +66,42 @@ function input() {
   }
 }
 
+it('captures and executes mixed Self/Enemy accuracy using current recipient categories', () => {
+  const captured = captureCombatAbilitySource(
+    source({
+      targeting: {
+        ...target({
+          kind: 'self',
+          teamPolicy: 'self',
+          categories: ['self', 'enemy'],
+          maximumSelections: 1,
+        }),
+        maximumSelections: 1,
+      },
+      accuracy: { kind: 'fixed', chanceBasisPoints: 10000 },
+      effects: [
+        { id: 'hit', payload: { type: 'damage', recipient: 'affected-units', amount: 10 } },
+      ],
+    }),
+  )
+  const state = reconcileCombatAbilitySources(preparePv1fTurnEconomy(percentageDotEncounter()), [
+    captured,
+  ])
+  const command = {
+    state,
+    actorId: 'actor',
+    root: { kind: 'canonical' as const, source: captured },
+    selection: { kind: 'unit' as const, combatantId: 'enemy' },
+    content: PV1F_COMBAT_CONTENT,
+    context: combatAbilityCommandContext(state, captured),
+  }
+  expect(prepareCombatAbilityCommand(command).evaluation.legal).toBe(true)
+  const result = commitCombatAbilityCommand(command)
+  expect(result.events).toContainEqual(
+    expect.objectContaining({ event: 'damage_applied', targetCombatantId: 'enemy' }),
+  )
+})
+
 it('up_to_three_distinct_targets pays once and mixed_effect_recipients settle once per recipient', () => {
   const command = input()
   const quote = prepareCombatAbilityCommand(command)

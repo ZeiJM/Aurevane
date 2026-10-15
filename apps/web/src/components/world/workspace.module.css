@@ -268,7 +268,8 @@
   padding-bottom: 0;
 }
 .player img,
-.avatar {
+.avatar,
+.placePortrait {
   width: 36px;
   height: 36px;
   flex-shrink: 0;
@@ -283,6 +284,9 @@
     0 0 0 3px #d3b57012,
     0 3px 9px #010b1180;
   font: 18px Georgia;
+}
+.placePortrait {
+  background-repeat: no-repeat;
 }
 .playerIdentity {
   min-width: 0;
@@ -365,7 +369,7 @@
   border: 0;
   border-bottom: 1px solid #d0d6c7;
   background: none;
-  padding: 10px 0;
+  padding: 4px 0;
   min-height: 40px;
   font-size: 11px;
   text-align: left;
@@ -375,6 +379,10 @@
 }
 .landmarks > button > span:last-child {
   margin-left: auto;
+}
+.landmarks > button > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .panelFoot {
   padding: 6px 12px;

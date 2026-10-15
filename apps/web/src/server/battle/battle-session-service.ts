@@ -1,9 +1,16 @@
 import {
+  projectPublicCombat,
+  type PublicCombat,
+} from '@aurevane/game-core/combat/public-combat-presentation'
+import {
   defaultCombatEffectTimingPolicy,
   type CombatEffectTimingPolicy,
 } from '@aurevane/game-core/combat/combat-effect-timing'
 import type { PublicCombatGroundArea } from '@aurevane/game-core/combat/combat-ground-visuals'
-import { omitPendingBattlePayloads } from './battle-live-viewer-projection'
+import {
+  omitPendingBattlePayloads,
+  type PrivateBattleStateKey,
+} from './battle-live-viewer-projection'
 import 'server-only'
 
 import { createHash, randomInt, randomUUID } from 'node:crypto'
@@ -17,6 +24,7 @@ import type { TransactionalCommandResult } from '@aurevane/db/transactional-comm
 import type { CharacterRecord, CharacterRepository } from '@aurevane/db/character'
 import { calculateCharacterBuildDerivedStats } from '@aurevane/game-core/character/discipline-build'
 import { calculateDerivedStats } from '@aurevane/game-core/character/derived-stats'
+import { capturedBasicSkillSource } from '@aurevane/game-core/combat/combat-basic-actions'
 import { createCombatEncounterState } from '@aurevane/game-core/combat/actions'
 import { createPendingBattle, startBattle } from '@aurevane/game-core/combat/battle-state'
 import {
@@ -31,6 +39,8 @@ import {
 } from '@aurevane/game-core/combat/combat-ability-command'
 import {
   combatAbilityCommandContext,
+  primeCombatControlledAbility,
+  cancelCombatControlledAbility,
   refreezeCapturedCombatAbilityState,
 } from '@aurevane/game-core/combat/combat-behavior-runtime'
 import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
@@ -91,6 +101,7 @@ import {
   projectBattleStatusStateForViewer,
   projectBattleManualModifierAvailability,
   projectBattleManualActionTargets,
+  projectBattleBasicActions,
 } from './battle-live-viewer-projection'
 import {
   battleBuildAuthorityForCombatant,
@@ -131,16 +142,19 @@ type ProjectedBattleState = Omit<BattleAuthoritativeEncounterState['tactical']['
 type ProjectedTacticalState = Omit<BattleAuthoritativeEncounterState['tactical'], 'battle'> & {
   battle: ProjectedBattleState
 }
-export type BattleSessionProjection = Omit<
-  BattleAuthoritativeEncounterState,
-  'tactical' | 'statusState' | 'groundAreas' | 'nextGroundAreaId'
-> & {
-  manualModifierAvailability?: ReturnType<typeof projectBattleManualModifierAvailability>
-  manualActionTargets?: ReturnType<typeof projectBattleManualActionTargets>
-  groundAreas?: readonly PublicCombatGroundArea[]
-  statusState: ReturnType<typeof projectBattleStatusStateForViewer>
-  tactical: ProjectedTacticalState
-}
+export type BattleSessionProjection = PublicCombat<
+  Omit<
+    BattleAuthoritativeEncounterState,
+    'tactical' | 'statusState' | 'groundAreas' | PrivateBattleStateKey
+  > & {
+    manualModifierAvailability?: ReturnType<typeof projectBattleManualModifierAvailability>
+    manualActionTargets?: ReturnType<typeof projectBattleManualActionTargets>
+    basicActions?: ReturnType<typeof projectBattleBasicActions>
+    groundAreas?: readonly PublicCombatGroundArea[]
+    statusState: ReturnType<typeof projectBattleStatusStateForViewer>
+    tactical: ProjectedTacticalState
+  }
+>
 
 export interface BattleSessionView {
   battleSessionId: string
@@ -477,12 +491,14 @@ export function projectBattleSnapshot(
   viewer: BattleViewerEntitlement,
 ): BattleSessionProjection {
   const battle = state.tactical.battle
-  return {
+  const basicActions = projectBattleBasicActions(state, viewer)
+  return projectPublicCombat({
     ...omitPendingBattlePayloads(state),
     ...(state.capturedAbilitySources
       ? {
           manualModifierAvailability: projectBattleManualModifierAvailability(state, viewer),
           manualActionTargets: projectBattleManualActionTargets(state, viewer),
+          ...(basicActions === undefined ? {} : { basicActions }),
         }
       : {}),
     statusState: projectBattleStatusStateForViewer(state, viewer),
@@ -506,7 +522,7 @@ export function projectBattleSnapshot(
         currentTurn: battle.currentTurn,
       },
     },
-  }
+  })
 }
 
 export function projectCommittedBattleSession(
@@ -562,6 +578,29 @@ async function resolveIntent(
   combatContentResolver?: CombatContentResolver,
 ): Promise<{ state: BattleAuthoritativeEncounterState; events: readonly unknown[] }> {
   try {
+    if (intent.kind === 'ability-prime' || intent.kind === 'ability-cancel-prime') {
+      const actorId = state.tactical.battle.currentTurn?.combatantId
+      if (!actorId) throw invalidBattleIntent()
+      const source =
+        capturedBasicSkillSource(state, actorId, intent.actionId) ??
+        capturedBattleActionSource(state, state.buildAuthority, actorId, intent.actionId)
+      if (!source)
+        throw invalidBattleIntent('That captured action is not available to this character.')
+      const transition = (
+        intent.kind === 'ability-prime'
+          ? primeCombatControlledAbility
+          : cancelCombatControlledAbility
+      )({
+        state,
+        actorId,
+        sourceInstanceId: source.sourceInstanceId,
+        behaviorId: intent.behaviorId,
+      })
+      return preserveBuildAuthority(state, {
+        state: reattachStatDrivenCombatBridge(transition.state, state.statBridge),
+        events: transition.events,
+      })
+    }
     if (intent.kind === 'move') {
       return preserveBuildAuthority(state, executePv1fMovement(state, intent.path))
     }
@@ -579,6 +618,7 @@ async function resolveIntent(
           state,
           actorId,
           root: { kind: 'canonical', source: capturedSource, behaviorId: intent.behaviorId },
+          movementPath: intent.movementPath,
           manualModifiers: intent.manualModifiers,
           selection: intent.target,
           content: PV1F_COMBAT_CONTENT,
@@ -609,7 +649,11 @@ async function resolveIntent(
             secondaryDisciplineId: build.secondary?.disciplineId ?? null,
             combatContext: state.buildAuthority.combatContext,
             selection: intent.target,
-            options: { behaviorId: intent.behaviorId, manualModifiers: intent.manualModifiers },
+            options: {
+              behaviorId: intent.behaviorId,
+              movementPath: intent.movementPath,
+              manualModifiers: intent.manualModifiers,
+            },
           }),
         )
       }
@@ -635,7 +679,11 @@ async function resolveIntent(
             definition,
             intent.target,
             state.buildAuthority.combatContext,
-            { behaviorId: intent.behaviorId, manualModifiers: intent.manualModifiers },
+            {
+              behaviorId: intent.behaviorId,
+              movementPath: intent.movementPath,
+              manualModifiers: intent.manualModifiers,
+            },
           ),
         )
       }
@@ -647,6 +695,7 @@ async function resolveIntent(
         state,
         executePv1fAction(state, intent.actionId, intent.target, {
           behaviorId: intent.behaviorId,
+          movementPath: intent.movementPath,
           manualModifiers: intent.manualModifiers,
         }),
       )
@@ -807,6 +856,7 @@ export function createBattleSessionService({
           encounter,
           encounter.buildAuthority,
           combatContentResolver,
+          battleHallRecordId === 'guided-fundamentals',
         )
         const startSnapshot = encounter
         const initialized = activateCombatAbilitySources(

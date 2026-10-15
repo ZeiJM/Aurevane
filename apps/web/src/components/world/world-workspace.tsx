@@ -8,9 +8,11 @@ import { remainingTravelMs, worldSyncDelayMs } from '@/world/travel'
 import type { WorldAttackReceipt } from '@/world/attack-receipt'
 import { mergeWorldMovement } from '@/world/movement-receipt'
 import { WorldNearbyPlayer } from './world-nearby-player'
+import { WorldPlacePortrait } from './world-place-portrait'
 import { mergeWorldRefresh, worldRefreshUrl } from '@/world/presence'
 import type { WorldIntent, WorldPosition, WorldView } from '@/world/types'
 import { WorldConflict, WorldController } from './world-controller'
+import { worldSceneCoversViewport } from './world-scene-coverage'
 import { WorldLivePresence } from './world-live-presence'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 import { localRoute, mapPoint, prepareLocalRoute, WorldMotion } from './world-motion'
@@ -185,6 +187,26 @@ export function WorldWorkspace({
         return mergeWorldRefresh(previous, body)
       },
       accept,
+      sceneCovered: (current) => {
+        if (!localViewActive.current) return true
+        const canvas = document.querySelector<HTMLCanvasElement>('canvas[data-world-stage]')
+        if (!canvas) return false
+        const point = motion.sample(performance.now()).point
+        return worldSceneCoversViewport(
+          current,
+          [
+            point,
+            ...current.route
+              .slice(0, 4)
+              .map((step) => mapPoint(step.position, current.sectors, point)),
+          ],
+          {
+            width: canvas.clientWidth,
+            height: canvas.clientHeight,
+            tile: Number(canvas.dataset.tileSize),
+          },
+        )
+      },
       presentation: (next) => {
         if (!mounted) return
         motion.updateScene(next.sectors, performance.now())
@@ -283,7 +305,7 @@ export function WorldWorkspace({
           if (document.visibilityState === 'visible' && !instance.pending) {
             if (instance.view.route.length && !instance.view.movementBlocked) {
               await instance.send({ kind: 'tick' })
-              void instance.hydrate()
+              void instance.hydrate({ movement: true })
             } else await instance.refresh()
           }
           schedule()
@@ -329,7 +351,8 @@ export function WorldWorkspace({
       if (intent.kind === 'stop') motion.stop(performance.now())
       else if (intent.kind === 'attack') motion.hold(performance.now())
       void controller.current?.send(intent).then(() => {
-        if (['walk', 'autopath', 'stop'].includes(intent.kind)) void controller.current?.hydrate()
+        if (['walk', 'autopath', 'stop'].includes(intent.kind))
+          void controller.current?.hydrate({ movement: true })
       })
     },
     [motion],
@@ -585,7 +608,7 @@ export function WorldWorkspace({
                       disabled={disabled}
                       onClick={() => walk({ sectorId: sector.id, x: p.x, y: p.y })}
                     >
-                      <span>◇</span>
+                      <WorldPlacePortrait place={p} />
                       <div>
                         {p.name}
                         <small>{sector.name}</small>

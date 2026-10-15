@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process'
+import { randomUUID } from 'node:crypto'
 
 import { expect, test, type Page } from '@playwright/test'
 import type { BattleSessionView } from '../src/server/battle/battle-session-service'
@@ -100,7 +101,7 @@ async function prepareInjuredActor(page: Page) {
   return battle
 }
 
-test('retains default HP Recovery keyboard input without exposing the deferred Recovery menu', async ({
+test('retains equipped HP Recovery keyboard input without exposing the deferred Recovery menu', async ({
   page,
 }, testInfo) => {
   test.skip(testInfo.project.name === 'mobile-chromium', 'Desktop keyboard shortcut contract')
@@ -112,6 +113,18 @@ test('retains default HP Recovery keyboard input without exposing the deferred R
   const characterName = uniqueCharacterName()
 
   await createAccountAndEnterCharacter({ page, email, password, characterName })
+  const support = await page.request.get('/api/character/build/support-action')
+  expect(support.ok()).toBe(true)
+  const { context } = await support.json()
+  const saved = await page.request.post('/api/character/build/support-action', {
+    data: {
+      characterId: context.build.characterId,
+      expectedBuildVersion: context.build.buildVersion,
+      supportActionId: 'basic.recover',
+      idempotencyKey: randomUUID(),
+    },
+  })
+  expect(saved.ok()).toBe(true)
   await page.goto('/game/battle')
   await page.getByLabel('Battle mode').selectOption('recruit-sparring')
   await page.getByRole('button', { name: 'Enter Battle' }).click()
@@ -213,6 +226,7 @@ test('retains default HP Recovery keyboard input without exposing the deferred R
   expect(committedResponse.request().postDataJSON().intent).toEqual({
     kind: 'action',
     actionId: 'basic.recover',
+    behaviorId: 'use',
     target: { kind: 'self' },
   })
   const after = committedPayload.battle as BattleSessionView

@@ -267,3 +267,32 @@ describe('combat content authoring handler', () => {
     })
   })
 })
+
+describe('authoring preview behavior boundary', () => {
+  it('forwards the selected group with the authenticated actor', async () => {
+    const service = serviceMock()
+    vi.mocked(service.previewSkillDefinition).mockResolvedValue({} as never)
+    const response = await handleCombatContentAuthoringRequest(
+      post({ operation: 'preview', definition: { id: 'owner.skill' }, behaviorId: 'second' }),
+      dependencies(service),
+    )
+    expect(response.status).toBe(200)
+    expect(service.previewSkillDefinition).toHaveBeenCalledWith({
+      actorUserId: ACTOR,
+      definition: { id: 'owner.skill' },
+      behaviorId: 'second',
+    })
+  })
+  it.each([null, '', ' second', 'second ', 4, {}, []])(
+    'rejects malformed group identity %j before calling preview',
+    async (behaviorId) => {
+      const service = serviceMock()
+      const response = await handleCombatContentAuthoringRequest(
+        post({ operation: 'preview', definition: { id: 'owner.skill' }, behaviorId }),
+        dependencies(service),
+      )
+      expect(response.status).toBe(400)
+      expect(service.previewSkillDefinition).not.toHaveBeenCalled()
+    },
+  )
+})

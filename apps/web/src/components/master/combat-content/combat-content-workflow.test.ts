@@ -67,6 +67,7 @@ describe('Master Panel combat content workflow', () => {
 
   it('computes the next immutable version above history even after rollback to static baseline', () => {
     expect(nextCombatContentVersion(3, history)).toBe(6)
+    expect(nextCombatContentVersion(3, history, 12)).toBe(13)
   })
 
   it('projects publish as a new current version without deleting history', () => {

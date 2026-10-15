@@ -23,6 +23,8 @@ export class WorldController {
   private currentJob: Job | null = null
   private idleRead: AbortController | null = null
   private sceneRead: AbortController | null = null
+  private lastSceneAt = -Infinity
+  private lastSceneSector: string | null = null
   constructor(
     public view: WorldView,
     private transport: {
@@ -30,6 +32,7 @@ export class WorldController {
       refresh: (signal?: AbortSignal, fullScene?: boolean) => Promise<WorldView>
       accept: (view: WorldView, reconcile: boolean) => void
       presentation?: (view: WorldView) => void
+      sceneCovered?: (view: WorldView) => boolean
       error: (message: string) => void
       busy: (intent: WorldIntent | null) => void
     },
@@ -137,8 +140,30 @@ export class WorldController {
     }
   }
   /** Scene presentation never occupies or aborts the authority command queue. */
-  async hydrate() {
+  async hydrate(options: { movement?: boolean } = {}) {
     if (this.disposed || this.sceneRead || !this.transport.presentation) return
+    // Ordinary movement already carries owned authority and peers have a
+    // separate live channel. Avoid repeatedly downloading/indexing the full
+    // atlas while this approved public route is still supplied. Explicit reads,
+    // crossings, private discovery, missing terrain and arrival bypass pacing.
+    if (
+      options.movement &&
+      this.view.route.length &&
+      this.lastSceneSector === this.view.position.sectorId &&
+      Date.now() - this.lastSceneAt < 750 &&
+      this.view.sectors.find((sector) => sector.id === this.view.position.sectorId)?.charted &&
+      this.transport.sceneCovered?.(this.view) === true &&
+      this.view.route
+        .slice(0, 8)
+        .every((step) =>
+          this.view.sectors
+            .find((sector) => sector.id === step.position.sectorId)
+            ?.cells.some(
+              (cell) => cell.x === step.position.x && cell.y === step.position.y && cell.walkable,
+            ),
+        )
+    )
+      return
     const read = new AbortController(),
       source = this.view
     this.sceneRead = read
@@ -249,6 +274,7 @@ export class WorldController {
       this.view = retainWorldSceneReferences(this.view, {
         ...this.view,
         sectors: incoming.sectors,
+        scenery: incoming.scenery,
         atlas: incoming.atlas,
         players,
         environment: incoming.environment,
@@ -262,6 +288,8 @@ export class WorldController {
             }
           : {}),
       })
+      this.lastSceneAt = Date.now()
+      this.lastSceneSector = incoming.position.sectorId
       this.transport.presentation(this.view)
     } catch {
       // Approved movement remains usable; the regular schedule retries presentation.

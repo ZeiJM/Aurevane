@@ -22,6 +22,7 @@ import { skillPreviewEffects } from './skill-effect-preview'
 import { skillDisplayName } from './skill-detail-presentation'
 import { ResonanceParameters } from './resonance-parameters'
 import { SkillParameters } from './skill-parameters'
+import { EffectTagLabel } from './compact-skill-effect-summary'
 import styles from './character-arsenal-shell.module.css'
 
 const OVERVIEW_TECHNIQUE_SLOTS = 4
@@ -41,16 +42,19 @@ function EssenceHoverPreview({ essence }: { essence: EssenceDefinition }) {
       }
     >
       <aside id={`essence-preview-${essence.essenceId}`} role="tooltip">
-        <dl>
-          <SkillParameters skill={skill} />
-        </dl>
-        <ul aria-label="Effect explanations">
-          {skillPreviewEffects(skill).map((effect) => (
-            <li key={JSON.stringify(effect)}>
-              <strong>{effect.label}</strong> — {effect.explanation}
-            </li>
-          ))}
-        </ul>
+        <SkillParameters skill={skill} />
+        {!skill.ability ? (
+          <ul aria-label="Effect explanations">
+            {skillPreviewEffects(skill).map((effect) => (
+              <li key={JSON.stringify(effect)}>
+                <strong>
+                  <EffectTagLabel label={effect.label} />
+                </strong>{' '}
+                — {effect.explanation}
+              </li>
+            ))}
+          </ul>
+        ) : null}
       </aside>
     </BattleInfoPopover>
   )

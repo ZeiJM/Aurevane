@@ -136,12 +136,26 @@ function resolveRecruitIntent(
   summon: CombatSummonInstance | null = null,
 ): { state: StatDrivenCombatEncounterState; events: readonly unknown[] } {
   try {
+    if (intent.kind === 'ability-prime' || intent.kind === 'ability-cancel-prime') {
+      if (summon) throw new TypeError('summon-controlled-command-unsupported')
+      return executeBuildAwareRecruitAiAction(
+        state,
+        intent.actionId,
+        { kind: 'self' },
+        skillOptions,
+        {
+          behaviorId: intent.behaviorId,
+          controlledOperation: intent.kind === 'ability-prime' ? 'prime' : 'cancel',
+        },
+      )
+    }
     if (intent.kind === 'move') return executePv1fMovement(state, intent.path)
     if (intent.kind === 'action') {
       return summon
         ? executePv1fSummonAbility(state, summon, intent.actionId, intent.target)
         : executeBuildAwareRecruitAiAction(state, intent.actionId, intent.target, skillOptions, {
             behaviorId: intent.behaviorId,
+            movementPath: intent.movementPath,
           })
     }
     if (intent.kind === 'face') return finishPv1fTurn(state, intent.facing)
@@ -183,7 +197,10 @@ async function resolveRecruitSkillOptions(
   const canonicalSources = (state.capturedAbilitySources ?? []).filter(
     (source) =>
       source.ownerCombatantId === actorId &&
-      capturedBattleActionSource(state, authority, actorId, source.abilityId) === source,
+      ((source.sourceKind === 'basic' &&
+        source.basic !== undefined &&
+        state.abilityRuntime?.activeSourceIds.includes(source.sourceInstanceId)) ||
+        capturedBattleActionSource(state, authority, actorId, source.abilityId) === source),
   )
   const regular = []
   for (const reference of build.disciplineSkills) {
@@ -293,6 +310,21 @@ export function createBattleRecruitAiService(
       let battleVersion = initial.battleVersion
       let committedAt = initial.updatedAt
       const decisions: Array<RecruitTurnView['decisions'][number]> = []
+      const committedView = (): RecruitTurnView => ({
+        battleSessionId: initial.battleSessionId,
+        battleVersion,
+        snapshot: projectBattleSnapshot(
+          state,
+          deriveParticipantBattleViewerEntitlement(state.tactical.battle.combatants, controlledIds),
+        ),
+        decisions,
+        invalidation: createBattleSessionChangedInvalidation({
+          battleSessionId: initial.battleSessionId,
+          battleVersion,
+          occurredAt: committedAt,
+          reason: 'state_changed',
+        }),
+      })
 
       for (let step = 0; step < MAX_RECRUIT_DECISIONS_PER_REQUEST; step += 1) {
         const battle = state.tactical.battle
@@ -303,24 +335,7 @@ export function createBattleRecruitAiService(
           controlledIds.includes(turn.combatantId) ||
           battle.turnNumber !== initialTurnNumber
         ) {
-          return {
-            battleSessionId: initial.battleSessionId,
-            battleVersion,
-            snapshot: projectBattleSnapshot(
-              state,
-              deriveParticipantBattleViewerEntitlement(
-                state.tactical.battle.combatants,
-                controlledIds,
-              ),
-            ),
-            decisions,
-            invalidation: createBattleSessionChangedInvalidation({
-              battleSessionId: initial.battleSessionId,
-              battleVersion,
-              occurredAt: committedAt,
-              reason: 'state_changed',
-            }),
-          }
+          return committedView()
         }
 
         const summon = activeSummonForActor(state, turn.combatantId)
@@ -354,8 +369,15 @@ export function createBattleRecruitAiService(
             })
         const resolved = resolveRecruitIntent(state, decision.intent, skillOptions, summon)
         const nextState = preserveFrozenBuildMetadata(state, resolved.state)
-        const event = decisionEvent(decision, turn.combatantId, summon ? 'summon' : 'recruit')
-        const events = [event, ...resolved.events]
+        const freeControlled =
+          decision.intent.kind === 'ability-prime' ||
+          decision.intent.kind === 'ability-cancel-prime'
+        const events = freeControlled
+          ? [...resolved.events]
+          : [
+              decisionEvent(decision, turn.combatantId, summon ? 'summon' : 'recruit'),
+              ...resolved.events,
+            ]
         const privacyJournal = buildBattlePrivacyJournalInput({
           before: state,
           after: nextState,
@@ -391,16 +413,17 @@ export function createBattleRecruitAiService(
         battleVersion = committed.result.battleVersion
         committedAt = committed.result.committedAt
         state = readPersistedEncounter(committed.result.snapshot)
-        decisions.push({
-          combatantId: turn.combatantId,
-          reason: decision.reason,
-          utility: decision.utility,
-        })
+        if (!freeControlled)
+          decisions.push({
+            combatantId: turn.combatantId,
+            reason: decision.reason,
+            utility: decision.utility,
+          })
       }
 
-      throw persistenceInvalid(
-        `Recruit AI exceeded the bounded ${MAX_RECRUIT_DECISIONS_PER_REQUEST}-decision turn budget.`,
-      )
+      // Each step is already committed. Return that progress so the existing client
+      // can request the next bounded page at the new version, preserving the turn.
+      return committedView()
     },
   }
 }

@@ -39,6 +39,23 @@ export function combatTargetUnitCategoryAllowed(
   )
 }
 
+/** Current unit categories and Ground delivery have distinct recipient authority. */
+export function combatTargetAllowsHostileHit(spec: CombatTargetSpec): boolean {
+  const hostileGround = ['enemies-only', 'all-units', 'all-except-actor'].includes(
+    spec.friendlyFire,
+  )
+  if (spec.geometryVersion === 3) {
+    if (spec.categories !== undefined && !Array.isArray(spec.categories)) return false
+    const categories = combatTargetCategories(spec)
+    return categories.includes('enemy') || (categories.includes('ground') && hostileGround)
+  }
+  return (
+    ['unit', 'ground-tile'].includes(spec.kind) &&
+    ['enemy', 'any'].includes(spec.teamPolicy) &&
+    hostileGround
+  )
+}
+
 export function canonicalCombatEffectRecipients(
   effect: CombatEffectDefinition,
   spec: CombatTargetSpec,

@@ -144,10 +144,13 @@ export async function handleCombatContentAuthoringRequest(
       const definition = requireProperty(body, 'definition')
       const seed = readOptionalPreviewSeed(body.seed)
       const combatContext = readOptionalCombatContext(body.combatContext)
+      const behaviorId =
+        body.behaviorId === undefined ? undefined : requiredString(body.behaviorId, 'behaviorId')
       const preview = await service.previewSkillDefinition({
         actorUserId: actor.userId,
         definition,
         ...(seed === undefined ? {} : { seed }),
+        ...(behaviorId === undefined ? {} : { behaviorId }),
         ...(combatContext === undefined ? {} : { combatContext }),
       })
       return success({ preview })

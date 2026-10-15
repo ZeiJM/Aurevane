@@ -1,4 +1,8 @@
 import { createBattleBuildAuthoritySnapshot } from './battle-build-authority'
+import {
+  captureBasicSkillSources,
+  defaultBasicSkills,
+} from '@aurevane/game-core/combat/combat-basic-actions'
 import { capturedMatureSkillAbilitySource } from '@aurevane/game-core/combat/combat-action-source'
 import { reconcileCombatAbilitySources } from '@aurevane/game-core/combat/combat-behavior-runtime'
 import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
@@ -986,110 +990,201 @@ describe('P2.6 authoritative Recruit AI turn service', () => {
   })
 })
 
-it('runs an admitted canonical Recruit behavior through the actual service CAS from stored capture without mutable published reads', async () => {
-  const recruit = advanceToRecruitTurn(await initialEncounter())
-  const characterId = '22222222-2222-4222-8222-222222222223'
-  const actorId = `character:${characterId}`
-  const initial = JSON.parse(
-    JSON.stringify(recruit).split(recruit.tactical.battle.currentTurn!.combatantId).join(actorId),
-  ) as StatDrivenCombatEncounterState
-  const playerId = `character:${CHARACTER_ID}`
-  const ability: AbilityDefinition = {
-    schemaVersion: 1,
-    behaviors: [
+it.each(['stationary', 'move', 'basic-move', 'controlled', 'controlled-move'] as const)(
+  'runs an admitted canonical %s Recruit behavior through service CAS without mutable published reads',
+  async (variant) => {
+    const controlled = variant === 'controlled' || variant === 'controlled-move'
+    const hasMove = variant === 'move' || variant === 'basic-move' || variant === 'controlled-move'
+    const recruit = advanceToRecruitTurn(await initialEncounter())
+    const characterId = '22222222-2222-4222-8222-222222222223'
+    const actorId = `character:${characterId}`
+    const initial = JSON.parse(
+      JSON.stringify(recruit).split(recruit.tactical.battle.currentTurn!.combatantId).join(actorId),
+    ) as StatDrivenCombatEncounterState
+    const playerId = `character:${CHARACTER_ID}`
+    const ability: AbilityDefinition = {
+      schemaVersion: 1,
+      behaviors: [
+        {
+          id: 'strike',
+          activation: 'manual',
+          mode: 'action',
+          classification: 'attack',
+          attackFamily: 'physical',
+          costs: [{ resource: 'ap', amount: hasMove ? 100 : 12 }],
+          cooldown: null,
+          activationLimits: ['once-per-battle'],
+          requirements: null,
+          targeting: {
+            kind: 'unit',
+            teamPolicy: 'enemy',
+            friendlyFire: 'enemies-only',
+            shape: { kind: 'single' },
+            minimumRange: 1,
+            maximumRange: 1,
+            requiresLineOfSight: false,
+            maximumElevationDifference: null,
+            maximumSelections: 1,
+          },
+          accuracy: { kind: 'fixed', chanceBasisPoints: 10000 },
+          effects: [
+            ...(!hasMove
+              ? []
+              : [
+                  {
+                    id: 'advance',
+                    timing: 'instant' as const,
+                    payload: {
+                      type: 'move' as const,
+                      recipient: 'actor' as const,
+                      maximumTiles: 2,
+                    },
+                  },
+                ]),
+            {
+              id: 'hit',
+              ...(controlled ? { timing: 'controlled' as const } : {}),
+              payload: { type: 'damage', recipient: 'primary-unit', amount: 20 },
+            },
+          ],
+        },
+      ],
+    }
+    const original = resolveMatureSkillVersion('vanguard.forceful-strike', 2)!
+    const source = capturedMatureSkillAbilitySource(initial, {
+      ...original,
+      ability:
+        variant === 'basic-move'
+          ? {
+              ...ability,
+              behaviors: ability.behaviors.map((behavior) => ({
+                ...behavior,
+                effects: behavior.effects.filter((effect) => effect.payload.type !== 'move'),
+              })),
+            }
+          : ability,
+    })!
+    const basics =
+      variant === 'basic-move'
+        ? captureBasicSkillSources({
+            ownerCombatantId: actorId,
+            supportActionId: 'basic.guard',
+            definitions: defaultBasicSkills().map((row) =>
+              row.id === 'basic.move'
+                ? { ...row, execution: { kind: 'basic-move', costBasis: 'flat' }, ability }
+                : row,
+            ),
+          })
+        : []
+    const captures = [source, ...basics]
+    const buildAuthority = createBattleBuildAuthoritySnapshot('pve', [
       {
-        id: 'strike',
-        activation: 'manual',
-        mode: 'action',
-        classification: 'attack',
-        attackFamily: 'physical',
-        costs: [{ resource: 'ap', amount: 12 }],
-        cooldown: null,
-        activationLimits: ['once-per-battle'],
-        requirements: null,
-        targeting: {
-          kind: 'unit',
-          teamPolicy: 'enemy',
-          friendlyFire: 'enemies-only',
-          shape: { kind: 'single' },
-          minimumRange: 1,
-          maximumRange: 1,
-          requiresLineOfSight: false,
-          maximumElevationDifference: null,
-          maximumSelections: 1,
-        },
-        accuracy: { kind: 'fixed', chanceBasisPoints: 10000 },
-        effects: [
-          { id: 'hit', payload: { type: 'damage', recipient: 'primary-unit', amount: 20 } },
-        ],
-      },
-    ],
-  }
-  const original = resolveMatureSkillVersion('vanguard.forceful-strike', 2)!
-  const source = capturedMatureSkillAbilitySource(initial, { ...original, ability })!
-  const buildAuthority = createBattleBuildAuthoritySnapshot('pve', [
-    {
-      combatantId: actorId,
-      characterId,
-      snapshot: {
-        schemaVersion: 2,
-        buildVersion: 1,
-        primary: { disciplineId: 'vanguard', definitionVersion: 1, profileVersion: 1 },
-        secondary: { disciplineId: 'lifebinder', definitionVersion: 1 },
-        disciplineSkills: [
-          { slotIndex: 1, skillId: original.id, contentVersion: 2, sourceDisciplineId: 'vanguard' },
-        ],
-        extensions: {
-          essence: null,
-          resonance: resonanceSnapshotReference(resolveResonanceForPair('vanguard', 'lifebinder')!),
-          equipmentSkills: [],
-          supernatural: null,
-          prestige: null,
+        combatantId: actorId,
+        characterId,
+        snapshot: {
+          schemaVersion: 2,
+          buildVersion: 1,
+          primary: { disciplineId: 'vanguard', definitionVersion: 1, profileVersion: 1 },
+          secondary: { disciplineId: 'lifebinder', definitionVersion: 1 },
+          disciplineSkills: [
+            {
+              slotIndex: 1,
+              skillId: original.id,
+              contentVersion: 2,
+              sourceDisciplineId: 'vanguard',
+            },
+          ],
+          extensions: {
+            essence: null,
+            resonance: resonanceSnapshotReference(
+              resolveResonanceForPair('vanguard', 'lifebinder')!,
+            ),
+            equipmentSkills: [],
+            supernatural: null,
+            prestige: null,
+          },
         },
       },
-    },
-  ])
-  const state = {
-    ...reconcileCombatAbilitySources(initial, [source]),
-    statBridge: initial.statBridge,
-    buildAuthority,
-    tactical: {
-      ...initial.tactical,
-      placements: initial.tactical.placements.map((row) =>
-        row.combatantId === actorId
-          ? { ...row, position: { x: 2, y: 1 } }
-          : row.combatantId === playerId
-            ? { ...row, position: { x: 1, y: 1 } }
-            : row,
-      ),
-    },
-  }
-  const fixture = createStatefulRepository(JSON.parse(JSON.stringify(state)))
-  const resolver = {
-    resolveCurrentSkillDefinition: vi.fn(async () => {
-      throw new Error('Mutable current read forbidden by stored authority.')
-    }),
-    resolvePinnedSkillDefinition: vi.fn(async () => {
-      throw new Error('Mutable pinned read forbidden by stored authority.')
-    }),
-  }
-  const result = await createBattleRecruitAiService(fixture.repository, resolver).runTurn({
-    userId: USER_ID,
-    battleSessionId: SESSION_ID,
-    expectedBattleVersion: 1,
-  })
-  expect(resolver.resolvePinnedSkillDefinition).not.toHaveBeenCalled()
-  expect(resolver.resolveCurrentSkillDefinition).not.toHaveBeenCalled()
-  const first = fixture.commits[0]!
-  expect(first.expectedBattleVersion).toBe(1)
-  expect(first.events).toContainEqual(
-    expect.objectContaining({ event: 'combat_action_used', actionId: original.id }),
-  )
-  expect(first.events).toContainEqual(expect.objectContaining({ event: 'ap_spent', amount: 12 }))
-  expect(
-    (first.nextSnapshot as StatDrivenCombatEncounterState).capturedAbilitySources![0]!.definition,
-  ).toEqual(ability)
-  expect(JSON.stringify(result)).not.toMatch(
-    /capturedAbilitySources|conditionTruth|abilityParticipants|effectOrigin/,
-  )
-})
+    ])
+    const state = {
+      ...reconcileCombatAbilitySources(initial, captures),
+      statBridge: initial.statBridge,
+      buildAuthority,
+      tactical: {
+        ...initial.tactical,
+        tiles: initial.tactical.tiles.map((tile) =>
+          hasMove && tile.position.y === 1 && tile.position.x <= 3
+            ? {
+                ...tile,
+                elevation: 0,
+                terrainId: initial.tactical.terrains.find((terrain) => terrain.traversalCost === 1)!
+                  .id,
+              }
+            : tile,
+        ),
+        placements: initial.tactical.placements.map((row) =>
+          row.combatantId === actorId
+            ? { ...row, position: { x: hasMove ? 0 : 2, y: 1 } }
+            : row.combatantId === playerId
+              ? { ...row, position: { x: hasMove ? 3 : 1, y: 1 } }
+              : row,
+        ),
+      },
+    }
+    const fixture = createStatefulRepository(JSON.parse(JSON.stringify(state)))
+    const resolver = {
+      resolveCurrentSkillDefinition: vi.fn(async () => {
+        throw new Error('Mutable current read forbidden by stored authority.')
+      }),
+      resolvePinnedSkillDefinition: vi.fn(async () => {
+        throw new Error('Mutable pinned read forbidden by stored authority.')
+      }),
+    }
+    const result = await createBattleRecruitAiService(fixture.repository, resolver).runTurn({
+      userId: USER_ID,
+      battleSessionId: SESSION_ID,
+      expectedBattleVersion: 1,
+    })
+    expect(resolver.resolvePinnedSkillDefinition).not.toHaveBeenCalled()
+    expect(resolver.resolveCurrentSkillDefinition).not.toHaveBeenCalled()
+    const first = fixture.commits[controlled ? 1 : 0]!
+    if (controlled) {
+      const prime = fixture.commits[0]!
+      expect(prime.events).toEqual([])
+      const primed = prime.nextSnapshot as StatDrivenCombatEncounterState
+      expect(primed.tactical).toEqual(state.tactical)
+      expect(primed.abilityRuntime!.controlled!.primes).toHaveLength(1)
+      expect(fixture.currentState().abilityRuntime!.controlled!.used).toHaveLength(1)
+      expect(
+        result.decisions.some((decision) => String(decision.reason).includes('controlled')),
+      ).toBe(false)
+      expect(fixture.commits.length).toBeLessThanOrEqual(16)
+    }
+    expect(first.expectedBattleVersion).toBe(controlled ? 2 : 1)
+    expect(first.events).toContainEqual(
+      expect.objectContaining({
+        event: 'combat_action_used',
+        actionId: variant === 'basic-move' ? 'basic.move' : original.id,
+      }),
+    )
+    expect(first.events).toContainEqual(
+      expect.objectContaining({ event: 'ap_spent', amount: hasMove ? 100 : 12 }),
+    )
+    expect((first.nextSnapshot as StatDrivenCombatEncounterState).capturedAbilitySources).toEqual(
+      captures,
+    )
+    if (hasMove) {
+      expect(
+        (first.nextSnapshot as StatDrivenCombatEncounterState).tactical.placements.find(
+          (row) => row.combatantId === actorId,
+        )!.position,
+      ).toEqual({ x: 2, y: 1 })
+      expect(
+        first.events.filter((event) => (event as { event: string }).event === 'combat_action_used'),
+      ).toHaveLength(1)
+    }
+    expect(JSON.stringify(result)).not.toMatch(
+      /capturedAbilitySources|conditionTruth|abilityParticipants|effectOrigin/,
+    )
+  },
+)

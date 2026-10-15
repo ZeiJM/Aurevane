@@ -1,7 +1,10 @@
 'use client'
 
 import type { SummonAbilityDefinition } from '@aurevane/game-core/combat/summon-content'
-import { CompactSkillEffectSummary } from '../character/compact-skill-effect-summary'
+import {
+  CompactSkillEffectSummary,
+  EffectTagLabel,
+} from '../character/compact-skill-effect-summary'
 import { SkillCharacteristicRows } from '../character/skill-characteristic-rows'
 import {
   skillParameterRows,
@@ -76,7 +79,10 @@ function SummonAbilityDetails({ ability }: { ability: SummonAbilityDefinition })
           timingPolicy,
         }).map((effect, index) => (
           <li key={index}>
-            <strong>{effect.label}</strong> — {effect.explanation}
+            <strong>
+              <EffectTagLabel label={effect.label} />
+            </strong>{' '}
+            — {effect.explanation}
           </li>
         ))}
       </ul>

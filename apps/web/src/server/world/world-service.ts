@@ -1,4 +1,5 @@
 import 'server-only'
+import { encodeTerrainRows } from '@/world/terrain'
 import { AurevaneError } from '@aurevane/game-core/errors'
 import { FRONTIER_APPROACH, GRID_HEIGHT, GRID_WIDTH, STEP_MS } from '@/world/catalog'
 import { resolveWorldEnvironment, type WorldEnvironment } from '@/world/environment'
@@ -19,6 +20,9 @@ import type {
   WorldObjective,
   WorldPlayer,
   WorldPosition,
+  WorldSector,
+  WorldSectorView,
+  WorldScenerySector,
   WorldState,
   WorldView,
 } from '@/world/types'
@@ -263,6 +267,30 @@ export function projectWorldPlayers(
     })
 }
 
+/** Shared private-filtered sector projection; movement receipts need only their origin. */
+export function projectWorldSector(state: WorldState, sector: WorldSector): WorldSectorView {
+  const { rows, roads, ...publicSector } = sector
+  const cells = []
+  for (let y = 0; y < GRID_HEIGHT; y++)
+    for (let x = 0; x < GRID_WIDTH; x++)
+      if (isKnown(state, { sectorId: sector.id, x, y }))
+        cells.push({
+          x,
+          y,
+          terrain: rows[y]![x]!,
+          walkable: isWalkable(sector, { x, y }),
+          safe: isSafe(sector, { x, y }),
+        })
+  const legacyTrail = /^trail:.*:(\d+)$/.exec(sector.id)
+  return {
+    ...publicSector,
+    ...(legacyTrail ? { atlasColumn: Number(legacyTrail[1]), atlasRow: 0 } : {}),
+    cells,
+    landmarks: sector.landmarks.filter((p) => isKnown(state, { ...p, sectorId: sector.id })),
+    exits: roads.filter((road) => isKnown(state, road.from) && isKnown(state, road.to)),
+  }
+}
+
 export function projectWorld(
   state: WorldState,
   players: readonly WorldPlayer[],
@@ -323,28 +351,65 @@ export function projectWorld(
       return priority(a) - priority(b) || sceneDistance(a) - sceneDistance(b)
     })
     .slice(0, 25)
-  const sectors = sceneSectors.map((sector) => {
-    const { rows, roads, ...publicSector } = sector
-    const cells = []
-    for (let y = 0; y < 9; y++)
-      for (let x = 0; x < 13; x++)
-        if (isKnown(state, { sectorId: sector.id, x, y }))
-          cells.push({
-            x,
-            y,
-            terrain: rows[y]![x]!,
-            walkable: isWalkable(sector, { x, y }),
-            safe: isSafe(sector, { x, y }),
-          })
-    const legacyTrail = /^trail:.*:(\d+)$/.exec(sector.id)
-    return {
-      ...publicSector,
-      ...(legacyTrail ? { atlasColumn: Number(legacyTrail[1]), atlasRow: 0 } : {}),
-      cells,
-      landmarks: sector.landmarks.filter((p) => isKnown(state, { ...p, sectorId: sector.id })),
-      exits: roads.filter((road) => isKnown(state, road.from) && isKnown(state, road.to)),
-    }
+  const sectors = sceneSectors.map((sector) => projectWorldSector(state, sector))
+  const sceneIds = new Set(sceneSectors.map((sector) => sector.id))
+  // The smallest allowed zoom needs more public ground than the25-sector peer
+  // registration can hold. Send compact canonical rows ahead and beside the
+  // camera, independently of private discovery and presence authorization.
+  // Cover the supported smallest-zoom desktop/portrait viewport, plus the
+  // first2.8s of approved travel. Corner ground must not wait for hydration.
+  const sceneryAnchors = [
+    state.position,
+    ...state.route.slice(0, 14).map((step) => step.position),
+  ].flatMap((position) => {
+    const sector = resolveSector(position.sectorId)
+    const address = sector && atlasAddress(sector)
+    return address
+      ? [
+          {
+            x: address.column * GRID_WIDTH + position.x + 0.5,
+            y: address.row * GRID_HEIGHT + position.y + 0.5,
+          },
+        ]
+      : []
   })
+  const sceneryHalfWidth = 1296 / (64 * 0.35) / 2 + 1
+  const sceneryHalfHeight = 944 / (64 * 0.35) / 2 + 1
+  const scenery: WorldScenerySector[] =
+    currentSector.charted && currentAddress
+      ? visible
+          .filter((sector) => {
+            const address = atlasAddress(sector)
+            return (
+              sector.charted &&
+              !sceneIds.has(sector.id) &&
+              address &&
+              wrappedColumnDistance(address.column, currentAddress.column) <= 5 &&
+              Math.abs(address.row - currentAddress.row) <= 7 &&
+              sceneryAnchors.some((anchor) => {
+                const dx = wrappedMapX(address.column * GRID_WIDTH, anchor.x) - anchor.x,
+                  dy = address.row * GRID_HEIGHT - anchor.y,
+                  x = (dx - dy) * 0.85,
+                  y = (dx + dy) * 0.44
+                return (
+                  x - GRID_HEIGHT * 0.85 <= sceneryHalfWidth &&
+                  x + GRID_WIDTH * 0.85 >= -sceneryHalfWidth &&
+                  y <= sceneryHalfHeight &&
+                  y + (GRID_WIDTH + GRID_HEIGHT) * 0.44 >= -sceneryHalfHeight
+                )
+              })
+            )
+          })
+          .slice(0, 165)
+          .map((sector): WorldScenerySector => [
+            sector.id,
+            encodeTerrainRows(sector.rows),
+            sector.landscape ?? null,
+            sector.buildings ?? [],
+            sector.landmarks,
+          ])
+      : []
+
   const visiblePlayers = projectWorldPlayers(
     state,
     players,
@@ -371,6 +436,7 @@ export function projectWorld(
     routeObjectiveId: state.route.length ? (state.routeObjectiveId ?? null) : null,
     routeDestination: state.route.length ? (state.routeDestination ?? null) : null,
     sectors,
+    scenery,
     atlas: visible.flatMap((sector) => {
       const address = atlasAddress(sector)
       return address

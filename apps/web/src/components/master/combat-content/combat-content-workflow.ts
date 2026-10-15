@@ -16,11 +16,22 @@ export interface CombatContentSemanticDiff {
 }
 
 export interface CombatContentPreviewSummary {
+  readonly behaviorId?: string
+  readonly simulation?: {
+    readonly preparation?: 'free-controlled-prime'
+    readonly [key: string]: unknown
+  }
   readonly groundAreas?: readonly PublicCombatGroundArea[]
   readonly legal?: boolean
   readonly costs?: {
     readonly actionEconomy?: number
     readonly mp?: number
+    readonly hp?: number
+  }
+  readonly movement?: {
+    readonly path: readonly { readonly x: number; readonly y: number }[]
+    readonly terrainCost?: number
+    readonly movementRemainingAfter?: number
   }
   readonly targeting?: {
     readonly affectedCombatantIds?: readonly string[]
@@ -77,17 +88,23 @@ export function canPublishCombatContent(review: CombatContentReviewState): boole
 export function nextCombatContentVersion(
   currentVersion: number,
   history: readonly CombatContentVersionHistoryEntry[],
+  versionFloor: number | null = null,
 ): number {
   if (!Number.isSafeInteger(currentVersion) || currentVersion < 1) {
     throw new RangeError('Current combat content version must be a positive safe integer.')
   }
+  if (versionFloor !== null && (!Number.isSafeInteger(versionFloor) || versionFloor < 1))
+    throw new RangeError('Publication version floor must be a positive safe integer.')
 
-  const highest = history.reduce((value, entry) => {
-    if (!Number.isSafeInteger(entry.contentVersion) || entry.contentVersion < 1) {
-      throw new RangeError('Combat content history contains an invalid version.')
-    }
-    return Math.max(value, entry.contentVersion)
-  }, currentVersion)
+  const highest = history.reduce(
+    (value, entry) => {
+      if (!Number.isSafeInteger(entry.contentVersion) || entry.contentVersion < 1) {
+        throw new RangeError('Combat content history contains an invalid version.')
+      }
+      return Math.max(value, entry.contentVersion)
+    },
+    Math.max(currentVersion, versionFloor ?? 0),
+  )
 
   if (highest >= Number.MAX_SAFE_INTEGER) {
     throw new RangeError('Combat content version has reached the safe integer limit.')
