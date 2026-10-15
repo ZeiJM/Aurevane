@@ -1,3 +1,4 @@
+import { skillEffectInstantTiming } from './skill-detail-presentation'
 import { expect, it } from 'vitest'
 import { parseAbilityDefinition } from '@aurevane/game-core/combat/combat-definition'
 import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
@@ -68,3 +69,50 @@ it.each(['controlled', 'delayed'] as const)(
     )
   },
 )
+
+it('reports the prime tile when Controlled comes from the pinned tag default', () => {
+  const base = defaultBasicSkills().find((skill) => skill.id === 'unarmed.basic')!.ability
+    .behaviors[0]!
+  const behavior = parseAbilityDefinition({
+    schemaVersion: 1,
+    behaviors: [
+      {
+        ...base,
+        classification: 'utility',
+        attackFamily: undefined,
+        targeting: {
+          ...base.targeting!,
+          kind: 'self',
+          teamPolicy: 'self',
+          friendlyFire: 'allies-only',
+          minimumRange: 0,
+          maximumRange: 0,
+        },
+        effects: [
+          {
+            id: 'rewind',
+            payload: {
+              type: 'return-to-turn-start',
+              recipient: 'actor',
+              anchorMode: 'cast-position',
+            },
+          },
+        ],
+      },
+    ],
+  }).behaviors[0]!
+  const report = abilityBehaviorInformation(behavior, {
+    timingPolicy: { version: 12, modes: { 'return-to-turn-start': 'controlled' } },
+  })
+  expect(report.effectDescriptions[0]).toContain('tile saved when the whole action was primed')
+  expect(Object.fromEntries(report.rows).Effects).toContain('[Controlled]')
+})
+
+it('compact timing labels expose Controlled for a configured tag', () => {
+  expect(
+    skillEffectInstantTiming(
+      { type: 'healing', recipient: 'actor', amount: 1 },
+      { version: 12, modes: { healing: 'controlled' } },
+    ),
+  ).toBe('Controlled')
+})

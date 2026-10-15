@@ -1,3 +1,4 @@
+import { applyAbilityTimingDefaults } from './combat-definition'
 import type { CombatEncounterState, CombatEncounterIssue } from './actions'
 import type { AbilityBehavior } from './combat-definition'
 import type { CapturedCombatAbilitySource } from './combat-behavior-capture'
@@ -102,7 +103,10 @@ export function updateCombatControlledAbility(
   const source = state.capturedAbilitySources?.find(
     (source) => source.sourceInstanceId === input.sourceInstanceId,
   )
-  const behavior = source?.definition.behaviors.find((behavior) => behavior.id === input.behaviorId)
+  const authored = source?.definition.behaviors.find((behavior) => behavior.id === input.behaviorId)
+  const behavior = authored
+    ? applyAbilityTimingDefaults(authored, state.effectTimingPolicy)
+    : undefined
   if (
     !tracking ||
     !source ||
@@ -231,9 +235,17 @@ export function validateCombatControlledAbilities(
     )
       return invalid()
     const source = sources.find((source) => source.sourceInstanceId === record.sourceInstanceId)
-    const behavior = source?.definition.behaviors.find(
+    const authored = source?.definition.behaviors.find(
       (behavior) => behavior.id === record.behaviorId,
     )
+    let behavior: AbilityBehavior | undefined
+    try {
+      behavior = authored
+        ? applyAbilityTimingDefaults(authored, state.effectTimingPolicy)
+        : undefined
+    } catch {
+      return invalid()
+    }
     const key = combatControlledAbilityKey(record)
     if (
       record.battleId !== state.tactical.battle.battleId ||

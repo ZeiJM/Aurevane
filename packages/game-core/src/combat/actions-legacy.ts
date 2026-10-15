@@ -1171,6 +1171,21 @@ export function evaluateCombatAction(
   const targeting = resolveCombatTargeting(state, actorId, action.target, selection, content)
   issues.push(...targeting.issues)
   const target = { position: targeting.primaryPosition, combatantId: targeting.primaryCombatantId }
+  if (
+    action.effects.some(
+      (effect, ordinal) =>
+        (action.effectTimingModes?.[ordinal] ??
+          combatEffectTimingMode(
+            state.effectTimingPolicy,
+            combatActionEffectTimingTag(state, effect, action.effectTimingTags?.[ordinal]),
+          )) === 'controlled',
+    )
+  )
+    issues.push({
+      code: 'requirement-not-met',
+      message:
+        'Controlled timing requires a captured Manual action and its prime/release authority.',
+    })
   collectRequirementIssues(state, actorId, target.combatantId, action.requirements, content, issues)
   collectActorEffectCapabilityIssues(
     state,
@@ -4000,10 +4015,11 @@ function resolveActionEffects(
                         ...action.effects.map((damage, ordinal) =>
                           damage.type === 'damage'
                             ? combatEffectTimingRoundOffset(
-                                combatEffectTimingMode(
-                                  state.effectTimingPolicy,
-                                  action.effectTimingTags?.[ordinal] ?? 'damage',
-                                ),
+                                action.effectTimingModes?.[ordinal] ??
+                                  combatEffectTimingMode(
+                                    state.effectTimingPolicy,
+                                    action.effectTimingTags?.[ordinal] ?? 'damage',
+                                  ),
                               )
                             : 0,
                         ),

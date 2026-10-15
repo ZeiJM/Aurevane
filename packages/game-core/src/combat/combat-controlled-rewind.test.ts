@@ -25,7 +25,7 @@ import { prepareCombatAbilityCommand, commitCombatAbilityCommand } from './comba
 import { validateCombatAbilityState } from './combat-ability-state'
 import type { CombatEncounterState } from './actions'
 
-function setup(delayed = false, conditional = false) {
+function setup(delayed = false, conditional = false, configured = false) {
   const base = percentageDotEncounter()
   const balanced = preparePv1fTurnEconomy(
     createStatBalancedCombatEncounterState(
@@ -78,7 +78,7 @@ function setup(delayed = false, conditional = false) {
                 },
               }
             : {}),
-          timing: delayed ? 'delayed' : 'controlled',
+          timing: delayed ? 'delayed' : configured ? undefined : 'controlled',
           payload: {
             type: 'return-to-turn-start',
             recipient: 'actor',
@@ -90,7 +90,20 @@ function setup(delayed = false, conditional = false) {
     tags: [],
     abilityId: 'chronist.controlled-rewind',
   })
-  const admitted = reconcileCombatAbilitySources(balanced, [captured])
+  const admitted = reconcileCombatAbilitySources(
+    {
+      ...balanced,
+      ...(configured
+        ? {
+            effectTimingPolicy: {
+              version: 12,
+              modes: { 'return-to-turn-start': 'controlled' as const },
+            },
+          }
+        : {}),
+    },
+    [captured],
+  )
   const moved = executePv1fMovement(reattachStatDrivenCombatBridge(admitted, balanced.statBridge), [
     { x: 1, y: 1 },
     { x: 1, y: 0 },
@@ -406,4 +419,15 @@ it('an occupied delayed landing consumes pending work without recovering its pri
         event.event === 'combat_action_used',
     ),
   ).toEqual([])
+})
+
+it('a configured Controlled Rewind default captures the prime tile without changing the saved definition', () => {
+  const { state, captured } = setup(false, false, true)
+  expect(captured.definition.behaviors[0]!.effects[0]!.timing).toBeUndefined()
+  const restored = JSON.parse(JSON.stringify(state)) as CombatEncounterState
+  expect(validateCombatAbilityState(restored)).toEqual([])
+  const released = commitCombatAbilityCommand(command(restored, captured))
+  expect(position(released.state)).toEqual({ x: 1, y: 0 })
+  expect(released.state.turnOrigin).toEqual(state.turnOrigin)
+  expect(released.state.capturedAbilitySources![0]!.definition).toEqual(captured.definition)
 })

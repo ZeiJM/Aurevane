@@ -1,3 +1,8 @@
+import {
+  combatEffectTimingMode,
+  currentCombatEffectTimingTag,
+  type CombatEffectTimingPolicy,
+} from './combat-effect-timing'
 import { automaticAbilityEventSupported } from './combat-ability-events'
 import type { CombatTargetSpec } from './actions'
 import { validateCombatActionDefinition } from './combat-authoring-validation'
@@ -701,4 +706,30 @@ export function validAccuracy(value: unknown): value is CombatAccuracyRule {
     nonnegative(value.chanceBasisPoints) &&
     value.chanceBasisPoints <= 10000
   )
+}
+
+/** Resolve pinned defaults without rewriting the authored/captured definition or its version. */
+export function applyAbilityTimingDefaults(
+  behavior: AbilityBehavior,
+  policy?: CombatEffectTimingPolicy,
+): AbilityBehavior {
+  if (!policy || !Object.values(policy.modes).includes('controlled')) return behavior
+  const effects = behavior.effects.map((effect) => {
+    if (
+      effect.timing !== undefined ||
+      effect.payload.type === 'move' ||
+      effect.payload.type === 'damage-bonus'
+    )
+      return effect
+    const tag =
+      effect.payload.type === 'summon'
+        ? 'summon'
+        : currentCombatEffectTimingTag(nativeCombatTagPayload(effect.payload))
+    return combatEffectTimingMode(policy, tag) === 'controlled'
+      ? { ...effect, timing: 'controlled' as const }
+      : effect
+  })
+  if (effects.every((effect, ordinal) => effect === behavior.effects[ordinal])) return behavior
+  return parseAbilityDefinition({ schemaVersion: 1, behaviors: [{ ...behavior, effects }] })
+    .behaviors[0]!
 }

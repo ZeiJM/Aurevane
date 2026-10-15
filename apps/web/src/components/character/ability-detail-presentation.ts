@@ -1,3 +1,4 @@
+import { applyAbilityTimingDefaults } from '@aurevane/game-core/combat/combat-definition'
 import type {
   AbilityBehavior,
   AbilityEffect,
@@ -184,6 +185,7 @@ export function abilityBehaviorInformation(
   } = {},
 ) {
   const timingPolicy = options.timingPolicy ?? null
+  behavior = applyAbilityTimingDefaults(behavior, timingPolicy ?? undefined)
   const controlledAction = behavior.effects.some((effect) => effect.timing === 'controlled')
   const effects = behavior.effects.map((effect) =>
     effectPresentation(effect, timingPolicy, options.basic, options.stats, controlledAction),

@@ -1520,7 +1520,7 @@ it.each(['recruit-sparring', 'guided-fundamentals'] as const)(
   },
 )
 
-async function controlledServiceFixture() {
+async function controlledServiceFixture(configured = false) {
   const original = resolveEssenceForBuild('vanguard', null)!
   const ability: AbilityDefinition = {
     schemaVersion: 1,
@@ -1551,7 +1551,7 @@ async function controlledServiceFixture() {
         effects: [
           {
             id: 'heal',
-            timing: 'controlled',
+            timing: configured ? undefined : 'controlled',
             payload: { type: 'healing', recipient: 'actor', amount: 1 },
           },
         ],
@@ -1576,6 +1576,14 @@ async function controlledServiceFixture() {
     battles: battles.repository,
     builds: buildRepository(pureSnapshot()).repository,
     combatContentResolver: resolver,
+    ...(configured
+      ? {
+          readEffectTimingPolicy: async () => ({
+            version: 12,
+            modes: { healing: 'controlled' as const },
+          }),
+        }
+      : {}),
   })
   await service.createSession({
     userId: USER_ID,
@@ -1707,4 +1715,23 @@ it('service priming rejects missing captured actions and Manual groups without s
   }
   expect(JSON.stringify(state())).toBe(before)
   expect(battles.commitBattleIntent).not.toHaveBeenCalled()
+})
+
+it('the actual battle service uses its pinned Controlled tag default without rewriting the captured definition', async () => {
+  const { service, state, request, actionId } = await controlledServiceFixture(true)
+  const source = state().capturedAbilitySources!.find((source) => source.abilityId === actionId)!
+  expect(source.definition.behaviors[0]!.effects[0]!.timing).toBeUndefined()
+  await service.submitIntent(request('ability-prime', 1))
+  expect(state().abilityRuntime!.controlled!.primes).toHaveLength(1)
+  await service.submitIntent({
+    userId: USER_ID,
+    battleSessionId: SESSION_ID,
+    idempotencyKey: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    expectedBattleVersion: 2,
+    intent: { kind: 'action', actionId, behaviorId: 'controlled', target: { kind: 'self' } },
+  })
+  expect(state().abilityRuntime!.controlled!.primes).toEqual([])
+  expect(
+    state().capturedAbilitySources!.find((row) => row.abilityId === actionId)!.definition,
+  ).toEqual(source.definition)
 })

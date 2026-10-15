@@ -58,3 +58,22 @@ it('pins parsed current policy and maps stale publication while rejecting unknow
     }),
   ).rejects.toThrow('Refresh')
 })
+
+it('publishes Controlled defaults without requiring a human reason', async () => {
+  const service = await import('./combat-effect-timing-policy-store')
+  rpc.mockResolvedValueOnce({ data: { version: 4, modes: { slow: 'controlled' } }, error: null })
+  expect(
+    await service.publishCombatEffectTimingPolicy({
+      actorUserId: 'owner',
+      policy: { version: 3, modes: { slow: 'controlled' } },
+    }),
+  ).toEqual({ version: 4, modes: { slow: 'controlled' } })
+  expect(rpc).toHaveBeenLastCalledWith(
+    'publish_combat_effect_timing_policy_v1',
+    expect.objectContaining({
+      p_actor_user_id: 'owner',
+      p_expected_version: 3,
+      p_modes: { slow: 'controlled' },
+    }),
+  )
+})

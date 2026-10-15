@@ -1,3 +1,4 @@
+import { applyAbilityTimingDefaults } from './combat-definition'
 import type { CombatEncounterState, CombatEncounterIssue } from './actions-legacy'
 import { validateCombatControlledAbilities } from './combat-controlled'
 import {
@@ -20,6 +21,8 @@ export function validateCombatAbilityState(
     for (const source of captures) {
       try {
         const normalized = captureCombatAbilitySource(source)
+        for (const behavior of normalized.definition.behaviors)
+          applyAbilityTimingDefaults(behavior, state.effectTimingPolicy)
         if (
           ids.has(source.sourceInstanceId) ||
           !state.tactical.battle.combatants.some((unit) => unit.id === source.ownerCombatantId)

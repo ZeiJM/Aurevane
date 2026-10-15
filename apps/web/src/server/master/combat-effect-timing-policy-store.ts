@@ -28,7 +28,7 @@ export async function readCombatEffectTimingPolicy(): Promise<CombatEffectTiming
 export async function publishCombatEffectTimingPolicy(input: {
   actorUserId: string
   policy: unknown
-  reason: unknown
+  reason?: unknown
 }): Promise<CombatEffectTimingPolicy> {
   let policy: CombatEffectTimingPolicy
   try {
@@ -39,19 +39,13 @@ export async function publishCombatEffectTimingPolicy(input: {
       'Choose registered effect tags and valid timing modes.',
     )
   }
-  if (
-    typeof input.reason !== 'string' ||
-    input.reason.trim().length < 1 ||
-    input.reason.trim().length > 240
-  )
-    throw new AurevaneError('INVALID_REQUEST', 'A reason from 1 to 240 characters is required.')
   const { data, error } = await createSupabaseAdminClient().rpc(
     'publish_combat_effect_timing_policy_v1',
     {
       p_actor_user_id: input.actorUserId,
       p_expected_version: policy.version,
       p_modes: policy.modes,
-      p_reason: input.reason.trim(),
+      p_reason: 'Updated effect timing.',
     },
   )
   if (error?.message?.includes('TIMING_POLICY_VERSION_CONFLICT'))

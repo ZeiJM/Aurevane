@@ -386,7 +386,7 @@ export function prepareCombatAbilityCommand(
       behavior = effectiveBasicSkillBehavior(
         input.state,
         source,
-        combatAbilityBehavior(source, root.behaviorId),
+        combatAbilityBehavior(source, root.behaviorId, input.state.effectTimingPolicy),
       )
     if (behavior.activation === 'automatic' && !input.trigger)
       throw new TypeError('automatic-event-required')

@@ -2,6 +2,7 @@
 import { useState, type FormEvent } from 'react'
 import {
   COMBAT_EFFECT_TIMING_TAGS,
+  CONTROLLED_COMBAT_TIMING_TAGS,
   combatEffectTimingMode,
   type CombatEffectTimingPolicy,
   type CombatEffectTimingMode,
@@ -19,7 +20,7 @@ function timingLabel(tag: string): string {
     push: 'Push',
     pull: 'Pull',
     'barrier-change': 'Barrier',
-    'return-to-turn-start': 'Return to turn start',
+    'return-to-turn-start': 'Rewind',
     'remove-status': 'Cleanse / remove status',
     'copy-statuses': 'Amplify / Curse copy',
     copy: 'Skill copy',
@@ -34,7 +35,6 @@ export function CombatEffectTimingEditor({
   initialPolicy: CombatEffectTimingPolicy
 }) {
   const [policy, setPolicy] = useState(initialPolicy)
-  const [reason, setReason] = useState('')
   const [message, setMessage] = useState('')
   const [saving, setSaving] = useState(false)
   async function publish(event: FormEvent<HTMLFormElement>) {
@@ -45,7 +45,7 @@ export function CombatEffectTimingEditor({
       const response = await fetch('/api/master/combat-timing', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ policy, reason }),
+        body: JSON.stringify({ policy }),
       })
       const body = (await response.json()) as {
         policy?: CombatEffectTimingPolicy
@@ -54,8 +54,7 @@ export function CombatEffectTimingEditor({
       if (!response.ok || !body.policy)
         throw new Error(body.error?.message ?? 'Timing policy could not be published.')
       setPolicy(body.policy)
-      setReason('')
-      setMessage(`Published timing policy v${body.policy.version}.`)
+      setMessage('Timing updated.')
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Timing policy could not be published.')
     } finally {
@@ -64,10 +63,12 @@ export function CombatEffectTimingEditor({
   }
   return (
     <form className={styles.editor} onSubmit={publish}>
-      <h2>Effect timing policy v{policy.version}</h2>
+      <h2>Effect timing</h2>
       <p>
         Normal effects activate at the next global round; Delayed effects activate one round later.
-        Instant effects apply immediately. Existing battles keep their pinned policy.
+        Instant effects apply immediately. Controlled primes a compatible whole Manual action for a
+        later legal release. Existing battles keep their pinned policy. Explicit per-effect timing
+        overrides these defaults.
       </p>
       <table>
         <thead>
@@ -101,6 +102,12 @@ export function CombatEffectTimingEditor({
                     <option value="instant">Instant</option>
                     <option value="next-round">Normal</option>
                     <option value="delayed">Delayed</option>
+                    <option
+                      value="controlled"
+                      disabled={!CONTROLLED_COMBAT_TIMING_TAGS.includes(tag)}
+                    >
+                      Controlled
+                    </option>
                   </select>
                 </td>
               </tr>
@@ -108,18 +115,12 @@ export function CombatEffectTimingEditor({
           )}
         </tbody>
       </table>
-      <label>
-        Reason for this change
-        <textarea
-          required
-          maxLength={240}
-          value={reason}
-          disabled={saving}
-          onChange={(event) => setReason(event.target.value)}
-        />
-      </label>
-      <button type="submit" disabled={saving || reason.trim().length === 0}>
-        {saving ? 'Publishing…' : 'Publish timing policy'}
+      <p>
+        Controlled requires a compatible Manual action. Summon and persistent Ground need dedicated
+        release targeting before they can use Controlled.
+      </p>
+      <button type="submit" disabled={saving}>
+        {saving ? 'Saving…' : 'Save timing'}
       </button>
       <p role="status">{message}</p>
     </form>

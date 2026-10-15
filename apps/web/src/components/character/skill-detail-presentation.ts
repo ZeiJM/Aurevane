@@ -291,7 +291,7 @@ export function skillEffectInstantTiming(
   effect: MatureSkillEffectDefinition,
   policy: SkillEffectTimingPolicy = defaultCombatEffectTimingPolicy(),
   options: ElementalEffectPresentationOptions = {},
-): 'Instant' | 'Delayed' | undefined {
+): 'Instant' | 'Delayed' | 'Controlled' | undefined {
   const tag = effect.type === 'summon' ? 'summon' : currentCombatEffectTimingTag(effect)
   const mode =
     !options.legacyElemental &&
@@ -300,11 +300,13 @@ export function skillEffectInstantTiming(
     policy?.modes[tag] === undefined
       ? 'instant'
       : combatEffectTimingMode(policy ?? undefined, tag)
-  return mode === 'delayed'
-    ? 'Delayed'
-    : effect.type !== 'damage' && mode === 'instant'
-      ? 'Instant'
-      : undefined
+  return mode === 'controlled'
+    ? 'Controlled'
+    : mode === 'delayed'
+      ? 'Delayed'
+      : effect.type !== 'damage' && mode === 'instant'
+        ? 'Instant'
+        : undefined
 }
 
 function compactDuration(effect: MatureSkillEffectDefinition): string | null {

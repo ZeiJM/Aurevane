@@ -1,0 +1,25 @@
+# Configured Controlled timing checkpoint
+
+This continues Task 4 from durable `ccb52b552216390640071cd39c2f60295018a17d` (local `cdd0d97a38f06d3ddd44671434dec801235ec207`). It is not a complete Controlled feature, catalog rebalance or live release.
+
+The configured/stored timing parser accepts Controlled for compatible effect tags. Ground-area persistence and Summon remain unavailable for Controlled until their destination/release contracts exist. Controlled cannot be converted to a native round offset. Unadapted native execution rejects before payment or scheduling instead of treating Controlled as an automatic delayed packet.
+
+Pinned defaults are resolved into a temporary validated behavior at admission/preparation, prime, restoration and shared canonical reporting. The captured authored definition and its content version remain unchanged. Explicit effect wrappers retain precedence over tag defaults. Inherited Controlled Automatic/Ongoing/modifier combinations fail compatibility validation; an explicit supported Automatic timing remains valid. Catalog-wide compatibility checks at policy/content publication are still required before release so a new setting cannot strand a published build at admission.
+
+Rewind inheriting Controlled captures its actual prime tile, survives JSON restoration and returns there through the committed command. A real battle-service case verifies inherited HP recovery timing through free prime and paid release without rewriting its saved definition. A percentage-Poison regression corrects synchronization to respect the direct hit's resolved packet timing; the global Controlled default cannot become a DoT activation timer after release.
+
+The Master effect-timing editor offers the fourth choice, disables unsupported destination combinations, shows saved compatible choices, explains explicit overrides and keeps existing battles pinned. Its reason input and visible policy number are removed; saving no longer requires an entered reason. Internal version CAS and immutable attributed publication remain. The legacy database reason column receives a constant compatibility note rather than user-authored justification. Other Master pages' bureaucracy removal remains in the broader panel task.
+
+## Migration and verification
+
+CLI-created migration `20261015071731_combat_controlled_timing.sql` replaces only the existing publication function's mode validation. It retains Owner assertion, advisory lock, expected-version CAS, empty search path, private history and service-only execution. It does not rewrite any policy version or set Rewind's one-time default. PGlite runs real SQL to verify compatible publication, unchanged old rows, stale rejection, unsupported/retired mode rejection, repeat execution without a data rewrite and authenticated-role denial. No hosted migration is applied.
+
+Observed RED includes four configured/stored mode parser cases, a Controlled round offset silently becoming two, actual whole-action admission, unadapted native preview scheduling, the mixed percentage-Poison offset, invalid restored Automatic compatibility, SQL publication rejection, SQL acceptance of retired Controlled Copy, missing compact/global Rewind prose, the Master reason/version form and a required server reason. Initial damage power40 and the status-applied receipt expectation are fixture mistakes; corrected power20 and the actual persistent-effect receipt are excluded from product RED evidence.
+
+Focused checks pass: 67 core tests across four files (including 13 configured cases and 13 Rewind cases), five real SQL migration cases, 13 shared-report/Master/store cases before the final saved-choice check, two Master editor cases and all21 actual battle-authority cases. Core and web types pass. Final direct `pnpm check` exits 0: fresh core 3,110 tests in 161 files, fresh web 2,582/305 plus seven Node checks, fresh DB 97/15; validation 102/9, audio17/3, realtime3/1 and worker2/1 are cached. Formatting, lint, all eight package types and both builds pass, with web rebuilt. No test failure remains in that final run. Native browser interaction/visual acceptance, hosted SQL and complete Task4 review remain pending.
+
+The Supabase skill, local CLI help, current official database-function guidance and changelog are consulted. Database security checks are performed against the unchanged Owner/service grant model in disposable SQL tests; deployment-time hosted advisors remain a release gate. React review retains existing hooks, controlled inputs, labels, disabled save state and status announcements, without new listeners, fetch waterfalls or artwork changes.
+
+## Remaining release gates
+
+Policy/content catalog compatibility preflight; bounded AI prime/release/cancel; owner-safe readiness/blocked DTOs; ready-only light within the existing artwork; shared native input matrices; the idempotent one-time Rewind content migration; complete editors/readers needed by the combat release; miss-dependent secondary effects; creative balanced every-programmed-tag roster; final review/integration/deployment. Broader Master/world work follows the requested partial combat release.

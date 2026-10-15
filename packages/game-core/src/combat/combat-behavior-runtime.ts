@@ -1,3 +1,5 @@
+import { applyAbilityTimingDefaults } from './combat-definition'
+import type { CombatEffectTimingPolicy } from './combat-effect-timing'
 import { readSkillCooldown } from './skill-cooldowns'
 import { pruneCombatAbilityActionHistory } from './combat-ability-state'
 import { hasCurrentPoison, hasCurrentBleed, currentBurnInstance } from './combat-dots'
@@ -125,6 +127,7 @@ export interface CombatAbilityActivationInput {
 export function combatAbilityBehavior(
   source: CapturedCombatAbilitySource,
   behaviorId?: string,
+  timingPolicy?: CombatEffectTimingPolicy,
 ): AbilityBehavior {
   const actions = source.definition.behaviors.filter(
     (behavior) => behavior.activation === 'manual' && behavior.mode === 'action',
@@ -137,7 +140,7 @@ export function combatAbilityBehavior(
   if (!behaviorId && actions.length > 1) throw new TypeError('ambiguous-manual-behavior')
   if (!behavior || behavior.mode !== 'action' || behavior.activation === 'ongoing')
     throw new TypeError('ability-action-behavior-required')
-  return behavior
+  return applyAbilityTimingDefaults(behavior, timingPolicy)
 }
 
 export function materializeCombatAbilityAction(
@@ -347,6 +350,8 @@ export function reconcileCombatAbilitySources(
   if (new Set(captured.map((source) => source.sourceInstanceId)).size !== captured.length)
     throw new TypeError('duplicate-captured-source')
   for (const source of captured) {
+    for (const behavior of source.definition.behaviors)
+      applyAbilityTimingDefaults(behavior, state.effectTimingPolicy)
     const previous = state.capturedAbilitySources?.find(
       (row) => row.sourceInstanceId === source.sourceInstanceId,
     )
