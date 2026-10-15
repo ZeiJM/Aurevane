@@ -12,6 +12,12 @@
 
 .editor .panel,
 .editor .browser {
+  --av-text: #29332d;
+  --av-text-muted: #445246;
+  --av-text-dim: #51584b;
+  --av-parchment-100: #29332d;
+  --av-brass-300: #655034;
+  color: #29332d;
   background: #dfd5c3;
 }
 
@@ -22,8 +28,12 @@
 }
 
 .editor .browser button[aria-pressed='true'] {
-  color: #29332d;
-  background: #bcd2c8;
+  color: #f1e5ce;
+  background: #345b52;
+}
+
+.editor .browser button[aria-pressed='true'] :is(strong, small) {
+  color: #f1e5ce;
 }
 
 .editor .report {

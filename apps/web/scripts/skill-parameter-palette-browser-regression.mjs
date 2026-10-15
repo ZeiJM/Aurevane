@@ -336,6 +336,7 @@ async function verifyBasicEditor(page, viewport) {
   })
   const editor = page.getByRole('region', { name: 'Basic Skill authoring', exact: true })
   const selector = editor.getByLabel('Basic Skill', { exact: true })
+  await assertBasicContrast(editor.locator('[aria-pressed="true"] strong'))
   await assertBasicContrast(editor.getByLabel('Basic Skill name', { exact: true }))
   await assertBasicContrast(
     editor.getByLabel('Basic Skill name', { exact: true }).locator('..').locator('span').first(),
