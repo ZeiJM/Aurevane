@@ -1,4 +1,9 @@
 import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
+import {
+  parseAbilityDefinition,
+  type AbilityDefinition,
+} from '@aurevane/game-core/combat/combat-definition'
+import { CLEANSE_STATUS_IDS } from '@aurevane/game-core/combat/combat-cleanse'
 import { createPercentageDotSkillVersion } from '@aurevane/game-core/combat/combat-percentage-dot-roster'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -30,6 +35,120 @@ import {
 const OWNER = '11111111-1111-4111-8111-111111111111'
 const STAFF = '22222222-2222-4222-8222-222222222222'
 const OUTSIDER = '33333333-3333-4333-8333-333333333333'
+
+function canonicalAuthoringFixture(
+  kind: 'basic' | 'skill' | 'essence' | 'resonance',
+  ability: AbilityDefinition,
+) {
+  const { store, service } = serviceFixture()
+  store.operators.set(OWNER, 'owner')
+  const skill = {
+    ...staticSkill(),
+    ability,
+    // Historical adapter fields are deliberately stale; they are not a second mechanics source.
+    target: { ...staticSkill().target, maximumRange: 999 },
+    effects: [{ type: 'remove-status' as const, recipient: 'actor' as const, statusIds: ['slow'] }],
+  }
+  const essence = {
+    ...staticEssence(),
+    skill: { ...staticEssence().skill, ability, target: skill.target, effects: skill.effects },
+  }
+  const basic = { ...defaultBasicSkills().find((row) => row.id === 'basic.guard')!, ability }
+  const resonance = { ...staticResonance(), ability }
+  const definition =
+    kind === 'basic' ? basic : kind === 'skill' ? skill : kind === 'essence' ? essence : resonance
+  const validate = () =>
+    kind === 'basic'
+      ? service.validateSkillDefinition(basic)
+      : kind === 'skill'
+        ? service.validateSkillDefinition(skill)
+        : kind === 'essence'
+          ? service.validateEssenceDefinition(essence)
+          : service.validateResonanceDefinition(resonance)
+  const publish = () => {
+    const input = { actorUserId: OWNER, definition, expectedBaseVersion: definition.contentVersion }
+    return kind === 'skill' || kind === 'basic'
+      ? service.publishSkill(input)
+      : kind === 'essence'
+        ? service.publishEssence(input)
+        : service.publishResonance(input)
+  }
+  return { store, definition, validate, publish }
+}
+
+describe('canonical authoring uses the supported behavior definition', () => {
+  const base = defaultBasicSkills().find((row) => row.id === 'unarmed.basic')!.ability
+  it.each(['skill', 'essence', 'resonance'] as const)(
+    'validates and publishes canonical %s without materializing its stale native adapter',
+    async (kind) => {
+      const { store, definition, validate, publish } = canonicalAuthoringFixture(kind, base)
+      const before = JSON.stringify(definition)
+      expect(validate()).toMatchObject({ valid: true, issues: [] })
+      const record = await publish()
+      const saved =
+        kind === 'essence'
+          ? (record.definition.skill as { ability: unknown }).ability
+          : record.definition.ability
+      expect(saved).toEqual(base)
+      expect(record.contentKind).toBe(kind)
+      expect(await store.findPublished(record.contentKey, kind)).toEqual(record)
+      expect(JSON.stringify(definition)).toBe(before)
+    },
+  )
+  it.each(['basic', 'skill', 'essence', 'resonance'] as const)(
+    'checks canonical %s Cleanse payloads at their behavior paths',
+    (kind) => {
+      const guard = defaultBasicSkills().find((row) => row.id === 'basic.guard')!.ability
+        .behaviors[0]!
+      const ability = parseAbilityDefinition({
+        schemaVersion: 1,
+        behaviors: [
+          {
+            ...guard,
+            effects: [
+              {
+                id: 'cleanse',
+                payload: { type: 'remove-status', recipient: 'actor', statusIds: ['slow'] },
+              },
+            ],
+          },
+        ],
+      })
+      const { validate } = canonicalAuthoringFixture(kind, ability)
+      expect(validate()).toMatchObject({
+        valid: false,
+        issues: expect.arrayContaining([
+          expect.objectContaining({
+            code: 'INCONSISTENT_CLEANSE',
+            path: `${kind === 'essence' ? 'skill.' : ''}ability.behaviors[0].effects[0].payload.statusIds`,
+          }),
+        ]),
+      })
+      const complete = parseAbilityDefinition({
+        schemaVersion: 1,
+        behaviors: [
+          {
+            ...guard,
+            effects: [
+              {
+                id: 'cleanse',
+                payload: {
+                  type: 'remove-status',
+                  recipient: 'actor',
+                  statusIds: [...CLEANSE_STATUS_IDS],
+                },
+              },
+            ],
+          },
+        ],
+      })
+      expect(canonicalAuthoringFixture(kind, complete).validate()).toMatchObject({
+        valid: true,
+        issues: [],
+      })
+    },
+  )
+})
 
 function staticSkill(
   skillId = 'vanguard.forceful-strike',
