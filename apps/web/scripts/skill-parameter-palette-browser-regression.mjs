@@ -257,6 +257,48 @@ async function verifyModularReaders(page, viewport) {
     )
   }
 }
+async function verifyModularManual(page, viewport) {
+  await page.goto(`${server.resolvedUrls.local[0]}?surface=modular-manual`, {
+    waitUntil: 'networkidle',
+  })
+  const article = page.getByTestId('manual-article')
+  await article.waitFor({ state: 'visible' })
+  const catalog = article.locator('#catalog')
+  await catalog.locator('summary').click()
+  const text = await catalog.innerText()
+  for (const value of [
+    'Manual Action 1',
+    'Ongoing Modifier 2',
+    '11 AP / 2 MP / 1 HP',
+    'Move [2]',
+    'Dmg [13] [Controlled]',
+    'You: MP ≥ 3',
+    'Once per battle',
+    '12.5%',
+    'Active while Requirements are met',
+  ])
+    assert.ok(text.includes(value), `Manual catalogue lacks ${value}`)
+  assert.doesNotMatch(text, /71 AP|Dmg \[15\]|accuracyRule|multiplierBasisPoints/)
+  await catalog.scrollIntoViewIfNeeded()
+  await page.screenshot({ path: resolve(output, `modular-manual-catalog-${viewport.width}.png`) })
+  const basics = article.locator('#basic-skills')
+  const disclosures = basics.locator('details')
+  assert.equal(await disclosures.count(), 5)
+  for (const [index, basic] of (await disclosures.all()).entries()) {
+    await basic.locator('summary').click()
+    const detail = await basic.innerText()
+    assert.ok(detail.includes(`Cost: ${21 + index} AP`))
+    assert.ok(detail.includes('Line of Sight:'))
+    assert.ok(detail.includes('Requirements:'))
+  }
+  assert.ok(
+    text.includes('Movement is included in the Skill cost; no extra traversal AP is charged.'),
+  )
+  assert.ok((await basics.innerText()).includes('Each traversal point uses the captured AP price'))
+  await basics.locator('details').first().scrollIntoViewIfNeeded()
+  await page.screenshot({ path: resolve(output, `modular-manual-basics-${viewport.width}.png`) })
+  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
+}
 try {
   for (const viewport of [
     { width: 1366, height: 768 },
@@ -266,12 +308,13 @@ try {
     const errors = []
     page.on('pageerror', (error) => errors.push(error.message))
     await verifyModularReaders(page, viewport)
+    await verifyModularManual(page, viewport)
     if (process.env.AV_MODULAR_READERS_ONLY === '1') {
       assert.deepEqual(errors, [])
       evidence.push({
         viewport,
         status: 'passed',
-        modularReaderContexts: 6,
+        modularReaderContexts: 7,
         scope: 'Production components with fixture data; no hosted gameplay claim.',
       })
       await page.close()

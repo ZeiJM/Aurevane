@@ -7,6 +7,8 @@ import {
   CURRENT_POISON_DAMAGE,
 } from '@aurevane/game-core/combat/combat-dots'
 import { standardSkillDamageScaling } from '@aurevane/game-core/combat/damage-scaling'
+import type { CombatTagPayload } from '@aurevane/game-core/combat/combat-tag-registry'
+import type { MatureSkillEffectDefinition } from '@aurevane/game-core/combat/mature-skills'
 
 export interface MagnitudeBand {
   family: string
@@ -16,6 +18,11 @@ export interface MagnitudeBand {
   lowerQuartile: number | null
   upperQuartile: number | null
   maximum: number | null
+}
+
+interface MagnitudeGroup {
+  readonly effects: readonly (CombatTagPayload | MatureSkillEffectDefinition)[]
+  readonly shape?: MatureSkillDefinition['target']['shape']
 }
 
 /** One observation per authored effect (or command total), never per affected target. */
@@ -42,15 +49,27 @@ export function techniqueMagnitudeBands(
   ] as const
   const samples = new Map<string, number[]>(families.map(([family]) => [family, []]))
   const add = (family: string, value: number) => samples.get(family)!.push(value)
-  for (const skill of skills) {
-    const damage = skill.effects.filter((effect) => effect.type === 'damage')
+  const groups = skills
+    .filter((skill) => skill.enabled)
+    .flatMap<MagnitudeGroup>((skill) =>
+      skill.ability
+        ? skill.ability.behaviors.map((group) => ({
+            effects: group.effects.map((effect) => effect.payload),
+            shape: group.targeting?.shape,
+          }))
+        : [{ effects: skill.effects, shape: skill.target.shape }],
+    )
+  for (const group of groups) {
+    const damage = group.effects.filter(
+      (effect) => effect.type === 'damage' || effect.type === 'pierce',
+    )
     if (damage.length) {
       add(
         'Direct damage / command',
         damage.reduce((total, effect) => total + effect.amount, 0),
       )
       for (const effect of damage) {
-        if (effect.vengeance) continue
+        if (effect.type === 'damage' && effect.vengeance) continue
         add(
           'Power coefficient / hit',
           (effect.scaling ?? standardSkillDamageScaling('physical-power')).coefficientBasisPoints /
@@ -58,15 +77,19 @@ export function techniqueMagnitudeBands(
         )
       }
     }
-    if (skill.target.shape.kind === 'circle') add('Circle size', skill.target.shape.radius)
-    if (skill.target.shape.kind === 'line') add('Line size', skill.target.shape.length)
-    for (const effect of skill.effects) {
+    if (group.shape?.kind === 'circle') add('Circle size', group.shape.radius)
+    if (group.shape?.kind === 'line') add('Line size', group.shape.length)
+    for (const effect of group.effects) {
       switch (effect.type) {
         case 'damage':
+        case 'pierce':
           add('Direct damage / hit', effect.amount)
           break
         case 'percentage-recovery':
-          add(`${effect.resource.toUpperCase()} recovery / application`, effect.percent)
+          add(
+            `${effect.resource.toUpperCase()} recovery / application`,
+            'percentageBasisPoints' in effect ? effect.percentageBasisPoints / 100 : effect.percent,
+          )
           break
         case 'healing':
           add('Healing / application', effect.amount)

@@ -20,6 +20,9 @@ import { resolveResonanceForPair } from '@aurevane/game-core/combat/resonance'
 import { resolveEssenceForBuild } from '@aurevane/game-core/combat/essence'
 import { buildPrimaryDisciplinePreview } from '@aurevane/game-core/character/discipline-build'
 import { DISCIPLINE_ATLAS } from '@aurevane/game-core/character/discipline-atlas'
+import { ManualArticle } from '@/components/public-information/manual-article'
+import { createTechniquesManualArticle } from '@/content/techniques-manual'
+import { defaultCombatEffectTimingPolicy } from '@aurevane/game-core/combat/combat-effect-timing'
 import './production-styles'
 
 const query = new URLSearchParams(location.search)
@@ -157,6 +160,33 @@ function ModularReaders() {
       <section aria-label="Modular Resonance parameters" style={sectionStyle}>
         <ResonanceParameters definition={modularResonance} />
       </section>
+    </main>
+  )
+}
+function ModularManual() {
+  const article = createTechniquesManualArticle({
+    skills: [modularSkill],
+    basics: projectPublicCombat(
+      defaultBasicSkills().map((basic, index) => ({
+        ...basic,
+        name: `Edited ${basic.id}`,
+        contentVersion: basic.contentVersion + 1,
+        ability: parseAbilityDefinition({
+          schemaVersion: 1,
+          behaviors: [
+            {
+              ...basic.ability.behaviors[0],
+              costs: [{ resource: 'ap', amount: 21 + index }],
+            },
+          ],
+        }),
+      })),
+    ),
+    timingPolicy: defaultCombatEffectTimingPolicy(),
+  })
+  return (
+    <main style={{ padding: 16 }}>
+      <ManualArticle {...article} />
     </main>
   )
 }
@@ -397,7 +427,9 @@ function FireReaders() {
   )
 }
 createRoot(document.getElementById('root')).render(
-  query.get('surface') === 'modular-readers' ? (
+  query.get('surface') === 'modular-manual' ? (
+    <ModularManual />
+  ) : query.get('surface') === 'modular-readers' ? (
     <ModularReaders />
   ) : query.get('surface') === 'nexus' ? (
     <Nexus />
