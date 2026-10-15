@@ -17,6 +17,7 @@ import type { TransactionalCommandResult } from '@aurevane/db/transactional-comm
 import type { CharacterRecord, CharacterRepository } from '@aurevane/db/character'
 import { calculateCharacterBuildDerivedStats } from '@aurevane/game-core/character/discipline-build'
 import { calculateDerivedStats } from '@aurevane/game-core/character/derived-stats'
+import { capturedBasicSkillSource } from '@aurevane/game-core/combat/combat-basic-actions'
 import { createCombatEncounterState } from '@aurevane/game-core/combat/actions'
 import { createPendingBattle, startBattle } from '@aurevane/game-core/combat/battle-state'
 import {
@@ -31,6 +32,8 @@ import {
 } from '@aurevane/game-core/combat/combat-ability-command'
 import {
   combatAbilityCommandContext,
+  primeCombatControlledAbility,
+  cancelCombatControlledAbility,
   refreezeCapturedCombatAbilityState,
 } from '@aurevane/game-core/combat/combat-behavior-runtime'
 import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
@@ -566,6 +569,29 @@ async function resolveIntent(
   combatContentResolver?: CombatContentResolver,
 ): Promise<{ state: BattleAuthoritativeEncounterState; events: readonly unknown[] }> {
   try {
+    if (intent.kind === 'ability-prime' || intent.kind === 'ability-cancel-prime') {
+      const actorId = state.tactical.battle.currentTurn?.combatantId
+      if (!actorId) throw invalidBattleIntent()
+      const source =
+        capturedBasicSkillSource(state, actorId, intent.actionId) ??
+        capturedBattleActionSource(state, state.buildAuthority, actorId, intent.actionId)
+      if (!source)
+        throw invalidBattleIntent('That captured action is not available to this character.')
+      const transition = (
+        intent.kind === 'ability-prime'
+          ? primeCombatControlledAbility
+          : cancelCombatControlledAbility
+      )({
+        state,
+        actorId,
+        sourceInstanceId: source.sourceInstanceId,
+        behaviorId: intent.behaviorId,
+      })
+      return preserveBuildAuthority(state, {
+        state: reattachStatDrivenCombatBridge(transition.state, state.statBridge),
+        events: transition.events,
+      })
+    }
     if (intent.kind === 'move') {
       return preserveBuildAuthority(state, executePv1fMovement(state, intent.path))
     }

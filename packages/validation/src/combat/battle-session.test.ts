@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
-import { parseBattleIntentRequest, parseBattleSessionCreateRequest } from './battle-session'
+import {
+  parseBattleIntentRequest,
+  parseBattleSessionCreateRequest,
+  parseBattlePreviewRequest,
+} from './battle-session'
 
 const IDEMPOTENCY_KEY = '11111111-1111-4111-8111-111111111111'
 
@@ -289,3 +293,48 @@ describe('reference-only attached Move intent', () => {
     ).toBeNull()
   })
 })
+
+describe('reference-only Controlled commands', () => {
+  it.each(['ability-prime', 'ability-cancel-prime'] as const)(
+    'admits %s without a destination or authored mechanics',
+    (kind) => {
+      const intent = { kind, actionId: 'chronist.rewind-step', behaviorId: 'manual' }
+      expect(
+        parseBattleIntentRequest({
+          idempotencyKey: IDEMPOTENCY_KEY,
+          expectedBattleVersion: 1,
+          intent,
+        })?.intent,
+      ).toEqual(intent)
+    },
+  )
+  it.each(['returnAnchor', 'definition', 'costs', 'target', 'movementPath', 'sourceInstanceId'])(
+    'rejects extra %s authority on a prime',
+    (field) => {
+      expect(
+        parseBattleIntentRequest({
+          idempotencyKey: IDEMPOTENCY_KEY,
+          expectedBattleVersion: 1,
+          intent: {
+            kind: 'ability-prime',
+            actionId: 'chronist.rewind-step',
+            behaviorId: 'manual',
+            [field]: { x: 1, y: 1 },
+          },
+        }),
+      ).toBeNull()
+    },
+  )
+})
+
+it.each(['ability-prime', 'ability-cancel-prime'])(
+  'rejects targeting previews for the %s state command',
+  (kind) => {
+    expect(
+      parseBattlePreviewRequest({
+        expectedBattleVersion: 1,
+        intent: { kind, actionId: 'chronist.rewind-step', behaviorId: 'manual' },
+      }),
+    ).toBeNull()
+  },
+)

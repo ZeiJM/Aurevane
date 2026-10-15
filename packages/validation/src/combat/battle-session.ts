@@ -83,6 +83,15 @@ export const battleIntentSchema = z.discriminatedUnion('kind', [
       movementPath: z.array(gridPositionSchema).min(2).max(21).optional(),
     })
     .strict(),
+  ...(['ability-prime', 'ability-cancel-prime'] as const).map((kind) =>
+    z
+      .object({
+        kind: z.literal(kind),
+        actionId: z.string().trim().min(1).max(160),
+        behaviorId: exactReferenceIdSchema,
+      })
+      .strict(),
+  ),
   z.object({ kind: z.literal('face'), facing: battleFacingSchema }).strict(),
   z.object({ kind: z.literal('end-turn') }).strict(),
 ])
@@ -115,6 +124,7 @@ const battleIntentRequestSchema = z
 const battlePreviewRequestSchema = z
   .object({ expectedBattleVersion: safePositiveInteger, intent: battleIntentSchema })
   .strict()
+  .refine(({ intent }) => intent.kind !== 'ability-prime' && intent.kind !== 'ability-cancel-prime')
 const battleRecruitTurnRequestSchema = z
   .object({ expectedBattleVersion: safePositiveInteger })
   .strict()

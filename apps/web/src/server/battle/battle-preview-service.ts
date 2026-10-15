@@ -198,6 +198,11 @@ async function previewIntent(
   intent: BattleIntent,
   combatContentResolver?: CombatContentResolver,
 ): Promise<BattleIntentPreview> {
+  if (intent.kind === 'ability-prime' || intent.kind === 'ability-cancel-prime')
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'Prime and cancel commands do not take a targeting preview.',
+    )
   if (intent.kind === 'move') {
     const { prepared, movement, terrainCost, economyCost } = evaluatePv1fMovement(
       state,
