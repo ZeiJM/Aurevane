@@ -1,9 +1,16 @@
 import {
+  projectPublicCombat,
+  type PublicCombat,
+} from '@aurevane/game-core/combat/public-combat-presentation'
+import {
   defaultCombatEffectTimingPolicy,
   type CombatEffectTimingPolicy,
 } from '@aurevane/game-core/combat/combat-effect-timing'
 import type { PublicCombatGroundArea } from '@aurevane/game-core/combat/combat-ground-visuals'
-import { omitPendingBattlePayloads } from './battle-live-viewer-projection'
+import {
+  omitPendingBattlePayloads,
+  type PrivateBattleStateKey,
+} from './battle-live-viewer-projection'
 import 'server-only'
 
 import { createHash, randomInt, randomUUID } from 'node:crypto'
@@ -135,17 +142,19 @@ type ProjectedBattleState = Omit<BattleAuthoritativeEncounterState['tactical']['
 type ProjectedTacticalState = Omit<BattleAuthoritativeEncounterState['tactical'], 'battle'> & {
   battle: ProjectedBattleState
 }
-export type BattleSessionProjection = Omit<
-  BattleAuthoritativeEncounterState,
-  'tactical' | 'statusState' | 'groundAreas' | 'nextGroundAreaId'
-> & {
-  manualModifierAvailability?: ReturnType<typeof projectBattleManualModifierAvailability>
-  manualActionTargets?: ReturnType<typeof projectBattleManualActionTargets>
-  basicActions?: ReturnType<typeof projectBattleBasicActions>
-  groundAreas?: readonly PublicCombatGroundArea[]
-  statusState: ReturnType<typeof projectBattleStatusStateForViewer>
-  tactical: ProjectedTacticalState
-}
+export type BattleSessionProjection = PublicCombat<
+  Omit<
+    BattleAuthoritativeEncounterState,
+    'tactical' | 'statusState' | 'groundAreas' | PrivateBattleStateKey
+  > & {
+    manualModifierAvailability?: ReturnType<typeof projectBattleManualModifierAvailability>
+    manualActionTargets?: ReturnType<typeof projectBattleManualActionTargets>
+    basicActions?: ReturnType<typeof projectBattleBasicActions>
+    groundAreas?: readonly PublicCombatGroundArea[]
+    statusState: ReturnType<typeof projectBattleStatusStateForViewer>
+    tactical: ProjectedTacticalState
+  }
+>
 
 export interface BattleSessionView {
   battleSessionId: string
@@ -483,7 +492,7 @@ export function projectBattleSnapshot(
 ): BattleSessionProjection {
   const battle = state.tactical.battle
   const basicActions = projectBattleBasicActions(state, viewer)
-  return {
+  return projectPublicCombat({
     ...omitPendingBattlePayloads(state),
     ...(state.capturedAbilitySources
       ? {
@@ -513,7 +522,7 @@ export function projectBattleSnapshot(
         currentTurn: battle.currentTurn,
       },
     },
-  }
+  })
 }
 
 export function projectCommittedBattleSession(

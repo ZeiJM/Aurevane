@@ -1,3 +1,4 @@
+import { projectPublicCombat } from '@aurevane/game-core/combat/public-combat-presentation'
 import { readBattlefieldElevationPolicy } from '@/server/master/battlefield-elevation-policy-store'
 import { readCombatEffectTimingPolicy } from '@/server/master/combat-effect-timing-policy-store'
 import { omitPendingBattlePayloads } from './battle-live-viewer-projection'
@@ -509,7 +510,7 @@ function projectSnapshot(input: unknown): BattleSessionProjection {
   if (issues.length > 0) throw unavailable('The stored PvP battle is invalid.')
   const viewer = createSpectatorBattleViewerEntitlement()
   const battle = candidate.tactical.battle
-  return {
+  return projectPublicCombat({
     ...omitPendingBattlePayloads(candidate),
     statusState: projectBattleStatusStateForViewer(candidate, viewer),
     tactical: {
@@ -531,7 +532,7 @@ function projectSnapshot(input: unknown): BattleSessionProjection {
         currentTurn: battle.currentTurn,
       },
     },
-  }
+  })
 }
 
 export async function getPvpLobby(userId: string, lobbyId: string): Promise<PvpLobbyView> {

@@ -27,7 +27,7 @@ import {
   type StatDrivenCombatEncounterState,
   type StatDrivenCombatProfile,
 } from '@aurevane/game-core/combat/stat-driven-combat'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, expectTypeOf, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
 
@@ -1070,4 +1070,45 @@ it('derives report descriptions from the encounter elemental pin rather than cur
   )[0]!.report!
   expect(old.effectDescriptions[0]).toContain('Positive fire damage removes Wet and Frozen')
   expect(current.effectDescriptions[0]).not.toContain('removes Wet and Frozen')
+})
+
+it('recursively removes private hit authoring from composed snapshot metadata without removing combat stats or forecasts', () => {
+  const base = encounter()
+  const state = {
+    ...base,
+    presentation: {
+      nested: [
+        {
+          definition: {
+            accuracyRule: { kind: 'fixed', chanceBasisPoints: 7777 },
+            accuracyMode: 'per-target',
+            accuracyModifierBasisPoints: 88,
+            ability: { behaviors: [{ accuracy: { kind: 'standard' } }] },
+          },
+        },
+      ],
+      forecast: { hitChanceBasisPoints: 6400 },
+      proc: { chanceBasisPoints: 2500 },
+    },
+  }
+  expectTypeOf<
+    Extract<
+      keyof ReturnType<typeof projectBattleSnapshot>,
+      'capturedAbilitySources' | 'abilityRuntime' | 'pendingEffects' | 'pendingSummons'
+    >
+  >().toEqualTypeOf<never>()
+  const before = JSON.stringify(state)
+  for (const viewer of [
+    deriveParticipantBattleViewerEntitlement(state.tactical.battle.combatants, [PLAYER]),
+    createSpectatorBattleViewerEntitlement(),
+  ]) {
+    const result = projectBattleSnapshot(state, viewer)
+    expect(JSON.stringify(result)).not.toMatch(
+      /accuracyRule|accuracyMode|accuracyModifierBasisPoints|7777|"accuracy":\{/,
+    )
+    expect(result.statBridge.combatants[0]!.accuracy).toBe(10000)
+    expect(result).toHaveProperty('presentation.forecast.hitChanceBasisPoints', 6400)
+    expect(result).toHaveProperty('presentation.proc.chanceBasisPoints', 2500)
+  }
+  expect(JSON.stringify(state)).toBe(before)
 })

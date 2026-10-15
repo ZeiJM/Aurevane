@@ -471,6 +471,23 @@ export function projectBattleEffectStateForViewer(
   }
 }
 
+const PRIVATE_BATTLE_STATE_KEYS = [
+  'nextGroundAreaId',
+  'nextSkillPacketCommandId',
+  'capturedAbilitySources',
+  'abilityRuntime',
+  'modifierSuppressions',
+  'nativeBasicAttackCommand',
+  'groundTargetedRecipientIds',
+  'commandDamageBonuses',
+  'effectEligibleRecipientIds',
+  'effectTimingModes',
+  'turnTriggerState',
+  'pendingEffects',
+  'pendingSummons',
+] as const
+export type PrivateBattleStateKey = (typeof PRIVATE_BATTLE_STATE_KEYS)[number]
+
 /** Internal delayed payloads and narration pins must never reach live viewers. */
 export function omitPendingBattlePayloads<
   T extends {
@@ -484,36 +501,21 @@ export function omitPendingBattlePayloads<
   },
 >(
   state: T,
-): Omit<T, 'groundAreas' | 'nextGroundAreaId'> & {
+): Omit<T, 'groundAreas' | PrivateBattleStateKey> & {
   groundAreas?: readonly PublicCombatGroundArea[]
 } {
-  const projected: Omit<T, 'groundAreas' | 'nextGroundAreaId'> & {
+  const projected: Omit<T, 'groundAreas' | PrivateBattleStateKey> & {
     groundAreas?: readonly PublicCombatGroundArea[]
   } = {
     ...state,
   }
-  Reflect.deleteProperty(projected, 'nextGroundAreaId')
-  Reflect.deleteProperty(projected, 'nextSkillPacketCommandId')
-  for (const key of [
-    'capturedAbilitySources',
-    'abilityRuntime',
-    'modifierSuppressions',
-    'nativeBasicAttackCommand',
-    'groundTargetedRecipientIds',
-    'commandDamageBonuses',
-    'effectEligibleRecipientIds',
-    'effectTimingModes',
-  ])
-    Reflect.deleteProperty(projected, key)
+  for (const key of PRIVATE_BATTLE_STATE_KEYS) Reflect.deleteProperty(projected, key)
   if (state.groundAreas)
     projected.groundAreas = projectPublicCombatGroundAreas(
       state.groundAreas,
       state.tactical?.battle.round ?? 0,
       state.tactical?.battle.lifecycle ?? 'completed',
     )
-  delete projected.turnTriggerState
-  delete projected.pendingEffects
-  delete projected.pendingSummons
   const authority = projected.buildAuthority
   if (
     authority &&
