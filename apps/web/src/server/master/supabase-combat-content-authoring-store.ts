@@ -48,7 +48,13 @@ function positiveBigintAsNumber(value: unknown): number | null {
 }
 
 function combatContentKind(value: unknown): CombatContentKind | null {
-  return value === 'skill' || value === 'status' || value === 'effect-profile' ? value : null
+  return value === 'skill' ||
+    value === 'essence' ||
+    value === 'resonance' ||
+    value === 'status' ||
+    value === 'effect-profile'
+    ? value
+    : null
 }
 
 function oneRow(data: unknown): JsonObject | null {
@@ -261,10 +267,13 @@ export class RpcCombatContentAuthoringStore implements CombatContentAuthoringSto
     return row
   }
 
-  async findPublished(contentKey: string): Promise<CombatContentVersionRecord | null> {
+  async findPublished(
+    contentKey: string,
+    contentKind: CombatContentKind = 'skill',
+  ): Promise<CombatContentVersionRecord | null> {
     const { data, error } = await this.#rpc('read_current_combat_content_v1', {
       p_content_key: contentKey,
-      p_content_kind: 'skill',
+      p_content_kind: contentKind,
     })
     if (error) mapRpcError(error)
     return parseSingleVersion(data)
@@ -283,12 +292,13 @@ export class RpcCombatContentAuthoringStore implements CombatContentAuthoringSto
     contentKey: string,
     version: number | null,
     actorUserId: string,
+    contentKind: CombatContentKind = 'skill',
   ): Promise<void> {
     this.#assertActor(actorUserId)
     const { error } = await this.#rpc('set_combat_content_publication_v1', {
       p_actor_user_id: actorUserId,
       p_content_key: contentKey,
-      p_content_kind: 'skill',
+      p_content_kind: contentKind,
       p_target_version: version,
     })
     if (error) mapRpcError(error)

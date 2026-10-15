@@ -256,3 +256,26 @@ describe('InMemoryCombatContentRepository', () => {
     ).rejects.toMatchObject({ code: 'COMBAT_CONTENT_KIND_CONFLICT' })
   })
 })
+
+it('keeps typed current reads and pointer changes within the requested content kind', async () => {
+  const repository = new InMemoryCombatContentRepository()
+  const input = {
+    contentKey: 'typed.essence',
+    contentKind: 'essence' as const,
+    actorUserId: ACTOR,
+    definition: { contentVersion: 1 },
+    expectedBaseVersion: null,
+  }
+  const first = await repository.publish(input)
+  await repository.publish({ ...input, expectedBaseVersion: first.contentVersion })
+  expect(await repository.findPublished(input.contentKey, 'resonance')).toBeNull()
+  await repository.setCurrentPublication(input.contentKey, null, ACTOR, 'resonance')
+  expect((await repository.findPublished(input.contentKey, 'essence'))?.contentVersion).toBe(2)
+  await expect(
+    repository.setCurrentPublication(input.contentKey, 1, ACTOR, 'resonance'),
+  ).rejects.toMatchObject({ code: 'COMBAT_CONTENT_VERSION_NOT_FOUND' })
+  expect((await repository.findPublished(input.contentKey, 'essence'))?.contentVersion).toBe(2)
+  await repository.setCurrentPublication(input.contentKey, 1, ACTOR, 'essence')
+  expect((await repository.findPublished(input.contentKey, 'essence'))?.contentVersion).toBe(1)
+  expect(await repository.listPublishedVersions(input.contentKey)).toHaveLength(2)
+})

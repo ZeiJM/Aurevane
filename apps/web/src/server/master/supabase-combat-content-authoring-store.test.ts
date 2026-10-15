@@ -110,3 +110,84 @@ describe('RpcCombatContentAuthoringStore', () => {
     })
   })
 })
+
+describe('typed Essence and Resonance publication transport', () => {
+  it.each(['essence', 'resonance'] as const)(
+    'retains %s through draft, publish, current and history reads',
+    async (kind) => {
+      const key = `typed.${kind}`
+      const version = {
+        id: '22222222-2222-4222-8222-222222222222',
+        content_key: key,
+        content_kind: kind,
+        content_version: 8,
+        definition: { id: key, contentVersion: 8 },
+        published_by: ACTOR,
+        published_at: '2026-10-15T18:00:00.000Z',
+      }
+      const draft = {
+        content_key: key,
+        content_kind: kind,
+        definition: version.definition,
+        base_version: 7,
+        draft_version: 2,
+        updated_by: ACTOR,
+        updated_at: version.published_at,
+      }
+      const rpc = async (name: string, parameters: Readonly<Record<string, unknown>>) => {
+        if (name === 'read_current_combat_content_v1')
+          return rpcResult(parameters.p_content_kind === kind ? [version] : [])
+        if (name === 'save_combat_content_draft_v1' || name === 'read_combat_content_draft_v1')
+          return rpcResult([draft])
+        return rpcResult([version])
+      }
+      const store = new RpcCombatContentAuthoringStore(rpc, ACTOR)
+      await expect(
+        store.saveDraft({
+          actorUserId: ACTOR,
+          contentKey: key,
+          contentKind: kind,
+          definition: version.definition,
+          baseVersion: 7,
+          expectedDraftVersion: 1,
+        }),
+      ).resolves.toMatchObject({ contentKind: kind, draftVersion: 2 })
+      await expect(store.findDraft(key)).resolves.toMatchObject({ contentKind: kind })
+      await expect(
+        store.publish({
+          actorUserId: ACTOR,
+          contentKey: key,
+          contentKind: kind,
+          definition: version.definition,
+          expectedBaseVersion: 7,
+        }),
+      ).resolves.toMatchObject({ contentKind: kind, contentVersion: 8 })
+      await expect(store.findPublished(key, kind)).resolves.toMatchObject({
+        contentKind: kind,
+        contentVersion: 8,
+      })
+      await expect(store.listPublishedVersions(key)).resolves.toEqual([
+        expect.objectContaining({ contentKind: kind, contentVersion: 8 }),
+      ])
+    },
+  )
+  it.each(['essence', 'resonance'] as const)(
+    'restores the actual %s pointer with the typed RPC contract',
+    async (kind) => {
+      let pointer = 9
+      const store = new RpcCombatContentAuthoringStore(async (name, parameters) => {
+        if (name === 'set_combat_content_publication_v1' && parameters.p_content_kind === kind) {
+          pointer = parameters.p_target_version as number
+          return rpcResult(null)
+        }
+        return rpcResult(null, { code: '22023', message: 'COMBAT_CONTENT_VERSION_NOT_FOUND' })
+      }, ACTOR)
+      await store.setCurrentPublication(`typed.${kind}`, 8, ACTOR, kind)
+      expect(pointer).toBe(8)
+      await expect(
+        store.setCurrentPublication(`typed.${kind}`, 7, 'other', kind),
+      ).rejects.toMatchObject({ code: 'FORBIDDEN' })
+      expect(pointer).toBe(8)
+    },
+  )
+})

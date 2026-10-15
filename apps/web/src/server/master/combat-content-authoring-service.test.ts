@@ -7,6 +7,7 @@ vi.mock('server-only', () => ({}))
 import {
   InMemoryCombatContentRepository,
   type CombatContentRepository,
+  type CombatContentKind,
 } from '@aurevane/db/combat-content'
 import {
   resolveMatureSkillVersion,
@@ -1177,3 +1178,61 @@ describe('Basic Skills use the authorized versioned Skill store', () => {
     expect(await store.findPublished(attack.id)).toBeNull()
   })
 })
+
+it.each(['essence', 'resonance'] as const)(
+  'publishes twice and restores %s through a kind-filtered production store contract',
+  async (kind) => {
+    const { store, service } = serviceFixture()
+    store.operators.set(OWNER, 'owner')
+    // Mirror the actual RPC's required kind filter, which the permissive memory fixture previously hid.
+    const find = store.findPublished.bind(store)
+    const point = store.setCurrentPublication.bind(store)
+    store.findPublished = async (key: string, requestedKind: CombatContentKind = 'skill') => {
+      const row = await find(key)
+      return row?.contentKind === requestedKind ? row : null
+    }
+    store.setCurrentPublication = async (
+      key: string,
+      version: number | null,
+      actor: string,
+      requestedKind: CombatContentKind = 'skill',
+    ) => {
+      const target = (await store.listPublishedVersions(key)).find(
+        (row) => row.contentVersion === version,
+      )
+      if (target && target.contentKind !== requestedKind)
+        throw new Error('COMBAT_CONTENT_VERSION_NOT_FOUND')
+      return point(key, version, actor)
+    }
+    const essence = staticEssence()
+    const resonance = staticResonance()
+    const definition = kind === 'essence' ? essence : resonance
+    const key = kind === 'essence' ? essence.essenceId : resonance.id
+    const publish = (expectedBaseVersion: number) =>
+      kind === 'essence'
+        ? service.publishEssence({ actorUserId: OWNER, definition, expectedBaseVersion })
+        : service.publishResonance({ actorUserId: OWNER, definition, expectedBaseVersion })
+    const first = await publish(definition.contentVersion)
+    const second = await publish(first.contentVersion)
+    expect(second.contentVersion).toBe(first.contentVersion + 1)
+    if (kind === 'essence')
+      await service.rollbackEssence({
+        actorUserId: OWNER,
+        essenceId: essence.essenceId,
+        sourceDisciplineId: essence.sourceDisciplineId,
+        targetVersion: first.contentVersion,
+      })
+    else
+      await service.rollbackResonance({
+        actorUserId: OWNER,
+        resonanceId: resonance.id,
+        disciplinePair: resonance.disciplinePair,
+        targetVersion: first.contentVersion,
+      })
+    expect((await find(key))?.contentVersion).toBe(first.contentVersion)
+    expect((await store.listPublishedVersions(key)).map((row) => row.contentVersion)).toEqual([
+      first.contentVersion,
+      second.contentVersion,
+    ])
+  },
+)

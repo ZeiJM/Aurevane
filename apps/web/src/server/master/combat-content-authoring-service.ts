@@ -679,7 +679,7 @@ export function createCombatContentAuthoringService({
         )
       }
       const definition = input.definition as EssenceDefinition
-      const published = await store.findPublished(definition.essenceId)
+      const published = await store.findPublished(definition.essenceId, 'essence')
       if (published && published.contentKind !== 'essence') {
         throw new AurevaneError('INVALID_REQUEST', 'Combat content kind conflict.')
       }
@@ -734,6 +734,7 @@ export function createCombatContentAuthoringService({
           input.essenceId,
           stored ? input.targetVersion : null,
           input.actorUserId,
+          'essence',
         )
       } catch (error) {
         return mapRepositoryConflict(error)
@@ -774,7 +775,7 @@ export function createCombatContentAuthoringService({
         )
       }
       const definition = input.definition as AnyResonanceDefinition
-      const published = await store.findPublished(definition.id)
+      const published = await store.findPublished(definition.id, 'resonance')
       if (published && published.contentKind !== 'resonance') {
         throw new AurevaneError('INVALID_REQUEST', 'Combat content kind conflict.')
       }
@@ -833,6 +834,7 @@ export function createCombatContentAuthoringService({
           input.resonanceId,
           stored ? input.targetVersion : null,
           input.actorUserId,
+          'resonance',
         )
       } catch (error) {
         return mapRepositoryConflict(error)
