@@ -130,6 +130,20 @@ export function materializeCsrPreviewAction(
           ),
         }
       : {}),
+    ...(action.effectTimingModes
+      ? {
+          effectTimingModes: action.effectTimingModes.filter(
+            (_, index) => action.effects[index]?.type !== 'sensory',
+          ),
+        }
+      : {}),
+    ...(action.effectEligibleRecipientIds
+      ? {
+          effectEligibleRecipientIds: action.effectEligibleRecipientIds.filter(
+            (_, index) => action.effects[index]?.type !== 'sensory',
+          ),
+        }
+      : {}),
   }
 }
 
@@ -153,6 +167,10 @@ export function materializeCsrCommittedAction(input: {
   const effectSourceOrdinals: number[] = []
   const effectTimingTags: (string | undefined)[] = []
   const effectOrigins: NonNullable<CombatActionDefinition['effectOrigins']>[number][] = []
+  const effectTimingModes: NonNullable<CombatActionDefinition['effectTimingModes']>[number][] = []
+  const effectEligibleRecipientIds: NonNullable<
+    CombatActionDefinition['effectEligibleRecipientIds']
+  >[number][] = []
 
   for (const [effectIndex, effect] of action.effects.entries()) {
     const initialEffectCount = effects.length
@@ -198,6 +216,8 @@ export function materializeCsrCommittedAction(input: {
       for (let index = initialEffectCount; index < effects.length; index += 1) {
         effectSourceOrdinals.push(effectIndex)
         effectOrigins.push(action.effectOrigins?.[effectIndex])
+        effectTimingModes.push(action.effectTimingModes?.[effectIndex])
+        effectEligibleRecipientIds.push(action.effectEligibleRecipientIds?.[effectIndex])
         effectTimingTags.push(
           action.effectTimingTags?.[effectIndex] ??
             (effect.type === 'sensory' ? 'sensory' : undefined),
@@ -212,6 +232,8 @@ export function materializeCsrCommittedAction(input: {
       effects,
       effectTimingTags,
       ...(action.effectOrigins ? { effectOrigins } : {}),
+      ...(action.effectTimingModes ? { effectTimingModes } : {}),
+      ...(action.effectEligibleRecipientIds ? { effectEligibleRecipientIds } : {}),
     },
     effectSourceOrdinals,
     content: sensoryDuration === null ? content : withRevealedDuration(content, sensoryDuration),

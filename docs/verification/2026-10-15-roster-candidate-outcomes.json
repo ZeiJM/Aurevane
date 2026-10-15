@@ -1,0 +1,193 @@
+{
+  "schemaVersion": 1,
+  "status": "mechanical-preflight-not-balance-acceptance",
+  "candidateRecords": 41,
+  "requiredRosterRecords": 294,
+  "fixture": {
+    "level": 1,
+    "maxHp": 1000,
+    "maxMp": 20,
+    "physicalPower": 20,
+    "mysticPower": 20,
+    "criticalChance": 0,
+    "source": "actual-core-percentageDotEncounter-with-current-stat-bridge-and-captured-candidates"
+  },
+  "outcomes": [
+    {
+      "id": "vanguard.rally",
+      "hp": {
+        "actor": 630,
+        "ally": 730
+      },
+      "ap": 55,
+      "recipientCount": 2,
+      "outcome": "pass"
+    },
+    {
+      "id": "vanguard.guard-break",
+      "guardedRemoved": true,
+      "damage": 16,
+      "ap": 50,
+      "outcome": "pass"
+    },
+    {
+      "id": "vanguard.second-wind",
+      "heal": 80,
+      "hp": 372,
+      "mp": 16,
+      "outcome": "pass"
+    },
+    {
+      "id": "lifebinder.mend",
+      "healthyTargetRejected": true,
+      "eligibleTargetHp": 420,
+      "ap": 65,
+      "outcome": "pass"
+    },
+    {
+      "id": "lifebinder.sanctuary",
+      "hp": {
+        "actor": 630,
+        "enemy": 1000,
+        "other": 1000,
+        "ally": 750
+      },
+      "ap": 40,
+      "outcome": "pass"
+    },
+    {
+      "id": "lifebinder.searing-bloom",
+      "donorAfflictionRetained": true,
+      "enemyAfflictionCopied": true,
+      "heal": 50,
+      "outcome": "pass"
+    },
+    {
+      "id": "essence.lifebinder.verdant-rupture",
+      "group": "shelter",
+      "hp": {
+        "actor": 700,
+        "ally": 800
+      },
+      "cleansed": true,
+      "bothGroupsShareCooldown": true,
+      "ap": 30,
+      "outcome": "pass"
+    },
+    {
+      "id": "lifebinder.searing-bloom",
+      "scenario": "guaranteed miss fixture",
+      "actorHp": 600,
+      "heal": 0,
+      "enemyAfflictionCopied": false,
+      "outcome": "pass"
+    },
+    {
+      "id": "essence.vanguard.unbroken-strike",
+      "scenario": "guaranteed miss fixture",
+      "actorHp": 600,
+      "heal": 0,
+      "enemyAfflictionCopied": false,
+      "outcome": "pass"
+    },
+    {
+      "id": "essence.vanguard.unbroken-strike",
+      "scenario": "connected attack fully absorbed by Barrier",
+      "actorHp": 650,
+      "enemyHp": 1000,
+      "outcome": "pass"
+    },
+    {
+      "id": "aetherist.channel",
+      "scenario": "low-MP entry gate and real next-round recovery",
+      "healthyRejected": true,
+      "beforeMp": 8,
+      "immediateMp": 8,
+      "nextRoundMp": 10,
+      "outcome": "pass"
+    },
+    {
+      "id": "aetherist.mana-shield",
+      "scenario": "reserve gate uses prepayment MP",
+      "mpBefore": 10,
+      "mpAfter": 4,
+      "barrier": 20,
+      "guarded": true,
+      "outcome": "pass"
+    },
+    {
+      "id": "aetherist.overchannel",
+      "scenario": "actual atomic three-resource payment",
+      "hpCost": 20,
+      "mpCost": 12,
+      "apCost": 60,
+      "enemyDamage": 25,
+      "outcome": "pass"
+    },
+    {
+      "id": "aetherist.arcane-field",
+      "scenario": "enemy ring without damage or MP transfer",
+      "enemyMp": 16,
+      "otherMp": 16,
+      "allyMp": 20,
+      "actorMp": 14,
+      "allHpUnchanged": true,
+      "outcome": "pass"
+    },
+    {
+      "id": "essence.aetherist.aether-nova",
+      "scenario": "prepayment 75% MP gate with zero additional Power scaling",
+      "highDamage": 25,
+      "lowDamage": 20,
+      "highRemainingMp": 1,
+      "outcome": "pass"
+    },
+    {
+      "id": "farstrider.scouts-mark",
+      "scenario": "real Sensory purges Covert and applies finite Revealed plus Mark",
+      "covertRemoved": true,
+      "revealed": true,
+      "marked": true,
+      "damage": 0,
+      "outcome": "pass"
+    },
+    {
+      "id": "farstrider.fieldcraft",
+      "scenario": "two-tile attached Move has no walking surcharge",
+      "paidAp": 40,
+      "hpAfter": 640,
+      "movementRemaining": 2,
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "outcome": "pass"
+    },
+    {
+      "id": "farstrider.longshot",
+      "scenario": "actual free prime, paid release and no replay",
+      "primePaidAp": 0,
+      "releasePaidAp": 60,
+      "releasePaidMp": 3,
+      "enemyDamage": 25,
+      "outcome": "pass"
+    },
+    {
+      "id": "farstrider.keen-focus",
+      "scenario": "explicit modifier selection uses one shared command payment",
+      "plainDamage": 19,
+      "focusedDamage": 21,
+      "totalPaidAp": 55,
+      "totalPaidMp": 3,
+      "outcome": "pass"
+    },
+    {
+      "id": "essence.farstrider.deadeye-barrage",
+      "scenario": "all selected targets must bear Mark before the bonus packet",
+      "mixedDamage": 20,
+      "allMarkedDamage": 24,
+      "distinctTargets": 2,
+      "outcome": "pass"
+    }
+  ]
+}

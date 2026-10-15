@@ -71,7 +71,6 @@ import {
 import {
   combatSourceCommandVisibility,
   createBasicAttackDefinition,
-  createCombatEncounterState,
   endCombatTurn,
   evaluateCombatAction,
   executeCombatAction,
@@ -1531,10 +1530,7 @@ export function finishPv1fTurn(
     : selectCurrentFinalFacing(prepared.tactical, facing)
   const encounter: CombatEncounterState = outgoingDefeated
     ? { ...prepared, tactical: selected.state }
-    : reattachStatDrivenCombatBridge(
-        { ...prepared, ...createCombatEncounterState(selected.state, prepared.statusState) },
-        prepared.statBridge,
-      )
+    : reattachStatDrivenCombatBridge({ ...prepared, tactical: selected.state }, prepared.statBridge)
   const ended = endCombatTurn(
     encounter,
     PV1F_COMBAT_CONTENT,
