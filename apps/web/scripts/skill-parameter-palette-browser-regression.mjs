@@ -218,7 +218,7 @@ async function verifyModularReaders(page, viewport) {
         path: resolve(output, `modular-techniques-${viewport.width}.png`),
         fullPage: true,
       })
-      await page.keyboard.press('Escape')
+      await gesture(editor.getByRole('button', { name: 'Close', exact: true }))
       await editor.waitFor({ state: 'detached' })
     }
     assert.deepEqual(
