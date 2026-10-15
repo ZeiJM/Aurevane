@@ -1123,6 +1123,7 @@ export function evaluateCombatAction(
   selection: CombatTargetSelection,
   content: CombatContentCatalog,
   executionActorId?: string,
+  returnAnchor?: GridPosition,
 ): CombatActionEvaluation {
   assertValidCombatEncounterState(state)
   validateCombatContentCatalog(content)
@@ -1171,7 +1172,19 @@ export function evaluateCombatAction(
   issues.push(...targeting.issues)
   const target = { position: targeting.primaryPosition, combatantId: targeting.primaryCombatantId }
   collectRequirementIssues(state, actorId, target.combatantId, action.requirements, content, issues)
-  collectActorEffectCapabilityIssues(state, actorId, action.effects, content, issues)
+  collectActorEffectCapabilityIssues(
+    state,
+    actorId,
+    action.effects.filter(
+      (effect, ordinal) =>
+        effect.recipient !== 'actor' ||
+        action.effectEligibleRecipientIds?.[ordinal] === undefined ||
+        action.effectEligibleRecipientIds[ordinal]!.includes(actorId),
+    ),
+    content,
+    issues,
+    returnAnchor,
+  )
   const affectedTiles = issues.length === 0 ? targeting.affectedTiles : []
   const affectedCombatantIds = issues.length === 0 ? targeting.affectedCombatantIds : []
 
@@ -1248,7 +1261,7 @@ export function evaluateCombatAction(
       false,
       undefined,
       undefined,
-      { preview: true },
+      { preview: true, returnAnchor },
     )
     projectedEffects = projection.projections
     projectedEvents = projection.events
@@ -1361,8 +1374,16 @@ export function executeCombatAction(
   executionActorId?: string,
   committedExecution?: CommittedCombatExecution,
   nativeHooks?: CombatNativeExecutionHooks,
+  returnAnchor?: GridPosition,
 ): CombatResolutionTransition {
-  const evaluation = evaluateCombatAction(state, action, selection, content, executionActorId)
+  const evaluation = evaluateCombatAction(
+    state,
+    action,
+    selection,
+    content,
+    executionActorId,
+    returnAnchor,
+  )
   if (!evaluation.legal || !evaluation.actorId) {
     const issue = evaluation.issues[0]
     throw new Error(
@@ -1417,7 +1438,7 @@ export function executeCombatAction(
     false,
     resistedEffectOrdinalsByTarget,
     undefined,
-    { missedEffectOrdinalsByTarget, nativeHooks, settledEffectOrdinals },
+    { missedEffectOrdinalsByTarget, nativeHooks, settledEffectOrdinals, returnAnchor },
   )
   nextState = applied.state
   events.push(...applied.events)
@@ -1540,6 +1561,7 @@ export function executeCommittedCombatActorEffects(
     settledEffectOrdinals: ReadonlySet<number>,
   ) => CombatResolutionTransition,
   nativeHooks?: CombatNativeExecutionHooks,
+  returnAnchor?: GridPosition,
 ): CombatResolutionTransition {
   committedCombatAttemptRecorded(committedExecution, state, actorId, action.id)
   const settledEffectOrdinals = new Set<number>()
@@ -1556,7 +1578,7 @@ export function executeCommittedCombatActorEffects(
     false,
     undefined,
     undefined,
-    { actorOnly: true, settledEffectOrdinals, nativeHooks },
+    { actorOnly: true, settledEffectOrdinals, nativeHooks, returnAnchor },
   )
   const backlash = resolveCommittedCombatActionBacklash(
     state,
@@ -3324,9 +3346,19 @@ function collectActorEffectCapabilityIssues(
   effects: readonly CombatEffectDefinition[],
   content: CombatContentCatalog,
   issues: CombatActionIssue[],
+  returnAnchor?: GridPosition,
 ): void {
   const battle = state.tactical.battle
+  if (returnAnchor && effects.some((effect) => effect.type === 'return-to-turn-start')) {
+    const reason = rewindLandingBlockReason(state, actorId, returnAnchor, content)
+    if (reason)
+      issues.push({
+        code: 'requirement-not-met',
+        message: `The captured Rewind tile is ${reason}.`,
+      })
+  }
   if (
+    !returnAnchor &&
     effects.some(
       (effect) => effect.type === 'return-to-turn-start' && effect.anchorMode !== 'cast-position',
     )
@@ -3362,6 +3394,7 @@ function collectActorEffectCapabilityIssues(
   }
 
   if (
+    !returnAnchor &&
     effects.some(
       (effect) => effect.type === 'return-to-turn-start' && effect.anchorMode === 'cast-position',
     ) &&
@@ -3691,7 +3724,14 @@ function resolveActionEffects(
       )
         continue
       const capabilityIssues: CombatActionIssue[] = []
-      collectActorEffectCapabilityIssues(nextState, actorId, [effect], content, capabilityIssues)
+      collectActorEffectCapabilityIssues(
+        nextState,
+        actorId,
+        [effect],
+        content,
+        capabilityIssues,
+        options.returnAnchor,
+      )
       collectSelfDamageIssues([effect], actorId, null, [], capabilityIssues)
       if (capabilityIssues.length) continue
     }
@@ -3971,7 +4011,11 @@ function resolveActionEffects(
                     : 0,
                 ),
               ...(effect.type === 'return-to-turn-start' && effect.anchorMode === 'cast-position'
-                ? { returnAnchor: { ...getPlacement(state.tactical, actorId).position } }
+                ? {
+                    returnAnchor: {
+                      ...(options.returnAnchor ?? getPlacement(state.tactical, actorId).position),
+                    },
+                  }
                 : {}),
               content: JSON.parse(JSON.stringify(content)) as CombatContentCatalog,
               ...(state.turnOrigin
@@ -4919,6 +4963,14 @@ function applyEffectNative(
     const to =
       options.returnAnchor ??
       (effect.anchorMode === 'cast-position' ? from : state.turnOrigin!.position)
+    if (options.returnAnchor) {
+      const reason = rewindLandingBlockReason(state, actorId, to, content)
+      if (reason)
+        return {
+          state,
+          events: [{ event: 'combatant_rewind_blocked', actionId, combatantId: actorId, reason }],
+        }
+    }
     const receipt: CombatResolutionEvent = {
       event: 'combatant_rewound',
       actionId,
@@ -5195,6 +5247,27 @@ function applyEffectNative(
 }
 
 /** The versioned tile-entry gate also runs at delayed activation against live placement. */
+function rewindLandingBlockReason(
+  state: CombatEncounterState,
+  actorId: string,
+  destination: GridPosition,
+  content: CombatContentCatalog,
+): 'rooted' | 'occupied' | 'impassable' | 'elevation' | null {
+  const tile = state.tactical.tiles.find((tile) => samePosition(tile.position, destination))
+  if (!tile) return 'impassable'
+  if (
+    getStatusRow(state, actorId).statuses.some(
+      (status) =>
+        getStatusDefinition(content, status.statusId, status.statusVersion).movement?.blocked,
+    )
+  )
+    return 'rooted'
+  const occupant = getLivingOccupantId(state.tactical, destination)
+  if (occupant !== null && occupant !== actorId) return 'occupied'
+  if (movementTraversalCostAt(state.tactical, actorId, destination) === null) return 'impassable'
+  return canRewindIntoTile(state, actorId, destination, content) ? null : 'elevation'
+}
+
 function canRewindIntoTile(
   state: CombatEncounterState,
   actorId: string,

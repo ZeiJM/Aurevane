@@ -15,6 +15,7 @@ export interface CommittedCombatMovement {
   readonly maximumTiles: number
 }
 interface Admission {
+  readonly returnAnchor?: GridPosition
   readonly movement?: string
   movementConsumed: boolean
   readonly battleId: string
@@ -39,6 +40,7 @@ export function issueCommittedCombatExecution(
   context: CombatResolutionContext,
   manual: boolean,
   movement?: CommittedCombatMovement,
+  returnAnchor?: GridPosition,
 ): CommittedCombatExecution {
   const token = Object.freeze({}) as CommittedCombatExecution
   issued.set(token, {
@@ -51,6 +53,7 @@ export function issueCommittedCombatExecution(
     selection: JSON.stringify(selection),
     provenance: JSON.stringify(context.provenance),
     ...(movement ? { movement: JSON.stringify(movement) } : {}),
+    ...(returnAnchor ? { returnAnchor: Object.freeze({ ...returnAnchor }) } : {}),
     movementConsumed: false,
     consumed: false,
     settled: false,
@@ -88,7 +91,7 @@ export function consumeCommittedCombatExecution(
   action: CombatActionDefinition,
   selection: CombatTargetSelection,
   context: CombatResolutionContext,
-): void {
+): GridPosition | undefined {
   const admission = issued.get(token)
   const battle = state.tactical.battle
   if (
@@ -106,6 +109,7 @@ export function consumeCommittedCombatExecution(
   )
     throw new TypeError('invalid-committed-execution-authority')
   admission.consumed = true
+  return admission.returnAnchor ? { ...admission.returnAnchor } : undefined
 }
 
 /** Legacy emission suppression is possible only after the native wrapper consumed issuance. */

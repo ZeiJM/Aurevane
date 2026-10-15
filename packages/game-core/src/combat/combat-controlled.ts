@@ -1,6 +1,7 @@
 import type { CombatEncounterState, CombatEncounterIssue } from './actions'
 import type { AbilityBehavior } from './combat-definition'
 import type { CapturedCombatAbilitySource } from './combat-behavior-capture'
+import type { GridPosition } from './board'
 
 const CONTROLLED_RECORD_FIELDS = [
   'battleId',
@@ -19,6 +20,7 @@ export interface CombatControlledAbilityRecord {
   readonly sourceInstanceId: string
   readonly contentVersion: number
   readonly behaviorId: string
+  readonly returnAnchor?: GridPosition
 }
 
 export interface CombatControlledAbilityState {
@@ -124,6 +126,15 @@ export function updateCombatControlledAbility(
     sourceInstanceId: source.sourceInstanceId,
     contentVersion: source.contentVersion,
     behaviorId: behavior.id,
+    ...(behavior.effects.some((effect) => effect.payload.type === 'return-to-turn-start')
+      ? {
+          returnAnchor: {
+            ...state.tactical.placements.find(
+              (placement) => placement.combatantId === input.actorId,
+            )!.position,
+          },
+        }
+      : {}),
   }
   const key = combatControlledAbilityKey(record)
   const controlled = tracking.controlled ?? { primes: [], used: [] }
@@ -144,7 +155,16 @@ export function updateCombatControlledAbility(
       nextCommandSequence: sequence + 1,
       controlled:
         operation === 'prime'
-          ? { primes: [...controlled.primes, record], used: [...controlled.used, { ...record }] }
+          ? {
+              primes: [...controlled.primes, record],
+              used: [
+                ...controlled.used,
+                {
+                  ...record,
+                  ...(record.returnAnchor ? { returnAnchor: { ...record.returnAnchor } } : {}),
+                },
+              ],
+            }
           : {
               used: controlled.used,
               primes: controlled.primes.filter(
@@ -205,8 +225,9 @@ export function validateCombatControlledAbilities(
     if (
       !record ||
       typeof record !== 'object' ||
-      Object.keys(record).length !== CONTROLLED_RECORD_FIELDS.length ||
-      Object.keys(record).some((key) => !CONTROLLED_RECORD_FIELDS.includes(key as never))
+      Object.keys(record).some(
+        (key) => key !== 'returnAnchor' && !CONTROLLED_RECORD_FIELDS.includes(key as never),
+      )
     )
       return invalid()
     const source = sources.find((source) => source.sourceInstanceId === record.sourceInstanceId)
@@ -219,6 +240,7 @@ export function validateCombatControlledAbilities(
       !source ||
       !behavior ||
       !isControlledCombatAbility(behavior) ||
+      !validControlledAnchor(state, record, behavior) ||
       record.ownerCombatantId !== source.ownerCombatantId ||
       record.abilityId !== source.abilityId ||
       record.contentVersion !== source.contentVersion ||
@@ -234,13 +256,45 @@ export function validateCombatControlledAbilities(
     const used = controlled.used.find((row) => combatControlledAbilityKey(row) === key)
     if (
       !used ||
-      Object.keys(prime).length !== CONTROLLED_RECORD_FIELDS.length ||
-      Object.keys(prime).some((key) => !CONTROLLED_RECORD_FIELDS.includes(key as never)) ||
+      Object.keys(prime).length !== Object.keys(used).length ||
+      Object.keys(prime).some(
+        (key) => key !== 'returnAnchor' && !CONTROLLED_RECORD_FIELDS.includes(key as never),
+      ) ||
       CONTROLLED_RECORD_FIELDS.some((key) => prime[key] !== used[key]) ||
+      prime.returnAnchor?.x !== used.returnAnchor?.x ||
+      prime.returnAnchor?.y !== used.returnAnchor?.y ||
+      (prime.returnAnchor !== undefined &&
+        (typeof prime.returnAnchor !== 'object' ||
+          prime.returnAnchor === null ||
+          Object.keys(prime.returnAnchor).length !== 2 ||
+          Object.keys(prime.returnAnchor).some((key) => key !== 'x' && key !== 'y'))) ||
       primeKeys.has(key)
     )
       return invalid()
     primeKeys.add(key)
   }
   return []
+}
+
+function validControlledAnchor(
+  state: CombatEncounterState,
+  record: CombatControlledAbilityRecord,
+  behavior: AbilityBehavior,
+): boolean {
+  const needed = behavior.effects.some((effect) => effect.payload.type === 'return-to-turn-start')
+  if (Object.keys(record).length !== CONTROLLED_RECORD_FIELDS.length + (needed ? 1 : 0))
+    return false
+  const anchor = record.returnAnchor
+  if (!needed) return anchor === undefined
+  return (
+    !!anchor &&
+    typeof anchor === 'object' &&
+    Object.keys(anchor).length === 2 &&
+    Object.keys(anchor).every((key) => key === 'x' || key === 'y') &&
+    Number.isSafeInteger(anchor.x) &&
+    Number.isSafeInteger(anchor.y) &&
+    state.tactical.tiles.some(
+      (tile) => tile.position.x === anchor.x && tile.position.y === anchor.y,
+    )
+  )
 }

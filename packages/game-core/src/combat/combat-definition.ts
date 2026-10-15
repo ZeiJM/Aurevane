@@ -490,14 +490,24 @@ export function validateAbilityDefinition(value: unknown): readonly AbilityDefin
     }
     if (
       candidate.effects.some((effect) => record(effect) && effect.timing === 'controlled') &&
+      payloads.some((payload) => payload.type === 'summon')
+    )
+      issue(
+        path,
+        'unsupported-combination',
+        'Controlled Summon requires its dedicated release authority.',
+      )
+    if (
+      candidate.effects.some((effect) => record(effect) && effect.timing === 'controlled') &&
       payloads.some(
-        (payload) => payload.type === 'return-to-turn-start' || payload.type === 'summon',
+        (payload) =>
+          payload.type === 'return-to-turn-start' && payload.anchorMode !== 'cast-position',
       )
     )
       issue(
         path,
         'unsupported-combination',
-        'Controlled Rewind and Summon require their dedicated release authority.',
+        'Controlled Rewind requires a captured cast-position anchor.',
       )
     if (
       candidate.accuracy !== undefined &&

@@ -88,6 +88,7 @@ function effectPresentation(
   timingPolicy: SkillEffectTimingPolicy,
   basic?: BasicSkillDefinition,
   stats: BasicActionCharacterStats = {},
+  controlledAction = false,
 ) {
   const payload = effect.payload
   let parts: CompactSkillEffectSummaryParts, description: string
@@ -130,7 +131,11 @@ function effectPresentation(
               ? 'Instant'
               : undefined,
     }
-    description = skillEffectDescription(native, { timingPolicy, explicitElemental: true })
+    description = skillEffectDescription(native, {
+      timingPolicy,
+      explicitElemental: true,
+      rewindPrimeAnchor: controlledAction,
+    })
     if (payload.type === 'pierce') {
       parts = {
         ...parts,
@@ -179,8 +184,9 @@ export function abilityBehaviorInformation(
   } = {},
 ) {
   const timingPolicy = options.timingPolicy ?? null
+  const controlledAction = behavior.effects.some((effect) => effect.timing === 'controlled')
   const effects = behavior.effects.map((effect) =>
-    effectPresentation(effect, timingPolicy, options.basic, options.stats),
+    effectPresentation(effect, timingPolicy, options.basic, options.stats, controlledAction),
   )
   const target = behavior.targeting ? canonicalAbilityTargetSpec(behavior.targeting) : null
   const nativeMove =

@@ -18,3 +18,53 @@ it('reports Controlled as manual whole-action timing rather than an automatic de
   expect(information.effectDescriptions[0]).toContain('legal release')
   expect(information.effectDescriptions[0]).not.toContain('global round boundaries later')
 })
+
+it.each(['controlled', 'delayed'] as const)(
+  'reports %s Rewind in a Controlled action with the prime-position anchor',
+  (timing) => {
+    const base = defaultBasicSkills().find((skill) => skill.id === 'unarmed.basic')!.ability
+      .behaviors[0]!
+    const behavior = parseAbilityDefinition({
+      schemaVersion: 1,
+      behaviors: [
+        {
+          ...base,
+          classification: 'utility',
+          attackFamily: undefined,
+          targeting: {
+            ...base.targeting!,
+            kind: 'self',
+            teamPolicy: 'self',
+            friendlyFire: 'allies-only',
+            minimumRange: 0,
+            maximumRange: 0,
+          },
+          effects: [
+            {
+              id: 'gate',
+              timing: 'controlled',
+              payload: { type: 'healing', recipient: 'actor', amount: 1 },
+            },
+            {
+              id: 'rewind',
+              timing,
+              payload: {
+                type: 'return-to-turn-start',
+                recipient: 'actor',
+                anchorMode: 'cast-position',
+              },
+            },
+          ],
+        },
+      ],
+    }).behaviors[0]!
+    const information = abilityBehaviorInformation(behavior)
+    expect(information.effectDescriptions[1]).toContain(
+      'tile saved when the whole action was primed',
+    )
+    expect(information.effectDescriptions[1]).not.toContain('tile captured when cast')
+    expect(information.effectDescriptions[1]).toContain(
+      'No HP, MP, AP, Movement or past action is refunded',
+    )
+  },
+)

@@ -144,6 +144,7 @@ interface Participant extends PreparedCombatAbilityParticipant {
   readonly depth?: number
 }
 export interface PreparedCombatAbilityCommand {
+  readonly returnAnchor?: GridPosition
   readonly movement?: PreparedCombatMove
   readonly action: CombatActionDefinition
   readonly evaluation: CombatActionEvaluation
@@ -415,6 +416,13 @@ export function prepareCombatAbilityCommand(
       cooldown: action.cooldown ?? null,
     }
   }
+  const controlledPrime =
+    participant.source && participant.behavior
+      ? combatControlledPrime(input.state, participant.source, participant.behavior)
+      : undefined
+  const returnAnchor = controlledPrime?.returnAnchor
+    ? { ...controlledPrime.returnAnchor }
+    : undefined
   const context: CombatResolutionContext = {
     provenance: createCombatActionProvenance({
       ...input.context.provenance,
@@ -445,6 +453,7 @@ export function prepareCombatAbilityCommand(
     input.selection,
     input.content,
     context.executionAuthority,
+    returnAnchor,
   )
   const composed = composeCombatModifiers(input, action, geometry, participant)
   const participants = [participant, ...composed.participants]
@@ -455,12 +464,13 @@ export function prepareCombatAbilityCommand(
     input.selection,
     input.content,
     context.executionAuthority,
+    returnAnchor,
   )
   const issues = [
     ...(participant.source &&
     participant.behavior &&
     isControlledCombatAbility(participant.behavior) &&
-    !combatControlledPrime(input.state, participant.source, participant.behavior)
+    !controlledPrime
       ? [
           {
             code: 'requirement-not-met' as const,
@@ -577,10 +587,12 @@ export function prepareCombatAbilityCommand(
           input.selection,
           input.content,
           context.executionAuthority,
+          returnAnchor,
         )
       : evaluation
   return {
     action: composed.action,
+    ...(returnAnchor ? { returnAnchor } : {}),
     ...(movement ? { movement } : {}),
     evaluation: {
       ...forecast,
@@ -821,6 +833,7 @@ export function commitCombatAbilityCommand(
           maximumTiles: prepared.movement.maximumTiles,
         }
       : undefined,
+    prepared.returnAnchor,
   )
   const attempt: CombatResolutionEvent = {
     event: 'combat_action_used',
@@ -992,6 +1005,7 @@ export function commitCombatAbilityCommand(
                 input.selection,
                 input.content,
                 context.executionAuthority,
+                prepared.returnAnchor,
               ).legal
             ? ('selection-invalid' as const)
             : null

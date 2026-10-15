@@ -64,6 +64,7 @@ export function skillEffectDescription(
     legacyHealingDown?: boolean
     legacyElemental?: boolean
     explicitElemental?: boolean
+    rewindPrimeAnchor?: boolean
     skillEffects?: readonly MatureSkillEffectDefinition[]
     timingPolicy?: SkillEffectTimingPolicy
   } = {},
@@ -102,7 +103,7 @@ export function skillEffectDescription(
     case 'bleed':
       return `Apply Bleed to ${target} for ${effect.ticks} ${effect.ticks === 1 ? 'end-turn tick' : 'end-turn ticks'} at ${effect.damagePerTick} damage per tick.`
     case 'return-to-turn-start':
-      return `Rewind to the ${effect.anchorMode === 'cast-position' ? 'tile captured when cast' : 'vacant tile where you started this turn'}. Rooted blocks the return. No HP, MP, AP, Movement or past action is refunded.`
+      return `Rewind to the ${options.rewindPrimeAnchor ? 'tile saved when the whole action was primed' : effect.anchorMode === 'cast-position' ? 'tile captured when cast' : 'vacant tile where you started this turn'}. Rooted blocks the return. No HP, MP, AP, Movement or past action is refunded.`
     case 'percentage-recovery':
       return previewEffect(effect, options).explanation
     case 'healing':
