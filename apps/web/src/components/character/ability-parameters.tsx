@@ -2,12 +2,20 @@ import type { BattleAbilityBehaviorReport } from '@/lib/battle/battle-basic-acti
 import { CompactEffectSummary, EffectTagLabel } from './compact-skill-effect-summary'
 import { SkillCharacteristicRows } from './skill-characteristic-rows'
 
-/** Render server-projected captured mechanics; no raw execution definition or prose parsing. */
-export function AbilityParameters({ report }: { report: BattleAbilityBehaviorReport }) {
+/** Render the shared public mechanics report without raw execution data or prose parsing. */
+export function AbilityParameters({
+  report,
+  characteristicsClassName,
+  effectExplanationsClassName,
+}: {
+  report: BattleAbilityBehaviorReport
+  characteristicsClassName?: string
+  effectExplanationsClassName?: string
+}) {
   const selfOnly = report.rows.some(([field, value]) => field === 'Target' && value === 'Self')
   return (
     <div data-ability-parameters="true">
-      <dl>
+      <dl className={characteristicsClassName}>
         <SkillCharacteristicRows
           rows={report.rows}
           effectSummary={
@@ -23,8 +31,9 @@ export function AbilityParameters({ report }: { report: BattleAbilityBehaviorRep
           }
         />
       </dl>
+      {report.maintenance ? <p>{report.maintenance}</p> : null}
       {report.effectDescriptions.length ? (
-        <ul aria-label="Effect explanations">
+        <ul className={effectExplanationsClassName} aria-label="Effect explanations">
           {report.effectDescriptions.map((description, index) => (
             <li key={index}>
               {report.effects[index] ? (

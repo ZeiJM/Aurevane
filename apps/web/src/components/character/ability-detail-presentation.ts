@@ -234,6 +234,12 @@ export function abilityBehaviorInformation(
     )
     .join(', ')
   return {
+    ...(behavior.activation === 'ongoing'
+      ? {
+          maintenance:
+            'Active while Requirements are met. Ends when they are no longer met or its source is removed.',
+        }
+      : {}),
     rows: skillInformationRows({
       'Skill Type':
         behavior.activation === 'manual' && behavior.mode === 'action'

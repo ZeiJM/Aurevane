@@ -1,4 +1,7 @@
 import React from 'react'
+import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
+import { parseAbilityDefinition } from '@aurevane/game-core/combat/combat-definition'
+import { projectPublicCombat } from '@aurevane/game-core/combat/public-combat-presentation'
 import { createRoot } from 'react-dom/client'
 import { SkillParameters } from '@/components/character/skill-parameters'
 import { SkillDetails } from '@/components/character/skill-details'
@@ -42,6 +45,75 @@ const battleSkill = (definition) => ({
   effectDescriptions: [],
   requirementDescriptions: [],
 })
+const modularBase = defaultBasicSkills().find((row) => row.id === 'unarmed.basic').ability
+  .behaviors[0]
+const modularAbility = parseAbilityDefinition({
+  schemaVersion: 1,
+  behaviors: [
+    {
+      ...modularBase,
+      id: 'leap',
+      accuracy: { kind: 'fixed', chanceBasisPoints: 7777 },
+      costs: [
+        { resource: 'ap', amount: 11 },
+        { resource: 'mp', amount: 2 },
+        { resource: 'hp', amount: 1 },
+      ],
+      cooldown: { key: 'leap', ownerTurns: 3 },
+      requirements: {
+        kind: 'resource-state',
+        subject: 'owner',
+        resource: 'mp',
+        comparison: 'at-least',
+        amount: 3,
+      },
+      activationLimits: ['once-per-battle'],
+      targeting: { ...modularBase.targeting, maximumRange: 4, maximumSelections: 2 },
+      effects: [
+        { id: 'walk', payload: { type: 'move', recipient: 'actor', maximumTiles: 2 } },
+        {
+          id: 'hit',
+          timing: 'controlled',
+          payload: { type: 'damage', recipient: 'primary-unit', amount: 13 },
+        },
+      ],
+    },
+    {
+      ...modularBase,
+      id: 'maintain',
+      activation: 'ongoing',
+      mode: 'modifier',
+      classification: 'utility',
+      attackFamily: undefined,
+      costs: [],
+      cooldown: null,
+      targeting: null,
+      requirements: {
+        kind: 'status-presence',
+        subject: 'owner',
+        statusId: 'guarded',
+        present: true,
+      },
+      effects: [
+        {
+          id: 'bonus',
+          payload: { type: 'damage-bonus', recipient: 'actor', multiplierBasisPoints: 11250 },
+        },
+      ],
+    },
+  ],
+})
+const modularSkillFor = (definition) =>
+  projectPublicCombat({
+    ...definition,
+    ability: modularAbility,
+    apCost: 71,
+    effectDescriptions: ['Wrong legacy explanation'],
+    tags: ['recovery'],
+  })
+const modularSkill = modularSkillFor(physical)
+const modularResonance = projectPublicCombat({ ...resonance, ability: modularAbility })
+window.modularPublicDefinition = modularSkill
 window.paletteDefinitions = { physical, mystic, guard, resonance, essence }
 window.requests = []
 window.fetch = async (url) => {
@@ -73,6 +145,21 @@ function BlindsideAuthoring() {
     </section>
   )
 }
+function ModularReaders() {
+  return (
+    <main style={{ padding: 16, maxWidth: 780 }}>
+      <section aria-label="Modular Master details" style={sectionStyle}>
+        <SkillDetails skill={modularSkill} expanded />
+      </section>
+      <section aria-label="Modular Nexus parameters" style={sectionStyle}>
+        <SkillParameters skill={modularSkill} />
+      </section>
+      <section aria-label="Modular Resonance parameters" style={sectionStyle}>
+        <ResonanceParameters definition={modularResonance} />
+      </section>
+    </main>
+  )
+}
 function Reports() {
   return (
     <main style={{ padding: 16, maxWidth: 780 }}>
@@ -86,9 +173,7 @@ function Reports() {
       ].map(([family, skill]) => (
         <React.Fragment key={family}>
           <section aria-label={`Nexus ${family} parameters`} style={sectionStyle}>
-            <dl>
-              <SkillParameters skill={skill} />
-            </dl>
+            <SkillParameters skill={skill} />
           </section>
           <section aria-label={`Master ${family} details`} style={sectionStyle}>
             <SkillDetails skill={skill} expanded />
@@ -117,15 +202,14 @@ function Reports() {
         <ResonanceParameters definition={resonance} />
       </BattleInfoPopover>
       <BattleInfoPopover label="Read pinned Mystic Skill" title="Aether Cut">
-        <dl>
-          <SkillParameters skill={mystic} />
-        </dl>
+        <SkillParameters skill={mystic} />
       </BattleInfoPopover>
     </main>
   )
 }
 function Nexus() {
   const pure = query.get('attunement') === 'essence'
+  const modular = query.get('modular') === '1'
   const primaryId = pure ? 'vanguard' : 'wildwarden'
   const primary = {
     ...DISCIPLINE_ATLAS.find((entry) => entry.id === primaryId),
@@ -163,9 +247,28 @@ function Nexus() {
     },
     disciplineSkills: {
       capacity: 4,
-      learnedSkills: [],
+      learnedSkills: modular
+        ? [
+            {
+              definition: modularSkillFor(
+                resolveMatureSkillVersion(
+                  pure ? 'vanguard.forceful-strike' : 'wildwarden.renewing-herbs',
+                ),
+              ),
+              learnedAt: '2026-10-15T00:00:00Z',
+              activeSource: true,
+            },
+          ]
+        : [],
       equippedSkills: [],
-      extensions: { resonance: pure ? null : resonance, essence: pure ? essence : null },
+      extensions: {
+        resonance: pure ? null : modular ? modularResonance : resonance,
+        essence: pure
+          ? modular
+            ? { ...essence, skill: modularSkillFor(essence.skill) }
+            : essence
+          : null,
+      },
     },
   }
   return (
@@ -284,9 +387,7 @@ function FireReaders() {
           <SkillDetails skill={definition} expanded />
         </section>
         <section aria-label="Nexus Fire parameters" style={sectionStyle}>
-          <dl>
-            <SkillParameters skill={definition} />
-          </dl>
+          <SkillParameters skill={definition} />
         </section>
         <BattleInfoPopover label="About Fire report" title="Fire report" trigger="!">
           <BattleSkillParameters skill={battleSkill(definition)} />
@@ -296,7 +397,9 @@ function FireReaders() {
   )
 }
 createRoot(document.getElementById('root')).render(
-  query.get('surface') === 'nexus' ? (
+  query.get('surface') === 'modular-readers' ? (
+    <ModularReaders />
+  ) : query.get('surface') === 'nexus' ? (
     <Nexus />
   ) : query.get('surface') === 'fire-readers' ? (
     <FireReaders />

@@ -1,5 +1,6 @@
 'use client'
 
+import { AbilityDefinitionParameters } from './ability-definition-parameters'
 import { groupSkillEffects } from './skill-effect-groups'
 
 import { useSkillEffectTimingPolicy } from './skill-effect-timing-context'
@@ -28,6 +29,15 @@ export function ResonanceParameters({
   knownSkills?: readonly MatureSkillDefinition[]
 }) {
   const timingPolicy = useSkillEffectTimingPolicy()
+  if (definition?.ability)
+    return (
+      <div
+        className={[styles.report, className].filter(Boolean).join(' ')}
+        data-resonance-parameters="true"
+      >
+        <AbilityDefinitionParameters definition={definition.ability} />
+      </div>
+    )
   const mechanics = definition ? normalizedResonanceMechanics(definition) : null
   const effects = mechanics?.resultEffects ?? []
   const supplemental = resonanceSupplementalRows(definition)

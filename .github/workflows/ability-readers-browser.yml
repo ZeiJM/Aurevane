@@ -1,0 +1,50 @@
+name: Modular ability readers browser
+
+on:
+  pull_request:
+    paths:
+      - 'apps/web/src/components/character/**'
+      - 'apps/web/src/components/battle/**'
+      - 'apps/web/e2e/fixtures/skill-parameter-palette-harness.jsx'
+      - 'apps/web/scripts/skill-parameter-palette-browser-regression.mjs'
+      - 'packages/game-core/src/combat/**'
+      - '.github/workflows/ability-readers-browser.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: modular-ability-readers-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  readers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - run: pnpm install --frozen-lockfile
+      - name: Install Chromium
+        run: |
+          printf '%s\n' 'https://archive.ubuntu.com/ubuntu/' | sudo tee /etc/apt/apt-mirrors.txt >/dev/null
+          pnpm --filter @aurevane/web exec playwright install --with-deps chromium
+      - name: Verify modular current and pinned public readers
+        env:
+          AV_MODULAR_READERS_ONLY: '1'
+          AV_SKILL_PARAMETER_PALETTE_EVIDENCE_DIR: /tmp/modular-ability-readers-review
+        run: pnpm --filter @aurevane/web exec node scripts/skill-parameter-palette-browser-regression.mjs
+      - name: Save native evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: modular-ability-readers-review
+          path: /tmp/modular-ability-readers-review
+          retention-days: 7

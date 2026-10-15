@@ -1,5 +1,6 @@
 'use client'
 
+import { AbilityDefinitionParameters } from './ability-definition-parameters'
 import { groupSkillEffects } from './skill-effect-groups'
 
 import { useSkillEffectTimingPolicy } from './skill-effect-timing-context'
@@ -202,9 +203,10 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
         ? secondaryDiscipline.name
         : titleCase(focusedSkill.definition.sourceDisciplineId)
     : null
-  const focusedCharacteristics: readonly SkillCharacteristic[] = focusedSkill
-    ? skillParameterRows(focusedSkill.definition, focusedSkill.definition, timingPolicy)
-    : []
+  const focusedCharacteristics: readonly SkillCharacteristic[] =
+    focusedSkill && !focusedSkill.definition.ability
+      ? skillParameterRows(focusedSkill.definition, focusedSkill.definition, timingPolicy)
+      : []
 
   useEffect(() => {
     const media = window.matchMedia('(hover: none), (pointer: coarse)')
@@ -715,56 +717,67 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                               </small>
                             </div>
                           </div>
-                          <dl className={styles.characteristics}>
-                            {focusedCharacteristics.map(([label, value]) => (
-                              <div key={label}>
-                                <dt>{label}</dt>
-                                <dd>
-                                  {label === 'Effects' && focusedSkill ? (
-                                    focusedSkill.definition.effects.length > 0 ? (
-                                      <div className={styles.effectSummaryList}>
-                                        {groupSkillEffects(
-                                          focusedSkill.definition.effects,
-                                          focusedSkill.definition.effectDescriptions,
-                                        ).map(({ effect, count, firstIndex: index }) => (
-                                          <CompactSkillEffectSummary
-                                            skillEffects={focusedSkill.definition.effects}
-                                            effect={effect}
-                                            count={count}
-                                            key={`${index}:${effect.type}`}
-                                          />
-                                        ))}
-                                      </div>
-                                    ) : (
-                                      'N/A'
-                                    )
-                                  ) : typeof value === 'string' ? (
-                                    value
-                                  ) : value.length > 0 ? (
-                                    value.join(', ')
-                                  ) : (
-                                    'N/A'
-                                  )}
-                                  {label === 'Target' ? (
-                                    <SkillGroundAreaDetails skill={focusedSkill.definition} />
-                                  ) : null}
-                                </dd>
-                              </div>
-                            ))}
-                          </dl>
-                          <ul
-                            className={styles.effectExplanations}
-                            aria-label="Effect explanations"
-                          >
-                            {skillPreviewEffects(focusedSkill.definition).map((effect) => (
-                              <li key={JSON.stringify(effect)}>
-                                <strong>
-                                  <EffectTagLabel label={effect.label} />
-                                </strong>{' '}
-                                — {effect.explanation}
-                              </li>
-                            ))}
-                          </ul>
+                          {focusedSkill.definition.ability ? (
+                            <AbilityDefinitionParameters
+                              definition={focusedSkill.definition.ability}
+                              effectDescriptions={focusedSkill.definition.effectDescriptions}
+                              characteristicsClassName={styles.characteristics}
+                              effectExplanationsClassName={styles.effectExplanations}
+                            />
+                          ) : (
+                            <>
+                              <dl className={styles.characteristics}>
+                                {focusedCharacteristics.map(([label, value]) => (
+                                  <div key={label}>
+                                    <dt>{label}</dt>
+                                    <dd>
+                                      {label === 'Effects' && focusedSkill ? (
+                                        focusedSkill.definition.effects.length > 0 ? (
+                                          <div className={styles.effectSummaryList}>
+                                            {groupSkillEffects(
+                                              focusedSkill.definition.effects,
+                                              focusedSkill.definition.effectDescriptions,
+                                            ).map(({ effect, count, firstIndex: index }) => (
+                                              <CompactSkillEffectSummary
+                                                skillEffects={focusedSkill.definition.effects}
+                                                effect={effect}
+                                                count={count}
+                                                key={`${index}:${effect.type}`}
+                                              />
+                                            ))}
+                                          </div>
+                                        ) : (
+                                          'N/A'
+                                        )
+                                      ) : typeof value === 'string' ? (
+                                        value
+                                      ) : value.length > 0 ? (
+                                        value.join(', ')
+                                      ) : (
+                                        'N/A'
+                                      )}
+                                      {label === 'Target' ? (
+                                        <SkillGroundAreaDetails skill={focusedSkill.definition} />
+                                      ) : null}
+                                    </dd>
+                                  </div>
+                                ))}
+                              </dl>
+                              <ul
+                                className={styles.effectExplanations}
+                                aria-label="Effect explanations"
+                              >
+                                {skillPreviewEffects(focusedSkill.definition).map((effect) => (
+                                  <li key={JSON.stringify(effect)}>
+                                    <strong>
+                                      <EffectTagLabel label={effect.label} />
+                                    </strong>{' '}
+                                    — {effect.explanation}
+                                  </li>
+                                ))}
+                              </ul>
+                            </>
+                          )}
                         </>
                       ) : (
                         <p>No Technique is available for this build.</p>

@@ -197,8 +197,20 @@ export function skillTargetTags(
 }
 
 export function skillTypeDescription(
-  skill: Pick<MatureSkillDefinition, 'tags' | 'effects'>,
-): 'Attack' | 'Recovery' | 'Utility' {
+  skill: Pick<MatureSkillDefinition, 'tags' | 'effects' | 'ability'>,
+): string {
+  if (skill.ability)
+    return [
+      ...new Set(
+        skill.ability.behaviors.map((behavior) =>
+          behavior.classification === 'attack'
+            ? 'Attack'
+            : behavior.classification === 'recovery'
+              ? 'Recovery'
+              : 'Utility',
+        ),
+      ),
+    ].join(' / ')
   if (skill.tags.includes('attack')) return 'Attack'
 
   const recoversHpOrMp = skill.effects.some(

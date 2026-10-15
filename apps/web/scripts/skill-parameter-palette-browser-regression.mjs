@@ -135,14 +135,120 @@ async function assertPaperEffects(panel) {
     )
   }
 }
+async function assertModularReport(panel) {
+  const groups = panel.locator('[data-ability-behavior]')
+  assert.equal(await groups.count(), 2)
+  for (const group of await groups.all())
+    assert.deepEqual(await group.locator('dt').allTextContents(), fields)
+  const text = await panel.innerText()
+  assert.match(text, /11 AP \/ 2 MP \/ 1 HP/)
+  assert.match(text, /You: MP ≥ 3/)
+  assert.match(text, /Move \[2\]/)
+  assert.match(text, /Dmg \[13\] \[Controlled\]/)
+  assert.match(text, /Once per battle/)
+  assert.match(text, /Ongoing Modifier/)
+  assert.match(text, /12\.5%/)
+  assert.match(text, /while Requirements are met/)
+  assert.doesNotMatch(text, /71 AP|Wrong legacy|Dmg \[15\]/)
+  const tagColors = await panel.evaluate((element) =>
+    [...element.querySelectorAll('[data-compact-skill-effect]')].map((effect) => ({
+      label: getComputedStyle(effect.querySelector('[data-compact-effect-label]')).color,
+      value: getComputedStyle(effect.querySelector('[data-compact-effect-magnitude]')).color,
+    })),
+  )
+  assert.equal(tagColors.length, 3)
+  for (const row of tagColors) assert.equal(row.label, row.value)
+}
+async function verifyModularReaders(page, viewport) {
+  await page.goto(`${server.resolvedUrls.local[0]}?surface=modular-readers`, {
+    waitUntil: 'networkidle',
+  })
+  for (const name of [
+    'Modular Master details',
+    'Modular Nexus parameters',
+    'Modular Resonance parameters',
+  ])
+    await assertModularReport(page.getByRole('region', { name, exact: true }))
+  assert.doesNotMatch(
+    await page.evaluate(() => JSON.stringify(window.modularPublicDefinition)),
+    /accuracyMode|accuracyRule|accuracyModifierBasisPoints|7777|"accuracy":\{/,
+  )
+  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
+  await page.screenshot({
+    path: resolve(output, `modular-inline-${viewport.width}.png`),
+    fullPage: true,
+  })
+  const gesture = (locator) => (viewport.width < 720 ? locator.tap() : locator.click())
+  for (const attunement of ['resonance', 'essence']) {
+    await page.goto(
+      `${server.resolvedUrls.local[0]}?surface=nexus&modular=1&attunement=${attunement}`,
+      { waitUntil: 'networkidle' },
+    )
+    const name = await page.evaluate((kind) => window.paletteDefinitions[kind].name, attunement)
+    const trigger = page.getByRole('button', {
+      name: `Preview ${attunement === 'resonance' ? 'Resonance' : 'Essence'}: ${name}`,
+      exact: true,
+    })
+    const before = await trigger.locator('img').boundingBox()
+    await gesture(trigger)
+    const panel = page.getByRole('dialog', { name, exact: true })
+    await panel.waitFor()
+    await assertModularReport(panel)
+    assert.equal(await page.getByRole('dialog').count(), 1)
+    const box = await panel.boundingBox()
+    assert.ok(box.x >= 0 && box.x + box.width <= viewport.width + 1)
+    const after = await trigger.locator('img').boundingBox()
+    assert.equal(after.width, before.width)
+    assert.equal(after.height, before.height)
+    await page.screenshot({
+      path: resolve(output, `modular-nexus-${attunement}-${viewport.width}.png`),
+      fullPage: true,
+    })
+    await page.keyboard.press('Escape')
+    await panel.waitFor({ state: 'detached' })
+    assert.equal(await trigger.evaluate((element) => element === document.activeElement), true)
+    if (attunement === 'resonance') {
+      await gesture(page.getByRole('button', { name: /^Manage Techniques\./ }))
+      const editor = page.getByRole('dialog', { name: 'Techniques', exact: true })
+      await editor.waitFor()
+      await assertModularReport(editor)
+      assert.equal(await editor.locator('[data-technique-meta]').innerText(), 'Attack / Utility')
+      assert.equal(await page.getByRole('dialog').count(), 1)
+      await page.screenshot({
+        path: resolve(output, `modular-techniques-${viewport.width}.png`),
+        fullPage: true,
+      })
+      await page.keyboard.press('Escape')
+      await editor.waitFor({ state: 'detached' })
+    }
+    assert.deepEqual(
+      await page.evaluate(() =>
+        window.requests.filter((url) => url.includes('/api/character/build/')),
+      ),
+      [],
+    )
+  }
+}
 try {
   for (const viewport of [
     { width: 1366, height: 768 },
     { width: 390, height: 844 },
   ]) {
-    const page = await browser.newPage({ viewport })
+    const page = await browser.newPage({ viewport, hasTouch: viewport.width < 720 })
     const errors = []
     page.on('pageerror', (error) => errors.push(error.message))
+    await verifyModularReaders(page, viewport)
+    if (process.env.AV_MODULAR_READERS_ONLY === '1') {
+      assert.deepEqual(errors, [])
+      evidence.push({
+        viewport,
+        status: 'passed',
+        modularReaderContexts: 6,
+        scope: 'Production components with fixture data; no hosted gameplay claim.',
+      })
+      await page.close()
+      continue
+    }
     await page.goto(server.resolvedUrls.local[0], { waitUntil: 'networkidle' })
     const authoring = page.getByRole('region', { name: 'Master Blindside authoring' })
     await authoring.getByLabel('New effect type').selectOption('blindside')

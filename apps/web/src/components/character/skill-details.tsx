@@ -19,6 +19,7 @@ import { SkillGroundAreaDetails } from './skill-ground-area-details'
 import styles from './skill-details.module.css'
 import { SkillCharacteristicRows } from './skill-characteristic-rows'
 import { CompactSkillEffectSummary, EffectTagLabel } from './compact-skill-effect-summary'
+import { AbilityDefinitionParameters } from './ability-definition-parameters'
 import { groupSkillEffects } from './skill-effect-groups'
 
 function SkillDetailBody({ skill }: { skill: MatureSkillDefinition }) {
@@ -115,21 +116,29 @@ export function SkillDetails({
   expanded?: boolean
 }) {
   const groundRules = useSkillGroundInteractionRules()
+  const body = skill.ability ? (
+    <AbilityDefinitionParameters
+      definition={skill.ability}
+      effectDescriptions={skill.effectDescriptions}
+    />
+  ) : (
+    <SkillDetailBody skill={skill} />
+  )
   return (
     <div className={styles.root} data-testid="skill-details">
-      <div className={styles.tags} aria-label="Targeting and effects">
-        {skillTargetTags(skill, groundRules).map((tag) => (
-          <span key={tag}>{tag}</span>
-        ))}
-      </div>
-      {expanded ? (
-        <div className={[styles.details, styles.expanded].join(' ')}>
-          <SkillDetailBody skill={skill} />
+      {!skill.ability ? (
+        <div className={styles.tags} aria-label="Targeting and effects">
+          {skillTargetTags(skill, groundRules).map((tag) => (
+            <span key={tag}>{tag}</span>
+          ))}
         </div>
+      ) : null}
+      {expanded ? (
+        <div className={[styles.details, styles.expanded].join(' ')}>{body}</div>
       ) : (
         <details className={styles.details}>
           <summary>Skill details</summary>
-          <SkillDetailBody skill={skill} />
+          {body}
         </details>
       )}
     </div>
