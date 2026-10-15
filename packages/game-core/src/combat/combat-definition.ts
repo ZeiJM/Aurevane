@@ -566,6 +566,18 @@ export function validateAbilityDefinition(value: unknown): readonly AbilityDefin
         'Move must occur once, first, and cannot share a group with Summon.',
       )
     const summons = payloads.filter((payload) => payload.type === 'summon')
+    if (
+      summons.length > 0 &&
+      record(target) &&
+      (target.maximumSelections !== 1 || !record(target.shape) || target.shape.kind !== 'single')
+    )
+      issue(path, 'unsupported-combination', 'Summon requires one single empty-tile selection.')
+    if (summons.length > 0 && payloads.at(-1)?.type !== 'summon')
+      issue(
+        path,
+        'unsupported-combination',
+        'Summon must be the final effect in its Manual action group.',
+      )
     if (candidate.mode === 'modifier') {
       for (const [ordinal, payload] of payloads.entries()) {
         if (payload.type !== 'apply-status' && payload.type !== 'remove-status') continue

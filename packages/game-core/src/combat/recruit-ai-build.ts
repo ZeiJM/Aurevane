@@ -593,6 +593,20 @@ export function projectedCombatEffectUtility(
         : 1
     if (typeof effect.before !== 'number' || typeof effect.after !== 'number') {
       if (effect.before === effect.after) return utility
+      if (
+        effect.effectType === 'summon' &&
+        (effect.after === 'active' || effect.after === 'pending')
+      )
+        return (
+          utility +
+          (8 * sign) /
+            (1 +
+              Math.max(
+                0,
+                (effect.activationRound ?? state.tactical.battle.round) -
+                  state.tactical.battle.round,
+              ))
+        )
       if (effect.statusId === 'suppress')
         return (
           utility - 8 * sign * ((effect.potencyBasisPoints ?? 2500) / 10000) * debuffProbability

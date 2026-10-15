@@ -1200,7 +1200,11 @@ export function executePv1fMatureSkill(
       content: PV1F_COMBAT_CONTENT,
       context: combatAbilityCommandContext(canonicalPrepared, capturedSource),
     })
-    const bridged = reattachStatDrivenCombatBridge(out.state, canonicalPrepared.statBridge)
+    const bridged = reattachStatDrivenCombatBridge(
+      out.state,
+      (out.state as Partial<StatDrivenCombatEncounterState>).statBridge ??
+        canonicalPrepared.statBridge,
+    )
     return { state: spendPv1fActionEconomyForActor(bridged, actorId, 0), events: out.events }
   }
   const { prepared, action, cost, evaluation, repeatPenaltyApplied, command } =

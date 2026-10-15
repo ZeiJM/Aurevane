@@ -72,7 +72,9 @@ export function composeCombatModifiers(
 } {
   const root = input.root
   const rootBehavior = rootParticipant.behavior
-  const rootNativeEffects = rootBehavior?.effects.filter((effect) => effect.payload.type !== 'move')
+  const rootNativeEffects = rootBehavior?.effects.filter(
+    (effect) => !['move', 'summon'].includes(effect.payload.type),
+  )
   const selectedIds =
     geometry.selectedCombatantIds ??
     (geometry.primaryCombatantId ? [geometry.primaryCombatantId] : [])

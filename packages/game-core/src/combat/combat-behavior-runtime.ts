@@ -150,8 +150,10 @@ export function materializeCombatAbilityAction(
 ): CombatActionDefinition {
   if (!behavior.targeting) throw new TypeError('ability-action-targeting-required')
   const target = behavior.targeting
-  const nativeEffects = behavior.effects.filter((effect) => effect.payload.type !== 'move')
-  if (behavior.effects.some((effect) => ['summon', 'damage-bonus'].includes(effect.payload.type)))
+  const nativeEffects = behavior.effects.filter(
+    (effect) => !['move', 'summon'].includes(effect.payload.type),
+  )
+  if (behavior.effects.some((effect) => effect.payload.type === 'damage-bonus'))
     throw new TypeError('canonical-specialized-tag-routing-required')
   return {
     id: source.abilityId,

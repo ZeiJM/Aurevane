@@ -1,4 +1,6 @@
 import type { AbilityDefinition } from '@aurevane/game-core/combat/combat-definition'
+import { parseAbilityDefinition } from '@aurevane/game-core/combat/combat-definition'
+import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
 import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
@@ -11,6 +13,51 @@ import {
 import { previewCombatContentDefinition } from './combat-content-preview'
 
 const PREVIEW_SEED = 0x4d415354
+
+it.each(['instant', 'next-round', 'delayed'] as const)(
+  'previews the exact canonical %s summon instead of the stale native envelope',
+  (timing) => {
+    const native = resolveMatureSkillVersion('wildwarden.renewing-herbs')!
+    const guard = defaultBasicSkills().find((row) => row.id === 'basic.guard')!.ability
+      .behaviors[0]!
+    const profile = { ...native.summonProfile!, name: 'Canonical Preview Companion' }
+    const definition = {
+      ...native,
+      ability: parseAbilityDefinition({
+        schemaVersion: 1,
+        behaviors: [
+          {
+            ...guard,
+            cooldown: null,
+            requirements: null,
+            targeting: { ...native.target, geometryVersion: 3, maximumSelections: 1 },
+            effects: [
+              {
+                id: 'spawn',
+                timing,
+                payload: { type: 'summon', recipient: 'selected-tile', profile },
+              },
+            ],
+          },
+        ],
+      }),
+    }
+    const preview = previewCombatContentDefinition(definition, { seed: PREVIEW_SEED })
+    expect(preview.legal).toBe(true)
+    expect(preview.simulation.rngConsumed).toBe(false)
+    expect(preview.summon?.profile.name).toBe(profile.name)
+    expect(preview.summon?.abilities).toHaveLength(profile.abilities.length)
+    expect(preview.projections.effects).toContainEqual(
+      expect.objectContaining({
+        effectType: 'summon',
+        after: timing === 'instant' ? 'active' : 'pending',
+      }),
+    )
+    expect(JSON.stringify(preview)).not.toMatch(
+      /sourceInstanceId|capturedAbilitySources|chanceBasisPoints/,
+    )
+  },
+)
 
 function baseSkill(): MatureSkillDefinition {
   const definition = resolveMatureSkillVersion('vanguard.forceful-strike', 2)

@@ -158,7 +158,10 @@ function assertCurrentStatBridge(state: StatDrivenCombatEncounterState): void {
   }
 }
 
-function assertSpawnTile(state: StatDrivenCombatEncounterState, position: GridPosition): void {
+export function assertCombatSummonPlacement(
+  state: Pick<StatDrivenCombatEncounterState, 'tactical'>,
+  position: GridPosition,
+): void {
   const tile = state.tactical.tiles.find((candidate) =>
     positionsEqual(candidate.position, position),
   )
@@ -209,7 +212,7 @@ export function spawnCombatSummon(
   )
   if (!owner || owner.hp <= 0) throw new RangeError('Summon owner must be a living combatant.')
 
-  assertSpawnTile(state, input.position)
+  assertCombatSummonPlacement(state, input.position)
 
   const combatantId = nextSummonId(state, input)
   const profile = pinnedProfile(input.profile)

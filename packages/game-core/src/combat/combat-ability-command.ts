@@ -10,6 +10,12 @@ import {
 } from './combat-controlled'
 import { prepareCombatMove, type PreparedCombatMove } from './combat-move-effect'
 import type { GridPosition } from './board'
+import {
+  prepareCanonicalSummon,
+  canonicalSummonForecast,
+  resolveCanonicalSummon,
+  type PreparedCanonicalSummon,
+} from './combat-canonical-summon'
 import { executePreparedCombatWalking } from './combat-walking'
 import type { StatDrivenCombatEncounterState } from './stat-driven-combat'
 import { combatAbilityLiveRootIds } from './combat-ability-state'
@@ -144,6 +150,7 @@ interface Participant extends PreparedCombatAbilityParticipant {
   readonly depth?: number
 }
 export interface PreparedCombatAbilityCommand {
+  readonly summon?: PreparedCanonicalSummon
   readonly returnAnchor?: GridPosition
   readonly movement?: PreparedCombatMove
   readonly action: CombatActionDefinition
@@ -590,7 +597,19 @@ export function prepareCombatAbilityCommand(
           returnAnchor,
         )
       : evaluation
+  const summon =
+    issues.length === 0 && participant.source && participant.behavior
+      ? prepareCanonicalSummon(
+          evaluationState,
+          participant.source,
+          participant.behavior,
+          input.selection,
+          action.tags,
+        )
+      : undefined
+  if (summon?.issue) issues.push(summon.issue)
   return {
+    ...(summon ? { summon } : {}),
     action: composed.action,
     ...(returnAnchor ? { returnAnchor } : {}),
     ...(movement ? { movement } : {}),
@@ -599,6 +618,10 @@ export function prepareCombatAbilityCommand(
       mpCost: costs.find((cost) => cost.resource === 'mp')?.amount ?? 0,
       legal: issues.length === 0,
       issues,
+      projectedEffects: [
+        ...forecast.projectedEffects,
+        ...(summon ? canonicalSummonForecast(summon, input.state.tactical.battle.round) : []),
+      ],
     },
     costs,
     participants,
@@ -871,11 +894,16 @@ export function commitCombatAbilityCommand(
     executeAutomatic,
   )
   let live = before.state
+  let summonSettled = false
   const drainOutcomes = (
     native: CombatResolutionTransition,
     nativeGuard: typeof guard,
   ): CombatResolutionTransition => {
     session.guard = nativeGuard
+    if (prepared.summon && !summonSettled) {
+      summonSettled = true
+      native = resolveCanonicalSummon(native, prepared.summon)
+    }
     let state = native.state
     const visibility = combatSourceCommandVisibility(input.state, input.actorId)
     const events = native.events.map((event) =>

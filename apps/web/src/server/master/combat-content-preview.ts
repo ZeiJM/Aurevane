@@ -9,6 +9,7 @@ import { parseSupportActionId } from '@aurevane/game-core/combat/support-actions
 import { prepareCombatAbilityCommand } from '@aurevane/game-core/combat/combat-ability-command'
 import type { CapturedCombatAbilitySource } from '@aurevane/game-core/combat/combat-behavior-capture'
 import type { AbilityBehavior } from '@aurevane/game-core/combat/combat-definition'
+import { COMBAT_EFFECT_TIMING_TAGS } from '@aurevane/game-core/combat/combat-effect-timing'
 import {
   combatAbilityCommandContext,
   combatAbilityBehavior,
@@ -365,6 +366,18 @@ function evaluateCanonicalPreview(
   movementPath?: readonly GridPosition[],
 ) {
   let prepared = preparePv1fTurnEconomy(state)
+  if (behavior.effects.some((effect) => effect.payload.type === 'summon')) {
+    // Preserve this seeded fixture's immediate defaults while supporting explicit queued packets.
+    prepared = {
+      ...prepared,
+      effectTimingPolicy: {
+        version: 1,
+        modes: Object.fromEntries(
+          COMBAT_EFFECT_TIMING_TAGS.map((tag) => [tag, 'instant' as const]),
+        ),
+      },
+    }
+  }
   let preparation: 'free-controlled-prime' | undefined
   if (isControlledCombatAbility(behavior)) {
     const sources = [
@@ -454,6 +467,8 @@ export function previewCombatContentDefinition(
   const evaluated =
     canonical ?? evaluatePv1fMatureSkill(state, definition, selection, combatContext)
   const rngAfter = evaluated.prepared.tactical.battle.rng
+  const summonProfile =
+    canonical?.summon?.input.profile ?? (!source ? definition.summonProfile : undefined)
 
   if (!sameRng(rngBefore, rngAfter)) {
     throw new Error('Combat content preview must not consume battle RNG.')
@@ -535,42 +550,41 @@ export function previewCombatContentDefinition(
       terrain: evaluated.evaluation.projectedTerrain.map((terrain) => structuredClone(terrain)),
       events: evaluated.evaluation.projectedEvents.map(omitCombatExecutionMetadata),
     },
-    summon:
-      !source && definition.summonProfile
-        ? {
-            spawnPosition:
-              selection.kind === 'tile'
-                ? { ...selection.position }
-                : previewTargetPosition(definition),
-            profile: {
-              id: definition.summonProfile.id,
-              name: definition.summonProfile.name,
-              description: definition.summonProfile.description,
-              flavorLine: definition.summonProfile.flavorLine,
-              portraitKey: definition.summonProfile.portraitKey,
-              tags: [...definition.summonProfile.tags],
-              maxHp: definition.summonProfile.maxHp,
-              maxMp: definition.summonProfile.maxMp,
-              initiative: definition.summonProfile.initiative,
-              movementBudget: definition.summonProfile.movementBudget,
-              stats: structuredClone(definition.summonProfile.stats),
-              aiProfile: definition.summonProfile.aiProfile,
-              aiPurposeTags: [...definition.summonProfile.aiPurposeTags],
-              lifetimeTurns: definition.summonProfile.lifetimeTurns,
-            },
-            abilities: definition.summonProfile.abilities.map((ability) => ({
-              id: ability.id,
-              name: ability.name,
-              description: ability.description,
-              apCost: ability.apCost,
-              mpCost: ability.mpCost,
-              tags: [...ability.tags],
-              target: structuredClone(ability.target),
-              effects: ability.effects.map((effect) => structuredClone(effect)),
-              ai: structuredClone(ability.ai),
-            })),
-          }
-        : null,
+    summon: summonProfile
+      ? {
+          spawnPosition:
+            selection.kind === 'tile'
+              ? { ...selection.position }
+              : previewTargetPosition(definition),
+          profile: {
+            id: summonProfile.id,
+            name: summonProfile.name,
+            description: summonProfile.description,
+            flavorLine: summonProfile.flavorLine,
+            portraitKey: summonProfile.portraitKey,
+            tags: [...summonProfile.tags],
+            maxHp: summonProfile.maxHp,
+            maxMp: summonProfile.maxMp,
+            initiative: summonProfile.initiative,
+            movementBudget: summonProfile.movementBudget,
+            stats: structuredClone(summonProfile.stats),
+            aiProfile: summonProfile.aiProfile,
+            aiPurposeTags: [...summonProfile.aiPurposeTags],
+            lifetimeTurns: summonProfile.lifetimeTurns,
+          },
+          abilities: summonProfile.abilities.map((ability) => ({
+            id: ability.id,
+            name: ability.name,
+            description: ability.description,
+            apCost: ability.apCost,
+            mpCost: ability.mpCost,
+            tags: [...ability.tags],
+            target: structuredClone(ability.target),
+            effects: ability.effects.map((effect) => structuredClone(effect)),
+            ai: structuredClone(ability.ai),
+          })),
+        }
+      : null,
     vengeanceBasis: (evaluated.evaluation.vengeanceBasis ?? []).map((basis) =>
       structuredClone(basis),
     ),
