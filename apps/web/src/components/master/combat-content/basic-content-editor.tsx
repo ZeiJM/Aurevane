@@ -18,6 +18,7 @@ import { AbilityParameters } from '../../character/ability-parameters'
 import { abilityBehaviorInformation } from '../../character/ability-detail-presentation'
 import { useSkillEffectTimingPolicy } from '../../character/skill-effect-timing-context'
 import styles from './combat-content-editor.module.css'
+import basicStyles from './basic-content-editor.module.css'
 
 export interface BasicContentEditorOption {
   readonly id: BasicSkillDefinition['id']
@@ -132,8 +133,11 @@ export function BasicContentEditor({
   }
 
   return (
-    <section className={styles.editor} aria-labelledby="basic-content-heading">
-      <aside className={styles.skillBrowser}>
+    <section
+      className={`${styles.editor} ${basicStyles.editor}`}
+      aria-labelledby="basic-content-heading"
+    >
+      <aside className={`${styles.skillBrowser} ${basicStyles.browser}`}>
         <header className={styles.skillBrowserHeader}>
           <div>
             <p className={styles.eyebrow}>Basic & auxiliary</p>
@@ -177,14 +181,17 @@ export function BasicContentEditor({
         </div>
       </aside>
       <div className={styles.editorMain}>
-        <header className={styles.header}>
+        <header className={`${styles.header} ${basicStyles.panel}`}>
           <div>
             <p className={styles.eyebrow}>Combat Content</p>
             <h1 id="basic-content-heading">Basic Skill authoring</h1>
             <p>{draft.name}</p>
           </div>
         </header>
-        <section className={styles.workspace} aria-label="Basic Skill draft">
+        <section
+          className={`${styles.workspace} ${basicStyles.panel}`}
+          aria-label="Basic Skill draft"
+        >
           <div className={styles.typedGrid}>
             <AbilityText
               label="Basic Skill name"
@@ -272,7 +279,10 @@ export function BasicContentEditor({
           />
           <SkillMediaEditor value={draft.media} onChange={(media) => update({ ...draft, media })} />
         </section>
-        <section className={styles.tags} aria-label="Basic Skill definition report">
+        <section
+          className={`${styles.tags} ${basicStyles.panel} ${basicStyles.report}`}
+          aria-label="Basic Skill definition report"
+        >
           <h2>Skill information</h2>
           {issues.length ? (
             <div role="status">
@@ -294,6 +304,8 @@ export function BasicContentEditor({
               >
                 {draft.ability.behaviors.length > 1 ? <h3>Manual Action {index + 1}</h3> : null}
                 <AbilityParameters
+                  characteristicsClassName={basicStyles.characteristics}
+                  effectExplanationsClassName={basicStyles.explanations}
                   report={abilityBehaviorInformation(behavior, {
                     basic: draft,
                     timingPolicy: policy,
@@ -303,7 +315,10 @@ export function BasicContentEditor({
             ))
           )}
         </section>
-        <section className={styles.reviewPanel} aria-label="Basic Skill draft review">
+        <section
+          className={`${styles.reviewPanel} ${basicStyles.panel}`}
+          aria-label="Basic Skill draft review"
+        >
           <div className={styles.reviewActions}>
             <button type="button" disabled={busy} onClick={() => void run('validate')}>
               Validate

@@ -28,6 +28,7 @@ import { createTechniquesManualArticle } from '@/content/techniques-manual'
 import { defaultCombatEffectTimingPolicy } from '@aurevane/game-core/combat/combat-effect-timing'
 import { CombatContentAuthoringWorkspace } from '@/components/master/combat-content/combat-content-authoring-workspace'
 import { AbilityDefinitionEditor } from '@/components/master/combat-content/ability-definition-editor'
+import masterTheme from '@/components/master/master-panel-shell.module.css'
 import './production-styles'
 
 const query = new URLSearchParams(location.search)
@@ -181,7 +182,10 @@ if (new URLSearchParams(location.search).get('surface') === 'basic-editor') {
 }
 function BasicEditor() {
   return (
-    <main style={{ padding: 12 }}>
+    <main
+      className={`av-master ${masterTheme.workspace}`}
+      style={{ display: 'block', height: 'auto', padding: 12 }}
+    >
       <SkillEffectTimingProvider policy={defaultCombatEffectTimingPolicy()}>
         <CombatContentAuthoringWorkspace
           basics={basicOptions}

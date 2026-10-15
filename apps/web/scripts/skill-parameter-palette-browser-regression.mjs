@@ -299,12 +299,47 @@ async function verifyModularManual(page, viewport) {
   await page.screenshot({ path: resolve(output, `modular-manual-basics-${viewport.width}.png`) })
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
 }
+async function assertBasicContrast(locator, minimum = 4.5) {
+  const colors = await locator.evaluate((element) => {
+    const style = getComputedStyle(element)
+    let background = style.backgroundColor
+    let parent = element.parentElement
+    while ((background === 'rgba(0, 0, 0, 0)' || background === 'transparent') && parent) {
+      background = getComputedStyle(parent).backgroundColor
+      parent = parent.parentElement
+    }
+    return { color: style.color, background }
+  })
+  const luminance = (css) => {
+    const channels = css
+      .match(/[\d.]+/g)
+      .slice(0, 3)
+      .map(Number)
+      .map((value) => {
+        const channel = value / 255
+        return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4
+      })
+    return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722
+  }
+  const [light, dark] = [luminance(colors.color), luminance(colors.background)].sort(
+    (a, b) => b - a,
+  )
+  assert.ok(
+    (light + 0.05) / (dark + 0.05) >= minimum,
+    `Basic contrast below ${minimum}: ${JSON.stringify(colors)}`,
+  )
+}
+
 async function verifyBasicEditor(page, viewport) {
   await page.goto(`${server.resolvedUrls.local[0]}?surface=basic-editor`, {
     waitUntil: 'networkidle',
   })
   const editor = page.getByRole('region', { name: 'Basic Skill authoring', exact: true })
   const selector = editor.getByLabel('Basic Skill', { exact: true })
+  await assertBasicContrast(editor.getByLabel('Basic Skill name', { exact: true }))
+  await assertBasicContrast(
+    editor.getByLabel('Basic Skill name', { exact: true }).locator('..').locator('span').first(),
+  )
   assert.deepEqual(
     await selector.locator('option').evaluateAll((rows) => rows.map((row) => row.value)),
     ['basic.move', 'unarmed.basic', 'basic.guard', 'basic.recover', 'basic.recover.mp'],
@@ -412,6 +447,13 @@ async function verifyBasicEditor(page, viewport) {
   await editor
     .getByRole('region', { name: 'Basic Skill definition report' })
     .scrollIntoViewIfNeeded()
+  await assertBasicContrast(
+    editor
+      .getByRole('region', { name: 'Basic Skill definition report' })
+      .locator('[data-compact-effect-label]')
+      .first(),
+  )
+  await assertBasicContrast(editor.getByRole('button', { name: 'Save draft', exact: true }))
   await page.screenshot({ path: resolve(output, `basic-editor-recovery-${viewport.width}.png`) })
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
   assert.equal(await editor.getByRole('alert').count(), 0)
