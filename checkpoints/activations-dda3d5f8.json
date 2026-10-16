@@ -1,0 +1,50 @@
+{
+  "sourceHead": "dda3d5f8caa9978d576d73ac283df8a1ca85d2f3",
+  "sourceTree": "473f630a838e5bdf606dfb268f43713ddf292bb2",
+  "testedSource": "f72ea2f3b361f959f21613a63c21e3972e397058",
+  "fullCheckReceipt": {
+    "argv": [
+      "pnpm",
+      "--reporter=append-only",
+      "check"
+    ],
+    "cwd": "/workspace/scratch/680b26e4eb86/aurevane",
+    "started_utc": "2026-10-16T07:35:35.418800+00:00",
+    "completed_utc": "2026-10-16T07:38:02.850134+00:00",
+    "exit_code": 0,
+    "log": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/evidence/20261016T073535418800Z.log"
+  },
+  "tests": {
+    "vitest": 7758,
+    "node": 7
+  },
+  "prerequisite": "ea04a581392e57b867c7f6fd2350072f030c4e7c",
+  "previousArchiveCommit": "f0d50e9304dbe048116d5814c396930606bad399",
+  "previousArchiveTree": "7c1ebe5b64824119bb5264504651d5582bae491a",
+  "manifestSha256": "bdceab2a7547845d15f20654c1dc758a97d6c104d2dad76c906364e4504cdd9f",
+  "bundle": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/activations-dda3d5f8.bundle",
+    "bytes": 8323,
+    "sha256": "eec4c6ed32171186ecb54b3b432c59513f51cd11df43bc9f80622a6216a676ea",
+    "blobSha": "4d4e1fabfcd85bb3df061f94e3ca83c622e5be17",
+    "chunks": 1
+  },
+  "evidence": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/activations-dda3d5f8-evidence.tar.gz",
+    "bytes": 77002,
+    "sha256": "1bfaad6334d923c520d2efb9615d2542626e4520d9af3d514c47220b3dad7824",
+    "blobSha": "72de881421ee681f9691e3e41c3699244c347555",
+    "chunks": 9
+  },
+  "acceptance": "Bounded selected4activation/mode executable inventory,5tests; no production/manifest change. Earlier19effect/24status/8Requirement checkpoints retained. Task15/16 OPEN: every294record/equippedcycles/realAIattachmentplanning-Level100balance/nativebrowser/readers/Owneredits-hostedCAS/Atlas. No hosted write, activation, merge or deployment. See committed verification report for exact review findings and full gate counts.",
+  "review": {
+    "critical": 0,
+    "important": 0,
+    "minor": 1,
+    "deferredMinor": "Primary Ongoing witness uses dynamic pair lookup; add an exact stable-ID assertion later. Current record/version/outcomes correct.",
+    "priorDeferredMinors": [
+      "distinct Rewind prime/turn-origin witness",
+      "supporting Aimed Shot version pin"
+    ]
+  }
+}
