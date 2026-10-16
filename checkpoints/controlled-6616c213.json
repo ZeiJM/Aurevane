@@ -1,0 +1,22 @@
+{
+  "head": "6616c213821b03254f2ef4f7f238521260aa1024",
+  "tree": "93a61a90a252fc58e959917cb5840bab2662c2de",
+  "base": "6790f4c9ff9343dee7b39e2f87999c2f1a3d7454",
+  "ref": "refs/checkpoints/controlled-6616c213",
+  "bundle": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/evidence/controlled-6616c213.bundle",
+    "bytes": 512970,
+    "sha256": "fb6fb4aa2b5ea3ea56d1878ee46e43f00457a395fb9872fcd973fff2e1428856",
+    "gitBlobSha": "e3467d9b828852877173ac615431a77c12043878"
+  },
+  "evidence": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/evidence/controlled-6616c213-evidence.tar.gz",
+    "bytes": 111629,
+    "sha256": "677f2413b441a0b8eb882ddd62242f71c1383976ffcdd96869bf762db95116d3",
+    "gitBlobSha": "b9dd9d96f1cbd7d5ed27fc6216287d6f2499c99d"
+  },
+  "verification": "The bundle contains this ref:\n6616c213821b03254f2ef4f7f238521260aa1024 refs/checkpoints/controlled-6616c213\nThe bundle requires this ref:\n6790f4c9ff9343dee7b39e2f87999c2f1a3d7454 \nThe bundle uses this hash algorithm: sha1\n/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/evidence/controlled-6616c213.bundle is okay\n",
+  "archiveParent": "8a2d1b1b3f7a2288572c970c4b54d19b452955f9",
+  "archiveBaseTree": "29d0e468372218ca596f0c84fcd336bfbe0c45e2",
+  "status": "awaiting explicit Extra High switch after verified recovery backup; no runtime activation"
+}
