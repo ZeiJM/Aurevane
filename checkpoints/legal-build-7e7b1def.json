@@ -1,0 +1,40 @@
+{
+  "sourceHead": "7e7b1def59c81398d6698c8452da02e4e2f4cb3b",
+  "sourceTree": "ca79e76c890d231082a4e0d46c867164253c8c88",
+  "testedSource": "4c7f4b707d456c545a2630930654c3a6d7c115cc",
+  "fullCheckReceipt": {
+    "argv": [
+      "pnpm",
+      "--reporter=append-only",
+      "check"
+    ],
+    "cwd": "/workspace/scratch/680b26e4eb86/aurevane",
+    "started_utc": "2026-10-16T09:39:19.298285+00:00",
+    "completed_utc": "2026-10-16T09:42:50.131370+00:00",
+    "exit_code": 0,
+    "log": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/evidence/20261016T093919298285Z.log"
+  },
+  "tests": {
+    "vitest": 8086,
+    "node": 7
+  },
+  "prerequisite": "0354e2c3f849e0c0bd6ccb1f089df1519222bf31",
+  "previousArchiveCommit": "da547b4e89ead1bed8249c5ed29531eb360fdd37",
+  "previousArchiveTree": "ac36a9d5a8d33c481fe8c12a6f1c3bb290e95b25",
+  "manifestSha256": "bdceab2a7547845d15f20654c1dc758a97d6c104d2dad76c906364e4504cdd9f",
+  "bundle": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/legal-build-7e7b1def.bundle",
+    "bytes": 13146,
+    "sha256": "198c67e8ca0d23856ef33279ec3c7d90ecce59fa9bc5628faa13d22c541a08eb",
+    "blobSha": "9dd1abf39d3e94bbd05a4c9abf4c3fa414138215",
+    "chunks": 2
+  },
+  "evidence": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/legal-build-7e7b1def-evidence.tar.gz",
+    "bytes": 99132,
+    "sha256": "9f82aedef21811e3212c79042a287ecf09c9e480f2a04fd721c42aaf76a03e20",
+    "blobSha": "0497538c5c8c5941d2d17996cc73610c633d4ac3",
+    "chunks": 12
+  },
+  "acceptance": "Bounded legal save/load/current-pinned publication/capture and actual first AI command:306coveragebuilds x2levels x2authoritycontexts=1224combinations;312new tests. Test-only, no production/manifest change. Review0Critical/0Important/1Minor provenance fixture label deferred;prior4 carried. Seeded earned facts not actual progression awards. Pure halves coverage not new strategies. Three nativeGround paths remain native. Task15/16 distinctcycles/multiturnAI/balance/pacing/Groundcanonical/readers/browser/Owneredits-hostedCAS/Atlas remainOPEN. No hosted write, activation, merge or deployment. See committed verification report for exact boundaries and full gate counts."
+}
