@@ -1,9 +1,9 @@
-Aurevane Task15 Manual modifier preview recovery
-Source 3145a2aff601d7d94ba2054c57121455292a8f15
-Tested d514253cbed095c118a28eff9c47f847bd133d1d
-Reviewed f9b0a60efa6042bec4186c10caa370d0919a1044
-Prerequisite 5e4e97fd1ca2b377e936bfb746f7b95d55f176a2
-Bundle checkpoints/modifier-preview-3145a2af.bundle
-Evidence checkpoints/modifier-preview-3145a2af-evidence.tar.gz
-Metadata checkpoints/modifier-preview-3145a2af.json
-8900Vitest+7Node/allquality/bothbuilds pass; all141native/284proposedManual/294readers exact. ONEreview0C2Ifixed0newM/14inheritedMinors/37scope+4integrationEvidenceRulings; no rereview. Rawrootstdoutgap retained with complete package logs/native tool ending afterONEcachedreplay. Main unchanged29506e29/deploymentlockfalse/nohostedpublication/migration/merge/deploy;Highsufficient. Automatic/Ongoing/historical/native/fullTask15/16/balance/Atlas/human/releaseOPEN. Preserve archive ancestors.
+Aurevane Ongoing modifier preview recovery
+Source 4eb8780087d7d83bf9167fb0f6b61c2c10532443
+Tested 4ae83201b908e3c0af4d85fc532fecc827e9874c
+Prerequisite 3145a2aff601d7d94ba2054c57121455292a8f15, archived at f84558920a94012ef582cc495b3cd92846b93911
+Bundle checkpoints/ongoing-preview-4eb87800.bundle
+Evidence checkpoints/ongoing-preview-4eb87800-evidence.tar.gz
+Metadata checkpoints/ongoing-preview-4eb87800.json
+8910 Vitest + 7 Node, format/lint/types/both builds pass. One review: 0 Critical, 1 Important fixed in one RED-to-GREEN wave, 0 new Minor. Parent14 inherited Minors remain deferred.
+Only supported Ongoing modifiers added; Automatic/event previews and native/browser/balance/hosted/Atlas/human/release gates OPEN. Isolated source branch agent/event-preview-20261016 must be reconciled with active source before further implementation; do not redo or reset concurrent work. Deployment lock retained; main unchanged. No deployment.

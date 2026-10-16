@@ -1,0 +1,51 @@
+{
+  "sourceHead": "4eb8780087d7d83bf9167fb0f6b61c2c10532443",
+  "sourceTree": "03ead070c0938dbfc07a0ea38ed7efe4a918781d",
+  "testedSource": "4ae83201b908e3c0af4d85fc532fecc827e9874c",
+  "implementation": "b19be256",
+  "prerequisite": "3145a2aff601d7d94ba2054c57121455292a8f15",
+  "prerequisiteArchive": "f84558920a94012ef582cc495b3cd92846b93911",
+  "branch": "agent/event-preview-20261016",
+  "tests": {
+    "vitest": 8910,
+    "node": 7,
+    "focused": 218,
+    "new": 10
+  },
+  "fullCheck": {
+    "argv": [
+      "corepack",
+      "pnpm@11.17.0",
+      "--reporter=append-only",
+      "check"
+    ],
+    "cwd": "/workspace/scratch/21356a9aad08/aurevane-events",
+    "started": "2026-10-16T22:41:52.691438+00:00",
+    "sourceHead": "4ae83201b908e3c0af4d85fc532fecc827e9874c",
+    "log": "/workspace/scratch/21356a9aad08/aurevane-events/.superpowers/sdd/2026-10-16-ongoing-preview/final-check.log",
+    "exit_code": 0,
+    "completed": "2026-10-16T22:42:24.604266+00:00"
+  },
+  "review": {
+    "critical": 0,
+    "important": 1,
+    "fixed": 1,
+    "minor": 0,
+    "fixWaves": 1
+  },
+  "bundle": {
+    "path": "/workspace/scratch/21356a9aad08/aurevane-events/.superpowers/sdd/2026-10-16-ongoing-preview/ongoing-preview.bundle",
+    "bytes": 7712,
+    "sha256": "442391d71bb78dddbe912ce376933def9239a15712082bd3353361141777dde1",
+    "blobSha": "2e6697daccff099d7f6992204e26b9db1ee4a852"
+  },
+  "evidence": {
+    "path": "/workspace/scratch/21356a9aad08/aurevane-events/.superpowers/sdd/2026-10-16-ongoing-preview/ongoing-preview-evidence.tar.gz",
+    "bytes": 60577,
+    "sha256": "48273cf5d13bedb2a8bffb4578bfc0de80dc5a2b1402efa7f97b62c6d97aba94",
+    "blobSha": "640a332822a9206d52117f9bb2e1cb5e91e69f78"
+  },
+  "main": "29506e293e81abef1b0b8a46099618ab3ae3f0ae",
+  "deploymentLock": "b8a4e0e3c57b95a8da49c05d1fe5f60ba2181b5f",
+  "remaining": "Integrate bounded Ongoing slice with active source; Automatic/event/historical/native/browser/balance/hosted/Atlas/human/release remain OPEN. No deployment."
+}
