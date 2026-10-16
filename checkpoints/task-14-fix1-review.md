@@ -1,0 +1,17 @@
+- **Borrowed Formula adds a worse copy of equipped Quick Hands — ADDRESSED.** `docs/superpowers/specs/2026-10-10-roster-rebalance-proposals.json:43865` replaces copying with ordered owner Guarded removal → immediate MP recovery → Covert. Mana Shield supplies the sacrificed protection; Quick Hands remains enemy-buff copying, Channel provides delayed recovery, and Smoke Vial supplies concealment without recovery. `packages/game-core/src/combat/roster-design-outcomes.test.ts:156` verifies 8→12MP, 35AP payment, Guarded removal, Covert and unchanged 20 Barrier; `:181` covers missing Guarded/fullMP rejection.
+
+- **Pursuit Angle repeats equipped Flanking Cut without rewarding quarry preparation — ADDRESSED.** `docs/superpowers/specs/2026-10-10-roster-rebalance-proposals.json:58371` now orders owner Move2 → marked-enemy Pull2, without damage or Blindside. This changes both positions beside the actual Lunge/Flanking Cut/Hunter’s Mark/Pursuit Shot kit. `packages/game-core/src/combat/roster-design-outcomes.test.ts:195` verifies the reached origin, orthogonal Pull landing, retained Mark, 40AP/4MP payment and recipient Rooted resistance; `:226` covers missing Mark/owner Rooted rejection.
+
+- **Piercing Inscription has no present advantage over equipped Aimed Shot — ADDRESSED.** `docs/superpowers/specs/2026-10-10-roster-rebalance-proposals.json:59722` replaces the shot with Mark removal → enemy MP Drain4 → Suppress25%1. It sacrifices Scout’s Mark for present resource/output denial instead of Aimed Shot/Aether Cut damage or Rune Guard’s owner recovery. `packages/game-core/src/combat/roster-design-outcomes.test.ts:247` verifies unchanged enemy HP, drained MP, consumed Mark, Suppress, 40AP/5MP payment, paid miss preserving Mark and atomic unmarked rejection. No equipment-Armor advantage is claimed.
+
+- **Burn the Thicket makes two setup states buy an inferior Cinder Bolt — ADDRESSED.** `docs/superpowers/specs/2026-10-10-roster-rebalance-proposals.json:69461` now orders Poison removal → Fire Power12 → Rooted1 → actor Chilled cleanse, requiring prior Mark and Poison. This trades future Poison attrition for immediate containment; equipped Cinder Bolt preserves Poison and adds Burn. `packages/game-core/src/combat/roster-design-outcomes.test.ts:274` verifies hit/miss/full-Barrier outcomes, retained Mark and 50AP/6MP payment; `:312` covers either missing prerequisite. The native Poison Ground dependency remains explicitly provisional.
+
+- **New Critical/Important/Minor breakage in the fix diff: None found.**
+
+- **Check:** The changed pair projections, uniqueness entries and coverage witnesses match the four amended typed definitions and actual earned 2+2 kits. Acceptance plans retain explicit costs, clocks, recipients, counterplay and publication blocks.
+
+- **Check:** Original `evidence/20261016T015447519960Z.log` contains 777 named passes: 736 manifest guards and 41 candidate outcomes, including all 12 new scenarios. Distinct recorder receipts confirm exit0 for typecheck (`015450812312Z`), ESLint (`015458526445Z`, legitimately silent output) and formatting (`015501599387Z`). Manifest SHA-256 matches `584f45d835bbf7b811a354c33e6618cd2cecb46abdbf5110946070b851f3fdbc`. No suites were rerun.
+
+- **Out-of-scope observations: None newly identified.** Task15 runtime/Ground/AI/balance/actual-consumer/plain-language/style and coordinated publication gates remain open; this verdict does not authorize activation.
+
+- **Fix round: All findings addressed, no new Critical/Important breakage.**

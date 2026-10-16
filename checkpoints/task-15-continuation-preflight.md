@@ -66,3 +66,9 @@ This is an evidence map for the existing approved requirements and October15,21:
 | New roster consumers | Explicit modifiers, active/Controlled Resonances, non-cast Automatic/Ongoing Skills, shared-cooldown command choice and typed event/condition previews work for the actual reviewed roster, including saved/restored versions. A missing button cannot pass on kernel evidence alone. |
 
 Retain concrete exact-source receipts for desktop/mobile/keyboard/touch/200%zoom integration and the authoring→validation→captured execution→display path. Do not infer combined acceptance from isolated historical tests or Owner acceptance of an earlier targeting checkpoint.
+
+## Accepted source and Owner Excel preview
+
+Task14 design is accepted at a8df18ef3730795bda29510f9ecde40bccefa8c0 after fullreview+onecleanfixround. Durablecheckpoint/review: docs/verification/2026-10-16-roster-design-continuation-checkpoint.md and2026-10-16-roster-design-review.md. CurrentmanifestSHA256584f45d835bbf7b811a354c33e6618cd2cecb46abdbf5110946070b851f3fdbc. Finalamended777tests(736guards+41outcomes)pass;64unchangedcontractsretainearlier828evidence. Noactivation.
+
+OwnerrequestedandreceivedAUREVANE_Roster_Update_Preview.xlsx. Keep existingidentity libfile_60fac1def614819199574a95f9b5b505,version0,file_0000000038c481f594db0298d235750e;local/workspace/scratch/680b26e4eb86/outputs/aurevane-roster-preview/AUREVANE_Roster_Update_Preview.xlsx. It contains7tabs,294records,17classes,297commands,604effects,294beforeaftercomparisons,sourcea8df18ef. Update sameLibraryfile viareplace aftermaterialtuningif needed; preserveversionhistory. Currentworkbookisrevieweddesignpreview,notbalancefinal.

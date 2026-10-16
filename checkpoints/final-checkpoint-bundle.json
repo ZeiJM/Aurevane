@@ -1,0 +1,21 @@
+{
+  "head": "1876210d89d80e6b02de4065d2fc9233041ecb3f",
+  "tree": "362e28b1590c1af4d183626d5678f06660ab9c79",
+  "designHead": "a8df18ef3730795bda29510f9ecde40bccefa8c0",
+  "base": "6790f4c9ff9343dee7b39e2f87999c2f1a3d7454",
+  "ref": "refs/checkpoints/roster-1876210d",
+  "bundle": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/evidence/roster-1876210d.bundle",
+    "bytes": 471766,
+    "sha256": "e8dc3a7fb22cede7d6ce7b538fd98cecf9ca7d60bde716a8750e456e97133105",
+    "gitBlobSha": "287999d7b7e5258c58ab2fb69f08ac37826af133"
+  },
+  "evidence": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/evidence/roster-1876210d-evidence.tar.gz",
+    "bytes": 239416,
+    "sha256": "67cc25370597db886fecffb3338d42cda9bda91149248de6dab288a8e618ad71",
+    "gitBlobSha": "310257eb1c1c035f335ccb32569e858dc79aefda"
+  },
+  "verification": "The bundle contains this ref:\n1876210d89d80e6b02de4065d2fc9233041ecb3f refs/checkpoints/roster-1876210d\nThe bundle requires this ref:\n6790f4c9ff9343dee7b39e2f87999c2f1a3d7454 \nThe bundle uses this hash algorithm: sha1\n.superpowers/sdd/2026-10-10-unified-engine-recovery/evidence/roster-1876210d.bundle is okay\n",
+  "review": "Task14 complete; fullreview+fix1 clean; Task15pending effortpause"
+}
