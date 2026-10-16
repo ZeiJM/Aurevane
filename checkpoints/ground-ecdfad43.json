@@ -1,0 +1,21 @@
+{
+  "head": "ecdfad4325fa72b00a21049158fd898901939cbf",
+  "tree": "72d35ea20c24c6e8f62fa490cb2c40451f56fcb9",
+  "base": "6790f4c9ff9343dee7b39e2f87999c2f1a3d7454",
+  "ref": "refs/checkpoints/ground-ecdfad43",
+  "bundle": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/evidence/ground-ecdfad43.bundle",
+    "bytes": 486299,
+    "sha256": "68dee86a9a180d7998911a8694aff4aaf5d6f9188359ae87d03e569e2d038253",
+    "gitBlobSha": "60df2a91449ac6d8c2e87fd88d1d5ba4f7de233b"
+  },
+  "evidence": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/evidence/ground-ecdfad43-evidence.tar.gz",
+    "bytes": 72236,
+    "sha256": "5400f4339590ea658e0e44d3a571030cc2b266ad7fd3e25f1d7425c2774fc0f5",
+    "gitBlobSha": "6513772d3f1fcc23262b03a3692b9dd8949f99f9"
+  },
+  "verification": "The bundle contains this ref:\necdfad4325fa72b00a21049158fd898901939cbf refs/checkpoints/ground-ecdfad43\nThe bundle requires this ref:\n6790f4c9ff9343dee7b39e2f87999c2f1a3d7454 \nThe bundle uses this hash algorithm: sha1\n.superpowers/sdd/2026-10-10-unified-engine-recovery/evidence/ground-ecdfad43.bundle is okay\n",
+  "archiveParent": "037e8553a4cf309c8735d25523357b21f9958425",
+  "archiveTree": "3a08a11cedd2f9910ca481f23d25dceda6f485f8"
+}
