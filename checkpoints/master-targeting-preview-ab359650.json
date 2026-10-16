@@ -1,0 +1,50 @@
+{
+  "sourceHead": "ab359650becb091b5eb87887c653a0a498753dca",
+  "sourceTree": "65b82b5a877a560ae49032c86f7883a70913855b",
+  "testedSource": "452161cd9e1e9be7b92ceb30fbddff1acaf639a0",
+  "reviewedProductionSource": "452161cd9e1e9be7b92ceb30fbddff1acaf639a0",
+  "prerequisite": "578f755487da3727268498681040f6cffd6a1769",
+  "previousArchiveCommit": "bcc046e25534c82a12c6eb1ac32043891fd592e5",
+  "previousArchiveTree": "c20b9688c6bf7f1355441ed1bf19622680125103",
+  "fullCheckReceipt": {
+    "argv": [
+      "pnpm",
+      "--reporter=append-only",
+      "check"
+    ],
+    "cwd": "/workspace/scratch/680b26e4eb86/aurevane",
+    "started_utc": "2026-10-16T21:13:30.154760+00:00",
+    "completed_utc": "2026-10-16T21:14:01.508539+00:00",
+    "exit_code": 0,
+    "log": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/evidence/20261016T211330154760Z-d5304156.log"
+  },
+  "tests": {
+    "vitest": 8722,
+    "node": 7
+  },
+  "readerAudit": {
+    "source": "452161cd9e1e9be7b92ceb30fbddff1acaf639a0",
+    "rawSha256": "988fa25602cab93011de1bd4a39d74958840338939983617625096bf147694e4",
+    "records": 294,
+    "groups": 297,
+    "effects": 604,
+    "allReportsAndHtmlExactlyUnchanged": true,
+    "manifestAndSixAiSourceHashesUnchanged": true,
+    "scope": "Static named Skill readers only. Live-effect controlled callbacks and SSR are separately tested; native keyboard, AT and geometry acceptance remain open."
+  },
+  "bundle": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/master-targeting-preview-ab359650.bundle",
+    "bytes": 11329,
+    "sha256": "039c628e2f512368dfa5db4c65bf81b83efea20fbd4c5bf66d16ae1fab2cb249",
+    "blobSha": "23c480355f61b853918e7c377e91962b40c5c210",
+    "chunks": 2
+  },
+  "evidence": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/master-targeting-preview-ab359650-evidence.tar.gz",
+    "bytes": 501167,
+    "sha256": "f5ffab24e8bb566f11dfad45c5537cca85964b7c2b770636fb0f477fad0dda73",
+    "blobSha": "c857187b7418dbc1d3ae45a8339514063a0879e7",
+    "chunks": 56
+  },
+  "acceptance": "Canonical Master targeting preview fixture uses native geometry/category authority;22 new cases;8722 Vitest+7 Node required;all136 latest built-in preview JSON exact;all294 Skill reports/HTML exact;manifest/sixAI hashes unchanged;fresh review0C0I0newM;14 inherited Minors deferred. Original combat integration/Automatic/Ongoing/event/Manual Resonance/native/AT/geometry/fullcycles/balance/Owner hosted SQLCAS/Atlas/human/Task15/16/release remain open. No hosted write/publication/activation/migration/merge/deploy. High sufficient."
+}

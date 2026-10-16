@@ -1,0 +1,4 @@
+Canonical Master targeting preview checkpoint
+Source ab359650becb091b5eb87887c653a0a498753dca
+Tested/reviewed 452161cd9e1e9be7b92ceb30fbddff1acaf639a0
+8722 Vitest+7 Node; all136 native preview JSON/all294 reader exact; review0C0I0newM;14 inherited Minors deferred. Original combat/editor/native/release work remains open. No deployment.
