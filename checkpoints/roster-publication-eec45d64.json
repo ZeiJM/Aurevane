@@ -1,0 +1,40 @@
+{
+  "sourceHead": "eec45d645fa6f8faf51174cc8564e7d040f24ca7",
+  "sourceTree": "5e2ea6ee3f421c61d94a1f92a05be3cc678174c8",
+  "testedSource": "efb6fd33e73bd8efecd3dfab64bd32da771ce6ec",
+  "fullCheckReceipt": {
+    "argv": [
+      "pnpm",
+      "--reporter=append-only",
+      "check"
+    ],
+    "cwd": "/workspace/scratch/680b26e4eb86/aurevane",
+    "started_utc": "2026-10-16T05:37:07.343541+00:00",
+    "completed_utc": "2026-10-16T05:39:28.547533+00:00",
+    "exit_code": 0,
+    "log": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/evidence/20261016T053707343541Z.log"
+  },
+  "tests": {
+    "vitest": 7694,
+    "node": 7
+  },
+  "prerequisite": "933e496cdb892119dfece6182c7771cb4268d370",
+  "previousArchiveCommit": "0782bbb8c80a028d23a33251cb237063f3054e4c",
+  "previousArchiveTree": "958b09d354a25a3d6bb2dead3999748c17b4cd48",
+  "manifestSha256": "bdceab2a7547845d15f20654c1dc758a97d6c104d2dad76c906364e4504cdd9f",
+  "bundle": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/roster-publication-eec45d64.bundle",
+    "bytes": 20628,
+    "sha256": "a520d4717f89ef2070907346c4632e151f5614b69d8d6cd09797767eaebfeb89",
+    "blobSha": "5ca71fd1fb814f4ca29d4bb75441f3d89bffcfee",
+    "chunks": 3
+  },
+  "evidence": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/roster-publication-eec45d64-evidence.tar.gz",
+    "bytes": 185205,
+    "sha256": "b1a7ad72380c4fecda953b2aaac0ccc5273ce1e8694dd3498e91592843a6b944",
+    "blobSha": "1076a6e074d615adfede6397f9a24e7437eb386a",
+    "chunks": 21
+  },
+  "acceptance": "Bounded local publication milestone only. Native UI/Atlas/all-tag executable evidence/whole-roster realAI-Level100/current Owner edits/hosted CAS remain OPEN; no hosted write, activation, merge or deployment."
+}
