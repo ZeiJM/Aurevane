@@ -1,5 +1,5 @@
-Source b036763303a1e34b43f60188ab3b55b591637c54
-Tested d47e412015caf3d7dbda0546fad471bbffab0bcc
-Bundle checkpoints/conditional-b0367633.bundle
-Evidence checkpoints/conditional-b0367633-evidence.tar.gz
-8384 Vitest + 7 Node; one combined review 0C/0I/0newMinor; 10 inherited Minors deferred. All29conditions retained;4Pierce exactpercentages retained. Original combat/native/editorial/balance/release open. No release.
+Source 60b9c4a2398c915d8b5492fa3ec803feeed96e40
+Tested 3b52fe66e4af6958cde126e38fa36bae0de9bd7b
+Bundle checkpoints/linked-60b9c4a2.bundle
+Evidence checkpoints/linked-60b9c4a2-evidence.tar.gz
+8409 Vitest + 7 Node; review 0C/1I/1newMinor; keyboard Important fixed through ONE TDD wave; Master sizing Minor deferred,11total. Six typed identities,3actual records,all294plaincontracts exact. Originalcombat/native/alllinkedterms/balance/release open. No release.

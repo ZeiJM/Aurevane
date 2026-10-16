@@ -1,0 +1,89 @@
+{
+  "sourceHead": "60b9c4a2398c915d8b5492fa3ec803feeed96e40",
+  "sourceTree": "679ee895198a244ae88cacb97e284fe19987d896",
+  "testedSource": "3b52fe66e4af6958cde126e38fa36bae0de9bd7b",
+  "reviewedProductionSource": "aed2fb535a5561f48efdeddd67c73f20977e3e1f",
+  "prerequisite": "b036763303a1e34b43f60188ab3b55b591637c54",
+  "previousArchiveCommit": "4f2f5f72cdacaca82573624674df857251cc499f",
+  "previousArchiveTree": "15b6b1d8450cfd07ddd1774851babbc7b42373c1",
+  "fullCheckReceipt": {
+    "argv": [
+      "pnpm",
+      "--reporter=append-only",
+      "check"
+    ],
+    "cwd": "/workspace/scratch/680b26e4eb86/aurevane",
+    "started_utc": "2026-10-16T16:53:46.259198+00:00",
+    "completed_utc": "2026-10-16T16:57:46.585438+00:00",
+    "exit_code": 0,
+    "log": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/evidence/20261016T165346259198Z.log"
+  },
+  "tests": {
+    "vitest": 8409,
+    "node": 7
+  },
+  "priorMatrixReference": {
+    "source": "fc17038277d90da29f52483d2e4a8a7bdb7f9b34",
+    "rawSha256": "d60cb8110a8ad3f74342c52fbaf368c2c52aa04c6e44f22d0fd1dfcdd6cba280",
+    "goldSha256": "d60cb8110a8ad3f74342c52fbaf368c2c52aa04c6e44f22d0fd1dfcdd6cba280",
+    "records": 289,
+    "pure": 17,
+    "orderedMixed": 272,
+    "commands": 8219,
+    "allCommandArraysIdentical": true,
+    "allCompleteRowsIdentical": true,
+    "allFourRoundsPlayed": true,
+    "allActiveAtRoundFive": true,
+    "resourcesVersionsOwnershipVerified": true,
+    "sourceHashes": {
+      "packages/game-core/src/combat/recruit-ai-build.ts": "e1f676fafea1a73a84eaf95b0e73b66601916a4dcb63e80edd0db4d4da449a7d",
+      "packages/game-core/src/combat/recruit-ai.ts": "cf9e6cc12ff1d7434d17956f5f2e3e19b770240ea6d7a5c039477921382c5e6a",
+      "packages/game-core/src/combat/recruit-ai-ranged-spacing.test.ts": "97d492399237e8064ae9fdc51f7fef143189201e32a2892ccf98340448238a77",
+      "apps/web/src/server/battle/roster-legal-duel.test-utils.ts": "129d1827760c89bdf3ed75a1757e98802de743829eff9841699ead64747c96f9",
+      "apps/web/src/server/battle/roster-legal-ranged-ai.test.ts": "1443d456ba61d9469cedfe8e10392c155876e2c20fd3b121506009be7d0c4524",
+      "apps/web/src/server/battle/battle-log-service.ts": "d1876bcd5044a7b8f1c3c4178b19696605a61fc5ad8424e34181fd5cc95aa74b"
+    },
+    "scope": "Same fixed four-round Level100 PvP roster benchmark and seed as gold. This verifies unchanged constant outcomes; not natural pacing, twelve-round balance, human acceptance or release."
+  },
+  "readerAudit": {
+    "source": "3b52fe66e4af6958cde126e38fa36bae0de9bd7b",
+    "rawSha256": "84aaea3581d0a962b06ac0cf2174356cb8479165070592882625289de11e46a1",
+    "records": 294,
+    "groups": 297,
+    "effects": 604,
+    "plainDescriptionsChanged": 0,
+    "allNormalizedStructuredReportsExactlyUnchanged": true,
+    "allStaticVisibleReaderTextExactlyUnchanged": true,
+    "recordsWithNewReferenceMarkup": [
+      "ironfist.breakfall",
+      "frostweaver.chilling-mist",
+      "resonance.bastion-edgedancer.linked-sequence"
+    ],
+    "allOtherRecordMarkupExactlyUnchanged": 291,
+    "referenceNodes": 11,
+    "referenceIds": [
+      "airborne",
+      "fire",
+      "frozen-ground",
+      "rooted",
+      "slow",
+      "steam"
+    ],
+    "scope": "Default-context static named-reader SSR and exactplaincontract comparison only. Optional semantic nodes intentionally extend3reports. No nativehover/focus/touch/zoom/layout or fulltag/editorial acceptance implied."
+  },
+  "bundle": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/linked-60b9c4a2.bundle",
+    "bytes": 30172,
+    "sha256": "2a3112656bc7bbee78fdd48f14ca3b4e3a1b9026c3a378241b614f31df972a8a",
+    "blobSha": "f76bfb289c0fbafa27a74288afb710ddd2076abb",
+    "chunks": 4
+  },
+  "evidence": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/linked-60b9c4a2-evidence.tar.gz",
+    "bytes": 433818,
+    "sha256": "fa67c651598698d67c0549f755914b0387d6982697858d8455585014de9ceff8",
+    "blobSha": "a72c93dc75d13d84c764bd4a5e58a7814219b514",
+    "chunks": 49
+  },
+  "acceptance": "Typed Ground/Airborne reference foundation:6explicitIDs,3actualcanonicaleffects+Steamfactlabel,11safe publicnodes; no keywordinference. Existing plainstrings/normalizedfields/staticvisibletext all294exactprior,291otherrecordmarkupunchanged. Capturednativegenerichelp/authoredoverride/stalemetadata/unknownID/finiteplaintexthelp preserve truth. Sharedpopupoptin1primary+1leaf withcapturedlayer/hoverfocus/cleanup/sibling/globalhandoff/reentrancy; oldglobaldismissmeaning retained. Initial11validRED6GREEN->344covering/41files incl16newcases; reviewerKeyboardImportantfixedonewave9validRED+1modifierRED->372covering/43files;25newcases; frozen8409Vitest+7Node. Onecombinedreview0C1I1newMinor; keyboardImportantfixedTDDonewave; MasterSizingMinordeferred,11totalMinors;65individualparentrulings;no rereview. Otherterms/legacy/conditions/Manual/authoredtypededitor/livepopups andnativehover/focus/touch/mobilezoomacceptance remainOPEN; no allorangecompletion. Native/schema/manifest/AI/fixtures unchanged;no new289claimed. Originalcombat/fullcycles/balance/Ownerhosted/Atlas/human/release andbroaderMaster remainopen. No hostedwrite/publication/activation/migration/merge/deploy."
+}
