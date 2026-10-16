@@ -135,3 +135,79 @@ Main/source reconciliation2026-10-16~00:47Z: main still29506e293e81abef1b0b8a460
 Owner repeats that Resonances define combinations and must not be copy skins. Implementer has authored repeated-bonus rework and kept611checks green; remaining work is explicit all136 kit/build/turn-decision identities, scalar-stripped functional collision audit, concrete per-pair outcomes and honest unlock/capacity discussion. Estimated additional15–25minutes before independent review; original checkpoint range remains provisional but upper bound currently plausible. Controller asks original21 cluster IDs/counts to reconcile with an additional repeated active heal/attack rework. Crystal Impact must have present-day decision/counter distinction; future Armor bypass cannot justify current uniqueness.
 
 Canonical completeness guard must reject accidental missing after.ability for every new non-Ground Skill/Essence/Resonance; three provisional Ground rows and exact retained Basics are deliberate exceptions, not implicit legacy fallback permission. Confirmed-hit HP recovery vs full Barrier and independent nondamaging recovery remain distinct actual contracts. Avoid invented all-new-player4Skill ownership when real mastery unlocks apply.
+
+## Pre-review paid-Automatic no-op findings
+
+Controller read actual new Consecrated Form: after an owner Ironfist attack andHP≤60%, it paid4MP to Cleanse even without a removable affliction. Requested actual Any status-presence over Cleanse-removable statuses including policy-added Suppress, preventing a no-op payment/usage consumption. Renewed Force also paid4MP for4%HP at full HP; requested deliberate wounded eligibility. Implementer must test no-benefit fullHP/unafflicted no-spend, qualifying real benefit, miss, duplicates and owner binding, and audit other paid Automatics. No generic engine rule change or fake successful-hit claim. Keep these open until actual final diff/tests resolve them.
+
+Coordination/archive backup verified at84770fe991319c130bb7bcf40d96de87e5ff82f7 with branch CAS/fast-forward and git ls-remote match; preserves then-current ledger, nextTask15 preflight and verification receipts alongside exact605/36ab source bundles. Later rulings continue locally until final accepted checkpoint backup.
+
+## Owner asks pre-creative completion status — October15,21:03 Trinidad
+
+Owner asked whether everything from previous chat was complete before creative balance. Answered explicitlyNo. Foundation completed/released; targeting/Move/editableBasics/Controlled/readers substantial saved implementation but combined acceptance open. Remaining combat controls/previews/roster integration/balance must finish before combat release. Broader Master/Staff/Players/Events/Music/world/environment remain outstanding under later Owner combat-first partial-release order. Reaching Task14 design never closes those tasks. No cancellation or reorder instruction received; active design gate continues unless Owner directs otherwise. Carry this exact distinction into every checkpoint/final handoff.
+
+## Whole136 audit status reported
+
+Implementer reports actual earned2+2 four-Skill kit, combination rationale and exact turn/payoff/counter per pair; scalar/cosmetic-stripped signatures found additional clusters and reworked Ember Watch, Brittle Conductor and Steamfront. Crystal Impact changed to a current Pull→Physical hit→Root transition on a Chilled target at2–3tiles rather than relying on future Armor/formula distinction. Forecasted Thunder now uses self-obtainable Conductive, and owner Burn became optional Smoke from the Scar payoff. Reports remain provisional pending final source/evidence and independent review. Paid-Automatic no-op gates/outcomes are being added; still open until verified.
+
+## Final pre-review evidence and continuation — October15,21:06–21:13 Trinidad
+
+Owner clarified targeting completion then said “aite carry on.” Continued current creative gate; no scope cancellation. Targeting has accepted backend/interaction checkpoints but combined new-consumer and desktop/mobile/keyboard acceptance remains open.
+
+Implementer final focused verification receipt20261016T011107539690Z reports823passing tests across6files:733manifest/coverage/real-pair-capacity/public-projection guards;26actual candidate kernel outcomes;64retained Requirement/Ground/confirmed-hit/timeout contract cases. This is not823runtime outcomes or whole-roster balance acceptance. Every pair’s actual2+2 four-Skill kit validates in bothPrimary orders; unearned kits are rejected. Source report/final commit and independent gate still pending.
+
+Final lint/typecheck initially collided on recorder timestamp011336040804Z when batched. Worker identified the collision, discarded the shared log as evidence and is rerunning sequentially with distinct receipts. Both original commands exited0 but collided output is not accepted proof.
+
+Fresh remote read at~01:13Z confirms main29506e293e81abef1b0b8a46099618ab3ae3f0ae,904source6790f4c9ff9343dee7b39e2f87999c2f1a3d7454 and backup archive84770fe991319c130bb7bcf40d96de87e5ff82f7 unchanged.
+
+## Owner reiterates entire-class rebalance — October15,21:16 Trinidad
+
+Owner explicitly says every Essence and all8class Skills need rebalancing for every class. Confirmed whole17class scope:136class Skills+17Essences, alongside136Resonances and5reviewed editableBasics. Full294manifest coverage is required; Resonance uniqueness attention does not narrow the overall creative/balance scope. Subsequent actual runtimebalance must assess every complete class kit and Essence, legal4Skillchoices and mixedbuilds, not just pairedResonances. Reiterated to implementer; carry to independent reviewer and Task15/16dispatch. No new cancellation or release reorder.
+
+## Owner makes combined combat acceptance an explicit release gate — October15,21:19 Trinidad
+
+After reconfirming that Targeting/Move/editableBasics/Controlled/sharedreaders remain open, Owner instructs “ensure its done before things go live.” Root confirmed these exact systems must pass combined acceptance with the actual new roster before combat deployment. This reinforces existing combat release prerequisites; it does not cancel the later combat-first ordering for broaderMaster/world. Do not activate/publish/deploy the roster merely after Task14 design. Carry as an explicit Task15/16/release gate.
+
+Pre-review scope gap confirmed by worker:32Skill+4Essence rows from original41 retained generic acceptance summaries despite individually typed mechanics. Worker is replacing all153classSkill/Essence plans with actual ordered outcomes/costs/recipients/clocks and individual tactical counter/opportunitycost rationale; estimates10–15minutes before report/commit. All remain planned unless actually executed. Final distinct pre-correction receipt20261016T011535116785Z has824tests (734manifest+26candidateoutcomes+64retainedcontracts), replacing earlier823count because a five-Power-exception guard was added before that run. Any later metadata edits need the relevant final verification before review.
+
+## Pre-review complete-Essence creative check
+
+Controller read all17actual Essence Ability definitions. Hundredfold Rush and Sevenfold Cut currently share Move1→melee Physical multipacket20Power with one2500coefficient, differing only packet count3vs7 and price. Requested a supported class-cycle decision/payoff/counter distinction or actual kit interaction evidence; scalar/packetcount rhetoric alone is insufficient. This remains open before independent gate. Other representative Essence differences include chosen immediate-vs-scheduled support, multicommand shared-cooldown rescue, reserve-sensitive AoE, selected Mark payoff, delayed Root and Controlled Line; these observations do not replace independent full153class/136pair review.
+
+Focused unchanged-source recipient risk check: Tidal Crown authors primary-unit with maximumSelections3; combat-targeting-shapes.ts canonicalCombatEffectRecipients lines59–66 deliberately promotes primary-unit→affected-units for plural selection. Thus primary-unit alone does not prove a first-recipient-only design defect. No runtime change made; actual per-recipient outcome acceptance remains required.
+
+## Owner widens Resonance creative freedom — October15,21:24 Trinidad
+
+Owner explicitly permits use of new/underused tags, deliberately requirement-free Resonances and unusual outside-the-box combinations, provided balance and uniqueness hold. Root confirmed cost/timing/cooldown/slot/counterplay can balance an immediately usable pair; do not impose a Requirement solely to distinguish otherwise identical designs. Passed to implementer. This is steering within authorized creative scope, not an invitation to invent unsupported handlers or cram unrelated tags into one record. Carry to independent experiential review and actual balance acceptance.
+
+## Essence distinction selected, verification pending
+
+Worker proposes retaining Ironfist immediate Move1→three-packet rush, while Edgedancer Sevenfold Cut requires existing adjacency, no attached approach, one scaled immediate packet and six fixed captured next-round packets. This creates a current-versus-future pressure and paid-exit choice.75AP leaves25AP, permitting one ordinary20AP terrain point if legal, not30APGuard (worker corrected own draft sentence). Root accepts the direction subject to real queue/JSON/terminal/source-removal outcomes, exact captured-recipient behavior and truthful initiative-dependent counter window. Do not invent later accuracy rolls, pursuit/reacquisition or a guaranteed intervening turn for every initiative position. Independent gate must verify final definitions/evidence.
+
+## Class-plan and Essence correction checkpoint
+
+Worker reports all153classSkill/Essence plans now individually authored, with specific state/payoff/counterfixture/opportunitycost and generic-carryover guard. Two design files764pass:735manifest+29actual candidate kernel outcomes. Final six-file combined receipt pending (expected828 including64retainedcontracts); do not count an expected run as executed.
+
+Sevenfold amendment actual outcomes: opening18HP then six captured next-round2HP packets; separately paid20AP exit leaves5AP from the25remainder; JSON restore; inactive source retains already captured queue; preboundary Barrier absorbs all six packets; terminal turn command rejects with no mutation. These are controlled mechanic fixtures, not Level100/class balance. Worker final hygiene/spec/report/commit approximately5minutes; independent fullrange gate still pending.
+
+## Owner reconfirms actual description surfaces — October15,21:32 Trinidad
+
+Owner asks whether updated battle descriptions, SkillManagement previews and effect popup descriptions are included. Root confirms yes: battle Skill/Essence/Resonance descriptions/forecasts; actual SkillManagement cards/previews; effect descriptions/linked terms/popups with applicable real magnitude/stacks/remainingduration. These must describe the same executed captured mechanics and receive final new-roster consumer audit as part of the combat release gate. Existing shared reader migrations do not prove all consumers already pass. Carry to Task15/16 and release checklist.
+
+## Owner description voice requirement — October15,21:34 Trinidad
+
+Owner explicitly requires easy-to-follow, nonrobotic, simple plain language. Root confirms natural concise player sentences explaining actual action/recipient/condition/result, required exact values/brackets and consistent characteristics, with unfamiliar terms explained through accessible linked popups rather than raw internal rule trees/tag dumps. Readability and mechanical truth both belong to final actual battle/SkillManagement/effect-popup audit. Example style uses real UnbrokenStrike confirmed-hit5%HP recovery; it is not a new mechanic or completed UI claim.
+
+## Owner coordinated next-update confirmation — October15,21:34 Trinidad
+
+Owner asks whether all just-discussed work goes live together with next update. Root confirms planned coordinated combat release: full class/Essence/Resonance rebalance, finished combat systems, updated battle descriptions, SkillManagement previews and effect popups, all after combined acceptance. BroaderMaster/world remains the following stage under existing combat-first order. Do not split unreadable/stale descriptions into postrelease cleanup or infer that this answer makes current design live.
+
+## Owner reconfirms effect/value colour — October15,21:34 Trinidad
+
+Owner asks whether effect names use the same colour as effect Power in brackets. Root confirms exact original R0478 requirement: effect/tag labels use the same orange as bracketed values wherever referenced, including Skill/Essence/Resonance battle/public/SkillManagement previews and effect popups. Include this in actual shared consumer display audit before coordinated combat release; no claim current surfaces already pass.
+
+## Full committed Task14 deliverable and independent gate
+
+Implementer DONE_WITH_CONCERNS: exact headc5d942ae7d389cc2ffbe5319c192520b0d30af03,tree1c1031375ce4ffa91047ab37a43ad11e88152875,clean worktree. Entire task range6790f4c9..c5d942ae includes6051477d/36ab9b19/c5d942ae. Complete294records;153specific class plans;136realpair identities;5exact retainedBasics with concrete nativeplans;1520plannedcases. Final828tests across6files:735guards+29proposed outcomes+64retainedcontracts, distinct final receipt20261016T013200178188Z. Types/lint/format/frozenlock pass, fullreport task-14-report.md and committed docs/verification/2026-10-16-complete-roster-design.md. No runtime activation/hosted write/deploy. Concerns are disclosed pending design review and actualTask15/16surface/Ground/AI/balance gates.
+
+Official fullrange review package generated: review-6790f4c9..c5d942ae.diff,5000980bytes,3commits. Single fresh combined reviewer /root/task14_design_review dispatched on Sol6.1High, fork none, binding brief/context/report/constraints and all latest Owner steering. Read-only/nohelpers/no duplicate passing-suite runs. LargeJSON may be consumed programmatically in compact semantic projections while every294design/153classplan/136pair is judged. No acceptance yet.

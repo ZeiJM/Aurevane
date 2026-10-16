@@ -1,0 +1,11 @@
+{
+  "head": "c5d942ae7d389cc2ffbe5319c192520b0d30af03",
+  "base": "6790f4c9ff9343dee7b39e2f87999c2f1a3d7454",
+  "ref": "refs/checkpoints/roster-c5d942ae",
+  "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/evidence/roster-c5d942ae.bundle",
+  "bytes": 441663,
+  "sha256": "a6d9ac44e9932c843d1802d97c75d7ae29cb1dd85166529b41bbddaa6a865458",
+  "gitBlobSha": "48bbb97bd201ec2e685e1d7c175fc8b53832602f",
+  "verification": "The bundle contains this ref:\nc5d942ae7d389cc2ffbe5319c192520b0d30af03 refs/checkpoints/roster-c5d942ae\nThe bundle requires this ref:\n6790f4c9ff9343dee7b39e2f87999c2f1a3d7454 \nThe bundle uses this hash algorithm: sha1\n.superpowers/sdd/2026-10-10-unified-engine-recovery/evidence/roster-c5d942ae.bundle is okay\n",
+  "status": "complete-design-independent-review-pending"
+}
