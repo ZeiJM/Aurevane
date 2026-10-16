@@ -1,10 +1,9 @@
 Aurevane approved combat integration recovery checkpoint
-Source 1f216f216eea2681b478f0f6ea57d4e25004ad16
-Tested 4b05948226468f4b53a97042e1d4e0b211ed219f
-Reviewed 1ead4e9351b28bd57159eeb9acfe736a225566aa
-Bundle checkpoints/public-manual-mechanics-1f216f21.bundle
-Evidence checkpoints/public-manual-mechanics-1f216f21-evidence.tar.gz
-Metadata checkpoints/public-manual-mechanics-1f216f21-metadata.json
-Predecessor cc887a44c5f16c556062e8995bce4156c2e254b1
-8,684 Vitest +7 Node/full root checks GREEN. Public Manual typed canonical summaries and source contrast complete; full combat/native/hosted/balance/release acceptance OPEN. High sufficient.
+Source 578f755487da3727268498681040f6cffd6a1769
+Tested/reviewed 6e14078cb1dea3bfd94ff923adc5a27fe037eb59
+Bundle checkpoints/captured-preview-feedback-578f7554.bundle
+Evidence checkpoints/captured-preview-feedback-578f7554-evidence.tar.gz
+Metadata checkpoints/captured-preview-feedback-578f7554-metadata.json
+Predecessor 49884069d358ebd1ad0dfd5f5731e9c64aa48f4c
+8,700 Vitest +7 Node/full root checks GREEN. Captured preview feedback fixed; Controlled current-intent callback evidence added; full combat/native/hosted/balance/release acceptance OPEN.14 inherited Minors. High sufficient.
 No publication, activation, hosted migration, merge or deployment.

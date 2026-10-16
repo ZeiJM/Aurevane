@@ -1,0 +1,50 @@
+{
+  "sourceHead": "578f755487da3727268498681040f6cffd6a1769",
+  "sourceTree": "669ead4a56967fa8bdafd2de55e877e506542fa3",
+  "testedSource": "6e14078cb1dea3bfd94ff923adc5a27fe037eb59",
+  "reviewedProductionSource": "6e14078cb1dea3bfd94ff923adc5a27fe037eb59",
+  "prerequisite": "1f216f216eea2681b478f0f6ea57d4e25004ad16",
+  "previousArchiveCommit": "49884069d358ebd1ad0dfd5f5731e9c64aa48f4c",
+  "previousArchiveTree": "d7c09a1926c40899d678b5071c66b89ad523b5bc",
+  "fullCheckReceipt": {
+    "argv": [
+      "pnpm",
+      "--reporter=append-only",
+      "check"
+    ],
+    "cwd": "/workspace/scratch/680b26e4eb86/aurevane",
+    "started_utc": "2026-10-16T20:53:57.474326+00:00",
+    "completed_utc": "2026-10-16T20:54:28.190444+00:00",
+    "exit_code": 0,
+    "log": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/evidence/20261016T205357474326Z-a42bbf72.log"
+  },
+  "tests": {
+    "vitest": 8700,
+    "node": 7
+  },
+  "readerAudit": {
+    "source": "6e14078cb1dea3bfd94ff923adc5a27fe037eb59",
+    "rawSha256": "93be88d22b88a53a0d47673c89752b9d6c9b2f5f756302707abcac82404545e9",
+    "records": 294,
+    "groups": 297,
+    "effects": 604,
+    "allReportsAndHtmlExactlyUnchanged": true,
+    "manifestAndSixAiSourceHashesUnchanged": true,
+    "scope": "Static named Skill readers only. Live-effect controlled callbacks and SSR are separately tested; native keyboard, AT and geometry acceptance remain open."
+  },
+  "bundle": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/captured-preview-feedback-578f7554.bundle",
+    "bytes": 10816,
+    "sha256": "9aa1cfcf458adc7c7b13e6e8b1d9bae2b0f654db9b94bc15fdde80568906ab4c",
+    "blobSha": "63029bfd52506ff6a7396a014713355fe8191c08",
+    "chunks": 2
+  },
+  "evidence": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/captured-preview-feedback-578f7554-evidence.tar.gz",
+    "bytes": 451888,
+    "sha256": "4ea34d119c00581a78276782caf07c8d89433cae53c7625c56765dbfb401cf8e",
+    "blobSha": "c7b66a3b6d4402fb418213936b05f81dce7577e5",
+    "chunks": 51
+  },
+  "acceptance": "Captured action preview feedback uses pinned public names and truthful forecast/release notices. Actual callback/native preview readiness guards covered; no native/mounted/AT/geometry acceptance. FullTask15/16/originalcombat/editors/fullcycles/balance/Ownerhosted/SQLCAS/Atlas/human/releaseOPEN.14inheritedMinorsdeferred. No publication/activation/hostedmigration/merge/deploy. Highsufficient."
+}
