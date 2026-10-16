@@ -1,0 +1,96 @@
+{
+  "sourceHead": "3145a2aff601d7d94ba2054c57121455292a8f15",
+  "sourceTree": "850c0d140fb4f2b7303c7d288a990b98f0954b0a",
+  "testedSource": "d514253cbed095c118a28eff9c47f847bd133d1d",
+  "reviewedProductionSource": "f9b0a60efa6042bec4186c10caa370d0919a1044",
+  "prerequisite": "5e4e97fd1ca2b377e936bfb746f7b95d55f176a2",
+  "previousArchiveCommit": "7aebf965b004d38bafb3bfcef8ec8098bb3d00ca",
+  "previousArchiveTree": "e6e21ab7d0bb7005b6d91e1ca34025cb32403cee",
+  "fullCheckReceipt": {
+    "argv": [
+      "pnpm",
+      "--reporter=append-only",
+      "check"
+    ],
+    "cwd": "/workspace/scratch/680b26e4eb86/aurevane",
+    "started_utc": "2026-10-16T22:33:54.674673+00:00",
+    "completed_utc": "2026-10-16T22:34:34.712613+00:00",
+    "exit_code": 0,
+    "log": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/evidence/20261016T223354674673Z-76340386.log"
+  },
+  "tests": {
+    "vitest": 8900,
+    "node": 7
+  },
+  "readerAudit": {
+    "source": "d514253cbed095c118a28eff9c47f847bd133d1d",
+    "rawSha256": "edb0a107365c8b2bb5b247d826110b90f4bffb223fcce4a5ff4fbcb5e80658be",
+    "records": 294,
+    "groups": 297,
+    "effects": 604,
+    "allReportsAndHtmlExactlyUnchanged": true,
+    "manifestAndSixAiSourceHashesUnchanged": true,
+    "scope": "Static named Skill readers only. Live-effect controlled callbacks and SSR are separately tested; native keyboard, AT and geometry acceptance remain open."
+  },
+  "bundle": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/modifier-preview-3145a2af.bundle",
+    "bytes": 28932,
+    "sha256": "f7e19d7837b22f521c1e4f4e09aaae4deefed6c4e463942ee2e9d42a3ff5ceb2",
+    "blobSha": "d22f64c7dbe82cc6fe4a909b95e0b9e159839180",
+    "chunks": 4
+  },
+  "evidence": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/modifier-preview-3145a2af-evidence.tar.gz",
+    "bytes": 637120,
+    "sha256": "278ea6844031cad2059d18896c2f9ae6d97cddaaade3cd1e9331cf42361c6467",
+    "blobSha": "76c367e393234c50e13b11c905224b1e2c8bda12",
+    "chunks": 71
+  },
+  "acceptance": "Task15 Manual modifier preview verified development checkpoint.23newcases;8900Vitest+7Node expected from finalroot. Actual three Skill modifiers+Arcane Hunt use current authoritative reference Skill/Basic version/group and native composed preparation; normal native141 and proposedManual284 JSON/reader294exact. ONEreview0C2I0newM, bothImportant fixed in ONE RED\u2192GREEN wave: Controlled exactManualcapture and disabledSkill/innerEssence edits publish disabled without cast. No rereview;14inheritedMinors/37individualsetaside rulings preserved. Highsufficient. No engine/schema/SQL/roster/AI/CSS/control/hostedwrite/publication/activation/migration/merge/deploy. Deploymentlockfalse. Main29506e29unchanged. Automatic/Ongoing/historicalsequence/immediate/nativeeditor/AT/geometry/fullcycles/natural12roundbalance/Ownercurrentcontent/hostedCAS/Atlas/human/Task15/16/releaseOPEN. Preserve all archive ancestors. Finalproof follows verification.\n\n\nFinal documentation checkpoint 3145a2aff601d7d94ba2054c57121455292a8f15 follows tested d514253c only by the report; sourceclean. Final8900Vitest+7Node/fullquality/bothbuilds exit0; ONEcachedreplay223354674673 complete native tool tail, rawstdoutgap preserved with hashed package logs. Reviewed8896+7receipt222504 preserved; bothrepaired-source roots222955/223354 retained.141native/284Manual/294readers exact;manifest/sixAIhashes unchanged.23newcases/0C2Ifixed ONEwave/no rereview/14Minors/37individualsetasides+4integration/evidence rulings. Main29506e29unchanged. Deploymentlockfalse/nohostedpub/migration/merge/deploy. Event/Ongoing/historical/native/Task15/16/releaseOPEN;Highsufficient. Backup pending.",
+  "legacyAudit": {
+    "source": "d514253cbed095c118a28eff9c47f847bd133d1d",
+    "records": 141,
+    "allLegacyNativePreviewsExactlyUnchanged": true,
+    "rawSha256": "49050e22e414dd9ada6e16f69e809170c09b8b0dab2f57b915dd44bf337b3127",
+    "baselineSha256": "49050e22e414dd9ada6e16f69e809170c09b8b0dab2f57b915dd44bf337b3127",
+    "baselineModuleSha256": "776946b9b4d912242da62d48143a64ebcaf3701466597147aa9b28a3eeea5a2e"
+  },
+  "actionAudit": {
+    "source": "d514253cbed095c118a28eff9c47f847bd133d1d",
+    "records": 284,
+    "exact": true,
+    "quoted": 284,
+    "preservedErrors": 0,
+    "sha256": "8b513e1284d6275fd410f405aead301ecf589748e12c8e9e68068295d1a43cfc"
+  },
+  "rootLogCapture": {
+    "source": "d514253cbed095c118a28eff9c47f847bd133d1d",
+    "receipt": {
+      "argv": [
+        "pnpm",
+        "--reporter=append-only",
+        "check"
+      ],
+      "cwd": "/workspace/scratch/680b26e4eb86/aurevane",
+      "started_utc": "2026-10-16T22:33:54.674673+00:00",
+      "completed_utc": "2026-10-16T22:34:34.712613+00:00",
+      "exit_code": 0,
+      "log": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/evidence/20261016T223354674673Z-76340386.log"
+    },
+    "provenance": "Observed functions.exec tools.write_stdin session46570 completion, chunk c95288. Stored log file independently lacks this build tail; this is a separate observation, not an alteration of that file.",
+    "transportExitCode": 0,
+    "observedFinalBuildTail": " Tasks:    2 successful, 2 total\nCached:    2 cached, 2 total\n  Time:    160ms >>> FULL TURBO\n"
+  },
+  "review": {
+    "critical": 0,
+    "important": 2,
+    "importantFixed": 2,
+    "newMinor": 0,
+    "inheritedMinorDeferred": 14,
+    "individualSetAsideRulings": 37,
+    "integrationEvidenceRulings": 4,
+    "fixWaves": 1,
+    "rereview": false
+  },
+  "mainUnchanged": "29506e293e81abef1b0b8a46099618ab3ae3f0ae"
+}

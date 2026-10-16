@@ -1,6 +1,9 @@
-Resonance Manual-action preview checkpoint
-Source 5e4e97fd1ca2b377e936bfb746f7b95d55f176a2
-Final tested 0a901b495d3b694ecb69dbad870ac730c995135b
-Reviewed production 5b55bb6f4c992d04d1e38f3e4a72e42b63e554f9; all three Important findings fixed in ONE RED-to-GREEN repair pass, no rereview.
-8877 Vitest +7 Node, quality checks and both builds GREEN. All141 existing previews/all294 reports exact; manifest/sixAI hashes unchanged.14 inherited Minors deferred.
-Original combat/event/root/native/balance/hosted/Atlas/human/release work remains OPEN. No deployment. High sufficient.
+Aurevane Task15 Manual modifier preview recovery
+Source 3145a2aff601d7d94ba2054c57121455292a8f15
+Tested d514253cbed095c118a28eff9c47f847bd133d1d
+Reviewed f9b0a60efa6042bec4186c10caa370d0919a1044
+Prerequisite 5e4e97fd1ca2b377e936bfb746f7b95d55f176a2
+Bundle checkpoints/modifier-preview-3145a2af.bundle
+Evidence checkpoints/modifier-preview-3145a2af-evidence.tar.gz
+Metadata checkpoints/modifier-preview-3145a2af.json
+8900Vitest+7Node/allquality/bothbuilds pass; all141native/284proposedManual/294readers exact. ONEreview0C2Ifixed0newM/14inheritedMinors/37scope+4integrationEvidenceRulings; no rereview. Rawrootstdoutgap retained with complete package logs/native tool ending afterONEcachedreplay. Main unchanged29506e29/deploymentlockfalse/nohostedpublication/migration/merge/deploy;Highsufficient. Automatic/Ongoing/historical/native/fullTask15/16/balance/Atlas/human/releaseOPEN. Preserve archive ancestors.
