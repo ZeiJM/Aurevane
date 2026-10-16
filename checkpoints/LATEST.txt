@@ -1,5 +1,11 @@
-Source 60b9c4a2398c915d8b5492fa3ec803feeed96e40
-Tested 3b52fe66e4af6958cde126e38fa36bae0de9bd7b
-Bundle checkpoints/linked-60b9c4a2.bundle
-Evidence checkpoints/linked-60b9c4a2-evidence.tar.gz
-8409 Vitest + 7 Node; review 0C/1I/1newMinor; keyboard Important fixed through ONE TDD wave; Master sizing Minor deferred,11total. Six typed identities,3actual records,all294plaincontracts exact. Originalcombat/native/alllinkedterms/balance/release open. No release.
+Verified prerequisite/condition reference checkpoint
+Source 5d4dd27125a69d76dff0d2f0c522fb10b106eaf3
+Tested fb7758fdfe13d17df29def6f18542136ff7e8df9
+Reviewed 67f657239cf978c65a2e29e09753a3b1c360da4d
+Prerequisite 60b9c4a2398c915d8b5492fa3ec803feeed96e40
+Bundle checkpoints/requirements-5d4dd271.bundle SHA256 e7d666a72fc18d78d7769e382bb2ea105d526eaf8b974e0045d1a52fce214741
+Evidence checkpoints/requirements-5d4dd271-evidence.tar.gz SHA256 69b0175249c3d431694c691b60265af481c5dabed0f70589670c37cdbfa03ea6
+Metadata checkpoints/requirements-5d4dd271-metadata.json
+Full check8438Vitest+7Node GREEN;82typedreferences across69records, all294plaincontracts unchanged.
+One combined review; parent legacyStorm Important corrected in ONE RED-to-GREEN wave;11 inherited Minors deferred.
+No hosted write, publication, activation, migration, merge or deploy.
