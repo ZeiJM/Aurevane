@@ -1,9 +1,8 @@
-Healing Down combined recovery-rate development checkpoint
-Source 92cdee2eb60a68db728666c956c8aa00f521934b
-Tested df53d50ba49ea70094fceb7945927018d9a031fb
-Reviewed df53d50ba49ea70094fceb7945927018d9a031fb; one combined review0C/0I/0newMinor, no repair/no rereview
-Metadata checkpoints/live-recovery-rate-92cdee2e-metadata.json
-8608 Vitest + 7 Node; all294 Skill reader reports/HTML exact
-Initial build-summary stdout loss preserved; ONE cached complete root receipt191706229103
-13 inherited Minors deferred; native/AT/geometry/full combat/balance/hosted/release open
-No publication, activation, migration, merge or deployment
+Conditional Ward/Taunt verified development checkpoint
+Source/docs: f8ff229b28245151cb22399c3c59f452f167df97
+Tested repaired: 7262d0f0800da87914bcb8419bf2eda3ff30c3d1
+Reviewed initial: 7b6f813e03c4b946836c69a006a3354dc8ea8a0f
+Bundle: checkpoints/live-conditional-strength-f8ff229b.bundle
+Evidence: checkpoints/live-conditional-strength-f8ff229b-evidence.tar.gz
+Metadata: checkpoints/live-conditional-strength-f8ff229b-metadata.json
+8633 Vitest + 7 Node; full check GREEN; 294 named reports/HTML exactly unchanged. One Important repaired, no rereview;13 inherited Minors deferred. Original combat integration, native acceptance and release remain open. No deployment.

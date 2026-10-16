@@ -1,0 +1,50 @@
+{
+  "sourceHead": "f8ff229b28245151cb22399c3c59f452f167df97",
+  "sourceTree": "6e0b2a4ef9ae779431ce4d1b85a78d49501b63b0",
+  "testedSource": "7262d0f0800da87914bcb8419bf2eda3ff30c3d1",
+  "reviewedProductionSource": "7b6f813e03c4b946836c69a006a3354dc8ea8a0f",
+  "prerequisite": "92cdee2eb60a68db728666c956c8aa00f521934b",
+  "previousArchiveCommit": "8c6271ebdca51a1b9f1c06569e0fcee678ce537a",
+  "previousArchiveTree": "86035533ef9f2a999a801fbf3b7002f386cf3d26",
+  "fullCheckReceipt": {
+    "argv": [
+      "pnpm",
+      "--reporter=append-only",
+      "check"
+    ],
+    "cwd": "/workspace/scratch/680b26e4eb86/aurevane",
+    "started_utc": "2026-10-16T19:35:00.220138+00:00",
+    "completed_utc": "2026-10-16T19:38:54.880250+00:00",
+    "exit_code": 0,
+    "log": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/evidence/20261016T193500220138Z-78b64a70.log"
+  },
+  "tests": {
+    "vitest": 8633,
+    "node": 7
+  },
+  "readerAudit": {
+    "source": "7262d0f0800da87914bcb8419bf2eda3ff30c3d1",
+    "rawSha256": "935d142977fea59f266c03a75931176df9939e2c22c434c77a5030b5f3c042e3",
+    "records": 294,
+    "groups": 297,
+    "effects": 604,
+    "allReportsAndHtmlExactlyUnchanged": true,
+    "manifestAndSixAiSourceHashesUnchanged": true,
+    "scope": "Static named Skill readers only. Live-effect controlled callbacks and SSR are separately tested; native keyboard, AT and geometry acceptance remain open."
+  },
+  "bundle": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/live-conditional-strength-f8ff229b.bundle",
+    "bytes": 16164,
+    "sha256": "1fa061accbe2129bd909e3deefa5275b2789ec354a4fd414d38fc7d1092a4f44",
+    "blobSha": "fd7e8a1a7b55b52bc82c3ee5c5b59447d1e1e6d4",
+    "chunks": 2
+  },
+  "evidence": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/live-conditional-strength-f8ff229b-evidence.tar.gz",
+    "bytes": 448475,
+    "sha256": "5c9fe39773b20de5240e8b2fd6c7955eddcfd3cc8c93bba832082095eaa9d1b7",
+    "blobSha": "4af5f1e4d10fd169527819c33fc5936fa020fbb8",
+    "chunks": 50
+  },
+  "acceptance": "Conditional Ward/Taunt live inspection:25new native cases; one fresh combined review0Critical/1Important/0newMinor; ONE pending-source grouping repair/no rereview;55individual parent declined reason-cost rulings;13inheritedMinorsdeferred. Final8633Vitest+7Node/full lint/types/format/bothbuilds GREEN;all294named reports/HTML exact/hashguards unchanged. Source/tested7262d0f0800da87914bcb8419bf2eda3ff30c3d1;reviewed7b6f813e03c4b946836c69a006a3354dc8ea8a0f. Originalcombat/fullTask15/16/native/AT/geometry/wholeactionreadiness/Manual/Chronicle/editor/fullcycles/balance/Ownerhosted/Atlas/human/releaseOPEN. No publication/activation/hostedmigration/merge/deploy. Highsufficient."
+}
