@@ -1,0 +1,39 @@
+{
+  "sourceHead": "5e047d597cda9eabb1e1cc60d1586c49af422477",
+  "sourceTree": "eb8ff73a7c5c6eaeeda13b96ea9f478143131e9c",
+  "testedSource": "3fc8b7a8ef682df688040524288bda342fd5af53",
+  "prerequisite": "98916aa36631868418c078cab968a764cc7fc5a1",
+  "previousArchiveCommit": "ed98d7dd4cab81e3b73ed023c69eb581963c1fc7",
+  "previousArchiveTree": "d924fd7168876ea9738e5230b29393aef11d099b",
+  "fullCheckReceipt": {
+    "argv": [
+      "pnpm",
+      "--reporter=append-only",
+      "check"
+    ],
+    "cwd": "/workspace/scratch/680b26e4eb86/aurevane",
+    "started_utc": "2026-10-16T14:47:38.427787+00:00",
+    "completed_utc": "2026-10-16T14:51:51.151630+00:00",
+    "exit_code": 0,
+    "log": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/evidence/20261016T144738427787Z.log"
+  },
+  "tests": {
+    "vitest": 8325,
+    "node": 7
+  },
+  "bundle": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/status-5e047d59.bundle",
+    "bytes": 12070,
+    "sha256": "ec073ea7060f565b7ac3c3d56ec203b62310559ece19544d0e126ada851ff8ea",
+    "blobSha": "493117a96728fb287d60cb266c8ff60a78ea2f30",
+    "chunks": 2
+  },
+  "evidence": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/status-5e047d59-evidence.tar.gz",
+    "bytes": 204641,
+    "sha256": "75a317051b853e852d4016e2c9e25f2a9f73593a79d3bdc20fe9c8ce4b5a5509",
+    "blobSha": "a4f3eeeb57529f4d22643bfb9e468b8860af0353",
+    "chunks": 23
+  },
+  "acceptance": "Canonical16statusIDs154effects plainprose+structuredStacks/nativeunits/direction and exact elemental wrapper clocks.0C0I1newMinor grammardeferred,total9.30newtests750covering;frozen8325Vitest+7Node verified.294record297group604effect SSR:154new/324originalchanged280unchanged,17protectedexactoldwords. ActualmaterializedpacketR3/R5+remaining2rounds is not learnedbuild/admission/payment/fullcycle/expiry acceptance. Non-directDamage numeric candidates350to28, not28provenviolations. Manifest/AI/executor/prices/defaultfixture unchanged; no duplicate289. Originalcombat/readers/secondaryfacts/prose/native/fullbalance/Ownerhosted/Atlas/human/releaseOPEN. No publication/activation/migration/merge/deploy."
+}

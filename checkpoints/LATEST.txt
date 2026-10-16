@@ -1,5 +1,5 @@
-Canonical recovery reader checkpoint
-Source 98916aa36631868418c078cab968a764cc7fc5a1
-Tested 51fe9cf1a7d582cc0450f6a7a5e259245619c13c
-8295 Vitest + 7 Node passed
-checkpoints/recovery-98916aa3-metadata.json
+Canonical standard status reader checkpoint
+Source 5e047d597cda9eabb1e1cc60d1586c49af422477
+Tested 3fc8b7a8ef682df688040524288bda342fd5af53
+8325 Vitest + 7 Node passed
+checkpoints/status-5e047d59-metadata.json
