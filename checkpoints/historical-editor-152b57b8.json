@@ -1,0 +1,50 @@
+{
+  "source": "152b57b835334cae733b3289ced7b93e8a2417f5",
+  "tree": "0d923102c3fa49ac092692faf042106fcca7d9c0",
+  "testedSource": "b9517360753e98b8f480d0763c839eac97805b4d",
+  "reviewedSource": "b9517360753e98b8f480d0763c839eac97805b4d",
+  "prerequisite": "06d489988cd8571d40c81dd58525457ac6319d75",
+  "parentArchive": "3aef6d8b45cc865e3d7eb4256c662eeaf1983acb",
+  "parentTree": "507a2ee57bd58ce8ff61906337754a6feeaddca0",
+  "mainUnchanged": "29506e293e81abef1b0b8a46099618ab3ae3f0ae",
+  "fullCheckReceipt": {
+    "argv": [
+      "pnpm",
+      "--reporter=append-only",
+      "check"
+    ],
+    "cwd": "/workspace/scratch/680b26e4eb86/aurevane",
+    "started_utc": "2026-10-16T23:53:05.833518+00:00",
+    "completed_utc": "2026-10-16T23:53:35.447641+00:00",
+    "exit_code": 0,
+    "log": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/evidence/20261016T235305833518Z-67289cae.log"
+  },
+  "tests": {
+    "vitest": 8973,
+    "node": 7
+  },
+  "preservation": {
+    "source": "b9517360753e98b8f480d0763c839eac97805b4d",
+    "records": 294,
+    "groups": 297,
+    "effects": 604,
+    "allReportsAndHtmlExactlyUnchanged": true,
+    "manifestAndSixAiSourceHashesUnchanged": true,
+    "rawSha256": "84c4263c8b7071cea0fe3086ee062330e65416ccab81c50172ca31fe4906cdab"
+  },
+  "acceptance": "Historical Resonance editor controls\u2192authenticatednative sample\u2192actual outcomes complete in bounded source. Explicit blank setup/trigger choices, sequence/immediate mode, disabled/currentcanonical rejection, optionalpublication, reference/draft late-response guards, native resource/Summonpresence/null/quote/transition/localRNG display.11newcases/213focused;ONEreview0C0I0newM/norepair/norereview;16inheritedMinors and14individualrulings/costs remain recorded. Final8973Vitest+7Node/allquality/bothbuilds required for archive;initialrawrootgap/packagearchive retained plusONEcachedreplay.141native/284Manual/294readers exact;manifest/sixAIhashes unchanged. Currentnative refs only/sameturnfixture remains explicit. No hostedwrite/publication/activation/migration/mainmerge/deploy. Fullcombatcycles/native/AT/geometry/fullbalance/Ownercurrentcontent/CAS/Atlas/human/Task15/16/releaseOPEN. Next originalunfinishedcombatintegration/fullcycle/currentcontentacceptance;broaderMasteraftercombatrelease. Highsufficient.",
+  "bundle": {
+    "local": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/historical-editor-152b57b8.bundle",
+    "path": "checkpoints/historical-editor-152b57b8.bundle",
+    "bytes": 12348,
+    "sha256": "55c6c61f343c8725e595bb11b9e7dea7497ab0507e9dd7b751e28cdd76073bde",
+    "blobSha": "5450c8f1e4fdb95c29f132cbd3d54b265358932a"
+  },
+  "evidence": {
+    "local": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/historical-editor-152b57b8-evidence.tar.gz",
+    "path": "checkpoints/historical-editor-152b57b8-evidence.tar.gz",
+    "bytes": 775469,
+    "sha256": "9beb833dd321b131fd878f302f690fce6937345b9ca0a7fe1d8c3bcd4518ddb3",
+    "blobSha": "deb3ffd5686e3b432726d6e6403f17743445892e"
+  }
+}
