@@ -1,9 +1,5 @@
-Secondary status reader checkpoint
-Source 8cdcc9dddaf192d8a512a36930362179814b61a4
-Tested source fc17038277d90da29f52483d2e4a8a7bdb7f9b34
-Prerequisite 5e047d597cda9eabb1e1cc60d1586c49af422477
-Bundle checkpoints/secondary-8cdcc9dd.bundle SHA256 b72a2374ed1cdd515fc147442e92f9f2fb836c786e54e7478c72bb9afada65b9
-Evidence checkpoints/secondary-8cdcc9dd-evidence.tar.gz SHA256 4700b6aa3605cf0b6d496bcf53551cb937da35c43a79f4b4dbb020c211d8329c
-Metadata checkpoints/secondary-8cdcc9dd-metadata.json
-8347 Vitest + 7 Node; 289 builds / 8219 commands and complete rows exactly match prior gold; 294 static shared-reader records.
-Seventeen secondary status effects retain structured native/captured values and plain prose. Review0C1I fixed Blindside expiry through nine valid RED then22/22GREEN;772 covering. Frozen restored source8347Vitest+7Node verified. All294 shared-reader SSR;17new/341total prose changes. Fresh289 builds8219commands and complete rows exactly identical to prior gold; no AI or mechanics/balance change. Automated maintenance recovery from verified Git backups and three exact reviewer-retained files; new source identity does not claim420b exact restoration. Nine prior Minors deferred;58 individual declined-scope rulings plus reproduced inherited edited-status Important retained for next pass before release. Original combat/native/editorial/fullcycles/balance/Ownerhosted/Atlas/human/release and broader Master remain open. No publication/activation/migration/merge/deploy.
+Source 0783819c60a47ba09d2317d9550cc5ca2e5e2221
+Tested c731bf71f8dd7a933146eb75cb8db012095d2f97
+Bundle checkpoints/periodic-0783819c.bundle
+Evidence checkpoints/periodic-0783819c-evidence.tar.gz
+8374 Vitest + 7 Node; one combined review 0C/0I/1Minor; 10 total Minors deferred. Original combat/native/editorial/balance/release open. No release.

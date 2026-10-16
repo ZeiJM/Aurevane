@@ -1,0 +1,83 @@
+{
+  "sourceHead": "0783819c60a47ba09d2317d9550cc5ca2e5e2221",
+  "sourceTree": "fd18c751108cb1920673a5a0bd0a13cf64cee3a2",
+  "testedSource": "c731bf71f8dd7a933146eb75cb8db012095d2f97",
+  "reviewedProductionSource": "7542b6cec83bf7f87e7fdbe5c51237af863ce0a9",
+  "prerequisite": "8cdcc9dddaf192d8a512a36930362179814b61a4",
+  "previousArchiveCommit": "00c81bb9ec28a98054ae0fff3975562d1c4343df",
+  "previousArchiveTree": "458d90ebfaf3a5b0e817ab9305c39084ad927cfc",
+  "fullCheckReceipt": {
+    "argv": [
+      "pnpm",
+      "--reporter=append-only",
+      "check"
+    ],
+    "cwd": "/workspace/scratch/680b26e4eb86/aurevane",
+    "started_utc": "2026-10-16T16:03:49.537538+00:00",
+    "completed_utc": "2026-10-16T16:04:22.005732+00:00",
+    "exit_code": 0,
+    "log": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/evidence/20261016T160349537538Z.log"
+  },
+  "tests": {
+    "vitest": 8374,
+    "node": 7
+  },
+  "priorMatrixReference": {
+    "source": "fc17038277d90da29f52483d2e4a8a7bdb7f9b34",
+    "rawSha256": "d60cb8110a8ad3f74342c52fbaf368c2c52aa04c6e44f22d0fd1dfcdd6cba280",
+    "goldSha256": "d60cb8110a8ad3f74342c52fbaf368c2c52aa04c6e44f22d0fd1dfcdd6cba280",
+    "records": 289,
+    "pure": 17,
+    "orderedMixed": 272,
+    "commands": 8219,
+    "allCommandArraysIdentical": true,
+    "allCompleteRowsIdentical": true,
+    "allFourRoundsPlayed": true,
+    "allActiveAtRoundFive": true,
+    "resourcesVersionsOwnershipVerified": true,
+    "sourceHashes": {
+      "packages/game-core/src/combat/recruit-ai-build.ts": "e1f676fafea1a73a84eaf95b0e73b66601916a4dcb63e80edd0db4d4da449a7d",
+      "packages/game-core/src/combat/recruit-ai.ts": "cf9e6cc12ff1d7434d17956f5f2e3e19b770240ea6d7a5c039477921382c5e6a",
+      "packages/game-core/src/combat/recruit-ai-ranged-spacing.test.ts": "97d492399237e8064ae9fdc51f7fef143189201e32a2892ccf98340448238a77",
+      "apps/web/src/server/battle/roster-legal-duel.test-utils.ts": "129d1827760c89bdf3ed75a1757e98802de743829eff9841699ead64747c96f9",
+      "apps/web/src/server/battle/roster-legal-ranged-ai.test.ts": "1443d456ba61d9469cedfe8e10392c155876e2c20fd3b121506009be7d0c4524",
+      "apps/web/src/server/battle/battle-log-service.ts": "d1876bcd5044a7b8f1c3c4178b19696605a61fc5ad8424e34181fd5cc95aa74b"
+    },
+    "scope": "Same fixed four-round Level100 PvP roster benchmark and seed as gold. This verifies unchanged constant outcomes; not natural pacing, twelve-round balance, human acceptance or release."
+  },
+  "readerAudit": {
+    "source": "7542b6cec83bf7f87e7fdbe5c51237af863ce0a9",
+    "rawSha256": "3b261230fc8b5f3ae6096273e8bcf294720121515acb3b7875c108dc693bf431",
+    "records": 294,
+    "groups": 297,
+    "effects": 604,
+    "changedFromSecondary": 10,
+    "unchangedFromSecondary": 594,
+    "changedFromSecondaryByType": {
+      "poison": 2,
+      "burn": 7,
+      "create-terrain": 1
+    },
+    "changedFromOriginal": 351,
+    "unchangedFromOriginal": 253,
+    "withDigits": 174,
+    "nonDirectDamageWithDigits": 3,
+    "pierceArmorNumericCandidates": 4,
+    "scope": "Default-context static shared readers only. Numeric counts are inventories, not complete editorial/native acceptance. Edited unused potency is covered independently through actual Master handler integration, not these unchanged current payloads."
+  },
+  "bundle": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/periodic-0783819c.bundle",
+    "bytes": 12282,
+    "sha256": "07ef73a0ba7ac1ca7b950caaeb3e361ae6ce8c563d6562c1cb6608ec9669275f",
+    "blobSha": "d057a3e64bfc724a61b69e6f72af0d12dc07b21b",
+    "chunks": 2
+  },
+  "evidence": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/periodic-0783819c-evidence.tar.gz",
+    "bytes": 323551,
+    "sha256": "d84bd55b436da2b321c26664bd95bc272ac5b2466bc26a438f3815884403ce69",
+    "blobSha": "67e1ba48c04ff71ba3521ef57ce6e184528141e0",
+    "chunks": 36
+  },
+  "acceptance": "Actual Master edited-status handler no longer invents unused potency percentages; compact native units/direction and captured HealingDown preserved. Burn/Poison/Ground structured secondary facts:10 actual effects,27new cases,806 covering plus79 native DoT tests. One combined review0C0I1newMinor: ordinary Burn tick boundary deferred,10totalMinors;67individual parent rulings. Three full-gate stale unit expectations fixed tests-only12GREEN; frozen8374Vitest+7Node verified. All294 static shared readers604effects,10new351totalprosechanges. Native literals1000bps/5tiles exported without changed values/operators/branches/formulas; no fresh289claimed, preceding289/8219exactgold remains reference. Accepted manifest and all6AI/fixture hashes unchanged. Original combat/native/editorial/fullcycles/balance/Ownerhosted/Atlas/human/release and broader Master remain open. No publication/activation/migration/merge/deploy."
+}
