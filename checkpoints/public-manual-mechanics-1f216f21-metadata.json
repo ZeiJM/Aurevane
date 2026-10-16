@@ -1,0 +1,50 @@
+{
+  "sourceHead": "1f216f216eea2681b478f0f6ea57d4e25004ad16",
+  "sourceTree": "cb3b03781c2b0a69cf51aac60a72755b28a803e4",
+  "testedSource": "4b05948226468f4b53a97042e1d4e0b211ed219f",
+  "reviewedProductionSource": "1ead4e9351b28bd57159eeb9acfe736a225566aa",
+  "prerequisite": "62aaebb264bfec2e130868aad6a2fdd1f6b3427a",
+  "previousArchiveCommit": "cc887a44c5f16c556062e8995bce4156c2e254b1",
+  "previousArchiveTree": "71a467bd294e874a22cf7bda2512ea49ce33aa9e",
+  "fullCheckReceipt": {
+    "argv": [
+      "pnpm",
+      "--reporter=append-only",
+      "check"
+    ],
+    "cwd": "/workspace/scratch/680b26e4eb86/aurevane",
+    "started_utc": "2026-10-16T20:31:14.900254+00:00",
+    "completed_utc": "2026-10-16T20:35:12.831679+00:00",
+    "exit_code": 0,
+    "log": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/evidence/20261016T203114900254Z-40abffbf.log"
+  },
+  "tests": {
+    "vitest": 8684,
+    "node": 7
+  },
+  "readerAudit": {
+    "source": "4b05948226468f4b53a97042e1d4e0b211ed219f",
+    "rawSha256": "fbc16c5c24ca3eaa132246265a585f91d2c7a602f2dc5b05a2794718c26bd7c2",
+    "records": 294,
+    "groups": 297,
+    "effects": 604,
+    "allReportsAndHtmlExactlyUnchanged": true,
+    "manifestAndSixAiSourceHashesUnchanged": true,
+    "scope": "Static named Skill readers only. Live-effect controlled callbacks and SSR are separately tested; native keyboard, AT and geometry acceptance remain open."
+  },
+  "bundle": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/public-manual-mechanics-1f216f21.bundle",
+    "bytes": 13895,
+    "sha256": "6dc673d625ff4e7996996813521f70a78530a652617a12b36d929c4d0435e7ec",
+    "blobSha": "cc278eee049b5f3e83526e8df91d041c0015e3ac",
+    "chunks": 2
+  },
+  "evidence": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/public-manual-mechanics-1f216f21-evidence.tar.gz",
+    "bytes": 584431,
+    "sha256": "f55635a6adda8c8bcf6e059ddee68e81f6ad4a2339fb3d9648ab54bd24c2dee1",
+    "blobSha": "44188fa9bf81582b2073b210f755145fc935da39",
+    "chunks": 65
+  },
+  "acceptance": "Public Manual typed canonical Skill/Basic disclosures and scoped parchment contrast verified; plain text/all294Skillreports preserved. No hosted publication/activation/migration/merge/deploy. FullTask15/16/native/AT/geometry/editors/previews/naturalcycles/balance/Owneredits/hostedSQLCAS/Atlas/human/releaseOPEN. Fourteen deferred Minors. High sufficient."
+}

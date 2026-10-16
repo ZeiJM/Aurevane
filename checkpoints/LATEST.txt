@@ -1,8 +1,10 @@
-Captured Controlled command availability verified checkpoint
-Source/docs: 62aaebb264bfec2e130868aad6a2fdd1f6b3427a
-Tested repaired: 97d4b3d0da7d6135d740da446276e1ffab92b353
-Reviewed initial: 465020f2c89f38691b7ad596932e36f14701ee1e
-Bundle: checkpoints/controlled-command-availability-62aaebb2.bundle
-Evidence: checkpoints/controlled-command-availability-62aaebb2-evidence.tar.gz
-Metadata: checkpoints/controlled-command-availability-62aaebb2-metadata.json
-8668 Vitest + 7 Node; full check GREEN; 294 named reports/HTML exactly unchanged. One combined review,2 Important repaired/no rereview,13 inherited Minors deferred. Original combat integration/native acceptance/release remain open. No deployment.
+Aurevane approved combat integration recovery checkpoint
+Source 1f216f216eea2681b478f0f6ea57d4e25004ad16
+Tested 4b05948226468f4b53a97042e1d4e0b211ed219f
+Reviewed 1ead4e9351b28bd57159eeb9acfe736a225566aa
+Bundle checkpoints/public-manual-mechanics-1f216f21.bundle
+Evidence checkpoints/public-manual-mechanics-1f216f21-evidence.tar.gz
+Metadata checkpoints/public-manual-mechanics-1f216f21-metadata.json
+Predecessor cc887a44c5f16c556062e8995bce4156c2e254b1
+8,684 Vitest +7 Node/full root checks GREEN. Public Manual typed canonical summaries and source contrast complete; full combat/native/hosted/balance/release acceptance OPEN. High sufficient.
+No publication, activation, hosted migration, merge or deployment.
