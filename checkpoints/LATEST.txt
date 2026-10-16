@@ -1,10 +1,11 @@
-Natural pacing/reserve checkpoint
-Source d817d6f22afcc6dc357257a2fb315f0104abd3c7
-Tested f8abb170fa8b48fd0e7119af0af91624860cc0a5
-Tests8197Vitest+7Node;16newrelease/countercases
-51diagnosticexecutionsinclude9replays:42completed9activehorizons
-Bundle checkpoints/budget-d817d6f2.bundle
-Requires e7820890256733b51edc00e98895efebe0d3d6fc
-Evidence checkpoints/budget-d817d6f2-evidence.tar.gz
-Metadata checkpoints/budget-d817d6f2.json
-Rough12roundbalanceNOTACCEPTED;Task15/16releaseOPEN;nohostedwrite/activation/merge/deploy.
+Aurevane combat-first Task15: bounded ranged AI spacing
+Source: 034a56fb4fcb3c21996a7e2615a8ddc5dc1176b9
+Tested: 0cf9f9c36f51eb88efabbb1ef99d8a6b91da589e
+Source tree: 8e4b434e649e1b295740ad05f06f804a680f3c26
+Full check: 8230 Vitest + 7 Node; final matrix: 289 unique legal kits / 8219 commands
+Prerequisite source: d817d6f22afcc6dc357257a2fb315f0104abd3c7
+Bundle: checkpoints/spacing-034a56fb.bundle
+Evidence: checkpoints/spacing-034a56fb-evidence.tar.gz
+Metadata: checkpoints/spacing-034a56fb-metadata.json
+Combat controls/editor/readers/previews/native acceptance, Task15/16 and release remain OPEN.
+No publication/activation/migration/merge/deploy. Backup ancestry is not implementation ancestry.
