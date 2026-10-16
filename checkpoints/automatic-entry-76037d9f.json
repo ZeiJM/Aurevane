@@ -1,0 +1,53 @@
+{
+  "source": "76037d9f60366f500a4ed911330dfc51aec78e4c",
+  "tree": "f467e8396f5b4f16b38e15d7378e2eb27e43f033",
+  "prerequisite": "4eb8780087d7d83bf9167fb0f6b61c2c10532443",
+  "parentArchive": "e506de6d7b038452e8d1b67b87215d5da4f480d5",
+  "parentTree": "0423ab049632acd605c43545d6dffe5fa203da63",
+  "probe": {
+    "argv": [
+      "pnpm",
+      "--filter",
+      "@aurevane/web",
+      "exec",
+      "vitest",
+      "run",
+      "--config",
+      "../../.superpowers/sdd/2026-10-10-unified-engine-recovery/vitest-automatic-preview-admission.config.ts"
+    ],
+    "cwd": "/workspace/scratch/680b26e4eb86/aurevane",
+    "started_utc": "2026-10-16T23:04:50.502812+00:00",
+    "completed_utc": "2026-10-16T23:04:53.698410+00:00",
+    "exit_code": 1,
+    "log": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/evidence/20261016T230450502812Z-a0cba143.log"
+  },
+  "gapWitness": {
+    "expectedUnsupported": 7,
+    "passingControls": 3,
+    "normalSuiteDiscoveryUnaffected": true
+  },
+  "productBaseline": {
+    "vitest": 8910,
+    "node": 7,
+    "status": "Inherited completed Ongoing checkpoint; not rerun for documentation-only audit"
+  },
+  "runtimeChanged": false,
+  "deployment": false,
+  "mainUnchanged": "29506e293e81abef1b0b8a46099618ab3ae3f0ae",
+  "bundle": {
+    "local": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/automatic-entry-76037d9f.bundle",
+    "path": "checkpoints/automatic-entry-76037d9f.bundle",
+    "bytes": 3750,
+    "sha256": "e4ffd6d562c38b7ed80b86ba0f4f83a69b10b28e8fc296aa96533e4c269541b0",
+    "blobSha": "b3c47f10ec78be7024466a861939f158e2a94321",
+    "chunks": 1
+  },
+  "evidence": {
+    "local": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/automatic-entry-76037d9f-evidence.tar.gz",
+    "path": "checkpoints/automatic-entry-76037d9f-evidence.tar.gz",
+    "bytes": 227213,
+    "sha256": "ecf34f01b521c2deb941daed17d424d4b392c5730c0c6581e0c5612f482e8f35",
+    "blobSha": "cf44c89d70860fe3944e41e68f1dbf6144c8f254",
+    "chunks": 26
+  }
+}

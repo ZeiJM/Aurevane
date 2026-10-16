@@ -1,9 +1,5 @@
-Aurevane Ongoing modifier preview recovery
-Source 4eb8780087d7d83bf9167fb0f6b61c2c10532443
-Tested 4ae83201b908e3c0af4d85fc532fecc827e9874c
-Prerequisite 3145a2aff601d7d94ba2054c57121455292a8f15, archived at f84558920a94012ef582cc495b3cd92846b93911
-Bundle checkpoints/ongoing-preview-4eb87800.bundle
-Evidence checkpoints/ongoing-preview-4eb87800-evidence.tar.gz
-Metadata checkpoints/ongoing-preview-4eb87800.json
-8910 Vitest + 7 Node, format/lint/types/both builds pass. One review: 0 Critical, 1 Important fixed in one RED-to-GREEN wave, 0 new Minor. Parent14 inherited Minors remain deferred.
-Only supported Ongoing modifiers added; Automatic/event previews and native/browser/balance/hosted/Atlas/human/release gates OPEN. Isolated source branch agent/event-preview-20261016 must be reconciled with active source before further implementation; do not redo or reset concurrent work. Deployment lock retained; main unchanged. No deployment.
+Aurevane Automatic preview entry audit
+Source 76037d9f60366f500a4ed911330dfc51aec78e4c
+Prerequisite 4eb8780087d7d83bf9167fb0f6b61c2c10532443
+Metadata checkpoints/automatic-entry-76037d9f.json
+Expected admission gap7/3controls pass; no completed Automatic implementation claim. Product baseline8910+7 retained, not rerun for docs-only checkpoint. No runtime/roster/AI/schema/UI/hosted/migration/deployment change. Owner canceled Claude collaboration. Next trusted native event context and child quote/editor integration; full combat/native/balance/release gatesOPEN. Main29506e29 unchanged;Highsufficient. Preserve archive ancestors.
