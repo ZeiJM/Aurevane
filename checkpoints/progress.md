@@ -211,3 +211,37 @@ Owner asks whether effect names use the same colour as effect Power in brackets.
 Implementer DONE_WITH_CONCERNS: exact headc5d942ae7d389cc2ffbe5319c192520b0d30af03,tree1c1031375ce4ffa91047ab37a43ad11e88152875,clean worktree. Entire task range6790f4c9..c5d942ae includes6051477d/36ab9b19/c5d942ae. Complete294records;153specific class plans;136realpair identities;5exact retainedBasics with concrete nativeplans;1520plannedcases. Final828tests across6files:735guards+29proposed outcomes+64retainedcontracts, distinct final receipt20261016T013200178188Z. Types/lint/format/frozenlock pass, fullreport task-14-report.md and committed docs/verification/2026-10-16-complete-roster-design.md. No runtime activation/hosted write/deploy. Concerns are disclosed pending design review and actualTask15/16surface/Ground/AI/balance gates.
 
 Official fullrange review package generated: review-6790f4c9..c5d942ae.diff,5000980bytes,3commits. Single fresh combined reviewer /root/task14_design_review dispatched on Sol6.1High, fork none, binding brief/context/report/constraints and all latest Owner steering. Read-only/nohelpers/no duplicate passing-suite runs. LargeJSON may be consumed programmatically in compact semantic projections while every294design/153classplan/136pair is judged. No acceptance yet.
+
+## Complete-design pre-review remote recovery checkpoint
+
+Verified exact-source bundle for c5d942ae7d389cc2ffbe5319c192520b0d30af03:441663bytes,SHA256a6d9ac44e9932c843d1802d97c75d7ae29cb1dd85166529b41bbddaa6a865458,Gitblob48bbb97bd201ec2e685e1d7c175fc8b53832602f; git bundle verify passes,requiresBASE6790andadvertises refs/checkpoints/roster-c5d942ae. ConnectedGitHubarchive advanced with expectedSHA/CAS and noforce to deec9059d5ee06f286cf6f3bb789fd74607f2c59,treea9960d6148f06859a421e3c79c641d5cc2d87c00. Remote git ls-remote confirms exactarchivehead; original904branch6790andmain29506unchanged. Archive includes fullsourcebundle plus currentledger/preflight/report/verificationreceipts/metadata, explicitly independent-review-pending. It is not an implementationPR/runtimeactivation/release. Earlier605/36abbundles retained.
+
+Controller read actual final828test log and distinct type/lint/format output, independently matched manifestSHA256fa70a6f2dc14bf9c5f5d799d6d1477ef3bf2a5572d44be6799180069347235b3 and currentfalseGitdeploymentlock. No redundant suite rerun. Reviewer has read brief/context/report/nondatachanges and is consuming full294semantic projection and pair/class plans once.
+
+Latest Owner21:35 says priorchat/handover and all confirmed requirements remain scope, then carryon. Root reconfirms fullscope under agreedcombat-first order and continues active review.
+
+## Owner brevity requirement — October15,21:44 Trinidad
+
+Owner says effect-description writeups must not be too verbose. Root confirms short, scannable, natural descriptions: main effect first, then only necessary conditions/values/timing; no filler or repeated explanation. Preserve required mechanical truth and accessible concise details. Add to actual battle/SkillManagement/effect-popup reader acceptance and coordinated combat release.
+
+## Independent full review FAIL and fix round1 dispatched
+
+Reviewer /root/task14_design_review completed all294designs,153classplans,17cycles/tiers and136pairs. SpecFAIL/taskqualityNeedsFixes:4Important pair-versus-own-equipped-Skill redundancies; noCritical/minors. Exact report saved task-14-review-1.md. BorrowedFormula duplicatesQuickHands at worsecost/gate; PursuitAngle repeatsFlankingCut with lowerPower/higherMP/Mark; PiercingInscription repeatsAimedShot worseprice/Power/clock with futureArmoronlydistinction; BurnThicket requiresMark/Poison for inferiorCinderBolt. All4mustresolve; independentcooldown ordifferenthash notnewpairidentity.
+
+Fix round1/5 resumed originalworker with exactreport/verbatimfindings, FIX_BASEc5d942ae. Scopeall4together: realpresentdaychoices, consistentmanifest/audits/coverage/plans, actualtargetedkernelcases inroster-design-outcomes.test.ts andmanifestguards/loadouts, relevantaffectedchecks, appendedfixreport andcommit. No newreviewseat until concretefixreport/diff. Rootnotfixingproductsource.
+
+Cannot-verify items resolved by controller scope/evidence: actualcontrols/previews/Ground/Librarypresentation/fullAI/PvEPvP/Level100balance remain explicitT15/16gates and mustnotbeclaimedcomplete; currenthostedinventoryread0/0/0at00:32design-time only; remotesfreshlyverifieddeecarchive/6790original/29506main. No missingTask14runtimeactivationrequirement.
+
+## Owner numeric-prose clarification — October15,21:45 Trinidad
+
+Owner says apartfromdamage no need to reference values in descriptions because values already appear inSkillEffects. Root confirms descriptionprose explainsinteraction/condition without duplicatingnumbers; damage values may appearwhereuseful, othernumbers remaininstructured effectdetails. This supersedes root's earlier5%recovery proseexample as desiredstyle. Preserve exacttyped numericEffects/Requirements/characteristicentries, bracket/orangestyling, and actualliveinstancemagnitude/stacks/duration fields; do notdeleteauthoritativevalues orreplacepreciseeligibilitywith prose-onlymechanics. Avoidrepetitionbetweenproseandstructuredentries in actualbattle/SkillManagement/popupdisplayaudit.
+
+## Owner timing-prose clarification — October15,21:45 Trinidad
+
+Owner also says timing already has its own place inSkillCharacteristics and should not be duplicated in prose. Root confirms timing stays in structured characteristics; description explains action/interaction without repeating timing/effectvalues alreadyshown. Keep actualtypedclocks/triggerconditions and requiredcharacteristicentries precise. Passed bothnumeric/timingprose refinements to activefixworker for amendedrecords and Task15consumer audit.
+
+## Fix1 directions and final-prose boundary
+
+Worker verified all4reviewed designs were dominated by kittools and is implementing actualdecisionchanges: Aetherist/Shadehand sacrificesSelfGuarded forMP+Covert; Edgedancer/Farstrider Move2→Pull2markedquarry fromreachedorigin, nodamage/Blindside; Farstrider/Runeblade spendsMark forenemyMPdrain+Suppress; Cinderweaver/Wildwarden spendspriorPoison onmarkedquarry forFirehit+briefRoot. Root acceptsdirections subjecttoactualStandardhit/order/previousstate/targetlanding/costtests, obtainable2+2kits andcollisionaudit; independentfixreviewstillrequired.
+
+Ruling: latest Owner concise/nonduplicative description style is mandatory beforepublication andactualconsumeracceptance. Currentmanifestpublicexplanations aremechanicallyspecific explanatorydrafts; rootcounted262/294descriptionRefswithdigits, so4newproserowscannotbeclaimedwhole-rosterstylecompletion. Preserveacceptedmechanicaldesign andexactBasicrecords atTask14; fullwordingrewriteandactualdisplayaudit are specifiedordinaryHighTask15work. Thiscosts a deliberateeditorialpassbeforelive; ifwrongearlieruserstyleacceptanceisnotmet untilthatpass, so blockrelease ratherthanclaimcompliance. Workeraskedexplicitdurableboundary, notblanketExtraHighrewrite. AnyactualBasicwordingchangethatrequiresrecordpublication appendsa completeimmutableversion whilepreservingmechanicalbaselines/history; no cosmeticversionjustforaccounting.

@@ -1,7 +1,5 @@
-# Latest exact-source checkpoint
+# Complete design checkpoint — fix round1 in progress
 
-Complete proposed294-record Task14 design at c5d942ae7d389cc2ffbe5319c192520b0d30af03; independent design review is RUNNING. This archive is not source publication, runtime activation or a combat release.
+Exact reviewed design source remains c5d942ae7d389cc2ffbe5319c192520b0d30af03 in roster-c5d942ae.bundle. Full independent review covered294identities,153class plans and136pairs; four Important experiential findings require rework. See task-14-review-1.md. Original implementer is fixing all four, then a scoped independent re-review is required. Design acceptance, runtime activation and combat release remain pending.
 
-Exact bundle: `roster-c5d942ae.bundle` (441663bytes), SHA256 `a6d9ac44e9932c843d1802d97c75d7ae29cb1dd85166529b41bbddaa6a865458`. Requires existingBASE `6790f4c9ff9343dee7b39e2f87999c2f1a3d7454`; advertises `refs/checkpoints/roster-c5d942ae`. Use Git bundle verification/fetch instructions in README. Earlier605/36ab bundles remain available.
-
-828focused tests passed:735guards,29candidate kernel outcomes,64retained contracts. Full class/Essence/Resonance balance and Task15surfaces/Ground/AI/combined acceptance remain open. See task-14-report.md, progress.md and task-15-continuation-preflight.md. Owner requires a real return-to-High pause after independent creative acceptance, and complete combat systems/descriptions/plain language/orange effects alongside the roster before go-live. BroaderMaster/world scope follows combat-first release.
+Current progress and Task15preflight preserve all Owner scope and latest concise/no-duplicate-value-or-timing/orange-style requirements. All required combat systems/descriptions ship together only after combined acceptance; broaderMaster/world follows. The source bundle/README retain exact restoration instructions and prerequisiteBASE6790f4c9.
