@@ -1,0 +1,57 @@
+{
+  "sourceHead": "1461fa3de939e5fb4770d5ab507b8c9561256a05",
+  "sourceTree": "eb85c415b6be3d253ef769a7072ceb29131c9c80",
+  "testedSource": "b586c2d4d363d2864185b92557c920018013ff5a",
+  "fullCheckReceipt": {
+    "argv": [
+      "pnpm",
+      "--reporter=append-only",
+      "check"
+    ],
+    "cwd": "/workspace/scratch/680b26e4eb86/aurevane",
+    "started_utc": "2026-10-16T10:45:39.928232+00:00",
+    "completed_utc": "2026-10-16T10:49:23.193031+00:00",
+    "exit_code": 0,
+    "log": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/evidence/20261016T104539928232Z.log"
+  },
+  "fullMatrixReceipt": {
+    "argv": [
+      "pnpm",
+      "--filter",
+      "@aurevane/web",
+      "exec",
+      "vitest",
+      "run",
+      "src/server/battle/roster-legal-duel-matrix.test.ts"
+    ],
+    "cwd": "/workspace/scratch/680b26e4eb86/aurevane",
+    "started_utc": "2026-10-16T10:45:39.928945+00:00",
+    "completed_utc": "2026-10-16T10:56:33.607046+00:00",
+    "exit_code": 0,
+    "log": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/evidence/20261016T104539928945Z.log"
+  },
+  "fullMatrixCases": 289,
+  "tests": {
+    "vitest": 8160,
+    "node": 7
+  },
+  "prerequisite": "5ed4fe9bc2fb6bbb331344ac92edb22dd05ec445",
+  "previousArchiveCommit": "5354316edf3c0f30fcf274f10c6be8c17b2a08af",
+  "previousArchiveTree": "190b5f9edb32ba70743210d73437e19e5794c9af",
+  "manifestSha256": "b86cfec056bbac582810e7da80f9bc687f02518892eb5d11275fc7b5ced19f05",
+  "bundle": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/legal-duel-1461fa3d.bundle",
+    "bytes": 18618,
+    "sha256": "3ba1880a0e025e9cf5f1d006c20af7e40f02ed05f1d9482fffa24c595a600016",
+    "blobSha": "90d294447b3a0c09020c31b4dc3fcf297f23c03e",
+    "chunks": 3
+  },
+  "evidence": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/legal-duel-1461fa3d-evidence.tar.gz",
+    "bytes": 172930,
+    "sha256": "e5aaec5f6ede49e2073655eb4a2ed7f63c11aff14863899121aefcc8f0d8a7eb",
+    "blobSha": "9eec86bf5bb3c252208dcbd5a1150702f4afbe00",
+    "chunks": 20
+  },
+  "acceptance": "BothactuallegalfourSkillbuilds+exclusiveexactextension,current/pinnedauthority/captures/serverstartup,realAI/executor/JSON/resourcebounds;all289Level100PvPmirrors4naturalroundsorfactualterminal;routine25mirrors. ActualMercy10andVeiled8equippedchoicesbothPrimaryLevel1/100PvE/PvP, plus4duelcontracts includingpaidmiss/genuineterminal. Original312admissionassertionspreserved. No productionbehavior/definition/price/formula/UI/hostedwrite/activation/merge/deploy. Task15/16 allindividualdistinctcycles/fullmatchbalance/lowlevelmatrix/pacing/nativebrowser/fullreaders/Owneredits-hostedCAS/Atlas/humanreleaseOPEN. See report for exactreview/gates/rulings andprior5Minors."
+}
