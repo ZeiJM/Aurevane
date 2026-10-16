@@ -1,5 +1,5 @@
-Source 0783819c60a47ba09d2317d9550cc5ca2e5e2221
-Tested c731bf71f8dd7a933146eb75cb8db012095d2f97
-Bundle checkpoints/periodic-0783819c.bundle
-Evidence checkpoints/periodic-0783819c-evidence.tar.gz
-8374 Vitest + 7 Node; one combined review 0C/0I/1Minor; 10 total Minors deferred. Original combat/native/editorial/balance/release open. No release.
+Source b036763303a1e34b43f60188ab3b55b591637c54
+Tested d47e412015caf3d7dbda0546fad471bbffab0bcc
+Bundle checkpoints/conditional-b0367633.bundle
+Evidence checkpoints/conditional-b0367633-evidence.tar.gz
+8384 Vitest + 7 Node; one combined review 0C/0I/0newMinor; 10 inherited Minors deferred. All29conditions retained;4Pierce exactpercentages retained. Original combat/native/editorial/balance/release open. No release.

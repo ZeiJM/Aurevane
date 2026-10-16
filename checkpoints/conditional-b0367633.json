@@ -1,0 +1,88 @@
+{
+  "sourceHead": "b036763303a1e34b43f60188ab3b55b591637c54",
+  "sourceTree": "caaf4b81bf5cba22c3afdffe035b81bef1c2d793",
+  "testedSource": "d47e412015caf3d7dbda0546fad471bbffab0bcc",
+  "reviewedProductionSource": "d47e412015caf3d7dbda0546fad471bbffab0bcc",
+  "prerequisite": "0783819c60a47ba09d2317d9550cc5ca2e5e2221",
+  "previousArchiveCommit": "9a561f940ec0b0556f77d24ef2dfe83926af5f8d",
+  "previousArchiveTree": "94805617502e8d503a95459c7c5ed9682cfbbf56",
+  "fullCheckReceipt": {
+    "argv": [
+      "pnpm",
+      "--reporter=append-only",
+      "check"
+    ],
+    "cwd": "/workspace/scratch/680b26e4eb86/aurevane",
+    "started_utc": "2026-10-16T16:07:09.731530+00:00",
+    "completed_utc": "2026-10-16T16:11:20.742481+00:00",
+    "exit_code": 0,
+    "log": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/evidence/20261016T160709731530Z.log"
+  },
+  "tests": {
+    "vitest": 8384,
+    "node": 7
+  },
+  "priorMatrixReference": {
+    "source": "fc17038277d90da29f52483d2e4a8a7bdb7f9b34",
+    "rawSha256": "d60cb8110a8ad3f74342c52fbaf368c2c52aa04c6e44f22d0fd1dfcdd6cba280",
+    "goldSha256": "d60cb8110a8ad3f74342c52fbaf368c2c52aa04c6e44f22d0fd1dfcdd6cba280",
+    "records": 289,
+    "pure": 17,
+    "orderedMixed": 272,
+    "commands": 8219,
+    "allCommandArraysIdentical": true,
+    "allCompleteRowsIdentical": true,
+    "allFourRoundsPlayed": true,
+    "allActiveAtRoundFive": true,
+    "resourcesVersionsOwnershipVerified": true,
+    "sourceHashes": {
+      "packages/game-core/src/combat/recruit-ai-build.ts": "e1f676fafea1a73a84eaf95b0e73b66601916a4dcb63e80edd0db4d4da449a7d",
+      "packages/game-core/src/combat/recruit-ai.ts": "cf9e6cc12ff1d7434d17956f5f2e3e19b770240ea6d7a5c039477921382c5e6a",
+      "packages/game-core/src/combat/recruit-ai-ranged-spacing.test.ts": "97d492399237e8064ae9fdc51f7fef143189201e32a2892ccf98340448238a77",
+      "apps/web/src/server/battle/roster-legal-duel.test-utils.ts": "129d1827760c89bdf3ed75a1757e98802de743829eff9841699ead64747c96f9",
+      "apps/web/src/server/battle/roster-legal-ranged-ai.test.ts": "1443d456ba61d9469cedfe8e10392c155876e2c20fd3b121506009be7d0c4524",
+      "apps/web/src/server/battle/battle-log-service.ts": "d1876bcd5044a7b8f1c3c4178b19696605a61fc5ad8424e34181fd5cc95aa74b"
+    },
+    "scope": "Same fixed four-round Level100 PvP roster benchmark and seed as gold. This verifies unchanged constant outcomes; not natural pacing, twelve-round balance, human acceptance or release."
+  },
+  "readerAudit": {
+    "source": "d47e412015caf3d7dbda0546fad471bbffab0bcc",
+    "rawSha256": "0144a44a91bb54836140aed7d138bedff71d3f156c227537eb109e7b06fe8709",
+    "records": 294,
+    "groups": 297,
+    "effects": 604,
+    "changedFromPeriodic": 33,
+    "unchangedFromPeriodic": 571,
+    "conditionalEffects": 29,
+    "allStructuredReportsExactlyUnchanged": true,
+    "allGeneratedConditionPrefixesRemovedExactly": true,
+    "changedByType": {
+      "pierce": 4,
+      "damage": 11,
+      "bleed": 3,
+      "resource-change": 3,
+      "apply-status": 9,
+      "displace": 3
+    },
+    "changedFromOriginal": 369,
+    "unchangedFromOriginal": 235,
+    "withDigits": 171,
+    "nonDirectDamageWithDigits": 0,
+    "scope": "Static default context exact shared reports; numeric inventory is not complete semantic/editorial/native acceptance. All rows/effect presentation/conditions/limits/maintenance byte-for-byte unchanged from prior. All29condition prefixes removed exactly. Authored prose never stripped; source tests retain authored numbers. Damage numeric explanations intentionally retained."
+  },
+  "bundle": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/conditional-b0367633.bundle",
+    "bytes": 6651,
+    "sha256": "e4300e169d790a612013323f3f572974c905b4f3cfc1236cb2423f7e49fbbdd1",
+    "blobSha": "8632af29512da6fe338c9687ef023c274b83a736",
+    "chunks": 1
+  },
+  "evidence": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/conditional-b0367633-evidence.tar.gz",
+    "bytes": 318971,
+    "sha256": "30729bc20152c7987ede8b6d3548b2efe1e1e6ca2a72726e65b4607d8ab22d2f",
+    "blobSha": "714847e953f48efedbd8f47e19796387821c56fa",
+    "chunks": 36
+  },
+  "acceptance": "Conditional/Pierce generated prose: all29conditions retained exactly in typedfields/Effects rows, generatedprefix removed only from explanations; all4Pierce exactmagnitude/bypasspercent retained with equipment-only/noequipment noadvantage plainprose. All294staticreports604effects;33new369totalexplanationchanges;allstructuredreportsexactprior,571othersidentical. 10newcases,9validRED1authoredGREEN,35covering. Frozen8384Vitest+7Node; native/schema/manifest/AI/fixtures unchanged, no fresh289claimed. Onecombinedreview parent verdict recorded separately;10priorMinors deferred. Originalcombat/native/editorial/orangereferences/fullcycles/balance/Ownerhosted/Atlas/human/release andbroaderMaster remainopen. No hostedwrite/publication/activation/migration/merge/deploy."
+}
