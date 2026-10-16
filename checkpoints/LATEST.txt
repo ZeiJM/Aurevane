@@ -1,9 +1,10 @@
-Ranged/budget evidence checkpoint
-Source e7820890256733b51edc00e98895efebe0d3d6fc
-Tested 8657f3c46473f0c5455947d270ce8d69763e2cb6
-Tests8181Vitest+7Node;21ranged/14separatenaturaldiagnostics
-Bundle checkpoints/ranged-e7820890.bundle
-Requires 1461fa3de939e5fb4770d5ab507b8c9561256a05
-Evidence checkpoints/ranged-e7820890-evidence.tar.gz
-Metadata checkpoints/ranged-e7820890.json
-Task15/16releaseOPEN;OwnerExtraHighjudgmentnext;nohostedwrite/activation/merge/deploy.
+Natural pacing/reserve checkpoint
+Source d817d6f22afcc6dc357257a2fb315f0104abd3c7
+Tested f8abb170fa8b48fd0e7119af0af91624860cc0a5
+Tests8197Vitest+7Node;16newrelease/countercases
+51diagnosticexecutionsinclude9replays:42completed9activehorizons
+Bundle checkpoints/budget-d817d6f2.bundle
+Requires e7820890256733b51edc00e98895efebe0d3d6fc
+Evidence checkpoints/budget-d817d6f2-evidence.tar.gz
+Metadata checkpoints/budget-d817d6f2.json
+Rough12roundbalanceNOTACCEPTED;Task15/16releaseOPEN;nohostedwrite/activation/merge/deploy.

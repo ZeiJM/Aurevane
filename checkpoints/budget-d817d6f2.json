@@ -1,0 +1,43 @@
+{
+  "sourceHead": "d817d6f22afcc6dc357257a2fb315f0104abd3c7",
+  "sourceTree": "ff8027bc209f488b06f73a8f5f102e6872fde86f",
+  "testedSource": "f8abb170fa8b48fd0e7119af0af91624860cc0a5",
+  "fullCheckReceipt": {
+    "argv": [
+      "pnpm",
+      "--reporter=append-only",
+      "check"
+    ],
+    "cwd": "/workspace/scratch/680b26e4eb86/aurevane",
+    "started_utc": "2026-10-16T11:52:38.205744+00:00",
+    "completed_utc": "2026-10-16T11:56:16.603171+00:00",
+    "exit_code": 0,
+    "log": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/evidence/20261016T115238205744Z.log"
+  },
+  "tests": {
+    "vitest": 8197,
+    "node": 7
+  },
+  "prerequisite": "e7820890256733b51edc00e98895efebe0d3d6fc",
+  "previousArchiveCommit": "d21131a10595d0b4d60d9a937f53761677a4afb0",
+  "previousArchiveTree": "90bff87df0948aae1faa3c5e18d36d311183ff15",
+  "manifestSha256": "b86cfec056bbac582810e7da80f9bc687f02518892eb5d11275fc7b5ced19f05",
+  "diagnosticExecutions": 51,
+  "completedExecutions": 42,
+  "active40RoundExecutions": 9,
+  "bundle": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/budget-d817d6f2.bundle",
+    "bytes": 9911,
+    "sha256": "dab58f55928f4e774c4eea76879472ade17777144745dee1919e6d43fff512ea",
+    "blobSha": "ae248fc59ddad3107258f4b6667ef9b0147ec79a",
+    "chunks": 2
+  },
+  "evidence": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/budget-d817d6f2-evidence.tar.gz",
+    "bytes": 239621,
+    "sha256": "40e4c2c6742e1b55340ba33cb479a47e4b19bbc556096a9cfb7a5dc418a3a910",
+    "blobSha": "880a733c36a6d0279adba4373e69dd2b08014d97",
+    "chunks": 27
+  },
+  "acceptance": "16actualAetherinPoiserelease/closingcountercasesbothPrimaryLevels1/100PvE/PvP;20actualresourceopportunitytraces;17purekitnaturalsincludepriorAetherist;12pressure/countercomparisons;3exactHP-eventreceiptcalibrations. Pacingrough12roundsNOTACCEPTED:3puremirrorsactiveafter40. No productAI/mechanics/prices/formulas/definitions/UI/hostedwrite/activation/merge/deploy. Source/driverlimitations and6priorMinors explicit. Task15/16allcycles/balance/nativeUI/Owneredits/hostedCAS/human/releaseOPEN. See report for judgment/rulings/gates."
+}
