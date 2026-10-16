@@ -1,0 +1,50 @@
+{
+  "sourceHead": "92cdee2eb60a68db728666c956c8aa00f521934b",
+  "sourceTree": "9c46400bcabf521b32c073d890821e2a10d5bd8d",
+  "testedSource": "df53d50ba49ea70094fceb7945927018d9a031fb",
+  "reviewedProductionSource": "df53d50ba49ea70094fceb7945927018d9a031fb",
+  "prerequisite": "b4e3e537d01817b78e75ecb6810500009e8a3120",
+  "previousArchiveCommit": "88aa0c7a07fc1f03b3577b9b992b510d5ddf65e6",
+  "previousArchiveTree": "b8fb035a75f7903a17b7ce490c1e2617c3f835fa",
+  "fullCheckReceipt": {
+    "argv": [
+      "pnpm",
+      "--reporter=append-only",
+      "check"
+    ],
+    "cwd": "/workspace/scratch/680b26e4eb86/aurevane",
+    "started_utc": "2026-10-16T19:17:06.229103+00:00",
+    "completed_utc": "2026-10-16T19:17:37.031997+00:00",
+    "exit_code": 0,
+    "log": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/evidence/20261016T191706229103Z.log"
+  },
+  "tests": {
+    "vitest": 8608,
+    "node": 7
+  },
+  "readerAudit": {
+    "source": "df53d50ba49ea70094fceb7945927018d9a031fb",
+    "rawSha256": "84defd352e91da4396a97663c24d346e553524fa5b7b6f8ce8ed4a2207c5f95c",
+    "records": 294,
+    "groups": 297,
+    "effects": 604,
+    "allReportsAndHtmlExactlyUnchanged": true,
+    "manifestAndSixAiSourceHashesUnchanged": true,
+    "scope": "Static named Skill readers only. Live-effect controlled callbacks and SSR are separately tested; native keyboard, AT and geometry acceptance remain open."
+  },
+  "bundle": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/live-recovery-rate-92cdee2e.bundle",
+    "bytes": 14113,
+    "sha256": "58ea2de1089b84b6d77bf650f500a61a1776dd312b1b625f17894e5aa42e3b80",
+    "blobSha": "cb9744da1e73ebf47d593e12fdccf4f09f708137",
+    "chunks": 2
+  },
+  "evidence": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/live-recovery-rate-92cdee2e-evidence.tar.gz",
+    "bytes": 417818,
+    "sha256": "46c968182a540d5d1b5f978c93e4777d80cfadafaa41217d9bbeb253ccbcd2f0",
+    "blobSha": "8a16e2d7839e742f32baa5436e01e338ca82fe4a",
+    "chunks": 47
+  },
+  "acceptance": "HealingDowncombinednominalrecoveryrates:34newcases,current/legacyHP-MP-Absorb/capture/rounding/caps/privacy; unchangedsharedmath extraction. Reviewed/testeddf53d50b, final8608Vitest+7Node/alltypes/lint/format/bothbuilds, all294reports/HTMLexact/hashguards. Initialroot191248136192build-summarystdoutlosspreservedwithcompletepackageaudit;ONEcachedcompleterootreplay191706229103preserved. Onecombinedreview0Critical/0Important/0newMinor/no repair/no rereview.13inheritedMinorsdeferred/52individualparentreason-costrulings+4initialimplementationrulings. Native/AT/geometry/originalcombat/fullcycles/balance/Ownerhosted/Atlas/human/releaseOPEN. No publication/activation/migration/merge/deploy. Highsufficient."
+}
