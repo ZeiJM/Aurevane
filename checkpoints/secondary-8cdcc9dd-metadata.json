@@ -1,0 +1,96 @@
+{
+  "sourceHead": "8cdcc9dddaf192d8a512a36930362179814b61a4",
+  "sourceTree": "241264960450827274e37ab1f25e3b307d2d274e",
+  "testedSource": "fc17038277d90da29f52483d2e4a8a7bdb7f9b34",
+  "prerequisite": "5e047d597cda9eabb1e1cc60d1586c49af422477",
+  "previousArchiveCommit": "c28844e3e8abe0a31d72b7fed0a19f615b6d315c",
+  "previousArchiveTree": "658d64a8d3389189c24f20951c57e7bb028dcdd9",
+  "fullCheckReceipt": {
+    "argv": [
+      "pnpm",
+      "--reporter=append-only",
+      "check"
+    ],
+    "cwd": "/workspace/scratch/680b26e4eb86/aurevane",
+    "started_utc": "2026-10-16T15:31:07.936970+00:00",
+    "completed_utc": "2026-10-16T15:31:44.136720+00:00",
+    "exit_code": 0,
+    "log": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/evidence/20261016T153107936970Z.log"
+  },
+  "matrixReceipt": {
+    "argv": [
+      "pnpm",
+      "--filter",
+      "@aurevane/web",
+      "exec",
+      "vitest",
+      "run",
+      "src/server/battle/roster-legal-duel-matrix.test.ts"
+    ],
+    "cwd": "/workspace/scratch/680b26e4eb86/aurevane",
+    "started_utc": "2026-10-16T15:24:33.534923+00:00",
+    "completed_utc": "2026-10-16T15:37:28.228949+00:00",
+    "exit_code": 0,
+    "log": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/evidence/20261016T152433534923Z.log"
+  },
+  "tests": {
+    "vitest": 8347,
+    "node": 7
+  },
+  "matrix": {
+    "source": "fc17038277d90da29f52483d2e4a8a7bdb7f9b34",
+    "rawSha256": "d60cb8110a8ad3f74342c52fbaf368c2c52aa04c6e44f22d0fd1dfcdd6cba280",
+    "goldSha256": "d60cb8110a8ad3f74342c52fbaf368c2c52aa04c6e44f22d0fd1dfcdd6cba280",
+    "records": 289,
+    "pure": 17,
+    "orderedMixed": 272,
+    "commands": 8219,
+    "allCommandArraysIdentical": true,
+    "allCompleteRowsIdentical": true,
+    "allFourRoundsPlayed": true,
+    "allActiveAtRoundFive": true,
+    "resourcesVersionsOwnershipVerified": true,
+    "sourceHashes": {
+      "packages/game-core/src/combat/recruit-ai-build.ts": "e1f676fafea1a73a84eaf95b0e73b66601916a4dcb63e80edd0db4d4da449a7d",
+      "packages/game-core/src/combat/recruit-ai.ts": "cf9e6cc12ff1d7434d17956f5f2e3e19b770240ea6d7a5c039477921382c5e6a",
+      "packages/game-core/src/combat/recruit-ai-ranged-spacing.test.ts": "97d492399237e8064ae9fdc51f7fef143189201e32a2892ccf98340448238a77",
+      "apps/web/src/server/battle/roster-legal-duel.test-utils.ts": "129d1827760c89bdf3ed75a1757e98802de743829eff9841699ead64747c96f9",
+      "apps/web/src/server/battle/roster-legal-ranged-ai.test.ts": "1443d456ba61d9469cedfe8e10392c155876e2c20fd3b121506009be7d0c4524",
+      "apps/web/src/server/battle/battle-log-service.ts": "d1876bcd5044a7b8f1c3c4178b19696605a61fc5ad8424e34181fd5cc95aa74b"
+    },
+    "scope": "Same fixed four-round Level100 PvP roster benchmark and seed as gold. This verifies unchanged constant outcomes; not natural pacing, twelve-round balance, human acceptance or release."
+  },
+  "readerAudit": {
+    "source": "fc17038277d90da29f52483d2e4a8a7bdb7f9b34",
+    "rawSha256": "f44d0d5cde31d7d6fa31c5b77c3fd96a03e6d99ea8dc86814747a88000b32fdc",
+    "records": 294,
+    "groups": 297,
+    "effects": 604,
+    "changedFromOriginal": 341,
+    "unchangedFromOriginal": 263,
+    "changedFromStandardStatus": 17,
+    "changedFromStandardByType": {
+      "apply-status": 17
+    },
+    "withDigits": 182,
+    "nonDirectDamageWithDigits": 11,
+    "pierceArmorNumericCandidates": 4,
+    "nonDamagePayloadWithDigits": 15,
+    "scope": "Static shared readers. Numeric candidates are not proven semantic/style failures. No native, complete editorial or release acceptance."
+  },
+  "bundle": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/secondary-8cdcc9dd.bundle",
+    "bytes": 17174,
+    "sha256": "b72a2374ed1cdd515fc147442e92f9f2fb836c786e54e7478c72bb9afada65b9",
+    "blobSha": "85ee0331f179feb6d5b50797c35c060786ea8237",
+    "chunks": 2
+  },
+  "evidence": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/secondary-8cdcc9dd-evidence.tar.gz",
+    "bytes": 365485,
+    "sha256": "4700b6aa3605cf0b6d496bcf53551cb937da35c43a79f4b4dbb020c211d8329c",
+    "blobSha": "e37c12f30f4d50677a3539d3a108dc20094c5513",
+    "chunks": 41
+  },
+  "acceptance": "Seventeen secondary status effects retain structured native/captured values and plain prose. Review0C1I fixed Blindside expiry through nine valid RED then22/22GREEN;772 covering. Frozen restored source8347Vitest+7Node verified. All294 shared-reader SSR;17new/341total prose changes. Fresh289 builds8219commands and complete rows exactly identical to prior gold; no AI or mechanics/balance change. Automated maintenance recovery from verified Git backups and three exact reviewer-retained files; new source identity does not claim420b exact restoration. Nine prior Minors deferred;58 individual declined-scope rulings plus reproduced inherited edited-status Important retained for next pass before release. Original combat/native/editorial/fullcycles/balance/Ownerhosted/Atlas/human/release and broader Master remain open. No publication/activation/migration/merge/deploy."
+}
