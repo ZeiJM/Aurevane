@@ -969,3 +969,76 @@
     overflow-wrap: anywhere;
   }
 }
+
+/* Mobile World compaction: smaller chrome so the map and details panel get the screen. */
+.header .onlineCompact {
+  display: none;
+}
+@media (max-width: 760px) {
+  .header {
+    min-height: 42px;
+    padding: 4px 8px;
+    gap: 6px;
+  }
+  .header .location {
+    font-size: 16px;
+    min-height: 30px;
+    gap: 6px;
+  }
+  .environment {
+    gap: 2px;
+    font-size: 9px;
+    line-height: 1.2;
+  }
+  .header .onlineCompact {
+    display: inline-flex;
+    min-height: 0;
+    gap: 4px;
+    align-items: center;
+    color: #9ad7cf;
+    font: 600 9px/1.2 var(--av-font-body, sans-serif);
+  }
+  .header .onlineCompact::before {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #5fd3a0;
+    content: '';
+  }
+  .header .panelToggle,
+  .header .mobileSettings {
+    min-height: 36px;
+    padding: 4px 8px;
+  }
+  .stageBar {
+    min-height: 32px;
+    padding: 2px 8px;
+  }
+  .tabs button {
+    min-height: 40px;
+    padding-block: 8px;
+  }
+  .panelScroll > section,
+  .position {
+    padding: 12px 14px;
+  }
+  .landmarks > button {
+    min-height: 44px;
+    padding-block: 4px;
+  }
+  .panelFoot {
+    padding: 6px 10px;
+  }
+}
+@media (max-width: 760px) and (pointer: coarse) {
+  .workspace button {
+    min-height: 40px;
+  }
+  .header .panelToggle,
+  .header .mobileSettings {
+    min-height: 36px;
+  }
+  .header .location {
+    min-height: 30px;
+  }
+}
