@@ -1,0 +1,50 @@
+{
+  "sourceHead": "b4e3e537d01817b78e75ecb6810500009e8a3120",
+  "sourceTree": "226f178eb014293fe058e665bfac97c77edc4ef8",
+  "testedSource": "2fdb2f36d9e2dc97dfce177075f91c1c7e056223",
+  "reviewedProductionSource": "2fdb2f36d9e2dc97dfce177075f91c1c7e056223",
+  "prerequisite": "505b00cc253fdeeff966edffd152b7b19750cb84",
+  "previousArchiveCommit": "cf6de8a1258daea1dae03a7ea09e0ff480cbf41f",
+  "previousArchiveTree": "707835f421d9d16950212e721a32c8d6b3dee9c5",
+  "fullCheckReceipt": {
+    "argv": [
+      "pnpm",
+      "--reporter=append-only",
+      "check"
+    ],
+    "cwd": "/workspace/scratch/680b26e4eb86/aurevane",
+    "started_utc": "2026-10-16T18:51:55.842818+00:00",
+    "completed_utc": "2026-10-16T18:55:45.898170+00:00",
+    "exit_code": 0,
+    "log": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/evidence/20261016T185155842818Z.log"
+  },
+  "tests": {
+    "vitest": 8574,
+    "node": 7
+  },
+  "readerAudit": {
+    "source": "2fdb2f36d9e2dc97dfce177075f91c1c7e056223",
+    "rawSha256": "8ed95936c035ece0fae96fba4d104696ece0cfd07b94dc87e3db3979c22345d0",
+    "records": 294,
+    "groups": 297,
+    "effects": 604,
+    "allReportsAndHtmlExactlyUnchanged": true,
+    "manifestAndSixAiSourceHashesUnchanged": true,
+    "scope": "Static named Skill readers only. Live-effect controlled callbacks and SSR are separately tested; native keyboard, AT and geometry acceptance remain open."
+  },
+  "bundle": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/live-strength-b4e3e537.bundle",
+    "bytes": 11966,
+    "sha256": "0fa805ae5925ea6ca0e36757f8c6dd43fba00e3e801a2c1d31d93418327624f1",
+    "blobSha": "fc9d0518ef1e0f276b8c9e264da9f3b391fdc3ae",
+    "chunks": 2
+  },
+  "evidence": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/live-strength-b4e3e537-evidence.tar.gz",
+    "bytes": 394707,
+    "sha256": "99e0c9462b431d220faec23703c8a74b3ca6a5b2abb8e2289bd8b8ad21c9e67d",
+    "blobSha": "574e1dbbc0752c105f6031a18ced0622cbda7f0a",
+    "chunks": 44
+  },
+  "acceptance": "Captured combined damage strength cohort:30newcases, reviewed/tested2fdb2f36, full8574Vitest+7Node/alltypes/lint/format/bothbuilds, all294reports/HTMLexact/hashguards. Onecombinedreview0Critical/0Important/0newMinor, no repair/no rereview.13inheritedMinorsdeferred/39individualparentreason-costrulings+initialscope/arithmeticrulings. Native/AT/geometry/originalcombat/fullcycles/balance/Ownerhosted/Atlas/human/releaseOPEN. No publication/activation/migration/merge/deploy. Highsufficient."
+}
