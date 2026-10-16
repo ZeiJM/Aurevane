@@ -1,8 +1,8 @@
-Captured live-effect reader development checkpoint
-Source f9367ece1880896f09ebc20c1818fe7c41823c8b
-Tested 20038c54c80f97a4a192dfcd128009759ded77c3
-Reviewed 10adca11d86a3e02cda989857199f92680199225; parent ONE Important repair wave, no rereview
-Metadata checkpoints/live-effect-f9367ece-metadata.json
-8509 Vitest + 7 Node; all294 Skill reader reports/HTML exact
+Recovery and Barrier amount-reader development checkpoint
+Source 505b00cc253fdeeff966edffd152b7b19750cb84
+Tested 37455c988d89852125f08cdab0678977d8b6fe3b
+Reviewed fec7710a7fc3964b62186ce72085ff1b19beec19; parent ONE Important repair wave, no rereview
+Metadata checkpoints/live-amount-505b00cc-metadata.json
+8544 Vitest + 7 Node; all294 Skill reader reports/HTML exact
 13 Minors deferred; native/AT/geometry/full combat/balance/hosted/release open
 No publication, activation, migration, merge or deployment
