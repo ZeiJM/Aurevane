@@ -1,0 +1,40 @@
+{
+  "sourceHead": "0354e2c3f849e0c0bd6ccb1f089df1519222bf31",
+  "sourceTree": "0dfb9b903534854957879d506c938da54b992d91",
+  "testedSource": "3a3bce8747cf6daebea83f26f6de47064a615238",
+  "fullCheckReceipt": {
+    "argv": [
+      "pnpm",
+      "--reporter=append-only",
+      "check"
+    ],
+    "cwd": "/workspace/scratch/680b26e4eb86/aurevane",
+    "started_utc": "2026-10-16T09:24:17.796554+00:00",
+    "completed_utc": "2026-10-16T09:26:34.562818+00:00",
+    "exit_code": 0,
+    "log": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/evidence/20261016T092417796554Z.log"
+  },
+  "tests": {
+    "vitest": 7774,
+    "node": 7
+  },
+  "prerequisite": "dda3d5f8caa9978d576d73ac283df8a1ca85d2f3",
+  "previousArchiveCommit": "dd8cc89bd1afb647ab48edf4322e92e182cd5dae",
+  "previousArchiveTree": "f82ef2dc66e45ca86bc8149f5f27e57338a4e1b6",
+  "manifestSha256": "bdceab2a7547845d15f20654c1dc758a97d6c104d2dad76c906364e4504cdd9f",
+  "bundle": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/ai-manual-0354e2c3.bundle",
+    "bytes": 15904,
+    "sha256": "deedd88625d5567fb05ec4169e46b0e1e54692aa0c7c76b23cebdc83a68ec4b9",
+    "blobSha": "7e9b2aad746aa169a3e18db1ccfd2e085c27d31c",
+    "chunks": 2
+  },
+  "evidence": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/ai-manual-0354e2c3-evidence.tar.gz",
+    "bytes": 100679,
+    "sha256": "5d8b5024bff9c8c077e0ccbdfac9a5f42f4af6861ab62a74b73e3f99e91f391a",
+    "blobSha": "ecb94604518eb602f96867fd397855f204686e4e",
+    "chunks": 12
+  },
+  "acceptance": "Bounded actualAI Manual bundle selection/propagation,14core+2service new tests. Shared canonical/native/Controlled atomic executor and actual service CAS preserved. Review0Critical/0Important/1Minor deferred,prior3 carried. Manifest unchanged. Task15/16 OPEN: every294record/legal-equippedcycles/realAI-Level100balance/nativebrowser/readers/Owneredits-hostedCAS/Ground/Atlas. No hosted write, activation, merge or deployment. See committed verification report for exact review findings and full gate counts."
+}
