@@ -1,0 +1,51 @@
+{
+  "sourceHead": "df1ac65868dd8ce833b8327f7303cd1ab00e22b6",
+  "sourceTree": "332dabf4865e028fb20421d484e1a7c15a8dd429",
+  "testedSource": "91709e6e59556f8a1c30a63dca4d8878774964ee",
+  "prerequisite": "4eb8780087d7d83bf9167fb0f6b61c2c10532443",
+  "prerequisiteArchive": "e506de6d7b038452e8d1b67b87215d5da4f480d5",
+  "branch": "agent/event-preview-20261016",
+  "tests": {
+    "vitest": 8939,
+    "node": 7,
+    "focused": 345,
+    "new": 29
+  },
+  "fullCheck": {
+    "argv": [
+      "corepack",
+      "pnpm@11.17.0",
+      "--reporter=append-only",
+      "check"
+    ],
+    "cwd": "/workspace/scratch/21356a9aad08/aurevane-events",
+    "started": "2026-10-16T23:11:44.472421+00:00",
+    "sourceHead": "91709e6e59556f8a1c30a63dca4d8878774964ee",
+    "log": "/workspace/scratch/21356a9aad08/aurevane-events/.superpowers/sdd/2026-10-16-automatic-preview/final-check.log",
+    "exit_code": 0,
+    "completed": "2026-10-16T23:15:22.824119+00:00"
+  },
+  "review": {
+    "critical": 0,
+    "important": 1,
+    "fixed": 1,
+    "minor": 2,
+    "fixWaves": 1,
+    "rereviews": 0
+  },
+  "bundle": {
+    "path": "/workspace/scratch/21356a9aad08/aurevane-events/.superpowers/sdd/2026-10-16-automatic-preview/automatic-preview.bundle",
+    "bytes": 30509,
+    "sha256": "ba472f80a20577be9ffadbdb4e6d49548d0311fe613379add155e9b9570335f0",
+    "blobSha": "854d5ad848adc3feb2ad0677201c6b7a70dde1c3"
+  },
+  "evidence": {
+    "path": "/workspace/scratch/21356a9aad08/aurevane-events/.superpowers/sdd/2026-10-16-automatic-preview/automatic-preview-evidence.tar.gz",
+    "bytes": 81566,
+    "sha256": "4bd17daa23f8aa5255e2b41513a3b230c766d0dc267902a52f9a1f8c23a6c7f2",
+    "blobSha": "66f5badea85a9386a4f2993fab977365b4fb0529"
+  },
+  "main": "29506e293e81abef1b0b8a46099618ab3ae3f0ae",
+  "deploymentLock": "b8a4e0e3c57b95a8da49c05d1fe5f60ba2181b5f",
+  "remaining": "Historical/native/browser/balance/hosted/Atlas/human/release remain open; two new display/copy Minors and fourteen inherited Minors deferred. No deployment."
+}

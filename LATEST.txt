@@ -1,5 +1,7 @@
-Aurevane Automatic preview entry audit
-Source 76037d9f60366f500a4ed911330dfc51aec78e4c
+Aurevane Automatic reference sample checkpoint
+Source df1ac65868dd8ce833b8327f7303cd1ab00e22b6
+Tested 91709e6e59556f8a1c30a63dca4d8878774964ee
 Prerequisite 4eb8780087d7d83bf9167fb0f6b61c2c10532443
-Metadata checkpoints/automatic-entry-76037d9f.json
-Expected admission gap7/3controls pass; no completed Automatic implementation claim. Product baseline8910+7 retained, not rerun for docs-only checkpoint. No runtime/roster/AI/schema/UI/hosted/migration/deployment change. Owner canceled Claude collaboration. Next trusted native event context and child quote/editor integration; full combat/native/balance/release gatesOPEN. Main29506e29 unchanged;Highsufficient. Preserve archive ancestors.
+Metadata checkpoints/automatic-preview-df1ac658.json
+8939 Vitest +7 Node;345 focused;29 new cases. Full check exits0, both builds pass. One Important fixed in one review repair wave;2 new display/copy Minors and14 inherited Minors deferred.
+Concurrent entry-audit source76037d9f and archive f4246df9 preserved. Main unchanged. No hosted publication/migration/deployment. Historical/native/browser/balance/hosted/Atlas/human/release gates remain open.
