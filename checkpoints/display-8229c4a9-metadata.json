@@ -1,0 +1,39 @@
+{
+  "sourceHead": "8229c4a94780da096559802a71c4d1ee283ac315",
+  "sourceTree": "d07f2956df337f986ff4c6e97f6be4c8b3d34338",
+  "testedSource": "d4cb10384f1b5530dbbde3aa2921bbb6bc547315",
+  "prerequisite": "c33e9004bade83127cbe0ce2f592b8cce3692ddd",
+  "previousArchiveCommit": "f13882a53356c6958ea66af7459f16c16d490e51",
+  "previousArchiveTree": "ae8fed05686b02f60fafe7cd83a093f54c66bd13",
+  "fullCheckReceipt": {
+    "argv": [
+      "pnpm",
+      "--reporter=append-only",
+      "check"
+    ],
+    "cwd": "/workspace/scratch/680b26e4eb86/aurevane",
+    "started_utc": "2026-10-16T14:01:15.496199+00:00",
+    "completed_utc": "2026-10-16T14:05:27.596441+00:00",
+    "exit_code": 0,
+    "log": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/evidence/20261016T140115496199Z.log"
+  },
+  "tests": {
+    "vitest": 8254,
+    "node": 7
+  },
+  "bundle": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/display-8229c4a9.bundle",
+    "bytes": 16107,
+    "sha256": "af084a4c4dd0a65b54b45f2f8b3f4be4657df2c01d5065b8edffdc585c848061",
+    "blobSha": "34fcad317181369173a62f56a704bbcb70bc49c8",
+    "chunks": 2
+  },
+  "evidence": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/display-8229c4a9-evidence.tar.gz",
+    "bytes": 236130,
+    "sha256": "a5d4555b363eae6e5d0def6128a36bd2b41d5039c3d21991e095a906115d1c61",
+    "blobSha": "3eb52ad8fc0d40b8718ae7c247ede7c2a257a294",
+    "chunks": 27
+  },
+  "acceptance": "Canonical unavailable caption, exact Ground entry subset and selected-group damage/category/Airborne presentation; actual Basic descriptor correction RED\u2192GREEN.0C1Ifixed0newMinor,7priorMinorsdeferred. Final8254+7 verified. Additional isolated294record297group604effect static-reader observation is not routine/native acceptance. Manifest/AI/executor/pricing/defaultfixture unchanged; no duplicate289. OriginalcombatTargeting/Move/Basics/Controlled/readers/editor/previews/native integration and fullrosterbalance/Owneredits/hosted/Atlas/human/releaseOPEN. NextArsenalEssence/proseconsumerfindingretained. No publication/activation/migration/merge/deploy."
+}

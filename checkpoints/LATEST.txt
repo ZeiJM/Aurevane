@@ -1,11 +1,11 @@
-Aurevane Task15 learned defense/payoff cycles
-Source: c33e9004bade83127cbe0ce2f592b8cce3692ddd
-Source tree: 4c041a1a425c9427afdb655f6c0de6a52aff46b6
-Tested: be7d24e67200beddce0069cf092211e1bb962db6
-Full gate: 8242 Vitest + 7 Node. Production unchanged from prior spacing checkpoint.
-Prerequisite source: 034a56fb4fcb3c21996a7e2615a8ddc5dc1176b9
-Bundle: checkpoints/defense-c33e9004.bundle
-Evidence: checkpoints/defense-c33e9004-evidence.tar.gz
-Metadata: checkpoints/defense-c33e9004-metadata.json
-Targeting/controls/editor/readers/previews/native acceptance, broaderTask15/16/balance/hosted/Atlas/human/release remain OPEN.
-No activation/publication/migration/merge/deploy. Archive ancestry is not implementation ancestry.
+Aurevane Task15 captured combat display integration
+Source: 8229c4a94780da096559802a71c4d1ee283ac315
+Source tree: d07f2956df337f986ff4c6e97f6be4c8b3d34338
+Tested: d4cb10384f1b5530dbbde3aa2921bbb6bc547315
+Final8254Vitest+7NodeGREEN;0C1ImportantfixedRED-to-GREEN,7priorMinorsdeferred.
+Prerequisite source: c33e9004bade83127cbe0ce2f592b8cce3692ddd
+Bundle: checkpoints/display-8229c4a9.bundle
+Evidence: checkpoints/display-8229c4a9-evidence.tar.gz
+Metadata: checkpoints/display-8229c4a9-metadata.json
+Nativecombinedcombatintegration/allrosterbalance/readers/editor/previews/Owneredits/hosted/Atlas/human/releaseOPEN. NextactualArsenalEssenceandvisibleproseconsumerworkretained.
+No publication/activation/migration/merge/deploy. Archive ancestry is not implementation ancestry.
