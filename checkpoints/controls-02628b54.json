@@ -1,0 +1,21 @@
+{
+  "head": "02628b541e3aaf3d7a1bf1d8d9508abdf2d34cd3",
+  "tree": "8fc9cb0fe924e392695548519b5f194640c79e6d",
+  "base": "6790f4c9ff9343dee7b39e2f87999c2f1a3d7454",
+  "ref": "refs/checkpoints/controls-02628b54",
+  "bundle": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/evidence/controls-02628b54.bundle",
+    "bytes": 499174,
+    "sha256": "b65eba074dca42c6fdf44707bd1a77f462dbad090157207a9978ba2a35436072",
+    "gitBlobSha": "5d3aac08fc1161295eb65233035c3881f73487e2"
+  },
+  "evidence": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/evidence/controls-02628b54-evidence.tar.gz",
+    "bytes": 67304,
+    "sha256": "4ad647dd9457a0fb66be6bcc56417d752edb07d9327e970fc06f9c7907fd3fe7",
+    "gitBlobSha": "fa0698b5ad0495ea6861dd3b32ab7fbf78e22dc8"
+  },
+  "verification": "The bundle contains this ref:\n02628b541e3aaf3d7a1bf1d8d9508abdf2d34cd3 refs/checkpoints/controls-02628b54\nThe bundle requires this ref:\n6790f4c9ff9343dee7b39e2f87999c2f1a3d7454 \nThe bundle uses this hash algorithm: sha1\n/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/evidence/controls-02628b54.bundle is okay\n",
+  "archiveParent": "b0383d6844515b2153b25c298a6b0c4c0bb79a8f",
+  "archiveBaseTree": "900bbf7e23451d53b38072ff4c50c8cc581748cf"
+}
