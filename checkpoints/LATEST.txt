@@ -1,0 +1,8 @@
+Ground roster checkpoint: 5ed4fe9bc2fb6bbb331344ac92edb22dd05ec445
+Tested source: e9e0042d2107a3b9e4b19cb7751750b54d86808e
+Prerequisite: 7e7b1def59c81398d6698c8452da02e4e2f4cb3b
+Bundle: checkpoints/ground-roster-5ed4fe9b.bundle
+Evidence: checkpoints/ground-roster-5ed4fe9b-evidence.tar.gz
+Metadata: checkpoints/ground-roster-5ed4fe9b.json
+Full check: 8113 Vitest + 7 Node, exit 0; combined review 0 Critical / 0 Important / 0 new Minor.
+Task15/16 remain open. No activation or deployment.

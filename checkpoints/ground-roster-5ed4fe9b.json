@@ -1,0 +1,40 @@
+{
+  "sourceHead": "5ed4fe9bc2fb6bbb331344ac92edb22dd05ec445",
+  "sourceTree": "5f7d5915bb155bb1e3a0a97864b505aa6f32810b",
+  "testedSource": "e9e0042d2107a3b9e4b19cb7751750b54d86808e",
+  "fullCheckReceipt": {
+    "argv": [
+      "pnpm",
+      "--reporter=append-only",
+      "check"
+    ],
+    "cwd": "/workspace/scratch/680b26e4eb86/aurevane",
+    "started_utc": "2026-10-16T10:20:03.079147+00:00",
+    "completed_utc": "2026-10-16T10:24:16.753659+00:00",
+    "exit_code": 0,
+    "log": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/evidence/20261016T102003079147Z.log"
+  },
+  "tests": {
+    "vitest": 8113,
+    "node": 7
+  },
+  "prerequisite": "7e7b1def59c81398d6698c8452da02e4e2f4cb3b",
+  "previousArchiveCommit": "741ba9782298bc8621a6ddac85607f8a0d167baf",
+  "previousArchiveTree": "2194dcd660287f826a1906c3eea48020c259e66c",
+  "manifestSha256": "b86cfec056bbac582810e7da80f9bc687f02518892eb5d11275fc7b5ced19f05",
+  "bundle": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/ground-roster-5ed4fe9b.bundle",
+    "bytes": 19253,
+    "sha256": "65343474098da1947f9511ef4b89862d69cefe4d5765628243d89210212aacd9",
+    "blobSha": "a7d526f27141c7f04e6a810c07cbf349d79deb42",
+    "chunks": 3
+  },
+  "evidence": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/ground-roster-5ed4fe9b-evidence.tar.gz",
+    "bytes": 107306,
+    "sha256": "55edfa24f444b3b2208f7d9a8666ddbd978bcffd433bc68aab73eb515263fdb0",
+    "blobSha": "acf9030065d41b6728da963f32d7b2e6decd58f2",
+    "chunks": 12
+  },
+  "acceptance": "Exact3selected Ground proposals materialized;preexistingafterfields/prices/targets/versions/payloads preserved,other291exact. Actualcapture/publication/editor/readers/sharedplayercontroller/AI/entryexpiry/source-removal/Airborne/Steam/terminal tested. Geometry2 Fire Ground intent fixed throughsharedpolicycapability;Geometry3authoredcategories/nativehistory retained. No hosted publication/activation/merge/deployment. Task15/16 distinctcycles/multiturnbalance/pacing/nativebrowser/fullreaders/Owneredits-hostedCAS/Atlas remainOPEN. See committed report for actual final gate/review/rulings and deferred minors."
+}
