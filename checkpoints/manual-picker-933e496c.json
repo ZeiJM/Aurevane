@@ -1,0 +1,28 @@
+{
+  "sourceHead": "933e496cdb892119dfece6182c7771cb4268d370",
+  "sourceTree": "7f4726cbdef645907554e41d943e7fc016687168",
+  "testedSource": "80aff5173858c186f673d15fd4399a7159038fa4",
+  "fullCheckReceipt": "20261016T050914546728Z.json",
+  "tests": {
+    "vitest": 7081,
+    "node": 7
+  },
+  "prerequisite": "8b50b7a401db6fa5ed26bc43b5a85cda669fe5f2",
+  "previousArchiveCommit": "f3a7d0bc9b27835360577d711851cc97e7df32e3",
+  "previousArchiveTree": "d0a4944dc12b49a19370e931b19e41b3cf57cd68",
+  "bundle": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-16-manual-modifier-picker/manual-picker-933e496c.bundle",
+    "bytes": 59623,
+    "sha256": "6711bfb981561132d5969db79e3034d3a4b3c3f431bcf8f7e0d777130e5cf843",
+    "blobSha": "35bacfb5e5257a22a6f32e9a79fab0bc719a19bd",
+    "chunks": 7
+  },
+  "evidence": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-16-manual-modifier-picker/manual-picker-933e496c-evidence.tar.gz",
+    "bytes": 159700,
+    "sha256": "3225b9bf8e23fb81693fd68635df25bd0f38bf311ffaa7d4ec3d500ec8226bb4",
+    "blobSha": "875ac6b440e24e40e1476d3b469b9eaf5238f887",
+    "chunks": 18
+  },
+  "acceptance": "Native interaction remains OPEN; no hosted writes/activation/release."
+}
