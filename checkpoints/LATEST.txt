@@ -1,5 +1,5 @@
-Arsenal reader checkpoint
-Source 7d2b4765e9009518080026f62f4fff9aeeb31b5e
-Tested 70580e935acd583c0444fe3198349e0cf87dc311
-8272 Vitest + 7 Node passed
-checkpoints/arsenal-7d2b4765-metadata.json
+Canonical recovery reader checkpoint
+Source 98916aa36631868418c078cab968a764cc7fc5a1
+Tested 51fe9cf1a7d582cc0450f6a7a5e259245619c13c
+8295 Vitest + 7 Node passed
+checkpoints/recovery-98916aa3-metadata.json

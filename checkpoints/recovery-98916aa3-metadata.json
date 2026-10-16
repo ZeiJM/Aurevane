@@ -1,0 +1,39 @@
+{
+  "sourceHead": "98916aa36631868418c078cab968a764cc7fc5a1",
+  "sourceTree": "10fb70eee5bd5bb88ddce1c5514ea0d417fb4f64",
+  "testedSource": "51fe9cf1a7d582cc0450f6a7a5e259245619c13c",
+  "prerequisite": "7d2b4765e9009518080026f62f4fff9aeeb31b5e",
+  "previousArchiveCommit": "074f7ef31fca1c817afeddf09e76225e7e2b8ad7",
+  "previousArchiveTree": "bf09b6f38b4a0dc70696bcb1139d83185fdab06d",
+  "fullCheckReceipt": {
+    "argv": [
+      "pnpm",
+      "--reporter=append-only",
+      "check"
+    ],
+    "cwd": "/workspace/scratch/680b26e4eb86/aurevane",
+    "started_utc": "2026-10-16T14:37:52.901750+00:00",
+    "completed_utc": "2026-10-16T14:38:23.894937+00:00",
+    "exit_code": 0,
+    "log": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/evidence/20261016T143752901750Z.log"
+  },
+  "tests": {
+    "vitest": 8295,
+    "node": 7
+  },
+  "bundle": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/recovery-98916aa3.bundle",
+    "bytes": 18729,
+    "sha256": "87255462f2f2fa6474bd6a6bdf58816cb3c70dfdaa855b7e8d09eae660d2c360",
+    "blobSha": "361540a83c646af555a05a02767e6a03132b4c43",
+    "chunks": 3
+  },
+  "evidence": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/recovery-98916aa3-evidence.tar.gz",
+    "bytes": 314327,
+    "sha256": "33e4efb90b5fd49e9a4ac48445ed2df41f4b8e1b9c11109c75f4e36ea72f0edb",
+    "blobSha": "d020e5fba2677582f72aeb93052e4566ccd0e180",
+    "chunks": 35
+  },
+  "acceptance": "Canonical recovery/movement/Reveal non-damage prose170effects, truthful structured periodic applications/clock and Reveal owner-start lifetime. Review0C1I corrected current-turn skip via actualengine+reader RED→GREEN;23new cases,720covering. Frozen8295Vitest+7Node verified. Final294record297group604effect static observation170changed434unchanged; digits521to353/non-direct-damage350to182 auditcandidates only.8priorMinorsdeferred. Manifest/AI/executor/prices/defaultfixture unchanged; no duplicate289. Original combat integration/readers/status/prose/native and full balance/Owner/hosted/Atlas/human/release OPEN. No publication/activation/migration/merge/deploy."
+}
