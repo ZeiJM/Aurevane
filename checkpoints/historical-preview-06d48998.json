@@ -1,0 +1,50 @@
+{
+  "source": "06d489988cd8571d40c81dd58525457ac6319d75",
+  "tree": "99c0364cf3e3b749de4815b4a9b25ced257902c8",
+  "testedSource": "ffed8d1b8ef011fcaf0efa71c89080f833a8a626",
+  "reviewedSource": "9efdf7d4b6289a2e79a786a2bd3eb632655f538b",
+  "prerequisite": "df1ac65868dd8ce833b8327f7303cd1ab00e22b6",
+  "parentArchive": "6aeb2241429d9c7a30de53a545607c7c1bfd2002",
+  "parentTree": "4157e740f311f31ac1273c2cb5aefc4d9d124732",
+  "mainUnchanged": "29506e293e81abef1b0b8a46099618ab3ae3f0ae",
+  "fullCheckReceipt": {
+    "argv": [
+      "pnpm",
+      "--reporter=append-only",
+      "check"
+    ],
+    "cwd": "/workspace/scratch/680b26e4eb86/aurevane",
+    "started_utc": "2026-10-16T23:36:47.705850+00:00",
+    "completed_utc": "2026-10-16T23:37:17.645569+00:00",
+    "exit_code": 0,
+    "log": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/evidence/20261016T233647705850Z-f697960d.log"
+  },
+  "tests": {
+    "vitest": 8962,
+    "node": 7
+  },
+  "preservation": {
+    "source": "ffed8d1b8ef011fcaf0efa71c89080f833a8a626",
+    "records": 294,
+    "groups": 297,
+    "effects": 604,
+    "allReportsAndHtmlExactlyUnchanged": true,
+    "manifestAndSixAiSourceHashesUnchanged": true,
+    "rawSha256": "624dedb230cefc409d8cf1b0311a8af3a3a2dfb8dc4217f7b78c5be5df4d0883"
+  },
+  "acceptance": "Historical Resonance backend sample only: exact native immediate or same-turn setup/trigger commands, current enabled native Skill references, safe actual outcomes/events; editor wiring remains next.23newcases. One combined review0C2I repaired in ONE RED\u2192GREEN wave/no rereview;16inheritedMinors deferred and14explicit scope rulings/costs in report. Full8,962Vitest+7Node/allquality/bothbuilds required before archive. Native141/proposedManual284/readers294 exact;manifest/sixAIhashes unchanged. No hostedwrite/publication/activation/migration/mainmerge/deployment. Historicaleditor/fullcycles/native/AT/geometry/fullbalance/Ownercurrentcontent/CAS/Atlas/human/Task15/16/release remainOPEN. Highsufficient;ETAprovisional16\u201330activehours.",
+  "bundle": {
+    "local": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/historical-preview-06d48998.bundle",
+    "path": "checkpoints/historical-preview-06d48998.bundle",
+    "bytes": 13695,
+    "sha256": "7f59e2685e550ce15ebd236438c35558bcd6b0b6fe0add15a02e0d03f32c5b0a",
+    "blobSha": "8533b5b1b6f0fc903ac90b8df325163bc8b0a70c"
+  },
+  "evidence": {
+    "local": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/historical-preview-06d48998-evidence.tar.gz",
+    "path": "checkpoints/historical-preview-06d48998-evidence.tar.gz",
+    "bytes": 617693,
+    "sha256": "5153e5beaa9693630045661aaf694b000d989ef48279e5d15b219f0f3297250a",
+    "blobSha": "d963ac43e1126e840971427c5aaa677d8146bc7d"
+  }
+}

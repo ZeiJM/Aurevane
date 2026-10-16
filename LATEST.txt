@@ -1,7 +1,5 @@
-Aurevane Automatic reference sample checkpoint
-Source df1ac65868dd8ce833b8327f7303cd1ab00e22b6
-Tested 91709e6e59556f8a1c30a63dca4d8878774964ee
-Prerequisite 4eb8780087d7d83bf9167fb0f6b61c2c10532443
-Metadata checkpoints/automatic-preview-df1ac658.json
-8939 Vitest +7 Node;345 focused;29 new cases. Full check exits0, both builds pass. One Important fixed in one review repair wave;2 new display/copy Minors and14 inherited Minors deferred.
-Concurrent entry-audit source76037d9f and archive f4246df9 preserved. Main unchanged. No hosted publication/migration/deployment. Historical/native/browser/balance/hosted/Atlas/human/release gates remain open.
+Aurevane historical Resonance backend preview checkpoint
+Source 06d489988cd8571d40c81dd58525457ac6319d75
+Tested ffed8d1b8ef011fcaf0efa71c89080f833a8a626
+Metadata checkpoints/historical-preview-06d48998.json
+Historical Resonance backend sample only: exact native immediate or same-turn setup/trigger commands, current enabled native Skill references, safe actual outcomes/events; editor wiring remains next.23newcases. One combined review0C2I repaired in ONE RED→GREEN wave/no rereview;16inheritedMinors deferred and14explicit scope rulings/costs in report. Full8,962Vitest+7Node/allquality/bothbuilds required before archive. Native141/proposedManual284/readers294 exact;manifest/sixAIhashes unchanged. No hostedwrite/publication/activation/migration/mainmerge/deployment. Historicaleditor/fullcycles/native/AT/geometry/fullbalance/Ownercurrentcontent/CAS/Atlas/human/Task15/16/release remainOPEN. Highsufficient;ETAprovisional16–30activehours.
