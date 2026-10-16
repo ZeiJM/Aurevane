@@ -1,0 +1,23 @@
+{
+  "head": "8b50b7a401db6fa5ed26bc43b5a85cda669fe5f2",
+  "tree": "dba9203d9dbe139166f017de55dd7b39e81bfbe0",
+  "base": "d7e993d8151d09e886b05bf87709412adbe1b41b",
+  "ref": "refs/checkpoints/picker-plan-8b50b7a4",
+  "bundle": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/evidence/picker-plan-8b50b7a4.bundle",
+    "bytes": 13240,
+    "sha256": "7c6faa214725504c42757bdbc3f7337af33b27f66ad2461ab47f703870bbc878",
+    "gitBlobSha": "1ecd88c6fad1e472db1d10d605b035de5ad28456"
+  },
+  "evidence": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/evidence/picker-plan-8b50b7a4-evidence.tar.gz",
+    "bytes": 50310,
+    "sha256": "833fceb09f90ce9547d84e4b991b2a2e970a945d355c213e427fa6f80cd3c084",
+    "gitBlobSha": "2282e5e3b387beee471cca23a468e28051be1ea7"
+  },
+  "verification": "The bundle contains this ref:\n8b50b7a401db6fa5ed26bc43b5a85cda669fe5f2 refs/checkpoints/picker-plan-8b50b7a4\nThe bundle requires this ref:\nd7e993d8151d09e886b05bf87709412adbe1b41b \nThe bundle uses this hash algorithm: sha1\n/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/evidence/picker-plan-8b50b7a4.bundle is okay\n",
+  "archiveParent": "9160af53730f4b62eccb4dac543defc63ba804f5",
+  "archiveBaseTree": "176fd21516226830c0c02d31baf3cdad5f36e170",
+  "recoveryPrerequisiteBundle": "checkpoints/picker-design-d7e993d8.bundle (requires original base6790f4c9)",
+  "status": "Owner approved design and return to High; concrete implementation plan awaiting review; no product change"
+}

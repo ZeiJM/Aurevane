@@ -1,14 +1,13 @@
 # Aurevane recovery checkpoint
 
-Source: d7e993d8151d09e886b05bf87709412adbe1b41b
-Tree: 6e6dd3f5a53b4bb8fd1a90a3e1023e07048cdc5c
-Bundle: checkpoints/picker-design-d7e993d8.bundle
-Prerequisite: 6790f4c9ff9343dee7b39e2f87999c2f1a3d7454
-Evidence: checkpoints/picker-design-d7e993d8-evidence.tar.gz
-Metadata: checkpoints/picker-design-d7e993d8.json
+Source: 8b50b7a401db6fa5ed26bc43b5a85cda669fe5f2
+Tree: dba9203d9dbe139166f017de55dd7b39e81bfbe0
+Status: Owner approved design and return to High; concrete implementation plan awaiting review; no product change
 
-This is a backup-only archive branch, not implementation ancestry or a release. Restore the bundle on its prerequisite and inspect the proposed written design at docs/superpowers/specs/2026-10-16-manual-modifier-picker-design.md.
+This is a backup-only archive branch, not implementation ancestry or a release.
 
-Status: proposed explicit Manual modifier picker design, self-reviewed and formatted. No product change in this checkpoint. Written-spec Owner approval and a real return-to-High effort switch are pending before writing the implementation plan. Existing inline execution preference persists. Task15/16, actual browser/keyboard/touch/physical-layout acceptance, whole-roster/AI/balance/reader audits, and coordinated release gates remain open. No deployment, hosted mutation, roster activation, or release is authorized here.
+Restore original base 6790f4c9, then checkpoints/picker-design-d7e993d8.bundle to source d7e993d8; then apply incremental checkpoints/picker-plan-8b50b7a4.bundle (requires d7e993d8) to source 8b50b7a401db6fa5ed26bc43b5a85cda669fe5f2. Git bundle verify passed; metadata contains exact bytes/hashes/ref. Evidence: checkpoints/picker-plan-8b50b7a4-evidence.tar.gz.
 
-Controlled prerequisite source 6616c213 retains its earlier 7038 Vitest + 7 Node full-gate receipt; no fresh product tests were run for this doc-only design checkpoint.
+Read docs/superpowers/specs/2026-10-16-manual-modifier-picker-design.md (Owner-approved) and docs/superpowers/plans/2026-10-16-manual-modifier-picker.md (concrete six-task plan, review pending). Owner's direct 'ok go on' plus 'continue' accepted the design and return to High; do not ask that effort/design question again. Preserve inline execution preference. The writing-plans skill explicitly requires written-plan review before implementation. Pause here for that review; no picker product code has been written.
+
+Working estimate communicated: 24–48 active hours for combat-first release, low confidence pending picker integration and browser blockers, not a promised launch; broader Master/world follows. All complete-roster, AI/balance, reader/event/keyboard/touch/physical/hosted and coordinated release gates remain open. No hosted write, roster activation or deployment here. Doc formatting/diff checks pass; earlier 7038 Vitest + 7 Node receipt retains only its prior Controlled-prerequisite meaning.
