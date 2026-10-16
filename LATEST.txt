@@ -1,4 +1,6 @@
-Canonical Master targeting preview checkpoint
-Source ab359650becb091b5eb87887c653a0a498753dca
-Tested/reviewed 452161cd9e1e9be7b92ceb30fbddff1acaf639a0
-8722 Vitest+7 Node; all136 native preview JSON/all294 reader exact; review0C0I0newM;14 inherited Minors deferred. Original combat/editor/native/release work remains open. No deployment.
+Resonance Manual-action preview checkpoint
+Source 5e4e97fd1ca2b377e936bfb746f7b95d55f176a2
+Final tested 0a901b495d3b694ecb69dbad870ac730c995135b
+Reviewed production 5b55bb6f4c992d04d1e38f3e4a72e42b63e554f9; all three Important findings fixed in ONE RED-to-GREEN repair pass, no rereview.
+8877 Vitest +7 Node, quality checks and both builds GREEN. All141 existing previews/all294 reports exact; manifest/sixAI hashes unchanged.14 inherited Minors deferred.
+Original combat/event/root/native/balance/hosted/Atlas/human/release work remains OPEN. No deployment. High sufficient.

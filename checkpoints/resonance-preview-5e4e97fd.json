@@ -1,0 +1,66 @@
+{
+  "sourceHead": "5e4e97fd1ca2b377e936bfb746f7b95d55f176a2",
+  "sourceTree": "e277d75e7670d58a76743f656602e050d8c48c04",
+  "testedSource": "0a901b495d3b694ecb69dbad870ac730c995135b",
+  "reviewedProductionSource": "5b55bb6f4c992d04d1e38f3e4a72e42b63e554f9",
+  "prerequisite": "ab359650becb091b5eb87887c653a0a498753dca",
+  "previousArchiveCommit": "f18e515740520cabcb85a99a5e41fc4c3b8c8e07",
+  "previousArchiveTree": "663d047bc946fc7e1347a3b8463ffd286b1b8ed1",
+  "fullCheckReceipt": {
+    "argv": [
+      "pnpm",
+      "--reporter=append-only",
+      "check"
+    ],
+    "cwd": "/workspace/scratch/680b26e4eb86/aurevane",
+    "started_utc": "2026-10-16T22:08:14.457459+00:00",
+    "completed_utc": "2026-10-16T22:08:44.514764+00:00",
+    "exit_code": 0,
+    "log": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/evidence/20261016T220814457459Z-9b2003b9.log"
+  },
+  "tests": {
+    "vitest": 8877,
+    "node": 7
+  },
+  "readerAudit": {
+    "source": "0a901b495d3b694ecb69dbad870ac730c995135b",
+    "rawSha256": "3b16fcc59d378f6aa06c491b4a57e3d6ab369a6110d70dd76124abc1fb779d25",
+    "records": 294,
+    "groups": 297,
+    "effects": 604,
+    "allReportsAndHtmlExactlyUnchanged": true,
+    "manifestAndSixAiSourceHashesUnchanged": true,
+    "scope": "Static named Skill readers only. Live-effect controlled callbacks and SSR are separately tested; native keyboard, AT and geometry acceptance remain open."
+  },
+  "bundle": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/resonance-preview-5e4e97fd.bundle",
+    "bytes": 19616,
+    "sha256": "bc26c330fd2591be8a9689db296699a1f2a041a8f69be297e49dacdf207ecc34",
+    "blobSha": "906c31d643ae2f4accf50f5995c4d412c1d6917b",
+    "chunks": 3
+  },
+  "evidence": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/resonance-preview-5e4e97fd-evidence.tar.gz",
+    "bytes": 572843,
+    "sha256": "6ac333a6a4a84b493c7322a678f16515f07f9778917f82b0448bdc0ed21c70d7",
+    "blobSha": "946403fd587629804a23058a7a5e1ead214508aa",
+    "chunks": 64
+  },
+  "acceptance": "Canonical Resonance Manual-action authoring preview through actual editor/client/authenticated handler/typed service/native exact pair-source capture/shared command preparation and safe output.155new tests;8877Vitest+7Node required;all130 acceptedManualgroups prepared;all141default native preview JSON/all294reportsHTML exact;manifest/sixAIhashes unchanged. Legacy/passive workflow preserved. Automatic/Ongoing/event/modifier-root/legacysequence simulation and originalcombat/native/AT/geometry/fullcycles/balance/OwnerhostedSQLCAS/Atlas/human/Task15/16/release remainOPEN. No hosted write/publication/activation/migration/merge/deploy. High sufficient;14inheritedMinors deferred.",
+  "legacyAudit": {
+    "source": "0a901b495d3b694ecb69dbad870ac730c995135b",
+    "records": 141,
+    "allLegacyNativePreviewsExactlyUnchanged": true,
+    "rawSha256": "49050e22e414dd9ada6e16f69e809170c09b8b0dab2f57b915dd44bf337b3127",
+    "baselineSha256": "49050e22e414dd9ada6e16f69e809170c09b8b0dab2f57b915dd44bf337b3127",
+    "baselineModuleSha256": "5289b7744d3e4345ac7687d5b405010606649fd75c4e43b85cf2ff730a98197a"
+  },
+  "review": {
+    "critical": 0,
+    "important": 3,
+    "importantFixedInOnePass": 3,
+    "newMinor": 0,
+    "inheritedMinorsDeferred": 14
+  },
+  "mainUnchanged": "29506e293e81abef1b0b8a46099618ab3ae3f0ae"
+}
