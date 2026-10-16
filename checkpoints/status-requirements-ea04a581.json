@@ -1,0 +1,49 @@
+{
+  "sourceHead": "ea04a581392e57b867c7f6fd2350072f030c4e7c",
+  "sourceTree": "1d2c4b1281eae956a0acfcc7989a00bfe8f9f63b",
+  "testedSource": "d218bf2888e348c264dd7c0220da5d5e3f2e4a76",
+  "fullCheckReceipt": {
+    "argv": [
+      "pnpm",
+      "--reporter=append-only",
+      "check"
+    ],
+    "cwd": "/workspace/scratch/680b26e4eb86/aurevane",
+    "started_utc": "2026-10-16T07:21:19.139523+00:00",
+    "completed_utc": "2026-10-16T07:24:26.389048+00:00",
+    "exit_code": 0,
+    "log": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/evidence/20261016T072119139523Z.log"
+  },
+  "prerequisite": "883b63a7e2b16a7d77f44655b395d050208a38d2",
+  "previousArchiveCommit": "353b842d32cdbf4d6818e2a17c902cf6b404c029",
+  "previousArchiveTree": "ac35ef152887f84f7e2312390848024dd4efb16d",
+  "manifestSha256": "bdceab2a7547845d15f20654c1dc758a97d6c104d2dad76c906364e4504cdd9f",
+  "bundle": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/status-requirements-ea04a581.bundle",
+    "bytes": 20245,
+    "sha256": "eacbfc9fb8ee2addbf80926410277d4298000503e93f4be999ae77a8c6d02b19",
+    "blobSha": "9518b149caa6379a8741b0de035781f68cca4df3",
+    "chunks": 3
+  },
+  "evidence": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/status-requirements-ea04a581-evidence.tar.gz",
+    "bytes": 98277,
+    "sha256": "3b834d60a38f72f9dd11ffce4e18a4fc4ef95da3ac283de519b360008bb28f45",
+    "blobSha": "0c3f87f592f8af8d8d8ba6450fbb235bd911de36",
+    "chunks": 11
+  },
+  "acceptance": "Bounded executable24authorable statuses plus actual LoweredGuard/system and Displaced/history,8Requirement kinds; three reproduced runtime fixes, exact manifest unchanged. Task15/16 OPEN: activation inventory/cycles/all294individual outcomes/realAI-Level100/nativebrowser/readers/Owneredits-hostedCAS/Atlas. No hosted write, activation, merge or deployment. See committed verification report for exact review findings and full gate counts.",
+  "tests": {
+    "vitest": 7753,
+    "node": 7
+  },
+  "review": {
+    "original": {
+      "critical": 0,
+      "important": 0,
+      "minor": 1
+    },
+    "parentRegrade": "M1 incorrect Mend expenditure in handoff regraded Important and corrected docs-only, actual-cost audit RED072429861126→GREEN072505416572; no product change.",
+    "currentDeferredMinors": 0
+  }
+}
