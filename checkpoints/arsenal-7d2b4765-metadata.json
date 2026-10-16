@@ -1,0 +1,39 @@
+{
+  "sourceHead": "7d2b4765e9009518080026f62f4fff9aeeb31b5e",
+  "sourceTree": "94cd1c38ac9eaef5909f8f3e3090b9a87e663977",
+  "testedSource": "70580e935acd583c0444fe3198349e0cf87dc311",
+  "prerequisite": "8229c4a94780da096559802a71c4d1ee283ac315",
+  "previousArchiveCommit": "cb6da1ab71309b8a79c125d09a21fa3f236f5039",
+  "previousArchiveTree": "6d1002c9aff011bb468f1ae8afecb66f1874e459",
+  "fullCheckReceipt": {
+    "argv": [
+      "pnpm",
+      "--reporter=append-only",
+      "check"
+    ],
+    "cwd": "/workspace/scratch/680b26e4eb86/aurevane",
+    "started_utc": "2026-10-16T14:11:33.751551+00:00",
+    "completed_utc": "2026-10-16T14:15:28.681501+00:00",
+    "exit_code": 0,
+    "log": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/evidence/20261016T141133751551Z.log"
+  },
+  "tests": {
+    "vitest": 8272,
+    "node": 7
+  },
+  "bundle": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/arsenal-7d2b4765.bundle",
+    "bytes": 6941,
+    "sha256": "64070684b153b4209bdcc2c26f4d9c55abb7e1d36690a63350a34ab50c2b4bcd",
+    "blobSha": "2afb0854315363650bbc4d4d1355f7a647cb22ac",
+    "chunks": 1
+  },
+  "evidence": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/arsenal-7d2b4765-evidence.tar.gz",
+    "bytes": 221478,
+    "sha256": "5da9c0b29e91341419de22e755f682107956d56e78f4bfa206c3fd41342350be",
+    "blobSha": "e5b42f618213d3fd6b1dcc306afda2cacc87e980",
+    "chunks": 25
+  },
+  "acceptance": "Actual Arsenal canonical Essence reader corrected via existing exact-version adapter. All17 current and public plus pinned history18tests;0C0I1newMinor,total8deferred. Frozen8272Vitest+7Node fullcheck. Manifest/AI/executor/pricing/defaultfixture unchanged; no duplicate289. Original combat integration/readers/prose/native and full balance/Owner/hosted/Atlas/human/release OPEN. No publication/activation/migration/merge/deploy."
+}

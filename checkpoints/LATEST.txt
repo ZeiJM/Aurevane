@@ -1,11 +1,5 @@
-Aurevane Task15 captured combat display integration
-Source: 8229c4a94780da096559802a71c4d1ee283ac315
-Source tree: d07f2956df337f986ff4c6e97f6be4c8b3d34338
-Tested: d4cb10384f1b5530dbbde3aa2921bbb6bc547315
-Final8254Vitest+7NodeGREEN;0C1ImportantfixedRED-to-GREEN,7priorMinorsdeferred.
-Prerequisite source: c33e9004bade83127cbe0ce2f592b8cce3692ddd
-Bundle: checkpoints/display-8229c4a9.bundle
-Evidence: checkpoints/display-8229c4a9-evidence.tar.gz
-Metadata: checkpoints/display-8229c4a9-metadata.json
-Nativecombinedcombatintegration/allrosterbalance/readers/editor/previews/Owneredits/hosted/Atlas/human/releaseOPEN. NextactualArsenalEssenceandvisibleproseconsumerworkretained.
-No publication/activation/migration/merge/deploy. Archive ancestry is not implementation ancestry.
+Arsenal reader checkpoint
+Source 7d2b4765e9009518080026f62f4fff9aeeb31b5e
+Tested 70580e935acd583c0444fe3198349e0cf87dc311
+8272 Vitest + 7 Node passed
+checkpoints/arsenal-7d2b4765-metadata.json
