@@ -1,0 +1,50 @@
+{
+  "sourceHead": "f9367ece1880896f09ebc20c1818fe7c41823c8b",
+  "sourceTree": "d331d7d668f35b6e00f0e4729618d51ec4b4af31",
+  "testedSource": "20038c54c80f97a4a192dfcd128009759ded77c3",
+  "reviewedProductionSource": "10adca11d86a3e02cda989857199f92680199225",
+  "prerequisite": "54a1ab343cac44d7d346c2c1fee052551e0679a1",
+  "previousArchiveCommit": "3736ca45b386cc995d2f0dc9b82812c788b1bf94",
+  "previousArchiveTree": "b4e4db3561f417d77fc632df0ddc42c726ee2253",
+  "fullCheckReceipt": {
+    "argv": [
+      "pnpm",
+      "--reporter=append-only",
+      "check"
+    ],
+    "cwd": "/workspace/scratch/680b26e4eb86/aurevane",
+    "started_utc": "2026-10-16T18:15:08.741424+00:00",
+    "completed_utc": "2026-10-16T18:15:40.722466+00:00",
+    "exit_code": 0,
+    "log": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/evidence/20261016T181508741424Z.log"
+  },
+  "tests": {
+    "vitest": 8509,
+    "node": 7
+  },
+  "readerAudit": {
+    "source": "20038c54c80f97a4a192dfcd128009759ded77c3",
+    "rawSha256": "530f38dcaba1bef3445a017f74d54474e8d7c6845ab9f078c99111151fee5d6c",
+    "records": 294,
+    "groups": 297,
+    "effects": 604,
+    "allReportsAndHtmlExactlyUnchanged": true,
+    "manifestAndSixAiSourceHashesUnchanged": true,
+    "scope": "Static named Skill readers only. Live-effect controlled callbacks and SSR are separately tested; native keyboard, AT and geometry acceptance remain open."
+  },
+  "bundle": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/live-effect-f9367ece.bundle",
+    "bytes": 38851,
+    "sha256": "51ecd1e7b27755415d31c35c498f17cf769168a1e9449da2ff6692661e6850f2",
+    "blobSha": "abbf6d31779cbe3224e01c7b2fefb6409d9c8107",
+    "chunks": 5
+  },
+  "evidence": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/live-effect-f9367ece-evidence.tar.gz",
+    "bytes": 636686,
+    "sha256": "a0e63ad1757bb81227f9e99fbfe1cd965dc662b954c7b11901df1b410dc45e9e",
+    "blobSha": "f6cb21a1b4c24a210b5a3a1f9b3d8b38721befb7",
+    "chunks": 71
+  },
+  "acceptance": "Captured live-effect reader checkpoint: shared actual-instance report across compact/full/All and five legacy desktop/mobile PvE/PvP/spectator surfaces. Actual applications/current incoming rate/lifetime/DoT captured percentages and progression, unknown-version truth and viewer privacy. Ctrl+Alt+E shared entry, scoped native controls, inspect focus/opener return and modal-owned portal host. Existing Tab/custom bindings/art tokens preserved; physical/native/AT acceptance open. Viewer-only captured stacking flag; no execution/schema/persistence/AI/manifest/native core fixture change. Independent browser presentation fixture aligned. One fresh combined review: 0 Critical, 5 Important, 1 new Minor; parent accepts all Important plus root-fixture I6, ONE RED\u2192GREEN repair wave, no rereview; 32 individual parent reason/cost dispositions; 13 deferred Minors. 60 new cases overall. Final 875 focused/83 files, web types and scoped zero-warning lint pass. Exact tested 20038c54 passes 8509 Vitest+7 Node, all types/lint/format/both builds; initial181018586167 root stdout build tail lost but complete package log preserved; ONE cached complete root replay181508741424 GREEN. All294 Skill-reader reports and HTML byte-identical, 297 groups/604 effects, manifest and six AI/native source hashes unchanged; no fresh289 claimed. Recovery/Barrier per-instance amounts, other strength categories, Controlled readiness, historical Chronicle/Manual/prose, full original combat controls/editors/native/cycles/balance/Owner hosted/Atlas/human/release OPEN. Next read-only amount-projection notes; no next source edit. No hosted writes/publication/activation/migration/merge/deploy. High sufficient."
+}

@@ -1,10 +1,8 @@
-Verified generated cross-status reference checkpoint
-Source 54a1ab343cac44d7d346c2c1fee052551e0679a1
-Tested and reviewed 3b6cd9a84597c40fb48890a903c05dd1445182f0
-Prerequisite 5d4dd27125a69d76dff0d2f0c522fb10b106eaf3
-Bundle checkpoints/cross-status-54a1ab34.bundle SHA256 5e10c2821642316826b03fd0bba8fc93bc309832e25b906d037d7ea90fec59bc
-Evidence checkpoints/cross-status-54a1ab34-evidence.tar.gz SHA256 482b12c86002f4dddd9fe663d408c009c467896c3e37d80558b0cb0b69c5d2d0
-Metadata checkpoints/cross-status-54a1ab34-metadata.json
-Full check8449Vitest+7Node GREEN;65typednodes/42effectpackets/42records, all294plaincontracts and priorreferences unchanged.
-Onecombinedreview0C0I1newMinor;12totalMinorsdeferred, noCIfix/norereview. Nextactiveeffectreaderintegrationread-onlynotesincluded.
-No hosted write, publication, activation, migration, merge or deploy.
+Captured live-effect reader development checkpoint
+Source f9367ece1880896f09ebc20c1818fe7c41823c8b
+Tested 20038c54c80f97a4a192dfcd128009759ded77c3
+Reviewed 10adca11d86a3e02cda989857199f92680199225; parent ONE Important repair wave, no rereview
+Metadata checkpoints/live-effect-f9367ece-metadata.json
+8509 Vitest + 7 Node; all294 Skill reader reports/HTML exact
+13 Minors deferred; native/AT/geometry/full combat/balance/hosted/release open
+No publication, activation, migration, merge or deployment
