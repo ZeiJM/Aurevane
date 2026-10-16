@@ -1,9 +1,9 @@
-Legal duel checkpoint: 1461fa3de939e5fb4770d5ab507b8c9561256a05
-Tested source: b586c2d4d363d2864185b92557c920018013ff5a
-Prerequisite: 5ed4fe9bc2fb6bbb331344ac92edb22dd05ec445
-Bundle: checkpoints/legal-duel-1461fa3d.bundle
-Evidence: checkpoints/legal-duel-1461fa3d-evidence.tar.gz
-Metadata: checkpoints/legal-duel-1461fa3d.json
-Full check: 8160 Vitest + 7 Node, exit 0. Explicit complete matrix: 289 passed; 8227 commands, all still active after the four-round horizon.
-Combined review: 0 Critical / 0 Important / 0 new Minor.
-Task15/16 remain open. No activation or deployment.
+Ranged/budget evidence checkpoint
+Source e7820890256733b51edc00e98895efebe0d3d6fc
+Tested 8657f3c46473f0c5455947d270ce8d69763e2cb6
+Tests8181Vitest+7Node;21ranged/14separatenaturaldiagnostics
+Bundle checkpoints/ranged-e7820890.bundle
+Requires 1461fa3de939e5fb4770d5ab507b8c9561256a05
+Evidence checkpoints/ranged-e7820890-evidence.tar.gz
+Metadata checkpoints/ranged-e7820890.json
+Task15/16releaseOPEN;OwnerExtraHighjudgmentnext;nohostedwrite/activation/merge/deploy.

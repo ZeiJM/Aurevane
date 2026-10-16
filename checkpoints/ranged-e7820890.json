@@ -1,0 +1,57 @@
+{
+  "sourceHead": "e7820890256733b51edc00e98895efebe0d3d6fc",
+  "sourceTree": "fc792417c5ed5ed05a93e1ed55bba25135cb25f3",
+  "testedSource": "8657f3c46473f0c5455947d270ce8d69763e2cb6",
+  "fullCheckReceipt": {
+    "argv": [
+      "pnpm",
+      "--reporter=append-only",
+      "check"
+    ],
+    "cwd": "/workspace/scratch/680b26e4eb86/aurevane",
+    "started_utc": "2026-10-16T11:20:15.038115+00:00",
+    "completed_utc": "2026-10-16T11:23:54.291951+00:00",
+    "exit_code": 0,
+    "log": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/evidence/20261016T112015038115Z.log"
+  },
+  "naturalDiagnosticReceipt": {
+    "argv": [
+      "pnpm",
+      "--filter",
+      "@aurevane/web",
+      "exec",
+      "vitest",
+      "run",
+      "src/server/battle/roster-budget-diagnostic.test.ts"
+    ],
+    "cwd": "/workspace/scratch/680b26e4eb86/aurevane",
+    "started_utc": "2026-10-16T11:12:56.224945+00:00",
+    "completed_utc": "2026-10-16T11:14:29.966748+00:00",
+    "exit_code": 0,
+    "log": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/evidence/20261016T111256224945Z.log"
+  },
+  "naturalDiagnosticCases": 14,
+  "tests": {
+    "vitest": 8181,
+    "node": 7
+  },
+  "prerequisite": "1461fa3de939e5fb4770d5ab507b8c9561256a05",
+  "previousArchiveCommit": "948cbbc30edf9eedbde7a8f961495aaa92c83167",
+  "previousArchiveTree": "ce79be77f044565558b95eef18fdc940a9c71f45",
+  "manifestSha256": "b86cfec056bbac582810e7da80f9bc687f02518892eb5d11275fc7b5ced19f05",
+  "bundle": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/ranged-e7820890.bundle",
+    "bytes": 12959,
+    "sha256": "d627f76df3a1d7e2dc3131ca4b35dee34c61b9378c7024aef0ff90c2df523d41",
+    "blobSha": "48d8a8f7d04214bc38f2ed7903f6ecabc5744354",
+    "chunks": 2
+  },
+  "evidence": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/ranged-e7820890-evidence.tar.gz",
+    "bytes": 111596,
+    "sha256": "780817173433de9fca4b9b6f92dbe4e2c0a80536be78f42e0cdb0614d70fe0bc",
+    "blobSha": "700a64d3eaa771112bd29fb52e4e323c6cdfb3bd",
+    "chunks": 13
+  },
+  "acceptance": "21actualrangedcyclesLevel1/100PvE/PvP plus14naturalPvPbudgetdiagnostics; genuinefourSkillbuilds/current-pinnedauthority/realcommands. Optionalfixtureboardonly,defaultcompatibilityguard. No productionbehavior/AI/prices/formulas/definitions/UI/hostedwrites/activation/merge/deploy. Task15/16andreleaseOPEN; pauseforOwnerExtraHighstrategy-balancejudgment. Exactlimits/rulings/prior5Minors inreport."
+}
