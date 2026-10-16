@@ -1,0 +1,22 @@
+{
+  "head": "d7e993d8151d09e886b05bf87709412adbe1b41b",
+  "tree": "6e6dd3f5a53b4bb8fd1a90a3e1023e07048cdc5c",
+  "base": "6790f4c9ff9343dee7b39e2f87999c2f1a3d7454",
+  "ref": "refs/checkpoints/picker-design-d7e993d8",
+  "bundle": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/evidence/picker-design-d7e993d8.bundle",
+    "bytes": 522718,
+    "sha256": "133e879fb03a2ca6a7fed44b83fd5326c26c020758b04769984924f71284ad0d",
+    "gitBlobSha": "f3bd19e5fb2bd9355ef2e482280a8f14325628a8"
+  },
+  "evidence": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/evidence/picker-design-d7e993d8-evidence.tar.gz",
+    "bytes": 38925,
+    "sha256": "b081684fc106760c746484924b95612e05a3ee928543f7f1ebb829f18fb1a539",
+    "gitBlobSha": "1e05d2850980c6ea0673f63a25e29fea3197e667"
+  },
+  "verification": "The bundle contains this ref:\nd7e993d8151d09e886b05bf87709412adbe1b41b refs/checkpoints/picker-design-d7e993d8\nThe bundle requires this ref:\n6790f4c9ff9343dee7b39e2f87999c2f1a3d7454 \nThe bundle uses this hash algorithm: sha1\n/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/evidence/picker-design-d7e993d8.bundle is okay\n",
+  "archiveParent": "d1a167050ee4dcdf0b07fa1f50c4db8a9a8a9b2c",
+  "archiveBaseTree": "4a563620362b007488eb1bb58ef83779ee20a7f1",
+  "status": "proposed written design; Owner approval and explicit return-to-High switch pending; no product change"
+}
