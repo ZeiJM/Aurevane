@@ -1,11 +1,11 @@
-Aurevane combat-first Task15: bounded ranged AI spacing
-Source: 034a56fb4fcb3c21996a7e2615a8ddc5dc1176b9
-Tested: 0cf9f9c36f51eb88efabbb1ef99d8a6b91da589e
-Source tree: 8e4b434e649e1b295740ad05f06f804a680f3c26
-Full check: 8230 Vitest + 7 Node; final matrix: 289 unique legal kits / 8219 commands
-Prerequisite source: d817d6f22afcc6dc357257a2fb315f0104abd3c7
-Bundle: checkpoints/spacing-034a56fb.bundle
-Evidence: checkpoints/spacing-034a56fb-evidence.tar.gz
-Metadata: checkpoints/spacing-034a56fb-metadata.json
-Combat controls/editor/readers/previews/native acceptance, Task15/16 and release remain OPEN.
-No publication/activation/migration/merge/deploy. Backup ancestry is not implementation ancestry.
+Aurevane Task15 learned defense/payoff cycles
+Source: c33e9004bade83127cbe0ce2f592b8cce3692ddd
+Source tree: 4c041a1a425c9427afdb655f6c0de6a52aff46b6
+Tested: be7d24e67200beddce0069cf092211e1bb962db6
+Full gate: 8242 Vitest + 7 Node. Production unchanged from prior spacing checkpoint.
+Prerequisite source: 034a56fb4fcb3c21996a7e2615a8ddc5dc1176b9
+Bundle: checkpoints/defense-c33e9004.bundle
+Evidence: checkpoints/defense-c33e9004-evidence.tar.gz
+Metadata: checkpoints/defense-c33e9004-metadata.json
+Targeting/controls/editor/readers/previews/native acceptance, broaderTask15/16/balance/hosted/Atlas/human/release remain OPEN.
+No activation/publication/migration/merge/deploy. Archive ancestry is not implementation ancestry.

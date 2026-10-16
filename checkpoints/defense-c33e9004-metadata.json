@@ -1,0 +1,39 @@
+{
+  "sourceHead": "c33e9004bade83127cbe0ce2f592b8cce3692ddd",
+  "sourceTree": "4c041a1a425c9427afdb655f6c0de6a52aff46b6",
+  "testedSource": "be7d24e67200beddce0069cf092211e1bb962db6",
+  "prerequisite": "034a56fb4fcb3c21996a7e2615a8ddc5dc1176b9",
+  "previousArchiveCommit": "d04f84e64d0ecc9be8f9b38f4ca3e8f66d8fb8af",
+  "previousArchiveTree": "a7650c68e4313d2c9c4c40e462e3f1abb1c2da9b",
+  "fullCheckReceipt": {
+    "argv": [
+      "pnpm",
+      "--reporter=append-only",
+      "check"
+    ],
+    "cwd": "/workspace/scratch/680b26e4eb86/aurevane",
+    "started_utc": "2026-10-16T13:38:02.055413+00:00",
+    "completed_utc": "2026-10-16T13:41:56.483880+00:00",
+    "exit_code": 0,
+    "log": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/evidence/20261016T133802055413Z.log"
+  },
+  "tests": {
+    "vitest": 8242,
+    "node": 7
+  },
+  "bundle": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/defense-c33e9004.bundle",
+    "bytes": 7983,
+    "sha256": "2f54d46068765f8dd401d1c4227c38436b0b9c7f6bac610c32c853fa30498595",
+    "blobSha": "f20c515292af5297d4c79318ec2e2474be570f55",
+    "chunks": 1
+  },
+  "evidence": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/defense-c33e9004-evidence.tar.gz",
+    "bytes": 118349,
+    "sha256": "d7734113454c8887480746e7aef44e06030c61e413403361b8cacca67e928472",
+    "blobSha": "5432ebc13a1a81f9a2859da6785d030746bd1593",
+    "chunks": 14
+  },
+  "acceptance": "12 actual learned defensive setup/payoff/counter witnesses.8 observational natural runs:both Level100 kits activeafter40.0C0I1newMinor;7deferred. Test-only production/manifest/defaultfixture unchanged from prior0cf. No duplicate289 replay. Targeting/Move/Basics/Controlled/editor/readers/previews/native acceptance and fullTask15/16/balance/hosted/Atlas/human/release OPEN. No activation/publication/migration/merge/deploy."
+}
