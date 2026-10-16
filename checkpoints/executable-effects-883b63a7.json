@@ -1,0 +1,40 @@
+{
+  "sourceHead": "883b63a7e2b16a7d77f44655b395d050208a38d2",
+  "sourceTree": "b15b82ef3321e370b24114214258e0fbc5b68bbe",
+  "testedSource": "6f246f7b76e5bca52c309c2fb2d8ae772215c073",
+  "fullCheckReceipt": {
+    "argv": [
+      "pnpm",
+      "--reporter=append-only",
+      "check"
+    ],
+    "cwd": "/workspace/scratch/680b26e4eb86/aurevane",
+    "started_utc": "2026-10-16T06:01:17.688565+00:00",
+    "completed_utc": "2026-10-16T06:03:35.802613+00:00",
+    "exit_code": 0,
+    "log": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/evidence/20261016T060117688565Z.log"
+  },
+  "tests": {
+    "vitest": 7714,
+    "node": 7
+  },
+  "prerequisite": "eec45d645fa6f8faf51174cc8564e7d040f24ca7",
+  "previousArchiveCommit": "c578c31c6132a647dc605896e489810b9db57d3b",
+  "previousArchiveTree": "d5551ecf8636b83c8ff9d759ad42a2061dbf8e15",
+  "manifestSha256": "bdceab2a7547845d15f20654c1dc758a97d6c104d2dad76c906364e4504cdd9f",
+  "bundle": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/executable-effects-883b63a7.bundle",
+    "bytes": 13549,
+    "sha256": "228e64087b0eae5c50fd4cb432a8054f7cab6ce3528dbe88a9276eafeaa54b2f",
+    "blobSha": "5a83e738e91bdbdedc2e93a625cabccb245283b8",
+    "chunks": 2
+  },
+  "evidence": {
+    "path": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/executable-effects-883b63a7-evidence.tar.gz",
+    "bytes": 134113,
+    "sha256": "7ee0157f7af076300b5fe410412888ee79a7a01a4a20a0a0127031ae4d5690e9",
+    "blobSha": "13e82f86771b15e63cf1d164e180991e69737376",
+    "chunks": 15
+  },
+  "acceptance": "Bounded executable19effect-ID test milestone only; no runtime or manifest changes. Two Minor test-hardening items deferred: distinct prime witness and support-root version pin. Native UI/Atlas/all-tag executable evidence/whole-roster realAI-Level100/current Owner edits/hosted CAS remain OPEN; no hosted write, activation, merge or deployment."
+}
