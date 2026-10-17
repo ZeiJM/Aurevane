@@ -63,7 +63,7 @@ jobs:
             e2e/desktop-page-fit.pw.ts e2e/desktop-experience.pw.ts e2e/a1-layout-fit.pw.ts \
             e2e/character-profile-launcher-layout.pw.ts e2e/account-entry.pw.ts \
             e2e/character-creation.pw.ts e2e/public-information.pw.ts e2e/navigation-menu-position.pw.ts \
-            --reporter=line,json
+            --reporter=line,json,github
       - uses: actions/upload-artifact@v4
         if: always()
         with:
