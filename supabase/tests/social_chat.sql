@@ -185,6 +185,7 @@ select is(jsonb_array_length(public.chat_list_v1((select u from ids where n=1), 
 select public.chat_send_v1((select u from ids where n=8), (select c from ids where n=8), 'world', 'reaction smoke');
 select is(jsonb_array_length(public.chat_react_v1((select u from ids where n=8), (select c from ids where n=8), (select max(id) from app_private.chat_messages where body = 'reaction smoke'), '🔥')), 1, 'reaction toggle adds an emoji');
 select is(jsonb_array_length(public.chat_react_v1((select u from ids where n=8), (select c from ids where n=8), (select max(id) from app_private.chat_messages where body = 'reaction smoke'), '🔥')), 0, 'reaction toggle removes an emoji');
+select public.chat_group_respond_v1((select u from ids where n=3), (select c from ids where n=3), (select (g->>'id')::uuid from grp), true);
 select public.chat_typing_v1((select u from ids where n=2), (select c from ids where n=2), 'group:' || (select (g->>'id')::uuid from grp), true);
 select is(jsonb_array_length(public.chat_typers_v1((select u from ids where n=3), (select c from ids where n=3), 'group:' || (select (g->>'id')::uuid from grp))), 1, 'group member sees an active typist');
 

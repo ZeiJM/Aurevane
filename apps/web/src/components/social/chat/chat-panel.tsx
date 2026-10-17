@@ -166,7 +166,6 @@ export function ChatPanel({
   // Typing state expires in the database after five seconds; display only active
   // participants in private DM/group channels, never while appearing offline.
   useEffect(() => {
-    setTypers([])
     if (view !== 'chat' || !(channel.startsWith('whisper:') || channel.startsWith('group:'))) {
       return
     }
