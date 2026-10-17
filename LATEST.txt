@@ -1,5 +1,5 @@
-Aurevane equipped concealment counterplay checkpoint
-Source 0caefd0b0e0e2619b0784b8201a11cf3edf978d1
-Tested 8e7f20258b65bdc305eacbfd5fb2b8dbc74f893e
-Metadata checkpoints/concealment-counter-0caefd0b.json
-24 new equipped concealment counterplay cases;8997Vitest+7Node/allquality/bothbuilds GREEN002053967809 complete root tail;58/4focused;24exactnative traces;0C1Ifixed ONEassertionwave1newM/17totaldeferred;19reviewscope+5evidencerulings;runtime/roster/helpers/fixtures unchanged. Originalcombat/fullcycles/native/AT/geometry/balance/Ownercurrentcontent/CAS/Atlas/human/Task15/16/releaseOPEN. Highsufficient;broaderMasteraftercombat. No hostedpublication/activation/migration/mainmerge/deploy.
+Aurevane earned Rewind lifecycle checkpoint
+Source d34ddeba83469f9295af699f661555c98037f36c
+Tested 1766e84e9eb20a1bb3ab8e6e58ce7e3aefb5d43a
+Metadata checkpoints/earned-rewind-d34ddeba.json
+20new earnedRewind cycles;9017Vitest+7Node/fullquality/bothbuilds GREEN092943981622 complete rootcounts/marker/tail afterONEcachedsame-source replay;65/3focused/types/20native traceaudit;ONEreview0C0I2newM/19totaldeferred/nofix/norereview;5evidence+18reviewscope rulings;runtime/roster/helpers/priorfixtures unchanged. Exact prior source coldrecovered through47verifiedbundles. Originalcombat/fullcycles/native/AT/geometry/balance/Ownercurrentcontent/CAS/Atlas/human/Task15/16/releaseOPEN;broaderMasteraftercombat;Highsufficient. No hostedwrite/pub/activation/migration/mainmerge/deploy.

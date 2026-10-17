@@ -1,0 +1,62 @@
+{
+  "source": "d34ddeba83469f9295af699f661555c98037f36c",
+  "tree": "803887ff3e6d2aed93f2bc2474bea06697dcc134",
+  "testedSource": "1766e84e9eb20a1bb3ab8e6e58ce7e3aefb5d43a",
+  "reviewedSource": "1766e84e9eb20a1bb3ab8e6e58ce7e3aefb5d43a",
+  "prerequisite": "0caefd0b0e0e2619b0784b8201a11cf3edf978d1",
+  "parentArchive": "ed8ca29f0f129e83d4bdca323e528e65b9492dae",
+  "parentTree": "1fb0bf3361d97cd358c2674c91baa91f46d4cb6d",
+  "mainUnchanged": "29506e293e81abef1b0b8a46099618ab3ae3f0ae",
+  "fullCheckReceipt": {
+    "argv": [
+      "pnpm",
+      "--reporter=append-only",
+      "check"
+    ],
+    "cwd": "/workspace/scratch/680b26e4eb86/aurevane",
+    "started_utc": "2026-10-17T09:29:43.981622+00:00",
+    "completed_utc": "2026-10-17T09:30:13.642498+00:00",
+    "exit_code": 0,
+    "log": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/evidence/20261017T092943981622Z-4ed45460.log"
+  },
+  "tests": {
+    "vitest": 9017,
+    "node": 7
+  },
+  "preservation": {
+    "source": "1766e84e9eb20a1bb3ab8e6e58ce7e3aefb5d43a",
+    "base": "0caefd0b0e0e2619b0784b8201a11cf3edf978d1",
+    "changed": [
+      "apps/web/src/server/battle/roster-legal-rewind-cycles.test.ts"
+    ],
+    "sourceHashes": {
+      "packages/game-core/src/combat/recruit-ai-build.ts": "e1f676fafea1a73a84eaf95b0e73b66601916a4dcb63e80edd0db4d4da449a7d",
+      "packages/game-core/src/combat/recruit-ai.ts": "cf9e6cc12ff1d7434d17956f5f2e3e19b770240ea6d7a5c039477921382c5e6a",
+      "packages/game-core/src/combat/recruit-ai-ranged-spacing.test.ts": "97d492399237e8064ae9fdc51f7fef143189201e32a2892ccf98340448238a77",
+      "apps/web/src/server/battle/roster-legal-duel.test-utils.ts": "129d1827760c89bdf3ed75a1757e98802de743829eff9841699ead64747c96f9",
+      "apps/web/src/server/battle/roster-legal-ranged-ai.test.ts": "1443d456ba61d9469cedfe8e10392c155876e2c20fd3b121506009be7d0c4524",
+      "apps/web/src/server/battle/battle-log-service.ts": "d1876bcd5044a7b8f1c3c4178b19696605a61fc5ad8424e34181fd5cc95aa74b"
+    },
+    "manifestSha256": "b86cfec056bbac582810e7da80f9bc687f02518892eb5d11275fc7b5ced19f05",
+    "runtimeContentHelpersAndPriorFixturesUnchanged": true,
+    "expectedTraceRows": 20,
+    "traceRows": 20,
+    "traceSha256": "e026dae9f834ce94d5f84d3e59d2cb6d531cc8f78807f13a054cd0a46f97d646",
+    "capturedV6AndActualPrimeReturnPositionsAudited": true
+  },
+  "acceptance": "20new earnedRewind cycles;9017Vitest+7Node/fullquality/bothbuilds GREEN092943981622 complete rootcounts/marker/tail afterONEcachedsame-source replay;65/3focused/types/20native traceaudit;ONEreview0C0I2newM/19totaldeferred/nofix/norereview;5evidence+18reviewscope rulings;runtime/roster/helpers/priorfixtures unchanged. Exact prior source coldrecovered through47verifiedbundles. Originalcombat/fullcycles/native/AT/geometry/balance/Ownercurrentcontent/CAS/Atlas/human/Task15/16/releaseOPEN;broaderMasteraftercombat;Highsufficient. No hostedwrite/pub/activation/migration/mainmerge/deploy.",
+  "bundle": {
+    "local": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/earned-rewind-d34ddeba.bundle",
+    "path": "checkpoints/earned-rewind-d34ddeba.bundle",
+    "bytes": 11168,
+    "sha256": "60f0e9f4977c0904920027537b95c05ebe7300848bb82b058fb635a7842836f4",
+    "blobSha": "bb05c3aa362a88d459f98047c6cb61c39b6e09e8"
+  },
+  "evidence": {
+    "local": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/earned-rewind-d34ddeba-evidence.tar.gz",
+    "path": "checkpoints/earned-rewind-d34ddeba-evidence.tar.gz",
+    "bytes": 514370,
+    "sha256": "66ccdbd7b7981f809fe72c9562b7d56b2786aa3816dfb387b90a508eb43ae55b",
+    "blobSha": "6552d0ad2dc6e32b21271fc5a446d70bbdd1f13b"
+  }
+}
