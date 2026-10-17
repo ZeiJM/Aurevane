@@ -1995,13 +1995,13 @@
     padding-block: 0;
   }
   .readOnlyNote {
-    grid-template-columns: auto minmax(0, 1fr);
-    justify-items: start;
-    text-align: left;
-    gap: 0.7rem;
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+    text-align: center;
+    gap: 0.5rem;
   }
   .readOnlyNote > div {
-    width: auto;
-    justify-items: start;
+    width: min(52rem, 100%);
+    justify-items: center;
   }
 }
