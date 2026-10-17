@@ -1,0 +1,62 @@
+{
+  "source": "0caefd0b0e0e2619b0784b8201a11cf3edf978d1",
+  "tree": "3a123057a997b47a8b25ee6840645ccbf43f9857",
+  "testedSource": "8e7f20258b65bdc305eacbfd5fb2b8dbc74f893e",
+  "reviewedSource": "3317630cd6521ed522985f53e77b66b0b2129979",
+  "prerequisite": "152b57b835334cae733b3289ced7b93e8a2417f5",
+  "parentArchive": "6a4a909fa2f4e1cd0f7742c6a5660915dec1d07a",
+  "parentTree": "5b18d58e848dc103090dc0e3175607859d135e91",
+  "mainUnchanged": "29506e293e81abef1b0b8a46099618ab3ae3f0ae",
+  "fullCheckReceipt": {
+    "argv": [
+      "pnpm",
+      "--reporter=append-only",
+      "check"
+    ],
+    "cwd": "/workspace/scratch/680b26e4eb86/aurevane",
+    "started_utc": "2026-10-17T00:20:53.967809+00:00",
+    "completed_utc": "2026-10-17T00:24:27.129936+00:00",
+    "exit_code": 0,
+    "log": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/evidence/20261017T002053967809Z-8281eec7.log"
+  },
+  "tests": {
+    "vitest": 8997,
+    "node": 7
+  },
+  "preservation": {
+    "source": "8e7f20258b65bdc305eacbfd5fb2b8dbc74f893e",
+    "base": "152b57b835334cae733b3289ced7b93e8a2417f5",
+    "changed": [
+      "apps/web/src/server/battle/roster-legal-concealment-counter-cycles.test.ts"
+    ],
+    "sourceHashes": {
+      "packages/game-core/src/combat/recruit-ai-build.ts": "e1f676fafea1a73a84eaf95b0e73b66601916a4dcb63e80edd0db4d4da449a7d",
+      "packages/game-core/src/combat/recruit-ai.ts": "cf9e6cc12ff1d7434d17956f5f2e3e19b770240ea6d7a5c039477921382c5e6a",
+      "packages/game-core/src/combat/recruit-ai-ranged-spacing.test.ts": "97d492399237e8064ae9fdc51f7fef143189201e32a2892ccf98340448238a77",
+      "apps/web/src/server/battle/roster-legal-duel.test-utils.ts": "129d1827760c89bdf3ed75a1757e98802de743829eff9841699ead64747c96f9",
+      "apps/web/src/server/battle/roster-legal-ranged-ai.test.ts": "1443d456ba61d9469cedfe8e10392c155876e2c20fd3b121506009be7d0c4524",
+      "apps/web/src/server/battle/battle-log-service.ts": "d1876bcd5044a7b8f1c3c4178b19696605a61fc5ad8424e34181fd5cc95aa74b"
+    },
+    "manifestSha256": "b86cfec056bbac582810e7da80f9bc687f02518892eb5d11275fc7b5ced19f05",
+    "traceRows": 24,
+    "traceSha256": "5aa6751c375ca63d5e22f9092d62c51d99b49b161eba3373f20d82557015f5ed",
+    "runtimeContentHelpersAndPriorFixturesUnchanged": true,
+    "noRedundantMatrixRerun": true,
+    "finalSourceTraceByteIdenticalToReviewedSource": true
+  },
+  "acceptance": "24 new equipped concealment counterplay cases;8997Vitest+7Node/allquality/bothbuilds GREEN002053967809 complete root tail;58/4focused;24exactnative traces;0C1Ifixed ONEassertionwave1newM/17totaldeferred;19reviewscope+5evidencerulings;runtime/roster/helpers/fixtures unchanged. Originalcombat/fullcycles/native/AT/geometry/balance/Ownercurrentcontent/CAS/Atlas/human/Task15/16/releaseOPEN. Highsufficient;broaderMasteraftercombat. No hostedpublication/activation/migration/mainmerge/deploy.",
+  "bundle": {
+    "local": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/concealment-counter-0caefd0b.bundle",
+    "path": "checkpoints/concealment-counter-0caefd0b.bundle",
+    "bytes": 10251,
+    "sha256": "c80df615caadc63759b8b90bc56403953bc5cd706e2abc63b8144c06467561e5",
+    "blobSha": "0e02a928ffece715906b39a27adf0d3cae4eafca"
+  },
+  "evidence": {
+    "local": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/concealment-counter-0caefd0b-evidence.tar.gz",
+    "path": "checkpoints/concealment-counter-0caefd0b-evidence.tar.gz",
+    "bytes": 327636,
+    "sha256": "97a975ad6f5a73a7b63df55896e3e3530c365d0f6b304bbbbdb9b6b41ed5a3c9",
+    "blobSha": "1fb87a2d06ff7c2537f4dfaa3ce186409b5cfaa6"
+  }
+}

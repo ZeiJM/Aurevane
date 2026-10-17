@@ -1,5 +1,5 @@
-Aurevane historical Resonance backend preview checkpoint
-Source 152b57b835334cae733b3289ced7b93e8a2417f5
-Tested b9517360753e98b8f480d0763c839eac97805b4d
-Metadata checkpoints/historical-editor-152b57b8.json
-Historical Resonance editor controls→authenticatednative sample→actual outcomes complete in bounded source. Explicit blank setup/trigger choices, sequence/immediate mode, disabled/currentcanonical rejection, optionalpublication, reference/draft late-response guards, native resource/Summonpresence/null/quote/transition/localRNG display.11newcases/213focused;ONEreview0C0I0newM/norepair/norereview;16inheritedMinors and14individualrulings/costs remain recorded. Final8973Vitest+7Node/allquality/bothbuilds required for archive;initialrawrootgap/packagearchive retained plusONEcachedreplay.141native/284Manual/294readers exact;manifest/sixAIhashes unchanged. Currentnative refs only/sameturnfixture remains explicit. No hostedwrite/publication/activation/migration/mainmerge/deploy. Fullcombatcycles/native/AT/geometry/fullbalance/Ownercurrentcontent/CAS/Atlas/human/Task15/16/releaseOPEN. Next originalunfinishedcombatintegration/fullcycle/currentcontentacceptance;broaderMasteraftercombatrelease. Highsufficient.
+Aurevane equipped concealment counterplay checkpoint
+Source 0caefd0b0e0e2619b0784b8201a11cf3edf978d1
+Tested 8e7f20258b65bdc305eacbfd5fb2b8dbc74f893e
+Metadata checkpoints/concealment-counter-0caefd0b.json
+24 new equipped concealment counterplay cases;8997Vitest+7Node/allquality/bothbuilds GREEN002053967809 complete root tail;58/4focused;24exactnative traces;0C1Ifixed ONEassertionwave1newM/17totaldeferred;19reviewscope+5evidencerulings;runtime/roster/helpers/fixtures unchanged. Originalcombat/fullcycles/native/AT/geometry/balance/Ownercurrentcontent/CAS/Atlas/human/Task15/16/releaseOPEN. Highsufficient;broaderMasteraftercombat. No hostedpublication/activation/migration/mainmerge/deploy.
