@@ -1,7 +1,6 @@
 'use client'
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { useRouter } from 'next/navigation'
-import { OnlinePresenceLink } from '@/components/shell/online-presence-link'
 import { WORLD_LAND_NAME } from '@/world/atlas'
 import { WORLD_REGIONS } from '@/world/catalog'
 import { precipitationKind } from './map-weather'
@@ -106,6 +105,17 @@ export function WorldWorkspace({
     livePresence = useRef<WorldLivePresence | null>(null),
     acceptedAt = useRef(0),
     localViewActive = useRef(true)
+  useEffect(() => {
+    if (!panelOpen || settings) return
+    const closeOnOutside = (event: PointerEvent) => {
+      const target = event.target
+      if (!(target instanceof Element)) return
+      if (target.closest('#world-panel') || target.closest('[aria-controls="world-panel"]')) return
+      setPanelOpen(false)
+    }
+    document.addEventListener('pointerdown', closeOnOutside, true)
+    return () => document.removeEventListener('pointerdown', closeOnOutside, true)
+  }, [panelOpen, settings])
   useEffect(() => {
     localViewActive.current = mode === 'local'
     if (controller.current)
@@ -469,7 +479,6 @@ export function WorldWorkspace({
           </button>
         </div>
         <div className={styles.environment}>
-          <OnlinePresenceLink className={styles.onlineCompact} compact />
           <span>{time} UTC</span>
           {mode === 'local' ? (
             <span>
@@ -484,18 +493,12 @@ export function WorldWorkspace({
         <button
           className={styles.panelToggle}
           aria-controls="world-panel"
+          aria-label={panelOpen ? 'Close details' : 'Details'}
           aria-expanded={panelOpen}
           onClick={() => setPanelOpen(!panelOpen)}
         >
-          {panelOpen ? 'Close details' : 'Details'} <span aria-hidden="true">☰</span>
+          <span aria-hidden="true">☰</span>
         </button>
-        {!panelOpen ? (
-          <SettingsButton
-            className={styles.mobileSettings}
-            open={settings}
-            onClick={() => setSettings(!settings)}
-          />
-        ) : null}
       </header>
       <div className={styles.body}>
         <div className={styles.stageArea}>

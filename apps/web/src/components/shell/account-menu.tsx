@@ -3,7 +3,7 @@
 import type { Route } from 'next'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 
 import styles from './account-menu.module.css'
 
@@ -12,6 +12,9 @@ interface AccountMenuProps {
   activeSessionLabel?: string | null
   characterName?: string | null
   masterPanelHref?: Route | null
+  characterPortrait?: ReactNode
+  /** Online Users link; shown here on phones where the footer is removed. */
+  presence?: ReactNode
 }
 
 export function AccountMenu({
@@ -19,6 +22,8 @@ export function AccountMenu({
   activeSessionLabel = null,
   characterName = null,
   masterPanelHref = null,
+  characterPortrait = null,
+  presence = null,
 }: AccountMenuProps) {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
@@ -82,8 +87,11 @@ export function AccountMenu({
         <div className={styles.menu} role="menu" aria-label="Account menu">
           {characterName ? (
             <div className={styles.characterGreeting}>
-              <span>Current character</span>
-              <strong>Welcome back, {characterName}.</strong>
+              <div>
+                <span>Current character</span>
+                <strong>Welcome back, {characterName}.</strong>
+              </div>
+              {characterPortrait}
             </div>
           ) : null}
           <Link
@@ -140,6 +148,7 @@ export function AccountMenu({
               Master Panel
             </Link>
           ) : null}
+          {presence ? <div className={styles.presenceBlock}>{presence}</div> : null}
           <form action="/auth/signout" method="post">
             <button type="submit" role="menuitem">
               Sign out

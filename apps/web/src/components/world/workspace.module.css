@@ -802,7 +802,8 @@
   }
   .header .panelToggle {
     display: block;
-    font-size: 10px;
+    font-size: 18px;
+    line-height: 1;
     min-height: 34px;
     padding: 5px 8px;
   }
@@ -971,9 +972,6 @@
 }
 
 /* Mobile World compaction: smaller chrome so the map and details panel get the screen. */
-.header .onlineCompact {
-  display: none;
-}
 @media (max-width: 760px) {
   .header {
     min-height: 42px;
@@ -989,21 +987,6 @@
     gap: 2px;
     font-size: 9px;
     line-height: 1.2;
-  }
-  .header .onlineCompact {
-    display: inline-flex;
-    min-height: 0;
-    gap: 4px;
-    align-items: center;
-    color: #9ad7cf;
-    font: 600 9px/1.2 var(--av-font-body, sans-serif);
-  }
-  .header .onlineCompact::before {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: #5fd3a0;
-    content: '';
   }
   .header .panelToggle,
   .header .mobileSettings {
