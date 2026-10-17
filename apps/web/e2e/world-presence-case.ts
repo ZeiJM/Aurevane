@@ -1,4 +1,5 @@
 import { openMapSettings, closeMapSettings } from './world-map-settings-helpers'
+import { measurePeerMotionStep } from './world-timing-metrics'
 import {
   expect,
   test,
@@ -530,7 +531,10 @@ export async function verifyWorldScenePresence(
           .locator('canvas[data-world-stage]')
           .getAttribute('data-test-moving-observer-draws')) ?? '[]',
       ) as { at: number; x: number; y: number }[]
-      const deltas = samples.slice(1).map((sample, i) => sample.x - samples[i]!.x)
+      const motionSteps = samples.slice(1).map((sample, i) =>
+        measurePeerMotionStep(samples[i]!, sample),
+      )
+      const deltas = motionSteps.map((step) => step.deltaX)
       const path = info.outputPath(`world-both-moving-peer-${index}.json`)
       const longTasks = JSON.parse(
         (await observer.page
@@ -539,7 +543,7 @@ export async function verifyWorldScenePresence(
       ) as { at: number; durationMs: number }[]
       await writeFile(
         path,
-        JSON.stringify({ samples, deltas, longTasks, distance: observer.distance }),
+        JSON.stringify({ samples, deltas, motionSteps, longTasks, distance: observer.distance }),
       )
       await info.attach(`world-both-moving-peer-${index}`, {
         path,
@@ -548,9 +552,16 @@ export async function verifyWorldScenePresence(
       expect(deltas.filter((delta) => delta > 0.002).length).toBeGreaterThan(8)
       expect(samples.at(-1)!.x - samples[0]!.x).toBeGreaterThan(observer.distance - 0.6)
       expect(samples.at(-1)!.x - samples[0]!.x).toBeLessThan(observer.distance + 0.6)
-      for (const delta of deltas) {
-        expect(delta).toBeGreaterThan(-0.1)
-        expect(delta).toBeLessThan(0.75)
+      for (const [stepIndex, step] of motionSteps.entries()) {
+        expect(step.elapsedMs, `peer ${index}, step ${stepIndex}: increasing sample time`).toBeGreaterThan(0)
+        expect(step.deltaX, `peer ${index}, step ${stepIndex}: no backwards jump`).toBeGreaterThan(-0.1)
+        // Keep the original 0.75 tile limit at 60 Hz, account for elapsed
+        // time on skipped frames and still reject any one-tile snap.
+        expect(
+          step.deltaX,
+          `peer ${index}, step ${stepIndex}: ${step.elapsedMs.toFixed(1)}ms sample gap; ` +
+            `${longTasks.length} observed long tasks`,
+        ).toBeLessThan(step.maximumDeltaX)
       }
     }
     await capture(page, info, 'both-walking-smooth-remote-arrival')
