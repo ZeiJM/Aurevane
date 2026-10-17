@@ -1,0 +1,76 @@
+name: Mobile audit
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/mobile-audit.yml
+      - apps/web/e2e/mobile-page-audit.pw.ts
+
+permissions:
+  contents: read
+  checks: write
+
+concurrency:
+  group: mobile-audit-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install locked dependencies
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+          pnpm install --frozen-lockfile
+          pnpm --filter @aurevane/web exec playwright install --with-deps chromium
+      - name: Start disposable local database
+        run: |
+          pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
+          pnpm exec supabase db reset --local
+      - name: Build and audit every page at phone width
+        shell: bash
+        run: |
+          set -euo pipefail
+          source .github/scripts/auth-test-helpers.sh
+          load_test_auth
+          echo "::add-mask::$TEST_AUTH_ADMIN_KEY"
+          export AUREVANE_ENV=local
+          export NEXT_PUBLIC_AUREVANE_ENV=local
+          export NEXT_PUBLIC_SUPABASE_URL="$TEST_AUTH_API_URL"
+          export NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="$ANON_KEY"
+          export SUPABASE_SECRET_KEY="$TEST_AUTH_ADMIN_KEY"
+          export MOBILE_AUDIT_OUTPUT=/tmp/mobile-audit
+          mkdir -p "$MOBILE_AUDIT_OUTPUT"
+          pnpm --filter @aurevane/web build
+          pnpm --filter @aurevane/web exec playwright test e2e/mobile-page-audit.pw.ts --project=mobile-chromium
+      - name: Report findings as annotations
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import json, os, collections
+          p = '/tmp/mobile-audit/findings.json'
+          if not os.path.exists(p):
+              print('::warning title=mobile-audit::no findings file'); raise SystemExit
+          rows = json.load(open(p))
+          by = collections.OrderedDict()
+          for r in rows:
+              by.setdefault((r['page'], r['viewport']), []).append(r)
+          for (page, vp), items in by.items():
+              msg = ' | '.join(f"{i['kind']}: {i['detail']}" for i in items if i['kind'] != 'clean') or 'clean'
+              print(f"::warning title=audit {page} {vp}::{msg[:3500]}")
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mobile-audit
+          path: /tmp/mobile-audit
+          retention-days: 3
