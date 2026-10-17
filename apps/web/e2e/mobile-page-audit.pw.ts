@@ -287,6 +287,26 @@ test('records mobile layout findings for every page', async ({ page }, info) => 
       }
       await flush()
     }
+    // The lobby audit creates a persistent session. Close its waiting room
+    // before measuring the next phone width, otherwise it can intercept
+    // Battle Hall/PVP/Spectate taps despite a fresh page navigation.
+    if (viewport.width === 412) {
+      await page.goto('/game/battle', { waitUntil: 'domcontentloaded' })
+      const lobby = page.getByRole('dialog', { name: 'The arena is waiting.' })
+      try {
+        await lobby.waitFor({ state: 'visible', timeout: 4000 })
+        await lobby.getByRole('button', { name: 'Close Lobby' }).click()
+        await lobby.waitFor({ state: 'hidden', timeout: 6000 })
+      } catch (error) {
+        findings.push({
+          page: 'lobby-cleanup',
+          viewport: '412x915',
+          kind: 'audit-error',
+          detail: String(error).split('\n')[0].slice(0, 160),
+        })
+      }
+      await flush()
+    }
   }
   const dir = process.env.MOBILE_AUDIT_OUTPUT
   if (dir) {
