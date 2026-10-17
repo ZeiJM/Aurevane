@@ -1,0 +1,122 @@
+name: World timing repeat validation
+
+on:
+  pull_request:
+    paths:
+      - 'apps/web/e2e/world-presence-case.ts'
+      - 'apps/web/e2e/world-presentation-case.ts'
+      - 'apps/web/e2e/world-timing-metrics.ts'
+      - 'apps/web/e2e/world-timing-metrics.test.ts'
+      - '.github/workflows/world-timing-repeat.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: world-timing-repeat-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: corepack enable && corepack prepare pnpm@11.17.0 --activate
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @aurevane/web exec playwright install --with-deps chromium
+      - run: pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
+      - name: Repeat both World timing tests twenty times
+        shell: bash
+        run: |
+          set -euo pipefail
+          status_env="$(pnpm exec supabase status -o env)"
+          eval "$(printf '%s\n' "$status_env" | grep -E '^(ANON_KEY|SERVICE_ROLE_KEY|SECRET_KEY)=')"
+          export AUREVANE_ENV=local NEXT_PUBLIC_AUREVANE_ENV=local
+          export NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+          export NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="$ANON_KEY"
+          export SUPABASE_SECRET_KEY="${SECRET_KEY:-${SERVICE_ROLE_KEY:-}}"
+          test -n "$SUPABASE_SECRET_KEY"
+          pnpm --filter @aurevane/web build
+          db_container="$(docker ps --filter 'name=supabase_db_' --format '{{.Names}}' | head -n 1)"
+          docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
+            set role service_role;
+            select public.activate_phase4_combat_interactions_v2();
+            select public.activate_phase4_discipline_rebalance_v1();
+          "
+          pnpm --filter @aurevane/web exec playwright test e2e/atlas-world.pw.ts \
+            --project=desktop-chromium --workers=1 --repeat-each=20 \
+            --grep 'known neighbouring players follow the visible viewport|holding WASD walks repeatedly' \
+            --reporter=list,github
+      - name: Capture safe Realtime failure diagnostics
+        if: failure()
+        continue-on-error: true
+        shell: bash
+        run: |
+          python - <<'PY'
+          import collections, json, pathlib, re, subprocess
+
+          destination = pathlib.Path('apps/web/test-results/world-realtime-diagnostics.json')
+          destination.parent.mkdir(parents=True, exist_ok=True)
+          inventory = subprocess.run(
+              ['docker', 'ps', '-a', '--filter', 'name=supabase_realtime_', '--format', '{{.ID}}'],
+              capture_output=True, text=True, check=False,
+          )
+          categories = [
+              ('database-pool', r'pool|queue|DBConnection|ConnectionPool'),
+              ('database-connection', r'UnableToConnectToTenantDatabase|database.*connect|connect.*database'),
+              ('authorization', r'authoriz|unauthoriz|permission|RlsPolicy|JWT|token'),
+              ('timeout', r'timed?[_ -]?out|timeout'),
+              ('join-limit', r'too_many_(channels|connections|joins)|tenant_events'),
+              ('channel-join', r'phx_join|join.*channel|channel.*join'),
+              ('connection', r'websocket|transport|socket.*(open|close)|disconnect'),
+          ]
+          containers = []
+          for container_id in inventory.stdout.splitlines():
+              logs = subprocess.run(
+                  ['docker', 'logs', '--timestamps', '--since', '20m', '--tail', '2000', container_id],
+                  capture_output=True, text=True, check=False,
+              )
+              counts = collections.Counter()
+              events = []
+              # Raw lines may include JWTs, keys, headers and payloads. Persist only
+              # category labels and Docker timestamps; no original message text.
+              for line in (logs.stdout + logs.stderr).splitlines():
+                  counts['lines'] += 1
+                  for category, pattern in categories:
+                      if re.search(pattern, line, re.IGNORECASE):
+                          counts[category] += 1
+                          timestamp = re.match(r'^(\d{4}-\d{2}-\d{2}T[0-9:.]+Z)\s', line)
+                          if len(events) < 1000:
+                              events.append({'at': timestamp.group(1) if timestamp else 'unknown', 'category': category})
+                          break
+              containers.append({'captureExitCode': logs.returncode, 'counts': dict(counts), 'events': events})
+          destination.write_text(json.dumps({'inventoryExitCode': inventory.returncode, 'containers': containers}, indent=2))
+          PY
+      - name: Save compact Atlas timing and presentation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: world-timing-repeat-evidence
+          path: |
+            apps/web/test-results/**/synthetic-world-render-cost.json
+            apps/web/test-results/**/world-private-scene-join-diagnostics.json
+            apps/web/test-results/**/world-live-peer-delivery.json
+            apps/web/test-results/**/world-realtime-diagnostics.json
+            apps/web/test-results/**/portrait-zoom-*.png
+            apps/web/test-results/**/world-refined-controls.png
+          retention-days: 7
+      - name: Save Atlas screenshots and traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: world-timing-repeat-traces
+          path: apps/web/test-results
+          retention-days: 7
+      - name: Stop disposable database
+        if: always()
+        run: pnpm exec supabase stop --no-backup

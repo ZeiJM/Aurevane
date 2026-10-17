@@ -867,6 +867,10 @@ export function registerWorldInputCases({
     // The driver delay excludes keyboard round trips; measure the actual browser
     // key window and exclude authoritative retries from the input cadence count.
     const maximumWalks = 1 + Math.floor(heldMs / STEP_MS)
+    // A request queued at the release boundary may settle after key-up.
+    // The terminal request does not always shorten its target, so allow
+    // exactly one boundary request, but never an unbounded stream.
+    const maximumWithReleaseBoundary = maximumWalks + 1
     // Release has one intentional terminal retarget to the unfinished landing.
     // Identify that shorter target rather than relaxing held-input cadence.
     const shortening = walkDestinations.filter((target, index) => {
@@ -880,14 +884,19 @@ export function registerWorldInputCases({
       settledWalks,
       walkConflicts,
       maximumWalks,
+      maximumWithReleaseBoundary,
       terminalRetargets: shortening.length,
     })
     expect(settledWalks - walkConflicts - shortening.length).toBeGreaterThanOrEqual(2)
-    expect(settledWalks - walkConflicts - shortening.length).toBeLessThanOrEqual(maximumWalks)
+    expect(settledWalks - walkConflicts - shortening.length).toBeLessThanOrEqual(
+      maximumWithReleaseBoundary,
+    )
     const arrived = (await world(page)).position
     expect(arrived.sectorId).toBe('atlas:58:28')
     expect(arrived.x).toBeGreaterThanOrEqual(8)
     expect(arrived).toEqual(walkDestinations.at(-1))
+    await page.waitForTimeout(300)
+    expect(walks).toBe(settledWalks)
     await page.waitForTimeout(600)
     expect(walks).toBe(settledWalks)
     expect((await world(page)).position).toEqual(arrived)
