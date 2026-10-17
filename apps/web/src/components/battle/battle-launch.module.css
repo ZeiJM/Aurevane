@@ -1712,3 +1712,28 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* Phones: all four Battle Hall sections in one row. */
+@media (max-width: 760px) {
+  .categoryGrid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.25rem;
+  }
+  .categoryGrid button {
+    min-height: 3.4rem;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.15rem;
+    padding: 0.3rem 0.15rem;
+    text-align: center;
+  }
+  .categoryGrid button > span {
+    font-size: 0.8rem;
+  }
+  .categoryGrid strong {
+    font-size: 0.72rem;
+    line-height: 1.1;
+    overflow-wrap: anywhere;
+    hyphens: auto;
+  }
+}
