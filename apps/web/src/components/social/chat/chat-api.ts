@@ -123,8 +123,7 @@ export const chatApi = {
     post('/api/chat/reactions', { messageId, emoji }) as Promise<{
       reactions: NonNullable<ChatMessage['reactions']>
     }>,
-  typing: (channel: string, isTyping: boolean) =>
-    post('/api/chat/typing', { channel, isTyping }),
+  typing: (channel: string, isTyping: boolean) => post('/api/chat/typing', { channel, isTyping }),
   typers: (channel: string) =>
     call<{ typers: { characterId: string; name: string }[] }>(
       `/api/chat/typing?channel=${encodeURIComponent(channel)}`,

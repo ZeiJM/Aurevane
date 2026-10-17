@@ -56,7 +56,8 @@ describe('chat channel resolution', () => {
 
   it('resolves feed only from the selected character', () => {
     expect(resolveChatChannel(ME, { kind: 'feed' }, null)).toEqual({
-      key: `feed:${ME}`, kind: 'feed',
+      key: `feed:${ME}`,
+      kind: 'feed',
     })
   })
 

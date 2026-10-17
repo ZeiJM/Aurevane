@@ -131,7 +131,8 @@ export function ChatPanel({
         // Refresh recent summaries every fourth poll so other players' reactions appear.
         const includeRecent = ++pollRound.current % 4 === 0
         const { messages: fresh } = await chatApi.messages(
-          wireChannel, includeRecent ? 0 : lastId.current,
+          wireChannel,
+          includeRecent ? 0 : lastId.current,
         )
         if (cancelled || fresh.length === 0) return
         lastId.current = Math.max(lastId.current, ...fresh.map((m) => m.id))
@@ -180,7 +181,10 @@ export function ChatPanel({
     }
     void poll()
     const timer = window.setInterval(() => void poll(), 2500)
-    return () => { active = false; window.clearInterval(timer) }
+    return () => {
+      active = false
+      window.clearInterval(timer)
+    }
   }, [wireChannel, channel, view])
 
   useEffect(() => {
@@ -532,12 +536,18 @@ export function ChatPanel({
                       inputRef.current?.focus()
                     }}
                     onReact={(target, emoji) => {
-                      void chatApi.react(target.id, emoji)
+                      void chatApi
+                        .react(target.id, emoji)
                         .then(({ reactions }) => {
-                          setMessages((current) => current.map((message) =>
-                            message.id === target.id ? { ...message, reactions } : message))
+                          setMessages((current) =>
+                            current.map((message) =>
+                              message.id === target.id ? { ...message, reactions } : message,
+                            ),
+                          )
                         })
-                        .catch((error) => setNotice(error instanceof Error ? error.message : 'Reaction failed.'))
+                        .catch((error) =>
+                          setNotice(error instanceof Error ? error.message : 'Reaction failed.'),
+                        )
                     }}
                   />
                 )
@@ -547,7 +557,10 @@ export function ChatPanel({
 
           {typers.length > 0 && !feedOnly ? (
             <p className={styles.typingIndicator} role="status">
-              {typers.slice(0, 2).map((typer) => typer.name).join(', ')}
+              {typers
+                .slice(0, 2)
+                .map((typer) => typer.name)
+                .join(', ')}
               {typers.length > 2 ? ' and others' : ''} {typers.length === 1 ? 'is' : 'are'} typing…
             </p>
           ) : null}

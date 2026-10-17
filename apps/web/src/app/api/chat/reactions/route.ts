@@ -9,8 +9,12 @@ export async function POST(request: Request) {
     const { userId, characterId } = await chatContext()
     const input = await readJsonObject(request)
     const id = input.messageId
-    if (typeof id !== 'number' || !Number.isSafeInteger(id) || id <= 0
-        || typeof input.emoji !== 'string') {
+    if (
+      typeof id !== 'number' ||
+      !Number.isSafeInteger(id) ||
+      id <= 0 ||
+      typeof input.emoji !== 'string'
+    ) {
       throw new AurevaneError('INVALID_REQUEST', 'Choose a message and reaction.')
     }
     const reactions = await reactToMessage(userId, characterId, id, input.emoji)

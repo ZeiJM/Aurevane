@@ -227,7 +227,7 @@ create function app_private.chat_level_feed_trigger_v1()
 returns trigger
 language plpgsql security definer
 set search_path = pg_catalog, public, app_private
-as $
+as $$
 begin
   if new.level > old.level then
     perform public.chat_post_system_v1(
@@ -235,7 +235,7 @@ begin
   end if;
   return new;
 end;
-$;
+$$;
 create trigger chat_level_feed_trigger
 after update of level on public.characters
 for each row when (new.level > old.level)

@@ -2,7 +2,7 @@
 - [x] Database contract prepared: emoji reaction toggles, expiring typing state, owner-only personal Game feed, retained service-role RPC permissions.
 - [x] App changes prepared: reaction pickers, private-channel typing indicator, owner-only feed reader.
 - [x] Initial server-authored feed event: character level-up.
-- [ ] Apply migration `20261017194500_social_chat_followups.sql` and verify service-role permissions.
+- [x] Production migration `20261017190931_social_chat_followups.sql` applied; complete functional verification before release.
 - [ ] Run pgTAP and phone Playwright checks; verify existing browser smoke and CI.
 - [ ] Merge after green checks; deploy the resulting main SHA explicitly and confirm Vercel READY.
 

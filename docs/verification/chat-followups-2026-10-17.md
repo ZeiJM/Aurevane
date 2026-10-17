@@ -8,6 +8,9 @@
 - All new RPCs remain service-role-only; RLS is enabled on each new private table.
 - The existing scheduled prune also removes seven-day-old Game feed messages and stale typing records.
 
+## Database application
+- Production Supabase migration `20261017190931_social_chat_followups` applied successfully; UI remains gated pending checks.
+
 ## Required verification before production release
 - Local Supabase: `pnpm exec supabase test db --local supabase/tests/social_chat.sql` using a disposable migrated database.
 - Focused Vitest: `chat-channel.test.ts` and `chat-message.test.tsx`.

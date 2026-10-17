@@ -4,11 +4,17 @@ import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 function identity(prefix: string) {
   const seed = `${Date.now()}${Math.floor(Math.random() * 100000)}`
-  const suffix = seed.slice(-7).split('').map((digit) => String.fromCharCode(65 + Number(digit))).join('')
+  const suffix = seed
+    .slice(-7)
+    .split('')
+    .map((digit) => String.fromCharCode(65 + Number(digit)))
+    .join('')
   return { email: `${prefix}.${seed}@example.com`, name: `${prefix} ${suffix}` }
 }
 
-test('chat reactions, ephemeral typing and private Game feed work on a phone', async ({ browser }, testInfo) => {
+test('chat reactions, ephemeral typing and private Game feed work on a phone', async ({
+  browser,
+}, testInfo) => {
   test.skip(testInfo.project.name !== 'mobile-chromium', 'Phone chat regression')
   test.slow()
   const hostId = identity('ChatHost')
@@ -25,9 +31,15 @@ test('chat reactions, ephemeral typing and private Game feed work on a phone', a
   const guest = await guestContext.newPage()
 
   try {
-    for (const [page, who] of [[host, hostId], [guest, guestId]] as const) {
+    for (const [page, who] of [
+      [host, hostId],
+      [guest, guestId],
+    ] as const) {
       await provisionAccountAndEnterCharacter({
-        page, email: who.email, password: 'AurevaneTest!42', characterName: who.name,
+        page,
+        email: who.email,
+        password: 'AurevaneTest!42',
+        characterName: who.name,
       })
     }
 
@@ -35,12 +47,12 @@ test('chat reactions, ephemeral typing and private Game feed work on a phone', a
       data: { action: 'request', name: guestId.name },
     })
     expect(request.ok()).toBe(true)
-    const sent = await request.json() as { outgoing: { id: string }[] }
+    const sent = (await request.json()) as { outgoing: { id: string }[] }
     const guestCharacter = sent.outgoing[0]?.id
     expect(guestCharacter).toMatch(/^[0-9a-f-]{36}$/)
     const guestState = await guest.request.get('/api/chat/friends')
     expect(guestState.ok()).toBe(true)
-    const incoming = await guestState.json() as { incoming: { id: string }[] }
+    const incoming = (await guestState.json()) as { incoming: { id: string }[] }
     const hostCharacter = incoming.incoming[0]?.id
     expect(hostCharacter).toMatch(/^[0-9a-f-]{36}$/)
     const accept = await guest.request.post('/api/chat/friends', {
@@ -53,7 +65,7 @@ test('chat reactions, ephemeral typing and private Game feed work on a phone', a
       data: { channel: 'world', body: word },
     })
     expect(posted.ok()).toBe(true)
-    const sentMessage = await posted.json() as { message: { id: number } }
+    const sentMessage = (await posted.json()) as { message: { id: number } }
 
     await host.goto('/game/world')
     await host.getByRole('button', { name: 'Details', exact: true }).click()
@@ -74,7 +86,7 @@ test('chat reactions, ephemeral typing and private Game feed work on a phone', a
       `/api/chat/typing?channel=${encodeURIComponent(`whisper:${hostCharacter}`)}`,
     )
     expect(typing.ok()).toBe(true)
-    const seenTyping = await typing.json() as { typers: { name: string }[] }
+    const seenTyping = (await typing.json()) as { typers: { name: string }[] }
     expect(seenTyping.typers.some((who) => who.name === hostId.name)).toBe(true)
 
     const hidden = await host.request.patch('/api/chat/settings', {
@@ -84,7 +96,7 @@ test('chat reactions, ephemeral typing and private Game feed work on a phone', a
     const invisible = await guest.request.get(
       `/api/chat/typing?channel=${encodeURIComponent(`whisper:${hostCharacter}`)}`,
     )
-    const notSeen = await invisible.json() as { typers: { name: string }[] }
+    const notSeen = (await invisible.json()) as { typers: { name: string }[] }
     expect(notSeen.typers).toHaveLength(0)
 
     await panel.locator('button[aria-haspopup="listbox"]').click()

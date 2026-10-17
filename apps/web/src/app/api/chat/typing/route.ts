@@ -7,7 +7,11 @@ export async function GET(request: Request) {
   try {
     const { userId, characterId } = await chatContext()
     const input = new URL(request.url).searchParams
-    const channel = await resolveChannel(userId, characterId, parseChatChannel(input.get('channel')))
+    const channel = await resolveChannel(
+      userId,
+      characterId,
+      parseChatChannel(input.get('channel')),
+    )
     const typers = await getTypers(userId, characterId, channel.key)
     return chatJson({ typers })
   } catch (error) {
