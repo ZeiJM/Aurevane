@@ -61,12 +61,28 @@ jobs:
           if not os.path.exists(p):
               print('::warning title=mobile-audit::no findings file'); raise SystemExit
           rows = json.load(open(p))
-          by = collections.OrderedDict()
+          agg = collections.OrderedDict()
+          clean = set()
           for r in rows:
-              by.setdefault((r['page'], r['viewport']), []).append(r)
-          for (page, vp), items in by.items():
-              msg = ' | '.join(f"{i['kind']}: {i['detail']}" for i in items if i['kind'] != 'clean') or 'clean'
-              print(f"::warning title=audit {page} {vp}::{msg[:3500]}")
+              if r['kind'] == 'clean':
+                  clean.add(r['page'] + '@' + r['viewport']); continue
+              k = (r['kind'], r['detail'])
+              agg.setdefault(k, []).append(r['page'] + '@' + r['viewport'].split('x')[0])
+          lines = []
+          for (kind, detail), pages in agg.items():
+              short = ','.join(sorted(set(pages)))
+              if len(pages) > 6:
+                  short = f"{len(set(pages))} pages (e.g. {','.join(sorted(set(pages))[:3])})"
+              lines.append(f"{kind}: {detail} -> {short}")
+          lines.append('CLEAN: ' + ','.join(sorted(clean)))
+          chunks, cur = [], ''
+          for l in lines:
+              if len(cur) + len(l) > 3000:
+                  chunks.append(cur); cur = ''
+              cur += l + ' || '
+          chunks.append(cur)
+          for i, c in enumerate(chunks[:9]):
+              print(f"::warning title=audit {i+1}/{len(chunks)}::{c}")
           PY
       - uses: actions/upload-artifact@v4
         if: always()
