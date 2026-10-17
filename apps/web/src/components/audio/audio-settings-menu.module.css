@@ -194,3 +194,10 @@
     font-size: 0.6875rem !important;
   }
 }
+
+/* Full-width slider: keep the track compact with a 44px interactive height. */
+@media (max-width: 760px) {
+  .channel input[type='range'] {
+    min-height: 2.75rem;
+  }
+}

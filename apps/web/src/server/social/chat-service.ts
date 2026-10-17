@@ -233,3 +233,58 @@ export function requireString(value: unknown, message: string, max = 500): strin
   }
   return value
 }
+
+// Chat follow-ups keep authorization inside the database RPC layer.
+export const reactToMessage = (
+  userId: string,
+  characterId: string,
+  messageId: number,
+  emoji: string,
+) =>
+  rpc<{ emoji: string; count: number; mine: boolean }[]>('chat_react_v1', {
+    p_user_id: userId,
+    p_character_id: characterId,
+    p_message_id: messageId,
+    p_emoji: emoji,
+  })
+
+export const updateTyping = async (
+  userId: string,
+  characterId: string,
+  channelKey: string,
+  isTyping: boolean,
+) => {
+  await rpc('chat_typing_v1', {
+    p_user_id: userId,
+    p_character_id: characterId,
+    p_channel_key: channelKey,
+    p_is_typing: isTyping,
+  })
+}
+
+export const getTypers = (userId: string, characterId: string, channelKey: string) =>
+  rpc<{ characterId: string; name: string }[]>('chat_typers_v1', {
+    p_user_id: userId,
+    p_character_id: characterId,
+    p_channel_key: channelKey,
+  })
+
+/** Best-effort, trusted server-only Game feed publisher. Never expose to a browser route. */
+export async function postCharacterFeedEvent(
+  characterId: string,
+  kind: 'system' | 'story',
+  body: string,
+): Promise<void> {
+  if (
+    !/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/.test(characterId) ||
+    body.trim().length < 1 ||
+    body.trim().length > 500
+  ) {
+    throw new AurevaneError('INVALID_REQUEST', 'That Game feed event was invalid.')
+  }
+  await rpc('chat_post_system_v1', {
+    p_channel_key: `feed:${characterId}`,
+    p_kind: kind,
+    p_body: body,
+  })
+}
