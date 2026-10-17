@@ -1,6 +1,7 @@
 'use client'
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { useRouter } from 'next/navigation'
+import { OnlinePresenceLink } from '@/components/shell/online-presence-link'
 import { WORLD_LAND_NAME } from '@/world/atlas'
 import { WORLD_REGIONS } from '@/world/catalog'
 import { precipitationKind } from './map-weather'
@@ -468,6 +469,7 @@ export function WorldWorkspace({
           </button>
         </div>
         <div className={styles.environment}>
+          <OnlinePresenceLink className={styles.onlineCompact} compact />
           <span>{time} UTC</span>
           {mode === 'local' ? (
             <span>

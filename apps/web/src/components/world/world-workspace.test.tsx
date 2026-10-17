@@ -163,4 +163,14 @@ describe('World page', () => {
     expect(markup).not.toContain('Weathered Observatory')
     expect(markup).not.toContain('View 360')
   })
+  it('carries the compact online count in the World header for mobile', () => {
+    const markup = renderToStaticMarkup(
+      createElement(WorldWorkspace, {
+        initialView: projectWorld(newWorldState(), [], 1000),
+        character: { name: 'Traveller', portrait: '/portrait.webp' },
+      }),
+    )
+    const link = markup.match(/<a[^>]*aria-label="Online Users loading"[^>]*>/)?.[0] ?? ''
+    expect(link).toContain('href="/game/online"')
+  })
 })

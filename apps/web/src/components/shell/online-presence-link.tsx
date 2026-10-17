@@ -48,7 +48,17 @@ async function requestPresenceHeartbeat(): Promise<number | null> {
   return sharedHeartbeat
 }
 
-export function OnlinePresenceLink({ initialCount = null }: { initialCount?: number | null }) {
+export function OnlinePresenceLink({
+  initialCount = null,
+  className,
+  compact = false,
+}: {
+  initialCount?: number | null
+  /** Replaces the footer presentation, e.g. when the count lives in another bar. */
+  className?: string
+  /** Show only the status dot and count; the full name stays in the accessible label. */
+  compact?: boolean
+}) {
   const [count, setCount] = useState<number | null>(() => initialCount ?? cachedPresenceCount)
 
   useEffect(() => {
@@ -74,9 +84,19 @@ export function OnlinePresenceLink({ initialCount = null }: { initialCount?: num
   }, [])
 
   return (
-    <Link href="/game/online" className={styles.onlineLink} prefetch={false}>
-      Online Users{' '}
-      <span aria-label={count === null ? 'Loading online count' : undefined}>{count ?? '—'}</span>
+    <Link
+      href="/game/online"
+      className={className ?? styles.onlineLink}
+      prefetch={false}
+      aria-label={compact ? `Online Users ${count ?? 'loading'}` : undefined}
+    >
+      {compact ? null : <>Online Users </>}
+      <span
+        aria-label={!compact && count === null ? 'Loading online count' : undefined}
+        aria-hidden={compact ? true : undefined}
+      >
+        {count ?? '—'}
+      </span>
     </Link>
   )
 }
