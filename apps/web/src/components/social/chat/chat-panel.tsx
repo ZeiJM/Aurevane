@@ -72,6 +72,7 @@ export function ChatPanel({
   const [menuOpen, setMenuOpen] = useState(false)
   const [inbox, setInbox] = useState<ChatInbox | null>(null)
   const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [typers, setTypers] = useState<{ characterId: string; name: string }[]>([])
   const [notice, setNotice] = useState<string | null>(null)
   const [draft, setDraft] = useState('')
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null)
@@ -82,10 +83,12 @@ export function ChatPanel({
   const feedRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const lastId = useRef(0)
+  const pollRound = useRef(0)
+  const lastTypingAt = useRef(0)
   const stickToBottom = useRef(true)
 
-  // The feed-only mode reads the World stream and keeps just the game lines.
-  const wireChannel = channel === 'feed' ? 'world' : channel
+  // The personal Game feed is owner-only; do not reuse the public World channel.
+  const wireChannel = channel
   const feedOnly = channel === 'feed'
 
   useEffect(() => {
@@ -122,14 +125,21 @@ export function ChatPanel({
     if (view !== 'chat') return
     let cancelled = false
     lastId.current = 0
+    pollRound.current = 0
     const load = async () => {
       try {
-        const { messages: fresh } = await chatApi.messages(wireChannel, lastId.current)
+        // Refresh recent summaries every fourth poll so other players' reactions appear.
+        const includeRecent = ++pollRound.current % 4 === 0
+        const { messages: fresh } = await chatApi.messages(
+          wireChannel,
+          includeRecent ? 0 : lastId.current,
+        )
         if (cancelled || fresh.length === 0) return
         lastId.current = Math.max(lastId.current, ...fresh.map((m) => m.id))
         setMessages((current) => {
-          const seen = new Set(current.map((m) => m.id))
-          return [...current, ...fresh.filter((m) => !seen.has(m.id))].slice(-200)
+          const byId = new Map(current.map((message) => [message.id, message]))
+          for (const message of fresh) byId.set(message.id, message)
+          return [...byId.values()].sort((a, b) => a.id - b.id).slice(-200)
         })
         void chatApi.read(wireChannel, lastId.current).catch(() => undefined)
       } catch (error) {
@@ -152,6 +162,30 @@ export function ChatPanel({
       document.removeEventListener('visibilitychange', onVisibility)
     }
   }, [wireChannel, view])
+
+  // Typing state expires in the database after five seconds; display only active
+  // participants in private DM/group channels, never while appearing offline.
+  useEffect(() => {
+    setTypers([])
+    if (view !== 'chat' || !(channel.startsWith('whisper:') || channel.startsWith('group:'))) {
+      return
+    }
+    let active = true
+    const poll = async () => {
+      try {
+        const { typers: current } = await chatApi.typers(wireChannel)
+        if (active) setTypers(current)
+      } catch {
+        if (active) setTypers([])
+      }
+    }
+    void poll()
+    const timer = window.setInterval(() => void poll(), 2500)
+    return () => {
+      active = false
+      window.clearInterval(timer)
+    }
+  }, [wireChannel, channel, view])
 
   useEffect(() => {
     const feed = feedRef.current
@@ -186,6 +220,16 @@ export function ChatPanel({
   const onDraftChange = (value: string, caret: number) => {
     setDraft(value)
     setMention(activeMentionQuery(value, caret))
+    if (!(channel.startsWith('whisper:') || channel.startsWith('group:'))) return
+    if (!value.trim()) {
+      if (lastTypingAt.current > 0) {
+        lastTypingAt.current = 0
+        void chatApi.typing(wireChannel, false).catch(() => undefined)
+      }
+    } else if (Date.now() - lastTypingAt.current > 2800) {
+      lastTypingAt.current = Date.now()
+      void chatApi.typing(wireChannel, true).catch(() => undefined)
+    }
   }
 
   const send = async () => {
@@ -200,6 +244,10 @@ export function ChatPanel({
         current.some((m) => m.id === message.id) ? current : [...current, message].slice(-200),
       )
       setDraft('')
+      if (lastTypingAt.current > 0) {
+        lastTypingAt.current = 0
+        void chatApi.typing(wireChannel, false).catch(() => undefined)
+      }
       setReplyTo(null)
       setMention(null)
       stickToBottom.current = true
@@ -224,6 +272,11 @@ export function ChatPanel({
 
   const pickChannel = (next: ChannelId) => {
     if (next !== channel) {
+      if (lastTypingAt.current > 0) {
+        void chatApi.typing(wireChannel, false).catch(() => undefined)
+        lastTypingAt.current = 0
+      }
+      setTypers([])
       setMessages([])
       setNotice(null)
     }
@@ -482,11 +535,35 @@ export function ChatPanel({
                       setReplyTo(target)
                       inputRef.current?.focus()
                     }}
+                    onReact={(target, emoji) => {
+                      void chatApi
+                        .react(target.id, emoji)
+                        .then(({ reactions }) => {
+                          setMessages((current) =>
+                            current.map((message) =>
+                              message.id === target.id ? { ...message, reactions } : message,
+                            ),
+                          )
+                        })
+                        .catch((error) =>
+                          setNotice(error instanceof Error ? error.message : 'Reaction failed.'),
+                        )
+                    }}
                   />
                 )
               })
             )}
           </div>
+
+          {typers.length > 0 && !feedOnly ? (
+            <p className={styles.typingIndicator} role="status">
+              {typers
+                .slice(0, 2)
+                .map((typer) => typer.name)
+                .join(', ')}
+              {typers.length > 2 ? ' and others' : ''} {typers.length === 1 ? 'is' : 'are'} typing…
+            </p>
+          ) : null}
 
           {notice ? (
             <p className={styles.notice} role="alert">
