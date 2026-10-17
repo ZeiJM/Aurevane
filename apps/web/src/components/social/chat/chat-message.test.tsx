@@ -37,6 +37,12 @@ describe('ChatLine', () => {
     expect(html).toContain('data-mention="true"')
   })
 
+  it('renders reaction counts as interactive badges when supplied', () => {
+    const html = render({ ...base, reactions: [{ emoji: '🔥', count: 2, mine: true }] })
+    expect(html).toContain('2 reactions')
+    expect(html).toContain('aria-pressed="true"')
+  })
+
   it('renders system lines without a sender', () => {
     const html = render({ ...base, kind: 'system', body: 'A storm gathers.', senderName: null })
     expect(html).toContain('A storm gathers.')

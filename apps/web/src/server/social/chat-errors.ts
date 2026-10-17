@@ -6,6 +6,7 @@ const messages: readonly [string, AurevaneError['code'], string][] = [
     'INVALID_REQUEST',
     'You are sending messages too quickly. Wait a few seconds.',
   ],
+  ['CHAT_REACTION_RATE_LIMITED', 'INVALID_REQUEST', 'Too many reactions. Wait a moment.'],
   ['CHAT_DUPLICATE', 'INVALID_REQUEST', 'You just sent that message.'],
   ['CHAT_FRIEND_LIMIT', 'INVALID_REQUEST', 'Your friend list is full (10). Remove someone first.'],
   ['CHAT_OTHER_FRIEND_LIMIT', 'INVALID_REQUEST', 'That player’s friend list is full.'],
