@@ -43,7 +43,8 @@ async function equipMist(page: Page) {
       response.request().method() === 'PUT',
   )
   if (coarsePointer) {
-    await mist.locator('label').dblclick()
+    await mist.locator('label').click()
+    await page.getByRole('button', { name: 'Equip technique', exact: true }).click()
   } else {
     await mistCheckbox.check()
   }

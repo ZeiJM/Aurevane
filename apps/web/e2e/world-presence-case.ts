@@ -1,3 +1,4 @@
+import { openMapSettings, closeMapSettings } from './world-map-settings-helpers'
 import {
   expect,
   test,
@@ -318,9 +319,9 @@ export async function verifyWorldScenePresence(
 
     // An idle observer must see a real second account walking, including with
     // ambient effects disabled. Probe the actual canvas nameplate, not React state.
-    await page.getByRole('button', { name: 'Map settings', exact: true }).click()
+    await openMapSettings(page)
     await page.getByRole('checkbox', { name: 'Ambient animation', exact: true }).uncheck()
-    await page.getByRole('button', { name: 'Done', exact: true }).click()
+    await closeMapSettings(page)
     await canvas.evaluate(
       (el, name) => {
         const ctx = document
@@ -586,13 +587,13 @@ export async function verifyWorldScenePresence(
     await page.reload()
     expect((await world(page)).players.some((p) => p.characterId === id)).toBe(true)
     await expect(player).toHaveCount(0)
-    await page.getByRole('button', { name: 'Map settings', exact: true }).click()
+    await openMapSettings(page)
     const zoom = page.getByRole('slider', { name: 'Zoom level', exact: true })
     await zoom.focus()
     await zoom.press('Home')
     for (let i = 0; i < 25; i++) await zoom.press('ArrowRight')
     await expect(zoom).toHaveValue('60')
-    await page.getByRole('button', { name: 'Done', exact: true }).click()
+    await closeMapSettings(page)
     await expect(player).toBeVisible({ timeout: 10000 })
     await capture(page, info, 'nearby-follows-zoom-viewport')
 

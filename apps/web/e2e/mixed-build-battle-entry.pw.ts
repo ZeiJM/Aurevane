@@ -31,7 +31,8 @@ async function setSkill(page: Page, name: string, checked: boolean): Promise<voi
   )
 
   if (coarsePointer) {
-    await card.locator('label').dblclick()
+    await card.locator('label').click()
+    await page.getByRole('button', { name: 'Equip technique', exact: true }).click()
   } else {
     await checkbox.click()
   }

@@ -83,7 +83,8 @@ async function equipRenewingHerbs(page: Page): Promise<void> {
       response.request().method() === 'PUT',
   )
   if (coarsePointer) {
-    await herbs.locator('label').dblclick()
+    await herbs.locator('label').click()
+    await page.getByRole('button', { name: 'Equip technique', exact: true }).click()
   } else {
     await checkbox.check()
   }
