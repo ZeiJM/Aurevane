@@ -1223,7 +1223,6 @@ test('a synthetic population of 100 has bounded rendering at high DPI and lower 
   await openMapSettings(page)
   await page.getByRole('slider', { name: 'Zoom level', exact: true }).press('Home')
   await closeMapSettings(page)
-  await page.getByRole('button', { name: 'Close details', exact: true }).click()
   await expect.poll(() => canvas.evaluate((el) => Number(el.dataset.tileSize))).toBe(48 * 0.35)
   const viewport = await canvas.evaluate((el) => ({
     width: el.clientWidth,

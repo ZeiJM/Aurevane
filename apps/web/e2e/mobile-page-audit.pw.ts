@@ -1,6 +1,7 @@
 import { mkdir, writeFile } from 'node:fs/promises'
 import { test, type Page } from '@playwright/test'
 
+import { selectDiscipline } from './discipline-library-helpers'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 // Evidence-gathering audit (never fails on findings): walks every page at common phone
@@ -49,6 +50,29 @@ const PAGES: { name: string; path: string; prep?: (page: Page) => Promise<void> 
       await page.getByRole('button', { name: 'Create Lobby', exact: true }).click()
     },
   },
+  {
+    name: 'discipline-mgmt',
+    path: '/game/nexus',
+    prep: async (page) => {
+      await page.getByRole('button', { name: /Manage Disciplines/ }).click()
+    },
+  },
+  {
+    name: 'techniques',
+    path: '/game/nexus',
+    prep: async (page) => {
+      await page.getByRole('button', { name: /Manage Techniques/ }).click()
+      await page.getByTestId('learned-skill-list').waitFor()
+    },
+  },
+  {
+    name: 'techniques-preview',
+    path: '/game/nexus',
+    prep: async (page) => {
+      await page.getByRole('button', { name: /Manage Techniques/ }).click()
+      await page.getByTestId('learned-skill-list').locator('article label').nth(2).click()
+    },
+  },
   { name: 'online', path: '/game/online' },
   { name: 'titles', path: '/game/account/titles' },
   { name: 'settings-audio', path: '/game/settings/audio' },
@@ -93,6 +117,13 @@ const collect = () => {
       kind: 'h-overflow',
       detail: `document ${document.documentElement.scrollWidth}px > ${vw}px`,
     })
+  for (const lab of Array.from(document.querySelectorAll('[data-technique-card] label'))) {
+    const r = lab.getBoundingClientRect()
+    if (r.width < 1) continue
+    const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)
+    if (hit && !lab.contains(hit) && hit !== lab)
+      out.push({ kind: 'tap-blocked', detail: `${label(lab)} covered by ${label(hit)}` })
+  }
   const all = Array.from(document.body.querySelectorAll('*'))
   const seen = { off: 0, clip: 0, tiny: 0, tap: 0, trap: 0 }
   for (const el of all) {
@@ -158,6 +189,20 @@ test('records mobile layout findings for every page', async ({ page }, info) => 
   })
 
   const findings: Finding[] = []
+  try {
+    await page.goto('/game/nexus')
+    await page.getByRole('button', { name: /Manage Disciplines/ }).click()
+    const management = page.getByRole('dialog', { name: 'Discipline Management' })
+    await selectDiscipline(management, 'Primary', 'Ironfist')
+    await management.getByRole('button', { name: 'Close', exact: true }).click()
+  } catch (error) {
+    findings.push({
+      page: 'setup',
+      viewport: 'n/a',
+      kind: 'audit-error',
+      detail: String(error).split('\n')[0].slice(0, 160),
+    })
+  }
   page.setDefaultTimeout(6_000)
   page.setDefaultNavigationTimeout(20_000)
   const flush = async () => {
