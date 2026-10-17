@@ -93,6 +93,17 @@ const collect = () => {
       kind: 'h-overflow',
       detail: `document ${document.documentElement.scrollWidth}px > ${vw}px`,
     })
+  for (const card of Array.from(document.querySelectorAll<HTMLElement>('[data-technique-card]'))) {
+    if (card.scrollHeight > card.clientHeight + 1) {
+      const kids = Array.from(card.querySelectorAll<HTMLElement>('label, label > *'))
+        .map((k) => `${k.tagName.toLowerCase()}:${Math.round(k.getBoundingClientRect().height)}`)
+        .join(',')
+      out.push({
+        kind: 'card-overflow',
+        detail: `${label(card)} client ${card.clientHeight} scroll ${card.scrollHeight} kids ${kids}`,
+      })
+    }
+  }
   const all = Array.from(document.body.querySelectorAll('*'))
   const seen = { off: 0, clip: 0, tiny: 0, tap: 0, trap: 0 }
   for (const el of all) {

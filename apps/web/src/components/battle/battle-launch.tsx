@@ -13,6 +13,7 @@ import type {
 } from '@aurevane/validation/combat/pvp'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { createPortal } from 'react-dom'
 
 import { AurevaneImage } from '@/components/media/aurevane-image'
 
@@ -98,6 +99,19 @@ function usePhoneLayout() {
   )
 }
 
+const subscribeNothing = () => () => undefined
+
+/** Dialogs render on <body> so the shell's stacking contexts and bottom dock can never cover them. */
+function useBodyPortal() {
+  const canPortal = useSyncExternalStore(
+    subscribeNothing,
+    () => true,
+    () => false,
+  )
+  return (node: React.ReactNode) =>
+    canPortal && typeof document !== 'undefined' ? createPortal(node, document.body) : node
+}
+
 function recordDisplayName(recordId: TacticalHallRecordId, fallback: string): string {
   return recordId === 'recruit-sparring' ? 'AI Sparring' : fallback
 }
@@ -124,6 +138,7 @@ export function BattleLaunch({
   const router = useRouter()
   const launchLock = useRef(false)
   const phone = usePhoneLayout()
+  const inBody = useBodyPortal()
   const joinAttempted = useRef(false)
   const restoreAttempted = useRef(false)
   const [section, setSection] = useState<HallSection>('ai')
@@ -766,236 +781,242 @@ export function BattleLaunch({
         </p>
       ) : null}
 
-      {pvpDialog && !pvpLobby ? (
-        <div
-          className={styles.pvpDialogBackdrop}
-          role="presentation"
-          onPointerDown={() => {
-            if (!pending) setPvpDialog(null)
-          }}
-        >
-          <section
-            className={styles.pvpDialog}
-            data-pvp-dialog={pvpDialog}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="pvp-dialog-title"
-            onPointerDown={(event) => event.stopPropagation()}
-            onKeyDown={(event) => {
-              if (event.key === 'Escape' && !pending) setPvpDialog(null)
-            }}
-          >
-            <header className={styles.pvpDialogHeader}>
-              <h2 id="pvp-dialog-title">
-                {pvpDialog === 'create' ? 'Create Lobby' : 'Join by Key'}
-              </h2>
-              <button
-                type="button"
-                className={styles.pvpDialogClose}
-                aria-label="Close"
-                disabled={pending}
-                onClick={() => setPvpDialog(null)}
+      {pvpDialog && !pvpLobby
+        ? inBody(
+            <div
+              className={styles.pvpDialogBackdrop}
+              role="presentation"
+              onPointerDown={() => {
+                if (!pending) setPvpDialog(null)
+              }}
+            >
+              <section
+                className={styles.pvpDialog}
+                data-pvp-dialog={pvpDialog}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="pvp-dialog-title"
+                onPointerDown={(event) => event.stopPropagation()}
+                onKeyDown={(event) => {
+                  if (event.key === 'Escape' && !pending) setPvpDialog(null)
+                }}
               >
-                ×
-              </button>
-            </header>
-            <div className={styles.pvpDialogBody}>
-              {pvpDialog === 'create' ? (
-                <article className={styles.setupCard} data-pvp-create-card data-pvp-entry="create">
-                  <div className={styles.formatRow}>
-                    <label htmlFor="pvp-mode">Battle format</label>
-                    <select
-                      id="pvp-mode"
-                      aria-describedby="pvp-format-description"
-                      value={pvpMode ?? ''}
-                      onChange={(event) =>
-                        setPvpMode((event.target.value || null) as PvpMode | null)
-                      }
-                      disabled={pending}
+                <header className={styles.pvpDialogHeader}>
+                  <h2 id="pvp-dialog-title">
+                    {pvpDialog === 'create' ? 'Create Lobby' : 'Join by Key'}
+                  </h2>
+                  <button
+                    type="button"
+                    className={styles.pvpDialogClose}
+                    aria-label="Close"
+                    disabled={pending}
+                    onClick={() => setPvpDialog(null)}
+                  >
+                    ×
+                  </button>
+                </header>
+                <div className={styles.pvpDialogBody}>
+                  {pvpDialog === 'create' ? (
+                    <article
+                      className={styles.setupCard}
+                      data-pvp-create-card
+                      data-pvp-entry="create"
                     >
-                      <option value="">Choose a PvP format…</option>
-                      {PVP_MODES.map((mode) => (
-                        <option value={mode.id} key={mode.id}>
-                          {phone ? mode.label : `${mode.label} — ${mode.detail}`}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <p id="pvp-format-description" className={styles.formatDescription}>
-                    {PVP_MODES.find((mode) => mode.id === pvpMode)?.detail ??
-                      'Choose a battle format to see its team arrangement.'}
-                  </p>
-
-                  {pvpMode === 'flex-teams' ? (
-                    <div className={styles.flexSizes} data-pvp-team-sizes>
-                      <label>
-                        Team 1
+                      <div className={styles.formatRow}>
+                        <label htmlFor="pvp-mode">Battle format</label>
                         <select
-                          value={teamASize}
-                          onChange={(event) => setTeamASize(Number(event.target.value))}
+                          id="pvp-mode"
+                          aria-describedby="pvp-format-description"
+                          value={pvpMode ?? ''}
+                          onChange={(event) =>
+                            setPvpMode((event.target.value || null) as PvpMode | null)
+                          }
+                          disabled={pending}
                         >
-                          {[1, 2, 3].map((size) => (
-                            <option key={size} value={size}>
-                              {size} player{size > 1 ? 's' : ''}
+                          <option value="">Choose a PvP format…</option>
+                          {PVP_MODES.map((mode) => (
+                            <option value={mode.id} key={mode.id}>
+                              {phone ? mode.label : `${mode.label} — ${mode.detail}`}
                             </option>
                           ))}
                         </select>
-                      </label>
-                      <span>VS</span>
-                      <label>
-                        Team 2
-                        <select
-                          value={teamBSize}
-                          onChange={(event) => setTeamBSize(Number(event.target.value))}
-                        >
-                          {[1, 2, 3].map((size) => (
-                            <option key={size} value={size}>
-                              {size} player{size > 1 ? 's' : ''}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                    </div>
-                  ) : null}
+                      </div>
+                      <p id="pvp-format-description" className={styles.formatDescription}>
+                        {PVP_MODES.find((mode) => mode.id === pvpMode)?.detail ??
+                          'Choose a battle format to see its team arrangement.'}
+                      </p>
 
-                  <div data-pvp-settings-panel aria-label="PvP battle settings">
-                    <fieldset data-pvp-setting-group>
-                      <legend>Map size</legend>
-                      <div data-pvp-setting-options>
-                        {PVP_MAP_SIZES.map((value) => (
-                          <button
-                            key={value}
-                            type="button"
-                            aria-pressed={mapSize === value}
-                            data-selected={mapSize === value || undefined}
-                            onClick={() => setMapSize(value)}
-                            disabled={pending}
-                          >
-                            {pvpMapProfile(value).description}
-                          </button>
-                        ))}
+                      {pvpMode === 'flex-teams' ? (
+                        <div className={styles.flexSizes} data-pvp-team-sizes>
+                          <label>
+                            Team 1
+                            <select
+                              value={teamASize}
+                              onChange={(event) => setTeamASize(Number(event.target.value))}
+                            >
+                              {[1, 2, 3].map((size) => (
+                                <option key={size} value={size}>
+                                  {size} player{size > 1 ? 's' : ''}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          <span>VS</span>
+                          <label>
+                            Team 2
+                            <select
+                              value={teamBSize}
+                              onChange={(event) => setTeamBSize(Number(event.target.value))}
+                            >
+                              {[1, 2, 3].map((size) => (
+                                <option key={size} value={size}>
+                                  {size} player{size > 1 ? 's' : ''}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                        </div>
+                      ) : null}
+
+                      <div data-pvp-settings-panel aria-label="PvP battle settings">
+                        <fieldset data-pvp-setting-group>
+                          <legend>Map size</legend>
+                          <div data-pvp-setting-options>
+                            {PVP_MAP_SIZES.map((value) => (
+                              <button
+                                key={value}
+                                type="button"
+                                aria-pressed={mapSize === value}
+                                data-selected={mapSize === value || undefined}
+                                onClick={() => setMapSize(value)}
+                                disabled={pending}
+                              >
+                                {pvpMapProfile(value).description}
+                              </button>
+                            ))}
+                          </div>
+                        </fieldset>
+                        <fieldset data-pvp-setting-group>
+                          <legend>Elevation</legend>
+                          <div data-pvp-setting-options>
+                            {(['less', 'neutral', 'more'] as const).map((value) => (
+                              <button
+                                key={value}
+                                type="button"
+                                aria-pressed={elevationBias === value}
+                                data-selected={elevationBias === value || undefined}
+                                onClick={() => setElevationBias(value)}
+                                disabled={pending}
+                              >
+                                {value === 'less' ? 'Less' : value === 'more' ? 'More' : 'Neutral'}
+                              </button>
+                            ))}
+                          </div>
+                        </fieldset>
+                        <fieldset data-pvp-setting-group>
+                          <legend>Difficult ground</legend>
+                          <div data-pvp-setting-options>
+                            {(['less', 'neutral', 'more'] as const).map((value) => (
+                              <button
+                                key={value}
+                                type="button"
+                                aria-pressed={terrainBias === value}
+                                data-selected={terrainBias === value || undefined}
+                                onClick={() => setTerrainBias(value)}
+                                disabled={pending}
+                              >
+                                {value === 'less' ? 'Less' : value === 'more' ? 'More' : 'Neutral'}
+                              </button>
+                            ))}
+                          </div>
+                        </fieldset>
+                        <fieldset data-pvp-setting-group>
+                          <legend>Turn timer</legend>
+                          <div data-pvp-setting-options>
+                            {[
+                              { value: 60 as const, label: '60s' },
+                              { value: 120 as const, label: '120s' },
+                              { value: null, label: 'None' },
+                            ].map((option) => (
+                              <button
+                                key={option.label}
+                                type="button"
+                                aria-pressed={turnTimerSeconds === option.value}
+                                data-selected={turnTimerSeconds === option.value || undefined}
+                                onClick={() => setTurnTimerSeconds(option.value)}
+                                disabled={pending}
+                                aria-label={
+                                  option.value === null
+                                    ? 'No turn timer'
+                                    : `${option.value} second turn timer`
+                                }
+                              >
+                                {option.label}
+                              </button>
+                            ))}
+                          </div>
+                        </fieldset>
                       </div>
-                    </fieldset>
-                    <fieldset data-pvp-setting-group>
-                      <legend>Elevation</legend>
-                      <div data-pvp-setting-options>
-                        {(['less', 'neutral', 'more'] as const).map((value) => (
-                          <button
-                            key={value}
-                            type="button"
-                            aria-pressed={elevationBias === value}
-                            data-selected={elevationBias === value || undefined}
-                            onClick={() => setElevationBias(value)}
-                            disabled={pending}
-                          >
-                            {value === 'less' ? 'Less' : value === 'more' ? 'More' : 'Neutral'}
-                          </button>
-                        ))}
-                      </div>
-                    </fieldset>
-                    <fieldset data-pvp-setting-group>
-                      <legend>Difficult ground</legend>
-                      <div data-pvp-setting-options>
-                        {(['less', 'neutral', 'more'] as const).map((value) => (
-                          <button
-                            key={value}
-                            type="button"
-                            aria-pressed={terrainBias === value}
-                            data-selected={terrainBias === value || undefined}
-                            onClick={() => setTerrainBias(value)}
-                            disabled={pending}
-                          >
-                            {value === 'less' ? 'Less' : value === 'more' ? 'More' : 'Neutral'}
-                          </button>
-                        ))}
-                      </div>
-                    </fieldset>
-                    <fieldset data-pvp-setting-group>
-                      <legend>Turn timer</legend>
-                      <div data-pvp-setting-options>
-                        {[
-                          { value: 60 as const, label: '60s' },
-                          { value: 120 as const, label: '120s' },
-                          { value: null, label: 'None' },
-                        ].map((option) => (
-                          <button
-                            key={option.label}
-                            type="button"
-                            aria-pressed={turnTimerSeconds === option.value}
-                            data-selected={turnTimerSeconds === option.value || undefined}
-                            onClick={() => setTurnTimerSeconds(option.value)}
-                            disabled={pending}
-                            aria-label={
-                              option.value === null
-                                ? 'No turn timer'
-                                : `${option.value} second turn timer`
-                            }
-                          >
-                            {option.label}
-                          </button>
-                        ))}
-                      </div>
-                    </fieldset>
-                  </div>
-                </article>
-              ) : (
-                <article className={styles.joinCard} data-pvp-entry="join">
-                  <p>
-                    Join a private battle using a Lobby Key shared by its host. Battles are private,
-                    not publicly listed.
+                    </article>
+                  ) : (
+                    <article className={styles.joinCard} data-pvp-entry="join">
+                      <p>
+                        Join a private battle using a Lobby Key shared by its host. Battles are
+                        private, not publicly listed.
+                      </p>
+                      <label htmlFor="lobby-key">Lobby Key</label>
+                      <input
+                        id="lobby-key"
+                        value={joinKey}
+                        onChange={(event) => setJoinKey(formatPvpLobbyKeyInput(event.target.value))}
+                        placeholder="AVL-0000-0000"
+                        title="Paste or type a Lobby Key. Capitals and dashes are added automatically."
+                        autoComplete="off"
+                        autoCapitalize="characters"
+                        spellCheck={false}
+                        maxLength={13}
+                      />
+                    </article>
+                  )}
+                </div>
+                {error ? (
+                  <p className={styles.error} role="alert">
+                    {error}
                   </p>
-                  <label htmlFor="lobby-key">Lobby Key</label>
-                  <input
-                    id="lobby-key"
-                    value={joinKey}
-                    onChange={(event) => setJoinKey(formatPvpLobbyKeyInput(event.target.value))}
-                    placeholder="AVL-0000-0000"
-                    title="Paste or type a Lobby Key. Capitals and dashes are added automatically."
-                    autoComplete="off"
-                    autoCapitalize="characters"
-                    spellCheck={false}
-                    maxLength={13}
-                  />
-                </article>
-              )}
-            </div>
-            {error ? (
-              <p className={styles.error} role="alert">
-                {error}
-              </p>
-            ) : null}
-            <footer className={styles.pvpDialogActions}>
-              <button
-                type="button"
-                className={styles.secondaryAction}
-                disabled={pending}
-                onClick={() => setPvpDialog(null)}
-              >
-                Cancel
-              </button>
-              {pvpDialog === 'create' ? (
-                <button
-                  type="button"
-                  className={styles.primaryAction}
-                  disabled={!pvpMode || pending}
-                  onClick={() => void createLobby()}
-                >
-                  {pending ? 'Preparing…' : 'Create Battle Lobby'}
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className={styles.primaryAction}
-                  disabled={pending || !isCompletePvpLobbyKey(joinKey)}
-                  onClick={() => void joinLobby(joinKey)}
-                >
-                  {pending ? 'Joining…' : 'Join Battle Lobby'}
-                </button>
-              )}
-            </footer>
-          </section>
-        </div>
-      ) : null}
+                ) : null}
+                <footer className={styles.pvpDialogActions}>
+                  <button
+                    type="button"
+                    className={styles.secondaryAction}
+                    disabled={pending}
+                    onClick={() => setPvpDialog(null)}
+                  >
+                    Cancel
+                  </button>
+                  {pvpDialog === 'create' ? (
+                    <button
+                      type="button"
+                      className={styles.primaryAction}
+                      disabled={!pvpMode || pending}
+                      onClick={() => void createLobby()}
+                    >
+                      {pending ? 'Preparing…' : 'Create Battle Lobby'}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className={styles.primaryAction}
+                      disabled={pending || !isCompletePvpLobbyKey(joinKey)}
+                      onClick={() => void joinLobby(joinKey)}
+                    >
+                      {pending ? 'Joining…' : 'Join Battle Lobby'}
+                    </button>
+                  )}
+                </footer>
+              </section>
+            </div>,
+          )
+        : null}
 
       {pvpLobby ? (
         <PvpLobbyModal
