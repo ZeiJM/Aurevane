@@ -1,4 +1,5 @@
 'use client'
+import { ChatPanel } from '@/components/social/chat/chat-panel'
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { useRouter } from 'next/navigation'
 import { OnlinePresenceLink } from '@/components/shell/online-presence-link'
@@ -85,7 +86,7 @@ export function WorldWorkspace({
   const router = useRouter(),
     [view, setView] = useState(initialView),
     [mode, setMode] = useState<'local' | 'global'>('local')
-  const [tab, setTab] = useState<'nearby' | 'places' | 'missions'>('nearby'),
+  const [tab, setTab] = useState<'nearby' | 'places' | 'missions' | 'chat'>('nearby'),
     [panelOpen, setPanelOpen] = useState(false),
     [message, setMessage] = useState('')
   const [active, setActive] = useState<WorldIntent | null>(null),
@@ -569,10 +570,28 @@ export function WorldWorkspace({
                   <i>{view.objectives.filter((o) => !o.completed).length}</i>
                 ) : null}
               </button>
+              <button
+                id="chat-tab"
+                role="tab"
+                aria-selected={tab === 'chat'}
+                aria-controls="chat-content"
+                onClick={() => setTab('chat')}
+              >
+                Chat
+              </button>
             </div>
           ) : null}
           <div className={styles.panelScroll}>
-            {mode === 'local' && tab === 'missions' ? (
+            {mode === 'local' && tab === 'chat' ? (
+              <div
+                id="chat-content"
+                role="tabpanel"
+                aria-labelledby="chat-tab"
+                className={styles.chatHost}
+              >
+                <ChatPanel selfName={character.name} />
+              </div>
+            ) : mode === 'local' && tab === 'missions' ? (
               <div id="missions-content" role="tabpanel" aria-labelledby="missions-tab">
                 <WorldMissions
                   view={view}

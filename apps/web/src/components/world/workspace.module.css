@@ -1030,3 +1030,13 @@
     padding: 6px 10px;
   }
 }
+
+.chatHost {
+  display: flex;
+  height: min(70vh, 640px);
+  min-height: 360px;
+}
+.chatHost > * {
+  flex: 1;
+  min-width: 0;
+}
