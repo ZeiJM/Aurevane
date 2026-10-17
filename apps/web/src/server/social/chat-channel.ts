@@ -5,6 +5,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 /** What the browser asks for. Canonical database keys are never trusted from the client. */
 export type ChatChannelRequest =
   | { kind: 'world' }
+  | { kind: 'feed' }
   | { kind: 'village' }
   | { kind: 'whisper'; characterId: string }
   | { kind: 'group'; groupId: string }
@@ -19,6 +20,7 @@ export function parseChatChannel(value: unknown): ChatChannelRequest {
   const invalid = () => new AurevaneError('INVALID_REQUEST', 'That chat channel is not valid.')
   if (typeof value !== 'string' || value.length > 80) throw invalid()
   if (value === 'world') return { kind: 'world' }
+  if (value === 'feed') return { kind: 'feed' }
   if (value === 'village') return { kind: 'village' }
   const [kind, id, ...rest] = value.split(':')
   if (rest.length > 0 || !id || !UUID.test(id)) throw invalid()
@@ -36,6 +38,8 @@ export function resolveChatChannel(
   switch (request.kind) {
     case 'world':
       return { key: 'world', kind: 'world' }
+    case 'feed':
+      return { key: `feed:${characterId}`, kind: 'feed' }
     case 'village':
       if (!villageKey)
         throw new AurevaneError('FORBIDDEN', 'Village chat opens when you stand in a village.')
