@@ -1737,3 +1737,198 @@
     hyphens: auto;
   }
 }
+
+/* PVP: two clear choices, each opening its own popup. */
+.pvpChoices {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+  min-width: 0;
+}
+.pvpChoice {
+  display: grid;
+  min-width: 0;
+  min-height: 9rem;
+  align-content: center;
+  justify-items: center;
+  gap: 0.35rem;
+  padding: 1rem;
+  border: 1px solid rgba(140, 113, 66, 0.5);
+  color: #2b3f49;
+  background: linear-gradient(160deg, rgba(255, 253, 247, 0.9), rgba(228, 214, 186, 0.8));
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.6);
+  text-align: center;
+  cursor: pointer;
+}
+.pvpChoice[data-choice='create'] {
+  border-color: #b18d4a;
+  color: #f2dfb5;
+  background: linear-gradient(160deg, #17353c, #0e2931);
+}
+.pvpChoice > span {
+  color: #a8823f;
+  font-size: 1.8rem;
+  line-height: 1;
+}
+.pvpChoice strong {
+  font: 600 1.25rem/1.15 var(--av-font-display);
+}
+.pvpChoice small {
+  max-width: 18rem;
+  font-size: 0.8125rem;
+  line-height: 1.35;
+  opacity: 0.85;
+}
+.pvpChoice:hover:not(:disabled),
+.pvpChoice:focus-visible {
+  border-color: #d1aa5e;
+  outline: none;
+  box-shadow:
+    inset 0 0 0 1px rgba(226, 194, 125, 0.4),
+    0 0.3rem 0.8rem rgba(5, 21, 27, 0.18);
+}
+.pvpChoice:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.pvpDialogBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10030;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(2, 8, 13, 0.78);
+  backdrop-filter: blur(6px);
+}
+.pvpDialog {
+  display: grid;
+  width: min(44rem, 100%);
+  max-height: 92dvh;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  gap: 0.6rem;
+  padding: 0.9rem 1rem;
+  overflow: hidden;
+  border: 1px solid #a88548;
+  color: #243c4b;
+  background: linear-gradient(180deg, #f4efe2, #e1d5bb);
+  box-shadow: 0 1.6rem 5rem rgba(0, 0, 0, 0.5);
+}
+.pvpDialog[data-pvp-dialog='join'] {
+  width: min(28rem, 100%);
+}
+.pvpDialogHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.pvpDialogHeader h2 {
+  margin: 0;
+  font: 600 1.4rem/1.1 var(--av-font-display);
+}
+.pvpDialogClose {
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  border: 1px solid rgba(151, 125, 76, 0.4);
+  background: rgba(250, 247, 238, 0.86);
+  color: #263e4e;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.pvpDialogBody {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.pvpDialogActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+}
+.pvpDialogActions button {
+  min-height: 2.75rem;
+  padding-inline: 1.1rem;
+}
+.secondaryAction {
+  border: 1px solid rgba(151, 125, 76, 0.4);
+  color: #344b59;
+  background: #f0ece3;
+  font: 600 0.8125rem/1.15 var(--av-font-display);
+  cursor: pointer;
+}
+
+@media (max-width: 760px) {
+  .pvpChoices {
+    gap: 0.5rem;
+  }
+  .pvpChoice {
+    min-height: 7.5rem;
+    padding: 0.7rem 0.5rem;
+  }
+  .pvpChoice strong {
+    font-size: 1.05rem;
+  }
+  .pvpDialogBackdrop {
+    place-items: end center;
+    padding: 0;
+  }
+  .pvpDialog {
+    width: 100%;
+    max-height: 94dvh;
+    padding: 0.8rem 0.8rem calc(0.8rem + env(safe-area-inset-bottom));
+    border-radius: 1rem 1rem 0 0;
+  }
+  .pvpDialog[data-pvp-dialog='join'] {
+    width: 100%;
+  }
+  .pvpDialogActions button {
+    flex: 1;
+  }
+}
+
+/* Phones: Battle Hall text wraps instead of clipping, and form controls stay a comfortable, readable size. */
+@media (max-width: 760px) {
+  .workspace,
+  .workspace * {
+    overflow-wrap: anywhere;
+  }
+  .workspaceHeading h2 {
+    font-size: 1.3rem;
+    line-height: 1.15;
+  }
+  .workspaceHeading p {
+    font-size: 0.8125rem;
+    line-height: 1.35;
+  }
+  .page select,
+  .page input {
+    min-height: 2.75rem;
+    font-size: 1rem;
+  }
+  .pvpDialog [data-pvp-setting-options] button {
+    min-height: 2.75rem;
+    padding: 0.25rem 0.2rem;
+    font-size: 0.8125rem;
+    line-height: 1.15;
+  }
+  .pvpDialog .formatRow {
+    grid-template-columns: 1fr;
+    gap: 0.25rem;
+  }
+  .pvpDialog .formatDescription {
+    font-size: 0.8125rem;
+  }
+  .pvpDialog [data-pvp-settings-panel] {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+  .pvpDialog .flexSizes {
+    grid-template-columns: 1fr auto 1fr;
+  }
+  .pvpDialogHeader h2 {
+    font-size: 1.25rem;
+  }
+}

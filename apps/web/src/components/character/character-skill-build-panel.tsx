@@ -339,6 +339,18 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
     }
   }
 
+  function equipBlockedReason(skill: SkillCatalogEntryView): string | null {
+    if (selectedIds.includes(skill.definition.id)) return null
+    if (selectedIds.length >= capacity) return 'Your technique slots are full. Remove one first.'
+    if (
+      secondaryDiscipline &&
+      selectedSourceCount(skill.definition.sourceDisciplineId) >= MIXED_SOURCE_MAXIMUM
+    ) {
+      return 'You already have the most techniques allowed from this discipline.'
+    }
+    return null
+  }
+
   function toggleAndCommit(skill: SkillCatalogEntryView) {
     if (!skill.activeSource || pendingRef.current) return
     setFocusedSupportActionId(null)
@@ -424,7 +436,14 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                     checked={selected}
                     disabled={pending}
                     aria-label={name}
-                    onChange={() => void commitSupportAction(id)}
+                    onClick={(event) => {
+                      if (!coarsePointer) return
+                      event.preventDefault()
+                      setFocusedSupportActionId(id)
+                    }}
+                    onChange={() => {
+                      if (!coarsePointer) void commitSupportAction(id)
+                    }}
                   />
                   <span
                     className={styles.skillArt}
@@ -540,9 +559,11 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                     disabled={disabled}
                     aria-label={`${selected ? 'Unselect' : 'Select'} ${label}`}
                     onClick={(event) => {
+                      // Touch: a tap only previews. Equipping is the explicit button in the preview.
                       if (!coarsePointer) return
                       event.preventDefault()
-                      toggleAndCommit(entry)
+                      setFocusedSupportActionId(null)
+                      setFocusedSkillId(entry.definition.id)
                     }}
                     onChange={() => {
                       if (!coarsePointer) toggleAndCommit(entry)
@@ -689,6 +710,21 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                             id={focusedSupportActionId}
                             className={styles.effectExplanations}
                           />
+                          {coarsePointer ? (
+                            <button
+                              type="button"
+                              className={styles.equipAction}
+                              data-equipped={
+                                supportActionId === focusedSupportActionId || undefined
+                              }
+                              disabled={pending || supportActionId === focusedSupportActionId}
+                              onClick={() => void commitSupportAction(focusedSupportActionId)}
+                            >
+                              {supportActionId === focusedSupportActionId
+                                ? '✓ Current Support Action'
+                                : 'Use as Support Action'}
+                            </button>
+                          ) : null}
                         </>
                       ) : focusedSkill ? (
                         <>
@@ -762,6 +798,32 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                               </li>
                             ))}
                           </ul>
+                          {coarsePointer ? (
+                            <>
+                              <button
+                                type="button"
+                                className={styles.equipAction}
+                                data-equipped={
+                                  selectedIds.includes(focusedSkill.definition.id) || undefined
+                                }
+                                disabled={
+                                  pending ||
+                                  equipBlockedReason(focusedSkill) !== null ||
+                                  !focusedSkill.activeSource
+                                }
+                                onClick={() => toggleAndCommit(focusedSkill)}
+                              >
+                                {selectedIds.includes(focusedSkill.definition.id)
+                                  ? 'Remove from loadout'
+                                  : 'Equip technique'}
+                              </button>
+                              {equipBlockedReason(focusedSkill) ? (
+                                <small className={styles.equipHint}>
+                                  {equipBlockedReason(focusedSkill)}
+                                </small>
+                              ) : null}
+                            </>
+                          ) : null}
                         </>
                       ) : (
                         <p>No Technique is available for this build.</p>

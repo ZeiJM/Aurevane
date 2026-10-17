@@ -296,19 +296,14 @@ test('Battle Hall places one arena workspace below the scenic mode tabs with all
   const modes = page.getByRole('navigation', { name: 'Battle Hall sections', exact: true })
   const modeButtons = modes.getByRole('button')
   await expect(modeButtons).toHaveCount(4)
-  for (const [index, name] of [
-    'AI Battles',
-    'PVP - Direct',
-    'PVP - Matchmaking (coming soon)',
-    'Spectate',
-  ].entries()) {
+  for (const [index, name] of ['Sparring Yard', 'PVP', 'Arena Queue', 'Spectate'].entries()) {
     await expect(modeButtons.nth(index)).toHaveAccessibleName(name)
   }
   await expect(ai.locator('figure')).toHaveCount(0)
   await expect(page.getByLabel('AI sparring arena')).toBeVisible()
-  await modes.getByRole('button', { name: 'PVP - Matchmaking (coming soon)', exact: true }).click()
+  await modes.getByRole('button', { name: 'Arena Queue', exact: true }).click()
   await expect(page.locator('.av-matchmaking')).toContainText('Coming Soon')
-  await page.getByRole('button', { name: 'AI Battles', exact: false }).click()
+  await page.getByRole('button', { name: 'Sparring Yard', exact: false }).click()
 
   await expect(page.getByLabel('Battle mode')).toHaveValue('recruit-sparring')
   await expect(page.getByRole('button', { name: 'Enter Battle', exact: true })).toBeEnabled()
@@ -373,7 +368,7 @@ test('Battle Hall places one arena workspace below the scenic mode tabs with all
   }
 
   const navigation = page.getByRole('navigation', { name: 'Battle Hall sections', exact: true })
-  await navigation.getByRole('button', { name: 'PVP - Direct', exact: true }).click()
+  await navigation.getByRole('button', { name: 'PVP', exact: true }).click()
   await expect(page.locator('[data-hall-workspace]:visible')).toHaveCount(1)
   const pvpWorkspace = page.locator('[data-hall-workspace="pvp"]')
   await expect(pvpWorkspace).toBeVisible()
@@ -390,6 +385,10 @@ test('Battle Hall places one arena workspace below the scenic mode tabs with all
       .toBeGreaterThan(pvpSpace.workspaceHeight * 0.9)
   }
 
+  await expect(page.locator('#pvp-mode')).toHaveCount(0)
+  await page.getByRole('button', { name: 'Create Lobby', exact: true }).click()
+  const createDialog = page.getByRole('dialog', { name: 'Create Lobby', exact: true })
+  await expect(createDialog).toBeVisible()
   await page.locator('#pvp-mode').selectOption('flex-teams')
   await expect(page.locator('[data-pvp-team-sizes] select')).toHaveCount(2)
   for (const size of await page.locator('[data-pvp-team-sizes] select').all()) {
@@ -399,13 +398,20 @@ test('Battle Hall places one arena workspace below the scenic mode tabs with all
   await turnTimer.scrollIntoViewIfNeeded()
   await turnTimer.click()
   await expect(turnTimer).toHaveAttribute('aria-pressed', 'true')
+  await capture(page, testInfo, 'pvp-create')
+  await createDialog.getByRole('button', { name: 'Close', exact: true }).click()
+  await expect(createDialog).toHaveCount(0)
   await page.getByRole('button', { name: 'Join by Key', exact: true }).click()
+  const joinDialog = page.getByRole('dialog', { name: 'Join by Key', exact: true })
+  await expect(joinDialog).toBeVisible()
   await page.locator('#lobby-key').fill('avlabcd1234')
   await expect(page.locator('#lobby-key')).toHaveValue('AVL-ABCD-1234')
   await expect(page.getByRole('button', { name: 'Join Battle Lobby', exact: true })).toBeEnabled()
   await page.locator('#lobby-key').clear()
   await expect(page.getByRole('button', { name: 'Join Battle Lobby', exact: true })).toBeDisabled()
   await capture(page, testInfo, 'join')
+  await page.keyboard.press('Escape')
+  await expect(joinDialog).toHaveCount(0)
 
   await page.getByRole('button', { name: 'Create Lobby', exact: true }).click()
   await expect(page.locator('#pvp-mode')).toHaveValue('flex-teams')
@@ -484,8 +490,9 @@ test('real multi-seat lobby remains a keyboard-contained dialog with square port
   await enterHall(page, testInfo, 'lobby')
   await page
     .getByRole('navigation', { name: 'Battle Hall sections' })
-    .getByRole('button', { name: 'PVP - Direct', exact: true })
+    .getByRole('button', { name: 'PVP', exact: true })
     .click()
+  await page.getByRole('button', { name: 'Create Lobby', exact: true }).click()
   await page.locator('#pvp-mode').selectOption('3v3')
   await page.getByRole('button', { name: '120 second turn timer', exact: true }).click()
   const created = page.waitForResponse(
@@ -556,7 +563,7 @@ test('real multi-seat lobby remains a keyboard-contained dialog with square port
   ).toBeVisible()
   await dialog.getByRole('button', { name: 'Close Lobby', exact: true }).click()
   await expect(dialog).toHaveCount(0)
-  await expect(page.getByRole('button', { name: 'Create Battle Lobby', exact: true })).toBeEnabled()
+  await expect(page.getByRole('button', { name: 'Create Lobby', exact: true })).toBeEnabled()
 })
 
 // Covers the intermediate layout, not just the three-column desktop and phone endpoints.
@@ -568,13 +575,14 @@ test('intermediate Hall layouts keep settings clear of the action row', async ({
   await enterHall(page, testInfo, 'intermediate')
   await page
     .getByRole('navigation', { name: 'Battle Hall sections' })
-    .getByRole('button', { name: 'PVP - Direct', exact: true })
+    .getByRole('button', { name: 'PVP', exact: true })
     .click()
+  await page.getByRole('button', { name: 'Create Lobby', exact: true }).click()
   await page.locator('#pvp-mode').selectOption('flex-teams')
   for (const select of await page.locator('[data-pvp-team-sizes] select').all()) {
     await select.selectOption('3')
   }
-  const panel = page.locator('[data-hall-workspace="pvp"]')
+  const panel = page.locator('[data-pvp-dialog="create"]')
   for (const viewport of [
     { width: 1199, height: 768 },
     { width: 1024, height: 768 },
@@ -586,37 +594,34 @@ test('intermediate Hall layouts keep settings clear of the action row', async ({
     await timer.click({ timeout: 5_000 })
     await expect(timer).toHaveAttribute('aria-pressed', 'true')
     const bounds = await panel.evaluate((node) => {
-      const body = node.querySelector('[data-hall-scroll-body]')!
-      const actions = node.querySelector('[data-hall-action-row]')!
-      const contentBottom = Math.max(
-        ...[...body.children].map((child) => child.getBoundingClientRect().bottom),
-      )
-      const visibleBottom = ['auto', 'scroll', 'hidden', 'clip'].includes(
-        getComputedStyle(body).overflowY,
-      )
-        ? Math.min(contentBottom, body.getBoundingClientRect().bottom)
-        : contentBottom
+      const rect = node.getBoundingClientRect()
+      const actions = [...node.querySelectorAll('button')]
+        .filter((button) => button.textContent?.trim() === 'Create Battle Lobby')
+        .map((button) => button.getBoundingClientRect())[0]!
       return {
-        overlap: visibleBottom - actions.getBoundingClientRect().top,
-        actionsOutsidePanel:
-          actions.getBoundingClientRect().bottom - node.getBoundingClientRect().bottom,
+        dialogOutsideViewport: Math.max(
+          rect.bottom - innerHeight,
+          -rect.top,
+          rect.right - innerWidth,
+          -rect.left,
+        ),
+        actionsOutsideDialog: actions.bottom - rect.bottom,
         overflowX: document.documentElement.scrollWidth - innerWidth,
       }
     })
     expect(
-      bounds.overlap,
-      `settings clear footer at ${viewport.width}x${viewport.height}`,
+      bounds.dialogOutsideViewport,
+      `Create Lobby popup fits at ${viewport.width}x${viewport.height}`,
     ).toBeLessThanOrEqual(1)
-    expect(bounds.actionsOutsidePanel, 'panel contains its own action row').toBeLessThanOrEqual(1)
+    expect(bounds.actionsOutsideDialog, 'popup contains its own action row').toBeLessThanOrEqual(1)
     expect(bounds.overflowX, 'no horizontal document clipping').toBeLessThanOrEqual(1)
-    await page
-      .getByRole('button', { name: 'Create Battle Lobby', exact: true })
-      .click({ trial: true, timeout: 5_000 })
+    await page.getByRole('button', { name: 'Close', exact: true }).click()
     await page.getByRole('button', { name: 'Join by Key', exact: true }).click()
     await page.locator('#lobby-key').fill('avlabcd1234')
     await page
       .getByRole('button', { name: 'Join Battle Lobby', exact: true })
       .click({ trial: true, timeout: 5_000 })
+    await page.getByRole('button', { name: 'Close', exact: true }).click()
     await page.getByRole('button', { name: 'Create Lobby', exact: true }).click()
     await expect(page.locator('#pvp-mode')).toHaveValue('flex-teams')
   }

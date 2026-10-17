@@ -13,7 +13,11 @@ import { BattleLaunch } from './battle-launch'
 describe('Battle Hall concept composition', () => {
   it('offers AI-aligned Small, Medium and Large PvP sizes with Medium selected by default', () => {
     const markup = renderToStaticMarkup(
-      createElement(BattleLaunch, { characterId: 'character-1', characterName: 'Eira Vale' }),
+      createElement(BattleLaunch, {
+        characterId: 'character-1',
+        characterName: 'Eira Vale',
+        initialPvpDialog: 'create',
+      }),
     )
     const group =
       markup.match(/<fieldset[^>]*>[\s\S]*?<legend>Map size<\/legend>[\s\S]*?<\/fieldset>/)?.[0] ??
@@ -30,7 +34,7 @@ describe('Battle Hall concept composition', () => {
       markup.indexOf('aria-label="Battle Hall sections"'),
       markup.indexOf('</nav>'),
     )
-    const labels = ['AI Battles', 'PVP - Direct', 'PVP - Matchmaking (coming soon)', 'Spectate']
+    const labels = ['Sparring Yard', 'PVP', 'Arena Queue', 'Spectate']
     const positions = labels.map((label) => {
       expect(rail).toContain(label)
       return rail.indexOf(label)
@@ -59,10 +63,10 @@ describe('Battle Hall concept composition', () => {
     expect(markup.match(/data-hall-workspace="/g)).toHaveLength(3)
     expect(markup).toContain('data-hall-scene="true"')
     expect(markup.match(/data-hall-scroll-body="true"/g)).toHaveLength(3)
-    expect(markup.match(/data-hall-action-row="true"/g)).toHaveLength(3)
+    expect(markup.match(/data-hall-action-row="true"/g)).toHaveLength(2)
     expect(markup).toContain('AI Sparring')
-    expect(markup).toContain('Create Battle Lobby')
-    expect(markup).toContain('Join Battle Lobby')
+    expect(markup).not.toContain('Create Battle Lobby')
+    expect(markup).not.toContain('Join Battle Lobby')
     expect(markup).toContain('Spectate Battle')
     expect(markup).not.toContain('Witness a battle by key.')
     expect(markup).not.toContain('Watch a shared battle. Learn from every turn.')
@@ -74,7 +78,7 @@ describe('Battle Hall concept composition', () => {
     expect(markup).toContain('For experienced')
     expect(markup).not.toContain('AI difficulty')
     expect(markup).not.toContain('Guided exercise')
-    expect(markup).not.toContain('01 / AI Battles')
+    expect(markup).not.toContain('01 / Sparring Yard')
     expect(markup).not.toContain('02 / Challenge')
     expect(markup).not.toContain('03 / Spectate')
     expect(markup).not.toContain(
@@ -85,21 +89,45 @@ describe('Battle Hall concept composition', () => {
     )
   })
 
-  it('separates lobby creation from key entry without losing either action', () => {
-    const markup = renderToStaticMarkup(
+  it('offers Create Lobby and Join by Key as two choices that open popups', () => {
+    const closed = renderToStaticMarkup(
       createElement(BattleLaunch, { characterId: 'character-1', characterName: 'Eira Vale' }),
     )
-    expect(markup).toContain('aria-label="PvP lobby actions"')
-    expect(markup).toContain('data-pvp-entry="create"')
-    expect(markup).toMatch(/data-pvp-entry="join"[^>]*hidden=""/)
-    expect(markup).toContain('>Join by Key<')
-    expect(markup).toContain('Create Battle Lobby')
-    expect(markup).toContain('Join Battle Lobby')
+    expect(closed).toContain('aria-label="PvP lobby actions"')
+    expect(closed).toContain('>Create Lobby<')
+    expect(closed).toContain('>Join by Key<')
+    expect(closed).not.toContain('role="dialog"')
+
+    const create = renderToStaticMarkup(
+      createElement(BattleLaunch, {
+        characterId: 'character-1',
+        characterName: 'Eira Vale',
+        initialPvpDialog: 'create',
+      }),
+    )
+    expect(create).toContain('data-pvp-dialog="create"')
+    expect(create).toContain('Create Battle Lobby')
+    expect(create).not.toContain('Join Battle Lobby')
+
+    const join = renderToStaticMarkup(
+      createElement(BattleLaunch, {
+        characterId: 'character-1',
+        characterName: 'Eira Vale',
+        initialPvpDialog: 'join',
+      }),
+    )
+    expect(join).toContain('data-pvp-dialog="join"')
+    expect(join).toContain('Join Battle Lobby')
+    expect(join).not.toContain('Create Battle Lobby')
   })
 
   it('describes the selected PvP format outside the dropdown', () => {
     const markup = renderToStaticMarkup(
-      createElement(BattleLaunch, { characterId: 'character-1', characterName: 'Eira Vale' }),
+      createElement(BattleLaunch, {
+        characterId: 'character-1',
+        characterName: 'Eira Vale',
+        initialPvpDialog: 'create',
+      }),
     )
     expect(markup).toContain('aria-describedby="pvp-format-description"')
     expect(markup).toMatch(

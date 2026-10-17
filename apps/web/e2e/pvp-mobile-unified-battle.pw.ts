@@ -59,7 +59,8 @@ test('keeps the unified PvP battle usable on mobile', async ({ browser }, testIn
     })
 
     await host.goto('/game/battle')
-    await host.getByRole('button', { name: 'PVP - Direct', exact: true }).click()
+    await host.getByRole('button', { name: 'PVP', exact: true }).click()
+    await host.getByRole('button', { name: 'Create Lobby', exact: true }).click()
     await expect(
       host
         .getByRole('group', { name: 'Map size' })

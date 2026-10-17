@@ -46,7 +46,8 @@ test('PvP shares single-input Move execution and blocks the waiting player', asy
     })
 
     await host.goto('/game/battle')
-    await host.getByRole('button', { name: 'PVP - Direct', exact: true }).click()
+    await host.getByRole('button', { name: 'PVP', exact: true }).click()
+    await host.getByRole('button', { name: 'Create Lobby', exact: true }).click()
     await host.getByRole('button', { name: 'Create Battle Lobby' }).click()
 
     const hostDialog = host.getByRole('dialog', { name: 'The arena is waiting.' })

@@ -70,12 +70,13 @@ test('keeps the complete acting title clear of VS without resizing spectator art
     const guestName = await provision(guest!, 'TitleGuest', guestTitle)
     await provision(watcher!, 'TitleWatcher')
     await host!.goto('/game/battle')
-    await host!.getByRole('button', { name: 'PVP - Direct', exact: true }).click()
+    await host!.getByRole('button', { name: 'PVP', exact: true }).click()
     const created = host!.waitForResponse(
       (response) =>
         response.request().method() === 'POST' &&
         new URL(response.url()).pathname === '/api/pvp/lobbies',
     )
+    await host!.getByRole('button', { name: 'Create Lobby', exact: true }).click()
     await host!.getByRole('button', { name: 'Create Battle Lobby' }).click()
     const createdResponse = await created
     expect(createdResponse.ok()).toBe(true)

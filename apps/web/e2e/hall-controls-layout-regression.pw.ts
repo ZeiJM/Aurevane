@@ -3,8 +3,12 @@ import { expect, test, type Page } from '@playwright/test'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 async function expectControlsInsidePanel(page: Page, section: 'ai' | 'pvp') {
-  const metrics = await page.locator(`[data-hall-workspace="${section}"]`).evaluate((panel) => {
-    const body = panel.querySelector('[data-hall-scroll-body]')!
+  const root =
+    section === 'pvp'
+      ? page.locator('[data-pvp-dialog="create"]')
+      : page.locator(`[data-hall-workspace="${section}"]`)
+  const metrics = await root.evaluate((panel) => {
+    const body = panel.querySelector('[data-hall-scroll-body]') ?? panel
     return [...body.querySelectorAll<HTMLElement>('select, input, button')]
       .filter((element) => element.getClientRects().length > 0)
       .filter((element) => element.getAttribute('aria-label') !== 'Battle mode')
@@ -57,8 +61,9 @@ test('desktop Hall keeps selected-workspace arena, difficulty and PvP controls r
   }
   await page
     .getByRole('navigation', { name: 'Battle Hall sections' })
-    .getByRole('button', { name: 'PVP - Direct', exact: true })
+    .getByRole('button', { name: 'PVP', exact: true })
     .click()
+  await page.getByRole('button', { name: 'Create Lobby', exact: true }).click()
   for (const mode of ['1v1', 'flex-teams']) {
     await page.locator('#pvp-mode').selectOption(mode)
     await expectControlsInsidePanel(page, 'pvp')

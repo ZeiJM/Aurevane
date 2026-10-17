@@ -195,6 +195,7 @@ test('desktop Profile and all Battle Hall setups fit without clipped controls or
     }
     await capture(page, testInfo, `hall-ai-${size}`)
     await tabs.locator('button[data-tone="pvp"]').click()
+    await page.getByRole('button', { name: 'Create Lobby', exact: true }).click()
     for (const mode of ['1v1', '2v2', '3v3', '1v1v1', 'flex-teams']) {
       await page.locator('#pvp-mode').selectOption(mode)
       if (mode === 'flex-teams') {
@@ -213,6 +214,10 @@ test('desktop Profile and all Battle Hall setups fit without clipped controls or
     await expect(
       page.getByRole('button', { name: '120 second turn timer', exact: true }),
     ).toHaveAttribute('aria-pressed', 'true')
+    await page
+      .getByRole('dialog', { name: 'Create Lobby' })
+      .getByRole('button', { name: 'Close' })
+      .click()
     await page.getByRole('button', { name: 'Join by Key', exact: true }).click()
     await page.locator('#lobby-key').fill('avlabcd1234')
     await expect(page.locator('#lobby-key')).toHaveValue('AVL-ABCD-1234')
