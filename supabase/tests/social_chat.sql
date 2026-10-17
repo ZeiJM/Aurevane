@@ -190,7 +190,7 @@ select public.chat_typing_v1((select u from ids where n=2), (select c from ids w
 select is(jsonb_array_length(public.chat_typers_v1((select u from ids where n=3), (select c from ids where n=3), 'group:' || (select (g->>'id')::uuid from grp))), 1, 'group member sees an active typist');
 
 -- Reaction traffic is limited independently of message-send traffic.
-do $
+do $$
 declare
   v_message bigint := (select max(id) from app_private.chat_messages where body = 'reaction smoke');
   v_n integer;
@@ -200,7 +200,7 @@ begin
       (select c from ids where n=11), v_message, '👏');
   end loop;
 end;
-$;
+$$;
 select throws_ok(
   format($q$select public.chat_react_v1(%L,%L,%L,'👏')$q$,
     (select u from ids where n=11), (select c from ids where n=11),
