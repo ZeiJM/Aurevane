@@ -20,7 +20,7 @@ export const gameNavigation = [
     symbol: '✦',
     icon: 'nexus',
   },
-  { href: '/game/world', label: 'Travel', detail: 'Explore the world', symbol: '✥', icon: 'world' },
+  { href: '/game/world', label: 'World', detail: 'Explore the world', symbol: '✥', icon: 'world' },
   {
     href: '/game/battle',
     label: 'Battle',

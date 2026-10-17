@@ -40,7 +40,7 @@ describe('shared game rail', () => {
       ['/game/haven', 'Haven'],
       ['/game/character', 'Profile'],
       ['/game/loadout', 'Loadout'],
-      ['/game/world', 'Travel'],
+      ['/game/world', 'World'],
       ['/game/battle', 'Battle'],
       ['/game/training', 'Training'],
     ]

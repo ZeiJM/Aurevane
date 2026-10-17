@@ -74,7 +74,7 @@ test('roaming pages preserve one authenticated shell while Battle Hall refreshes
   await expect(page).toHaveURL(/\/game\/training$/)
   expect(await rememberedShellIsCurrent(page, '__roamingShell')).toBe(true)
 
-  await rail.getByRole('link', { name: /Travel/ }).click()
+  await rail.getByRole('link', { name: /World/ }).click()
   await expect(page).toHaveURL(/\/game\/world$/)
   await expect(page.locator('[data-world-workspace]')).toBeVisible()
   expect(await rememberedShellIsCurrent(page, '__roamingShell')).toBe(true)
