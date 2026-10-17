@@ -1,0 +1,309 @@
+{
+  "source": "93f469d572e1a75e10825e346b587cc20652dde5",
+  "tree": "58d1ebd99f349dc6d55f47c5f8e15c248d2bfed9",
+  "testedSource": "0438def0312dda640fd91215344abcf0e8299721",
+  "reviewedSource": "0438def0312dda640fd91215344abcf0e8299721",
+  "prerequisite": "083faeae23562f0dc91a9bb3a84de2ab5b62741f",
+  "parentArchive": "3d00d72878dfbd5b39078c262d63ad7e246a04b5",
+  "parentTree": "a8f00ab9cf6276a18cb3ad57c00ab3294335c977",
+  "mainObservedAtCheckpoint": "3d6594f795708746af8f69025e1c8fd80b1bb83e",
+  "mainChangedByThisWork": false,
+  "mainReconciliation": {
+    "startMain": "29506e293e81abef1b0b8a46099618ab3ae3f0ae",
+    "observedMain": "3d6594f795708746af8f69025e1c8fd80b1bb83e",
+    "changedByThisWork": false,
+    "concurrentChange": "PR910 mobile World chrome and44px touch controls",
+    "changedPaths": [
+      "apps/web/src/components/shell/authenticated-game-shell.module.css",
+      "apps/web/src/components/shell/online-presence-link.tsx",
+      "apps/web/src/components/world/workspace.module.css",
+      "apps/web/src/components/world/world-workspace.test.tsx",
+      "apps/web/src/components/world/world-workspace.tsx"
+    ],
+    "combatServiceRuntimeHelperRosterOverlap": false,
+    "fullFiveFileDiffInspected": true,
+    "concurrentChangesMergedIntoFrozenBranch": false,
+    "combinedReleaseReconciliationStillOpen": true
+  },
+  "fullCheckReceipt": {
+    "argv": [
+      "pnpm",
+      "--reporter=append-only",
+      "check"
+    ],
+    "cwd": "/workspace/scratch/680b26e4eb86/aurevane",
+    "started_utc": "2026-10-17T10:52:41.490488+00:00",
+    "completed_utc": "2026-10-17T10:53:13.018758+00:00",
+    "exit_code": 0,
+    "log": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/evidence/20261017T105241490488Z-058a9610.log"
+  },
+  "fullCheckEvidence": {
+    "primarySuccessfulReceipt": {
+      "argv": [
+        "pnpm",
+        "--reporter=append-only",
+        "check"
+      ],
+      "cwd": "/workspace/scratch/680b26e4eb86/aurevane",
+      "started_utc": "2026-10-17T10:51:11.302587+00:00",
+      "completed_utc": "2026-10-17T10:51:51.076603+00:00",
+      "exit_code": 0,
+      "log": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/evidence/20261017T105111302587Z-70c0645f.log"
+    },
+    "dedicatedBuildReceipt": {
+      "argv": [
+        "pnpm",
+        "--reporter=append-only",
+        "build"
+      ],
+      "cwd": "/workspace/scratch/680b26e4eb86/aurevane",
+      "started_utc": "2026-10-17T10:53:52.135386+00:00",
+      "completed_utc": "2026-10-17T10:53:52.658353+00:00",
+      "exit_code": 0,
+      "log": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/evidence/20261017T105352135386Z-e48b1e7e.log"
+    },
+    "rootBuildTailComplete": false,
+    "multiArtifactEvidenceComplete": true
+  },
+  "tests": {
+    "vitest": 9062,
+    "node": 7
+  },
+  "preservation": {
+    "source": "0438def0312dda640fd91215344abcf0e8299721",
+    "base": "083faeae23562f0dc91a9bb3a84de2ab5b62741f",
+    "traceRows": 16,
+    "traceBytes": 7597480,
+    "traceSha256": "a3cf4584a65aca8c2ff8327d8baa7c06fb4a634750e4fe003d75172985e1a675",
+    "summary": [
+      {
+        "kind": "persisted-expiry",
+        "level": 1,
+        "context": "pve",
+        "commits": 23,
+        "childTurnsCompleted": 5,
+        "timeouts": [],
+        "lifecycle": "active"
+      },
+      {
+        "kind": "persisted-expiry",
+        "level": 1,
+        "context": "pvp",
+        "commits": 23,
+        "childTurnsCompleted": 5,
+        "timeouts": [],
+        "lifecycle": "active"
+      },
+      {
+        "kind": "persisted-expiry",
+        "level": 100,
+        "context": "pve",
+        "commits": 24,
+        "childTurnsCompleted": 5,
+        "timeouts": [],
+        "lifecycle": "active"
+      },
+      {
+        "kind": "persisted-expiry",
+        "level": 100,
+        "context": "pvp",
+        "commits": 24,
+        "childTurnsCompleted": 5,
+        "timeouts": [],
+        "lifecycle": "active"
+      },
+      {
+        "kind": "paid-timeout-and-stale-clock",
+        "level": 1,
+        "context": "pve",
+        "commits": 2,
+        "childTurnsCompleted": 0,
+        "timeouts": [
+          {
+            "event": "ai_turn_timed_out",
+            "combatantId": "character:22222222-2222-4222-8222-222222222221",
+            "consecutiveMisses": 0,
+            "hadActivity": true
+          }
+        ],
+        "lifecycle": "active"
+      },
+      {
+        "kind": "paid-timeout-and-stale-clock",
+        "level": 1,
+        "context": "pvp",
+        "commits": 2,
+        "childTurnsCompleted": 0,
+        "timeouts": [
+          {
+            "event": "pvp_turn_timed_out",
+            "combatantId": "character:22222222-2222-4222-8222-222222222221",
+            "consecutiveMisses": 0,
+            "hadActivity": true
+          }
+        ],
+        "lifecycle": "active"
+      },
+      {
+        "kind": "paid-timeout-and-stale-clock",
+        "level": 100,
+        "context": "pve",
+        "commits": 2,
+        "childTurnsCompleted": 0,
+        "timeouts": [
+          {
+            "event": "ai_turn_timed_out",
+            "combatantId": "character:22222222-2222-4222-8222-222222222221",
+            "consecutiveMisses": 0,
+            "hadActivity": true
+          }
+        ],
+        "lifecycle": "active"
+      },
+      {
+        "kind": "paid-timeout-and-stale-clock",
+        "level": 100,
+        "context": "pvp",
+        "commits": 2,
+        "childTurnsCompleted": 0,
+        "timeouts": [
+          {
+            "event": "pvp_turn_timed_out",
+            "combatantId": "character:22222222-2222-4222-8222-222222222221",
+            "consecutiveMisses": 0,
+            "hadActivity": true
+          }
+        ],
+        "lifecycle": "active"
+      },
+      {
+        "kind": "persisted-player-defeat",
+        "level": 1,
+        "context": "pve",
+        "commits": 11,
+        "childTurnsCompleted": 1,
+        "timeouts": [],
+        "lifecycle": "active"
+      },
+      {
+        "kind": "persisted-player-defeat",
+        "level": 1,
+        "context": "pvp",
+        "commits": 11,
+        "childTurnsCompleted": 1,
+        "timeouts": [],
+        "lifecycle": "active"
+      },
+      {
+        "kind": "persisted-player-defeat",
+        "level": 100,
+        "context": "pve",
+        "commits": 4,
+        "childTurnsCompleted": 0,
+        "timeouts": [],
+        "lifecycle": "active"
+      },
+      {
+        "kind": "persisted-player-defeat",
+        "level": 100,
+        "context": "pvp",
+        "commits": 4,
+        "childTurnsCompleted": 0,
+        "timeouts": [],
+        "lifecycle": "active"
+      },
+      {
+        "kind": "idle-owner-timeout",
+        "level": 1,
+        "context": "pve",
+        "commits": 4,
+        "childTurnsCompleted": 0,
+        "timeouts": [
+          {
+            "event": "ai_turn_timed_out",
+            "combatantId": "character:22222222-2222-4222-8222-222222222221",
+            "consecutiveMisses": 1,
+            "hadActivity": false
+          }
+        ],
+        "lifecycle": "active"
+      },
+      {
+        "kind": "idle-owner-timeout",
+        "level": 1,
+        "context": "pvp",
+        "commits": 4,
+        "childTurnsCompleted": 0,
+        "timeouts": [
+          {
+            "event": "pvp_turn_timed_out",
+            "combatantId": "character:22222222-2222-4222-8222-222222222221",
+            "consecutiveMisses": 1,
+            "hadActivity": false
+          }
+        ],
+        "lifecycle": "active"
+      },
+      {
+        "kind": "idle-owner-timeout",
+        "level": 100,
+        "context": "pve",
+        "commits": 4,
+        "childTurnsCompleted": 0,
+        "timeouts": [
+          {
+            "event": "ai_turn_timed_out",
+            "combatantId": "character:22222222-2222-4222-8222-222222222221",
+            "consecutiveMisses": 1,
+            "hadActivity": false
+          }
+        ],
+        "lifecycle": "active"
+      },
+      {
+        "kind": "idle-owner-timeout",
+        "level": 100,
+        "context": "pvp",
+        "commits": 4,
+        "childTurnsCompleted": 0,
+        "timeouts": [
+          {
+            "event": "pvp_turn_timed_out",
+            "combatantId": "character:22222222-2222-4222-8222-222222222221",
+            "consecutiveMisses": 1,
+            "hadActivity": false
+          }
+        ],
+        "lifecycle": "active"
+      }
+    ],
+    "runtimeContentHelpersAndPriorFixturesUnchanged": true,
+    "protectedHashesUnchanged": {
+      "packages/game-core/src/combat/recruit-ai-build.ts": "e1f676fafea1a73a84eaf95b0e73b66601916a4dcb63e80edd0db4d4da449a7d",
+      "packages/game-core/src/combat/recruit-ai.ts": "cf9e6cc12ff1d7434d17956f5f2e3e19b770240ea6d7a5c039477921382c5e6a",
+      "packages/game-core/src/combat/recruit-ai-ranged-spacing.test.ts": "97d492399237e8064ae9fdc51f7fef143189201e32a2892ccf98340448238a77",
+      "apps/web/src/server/battle/roster-legal-duel.test-utils.ts": "129d1827760c89bdf3ed75a1757e98802de743829eff9841699ead64747c96f9",
+      "apps/web/src/server/battle/roster-legal-ranged-ai.test.ts": "1443d456ba61d9469cedfe8e10392c155876e2c20fd3b121506009be7d0c4524",
+      "apps/web/src/server/battle/battle-log-service.ts": "d1876bcd5044a7b8f1c3c4178b19696605a61fc5ad8424e34181fd5cc95aa74b"
+    },
+    "rosterManifestSha256": "b86cfec056bbac582810e7da80f9bc687f02518892eb5d11275fc7b5ced19f05",
+    "deploymentLockBlob": "b8a4e0e3c57b95a8da49c05d1fe5f60ba2181b5f",
+    "externalClockAndRepositoryTransportSimulated": true,
+    "hostedSqlOrPhysicalCasVerified": false
+  },
+  "acceptance": "Saved Summon service checkpoint:16 directed earned-build service cases pass; actual cast/replay/reload, exact5 childAI turns/expiry, paid-vs-idle parent timeout, stale expired clock no-op, actual player Basic kill+lethal replay, saved profile/turn-trigger cleanup. Source0438def03 tests-only;runtime/roster/helpers/priorfixtures unchanged. Full9062Vitest+7Node/formatlint8types/bothbuilds pass; aggregate evidence70c0645f/058a9610/e48b1e7e explicitly discloses root stdout cuts; one cache-only repair quarantined2 incompleteSSTfiles/no product/config/dependencychange. 16auditedtraces SHAa3cf4584a65aca8c2ff8327d8baa7c06fb4a634750e4fe003d75172985e1a675. One review0C0I1newM/20totaldeferred/nofix/norereview. External clock/repo transport simulated; no hostedSQL/physicalCAS/auth/scheduler claim. Concurrentmain3d6594f79/PR910mobileWorld-only5filediff inspected/nonoverlapping/notmerged here; combinedreleaseintegrationopen. OriginalTargeting/Move/fiveBasics/Controlled editor-battle-reader/native/othercycles/balance/Ownercontent/hostedCAS/Atlas/human/Task15/16/release OPEN;broaderMaster/worldaftercombat;Highsufficient. No hostedwrite/publication/activation/migration/mainmerge/deploy.",
+  "bundle": {
+    "local": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/summon-service-93f469d5.bundle",
+    "path": "checkpoints/summon-service-93f469d5.bundle",
+    "bytes": 13325,
+    "sha256": "1dc12a922fe41abe1699d4e3d1af92b3cb8be3f546f7866dc922928225714762",
+    "blobSha": "405c3dc0070df0f50fd7d0487dacf8275e5c0802"
+  },
+  "evidence": {
+    "local": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/summon-service-93f469d5-evidence.tar.gz",
+    "path": "checkpoints/summon-service-93f469d5-evidence.tar.gz",
+    "bytes": 868958,
+    "sha256": "5961b27c52365a27aa4dd38fc1f26d98d6a5284463b87766bc197df063d78c90",
+    "blobSha": "f7692265061671e5379c2be0404376bed1d308ce"
+  }
+}
