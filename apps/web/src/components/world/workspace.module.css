@@ -1030,15 +1030,3 @@
     padding: 6px 10px;
   }
 }
-@media (max-width: 760px) and (pointer: coarse) {
-  .workspace button {
-    min-height: 40px;
-  }
-  .header .panelToggle,
-  .header .mobileSettings {
-    min-height: 36px;
-  }
-  .header .location {
-    min-height: 30px;
-  }
-}
