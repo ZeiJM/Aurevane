@@ -52,7 +52,7 @@ const overrides: Record<string, ManualArticle> = {
         id: 'navigation',
         title: 'Finding things',
         paragraphs: [
-          'Manual, News, and Rules live in the authenticated header. Account contains audio, Controls & Keybinds, Titles & Profile Display, Switch Character, and sign-out. The compact character rail links Haven, Profile, Loadout, Travel, Battle and Training. On phones these destinations move to a fixed bottom bar. Items is a Coming Soon destination inside Loadout; Online Users remains in the footer.',
+          'Manual, News, and Rules live in the authenticated header. Account contains audio, Controls & Keybinds, Titles & Profile Display, Switch Character, and sign-out. The compact character rail links Haven, Profile, Loadout, World, Battle and Training. On phones these destinations move to a fixed bottom bar. Items is a Coming Soon destination inside Loadout; Online Users remains in the footer.',
           'Normal game screens show a small circular portrait beside the green screen-name indicator in the shared header. The AUREVANE A-in-diamond remains the brand crest. Active battle uses its own combat HUD instead of the shared screen header.',
         ],
       },

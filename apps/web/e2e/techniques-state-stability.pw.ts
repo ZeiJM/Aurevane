@@ -103,6 +103,11 @@ async function geometry(dialog: Locator) {
     }
     artRect[1] += scrolled(art)
     previewRect[1] += scrolled(previewArt)
+    if (innerWidth <= 820) {
+      // On phones the preview is a bottom sheet whose height follows its content, so measure the
+      // art inside the sheet rather than against the page.
+      previewRect[1] -= preview.getBoundingClientRect().y
+    }
     return {
       dialog: rect(node),
       workspace: rect(workspace),

@@ -176,7 +176,7 @@ async function enter(page: Page) {
   )
   await page
     .getByRole('navigation', { name: 'Primary game navigation', exact: true })
-    .getByRole('link', { name: /Travel/ })
+    .getByRole('link', { name: /World/ })
     .click()
   await expect(page.locator('[data-world-workspace]')).toBeVisible()
   return name
