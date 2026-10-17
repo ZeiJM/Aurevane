@@ -1932,3 +1932,13 @@
     font-size: 1.25rem;
   }
 }
+
+/* The PVP info glyph must meet the phone 11px type floor. */
+@media (max-width: 760px) {
+  .readOnlyNote > span { font-size: 0.6875rem; }
+}
+
+/* Keep the PVP popup's information glyph readable on phones. */
+@media (max-width: 760px) {
+  .note > span { font-size: 0.6875rem; }
+}
