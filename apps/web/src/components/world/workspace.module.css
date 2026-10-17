@@ -1029,7 +1029,12 @@
   .header small,
   .tabs i,
   .tabs button,
-  .environment {
+  .environment,
+  .currentCoordinates > span:first-child,
+  .zoneStatus,
+  .panelFoot small,
+  .stageBar,
+  .stageBar button {
     font-size: 0.6875rem !important;
   }
 }
