@@ -1034,7 +1034,15 @@
   .zoneStatus,
   .panelFoot small,
   .stageBar,
-  .stageBar button {
+  .stageBar button,
+  .landmarks button small,
+  .globeCaption,
+  .globePin,
+  .position p,
+  .protected,
+  .settings p,
+  .destination button,
+  .sectorPicker {
     font-size: 0.6875rem !important;
   }
 }
