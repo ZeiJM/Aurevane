@@ -382,8 +382,8 @@
   font-weight: 700;
 }
 
-.page select,
-.page input {
+:is(.page, .pvpDialog) select,
+:is(.page, .pvpDialog) input {
   width: 100%;
   min-width: 0;
   min-height: 2.5rem;
@@ -395,20 +395,20 @@
   font: 500 0.8125rem/1.25 var(--av-font-body);
 }
 
-.page select {
+:is(.page, .pvpDialog) select {
   text-overflow: ellipsis;
 }
 
-.page :is(button, select, input):focus-visible {
+:is(.page, .pvpDialog) :is(button, select, input):focus-visible {
   outline: 2px solid #3c9a93;
   outline-offset: -3px;
 }
 
-.page button {
+:is(.page, .pvpDialog) button {
   border-radius: 0;
 }
 
-.page button:disabled {
+:is(.page, .pvpDialog) button:disabled {
   cursor: not-allowed;
   opacity: 0.56;
 }
@@ -715,33 +715,33 @@
   font-size: 0.64rem;
 }
 
-.page [data-pvp-settings-panel] {
+:is(.page, .pvpDialog) [data-pvp-settings-panel] {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.48rem 0.65rem;
   margin-top: 0.12rem;
 }
 
-.page [data-pvp-setting-group] {
+:is(.page, .pvpDialog) [data-pvp-setting-group] {
   min-width: 0;
   margin: 0;
   padding: 0;
   border: 0;
 }
 
-.page [data-pvp-setting-group] legend {
+:is(.page, .pvpDialog) [data-pvp-setting-group] legend {
   margin-bottom: 0.32rem;
   color: #715a31;
   font-size: 0.75rem;
   font-weight: 700;
 }
 
-.page [data-pvp-setting-options] {
+:is(.page, .pvpDialog) [data-pvp-setting-options] {
   display: flex;
   gap: 0.24rem;
 }
 
-.page [data-pvp-setting-options] button {
+:is(.page, .pvpDialog) [data-pvp-setting-options] button {
   flex: 1;
   min-width: 0;
   min-height: 2.5rem;
@@ -753,7 +753,7 @@
   cursor: pointer;
 }
 
-.page [data-pvp-setting-options] button[data-selected] {
+:is(.page, .pvpDialog) [data-pvp-setting-options] button[data-selected] {
   border-color: #6e9c8c;
   color: #edf8f4;
   background: #2f655c;
@@ -1001,8 +1001,8 @@
     gap: 0.5rem;
   }
 
-  .page select,
-  .page input {
+  :is(.page, .pvpDialog) select,
+  :is(.page, .pvpDialog) input {
     min-height: 2.5rem;
     padding-block: 0.3rem;
   }
@@ -1061,16 +1061,16 @@
     gap: 0.38rem;
   }
 
-  .page [data-pvp-settings-panel] {
+  :is(.page, .pvpDialog) [data-pvp-settings-panel] {
     gap: 0.34rem 0.5rem;
     margin-top: 0.04rem;
   }
 
-  .page [data-pvp-setting-group] legend {
+  :is(.page, .pvpDialog) [data-pvp-setting-group] legend {
     margin-bottom: 0.2rem;
   }
 
-  .page [data-pvp-setting-options] button {
+  :is(.page, .pvpDialog) [data-pvp-setting-options] button {
     min-height: 2.5rem;
     padding-block: 0.26rem;
   }
@@ -1128,8 +1128,8 @@
     padding: 1rem 0.58rem 0.34rem;
   }
 
-  .page select,
-  .page input {
+  :is(.page, .pvpDialog) select,
+  :is(.page, .pvpDialog) input {
     min-height: 2.5rem;
   }
 
@@ -1301,12 +1301,12 @@
     padding-left: 0;
   }
 
-  .page [data-pvp-settings-panel] {
+  :is(.page, .pvpDialog) [data-pvp-settings-panel] {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .page select,
-  .page input {
+  :is(.page, .pvpDialog) select,
+  :is(.page, .pvpDialog) input {
     font-size: 1rem;
   }
 
@@ -1903,8 +1903,8 @@
     font-size: 0.8125rem;
     line-height: 1.35;
   }
-  .page select,
-  .page input {
+  :is(.page, .pvpDialog) select,
+  :is(.page, .pvpDialog) input {
     min-height: 2.75rem;
     font-size: 1rem;
   }

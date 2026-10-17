@@ -227,6 +227,8 @@ test('desktop Profile and all Battle Hall setups fit without clipped controls or
     await expect(
       page.getByRole('button', { name: 'Join Battle Lobby', exact: true }),
     ).toBeDisabled()
+    await page.keyboard.press('Escape')
+    await expect(page.getByRole('dialog')).toHaveCount(0)
     await tabs.locator('button[data-tone="spectate"]').click()
     await page.getByRole('textbox', { name: 'Battle Key', exact: true }).fill('AVB-ABCD-1234')
     await expect(page.getByRole('button', { name: 'Spectate Battle', exact: true })).toBeEnabled()

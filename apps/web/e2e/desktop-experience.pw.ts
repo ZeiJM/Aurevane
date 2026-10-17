@@ -181,6 +181,10 @@ test('desktop Profile and every Battle Hall tab fit without sacrificing readable
       await readable(page.locator('[data-pvp-setting-options] button').first(), 12)
       await fit(page, `PvP-${mode}-${suffix}`, testInfo)
     }
+    await page
+      .getByRole('dialog', { name: 'Create Lobby' })
+      .getByRole('button', { name: 'Close', exact: true })
+      .click()
     await tabs.getByRole('button', { name: /Spectate/ }).click()
     await readable(page.getByPlaceholder('AVB-0000-0000'), 13)
     await fit(page, `Spectate-${suffix}`, testInfo)
