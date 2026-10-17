@@ -17,6 +17,31 @@ import { FriendsView, SettingsView } from './friends-view'
 
 type View = 'chat' | 'friends' | 'settings'
 
+const REMEMBERED_CHANNELS = ['world', 'village', 'feed'] as const
+
+function channelMemoryKey(selfName: string): string {
+  return `aurevane.chat.channel.${selfName.toLowerCase()}`
+}
+
+/** The last map channel the player picked survives reloads and resets (per character, per browser). */
+function readRememberedChannel(selfName: string): ChannelId | null {
+  try {
+    const saved = window.localStorage.getItem(channelMemoryKey(selfName))
+    return REMEMBERED_CHANNELS.find((id) => id === saved) ?? null
+  } catch {
+    return null
+  }
+}
+
+function rememberChannel(selfName: string, channel: ChannelId) {
+  if (!REMEMBERED_CHANNELS.some((id) => id === channel)) return
+  try {
+    window.localStorage.setItem(channelMemoryKey(selfName), channel)
+  } catch {
+    // Remembering is a convenience only.
+  }
+}
+
 function channelTitle(channel: ChannelId, inbox: ChatInbox | null): string {
   if (channel === 'world') return 'World'
   if (channel === 'village') return 'Village'
@@ -68,13 +93,16 @@ export function ChatPanel({
       .settings()
       .then(({ settings: loaded }) => {
         setSettings(loaded)
-        if (!lockedChannel && loaded.defaultChannel !== 'world') {
-          setChannel(loaded.defaultChannel)
+        if (lockedChannel) return
+        // World is the default; the last channel the player chose wins over it on return.
+        const initial = readRememberedChannel(selfName) ?? loaded.defaultChannel
+        if (initial !== 'world') {
+          setChannel(initial)
           setMessages([])
         }
       })
       .catch(() => undefined)
-  }, [lockedChannel])
+  }, [lockedChannel, selfName])
 
   const refreshInbox = useCallback(() => {
     void chatApi
@@ -200,6 +228,7 @@ export function ChatPanel({
       setNotice(null)
     }
     setChannel(next)
+    if (!lockedChannel) rememberChannel(selfName, next)
     setView('chat')
     setMenuOpen(false)
     setReplyTo(null)

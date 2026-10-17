@@ -350,6 +350,7 @@
 .footer {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   justify-content: space-between;
   gap: 1rem;
   padding-top: 0.8rem;
@@ -368,7 +369,7 @@
   flex: 0 0 auto;
   gap: 0.5rem;
 }
-.footer button {
+.footer > div button {
   min-height: 2.75rem;
   padding: 0.6rem 0.8rem;
   border: 1px solid #9a8d70;
@@ -392,7 +393,7 @@
   border-color: #886253;
   background: #30252a;
 }
-.footer button:disabled {
+.footer > div button:disabled {
   color: #aeb6b8;
   background: #1c282d;
   border-color: #576061;
@@ -482,7 +483,7 @@
     grid-template-columns: auto minmax(0, 1fr) minmax(0, 1.25fr);
     gap: 0.4rem;
   }
-  .footer button {
+  .footer > div button {
     padding-inline: 0.4rem;
     font-size: 0.75rem;
   }
@@ -746,8 +747,15 @@
 
 .lobbyChatPanel {
   display: flex;
+  flex: none;
+  order: -1;
+  width: 100%;
   height: min(40vh, 320px);
   min-height: 220px;
+  overflow: hidden;
+  border: 1px solid #a38c60;
+  border-radius: 0.5rem;
+  background: #0b1620;
 }
 .lobbyChatPanel > * {
   flex: 1;

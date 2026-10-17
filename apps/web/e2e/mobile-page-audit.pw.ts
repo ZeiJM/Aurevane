@@ -78,10 +78,37 @@ const PAGES: { name: string; path: string; prep?: (page: Page) => Promise<void> 
   { name: 'settings-audio', path: '/game/settings/audio' },
   { name: 'settings-controls', path: '/game/settings/controls' },
   { name: 'account-menu', path: '/game/nexus', prep: openAccountMenu },
+  {
+    name: 'lobby',
+    path: '/game/battle',
+    prep: async (page) => {
+      await ensureLobby(page)
+    },
+  },
+  {
+    name: 'lobby-chat',
+    path: '/game/battle',
+    prep: async (page) => {
+      const lobby = await ensureLobby(page)
+      await lobby.getByRole('button', { name: /^Chat/ }).click()
+    },
+  },
   { name: 'news', path: '/news' },
   { name: 'manual', path: '/manual' },
   { name: 'rules', path: '/rules' },
 ]
+
+async function ensureLobby(page: Page) {
+  const lobby = page.getByRole('dialog', { name: 'The arena is waiting.' })
+  if (await lobby.isVisible().catch(() => false)) return lobby
+  await page.getByRole('button', { name: 'PVP', exact: true }).click()
+  if (!(await lobby.isVisible().catch(() => false))) {
+    await page.getByRole('button', { name: 'Create Lobby', exact: true }).click()
+    await page.getByRole('button', { name: 'Create Battle Lobby' }).click()
+  }
+  await lobby.waitFor()
+  return lobby
+}
 
 async function openAccountMenu(page: Page) {
   await page
