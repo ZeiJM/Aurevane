@@ -158,6 +158,14 @@ test('records mobile layout findings for every page', async ({ page }, info) => 
   })
 
   const findings: Finding[] = []
+  page.setDefaultTimeout(6_000)
+  page.setDefaultNavigationTimeout(20_000)
+  const flush = async () => {
+    const dir = process.env.MOBILE_AUDIT_OUTPUT
+    if (!dir) return
+    await mkdir(dir, { recursive: true })
+    await writeFile(`${dir}/findings.json`, JSON.stringify(findings, null, 1))
+  }
   for (const viewport of [
     { width: 412, height: 915 },
     { width: 360, height: 740 },
@@ -187,6 +195,7 @@ test('records mobile layout findings for every page', async ({ page }, info) => 
           detail: String(error).split('\n')[0].slice(0, 160),
         })
       }
+      await flush()
     }
   }
   const dir = process.env.MOBILE_AUDIT_OUTPUT
