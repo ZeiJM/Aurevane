@@ -15,7 +15,9 @@ function mapped(error: { code?: string; message?: string }) {
 describe('chat RPC error mapping', () => {
   it('turns limits into readable, player-safe messages', () => {
     expect(mapped({ message: 'CHAT_RATE_LIMITED' }).publicMessage).toMatch(/too quickly/)
-    expect(mapped({ message: 'CHAT_REACTION_RATE_LIMITED' }).publicMessage).toMatch(/Too many reactions/)
+    expect(mapped({ message: 'CHAT_REACTION_RATE_LIMITED' }).publicMessage).toMatch(
+      /Too many reactions/,
+    )
     expect(mapped({ message: 'CHAT_FRIEND_LIMIT' }).publicMessage).toMatch(/\(10\)/)
     expect(mapped({ message: 'CHAT_GROUP_FULL' }).publicMessage).toMatch(/10 people/)
   })
