@@ -52,15 +52,25 @@ export function airborneDescription(legacyAirborne = false, legacyJump = false):
 
 export function airborneGroundMiss(
   state: CombatEncounterState,
-  action: Pick<CombatActionDefinition, 'target'>,
+  action: Pick<CombatActionDefinition, 'target' | 'groundTargetedRecipientIds'>,
   targetId: string,
   content: CombatContentCatalog,
 ): boolean {
   return (
     state.airbornePolicyVersion === 1 &&
-    action.target.kind === 'ground-tile' &&
+    (action.groundTargetedRecipientIds !== undefined
+      ? action.groundTargetedRecipientIds.includes(targetId)
+      : action.target.kind === 'ground-tile') &&
     hasGameplayTag(state, targetId, 'Airborne', content)
   )
+}
+
+export function combatActionHasGroundDelivery(
+  action: Pick<CombatActionDefinition, 'target' | 'groundTargetedRecipientIds'>,
+): boolean {
+  return action.groundTargetedRecipientIds !== undefined
+    ? action.groundTargetedRecipientIds.length > 0
+    : action.target.kind === 'ground-tile'
 }
 
 /** Transient targeting override; immutable authored Skills and saved loadouts are untouched. */

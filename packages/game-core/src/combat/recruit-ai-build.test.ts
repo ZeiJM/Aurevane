@@ -1,3 +1,5 @@
+import { source as canonicalSource } from './combat-behavior.test-utils'
+import { captureCombatAbilitySource } from './combat-behavior-capture'
 import {
   capturedMatureSkillAbilitySource,
   capturedResonanceAbilitySource,
@@ -548,5 +550,68 @@ it.each(['skill', 'essence', 'resonance-v1', 'resonance-v2'] as const)(
           event.event === 'combat_action_used',
       ),
     ).toHaveLength(1)
+  },
+)
+
+it.each([{ kind: 'line', length: 2 }, { kind: 'circle', radius: 2 }, { kind: 'all' }] as const)(
+  'enumerates omitted canonical %j geometry identically to explicit geometry2 before actual AI commit',
+  (shape) => {
+    const initial = encounter(false)
+    function capturedState(geometryVersion?: 2) {
+      const capture = captureCombatAbilitySource({
+        ...canonicalSource({
+          targeting: {
+            ...canonicalSource().definition.behaviors[0]!.targeting!,
+            shape,
+            minimumRange: 0,
+            maximumRange: shape.kind === 'all' ? 0 : 2,
+            ...(geometryVersion ? { geometryVersion } : {}),
+          },
+          costs: [{ resource: 'ap', amount: 11 }],
+          accuracy: { kind: 'fixed', chanceBasisPoints: 10000 },
+          effects: [
+            { id: 'hit', payload: { type: 'damage', recipient: 'affected-units', amount: 20 } },
+          ],
+        }),
+        ownerCombatantId: actorId,
+      })
+      return JSON.parse(
+        JSON.stringify(reconcileCombatAbilitySources(initial, [capture])),
+      ) as StatDrivenCombatEncounterState
+    }
+    const omitted = capturedState()
+    const explicit = capturedState(2)
+    const choose = (state: StatDrivenCombatEncounterState) =>
+      chooseBuildAwareRecruitAiDecision({ state, tieBreakSeed: 1 })
+    const known = choose(explicit)
+    expect(known.intent).toMatchObject({
+      kind: 'action',
+      actionId: 'test.ability',
+      behaviorId: 'strike',
+      target: { kind: shape.kind === 'line' ? 'direction' : 'activate' },
+    })
+    const before = JSON.stringify(omitted)
+    const decision = choose(omitted)
+    expect(decision).toEqual(known)
+    expect(JSON.stringify(omitted)).toBe(before)
+    if (decision.intent.kind !== 'action') throw new Error('Expected a canonical area action.')
+    const cast = executeBuildAwareRecruitAiAction(
+      omitted,
+      decision.intent.actionId,
+      decision.intent.target,
+      {},
+      { behaviorId: decision.intent.behaviorId },
+    )
+    expect(cast.events).toContainEqual(
+      expect.objectContaining({
+        event: 'damage_applied',
+        targetCombatantId: targetId,
+        amount: expect.any(Number),
+      }),
+    )
+    expect(readPv1fActionEconomy(cast.state)!.current).toBe(89)
+    expect(
+      cast.state.capturedAbilitySources![0]!.definition.behaviors[0]!.targeting!.geometryVersion,
+    ).toBeUndefined()
   },
 )

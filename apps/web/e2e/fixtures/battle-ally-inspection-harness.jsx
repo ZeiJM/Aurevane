@@ -38,9 +38,29 @@ import { BattleSkillParameters } from '@/components/battle/battle-skill-paramete
 import { SkillEffectTimingProvider } from '@/components/character/skill-effect-timing-context'
 import { PV1F_COMBAT_CONTENT } from '@aurevane/game-core/combat/pv1f-action-economy'
 import { projectPercentageDotFixtureState } from './percentage-dot-viewer-state'
+import { source as canonicalSourceFixture } from '@aurevane/game-core/combat/combat-behavior.test-utils'
+import { captureCombatAbilitySource } from '@aurevane/game-core/combat/combat-behavior-capture'
+import {
+  combatAbilityCommandContext,
+  reconcileCombatAbilitySources,
+} from '@aurevane/game-core/combat/combat-behavior-runtime'
+import {
+  prepareCombatAbilityCommand,
+  commitCombatAbilityCommand,
+} from '@aurevane/game-core/combat/combat-ability-command'
 import './production-styles'
 
 const targetingCase = new URLSearchParams(location.search).get('targeting')
+const canonicalCase = new URLSearchParams(location.search).get('canonical')
+let canonicalState
+let canonicalCapture
+let canonicalTargets
+function canonicalPublicState(state) {
+  const publicState = { ...state }
+  Reflect.deleteProperty(publicState, 'capturedAbilitySources')
+  Reflect.deleteProperty(publicState, 'abilityRuntime')
+  return { ...publicState, manualActionTargets: canonicalTargets }
+}
 const elementalCase = new URLSearchParams(location.search).get('elemental')
 const dotCase = new URLSearchParams(location.search).get('dot')
 const dotPhase = new URLSearchParams(location.search).get('phase') || 'active'
@@ -581,12 +601,90 @@ const suppressChronicleEntries = suppressCase
       ]
     })()
   : []
+if (canonicalCase) {
+  const definition = runtime.techniques[0].definition
+  const target = {
+    geometryVersion: 3,
+    categories: ['enemy', 'ground'],
+    maximumSelections: 3,
+    kind: 'unit',
+    teamPolicy: 'enemy',
+    friendlyFire: 'enemies-only',
+    shape: { kind: 'single' },
+    minimumRange: 0,
+    maximumRange: 4,
+    requiresLineOfSight: false,
+    maximumElevationDifference: null,
+  }
+  const source = canonicalSourceFixture({
+    targeting: target,
+    accuracy: { kind: 'fixed', chanceBasisPoints: 10000 },
+    effects: [{ id: 'hit', payload: { type: 'damage', recipient: 'affected-units', amount: 10 } }],
+  })
+  source.ownerCombatantId = ids[0]
+  source.abilityId = definition.id
+  if (canonicalCase === 'choices')
+    source.definition.behaviors.push({ ...source.definition.behaviors[0], id: 'second' })
+  canonicalCapture = captureCombatAbilitySource(source)
+  canonicalState = reconcileCombatAbilitySources(initialBattle.snapshot, [canonicalCapture])
+  canonicalTargets = canonicalCapture.definition.behaviors.map((behavior) => ({
+    actionId: source.abilityId,
+    behaviorId: behavior.id,
+    target: behavior.targeting,
+  }))
+  initialBattle.snapshot = canonicalPublicState(canonicalState)
+}
 window.fixtureBattle = initialBattle
 window.calls = []
 window.fetch = async (url, options = {}) => {
   const path = String(url)
   const body = options.body ? JSON.parse(options.body) : null
   window.calls.push({ path, method: options.method || 'GET', body })
+  if (canonicalCase && (path.endsWith('/preview') || /\/(commit|intents)$/.test(path))) {
+    const intent = body.intent
+    const input = {
+      state: canonicalState,
+      actorId: ids[0],
+      root: { kind: 'canonical', source: canonicalCapture, behaviorId: intent.behaviorId },
+      selection: intent.target,
+      content: PV1F_COMBAT_CONTENT,
+      context: combatAbilityCommandContext(canonicalState, canonicalCapture),
+    }
+    try {
+      if (path.endsWith('/preview')) {
+        const quote = prepareCombatAbilityCommand(input)
+        const before = readPv1fActionEconomy(canonicalState)?.current ?? 0
+        const cost = quote.costs.find((cost) => cost.resource === 'ap')?.amount ?? 0
+        return Response.json({
+          battlePreview: {
+            battleSessionId: 'fixture',
+            battleVersion: window.fixtureBattle.battleVersion,
+            preview: {
+              ...quote.evaluation,
+              kind: 'action',
+              actionEconomyCost: cost,
+              actionEconomyBefore: before,
+              actionEconomyAfter: before - cost,
+              projectedStatuses: [],
+            },
+          },
+        })
+      }
+      if (body.expectedBattleVersion !== window.fixtureBattle.battleVersion)
+        return Response.json({ error: { message: 'Stale battle version.' } }, { status: 409 })
+      const transition = commitCombatAbilityCommand(input)
+      canonicalState = transition.state
+      window.receipts = transition.events
+      window.fixtureBattle = {
+        ...window.fixtureBattle,
+        battleVersion: window.fixtureBattle.battleVersion + 1,
+        snapshot: canonicalPublicState(canonicalState),
+      }
+      return Response.json({ battle: window.fixtureBattle })
+    } catch (error) {
+      return Response.json({ error: { message: error.message } }, { status: 409 })
+    }
+  }
   if (path.includes('/chat')) {
     if (options.method === 'POST')
       return Response.json({ error: { message: 'Fixture send unavailable.' } }, { status: 503 })

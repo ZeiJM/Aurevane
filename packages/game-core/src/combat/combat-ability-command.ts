@@ -34,6 +34,7 @@ import {
 import type { AbilityBehavior } from './combat-definition'
 import {
   evaluateAbilityRequirements,
+  evaluateAbilitySelectedRequirements,
   type AbilityClassification,
   type AbilityAttackFamily,
   type AbilityRequirementSubjectState,
@@ -414,9 +415,8 @@ export function prepareCombatAbilityCommand(
       code: 'source-owner-mismatch',
       message: 'Manual command requires the authoritative current owner.',
     })
-  if (
-    participant.behavior &&
-    !evaluateAbilityRequirements(participant.behavior.requirements, {
+  if (participant.behavior) {
+    const requirementsContext = {
       owner: combatAbilitySubject(input.state, input.actorId),
       selected: combatAbilitySubject(input.state, geometry.primaryCombatantId),
       ...(input.trigger?.requirementsContext ?? {}),
@@ -429,9 +429,25 @@ export function prepareCombatAbilityCommand(
             },
           }
         : {}),
-    })
-  )
-    issues.push({ code: 'requirement-not-met', message: 'Root Ability Requirements are not met.' })
+    }
+    // Automatic trigger predicates use the parent's immutable frame; effect gates keep child geometry.
+    const requirementsMet =
+      participant.activation === 'automatic'
+        ? evaluateAbilityRequirements(participant.behavior.requirements, requirementsContext)
+        : evaluateAbilitySelectedRequirements(
+            participant.behavior.requirements,
+            requirementsContext,
+            (
+              geometry.selectedCombatantIds ??
+              (geometry.primaryCombatantId ? [geometry.primaryCombatantId] : [])
+            ).map((id) => combatAbilitySubject(input.state, id)),
+          )
+    if (!requirementsMet)
+      issues.push({
+        code: 'requirement-not-met',
+        message: 'Root Ability Requirements are not met.',
+      })
+  }
   const sequence = input.state.abilityRuntime?.nextCommandSequence ?? 1
   if (
     !Number.isSafeInteger(sequence) ||
@@ -677,6 +693,7 @@ export function commitCombatAbilityCommand(
     actionFacts,
     triggeringCombatantId: input.actorId,
     selectedCombatantId: prepared.evaluation.primaryCombatantId ?? undefined,
+    selectedCombatantIds: prepared.evaluation.selectedCombatantIds,
     affectedCombatantIds: prepared.evaluation.affectedCombatantIds,
   }
   const outcomeQueue: CombatAbilityEventFrame[] = []
@@ -808,6 +825,7 @@ export function commitCombatAbilityCommand(
             rootActionId: facts.rootActionId,
             actionFacts,
             selectedCombatantId: facts.selectedCombatantId,
+            selectedCombatantIds: facts.selectedCombatantIds,
           }
         : undefined,
     prepareIncoming: (state) => prepareNativePv1fTurn(state, true),
@@ -828,6 +846,11 @@ export function commitCombatAbilityCommand(
           nativeFacts.selectedCombatantId ??
           (!nativeFacts.prepaid && nativeFacts.actionId === prepared.action.id
             ? facts.selectedCombatantId
+            : undefined),
+        selectedCombatantIds:
+          nativeFacts.selectedCombatantIds ??
+          (!nativeFacts.prepaid && nativeFacts.actionId === prepared.action.id
+            ? facts.selectedCombatantIds
             : undefined),
       })
       outcomeQueue.push(mutation.frame)

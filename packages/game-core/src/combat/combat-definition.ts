@@ -1,6 +1,7 @@
 import { automaticAbilityEventSupported } from './combat-ability-events'
 import type { CombatTargetSpec } from './actions'
 import { validateCombatActionDefinition } from './combat-authoring-validation'
+import { canonicalAbilityTargetSpec } from './combat-targeting-shapes'
 import { validateSkillCooldownDefinition, type SkillCooldownDefinition } from './skill-cooldowns'
 import {
   validateAbilityRequirements,
@@ -319,14 +320,19 @@ export function validateAbilityDefinition(value: unknown): readonly AbilityDefin
             'maximumElevationDifference',
             'friendlyFire',
             'maximumSelections',
+            'categories',
           ],
           `${path}.targeting`,
         )
-        if (target.geometryVersion !== undefined && target.geometryVersion !== 2)
+        if (
+          target.geometryVersion !== undefined &&
+          target.geometryVersion !== 2 &&
+          target.geometryVersion !== 3
+        )
           issue(
             `${path}.targeting.geometryVersion`,
             'invalid-targeting',
-            'Canonical geometry supports version 2 only.',
+            'Canonical geometry supports versions 2 and 3.',
           )
         if (
           !nonnegative(target.maximumSelections) ||
@@ -368,24 +374,24 @@ export function validateAbilityDefinition(value: unknown): readonly AbilityDefin
         candidate.activation !== 'automatic' ||
         candidate.mode !== 'action' ||
         !record(target) ||
-        !['self', 'unit'].includes(target.kind as string) ||
+        !['self', 'unit', 'ground-tile', 'empty-tile'].includes(target.kind as string) ||
         !record(target.shape) ||
-        target.shape.kind !== 'single' ||
+        !['single', 'line'].includes(target.shape.kind as string) ||
         (target.kind === 'self' && binding.subject !== 'owner')
       )
         issue(
           `${path}.automaticTarget`,
           'invalid-automatic-target',
-          'Automatic target binding applies only to Automatic Self/ordinary unit actions; Self binds owner.',
+          'Automatic single/Line actions bind a causal subject; Self binds owner; Circle/All use owner activation.',
         )
       if (record(binding)) keys(binding, ['subject'], `${path}.automaticTarget`)
     } else if (
       candidate.activation === 'automatic' &&
       candidate.mode === 'action' &&
       record(target) &&
-      target.kind === 'unit' &&
+      target.kind !== 'self' &&
       record(target.shape) &&
-      target.shape.kind === 'single'
+      ['single', 'line'].includes(target.shape.kind as string)
     )
       issue(
         `${path}.automaticTarget`,
@@ -491,14 +497,12 @@ export function validateAbilityDefinition(value: unknown): readonly AbilityDefin
       )
     if (allEffectsValid && record(target) && record(target.shape) && candidate.mode === 'action') {
       try {
-        const { maximumSelections: _count, ...nativeTarget } = target
-        void _count
         validateCombatActionDefinition({
           id: typeof candidate.id === 'string' ? candidate.id : 'invalid',
           version: 1,
           sourceType: 'discipline-skill',
           tags: [],
-          target: { ...nativeTarget, geometryVersion: 2 } as unknown as CombatTargetSpec,
+          target: canonicalAbilityTargetSpec(target as unknown as CombatTargetSpec),
           cost: { spendsAction: true, mp: 0 },
           requirements: [],
           effects: payloads

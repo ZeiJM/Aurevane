@@ -187,6 +187,7 @@ export function evaluateCombatAction(
     state,
     airborneAttackAction(state, action, content, executionActorId),
     selection,
+    executionActorId,
   )
   validateCombatAccuracyDefinition(action)
   const csrPreviewAction = materializeCsrPreviewAction(action)
@@ -274,6 +275,7 @@ export function executeCombatAction(
     state,
     airborneAttackAction(state, action, content, executionActorId),
     selection,
+    executionActorId,
   )
   validateCombatAccuracyDefinition(action)
   const round = state.tactical.battle.round
