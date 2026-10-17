@@ -48,9 +48,17 @@ for (const longName of [false, true]) {
           background: getComputedStyle(node).backgroundColor,
         }
       })
-    const inGameHeader = await headerAppearance()
+    // Phones use a deliberately compact one-row in-game masthead, so only typography and colour
+    // must match the public header there; desktop also keeps identical geometry.
+    const comparable = async () => {
+      const { height, crestWidth, ...appearance } = await headerAppearance()
+      return info.project.name === 'mobile-chromium'
+        ? appearance
+        : { height, crestWidth, ...appearance }
+    }
+    const inGameHeader = await comparable()
     await page.goto('/game')
-    expect(await headerAppearance()).toEqual(inGameHeader)
+    expect(await comparable()).toEqual(inGameHeader)
     await expect(page.getByRole('navigation', { name: 'Public information' })).toBeVisible()
     await expect(
       page.locator('[data-av-site-header] a').filter({ hasText: 'News' }),

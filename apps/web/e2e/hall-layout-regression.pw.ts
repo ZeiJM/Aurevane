@@ -420,6 +420,11 @@ test('Battle Hall places one arena workspace below the scenic mode tabs with all
     await expect(size).toHaveValue('3')
   }
   await capture(page, testInfo, 'pvp')
+  await page
+    .getByRole('dialog', { name: 'Create Lobby', exact: true })
+    .getByRole('button', { name: 'Close', exact: true })
+    .click()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
 
   await navigation.getByRole('button', { name: /^Spectate/ }).click()
   await expect(page.locator('[data-hall-workspace]:visible')).toHaveCount(1)
