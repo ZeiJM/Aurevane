@@ -356,7 +356,9 @@
 
 /* Phone radio buttons: a 44px tap target with a compact, 16px visual control. */
 @media (max-width: 760px) {
-  .window { grid-template-columns: 2.75rem minmax(0, 1fr); }
+  .window {
+    grid-template-columns: 2.75rem minmax(0, 1fr);
+  }
   .window input[type='radio'] {
     box-sizing: border-box;
     width: 2.75rem;
@@ -369,8 +371,19 @@
     cursor: pointer;
   }
   .window input[type='radio']:checked {
-    background: radial-gradient(circle at center, #386c60 0 4px, #fffdf7 4px 6px, #386c60 6px 8px, transparent 8px);
+    background: radial-gradient(
+      circle at center,
+      #386c60 0 4px,
+      #fffdf7 4px 6px,
+      #386c60 6px 8px,
+      transparent 8px
+    );
   }
-  .window input[type='radio']:focus-visible { outline: 2px solid #386c60; outline-offset: -2px; }
-  .window input[type='radio']:disabled { cursor: not-allowed; }
+  .window input[type='radio']:focus-visible {
+    outline: 2px solid #386c60;
+    outline-offset: -2px;
+  }
+  .window input[type='radio']:disabled {
+    cursor: not-allowed;
+  }
 }
