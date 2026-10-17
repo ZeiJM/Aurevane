@@ -20,7 +20,9 @@ vi.mock('./account-menu', () => ({
   AccountMenu: ({
     characterName,
     masterPanelHref,
+    characterPortrait,
   }: {
+    characterPortrait?: React.ReactNode
     characterName?: string | null
     masterPanelHref?: string | null
   }) =>
@@ -28,6 +30,7 @@ vi.mock('./account-menu', () => ({
       'div',
       { 'data-testid': 'account-menu' },
       characterName ? `Welcome back, ${characterName}.` : 'Account',
+      characterPortrait,
       masterPanelHref
         ? createElement(
             'a',

@@ -1,3 +1,4 @@
+import { openMapSettings, closeMapSettings } from './world-map-settings-helpers'
 import { createRequire } from 'node:module'
 import { expect, test, type Page, type TestInfo } from '@playwright/test'
 import { atlasSectors, ATLAS_COLUMNS } from '../src/world/atlas'
@@ -179,9 +180,9 @@ export function registerWorldLandscapeCases(helpers: Helpers) {
     })
     await page.reload()
     await expect.poll(() => receipts, { timeout: 25000 }).toBeGreaterThan(0)
-    await page.getByRole('button', { name: 'Map settings', exact: true }).click()
+    await openMapSettings(page)
     await page.getByRole('checkbox', { name: 'Ambient animation', exact: true }).uncheck()
-    await page.getByRole('button', { name: 'Done', exact: true }).click()
+    await closeMapSettings(page)
     const canvas = page.locator('canvas[data-world-stage]')
     await expect(canvas).toHaveAttribute('data-clouds', '0')
     const projection = await canvas.evaluate((element) => ({
@@ -323,9 +324,9 @@ export function registerWorldLandscapeCases(helpers: Helpers) {
       expect(Number(await canvas.getAttribute('data-terrain-motes'))).toBeLessThanOrEqual(72)
       await capture(page, info, `terrain-motion-${sector}`)
     }
-    await page.getByRole('button', { name: 'Map settings', exact: true }).click()
+    await openMapSettings(page)
     await page.getByRole('checkbox', { name: 'Ambient animation', exact: true }).uncheck()
-    await page.getByRole('button', { name: 'Done', exact: true }).click()
+    await closeMapSettings(page)
     await expect(canvas).toHaveAttribute('data-terrain-motes', '0')
     await expect(canvas).toHaveAttribute('data-precipitation-particles', '0')
     await expect(canvas).toHaveAttribute('data-clouds', '0')

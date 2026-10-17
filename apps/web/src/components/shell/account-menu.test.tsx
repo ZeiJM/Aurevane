@@ -26,4 +26,18 @@ describe('Account settings destinations', () => {
     expect(markup).toContain('href="/game/settings/controls"')
     expect(markup).not.toContain('aria-label="Audio settings"')
   })
+
+  it('carries the character image beside the greeting and the online count inside the menu', () => {
+    vi.mocked(useState).mockImplementationOnce(() => [true, vi.fn()])
+    const markup = renderToStaticMarkup(
+      createElement(AccountMenu, {
+        characterName: 'Archer',
+        characterPortrait: createElement('i', { 'data-portrait': true }),
+        presence: createElement('a', { href: '/game/online' }, 'Online Users 3'),
+      }),
+    )
+    expect(markup).toContain('Welcome back, Archer.')
+    expect(markup.indexOf('data-portrait')).toBeGreaterThan(markup.indexOf('Welcome back'))
+    expect(markup).toContain('Online Users 3')
+  })
 })

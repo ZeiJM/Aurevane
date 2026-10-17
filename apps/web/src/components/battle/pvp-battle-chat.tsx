@@ -10,6 +10,48 @@ import type {
 
 import { BattleLogFeed } from './battle-log-feed'
 import styles from './pvp-battle-chat.module.css'
+import { extractEmbeds, mentionsName, segmentMentions } from '@/components/social/chat/chat-format'
+
+function BattleChatBody({
+  body,
+  selfName,
+  knownNames,
+}: {
+  body: string
+  selfName: string
+  knownNames: readonly string[]
+}) {
+  const { text, embeds } = extractEmbeds(body, true)
+  const mine = selfName ? mentionsName(body, selfName) : false
+  return (
+    <>
+      {text ? (
+        <p data-mention={mine || undefined}>
+          {segmentMentions(text, knownNames, selfName).map((segment, index) =>
+            segment.type === 'mention' ? (
+              <strong key={index}>{segment.text}</strong>
+            ) : (
+              <span key={index}>{segment.text}</span>
+            ),
+          )}
+        </p>
+      ) : null}
+      {embeds.map((embed, index) =>
+        embed.kind === 'image' ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            key={index}
+            src={embed.url}
+            alt="Shared image or GIF"
+            loading="lazy"
+            referrerPolicy="no-referrer"
+            style={{ maxWidth: '100%', maxHeight: 180, borderRadius: 8 }}
+          />
+        ) : null,
+      )}
+    </>
+  )
+}
 
 interface ChatApiBody {
   messages?: PvpBattleChatMessageView[]
@@ -83,6 +125,16 @@ export function PvpBattleChat({
   className,
 }: PvpBattleChatProps) {
   const [messages, setMessages] = useState<PvpBattleChatMessageView[]>([])
+  const localName = localCharacterId ? (combatantNames?.[localCharacterId] ?? '') : ''
+  const knownNames = useMemo(
+    () => [
+      ...new Set([
+        ...Object.values(combatantNames ?? {}),
+        ...messages.map((m) => m.senderCharacterName),
+      ]),
+    ],
+    [combatantNames, messages],
+  )
   const [spectators, setSpectators] = useState<PvpSpectatorPresenceView[]>([])
   const [spectatorCount, setSpectatorCount] = useState(0)
   const [battleLog, setBattleLog] = useState<BattleLogView | null>(null)
@@ -398,7 +450,7 @@ export function PvpBattleChat({
                     })}
                   </time>
                 </div>
-                <p>{message.body}</p>
+                <BattleChatBody body={message.body} selfName={localName} knownNames={knownNames} />
               </article>
             ))
           ) : (

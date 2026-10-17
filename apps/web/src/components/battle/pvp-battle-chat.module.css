@@ -326,3 +326,40 @@
     min-height: 2.1rem;
   }
 }
+
+/* Mentions and shared images read cleanly inside a message. */
+.message p strong {
+  overflow: visible;
+  color: var(--av-brass-300, #e0bf7f);
+  font-size: inherit;
+  font-weight: 700;
+  text-overflow: clip;
+  white-space: normal;
+}
+.message p[data-mention] {
+  padding-left: 0.4rem;
+  border-left: 2px solid var(--av-brass-300, #e0bf7f);
+  background: rgba(224, 191, 127, 0.08);
+}
+.message img {
+  display: block;
+  justify-self: start;
+  max-width: 100%;
+  margin-top: 0.15rem;
+  object-fit: contain;
+}
+
+/* Phones: battle chat text stays readable (11px floor). */
+@media (max-width: 760px) {
+  .message p,
+  .empty,
+  .notice {
+    font-size: 0.75rem;
+  }
+  .message strong {
+    font-size: 0.75rem;
+  }
+  .message time {
+    font-size: 0.6875rem;
+  }
+}

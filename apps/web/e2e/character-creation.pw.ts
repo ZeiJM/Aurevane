@@ -72,9 +72,10 @@ test('creates a slotted character, persists its profile, and resumes it across s
   ).toHaveAttribute('aria-valuenow', '0')
 
   // Starter portrait filenames are registry-driven; verify the rendered image and decoded asset.
-  const profilePortrait = page.locator(
-    '[data-testid="authenticated-shell"] > header .character-portrait-media',
-  )
+  await page.getByRole('button', { name: 'Account' }).click()
+  const profilePortrait = page
+    .getByRole('menu', { name: 'Account menu' })
+    .locator('.character-portrait-media')
   await expect(profilePortrait).toBeVisible()
   await expect
     .poll(() =>
@@ -83,6 +84,8 @@ test('creates a slotted character, persists its profile, and resumes it across s
       ),
     )
     .toBe(true)
+  await page.getByRole('button', { name: 'Account' }).click()
+  await expect(page.getByRole('menu', { name: 'Account menu' })).toBeHidden()
   expect(await hasHorizontalOverflow(page)).toBe(false)
   await expect(page.getByRole('link', { name: 'Back to Character Select' })).toHaveCount(0)
 

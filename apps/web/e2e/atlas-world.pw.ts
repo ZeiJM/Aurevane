@@ -1,3 +1,4 @@
+import { openMapSettings, closeMapSettings } from './world-map-settings-helpers'
 import { randomUUID } from 'node:crypto'
 import { writeFileSync } from 'node:fs'
 import { execFileSync, spawn } from 'node:child_process'
@@ -1219,10 +1220,9 @@ test('a synthetic population of 100 has bounded rendering at high DPI and lower 
   const initial = await world(page)
   const canvas = page.locator('canvas[data-world-stage]')
   await page.getByRole('button', { name: 'Details', exact: true }).click()
-  await page.getByRole('button', { name: 'Map settings', exact: true }).click()
+  await openMapSettings(page)
   await page.getByRole('slider', { name: 'Zoom level', exact: true }).press('Home')
-  await page.getByRole('button', { name: 'Done', exact: true }).click()
-  await page.getByRole('button', { name: 'Close details', exact: true }).click()
+  await closeMapSettings(page)
   await expect.poll(() => canvas.evaluate((el) => Number(el.dataset.tileSize))).toBe(48 * 0.35)
   const viewport = await canvas.evaluate((el) => ({
     width: el.clientWidth,
@@ -1497,9 +1497,9 @@ test('ambient clouds, water and wildlife remain alive with bounded effects and c
   const frames = await canvas.getAttribute('data-render-frames')
   await page.waitForTimeout(1200)
   expect(await canvas.getAttribute('data-render-frames')).toBe(frames)
-  await page.getByRole('button', { name: 'Map settings', exact: true }).click()
+  await openMapSettings(page)
   await page.getByRole('checkbox', { name: 'Ambient animation', exact: true }).check()
-  await page.getByRole('button', { name: 'Done', exact: true }).click()
+  await closeMapSettings(page)
   await expect.poll(async () => Number(await canvas.getAttribute('data-clouds'))).toBeGreaterThan(0)
 })
 

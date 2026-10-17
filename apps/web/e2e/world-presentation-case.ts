@@ -1,3 +1,4 @@
+import { openMapSettings, closeMapSettings } from './world-map-settings-helpers'
 import { expect, test, type Page, type TestInfo } from '@playwright/test'
 import { GRID_WIDTH, GRID_HEIGHT, STEP_MS } from '../src/world/catalog'
 import type { WorldView } from '../src/world/types'
@@ -242,12 +243,12 @@ export function registerWorldInputCases({
     await page.reload()
     const canvas = page.locator('canvas[data-world-stage]')
     await expect(canvas).toHaveAttribute('data-camera-x', /\d/)
-    await page.getByRole('button', { name: 'Map settings', exact: true }).click()
+    await openMapSettings(page)
     const zoom = page.getByRole('slider', { name: 'Zoom level', exact: true })
     await zoom.focus()
     await zoom.press('Home')
     await expect(zoom).toHaveValue('35')
-    await page.getByRole('button', { name: 'Done', exact: true }).click()
+    await closeMapSettings(page)
     await canvas.evaluate((el) => {
       const stage = el as HTMLCanvasElement
       const context = stage.getContext('2d')!,
@@ -434,9 +435,9 @@ export function registerWorldInputCases({
       const canvas = page.locator('canvas[data-world-stage]')
       await expect(canvas).toBeVisible()
       if (mode === 'effects off') {
-        await page.getByRole('button', { name: 'Map settings', exact: true }).click()
+        await openMapSettings(page)
         await page.getByRole('checkbox', { name: 'Ambient animation', exact: true }).uncheck()
-        await page.getByRole('button', { name: 'Done', exact: true }).click()
+        await closeMapSettings(page)
       }
       await canvas.evaluate((el) => {
         const ctx = document
@@ -526,7 +527,7 @@ export function registerWorldInputCases({
         else draw(text, x, y, maxWidth)
       }) as typeof context.fillText
     })
-    await page.getByRole('button', { name: 'Map settings', exact: true }).click()
+    await openMapSettings(page)
     await page.getByRole('checkbox', { name: 'Ambient animation', exact: true }).uncheck()
     const slider = page.getByRole('slider', { name: 'Zoom level', exact: true })
     for (const zoom of [35, 140, 100]) {
@@ -567,7 +568,7 @@ export function registerWorldInputCases({
       })
       await capture(page, info, `portrait-zoom-nameplates-${zoom}`)
     }
-    await page.getByRole('button', { name: 'Done', exact: true }).click()
+    await closeMapSettings(page)
   })
 
   test('zoom controls live in Settings and the shared lock blocks map and globe wheel zoom', async ({
@@ -661,7 +662,7 @@ export function registerWorldInputCases({
       await capture(page, info, `portrait-zoom-${zoom}`)
     }
     await expect(page.getByRole('button', { name: 'Zoom in', exact: true })).toHaveCount(0)
-    await page.getByRole('button', { name: 'Map settings', exact: true }).click()
+    await openMapSettings(page)
     const slider = page.getByRole('slider', { name: 'Zoom level', exact: true })
     await slider.press('Home')
     await expect(slider).toHaveValue('35')
@@ -690,7 +691,7 @@ export function registerWorldInputCases({
     expect((await canvas.screenshot()).equals(beforeZoom)).toBe(false)
     await page.getByRole('button', { name: 'Zoom lock Off', exact: true }).click()
     await capture(page, info, 'restored-map-settings')
-    await page.getByRole('button', { name: 'Done', exact: true }).click()
+    await closeMapSettings(page)
     await canvas.hover()
     const locked = await canvas.getAttribute('data-tile-size')
     const pageScale = await page.evaluate(() => ({
@@ -732,13 +733,13 @@ export function registerWorldInputCases({
         scale: visualViewport?.scale,
       })),
     ).toEqual(pageScale)
-    await page.getByRole('button', { name: 'Map settings', exact: true }).click()
+    await openMapSettings(page)
     await expect(page.getByRole('slider', { name: 'Zoom level', exact: true })).toHaveValue('94')
-    await page.getByRole('button', { name: 'Done', exact: true }).click()
+    await closeMapSettings(page)
     await page.getByRole('button', { name: /Return to local map/ }).click()
-    await page.getByRole('button', { name: 'Map settings', exact: true }).click()
+    await openMapSettings(page)
     await page.getByRole('button', { name: 'Zoom lock On', exact: true }).click()
-    await page.getByRole('button', { name: 'Done', exact: true }).click()
+    await closeMapSettings(page)
     await canvas.hover()
     await page.mouse.wheel(0, -160)
     await expect
@@ -761,12 +762,12 @@ export function registerWorldInputCases({
       if (new URL(request.url()).pathname === '/api/world' && request.method() === 'POST')
         commands.push(request.postDataJSON()?.intent?.kind)
     })
-    await page.getByRole('button', { name: 'Map settings', exact: true }).click()
+    await openMapSettings(page)
     await expect(page.getByRole('dialog', { name: 'Map settings', exact: true })).toBeVisible()
     await page.getByRole('slider', { name: 'Zoom level', exact: true }).press('Escape')
     await expect(page.getByRole('dialog', { name: 'Map settings', exact: true })).toBeHidden()
     expect(commands).not.toContain('stop')
-    await page.getByRole('button', { name: 'Map settings', exact: true }).click()
+    await openMapSettings(page)
     const box = (await canvas.boundingBox())!
     await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2)
     await expect(page.getByRole('dialog', { name: 'Map settings', exact: true })).toBeHidden()
@@ -939,10 +940,10 @@ export function registerWorldInputCases({
       await canvas.getAttribute('data-camera-y'),
     ]).toEqual(camera)
     await capture(page, info, 'mobile-map-max-zoom-out')
-    await page.getByRole('button', { name: 'Map settings', exact: true }).click()
+    await openMapSettings(page)
     await expect(page.getByRole('slider', { name: 'Zoom level', exact: true })).toHaveValue('35')
     await page.getByRole('button', { name: 'Zoom lock Off', exact: true }).click()
-    await page.getByRole('button', { name: 'Done', exact: true }).click()
+    await closeMapSettings(page)
     const locked = await canvas.getAttribute('data-tile-size')
     await pinch(60)
     await page.waitForTimeout(300)

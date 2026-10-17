@@ -797,3 +797,103 @@
     line-height: 1.2;
   }
 }
+
+/* Phones: compact sheet, one scroll, and the committed stats/impact stay pinned while browsing the library. */
+@media (max-width: 760px) {
+  .backdrop {
+    overflow: hidden;
+    padding: 0;
+    place-items: end center;
+  }
+  .dialog {
+    width: 100%;
+    height: auto;
+    max-height: 96dvh;
+    margin: 0;
+    padding: 0 0.6rem;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border-radius: 1rem 1rem 0 0;
+  }
+  .header {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    align-items: center;
+    margin-inline: -0.6rem;
+    padding: 0.4rem 0.6rem;
+    background: #d6c8ad;
+  }
+  .header p,
+  .headerIcon,
+  .sectionTitle > span,
+  .currentDiscipline p {
+    display: none;
+  }
+  .header h2 {
+    font-size: 1.3rem;
+  }
+  .close {
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+  }
+  .managementBody {
+    gap: 0.5rem;
+    padding-top: 0.5rem;
+  }
+  .current {
+    gap: 0.4rem;
+  }
+  .currentDiscipline {
+    grid-template-columns: 2.8rem minmax(0, 1fr);
+    min-height: 3.6rem;
+    padding: 0.35rem 0.45rem;
+    gap: 0.45rem;
+    text-align: left;
+    justify-content: start;
+  }
+  .currentDiscipline > div {
+    justify-items: start;
+  }
+  .currentSigil,
+  .currentLock {
+    width: 2.8rem;
+    height: 2.8rem;
+  }
+  .currentDiscipline strong {
+    font-size: 0.95rem;
+  }
+  .roster {
+    max-height: none;
+    padding: 0.5rem;
+    overflow: visible;
+  }
+  .rosterGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.4rem;
+  }
+  .disciplineCard {
+    grid-template-columns: 2.6rem minmax(0, 1fr);
+    min-height: 3.4rem;
+    gap: 0.4rem;
+    padding: 0.3rem;
+  }
+  .comparisonGrid {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    grid-template-columns: 1fr;
+    gap: 0.4rem;
+    max-height: 34dvh;
+    margin-inline: -0.6rem;
+    padding: 0.4rem 0.6rem calc(0.4rem + env(safe-area-inset-bottom));
+    overflow-y: auto;
+    border-top: 1px solid #9c8868;
+    background: #d6c8ad;
+    box-shadow: 0 -0.4rem 0.8rem rgba(0, 0, 0, 0.18);
+  }
+  .statRows {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.3rem;
+  }
+}

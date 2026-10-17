@@ -503,3 +503,70 @@
     padding-block: 0.35rem;
   }
 }
+
+/* Phones: compact Nexus. Art, headings and cards shrink so disciplines, techniques and attunement fit on fewer screens. */
+@media (max-width: 760px) {
+  .arsenal {
+    --av-cockpit-art-size: 3.5rem;
+    --av-gameplay-art-size: 3.5rem;
+    gap: 0.45rem;
+    padding: 0.2rem 0 0.4rem;
+  }
+  .panel {
+    padding: 0.55rem;
+  }
+  .sectionHeading {
+    margin-bottom: 0.4rem;
+    padding-bottom: 0.3rem;
+  }
+  .sectionHeading h2 {
+    font-size: 1.05rem;
+  }
+  .disciplinePair {
+    gap: 0;
+  }
+  .disciplineCard {
+    grid-template-columns: 3.5rem minmax(0, 1fr);
+    gap: 0.55rem;
+    padding: 0.4rem 0;
+  }
+  .disciplineSigil {
+    width: 3.5rem;
+  }
+  .disciplineCard strong {
+    font-size: 1.05rem;
+  }
+  .disciplineCard p {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    font-size: 0.8125rem;
+    line-height: 1.3;
+  }
+  .techniqueLanes {
+    margin-bottom: 0.4rem;
+  }
+  .techniqueSlots {
+    gap: 0.35rem;
+  }
+  .overviewTechnique strong {
+    font-size: 0.8125rem;
+    line-height: 1.15;
+  }
+  .techniqueSummary {
+    gap: 0.4rem;
+    margin-bottom: 0.4rem;
+  }
+  .supportSummary {
+    padding: 0.3rem 0.4rem;
+  }
+  .attunementCard,
+  .futurePowerCard {
+    gap: 0.5rem;
+  }
+  .attunementCard strong,
+  .futurePowerCard strong {
+    font-size: 1rem;
+  }
+}

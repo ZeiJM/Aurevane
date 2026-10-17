@@ -46,7 +46,8 @@ for (const [size, label, width, tiles] of [
       await provision(guest, 'MapGuest')
       await provision(spectator, 'MapWatcher')
       await host.goto('/game/battle')
-      await host.getByRole('button', { name: 'PVP - Direct', exact: true }).click()
+      await host.getByRole('button', { name: 'PVP', exact: true }).click()
+      await host.getByRole('button', { name: 'Create Lobby', exact: true }).click()
       const mapGroup = host.getByRole('group', { name: 'Map size' })
       await expect(
         mapGroup.getByRole('button', { name: 'Medium · 12×7', exact: true }),

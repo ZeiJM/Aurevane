@@ -56,7 +56,8 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Surrend
 
   await expect(page.getByRole('heading', { name: 'Choose your arena.' })).toBeVisible()
 
-  await page.getByRole('button', { name: 'PVP - Direct', exact: true }).click()
+  await page.getByRole('button', { name: 'PVP', exact: true }).click()
+  await page.getByRole('button', { name: 'Create Lobby', exact: true }).click()
   const pvpMode = page.getByLabel('Battle format')
   const pvpSummary = page
     .locator('article[data-pvp-create-card] p')
@@ -73,7 +74,11 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Surrend
   await pvpMode.selectOption('1v1')
   await expect(pvpSummary).toContainText('Two combatants · one per side')
 
-  await page.getByRole('button', { name: 'AI Battles' }).click()
+  await page
+    .getByRole('dialog', { name: 'Create Lobby' })
+    .getByRole('button', { name: 'Close' })
+    .click()
+  await page.getByRole('button', { name: 'Sparring Yard' }).click()
   const battleMode = page.getByLabel('Battle mode')
   await expect(battleMode).toHaveValue('recruit-sparring')
   await expect(page.getByRole('button', { name: 'Enter Battle' })).toBeEnabled()

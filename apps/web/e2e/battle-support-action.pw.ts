@@ -421,7 +421,8 @@ test('PvP pins independent HP/MP Support Actions into the shared slot 3', async 
     const hostCharacter = await provisionSupport(host, 'basic.recover.mp')
     const guestCharacter = await provisionSupport(guest, 'basic.recover')
     await host.goto('/game/battle')
-    await host.getByRole('button', { name: 'PVP - Direct', exact: true }).click()
+    await host.getByRole('button', { name: 'PVP', exact: true }).click()
+    await host.getByRole('button', { name: 'Create Lobby', exact: true }).click()
     await host.getByRole('button', { name: 'Create Battle Lobby' }).click()
     const hostDialog = host.getByRole('dialog', { name: 'The arena is waiting.' })
     const lobbyKey = (

@@ -89,19 +89,23 @@ export function AuthenticatedShellPresentation({
                   <span aria-hidden="true">●</span> SPECTATING
                 </Link>
               ) : null}
-              {character ? (
-                <div
-                  className={styles.headerCharacter}
-                  aria-label={`Current character: ${character.name}`}
-                >
-                  {characterPortrait}
-                </div>
-              ) : null}
               <AccountMenu
                 activeSessionHref={activeSessionHref}
                 activeSessionLabel={activeSessionLabel}
                 characterName={character?.name ?? null}
                 masterPanelHref={masterPanelHref}
+                characterPortrait={
+                  character ? (
+                    <div
+                      className={styles.accountCharacter}
+                      role="img"
+                      aria-label={`Current character: ${character.name}`}
+                    >
+                      {characterPortrait}
+                    </div>
+                  ) : null
+                }
+                presence={<OnlinePresenceLink className={styles.accountOnline} />}
               />
             </>
           }

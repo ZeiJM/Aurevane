@@ -209,9 +209,13 @@ test('mobile Profile retains the navigation portrait and readable identity tags 
   await expect(
     profile.locator(':scope > [aria-hidden="true"] .character-portrait-media'),
   ).toHaveCount(0)
+  // The character portrait now lives in the Account menu, at the end of the welcome line.
+  await page.getByRole('button', { name: 'Account', exact: true }).click()
   await expect(
-    page.locator('[data-testid="authenticated-shell"] > header .character-portrait-media'),
+    page.getByRole('menu', { name: 'Account menu' }).locator('.character-portrait-media'),
   ).toBeVisible()
+  await page.getByRole('button', { name: 'Account', exact: true }).click()
+  await expect(page.getByRole('menu', { name: 'Account menu' })).toBeHidden()
   await expect(profile.locator('[aria-label="Disciplines and titles"]')).toBeVisible()
   await expect(profile.getByTestId('primary-discipline-chip')).toHaveText('Vanguard')
   await expect(profile.getByTestId('derived-stat-maxHp')).toBeVisible()

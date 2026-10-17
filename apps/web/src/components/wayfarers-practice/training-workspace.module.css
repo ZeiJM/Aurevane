@@ -346,3 +346,10 @@
     font-size: 1.45rem;
   }
 }
+
+/* mobile type floor */
+@media (max-width: 760px) {
+  .eyebrow {
+    font-size: 0.6875rem !important;
+  }
+}

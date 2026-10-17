@@ -293,3 +293,14 @@
 .backLink {
   color: #786144;
 }
+
+/* mobile type floor */
+@media (max-width: 760px) {
+  .breadcrumbs,
+  .category,
+  .meta dt,
+  .resources a,
+  .backLink {
+    font-size: 0.6875rem !important;
+  }
+}

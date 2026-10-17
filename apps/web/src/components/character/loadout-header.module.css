@@ -106,3 +106,30 @@
     font-size: 1.75rem;
   }
 }
+
+/* Phones: one compact row for title and Nexus/Items tabs. */
+@media (max-width: 760px) {
+  .heading {
+    display: flex;
+    height: auto;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.35rem 0.5rem;
+  }
+  .headingCopy {
+    flex: 0 0 auto;
+    height: auto;
+  }
+  .heading > nav {
+    flex: 1 1 auto;
+    max-width: 14rem;
+  }
+  .pageIcon {
+    font-size: 1.2rem;
+  }
+  :global(#game-main) .heading .headingCopy h1,
+  .heading h1 {
+    font-size: 1.35rem;
+  }
+}

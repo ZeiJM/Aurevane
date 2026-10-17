@@ -174,12 +174,17 @@ test('desktop Profile and every Battle Hall tab fit without sacrificing readable
       await readable(page.getByLabel('Battle mode'), 13)
       await fit(page, `AI-${mode}-${suffix}`, testInfo)
     }
-    await tabs.getByRole('button', { name: 'PVP - Direct', exact: true }).click()
+    await tabs.getByRole('button', { name: 'PVP', exact: true }).click()
+    await page.getByRole('button', { name: 'Create Lobby', exact: true }).click()
     for (const mode of ['1v1', '2v2', '3v3', '1v1v1', 'flex-teams']) {
       await page.getByLabel('Battle format').selectOption(mode)
       await readable(page.locator('[data-pvp-setting-options] button').first(), 12)
       await fit(page, `PvP-${mode}-${suffix}`, testInfo)
     }
+    await page
+      .getByRole('dialog', { name: 'Create Lobby' })
+      .getByRole('button', { name: 'Close', exact: true })
+      .click()
     await tabs.getByRole('button', { name: /Spectate/ }).click()
     await readable(page.getByPlaceholder('AVB-0000-0000'), 13)
     await fit(page, `Spectate-${suffix}`, testInfo)
@@ -243,8 +248,9 @@ test('desktop Profile and every Battle Hall tab fit without sacrificing readable
   await page.goto('/game/battle')
   await page
     .getByRole('navigation', { name: 'Battle Hall sections' })
-    .getByRole('button', { name: 'PVP - Direct', exact: true })
+    .getByRole('button', { name: 'PVP', exact: true })
     .click()
+  await page.getByRole('button', { name: 'Create Lobby', exact: true }).click()
   await page.getByLabel('Battle format').selectOption('flex-teams')
   await reachable(page, page.getByRole('button', { name: 'Create Battle Lobby' }))
 })
@@ -459,8 +465,9 @@ test('phone pages and pure/mixed skill controls have balanced readable layouts',
   await page.goto('/game/battle')
   await page
     .getByRole('navigation', { name: 'Battle Hall sections' })
-    .getByRole('button', { name: 'PVP - Direct', exact: true })
+    .getByRole('button', { name: 'PVP', exact: true })
     .click()
+  await page.getByRole('button', { name: 'Create Lobby', exact: true }).click()
   await page.getByLabel('Battle format').selectOption('3v3')
   await testInfo.attach('phone-pvp-settings', {
     body: await page.screenshot(),

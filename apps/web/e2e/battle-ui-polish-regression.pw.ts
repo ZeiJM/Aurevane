@@ -413,7 +413,8 @@ test('keeps large PvP geometry, tokens, surrender, and results', async ({ browse
     })
 
     await host.goto('/game/battle')
-    await host.getByRole('button', { name: 'PVP - Direct', exact: true }).click()
+    await host.getByRole('button', { name: 'PVP', exact: true }).click()
+    await host.getByRole('button', { name: 'Create Lobby', exact: true }).click()
     await host
       .getByRole('group', { name: 'Map size' })
       .getByRole('button', { name: 'Large · 15×7' })

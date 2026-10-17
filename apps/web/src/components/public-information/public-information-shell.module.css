@@ -804,3 +804,17 @@
     padding: 0.5rem;
   }
 }
+
+/* mobile type floor */
+@media (max-width: 760px) {
+  .navLink,
+  .compactLinks a,
+  .cardCategory,
+  .backLink,
+  .articleMeta dt,
+  .articleNav h2,
+  .articleNav a,
+  .rulesNav a {
+    font-size: 0.6875rem !important;
+  }
+}

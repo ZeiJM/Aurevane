@@ -402,7 +402,8 @@ test('a populated hybrid loadout keeps all four Techniques and management action
         response.request().method() === 'PUT',
     )
     if (coarseTechniquePointer) {
-      await choice.locator('..').dblclick()
+      await choice.locator('..').click()
+      await page.getByRole('button', { name: 'Equip technique', exact: true }).click()
     } else {
       await choice.check()
     }

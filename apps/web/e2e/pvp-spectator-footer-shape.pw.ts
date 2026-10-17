@@ -34,7 +34,8 @@ async function createTwoPlayerBattle(host: Page, guest: Page, password: string) 
   })
 
   await host.goto('/game/battle')
-  await host.getByRole('button', { name: 'PVP - Direct', exact: true }).click()
+  await host.getByRole('button', { name: 'PVP', exact: true }).click()
+  await host.getByRole('button', { name: 'Create Lobby', exact: true }).click()
   await host.getByRole('button', { name: 'Create Battle Lobby' }).click()
 
   const hostDialog = host.getByRole('dialog', { name: 'The arena is waiting.' })

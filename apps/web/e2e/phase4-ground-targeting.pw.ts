@@ -43,7 +43,8 @@ async function equipMist(page: Page) {
       response.request().method() === 'PUT',
   )
   if (coarsePointer) {
-    await mist.locator('label').dblclick()
+    await mist.locator('label').click()
+    await page.getByRole('button', { name: 'Equip technique', exact: true }).click()
   } else {
     await mistCheckbox.check()
   }
@@ -477,7 +478,8 @@ test('PvP ground Skill uses the same forecast and spectator terrain inspection',
     await provision(guest, 'GroundGuest', testInfo)
     await provision(spectator, 'GroundWatch', testInfo)
     await page.goto('/game/battle')
-    await page.getByRole('button', { name: 'PVP - Direct', exact: true }).click()
+    await page.getByRole('button', { name: 'PVP', exact: true }).click()
+    await page.getByRole('button', { name: 'Create Lobby', exact: true }).click()
     await page.getByRole('button', { name: 'Create Battle Lobby' }).click()
     const hostDialog = page.getByRole('dialog', { name: 'The arena is waiting.' })
     const key = (await hostDialog

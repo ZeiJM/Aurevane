@@ -601,3 +601,20 @@
     grid-template-columns: 1fr 1fr;
   }
 }
+
+/* mobile type floor */
+@media (max-width: 760px) {
+  .breadcrumb,
+  .back,
+  .articleNav > span,
+  .eyebrow,
+  .family,
+  .cardMeta dt,
+  .budgetExamples article > span,
+  .masteryTrack span,
+  .disciplineCard header em,
+  .cardMeta dd,
+  .identityBudget > span {
+    font-size: 0.6875rem !important;
+  }
+}

@@ -130,7 +130,8 @@ async function expectHallFits(page: Page, label: string): Promise<void> {
     )
   }
   expect(metrics.invalidControls, `${label}: clipped or undersized controls`).toEqual([])
-  if (metrics.alignedDesktop) {
+  // An open PVP popup owns the screen, so the hall's last button is intentionally behind its backdrop.
+  if (metrics.alignedDesktop && (await page.getByRole('dialog').count()) === 0) {
     await expectAboveFooter(page, page.locator('#battle-launch button:enabled:visible').last())
   }
 }
@@ -195,6 +196,7 @@ test('desktop Profile and all Battle Hall setups fit without clipped controls or
     }
     await capture(page, testInfo, `hall-ai-${size}`)
     await tabs.locator('button[data-tone="pvp"]').click()
+    await page.getByRole('button', { name: 'Create Lobby', exact: true }).click()
     for (const mode of ['1v1', '2v2', '3v3', '1v1v1', 'flex-teams']) {
       await page.locator('#pvp-mode').selectOption(mode)
       if (mode === 'flex-teams') {
@@ -213,6 +215,10 @@ test('desktop Profile and all Battle Hall setups fit without clipped controls or
     await expect(
       page.getByRole('button', { name: '120 second turn timer', exact: true }),
     ).toHaveAttribute('aria-pressed', 'true')
+    await page
+      .getByRole('dialog', { name: 'Create Lobby' })
+      .getByRole('button', { name: 'Close' })
+      .click()
     await page.getByRole('button', { name: 'Join by Key', exact: true }).click()
     await page.locator('#lobby-key').fill('avlabcd1234')
     await expect(page.locator('#lobby-key')).toHaveValue('AVL-ABCD-1234')
@@ -221,6 +227,8 @@ test('desktop Profile and all Battle Hall setups fit without clipped controls or
     await expect(
       page.getByRole('button', { name: 'Join Battle Lobby', exact: true }),
     ).toBeDisabled()
+    await page.keyboard.press('Escape')
+    await expect(page.getByRole('dialog')).toHaveCount(0)
     await tabs.locator('button[data-tone="spectate"]').click()
     await page.getByRole('textbox', { name: 'Battle Key', exact: true }).fill('AVB-ABCD-1234')
     await expect(page.getByRole('button', { name: 'Spectate Battle', exact: true })).toBeEnabled()
@@ -266,10 +274,12 @@ test('phone Battle Hall keeps its existing scrolling layout and functional tabs'
     )
     await capture(page, testInfo, `mobile-${tone}`)
   }
-  const footer = page.locator('[data-testid="authenticated-shell"] > footer')
-  const before = await footer.boundingBox()
+  // The phone shell has no footer strip: the navigation dock is pinned to the viewport bottom.
+  await expect(page.locator('[data-testid="authenticated-shell"] > footer')).toBeHidden()
+  const dock = page.locator('[data-av-game-rail]')
+  const before = await dock.boundingBox()
   await page.locator('#game-main').evaluate((element) => element.scrollTo(0, element.scrollHeight))
-  const after = await footer.boundingBox()
+  const after = await dock.boundingBox()
   expect(before).not.toBeNull()
   expect(after!.y).toBe(before!.y)
 })
@@ -295,16 +305,12 @@ test('mobile page panels clear the navigation bar at the end of scrolling', asyn
       const measure = () =>
         page.evaluate(() => {
           const main = document.querySelector('#game-main')!
-          const footer = document.querySelector('[data-testid="authenticated-shell"] > footer')!
           const mainRect = main.getBoundingClientRect()
-          const footerRect = footer.getBoundingClientRect()
           const dockRect = document.querySelector('[data-av-game-rail]')!.getBoundingClientRect()
           return {
             dockTop: dockRect.top,
             dockBottom: dockRect.bottom,
             mainBottom: mainRect.bottom,
-            footerTop: footerRect.top,
-            footerBottom: footerRect.bottom,
             viewportHeight: innerHeight,
             overflowX: document.documentElement.scrollWidth - innerWidth,
             bottomPadding: parseFloat(getComputedStyle(main).paddingBottom),
@@ -319,38 +325,11 @@ test('mobile page panels clear the navigation bar at the end of scrolling', asyn
         `${path}: panel border has breathing room`,
       ).toBeGreaterThanOrEqual(8)
       expect(
-        metrics.dockBottom,
-        `${path}: navigation clears the Online Users footer`,
-      ).toBeLessThanOrEqual(metrics.footerTop + 1)
-      expect(Math.abs(metrics.footerBottom - metrics.viewportHeight)).toBeLessThanOrEqual(1)
+        Math.abs(metrics.dockBottom - metrics.viewportHeight),
+        `${path}: navigation dock sits at the bottom of the screen`,
+      ).toBeLessThanOrEqual(1)
       expect(metrics.overflowX).toBeLessThanOrEqual(1)
       await capture(page, testInfo, `mobile-bottom-${path.replaceAll('/', '-')}-${height}`)
     }
-
-    // Exercise a taller bar, as produced by safe-area padding or larger text.
-    await page.locator('[data-testid="authenticated-shell"] > footer').evaluate((element) => {
-      ;(element as HTMLElement).style.setProperty('padding-bottom', '40px', 'important')
-    })
-    await expect
-      .poll(() =>
-        page
-          .locator('[data-testid="authenticated-shell"]')
-          .evaluate((shell) =>
-            Math.abs(
-              parseFloat(
-                (shell as HTMLElement).style.getPropertyValue('--av-mobile-footer-height'),
-              ) - shell.querySelector(':scope > footer')!.getBoundingClientRect().height,
-            ),
-          ),
-      )
-      .toBeLessThanOrEqual(0.1)
-    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight))
-    await settleLayout(page)
-    const main = await page.locator('#game-main').boundingBox()
-    const footer = await page.locator('[data-testid="authenticated-shell"] > footer').boundingBox()
-    const dock = await page.locator('[data-av-game-rail]').boundingBox()
-    expect(main!.y + main!.height).toBeLessThanOrEqual(dock!.y + 1)
-    expect(dock!.y + dock!.height).toBeLessThanOrEqual(footer!.y + 1)
-    await expect(page.getByRole('link', { name: /Online Users/ })).toBeVisible()
   }
 })

@@ -490,3 +490,14 @@
     overflow: visible;
   }
 }
+
+/* mobile type floor */
+@media (max-width: 760px) {
+  .eyebrow,
+  .searchLabel,
+  .directoryHeading p,
+  .category,
+  .rowMeta {
+    font-size: 0.6875rem !important;
+  }
+}
