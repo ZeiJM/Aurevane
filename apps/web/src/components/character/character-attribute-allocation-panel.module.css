@@ -747,3 +747,10 @@
     margin-block: 0.4rem;
   }
 }
+
+/* Keep the Reset action a comfortable thumb target on phones. */
+@media (max-width: 760px) {
+  .panel .resetButton {
+    min-height: 2.75rem !important;
+  }
+}

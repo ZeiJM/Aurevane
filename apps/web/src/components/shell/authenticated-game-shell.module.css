@@ -991,7 +991,7 @@
     min-height: 3.1rem;
     gap: 0.12rem;
     padding-block: 0.25rem;
-    font-size: 0.62rem;
+    font-size: 0.6875rem;
   }
   .shell .railLink svg {
     width: 1.05rem;
@@ -1016,7 +1016,7 @@
   .worldFrame .shell .masthead nav a {
     min-height: 2.4rem;
     padding: 0.4rem 0.3rem;
-    font-size: 0.68rem;
+    font-size: 0.75rem;
   }
   .worldFrame .shell .masthead > :last-child {
     grid-column: 3;
