@@ -1,5 +1,5 @@
-Aurevane earned Rewind lifecycle checkpoint
-Source d34ddeba83469f9295af699f661555c98037f36c
-Tested 1766e84e9eb20a1bb3ab8e6e58ce7e3aefb5d43a
-Metadata checkpoints/earned-rewind-d34ddeba.json
-20new earnedRewind cycles;9017Vitest+7Node/fullquality/bothbuilds GREEN092943981622 complete rootcounts/marker/tail afterONEcachedsame-source replay;65/3focused/types/20native traceaudit;ONEreview0C0I2newM/19totaldeferred/nofix/norereview;5evidence+18reviewscope rulings;runtime/roster/helpers/priorfixtures unchanged. Exact prior source coldrecovered through47verifiedbundles. Originalcombat/fullcycles/native/AT/geometry/balance/Ownercurrentcontent/CAS/Atlas/human/Task15/16/releaseOPEN;broaderMasteraftercombat;Highsufficient. No hostedwrite/pub/activation/migration/mainmerge/deploy.
+Aurevane earned Summon lifecycle checkpoint
+Source 083faeae23562f0dc91a9bb3a84de2ab5b62741f
+Tested 1949f6b02a1fc38dbfabcd3197090a69ad58af6d
+Metadata checkpoints/earned-summon-083faeae.json
+Earned Summon cleanup checkpoint:28 real earned-build action/AI/lifecycle/counter cases plus1 focused historical-native bridge regression; canonical/AI and actual native player defeat routes remove child/profile/trigger authority and free tile. Final1949f6b02 fullquality9046Vitest+7Node/formatlint8typesbothbuilds GREEN103000aaa03555;289 bounded Level100 PvP mirrors GREEN102257a619bb19;28 audited traces;144/7 covering native tests. One review0C1Ifixed in ONE repair wave0newM/19 inherited deferred;no rereview. Trace/matrix0e4089906 has identical runtime to final1949 (one unimported core test field only). Original combat/editor/native integration, othercycles/balance/Ownercurrentcontent/CAS/Atlas/human/Task15/16/release remain OPEN;broaderMaster/world aftercombat;Highsufficient. No hostedwrite/publication/activation/migration/mainmerge/deploy.

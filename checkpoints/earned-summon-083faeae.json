@@ -1,0 +1,357 @@
+{
+  "source": "083faeae23562f0dc91a9bb3a84de2ab5b62741f",
+  "tree": "cde975be2332b2f1dd415b8a5377a1c542ff29d7",
+  "testedSource": "1949f6b02a1fc38dbfabcd3197090a69ad58af6d",
+  "reviewedSource": "54ba4267b69d9899347b998a81d156020ec50cb1",
+  "prerequisite": "d34ddeba83469f9295af699f661555c98037f36c",
+  "parentArchive": "6aa3226fcdc765f97acc9614c9bbdcbc2bd9b303",
+  "parentTree": "a54f8f6490b479e6520854d7e9862e5d6b88de43",
+  "mainUnchanged": "29506e293e81abef1b0b8a46099618ab3ae3f0ae",
+  "fullCheckReceipt": {
+    "argv": [
+      "pnpm",
+      "--reporter=append-only",
+      "check"
+    ],
+    "cwd": "/workspace/scratch/680b26e4eb86/aurevane",
+    "started_utc": "2026-10-17T10:30:00.235338+00:00",
+    "completed_utc": "2026-10-17T10:30:35.256853+00:00",
+    "exit_code": 0,
+    "log": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/evidence/20261017T103000235338Z-aaa03555.log"
+  },
+  "tests": {
+    "vitest": 9046,
+    "node": 7
+  },
+  "preservation": {
+    "source": "1949f6b02a1fc38dbfabcd3197090a69ad58af6d",
+    "traceSource": "0e40899063cdbdd5876e689c02541621d72e3a82",
+    "matrixSource": "0e40899063cdbdd5876e689c02541621d72e3a82",
+    "evidenceRuntimeMatchesTestedSource": true,
+    "base": "d34ddeba83469f9295af699f661555c98037f36c",
+    "traceRows": 28,
+    "traceBytes": 14649590,
+    "traceSha256": "884ed2808d766742a7a8a9b0e511467a1ae23867414f9e5716893b98d6f24904",
+    "traceSummary": [
+      {
+        "kind": "authored-child-actions",
+        "level": 1,
+        "context": "pve",
+        "stages": 13,
+        "summonActions": [
+          [
+            6,
+            "wildwarden.verdant-stalker.verdant-mend"
+          ],
+          [
+            9,
+            "wildwarden.verdant-stalker.thorn-rake"
+          ]
+        ],
+        "lifecycle": "active"
+      },
+      {
+        "kind": "authored-child-actions",
+        "level": 1,
+        "context": "pvp",
+        "stages": 13,
+        "summonActions": [
+          [
+            6,
+            "wildwarden.verdant-stalker.verdant-mend"
+          ],
+          [
+            9,
+            "wildwarden.verdant-stalker.thorn-rake"
+          ]
+        ],
+        "lifecycle": "active"
+      },
+      {
+        "kind": "authored-child-actions",
+        "level": 100,
+        "context": "pve",
+        "stages": 14,
+        "summonActions": [
+          [
+            7,
+            "wildwarden.verdant-stalker.verdant-mend"
+          ],
+          [
+            10,
+            "wildwarden.verdant-stalker.thorn-rake"
+          ]
+        ],
+        "lifecycle": "active"
+      },
+      {
+        "kind": "authored-child-actions",
+        "level": 100,
+        "context": "pvp",
+        "stages": 14,
+        "summonActions": [
+          [
+            7,
+            "wildwarden.verdant-stalker.verdant-mend"
+          ],
+          [
+            10,
+            "wildwarden.verdant-stalker.thorn-rake"
+          ]
+        ],
+        "lifecycle": "active"
+      },
+      {
+        "kind": "native-ai-support",
+        "level": 1,
+        "context": "pve",
+        "stages": 20,
+        "summonActions": [
+          [
+            10,
+            "wildwarden.verdant-stalker.verdant-mend"
+          ]
+        ],
+        "lifecycle": "active"
+      },
+      {
+        "kind": "native-ai-support",
+        "level": 1,
+        "context": "pvp",
+        "stages": 20,
+        "summonActions": [
+          [
+            10,
+            "wildwarden.verdant-stalker.verdant-mend"
+          ]
+        ],
+        "lifecycle": "active"
+      },
+      {
+        "kind": "native-ai-support",
+        "level": 100,
+        "context": "pve",
+        "stages": 41,
+        "summonActions": [
+          [
+            19,
+            "wildwarden.verdant-stalker.verdant-mend"
+          ]
+        ],
+        "lifecycle": "active"
+      },
+      {
+        "kind": "native-ai-support",
+        "level": 100,
+        "context": "pvp",
+        "stages": 41,
+        "summonActions": [
+          [
+            19,
+            "wildwarden.verdant-stalker.verdant-mend"
+          ]
+        ],
+        "lifecycle": "active"
+      },
+      {
+        "kind": "finite-expiry",
+        "level": 1,
+        "context": "pve",
+        "stages": 20,
+        "summonActions": [],
+        "lifecycle": "active"
+      },
+      {
+        "kind": "finite-expiry",
+        "level": 1,
+        "context": "pvp",
+        "stages": 20,
+        "summonActions": [],
+        "lifecycle": "active"
+      },
+      {
+        "kind": "finite-expiry",
+        "level": 100,
+        "context": "pve",
+        "stages": 20,
+        "summonActions": [],
+        "lifecycle": "active"
+      },
+      {
+        "kind": "finite-expiry",
+        "level": 100,
+        "context": "pvp",
+        "stages": 20,
+        "summonActions": [],
+        "lifecycle": "active"
+      },
+      {
+        "kind": "enemy-defeat:ai",
+        "level": 1,
+        "context": "pve",
+        "stages": 13,
+        "summonActions": [],
+        "lifecycle": "active"
+      },
+      {
+        "kind": "enemy-defeat:canonical",
+        "level": 1,
+        "context": "pve",
+        "stages": 13,
+        "summonActions": [],
+        "lifecycle": "active"
+      },
+      {
+        "kind": "enemy-defeat:native-player",
+        "level": 1,
+        "context": "pve",
+        "stages": 13,
+        "summonActions": [],
+        "lifecycle": "active"
+      },
+      {
+        "kind": "enemy-defeat:ai",
+        "level": 1,
+        "context": "pvp",
+        "stages": 13,
+        "summonActions": [],
+        "lifecycle": "active"
+      },
+      {
+        "kind": "enemy-defeat:canonical",
+        "level": 1,
+        "context": "pvp",
+        "stages": 13,
+        "summonActions": [],
+        "lifecycle": "active"
+      },
+      {
+        "kind": "enemy-defeat:native-player",
+        "level": 1,
+        "context": "pvp",
+        "stages": 13,
+        "summonActions": [],
+        "lifecycle": "active"
+      },
+      {
+        "kind": "enemy-defeat:ai",
+        "level": 100,
+        "context": "pve",
+        "stages": 7,
+        "summonActions": [],
+        "lifecycle": "active"
+      },
+      {
+        "kind": "enemy-defeat:canonical",
+        "level": 100,
+        "context": "pve",
+        "stages": 7,
+        "summonActions": [],
+        "lifecycle": "active"
+      },
+      {
+        "kind": "enemy-defeat:native-player",
+        "level": 100,
+        "context": "pve",
+        "stages": 7,
+        "summonActions": [],
+        "lifecycle": "active"
+      },
+      {
+        "kind": "enemy-defeat:ai",
+        "level": 100,
+        "context": "pvp",
+        "stages": 7,
+        "summonActions": [],
+        "lifecycle": "active"
+      },
+      {
+        "kind": "enemy-defeat:canonical",
+        "level": 100,
+        "context": "pvp",
+        "stages": 7,
+        "summonActions": [],
+        "lifecycle": "active"
+      },
+      {
+        "kind": "enemy-defeat:native-player",
+        "level": 100,
+        "context": "pvp",
+        "stages": 7,
+        "summonActions": [],
+        "lifecycle": "active"
+      },
+      {
+        "kind": "occupied-spawn-and-repeat",
+        "level": 1,
+        "context": "pve",
+        "stages": 2,
+        "summonActions": [],
+        "lifecycle": "active"
+      },
+      {
+        "kind": "occupied-spawn-and-repeat",
+        "level": 1,
+        "context": "pvp",
+        "stages": 2,
+        "summonActions": [],
+        "lifecycle": "active"
+      },
+      {
+        "kind": "occupied-spawn-and-repeat",
+        "level": 100,
+        "context": "pve",
+        "stages": 2,
+        "summonActions": [],
+        "lifecycle": "active"
+      },
+      {
+        "kind": "occupied-spawn-and-repeat",
+        "level": 100,
+        "context": "pvp",
+        "stages": 2,
+        "summonActions": [],
+        "lifecycle": "active"
+      }
+    ],
+    "runtimeChangedPaths": [
+      "packages/game-core/src/combat/combat-ability-command.ts",
+      "packages/game-core/src/combat/pv1f-action-economy.ts"
+    ],
+    "runtimeContentHelpersAndPriorFixturesUnchanged": false,
+    "rosterManifestSha256": "b86cfec056bbac582810e7da80f9bc687f02518892eb5d11275fc7b5ced19f05",
+    "protectedHashesUnchanged": {
+      "packages/game-core/src/combat/recruit-ai-build.ts": "e1f676fafea1a73a84eaf95b0e73b66601916a4dcb63e80edd0db4d4da449a7d",
+      "packages/game-core/src/combat/recruit-ai.ts": "cf9e6cc12ff1d7434d17956f5f2e3e19b770240ea6d7a5c039477921382c5e6a",
+      "packages/game-core/src/combat/recruit-ai-ranged-spacing.test.ts": "97d492399237e8064ae9fdc51f7fef143189201e32a2892ccf98340448238a77",
+      "apps/web/src/server/battle/roster-legal-duel.test-utils.ts": "129d1827760c89bdf3ed75a1757e98802de743829eff9841699ead64747c96f9",
+      "apps/web/src/server/battle/roster-legal-ranged-ai.test.ts": "1443d456ba61d9469cedfe8e10392c155876e2c20fd3b121506009be7d0c4524",
+      "apps/web/src/server/battle/battle-log-service.ts": "d1876bcd5044a7b8f1c3c4178b19696605a61fc5ad8424e34181fd5cc95aa74b"
+    },
+    "commandOldSha256": "9105d436acb0f005ca7ae87b4f6978edb18b4429de218344f018d3391d0c66b3",
+    "commandNewSha256": "011167e51984d4c2f787726d60c733c2d63d11dd35f1053ba1a714618ff8f28d",
+    "deploymentLockBlob": "b8a4e0e3c57b95a8da49c05d1fe5f60ba2181b5f",
+    "boundedMatrix": {
+      "rows": 289,
+      "bytes": 2826307,
+      "sha256": "d60cb8110a8ad3f74342c52fbaf368c2c52aa04c6e44f22d0fd1dfcdd6cba280",
+      "maximumRounds": 4,
+      "fullMatchBalance": false
+    }
+  },
+  "acceptance": "Earned Summon cleanup checkpoint:28 real earned-build action/AI/lifecycle/counter cases plus1 focused historical-native bridge regression; canonical/AI and actual native player defeat routes remove child/profile/trigger authority and free tile. Final1949f6b02 fullquality9046Vitest+7Node/formatlint8typesbothbuilds GREEN103000aaa03555;289 bounded Level100 PvP mirrors GREEN102257a619bb19;28 audited traces;144/7 covering native tests. One review0C1Ifixed in ONE repair wave0newM/19 inherited deferred;no rereview. Trace/matrix0e4089906 has identical runtime to final1949 (one unimported core test field only). Original combat/editor/native integration, othercycles/balance/Ownercurrentcontent/CAS/Atlas/human/Task15/16/release remain OPEN;broaderMaster/world aftercombat;Highsufficient. No hostedwrite/publication/activation/migration/mainmerge/deploy.",
+  "bundle": {
+    "local": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/earned-summon-083faeae.bundle",
+    "path": "checkpoints/earned-summon-083faeae.bundle",
+    "bytes": 16130,
+    "sha256": "376b11473742eeb17ac753d56421b2bc8c0dcd91289a78c436bccb0f2fdf3c6f",
+    "blobSha": "4d6dd92f04823ad1c64eafeef07b430a52f5efa9"
+  },
+  "evidence": {
+    "local": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/earned-summon-083faeae-evidence.tar.gz",
+    "path": "checkpoints/earned-summon-083faeae-evidence.tar.gz",
+    "bytes": 2479486,
+    "sha256": "255721d3f8627002819e7b5619ae1ef0d5f6f2ce8b34982dafd5dcd877d012ef",
+    "blobSha": "e224e1ff6801696b80eea44562cd48ce81f16d05"
+  }
+}
