@@ -3,7 +3,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions, pg_catalog;
-select plan(69);
+select plan(70);
 
 -- Surface and privileges -------------------------------------------------------------------
 select has_function('public', 'chat_send_v1', array['uuid','uuid','text','text','bigint'], 'send exists');
@@ -188,6 +188,25 @@ select is(jsonb_array_length(public.chat_react_v1((select u from ids where n=8),
 select public.chat_group_respond_v1((select u from ids where n=3), (select c from ids where n=3), (select (g->>'id')::uuid from grp), true);
 select public.chat_typing_v1((select u from ids where n=2), (select c from ids where n=2), 'group:' || (select (g->>'id')::uuid from grp), true);
 select is(jsonb_array_length(public.chat_typers_v1((select u from ids where n=3), (select c from ids where n=3), 'group:' || (select (g->>'id')::uuid from grp))), 1, 'group member sees an active typist');
+
+-- Reaction traffic is limited independently of message-send traffic.
+do $
+declare
+  v_message bigint := (select max(id) from app_private.chat_messages where body = 'reaction smoke');
+  v_n integer;
+begin
+  for v_n in 1..12 loop
+    perform public.chat_react_v1((select u from ids where n=11),
+      (select c from ids where n=11), v_message, '👏');
+  end loop;
+end;
+$;
+select throws_ok(
+  format($q$select public.chat_react_v1(%L,%L,%L,'👏')$q$,
+    (select u from ids where n=11), (select c from ids where n=11),
+    (select max(id) from app_private.chat_messages where body = 'reaction smoke')),
+  '54000', 'CHAT_REACTION_RATE_LIMITED', 'thirteenth reaction in thirty seconds is rate limited'
+);
 
 select * from finish();
 rollback;
