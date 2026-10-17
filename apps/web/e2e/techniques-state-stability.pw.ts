@@ -92,9 +92,17 @@ async function geometry(dialog: Locator) {
     const previewArt = preview.querySelector('[data-av-square-media]')!
     const artRect = rect(art)
     const previewRect = rect(previewArt)
-    // Mobile focus scrolls the gallery; compare positions within its content.
-    artRect[1] += workspace.scrollTop
-    previewRect[1] += workspace.scrollTop + preview.scrollTop
+    // Mobile focus scrolls the gallery; compare positions within its content by adding back the
+    // scroll offset of every scrolling ancestor between the element and the dialog.
+    const scrolled = (element: Element) => {
+      let total = 0
+      for (let at = element.parentElement; at && at !== node.parentElement; at = at.parentElement) {
+        total += at.scrollTop
+      }
+      return total
+    }
+    artRect[1] += scrolled(art)
+    previewRect[1] += scrolled(previewArt)
     return {
       dialog: rect(node),
       workspace: rect(workspace),

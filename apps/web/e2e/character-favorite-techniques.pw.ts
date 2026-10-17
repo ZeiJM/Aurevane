@@ -126,7 +126,9 @@ test('mobile Techniques select and save on the first tap', async ({ page }, test
       response.url().endsWith('/api/character/build/skills') &&
       response.request().method() === 'PUT',
   )
+  // A tap previews the technique; equipping is an explicit second action.
   await label.tap()
+  await dialog.getByRole('button', { name: /^(Equip technique|Remove from loadout)$/ }).tap()
 
   expect((await saved).status()).toBe(200)
   await expect(checkbox).toBeChecked({ checked: !before })
