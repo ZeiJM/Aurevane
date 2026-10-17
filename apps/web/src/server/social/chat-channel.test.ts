@@ -9,6 +9,7 @@ const THEM = '00000000-0000-4000-8000-000000000002'
 describe('chat channel resolution', () => {
   it('accepts only the supported channel shapes', () => {
     expect(parseChatChannel('world')).toEqual({ kind: 'world' })
+    expect(parseChatChannel('feed')).toEqual({ kind: 'feed' })
     expect(parseChatChannel('village')).toEqual({ kind: 'village' })
     expect(parseChatChannel(`whisper:${THEM}`)).toEqual({ kind: 'whisper', characterId: THEM })
     expect(parseChatChannel(`group:${THEM}`)).toEqual({ kind: 'group', groupId: THEM })
@@ -24,6 +25,7 @@ describe('chat channel resolution', () => {
       'whisper:AAAAAAAA-AAAA-4AAA-8AAA-AAAAAAAAAAAA',
       `whisper:${THEM}:extra`,
       'world:1',
+      `feed:${ME}`,
       'x'.repeat(200),
     ]) {
       expect(() => parseChatChannel(bad)).toThrow(AurevaneError)
@@ -49,6 +51,12 @@ describe('chat channel resolution', () => {
     expect(resolveChatChannel(ME, { kind: 'village' }, 'village:duskhaven')).toEqual({
       key: 'village:duskhaven',
       kind: 'village',
+    })
+  })
+
+  it('resolves feed only from the selected character', () => {
+    expect(resolveChatChannel(ME, { kind: 'feed' }, null)).toEqual({
+      key: `feed:${ME}`, kind: 'feed',
     })
   })
 

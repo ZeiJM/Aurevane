@@ -8,6 +8,7 @@ export interface ChatMessage {
   senderName: string | null
   senderLevel: number | null
   replyTo: { id: number; senderName: string | null; body: string } | null
+  reactions?: { emoji: string; count: number; mine: boolean }[]
 }
 
 export interface InboxWhisper {
@@ -118,4 +119,14 @@ export const chatApi = {
   friendAction: (payload: { action: string; name?: string; characterId?: string }) =>
     post('/api/chat/friends', payload) as unknown as Promise<FriendsState>,
   groupAction: (payload: Record<string, unknown>) => post('/api/chat/groups', payload),
+  react: (messageId: number, emoji: string) =>
+    post('/api/chat/reactions', { messageId, emoji }) as Promise<{
+      reactions: NonNullable<ChatMessage['reactions']>
+    }>,
+  typing: (channel: string, isTyping: boolean) =>
+    post('/api/chat/typing', { channel, isTyping }),
+  typers: (channel: string) =>
+    call<{ typers: { characterId: string; name: string }[] }>(
+      `/api/chat/typing?channel=${encodeURIComponent(channel)}`,
+    ),
 }
