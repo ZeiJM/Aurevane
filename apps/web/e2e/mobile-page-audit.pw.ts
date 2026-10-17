@@ -36,6 +36,13 @@ const PAGES: { name: string; path: string; prep?: (page: Page) => Promise<void> 
   { name: 'training', path: '/game/training' },
   { name: 'battle-hall', path: '/game/battle' },
   {
+    name: 'battle-spectate',
+    path: '/game/battle',
+    prep: async (page) => {
+      await page.getByRole('button', { name: 'Spectate', exact: true }).click()
+    },
+  },
+  {
     name: 'battle-pvp',
     path: '/game/battle',
     prep: async (page) => {
