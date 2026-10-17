@@ -203,7 +203,7 @@
 
 /* Eyebrow labels keep an 11px floor on phones. */
 @media (max-width: 760px) {
-  .av-eyebrow {
+  html body .av-eyebrow {
     font-size: 0.6875rem;
   }
 }

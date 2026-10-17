@@ -1023,3 +1023,13 @@
   flex: 1;
   min-width: 0;
 }
+
+/* mobile type floor */
+@media (max-width: 760px) {
+  .header small,
+  .tabs i,
+  .tabs button,
+  .environment {
+    font-size: 0.6875rem !important;
+  }
+}

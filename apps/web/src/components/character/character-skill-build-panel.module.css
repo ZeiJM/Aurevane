@@ -1238,9 +1238,23 @@
 
 /* Narrow phones: keep every technique card inside its own cell so taps never land on a neighbour. */
 @media (max-width: 820px) {
+  /* The technique list scrolls on its own, so every row must keep its content height instead of
+     being squeezed to fit the sheet (which collapsed cards to a few pixels and made them overlap). */
+  .techniqueArea {
+    grid-auto-rows: max-content;
+  }
+  .techniqueGroup {
+    min-height: auto;
+    grid-template-rows: max-content max-content;
+  }
+  .skillGrid {
+    min-height: auto;
+    grid-auto-rows: max-content;
+  }
   .skill,
   .lockedSkill {
-    overflow: hidden;
+    min-height: auto;
+    align-content: start;
   }
   .skill label {
     width: 100%;
