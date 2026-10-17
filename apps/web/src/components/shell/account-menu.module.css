@@ -154,3 +154,10 @@
     font-size: 0.72rem;
   }
 }
+
+/* mobile type floor */
+@media (max-width: 760px) {
+  .characterGreeting span {
+    font-size: 0.6875rem !important;
+  }
+}

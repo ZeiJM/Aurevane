@@ -1067,3 +1067,14 @@
   margin-left: auto;
   color: var(--av-teal-bright);
 }
+
+/* mobile type floor */
+@media (max-width: 760px) {
+  .activeBattleLink,
+  .contextHeading > span:not(:first-child),
+  .contextCharacter small,
+  .shell:has([data-world-workspace]) .railLink,
+  .shell .railLink {
+    font-size: 0.6875rem !important;
+  }
+}

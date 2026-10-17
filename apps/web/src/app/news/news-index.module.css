@@ -330,3 +330,12 @@
     padding: 0.7rem;
   }
 }
+
+/* mobile type floor */
+@media (max-width: 760px) {
+  .kicker,
+  .links a,
+  .closingLine {
+    font-size: 0.6875rem !important;
+  }
+}

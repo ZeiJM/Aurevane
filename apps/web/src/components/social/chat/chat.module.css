@@ -491,3 +491,10 @@
     padding-bottom: max(8px, env(safe-area-inset-bottom));
   }
 }
+
+/* mobile type floor */
+@media (max-width: 760px) {
+  .tag {
+    font-size: 0.6875rem !important;
+  }
+}

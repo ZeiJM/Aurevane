@@ -478,3 +478,14 @@
     position: static;
   }
 }
+
+/* mobile type floor */
+@media (max-width: 760px) {
+  .eyebrow,
+  .navLabel,
+  .meta dt,
+  .nav a > span,
+  .ruleNumber {
+    font-size: 0.6875rem !important;
+  }
+}

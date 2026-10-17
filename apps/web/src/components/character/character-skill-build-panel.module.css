@@ -1235,3 +1235,27 @@
   z-index: 1;
   box-shadow: 0 -0.5rem 0.6rem #0d2532;
 }
+
+/* Narrow phones: keep every technique card inside its own cell so taps never land on a neighbour. */
+@media (max-width: 820px) {
+  .skill,
+  .lockedSkill {
+    overflow: hidden;
+  }
+  .skill label {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+  .skill label > strong {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    text-align: center;
+  }
+}
+
+@media (max-width: 400px) {
+  .skillGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

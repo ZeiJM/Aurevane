@@ -661,6 +661,8 @@ export function BattleLaunch({
                     type="button"
                     className={styles.pvpChoice}
                     data-choice="create"
+                    aria-label="Create Lobby"
+                    aria-describedby="pvp-choice-create-hint"
                     aria-haspopup="dialog"
                     disabled={pending}
                     onClick={() => {
@@ -670,12 +672,16 @@ export function BattleLaunch({
                   >
                     <span aria-hidden="true">⚔</span>
                     <strong>Create Lobby</strong>
-                    <small>Set the rules and host a private battle.</small>
+                    <small id="pvp-choice-create-hint">
+                      Set the rules and host a private battle.
+                    </small>
                   </button>
                   <button
                     type="button"
                     className={styles.pvpChoice}
                     data-choice="join"
+                    aria-label="Join by Key"
+                    aria-describedby="pvp-choice-join-hint"
                     aria-haspopup="dialog"
                     disabled={pending}
                     onClick={() => {
@@ -685,7 +691,9 @@ export function BattleLaunch({
                   >
                     <span aria-hidden="true">⚿</span>
                     <strong>Join by Key</strong>
-                    <small>Enter the Lobby Key a host shared with you.</small>
+                    <small id="pvp-choice-join-hint">
+                      Enter the Lobby Key a host shared with you.
+                    </small>
                   </button>
                 </div>
                 <p className={styles.note}>
