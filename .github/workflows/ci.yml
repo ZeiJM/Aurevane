@@ -123,6 +123,9 @@ jobs:
       - name: Verify private World live presence on the migrated database
         run: pnpm exec supabase test db --local supabase/tests/world_live_presence.sql
 
+      - name: Verify social chat, friends and groups on the migrated database
+        run: pnpm exec supabase test db --local supabase/tests/social_chat.sql
+
       - name: Verify private schema permissions
         shell: bash
         run: |
