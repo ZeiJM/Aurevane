@@ -37,7 +37,8 @@ describe('Account settings destinations', () => {
       }),
     )
     expect(markup).toContain('Welcome back, Archer.')
+    expect(markup.indexOf('Online Users 3')).toBeGreaterThan(markup.indexOf('Welcome back, Archer.'))
+    expect(markup.indexOf('Online Users 3')).toBeLessThan(markup.indexOf('data-portrait'))
     expect(markup.indexOf('data-portrait')).toBeGreaterThan(markup.indexOf('Welcome back'))
-    expect(markup).toContain('Online Users 3')
   })
 })
