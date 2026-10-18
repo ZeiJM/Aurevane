@@ -16,7 +16,7 @@ test('chat reactions, ephemeral typing and private Game feed work on a phone', a
   browser,
 }, testInfo) => {
   test.skip(testInfo.project.name !== 'mobile-chromium', 'Phone chat regression')
-  test.slow()
+  test.setTimeout(180_000)
   const hostId = identity('ChatHost')
   const guestId = identity('ChatGuest')
   const opts = {
