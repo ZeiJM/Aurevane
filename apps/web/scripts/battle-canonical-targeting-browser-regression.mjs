@@ -911,17 +911,17 @@ try {
             await page.waitForFunction(() => !document.hidden && document.hasFocus())
             await page.keyboard.press(key)
             await page.waitForFunction(() => window.fixtureBattle.battleVersion === 2)
-            // The transport fixture advances before the response is rendered. Wait for the
-            // player's visible confirmation before deliberately selecting the primed action.
-            await page
-              .locator('[data-battle-notice] span')
-              .filter({ hasText: /^Ability prepared\./ })
-              .waitFor()
             if (keyboardCase === 'controlled-move') {
+              // The transport advances before React renders. The forecast strip is the
+              // visible instruction surface; the legacy notice is intentionally hidden.
+              await page
+                .locator('[data-battle-preview-strip]')
+                .filter({ hasText: /Ability prepared\./ })
+                .waitFor()
               await page.keyboard.press(key)
               await page
-                .locator('[data-battle-notice] span')
-                .filter({ hasText: /^Choose a highlighted Move destination/ })
+                .locator('[data-battle-preview-strip]')
+                .filter({ hasText: /Choose a highlighted Move destination/ })
                 .waitFor()
               await page.keyboard.press('w')
               await page.waitForFunction(() =>
