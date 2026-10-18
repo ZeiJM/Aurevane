@@ -132,10 +132,6 @@ export function AuthenticatedShellPresentation({
         <main className={styles.main} id="game-main" tabIndex={-1}>
           {children}
         </main>
-
-        <footer className={styles.footer} data-av-surface="ink">
-          <OnlinePresenceLink />
-        </footer>
       </div>
     </div>
   )

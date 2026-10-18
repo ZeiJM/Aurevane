@@ -66,9 +66,7 @@ async function expectDesktopTitlesFitWithoutScroll(page: Page, label: string) {
   const metrics = await page.locator('[data-character-concept="titles"]').evaluate((root) => {
     const main = document.getElementById('game-main')!
     const mainBox = main.getBoundingClientRect()
-    const footerBox = document
-      .querySelector('[data-testid="authenticated-shell"] > footer')!
-      .getBoundingClientRect()
+    const viewportBottom = innerHeight
     const candidates = [...root.querySelectorAll<HTMLElement>(':scope > section, button, input')]
     const describe = (element: Element) => {
       const style = getComputedStyle(element)
@@ -89,7 +87,7 @@ async function expectDesktopTitlesFitWithoutScroll(page: Page, label: string) {
       },
       main: mainBox.toJSON(),
       root: root.getBoundingClientRect().toJSON(),
-      footer: footerBox.toJSON(),
+      viewportBottom,
       mainOverflow: main.scrollHeight - main.clientHeight,
       rootOverflow: root.scrollHeight - root.clientHeight,
       mainScrollTop: main.scrollTop,
@@ -125,10 +123,10 @@ async function expectDesktopTitlesFitWithoutScroll(page: Page, label: string) {
   expect(metrics.documentOverflow).toBeLessThanOrEqual(1)
   expect(metrics.root.top).toBeGreaterThanOrEqual(metrics.main.top)
   expect(metrics.root.bottom).toBeLessThanOrEqual(metrics.main.bottom + 1)
-  expect(metrics.main.bottom).toBeLessThanOrEqual(metrics.footer.top + 1)
+  expect(metrics.main.bottom).toBeLessThanOrEqual(metrics.viewportBottom + 1)
   for (const { name, box } of metrics.children) {
     expect(box.top, `${label}: ${name} is below main top`).toBeGreaterThanOrEqual(metrics.main.top)
-    expect(box.bottom, `${label}: ${name} is above footer`).toBeLessThanOrEqual(
+    expect(box.bottom, `${label}: ${name} fits in the viewport`).toBeLessThanOrEqual(
       metrics.main.bottom + 1,
     )
     expect(box.left).toBeGreaterThanOrEqual(metrics.main.left)
@@ -176,9 +174,7 @@ test('Titles keeps the scenic account workspace and its side-by-side editing con
       }
     }
     const root = document.querySelector<HTMLElement>('[data-character-concept="titles"]')!
-    const footer = document
-      .querySelector('[data-testid="authenticated-shell"] > footer')!
-      .getBoundingClientRect()
+    const viewportBottom = innerHeight
     const saveButton = Array.from(root.querySelectorAll('button')).find((button) =>
       button.textContent?.includes('Save Profile Image'),
     )!
@@ -188,7 +184,7 @@ test('Titles keeps the scenic account workspace and its side-by-side editing con
       personal: rect('section[aria-labelledby="personal-title-heading"]'),
       profileImage: rect('section[aria-labelledby="profile-image-heading"]'),
       save: { y: saveBox.y, bottom: saveBox.bottom },
-      footerTop: footer.top,
+      viewportBottom,
       surface: root.dataset.avSurface ?? null,
       background: getComputedStyle(root.parentElement!).backgroundImage,
       personalHeadingColor: getComputedStyle(root.querySelector('#personal-title-heading')!).color,
@@ -219,11 +215,11 @@ test('Titles keeps the scenic account workspace and its side-by-side editing con
     )
     .toBeLessThanOrEqual(2)
   expect
-    .soft(metrics.save.bottom, 'profile image action stays above footer')
-    .toBeLessThanOrEqual(metrics.footerTop + 1)
+    .soft(metrics.save.bottom, 'profile image action stays in the viewport')
+    .toBeLessThanOrEqual(metrics.viewportBottom + 1)
   expect
-    .soft(metrics.root.bottom, 'Titles board stays above footer')
-    .toBeLessThanOrEqual(metrics.footerTop + 1)
+    .soft(metrics.root.bottom, 'Titles board stays in the viewport')
+    .toBeLessThanOrEqual(metrics.viewportBottom + 1)
 
   await page.getByPlaceholder('e.g. Dawn Warden').fill('Dawn Keeper')
   await page.getByRole('button', { name: 'Review Title' }).click()

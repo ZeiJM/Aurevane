@@ -23,10 +23,9 @@
   --av-shell-rail-width: 11.875rem;
   --av-rail-portrait-size: var(--av-navigation-portrait-size);
   --av-shell-header-height: 4rem;
-  --av-shell-footer-height: var(--av-footer-rail-height);
   display: grid;
   grid-template-columns: var(--av-shell-rail-width) minmax(0, 1fr);
-  grid-template-rows: var(--av-shell-header-height) minmax(0, 1fr) var(--av-shell-footer-height);
+  grid-template-rows: var(--av-shell-header-height) minmax(0, 1fr);
   width: 100%;
   height: 100dvh;
   min-width: 0;
@@ -813,7 +812,7 @@
 /* composition-v3 mobile primary dock */
 @media (max-width: 760px) {
   .worldFrame .shell {
-    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-rows: auto minmax(0, 1fr);
     padding-bottom: calc(4.25rem + env(safe-area-inset-bottom));
   }
 
@@ -974,7 +973,7 @@
   }
 }
 
-/* Mobile, every page: one-row masthead, slimmer dock, no footer (the online count lives in the Account menu). */
+/* Mobile, every page: one-row masthead, slimmer dock, no footer. */
 @media (max-width: 760px) {
   .worldFrame .shell .footer {
     display: none !important;

@@ -29,9 +29,7 @@ async function expectDesktopControlsFit(page: Page, info: TestInfo, label: strin
     const mainBox = main.getBoundingClientRect()
     const rootBox = root.getBoundingClientRect()
     const gridBox = grid.getBoundingClientRect()
-    const footerBox = document
-      .querySelector('[data-testid="authenticated-shell"] > footer')!
-      .getBoundingClientRect()
+    const viewportBottom = innerHeight
     const details = Array.from(
       root.querySelectorAll<HTMLElement>('strong, small, kbd, button, p, button > span'),
     ).map((element) => {
@@ -62,7 +60,7 @@ async function expectDesktopControlsFit(page: Page, info: TestInfo, label: strin
         clipped: ancestorsClipping,
         outside:
           rect.top < mainBox.top - 1 ||
-          rect.bottom > footerBox.top + 1 ||
+          rect.bottom > viewportBottom + 1 ||
           rect.left < rootBox.left - 1 ||
           rect.right > rootBox.right + 1,
       }
@@ -95,7 +93,7 @@ async function expectDesktopControlsFit(page: Page, info: TestInfo, label: strin
       gridScrollTop: grid.scrollTop,
       gridOverflowY: grid.scrollHeight - grid.clientHeight,
       sceneBottom: scene.getBoundingClientRect().bottom,
-      footerTop: footerBox.top,
+      viewportBottom,
       surface: root.dataset.avSurface,
       background: getComputedStyle(root).backgroundImage,
       outerBackground: getComputedStyle(root.parentElement!).backgroundImage,
@@ -129,8 +127,8 @@ async function expectDesktopControlsFit(page: Page, info: TestInfo, label: strin
   expect(metrics.mainScrollTop, `${label}: no main scrolling needed`).toBe(0)
   expect(metrics.pageScrollTop, `${label}: no document scrolling needed`).toBe(0)
   expect(metrics.gridScrollTop, `${label}: no binding scrolling needed`).toBe(0)
-  expect(metrics.sceneBottom, `${label}: workspace ends above footer`).toBeLessThanOrEqual(
-    metrics.footerTop + 1,
+  expect(metrics.sceneBottom, `${label}: workspace fits in the viewport`).toBeLessThanOrEqual(
+    metrics.viewportBottom + 1,
   )
   expect(
     metrics.scrollContainers.filter((container) => container.overflow > 1),

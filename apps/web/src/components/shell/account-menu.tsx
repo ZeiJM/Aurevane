@@ -13,7 +13,7 @@ interface AccountMenuProps {
   characterName?: string | null
   masterPanelHref?: Route | null
   characterPortrait?: ReactNode
-  /** Online Users link; shown here on phones where the footer is removed. */
+  /** Online Users link; shown under the character greeting. */
   presence?: ReactNode
 }
 
@@ -90,6 +90,7 @@ export function AccountMenu({
               <div>
                 <span>Current character</span>
                 <strong>Welcome back, {characterName}.</strong>
+                {presence ? <div className={styles.presenceBlock}>{presence}</div> : null}
               </div>
               {characterPortrait}
             </div>
@@ -148,7 +149,6 @@ export function AccountMenu({
               Master Panel
             </Link>
           ) : null}
-          {presence ? <div className={styles.presenceBlock}>{presence}</div> : null}
           <form action="/auth/signout" method="post">
             <button type="submit" role="menuitem">
               Sign out
