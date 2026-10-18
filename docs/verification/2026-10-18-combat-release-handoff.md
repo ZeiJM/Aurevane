@@ -2,6 +2,14 @@
 
 PRE-RELEASE DRAFT. This combat release is not live. Source 64f82df59f3fc111e9b253960f0f0c56c5b6113a; tree 74c737fd597f2c162bce1052e99f82fb9ca5b256; reconciled main b2d275269433f69ab1824e1f4ce110f730f9aa1a. The broad browser workflow remains pending. Replace this status only after recording actual release receipts.
 
+## Continuation checkpoint
+
+PR [#934](https://github.com/ZeiJM/Aurevane/pull/934) is still draft. All17 other exact-head workflows pass. Browser run [39099555327](https://github.com/ZeiJM/Aurevane/actions/runs/39099555327) first job117592835414 failed only the unchanged World presence animation delta; the exact-head retry job117607870313 is running. Do not merge/deploy/publish until the required run is green and complete Edge checks are observed. The first attempt's archived log records73 focused passes and350 complete-suite passes; no combat failure remains in that attempt.
+
+The execution environment disconnected: shell probes are unresponsive and the cloud browser explicitly returned environment_offline. Connected GitHub/Supabase/Vercel APIs remain available. Remote source64f82df5 is ahead of the inaccessible local C69 checkout by exactly the reviewed Support mode fix and signed Guard expectation. Do not mistake that stale local checkout for the release source, or claim new signed-in hosted gameplay/browser zoom/workbook edits.
+
+The unbound [release controls](release-assets/2026-10-18-combat-release-control.json) preserve all six exact SQL migrations, ten expected function bodies/ACLs, publication and pointer rollback envelopes, rollback-only stale/permission probe, exact snapshot comparison and history-row CAS. Reconstruct the compact payload using the recorded expression and immutable manifest blob, then require the exact known751,693-byte/SHA256 publication template. These are preparation artifacts, not execution receipts. Fresh Owner/token values must never be committed to this public artifact.
+
 ## Delivered scope
 
 Canonical Targeting, movement included in an attached Skill's authored price, all five editable Basics with restore-to-draft history, Controlled readiness, explicit modifier selection, shared authoring/player/Manual readers and the complete staged combat roster release together.
