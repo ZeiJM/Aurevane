@@ -142,11 +142,6 @@
   align-items: center;
   justify-content: flex-start;
 }
-@media (min-width: 761px) {
-  .presenceBlock {
-    display: none;
-  }
-}
 @media (max-width: 760px) {
   .trigger {
     min-height: 2.3rem;
