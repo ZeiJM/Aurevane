@@ -2,6 +2,10 @@ import { openMapSettings, closeMapSettings } from './world-map-settings-helpers'
 import { expect, test, type Page, type TestInfo } from '@playwright/test'
 import { GRID_WIDTH, GRID_HEIGHT, STEP_MS } from '../src/world/catalog'
 import type { WorldView } from '../src/world/types'
+import { worldRenderTerrain } from '../src/components/world/map-render-terrain'
+import { mapPoint } from '../src/components/world/world-motion'
+import { projectMapPoint } from '../src/components/world/map-projection'
+import { worldSceneCoversViewport } from '../src/components/world/world-scene-coverage'
 
 export async function verifyWorldPresentation(
   page: Page,
@@ -232,6 +236,81 @@ export function registerWorldInputCases({
   capture: (page: Page, info: TestInfo, name: string) => Promise<void>
   openJournal: (page: Page) => Promise<void>
 }) {
+  test('a large map preloads its public viewport and accepts clicks beyond the peer scene', async ({
+    page,
+  }, info) => {
+    test.skip(info.project.name !== 'desktop-chromium', 'Exercise the larger mouse viewport once.')
+    test.setTimeout(60000)
+    await enter(page)
+    const initial = await world(page)
+    place(initial.characterId, 'atlas:62:28', 6, 4)
+    await page.reload()
+    const canvas = page.locator('canvas[data-world-stage]')
+    await expect(canvas).toHaveAttribute('data-camera-x', /\d/)
+    const expanded = page.waitForResponse((response) => {
+      const url = new URL(response.url())
+      return (
+        response.request().method() === 'GET' &&
+        url.pathname === '/api/world' &&
+        Number(url.searchParams.get('sceneWidth')) > 1296
+      )
+    })
+    await page.setViewportSize({ width: 2560, height: 1440 })
+    const receipt = await expanded
+    expect(receipt.ok()).toBe(true)
+    const view = (await receipt.json()) as WorldView
+    const size = await canvas.evaluate((el) => ({ width: el.clientWidth, height: el.clientHeight }))
+    expect(size.width).toBeGreaterThan(1296)
+    expect(new URL(receipt.url()).searchParams.get('sceneWidth')).toBe(String(size.width))
+    const camera = mapPoint(view.position, view.sectors)
+    expect(worldSceneCoversViewport(view, [camera], { ...size, tile: 64 * 0.35 })).toBe(true)
+    expect(view.sectors.length).toBeLessThanOrEqual(25)
+    await openMapSettings(page)
+    const zoom = page.getByRole('slider', { name: 'Zoom level', exact: true })
+    await zoom.focus()
+    await zoom.press('Home')
+    await expect(zoom).toHaveValue('35')
+    await closeMapSettings(page)
+    await expect(canvas).toHaveAttribute('data-tile-size', '22.4')
+    const target = worldRenderTerrain(view)
+      .filter((sector) => !view.sectors.some((known) => known.id === sector.id))
+      .flatMap((sector) =>
+        sector.cells
+          .filter((cell) => cell.walkable)
+          .map((cell) => {
+            const position = { sectorId: sector.id, x: cell.x, y: cell.y }
+            return {
+              position,
+              point: projectMapPoint(
+                mapPoint(position, [sector], camera),
+                camera,
+                { x: 0, y: 0 },
+                64 * 0.35,
+                size.width,
+                size.height,
+              ),
+            }
+          }),
+      )
+      .find(
+        ({ point }) =>
+          point.x > 40 && point.x < size.width * 0.7 && point.y > 80 && point.y < size.height - 80,
+      )
+    expect(target).toBeDefined()
+    const approval = page.waitForResponse(
+      (response) =>
+        response.request().method() === 'POST' &&
+        new URL(response.url()).pathname === '/api/world' &&
+        response.request().postDataJSON()?.intent?.kind === 'walk',
+    )
+    await canvas.click({ position: target!.point })
+    const approved = await approval
+    expect(approved.status()).toBe(200)
+    const route = (await approved.json()) as WorldView
+    expect(route.routeDestination ?? route.route.at(-1)?.position).toEqual(target!.position)
+    await capture(page, info, 'large-viewport-public-ground-click-approved')
+    await page.getByRole('button', { name: 'Stop travel', exact: true }).click()
+  })
   test('minimum-zoom public scenery stays painted while walking with delayed scene hydration', async ({
     page,
   }, info) => {
@@ -291,7 +370,7 @@ export function registerWorldInputCases({
       }
       return route.continue()
     }
-    await page.route('**/api/world', delayScene)
+    await page.route('**/api/world*', delayScene)
     try {
       const dispatched = page.waitForResponse(
         (response) =>
@@ -317,7 +396,7 @@ export function registerWorldInputCases({
     } finally {
       delayEnabled = false
       const reads = await Promise.allSettled(delayedReads)
-      await page.unroute('**/api/world', delayScene)
+      await page.unroute('**/api/world*', delayScene)
       const failure = reads.find((response) => response.status === 'rejected')
       if (failure?.status === 'rejected') throw failure.reason
       // A later viewport project must not click this fixture's portrait at

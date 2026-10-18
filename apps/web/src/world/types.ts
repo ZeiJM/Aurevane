@@ -179,6 +179,11 @@ export type WorldScenerySector = readonly [
   buildings: readonly WorldBuilding[],
   landmarks: readonly WorldLandmark[],
 ]
+/** Presentation extent only; it never widens owned navigation or peer visibility. */
+export interface WorldSceneViewport {
+  width: number
+  height: number
+}
 export interface WorldView {
   /** Service registration and private receive capability are available for this scene. */
   livePresence?: boolean

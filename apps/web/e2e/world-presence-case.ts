@@ -722,7 +722,7 @@ export async function verifyWorldInstantActions(
       }
       return route.continue()
     }
-    await page.route('**/api/world', delayScene)
+    await page.route('**/api/world*', delayScene)
     try {
       await primary.click()
       await expect(primary).toHaveText('Attack')
@@ -752,7 +752,7 @@ export async function verifyWorldInstantActions(
       // while subsequent GETs pass through, and retain failures instead of hiding them.
       delayEnabled = false
       const responses = await Promise.allSettled(delayedScenes)
-      await page.unroute('**/api/world', delayScene)
+      await page.unroute('**/api/world*', delayScene)
       const failure = responses.find((response) => response.status === 'rejected')
       if (failure?.status === 'rejected') throw failure.reason
     }

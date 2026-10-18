@@ -24,6 +24,11 @@ const view = {
 } as unknown as WorldView
 
 describe('scoped World presence refresh', () => {
+  it('requests full scenery for the real viewport instead of an unchanged-version presence receipt', () => {
+    const url = worldRefreshUrl(view, { width: 2560, height: 1440 })
+    expect(url).toBe('/api/world?sceneWidth=2560&sceneHeight=1440')
+    expect(worldRefreshResponse(view, url)).toBe(view)
+  })
   it('refreshes live event objectives even when owned movement version is unchanged', () => {
     const previous = { ...view, objectives: [] }
     const next = {
