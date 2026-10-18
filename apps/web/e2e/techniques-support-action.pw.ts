@@ -57,7 +57,7 @@ test('Techniques saves one Support Action separately from four Discipline Skills
     await dialog.getByRole('radio', { name, exact: true }).check()
     expect((await save).ok()).toBe(true)
     await expect(dialog.getByRole('radio', { name, exact: true })).toBeChecked()
-    await expect(preview).toContainText(`10% max ${name === 'HP Recovery' ? 'HP' : 'MP'}`)
+    await expect(preview).toContainText(`${name} [10%]`)
     await expect(preview).toContainText('2 turns')
     await expect(dialog.getByTestId('skill-capacity')).toHaveText(initialCount)
   }
