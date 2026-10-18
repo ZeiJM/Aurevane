@@ -133,9 +133,6 @@ export function AuthenticatedShellPresentation({
           {children}
         </main>
 
-        <footer className={styles.footer} data-av-surface="ink">
-          <OnlinePresenceLink />
-        </footer>
       </div>
     </div>
   )
