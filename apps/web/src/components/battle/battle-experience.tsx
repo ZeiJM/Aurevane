@@ -2591,7 +2591,11 @@ function BattleExperienceContent({
       if (selected === 'move') chooseMode('move')
       else if (selected === 'basicAttack') chooseMode('attack')
       else if (selected === 'guard') {
-        if (!executeArmedSelf(supportActionId, 'guard')) chooseMode('guard')
+        const descriptor = actionDescriptor(supportActionId)
+        const supportMode = descriptor.classification
+          ? battleModifierActionMode(descriptor)
+          : 'guard'
+        if (!executeArmedSelf(supportActionId, supportMode)) chooseMode('guard')
       } else if (selected === 'recover') {
         if (!executeArmedSelf(effectiveHealActionId, 'recover')) chooseMode('recover')
       } else if (selected === 'endTurn') {
@@ -3482,7 +3486,10 @@ function BattleExperienceContent({
                   controlledAvailability={controlledAvailabilityForAction(supportActionId)}
                   controlledReady={controlledReadyActionId === supportActionId}
                   artworkSrc={battleSkillArtwork(supportActionId, basicSupport?.iconKey)}
-                  active={mode === 'guard' && selectedDefenseActionId === supportActionId}
+                  active={
+                    (mode === 'attack' || mode === 'guard' || mode === 'recover') &&
+                    currentActionId === supportActionId
+                  }
                   disabled={
                     planningDisabled ||
                     (!canPrimeAction(supportActionId) &&
