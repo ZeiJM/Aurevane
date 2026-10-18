@@ -1,0 +1,210 @@
+{
+  "schemaVersion": 1,
+  "status": "PRE_RELEASE_NO_PRODUCTION_MUTATION",
+  "source": {
+    "sha": "64f82df59f3fc111e9b253960f0f0c56c5b6113a",
+    "tree": "74c737fd597f2c162bce1052e99f82fb9ca5b256",
+    "base": "b2d275269433f69ab1824e1f4ce110f730f9aa1a",
+    "runtimeUnavailable": true
+  },
+  "manifest": {
+    "blob": "da61c930cb74b325165694fc61cf78509b152822",
+    "sha256": "35bbb1f96c9ce4dc2a5e33c34bfb7ec809de865f3149746173717d2aadb1a23d",
+    "records": 294,
+    "publications": 289
+  },
+  "publication": {
+    "prefix": "begin;\nset local lock_timeout='5s';\nset local statement_timeout='60s';\n-- Lock order matches guarded publication: catalogue, then authoring persistence.\nselect app_private.lock_combat_content_catalogue_v1('__EXPECTED_CATALOGUE_TOKEN__');\nlock table app_private.combat_content_drafts in share row exclusive mode;\nset local role service_role;\ndo $release$\ndeclare\n actor uuid := '__OWNER_ACTOR_UUID__';\n row jsonb;\n receipt record;\n count_published integer := 0;\n expected_policy jsonb := '{\"modes\":{\"summon\":\"instant\",\"displace\":\"instant\",\"mp-drain\":\"instant\",\"remove-status\":\"instant\",\"return-to-turn-start\":\"delayed\"},\"version\":7}'::jsonb;\n cohort jsonb := $cohort$",
+    "suffix": "$cohort$::jsonb;\nbegin\n if public.read_combat_content_catalogue_v1()->'policy' is distinct from expected_policy then raise exception 'RELEASE_POLICY_CHANGED'; end if;\n if exists(select 1 from app_private.combat_content_versions) or exists(select 1 from app_private.combat_content_publications) or exists(select 1 from app_private.combat_content_drafts) then raise exception 'RELEASE_OWNER_CONTENT_CHANGED'; end if;\n for row in select value from jsonb_array_elements(cohort) loop\n  select * into strict receipt from public.publish_combat_content_v3(actor,row->>'id',row->>'kind',row->'after',(row->>'beforeVersion')::integer,public.read_combat_content_catalogue_v1()->>'token',(row->>'versionFloor')::integer);\n  if receipt.content_version is distinct from (row->'after'->>'contentVersion')::integer or receipt.definition is distinct from row->'after' then raise exception 'RELEASE_VERSION_OR_DEFINITION_MISMATCH: %',row->>'id'; end if;\n  count_published := count_published+1;\n end loop;\n if count_published <> 289 or (select count(*) from app_private.combat_content_versions) <> 289 or (select count(*) from app_private.combat_content_publications) <> 289 or exists(select 1 from app_private.combat_content_drafts) then raise exception 'RELEASE_COHORT_INCOMPLETE'; end if;\n if public.read_combat_content_catalogue_v1()->'policy' is distinct from expected_policy then raise exception 'RELEASE_POLICY_CHANGED'; end if;\nend;\n$release$;\ncommit;\nselect jsonb_build_object('versions',(select count(*) from app_private.combat_content_versions),'publications',(select count(*) from app_private.combat_content_publications),'policy',public.read_combat_content_catalogue_v1()->'policy','manifest_sha256','35bbb1f96c9ce4dc2a5e33c34bfb7ec809de865f3149746173717d2aadb1a23d') as release_receipt;\n",
+    "expectedByteLength": 751693,
+    "expectedSha256": "c2b9e49fb50818b11dc383ea9cecde2a28c259c31e9b67ced73df466b79395e8"
+  },
+  "rollback": {
+    "prefix": "begin;\nset local lock_timeout='5s';\nset local statement_timeout='60s';\nselect app_private.lock_combat_content_catalogue_v1('__EXPECTED_RELEASED_CATALOGUE_TOKEN__');\nset local role service_role;\ndo $rollback$\ndeclare row jsonb; current_definition jsonb; actor uuid := '__OWNER_ACTOR_UUID__';\nbegin\n for row in select value from jsonb_array_elements($cohort$",
+    "suffix": "$cohort$::jsonb) loop\n  select definition into strict current_definition from public.read_current_combat_content_v1(row->>'id',row->>'kind');\n  if current_definition is distinct from row->'after' then raise exception 'ROLLBACK_OWNER_CONTENT_CHANGED'; end if;\n  perform public.set_combat_content_publication_v2(actor,row->>'id',row->>'kind',null,public.read_combat_content_catalogue_v1()->>'token');\n end loop;\n if exists(select 1 from app_private.combat_content_publications) or (select count(*) from app_private.combat_content_versions) <> 289 then raise exception 'ROLLBACK_COHORT_INCOMPLETE'; end if;\nend;\n$rollback$;\ncommit;\n"
+  },
+  "readback": {
+    "prefix": "with snapshot as materialized (\n select public.read_combat_content_catalogue_v1() as value\n), expected as materialized (\n select r->>'id' content_key,r->>'kind' content_kind,(r->'after'->>'contentVersion')::integer content_version,r->'after' definition\n from jsonb_array_elements($expected$",
+    "suffix": "$expected$::jsonb) r\n), actual as materialized (\n select r->>'content_key' content_key,r->>'content_kind' content_kind,(r->>'content_version')::integer content_version,r->'definition' definition\n from snapshot,jsonb_array_elements(snapshot.value->'publications') r\n), compared as (\n select coalesce(e.content_key,a.content_key) content_key,e.content_key is not null expected_exists,a.content_key is not null actual_exists,\n e.content_kind is not distinct from a.content_kind and e.content_version is not distinct from a.content_version and e.definition is not distinct from a.definition exact_match\n from expected e full join actual a using(content_key)\n)\nselect jsonb_build_object(\n 'token',(select value->>'token' from snapshot),\n 'policy',(select value->'policy' from snapshot),\n 'expected_count',(select count(*) from expected),\n 'actual_count',(select count(*) from actual),\n 'exact_match_count',(select count(*) from compared where expected_exists and actual_exists and exact_match),\n 'mismatches',(select coalesce(jsonb_agg(content_key order by content_key),'[]'::jsonb) from compared where not(expected_exists and actual_exists and exact_match)),\n 'history_count',(select count(*) from app_private.combat_content_versions),\n 'current_count',(select count(*) from app_private.combat_content_publications),\n 'draft_count',(select count(*) from app_private.combat_content_drafts),\n 'history_exact_count',(select count(*) from expected e join app_private.combat_content_versions h on h.content_key=e.content_key and h.content_kind=e.content_kind and h.content_version=e.content_version and h.definition=e.definition),\n 'manifest_sha256','35bbb1f96c9ce4dc2a5e33c34bfb7ec809de865f3149746173717d2aadb1a23d'\n) readback_receipt;"
+  },
+  "probe": "begin;\nset local lock_timeout='5s';\nset local statement_timeout='15s';\nselect app_private.lock_combat_content_catalogue_v1('__EXPECTED_CATALOGUE_TOKEN__');\nset local role service_role;\ndo $probe$\ndeclare stale_message text; before_versions bigint; before_publications bigint;\nbegin\n select count(*) into before_versions from app_private.combat_content_versions;\n select count(*) into before_publications from app_private.combat_content_publications;\n begin\n  perform public.publish_combat_content_v3('__OWNER_ACTOR_UUID__','vanguard.forceful-strike','skill','{\"id\":\"vanguard.forceful-strike\",\"contentVersion\":6,\"enabled\":true,\"nameRef\":\"skill.vanguard.forceful-strike.name\",\"descriptionRef\":\"Commit to a dependable close-range strike.\",\"sourceDisciplineId\":\"vanguard\",\"unlockRequirement\":{\"kind\":\"discipline-mastery\",\"minimumStage\":1},\"apCost\":45,\"target\":{\"geometryVersion\":3,\"kind\":\"unit\",\"teamPolicy\":\"enemy\",\"friendlyFire\":\"enemies-only\",\"categories\":[\"enemy\"],\"shape\":{\"kind\":\"single\"},\"minimumRange\":1,\"maximumRange\":1,\"requiresLineOfSight\":false,\"maximumElevationDifference\":1,\"maximumSelections\":1},\"requirements\":[],\"effects\":[{\"type\":\"damage\",\"recipient\":\"primary-unit\",\"amount\":15,\"durationTurns\":0}],\"tags\":[\"discipline\",\"vanguard\",\"attack\",\"melee\",\"cockpit:attack\"],\"cooldown\":{\"key\":\"vanguard.forceful-strike\",\"ownerTurns\":2},\"ai\":{\"enabled\":true,\"baseUtility\":78,\"purposeTags\":[\"damage\",\"pressure\"]},\"overrides\":{},\"media\":{\"iconKey\":\"skill.vanguard.forceful-strike.icon\",\"audioCueKey\":\"skill.vanguard.forceful-strike.audio\",\"vfxKey\":\"skill.vanguard.forceful-strike.vfx\"},\"authoring\":{\"schemaVersion\":1,\"status\":\"representative\",\"validationTags\":[\"representative\",\"p3.3\",\"phase4-discipline-rebalance\",\"owner-rebalance-v5\",\"power-1-20\",\"duration-aware\",\"cooldown-1-3\",\"owner-rebalance-v5-1\",\"target-budget-v5-1\"]},\"accuracyMode\":\"per-target\",\"accuracyModifierBasisPoints\":0,\"flavorLine\":\"The front gives way to a measured blow.\",\"battleText\":\"{actor} drives {ability} into {target}.\",\"mpCost\":0,\"ability\":{\"schemaVersion\":1,\"behaviors\":[{\"id\":\"forceful-strike\",\"activation\":\"manual\",\"mode\":\"action\",\"classification\":\"attack\",\"costs\":[{\"resource\":\"ap\",\"amount\":45}],\"cooldown\":{\"key\":\"vanguard.forceful-strike\",\"ownerTurns\":2},\"requirements\":null,\"targeting\":{\"geometryVersion\":3,\"kind\":\"unit\",\"teamPolicy\":\"enemy\",\"friendlyFire\":\"enemies-only\",\"categories\":[\"enemy\"],\"shape\":{\"kind\":\"single\"},\"minimumRange\":1,\"maximumRange\":1,\"requiresLineOfSight\":false,\"maximumElevationDifference\":1,\"maximumSelections\":1},\"effects\":[{\"id\":\"impact\",\"timing\":\"instant\",\"payload\":{\"type\":\"damage\",\"recipient\":\"primary-unit\",\"amount\":15,\"defenseKind\":\"armor\",\"scaling\":{\"source\":\"physical-power\",\"coefficientBasisPoints\":2500}}}],\"attackFamily\":\"physical\",\"accuracy\":{\"kind\":\"standard\"}}]}}'::jsonb,__EXPECTED_BASE_VERSION__,'__STALE_CATALOGUE_TOKEN__',5);\n  stale_message := 'UNEXPECTED_SUCCESS';\n exception when others then\n  get stacked diagnostics stale_message = message_text;\n end;\n perform set_config('av.release_stale_message',stale_message,true);\n perform set_config('av.release_probe_unchanged',((select count(*) from app_private.combat_content_versions)=before_versions and (select count(*) from app_private.combat_content_publications)=before_publications)::text,true);\nend;\n$probe$;\nreset role;\nset local role authenticated;\ndo $probe$\ndeclare denied boolean := false;\nbegin\n begin\n  perform public.publish_combat_content_v3('__OWNER_ACTOR_UUID__','vanguard.forceful-strike','skill','{}',1,'__EXPECTED_CATALOGUE_TOKEN__',5);\n exception when insufficient_privilege then denied := true;\n end;\n perform set_config('av.release_browser_denied',denied::text,true);\nend;\n$probe$;\nreset role;\nselect jsonb_build_object('stale_error',current_setting('av.release_stale_message'),'stale_write_left_state_unchanged',current_setting('av.release_probe_unchanged')::boolean,'authenticated_writer_denied',current_setting('av.release_browser_denied')::boolean,'scope','Actual hosted RPC checks inside a transaction that is rolled back; no production test content retained.') as acceptance_probe;\nrollback;\n",
+  "historyRepair": "begin;\nset local lock_timeout='5s';\nset local statement_timeout='15s';\ndo $repair$\ndeclare affected integer;\nbegin\n if exists(select 1 from supabase_migrations.schema_migrations where version='__SOURCE_VERSION__') then raise exception 'RELEASE_MIGRATION_TARGET_ALREADY_EXISTS'; end if;\n update supabase_migrations.schema_migrations m set version='__SOURCE_VERSION__'\n where version='__API_VERSION__' and name='__SOURCE_NAME__'\n and md5((to_jsonb(m)-'version')::text)='__UNCHANGED_ROW_FINGERPRINT__';\n get diagnostics affected = row_count;\n if affected <> 1 then raise exception 'RELEASE_MIGRATION_HISTORY_CAS_CONFLICT'; end if;\nend;\n$repair$;\nselect version,name,md5((to_jsonb(m)-'version')::text) metadata_fingerprint from supabase_migrations.schema_migrations m where version='__SOURCE_VERSION__';\ncommit;\n",
+  "reviewedMigrations": [
+    {
+      "file": "20261015071731_combat_controlled_timing.sql",
+      "version": "20261015071731",
+      "name": "combat_controlled_timing",
+      "sha256": "6d89190984641cfb60e24d784bb6ebce8a77401df4982ee626442f6fa5cf4d00",
+      "query": "-- Add compatible Controlled tag defaults; retain immutable history, Owner CAS and service-only publication.\nbegin;\ncreate or replace function public.publish_combat_effect_timing_policy_v1(p_actor_user_id uuid,p_expected_version integer,p_modes jsonb,p_reason text)\nreturns jsonb language plpgsql security definer\nset search_path = ''\nas $$\ndeclare v_version integer;\nbegin\n perform app_private.assert_game_owner_v1(p_actor_user_id);\n if p_modes is null or jsonb_typeof(p_modes) <> 'object' or p_reason is null or char_length(btrim(p_reason)) not between 1 and 240 then\n  raise exception 'INVALID_TIMING_POLICY';\n end if;\n if exists(select 1 from jsonb_each_text(p_modes) entry where entry.key not in ('damage', 'healing', 'mp-recovery', 'mp-drain', 'create-terrain', 'ground-area', 'displace', 'push', 'pull', 'poison', 'burn', 'bleed', 'barrier-change', 'return-to-turn-start', 'remove-status', 'copy-statuses', 'copy', 'sensory', 'summon', 'guarded', 'lowered-guard', 'exposed', 'covert', 'revealed', 'wet', 'frozen', 'conductive', 'inspired', 'hexed', 'invisible', 'summoned', 'airborne', 'blindside', 'displaced', 'haste', 'hastened', 'delayed', 'borrowed-hour', 'regeneration', 'slow', 'root', 'reckless', 'fortified', 'challenged', 'marked', 'mark', 'warded', 'suppress') or entry.value is null or entry.value not in ('instant','next-round','delayed','controlled') or (entry.value = 'controlled' and entry.key in ('summon','ground-area','copy','regeneration','hastened','delayed','borrowed-hour','summoned','marked'))) then\n  raise exception 'INVALID_TIMING_POLICY';\n end if;\n perform pg_advisory_xact_lock(hashtextextended('combat-effect-timing-policy',0));\n select max(version) into v_version from app_private.combat_effect_timing_policy_versions;\n if p_expected_version is null or v_version <> p_expected_version then raise exception 'TIMING_POLICY_VERSION_CONFLICT'; end if;\n insert into app_private.combat_effect_timing_policy_versions(version,modes,published_by,reason) values (v_version+1,p_modes,p_actor_user_id,btrim(p_reason));\n return jsonb_build_object('version',v_version+1,'modes',p_modes);\nend;\n$$;\n\nrevoke all on function public.publish_combat_effect_timing_policy_v1(uuid,integer,jsonb,text) from public, anon, authenticated;\ngrant execute on function public.publish_combat_effect_timing_policy_v1(uuid,integer,jsonb,text) to service_role;\ncommit;\n"
+    },
+    {
+      "file": "20261015073458_remove_combat_timing_reason.sql",
+      "version": "20261015073458",
+      "name": "remove_combat_timing_reason",
+      "sha256": "1f389b6f380ed2e0c72a35fa0dd8304e3586d0a1b3fbbacd490d089c488b3507",
+      "query": "-- Remove entered/generated reasons for timing saves; retain prior rows and attributed version CAS.\nbegin;\nalter table app_private.combat_effect_timing_policy_versions alter column reason drop not null;\ncreate or replace function public.publish_combat_effect_timing_policy_v1(p_actor_user_id uuid,p_expected_version integer,p_modes jsonb,p_reason text default null)\nreturns jsonb language plpgsql security definer\nset search_path = ''\nas $$\ndeclare v_version integer;\nbegin\n perform app_private.assert_game_owner_v1(p_actor_user_id);\n if p_modes is null or jsonb_typeof(p_modes) <> 'object' then\n  raise exception 'INVALID_TIMING_POLICY';\n end if;\n if exists(select 1 from jsonb_each_text(p_modes) entry where entry.key not in ('damage', 'healing', 'mp-recovery', 'mp-drain', 'create-terrain', 'ground-area', 'displace', 'push', 'pull', 'poison', 'burn', 'bleed', 'barrier-change', 'return-to-turn-start', 'remove-status', 'copy-statuses', 'copy', 'sensory', 'summon', 'guarded', 'lowered-guard', 'exposed', 'covert', 'revealed', 'wet', 'frozen', 'conductive', 'inspired', 'hexed', 'invisible', 'summoned', 'airborne', 'blindside', 'displaced', 'haste', 'hastened', 'delayed', 'borrowed-hour', 'regeneration', 'slow', 'root', 'reckless', 'fortified', 'challenged', 'marked', 'mark', 'warded', 'suppress') or entry.value is null or entry.value not in ('instant','next-round','delayed','controlled') or (entry.value = 'controlled' and entry.key in ('summon','ground-area','copy','regeneration','hastened','delayed','borrowed-hour','summoned','marked'))) then\n  raise exception 'INVALID_TIMING_POLICY';\n end if;\n perform pg_advisory_xact_lock(hashtextextended('combat-effect-timing-policy',0));\n select max(version) into v_version from app_private.combat_effect_timing_policy_versions;\n if p_expected_version is null or v_version <> p_expected_version then raise exception 'TIMING_POLICY_VERSION_CONFLICT'; end if;\n insert into app_private.combat_effect_timing_policy_versions(version,modes,published_by,reason) values (v_version+1,p_modes,p_actor_user_id,null);\n return jsonb_build_object('version',v_version+1,'modes',p_modes);\nend;\n$$;\n\nrevoke all on function public.publish_combat_effect_timing_policy_v1(uuid,integer,jsonb,text) from public, anon, authenticated;\ngrant execute on function public.publish_combat_effect_timing_policy_v1(uuid,integer,jsonb,text) to service_role;\ncommit;\n"
+    },
+    {
+      "file": "20261015095150_typed_combat_authoring_kinds.sql",
+      "version": "20261015095150",
+      "name": "typed_combat_authoring_kinds",
+      "sha256": "50e17b2913111a32f6017230a2ba3b25434b2c56675c08a351fb9560ea166917",
+      "query": "begin;\n\n-- Tables already admit these kinds. Amend only the existing RPC guards and\n-- Essence version stamping, preserving deployed authorization, locks and ACLs.\n-- An unrecognized predecessor fails atomically instead of replacing its body.\ndo $migration$\ndeclare\n  v_signature text;\n  v_definition text;\n  v_old_guard text := $old$if p_content_kind not in ('skill','status','effect-profile') then$old$;\n  v_new_guard text := $new$if p_content_kind is null or p_content_kind not in ('skill','essence','resonance','status','effect-profile') then$new$;\n  v_publish_lock text := $lock$  perform pg_advisory_xact_lock(hashtextextended('combat-publish:' || p_content_key, 0));$lock$;\n  v_version_assignment text := $version$  v_versioned_definition := jsonb_set(p_definition, '{contentVersion}', to_jsonb(v_next_version), true);$version$;\nbegin\n  foreach v_signature in array array[\n    'public.save_combat_content_draft_v1(uuid,text,text,jsonb,integer,bigint)',\n    'public.publish_combat_content_v1(uuid,text,text,jsonb,integer)',\n    'public.set_combat_content_publication_v1(uuid,text,text,integer)'\n  ] loop\n    v_definition := pg_get_functiondef(v_signature::regprocedure);\n    if strpos(v_definition, v_old_guard) > 0 then\n      v_definition := replace(v_definition, v_old_guard, v_new_guard);\n    elsif strpos(v_definition, v_new_guard) = 0 then\n      raise exception 'COMBAT_CONTENT_KIND_MIGRATION_PREDECESSOR_CONFLICT: %', v_signature;\n    end if;\n\n    if v_signature = 'public.publish_combat_content_v1(uuid,text,text,jsonb,integer)' then\n      if strpos(v_definition, '-- Typed Essence/Resonance identity.') = 0 then\n        if strpos(v_definition, v_publish_lock) = 0 then\n          raise exception 'COMBAT_CONTENT_KIND_MIGRATION_PREDECESSOR_CONFLICT: publication lock';\n        end if;\n        v_definition := replace(v_definition, v_publish_lock, $identity$\n  -- Typed Essence/Resonance identity. Drafts may still be incomplete.\n  if p_content_kind = 'essence' and (\n    jsonb_typeof(p_definition -> 'essenceId') is distinct from 'string'\n    or p_definition ->> 'essenceId' is distinct from p_content_key\n    or jsonb_typeof(p_definition -> 'skill') is distinct from 'object'\n    or jsonb_typeof(p_definition -> 'skill' -> 'id') is distinct from 'string'\n    or p_definition -> 'skill' ->> 'id' is distinct from p_content_key\n  ) then\n    raise exception using errcode = '22023', message = 'COMBAT_CONTENT_IDENTITY_MISMATCH';\n  end if;\n  if p_content_kind = 'resonance' and (\n    jsonb_typeof(p_definition -> 'id') is distinct from 'string'\n    or p_definition ->> 'id' is distinct from p_content_key\n  ) then\n    raise exception using errcode = '22023', message = 'COMBAT_CONTENT_IDENTITY_MISMATCH';\n  end if;\n$identity$ || v_publish_lock);\n      end if;\n      if strpos(v_definition, '-- Version the complete Essence envelope.') = 0 then\n        if strpos(v_definition, v_version_assignment) = 0 then\n          raise exception 'COMBAT_CONTENT_KIND_MIGRATION_PREDECESSOR_CONFLICT: version assignment';\n        end if;\n        v_definition := replace(v_definition, v_version_assignment, v_version_assignment || $nested$\n  -- Version the complete Essence envelope. Historical rows remain immutable.\n  if p_content_kind = 'essence' then\n    v_versioned_definition := jsonb_set(v_versioned_definition, '{skill,contentVersion}', to_jsonb(v_next_version), true);\n  end if;\n$nested$);\n      end if;\n    end if;\n    execute v_definition;\n  end loop;\nend;\n$migration$;\n\ncommit;\n"
+    },
+    {
+      "file": "20261015100834_combat_content_catalogue_snapshot.sql",
+      "version": "20261015100834",
+      "name": "combat_content_catalogue_snapshot",
+      "sha256": "6ad8a57b96de77e71ef4f136a67b03c036a34baa9cd05efb659cb8e8c73930c0",
+      "query": "begin;\n\n-- One MVCC snapshot of all current DB overrides and their timing policy. Private\n-- definitions stay service-only. Drafts and unselected historical versions are\n-- deliberately excluded; publication timestamps detect pointer ABA changes.\ncreate or replace function public.read_combat_content_catalogue_v1()\nreturns jsonb\nlanguage sql\nstable\nsecurity definer\nset search_path = pg_catalog, public, app_private\nas $$\n  with current_records as (\n    select version.id, version.content_key, version.content_kind,\n      version.content_version, version.definition, version.published_by,\n      version.published_at, publication.updated_at as publication_updated_at\n    from app_private.combat_content_publications publication\n    join app_private.combat_content_versions version\n      on version.id = publication.version_id\n      and version.content_key = publication.content_key\n      and version.content_kind = publication.content_kind\n  ), records as (\n    select\n      coalesce(jsonb_agg(to_jsonb(record) - 'publication_updated_at' order by record.content_key collate \"C\"), '[]'::jsonb) as publications,\n      coalesce(jsonb_agg(to_jsonb(record) order by record.content_key collate \"C\"), '[]'::jsonb) as token_records\n    from current_records record\n  ), policy as (\n    select jsonb_build_object('version', version, 'modes', modes) as definition\n    from app_private.combat_effect_timing_policy_versions\n    order by version desc limit 1\n  )\n  select jsonb_build_object(\n    'token', md5(jsonb_build_object('policy', policy.definition, 'publications', records.token_records)::text),\n    'policy', policy.definition,\n    'publications', records.publications\n  ) from records cross join policy;\n$$;\n\nrevoke all on function public.read_combat_content_catalogue_v1() from public, anon, authenticated;\ngrant execute on function public.read_combat_content_catalogue_v1() to service_role;\ncomment on function public.read_combat_content_catalogue_v1() is\n  'Server-private coherent current catalogue/policy read; token is a comparison value, not authorization.';\n\ncommit;\n"
+    },
+    {
+      "file": "20261015103321_combat_catalogue_publication_guard.sql",
+      "version": "20261015103321",
+      "name": "combat_catalogue_publication_guard",
+      "sha256": "2ca82298f7fb8aa1b45b99c634f2f30514572cf82acf1867455521f682114846",
+      "query": "-- Trusted server compiles the complete prospective catalogue before these service-only writes.\n-- Every current publication/policy choice uses the same lock and validated snapshot token.\n-- Existing v1 bodies remain private implementation helpers, with their original checks/locks/CAS.\nbegin;\n\ncreate or replace function app_private.lock_combat_content_catalogue_v1(p_expected_token text)\nreturns void language plpgsql security definer\nset search_path = ''\nas $$\ndeclare v_current_token text;\nbegin\n  if p_expected_token is null or p_expected_token !~ '^[0-9a-f]{32}$' then\n    raise exception using errcode = '40001', message = 'COMBAT_CONTENT_CATALOGUE_CONFLICT';\n  end if;\n  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended('combat-catalogue-publication', 0));\n  select public.read_combat_content_catalogue_v1() ->> 'token' into v_current_token;\n  if v_current_token is distinct from p_expected_token then\n    raise exception using errcode = '40001', message = 'COMBAT_CONTENT_CATALOGUE_CONFLICT';\n  end if;\nend;\n$$;\n\ncreate or replace function public.publish_combat_content_v2(\n  p_actor_user_id uuid, p_content_key text, p_content_kind text, p_definition jsonb,\n  p_expected_base_version integer, p_expected_catalogue_token text\n)\nreturns table (\n  id uuid, content_key text, content_kind text, content_version integer,\n  definition jsonb, published_by uuid, published_at timestamptz\n)\nlanguage plpgsql security definer\nset search_path = ''\nas $$\nbegin\n  perform app_private.assert_master_panel_operator_v1(p_actor_user_id);\n  perform app_private.lock_combat_content_catalogue_v1(p_expected_catalogue_token);\n  return query select * from public.publish_combat_content_v1(\n    p_actor_user_id, p_content_key, p_content_kind, p_definition, p_expected_base_version\n  );\nend;\n$$;\n\ncreate or replace function public.set_combat_content_publication_v2(\n  p_actor_user_id uuid, p_content_key text, p_content_kind text,\n  p_target_version integer, p_expected_catalogue_token text\n)\nreturns void language plpgsql security definer\nset search_path = ''\nas $$\nbegin\n  perform app_private.assert_master_panel_operator_v1(p_actor_user_id);\n  perform app_private.lock_combat_content_catalogue_v1(p_expected_catalogue_token);\n  perform public.set_combat_content_publication_v1(\n    p_actor_user_id, p_content_key, p_content_kind, p_target_version\n  );\nend;\n$$;\n\ncreate or replace function public.publish_combat_effect_timing_policy_v2(\n  p_actor_user_id uuid, p_expected_version integer, p_modes jsonb,\n  p_expected_catalogue_token text\n)\nreturns jsonb language plpgsql security definer\nset search_path = ''\nas $$\nbegin\n  perform app_private.assert_game_owner_v1(p_actor_user_id);\n  perform app_private.lock_combat_content_catalogue_v1(p_expected_catalogue_token);\n  return public.publish_combat_effect_timing_policy_v1(\n    p_actor_user_id, p_expected_version, p_modes, null\n  );\nend;\n$$;\n\n-- The trusted server must not retain a service-callable writer bypassing catalogue validation.\nrevoke all on function app_private.lock_combat_content_catalogue_v1(text)\n  from public, anon, authenticated, service_role;\nrevoke all on function public.publish_combat_content_v1(uuid,text,text,jsonb,integer)\n  from public, anon, authenticated, service_role;\nrevoke all on function public.set_combat_content_publication_v1(uuid,text,text,integer)\n  from public, anon, authenticated, service_role;\nrevoke all on function public.publish_combat_effect_timing_policy_v1(uuid,integer,jsonb,text)\n  from public, anon, authenticated, service_role;\nrevoke all on function public.publish_combat_content_v2(uuid,text,text,jsonb,integer,text)\n  from public, anon, authenticated;\nrevoke all on function public.set_combat_content_publication_v2(uuid,text,text,integer,text)\n  from public, anon, authenticated;\nrevoke all on function public.publish_combat_effect_timing_policy_v2(uuid,integer,jsonb,text)\n  from public, anon, authenticated;\ngrant execute on function public.publish_combat_content_v2(uuid,text,text,jsonb,integer,text) to service_role;\ngrant execute on function public.set_combat_content_publication_v2(uuid,text,text,integer,text) to service_role;\ngrant execute on function public.publish_combat_effect_timing_policy_v2(uuid,integer,jsonb,text) to service_role;\n\ncommit;\n"
+    },
+    {
+      "file": "20261015191634_combat_content_version_floor.sql",
+      "version": "20261015191634",
+      "name": "combat_content_version_floor",
+      "sha256": "e9b1356bff1166ed2524a5aae913ad6f1a902cb7ecdb20cfc1f965e2cd9efff3",
+      "query": "-- Shipped versions and Owner publications share an immutable identity namespace.\n-- Keep selected-pointer CAS separate from the trusted server's shipped-history floor.\nbegin;\n\ndo $migration$\ndeclare\n  v_definition text;\n  v_old_assignment text := 'v_next_version := greatest(v_highest_version, coalesce(p_expected_base_version, 0)) + 1;';\n  v_new_assignment text := 'v_next_version := greatest(v_highest_version, coalesce(p_expected_base_version, 0), coalesce(p_version_floor, 0)) + 1;';\nbegin\n  v_definition := pg_get_functiondef('public.publish_combat_content_v1(uuid,text,text,jsonb,integer)'::regprocedure);\n  if strpos(v_definition, v_old_assignment) = 0\n    or strpos(v_definition, 'p_expected_base_version integer)') = 0\n    or strpos(v_definition, '-- Typed Essence/Resonance identity.') = 0 then\n    raise exception 'COMBAT_CONTENT_VERSION_FLOOR_PREDECESSOR_CONFLICT';\n  end if;\n  v_definition := replace(v_definition, 'public.publish_combat_content_v1(', 'app_private.publish_combat_content_with_floor_v1(');\n  v_definition := replace(v_definition, 'p_expected_base_version integer)', 'p_expected_base_version integer, p_version_floor integer)');\n  v_definition := replace(v_definition, v_old_assignment, v_new_assignment);\n  execute v_definition;\nend;\n$migration$;\n\nalter function app_private.publish_combat_content_with_floor_v1(uuid,text,text,jsonb,integer,integer)\n  set search_path = '';\n\ncreate or replace function public.publish_combat_content_v3(\n  p_actor_user_id uuid, p_content_key text, p_content_kind text, p_definition jsonb,\n  p_expected_base_version integer, p_expected_catalogue_token text, p_version_floor integer\n)\nreturns table (\n  id uuid, content_key text, content_kind text, content_version integer,\n  definition jsonb, published_by uuid, published_at timestamptz\n)\nlanguage plpgsql security definer\nset search_path = ''\nas $$\nbegin\n  perform app_private.assert_master_panel_operator_v1(p_actor_user_id);\n  if p_version_floor is not null and p_version_floor < 1 then\n    raise exception using errcode = '22023', message = 'COMBAT_CONTENT_VERSION_FLOOR_INVALID';\n  end if;\n  perform app_private.lock_combat_content_catalogue_v1(p_expected_catalogue_token);\n  return query select * from app_private.publish_combat_content_with_floor_v1(\n    p_actor_user_id, p_content_key, p_content_kind, p_definition,\n    p_expected_base_version, p_version_floor\n  );\nend;\n$$;\n\nrevoke all on function app_private.publish_combat_content_with_floor_v1(uuid,text,text,jsonb,integer,integer)\n  from public, anon, authenticated, service_role;\nrevoke all on function public.publish_combat_content_v2(uuid,text,text,jsonb,integer,text)\n  from public, anon, authenticated, service_role;\nrevoke all on function public.publish_combat_content_v3(uuid,text,text,jsonb,integer,text,integer)\n  from public, anon, authenticated;\ngrant execute on function public.publish_combat_content_v3(uuid,text,text,jsonb,integer,text,integer)\n  to service_role;\n\ncommit;\n"
+    }
+  ],
+  "expectedFunctions": [
+    {
+      "namespace": "app_private",
+      "name": "lock_combat_content_catalogue_v1",
+      "source_md5": "3d0f06e4c7b4f99d9281832e1a46f6dd",
+      "arguments": "text",
+      "security_definer": true,
+      "config": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "service_execute": false
+    },
+    {
+      "namespace": "app_private",
+      "name": "publish_combat_content_with_floor_v1",
+      "source_md5": "db16598520a8761d09a068fabc7d7846",
+      "arguments": "uuid, text, text, jsonb, integer, integer",
+      "security_definer": true,
+      "config": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "service_execute": false
+    },
+    {
+      "namespace": "public",
+      "name": "publish_combat_content_v1",
+      "source_md5": "7267d5f12c1efc7adfad2b760c1a43d2",
+      "arguments": "uuid, text, text, jsonb, integer",
+      "security_definer": true,
+      "config": [
+        "search_path=pg_catalog, public, app_private"
+      ],
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "service_execute": false
+    },
+    {
+      "namespace": "public",
+      "name": "publish_combat_content_v2",
+      "source_md5": "2a3fd92cec760d063897acfcddfb42ed",
+      "arguments": "uuid, text, text, jsonb, integer, text",
+      "security_definer": true,
+      "config": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "service_execute": false
+    },
+    {
+      "namespace": "public",
+      "name": "publish_combat_content_v3",
+      "source_md5": "24081faeea6e5c134b5efadedb2466dc",
+      "arguments": "uuid, text, text, jsonb, integer, text, integer",
+      "security_definer": true,
+      "config": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "service_execute": true
+    },
+    {
+      "namespace": "public",
+      "name": "publish_combat_effect_timing_policy_v1",
+      "source_md5": "db2c7ac08f71ef8ca932859be77ae35d",
+      "arguments": "uuid, integer, jsonb, text",
+      "security_definer": true,
+      "config": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "service_execute": false
+    },
+    {
+      "namespace": "public",
+      "name": "publish_combat_effect_timing_policy_v2",
+      "source_md5": "4d9d723b040622b910f5691995fa0469",
+      "arguments": "uuid, integer, jsonb, text",
+      "security_definer": true,
+      "config": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "service_execute": true
+    },
+    {
+      "namespace": "public",
+      "name": "read_combat_content_catalogue_v1",
+      "source_md5": "13d5ddffcc527360676f2259a46e86d0",
+      "arguments": "",
+      "security_definer": true,
+      "config": [
+        "search_path=pg_catalog, public, app_private"
+      ],
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "service_execute": true
+    },
+    {
+      "namespace": "public",
+      "name": "set_combat_content_publication_v1",
+      "source_md5": "8377c87ad3b87868155cd80d640ead0b",
+      "arguments": "uuid, text, text, integer",
+      "security_definer": true,
+      "config": [
+        "search_path=pg_catalog, public, app_private"
+      ],
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "service_execute": false
+    },
+    {
+      "namespace": "public",
+      "name": "set_combat_content_publication_v2",
+      "source_md5": "1cbdb706857311a04b9e6977a48703ae",
+      "arguments": "uuid, text, text, integer, text",
+      "security_definer": true,
+      "config": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "service_execute": true
+    }
+  ],
+  "instructions": "Reconstruct prefix + compact cohort JSON + suffix from the immutable manifest; require the exact publication hash before execution. Bind only fresh real Owner and coherent catalogue tokens after every release gate passes. Never change a migration history row before actual DDL application. Readback and probe are verification; probe always rolls back. No production action is implied by this checkpoint.",
+  "payloadConstruction": "JSON.stringify(manifest.records.filter(r => r.kind !== 'basic').map(r => ({kind:r.kind,id:r.id,beforeVersion:r.beforeVersion,versionFloor:r.beforeVersion,after:r.after})))"
+}
