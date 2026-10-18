@@ -70,7 +70,8 @@ async function fit(page: Page, label: string, testInfo: TestInfo) {
         overflowY: getComputedStyle(list).overflowY,
       })),
       clipped: controls.filter(
-        ({ rect }) => rect.bottom > viewportBottom + 1 || rect.left < -1 || rect.right > innerWidth + 1,
+        ({ rect }) =>
+          rect.bottom > viewportBottom + 1 || rect.left < -1 || rect.right > innerWidth + 1,
       ),
       overflow: getComputedStyle(document.documentElement).overflowY,
     }
