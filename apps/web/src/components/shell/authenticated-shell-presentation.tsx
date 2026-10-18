@@ -132,7 +132,6 @@ export function AuthenticatedShellPresentation({
         <main className={styles.main} id="game-main" tabIndex={-1}>
           {children}
         </main>
-
       </div>
     </div>
   )
