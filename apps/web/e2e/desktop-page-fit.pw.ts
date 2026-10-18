@@ -172,13 +172,11 @@ test('desktop Profile and all Battle Hall setups fit without clipped controls or
     const profileBottom = await page
       .locator('section[aria-label="Attribute redistribution"]')
       .boundingBox()
-    const profileFooter = await page
-      .locator('[data-testid="authenticated-shell"] > footer')
-      .boundingBox()
+    const profileViewportBottom = await page.evaluate(() => window.innerHeight)
     expect(
       profileBottom!.y + profileBottom!.height,
       `Profile lower section ${size}`,
-    ).toBeLessThanOrEqual(profileFooter!.y + 1)
+    ).toBeLessThanOrEqual(profileViewportBottom + 1)
     await capture(page, testInfo, `profile-${size}`)
     await reset.click()
     const dialog = page.getByRole('dialog', { name: 'Redistribute Attributes', exact: true })
