@@ -1493,7 +1493,11 @@ test('ambient clouds, water and wildlife remain alive with bounded effects and c
   await page.getByRole('checkbox', { name: 'Ambient animation', exact: true }).uncheck()
   await page.getByRole('button', { name: 'Done', exact: true }).click()
   await expect(canvas).toHaveAttribute('data-clouds', '0')
-  await page.waitForTimeout(300)
+  // The renderer publishes water-cell counts every 60 frames; wait for its
+  // paused sample rather than reading the previous animated frame.
+  await expect
+    .poll(async () => canvas.getAttribute('data-water-cells'), { timeout: 5000 })
+    .toBe('0')
   const ambientState = {
     clouds: await canvas.getAttribute('data-clouds'),
     cloudPhase: await canvas.getAttribute('data-cloud-phase'),
