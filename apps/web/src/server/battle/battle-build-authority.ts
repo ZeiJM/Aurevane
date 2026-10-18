@@ -1,3 +1,7 @@
+import {
+  captureBasicSkillSources,
+  type BasicSkillId,
+} from '@aurevane/game-core/combat/combat-basic-actions'
 import 'server-only'
 import { PRONOUN_PRESETS, type PronounPresetId } from '@aurevane/game-core/character/creation'
 import type { CharacterRecord } from '@aurevane/db/character'
@@ -751,17 +755,43 @@ export async function captureBattleBuildAbilitySources(
   state: CombatEncounterState,
   authority: BattleBuildAuthoritySnapshot,
   resolver?: CombatContentResolver,
+  practiceGuard = false,
 ): Promise<readonly CapturedCombatAbilitySource[]> {
+  const ids = new Set<BasicSkillId>(['basic.move', 'unarmed.basic'])
+  for (const build of authority.combatants) ids.add(build.supportActionId ?? 'basic.guard')
+  if (practiceGuard) ids.add('basic.guard')
+  // One current Basic read for the entire admission, shared by both PvP owners.
+  // No resolver capability means historical admission keeps its native Basics.
+  const basics = resolver?.resolveCurrentBasicSkillDefinitions?.([...ids]) ?? Promise.resolve(null)
   const captured = await Promise.all(
     authority.combatants.map(async (build) => {
       const sources: CapturedCombatAbilitySource[] = []
       // Independent immutable reads share one bounded wave rather than adding
       // per-Skill/owner round trips to the map and standard PvP entry paths.
-      const [regular, essence, resonance] = await Promise.all([
+      const [regular, essence, resonance, definitions] = await Promise.all([
         resolveBattleDisciplineSkillDefinitions(authority, build.combatantId, resolver),
         resolvePinnedBattleEssenceDefinition(authority, build.combatantId, resolver),
         resolvePinnedBattleResonanceDefinition(authority, build.combatantId, resolver),
+        basics,
       ])
+      if (definitions) {
+        const support = build.supportActionId ?? 'basic.guard'
+        const selected = captureBasicSkillSources({
+          ownerCombatantId: build.combatantId,
+          supportActionId: support,
+          definitions: [...definitions.values()],
+        })
+        sources.push(...selected)
+        if (practiceGuard && support !== 'basic.guard') {
+          // Existing Guided Fundamentals Guard control is an exercise action, not a new equipped slot.
+          const guard = captureBasicSkillSources({
+            ownerCombatantId: build.combatantId,
+            supportActionId: 'basic.guard',
+            definitions: [...definitions.values()],
+          })[2]!
+          sources.push(guard)
+        }
+      }
       if (!regular) throw new TypeError('Pinned battle Skill definition is unavailable.')
       for (const definition of regular) {
         const source = capturedMatureSkillAbilitySource(state, definition, build.combatantId)

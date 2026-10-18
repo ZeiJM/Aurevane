@@ -1,5 +1,7 @@
 'use client'
 
+import { BattleEffectPopover } from './battle-effect-information'
+
 import type { CharacterPortraitRef } from '@aurevane/game-core/character/creation'
 import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
@@ -9,7 +11,7 @@ import { getStarterPortraitImageAssetId } from '@/media/character'
 import type { PvpBattleMetadata, PvpBattleParticipantView } from '@/server/battle/pvp-lobby-service'
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
 
-import { statusLabel, statusIsBeneficial, statusDurationLabel } from './battle-effect-summary'
+import { statusIsBeneficial } from './battle-effect-summary'
 import { terrainAdjustedBattleProfile } from '../../lib/battle/battle-elevation-stats'
 import styles from './pvp-desktop-parity.module.css'
 
@@ -190,19 +192,19 @@ function BattleRailCard({
           <span className={styles.noStatus}>No effects</span>
         ) : (
           statuses.map((status) => {
-            const label = statusLabel(status.statusId, status)
             const beneficial = statusIsBeneficial(status.statusId, status)
             return (
-              <button
-                type="button"
+              <BattleEffectPopover
                 key={`${status.statusId}:${status.sourceCombatantId}`}
+                effect={status}
                 className={beneficial ? styles.buff : styles.debuff}
-                title={`${label}${status.stacks > 1 ? ` ×${status.stacks}` : ''}`}
-                aria-label={`${label}, ${status.stacks} stack${status.stacks === 1 ? '' : 's'}, ${statusDurationLabel(status)}`}
-              >
-                {beneficial ? '+' : '!'}
-                {status.stacks > 1 ? status.stacks : null}
-              </button>
+                trigger={
+                  <>
+                    {beneficial ? '+' : '!'}
+                    {status.stacks > 1 ? status.stacks : null}
+                  </>
+                }
+              />
             )
           })
         )}

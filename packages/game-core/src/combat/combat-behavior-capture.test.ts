@@ -1,5 +1,11 @@
 import { validateCombatAbilityState } from './combat-ability-state'
-import { reconcileCombatAbilitySources } from './combat-behavior-runtime'
+import {
+  reconcileCombatAbilitySources,
+  activateCombatAbility,
+  combatAbilityCommandContext,
+} from './combat-behavior-runtime'
+import { PV1F_COMBAT_CONTENT, preparePv1fTurnEconomy } from './pv1f-action-economy'
+import { captureBasicSkillSources, defaultBasicSkills } from './combat-basic-actions'
 import { percentageDotEncounter } from './combat-percentage-dots.test-utils'
 import { describe, expect, it } from 'vitest'
 import { captureCombatAbilitySource } from './combat-behavior-capture'
@@ -181,4 +187,79 @@ it('maintenance restore matches the exact active captured Ongoing contribution',
       abilityRuntime: { ...state.abilityRuntime!, activeSourceIds: [] },
     }).length,
   ).toBeGreaterThan(0)
+})
+
+it('reconciliation accepts reordered JSON object keys but rejects changed costs and tag order', () => {
+  const captured = captureCombatAbilitySource({ ...source(), tags: ['attack', 'damage'] })
+  const state = reconcileCombatAbilitySources(preparePv1fTurnEconomy(percentageDotEncounter()), [
+    captured,
+  ])
+  const reordered = JSON.parse(
+    JSON.stringify(captured, (_key, value) =>
+      value && typeof value === 'object' && !Array.isArray(value)
+        ? Object.fromEntries(Object.entries(value).reverse())
+        : value,
+    ),
+  )
+  expect(reconcileCombatAbilitySources(state, [reordered]).capturedAbilitySources).toEqual([
+    captured,
+  ])
+  expect(
+    activateCombatAbility({
+      state,
+      actorId: 'actor',
+      source: reordered,
+      selection: { kind: 'unit', combatantId: 'enemy' },
+      content: PV1F_COMBAT_CONTENT,
+      context: combatAbilityCommandContext(state, reordered),
+    }).events.some((event) => event.event === 'combat_action_used'),
+  ).toBe(true)
+  const changed = captureCombatAbilitySource({
+    ...reordered,
+    definition: {
+      ...reordered.definition,
+      behaviors: reordered.definition.behaviors.map(
+        (behavior: (typeof captured.definition.behaviors)[number]) => ({
+          ...behavior,
+          costs: [{ resource: 'ap', amount: 1 }],
+        }),
+      ),
+    },
+  })
+  expect(() => reconcileCombatAbilitySources(state, [changed])).toThrow(
+    'captured-source-cannot-change-in-place',
+  )
+  expect(() =>
+    reconcileCombatAbilitySources(state, [{ ...reordered, tags: [...reordered.tags].reverse() }]),
+  ).toThrow('captured-source-cannot-change-in-place')
+})
+
+it('Basic capture compares duplicated Ability objects independently of JSON key order', () => {
+  const captured = captureBasicSkillSources({
+    ownerCombatantId: 'actor',
+    supportActionId: 'basic.guard',
+    definitions: defaultBasicSkills(),
+  })[0]!
+  const definition = JSON.parse(
+    JSON.stringify(captured.definition, (_key, value) =>
+      value && typeof value === 'object' && !Array.isArray(value)
+        ? Object.fromEntries(Object.entries(value).reverse())
+        : value,
+    ),
+  )
+  expect(captureCombatAbilitySource({ ...captured, definition })).toEqual(captured)
+  expect(() =>
+    captureCombatAbilitySource({
+      ...captured,
+      definition: {
+        ...definition,
+        behaviors: definition.behaviors.map(
+          (behavior: (typeof captured.definition.behaviors)[number]) => ({
+            ...behavior,
+            costs: [{ resource: 'ap', amount: 21 }],
+          }),
+        ),
+      },
+    }),
+  ).toThrow('invalid-captured-basic-definition')
 })

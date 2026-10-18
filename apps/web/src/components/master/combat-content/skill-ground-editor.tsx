@@ -1,5 +1,8 @@
 'use client'
 import type { CombatTargetSpec } from '@aurevane/game-core/combat/actions'
+import type { AbilityBehavior } from '@aurevane/game-core/combat/combat-definition'
+import { canonicalAbilityTargetSpec } from '@aurevane/game-core/combat/combat-targeting-shapes'
+import { nativeCombatTagPayload } from '@aurevane/game-core/combat/combat-tag-registry'
 import type {
   MatureSkillDefinition,
   MatureSkillEffectDefinition,
@@ -44,17 +47,26 @@ export function SkillGroundEditor({
   onChange: (value: CombatGroundAreaDefinition | undefined) => void
 }) {
   const available = groundAreaForEffects(effects, value)
-  if (target.kind !== 'ground-tile' || !available) return null
+  const canEnable = target.kind === 'ground-tile' && Boolean(available)
+  if (!canEnable && !value) return null
   return (
     <fieldset className={styles.typedGroup}>
       <legend>Persistent ground effect</legend>
+      {!canEnable ? (
+        <p role="alert">
+          Ground areas need Ground targeting and a supported unit effect. Disable this area or
+          restore its target and effects.
+        </p>
+      ) : null}
       <label className={styles.field}>
         <span>Apply effects when units enter the affected tiles</span>
         <input
           type="checkbox"
           aria-label="Persistent ground effect"
           checked={Boolean(value)}
-          onChange={(event) => onChange(event.currentTarget.checked ? available : undefined)}
+          onChange={(event) =>
+            onChange(event.currentTarget.checked && canEnable ? available : undefined)
+          }
         />
       </label>
       {value ? (
@@ -147,6 +159,76 @@ export function SkillGroundEditor({
         </>
       ) : null}
     </fieldset>
+  )
+}
+
+/** Canonical groups reuse the native controls; only the stable-ID/ordinal boundary differs. */
+export function AbilityGroundEditor({
+  value,
+  onChange,
+}: {
+  value: AbilityBehavior
+  onChange: (value: AbilityBehavior) => void
+}) {
+  if (!value.targeting || value.mode !== 'action') {
+    if (!value.groundArea) return null
+    return (
+      <fieldset className={styles.typedGroup}>
+        <legend>Persistent ground effect</legend>
+        <p role="alert">
+          Ground areas need action targeting. Disable this area or restore its action target.
+        </p>
+        <button
+          type="button"
+          onClick={() => {
+            const next = { ...value }
+            delete next.groundArea
+            onChange(next)
+          }}
+        >
+          Disable persistent ground effect
+        </button>
+      </fieldset>
+    )
+  }
+  const target = canonicalAbilityTargetSpec(value.targeting)
+  if (target.kind !== 'ground-tile' && !value.groundArea) return null
+  const entries = value.effects.filter(
+    (effect) => !['move', 'summon', 'damage-bonus', 'pierce'].includes(effect.payload.type),
+  )
+  const effects = entries.map((effect) => nativeCombatTagPayload(effect.payload))
+  const area = value.groundArea
+  return (
+    <SkillGroundEditor
+      target={target}
+      effects={effects}
+      value={
+        area
+          ? {
+              durationRounds: area.durationRounds,
+              visualPresetId: area.visualPresetId,
+              ...(area.timing ? { timing: area.timing } : {}),
+              entryEffectOrdinals: area.entryEffectIds.map((id) =>
+                entries.findIndex((effect) => effect.id === id),
+              ),
+            }
+          : undefined
+      }
+      onChange={(ground) => {
+        const next = { ...value }
+        if (ground)
+          next.groundArea = {
+            durationRounds: ground.durationRounds,
+            visualPresetId: ground.visualPresetId,
+            ...(ground.timing ? { timing: ground.timing } : {}),
+            entryEffectIds: ground.entryEffectOrdinals.flatMap((ordinal) =>
+              entries[ordinal] ? [entries[ordinal]!.id] : [],
+            ),
+          }
+        else delete next.groundArea
+        onChange(next)
+      }}
+    />
   )
 }
 

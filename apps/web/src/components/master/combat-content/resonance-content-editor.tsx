@@ -1,6 +1,7 @@
 'use client'
 
 import type { AnyResonanceDefinition } from '@aurevane/game-core/combat/resonance'
+import { latestEnabledMatureSkills } from '@aurevane/game-core/combat/mature-skills'
 import {
   isResonanceDefinitionV2,
   normalizedResonanceMechanics,
@@ -13,25 +14,44 @@ import { BattleFlavorTemplateHelp } from './battle-flavor-template-help'
 import { postCombatContentAuthoring } from './combat-content-client'
 import { CombatContentReviewPanel } from './combat-content-review-panel'
 import {
+  AbilityPreviewSelector,
+  previewActionSelection,
+  ModifierPreviewRootSelector,
+  type ModifierPreviewRoot,
+} from './ability-preview-selector'
+import {
+  DEFAULT_COMBAT_CONTENT_EVENT_SAMPLE,
   emptyCombatContentReview,
   invalidateCombatContentReview,
   nextCombatContentVersion,
   projectPublishedVersionHistory,
   projectRollbackVersionHistory,
   type CombatContentReviewState,
+  type CombatContentPreviewSummary,
   type CombatContentSemanticDiff,
   type CombatContentValidationResult,
   type CombatContentVersionHistoryEntry,
 } from './combat-content-workflow'
+import { AbilityDefinitionEditor } from './ability-definition-editor'
+import { validateAbilityDefinition } from '@aurevane/game-core/combat/combat-definition'
 import { SkillEffectListEditor } from './skill-effect-list-editor'
 import { SkillMediaEditor } from './skill-media-editor'
 import { ResonanceParameters } from '../../character/resonance-parameters'
+
+const historicalReferenceSkills = latestEnabledMatureSkills().filter(
+  (skill) => !Object.hasOwn(skill, 'ability'),
+)
+interface HistoricalPreviewReferences {
+  readonly setupSkillId: string
+  readonly triggerSkillId: string
+}
 
 export interface ResonanceContentEditorOption {
   readonly id: string
   readonly label: string
   readonly disciplinePair: readonly [string, string]
   readonly currentVersion: number
+  readonly versionFloor?: number | null
   readonly baseVersion: number | null
   readonly draftVersion: number | null
   readonly definition: AnyResonanceDefinition
@@ -103,6 +123,11 @@ export function ResonanceContentEditor({
     ),
   )
   const [reviews, setReviews] = useState<Record<string, CombatContentReviewState>>({})
+  const [previewGroups, setPreviewGroups] = useState<Record<string, string>>({})
+  const [historicalReferences, setHistoricalReferences] = useState<
+    Record<string, HistoricalPreviewReferences>
+  >({})
+  const [previewRoots, setPreviewRoots] = useState<Record<string, ModifierPreviewRoot>>({})
   const [histories, setHistories] = useState<
     Record<string, readonly CombatContentVersionHistoryEntry[]>
   >(() => Object.fromEntries(resonances.map((resonance) => [resonance.id, resonance.history])))
@@ -125,9 +150,141 @@ export function ResonanceContentEditor({
   const selectedCurrentVersion =
     selectedHistory.find((entry) => entry.current)?.contentVersion ?? selected?.currentVersion ?? 1
   const selectedNextVersion = selected
-    ? nextCombatContentVersion(selectedCurrentVersion, selectedHistory)
+    ? nextCombatContentVersion(selectedCurrentVersion, selectedHistory, selected.versionFloor)
     : 1
   const busy = selected ? busyId === selected.id : false
+  const actionSelection = previewActionSelection(
+    selectedDraft,
+    selected ? previewGroups[selected.id] : undefined,
+  )
+
+  const previewSelection =
+    selectedDraft?.enabled === false
+      ? {
+          ...actionSelection,
+          available: false,
+          message: 'Enable this Resonance draft to simulate its Manual actions.',
+        }
+      : actionSelection
+  const historicalMechanics =
+    selectedDraft && !Object.hasOwn(selectedDraft, 'ability')
+      ? normalizedResonanceMechanics(selectedDraft)
+      : null
+  const historicalRoot = (selected ? historicalReferences[selected.id] : undefined) ?? {
+    setupSkillId: '',
+    triggerSkillId: '',
+  }
+  const previewAvailable = historicalMechanics
+    ? selectedDraft?.enabled === true &&
+      !!historicalRoot.triggerSkillId &&
+      (historicalMechanics.mode === 'immediate' || !!historicalRoot.setupSkillId)
+    : previewSelection.available
+  function selectHistoricalReference(key: keyof HistoricalPreviewReferences, value: string) {
+    if (!selected || !historicalMechanics) return
+    const id = selected.id
+    draftRevision.current[id] = (draftRevision.current[id] ?? 0) + 1
+    setHistoricalReferences((current) => ({
+      ...current,
+      [id]: { ...(current[id] ?? { setupSkillId: '', triggerSkillId: '' }), [key]: value },
+    }))
+    setReviews((current) => ({
+      ...current,
+      [id]: { ...(current[id] ?? emptyCombatContentReview()), preview: null },
+    }))
+    setErrors((current) => ({ ...current, [id]: null }))
+    setPublishConfirmationId(null)
+    setRollbackTarget(null)
+  }
+  const manualPreviewRequired =
+    selectedDraft?.enabled === true &&
+    previewSelection.canonical &&
+    previewSelection.groups.some(
+      (group) => group.activation === 'manual' && group.mode === 'action',
+    )
+
+  const modifierPreview =
+    previewSelection.groups.find((group) => group.id === previewSelection.behaviorId)?.mode ===
+    'modifier'
+  const automaticPreview =
+    previewSelection.groups.find((group) => group.id === previewSelection.behaviorId)
+      ?.activation === 'automatic'
+  const referencePreview = modifierPreview || automaticPreview
+  const previewRoot = (selected ? previewRoots[selected.id] : undefined) ?? {
+    skillId: 'unarmed.basic',
+  }
+  function selectPreviewRoot(next: ModifierPreviewRoot) {
+    if (!selected || !previewSelection.behaviorId || busy) return
+    selectPreviewGroup(previewSelection.behaviorId)
+    setPreviewRoots((current) => ({ ...current, [selected.id]: next }))
+  }
+  function selectPreviewGroup(behaviorId: string) {
+    if (!selected || busy || !previewSelection.groups.some((group) => group.id === behaviorId))
+      return
+    const id = selected.id
+    draftRevision.current[id] = (draftRevision.current[id] ?? 0) + 1
+    setPreviewGroups((current) => ({ ...current, [id]: behaviorId }))
+    setReviews((current) => ({
+      ...current,
+      [id]: { ...(current[id] ?? emptyCombatContentReview()), preview: null },
+    }))
+    setErrors((current) => ({ ...current, [id]: null }))
+    setPublishConfirmationId(null)
+  }
+
+  async function previewSelected() {
+    if (
+      !selected ||
+      !selectedDraft ||
+      (!previewSelection.canonical && !historicalMechanics) ||
+      !previewAvailable ||
+      selectedReview.validation?.valid !== true ||
+      selectedReview.diff === null
+    )
+      return
+    const id = selected.id
+    const revision = draftRevision.current[id] ?? 0
+    setBusyId(id)
+    setErrors((current) => ({ ...current, [id]: null }))
+    try {
+      const response = await postCombatContentAuthoring<{ preview: CombatContentPreviewSummary }>({
+        operation: 'preview',
+        ...(historicalMechanics
+          ? {
+              previewRootSkillId: historicalRoot.triggerSkillId,
+              ...(historicalMechanics.mode === 'sequence'
+                ? { previewSetupSkillId: historicalRoot.setupSkillId }
+                : {}),
+            }
+          : {}),
+        ...(referencePreview
+          ? {
+              previewRootSkillId: previewRoot.skillId,
+              ...(automaticPreview
+                ? { eventSample: previewRoot.eventSample ?? DEFAULT_COMBAT_CONTENT_EVENT_SAMPLE }
+                : {}),
+              ...(previewRoot.behaviorId ? { previewRootBehaviorId: previewRoot.behaviorId } : {}),
+            }
+          : {}),
+        contentKind: 'resonance',
+        definition: selectedDraft,
+        ...(previewSelection.canonical ? { behaviorId: previewSelection.behaviorId } : {}),
+      })
+      if ((draftRevision.current[id] ?? 0) !== revision) return
+      setReviews((current) => ({
+        ...current,
+        [id]: {
+          validation: current[id]?.validation ?? selectedReview.validation,
+          diff: current[id]?.diff ?? selectedReview.diff,
+          preview: response.preview,
+        },
+      }))
+    } catch (error) {
+      if ((draftRevision.current[id] ?? 0) === revision)
+        setErrors((current) => ({ ...current, [id]: messageFrom(error) }))
+    } finally {
+      setBusyId((current) => (current === id ? null : current))
+    }
+  }
 
   function updateDraft(next: AnyResonanceDefinition) {
     if (!selected) return
@@ -202,7 +359,11 @@ export function ResonanceContentEditor({
     if (
       selectedReview.validation?.valid !== true ||
       selectedReview.diff === null ||
-      selectedReview.diff.changedPaths.length === 0
+      selectedReview.diff.changedPaths.length === 0 ||
+      (manualPreviewRequired &&
+        (!previewSelection.available ||
+          selectedReview.preview === null ||
+          selectedReview.preview.behaviorId !== previewSelection.behaviorId))
     ) {
       return
     }
@@ -274,9 +435,9 @@ export function ResonanceContentEditor({
 
   const draft = selectedDraft
   const pair = draft.disciplinePair
-  const mechanics = normalizedResonanceMechanics(draft)
-  const setup = mechanics.setup
-  const triggerMatcher = mechanics.trigger
+  const mechanics = Object.hasOwn(draft, 'ability') ? null : normalizedResonanceMechanics(draft)
+  const setup = mechanics?.setup ?? null
+  const triggerMatcher = mechanics?.trigger
   const v2 = isResonanceDefinitionV2(draft)
 
   function updateSetup(nextSetup: typeof setup) {
@@ -294,7 +455,7 @@ export function ResonanceContentEditor({
     })
   }
 
-  function updateTriggerMatcher(nextTrigger: typeof triggerMatcher) {
+  function updateTriggerMatcher(nextTrigger: NonNullable<typeof triggerMatcher>) {
     if (isResonanceDefinitionV2(draft)) {
       updateDraft({
         ...draft,
@@ -438,7 +599,15 @@ export function ResonanceContentEditor({
           <div className={styles.authoringStack}>
             <section className={styles.reviewBlock} aria-label="Resonance Skill preview">
               <h3>Skill preview</h3>
-              <ResonanceParameters definition={selectedDraft} className={styles.resonancePreview} />
+              {!Object.hasOwn(selectedDraft, 'ability') ||
+              validateAbilityDefinition(selectedDraft.ability).length === 0 ? (
+                <ResonanceParameters
+                  definition={selectedDraft}
+                  className={styles.resonancePreview}
+                />
+              ) : (
+                <p role="status">Resolve Ability compatibility to show the player preview.</p>
+              )}
             </section>
             <fieldset className={styles.typedGroup}>
               <legend>Identity &amp; presentation</legend>
@@ -473,197 +642,212 @@ export function ResonanceContentEditor({
               </div>
             </fieldset>
 
-            <fieldset className={styles.typedGroup}>
-              <legend>Resonance mode</legend>
-              <div className={styles.typedGrid}>
-                <label className={styles.field}>
-                  <span>Mode</span>
-                  <select
-                    aria-label="Resonance mode"
-                    disabled={!v2}
-                    value={mechanics.mode}
-                    onChange={(event) => {
-                      if (!isResonanceDefinitionV2(draft)) return
-                      const mode = event.currentTarget.value as 'sequence' | 'immediate'
-                      const defaultSetup = {
-                        sourceDisciplineId:
-                          pair.find(
-                            (disciplineId) => disciplineId !== triggerMatcher.sourceDisciplineId,
-                          ) ?? pair[0],
-                        requiredTags: ['attack'],
-                      }
-                      updateDraft({
-                        ...draft,
-                        trigger: {
-                          ...draft.trigger,
-                          mode,
-                          setup: mode === 'immediate' ? null : (setup ?? defaultSetup),
-                          aiSetupUtilityBonus:
-                            mode === 'immediate'
-                              ? 0
-                              : Math.max(1, draft.trigger.aiSetupUtilityBonus || 10),
-                        },
-                      })
-                    }}
-                  >
-                    <option value="sequence">Sequence · Setup → Trigger → Result</option>
-                    <option value="immediate">Immediate · Trigger → Result</option>
-                  </select>
-                  {!v2 ? (
-                    <small className={styles.fieldHint}>
-                      Historical schema v1 is preserved as a sequence Resonance.
-                    </small>
-                  ) : null}
-                </label>
-              </div>
-            </fieldset>
-
-            {setup ? (
-              <fieldset className={styles.typedGroup}>
-                <legend>Setup</legend>
-                <div className={styles.typedGrid}>
-                  <label className={styles.field}>
-                    <span>Setup Discipline</span>
-                    <select
-                      aria-label="Resonance Setup Discipline"
-                      value={setup.sourceDisciplineId}
-                      onChange={(event) =>
-                        updateSetup({
-                          ...setup,
-                          sourceDisciplineId: event.currentTarget.value,
-                        })
-                      }
-                    >
-                      {pair.map((disciplineId) => (
-                        <option key={disciplineId} value={disciplineId}>
-                          {titleIdentity(disciplineId)}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className={styles.field}>
-                    <span>Skill matching</span>
-                    <select
-                      aria-label="Resonance Setup matching"
-                      value={setup.matchMode ?? 'required-tags'}
-                      onChange={(event) =>
-                        updateSetup(
-                          event.currentTarget.value === 'any-skill'
-                            ? { ...setup, matchMode: 'any-skill', requiredTags: [] }
-                            : {
-                                ...setup,
-                                matchMode: undefined,
-                                requiredTags: setup.requiredTags.length
-                                  ? setup.requiredTags
-                                  : ['attack'],
-                              },
-                        )
-                      }
-                    >
-                      <option value="required-tags">Require Skill tags</option>
-                      <option value="any-skill">Any Skill in this Discipline</option>
-                    </select>
-                  </label>
-                  <label className={styles.field}>
-                    <span>Required tags</span>
-                    <input
-                      aria-label="Resonance Setup tags"
-                      disabled={setup.matchMode === 'any-skill'}
-                      value={setup.requiredTags.join(', ')}
-                      onChange={(event) =>
-                        updateSetup({
-                          ...setup,
-                          requiredTags: tagsFromInput(event.currentTarget.value).slice(0, 2),
-                        })
-                      }
-                    />
-                    <small className={styles.fieldHint}>
-                      {setup.matchMode === 'any-skill'
-                        ? 'Every Skill in the Setup Discipline qualifies.'
-                        : 'One or two comma-separated canonical Skill tags.'}
-                    </small>
-                  </label>
-                  <label className={styles.field}>
-                    <span>AI setup utility</span>
-                    <input
-                      aria-label="Resonance AI setup utility"
-                      min={0}
-                      type="number"
-                      value={selectedDraft.trigger.aiSetupUtilityBonus}
-                      onChange={(event) => updateSetupUtility(Number(event.currentTarget.value))}
-                    />
-                  </label>
-                </div>
-              </fieldset>
-            ) : (
-              <fieldset className={styles.typedGroup}>
-                <legend>Setup</legend>
-                <p className={styles.effectNote}>
-                  None. This Resonance activates immediately when its Trigger matches, so its Result
-                  is intentionally lighter than a comparable sequence Resonance.
-                </p>
-              </fieldset>
-            )}
-
-            <fieldset className={styles.typedGroup}>
-              <legend>Trigger</legend>
-              <div className={styles.typedGrid}>
-                <label className={styles.field}>
-                  <span>Trigger Discipline</span>
-                  <select
-                    aria-label="Resonance Trigger Discipline"
-                    value={triggerMatcher.sourceDisciplineId}
-                    onChange={(event) =>
-                      updateTriggerMatcher({
-                        ...triggerMatcher,
-                        sourceDisciplineId: event.currentTarget.value,
-                      })
-                    }
-                  >
-                    {pair.map((disciplineId) => (
-                      <option key={disciplineId} value={disciplineId}>
-                        {titleIdentity(disciplineId)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className={styles.field}>
-                  <span>Required tags</span>
-                  <input
-                    aria-label="Resonance Trigger tags"
-                    value={triggerMatcher.requiredTags.join(', ')}
-                    onChange={(event) =>
-                      updateTriggerMatcher({
-                        ...triggerMatcher,
-                        requiredTags: tagsFromInput(event.currentTarget.value).slice(0, 2),
-                      })
-                    }
-                  />
-                  <small className={styles.fieldHint}>
-                    One or two comma-separated canonical Skill tags.
-                  </small>
-                </label>
-                <label className={styles.field}>
-                  <span>AI trigger utility</span>
-                  <input
-                    aria-label="Resonance AI trigger utility"
-                    min={0}
-                    type="number"
-                    value={mechanics.aiTriggerUtilityBonus}
-                    onChange={(event) => updateTriggerUtility(Number(event.currentTarget.value))}
-                  />
-                </label>
-              </div>
-            </fieldset>
-
-            <fieldset className={styles.typedGroup}>
-              <legend>Result</legend>
-              <SkillEffectListEditor
-                value={mechanics.resultEffects}
-                maxEffects={2}
-                onChange={(resultEffects) => updateResultEffects(resultEffects)}
+            {Object.hasOwn(draft, 'ability') ? (
+              <AbilityDefinitionEditor
+                value={draft.ability!}
+                allowEffectDescriptions={false}
+                onChange={(ability) => updateDraft({ ...draft, ability })}
               />
-            </fieldset>
+            ) : mechanics && triggerMatcher ? (
+              <>
+                <fieldset className={styles.typedGroup}>
+                  <legend>Resonance mode</legend>
+                  <div className={styles.typedGrid}>
+                    <label className={styles.field}>
+                      <span>Mode</span>
+                      <select
+                        aria-label="Resonance mode"
+                        disabled={!v2}
+                        value={mechanics.mode}
+                        onChange={(event) => {
+                          if (!isResonanceDefinitionV2(draft)) return
+                          const mode = event.currentTarget.value as 'sequence' | 'immediate'
+                          const defaultSetup = {
+                            sourceDisciplineId:
+                              pair.find(
+                                (disciplineId) =>
+                                  disciplineId !== triggerMatcher.sourceDisciplineId,
+                              ) ?? pair[0],
+                            requiredTags: ['attack'],
+                          }
+                          updateDraft({
+                            ...draft,
+                            trigger: {
+                              ...draft.trigger,
+                              mode,
+                              setup: mode === 'immediate' ? null : (setup ?? defaultSetup),
+                              aiSetupUtilityBonus:
+                                mode === 'immediate'
+                                  ? 0
+                                  : Math.max(1, draft.trigger.aiSetupUtilityBonus || 10),
+                            },
+                          })
+                        }}
+                      >
+                        <option value="sequence">Sequence · Setup → Trigger → Result</option>
+                        <option value="immediate">Immediate · Trigger → Result</option>
+                      </select>
+                      {!v2 ? (
+                        <small className={styles.fieldHint}>
+                          Historical schema v1 is preserved as a sequence Resonance.
+                        </small>
+                      ) : null}
+                    </label>
+                  </div>
+                </fieldset>
+
+                {setup ? (
+                  <fieldset className={styles.typedGroup}>
+                    <legend>Setup</legend>
+                    <div className={styles.typedGrid}>
+                      <label className={styles.field}>
+                        <span>Setup Discipline</span>
+                        <select
+                          aria-label="Resonance Setup Discipline"
+                          value={setup.sourceDisciplineId}
+                          onChange={(event) =>
+                            updateSetup({
+                              ...setup,
+                              sourceDisciplineId: event.currentTarget.value,
+                            })
+                          }
+                        >
+                          {pair.map((disciplineId) => (
+                            <option key={disciplineId} value={disciplineId}>
+                              {titleIdentity(disciplineId)}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className={styles.field}>
+                        <span>Skill matching</span>
+                        <select
+                          aria-label="Resonance Setup matching"
+                          value={setup.matchMode ?? 'required-tags'}
+                          onChange={(event) =>
+                            updateSetup(
+                              event.currentTarget.value === 'any-skill'
+                                ? { ...setup, matchMode: 'any-skill', requiredTags: [] }
+                                : {
+                                    ...setup,
+                                    matchMode: undefined,
+                                    requiredTags: setup.requiredTags.length
+                                      ? setup.requiredTags
+                                      : ['attack'],
+                                  },
+                            )
+                          }
+                        >
+                          <option value="required-tags">Require Skill tags</option>
+                          <option value="any-skill">Any Skill in this Discipline</option>
+                        </select>
+                      </label>
+                      <label className={styles.field}>
+                        <span>Required tags</span>
+                        <input
+                          aria-label="Resonance Setup tags"
+                          disabled={setup.matchMode === 'any-skill'}
+                          value={setup.requiredTags.join(', ')}
+                          onChange={(event) =>
+                            updateSetup({
+                              ...setup,
+                              requiredTags: tagsFromInput(event.currentTarget.value).slice(0, 2),
+                            })
+                          }
+                        />
+                        <small className={styles.fieldHint}>
+                          {setup.matchMode === 'any-skill'
+                            ? 'Every Skill in the Setup Discipline qualifies.'
+                            : 'One or two comma-separated canonical Skill tags.'}
+                        </small>
+                      </label>
+                      <label className={styles.field}>
+                        <span>AI setup utility</span>
+                        <input
+                          aria-label="Resonance AI setup utility"
+                          min={0}
+                          type="number"
+                          value={selectedDraft.trigger.aiSetupUtilityBonus}
+                          onChange={(event) =>
+                            updateSetupUtility(Number(event.currentTarget.value))
+                          }
+                        />
+                      </label>
+                    </div>
+                  </fieldset>
+                ) : (
+                  <fieldset className={styles.typedGroup}>
+                    <legend>Setup</legend>
+                    <p className={styles.effectNote}>
+                      None. This Resonance activates immediately when its Trigger matches, so its
+                      Result is intentionally lighter than a comparable sequence Resonance.
+                    </p>
+                  </fieldset>
+                )}
+
+                <fieldset className={styles.typedGroup}>
+                  <legend>Trigger</legend>
+                  <div className={styles.typedGrid}>
+                    <label className={styles.field}>
+                      <span>Trigger Discipline</span>
+                      <select
+                        aria-label="Resonance Trigger Discipline"
+                        value={triggerMatcher.sourceDisciplineId}
+                        onChange={(event) =>
+                          updateTriggerMatcher({
+                            ...triggerMatcher,
+                            sourceDisciplineId: event.currentTarget.value,
+                          })
+                        }
+                      >
+                        {pair.map((disciplineId) => (
+                          <option key={disciplineId} value={disciplineId}>
+                            {titleIdentity(disciplineId)}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className={styles.field}>
+                      <span>Required tags</span>
+                      <input
+                        aria-label="Resonance Trigger tags"
+                        value={triggerMatcher.requiredTags.join(', ')}
+                        onChange={(event) =>
+                          updateTriggerMatcher({
+                            ...triggerMatcher,
+                            requiredTags: tagsFromInput(event.currentTarget.value).slice(0, 2),
+                          })
+                        }
+                      />
+                      <small className={styles.fieldHint}>
+                        One or two comma-separated canonical Skill tags.
+                      </small>
+                    </label>
+                    <label className={styles.field}>
+                      <span>AI trigger utility</span>
+                      <input
+                        aria-label="Resonance AI trigger utility"
+                        min={0}
+                        type="number"
+                        value={mechanics.aiTriggerUtilityBonus}
+                        onChange={(event) =>
+                          updateTriggerUtility(Number(event.currentTarget.value))
+                        }
+                      />
+                    </label>
+                  </div>
+                </fieldset>
+
+                <fieldset className={styles.typedGroup}>
+                  <legend>Result</legend>
+                  <SkillEffectListEditor
+                    value={mechanics.resultEffects}
+                    maxEffects={2}
+                    onChange={(resultEffects) => updateResultEffects(resultEffects)}
+                  />
+                </fieldset>
+              </>
+            ) : null}
             <SkillMediaEditor
               value={selectedDraft.media}
               onChange={(media) => updateDraft({ ...selectedDraft, media })}
@@ -677,8 +861,70 @@ export function ResonanceContentEditor({
           nextVersion={selectedNextVersion}
           validation={selectedReview.validation}
           diff={selectedReview.diff}
-          preview={null}
-          previewRequired={false}
+          preview={selectedReview.preview}
+          previewRequired={manualPreviewRequired}
+          previewOptional={
+            !!historicalMechanics || (referencePreview && previewSelection.available)
+          }
+          requireLegalPreview={false}
+          previewAvailable={previewAvailable}
+          previewSelectionControl={
+            <>
+              {historicalMechanics ? (
+                <div aria-label="Historical sample references">
+                  <h3>Historical sample references</h3>
+                  {(historicalMechanics.mode === 'sequence'
+                    ? (['setupSkillId', 'triggerSkillId'] as const)
+                    : (['triggerSkillId'] as const)
+                  ).map((key) => (
+                    <label className={styles.field} key={key}>
+                      <span>
+                        {key === 'setupSkillId' ? 'Sample setup Skill' : 'Sample trigger Skill'}
+                      </span>
+                      <select
+                        aria-label={
+                          key === 'setupSkillId' ? 'Sample setup Skill' : 'Sample trigger Skill'
+                        }
+                        value={historicalRoot[key]}
+                        disabled={busy || !selectedDraft.enabled}
+                        onChange={(event) =>
+                          selectHistoricalReference(key, event.currentTarget.value)
+                        }
+                      >
+                        <option value="">Choose a Skill</option>
+                        {historicalReferenceSkills.map((skill) => (
+                          <option key={skill.id} value={skill.id}>
+                            {skill.id}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  ))}
+                  <p className={styles.fieldHint}>
+                    Choose reference Skills for a same-turn sample. The server uses their current
+                    versions. Published versions with modular actions are unavailable for historical
+                    samples. A sample is optional for publication.
+                  </p>
+                  {!selectedDraft.enabled ? (
+                    <p role="status">Enable this Resonance draft to run a sample.</p>
+                  ) : null}
+                </div>
+              ) : null}
+              <AbilityPreviewSelector
+                selection={previewSelection}
+                busy={busy}
+                onChange={selectPreviewGroup}
+              />
+              {referencePreview ? (
+                <ModifierPreviewRootSelector
+                  root={previewRoot}
+                  automatic={automaticPreview}
+                  busy={busy}
+                  onChange={selectPreviewRoot}
+                />
+              ) : null}
+            </>
+          }
           history={selectedHistory}
           busy={busy}
           publishConfirmationOpen={publishConfirmationId === selected.id}
@@ -688,7 +934,7 @@ export function ResonanceContentEditor({
           errorMessage={errors[selected.id] ?? null}
           onValidate={() => void validateSelected()}
           onDiff={() => void diffSelected()}
-          onPreview={() => undefined}
+          onPreview={() => void previewSelected()}
           onRequestPublish={() => setPublishConfirmationId(selected.id)}
           onConfirmPublish={() => void publishSelected()}
           onCancelPublish={() => setPublishConfirmationId(null)}

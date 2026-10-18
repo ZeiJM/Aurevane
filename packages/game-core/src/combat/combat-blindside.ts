@@ -6,6 +6,8 @@ export interface BlindsideModifiers {
   readonly rear: number
 }
 
+export const BLINDSIDE_FRONT_MULTIPLIER_BASIS_POINTS = 10000
+
 export const DEFAULT_BLINDSIDE_MODIFIERS: BlindsideModifiers = { side: 16000, rear: 22000 }
 
 export function validateBlindsideModifiers(value: unknown): asserts value is BlindsideModifiers {
@@ -27,7 +29,7 @@ export function blindsideDamageDescription(
   modifiers = DEFAULT_BLINDSIDE_MODIFIERS,
   legacyActivation = false,
 ): string {
-  return `For one owner turn, Skill damage is 100% from the front, ${modifiers.side / 100}% from the side and ${modifiers.rear / 100}% from the rear per application. ${legacyActivation ? 'Activates instantly' : 'Activates instantly only when the granting Skill hits an enemy from the side or rear with a damage modifier above 100%; front hits and misses do not grant or refresh it'}; expires at the end of your turn. Basic Attack is unchanged.`
+  return `For one owner turn, Skill damage is ${BLINDSIDE_FRONT_MULTIPLIER_BASIS_POINTS / 100}% from the front, ${modifiers.side / 100}% from the side and ${modifiers.rear / 100}% from the rear per application. ${legacyActivation ? 'Activates instantly' : 'Activates instantly only when the granting Skill hits an enemy from the side or rear with a damage modifier above 100%; front hits and misses do not grant or refresh it'}; expires at the end of your turn. Basic Attack is unchanged.`
 }
 
 export function blindsideStatusDescription(
@@ -44,5 +46,5 @@ export function blindsideStatusDescription(
   }
   if (profiles.size === 1)
     return blindsideDamageDescription([...profiles.values()][0]!.modifiers, legacyActivation)
-  return `For one owner turn, Skill damage is 100% from the front. Recorded side/rear damage per application: ${[...profiles.values()].map(({ modifiers, stacks }) => `${stacks}× (${modifiers.side / 100}% side, ${modifiers.rear / 100}% rear)`).join('; ')}. ${legacyActivation ? 'Activates instantly' : 'Activates instantly only when the granting Skill hits an enemy from the side or rear with a damage modifier above 100%; front hits and misses do not grant or refresh it'}; expires at the end of your turn. Basic Attack is unchanged.`
+  return `For one owner turn, Skill damage is ${BLINDSIDE_FRONT_MULTIPLIER_BASIS_POINTS / 100}% from the front. Recorded side/rear damage per application: ${[...profiles.values()].map(({ modifiers, stacks }) => `${stacks}× (${modifiers.side / 100}% side, ${modifiers.rear / 100}% rear)`).join('; ')}. ${legacyActivation ? 'Activates instantly' : 'Activates instantly only when the granting Skill hits an enemy from the side or rear with a damage modifier above 100%; front hits and misses do not grant or refresh it'}; expires at the end of your turn. Basic Attack is unchanged.`
 }

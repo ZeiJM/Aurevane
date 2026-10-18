@@ -54,6 +54,21 @@ const combatTargetSelectionSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('activate'), ground: z.literal(true).optional() }).strict(),
   z.object({ kind: z.literal('unit'), combatantId: combatantIdSchema }).strict(),
   z.object({ kind: z.literal('tile'), position: gridPositionSchema }).strict(),
+  z
+    .object({
+      kind: z.literal('selections'),
+      selections: z
+        .array(
+          z.discriminatedUnion('kind', [
+            z.object({ kind: z.literal('self') }).strict(),
+            z.object({ kind: z.literal('unit'), combatantId: combatantIdSchema }).strict(),
+            z.object({ kind: z.literal('tile'), position: gridPositionSchema }).strict(),
+          ]),
+        )
+        .min(1)
+        .max(3),
+    })
+    .strict(),
 ])
 
 export const battleIntentSchema = z.discriminatedUnion('kind', [
@@ -65,6 +80,22 @@ export const battleIntentSchema = z.discriminatedUnion('kind', [
       target: combatTargetSelectionSchema,
       behaviorId: exactReferenceIdSchema.optional(),
       manualModifiers: manualModifiersSchema.optional(),
+      movementPath: z.array(gridPositionSchema).min(2).max(21).optional(),
+    })
+    .strict(),
+  z
+    .object({
+      kind: z.literal('ability-prime'),
+      actionId: z.string().trim().min(1).max(160),
+      behaviorId: exactReferenceIdSchema,
+      manualModifiers: manualModifiersSchema.optional(),
+    })
+    .strict(),
+  z
+    .object({
+      kind: z.literal('ability-cancel-prime'),
+      actionId: z.string().trim().min(1).max(160),
+      behaviorId: exactReferenceIdSchema,
     })
     .strict(),
   z.object({ kind: z.literal('face'), facing: battleFacingSchema }).strict(),
@@ -99,6 +130,7 @@ const battleIntentRequestSchema = z
 const battlePreviewRequestSchema = z
   .object({ expectedBattleVersion: safePositiveInteger, intent: battleIntentSchema })
   .strict()
+  .refine(({ intent }) => intent.kind !== 'ability-prime' && intent.kind !== 'ability-cancel-prime')
 const battleRecruitTurnRequestSchema = z
   .object({ expectedBattleVersion: safePositiveInteger })
   .strict()

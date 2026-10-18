@@ -8,6 +8,7 @@ export interface CombatNativeMutationFacts {
   readonly actionId?: string
   readonly triggeringCombatantId?: string
   readonly selectedCombatantId?: string
+  readonly selectedCombatantIds?: readonly string[]
   readonly affectedCombatantIds: readonly string[]
   readonly prepaid?: true
   readonly actionFacts?: NonNullable<AbilityRequirementContext['event']>['action']
@@ -17,7 +18,10 @@ export interface CombatNativeExecutionHooks {
   readonly commandFacts?: (
     actionId: string,
   ) =>
-    | Pick<CombatNativeMutationFacts, 'actionFacts' | 'selectedCombatantId' | 'rootActionId'>
+    | Pick<
+        CombatNativeMutationFacts,
+        'actionFacts' | 'selectedCombatantId' | 'selectedCombatantIds' | 'rootActionId'
+      >
     | undefined
   readonly observeMutation: (
     before: CombatEncounterState,
@@ -52,7 +56,7 @@ export function observeCombatNativeMutation<Transition extends CombatResolutionT
 
 export type CapturedCombatNativeCommandFacts = Pick<
   CombatNativeMutationFacts,
-  'actionFacts' | 'selectedCombatantId' | 'rootActionId'
+  'actionFacts' | 'selectedCombatantId' | 'selectedCombatantIds' | 'rootActionId'
 >
 /** Present private pending/Ground facts are strict; absent historical captures remain valid. */
 export function validateCombatNativeCommandFacts(value: unknown): void {
@@ -62,12 +66,25 @@ export function validateCombatNativeCommandFacts(value: unknown): void {
   const facts = value as Record<string, unknown>
   if (
     Object.keys(facts).some(
-      (key) => !['rootActionId', 'actionFacts', 'selectedCombatantId'].includes(key),
+      (key) =>
+        !['rootActionId', 'actionFacts', 'selectedCombatantId', 'selectedCombatantIds'].includes(
+          key,
+        ),
     ) ||
     typeof facts.rootActionId !== 'string' ||
     !facts.rootActionId.trim() ||
     (facts.selectedCombatantId !== undefined &&
       (typeof facts.selectedCombatantId !== 'string' || !facts.selectedCombatantId.trim()))
+  )
+    throw new TypeError('invalid-native-command-facts')
+  if (
+    facts.selectedCombatantIds !== undefined &&
+    (!Array.isArray(facts.selectedCombatantIds) ||
+      facts.selectedCombatantIds.length > 3 ||
+      new Set(facts.selectedCombatantIds).size !== facts.selectedCombatantIds.length ||
+      facts.selectedCombatantIds.some(
+        (id) => typeof id !== 'string' || !id.trim() || id.trim() !== id,
+      ))
   )
     throw new TypeError('invalid-native-command-facts')
   const action = facts.actionFacts as Record<string, unknown> | null

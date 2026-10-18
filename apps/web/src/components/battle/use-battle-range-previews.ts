@@ -31,6 +31,11 @@ export function useBattleRangePreviews({
   const targetTeamPolicy = skill?.targetTeamPolicy
   const minimumRange = skill?.minimumRange
   const maximumRange = skill?.maximumRange
+  const behaviorId = skill?.behaviorId
+  const unavailable = skill?.unavailable
+  const move = skill?.move
+  const movementPath = skill?.movementPath
+  const manualModifierKey = JSON.stringify(skill?.manualModifiers)
   const target = skill ? battleSkillTargetSpec(skill) : undefined
   const request = useMemo(() => {
     const descriptor =
@@ -39,7 +44,21 @@ export function useBattleRangePreviews({
       targetTeamPolicy &&
       minimumRange !== undefined &&
       maximumRange !== undefined
-        ? { id, targetKind, targetTeamPolicy, minimumRange, maximumRange, target }
+        ? {
+            id,
+            targetKind,
+            targetTeamPolicy,
+            minimumRange,
+            maximumRange,
+            target,
+            behaviorId,
+            unavailable,
+            move,
+            movementPath,
+            manualModifiers: manualModifierKey
+              ? (JSON.parse(manualModifierKey) as BattleRangePreviewSkill['manualModifiers'])
+              : undefined,
+          }
         : null
     const intents = enabled ? battleRangePreviewIntents(descriptor, actorId, combatants) : []
     return {
@@ -57,6 +76,11 @@ export function useBattleRangePreviews({
     enabled,
     id,
     maximumRange,
+    behaviorId,
+    unavailable,
+    move,
+    movementPath,
+    manualModifierKey,
     minimumRange,
     targetKind,
     targetTeamPolicy,

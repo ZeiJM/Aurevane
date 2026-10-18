@@ -235,3 +235,18 @@ describe('published combat content consumption', () => {
     ).resolves.toBeNull()
   })
 })
+
+it('omits private hit authoring from the actual current player Skill loadout without changing its server definitions', async () => {
+  const input = loadout()
+  const before = JSON.stringify(input)
+  const current = await resolveCurrentCharacterSkillDetails(input, resolver())
+  expect(JSON.stringify(current)).not.toMatch(
+    /accuracyMode|accuracyModifierBasisPoints|accuracyRule/,
+  )
+  expect(current.equippedSkills[0]!.definition).toMatchObject({
+    id: 'vanguard.forceful-strike',
+    apCost: 37,
+  })
+  expect(JSON.stringify(input)).toBe(before)
+  expect(staticSkill('vanguard.forceful-strike')).toHaveProperty('accuracyMode')
+})

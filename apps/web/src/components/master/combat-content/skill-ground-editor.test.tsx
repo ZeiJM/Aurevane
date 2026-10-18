@@ -1,8 +1,11 @@
-import { createElement } from 'react'
+import { readFileSync } from 'node:fs'
+import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
+import type { AbilityBehavior } from '@aurevane/game-core/combat/combat-definition'
+import { createElement, isValidElement, type ComponentProps } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
-import { SkillGroundEditor, groundAreaForEffects } from './skill-ground-editor'
+import { SkillGroundEditor, AbilityGroundEditor, groundAreaForEffects } from './skill-ground-editor'
 
 describe('Master persistent Ground controls', () => {
   it('edits duration, timing and only registered animations', () => {
@@ -53,3 +56,45 @@ describe('Master persistent Ground controls', () => {
     ).toBeUndefined()
   })
 })
+
+const proposed: { id: string; after: MatureSkillDefinition }[] = JSON.parse(
+  readFileSync(
+    new URL(
+      '../../../../../../docs/superpowers/specs/2026-10-10-roster-rebalance-proposals.json',
+      import.meta.url,
+    ),
+    'utf8',
+  ),
+).records
+it.each(['wildwarden.venom-shot', 'cinderweaver.flame-burst', 'frostweaver.chilling-mist'])(
+  '%s edits its actual canonical lifetime/entry order without touching cast-only payloads',
+  (id) => {
+    const definition = proposed.find((row) => row.id === id)!.after
+    const group = definition.ability!.behaviors[0]!
+    const before = JSON.stringify(group)
+    let updated: AbilityBehavior | undefined
+    const editor = AbilityGroundEditor({
+      value: group,
+      onChange: (value) => {
+        updated = value
+      },
+    })
+    if (!isValidElement<ComponentProps<typeof SkillGroundEditor>>(editor))
+      throw new Error('Expected shared Ground editor.')
+    expect(editor.type).toBe(SkillGroundEditor)
+    expect(editor.props.value?.entryEffectOrdinals).toEqual(
+      definition.groundArea!.entryEffectOrdinals,
+    )
+    editor.props.onChange({
+      ...editor.props.value!,
+      durationRounds: 1,
+      entryEffectOrdinals: [...editor.props.value!.entryEffectOrdinals].reverse(),
+    })
+    expect(updated!.groundArea).toMatchObject({
+      durationRounds: 1,
+      entryEffectIds: [...group.groundArea!.entryEffectIds].reverse(),
+    })
+    expect(updated!.effects).toEqual(group.effects)
+    expect(JSON.stringify(group)).toBe(before)
+  },
+)

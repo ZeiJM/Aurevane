@@ -1,3 +1,4 @@
+import { capturedBasicSkillSource } from '@aurevane/game-core/combat/combat-basic-actions'
 import { PV1F_MP_RECOVER_ACTION_ID } from '@aurevane/game-core/combat/pv1f-skills'
 import type { StatDrivenCombatEncounterState } from '@aurevane/game-core/combat/stat-driven-combat'
 import type { BattleIntent } from '@aurevane/validation/combat/battle-session'
@@ -15,6 +16,8 @@ export function battleActionResourceIssue(
 
   const actorId = state.tactical.battle.currentTurn?.combatantId
   if (!actorId) return null
+  // Complete captured Requirements outrank historical identity-based availability.
+  if (capturedBasicSkillSource(state, actorId, intent.actionId)) return null
   const actor = state.tactical.battle.combatants.find((combatant) => combatant.id === actorId)
   if (!actor || actor.mp < actor.maxMp) return null
 

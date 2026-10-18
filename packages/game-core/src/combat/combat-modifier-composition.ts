@@ -1,11 +1,19 @@
 import type { CombatActionDefinition, CombatActionEvaluation } from './actions'
+import { canonicalCombatEffectRecipients } from './combat-targeting-shapes'
+import {
+  combatCanonicalModifierRootFacts,
+  combatNativeModifierRootFacts,
+} from './combat-modifier-compatibility'
 import {
   captureCombatAbilitySource,
   type CapturedCombatAbilitySource,
 } from './combat-behavior-capture'
 import { combatAbilitySubject } from './combat-behavior-runtime'
 import type { AbilityBehavior, AbilityEffect } from './combat-definition'
-import { evaluateAbilityRequirements, type AbilityRequirementContext } from './combat-requirements'
+import {
+  evaluateAbilitySelectedRequirements,
+  type AbilityRequirementContext,
+} from './combat-requirements'
 import { nativeCombatTagPayload } from './combat-tag-registry'
 import {
   aggregateCombatAbilityCosts,
@@ -16,6 +24,10 @@ import {
   type CombatCommandDamageBonus,
 } from './combat-ability-command'
 import { consumeCombatTrigger } from './combat-kernel-types'
+import {
+  resolveCombatManualModifierReferences,
+  combatModifierRootCompatible,
+} from './combat-manual-modifier-references'
 
 export type CombatModifierSuppressionReason =
   | 'participant-budget'
@@ -68,6 +80,13 @@ export function composeCombatModifiers(
 } {
   const root = input.root
   const rootBehavior = rootParticipant.behavior
+  const rootNativeEffects = rootBehavior?.effects.filter(
+    (effect) => !['move', 'summon'].includes(effect.payload.type),
+  )
+  const selectedIds =
+    geometry.selectedCombatantIds ??
+    (geometry.primaryCombatantId ? [geometry.primaryCombatantId] : [])
+  const selectedSubjects = selectedIds.map((id) => combatAbilitySubject(input.state, id))
   const context: AbilityRequirementContext = {
     owner: combatAbilitySubject(input.state, input.actorId),
     selected: combatAbilitySubject(input.state, geometry.primaryCombatantId),
@@ -105,15 +124,17 @@ export function composeCombatModifiers(
       effect.payload.recipient === 'actor'
         ? [input.actorId]
         : effect.payload.recipient === 'primary-unit'
-          ? geometry.primaryCombatantId
-            ? [geometry.primaryCombatantId]
-            : []
+          ? selectedIds
           : input.state.tactical.battle.combatants.map((unit) => unit.id)
     return ids.filter((id) =>
-      evaluateAbilityRequirements(effect.requirements ?? null, {
-        ...effectContext,
-        affected: combatAbilitySubject(input.state, id),
-      }),
+      evaluateAbilitySelectedRequirements(
+        effect.requirements ?? null,
+        {
+          ...effectContext,
+          affected: combatAbilitySubject(input.state, id),
+        },
+        selectedSubjects,
+      ),
     )
   }
   const rootContext: AbilityRequirementContext = {
@@ -133,32 +154,20 @@ export function composeCombatModifiers(
   }
   const eligibility = rootAction.effects.map((_, i) =>
     rootBehavior
-      ? eligible(rootBehavior.effects[i]!, rootContext)
+      ? eligible(rootNativeEffects![i]!, rootContext)
       : rootAction.effectEligibleRecipientIds?.[i],
   )
   const bonuses: CombatCommandDamageBonus[] = []
   function compatible(behavior: AbilityBehavior): boolean {
-    if (
-      context.event!.action!.classification !== 'attack' ||
-      rootAction.groundArea ||
-      !['unit'].includes(rootAction.target.kind)
-    )
-      return false
-    if (
-      behavior.effects.some((effect) => effect.payload.recipient === 'primary-unit') &&
-      !geometry.primaryCombatantId
-    )
-      return false
-    if (
-      behavior.effects.some(
-        (effect) =>
-          !['damage', 'pierce', 'apply-status', 'remove-status', 'damage-bonus'].includes(
-            effect.payload.type,
-          ),
-      )
-    )
-      return false
-    return true
+    const facts =
+      root.kind === 'canonical'
+        ? combatCanonicalModifierRootFacts(rootBehavior!)
+        : combatNativeModifierRootFacts(rootAction.target, root.classification)
+    return combatModifierRootCompatible(behavior, {
+      ...facts,
+      persistentGround: !!rootAction.groundArea,
+      hasPrimaryRecipient: facts.hasPrimaryRecipient && selectedIds.length > 0,
+    })
   }
   function append(
     source: CapturedCombatAbilitySource,
@@ -180,7 +189,9 @@ export function composeCombatModifiers(
           })
         continue
       }
-      effects.push(nativeCombatTagPayload(effect.payload))
+      effects.push(
+        canonicalCombatEffectRecipients(nativeCombatTagPayload(effect.payload), rootAction.target),
+      )
       origins.push({
         sourceInstanceId: source.sourceInstanceId,
         behaviorId: behavior.id,
@@ -194,57 +205,26 @@ export function composeCombatModifiers(
         contentId: source.abilityId,
         contentVersion: source.contentVersion,
       })
+      if (effect.timing === 'controlled') throw new TypeError('controlled-modifier-unsupported')
       timings.push(effect.timing)
       timingTags.push(undefined)
       eligibility.push(recipientIds)
     }
   }
-  const references = input.manualModifiers ?? []
-  if (!Array.isArray(references) || references.length > 15)
-    throw new TypeError('modifier-command-budget')
-  const seen = new Set<string>()
-  const selected = references
-    .map((reference) => {
-      if (
-        !reference ||
-        Object.keys(reference).some((key) => !['sourceInstanceId', 'behaviorId'].includes(key)) ||
-        typeof reference.sourceInstanceId !== 'string' ||
-        !reference.sourceInstanceId ||
-        reference.sourceInstanceId.trim() !== reference.sourceInstanceId ||
-        typeof reference.behaviorId !== 'string' ||
-        !reference.behaviorId ||
-        reference.behaviorId.trim() !== reference.behaviorId
-      )
-        throw new TypeError('invalid-modifier-reference')
-      const key = JSON.stringify([reference.sourceInstanceId, reference.behaviorId])
-      if (seen.has(key)) throw new TypeError('duplicate-modifier-reference')
-      seen.add(key)
-      const captured = input.state.capturedAbilitySources?.find(
-        (row) => row.sourceInstanceId === reference.sourceInstanceId,
-      )
-      if (!captured) throw new TypeError('modifier-source-missing')
-      const source = captureCombatAbilitySource(captured)
-      if (source.ownerCombatantId !== input.actorId)
-        throw new TypeError('modifier-source-owner-mismatch')
-      if (!input.state.abilityRuntime?.activeSourceIds.includes(source.sourceInstanceId))
-        throw new TypeError('modifier-source-inactive')
-      const behavior = source.definition.behaviors.find((row) => row.id === reference.behaviorId)
-      if (!behavior || behavior.activation !== 'manual' || behavior.mode !== 'modifier')
-        throw new TypeError('manual-modifier-behavior-required')
-      if (rootParticipant.activation !== 'manual')
-        throw new TypeError('manual-modifier-root-required')
-      if (!compatible(behavior)) throw new TypeError('modifier-root-incompatible')
-      if (!evaluateAbilityRequirements(behavior.requirements, context))
-        throw new TypeError('modifier-requirement-not-met')
-      return { source, behavior }
-    })
-    .sort(
-      (a, b) =>
-        compare(a.source.sourceInstanceId, b.source.sourceInstanceId) ||
-        compare(a.behavior.id, b.behavior.id),
-    )
+  const selected = resolveCombatManualModifierReferences(
+    input.state,
+    input.actorId,
+    input.manualModifiers,
+  )
+  for (const { behavior } of selected) {
+    if (rootParticipant.activation !== 'manual')
+      throw new TypeError('manual-modifier-root-required')
+    if (!compatible(behavior)) throw new TypeError('modifier-root-incompatible')
+    if (!evaluateAbilitySelectedRequirements(behavior.requirements, context, selectedSubjects))
+      throw new TypeError('modifier-requirement-not-met')
+  }
   for (const { source, behavior } of selected)
-    append(source, behavior, combatAbilityParticipant(source, behavior))
+    append(source, behavior, combatAbilityParticipant(input.state, source, behavior))
   let quotedGuard = input.context.triggerGuard
   if (rootParticipant.activation === 'automatic' && rootParticipant.source && rootBehavior)
     quotedGuard = consumeCombatTrigger(quotedGuard, {
@@ -299,7 +279,7 @@ export function composeCombatModifiers(
       suppress('participant-budget')
       continue
     }
-    if (!evaluateAbilityRequirements(behavior.requirements, context)) {
+    if (!evaluateAbilitySelectedRequirements(behavior.requirements, context, selectedSubjects)) {
       suppress('requirement-not-met')
       continue
     }
@@ -308,6 +288,7 @@ export function composeCombatModifiers(
       continue
     }
     const participant = combatAbilityParticipant(
+      input.state,
       source,
       behavior,
       hookId,

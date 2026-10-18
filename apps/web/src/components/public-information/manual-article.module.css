@@ -407,6 +407,17 @@
   color: #3c473b;
   background: #e0d5bf;
 }
+
+.article [data-compact-effect-label],
+.article [data-compact-effect-magnitude],
+.article [data-compact-effect-detail],
+.article [data-combat-tag-reference-trigger] {
+  color: #3b2100;
+}
+.article [data-compact-effect-duration],
+.article [data-compact-effect-timing] {
+  color: #042e27;
+}
 @media (max-width: 760px) {
   .layout {
     grid-template-columns: minmax(0, 1fr);

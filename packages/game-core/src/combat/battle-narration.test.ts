@@ -4,9 +4,22 @@ import {
   isSkillNarrationVariantValid,
   skillNarrationVariantIssues,
   validateSkillNarrationTemplate,
+  defaultSkillBattleText,
 } from './battle-narration'
 
 describe('skill battle narration contract', () => {
+  it('uses neutral canonical action prose when its legacy summon/effects fields are stale', () => {
+    const value = {
+      ability: { schemaVersion: 1, behaviors: [] },
+      effects: [{ type: 'damage' }],
+      summonProfile: { name: 'Stale companion' },
+      sourceDisciplineId: 'vanguard',
+    }
+    expect(defaultSkillBattleText(value)).toBe('{actor} uses {ability}.')
+    expect(
+      defaultSkillBattleText({ effects: [{ type: 'damage' }], sourceDisciplineId: 'vanguard' }),
+    ).toBe('{actor} channels vanguard power into {ability}.')
+  })
   it('accepts short allow-listed combat narration', () => {
     expect(
       validateSkillNarrationTemplate({

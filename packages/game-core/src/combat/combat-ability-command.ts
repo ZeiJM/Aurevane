@@ -1,3 +1,25 @@
+import {
+  effectiveBasicSkillBehavior,
+  bindBasicSkillAction,
+  isFreeOffensiveBasicMove,
+} from './combat-basic-actions'
+import {
+  combatControlledPrime,
+  isControlledCombatAbility,
+  consumeCombatControlledPrime,
+  assertCombatControlledModifierBundle,
+} from './combat-controlled'
+import { prepareCombatMove, type PreparedCombatMove } from './combat-move-effect'
+import type { GridPosition } from './board'
+import {
+  prepareCanonicalSummon,
+  canonicalSummonForecast,
+  resolveCanonicalSummon,
+  type PreparedCanonicalSummon,
+} from './combat-canonical-summon'
+import { executePreparedCombatWalking } from './combat-walking'
+import { removeDefeatedCombatSummons } from './combat-summons'
+import type { StatDrivenCombatEncounterState } from './stat-driven-combat'
 import { combatAbilityLiveRootIds } from './combat-ability-state'
 import { combatSourceCommandVisibility } from './actions-legacy'
 import { prepareNativePv1fTurn } from './pv1f-turn-preparation'
@@ -9,6 +31,7 @@ import {
   evaluateCombatAction,
   executeCombatAction,
   executeCommittedCombatActorEffects,
+  finishCombatNativeConsequences,
   type CombatActionDefinition,
   type CombatActionEvaluation,
   type CombatEncounterState,
@@ -21,6 +44,7 @@ import {
 } from './actions'
 import {
   captureCombatAbilitySource,
+  sameCapturedCombatAbilitySource,
   type CapturedCombatAbilitySource,
 } from './combat-behavior-capture'
 import {
@@ -34,6 +58,7 @@ import {
 import type { AbilityBehavior } from './combat-definition'
 import {
   evaluateAbilityRequirements,
+  evaluateAbilitySelectedRequirements,
   type AbilityClassification,
   type AbilityAttackFamily,
   type AbilityRequirementSubjectState,
@@ -55,6 +80,7 @@ import {
 } from './combat-modifier-composition'
 import { issueCommittedCombatExecution, committedCombatAction } from './combat-committed-execution'
 import { markPv1fTurnActivity } from './pv1f-turn-activity'
+import { revealedSkillApCost } from './covert-sensory-revealed'
 import { spendAction } from './battle-state'
 import {
   createCombatAbilityEventSession,
@@ -99,6 +125,7 @@ export interface CombatAbilityCommandInput {
   readonly actorId: string
   readonly root: CombatAbilityCommandRoot
   readonly selection: CombatTargetSelection
+  readonly movementPath?: readonly GridPosition[]
   readonly content: CombatContentCatalog
   readonly context: CombatResolutionContext
   readonly trigger?: CombatAbilityActivationInput['trigger']
@@ -126,6 +153,9 @@ interface Participant extends PreparedCombatAbilityParticipant {
   readonly depth?: number
 }
 export interface PreparedCombatAbilityCommand {
+  readonly summon?: PreparedCanonicalSummon
+  readonly returnAnchor?: GridPosition
+  readonly movement?: PreparedCombatMove
   readonly action: CombatActionDefinition
   readonly evaluation: CombatActionEvaluation
   readonly costs: AbilityBehavior['costs']
@@ -156,6 +186,7 @@ export function combatAbilityUsageKey(
   ])
 }
 export function combatAbilityParticipant(
+  state: Pick<CombatEncounterState, 'statusState'>,
   source: CapturedCombatAbilitySource,
   behavior: AbilityBehavior,
   triggerId?: string,
@@ -169,7 +200,11 @@ export function combatAbilityParticipant(
     behaviorId: behavior.id,
     activation: behavior.activation,
     mode: behavior.mode,
-    costs: behavior.costs,
+    costs: behavior.costs.map((cost) =>
+      cost.resource === 'ap' && ['discipline-skill', 'essence'].includes(source.sourceKind)
+        ? { ...cost, amount: revealedSkillApCost(state, source.ownerCombatantId, cost.amount) }
+        : cost,
+    ),
     cooldown: behavior.cooldown,
     source,
     behavior,
@@ -196,6 +231,11 @@ export function combatAbilityParticipantIssues(
   if (!participant.source || !participant.behavior) return issues
   const source = participant.source,
     behavior = participant.behavior
+  if (source.basic?.enabled === false)
+    issues.push({
+      code: 'source-disabled',
+      message: 'Basic Skill is disabled in its captured definition.',
+    })
   if (source.ownerCombatantId !== input.actorId)
     issues.push({
       code: 'source-owner-mismatch',
@@ -204,13 +244,30 @@ export function combatAbilityParticipantIssues(
   const stored = input.state.capturedAbilitySources?.find(
     (row) => row.sourceInstanceId === source.sourceInstanceId,
   )
-  if (stored && JSON.stringify(stored) !== JSON.stringify(source))
+  if (stored && !sameCapturedCombatAbilitySource(stored, source))
     throw new TypeError('captured-source-cannot-change-in-place')
   if (
     input.state.abilityRuntime &&
     !input.state.abilityRuntime.activeSourceIds.includes(source.sourceInstanceId)
   )
     issues.push({ code: 'source-owner-mismatch', message: 'Captured source is inactive.' })
+  if (
+    isFreeOffensiveBasicMove(source, behavior) &&
+    source.definition.behaviors.some(
+      (other) =>
+        isFreeOffensiveBasicMove(source, other) &&
+        input.state.abilityRuntime?.usage.some(
+          (row) =>
+            row.key === combatAbilityUsageKey(input.state, source, other) &&
+            row.ownerCycle === combatTurnCycle(input.state, input.actorId),
+        ),
+    )
+  )
+    issues.push({
+      code: 'activation-limit',
+      message:
+        'A zero-AP offensive Basic Move can commit only once per acting turn across its action groups.',
+    })
   const key = combatAbilityUsageKey(input.state, source, behavior),
     rootActionId = input.trigger?.rootActionId ?? input.context.provenance.triggerChainId
   const usage = input.state.abilityRuntime?.usage.find((row) => row.key === key)
@@ -341,13 +398,22 @@ export function prepareCombatAbilityCommand(
   const root = input.root
   if (root.kind === 'canonical') {
     const source = captureCombatAbilitySource(root.source),
-      behavior = combatAbilityBehavior(source, root.behaviorId)
+      behavior = effectiveBasicSkillBehavior(
+        input.state,
+        source,
+        combatAbilityBehavior(source, root.behaviorId, input.state.effectTimingPolicy),
+      )
     if (behavior.activation === 'automatic' && !input.trigger)
       throw new TypeError('automatic-event-required')
     if (behavior.activation === 'manual' && input.trigger)
       throw new TypeError('manual-trigger-authority-invalid')
-    action = materializeCombatAbilityAction(source, behavior)
+    action = bindBasicSkillAction(
+      input.state,
+      source,
+      materializeCombatAbilityAction(source, behavior),
+    )
     participant = combatAbilityParticipant(
+      input.state,
       source,
       behavior,
       input.trigger?.id,
@@ -366,6 +432,15 @@ export function prepareCombatAbilityCommand(
       cooldown: action.cooldown ?? null,
     }
   }
+  const controlledPrime =
+    participant.source && participant.behavior
+      ? combatControlledPrime(input.state, participant.source, participant.behavior)
+      : undefined
+  if (controlledPrime)
+    assertCombatControlledModifierBundle(input.state, controlledPrime, input.manualModifiers)
+  const returnAnchor = controlledPrime?.returnAnchor
+    ? { ...controlledPrime.returnAnchor }
+    : undefined
   const context: CombatResolutionContext = {
     provenance: createCombatActionProvenance({
       ...input.context.provenance,
@@ -387,24 +462,49 @@ export function prepareCombatAbilityCommand(
   const { cooldown: _cooldown, ...prepaid } = action
   void _cooldown
   action = { ...prepaid, cost: { ...action.cost, mp: 0 } }
+  const moveEffect = participant.behavior?.effects.find((effect) => effect.payload.type === 'move')
+  const movement = moveEffect ? prepareCombatMove(input, moveEffect) : undefined
+  const evaluationState = movement?.projectedState ?? input.state
   const geometry = evaluateCombatAction(
-    input.state,
+    evaluationState,
     action,
     input.selection,
     input.content,
     context.executionAuthority,
+    returnAnchor,
   )
   const composed = composeCombatModifiers(input, action, geometry, participant)
   const participants = [participant, ...composed.participants]
   const costs = aggregateCombatAbilityCosts(participants)
   const evaluation = evaluateCombatAction(
-    input.state,
+    evaluationState,
     composed.action,
     input.selection,
     input.content,
     context.executionAuthority,
+    returnAnchor,
   )
   const issues = [
+    ...(participant.source &&
+    participant.behavior &&
+    isControlledCombatAbility(participant.behavior) &&
+    !controlledPrime
+      ? [
+          {
+            code: 'requirement-not-met' as const,
+            message: 'The selected whole Controlled action must be primed before release.',
+          },
+        ]
+      : []),
+    ...(movement?.issues ?? []),
+    ...(!moveEffect && input.movementPath !== undefined
+      ? [
+          {
+            code: 'invalid-target-kind' as const,
+            message: 'A walking path requires a captured Move effect.',
+          },
+        ]
+      : []),
     ...evaluation.issues,
     ...participants.flatMap((row) => combatAbilityParticipantIssues(input, row)),
     ...combatAbilityCostIssues(input, costs),
@@ -414,9 +514,8 @@ export function prepareCombatAbilityCommand(
       code: 'source-owner-mismatch',
       message: 'Manual command requires the authoritative current owner.',
     })
-  if (
-    participant.behavior &&
-    !evaluateAbilityRequirements(participant.behavior.requirements, {
+  if (participant.behavior) {
+    const requirementsContext = {
       owner: combatAbilitySubject(input.state, input.actorId),
       selected: combatAbilitySubject(input.state, geometry.primaryCombatantId),
       ...(input.trigger?.requirementsContext ?? {}),
@@ -429,9 +528,25 @@ export function prepareCombatAbilityCommand(
             },
           }
         : {}),
-    })
-  )
-    issues.push({ code: 'requirement-not-met', message: 'Root Ability Requirements are not met.' })
+    }
+    // Automatic trigger predicates use the parent's immutable frame; effect gates keep child geometry.
+    const requirementsMet =
+      participant.activation === 'automatic'
+        ? evaluateAbilityRequirements(participant.behavior.requirements, requirementsContext)
+        : evaluateAbilitySelectedRequirements(
+            participant.behavior.requirements,
+            requirementsContext,
+            (
+              geometry.selectedCombatantIds ??
+              (geometry.primaryCombatantId ? [geometry.primaryCombatantId] : [])
+            ).map((id) => combatAbilitySubject(input.state, id)),
+          )
+    if (!requirementsMet)
+      issues.push({
+        code: 'requirement-not-met',
+        message: 'Root Ability Requirements are not met.',
+      })
+  }
   const sequence = input.state.abilityRuntime?.nextCommandSequence ?? 1
   if (
     !Number.isSafeInteger(sequence) ||
@@ -460,12 +575,12 @@ export function prepareCombatAbilityCommand(
     issues.length === 0
       ? evaluateCombatAction(
           {
-            ...input.state,
+            ...evaluationState,
             tactical: {
-              ...input.state.tactical,
+              ...evaluationState.tactical,
               battle: {
-                ...input.state.tactical.battle,
-                combatants: input.state.tactical.battle.combatants.map((unit) => {
+                ...evaluationState.tactical.battle,
+                combatants: evaluationState.tactical.battle.combatants.map((unit) => {
                   if (unit.id !== input.actorId) return unit
                   return {
                     ...unit,
@@ -490,21 +605,40 @@ export function prepareCombatAbilityCommand(
           input.selection,
           input.content,
           context.executionAuthority,
+          returnAnchor,
         )
       : evaluation
+  const summon =
+    issues.length === 0 && participant.source && participant.behavior
+      ? prepareCanonicalSummon(
+          evaluationState,
+          participant.source,
+          participant.behavior,
+          input.selection,
+          action.tags,
+        )
+      : undefined
+  if (summon?.issue) issues.push(summon.issue)
   return {
+    ...(summon ? { summon } : {}),
     action: composed.action,
+    ...(returnAnchor ? { returnAnchor } : {}),
+    ...(movement ? { movement } : {}),
     evaluation: {
       ...forecast,
       mpCost: costs.find((cost) => cost.resource === 'mp')?.amount ?? 0,
       legal: issues.length === 0,
       issues,
+      projectedEffects: [
+        ...forecast.projectedEffects,
+        ...(summon ? canonicalSummonForecast(summon, input.state.tactical.battle.round) : []),
+      ],
     },
     costs,
     participants,
     modifierSuppressions: composed.modifierSuppressions,
     context,
-    requirementSubjects: input.state.tactical.battle.combatants.map((unit) => ({
+    requirementSubjects: evaluationState.tactical.battle.combatants.map((unit) => ({
       combatantId: unit.id,
       subject: combatAbilitySubject(input.state, unit.id)!,
     })),
@@ -523,7 +657,21 @@ export function commitCombatAbilityCommand(
       `${prepared.evaluation.issues[0]?.code}: ${prepared.evaluation.issues[0]?.message}`,
     )
   const paymentEvents: CombatResolutionEvent[] = []
-  let paid = prepareCombatTurnTriggers(input.state)
+  const rootParticipant = prepared.participants[0]!
+  const released =
+    rootParticipant.source && rootParticipant.behavior
+      ? consumeCombatControlledPrime(input.state, rootParticipant.source, rootParticipant.behavior)
+      : input.state
+  let paid = prepareCombatTurnTriggers(
+    released === input.state
+      ? input.state
+      : reconcileCombatAbilitySources(
+          released,
+          (released.capturedAbilitySources ?? []).filter((source) =>
+            released.abilityRuntime!.activeSourceIds.includes(source.sourceInstanceId),
+          ),
+        ),
+  )
   paid = {
     ...paid,
     tactical: {
@@ -677,6 +825,7 @@ export function commitCombatAbilityCommand(
     actionFacts,
     triggeringCombatantId: input.actorId,
     selectedCombatantId: prepared.evaluation.primaryCombatantId ?? undefined,
+    selectedCombatantIds: prepared.evaluation.selectedCombatantIds,
     affectedCombatantIds: prepared.evaluation.affectedCombatantIds,
   }
   const outcomeQueue: CombatAbilityEventFrame[] = []
@@ -712,6 +861,13 @@ export function commitCombatAbilityCommand(
     input.selection,
     context,
     manual,
+    prepared.movement?.eligible
+      ? {
+          path: prepared.movement.path,
+          maximumTiles: prepared.movement.maximumTiles,
+        }
+      : undefined,
+    prepared.returnAnchor,
   )
   const attempt: CombatResolutionEvent = {
     event: 'combat_action_used',
@@ -749,11 +905,16 @@ export function commitCombatAbilityCommand(
     executeAutomatic,
   )
   let live = before.state
+  let summonSettled = false
   const drainOutcomes = (
     native: CombatResolutionTransition,
     nativeGuard: typeof guard,
   ): CombatResolutionTransition => {
     session.guard = nativeGuard
+    if (prepared.summon && !summonSettled) {
+      summonSettled = true
+      native = resolveCanonicalSummon(native, prepared.summon)
+    }
     let state = native.state
     const visibility = combatSourceCommandVisibility(input.state, input.actorId)
     const events = native.events.map((event) =>
@@ -808,6 +969,7 @@ export function commitCombatAbilityCommand(
             rootActionId: facts.rootActionId,
             actionFacts,
             selectedCombatantId: facts.selectedCombatantId,
+            selectedCombatantIds: facts.selectedCombatantIds,
           }
         : undefined,
     prepareIncoming: (state) => prepareNativePv1fTurn(state, true),
@@ -829,10 +991,42 @@ export function commitCombatAbilityCommand(
           (!nativeFacts.prepaid && nativeFacts.actionId === prepared.action.id
             ? facts.selectedCombatantId
             : undefined),
+        selectedCombatantIds:
+          nativeFacts.selectedCombatantIds ??
+          (!nativeFacts.prepaid && nativeFacts.actionId === prepared.action.id
+            ? facts.selectedCombatantIds
+            : undefined),
       })
       outcomeQueue.push(mutation.frame)
       return mutation.state
     },
+  }
+  let walkingEvents: readonly CombatResolutionEvent[] = []
+  if (
+    prepared.movement?.eligible &&
+    live.tactical.battle.lifecycle === 'active' &&
+    live.tactical.battle.currentTurn?.combatantId === input.actorId &&
+    live.tactical.battle.turnNumber === input.state.tactical.battle.turnNumber &&
+    (live.tactical.battle.combatants.find((unit) => unit.id === input.actorId)?.hp ?? 0) > 0
+  ) {
+    const walking = executePreparedCombatWalking(
+      live as StatDrivenCombatEncounterState,
+      prepared.movement.path,
+      input.content,
+      {
+        maximumTiles: prepared.movement.maximumTiles,
+        committed: committedExecution,
+        nativeHooks,
+        actionId: prepared.action.id,
+      },
+    )
+    live = walking.state
+    const visibility = combatSourceCommandVisibility(input.state, input.actorId)
+    walkingEvents = walking.events.map((event) =>
+      visibility && !Object.hasOwn(event, 'sourceCommandVisibility')
+        ? { ...event, sourceCommandVisibility: visibility }
+        : event,
+    )
   }
   const actor = live.tactical.battle.combatants.find((unit) => unit.id === input.actorId)
   const interruption =
@@ -850,6 +1044,7 @@ export function commitCombatAbilityCommand(
                 input.selection,
                 input.content,
                 context.executionAuthority,
+                prepared.returnAnchor,
               ).legal
             ? ('selection-invalid' as const)
             : null
@@ -906,8 +1101,26 @@ export function commitCombatAbilityCommand(
         },
         input.root.kind === 'native' ? input.nativeHitDependentEffects : undefined,
       )
+  const terminal =
+    prepared.movement?.eligible && interruption && interruption !== 'selection-invalid'
+      ? finishCombatNativeConsequences(out.state)
+      : { state: out.state, events: [] }
+  // Nested Automatic commands share their caller's outcome queue. Keep their
+  // defeated recipients available until that whole native command has settled.
+  const cleaned =
+    !input.eventSession && terminal.state.effectState?.summons?.length
+      ? removeDefeatedCombatSummons(terminal.state as StatDrivenCombatEncounterState)
+      : { state: terminal.state, events: [] }
   return {
     ...out,
+    state: cleaned.state.abilityRuntime?.controlled
+      ? reconcileCombatAbilitySources(
+          cleaned.state,
+          (cleaned.state.capturedAbilitySources ?? []).filter((source) =>
+            cleaned.state.abilityRuntime!.activeSourceIds.includes(source.sourceInstanceId),
+          ),
+        )
+      : cleaned.state,
     modifierSuppressions: prepared.modifierSuppressions,
     events: [
       ...paymentEvents.map((event) => ({
@@ -933,7 +1146,10 @@ export function commitCombatAbilityCommand(
           : {}),
       },
       ...before.events,
+      ...walkingEvents,
       ...out.events,
+      ...terminal.events,
+      ...cleaned.events,
     ],
   }
 }

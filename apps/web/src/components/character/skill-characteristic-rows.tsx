@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react'
 import type { SkillCharacteristic } from './basic-action-presentation'
 import styles from './skill-characteristic-rows.module.css'
+import { MechanicTextView } from './mechanic-text-view'
+import type { MechanicTextPart } from './mechanic-text'
 
 function parameterValue(label: string, value: string | readonly string[]) {
   if (label === 'Skill Type' && (value === 'Attack [Physical]' || value === 'Attack [Mystic]')) {
@@ -21,11 +23,13 @@ function parameterValue(label: string, value: string | readonly string[]) {
 export function SkillCharacteristicRows({
   rows,
   effectSummary,
+  requirementParts,
   targetMethodExplanation,
   targetDetails,
 }: {
   rows: readonly SkillCharacteristic[]
   effectSummary?: ReactNode
+  requirementParts?: readonly MechanicTextPart[]
   targetMethodExplanation?: string
   targetDetails?: ReactNode
 }) {
@@ -33,7 +37,16 @@ export function SkillCharacteristicRows({
     <div key={label}>
       <dt>{label}</dt>
       <dd title={label === 'Target Method' ? targetMethodExplanation : undefined}>
-        {label === 'Effects' && effectSummary ? effectSummary : parameterValue(label, value)}
+        {label === 'Effects' && effectSummary ? (
+          effectSummary
+        ) : label === 'Requirements' && requirementParts ? (
+          <MechanicTextView
+            text={typeof value === 'string' ? value : value.join(', ') || 'N/A'}
+            parts={requirementParts}
+          />
+        ) : (
+          parameterValue(label, value)
+        )}
         {label === 'Target' ? targetDetails : null}
       </dd>
     </div>

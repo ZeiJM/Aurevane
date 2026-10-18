@@ -1,0 +1,41 @@
+# Defensive pacing repair — October 18
+
+The observed Important I1 pacing defect is repaired locally in `de926edca0e3a2b464be5eb207e1b0346401c64f`. Combat is not live. The single existing whole-branch review remains preserved verbatim; this is its one C/I repair wave, without another reviewer or incidental Minor fixes. All 21 deferred Minors remain, including the fixed Guard success notice.
+
+The repair changes four unpublished proposed definitions and Dawnshield's recommended kit. Hold Fast and Last Bastion each have their own once-per-battle reserve. Field Remedy and Dawn's Oath still pay normally and Cleanse, with Oath also applying Guarded, but heal only if their actual recipient had a canonical removable affliction at activation. All eight shared Cleanse statuses plus Suppress qualify; positive statuses and Chilled do not. The condition is captured before Cleanse. Dawnshield's entry kit uses its existing Guarded-dependent Judgment instead of Purge; Purge itself remains unchanged and available.
+
+No cost, cooldown, healing magnitude, target, executor, AI utility, damage formula, historical definition or frozen duel helper changes. The other 290 records are unchanged. All baseline digests, versions, earned eligibility and media are preserved. These remain unpublished before+1 proposals, not rewritten stored versions. The nine protected runtime/helper/deployment files are unchanged; exact hashes and changed-record assertions are in `defensive-pacing-preservation.json` in the working evidence directory.
+
+## Actual outcomes
+
+The original fixture focused a class stat, which was not always offense. Correcting only initial persisted character attributes to a legal 135-point allocation with offense 40 and Vitality 40 did not resolve the slow matches. Preserve both baselines rather than relabeling them.
+
+| Mirror | Original class-focus baseline | Repaired class-focus result | Correct offense 40 baseline | Repaired offense 40 result |
+| --- | --- | --- | --- | --- |
+| Bastion | Still active entering 129 | Defeat/completion at 33 | Active entering 33 | Defeat/completion at 24 |
+| Wildwarden | Defeat/completion at 50 | Defeat/completion at 20 | Defeat/completion at 25 | Defeat/completion at 14 |
+| Dawnshield | Defeat/completion at 94 | Defeat/completion at 19 | Active entering 33 | Defeat/completion at 19 |
+
+There are 58 actual native-AI match runs after the repair: the original 25-allocation matrix with the revised entry recommendations (all 17 classes plus eight selected mixed Primary orders), 17 corrected offense 40 class mirrors, 15 extra seed/PvE/distinct-opponent controls, and one additional control retaining Dawnshield's previous four-Skill kit. The corrected 17-class matrix finishes naturally in 9–24 rounds, median 12. The original 25 finishes in 9–33, median 13; 22 original outcomes remain identical. Nine corrected defensive mirrors across seeds 12345, 67890, 20261018 finish in 14–24. All three PvE defensive mirrors finish. Six distinct Vanguard/Lifebinder matchups finish, including Bastion versus Lifebinder at 25. The 24-round regression ceiling applies to the selected defensive mirrors, not every possible matchup. Resolve 40 Bastion's 33-round result remains a slower legal defensive allocation, not a claim of 12-round pacing.
+
+Every run has actual 0 HP defeat and a `battle_completed` event; no diagnostic horizon is converted into an outcome. All recorded Bastion reserve commands are at most once per actor. Every corrected Dawnshield mirror uses Judgment. Tests preserve admitted state, earned loadouts and actual derived profiles; no combat-stat/resource/RNG mutation after admission or scripted finish is used. Dawnshield's previous Radiant Strike/Sacred Guard/Purge/Aegis kit also completes at 21 on frozen `c9c2a4d84` (`c607d622`), down from 94; the repair therefore improves the original kit as well as the revised recommendation. The earlier table's repaired Dawnshield rows use the new Judgment recommendation. These controlled runs do not establish all-pair, human, browser or hosted acceptance.
+
+## Verification
+
+Focused RED `e9e8ad9c` demonstrates the four real reserve/healing failures before the definition edit. The three full-match regressions are RED `146f10e8` before the repair and GREEN `7fa1cc80` afterward. Expanded actual core outcomes pass 26 cases (`b04cc076`): all nine afflictions, cooldown/JSON persistence, positive-buff/Chilled negatives and selected-ally versus afflicted-owner scope. The public reader file passes 14 cases, including four added exact-proposal checks (`acf75e37`). Existing manifest/parser/Requirement/activation/effect/status outcomes pass 841 (`b1b9786c`); unchanged earned-build and defensive-payoff suites pass 324 (`0d547fd9`). Correctly scoped lint passes `53c7ba2c` and `ad6b41e4`.
+
+The external diagnostic suites pass 54 cases (`52cd47ad`); the three permanent mirror regressions and the separate previous-Dawn-kit control supply the other four match runs. Diagnostics execute the fixed working-tree mechanics subsequently committed in `de926edca`; later role-prose and test-label edits do not change captured mechanics. Their full JSONL traces, 58-run audit and hashes are retained in the working evidence directory. The checksum-only follow-up is `c9c2a4d8480915f76aebefb27ea819f354237d0b`, the exact source checked by the final repository gate below.
+
+Non-product setup failures are retained honestly: a relative evidence path failed under pnpm's web working directory; the expanded Chilled fixture initially used the display name instead of actual status ID `frozen`; an HTML assertion initially ignored real inline status-reference markup; a root ESLint invocation used the wrong config for web files. Corrected tests pass without corresponding runtime/UI changes. The first full gate on `de926edca` passes 4,163 core and 4,785 web tests but fails one intentionally frozen pre-repair manifest checksum; baseline catalogue identity/digest/history assertions pass. After the four-record preservation audit, the checksum is explicitly updated to `35bbb1f96c9ce4dc2a5e33c34bfb7ec809de865f3149746173717d2aadb1a23d`; focused catalogue 19 checks pass (`e6f9ae16`). Its original failing transcript and package logs remain retained.
+
+## Final committed-source quality gate
+
+`pnpm --reporter=append-only check` passes on exact source `c9c2a4d8480915f76aebefb27ea819f354237d0b` (`55e5bd13`): **9,195 Vitest tests plus seven Node checks**, formatting, lint, all eight package typechecks and both builds. Counts are 4,163 core, 4,786 web and 246 elsewhere. The single root transcript includes all seven package totals, Node 7/0 fail and the literal two-success build tail. The strict audit verifies six nonempty/parseable Next build artifacts and archives hashed package logs.
+
+The preceding unchanged-source run `106cc62c` passes all 9,195+7 checks but encounters a local Turbopack persistence filename parse failure during the build. Inventory identifies one incomplete SST temporary file; its 37,224,448 bytes and SHA256 are preserved in a reversible quarantine. Stable cache files, source and configuration remain unchanged. After isolating only that file, the same source passes the whole quality gate. Failed transcripts and package logs remain retained. No further broad rerun is warranted without a new change or failure.
+
+## Release boundary
+
+The final browser/service journeys are prepared but have not run in a native browser here. Hosted migration/CAS/concurrency acceptance, source CI, coordinated publication and production verification remain open. Source publication to the public `ZeiJM/Aurevane` repository was rejected twice by automatic approval review; explicit approval of that public payload is still required. Extra High authorization did not supply it. No further push, indirect archive export, hosted mutation or deployment has been attempted. A fresh read-only 02:45 UTC check confirms policy 7, zero published/draft content rows, all six required combat migrations still unapplied, and production still at `db191722c92e431b7e0c7d55ff993305a41e2da9` / `dpl_5Pw9fUYj2e8jVxRFb4tDDz8w57QW`.
+
+High is sufficient for remaining routine verification and release integration. Broader Master/Staff/Players/Events/Music/world work remains after the combat release.

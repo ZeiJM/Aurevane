@@ -1,6 +1,11 @@
 import 'server-only'
 
 import {
+  captureCombatAbilitySource,
+  type CapturedCombatAbilitySource,
+} from '@aurevane/game-core/combat/combat-behavior-capture'
+
+import {
   validateStatDrivenCombatEncounterState,
   type StatDrivenCombatEncounterState,
 } from '@aurevane/game-core/combat/stat-driven-combat'
@@ -20,6 +25,8 @@ export interface BattleHistoryPrivacyAuthority {
   readonly viewer: BattleViewerEntitlement
   readonly journals: readonly BattleHistoryPrivacyJournal[]
   readonly buildAuthority?: BattleBuildAuthoritySnapshot
+  /** Private execution captures; only projected names/text may reach the log DTO. */
+  readonly capturedAbilitySources?: readonly CapturedCombatAbilitySource[]
 }
 
 export interface BattleHistoryPrivacyRepository {
@@ -138,6 +145,7 @@ export function parseBattleHistoryPrivacyAuthorityRow(
   const buildAuthority = parseBattleBuildAuthoritySnapshot(
     objectValue(record.snapshot)?.buildAuthority,
   )
+  const capturedAbilitySources = snapshot.capturedAbilitySources?.map(captureCombatAbilitySource)
 
   const controlledCombatantIds: string[] = []
   for (const controlled of record.controlled_combatant_ids) {
@@ -165,6 +173,7 @@ export function parseBattleHistoryPrivacyAuthorityRow(
       ),
       journals,
       ...(buildAuthority ? { buildAuthority } : {}),
+      ...(capturedAbilitySources ? { capturedAbilitySources } : {}),
     }
   }
 
@@ -173,6 +182,7 @@ export function parseBattleHistoryPrivacyAuthorityRow(
       viewer: createSpectatorBattleViewerEntitlement(),
       journals,
       ...(buildAuthority ? { buildAuthority } : {}),
+      ...(capturedAbilitySources ? { capturedAbilitySources } : {}),
     }
   }
 

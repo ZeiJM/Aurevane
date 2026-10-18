@@ -1,0 +1,92 @@
+/* Match the Master stone palette in authoring, controls and the definition report. */
+.editor {
+  --av-text: #29332d;
+  --av-text-muted: #445246;
+  --av-text-dim: #51584b;
+  --av-parchment-100: #29332d;
+  --av-brass-300: #655034;
+  --av-border: #a18e71;
+  --av-border-strong: #8d795e;
+  color: var(--av-text);
+}
+
+.editor .panel,
+.editor .browser {
+  --av-text: #29332d;
+  --av-text-muted: #445246;
+  --av-text-dim: #51584b;
+  --av-parchment-100: #29332d;
+  --av-brass-300: #655034;
+  color: #29332d;
+  background: #dfd5c3;
+}
+
+.editor :is(input, select, textarea),
+.editor button {
+  color: #29332d;
+  background: #e8dfce;
+}
+
+.editor .browser button[aria-pressed='true'] {
+  color: #f1e5ce;
+  background: #345b52;
+}
+
+.editor .browser button[aria-pressed='true'] :is(strong, small) {
+  color: #f1e5ce;
+}
+
+.editor .report {
+  display: block;
+}
+
+.characteristics {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0.75rem 0;
+}
+
+.characteristics > div {
+  display: grid;
+  grid-template-columns: minmax(7.25rem, 0.38fr) minmax(0, 1fr);
+  gap: 0.6rem;
+}
+
+.characteristics :is(dt, dd) {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.characteristics dt {
+  color: #51584b;
+}
+
+.explanations {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0.75rem 0 0;
+  padding-left: 1.1rem;
+  line-height: 1.5;
+}
+
+.editor
+  :is(
+    [data-effect-tag-label],
+    [data-compact-effect-label],
+    [data-compact-effect-magnitude],
+    [data-compact-effect-duration]
+  ) {
+  color: #79551c;
+}
+
+.editor [data-compact-effect-timing] {
+  color: #17675e;
+}
+
+.editor [data-skill-attack-family='physical'] {
+  color: #874b25;
+}
+
+.editor [data-skill-attack-family='mystic'] {
+  color: #6e3f86;
+}

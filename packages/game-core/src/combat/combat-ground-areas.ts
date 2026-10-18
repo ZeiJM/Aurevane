@@ -43,6 +43,9 @@ export interface CombatGroundAreaInstance {
   steamTiles?: readonly GridPosition[]
   sourceCommandVisibility?: CombatSourceCommandVisibility
   entryEffectOrigins?: readonly (CombatEffectOrigin | null)[]
+  /** Null represents an omitted packet override in persisted JSON. */
+  entryEffectTimingModes?: readonly ('instant' | 'next-round' | 'delayed' | null)[]
+  entryEffectEligibleRecipientIds?: readonly (readonly string[] | null)[]
   id: string
   sourceCombatantId: string
   sourceTeamId: string
@@ -169,6 +172,20 @@ export function createCombatGroundArea(
         ? {
             entryEffectOrigins: action.groundArea.entryEffectOrdinals.map(
               (index) => action.effectOrigins![index] ?? null,
+            ),
+          }
+        : {}),
+      ...(action.effectTimingModes
+        ? {
+            entryEffectTimingModes: action.groundArea.entryEffectOrdinals.map(
+              (index) => action.effectTimingModes![index] ?? null,
+            ),
+          }
+        : {}),
+      ...(action.effectEligibleRecipientIds
+        ? {
+            entryEffectEligibleRecipientIds: action.groundArea.entryEffectOrdinals.map(
+              (index) => action.effectEligibleRecipientIds![index] ?? null,
             ),
           }
         : {}),
@@ -315,6 +332,29 @@ export function validateCombatGroundAreas(
           area.entryEffectOrigins.length !== area.entryEffects.length)
       )
         throw new TypeError('Invalid Ground effect origins.')
+      for (const rows of [area.entryEffectTimingModes, area.entryEffectEligibleRecipientIds])
+        if (
+          rows !== undefined &&
+          (!Array.isArray(rows) || rows.length !== area.entryEffects.length)
+        )
+          throw new TypeError('Ground packet metadata must align with entry effects.')
+      if (
+        area.entryEffectTimingModes?.some(
+          (mode: string | null) =>
+            mode !== null && !['instant', 'next-round', 'delayed'].includes(mode),
+        )
+      )
+        throw new TypeError('Invalid Ground packet timing.')
+      if (
+        area.entryEffectEligibleRecipientIds?.some(
+          (ids: readonly string[] | null) =>
+            ids !== null &&
+            (!Array.isArray(ids) ||
+              new Set(ids).size !== ids.length ||
+              ids.some((id) => typeof id !== 'string' || !id.trim())),
+        )
+      )
+        throw new TypeError('Invalid Ground packet eligibility.')
       validateCombatNativeCommandFacts(area.abilityCommandFacts)
       validateGroundTiles(state, area.tiles)
       if (area.steamTiles) {
@@ -342,6 +382,20 @@ export function validateCombatGroundAreas(
         cost: { spendsAction: false, mp: 0 },
         requirements: [],
         effects: area.entryEffects,
+        ...(area.entryEffectTimingModes !== undefined
+          ? {
+              effectTimingModes: area.entryEffectTimingModes.map(
+                (mode: 'instant' | 'next-round' | 'delayed' | null) => mode ?? undefined,
+              ),
+            }
+          : {}),
+        ...(area.entryEffectEligibleRecipientIds !== undefined
+          ? {
+              effectEligibleRecipientIds: area.entryEffectEligibleRecipientIds.map(
+                (ids: readonly string[] | null) => ids ?? undefined,
+              ),
+            }
+          : {}),
         ...(area.entryEffectOrigins
           ? {
               effectOrigins: area.entryEffectOrigins.map(

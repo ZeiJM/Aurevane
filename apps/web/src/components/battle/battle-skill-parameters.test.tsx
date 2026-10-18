@@ -34,7 +34,9 @@ describe('cockpit Skill Parameters', () => {
         />
       </SkillEffectTimingProvider>,
     )
-    const effects = markup.match(/<ul aria-label="Effect explanations">([\s\S]*?)<\/ul>/)?.[1]
+    const effects = markup
+      .match(/<ul aria-label="Effect explanations">([\s\S]*?)<\/ul>/)?.[1]
+      ?.replace(/<span[^>]*data-effect-tag-label="true">([^<]*)<\/span>/g, '$1')
     expect(effects).toContain('<strong>Frozen Ground</strong>')
     expect(effects).toContain('<strong>Slow</strong>')
     expect(effects).toContain('<strong>Chilled</strong>')
@@ -129,7 +131,7 @@ describe('cockpit Skill Parameters', () => {
       definition.effects.length,
     )
     for (const effect of skillPreviewEffects(definition)) {
-      expect(markup).toContain(`<strong>${effect.label}</strong>`)
+      expect(markup).toContain(`data-effect-tag-label="true">${effect.label}</span></strong>`)
       expect(markup).toContain(effect.explanation)
     }
     expect(markup).not.toContain('Do not replace pinned Nexus effects')
@@ -192,4 +194,33 @@ describe('current battle ! reader elemental overlap', () => {
     expect(others).not.toContain('35%')
     expect(JSON.stringify(skill)).toBe(before)
   })
+})
+
+it('shows the selected captured payment and cooldown without rewriting the pinned legacy definition', () => {
+  const definition = resolveMatureSkillVersion('vanguard.forceful-strike', 2)!
+  const before = JSON.stringify(definition)
+  const markup = renderToStaticMarkup(
+    <BattleSkillParameters
+      costLabel="11 AP / 2 MP / 1 HP"
+      cooldownLabel="3 turns"
+      skill={{
+        definition,
+        id: definition.id,
+        name: definition.id,
+        apCost: 15,
+        mpCost: 0,
+        cooldownOwnerTurns: 1,
+        minimumRange: 1,
+        maximumRange: 1,
+        targetKind: 'unit',
+        targetTeamPolicy: 'enemy',
+        tags: [],
+        effectDescriptions: [],
+        requirementDescriptions: [],
+      }}
+    />,
+  )
+  expect(markup).toMatch(/<dt>Cost<\/dt><dd>11 AP \/ 2 MP \/ 1 HP<\/dd>/)
+  expect(markup).toMatch(/<dt>Cooldown<\/dt><dd>3 turns<\/dd>/)
+  expect(JSON.stringify(definition)).toBe(before)
 })

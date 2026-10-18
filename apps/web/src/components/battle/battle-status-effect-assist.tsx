@@ -105,14 +105,23 @@ function detailsFromTrigger(trigger: HTMLElement): EffectDetails {
   }
 }
 
+function ownedByNativeReader(element: Element): boolean {
+  return Boolean(
+    element.closest('[data-battle-info-trigger], [data-battle-info-panel]') ||
+    element.querySelector('[data-battle-info-trigger]'),
+  )
+}
+
 function decorateEffectTriggers() {
   for (const item of document.querySelectorAll<HTMLElement>(
     '[aria-label$=" buffs and debuffs"] button',
   )) {
+    if (ownedByNativeReader(item)) continue
     item.dataset.battleEffectTrigger = 'true'
   }
 
   for (const item of document.querySelectorAll<HTMLElement>('[aria-label$=" active effects"] li')) {
+    if (ownedByNativeReader(item)) continue
     item.dataset.battleEffectTrigger = 'true'
     item.tabIndex = 0
     item.setAttribute('role', 'button')
@@ -121,6 +130,7 @@ function decorateEffectTriggers() {
   }
 
   for (const item of document.querySelectorAll<HTMLElement>('[aria-label$=" status effects"] b')) {
+    if (ownedByNativeReader(item)) continue
     item.dataset.battleEffectTrigger = 'true'
     item.tabIndex = 0
     item.setAttribute('role', 'button')
@@ -151,7 +161,8 @@ export function BattleStatusEffectAssist() {
     function openFromTarget(target: EventTarget | null) {
       const element = target instanceof Element ? target : null
       const trigger = element?.closest<HTMLElement>('[data-battle-effect-trigger="true"]')
-      if (!trigger) return false
+      if (!trigger || (element && ownedByNativeReader(element)) || ownedByNativeReader(trigger))
+        return false
       setEffect(detailsFromTrigger(trigger))
       return true
     }

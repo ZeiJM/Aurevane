@@ -499,3 +499,28 @@ it('shows the separate limited cleanse for every current Fire Skill', () => {
       expect(row.explanation).not.toMatch(/cleanses Chilled|removes Drenched|removes Wet/)
   }
 })
+
+it('describes specified status consumption without promising full Cleanse or removing Suppress', () => {
+  const effect = {
+    type: 'remove-status' as const,
+    recipient: 'primary-unit' as const,
+    statusIds: ['mark'],
+    removalMode: 'specified' as const,
+  }
+  const result = previewEffect(effect)
+  expect(result.label).toBe('Remove Status')
+  expect(result.magnitude).toBe('Marked')
+  expect(result.explanation).not.toContain('Suppress')
+})
+
+it('labels an explicitly specified positive Covert list as Dispel and leaves Suppress alone', () => {
+  const result = previewEffect({
+    type: 'remove-status',
+    recipient: 'primary-unit',
+    statusIds: ['covert', 'guarded'],
+    removalMode: 'specified',
+  })
+  expect(result.label).toBe('Dispel')
+  expect(result.magnitude).toBe('Covert / Guard')
+  expect(result.explanation).not.toContain('Suppress')
+})

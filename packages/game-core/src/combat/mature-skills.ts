@@ -1454,6 +1454,14 @@ export function validateMatureSkillDefinition(
   return issues
 }
 
+/** Reserve all shipped identities, including disabled historical definitions. */
+export function highestBuiltinMatureSkillVersion(skillId: string): number | null {
+  const versions = CURRENT_DISCIPLINE_SKILL_REGISTRY.filter((row) => row.id === skillId).map(
+    (row) => row.contentVersion,
+  )
+  return versions.length ? Math.max(...versions) : null
+}
+
 export function resolveMatureSkillVersion(
   skillId: string,
   contentVersion?: number,

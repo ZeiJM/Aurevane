@@ -7,7 +7,8 @@ import {
 } from '@aurevane/game-core/combat/terrain-overlays'
 
 export function gameplayStatusName(id: string): string {
-  return combatStatusPresentationTag(id === 'lowered.guard' ? 'lowered-guard' : id)
+  const label = combatStatusPresentationTag(id === 'lowered.guard' ? 'lowered-guard' : id)
+  return typeof label === 'string' ? label : id
 }
 
 export function terrainOverlayDescription(

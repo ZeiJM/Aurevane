@@ -76,6 +76,17 @@ jobs:
           AV_TARGETING_EVIDENCE_DIR: /tmp/battle-targeting-review
         run: pnpm --filter @aurevane/web exec node scripts/battle-targeting-browser-regression.mjs
 
+      - name: Verify captured plural targeting and Manual behavior choices
+        env:
+          AV_TARGETING_EVIDENCE_DIR: /tmp/battle-canonical-targeting-review
+        run: pnpm --filter @aurevane/web exec node scripts/battle-canonical-targeting-browser-regression.mjs
+
+      - name: Verify captured Move destination and combined follow-up
+        env:
+          AV_CANONICAL_MOVE: '1'
+          AV_TARGETING_EVIDENCE_DIR: /tmp/battle-canonical-move-review
+        run: pnpm --filter @aurevane/web exec node scripts/battle-canonical-targeting-browser-regression.mjs
+
       - name: Verify standardized skill parameter colors and readers
         env:
           AV_SKILL_PARAMETER_PALETTE_EVIDENCE_DIR: /tmp/skill-parameter-palette-review
@@ -239,6 +250,22 @@ jobs:
         with:
           name: battle-targeting-review
           path: /tmp/battle-targeting-review
+          retention-days: 7
+
+      - name: Save captured targeting evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: battle-canonical-targeting-review
+          path: /tmp/battle-canonical-targeting-review
+          retention-days: 7
+
+      - name: Save captured Move evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: battle-canonical-move-review
+          path: /tmp/battle-canonical-move-review
           retention-days: 7
 
       - name: Save percentage reader evidence

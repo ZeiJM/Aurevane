@@ -1,6 +1,8 @@
 'use client'
 
 import {
+  createContext,
+  useContext,
   useCallback,
   useEffect,
   useId,
@@ -9,11 +11,22 @@ import {
   useState,
   type CSSProperties,
   type ReactNode,
+  type RefObject,
 } from 'react'
 import { createPortal } from 'react-dom'
 import { battleInfoPopoverPosition } from './battle-info-popover-position'
 import { battleInfoPopoverSession } from './battle-info-popover-session'
 import styles from './battle-info-popover.module.css'
+
+type ReaderOwner = {
+  id: string
+  layer: 'battle' | 'inspect'
+  cancelClose: () => void
+  resumeClose: () => void
+  contains: (target: Node) => boolean
+  portalHost?: RefObject<HTMLElement | null>
+}
+const ReaderOwnerContext = createContext<ReaderOwner | null>(null)
 
 /** Small reading panels share outside-click, Escape, focus and combat-shortcut behavior. */
 export function BattleInfoPopover({
@@ -24,9 +37,16 @@ export function BattleInfoPopover({
   className,
   children,
   hover = false,
+  nested = false,
+  referenceTrigger = false,
   consumeOutsideClick = false,
   placement = 'auto',
   layer = 'battle',
+  initialFocus,
+  triggerRef,
+  panelWidth,
+  portalHost,
+  effectTrigger = false,
 }: {
   label: string
   description?: string
@@ -35,17 +55,38 @@ export function BattleInfoPopover({
   className?: string
   children: ReactNode
   hover?: boolean
+  nested?: boolean
+  referenceTrigger?: boolean
   consumeOutsideClick?: boolean
   placement?: 'auto' | 'above'
   layer?: 'battle' | 'inspect'
+  initialFocus?: () => HTMLElement | null
+  triggerRef?: RefObject<HTMLButtonElement | null>
+  panelWidth?: number
+  portalHost?: RefObject<HTMLElement | null>
+  effectTrigger?: boolean
 }) {
   const id = useId()
+  const containingReader = useContext(ReaderOwnerContext)
+  const parent = nested ? containingReader : null
+  const effectiveLayer = parent?.layer ?? layer
+  const effectivePortalHost = parent?.portalHost ?? portalHost
+  const parentRef = useRef(parent)
+  useLayoutEffect(() => {
+    parentRef.current = parent
+  }, [parent])
+  const hovered = useRef(false)
+  const mounted = useRef(true)
   const [open, setOpen] = useState(false)
   const [wideReport, setWideReport] = useState(false)
   const [pageReport, setPageReport] = useState(false)
   const [position, setPosition] = useState({ left: 8, top: 8 })
   const buttonRef = useRef<HTMLButtonElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
+  const initialFocusRef = useRef(initialFocus)
+  useLayoutEffect(() => {
+    initialFocusRef.current = initialFocus
+  }, [initialFocus])
   const pinned = useRef(false)
   const focusOnOpen = useRef(true)
   const suppressFocus = useRef(false)
@@ -59,17 +100,33 @@ export function BattleInfoPopover({
     pinned.current = false
     battleInfoPopoverSession.close(id)
     setOpen(false)
+    parentRef.current?.resumeClose()
   }, [cancelClose, id])
   const show = () => {
-    battleInfoPopoverSession.open(id, () => {
-      suppressHover.current = true
-      close()
-    })
-    setOpen(true)
+    const owns = battleInfoPopoverSession.open(
+      id,
+      () => {
+        suppressHover.current = true
+        close()
+      },
+      parent?.id,
+    )
+    if (owns) {
+      parent?.cancelClose()
+      setOpen(true)
+    }
   }
   const queueClose = () => {
+    if (!mounted.current) return
     cancelClose()
-    if (!pinned.current) closeTimer.current = setTimeout(close, 150)
+    if (!pinned.current)
+      closeTimer.current = setTimeout(() => {
+        if (pinned.current || hovered.current || battleInfoPopoverSession.hasChild(id)) return
+        const focus = document.activeElement
+        if (focus && (panelRef.current?.contains(focus) || buttonRef.current?.contains(focus)))
+          return
+        close()
+      }, 150)
   }
   const restoreFocus = useCallback(() => {
     suppressFocus.current = document.activeElement !== buttonRef.current
@@ -77,16 +134,22 @@ export function BattleInfoPopover({
     close()
     buttonRef.current?.focus()
   }, [close])
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    mounted.current = true
+    return () => {
+      mounted.current = false
       if (closeTimer.current) clearTimeout(closeTimer.current)
       battleInfoPopoverSession.close(id)
-    },
-    [id],
-  )
+      parentRef.current?.resumeClose()
+    }
+  }, [id])
 
   useLayoutEffect(() => {
     if (!open) return
+    const report = panelRef.current
+    if (report?.querySelectorAll('button[data-combat-tag-reference-trigger]').length)
+      report.setAttribute('aria-describedby', `${id}-reference-navigation`)
+    else report?.removeAttribute('aria-describedby')
     const place = () => {
       const anchor = buttonRef.current?.getBoundingClientRect()
       const panel = panelRef.current?.getBoundingClientRect()
@@ -114,12 +177,17 @@ export function BattleInfoPopover({
             height: window.innerHeight,
           },
           pagePositioned ? { x: window.scrollX, y: window.scrollY } : undefined,
-          layer === 'inspect' ? 'beside' : placement,
+          effectiveLayer === 'inspect' ? 'beside' : placement,
         ),
       )
     }
     place()
-    if (focusOnOpen.current) panelRef.current?.focus()
+    if (focusOnOpen.current) {
+      if (initialFocusRef.current) {
+        ;(initialFocusRef.current() ?? panelRef.current)?.focus()
+        focusOnOpen.current = false
+      } else panelRef.current?.focus()
+    }
     const placeOnScroll = () => {
       const panel = panelRef.current
       if (
@@ -139,7 +207,7 @@ export function BattleInfoPopover({
       window.removeEventListener('resize', place)
       window.removeEventListener('scroll', placeOnScroll, true)
     }
-  }, [open, wideReport, pageReport, placement, layer])
+  }, [open, wideReport, pageReport, placement, effectiveLayer, id])
 
   useEffect(() => {
     if (!open) return
@@ -154,6 +222,10 @@ export function BattleInfoPopover({
       if (!consumeOutsideClick || !battleInfoPopoverSession.isActive(id)) return
       const target = event.target as Node | null
       if (target && !panelRef.current?.contains(target) && !buttonRef.current?.contains(target)) {
+        if (parentRef.current?.contains(target)) {
+          close()
+          return
+        }
         // An information trigger owns the next reader; battlefield commands remain consumed.
         if (target instanceof Element && target.closest('[data-battle-info-trigger]')) {
           close()
@@ -197,10 +269,16 @@ export function BattleInfoPopover({
         </span>
       ) : null}
       <button
-        ref={buttonRef}
+        ref={(element) => {
+          buttonRef.current = element
+          if (triggerRef) triggerRef.current = element
+        }}
         type="button"
         className={className ?? styles.trigger}
         data-battle-info-trigger="true"
+        data-battle-live-effect-trigger={effectTrigger ? 'true' : undefined}
+        aria-keyshortcuts={effectTrigger ? 'Control+Alt+E' : undefined}
+        data-combat-tag-reference-trigger={referenceTrigger ? 'true' : undefined}
         aria-label={label}
         aria-describedby={description ? `${id}-description` : undefined}
         aria-haspopup="dialog"
@@ -209,6 +287,7 @@ export function BattleInfoPopover({
         onMouseEnter={
           hover
             ? () => {
+                hovered.current = true
                 if (!suppressHover.current) openHover()
               }
             : undefined
@@ -228,6 +307,7 @@ export function BattleInfoPopover({
         onMouseLeave={
           hover
             ? () => {
+                hovered.current = false
                 suppressHover.current = false
                 queueClose()
               }
@@ -280,19 +360,88 @@ export function BattleInfoPopover({
             data-battle-info-panel="true"
             data-battle-info-layout={wideReport ? 'wide' : 'compact'}
             data-battle-info-page={pageReport}
-            onMouseEnter={hover ? cancelClose : undefined}
-            onMouseLeave={hover ? queueClose : undefined}
-            className={[styles.panel, layer === 'inspect' ? styles.inspectPanel : ''].join(' ')}
+            data-battle-info-modal-owned={Boolean(effectivePortalHost?.current)}
+            onKeyDown={(event) => {
+              if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return
+              if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return
+              const report = event.currentTarget
+              const terms = Array.from(
+                report.querySelectorAll<HTMLButtonElement>(
+                  'button[data-combat-tag-reference-trigger]',
+                ),
+              )
+              if (!terms.length) return
+              const current = terms.findIndex(
+                (term) => term === event.target || term.contains(event.target as Node),
+              )
+              // Pickers, fields and portaled child panels retain their own input behavior.
+              if (event.target !== report && current < 0) return
+              const next =
+                event.key === 'Home'
+                  ? 0
+                  : event.key === 'End'
+                    ? terms.length - 1
+                    : event.key === 'ArrowDown'
+                      ? (current + 1) % terms.length
+                      : current <= 0
+                        ? terms.length - 1
+                        : current - 1
+              event.preventDefault()
+              event.stopPropagation()
+              terms[next]!.focus()
+            }}
+            onMouseEnter={
+              hover
+                ? () => {
+                    hovered.current = true
+                    cancelClose()
+                    parent?.cancelClose()
+                  }
+                : undefined
+            }
+            onMouseLeave={
+              hover
+                ? () => {
+                    hovered.current = false
+                    queueClose()
+                  }
+                : undefined
+            }
+            className={[styles.panel, effectiveLayer === 'inspect' ? styles.inspectPanel : ''].join(
+              ' ',
+            )}
             style={
-              { '--battle-info-left': `${position.left}px`, top: position.top } as CSSProperties
+              {
+                '--battle-info-left': `${position.left}px`,
+                ...(panelWidth ? { '--battle-info-preferred-width': `${panelWidth}px` } : {}),
+                top: position.top,
+              } as CSSProperties
             }
           >
             <header>
               <strong>{title}</strong>
             </header>
-            {children}
+            <span id={`${id}-reference-navigation`} hidden>
+              Linked terms: use Up and Down arrows, Home or End to choose a term. Enter or Space
+              opens its explanation; Escape returns to the report.
+            </span>
+            <ReaderOwnerContext.Provider
+              value={{
+                id,
+                layer: effectiveLayer,
+                cancelClose,
+                resumeClose: queueClose,
+                contains: (target) =>
+                  Boolean(
+                    panelRef.current?.contains(target) || buttonRef.current?.contains(target),
+                  ),
+                portalHost: effectivePortalHost,
+              }}
+            >
+              {children}
+            </ReaderOwnerContext.Provider>
           </div>,
-          document.body,
+          effectivePortalHost?.current ?? document.body,
         )}
     </>
   )

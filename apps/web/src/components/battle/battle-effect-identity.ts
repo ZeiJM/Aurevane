@@ -1,9 +1,12 @@
 import {
   percentageDotDescription,
   percentageDotTickDamage,
+  percentageDotSequence,
+  percentageBasisPointsText,
 } from '@aurevane/game-core/combat/combat-percentage-dots'
-import { combatStatusDetails, PHASE4_STATUSES } from '@aurevane/game-core/combat/status-content'
+import { combatStatusDetails } from '@aurevane/game-core/combat/status-content'
 import { statusLabel } from './battle-effect-summary'
+import { battleEffectLifetime } from './battle-effect-lifetime'
 import { statusPotencyDescription } from '../../lib/status-potency-presentation'
 import { blindsideStatusDescription } from '@aurevane/game-core/combat/combat-blindside'
 import { airborneDescription } from '@aurevane/game-core/combat/combat-airborne'
@@ -89,6 +92,21 @@ export function describeBattleEffect(effect: BattlePresentedStatus) {
           legacyPoisonMovement: effect.dotTriggerPolicyVersion !== 2,
         })
       : null
+  const profile = effect.percentageDamage?.profile ?? effect.percentageDotProfile
+  const lifetime = battleEffectLifetime(effect)
+  const stage = effect.percentageDotStage ?? 0
+  const profileDescription =
+    dot && profile
+      ? dot === 'burn' && lifetime.count !== null && lifetime.count !== undefined
+        ? ` Remaining tick percentages: ${percentageDotSequence(
+            {
+              ...profile,
+              basisPoints: profile.basisPoints - (profile.decayBasisPointsPerTick ?? 0) * stage,
+            },
+            lifetime.count,
+          )} of HP damage dealt by the granting attack. Decay: ${percentageBasisPointsText(profile.decayBasisPointsPerTick ?? 0)} percentage points per tick.`
+        : ` Tick percentage: ${percentageBasisPointsText(profile.basisPoints)}% of HP damage dealt by the granting attack.`
+      : ''
   const capturedDescription = effect.percentageDamage
     ? ` Captured attack damage: ${effect.percentageDamage.capturedDamage} HP. Next tick: ${percentageDotTickDamage(effect.percentageDamage.capturedDamage, effect.percentageDamage.profile, effect.percentageDotStage ?? 0)} HP${effect.stacks > 1 ? ' per application' : ''}.`
     : ''
@@ -121,47 +139,11 @@ export function describeBattleEffect(effect: BattlePresentedStatus) {
                   legacyElemental: effect.elementalDamagePolicyVersion == null,
                   explicitElemental: effect.elementalDamagePolicyVersion === 2,
                 },
-              ))) + capturedDescription,
+              ))) +
+      profileDescription +
+      capturedDescription,
   }
-  const applications = effect.recoveryApplications
-  const count =
-    applications ??
-    (effect.durationScope === 'rounds'
-      ? (effect.remainingRoundBoundaries ?? null)
-      : effect.durationScope !== undefined
-        ? null
-        : (effect.remainingOwnerTurnEnds ?? effect.remainingOwnerTurnStarts))
-  const pending = effect.timingState === 'pending'
-  const timing = pending
-    ? `Pending · Activates at the start of ${effect.activationRound === undefined ? 'the following round' : `round ${effect.activationRound}`}`
-    : 'Active'
-  let duration: string
-  if (applications !== undefined) {
-    duration = `${applications} application${applications === 1 ? '' : 's'} remaining${pending ? ' · first on activation' : ''}.`
-  } else if (effect.durationScope === 'battle') {
-    duration = 'Until battle ends'
-  } else if (effect.durationScope === 'instant') {
-    duration = 'One-time effect on activation'
-  } else if (effect.durationScope === 'until-spent') {
-    duration = 'Until depleted'
-  } else if (effect.durationScope === 'until-removed') {
-    duration = 'Until removed'
-  } else if (effect.durationScope === 'rounds') {
-    duration =
-      count === null
-        ? 'Round duration unavailable'
-        : `${count} round ${count === 1 ? 'boundary' : 'boundaries'} remaining`
-  } else if (effect.remainingOwnerTurnEnds !== undefined) {
-    duration = `${count} turn${count === 1 ? '' : 's'} remaining. Expires after the affected character completes ${count === 1 ? 'that turn' : 'those turns'}.`
-  } else {
-    // Historical snapshots keep their original counter semantics.
-    const definition = PHASE4_STATUSES.find(
-      (item) => item.id === effect.statusId && item.version === effect.statusVersion,
-    )
-    duration = definition?.endOfTurn
-      ? `${count} affected-turn-end tick${count === 1 ? '' : 's'} remaining`
-      : `${count} affected-unit turn start${count === 1 ? '' : 's'} remaining`
-  }
+  const { applications, count, pending, timing, duration } = battleEffectLifetime(effect)
   return {
     ...identity,
     ...(applications !== undefined

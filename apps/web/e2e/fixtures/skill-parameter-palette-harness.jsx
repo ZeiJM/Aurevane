@@ -1,4 +1,10 @@
 import React from 'react'
+import {
+  defaultBasicSkills,
+  validateBasicSkillDefinition,
+} from '@aurevane/game-core/combat/combat-basic-actions'
+import { parseAbilityDefinition } from '@aurevane/game-core/combat/combat-definition'
+import { projectPublicCombat } from '@aurevane/game-core/combat/public-combat-presentation'
 import { createRoot } from 'react-dom/client'
 import { SkillParameters } from '@/components/character/skill-parameters'
 import { SkillDetails } from '@/components/character/skill-details'
@@ -17,9 +23,19 @@ import { resolveResonanceForPair } from '@aurevane/game-core/combat/resonance'
 import { resolveEssenceForBuild } from '@aurevane/game-core/combat/essence'
 import { buildPrimaryDisciplinePreview } from '@aurevane/game-core/character/discipline-build'
 import { DISCIPLINE_ATLAS } from '@aurevane/game-core/character/discipline-atlas'
+import { ManualArticle } from '@/components/public-information/manual-article'
+import { createTechniquesManualArticle } from '@/content/techniques-manual'
+import { defaultCombatEffectTimingPolicy } from '@aurevane/game-core/combat/combat-effect-timing'
+import { CombatContentEditor } from '@/components/master/combat-content/combat-content-editor'
+import { EssenceContentEditor } from '@/components/master/combat-content/essence-content-editor'
+import { CombatContentAuthoringWorkspace } from '@/components/master/combat-content/combat-content-authoring-workspace'
+import { AbilityDefinitionEditor } from '@/components/master/combat-content/ability-definition-editor'
+import masterTheme from '@/components/master/master-panel-shell.module.css'
 import './production-styles'
 
 const query = new URLSearchParams(location.search)
+const nativeFetch = window.fetch.bind(window)
+const basicService = query.get('basicService') === '1'
 const physical = resolveMatureSkillVersion('vanguard.forceful-strike')
 const mystic = resolveMatureSkillVersion('runeblade.aether-cut')
 const ground = resolveMatureSkillVersion('frostweaver.chilling-mist')
@@ -42,11 +58,318 @@ const battleSkill = (definition) => ({
   effectDescriptions: [],
   requirementDescriptions: [],
 })
+const modularBase = defaultBasicSkills().find((row) => row.id === 'unarmed.basic').ability
+  .behaviors[0]
+const modularAbility = parseAbilityDefinition({
+  schemaVersion: 1,
+  behaviors: [
+    {
+      ...modularBase,
+      id: 'leap',
+      accuracy: { kind: 'fixed', chanceBasisPoints: 7777 },
+      costs: [
+        { resource: 'ap', amount: 11 },
+        { resource: 'mp', amount: 2 },
+        { resource: 'hp', amount: 1 },
+      ],
+      cooldown: { key: 'leap', ownerTurns: 3 },
+      requirements: {
+        kind: 'resource-state',
+        subject: 'owner',
+        resource: 'mp',
+        comparison: 'at-least',
+        amount: 3,
+      },
+      activationLimits: ['once-per-battle'],
+      targeting: { ...modularBase.targeting, maximumRange: 4, maximumSelections: 2 },
+      effects: [
+        { id: 'walk', payload: { type: 'move', recipient: 'actor', maximumTiles: 2 } },
+        {
+          id: 'hit',
+          timing: 'controlled',
+          payload: { type: 'damage', recipient: 'primary-unit', amount: 13 },
+        },
+      ],
+    },
+    {
+      ...modularBase,
+      id: 'maintain',
+      activation: 'ongoing',
+      mode: 'modifier',
+      classification: 'utility',
+      attackFamily: undefined,
+      costs: [],
+      cooldown: null,
+      targeting: null,
+      requirements: {
+        kind: 'status-presence',
+        subject: 'owner',
+        statusId: 'guarded',
+        present: true,
+      },
+      effects: [
+        {
+          id: 'bonus',
+          payload: { type: 'damage-bonus', recipient: 'actor', multiplierBasisPoints: 11250 },
+        },
+      ],
+    },
+  ],
+})
+const modularSkillFor = (definition) =>
+  projectPublicCombat({
+    ...definition,
+    ability: modularAbility,
+    apCost: 71,
+    effectDescriptions: ['Wrong legacy explanation'],
+    tags: ['recovery'],
+  })
+const modularSkill = modularSkillFor(physical)
+const modularResonance = projectPublicCombat({ ...resonance, ability: modularAbility })
+window.modularPublicDefinition = modularSkill
 window.paletteDefinitions = { physical, mystic, guard, resonance, essence }
 window.requests = []
 window.fetch = async (url) => {
   window.requests.push(String(url))
   return new Response(JSON.stringify({ slots: [], entries: [], preferences: {} }))
+}
+
+const basicOptions = basicService
+  ? await (await nativeFetch('/__basic-acceptance/options')).json()
+  : defaultBasicSkills().map((definition) => ({
+      id: definition.id,
+      label: definition.name,
+      definition,
+      currentVersion: definition.contentVersion,
+      baseVersion: definition.contentVersion,
+      draftVersion: definition.id === 'basic.guard' ? 4 : null,
+      ...(definition.id === 'basic.guard'
+        ? { initialDraft: { ...definition, name: 'Saved Guard draft' } }
+        : {}),
+      history: [
+        {
+          contentVersion: definition.contentVersion,
+          source: 'static-baseline',
+          current: true,
+          publishedAt: null,
+        },
+      ],
+    }))
+if (basicService) window.fetch = nativeFetch
+if (query.get('surface') === 'basic-editor' && !basicService) {
+  const versions = new Map(basicOptions.map((row) => [row.id, row.draftVersion]))
+  const currentVersions = new Map(basicOptions.map((row) => [row.id, row.currentVersion]))
+  window.basicPublishedDefinitions = {}
+  window.basicPublishedVersions = []
+  window.basicDraftRequests = []
+  window.basicSavedDrafts = {}
+  window.fetch = async (url, options) => {
+    if (String(url) !== '/api/master/combat-content')
+      throw new Error('Unexpected Basic fixture request')
+    const body = JSON.parse(options.body)
+    window.basicDraftRequests.push(structuredClone(body))
+    if (body.operation === 'diff')
+      return Response.json({
+        diff: {
+          changedPaths:
+            JSON.stringify(body.before) === JSON.stringify(body.after) ? [] : ['ability', 'name'],
+        },
+      })
+    const issues = validateBasicSkillDefinition(body.definition)
+    if (body.operation === 'preview') {
+      const group = body.definition.ability.behaviors.find(
+        (row) => row.id === body.behaviorId && row.activation === 'manual' && row.mode === 'action',
+      )
+      if (!group)
+        return Response.json({ error: { message: 'Unsupported preview group.' } }, { status: 400 })
+      return Response.json({
+        preview: {
+          behaviorId: group.id,
+          legal: issues.length === 0 && body.definition.enabled,
+          costs: {
+            actionEconomy: group.costs.find((row) => row.resource === 'ap')?.amount ?? 0,
+            mp: group.costs.find((row) => row.resource === 'mp')?.amount ?? 0,
+            hp: group.costs.find((row) => row.resource === 'hp')?.amount ?? 0,
+          },
+          ...(group.effects.some((row) => row.payload.type === 'move')
+            ? {
+                movement: {
+                  path: [
+                    { x: 2, y: 1 },
+                    { x: 3, y: 1 },
+                  ],
+                },
+              }
+            : {}),
+          projections: { effects: group.effects.map((row) => ({ effectType: row.payload.type })) },
+        },
+      })
+    }
+    if (body.operation === 'publish') {
+      const id = body.definition.id
+      if (window.rejectBasicPublish || body.expectedBaseVersion !== currentVersions.get(id))
+        return Response.json(
+          {
+            error: {
+              code: 'STALE_VERSION',
+              message: 'Combat content changed. Refresh the authoritative version and retry.',
+            },
+          },
+          { status: 409 },
+        )
+      if (issues.length)
+        return Response.json(
+          { error: { code: 'INVALID_REQUEST', message: 'Invalid Basic definition.' } },
+          { status: 400 },
+        )
+      if (window.holdBasicPublish)
+        await new Promise((resolve) => {
+          window.releaseBasicPublish = resolve
+        })
+      const contentVersion = currentVersions.get(id) + 1
+      const definition = { ...structuredClone(body.definition), contentVersion }
+      currentVersions.set(id, contentVersion)
+      window.basicPublishedDefinitions[id] = definition
+      window.basicPublishedVersions.push({ id, contentVersion })
+      return Response.json({
+        published: { definition, contentVersion, publishedAt: '2026-10-15T18:30:00.000Z' },
+      })
+    }
+    if (body.operation === 'validate')
+      return Response.json({
+        validation: { valid: issues.length === 0, issues, derivedTags: body.definition.tags },
+      })
+    if (body.operation !== 'save-draft') throw new Error('Unexpected Basic fixture operation')
+    const id = body.definition.id
+    if (body.expectedDraftVersion !== versions.get(id))
+      return Response.json(
+        { error: { code: 'DRAFT_CONFLICT', message: 'Draft changed. Refresh and retry.' } },
+        { status: 409 },
+      )
+    if (window.holdBasicSave)
+      await new Promise((resolve) => {
+        window.releaseBasicSave = resolve
+      })
+    const draftVersion = (versions.get(id) ?? 0) + 1
+    versions.set(id, draftVersion)
+    window.basicSavedDrafts[id] = structuredClone(body.definition)
+    return Response.json({ draft: { draftVersion } })
+  }
+}
+// The API responses below are fixture receipts. Real service/kernel evaluation is
+// covered separately by combat-content-authoring-service.test.ts.
+const previewGuard = defaultBasicSkills().find((row) => row.id === 'basic.guard').ability
+  .behaviors[0]
+const selectableAbility = parseAbilityDefinition({
+  schemaVersion: 1,
+  behaviors: [
+    {
+      ...previewGuard,
+      id: 'brace',
+      costs: [{ resource: 'ap', amount: 5 }],
+      effects: [{ id: 'ward', payload: { type: 'barrier-change', recipient: 'actor', amount: 1 } }],
+    },
+    {
+      ...previewGuard,
+      id: 'recover',
+      classification: 'recovery',
+      costs: [
+        { resource: 'ap', amount: 13 },
+        { resource: 'mp', amount: 3 },
+      ],
+      effects: [{ id: 'mend', payload: { type: 'healing', recipient: 'actor', amount: 17 } }],
+    },
+  ],
+})
+if (query.get('surface') === 'selected-preview') {
+  window.groupPreviewRequests = []
+  window.fetch = async (url, options) => {
+    if (String(url) !== '/api/master/combat-content')
+      throw new Error('Unexpected preview fixture request')
+    const body = JSON.parse(options.body)
+    window.groupPreviewRequests.push(structuredClone(body))
+    if (body.operation === 'validate')
+      return Response.json({ validation: { valid: true, issues: [], derivedTags: [] } })
+    if (body.operation === 'diff')
+      return Response.json({ diff: { changedPaths: ['ability.behaviors'] } })
+    if (body.operation !== 'preview') throw new Error('Unexpected preview fixture operation')
+    const group = body.definition.ability.behaviors.find((row) => row.id === body.behaviorId)
+    if (!group)
+      return Response.json(
+        { error: { message: 'Select a supported Manual action group.' } },
+        { status: 400 },
+      )
+    if (window.holdGroupPreview)
+      await new Promise((resolve) => {
+        window.releaseGroupPreview = resolve
+      })
+    return Response.json({
+      preview: {
+        behaviorId: group.id,
+        legal: true,
+        ...(group.effects.some((effect) => effect.timing === 'controlled')
+          ? { simulation: { preparation: 'free-controlled-prime' } }
+          : {}),
+        costs: {
+          actionEconomy: group.costs.find((row) => row.resource === 'ap')?.amount ?? 0,
+          mp: group.costs.find((row) => row.resource === 'mp')?.amount ?? 0,
+        },
+        projections: {
+          effects: group.effects.map((effect) => ({ effectType: effect.payload.type })),
+        },
+      },
+    })
+  }
+}
+function SelectedPreviewEditor() {
+  const isEssence = query.get('kind') === 'essence'
+  const definition = isEssence
+    ? { ...essence, skill: { ...essence.skill, ability: selectableAbility } }
+    : { ...physical, ability: selectableAbility }
+  const option = {
+    id: isEssence ? definition.essenceId : definition.id,
+    sourceDisciplineId: definition.sourceDisciplineId,
+    label: isEssence ? definition.name : 'Preview Skill',
+    currentVersion: definition.contentVersion,
+    baseVersion: definition.contentVersion,
+    draftVersion: null,
+    derivedTags: [],
+    definition,
+    history: [],
+  }
+  return (
+    <main
+      className={`av-master ${masterTheme.workspace}`}
+      style={{ display: 'block', height: 'auto', padding: 12 }}
+    >
+      <SkillEffectTimingProvider policy={defaultCombatEffectTimingPolicy()}>
+        {isEssence ? (
+          <EssenceContentEditor essences={[option]} />
+        ) : (
+          <CombatContentEditor skills={[option]} />
+        )}
+      </SkillEffectTimingProvider>
+    </main>
+  )
+}
+
+function BasicEditor() {
+  return (
+    <main
+      className={`av-master ${masterTheme.workspace}`}
+      style={{ display: 'block', height: 'auto', padding: 12 }}
+    >
+      <SkillEffectTimingProvider policy={defaultCombatEffectTimingPolicy()}>
+        <CombatContentAuthoringWorkspace
+          basics={basicOptions}
+          skills={[]}
+          essences={[]}
+          resonances={[]}
+          initialContentType="basics"
+        />
+      </SkillEffectTimingProvider>
+    </main>
+  )
 }
 
 const sectionStyle = { background: '#0a202b', color: '#f0e8dc', padding: 12, marginBottom: 12 }
@@ -73,6 +396,71 @@ function BlindsideAuthoring() {
     </section>
   )
 }
+function ModularReaders() {
+  return (
+    <main style={{ padding: 16, maxWidth: 780 }}>
+      <section aria-label="Modular Master details" style={sectionStyle}>
+        <SkillDetails skill={modularSkill} expanded />
+      </section>
+      <section aria-label="Modular Nexus parameters" style={sectionStyle}>
+        <SkillParameters skill={modularSkill} />
+      </section>
+      <section aria-label="Modular Resonance parameters" style={sectionStyle}>
+        <ResonanceParameters definition={modularResonance} />
+      </section>
+    </main>
+  )
+}
+function ModularManual() {
+  const article = createTechniquesManualArticle({
+    skills: [modularSkill],
+    basics: projectPublicCombat(
+      defaultBasicSkills().map((basic, index) => ({
+        ...basic,
+        name: `Edited ${basic.id}`,
+        contentVersion: basic.contentVersion + 1,
+        ability: parseAbilityDefinition({
+          schemaVersion: 1,
+          behaviors: [
+            {
+              ...basic.ability.behaviors[0],
+              costs: [{ resource: 'ap', amount: 21 + index }],
+            },
+          ],
+        }),
+      })),
+    ),
+    timingPolicy: defaultCombatEffectTimingPolicy(),
+  })
+  return (
+    <main style={{ padding: 16 }}>
+      <ManualArticle {...article} />
+    </main>
+  )
+}
+function CanonicalEditor() {
+  const [definition, setDefinition] = React.useState(() => structuredClone(modularAbility))
+  const [notes, setNotes] = React.useState(['Walk <once> & return', null, 'Maintain guard'])
+  React.useEffect(() => {
+    window.inspectEditedAbility = () => ({ definition: parseAbilityDefinition(definition), notes })
+    return () => {
+      delete window.inspectEditedAbility
+    }
+  }, [definition, notes])
+  return (
+    <main style={{ padding: 16, maxWidth: 1000, background: '#0a202b', color: '#f0e8dc' }}>
+      <h1>Modular Ability</h1>
+      <AbilityDefinitionEditor
+        value={definition}
+        effectDescriptions={notes}
+        onChange={(next, descriptions) => {
+          setDefinition(next)
+          setNotes(descriptions)
+        }}
+      />
+    </main>
+  )
+}
 function Reports() {
   return (
     <main style={{ padding: 16, maxWidth: 780 }}>
@@ -86,9 +474,7 @@ function Reports() {
       ].map(([family, skill]) => (
         <React.Fragment key={family}>
           <section aria-label={`Nexus ${family} parameters`} style={sectionStyle}>
-            <dl>
-              <SkillParameters skill={skill} />
-            </dl>
+            <SkillParameters skill={skill} />
           </section>
           <section aria-label={`Master ${family} details`} style={sectionStyle}>
             <SkillDetails skill={skill} expanded />
@@ -117,15 +503,14 @@ function Reports() {
         <ResonanceParameters definition={resonance} />
       </BattleInfoPopover>
       <BattleInfoPopover label="Read pinned Mystic Skill" title="Aether Cut">
-        <dl>
-          <SkillParameters skill={mystic} />
-        </dl>
+        <SkillParameters skill={mystic} />
       </BattleInfoPopover>
     </main>
   )
 }
 function Nexus() {
   const pure = query.get('attunement') === 'essence'
+  const modular = query.get('modular') === '1'
   const primaryId = pure ? 'vanguard' : 'wildwarden'
   const primary = {
     ...DISCIPLINE_ATLAS.find((entry) => entry.id === primaryId),
@@ -163,9 +548,28 @@ function Nexus() {
     },
     disciplineSkills: {
       capacity: 4,
-      learnedSkills: [],
+      learnedSkills: modular
+        ? [
+            {
+              definition: modularSkillFor(
+                resolveMatureSkillVersion(
+                  pure ? 'vanguard.forceful-strike' : 'wildwarden.renewing-herbs',
+                ),
+              ),
+              learnedAt: '2026-10-15T00:00:00Z',
+              activeSource: true,
+            },
+          ]
+        : [],
       equippedSkills: [],
-      extensions: { resonance: pure ? null : resonance, essence: pure ? essence : null },
+      extensions: {
+        resonance: pure ? null : modular ? modularResonance : resonance,
+        essence: pure
+          ? modular
+            ? { ...essence, skill: modularSkillFor(essence.skill) }
+            : essence
+          : null,
+      },
     },
   }
   return (
@@ -284,9 +688,7 @@ function FireReaders() {
           <SkillDetails skill={definition} expanded />
         </section>
         <section aria-label="Nexus Fire parameters" style={sectionStyle}>
-          <dl>
-            <SkillParameters skill={definition} />
-          </dl>
+          <SkillParameters skill={definition} />
         </section>
         <BattleInfoPopover label="About Fire report" title="Fire report" trigger="!">
           <BattleSkillParameters skill={battleSkill(definition)} />
@@ -296,7 +698,17 @@ function FireReaders() {
   )
 }
 createRoot(document.getElementById('root')).render(
-  query.get('surface') === 'nexus' ? (
+  query.get('surface') === 'selected-preview' ? (
+    <SelectedPreviewEditor />
+  ) : query.get('surface') === 'basic-editor' ? (
+    <BasicEditor />
+  ) : query.get('surface') === 'canonical-editor' ? (
+    <CanonicalEditor />
+  ) : query.get('surface') === 'modular-manual' ? (
+    <ModularManual />
+  ) : query.get('surface') === 'modular-readers' ? (
+    <ModularReaders />
+  ) : query.get('surface') === 'nexus' ? (
     <Nexus />
   ) : query.get('surface') === 'fire-readers' ? (
     <FireReaders />

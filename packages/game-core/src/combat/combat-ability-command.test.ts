@@ -12,6 +12,8 @@ import {
   finishPv1fTurn,
   hasPv1fTurnActivity,
   evaluatePv1fMatureSkill,
+  evaluatePv1fAction,
+  PV1F_BASIC_ATTACK_ID,
   executePv1fMatureSkill,
 } from './pv1f-action-economy'
 import { resolveMatureSkillVersion } from './mature-skills'
@@ -167,7 +169,7 @@ function command(
   }
 }
 
-it('present plural targeting fails closed before canonical quote or payment', () => {
+it('captured ordinary count two now uses canonical targeting without discarding its count', () => {
   const input = command()
   if (input.root.kind !== 'canonical') throw new Error('canonical fixture required')
   const behavior = input.root.source.definition.behaviors[0]!
@@ -184,12 +186,11 @@ it('present plural targeting fails closed before canonical quote or payment', ()
     [plural],
   )
   const before = JSON.stringify(unsupported.state)
-  expect(() => prepareCombatAbilityCommand(unsupported)).toThrow(
-    'canonical-plural-targeting-required',
-  )
-  expect(() => commitCombatAbilityCommand(unsupported)).toThrow(
-    'canonical-plural-targeting-required',
-  )
+  expect(prepareCombatAbilityCommand(unsupported).evaluation.legal).toBe(true)
+  expect(prepareCombatAbilityCommand(unsupported).action.target.maximumSelections).toBe(2)
+  expect(
+    commitCombatAbilityCommand(unsupported).events.filter((event) => event.event === 'ap_spent'),
+  ).toHaveLength(1)
   expect(JSON.stringify(unsupported.state)).toBe(before)
   expect(prepareCombatAbilityCommand({ ...input, manualModifiers: [] }).evaluation.legal).toBe(true)
 })
@@ -530,6 +531,53 @@ describe('one atomic captured Ability command', () => {
         .map((e) => (e.event === 'damage_applied' ? e.amount : 0)),
     ).toEqual([10, 3])
     expect(out.state.abilityRuntime!.nextCommandSequence).toBe(2)
+  })
+  it('retains the already prepared quote through native and captured Mature evaluation adapters', () => {
+    const input = command(100)
+    const native = evaluatePv1fAction(
+      input.state as ReturnType<typeof percentageDotEncounter>,
+      PV1F_BASIC_ATTACK_ID,
+      input.selection,
+      { manualModifiers: input.manualModifiers },
+    )
+    expect(native.quote?.costs).toEqual([
+      { resource: 'ap', amount: 37 },
+      { resource: 'mp', amount: 1 },
+      { resource: 'hp', amount: 2 },
+    ])
+    expect(native.quote?.participants).toHaveLength(2)
+    const definition = resolveMatureSkillVersion('vanguard.forceful-strike')!
+    const nativeMature = evaluatePv1fMatureSkill(
+      input.state as ReturnType<typeof percentageDotEncounter>,
+      definition,
+      input.selection,
+      'pve',
+      { manualModifiers: input.manualModifiers },
+    )
+    expect(nativeMature.quote?.participants).toHaveLength(2)
+    expect(nativeMature.quote?.costs.find((row) => row.resource === 'hp')?.amount).toBe(2)
+    const canonical = captureCombatAbilitySource({
+      ...source({}, 'canonical-adapter'),
+      abilityId: definition.id,
+      contentVersion: definition.contentVersion,
+    })
+    const state = reconcileCombatAbilitySources(input.state, [
+      canonical,
+      ...input.state.capturedAbilitySources!,
+    ])
+    const evaluated = evaluatePv1fMatureSkill(
+      state as ReturnType<typeof percentageDotEncounter>,
+      definition,
+      input.selection,
+      'pve',
+      { manualModifiers: input.manualModifiers },
+    )
+    expect(evaluated.quote?.costs).toEqual([
+      { resource: 'ap', amount: 18 },
+      { resource: 'mp', amount: 3 },
+      { resource: 'hp', amount: 3 },
+    ])
+    expect(evaluated.quote?.participants).toHaveLength(2)
   })
   it.each([
     [17, 20, 'insufficient-ap'],
@@ -916,7 +964,7 @@ function interruptedFire(
   return { ...input, state }
 }
 describe('paid interrupted native settlement', () => {
-  it('target defeat retains one paid attempt and the independent Fire actor cleanse with locked gates', () => {
+  it('target defeat retains the paid attempt and independent Fire cleanse without secondary HP healing', () => {
     const input = interruptedFire(),
       out = commitCombatAbilityCommand(input)
     expect(out.events.filter((e) => e.event === 'combat_action_interrupted')).toEqual([
@@ -928,7 +976,8 @@ describe('paid interrupted native settlement', () => {
       },
     ])
     expect(out.state.statusState.find((row) => row.combatantId === 'actor')!.statuses).toEqual([])
-    expect(out.state.tactical.battle.combatants.find((row) => row.id === 'actor')!.hp).toBe(20)
+    expect(out.state.tactical.battle.combatants.find((row) => row.id === 'actor')!.hp).toBe(19)
+    expect(out.events.filter((event) => event.event === 'healing_applied')).toEqual([])
     expect(readPv1fActionEconomy(out.state as never)!.current).toBe(70)
     expect(out.state.abilityRuntime!.nextCommandSequence).toBe(2)
     expect(out.state.abilityRuntime!.usage).toHaveLength(2)

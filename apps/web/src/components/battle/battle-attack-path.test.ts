@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import type { TacticalBattleState } from '@aurevane/game-core/combat/board'
 import { createPv1fBasicAttackDefinition } from '@aurevane/game-core/combat/pv1f-action-economy'
-import { battleAttackReachTiles, battleTargetReachTiles } from './battle-attack-path'
+import {
+  battleActionDealsDamage,
+  battleAttackReachTiles,
+  battleTargetReachTiles,
+} from './battle-attack-path'
 import { createPendingBattle, startBattle } from '@aurevane/game-core/combat/battle-state'
 import { createTacticalBattleState } from '@aurevane/game-core/combat/board'
 import { createCombatEncounterState } from '@aurevane/game-core/combat/actions'
@@ -19,7 +23,34 @@ const tactical = {
 const basic = createPv1fBasicAttackDefinition(1)
 const origin = { x: 3, y: 3 }
 
+it('uses captured damage presence ahead of an absent or stale native envelope', () => {
+  expect(battleActionDealsDamage([], true)).toBe(true)
+  expect(battleActionDealsDamage([{ type: 'damage' }], false)).toBe(false)
+  expect(battleActionDealsDamage([{ type: 'damage' }])).toBe(true)
+  expect(battleActionDealsDamage([])).toBe(false)
+})
+
 describe('armed damage reach', () => {
+  it.each([
+    [{ kind: 'line', length: 3 }, 3, 12],
+    [{ kind: 'circle', radius: 2 }, 2, 24],
+    [{ kind: 'all' }, 0, 49],
+  ] as const)(
+    'keeps the full geometry-three %j potential independent of victims',
+    (shape, range, count) => {
+      expect(
+        battleTargetReachTiles(tactical, origin, {
+          ...basic.target,
+          geometryVersion: 3,
+          categories: ['enemy'],
+          maximumSelections: 1,
+          minimumRange: 0,
+          maximumRange: range,
+          shape,
+        }).size,
+      ).toBe(count)
+    },
+  )
   it('shows all four Basic Attack neighbors without any detected target or forecast', () => {
     expect(
       [...battleAttackReachTiles(tactical, origin, basic.target, basic.effects)].sort(),

@@ -1,6 +1,16 @@
+import {
+  combatEffectTimingMode,
+  currentCombatEffectTimingTag,
+  type CombatEffectTimingPolicy,
+} from './combat-effect-timing'
 import { automaticAbilityEventSupported } from './combat-ability-events'
+import {
+  validateCombatGroundAreaDefinition,
+  type CombatGroundAreaDefinition,
+} from './combat-ground-areas'
 import type { CombatTargetSpec } from './actions'
 import { validateCombatActionDefinition } from './combat-authoring-validation'
+import { canonicalAbilityTargetSpec, combatTargetAllowsHostileHit } from './combat-targeting-shapes'
 import { validateSkillCooldownDefinition, type SkillCooldownDefinition } from './skill-cooldowns'
 import {
   validateAbilityRequirements,
@@ -51,7 +61,14 @@ export interface AbilityEffect {
   /** Recipient belongs solely to this implemented payload, never to this wrapper. */
   readonly payload: CombatTagPayload
   readonly requirements?: RequirementNode | null
-  readonly timing?: 'instant' | 'next-round' | 'delayed'
+  readonly timing?: 'instant' | 'next-round' | 'delayed' | 'controlled'
+}
+export interface AbilityGroundAreaDefinition extends Omit<
+  CombatGroundAreaDefinition,
+  'entryEffectOrdinals'
+> {
+  /** Stable group-local IDs survive reordering and specialized packet routing. */
+  readonly entryEffectIds: readonly string[]
 }
 export interface AbilityBehavior {
   readonly id: string
@@ -64,6 +81,7 @@ export interface AbilityBehavior {
   readonly requirements: RequirementNode | null
   readonly targeting: AbilityTargeting | null
   readonly effects: readonly AbilityEffect[]
+  readonly groundArea?: AbilityGroundAreaDefinition
   /** Private authoring; public projections must recursively omit this and accuracyRule. */
   readonly accuracy?: CombatAccuracyRule
   readonly automaticTarget?: { readonly subject: AutomaticAbilityTargetSubject }
@@ -84,6 +102,7 @@ export interface AbilityDefinitionIssue {
     | 'invalid-cost'
     | 'invalid-cooldown'
     | 'invalid-targeting'
+    | 'invalid-ground-area'
     | 'invalid-requirement'
     | 'requirement-budget'
     | 'invalid-accuracy'
@@ -179,6 +198,7 @@ export function validateAbilityDefinition(value: unknown): readonly AbilityDefin
         'accuracy',
         'activationLimits',
         'automaticTarget',
+        'groundArea',
       ],
       path,
     )
@@ -319,14 +339,19 @@ export function validateAbilityDefinition(value: unknown): readonly AbilityDefin
             'maximumElevationDifference',
             'friendlyFire',
             'maximumSelections',
+            'categories',
           ],
           `${path}.targeting`,
         )
-        if (target.geometryVersion !== undefined && target.geometryVersion !== 2)
+        if (
+          target.geometryVersion !== undefined &&
+          target.geometryVersion !== 2 &&
+          target.geometryVersion !== 3
+        )
           issue(
             `${path}.targeting.geometryVersion`,
             'invalid-targeting',
-            'Canonical geometry supports version 2 only.',
+            'Canonical geometry supports versions 2 and 3.',
           )
         if (
           !nonnegative(target.maximumSelections) ||
@@ -368,24 +393,24 @@ export function validateAbilityDefinition(value: unknown): readonly AbilityDefin
         candidate.activation !== 'automatic' ||
         candidate.mode !== 'action' ||
         !record(target) ||
-        !['self', 'unit'].includes(target.kind as string) ||
+        !['self', 'unit', 'ground-tile', 'empty-tile'].includes(target.kind as string) ||
         !record(target.shape) ||
-        target.shape.kind !== 'single' ||
+        !['single', 'line'].includes(target.shape.kind as string) ||
         (target.kind === 'self' && binding.subject !== 'owner')
       )
         issue(
           `${path}.automaticTarget`,
           'invalid-automatic-target',
-          'Automatic target binding applies only to Automatic Self/ordinary unit actions; Self binds owner.',
+          'Automatic single/Line actions bind a causal subject; Self binds owner; Circle/All use owner activation.',
         )
       if (record(binding)) keys(binding, ['subject'], `${path}.automaticTarget`)
     } else if (
       candidate.activation === 'automatic' &&
       candidate.mode === 'action' &&
       record(target) &&
-      target.kind === 'unit' &&
+      target.kind !== 'self' &&
       record(target.shape) &&
-      target.shape.kind === 'single'
+      ['single', 'line'].includes(target.shape.kind as string)
     )
       issue(
         `${path}.automaticTarget`,
@@ -413,11 +438,7 @@ export function validateAbilityDefinition(value: unknown): readonly AbilityDefin
         )
       if (
         !record(target) ||
-        !['unit', 'ground-tile'].includes(target.kind as string) ||
-        !['enemy', 'any'].includes(target.teamPolicy as string) ||
-        !['enemies-only', 'all-units', 'all-except-actor'].includes(
-          target.friendlyFire as string,
-        ) ||
+        !combatTargetAllowsHostileHit(target as unknown as CombatTargetSpec) ||
         candidate.mode !== 'action'
       )
         issue(
@@ -466,6 +487,15 @@ export function validateAbilityDefinition(value: unknown): readonly AbilityDefin
           'This Tag does not support that timing.',
         )
       if (
+        effect.timing === 'controlled' &&
+        (candidate.activation !== 'manual' || candidate.mode !== 'action')
+      )
+        issue(
+          `${effectPath}.timing`,
+          'unsupported-combination',
+          'Controlled requires a player-released whole Manual action.',
+        )
+      if (
         candidate.activation === 'ongoing' &&
         effect.requirements !== undefined &&
         effect.requirements !== null
@@ -477,6 +507,87 @@ export function validateAbilityDefinition(value: unknown): readonly AbilityDefin
         )
       payloads.push(payload)
     }
+    if (Object.hasOwn(candidate, 'groundArea')) {
+      const ground = candidate.groundArea
+      const groundPath = `${path}.groundArea`
+      if (record(ground))
+        keys(ground, ['durationRounds', 'visualPresetId', 'entryEffectIds', 'timing'], groundPath)
+      try {
+        if (
+          !record(ground) ||
+          candidate.mode !== 'action' ||
+          !record(target) ||
+          (target.categories !== undefined &&
+            (!Array.isArray(target.categories) ||
+              target.categories.some((category) => category !== 'ground'))) ||
+          candidate.effects.some((effect) => record(effect) && effect.timing === 'controlled') ||
+          !allEffectsValid ||
+          !Array.isArray(ground.entryEffectIds) ||
+          ground.entryEffectIds.length === 0 ||
+          new Set(ground.entryEffectIds).size !== ground.entryEffectIds.length ||
+          ground.entryEffectIds.some((id) => typeof id !== 'string')
+        )
+          throw new TypeError(
+            'Persistent areas require Ground-only action targeting and distinct supported effect IDs; Controlled areas are unsupported.',
+          )
+        const entryEffectIds = ground.entryEffectIds
+        const nativeEffects = candidate.effects.filter(
+          (effect) =>
+            record(effect) &&
+            record(effect.payload) &&
+            !['move', 'summon', 'damage-bonus'].includes(effect.payload.type as string),
+        ) as unknown as AbilityEffect[]
+        if (
+          nativeEffects.some(
+            (effect) => entryEffectIds.includes(effect.id) && effect.payload.type === 'pierce',
+          )
+        )
+          throw new TypeError(
+            'Pierce requires its specialized equipment Armor resolver and cannot repeat on Ground entry.',
+          )
+        validateCombatGroundAreaDefinition({
+          target: canonicalAbilityTargetSpec(target as unknown as CombatTargetSpec),
+          effects: nativeEffects.map((effect) => nativeCombatTagPayload(effect.payload)),
+          groundArea: {
+            durationRounds: ground.durationRounds as number,
+            visualPresetId: ground.visualPresetId as CombatGroundAreaDefinition['visualPresetId'],
+            entryEffectOrdinals: entryEffectIds.map((id) =>
+              nativeEffects.findIndex((effect) => effect.id === id),
+            ),
+            ...(Object.hasOwn(ground, 'timing')
+              ? { timing: ground.timing as CombatGroundAreaDefinition['timing'] }
+              : {}),
+          },
+        })
+      } catch (error) {
+        issue(
+          groundPath,
+          'invalid-ground-area',
+          error instanceof Error ? error.message : 'Invalid persistent Ground area.',
+        )
+      }
+    }
+    if (
+      candidate.effects.some((effect) => record(effect) && effect.timing === 'controlled') &&
+      payloads.some((payload) => payload.type === 'summon')
+    )
+      issue(
+        path,
+        'unsupported-combination',
+        'Controlled Summon requires its dedicated release authority.',
+      )
+    if (
+      candidate.effects.some((effect) => record(effect) && effect.timing === 'controlled') &&
+      payloads.some(
+        (payload) =>
+          payload.type === 'return-to-turn-start' && payload.anchorMode !== 'cast-position',
+      )
+    )
+      issue(
+        path,
+        'unsupported-combination',
+        'Controlled Rewind requires a captured cast-position anchor.',
+      )
     if (
       candidate.accuracy !== undefined &&
       !payloads.some(
@@ -491,18 +602,21 @@ export function validateAbilityDefinition(value: unknown): readonly AbilityDefin
       )
     if (allEffectsValid && record(target) && record(target.shape) && candidate.mode === 'action') {
       try {
-        const { maximumSelections: _count, ...nativeTarget } = target
-        void _count
         validateCombatActionDefinition({
           id: typeof candidate.id === 'string' ? candidate.id : 'invalid',
           version: 1,
           sourceType: 'discipline-skill',
           tags: [],
-          target: { ...nativeTarget, geometryVersion: 2 } as unknown as CombatTargetSpec,
+          target: canonicalAbilityTargetSpec(target as unknown as CombatTargetSpec),
           cost: { spendsAction: true, mp: 0 },
           requirements: [],
           effects: payloads
-            .filter((payload) => payload.type !== 'summon' && payload.type !== 'damage-bonus')
+            .filter(
+              (payload) =>
+                payload.type !== 'summon' &&
+                payload.type !== 'damage-bonus' &&
+                payload.type !== 'move',
+            )
             .map(nativeCombatTagPayload),
         })
       } catch (error) {
@@ -513,7 +627,31 @@ export function validateAbilityDefinition(value: unknown): readonly AbilityDefin
         )
       }
     }
+    const moves = payloads.filter((payload) => payload.type === 'move')
+    if (
+      moves.length &&
+      (moves.length !== 1 ||
+        payloads[0]?.type !== 'move' ||
+        payloads.some((payload) => payload.type === 'summon'))
+    )
+      issue(
+        path,
+        'unsupported-combination',
+        'Move must occur once, first, and cannot share a group with Summon.',
+      )
     const summons = payloads.filter((payload) => payload.type === 'summon')
+    if (
+      summons.length > 0 &&
+      record(target) &&
+      (target.maximumSelections !== 1 || !record(target.shape) || target.shape.kind !== 'single')
+    )
+      issue(path, 'unsupported-combination', 'Summon requires one single empty-tile selection.')
+    if (summons.length > 0 && payloads.at(-1)?.type !== 'summon')
+      issue(
+        path,
+        'unsupported-combination',
+        'Summon must be the final effect in its Manual action group.',
+      )
     if (candidate.mode === 'modifier') {
       for (const [ordinal, payload] of payloads.entries()) {
         if (payload.type !== 'apply-status' && payload.type !== 'remove-status') continue
@@ -654,4 +792,30 @@ export function validAccuracy(value: unknown): value is CombatAccuracyRule {
     nonnegative(value.chanceBasisPoints) &&
     value.chanceBasisPoints <= 10000
   )
+}
+
+/** Resolve pinned defaults without rewriting the authored/captured definition or its version. */
+export function applyAbilityTimingDefaults(
+  behavior: AbilityBehavior,
+  policy?: CombatEffectTimingPolicy,
+): AbilityBehavior {
+  if (!policy || !Object.values(policy.modes).includes('controlled')) return behavior
+  const effects = behavior.effects.map((effect) => {
+    if (
+      effect.timing !== undefined ||
+      effect.payload.type === 'move' ||
+      effect.payload.type === 'damage-bonus'
+    )
+      return effect
+    const tag =
+      effect.payload.type === 'summon'
+        ? 'summon'
+        : currentCombatEffectTimingTag(nativeCombatTagPayload(effect.payload))
+    return combatEffectTimingMode(policy, tag) === 'controlled'
+      ? { ...effect, timing: 'controlled' as const }
+      : effect
+  })
+  if (effects.every((effect, ordinal) => effect === behavior.effects[ordinal])) return behavior
+  return parseAbilityDefinition({ schemaVersion: 1, behaviors: [{ ...behavior, effects }] })
+    .behaviors[0]!
 }

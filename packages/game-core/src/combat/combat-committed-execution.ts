@@ -1,3 +1,4 @@
+import type { GridPosition } from './board'
 import type {
   CombatActionDefinition,
   CombatEncounterState,
@@ -9,7 +10,14 @@ declare const committedExecutionBrand: unique symbol
 export interface CommittedCombatExecution {
   readonly [committedExecutionBrand]: true
 }
+export interface CommittedCombatMovement {
+  readonly path: readonly GridPosition[]
+  readonly maximumTiles: number
+}
 interface Admission {
+  readonly returnAnchor?: GridPosition
+  readonly movement?: string
+  movementConsumed: boolean
   readonly battleId: string
   readonly turnNumber: number
   readonly actorId: string
@@ -31,6 +39,8 @@ export function issueCommittedCombatExecution(
   selection: CombatTargetSelection,
   context: CombatResolutionContext,
   manual: boolean,
+  movement?: CommittedCombatMovement,
+  returnAnchor?: GridPosition,
 ): CommittedCombatExecution {
   const token = Object.freeze({}) as CommittedCombatExecution
   issued.set(token, {
@@ -42,10 +52,37 @@ export function issueCommittedCombatExecution(
     action: JSON.stringify(action),
     selection: JSON.stringify(selection),
     provenance: JSON.stringify(context.provenance),
+    ...(movement ? { movement: JSON.stringify(movement) } : {}),
+    ...(returnAnchor ? { returnAnchor: Object.freeze({ ...returnAnchor }) } : {}),
+    movementConsumed: false,
     consumed: false,
     settled: false,
   })
   return token
+}
+
+/** A single walking leg belongs to the same immutable, already paid command capability. */
+export function consumeCommittedCombatMovement(
+  token: CommittedCombatExecution,
+  state: CombatEncounterState,
+  actorId: string,
+  movement: CommittedCombatMovement,
+): void {
+  const admission = issued.get(token),
+    battle = state.tactical.battle
+  if (
+    !admission ||
+    admission.consumed ||
+    admission.movementConsumed ||
+    !admission.manual ||
+    admission.battleId !== battle.battleId ||
+    admission.actorId !== actorId ||
+    admission.turnNumber !== battle.turnNumber ||
+    battle.currentTurn?.combatantId !== actorId ||
+    admission.movement !== JSON.stringify(movement)
+  )
+    throw new TypeError('invalid-committed-movement-authority')
+  admission.movementConsumed = true
 }
 
 export function consumeCommittedCombatExecution(
@@ -54,12 +91,13 @@ export function consumeCommittedCombatExecution(
   action: CombatActionDefinition,
   selection: CombatTargetSelection,
   context: CombatResolutionContext,
-): void {
+): GridPosition | undefined {
   const admission = issued.get(token)
   const battle = state.tactical.battle
   if (
     !admission ||
     admission.consumed ||
+    (admission.movement !== undefined && !admission.movementConsumed) ||
     admission.battleId !== battle.battleId ||
     admission.actorId !== context.provenance.sourceCombatantId ||
     admission.action !== JSON.stringify(action) ||
@@ -71,6 +109,7 @@ export function consumeCommittedCombatExecution(
   )
     throw new TypeError('invalid-committed-execution-authority')
   admission.consumed = true
+  return admission.returnAnchor ? { ...admission.returnAnchor } : undefined
 }
 
 /** Legacy emission suppression is possible only after the native wrapper consumed issuance. */
