@@ -1,6 +1,6 @@
-# Modular correction release — implementation checkpoint
+# Modular correction release — historical implementation log
 
-Status: **IN PROGRESS, NOT RELEASED**. The Owner authorized one combined correction drop before broader Master work, which stays isolated at `0350184a9`. Fresh main remains `2d933b0782f1c6c872782799fc4bc24954b6154d`. Draft PR #936 publishes the review source; no correction publication, migration application, merge or deployment has occurred. Initial remote head `8b30c8a863792aa220eb9d9eae4e139b57386f7d` exactly matches local4162cb92 tree `1429c77c90cc2f3c6a80ec78e6c8e023b3614af5`. The connected GitHub path is used because terminal push has no credentials.
+Status: **LIVE for testing, verified2026-10-18T20:02:28.798Z**. PR #936, merge `db1dc0d6a0c7c728d3d10bbb7f5ad5fa1faeed50`, is deployed and all294 definitions/global policy8 are active. See `2026-10-18-modular-correction-release-handoff.md` for final receipts, complete passing gates and Master continuation. The entries below preserve intermediate observations and superseded pending tasks; they are not current release status. The old Staff source checkpoint0350184a9 was not recovered after workspace pruning.
 
 ## Implemented locally
 
