@@ -152,6 +152,7 @@ export class WorldMotion {
   private origin: MapPoint
   private route: { point: MapPoint; position: WorldPosition; duration: number }[] = []
   private startedAt = 0
+  private previewEndsAt: number | null = null
   private standing: WorldPosition
   private approvedOrigin: WorldPosition
   private approvedRoute: readonly TravelStep[] = []
@@ -223,7 +224,7 @@ export class WorldMotion {
   }
   private trimVisualToScene(sectors: WorldView['sectors'], now: number) {
     const visual = this.sample(now)
-    let elapsed = Math.max(0, now - this.startedAt),
+    let elapsed = this.visualElapsed(now),
       index = 0
     while (index < this.route.length && elapsed + 1e-7 >= this.route[index]!.duration) {
       elapsed = Math.max(0, elapsed - this.route[index]!.duration)
@@ -278,6 +279,7 @@ export class WorldMotion {
           this.standing = visual.position
           this.route = []
           this.startedAt = now
+          this.previewEndsAt = null
           this.extendApprovedVisual = false
         } else this.route = this.route.slice(0, next)
         return
@@ -366,10 +368,13 @@ export class WorldMotion {
         now,
     )
   }
+  private visualElapsed(now: number) {
+    return Math.max(0, Math.min(now, this.previewEndsAt ?? now) - this.startedAt)
+  }
   sample(now: number): { point: MapPoint; position: WorldPosition; moving: boolean } {
     now = this.suspendedAt ?? now
     this.lastSampledAt = now
-    let elapsed = Math.max(0, now - this.startedAt),
+    let elapsed = this.visualElapsed(now),
       point = this.origin,
       position = this.standing
     for (const step of this.route) {
@@ -382,7 +387,7 @@ export class WorldMotion {
             y: point.y + (step.point.y - point.y) * amount,
           },
           position,
-          moving: true,
+          moving: this.previewEndsAt === null || now + 1e-7 < this.previewEndsAt,
         }
       }
       elapsed = Math.max(0, elapsed - step.duration)
@@ -394,7 +399,7 @@ export class WorldMotion {
   /** Finish the current supplied visual step when continuous input is released. */
   nextLanding(now: number): WorldPosition {
     now = this.suspendedAt ?? now
-    let elapsed = Math.max(0, now - this.startedAt)
+    let elapsed = this.visualElapsed(now)
     for (const step of this.route) {
       if (elapsed + 1e-7 < step.duration) return step.position
       elapsed = Math.max(0, elapsed - step.duration)
@@ -405,6 +410,7 @@ export class WorldMotion {
     if (this.movementFrozen) return
     now = this.suspendedAt ?? now
     const sample = this.sample(now)
+    this.previewEndsAt = null
     // Routing may finish after an in-flight step lands. Discard that completed
     // prefix before applying the preview budget; retaining it rewinds the visual
     // or spends the whole slow-terrain preview on a tile already reached.
@@ -456,7 +462,14 @@ export class WorldMotion {
       const end = this.route.findIndex(
         (step, index) => index >= common && (unconfirmed += step.duration) > 600,
       )
-      if (end >= 0) this.route = this.route.slice(0, end)
+      if (end >= 0) {
+        // A partial turn seldom divides into whole 200ms intervals. Keep the
+        // intersecting segment and freeze its clock at the exact preview bound;
+        // dropping it would insert a pause before a timely approval arrives.
+        this.previewEndsAt =
+          now + this.route.slice(0, common).reduce((sum, step) => sum + step.duration, 0) + 600
+        this.route = this.route.slice(0, end + 1)
+      }
     }
     this.extendApprovedVisual =
       common === route.length &&
@@ -467,6 +480,14 @@ export class WorldMotion {
   reconcile(view: WorldView, now: number) {
     const visual = this.sample(now)
     this.approve(view, now)
+    this.reconcileVisual(view, now, visual)
+  }
+  /** Confirm the latest plan against authority already received through hydration. */
+  confirmApproved(view: WorldView, now: number) {
+    this.reconcileVisual(view, now, this.sample(now))
+  }
+  private reconcileVisual(view: WorldView, now: number, visual: ReturnType<WorldMotion['sample']>) {
+    this.previewEndsAt = null
     now = this.suspendedAt ?? now
     this.extendApprovedVisual = this.approvedFirstAt !== null
     if (
@@ -573,6 +594,7 @@ export class WorldMotion {
   hold(now: number) {
     now = this.suspendedAt ?? now
     const current = this.sample(now)
+    this.previewEndsAt = null
     this.origin = current.point
     this.standing = current.position
     this.route = []
@@ -582,6 +604,7 @@ export class WorldMotion {
   stop(now: number) {
     now = this.suspendedAt ?? now
     const sample = this.sample(now)
+    this.previewEndsAt = null
     this.origin = sample.point
     this.standing = sample.position
     this.route = []
@@ -594,7 +617,9 @@ export class WorldMotion {
   }
   resume(now: number) {
     if (this.suspendedAt === null) return
-    this.startedAt += Math.max(0, now - this.suspendedAt)
+    const hidden = Math.max(0, now - this.suspendedAt)
+    this.startedAt += hidden
+    if (this.previewEndsAt !== null) this.previewEndsAt += hidden
     this.suspendedAt = null
     this.lastSampledAt = now
   }

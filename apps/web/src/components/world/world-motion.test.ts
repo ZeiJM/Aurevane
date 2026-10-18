@@ -146,6 +146,69 @@ describe('world visual motion', () => {
     delayed.reconcile(receipt(), 950)
     expect(delayed.sample(951).moving).toBe(true)
   })
+  it('uses the full bounded preview during a partial direction change without landing an unapproved tile', () => {
+    const turn = [3, 2, 1, 0].map((y) => ({ position: { ...position, y }, durationMs: 200 }))
+    const motion = new WorldMotion(view)
+    motion.plan(forward, sectors, 0)
+    motion.plan(turn, sectors, 100)
+    expect(motion.sample(550).moving).toBe(true)
+    expect(motion.sample(650).moving).toBe(true)
+    expect(motion.sample(650).point).not.toEqual(motion.sample(550).point)
+    const capped = motion.sample(700)
+    expect(capped.moving).toBe(false)
+    expect(capped.position).toEqual(turn[1]!.position)
+    expect(capped.point.y).toBeGreaterThan(1.5)
+    expect(capped.point.y).toBeLessThan(2.5)
+    expect(motion.sample(900)).toEqual(capped)
+
+    const approved = new WorldMotion(view)
+    approved.plan(forward, sectors, 0)
+    approved.plan(turn, sectors, 100)
+    approved.reconcile(receipt(turn, { serverNow: 1250, nextStepAt: 1400 }), 650)
+    expect(approved.sample(700).moving).toBe(true)
+    expect(approved.sample(716).point).not.toEqual(approved.sample(700).point)
+  })
+  it('resumes a capped partial turn from its held point after late approval', () => {
+    const turn = [3, 2, 1, 0].map((y) => ({ position: { ...position, y }, durationMs: 200 }))
+    const motion = new WorldMotion(view)
+    motion.plan(forward, sectors, 0)
+    motion.plan(turn, sectors, 100)
+    const held = motion.sample(700)
+    expect(motion.sample(1100)).toEqual(held)
+    motion.reconcile(receipt(turn), 1100)
+    expect(motion.sample(1100).point).toEqual(held.point)
+    expect(motion.sample(1116).moving).toBe(true)
+    expect(motion.sample(1116).point.y).toBeLessThan(held.point.y)
+  })
+  it('uses a partial preview when the first authored interval exceeds the budget', () => {
+    const slowSectors = sectors.map((sector) => ({ ...sector, stepMs: 800 }))
+    const slow = forward.map((step) => ({ ...step, durationMs: 800 }))
+    const motion = new WorldMotion({ ...view, sectors: slowSectors })
+    motion.plan(slow, slowSectors, 0)
+    expect(motion.sample(599).moving).toBe(true)
+    const held = motion.sample(600)
+    expect(held.point.x).toBeCloseTo(2.25)
+    expect(held.position).toEqual(position)
+    expect(held.moving).toBe(false)
+    expect(motion.sample(5000)).toEqual(held)
+    motion.updateScene(slowSectors, 5000)
+    expect(motion.sample(6000)).toEqual(held)
+  })
+  it('excludes hidden time from the partial preview cap', () => {
+    const turn = [3, 2, 1, 0].map((y) => ({ position: { ...position, y }, durationMs: 200 }))
+    const motion = new WorldMotion(view)
+    motion.plan(forward, sectors, 0)
+    motion.plan(turn, sectors, 100)
+    const before = motion.sample(550)
+    motion.suspend(550)
+    expect(motion.sample(5000)).toEqual(before)
+    motion.resume(5550)
+    expect(motion.sample(5550)).toEqual(before)
+    expect(motion.sample(5699).moving).toBe(true)
+    const held = motion.sample(5700)
+    expect(held.moving).toBe(false)
+    expect(motion.sample(6000)).toEqual(held)
+  })
   it('bootstraps the approved first-step clock at an explicit performance origin', () => {
     const motion = new WorldMotion(receipt(forward, { nextStepAt: 1050 }), 5000)
     expect(motion.sample(5000).point.x).toBeCloseTo(2.25)
@@ -739,7 +802,7 @@ describe('world visual motion', () => {
   })
   it.each([
     { durationMs: 200, nextArrival: 400 },
-    { durationMs: 400, nextArrival: 815 },
+    { durationMs: 400, nextArrival: 800 },
   ])(
     'does not backtrack when a route calculation crosses a $durationMs ms tile deadline',
     ({ durationMs, nextArrival }) => {

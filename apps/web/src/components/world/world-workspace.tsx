@@ -7,7 +7,7 @@ import { WORLD_REGIONS } from '@/world/catalog'
 import { precipitationKind } from './map-weather'
 import { remainingTravelMs, worldSyncDelayMs } from '@/world/travel'
 import type { WorldAttackReceipt } from '@/world/attack-receipt'
-import { mergeWorldMovement } from '@/world/movement-receipt'
+import type { WorldMovementReceipt } from '@/world/movement-receipt'
 import { WorldNearbyPlayer } from './world-nearby-player'
 import { WorldPlacePortrait } from './world-place-portrait'
 import { mergeWorldRefresh, worldRefreshUrl } from '@/world/presence'
@@ -208,7 +208,7 @@ export function WorldWorkspace({
           return body as WorldAttackReceipt
         }
         return body.kind === 'movement'
-          ? mergeWorldMovement(current, body)
+          ? (body as WorldMovementReceipt)
           : mergeWorldRefresh(current, body as WorldView)
       },
       refresh: async (signal, fullScene) => {
@@ -237,6 +237,12 @@ export function WorldWorkspace({
         return mergeWorldRefresh(previous, body)
       },
       accept,
+      confirmMovement: (next) => {
+        if (!mounted) return
+        motion.confirmApproved(next, performance.now())
+        scheduleArrival()
+        schedule()
+      },
       sceneCovered,
       presentation: (next) => {
         if (!mounted) return

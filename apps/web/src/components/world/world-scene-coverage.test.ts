@@ -5,6 +5,14 @@ import { newWorldState } from '@/world/travel'
 import { mapPoint } from './world-motion'
 import { worldSceneCoversViewport } from './world-scene-coverage'
 const viewport = { width: 1296, height: 944, tile: 64 * 0.35 }
+it.each([64, 64 * 0.35])('supplies the reported Emberreach viewport at tile size %d', (tile) => {
+  const state = { ...newWorldState(), position: { sectorId: 'atlas:76:25', x: 9, y: 4 } }
+  const size = { width: 1218, height: 803 }
+  const view = projectWorld(state, [], 1000, undefined, undefined, size)
+  expect(
+    worldSceneCoversViewport(view, [mapPoint(view.position, view.sectors)], { ...size, tile }),
+  ).toBe(true)
+})
 it.each([
   { width: 1920, height: 1080 },
   { width: 2560, height: 1440 },

@@ -1,12 +1,272 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { WorldView } from '@/world/types'
+import type { WorldMovementReceipt } from '@/world/movement-receipt'
 import { WorldConflict, WorldController } from './world-controller'
+import { WorldMotion } from './world-motion'
 const view = { version: 1 } as WorldView
-const deferred = () => {
-  let resolve!: (value: WorldView) => void
-  const promise = new Promise<WorldView>((r) => (resolve = r))
+const deferred = <T = WorldView>() => {
+  let resolve!: (value: T) => void
+  const promise = new Promise<T>((r) => (resolve = r))
   return { promise, resolve }
 }
+it('confirms a hydrated pending route without replaying its approved clock', async () => {
+  const initial = {
+    version: 1,
+    characterId: 'owner',
+    serverNow: 1000,
+    position: { sectorId: 'a', x: 1, y: 4 },
+    route: [],
+    nextStepAt: null,
+    players: [],
+    sectors: [
+      {
+        id: 'a',
+        atlasColumn: 0,
+        atlasRow: 0,
+        exits: [],
+        cells: Array.from({ length: 117 }, (_, i) => ({
+          x: i % 13,
+          y: Math.floor(i / 13),
+          walkable: true,
+        })),
+      },
+    ],
+  } as unknown as WorldView
+  const route = [2, 3, 4, 5, 6, 7, 8, 9].map((x) => ({
+    position: { ...initial.position, x },
+    durationMs: 200,
+  }))
+  const hydrated = { ...initial, version: 2, serverNow: 1200, route, nextStepAt: 1200 }
+  const motion = new WorldMotion(initial)
+  motion.plan(route, initial.sectors, 0)
+  let now = 200
+  const held = deferred<WorldMovementReceipt>()
+  const accept = vi.fn((next: WorldView, reconcile: boolean) => {
+    if (reconcile) motion.reconcile(next, now)
+    else motion.approveReceipt(next, now)
+  })
+  const controller = new WorldController(initial, {
+    command: () => held.promise,
+    refresh: async () => hydrated,
+    accept,
+    presentation: vi.fn(),
+    error: vi.fn(),
+    busy: vi.fn(),
+    confirmMovement: (next: WorldView) => motion.confirmApproved(next, now),
+  })
+  const moving = controller.send({ kind: 'walk', destination: route.at(-1)!.position })
+  await controller.hydrate()
+  expect(accept).toHaveBeenLastCalledWith(hydrated, false)
+  now = 300
+  const deadline = motion.nextApprovedTransitionDelay(now)
+  held.resolve({ ...hydrated, kind: 'movement', serverNow: 1100 })
+  await moving
+  expect(accept).toHaveBeenCalledOnce()
+  expect(motion.nextApprovedTransitionDelay(now)).toBe(deadline)
+  expect(motion.sample(700).moving).toBe(true)
+  expect(motion.sample(716).point).not.toEqual(motion.sample(700).point)
+  controller.dispose()
+})
+it('retains scene hydration and peer clocks accepted during a pending compact command', async () => {
+  const position = { sectorId: 'a', x: 1, y: 1 }
+  const initial = {
+    ...view,
+    characterId: 'owner',
+    serverNow: 100,
+    position,
+    route: [],
+    sectors: [{ id: 'a', cells: [{ x: 1, y: 1, walkable: true }], exits: [] }],
+    atlas: [],
+    scenery: [],
+    players: [],
+  } as unknown as WorldView
+  const scene = {
+    ...initial,
+    scenery: [['new']] as unknown as WorldView['scenery'],
+    players: [
+      { characterId: 'peer', attackable: true, movement: { version: 4 } },
+    ] as WorldView['players'],
+  }
+  const held = deferred<WorldMovementReceipt>()
+  const controller = new WorldController(initial, {
+    command: () => held.promise,
+    refresh: async () => scene,
+    accept: vi.fn(),
+    presentation: vi.fn(),
+    error: vi.fn(),
+    busy: vi.fn(),
+  })
+  const pending = controller.send({ kind: 'tick' })
+  await controller.hydrate()
+  expect(controller.view.scenery).toBe(scene.scenery)
+  held.resolve({
+    kind: 'movement',
+    characterId: 'owner',
+    version: 2,
+    serverNow: 200,
+    position,
+    route: [],
+    nextStepAt: null,
+    movementBlocked: null,
+    battleSessionId: null,
+  })
+  await pending
+  expect(controller.view.version).toBe(2)
+  expect(controller.view.scenery).toBe(scene.scenery)
+  expect(controller.view.players[0]?.movement).toEqual({ version: 4 })
+  expect(controller.view.players[0]?.attackable).toBe(false)
+  controller.dispose()
+})
+it.each([
+  { version: 2, serverNow: 200 },
+  { version: 2, serverNow: 300 },
+  { version: 3, serverNow: 300 },
+])(
+  'does not replay accepted blocking authority v$version at clock $serverNow for a delayed compact command',
+  async ({ version, serverNow }) => {
+    const position = { sectorId: 'a', x: 1, y: 1 }
+    const initial = {
+      ...view,
+      characterId: 'owner',
+      serverNow: 100,
+      position,
+      route: [],
+      sectors: [],
+      atlas: [],
+      players: [],
+    } as WorldView
+    const held = deferred<WorldMovementReceipt>()
+    const blocked = {
+      ...initial,
+      version,
+      serverNow,
+      movementBlocked: 'Stop Passive Training to travel.',
+    }
+    const accept = vi.fn()
+    const controller = new WorldController(initial, {
+      command: () => held.promise,
+      refresh: async () => blocked,
+      accept,
+      presentation: vi.fn(),
+      error: vi.fn(),
+      busy: vi.fn(),
+    })
+    const pending = controller.send({ kind: 'tick' })
+    await controller.hydrate()
+    held.resolve({
+      kind: 'movement',
+      characterId: 'owner',
+      version: 2,
+      serverNow: 200,
+      position,
+      route: [],
+      nextStepAt: null,
+      movementBlocked: null,
+      battleSessionId: null,
+    })
+    await pending
+    expect(controller.view.movementBlocked).toBe(blocked.movementBlocked)
+    expect(controller.view.serverNow).toBe(serverNow)
+    expect(accept).toHaveBeenCalledOnce()
+    controller.dispose()
+  },
+)
+it.each(['arrival', 'arrival and viewport', 'disposed'] as const)(
+  'coalesces arrival hydration behind an obsolete scene request: %s',
+  async (outcome) => {
+    const initial = {
+      ...view,
+      characterId: 'owner',
+      position: { sectorId: 'a', x: 1, y: 1 },
+      route: [],
+      sectors: [{ id: 'a', cells: [{ x: 1, y: 1 }] }],
+      atlas: [],
+      scenery: [],
+      players: [],
+    } as unknown as WorldView
+    const landed = {
+      ...initial,
+      version: 2,
+      position: { sectorId: 'b', x: 1, y: 1 },
+      sectors: [{ id: 'b', cells: [{ x: 1, y: 1 }] }] as WorldView['sectors'],
+    }
+    const fresh = { ...landed, scenery: [['arrival']] as unknown as WorldView['scenery'] }
+    const oldScene = deferred(),
+      refresh = vi
+        .fn()
+        .mockImplementationOnce(() => oldScene.promise)
+        .mockResolvedValueOnce(fresh)
+    const controller = new WorldController(initial, {
+      command: async () => landed,
+      refresh,
+      accept: vi.fn(),
+      presentation: vi.fn(),
+      sceneCovered: () => true,
+      error: vi.fn(),
+      busy: vi.fn(),
+    })
+    const first = controller.hydrate()
+    await controller.send({ kind: 'tick' })
+    await controller.hydrate({ movement: true })
+    await controller.hydrate({ movement: true, viewport: outcome === 'arrival and viewport' })
+    if (outcome === 'disposed') controller.dispose()
+    oldScene.resolve(initial)
+    await first
+    if (outcome === 'disposed') {
+      expect(controller.view.scenery).toBe(initial.scenery)
+      expect(refresh).toHaveBeenCalledTimes(1)
+    } else {
+      await vi.waitFor(() => expect(controller.view.scenery).toBe(fresh.scenery))
+      expect(refresh).toHaveBeenCalledTimes(2)
+    }
+    controller.dispose()
+  },
+)
+it('accepts nearer route ground when only disconnected future terrain would be omitted', async () => {
+  const position = { sectorId: 'a', x: 12, y: 4 },
+    next = { sectorId: 'b', x: 0, y: 4 },
+    future = { sectorId: 'd', x: 0, y: 4 }
+  const a = {
+    id: 'a',
+    cells: [{ x: 12, y: 4, walkable: true }],
+    exits: [{ from: position, to: next, durationMs: 200 }],
+  }
+  const b = { id: 'b', cells: [{ x: 0, y: 4, walkable: true }], exits: [] }
+  const d = { id: 'd', cells: [{ x: 0, y: 4, walkable: true }], exits: [] }
+  const initial = {
+    ...view,
+    version: 2,
+    characterId: 'owner',
+    position,
+    sectors: [a, d],
+    atlas: [],
+    scenery: [],
+    players: [],
+    route: [next, { sectorId: 'c', x: 0, y: 4 }, future].map((position) => ({
+      position,
+      durationMs: 200,
+    })),
+  } as unknown as WorldView
+  const fresh = {
+    ...initial,
+    version: 1,
+    sectors: [a, b] as WorldView['sectors'],
+    scenery: [['nearer']] as unknown as WorldView['scenery'],
+  }
+  const controller = new WorldController(initial, {
+    command: vi.fn(),
+    refresh: async () => fresh,
+    accept: vi.fn(),
+    presentation: vi.fn(),
+    error: vi.fn(),
+    busy: vi.fn(),
+  })
+  await controller.hydrate()
+  expect(controller.view.sectors.map((s) => s.id)).toEqual(['a', 'b'])
+  expect(controller.view.scenery).toBe(fresh.scenery)
+  expect(controller.view.version).toBe(2)
+  controller.dispose()
+})
 it('settles approved walking before refreshing its presentation on tab return', async () => {
   const start = {
     ...view,

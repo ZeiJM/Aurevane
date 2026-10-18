@@ -1,6 +1,25 @@
 # World viewport rendering and public-ground traversal — October 18
 
-Status: candidate verification in progress; this document does not certify production or human movement acceptance.
+Status: #937 is live, but Owner acceptance remains OPEN. After release the Owner reports missing Emberreach scenery and a pause when changing direction with click-to-move. The follow-up below is not yet released.
+
+## Release #937 and residual report
+
+PR #937 merged as `1651642978181c7ebe6656cf4120f411b78f3ec8`, with tested tree `94c6e4c7dbfab806b85527ccba954a448163ce32` matching candidate `c04c26d42ff9c3fe2f7804e54b800694a5cafd82`. Exact-head CI 39165587203 attempt 2, Atlas 39165587214 and Browser 39165587223 pass. CI attempt 1 hit the unchanged modular-correction natural-duel 30-second test timeout; the bounded unchanged-head retry passes. Final quality passes 10,216 Vitest plus seven Node checks. Atlas passes 51 cases with 84 skips; Browser passes 353 full Chromium, 73 focused and ten Edge cases with existing skips. No assertion or timeout was weakened.
+
+Production `dpl_EgRJzKnFt2zSCC3UAUHU9po9CP2j` is READY since `2026-10-18T22:30:36.754Z`; exact source, canonical alias and public entry are verified. Signed-in keyboard traversal crosses a legal sector exit and returns/reloads at E861/N332 with resources and preferences preserved. Native terrain confirms an attempted building tile is correctly blocked. The 35% viewport is visually supplied; Online Users appears beneath Welcome back, Archer. The bounded deployment warning/error/fatal scan is empty. These checks did not establish click-turn continuity or physical-phone acceptance.
+
+The Owner's subsequent screenshot shows incomplete Emberreach Countryside at S77-26, E997/N347 (`atlas:76:25`, x9/y4). A fresh canonical projection supplies that viewport; the follow-up reproduces loss of already supplied scene data and a dropped arrival read. Owner acceptance stays open.
+
+## Click-turn and scene continuity follow-up
+
+Branch `agent/world-click-loading-followup-20261018` starts at the #937 merge. Four failing regressions establish:
+
+- A compact command merged into its dispatch-time view rolls back scene hydration and peer clocks delivered while it was pending. Merge the validated compact receipt into the current controller view, retaining newer version/clock blocking authority, including equal-clock accepted authority. The equal-clock regression was observed failing before its repair.
+- A movement/arrival hydration requested behind another scene read is discarded. Coalesce that request and re-evaluate it against the current view when the active read finishes, preserving disposal and ordinary movement pacing.
+- An older scene is rejected because it omits disconnected far-future route terrain, despite filling the next missing ground. Protect only the contiguous previously supplied route prefix; private visibility and already usable terrain checks remain.
+- A partial turn drops the whole segment intersecting the 600 ms preview limit. The reproduced turn stops after about 424 ms, before its timely approval. Retain that segment with an exact capped visual clock, keeping the last fully landed position and authored speed. Late approval samples the held point before removing the cap; hidden time shifts the deadline. The prediction bound stays 600 ms.
+
+Focused controller/motion/scene/movement-receipt checks pass 244 tests, including late approval, an 800 ms first interval, unchanged hydration while held, coalesced viewport/arrival and disposal, hidden time and the exact reported Emberreach position at normal/minimum zoom. The existing slow route-calculation expectation changes from 815 to 800 ms because removing the artificial preview pause restores the authored arrival deadline; no tolerance is widened. Native browser coverage adds actual mouse/touch direction changes with a real compact approval delayed to 550 ms, frame continuity and authoritative arrival. Independent review reproduced two follow-up issues: re-accepting saved authority resets its clock, and skipping a matching compact reply can leave a hydrated pending route capped. Failing controller/motion integration tests now guard both: a separate visual confirmation preserves the already accepted clock and only runs for the latest plan without a queued movement or attack. The native probe now measures the actual rendered traveller point independently of camera smoothing, with raw frame evidence attached. Final independent review reports no remaining Important/Critical finding and independently passes 242 tests across five focused files. The six-file local focused run passes 244. Native execution, whole-source quality and exact-head CI remain pending. Hosted browser observation remains blocked by credential protection after the permitted fresh-document recovery; no bypass is attempted.
 
 ## Reproduced causes and changes
 
