@@ -724,14 +724,6 @@ try {
             receipts: window.receipts,
           }))
           assert.deepEqual(prepared.actor, before, 'prime does not spend resources')
-          if (scenario === 'controlled-choices') {
-            await page.getByLabel('Ability action', { exact: true }).selectOption('strike')
-            await command
-              .locator('[data-battle-controlled-primed=true]')
-              .waitFor({ state: 'visible' })
-            assert.match(await command.getAttribute('aria-label'), /primed/)
-            await page.getByLabel('Ability action', { exact: true }).selectOption('second')
-          }
           assert.deepEqual(prepared.receipts, [])
           await command
             .locator('[data-battle-controlled-primed=true]')
@@ -857,6 +849,14 @@ try {
               path: resolve(output, `${mode}-${viewport.width}-${scenario}-ready.png`),
               fullPage: true,
             })
+            if (scenario === 'controlled-choices') {
+              await page.getByLabel('Ability action', { exact: true }).selectOption('strike')
+              await command
+                .locator('[data-battle-controlled-primed=true]')
+                .waitFor({ state: 'visible' })
+              assert.match(await command.getAttribute('aria-label'), /primed/)
+              await page.getByLabel('Ability action', { exact: true }).selectOption('second')
+            }
             if (scenario === 'controlled-choices') {
               await page.keyboard.press('Tab')
               await page.keyboard.press('Shift+Tab')

@@ -105,17 +105,24 @@ export function AbilityEffectEditor({
               const { percent, ...rest } = next
               update({ ...rest, percentageBasisPoints: percent * 100 })
             } else if (payload.type === 'pierce' && next.type === 'damage') {
-              const { piercing: _piercing, vengeance: _vengeance, ...rest } = next
+              const {
+                piercing: _piercing,
+                vengeance: _vengeance,
+                shattersBarrier: _barrier,
+                ...rest
+              } = next
               void _piercing
               void _vengeance
+              void _barrier
               update({
                 ...rest,
                 type: 'pierce',
                 armorIgnoredBasisPoints: payload.armorIgnoredBasisPoints,
               })
             } else if (next.type === 'damage') {
-              const { piercing: _piercing, ...rest } = next
+              const { piercing: _piercing, shattersBarrier: _barrier, ...rest } = next
               void _piercing
+              void _barrier
               update(rest)
             } else update(next)
           }}
