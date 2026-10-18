@@ -1,14 +1,14 @@
 # Combat release acceptance and testing handoff
 
-RELEASE IN PROGRESS. All18 exact-head workflows pass. PR934 is merged as13147679688ed866e6fbd9dd06872b6e47cc8f49, tree74c737fd597f2c162bce1052e99f82fb9ca5b256 identical to tested source64f82df59f3fc111e9b253960f0f0c56c5b6113a. All six reviewed migrations are applied and verified. Production deployment dpl_3oGN1APbCX1euszQ3sC7wwQiUbC2 is building. The289-record roster remains unpublished; do not call the full release live yet.
+LIVE FOR TESTING — 2026-10-18. PR934 merged as13147679688ed866e6fbd9dd06872b6e47cc8f49. Its tree74c737fd597f2c162bce1052e99f82fb9ca5b256 exactly matches tested source64f82df59f3fc111e9b253960f0f0c56c5b6113a. All18 exact-head workflows pass. Production dpl_3oGN1APbCX1euszQ3sC7wwQiUbC2 is READY at https://aurevane.vercel.app/ since08:05:10.174UTC; all289 roster publications are verified live. This is not human acceptance or phase closure.
 
 ## Continuation checkpoint
 
-PR [#934](https://github.com/ZeiJM/Aurevane/pull/934) is merged after all18 exact-head workflows pass. Browser run [39099555327](https://github.com/ZeiJM/Aurevane/actions/runs/39099555327) first job117592835414 failed only the unchanged World presence animation delta; the unchanged-source retry job117607870313 succeeds with351 full Chromium passes and10 Edge passes. Complete Edge results are observed. Do not reapply completed migrations. The first attempt's archived log records73 focused passes and350 complete-suite passes; no combat failure remains in that attempt.
+The combat release is live through [PR934](https://github.com/ZeiJM/Aurevane/pull/934). Do not reapply the completed migrations or republish this cohort. The [browser retry](https://github.com/ZeiJM/Aurevane/actions/runs/39099555327), job117607870313, passes all351 enabled full Chromium cases and10 Edge cases, plus73 focused combat cases. Intentional skips:273 full,2 Edge,21 focused. The first exact-head attempt had one unchanged World presence interpolation failure; no threshold/test/source was changed for the passing retry. Three destination-stream-closed messages remain in interrupted Owner-authoring journeys that pass; the CI log is not error-free.
 
-The execution environment disconnected: shell probes are unresponsive and the cloud browser explicitly returned environment_offline. Connected GitHub/Supabase/Vercel APIs remain available. Remote source64f82df5 is ahead of the inaccessible local C69 checkout by exactly the reviewed Support mode fix and signed Guard expectation. Do not mistake that stale local checkout for the release source, or claim new signed-in hosted gameplay/browser zoom/workbook edits.
+The local execution environment remains disconnected: shell probes are unresponsive and the cloud browser returned environment_offline. Connected service APIs performed and verified this release. The inaccessible local C69 checkout predates the two final browser fixes; remote Git source and actual merged tree are authoritative. Hosted signed-in interaction, physical browser200%zoom and workbook release-label editing remain unverified/unavailable. The delivered workbook mechanics match the live manifest; its status cells still say pre-release.
 
-The unbound [release controls](release-assets/2026-10-18-combat-release-control.json) preserve all six exact SQL migrations, ten expected function bodies/ACLs, publication and pointer rollback envelopes, rollback-only stale/permission probe, exact snapshot comparison and history-row CAS. Reconstruct the compact payload using the recorded expression and immutable manifest blob, then require the exact known751,693-byte/SHA256 publication template. These are preparation artifacts, not execution receipts. Fresh Owner/token values must never be committed to this public artifact.
+The unbound [release controls](release-assets/2026-10-18-combat-release-control.json) preserve the exact reviewed migration SQL, ten expected function bodies/ACLs, atomic publication and normal pointer-rollback envelopes, rollback-only stale/permission probe, exact coherent snapshot comparison and metadata-only history CAS. They are preparation artifacts; actual execution receipts below control continuation. Reconstruct using the immutable manifest and require the known751,693-byte/SHA256 publication template. Fresh Owner/token bindings must never be committed publicly.
 
 ## Delivered scope
 
@@ -49,19 +49,34 @@ Two earlier quality attempts timed out in existing extreme-count arithmetic case
 
 ## Coordinated release and receipts
 
-At08:02–08:03UTC, all six reviewed migrations are applied. API-generated history timestamps20261018080242/44/46/48/50/53 are reconciled to the six original source versions using exact new-row metadata CAS; statements and every other column remain unchanged. All ten function bodies/ACLs/search paths match expected metadata; content remains0/0/0, policy7 and Owner unchanged. The security-advisor baseline is unchanged (59 INFO entries and the same three WARN groups). Production build dpl_3oGN1APbCX1euszQ3sC7wwQiUbC2 targets the exact merged source. Publication/Ready/alias/readback/probe receipts remain pending.
+All18 workflows pass on tested source64f82df5. Merge13147679688ed866e6fbd9dd06872b6e47cc8f49 has exactly the same actual Git tree74c737fd597f2c162bce1052e99f82fb9ca5b256; the GitHub comparison reports no changed files. Main was refreshed before merge and deployment. Automatic Git deployment remains locked.
 
-RECEIPTS_PENDING.
+The six reviewed migrations were applied chronologically through the migration API. Only after each actual DDL success, its newly created history row's generated timestamp was reconciled to the original source version with exact name/version/full-other-metadata fingerprint CAS. No statements or other columns were changed; no migration was skipped or reapplied.
 
-1. Require every exact-head required workflow green, then refresh main, hosted Owner/content/policy state and the intended project/deployment.
-2. Merge only the verified head with an expected-head check while automatic Git deployment is locked. Verify the merge contains exactly the tested files before any hosted change.
-3. Apply only the six reviewed combat migrations in chronological order. Reconcile an API-generated migration timestamp only for that newly applied row, using exact name/version/metadata fingerprint CAS; preserve statements and all other metadata. Verify the ten reviewed function bodies, security-definer paths, execute grants and private-table RLS. Other chats' migrations remain untouched.
-4. Deploy the exact verified merged commit to the existing production project. Verify source, Ready state and canonical alias before publishing any cohort.
-5. Bind the checksum-verified SQL to the freshly confirmed actual Owner and catalogue token. It locks the catalogue before draft persistence, asserts the unchanged empty Owner state and exact policy7, calls service-only v3 for all289 definitions, checks every returned version/definition and final counts, and commits all or none. It changes neither timing policy nor earned selections/captures.
-6. Read back the full coherent snapshot and compare every stored definition/version with the manifest. Require exact counts and policy. Check actual hosted stale-CAS rejection and authenticated execution denial inside an unconditionally rolled-back transaction. Inspect the dynamic public Manual, available application paths and the exact deployment's runtime window.
-7. If rollback is required, use the expected released token and exact definitions through normal service-only pointer RPCs in one transaction. Clear only the cohort's current pointers; preserve all289 immutable history rows. Keep compatible new code for already-admitted new captures.
+| Final/source version | API-generated version | Migration | History result |
+| --- | --- | --- | --- |
+| 20261015071731 | 20261018080242 | combat_controlled_timing | Verified; all other metadata preserved |
+| 20261015073458 | 20261018080244 | remove_combat_timing_reason | Verified; all other metadata preserved |
+| 20261015095150 | 20261018080246 | typed_combat_authoring_kinds | Verified; all other metadata preserved |
+| 20261015100834 | 20261018080248 | combat_content_catalogue_snapshot | Verified; all other metadata preserved |
+| 20261015103321 | 20261018080250 | combat_catalogue_publication_guard | Verified; all other metadata preserved |
+| 20261015191634 | 20261018080253 | combat_content_version_floor | Verified; all other metadata preserved |
 
-The publication template's recovered bytes match the rehearsed file exactly:751,693 bytes; SHA256 c2b9e49fb50818b11dc383ea9cecde2a28c259c31e9b67ced73df466b79395e8. Recovery used the immutable verified Git blob and a read-only hash query. No production content or schema write was performed during recovery. The ten expected SQL function bodies/ACLs and guarded rollback/probe procedures are also prepared.
+All ten function bodies, arguments, security-definer settings, search paths and anon/authenticated/service execution grants match the prepared expectations. Private RLS and actual service-role catalogue access pass. The same59 INFO findings and three WARN groups remain; the security-advisor baseline is unchanged.
+
+Production [dpl_3oGN1APbCX1euszQ3sC7wwQiUbC2](https://vercel.com/zeijms-projects/aurevane/dpl_3oGN1APbCX1euszQ3sC7wwQiUbC2) is READY since2026-10-18T08:05:10.174Z. Deployment metadata and canonical alias identify merged source13147679688ed866e6fbd9dd06872b6e47cc8f49. Existing project settings were retained; no environment values or credentials were retrieved. No additional deployment is required for receipt-only documentation.
+
+The freshly rechecked Owner state was empty0/0/0 and policy7 unchanged. The checksum-bound transaction called service-only v3 for all289 definitions and committed all289 immutable versions/current publications. Readback at2026-10-18T08:07:37.950Z compares every definition, kind and version from one coherent actual snapshot against the manifest:289 expected,289 current,289 exact matches and289 exact immutable-history matches; no mismatch and zero drafts. Breakdown:136 Skills,17 Essences,136 Resonances. Five native Basics remain retained. Policy7 is unchanged.
+
+Actual hosted stale-CAS and authenticated-execution probes pass inside an unconditionally rolled-back transaction: COMBAT_CONTENT_CATALOGUE_CONFLICT, state unchanged, authenticated writer denied. The final post-probe catalogue token is unchanged, with289 versions/289 current/zero drafts. No production test content remains.
+
+Seven live HTTP checks return200: entry, Manual index, Rules, Auth status, canonical Skills Manual, linked Disciplines/Mastery Manual and the World account gateway. World returns the logged-out gateway, not evidence of signed-in gameplay. The actual live Skills Manual shows Hold Fast50AP/4MP, three-turn cooldown and Once per battle; Field Remedy45AP/4MP, three-turn cooldown, paid Cleanse and conditional9%healing for the approved removable afflictions. All published records are checked by exact database comparison, beyond these displayed witnesses.
+
+The exact-deployment warning/error/fatal scan from Ready through the initial verification window ending approximately2026-10-18T08:08:13Z has no matching groups. This is an initial observed window, not hosted load or human acceptance.
+
+If recovery is needed, bind the normal service-only pointer rollback to the fresh actual released token and exact definitions; clear only this cohort's current pointers in one transaction and preserve all289 immutable history rows. Do not roll old code over already-admitted new captures. The original atomic SQL rehearsal includes late-failure rollback and pointer/history-preservation checks.
+
+Publication template SHA256:c2b9e49fb50818b11dc383ea9cecde2a28c259c31e9b67ced73df466b79395e8 (751,693 bytes); manifest SHA256:35bbb1f96c9ce4dc2a5e33c34bfb7ec809de865f3149746173717d2aadb1a23d. Template recovery was read-only; the production writes are the explicitly recorded six migrations and complete289-record transaction above.
 
 ## Player and Owner smoke checklist
 
@@ -165,6 +180,6 @@ Lowered Guard is the no-input timeout consequence, not an ordinary authored Skil
 
 ## Remaining work and limits
 
-After verified release, broader Master/operations/world work and the21 deferred Minors remain. Human gameplay/multiplayer/load acceptance and actual physical200% browser zoom are not certified by the fixture or viewport evidence. The current cloud browser was logged out; hosted sign-in/Owner interaction remains unverified unless a later receipt explicitly records it.
+Broader Master/operations/world work and the21 deferred Minors remain. Human gameplay/multiplayer/load acceptance and actual physical200% browser zoom are not certified by the fixture or viewport evidence. The current cloud browser was logged out; hosted sign-in/Owner interaction remains unverified unless a later receipt explicitly records it.
 
-The already delivered roster workbook is a pre-release mechanical snapshot of the same manifest. Its file identity and retained tables/formatting are preserved. Do not describe its release-status cells as refreshed unless the file is actually updated and verified.
+The already delivered roster workbook is a mechanical snapshot of the same live manifest. Its file identity and retained tables/formatting are preserved. Its release-status cells still say pre-release: updating those cells is blocked by the disconnected execution environment. Do not claim that file edit is complete.
