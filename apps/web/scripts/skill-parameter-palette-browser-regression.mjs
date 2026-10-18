@@ -72,7 +72,57 @@ await fs.writeFile(
   resolve(fixture, 'authoring-boundary.js'),
   'export function createServerCombatContentAuthoringService(){throw new Error("Fixture repository must be supplied")}',
 )
+let basicFixture
+let createBasicEditorServiceFixture
+async function handleBasicRequest(request, response, next) {
+  const url = new URL(request.url, 'http://127.0.0.1')
+  if (
+    ![
+      '/__basic-acceptance/options',
+      '/__basic-acceptance/reset',
+      '/__basic-acceptance/inspect',
+      '/api/master/combat-content',
+    ].includes(url.pathname)
+  )
+    return next()
+  try {
+    let result
+    if (url.pathname === '/__basic-acceptance/reset') {
+      basicFixture = await createBasicEditorServiceFixture()
+      result = Response.json({ reset: true })
+    } else if (url.pathname === '/__basic-acceptance/options')
+      result = Response.json(basicFixture.options)
+    else if (url.pathname === '/__basic-acceptance/inspect')
+      result = Response.json(await basicFixture.inspect())
+    else {
+      const chunks = []
+      for await (const chunk of request) chunks.push(chunk)
+      result = await basicFixture.request(
+        new Request(url, {
+          method: request.method,
+          headers: { 'Content-Type': 'application/json' },
+          body: Buffer.concat(chunks).toString('utf8'),
+        }),
+      )
+    }
+    response.writeHead(result.status, Object.fromEntries(result.headers))
+    response.end(await result.text())
+  } catch (error) {
+    response.writeHead(500, { 'Content-Type': 'application/json' })
+    response.end(JSON.stringify({ error: String(error) }))
+  }
+}
 const server = await createServer({
+  plugins: basicServiceAcceptance
+    ? [
+        {
+          name: 'basic-service-acceptance',
+          configureServer(server) {
+            server.middlewares.use(handleBasicRequest)
+          },
+        },
+      ]
+    : [],
   configFile: false,
   root: fixture,
   publicDir: resolve(web, 'public'),
@@ -106,75 +156,40 @@ const server = await createServer({
   server: { host: '127.0.0.1', port: 0, hmr: false, watch: null, fs: { allow: [root, fixture] } },
   optimizeDeps: { include: ['react', 'react-dom/client'] },
 })
-let basicFixture
 if (basicServiceAcceptance) {
-  const { createBasicEditorServiceFixture } = await server.ssrLoadModule(
+  ;({ createBasicEditorServiceFixture } = await server.ssrLoadModule(
     resolve(web, 'e2e/fixtures/basic-editor-service.ts'),
-  )
+  ))
   basicFixture = await createBasicEditorServiceFixture()
-  server.middlewares.use(async (request, response, next) => {
-    const url = new URL(request.url, 'http://127.0.0.1')
-    if (
-      ![
-        '/__basic-acceptance/options',
-        '/__basic-acceptance/reset',
-        '/__basic-acceptance/inspect',
-        '/api/master/combat-content',
-      ].includes(url.pathname)
-    )
-      return next()
-    try {
-      let result
-      if (url.pathname === '/__basic-acceptance/reset') {
-        basicFixture = await createBasicEditorServiceFixture()
-        result = Response.json({ reset: true })
-      } else if (url.pathname === '/__basic-acceptance/options')
-        result = Response.json(basicFixture.options)
-      else if (url.pathname === '/__basic-acceptance/inspect')
-        result = Response.json(await basicFixture.inspect())
-      else {
-        const chunks = []
-        for await (const chunk of request) chunks.push(chunk)
-        result = await basicFixture.request(
-          new Request(url, {
-            method: request.method,
-            headers: { 'Content-Type': 'application/json' },
-            body: Buffer.concat(chunks).toString('utf8'),
-          }),
-        )
-      }
-      response.writeHead(result.status, Object.fromEntries(result.headers))
-      response.end(await result.text())
-    } catch (error) {
-      response.writeHead(500, { 'Content-Type': 'application/json' })
-      response.end(JSON.stringify({ error: String(error) }))
-    }
-  })
+
+  await server.listen()
   if (process.env.AV_BASIC_SERVICE_PROBE_ONLY === '1') {
-    const restored = await basicFixture.request(
-      new Request('http://fixture/api/master/combat-content', {
-        method: 'POST',
-        body: JSON.stringify({
-          operation: 'restore-basic-draft',
-          skillId: 'basic.guard',
-          targetVersion: 1,
-          expectedBaseVersion: 2,
-          expectedDraftVersion: null,
-        }),
+    const origin = server.resolvedUrls.local[0]
+    const options = await fetch(`${origin}__basic-acceptance/options`)
+    assert.match(options.headers.get('content-type') ?? '', /application\/json/)
+    assert.equal((await options.json()).length, 5)
+    const restored = await fetch(new URL('/api/master/combat-content', origin), {
+      method: 'POST',
+      body: JSON.stringify({
+        operation: 'restore-basic-draft',
+        skillId: 'basic.guard',
+        targetVersion: 1,
+        expectedBaseVersion: 2,
+        expectedDraftVersion: null,
       }),
-    )
+    })
     assert.equal(restored.status, 200)
-    const inspection = await basicFixture.inspect()
+    const inspection = await (await fetch(`${origin}__basic-acceptance/inspect`)).json()
     assert.equal(inspection.oldCapturesUnchanged, true)
     console.log(
-      'Actual Basic handler/service SSR probe passed: five v2 records and v1 Guard restore.',
+      'Actual Basic HTTP handler/service probe passed: five v2 records and v1 Guard restore.',
     )
     await server.close()
     await fs.rm(fixture, { recursive: true, force: true })
     process.exit(0)
   }
 }
-await server.listen()
+if (!basicServiceAcceptance) await server.listen()
 const browser = await chromium.launch({
   ...(process.env.AV_CHROMIUM_EXECUTABLE
     ? { executablePath: process.env.AV_CHROMIUM_EXECUTABLE }
