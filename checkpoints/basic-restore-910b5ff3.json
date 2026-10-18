@@ -1,0 +1,83 @@
+{
+  "source": "910b5ff35bbeafd2dd50c2c9d66ef84407dc6bb4",
+  "tree": "e107082f458670efcd814e68c8d5af2b2131d220",
+  "testedSource": "6fee6f3698de97a33566d0df7474bda812126aee",
+  "reviewedSource": "6fee6f3698de97a33566d0df7474bda812126aee",
+  "prerequisite": "82d9276f915a1adb8ee4d2f1de6f1efe2c60906f",
+  "parentArchive": "cca706f0fdde751145fd6d3fd4baa202b15c2d5d",
+  "parentTree": "f8a0342d7e3947165395f5c8a440608cee180558",
+  "mainObservedAtCheckpoint": "b2d275269433f69ab1824e1f4ce110f730f9aa1a",
+  "mainChangedByThisWork": false,
+  "mainReconciliation": {
+    "observedMain": "b2d275269433f69ab1824e1f4ce110f730f9aa1a",
+    "previousObservedMain": "b2d275269433f69ab1824e1f4ce110f730f9aa1a",
+    "changedPathsSincePrevious": [],
+    "changedByThisWork": false,
+    "mergedIntoFrozenBranch": false,
+    "combinedReleaseIntegrationOpen": true
+  },
+  "fullCheckReceipt": {
+    "argv": [
+      "pnpm",
+      "--reporter=append-only",
+      "check"
+    ],
+    "cwd": "/workspace/scratch/680b26e4eb86/aurevane",
+    "started_utc": "2026-10-18T01:51:35.731535+00:00",
+    "completed_utc": "2026-10-18T01:52:05.398402+00:00",
+    "exit_code": 0,
+    "log": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/evidence/20261018T015135731535Z-678e96ff.log"
+  },
+  "tests": {
+    "new": 39,
+    "focused": 168,
+    "vitest": 9129,
+    "node": 7
+  },
+  "rootBuildTailComplete": true,
+  "multiArtifactEvidenceComplete": false,
+  "preservation": {
+    "source": "6fee6f3698de97a33566d0df7474bda812126aee",
+    "base": "82d9276f915a1adb8ee4d2f1de6f1efe2c60906f",
+    "changedPaths": [
+      "apps/web/src/components/master/combat-content/basic-content-editor.tsx",
+      "apps/web/src/components/master/combat-content/basic-restore-interaction.test.tsx",
+      "apps/web/src/components/master/combat-content/combat-content-review-panel.tsx",
+      "apps/web/src/server/master/basic-restore-draft.test.ts",
+      "apps/web/src/server/master/combat-content-authoring-handler.test.ts",
+      "apps/web/src/server/master/combat-content-authoring-handler.ts",
+      "apps/web/src/server/master/combat-content-authoring-service.ts"
+    ],
+    "sixProtectedHashes": {
+      "packages/game-core/src/combat/recruit-ai-build.ts": "e1f676fafea1a73a84eaf95b0e73b66601916a4dcb63e80edd0db4d4da449a7d",
+      "packages/game-core/src/combat/recruit-ai.ts": "cf9e6cc12ff1d7434d17956f5f2e3e19b770240ea6d7a5c039477921382c5e6a",
+      "packages/game-core/src/combat/recruit-ai-ranged-spacing.test.ts": "97d492399237e8064ae9fdc51f7fef143189201e32a2892ccf98340448238a77",
+      "apps/web/src/server/battle/roster-legal-duel.test-utils.ts": "129d1827760c89bdf3ed75a1757e98802de743829eff9841699ead64747c96f9",
+      "apps/web/src/server/battle/roster-legal-ranged-ai.test.ts": "1443d456ba61d9469cedfe8e10392c155876e2c20fd3b121506009be7d0c4524",
+      "apps/web/src/server/battle/battle-log-service.ts": "d1876bcd5044a7b8f1c3c4178b19696605a61fc5ad8424e34181fd5cc95aa74b"
+    },
+    "manifestSha256": "b86cfec056bbac582810e7da80f9bc687f02518892eb5d11275fc7b5ced19f05",
+    "combatRuntimeRosterHelpersPriorDuelFixturesSqlAndLockUnchanged": true,
+    "deploymentLockBlob": "b8a4e0e3c57b95a8da49c05d1fe5f60ba2181b5f",
+    "focusedTests": 168,
+    "newUniqueCases": 39,
+    "focusedJsonSha256": "b0443f5a7eb7a8ae34f199d671fc511cef880282c7bdfc19e9fe1bd1546c2d1a",
+    "initialImplementationSource": "5d8b483d9bed42e603c10a47dc962024f47b0341",
+    "subsequentChange": "format-only optional-cost assertion wrapping; behavior unchanged"
+  },
+  "acceptance": "OriginalBasicRestoretoDraftimplementedforMove/Attack/Guard/HP/MP: trustedcompletehistoricalrecord->authorizeddraftCAS->normalreview/newimmutablePublish;no pointer/history/capture/loadoutchange.39newcases/168focusedJSON/9129Vitest+7Node/fullquality8typesbothbuildsPASS678e96ffcompletecount/buildtail;ONEreview0C0I0newM/20inheritedMinorsdefer/7own+16reviewrulingscostsinreport. Draftread/saveandpublicationraceguardsexecutedlocally;actualGuard29APoldvs17APrestorednew;all5capture/pinnedhistoryproofs. InitialUIcontextfixtureerrorscorrectedbeforevalid8missingbuttonRED;18backendRED/historydisplay5REDcovered. Firstrootformat72fixedtestformatteronly6fee;821/668cacheparsefailurespreserved,4incompleteSSTquarantined(lastdoublesuffixmissedfirstpattern),buildonlyffdfpassesandfinalroot678passesunchangedproduct/config/deps. Runtime/roster/SQL/helpers/6hashes/manifest/lockunchanged. Freshmainb2dunchanged/unmerged104priorUI-socialWorlddelta;nohostedwrite/migration/publication/activation/mainmerge/deploy. Nativebrowser/AT/actualall5freshadmission/disabledpublication/fullcombatcycles/balance/hostedCAS/currentmain/Atlas/human/Task15/16/releaseOPEN;broaderMasteraftercombat;Highenough.",
+  "bundle": {
+    "local": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/basic-restore-910b5ff3.bundle",
+    "path": "checkpoints/basic-restore-910b5ff3.bundle",
+    "bytes": 18760,
+    "sha256": "c387156b19107ad527e3d5bb0ae33b83f24ca5d0f3c3e6ef8a8aae6e47834d40",
+    "blobSha": "a291054c87c08da904c8efe982525874accd3683"
+  },
+  "evidence": {
+    "local": "/workspace/scratch/680b26e4eb86/aurevane/.superpowers/sdd/2026-10-10-unified-engine-recovery/basic-restore-910b5ff3-evidence.tar.gz",
+    "path": "checkpoints/basic-restore-910b5ff3-evidence.tar.gz",
+    "bytes": 376466,
+    "sha256": "83a543d9081d0668bc37d6a532b467e5e1facea222d40fe394ec6964f2700fb1",
+    "blobSha": "2b50eb09e753f64eb76e4abbdbac546f4ae4d40a"
+  }
+}
