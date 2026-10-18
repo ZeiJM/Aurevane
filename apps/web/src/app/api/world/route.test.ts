@@ -41,6 +41,31 @@ beforeEach(() => {
   readWorld.mockReset().mockResolvedValue({ view })
   commitWorldCommand.mockReset().mockResolvedValue(view)
 })
+it('uses bounded viewport dimensions only to request public scenery, never scene authority', async () => {
+  const response = await GET(
+    new Request(
+      'https://example.test/api/world?sceneWidth=2560&sceneHeight=1440&sectorIds=private',
+    ),
+  )
+  expect(response.status).toBe(200)
+  expect(readWorld).toHaveBeenCalledExactlyOnceWith('owner', view.characterId, {
+    width: 2560,
+    height: 1440,
+  })
+  readWorld.mockClear()
+  await GET(new Request('https://example.test/api/world?sceneWidth=99999&sceneHeight=99999'))
+  expect(readWorld).toHaveBeenCalledExactlyOnceWith('owner', view.characterId, {
+    width: 3840,
+    height: 2160,
+  })
+})
+it.each(['sceneWidth=0&sceneHeight=100', 'sceneWidth=Infinity&sceneHeight=400', 'sceneWidth=400'])(
+  'ignores invalid scenery dimensions %s',
+  async (query) => {
+    await GET(new Request(`https://example.test/api/world?${query}`))
+    expect(readWorld).toHaveBeenCalledExactlyOnceWith('owner', view.characterId)
+  },
+)
 it('keeps compact presence authenticated, private and scoped to the selected owned character', async () => {
   const response = await GET(
     new Request(

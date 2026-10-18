@@ -6,6 +6,26 @@ import { mapPoint } from './world-motion'
 import { worldSceneCoversViewport } from './world-scene-coverage'
 const viewport = { width: 1296, height: 944, tile: 64 * 0.35 }
 it.each([
+  { width: 1920, height: 1080 },
+  { width: 2560, height: 1440 },
+  { width: 3840, height: 2160 },
+  { width: 412, height: 915 },
+])('supplies the requested larger public viewport at $width by $height', (size) => {
+  const state = { ...newWorldState(), position: { sectorId: 'atlas:62:28', x: 6, y: 4 } }
+  const view = projectWorld(state, [], 1000, undefined, undefined, size)
+  expect(
+    worldSceneCoversViewport(view, [mapPoint(view.position, view.sectors)], {
+      ...size,
+      tile: (size.width < 600 ? 48 : 64) * 0.35,
+    }),
+  ).toBe(true)
+  expect(view.sectors.length).toBeLessThanOrEqual(25)
+  expect(view.scenery!.length).toBeLessThanOrEqual(512)
+  expect(
+    view.scenery!.every(([id]) => view.atlas!.find((sector) => sector.id === id)?.charted),
+  ).toBe(true)
+})
+it.each([
   { x: 2, y: 4 },
   { x: 5, y: 7 },
   { x: 11, y: 4 },

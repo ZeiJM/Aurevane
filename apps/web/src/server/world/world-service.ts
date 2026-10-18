@@ -23,6 +23,7 @@ import type {
   WorldSector,
   WorldSectorView,
   WorldScenerySector,
+  WorldSceneViewport,
   WorldState,
   WorldView,
 } from '@/world/types'
@@ -297,6 +298,7 @@ export function projectWorld(
   now: number,
   objectives: readonly WorldObjective[] = WORLD_OBJECTIVES,
   environment: WorldEnvironment = resolveWorldEnvironment(now),
+  viewport?: WorldSceneViewport,
 ): WorldView {
   const visible = visibleSectors(state)
   const currentSector = resolveSector(state.position.sectorId)!
@@ -373,8 +375,11 @@ export function projectWorld(
         ]
       : []
   })
-  const sceneryHalfWidth = 1296 / (64 * 0.35) / 2 + 1
-  const sceneryHalfHeight = 944 / (64 * 0.35) / 2 + 1
+  const sceneWidth = viewport?.width ?? 1296
+  const sceneHeight = viewport?.height ?? 944
+  const sceneTile = (sceneWidth < 600 ? 48 : 64) * 0.35
+  const sceneryHalfWidth = sceneWidth / sceneTile / 2 + 1
+  const sceneryHalfHeight = sceneHeight / sceneTile / 2 + 1
   const scenery: WorldScenerySector[] =
     currentSector.charted && currentAddress
       ? visible
@@ -384,8 +389,6 @@ export function projectWorld(
               sector.charted &&
               !sceneIds.has(sector.id) &&
               address &&
-              wrappedColumnDistance(address.column, currentAddress.column) <= 5 &&
-              Math.abs(address.row - currentAddress.row) <= 7 &&
               sceneryAnchors.some((anchor) => {
                 const dx = wrappedMapX(address.column * GRID_WIDTH, anchor.x) - anchor.x,
                   dy = address.row * GRID_HEIGHT - anchor.y,
@@ -400,7 +403,7 @@ export function projectWorld(
               })
             )
           })
-          .slice(0, 165)
+          .slice(0, 512)
           .map((sector): WorldScenerySector => [
             sector.id,
             encodeTerrainRows(sector.rows),

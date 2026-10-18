@@ -9,6 +9,7 @@ import { createMapRenderer } from './map-renderer'
 import { MAP_X, MAP_Y, projectMapPoint, unprojectMapPoint } from './map-projection'
 import type { WorldView } from '@/world/types'
 import * as biomes from './map-biome-transitions'
+import { worldRenderTerrain } from './map-render-terrain'
 
 type RecordedPath = { operation: 'M' | 'L' | 'C' | 'Z'; points: number[] }[]
 const imageRuntime = createRequire(import.meta.url)
@@ -313,6 +314,67 @@ function scene(reduced = false, initial?: WorldView) {
   }
 }
 describe('native map input and bounded lifecycle', () => {
+  it('submits clicks on visible public ground beyond the peer scene without inventing a preview route', () => {
+    const s = scene(true)
+    Object.assign(s.canvas, { clientWidth: 1296, clientHeight: 944 })
+    s.resize()
+    s.renderer.settings({ animate: false, zoom: 0.35 })
+    s.frame(40)
+    const camera = mapPoint(s.view.position, s.view.sectors)
+    const candidates = worldRenderTerrain(s.view)
+      .filter((sector) => !s.view.sectors.some((known) => known.id === sector.id))
+      .flatMap((sector) =>
+        sector.cells
+          .filter((cell) => cell.walkable)
+          .map((cell) => {
+            const position = { sectorId: sector.id, x: cell.x, y: cell.y }
+            const point = projectMapPoint(
+              mapPoint(position, [sector], camera),
+              camera,
+              { x: 0, y: 0 },
+              64 * 0.35,
+              1296,
+              944,
+            )
+            return { position, point }
+          }),
+      )
+    const target = candidates.find(
+      ({ point }) => point.x > 20 && point.x < 1276 && point.y > 20 && point.y < 924,
+    )
+    expect(target).toBeDefined()
+    expect(localRoute(s.view, s.view.position, target!.position)).toBeNull()
+    s.event('pointerdown', target!.point.x, target!.point.y)
+    s.event('pointerup', target!.point.x, target!.point.y)
+    expect(s.select).toHaveBeenCalledExactlyOnceWith(target!.position)
+    s.renderer.update({
+      ...s.view,
+      atlas: s.view.atlas!.map((sector) =>
+        sector.id === target!.position.sectorId ? { ...sector, charted: false } : sector,
+      ),
+    })
+    s.event('pointerdown', target!.point.x, target!.point.y)
+    s.event('pointerup', target!.point.x, target!.point.y)
+    expect(s.select).toHaveBeenCalledTimes(1)
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  })
+  it('reveals late scenery sheets without repainting unchanged terrain layers', () => {
+    const s = scene(true)
+    s.frame(40)
+    const painted = s.layerCount()
+    for (const [index, image] of s.images.slice(0, 6).entries()) {
+      if (index === 0) continue // The terrain sheet is the only ground-cache dependency.
+      image.onload!()
+      s.frame(80 + index * 40)
+      expect(s.layerCount()).toBe(painted)
+    }
+    s.images[0]!.onload!()
+    s.frame(400)
+    expect(s.layerCount()).toBeGreaterThan(painted)
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  })
   it('retains the displayed walking phase across a long background-tab interval', () => {
     const clock = vi.spyOn(performance, 'now').mockReturnValue(0)
     const s = scene()

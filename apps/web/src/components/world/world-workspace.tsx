@@ -106,6 +106,30 @@ export function WorldWorkspace({
     livePresence = useRef<WorldLivePresence | null>(null),
     acceptedAt = useRef(0),
     localViewActive = useRef(true)
+  const sceneCovered = useCallback(
+    (current: WorldView) => {
+      if (!localViewActive.current) return true
+      const canvas = document.querySelector<HTMLCanvasElement>('canvas[data-world-stage]')
+      if (!canvas) return false
+      const point = motion.sample(performance.now()).point
+      return worldSceneCoversViewport(
+        current,
+        [
+          point,
+          ...current.route
+            .slice(0, 4)
+            .map((step) => mapPoint(step.position, current.sectors, point)),
+        ],
+        {
+          width: canvas.clientWidth,
+          height: canvas.clientHeight,
+          // Prefetch for the smallest allowed zoom before a zoom-out exposes it.
+          tile: (canvas.clientWidth < 600 ? 48 : 64) * WORLD_MIN_ZOOM,
+        },
+      )
+    },
+    [motion],
+  )
   useEffect(() => {
     if (!panelOpen || settings) return
     const closeOnOutside = (event: PointerEvent) => {
@@ -189,36 +213,31 @@ export function WorldWorkspace({
       },
       refresh: async (signal, fullScene) => {
         const previous = instance.view
-        const response = await fetch(fullScene ? '/api/world' : worldRefreshUrl(previous), {
-            cache: 'no-store',
-            signal,
-          }),
+        const canvas = fullScene
+          ? document.querySelector<HTMLCanvasElement>('canvas[data-world-stage]')
+          : null
+        const viewport =
+          canvas && canvas.clientWidth > 0 && canvas.clientHeight > 0
+            ? { width: canvas.clientWidth, height: canvas.clientHeight }
+            : undefined
+        const response = await fetch(
+            fullScene
+              ? viewport
+                ? worldRefreshUrl(previous, viewport)
+                : '/api/world'
+              : worldRefreshUrl(previous),
+            {
+              cache: 'no-store',
+              signal,
+            },
+          ),
           body = await response.json()
         if (!response.ok)
           throw new Error(body.error?.message ?? 'The world could not be refreshed.')
         return mergeWorldRefresh(previous, body)
       },
       accept,
-      sceneCovered: (current) => {
-        if (!localViewActive.current) return true
-        const canvas = document.querySelector<HTMLCanvasElement>('canvas[data-world-stage]')
-        if (!canvas) return false
-        const point = motion.sample(performance.now()).point
-        return worldSceneCoversViewport(
-          current,
-          [
-            point,
-            ...current.route
-              .slice(0, 4)
-              .map((step) => mapPoint(step.position, current.sectors, point)),
-          ],
-          {
-            width: canvas.clientWidth,
-            height: canvas.clientHeight,
-            tile: Number(canvas.dataset.tileSize),
-          },
-        )
-      },
+      sceneCovered,
       presentation: (next) => {
         if (!mounted) return
         motion.updateScene(next.sectors, performance.now())
@@ -343,7 +362,20 @@ export function WorldWorkspace({
       document.removeEventListener('visibilitychange', visible)
       controller.current = null
     }
-  }, [initialView, router, motion])
+  }, [initialView, router, motion, sceneCovered])
+  useEffect(() => {
+    const canvas = document.querySelector<HTMLCanvasElement>('canvas[data-world-stage]')
+    if (!canvas) return
+    const supplyViewport = () => {
+      const instance = controller.current
+      if (instance && document.visibilityState === 'visible')
+        void instance.hydrate({ viewport: true })
+    }
+    const observer = new ResizeObserver(supplyViewport)
+    observer.observe(canvas)
+    supplyViewport()
+    return () => observer.disconnect()
+  }, [zoom, mode, sceneCovered])
   useEffect(() => {
     if (!approachingPlayer || controller.current?.pending) return
     const target = view.players.find((player) => player.characterId === approachingPlayer)

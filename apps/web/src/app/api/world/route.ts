@@ -25,7 +25,18 @@ const json = (view: unknown) =>
 export async function GET(request?: Request) {
   try {
     const actor = await identity()
-    const view = (await readWorld(actor.userId, actor.characterId)).view
+    const query = new URL(request?.url ?? '/api/world', 'https://world.invalid').searchParams
+    const width = Number(query.get('sceneWidth')),
+      height = Number(query.get('sceneHeight'))
+    const viewport =
+      Number.isFinite(width) && width > 0 && Number.isFinite(height) && height > 0
+        ? { width: Math.min(3840, Math.ceil(width)), height: Math.min(2160, Math.ceil(height)) }
+        : undefined
+    const view = (
+      await (viewport
+        ? readWorld(actor.userId, actor.characterId, viewport)
+        : readWorld(actor.userId, actor.characterId))
+    ).view
     return json(worldRefreshResponse(view, request?.url ?? '/api/world'))
   } catch (error) {
     return toServerErrorResponse(error)

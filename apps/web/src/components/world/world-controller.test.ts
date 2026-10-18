@@ -423,6 +423,70 @@ it('merges delayed authorized peers into newer owned authority and clears old-po
   expect(controller.acceptPlayers(source, players)).toBe(false)
 })
 
+it.each(['larger scene', 'covered before stale scene', 'already covered', 'disposed'] as const)(
+  'rechecks a resized viewport after an active scene request: %s',
+  async (outcome) => {
+    const initial = {
+      ...view,
+      characterId: 'owner',
+      serverNow: 1000,
+      position: { sectorId: 'a', x: 1, y: 1 },
+      sectors: [{ id: 'a', cells: [{ x: 1, y: 1 }] }],
+      atlas: [],
+      players: [],
+      route: [],
+    } as unknown as WorldView
+    const smallScene: WorldView['scenery'] = [['atlas:1:1', 'g'.repeat(96), null, [], []]]
+    const largeScene: WorldView['scenery'] = [
+      ...smallScene,
+      ['atlas:2:1', 'g'.repeat(96), null, [], []],
+    ]
+    const first = deferred(),
+      second = deferred(),
+      presentation = vi.fn()
+    let viewportWidth = 1920
+    const requestedWidths: number[] = []
+    const refresh = vi.fn(() => {
+      requestedWidths.push(viewportWidth)
+      return requestedWidths.length === 1 ? first.promise : second.promise
+    })
+    const controller = new WorldController(
+      outcome === 'covered before stale scene' ? { ...initial, scenery: largeScene } : initial,
+      {
+        command: vi.fn(),
+        refresh,
+        accept: vi.fn(),
+        presentation,
+        sceneCovered: (current) => current.scenery?.length === 2,
+        error: vi.fn(),
+        busy: vi.fn(),
+      },
+    )
+    const hydrating = controller.hydrate(
+      outcome === 'covered before stale scene' ? {} : { viewport: true },
+    )
+    viewportWidth = 2560
+    await controller.hydrate({ viewport: true })
+    await controller.hydrate({ viewport: true })
+    if (outcome === 'disposed') controller.dispose()
+    first.resolve({
+      ...initial,
+      scenery: outcome === 'already covered' ? largeScene : smallScene,
+    })
+    await hydrating
+    if (outcome === 'larger scene' || outcome === 'covered before stale scene') {
+      expect(requestedWidths).toEqual([1920, 2560])
+      second.resolve({ ...initial, scenery: largeScene })
+      await vi.waitFor(() => expect(controller.view.scenery).toEqual(largeScene))
+      expect(presentation).toHaveBeenCalledTimes(2)
+    } else {
+      expect(requestedWidths).toEqual([1920])
+      expect(presentation).toHaveBeenCalledTimes(outcome === 'disposed' ? 0 : 1)
+    }
+    controller.dispose()
+  },
+)
+
 it('hydrates presentation during a command without replacing newer owned movement', async () => {
   const initial = {
     ...view,

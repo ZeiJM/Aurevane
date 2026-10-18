@@ -23,6 +23,7 @@ export class WorldController {
   private currentJob: Job | null = null
   private idleRead: AbortController | null = null
   private sceneRead: AbortController | null = null
+  private pendingViewport = false
   private lastSceneAt = -Infinity
   private lastSceneSector: string | null = null
   constructor(
@@ -140,8 +141,13 @@ export class WorldController {
     }
   }
   /** Scene presentation never occupies or aborts the authority command queue. */
-  async hydrate(options: { movement?: boolean } = {}) {
-    if (this.disposed || this.sceneRead || !this.transport.presentation) return
+  async hydrate(options: { movement?: boolean; viewport?: boolean } = {}) {
+    if (this.disposed || !this.transport.presentation) return
+    if (this.sceneRead) {
+      if (options.viewport) this.pendingViewport = true
+      return
+    }
+    if (options.viewport && this.transport.sceneCovered?.(this.view) === true) return
     // Ordinary movement already carries owned authority and peers have a
     // separate live channel. Avoid repeatedly downloading/indexing the full
     // atlas while this approved public route is still supplied. Explicit reads,
@@ -295,6 +301,10 @@ export class WorldController {
       // Approved movement remains usable; the regular schedule retries presentation.
     } finally {
       if (this.sceneRead === read) this.sceneRead = null
+      if (this.pendingViewport) {
+        this.pendingViewport = false
+        void this.hydrate({ viewport: true })
+      }
     }
   }
   async refresh(resumeMovement = false) {
@@ -386,6 +396,7 @@ export class WorldController {
   }
   dispose() {
     this.disposed = true
+    this.pendingViewport = false
     this.sceneRead?.abort()
     this.sceneRead = null
     this.idleRead?.abort()
