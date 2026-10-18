@@ -192,9 +192,8 @@ export function CombatControlsSettings({ initialBindings }: CombatControlsSettin
       aria-label="Combat controls settings"
     >
       <p className={styles.intro}>
-        Change a battle key, then save. Preview actions before choosing a legal target. The server
-        validates every action. Read battle effects with Ctrl+Alt+E, then use Up/Down, Home or End
-        to choose an effect. Enter or Space opens its report; Escape returns to your previous focus.
+        Change a key, then save. Preview targets. The server validates every action. Read effects:
+        Ctrl+Alt+E; Up/Down or Home/End to choose; Enter/Space opens; Escape restores focus.
       </p>
 
       <div className={styles.grid}>
