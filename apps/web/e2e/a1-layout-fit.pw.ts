@@ -153,12 +153,12 @@ async function readAuthenticatedShellChrome(page: Page): Promise<ShellChromeGeom
   return shell.evaluate((element) => {
     const header = element.querySelector(':scope > header')
     const footer = element.querySelector(':scope > footer')
-    if (!(header instanceof HTMLElement) || !(footer instanceof HTMLElement)) {
-      throw new Error('Authenticated shell header/footer were not rendered')
+    if (!(header instanceof HTMLElement)) {
+      throw new Error('Authenticated shell header was not rendered')
     }
     return {
       headerHeight: header.getBoundingClientRect().height,
-      footerHeight: footer.getBoundingClientRect().height,
+      footerHeight: footer instanceof HTMLElement ? footer.getBoundingClientRect().height : 0,
     }
   })
 }

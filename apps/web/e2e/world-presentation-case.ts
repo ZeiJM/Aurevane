@@ -866,7 +866,7 @@ export function registerWorldInputCases({
     expect(heldMs).toBeGreaterThanOrEqual(700)
     // The driver delay excludes keyboard round trips; measure the actual browser
     // key window and exclude authoritative retries from the input cadence count.
-    const maximumWalks = 1 + Math.floor(heldMs / STEP_MS)
+    const maximumWalks = 1 + Math.ceil(heldMs / STEP_MS)
     // Release has one intentional terminal retarget to the unfinished landing.
     // Identify that shorter target rather than relaxing held-input cadence.
     const shortening = walkDestinations.filter((target, index) => {

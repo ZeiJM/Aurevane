@@ -101,7 +101,7 @@ test('ordinary desktop shell fits its identity and every navigation control with
       const portrait = rail.querySelector('[data-character-portrait-frame] img')!
       const portraitFrame = rail.querySelector('[data-character-portrait-frame]')!
       const frameStyle = getComputedStyle(portraitFrame)
-      const footer = document.querySelector('[data-testid="authenticated-shell"] > footer')!
+      const viewportBottom = innerHeight
       const main = document.getElementById('game-main')!
       return {
         portrait: {
@@ -116,7 +116,7 @@ test('ordinary desktop shell fits its identity and every navigation control with
         mainOverflow: main.scrollHeight - main.clientHeight,
         documentOverflow: document.documentElement.scrollHeight - window.innerHeight,
         documentWidthOverflow: document.documentElement.scrollWidth - window.innerWidth,
-        footerGap: footer.getBoundingClientRect().top - box.bottom,
+        viewportGap: viewportBottom - box.bottom,
         unreachable: Array.from(rail.querySelectorAll('a, button'))
           .filter((control) => {
             const rect = control.getBoundingClientRect()
@@ -153,7 +153,7 @@ test('ordinary desktop shell fits its identity and every navigation control with
       metrics.documentWidthOverflow,
       `${label}: horizontal document scroll`,
     ).toBeLessThanOrEqual(1)
-    expect(Math.abs(metrics.footerGap), `${label}: rail ends above footer`).toBeLessThanOrEqual(1)
+    expect(Math.abs(metrics.viewportGap), `${label}: rail fits viewport`).toBeLessThanOrEqual(1)
     expect(metrics.unreachable, `${label}: clipped navigation`).toEqual([])
     expect(metrics.overflowingLabels, `${label}: navigation text outside its control`).toEqual([])
     expect(metrics.portrait.frameWidth, `${label}: portrait frame size`).toBeCloseTo(

@@ -3,7 +3,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions, pg_catalog;
-select plan(57);
+select plan(71);
 
 -- Surface and privileges -------------------------------------------------------------------
 select has_function('public', 'chat_send_v1', array['uuid','uuid','text','text','bigint'], 'send exists');
@@ -28,7 +28,7 @@ insert into public.characters(
 )
 select ('82000000-0000-4000-8000-0000000001' || lpad(actor.n::text, 2, '0'))::uuid,
   ('82000000-0000-4000-8000-0000000000' || lpad(actor.n::text, 2, '0'))::uuid,0,1,
-  'Chat Tester ' || lpad(actor.n::text, 2, '0'),'chat tester ' || lpad(actor.n::text, 2, '0'),
+  'Chat Tester ' || lpad(actor.n::text, 2, '0'),lower(regexp_replace('Chat Tester ' || lpad(actor.n::text, 2, '0'), '[- ''’]', '', 'g')),
   'presentation.chat-test','pronoun.they','portrait.chat-test','appearance.chat-test',definition.discipline_id,
   (profile.core_base_attributes->>'might')::integer+1,
   (profile.core_base_attributes->>'finesse')::integer+1,
@@ -122,7 +122,13 @@ select public.chat_friend_remove_v1((select u from ids where n=7), (select c fro
 select is((public.chat_friends_v1((select u from ids where n=7), (select c from ids where n=7))->>'slotsUsed')::integer, 9, 'removing a friend frees a slot');
 select is((public.chat_friends_v1((select u from ids where n=7), (select c from ids where n=7))->'incoming'->0->>'name'), 'Chat Tester 12', 'pending request is listed');
 select ok(public.chat_friend_respond_v1((select u from ids where n=7), (select c from ids where n=7), (select c from ids where n=12), true) is not null, 'accepting after a slot frees works');
-select ok(jsonb_array_length(public.chat_mention_candidates_v1((select u from ids where n=7), (select c from ids where n=7), 'world', 'chat tester 0')) >= 1, 'mention candidates include friends');
+select ok(jsonb_array_length(public.chat_mention_candidates_v1((select u from ids where n=7), (select c from ids where n=7), 'world', 'chattester0')) >= 1, 'mention candidates include friends');
+
+-- Display names with spaces resolve against the canonical separator-free name key.
+update public.characters set name = 'ChatGuest DECBHJJ', name_key = 'chatguestdecbhjj'
+where id = (select c from ids where n = 12);
+select ok(public.chat_friend_request_v1((select u from ids where n=6), (select c from ids where n=6), 'ChatGuest DECBHJJ') is not null,
+  'friend request resolves spaced display names against canonical name keys');
 
 -- Groups: names and ten-person cap --------------------------------------------------------
 create temporary table grp as
@@ -170,6 +176,43 @@ select throws_ok($q$select public.chat_post_system_v1('world', 'chat', 'forged')
 update app_private.chat_messages set created_at = now() - interval '8 days' where channel_key = 'world';
 select ok(app_private.chat_prune_v1() >= 1, 'retention prunes old world lines');
 select is((select count(*)::integer from app_private.chat_messages where channel_key like 'dm:%'), 1, 'recent whispers survive pruning');
+
+
+-- Chat follow-ups -------------------------------------------------------------------------
+select has_table('app_private', 'chat_reactions', 'reaction ledger exists');
+select has_table('app_private', 'chat_typing', 'ephemeral typing state exists');
+select has_function('public', 'chat_react_v1', array['uuid','uuid','bigint','text'], 'reaction RPC exists');
+select has_function('public', 'chat_typing_v1', array['uuid','uuid','text','boolean'], 'typing RPC exists');
+select has_function('public', 'chat_typers_v1', array['uuid','uuid','text'], 'typing reader exists');
+select ok(not has_function_privilege('authenticated','public.chat_react_v1(uuid,uuid,bigint,text)','execute'), 'browser cannot invoke reaction RPC directly');
+select ok(not app_private.chat_can_access_v1((select c from ids where n=2), 'feed:' || (select c from ids where n=1), false), 'another character cannot read a private feed');
+select ok(public.chat_post_system_v1('feed:' || (select c from ids where n=1), 'story', 'A new chapter begins.') > 0, 'trusted source posts a story feed event');
+select is(jsonb_array_length(public.chat_list_v1((select u from ids where n=1), (select c from ids where n=1), 'feed:' || (select c from ids where n=1), 0, 10)), 1, 'owner sees private feed events');
+select public.chat_send_v1((select u from ids where n=8), (select c from ids where n=8), 'world', 'reaction smoke');
+select is(jsonb_array_length(public.chat_react_v1((select u from ids where n=8), (select c from ids where n=8), (select max(id) from app_private.chat_messages where body = 'reaction smoke'), '🔥')), 1, 'reaction toggle adds an emoji');
+select is(jsonb_array_length(public.chat_react_v1((select u from ids where n=8), (select c from ids where n=8), (select max(id) from app_private.chat_messages where body = 'reaction smoke'), '🔥')), 0, 'reaction toggle removes an emoji');
+select public.chat_group_respond_v1((select u from ids where n=3), (select c from ids where n=3), (select (g->>'id')::uuid from grp), true);
+select public.chat_typing_v1((select u from ids where n=2), (select c from ids where n=2), 'group:' || (select (g->>'id')::uuid from grp), true);
+select is(jsonb_array_length(public.chat_typers_v1((select u from ids where n=3), (select c from ids where n=3), 'group:' || (select (g->>'id')::uuid from grp))), 1, 'group member sees an active typist');
+
+-- Reaction traffic is limited independently of message-send traffic.
+do $$
+declare
+  v_message bigint := (select max(id) from app_private.chat_messages where body = 'reaction smoke');
+  v_n integer;
+begin
+  for v_n in 1..12 loop
+    perform public.chat_react_v1((select u from ids where n=11),
+      (select c from ids where n=11), v_message, '👏');
+  end loop;
+end;
+$$;
+select throws_ok(
+  format($q$select public.chat_react_v1(%L,%L,%L,'👏')$q$,
+    (select u from ids where n=11), (select c from ids where n=11),
+    (select max(id) from app_private.chat_messages where body = 'reaction smoke')),
+  '54000', 'CHAT_REACTION_RATE_LIMITED', 'thirteenth reaction in thirty seconds is rate limited'
+);
 
 select * from finish();
 rollback;
