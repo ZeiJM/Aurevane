@@ -739,9 +739,9 @@ test('supplementary presence never blocks primary rail navigation', async ({ pag
     ).toBe('preserved')
     releasePresence()
     await page.getByRole('button', { name: 'Account', exact: true }).click()
-    const accountMenu = page.getByRole('menu', { name: 'Account menu' })
-    await expect(accountMenu.getByText('Welcome back, Experience Navigator.')).toBeVisible()
-    await expect(accountMenu.getByRole('link', { name: /Online Users/ })).toContainText('7')
+    const finalAccountMenu = page.getByRole('menu', { name: 'Account menu' })
+    await expect(finalAccountMenu.getByText('Welcome back, Experience Navigator.')).toBeVisible()
+    await expect(finalAccountMenu.getByRole('link', { name: /Online Users/ })).toContainText('7')
   } finally {
     releaseNavigation()
     releasePresence()
