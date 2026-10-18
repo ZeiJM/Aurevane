@@ -90,7 +90,8 @@ export function AccountMenu({
               <div>
                 <span>Current character</span>
                 <strong>Welcome back, {characterName}.</strong>
-                    </div>
+                {presence ? <div className={styles.presenceBlock}>{presence}</div> : null}
+              </div>
               {characterPortrait}
             </div>
           ) : null}
