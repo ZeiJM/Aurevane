@@ -214,3 +214,41 @@ it('rejects non-text stored kinds at the transport boundary without coercing the
     code: 'PERSISTENCE_UNAVAILABLE',
   })
 })
+
+it('captures one immutable catalogue generation for policy and every current admission lookup', async () => {
+  const skill = structuredClone(resolveMatureSkillVersion('vanguard.forceful-strike')!)
+  const basic = structuredClone(defaultBasicSkills()[0]!)
+  const essence = structuredClone(resolveEssenceForBuild('vanguard', null)!)
+  const resonance = structuredClone(resolveResonanceForPair('vanguard', 'lifebinder')!)
+  const definitions = [
+    row('skill', skill.id, skill, skill.contentVersion),
+    row('skill', basic.id, basic, basic.contentVersion),
+    row('essence', essence.essenceId, essence, essence.contentVersion),
+    row('resonance', resonance.id, resonance, resonance.contentVersion),
+  ]
+  const data = {
+    token,
+    policy: { version: 8, tagAuthority: 'global', modes: { healing: 'controlled' } },
+    publications: definitions,
+  }
+  const { resolver } = fixture(data)
+  expect(resolver.captureCurrentCatalogue).toBeTypeOf('function')
+  const captured = await resolver.captureCurrentCatalogue!()
+  data.policy.version = 9
+  data.publications = []
+  expect(captured.policy).toMatchObject({ version: 8, tagAuthority: 'global' })
+  expect(await captured.resolver.resolveCurrentSkillDefinition(skill.id)).toEqual(skill)
+  expect(
+    (await captured.resolver.resolveCurrentBasicSkillDefinitions!([basic.id])).get(basic.id),
+  ).toEqual(basic)
+  expect(await captured.resolver.resolveCurrentEssenceDefinition!('vanguard', null)).toEqual(
+    essence,
+  )
+  expect(
+    await captured.resolver.resolveCurrentResonanceDefinition!('vanguard', 'lifebinder'),
+  ).toEqual(resonance)
+  expect(
+    await captured.resolver.resolvePinnedSkillDefinition(skill.id, skill.contentVersion),
+  ).toEqual(skill)
+  expect((await captured.resolver.resolveCurrentCatalogue!()).policy.version).toBe(8)
+})

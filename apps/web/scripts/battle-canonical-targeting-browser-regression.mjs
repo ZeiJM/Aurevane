@@ -724,6 +724,14 @@ try {
             receipts: window.receipts,
           }))
           assert.deepEqual(prepared.actor, before, 'prime does not spend resources')
+          if (scenario === 'controlled-choices') {
+            await page.getByLabel('Ability action', { exact: true }).selectOption('strike')
+            await command
+              .locator('[data-battle-controlled-primed=true]')
+              .waitFor({ state: 'visible' })
+            assert.match(await command.getAttribute('aria-label'), /primed/)
+            await page.getByLabel('Ability action', { exact: true }).selectOption('second')
+          }
           assert.deepEqual(prepared.receipts, [])
           await command
             .locator('[data-battle-controlled-primed=true]')

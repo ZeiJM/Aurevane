@@ -800,6 +800,8 @@ export function createBattleSessionService({
       const elevationPolicy = parseBattlefieldElevationPolicy(
         readElevationPolicy ? await readElevationPolicy() : defaultBattlefieldElevationPolicy(),
       )
+      const catalogue = await combatContentResolver?.captureCurrentCatalogue?.()
+      const admissionResolver = catalogue?.resolver ?? combatContentResolver
       const baseEncounter = createVerticalSliceEncounter(
         character,
         arenaId,
@@ -811,9 +813,11 @@ export function createBattleSessionService({
         elevationPolicy,
       )
       baseEncounter.battlefieldElevationPolicy = elevationPolicy
-      baseEncounter.effectTimingPolicy = readEffectTimingPolicy
-        ? await readEffectTimingPolicy()
-        : defaultCombatEffectTimingPolicy()
+      baseEncounter.effectTimingPolicy =
+        catalogue?.policy ??
+        (readEffectTimingPolicy
+          ? await readEffectTimingPolicy()
+          : defaultCombatEffectTimingPolicy())
       baseEncounter.effectStackingPolicyVersion = 1
       baseEncounter.percentageDotPolicyVersion = 1
       baseEncounter.dotTriggerPolicyVersion = 2
@@ -840,7 +844,7 @@ export function createBattleSessionService({
         }
         encounter = {
           ...baseEncounter,
-          buildAuthority: combatContentResolver
+          buildAuthority: admissionResolver
             ? await createResolvedBattleBuildAuthoritySnapshot(
                 'pve',
                 [
@@ -851,7 +855,7 @@ export function createBattleSessionService({
                     narratorIdentity: narratorIdentityForCharacter(character),
                   },
                 ],
-                combatContentResolver,
+                admissionResolver,
               )
             : createBattleBuildAuthoritySnapshot('pve', [
                 {
@@ -868,7 +872,7 @@ export function createBattleSessionService({
         const sources = await captureBattleBuildAbilitySources(
           encounter,
           encounter.buildAuthority,
-          combatContentResolver,
+          admissionResolver,
           battleHallRecordId === 'guided-fundamentals',
         )
         const startSnapshot = encounter

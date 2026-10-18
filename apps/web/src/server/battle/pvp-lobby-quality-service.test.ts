@@ -11,6 +11,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const mocks = vi.hoisted(() => ({
   canonicalStartup: false,
   globalTiming: false,
+  captureAtomic: false,
+  timingReads: 0,
   createdRpc: '',
   groundSkill: false,
   elevationPolicy: {
@@ -32,19 +34,32 @@ vi.mock('@/server/combat/combat-content-resolver', async () => {
   const { resolveMatureSkillVersion: resolve } =
     await import('@aurevane/game-core/combat/mature-skills')
   return {
-    createServerCombatContentResolver: () => ({
-      resolveCurrentSkillDefinition: async (skillId: string) => resolve(skillId),
-      resolvePinnedSkillDefinition: async (skillId: string, contentVersion: number) =>
-        resolve(skillId, contentVersion),
-      ...(mocks.canonicalStartup
+    createServerCombatContentResolver: () => {
+      const resolver = {
+        resolveCurrentSkillDefinition: async (skillId: string) => resolve(skillId),
+        resolvePinnedSkillDefinition: async (skillId: string, contentVersion: number) =>
+          resolve(skillId, contentVersion),
+        ...(mocks.canonicalStartup
+          ? {
+              resolveCurrentEssenceDefinition: async (
+                _primary: string,
+                secondary: string | null,
+              ) => (secondary ? null : startupEssence()),
+              resolvePinnedEssenceDefinition: async (_primary: string, secondary: string | null) =>
+                secondary ? null : startupEssence(),
+            }
+          : {}),
+      }
+      return mocks.captureAtomic
         ? {
-            resolveCurrentEssenceDefinition: async (_primary: string, secondary: string | null) =>
-              secondary ? null : startupEssence(),
-            resolvePinnedEssenceDefinition: async (_primary: string, secondary: string | null) =>
-              secondary ? null : startupEssence(),
+            ...resolver,
+            captureCurrentCatalogue: async () => ({
+              resolver,
+              policy: { version: 8, tagAuthority: 'global' as const, modes: {} },
+            }),
           }
-        : {}),
-    }),
+        : resolver
+    },
   }
 })
 
@@ -245,7 +260,8 @@ vi.mock('@/lib/supabase/admin', () => ({
         }
       if (name === 'read_battlefield_elevation_policy_v1')
         return { data: mocks.elevationPolicy, error: null }
-      if (name === 'read_combat_effect_timing_policy_v1')
+      if (name === 'read_combat_effect_timing_policy_v1') {
+        mocks.timingReads++
         return {
           data: {
             version: 8,
@@ -254,6 +270,7 @@ vi.mock('@/lib/supabase/admin', () => ({
           },
           error: null,
         }
+      }
       if (name === 'get_pvp_lobby_settings_v2') {
         return {
           data: {
@@ -293,6 +310,8 @@ describe('P3.7 direct PvP committed build snapshots', () => {
   beforeEach(() => {
     mocks.canonicalStartup = false
     mocks.globalTiming = false
+    mocks.captureAtomic = false
+    mocks.timingReads = 0
     mocks.createdRpc = ''
     mocks.elevationPolicy = {
       version: 1,
@@ -324,6 +343,22 @@ describe('P3.7 direct PvP committed build snapshots', () => {
         ...(global ? { tagAuthority: 'global' } : {}),
       })
       expect(saved.modularSkillPolicyVersion).toBe(global ? 1 : undefined)
+    },
+  )
+
+  it.each(['quality', 'legacy'] as const)(
+    'captures %s PvP content and policy from one catalogue generation',
+    async (entry) => {
+      mocks.captureAtomic = true
+      mocks.canonicalStartup = true
+      await (entry === 'quality' ? startPvpLobbyWithQuality : startPvpLobby)(hostUserId, lobbyId)
+      const saved = mocks.createdBattleArgs!.p_initial_snapshot as BattleAuthoritativeEncounterState
+      expect(saved.effectTimingPolicy).toEqual({ version: 8, tagAuthority: 'global', modes: {} })
+      expect(saved.modularSkillPolicyVersion).toBe(1)
+      expect(saved.capturedAbilitySources).toContainEqual(
+        expect.objectContaining({ contentVersion: 77 }),
+      )
+      expect(mocks.timingReads).toBe(0)
     },
   )
 

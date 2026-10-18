@@ -4,7 +4,10 @@ import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-acti
 import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
 import { abilityBehaviorInformation } from '../character/ability-detail-presentation'
 import { BattleSkillParameters } from './battle-skill-parameters'
-import { battleCapturedActionCost } from './battle-captured-action-cost'
+import {
+  battleCapturedActionCost,
+  battleCapturedControlledAvailability,
+} from './battle-captured-action-cost'
 
 const definition = resolveMatureSkillVersion('vanguard.forceful-strike', 2)!
 const legacy = {
@@ -157,4 +160,20 @@ it('preserves the actual default Instant timing of typed elemental companions in
     },
   )
   expect(information.effects[1]!.parts.timing).toBe('Instant')
+})
+
+it('keeps the ability artwork Primed when no action or another action is selected', () => {
+  const choices = [
+    {
+      actionId: definition.id,
+      behaviorId: 'a',
+      target: definition.target,
+      controlled: { phase: 'primed' as const, canPrime: false, canCancel: true },
+    },
+    { actionId: definition.id, behaviorId: 'b', target: definition.target },
+  ]
+  for (const selected of [undefined, 'a', 'b', 'missing']) {
+    expect(battleCapturedControlledAvailability(choices, selected).controlledPrimed).toBe(true)
+  }
+  expect(battleCapturedControlledAvailability(choices.slice(1)).controlledPrimed).toBe(false)
 })

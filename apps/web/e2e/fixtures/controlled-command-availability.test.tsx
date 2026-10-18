@@ -144,7 +144,7 @@ const base: BattleRuntime = {
 function markup(
   state: CombatEncounterState,
   slot: 'skill' | 'essence' | 'resonance',
-  behaviorId = 'strike',
+  behaviorId: string | null = 'strike',
 ) {
   const runtime: BattleRuntime =
     slot === 'skill'
@@ -163,7 +163,7 @@ function markup(
       actorId="actor"
       resources={{ mp: 20, hp: 1000 }}
       manualActionTargets={rows(state)}
-      selectedBehavior={{ actionId: skill.id, behaviorId }}
+      selectedBehavior={behaviorId ? { actionId: skill.id, behaviorId } : undefined}
       primeAvailableIds={rows(state)
         .filter((row) => row.controlled?.canPrime)
         .map((row) => row.actionId)}
@@ -456,3 +456,19 @@ it.each(
   }
   expect(html).toContain('aria-label="About All-spent Basic"')
 })
+
+it.each(['skill', 'essence', 'resonance'] as const)(
+  'retains %s Primed artwork with another group selected or after local selection resets',
+  (slot) => {
+    const input = setup(true)
+    const state = prime(input)
+    for (const selected of [null, 'ordinary']) {
+      const html = markup(state, slot, selected)
+      expect(html).toContain('data-battle-controlled-primed="true"')
+      expect(artwork(html)).toContain(', primed')
+    }
+    expect(markup(finish('cancel', input), slot, null)).not.toContain(
+      'data-battle-controlled-primed',
+    )
+  },
+)

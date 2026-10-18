@@ -632,7 +632,9 @@ export async function startPvpLobby(
     roster.push({ member, character, buildSnapshot })
   }
 
-  const combatContentResolver = createServerCombatContentResolver()
+  const liveResolver = createServerCombatContentResolver()
+  const catalogue = await liveResolver.captureCurrentCatalogue?.()
+  const combatContentResolver = catalogue?.resolver ?? liveResolver
   const buildAuthority = await createResolvedBattleBuildAuthoritySnapshot(
     'pvp',
     roster.map(({ character, buildSnapshot }) => ({
@@ -646,7 +648,7 @@ export async function startPvpLobby(
   const elevationPolicy = parseBattlefieldElevationPolicy(await readBattlefieldElevationPolicy())
   let encounter = createPvpEncounter(roster, lobby.teamSizes, buildAuthority, elevationPolicy)
   encounter.battlefieldElevationPolicy = elevationPolicy
-  encounter.effectTimingPolicy = await readCombatEffectTimingPolicy()
+  encounter.effectTimingPolicy = catalogue?.policy ?? (await readCombatEffectTimingPolicy())
   encounter.effectStackingPolicyVersion = 1
   encounter.percentageDotPolicyVersion = 1
   encounter.dotTriggerPolicyVersion = 2

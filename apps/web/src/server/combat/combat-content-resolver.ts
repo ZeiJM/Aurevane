@@ -42,6 +42,12 @@ import {
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 
 export interface CombatContentResolver {
+  /** One MVCC catalogue supplies timing and every current lookup during battle admission. */
+  captureCurrentCatalogue?(): Promise<{
+    resolver: CombatContentResolver
+    policy: CombatEffectTimingPolicy
+  }>
+
   resolveCurrentCatalogue?(): Promise<CombatContentCatalogue>
   resolveCurrentBasicSkillDefinitions?(
     ids: readonly BasicSkillId[],
@@ -655,6 +661,40 @@ export function createCombatContentResolver(
   }
 
   return {
+    ...(source.readCatalogueSnapshot
+      ? {
+          async captureCurrentCatalogue() {
+            const snapshot = structuredClone(await source.readCatalogueSnapshot!())
+            // Validate the entire coherent generation before selecting any battle source.
+            resolveCombatContentCatalogueSnapshot(snapshot)
+            const current = (key: string, kind: CombatContentKind) =>
+              snapshot.publications.find(
+                (row) => row.contentKey === key && row.contentKind === kind,
+              ) ?? null
+            const pinned = (key: string, kind: CombatContentKind, version: number) => {
+              const row = current(key, kind)
+              return row?.contentVersion === version ? row : null
+            }
+            const frozen = createCombatContentResolver({
+              readCatalogueSnapshot: async () => structuredClone(snapshot),
+              findCurrentSkill: async (key) => structuredClone(current(key, 'skill')),
+              findCurrentSkills: async (keys) =>
+                snapshot.publications
+                  .filter((row) => row.contentKind === 'skill' && keys.includes(row.contentKey))
+                  .map((row) => structuredClone(row)),
+              findCurrentContent: async (key, kind) => structuredClone(current(key, kind)),
+              findSkillVersion: async (key, version) =>
+                structuredClone(pinned(key, 'skill', version)) ??
+                source.findSkillVersion(key, version),
+              findContentVersion: async (key, kind, version) =>
+                structuredClone(pinned(key, kind, version)) ??
+                (await source.findContentVersion?.(key, kind, version)) ??
+                null,
+            })
+            return { resolver: frozen, policy: structuredClone(snapshot.policy) }
+          },
+        }
+      : {}),
     resolveCurrentCatalogue,
     async resolveCurrentBasicSkillDefinitions(ids) {
       const unique = [...new Set(ids)]

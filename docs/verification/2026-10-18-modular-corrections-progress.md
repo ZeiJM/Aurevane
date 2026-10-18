@@ -1,6 +1,6 @@
 # Modular correction release — implementation checkpoint
 
-Status: **IN PROGRESS, NOT RELEASED**. The Owner authorized one combined correction drop before broader Master work, which stays isolated at `0350184a9`. Fresh main remains `2d933b0782f1c6c872782799fc4bc24954b6154d`. No correction push, publication, migration application, merge or deployment has occurred.
+Status: **IN PROGRESS, NOT RELEASED**. The Owner authorized one combined correction drop before broader Master work, which stays isolated at `0350184a9`. Fresh main remains `2d933b0782f1c6c872782799fc4bc24954b6154d`. Draft PR #936 publishes the review source; no correction publication, migration application, merge or deployment has occurred. Initial remote head `8b30c8a863792aa220eb9d9eae4e139b57386f7d` exactly matches local4162cb92 tree `1429c77c90cc2f3c6a80ec78e6c8e023b3614af5`. The connected GitHub path is used because terminal push has no credentials.
 
 ## Implemented locally
 
@@ -19,9 +19,19 @@ Repository typecheck passed all8 tasks and lint passed before the new enrollment
 
 Actual 294-entry parsing/presentation, complete Owner append/history validation and29 natural three-round-or-terminal PvP mirrors passed. The replay suite uses all17 pure builds and six selected mixed pairs in both Primary orders; it does not certify every pair, victory or balance acceptance. Actual Rewind/Chronist ongoing state, HP-cost/Barrier, canonical Pierce/Defense and delayed Copy Debuffs interactions pass. Barrier indirect-damage regressions and related kernels passed80 tests. Timing migration/Owner CAS tests pass4, publication source capture/current-reader tests pass5, and shared Primed command/card parity passes37. Counts overlap; do not sum them as a suite total.
 
-New activation regressions were observed failing for all three real entry points under legacy timing, then passed42 combined service tests after the policy gate. Release control tests are still running; do not claim publication/rollback acceptance yet. Latest read-only Production inventory remains policy7,289 history/current rows, zero drafts, catalogue token `9e08000640ce5867db3ea7c1895217bc` (must refresh before release).
+New activation regressions were observed failing for all three real entry points under legacy timing, then passed42 combined service tests after the policy gate. All6 release-control tests pass, including full294 publication/readback/history-preserving rollback, stale-token/Owner denial, late invalid identity and policy/draft drift without partial publication. Latest read-only Production inventory remains policy7,289 history/current rows, zero drafts, catalogue token `9e08000640ce5867db3ea7c1895217bc` (must refresh before release).
 
 Temporary logs are in `/tmp/aurevane-followup-680b26e4eb86/`, prefixed `modular-`. Local browser acceptance remains pending after an earlier truncated Chromium download. Hosted/human acceptance is unverified.
+
+## Whole-branch review and follow-up
+
+The single required whole-branch review found no Critical issue and two Important issues. The initial Ground destination concern was withdrawn: the selected movement destination and final Ground aim are intentionally distinct, preserving single-target attacks and utility on empty aim Ground. Do not equate them or invent an area attack.
+
+- Admission now captures one actual MVCC catalogue snapshot and resolves timing, current Skills, Basics, Essence and Resonance from that generation. Matching pinned lookups use captured rows; older immutable history remains resolvable. PvE and both PvP entry points use this capability. The focused regression failed for all three entry points before wiring, then passed65 combined resolver/service/reader tests. A first test fixture lacked a canonical Essence Ability; it was corrected to the existing real startup Ability fixture, without weakening the capture assertion.
+- Primed presence aggregates the ability's captured groups independently of locally selected payment/readiness. Unit and actual shared Skill/Essence/Resonance markup tests cover another selection and reset;38 controlled/card fixture cases pass. Browser coverage switches multi-action selections while checking the indicator.
+- Initial native reader CI caught `.details strong` overriding the new bold tag color. That selector now excludes compact effect labels, retaining the shared gold/paper palette. Actual browser rerun is pending.
+
+`pnpm check` completed successfully before these follow-ups: format/lint/typecheck,10,184 Vitest tests plus7 Node tests and production build. The newer complete check is running and must pass before release. Initial remote CI includes passing Controlled browser, Skill Engine, Essence/Build snapshots and database workflows; modular reader browser is red on the diagnosed CSS rule. Do not represent initial CI as all green or as final exact-head acceptance.
 
 ## Outstanding before the single live drop
 
