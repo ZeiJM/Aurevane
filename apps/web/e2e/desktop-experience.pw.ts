@@ -37,8 +37,9 @@ async function fit(page: Page, label: string, testInfo: TestInfo) {
   await settle(page)
   const metrics = await page.evaluate((rosterSelector) => {
     const footer = document
-      .querySelector('[data-testid="authenticated-shell"] > footer')!
-      .getBoundingClientRect()
+      .querySelector('[data-testid="authenticated-shell"] > footer')
+      ?.getBoundingClientRect()
+    const viewportBottom = footer?.top ?? innerHeight
     const main = document.querySelector('#game-main')!.getBoundingClientRect()
     const controls = [
       ...document.querySelectorAll<HTMLElement>(
@@ -60,7 +61,7 @@ async function fit(page: Page, label: string, testInfo: TestInfo) {
       ),
       viewport: [innerWidth, innerHeight],
       scroll: [document.documentElement.scrollWidth, document.documentElement.scrollHeight],
-      footerTop: footer.top,
+      footerTop: viewportBottom,
       mainBottom: main.bottom,
       rosterLists: [...document.querySelectorAll<HTMLElement>(rosterSelector)].map((list) => ({
         top: list.getBoundingClientRect().top,
@@ -69,7 +70,7 @@ async function fit(page: Page, label: string, testInfo: TestInfo) {
         overflowY: getComputedStyle(list).overflowY,
       })),
       clipped: controls.filter(
-        ({ rect }) => rect.bottom > footer.top + 1 || rect.left < -1 || rect.right > innerWidth + 1,
+        ({ rect }) => rect.bottom > viewportBottom + 1 || rect.left < -1 || rect.right > innerWidth + 1,
       ),
       overflow: getComputedStyle(document.documentElement).overflowY,
     }
@@ -105,15 +106,15 @@ async function fit(page: Page, label: string, testInfo: TestInfo) {
 async function reachable(page: Page, control: Locator) {
   await control.scrollIntoViewIfNeeded()
   const box = await control.boundingBox()
-  const footer = await page.locator('[data-testid="authenticated-shell"] > footer').boundingBox()
-  if (!box || !footer) throw new Error('Expected control/footer geometry')
-  // Real user scrolling must be able to uncover the control, not merely move a clipped container.
-  if (box.y + box.height > footer.y) await page.mouse.wheel(0, box.y + box.height - footer.y + 32)
+  const viewportHeight = page.viewportSize()?.height
+  if (!box || viewportHeight === undefined) throw new Error('Expected control/viewport geometry')
+  // Real user scrolling must be able to uncover the control within the viewport.
+  if (box.y + box.height > viewportHeight)
+    await page.mouse.wheel(0, box.y + box.height - viewportHeight + 32)
   await expect
     .poll(async () => {
       const rect = await control.boundingBox()
-      const rail = await page.locator('[data-testid="authenticated-shell"] > footer').boundingBox()
-      return Boolean(rect && rail && rect.y >= 0 && rect.y + rect.height <= rail.y + 1)
+      return Boolean(rect && rect.y >= 0 && rect.y + rect.height <= viewportHeight + 1)
     })
     .toBe(true)
   await control.click({ trial: true })
@@ -714,7 +715,11 @@ test('supplementary presence never blocks primary rail navigation', async ({ pag
   try {
     await page.goto('/game/character')
     await expect(page.locator('[data-profile-workspace]')).toBeVisible()
+    await page.getByRole('button', { name: 'Account', exact: true }).click()
+    const accountMenu = page.getByRole('menu', { name: 'Account menu' })
+    await expect(accountMenu.getByText('Welcome back, Experience Navigator.')).toBeVisible()
     await expect(page.getByLabel('Loading online count')).toHaveText('—')
+    await page.getByRole('button', { name: 'Account', exact: true }).click()
     await page.evaluate(() => {
       ;(window as Window & { navigationProbe?: string }).navigationProbe = 'preserved'
     })
@@ -733,7 +738,10 @@ test('supplementary presence never blocks primary rail navigation', async ({ pag
       await page.evaluate(() => (window as Window & { navigationProbe?: string }).navigationProbe),
     ).toBe('preserved')
     releasePresence()
-    await expect(page.getByRole('link', { name: /Online Users/ })).toContainText('7')
+    await page.getByRole('button', { name: 'Account', exact: true }).click()
+    const accountMenu = page.getByRole('menu', { name: 'Account menu' })
+    await expect(accountMenu.getByText('Welcome back, Experience Navigator.')).toBeVisible()
+    await expect(accountMenu.getByRole('link', { name: /Online Users/ })).toContainText('7')
   } finally {
     releaseNavigation()
     releasePresence()
