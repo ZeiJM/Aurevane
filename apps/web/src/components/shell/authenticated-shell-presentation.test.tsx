@@ -21,8 +21,10 @@ vi.mock('./account-menu', () => ({
     characterName,
     masterPanelHref,
     characterPortrait,
+    presence,
   }: {
     characterPortrait?: React.ReactNode
+    presence?: React.ReactNode
     characterName?: string | null
     masterPanelHref?: string | null
   }) =>
@@ -38,6 +40,7 @@ vi.mock('./account-menu', () => ({
             'Master Panel',
           )
         : null,
+      presence,
     ),
 }))
 vi.mock('./game-rail', () => ({
@@ -50,18 +53,20 @@ vi.mock('./online-presence-link', () => ({
 import { AuthenticatedShellPresentation } from './authenticated-shell-presentation'
 
 describe('authenticated shell presentation', () => {
-  it('keeps Online Users while omitting redundant back and footer navigation controls', () => {
+  it('places Online Users after the greeting and removes the footer badge', () => {
     const markup = renderToStaticMarkup(
       <AuthenticatedShellPresentation
         backHref="/game"
         backLabel="Back to game"
         sessionLabel="Passive Training"
+        character={{ name: 'Aster' }}
       >
         <section>Page content</section>
       </AuthenticatedShellPresentation>,
     )
 
-    expect(markup).toContain('Online Users')
+    expect(markup.indexOf('Welcome back, Aster.')).toBeLessThan(markup.indexOf('Online Users'))
+    expect(markup).not.toContain('<footer')
     expect(markup).not.toContain('aria-label="Back to game"')
     expect(markup).not.toContain('>Navigation<')
   })
