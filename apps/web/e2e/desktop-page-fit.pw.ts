@@ -26,12 +26,12 @@ async function expectAboveFooter(page: Page, locator: Locator): Promise<void> {
   // Profile owns an internally scrollable sheet on desktop; scroll the actual target, not window.
   await locator.scrollIntoViewIfNeeded()
   await settleLayout(page)
-  const footer = await page.locator('[data-testid="authenticated-shell"] > footer').boundingBox()
+  const viewportHeight = page.viewportSize()?.height
   const box = await locator.boundingBox()
-  expect(footer).not.toBeNull()
+  expect(viewportHeight).toBeDefined()
   expect(box).not.toBeNull()
   expect(box!.y).toBeGreaterThanOrEqual(0)
-  expect(box!.y + box!.height).toBeLessThanOrEqual(footer!.y + 1)
+  expect(box!.y + box!.height).toBeLessThanOrEqual(viewportHeight! + 1)
   await locator.click({ trial: true })
 }
 
@@ -39,21 +39,24 @@ async function expectLoadoutFits(page: Page, label: string): Promise<void> {
   await settleLayout(page)
   const geometry = await page.evaluate(() => {
     const main = document.querySelector<HTMLElement>('#game-main')!
-    const footer = document.querySelector('[data-testid="authenticated-shell"] > footer')!
+    const footer = document.querySelector('[data-testid="authenticated-shell"] > footer')
     const rootStyle = getComputedStyle(document.documentElement)
     return {
       overflowX: document.documentElement.scrollWidth - innerWidth,
       overflowY: document.documentElement.scrollHeight - innerHeight,
       mainOverflowY: main.scrollHeight - main.clientHeight,
-      footerHeight: footer.getBoundingClientRect().height,
-      footerRailHeight:
-        parseFloat(rootStyle.getPropertyValue('--av-footer-rail-height')) *
-        parseFloat(rootStyle.fontSize),
+      footerHeight: footer?.getBoundingClientRect().height ?? 0,
+      footerRailHeight: footer
+        ? parseFloat(rootStyle.getPropertyValue('--av-footer-rail-height')) *
+          parseFloat(rootStyle.fontSize)
+        : 0,
+      footerCount: Number(footer !== null),
     }
   })
   expect(geometry.overflowX, `${label}: document horizontal overflow`).toBeLessThanOrEqual(1)
   expect(geometry.overflowY, `${label}: document vertical overflow`).toBeLessThanOrEqual(1)
   expect(geometry.mainOverflowY, `${label}: no extra loadout scrolling`).toBeLessThanOrEqual(1)
+  expect(geometry.footerCount).toBe(0)
   expect(Math.abs(geometry.footerHeight - geometry.footerRailHeight)).toBeLessThanOrEqual(1)
 }
 
@@ -70,10 +73,10 @@ async function expectHallFits(page: Page, label: string): Promise<void> {
   const metrics = await page.evaluate(() => {
     const main = document.querySelector<HTMLElement>('#game-main')!
     const hall = document.querySelector<HTMLElement>('#battle-launch')!
-    const footer = document.querySelector('[data-testid="authenticated-shell"] > footer')!
+    const footer = document.querySelector('[data-testid="authenticated-shell"] > footer')
     const mainRect = main.getBoundingClientRect()
     const hallRect = hall.getBoundingClientRect()
-    const footerRect = footer.getBoundingClientRect()
+    const footerTop = footer?.getBoundingClientRect().top ?? innerHeight
     const concept = hall.matches('[data-hall-concept]')
     const railRect = document.querySelector('[data-av-game-rail]')?.getBoundingClientRect()
     const controls = Array.from(hall.querySelectorAll('button, input, select, label, legend'))
@@ -90,7 +93,7 @@ async function expectHallFits(page: Page, label: string): Promise<void> {
             rect.top < mainRect.top - 1 ||
             rect.left < hallRect.left - 1 ||
             rect.right > hallRect.right + 1 ||
-            (!concept && rect.bottom > footerRect.top + 1),
+            (!concept && rect.bottom > footerTop + 1),
           tooSmall: Number.parseFloat(style.fontSize) < fontFloor - 0.01,
         }
       })
@@ -104,7 +107,7 @@ async function expectHallFits(page: Page, label: string): Promise<void> {
       mainOverflowY: main.scrollHeight - main.clientHeight,
       mainOverflowX: main.scrollWidth - main.clientWidth,
       hallBottom: hallRect.bottom,
-      footerTop: footerRect.top,
+      footerTop,
       invalidControls: controls.filter((control) => control.outside || control.tooSmall),
     }
   })
