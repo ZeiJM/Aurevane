@@ -236,6 +236,36 @@ export function registerWorldInputCases({
   capture: (page: Page, info: TestInfo, name: string) => Promise<void>
   openJournal: (page: Page) => Promise<void>
 }) {
+  test('the reported Emberreach position renders surrounding ground at normal and minimum zoom', async ({
+    page,
+  }, info) => {
+    test.setTimeout(60000)
+    test.skip(
+      info.project.name === 'laptop-chromium',
+      'Check the reported ground on desktop and phone.',
+    )
+    await enter(page)
+    const initial = await world(page)
+    place(initial.characterId, 'atlas:76:25', 9, 4)
+    await page.reload()
+    const canvas = page.locator('canvas[data-world-stage]')
+    await expect(canvas).toHaveAttribute('data-camera-x', /\d/)
+    const view = await world(page)
+    expect(view.position).toEqual({ sectorId: 'atlas:76:25', x: 9, y: 4 })
+    for (const zoom of [100, 35]) {
+      await openMapSettings(page)
+      const slider = page.getByRole('slider', { name: 'Zoom level', exact: true })
+      await slider.focus()
+      await slider.press('Home')
+      if (zoom === 100) for (let step = 35; step < 100; step++) await slider.press('ArrowRight')
+      await expect(slider).toHaveValue(String(zoom))
+      await closeMapSettings(page)
+      await expect
+        .poll(() => canvas.evaluate((el) => Number(el.dataset.cachedSectors)))
+        .toBeGreaterThan(1)
+      await capture(page, info, `emberreach-reported-ground-${zoom}`)
+    }
+  })
   test('a large map preloads its public viewport and accepts clicks beyond the peer scene', async ({
     page,
   }, info) => {
