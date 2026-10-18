@@ -544,13 +544,20 @@ export function registerWorldInputCases({
     test.setTimeout(60000)
     await enter(page)
     const initial = await world(page)
-    const origin = { sectorId: 'atlas:58:28', x: 6, y: 4 }
+    // Keep each layout away from the shared arrival fixtures and from the
+    // other layout's traveller: a real touch on a peer opens its details.
+    const origin = {
+      sectorId: info.project.name === 'mobile-chromium' ? 'atlas:66:23' : 'atlas:20:33',
+      x: 6,
+      y: 4,
+    }
     place(initial.characterId, origin.sectorId, origin.x, origin.y)
     await page.clock.install()
     await page.reload()
     const canvas = page.locator('canvas[data-world-stage]')
     await expect(canvas).toHaveAttribute('data-camera-x', /\d/)
     const scene = await world(page)
+    expect(scene.players).toHaveLength(0)
     const destination = { ...origin, y: 0 }
     const point = (position: typeof origin) => mapPoint(position, scene.sectors)
     const clickGround = async (position: typeof origin) => {
@@ -620,8 +627,17 @@ export function registerWorldInputCases({
       } else await route.continue()
     })
     await page.clock.pauseAt(new Date(Date.now() + 1000))
+    const nextWalk = () =>
+      page.waitForRequest(
+        (request) =>
+          request.method() === 'POST' &&
+          new URL(request.url()).pathname === '/api/world' &&
+          request.postDataJSON()?.intent?.kind === 'walk',
+      )
     try {
+      const firstRequest = nextWalk()
       await clickGround({ ...origin, x: 9 })
+      expect((await firstRequest).postDataJSON().intent.destination).toEqual({ ...origin, x: 9 })
       await page.clock.runFor(75)
       const startPoint = point(origin)
       await expect
@@ -648,8 +664,10 @@ export function registerWorldInputCases({
           { once: true },
         )
       })
+      const turnRequest = nextWalk()
       await clickGround(destination)
       releaseFirst()
+      expect((await turnRequest).postDataJSON().intent.destination).toEqual(destination)
       await turnResponseReady
       await page.clock.runFor(550)
       await expect(canvas).toHaveAttribute('data-test-turn-samples', /\[/)
