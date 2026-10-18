@@ -29,8 +29,9 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Surrend
   await page.getByRole('menuitem', { name: 'Controls & Keybinds' }).click()
   await expect(page).toHaveURL(/\/game\/settings\/controls$/)
   await page.getByRole('button', { name: 'Change Move keybind' }).click()
-  await page.keyboard.press('m')
-  await expect(page.getByTestId('keybind-move')).toContainText('M')
+  // M now belongs to Modifiers; exercise an unassigned custom Move chord.
+  await page.keyboard.press('q')
+  await expect(page.getByTestId('keybind-move')).toContainText('Q')
   await expect(page.getByTestId('keybind-recover')).toContainText('R')
   await page.getByRole('button', { name: 'Save Controls' }).click()
   await expect(page.getByRole('status')).toContainText('Combat controls saved to your account.')
@@ -41,7 +42,7 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Surrend
     join auth.users account on account.id = profile.user_id
     where account.email = '${escapeSqlLiteral(email)}';
   `)
-  expect(persistedMoveKey).toBe('KeyM')
+  expect(persistedMoveKey).toBe('KeyQ')
 
   await page
     .getByRole('navigation', { name: 'Primary game navigation', exact: true })
@@ -154,7 +155,7 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Surrend
     'aria-valuenow',
     '100',
   )
-  await expect(commandDeck.locator('[data-command-card="move"]')).toContainText('M')
+  await expect(commandDeck.locator('[data-command-card="move"]')).toContainText('Q')
   await expect(commandDeck.locator('[data-command-card="attack"]')).toContainText('2')
   await expect(commandDeck.locator('[data-command-card="guard"]')).toContainText('3')
   await expect(page.locator('[data-battle-secondary-actions]')).toHaveCount(0)
@@ -174,7 +175,7 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Surrend
     expect(await hasVerticalPageOverflow(page)).toBe(false)
   }
 
-  await page.keyboard.press('m')
+  await page.keyboard.press('q')
   await expect(commandContext).toContainText('Move')
 
   const beforeKeyboardMove = page.getByRole('button', {
@@ -207,7 +208,7 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Surrend
   })
   await expect(combatantDetails).toBeVisible()
   await expect(combatantDetails).toContainText('MP')
-  await page.keyboard.press('m')
+  await page.keyboard.press('q')
   await expect(page.getByRole('progressbar', { name: 'Action Economy remaining' })).toHaveAttribute(
     'aria-valuenow',
     '80',
