@@ -7,7 +7,13 @@ import { resolvePublicCharacterImageUrl } from '@/media/public-character-portrai
 import { isSafe, newWorldState, validCell, MAX_PERSISTED_ROUTE_STEPS } from '@/world/travel'
 import { STEP_MS } from '@/world/catalog'
 import type { WorldMovementReceipt } from '@/world/movement-receipt'
-import type { WorldCommand, WorldPlayer, WorldState, WorldView } from '@/world/types'
+import type {
+  WorldCommand,
+  WorldPlayer,
+  WorldSceneViewport,
+  WorldState,
+  WorldView,
+} from '@/world/types'
 import { eventWorldObjectives } from './world-events'
 import { WORLD_OBJECTIVES, resolveSector } from './world-content'
 import { resolveWorldEnvironment } from '@/world/environment'
@@ -132,8 +138,17 @@ export function resetWorldReadCaches() {
   portraitCache = null
   environmentCache = null
 }
-export async function readWorld(userId: string, characterId: string) {
-  return presentWorldData(userId, characterId, await readWorldData(userId, characterId))
+export async function readWorld(
+  userId: string,
+  characterId: string,
+  viewport?: WorldSceneViewport,
+) {
+  return presentWorldWithRetry(
+    userId,
+    characterId,
+    await readWorldData(userId, characterId),
+    viewport,
+  )
 }
 /** Encounter preparation needs local visibility and attack authority, not scene presentation. */
 function projectWorldAttackAuthority(data: Awaited<ReturnType<typeof readWorldData>>) {
@@ -195,16 +210,37 @@ export async function settleWorldAttackAuthority(
     )
   return settled
 }
+class WorldSceneChanged extends AurevaneError {
+  constructor() {
+    super('STALE_VERSION', 'Your position changed. Refresh the map and try again.')
+  }
+}
+async function presentWorldWithRetry(
+  userId: string,
+  characterId: string,
+  data: Awaited<ReturnType<typeof readWorldData>>,
+  viewport?: WorldSceneViewport,
+) {
+  try {
+    return await presentWorldData(userId, characterId, data, viewport)
+  } catch (error) {
+    if (!(error instanceof WorldSceneChanged)) throw error
+  }
+  // A movement commit can race the split owned/scene reads. Retry only this
+  // read conflict once; never publish partial legacy peers or repeat a command.
+  return presentWorldData(userId, characterId, await readWorldData(userId, characterId), viewport)
+}
 async function presentWorldData(
   userId: string,
   characterId: string,
   data: Awaited<ReturnType<typeof readWorldData>>,
+  viewport?: WorldSceneViewport,
 ) {
   const objectives = [...WORLD_OBJECTIVES, ...eventWorldObjectives(data.eventObjectives)]
   const state = data.state as WorldState
   // Build the expensive terrain projection once. Only its server-derived scene IDs
   // can widen presence; unsurveyed cells are filtered before images or serialization.
-  const view = projectWorld(state, [], data.serverNow, objectives)
+  const view = projectWorld(state, [], data.serverNow, objectives, undefined, viewport)
   const sceneSectorIds = view.sectors.map((sector) => sector.id)
   const [presence, environmentSettings] = await Promise.all([
     (async () => {
@@ -232,15 +268,10 @@ async function presentWorldData(
     scene.players.length > 200
   )
     throw new AurevaneError('PERSISTENCE_UNAVAILABLE', 'World presence could not be loaded.')
-  // A concurrent command can move the owner between these two reads. Retain the
-  // original matching snapshot rather than attaching the newer scene to old terrain.
-  const players = projectWorldPlayers(
-    state,
-    scene.version === state.version ? scene.players : data.players,
-    sceneSectorIds,
-  )
+  if (scene.version !== state.version) throw new WorldSceneChanged()
+  const players = projectWorldPlayers(state, scene.players, sceneSectorIds)
   view.players = await resolveWorldPlayerImages(players)
-  view.livePresence = presence.live && scene.version === state.version
+  view.livePresence = presence.live
   view.environment = resolveWorldEnvironment(data.serverNow, environmentSettings)
   view.characterId = characterId
   view.battleSessionId = typeof data.battleSessionId === 'string' ? data.battleSessionId : null
@@ -302,7 +333,7 @@ export async function commitWorldCommand(
     if (current.lastCommandFingerprint !== fingerprint)
       throw new AurevaneError('IDEMPOTENCY_CONFLICT', 'That travel command was already used.')
     if (compactMovement) return movementReceipt(characterId, current)
-    return (await presentWorldData(userId, characterId, current)).view
+    return (await presentWorldWithRetry(userId, characterId, current)).view
   }
   if (state.version !== command.expectedVersion)
     throw new AurevaneError(

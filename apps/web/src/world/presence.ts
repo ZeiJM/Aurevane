@@ -1,4 +1,4 @@
-import type { WorldView } from './types'
+import type { WorldSceneViewport, WorldView } from './types'
 
 type WorldPresence = Pick<
   WorldView,
@@ -54,7 +54,14 @@ export function retainWorldSceneReferences(previous: WorldView, incoming: WorldV
 }
 
 /** The server derives the scene; the client supplies only its last owned receipt identity. */
-export function worldRefreshUrl(view: WorldView) {
+export function worldRefreshUrl(view: WorldView, viewport?: WorldSceneViewport) {
+  if (viewport) {
+    const query = new URLSearchParams({
+      sceneWidth: String(viewport.width),
+      sceneHeight: String(viewport.height),
+    })
+    return `/api/world?${query}`
+  }
   if (view.route.length) return '/api/world'
   const query = new URLSearchParams({
     presenceVersion: String(view.version),

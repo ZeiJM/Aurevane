@@ -505,7 +505,9 @@ export function createMapRenderer(
   const load = (name: string, version = 'v02') => {
     const image = new Image()
     image.onload = () => {
-      clearCache()
+      // Only the terrain sheet is baked into ground layers. Scenery sheets
+      // paint separately; loading them must not rebuild every visible tile.
+      if (name === 'terrain') clearCache()
       requestDraw()
     }
     image.src = BASE + name + '-' + version + '.webp'
@@ -544,9 +546,9 @@ export function createMapRenderer(
   const world = (x: number, y: number) =>
     unprojectMapPoint({ x, y }, camera, pan, tile, width, height)
   const sectorOrigin = (sector: WorldSectorView) => sectorMapOrigin(sector, camera.x)
-  const pick = (point: MapPoint) => {
+  const pick = (point: MapPoint, sectors = view.sectors) => {
     // Prefer the current legacy/private sector over a public sector at the same address.
-    const ordered = [...view.sectors].sort(
+    const ordered = [...sectors].sort(
       (a, b) => Number(b.id === view.position.sectorId) - Number(a.id === view.position.sectorId),
     )
     for (const sector of ordered) {
@@ -1830,7 +1832,10 @@ export function createMapRenderer(
     drag = {
       x: event.clientX,
       y: event.clientY,
-      position: pick(world(x, y)),
+      // Public scenery may extend beyond the navigation/peer snapshot. A click
+      // submits intent there; only supplied navigation can preview the route,
+      // and the server still validates the destination and every traversed cell.
+      position: pick(world(x, y), renderSectors),
       player:
         hitTargets.find((target) => Math.hypot(target.x - x, target.y - y) < target.radius) ?? null,
     }
