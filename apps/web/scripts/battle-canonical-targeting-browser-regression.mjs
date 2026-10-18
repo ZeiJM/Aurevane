@@ -999,7 +999,7 @@ try {
           }
       }
   }
-  if (modifiersOnly) {
+  if (modifiersOnly || controlledOnly) {
     for (const mode of ['pve', 'pvp']) {
       for (const viewport of [
         { width: 1366, height: 768 },
