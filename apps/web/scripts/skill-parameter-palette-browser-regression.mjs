@@ -396,9 +396,7 @@ async function verifyModularManual(page, viewport) {
     assert.ok(detail.includes('Line of Sight:'))
     assert.ok(detail.includes('Requirements:'))
   }
-  assert.ok(
-    text.includes('Movement is included in the Skill cost; no extra traversal AP is charged.'),
-  )
+  assert.ok(text.includes('Move to the chosen Ground within your remaining Movement and Jump.'))
   assert.ok((await basics.innerText()).includes('Each traversal point uses the captured AP price'))
   await basics.locator('details').first().scrollIntoViewIfNeeded()
   await page.screenshot({ path: resolve(output, `modular-manual-basics-${viewport.width}.png`) })
@@ -1168,7 +1166,7 @@ try {
       magnitude: palette.magnitude,
       timing: palette.timing,
     })
-    assert.equal(await inline.locator('dl > div').first().locator('dd').textContent(), 'Resonance')
+    assert.equal(await inline.locator('dl > div').first().locator('dd').textContent(), 'Utility')
     await page.getByRole('button', { name: 'Read pinned Resonance', exact: true }).click()
     const resonanceName = await page.evaluate(() => window.paletteDefinitions.resonance.name)
     const panel = page.getByRole('dialog', { name: resonanceName, exact: true })

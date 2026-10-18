@@ -893,6 +893,30 @@ try {
             assert.equal(paid[1].body.intent.behaviorId, prime.behaviorId)
             assert.equal(result.actor.mp, before.mp - 2)
             assert.equal(result.actor.hp, before.hp - 1)
+            if (scenario === 'controlled-price') {
+              const shield = page.locator(
+                '[data-battle-combatant-card="local"] [data-battle-hp-barrier="true"]',
+              )
+              await shield.waitFor({ state: 'visible' })
+              assert.equal(await shield.getAttribute('title'), 'Barrier 10')
+              assert.match(
+                await shield.evaluate((element) => getComputedStyle(element).backgroundImage),
+                /125, 133, 140/,
+              )
+              assert.match(
+                await page
+                  .locator(
+                    '[data-battle-combatant-card="local"] [data-resource="hp"] [role="meter"]',
+                  )
+                  .getAttribute('aria-valuetext'),
+                /Barrier 10/,
+              )
+              await page.screenshot({
+                path: resolve(output, `${mode}-${viewport.width}-barrier-hp-layer.png`),
+                fullPage: true,
+              })
+            }
+
             const ap = (actor) =>
               actor.temporaryResources.find((row) => row.key === 'pv1f.action-economy').current
             assert.equal(ap(result.actor), ap(before) - 11)
