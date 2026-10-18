@@ -46,6 +46,8 @@ export interface PublishCombatContentInput {
   readonly contentKind: CombatContentKind
   readonly definition: CombatContentDefinition
   readonly expectedBaseVersion: number | null
+  /** Trusted shipped history; independent of the selected current publication. */
+  readonly versionFloor?: number | null
   readonly actorUserId: string
 }
 
@@ -53,12 +55,16 @@ export interface CombatContentRepository {
   findDraft(contentKey: string): Promise<CombatContentDraftRecord | null>
   saveDraft(input: SaveCombatContentDraftInput): Promise<CombatContentDraftRecord>
   publish(input: PublishCombatContentInput): Promise<CombatContentVersionRecord>
-  findPublished(contentKey: string): Promise<CombatContentVersionRecord | null>
+  findPublished(
+    contentKey: string,
+    contentKind?: CombatContentKind,
+  ): Promise<CombatContentVersionRecord | null>
   listPublishedVersions(contentKey: string): Promise<readonly CombatContentVersionRecord[]>
   setCurrentPublication(
     contentKey: string,
     version: number | null,
     actorUserId: string,
+    contentKind?: CombatContentKind,
   ): Promise<void>
 }
 
@@ -174,6 +180,7 @@ export class InMemoryCombatContentRepository implements CombatContentRepository 
 
   async publish(input: PublishCombatContentInput): Promise<CombatContentVersionRecord> {
     assertOptionalPositiveVersion(input.expectedBaseVersion, 'Expected base version')
+    assertOptionalPositiveVersion(input.versionFloor ?? null, 'Publication version floor')
     const versions = this.#versions.get(input.contentKey) ?? []
     const publication = this.#publications.get(input.contentKey)
     const current = publication
@@ -202,7 +209,17 @@ export class InMemoryCombatContentRepository implements CombatContentRepository 
       (highest, version) => Math.max(highest, version.contentVersion),
       0,
     )
-    const nextVersion = Math.max(highestStoredVersion, input.expectedBaseVersion ?? 0) + 1
+    const highestVersion = Math.max(
+      highestStoredVersion,
+      input.expectedBaseVersion ?? 0,
+      input.versionFloor ?? 0,
+    )
+    if (highestVersion >= 2_147_483_647)
+      throw new CombatContentConflictError(
+        'COMBAT_CONTENT_VERSION_INVALID',
+        'Publication version is exhausted.',
+      )
+    const nextVersion = highestVersion + 1
     const now = new Date().toISOString()
     const version: CombatContentVersionRecord = {
       id: randomUUID(),
@@ -226,9 +243,12 @@ export class InMemoryCombatContentRepository implements CombatContentRepository 
     return cloneVersion(version)
   }
 
-  async findPublished(contentKey: string): Promise<CombatContentVersionRecord | null> {
+  async findPublished(
+    contentKey: string,
+    contentKind?: CombatContentKind,
+  ): Promise<CombatContentVersionRecord | null> {
     const publication = this.#publications.get(contentKey)
-    if (!publication) return null
+    if (!publication || (contentKind && publication.contentKind !== contentKind)) return null
 
     const version = this.#versions
       .get(contentKey)
@@ -246,9 +266,11 @@ export class InMemoryCombatContentRepository implements CombatContentRepository 
     contentKey: string,
     version: number | null,
     actorUserId: string,
+    contentKind?: CombatContentKind,
   ): Promise<void> {
     if (version === null) {
-      this.#publications.delete(contentKey)
+      if (!contentKind || this.#publications.get(contentKey)?.contentKind === contentKind)
+        this.#publications.delete(contentKey)
       return
     }
 
@@ -256,7 +278,7 @@ export class InMemoryCombatContentRepository implements CombatContentRepository 
       .get(contentKey)
       ?.find((candidate) => candidate.contentVersion === version)
 
-    if (!target) {
+    if (!target || (contentKind && target.contentKind !== contentKind)) {
       throw new CombatContentConflictError(
         'COMBAT_CONTENT_VERSION_NOT_FOUND',
         `Cannot point ${contentKey} at missing version ${version}.`,

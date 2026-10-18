@@ -1,5 +1,6 @@
 import { claimCombatTurnTrigger } from './combat-turn-trigger-state'
 import {
+  CURRENT_POISON_REFRESH_TRAVERSED_TILES,
   percentageDotTickDamage,
   validateCapturedPercentageDotDamage,
   type CapturedPercentageDotDamage,
@@ -340,11 +341,14 @@ export function advanceCurrentPoisonMovement(
         instance.originalDurationTurns! > 4
       )
         throw new TypeError('Poison movement refresh requires its captured original duration.')
-      if (progress >= 5) refreshedDurationTurns = instance.originalDurationTurns
+      if (progress >= CURRENT_POISON_REFRESH_TRAVERSED_TILES)
+        refreshedDurationTurns = instance.originalDurationTurns
       return {
         ...instance,
-        movementRemainder: progress % 5,
-        ...(progress >= 5 ? { remainingTicks: instance.originalDurationTurns! } : {}),
+        movementRemainder: progress % CURRENT_POISON_REFRESH_TRAVERSED_TILES,
+        ...(progress >= CURRENT_POISON_REFRESH_TRAVERSED_TILES
+          ? { remainingTicks: instance.originalDurationTurns! }
+          : {}),
       }
     })
     if (currentPoisonInstances(state, targetCombatantId).some((row) => row.percentageDamage))

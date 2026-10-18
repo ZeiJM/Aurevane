@@ -3,9 +3,13 @@ import type { BattleActionPreview, BattlePreviewView } from '@/server/battle/bat
 import {
   selectBattleSkillPreviewIntent,
   battleSkillTargetSpec,
+  battleSkillIntentMetadata,
   type BattlePreviewSkill,
 } from './battle-preview-selection'
-import { combatCardinalDirections } from '@aurevane/game-core/combat/combat-targeting-shapes'
+import {
+  combatCardinalDirections,
+  combatTargetCategories,
+} from '@aurevane/game-core/combat/combat-targeting-shapes'
 import { requestBattlePreview } from './battle-preview-request'
 
 export type BattleRangePreviewSkill = BattlePreviewSkill
@@ -23,21 +27,41 @@ export function battleRangePreviewIntents(
   actorId: string | null,
   combatants: readonly BattleRangePreviewCombatant[],
 ): ActionIntent[] {
-  if (!skill) return []
+  if (!skill || skill.unavailable) return []
+  if (
+    skill.move &&
+    (skill.movementPath === undefined || (!skill.movementPath.length && !skill.move.conditional))
+  )
+    return []
   const actor = combatants.find((row) => row.combatantId === actorId)
   if (!actor || actor.hp <= 0) return []
   const target = battleSkillTargetSpec(skill)
-  if (target?.geometryVersion === 2) {
+  if (target?.geometryVersion === 2 || target?.geometryVersion === 3) {
     if (target.shape.kind === 'line')
       return combatCardinalDirections.map((direction) => ({
         kind: 'action',
         actionId: skill.id,
+        ...battleSkillIntentMetadata(skill),
         target: { kind: 'direction', direction },
       }))
     if (target.shape.kind === 'circle' || target.shape.kind === 'all')
-      return [{ kind: 'action', actionId: skill.id, target: { kind: 'activate' } }]
+      return [
+        {
+          kind: 'action',
+          actionId: skill.id,
+          ...battleSkillIntentMetadata(skill),
+          target: { kind: 'activate' },
+        },
+      ]
   }
-  if (skill.targetKind !== 'unit') return []
+  if (
+    skill.targetKind !== 'unit' &&
+    !(
+      target?.geometryVersion === 3 &&
+      combatTargetCategories(target).some((category) => category !== 'ground')
+    )
+  )
+    return []
   return combatants.flatMap((combatant) => {
     const intent = selectBattleSkillPreviewIntent(skill, {
       actorId,

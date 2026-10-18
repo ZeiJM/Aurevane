@@ -46,6 +46,11 @@ test('keeps square empty Skill slots and consistent cockpit info controls withou
   await attunementPreview.hover()
   await expect(hoverReader).toBeVisible()
   await page.mouse.move(1, 1)
+  // Escape restored the trigger's keyboard focus. Pointer exit must not close
+  // a reader still owned by that focus; leaving both trigger and panel does.
+  await expect(attunementPreview).toBeFocused()
+  await expect(hoverReader).toBeVisible()
+  await page.getByRole('button', { name: 'Account', exact: true }).focus()
   await expect(hoverReader).toHaveCount(0)
   await attunementPreview.click()
   await expect(hoverReader).toBeVisible()

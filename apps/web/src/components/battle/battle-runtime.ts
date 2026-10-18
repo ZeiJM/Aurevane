@@ -1,3 +1,4 @@
+import type { PublicCombat } from '@aurevane/game-core/combat/public-combat-presentation'
 import type { CharacterPortraitRef } from '@aurevane/game-core/character/creation'
 import type {
   CombatTargetKind,
@@ -20,7 +21,7 @@ export type BattleTechniqueCategory = 'attack' | 'defense' | 'heal'
 export interface BattleSkillForecastPresentation {
   groundIntentCapable?: boolean
   cooldownOwnerTurns?: number | null
-  definition?: MatureSkillDefinition
+  definition?: PublicCombat<MatureSkillDefinition>
   target?: CombatTargetSpec
   id: string
   name: string
@@ -44,7 +45,7 @@ export interface BattleTechniquePresentation extends BattleSkillForecastPresenta
 }
 
 export interface BattleResonancePresentation {
-  definition?: AnyResonanceDefinition
+  definition?: PublicCombat<AnyResonanceDefinition>
   id: string
   contentVersion: number
   name: string

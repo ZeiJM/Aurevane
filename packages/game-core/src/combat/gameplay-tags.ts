@@ -13,9 +13,11 @@ import type {
 export function isCleanseChilledEffect(effect: {
   readonly type: string
   readonly statusIds?: readonly string[]
+  readonly removalMode?: unknown
 }): boolean {
   return (
     effect.type === 'remove-status' &&
+    effect.removalMode !== 'specified' &&
     effect.statusIds?.length === 1 &&
     effect.statusIds[0] === 'frozen'
   )
@@ -99,7 +101,9 @@ const STATUS_PRESENTATION_TAGS: Readonly<Record<string, string>> = {
   curse: 'Copy Debuffs',
 }
 
-const POSITIVE_STATUS_IDS = new Set([
+// Omitted removalMode must retain this historical classification: native settlement
+// also uses Cleanse to include Suppress. New positive lists use explicit specified mode.
+const HISTORICAL_DISPEL_STATUS_IDS = new Set([
   'guarded',
   'inspired',
   'invisible',
@@ -113,6 +117,7 @@ const POSITIVE_STATUS_IDS = new Set([
   'reflect',
   'amplify',
 ])
+const POSITIVE_STATUS_IDS = new Set([...HISTORICAL_DISPEL_STATUS_IDS, 'covert'])
 
 type PresentationEffect = {
   type: string
@@ -394,11 +399,21 @@ function effectPresentationTags(effect: PresentationEffect): readonly string[] {
       : [`MP Restore [${positiveDisplayInteger(effect.delta, 1)}]`]
   }
   if (effect.type === 'remove-status') {
-    if (isCleanseChilledEffect(effect)) return ['Cleanse Chilled']
     const ids = Array.isArray(effect.statusIds)
       ? effect.statusIds.filter((id): id is string => typeof id === 'string')
       : []
-    return [ids.length > 0 && ids.every((id) => POSITIVE_STATUS_IDS.has(id)) ? 'Dispel' : 'Cleanse']
+    if (effect.removalMode === 'specified')
+      return [
+        ids.length > 0 && ids.every((id) => POSITIVE_STATUS_IDS.has(id))
+          ? 'Dispel'
+          : 'Remove Status',
+      ]
+    if (isCleanseChilledEffect(effect)) return ['Cleanse Chilled']
+    return [
+      ids.length > 0 && ids.every((id) => HISTORICAL_DISPEL_STATUS_IDS.has(id))
+        ? 'Dispel'
+        : 'Cleanse',
+    ]
   }
   if (effect.type === 'return-to-turn-start' || effect.type === 'revert') return ['Rewind']
   if (effect.type === 'create-terrain' || effect.type === 'freeze-ground') return ['Freeze Ground']

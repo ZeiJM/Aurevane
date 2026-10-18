@@ -1,3 +1,4 @@
+import { projectPublicCombat } from '@aurevane/game-core/combat/public-combat-presentation'
 import { isStarterCharacterPortraitRef } from '@aurevane/game-core/character/starter-options'
 import {
   DEFAULT_SUPPORT_ACTION_ID,
@@ -136,7 +137,7 @@ async function battleBuildExtensions(
     )
   ).filter((entry): entry is NonNullable<typeof entry> => entry !== null)
 
-  return {
+  return projectPublicCombat({
     supportActionId: parseSupportActionId(build?.supportActionId) ?? DEFAULT_SUPPORT_ACTION_ID,
     techniques,
     resonance: resonanceDefinition
@@ -191,7 +192,7 @@ async function battleBuildExtensions(
           ),
         }
       : null,
-  }
+  })
 }
 
 export default async function BattleSessionPage({

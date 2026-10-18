@@ -43,7 +43,9 @@ it('provides the caster-origin explanation within the Target Method row', () => 
 it('keeps Ground delivery rules outside the authored effect list', () => {
   const skill = resolveMatureSkillVersion('frostweaver.chilling-mist')!
   const markup = renderToStaticMarkup(<SkillDetails skill={skill} expanded />)
-  const effects = markup.match(/<ol>([\s\S]*?)<\/ol>/)?.[1]
+  const effects = markup
+    .match(/<ol>([\s\S]*?)<\/ol>/)?.[1]
+    ?.replace(/<span[^>]*data-effect-tag-label="true">([^<]*)<\/span>/g, '$1')
   expect(effects).toContain('<strong>Frozen Ground</strong>')
   expect(effects).not.toContain('Each cast has its own allowance')
   expect(markup).toContain('aria-label="Ground area rules"')

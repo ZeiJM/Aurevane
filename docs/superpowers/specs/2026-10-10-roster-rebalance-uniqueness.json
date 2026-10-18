@@ -1,0 +1,254 @@
+{
+  "status": "authored-uniqueness-rework-awaiting-independent-design-review",
+  "scope": "All21 repeated modifier/maintained pair rows plus one wider active sustain recipe and three whole-roster functional collision rows; support Self availability audited for duel utility. Independent review round1 adds four equipped-tool dominance findings and actual decision reworks.",
+  "retained": 3,
+  "reworked": 26,
+  "clusterAudit": [
+    {
+      "recordId": "resonance.aetherist-farstrider.arcane-hunt",
+      "decision": "retain",
+      "experience": "The sole simple pair command multiplier: spend reserves on one chosen Farstrider command, competing with Aetherist releases. This is the approachable reserve/aim choice, not one of thirteen swapped prerequisites.",
+      "finalModes": [
+        "manual/modifier"
+      ]
+    },
+    {
+      "recordId": "resonance.shadehand-vanguard.broken-line",
+      "decision": "rework",
+      "experience": "Concealment opens a no-damage dispel-and-peel action rather than amplifying any frontline hit. Choose protection removal/spacing over attack pressure.",
+      "finalModes": [
+        "manual/action"
+      ]
+    },
+    {
+      "recordId": "resonance.bastion-ironfist.linked-sequence",
+      "decision": "rework",
+      "experience": "Planted control hit trades the actor next walking option for a two-tile peel. It changes position and commitment rather than adding a percentage to an arbitrary Ironfist attack.",
+      "finalModes": [
+        "manual/action"
+      ]
+    },
+    {
+      "recordId": "resonance.aetherist-edgedancer.linked-sequence",
+      "decision": "rework",
+      "experience": "A two-command reserve cycle makes HP-paid delayed preparation compete with a Mystic moving release on the same cooldown. Selection and resource timing now matter.",
+      "finalModes": [
+        "manual/action",
+        "manual/action"
+      ]
+    },
+    {
+      "recordId": "resonance.edgedancer-ironfist.linked-sequence",
+      "decision": "rework",
+      "experience": "Airborne enables a real high-angle two-tile line and displacement decision, not a scalar reward. Opponents can change formation or deny the brief access state.",
+      "finalModes": [
+        "manual/action"
+      ]
+    },
+    {
+      "recordId": "resonance.farstrider-wildwarden.linked-sequence",
+      "decision": "rework",
+      "experience": "Explicit two-quarry attrition has a multi-target preparation and actual Poison schedule. It is a distinct expensive hunting choice rather than a buff on another shot.",
+      "finalModes": [
+        "manual/action"
+      ]
+    },
+    {
+      "recordId": "resonance.runeblade-vanguard.linked-sequence",
+      "decision": "rework",
+      "experience": "A visible held commitment chooses when to strip protection before a Mystic hit. Its once-free prime/release state is different from a selected generic attack multiplier.",
+      "finalModes": [
+        "manual/action"
+      ]
+    },
+    {
+      "recordId": "resonance.edgedancer-runeblade.linked-sequence",
+      "decision": "rework",
+      "experience": "A modest moving hit invests in a future movement window. The caster must plan two separate turns rather than choose whether to buy another percentage.",
+      "finalModes": [
+        "manual/action"
+      ]
+    },
+    {
+      "recordId": "resonance.dawnshield-ironfist.linked-sequence",
+      "decision": "rework",
+      "experience": "A finite wounded-owner attack reaction cleanses instead of amplifying damage. It supports fighting through affliction; it is neither automatic healing nor a passive aura.",
+      "finalModes": [
+        "automatic/action"
+      ]
+    },
+    {
+      "recordId": "resonance.cinderweaver-edgedancer.linked-sequence",
+      "decision": "rework",
+      "experience": "Existing heat is spent as an eligibility window for buff denial and future tempo, not an extra damage percentage on the next sword hit. Burn is not consumed.",
+      "finalModes": [
+        "manual/action"
+      ]
+    },
+    {
+      "recordId": "resonance.frostweaver-ironfist.linked-sequence",
+      "decision": "rework",
+      "experience": "A Chilled enemy at2–3tiles can be pulled into a rooted fist-range engagement. This changes target, range and landing decisions now; it neither buys a scalar nor relies on future Armor. A four-Skill kit can prepare ice and exploit the newly closed space.",
+      "finalModes": [
+        "manual/action"
+      ]
+    },
+    {
+      "recordId": "resonance.aetherist-stormsinger.linked-sequence",
+      "decision": "rework",
+      "experience": "Reserve gates buy resource denial with conditional damage suppression, sacrificing all immediate HP pressure. The player chooses disruption rather than a stronger Storm shot.",
+      "finalModes": [
+        "manual/action"
+      ]
+    },
+    {
+      "recordId": "resonance.chronist-edgedancer.linked-sequence",
+      "decision": "rework",
+      "experience": "A held escape anchor permits a committed current strike and later defense; the player still chooses whether/when to pay the separate Rewind release. It is no longer a generic modifier.",
+      "finalModes": [
+        "manual/action"
+      ]
+    },
+    {
+      "recordId": "resonance.ironfist-vanguard.tempered-response",
+      "decision": "rework",
+      "experience": "A protected fighter spends a whole utility command to displace a line without damage; route/occupancy planning replaces passive output.",
+      "finalModes": [
+        "manual/action"
+      ]
+    },
+    {
+      "recordId": "resonance.aetherist-ravager.linked-sequence",
+      "decision": "retain",
+      "experience": "Low HP at or below35% plus mana at least50% keeps the owner in immediate lethal danger and discourages mana spending. The modest maintained output rewards that actual risk; it grants no safety or resource loop.",
+      "finalModes": [
+        "ongoing/modifier"
+      ]
+    },
+    {
+      "recordId": "resonance.bastion-ravager.linked-sequence",
+      "decision": "rework",
+      "experience": "Overlapping opposed stances now buy a recovery/position commitment, not another maintained damage percentage. Recovery is a paid tactical turn and Root is real counterplay.",
+      "finalModes": [
+        "manual/action"
+      ]
+    },
+    {
+      "recordId": "resonance.aetherist-runeblade.linked-sequence",
+      "decision": "rework",
+      "experience": "High reserves fund a single-donor copy-and-disrupt choice. The payoff denies mana and borrows protection instead of raising all ongoing damage.",
+      "finalModes": [
+        "manual/action"
+      ]
+    },
+    {
+      "recordId": "resonance.dawnshield-runeblade.linked-sequence",
+      "decision": "rework",
+      "experience": "Spend the caster safety on selected preventive/cleansing recipients rather than maintain a buff-overlap damage aura. Distinct recipient choice and HP cost change both duel and team decisions.",
+      "finalModes": [
+        "manual/action"
+      ]
+    },
+    {
+      "recordId": "resonance.aetherist-cinderweaver.linked-sequence",
+      "decision": "rework",
+      "experience": "HP-paid future mana with a narrow Burn Ward window is a vulnerable resource investment. It replaces a third reserve-based maintained damage condition.",
+      "finalModes": [
+        "manual/action"
+      ]
+    },
+    {
+      "recordId": "resonance.frostweaver-runeblade.linked-sequence",
+      "decision": "rework",
+      "experience": "Prior ice opens a no-damage anti-resource/suppression window, distinct from both burst and elemental damage. The player gives up HP pressure to blunt a prepared enemy turn.",
+      "finalModes": [
+        "manual/action"
+      ]
+    },
+    {
+      "recordId": "resonance.aetherist-chronist.linked-sequence",
+      "decision": "retain",
+      "experience": "Holding a once-per-battle self-Rewind prime preserves an exit option but forfeits it on paid release. Maintaining12MP competes with Aetherist spending. This is a timing/option-value decision, unlike the dangerous low-HP maintained state.",
+      "finalModes": [
+        "ongoing/modifier"
+      ]
+    },
+    {
+      "recordId": "resonance.dawnshield-ravager.linked-sequence",
+      "decision": "wider-active-cluster-rework",
+      "experience": "Replaces the second low-HP adjacent damage-plus-heal recipe with explicit HP-paid friendly rescue/cleanse under the actual Reckless risk."
+    },
+    {
+      "recordId": "resonance.bastion-cinderweaver.linked-sequence",
+      "decision": "whole-roster-collision-rework",
+      "experience": "Distinct from Hidden Snare: heat sets a source-relative challenge now and a future flat shield, creating a survival timing decision rather than immediate Root plus concealment.",
+      "finalModes": [
+        "manual/action"
+      ]
+    },
+    {
+      "recordId": "resonance.frostweaver-stormsinger.linked-sequence",
+      "decision": "whole-roster-collision-rework",
+      "experience": "Distinct from conditional bonus-debuff Storm shots: choose two already iced enemies for a later route-lock window, with explicit split targeting and a round of counterplay.",
+      "finalModes": [
+        "manual/action"
+      ]
+    },
+    {
+      "recordId": "resonance.cinderweaver-tidecaller.linked-sequence",
+      "decision": "whole-roster-collision-rework",
+      "experience": "A shared-cooldown defensive Quench/offensive Flare choice binds Tide relief and Cinder pressure. It removes the repeated elemental shot plus conditional Suppress recipe.",
+      "finalModes": [
+        "manual/action",
+        "manual/action"
+      ]
+    },
+    {
+      "recordId": "resonance.aetherist-shadehand.veiled-conduit",
+      "decision": "rework",
+      "reviewRound": 1,
+      "experience": "Mana Shield produces actual protection at a reserve cost. The pair can cash its Guarded component into immediate mana and Shadehand concealment, giving up mitigation while retaining only finite Barrier. Quick Hands instead copies enemy Buffs and spendsMP without resource recovery; Smoke Vial buys concealment without sacrificing protection. All four kit choices remain distinct.",
+      "finalModes": [
+        "manual/action"
+      ]
+    },
+    {
+      "recordId": "resonance.edgedancer-wildwarden.linked-sequence",
+      "decision": "rework",
+      "reviewRound": 1,
+      "experience": "Wildwarden establishes a quarry while Edgedancer chooses a real route. The pair changes both positions without attacking: it can reel a ranged quarry toward the new melee angle or away from an ally. Flanking Cut only moves the owner one tile before damaging; Pursuit Shot instead leaves both positions intact. The sacrifice is all immediate attack pressure.",
+      "finalModes": [
+        "manual/action"
+      ]
+    },
+    {
+      "recordId": "resonance.farstrider-runeblade.linked-sequence",
+      "decision": "rework",
+      "reviewRound": 1,
+      "experience": "Farstrider provides a distant source-owned mark and Runeblade turns that information into an explicit hostile mana inscription. Choosing the seal sacrifices the mark’s future aiming value and all direct damage to disrupt an imminent enemy payment/output. Aimed Shot and Aether Cut cannot change enemyMP or outgoing-damage state; Rune Guard instead repairs the owner.",
+      "finalModes": [
+        "manual/action"
+      ]
+    },
+    {
+      "recordId": "resonance.cinderweaver-wildwarden.linked-sequence",
+      "decision": "rework",
+      "reviewRound": 1,
+      "experience": "Wildwarden’s marked poisoned quarry becomes an actual spend decision for Cinderweaver: trade away future Poison attrition to buy a Fire hit and immediate movement denial in one command. Cinder Bolt preserves Poison and adds Burn but cannot Root; Ember Line keeps formation damage. Rooting a quarry does not create entry damage while it stands still. The kit’s native Poison Ground remains provisional for its canonical bridge.",
+      "finalModes": [
+        "manual/action"
+      ]
+    }
+  ],
+  "remainingReview": "Shared primitives remain intentional. Independent controller must review all136 authored interactions for experiential distinction; exact JSON inequality alone is insufficient.",
+  "independentReviewRound1": {
+    "findings": 4,
+    "fixedCandidates": [
+      "resonance.aetherist-shadehand.veiled-conduit",
+      "resonance.edgedancer-wildwarden.linked-sequence",
+      "resonance.farstrider-runeblade.linked-sequence",
+      "resonance.cinderweaver-wildwarden.linked-sequence"
+    ],
+    "status": "implementer-fixes-awaiting-independent-re-review"
+  }
+}

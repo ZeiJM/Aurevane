@@ -1,4 +1,6 @@
+import { applyAbilityTimingDefaults } from './combat-definition'
 import type { CombatEncounterState, CombatEncounterIssue } from './actions-legacy'
+import { validateCombatControlledAbilities } from './combat-controlled'
 import {
   captureCombatAbilitySource,
   type CapturedCombatAbilitySource,
@@ -19,6 +21,8 @@ export function validateCombatAbilityState(
     for (const source of captures) {
       try {
         const normalized = captureCombatAbilitySource(source)
+        for (const behavior of normalized.definition.behaviors)
+          applyAbilityTimingDefaults(behavior, state.effectTimingPolicy)
         if (
           ids.has(source.sourceInstanceId) ||
           !state.tactical.battle.combatants.some((unit) => unit.id === source.ownerCombatantId)
@@ -46,12 +50,14 @@ export function validateCombatAbilityState(
           'maintained',
           'nextCommandSequence',
           'conditionTruth',
+          'controlled',
         ].includes(key),
     )
   ) {
     issue('abilityRuntime', 'Invalid private Ability runtime schema.')
     return issues
   }
+  issues.push(...validateCombatControlledAbilities(state, validCaptures))
   if (
     !Array.isArray(runtime.activeSourceIds) ||
     new Set(runtime.activeSourceIds).size !== runtime.activeSourceIds.length ||

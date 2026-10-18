@@ -1,3 +1,12 @@
+import {
+  defaultBasicSkills,
+  validateBasicSkillDefinition,
+  type BasicSkillDefinition,
+} from '@aurevane/game-core/combat/combat-basic-actions'
+import {
+  isBasicSkillId,
+  validatePublishedBasicSkill,
+} from '@/server/combat/combat-content-resolver'
 import { validateCurrentCombatTargetAuthoring } from '@aurevane/game-core/combat/combat-targeting-shapes'
 import { validateCurrentPercentageDotAuthoring } from '@aurevane/game-core/combat/combat-percentage-dots'
 import 'server-only'
@@ -10,6 +19,7 @@ import type {
 } from '@aurevane/db/combat-content'
 import { CombatContentConflictError } from '@aurevane/db/combat-content'
 import { validateCombatActionDefinition } from '@aurevane/game-core/combat/combat-authoring-validation'
+import type { AbilityDefinition } from '@aurevane/game-core/combat/combat-definition'
 import {
   hasCanonicalCleanseStatuses,
   isCleanseEffect,
@@ -39,9 +49,15 @@ import { AurevaneError } from '@aurevane/game-core/errors'
 
 import type { CombatContentResolver } from '@/server/combat/combat-content-resolver'
 import { isRegisteredSkillAudioCueHook, isRegisteredSkillIconHook } from '@/media/skill-media-hooks'
+import { builtinCombatContentVersionFloor } from './combat-content-version-floor'
 
 import {
   previewCombatContentDefinition,
+  previewBasicCombatContentDefinition,
+  previewResonanceCombatContentDefinition,
+  previewModifierCombatContentDefinition,
+  previewAutomaticCombatContentDefinition,
+  previewHistoricalResonanceCombatContentDefinition,
   type CombatContentPreviewResult,
 } from './combat-content-preview'
 
@@ -73,8 +89,14 @@ export interface CombatContentAuthoringService {
   validateEssenceDefinition(definition: unknown): CombatContentValidationResult
   validateResonanceDefinition(definition: unknown): CombatContentValidationResult
   previewSkillDefinition(input: {
+    contentKind?: 'skill' | 'resonance'
     actorUserId: string
     definition: unknown
+    behaviorId?: string
+    previewSetupSkillId?: string
+    previewRootSkillId?: string
+    previewRootBehaviorId?: string
+    eventSample?: import('@/components/master/combat-content/combat-content-workflow').CombatContentEventSample
     seed?: number
     combatContext?: MatureSkillCombatContext
   }): Promise<CombatContentPreviewResult>
@@ -83,6 +105,13 @@ export interface CombatContentAuthoringService {
     actorUserId: string
     definition: unknown
     baseVersion: number | null
+    expectedDraftVersion: number | null
+  }): Promise<CombatContentDraftRecord>
+  restoreBasicSkillDraft(input: {
+    actorUserId: string
+    skillId: string
+    targetVersion: number
+    expectedBaseVersion: number
     expectedDraftVersion: number | null
   }): Promise<CombatContentDraftRecord>
   publishSkill(input: {
@@ -260,16 +289,59 @@ function normalizeMessage(error: unknown): string {
   return error instanceof Error && error.message ? error.message : 'Combat definition is invalid.'
 }
 
+/** Called only after the actual Ability parser has accepted every group and payload. */
+function canonicalCleanseIssues(definition: AbilityDefinition): CombatContentValidationIssue[] {
+  return definition.behaviors.flatMap((behavior, group) =>
+    behavior.effects.flatMap(({ payload }, effect) =>
+      payload.type === 'remove-status' &&
+      isCleanseEffect(payload) &&
+      !hasCanonicalCleanseStatuses(payload.statusIds)
+        ? [
+            {
+              path: `ability.behaviors[${group}].effects[${effect}].payload.statusIds`,
+              code: 'INCONSISTENT_CLEANSE',
+              message:
+                'Cleanse must remove Burn, Bleed, Poison, Slow, Rooted, Vulnerable, Marked and Taunted. Use the standard Cleanse list.',
+            },
+          ]
+        : [],
+    ),
+  )
+}
+
 function validateSkillDefinition(definition: unknown): CombatContentValidationResult {
   const issues = draftShapeIssues(definition)
   if (!isRecord(definition) || issues.length > 0) {
     return { valid: false, issues, derivedTags: [] }
   }
 
+  if (isBasicSkillId(readSkillId(definition)!)) {
+    issues.push(...validateBasicSkillDefinition(definition))
+    const basic = definition as unknown as BasicSkillDefinition
+    if (!issues.length) issues.push(...canonicalCleanseIssues(basic.ability))
+    if (!issues.length) {
+      if (!isRegisteredSkillIconHook(basic.media.iconKey))
+        issues.push({
+          path: 'media.iconKey',
+          code: 'UNKNOWN_MEDIA_HOOK',
+          message: 'Basic Skill artwork must use a registered media hook.',
+        })
+      if (!isRegisteredSkillAudioCueHook(basic.media.audioCueKey))
+        issues.push({
+          path: 'media.audioCueKey',
+          code: 'UNKNOWN_MEDIA_HOOK',
+          message: 'Basic Skill audio must use a registered media hook.',
+        })
+    }
+    return { valid: !issues.length, issues, derivedTags: issues.length ? [] : [...basic.tags] }
+  }
   const candidate = structuredClone(definition) as unknown as MatureSkillDefinition
+  const canonical = Object.hasOwn(candidate, 'ability')
   try {
-    validateCurrentCombatTargetAuthoring(candidate)
-    validateCurrentPercentageDotAuthoring(candidate)
+    if (!canonical) {
+      validateCurrentCombatTargetAuthoring(candidate)
+      validateCurrentPercentageDotAuthoring(candidate)
+    }
     for (const field of validateMatureSkillDefinition(candidate)) {
       issues.push({
         path: field,
@@ -286,16 +358,18 @@ function validateSkillDefinition(definition: unknown): CombatContentValidationRe
   }
 
   if (issues.length === 0) {
-    for (const [index, effect] of candidate.effects.entries()) {
-      if (isCleanseEffect(effect) && !hasCanonicalCleanseStatuses(effect.statusIds)) {
-        issues.push({
-          path: `effects[${index}].statusIds`,
-          code: 'INCONSISTENT_CLEANSE',
-          message:
-            'Cleanse must remove Burn, Bleed, Poison, Slow, Rooted, Vulnerable, Marked and Taunted. Use the standard Cleanse list.',
-        })
+    if (canonical) issues.push(...canonicalCleanseIssues(candidate.ability!))
+    else
+      for (const [index, effect] of candidate.effects.entries()) {
+        if (isCleanseEffect(effect) && !hasCanonicalCleanseStatuses(effect.statusIds)) {
+          issues.push({
+            path: `effects[${index}].statusIds`,
+            code: 'INCONSISTENT_CLEANSE',
+            message:
+              'Cleanse must remove Burn, Bleed, Poison, Slow, Rooted, Vulnerable, Marked and Taunted. Use the standard Cleanse list.',
+          })
+        }
       }
-    }
   }
 
   if (issues.length === 0) {
@@ -315,7 +389,7 @@ function validateSkillDefinition(definition: unknown): CombatContentValidationRe
     }
   }
 
-  if (issues.length === 0) {
+  if (issues.length === 0 && !canonical) {
     for (const context of ['pve', 'pvp'] as const) {
       try {
         const action = toMaterializedCombatActionDefinition(candidate, context)
@@ -377,9 +451,20 @@ function validateEssenceAuthoringDefinition(definition: unknown): CombatContentV
   }
 
   if (issues.length === 0) {
-    const skillValidation = validateSkillDefinition(candidate.skill)
+    // Authoring permits disabled versions; runtime usability is a separate gate.
+    const skillValidation = validateSkillDefinition(
+      Object.hasOwn(candidate, 'ability')
+        ? { ...candidate.skill, ability: candidate.ability }
+        : candidate.skill,
+    )
     for (const issue of skillValidation.issues) {
-      issues.push({ ...issue, path: `skill.${issue.path}` })
+      issues.push({
+        ...issue,
+        path:
+          candidate.ability && issue.path.startsWith('ability.')
+            ? issue.path
+            : `skill.${issue.path}`,
+      })
     }
   }
   if (issues.length > 0) return { valid: false, issues, derivedTags: [] }
@@ -415,16 +500,20 @@ function validateResonanceAuthoringDefinition(definition: unknown): CombatConten
   }
 
   if (issues.length === 0) {
-    for (const [index, effect] of normalizedResonanceMechanics(candidate).resultEffects.entries()) {
-      if (isCleanseEffect(effect) && !hasCanonicalCleanseStatuses(effect.statusIds)) {
-        issues.push({
-          path: `trigger.${isResonanceDefinitionV2(candidate) ? 'resultEffects' : 'payoffEffects'}[${index}].statusIds`,
-          code: 'INCONSISTENT_CLEANSE',
-          message:
-            'Cleanse must remove Burn, Bleed, Poison, Slow, Rooted, Vulnerable, Marked and Taunted. Use the standard Cleanse list.',
-        })
+    if (candidate.ability) issues.push(...canonicalCleanseIssues(candidate.ability))
+    else
+      for (const [index, effect] of normalizedResonanceMechanics(
+        candidate,
+      ).resultEffects.entries()) {
+        if (isCleanseEffect(effect) && !hasCanonicalCleanseStatuses(effect.statusIds)) {
+          issues.push({
+            path: `trigger.${isResonanceDefinitionV2(candidate) ? 'resultEffects' : 'payoffEffects'}[${index}].statusIds`,
+            code: 'INCONSISTENT_CLEANSE',
+            message:
+              'Cleanse must remove Burn, Bleed, Poison, Slow, Rooted, Vulnerable, Marked and Taunted. Use the standard Cleanse list.',
+          })
+        }
       }
-    }
   }
   return { valid: issues.length === 0, issues, derivedTags: [] }
 }
@@ -500,7 +589,10 @@ export function createCombatContentAuthoringService({
 
     async previewSkillDefinition(input) {
       await authorizeOperator(store, input.actorUserId)
-      const validation = validateSkillDefinition(input.definition)
+      const resonance = input.contentKind === 'resonance'
+      const validation = resonance
+        ? validateResonanceAuthoringDefinition(input.definition)
+        : validateSkillDefinition(input.definition)
       if (!validation.valid) {
         throw new AurevaneError(
           'INVALID_REQUEST',
@@ -508,10 +600,136 @@ export function createCombatContentAuthoringService({
         )
       }
 
-      return previewCombatContentDefinition(input.definition as MatureSkillDefinition, {
+      const definition = input.definition as
+        MatureSkillDefinition | BasicSkillDefinition | AnyResonanceDefinition
+      if (resonance && !definition.enabled)
+        throw new AurevaneError('INVALID_REQUEST', 'That Resonance version is disabled.')
+      if (resonance && !Object.hasOwn(definition, 'ability')) {
+        if (!input.previewRootSkillId)
+          throw new AurevaneError(
+            'INVALID_REQUEST',
+            'This Resonance has no Manual action group to simulate. Choose native reference Skills for a historical sample.',
+          )
+        if (input.behaviorId !== undefined || input.previewRootBehaviorId !== undefined)
+          throw new AurevaneError(
+            'INVALID_REQUEST',
+            'Historical samples have no selectable behavior group.',
+          )
+        const historical = definition as AnyResonanceDefinition
+        const mechanics = normalizedResonanceMechanics(historical)
+        if (
+          mechanics.mode === 'sequence'
+            ? !input.previewSetupSkillId
+            : input.previewSetupSkillId !== undefined
+        )
+          throw new AurevaneError(
+            'INVALID_REQUEST',
+            'Choose a setup Skill for sequence samples only.',
+          )
+        const resolveReference = async (id: string) => {
+          const skill = await resolver.resolveCurrentSkillDefinition(id)
+          if (!skill?.enabled || Object.hasOwn(skill, 'ability'))
+            throw new AurevaneError(
+              'INVALID_REQUEST',
+              'Choose an enabled native reference Skill for this historical sample.',
+            )
+          return skill
+        }
+        const trigger = await resolveReference(input.previewRootSkillId)
+        const setup =
+          input.previewSetupSkillId === undefined
+            ? undefined
+            : await resolveReference(input.previewSetupSkillId)
+        return previewHistoricalResonanceCombatContentDefinition(historical, trigger, {
+          ...(setup ? { setup } : {}),
+          ...(input.seed === undefined ? {} : { seed: input.seed }),
+          ...(input.combatContext === undefined ? {} : { combatContext: input.combatContext }),
+        })
+      }
+      let behaviorId: string | undefined
+      if (Object.hasOwn(definition, 'ability')) {
+        const actions = definition.ability!.behaviors.filter(
+          (behavior) =>
+            behavior.activation === 'manual' ||
+            (behavior.activation === 'automatic' && behavior.mode === 'action') ||
+            (behavior.activation === 'ongoing' && behavior.mode === 'modifier'),
+        )
+        const selected =
+          input.behaviorId !== undefined
+            ? actions.find((behavior) => behavior.id === input.behaviorId)
+            : actions.length === 1
+              ? actions[0]
+              : undefined
+        if (!selected)
+          throw new AurevaneError(
+            'INVALID_REQUEST',
+            actions.length === 0
+              ? 'This definition has no Manual action group to simulate.'
+              : 'Choose a supported Manual action group to preview.',
+          )
+        behaviorId = selected.id
+        if (selected.mode === 'modifier' || selected.activation === 'automatic') {
+          if (!definition.enabled)
+            throw new AurevaneError('INVALID_REQUEST', 'That modifier version is disabled.')
+          const rootId = input.previewRootSkillId ?? 'unarmed.basic'
+          if (rootId === definition.id)
+            throw new AurevaneError('INVALID_REQUEST', 'Choose a separate reference action.')
+          const root = isBasicSkillId(rootId)
+            ? ((await resolver.resolveCurrentBasicSkillDefinitions?.([rootId]))?.get(rootId) ??
+              defaultBasicSkills().find((row) => row.id === rootId) ??
+              null)
+            : await resolver.resolveCurrentSkillDefinition(rootId)
+          const rootActions =
+            root?.ability?.behaviors.filter(
+              (row) => row.activation === 'manual' && row.mode === 'action',
+            ) ?? []
+          const rootBehavior =
+            input.previewRootBehaviorId !== undefined
+              ? rootActions.find((row) => row.id === input.previewRootBehaviorId)
+              : rootActions.length === 1
+                ? rootActions[0]
+                : undefined
+          if (
+            !root?.enabled ||
+            (Object.hasOwn(root, 'ability')
+              ? !rootBehavior
+              : input.previewRootBehaviorId !== undefined)
+          )
+            throw new AurevaneError(
+              'INVALID_REQUEST',
+              'Choose an enabled reference action and an unambiguous Manual action group.',
+            )
+          const preview =
+            selected.activation === 'automatic'
+              ? previewAutomaticCombatContentDefinition
+              : previewModifierCombatContentDefinition
+          return preview(definition as MatureSkillDefinition | AnyResonanceDefinition, root, {
+            behaviorId,
+            ...(rootBehavior ? { rootBehaviorId: rootBehavior.id } : {}),
+            ...(input.seed === undefined ? {} : { seed: input.seed }),
+            ...(input.combatContext === undefined ? {} : { combatContext: input.combatContext }),
+            ...(input.eventSample === undefined ? {} : { eventSample: input.eventSample }),
+          })
+        }
+      } else if (input.behaviorId !== undefined) {
+        throw new AurevaneError(
+          'INVALID_REQUEST',
+          'This native definition has no selectable behavior group.',
+        )
+      }
+      const options = {
+        ...(behaviorId === undefined ? {} : { behaviorId }),
         ...(input.seed === undefined ? {} : { seed: input.seed }),
         ...(input.combatContext === undefined ? {} : { combatContext: input.combatContext }),
-      })
+      }
+      if (resonance)
+        return previewResonanceCombatContentDefinition(
+          definition as AnyResonanceDefinition,
+          options,
+        )
+      return isBasicSkillId(definition.id)
+        ? previewBasicCombatContentDefinition(definition as BasicSkillDefinition, options)
+        : previewCombatContentDefinition(definition as MatureSkillDefinition, options)
     },
 
     diffSkillDefinitions(before, after) {
@@ -536,6 +754,72 @@ export function createCombatContentAuthoringService({
       }
     },
 
+    async restoreBasicSkillDraft(input) {
+      await authorizeOperator(store, input.actorUserId)
+      if (
+        !isBasicSkillId(input.skillId) ||
+        !Number.isSafeInteger(input.targetVersion) ||
+        input.targetVersion < 1 ||
+        !Number.isSafeInteger(input.expectedBaseVersion) ||
+        input.expectedBaseVersion < 1 ||
+        (input.expectedDraftVersion !== null &&
+          (!Number.isSafeInteger(input.expectedDraftVersion) || input.expectedDraftVersion < 1))
+      ) {
+        throw new AurevaneError('INVALID_REQUEST', 'Choose a Basic Skill and valid versions.')
+      }
+      const [published, history] = await Promise.all([
+        store.findPublished(input.skillId),
+        store.listPublishedVersions(input.skillId),
+      ])
+      const builtin = defaultBasicSkills().find((row) => row.id === input.skillId)!
+      const readStoredVersion = (record: CombatContentVersionRecord, version?: number) => {
+        try {
+          return validatePublishedBasicSkill(record, builtin.id, version)
+        } catch (error) {
+          throw new AurevaneError(
+            'PERSISTENCE_UNAVAILABLE',
+            'Basic Skill history is unavailable. Refresh and retry.',
+            { cause: error },
+          )
+        }
+      }
+      const current = published ? readStoredVersion(published) : builtin
+      if (current.contentVersion !== input.expectedBaseVersion) {
+        throw new AurevaneError(
+          'STALE_VERSION',
+          'Combat content changed. Refresh the authoritative version and retry.',
+        )
+      }
+      const matches = history.filter((row) => row.contentVersion === input.targetVersion)
+      if (matches.length > 1) {
+        throw new AurevaneError(
+          'PERSISTENCE_UNAVAILABLE',
+          'Basic Skill history contains an ambiguous version.',
+        )
+      }
+      const target = matches[0]
+        ? readStoredVersion(matches[0], input.targetVersion)
+        : builtin.contentVersion === input.targetVersion
+          ? builtin
+          : null
+      if (!target) {
+        throw new AurevaneError('INVALID_REQUEST', 'That Basic Skill version is unavailable.')
+      }
+      try {
+        // Draft-only operation: publication still performs its own current-base/catalogue CAS.
+        return await store.saveDraft({
+          contentKey: input.skillId,
+          contentKind: 'skill',
+          definition: structuredClone(target) as unknown as CombatContentDefinition,
+          baseVersion: current.contentVersion,
+          expectedDraftVersion: input.expectedDraftVersion,
+          actorUserId: input.actorUserId,
+        })
+      } catch (error) {
+        return mapRepositoryConflict(error)
+      }
+    },
+
     async publishSkill(input) {
       await authorizeOperator(store, input.actorUserId)
       const validation = validateSkillDefinition(input.definition)
@@ -545,8 +829,14 @@ export function createCombatContentAuthoringService({
           `Combat content validation failed: ${validation.issues[0]?.message ?? 'invalid Skill definition.'}`,
         )
       }
-      const definition = input.definition as MatureSkillDefinition
-      const current = await resolver.resolveCurrentSkillDefinition(definition.id)
+      const definition = input.definition as MatureSkillDefinition | BasicSkillDefinition
+      const basic = isBasicSkillId(definition.id)
+      const publishedBasic = basic ? await store.findPublished(definition.id) : null
+      const current = basic
+        ? publishedBasic
+          ? validatePublishedBasicSkill(publishedBasic, definition.id as BasicSkillDefinition['id'])
+          : defaultBasicSkills().find((row) => row.id === definition.id)
+        : await resolver.resolveCurrentSkillDefinition(definition.id)
       const actualBaseVersion = current?.contentVersion ?? null
       if (actualBaseVersion !== input.expectedBaseVersion) {
         throw new AurevaneError(
@@ -561,6 +851,7 @@ export function createCombatContentAuthoringService({
           contentKind: 'skill',
           definition: structuredClone(definition) as unknown as CombatContentDefinition,
           expectedBaseVersion: input.expectedBaseVersion,
+          versionFloor: builtinCombatContentVersionFloor('skill', definition.id),
           actorUserId: input.actorUserId,
         })
       } catch (error) {
@@ -574,7 +865,23 @@ export function createCombatContentAuthoringService({
         throw new AurevaneError('INVALID_REQUEST', 'Rollback target must be a positive version.')
       }
 
-      const target = await resolver.resolvePinnedSkillDefinition(input.skillId, input.targetVersion)
+      const basic = isBasicSkillId(input.skillId)
+      const basicVersion = basic
+        ? (await store.listPublishedVersions(input.skillId)).find(
+            (row) => row.contentVersion === input.targetVersion,
+          )
+        : null
+      const target = basic
+        ? basicVersion
+          ? validatePublishedBasicSkill(
+              basicVersion,
+              input.skillId as BasicSkillDefinition['id'],
+              input.targetVersion,
+            )
+          : defaultBasicSkills().find(
+              (row) => row.id === input.skillId && row.contentVersion === input.targetVersion,
+            )
+        : await resolver.resolvePinnedSkillDefinition(input.skillId, input.targetVersion)
       if (!target || target.id !== input.skillId || !target.enabled) {
         throw new AurevaneError(
           'INVALID_REQUEST',
@@ -629,7 +936,7 @@ export function createCombatContentAuthoringService({
         )
       }
       const definition = input.definition as EssenceDefinition
-      const published = await store.findPublished(definition.essenceId)
+      const published = await store.findPublished(definition.essenceId, 'essence')
       if (published && published.contentKind !== 'essence') {
         throw new AurevaneError('INVALID_REQUEST', 'Combat content kind conflict.')
       }
@@ -652,6 +959,7 @@ export function createCombatContentAuthoringService({
           contentKind: 'essence',
           definition: structuredClone(definition) as unknown as CombatContentDefinition,
           expectedBaseVersion: input.expectedBaseVersion,
+          versionFloor: builtinCombatContentVersionFloor('essence', definition.essenceId),
           actorUserId: input.actorUserId,
         })
       } catch (error) {
@@ -684,6 +992,7 @@ export function createCombatContentAuthoringService({
           input.essenceId,
           stored ? input.targetVersion : null,
           input.actorUserId,
+          'essence',
         )
       } catch (error) {
         return mapRepositoryConflict(error)
@@ -724,7 +1033,7 @@ export function createCombatContentAuthoringService({
         )
       }
       const definition = input.definition as AnyResonanceDefinition
-      const published = await store.findPublished(definition.id)
+      const published = await store.findPublished(definition.id, 'resonance')
       if (published && published.contentKind !== 'resonance') {
         throw new AurevaneError('INVALID_REQUEST', 'Combat content kind conflict.')
       }
@@ -747,6 +1056,7 @@ export function createCombatContentAuthoringService({
           contentKind: 'resonance',
           definition: structuredClone(definition) as unknown as CombatContentDefinition,
           expectedBaseVersion: input.expectedBaseVersion,
+          versionFloor: builtinCombatContentVersionFloor('resonance', definition.id),
           actorUserId: input.actorUserId,
         })
       } catch (error) {
@@ -783,6 +1093,7 @@ export function createCombatContentAuthoringService({
           input.resonanceId,
           stored ? input.targetVersion : null,
           input.actorUserId,
+          'resonance',
         )
       } catch (error) {
         return mapRepositoryConflict(error)

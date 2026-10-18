@@ -79,6 +79,17 @@ export interface AbilityRequirementContext {
 
 export const ABILITY_REQUIREMENT_BUDGET = Object.freeze({ maximumDepth: 8, maximumNodes: 128 })
 
+/** Selected predicates apply to every explicit unit; an absent Ground subject never succeeds vacuously. */
+export function evaluateAbilitySelectedRequirements(
+  node: RequirementNode | null,
+  context: AbilityRequirementContext,
+  subjects: readonly (AbilityRequirementSubjectState | null)[],
+): boolean {
+  return (subjects.length ? subjects : [null]).every((selected) =>
+    evaluateAbilityRequirements(node, { ...context, selected }),
+  )
+}
+
 /** Every satisfying branch must qualify this root's before-action hook. */
 export function isBeforeActionModifierRequirement(node: RequirementNode | null): boolean {
   function inspect(value: RequirementNode): { compatible: boolean; anchored: boolean } {

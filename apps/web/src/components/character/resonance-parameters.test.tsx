@@ -50,7 +50,9 @@ describe('shared Resonance parameter report', () => {
     expect(markup).toContain('Edgedancer Skills tagged Attack:')
     expect(markup).toContain('<dt>Requirements</dt><dd>Wildwarden Skills tagged Mark</dd>')
     expect([...markup.matchAll(/<dt>(.*?)<\/dt>/g)].map((match) => match[1])).toEqual(fields)
-    expect(markup).toContain(
+    expect(
+      markup.replace(/<span[^>]*data-effect-tag-label="true">([^<]*)<\/span>/g, '$1'),
+    ).toContain(
       '<ul aria-label="Effect explanations"><li><strong>MP Recovery</strong> — Restores a captured 4% of your maximum MP. The maximum and Healing Down adjustment are captured when cast; actual gains cap at the current maximum and never revive.</li></ul>',
     )
     expect(markup).toContain('Use a setup Skill from Requirements first.')
@@ -86,7 +88,7 @@ describe('shared Resonance parameter report', () => {
     const markup = renderToStaticMarkup(<ResonanceParameters definition={definition} />)
     expect(markup.match(/data-compact-skill-effect="true"/g)).toHaveLength(2)
     expect(markup).toContain('data-compact-effect-magnitude="true">[3]</span>')
-    expect(markup).toContain('data-compact-effect-magnitude="true">[20%]</span>')
+    expect(markup).toContain('data-compact-effect-magnitude="true">[+20% incoming]</span>')
     expect(markup).toContain('data-compact-effect-duration="true">[2 Turns]</span>')
     expect(markup).toContain('→ Trigger Skill selected unit')
     expect(markup).toContain('<dt>Requirements</dt><dd>N/A</dd>')

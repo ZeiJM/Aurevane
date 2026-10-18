@@ -1,0 +1,8 @@
+.sample {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.sample details {
+  margin-block: 0.4rem;
+}

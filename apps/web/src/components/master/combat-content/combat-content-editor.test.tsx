@@ -42,6 +42,16 @@ const skills: readonly CombatContentEditorSkillOption[] = [
 ]
 
 describe('Master Panel combat content editor shell', () => {
+  it('loads the saved Skill draft while retaining current content as the diff baseline', () => {
+    const definition = resolveMatureSkillVersion('vanguard.forceful-strike')!
+    const initialDraft = { ...definition, battleText: 'Saved unpublished action text.' }
+    const markup = renderToStaticMarkup(
+      createElement(CombatContentEditor, {
+        skills: [{ ...skills[0]!, definition, initialDraft }],
+      }),
+    )
+    expect(markup).toContain('value="Saved unpublished action text."')
+  })
   it('keeps Essence action text independently editable from its catalogue flavor', () => {
     const definition = resolveEssenceForBuild('vanguard', null)!
     const markup = renderToStaticMarkup(

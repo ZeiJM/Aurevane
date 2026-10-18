@@ -1,4 +1,6 @@
 import type { AbilityDefinition } from '@aurevane/game-core/combat/combat-definition'
+import { parseAbilityDefinition } from '@aurevane/game-core/combat/combat-definition'
+import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
 import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
@@ -11,6 +13,105 @@ import {
 import { previewCombatContentDefinition } from './combat-content-preview'
 
 const PREVIEW_SEED = 0x4d415354
+
+it('previews canonical Sensory followed by Mark without losing timing alignment or exposing private packets', () => {
+  const native = resolveMatureSkillVersion('farstrider.scouts-mark')!
+  const guard = defaultBasicSkills().find((row) => row.id === 'basic.guard')!.ability.behaviors[0]!
+  const definition = {
+    ...native,
+    ability: parseAbilityDefinition({
+      schemaVersion: 1,
+      behaviors: [
+        {
+          ...guard,
+          id: 'observe',
+          classification: 'utility',
+          costs: [
+            { resource: 'ap', amount: 30 },
+            { resource: 'mp', amount: 2 },
+          ],
+          cooldown: null,
+          requirements: null,
+          targeting: { ...native.target, geometryVersion: 3, maximumSelections: 1 },
+          effects: [
+            {
+              id: 'sensory',
+              timing: 'instant',
+              payload: {
+                type: 'sensory',
+                recipient: 'primary-unit',
+                revealedDurationOwnerTurnStarts: 1,
+              },
+            },
+            {
+              id: 'mark',
+              timing: 'instant',
+              payload: {
+                type: 'apply-status',
+                recipient: 'primary-unit',
+                statusId: 'mark',
+                stacks: 1,
+                durationTurns: 2,
+              },
+            },
+          ],
+        },
+      ],
+    }),
+  }
+  const before = JSON.stringify(definition)
+  const preview = previewCombatContentDefinition(definition, { behaviorId: 'observe' })
+  expect(preview.legal).toBe(true)
+  expect(preview.costs).toMatchObject({ actionEconomy: 30, mp: 2 })
+  expect(preview.simulation.rngConsumed).toBe(false)
+  expect(JSON.stringify(definition)).toBe(before)
+  expect(JSON.stringify(preview)).not.toMatch(/effectOrigins|sourceInstanceId|chanceBasisPoints/)
+})
+
+it.each(['instant', 'next-round', 'delayed'] as const)(
+  'previews the exact canonical %s summon instead of the stale native envelope',
+  (timing) => {
+    const native = resolveMatureSkillVersion('wildwarden.renewing-herbs')!
+    const guard = defaultBasicSkills().find((row) => row.id === 'basic.guard')!.ability
+      .behaviors[0]!
+    const profile = { ...native.summonProfile!, name: 'Canonical Preview Companion' }
+    const definition = {
+      ...native,
+      ability: parseAbilityDefinition({
+        schemaVersion: 1,
+        behaviors: [
+          {
+            ...guard,
+            cooldown: null,
+            requirements: null,
+            targeting: { ...native.target, geometryVersion: 3, maximumSelections: 1 },
+            effects: [
+              {
+                id: 'spawn',
+                timing,
+                payload: { type: 'summon', recipient: 'selected-tile', profile },
+              },
+            ],
+          },
+        ],
+      }),
+    }
+    const preview = previewCombatContentDefinition(definition, { seed: PREVIEW_SEED })
+    expect(preview.legal).toBe(true)
+    expect(preview.simulation.rngConsumed).toBe(false)
+    expect(preview.summon?.profile.name).toBe(profile.name)
+    expect(preview.summon?.abilities).toHaveLength(profile.abilities.length)
+    expect(preview.projections.effects).toContainEqual(
+      expect.objectContaining({
+        effectType: 'summon',
+        after: timing === 'instant' ? 'active' : 'pending',
+      }),
+    )
+    expect(JSON.stringify(preview)).not.toMatch(
+      /sourceInstanceId|capturedAbilitySources|chanceBasisPoints/,
+    )
+  },
+)
 
 function baseSkill(): MatureSkillDefinition {
   const definition = resolveMatureSkillVersion('vanguard.forceful-strike', 2)
@@ -307,3 +408,50 @@ it('uses selected canonical behavior geometry and keeps raw execution origin out
   )
   expect(JSON.stringify(definition)).toBe(before)
 })
+
+it.each(['pve', 'pvp'] as const)(
+  'previews a canonical persistent Ground group in %s without RNG or private area data',
+  (combatContext) => {
+    const native = resolveMatureSkillVersion('cinderweaver.flame-burst')!
+    const group = defaultBasicSkills().find((row) => row.id === 'unarmed.basic')!.ability
+      .behaviors[0]!
+    const definition = {
+      ...native,
+      ability: parseAbilityDefinition({
+        schemaVersion: 1,
+        behaviors: [
+          {
+            ...group,
+            id: 'persistent-ground',
+            costs: [
+              { resource: 'ap', amount: 55 },
+              { resource: 'mp', amount: 3 },
+            ],
+            targeting: { ...native.target, maximumSelections: 1 },
+            effects: [
+              { id: 'hit', payload: { type: 'damage', recipient: 'affected-units', amount: 8 } },
+            ],
+            groundArea: {
+              durationRounds: 3,
+              visualPresetId: 'embers',
+              entryEffectIds: ['hit'],
+              timing: 'next-round',
+            },
+          },
+        ],
+      }),
+    }
+    const before = JSON.stringify(definition)
+    const preview = previewCombatContentDefinition(definition, { combatContext })
+    expect(preview.legal).toBe(true)
+    expect(preview.groundAreas).toHaveLength(1)
+    expect(preview.groundAreas![0]!.visualPresetId).toBe('embers')
+    expect(preview.groundAreas![0]!.expiresAtRound - preview.groundAreas![0]!.activationRound).toBe(
+      3,
+    )
+    expect(preview.simulation.rngConsumed).toBe(false)
+    expect(preview.groundAreas![0]).not.toHaveProperty('caster')
+    expect(preview.groundAreas![0]).not.toHaveProperty('entryEffects')
+    expect(JSON.stringify(definition)).toBe(before)
+  },
+)

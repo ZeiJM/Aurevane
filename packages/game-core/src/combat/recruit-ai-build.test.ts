@@ -1,8 +1,15 @@
+import { source as canonicalSource } from './combat-behavior.test-utils'
+import { captureBasicSkillSources, defaultBasicSkills } from './combat-basic-actions'
+import { captureCombatAbilitySource } from './combat-behavior-capture'
 import {
   capturedMatureSkillAbilitySource,
   capturedResonanceAbilitySource,
 } from './combat-action-source'
-import { reconcileCombatAbilitySources } from './combat-behavior-runtime'
+import {
+  primeCombatControlledAbility,
+  reconcileCombatAbilitySources,
+} from './combat-behavior-runtime'
+import type { RequirementNode } from './combat-requirements'
 import { validateAbilityDefinition, type AbilityDefinition } from './combat-definition'
 import { ADVANCED_DISCIPLINES } from '../character/advanced-disciplines'
 import { latestEnabledMatureSkills, resolveMatureSkillVersion } from './mature-skills'
@@ -11,6 +18,8 @@ import { resolveResonanceForPair, resonanceSnapshotReference } from './resonance
 import { convertV5ResonanceToV2 } from './resonance-v2'
 import {
   finishPv1fTurn,
+  executePv1fMovement,
+  preparePv1fTurnEconomy,
   PV1F_BASIC_ATTACK_ID,
   PV1F_GUARD_ACTION_ID,
   PV1F_MP_RECOVER_ACTION_ID,
@@ -550,3 +559,718 @@ it.each(['skill', 'essence', 'resonance-v1', 'resonance-v2'] as const)(
     ).toHaveLength(1)
   },
 )
+
+it.each([{ kind: 'line', length: 2 }, { kind: 'circle', radius: 2 }, { kind: 'all' }] as const)(
+  'enumerates omitted canonical %j geometry identically to explicit geometry2 before actual AI commit',
+  (shape) => {
+    const initial = encounter(false)
+    function capturedState(geometryVersion?: 2) {
+      const capture = captureCombatAbilitySource({
+        ...canonicalSource({
+          targeting: {
+            ...canonicalSource().definition.behaviors[0]!.targeting!,
+            shape,
+            minimumRange: 0,
+            maximumRange: shape.kind === 'all' ? 0 : 2,
+            ...(geometryVersion ? { geometryVersion } : {}),
+          },
+          costs: [{ resource: 'ap', amount: 11 }],
+          accuracy: { kind: 'fixed', chanceBasisPoints: 10000 },
+          effects: [
+            { id: 'hit', payload: { type: 'damage', recipient: 'affected-units', amount: 20 } },
+          ],
+        }),
+        ownerCombatantId: actorId,
+      })
+      return JSON.parse(
+        JSON.stringify(reconcileCombatAbilitySources(initial, [capture])),
+      ) as StatDrivenCombatEncounterState
+    }
+    const omitted = capturedState()
+    const explicit = capturedState(2)
+    const choose = (state: StatDrivenCombatEncounterState) =>
+      chooseBuildAwareRecruitAiDecision({ state, tieBreakSeed: 1 })
+    const known = choose(explicit)
+    expect(known.intent).toMatchObject({
+      kind: 'action',
+      actionId: 'test.ability',
+      behaviorId: 'strike',
+      target: { kind: shape.kind === 'line' ? 'direction' : 'activate' },
+    })
+    const before = JSON.stringify(omitted)
+    const decision = choose(omitted)
+    expect(decision).toEqual(known)
+    expect(JSON.stringify(omitted)).toBe(before)
+    if (decision.intent.kind !== 'action') throw new Error('Expected a canonical area action.')
+    const cast = executeBuildAwareRecruitAiAction(
+      omitted,
+      decision.intent.actionId,
+      decision.intent.target,
+      {},
+      { behaviorId: decision.intent.behaviorId },
+    )
+    expect(cast.events).toContainEqual(
+      expect.objectContaining({
+        event: 'damage_applied',
+        targetCombatantId: targetId,
+        amount: expect.any(Number),
+      }),
+    )
+    expect(readPv1fActionEconomy(cast.state)!.current).toBe(89)
+    expect(
+      cast.state.capturedAbilitySources![0]!.definition.behaviors[0]!.targeting!.geometryVersion,
+    ).toBeUndefined()
+  },
+)
+
+function moveAiEncounter(
+  kind: 'discipline-skill' | 'essence' | 'resonance' | 'basic',
+  ground = false,
+  moveRequirement?: RequirementNode,
+) {
+  const original = encounter(false)
+  const base = {
+    ...original,
+    tactical: {
+      ...original.tactical,
+      width: 4,
+      tiles: Array.from({ length: 4 }, (_, x) => ({
+        position: { x, y: 0 },
+        elevation: 0,
+        terrainId: 'open-ground',
+      })),
+      placements: original.tactical.placements.map((row) =>
+        row.combatantId === targetId ? { ...row, position: { x: 3, y: 0 } } : row,
+      ),
+    },
+  }
+  const raw = canonicalSource({
+    costs: [
+      { resource: 'ap', amount: 100 },
+      { resource: 'mp', amount: 2 },
+    ],
+    targeting: {
+      kind: ground ? 'ground-tile' : 'unit',
+      teamPolicy: 'enemy',
+      friendlyFire: 'enemies-only',
+      shape: { kind: 'single' },
+      minimumRange: 1,
+      maximumRange: 1,
+      requiresLineOfSight: true,
+      maximumElevationDifference: 1,
+      maximumSelections: 1,
+    },
+    accuracy: { kind: 'fixed', chanceBasisPoints: 10000 },
+    effects: [
+      {
+        id: 'advance',
+        ...(moveRequirement ? { requirements: moveRequirement } : {}),
+        timing: 'instant',
+        payload: { type: 'move', recipient: 'actor', maximumTiles: 2 },
+      },
+      { id: 'hit', payload: { type: 'damage', recipient: 'affected-units', amount: 20 } },
+    ],
+  })
+  const captured =
+    kind === 'basic'
+      ? captureBasicSkillSources({
+          ownerCombatantId: actorId,
+          supportActionId: 'basic.guard',
+          definitions: defaultBasicSkills().map((row) =>
+            row.id === 'basic.move'
+              ? {
+                  ...row,
+                  execution: { kind: 'basic-move', costBasis: 'flat' },
+                  ability: raw.definition,
+                }
+              : row,
+          ),
+        })
+      : [captureCombatAbilitySource({ ...raw, ownerCombatantId: actorId, sourceKind: kind })]
+  return {
+    state: reconcileCombatAbilitySources(
+      preparePv1fTurnEconomy(base),
+      captured,
+    ) as StatDrivenCombatEncounterState,
+    captured: captured[0]!,
+  }
+}
+
+it.each(['discipline-skill', 'essence', 'resonance', 'basic'] as const)(
+  'AI commits a captured %s Move follow-up for its one authored payment',
+  (kind) => {
+    const { state, captured } = moveAiEncounter(kind)
+    const before = JSON.stringify(state)
+    const decision = chooseBuildAwareRecruitAiDecision({ state, tieBreakSeed: 1 })
+    expect(decision.intent).toMatchObject({
+      kind: 'action',
+      actionId: captured.abilityId,
+      behaviorId: 'strike',
+      target: { kind: 'unit', combatantId: targetId },
+      movementPath: [
+        { x: 0, y: 0 },
+        { x: 1, y: 0 },
+        { x: 2, y: 0 },
+      ],
+    })
+    expect(JSON.stringify(state)).toBe(before)
+    if (decision.intent.kind !== 'action') throw new Error('Expected Move action.')
+    const result = executeBuildAwareRecruitAiAction(
+      state,
+      decision.intent.actionId,
+      decision.intent.target,
+      {},
+      decision.intent,
+    )
+    expect(
+      result.state.tactical.placements.find((row) => row.combatantId === actorId)!.position,
+    ).toEqual({ x: 2, y: 0 })
+    expect(readPv1fActionEconomy(result.state, actorId)!.current).toBe(0)
+    expect(result.state.tactical.battle.combatants.find((row) => row.id === actorId)!.mp).toBe(38)
+    expect(
+      result.state.tactical.battle.combatants.find((row) => row.id === targetId)!.hp,
+    ).toBeLessThan(50)
+    expect(
+      result.events.filter((event) => (event as { event: string }).event === 'combat_action_used'),
+    ).toHaveLength(1)
+  },
+)
+
+it('AI retains the original Ground follow-up target while walking', () => {
+  const { state, captured } = moveAiEncounter('discipline-skill', true)
+  expect(chooseBuildAwareRecruitAiDecision({ state, tieBreakSeed: 1 }).intent).toMatchObject({
+    kind: 'action',
+    actionId: captured.abilityId,
+    target: { kind: 'tile', position: { x: 3, y: 0 } },
+    movementPath: [
+      { x: 0, y: 0 },
+      { x: 1, y: 0 },
+      { x: 2, y: 0 },
+    ],
+  })
+})
+
+it.each(['occupied', 'movement', 'jump', 'unaffordable'] as const)(
+  'AI rejects a Move follow-up with %s restrictions',
+  (restriction) => {
+    const { state: base, captured } = moveAiEncounter('discipline-skill')
+    const state = {
+      ...base,
+      tactical: {
+        ...base.tactical,
+        tiles: base.tactical.tiles.map((tile) =>
+          restriction === 'jump' && tile.position.x === 1 ? { ...tile, elevation: 2 } : tile,
+        ),
+        placements: base.tactical.placements.map((row) =>
+          restriction === 'occupied' && row.combatantId === targetId
+            ? { ...row, position: { x: 1, y: 0 } }
+            : row,
+        ),
+        battle: {
+          ...base.tactical.battle,
+          currentTurn: {
+            ...base.tactical.battle.currentTurn!,
+            ...(restriction === 'movement' ? { movementRemaining: 1, movementSpent: 3 } : {}),
+          },
+          combatants: base.tactical.battle.combatants.map((unit) =>
+            restriction === 'unaffordable' && unit.id === actorId
+              ? {
+                  ...unit,
+                  temporaryResources: unit.temporaryResources.map((resource) =>
+                    resource.key === 'pv1f.action-economy'
+                      ? { ...resource, current: 99 }
+                      : resource,
+                  ),
+                }
+              : unit,
+          ),
+        },
+      },
+    }
+    const before = JSON.stringify(state)
+    const decision = chooseBuildAwareRecruitAiDecision({ state, tieBreakSeed: 1 })
+    expect(
+      decision.intent.kind === 'action' && decision.intent.actionId === captured.abilityId,
+    ).toBe(false)
+    expect(JSON.stringify(state)).toBe(before)
+  },
+)
+
+it('AI can cast an ineligible conditional Move without spending exhausted walking allowance', () => {
+  const { state: base, captured } = moveAiEncounter('discipline-skill', false, {
+    kind: 'resource-state',
+    subject: 'owner',
+    resource: 'mp',
+    comparison: 'at-least',
+    amount: 100,
+  })
+  const state = {
+    ...base,
+    tactical: {
+      ...base.tactical,
+      placements: base.tactical.placements.map((row) =>
+        row.combatantId === targetId ? { ...row, position: { x: 1, y: 0 } } : row,
+      ),
+      battle: {
+        ...base.tactical.battle,
+        currentTurn: {
+          ...base.tactical.battle.currentTurn!,
+          movementRemaining: 0,
+          movementSpent: 4,
+        },
+      },
+    },
+  }
+  const decision = chooseBuildAwareRecruitAiDecision({ state, tieBreakSeed: 1 })
+  expect(decision.intent).toMatchObject({
+    kind: 'action',
+    actionId: captured.abilityId,
+    target: { kind: 'unit', combatantId: targetId },
+  })
+  if (decision.intent.kind !== 'action') throw new Error('Expected conditional action.')
+  const result = executeBuildAwareRecruitAiAction(
+    state,
+    decision.intent.actionId,
+    decision.intent.target,
+    {},
+    decision.intent,
+  )
+  expect(
+    result.state.tactical.placements.find((row) => row.combatantId === actorId)!.position,
+  ).toEqual({ x: 0, y: 0 })
+  expect(result.state.tactical.battle.currentTurn!.movementSpent).toBe(4)
+  expect(
+    result.state.tactical.battle.combatants.find((row) => row.id === targetId)!.hp,
+  ).toBeLessThan(50)
+})
+
+it.each(['flat', 'per-terrain-point'] as const)(
+  'AI preserves standalone %s Basic Move routing and payment',
+  (costBasis) => {
+    const { state: existing } = moveAiEncounter('discipline-skill')
+    const captures = captureBasicSkillSources({
+      ownerCombatantId: actorId,
+      supportActionId: 'basic.guard',
+      definitions: defaultBasicSkills().map((row) =>
+        row.id === 'basic.move'
+          ? {
+              ...row,
+              execution: { kind: 'basic-move', costBasis },
+              ability: {
+                ...row.ability,
+                behaviors: row.ability.behaviors.map((behavior) => ({
+                  ...behavior,
+                  costs: [{ resource: 'ap', amount: 23 }],
+                })),
+              },
+            }
+          : row,
+      ),
+    })
+    const state = reconcileCombatAbilitySources(
+      { ...existing, capturedAbilitySources: undefined, abilityRuntime: undefined },
+      captures,
+    ) as StatDrivenCombatEncounterState
+    const decision = chooseBuildAwareRecruitAiDecision({ state, tieBreakSeed: 1 })
+    if (costBasis === 'flat') {
+      expect(decision.intent).toMatchObject({
+        kind: 'action',
+        actionId: 'basic.move',
+        movementPath: [
+          { x: 0, y: 0 },
+          { x: 1, y: 0 },
+        ],
+      })
+      if (decision.intent.kind !== 'action') throw new Error('Expected flat action.')
+      const result = executeBuildAwareRecruitAiAction(
+        state,
+        decision.intent.actionId,
+        decision.intent.target,
+        {},
+        decision.intent,
+      )
+      expect(readPv1fActionEconomy(result.state, actorId)!.current).toBe(77)
+      expect(
+        result.state.tactical.placements.find((row) => row.combatantId === actorId)!.position,
+      ).toEqual({ x: 1, y: 0 })
+    } else {
+      expect(decision.intent).toMatchObject({
+        kind: 'move',
+        path: [
+          { x: 0, y: 0 },
+          { x: 1, y: 0 },
+        ],
+      })
+    }
+  },
+)
+
+it('conditional Move planning can reach an initially illegal tile through a legal climbing route', () => {
+  const { state: old, captured } = moveAiEncounter('discipline-skill', false, {
+    kind: 'resource-state',
+    subject: 'owner',
+    resource: 'mp',
+    comparison: 'at-least',
+    amount: 40,
+  })
+  const ability = captureCombatAbilitySource({
+    ...captured,
+    definition: {
+      ...captured.definition,
+      behaviors: captured.definition.behaviors.map((behavior) => ({
+        ...behavior,
+        effects: behavior.effects.map((effect) =>
+          effect.payload.type === 'move'
+            ? { ...effect, payload: { ...effect.payload, maximumTiles: 3 } }
+            : effect,
+        ),
+      })),
+    },
+  })
+  const base = {
+    ...old,
+    capturedAbilitySources: undefined,
+    abilityRuntime: undefined,
+    tactical: {
+      ...old.tactical,
+      height: 2,
+      terrains: [{ id: 'blocked', traversalCost: null }, ...old.tactical.terrains],
+      tiles: Array.from({ length: 8 }, (_, index) => {
+        const x = index % 4,
+          y = Math.floor(index / 4)
+        return {
+          position: { x, y },
+          elevation: y === 1 ? 1 : x === 0 ? 0 : 2,
+          terrainId: x >= 3 || (x === 2 && y === 1) ? 'blocked' : 'open-ground',
+        }
+      }),
+      placements: old.tactical.placements.map((row) =>
+        row.combatantId === targetId ? { ...row, position: { x: 2, y: 0 } } : row,
+      ),
+    },
+  }
+  const state = reconcileCombatAbilitySources(base, [ability]) as StatDrivenCombatEncounterState
+  const decision = chooseBuildAwareRecruitAiDecision({ state, tieBreakSeed: 1 })
+  expect(decision.intent).toMatchObject({
+    kind: 'action',
+    actionId: captured.abilityId,
+    movementPath: [
+      { x: 0, y: 0 },
+      { x: 0, y: 1 },
+      { x: 1, y: 1 },
+      { x: 1, y: 0 },
+    ],
+  })
+})
+
+function controlledAiEncounter(configured = false) {
+  const captured = captureCombatAbilitySource({
+    ...canonicalSource({
+      costs: [
+        { resource: 'ap', amount: 11 },
+        { resource: 'mp', amount: 2 },
+      ],
+      accuracy: { kind: 'fixed', chanceBasisPoints: 10000 },
+      effects: [
+        {
+          id: 'hit',
+          ...(configured ? {} : { timing: 'controlled' as const }),
+          payload: { type: 'damage', recipient: 'primary-unit', amount: 20 },
+        },
+      ],
+    }),
+    ownerCombatantId: actorId,
+  })
+  const base = preparePv1fTurnEconomy(encounter(false))
+  return {
+    captured,
+    state: reconcileCombatAbilitySources(
+      {
+        ...base,
+        ...(configured
+          ? { effectTimingPolicy: { version: 12, modes: { damage: 'controlled' as const } } }
+          : {}),
+      },
+      [captured],
+    ) as StatDrivenCombatEncounterState,
+  }
+}
+
+it.each([false, true])(
+  'AI deterministically prepares a useful Controlled action (configured=%s) without locking target or route',
+  (configured) => {
+    const { state, captured } = controlledAiEncounter(configured)
+    const before = JSON.stringify(state)
+    const decision = chooseBuildAwareRecruitAiDecision({ state, tieBreakSeed: 1 })
+    expect(decision.intent).toEqual({
+      kind: 'ability-prime',
+      actionId: captured.abilityId,
+      behaviorId: 'strike',
+    })
+    expect(chooseBuildAwareRecruitAiDecision({ state, tieBreakSeed: 1 })).toEqual(decision)
+    expect(JSON.stringify(state)).toBe(before)
+  },
+)
+
+it('the AI free-prime executor pays nothing, then the next decision releases and pays exactly once', () => {
+  const { state, captured } = controlledAiEncounter()
+  const primed = executeBuildAwareRecruitAiAction(
+    state,
+    captured.abilityId,
+    { kind: 'self' },
+    {},
+    { behaviorId: 'strike', controlledOperation: 'prime' },
+  )
+  expect(primed.state.tactical).toEqual(state.tactical)
+  expect(primed.events).toEqual([])
+  expect(primed.state.abilityRuntime!.controlled!.primes).toHaveLength(1)
+  const decision = chooseBuildAwareRecruitAiDecision({ state: primed.state, tieBreakSeed: 1 })
+  expect(decision.intent).toMatchObject({
+    kind: 'action',
+    actionId: captured.abilityId,
+    behaviorId: 'strike',
+  })
+  if (decision.intent.kind !== 'action') throw new Error('Expected a legal paid release.')
+  const released = executeBuildAwareRecruitAiAction(
+    primed.state,
+    decision.intent.actionId,
+    decision.intent.target,
+    {},
+    { behaviorId: decision.intent.behaviorId },
+  )
+  expect(readPv1fActionEconomy(released.state, actorId)!.current).toBe(
+    readPv1fActionEconomy(state, actorId)!.current - 11,
+  )
+  expect(released.state.tactical.battle.combatants.find((unit) => unit.id === actorId)!.mp).toBe(38)
+  expect(released.state.abilityRuntime!.controlled!.primes).toEqual([])
+  expect(
+    released.events.filter(
+      (event) =>
+        typeof event === 'object' &&
+        event !== null &&
+        'event' in event &&
+        event.event === 'combat_action_used',
+    ),
+  ).toHaveLength(1)
+})
+
+it('AI cancellation is free and does not renew the prime allowance', () => {
+  const { state, captured } = controlledAiEncounter()
+  const primed = primeCombatControlledAbility({
+    state,
+    actorId,
+    sourceInstanceId: captured.sourceInstanceId,
+    behaviorId: 'strike',
+  }).state as StatDrivenCombatEncounterState
+  const cancelled = executeBuildAwareRecruitAiAction(
+    primed,
+    captured.abilityId,
+    { kind: 'self' },
+    {},
+    { behaviorId: 'strike', controlledOperation: 'cancel' },
+  )
+  expect(cancelled.state.tactical).toEqual(primed.tactical)
+  expect(cancelled.events).toEqual([])
+  expect(cancelled.state.abilityRuntime!.controlled!.primes).toEqual([])
+  expect(cancelled.state.abilityRuntime!.controlled!.used).toHaveLength(1)
+  expect(
+    chooseBuildAwareRecruitAiDecision({ state: cancelled.state, tieBreakSeed: 1 }).intent.kind,
+  ).not.toBe('ability-prime')
+})
+
+it('an unaffordable primed release is retained while AI selects a different legal decision', () => {
+  const { state, captured } = controlledAiEncounter()
+  const primed = primeCombatControlledAbility({
+    state,
+    actorId,
+    sourceInstanceId: captured.sourceInstanceId,
+    behaviorId: 'strike',
+  }).state as StatDrivenCombatEncounterState
+  const blocked = {
+    ...primed,
+    tactical: {
+      ...primed.tactical,
+      battle: {
+        ...primed.tactical.battle,
+        combatants: primed.tactical.battle.combatants.map((unit) =>
+          unit.id === actorId ? { ...unit, mp: 0 } : unit,
+        ),
+      },
+    },
+  }
+  const decision = chooseBuildAwareRecruitAiDecision({ state: blocked, tieBreakSeed: 1 })
+  expect(decision.intent.kind).not.toBe('ability-prime')
+  expect(decision.intent).not.toMatchObject({ kind: 'action', actionId: captured.abilityId })
+  expect(blocked.abilityRuntime!.controlled!.primes).toHaveLength(1)
+})
+
+function rewindAiEncounter() {
+  const base = encounter(false)
+  const captured = captureCombatAbilitySource({
+    ...canonicalSource({
+      classification: 'utility',
+      attackFamily: undefined,
+      costs: [{ resource: 'ap', amount: 11 }],
+      targeting: {
+        kind: 'self',
+        teamPolicy: 'self',
+        friendlyFire: 'allies-only',
+        shape: { kind: 'single' },
+        minimumRange: 0,
+        maximumRange: 0,
+        maximumSelections: 1,
+        maximumElevationDifference: null,
+        requiresLineOfSight: false,
+      },
+      effects: [
+        {
+          id: 'rewind',
+          timing: 'controlled',
+          payload: {
+            type: 'return-to-turn-start',
+            recipient: 'actor',
+            anchorMode: 'cast-position',
+          },
+        },
+      ],
+    }),
+    ownerCombatantId: actorId,
+  })
+  const state = reconcileCombatAbilitySources(
+    {
+      ...base,
+      tactical: {
+        ...base.tactical,
+        width: 5,
+        tiles: Array.from({ length: 5 }, (_, x) => ({
+          position: { x, y: 0 },
+          elevation: 0,
+          terrainId: 'open-ground',
+        })),
+        placements: base.tactical.placements.map((row) =>
+          row.combatantId === targetId ? { ...row, position: { x: 4, y: 0 } } : row,
+        ),
+      },
+    },
+    [captured],
+  ) as StatDrivenCombatEncounterState
+  return { state: preparePv1fTurnEconomy(state), captured }
+}
+
+it('AI prepares Rewind before useful travel without paying or immediately returning to the same tile', () => {
+  const { state, captured } = rewindAiEncounter()
+  const decision = chooseBuildAwareRecruitAiDecision({ state, tieBreakSeed: 1 })
+  expect(decision.intent).toEqual({
+    kind: 'ability-prime',
+    actionId: captured.abilityId,
+    behaviorId: 'strike',
+  })
+  const primed = executeBuildAwareRecruitAiAction(
+    state,
+    captured.abilityId,
+    { kind: 'self' },
+    {},
+    { behaviorId: 'strike', controlledOperation: 'prime' },
+  )
+  expect(primed.state.tactical).toEqual(state.tactical)
+  expect(primed.state.abilityRuntime!.controlled!.primes[0]!.returnAnchor).toEqual({ x: 0, y: 0 })
+  expect(
+    chooseBuildAwareRecruitAiDecision({ state: primed.state, tieBreakSeed: 1 }).intent.kind,
+  ).toBe('move')
+})
+
+it('an injured AI releases its real Rewind anchor to retreat and retains spent Movement', () => {
+  const { state, captured } = rewindAiEncounter()
+  const primed = executeBuildAwareRecruitAiAction(
+    state,
+    captured.abilityId,
+    { kind: 'self' },
+    {},
+    { behaviorId: 'strike', controlledOperation: 'prime' },
+  ).state
+  const moved = executePv1fMovement(primed, [
+    { x: 0, y: 0 },
+    { x: 1, y: 0 },
+    { x: 2, y: 0 },
+    { x: 3, y: 0 },
+  ]).state
+  const injured = {
+    ...moved,
+    tactical: {
+      ...moved.tactical,
+      battle: {
+        ...moved.tactical.battle,
+        combatants: moved.tactical.battle.combatants.map((unit) =>
+          unit.id === actorId ? { ...unit, hp: 15 } : unit,
+        ),
+      },
+    },
+  }
+  const decision = chooseBuildAwareRecruitAiDecision({ state: injured, tieBreakSeed: 1 })
+  expect(decision.intent).toMatchObject({
+    kind: 'action',
+    actionId: captured.abilityId,
+    behaviorId: 'strike',
+    target: { kind: 'self' },
+  })
+  const released = executeBuildAwareRecruitAiAction(
+    injured,
+    captured.abilityId,
+    { kind: 'self' },
+    {},
+    { behaviorId: 'strike' },
+  )
+  expect(
+    released.state.tactical.placements.find((row) => row.combatantId === actorId)!.position,
+  ).toEqual({ x: 0, y: 0 })
+  expect(released.state.tactical.battle.currentTurn!.movementRemaining).toBe(
+    moved.tactical.battle.currentTurn!.movementRemaining,
+  )
+  expect(released.state.abilityRuntime!.controlled!.primes).toEqual([])
+})
+
+it('healthy AI keeps its anchor while it can attack rather than paying for an unnecessary retreat', () => {
+  const { state, captured } = rewindAiEncounter()
+  const primed = executeBuildAwareRecruitAiAction(
+    state,
+    captured.abilityId,
+    { kind: 'self' },
+    {},
+    { behaviorId: 'strike', controlledOperation: 'prime' },
+  ).state
+  const moved = executePv1fMovement(primed, [
+    { x: 0, y: 0 },
+    { x: 1, y: 0 },
+    { x: 2, y: 0 },
+    { x: 3, y: 0 },
+  ]).state
+  const decision = chooseBuildAwareRecruitAiDecision({ state: moved, tieBreakSeed: 1 })
+  expect(decision.intent).not.toMatchObject({ kind: 'action', actionId: captured.abilityId })
+  expect(moved.abilityRuntime!.controlled!.primes).toHaveLength(1)
+})
+
+it('Rewind preparation does not use an Invisible enemy as a positional beacon', () => {
+  const { state, captured } = rewindAiEncounter()
+  const hidden = {
+    ...state,
+    statusState: state.statusState.map((row) =>
+      row.combatantId === targetId
+        ? {
+            ...row,
+            statuses: [
+              ...row.statuses,
+              {
+                statusId: 'invisible',
+                statusVersion: 1,
+                stacks: 1,
+                remainingOwnerTurnStarts: 2,
+                sourceCombatantId: targetId,
+              },
+            ],
+          }
+        : row,
+    ),
+  }
+  const decision = chooseBuildAwareRecruitAiDecision({ state: hidden, tieBreakSeed: 1 })
+  expect(decision.intent).not.toMatchObject({ kind: 'ability-prime', actionId: captured.abilityId })
+})

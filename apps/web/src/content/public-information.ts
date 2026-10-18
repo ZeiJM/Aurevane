@@ -1,4 +1,5 @@
 import { CURRENT_LEVEL_CAP } from '@aurevane/game-core/character/progression'
+import type { ManualInlinePart } from './manual-mechanic-text'
 
 export interface PublicBodyBlock {
   id: string
@@ -10,7 +11,11 @@ export interface PublicBodyBlock {
     headers: readonly string[]
     rows: readonly (readonly string[])[]
   }
-  disclosures?: readonly { title: string; bullets: readonly string[] }[]
+  disclosures?: readonly {
+    title: string
+    bullets: readonly string[]
+    bulletParts?: readonly (readonly ManualInlinePart[] | null)[]
+  }[]
 }
 
 export interface ManualArticle {

@@ -2,6 +2,9 @@ import type { CombatActionDefinition, CombatContentCatalog, CombatEncounterState
 import { hasGameplayTag } from './gameplay-tags'
 import type { TacticalBattleState } from './board'
 
+export const AIRBORNE_JUMP = 3
+export const AIRBORNE_ATTACK_TARGET_ELEVATION = 3
+
 type AirborneMovementState = Pick<
   CombatEncounterState,
   'statusState' | 'effectState' | 'airborneJumpPolicyVersion'
@@ -16,7 +19,7 @@ export function airborneJump(
 ): number {
   return state.airborneJumpPolicyVersion === 1 &&
     hasGameplayTag(state, actorId, 'Airborne', content)
-    ? 3
+    ? AIRBORNE_JUMP
     : baseJump
 }
 
@@ -39,7 +42,7 @@ export function airborneMovementTactical<
   return {
     ...state.tactical,
     movementProfiles: state.tactical.movementProfiles.map((row) =>
-      row.id === profile.id ? { ...row, maxElevationStep: 3 } : row,
+      row.id === profile.id ? { ...row, maxElevationStep: AIRBORNE_JUMP } : row,
     ),
   }
 }
@@ -47,20 +50,30 @@ export function airborneMovementTactical<
 export function airborneDescription(legacyAirborne = false, legacyJump = false): string {
   if (legacyAirborne)
     return 'Ignore the Frozen Ground AP surcharge. Board bounds, elevation, obstacles, occupancy, Rooted and Movement allowance still apply.'
-  return `Ground-targeted Skills always miss you (100% evasion), including area activations. ${legacyJump ? '' : 'Your Jump is 3 while Airborne is active. '}Your Attack Skills have Target Elevation 3 while Airborne is active. Ignore the Frozen Ground AP surcharge; board bounds, movement elevation, obstacles, occupancy, Rooted, Slow and Movement allowance still apply.`
+  return `Ground-targeted Skills always miss you (100% evasion), including area activations. ${legacyJump ? '' : `Your Jump is ${AIRBORNE_JUMP} while Airborne is active. `}Your Attack Skills have Target Elevation ${AIRBORNE_ATTACK_TARGET_ELEVATION} while Airborne is active. Ignore the Frozen Ground AP surcharge; board bounds, movement elevation, obstacles, occupancy, Rooted, Slow and Movement allowance still apply.`
 }
 
 export function airborneGroundMiss(
   state: CombatEncounterState,
-  action: Pick<CombatActionDefinition, 'target'>,
+  action: Pick<CombatActionDefinition, 'target' | 'groundTargetedRecipientIds'>,
   targetId: string,
   content: CombatContentCatalog,
 ): boolean {
   return (
     state.airbornePolicyVersion === 1 &&
-    action.target.kind === 'ground-tile' &&
+    (action.groundTargetedRecipientIds !== undefined
+      ? action.groundTargetedRecipientIds.includes(targetId)
+      : action.target.kind === 'ground-tile') &&
     hasGameplayTag(state, targetId, 'Airborne', content)
   )
+}
+
+export function combatActionHasGroundDelivery(
+  action: Pick<CombatActionDefinition, 'target' | 'groundTargetedRecipientIds'>,
+): boolean {
+  return action.groundTargetedRecipientIds !== undefined
+    ? action.groundTargetedRecipientIds.length > 0
+    : action.target.kind === 'ground-tile'
 }
 
 /** Transient targeting override; immutable authored Skills and saved loadouts are untouched. */
@@ -75,6 +88,9 @@ export function airborneAttackAction<T extends CombatActionDefinition>(
     action.tags.includes('attack') &&
     action.sourceType !== 'basic-attack' &&
     hasGameplayTag(state, actorId, 'Airborne', content)
-    ? { ...action, target: { ...action.target, maximumElevationDifference: 3 } }
+    ? {
+        ...action,
+        target: { ...action.target, maximumElevationDifference: AIRBORNE_ATTACK_TARGET_ELEVATION },
+      }
     : action
 }

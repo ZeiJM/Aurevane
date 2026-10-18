@@ -83,7 +83,14 @@ export function forecastCombatStatusResistance(
           : evaluation.affectedCombatantIds
     for (const id of recipients) {
       const target = state.tactical.battle.combatants.find((unit) => unit.id === id)
-      if (!target || target.hp <= 0 || target.teamId === actor.teamId || missedCombatantIds.has(id))
+      if (
+        !target ||
+        target.hp <= 0 ||
+        target.teamId === actor.teamId ||
+        missedCombatantIds.has(id) ||
+        (action.effectEligibleRecipientIds?.[ordinal] !== undefined &&
+          !action.effectEligibleRecipientIds[ordinal]!.includes(id))
+      )
         continue
       if (state.elementalDamagePolicyVersion === 2 && effect.type === 'damage') {
         const statusId = { ice: 'frozen', water: 'wet', storm: 'conductive' }[

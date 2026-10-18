@@ -19,10 +19,10 @@ export function SkillGroundAreaDetails({ skill }: { skill: MatureSkillDefinition
     skill.target.teamPolicy === 'enemy' &&
     (skill.target.kind === 'unit' || skill.target.kind === 'ground-tile') &&
     skill.effects.some((effect) => effect.type === 'damage' && effect.element === 'fire')
-  const description = combatGroundAreaDescription(
-    skill.groundArea,
-    combatEffectTimingMode(timingPolicy ?? undefined, 'ground-area'),
-  )
+  const timing = combatEffectTimingMode(timingPolicy ?? undefined, 'ground-area')
+  if (timing === 'controlled')
+    return <small>Controlled Ground requires dedicated release targeting.</small>
+  const description = combatGroundAreaDescription(skill.groundArea, timing)
   return (
     <small aria-label="Ground area rules" title={description} style={{ display: 'block' }}>
       {conditionalFireGround ? 'Ground casts: ' : ''}

@@ -172,3 +172,75 @@ describe('Master Panel combat content review panel', () => {
     expect(markup).not.toContain('Delete version')
   })
 })
+
+it('keeps Manual preview and publication unavailable even if an older successful receipt remains', () => {
+  const markup = renderToStaticMarkup(
+    createElement(CombatContentReviewPanel, {
+      contentKey: 'vanguard.forceful-strike',
+      baseVersion: 3,
+      nextVersion: 5,
+      validation: { valid: true, issues: [], derivedTags: [] },
+      diff: { changedPaths: ['ability.behaviors'] },
+      preview: { legal: true },
+      previewAvailable: false,
+      history,
+      busy: false,
+      publishConfirmationOpen: true,
+      rollbackTargetVersion: null,
+      onValidate() {},
+      onDiff() {},
+      onPreview() {},
+      onRequestPublish() {},
+      onConfirmPublish() {},
+      onCancelPublish() {},
+      onRequestRollback() {},
+      onConfirmRollback() {},
+      onCancelRollback() {},
+    }),
+  )
+  for (const label of ['Preview', 'Publish', 'Confirm publish']) {
+    expect(markup).toMatch(new RegExp('<button[^>]*disabled=""[^>]*>' + label + '</button>'))
+  }
+})
+
+it('identifies the free Controlled fixture setup alongside the actual release price and path', () => {
+  const markup = renderToStaticMarkup(
+    createElement(CombatContentReviewPanel, {
+      contentKey: 'basic.move',
+      baseVersion: 1,
+      nextVersion: 2,
+      validation: { valid: true, issues: [], derivedTags: [] },
+      diff: { changedPaths: ['ability'] },
+      preview: {
+        legal: true,
+        behaviorId: 'use',
+        simulation: { preparation: 'free-controlled-prime' },
+        costs: { actionEconomy: 11, mp: 2, hp: 1 },
+        movement: {
+          path: [
+            { x: 2, y: 1 },
+            { x: 3, y: 1 },
+          ],
+        },
+      },
+      history,
+      busy: false,
+      publishConfirmationOpen: false,
+      rollbackTargetVersion: null,
+      onValidate() {},
+      onDiff() {},
+      onPreview() {},
+      onRequestPublish() {},
+      onConfirmPublish() {},
+      onCancelPublish() {},
+      onRequestRollback() {},
+      onConfirmRollback() {},
+      onCancelRollback() {},
+    }),
+  )
+  expect(markup).toContain('1 HP')
+  expect(markup).toContain('1 tile')
+  expect(markup).toContain('11 AP')
+  expect(markup).toContain('Free Controlled prime')
+  expect(markup).toContain('Costs and outcomes below describe its release.')
+})

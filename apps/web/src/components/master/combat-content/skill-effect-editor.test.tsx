@@ -336,3 +336,16 @@ it('keeps limited Chilled removal independent from standard Cleanse authoring', 
   expect(markup).not.toContain('Use standard Cleanse')
   expect(markup).not.toContain('Cleanse removes Burn')
 })
+
+it('authors explicit listed-status removal independently of full Cleanse', () => {
+  const markup = render({
+    type: 'remove-status',
+    recipient: 'primary-unit',
+    statusIds: ['mark'],
+    removalMode: 'specified',
+  } as CombatEffectDefinition)
+  expect(markup).toContain('Status removal mode')
+  expect(markup).toContain('Only listed statuses')
+  expect(markup).toContain('Other statuses remain')
+  expect(markup).not.toContain('Use standard Cleanse')
+})

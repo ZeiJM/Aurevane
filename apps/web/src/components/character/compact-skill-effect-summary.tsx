@@ -11,6 +11,16 @@ import {
   type CompactSkillEffectSummaryParts,
 } from './skill-detail-presentation'
 import styles from './compact-skill-effect-summary.module.css'
+import { MechanicTextView } from './mechanic-text-view'
+
+/** Effect names share their magnitude color in compact and expanded readers. */
+export function EffectTagLabel({ label }: { label: string }) {
+  return (
+    <span className={styles.label} data-effect-tag-label="true">
+      {label}
+    </span>
+  )
+}
 
 export function CompactSkillEffectSummary({
   effect,
@@ -66,6 +76,12 @@ export function CompactEffectSummary({
           </span>
         </>
       ) : null}
+      {parts.details?.map(({ label, value, labelParts }) => (
+        <span key={label} className={styles.magnitude} data-compact-effect-detail={label}>
+          {' '}
+          [<MechanicTextView text={label} parts={labelParts} />: {value}]
+        </span>
+      ))}
       {count > 1 ? (
         <span data-compact-effect-count={count} aria-label={`${count} applications`}>
           {' '}

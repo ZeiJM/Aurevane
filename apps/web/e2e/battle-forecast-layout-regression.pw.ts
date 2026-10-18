@@ -576,17 +576,20 @@ async function exerciseForecast(
     page.url(),
   ).toString()
   let heldPreview:
-    { hold: Promise<void>; observed: () => void; handled?: Promise<void> } | undefined
+    { hold: Promise<void>; observed: () => void; handled: Promise<void>[] } | undefined
   const interceptPreview = (route: Route) => {
     const held = heldPreview
-    if (!held || held.handled) return route.continue()
-    held.handled = (async () => {
+    if (!held) return route.continue()
+    // Selected and in-range forecasts are independent requests. Hold both so a
+    // completed alternative cannot legitimately replace the pending-state reader.
+    const handled = (async () => {
       const response = await route.fetch()
       held.observed()
       await held.hold
       await route.fulfill({ response })
     })()
-    return held.handled
+    held.handled.push(handled)
+    return handled
   }
   try {
     // Keep Chromium interception stable while real held responses mount lazy portraits.
@@ -744,7 +747,7 @@ async function exerciseForecast(
       const fetched = new Promise<void>((resolve) => {
         observed = resolve
       })
-      heldPreview = { hold, observed }
+      heldPreview = { hold, observed, handled: [] }
       try {
         await page.getByRole('button', { name: /^Selected Chilling Mist,/ }).click()
         await fetched
@@ -753,9 +756,10 @@ async function exerciseForecast(
         )
         await check('pending-ground')
       } finally {
-        release()
-        await heldPreview.handled
+        const handled = heldPreview.handled
         heldPreview = undefined
+        release()
+        await Promise.all(handled)
       }
       await expect(
         page

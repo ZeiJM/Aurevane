@@ -1,4 +1,6 @@
 'use client'
+
+import { BATTLE_EFFECT_KEYBOARD_HELP } from './battle-effect-keyboard-navigation'
 import { BattleFacingIndicator } from './battle-facing-indicator'
 import { BattleGroundAreaLayer } from './battle-ground-area-layer'
 
@@ -309,10 +311,13 @@ export function PvpSpectatorExperience({
   return (
     <BattleRouteFrame sessionHref={`/game/battle/spectate/${spectator.battleKey}`} spectating>
       <main
+        aria-description={BATTLE_EFFECT_KEYBOARD_HELP}
         data-battle-concept="true"
         data-battle-layout="refined"
         className={styles.page}
         data-pvp-spectator="true"
+        data-battle-keyboard-focus-root="true"
+        tabIndex={-1}
         data-spectator-inspect-active={inspectMode || undefined}
       >
         <header className={styles.header}>

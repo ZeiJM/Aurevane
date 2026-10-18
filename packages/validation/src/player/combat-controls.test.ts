@@ -7,6 +7,45 @@ import {
 } from './combat-controls'
 
 describe('combat keybind validation', () => {
+  it('adds Modifiers without taking a returning player’s custom M command', () => {
+    const old = Object.fromEntries(
+      Object.entries(DEFAULT_COMBAT_KEYBINDS).filter(([key]) => key !== 'modifiers'),
+    )
+    const parsed = parseCombatKeybindMap({ ...old, inspect: { code: 'KeyM', shift: false } })
+    expect(parsed?.inspect).toEqual({ code: 'KeyM', shift: false })
+    expect(parsed?.modifiers).toEqual({ code: 'KeyM', shift: true })
+  })
+  it('preserves all 22 old commands when M, Shift+M and F1–F20 are occupied', () => {
+    const actions = Object.keys(DEFAULT_COMBAT_KEYBINDS).filter((key) => key !== 'modifiers')
+    const chords = [
+      { code: 'KeyM', shift: false },
+      { code: 'KeyM', shift: true },
+      ...Array.from({ length: 20 }, (_, index) => ({ code: `F${index + 1}`, shift: false })),
+    ]
+    const old = Object.fromEntries(actions.map((action, index) => [action, chords[index]!]))
+    const parsed = parseCombatKeybindMap(old)
+    expect(parsed?.modifiers).toEqual({ code: 'F21', shift: false })
+    for (const action of actions)
+      expect(parsed?.[action as keyof typeof parsed]).toEqual(old[action])
+  })
+  it('preserves an explicit Modifiers binding and rejects unknown or conflicting commands', () => {
+    expect(
+      parseCombatKeybindMap({ ...DEFAULT_COMBAT_KEYBINDS, modifiers: { code: 'F24', shift: true } })
+        ?.modifiers,
+    ).toEqual({ code: 'F24', shift: true })
+    expect(
+      parseCombatKeybindMap({
+        ...DEFAULT_COMBAT_KEYBINDS,
+        modifiers: DEFAULT_COMBAT_KEYBINDS.cancel,
+      }),
+    ).toBeNull()
+    expect(
+      parseCombatKeybindMap({
+        ...DEFAULT_COMBAT_KEYBINDS,
+        invented: { code: 'KeyZ', shift: false },
+      }),
+    ).toBeNull()
+  })
   it('adds Items on P without replacing a saved custom P binding', () => {
     const existing = Object.fromEntries(
       Object.entries(DEFAULT_COMBAT_KEYBINDS).filter(([key]) => key !== 'items'),
@@ -20,7 +59,9 @@ describe('combat keybind validation', () => {
     expect(customized?.items).toEqual({ code: 'KeyP', shift: true })
   })
   it('preserves a fully customized old map even when P, Shift+P and F1–F12 are occupied', () => {
-    const actions = Object.keys(DEFAULT_COMBAT_KEYBINDS).filter((key) => key !== 'items')
+    const actions = Object.keys(DEFAULT_COMBAT_KEYBINDS).filter(
+      (key) => !['items', 'modifiers'].includes(key),
+    )
     const chords = [
       { code: 'KeyP', shift: false },
       { code: 'KeyP', shift: true },

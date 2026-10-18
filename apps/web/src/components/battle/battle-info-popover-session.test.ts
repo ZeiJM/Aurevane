@@ -68,3 +68,102 @@ describe('shared information reader ownership', () => {
     expect(session.isActive('nested')).toBe(false)
   })
 })
+
+it('keeps the parent open while a single child explanation owns dismissal', () => {
+  const session = createBattleInfoPopoverSession()
+  const closed: string[] = []
+  session.open('parent', () => closed.push('parent'))
+  session.open('term', () => closed.push('term'), 'parent')
+  expect(closed).toEqual([])
+  expect(session.isActive('term')).toBe(true)
+  session.close('term')
+  expect(session.isActive('parent')).toBe(true)
+})
+it('replaces only the sibling explanation and keeps parent reopen events from dismissing it', () => {
+  const session = createBattleInfoPopoverSession()
+  const closed: string[] = []
+  session.open('parent', () => closed.push('parent'))
+  session.open(
+    'one',
+    () => {
+      closed.push('one')
+      session.close('one')
+    },
+    'parent',
+  )
+  session.open('two', () => closed.push('two'), 'parent')
+  expect(closed).toEqual(['one'])
+  session.open('parent', () => closed.push('parent'))
+  expect(session.isActive('two')).toBe(true)
+  expect(closed).toEqual(['one'])
+})
+it('cleans up the child when its parent closes or an unrelated reader takes ownership', () => {
+  const session = createBattleInfoPopoverSession()
+  const closed: string[] = []
+  session.open('parent', () => {
+    closed.push('parent')
+    session.close('parent')
+  })
+  session.open(
+    'term',
+    () => {
+      closed.push('term')
+      session.close('term')
+    },
+    'parent',
+  )
+  session.open('other', () => closed.push('other'))
+  expect(closed).toEqual(['term', 'parent'])
+  expect(session.isActive('other')).toBe(true)
+  session.close('other')
+  session.open('parent', () => closed.push('parent'))
+  session.open('term', () => closed.push('term'), 'parent')
+  session.close('parent')
+  expect(session.isActive('term')).toBe(false)
+  expect(closed.at(-1)).toBe('term')
+})
+it('rejects orphaned references and deeper nesting while preserving the active pair', () => {
+  const session = createBattleInfoPopoverSession()
+  const closed: string[] = []
+  session.open('parent', () => closed.push('parent'))
+  session.open('term', () => closed.push('term'), 'parent')
+  expect(closed).toEqual([])
+  expect(session.open('orphan', () => closed.push('orphan'), 'missing')).toBe(false)
+  expect(session.open('deep', () => closed.push('deep'), 'term')).toBe(false)
+  expect(session.isActive('term')).toBe(true)
+})
+it('dismisses the whole pair for existing global inspection handoffs, releasing ownership first', () => {
+  const session = createBattleInfoPopoverSession()
+  const closed: string[] = []
+  session.open('parent', () => {
+    expect(session.isActive('parent')).toBe(false)
+    closed.push('parent')
+  })
+  session.open(
+    'term',
+    () => {
+      expect(session.isActive('term')).toBe(false)
+      closed.push('term')
+    },
+    'parent',
+  )
+  expect(closed).toEqual([])
+  session.dismissActive()
+  expect(closed).toEqual(['term', 'parent'])
+  expect(session.isActive('parent')).toBe(false)
+})
+
+it('retains an unrelated reader opened reentrantly while dismissing a whole pair', () => {
+  const session = createBattleInfoPopoverSession()
+  session.open('parent', () => session.close('parent'))
+  session.open(
+    'term',
+    () => {
+      session.open('replacement', () => undefined)
+      session.close('term')
+    },
+    'parent',
+  )
+  session.dismissActive()
+  expect(session.isActive('replacement')).toBe(true)
+})

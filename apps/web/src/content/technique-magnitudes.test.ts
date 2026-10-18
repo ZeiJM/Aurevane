@@ -4,6 +4,65 @@ import {
   resolveMatureSkillVersion,
 } from '@aurevane/game-core/combat/mature-skills'
 import { techniqueMagnitudeBands } from './technique-magnitudes'
+import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
+import { parseAbilityDefinition } from '@aurevane/game-core/combat/combat-definition'
+
+it('samples canonical groups and basis-point recovery without stale legacy effects or cross-group totals', () => {
+  const base = defaultBasicSkills().find((row) => row.id === 'unarmed.basic')!.ability.behaviors[0]!
+  const ability = parseAbilityDefinition({
+    schemaVersion: 1,
+    behaviors: [
+      {
+        ...base,
+        id: 'first',
+        effects: [
+          {
+            id: 'pierce',
+            payload: {
+              type: 'pierce',
+              recipient: 'primary-unit',
+              amount: 13,
+              armorIgnoredBasisPoints: 2500,
+            },
+          },
+          {
+            id: 'hp',
+            payload: {
+              type: 'percentage-recovery',
+              recipient: 'actor',
+              resource: 'hp',
+              percentageBasisPoints: 1200,
+            },
+          },
+        ],
+      },
+      {
+        ...base,
+        id: 'second',
+        effects: [{ id: 'hit', payload: { type: 'damage', recipient: 'primary-unit', amount: 7 } }],
+      },
+    ],
+  })
+  const skill = { ...resolveMatureSkillVersion('vanguard.forceful-strike')!, ability }
+  const before = JSON.stringify(skill)
+  const bands = techniqueMagnitudeBands([skill])
+  expect(bands.find((row) => row.family === 'Direct damage / hit')).toMatchObject({
+    count: 2,
+    minimum: 7,
+    maximum: 13,
+  })
+  expect(bands.find((row) => row.family === 'Direct damage / command')).toMatchObject({
+    count: 2,
+    minimum: 7,
+    maximum: 13,
+  })
+  expect(bands.find((row) => row.family === 'HP recovery / application')).toMatchObject({
+    count: 1,
+    minimum: 12,
+    maximum: 12,
+  })
+  expect(JSON.stringify(skill)).toBe(before)
+})
 
 describe('catalog magnitude comparisons', () => {
   it('counts current versions only, separates hits from commands, and never invents Barrier values', () => {

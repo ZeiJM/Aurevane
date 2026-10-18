@@ -1,4 +1,5 @@
 import type { CombatNativeExecutionHooks } from './combat-native-mutations'
+import type { GridPosition } from './board'
 import {
   consumeCommittedCombatExecution,
   committedCombatAction,
@@ -181,12 +182,14 @@ export function evaluateCombatAction(
   selection: legacy.CombatTargetSelection,
   content: legacy.CombatContentCatalog,
   executionAuthority?: CombatAutomaticActionAuthority,
+  returnAnchor?: GridPosition,
 ): CombatActionEvaluation {
   const executionActorId = executionAuthority?.actorId
   action = legacy.elementalActionIntent(
     state,
     airborneAttackAction(state, action, content, executionActorId),
     selection,
+    executionActorId,
   )
   validateCombatAccuracyDefinition(action)
   const csrPreviewAction = materializeCsrPreviewAction(action)
@@ -197,6 +200,7 @@ export function evaluateCombatAction(
     selection,
     content,
     executionActorId,
+    returnAnchor,
   )
   const csrForecast =
     state.statBalancePolicyVersion === 1 && evaluation.legal
@@ -217,6 +221,7 @@ export function evaluateCombatAction(
       selection,
       csrForecast.content,
       executionActorId,
+      returnAnchor,
     )
   }
   const preview =
@@ -260,8 +265,15 @@ export function executeCombatAction(
     !context.committedExecution
   )
     throw new TypeError('invalid-committed-execution-authority')
+  let returnAnchor: GridPosition | undefined
   if (context?.committedExecution) {
-    consumeCommittedCombatExecution(context.committedExecution, state, action, selection, context)
+    returnAnchor = consumeCommittedCombatExecution(
+      context.committedExecution,
+      state,
+      action,
+      selection,
+      context,
+    )
     action = committedCombatAction(action)
   }
   const executionActorId = context?.executionAuthority?.actorId
@@ -274,6 +286,7 @@ export function executeCombatAction(
     state,
     airborneAttackAction(state, action, content, executionActorId),
     selection,
+    executionActorId,
   )
   validateCombatAccuracyDefinition(action)
   const round = state.tactical.battle.round
@@ -304,6 +317,7 @@ export function executeCombatAction(
         selection,
         content,
         executionActorId,
+        returnAnchor,
       )
     : null
   const dependentOrdinals = new Set(hitDependentEffects?.effectOrdinals ?? [])
@@ -494,6 +508,7 @@ export function executeCombatAction(
     executionActorId,
     context?.committedExecution,
     context?.nativeHooks,
+    returnAnchor,
   )
   const covertFiltered = filterBlockedCovertApplication({
     before: critical.state,
@@ -616,7 +631,13 @@ export function executeCommittedCombatActorEffects(
   hitDependentEffects?: CombatHitDependentEffects,
 ): CombatResolutionTransition {
   if (!context.committedExecution) throw new TypeError('invalid-committed-execution-authority')
-  consumeCommittedCombatExecution(context.committedExecution, state, action, selection, context)
+  const returnAnchor = consumeCommittedCombatExecution(
+    context.committedExecution,
+    state,
+    action,
+    selection,
+    context,
+  )
   // An interrupted selection has no confirmed hostile hit. Keep independent
   // caster effects (e.g. Fire cleanse), while excluding native dependent payoffs.
   if (hitDependentEffects)
@@ -676,6 +697,7 @@ export function executeCommittedCombatActorEffects(
       return reactions.transition
     },
     context.nativeHooks,
+    returnAnchor,
   )
   const filtered = filterBlockedCovertApplication({
     before: state,

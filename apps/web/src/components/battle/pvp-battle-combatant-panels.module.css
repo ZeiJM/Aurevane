@@ -137,7 +137,9 @@
   flex-wrap: wrap;
 }
 
-.effects b {
+.effectChip {
+  padding-block: 0;
+  cursor: pointer;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   min-width: 3.7rem;
@@ -152,7 +154,7 @@
   font: 800 0.36rem/1 var(--av-font-mono);
 }
 
-.effects b span {
+.effectChip span {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -160,11 +162,11 @@
   white-space: nowrap;
 }
 
-.effects b strong {
+.effectChip strong {
   font: 800 0.38rem/1 var(--av-font-mono);
 }
 
-.effects b[data-debuff] {
+.effectChip.debuff {
   border-color: rgba(224, 93, 93, 0.82);
   color: #e89a9a;
 }
@@ -264,7 +266,9 @@
     min-height: 1rem;
   }
 
-  .effects b {
+  .effectChip {
+    padding-block: 0;
+    cursor: pointer;
     min-width: 2.7rem;
     height: 1rem;
     gap: 0.12rem;
@@ -272,7 +276,7 @@
     font-size: 0.29rem;
   }
 
-  .effects b strong {
+  .effectChip strong {
     font-size: 0.3rem;
   }
 

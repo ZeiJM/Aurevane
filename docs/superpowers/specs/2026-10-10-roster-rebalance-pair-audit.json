@@ -1,0 +1,1779 @@
+{
+  "status": "whole136-authored-kit-and-functional-audit-awaiting-independent-review",
+  "pairCount": 136,
+  "uniqueScalarCosmeticStrippedSignatures": 136,
+  "collisions": [],
+  "normalization": "Remove IDs/source Discipline labels/tags/names/descriptions and all numeric tuning except explicit selection count. Replace element/status identities/defense family/scaling source with generic placeholders. Preserve operation sequence, target topology, resource kinds, activation, timing, Requirement tree shapes and explicit recipient decisions.",
+  "meaning": "No exact cosmetic/scalar-stripped collision is sufficient evidence of fun or balance. The independent gate must assess each authored four-Skill kit, combination rationale, actual turn choice, payoff window and counter.",
+  "concreteDecisions": [
+    {
+      "recordId": "resonance.lifebinder-vanguard.mercys-edge",
+      "kit": [
+        "lifebinder.mending-light",
+        "lifebinder.vital-sever",
+        "vanguard.forceful-strike",
+        "vanguard.brace"
+      ],
+      "why": "Frontline commitment creates wounds that can be managed with triage while preserving an attack turn; recovery denial stops the opponent mirroring the sustain.",
+      "decision": "Power12 and confirmed-hit5% self recovery cost50AP/5MP; sustain requires taking the frontline risk.",
+      "counter": "Deny adjacency or apply Healing Down; a miss denies recovery while a connected fully Barrier-absorbed hit still qualifies.",
+      "signature": "f8e3c241f42e3cfec9b46f24a275894d2da9f6c3e5bb8cc5a9b6f3e61c63d8c0"
+    },
+    {
+      "recordId": "resonance.aetherist-farstrider.arcane-hunt",
+      "kit": [
+        "aetherist.channel",
+        "aetherist.mana-shield",
+        "farstrider.aimed-shot",
+        "farstrider.scouts-mark"
+      ],
+      "why": "Mana preparation competes with spending on a chosen precision lane; Mark improves that lane while the reserve modifier rewards retaining resources.",
+      "decision": "Pay10AP/3MP for112% selected-command damage; reserves and lane compete with Aetherist spending.",
+      "counter": "Drain mana or deny the firing lane before commitment.",
+      "signature": "724c971cd498685d5229646ea28f92f61120b6fafcf45fc2b4894ad6473050d3"
+    },
+    {
+      "recordId": "resonance.aetherist-lifebinder.vital-circuit",
+      "kit": [
+        "aetherist.arc-bolt",
+        "aetherist.channel",
+        "lifebinder.mending-light",
+        "lifebinder.vital-sever"
+      ],
+      "why": "A caster-healer can spend a nondamaging turn denying hostile mana while recovering Self, choosing disruption over either class stable damage or direct friendly triage.",
+      "decision": "Drain4MP and independently recover6%HP for40AP/5MP; no transfer equality is implied.",
+      "counter": "Low-mana opponents or Healing Down reduce value; the action supplies no damage.",
+      "signature": "9bf7f5526c31f431f43256bec360faa2c919d3557a6d6e86043050bf8e56c9e4"
+    },
+    {
+      "recordId": "resonance.aetherist-shadehand.veiled-conduit",
+      "kit": [
+        "aetherist.mana-shield",
+        "aetherist.channel",
+        "shadehand.quick-hands",
+        "shadehand.smoke-vial"
+      ],
+      "why": "Mana Shield produces actual protection at a reserve cost. The pair can cash its Guarded component into immediate mana and Shadehand concealment, giving up mitigation while retaining only finite Barrier. Quick Hands instead copies enemy Buffs and spendsMP without resource recovery; Smoke Vial buys concealment without sacrificing protection. All four kit choices remain distinct.",
+      "decision": "35AP sacrifices owner Guarded, restores4MP immediately and grants Covert1 while missingMP. Existing Barrier is unchanged; no enemy donor or copy is used.",
+      "counter": "No Guarded or fullMP rejects without payment. Reapplying Guarded requires a separate real action; Sensory can answer Covert and area pressure still threatens the now unGuarded actor.",
+      "signature": "494f489d926a6f504a50561e8090df8f231996cfd5a7896644c722d1de195e23"
+    },
+    {
+      "recordId": "resonance.aetherist-vanguard.spellsteel-rhythm",
+      "kit": [
+        "aetherist.ward-pierce",
+        "aetherist.arc-bolt",
+        "vanguard.forceful-strike",
+        "vanguard.shield-bash"
+      ],
+      "why": "A frontline kit gains one included-cost approach into Mystic pressure, choosing a different defense family rather than stacking a second Physical damage bonus.",
+      "decision": "50AP/5MP includes Move1 and Mystic Pierce12; future equipment Armor bypass30% grants no current Defense bypass.",
+      "counter": "Root the advance or use Mystic Defense; no equipment Armor means no bypass benefit.",
+      "signature": "97fdf248c470973ced5fdeff784c30d0856dafc204b62f0c1658a105284f3bff"
+    },
+    {
+      "recordId": "resonance.farstrider-lifebinder.guided-renewal",
+      "kit": [
+        "farstrider.aimed-shot",
+        "farstrider.scouts-mark",
+        "lifebinder.mend",
+        "lifebinder.barrier"
+      ],
+      "why": "A ranged support chooses whether a desperate friendly rescue is worth an explicit Vulnerable window, contrasting safe prevention with risky fast triage.",
+      "decision": "40AP/5MP gives9%HP and deliberately applies Vulnerable10% to that friendly recipient: a visible rescue with a vulnerability cost.",
+      "counter": "Healing Down and enemy accuracy exploitation punish Vulnerable; above40% rescue is illegal.",
+      "signature": "3b99e59f47cece0a249d069e7df95a82a7deb7c2b2562fe6d01e9e4370eea324"
+    },
+    {
+      "recordId": "resonance.farstrider-shadehand.marked-opening",
+      "kit": [
+        "farstrider.aimed-shot",
+        "farstrider.scouts-mark",
+        "shadehand.smoke-vial",
+        "shadehand.feint"
+      ],
+      "why": "Concealment knowledge and shooting lanes combine in a same-recipient Sensory-first strike, exposing a defended route rather than granting generic stealth damage.",
+      "decision": "Sensory first removes eligible concealment and Reveals1, then Power8 pressures the same recipient.",
+      "counter": "Break sight or avoid Covert investment; guaranteed miss must not purge/reveal.",
+      "signature": "ae6a0fd1cb271b24aa2b319c7d9b94fd240abdbb43d4ec578c4e7c2db0705482"
+    },
+    {
+      "recordId": "resonance.farstrider-vanguard.covering-break",
+      "kit": [
+        "farstrider.aimed-shot",
+        "farstrider.pinning-shot",
+        "vanguard.shield-bash",
+        "vanguard.brace"
+      ],
+      "why": "A ranged fighter can claim a defended tile with an included-cost advance, giving up shot damage to establish the next firing or peeling position.",
+      "decision": "35AP/4MP includes Move2 and Guarded10%1, sacrificing command damage for access.",
+      "counter": "Root, occupancy, remaining Movement or changed elevation deny the route.",
+      "signature": "77b6ab4e26db4947182dbe8c3f6020951d0c3d89e96b6575c43c4426955f068b"
+    },
+    {
+      "recordId": "resonance.lifebinder-shadehand.mercy-in-shadow",
+      "kit": [
+        "lifebinder.searing-bloom",
+        "lifebinder.mending-light",
+        "shadehand.smoke-vial",
+        "shadehand.quick-hands"
+      ],
+      "why": "Eligible afflictions become a deliberate offensive copy window before a separate Self Cleanse, so relief and pressure share one chosen recipient.",
+      "decision": "Copy Debuffs first, then explicitly full-Cleanse Self for40AP/6MP; donor changes only because of the separate Cleanse.",
+      "counter": "No eligible copied lineage, range denial and statuses outside the Cleanse list limit the result.",
+      "signature": "83baeec8ee3925cffaf08caff51db5011657c597ab843b7b6f4cfb5f06fc378b"
+    },
+    {
+      "recordId": "resonance.shadehand-vanguard.broken-line",
+      "kit": [
+        "shadehand.smoke-vial",
+        "shadehand.feint",
+        "vanguard.shield-bash",
+        "vanguard.guard-break"
+      ],
+      "why": "Concealment buys access to a protection-removal and peel command instead of amplifying a sword strike; losing Covert removes that access window.",
+      "decision": "40AP/4MP explicitly Dispels the supported positive list then Pushes1; it spends concealment setup on protection/formation control, with no damage packet.",
+      "counter": "Reveal removes the prerequisite; Root/occupancy limits Push and an unbuffed target reduces Dispel value.",
+      "signature": "d58a15c19b08258bc9c910de09cc9b06324a8fb4d0bf304b8195bf3030aa75fd"
+    },
+    {
+      "recordId": "resonance.aetherist-ironfist.conductive-impact",
+      "kit": [
+        "aetherist.channel",
+        "aetherist.mana-shield",
+        "ironfist.rising-fist",
+        "ironfist.pressure-palm"
+      ],
+      "why": "Retained mana funds close-range Mystic disruption while fist tools control access; the build trades caster safety for resource denial at contact.",
+      "decision": "Mystic Power10 and MP Drain5 cost45AP/5MP; hand-range disruption replaces a ranged burst.",
+      "counter": "Kite the melee caster or fight without mana.",
+      "signature": "841134407ef7b3af4889ba18375a11392e4acc3ec8f4719f1c35a8fba83fb4f7"
+    },
+    {
+      "recordId": "resonance.farstrider-ironfist.marked-approach",
+      "kit": [
+        "farstrider.aimed-shot",
+        "farstrider.pinning-shot",
+        "ironfist.pressure-palm",
+        "ironfist.breakfall"
+      ],
+      "why": "The close-range half creates a two-tile separation that the ranged half can exploit next, making escape lanes and blocked Push routes decisive.",
+      "decision": "Power9 plus Push2 buys a future firing lane for45AP/4MP.",
+      "counter": "Root, blocked tiles or remaining displacement legality limit the push.",
+      "signature": "2eb79d9c9c82cde2332c4d692a1dc76f733301bad404f23111681785f80487bd"
+    },
+    {
+      "recordId": "resonance.ironfist-lifebinder.renewed-force",
+      "kit": [
+        "ironfist.rising-fist",
+        "ironfist.pressure-palm",
+        "lifebinder.mending-light",
+        "lifebinder.barrier"
+      ],
+      "why": "A paid fist attack can buy a small finite Self recovery, allowing pressure under attrition while dedicated healer commands remain the larger recovery decision.",
+      "decision": "Once per owner turn after that qualifying owner attack, pay4MP for4%maximumHP recovery. FullHP does not activate, spend mana or consume the owner-turn usage.",
+      "counter": "Starve MP, apply Healing Down or deny attacks; recovery cannot trigger another attack.",
+      "signature": "937455d3024ca2eca0cdd83ebf03ac7332c48ee7b0cdcd71a1f5b9964e6767e6"
+    },
+    {
+      "recordId": "resonance.ironfist-shadehand.broken-rhythm",
+      "kit": [
+        "ironfist.pressure-palm",
+        "ironfist.rising-fist",
+        "shadehand.feint",
+        "shadehand.smoke-vial"
+      ],
+      "why": "Feint prepares vulnerability and fist displacement changes the next approach angle; the Resonance spends damage for a short peeled opening rather than a hidden crit bonus.",
+      "decision": "Power8, short Vulnerable12% and Push1 expose a fresh flank at50AP/5MP.",
+      "counter": "Root/occupancy blocks displacement; face the new approach or Cleanse.",
+      "signature": "a6645c5f790bb09d1f3bf5400db6a365b26e60f70f3a7d66423feb491532cab5"
+    },
+    {
+      "recordId": "resonance.ironfist-vanguard.tempered-response",
+      "kit": [
+        "ironfist.rising-fist",
+        "ironfist.pressure-palm",
+        "vanguard.brace",
+        "vanguard.forceful-strike"
+      ],
+      "why": "Guard preparation authorizes a nondamaging corridor Push, letting a disciplined frontline choose formation movement over spending the same turn on another hit.",
+      "decision": "30AP/3MP pushes legal enemies1 along Line2 without damage, sacrificing pressure to move the engagement.",
+      "counter": "Dispel Guarded, step off the line, Root or obstruct traversed tiles.",
+      "signature": "4b66b3c152c2fe2ebfbd76b6403dcadc5c9ccd4471d942cd56aff5760361d974"
+    },
+    {
+      "recordId": "resonance.bastion-vanguard.linked-sequence",
+      "kit": [
+        "bastion.challenge",
+        "bastion.cover",
+        "vanguard.forceful-strike",
+        "vanguard.shield-bash"
+      ],
+      "why": "Source-relative attention and frontline peel combine into contact pressure, so the build chooses which enemy to answer instead of receiving global tank damage.",
+      "decision": "Power11 and Taunted1 source-relative pressure cost45AP/4MP.",
+      "counter": "Cleanse Taunt or use legal positioning/control rather than assuming forced attack behavior.",
+      "signature": "ca4dddc5af62c3f1711267be2e4e232a167e4af33e5a2db911a66eb00b2bd2d0"
+    },
+    {
+      "recordId": "resonance.bastion-lifebinder.linked-sequence",
+      "kit": [
+        "bastion.cover",
+        "bastion.fortress",
+        "lifebinder.mending-light",
+        "lifebinder.barrier"
+      ],
+      "why": "A low-HP recipient can receive a distinct shield-plus-recovery shelter; protection and triage compete with the build offensive or stance turns.",
+      "decision": "45AP/6MP gives flat20Barrier and5%HP; Self is a legal explicit choice to protect a teammate.",
+      "counter": "Focus through Barrier, Healing Down or forced separation counters the shelter.",
+      "signature": "814e6cc9afc136a127b474835827fb2ffc88494fc7be415ffbf8c6d60f293291"
+    },
+    {
+      "recordId": "resonance.aetherist-bastion.linked-sequence",
+      "kit": [
+        "aetherist.channel",
+        "aetherist.mana-shield",
+        "bastion.fortress",
+        "bastion.shield-bash"
+      ],
+      "why": "Mana recovery can be taken under a real Fortified tradeoff, buying a resource turn at the cost of the stance constraints and lost ranged pressure.",
+      "decision": "40AP gives Fortified1 and4MP, trading mobility/tempo under the actual stance profile.",
+      "counter": "Exploit Fortified drawback or pressure the small resource recovery.",
+      "signature": "9fe4d80ab510113188a11f4dd842d759c1a94de86cca5648d1104db657ac4d46"
+    },
+    {
+      "recordId": "resonance.bastion-farstrider.linked-sequence",
+      "kit": [
+        "bastion.cover",
+        "bastion.challenge",
+        "farstrider.aimed-shot",
+        "farstrider.scouts-mark"
+      ],
+      "why": "The owner signals a long-range quarry while protecting Self, choosing information and a defensive firing posture rather than another damaging shot.",
+      "decision": "40AP/4MP applies current Mark15% and Guarded10%1 to Self; it deals no damage.",
+      "counter": "Close under minimum range, break sight or remove Mark.",
+      "signature": "b574bd00c4d7382c765b9b7ae11a9ee8f9f5413edd25ee7155144cbee47ad5e7"
+    },
+    {
+      "recordId": "resonance.bastion-shadehand.linked-sequence",
+      "kit": [
+        "bastion.cover",
+        "bastion.fortress",
+        "shadehand.smoke-vial",
+        "shadehand.feint"
+      ],
+      "why": "Flat prevention makes a short concealed departure survivable, while the defender must choose the exact friendly recipient instead of automatically hiding the whole line.",
+      "decision": "40AP/5MP gives friendly-recipient Covert1 and flat15Barrier; Self is also a legal escape choice.",
+      "counter": "Sensory/Reveal, legal area pressure or denial of range counters concealment.",
+      "signature": "7e3cdeb36074d5f64337a5a7de51569894082bcede4e47973b649dd85ec9bf4b"
+    },
+    {
+      "recordId": "resonance.bastion-ironfist.linked-sequence",
+      "kit": [
+        "bastion.fortress",
+        "bastion.challenge",
+        "ironfist.pressure-palm",
+        "ironfist.rising-fist"
+      ],
+      "why": "Fortified preparation enables a planted separation hit whose explicit Self Root commits the owner to the reached space after driving the enemy away.",
+      "decision": "45AP/4MP Power12 and Push2 commit the actor to Rooted1 afterward; the rooted stance pays for stronger separation.",
+      "counter": "Deny adjacency or block the Push, then exploit the actor remaining planted; cleanse Fortified before cast denies setup.",
+      "signature": "b3082f89203d9f2d9b13635da4d362b5a6516d1ec5a822fb74c2afd38eb66bbc"
+    },
+    {
+      "recordId": "resonance.ravager-vanguard.linked-sequence",
+      "kit": [
+        "ravager.frenzy",
+        "ravager.gash",
+        "vanguard.forceful-strike",
+        "vanguard.shield-bash"
+      ],
+      "why": "The bruiser pays HP for an included-cost breach rather than relying on free movement, forcing the frontline to decide when access is worth exposing remaining HP.",
+      "decision": "50AP/15HP includes Move1 and Physical Power15; safety is the access cost.",
+      "counter": "Root, block path or punish low HP; HP payment emits no damage event.",
+      "signature": "2b8c3a028ecb686091129cdea1abc1185bc0a9ce0e5154079ea6793a3ae59155"
+    },
+    {
+      "recordId": "resonance.lifebinder-ravager.linked-sequence",
+      "kit": [
+        "lifebinder.searing-bloom",
+        "lifebinder.mending-light",
+        "ravager.frenzy",
+        "ravager.gash"
+      ],
+      "why": "A wounded attacker can copy eligible suffering while recovering, but retains donor afflictions; triage and Reckless pressure create a deliberate affliction-management choice.",
+      "decision": "Copy Debuffs first, then recover7%HP for45AP/6MP; donor afflictions remain.",
+      "counter": "Cleanse own recipient afterward or prevent legal copying; no donor cleanse is implied.",
+      "signature": "6078210b4048d1dc6fe06ae1e23de49c1609a27837523bd232a6764354d28409"
+    },
+    {
+      "recordId": "resonance.aetherist-ravager.linked-sequence",
+      "kit": [
+        "aetherist.overchannel",
+        "aetherist.channel",
+        "ravager.frenzy",
+        "ravager.desperate-execution"
+      ],
+      "why": "HP spending can approach the danger threshold while Channel preserves mana, creating a maintained risk state that directly competes with both healing and expensive releases.",
+      "decision": "110% maintained owner outgoing damage rewards a dangerous dual resource state at the Resonance slot cost.",
+      "counter": "Pressure low HP or drain mana; no ongoing recovery or trigger loop exists.",
+      "signature": "c1dc1ce0e247437d5174550a9ea2f4285333910b939df790e41de572c4b812b1"
+    },
+    {
+      "recordId": "resonance.farstrider-ravager.linked-sequence",
+      "kit": [
+        "farstrider.scouts-mark",
+        "farstrider.aimed-shot",
+        "ravager.gash",
+        "ravager.war-roar"
+      ],
+      "why": "Mark establishes a ranged quarry for a bleeding hit, letting attrition begin at distance while the Ravager half still offers a close pressure or vulnerability turn.",
+      "decision": "50AP/5MP Power10 seeds20% Bleed only after a real Mark setup and actual HP loss.",
+      "counter": "Cleanse Mark before cast, close range or Barrier the seed hit.",
+      "signature": "0cec8077e7257e23bc191cbe774a9bd5a93336f86f001289ffd99dae32671ac8"
+    },
+    {
+      "recordId": "resonance.ravager-shadehand.linked-sequence",
+      "kit": [
+        "ravager.frenzy",
+        "ravager.gash",
+        "shadehand.smoke-vial",
+        "shadehand.backstab"
+      ],
+      "why": "HP expenditure and Reckless make positional concealment a dangerous offensive commitment; facing the attacker or revealing its approach undermines the planned Blindside.",
+      "decision": "55AP/15HP gives Reckless1, positional Blindside1 and Power14; the drawback is explicit.",
+      "counter": "Face the attacker or exploit Reckless after the commitment.",
+      "signature": "6c9245560109ae8ffa4945ed9c836b5aebddf5e61e4ca28ea1e401629347f58a"
+    },
+    {
+      "recordId": "resonance.ironfist-ravager.linked-sequence",
+      "kit": [
+        "ironfist.pressure-palm",
+        "ironfist.focus-breath",
+        "ravager.frenzy",
+        "ravager.desperate-execution"
+      ],
+      "why": "Low HP creates a real emergency separation decision, allowing the fist half to change spacing while the Ravager half must decide whether to retreat or keep risking a finish.",
+      "decision": "50AP/4MP Power12 plus Push2 creates an escape opportunity with real low-HP risk.",
+      "counter": "Finish the wounded actor, Root the recipient or block the route.",
+      "signature": "b97eff43cb6a39278ca4b9ba0a186f4a548d4de6b89bd5aafc77c839795a1411"
+    },
+    {
+      "recordId": "resonance.bastion-ravager.linked-sequence",
+      "kit": [
+        "bastion.fortress",
+        "bastion.hold-fast",
+        "ravager.frenzy",
+        "ravager.gash"
+      ],
+      "why": "Overlapping opposed stances can fund a planted recovery turn, forcing the bruiser to weigh survival against staying rooted rather than receiving passive extra damage.",
+      "decision": "55AP/6MP recovers16% maximumHP and explicitly Roots Self1. Both actual stance tradeoffs remain; neither stance is consumed or refreshed.",
+      "counter": "Burst the wounded owner, remove a prerequisite before cast, apply Healing Down or exploit the planted tile after recovery.",
+      "signature": "071275c1cf2a17a604a965edc6f532ecf92fa8d9799da3f639ecfb12b1fc7be9"
+    },
+    {
+      "recordId": "resonance.edgedancer-vanguard.linked-sequence",
+      "kit": [
+        "edgedancer.lunge",
+        "edgedancer.hamstring",
+        "vanguard.shield-bash",
+        "vanguard.forceful-strike"
+      ],
+      "why": "A short actual advance and a legal Push turn access into formation control, linking remaining Movement to the front line rather than adding range from a description.",
+      "decision": "50AP/4MP includes approach, Power10 and Push1 for a positional front-line exchange.",
+      "counter": "Root either route or obstruct the destination; the actor cannot exceed remaining Movement.",
+      "signature": "8ac46c653f170620a4d38e7419e252f1cc2284c4b7a436e9ae1b43f93b698bfa"
+    },
+    {
+      "recordId": "resonance.edgedancer-lifebinder.linked-sequence",
+      "kit": [
+        "edgedancer.lunge",
+        "edgedancer.poised-guard",
+        "lifebinder.mending-light",
+        "lifebinder.barrier"
+      ],
+      "why": "A wounded duelist can buy a one-step recovery exit, choosing a reached tile and healing window instead of spending both command and resources on another attack.",
+      "decision": "40AP/5MP includes Move1 and7%HP recovery; no offensive packet or walking surcharge.",
+      "counter": "Root, occupancy and Healing Down challenge the exit.",
+      "signature": "2c191416832633cf72bdc74bebc7efcde30b58805ae82230bb3207dd4d7093c5"
+    },
+    {
+      "recordId": "resonance.aetherist-edgedancer.linked-sequence",
+      "kit": [
+        "aetherist.channel",
+        "aetherist.arc-bolt",
+        "edgedancer.lunge",
+        "edgedancer.poised-guard"
+      ],
+      "why": "The two-command shared cooldown makes HP-paid future mana compete with a moving Mystic release; reserve preparation and immediate access cannot both be cashed out at once.",
+      "decision": "Gather pays30AP/10HP for Guarded10%1 now and5MP next round. Alternative Release pays50AP/8MP for Move1 plus Mystic Power14. Both commands share one three-owner-turn cooldown.",
+      "counter": "Pressure the HP-paying preparation or block Release route/remaining Movement; using either command closes the other until the shared cooldown expires.",
+      "signature": "c95f48f1c219ea511a0d18043525b1e48b54b35717858ba33a20f4f897abfc4b"
+    },
+    {
+      "recordId": "resonance.edgedancer-farstrider.linked-sequence",
+      "kit": [
+        "edgedancer.lunge",
+        "edgedancer.hamstring",
+        "farstrider.scouts-mark",
+        "farstrider.aimed-shot"
+      ],
+      "why": "The duelist half establishes a new sightline before Mark is applied, so the archer half benefits from actual reached-origin access rather than automatic target selection.",
+      "decision": "40AP/4MP advances up to two tiles and applies Mark10%1 without attack damage.",
+      "counter": "Block route, Root the actor or deny reached-origin sight.",
+      "signature": "f91abd0b49c3d7ce3fa63882d3fd88f082242cb6f48b54e1c0497bc7ac6da4b5"
+    },
+    {
+      "recordId": "resonance.edgedancer-shadehand.linked-sequence",
+      "kit": [
+        "edgedancer.flanking-cut",
+        "edgedancer.poised-guard",
+        "shadehand.smoke-vial",
+        "shadehand.backstab"
+      ],
+      "why": "A positional strike can leave a brief Invisible window, making the owner decide whether a side/rear commitment is worth exposure to Reveal and legal area pressure.",
+      "decision": "55AP/6MP Power12 uses positional Blindside and leaves a one-turn Invisible window.",
+      "counter": "Face the attacker; Sensory/Reveal and legal area threats challenge Invisible.",
+      "signature": "82905c9b7467f91f6b17b7aa44e970485366361ae4366edb8610261949780a83"
+    },
+    {
+      "recordId": "resonance.edgedancer-ironfist.linked-sequence",
+      "kit": [
+        "edgedancer.lunge",
+        "edgedancer.hamstring",
+        "ironfist.breakfall",
+        "ironfist.pressure-palm"
+      ],
+      "why": "Airborne opens an elevated two-tile attack line with real displacement, linking fist preparation to formation and elevation decisions rather than a generic aerial damage buff.",
+      "decision": "50AP/4MP Physical Power10 Line2 and Push1 pressure a narrow formation; the action uses Target Elevation3 while Airborne remains a prerequisite.",
+      "counter": "Remove/outlast Airborne, step off the line or block displacement; no free Movement is granted.",
+      "signature": "8ee7e7b0007143a66df3ce8cd0947f203b6c51159a74e6cf9d866034cb35f78b"
+    },
+    {
+      "recordId": "resonance.bastion-edgedancer.linked-sequence",
+      "kit": [
+        "bastion.cover",
+        "bastion.fortress",
+        "edgedancer.lunge",
+        "edgedancer.poised-guard"
+      ],
+      "why": "The owner can split a friendly guard window and Self Airborne preparation, choosing who needs protection while preserving a later high-route or melee decision.",
+      "decision": "35AP/4MP protects that friendly recipient with Guarded12%1 and grants Self Airborne1.",
+      "counter": "Separate allies, Dispel or Root the actor; the support action does no damage.",
+      "signature": "0b34f66f72fc1cf0228d2d3979be545c0f1c5b988ec7a7a0e1b007d15e20b4c4"
+    },
+    {
+      "recordId": "resonance.edgedancer-ravager.linked-sequence",
+      "kit": [
+        "edgedancer.lunge",
+        "edgedancer.severing-cut",
+        "ravager.frenzy",
+        "ravager.gash"
+      ],
+      "why": "Safety-funded access can seed Bleed at a reached melee origin, making the player budget HP and remaining Movement instead of simply selecting the largest unconditional hit.",
+      "decision": "55AP/15HP combines bounded access with Power13 and actual15% Bleed.",
+      "counter": "Root, block the reached origin or Barrier the seed damage.",
+      "signature": "9578a4344a7629766ed88403acd9d4f4419fdf9b182e14ebf7e04f726467cc43"
+    },
+    {
+      "recordId": "resonance.vanguard-wildwarden.linked-sequence",
+      "kit": [
+        "vanguard.shield-bash",
+        "vanguard.forceful-strike",
+        "wildwarden.hunters-mark",
+        "wildwarden.snare"
+      ],
+      "why": "Mark makes a driven quarry eligible for a short route lock, so frontline Push and hunting setup cooperate to hold a selected engagement rather than granting all attacks extra damage.",
+      "decision": "50AP/5MP Power11 and Push1; a preexisting Mark also permits Rooted1, without consuming Mark.",
+      "counter": "Cleanse Mark before cast or obstruct displacement; control is finite.",
+      "signature": "b79304c913e03f7aa7840ed8bb8345788a2b1eab32a20529e5da4bf842da6cdf"
+    },
+    {
+      "recordId": "resonance.lifebinder-wildwarden.linked-sequence",
+      "kit": [
+        "lifebinder.mending-light",
+        "lifebinder.barrier",
+        "wildwarden.field-remedy",
+        "wildwarden.hunters-mark"
+      ],
+      "why": "Trail relief separates immediate affliction removal from next-round recovery, supporting a prepared pursuit or companion turn while exposing a real focus-fire interval.",
+      "decision": "40AP/5MP gives full Cleanse now and one next-round7%HP application.",
+      "counter": "Focus before recovery or apply Healing Down before capture.",
+      "signature": "28fb5bf7930bb22e9452fe7ec5275066b28935f0423b82521bea3db881fa5158"
+    },
+    {
+      "recordId": "resonance.aetherist-wildwarden.linked-sequence",
+      "kit": [
+        "aetherist.arc-bolt",
+        "aetherist.channel",
+        "wildwarden.hunters-mark",
+        "wildwarden.pursuit-shot"
+      ],
+      "why": "Quarry setup identifies the hostile caster worth denying mana, trading an Aetherist damage release for prepared single-target resource disruption.",
+      "decision": "45AP/5MP Mystic Power9 and MP Drain5 specialize against the prepared target.",
+      "counter": "Remove Mark, break sight or rely on low-mana actions.",
+      "signature": "fee82201549f3ecfa2f5847c51b793680ff4a7342e0fe07110715f4052e59074"
+    },
+    {
+      "recordId": "resonance.farstrider-wildwarden.linked-sequence",
+      "kit": [
+        "farstrider.aimed-shot",
+        "farstrider.pinning-shot",
+        "wildwarden.hunters-mark",
+        "wildwarden.snare"
+      ],
+      "why": "Both halves support choosing one or two prepared quarries for a costly direct Poison application, distinct from the Wildwarden persistent Ground field or a simple shot multiplier.",
+      "decision": "60AP/8MP gives each chosen quarry Physical Power9 and an actual15% Poison application based on settled HP loss. Mark is not consumed and no target is chosen automatically.",
+      "counter": "Cleanse Mark before selection, close inside minimum range, spread outside sight/range or Barrier each seed hit; Poison uses the real captured trigger policy.",
+      "signature": "9b4957ce3f47b852c11a62622e97e683cd370f642063714aeb285c1e3a97343c"
+    },
+    {
+      "recordId": "resonance.shadehand-wildwarden.linked-sequence",
+      "kit": [
+        "shadehand.smoke-vial",
+        "shadehand.feint",
+        "wildwarden.hunters-mark",
+        "wildwarden.snare"
+      ],
+      "why": "A marked hunt can open a brief Root-and-Covert disengage window, giving the hunter a concealed route choice instead of another source of damage.",
+      "decision": "40AP/5MP applies Rooted1 and grants Self Covert1 for an escape/setup decision.",
+      "counter": "Cleanse Mark/Root, Sensory the owner or deny sight.",
+      "signature": "91c8841fce31a5f3f4cd4b021671dc18ec270b730347c3d080bfd49c77d982ae"
+    },
+    {
+      "recordId": "resonance.ironfist-wildwarden.linked-sequence",
+      "kit": [
+        "ironfist.pressure-palm",
+        "ironfist.rising-fist",
+        "wildwarden.hunters-mark",
+        "wildwarden.snare"
+      ],
+      "why": "A prepared quarry can be pulled toward fist range, so the hunting half chooses the victim and the close-control half exploits actual traversed landing tiles.",
+      "decision": "45AP/4MP Power9 and Pull2 bring a quarry near without occupying the caster tile.",
+      "counter": "Remove Mark, Root or block the route.",
+      "signature": "0da16978fa77e077d43019c5db4797ef046e18f12d441a837cf7180ab4336aa0"
+    },
+    {
+      "recordId": "resonance.bastion-wildwarden.linked-sequence",
+      "kit": [
+        "bastion.challenge",
+        "bastion.cover",
+        "wildwarden.hunters-mark",
+        "wildwarden.renewing-herbs"
+      ],
+      "why": "Marked quarry attention and guarded ownership protect a chosen hunt or companion position; Taunt stays source-relative and never redirects damage automatically.",
+      "decision": "35AP/4MP Taunts that quarry and grants Guarded12%1 to Self; no companion damage redirection is invented.",
+      "counter": "Cleanse Taunt/Mark, switch legal options or break sight.",
+      "signature": "b408441bb6a2ad7713b3641643cf8bbfec994ce744e734eda5596a82e2300aa1"
+    },
+    {
+      "recordId": "resonance.ravager-wildwarden.linked-sequence",
+      "kit": [
+        "ravager.gash",
+        "ravager.war-roar",
+        "wildwarden.hunters-mark",
+        "wildwarden.pursuit-shot"
+      ],
+      "why": "A marked wounded quarry permits a dangerous HP-paid attrition shot, making preparation and target HP matter before the Ravager decides whether to finish or keep bleeding it.",
+      "decision": "50AP/10HP Power12 seeds20% Bleed only when target is already at or below50%HP.",
+      "counter": "Recover above half, remove Mark or Barrier the actual seed hit.",
+      "signature": "873f7d4ea61f5102e94a0b00997ec0553044f2542cdf14e8a5709e93421a0a87"
+    },
+    {
+      "recordId": "resonance.edgedancer-wildwarden.linked-sequence",
+      "kit": [
+        "edgedancer.lunge",
+        "edgedancer.flanking-cut",
+        "wildwarden.hunters-mark",
+        "wildwarden.pursuit-shot"
+      ],
+      "why": "Wildwarden establishes a quarry while Edgedancer chooses a real route. The pair changes both positions without attacking: it can reel a ranged quarry toward the new melee angle or away from an ally. Flanking Cut only moves the owner one tile before damaging; Pursuit Shot instead leaves both positions intact. The sacrifice is all immediate attack pressure.",
+      "decision": "40AP/4MP includes Move2 then Pull2 from the actual reached origin against a Marked enemy within1–3. It deals no damage, grants no Blindside, preserves Mark and never pulls onto the caster.",
+      "counter": "Missing Mark, owner Rooted or an illegal route rejects atomically. A Rooted quarry resists displacement even after a legal paid route. Occupancy/landing can shorten Pull; no extra walking surcharge or overlapping destination is permitted.",
+      "signature": "42ee7a76b9f74214e78c28dab5b752e3bfbcd7ce3dc85f6e3d30bc6cb4e1dd95"
+    },
+    {
+      "recordId": "resonance.runeblade-vanguard.linked-sequence",
+      "kit": [
+        "runeblade.arc-edge",
+        "runeblade.unbinding-rune",
+        "vanguard.forceful-strike",
+        "vanguard.guard-break"
+      ],
+      "why": "A held whole-command commitment lets the player time explicit Dispel before a Mystic frontline hit, differing from both ordinary Physical pressure and a passive rune multiplier.",
+      "decision": "Free once-per-battle prime holds the command; paid55AP/7MP release explicitly Dispels before Mystic Power14. No effect occurs on prime.",
+      "counter": "Move out of adjacency, spend the protection before release or deny resources; invalid release retains prime and pays nothing.",
+      "signature": "2e63fc1cd13ea8a6b0d89a139535c731fa0ae718a23ab3f44a3dd7e5eaa14530"
+    },
+    {
+      "recordId": "resonance.lifebinder-runeblade.linked-sequence",
+      "kit": [
+        "lifebinder.mending-light",
+        "lifebinder.barrier",
+        "runeblade.rune-guard",
+        "runeblade.rune-mending"
+      ],
+      "why": "Flat prevention bridges the wait for a captured next-round heal, so rune defense and healing urgency create a two-clock shelter rather than a larger immediate recovery number.",
+      "decision": "40AP/5MP gives15Barrier now and6%HP next round as separate captured resources.",
+      "counter": "Burst through the shield before the scheduled heal or apply Healing Down at capture.",
+      "signature": "52bf9387365991f650df6762cc21a90c67b576a245a96acdb41eaa07523051e8"
+    },
+    {
+      "recordId": "resonance.aetherist-runeblade.linked-sequence",
+      "kit": [
+        "aetherist.channel",
+        "aetherist.mana-shield",
+        "runeblade.unbinding-rune",
+        "runeblade.siphon-slash"
+      ],
+      "why": "High reserves fund a single-donor copy-and-drain choice, letting the build borrow defense and deny mana while giving up immediate HP damage and retaining donor buffs.",
+      "decision": "40AP/6MP copies eligible Buffs first, then drains enemy6MP; donor buffs remain because no Dispel is authored.",
+      "counter": "Drain owner reserves, remove donor buffs or rely on low-MP actions; this does not transfer the drained mana.",
+      "signature": "68d2bd0300537ef0d424372e0f33b9a92d1597aad624e3f19f35ed4ef8736e48"
+    },
+    {
+      "recordId": "resonance.farstrider-runeblade.linked-sequence",
+      "kit": [
+        "farstrider.scouts-mark",
+        "farstrider.aimed-shot",
+        "runeblade.aether-cut",
+        "runeblade.rune-guard"
+      ],
+      "why": "Farstrider provides a distant source-owned mark and Runeblade turns that information into an explicit hostile mana inscription. Choosing the seal sacrifices the mark’s future aiming value and all direct damage to disrupt an imminent enemy payment/output. Aimed Shot and Aether Cut cannot change enemyMP or outgoing-damage state; Rune Guard instead repairs the owner.",
+      "decision": "40AP/5MP spends the enemy Mark on a connected Standard utility command: remove Mark first, drain4MP and apply Suppress25%1 at range2–5. It deals no damage and claims no future Armor benefit.",
+      "counter": "Missing Mark rejects. A Standard miss spends the legal command cost but retains Mark and denies drain/Suppress. Cleanse Suppress before attacking or spendMP before the seal to reduce denial; sight/minimum range remain real.",
+      "signature": "ea000e03621927e08547df520d1e2228b1c8744b8a81fba7d4179c992d6d90b2"
+    },
+    {
+      "recordId": "resonance.runeblade-shadehand.linked-sequence",
+      "kit": [
+        "runeblade.unbinding-rune",
+        "runeblade.rune-guard",
+        "shadehand.quick-hands",
+        "shadehand.smoke-vial"
+      ],
+      "why": "A single donor is copied before an explicit Dispel and a short concealed window, so stealing language is replaced by a real ordered borrowing-and-denial decision.",
+      "decision": "45AP/6MP copies Buffs first, explicitly Dispels the authored list, then grants Self Covert1.",
+      "counter": "No eligible donor yields no copied buff; Sensory or area threats punish the escape.",
+      "signature": "7820ce229a7204b669c3b34cd3824b86fe98e1599b42e9ec9dd7bdd72774dd43"
+    },
+    {
+      "recordId": "resonance.ironfist-runeblade.linked-sequence",
+      "kit": [
+        "ironfist.rising-fist",
+        "ironfist.pressure-palm",
+        "runeblade.sigil-brand",
+        "runeblade.arc-edge"
+      ],
+      "why": "Fist vulnerability prepares a short Mystic suppression strike, trading an existing opening for reduced retaliation instead of adding an unconditional damage scalar.",
+      "decision": "45AP/5MP Mystic Power10 and Suppress20%1 exploit the setup to blunt retaliation.",
+      "counter": "Cleanse Vulnerable before cast or Suppress afterward; DoT ticks retain captured values.",
+      "signature": "8ad7577d7bd1a7fba59bf0f1c1a97ccaad2e616a78bd4656f56acbe08df49322"
+    },
+    {
+      "recordId": "resonance.bastion-runeblade.linked-sequence",
+      "kit": [
+        "bastion.cover",
+        "bastion.fortress",
+        "runeblade.rune-guard",
+        "runeblade.rune-mending"
+      ],
+      "why": "Split-recipient Barrier and a real Self stance let the defender choose which friendly body to shelter while accepting Fortified constraints and no damage redirection.",
+      "decision": "40AP/5MP grants ally18Barrier and Self Fortified1, a split-recipient commitment.",
+      "counter": "Separate the pair or exploit the stance drawback; no transferred damage.",
+      "signature": "0e7bc39cafb94bee62a8a883701ce3c56fc252c404f8a9de1974f1118740886f"
+    },
+    {
+      "recordId": "resonance.ravager-runeblade.linked-sequence",
+      "kit": [
+        "ravager.frenzy",
+        "ravager.gash",
+        "runeblade.siphon-slash",
+        "runeblade.arc-edge"
+      ],
+      "why": "The owner can spend HP on a close Mystic mana-denial hit, making safety and defense-family choice compete with the Ravager straightforward Physical attrition tools.",
+      "decision": "50AP/5MP/15HP Mystic Power14 plus MP Drain4 spends safety to disrupt mana.",
+      "counter": "Kite, use Mystic Defense or punish the payer; HP payment emits no damage event.",
+      "signature": "a33ec4f87a1def2e682551e974b790ad008ff6cac21771fce0a4dd833cbccfa0"
+    },
+    {
+      "recordId": "resonance.edgedancer-runeblade.linked-sequence",
+      "kit": [
+        "edgedancer.lunge",
+        "edgedancer.poised-guard",
+        "runeblade.rune-guard",
+        "runeblade.arc-edge"
+      ],
+      "why": "A modest moving hit invests in next-round Haste, making the build plan one current reached origin and one future route instead of buying generic movement damage.",
+      "decision": "45AP/5MP includes Move1 and Power9 now, followed by Self Haste1 next global round. The current move does not receive the future status.",
+      "counter": "Root or block the approach, then Dispel Haste after activation or force a stationary next turn.",
+      "signature": "743f6b64688fd341fe1c5543685f7092668642e0551a44b0fd8f786260412e0c"
+    },
+    {
+      "recordId": "resonance.runeblade-wildwarden.linked-sequence",
+      "kit": [
+        "runeblade.sigil-brand",
+        "runeblade.siphon-slash",
+        "wildwarden.hunters-mark",
+        "wildwarden.pursuit-shot"
+      ],
+      "why": "A marked quarry becomes eligible for nondamaging recovery and mana denial, so the player decides between resource pressure now and a prepared damaging pursuit shot.",
+      "decision": "35AP/4MP applies Healing Down20%2 and MP Drain4 without dealing damage.",
+      "counter": "Cleanse Mark before cast, break sight or use the actual negative-status counters.",
+      "signature": "7f2a515475305381c72d70ab83283656f7228351bb9d74e7e420f20acdfad54c"
+    },
+    {
+      "recordId": "resonance.dawnshield-vanguard.linked-sequence",
+      "kit": [
+        "dawnshield.sacred-guard",
+        "dawnshield.purge",
+        "vanguard.forceful-strike",
+        "vanguard.shield-bash"
+      ],
+      "why": "A paid owner Vanguard attack can fund one finite Barrier reaction, preserving a direct offensive turn while giving up mana rather than receiving permanent passive protection.",
+      "decision": "Once per owner turn, pay4MP for12Barrier after that owner attack; no free guard reaction to enemy casts.",
+      "counter": "Drain MP or deny Vanguard attacks; flat protection cannot fund another attack.",
+      "signature": "4387204cba52ef13b92f86c08e6a7ad39a0930feb2389c1b6431754b2cbd9121"
+    },
+    {
+      "recordId": "resonance.dawnshield-lifebinder.linked-sequence",
+      "kit": [
+        "dawnshield.sacred-guard",
+        "dawnshield.purge",
+        "lifebinder.mending-light",
+        "lifebinder.mend"
+      ],
+      "why": "Two individually low-HP friendly recipients can receive modest recovery and a short guard window, forcing triage selection rather than unconditional whole-party healing.",
+      "decision": "50AP/7MP gives each7%HP and Guarded10%1; every selected unit must satisfy the threshold.",
+      "counter": "Bring one recipient above threshold to make that selection illegal, or apply Healing Down.",
+      "signature": "b402de154b30a8afb5b9d447e6601487830e7d4df3e8253c28ec43fa5bf9586f"
+    },
+    {
+      "recordId": "resonance.aetherist-dawnshield.linked-sequence",
+      "kit": [
+        "aetherist.channel",
+        "aetherist.mana-shield",
+        "dawnshield.aegis",
+        "dawnshield.purge"
+      ],
+      "why": "Retained mana lets the caster shield a chosen friendly body while recovering a smaller independent amount of Self mana, making prevention a real reserve investment.",
+      "decision": "40AP/6MP grants ally20Barrier and restores Self3MP; reserve checks precede payment.",
+      "counter": "Drain reserves before cast or focus through the modest flat shield.",
+      "signature": "f29de8fbc4c4ae07502f0c44369366ec2caf4e842329d28251b85f3c38176a84"
+    },
+    {
+      "recordId": "resonance.dawnshield-farstrider.linked-sequence",
+      "kit": [
+        "dawnshield.radiant-strike",
+        "dawnshield.sacred-guard",
+        "farstrider.scouts-mark",
+        "farstrider.aimed-shot"
+      ],
+      "why": "A wounded ranged guardian can establish a distant Mark while recovering modestly, sacrificing the shot now for a later accuracy lane and survivable firing posture.",
+      "decision": "40AP/5MP applies Mark12%2 and gives Self5%HP; this trades shot damage for preparation/sustain.",
+      "counter": "Close range, remove Mark or apply Healing Down.",
+      "signature": "820e75e5847dc9b2320371bac8fea6539bcfec0208c0522339930fd9c41d4e42"
+    },
+    {
+      "recordId": "resonance.dawnshield-shadehand.linked-sequence",
+      "kit": [
+        "dawnshield.purge",
+        "dawnshield.aegis",
+        "shadehand.smoke-vial",
+        "shadehand.feint"
+      ],
+      "why": "Control relief and a brief Invisible window enable a defensive reset, contrasting full Cleanse with concealment counters rather than pretending every negative effect is removed.",
+      "decision": "35AP/5MP full-Cleanses Self and grants Invisible1; it does not grant Covert.",
+      "counter": "Sensory/Reveal or area pressure counters Invisible; statuses outside Cleanse remain.",
+      "signature": "457c63cad2f320e337d22b79157ff88fc0ee38ccf34b63425498ad5d7dcca593"
+    },
+    {
+      "recordId": "resonance.dawnshield-ironfist.linked-sequence",
+      "kit": [
+        "dawnshield.purge",
+        "dawnshield.radiant-strike",
+        "ironfist.rising-fist",
+        "ironfist.pressure-palm"
+      ],
+      "why": "A wounded owner can full-Cleanse after a paid fist attack, choosing to fight through affliction while preserving the larger friendly Purge option for another turn.",
+      "decision": "Once per owner turn after that qualifying owner attack, pay4MP to full-Cleanse Self. No removable affliction means no activation, payment or usage consumption; the canonical list also removes Suppress through the existing kernel policy.",
+      "counter": "Deny close attacks, starve MP or use statuses outside the actual Cleanse behavior; other actors do not qualify.",
+      "signature": "6fa8e68f8b17354ce769c040014ca538233883412189158ae8ce4af2208eba68"
+    },
+    {
+      "recordId": "resonance.bastion-dawnshield.linked-sequence",
+      "kit": [
+        "bastion.cover",
+        "bastion.challenge",
+        "dawnshield.purge",
+        "dawnshield.aegis"
+      ],
+      "why": "A chosen friendly recipient receives real control relief and sustained guard, so the build protects a body or Self without inventing a damage-sharing link.",
+      "decision": "40AP/5MP full-Cleanses and grants that friendly recipient Guarded15%2.",
+      "counter": "Separate allies, reapply control after cooldown or Dispel Guarded.",
+      "signature": "ebe4bd40f77dc07d0d5e069b2262ba0cf013bf2fdfa5a54321c907396b955f30"
+    },
+    {
+      "recordId": "resonance.dawnshield-ravager.linked-sequence",
+      "kit": [
+        "dawnshield.purge",
+        "dawnshield.sacred-guard",
+        "ravager.frenzy",
+        "ravager.gash"
+      ],
+      "why": "Reckless preparation enables explicit HP-paid rescue and Cleanse, making the payer safety and exact friendly recipient the combination defining choice instead of another attack leech.",
+      "decision": "45AP/5MP/20HP gives the selected friend10%HP and full Cleanse. Recovery is independently capped and modified; it is not a transfer equal to the payment.",
+      "counter": "Punish the Reckless payer or apply Healing Down; costs leave1HP and never emit damage reactions. With Self selected the actual netHP includes both payment and capped recovery.",
+      "signature": "ce7ea1a7cb1b1865b0de15c80cff537f76a6365dac79020dd7006e5dadf93b9e"
+    },
+    {
+      "recordId": "resonance.dawnshield-edgedancer.linked-sequence",
+      "kit": [
+        "dawnshield.aegis",
+        "dawnshield.sacred-guard",
+        "edgedancer.lunge",
+        "edgedancer.poised-guard"
+      ],
+      "why": "A short legal step can be taken with flat prevention instead of damage, linking duel route planning to an immediate shield budget rather than an automatic invulnerable dash.",
+      "decision": "35AP/4MP includes Move1 and18Barrier for a protective positioning action.",
+      "counter": "Root, occupancy or burst exceeding18 counters the exit.",
+      "signature": "a2fff7b0f905b25f892380356184e3bb8413d1b0cd14bf295582a07ba0de5a10"
+    },
+    {
+      "recordId": "resonance.dawnshield-wildwarden.linked-sequence",
+      "kit": [
+        "dawnshield.purge",
+        "dawnshield.aegis",
+        "wildwarden.renewing-herbs",
+        "wildwarden.hunters-mark"
+      ],
+      "why": "A real finite companion or another friendly body can receive Cleanse and Barrier, preserving its captured lifetime while choosing relief over an immediate hunt payoff.",
+      "decision": "40AP/5MP gives full Cleanse and15Barrier to that friendly recipient without rewriting summon lifetime.",
+      "counter": "Separate or defeat the companion; Barrier cannot refresh its finite turns.",
+      "signature": "20cdd74b709681a3b5b6acfda6baf6ee7552411b471b98ca73cb91eb1f26a2d0"
+    },
+    {
+      "recordId": "resonance.dawnshield-runeblade.linked-sequence",
+      "kit": [
+        "dawnshield.purge",
+        "dawnshield.aegis",
+        "runeblade.rune-guard",
+        "runeblade.rune-mending"
+      ],
+      "why": "The caster pays HP for two selected preventive/cleansing recipients, binding rune protection and dawn relief to a real safety cost and bounded recipient decision.",
+      "decision": "50AP/8MP/20HP grants each chosen friend20Barrier and full Cleanse. HP is a real payment that leaves1HP, not damage or a transfer equal to the shield.",
+      "counter": "Pressure the payer, split friends out of range or reapply afflictions after cooldown; the flat shield does not scale with HP.",
+      "signature": "19f24b6c98987ef50026171bcc82ffb01f703cf26f31ae5f8f394bfbe647f226"
+    },
+    {
+      "recordId": "resonance.cinderweaver-vanguard.linked-sequence",
+      "kit": [
+        "cinderweaver.cinder-bolt",
+        "cinderweaver.banked-embers",
+        "vanguard.forceful-strike",
+        "vanguard.shield-bash"
+      ],
+      "why": "A single legal approach changes frontline access to Fire pressure, making the owner choose Mystic contact and actual caster Chilled removal rather than free walking plus a sword bonus.",
+      "decision": "50AP/5MP includes Move1 and Fire Power11 with actor-only Chilled cleanse; no free Burn is inferred.",
+      "counter": "Root the approach, Barrier the hit or use Mystic Defense.",
+      "signature": "ad91c824564a087dfd07c9ef603ab0cf675ab13549e372687f90c9a9d494f130"
+    },
+    {
+      "recordId": "resonance.cinderweaver-lifebinder.linked-sequence",
+      "kit": [
+        "cinderweaver.cinder-bolt",
+        "cinderweaver.ash-ward",
+        "lifebinder.mending-light",
+        "lifebinder.barrier"
+      ],
+      "why": "Fixed urgent relief is paired with full affliction removal, offering a small affordable alternative to percentage triage while fire pressure remains the opposite turn choice.",
+      "decision": "35AP/4MP gives full Cleanse and flat20HP; fixed recovery has no hidden Power or max-HP scaling.",
+      "counter": "Healing Down reduces the fixed recovery, and incoming burst can overwhelm20HP.",
+      "signature": "10928a90e76a7ea72603b6d18b29bb224e32bd87fee3e625b610e63bb6bd9c0b"
+    },
+    {
+      "recordId": "resonance.aetherist-cinderweaver.linked-sequence",
+      "kit": [
+        "aetherist.channel",
+        "aetherist.mana-shield",
+        "cinderweaver.banked-embers",
+        "cinderweaver.ash-ward"
+      ],
+      "why": "HP can be invested in future maximum-MP recovery under a narrow Burn Ward window, so the caster must survive a resource gap instead of passively amplifying damage while rich.",
+      "decision": "35AP/20HP grants Burn Ward1 now and one captured8% maximumMP recovery next round; it creates no HP damage event or immediate mana refund.",
+      "counter": "Burst before the resource arrives, deny low-mana eligibility or force defense; finite cooldown and AP/HP payments prevent a no-input loop.",
+      "signature": "17f69b2089996565af1ebc2a1a67e9aba50acb41fe33ace70ea3f23648c13158"
+    },
+    {
+      "recordId": "resonance.cinderweaver-farstrider.linked-sequence",
+      "kit": [
+        "cinderweaver.cinder-bolt",
+        "cinderweaver.flashfire",
+        "farstrider.scouts-mark",
+        "farstrider.aimed-shot"
+      ],
+      "why": "A distant Fire sighting sets current Mark for later precision, combining real fire intent and source-scoped accuracy setup without inventing elemental arrow conversion.",
+      "decision": "50AP/6MP Fire Power9 and current Mark10%1 establish a long lane; Fire explicitly cleanses caster Chilled.",
+      "counter": "Close minimum range, remove Mark or deny sight.",
+      "signature": "9f3cb6cea7851d3a13c5dd2f895406813a5a361bbf9ffa78683f7c45b9b968a3"
+    },
+    {
+      "recordId": "resonance.cinderweaver-shadehand.linked-sequence",
+      "kit": [
+        "cinderweaver.cinder-bolt",
+        "cinderweaver.ash-ward",
+        "shadehand.crippling-cut",
+        "shadehand.smoke-vial"
+      ],
+      "why": "A Fire strike remains useful without afflictions, while real owner Burn opens an optional debuff-copy and concealment escape; donor Burn remains a real risk.",
+      "decision": "50AP/6MP copies eligible Debuffs first, then Fire Power7. If the owner was already Burning, Self also gains Covert1; owner Burn remains. Without eligible donor afflictions the copy block may be empty and the Fire action still matters.",
+      "counter": "Deny the single target, Barrier the hit or Reveal after optional Covert. Owner Burning is a risk window, not a prerequisite for the whole pair action.",
+      "signature": "bada55aba6c12b029548f148255c70333ac3e1ca7fb54a7eabd53f4b10c4b71e"
+    },
+    {
+      "recordId": "resonance.cinderweaver-ironfist.linked-sequence",
+      "kit": [
+        "cinderweaver.cinder-bolt",
+        "cinderweaver.flashfire",
+        "ironfist.pressure-palm",
+        "ironfist.rising-fist"
+      ],
+      "why": "Fire at contact is paired with a real Push route, letting the build create space while caster Chilled removal and elemental counterplay stay explicit.",
+      "decision": "50AP/5MP Fire Power10 and Push1 clear close space; caster Chilled removal is explicit.",
+      "counter": "Root or occupancy blocks the push, and Barrier limits damage.",
+      "signature": "624c45d80478c36d08785579ac28ff45f4ce527a9f961f740a4e875a2906e1b5"
+    },
+    {
+      "recordId": "resonance.bastion-cinderweaver.linked-sequence",
+      "kit": [
+        "bastion.challenge",
+        "bastion.fortress",
+        "cinderweaver.cinder-bolt",
+        "cinderweaver.ember-line"
+      ],
+      "why": "Heat setup supports a source-relative challenge now and flat prevention next round, requiring the defender to survive the intervening timing window rather than gain instant concealment.",
+      "decision": "35AP/5MP Taunts that prepared enemy1 now and schedules Self20Barrier next round. Burn remains; the challenge does not force an invented enemy action.",
+      "counter": "Cleanse Burn before cast or Taunt afterward, pressure before the delayed shield or switch legal targets.",
+      "signature": "b6284cd4666785dd1d706a93787772b6d904dd906f29014210a1a9e66fddd63e"
+    },
+    {
+      "recordId": "resonance.cinderweaver-ravager.linked-sequence",
+      "kit": [
+        "cinderweaver.cinder-bolt",
+        "cinderweaver.flashfire",
+        "ravager.war-roar",
+        "ravager.gash"
+      ],
+      "why": "Vulnerability and HP payment commit a fire bruiser to actual Burning attrition, forcing a safety decision before the seed damage rather than a free element multiplier.",
+      "decision": "55AP/6MP/15HP yields Fire Power13 and20% decaying Burn, with explicit Chilled cleanse.",
+      "counter": "Cleanse Vulnerable before cast, Barrier the seed hit or punish the HP payer.",
+      "signature": "c6237b0c15026dd76bc7fd650524f92c7991289c8735d6f5219f6e892c5f74aa"
+    },
+    {
+      "recordId": "resonance.cinderweaver-edgedancer.linked-sequence",
+      "kit": [
+        "cinderweaver.cinder-bolt",
+        "cinderweaver.flashfire",
+        "edgedancer.lunge",
+        "edgedancer.poised-guard"
+      ],
+      "why": "Existing Burn opens an explicit Dispel plus future Haste turn, letting the duelist trade present damage for stripping protection and preparing a later route.",
+      "decision": "35AP/5MP explicitly Dispels the enemy positive list and grants Self Haste1 next round. Burn remains and no Fire packet or conversion is invented.",
+      "counter": "Cleanse Burn before cast, avoid valuable buffs or pressure the owner before the next-round movement benefit.",
+      "signature": "3d95d641c162aa24b6bb3c39d462140472c39efe48e80343db392094a3bc01be"
+    },
+    {
+      "recordId": "resonance.cinderweaver-wildwarden.linked-sequence",
+      "kit": [
+        "cinderweaver.cinder-bolt",
+        "cinderweaver.ember-line",
+        "wildwarden.hunters-mark",
+        "wildwarden.venom-shot"
+      ],
+      "why": "Wildwarden’s marked poisoned quarry becomes an actual spend decision for Cinderweaver: trade away future Poison attrition to buy a Fire hit and immediate movement denial in one command. Cinder Bolt preserves Poison and adds Burn but cannot Root; Ember Line keeps formation damage. Rooting a quarry does not create entry damage while it stands still. The kit’s native Poison Ground remains provisional for its canonical bridge.",
+      "decision": "50AP/6MP requires prior Mark and Poison; a connected command removes Poison, strikes with Fire Power12 and applies Rooted1. Mark remains. It adds no Burn; the explicit Fire caster Chilled cleanse remains.",
+      "counter": "Removing either prior Mark or Poison rejects without payment. A Standard miss leaves Poison intact and applies no Rooted; connected fullBarrier can still spend Poison and Root. Cleanse Rooted or use a ranged response; no extra Ground tick is invented for standing still.",
+      "signature": "403dc57d1364382d91355d8a7ef0ef9c52dea22340af9b71291346866f286c8b"
+    },
+    {
+      "recordId": "resonance.cinderweaver-runeblade.linked-sequence",
+      "kit": [
+        "cinderweaver.cinder-bolt",
+        "cinderweaver.banked-embers",
+        "runeblade.unbinding-rune",
+        "runeblade.rune-guard"
+      ],
+      "why": "A single donor can be copied before Fire pressure, creating ordered borrowing without Dispel while rune reserves fund a choice between utility and heat.",
+      "decision": "50AP/6MP copies eligible Buffs first then Fire Power9; donor buffs remain because no Dispel is authored.",
+      "counter": "Remove donor buffs first, deny sight or use Barrier; Fire does not imply theft.",
+      "signature": "13d2c31939b885a2eeed6a73f9f0e66bf8329a163cacf8527f0a15cdbe558835"
+    },
+    {
+      "recordId": "resonance.cinderweaver-dawnshield.linked-sequence",
+      "kit": [
+        "cinderweaver.cinder-bolt",
+        "cinderweaver.ash-ward",
+        "dawnshield.sacred-guard",
+        "dawnshield.purge"
+      ],
+      "why": "Burn-specific protection and moderate friendly recovery answer incoming heat while the build retains a damaging Fire option, with no invented Burn immunity or automatic cleanse.",
+      "decision": "40AP/5MP gives Burn Ward2 and6%HP without Fire damage or an invented Burn cleanse.",
+      "counter": "Healing Down or focus beyond the protection role counters the investment.",
+      "signature": "e141c3f4bf033007feba0692fbd048dcff60ff817ecd3a9c159511f3c25fa3c5"
+    },
+    {
+      "recordId": "resonance.frostweaver-vanguard.linked-sequence",
+      "kit": [
+        "frostweaver.ice-lance",
+        "frostweaver.frost-guard",
+        "vanguard.forceful-strike",
+        "vanguard.shield-bash"
+      ],
+      "why": "A prior Chilled state enables short suppression on a frontline hit, binding ice setup to close-range retaliation control instead of an unconditional stronger weapon packet.",
+      "decision": "45AP/4MP Power12 gains Suppress15%1 only on prior Chilled; this physical strike does not itself refresh ice.",
+      "counter": "Remove Chilled before cast or Suppress after settlement; DoT damage remains captured.",
+      "signature": "605f797f23e6ecf7154499d7d0d7201bb2f1d266e5d8b2d1d305edca22668bab"
+    },
+    {
+      "recordId": "resonance.frostweaver-lifebinder.linked-sequence",
+      "kit": [
+        "frostweaver.ice-lance",
+        "frostweaver.thaw",
+        "lifebinder.mend",
+        "lifebinder.barrier"
+      ],
+      "why": "Low HP and freedom from Burn define a narrower rescue window with prevention, so the healer chooses when the winter triage is legal instead of spamming one universal heal.",
+      "decision": "45AP/6MP gives10%HP and Guarded10%1 after both conditions hold for that recipient.",
+      "counter": "Healing Down, Burn before cast or focus fire counters the specialized rescue.",
+      "signature": "22e570017a1bb135c4a164edf59c19988c804540a4b0d93756c66b56039aa197"
+    },
+    {
+      "recordId": "resonance.aetherist-frostweaver.linked-sequence",
+      "kit": [
+        "aetherist.channel",
+        "aetherist.mana-shield",
+        "frostweaver.ice-lance",
+        "frostweaver.shatter"
+      ],
+      "why": "Retained mana pays for an Ice strike with a smaller conditional resource return, making the caster choose reserve efficiency against a direct mana-spending release.",
+      "decision": "50AP/6MP Ice Power10 plus3MP recovery only with prepayment half reserves; Chilled companion remains explicit.",
+      "counter": "Drain reserves before cast or break sight; the conditional refund is smaller than its MP payment.",
+      "signature": "0337843b8db21e6c09cbacf4dd90cf2b361eabb0f6ddba8d318ccb7f9346626a"
+    },
+    {
+      "recordId": "resonance.farstrider-frostweaver.linked-sequence",
+      "kit": [
+        "farstrider.scouts-mark",
+        "farstrider.aimed-shot",
+        "frostweaver.ice-lance",
+        "frostweaver.crystal-prison"
+      ],
+      "why": "Mark grants the firing decision and Root grants only a fixed additional payoff, so preparation asks whether to invest in route control before a distant finishing shot.",
+      "decision": "50AP/5MP Physical Power13 and fixed3 against prior Rooted reward two different setup choices.",
+      "counter": "Remove Mark to block cast or Root to deny bonus; Barrier and minimum range remain counters.",
+      "signature": "5ede61831f3484996bd1c45d7223cfcfffed87bc43a77a36993de400f04f5968"
+    },
+    {
+      "recordId": "resonance.frostweaver-shadehand.linked-sequence",
+      "kit": [
+        "frostweaver.ice-lance",
+        "frostweaver.crystal-prison",
+        "shadehand.quick-hands",
+        "shadehand.smoke-vial"
+      ],
+      "why": "A prior Chilled target permits ordered Debuff copying before a physical pressure packet, giving an afflicted concealed fighter a specific prepared donor/recipient decision.",
+      "decision": "45AP/5MP copies Debuffs first then Physical Power8 against a prior Chilled target; donor remains unchanged.",
+      "counter": "Cleanse Chilled before cast, remove copied negatives after or deny adjacency.",
+      "signature": "36522598bd36ffd9cc7f03b54b9e670aeefb97773f518bac3fda6052eead2dae"
+    },
+    {
+      "recordId": "resonance.frostweaver-ironfist.linked-sequence",
+      "kit": [
+        "frostweaver.ice-lance",
+        "frostweaver.frost-guard",
+        "ironfist.rising-fist",
+        "ironfist.pressure-palm"
+      ],
+      "why": "Ice preparation at two to three tiles enables a Pull-and-Root contact transition, opening fist range now rather than multiplying any attack or relying on future Armor.",
+      "decision": "45AP/5MP Pulls1, then deals Physical Power10 and applies Rooted1. It brings an ice-prepared enemy toward fist range and locks the reached tile; Chilled is not consumed.",
+      "counter": "Cleanse Chilled before commitment, block/Root the Pull route or cleanse Root afterward; an adjacent target is outside this action minimum range.",
+      "signature": "9a94faa9eb3d4b0053068e383fa6d348cb534ea5591ff3ce68475a9fedeb65ff"
+    },
+    {
+      "recordId": "resonance.bastion-frostweaver.linked-sequence",
+      "kit": [
+        "bastion.fortress",
+        "bastion.challenge",
+        "frostweaver.ice-lance",
+        "frostweaver.crystal-prison"
+      ],
+      "why": "A Chilled enemy can be rooted while the owner accepts Fortified, binding route denial and a real stance cost to a chosen close defensive engagement.",
+      "decision": "40AP/5MP grants Self Fortified1 and enemy Rooted1; two recipients remain explicit.",
+      "counter": "Remove Chilled before cast, Cleanse Root or exploit the Fortified constraint.",
+      "signature": "63e3d7589d67e6279c3ae671a62169935ed5eece157517c72d31bb84d2cb80a9"
+    },
+    {
+      "recordId": "resonance.frostweaver-ravager.linked-sequence",
+      "kit": [
+        "frostweaver.ice-lance",
+        "frostweaver.brittle-ice",
+        "ravager.gash",
+        "ravager.frenzy"
+      ],
+      "why": "A physical HP-paid hit can seed Bleed only against prior Chilled, asking the bruiser to maintain a target state before risking safety for attrition.",
+      "decision": "50AP/10HP Power14 gains15% Bleed against prior Chilled; no ice conversion or status consumption.",
+      "counter": "Face/evade the strike, Cleanse Chilled or Barrier the Bleed seed.",
+      "signature": "c8619e94800ce57058484bcdde74b19b2ed1d4d136b5abc12a6a6bdcb8d70fd8"
+    },
+    {
+      "recordId": "resonance.edgedancer-frostweaver.linked-sequence",
+      "kit": [
+        "edgedancer.lunge",
+        "edgedancer.poised-guard",
+        "frostweaver.ice-lance",
+        "frostweaver.frost-guard"
+      ],
+      "why": "A bounded advance establishes Chilled at a reached origin, letting the duelist trade raw melee output for a facing-control setup without creating Frozen Ground.",
+      "decision": "45AP/5MP includes Move1 and Ice Power10 with explicit Chilled2.",
+      "counter": "Root, occupancy or Barrier deny access/setup; Frozen Ground is not created.",
+      "signature": "04d8c8f351e647f7e81dce31f6da29d9e532b56613a51b36c26855f8498f549e"
+    },
+    {
+      "recordId": "resonance.frostweaver-wildwarden.linked-sequence",
+      "kit": [
+        "frostweaver.ice-lance",
+        "frostweaver.crystal-prison",
+        "wildwarden.hunters-mark",
+        "wildwarden.pursuit-shot"
+      ],
+      "why": "Mark identifies a quarry for explicit route and facing control without damage, distinguishing hunting containment from the later damaging pursuit or ice cashout.",
+      "decision": "40AP/5MP applies Rooted1 and Chilled2 as explicit statuses without claiming Ice damage or a terrain field.",
+      "counter": "Cleanse Mark before cast or the control after; three-turn cooldown leaves an escape window.",
+      "signature": "29a7d722f0771ab3fbdf6dcaacb9b53be8dad51fec14d3024db363b91fb332f9"
+    },
+    {
+      "recordId": "resonance.frostweaver-runeblade.linked-sequence",
+      "kit": [
+        "frostweaver.ice-lance",
+        "frostweaver.frost-guard",
+        "runeblade.siphon-slash",
+        "runeblade.sigil-brand"
+      ],
+      "why": "Prior ice permits a nondamaging MP-drain and suppression turn, giving up HP pressure to blunt a prepared caster response without inventing Silence.",
+      "decision": "40AP/6MP drains enemy4MP and applies Suppress25%2 without dealing HP damage or inventing Silence. Chilled is not consumed.",
+      "counter": "Cleanse Chilled before cast, remove Suppress through the actual supported path or use captured periodic damage/low-MP actions.",
+      "signature": "f8fa91b170450957049977cb8d7efddf9960c24095982fc2dc0a35e9ced89391"
+    },
+    {
+      "recordId": "resonance.dawnshield-frostweaver.linked-sequence",
+      "kit": [
+        "dawnshield.purge",
+        "dawnshield.aegis",
+        "frostweaver.ice-lance",
+        "frostweaver.thaw"
+      ],
+      "why": "A friendly shelter adds explicit Chilled removal beyond the canonical Cleanse list, making a defensive response to ice control rather than a renamed generic heal.",
+      "decision": "45AP/6MP full-Cleanses the canonical list, adds20Barrier and explicitly removes Chilled in a separate packet.",
+      "counter": "Reapply Chilled after the cooldown or burst through20Barrier; no blanket immunity.",
+      "signature": "ce4a5241fbd2993ff92090617043522788aa5f9d3915b956ec0901f08f78c85a"
+    },
+    {
+      "recordId": "resonance.cinderweaver-frostweaver.linked-sequence",
+      "kit": [
+        "cinderweaver.cinder-bolt",
+        "cinderweaver.flashfire",
+        "frostweaver.ice-lance",
+        "frostweaver.brittle-ice"
+      ],
+      "why": "Prior Chilled creates a short Fire vulnerability window while real Fire intent handles caster thaw and Steam; neither setup status nor terrain is silently consumed.",
+      "decision": "50AP/6MP Fire Power12 adds Vulnerable12%1 for prior Chilled; caster Chilled cleanse and Steam conversion use existing rules.",
+      "counter": "Prevent prior Chilled, Barrier the hit or leave terrain before the threat; no invented shatter consumption.",
+      "signature": "1db0a6192208d95e8e61e0b85a350d1af53a670809ec4f21a089922fe9176472"
+    },
+    {
+      "recordId": "resonance.stormsinger-vanguard.linked-sequence",
+      "kit": [
+        "stormsinger.arc-spark",
+        "stormsinger.conductive-bolt",
+        "vanguard.forceful-strike",
+        "vanguard.shield-bash"
+      ],
+      "why": "Prior charge can turn a contact Storm hit into a Push, binding elemental setup to actual melee spacing rather than adding an automatic chained target.",
+      "decision": "50AP/5MP Storm Power11 and conditional Push1 use prior charge eligibility; the kernel consumes/refreshes charge exactly once.",
+      "counter": "Remove Conductive, Root or block the push path.",
+      "signature": "f8f699d8af3a75904a7be11d0b2aaa1023b2a34e33ec07eb3f53ccea9deeaeda"
+    },
+    {
+      "recordId": "resonance.lifebinder-stormsinger.linked-sequence",
+      "kit": [
+        "lifebinder.mending-light",
+        "lifebinder.barrier",
+        "stormsinger.static-drain",
+        "stormsinger.storm-breath"
+      ],
+      "why": "A low-mana friendly body can receive separate HP and MP recovery, while the storm half chooses between restoring a teammate resource window and denying an enemy caster.",
+      "decision": "45AP/6MP restores ally6%HP and4%MP; it does not transfer or drain the owner resource.",
+      "counter": "Healing Down, focus fire or threshold denial limits the support; Self is a legal explicit choice.",
+      "signature": "fcf04fafe16a1a145748866ee8c47ae3a51cf3d449c326cf2617e0f3711ec8e9"
+    },
+    {
+      "recordId": "resonance.aetherist-stormsinger.linked-sequence",
+      "kit": [
+        "aetherist.channel",
+        "aetherist.mana-shield",
+        "stormsinger.arc-spark",
+        "stormsinger.static-drain"
+      ],
+      "why": "High reserves fund nondamaging mana denial with conditional suppression on prior charge, choosing disruption over another HP burst and leaving charge consumption to real Storm hits.",
+      "decision": "35AP/5MP drains enemy7MP, with Suppress20%1 only on a prior Conductive recipient. No direct damage or mana transfer is authored.",
+      "counter": "Drain owner reserves before cast, Cleanse Conductive or rely on low-MP/periodic actions; no charge is consumed by this nondamaging action.",
+      "signature": "89a4ab76faa11db9c3ae8bc41a47617ee02688557d6fd11a37ac7f8047ede53e"
+    },
+    {
+      "recordId": "resonance.farstrider-stormsinger.linked-sequence",
+      "kit": [
+        "farstrider.scouts-mark",
+        "farstrider.aimed-shot",
+        "stormsinger.arc-spark",
+        "stormsinger.conductive-bolt"
+      ],
+      "why": "A long-range Sensory-first signal establishes charge without damage, setting a later explicitly chosen Storm recipient while countering concealment under real visibility rules.",
+      "decision": "35AP/4MP Sensory Reveals1 then explicitly applies Conductive15%2 without damage.",
+      "counter": "Break sight, cleanse Conductive or avoid concealment investment; no projectile bounce.",
+      "signature": "30612c7b2663b0e8e1b0e666cad16ed081de2fc610525e2c1bbbb6de837d39b8"
+    },
+    {
+      "recordId": "resonance.shadehand-stormsinger.linked-sequence",
+      "kit": [
+        "shadehand.smoke-vial",
+        "shadehand.feint",
+        "stormsinger.arc-spark",
+        "stormsinger.thunderclap"
+      ],
+      "why": "A short-range Storm commitment leaves a brief Invisible window, making the infiltrator choose pressure against a real Reveal/area counter instead of a hidden damage bonus.",
+      "decision": "45AP/5MP Storm Power8 grants Self Invisible1 as a separate defensive packet; no Covert is implied.",
+      "counter": "Sensory/Reveal, area threats and Barrier counter the split investment.",
+      "signature": "f914702c88ec629fca315d1eb8aea09a697574e89ce3f855a696251dec385415"
+    },
+    {
+      "recordId": "resonance.ironfist-stormsinger.linked-sequence",
+      "kit": [
+        "ironfist.pressure-palm",
+        "ironfist.rising-fist",
+        "stormsinger.arc-spark",
+        "stormsinger.static-drain"
+      ],
+      "why": "Contact MP disruption gains a short movement tax only from prior charge, so the fighter must choose whether to prepare charge before closing on a caster.",
+      "decision": "50AP/5MP Physical Power10 and MP Drain5; prior Conductive also permits Slow1 without consuming charge.",
+      "counter": "Cleanse Conductive, kite or rely on low-MP actions.",
+      "signature": "8295302df248df95c4447956c380757aa0d18c83e80cc8cf11b7e7cfeaad9d63"
+    },
+    {
+      "recordId": "resonance.bastion-stormsinger.linked-sequence",
+      "kit": [
+        "bastion.challenge",
+        "bastion.cover",
+        "stormsinger.arc-spark",
+        "stormsinger.conductive-bolt"
+      ],
+      "why": "Prior charge permits a nondamaging Taunt-and-Suppress response, letting the defender manage which caster to answer without granting an invented stun or forced AI attack.",
+      "decision": "35AP/5MP applies source-relative Taunt1 and Suppress15%1 to the prepared caster.",
+      "counter": "Remove Conductive before cast or Cleanse Taunt/Suppress as actually supported; no stun.",
+      "signature": "9aaa94b044fc5ff8d6a19b2e350569cabaa951577c5b5bbad5c9d05f81aab4b2"
+    },
+    {
+      "recordId": "resonance.ravager-stormsinger.linked-sequence",
+      "kit": [
+        "ravager.gash",
+        "ravager.frenzy",
+        "stormsinger.arc-spark",
+        "stormsinger.conductive-bolt"
+      ],
+      "why": "Wet or Conductive setup makes HP-paid Storm pressure available, asking the bruiser to risk safety on a prepared elemental window rather than spam an unconditional execute.",
+      "decision": "55AP/6MP/15HP Storm Power13 and MP Drain3 cash out existing elemental setup at real safety cost.",
+      "counter": "Cleanse both setup states, Barrier or punish the wounded payer.",
+      "signature": "9c7f56338ce0c79f0d9f3647311f528f43f704cabc4528870aa4697e924245c9"
+    },
+    {
+      "recordId": "resonance.edgedancer-stormsinger.linked-sequence",
+      "kit": [
+        "edgedancer.lunge",
+        "edgedancer.poised-guard",
+        "stormsinger.arc-spark",
+        "stormsinger.conductive-bolt"
+      ],
+      "why": "A one-step Storm hit gains only a fixed packet from prior Wet, tying route and external or copied Wet opportunity to exact reached-origin commitment without automatic bounce.",
+      "decision": "50AP/5MP includes Move1 and Storm Power9; prior Wet adds fixed2 without duplicating scaling.",
+      "counter": "Root the route, cleanse Wet or Barrier; elemental Wet interaction still happens only under policy2.",
+      "signature": "1a8ff03b464ff5517ccb51558aa46ac64df427b2b3aee819b9105e70b20ad04f"
+    },
+    {
+      "recordId": "resonance.stormsinger-wildwarden.linked-sequence",
+      "kit": [
+        "stormsinger.arc-spark",
+        "stormsinger.conductive-bolt",
+        "wildwarden.hunters-mark",
+        "wildwarden.pursuit-shot"
+      ],
+      "why": "The owner explicitly prepares up to two charged marked quarries, choosing split setup without damage before committing to one class pursuit or Storm payoff.",
+      "decision": "40AP/5MP explicitly applies Mark10%2 and Conductive15%2 to each selected quarry; no damage or automatic bounce.",
+      "counter": "Spread out of range or Cleanse setup before the later shot.",
+      "signature": "f75a5bf9023ede766d03948b0cc2ab8db62c46a4cf390d1a274dc2703c8d38a8"
+    },
+    {
+      "recordId": "resonance.runeblade-stormsinger.linked-sequence",
+      "kit": [
+        "runeblade.arc-edge",
+        "runeblade.siphon-slash",
+        "stormsinger.arc-spark",
+        "stormsinger.storm-breath"
+      ],
+      "why": "A real paid Runeblade attack can fund one small owner-turn mana rebate, supporting a later Storm decision while misses, duplicate receipts and no-input bounds remain explicit.",
+      "decision": "Once per owner turn pay2MP and restore3MP after that qualifying paid owner attack. FullMP skips the reaction and its usage; the useful net1MP rebate remains bounded by paid root actions and actual owner-turn usage.",
+      "counter": "Drain mana below2MP or deny Runeblade attacks; unrelated actors and duplicate receipts do not qualify.",
+      "signature": "6fd9a2d9a9cc2a3ad7e434c20a742bb4ec9b1cec346d529fb28d233cca397dbf"
+    },
+    {
+      "recordId": "resonance.dawnshield-stormsinger.linked-sequence",
+      "kit": [
+        "dawnshield.purge",
+        "dawnshield.aegis",
+        "stormsinger.arc-spark",
+        "stormsinger.grounding"
+      ],
+      "why": "A chosen friendly recipient can shed the exact Wet/Conductive setup and receive prevention, making a specific anti-Storm defense distinct from ordinary full Cleanse.",
+      "decision": "35AP/5MP explicitly removes Wet and Conductive, then grants18Barrier; this is separate from canonical full Cleanse.",
+      "counter": "Reapply setup after cooldown, Dispel applicable protection or burst beyond18.",
+      "signature": "4d02b2aab0e32e4b994b1828a9c0e1459d766a9d680deaa5ca296286abb937b3"
+    },
+    {
+      "recordId": "resonance.cinderweaver-stormsinger.linked-sequence",
+      "kit": [
+        "cinderweaver.cinder-bolt",
+        "cinderweaver.ember-line",
+        "stormsinger.arc-spark",
+        "stormsinger.static-drain"
+      ],
+      "why": "Burn prepares a ranged Storm retaliation-suppression window, so heat and charge pressure alternate against a chosen caster rather than becoming a generic element conversion.",
+      "decision": "50AP/6MP Storm Power11 gains Suppress15%1 against prior Burn without converting or consuming it.",
+      "counter": "Cleanse Burn before cast, Barrier the hit or use already captured periodic damage.",
+      "signature": "502f69b7a0b66cfbb1c2e3d79af074286c7ea876cf7c9da439b18235a00bd69b"
+    },
+    {
+      "recordId": "resonance.frostweaver-stormsinger.linked-sequence",
+      "kit": [
+        "frostweaver.ice-lance",
+        "frostweaver.ice-line",
+        "stormsinger.arc-spark",
+        "stormsinger.lightning-line"
+      ],
+      "why": "The player chooses up to two already Chilled enemies for Storm pressure now and route lock next round, exposing a real split-recipient and timing counter-window.",
+      "decision": "55AP/7MP gives Storm Power8 and explicit Conductive2 to each chosen recipient now, then Rooted1 next round. The owner chooses a split formation and telegraphed control window.",
+      "counter": "Cleanse one Chilled selection before cast, spread beyond selection reach, Barrier or cleanse the next-round Root; no automatic bounce.",
+      "signature": "75a447183c951688977d4544b6b4fcc58fa21c49a85a61637de277fadfa9b158"
+    },
+    {
+      "recordId": "resonance.tidecaller-vanguard.linked-sequence",
+      "kit": [
+        "tidecaller.water-lance",
+        "tidecaller.undertow",
+        "vanguard.forceful-strike",
+        "vanguard.shield-bash"
+      ],
+      "why": "A visible target can be pulled one tile before Physical pressure, connecting the water half spacing control to a frontline engagement without placing enemies on the caster.",
+      "decision": "45AP/4MP Pull1 then Physical Power11 change spacing under actual reached/recipient legality; never land on caster.",
+      "counter": "Root or obstruct the pull; no extra walking or attack range is invented.",
+      "signature": "47c74a4fde6ffe732cd3443b2eb3ad765aa5898ab5b3a215014f61f18c05f5e4"
+    },
+    {
+      "recordId": "resonance.lifebinder-tidecaller.linked-sequence",
+      "kit": [
+        "lifebinder.mending-light",
+        "lifebinder.barrier",
+        "tidecaller.springwater",
+        "tidecaller.cleansing-rain"
+      ],
+      "why": "A two-recipient three-application schedule buys endurance instead of immediate rescue, so the healer must identify friends who can survive to use later captured recovery.",
+      "decision": "50AP/7MP captures three5%HP applications per recipient, favoring endurance over emergency triage.",
+      "counter": "Healing Down at capture and focus before later applications limit value.",
+      "signature": "57aef4c4a2c9b77c22ea9e9d31e814d9caf4a5ed59c52ec6d7766fcc9feaaa48"
+    },
+    {
+      "recordId": "resonance.aetherist-tidecaller.linked-sequence",
+      "kit": [
+        "aetherist.channel",
+        "aetherist.mana-shield",
+        "tidecaller.still-water",
+        "tidecaller.water-lance"
+      ],
+      "why": "Retained caster mana can open a low-mana friendly current while protecting Self, distinguishing recipient resource support from the Aetherist own delayed Channel.",
+      "decision": "35AP/6MP restores ally5MP and grants Self12Barrier; no MP transfer equality or free reserve loop.",
+      "counter": "Drain owner reserve, force ally above threshold or burst through the flat Barrier.",
+      "signature": "8d7a560c6327874c325660bccca7cd2d7b64874b8f37cc872c8f1b8d225c35a5"
+    },
+    {
+      "recordId": "resonance.farstrider-tidecaller.linked-sequence",
+      "kit": [
+        "farstrider.aimed-shot",
+        "farstrider.scouts-mark",
+        "tidecaller.water-lance",
+        "tidecaller.undertow"
+      ],
+      "why": "Prior Wet makes a distant Physical shot capable of pushing a target, linking water setup to the next firing lane rather than silently changing the arrow element.",
+      "decision": "50AP/5MP Physical Power12 and conditional Push1 reward prior Wet without applying Water damage.",
+      "counter": "Cleanse Wet, close under minimum range or block the displacement route.",
+      "signature": "3b75c84e7b94239a53e2100ad1f3d58054b893fa284addfcd80e195888f6c716"
+    },
+    {
+      "recordId": "resonance.shadehand-tidecaller.linked-sequence",
+      "kit": [
+        "shadehand.smoke-vial",
+        "shadehand.quick-hands",
+        "tidecaller.water-lance",
+        "tidecaller.cleansing-rain"
+      ],
+      "why": "Eligible Self afflictions can be copied before explicit Wet setup, creating a deliberate single-recipient curse/current turn while donor debuffs remain dangerous.",
+      "decision": "35AP/5MP copies Debuffs first then applies Wet15%2 explicitly; the owner afflictions remain.",
+      "counter": "Cleanse recipient negatives, deny the single target or avoid offering a valid copy lineage.",
+      "signature": "34c5c30632e2069b8809ac21c2bdb353e11a5f03a55d28d386736ba8a97bd215"
+    },
+    {
+      "recordId": "resonance.ironfist-tidecaller.linked-sequence",
+      "kit": [
+        "ironfist.rising-fist",
+        "ironfist.pressure-palm",
+        "tidecaller.undertow",
+        "tidecaller.mist-veil"
+      ],
+      "why": "A guarded Pull transition brings a foe toward fist space, so the build chooses a legal landing and defensive contact window rather than an invented instantaneous swap.",
+      "decision": "50AP/5MP Power9, Pull2 and Self Guarded10%1 prepare a defended close exchange.",
+      "counter": "Root, obstruct the path or pressure outside the pull lane.",
+      "signature": "45de9db98b7e35140d1958bc6f9e11a54984a985bb1a71a6b2fc23a5c36c89c5"
+    },
+    {
+      "recordId": "resonance.bastion-tidecaller.linked-sequence",
+      "kit": [
+        "bastion.cover",
+        "bastion.challenge",
+        "tidecaller.water-lance",
+        "tidecaller.cleansing-rain"
+      ],
+      "why": "Guarded protection and exact Wet/Conductive removal let the defender stabilize a chosen body against charge threats, with a distinct elemental-removal role.",
+      "decision": "35AP/5MP grants Guarded12%2 and explicitly removes Wet/Conductive from that friendly recipient.",
+      "counter": "Separate the ally, reapply setup or Dispel Guarded; this does not change Ground terrain.",
+      "signature": "7348a37892033339c6a299170962b8394a87f285a680cbcf308d31e699f26fb0"
+    },
+    {
+      "recordId": "resonance.ravager-tidecaller.linked-sequence",
+      "kit": [
+        "ravager.gash",
+        "ravager.frenzy",
+        "tidecaller.undertow",
+        "tidecaller.still-water"
+      ],
+      "why": "A wounded actor can pull a foe into a recovered close exchange, but the nonzero resource payment and actual damage-linked recovery keep the engagement risky.",
+      "decision": "55AP/6MP Physical Power12, Pull1 and confirmed-hit4% self recovery risk a wounded close engagement.",
+      "counter": "Heal owner above threshold to deny cast, block Pull or apply Healing Down.",
+      "signature": "34cdd536ca02d67ed997bc4c312ac9d05343281b62ceecc8203d8cbead5a8568"
+    },
+    {
+      "recordId": "resonance.edgedancer-tidecaller.linked-sequence",
+      "kit": [
+        "edgedancer.lunge",
+        "edgedancer.poised-guard",
+        "tidecaller.mist-veil",
+        "tidecaller.still-water"
+      ],
+      "why": "A short Invisible relocation can rebate only a smaller low-mana amount, giving the duelist an escape/resource decision instead of a damaging water dash.",
+      "decision": "35AP/4MP includes Move1 and Invisible1; prior low mana also grants3MP, still net negative.",
+      "counter": "Root, block route or use Sensory/Reveal; no Covert is silently granted.",
+      "signature": "c47287e01fafadaae0c0e541df751ef2a5c225f4d2b76e512787b372644e315c"
+    },
+    {
+      "recordId": "resonance.tidecaller-wildwarden.linked-sequence",
+      "kit": [
+        "tidecaller.water-lance",
+        "tidecaller.undertow",
+        "wildwarden.hunters-mark",
+        "wildwarden.pursuit-shot"
+      ],
+      "why": "A marked quarry can be made Wet and pulled without HP damage, choosing future pursuit or charge setup through actual spacing rather than a universal offensive bonus.",
+      "decision": "35AP/4MP applies Wet15%2 and Pull1 to the established quarry, setting up pursuit or Storm.",
+      "counter": "Cleanse Mark, Root or occupy the pull path; caster tile remains forbidden.",
+      "signature": "6fd993da003be8140bee076e1c79972e5d0118c7b79d9b3a9b938f985eb3c401"
+    },
+    {
+      "recordId": "resonance.runeblade-tidecaller.linked-sequence",
+      "kit": [
+        "runeblade.unbinding-rune",
+        "runeblade.rune-guard",
+        "tidecaller.water-lance",
+        "tidecaller.cleansing-rain"
+      ],
+      "why": "A single donor is borrowed before Self elemental setup is washed away, separating exact Wet/Conductive relief from generic Cleanse and leaving donor buffs intact.",
+      "decision": "35AP/5MP copies Buffs first, then explicitly removes Self Wet/Conductive; donor remains unchanged.",
+      "counter": "Deny the donor, reapply elemental setup or Dispel copied benefits.",
+      "signature": "a2b2e1794fca277ae417c0f4c31dc3f9de005e2bfab77c37b792ea2228940082"
+    },
+    {
+      "recordId": "resonance.dawnshield-tidecaller.linked-sequence",
+      "kit": [
+        "dawnshield.purge",
+        "dawnshield.aegis",
+        "tidecaller.springwater",
+        "tidecaller.cleansing-rain"
+      ],
+      "why": "A friendly body receives immediate control relief and a short guard before next-round recovery, making the intervening survival window the important support choice.",
+      "decision": "45AP/6MP gives full Cleanse and Guarded10%1 now, then one captured6%HP application next round.",
+      "counter": "Burst before healing, apply Healing Down at capture or Dispel Guarded.",
+      "signature": "33664ba9a368a4c626dae302abb66865311b54169f52c92eea2a79c05fe1b5d0"
+    },
+    {
+      "recordId": "resonance.cinderweaver-tidecaller.linked-sequence",
+      "kit": [
+        "cinderweaver.cinder-bolt",
+        "cinderweaver.ash-ward",
+        "tidecaller.cleansing-rain",
+        "tidecaller.water-lance"
+      ],
+      "why": "A shared cooldown binds defensive Quench and offensive Flare, so the water relief choice closes the fire pressure choice rather than adding an elemental reskin payoff.",
+      "decision": "Quench pays35AP/4MP for full Self Cleanse and Burn Ward1. Alternative Flare pays50AP/6MP for Fire Power12 at range4 with explicit caster Chilled cleanse. Both commands share one three-owner-turn cooldown.",
+      "counter": "Pressure the choice: using defense closes the attack option and vice versa. Fire/Water/Steam use their existing interactions; no blindness, Wet conversion or new terrain handler is claimed.",
+      "signature": "9086734d03a16ed7d0fec31a5c39462510b6a911cbc80769828b52295544c934"
+    },
+    {
+      "recordId": "resonance.frostweaver-tidecaller.linked-sequence",
+      "kit": [
+        "frostweaver.ice-lance",
+        "frostweaver.ice-line",
+        "tidecaller.water-lance",
+        "tidecaller.undertow"
+      ],
+      "why": "Prior Wet adds a short walking tax to an Ice setup strike, making distance control and facing control cooperate without inventing Rooted or terrain from the names.",
+      "decision": "45AP/5MP Ice Power10 and explicit Chilled2; prior Wet adds Slow1 without creating Root or frozen terrain.",
+      "counter": "Cleanse Wet, Barrier the Ice seed or choose a stationary turn.",
+      "signature": "66fe790f8a4fb229e7b3a73bd0d2081d456f0b6ee2555e2a1a40e72d37c95071"
+    },
+    {
+      "recordId": "resonance.stormsinger-tidecaller.linked-sequence",
+      "kit": [
+        "stormsinger.arc-spark",
+        "stormsinger.conductive-bolt",
+        "tidecaller.water-lance",
+        "tidecaller.undertow"
+      ],
+      "why": "One or two explicitly Wet recipients can be chosen for an elemental commitment, making Tide setup and Storm charge policy cooperate without any implicit bounce selection.",
+      "decision": "55AP/7MP Storm Power10 applies to exactly the chosen Wet targets under current Wet/Conductive bonuses; no bounce selection.",
+      "counter": "Cleanse one Wet target, spread out of range or Barrier; every selected Requirement must pass.",
+      "signature": "b150f523244c79897aa15b2ae07e49fde8e9db9be6d519c20e3e66f5bddb1822"
+    },
+    {
+      "recordId": "resonance.chronist-vanguard.linked-sequence",
+      "kit": [
+        "chronist.temporal-bolt",
+        "chronist.temporal-ward",
+        "vanguard.forceful-strike",
+        "vanguard.brace"
+      ],
+      "why": "The frontline can take guard now while committing its actual damage to next round, choosing survival timing over the Vanguard usual immediate pressure.",
+      "decision": "50AP/5MP queues Power14 for next round and grants Self Guarded10%1 now; target motion does not invent retargeting.",
+      "counter": "Pressure before the hit resolves, Barrier the captured attack or defeat the source/target under queued rules.",
+      "signature": "23fa29053165c20dbedcd81d42fb2baa6e3baee9b602d618679a7271a2791c96"
+    },
+    {
+      "recordId": "resonance.chronist-lifebinder.linked-sequence",
+      "kit": [
+        "chronist.temporal-ward",
+        "chronist.haste",
+        "lifebinder.mending-light",
+        "lifebinder.barrier"
+      ],
+      "why": "Low-HP triage is split between now and next round, forcing the healer to plan an intervening survival window instead of merely increasing the instant heal percentage.",
+      "decision": "45AP/6MP splits two5%HP applications between now and next round rather than a larger immediate rescue.",
+      "counter": "Healing Down at capture or focus between applications denies the delayed half.",
+      "signature": "11e7b95b9f3bfeb124b8432c7242dee8e20b51e300013ef479ced16af62b1950"
+    },
+    {
+      "recordId": "resonance.aetherist-chronist.linked-sequence",
+      "kit": [
+        "aetherist.channel",
+        "aetherist.arc-bolt",
+        "chronist.rewind-step",
+        "chronist.temporal-bolt"
+      ],
+      "why": "A held self-Rewind option and retained mana maintain modest output, so releasing the anchor or spending reserves forfeits a real future escape/value choice.",
+      "decision": "110% maintained owner damage exists only while that actual self-Rewind prime and mana reserve remain; release removes the prime condition.",
+      "counter": "Force the owner to release/lose the source, drain mana or end the fight; no enemy return or arbitrary expiry.",
+      "signature": "5f6d618b444e0e40c6142eb8c80d97f6260c629219985d2a28e37b1e20b46d70"
+    },
+    {
+      "recordId": "resonance.chronist-farstrider.linked-sequence",
+      "kit": [
+        "chronist.temporal-bolt",
+        "chronist.haste",
+        "farstrider.scouts-mark",
+        "farstrider.aimed-shot"
+      ],
+      "why": "A distant shot schedules Mark for a future lane rather than improving current accuracy, requiring the archer to anticipate sight, target access and cleanse timing.",
+      "decision": "45AP/5MP Physical Power8 now and Mark15%2 next round trade immediate accuracy setup for a telegraphed future opening.",
+      "counter": "Close range, break the later lane or Cleanse after Mark activates.",
+      "signature": "0a54fc3d6f0b2308efd62fb899db969d57b90c5faa61542f7909fe7c8360958c"
+    },
+    {
+      "recordId": "resonance.chronist-shadehand.linked-sequence",
+      "kit": [
+        "chronist.temporal-ward",
+        "chronist.haste",
+        "shadehand.quick-hands",
+        "shadehand.smoke-vial"
+      ],
+      "why": "Single-donor borrowing is paired with next-round Covert, making the infiltrator survive a visible gap before a concealed route instead of gaining instant protection.",
+      "decision": "40AP/6MP must copy Buffs first and queue Self Covert1 for next round; donor is unchanged.",
+      "counter": "Deny donor eligibility, Sensory after activation or use area threats.",
+      "signature": "d4ce77a6649625e59dd85465282f1e19718ef31f07de06e71aec6c3226bb6f4b"
+    },
+    {
+      "recordId": "resonance.chronist-ironfist.linked-sequence",
+      "kit": [
+        "chronist.slow",
+        "chronist.temporal-bolt",
+        "ironfist.rising-fist",
+        "ironfist.pressure-palm"
+      ],
+      "why": "Fist vulnerability enables Slow now and a delayed impact, trading immediate damage for a visible timeline that opponents can pressure or shield against.",
+      "decision": "45AP/5MP applies Slow1 now and queues Power14 for round+2; it does not replay an attack or rewind an enemy.",
+      "counter": "Cleanse Vulnerable before cast, deal with Slow or Barrier the later packet.",
+      "signature": "e493a9c6b51336498a7d948446dc24c6ccf17086a788abc5a95354a680983ac8"
+    },
+    {
+      "recordId": "resonance.bastion-chronist.linked-sequence",
+      "kit": [
+        "bastion.fortress",
+        "bastion.cover",
+        "chronist.temporal-ward",
+        "chronist.haste"
+      ],
+      "why": "A real stance protects the preparation turn while Barrier is scheduled next round, separating present constraints from future flat prevention.",
+      "decision": "40AP/5MP gives Fortified1 and20Barrier next global round as distinct finite benefits.",
+      "counter": "Burst before the shield, exploit stance constraints or change targets.",
+      "signature": "88ec1a8d86aaf0000b121b18d2022005d1fa425c306692023ba2eb91c48c157e"
+    },
+    {
+      "recordId": "resonance.chronist-ravager.linked-sequence",
+      "kit": [
+        "chronist.slow",
+        "chronist.temporal-ward",
+        "ravager.frenzy",
+        "ravager.desperate-execution"
+      ],
+      "why": "A wounded payer commits HP to delayed pressure with smaller immediate relief, creating a vulnerable debt interval instead of refunding the HP payment or rewinding damage.",
+      "decision": "55AP/5MP/10HP queues Power15 for round+2 and separately recovers4%HP now; recovery is not a refund of payment.",
+      "counter": "Punish the low-HP payer before the delayed hit or prevent its future outcome; HP costs do not trigger damage reactions.",
+      "signature": "bbcdeeb3d80b82607d315b4619645a73ac57273a22cb9fe2319bab8610f6546a"
+    },
+    {
+      "recordId": "resonance.chronist-edgedancer.linked-sequence",
+      "kit": [
+        "chronist.rewind-step",
+        "chronist.temporal-ward",
+        "edgedancer.lunge",
+        "edgedancer.poised-guard"
+      ],
+      "why": "Holding the actual return anchor permits a moving strike and future guard, but the player must still choose and pay a separate self-Rewind release for an exit.",
+      "decision": "45AP/5MP includes Move1 and Power11 now; Self Guarded12%1 arrives next round. The existing Rewind prime is checked and remains unconsumed for a later separate return.",
+      "counter": "Force prime release, Root/block the approach or pressure before the future guard activates; no enemy return or automatic escape occurs.",
+      "signature": "bfad4668523e1c21bb9283aa7ee84a6de08ae6bd22b6443a591d0e46ac40d938"
+    },
+    {
+      "recordId": "resonance.chronist-wildwarden.linked-sequence",
+      "kit": [
+        "chronist.slow",
+        "chronist.temporal-bolt",
+        "wildwarden.hunters-mark",
+        "wildwarden.pursuit-shot"
+      ],
+      "why": "A marked quarry can receive a queued strike and route lock together next round, making hunting preparation a telegraphed control commitment rather than immediate pursuit damage.",
+      "decision": "50AP/6MP queues Power13 and Rooted1 together for next round against the captured quarry.",
+      "counter": "Cleanse Mark before cast; Barrier or Cleanse after activation counters the telegraphed payoff.",
+      "signature": "f29e3d3827cf8740893ed7a2c3a1074afea502848d64f35604724d9fd4452750"
+    },
+    {
+      "recordId": "resonance.chronist-runeblade.linked-sequence",
+      "kit": [
+        "chronist.temporal-ward",
+        "chronist.haste",
+        "runeblade.rune-guard",
+        "runeblade.rune-mending"
+      ],
+      "why": "Low reserves permit paid current guard and a larger future flat mana return, forcing the rune user to survive a real resource schedule before spending again.",
+      "decision": "35AP/2MP invests in Guarded10%1 now and5MP next round; this is a paid finite resource schedule.",
+      "counter": "Pressure before the deferred return or raise reserves to make the low-mana command unavailable.",
+      "signature": "4c8e4b0c1ad702146cf221289576eb1fa8fcae264a3f6c387fddc5711e229060"
+    },
+    {
+      "recordId": "resonance.chronist-dawnshield.linked-sequence",
+      "kit": [
+        "chronist.temporal-ward",
+        "chronist.haste",
+        "dawnshield.sacred-guard",
+        "dawnshield.aegis"
+      ],
+      "why": "Completing owner Dawn recovery can buy a finite Barrier reaction, supporting a recovery-first cadence without treating unrelated healing receipts as owner actions.",
+      "decision": "Once per owner turn after that owner Recovery, pay4MP for15Barrier; unrelated healing receipts do not bind ownership.",
+      "counter": "Deny recovery legality, drain mana or burst through the flat shield.",
+      "signature": "1e5516c41b04126ef4ca55dc1e3f085da8243297dc8cd5a9aafe1ddea9b60522"
+    },
+    {
+      "recordId": "resonance.chronist-cinderweaver.linked-sequence",
+      "kit": [
+        "chronist.slow",
+        "chronist.temporal-ward",
+        "cinderweaver.cinder-bolt",
+        "cinderweaver.ember-line"
+      ],
+      "why": "Fire and captured Burn can be committed two rounds ahead, demanding resource and survival planning while ordinary Fire thaw/Steam rules retain their real timing.",
+      "decision": "50AP/6MP queues Fire Power12 and15% decaying Burn; Fire caster Chilled cleanse belongs to legal cast intent and companion timing follows existing policy.",
+      "counter": "Pressure earlier, Barrier the queued HP seed or Cleanse active Burn; source capture and Steam expiry remain exact.",
+      "signature": "7264ab472066d090b97e094099bf34221df416731c3aa44e01c015e649493143"
+    },
+    {
+      "recordId": "resonance.chronist-frostweaver.linked-sequence",
+      "kit": [
+        "chronist.slow",
+        "chronist.temporal-bolt",
+        "frostweaver.ice-lance",
+        "frostweaver.crystal-prison"
+      ],
+      "why": "A present movement tax precedes next-round Ice setup, so the owner chooses whether to hinder now and exploit future facing control rather than apply one generic slow stack.",
+      "decision": "45AP/5MP Slow1 now, then Ice Power12 and explicit Chilled2 next round; clocks remain separate.",
+      "counter": "Cleanse Slow to move now, Barrier the later seed or Cleanse Chilled after activation.",
+      "signature": "bb77a05439344afd66c64778a1780ea857b4bfe67d4bc2421f8d893a0577180a"
+    },
+    {
+      "recordId": "resonance.chronist-stormsinger.linked-sequence",
+      "kit": [
+        "chronist.slow",
+        "chronist.temporal-ward",
+        "stormsinger.arc-spark",
+        "stormsinger.conductive-bolt"
+      ],
+      "why": "Prior Conductive from the Storm kit permits forecasted damage at round+2, asking whether charge can be preserved or refreshed through a real cleanse and Barrier counter-window.",
+      "decision": "50AP/6MP queues Storm Power14 and explicit Conductive2 for round+2. The player must plan whether to preserve/refresh old charge before settlement; the kernel reads the actual then-current state.",
+      "counter": "Cleanse Conductive before cast or before settlement, use Barrier, pressure the owner or end the fight earlier; no automatic charge preservation.",
+      "signature": "c4e10fbb3d6d50e6d086c50d17609b60a5dc3d5b9a5c60289ec27517a09b51ed"
+    },
+    {
+      "recordId": "resonance.chronist-tidecaller.linked-sequence",
+      "kit": [
+        "chronist.temporal-ward",
+        "chronist.haste",
+        "tidecaller.undertow",
+        "tidecaller.still-water"
+      ],
+      "why": "A nondamaging Pull changes spacing now while Self recovery is scheduled next round; recovery is independent of a hostile damage hit because no damage packet is authored.",
+      "decision": "40AP/5MP Pull1 changes enemy spacing now and Self6%HP arrives next round; this is not enemy Rewind or resource transfer.",
+      "counter": "Root/block the pull, pressure before recovery or apply Healing Down at capture.",
+      "signature": "0a2beb2287fd6eaff1db48c30cd8aa67f6902c12692ba1c50a814cf8716271bb"
+    }
+  ],
+  "reviewRound1": "Four kit-dominated choices reworked through resource/protection sacrifice, route+quarry placement, explicit Mark spend for disruption, and Poison spend for containment. Full independent re-review remains pending."
+}

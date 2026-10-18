@@ -874,3 +874,19 @@ it('keeps current-policy Vengeance basis ordinals aligned after Sensory expansio
   const result = executeCombatAction(state, command, SELECT, content)
   expect(result.state.tactical.battle.combatants.find((unit) => unit.id === 'target')?.hp).toBe(90)
 })
+
+it('does not forecast resistance, draw RNG or emit receipts for an ineligible conditional packet', () => {
+  const state = world()
+  const command = {
+    ...action([
+      { type: 'apply-status', recipient: 'primary-unit', statusId: 'test.debuff', stacks: 1 },
+    ]),
+    effectEligibleRecipientIds: [[]],
+  }
+  const quote = evaluateCombatAction(state, command, SELECT, CONTENT)
+  expect(quote.targetStatusResistances).toEqual([])
+  const result = cast(state, command)
+  expect(resistanceEvents(result.events)).toEqual([])
+  expect(result.state.tactical.battle.rng).toEqual(state.tactical.battle.rng)
+  expect(result.state.statusState.find((row) => row.combatantId === 'target')!.statuses).toEqual([])
+})

@@ -39,7 +39,7 @@ export function battleTargetReachTiles(
   const footprint = (selection: CombatTargetSelection, spec = target) => {
     const positions = resolveCombatTargetFootprint(tactical, origin, spec, selection)
     if (!spatial) return positions
-    if (spec.geometryVersion === 2 && spec.shape.kind !== 'single')
+    if ((spec.geometryVersion === 2 || spec.geometryVersion === 3) && spec.shape.kind !== 'single')
       return filterCombatTargetSpatialFootprint(
         spatial.tactical,
         origin,
@@ -61,13 +61,21 @@ export function battleTargetReachTiles(
       ? positions
       : []
   }
-  if (target.geometryVersion === 2 && target.shape.kind !== 'single') {
+  if (
+    (target.geometryVersion === 2 || target.geometryVersion === 3) &&
+    target.shape.kind !== 'single'
+  ) {
     const selections: readonly CombatTargetSelection[] =
       target.shape.kind === 'line'
         ? combatCardinalDirections.map((direction) => ({ kind: 'direction', direction }))
         : [{ kind: 'activate' }]
     for (const selection of selections) add(footprint(selection))
-    if (target.shape.kind === 'all' && target.kind === 'unit' && spatial) {
+    if (
+      target.geometryVersion === 2 &&
+      target.shape.kind === 'all' &&
+      target.kind === 'unit' &&
+      spatial
+    ) {
       const actor = spatial.tactical.battle.combatants.find(
         (unit) =>
           unit.id ===
@@ -131,8 +139,14 @@ export function battleTargetReachTiles(
   return result
 }
 
-export function battleActionDealsDamage(effects: readonly { type: string }[]) {
-  return effects.some((effect) => ['damage', 'burn', 'bleed', 'poison'].includes(effect.type))
+export function battleActionDealsDamage(
+  effects: readonly { type: string }[],
+  capturedDamage?: boolean,
+) {
+  return (
+    capturedDamage ??
+    effects.some((effect) => ['damage', 'pierce', 'burn', 'bleed', 'poison'].includes(effect.type))
+  )
 }
 
 /** Red is reserved for damage; buffs, healing and terrain share the same potential geometry. */

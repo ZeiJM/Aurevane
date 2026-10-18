@@ -17,8 +17,11 @@ import {
   preparePv1fTurnEconomy,
 } from '@aurevane/game-core/combat/pv1f-action-economy'
 import { prepareCombatAbilityCommand } from '@aurevane/game-core/combat/combat-ability-command'
+import { capturedBasicSkillSource } from '@aurevane/game-core/combat/combat-basic-actions'
 import {
   combatAbilityCommandContext,
+  combatAbilityBehavior,
+  combatControlledAbilityAvailability,
   refreezeCapturedCombatAbilityState,
 } from '@aurevane/game-core/combat/combat-behavior-runtime'
 import { essenceCombatSkill } from '@aurevane/game-core/combat/essence'
@@ -35,6 +38,7 @@ import type { CombatContentResolver } from '@/server/combat/combat-content-resol
 
 import { omitCombatExecutionMetadata } from './battle-live-viewer-projection'
 import { battleActionResourceIssue } from './battle-action-resource-availability'
+import { projectBattleCommandQuote, type BattleCommandQuote } from './battle-command-quote'
 import {
   battleBuildAuthorityForCombatant,
   resolveBattleDisciplineSkillDefinition,
@@ -65,8 +69,12 @@ export interface BattleMovePreview {
 }
 
 export interface BattleActionPreview {
+  commandCosts?: BattleCommandQuote['commandCosts']
+  commandCooldowns?: BattleCommandQuote['commandCooldowns']
   kind: 'action'
   legal: boolean
+  /** Owner-only, bound to this version and complete current target/Move/modifier intent. */
+  controlledReady?: boolean
   actionId: string
   actorId: string | null
   primaryCombatantId: string | null
@@ -198,6 +206,11 @@ async function previewIntent(
   intent: BattleIntent,
   combatContentResolver?: CombatContentResolver,
 ): Promise<BattleIntentPreview> {
+  if (intent.kind === 'ability-prime' || intent.kind === 'ability-cancel-prime')
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'Prime and cancel commands do not take a targeting preview.',
+    )
   if (intent.kind === 'move') {
     const { prepared, movement, terrainCost, economyCost } = evaluatePv1fMovement(
       state,
@@ -266,6 +279,7 @@ async function previewIntent(
             state: preparedState,
             actorId,
             root: { kind: 'canonical', source: capturedSource, behaviorId: intent.behaviorId },
+            movementPath: intent.movementPath,
             manualModifiers: intent.manualModifiers,
             selection: intent.target,
             content: PV1F_COMBAT_CONTENT,
@@ -277,6 +291,7 @@ async function previewIntent(
           prepared: preparedState,
           action: canonical.action,
           evaluation: canonical.evaluation,
+          quote: { costs: canonical.costs, participants: canonical.participants },
           cost: canonical.costs.find((row) => row.resource === 'ap')?.amount ?? 0,
         }
       : essence && essence.skill.id === intent.actionId && authority
@@ -285,7 +300,11 @@ async function previewIntent(
             essenceCombatSkill(essence),
             intent.target,
             authority.combatContext,
-            { behaviorId: intent.behaviorId, manualModifiers: intent.manualModifiers },
+            {
+              behaviorId: intent.behaviorId,
+              movementPath: intent.movementPath,
+              manualModifiers: intent.manualModifiers,
+            },
           )
         : matureDefinition &&
             matureDefinition.sourceDisciplineId === taggedTechnique?.sourceDisciplineId &&
@@ -295,10 +314,15 @@ async function previewIntent(
               matureDefinition,
               intent.target,
               authority.combatContext,
-              { behaviorId: intent.behaviorId, manualModifiers: intent.manualModifiers },
+              {
+                behaviorId: intent.behaviorId,
+                movementPath: intent.movementPath,
+                manualModifiers: intent.manualModifiers,
+              },
             )
           : evaluatePv1fAction(state, intent.actionId, intent.target, {
               behaviorId: intent.behaviorId,
+              movementPath: intent.movementPath,
               manualModifiers: intent.manualModifiers,
             })
     const { prepared, action, cost, evaluation } = resolved
@@ -347,9 +371,34 @@ async function previewIntent(
         damageTakenMultiplierBasisPoints: null,
       })
     }
+    const legal = evaluation.legal && affordable && !resourceIssue
+    const controlledSource =
+      capturedSource ??
+      (actorId ? capturedBasicSkillSource(state, actorId, intent.actionId) : undefined)
+    const controlled =
+      controlledSource && actorId
+        ? combatControlledAbilityAvailability({
+            state,
+            actorId,
+            sourceInstanceId: controlledSource.sourceInstanceId,
+            behaviorId: combatAbilityBehavior(
+              controlledSource,
+              intent.behaviorId,
+              state.effectTimingPolicy,
+            ).id,
+          })
+        : undefined
     return {
       kind: 'action',
-      legal: evaluation.legal && affordable && !resourceIssue,
+      legal,
+      ...(actorId
+        ? projectBattleCommandQuote(
+            prepared,
+            actorId,
+            resolved.quote ? { quote: resolved.quote } : { native: { action, apCost: cost } },
+          )
+        : {}),
+      ...(controlled ? { controlledReady: controlled.phase === 'primed' && legal } : {}),
       actionId: evaluation.actionId,
       actorId: evaluation.actorId,
       primaryCombatantId: evaluation.primaryCombatantId,

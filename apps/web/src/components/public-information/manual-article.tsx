@@ -5,6 +5,7 @@ import { AurevaneImage } from '@/components/media/aurevane-image'
 import type { PublicBodyBlock } from '@/content/public-information'
 
 import styles from './manual-article.module.css'
+import { ManualMechanicText } from './manual-mechanic-text'
 
 interface ManualArticleProps {
   category: string
@@ -122,8 +123,10 @@ export function ManualArticle({
                 <details className={styles.disclosure} key={disclosure.title}>
                   <summary>{disclosure.title}</summary>
                   <ul>
-                    {disclosure.bullets.map((item) => (
-                      <li key={item}>{item}</li>
+                    {disclosure.bullets.map((item, index) => (
+                      <li key={item}>
+                        <ManualMechanicText text={item} parts={disclosure.bulletParts?.[index]} />
+                      </li>
                     ))}
                   </ul>
                 </details>

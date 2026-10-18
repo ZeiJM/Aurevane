@@ -90,7 +90,11 @@ function curseCopyableField(value: boolean | undefined, onChange: (next: boolean
   )
 }
 
-function damageEditor(value: DamageEffect, onChange: (next: CombatEffectDefinition) => void) {
+function damageEditor(
+  value: DamageEffect,
+  onChange: (next: CombatEffectDefinition) => void,
+  canonical?: 'damage' | 'pierce',
+) {
   const scaling = value.scaling
   const vengeance = value.vengeance
   const facing = value.facingModifiersBasisPoints
@@ -155,15 +159,17 @@ function damageEditor(value: DamageEffect, onChange: (next: CombatEffectDefiniti
         </select>
       </label>
 
-      <label className={styles.checkField}>
-        <input
-          aria-label="Piercing"
-          type="checkbox"
-          checked={value.piercing === true}
-          onChange={(event) => onChange({ ...value, piercing: event.currentTarget.checked })}
-        />
-        <span>Piercing</span>
-      </label>
+      {!canonical ? (
+        <label className={styles.checkField}>
+          <input
+            aria-label="Piercing"
+            type="checkbox"
+            checked={value.piercing === true}
+            onChange={(event) => onChange({ ...value, piercing: event.currentTarget.checked })}
+          />
+          <span>Piercing</span>
+        </label>
+      ) : null}
 
       <label className={styles.checkField}>
         <input
@@ -234,29 +240,31 @@ function damageEditor(value: DamageEffect, onChange: (next: CombatEffectDefiniti
         </>
       ) : null}
 
-      <label className={styles.checkField}>
-        <input
-          aria-label="Vengeance enabled"
-          type="checkbox"
-          checked={vengeance !== undefined}
-          onChange={(event) => {
-            if (event.currentTarget.checked) {
+      {canonical !== 'pierce' ? (
+        <label className={styles.checkField}>
+          <input
+            aria-label="Vengeance enabled"
+            type="checkbox"
+            checked={vengeance !== undefined}
+            onChange={(event) => {
+              if (event.currentTarget.checked) {
+                const rest = { ...value }
+                Reflect.deleteProperty(rest, 'scaling')
+                onChange({
+                  ...rest,
+                  amount: 0,
+                  vengeance: { conversionBasisPoints: 5_000, maximumDamage: 80 },
+                })
+                return
+              }
               const rest = { ...value }
-              Reflect.deleteProperty(rest, 'scaling')
-              onChange({
-                ...rest,
-                amount: 0,
-                vengeance: { conversionBasisPoints: 5_000, maximumDamage: 80 },
-              })
-              return
-            }
-            const rest = { ...value }
-            Reflect.deleteProperty(rest, 'vengeance')
-            onChange(rest)
-          }}
-        />
-        <span>Vengeance conversion</span>
-      </label>
+              Reflect.deleteProperty(rest, 'vengeance')
+              onChange(rest)
+            }}
+          />
+          <span>Vengeance conversion</span>
+        </label>
+      ) : null}
 
       {vengeance ? (
         <>
@@ -526,14 +534,15 @@ function assertNever(value: never): never {
 export interface SkillEffectEditorProps {
   readonly value: CombatEffectDefinition
   readonly onChange: (next: CombatEffectDefinition) => void
+  readonly canonicalDamage?: 'damage' | 'pierce'
 }
 
-export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
+export function SkillEffectEditor({ value, onChange, canonicalDamage }: SkillEffectEditorProps) {
   let controls
 
   switch (value.type) {
     case 'damage':
-      controls = damageEditor(value, onChange)
+      controls = damageEditor(value, onChange, canonicalDamage)
       break
 
     case 'percentage-recovery':
@@ -785,6 +794,25 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
     case 'remove-status':
       controls = (
         <div className={styles.typedGrid}>
+          <label className={styles.field}>
+            <span>Status removal mode</span>
+            <select
+              aria-label="Status removal mode"
+              value={value.removalMode ?? 'standard'}
+              onChange={(event) => {
+                if (event.currentTarget.value === 'specified')
+                  onChange({ ...value, removalMode: 'specified' })
+                else {
+                  const next = { ...value }
+                  delete next.removalMode
+                  onChange(next)
+                }
+              }}
+            >
+              <option value="standard">Cleanse / Dispel</option>
+              <option value="specified">Only listed statuses</option>
+            </select>
+          </label>
           {recipientField('Status removal recipient', value.recipient, (recipient) =>
             onChange({ ...value, recipient }),
           )}
@@ -806,9 +834,11 @@ export function SkillEffectEditor({ value, onChange }: SkillEffectEditorProps) {
               }
             />
             <small className={styles.fieldHint}>
-              {isCleanseChilledEffect(value)
-                ? 'Cleanse Chilled removes only Chilled from the authored recipient; other statuses remain.'
-                : 'Cleanse removes Burn, Bleed, Poison, Slow, Rooted, Vulnerable, Marked and Taunted. Dispel removes authored positive statuses.'}
+              {value.removalMode === 'specified'
+                ? 'Remove only the listed statuses. Other statuses remain, including Suppress unless explicitly listed.'
+                : isCleanseChilledEffect(value)
+                  ? 'Cleanse Chilled removes only Chilled from the authored recipient; other statuses remain.'
+                  : 'Cleanse removes Burn, Bleed, Poison, Slow, Rooted, Vulnerable, Marked and Taunted. Dispel removes authored positive statuses.'}
             </small>
             {isCleanseEffect(value) ? (
               <button

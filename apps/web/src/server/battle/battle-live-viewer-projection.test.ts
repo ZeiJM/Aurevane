@@ -1,5 +1,20 @@
+import { readFileSync } from 'node:fs'
+import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
+import { capturedMatureSkillAbilitySource } from '@aurevane/game-core/combat/combat-action-source'
+import {
+  resolveBattleCapturedSkill,
+  selectBattleSkillPreviewIntent,
+} from '@/components/battle/battle-preview-selection'
+import {
+  captureBasicSkillSources,
+  defaultBasicSkills,
+} from '@aurevane/game-core/combat/combat-basic-actions'
 import { captureCombatAbilitySource } from '@aurevane/game-core/combat/combat-behavior-capture'
-import { reconcileCombatAbilitySources } from '@aurevane/game-core/combat/combat-behavior-runtime'
+import {
+  reconcileCombatAbilitySources,
+  primeCombatControlledAbility,
+  cancelCombatControlledAbility,
+} from '@aurevane/game-core/combat/combat-behavior-runtime'
 import {
   createCombatActionProvenance,
   createCombatEffectInstanceProvenance,
@@ -15,15 +30,17 @@ import { createPendingBattle, startBattle } from '@aurevane/game-core/combat/bat
 import { createTacticalBattleState } from '@aurevane/game-core/combat/board'
 import {
   createStatDrivenCombatEncounterState,
+  reattachStatDrivenCombatBridge,
   type StatDrivenCombatEncounterState,
   type StatDrivenCombatProfile,
 } from '@aurevane/game-core/combat/stat-driven-combat'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, expectTypeOf, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
 
 import {
   omitPendingBattlePayloads,
+  projectBattleManualActionTargets,
   projectBattleEffectStateForViewer,
   projectBattleStatusStateForViewer,
 } from './battle-live-viewer-projection'
@@ -41,12 +58,15 @@ it('strips private captured Ability and command execution authority from actual 
     abilityRuntime: { usage: [1] },
     modifierSuppressions: [{ sourceInstanceId: 'private-source', reason: 'insufficient-ap' }],
     nativeBasicAttackCommand: true,
+    groundTargetedRecipientIds: ['actor'],
     commandDamageBonuses: [1],
     effectEligibleRecipientIds: [['actor']],
     effectTimingModes: ['delayed'],
   }
   expect(omitPendingBattlePayloads(privateState)).toEqual({ visible: 'yes' })
 })
+
+import { battleEffectInformation } from '@/components/battle/battle-effect-information'
 
 const PLAYER = 'character:player'
 const ALLY = 'character:ally'
@@ -190,7 +210,7 @@ describe('CSR-2 live viewer-relative status projection', () => {
         sourceInstanceId: `private-capture:${sourceKind}:${ownerCombatantId}`,
         ownerCombatantId,
         abilityId: 'owned.ability',
-        contentVersion: 1,
+        contentVersion: 7,
         sourceKind,
         sourceDisciplineId: 'vanguard',
         tags: ['attack'],
@@ -239,6 +259,10 @@ describe('CSR-2 live viewer-relative status projection', () => {
         ownerCombatantId: PLAYER,
         behaviorId: 'manual',
         costs: [],
+        abilityId: 'owned.ability',
+        contentVersion: 7,
+        compatibility: { payloadsSupported: true, requiresExplicitUnit: false },
+        report: expect.objectContaining({ effects: expect.any(Array) }),
       }),
     ])
     const opposite = projectCommittedBattleSession(committed(state), [ENEMY]).snapshot
@@ -701,4 +725,512 @@ it('scrubs concealed enemy provenance even when its debuff holder is self or all
   for (const id of [PLAYER, ALLY])
     expect(rows.find((row) => row.combatantId === id)?.statuses[0]).not.toHaveProperty('provenance')
   expect(state.statusState).toEqual(before)
+})
+
+it('projects captured Basic Attack geometry under its actual command identity without private definitions', () => {
+  const base = encounter()
+  const state = reattachStatDrivenCombatBridge(
+    reconcileCombatAbilitySources(
+      base,
+      captureBasicSkillSources({
+        ownerCombatantId: PLAYER,
+        supportActionId: 'basic.guard',
+        definitions: defaultBasicSkills(),
+      }),
+    ),
+    base.statBridge,
+  )
+  const view = projectBattleSnapshot(
+    state,
+    deriveParticipantBattleViewerEntitlement(state.tactical.battle.combatants, [PLAYER]),
+  )
+  expect(view.manualActionTargets).toContainEqual(
+    expect.objectContaining({ actionId: 'basic.attack.unarmed.basic', behaviorId: 'use' }),
+  )
+  expect(view.manualActionTargets?.some((row) => row.actionId === 'unarmed.basic')).toBe(false)
+  expect(JSON.stringify(view)).not.toMatch(
+    /capturedAbilitySources|sourceInstanceId|scalingBasisPoints/,
+  )
+})
+
+function controlledProjectionState(configured = false) {
+  const owned = (ownerCombatantId: string) =>
+    captureCombatAbilitySource({
+      schemaVersion: 1,
+      sourceInstanceId: `private-controlled:${ownerCombatantId}`,
+      ownerCombatantId,
+      abilityId: 'chronist.private-step',
+      contentVersion: 7,
+      sourceKind: 'discipline-skill',
+      sourceDisciplineId: 'chronist',
+      tags: [],
+      definition: {
+        schemaVersion: 1,
+        behaviors: ['step', 'alternate'].map((id) => ({
+          id,
+          activation: 'manual' as const,
+          mode: 'action' as const,
+          classification: 'utility' as const,
+          costs: [{ resource: 'mp' as const, amount: 999 }],
+          cooldown: null,
+          requirements: {
+            kind: 'resource-state' as const,
+            subject: 'owner' as const,
+            resource: 'hp' as const,
+            comparison: 'at-least' as const,
+            amount: 9999,
+          },
+          targeting: {
+            kind: 'self' as const,
+            teamPolicy: 'self' as const,
+            friendlyFire: 'allies-only' as const,
+            shape: { kind: 'single' as const },
+            minimumRange: 0,
+            maximumRange: 0,
+            maximumSelections: 1,
+            maximumElevationDifference: null,
+            requiresLineOfSight: false,
+          },
+          effects: [
+            {
+              id: 'rewind',
+              ...(configured ? {} : { timing: 'controlled' as const }),
+              payload: {
+                type: 'return-to-turn-start' as const,
+                recipient: 'actor' as const,
+                anchorMode: 'cast-position' as const,
+              },
+            },
+          ],
+        })),
+      },
+    })
+  const captures = [PLAYER, ALLY, ENEMY].map(owned)
+  const base = encounter()
+  return {
+    captures,
+    state: reattachStatDrivenCombatBridge(
+      reconcileCombatAbilitySources(
+        {
+          ...base,
+          ...(configured
+            ? {
+                effectTimingPolicy: {
+                  version: 12,
+                  modes: { 'return-to-turn-start': 'controlled' as const },
+                },
+              }
+            : {}),
+        },
+        captures,
+      ),
+      base.statBridge,
+    ),
+  }
+}
+
+it.each([false, true])(
+  'projects only owner Controlled command state without private anchor or conditions (configured=%s)',
+  (configured) => {
+    const { state, captures } = controlledProjectionState(configured)
+    const own = captures[0]!
+    const viewer = deriveParticipantBattleViewerEntitlement(state.tactical.battle.combatants, [
+      PLAYER,
+    ])
+    const rows = projectBattleSnapshot(state, viewer).manualActionTargets!
+    expect(rows).toHaveLength(2)
+    expect(rows.find((row) => row.behaviorId === 'step')).toMatchObject({
+      actionId: own.abilityId,
+      behaviorId: 'step',
+      controlled: { phase: 'unprimed', canPrime: true, canCancel: false },
+    })
+    const before = JSON.stringify(state)
+    projectBattleSnapshot(state, viewer)
+    expect(JSON.stringify(state)).toBe(before)
+    const primed = primeCombatControlledAbility({
+      state,
+      actorId: PLAYER,
+      sourceInstanceId: own.sourceInstanceId,
+      behaviorId: 'step',
+    }).state as StatDrivenCombatEncounterState
+    const restored = JSON.parse(JSON.stringify(primed)) as StatDrivenCombatEncounterState
+    const publicView = projectBattleSnapshot(restored, viewer)
+    expect(publicView.manualActionTargets).toEqual([
+      expect.objectContaining({
+        behaviorId: 'alternate',
+        controlled: { phase: 'spent', canPrime: false, canCancel: false },
+      }),
+      expect.objectContaining({
+        behaviorId: 'step',
+        controlled: { phase: 'primed', canPrime: false, canCancel: true },
+      }),
+    ])
+    expect(JSON.stringify(publicView)).not.toMatch(
+      /private-controlled|returnAnchor|conditionTruth|"requirements"|contentVersion":7/,
+    )
+    expect(Object.fromEntries(publicView.manualActionTargets![0]!.report!.rows).Requirements).toBe(
+      'You: HP ≥ 9999',
+    )
+    const cancelled = cancelCombatControlledAbility({
+      state: primed,
+      actorId: PLAYER,
+      sourceInstanceId: own.sourceInstanceId,
+      behaviorId: 'step',
+    }).state as StatDrivenCombatEncounterState
+    expect(projectBattleSnapshot(cancelled, viewer).manualActionTargets?.[0]).toMatchObject({
+      controlled: { phase: 'spent', canPrime: false, canCancel: false },
+    })
+    expect(
+      projectBattleSnapshot(
+        primed,
+        deriveParticipantBattleViewerEntitlement(state.tactical.battle.combatants, [ALLY]),
+      ).manualActionTargets,
+    ).toEqual([
+      expect.objectContaining({
+        controlled: { phase: 'unprimed', canPrime: false, canCancel: false },
+      }),
+      expect.objectContaining({
+        controlled: { phase: 'unprimed', canPrime: false, canCancel: false },
+      }),
+    ])
+    expect(
+      projectBattleSnapshot(primed, createSpectatorBattleViewerEntitlement()).manualActionTargets,
+    ).toEqual([])
+  },
+)
+
+// A captured non-Move action must expose the same payment/cooldown used by execution.
+it('projects owner-scoped typed costs and cooldowns for every Manual group without leaking execution', () => {
+  const { state, captures } = controlledProjectionState()
+  const owned = captures[0]!
+  const edited = {
+    ...owned,
+    definition: {
+      ...owned.definition,
+      behaviors: owned.definition.behaviors.map((behavior) => ({
+        ...behavior,
+        costs: [
+          { resource: 'ap' as const, amount: 11 },
+          { resource: 'mp' as const, amount: 2 },
+          { resource: 'hp' as const, amount: 1 },
+        ],
+        cooldown: { key: 'captured-only', ownerTurns: 3 },
+      })),
+    },
+  }
+  const captured = { ...state, capturedAbilitySources: [edited, ...captures.slice(1)] }
+  const before = JSON.stringify(captured)
+  const view = projectBattleSnapshot(
+    captured,
+    deriveParticipantBattleViewerEntitlement(captured.tactical.battle.combatants, [PLAYER]),
+  )
+  expect(view.manualActionTargets).toHaveLength(2)
+  for (const row of view.manualActionTargets!)
+    expect(row).toMatchObject({
+      ownerCombatantId: PLAYER,
+      costs: edited.definition.behaviors[0]!.costs,
+      cooldown: { key: 'captured-only', ownerTurns: 3 },
+    })
+  expect(JSON.stringify(view.manualActionTargets)).not.toMatch(
+    /accuracy|requirements|private-controlled|returnAnchor/,
+  )
+  expect(JSON.stringify(captured)).toBe(before)
+})
+
+it('projects a detached complete report from the actual owner Manual capture without private accuracy or payloads', () => {
+  const base = encounter()
+  const behavior = defaultBasicSkills().find((row) => row.id === 'unarmed.basic')!.ability
+    .behaviors[0]!
+  const source = captureCombatAbilitySource({
+    schemaVersion: 1,
+    sourceInstanceId: 'private-report-source',
+    ownerCombatantId: PLAYER,
+    abilityId: 'fixture.precise-strike',
+    contentVersion: 73,
+    sourceKind: 'discipline-skill',
+    sourceDisciplineId: 'vanguard',
+    tags: ['attack'],
+    definition: {
+      schemaVersion: 1,
+      behaviors: [
+        {
+          ...behavior,
+          id: 'precise',
+          costs: [
+            { resource: 'ap', amount: 7 },
+            { resource: 'mp', amount: 3 },
+            { resource: 'hp', amount: 2 },
+          ],
+          cooldown: { key: 'captured-report', ownerTurns: 3 },
+          activationLimits: ['once-per-round'],
+          accuracy: { kind: 'fixed', chanceBasisPoints: 7777 },
+          requirements: {
+            kind: 'resource-state',
+            subject: 'owner',
+            resource: 'mp',
+            comparison: 'at-least',
+            amount: 3,
+          },
+          targeting: {
+            ...behavior.targeting!,
+            maximumRange: 4,
+            maximumSelections: 2,
+            geometryVersion: 3,
+            categories: ['enemy'],
+          },
+          effects: [
+            { id: 'move', payload: { type: 'move', recipient: 'actor', maximumTiles: 2 } },
+            {
+              id: 'hit',
+              timing: 'controlled',
+              payload: { type: 'damage', recipient: 'affected-units', amount: 13 },
+            },
+          ],
+        },
+      ],
+    },
+  })
+  const state = reattachStatDrivenCombatBridge(
+    reconcileCombatAbilitySources(base, [source]),
+    base.statBridge,
+  )
+  const before = JSON.stringify(state)
+  const viewer = deriveParticipantBattleViewerEntitlement(state.tactical.battle.combatants, [
+    PLAYER,
+  ])
+  const rows = projectBattleManualActionTargets(state, viewer)
+  expect(rows).toHaveLength(1)
+  expect(rows[0]).toHaveProperty('report')
+  const report = rows[0]!.report!
+  expect(report.rows.map(([label]) => label)).toEqual([
+    'Skill Type',
+    'Cost',
+    'Cooldown',
+    'Requirements',
+    'Effects',
+    'Range',
+    'Target',
+    'Target Method',
+    'Target Elevation',
+    'Line of Sight',
+  ])
+  expect(Object.fromEntries(report.rows)).toMatchObject({
+    Cost: '7 AP / 3 MP / 2 HP',
+    Cooldown: '3 turns',
+    Requirements: 'You: MP ≥ 3',
+    Range: '4',
+    Target: 'Enemy',
+    'Target Method': 'Single · Up to 2 distinct targets',
+  })
+  expect(report.effects.map((effect) => effect.parts.label)).toEqual(['Move', 'Dmg'])
+  expect(report.effects[1]!.parts).toMatchObject({ magnitude: '13', timing: 'Controlled' })
+  expect(report.limits).toEqual(['Once per round'])
+  expect(JSON.stringify(report)).not.toMatch(
+    /accuracy|chanceBasisPoints|payload|private-report-source|sourceInstanceId/,
+  )
+  expect(projectBattleManualActionTargets(state, createSpectatorBattleViewerEntitlement())).toEqual(
+    [],
+  )
+  Object.assign(report.effects[0]!.parts, { label: 'Local edit' })
+  expect(projectBattleManualActionTargets(state, viewer)[0]!.report!.effects[0]!.parts.label).toBe(
+    'Move',
+  )
+  expect(JSON.stringify(state)).toBe(before)
+})
+
+it('derives report descriptions from the encounter elemental pin rather than current global defaults', () => {
+  const base = encounter()
+  const behavior = defaultBasicSkills().find((row) => row.id === 'unarmed.basic')!.ability
+    .behaviors[0]!
+  const source = captureCombatAbilitySource({
+    schemaVersion: 1,
+    sourceInstanceId: 'private-fire-report',
+    ownerCombatantId: PLAYER,
+    abilityId: 'fixture.fire-report',
+    contentVersion: 1,
+    sourceKind: 'discipline-skill',
+    tags: ['attack'],
+    definition: {
+      schemaVersion: 1,
+      behaviors: [
+        {
+          ...behavior,
+          effects: [
+            {
+              id: 'hit',
+              payload: { type: 'damage', recipient: 'primary-unit', amount: 13, element: 'fire' },
+            },
+            {
+              id: 'thaw',
+              payload: { type: 'remove-status', recipient: 'actor', statusIds: ['frozen'] },
+            },
+          ],
+        },
+      ],
+    },
+  })
+  const state = reattachStatDrivenCombatBridge(
+    reconcileCombatAbilitySources(base, [source]),
+    base.statBridge,
+  )
+  const viewer = deriveParticipantBattleViewerEntitlement(state.tactical.battle.combatants, [
+    PLAYER,
+  ])
+  const old = projectBattleManualActionTargets(state, viewer)[0]!.report!
+  const current = projectBattleManualActionTargets(
+    { ...state, elementalDamagePolicyVersion: 2 },
+    viewer,
+  )[0]!.report!
+  expect(old.effectDescriptions[0]).toContain('Positive fire damage removes Wet and Frozen')
+  expect(current.effectDescriptions[0]).not.toContain('removes Wet and Frozen')
+})
+
+it('recursively removes private hit authoring from composed snapshot metadata without removing combat stats or forecasts', () => {
+  const base = encounter()
+  const state = {
+    ...base,
+    presentation: {
+      nested: [
+        {
+          definition: {
+            accuracyRule: { kind: 'fixed', chanceBasisPoints: 7777 },
+            accuracyMode: 'per-target',
+            accuracyModifierBasisPoints: 88,
+            ability: { behaviors: [{ accuracy: { kind: 'standard' } }] },
+          },
+        },
+      ],
+      forecast: { hitChanceBasisPoints: 6400 },
+      proc: { chanceBasisPoints: 2500 },
+    },
+  }
+  expectTypeOf<
+    Extract<
+      keyof ReturnType<typeof projectBattleSnapshot>,
+      'capturedAbilitySources' | 'abilityRuntime' | 'pendingEffects' | 'pendingSummons'
+    >
+  >().toEqualTypeOf<never>()
+  const before = JSON.stringify(state)
+  for (const viewer of [
+    deriveParticipantBattleViewerEntitlement(state.tactical.battle.combatants, [PLAYER]),
+    createSpectatorBattleViewerEntitlement(),
+  ]) {
+    const result = projectBattleSnapshot(state, viewer)
+    expect(JSON.stringify(result)).not.toMatch(
+      /accuracyRule|accuracyMode|accuracyModifierBasisPoints|7777|"accuracy":\{/,
+    )
+    expect(result.statBridge.combatants[0]!.accuracy).toBe(10000)
+    expect(result).toHaveProperty('presentation.forecast.hitChanceBasisPoints', 6400)
+    expect(result).toHaveProperty('presentation.proc.chanceBasisPoints', 2500)
+  }
+  expect(JSON.stringify(state)).toBe(before)
+})
+
+it.each([undefined, 1, 2] as const)(
+  'actual proposed Flame Burst keeps captured player Enemy/Ground intent under policy %s',
+  (policy) => {
+    const rows: { id: string; after: MatureSkillDefinition }[] = JSON.parse(
+      readFileSync(
+        new URL(
+          '../../../../../docs/superpowers/specs/2026-10-10-roster-rebalance-proposals.json',
+          import.meta.url,
+        ),
+        'utf8',
+      ),
+    ).records
+    const definition = rows.find((row) => row.id === 'cinderweaver.flame-burst')!.after
+    const base = { ...encounter(), elementalDamagePolicyVersion: policy }
+    const source = capturedMatureSkillAbilitySource(base, definition, PLAYER)!
+    const state = reattachStatDrivenCombatBridge(
+      reconcileCombatAbilitySources(base, [source]),
+      base.statBridge,
+    )
+    const viewer = deriveParticipantBattleViewerEntitlement(state.tactical.battle.combatants, [
+      PLAYER,
+    ])
+    const before = JSON.stringify(state)
+    const choices = projectBattleManualActionTargets(state, viewer)
+    // Deliberately stale native presentation must not supply captured capability.
+    const skill = resolveBattleCapturedSkill(
+      {
+        id: definition.id,
+        targetKind: 'self',
+        targetTeamPolicy: 'self',
+        minimumRange: 0,
+        maximumRange: 0,
+        groundIntentCapable: false,
+      },
+      choices,
+    )!
+    expect(skill.groundIntentCapable).toBe(policy === 2)
+    const combatants = state.tactical.placements.map((placement) => ({
+      combatantId: placement.combatantId,
+      position: placement.position,
+      hp: 100,
+      teamIndex: [PLAYER, ALLY].includes(placement.combatantId) ? 0 : 1,
+    }))
+    const selected = {
+      actorId: PLAYER,
+      selectedCombatantId: null,
+      selectedTile: { x: 0, y: 0 },
+      combatants,
+    }
+    expect(selectBattleSkillPreviewIntent(skill, selected)?.target).toEqual({
+      kind: 'activate',
+      ...(policy === 2 ? { ground: true } : {}),
+    })
+    expect(
+      selectBattleSkillPreviewIntent(skill, {
+        ...selected,
+        selectedCombatantId: ENEMY,
+        selectedTile: { x: 2, y: 0 },
+      })?.target,
+    ).toEqual({ kind: 'activate' })
+    expect(
+      projectBattleManualActionTargets(state, createSpectatorBattleViewerEntitlement()),
+    ).toEqual([])
+    expect(JSON.stringify(choices)).not.toMatch(
+      /"(?:chanceBasisPoints|effectOrigins|sourceInstanceId|caster)"\s*:/,
+    )
+    expect(JSON.stringify(state)).toBe(before)
+  },
+)
+
+it('carries the captured application-stacking policy into public instance readers without changing legacy snapshots', () => {
+  const old = encounter()
+  old.statusState = old.statusState.map((row) =>
+    row.combatantId === PLAYER
+      ? {
+          ...row,
+          statuses: [
+            {
+              ...status('guarded', PLAYER),
+              stacks: 2,
+              potencyBasisPoints: 1000,
+              applicationModifiers: [
+                { stacks: 1, sourceCombatantId: PLAYER, potencyBasisPoints: 1000 },
+                { stacks: 1, sourceCombatantId: PLAYER, potencyBasisPoints: 2000 },
+              ],
+            },
+          ],
+        }
+      : row,
+  )
+  const current = { ...old, effectStackingPolicyVersion: 1 as const }
+  const before = JSON.stringify(current)
+  const viewer = createSpectatorBattleViewerEntitlement()
+  const now = projectBattleStatusStateForViewer(current, viewer)
+    .find((row) => row.combatantId === PLAYER)!
+    .statuses.find((row) => row.statusId === 'guarded')!
+  expect(now).toMatchObject({ effectStackingPolicyVersion: 1, stacks: 2 })
+  expect(battleEffectInformation(now).incoming).toBe('−28%')
+  const legacy = projectBattleStatusStateForViewer(old, viewer)
+    .find((row) => row.combatantId === PLAYER)!
+    .statuses.find((row) => row.statusId === 'guarded')!
+  expect(battleEffectInformation(legacy).incoming).toBe('−19%')
+  expect(
+    projectBattleStatusStateForViewer(old, viewer).find((row) => row.combatantId === PLAYER)!
+      .statuses[0],
+  ).not.toHaveProperty('effectStackingPolicyVersion')
+  expect(JSON.stringify(current)).toBe(before)
 })

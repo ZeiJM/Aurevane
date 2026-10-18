@@ -347,6 +347,9 @@ jobs:
             exit 1
           fi
 
+      - name: Verify combat catalogue publication across real PostgreSQL sessions
+        run: bash .github/scripts/verify-combat-catalogue-concurrency.sh
+
       - name: Stop local Supabase services
         if: always()
         run: pnpm exec supabase stop --no-backup

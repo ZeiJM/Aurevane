@@ -3,7 +3,11 @@ import { PHASE4_STATUSES } from '@aurevane/game-core/combat/status-content'
 
 import { aggregateBattleStatusStacks, summarizeBattleEffects } from './battle-effect-summary'
 import { BattleInfoPopover } from './battle-info-popover'
-import { describeBattleEffect } from './battle-effect-identity'
+import {
+  BattleEffectInformation,
+  BattleEffectPopover,
+  battleEffectInformation,
+} from './battle-effect-information'
 import { statusDamageMultiplierBasisPoints } from '../../lib/status-potency-presentation'
 import styles from './battle-combatant-effects.module.css'
 import type { BattlePresentedStatus } from '../../lib/battle/battle-elevation-effects'
@@ -85,7 +89,7 @@ export function BattleCombatantEffects({
             <span className={styles.noEffects}>No combat effects</span>
           ) : (
             effects.map((effect, index) => {
-              const details = describeBattleEffect(effect)
+              const details = battleEffectInformation(effect)
               const tone =
                 details.kind === 'Buff'
                   ? 'positive'
@@ -98,13 +102,9 @@ export function BattleCombatantEffects({
                   data-tone={tone}
                   data-effect-timing={details.timingState}
                 >
-                  <BattleInfoPopover
-                    label={`Explain ${details.label}, ${details.timing} · ${details.duration}`}
-                    description={details.explanation}
-                    title={details.label}
+                  <BattleEffectPopover
+                    effect={effect}
                     className={styles.icon}
-                    hover
-                    consumeOutsideClick
                     trigger={
                       <>
                         <i aria-hidden="true">{details.identifier}</i>
@@ -113,17 +113,7 @@ export function BattleCombatantEffects({
                         ) : null}
                       </>
                     }
-                  >
-                    <p>
-                      <strong>{details.kind}</strong> · {details.description}
-                    </p>
-                    <p>
-                      {details.timing} · {details.duration}
-                    </p>
-                    <p>
-                      {effect.stacks} stack{effect.stacks === 1 ? '' : 's'}
-                    </p>
-                  </BattleInfoPopover>
+                  />
                 </span>
               )
             })
@@ -147,14 +137,14 @@ export function BattleCombatantEffects({
             trigger={`All ${effects.length}`}
           >
             {effects.map((effect, index) => {
-              const details = describeBattleEffect(effect)
+              const details = battleEffectInformation(effect)
               return (
                 <section key={`${effect.statusId}:${effect.statusVersion}:${index}`}>
                   <strong>
                     {details.label} · {details.counterLabel}
                     {effect.stacks > 1 ? ` · ×${effect.stacks}` : ''}
                   </strong>
-                  <p>{details.explanation}</p>
+                  <BattleEffectInformation effect={effect} />
                 </section>
               )
             })}
@@ -166,7 +156,7 @@ export function BattleCombatantEffects({
       ) : (
         <div className={styles.list}>
           {effects.slice(0, limit).map((effect, index) => {
-            const details = describeBattleEffect(effect)
+            const details = battleEffectInformation(effect)
             const tone =
               details.kind === 'Buff'
                 ? 'positive'
@@ -180,13 +170,9 @@ export function BattleCombatantEffects({
                 data-effect-timing={details.timingState}
                 data-battle-effect-kind={details.kind}
               >
-                <BattleInfoPopover
-                  label={`Explain ${details.label}, ${details.timing} · ${details.duration}`}
-                  description={details.explanation}
-                  title={details.label}
+                <BattleEffectPopover
+                  effect={effect}
                   className={styles.effectButton}
-                  hover
-                  consumeOutsideClick
                   trigger={
                     <>
                       <span className={styles.identity}>
@@ -200,17 +186,7 @@ export function BattleCombatantEffects({
                       <EffectModifiers effect={effect} />
                     </>
                   }
-                >
-                  <p>
-                    <strong>{details.kind}</strong> · {details.description}
-                  </p>
-                  <p>
-                    {details.timing} · {details.duration}
-                  </p>
-                  <p>
-                    {effect.stacks} stack{effect.stacks === 1 ? '' : 's'}
-                  </p>
-                </BattleInfoPopover>
+                />
               </div>
             )
           })}

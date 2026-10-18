@@ -15,7 +15,7 @@ describe('compact repeated effect reports', () => {
     expect(skillEffectSummaries(sevenfold)).toEqual(['Dmg [9] ×7'])
     expect(skillPreviewEffects(sevenfold)).toHaveLength(1)
     const html = renderToStaticMarkup(<SkillDetails skill={sevenfold} expanded />)
-    expect(html).toContain('Dmg [9] ×7')
+    expect(html.replace(/<[^>]*>/g, '')).toContain('Dmg [9] ×7')
     expect(html.match(/Skill power ranges from 1 to 20/g)).toHaveLength(1)
     expect(sevenfold.effects).toHaveLength(7)
   })

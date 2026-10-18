@@ -11,10 +11,19 @@ import { ResonanceParameters } from '../character/resonance-parameters'
 import { BattleInfoPopover } from './battle-info-popover'
 import { battleCooldownLabel } from './battle-action-cooldown'
 import { BattleSkillCooldown } from './battle-skill-cooldown'
+import { BattleControlledReady } from './battle-controlled-ready'
 import { BattleSkillParameters } from './battle-skill-parameters'
 import type { BattleRuntime } from './battle-runtime'
 import { battleResonanceArtwork, battleSkillArtwork } from './battle-skill-presentation'
 import styles from './battle-selected-skills.module.css'
+import {
+  battleCapturedActionChoices,
+  battleCapturedActionCost,
+  battleCapturedSpecialAction,
+  battleSkillCastMode,
+} from './battle-captured-action-cost'
+import type { BattleCapturedActionTarget } from './battle-preview-selection'
+import type { BattleSkillForecastPresentation } from './battle-runtime'
 
 function disciplineName(id: string): string {
   return id
@@ -54,7 +63,13 @@ export function BattleSelectedSkills({
   activeId,
   disabled,
   actionEconomy,
+  actorId = null,
+  manualActionTargets = [],
+  resources,
+  selectedBehavior,
   cooldowns = {},
+  primeAvailableIds = [],
+  readyActionId,
   onSelect,
   bindings = DEFAULT_COMBAT_KEYBINDS,
 }: {
@@ -62,16 +77,101 @@ export function BattleSelectedSkills({
   activeId?: string
   disabled: boolean
   actionEconomy: number
+  actorId?: string | null
+  manualActionTargets?: readonly BattleCapturedActionTarget[]
+  resources?: { mp: number; hp: number }
+  selectedBehavior?: { actionId: string; behaviorId: string } | null
   cooldowns?: Readonly<Record<string, number>>
+  primeAvailableIds?: readonly string[]
+  readyActionId?: string
   bindings?: CombatKeybindMap
   onSelect: (skillId: string, category: 'attack' | 'defense' | 'heal') => void
 }) {
+  const actionCost = (skill: BattleSkillForecastPresentation) =>
+    battleCapturedActionCost(
+      battleCapturedActionChoices(manualActionTargets, skill.id, actorId),
+      [
+        { resource: 'ap', amount: skill.apCost },
+        { resource: 'mp', amount: skill.mpCost },
+      ],
+      { ap: actionEconomy, mp: resources?.mp ?? Infinity, hp: resources?.hp ?? Infinity },
+      selectedBehavior?.actionId === skill.id ? selectedBehavior.behaviorId : undefined,
+    )
+  const essenceCost = runtime.essence ? actionCost(runtime.essence) : undefined
+  const essenceMode = runtime.essence ? battleSkillCastMode(runtime.essence) : undefined
+  const resonanceMode = runtime.resonance?.definition?.ability
+    ? battleSkillCastMode(runtime.resonance)
+    : undefined
+  const special = battleCapturedSpecialAction(
+    runtime,
+    manualActionTargets,
+    actorId,
+    undefined,
+    selectedBehavior && selectedBehavior.actionId === runtime.resonance?.id
+      ? selectedBehavior.behaviorId
+      : undefined,
+  )
+  const resonanceSkill = special?.kind === 'resonance' ? special.skill : undefined
+  const resonanceCost = resonanceSkill ? actionCost(resonanceSkill) : undefined
+  const resonancePrime =
+    !!resonanceSkill &&
+    !resonanceCost?.controlledSpent &&
+    primeAvailableIds.includes(resonanceSkill.id)
+  const resonanceDisabled =
+    disabled ||
+    (resonanceCost?.controlledSpent && !resonanceCost.chooseAction) ||
+    (!resonancePrime &&
+      !resonanceCost?.chooseAction &&
+      !!resonanceSkill &&
+      (!resonanceCost?.affordable || (cooldowns[resonanceSkill.id] ?? 0) > 0))
+  const resonanceReady =
+    !!resonanceSkill &&
+    readyActionId === resonanceSkill.id &&
+    !resonanceDisabled &&
+    !resonancePrime &&
+    !resonanceCost?.chooseAction
+  const essencePrime =
+    !!runtime.essence &&
+    !essenceCost?.controlledSpent &&
+    primeAvailableIds.includes(runtime.essence.id)
+  const essenceDisabled =
+    disabled ||
+    (essenceCost?.controlledSpent && !essenceCost.chooseAction) ||
+    essenceMode?.canCast === false ||
+    (!essencePrime &&
+      !essenceCost?.chooseAction &&
+      !!runtime.essence &&
+      (!essenceCost?.affordable || (cooldowns[runtime.essence.id] ?? 0) > 0))
+  const essenceReady =
+    !!runtime.essence &&
+    readyActionId === runtime.essence.id &&
+    !essenceDisabled &&
+    !essencePrime &&
+    !essenceCost?.chooseAction
   return (
     <div className={styles.root} data-battle-selected-skills="true">
       <div className={styles.skills} aria-label="Selected Discipline Skills">
         {Array.from({ length: 4 }, (_, index) => {
           const skill = runtime.techniques?.[index]
+          const castMode = skill ? battleSkillCastMode(skill) : undefined
+          const payment = skill ? actionCost(skill) : undefined
           const cooldownTurns = skill ? (cooldowns[skill.id] ?? 0) : 0
+          const primeAvailable =
+            !!skill && !payment?.controlledSpent && primeAvailableIds.includes(skill.id)
+          const actionDisabled =
+            disabled ||
+            (payment?.controlledSpent && !payment.chooseAction) ||
+            castMode?.canCast === false ||
+            (!primeAvailable &&
+              !payment?.chooseAction &&
+              !!skill &&
+              (!payment?.affordable || cooldownTurns > 0))
+          const ready =
+            !!skill &&
+            readyActionId === skill.id &&
+            !actionDisabled &&
+            !primeAvailable &&
+            !payment?.chooseAction
           const binding = bindings[(['skill1', 'skill2', 'skill3', 'skill4'] as const)[index]!]
           const hotkey = formatCombatKeybind(binding)
           return (
@@ -79,6 +179,7 @@ export function BattleSelectedSkills({
               key={index}
               className={skill ? styles.skill : styles.empty}
               data-battle-skill-slot={index + 1}
+              data-battle-noncast={castMode?.canCast === false ? castMode.kind : undefined}
             >
               {skill ? (
                 <>
@@ -86,9 +187,9 @@ export function BattleSelectedSkills({
                     type="button"
                     className={styles.skillAction}
                     data-battle-skill-hotkey={hotkey}
-                    aria-label={`Selected ${skill.name}, ${skill.apCost} AP${battleCooldownLabel(cooldownTurns)}`}
+                    aria-label={`Selected ${skill.name}, ${castMode?.canCast === false ? castMode.label : `${payment?.chooseAction ? 'choose another action' : primeAvailable ? 'prime without payment' : payment!.costLabel}${battleCooldownLabel(cooldownTurns)}${payment?.controlledSpent && !payment.chooseAction ? ', already used this battle' : ''}${ready ? ', ready to release' : ''}`}`}
                     aria-pressed={activeId === skill.id}
-                    disabled={disabled || actionEconomy < skill.apCost || cooldownTurns > 0}
+                    disabled={actionDisabled}
                     data-battle-cooldown-active={cooldownTurns > 0 || undefined}
                     onClick={() => onSelect(skill.id, skill.category)}
                   >
@@ -105,14 +206,21 @@ export function BattleSelectedSkills({
                         unoptimized
                       />
                       <BattleSkillCooldown turns={cooldownTurns} />
+                      <BattleControlledReady ready={ready} />
                     </span>
                     <strong>{skill.name}</strong>
                   </button>
                   <SkillControls title={skill.name} hotkey={hotkey}>
-                    <BattleSkillParameters skill={skill} />
+                    <BattleSkillParameters
+                      skill={skill}
+                      costLabel={payment?.costLabel}
+                      cooldownLabel={payment?.cooldownLabel}
+                      capturedReport={payment?.report}
+                    />
                   </SkillControls>
                   <small className={styles.discipline}>
                     {disciplineName(skill.sourceDisciplineId)}
+                    {castMode?.canCast === false ? ` · ${castMode.label}` : ''}
                   </small>
                 </>
               ) : (
@@ -133,19 +241,16 @@ export function BattleSelectedSkills({
       <article
         className={styles.special}
         data-battle-special={runtime.essence ? 'essence' : 'resonance'}
+        data-battle-noncast={essenceMode?.canCast === false ? essenceMode.kind : undefined}
       >
         {runtime.essence ? (
           <>
             <button
               className={styles.specialAction}
               type="button"
-              aria-label={`${runtime.essence.name}, Essence, ${runtime.essence.apCost} AP${battleCooldownLabel(cooldowns[runtime.essence.id] ?? 0)}`}
+              aria-label={`${runtime.essence.name}, Essence, ${essenceMode?.canCast === false ? essenceMode.label : `${essenceCost?.chooseAction ? 'choose another action' : essencePrime ? 'prime without payment' : essenceCost!.costLabel}${battleCooldownLabel(cooldowns[runtime.essence.id] ?? 0)}${essenceCost?.controlledSpent && !essenceCost.chooseAction ? ', already used this battle' : ''}${essenceReady ? ', ready to release' : ''}`}`}
               aria-pressed={activeId === runtime.essence.id}
-              disabled={
-                disabled ||
-                actionEconomy < runtime.essence.apCost ||
-                (cooldowns[runtime.essence.id] ?? 0) > 0
-              }
+              disabled={essenceDisabled}
               data-battle-cooldown-active={(cooldowns[runtime.essence.id] ?? 0) > 0 || undefined}
               onClick={() => onSelect(runtime.essence!.id, 'attack')}
             >
@@ -162,6 +267,7 @@ export function BattleSelectedSkills({
                   unoptimized
                 />
                 <BattleSkillCooldown turns={cooldowns[runtime.essence.id] ?? 0} />
+                <BattleControlledReady ready={essenceReady} />
               </span>
               <strong>{runtime.essence.name}</strong>
             </button>
@@ -170,22 +276,60 @@ export function BattleSelectedSkills({
               hotkey={formatCombatKeybind(bindings.essence)}
             >
               <p>{runtime.essence.description}</p>
-              <BattleSkillParameters skill={runtime.essence} />
+              <BattleSkillParameters
+                skill={runtime.essence}
+                costLabel={essenceCost?.costLabel}
+                cooldownLabel={essenceCost?.cooldownLabel}
+                capturedReport={essenceCost?.report}
+              />
             </SkillControls>
-            <small>Essence</small>
+            <small>Essence{essenceMode?.canCast === false ? ` · ${essenceMode.label}` : ''}</small>
           </>
         ) : runtime.resonance ? (
           <>
-            <span className={styles.artworkFrame} data-av-square-media="true">
-              <Image
-                src={battleResonanceArtwork(runtime.resonance.id)}
-                width={192}
-                height={192}
-                alt=""
-                unoptimized
-              />
-            </span>
-            <strong>{runtime.resonance.name}</strong>
+            {resonanceSkill ? (
+              <button
+                className={styles.specialAction}
+                type="button"
+                aria-label={`${runtime.resonance.name}, Resonance, ${resonanceCost?.chooseAction ? 'choose another action' : resonancePrime ? 'prime without payment' : resonanceCost!.costLabel}${battleCooldownLabel(cooldowns[runtime.resonance.id] ?? 0)}${resonanceCost?.controlledSpent && !resonanceCost.chooseAction ? ', already used this battle' : ''}${resonanceReady ? ', ready to release' : ''}`}
+                aria-pressed={activeId === runtime.resonance.id}
+                disabled={resonanceDisabled}
+                data-battle-cooldown-active={
+                  (cooldowns[runtime.resonance.id] ?? 0) > 0 || undefined
+                }
+                onClick={() => onSelect(runtime.resonance!.id, special!.category)}
+              >
+                <span
+                  className={styles.artworkFrame}
+                  data-av-square-media="true"
+                  data-battle-skill-cooldown={cooldowns[runtime.resonance.id] || undefined}
+                >
+                  <Image
+                    src={battleResonanceArtwork(runtime.resonance.id)}
+                    width={192}
+                    height={192}
+                    alt=""
+                    unoptimized
+                  />
+                  <BattleSkillCooldown turns={cooldowns[runtime.resonance.id] ?? 0} />
+                  <BattleControlledReady ready={resonanceReady} />
+                </span>
+                <strong>{runtime.resonance.name}</strong>
+              </button>
+            ) : (
+              <>
+                <span className={styles.artworkFrame} data-av-square-media="true">
+                  <Image
+                    src={battleResonanceArtwork(runtime.resonance.id)}
+                    width={192}
+                    height={192}
+                    alt=""
+                    unoptimized
+                  />
+                </span>
+                <strong>{runtime.resonance.name}</strong>
+              </>
+            )}
             <SkillControls
               title={runtime.resonance.name}
               hotkey={formatCombatKeybind(bindings.essence)}
@@ -198,7 +342,12 @@ export function BattleSelectedSkills({
                 )}
               />
             </SkillControls>
-            <small>Resonance · Passive</small>
+            <small>
+              Resonance
+              {resonanceSkill
+                ? ''
+                : ` · ${resonanceMode ? (resonanceMode.canCast ? 'Unavailable' : resonanceMode.label) : 'Passive'}`}
+            </small>
           </>
         ) : (
           <>
