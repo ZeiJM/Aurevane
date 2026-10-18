@@ -24,3 +24,9 @@ Prime requirements derive the named ability and typed subject, such as Rewind St
 ## Controlled preparation cooldown
 
 A bounded read-only trace of the reported encounter showed a free prime, a separate paid release, then a second prime during its running cooldown. Global timing policy now rejects that second prime until cooldown expiry. Cancellation, free first preparation, release payment, cooldown-free reuse and historical timing policies remain intact. Core admission, live projection and Skill/Essence/Resonance artwork tests cover the correction. Independent review of the exact core commit found no Critical, Important or Minor findings. No hosted state was changed during diagnosis.
+
+## CI timing investigation
+
+Exact head `da648c462c059c3c24e384e595c639dd6bfe4bc7` passed the complete local gate (10,215 Vitest plus seven Node checks; production build passed after clearing stale Turbopack persistence). Native modular readers, Controlled (57 cases), Desktop Experience, Desktop Page Fit, UI Layout Review, Skill Engine, Profile Skill Build and Representative Buildcraft passed. Full Browser remains in progress.
+
+CI job117788041794 timed out one unchanged natural roster case at30s; isolated real publication suite then passed324/324 in108.83s under unchanged timeouts. One identical-source retry117790668973 passed that case but timed out the separate million-stack exact-arithmetic fixture at its default5s. Its isolated suite passes30/30 in3.70s, including2.50s test execution. Give only that intentionally expensive stress case an explicit15s test budget; preserve the million stacks, actual native RangeError, precision-capacity bound and both Unavailable reader assertions. No runtime code, gameplay limits or assertion is changed. Focused format/lint and30/30 tests pass after this adjustment (3.75s total). Preserve both CI failures; no live release claimed yet.
