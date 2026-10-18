@@ -168,6 +168,7 @@ export function moveCombatEffectDescription(
 }
 
 export interface SkillEffectListEditorProps {
+  readonly canonicalDamage?: boolean
   readonly value: readonly CombatEffectDefinition[]
   readonly effectDescriptions?: readonly (string | null)[]
   readonly maxEffects?: number
@@ -181,6 +182,7 @@ export function SkillEffectListEditor({
   value,
   effectDescriptions,
   maxEffects,
+  canonicalDamage = false,
   onChange,
 }: SkillEffectListEditorProps) {
   const [newEffectType, setNewEffectType] = useState<CombatEffectType>('damage')
@@ -252,6 +254,7 @@ export function SkillEffectListEditor({
               </div>
             </header>
             <SkillEffectEditor
+              canonicalDamage={canonicalDamage && effect.type === 'damage' ? 'damage' : undefined}
               value={effect}
               onChange={(nextEffect) =>
                 onChange(

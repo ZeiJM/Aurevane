@@ -24,7 +24,7 @@ describe('battle effect summary', () => {
     expect(statusLabel(terrain.statusId, terrain)).toBe('Elevation Evasion')
     expect(statusIsBeneficial(terrain.statusId, terrain)).toBe(true)
     expect(statusDurationLabel(terrain)).toBe('While on elevated terrain')
-    expect(statusDurationLabel(unknown)).toBe('1 turn remaining')
+    expect(statusDurationLabel(unknown)).toBe('1 affected-unit turn start remaining')
     expect(
       summarizeBattleEffects([
         terrain,
@@ -38,6 +38,7 @@ describe('battle effect summary', () => {
         {
           statusId: 'guarded',
           statusVersion: 1,
+          effectStackingPolicyVersion: 1,
           stacks: 2,
           potencyBasisPoints: 4000,
           applicationModifiers: [

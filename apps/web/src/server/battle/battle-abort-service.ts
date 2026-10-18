@@ -1,3 +1,4 @@
+import { projectPublicCombat } from '@aurevane/game-core/combat/public-combat-presentation'
 import { omitPendingBattlePayloads } from './battle-live-viewer-projection'
 import 'server-only'
 
@@ -150,7 +151,7 @@ function resolvePracticeAbort(state: StatDrivenCombatEncounterState): {
 
 function projectBattleSnapshot(state: StatDrivenCombatEncounterState): BattleSessionProjection {
   const battle = state.tactical.battle
-  return {
+  return projectPublicCombat({
     ...omitPendingBattlePayloads(state),
     tactical: {
       ...state.tactical,
@@ -171,7 +172,7 @@ function projectBattleSnapshot(state: StatDrivenCombatEncounterState): BattleSes
         currentTurn: battle.currentTurn,
       },
     },
-  }
+  })
 }
 
 export function createBattleAbortService(battles: BattleSessionRepository): BattleAbortService {

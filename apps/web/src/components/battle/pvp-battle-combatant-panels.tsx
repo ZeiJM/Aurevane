@@ -1,5 +1,7 @@
 'use client'
 
+import { BattleEffectPopover } from './battle-effect-information'
+
 import type { CharacterPortraitRef } from '@aurevane/game-core/character/creation'
 import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
@@ -94,22 +96,20 @@ function Panel({
         <div>
           {effectStatuses.length > 0 ? (
             effectStatuses.map((status) => {
-              const loweredGuard = status.statusId === 'lowered-guard'
               const label = statusLabel(status.statusId, status)
               const stackCount = formatStatusStackCount(status.statusId, status.stacks)
               return (
-                <b
+                <BattleEffectPopover
                   key={`${status.statusId}:${status.statusVersion}`}
-                  data-debuff={!statusIsBeneficial(status.statusId, status) || undefined}
-                  title={
-                    loweredGuard
-                      ? `${label} ${stackCount} · each stack multiplies incoming damage by 2.5×`
-                      : `${label} ${stackCount}`
+                  effect={status}
+                  className={`${styles.effectChip} ${!statusIsBeneficial(status.statusId, status) ? styles.debuff : ''}`}
+                  trigger={
+                    <>
+                      <span>{label}</span>
+                      <strong>{stackCount}</strong>
+                    </>
                   }
-                >
-                  <span>{label}</span>
-                  <strong>{stackCount}</strong>
-                </b>
+                />
               )
             })
           ) : (

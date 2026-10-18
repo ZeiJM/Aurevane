@@ -18,6 +18,9 @@ import { skillPreviewEffects } from './skill-effect-preview'
 import { SkillGroundAreaDetails } from './skill-ground-area-details'
 import styles from './skill-details.module.css'
 import { SkillCharacteristicRows } from './skill-characteristic-rows'
+import { CompactSkillEffectSummary, EffectTagLabel } from './compact-skill-effect-summary'
+import { AbilityDefinitionParameters } from './ability-definition-parameters'
+import { groupSkillEffects } from './skill-effect-groups'
 
 function SkillDetailBody({ skill }: { skill: MatureSkillDefinition }) {
   const timingPolicy = useSkillEffectTimingPolicy()
@@ -36,6 +39,22 @@ function SkillDetailBody({ skill }: { skill: MatureSkillDefinition }) {
           })}
           targetMethodExplanation={skillTargetMethodExplanation(skill)}
           targetDetails={<SkillGroundAreaDetails skill={skill} />}
+          effectSummary={
+            skill.effects.length
+              ? groupSkillEffects(skill.effects, skill.effectDescriptions).map(
+                  ({ effect, count, firstIndex }, index) => (
+                    <span key={firstIndex}>
+                      {index > 0 ? ', ' : null}
+                      <CompactSkillEffectSummary
+                        effect={effect}
+                        count={count}
+                        skillEffects={skill.effects}
+                      />
+                    </span>
+                  ),
+                )
+              : 'N/A'
+          }
         />
         {skill.overrides.pvp?.apCost !== undefined &&
         skill.overrides.pvp.apCost !== skill.apCost ? (
@@ -64,7 +83,10 @@ function SkillDetailBody({ skill }: { skill: MatureSkillDefinition }) {
           timingPolicy,
         }).map((effect, index) => (
           <li key={index}>
-            <strong>{effect.label}</strong> — {effect.explanation}
+            <strong>
+              <EffectTagLabel label={effect.label} />
+            </strong>{' '}
+            — {effect.explanation}
           </li>
         ))}
       </ol>
@@ -94,21 +116,29 @@ export function SkillDetails({
   expanded?: boolean
 }) {
   const groundRules = useSkillGroundInteractionRules()
+  const body = skill.ability ? (
+    <AbilityDefinitionParameters
+      definition={skill.ability}
+      effectDescriptions={skill.effectDescriptions}
+    />
+  ) : (
+    <SkillDetailBody skill={skill} />
+  )
   return (
     <div className={styles.root} data-testid="skill-details">
-      <div className={styles.tags} aria-label="Targeting and effects">
-        {skillTargetTags(skill, groundRules).map((tag) => (
-          <span key={tag}>{tag}</span>
-        ))}
-      </div>
-      {expanded ? (
-        <div className={[styles.details, styles.expanded].join(' ')}>
-          <SkillDetailBody skill={skill} />
+      {!skill.ability ? (
+        <div className={styles.tags} aria-label="Targeting and effects">
+          {skillTargetTags(skill, groundRules).map((tag) => (
+            <span key={tag}>{tag}</span>
+          ))}
         </div>
+      ) : null}
+      {expanded ? (
+        <div className={[styles.details, styles.expanded].join(' ')}>{body}</div>
       ) : (
         <details className={styles.details}>
           <summary>Skill details</summary>
-          <SkillDetailBody skill={skill} />
+          {body}
         </details>
       )}
     </div>

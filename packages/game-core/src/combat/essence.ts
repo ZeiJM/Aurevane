@@ -595,6 +595,11 @@ const CURRENT_ESSENCE_REGISTRY = [
 
 const STABLE_ID_PATTERN = /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/
 
+/** Complete current identities; historical registry versions remain available separately. */
+export function currentEssenceDefinitions(): readonly EssenceDefinition[] {
+  return latestEnabledEssences(CURRENT_ESSENCE_REGISTRY)
+}
+
 export function validateEssenceDefinition(definition: EssenceDefinition): readonly string[] {
   const issues: string[] = []
   const canonical = Object.hasOwn(definition, 'ability')
@@ -636,6 +641,14 @@ export function validateEssenceDefinition(definition: EssenceDefinition): readon
     issues.push('authoring.schemaVersion')
   }
   return issues
+}
+
+/** Publication numbering reserves disabled shipped history as well as current definitions. */
+export function highestBuiltinEssenceVersion(essenceId: string): number | null {
+  const versions = CURRENT_ESSENCE_REGISTRY.filter((row) => row.essenceId === essenceId).map(
+    (row) => row.contentVersion,
+  )
+  return versions.length ? Math.max(...versions) : null
 }
 
 export function resolveEssenceForBuild(

@@ -1,13 +1,30 @@
-.label {
-  color: #f0e8dc;
+.label,
+.magnitude,
+.reference {
+  color: #e4bd67;
 }
 
 .magnitude {
-  color: #e4bd67;
   font-weight: 650;
 }
 
 .timing {
   color: #70d7ce;
   font-weight: 650;
+}
+
+/* Inline terms keep the report's typography and the shared magnitude color. */
+.reference {
+  display: inline;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px dotted currentColor;
+  border-radius: 0;
+  background: transparent;
+  font: inherit;
+  cursor: help;
+}
+.reference:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
 }

@@ -1,6 +1,24 @@
 import { readFileSync } from 'node:fs'
 import { PGlite } from '@electric-sql/pglite'
 import { beforeAll, afterAll, beforeEach, afterEach, expect, it } from 'vitest'
+import { percentageDotEncounter } from '../../game-core/src/combat/combat-percentage-dots.test-utils'
+import { source } from '../../game-core/src/combat/combat-behavior.test-utils'
+import { captureCombatAbilitySource } from '../../game-core/src/combat/combat-behavior-capture'
+import {
+  reconcileCombatAbilitySources,
+  combatAbilityCommandContext,
+  refreezeCapturedCombatAbilityState,
+} from '../../game-core/src/combat/combat-behavior-runtime'
+import { validateCombatAbilityState } from '../../game-core/src/combat/combat-ability-state'
+import {
+  captureBasicSkillSources,
+  defaultBasicSkills,
+} from '../../game-core/src/combat/combat-basic-actions'
+import { commitCombatAbilityCommand } from '../../game-core/src/combat/combat-ability-command'
+import {
+  preparePv1fTurnEconomy,
+  PV1F_COMBAT_CONTENT,
+} from '../../game-core/src/combat/pv1f-action-economy'
 
 let db: PGlite
 const owner = '00000000-0000-4000-8000-000000000001',
@@ -86,6 +104,7 @@ beforeAll(async () => {
       pvp.indexOf('create or replace function public.commit_battle'),
     ),
   )
+  await db.exec(migration('20260821180500_battle_intent_retry_hardening.sql'))
   await db.exec(migration('20260916140000_battle_privacy_journal_foundation.sql'))
   await db.exec(migration('20260917174436_csr3_battle_history_privacy.sql'))
   await db.exec(migration('20261010210515_captured_ability_startup_events.sql'))
@@ -293,5 +312,257 @@ it.each(['battle_events', 'battle_privacy_journal'])(
       (await db.query<{ n: number }>('select count(*)::int n from app_private.battle_events'))
         .rows[0]!.n,
     ).toBe(2)
+  },
+)
+
+it.each(['pve', 'pvp'] as const)(
+  'round-trips actual %s canonical plural casts through snapshot/event/CAS authority without duplicate payment',
+  async (mode) => {
+    const base = preparePv1fTurnEconomy(percentageDotEncounter())
+    const captured = captureCombatAbilitySource(
+      source({
+        targeting: {
+          ...source().definition.behaviors[0]!.targeting!,
+          geometryVersion: 3,
+          categories: ['enemy', 'ground'],
+          maximumSelections: 3,
+        },
+        accuracy: { kind: 'fixed', chanceBasisPoints: 10000 },
+        effects: [
+          {
+            id: 'hit',
+            timing: 'next-round',
+            payload: { type: 'damage', recipient: 'affected-units', amount: 10 },
+          },
+        ],
+      }),
+    )
+    const state = reconcileCombatAbilitySources(
+      {
+        ...base,
+        airbornePolicyVersion: 1 as const,
+        tactical: {
+          ...base.tactical,
+          battle: {
+            ...base.tactical.battle,
+            combatants: base.tactical.battle.combatants.map((unit) => ({
+              ...unit,
+              teamId: unit.teamId === 'players' ? 'team:0' : 'team:1',
+            })),
+          },
+        },
+      },
+      [captured],
+    )
+    const payload = {
+      kind: 'selections' as const,
+      selections: [
+        { kind: 'tile' as const, position: { x: 2, y: 1 } },
+        { kind: 'unit' as const, combatantId: 'other' },
+      ],
+    }
+    const transition = commitCombatAbilityCommand({
+      state,
+      actorId: 'actor',
+      root: { kind: 'canonical', source: captured, behaviorId: 'strike' },
+      selection: payload,
+      content: PV1F_COMBAT_CONTENT,
+      context: combatAbilityCommandContext(state, captured),
+    })
+    const publicJournal = {
+      schemaVersion: 1,
+      commandVisibility: { kind: 'public' },
+      eventVisibilityOverrides: [],
+    }
+    let session: string
+    if (mode === 'pve') {
+      session = (
+        await db.query<{ battle_session_id: string }>(
+          'select * from public.create_battle_session_v2($1,$2,$3,$4,$5,1,1,$6,$7,$6,$8,$9)',
+          [
+            owner,
+            key,
+            'canonical',
+            owner,
+            state.tactical.battle.battleId,
+            state,
+            [
+              { combatant_id: 'actor', participant_role: 'player', character_id: character },
+              { combatant_id: 'enemy', participant_role: 'opponent', character_id: null },
+              { combatant_id: 'other', participant_role: 'opponent', character_id: null },
+              { combatant_id: 'ally', participant_role: 'opponent', character_id: null },
+            ],
+            [],
+            publicJournal,
+          ],
+        )
+      ).rows[0]!.battle_session_id
+    } else {
+      const lobby = '00000000-0000-4000-8000-000000000033'
+      await db.query(
+        "insert into app_private.pvp_lobbies values($1,$2,'waiting',null,null,1,1,0,now())",
+        [lobby, owner],
+      )
+      await db.query(
+        'insert into app_private.pvp_lobby_members values($1,$2,$3,0,true),($1,$4,$5,1,true)',
+        [lobby, owner, character, other, target],
+      )
+      session = (
+        await db.query<{ battle_session_id: string }>(
+          'select * from public.create_pvp_battle_session_v2($1,$2,$3,1,1,$4,$5,$4,$6,$7)',
+          [
+            owner,
+            lobby,
+            state.tactical.battle.battleId,
+            state,
+            [
+              { combatant_id: 'actor', user_id: owner, character_id: character, team_index: 0 },
+              { combatant_id: 'enemy', user_id: other, character_id: target, team_index: 1 },
+            ],
+            [],
+            publicJournal,
+          ],
+        )
+      ).rows[0]!.battle_session_id
+    }
+    const commitKey = '00000000-0000-4000-8000-000000000077'
+    const commit = (id = commitKey, fingerprint = 'plural', user = owner) =>
+      db.query<{
+        battle_version: number
+        snapshot: typeof transition.state
+        replayed: boolean
+      }>('select * from public.commit_battle_intent_v3($1,$2,$3,$4,$5,1,$6,$7,$8)', [
+        owner,
+        id,
+        fingerprint,
+        user,
+        session,
+        transition.state,
+        transition.events,
+        publicJournal,
+      ])
+    const first = (await commit()).rows[0]!
+    expect(first.battle_version).toBe(2)
+    expect(first.replayed).toBe(false)
+    expect(first.snapshot).toEqual(JSON.parse(JSON.stringify(transition.state)))
+    expect(first.snapshot.pendingEffects![0]!.groundTargetedRecipientIds).toEqual(['enemy'])
+    expect(first.snapshot.capturedAbilitySources).toEqual([captured])
+    const actor = first.snapshot.tactical.battle.combatants.find((unit) => unit.id === 'actor')!
+    expect(actor.mp).toBe(18)
+    expect(actor.hp).toBe(999)
+    expect(
+      actor.temporaryResources.find((resource) => resource.key === 'pv1f.action-economy')!.current,
+    ).toBe(89)
+    const replay = (await commit()).rows[0]!
+    expect(replay.replayed).toBe(true)
+    expect(replay.snapshot).toEqual(first.snapshot)
+    await rejected(() => commit(commitKey, 'changed'), 'BATTLE_IDEMPOTENCY_CONFLICT')
+    await rejected(() => commit('00000000-0000-4000-8000-000000000078'), 'BATTLE_VERSION_STALE:2')
+    await rejected(
+      () =>
+        commit(
+          '00000000-0000-4000-8000-000000000079',
+          'plural',
+          '00000000-0000-4000-8000-000000000004',
+        ),
+      'BATTLE_NOT_AVAILABLE',
+    )
+    const storedEvents = await db.query<{ event: unknown }>(
+      'select event from app_private.battle_events where battle_session_id=$1 and battle_version=2 order by event_index',
+      [session],
+    )
+    expect(storedEvents.rows.map((row) => row.event)).toEqual(transition.events)
+    expect(
+      (
+        await db.query<{ n: number }>(
+          'select count(*)::int n from app_private.battle_snapshots where battle_session_id=$1',
+          [session],
+        )
+      ).rows[0]!.n,
+    ).toBe(2)
+    expect(
+      (
+        await db.query<{ n: number }>(
+          'select count(*)::int n from app_private.battle_privacy_journal where battle_session_id=$1 and battle_version=2',
+          [session],
+        )
+      ).rows[0]!.n,
+    ).toBe(1)
+  },
+)
+
+it.each(['basic', 'discipline'] as const)(
+  'restores immutable %s captures after PostgreSQL JSONB storage',
+  async (kind) => {
+    const captures =
+      kind === 'basic'
+        ? captureBasicSkillSources({
+            ownerCombatantId: 'actor',
+            supportActionId: 'basic.guard',
+            definitions: defaultBasicSkills(),
+          })
+        : [captureCombatAbilitySource(source())]
+    const base = preparePv1fTurnEconomy(percentageDotEncounter())
+    const state = reconcileCombatAbilitySources(
+      {
+        ...base,
+        tactical: {
+          ...base.tactical,
+          battle: {
+            ...base.tactical.battle,
+            combatants: base.tactical.battle.combatants.map((unit) => ({
+              ...unit,
+              teamId: unit.teamId === 'players' ? 'team:0' : 'team:1',
+            })),
+          },
+        },
+      },
+      captures,
+    )
+    const stored = (
+      await db.query<{ snapshot: typeof state }>(
+        'select * from public.create_battle_session_v2($1,$2,$3,$4,$5,1,1,$6,$7,$6,$8,$9)',
+        [
+          owner,
+          key,
+          'manual-captures',
+          owner,
+          state.tactical.battle.battleId,
+          state,
+          state.tactical.battle.combatants.map((unit) => ({
+            combatant_id: unit.id,
+            participant_role: unit.id === 'actor' ? 'player' : 'opponent',
+            character_id: unit.id === 'actor' ? character : null,
+          })),
+          [],
+          { schemaVersion: 1, commandVisibility: { kind: 'public' }, eventVisibilityOverrides: [] },
+        ],
+      )
+    ).rows[0]!.snapshot
+    expect(stored).toEqual(state)
+    expect(validateCombatAbilityState(stored)).toEqual([])
+    const restored = refreezeCapturedCombatAbilityState(stored)
+    expect(restored.capturedAbilitySources).toEqual(captures)
+    expect(Object.isFrozen(restored.capturedAbilitySources![0]!.definition)).toBe(true)
+    const active = restored.capturedAbilitySources!.find(
+      (row) => row.abilityId === (kind === 'basic' ? 'basic.guard' : 'test.ability'),
+    )!
+    const used = commitCombatAbilityCommand({
+      state: restored,
+      actorId: 'actor',
+      root: { kind: 'canonical', source: active, behaviorId: active.definition.behaviors[0]!.id },
+      selection: { kind: 'unit', combatantId: kind === 'basic' ? 'actor' : 'enemy' },
+      content: PV1F_COMBAT_CONTENT,
+      context: combatAbilityCommandContext(restored, active),
+    })
+    expect(used.events.some((event) => event.event === 'combat_action_used')).toBe(true)
+    const changed = captureCombatAbilitySource({
+      ...active,
+      tags: [...active.tags, 'tampered'],
+      ...(active.basic ? { basic: { ...active.basic, tags: [...active.tags, 'tampered'] } } : {}),
+    })
+    expect(() => reconcileCombatAbilitySources(restored, [changed])).toThrow(
+      'captured-source-cannot-change-in-place',
+    )
   },
 )

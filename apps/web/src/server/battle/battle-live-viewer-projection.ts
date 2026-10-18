@@ -1,5 +1,25 @@
-import { combatManualModifierAvailability } from '@aurevane/game-core/combat/combat-behavior-runtime'
+import { airborneJump } from '@aurevane/game-core/combat/combat-airborne'
+import { battleActionDealsDamage } from '@/components/battle/battle-attack-path'
+import { abilityBehaviorInformation } from '@/components/character/ability-detail-presentation'
+import type { BattleBasicActionPresentation } from '@/lib/battle/battle-basic-actions'
+import { PV1F_BASIC_ATTACK_ID } from '@aurevane/game-core/combat/pv1f-skills'
+import {
+  effectiveBasicSkillBehavior,
+  isFreeOffensiveBasicMove,
+} from '@aurevane/game-core/combat/combat-basic-actions'
+import {
+  combatManualModifierAvailability,
+  combatControlledAbilityAvailability,
+} from '@aurevane/game-core/combat/combat-behavior-runtime'
 import 'server-only'
+import {
+  canonicalAbilityTargetSpec,
+  canonicalAbilitySupportsFireGroundIntent,
+} from '@aurevane/game-core/combat/combat-targeting-shapes'
+import {
+  combatCanonicalModifierRootFacts,
+  combatModifierCompatibilityFacts,
+} from '@aurevane/game-core/combat/combat-modifier-compatibility'
 import {
   projectPublicCombatGroundAreas,
   type PublicCombatGroundArea,
@@ -32,6 +52,20 @@ import {
 
 import { battleViewerRelationship, type BattleViewerEntitlement } from './battle-viewer-entitlement'
 
+function capturedAbilityEffectContext(state: StatDrivenCombatEncounterState) {
+  return {
+    legacyTriggers: state.dotTriggerPolicyVersion === undefined,
+    legacyPoisonMovement: state.dotTriggerPolicyVersion !== 2,
+    legacyFrozenGround: state.frozenGroundPolicyVersion !== 1,
+    legacyAirborne: state.airbornePolicyVersion !== 1,
+    legacyAirborneJump: state.airborneJumpPolicyVersion !== 1,
+    legacyHealingDown: state.healingDownPolicyVersion !== 1,
+    legacyBlindsideActivation: state.blindsideActivationPolicyVersion !== 1,
+    legacyElemental: state.elementalDamagePolicyVersion === undefined,
+    explicitElemental: state.elementalDamagePolicyVersion === 2,
+  }
+}
+
 /** Only controlled owners receive reference choices; allies/opponents/spectators receive none. */
 export function projectBattleManualModifierAvailability(
   state: StatDrivenCombatEncounterState,
@@ -41,6 +75,224 @@ export function projectBattleManualModifierAvailability(
   return [...viewer.controlledCombatantIds]
     .sort()
     .flatMap((ownerId) => combatManualModifierAvailability(state, ownerId))
+    .map((row) => {
+      const source = state.capturedAbilitySources!.find(
+        (source) => source.sourceInstanceId === row.sourceInstanceId,
+      )!
+      const behavior = source.definition.behaviors.find(
+        (behavior) => behavior.id === row.behaviorId,
+      )!
+      return {
+        ...row,
+        abilityId: source.abilityId,
+        contentVersion: source.contentVersion,
+        compatibility: combatModifierCompatibilityFacts(behavior),
+        report: abilityBehaviorInformation(behavior, {
+          timingPolicy: state.effectTimingPolicy ?? null,
+          effectContext: capturedAbilityEffectContext(state),
+        }),
+      }
+    })
+}
+
+/** Safe geometry and payment metadata from the owner's immutable active Manual captures. */
+export function projectBattleManualActionTargets(
+  state: StatDrivenCombatEncounterState,
+  viewer: BattleViewerEntitlement,
+) {
+  if (viewer.kind !== 'participant') return []
+  return (state.capturedAbilitySources ?? [])
+    .filter(
+      (source) =>
+        viewer.controlledCombatantIds.has(source.ownerCombatantId) &&
+        state.abilityRuntime?.activeSourceIds.includes(source.sourceInstanceId),
+    )
+    .flatMap((source) =>
+      source.definition.behaviors
+        .filter(
+          (behavior) =>
+            behavior.activation === 'manual' && behavior.mode === 'action' && behavior.targeting,
+        )
+        .map((behavior) => {
+          const controlled = combatControlledAbilityAvailability({
+            state,
+            actorId: source.ownerCombatantId,
+            sourceInstanceId: source.sourceInstanceId,
+            behaviorId: behavior.id,
+          })
+          const spec = canonicalAbilityTargetSpec(behavior.targeting!)
+          const move =
+            source.basic?.execution.kind === 'basic-move' &&
+            source.basic.execution.costBasis === 'per-terrain-point'
+              ? undefined
+              : behavior.effects.find((effect) => effect.payload.type === 'move')
+          return {
+            ownerCombatantId: source.ownerCombatantId,
+            actionId:
+              source.basic?.execution.kind === 'basic-attack'
+                ? PV1F_BASIC_ATTACK_ID
+                : source.abilityId,
+            behaviorId: behavior.id,
+            ...(behavior.classification ? { classification: behavior.classification } : {}),
+            dealsDamage: battleActionDealsDamage(behavior.effects.map((effect) => effect.payload)),
+            modifierRoot: combatCanonicalModifierRootFacts(behavior),
+            ...(canonicalAbilitySupportsFireGroundIntent(
+              behavior,
+              state.elementalDamagePolicyVersion,
+            )
+              ? { groundIntentCapable: true as const }
+              : {}),
+            costs: behavior.costs.map((cost) => ({ ...cost })),
+            cooldown: behavior.cooldown ? { ...behavior.cooldown } : null,
+            ...(source.basic
+              ? {}
+              : {
+                  report: abilityBehaviorInformation(behavior, {
+                    timingPolicy: state.effectTimingPolicy ?? null,
+                    effectContext: capturedAbilityEffectContext(state),
+                  }),
+                }),
+            ...(controlled ? { controlled } : {}),
+            ...(move?.payload.type === 'move'
+              ? {
+                  move: {
+                    maximumTiles: move.payload.maximumTiles,
+                    conditional: move.requirements != null,
+                  },
+                }
+              : {}),
+            target: {
+              kind: spec.kind,
+              teamPolicy: spec.teamPolicy,
+              friendlyFire: spec.friendlyFire,
+              shape: { ...spec.shape },
+              minimumRange: spec.minimumRange,
+              maximumRange: spec.maximumRange,
+              requiresLineOfSight: spec.requiresLineOfSight,
+              maximumElevationDifference: spec.maximumElevationDifference,
+              maximumSelections: spec.maximumSelections,
+              geometryVersion: spec.geometryVersion,
+              ...(spec.categories ? { categories: [...spec.categories] } : {}),
+            },
+          }
+        }),
+    )
+    .sort((a, b) =>
+      a.actionId < b.actionId
+        ? -1
+        : a.actionId > b.actionId
+          ? 1
+          : a.behaviorId < b.behaviorId
+            ? -1
+            : a.behaviorId > b.behaviorId
+              ? 1
+              : 0,
+    )
+}
+
+/** A controlled owner's saved Basic display data, without private execution envelopes or accuracy. */
+export function projectBattleBasicActions(
+  state: StatDrivenCombatEncounterState,
+  viewer: BattleViewerEntitlement,
+): readonly BattleBasicActionPresentation[] | undefined {
+  if (viewer.kind !== 'participant') return undefined
+  const owned = (state.capturedAbilitySources ?? []).filter(
+    (source) => source.basic && viewer.controlledCombatantIds.has(source.ownerCombatantId),
+  )
+  if (!owned.length) return undefined
+  return owned
+    .filter((source) => state.abilityRuntime?.activeSourceIds.includes(source.sourceInstanceId))
+    .map((source) => {
+      const basic = source.basic!
+      const owner = state.tactical.battle.combatants.find(
+        (unit) => unit.id === source.ownerCombatantId,
+      )!
+      const profile = state.statBridge.combatants.find(
+        (row) => row.combatantId === source.ownerCombatantId,
+      )!
+      const behaviors = source.definition.behaviors
+        .filter((behavior) => behavior.activation === 'manual' && behavior.mode === 'action')
+        .map((behavior) => {
+          const move = behavior.effects.find((effect) => effect.payload.type === 'move')
+          const freeOffensiveMove = isFreeOffensiveBasicMove(source, behavior)
+          const report = abilityBehaviorInformation(
+            freeOffensiveMove ? effectiveBasicSkillBehavior(state, source, behavior) : behavior,
+            {
+              basic,
+              timingPolicy: state.effectTimingPolicy ?? null,
+              effectContext: capturedAbilityEffectContext(state),
+              stats: {
+                move: owner.baseMovementBudget,
+                jump: airborneJump(
+                  state,
+                  source.ownerCombatantId,
+                  profile.jump,
+                  PV1F_COMBAT_CONTENT,
+                ),
+                physicalPower: profile.physicalPower,
+                mysticPower: profile.mysticPower,
+              },
+            },
+          )
+          return {
+            behaviorId: behavior.id,
+            classification: behavior.classification,
+            modifierRoot: combatCanonicalModifierRootFacts(behavior),
+            costs: behavior.costs.map((cost) => ({ ...cost })),
+            cooldown: behavior.cooldown ? { ...behavior.cooldown } : null,
+            target: structuredClone(canonicalAbilityTargetSpec(behavior.targeting!)),
+            ...(move?.payload.type === 'move'
+              ? {
+                  move: {
+                    maximumTiles: move.payload.maximumTiles,
+                    conditional: move.requirements != null,
+                  },
+                }
+              : {}),
+            ...report,
+            ...(freeOffensiveMove
+              ? {
+                  limits: [
+                    ...report.limits,
+                    'Free offensive Move shares this limit across its action groups.',
+                  ],
+                }
+              : {}),
+          }
+        })
+      const native = basic.execution.kind === 'basic-move' ? behaviors[0]! : null
+      return {
+        ownerCombatantId: source.ownerCombatantId,
+        actionId: basic.execution.kind === 'basic-attack' ? PV1F_BASIC_ATTACK_ID : source.abilityId,
+        contentVersion: source.contentVersion,
+        name: basic.name,
+        description: basic.description,
+        enabled: basic.enabled,
+        iconKey: basic.media.iconKey,
+        ...(native
+          ? {
+              movement: {
+                costBasis:
+                  basic.execution.kind === 'basic-move' ? basic.execution.costBasis : 'flat',
+                ...(basic.execution.kind === 'basic-move' &&
+                basic.execution.costBasis === 'per-terrain-point'
+                  ? {
+                      apPerTraversalPoint: native.costs.find((cost) => cost.resource === 'ap')!
+                        .amount,
+                    }
+                  : {}),
+                maximumTiles: native.move!.maximumTiles,
+              },
+            }
+          : {}),
+        behaviors,
+      }
+    })
+    .sort(
+      (left, right) =>
+        left.ownerCombatantId.localeCompare(right.ownerCombatantId) ||
+        left.actionId.localeCompare(right.actionId),
+    )
 }
 
 /** Shallow public receipt projection; private execution records stay in persistence. */
@@ -77,6 +329,7 @@ export function projectBattleStatusStateForViewer(
   state: Pick<
     StatDrivenCombatEncounterState,
     | 'statusState'
+    | 'effectStackingPolicyVersion'
     | 'statBalancePolicyVersion'
     | 'tactical'
     | 'effectState'
@@ -99,6 +352,7 @@ export function projectBattleStatusStateForViewer(
 
   const presentInteractionPolicy = (status: BattlePresentedStatus): BattlePresentedStatus => ({
     ...status,
+    ...(state.effectStackingPolicyVersion === 1 ? { effectStackingPolicyVersion: 1 as const } : {}),
     ...(status.statusId === 'blindside' && state.blindsideActivationPolicyVersion === 1
       ? { blindsideActivationPolicyVersion: 1 as const }
       : {}),
@@ -255,6 +509,23 @@ export function projectBattleEffectStateForViewer(
   }
 }
 
+const PRIVATE_BATTLE_STATE_KEYS = [
+  'nextGroundAreaId',
+  'nextSkillPacketCommandId',
+  'capturedAbilitySources',
+  'abilityRuntime',
+  'modifierSuppressions',
+  'nativeBasicAttackCommand',
+  'groundTargetedRecipientIds',
+  'commandDamageBonuses',
+  'effectEligibleRecipientIds',
+  'effectTimingModes',
+  'turnTriggerState',
+  'pendingEffects',
+  'pendingSummons',
+] as const
+export type PrivateBattleStateKey = (typeof PRIVATE_BATTLE_STATE_KEYS)[number]
+
 /** Internal delayed payloads and narration pins must never reach live viewers. */
 export function omitPendingBattlePayloads<
   T extends {
@@ -268,35 +539,21 @@ export function omitPendingBattlePayloads<
   },
 >(
   state: T,
-): Omit<T, 'groundAreas' | 'nextGroundAreaId'> & {
+): Omit<T, 'groundAreas' | PrivateBattleStateKey> & {
   groundAreas?: readonly PublicCombatGroundArea[]
 } {
-  const projected: Omit<T, 'groundAreas' | 'nextGroundAreaId'> & {
+  const projected: Omit<T, 'groundAreas' | PrivateBattleStateKey> & {
     groundAreas?: readonly PublicCombatGroundArea[]
   } = {
     ...state,
   }
-  Reflect.deleteProperty(projected, 'nextGroundAreaId')
-  Reflect.deleteProperty(projected, 'nextSkillPacketCommandId')
-  for (const key of [
-    'capturedAbilitySources',
-    'abilityRuntime',
-    'modifierSuppressions',
-    'nativeBasicAttackCommand',
-    'commandDamageBonuses',
-    'effectEligibleRecipientIds',
-    'effectTimingModes',
-  ])
-    Reflect.deleteProperty(projected, key)
+  for (const key of PRIVATE_BATTLE_STATE_KEYS) Reflect.deleteProperty(projected, key)
   if (state.groundAreas)
     projected.groundAreas = projectPublicCombatGroundAreas(
       state.groundAreas,
       state.tactical?.battle.round ?? 0,
       state.tactical?.battle.lifecycle ?? 'completed',
     )
-  delete projected.turnTriggerState
-  delete projected.pendingEffects
-  delete projected.pendingSummons
   const authority = projected.buildAuthority
   if (
     authority &&

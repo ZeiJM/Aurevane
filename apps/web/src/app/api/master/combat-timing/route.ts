@@ -17,12 +17,11 @@ export async function POST(request: Request) {
       throw new AurevaneError('INVALID_REQUEST', 'Request body must be valid JSON.')
     }
     if (!body || typeof body !== 'object' || Array.isArray(body))
-      throw new AurevaneError('INVALID_REQUEST', 'Timing policy and reason are required.')
+      throw new AurevaneError('INVALID_REQUEST', 'Timing configuration is required.')
     const input = body as { policy?: unknown; reason?: unknown }
     const policy = await publishCombatEffectTimingPolicy({
       actorUserId: actor.userId,
       policy: input.policy,
-      reason: input.reason,
     })
     return Response.json({ policy }, { headers: { 'Cache-Control': 'private, no-store' } })
   } catch (error) {

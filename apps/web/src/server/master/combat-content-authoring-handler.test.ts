@@ -31,6 +31,9 @@ function serviceMock(): CombatContentAuthoringService {
       updatedBy: ACTOR,
       updatedAt: '2026-09-17T22:00:00.000Z',
     })),
+    restoreBasicSkillDraft: vi.fn(async () => {
+      throw new Error('Not used by isolated handler tests.')
+    }),
     publishSkill: vi.fn(async () => ({
       id: '22222222-2222-4222-8222-222222222222',
       contentKey: 'vanguard.forceful-strike',
@@ -266,4 +269,33 @@ describe('combat content authoring handler', () => {
       error: { code: 'INVALID_REQUEST' },
     })
   })
+})
+
+describe('authoring preview behavior boundary', () => {
+  it('forwards the selected group with the authenticated actor', async () => {
+    const service = serviceMock()
+    vi.mocked(service.previewSkillDefinition).mockResolvedValue({} as never)
+    const response = await handleCombatContentAuthoringRequest(
+      post({ operation: 'preview', definition: { id: 'owner.skill' }, behaviorId: 'second' }),
+      dependencies(service),
+    )
+    expect(response.status).toBe(200)
+    expect(service.previewSkillDefinition).toHaveBeenCalledWith({
+      actorUserId: ACTOR,
+      definition: { id: 'owner.skill' },
+      behaviorId: 'second',
+    })
+  })
+  it.each([null, '', ' second', 'second ', 4, {}, []])(
+    'rejects malformed group identity %j before calling preview',
+    async (behaviorId) => {
+      const service = serviceMock()
+      const response = await handleCombatContentAuthoringRequest(
+        post({ operation: 'preview', definition: { id: 'owner.skill' }, behaviorId }),
+        dependencies(service),
+      )
+      expect(response.status).toBe(400)
+      expect(service.previewSkillDefinition).not.toHaveBeenCalled()
+    },
+  )
 })

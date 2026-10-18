@@ -6,6 +6,9 @@ import type {
   CombatResolutionEvent,
 } from './actions'
 import { collectCommittedHostileCommandDamage } from './combat-committed-damage'
+export const DEFAULT_BURN_BACKLASH_BASIS_POINTS = 1000
+export const CURRENT_POISON_REFRESH_TRAVERSED_TILES = 5
+
 export interface AttackPercentageDotProfile {
   kind: 'attack-percentage'
   basisPoints: number
@@ -343,7 +346,7 @@ export function validateCurrentPercentageDotAuthoring(
 
 export function percentageDotDescription(
   type: 'burn' | 'poison' | 'bleed',
-  backlashBasisPoints = 1000,
+  backlashBasisPoints = DEFAULT_BURN_BACKLASH_BASIS_POINTS,
   options: { legacyTriggers?: boolean; legacyPoisonMovement?: boolean } = {},
 ): string {
   const basis =

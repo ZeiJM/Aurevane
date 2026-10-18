@@ -43,14 +43,7 @@ describe('Attack family in parameter reports', () => {
   ] as const)('uses the canonical defense family for %s', (skill, family) => {
     expect(Object.fromEntries(skillParameterRows(skill))['Skill Type']).toBe(`Attack [${family}]`)
     expect(skillTypeDescription(skill)).toBe('Attack')
-    expectFamily(
-      renderToStaticMarkup(
-        <dl>
-          <SkillParameters skill={skill} />
-        </dl>,
-      ),
-      family,
-    )
+    expectFamily(renderToStaticMarkup(<SkillParameters skill={skill} />), family)
     expectFamily(renderToStaticMarkup(<SkillDetails skill={skill} expanded />), family)
     expectFamily(
       renderToStaticMarkup(<BattleSkillParameters skill={presentation(skill)} />),
@@ -93,13 +86,9 @@ describe('Attack family in parameter reports', () => {
     }
     for (const id of ['vanguard.brace', 'vanguard.rally']) {
       const skill = resolveMatureSkillVersion(id)!
-      expect(
-        renderToStaticMarkup(
-          <dl>
-            <SkillParameters skill={skill} />
-          </dl>,
-        ),
-      ).not.toContain('data-skill-attack-family')
+      expect(renderToStaticMarkup(<SkillParameters skill={skill} />)).not.toContain(
+        'data-skill-attack-family',
+      )
     }
   })
 

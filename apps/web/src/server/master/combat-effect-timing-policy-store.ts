@@ -7,6 +7,11 @@ import {
 } from '@aurevane/game-core/combat/combat-effect-timing'
 import { AurevaneError } from '@aurevane/game-core/errors'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import {
+  RpcPublishedCombatContentSource,
+  resolveCombatContentCatalogueSnapshot,
+} from '@/server/combat/combat-content-resolver'
+import { assertCombatCatalogueTimingCompatible } from '@/server/combat/combat-catalogue-timing-compatibility'
 
 export async function readCombatEffectTimingPolicy(): Promise<CombatEffectTimingPolicy> {
   const { data, error } = await createSupabaseAdminClient().rpc(
@@ -28,7 +33,7 @@ export async function readCombatEffectTimingPolicy(): Promise<CombatEffectTiming
 export async function publishCombatEffectTimingPolicy(input: {
   actorUserId: string
   policy: unknown
-  reason: unknown
+  reason?: unknown
 }): Promise<CombatEffectTimingPolicy> {
   let policy: CombatEffectTimingPolicy
   try {
@@ -39,21 +44,26 @@ export async function publishCombatEffectTimingPolicy(input: {
       'Choose registered effect tags and valid timing modes.',
     )
   }
-  if (
-    typeof input.reason !== 'string' ||
-    input.reason.trim().length < 1 ||
-    input.reason.trim().length > 240
+  const client = createSupabaseAdminClient()
+  const snapshot = await new RpcPublishedCombatContentSource((name, parameters) =>
+    client.rpc(name, parameters),
+  ).readCatalogueSnapshot()
+  if (snapshot.policy.version !== policy.version)
+    throw new AurevaneError('STALE_VERSION', 'Refresh the timing policy before publishing again.')
+  assertCombatCatalogueTimingCompatible(
+    resolveCombatContentCatalogueSnapshot({ ...snapshot, policy }),
   )
-    throw new AurevaneError('INVALID_REQUEST', 'A reason from 1 to 240 characters is required.')
-  const { data, error } = await createSupabaseAdminClient().rpc(
-    'publish_combat_effect_timing_policy_v1',
-    {
-      p_actor_user_id: input.actorUserId,
-      p_expected_version: policy.version,
-      p_modes: policy.modes,
-      p_reason: input.reason.trim(),
-    },
-  )
+  const { data, error } = await client.rpc('publish_combat_effect_timing_policy_v2', {
+    p_actor_user_id: input.actorUserId,
+    p_expected_version: policy.version,
+    p_modes: policy.modes,
+    p_expected_catalogue_token: snapshot.token,
+  })
+  if (error?.message?.includes('COMBAT_CONTENT_CATALOGUE_CONFLICT'))
+    throw new AurevaneError(
+      'STALE_VERSION',
+      'Combat content or timing changed. Refresh before publishing again.',
+    )
   if (error?.message?.includes('TIMING_POLICY_VERSION_CONFLICT'))
     throw new AurevaneError('STALE_VERSION', 'Refresh the timing policy before publishing again.')
   if (error?.code === '42501')

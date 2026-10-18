@@ -13,6 +13,7 @@ import {
 import { COMBAT_TERRAIN_OVERLAY_DETAILS } from '@aurevane/game-core/combat/terrain-overlays'
 import { PV1F_COMBAT_CONTENT } from '@aurevane/game-core/combat/pv1f-action-economy'
 import { combatStatusDetails } from '@aurevane/game-core/combat/status-content'
+import { combatEffectPresentationTags } from '@aurevane/game-core/combat/gameplay-tags'
 import { blindsideDamageDescription } from '@aurevane/game-core/combat/combat-blindside'
 import { airborneDescription } from '@aurevane/game-core/combat/combat-airborne'
 import {
@@ -392,6 +393,14 @@ export function previewEffect(
       }
     }
     case 'remove-status': {
+      if (effect.removalMode === 'specified') {
+        const names = effect.statusIds.map((id) => combatStatusDetails(id).name)
+        return {
+          label: combatEffectPresentationTags(effect)[0]!,
+          magnitude: names.join(' / '),
+          explanation: `Removes only ${names.join(', ')}. Other statuses remain.`,
+        }
+      }
       if (
         isCleanseChilledEffect(effect) &&
         !options.legacyElemental &&

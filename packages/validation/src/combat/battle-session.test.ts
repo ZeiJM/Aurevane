@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
-import { parseBattleIntentRequest, parseBattleSessionCreateRequest } from './battle-session'
+import {
+  parseBattleIntentRequest,
+  parseBattleSessionCreateRequest,
+  parseBattlePreviewRequest,
+} from './battle-session'
 
 const IDEMPOTENCY_KEY = '11111111-1111-4111-8111-111111111111'
 
@@ -210,3 +214,150 @@ it('parses explicit area Ground intent without accepting false or unrecognized f
     }),
   ).toBeNull()
 })
+
+it('admits reference-only plural unit/Self/Ground intent and rejects nested/overbudget payloads', () => {
+  const target = {
+    kind: 'selections',
+    selections: [
+      { kind: 'unit', combatantId: 'enemy' },
+      { kind: 'self' },
+      { kind: 'tile', position: { x: 3, y: 2 } },
+    ],
+  }
+  const request = {
+    idempotencyKey: IDEMPOTENCY_KEY,
+    expectedBattleVersion: 1,
+    intent: { kind: 'action', actionId: 'plural', behaviorId: 'strike', target },
+  }
+  expect(parseBattleIntentRequest(request)?.intent).toEqual(request.intent)
+  for (const selections of [
+    [],
+    [...target.selections, target.selections[0]],
+    [{ kind: 'selections', selections: target.selections }],
+    [{ kind: 'unit', combatantId: 'enemy', definition: {} }],
+  ])
+    expect(
+      parseBattleIntentRequest({
+        ...request,
+        intent: { ...request.intent, target: { kind: 'selections', selections } },
+      }),
+    ).toBeNull()
+})
+
+describe('reference-only attached Move intent', () => {
+  const request = {
+    idempotencyKey: IDEMPOTENCY_KEY,
+    expectedBattleVersion: 1,
+    intent: {
+      kind: 'action',
+      actionId: 'move-strike',
+      target: { kind: 'unit', combatantId: 'enemy' },
+      movementPath: [
+        { x: 0, y: 1 },
+        { x: 1, y: 1 },
+      ],
+    },
+  }
+  it('preserves a separate movement path and original follow-up selection', () => {
+    expect(parseBattleIntentRequest(request)?.intent).toEqual(request.intent)
+  })
+  it.each(
+    [
+      [],
+      [{ x: 0, y: 1 }],
+      Array.from({ length: 22 }, (_, x) => ({ x, y: 1 })),
+      [
+        { x: 0, y: 1 },
+        { x: 1.5, y: 1 },
+      ],
+      [
+        { x: 0, y: 1 },
+        { x: 1, y: 1, cost: 0 },
+      ],
+      [
+        { x: 0, y: 1 },
+        { x: 1, y: 1, definition: { type: 'move' } },
+      ],
+    ].map((movementPath) => ({ movementPath })),
+  )('rejects malformed, oversized or authority-bearing paths %j', ({ movementPath }) => {
+    expect(
+      parseBattleIntentRequest({ ...request, intent: { ...request.intent, movementPath } }),
+    ).toBeNull()
+  })
+  it('rejects an attached path on End Turn', () => {
+    expect(
+      parseBattleIntentRequest({
+        ...request,
+        intent: { kind: 'end-turn', movementPath: request.intent.movementPath },
+      }),
+    ).toBeNull()
+  })
+})
+
+describe('reference-only Controlled commands', () => {
+  it('admits only reference identities on free primes and rejects them on cancellation', () => {
+    const manualModifiers = [{ sourceInstanceId: '["actor","skill",1]', behaviorId: 'bonus' }]
+    const parse = (kind: string, references: unknown = manualModifiers) =>
+      parseBattleIntentRequest({
+        idempotencyKey: IDEMPOTENCY_KEY,
+        expectedBattleVersion: 1,
+        intent: {
+          kind,
+          actionId: 'controlled.strike',
+          behaviorId: 'strike',
+          manualModifiers: references,
+        },
+      })
+    expect(parse('ability-prime')?.intent).toMatchObject({ manualModifiers })
+    expect(parse('ability-cancel-prime')).toBeNull()
+    for (const references of [
+      null,
+      [...manualModifiers, ...manualModifiers],
+      [{ ...manualModifiers[0], contentVersion: 1 }],
+      Array.from({ length: 16 }, (_, i) => ({ ...manualModifiers[0], behaviorId: String(i) })),
+    ])
+      expect(parse('ability-prime', references)).toBeNull()
+  })
+  it.each(['ability-prime', 'ability-cancel-prime'] as const)(
+    'admits %s without a destination or authored mechanics',
+    (kind) => {
+      const intent = { kind, actionId: 'chronist.rewind-step', behaviorId: 'manual' }
+      expect(
+        parseBattleIntentRequest({
+          idempotencyKey: IDEMPOTENCY_KEY,
+          expectedBattleVersion: 1,
+          intent,
+        })?.intent,
+      ).toEqual(intent)
+    },
+  )
+  it.each(['returnAnchor', 'definition', 'costs', 'target', 'movementPath', 'sourceInstanceId'])(
+    'rejects extra %s authority on a prime',
+    (field) => {
+      expect(
+        parseBattleIntentRequest({
+          idempotencyKey: IDEMPOTENCY_KEY,
+          expectedBattleVersion: 1,
+          intent: {
+            kind: 'ability-prime',
+            actionId: 'chronist.rewind-step',
+            behaviorId: 'manual',
+            [field]: { x: 1, y: 1 },
+          },
+        }),
+      ).toBeNull()
+    },
+  )
+})
+
+it.each(['ability-prime', 'ability-cancel-prime'])(
+  'rejects targeting previews for the %s state command',
+  (kind) => {
+    expect(
+      parseBattlePreviewRequest({
+        expectedBattleVersion: 1,
+        intent: { kind, actionId: 'chronist.rewind-step', behaviorId: 'manual' },
+      }),
+    ).toBeNull()
+  },
+)

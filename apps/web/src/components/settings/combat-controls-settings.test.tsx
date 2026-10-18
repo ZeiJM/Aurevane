@@ -20,6 +20,7 @@ describe('account combat controls', () => {
       'essence',
       'supernatural',
       'endTurn',
+      'modifiers',
     ])
       expect(markup).toContain(`data-testid="keybind-${action}"`)
     for (const label of [

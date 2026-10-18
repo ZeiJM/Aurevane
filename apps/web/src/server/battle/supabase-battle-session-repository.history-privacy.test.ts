@@ -10,6 +10,10 @@ import {
   type StatDrivenCombatProfile,
 } from '@aurevane/game-core/combat/stat-driven-combat'
 import { describe, expect, it, vi } from 'vitest'
+import {
+  captureBasicSkillSources,
+  defaultBasicSkills,
+} from '@aurevane/game-core/combat/combat-basic-actions'
 
 vi.mock('server-only', () => ({}))
 
@@ -88,6 +92,62 @@ function snapshot() {
 }
 
 describe('CSR-3 history privacy repository', () => {
+  it('rejects malformed captured Basic metadata before enriching any log', async () => {
+    const capturedAbilitySources = JSON.parse(
+      JSON.stringify(
+        captureBasicSkillSources({
+          ownerCombatantId: PLAYER,
+          supportActionId: 'basic.guard',
+          definitions: defaultBasicSkills(),
+        }),
+      ),
+    )
+    capturedAbilitySources[0].basic.contentVersion = 99
+    rpc.mockResolvedValueOnce({
+      data: [
+        {
+          viewer_kind: 'spectator',
+          controlled_combatant_ids: [],
+          snapshot: { ...snapshot(), capturedAbilitySources },
+          journals: [],
+        },
+      ],
+      error: null,
+    })
+    await expect(
+      createSupabaseBattleSessionRepository().findBattleHistoryPrivacy(USER_ID, SESSION_ID, []),
+    ).rejects.toMatchObject({ code: 'PERSISTENCE_UNAVAILABLE' })
+  })
+  it.each(['participant', 'spectator'])(
+    'retains cloned validated Ability captures privately for a %s log reader',
+    async (viewerKind) => {
+      const capturedAbilitySources = captureBasicSkillSources({
+        ownerCombatantId: PLAYER,
+        supportActionId: 'basic.guard',
+        definitions: defaultBasicSkills(),
+      })
+      const saved = JSON.parse(JSON.stringify({ ...snapshot(), capturedAbilitySources }))
+      rpc.mockResolvedValueOnce({
+        data: [
+          {
+            viewer_kind: viewerKind,
+            controlled_combatant_ids: viewerKind === 'participant' ? [PLAYER] : [],
+            snapshot: saved,
+            journals: [],
+          },
+        ],
+        error: null,
+      })
+      const result = await createSupabaseBattleSessionRepository().findBattleHistoryPrivacy(
+        USER_ID,
+        SESSION_ID,
+        [],
+      )
+      expect(result.capturedAbilitySources).toEqual(capturedAbilitySources)
+      saved.capturedAbilitySources[0].basic.name = 'Later mutation'
+      expect(result.capturedAbilitySources?.[0]?.basic?.name).not.toBe('Later mutation')
+    },
+  )
   it.each([1, 9])(
     'retains startup/version %s team intersections through persisted authority parsing',
     async (battleVersion) => {

@@ -8,7 +8,15 @@ describe('player profile persistence validation', () => {
     const legacy = Object.fromEntries(
       Object.entries(DEFAULT_COMBAT_KEYBINDS).filter(
         ([action]) =>
-          !['skill1', 'skill2', 'skill3', 'skill4', 'essence', 'supernatural'].includes(action),
+          ![
+            'skill1',
+            'skill2',
+            'skill3',
+            'skill4',
+            'essence',
+            'supernatural',
+            'modifiers',
+          ].includes(action),
       ),
     )
     Object.assign(legacy, {
@@ -25,6 +33,7 @@ describe('player profile persistence validation', () => {
     })
     expect(parsed?.combat_keybinds).toEqual(parseCombatKeybindMap(legacy))
     expect(parsed?.combat_keybinds.move).toEqual({ code: 'KeyM', shift: false })
+    expect(parsed?.combat_keybinds.modifiers).toEqual({ code: 'KeyM', shift: true })
     expect(parsed?.combat_keybinds.skill1).toEqual(DEFAULT_COMBAT_KEYBINDS.skill1)
     expect(
       parsePlayerProfilePersistenceRow({

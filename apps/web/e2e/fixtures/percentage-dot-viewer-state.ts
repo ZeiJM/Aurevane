@@ -16,7 +16,12 @@ export function projectPercentageDotFixtureState<T extends CombatEncounterState>
         ...presented
           .filter((item) => item.combatantId === row.combatantId)
           .map((item) => item.status),
-      ],
+      ].map((status) => ({
+        ...status,
+        ...(state.effectStackingPolicyVersion === 1
+          ? { effectStackingPolicyVersion: 1 as const }
+          : {}),
+      })),
     })),
   }
 }

@@ -255,6 +255,29 @@ for (const [supportActionId, label, cost] of [
     })
     await page.mouse.move(0, 0)
     await root.focus()
+    if (supportActionId === 'basic.guard') {
+      // Recovery is a single saved Support choice, not a second free Basic.
+      const unavailableRequests: string[] = []
+      const observeUnavailable = (request: import('@playwright/test').Request) => {
+        if (
+          request.method() === 'POST' &&
+          /\/(preview|intents|commit|final-turn)$/.test(new URL(request.url()).pathname)
+        )
+          unavailableRequests.push(request.url())
+      }
+      page.on('request', observeUnavailable)
+      try {
+        await page.keyboard.press('KeyR')
+        await expect(root.locator('[data-battle-notice]')).toContainText(
+          'No Recovery action is equipped in this battle.',
+        )
+        await expect(root).toHaveAttribute('data-battle-action-mode', 'none')
+        expect(unavailableRequests).toEqual([])
+        expect(commits).toBe(0)
+      } finally {
+        page.off('request', observeUnavailable)
+      }
+    }
     if (supportActionId !== 'basic.guard') {
       // Full HP/MP remains blocked by authority on a deliberate second press.
       const beforeBlocked = await readBattle(page)
@@ -329,7 +352,9 @@ for (const [supportActionId, label, cost] of [
     expect(response.request().postDataJSON().intent).toEqual({
       kind: 'action',
       actionId: supportActionId,
+      behaviorId: 'use',
       target: { kind: 'self' },
+      manualModifiers: [],
     })
     await expect(
       root.getByRole('progressbar', { name: 'Action Economy remaining' }),

@@ -1,4 +1,5 @@
 import { parseAbilityDefinition, type AbilityDefinition } from './combat-definition'
+import { parseBasicSkillDefinition, type BasicSkillDefinition } from './combat-basic-actions'
 import {
   combatActionSourceKind,
   contentVersion,
@@ -17,6 +18,7 @@ export interface CapturedCombatAbilitySource {
   readonly sourceDisciplineId?: string
   readonly tags: readonly string[]
   readonly definition: AbilityDefinition
+  readonly basic?: BasicSkillDefinition
 }
 
 export function captureCombatAbilitySource(
@@ -38,6 +40,7 @@ export function captureCombatAbilitySource(
           'sourceDisciplineId',
           'tags',
           'definition',
+          'basic',
         ].includes(key),
     ) ||
     !Array.isArray(input.tags) ||
@@ -57,7 +60,18 @@ export function captureCombatAbilitySource(
       : { sourceDisciplineId: actionDefinitionId(input.sourceDisciplineId) }),
     tags: [...input.tags],
     definition: parseAbilityDefinition(input.definition),
+    ...(input.basic === undefined ? {} : { basic: parseBasicSkillDefinition(input.basic) }),
   }
+  if (
+    result.basic &&
+    (result.sourceKind !== 'basic' ||
+      result.sourceDisciplineId !== undefined ||
+      result.basic.id !== result.abilityId ||
+      result.basic.contentVersion !== result.contentVersion ||
+      !sameCaptureValue(result.basic.ability, result.definition) ||
+      !sameCaptureValue(result.basic.tags, result.tags))
+  )
+    throw new TypeError('invalid-captured-basic-definition')
   return freezeCapture(result)
 }
 
@@ -67,4 +81,34 @@ function freezeCapture<T>(value: T): T {
     Object.freeze(value)
   }
   return value
+}
+
+/** PostgreSQL JSONB may reorder object keys; ordered arrays and every value stay authoritative. */
+export function sameCapturedCombatAbilitySource(
+  left: CapturedCombatAbilitySource,
+  right: CapturedCombatAbilitySource,
+): boolean {
+  return sameCaptureValue(left, right)
+}
+
+function sameCaptureValue(left: unknown, right: unknown): boolean {
+  if (left === right) return true
+  if (!left || !right || typeof left !== 'object' || typeof right !== 'object') return false
+  if (Array.isArray(left) || Array.isArray(right))
+    return (
+      Array.isArray(left) &&
+      Array.isArray(right) &&
+      left.length === right.length &&
+      left.every((value, index) => sameCaptureValue(value, right[index]))
+    )
+  const leftRecord = left as Record<string, unknown>,
+    rightRecord = right as Record<string, unknown>
+  const keys = Object.keys(leftRecord)
+  return (
+    keys.length === Object.keys(rightRecord).length &&
+    keys.every(
+      (key) =>
+        Object.hasOwn(rightRecord, key) && sameCaptureValue(leftRecord[key], rightRecord[key]),
+    )
+  )
 }

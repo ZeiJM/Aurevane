@@ -41,7 +41,8 @@ export function projectPublicCombatGroundAreas(
 export function combatGroundAreaDescription(
   area: { durationRounds: number; timing?: 'instant' | 'next-round' | 'delayed' },
   policyTiming: 'instant' | 'next-round' | 'delayed' = 'next-round',
+  entryEffectsMarked = false,
 ): string {
   const timing = area.timing ?? policyTiming
-  return `Ground: stays on the affected tiles for ${area.durationRounds} ${area.durationRounds === 1 ? 'round' : 'rounds'}, ${timing === 'instant' ? 'starting immediately' : timing === 'delayed' ? 'starting two rounds after cast' : 'starting next round'}. The cast affects eligible units there; entering the active area applies its unit effects once per character’s turn. Each cast has its own allowance.`
+  return `Ground: stays on the affected tiles for ${area.durationRounds} ${area.durationRounds === 1 ? 'round' : 'rounds'}, ${timing === 'instant' ? 'starting immediately' : timing === 'delayed' ? 'starting two rounds after cast' : 'starting next round'}. The cast affects eligible units there; entering the active area applies ${entryEffectsMarked ? 'only the effects marked for entry' : 'its unit effects'} once per character’s turn. Each cast has its own allowance.`
 }

@@ -1,27 +1,35 @@
-import { SkillEffectTimingProvider } from '@/components/character/skill-effect-timing-context'
-import { readCombatEffectTimingPolicy } from '@/server/master/combat-effect-timing-policy-store'
 import {
-  resolveEssenceForBuild,
-  validateEssenceDefinition,
+  defaultBasicSkills,
+  type BasicSkillDefinition,
+} from '@aurevane/game-core/combat/combat-basic-actions'
+import type { BasicContentEditorOption } from '@/components/master/combat-content/basic-content-editor'
+import { SkillEffectTimingProvider } from '@/components/character/skill-effect-timing-context'
+import {
+  currentEssenceDefinitions,
   type EssenceDefinition,
 } from '@aurevane/game-core/combat/essence'
-import { latestEnabledMatureSkills } from '@aurevane/game-core/combat/mature-skills'
 import {
-  resolveResonanceForPair,
-  validateResonanceDefinition,
+  latestEnabledMatureSkills,
+  type MatureSkillDefinition,
+} from '@aurevane/game-core/combat/mature-skills'
+import {
+  currentResonanceDefinitions,
   type AnyResonanceDefinition,
 } from '@aurevane/game-core/combat/resonance'
 import type { CombatContentEditorSkillOption } from '@/components/master/combat-content/combat-content-editor'
 import { CombatContentAuthoringWorkspace } from '@/components/master/combat-content/combat-content-authoring-workspace'
 import type { EssenceContentEditorOption } from '@/components/master/combat-content/essence-content-editor'
 import type { ResonanceContentEditorOption } from '@/components/master/combat-content/resonance-content-editor'
+import type { CombatContentVersionHistoryEntry } from '@/components/master/combat-content/combat-content-workflow'
 import { MasterPanelShell } from '@/components/master/master-panel-shell'
 import {
   createServerCombatContentResolver,
   deriveSkillPresentationTags,
+  type CombatContentCatalogueEntry,
 } from '@/server/combat/combat-content-resolver'
 import { requireMasterPanelPageAccess } from '@/server/master/master-panel-page-access'
 import { createSupabaseCombatContentAuthoringStore } from '@/server/master/supabase-combat-content-authoring-store'
+import { builtinCombatContentVersionFloor } from '@/server/master/combat-content-version-floor'
 
 export const dynamic = 'force-dynamic'
 
@@ -36,7 +44,6 @@ async function mapInBatches<T, R>(
   }
   return results
 }
-
 function titleSkill(skillId: string): string {
   const tail = skillId.includes('.') ? skillId.slice(skillId.indexOf('.') + 1) : skillId
   return tail
@@ -50,202 +57,150 @@ export default async function MasterCombatContentPage() {
   const { actor, access } = await requireMasterPanelPageAccess('content.combat.author')
   const resolver = createServerCombatContentResolver()
   const store = createSupabaseCombatContentAuthoringStore(actor.userId)
-  const catalog = latestEnabledMatureSkills()
-
-  const options = (
-    await mapInBatches(
-      catalog,
-      4,
-      async (staticDefinition): Promise<CombatContentEditorSkillOption | null> => {
-        const [current, draft, publishedVersions] = await Promise.all([
-          resolver.resolveCurrentSkillDefinition(staticDefinition.id),
-          store.findDraft(staticDefinition.id),
-          store.listPublishedVersions(staticDefinition.id),
-        ])
-        if (!current) return null
-
-        const historyByVersion = new Map<
-          number,
-          NonNullable<CombatContentEditorSkillOption['history']>[number]
-        >()
-        historyByVersion.set(staticDefinition.contentVersion, {
-          contentVersion: staticDefinition.contentVersion,
-          source: 'static-baseline',
-          current: current.contentVersion === staticDefinition.contentVersion,
-          publishedAt: null,
-        })
-        for (const version of publishedVersions) {
-          historyByVersion.set(version.contentVersion, {
-            contentVersion: version.contentVersion,
-            source: 'published',
-            current: current.contentVersion === version.contentVersion,
-            publishedAt: version.publishedAt,
-          })
-        }
-
-        return {
-          id: current.id,
-          sourceDisciplineId: current.sourceDisciplineId,
-          label: titleSkill(current.id),
-          currentVersion: current.contentVersion,
-          baseVersion: draft?.baseVersion ?? current.contentVersion,
-          draftVersion: draft?.draftVersion ?? null,
-          derivedTags: [...deriveSkillPresentationTags(current)],
-          definition: structuredClone(current),
-          history: [...historyByVersion.values()].sort(
-            (left, right) => left.contentVersion - right.contentVersion,
-          ),
-        }
-      },
-    )
+  // One authoritative current snapshot includes custom and disabled publications.
+  // Per-record drafts/history remain separate from the selected current definition.
+  if (!resolver.resolveCurrentCatalogue)
+    throw new Error('Authoritative combat catalogue is unavailable.')
+  const catalogue = await resolver.resolveCurrentCatalogue()
+  const builtinVersions = new Map<string, number>([
+    ...defaultBasicSkills().map((row) => [row.id, row.contentVersion] as const),
+    ...latestEnabledMatureSkills().map((row) => [row.id, row.contentVersion] as const),
+    ...currentEssenceDefinitions().map((row) => [row.essenceId, row.contentVersion] as const),
+    ...currentResonanceDefinitions().map((row) => [row.id, row.contentVersion] as const),
+  ])
+  async function authoringState(entry: CombatContentCatalogueEntry) {
+    const [draft, publishedVersions] = await Promise.all([
+      store.findDraft(entry.contentKey),
+      store.listPublishedVersions(entry.contentKey),
+    ])
+    if (draft && draft.contentKind !== entry.contentKind) {
+      throw new Error(`Draft kind does not match authoritative content ${entry.contentKey}.`)
+    }
+    const history = new Map<number, CombatContentVersionHistoryEntry>()
+    const builtinVersion = builtinVersions.get(entry.contentKey)
+    if (builtinVersion !== undefined)
+      history.set(builtinVersion, {
+        contentVersion: builtinVersion,
+        source: 'static-baseline',
+        current: builtinVersion === entry.contentVersion,
+        publishedAt: null,
+      })
+    for (const version of publishedVersions) {
+      if (version.contentKind !== entry.contentKind) continue
+      history.set(version.contentVersion, {
+        contentVersion: version.contentVersion,
+        source: 'published',
+        current: version.contentVersion === entry.contentVersion,
+        publishedAt: version.publishedAt,
+      })
+    }
+    // A later history read may race a pointer change; the snapshot remains this page's baseline.
+    if (!history.has(entry.contentVersion))
+      history.set(entry.contentVersion, {
+        contentVersion: entry.contentVersion,
+        source: entry.source === 'builtin' ? 'static-baseline' : 'published',
+        current: true,
+        publishedAt: null,
+      })
+    return {
+      currentVersion: entry.contentVersion,
+      versionFloor: builtinCombatContentVersionFloor(entry.contentKind, entry.contentKey),
+      baseVersion: draft ? draft.baseVersion : entry.contentVersion,
+      draftVersion: draft?.draftVersion ?? null,
+      history: [...history.values()].sort(
+        (left, right) => left.contentVersion - right.contentVersion,
+      ),
+      draft,
+    }
+  }
+  const basics = await mapInBatches(
+    catalogue.entries.filter((entry) => entry.category === 'basic'),
+    4,
+    async (entry): Promise<BasicContentEditorOption> => {
+      const { draft, ...state } = await authoringState(entry)
+      const current = structuredClone(entry.definition)
+      return {
+        ...state,
+        id: current.id,
+        label: current.name,
+        definition: current,
+        ...(draft
+          ? { initialDraft: structuredClone(draft.definition) as unknown as BasicSkillDefinition }
+          : {}),
+      }
+    },
   )
-    .filter((option): option is CombatContentEditorSkillOption => option !== null)
-    .sort(
-      (left, right) =>
-        left.sourceDisciplineId.localeCompare(right.sourceDisciplineId) ||
-        left.id.localeCompare(right.id),
-    )
-
-  const disciplineIds = [...new Set(catalog.map((skill) => skill.sourceDisciplineId))]
-  const staticEssences = disciplineIds
-    .map((disciplineId) => resolveEssenceForBuild(disciplineId, null))
-    .filter((definition): definition is EssenceDefinition => definition !== null)
-
-  const essences = (
-    await mapInBatches(
-      staticEssences,
-      4,
-      async (staticDefinition): Promise<EssenceContentEditorOption> => {
-        const [published, draft, publishedVersions] = await Promise.all([
-          store.findPublished(staticDefinition.essenceId),
-          store.findDraft(staticDefinition.essenceId),
-          store.listPublishedVersions(staticDefinition.essenceId),
-        ])
-        const current =
-          published?.contentKind === 'essence'
-            ? (structuredClone(published.definition) as unknown as EssenceDefinition)
-            : structuredClone(staticDefinition)
-        if (validateEssenceDefinition(current).length > 0) {
-          throw new Error(`Invalid authoritative Essence ${staticDefinition.essenceId}.`)
-        }
-
-        const historyByVersion = new Map<number, EssenceContentEditorOption['history'][number]>()
-        historyByVersion.set(staticDefinition.contentVersion, {
-          contentVersion: staticDefinition.contentVersion,
-          source: 'static-baseline',
-          current: current.contentVersion === staticDefinition.contentVersion,
-          publishedAt: null,
-        })
-        for (const version of publishedVersions) {
-          if (version.contentKind !== 'essence') continue
-          historyByVersion.set(version.contentVersion, {
-            contentVersion: version.contentVersion,
-            source: 'published',
-            current: current.contentVersion === version.contentVersion,
-            publishedAt: version.publishedAt,
-          })
-        }
-
-        const initialDraft =
-          draft?.contentKind === 'essence'
-            ? (structuredClone(draft.definition) as unknown as EssenceDefinition)
-            : undefined
-
-        return {
-          id: current.essenceId,
-          sourceDisciplineId: current.sourceDisciplineId,
-          label: current.name,
-          currentVersion: current.contentVersion,
-          baseVersion: draft?.baseVersion ?? current.contentVersion,
-          draftVersion: draft?.draftVersion ?? null,
-          derivedTags: [...deriveSkillPresentationTags(current.skill)],
-          definition: current,
-          ...(initialDraft ? { initialDraft } : {}),
-          history: [...historyByVersion.values()].sort(
-            (left, right) => left.contentVersion - right.contentVersion,
-          ),
-        }
-      },
-    )
-  ).sort(
+  const basicOrder = defaultBasicSkills().map((row) => row.id)
+  basics.sort((left, right) => basicOrder.indexOf(left.id) - basicOrder.indexOf(right.id))
+  const options = await mapInBatches(
+    catalogue.entries.filter((entry) => entry.category === 'skill'),
+    4,
+    async (entry): Promise<CombatContentEditorSkillOption> => {
+      const { draft, ...state } = await authoringState(entry)
+      const current = structuredClone(entry.definition)
+      return {
+        ...state,
+        id: current.id,
+        sourceDisciplineId: current.sourceDisciplineId,
+        label: titleSkill(current.id),
+        derivedTags: [...deriveSkillPresentationTags(current)],
+        definition: current,
+        ...(draft
+          ? { initialDraft: structuredClone(draft.definition) as unknown as MatureSkillDefinition }
+          : {}),
+      }
+    },
+  )
+  options.sort(
     (left, right) =>
       left.sourceDisciplineId.localeCompare(right.sourceDisciplineId) ||
       left.id.localeCompare(right.id),
   )
-
-  const staticResonances: AnyResonanceDefinition[] = []
-  for (let firstIndex = 0; firstIndex < disciplineIds.length; firstIndex += 1) {
-    for (let secondIndex = firstIndex + 1; secondIndex < disciplineIds.length; secondIndex += 1) {
-      const definition = resolveResonanceForPair(
-        disciplineIds[firstIndex]!,
-        disciplineIds[secondIndex]!,
-      )
-      if (definition && !staticResonances.some((candidate) => candidate.id === definition.id)) {
-        staticResonances.push(definition)
+  const essences = await mapInBatches(
+    catalogue.entries.filter((entry) => entry.category === 'essence'),
+    4,
+    async (entry): Promise<EssenceContentEditorOption> => {
+      const { draft, ...state } = await authoringState(entry)
+      const current = structuredClone(entry.definition)
+      return {
+        ...state,
+        id: current.essenceId,
+        sourceDisciplineId: current.sourceDisciplineId,
+        label: current.name,
+        derivedTags: [...deriveSkillPresentationTags(current.skill)],
+        definition: current,
+        ...(draft
+          ? { initialDraft: structuredClone(draft.definition) as unknown as EssenceDefinition }
+          : {}),
       }
-    }
-  }
-
-  const resonances = (
-    await mapInBatches(
-      staticResonances,
-      4,
-      async (staticDefinition): Promise<ResonanceContentEditorOption> => {
-        const [published, draft, publishedVersions] = await Promise.all([
-          store.findPublished(staticDefinition.id),
-          store.findDraft(staticDefinition.id),
-          store.listPublishedVersions(staticDefinition.id),
-        ])
-        const current =
-          published?.contentKind === 'resonance'
-            ? (structuredClone(published.definition) as unknown as AnyResonanceDefinition)
-            : structuredClone(staticDefinition)
-        if (validateResonanceDefinition(current).length > 0) {
-          throw new Error(`Invalid authoritative Resonance ${staticDefinition.id}.`)
-        }
-
-        const historyByVersion = new Map<number, ResonanceContentEditorOption['history'][number]>()
-        historyByVersion.set(staticDefinition.contentVersion, {
-          contentVersion: staticDefinition.contentVersion,
-          source: 'static-baseline',
-          current: current.contentVersion === staticDefinition.contentVersion,
-          publishedAt: null,
-        })
-        for (const version of publishedVersions) {
-          if (version.contentKind !== 'resonance') continue
-          historyByVersion.set(version.contentVersion, {
-            contentVersion: version.contentVersion,
-            source: 'published',
-            current: current.contentVersion === version.contentVersion,
-            publishedAt: version.publishedAt,
-          })
-        }
-
-        const initialDraft =
-          draft?.contentKind === 'resonance'
-            ? (structuredClone(draft.definition) as unknown as AnyResonanceDefinition)
-            : undefined
-
-        return {
-          id: current.id,
-          label: current.name,
-          disciplinePair: current.disciplinePair,
-          currentVersion: current.contentVersion,
-          baseVersion: draft?.baseVersion ?? current.contentVersion,
-          draftVersion: draft?.draftVersion ?? null,
-          definition: current,
-          ...(initialDraft ? { initialDraft } : {}),
-          history: [...historyByVersion.values()].sort(
-            (left, right) => left.contentVersion - right.contentVersion,
-          ),
-        }
-      },
-    )
-  ).sort((left, right) => left.label.localeCompare(right.label))
-
-  const timingPolicy = await readCombatEffectTimingPolicy()
+    },
+  )
+  essences.sort(
+    (left, right) =>
+      left.sourceDisciplineId.localeCompare(right.sourceDisciplineId) ||
+      left.id.localeCompare(right.id),
+  )
+  const resonances = await mapInBatches(
+    catalogue.entries.filter((entry) => entry.category === 'resonance'),
+    4,
+    async (entry): Promise<ResonanceContentEditorOption> => {
+      const { draft, ...state } = await authoringState(entry)
+      const current = structuredClone(entry.definition)
+      return {
+        ...state,
+        id: current.id,
+        label: current.name,
+        disciplinePair: current.disciplinePair,
+        definition: current,
+        ...(draft
+          ? { initialDraft: structuredClone(draft.definition) as unknown as AnyResonanceDefinition }
+          : {}),
+      }
+    },
+  )
+  resonances.sort((left, right) => left.label.localeCompare(right.label))
   return (
-    <SkillEffectTimingProvider policy={timingPolicy}>
+    <SkillEffectTimingProvider policy={catalogue.policy}>
       <MasterPanelShell
         access={access}
         activeSection="combat"
@@ -254,6 +209,10 @@ export default async function MasterCombatContentPage() {
       >
         <CombatContentAuthoringWorkspace
           key={[
+            ...basics.map(
+              (option) =>
+                `basic:${option.id}:${option.currentVersion}:${option.draftVersion ?? 'none'}`,
+            ),
             ...options.map(
               (option) =>
                 `skill:${option.id}:${option.currentVersion}:${option.draftVersion ?? 'none'}`,
@@ -267,6 +226,7 @@ export default async function MasterCombatContentPage() {
                 `resonance:${option.id}:${option.currentVersion}:${option.draftVersion ?? 'none'}`,
             ),
           ].join('|')}
+          basics={basics}
           skills={options}
           essences={essences}
           resonances={resonances}

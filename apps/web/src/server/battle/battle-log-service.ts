@@ -141,6 +141,7 @@ function statusLabel(value: unknown): string {
 function recruitReasonLabel(value: unknown): string {
   if (value === 'legal-damage') return 'an attack opportunity'
   if (value === 'close-distance') return 'closing the distance'
+  if (value === 'ranged-spacing') return 'a firing lane'
   if (value === 'guard-survival') return 'Guard'
   if (value === 'face-threat') return 'facing the threat'
   if (value === 'safe-end-turn') return 'ending the turn'
@@ -1296,6 +1297,7 @@ export function createViewerSafeBattleLogService(
         projected,
         authority.buildAuthority,
         resolver,
+        authority.capturedAbilitySources,
       )
     },
   }

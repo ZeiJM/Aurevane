@@ -14,6 +14,7 @@ import { SkillTargetingEditor } from './skill-targeting-editor'
 export interface SummonProfileEditorProps {
   readonly value: SummonProfileDefinition
   readonly onChange: (value: SummonProfileDefinition) => void
+  readonly canonical?: boolean
 }
 
 function integer(value: string, fallback: number): number {
@@ -60,7 +61,11 @@ function defaultAbility(index: number): SummonAbilityDefinition {
   }
 }
 
-export function SummonProfileEditor({ value, onChange }: SummonProfileEditorProps) {
+export function SummonProfileEditor({
+  value,
+  onChange,
+  canonical = false,
+}: SummonProfileEditorProps) {
   function updateAbility(index: number, next: SummonAbilityDefinition) {
     onChange({
       ...value,
@@ -434,6 +439,7 @@ export function SummonProfileEditor({ value, onChange }: SummonProfileEditorProp
             />
 
             <SkillEffectListEditor
+              canonicalDamage={canonical}
               value={ability.effects}
               onChange={(effects) => updateAbility(index, { ...ability, effects })}
             />

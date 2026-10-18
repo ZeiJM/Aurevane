@@ -3,6 +3,8 @@ import { gameplayStatusName } from '../../lib/battle/combat-interaction-presenta
 import { combatStatusDetails } from '@aurevane/game-core/combat/status-content'
 import { PV1F_COMBAT_CONTENT } from '@aurevane/game-core/combat/pv1f-action-economy'
 import { statusDamageMultiplierBasisPoints } from '../../lib/status-potency-presentation'
+import { capturedBattleEffectStatus } from '../../lib/battle/battle-effect-captured-policy'
+import { battleEffectLifetime } from './battle-effect-lifetime'
 import {
   terrainBattleEffectPresentation,
   type BattlePresentedStatus,
@@ -38,7 +40,16 @@ export type BattleStatusSummaryInput = Pick<
   > &
   Pick<
     BattlePresentedStatus,
-    'presentationDuration' | 'percentageDamage' | 'percentageDotProfile' | 'percentageDotStage'
+    | 'presentationDuration'
+    | 'percentageDamage'
+    | 'percentageDotProfile'
+    | 'percentageDotStage'
+    | 'effectStackingPolicyVersion'
+    | 'elementalDamagePolicyVersion'
+    | 'recoveryApplications'
+    | 'recovery'
+    | 'recoverySkipsCurrentTurnEnd'
+    | 'barrier'
   >
 
 function compactPercent(value: number): string {
@@ -76,7 +87,7 @@ export function statusLabel(statusId: string, effect?: BattleStatusSummaryInput)
 export function statusDurationLabel(effect: BattleStatusSummaryInput): string {
   const terrain = terrainBattleEffectPresentation(effect)
   if (terrain) return terrain.duration
-  return `${effect.remainingOwnerTurnStarts} turn${effect.remainingOwnerTurnStarts === 1 ? '' : 's'} remaining`
+  return battleEffectLifetime(effect).duration
 }
 
 export function formatStatusStackCount(statusId: string, stacks: number): string {
@@ -100,12 +111,19 @@ export function aggregateBattleStatusStacks<T extends BattleStatusSummaryInput>(
       status.presentationDuration,
       status.remainingRoundBoundaries,
       status.remainingOwnerTurnEnds ?? status.remainingOwnerTurnStarts,
-      status.sourceScopedMark ? status.sourceCombatantId : undefined,
+      // Taunt's condition is bound to its caster, including before activation.
+      status.sourceScopedMark || status.statusId === 'challenged'
+        ? status.sourceCombatantId
+        : undefined,
       status.potencyBasisPoints,
       status.applicationModifiers,
       status.percentageDamage,
       status.percentageDotProfile,
       status.percentageDotStage,
+      status.recoveryApplications,
+      status.recovery,
+      status.recoverySkipsCurrentTurnEnd,
+      status.barrier,
     ])
     const existing = grouped.get(key)
     if (!existing) {
@@ -129,7 +147,8 @@ export function summarizeBattleEffects(
   let measuredDamageTaken = false
   const groupedStatuses = aggregateBattleStatusStacks(statuses)
 
-  for (const status of groupedStatuses) {
+  for (const rawStatus of groupedStatuses) {
+    const status = capturedBattleEffectStatus(rawStatus)
     if (status.timingState === 'pending') continue
     const stacks = Math.max(1, status.stacks)
 

@@ -420,6 +420,7 @@ try {
                 kind: 'action',
                 actionId: 'basic.attack.unarmed.basic',
                 target: { kind: 'unit', combatantId: 'enemy-two' },
+                manualModifiers: [],
               }
             : {
                 kind: 'move',

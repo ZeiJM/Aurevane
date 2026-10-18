@@ -1,0 +1,33 @@
+# Controlled Manual modifier bundles — Task15 prerequisite
+
+This completes the existing free-prime bundle contract at the core, strict intent and shared service boundaries. It is a prerequisite for the explicit player picker, which remains absent. No roster activation, hosted write, migration, merge or deployment occurs.
+
+## Behavior
+
+- Free Controlled priming accepts up to fifteen distinct exact Manual modifier references. Structural admission checks captured owner, active source, Manual/modifier mode and supported Attack/unit/no-persistent-Ground compatibility. A primary-unit packet also requires a targeting contract that can explicitly select a unit; canonical area activation and Ground-only categories cannot supply one. It does not evaluate current target Requirements, settle resources, start cooldowns, consume paid usage or dispatch action hooks.
+- The private prime and its once-per-battle admission record pin each normalized source/ability/version/behavior identity. Exact definitions remain in the existing immutable captured-source inventory. Absent historical attachment metadata means an empty set. Input references cannot mutate the captured set.
+- Release may choose a currently legal target but must supply the same normalized attachment set. Added, omitted, changed, foreign, inactive or version-mismatched attachments fail before payment. The existing prepared command rechecks current Requirements, aggregate costs, cooldowns and limits, then settles once. Rejection leaves the prime intact; paid interruption consumes it under existing rules.
+- Removing an attachment source reconciles the entire prime while retaining its historical once-per-battle admission. Cancellation, defeat and terminal cleanup retain their existing whole-prime semantics. No-input turns do not release or expire the bundle.
+- Strict persisted validation checks bounded normalized distinct attachments, exact captured identities, supported modes/root compatibility and agreement between prime and admission history. Owner-only availability exposes reference identities for the primed set, without definitions or execution metadata.
+- Public prime intents accept identities only; cancellation rejects attachment fields. The shared PvE/PvP service forwards prime references and fingerprints normalized sets so reordering replays the original receipt while changing the set does not. Existing absent/empty-set fingerprints remain compatible.
+- Structural reference resolution and root compatibility were extracted from the existing paid composition path so prime admission and release use the same contract. Automatic composition and its settlement order are unchanged.
+
+## Evidence
+
+Core regressions first failed with ignored prime references and unrestricted release changes (`20261016T031629614533Z`), then passed. Coverage includes free capture, exact release matching, aggregate payment/cooldown, JSON reload, forged identities, malformed/foreign/inactive references, source removal, normalized two-modifier ordering, no-input rounds and cancellation. Prime remains free despite temporary resource/Requirement/cooldown unavailability. Existing Controlled, configured timing and composition suites pass together: 58 checks (`20261016T032015207919Z`).
+
+Strict intent regression: RED `20261016T031859011961Z` to 55 passing checks `20261016T031940301199Z`. Actual session service/projection: RED `20261016T031909818584Z` to 52 passing checks `20261016T031941346226Z`. Reordered prime retry initially failed with a stale-version response (`20261016T032117840663Z`); normalized replay now passes with existing service tests, 55 checks `20261016T032143866488Z`. A public readonly-array type mismatch was corrected; repository types pass at `20261016T032146595847Z`.
+
+Pre-review frozen-source `pnpm check`: exit0, 7,023 Vitest tests plus seven Node checks, formatting/lint/types/build, receipt `20261016T032213515722Z` (03:22:13–03:24:36Z).
+
+One fresh combined review found one Important structural-admission issue: prime and restore assumed a primary recipient existed even for area activation or Ground-only selection, creating an unreleasable bundle that spent the once-per-battle admission. The author corrected shape/category feasibility at both boundaries in one fix pass. Seven targeting cases cover negative admission, six also explicitly forge persisted records; supported actor and affected-unit area modifiers still release. Final focused Controlled/configured/composition coverage passes 73 checks (`20261016T033146544915Z`). Initial test-fixture range/self-damage mistakes are retained in the failed logs and corrected without changing product legality. The reviewer did not re-review the fix or duplicate broad suites. Final post-fix `pnpm check`: exit0, **7,038 Vitest tests plus seven Node checks**, formatting/lint/types/build, receipt `20261016T033351374535Z` (03:33:51–03:36:10Z). Product source was frozen throughout. The immediately preceding full run caught a test-only type annotation widening required targeting fields; that annotation was removed, core types passed, and the complete gate was rerun successfully.
+
+The reviewer independently verified five additional boundaries: default-Controlled root with legal Instant modifier; captured native Basic root; aggregate payment and consumed prime after paid actor-defeat interruption; malformed persisted metadata; and restore reconciliation of an inactive attachment. Historical no-attachment fingerprints matched the previous implementation. No Critical or new Minor finding was reported. The existing Vite native-config-loader advisory remains visible.
+
+## Remaining integration
+
+The actual player picker must preserve deliberate same-command selections, show aggregate costs/participating clocks and blocked reasons, invalidate stale quotes, carry identical references through every target/Move/range forecast and commit, and use the captured set after priming. Complete roster AI selection remains separate acceptance work.
+
+Its keyboard and priming flow needs a coherent interaction design: current single-group artwork activation primes immediately, while the modifier set must be chosen before that free prime; plain Tab cycling is disabled by the established battle policy. Resolve those together without changing artwork dimensions, adding a Release button, taking an existing custom key or introducing an independent modifier queue.
+
+Actual browser/touch/200% zoom, protected authoring/publication, whole-roster immutable versions, balance/AI and the concise plain-language/orange-effect reader audit remain release gates. Previous Ground and captured-controls display findings remain recorded for that audit.

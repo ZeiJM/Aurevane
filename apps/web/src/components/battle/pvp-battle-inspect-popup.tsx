@@ -1,5 +1,9 @@
 'use client'
 
+import { BattleEffectPopover } from './battle-effect-information'
+import { useBattleInspectEffectFocus } from './use-battle-inspect-effect-focus'
+import { BATTLE_EFFECT_KEYBOARD_HELP } from './battle-effect-keyboard-navigation'
+
 import { SummonAbilityList } from './summon-ability-list'
 
 import type { CharacterPortraitRef } from '@aurevane/game-core/character/creation'
@@ -161,6 +165,8 @@ export function PvpBattleInspectPopup({
   battleView?: BattleSessionView | null
 }) {
   const [open, setOpen] = useState(false)
+  const inspectionRef = useRef<HTMLElement>(null)
+  const inspectionDescriptionId = useBattleInspectEffectFocus(open, inspectionRef)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selected, setSelected] = useState<SelectedCombatant | null>(null)
@@ -276,6 +282,10 @@ export function PvpBattleInspectPopup({
       <section
         className={styles.popup}
         role="dialog"
+        ref={inspectionRef}
+        data-battle-effect-inspect="true"
+        tabIndex={-1}
+        aria-describedby={inspectionDescriptionId}
         aria-modal="true"
         aria-label={
           selected
@@ -284,6 +294,9 @@ export function PvpBattleInspectPopup({
         }
         onPointerDown={(event) => event.stopPropagation()}
       >
+        <span id={inspectionDescriptionId} hidden>
+          {BATTLE_EFFECT_KEYBOARD_HELP}
+        </span>
         {loading ? (
           <div className={styles.loading}>Loading combatant details…</div>
         ) : error ? (
@@ -425,11 +438,21 @@ export function PvpBattleInspectPopup({
                       key={`${status.statusId}:${status.statusVersion}`}
                       data-tone={statusIsBeneficial(status.statusId, status) ? 'buff' : 'debuff'}
                     >
-                      <strong>
-                        {statusLabel(status.statusId, status)}
-                        <b>{formatStatusStackCount(status.statusId, status.stacks)}</b>
-                      </strong>
-                      <small>{statusDurationLabel(status)}</small>
+                      <BattleEffectPopover
+                        effect={status}
+                        layer="inspect"
+                        portalHost={inspectionRef}
+                        className={styles.effectReader}
+                        trigger={
+                          <>
+                            <strong>
+                              {statusLabel(status.statusId, status)}
+                              <b>{formatStatusStackCount(status.statusId, status.stacks)}</b>
+                            </strong>
+                            <small>{statusDurationLabel(status)}</small>
+                          </>
+                        }
+                      />
                     </li>
                   ))}
                 </ul>

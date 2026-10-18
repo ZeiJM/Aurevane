@@ -1,3 +1,4 @@
+import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
 import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
@@ -379,5 +380,64 @@ describe('combat content resolver', () => {
         resonanceVersion,
       ),
     ).resolves.toMatchObject({ contentVersion: resonanceVersion })
+  })
+})
+
+describe('Basic Skill publication resolution', () => {
+  it('reads complete current Basics in one bounded batch and exact historical versions', async () => {
+    const source = new MemoryPublishedCombatContentSource()
+    const old = defaultBasicSkills().find((row) => row.id === 'basic.recover')!
+    const edited = {
+      ...old,
+      contentVersion: 2,
+      name: 'Renewal',
+      ability: {
+        ...old.ability,
+        behaviors: old.ability.behaviors.map((behavior) => ({
+          ...behavior,
+          costs: [{ resource: 'ap' as const, amount: 35 }],
+        })),
+      },
+    }
+    const row = {
+      ...publishedSkill(staticSkill('vanguard.forceful-strike')),
+      contentKey: old.id,
+      contentVersion: 2,
+      definition: edited as unknown as Record<string, unknown>,
+    }
+    source.current.set(old.id, row)
+    source.versions.set(`${old.id}@2`, row)
+    const resolver = createCombatContentResolver(source)
+    const current = await resolver.resolveCurrentBasicSkillDefinitions!([
+      'basic.move',
+      'unarmed.basic',
+      'basic.recover',
+    ])
+    expect(current.get('basic.recover')).toEqual(edited)
+    expect(current.get('basic.move')).toEqual(defaultBasicSkills()[0])
+    expect(source.batchCurrentReads).toBe(1)
+    expect(source.singleCurrentReads).toBe(0)
+    expect(await resolver.resolvePinnedBasicSkillDefinition!(old.id, 2)).toEqual(edited)
+    expect(await resolver.resolvePinnedBasicSkillDefinition!(old.id, 1)).toEqual(old)
+    expect(await resolver.resolvePinnedBasicSkillDefinition!(old.id, 99)).toBeNull()
+    edited.name = 'Changed afterward'
+    expect(current.get('basic.recover')!.name).toBe('Renewal')
+  })
+  it('rejects malformed or mismatched published Basics instead of substituting builtins', async () => {
+    const source = new MemoryPublishedCombatContentSource()
+    const basic = defaultBasicSkills()[0]!
+    source.current.set(basic.id, {
+      ...publishedSkill(staticSkill('vanguard.forceful-strike')),
+      contentKey: basic.id,
+      contentVersion: 7,
+      definition: {
+        ...basic,
+        contentVersion: 7,
+        execution: { kind: 'basic-move', costBasis: 'invented' },
+      },
+    })
+    await expect(
+      createCombatContentResolver(source).resolveCurrentBasicSkillDefinitions!([basic.id]),
+    ).rejects.toBeInstanceOf(InvalidPublishedCombatContentError)
   })
 })

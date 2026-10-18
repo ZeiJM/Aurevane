@@ -82,6 +82,10 @@ const ACTION_COPY: Record<CombatKeybindAction, { label: string; description: str
   nextTarget: { label: 'Next target', description: 'Cycle attack targets while targeting.' },
   previousTarget: { label: 'Previous target', description: 'Reverse-cycle attack targets.' },
   combatLog: { label: 'Combat Log', description: 'Open or close committed battle history.' },
+  modifiers: {
+    label: 'Modifiers',
+    description: 'Choose modifiers for an action before using or priming it.',
+  },
 }
 
 function cloneBindings(bindings: CombatKeybindMap): CombatKeybindMap {
@@ -188,8 +192,8 @@ export function CombatControlsSettings({ initialBindings }: CombatControlsSettin
       aria-label="Combat controls settings"
     >
       <p className={styles.intro}>
-        Change a battle key, then save. Preview actions before choosing a legal target. The server
-        validates every action.
+        Change a key, then save. Preview targets. The server validates every action. Read effects:
+        Ctrl+Alt+E; Up/Down or Home/End to choose; Enter/Space opens; Escape restores focus.
       </p>
 
       <div className={styles.grid}>

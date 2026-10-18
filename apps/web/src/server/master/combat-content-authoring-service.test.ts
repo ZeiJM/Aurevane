@@ -1,3 +1,9 @@
+import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
+import {
+  parseAbilityDefinition,
+  type AbilityDefinition,
+} from '@aurevane/game-core/combat/combat-definition'
+import { CLEANSE_STATUS_IDS } from '@aurevane/game-core/combat/combat-cleanse'
 import { createPercentageDotSkillVersion } from '@aurevane/game-core/combat/combat-percentage-dot-roster'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -6,6 +12,7 @@ vi.mock('server-only', () => ({}))
 import {
   InMemoryCombatContentRepository,
   type CombatContentRepository,
+  type CombatContentKind,
 } from '@aurevane/db/combat-content'
 import {
   resolveMatureSkillVersion,
@@ -28,6 +35,120 @@ import {
 const OWNER = '11111111-1111-4111-8111-111111111111'
 const STAFF = '22222222-2222-4222-8222-222222222222'
 const OUTSIDER = '33333333-3333-4333-8333-333333333333'
+
+function canonicalAuthoringFixture(
+  kind: 'basic' | 'skill' | 'essence' | 'resonance',
+  ability: AbilityDefinition,
+) {
+  const { store, service } = serviceFixture()
+  store.operators.set(OWNER, 'owner')
+  const skill = {
+    ...staticSkill(),
+    ability,
+    // Historical adapter fields are deliberately stale; they are not a second mechanics source.
+    target: { ...staticSkill().target, maximumRange: 999 },
+    effects: [{ type: 'remove-status' as const, recipient: 'actor' as const, statusIds: ['slow'] }],
+  }
+  const essence = {
+    ...staticEssence(),
+    skill: { ...staticEssence().skill, ability, target: skill.target, effects: skill.effects },
+  }
+  const basic = { ...defaultBasicSkills().find((row) => row.id === 'basic.guard')!, ability }
+  const resonance = { ...staticResonance(), ability }
+  const definition =
+    kind === 'basic' ? basic : kind === 'skill' ? skill : kind === 'essence' ? essence : resonance
+  const validate = () =>
+    kind === 'basic'
+      ? service.validateSkillDefinition(basic)
+      : kind === 'skill'
+        ? service.validateSkillDefinition(skill)
+        : kind === 'essence'
+          ? service.validateEssenceDefinition(essence)
+          : service.validateResonanceDefinition(resonance)
+  const publish = () => {
+    const input = { actorUserId: OWNER, definition, expectedBaseVersion: definition.contentVersion }
+    return kind === 'skill' || kind === 'basic'
+      ? service.publishSkill(input)
+      : kind === 'essence'
+        ? service.publishEssence(input)
+        : service.publishResonance(input)
+  }
+  return { store, definition, validate, publish }
+}
+
+describe('canonical authoring uses the supported behavior definition', () => {
+  const base = defaultBasicSkills().find((row) => row.id === 'unarmed.basic')!.ability
+  it.each(['skill', 'essence', 'resonance'] as const)(
+    'validates and publishes canonical %s without materializing its stale native adapter',
+    async (kind) => {
+      const { store, definition, validate, publish } = canonicalAuthoringFixture(kind, base)
+      const before = JSON.stringify(definition)
+      expect(validate()).toMatchObject({ valid: true, issues: [] })
+      const record = await publish()
+      const saved =
+        kind === 'essence'
+          ? (record.definition.skill as { ability: unknown }).ability
+          : record.definition.ability
+      expect(saved).toEqual(base)
+      expect(record.contentKind).toBe(kind)
+      expect(await store.findPublished(record.contentKey, kind)).toEqual(record)
+      expect(JSON.stringify(definition)).toBe(before)
+    },
+  )
+  it.each(['basic', 'skill', 'essence', 'resonance'] as const)(
+    'checks canonical %s Cleanse payloads at their behavior paths',
+    (kind) => {
+      const guard = defaultBasicSkills().find((row) => row.id === 'basic.guard')!.ability
+        .behaviors[0]!
+      const ability = parseAbilityDefinition({
+        schemaVersion: 1,
+        behaviors: [
+          {
+            ...guard,
+            effects: [
+              {
+                id: 'cleanse',
+                payload: { type: 'remove-status', recipient: 'actor', statusIds: ['slow'] },
+              },
+            ],
+          },
+        ],
+      })
+      const { validate } = canonicalAuthoringFixture(kind, ability)
+      expect(validate()).toMatchObject({
+        valid: false,
+        issues: expect.arrayContaining([
+          expect.objectContaining({
+            code: 'INCONSISTENT_CLEANSE',
+            path: `${kind === 'essence' ? 'skill.' : ''}ability.behaviors[0].effects[0].payload.statusIds`,
+          }),
+        ]),
+      })
+      const complete = parseAbilityDefinition({
+        schemaVersion: 1,
+        behaviors: [
+          {
+            ...guard,
+            effects: [
+              {
+                id: 'cleanse',
+                payload: {
+                  type: 'remove-status',
+                  recipient: 'actor',
+                  statusIds: [...CLEANSE_STATUS_IDS],
+                },
+              },
+            ],
+          },
+        ],
+      })
+      expect(canonicalAuthoringFixture(kind, complete).validate()).toMatchObject({
+        valid: true,
+        issues: [],
+      })
+    },
+  )
+})
 
 function staticSkill(
   skillId = 'vanguard.forceful-strike',
@@ -108,6 +229,50 @@ function invalidVariant(mutator: (definition: Record<string, unknown>) => void):
 }
 
 describe('combat content authoring service', () => {
+  it.each(['skill', 'essence', 'resonance'] as const)(
+    'allocates a new %s version above newer built-ins while preserving the selected Owner override',
+    async (kind) => {
+      const { store, service } = serviceFixture()
+      store.operators.set(OWNER, 'owner')
+      const base =
+        kind === 'skill' ? staticSkill() : kind === 'essence' ? staticEssence() : staticResonance()
+      const key = 'essenceId' in base ? base.essenceId : base.id
+      // Simulate an Owner publication retained while the shipped catalogue advances.
+      const previous = await store.repository.publish({
+        contentKey: key,
+        contentKind: kind,
+        definition: base as unknown as Record<string, unknown>,
+        expectedBaseVersion: null,
+        actorUserId: OWNER,
+      })
+      expect(previous.contentVersion).toBeLessThan(base.contentVersion)
+      const input = {
+        actorUserId: OWNER,
+        definition: previous.definition,
+        expectedBaseVersion: previous.contentVersion,
+      }
+      const next =
+        kind === 'skill'
+          ? await service.publishSkill(input)
+          : kind === 'essence'
+            ? await service.publishEssence(input)
+            : await service.publishResonance(input)
+      expect(next.contentVersion).toBeGreaterThan(base.contentVersion)
+      expect(
+        (await store.listPublishedVersions(key)).find(
+          (row) => row.contentVersion === previous.contentVersion,
+        ),
+      ).toEqual(previous)
+      expect(await store.findPublished(key)).toEqual(next)
+      await expect(
+        kind === 'skill'
+          ? service.publishSkill(input)
+          : kind === 'essence'
+            ? service.publishEssence(input)
+            : service.publishResonance(input),
+      ).rejects.toMatchObject({ code: 'STALE_VERSION' })
+    },
+  )
   it('reconciles a historical published custom DoT through the existing expected-version authority', async () => {
     const { store, service } = serviceFixture()
     store.operators.set(OWNER, 'owner')
@@ -767,6 +932,100 @@ describe('combat content authoring service', () => {
     expect(await store.findPublished(essence.essenceId)).toBeNull()
   })
 
+  it.each([
+    { canonical: false, disabled: 'root' },
+    { canonical: false, disabled: 'skill' },
+    { canonical: true, disabled: 'root' },
+    { canonical: true, disabled: 'skill' },
+  ] as const)(
+    'returns authoring validation for a disabled $disabled Essence with canonical=$canonical',
+    async ({ canonical, disabled }) => {
+      const { store, service } = serviceFixture()
+      store.operators.set(OWNER, 'owner')
+      const original = staticEssence()
+      const definition = {
+        ...original,
+        enabled: disabled !== 'root',
+        skill: { ...original.skill, enabled: disabled !== 'skill' },
+        ...(canonical ? { ability: defaultBasicSkills()[0]!.ability } : {}),
+      }
+      const before = JSON.stringify(definition)
+      if (!canonical && disabled === 'skill') {
+        // The historical native adapter rejects disabled Skills with validation issues.
+        // Preserve that result rather than replacing it with an uncaught exception.
+        expect(service.validateEssenceDefinition(definition)).toMatchObject({
+          valid: false,
+          issues: expect.arrayContaining([
+            expect.objectContaining({ code: 'INVALID_COMBAT_ACTION', path: 'skill.pve' }),
+          ]),
+        })
+        await expect(
+          service.publishEssence({
+            actorUserId: OWNER,
+            definition,
+            expectedBaseVersion: original.contentVersion,
+          }),
+        ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
+        expect(JSON.stringify(definition)).toBe(before)
+        return
+      }
+      expect(service.validateEssenceDefinition(definition)).toMatchObject({
+        valid: true,
+        issues: [],
+      })
+      const published = await service.publishEssence({
+        actorUserId: OWNER,
+        definition,
+        expectedBaseVersion: original.contentVersion,
+      })
+      expect(published.definition).toMatchObject({
+        enabled: definition.enabled,
+        skill: { enabled: definition.skill.enabled },
+      })
+      expect(published.definition.ability).toEqual(definition.ability)
+      expect(JSON.stringify(definition)).toBe(before)
+    },
+  )
+
+  it.each(['root', 'cleanse', 'identity', 'media', 'version', 'private'] as const)(
+    'rejects canonical-root Essence %s errors even while disabled',
+    (problem) => {
+      const { service } = serviceFixture()
+      const definition = {
+        ...staticEssence(),
+        enabled: false,
+        ability: structuredClone(defaultBasicSkills()[0]!.ability),
+      }
+      const malformed: Record<string, unknown> = structuredClone(definition)
+      if (problem === 'root') malformed.ability = { schemaVersion: 1, behaviors: [] }
+      if (problem === 'cleanse')
+        malformed.ability = {
+          ...definition.ability,
+          behaviors: definition.ability.behaviors.map((behavior) => ({
+            ...behavior,
+            effects: [
+              {
+                id: 'partial',
+                payload: { type: 'remove-status', recipient: 'actor', statusIds: ['slow'] },
+              },
+            ],
+          })),
+        }
+      if (problem === 'identity') malformed.essenceId = 'wrong.identity'
+      if (problem === 'media')
+        malformed.skill = {
+          ...definition.skill,
+          media: { ...definition.skill.media, iconKey: 'not.registered' },
+        }
+      if (problem === 'version') malformed.contentVersion = definition.contentVersion + 1
+      if (problem === 'private') malformed.derivedTags = ['forged-private-projection']
+      const input = malformed
+      const before = JSON.stringify(input)
+      expect(service.validateEssenceDefinition(input).valid).toBe(false)
+      expect(JSON.stringify(input)).toBe(before)
+    },
+  )
+
   it('validates shared narration tokens and rejects unknown or malformed templates before publishing', async () => {
     const { store, service } = serviceFixture()
     store.operators.set(OWNER, 'owner')
@@ -1116,4 +1375,560 @@ it('validates and immutably publishes Suppress percentage boundaries without rew
     definition.effects,
   )
   expect(staticSkill().effects).toEqual(original.effects)
+})
+
+describe('Basic Skills use the authorized versioned Skill store', () => {
+  it('publishes complete edits, preserves old versions, rejects stale edits and rolls back', async () => {
+    const { store, service } = serviceFixture()
+    store.operators.set(OWNER, 'owner')
+    const builtin = defaultBasicSkills().find((row) => row.id === 'basic.guard')!
+    const edited = {
+      ...builtin,
+      name: 'Iron Guard',
+      ability: {
+        ...builtin.ability,
+        behaviors: builtin.ability.behaviors.map((behavior) => ({
+          ...behavior,
+          costs: [{ resource: 'ap' as const, amount: 17 }],
+        })),
+      },
+    }
+    expect(service.validateSkillDefinition(edited).valid).toBe(true)
+    const draft = await service.saveSkillDraft({
+      actorUserId: OWNER,
+      definition: edited,
+      baseVersion: 1,
+      expectedDraftVersion: null,
+    })
+    expect(draft.definition).toEqual(edited)
+    const published = await service.publishSkill({
+      actorUserId: OWNER,
+      definition: edited,
+      expectedBaseVersion: 1,
+    })
+    expect(published.contentVersion).toBe(2)
+    expect(published.definition).toEqual({ ...edited, contentVersion: 2 })
+    await expect(
+      service.publishSkill({ actorUserId: OWNER, definition: builtin, expectedBaseVersion: 1 }),
+    ).rejects.toMatchObject({ code: 'STALE_VERSION' })
+    await service.rollbackSkill({ actorUserId: OWNER, skillId: builtin.id, targetVersion: 1 })
+    expect(await store.findPublished(builtin.id)).toBeNull()
+    expect(await store.listPublishedVersions(builtin.id)).toHaveLength(1)
+  })
+  it('rejects zero-AP Basic Attack publication and unauthorized Basic edits', async () => {
+    const { store, service } = serviceFixture()
+    store.operators.set(OWNER, 'owner')
+    const attack = defaultBasicSkills().find((row) => row.id === 'unarmed.basic')!
+    const invalid = {
+      ...attack,
+      ability: {
+        ...attack.ability,
+        behaviors: attack.ability.behaviors.map((behavior) => ({ ...behavior, costs: [] })),
+      },
+    }
+    await expect(
+      service.publishSkill({ actorUserId: OWNER, definition: invalid, expectedBaseVersion: 1 }),
+    ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
+    await expect(
+      service.publishSkill({ actorUserId: OUTSIDER, definition: attack, expectedBaseVersion: 1 }),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' })
+    expect(await store.findPublished(attack.id)).toBeNull()
+  })
+})
+
+it.each(['essence', 'resonance'] as const)(
+  'publishes twice and restores %s through a kind-filtered production store contract',
+  async (kind) => {
+    const { store, service } = serviceFixture()
+    store.operators.set(OWNER, 'owner')
+    // Mirror the actual RPC's required kind filter, which the permissive memory fixture previously hid.
+    const find = store.findPublished.bind(store)
+    const point = store.setCurrentPublication.bind(store)
+    store.findPublished = async (key: string, requestedKind: CombatContentKind = 'skill') => {
+      const row = await find(key)
+      return row?.contentKind === requestedKind ? row : null
+    }
+    store.setCurrentPublication = async (
+      key: string,
+      version: number | null,
+      actor: string,
+      requestedKind: CombatContentKind = 'skill',
+    ) => {
+      const target = (await store.listPublishedVersions(key)).find(
+        (row) => row.contentVersion === version,
+      )
+      if (target && target.contentKind !== requestedKind)
+        throw new Error('COMBAT_CONTENT_VERSION_NOT_FOUND')
+      return point(key, version, actor)
+    }
+    const essence = staticEssence()
+    const resonance = staticResonance()
+    const definition = kind === 'essence' ? essence : resonance
+    const key = kind === 'essence' ? essence.essenceId : resonance.id
+    const publish = (expectedBaseVersion: number) =>
+      kind === 'essence'
+        ? service.publishEssence({ actorUserId: OWNER, definition, expectedBaseVersion })
+        : service.publishResonance({ actorUserId: OWNER, definition, expectedBaseVersion })
+    const first = await publish(definition.contentVersion)
+    const second = await publish(first.contentVersion)
+    expect(second.contentVersion).toBe(first.contentVersion + 1)
+    if (kind === 'essence')
+      await service.rollbackEssence({
+        actorUserId: OWNER,
+        essenceId: essence.essenceId,
+        sourceDisciplineId: essence.sourceDisciplineId,
+        targetVersion: first.contentVersion,
+      })
+    else
+      await service.rollbackResonance({
+        actorUserId: OWNER,
+        resonanceId: resonance.id,
+        disciplinePair: resonance.disciplinePair,
+        targetVersion: first.contentVersion,
+      })
+    expect((await find(key))?.contentVersion).toBe(first.contentVersion)
+    expect((await store.listPublishedVersions(key)).map((row) => row.contentVersion)).toEqual([
+      first.contentVersion,
+      second.contentVersion,
+    ])
+  },
+)
+
+describe('authoring preview selects the requested Manual group', () => {
+  const guard = defaultBasicSkills().find((row) => row.id === 'basic.guard')!.ability.behaviors[0]!
+  const ability = parseAbilityDefinition({
+    schemaVersion: 1,
+    behaviors: [
+      {
+        ...guard,
+        id: 'first',
+        costs: [{ resource: 'ap', amount: 5 }],
+        effects: [
+          { id: 'ward', payload: { type: 'barrier-change', recipient: 'actor', amount: 1 } },
+        ],
+      },
+      {
+        ...guard,
+        id: 'second',
+        classification: 'recovery',
+        costs: [
+          { resource: 'ap', amount: 13 },
+          { resource: 'mp', amount: 3 },
+        ],
+        effects: [{ id: 'mend', payload: { type: 'healing', recipient: 'actor', amount: 17 } }],
+      },
+    ],
+  })
+  it('uses the selected group through the real authorized service and kernel without saving it', async () => {
+    const { store, service } = serviceFixture()
+    store.operators.set(OWNER, 'owner')
+    const definition = { ...staticSkill(), ability }
+    const before = JSON.stringify(definition)
+    const preview = await service.previewSkillDefinition({
+      actorUserId: OWNER,
+      definition,
+      behaviorId: 'second',
+    })
+    expect(preview).toMatchObject({
+      behaviorId: 'second',
+      legal: true,
+      costs: { actionEconomy: 13, mp: 3 },
+      targeting: { selection: { kind: 'self' } },
+      simulation: { rngConsumed: false },
+    })
+    expect(preview.projections.effects.some((effect) => effect.effectType === 'healing')).toBe(true)
+    expect(JSON.stringify(definition)).toBe(before)
+    expect(await store.findDraft(definition.id)).toBeNull()
+    expect(await store.findPublished(definition.id)).toBeNull()
+  })
+  it.each(['absent', 'first', 'second'] as const)(
+    'selects exact supported group %s or rejects an absent group',
+    async (behaviorId) => {
+      const { store, service } = serviceFixture()
+      store.operators.set(OWNER, 'owner')
+      const definition =
+        behaviorId === 'absent'
+          ? staticSkill()
+          : {
+              ...staticSkill(),
+              ability: parseAbilityDefinition({
+                schemaVersion: 1,
+                behaviors: [
+                  {
+                    ...guard,
+                    id: 'first',
+                    activation: 'automatic',
+                    requirements: {
+                      kind: 'event',
+                      eventType: 'combat_action_used',
+                      phase: 'after',
+                    },
+                    automaticTarget: { subject: 'owner' },
+                  },
+                ],
+              }),
+            }
+      const preview = service.previewSkillDefinition({ actorUserId: OWNER, definition, behaviorId })
+      if (behaviorId === 'first') {
+        await expect(preview).resolves.toMatchObject({
+          behaviorId: 'first',
+          legal: true,
+          referenceAction: { id: 'unarmed.basic' },
+          eventSample: { ran: true, activated: true },
+        })
+        expect(await store.findDraft(definition.id)).toBeNull()
+        expect(await store.findPublished(definition.id)).toBeNull()
+      } else {
+        await expect(preview).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
+      }
+    },
+  )
+})
+
+describe('Controlled authoring previews prepare an isolated free prime', () => {
+  const guard = defaultBasicSkills().find((row) => row.id === 'basic.guard')!
+  const ordinary = guard.ability.behaviors[0]!
+  const release = {
+    ...ordinary,
+    id: 'release',
+    costs: [
+      { resource: 'ap' as const, amount: 11 },
+      { resource: 'mp' as const, amount: 2 },
+      { resource: 'hp' as const, amount: 1 },
+    ],
+    effects: [
+      {
+        id: 'mend',
+        timing: 'controlled' as const,
+        payload: { type: 'healing' as const, recipient: 'actor' as const, amount: 17 },
+      },
+    ],
+  }
+  const ability = parseAbilityDefinition({ schemaVersion: 1, behaviors: [ordinary, release] })
+  const fixture = () => {
+    const value = serviceFixture()
+    value.store.operators.set(OWNER, 'owner')
+    return value
+  }
+  it.each([
+    ['Basic', guard],
+    ['Skill', staticSkill()],
+    ['Essence action', staticEssence().skill],
+  ] as const)(
+    'quotes the selected %s release once without performing its prime effects',
+    async (_kind, base) => {
+      const { service, store } = fixture()
+      const definition = { ...base, ability }
+      const before = JSON.stringify(definition)
+      for (const combatContext of ['pve', 'pvp'] as const) {
+        const request = { actorUserId: OWNER, definition, behaviorId: 'release', combatContext }
+        const preview = await service.previewSkillDefinition(request)
+        expect(preview).toMatchObject({
+          actionId: base.id,
+          contentVersion: base.contentVersion,
+          behaviorId: 'release',
+          legal: true,
+          simulation: { preparation: 'free-controlled-prime', rngConsumed: false },
+          costs: {
+            actionEconomy: 11,
+            mp: 2,
+            hp: 1,
+            actionEconomyBefore: 100,
+            actionEconomyAfter: 89,
+          },
+        })
+        expect(preview.projections.effects).toContainEqual(
+          expect.objectContaining({ effectType: 'healing', before: 59, after: 76 }),
+        )
+        expect(await service.previewSkillDefinition(request)).toEqual(preview)
+      }
+      expect(JSON.stringify(definition)).toBe(before)
+      expect(await store.findDraft(base.id)).toBeNull()
+      expect(await store.findPublished(base.id)).toBeNull()
+      const instant = await service.previewSkillDefinition({
+        actorUserId: OWNER,
+        definition,
+        behaviorId: ordinary.id,
+      })
+      expect(instant.legal).toBe(true)
+      expect(instant.simulation).not.toHaveProperty('preparation')
+    },
+  )
+  it('does not manufacture eligibility for a disabled Controlled Basic', async () => {
+    const { service } = fixture()
+    const preview = await service.previewSkillDefinition({
+      actorUserId: OWNER,
+      definition: { ...guard, enabled: false, ability },
+      behaviorId: 'release',
+    })
+    expect(preview.legal).toBe(false)
+    expect(preview.simulation).not.toHaveProperty('preparation')
+  })
+  it('retains actual unmet release Requirements after preparing a free prime', async () => {
+    const { service } = fixture()
+    const preview = await service.previewSkillDefinition({
+      actorUserId: OWNER,
+      definition: {
+        ...staticSkill(),
+        ability: parseAbilityDefinition({
+          schemaVersion: 1,
+          behaviors: [
+            {
+              ...release,
+              requirements: {
+                kind: 'resource-state',
+                subject: 'owner',
+                resource: 'hp',
+                comparison: 'at-most',
+                amount: 10,
+              },
+            },
+          ],
+        }),
+      },
+    })
+    expect(preview).toMatchObject({
+      legal: false,
+      simulation: { preparation: 'free-controlled-prime' },
+    })
+    expect(preview.issues).toContainEqual(expect.objectContaining({ code: 'requirement-not-met' }))
+  })
+  it('does not turn a free prime into an affordable release', async () => {
+    const { service } = fixture()
+    const preview = await service.previewSkillDefinition({
+      actorUserId: OWNER,
+      definition: {
+        ...staticSkill(),
+        ability: parseAbilityDefinition({
+          schemaVersion: 1,
+          behaviors: [{ ...release, costs: [{ resource: 'mp', amount: 31 }] }],
+        }),
+      },
+    })
+    expect(preview).toMatchObject({
+      legal: false,
+      simulation: { preparation: 'free-controlled-prime' },
+      costs: { mp: 31 },
+    })
+  })
+})
+
+describe('real Basic and auxiliary authoring simulation', () => {
+  function fixture() {
+    const result = serviceFixture()
+    result.store.operators.set(OWNER, 'owner')
+    return result
+  }
+  it.each(defaultBasicSkills())(
+    'previews $id through its captured binding without writes or RNG',
+    async (definition) => {
+      const { service, store } = fixture()
+      const before = JSON.stringify(definition)
+      const preview = await service.previewSkillDefinition({ actorUserId: OWNER, definition })
+      expect(preview).toMatchObject({
+        actionId: definition.id,
+        behaviorId: 'use',
+        legal: true,
+        contentVersion: definition.contentVersion,
+        simulation: { rngConsumed: false },
+        costs: { actionEconomy: definition.ability.behaviors[0]!.costs[0]!.amount },
+      })
+      expect(await service.previewSkillDefinition({ actorUserId: OWNER, definition })).toEqual(
+        preview,
+      )
+      expect(JSON.stringify(definition)).toBe(before)
+      expect(await store.findDraft(definition.id)).toBeNull()
+      expect(await store.findPublished(definition.id)).toBeNull()
+      if (definition.id === 'basic.move')
+        expect(preview).toMatchObject({
+          movement: {
+            path: [
+              { x: 2, y: 1 },
+              { x: 3, y: 1 },
+            ],
+            terrainCost: 1,
+            movementRemainingAfter: 5,
+          },
+          costs: { actionEconomy: 20, actionEconomyAfter: 80 },
+        })
+    },
+  )
+  it('evaluates Basic Attack scaling instead of treating the saved base damage as the whole attack', async () => {
+    const { service } = fixture()
+    const definition = defaultBasicSkills().find((row) => row.id === 'unarmed.basic')!
+    const first = await service.previewSkillDefinition({ actorUserId: OWNER, definition })
+    const second = await service.previewSkillDefinition({
+      actorUserId: OWNER,
+      definition: { ...definition, execution: { kind: 'basic-attack', scalingBasisPoints: 3000 } },
+    })
+    const damage = (preview: typeof first) =>
+      preview.projections.effects.find((row) => row.effectType === 'damage')!
+    expect(Number(damage(second).before) - Number(damage(second).after)).toBeGreaterThan(
+      Number(damage(first).before) - Number(damage(first).after),
+    )
+  })
+  it.each(['hp', 'mp'] as const)(
+    'uses the captured %s Recovery percentage and native rounding',
+    async (resource) => {
+      const { service } = fixture()
+      const original = defaultBasicSkills().find(
+        (row) => row.id === (resource === 'hp' ? 'basic.recover' : 'basic.recover.mp'),
+      )!
+      const definition = {
+        ...original,
+        ability: parseAbilityDefinition({
+          ...original.ability,
+          behaviors: original.ability.behaviors.map((group) => ({
+            ...group,
+            effects: [
+              {
+                id: 'recover',
+                payload: {
+                  type: 'percentage-recovery',
+                  recipient: 'actor',
+                  resource,
+                  percentageBasisPoints: 2500,
+                },
+              },
+            ],
+          })),
+        }),
+      }
+      const nearest = await service.previewSkillDefinition({ actorUserId: OWNER, definition })
+      const floor = await service.previewSkillDefinition({
+        actorUserId: OWNER,
+        definition: {
+          ...definition,
+          execution: { kind: 'basic-action', recoveryRounding: 'floor' },
+        },
+      })
+      const recovery = (preview: typeof nearest) =>
+        preview.projections.effects.find(
+          (row) =>
+            row.effectType === 'percentage-recovery' ||
+            row.effectType === (resource === 'hp' ? 'healing' : 'resource-change'),
+        )!
+      expect(Number(recovery(nearest).after) - Number(recovery(nearest).before)).toBe(
+        resource === 'hp' ? 25 : 13,
+      )
+      expect(Number(recovery(floor).after) - Number(recovery(floor).before)).toBe(
+        resource === 'hp' ? 25 : 12,
+      )
+    },
+  )
+  it('quotes flat Basic Move AP/MP/HP once instead of using its native per-terrain facade', async () => {
+    const { service } = fixture()
+    const original = defaultBasicSkills()[0]!
+    const definition = {
+      ...original,
+      execution: { kind: 'basic-move', costBasis: 'flat' },
+      ability: parseAbilityDefinition({
+        ...original.ability,
+        behaviors: original.ability.behaviors.map((group) => ({
+          ...group,
+          costs: [
+            { resource: 'ap', amount: 11 },
+            { resource: 'mp', amount: 2 },
+            { resource: 'hp', amount: 1 },
+          ],
+        })),
+      }),
+    }
+    const preview = await service.previewSkillDefinition({ actorUserId: OWNER, definition })
+    expect(preview).toMatchObject({
+      legal: true,
+      costs: { actionEconomy: 11, mp: 2, hp: 1, actionEconomyAfter: 89 },
+      movement: {
+        path: [
+          { x: 2, y: 1 },
+          { x: 3, y: 1 },
+        ],
+      },
+    })
+  })
+  it('selects an auxiliary Manual group and reports its real multi-resource quote', async () => {
+    const { service } = fixture()
+    const original = defaultBasicSkills().find((row) => row.id === 'basic.guard')!
+    const definition = {
+      ...original,
+      ability: parseAbilityDefinition({
+        ...original.ability,
+        behaviors: [
+          original.ability.behaviors[0]!,
+          {
+            ...original.ability.behaviors[0]!,
+            id: 'mend',
+            classification: 'recovery',
+            costs: [
+              { resource: 'ap', amount: 13 },
+              { resource: 'mp', amount: 3 },
+              { resource: 'hp', amount: 1 },
+            ],
+            effects: [{ id: 'heal', payload: { type: 'healing', recipient: 'actor', amount: 17 } }],
+          },
+        ],
+      }),
+    }
+    const preview = await service.previewSkillDefinition({
+      actorUserId: OWNER,
+      definition,
+      behaviorId: 'mend',
+    })
+    expect(preview).toMatchObject({
+      legal: true,
+      behaviorId: 'mend',
+      costs: { actionEconomy: 13, mp: 3, hp: 1 },
+    })
+    expect(preview.projections.effects).toContainEqual(
+      expect.objectContaining({ effectType: 'healing', before: 59, after: 76 }),
+    )
+  })
+  it('keeps a disabled Basic action illegal in the actual command quote', async () => {
+    const { service } = fixture()
+    const definition = {
+      ...defaultBasicSkills().find((row) => row.id === 'basic.guard')!,
+      enabled: false,
+    }
+    expect(await service.previewSkillDefinition({ actorUserId: OWNER, definition })).toMatchObject({
+      legal: false,
+    })
+  })
+  it('previews a Skill Move follow-up from the reached tile and quotes only its authored price', async () => {
+    const { service } = fixture()
+    const attack = defaultBasicSkills().find((row) => row.id === 'unarmed.basic')!.ability
+      .behaviors[0]!
+    const definition = {
+      ...staticSkill(),
+      ability: parseAbilityDefinition({
+        schemaVersion: 1,
+        behaviors: [
+          {
+            ...attack,
+            costs: [
+              { resource: 'ap', amount: 11 },
+              { resource: 'mp', amount: 2 },
+              { resource: 'hp', amount: 1 },
+            ],
+            effects: [
+              { id: 'move', payload: { type: 'move', recipient: 'actor', maximumTiles: 2 } },
+              ...attack.effects,
+            ],
+          },
+        ],
+      }),
+    }
+    const preview = await service.previewSkillDefinition({ actorUserId: OWNER, definition })
+    expect(preview).toMatchObject({
+      legal: true,
+      costs: { actionEconomy: 11, mp: 2, hp: 1, actionEconomyAfter: 89 },
+      movement: {
+        path: [
+          { x: 2, y: 1 },
+          { x: 3, y: 1 },
+        ],
+      },
+      targeting: { selection: { kind: 'unit', combatantId: 'master-preview-enemy' } },
+    })
+    expect(preview.projections.effects.some((row) => row.effectType === 'damage')).toBe(true)
+  })
 })

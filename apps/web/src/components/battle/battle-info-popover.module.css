@@ -18,7 +18,7 @@
 }
 /* Percentages follow the usable containing block, including a reserved scrollbar gutter. */
 .panel {
-  --battle-info-width: min(320px, calc(100% - 16px));
+  --battle-info-width: min(var(--battle-info-preferred-width, 320px), calc(100% - 16px));
   position: fixed;
   z-index: 10000;
   box-sizing: border-box;
@@ -137,6 +137,15 @@
   position: absolute;
 }
 
+/* A complete oversized child stays in its modal's existing scroll flow. */
+.panel[data-battle-info-page='true'][data-battle-info-modal-owned='true'] {
+  position: relative;
+  grid-column: 1 / -1;
+  width: 100%;
+  left: auto;
+  top: auto !important;
+}
+
 /* Exceptional complete reports remain readable without an inner scrollbar. */
 :global(html:has([data-battle-info-page='true'])),
 :global(body:has([data-battle-info-page='true'])) {
@@ -145,9 +154,9 @@
   overscroll-behavior-y: auto !important;
 }
 
-.panel [data-compact-effect-label] {
-  color: inherit;
-}
+.panel [data-combat-tag-reference],
+.panel [data-effect-tag-label],
+.panel [data-compact-effect-label],
 .panel [data-compact-effect-magnitude],
 .panel [data-compact-effect-duration] {
   color: #79551c;

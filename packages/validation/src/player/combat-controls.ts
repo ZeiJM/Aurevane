@@ -23,6 +23,7 @@ export const COMBAT_KEYBIND_ACTIONS = [
   'nextTarget',
   'previousTarget',
   'combatLog',
+  'modifiers',
 ] as const
 
 export type CombatKeybindAction = (typeof COMBAT_KEYBIND_ACTIONS)[number]
@@ -92,6 +93,7 @@ export const DEFAULT_COMBAT_KEYBINDS: CombatKeybindMap = {
   nextTarget: { code: 'Tab', shift: false },
   previousTarget: { code: 'Tab', shift: true },
   combatLog: { code: 'KeyL', shift: false },
+  modifiers: { code: 'KeyM', shift: false },
 }
 
 export function combatKeybindChord(binding: CombatKeybind): string {
@@ -166,6 +168,29 @@ export function parseCombatKeybindMap(input: unknown): CombatKeybindMap | null {
     ].find((binding) => !used.has(combatKeybindChord(binding)))
     if (!available) return null
     normalized = { ...existing, items: available }
+  }
+  // Allocate the new reader only after historical slot/Items normalization has reserved its chords.
+  if (
+    normalized &&
+    typeof normalized === 'object' &&
+    !Array.isArray(normalized) &&
+    !('modifiers' in normalized)
+  ) {
+    const existing = normalized as Record<string, unknown>
+    const used = new Set(
+      Object.values(existing).flatMap((binding) => {
+        const parsed = combatKeybindSchema.safeParse(binding)
+        return parsed.success ? [combatKeybindChord(parsed.data)] : []
+      }),
+    )
+    const available = [
+      DEFAULT_COMBAT_KEYBINDS.modifiers,
+      { code: 'KeyM', shift: true },
+      ...Array.from({ length: 24 }, (_, index) => ({ code: `F${index + 1}`, shift: false })),
+      ...Array.from({ length: 24 }, (_, index) => ({ code: `F${index + 1}`, shift: true })),
+    ].find((binding) => !used.has(combatKeybindChord(binding)))
+    if (!available) return null
+    normalized = { ...existing, modifiers: available }
   }
   const candidate =
     normalized && typeof normalized === 'object' && !Array.isArray(normalized)

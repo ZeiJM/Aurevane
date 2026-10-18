@@ -36,8 +36,13 @@ export const COMBAT_EFFECT_TIMING_TAGS = [
     ...PHASE4_STATUSES.map((status) => status.id),
   ]),
 ] as readonly string[]
-export type CombatEffectTimingMode = 'instant' | 'next-round' | 'delayed'
+export const CONTROLLED_COMBAT_TIMING_TAGS = COMBAT_EFFECT_TIMING_TAGS.filter(
+  (tag) => tag !== 'summon' && tag !== 'ground-area',
+) as readonly string[]
+export type CombatEffectTimingMode = 'instant' | 'next-round' | 'delayed' | 'controlled'
 export function combatEffectTimingRoundOffset(mode: CombatEffectTimingMode): 0 | 1 | 2 {
+  if (mode === 'controlled')
+    throw new TypeError('Controlled requires a captured Manual release, not a round offset.')
   return mode === 'instant' ? 0 : mode === 'next-round' ? 1 : 2
 }
 export interface CombatEffectTimingPolicy {
@@ -60,7 +65,11 @@ export function parseCombatEffectTimingPolicy(value: unknown): CombatEffectTimin
   for (const [tag, mode] of Object.entries(candidate.modes)) {
     if (
       !COMBAT_EFFECT_TIMING_TAGS.includes(tag) ||
-      (mode !== 'instant' && mode !== 'next-round' && mode !== 'delayed')
+      (mode !== 'instant' &&
+        mode !== 'next-round' &&
+        mode !== 'delayed' &&
+        mode !== 'controlled') ||
+      (mode === 'controlled' && !CONTROLLED_COMBAT_TIMING_TAGS.includes(tag))
     )
       throw new TypeError('Unknown timing tag or mode.')
   }
@@ -78,7 +87,7 @@ export function parseStoredCombatEffectTimingPolicy(value: unknown): CombatEffec
     return parseCombatEffectTimingPolicy(value)
   const entries = Object.entries(candidate.modes)
   for (const [, mode] of entries) {
-    if (mode !== 'instant' && mode !== 'next-round' && mode !== 'delayed')
+    if (mode !== 'instant' && mode !== 'next-round' && mode !== 'delayed' && mode !== 'controlled')
       throw new TypeError('Unknown timing mode.')
   }
   const modes = Object.fromEntries(
@@ -122,8 +131,20 @@ export function combatEffectTimingMode(
     (['damage', 'healing', 'mp-recovery', 'blindside'].includes(tag) ? 'instant' : 'next-round')
   )
 }
+export type CombatRecoveryPresentation =
+  | { basis: 'flat'; resource: 'hp' | 'mp'; amountPerApplication: number }
+  | {
+      basis: 'percentage'
+      resource: 'hp' | 'mp'
+      percent: number
+      capture?: { maximumAtCast: number; amountPerApplication: number }
+    }
+
 export type CombatEffectPresentationStatus = CombatStatusInstance & {
   recoveryApplications?: number
+  recovery?: CombatRecoveryPresentation
+  recoverySkipsCurrentTurnEnd?: true
+  barrier?: { kind: 'grant' | 'remaining'; amount: number }
   dotTriggerPolicyVersion?: 1 | 2
   burnBacklashBasisPoints?: number
   percentageDamage?: CapturedPercentageDotDamage
@@ -189,51 +210,77 @@ export function pendingCombatStatusRows(
       (effect.type === 'copy-statuses' && effect.mode === 'amplify')
         ? [pending.actorId]
         : pending.recipientIds
-    return recipients.map((combatantId) => ({
-      combatantId,
-      status: {
-        statusId,
-        ...(state.dotTriggerPolicyVersion !== undefined
-          ? { dotTriggerPolicyVersion: state.dotTriggerPolicyVersion }
-          : {}),
-        ...(effect.type === 'burn' && effect.backlashBasisPoints !== undefined
-          ? { burnBacklashBasisPoints: effect.backlashBasisPoints }
-          : {}),
-        ...((effect.type === 'burn' || effect.type === 'poison' || effect.type === 'bleed') &&
-        effect.damageProfile
-          ? { percentageDotProfile: { ...effect.damageProfile } }
-          : {}),
-        statusVersion: definition?.version ?? 1,
-        stacks: effect.type === 'apply-status' ? effect.stacks : 1,
-        ...(effect.type === 'apply-status' && effect.blindsideModifiersBasisPoints !== undefined
-          ? { blindsideModifiersBasisPoints: { ...effect.blindsideModifiersBasisPoints } }
-          : {}),
-        ...(effect.type === 'apply-status' && tuning.potencyBasisPoints !== undefined
-          ? { potencyBasisPoints: tuning.potencyBasisPoints }
-          : {}),
-        sourceCombatantId: pending.actorId,
-        remainingOwnerTurnStarts: remaining,
-        ...(effect.type === 'percentage-recovery'
-          ? { recoveryApplications: effect.ticks ?? 1 }
-          : {}),
-        ...(durationScope
+    return recipients.map((combatantId) => {
+      const capturedRecovery = pending.percentageRecoveryByRecipient?.[combatantId]
+      const recovery: CombatRecoveryPresentation | undefined =
+        effect.type === 'percentage-recovery'
           ? {
-              durationScope,
-              ...(effect.type === 'apply-status'
-                ? { remainingRoundBoundaries: remaining, remainingOwnerTurnEnds: remaining }
-                : {}),
-              ...(effect.type === 'create-terrain'
+              basis: 'percentage',
+              resource: effect.resource,
+              percent: effect.percent,
+              ...(capturedRecovery
                 ? {
-                    remainingRoundBoundaries:
-                      COMBAT_TERRAIN_OVERLAY_DETAILS[effect.terrain].roundBoundaries,
+                    capture: {
+                      maximumAtCast: capturedRecovery.maximumAtCast,
+                      amountPerApplication: capturedRecovery.amountPerApplication,
+                    },
                   }
                 : {}),
             }
-          : { remainingOwnerTurnEnds: remaining }),
-        activationRound: pending.activationRound,
-        timingState: 'pending' as const,
-      },
-    }))
+          : effect.type === 'healing'
+            ? { basis: 'flat', resource: 'hp', amountPerApplication: effect.amount }
+            : effect.type === 'resource-change' && effect.delta >= 0
+              ? { basis: 'flat', resource: 'mp', amountPerApplication: effect.delta }
+              : undefined
+      return {
+        combatantId,
+        status: {
+          statusId,
+          ...(state.dotTriggerPolicyVersion !== undefined
+            ? { dotTriggerPolicyVersion: state.dotTriggerPolicyVersion }
+            : {}),
+          ...(effect.type === 'burn' && effect.backlashBasisPoints !== undefined
+            ? { burnBacklashBasisPoints: effect.backlashBasisPoints }
+            : {}),
+          ...((effect.type === 'burn' || effect.type === 'poison' || effect.type === 'bleed') &&
+          effect.damageProfile
+            ? { percentageDotProfile: { ...effect.damageProfile } }
+            : {}),
+          statusVersion: definition?.version ?? 1,
+          stacks: effect.type === 'apply-status' ? effect.stacks : 1,
+          ...(effect.type === 'apply-status' && effect.blindsideModifiersBasisPoints !== undefined
+            ? { blindsideModifiersBasisPoints: { ...effect.blindsideModifiersBasisPoints } }
+            : {}),
+          ...(effect.type === 'apply-status' && tuning.potencyBasisPoints !== undefined
+            ? { potencyBasisPoints: tuning.potencyBasisPoints }
+            : {}),
+          sourceCombatantId: pending.actorId,
+          remainingOwnerTurnStarts: remaining,
+          ...(recovery
+            ? { recovery, recoveryApplications: (effect as { ticks?: number }).ticks ?? 1 }
+            : {}),
+          ...(effect.type === 'barrier-change'
+            ? { barrier: { kind: 'grant' as const, amount: effect.amount } }
+            : {}),
+          ...(durationScope
+            ? {
+                durationScope,
+                ...(effect.type === 'apply-status'
+                  ? { remainingRoundBoundaries: remaining, remainingOwnerTurnEnds: remaining }
+                  : {}),
+                ...(effect.type === 'create-terrain'
+                  ? {
+                      remainingRoundBoundaries:
+                        COMBAT_TERRAIN_OVERLAY_DETAILS[effect.terrain].roundBoundaries,
+                    }
+                  : {}),
+              }
+            : { remainingOwnerTurnEnds: remaining }),
+          activationRound: pending.activationRound,
+          timingState: 'pending' as const,
+        },
+      }
+    })
   })
   return [
     ...pendingRows,
@@ -287,6 +334,10 @@ export function activePersistentCombatStatusRows(
     percentageDotStage?: number,
     burnBacklashBasisPoints?: number,
     recoveryApplications?: number,
+    amounts: Pick<
+      CombatEffectPresentationStatus,
+      'recovery' | 'recoverySkipsCurrentTurnEnd' | 'barrier'
+    > = {},
   ) {
     if (!state.tactical.battle.combatants.some((unit) => unit.id === combatantId && unit.hp > 0))
       return
@@ -303,6 +354,7 @@ export function activePersistentCombatStatusRows(
         sourceCombatantId,
         timingState: 'active',
         ...(recoveryApplications !== undefined ? { recoveryApplications } : {}),
+        ...amounts,
         ...(percentageDamage
           ? {
               percentageDamage: { ...percentageDamage, profile: { ...percentageDamage.profile } },
@@ -355,7 +407,21 @@ export function activePersistentCombatStatusRows(
       undefined,
       undefined,
       undefined,
-      effect.percentageRecovery ? effect.remainingFutureTicks : undefined,
+      effect.remainingFutureTicks,
+      {
+        recovery: effect.percentageRecovery
+          ? {
+              basis: 'percentage',
+              resource: effect.kind,
+              percent: effect.percentageRecovery.percent,
+              capture: {
+                maximumAtCast: effect.percentageRecovery.maximumAtCast,
+                amountPerApplication: effect.amountPerTick,
+              },
+            }
+          : { basis: 'flat', resource: effect.kind, amountPerApplication: effect.amountPerTick },
+        ...(effect.skipCurrentOwnerTurnEnd ? { recoverySkipsCurrentTurnEnd: true as const } : {}),
+      },
     )
   for (const effect of effects.barriers ?? [])
     if (effect.amount > 0)
@@ -365,6 +431,11 @@ export function activePersistentCombatStatusRows(
         effect.sourceCombatantId,
         undefined,
         'until-spent',
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        { barrier: { kind: 'remaining', amount: effect.amount } },
       )
   for (const summon of effects.summons ?? [])
     append(

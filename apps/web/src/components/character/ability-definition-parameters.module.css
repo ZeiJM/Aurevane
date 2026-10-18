@@ -1,0 +1,10 @@
+.group + .group {
+  margin-top: 0.75rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgb(183 199 212 / 20%);
+}
+.heading {
+  margin: 0 0 0.35rem;
+  color: inherit;
+  font-size: inherit;
+}

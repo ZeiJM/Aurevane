@@ -7,6 +7,7 @@ import { toServerErrorResponse } from '@/server/http/error-response'
 
 import { createServerCombatContentAuthoringService } from './combat-content-authoring-server'
 import type { CombatContentAuthoringService } from './combat-content-authoring-service'
+import { readCombatContentEventSample } from './combat-content-event-sample'
 
 export interface CombatContentAuthoringHandlerDependencies {
   getActor(): Promise<{ userId: string }>
@@ -144,10 +145,32 @@ export async function handleCombatContentAuthoringRequest(
       const definition = requireProperty(body, 'definition')
       const seed = readOptionalPreviewSeed(body.seed)
       const combatContext = readOptionalCombatContext(body.combatContext)
+      const behaviorId =
+        body.behaviorId === undefined ? undefined : requiredString(body.behaviorId, 'behaviorId')
+      const previewSetupSkillId =
+        body.previewSetupSkillId === undefined
+          ? undefined
+          : requiredString(body.previewSetupSkillId, 'previewSetupSkillId')
+      const previewRootSkillId =
+        body.previewRootSkillId === undefined
+          ? undefined
+          : requiredString(body.previewRootSkillId, 'previewRootSkillId')
+      const previewRootBehaviorId =
+        body.previewRootBehaviorId === undefined
+          ? undefined
+          : requiredString(body.previewRootBehaviorId, 'previewRootBehaviorId')
       const preview = await service.previewSkillDefinition({
+        ...(body.eventSample === undefined
+          ? {}
+          : { eventSample: readCombatContentEventSample(body.eventSample) }),
+        ...(contentKind === 'resonance' ? { contentKind } : {}),
         actorUserId: actor.userId,
         definition,
         ...(seed === undefined ? {} : { seed }),
+        ...(behaviorId === undefined ? {} : { behaviorId }),
+        ...(previewSetupSkillId === undefined ? {} : { previewSetupSkillId }),
+        ...(previewRootSkillId === undefined ? {} : { previewRootSkillId }),
+        ...(previewRootBehaviorId === undefined ? {} : { previewRootBehaviorId }),
         ...(combatContext === undefined ? {} : { combatContext }),
       })
       return success({ preview })
@@ -175,6 +198,21 @@ export async function handleCombatContentAuthoringRequest(
           : contentKind === 'essence'
             ? await service.saveEssenceDraft(input)
             : await service.saveResonanceDraft(input)
+      return success({ draft })
+    }
+
+    if (operation === 'restore-basic-draft') {
+      if (contentKind !== 'skill') return invalid('Restore to draft requires a Basic Skill.')
+      const draft = await service.restoreBasicSkillDraft({
+        actorUserId: actor.userId,
+        skillId: requiredString(body.skillId, 'skillId'),
+        targetVersion: readPositiveInteger(body.targetVersion, 'targetVersion'),
+        expectedBaseVersion: readPositiveInteger(body.expectedBaseVersion, 'expectedBaseVersion'),
+        expectedDraftVersion: readNullablePositiveInteger(
+          requireProperty(body, 'expectedDraftVersion'),
+          'expectedDraftVersion',
+        ),
+      })
       return success({ draft })
     }
 
