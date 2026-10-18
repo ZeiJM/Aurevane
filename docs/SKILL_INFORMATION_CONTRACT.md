@@ -1,5 +1,7 @@
 # Minimum Skill information contract
 
+Owner refinement 2026-10-18 (skill display cleanup): omit a one-turn duration label for Instant effects; retain two or more turns and non-Instant durations. Use compact requirement names with subject brackets, including fallback/historical readers, while preserving all actual conditions and All/Any grouping. Technique Preview explanation bullets have a small gap below the parameter table. Display-only; execution and expiry rules remain unchanged.
+
 Owner refinement 2026-10-18 (correction release in progress): all full readers use bold, consistently colored effect tags and numeric-only magnitude brackets. Show an effect recipient in brackets only when it differs from the Skill Target. Omit Stack/Expiry brackets; use ordinary turn durations. Requirements use compact modular terms. Master alone controls current tag timing; normal has no badge. Keep all ten fields and immutable battle metadata. This supersedes conflicting older presentation/type/timing wording below. See `superpowers/specs/2026-10-18-modular-corrections.md`.
 
 Owner-approved 2026-10-02. This is the minimum report for **every full Skill detail view**, including Discipline Skills, Essence, inherent commands, Support Actions and passive/triggered effects such as Resonance. It is a presentation rule, not a change to combat mechanics.

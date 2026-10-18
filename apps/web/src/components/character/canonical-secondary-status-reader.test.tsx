@@ -182,7 +182,7 @@ it.each([true, false])(
   },
 )
 
-it('shows the same-turn expiry in every actual Blindside reader, including Controlled', () => {
+it('omits single-turn Instant labels while retaining Controlled duration and expiry metadata', () => {
   let count = 0
   for (const row of rows) {
     for (const group of row.after.ability.behaviors) {
@@ -192,7 +192,7 @@ it('shows the same-turn expiry in every actual Blindside reader, including Contr
           continue
         count++
         expect(report.effects[index]!.parts).toMatchObject({
-          duration: '1 Turn',
+          duration: effect.timing === 'controlled' ? '1 Turn' : null,
           details: expect.arrayContaining([
             {
               label: 'Expiry',
@@ -205,7 +205,8 @@ it('shows the same-turn expiry in every actual Blindside reader, including Contr
             definition={projectPublicCombat({ schemaVersion: 1, behaviors: [group] })}
           />,
         )
-        expect(html).toContain('[1 Turn]')
+        if (effect.timing === 'controlled') expect(html).toContain('[1 Turn]')
+        else expect(html).not.toContain('[1 Turn]')
         expect(html).not.toContain(
           '[Expiry: Count from activation, including the recipient’s current turn]',
         )
@@ -241,7 +242,7 @@ it.each([
     })
     const rounds = timing === 'next-round' || timing === 'delayed'
     expect(report.effects[0]!.parts).toMatchObject({
-      duration: rounds ? '1 Round' : '1 Turn',
+      duration: rounds ? '1 Round' : timing === 'instant' ? null : '1 Turn',
       details: expect.arrayContaining([
         {
           label: 'Expiry',

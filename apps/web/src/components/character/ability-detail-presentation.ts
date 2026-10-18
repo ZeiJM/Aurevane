@@ -62,17 +62,22 @@ export function abilityRequirementDescription(node: RequirementNode | null): str
       return `${subjects[node.subject]} ${node.present ? 'must have' : 'must not have'} ${node.abilityId} primed`
     case 'event':
       return `${node.phase === 'before' ? 'Before' : 'After'} ${node.eventType.replaceAll('_', ' ')}`
-    case 'action':
-      return (
-        [
-          node.classification,
-          node.attackFamily,
-          node.sourceDisciplineId,
-          ...(node.requiredTags ?? []),
-        ]
-          .filter(Boolean)
-          .join(' / ') || 'Any action'
-      )
+    case 'action': {
+      const label = (value: string) =>
+        value.replaceAll('-', ' ').replace(/\b\w/gu, (letter) => letter.toUpperCase())
+      return [
+        node.classification
+          ? node.classification === 'recovery'
+            ? 'Heal'
+            : label(node.classification)
+          : 'Action',
+        node.attackFamily ? `[${label(node.attackFamily)}]` : null,
+        node.sourceDisciplineId ? `[${label(node.sourceDisciplineId)}]` : null,
+        ...(node.requiredTags ?? []).map((tag) => `[${label(tag)}]`),
+      ]
+        .filter(Boolean)
+        .join(' ')
+    }
   }
 }
 
@@ -207,6 +212,7 @@ function effectPresentation(
     parts = compactSkillEffectSummaryParts(native, timingPolicy, {
       explicitElemental: true,
       ...effectContext,
+      ...(effect.timing ? { timingMode: effect.timing } : {}),
     })
     const mode =
       effect.timing ??
@@ -308,6 +314,8 @@ function effectPresentation(
         .replace(/full rounds/gu, 'Rounds')
         .replace(/full round/gu, 'Round') ?? null,
   }
+  if (parts.timing === 'Instant' && /^1 (?:affected )?turns?$/iu.test(parts.duration ?? ''))
+    parts = { ...parts, duration: null }
   const condition = effect.requirements ? abilityRequirementDescription(effect.requirements) : null
   const conditionParts = requirementReferenceParts(effect.requirements ?? null, effectContext)
   return {

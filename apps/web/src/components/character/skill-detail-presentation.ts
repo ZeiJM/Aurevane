@@ -172,19 +172,19 @@ export function skillEffectDescription(
 export function skillRequirementDescription(requirement: CombatUseRequirement): string {
   switch (requirement.kind) {
     case 'actor-tag-present':
-      return `Requires ${requirementTagName(requirement.tag)} on yourself.`
+      return `${requirementTagName(requirement.tag)} [Self]`
     case 'actor-tag-absent':
-      return `Requires no ${requirementTagName(requirement.tag)} on yourself.`
+      return `No ${requirementTagName(requirement.tag)} [Self]`
     case 'target-tag-present':
-      return `Target must have ${requirementTagName(requirement.tag)}.`
+      return `${requirementTagName(requirement.tag)} [Target]`
     case 'actor-status-present':
-      return `Requires ${gameplayStatusName(requirement.statusId)} on yourself.`
+      return `${gameplayStatusName(requirement.statusId)} [Self]`
     case 'actor-status-absent':
-      return `Requires no ${gameplayStatusName(requirement.statusId)} on yourself.`
+      return `No ${gameplayStatusName(requirement.statusId)} [Self]`
     case 'target-status-present':
-      return `Target must have ${gameplayStatusName(requirement.statusId)}.`
+      return `${gameplayStatusName(requirement.statusId)} [Target]`
     case 'actor-hp-at-most':
-      return `Requires your HP at ${requirement.basisPoints / 100}% or below.`
+      return `HP ≤ ${requirement.basisPoints / 100}% [Self]`
   }
 }
 
@@ -295,6 +295,7 @@ export function skillParameterRows(
 }
 
 interface ElementalEffectPresentationOptions {
+  timingMode?: 'instant' | 'delayed' | 'controlled' | 'next-round'
   legacyHealingDown?: boolean
   legacyElemental?: boolean
   explicitElemental?: boolean
@@ -320,12 +321,13 @@ export function skillEffectInstantTiming(
 ): 'Instant' | 'Delayed' | 'Controlled' | undefined {
   const tag = effect.type === 'summon' ? 'summon' : currentCombatEffectTimingTag(effect)
   const mode =
-    !options.legacyElemental &&
+    options.timingMode ??
+    (!options.legacyElemental &&
     options.explicitElemental !== false &&
     elementalStatusOverlapsDamage(effect, options.skillEffects) &&
     policy?.modes[tag] === undefined
       ? 'instant'
-      : combatEffectTimingMode(policy ?? undefined, tag)
+      : combatEffectTimingMode(policy ?? undefined, tag))
   return mode === 'controlled'
     ? 'Controlled'
     : mode === 'delayed'
@@ -386,7 +388,9 @@ export function compactSkillEffectSummaryParts(
     duration:
       effect.type === 'damage' && !options.legacyElemental && options.explicitElemental !== false
         ? null
-        : compactDuration(effect),
+        : timing === 'Instant' && /^1 turn$/iu.test(compactDuration(effect) ?? '')
+          ? null
+          : compactDuration(effect),
     ...(timing ? { timing } : {}),
   }
 }
@@ -434,26 +438,7 @@ export function skillRequirementsSummary(
   skill: Pick<MatureSkillDefinition, 'requirements'>,
 ): string {
   if (skill.requirements.length === 0) return 'None'
-  return skill.requirements
-    .map((requirement) => {
-      switch (requirement.kind) {
-        case 'actor-tag-present':
-          return `Self: ${requirementTagName(requirement.tag)}`
-        case 'actor-tag-absent':
-          return `Self lacks ${requirementTagName(requirement.tag)}`
-        case 'target-tag-present':
-          return `Target: ${requirementTagName(requirement.tag)}`
-        case 'actor-status-present':
-          return `Self: ${gameplayStatusName(requirement.statusId)}`
-        case 'actor-status-absent':
-          return `Self lacks ${gameplayStatusName(requirement.statusId)}`
-        case 'target-status-present':
-          return `Target: ${gameplayStatusName(requirement.statusId)}`
-        case 'actor-hp-at-most':
-          return `HP ≤ ${requirement.basisPoints / 100}%`
-      }
-    })
-    .join(', ')
+  return skill.requirements.map(skillRequirementDescription).join(', ')
 }
 
 export function skillTargetDescription(skill: Pick<MatureSkillDefinition, 'target'>): string {

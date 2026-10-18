@@ -102,7 +102,7 @@ it('retains all subjects, absence and non-status branches around nested linked p
     requirements,
   })
   expect(plain(report.requirementParts)).toBe(
-    '(No Rooted [Self] & (Burn [Area] or No Covert [Trigger]) & Each selected unit: MP ≥ 75% & You: AP ≤ 40 & Triggering unit: HP crosses below 35% & Before combat action used & attack / physical / mark / burn & You must not have burn primed & constructor)',
+    '(No Rooted [Self] & (Burn [Area] or No Covert [Trigger]) & Each selected unit: MP ≥ 75% & You: AP ≤ 40 & Triggering unit: HP crosses below 35% & Before combat action used & Attack [Physical] [Mark] [Burn] & You must not have burn primed & constructor)',
   )
   expect(references(report.requirementParts).map((part) => part.tag)).toEqual([
     'rooted',

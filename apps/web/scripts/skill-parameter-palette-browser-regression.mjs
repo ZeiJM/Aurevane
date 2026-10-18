@@ -1145,7 +1145,7 @@ try {
       const summary = await report.textContent()
       assert.ok(summary.includes('Blindside'))
       assert.ok(summary.includes('[Instant]'))
-      assert.ok(summary.includes('[1 Turn]'))
+      assert.ok(!summary.includes('[1 Turn]'))
       assert.ok(summary.includes('[20]'))
       if (surface !== 'Nexus') {
         assert.ok(summary.includes('160% from the side and 220% from the rear'))
