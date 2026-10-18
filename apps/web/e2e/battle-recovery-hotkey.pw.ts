@@ -228,6 +228,7 @@ test('retains equipped HP Recovery keyboard input without exposing the deferred 
     actionId: 'basic.recover',
     behaviorId: 'use',
     target: { kind: 'self' },
+    manualModifiers: [],
   })
   const after = committedPayload.battle as BattleSessionView
   expect(after.battleVersion).toBe(prepared.battleVersion + 1)
