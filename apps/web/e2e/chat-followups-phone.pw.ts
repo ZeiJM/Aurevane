@@ -63,9 +63,7 @@ test('chat reactions, ephemeral typing and private Game feed work on a phone', a
         `selectedCharacterId=${selectedCharacterId ?? 'missing'}`,
         `targetCharacterName=${guestId.name}`,
         `response=${JSON.stringify(
-          safeError
-            ? { code: safeError.code, message: safeError.message }
-            : requestBody,
+          safeError ? { code: safeError.code, message: safeError.message } : requestBody,
         )}`,
       ].join(' '),
     ).toBe(true)
