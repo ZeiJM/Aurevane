@@ -65,7 +65,9 @@ describe('authenticated shell presentation', () => {
       </AuthenticatedShellPresentation>,
     )
 
-    expect(markup.indexOf('Welcome back, Aster.')).toBeLessThan(markup.indexOf('Online Users'))
+    expect(markup.indexOf('Welcome back, Aster.')).toBeLessThan(
+      markup.indexOf('Online Users'),
+    )
     expect(markup).not.toContain('<footer')
     expect(markup).not.toContain('aria-label="Back to game"')
     expect(markup).not.toContain('>Navigation<')
