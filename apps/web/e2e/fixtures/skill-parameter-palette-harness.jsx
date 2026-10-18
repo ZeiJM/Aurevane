@@ -126,6 +126,7 @@ const modularSkillFor = (definition) =>
   })
 const modularSkill = modularSkillFor(physical)
 const modularResonance = projectPublicCombat({ ...resonance, ability: modularAbility })
+const modularEssence = projectPublicCombat({ ...essence, ability: modularAbility })
 window.modularPublicDefinition = modularSkill
 window.paletteDefinitions = { physical, mystic, guard, resonance, essence }
 window.requests = []
@@ -564,11 +565,7 @@ function Nexus() {
       equippedSkills: [],
       extensions: {
         resonance: pure ? null : modular ? modularResonance : resonance,
-        essence: pure
-          ? modular
-            ? { ...essence, skill: modularSkillFor(essence.skill) }
-            : essence
-          : null,
+        essence: pure ? (modular ? modularEssence : essence) : null,
       },
     },
   }
