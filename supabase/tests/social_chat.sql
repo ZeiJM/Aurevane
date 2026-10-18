@@ -122,7 +122,7 @@ select public.chat_friend_remove_v1((select u from ids where n=7), (select c fro
 select is((public.chat_friends_v1((select u from ids where n=7), (select c from ids where n=7))->>'slotsUsed')::integer, 9, 'removing a friend frees a slot');
 select is((public.chat_friends_v1((select u from ids where n=7), (select c from ids where n=7))->'incoming'->0->>'name'), 'Chat Tester 12', 'pending request is listed');
 select ok(public.chat_friend_respond_v1((select u from ids where n=7), (select c from ids where n=7), (select c from ids where n=12), true) is not null, 'accepting after a slot frees works');
-select ok(jsonb_array_length(public.chat_mention_candidates_v1((select u from ids where n=7), (select c from ids where n=7), 'world', 'chat tester 0')) >= 1, 'mention candidates include friends');
+select ok(jsonb_array_length(public.chat_mention_candidates_v1((select u from ids where n=7), (select c from ids where n=7), 'world', 'chattester0')) >= 1, 'mention candidates include friends');
 
 -- Display names with spaces resolve against the canonical separator-free name key.
 update public.characters set name = 'ChatGuest DECBHJJ', name_key = 'chatguestdecbhjj'
