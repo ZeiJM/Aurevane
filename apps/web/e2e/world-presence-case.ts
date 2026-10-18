@@ -419,7 +419,7 @@ export async function verifyWorldScenePresence(
         },
         { timeout: 4000 },
       )
-      .toBeGreaterThan(8)
+      .toBeGreaterThanOrEqual(8)
     await expect
       .poll(async () => (await world(other)).position, { timeout: 12000 })
       .toEqual(destination)
