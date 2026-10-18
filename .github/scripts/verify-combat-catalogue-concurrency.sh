@@ -2,19 +2,18 @@
 set -euo pipefail
 # Disposable local Supabase only. Run last: committed fixture history/policy is
 # intentionally retained until the CI stack is destroyed, just like real history.
-source .github/scripts/auth-test-helpers.sh
-load_test_auth
-signup="$(signup_test_user "catalogue-race-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}@example.com" 'Catalogue-race-2026!')"
-owner_id="$(printf '%s' "$signup" | jq -er '.user.id')"
-confirm_test_user "$owner_id"
 db_container="$(docker ps --filter 'name=supabase_db_' --format '{{.Names}}' | head -n 1)"
 test -n "$db_container"
+sql() { docker exec "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "$1"; }
+# The earlier staff-authority verifier bootstraps the sole trusted CI Owner.
+# Reuse it rather than violating the real single-enabled-Owner constraint.
+owner_id="$(sql "select user_id from app_private.master_panel_role_assignments where role='game-owner' and enabled;")"
+[[ "$owner_id" =~ ^[0-9a-f-]{36}$ ]]
 race_tmp="$(mktemp -d)"
 holder_app="catalogue-holder-$owner_id"
 writer_app="catalogue-writer-$owner_id"
 holder_pid=''
 writer_pid=''
-sql() { docker exec "$db_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "$1"; }
 cleanup() {
   result=$?
   trap - EXIT
@@ -26,7 +25,6 @@ cleanup() {
   exit "$result"
 }
 trap cleanup EXIT
-sql "insert into app_private.master_panel_role_assignments(user_id,role,enabled,granted_by,note) values('$owner_id','game-owner',true,'$owner_id','CI catalogue race bootstrap');" >/dev/null
 
 # Snapshot all persisted combat authoring state, including immutable history and
 # drafts. A losing writer must not even delete an existing draft.
