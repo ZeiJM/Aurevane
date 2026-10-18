@@ -69,7 +69,7 @@ it.each(['frozen', 'wet', 'conductive'])(
 it('keeps fallback requirements modular with explicit subjects and absence', () => {
   const requirements = [
     { kind: 'actor-status-present' as const, statusId: 'guarded' },
-    { kind: 'actor-tag-absent' as const, tag: 'Wet' },
+    { kind: 'actor-tag-absent' as const, tag: 'Wet' as const },
     { kind: 'target-status-present' as const, statusId: 'exposed' },
   ]
   expect(requirements.map(skillRequirementDescription)).toEqual([
