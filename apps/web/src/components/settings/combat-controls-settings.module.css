@@ -142,6 +142,11 @@
 
 /* Preserve this workspace's readable targets over legacy desktop shell compaction. */
 @media (min-width: 981px) {
+  .grid {
+    /* Fit the complete effect-reader guidance without shrinking text or targets. */
+    gap: 0.2rem;
+  }
+
   :global(#game-main) .panel .row {
     /* The reserved Items binding adds an eighth row; keep every 44px target in view. */
     padding: 0.125rem 0.4rem;
