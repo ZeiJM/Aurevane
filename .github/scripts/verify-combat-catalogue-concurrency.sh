@@ -81,7 +81,7 @@ SQL
   writer_pid=''
   if [ "$finish" = commit ]; then
     test "$writer_result" -ne 0
-    rg -q 'COMBAT_CONTENT_CATALOGUE_CONFLICT' "$race_tmp/$label-writer.log"
+    grep -Fq 'COMBAT_CONTENT_CATALOGUE_CONFLICT' "$race_tmp/$label-writer.log"
     expected_state="$(sed -n 's/^EXPECTED://p' "$race_tmp/$label-holder.log")"
     test -n "$expected_state"
     test "$(sql "select $state_expression;")" = "$expected_state"
