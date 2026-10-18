@@ -94,11 +94,22 @@ it.each(cohort.records)(
         }
       }
     }
-    const text = String(after.descriptionRef ?? after.description)
-    expect(text.length).toBeLessThanOrEqual(300)
-    expect(text).not.toMatch(
-      /once.per.battle|once.per.game|\blegal\b|captured|prepaid|kernel|packet|ordinal|next.round|round\+|\d/i,
-    )
+    const checkDescriptions = (value: unknown): void => {
+      if (Array.isArray(value)) {
+        for (const entry of value) checkDescriptions(entry)
+      } else if (value && typeof value === 'object') {
+        for (const [key, entry] of Object.entries(value)) {
+          if ((key === 'description' || key === 'descriptionRef') && typeof entry === 'string') {
+            expect(entry.length).toBeLessThanOrEqual(300)
+            expect(entry).not.toMatch(
+              /once.per.battle|once.per.game|\blegal\b|captured|prepaid|kernel|packet|ordinal|next.round|round\+|\d/i,
+            )
+          }
+          checkDescriptions(entry)
+        }
+      }
+    }
+    checkDescriptions(after)
   },
 )
 

@@ -49,6 +49,11 @@ def revise_envelope(value):
         for entry in value:
             revise_envelope(entry)
     elif isinstance(value, dict):
+        # Summoned Skills use the same concise overview rule as their parent.
+        if "description" in value and "effects" in value:
+            resources = {effect.get("resource") for effect in value["effects"] if effect.get("type") == "percentage-recovery"}
+            if resources and all(effect.get("type") == "percentage-recovery" for effect in value["effects"]):
+                value["description"] = "Restore " + " and ".join(resource.upper() for resource in sorted(resources)) + "."
         # Neither native compatibility envelopes nor canonical packets override Master timing.
         value.pop("timing", None)
         if "activationLimits" in value:

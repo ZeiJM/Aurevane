@@ -13138,7 +13138,7 @@
                         {
                           "id": "wildwarden.verdant-stalker.verdant-mend",
                           "name": "Verdant Mend",
-                          "description": "Restores a captured percentage of each recipient’s maximum resource.",
+                          "description": "Restore HP.",
                           "apCost": 45,
                           "mpCost": 0,
                           "tags": ["heal", "support"],
