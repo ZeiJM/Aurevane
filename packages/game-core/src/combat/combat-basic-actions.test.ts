@@ -180,6 +180,31 @@ describe('editable Basic and Support definitions', () => {
       }),
     ).toEqual([])
   })
+
+  it('accepts Ground as the native walking destination without admitting unit-targeted conversion', () => {
+    const move = defaultBasicSkills().find((row) => row.id === 'basic.move')!
+    const group = move.ability.behaviors[0]!
+    const definition = {
+      ...move,
+      contentVersion: move.contentVersion + 1,
+      ability: {
+        ...move.ability,
+        behaviors: [
+          {
+            ...group,
+            targeting: { ...group.targeting!, kind: 'ground-tile', categories: ['ground'] },
+          },
+        ],
+      },
+    }
+    expect(validateBasicSkillDefinition(definition)).toEqual([])
+    expect(validateBasicSkillDefinition(move)).toEqual([])
+    const invalid = structuredClone(definition)
+    invalid.ability.behaviors[0]!.targeting.categories = ['enemy']
+    expect(validateBasicSkillDefinition(invalid)).toContainEqual(
+      expect.objectContaining({ code: 'native-move-conversion' }),
+    )
+  })
 })
 
 it('rejects a fixed Basic Attack family that its adaptive binding would overwrite', () => {

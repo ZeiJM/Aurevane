@@ -99,7 +99,7 @@ export function createDefaultCombatEffect(type: CombatEffectType): CombatEffectD
         },
       }
     case 'barrier-change':
-      return { type, recipient: 'actor', amount: 1 }
+      return { type, recipient: 'actor', amount: 1, basis: 'maximum-hp-percent' }
     case 'copy-statuses':
       return { type, recipient: 'primary-unit', mode: 'amplify' }
     case 'sensory':

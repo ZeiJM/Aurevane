@@ -1,4 +1,5 @@
 import { projectPublicCombat } from '@aurevane/game-core/combat/public-combat-presentation'
+import { essenceCombatSkill } from '@aurevane/game-core/combat/essence'
 import { isStarterCharacterPortraitRef } from '@aurevane/game-core/character/starter-options'
 import {
   DEFAULT_SUPPORT_ACTION_ID,
@@ -25,8 +26,8 @@ import { getAuthenticatedActor } from '@/server/auth/actor'
 import {
   battleBuildAuthorityForCombatant,
   resolveBattleDisciplineSkillDefinition,
-  resolveBattleEssenceDefinition,
-  resolveBattleResonanceDefinition,
+  resolvePinnedBattleEssenceDefinition,
+  resolvePinnedBattleResonanceDefinition,
 } from '@/server/battle/battle-build-authority'
 import { createBattleSessionService } from '@/server/battle/battle-session-service'
 import { getPvpBattleMetadata } from '@/server/battle/pvp-lobby-service'
@@ -70,10 +71,15 @@ async function battleBuildExtensions(
   const legacyTriggers = battle.snapshot.dotTriggerPolicyVersion === undefined
   const legacyPoisonMovement = battle.snapshot.dotTriggerPolicyVersion !== 2
   const build = battleBuildAuthorityForCombatant(authority, combatantId)
-  const resonanceDefinition = resolveBattleResonanceDefinition(authority, combatantId)
-  const essenceDefinition = resolveBattleEssenceDefinition(authority, combatantId)
-  const combatContext = authority?.combatContext
   const resolver = createServerCombatContentResolver()
+  const [resonanceDefinition, resolvedEssence] = await Promise.all([
+    resolvePinnedBattleResonanceDefinition(authority, combatantId, resolver),
+    resolvePinnedBattleEssenceDefinition(authority, combatantId, resolver),
+  ])
+  const essenceDefinition = resolvedEssence
+    ? { ...resolvedEssence, skill: essenceCombatSkill(resolvedEssence) }
+    : null
+  const combatContext = authority?.combatContext
   const essenceOverride = combatContext
     ? essenceDefinition?.skill.overrides[combatContext]
     : undefined

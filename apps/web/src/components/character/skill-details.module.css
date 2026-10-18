@@ -49,7 +49,7 @@
   margin: 0;
   text-align: right;
 }
-.details strong {
+.details strong:not([data-compact-effect-label]) {
   color: #edf1f4;
   font-size: inherit;
 }

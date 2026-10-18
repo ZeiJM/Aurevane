@@ -34,3 +34,10 @@ The full failed-run artifact 12145867058 is downloaded and SHA256 verified as `d
 - Exact-head CI, Living Atlas and complete Browser smoke.
 - Merge the verified source and explicitly deploy its merged SHA to the existing production project; confirm READY, canonical alias and public entry health.
 - Signed-in hosted movement/resize and physical phone/human acceptance remain separate from native test results. No zero-lag, 60 FPS, multiplayer-load or full-overhaul completion claim is made.
+
+
+## Verified candidate and current-main reconciliation
+
+Candidate `905ad2c8984f5cc63e58b3c9ad29522a7ed95b0f` passes all three workflows: CI 39153118885; Living Atlas 39153118882 (51 passed, 84 existing/project skips); Browser smoke 39153118888 (353 full Chromium, 73 focused and 10 Edge passes, with documented skips). The corrected large-viewport case passes in both native runs. Final Atlas artifact 12146785105 is downloaded, SHA256 verified as `10e7fabced38efc99b54f046dc4b9392d31c279fdbb87afcd49143eac622a032`, and desktop/phone delayed-scenery captures are inspected. The synthetic high-DPI/lower-CPU phone sample records 14 ms warmed frame p95 with 101 peers and 103 scenery sectors.
+
+Before release, main advances to `ebfa6933fe76b67aee204a7969e58effd360e45f` through the separately verified modular correction release #936 and receipt #938. No World application or browser-test file overlaps. The sole merge conflict is the additive TASKS.md introduction; both progress entries are retained. The combined candidate requires fresh quality and native CI before release. The new live modular release must remain included.

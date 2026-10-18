@@ -59,20 +59,25 @@ export function canonicalEffectExplanation(
           }
     case 'percentage-recovery': {
       const resource = effect.resource.toUpperCase()
-      const captured =
+      const reduction =
         effect.resource === 'hp' || !options.legacyHealingDown
-          ? 'The maximum and Healing Down adjustment are captured when cast'
-          : 'The maximum is captured when cast'
+          ? ' Healing Down reduces recovery.'
+          : ''
       return {
-        description: `Restore the displayed share of maximum ${resource} to ${recipient}. ${captured}; actual gains cap at the current maximum. Recovery cannot revive a defeated unit.`,
+        description: `Restore ${resource} based on the recipient’s maximum when this Skill is used.${reduction} Cannot exceed the maximum or revive a defeated unit.`,
         parts: schedule,
       }
     }
     case 'barrier-change':
-      return { description: `Grant damage-absorbing Barrier to ${recipient}.` }
+      return {
+        description:
+          effect.basis === 'maximum-hp-percent'
+            ? `Gain a share of maximum HP as protection. It absorbs damage before HP; Pierce breaks it.`
+            : `Grant damage-absorbing Barrier to ${recipient}.`,
+      }
     case 'displace':
       return {
-        ...mechanicText`${effect.direction === 'pull' ? 'Pull' : 'Push'} ${recipient} ${effect.direction === 'pull' ? 'toward you' : 'away from you'}, up to the displayed distance. Stops before occupied, blocked or illegal-elevation tiles. Pull never enters your tile. ${mechanicTag('rooted')} prevents displacement. Failure grants no refund.`,
+        ...mechanicText`${effect.direction === 'pull' ? 'Pull' : 'Push'} ${recipient} ${effect.direction === 'pull' ? 'toward you' : 'away from you'}. Stops before occupied, blocked or unreachable tiles. Pull never enters your tile. ${mechanicTag('rooted')} prevents displacement.`,
       }
     case 'sensory':
       return {

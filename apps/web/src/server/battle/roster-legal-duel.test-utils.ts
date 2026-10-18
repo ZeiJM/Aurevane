@@ -9,7 +9,10 @@ import {
 } from '@aurevane/game-core/combat/battle-state'
 import { createTacticalBattleState, type GridPosition } from '@aurevane/game-core/combat/board'
 import { attachCombatBuildBridge } from '@aurevane/game-core/combat/build-snapshot'
-import { defaultCombatEffectTimingPolicy } from '@aurevane/game-core/combat/combat-effect-timing'
+import {
+  defaultCombatEffectTimingPolicy,
+  type CombatEffectTimingPolicy,
+} from '@aurevane/game-core/combat/combat-effect-timing'
 import { activateCombatAbilitySources } from '@aurevane/game-core/combat/combat-ability-command'
 import {
   createCharacterDerivedCombatProfile,
@@ -84,6 +87,10 @@ export async function createLegalRosterDuel(input: {
   level: 1 | 100
   context: 'pve' | 'pvp'
   seed: number
+  /** Later immutable cohorts reuse the same earned admission and execution harness. */
+  prepareRoster?: () => Promise<void>
+  effectTimingPolicy?: CombatEffectTimingPolicy
+  modularSkillPolicyVersion?: 1
   board?: {
     width: number
     height: number
@@ -91,7 +98,7 @@ export async function createLegalRosterDuel(input: {
     facings?: readonly BattleFacing[]
   }
 }) {
-  await publishProposedRoster()
+  await (input.prepareRoster ?? publishProposedRoster)()
   const kits = [input.kit, input.opponentKit ?? input.kit, ...(input.additionalKits ?? [])]
   const participants = await Promise.all(
     kits.map(async (kit, index) => {
@@ -177,7 +184,8 @@ export async function createLegalRosterDuel(input: {
   const current = createDuelBalancedCombatEncounterState(
     {
       ...raw,
-      effectTimingPolicy: defaultCombatEffectTimingPolicy(),
+      effectTimingPolicy: input.effectTimingPolicy ?? defaultCombatEffectTimingPolicy(),
+      ...(input.modularSkillPolicyVersion === 1 ? { modularSkillPolicyVersion: 1 as const } : {}),
       effectStackingPolicyVersion: 1,
       percentageDotPolicyVersion: 1,
       dotTriggerPolicyVersion: 2,

@@ -21,7 +21,7 @@ export function canonicalPeriodicGroundExplanation(
 } | null {
   if (effect.type === 'create-terrain') {
     const frozen = COMBAT_TERRAIN_OVERLAY_DETAILS.frozen
-    const main = mechanicText`Create ${mechanicTag('frozen-ground')} on affected tiles. The displayed surcharge applies on entry; ${mechanicTag('airborne')} ignores it and Movement allowance is unchanged. ${mechanicTag('fire')} converts it to ${mechanicTag('steam')}, which blocks line of sight for both teams.`
+    const main = mechanicText`Create ${mechanicTag('frozen-ground')} that raises movement AP costs. ${mechanicTag('airborne')} ignores the surcharge. ${mechanicTag('fire')} turns it into ${mechanicTag('steam')}, which blocks sight for both teams.`
     const lifetime = options.legacyElemental
       ? mechanicText` ${mechanicTag('steam')} starts with its configured lifetime.`
       : {
@@ -55,17 +55,10 @@ export function canonicalPeriodicGroundExplanation(
     }
   }
   if (!isPercentageDotEffect(effect) || options.legacyTriggers) return null
-  const recipient =
-    effect.recipient === 'actor'
-      ? 'yourself'
-      : effect.recipient === 'affected-units'
-        ? 'each affected unit'
-        : 'the selected unit'
-  const basis =
-    'Each tick uses the displayed share of the granting attack’s actual HP damage, rounded down.'
   if (effect.type === 'burn')
     return {
-      description: `Apply Burn to ${recipient}. ${basis} Only one Burn can be active on a recipient; reapplication replaces it and restarts its duration and decay. Tick percentages follow the displayed sequence. A burning unit takes the displayed backlash share of the actual HP damage its own attack deals to enemies, rounded down. Multi-hit damage is summed once; misses and friendly damage do not trigger backlash. Reapplication or Copy does not renew this allowance.`,
+      description:
+        'Burn deals decreasing damage based on the attack’s HP damage. The bearer also suffers backlash after damaging an enemy. Reapplying replaces Burn.',
       parts: {
         details: [
           {
@@ -78,7 +71,8 @@ export function canonicalPeriodicGroundExplanation(
     }
   if (effect.type === 'poison' && !options.legacyPoisonMovement)
     return {
-      description: `Apply Poison to ${recipient}. ${basis} Only one Poison can be active. Reapplication retains the greater authored percentage and original duration independently, restarts that full duration and resets movement progress. Traversed tiles, including Push or Pull, advance progress; partial movement carries between turns. Each threshold refreshes the recorded full duration without extra damage. Instantaneous relocation does not count.`,
+      description:
+        'Poison deals repeated damage based on the attack’s HP damage. Movement renews its duration; teleporting does not. Reapplying retains the stronger effect and longer original duration.',
       parts: {
         details: [
           { label: 'Tick', value: 'Affected turn end' },
@@ -86,10 +80,16 @@ export function canonicalPeriodicGroundExplanation(
             label: 'Refresh',
             value: `Every ${CURRENT_POISON_REFRESH_TRAVERSED_TILES} traversed tiles`,
           },
-          { label: 'Refresh duration', value: 'Captured full duration' },
+          { label: 'Refresh duration', value: 'Original full duration' },
           { label: 'Extra damage on refresh', value: 'None' },
         ],
       },
     }
-  return null
+  return effect.type === 'bleed'
+    ? {
+        description:
+          'Bleed deals repeated damage based on the attack’s HP damage. Each application deals damage separately.',
+        parts: {},
+      }
+    : null
 }

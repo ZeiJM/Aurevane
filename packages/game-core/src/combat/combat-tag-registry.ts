@@ -22,10 +22,10 @@ import { validateSummonProfileDefinition, type SummonProfileDefinition } from '.
 /** Native legacy payloads remain authoritative; canonical percentages use basis points. */
 export type CombatTagPayload =
   | Exclude<CombatEffectDefinition, { type: 'damage' | 'percentage-recovery' }>
-  | Omit<Extract<CombatEffectDefinition, { type: 'damage' }>, 'piercing'>
+  | Omit<Extract<CombatEffectDefinition, { type: 'damage' }>, 'piercing' | 'shattersBarrier'>
   | (Omit<
       Extract<CombatEffectDefinition, { type: 'damage' }>,
-      'type' | 'piercing' | 'vengeance'
+      'type' | 'piercing' | 'shattersBarrier' | 'vengeance'
     > & { readonly type: 'pierce'; readonly armorIgnoredBasisPoints: number })
   | (Omit<Extract<CombatEffectDefinition, { type: 'percentage-recovery' }>, 'percent'> & {
       readonly percentageBasisPoints: number
@@ -225,9 +225,9 @@ export const COMBAT_TAG_REGISTRY: readonly CombatTagDefinition[] = Object.freeze
   ),
   tag(
     'barrier-change',
-    ['amount'],
+    ['amount', 'basis'],
     { amount: 'power' },
-    'Grant Barrier through the existing native Barrier handler.',
+    'Gain temporary protection that absorbs damage before HP. Pierce breaks it.',
   ),
   tag(
     'copy-statuses',
@@ -540,8 +540,13 @@ export function validateCombatTagPayload(
           >,
         )
     }
-    if (['healing', 'barrier-change'].includes(value.type as string))
+    if (
+      value.type === 'healing' ||
+      (value.type === 'barrier-change' && value.basis !== 'maximum-hp-percent')
+    )
       integer(value.amount, 1, 20, 'Authored power')
+    if (value.type === 'barrier-change' && value.basis === 'maximum-hp-percent')
+      integer(value.amount, 1, 100, 'Barrier percentage')
     if (value.type === 'resource-change') {
       if (value.resource !== 'mp') throw new TypeError('Only MP changes are implemented.')
       integer(value.delta, -20, 20, 'MP change')
@@ -596,7 +601,7 @@ export function nativeCombatTagPayload(
   if (payload.type === 'pierce') {
     const { armorIgnoredBasisPoints: _ignored, ...damage } = payload
     void _ignored
-    return { ...damage, type: 'damage' }
+    return { ...damage, type: 'damage', shattersBarrier: true }
   }
   if (payload.type === 'percentage-recovery') {
     const { percentageBasisPoints, ...recovery } = payload

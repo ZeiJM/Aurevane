@@ -3,7 +3,10 @@ import {
   defaultBasicSkills,
   validateBasicSkillDefinition,
 } from '@aurevane/game-core/combat/combat-basic-actions'
-import { parseAbilityDefinition } from '@aurevane/game-core/combat/combat-definition'
+import {
+  parseAbilityDefinition,
+  applyAbilityTimingDefaults,
+} from '@aurevane/game-core/combat/combat-definition'
 import { projectPublicCombat } from '@aurevane/game-core/combat/public-combat-presentation'
 import { createRoot } from 'react-dom/client'
 import { SkillParameters } from '@/components/character/skill-parameters'
@@ -36,6 +39,11 @@ import './production-styles'
 const query = new URLSearchParams(location.search)
 const nativeFetch = window.fetch.bind(window)
 const basicService = query.get('basicService') === '1'
+const previewTimingPolicy = {
+  version: 8,
+  tagAuthority: 'global',
+  modes: query.get('timing') === 'controlled' ? { healing: 'controlled' } : {},
+}
 const physical = resolveMatureSkillVersion('vanguard.forceful-strike')
 const mystic = resolveMatureSkillVersion('runeblade.aether-cut')
 const ground = resolveMatureSkillVersion('frostweaver.chilling-mist')
@@ -294,7 +302,8 @@ if (query.get('surface') === 'selected-preview') {
     if (body.operation === 'diff')
       return Response.json({ diff: { changedPaths: ['ability.behaviors'] } })
     if (body.operation !== 'preview') throw new Error('Unexpected preview fixture operation')
-    const group = body.definition.ability.behaviors.find((row) => row.id === body.behaviorId)
+    const selected = body.definition.ability.behaviors.find((row) => row.id === body.behaviorId)
+    const group = selected ? applyAbilityTimingDefaults(selected, previewTimingPolicy) : undefined
     if (!group)
       return Response.json(
         { error: { message: 'Select a supported Manual action group.' } },
@@ -343,7 +352,7 @@ function SelectedPreviewEditor() {
       className={`av-master ${masterTheme.workspace}`}
       style={{ display: 'block', height: 'auto', padding: 12 }}
     >
-      <SkillEffectTimingProvider policy={defaultCombatEffectTimingPolicy()}>
+      <SkillEffectTimingProvider policy={previewTimingPolicy}>
         {isEssence ? (
           <EssenceContentEditor essences={[option]} />
         ) : (

@@ -39,6 +39,7 @@ import {
   projectBattleSnapshot,
   type BattleAuthoritativeEncounterState,
 } from './battle-session-service'
+import { startupEssence } from './battle-startup.test-utils'
 import { createViewerSafeBattleLogService } from './battle-log-service'
 import {
   deriveParticipantBattleViewerEntitlement,
@@ -46,7 +47,10 @@ import {
 } from './battle-viewer-entitlement'
 import { createBattlePreviewService } from './battle-preview-service'
 import { createBattleAbortService } from './battle-abort-service'
-import type { CombatContentResolver } from '@/server/combat/combat-content-resolver'
+import {
+  createCombatContentResolver,
+  type CombatContentResolver,
+} from '@/server/combat/combat-content-resolver'
 import type {
   AbilityDefinition,
   AbilityBehavior,
@@ -159,7 +163,7 @@ it('actual reference parser, preview and atomic CAS commit share plural geometry
         effects: [
           expect.objectContaining({
             parts: expect.objectContaining({ label: 'Dmg', magnitude: '3' }),
-            recipient: 'Affected units',
+            recipient: 'Targets',
           }),
         ],
         limits: [],
@@ -1236,6 +1240,28 @@ it.each(['skill', 'resonance-v1', 'resonance-v2'] as const)(
   },
 )
 
+it.each([false, true])(
+  'enrolls new PvE encounters in modular mechanics only with global timing authority (%s)',
+  async (global) => {
+    const policy = { version: 8, modes: {}, ...(global ? { tagAuthority: 'global' as const } : {}) }
+    const battles = battleRepository()
+    const service = createBattleSessionService({
+      characters: characterRepository(),
+      battles: battles.repository,
+      builds: buildRepository(pureSnapshot()).repository,
+      readEffectTimingPolicy: async () => policy,
+    })
+    await service.createSession({
+      userId: USER_ID,
+      characterId: CHARACTER_ID,
+      idempotencyKey: '88888888-8888-4888-8888-888888888888',
+    })
+    const saved = battles.record!.snapshot as BattleAuthoritativeEncounterState
+    expect(saved.effectTimingPolicy).toEqual(policy)
+    expect(saved.modularSkillPolicyVersion).toBe(global ? 1 : undefined)
+  },
+)
+
 describe('P3.6 battle Essence authority', () => {
   it.each(['pve', 'pvp'] as const)(
     'enforces persisted Essence cooldown through preview, recast and owner-turn readiness in %s',
@@ -1999,4 +2025,54 @@ it('the actual battle service uses its pinned Controlled tag default without rew
   expect(
     state().capturedAbilitySources!.find((row) => row.abilityId === actionId)!.definition,
   ).toEqual(source.definition)
+})
+
+it('creates PvE from one catalogue generation even when separately read policy/current data have changed', async () => {
+  const essence = startupEssence()
+  const resolver = createCombatContentResolver({
+    readCatalogueSnapshot: async () => ({
+      token: 'a'.repeat(32),
+      policy: { version: 8, tagAuthority: 'global', modes: {} },
+      publications: [
+        {
+          id: 'captured-essence',
+          contentKey: essence.essenceId,
+          contentKind: 'essence',
+          contentVersion: 77,
+          definition: { ...essence },
+          publishedBy: USER_ID,
+          publishedAt: CREATED_AT,
+        },
+      ],
+    }),
+    findCurrentSkill: async () => {
+      throw new Error('Cannot read a later current generation')
+    },
+    findCurrentContent: async () => {
+      throw new Error('Cannot read a later current generation')
+    },
+    findSkillVersion: async () => null,
+    findContentVersion: async () => null,
+  })
+  const battles = battleRepository()
+  const service = createBattleSessionService({
+    characters: characterRepository(),
+    battles: battles.repository,
+    builds: buildRepository(pureSnapshot()).repository,
+    combatContentResolver: resolver,
+    readEffectTimingPolicy: async () => {
+      throw new Error('Cannot read a separate timing generation')
+    },
+  })
+  await service.createSession({
+    userId: USER_ID,
+    characterId: CHARACTER_ID,
+    idempotencyKey: '88888888-8888-4888-8888-888888888888',
+  })
+  const saved = battles.record!.snapshot as BattleAuthoritativeEncounterState
+  expect(saved.effectTimingPolicy).toEqual({ version: 8, tagAuthority: 'global', modes: {} })
+  expect(saved.modularSkillPolicyVersion).toBe(1)
+  expect(saved.capturedAbilitySources).toContainEqual(
+    expect.objectContaining({ abilityId: essence.essenceId, contentVersion: 77 }),
+  )
 })

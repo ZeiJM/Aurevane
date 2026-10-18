@@ -42,7 +42,7 @@ const cases: readonly [string, AbilityEffect['payload'], string][] = [
   [
     'attached Move',
     { type: 'move', recipient: 'actor', maximumTiles: 7 },
-    'Movement is included in the Skill cost',
+    'remaining Movement and Jump',
   ],
   [
     'Push',
@@ -78,7 +78,7 @@ const cases: readonly [string, AbilityEffect['payload'], string][] = [
       resource: 'hp',
       percentageBasisPoints: 2300,
     },
-    'maximum HP',
+    'maximum when this Skill is used',
   ],
   [
     'MP Recovery',
@@ -88,7 +88,7 @@ const cases: readonly [string, AbilityEffect['payload'], string][] = [
       resource: 'mp',
       percentageBasisPoints: 2900,
     },
-    'maximum MP',
+    'maximum when this Skill is used',
   ],
   [
     'Reveal',
@@ -145,7 +145,7 @@ it.each([
     })
     expect(Object.fromEntries(report.rows).Effects).toContain('[Applications: 3]')
     expect(report.effectDescriptions[0]).not.toMatch(/\d/)
-    expect(report.effectDescriptions[0]).toContain('cannot revive')
+    expect(report.effectDescriptions[0]).toMatch(/cannot.*revive/iu)
   },
 )
 it('reports Reveal expiry in owner-turn starts instead of inventing ordinary turn-end duration', () => {
@@ -158,20 +158,20 @@ it('reports Reveal expiry in owner-turn starts instead of inventing ordinary tur
 it('keeps native Move terrain pricing distinct from attached Move', () => {
   const basic = defaultBasicSkills().find((row) => row.execution.kind === 'basic-move')!
   const report = abilityBehaviorInformation(basic.ability.behaviors[0]!, { basic })
-  expect(report.effectDescriptions[0]).toContain('terrain')
-  expect(report.effectDescriptions[0]).toContain('captured AP price')
+  expect(Object.fromEntries(report.rows).Cost).toContain('per traversal point')
+  expect(report.effectDescriptions[0]).toContain('Jump')
   expect(report.effectDescriptions[0]).not.toContain('included in the Skill cost')
   expect(report.effectDescriptions[0]).not.toMatch(/\d/)
 })
-it('keeps delayed activation and Controlled whole-action release rules outside the numeric cleanup', () => {
+it('keeps delayed and Controlled timing in Effects rather than repeating it in prose', () => {
   expect(
     abilityBehaviorInformation(definition(cases[3]![1], 'delayed').behaviors[0]!)
       .effectDescriptions[0],
-  ).toContain('two global round boundaries later')
+  ).not.toContain('two global round boundaries later')
   expect(
     abilityBehaviorInformation(definition(cases[3]![1], 'controlled').behaviors[0]!)
       .effectDescriptions[0],
-  ).toContain('Invalid releases retain the prime')
+  ).not.toContain('Invalid releases retain the prime')
 })
 it('preserves legacy numeric recovery explanations and captured old policy behavior', () => {
   expect(
@@ -180,7 +180,7 @@ it('preserves legacy numeric recovery explanations and captured old policy behav
   const old = abilityBehaviorInformation(definition(cases[8]![1]).behaviors[0]!, {
     effectContext: { legacyHealingDown: true },
   })
-  expect(old.effectDescriptions[0]).toContain('maximum is captured')
+  expect(old.effectDescriptions[0]).toContain('maximum when this Skill is used')
   expect(old.effectDescriptions[0]).not.toContain('Healing Down adjustment')
 })
 it('renders exact structured facts through actual local/public readers and preserves authored prose', () => {
@@ -207,7 +207,7 @@ it('renders exact structured facts through actual local/public readers and prese
     const prose = html.match(/aria-label="Effect explanations">([\s\S]*?)<\/ul>/)![1]!
     expect(prose).not.toContain('17')
     expect(prose).not.toContain('3')
-    expect(prose).toContain('cannot revive')
+    expect(prose).toMatch(/cannot.*revive/iu)
   }
   expect(
     renderToStaticMarkup(

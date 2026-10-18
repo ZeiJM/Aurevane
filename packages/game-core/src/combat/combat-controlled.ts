@@ -138,9 +138,11 @@ export function combatControlledAbilityAvailability(input: CombatControlledAbili
     ownerCombatantId: source.ownerCombatantId,
     abilityId: source.abilityId,
   })
-  const used = input.state.abilityRuntime?.controlled?.used.some(
-    (row) => combatControlledAbilityKey(row) === key,
-  )
+  const used =
+    input.state.effectTimingPolicy?.tagAuthority !== 'global' &&
+    input.state.abilityRuntime?.controlled?.used.some(
+      (row) => combatControlledAbilityKey(row) === key,
+    )
   const allowed = (operation: 'prime' | 'cancel') => {
     try {
       updateCombatControlledAbility(
@@ -239,7 +241,9 @@ export function updateCombatControlledAbility(
     throw new RangeError('command-sequence-overflow')
   if (
     operation === 'prime' &&
-    controlled.used.some((used) => combatControlledAbilityKey(used) === key)
+    (controlled.primes.some((prime) => combatControlledAbilityKey(prime) === key) ||
+      (state.effectTimingPolicy?.tagAuthority !== 'global' &&
+        controlled.used.some((used) => combatControlledAbilityKey(used) === key)))
   )
     throw new TypeError('controlled-prime-used')
   if (operation === 'cancel' && !combatControlledPrime(state, source, behavior))
@@ -254,7 +258,11 @@ export function updateCombatControlledAbility(
           ? {
               primes: [...controlled.primes, record],
               used: [
-                ...controlled.used,
+                ...controlled.used.filter(
+                  (used) =>
+                    state.effectTimingPolicy?.tagAuthority !== 'global' ||
+                    combatControlledAbilityKey(used) !== key,
+                ),
                 {
                   ...record,
                   ...(record.returnAnchor ? { returnAnchor: { ...record.returnAnchor } } : {}),

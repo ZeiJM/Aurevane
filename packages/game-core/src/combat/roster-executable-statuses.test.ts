@@ -54,7 +54,9 @@ const strike = 'vanguard.forceful-strike',
   smoke = 'shadehand.smoke-vial'
 const position = (state: CombatEncounterState, id: string) =>
   state.tactical.placements.find((row) => row.combatantId === id)!.position
-const systemOrHistorical = ['lowered-guard', 'displaced']
+// This file executes the immutable October10 roster. Enemy Blindside is exercised
+// by the separate modular correction cohort and combat-blindside.test.ts.
+const outsideOctober10Roster = ['lowered-guard', 'displaced', 'blindside-vulnerability']
 function current(ids: string[], otherOwners: Record<string, string[]> = {}) {
   const base = fixture(ids),
     sources = [...base.capturedAbilitySources!]
@@ -683,7 +685,7 @@ const cases: StatusCase[] = [
 it('requires a real final-roster mechanic outcome for every authorable runtime status', () => {
   expect(cases.map((row) => row.statusId).sort()).toEqual(
     [...new Set(PV1F_COMBAT_CONTENT.statuses.map((row) => row.id))]
-      .filter((id) => !systemOrHistorical.includes(id))
+      .filter((id) => !outsideOctober10Roster.includes(id))
       .sort(),
   )
 })

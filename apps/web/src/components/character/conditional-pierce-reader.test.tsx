@@ -35,15 +35,15 @@ it.each(['bastion.hold-fast', 'essence.bastion.last-bastion'])(
   },
 )
 it.each([
-  ['wildwarden.field-remedy', 'You'],
-  ['essence.dawnshield.dawns-oath', 'Each selected unit'],
+  ['wildwarden.field-remedy', ' [Self]'],
+  ['essence.dawnshield.dawns-oath', ''],
 ])('reports only conditional recovery in actual public %s', (id, subject) => {
   const definition = actual(id!)
   const before = JSON.stringify(definition)
   const report = abilityBehaviorInformation(definition.behaviors[0]!)
   const recovery = report.effects[1]!
-  expect(recovery.condition).toContain(`${subject} must have Poison`)
-  expect(recovery.condition).toContain(`${subject} must have Suppress`)
+  expect(recovery.condition).toContain(`Poison${subject}`)
+  expect(recovery.condition).toContain(`Suppress${subject}`)
   expect(recovery.condition).not.toContain('Chilled')
   expect(report.effects.filter((effect) => effect.condition)).toEqual([recovery])
   const html = renderToStaticMarkup(
@@ -88,7 +88,8 @@ it.each([
   const report = abilityBehaviorInformation(group)
   expect(report.effects[index]!.parts).toMatchObject({
     label: 'Pierce',
-    magnitude: `${amount}; ${percent}% equipment Armor ignored`,
+    magnitude: String(amount),
+    details: expect.arrayContaining([{ label: 'Armor ignored', value: `${percent}%` }]),
   })
   expect(report.effectDescriptions[index]).not.toContain(`${percent}%`)
   expect(report.effectDescriptions[index]).toContain('only to equipment Armor')
@@ -96,7 +97,7 @@ it.each([
   const html = renderToStaticMarkup(
     <AbilityDefinitionParameters definition={projectPublicCombat(definition)} />,
   )
-  expect(html.split(`${percent}% equipment Armor ignored`)).toHaveLength(2)
+  expect(html.split(`[Armor ignored: ${percent}%]`)).toHaveLength(2)
   expect(html).not.toContain(`Ignores ${percent}%`)
   expect(JSON.stringify(definition)).toBe(before)
 })
@@ -138,7 +139,7 @@ it('keeps nested effect requirements aligned while prose stays plain and global 
     ],
   })
   const report = abilityBehaviorInformation(nested.behaviors[0]!)
-  const condition = 'Any of (You: MP ≥ 50%; Each selected unit must have Marked)'
+  const condition = '(You: MP ≥ 50% or Marked)'
   expect(report.effects.map((effect) => effect.condition)).toEqual([null, condition, null])
   expect(Object.fromEntries(report.rows).Requirements).toBe('You: AP ≥ 9')
   expect(Object.fromEntries(report.rows).Effects).toContain(`If ${condition}: MP Restore`)
@@ -185,7 +186,10 @@ it('retains a captured custom Pierce percentage and Basic scaling with equipment
     basic,
     stats: { physicalPower: 20, mysticPower: 40 },
   })
-  expect(report.effects[0]!.parts.magnitude).toContain('33.33% equipment Armor ignored')
+  expect(report.effects[0]!.parts.details).toContainEqual({
+    label: 'Armor ignored',
+    value: '33.33%',
+  })
   expect(report.effects[0]!.parts.magnitude).toContain('Mystic Power')
   expect(report.effectDescriptions[0]).not.toContain('33.33%')
   expect(report.effectDescriptions[0]).toContain('only to equipment Armor')

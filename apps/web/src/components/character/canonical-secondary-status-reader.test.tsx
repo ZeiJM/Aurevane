@@ -159,7 +159,7 @@ it('keeps current captured Drenched potency distinct from its fixed Initiative r
     statusGroup('wet', { stacks: 3, potencyBasisPoints: 2750 }),
   )
   expect(report.effects[0]!.parts).toMatchObject({
-    magnitude: '+27.5% Storm',
+    magnitude: '27.5%',
     details: expect.arrayContaining([
       { label: 'Stacks', value: '3' },
       { label: 'Initiative', value: '−10% per application' },
@@ -192,7 +192,7 @@ it('shows the same-turn expiry in every actual Blindside reader, including Contr
           continue
         count++
         expect(report.effects[index]!.parts).toMatchObject({
-          duration: '1 recipient turn end',
+          duration: '1 Turn',
           details: expect.arrayContaining([
             {
               label: 'Expiry',
@@ -205,12 +205,12 @@ it('shows the same-turn expiry in every actual Blindside reader, including Contr
             definition={projectPublicCombat({ schemaVersion: 1, behaviors: [group] })}
           />,
         )
-        expect(html).toContain('[1 recipient turn end]')
-        expect(html).toContain(
+        expect(html).toContain('[1 Turn]')
+        expect(html).not.toContain(
           '[Expiry: Count from activation, including the recipient’s current turn]',
         )
         if (effect.timing === 'controlled')
-          expect(report.effectDescriptions[index]).toContain(
+          expect(report.effectDescriptions[index]).not.toContain(
             'Controlled primes the whole selected action for free',
           )
       }
@@ -241,7 +241,7 @@ it.each([
     })
     const rounds = timing === 'next-round' || timing === 'delayed'
     expect(report.effects[0]!.parts).toMatchObject({
-      duration: rounds ? '1 full round' : '1 recipient turn end',
+      duration: rounds ? '1 Round' : '1 Turn',
       details: expect.arrayContaining([
         {
           label: 'Expiry',
@@ -253,7 +253,7 @@ it.each([
     })
     expect(report.effectDescriptions[0]).toContain('Basic Attack is unchanged')
     if (timing === 'controlled')
-      expect(report.effectDescriptions[0]).toContain('Invalid releases retain the prime')
+      expect(report.effectDescriptions[0]).not.toContain('Invalid releases retain the prime')
     expect(JSON.stringify(definition)).toBe(before)
   },
 )

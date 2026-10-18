@@ -794,15 +794,19 @@ export function validAccuracy(value: unknown): value is CombatAccuracyRule {
   )
 }
 
-/** Resolve pinned defaults without rewriting the authored/captured definition or its version. */
+/** Resolve current global authority or historical defaults without mutating captured definitions. */
 export function applyAbilityTimingDefaults(
   behavior: AbilityBehavior,
   policy?: CombatEffectTimingPolicy,
 ): AbilityBehavior {
-  if (!policy || !Object.values(policy.modes).includes('controlled')) return behavior
+  if (
+    !policy ||
+    (policy.tagAuthority !== 'global' && !Object.values(policy.modes).includes('controlled'))
+  )
+    return behavior
   const effects = behavior.effects.map((effect) => {
     if (
-      effect.timing !== undefined ||
+      (policy.tagAuthority !== 'global' && effect.timing !== undefined) ||
       effect.payload.type === 'move' ||
       effect.payload.type === 'damage-bonus'
     )
@@ -811,11 +815,34 @@ export function applyAbilityTimingDefaults(
       effect.payload.type === 'summon'
         ? 'summon'
         : currentCombatEffectTimingTag(nativeCombatTagPayload(effect.payload))
-    return combatEffectTimingMode(policy, tag) === 'controlled'
-      ? { ...effect, timing: 'controlled' as const }
+    const timing = combatEffectTimingMode(policy, tag)
+    return (policy.tagAuthority === 'global' || timing === 'controlled') && effect.timing !== timing
+      ? { ...effect, timing }
       : effect
   })
-  if (effects.every((effect, ordinal) => effect === behavior.effects[ordinal])) return behavior
-  return parseAbilityDefinition({ schemaVersion: 1, behaviors: [{ ...behavior, effects }] })
-    .behaviors[0]!
+  const activationLimits =
+    policy.tagAuthority === 'global' && behavior.activationLimits?.includes('once-per-battle')
+      ? behavior.activationLimits.filter((limit) => limit !== 'once-per-battle')
+      : behavior.activationLimits
+  const groundArea =
+    policy.tagAuthority === 'global' && behavior.groundArea
+      ? { ...behavior.groundArea, timing: combatEffectTimingMode(policy, 'ground-area') }
+      : behavior.groundArea
+  if (
+    effects.every((effect, ordinal) => effect === behavior.effects[ordinal]) &&
+    activationLimits === behavior.activationLimits &&
+    groundArea === behavior.groundArea
+  )
+    return behavior
+  return parseAbilityDefinition({
+    schemaVersion: 1,
+    behaviors: [
+      {
+        ...behavior,
+        effects,
+        ...(activationLimits ? { activationLimits } : {}),
+        ...(groundArea ? { groundArea } : {}),
+      },
+    ],
+  }).behaviors[0]!
 }

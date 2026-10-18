@@ -15,6 +15,7 @@ import {
   type CombatNativeExecutionHooks,
 } from './combat-native-mutations'
 import { advanceCurrentPoisonMovement, currentPoisonTickDamage } from './combat-dots'
+import { absorbIndirectDamageWithBarrier } from './combat-barrier'
 import { hasGameplayTag } from './gameplay-tags'
 import { terrainOverlayAt, COMBAT_TERRAIN_OVERLAY_DETAILS } from './terrain-overlays'
 import {
@@ -130,14 +131,18 @@ function forecastPv1fPoisonMovement(
     traversedTiles += 1
     triggeredTicks += advanced.triggeredTicks
     if (advanced.triggeredTicks > 0) {
-      hp = Math.max(
-        0,
-        hp -
-          advanced.ticks.reduce(
-            (total, tick) => total + tick.triggeredTicks * currentPoisonTickDamage(tick.instance),
-            0,
-          ),
-      )
+      for (const tick of advanced.ticks) {
+        const absorbed = absorbIndirectDamageWithBarrier(
+          shadow,
+          tick.instance.sourceCombatantId,
+          actorId,
+          'status.poison.current.v1',
+          BigInt(tick.triggeredTicks) * BigInt(currentPoisonTickDamage(tick.instance)),
+        )
+        shadow = absorbed.state
+        hp = Math.max(0, hp - absorbed.remainingDamage)
+        if (hp === 0) break
+      }
       if (hp === 0) break
     }
   }

@@ -59,7 +59,7 @@ test('Technique Preview keeps compact effects aligned and contained', async ({
 
     // Longer authored values may wrap, while retaining every parameter.
     await dialog.getByRole('checkbox', { name: 'Select Brace', exact: true }).hover()
-    await expect(compactEffects.first()).toHaveText(/^Guard \[−[\d.]+% incoming\] \[2 Turns\]$/)
+    await expect(compactEffects.first()).toHaveText(/^Guard \[[\d.]+%\] \[2 Turns\]$/)
     await expectEffectsContained(compactEffects)
     await expectPreviewContained(preview)
     const flavor = preview.locator('small').first()

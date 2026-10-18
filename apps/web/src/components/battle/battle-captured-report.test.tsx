@@ -4,7 +4,10 @@ import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-acti
 import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
 import { abilityBehaviorInformation } from '../character/ability-detail-presentation'
 import { BattleSkillParameters } from './battle-skill-parameters'
-import { battleCapturedActionCost } from './battle-captured-action-cost'
+import {
+  battleCapturedActionCost,
+  battleCapturedControlledAvailability,
+} from './battle-captured-action-cost'
 
 const definition = resolveMatureSkillVersion('vanguard.forceful-strike', 2)!
 const legacy = {
@@ -72,7 +75,7 @@ it('renders all ten fields and effect/requirement/limit details from the capture
   expect(html).toContain('<dt>Cooldown</dt><dd>3 turns</dd>')
   expect(html).toContain('You: MP ≥ 3')
   expect(html).toContain('<dt>Range</dt><dd>4</dd>')
-  expect(html).toContain('data-compact-effect-label="true">Move</span>')
+  expect(html).toContain('data-compact-effect-label="true">Move</strong>')
   expect(html).toContain('data-compact-effect-magnitude="true">[13]</span>')
   expect(html).toContain('data-compact-effect-timing="true">[Controlled]</span>')
   expect(html).toContain('Once per round')
@@ -157,4 +160,20 @@ it('preserves the actual default Instant timing of typed elemental companions in
     },
   )
   expect(information.effects[1]!.parts.timing).toBe('Instant')
+})
+
+it('keeps the ability artwork Primed when no action or another action is selected', () => {
+  const choices = [
+    {
+      actionId: definition.id,
+      behaviorId: 'a',
+      target: definition.target,
+      controlled: { phase: 'primed' as const, canPrime: false, canCancel: true },
+    },
+    { actionId: definition.id, behaviorId: 'b', target: definition.target },
+  ]
+  for (const selected of [undefined, 'a', 'b', 'missing']) {
+    expect(battleCapturedControlledAvailability(choices, selected).controlledPrimed).toBe(true)
+  }
+  expect(battleCapturedControlledAvailability(choices.slice(1)).controlledPrimed).toBe(false)
 })

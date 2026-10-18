@@ -116,6 +116,7 @@ export function battleCapturedControlledAvailability(
       : undefined
   const selectedSpent = selected?.controlled?.phase === 'spent'
   return {
+    controlledPrimed: choices.some((row) => row.controlled?.phase === 'primed'),
     controlledSpent:
       selectedSpent ||
       (!behaviorId &&

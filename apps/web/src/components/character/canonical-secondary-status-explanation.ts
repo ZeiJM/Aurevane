@@ -9,6 +9,8 @@ import {
 import {
   DEFAULT_BLINDSIDE_MODIFIERS,
   BLINDSIDE_FRONT_MULTIPLIER_BASIS_POINTS,
+  BLINDSIDE_DEBUFF_STATUS_ID,
+  BLINDSIDE_DEBUFF_DESCRIPTION,
 } from '@aurevane/game-core/combat/combat-blindside'
 import { PV1F_MINIMUM_MOVEMENT_AP_COST } from '@aurevane/game-core/combat/pv1f-skills'
 import {
@@ -31,13 +33,23 @@ export function canonicalSecondaryStatusExplanation(
   parts: Partial<CompactSkillEffectSummaryParts>
   structuredTiming?: boolean
 } | null {
-  if (!['airborne', 'blindside', 'haste', 'wet'].includes(effect.statusId)) return null
+  if (
+    !['airborne', 'blindside', BLINDSIDE_DEBUFF_STATUS_ID, 'haste', 'wet'].includes(effect.statusId)
+  )
+    return null
   if (effect.statusId === 'wet' && options.legacyElemental) return null
   const preview = previewEffect(effect, options)
   const details = [{ label: 'Stacks', value: String(effect.stacks) }]
   const parts: Partial<CompactSkillEffectSummaryParts> = {
     ...(preview.magnitude ? { magnitude: preview.magnitude } : {}),
     details,
+  }
+  if (effect.statusId === BLINDSIDE_DEBUFF_STATUS_ID) {
+    const profile = effect.blindsideModifiersBasisPoints ?? DEFAULT_BLINDSIDE_MODIFIERS
+    return {
+      description: BLINDSIDE_DEBUFF_DESCRIPTION,
+      parts: { magnitude: `${profile.side / 100}% / ${profile.rear / 100}%`, duration: '1 Turn' },
+    }
   }
   if (effect.statusId === 'airborne') {
     if (options.legacyAirborne)
@@ -49,7 +61,7 @@ export function canonicalSecondaryStatusExplanation(
       value: String(AIRBORNE_ATTACK_TARGET_ELEVATION),
     })
     return {
-      ...mechanicText`Ground-targeted Skills always miss the recipient. Attack Skills use the displayed Target Elevation; Basic Attack keeps its authored limit. Ignore the ${mechanicTag('frozen-ground')} AP surcharge. Board bounds, movement elevation, obstacles, occupancy, ${mechanicTag('rooted')}, ${mechanicTag('slow')} and Movement allowance still apply.`,
+      ...mechanicText`Ground-targeted Skills miss. Attacks use the displayed Target Elevation; Basic Attack keeps its limit. Ignore the ${mechanicTag('frozen-ground')} AP surcharge. ${mechanicTag('rooted')}, ${mechanicTag('slow')}, terrain, occupancy and Movement still apply.`,
       parts,
     }
   }

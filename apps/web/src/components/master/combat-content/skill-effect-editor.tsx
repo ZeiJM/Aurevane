@@ -10,7 +10,10 @@ import {
   isCleanseEffect,
   isCleanseChilledEffect,
 } from '@aurevane/game-core/combat/combat-cleanse'
-import { DEFAULT_BLINDSIDE_MODIFIERS } from '@aurevane/game-core/combat/combat-blindside'
+import {
+  DEFAULT_BLINDSIDE_MODIFIERS,
+  isBlindsideStatusId,
+} from '@aurevane/game-core/combat/combat-blindside'
 
 import { useId, useState } from 'react'
 import {
@@ -715,7 +718,7 @@ export function SkillEffectEditor({ value, onChange, canonicalDamage }: SkillEff
               value={value.statusId}
               onChange={(event) => {
                 const next = { ...value, statusId: event.currentTarget.value }
-                if (next.statusId === 'blindside') {
+                if (isBlindsideStatusId(next.statusId)) {
                   next.durationTurns = 1
                   delete next.potencyBasisPoints
                 }
@@ -725,7 +728,7 @@ export function SkillEffectEditor({ value, onChange, canonicalDamage }: SkillEff
                   next.potencyBasisPoints ??= 2500
                   delete next.power
                 }
-                if (next.statusId !== 'blindside') delete next.blindsideModifiersBasisPoints
+                if (!isBlindsideStatusId(next.statusId)) delete next.blindsideModifiersBasisPoints
                 onChange(next)
               }}
             />
@@ -748,7 +751,7 @@ export function SkillEffectEditor({ value, onChange, canonicalDamage }: SkillEff
               }
             />
           </label>
-          {value.statusId === 'blindside' ? (
+          {isBlindsideStatusId(value.statusId) ? (
             <>
               {(['side', 'rear'] as const).map((direction) => (
                 <label className={styles.field} key={direction}>
@@ -950,12 +953,16 @@ export function SkillEffectEditor({ value, onChange, canonicalDamage }: SkillEff
             onChange({ ...value, recipient }),
           )}
           <label className={styles.field}>
-            <span>Barrier amount</span>
+            <span>
+              {value.basis === 'maximum-hp-percent' ? 'Barrier (% maximum HP)' : 'Barrier amount'}
+            </span>
             <input
-              aria-label="Barrier amount"
+              aria-label={
+                value.basis === 'maximum-hp-percent' ? 'Barrier (% maximum HP)' : 'Barrier amount'
+              }
               type="number"
               min={1}
-              max={20}
+              max={value.basis === 'maximum-hp-percent' ? 100 : 20}
               step={1}
               value={value.amount}
               onChange={(event) =>
@@ -1049,7 +1056,7 @@ export function SkillEffectEditor({ value, onChange, canonicalDamage }: SkillEff
     'sensory',
   ].includes(value.type)
   const fixedTerrain = value.type === 'create-terrain'
-  const fixedBlindside = value.type === 'apply-status' && value.statusId === 'blindside'
+  const fixedBlindside = value.type === 'apply-status' && isBlindsideStatusId(value.statusId)
   const maximumDuration = value.type === 'percentage-recovery' ? 3 : 4
   const minimumDuration = ['apply-status', 'bleed', 'burn', 'poison'].includes(value.type) ? 1 : 0
   const durationTurns =

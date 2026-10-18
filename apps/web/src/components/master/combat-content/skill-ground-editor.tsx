@@ -107,25 +107,6 @@ export function SkillGroundEditor({
                 ))}
               </select>
             </label>
-            <label className={styles.field}>
-              <span>Activation</span>
-              <select
-                aria-label="Ground activation"
-                value={value.timing ?? 'policy'}
-                onChange={(event) => {
-                  const next = { ...value }
-                  if (event.currentTarget.value === 'policy') delete next.timing
-                  else
-                    next.timing = event.currentTarget.value as 'instant' | 'next-round' | 'delayed'
-                  onChange(next)
-                }}
-              >
-                <option value="policy">Follow battle timing policy</option>
-                <option value="next-round">Normal</option>
-                <option value="delayed">Delayed</option>
-                <option value="instant">Instant</option>
-              </select>
-            </label>
           </div>
           <div
             style={{

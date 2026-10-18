@@ -34,7 +34,7 @@ describe('shared Resonance parameter report', () => {
     expect([...markup.matchAll(/<dt>(.*?)<\/dt>/g)].slice(0, 10).map((match) => match[1])).toEqual(
       fields,
     )
-    expect(markup).toContain('<dt>Skill Type</dt><dd>Resonance</dd>')
+    expect(markup).toContain('<dt>Skill Type</dt><dd>Utility</dd>')
     for (const label of [
       'Cost',
       'Cooldown',
@@ -88,7 +88,7 @@ describe('shared Resonance parameter report', () => {
     const markup = renderToStaticMarkup(<ResonanceParameters definition={definition} />)
     expect(markup.match(/data-compact-skill-effect="true"/g)).toHaveLength(2)
     expect(markup).toContain('data-compact-effect-magnitude="true">[3]</span>')
-    expect(markup).toContain('data-compact-effect-magnitude="true">[+20% incoming]</span>')
+    expect(markup).toContain('data-compact-effect-magnitude="true">[20%]</span>')
     expect(markup).toContain('data-compact-effect-duration="true">[2 Turns]</span>')
     expect(markup).toContain('→ Trigger Skill selected unit')
     expect(markup).toContain('<dt>Requirements</dt><dd>N/A</dd>')

@@ -15,8 +15,8 @@ it('reports Controlled as manual whole-action timing rather than an automatic de
   }).behaviors[0]!
   const information = abilityBehaviorInformation(behavior)
   expect(Object.fromEntries(information.rows).Effects).toContain('[Controlled]')
-  expect(information.effectDescriptions[0]).toContain('whole selected action')
-  expect(information.effectDescriptions[0]).toContain('legal release')
+  expect(information.effectDescriptions[0]).not.toContain('whole selected action')
+  expect(information.effectDescriptions[0]).not.toContain('legal release')
   expect(information.effectDescriptions[0]).not.toContain('global round boundaries later')
 })
 
@@ -60,13 +60,9 @@ it.each(['controlled', 'delayed'] as const)(
       ],
     }).behaviors[0]!
     const information = abilityBehaviorInformation(behavior)
-    expect(information.effectDescriptions[1]).toContain(
-      'tile saved when the whole action was primed',
-    )
+    expect(information.effectDescriptions[1]).toContain('where this Skill was primed')
     expect(information.effectDescriptions[1]).not.toContain('tile captured when cast')
-    expect(information.effectDescriptions[1]).toContain(
-      'No HP, MP, AP, Movement or past action is refunded',
-    )
+    expect(information.effectDescriptions[1]).toContain('Rooted prevents the return')
   },
 )
 
@@ -104,7 +100,7 @@ it('reports the prime tile when Controlled comes from the pinned tag default', (
   const report = abilityBehaviorInformation(behavior, {
     timingPolicy: { version: 12, modes: { 'return-to-turn-start': 'controlled' } },
   })
-  expect(report.effectDescriptions[0]).toContain('tile saved when the whole action was primed')
+  expect(report.effectDescriptions[0]).toContain('where this Skill was primed')
   expect(Object.fromEntries(report.rows).Effects).toContain('[Controlled]')
 })
 

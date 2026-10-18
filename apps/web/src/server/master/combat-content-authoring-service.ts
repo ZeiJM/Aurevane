@@ -589,6 +589,8 @@ export function createCombatContentAuthoringService({
 
     async previewSkillDefinition(input) {
       await authorizeOperator(store, input.actorUserId)
+      const catalogue = await resolver.captureCurrentCatalogue?.()
+      const previewResolver = catalogue?.resolver ?? resolver
       const resonance = input.contentKind === 'resonance'
       const validation = resonance
         ? validateResonanceAuthoringDefinition(input.definition)
@@ -627,7 +629,7 @@ export function createCombatContentAuthoringService({
             'Choose a setup Skill for sequence samples only.',
           )
         const resolveReference = async (id: string) => {
-          const skill = await resolver.resolveCurrentSkillDefinition(id)
+          const skill = await previewResolver.resolveCurrentSkillDefinition(id)
           if (!skill?.enabled || Object.hasOwn(skill, 'ability'))
             throw new AurevaneError(
               'INVALID_REQUEST',
@@ -641,6 +643,7 @@ export function createCombatContentAuthoringService({
             ? undefined
             : await resolveReference(input.previewSetupSkillId)
         return previewHistoricalResonanceCombatContentDefinition(historical, trigger, {
+          ...(catalogue ? { effectTimingPolicy: catalogue.policy } : {}),
           ...(setup ? { setup } : {}),
           ...(input.seed === undefined ? {} : { seed: input.seed }),
           ...(input.combatContext === undefined ? {} : { combatContext: input.combatContext }),
@@ -675,10 +678,12 @@ export function createCombatContentAuthoringService({
           if (rootId === definition.id)
             throw new AurevaneError('INVALID_REQUEST', 'Choose a separate reference action.')
           const root = isBasicSkillId(rootId)
-            ? ((await resolver.resolveCurrentBasicSkillDefinitions?.([rootId]))?.get(rootId) ??
+            ? ((await previewResolver.resolveCurrentBasicSkillDefinitions?.([rootId]))?.get(
+                rootId,
+              ) ??
               defaultBasicSkills().find((row) => row.id === rootId) ??
               null)
-            : await resolver.resolveCurrentSkillDefinition(rootId)
+            : await previewResolver.resolveCurrentSkillDefinition(rootId)
           const rootActions =
             root?.ability?.behaviors.filter(
               (row) => row.activation === 'manual' && row.mode === 'action',
@@ -705,6 +710,7 @@ export function createCombatContentAuthoringService({
               : previewModifierCombatContentDefinition
           return preview(definition as MatureSkillDefinition | AnyResonanceDefinition, root, {
             behaviorId,
+            ...(catalogue ? { effectTimingPolicy: catalogue.policy } : {}),
             ...(rootBehavior ? { rootBehaviorId: rootBehavior.id } : {}),
             ...(input.seed === undefined ? {} : { seed: input.seed }),
             ...(input.combatContext === undefined ? {} : { combatContext: input.combatContext }),
@@ -718,6 +724,7 @@ export function createCombatContentAuthoringService({
         )
       }
       const options = {
+        ...(catalogue ? { effectTimingPolicy: catalogue.policy } : {}),
         ...(behaviorId === undefined ? {} : { behaviorId }),
         ...(input.seed === undefined ? {} : { seed: input.seed }),
         ...(input.combatContext === undefined ? {} : { combatContext: input.combatContext }),

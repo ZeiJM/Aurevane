@@ -294,7 +294,7 @@ test('Phase 4 preserves testing access and shows advanced Skills and descriptive
   await expect(list.getByRole('checkbox')).toHaveCount(8)
   const fortress = list.locator('article').filter({ hasText: 'Fortress' })
   await fortress.getByRole('checkbox').focus()
-  await expect(dialog).toContainText('EffectsFortified [−30% incoming / −20% outgoing]')
+  await expect(dialog).toContainText('EffectsFortified [30% / 20%]')
   await expect(dialog).toContainText('TargetSelf')
   await expect(dialog.locator('dt').filter({ hasText: /^Damage$/ })).toHaveCount(0)
   await expect(dialog).toContainText('Take 30% less damage and deal 20% less damage.')
