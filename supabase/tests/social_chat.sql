@@ -28,7 +28,7 @@ insert into public.characters(
 )
 select ('82000000-0000-4000-8000-0000000001' || lpad(actor.n::text, 2, '0'))::uuid,
   ('82000000-0000-4000-8000-0000000000' || lpad(actor.n::text, 2, '0'))::uuid,0,1,
-  'Chat Tester ' || lpad(actor.n::text, 2, '0'),'chat tester ' || lpad(actor.n::text, 2, '0'),
+  'Chat Tester ' || lpad(actor.n::text, 2, '0'),lower(regexp_replace('Chat Tester ' || lpad(actor.n::text, 2, '0'), '[- ''’]', '', 'g')),
   'presentation.chat-test','pronoun.they','portrait.chat-test','appearance.chat-test',definition.discipline_id,
   (profile.core_base_attributes->>'might')::integer+1,
   (profile.core_base_attributes->>'finesse')::integer+1,
