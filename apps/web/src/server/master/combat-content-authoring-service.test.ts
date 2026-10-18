@@ -1973,7 +1973,12 @@ it.each([
     }
     const preview = await service.previewSkillDefinition({ actorUserId: OWNER, definition })
     expect(
-      'simulation' in preview && preview.simulation?.preparation === 'free-controlled-prime',
+      Boolean(
+        'simulation' in preview &&
+        preview.simulation &&
+        'preparation' in preview.simulation &&
+        preview.simulation.preparation === 'free-controlled-prime',
+      ),
     ).toBe(primed)
   },
 )
