@@ -564,4 +564,9 @@
     min-height: 2.75rem;
     min-width: 2.75rem;
   }
+
+  .reactionChoices {
+    top: calc(100% + 0.35rem);
+    bottom: auto;
+  }
 }

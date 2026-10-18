@@ -1497,16 +1497,16 @@ test('ambient clouds, water and wildlife remain alive with bounded effects and c
   const ambientState = {
     clouds: await canvas.getAttribute('data-clouds'),
     cloudPhase: await canvas.getAttribute('data-cloud-phase'),
-    waterCells: await canvas.getAttribute('data-water-cells'),
     wildlifeWalking: await canvas.getAttribute('data-wildlife-walking'),
   }
+  expect(await canvas.getAttribute('data-water-cells')).toBe('0')
   await page.waitForTimeout(1200)
   expect({
     clouds: await canvas.getAttribute('data-clouds'),
     cloudPhase: await canvas.getAttribute('data-cloud-phase'),
-    waterCells: await canvas.getAttribute('data-water-cells'),
     wildlifeWalking: await canvas.getAttribute('data-wildlife-walking'),
   }).toEqual(ambientState)
+  expect(await canvas.getAttribute('data-water-cells')).toBe('0')
   await openMapSettings(page)
   await page.getByRole('checkbox', { name: 'Ambient animation', exact: true }).check()
   await closeMapSettings(page)
