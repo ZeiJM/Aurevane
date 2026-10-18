@@ -90,7 +90,7 @@ export function AccountMenu({
               <div>
                 <span>Current character</span>
                 <strong>Welcome back, {characterName}.</strong>
-              </div>
+                    </div>
               {characterPortrait}
             </div>
           ) : null}
