@@ -43,11 +43,33 @@ test('chat reactions, ephemeral typing and private Game feed work on a phone', a
       })
     }
 
+    const selectedCharacterId = (await hostContext.cookies()).find(
+      (cookie) => cookie.name === 'aurevane_selected_character',
+    )?.value
     const request = await host.request.post('/api/chat/friends', {
       data: { action: 'request', name: guestId.name },
     })
-    expect(request.ok()).toBe(true)
-    const sent = (await request.json()) as { outgoing: { id: string }[] }
+    const requestStatus = request.status()
+    const requestBody = await request.json().catch(() => null)
+    const safeError =
+      requestBody && typeof requestBody === 'object' && 'error' in requestBody
+        ? (requestBody as { error?: { code?: unknown; message?: unknown } }).error
+        : null
+    expect(
+      request.ok(),
+      [
+        'Friend request failed.',
+        `status=${requestStatus}`,
+        `selectedCharacterId=${selectedCharacterId ?? 'missing'}`,
+        `targetCharacterName=${guestId.name}`,
+        `response=${JSON.stringify(
+          safeError
+            ? { code: safeError.code, message: safeError.message }
+            : requestBody,
+        )}`,
+      ].join(' '),
+    ).toBe(true)
+    const sent = requestBody as { outgoing: { id: string }[] }
     const guestCharacter = sent.outgoing[0]?.id
     expect(guestCharacter).toMatch(/^[0-9a-f-]{36}$/)
     const guestState = await guest.request.get('/api/chat/friends')
