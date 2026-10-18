@@ -183,6 +183,7 @@ const browser = await chromium.launch({
   headless: true,
 })
 const evidence = []
+const browserErrors = []
 const fields = [
   'Skill Type',
   'Cost',
@@ -871,6 +872,8 @@ async function verifyBasicServiceRestore(page, viewport) {
   })
   const editor = page.getByRole('region', { name: 'Basic Skill authoring', exact: true })
   const select = editor.getByLabel('Basic Skill', { exact: true })
+  await editor.waitFor({ state: 'visible' })
+  await select.waitFor({ state: 'visible' })
   const activate = async (locator) => {
     if (viewport.width < 720) await locator.tap()
     else {
@@ -980,7 +983,10 @@ try {
   ]) {
     const page = await browser.newPage({ viewport, hasTouch: viewport.width < 720 })
     const errors = []
-    page.on('pageerror', (error) => errors.push(error.message))
+    page.on('pageerror', (error) => {
+      errors.push(error.message)
+      browserErrors.push(error.message)
+    })
     if (basicServiceAcceptance) {
       await verifyBasicServiceRestore(page, viewport)
       assert.deepEqual(errors, [])
@@ -1377,6 +1383,36 @@ try {
   }
   await fs.writeFile(resolve(output, 'results.json'), JSON.stringify(evidence, null, 2))
   console.log(`Skill parameter family/palette browser regression passed. Evidence: ${output}`)
+} catch (error) {
+  const failedPage = browser
+    .contexts()
+    .flatMap((context) => context.pages())
+    .at(-1)
+  await Promise.allSettled([
+    fs.writeFile(
+      resolve(output, 'failure.json'),
+      JSON.stringify({ error: String(error), browserErrors, evidence }, null, 2),
+    ),
+    ...(failedPage
+      ? [
+          failedPage.screenshot({ path: resolve(output, 'failure.png'), timeout: 5000 }),
+          failedPage.content().then((html) => fs.writeFile(resolve(output, 'failure.html'), html)),
+          failedPage
+            .evaluate(() => ({
+              url: location.href,
+              readyState: document.readyState,
+              body: document.body.innerText.slice(0, 5000),
+              basicOptions: [
+                ...document.querySelectorAll('select[aria-label="Basic Skill"] option'),
+              ].map((option) => option.value),
+            }))
+            .then((state) =>
+              fs.writeFile(resolve(output, 'failure-state.json'), JSON.stringify(state, null, 2)),
+            ),
+        ]
+      : []),
+  ])
+  throw error
 } finally {
   await browser.close()
   await server.close()
