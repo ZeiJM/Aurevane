@@ -54,9 +54,9 @@ it.each([
   expect(JSON.stringify(definition)).toBe(before)
 })
 it.each([
-  ['resonance.ravager-wildwarden.linked-sequence', 'Each selected unit: HP ≤ 50%'],
-  ['resonance.aetherist-frostweaver.linked-sequence', 'You: MP ≥ 50%'],
-  ['resonance.edgedancer-tidecaller.linked-sequence', 'You: MP ≤ 30%'],
+  ['resonance.ravager-wildwarden.linked-sequence', 'HP [≤ 50%] [Target]'],
+  ['resonance.aetherist-frostweaver.linked-sequence', 'MP [≥ 50%] [Self]'],
+  ['resonance.edgedancer-tidecaller.linked-sequence', 'MP [≤ 30%] [Self]'],
 ])('keeps the actual condition once in the full public report for %s', (id, condition) => {
   const definition = actual(id!)
   const before = JSON.stringify(definition)
@@ -97,7 +97,7 @@ it.each([
   const html = renderToStaticMarkup(
     <AbilityDefinitionParameters definition={projectPublicCombat(definition)} />,
   )
-  expect(html.split(`[Armor ignored: ${percent}%]`)).toHaveLength(2)
+  expect(html.split(`Armor ignored: ${percent}%.`)).toHaveLength(2)
   expect(html).not.toContain(`Ignores ${percent}%`)
   expect(JSON.stringify(definition)).toBe(before)
 })
@@ -139,16 +139,16 @@ it('keeps nested effect requirements aligned while prose stays plain and global 
     ],
   })
   const report = abilityBehaviorInformation(nested.behaviors[0]!)
-  const condition = '(You: MP ≥ 50% or Marked)'
+  const condition = '(MP [≥ 50%] [Self] or Marked)'
   expect(report.effects.map((effect) => effect.condition)).toEqual([null, condition, null])
-  expect(Object.fromEntries(report.rows).Requirements).toBe('You: AP ≥ 9')
+  expect(Object.fromEntries(report.rows).Requirements).toBe('AP [≥ 9] [Self]')
   expect(Object.fromEntries(report.rows).Effects).toContain(`If ${condition}: MP Restore`)
   expect(report.effectDescriptions[1]).toBe(
     'Restore MP to yourself, without exceeding the maximum. Recovery cannot revive a defeated unit.',
   )
   const html = renderToStaticMarkup(<AbilityParameters report={report} />)
   expect(html.split(condition)).toHaveLength(2)
-  expect(html).toContain('You: AP ≥ 9')
+  expect(html).toContain('AP [≥ 9] [Self]')
 })
 it('preserves authored conditional text exactly as escaped text without stripping repeated numbers', () => {
   const definition = actual('resonance.edgedancer-tidecaller.linked-sequence')

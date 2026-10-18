@@ -81,3 +81,67 @@ it('keeps fallback requirements modular with explicit subjects and absence', () 
     'Guard [Self], No Drenched [Self], Vulnerable [Target]',
   )
 })
+
+it('renders primed ability identity as a modular reference and preserves absence and subject', () => {
+  expect(
+    abilityRequirementDescription({
+      kind: 'prime-presence',
+      subject: 'owner',
+      abilityId: 'chronist.rewind-step',
+      present: true,
+    }),
+  ).toBe('Rewind Step [Primed] [Self]')
+  expect(
+    abilityRequirementDescription({
+      kind: 'prime-presence',
+      subject: 'triggering',
+      abilityId: 'chronist.rewind-step',
+      present: false,
+    }),
+  ).toBe('No Rewind Step [Primed] [Trigger]')
+})
+it('renders resource and event requirements as typed modules', () => {
+  expect(
+    abilityRequirementDescription({
+      kind: 'resource-state',
+      subject: 'selected',
+      resource: 'hp',
+      comparison: 'at-most',
+      basisPoints: 3500,
+    }),
+  ).toBe('HP [≤ 35%] [Target]')
+  expect(
+    abilityRequirementDescription({
+      kind: 'resource-state',
+      subject: 'owner',
+      resource: 'mp',
+      comparison: 'at-least',
+      amount: 3,
+    }),
+  ).toBe('MP [≥ 3] [Self]')
+  expect(
+    abilityRequirementDescription({
+      kind: 'resource-threshold-crossing',
+      subject: 'triggering',
+      resource: 'hp',
+      direction: 'below',
+      thresholdBasisPoints: 3500,
+    }),
+  ).toBe('HP [Falls Below 35%] [Trigger]')
+  expect(
+    abilityRequirementDescription({
+      kind: 'resource-threshold-crossing',
+      subject: 'owner',
+      resource: 'mp',
+      direction: 'above',
+      thresholdBasisPoints: 5000,
+    }),
+  ).toBe('MP [Rises Above 50%] [Self]')
+  expect(
+    abilityRequirementDescription({
+      kind: 'event',
+      phase: 'before',
+      eventType: 'combat_action_used',
+    }),
+  ).toBe('Combat Action Used [Before]')
+})

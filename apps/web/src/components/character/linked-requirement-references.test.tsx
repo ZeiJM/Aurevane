@@ -102,7 +102,7 @@ it('retains all subjects, absence and non-status branches around nested linked p
     requirements,
   })
   expect(plain(report.requirementParts)).toBe(
-    '(No Rooted [Self] & (Burn [Area] or No Covert [Trigger]) & Each selected unit: MP ≥ 75% & You: AP ≤ 40 & Triggering unit: HP crosses below 35% & Before combat action used & Attack [Physical] [Mark] [Burn] & You must not have burn primed & constructor)',
+    '(No Rooted [Self] & (Burn [Area] or No Covert [Trigger]) & MP [≥ 75%] [Target] & AP [≤ 40] [Self] & HP [Falls Below 35%] [Trigger] & Combat Action Used [Before] & Attack [Physical] [Mark] [Burn] & No Burn [Primed] [Self] & constructor)',
   )
   expect(references(report.requirementParts).map((part) => part.tag)).toEqual([
     'rooted',
@@ -188,7 +188,7 @@ it('falls back to captured plain global and effect strings when optional parts a
     })),
   } as unknown as Parameters<typeof AbilityParameters>[0]['report']
   const html = renderToStaticMarkup(<AbilityParameters report={report} />)
-  expect(html).toContain('Each selected unit: HP ≤ 35%')
+  expect(html).toContain('HP [≤ 35%] [Target]')
   expect(html).toContain('If Vulnerable: ')
   expect(html).not.toContain('data-combat-tag-reference="burn"')
 })

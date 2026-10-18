@@ -55,7 +55,7 @@ function assertReport(html: string) {
     ...MINIMUM_SKILL_INFORMATION_FIELDS,
   ])
   expect(html).toContain('11 AP / 2 MP / 1 HP')
-  expect(html).toContain('You: MP ≥ 3')
+  expect(html).toContain('MP [≥ 3] [Self]')
   expect(html).toContain('Once per battle')
   expect(html).toContain('data-compact-effect-magnitude="true">[13]</span>')
   expect(html).toContain('data-compact-effect-label="true">Move</strong>')
@@ -203,9 +203,10 @@ it('renders the exact repeated Ground subset in actual Skill details and Skill M
     expect(effects).toHaveLength(3)
     expect(effects.map((effect) => effect.includes('Repeats on entry'))).toEqual([
       false,
-      true,
+      false,
       false,
     ])
+    expect(html.split('Repeats on entry.')).toHaveLength(2)
     expect(effects[1]).toContain('data-compact-effect-magnitude="true">[4]</span>')
     expect(html).toContain('only the effects marked for entry')
     expect(html).not.toContain('repeat-hit')

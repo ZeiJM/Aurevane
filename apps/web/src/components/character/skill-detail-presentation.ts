@@ -314,6 +314,11 @@ export interface CompactSkillEffectSummaryParts {
   }[]
 }
 
+/** Supplemental rules belong with the explanation rather than the compact Effects value. */
+export function skillEffectExplanationDetails(parts: CompactSkillEffectSummaryParts) {
+  return (parts.details ?? []).filter(({ label }) => !['Stacks', 'Expiry'].includes(label))
+}
+
 export function skillEffectInstantTiming(
   effect: MatureSkillEffectDefinition,
   policy: SkillEffectTimingPolicy = defaultCombatEffectTimingPolicy(),

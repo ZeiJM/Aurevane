@@ -57,7 +57,7 @@ it.each(['burn', 'poison', 'create-terrain'])(
               definition={projectPublicCombat({ schemaVersion: 1, behaviors: [group] })}
             />,
           )
-          for (const { label, value } of facts) expect(html).toContain(`[${label}: ${value}]`)
+          for (const { label, value } of facts) expect(html).toContain(`${label}: ${value}.`)
         }
       }
       expect(JSON.stringify(definition)).toBe(before)
@@ -104,7 +104,7 @@ it('keeps captured Burn backlash separate from the tick percentages', () => {
   const html = renderToStaticMarkup(
     <AbilityDefinitionParameters definition={projectPublicCombat(definition)} />,
   )
-  expect(html).toContain('[Backlash: 18.75% own hostile HP damage]')
+  expect(html).toContain('Backlash: 18.75% own hostile HP damage.')
   expect(JSON.stringify(definition)).toBe(before)
 })
 it.each([

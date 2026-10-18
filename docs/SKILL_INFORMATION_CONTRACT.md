@@ -49,3 +49,6 @@ Current area versions pin `geometryVersion: 2`. Single selects one legal unit/ti
 
 
 Owner refinement2026-10-09: summon inspect lists show only ability names plus a ! full reader, without duplicating parameters or prose inline. Hover/tap opens the complete pinned ten-characteristic report. Display Damage first and Blindside second for granting Skills; maintain original effect-description indices and immutable execution order. Blindside activation is conditional on qualifying side/rear enemy hits in new encounters, with historical battle readers preserving their saved policy.
+
+
+Owner refinement 2026-10-18: omit a one-turn duration only for Instant effects, while retaining longer and non-Instant clocks. Requirements use typed modular names, predicates and subjects, such as Guard [Self] and Rewind Step [Primed] [Self]. Supplemental constraints such as minimum movement cost belong below the table with effect descriptions; they are not effect tags. Preserve the actual requirement predicates and mechanic values.

@@ -64,7 +64,7 @@ it.each(['airborne', 'blindside', 'haste', 'wet'] as const)(
             />,
           )
           for (const { label, value } of expected[statusId])
-            expect(html).toContain(`[${label}: ${value}]`)
+            expect(html).toContain(`${label}: ${value}.`)
         })
       }
       expect(JSON.stringify(definition)).toBe(before)

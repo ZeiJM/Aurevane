@@ -38,8 +38,9 @@ import {
   createSpectatorBattleViewerEntitlement,
 } from '@/server/battle/battle-viewer-entitlement'
 
-function setup(ordinary = false) {
+function setup(ordinary = false, cooldown = false) {
   const draft = source({
+    ...(cooldown ? { cooldown: { key: 'controlled-fixture', ownerTurns: 3 } } : {}),
     effects: [
       {
         id: 'hit',
@@ -70,9 +71,20 @@ function setup(ordinary = false) {
         : draft.definition.behaviors,
     },
   })
-  const state = reconcileCombatAbilitySources(preparePv1fTurnEconomy(percentageDotEncounter()), [
-    captured,
-  ])
+  const base = preparePv1fTurnEconomy(percentageDotEncounter())
+  const state = reconcileCombatAbilitySources(
+    cooldown
+      ? {
+          ...base,
+          effectTimingPolicy: {
+            version: 8,
+            tagAuthority: 'global',
+            modes: { damage: 'controlled' },
+          },
+        }
+      : base,
+    [captured],
+  )
   return { state, captured }
 }
 function rows(state: CombatEncounterState) {
@@ -164,6 +176,14 @@ function markup(
       resources={{ mp: 20, hp: 1000 }}
       manualActionTargets={rows(state)}
       selectedBehavior={behaviorId ? { actionId: skill.id, behaviorId } : undefined}
+      cooldowns={{
+        [skill.id]:
+          state.tactical.battle.combatants
+            .find((unit) => unit.id === 'actor')!
+            .temporaryResources.find(
+              (resource) => resource.key === 'p3.skill-cooldown.controlled-fixture',
+            )?.current ?? 0,
+      }}
       primeAvailableIds={rows(state)
         .filter((row) => row.controlled?.canPrime)
         .map((row) => row.actionId)}
@@ -470,5 +490,26 @@ it.each(['skill', 'essence', 'resonance'] as const)(
     expect(markup(finish('cancel', input), slot, null)).not.toContain(
       'data-battle-controlled-primed',
     )
+  },
+)
+
+it.each(['skill', 'essence', 'resonance'] as const)(
+  'disables the global Controlled %s during cooldown without keeping a Primed overlay',
+  (slot) => {
+    const input = setup(false, true)
+    const primed = prime(input)
+    expect(primed.tactical).toEqual(input.state.tactical)
+    const released = commitCombatAbilityCommand(command(primed, input.captured)).state
+    expect(rows(released)[0]!.controlled).toEqual({
+      phase: 'unprimed',
+      canPrime: false,
+      canCancel: false,
+    })
+    const html = markup(released, slot)
+    expect(artwork(html)).toContain('disabled')
+    expect(artwork(html)).not.toContain('prime without payment')
+    expect(html).not.toContain('data-battle-controlled-primed')
+    expect(html).not.toContain('already used this battle')
+    expect(() => prime({ ...input, state: released })).toThrow('controlled-cooldown-active')
   },
 )

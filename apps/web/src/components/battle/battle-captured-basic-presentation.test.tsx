@@ -110,3 +110,35 @@ it('presentation affordability honors MP and nonlethal HP payment and rejects st
   expect(canAffordBattleBasicAction(action, { ap: 100, mp: 100, hp: 100 }, 'removed')).toBe(false)
   expect(battleBasicCostLabel(action, '50 AP', 'removed')).toBe('Unavailable')
 })
+
+it('keeps captured Basic supplemental parameters below the Effects table', () => {
+  const { view } = capturedBasicBattle()
+  const original = view.snapshot.basicActions!.find(
+    (action) => action.actionId === 'basic.attack.unarmed.basic',
+  )!
+  const basic = {
+    ...original,
+    behaviors: original.behaviors.map((behavior) => ({
+      ...behavior,
+      effects: behavior.effects.map((effect) => ({
+        ...effect,
+        parts: { ...effect.parts, details: [{ label: 'Armor ignored', value: '50%' }] },
+      })),
+    })),
+  }
+  const html = renderToStaticMarkup(
+    <BattleSkillCommand
+      slot="attack"
+      hotkey="2"
+      label={basic.name}
+      cost="47 AP / 3 MP / 2 HP"
+      artworkSrc="/media/skills/basic-attack.webp"
+      active={false}
+      disabled={false}
+      basicAction={basic}
+      onActivate={() => {}}
+    />,
+  )
+  expect(html.slice(0, html.indexOf('</dl>'))).not.toContain('Armor ignored')
+  expect(html.slice(html.indexOf('</dl>'))).toContain('Armor ignored: 50%.')
+})
