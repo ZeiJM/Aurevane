@@ -58,7 +58,7 @@ function assertReport(html: string) {
   expect(html).toContain('You: MP ≥ 3')
   expect(html).toContain('Once per battle')
   expect(html).toContain('data-compact-effect-magnitude="true">[13]</span>')
-  expect(html).toContain('data-compact-effect-label="true">Move</span>')
+  expect(html).toContain('data-compact-effect-label="true">Move</strong>')
   expect(html).toContain('data-compact-effect-timing="true">[Controlled]</span>')
   expect(html).not.toContain('71 AP')
   expect(html).not.toContain('Wrong legacy')

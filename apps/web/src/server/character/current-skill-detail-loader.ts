@@ -78,7 +78,35 @@ export async function resolveCurrentCharacterSkillDetails(
   loadout: CharacterDisciplineSkillLoadoutView,
   resolver: CombatContentResolver,
 ): Promise<PublicCombat<CharacterDisciplineSkillLoadoutView>> {
-  const definitions = await resolveCurrentDefinitions(loadout, resolver)
+  const priorEssence = loadout.extensions.essence
+  const priorResonance = loadout.extensions.resonance
+  const [definitions, essence, resonance] = await Promise.all([
+    resolveCurrentDefinitions(loadout, resolver),
+    priorEssence && resolver.resolveCurrentEssenceDefinition
+      ? resolver.resolveCurrentEssenceDefinition(priorEssence.sourceDisciplineId, null)
+      : priorEssence,
+    priorResonance && resolver.resolveCurrentResonanceDefinition
+      ? resolver.resolveCurrentResonanceDefinition(...priorResonance.disciplinePair)
+      : priorResonance,
+  ])
+  if (
+    priorEssence &&
+    (!essence ||
+      !essence.enabled ||
+      essence.essenceId !== priorEssence.essenceId ||
+      essence.sourceDisciplineId !== priorEssence.sourceDisciplineId)
+  )
+    throw unavailable('The current Essence does not match this character build.')
+  if (
+    priorResonance &&
+    (!resonance ||
+      !resonance.enabled ||
+      resonance.id !== priorResonance.id ||
+      resonance.disciplinePair.some(
+        (discipline, index) => discipline !== priorResonance.disciplinePair[index],
+      ))
+  )
+    throw unavailable('The current Resonance does not match this character build.')
 
   return projectPublicCombat({
     ...loadout,
@@ -92,6 +120,8 @@ export async function resolveCurrentCharacterSkillDetails(
     })),
     extensions: {
       ...loadout.extensions,
+      essence,
+      resonance,
     },
   })
 }

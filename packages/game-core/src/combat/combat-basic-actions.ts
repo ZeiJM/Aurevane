@@ -239,6 +239,17 @@ export function validateBasicSkillDefinition(value: unknown): readonly BasicSkil
         )
       if (value.id === 'basic.move' && execution.costBasis === 'per-terrain-point') {
         const behavior = ability.behaviors[0]
+        const target = behavior?.targeting
+        const nativeDestination =
+          target?.kind === 'self' ||
+          (target?.kind === 'ground-tile' &&
+            target.geometryVersion === 3 &&
+            target.categories?.length === 1 &&
+            target.categories[0] === 'ground' &&
+            target.shape.kind === 'single' &&
+            target.maximumSelections === 1 &&
+            target.minimumRange === 0 &&
+            target.maximumRange === 0)
         if (
           ability.behaviors.length !== 1 ||
           !behavior ||
@@ -252,7 +263,7 @@ export function validateBasicSkillDefinition(value: unknown): readonly BasicSkil
           behavior.cooldown ||
           behavior.requirements ||
           behavior.activationLimits?.length ||
-          behavior.targeting?.kind !== 'self'
+          !nativeDestination
         )
           issue(
             'ability',

@@ -11,6 +11,27 @@ const USER_ID = '11111111-1111-4111-8111-111111111111'
 const SESSION_ID = '33333333-3333-4333-8333-333333333333'
 
 describe('sanitized battle log service', () => {
+  it('describes a shattered Barrier without claiming a negative grant or absorbed HP damage', () => {
+    const view = buildBattleLogView(SESSION_ID, [
+      {
+        battleVersion: 2,
+        eventIndex: 0,
+        createdAt: '2026-10-18T14:00:00Z',
+        event: {
+          event: 'barrier_changed',
+          actionId: 'pierce',
+          sourceCombatantId: 'actor',
+          targetCombatantId: 'enemy',
+          amount: -75,
+          before: 75,
+          after: 0,
+        },
+      },
+    ])
+    expect(view.entries[0]!.messageTemplate).toBe("{target}'s Barrier shattered.")
+    expect(JSON.stringify(view)).not.toContain('gained')
+    expect(JSON.stringify(view)).not.toContain('damage absorbed')
+  })
   it('describes recorded Poison movement as a duration refresh without claiming damage', () => {
     const view = buildBattleLogView(SESSION_ID, [
       {

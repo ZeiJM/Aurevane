@@ -1,5 +1,5 @@
 import { validateRecoveryEffect } from './combat-recovery'
-import { validateBlindsideModifiers } from './combat-blindside'
+import { validateBlindsideModifiers, isBlindsideStatusId } from './combat-blindside'
 import { percentageDotMagnitude } from './combat-percentage-dots'
 import type {
   CombatActionDefinition,
@@ -65,6 +65,7 @@ const STATUS_TAG_ALIASES: Readonly<Record<string, GameplayTag>> = {
   fortified: 'Fortified',
   airborne: 'Airborne',
   blindside: 'Blindside',
+  'blindside-vulnerability': 'Blindside',
   suppress: 'Suppress',
   displaced: 'Displaced',
 }
@@ -249,13 +250,13 @@ export function validateGameplayActionMetadata(
 export function validateGameplayEffectMetadata(effect: CombatEffectDefinition): void {
   validateRecoveryEffect(effect)
   if (effect.type === 'apply-status' && effect.blindsideModifiersBasisPoints !== undefined) {
-    if (effect.statusId !== 'blindside')
+    if (!isBlindsideStatusId(effect.statusId))
       throw new TypeError('Blindside percentages require Blindside.')
     validateBlindsideModifiers(effect.blindsideModifiersBasisPoints)
   }
   if (
     effect.type === 'apply-status' &&
-    effect.statusId === 'blindside' &&
+    isBlindsideStatusId(effect.statusId) &&
     ((effect.durationTurns !== undefined && effect.durationTurns !== 1) ||
       effect.potencyBasisPoints !== undefined)
   )

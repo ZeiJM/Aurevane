@@ -110,3 +110,28 @@ it('publishes Controlled defaults without requiring a human reason', async () =>
   )
   expect(rpc.mock.calls.at(-1)![1]).not.toHaveProperty('p_reason')
 })
+
+it.each([
+  [
+    { version: 8, tagAuthority: 'global', modes: {} },
+    { version: 8, modes: {} },
+  ],
+  [
+    { version: 7, modes: {} },
+    { version: 7, tagAuthority: 'global', modes: {} },
+  ],
+])('rejects a timing edit that changes trusted tag authority', async (stored, submitted) => {
+  const service = await import('./combat-effect-timing-policy-store')
+  rpc.mockResolvedValueOnce({
+    data: { token: 'a'.repeat(32), policy: stored, publications: [] },
+    error: null,
+  })
+  rpc.mockResolvedValueOnce({ data: { ...stored, version: stored.version + 1 }, error: null })
+  await expect(
+    service.publishCombatEffectTimingPolicy({
+      actorUserId: 'owner',
+      policy: submitted,
+    }),
+  ).rejects.toMatchObject({ code: 'STALE_VERSION' })
+  expect(rpc).toHaveBeenCalledTimes(1)
+})

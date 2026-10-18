@@ -625,26 +625,24 @@ test('Master combat authoring publishes versioned content, pins battles, and rol
       const oldFlameVersion = currentVersionFromText(await versionState.textContent())
       const duration = page.getByLabel('Ground duration (rounds)', { exact: true })
       const preset = page.getByLabel('Ground animation', { exact: true })
-      const activation = page.getByLabel('Ground activation', { exact: true })
+      await expect(page.getByLabel('Ground activation', { exact: true })).toHaveCount(0)
       const backlash = page.getByLabel('Backlash (% of burning unit’s hostile damage)', {
         exact: true,
       })
       const original = {
         duration: await duration.inputValue(),
         preset: await preset.inputValue(),
-        activation: await activation.inputValue(),
         backlash: await backlash.inputValue(),
       }
       await duration.fill('4')
       await preset.selectOption('frost')
-      await activation.selectOption('instant')
       await backlash.fill('12.34')
       await runMasterOperation(page, 'validate', 'Validate')
       await expect(page.locator('[data-validation-state="valid"]')).toContainText('Validated')
       await runMasterOperation(page, 'diff', 'Diff')
       const groundDiff = page.locator('section[aria-label="Semantic diff"]')
       await expect(groundDiff).toContainText('groundArea.durationRounds')
-      await expect(groundDiff).toContainText('groundArea.timing')
+      await expect(groundDiff).not.toContainText('groundArea.timing')
       await expect(groundDiff).toContainText('groundArea.visualPresetId')
       // Semantic array diffs identify the effects field; publication checks exact Burn values.
       await expect(groundDiff).toContainText('effects')
@@ -657,7 +655,7 @@ test('Master combat authoring publishes versioned content, pins battles, and rol
       expect(publication).toMatchObject({
         published: {
           definition: {
-            groundArea: { durationRounds: 4, visualPresetId: 'frost', timing: 'instant' },
+            groundArea: { durationRounds: 4, visualPresetId: 'frost' },
             effects: expect.arrayContaining([
               expect.objectContaining({ type: 'burn', backlashBasisPoints: 1234 }),
             ]),
@@ -671,7 +669,7 @@ test('Master combat authoring publishes versioned content, pins battles, and rol
       expect(currentVersionFromText(await versionState.textContent())).toBe(flameVersion)
       await expect(duration).toHaveValue('4')
       await expect(preset).toHaveValue('frost')
-      await expect(activation).toHaveValue('instant')
+      await expect(page.getByLabel('Ground activation', { exact: true })).toHaveCount(0)
       await expect(backlash).toHaveValue('12.34')
       await duration.scrollIntoViewIfNeeded()
       const fieldBox = await duration.boundingBox()
@@ -754,7 +752,7 @@ test('Master combat authoring publishes versioned content, pins battles, and rol
       await selectFlame()
       await expect(duration).toHaveValue(original.duration)
       await expect(preset).toHaveValue(original.preset)
-      await expect(activation).toHaveValue(original.activation)
+      await expect(page.getByLabel('Ground activation', { exact: true })).toHaveCount(0)
       await expect(backlash).toHaveValue(original.backlash)
     }
     // Audited elevation publication, stale rejection and old/new battle pinning.

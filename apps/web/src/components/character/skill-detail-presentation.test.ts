@@ -291,9 +291,9 @@ it('presents the standardized Technique characteristic schema without prose expa
   expect(skillCooldownDescription(timeLock)).toMatch(/turn|None/)
 })
 
-it('classifies Techniques only as Attack, Recovery, or Utility', () => {
+it('classifies Techniques only as Attack, Heal, or Utility', () => {
   expect(skillTypeDescription(resolveMatureSkillVersion('runeblade.aether-cut')!)).toBe('Attack')
-  expect(skillTypeDescription(resolveMatureSkillVersion('vanguard.rally')!)).toBe('Recovery')
+  expect(skillTypeDescription(resolveMatureSkillVersion('vanguard.rally')!)).toBe('Heal')
   expect(skillTypeDescription(resolveMatureSkillVersion('vanguard.brace')!)).toBe('Utility')
 
   const hybrid = resolveMatureSkillVersion('runeblade.siphon-slash')!
@@ -318,9 +318,7 @@ it('lists authored magnitudes as effects without leaking design tags', () => {
     skillEffectsSummary(siphon),
   )
   const brand = skillEffectsSummary(resolveMatureSkillVersion('runeblade.sigil-brand')!)
-  expect(brand).toBe(
-    'Dmg [10], Vulnerable [+14.26% incoming] [2 Turns], Healing Down [−20.74% HP/MP recovery] [2 Turns]',
-  )
+  expect(brand).toBe('Dmg [10], Vulnerable [14.26%] [2 Turns], Healing Down [20.74%] [2 Turns]')
   expect(skillEffectsSummary(resolveMatureSkillVersion('runeblade.rune-mending')!)).not.toContain(
     'Dmg',
   )
@@ -328,10 +326,10 @@ it('lists authored magnitudes as effects without leaking design tags', () => {
 
 it('shows conditional elemental and terrain magnitudes without treating them as universal damage', () => {
   expect(skillEffectsSummary(resolveMatureSkillVersion('tidecaller.water-lance')!)).toContain(
-    'Drenched [+20% Storm]',
+    'Drenched [20%]',
   )
   expect(skillEffectsSummary(resolveMatureSkillVersion('stormsinger.static-drain')!)).toContain(
-    'Conductive [+20% Storm]',
+    'Conductive [20%]',
   )
   expect(skillEffectsSummary(resolveMatureSkillVersion('frostweaver.chilling-mist')!)).toContain(
     'Frozen Ground [+10 AP/tile]',
@@ -356,7 +354,7 @@ describe('Combat v5.1 compact effect summaries', () => {
         potencyBasisPoints: 1000,
         durationTurns: 2,
       }),
-    ).toEqual({ label: 'Marked', magnitude: '+10 pp Accuracy', duration: '2 Turns' })
+    ).toEqual({ label: 'Marked', magnitude: '10%', duration: '2 Turns' })
 
     expect(
       compactSkillEffectSummaryParts({
@@ -367,7 +365,7 @@ describe('Combat v5.1 compact effect summaries', () => {
         potencyBasisPoints: 1200,
         durationTurns: 2,
       }),
-    ).toEqual({ label: 'Guard', magnitude: '−12% incoming', duration: '2 Turns' })
+    ).toEqual({ label: 'Guard', magnitude: '12%', duration: '2 Turns' })
 
     expect(
       compactSkillEffectSummaryParts({
@@ -378,7 +376,7 @@ describe('Combat v5.1 compact effect summaries', () => {
         potencyBasisPoints: 1400,
         durationTurns: 2,
       }),
-    ).toEqual({ label: 'Vulnerable', magnitude: '+14% incoming', duration: '2 Turns' })
+    ).toEqual({ label: 'Vulnerable', magnitude: '14%', duration: '2 Turns' })
 
     expect(
       compactSkillEffectSummaryParts({
@@ -389,7 +387,7 @@ describe('Combat v5.1 compact effect summaries', () => {
         potencyBasisPoints: 1600,
         durationTurns: 2,
       }),
-    ).toEqual({ label: 'Healing Down', magnitude: '−16% HP/MP recovery', duration: '2 Turns' })
+    ).toEqual({ label: 'Healing Down', magnitude: '16%', duration: '2 Turns' })
   })
 
   it('formats Slow as a concise AP magnitude and separates duration', () => {
@@ -635,7 +633,7 @@ it('puts current elemental duration and potency solely on the explicit status ta
   const timing = { version: 9, modes: { wet: 'delayed' as const } }
   expect(skillEffectSummaries(skill, timing)).toEqual([
     'Water Dmg [10]',
-    'Drenched [+42% Storm] [4 Turns] [Delayed]',
+    'Drenched [42%] [4 Turns] [Delayed]',
   ])
   expect(skillEffectSummaries(skill, timing, { explicitElemental: false })[0]).toBe(
     'Water Dmg [10] [3 Turns]',

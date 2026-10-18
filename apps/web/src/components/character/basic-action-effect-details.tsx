@@ -7,7 +7,7 @@ import {
   type BasicActionPresentationId,
   type BasicActionCharacterStats,
 } from './basic-action-presentation'
-import { CompactEffectSummary } from './compact-skill-effect-summary'
+import { CompactEffectSummary, EffectTagLabel } from './compact-skill-effect-summary'
 
 export function BasicActionEffectSummary({
   id,
@@ -34,8 +34,10 @@ export function BasicActionEffectExplanations({
       data-basic-action-effect-explanation="true"
     >
       <li>
-        <strong>{basicActionEffectSummaryParts(id).label}</strong> —{' '}
-        {basicActionEffectExplanation(id)}
+        <strong>
+          <EffectTagLabel label={basicActionEffectSummaryParts(id).label} />
+        </strong>{' '}
+        — {basicActionEffectExplanation(id)}
       </li>
     </ul>
   )

@@ -14,9 +14,11 @@ describe('authoritative inherent action descriptors', () => {
     expect(guard['Skill Type']).toBe('Utility')
     expect(guard.Cost).toBe('30 AP')
     expect(guard.Cooldown).toBe('2 turns')
-    expect(guard.Effects).toBe('Guarded [15%] [2 Turns]')
+    expect(guard.Effects).toBe('Guard [15%] [2 Turns]')
     expect(guard.Effects).toContain('2 Turns')
-    expect(basicActionEffectExplanation('basic.guard')).toContain('15% per application')
+    expect(basicActionEffectExplanation('basic.guard')).toContain(
+      'Take less damage per application',
+    )
     expect(guard.Target).toBe('Self')
     expect(guard.Range).toBe('N/A')
     expect(guard['Target Elevation']).toBe('N/A')
@@ -30,8 +32,8 @@ describe('authoritative inherent action descriptors', () => {
     expect(mp.Requirements).toBe('Missing MP')
     expect(hp.Cooldown).toBe('2 turns')
     expect(mp.Cooldown).toBe(hp.Cooldown)
-    expect(hp.Effects).toBe('HP Recovery [10% max HP] [Instant]')
-    expect(mp.Effects).toBe('MP Recovery [10% max MP] [Instant]')
+    expect(hp.Effects).toBe('HP Recovery [10%] [Instant]')
+    expect(mp.Effects).toBe('MP Recovery [10%] [Instant]')
     expect(hp.Effects).toContain('[Instant]')
     expect(basicActionEffectExplanation('basic.recover.mp')).toContain('share a cooldown')
   })
@@ -92,7 +94,7 @@ it('uses the configured Guard and recovery timing in Support Action reports', ()
     },
   }
   expect(Object.fromEntries(basicActionCharacteristicRows('basic.guard', policy)).Effects).toBe(
-    'Guarded [15%] [2 Turns] [Instant]',
+    'Guard [15%] [2 Turns] [Instant]',
   )
   expect(
     Object.fromEntries(basicActionCharacteristicRows('basic.recover', policy)).Effects,

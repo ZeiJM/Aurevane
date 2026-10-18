@@ -105,13 +105,19 @@ export function skillEffectDescription(
     case 'bleed':
       return `Apply Bleed to ${target} for ${effect.ticks} ${effect.ticks === 1 ? 'end-turn tick' : 'end-turn ticks'} at ${effect.damagePerTick} damage per tick.`
     case 'return-to-turn-start':
-      return `Rewind to the ${options.rewindPrimeAnchor ? 'tile saved when the whole action was primed' : effect.anchorMode === 'cast-position' ? 'tile captured when cast' : 'vacant tile where you started this turn'}. Rooted blocks the return. No HP, MP, AP, Movement or past action is refunded.`
+      return options.rewindPrimeAnchor
+        ? 'Return to where this Skill was primed. Rooted prevents the return.'
+        : effect.anchorMode === 'cast-position'
+          ? 'Return to where this Skill was used. Rooted prevents the return.'
+          : 'Return to where your turn began. Rooted prevents the return.'
     case 'percentage-recovery':
       return previewEffect(effect, options).explanation
     case 'healing':
       return `Restore up to ${effect.amount} HP to ${target}.${recoveryTiming(effect.ticks)}`
     case 'barrier-change':
-      return `Grant up to ${effect.amount} Barrier to ${target}.`
+      return effect.basis === 'maximum-hp-percent'
+        ? `Protect ${target} with a share of maximum HP that absorbs damage before HP. Pierce breaks the Barrier.`
+        : `Grant up to ${effect.amount} Barrier to ${target}.`
     case 'resource-change':
       return `${effect.delta >= 0 ? 'Restore up to' : 'Remove'} ${Math.abs(effect.delta)} MP ${effect.delta >= 0 ? 'to' : 'from'} ${target}.${effect.delta >= 0 ? recoveryTiming(effect.ticks) : ''}`
     case 'copy-statuses':
@@ -207,7 +213,7 @@ export function skillTypeDescription(
           behavior.classification === 'attack'
             ? 'Attack'
             : behavior.classification === 'recovery'
-              ? 'Recovery'
+              ? 'Heal'
               : 'Utility',
         ),
       ),
@@ -220,7 +226,7 @@ export function skillTypeDescription(
       effect.type === 'healing' ||
       (effect.type === 'resource-change' && effect.delta > 0),
   )
-  return recoversHpOrMp ? 'Recovery' : 'Utility'
+  return recoversHpOrMp ? 'Heal' : 'Utility'
 }
 
 /** The mature Skill executor chooses Mystic Defense for mystic tags, Physical otherwise. */
@@ -355,6 +361,12 @@ function compactMagnitude(
   magnitude: string | undefined,
 ): string | null {
   if (effect.type === 'summon' || !magnitude) return null
+  if (effect.type === 'apply-status' && /pp Accuracy$/u.test(magnitude))
+    return `${magnitude.match(/\d+(?:\.\d+)?/u)![0]}%`
+  if (effect.type === 'apply-status' && magnitude.includes('%')) {
+    const values = [...new Set(magnitude.match(/\d+(?:\.\d+)?%/gu) ?? [])]
+    if (values.length) return values.join(' / ')
+  }
   if (effect.type === 'apply-status' && effect.statusId === 'slow') {
     return magnitude.replace(/\/tile$/u, '')
   }

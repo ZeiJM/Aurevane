@@ -48,6 +48,57 @@ const runtime: BattleRuntime = {
   essence: null,
 }
 
+it.each(['discipline', 'essence', 'resonance'] as const)(
+  'keeps a captured %s prime visible while disabled and removes it when consumed',
+  async (kind) => {
+    const { resolveResonanceForPair } = await import('@aurevane/game-core/combat/resonance')
+    const definition = resolveResonanceForPair('wildwarden', 'edgedancer')!
+    const group = defaultBasicSkills()[0]!.ability.behaviors[0]!
+    const chosenRuntime = {
+      ...runtime,
+      techniques: kind === 'discipline' ? [technique] : [],
+      essence: kind === 'essence' ? { ...technique, description: '' } : null,
+      resonance:
+        kind === 'resonance'
+          ? {
+              id: definition.id,
+              contentVersion: definition.contentVersion,
+              name: definition.name,
+              description: definition.description,
+              definition,
+            }
+          : null,
+    }
+    const id = kind === 'resonance' ? definition.id : technique.id
+    const render = (primed: boolean) =>
+      renderToStaticMarkup(
+        <BattleSelectedSkills
+          runtime={chosenRuntime}
+          actorId="actor"
+          disabled
+          actionEconomy={0}
+          onSelect={vi.fn()}
+          manualActionTargets={[
+            {
+              ownerCombatantId: 'actor',
+              actionId: id,
+              behaviorId: 'use',
+              target: group.targeting!,
+              controlled: {
+                phase: primed ? 'primed' : 'unprimed',
+                canPrime: !primed,
+                canCancel: primed,
+              },
+            },
+          ]}
+        />,
+      )
+    expect(render(true).match(/data-battle-controlled-primed="true"/g)).toHaveLength(1)
+    expect(render(true)).toMatch(/aria-label="[^"]+, primed"/)
+    expect(render(false)).not.toContain('data-battle-controlled-primed="true"')
+  },
+)
+
 it('free Controlled preparation bypasses payment/cooldown selection gates while ready light is release-only', () => {
   const render = (primeAvailable: boolean, readyActionId?: string, disabled = false) =>
     renderToStaticMarkup(

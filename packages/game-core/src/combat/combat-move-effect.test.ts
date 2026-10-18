@@ -94,6 +94,116 @@ function actor(state: CombatEncounterState) {
 }
 
 describe('registered Move on one paid skill command', () => {
+  it.each([true, false])(
+    'checks the Ground occupant for a selected-target prerequisite: Mark %s',
+    (marked) => {
+      const command = input([], {
+        targeting: {
+          ...source().definition.behaviors[0]!.targeting!,
+          geometryVersion: 3,
+          kind: 'ground-tile',
+          categories: ['ground'],
+          minimumRange: 0,
+          maximumRange: 1,
+        },
+        requirements: {
+          kind: 'status-presence',
+          subject: 'selected',
+          statusId: 'mark',
+          present: true,
+        },
+        effects: [move, { ...hit, payload: { ...hit.payload, recipient: 'affected-units' } }],
+      })
+      const state = {
+        ...command.state,
+        modularSkillPolicyVersion: 1 as const,
+        statusState: command.state.statusState.map((row) =>
+          row.combatantId === 'enemy' && marked
+            ? {
+                ...row,
+                statuses: [
+                  {
+                    statusId: 'mark',
+                    statusVersion: 1,
+                    stacks: 1,
+                    sourceScopedMark: true as const,
+                    sourceCombatantId: 'actor',
+                    remainingOwnerTurnStarts: 2,
+                  },
+                ],
+              }
+            : row,
+        ),
+      }
+      const castInput = {
+        ...command,
+        state,
+        selection: { kind: 'tile' as const, position: { x: 3, y: 1 } },
+      }
+      expect(prepareCombatAbilityCommand(castInput).evaluation.legal).toBe(marked)
+      if (marked)
+        expect(commitCombatAbilityCommand(castInput).events).toContainEqual(
+          expect.objectContaining({ event: 'damage_applied', targetCombatantId: 'enemy' }),
+        )
+      else expect(() => commitCombatAbilityCommand(castInput)).toThrow(/requirement-not-met/)
+    },
+  )
+  it.each(['empty', 'hit', 'miss'] as const)(
+    'executes a Ground Move with self healing on %s Ground, preserving hostile hit dependency',
+    (target) => {
+      const command = input([], {
+        targeting: {
+          ...source().definition.behaviors[0]!.targeting!,
+          kind: 'ground-tile',
+          geometryVersion: 3,
+          categories: ['ground'],
+          minimumRange: 0,
+          maximumRange: 1,
+        },
+        accuracy: { kind: 'fixed', chanceBasisPoints: target === 'miss' ? 0 : 10000 },
+        effects: [
+          move,
+          { ...hit, payload: { ...hit.payload, recipient: 'affected-units' } },
+          { id: 'heal', payload: { type: 'healing', recipient: 'actor', amount: 17 } },
+        ],
+      })
+      const state = {
+        ...command.state,
+        modularSkillPolicyVersion: 1 as const,
+        tactical: {
+          ...command.state.tactical,
+          battle: {
+            ...command.state.tactical.battle,
+            combatants: command.state.tactical.battle.combatants.map((unit) =>
+              unit.id === 'actor' ? { ...unit, hp: 500 } : unit,
+            ),
+          },
+        },
+      }
+      const castInput = {
+        ...command,
+        state,
+        selection: {
+          kind: 'tile' as const,
+          position: target === 'empty' ? { x: 2, y: 0 } : { x: 3, y: 1 },
+        },
+      }
+      expect(prepareCombatAbilityCommand(castInput).evaluation.issues).toEqual([])
+      const cast = commitCombatAbilityCommand(castInput)
+      expect(
+        cast.state.tactical.placements.find((row) => row.combatantId === 'actor')!.position,
+      ).toEqual({ x: 2, y: 1 })
+      expect(actor(cast.state).hp).toBe(target === 'miss' ? 500 : 517)
+      expect(actor(cast.state).mp).toBe(18)
+      expect(
+        actor(cast.state).temporaryResources.find((row) => row.key === 'pv1f.action-economy')!
+          .current,
+      ).toBe(89)
+      expect(cast.events.filter((event) => event.event === 'damage_applied')).toHaveLength(
+        target === 'hit' ? 1 : 0,
+      )
+    },
+  )
   it('accepts bounded Manual Move first and rejects unsupported order, repetition, activation and timing', () => {
     expect(validateAbilityDefinition(definition())).toEqual([])
     for (const [effects, overrides] of [

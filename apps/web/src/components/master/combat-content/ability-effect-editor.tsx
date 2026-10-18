@@ -1,6 +1,6 @@
 'use client'
 
-import type { AbilityBehavior, AbilityEffect } from '@aurevane/game-core/combat/combat-definition'
+import type { AbilityEffect } from '@aurevane/game-core/combat/combat-definition'
 import {
   combatTagDefinition,
   nativeCombatTagPayload,
@@ -10,7 +10,7 @@ import { latestEnabledMatureSkills } from '@aurevane/game-core/combat/mature-ski
 import { createDefaultCombatEffect } from './skill-effect-list-editor'
 import { SkillEffectEditor } from './skill-effect-editor'
 import { SummonProfileEditor } from './summon-profile-editor'
-import { AbilityNumber, AbilitySelect } from './ability-editor-fields'
+import { AbilityNumber } from './ability-editor-fields'
 import { AbilityRequirementEditor } from './ability-requirement-editor'
 import styles from './combat-content-editor.module.css'
 
@@ -36,22 +36,13 @@ export function defaultAbilityPayload(type: CombatTagPayload['type']): CombatTag
 
 export function AbilityEffectEditor({
   value,
-  behavior,
   onChange,
 }: {
   value: AbilityEffect
-  behavior: AbilityBehavior
   onChange: (value: AbilityEffect) => void
 }) {
   const payload = value.payload
   const tag = combatTagDefinition(payload.type)
-  const timing = tag?.timing.filter(
-    (mode) =>
-      mode !== 'controlled' ||
-      (behavior.activation === 'manual' &&
-        behavior.mode === 'action' &&
-        !behavior.effects.some((effect) => effect.payload.type === 'summon')),
-  )
   const update = (next: CombatTagPayload) => onChange({ ...value, payload: next })
   let controls
   if (payload.type === 'move') {
@@ -114,17 +105,24 @@ export function AbilityEffectEditor({
               const { percent, ...rest } = next
               update({ ...rest, percentageBasisPoints: percent * 100 })
             } else if (payload.type === 'pierce' && next.type === 'damage') {
-              const { piercing: _piercing, vengeance: _vengeance, ...rest } = next
+              const {
+                piercing: _piercing,
+                vengeance: _vengeance,
+                shattersBarrier: _barrier,
+                ...rest
+              } = next
               void _piercing
               void _vengeance
+              void _barrier
               update({
                 ...rest,
                 type: 'pierce',
                 armorIgnoredBasisPoints: payload.armorIgnoredBasisPoints,
               })
             } else if (next.type === 'damage') {
-              const { piercing: _piercing, ...rest } = next
+              const { piercing: _piercing, shattersBarrier: _barrier, ...rest } = next
               void _piercing
+              void _barrier
               update(rest)
             } else update(next)
           }}
@@ -134,17 +132,6 @@ export function AbilityEffectEditor({
   }
   return (
     <div className={styles.effectList}>
-      <AbilitySelect
-        label="Effect timing"
-        value={value.timing ?? 'default'}
-        options={['default', ...(timing ?? [])]}
-        onChange={(mode) => {
-          const next = { ...value }
-          if (mode === 'default') delete next.timing
-          else next.timing = mode
-          onChange(next)
-        }}
-      />
       {controls}
       <AbilityRequirementEditor
         label="Effect condition"

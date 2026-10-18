@@ -189,7 +189,7 @@ it('shows default Instant only on elemental tags that overlap typed damage acros
       />
     </SkillEffectTimingProvider>,
   )
-  expect(markup.replace(/<[^>]*>/g, '')).toContain('Drenched [+35% Storm] [2 Turns] [Instant]')
+  expect(markup.replace(/<[^>]*>/g, '')).toContain('Drenched [35%] [2 Turns] [Instant]')
   expect(timingMarks(markup)).toHaveLength(2) // Both readers mark only the overlapping tag; their actor tags remain Normal.
   expect(markup).toContain('2 affected turns starting when damage settles (Instant)')
   expect(markup).toContain('2 full rounds starting next round after the effect activates')

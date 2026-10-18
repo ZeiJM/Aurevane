@@ -847,7 +847,7 @@ try {
     await page.goto(server.resolvedUrls.local[0] + '?mode=master-ground')
     await page.getByLabel('Ground duration (rounds)', { exact: true }).fill('4')
     await page.getByLabel('Ground animation', { exact: true }).selectOption('frost')
-    await page.getByLabel('Ground activation', { exact: true }).selectOption('instant')
+    assert.equal(await page.getByLabel('Ground activation', { exact: true }).count(), 0)
     assert.ok(
       await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
       'Ground editor fits its viewport without horizontal overflow',
@@ -855,7 +855,7 @@ try {
     const draft = JSON.parse(await page.locator('[data-ground-draft]').innerText())
     assert.equal(draft.durationRounds, 4)
     assert.equal(draft.visualPresetId, 'frost')
-    assert.equal(draft.timing, 'instant')
+    assert.equal(draft.timing, undefined)
     assert.deepEqual(draft.entryEffectOrdinals, [0, 1])
     assert.equal(
       await page

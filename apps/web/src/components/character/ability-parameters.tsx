@@ -13,7 +13,6 @@ export function AbilityParameters({
   characteristicsClassName?: string
   effectExplanationsClassName?: string
 }) {
-  const selfOnly = report.rows.some(([field, value]) => field === 'Target' && value === 'Self')
   return (
     <div data-ability-parameters="true">
       <dl className={characteristicsClassName}>
@@ -23,7 +22,10 @@ export function AbilityParameters({
           effectSummary={
             report.effects.length
               ? report.effects.map(
-                  ({ parts, condition, conditionParts, recipient, repeatsOnEntry }, index) => (
+                  (
+                    { parts, condition, conditionParts, recipientOverride, repeatsOnEntry },
+                    index,
+                  ) => (
                     <div key={index}>
                       {condition ? (
                         <>
@@ -31,7 +33,7 @@ export function AbilityParameters({
                         </>
                       ) : null}
                       <CompactEffectSummary parts={parts} />
-                      {selfOnly && recipient === 'Self' ? null : ` → ${recipient}`}
+                      {recipientOverride ? ` [${recipientOverride}]` : null}
                       {repeatsOnEntry ? ' · Repeats on entry' : null}
                     </div>
                   ),

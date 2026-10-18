@@ -4,6 +4,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 
 import { SkillEffectEditor } from './skill-effect-editor'
+import { createDefaultCombatEffect } from './skill-effect-list-editor'
 
 function render(effect: CombatEffectDefinition): string {
   return renderToStaticMarkup(
@@ -12,6 +13,14 @@ function render(effect: CombatEffectDefinition): string {
 }
 
 describe('Master percentage DoT controls', () => {
+  it('authors Barrier as a percentage of maximum HP rather than the 1–20 Skill power range', () => {
+    const template = createDefaultCombatEffect('barrier-change')
+    if (template.type !== 'barrier-change') throw new Error('Wrong Barrier template.')
+    const html = render({ ...template, amount: 25 })
+    expect(html).toContain('aria-label="Barrier (% maximum HP)"')
+    expect(html).toContain('max="100"')
+    expect(html).not.toContain('max="20"')
+  })
   it.each(['poison', 'bleed', 'burn'] as const)(
     'edits %s percentages instead of fixed HP',
     (type) => {

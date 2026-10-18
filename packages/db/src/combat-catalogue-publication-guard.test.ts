@@ -69,6 +69,64 @@ async function timing(db: PGlite, expected: string, version = 1, actor = owner) 
     [actor, version, expected],
   )
 }
+it('keeps global tag authority in coherent reads and later Owner timing saves without rewriting older policies', async () => {
+  const db = await database()
+  try {
+    const before = (
+      await db.query(
+        'select * from app_private.combat_effect_timing_policy_versions order by version',
+      )
+    ).rows
+    await db.exec(sql('20261018141646_modular_global_tag_timing.sql'))
+    await db.query(
+      'insert into app_private.combat_effect_timing_policy_versions(version,modes,published_by,tag_authority) values(2,\'{"barrier-change":"instant","blindside":"instant"}\',$1,\'global\')',
+      [owner],
+    )
+    await db.exec('set role service_role')
+    const expected = {
+      version: 2,
+      modes: { 'barrier-change': 'instant', blindside: 'instant' },
+      tagAuthority: 'global',
+    }
+    expect(
+      (
+        await db.query<{ policy: unknown }>(
+          'select public.read_combat_effect_timing_policy_v1() as policy',
+        )
+      ).rows[0]!.policy,
+    ).toEqual(expected)
+    expect(
+      (
+        await db.query<{ policy: unknown }>(
+          "select public.read_combat_content_catalogue_v1()->'policy' as policy",
+        )
+      ).rows[0]!.policy,
+    ).toEqual(expected)
+    await timing(db, await token(db), 2)
+    expect(
+      (
+        await db.query<{ policy: unknown }>(
+          'select public.read_combat_effect_timing_policy_v1() as policy',
+        )
+      ).rows[0]!.policy,
+    ).toEqual({ version: 3, modes: { slow: 'instant' }, tagAuthority: 'global' })
+    await db.exec('reset role')
+    expect(
+      (
+        await db.query(
+          'select version,modes,published_by,reason,published_at from app_private.combat_effect_timing_policy_versions where version=1',
+        )
+      ).rows,
+    ).toEqual(before)
+    for (const role of ['anon', 'authenticated']) {
+      await db.exec(`set role ${role}`)
+      await expect(timing(db, 'untrusted', 3)).rejects.toThrow('permission denied')
+      await db.exec('reset role')
+    }
+  } finally {
+    await db.close()
+  }
+}, 20_000)
 it('rejects interleaved content, timing and history writes using the validated complete-catalogue token without partial state', async () => {
   const db = await database()
   try {

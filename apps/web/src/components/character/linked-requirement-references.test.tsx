@@ -40,19 +40,17 @@ it('links the actual alternative prerequisites without changing their grouping o
   const html = renderToStaticMarkup(<AbilityParameters report={report} />)
   expect(html).toContain('data-combat-tag-reference="exposed"')
   expect(html).toContain('data-combat-tag-reference="mark"')
-  expect(plain(report.requirementParts)).toBe(
-    'Any of (Each selected unit must have Vulnerable; Each selected unit must have Marked)',
-  )
+  expect(plain(report.requirementParts)).toBe('(Vulnerable or Marked)')
   expect(JSON.stringify(definition)).toBe(before)
 })
 it('binds a condition link only to its actual conditional effect', () => {
   const report = abilityBehaviorInformation(actual('shadehand.execution-cut').behaviors[0]!)
   expect(report.requirementParts).toBeUndefined()
   expect(report.effects[0]!.conditionParts).toBeUndefined()
-  expect(plain(report.effects[1]!.conditionParts)).toBe('Each selected unit must have Vulnerable')
+  expect(plain(report.effects[1]!.conditionParts)).toBe('Vulnerable')
   const html = renderToStaticMarkup(<AbilityParameters report={report} />)
   expect(html.match(/data-combat-tag-reference="exposed"/g)).toHaveLength(1)
-  expect(html).toContain('If Each selected unit must have ')
+  expect(html).toContain('If <')
 })
 it('retains all subjects, absence and non-status branches around nested linked predicates', () => {
   const requirements: RequirementNode = {
@@ -104,7 +102,7 @@ it('retains all subjects, absence and non-status branches around nested linked p
     requirements,
   })
   expect(plain(report.requirementParts)).toBe(
-    'All of (You must not have Rooted; Any of (Affected unit must have Burn; Triggering unit must not have Covert); Each selected unit: MP ≥ 75%; You: AP ≤ 40; Triggering unit: HP crosses below 35%; Before combat action used; attack / physical / mark / burn; You must not have burn primed; Each selected unit must have constructor)',
+    '(No Rooted [Self] & (Burn [Area] or No Covert [Trigger]) & Each selected unit: MP ≥ 75% & You: AP ≤ 40 & Triggering unit: HP crosses below 35% & Before combat action used & attack / physical / mark / burn & You must not have burn primed & constructor)',
   )
   expect(references(report.requirementParts).map((part) => part.tag)).toEqual([
     'rooted',
@@ -191,7 +189,7 @@ it('falls back to captured plain global and effect strings when optional parts a
   } as unknown as Parameters<typeof AbilityParameters>[0]['report']
   const html = renderToStaticMarkup(<AbilityParameters report={report} />)
   expect(html).toContain('Each selected unit: HP ≤ 35%')
-  expect(html).toContain('If Each selected unit must have Vulnerable: ')
+  expect(html).toContain('If Vulnerable: ')
   expect(html).not.toContain('data-combat-tag-reference="burn"')
 })
 

@@ -26,7 +26,7 @@ export function canonicalStatusExplanation(
     inspired: 'Deal more damage per application.',
     hexed: options.legacyHealingDown ? 'Receive less healing.' : 'Receive less HP and MP recovery.',
     exposed: 'Take more damage per application. Reapplying refreshes the duration.',
-    suppress: mechanicText`Reduce outgoing direct damage. Does not stack; reapplication keeps the strongest potency and longest remaining duration. Existing ${mechanicTag('burn')}, ${mechanicTag('poison')} and ${mechanicTag('bleed')} ticks are unchanged; new damage over time uses actual settled HP loss. Cleanse removes it; Dispel does not.`,
+    suppress: mechanicText`Deal less direct damage. Reapplying keeps the stronger, longer effect. Existing ${mechanicTag('burn')}, ${mechanicTag('poison')} and ${mechanicTag('bleed')} damage is unchanged. Cleanse removes it; Dispel does not.`,
     slow: 'Movement costs more AP per tile. Movement allowance is unchanged.',
     mark: 'Only the source gains Accuracy against this target; other attackers gain no benefit.',
     covert: 'Conceal beneficial effects from opposing viewers until revealed.',
@@ -38,9 +38,9 @@ export function canonicalStatusExplanation(
     reckless: 'Increase outgoing and incoming damage. Both effects expire or are removed together.',
     warded: mechanicText`Take less damage from opponents affected by ${mechanicTag('burn')}.`,
     frozen:
-      'Chilled prevents changing final facing at turn end. Movement keeps its usual automatic facing. Cleanse Chilled removes it from its chosen recipient.',
+      'Cannot change final facing. Movement still turns the bearer. Cleanse Chilled removes it.',
     conductive:
-      'Increase Storm damage taken. Positive Storm HP damage consumes the old charge. An explicit Conductive effect can apply a fresh charge after damage settles; the new charge cannot be consumed again in the same command.',
+      'Take more Storm damage. Storm damage consumes the old charge; this Skill can apply a fresh charge afterward.',
   }
   const entry = Object.hasOwn(descriptions, effect.statusId)
     ? descriptions[effect.statusId]

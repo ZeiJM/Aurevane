@@ -393,7 +393,7 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
       ),
   ).toEqual(nexusBarrierParameters)
   await expect(actionEconomy).toHaveAttribute('aria-valuenow', '100')
-  await expect(skillDetails).toContainText('Guard [−11% incoming] [2 Turns]')
+  await expect(skillDetails).toContainText('Guard [11%] [2 Turns]')
   await expect(skillDetails).toContainText(
     'Reduces incoming damage by 11% per application. Each use refreshes the duration.',
   )

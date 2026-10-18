@@ -17,7 +17,7 @@ it('offers compatible Controlled timing without exposed policy numbers or a reas
   expect(markup).not.toContain('policy v1')
   expect(markup).toContain('value="controlled"')
   expect(markup).toContain('Save timing')
-  expect(markup).toContain('Existing battles keep their pinned policy')
+  expect(markup).toContain('Existing battles retain their saved rules')
 })
 
 it('shows saved compatible Controlled choices while disabling unsupported release targeting', () => {

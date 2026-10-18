@@ -48,7 +48,7 @@ describe('passive Resonance Skill information', () => {
     const rows = resonanceCharacteristicRows(definition)
     expect(rows.map(([label]) => label)).toEqual(fields)
     expect(Object.fromEntries(rows)).toMatchObject({
-      'Skill Type': 'Resonance',
+      'Skill Type': 'Utility',
       Cost: 'N/A',
       Cooldown: 'N/A',
       Range: 'N/A',

@@ -31,7 +31,7 @@ export function canonicalElementalStatusClock(
                 : 'On effect activation',
     },
     condition: overlaps
-      ? ' For recipients also hit by this Skill’s matching elemental damage, applies only after positive hostile HP damage (actual loss after Barrier), if the recipient survives.'
+      ? ' Applies when this Skill’s matching element damages an enemy’s HP, if the enemy survives.'
       : '',
   }
 }

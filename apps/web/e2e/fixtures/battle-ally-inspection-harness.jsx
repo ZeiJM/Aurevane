@@ -73,7 +73,7 @@ let canonicalCapture
 let canonicalTargets
 let canonicalBasics
 function canonicalPublicState(state) {
-  const publicState = { ...state }
+  const publicState = { ...projectPercentageDotFixtureState(state) }
   Reflect.deleteProperty(publicState, 'capturedAbilitySources')
   Reflect.deleteProperty(publicState, 'abilityRuntime')
   return {
