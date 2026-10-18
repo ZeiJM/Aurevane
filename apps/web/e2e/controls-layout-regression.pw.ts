@@ -128,7 +128,7 @@ async function expectDesktopControlsFit(page: Page, info: TestInfo, label: strin
   expect(metrics.pageScrollTop, `${label}: no document scrolling needed`).toBe(0)
   expect(metrics.gridScrollTop, `${label}: no binding scrolling needed`).toBe(0)
   expect(metrics.sceneBottom, `${label}: workspace fits in the viewport`).toBeLessThanOrEqual(
-    metrics.footerTop + 1,
+    metrics.viewportBottom + 1,
   )
   expect(
     metrics.scrollContainers.filter((container) => container.overflow > 1),
