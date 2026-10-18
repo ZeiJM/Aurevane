@@ -23,6 +23,12 @@ Native browser coverage adds an actual 2560×1440 resize, bounded full-scene res
 
 Frozen `pnpm check` exits 0: formatting, lint, generated routes/types, 9,212 Vitest tests, seven Node checks and production builds. Independent follow-up confirms the resize finding closed and reruns all 29 controller tests successfully. No production release is claimed by these local checks.
 
+## First native run
+
+Exact source `6932f2d6c11b840939935890028bd1a3565ecaa4` passes CI quality and database checks (run 39151345737). Living Atlas run 39151345715 passes all 50 pre-existing cases; the new large-viewport case passes its coverage, pointer click and server route-approval assertions, then fails its cleanup because it looks for a removed Stop travel button. Cleanup now uses the supported focused-map Escape command and asserts its successful stop receipt and empty route. No movement assertion or timeout is relaxed.
+
+The full failed-run artifact 12145867058 is downloaded and SHA256 verified as `d836e21b76482eeed06df531162f581b75b7b1b13e85d9c606912d3ca4eed924`; the large-viewport approval capture is inspected. Compact artifact 12145682813 verifies as `fd68af3280021f816a0ead8150c9196052d40a638a812541d6644bc672e000ad`. The synthetic high-DPI/lower-CPU phone case records 15 ms sampled frame p95 after warming (70 ms initial baseline), 101 peers and 103 scenery sectors; these are native synthetic samples, not hosted or human performance acceptance.
+
 ## Remaining release gates
 
 - Exact-head CI, Living Atlas and complete Browser smoke.

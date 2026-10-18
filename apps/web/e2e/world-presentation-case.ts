@@ -309,7 +309,15 @@ export function registerWorldInputCases({
     const route = (await approved.json()) as WorldView
     expect(route.routeDestination ?? route.route.at(-1)?.position).toEqual(target!.position)
     await capture(page, info, 'large-viewport-public-ground-click-approved')
-    await page.getByRole('button', { name: 'Stop travel', exact: true }).click()
+    const stopped = page.waitForResponse(
+      (response) =>
+        response.request().method() === 'POST' &&
+        new URL(response.url()).pathname === '/api/world' &&
+        response.request().postDataJSON()?.intent?.kind === 'stop',
+    )
+    await canvas.press('Escape')
+    expect((await stopped).status()).toBe(200)
+    expect((await world(page)).route).toHaveLength(0)
   })
   test('minimum-zoom public scenery stays painted while walking with delayed scene hydration', async ({
     page,
