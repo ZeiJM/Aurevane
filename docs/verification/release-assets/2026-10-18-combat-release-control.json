@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "status": "PRE_RELEASE_NO_PRODUCTION_MUTATION",
+  "status": "UNBOUND_RELEASE_TEMPLATES_NOT_EXECUTION_RECEIPTS",
   "source": {
     "sha": "64f82df59f3fc111e9b253960f0f0c56c5b6113a",
     "tree": "74c737fd597f2c162bce1052e99f82fb9ca5b256",
@@ -206,5 +206,6 @@
     }
   ],
   "instructions": "Reconstruct prefix + compact cohort JSON + suffix from the immutable manifest; require the exact publication hash before execution. Bind only fresh real Owner and coherent catalogue tokens after every release gate passes. Never change a migration history row before actual DDL application. Readback and probe are verification; probe always rolls back. No production action is implied by this checkpoint.",
-  "payloadConstruction": "JSON.stringify(manifest.records.filter(r => r.kind !== 'basic').map(r => ({kind:r.kind,id:r.id,beforeVersion:r.beforeVersion,versionFloor:r.beforeVersion,after:r.after})))"
+  "payloadConstruction": "JSON.stringify(manifest.records.filter(r => r.kind !== 'basic').map(r => ({kind:r.kind,id:r.id,beforeVersion:r.beforeVersion,versionFloor:r.beforeVersion,after:r.after})))",
+  "receiptsDocument": "../2026-10-18-combat-release-handoff.md"
 }
