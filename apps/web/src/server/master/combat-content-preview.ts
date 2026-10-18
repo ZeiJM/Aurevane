@@ -16,7 +16,11 @@ import {
   type ManualCombatModifierSelection,
 } from '@aurevane/game-core/combat/combat-ability-command'
 import type { CapturedCombatAbilitySource } from '@aurevane/game-core/combat/combat-behavior-capture'
-import type { AbilityBehavior } from '@aurevane/game-core/combat/combat-definition'
+import {
+  applyAbilityTimingDefaults,
+  type AbilityBehavior,
+} from '@aurevane/game-core/combat/combat-definition'
+import type { CombatEffectTimingPolicy } from '@aurevane/game-core/combat/combat-effect-timing'
 import { COMBAT_EFFECT_TIMING_TAGS } from '@aurevane/game-core/combat/combat-effect-timing'
 import {
   combatTargetCategories,
@@ -88,6 +92,7 @@ const ACTOR_POSITION = { x: 2, y: 1 } as const
 export const DEFAULT_COMBAT_CONTENT_PREVIEW_SEED = 0x4d415354
 
 export interface CombatContentPreviewOptions {
+  readonly effectTimingPolicy?: CombatEffectTimingPolicy
   readonly behaviorId?: string
   readonly seed?: number
   readonly combatContext?: MatureSkillCombatContext
@@ -257,6 +262,7 @@ function previewState(
   definition: PreviewGeometry,
   seed: number,
   targetOrigin: GridPosition = ACTOR_POSITION,
+  timingPolicy?: CombatEffectTimingPolicy,
 ): {
   readonly state: StatDrivenCombatEncounterState
   readonly selection: CombatTargetSelection
@@ -390,6 +396,7 @@ function previewState(
   const base = createCombatEncounterState(tactical)
   const withFixtureState = {
     ...base,
+    ...(timingPolicy ? { effectTimingPolicy: structuredClone(timingPolicy) } : {}),
     percentageDotPolicyVersion: 1 as const,
     dotTriggerPolicyVersion: 2 as const,
     skillPacketPolicyVersion: 1 as const,
@@ -463,8 +470,12 @@ function evaluateCanonicalPreview(
   movementPath?: readonly GridPosition[],
   manualModifiers?: readonly ManualCombatModifierSelection[],
 ) {
+  behavior = applyAbilityTimingDefaults(behavior, state.effectTimingPolicy)
   let prepared = preparePv1fTurnEconomy(state)
-  if (behavior.effects.some((effect) => effect.payload.type === 'summon')) {
+  if (
+    !prepared.effectTimingPolicy &&
+    behavior.effects.some((effect) => effect.payload.type === 'summon')
+  ) {
     // Preserve this seeded fixture's immediate defaults while supporting explicit queued packets.
     prepared = {
       ...prepared,
@@ -574,6 +585,8 @@ export function previewCombatContentDefinition(
       ),
     },
     seed,
+    undefined,
+    options.effectTimingPolicy,
   )
   const source = capturedMatureSkillAbilitySource(fixture.state, definition)
   const behavior = source ? combatAbilityBehavior(source, options.behaviorId) : null
@@ -593,7 +606,7 @@ export function previewCombatContentDefinition(
         ),
       }
   const { state, selection } = behavior
-    ? previewState(geometryDefinition, seed, movementPath?.at(-1))
+    ? previewState(geometryDefinition, seed, movementPath?.at(-1), options.effectTimingPolicy)
     : fixture
   const rngBefore = structuredClone(state.tactical.battle.rng)
   const canonical =
@@ -728,7 +741,7 @@ export function previewBasicCombatContentDefinition(
       (effect) => effect.payload.type === 'damage' && effect.payload.element === 'fire',
     ),
   }
-  const fixture = previewState(geometry, seed, movementPath?.at(-1))
+  const fixture = previewState(geometry, seed, movementPath?.at(-1), options.effectTimingPolicy)
   const state = { ...fixture.state, capturedAbilitySources: sources }
   const rngBefore = structuredClone(state.tactical.battle.rng)
   if (
@@ -910,6 +923,7 @@ export function previewResonanceCombatContentDefinition(
     },
     seed,
     movementPath?.at(-1),
+    options.effectTimingPolicy,
   )
   const source = capturedResonanceAbilitySource(
     fixture.state,
@@ -968,6 +982,7 @@ export function previewModifierCombatContentDefinition(
     },
     seed,
     movementPath?.at(-1),
+    options.effectTimingPolicy,
   )
   const modifierSource =
     'disciplinePair' in definition
@@ -1116,6 +1131,7 @@ export function previewAutomaticCombatContentDefinition(
     },
     seed,
     movementPath?.at(-1),
+    options.effectTimingPolicy,
   )
   const ownerId = scenario.referenceActor === 'owner' ? ACTOR_ID : ENEMY_ID
   let sample = {
@@ -1388,6 +1404,8 @@ export function previewHistoricalResonanceCombatContentDefinition(
       ),
     },
     seed,
+    undefined,
+    options.effectTimingPolicy,
   )
   let state = preparePv1fTurnEconomy(fixture.state)
   let resonanceState = createResonanceCombatState(definition)

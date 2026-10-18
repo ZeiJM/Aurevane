@@ -33,6 +33,14 @@ The single required whole-branch review found no Critical issue and two Importan
 
 `pnpm check` completed successfully before these follow-ups: format/lint/typecheck,10,184 Vitest tests plus7 Node tests and production build. The newer complete check is running and must pass before release. Initial remote CI includes passing Controlled browser, Skill Engine, Essence/Build snapshots and database workflows; modular reader browser is red on the diagnosed CSS rule. Do not represent initial CI as all green or as final exact-head acceptance.
 
+## Native browser and preview follow-ups
+
+Remote head `1c63f2a898dbb316c24447fe5f6d606de307a557` (local1075ff985, tree `2d29bbefa9722d3634d51f9cb9048d8e7272e057`) passes the actual Modular ability reader and Controlled browser workflows. The native checks now capture gold bold labels across current readers, Primed across multi-action selection changes and clearing, and the grey active Barrier HP layer in desktop/mobile PvE/PvP fixtures. These are production components with local fixture transport, not hosted/human acceptance. Full browser/quality/layout CI still runs.
+
+The native editor caught a real Pierce round-trip failure: its native shatter marker entered canonical authored data and failed strict parsing. A direct production-child callback test reproduced the failure; the adapter strips trusted execution-only fields in both damage/Pierce conversions.31 editor tests pass and the continuing final review cleared this narrow repair. Manual browser assertions now use concise Move prose, native per-traversal-point Cost and Utility Resonance Type. A readiness assertion was moved before selection changes, which correctly reset local readiness while preserving Primed; no product readiness rule was weakened.
+
+Full local check4 passes10,193 Vitest plus7 Node and production build. A subsequent timing audit found that Master simulation used its legacy fixture timing despite the globally accurate report. Current preview now obtains one trusted catalogue snapshot, resolves reference actions from it, and supplies its timing policy to every isolated preview state. Normal/Controlled preparation uses the same global compiler; the old immediate Summon fixture default applies only without an explicit policy. Two conflicting-authoring/global-policy regressions were red before the fix;117 authoring/preview tests now pass. This follow-up is within the correction scope; broader Master implementation remains paused. Complete check5 and a focused continuation of the same final review are pending for the preview repair.
+
 ## Outstanding before the single live drop
 
 1. Complete transaction/rollback/drift/Owner-denial controls and exact-current readback checks; preserve all unrelated Master modes. Finish actual rendered Ground destination, Primed clearing and grey Barrier desktop/mobile acceptance.

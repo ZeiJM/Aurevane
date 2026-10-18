@@ -1932,3 +1932,48 @@ describe('real Basic and auxiliary authoring simulation', () => {
     expect(preview.projections.effects.some((row) => row.effectType === 'damage')).toBe(true)
   })
 })
+
+it.each([
+  ['instant', 'controlled', true],
+  ['controlled', 'instant', false],
+] as const)(
+  'previews authored %s healing using the global %s tag timing',
+  async (authored, global, primed) => {
+    const { store } = serviceFixture()
+    store.operators.set(OWNER, 'owner')
+    const frozen = resolverFor(store)
+    const resolver: CombatContentResolver = {
+      ...frozen,
+      captureCurrentCatalogue: async () => ({
+        resolver: frozen,
+        policy: { version: 8, tagAuthority: 'global', modes: { healing: global } },
+      }),
+    }
+    const service = createCombatContentAuthoringService({ store, resolver })
+    const behavior = defaultBasicSkills().find((row) => row.id === 'basic.guard')!.ability
+      .behaviors[0]!
+    const definition = {
+      ...staticSkill(),
+      ability: {
+        schemaVersion: 1 as const,
+        behaviors: [
+          {
+            ...behavior,
+            classification: 'recovery' as const,
+            effects: [
+              {
+                id: 'heal',
+                timing: authored,
+                payload: { type: 'healing' as const, recipient: 'actor' as const, amount: 10 },
+              },
+            ],
+          },
+        ],
+      },
+    }
+    const preview = await service.previewSkillDefinition({ actorUserId: OWNER, definition })
+    expect(
+      'simulation' in preview && preview.simulation?.preparation === 'free-controlled-prime',
+    ).toBe(primed)
+  },
+)
