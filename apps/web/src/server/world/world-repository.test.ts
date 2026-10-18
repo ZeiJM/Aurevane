@@ -560,16 +560,86 @@ it('keeps unsurveyed players private even when returned by the scene read', asyn
   expect((await readWorld('owner', characterId)).view.players).toEqual([])
 })
 
-it('discards a concurrently changed scene and retains the matching authoritative read', async () => {
+it('retries a raced scene registration instead of publishing its partial legacy peer list', async () => {
+  const state = {
+      ...newWorldState(),
+      version: 5,
+      position: { sectorId: 'atlas:58:28', x: 12, y: 4 },
+    },
+    next = { ...state, version: 6, position: { sectorId: 'atlas:59:28', x: 0, y: 4 } },
+    neighbour = scenePlayer('neighbour', 'atlas:58:28', 12, 4)
+  rpc
+    .mockResolvedValueOnce({ data: { ...payload(), state, players: [] } })
+    .mockResolvedValueOnce({ data: { ...payload(), state: next, players: [] } })
+  sceneRpc
+    .mockResolvedValueOnce({ data: { version: next.version, players: [] } })
+    .mockResolvedValueOnce({ data: { version: next.version, players: [neighbour] } })
+  const { view } = await readWorld('owner', characterId, { width: 2560, height: 1440 })
+  expect(view.version).toBe(next.version)
+  expect(view.position).toEqual(next.position)
+  expect(view.livePresence).toBe(true)
+  expect(view.players.map((player) => player.characterId)).toEqual(['neighbour'])
+  expect(view.scenery!.length).toBeGreaterThan(view.sectors.length)
+  expect(sceneRpc.mock.calls.map(([, args]) => args.p_expected_version)).toEqual([5, 6])
+})
+
+it('bounds scene registration retries and never publishes a mismatched peer snapshot', async () => {
+  const state = newWorldState()
+  rpc.mockResolvedValue({ data: { ...payload(), state } })
+  sceneRpc.mockResolvedValue({ data: { version: state.version + 1, players: [] } })
+  await expect(readWorld('owner', characterId)).rejects.toMatchObject({ code: 'STALE_VERSION' })
+  expect(sceneRpc).toHaveBeenCalledTimes(2)
+  expect(loadPublicCharacterProfileImageMap).not.toHaveBeenCalled()
+})
+
+it.each([false, true])(
+  'retries presentation without repeating a committed command (replay=%s)',
+  async (replay) => {
+    const initial = payload(),
+      committed = { ...initial.state, version: 2 },
+      latest = { ...committed, version: 3 },
+      fingerprint = createHash('sha256')
+        .update(
+          JSON.stringify({
+            characterId,
+            expectedVersion: command.expectedVersion,
+            intent: command.intent,
+          }),
+        )
+        .digest('hex')
+    let wrote = replay
+    rpc.mockImplementation(async (name: string) => {
+      if (name === 'commit_world_state_v1') {
+        wrote = true
+        return { data: { version: committed.version } }
+      }
+      return {
+        data: {
+          ...initial,
+          state: !wrote ? initial.state : sceneRpc.mock.calls.length ? latest : committed,
+          lastCommandId: replay ? command.commandId : null,
+          lastCommandFingerprint: replay ? fingerprint : null,
+        },
+      }
+    })
+    sceneRpc.mockResolvedValue({ data: { version: latest.version, players: [] } })
+    expect((await commitWorldCommand('owner', characterId, command)).version).toBe(latest.version)
+    expect(rpc.mock.calls.filter(([name]) => name === 'commit_world_state_v1')).toHaveLength(
+      replay ? 0 : 1,
+    )
+    expect(sceneRpc).toHaveBeenCalledTimes(2)
+  },
+)
+
+it('removes genuinely absent peers from a matching authorized scene without retrying', async () => {
   const state = newWorldState(),
-    stable = scenePlayer('stable', state.position.sectorId, state.position.x, state.position.y)
-  rpc.mockResolvedValue({ data: { ...payload(), state, players: [stable] } })
-  sceneRpc.mockResolvedValue({
-    data: { version: state.version + 1, players: [scenePlayer('future', 'atlas:59:28')] },
-  })
-  expect((await readWorld('owner', characterId)).view.players.map((p) => p.characterId)).toEqual([
-    'stable',
-  ])
+    previous = scenePlayer('previous', state.position.sectorId, state.position.x, state.position.y)
+  rpc.mockResolvedValue({ data: { ...payload(), state, players: [previous] } })
+  sceneRpc.mockResolvedValue({ data: { version: state.version, players: [] } })
+  const { view } = await readWorld('owner', characterId)
+  expect(view.players).toEqual([])
+  expect(view.livePresence).toBe(true)
+  expect(sceneRpc).toHaveBeenCalledTimes(1)
 })
 
 it.each([
