@@ -397,7 +397,7 @@ async function verifyModularManual(page, viewport) {
     assert.ok(detail.includes('Requirements:'))
   }
   assert.ok(text.includes('Move to the chosen Ground within your remaining Movement and Jump.'))
-  assert.ok((await basics.innerText()).includes('Each traversal point uses the captured AP price'))
+  assert.ok((await basics.innerText()).includes('Cost: 21 AP per traversal point'))
   await basics.locator('details').first().scrollIntoViewIfNeeded()
   await page.screenshot({ path: resolve(output, `modular-manual-basics-${viewport.width}.png`) })
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
