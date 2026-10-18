@@ -252,6 +252,7 @@ export function registerWorldInputCases({
     await expect(canvas).toHaveAttribute('data-camera-x', /\d/)
     const view = await world(page)
     expect(view.position).toEqual({ sectorId: 'atlas:76:25', x: 9, y: 4 })
+    const baseTile = await canvas.evaluate((el) => (el.clientWidth < 600 ? 48 : 64))
     for (const zoom of [100, 35]) {
       await openMapSettings(page)
       const slider = page.getByRole('slider', { name: 'Zoom level', exact: true })
@@ -260,6 +261,7 @@ export function registerWorldInputCases({
       if (zoom === 100) for (let step = 35; step < 100; step++) await slider.press('ArrowRight')
       await expect(slider).toHaveValue(String(zoom))
       await closeMapSettings(page)
+      await expect(canvas).toHaveAttribute('data-tile-size', String(baseTile * (zoom / 100)))
       await expect
         .poll(() => canvas.evaluate((el) => Number(el.dataset.cachedSectors)))
         .toBeGreaterThan(1)
