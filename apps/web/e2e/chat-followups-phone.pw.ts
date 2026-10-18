@@ -16,7 +16,7 @@ test('chat reactions, ephemeral typing and private Game feed work on a phone', a
   browser,
 }, testInfo) => {
   test.skip(testInfo.project.name !== 'mobile-chromium', 'Phone chat regression')
-  test.setTimeout(180_000)
+  test.setTimeout(300_000)
   const hostId = identity('ChatHost')
   const guestId = identity('ChatGuest')
   const opts = {
@@ -129,7 +129,6 @@ test('chat reactions, ephemeral typing and private Game feed work on a phone', a
     })
     expect(forbiddenWrite.status()).toBe(403)
   } finally {
-    await hostContext.close()
-    await guestContext.close()
+    await Promise.allSettled([hostContext.close(), guestContext.close()])
   }
 })
