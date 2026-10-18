@@ -155,7 +155,7 @@ it.each(['delayed', 'controlled'] as const)(
     expect(parts.map((part) => (typeof part === 'string' ? part : part.label)).join('')).toBe(
       report.effectDescriptions[index],
     )
-    expect(report.effectDescriptions[index]).toContain(
+    expect(report.effectDescriptions[index]).not.toContain(
       timing === 'controlled'
         ? 'whole selected action'
         : 'Activates two global round boundaries later',

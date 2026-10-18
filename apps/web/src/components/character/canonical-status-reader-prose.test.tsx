@@ -144,18 +144,18 @@ it.each(clockCases)(
     expect(status()).toMatchObject({ durationScope: 'rounds', remainingRoundBoundaries: 2 })
     const report = abilityBehaviorInformation(group)
     expect(report.effects[index]!.parts).toMatchObject({
-      duration: '2 full rounds',
+      duration: '2 Rounds',
       details: expect.arrayContaining([{ label: 'Activation', value: activation }]),
     })
     expect(report.effectDescriptions[index]).not.toContain('(Instant)')
     expect(report.effectDescriptions[index]).not.toContain('Activates')
-    expect(report.effectDescriptions[index]).toContain('positive hostile HP damage')
+    expect(report.effectDescriptions[index]).toContain('damages an enemy’s HP')
     expect(report.effectDescriptions[index]).toContain('survives')
     for (const definition of [row.after, projectPublicCombat(row.after)]) {
       const html = renderToStaticMarkup(
         <ResonanceParameters definition={definition as unknown as AnyResonanceDefinition} />,
       )
-      expect(html).toContain('[2 full rounds]')
+      expect(html).toContain('[2 Rounds]')
       expect(html).toContain(activation)
       expect(html).not.toContain('Lasts 2 affected turns starting when damage settles (Instant)')
     }
@@ -188,9 +188,9 @@ function withStatus(statusId: string, extra: Record<string, unknown> = {}) {
   })
 }
 it.each([
-  ['mark', 3, 1625, '+16.25 pp Accuracy'],
-  ['fortified', 2, 1700, '−17% incoming / −17% outgoing'],
-  ['reckless', 2, 1250, '+12.5% outgoing / +12.5% incoming'],
+  ['mark', 3, 1625, '16.25%'],
+  ['fortified', 2, 1700, '17%'],
+  ['reckless', 2, 1250, '12.5%'],
 ] as const)(
   'preserves captured %s magnitude units, direction and stack count',
   (statusId, stacks, potencyBasisPoints, magnitude) => {
@@ -204,7 +204,7 @@ it.each([
       <AbilityDefinitionParameters definition={projectPublicCombat(definition)} />,
     )
     expect(html).toContain(`[${magnitude}]`)
-    expect(html).toContain(`[Stacks: ${stacks}]`)
+    expect(html).not.toContain(`[Stacks: ${stacks}]`)
     expect(report.effectDescriptions[0]).not.toMatch(/\d/)
   },
 )
@@ -212,9 +212,9 @@ it('keeps a standalone elemental status independent of a matching damage gate', 
   const report = abilityBehaviorInformation(
     withStatus('conductive', { potencyBasisPoints: 2300 }).behaviors[0]!,
   )
-  expect(report.effectDescriptions[0]).not.toContain('positive hostile HP damage')
+  expect(report.effectDescriptions[0]).not.toContain('damages an enemy’s HP')
   expect(report.effects[0]!.parts).toMatchObject({
-    magnitude: '+23% Storm',
+    magnitude: '23%',
     duration: '2 affected turns',
     details: expect.arrayContaining([{ label: 'Activation', value: 'On effect activation' }]),
   })
@@ -266,9 +266,7 @@ it.each([true, false])(
   (legacyHealingDown) => {
     const group = withStatus('hexed', { potencyBasisPoints: 2500 }).behaviors[0]!
     const report = abilityBehaviorInformation(group, { effectContext: { legacyHealingDown } })
-    expect(report.effects[0]!.parts.magnitude).toBe(
-      legacyHealingDown ? '−25% healing' : '−25% HP/MP recovery',
-    )
+    expect(report.effects[0]!.parts.magnitude).toBe('25%')
     expect(report.effectDescriptions[0]).toBe(
       legacyHealingDown ? 'Receive less healing.' : 'Receive less HP and MP recovery.',
     )

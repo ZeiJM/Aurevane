@@ -1,5 +1,9 @@
 import type { CombatStatusDefinition } from './actions'
-import { blindsideDamageDescription } from './combat-blindside'
+import {
+  blindsideDamageDescription,
+  BLINDSIDE_DEBUFF_STATUS_ID,
+  BLINDSIDE_DEBUFF_DESCRIPTION,
+} from './combat-blindside'
 import { airborneDescription } from './combat-airborne'
 import type { CombatDamageModifier, DamageCondition } from './damage-modifiers'
 
@@ -66,6 +70,12 @@ export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
     gameplayTags: ['Blindside'],
     amplifyCopyable: true,
     reactionClass: 'ordinary',
+  }),
+  status(BLINDSIDE_DEBUFF_STATUS_ID, 'Blindside', 'Debuff', BLINDSIDE_DEBUFF_DESCRIPTION, {
+    gameplayTags: ['Blindside'],
+    curseCopyable: true,
+    reactionClass: 'ordinary',
+    durationOwnerTurnStarts: 2,
   }),
   status(
     'suppress',

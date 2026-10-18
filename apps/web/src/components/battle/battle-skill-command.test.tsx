@@ -4,6 +4,44 @@ import { describe, expect, it } from 'vitest'
 
 import { BattleSkillCommand } from './battle-skill-command'
 
+it('marks a captured prime on its image even while release is unavailable and clears it after release', () => {
+  const props = {
+    slot: 'guard' as const,
+    hotkey: '3',
+    label: 'Anchor',
+    cost: '30 AP',
+    artworkSrc: '/media/skills/guard.webp',
+    active: false,
+    disabled: true,
+    onActivate: () => undefined,
+  }
+  const html = renderToStaticMarkup(
+    createElement(BattleSkillCommand, {
+      ...props,
+      controlledAvailability: {
+        controlledSpent: false,
+        chooseAction: false,
+        controlledPrimed: true,
+      },
+    }),
+  )
+  expect(html).toContain('data-battle-controlled-primed="true"')
+  expect(html).toContain('Primed')
+  expect(html).toContain('aria-label="Anchor, 30 AP, primed"')
+  expect(
+    renderToStaticMarkup(
+      createElement(BattleSkillCommand, {
+        ...props,
+        controlledAvailability: {
+          controlledSpent: false,
+          chooseAction: false,
+          controlledPrimed: false,
+        },
+      }),
+    ),
+  ).not.toContain('data-battle-controlled-primed="true"')
+})
+
 it('keeps free Controlled preparation selectable on cooldown and draws light only for enabled ready release', () => {
   const props = {
     slot: 'guard' as const,

@@ -7,6 +7,8 @@ import { COMBAT_TERRAIN_OVERLAY_DETAILS } from './terrain-overlays'
 import type { CombatEffectDefinition, CombatEncounterState, CombatStatusInstance } from './actions'
 import { PHASE4_STATUSES } from './status-content'
 import { isRetiredCombatStatusId } from './retired-combat-statuses'
+import { barrierGrantAmount } from './combat-barrier'
+import { BLINDSIDE_DEBUFF_STATUS_ID } from './combat-blindside'
 
 export const COMBAT_EFFECT_TIMING_TAGS = [
   ...new Set([
@@ -33,7 +35,7 @@ export const COMBAT_EFFECT_TIMING_TAGS = [
     'exposed',
     'covert',
     'revealed',
-    ...PHASE4_STATUSES.map((status) => status.id),
+    ...PHASE4_STATUSES.map((status) => status.id).filter((id) => id !== BLINDSIDE_DEBUFF_STATUS_ID),
   ]),
 ] as readonly string[]
 export const CONTROLLED_COMBAT_TIMING_TAGS = COMBAT_EFFECT_TIMING_TAGS.filter(
@@ -48,13 +50,16 @@ export function combatEffectTimingRoundOffset(mode: CombatEffectTimingMode): 0 |
 export interface CombatEffectTimingPolicy {
   version: number
   modes: Readonly<Record<string, CombatEffectTimingMode>>
+  /** New captures use Master tag timing exclusively; omitted preserves historical packet timing. */
+  tagAuthority?: 'global'
 }
 export function parseCombatEffectTimingPolicy(value: unknown): CombatEffectTimingPolicy {
   if (!value || typeof value !== 'object' || Array.isArray(value))
     throw new TypeError('Timing policy must be an object.')
   const candidate = value as CombatEffectTimingPolicy
   if (
-    Object.keys(candidate).some((key) => !['version', 'modes'].includes(key)) ||
+    Object.keys(candidate).some((key) => !['version', 'modes', 'tagAuthority'].includes(key)) ||
+    (candidate.tagAuthority !== undefined && candidate.tagAuthority !== 'global') ||
     !Number.isSafeInteger(candidate.version) ||
     candidate.version < 1 ||
     !candidate.modes ||
@@ -73,7 +78,11 @@ export function parseCombatEffectTimingPolicy(value: unknown): CombatEffectTimin
     )
       throw new TypeError('Unknown timing tag or mode.')
   }
-  return { version: candidate.version, modes: { ...candidate.modes } }
+  return {
+    version: candidate.version,
+    modes: { ...candidate.modes },
+    ...(candidate.tagAuthority === 'global' ? { tagAuthority: 'global' as const } : {}),
+  }
 }
 export function defaultCombatEffectTimingPolicy(): CombatEffectTimingPolicy {
   return { version: 1, modes: {} }
@@ -98,7 +107,8 @@ export function parseStoredCombatEffectTimingPolicy(value: unknown): CombatEffec
 export function combatEffectTimingTag(effect: CombatEffectDefinition): string {
   if (effect.type === 'percentage-recovery')
     return effect.resource === 'hp' ? 'healing' : 'mp-recovery'
-  if (effect.type === 'apply-status') return effect.statusId
+  if (effect.type === 'apply-status')
+    return effect.statusId === BLINDSIDE_DEBUFF_STATUS_ID ? 'blindside' : effect.statusId
   if (effect.type === 'resource-change') return effect.delta >= 0 ? 'mp-recovery' : 'mp-drain'
   return effect.type
 }
@@ -260,7 +270,12 @@ export function pendingCombatStatusRows(
             ? { recovery, recoveryApplications: (effect as { ticks?: number }).ticks ?? 1 }
             : {}),
           ...(effect.type === 'barrier-change'
-            ? { barrier: { kind: 'grant' as const, amount: effect.amount } }
+            ? {
+                barrier: {
+                  kind: 'grant' as const,
+                  amount: barrierGrantAmount(state, combatantId, effect),
+                },
+              }
             : {}),
           ...(durationScope
             ? {

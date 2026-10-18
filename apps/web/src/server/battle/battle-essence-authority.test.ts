@@ -159,7 +159,7 @@ it('actual reference parser, preview and atomic CAS commit share plural geometry
         effects: [
           expect.objectContaining({
             parts: expect.objectContaining({ label: 'Dmg', magnitude: '3' }),
-            recipient: 'Affected units',
+            recipient: 'Targets',
           }),
         ],
         limits: [],
@@ -1233,6 +1233,28 @@ it.each(['skill', 'resonance-v1', 'resonance-v2'] as const)(
     expect(JSON.stringify(await service.getSession(USER_ID, SESSION_ID))).not.toMatch(
       /capturedAbilitySources|conditionTruth|effectOrigin|abilityParticipants/,
     )
+  },
+)
+
+it.each([false, true])(
+  'enrolls new PvE encounters in modular mechanics only with global timing authority (%s)',
+  async (global) => {
+    const policy = { version: 8, modes: {}, ...(global ? { tagAuthority: 'global' as const } : {}) }
+    const battles = battleRepository()
+    const service = createBattleSessionService({
+      characters: characterRepository(),
+      battles: battles.repository,
+      builds: buildRepository(pureSnapshot()).repository,
+      readEffectTimingPolicy: async () => policy,
+    })
+    await service.createSession({
+      userId: USER_ID,
+      characterId: CHARACTER_ID,
+      idempotencyKey: '88888888-8888-4888-8888-888888888888',
+    })
+    const saved = battles.record!.snapshot as BattleAuthoritativeEncounterState
+    expect(saved.effectTimingPolicy).toEqual(policy)
+    expect(saved.modularSkillPolicyVersion).toBe(global ? 1 : undefined)
   },
 )
 

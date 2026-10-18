@@ -67,8 +67,8 @@ export function CombatEffectTimingEditor({
       <p>
         Normal effects activate at the next global round; Delayed effects activate one round later.
         Instant effects apply immediately. Controlled primes a compatible whole Manual action for a
-        later legal release. Existing battles keep their pinned policy. Explicit per-effect timing
-        overrides these defaults.
+        later release. The selected timing applies to every current Skill using that tag. Existing
+        battles retain their saved rules.
       </p>
       <table>
         <thead>

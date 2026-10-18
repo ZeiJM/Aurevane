@@ -189,6 +189,50 @@ function committedDamage(events: readonly { event: string }[]): number {
 }
 
 describe('P4.K4 direct Barrier primitive', () => {
+  it('grants a percentage of maximum HP as temporary HP and absorbs damage before real HP', () => {
+    const initial = encounter()
+    const state = {
+      ...initial,
+      tactical: {
+        ...initial.tactical,
+        battle: {
+          ...initial.tactical.battle,
+          combatants: initial.tactical.battle.combatants.map((unit) =>
+            unit.id === 'recruit' ? { ...unit, maxHp: 253, hp: 75 } : unit,
+          ),
+        },
+      },
+    }
+    const granted = castAtRecruit(
+      state,
+      enemyAction('percent-barrier', [
+        {
+          type: 'barrier-change',
+          recipient: 'primary-unit',
+          amount: 20,
+          basis: 'maximum-hp-percent',
+        },
+      ]),
+    )
+    expect(recruitBarrier(granted.state)).toBe(50)
+    const hit = castAtRecruit(granted.state, damageAction())
+    expect(recruitBarrier(hit.state)).toBe(30)
+    expect(recruitHp(hit.state)).toBe(75)
+  })
+
+  it('current Pierce shatters all target Barrier and deals full HP damage without changing other barriers', () => {
+    const initial = { ...encounter(), modularSkillPolicyVersion: 1 as const }
+    const own = grantBarrier(initial, 'actor', 'actor', 'own-shield', 13).state
+    const granted = castAtRecruit(own, barrierAction(75))
+    const hit = castAtRecruit(granted.state, damageAction(true))
+    expect(recruitHp(hit.state)).toBe(80)
+    expect(committedDamage(hit.events)).toBe(20)
+    expect(recruitBarrier(hit.state)).toBe(0)
+    expect(currentBarrierAmount(hit.state, 'actor')).toBe(13)
+    expect(hit.events).toContainEqual(
+      expect.objectContaining({ event: 'barrier_changed', amount: -75, before: 75, after: 0 }),
+    )
+  })
   it('preserves direct damage when no Barrier exists', () => {
     const hit = castAtRecruit(encounter(), damageAction())
 

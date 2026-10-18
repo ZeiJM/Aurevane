@@ -84,9 +84,9 @@ it.each(['airborne', 'root', 'covert', 'invisible', 'frozen'])(
 )
 
 it.each([
-  ['guarded', 1500, '−15% incoming'],
-  ['wet', 2750, '+27.5% Storm'],
-  ['mark', 1625, '+16.25 pp Accuracy'],
+  ['guarded', 1500, '15%'],
+  ['wet', 2750, '27.5%'],
+  ['mark', 1625, '16.25%'],
   ['haste', 1500, '−10 AP'],
 ] as const)(
   'retains meaningful %s magnitude and native units',
@@ -114,10 +114,10 @@ it.each([
 )
 
 it.each([
-  ['guarded', 1700, '−17% incoming'],
+  ['guarded', 1700, '17%'],
   ['haste', 1500, '−10 AP'],
   ['slow', 1500, '+10 AP'],
-  ['mark', 1625, '+16.25 pp Accuracy'],
+  ['mark', 1625, '16.25%'],
 ] as const)(
   'keeps native %s units in compact and historical readers',
   (statusId, potencyBasisPoints, magnitude) => {
@@ -140,8 +140,8 @@ it.each([
 )
 
 it.each([
-  [true, '−25% healing'],
-  [false, '−25% HP/MP recovery'],
+  [true, '25%'],
+  [false, '25%'],
 ] as const)(
   'keeps the captured Healing Down scope in compact readers (old=%s)',
   (legacyHealingDown, magnitude) => {

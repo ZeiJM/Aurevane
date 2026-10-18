@@ -10,6 +10,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   canonicalStartup: false,
+  globalTiming: false,
   createdRpc: '',
   groundSkill: false,
   elevationPolicy: {
@@ -166,7 +167,8 @@ vi.mock('@/server/character/supabase-character-build-repository', () => ({
   }),
 }))
 
-vi.mock('./pvp-lobby-service', () => ({
+vi.mock('./pvp-lobby-service', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('./pvp-lobby-service')>()),
   getPvpLobby: async () => ({
     lobbyId,
     lobbyKey: 'P37TEST',
@@ -211,10 +213,47 @@ vi.mock('./pvp-lobby-service', () => ({
 vi.mock('@/lib/supabase/admin', () => ({
   createSupabaseAdminClient: () => ({
     rpc: async (name: string, args: Record<string, unknown>) => {
+      if (name === 'get_pvp_lobby_v1')
+        return {
+          data: {
+            lobby_id: lobbyId,
+            lobby_key: 'P37TEST',
+            mode: '1v1',
+            owner_user_id: hostUserId,
+            team_a_size: 1,
+            team_b_size: 1,
+            team_c_size: 0,
+            status: 'waiting',
+            ready_to_start: true,
+            members: [
+              [hostUserId, hostCharacterId, 'Host'],
+              [guestUserId, guestCharacterId, 'Guest'],
+            ].map(([user, character, name], team) => ({
+              user_id: user,
+              character_id: character,
+              character_name: name,
+              character_level: 12,
+              portrait_ref: 'portrait.starter.wayfarer-01',
+              team_index: team,
+              seat_index: 0,
+              seated: true,
+              ready: true,
+              is_host: team === 0,
+            })),
+          },
+          error: null,
+        }
       if (name === 'read_battlefield_elevation_policy_v1')
         return { data: mocks.elevationPolicy, error: null }
       if (name === 'read_combat_effect_timing_policy_v1')
-        return { data: { version: 1, modes: {} }, error: null }
+        return {
+          data: {
+            version: 8,
+            modes: {},
+            ...(mocks.globalTiming ? { tagAuthority: 'global' } : {}),
+          },
+          error: null,
+        }
       if (name === 'get_pvp_lobby_settings_v2') {
         return {
           data: {
@@ -247,11 +286,13 @@ vi.mock('@/lib/supabase/admin', () => ({
 import type { BattleAuthoritativeEncounterState } from './battle-session-service'
 import { createBattleSessionService } from './battle-session-service'
 import { createBattlePreviewService } from './battle-preview-service'
+import { startPvpLobby } from './pvp-lobby-service'
 import { startPvpLobbyWithQuality } from './pvp-lobby-quality-service'
 
 describe('P3.7 direct PvP committed build snapshots', () => {
   beforeEach(() => {
     mocks.canonicalStartup = false
+    mocks.globalTiming = false
     mocks.createdRpc = ''
     mocks.elevationPolicy = {
       version: 1,
@@ -265,6 +306,26 @@ describe('P3.7 direct PvP committed build snapshots', () => {
     mocks.terrainBias = 'neutral'
     mocks.elevationBias = 'neutral'
   })
+
+  it.each([
+    ['quality', false],
+    ['quality', true],
+    ['legacy', false],
+    ['legacy', true],
+  ] as const)(
+    'enrolls new %s PvP encounters only with global timing authority (%s)',
+    async (entry, global) => {
+      mocks.globalTiming = global
+      await (entry === 'quality' ? startPvpLobbyWithQuality : startPvpLobby)(hostUserId, lobbyId)
+      const saved = mocks.createdBattleArgs!.p_initial_snapshot as BattleAuthoritativeEncounterState
+      expect(saved.effectTimingPolicy).toEqual({
+        version: 8,
+        modes: {},
+        ...(global ? { tagAuthority: 'global' } : {}),
+      })
+      expect(saved.modularSkillPolicyVersion).toBe(global ? 1 : undefined)
+    },
+  )
 
   it('captures and settles published startup behavior through the actual quality-enabled PvP entry point', async () => {
     mocks.canonicalStartup = true

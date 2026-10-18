@@ -73,9 +73,9 @@ it('keeps multi-group prerequisite prefixes and conditional effect links in the 
   const html = reader([behavior('shadehand.exploit-opening'), behavior('shadehand.execution-cut')])
   expect(html.match(/data-combat-tag-reference="exposed"/g) ?? []).toHaveLength(2)
   expect(html.match(/data-combat-tag-reference="mark"/g) ?? []).toHaveLength(1)
-  expect(html).toContain('exploit-opening: Any of (Each selected unit must have ')
+  expect(html).toContain('exploit-opening: (')
   expect(html).toContain('; execution-cut: Each selected unit: HP ≤ 35%')
-  expect(html).toContain('execution-cut: If Each selected unit must have ')
+  expect(html).toContain('execution-cut: If ')
 })
 it('links only the selected captured group without borrowing other group prerequisites', () => {
   const html = reader(
@@ -101,6 +101,6 @@ it('retains old captured plain prerequisites alongside linked groups', () => {
     },
     behavior('shadehand.exploit-opening'),
   ])
-  expect(html).toContain('old: Old &lt;Marked&gt; requirement; exploit-opening: Any of (')
+  expect(html).toContain('old: Old &lt;Marked&gt; requirement; exploit-opening: (')
   expect(html.match(/data-combat-tag-reference="mark"/g) ?? []).toHaveLength(1)
 })

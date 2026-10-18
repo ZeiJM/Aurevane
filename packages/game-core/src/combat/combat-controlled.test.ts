@@ -57,6 +57,73 @@ function prime(state: ReturnType<typeof setup>['state']) {
 }
 
 describe('Controlled whole Manual actions', () => {
+  it('allows repeated preparation and cancellation under global timing while cooldown still blocks release', () => {
+    const initial = setup()
+    const state = {
+      ...initial.state,
+      effectTimingPolicy: {
+        version: 8,
+        tagAuthority: 'global' as const,
+        modes: { damage: 'controlled' as const, healing: 'instant' as const },
+      },
+    }
+    const primed = prime(state).state
+    const released = commitCombatAbilityCommand(command(primed, initial.captured)).state
+    const reprime = prime(released).state
+    expect(runtime.combatAbilitySubject(reprime, 'actor')!.primeAbilityIds).toEqual([
+      'test.ability',
+    ])
+    expect(prepareCombatAbilityCommand(command(reprime, initial.captured)).evaluation.legal).toBe(
+      false,
+    )
+    expect(validateCombatAbilityState(reprime)).toEqual([])
+    const cancelled = runtime.cancelCombatControlledAbility({
+      state: reprime,
+      actorId: 'actor',
+      sourceInstanceId: 'source-a',
+      behaviorId: 'strike',
+    }).state
+    const thirdPrime = prime(cancelled).state
+    expect(validateCombatAbilityState(thirdPrime)).toEqual([])
+    expect(thirdPrime.abilityRuntime!.controlled!.used).toHaveLength(1)
+    expect(thirdPrime.abilityRuntime!.controlled!.primes).toHaveLength(1)
+  })
+  it('releases again after its cooldown rather than imposing an extra once-per-battle limit', () => {
+    const initial = setup()
+    const captured = captureCombatAbilitySource({
+      ...initial.captured,
+      definition: {
+        ...initial.captured.definition,
+        behaviors: initial.captured.definition.behaviors.map((behavior) => ({
+          ...behavior,
+          activationLimits: ['once-per-battle' as const],
+        })),
+      },
+    })
+    const state = runtime.reconcileCombatAbilitySources(
+      {
+        ...preparePv1fTurnEconomy(percentageDotEncounter()),
+        effectTimingPolicy: {
+          version: 8,
+          tagAuthority: 'global' as const,
+          modes: { damage: 'controlled' as const, healing: 'instant' as const },
+        },
+      },
+      [captured],
+    )
+    let next = commitCombatAbilityCommand(command(prime(state).state, captured)).state
+    const bridge = percentageDotEncounter().statBridge
+    for (let index = 0; index < 16; index++) {
+      if (next.tactical.battle.currentTurn?.combatantId === 'actor' && index >= 12) break
+      next = finishPv1fTurn(reattachStatDrivenCombatBridge(next, bridge), 'west').state
+    }
+    next = prime(next).state
+    expect(prepareCombatAbilityCommand(command(next, captured)).evaluation.issues).toEqual([])
+    const released = commitCombatAbilityCommand(command(next, captured))
+    expect(released.events.filter((event) => event.event === 'combat_action_used')).toHaveLength(1)
+    expect(runtime.combatAbilitySubject(released.state, 'actor')!.primeAbilityIds).toEqual([])
+    expect(validateCombatAbilityState(released.state)).toEqual([])
+  })
   it('admits Controlled only for compatible Manual action effects', () => {
     const value = source({
       effects: [

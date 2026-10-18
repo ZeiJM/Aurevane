@@ -225,7 +225,7 @@ it('has registry-derived meaningful effect witnesses, never prose-only decorativ
     for (const w of entry.witnesses) expect(resolve(w).type).toBe(entry.id)
   }
 })
-it('classifies every actual registered status including generated/system/compatibility boundaries', () => {
+it('classifies every status registered for the immutable October10 roster', () => {
   const ids = [
     ...new Set([
       'guarded',
@@ -233,7 +233,8 @@ it('classifies every actual registered status including generated/system/compati
       'lowered-guard',
       'covert',
       'revealed',
-      ...PHASE4_STATUSES.map((s) => s.id),
+      // Enemy Blindside belongs to the later modular correction cohort.
+      ...PHASE4_STATUSES.filter((s) => s.id !== 'blindside-vulnerability').map((s) => s.id),
     ]),
   ]
   expect(coverage.statusCoverage.map((r) => r.id).sort()).toEqual(ids.sort())

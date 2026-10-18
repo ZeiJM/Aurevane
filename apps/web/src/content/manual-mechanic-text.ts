@@ -55,7 +55,10 @@ function effectText(parts: CompactSkillEffectSummaryParts): string {
     (parts.magnitude ? ' [' + parts.magnitude + ']' : '') +
     (parts.duration ? ' [' + parts.duration + ']' : '') +
     (parts.timing ? ' [' + parts.timing + ']' : '') +
-    (parts.details?.map((detail) => ' [' + detail.label + ': ' + detail.value + ']').join('') ?? '')
+    (parts.details
+      ?.filter((detail) => !['Stacks', 'Expiry'].includes(detail.label))
+      .map((detail) => ' [' + detail.label + ': ' + detail.value + ']')
+      .join('') ?? '')
   )
 }
 /** Reject stale or unsupported optional metadata before rendering any part of its bullet. */
@@ -81,7 +84,6 @@ function linked(text: string, parts?: readonly MechanicTextPart[]): ManualInline
 export function abilityManualInlineParts(
   report: BattleAbilityBehaviorReport,
   label: string,
-  selfOnly: boolean,
 ): ManualInlinePart[] {
   const result: ManualInlinePart[] = [label + '. ']
   report.rows.forEach(([key, value], index) => {
@@ -95,7 +97,7 @@ export function abilityManualInlineParts(
         if (entry.condition)
           effects.push('If ', ...linked(entry.condition, entry.conditionParts), ': ')
         effects.push({ kind: 'effect', parts: entry.parts })
-        if (!(selfOnly && entry.recipient === 'Self')) effects.push(' → ' + entry.recipient)
+        if (entry.recipientOverride) effects.push(' [' + entry.recipientOverride + ']')
         if (entry.repeatsOnEntry) effects.push(' · Repeats on entry')
       })
       result.push(...(plainManualInlineParts(effects) === value ? effects : [value]))

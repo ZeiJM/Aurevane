@@ -222,7 +222,8 @@ it.each(['skill', 'essence', 'resonance'] as const)(
     const primed = markup(state, slot)
     expect(artwork(primed)).not.toContain('disabled')
     expect(primed).toContain('data-battle-controlled-ready="true"')
-    expect(primed).not.toMatch(/>Primed<|>Release</)
+    expect(primed).toContain('data-battle-controlled-primed="true"')
+    expect(primed).not.toMatch(/>Release</)
   },
 )
 it.each(['release', 'cancel'] as const)(

@@ -826,6 +826,9 @@ export function createBattleSessionService({
       baseEncounter.dynamicInitiativePolicyVersion = 1
       baseEncounter.healingDownPolicyVersion = 1
       baseEncounter.blindsideActivationPolicyVersion = 1
+      if (baseEncounter.effectTimingPolicy?.tagAuthority === 'global') {
+        baseEncounter.modularSkillPolicyVersion = 1
+      }
       baseEncounter.groundEffectPolicyVersion = 1
       let encounter: BattleAuthoritativeEncounterState = baseEncounter
       if (builds) {

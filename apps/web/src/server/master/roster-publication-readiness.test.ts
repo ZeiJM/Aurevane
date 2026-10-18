@@ -196,7 +196,6 @@ it.each([
     )
     for (const label of [
       'Ground duration (rounds)',
-      'Ground activation',
       'Ground animation',
       'Group activation',
       'Group mode',

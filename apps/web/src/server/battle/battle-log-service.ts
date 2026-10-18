@@ -442,10 +442,13 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
       const amount = numberValue(event.amount)
       const after = numberValue(event.after)
       const absorbed = eventType === 'barrier_absorbed'
+      const shattered = !absorbed && amount !== null && amount < 0
       return createEntry(record, eventType, {
-        messageTemplate: absorbed
-          ? "{target}'s Barrier absorbed {amount} damage."
-          : '{target} gained {amount} Barrier.',
+        messageTemplate: shattered
+          ? "{target}'s Barrier shattered."
+          : absorbed
+            ? "{target}'s Barrier absorbed {amount} damage."
+            : '{target} gained {amount} Barrier.',
         templateValues: {
           amount: String(amount ?? 'resolved'),
           barrierRemaining: String(after ?? 'unavailable'),
@@ -456,11 +459,17 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
         statusId: 'barrier',
         kind: 'defense',
         headline: 'Barrier',
-        tone: 'benefit',
+        tone: shattered ? 'damage' : 'benefit',
         facts: [
           ...fact(
-            amount === null ? null : absorbed ? `${amount} damage absorbed` : `+${amount} Barrier`,
-            'benefit',
+            shattered
+              ? `${Math.abs(amount!)} Barrier destroyed`
+              : amount === null
+                ? null
+                : absorbed
+                  ? `${amount} damage absorbed`
+                  : `+${amount} Barrier`,
+            shattered ? 'damage' : 'benefit',
           ),
           ...fact(after === null ? null : `${after} Barrier remaining`),
         ],

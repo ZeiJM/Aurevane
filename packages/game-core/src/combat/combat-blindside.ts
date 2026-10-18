@@ -6,6 +6,14 @@ export interface BlindsideModifiers {
   readonly rear: number
 }
 
+/** A separate immutable status identity preserves the former caster buff in old captures. */
+export const BLINDSIDE_DEBUFF_STATUS_ID = 'blindside-vulnerability'
+export function isBlindsideStatusId(statusId: string): boolean {
+  return statusId === 'blindside' || statusId === BLINDSIDE_DEBUFF_STATUS_ID
+}
+export const BLINDSIDE_DEBUFF_DESCRIPTION =
+  'Take increased Skill damage from the side or rear. Front hits and Basic Attack are unchanged.'
+
 export const BLINDSIDE_FRONT_MULTIPLIER_BASIS_POINTS = 10000
 
 export const DEFAULT_BLINDSIDE_MODIFIERS: BlindsideModifiers = { side: 16000, rear: 22000 }
@@ -36,6 +44,7 @@ export function blindsideStatusDescription(
   status: CombatStatusInstance,
   legacyActivation = false,
 ): string {
+  if (status.statusId === BLINDSIDE_DEBUFF_STATUS_ID) return BLINDSIDE_DEBUFF_DESCRIPTION
   const applications = combatStatusApplications(status)
   const profiles = new Map<string, { modifiers: BlindsideModifiers; stacks: number }>()
   for (const application of applications) {

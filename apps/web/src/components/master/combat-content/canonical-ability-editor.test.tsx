@@ -53,14 +53,13 @@ function assertCanonicalEditor(html: string) {
     'AP cost',
     'MP cost',
     'HP cost',
-    'Effect timing',
     'Move maximum tiles',
     'Requirement kind',
     'Accuracy rule',
     'Fixed hit chance (%)',
   ])
     expect(html).toContain(`aria-label="${label}"`)
-  expect(html).toContain('value="controlled" selected=""')
+  expect(html).toContain('data-compact-effect-timing="true">[Controlled]')
   expect(html).toContain('value="45"')
   expect(html).toContain('Once per battle')
   expect(html).not.toContain('aria-label="Action Economy (AP)"')
@@ -159,7 +158,7 @@ it.each(COMBAT_TAG_REGISTRY)('provides typed controls for registered $id payload
     />,
   )
   expect(html).toContain(`data-ability-effect="effect"`)
-  expect(html).toContain('aria-label="Effect timing"')
+  expect(html).not.toContain('aria-label="Effect timing"')
   expect(html).not.toContain('aria-label="Piercing"')
   if (tag.id === 'pierce') {
     expect(html).toContain('aria-label="Equipment Armor ignored (%)"')
@@ -328,7 +327,7 @@ it('exposes persistent Ground controls on the actual canonical group editor', ()
   expect(html).toContain('aria-label="Persistent ground effect"')
   expect(html).toContain('aria-label="Ground duration (rounds)"')
   expect(html).toContain('aria-label="Ground animation"')
-  expect(html).toContain('aria-label="Ground activation"')
+  expect(html).not.toContain('aria-label="Ground activation"')
   expect(html).toContain('value="3"')
 })
 

@@ -49,9 +49,9 @@ export function CompactEffectSummary({
 }) {
   return (
     <span data-compact-skill-effect="true">
-      <span className={styles.label} data-compact-effect-label="true">
+      <strong className={styles.label} data-compact-effect-label="true">
         {parts.label}
-      </span>
+      </strong>
       {parts.magnitude ? (
         <>
           {' '}
@@ -76,12 +76,14 @@ export function CompactEffectSummary({
           </span>
         </>
       ) : null}
-      {parts.details?.map(({ label, value, labelParts }) => (
-        <span key={label} className={styles.magnitude} data-compact-effect-detail={label}>
-          {' '}
-          [<MechanicTextView text={label} parts={labelParts} />: {value}]
-        </span>
-      ))}
+      {parts.details
+        ?.filter(({ label }) => !['Stacks', 'Expiry'].includes(label))
+        .map(({ label, value, labelParts }) => (
+          <span key={label} className={styles.magnitude} data-compact-effect-detail={label}>
+            {' '}
+            [<MechanicTextView text={label} parts={labelParts} />: {value}]
+          </span>
+        ))}
       {count > 1 ? (
         <span data-compact-effect-count={count} aria-label={`${count} applications`}>
           {' '}

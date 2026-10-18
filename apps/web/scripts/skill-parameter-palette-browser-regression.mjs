@@ -698,9 +698,12 @@ async function verifyBasicPublication(page, viewport) {
 }
 
 async function verifySelectedGroupPreview(page, viewport, kind) {
-  await page.goto(`${server.resolvedUrls.local[0]}?surface=selected-preview&kind=${kind}`, {
-    waitUntil: 'networkidle',
-  })
+  await page.goto(
+    `${server.resolvedUrls.local[0]}?surface=selected-preview&kind=${kind}&timing=controlled`,
+    {
+      waitUntil: 'networkidle',
+    },
+  )
   const gesture = (locator) => (viewport.width < 720 ? locator.tap() : locator.click())
   const selector = page.getByLabel('Preview action group', { exact: true })
   const preview = page.getByRole('region', { name: 'Deterministic preview', exact: true })
@@ -739,8 +742,8 @@ async function verifySelectedGroupPreview(page, viewport, kind) {
   assert.equal(requests[1].definition.ability.behaviors[1].effects[0].payload.amount, 17)
   await page
     .locator('[data-ability-group="recover"]')
-    .getByLabel('Effect timing', { exact: true })
-    .selectOption('controlled')
+    .getByLabel('Healing amount', { exact: true })
+    .fill('18')
   assert.equal(await preview.count(), 0)
   assert.equal(await publish.isDisabled(), true)
   await gesture(page.getByRole('button', { name: 'Validate', exact: true }))
@@ -762,7 +765,8 @@ async function verifySelectedGroupPreview(page, viewport, kind) {
         window.groupPreviewRequests.filter((row) => row.operation === 'preview').at(-1).definition
           .ability.behaviors[1].effects[0].timing,
     ),
-    'controlled',
+    undefined,
+    'Controlled healing comes from the global policy, never a per-Skill timing override',
   )
   await gesture(publish)
   const confirmation = page.getByRole('region', { name: 'Confirm publication', exact: true })
@@ -825,8 +829,7 @@ async function verifyCanonicalEditor(page, viewport) {
   await walk.getByLabel('Move maximum tiles', { exact: true }).fill('3')
   const hit = leap.locator('[data-ability-effect="hit"]')
   await hit.getByLabel('Damage amount', { exact: true }).fill('17')
-  await hit.getByLabel('Effect timing', { exact: true }).selectOption('delayed')
-  await hit.getByLabel('Effect timing', { exact: true }).selectOption('controlled')
+  assert.equal(await hit.getByLabel('Effect timing', { exact: true }).count(), 0)
   await leap.getByLabel('New group effect', { exact: true }).selectOption('pierce')
   await gesture(leap.getByRole('button', { name: 'Add group effect', exact: true }))
   const pierce = leap.locator('[data-ability-effect="effect-1"]')

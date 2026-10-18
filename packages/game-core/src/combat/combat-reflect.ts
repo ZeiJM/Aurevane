@@ -21,6 +21,7 @@ import {
   type CombatTriggerGuard,
 } from './combat-kernel-types'
 import { clearDefeatedRecovery } from './combat-recovery'
+import { absorbIndirectDamageWithBarrier } from './combat-barrier'
 
 const REFLECT_ACTION_ID = 'status.reflect.current.v1'
 const REFLECT_BASIS_POINTS = 10_000
@@ -80,18 +81,26 @@ export function applyCommittedReflect(
     if (!attempted.accepted) continue
     triggerGuard = attempted.guard
     nativeHooks?.setGuard(triggerGuard)
-    const hpAfter = currentAttacker.hp - amount
+    const beforeDamage = nextState
+    const barrier = absorbIndirectDamageWithBarrier(
+      nextState,
+      defenderId,
+      attacker.id,
+      REFLECT_ACTION_ID,
+      nextState.modularSkillPolicyVersion === 1 ? requested : amount,
+    )
+    nextState = barrier.state
+    const hpAfter = currentAttacker.hp - barrier.remainingDamage
     const damageReceipt = {
       event: 'damage_applied' as const,
       actionId: REFLECT_ACTION_ID,
       sourceCombatantId: defenderId,
       targetCombatantId: attacker.id,
-      amount,
+      amount: currentAttacker.hp - hpAfter,
       hpBefore: currentAttacker.hp,
       hpAfter,
     }
-    events.push(damageReceipt)
-    const beforeDamage = nextState
+    events.push(...barrier.events, damageReceipt)
     // Run encounter upkeep as well as selecting the next living combatant.
     const defeated =
       hpAfter === 0 && nextState.tactical.battle.currentTurn?.combatantId === attacker.id
@@ -115,7 +124,7 @@ export function applyCommittedReflect(
       nextState = observeCombatNativeMutation(
         nativeHooks,
         beforeDamage,
-        { state: nextState, events: [damageReceipt] },
+        { state: nextState, events: [...barrier.events, damageReceipt] },
         {
           actionId: REFLECT_ACTION_ID,
           triggeringCombatantId: defenderId,

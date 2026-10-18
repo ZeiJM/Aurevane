@@ -27,6 +27,13 @@ export function BattleCombatantCard({
     (row) => row.combatantId === participant.combatantId,
   )
   if (!combatant) return null
+  const statuses =
+    battle.snapshot.statusState.find((row) => row.combatantId === participant.combatantId)
+      ?.statuses ?? []
+  const barrier = statuses.reduce(
+    (total, status) => total + (status.barrier?.kind === 'remaining' ? status.barrier.amount : 0),
+    0,
+  )
   const accent = pvpParticipantAccent(participant.teamIndex, participant.seatIndex, teamCount)
   return (
     <article
@@ -82,21 +89,31 @@ export function BattleCombatantCard({
       <div className={styles.vitals}>
         {(['hp', 'mp'] as const).map((resource) => {
           const maximum = resource === 'hp' ? combatant.maxHp : combatant.maxMp
+          const barrierLabel = resource === 'hp' && barrier > 0 ? `, Barrier ${barrier}` : ''
           return (
             <div key={resource} data-resource={resource}>
               <span aria-hidden="true">{resource.toUpperCase()}</span>
               <i
                 role="meter"
-                aria-label={`${resource.toUpperCase()} ${combatant[resource]} / ${maximum}`}
+                aria-label={`${resource.toUpperCase()} ${combatant[resource]} / ${maximum}${barrierLabel}`}
                 aria-valuemin={0}
                 aria-valuenow={combatant[resource]}
                 aria-valuemax={maximum}
-                aria-valuetext={`${combatant[resource]} / ${maximum}`}
+                aria-valuetext={`${combatant[resource]} / ${maximum}${barrierLabel}`}
               >
                 <b
                   aria-hidden="true"
                   style={{ width: `${meterPercent(combatant[resource], maximum)}%` }}
                 />
+                {resource === 'hp' && barrier > 0 ? (
+                  <em
+                    className={styles.barrier}
+                    data-battle-hp-barrier="true"
+                    title={`Barrier ${barrier}`}
+                    aria-hidden="true"
+                    style={{ width: `${meterPercent(barrier, maximum)}%` }}
+                  />
+                ) : null}
                 <span className={styles.value} aria-hidden="true">
                   {combatant[resource]}/{maximum}
                 </span>
@@ -105,14 +122,7 @@ export function BattleCombatantCard({
           )
         })}
       </div>
-      <BattleCombatantEffects
-        compact
-        name={participant.name}
-        statuses={
-          battle.snapshot.statusState.find((row) => row.combatantId === participant.combatantId)
-            ?.statuses ?? []
-        }
-      />
+      <BattleCombatantEffects compact name={participant.name} statuses={statuses} />
     </article>
   )
 }

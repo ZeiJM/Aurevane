@@ -697,6 +697,7 @@ try {
               window.calls.filter((call) => /\/(commit|intents)$/.test(call.path)),
             )
           assert.equal(await page.locator('[data-battle-controlled-ready="true"]').count(), 0)
+          assert.equal(await command.locator('[data-battle-controlled-primed]').count(), 0)
           await gesture(command)
           if (scenario === 'controlled-choices') {
             assert.equal((await commits()).length, 0, 'ambiguous groups cannot prime implicitly')
@@ -724,6 +725,17 @@ try {
           }))
           assert.deepEqual(prepared.actor, before, 'prime does not spend resources')
           assert.deepEqual(prepared.receipts, [])
+          await command
+            .locator('[data-battle-controlled-primed=true]')
+            .waitFor({ state: 'visible' })
+          assert.match(await command.getAttribute('aria-label'), /primed/)
+          const primedBounds = await artwork.boundingBox()
+          assert.equal(primedBounds.width, bounds.width)
+          assert.equal(primedBounds.height, bounds.height)
+          await page.screenshot({
+            path: resolve(output, `${mode}-${viewport.width}-${scenario}-primed.png`),
+            fullPage: true,
+          })
           if (scenario === 'controlled-poor') {
             await page.waitForFunction(() =>
               window.calls.some(
@@ -748,6 +760,7 @@ try {
               before,
             )
             assert.equal(await page.locator('[data-battle-controlled-ready="true"]').count(), 0)
+            assert.equal(await command.locator('[data-battle-controlled-primed]').count(), 0)
           } else {
             if (scenario === 'controlled-move') {
               assert.equal(
@@ -866,6 +879,8 @@ try {
             }))
             const paid = await commits()
             assert.equal(paid.length, 2, 'one free prime and one explicit paid release')
+            await command.locator('[data-battle-controlled-primed]').waitFor({ state: 'hidden' })
+            assert.doesNotMatch(await command.getAttribute('aria-label'), /primed/)
             assert.equal(paid[1].body.intent.kind, 'action')
             assert.equal(paid[1].body.intent.behaviorId, prime.behaviorId)
             assert.equal(result.actor.mp, before.mp - 2)

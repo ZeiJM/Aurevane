@@ -74,7 +74,7 @@ export function resonanceCharacteristicRows(
   const recipients = [...new Set(mechanics.resultEffects.map(resonanceResultRecipient))]
   const grouped = groupSkillEffects(mechanics.resultEffects)
   return skillInformationRows<string | readonly string[]>({
-    'Skill Type': 'Resonance',
+    'Skill Type': 'Utility',
     Cost: 'N/A',
     Cooldown: 'N/A',
     Requirements: mechanics.setup ? resonanceMatcher(mechanics.setup, knownSkills) : 'N/A',

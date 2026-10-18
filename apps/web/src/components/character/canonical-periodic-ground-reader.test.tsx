@@ -42,7 +42,7 @@ it.each(['burn', 'poison', 'create-terrain'])(
               : type === 'poison'
                 ? [
                     { label: 'Refresh', value: 'Every 5 traversed tiles' },
-                    { label: 'Refresh duration', value: 'Captured full duration' },
+                    { label: 'Refresh duration', value: 'Original full duration' },
                     { label: 'Extra damage on refresh', value: 'None' },
                   ]
                 : [
@@ -98,9 +98,9 @@ it('keeps captured Burn backlash separate from the tick percentages', () => {
     ]),
   })
   expect(report.effectDescriptions[index]).not.toMatch(/\d/)
-  expect(report.effectDescriptions[index]).toContain('Multi-hit')
-  expect(report.effectDescriptions[index]).toContain('misses and friendly damage do not trigger')
-  expect(report.effectDescriptions[index]).toContain('Copy does not renew')
+  expect(report.effectDescriptions[index]).toContain('based on the attack’s HP damage')
+  expect(report.effectDescriptions[index]).toContain('after damaging an enemy')
+  expect(report.effectDescriptions[index]).toContain('Reapplying replaces Burn')
   const html = renderToStaticMarkup(
     <AbilityDefinitionParameters definition={projectPublicCombat(definition)} />,
   )
@@ -150,7 +150,7 @@ it.each([
     })
     expect(report.effectDescriptions[index]).not.toMatch(/\d/)
     expect(report.effectDescriptions[index]).toContain('Airborne ignores')
-    expect(report.effectDescriptions[index]).toContain('blocks line of sight for both teams')
+    expect(report.effectDescriptions[index]).toContain('blocks sight for both teams')
     expect(JSON.stringify(definition)).toBe(before)
   },
 )

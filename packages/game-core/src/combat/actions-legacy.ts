@@ -83,6 +83,8 @@ import { healingDownAdjustedRecovery } from './combat-recovery-modifiers'
 import {
   BLINDSIDE_FRONT_MULTIPLIER_BASIS_POINTS,
   DEFAULT_BLINDSIDE_MODIFIERS,
+  BLINDSIDE_DEBUFF_STATUS_ID,
+  isBlindsideStatusId,
   validateBlindsideModifiers,
   type BlindsideModifiers,
 } from './combat-blindside'
@@ -129,7 +131,9 @@ import {
 } from './combat-critical'
 import {
   absorbDirectDamageWithBarrier,
+  absorbIndirectDamageWithBarrier,
   currentBarrierAmount,
+  barrierGrantAmount,
   grantBarrier,
   validateBarrierEffect,
   validateBarrierState,
@@ -290,6 +294,8 @@ export type CombatEffectDefinition =
       amount: number
       defenseKind?: 'armor' | 'ward'
       piercing?: boolean
+      /** Trusted canonical Pierce marker; does not bypass Physical/Mystic Defense. */
+      shattersBarrier?: true
       element?: CombatElement
       facingModifiersBasisPoints?: FacingDamageModifiers
     }
@@ -322,7 +328,12 @@ export type CombatEffectDefinition =
       | { damagePerTick: number; damageProfile?: never }
       | { damageProfile: AttackPercentageDotProfile; damagePerTick?: never }
     ))
-  | { type: 'barrier-change'; recipient: CombatEffectRecipient; amount: number }
+  | {
+      type: 'barrier-change'
+      recipient: CombatEffectRecipient
+      amount: number
+      basis?: 'maximum-hp-percent'
+    }
   | {
       type: 'sensory'
       recipient: 'primary-unit'
@@ -542,6 +553,8 @@ export interface CombatEncounterState {
   healingDownPolicyVersion?: 1
   /** New encounters: grant Blindside only for a damaging flank hit above 100%. */
   blindsideActivationPolicyVersion?: 1
+  /** Current Pierce destroys Barrier before applying its HP damage; old captures retain absorption. */
+  modularSkillPolicyVersion?: 1
   groundEffectPolicyVersion?: 1
   nextGroundAreaId?: number
   groundAreas?: readonly CombatGroundAreaInstance[]
@@ -1244,6 +1257,8 @@ export function evaluateCombatAction(
       affectedCombatantIds,
       issues,
       (state.groundEffectPolicyVersion === 1 && action.groundArea !== undefined) ||
+        (state.modularSkillPolicyVersion === 1 &&
+          (action.target.kind === 'ground-tile' || action.target.kind === 'empty-tile')) ||
         ((action.target.kind === 'ground-tile' || action.target.kind === 'empty-tile') &&
           action.effects.some(
             (effect) =>
@@ -1368,13 +1383,22 @@ export function applyCurrentBurnBacklash(
       (BigInt(percentageBasis.hostileDamage) * BigInt(percentageBasis.basisPoints)) / 10000n
     if (backlash === 0n) return { state, events: [] }
   }
-  const hpAfter = Number(BigInt(actor.hp) > backlash ? BigInt(actor.hp) - backlash : 0n)
+  const backlashActionId =
+    state.dotTriggerPolicyVersion !== undefined
+      ? 'status.burn.backlash.current.v2'
+      : 'status.burn.backlash.current.v1'
+  const barrier = absorbIndirectDamageWithBarrier(
+    state,
+    actorId,
+    actorId,
+    backlashActionId,
+    backlash,
+  )
+  state = barrier.state
+  const hpAfter = actor.hp - barrier.remainingDamage
   const damageEvent: CombatResolutionEvent = {
     event: 'damage_applied',
-    actionId:
-      state.dotTriggerPolicyVersion !== undefined
-        ? 'status.burn.backlash.current.v2'
-        : 'status.burn.backlash.current.v1',
+    actionId: backlashActionId,
     sourceCombatantId: actorId,
     targetCombatantId: actorId,
     amount: actor.hp - hpAfter,
@@ -1388,12 +1412,12 @@ export function applyCurrentBurnBacklash(
     const defeated = defeatCurrentCombatant(battleForEffectStacking(state), actorId)
     return {
       state: withBattle(state, defeated.state),
-      events: [damageEvent, ...defeated.events],
+      events: [...barrier.events, damageEvent, ...defeated.events],
     }
   }
   return {
     state: withUpdatedCombatant(state, actorId, { ...actor, hp: hpAfter }),
-    events: [damageEvent],
+    events: [...barrier.events, damageEvent],
   }
 }
 
@@ -2219,6 +2243,13 @@ export function endCombatTurn(
   state = synchronizeCombatInitiative(state)
   const outgoingId = state.tactical.battle.currentTurn!.combatantId
   const outgoing = getCombatant(state.tactical.battle, outgoingId)
+  let outgoingBarrier =
+    state.modularSkillPolicyVersion === 1 ? currentBarrierAmount(state, outgoingId) : 0
+  const hpAfterTickDamage = (hp: number, damage: number) => {
+    const absorbed = Math.min(outgoingBarrier, damage)
+    outgoingBarrier -= absorbed
+    return Math.max(0, hp - (damage - absorbed))
+  }
   // Predict the existing deterministic ticks for selection only. They are committed below.
   // A last actor moved to first by tempo must not receive a turn after a lethal tick.
   const legacyOutgoingHpAfterTicks = getStatusRow(state, outgoingId).statuses.reduce(
@@ -2227,19 +2258,18 @@ export function endCombatTurn(
       if (!periodic || hp <= 0) return hp
       const amount = periodic.amount * status.stacks
       return periodic.type === 'damage'
-        ? Math.max(0, hp - amount)
+        ? hpAfterTickDamage(hp, amount)
         : Math.min(outgoing.maxHp, hp + incomingHealingAmount(state, outgoingId, amount, content))
     },
     outgoing.hp,
   )
-  const outgoingHpAfterTicks = Math.max(
-    0,
-    legacyOutgoingHpAfterTicks -
-      currentPoisonEndTurnDamage(state, outgoingId) -
+  const outgoingHpAfterTicks = hpAfterTickDamage(
+    legacyOutgoingHpAfterTicks,
+    currentPoisonEndTurnDamage(state, outgoingId) +
       advanceCurrentBleedEndTurn(state, outgoingId).stacks.reduce(
         (sum, row) => sum + currentBleedTickDamage(row),
         0,
-      ) -
+      ) +
       advanceCurrentBurnEndTurn(state, outgoingId).damage,
   )
   let ended = endTurn(
@@ -2466,6 +2496,7 @@ export function validateCombatEncounterState(
     'displacementPolicyVersion',
     'healingDownPolicyVersion',
     'blindsideActivationPolicyVersion',
+    'modularSkillPolicyVersion',
   ] as const) {
     if (state[field] !== undefined && state[field] !== 1)
       issues.push({ field, message: 'Unsupported pinned combat interaction policy.' })
@@ -2852,7 +2883,7 @@ export function validateCombatEncounterState(
       ].entries()) {
         if (application?.blindsideModifiersBasisPoints === undefined) continue
         try {
-          if (status.statusId !== 'blindside')
+          if (!isBlindsideStatusId(status.statusId))
             throw new TypeError('Blindside metadata requires Blindside.')
           validateBlindsideModifiers(application.blindsideModifiersBasisPoints)
         } catch {
@@ -3092,8 +3123,13 @@ export function resolveCombatTargeting(
             (selected.kind === 'tile'
               ? isFriendlyFireAllowed(actor, unit, spec.friendlyFire)
               : combatTargetUnitCategoryAllowed(spec, actor, unit))
-          )
+          ) {
             affectedIds.add(unit.id)
+            // Ground remains a tile selection. Its living permitted occupant is
+            // the selected subject for modular Requirements, not an invented unit.
+            if (selected.kind === 'tile' && state.modularSkillPolicyVersion === 1)
+              selectedIds.push(unit.id)
+          }
         }
       } else
         for (const id of resolveAffectedCombatants(state, actorId, primary.combatantId, spec, [
@@ -3759,8 +3795,18 @@ function resolveActionEffects(
   // Caster/ally HP recovery attached to a hostile attack is a payoff of a hit,
   // not an independent cast benefit. Use the original recipients and exact packet
   // miss/eligibility masks: a killing or Barrier-absorbed hit still qualifies.
+  const emptyGroundCast =
+    state.modularSkillPolicyVersion === 1 &&
+    (action.target.kind === 'ground-tile' || action.target.kind === 'empty-tile') &&
+    !affectedCombatantIds.some((id) => {
+      const unit = state.tactical.battle.combatants.find((candidate) => candidate.id === id)
+      return (
+        unit && unit.hp > 0 && unit.teamId !== getCombatant(state.tactical.battle, actorId).teamId
+      )
+    })
   const secondaryHealingNeedsHit =
     !resolvingPending &&
+    !emptyGroundCast &&
     combatTargetAllowsHostileHit(action.target) &&
     action.effects.some(
       (effect) =>
@@ -5029,7 +5075,13 @@ function applyEffectNative(
     }
   }
   if (effect.type === 'barrier-change') {
-    const changed = grantBarrier(state, actorId, recipientId, actionId, effect.amount)
+    const changed = grantBarrier(
+      state,
+      actorId,
+      recipientId,
+      actionId,
+      barrierGrantAmount(state, recipientId, effect),
+    )
     return {
       state: changed.state,
       events: [
@@ -5118,21 +5170,37 @@ function applyEffectNative(
       affectedCombatantIds: [recipientId],
       ...(resolvingPending ? { prepaid: true as const } : {}),
     }
-    const barrier = absorbDirectDamageWithBarrier(state, recipientId, amount)
+    const shatter =
+      state.modularSkillPolicyVersion === 1 &&
+      (effect.piercing === true || effect.shattersBarrier === true) &&
+      amount > 0
+    const barrier = absorbDirectDamageWithBarrier(state, recipientId, amount, { shatter })
     const barrierEvents: CombatResolutionEvent[] =
-      barrier.absorbed > 0
+      shatter && barrier.before > 0
         ? [
             {
-              event: 'barrier_absorbed',
+              event: 'barrier_changed',
               actionId,
               sourceCombatantId: actorId,
               targetCombatantId: recipientId,
-              amount: barrier.absorbed,
+              amount: -barrier.before,
               before: barrier.before,
-              after: barrier.after,
+              after: 0,
             },
           ]
-        : []
+        : barrier.absorbed > 0
+          ? [
+              {
+                event: 'barrier_absorbed',
+                actionId,
+                sourceCombatantId: actorId,
+                targetCombatantId: recipientId,
+                amount: barrier.absorbed,
+                before: barrier.before,
+                after: barrier.after,
+              },
+            ]
+          : []
     const barrierState = observeCombatNativeMutation(
       hooks,
       state,
@@ -5495,20 +5563,17 @@ function resolveDamageAmount(
     amount = scaleByBasisPoints(amount, effect.facingModifiersBasisPoints[relation])
   }
 
-  if (
-    skillDamage &&
-    actorId !== recipientId &&
-    amount > 0 &&
-    hasGameplayTag(state, actorId, 'Blindside', content)
-  ) {
+  const blindsideStatuses = [
+    ...getStatusRow(state, actorId).statuses.filter((status) => status.statusId === 'blindside'),
+    ...getStatusRow(state, recipientId).statuses.filter(
+      (status) => status.statusId === BLINDSIDE_DEBUFF_STATUS_ID,
+    ),
+  ]
+  if (skillDamage && actorId !== recipientId && amount > 0 && blindsideStatuses.length > 0) {
     const source = getPlacement(state.tactical, actorId)
     const target = getPlacement(state.tactical, recipientId)
     const relation = classifyFacingRelation(target.position, target.facing, source.position)
-    const statuses = getStatusRow(state, actorId).statuses.filter((status) =>
-      getStatusDefinition(content, status.statusId, status.statusVersion).gameplayTags?.includes(
-        'Blindside',
-      ),
-    )
+    const statuses = blindsideStatuses
     for (const status of state.effectStackingPolicyVersion === 1
       ? statuses
       : statuses.slice(0, 1)) {
@@ -5609,10 +5674,9 @@ function applyStatusState(
     )
   }
   const definition = getStatusDefinitionById(content, statusId)
-  const blindsideModifiers =
-    statusId === 'blindside'
-      ? { ...(blindsideModifiersBasisPoints ?? DEFAULT_BLINDSIDE_MODIFIERS) }
-      : undefined
+  const blindsideModifiers = isBlindsideStatusId(statusId)
+    ? { ...(blindsideModifiersBasisPoints ?? DEFAULT_BLINDSIDE_MODIFIERS) }
+    : undefined
   if (blindsideModifiers) validateBlindsideModifiers(blindsideModifiers)
   if (statusId === 'suppress') {
     durationTurns ??= 2
@@ -5667,7 +5731,7 @@ function applyStatusState(
 
   if (
     state.effectTimingPolicy ||
-    statusId === 'blindside' ||
+    isBlindsideStatusId(statusId) ||
     (state.elementalDamagePolicyVersion !== undefined &&
       ['frozen', 'wet', 'conductive'].includes(statusId))
   ) {
@@ -5838,14 +5902,28 @@ function resolveEndOfTurnStatuses(
     const target = getCombatant(nextState.tactical.battle, combatantId)
     if (target.hp > 0) {
       const amount = definition.endOfTurn.amount * status.stacks
+      const barrier =
+        definition.endOfTurn.type === 'damage'
+          ? absorbIndirectDamageWithBarrier(
+              nextState,
+              status.sourceCombatantId,
+              combatantId,
+              `status.${status.statusId}`,
+              amount,
+            )
+          : null
       const hpAfter =
         definition.endOfTurn.type === 'damage'
-          ? Math.max(0, target.hp - amount)
+          ? target.hp - barrier!.remainingDamage
           : Math.min(
               target.maxHp,
               target.hp + incomingHealingAmount(nextState, combatantId, amount, content),
             )
       const beforeTick = nextState
+      if (barrier) {
+        nextState = barrier.state
+        events.push(...barrier.events)
+      }
       nextState = withUpdatedCombatant(nextState, combatantId, { ...target, hp: hpAfter })
       events.push({
         event: definition.endOfTurn.type === 'damage' ? 'damage_applied' : 'healing_applied',
@@ -5859,7 +5937,7 @@ function resolveEndOfTurnStatuses(
       nextState = observeCombatNativeMutation(
         nativeHooks,
         beforeTick,
-        { state: nextState, events: [events[events.length - 1]!] },
+        { state: nextState, events: [...(barrier?.events ?? []), events[events.length - 1]!] },
         {
           triggeringCombatantId: status.sourceCombatantId,
           affectedCombatantIds: [combatantId],
@@ -5932,9 +6010,18 @@ function resolveCurrentEndOfTurnDots(
   ) => {
     const target = getCombatant(nextState.tactical.battle, combatantId)
     if (target.hp <= 0) return
-    const hpAfter = Math.max(0, target.hp - amount)
     const actionId = statusId === 'bleed' ? sourceActionId : `status.${statusId}.current.v1`
     const beforeTick = nextState
+    const barrier = absorbIndirectDamageWithBarrier(
+      nextState,
+      sourceCombatantId,
+      combatantId,
+      actionId,
+      amount,
+    )
+    nextState = barrier.state
+    const hpAfter = target.hp - barrier.remainingDamage
+    events.push(...barrier.events)
     nextState = withUpdatedCombatant(nextState, combatantId, { ...target, hp: hpAfter })
     events.push({
       event: 'damage_applied',
@@ -5954,7 +6041,7 @@ function resolveCurrentEndOfTurnDots(
     nextState = observeCombatNativeMutation(
       nativeHooks,
       beforeTick,
-      { state: nextState, events: [events[events.length - 1]!] },
+      { state: nextState, events: [...barrier.events, events[events.length - 1]!] },
       {
         triggeringCombatantId: sourceCombatantId,
         affectedCombatantIds: [combatantId],
@@ -6062,8 +6149,9 @@ function withBattle(state: CombatEncounterState, battle: BattleState): CombatEnc
   const tactical = createTacticalBattleState({ ...state.tactical, battle })
   const defeated = new Set(battle.combatants.filter((unit) => unit.hp <= 0).map((unit) => unit.id))
   const statusState = state.statusState.map((row) =>
-    defeated.has(row.combatantId) && row.statuses.some((status) => status.statusId === 'blindside')
-      ? { ...row, statuses: row.statuses.filter((status) => status.statusId !== 'blindside') }
+    defeated.has(row.combatantId) &&
+    row.statuses.some((status) => isBlindsideStatusId(status.statusId))
+      ? { ...row, statuses: row.statuses.filter((status) => !isBlindsideStatusId(status.statusId)) }
       : row,
   )
   let nextState = advanceCombatGroundAreas(
@@ -7179,7 +7267,16 @@ function resolvePoisonMovementStep(
     for (let index = 0; index < triggeredTicks; index += 1) {
       const target = getCombatant(nextState.tactical.battle, combatantId)
       if (target.hp <= 0) break
-      const hpAfter = Math.max(0, target.hp - currentPoisonTickDamage(poison))
+      const beforeTick = nextState
+      const barrier = absorbIndirectDamageWithBarrier(
+        nextState,
+        poison.sourceCombatantId,
+        combatantId,
+        'status.poison.current.v1',
+        currentPoisonTickDamage(poison),
+      )
+      nextState = barrier.state
+      const hpAfter = target.hp - barrier.remainingDamage
       const defeatsCurrentActor =
         hpAfter === 0 &&
         nextState.tactical.battle.lifecycle === 'active' &&
@@ -7187,10 +7284,10 @@ function resolvePoisonMovementStep(
       const defeatTransition = defeatsCurrentActor
         ? defeatCurrentCombatant(battleForEffectStacking(nextState), combatantId)
         : null
-      const beforeTick = nextState
       nextState = defeatTransition
         ? withBattle(nextState, defeatTransition.state)
         : withUpdatedCombatant(nextState, combatantId, { ...target, hp: hpAfter })
+      events.push(...barrier.events)
       events.push({
         event: 'damage_applied',
         actionId: 'status.poison.current.v1',
@@ -7210,7 +7307,7 @@ function resolvePoisonMovementStep(
       nextState = observeCombatNativeMutation(
         nativeHooks,
         beforeTick,
-        { state: nextState, events: [events[events.length - 1]!] },
+        { state: nextState, events: [...barrier.events, events[events.length - 1]!] },
         {
           triggeringCombatantId: poison.sourceCombatantId,
           affectedCombatantIds: [combatantId],

@@ -33,7 +33,7 @@ it.each([
     'vanguard.shield-bash',
     1,
     ['rooted'],
-    'Push the selected unit away from you, up to the displayed distance. Stops before occupied, blocked or illegal-elevation tiles. Pull never enters your tile. Rooted prevents displacement. Failure grants no refund.',
+    'Push the selected unit away from you. Stops before occupied, blocked or unreachable tiles. Pull never enters your tile. Rooted prevents displacement.',
   ],
   [
     'farstrider.scouts-mark',
@@ -45,7 +45,7 @@ it.each([
     'aetherist.chain-spark',
     1,
     ['burn', 'poison', 'bleed'],
-    'Reduce outgoing direct damage. Does not stack; reapplication keeps the strongest potency and longest remaining duration. Existing Burn, Poison and Bleed ticks are unchanged; new damage over time uses actual settled HP loss. Cleanse removes it; Dispel does not.',
+    'Deal less direct damage. Reapplying keeps the stronger, longer effect. Existing Burn, Poison and Bleed damage is unchanged. Cleanse removes it; Dispel does not.',
   ],
   ['cinderweaver.ash-ward', 0, ['burn'], 'Take less damage from opponents affected by Burn.'],
 ] as const)(
@@ -91,7 +91,7 @@ it.each(['delayed', 'controlled'] as const)(
     expect(parts!.map((part) => (typeof part === 'string' ? part : part.label)).join('')).toBe(
       report.effectDescriptions[1],
     )
-    expect(report.effectDescriptions[1]).toContain(
+    expect(report.effectDescriptions[1]).not.toContain(
       timing === 'delayed'
         ? 'Activates two global round boundaries later'
         : 'Controlled primes the whole selected action for free',

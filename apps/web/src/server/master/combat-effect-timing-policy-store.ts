@@ -48,7 +48,10 @@ export async function publishCombatEffectTimingPolicy(input: {
   const snapshot = await new RpcPublishedCombatContentSource((name, parameters) =>
     client.rpc(name, parameters),
   ).readCatalogueSnapshot()
-  if (snapshot.policy.version !== policy.version)
+  if (
+    snapshot.policy.version !== policy.version ||
+    snapshot.policy.tagAuthority !== policy.tagAuthority
+  )
     throw new AurevaneError('STALE_VERSION', 'Refresh the timing policy before publishing again.')
   assertCombatCatalogueTimingCompatible(
     resolveCombatContentCatalogueSnapshot({ ...snapshot, policy }),

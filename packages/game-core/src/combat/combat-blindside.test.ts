@@ -76,6 +76,132 @@ const customBlindside = {
   ...action,
   effects: [customBlindsideEffect, action.effects[1]!],
 }
+function enemyBlindside() {
+  return executeCombatAction(
+    {
+      ...faced('east'),
+      effectTimingPolicy: {
+        version: 8,
+        tagAuthority: 'global',
+        modes: { blindside: 'instant', 'remove-status': 'instant', 'copy-statuses': 'instant' },
+      },
+    },
+    {
+      ...customBlindside,
+      effects: [
+        {
+          ...customBlindsideEffect,
+          recipient: 'primary-unit',
+          statusId: 'blindside-vulnerability',
+        },
+      ],
+    },
+    selection,
+    content,
+  ).state
+}
+it('keeps enemy Blindside through the caster turn and expires it after the affected enemy turn', () => {
+  const granted = enemyBlindside()
+  const next = endCombatTurn(
+    { ...granted, tactical: selectCurrentFinalFacing(granted.tactical, 'west').state },
+    content,
+  ).state
+  expect(next.tactical.battle.currentTurn?.combatantId).toBe('enemy')
+  expect(next.statusState.find((row) => row.combatantId === 'enemy')!.statuses).toContainEqual(
+    expect.objectContaining({ statusId: 'blindside-vulnerability' }),
+  )
+  const ended = endCombatTurn(
+    { ...next, tactical: selectCurrentFinalFacing(next.tactical, 'west').state },
+    content,
+  ).state
+  expect(ended.statusState.find((row) => row.combatantId === 'enemy')!.statuses).toEqual([])
+})
+it('does not boost the debuffed enemy’s own attacks or incoming Basic Attack', () => {
+  const granted = enemyBlindside()
+  const basic = executeCombatAction(
+    granted,
+    { ...action, sourceType: 'basic-attack', effects: [action.effects[1]!] },
+    selection,
+    content,
+  )
+  expect(basic.events).toContainEqual(
+    expect.objectContaining({ event: 'damage_applied', amount: 20 }),
+  )
+  const next = endCombatTurn(
+    { ...granted, tactical: selectCurrentFinalFacing(granted.tactical, 'east').state },
+    content,
+  ).state
+  const attack = executeCombatAction(
+    next,
+    { ...action, effects: [action.effects[1]!] },
+    { kind: 'unit', combatantId: 'actor' },
+    content,
+  )
+  expect(attack.events).toContainEqual(
+    expect.objectContaining({ event: 'damage_applied', amount: 20 }),
+  )
+})
+it('clears enemy Blindside immediately when the affected enemy is defeated', () => {
+  const granted = enemyBlindside()
+  const next = endCombatTurn(
+    { ...granted, tactical: selectCurrentFinalFacing(granted.tactical, 'west').state },
+    content,
+  ).state
+  const defeated = defeatCombatActionActor(next, 'enemy', content).state
+  expect(defeated.statusState.find((row) => row.combatantId === 'enemy')!.statuses).toEqual([])
+})
+it.each([
+  ['west', 20],
+  ['north', 35],
+  ['east', 50],
+] as const)(
+  'applies current Blindside to the enemy as one debuff and increases incoming flank damage for %s',
+  (facing, amount) => {
+    const state = {
+      ...faced(facing),
+      effectTimingPolicy: {
+        version: 8,
+        tagAuthority: 'global' as const,
+        modes: { blindside: 'instant' as const },
+      },
+    }
+    const debuff = {
+      ...customBlindside,
+      effects: [
+        {
+          ...customBlindsideEffect,
+          recipient: 'primary-unit' as const,
+          statusId: 'blindside-vulnerability',
+        },
+        action.effects[1]!,
+      ],
+    }
+    const preview = evaluateCombatAction(state, debuff, selection, content)
+    expect(preview.projectedEffects).toContainEqual(
+      expect.objectContaining({ effectType: 'damage', combatantId: 'enemy', after: 1000 - amount }),
+    )
+    const result = executeCombatAction(state, debuff, selection, content)
+    expect(result.events).toContainEqual(
+      expect.objectContaining({ event: 'damage_applied', amount }),
+    )
+    expect(
+      result.state.statusState.find((row) => row.combatantId === 'actor')?.statuses ?? [],
+    ).toEqual([])
+    expect(
+      result.state.statusState.find((row) => row.combatantId === 'enemy')!.statuses,
+    ).toContainEqual(
+      expect.objectContaining({
+        statusId: 'blindside-vulnerability',
+        stacks: 1,
+        remainingOwnerTurnEnds: 1,
+      }),
+    )
+    expect(
+      content.statuses.find((status) => status.id === 'blindside-vulnerability')?.polarity,
+    ).toBe('negative')
+    expect(validateCombatEncounterState(result.state)).toEqual([])
+  },
+)
 it.each([
   ['west', 20],
   ['north', 35],

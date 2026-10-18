@@ -8,7 +8,10 @@ import { combatStatusDetails } from '@aurevane/game-core/combat/status-content'
 import { statusLabel } from './battle-effect-summary'
 import { battleEffectLifetime } from './battle-effect-lifetime'
 import { statusPotencyDescription } from '../../lib/status-potency-presentation'
-import { blindsideStatusDescription } from '@aurevane/game-core/combat/combat-blindside'
+import {
+  blindsideStatusDescription,
+  isBlindsideStatusId,
+} from '@aurevane/game-core/combat/combat-blindside'
 import { airborneDescription } from '@aurevane/game-core/combat/combat-airborne'
 import {
   terrainBattleEffectPresentation,
@@ -42,6 +45,7 @@ const identifiers: Readonly<Record<string, string>> = {
   warded: 'WAR',
   blind: 'BLI',
   blindside: 'BLS',
+  'blindside-vulnerability': 'BLV',
   barrier: 'BAR',
   covert: 'COV',
   revealed: 'REV',
@@ -117,7 +121,7 @@ export function describeBattleEffect(effect: BattlePresentedStatus) {
       : {}),
     description:
       (percentageDescription ??
-        (effect.statusId === 'blindside'
+        (isBlindsideStatusId(effect.statusId)
           ? blindsideStatusDescription(effect, effect.blindsideActivationPolicyVersion !== 1)
           : effect.statusId === 'airborne'
             ? airborneDescription(

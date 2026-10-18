@@ -46,7 +46,7 @@ test('Techniques saves one Support Action separately from four Discipline Skills
   ]) {
     await expect(preview.locator('dt', { hasText: new RegExp(`^${label}$`) })).toBeVisible()
   }
-  await expect(preview).toContainText('Guarded [15%] [2 Turns]')
+  await expect(preview).toContainText('Guard [15%] [2 Turns]')
   await expect(preview).toContainText('2 Turns')
   for (const name of ['HP Recovery', 'MP Recovery']) {
     const save = page.waitForResponse(

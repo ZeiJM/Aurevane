@@ -373,6 +373,9 @@ export async function startPvpLobbyWithQuality(
   encounter.dynamicInitiativePolicyVersion = 1
   encounter.healingDownPolicyVersion = 1
   encounter.blindsideActivationPolicyVersion = 1
+  if (encounter.effectTimingPolicy?.tagAuthority === 'global') {
+    encounter.modularSkillPolicyVersion = 1
+  }
   encounter.groundEffectPolicyVersion = 1
   const { snapshot, startup } = await prepareBattleAbilityStartup(
     encounter,

@@ -77,13 +77,24 @@ function article() {
 function render(value = article()) {
   return renderToStaticMarkup(<ManualArticle {...value} />)
 }
+it('documents the current global timing, enemy Blindside and temporary-HP Barrier rules', () => {
+  const text = JSON.stringify(
+    article().body.filter((block) =>
+      ['read-preview', 'damage-order', 'effect-families'].includes(block.id),
+    ),
+  )
+  expect(text).toContain('Attack, Utility or Heal')
+  expect(text).toContain('Blindside is a one-turn debuff')
+  expect(text).toContain('Pierce destroys the Barrier')
+  expect(text).toContain('Master controls timing globally')
+})
 it('carries actual typed prerequisites and conditions into the public Manual', () => {
   const html = render()
   expect(html).toContain('data-combat-tag-reference="wet"')
   expect(html).toContain('data-combat-tag-reference="burn"')
   expect(html).toContain('aria-label="Explain Drenched"')
   expect(html).toContain('aria-label="Explain Burn"')
-  expect(html).toContain('must have')
+  expect(html).not.toContain('must have')
 })
 it('retains the actual Frozen Ground conditional Fire references through the generated explanation', () => {
   const records = JSON.parse(

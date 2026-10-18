@@ -8,7 +8,7 @@ import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-ski
 import { SkillGroundEditor, AbilityGroundEditor, groundAreaForEffects } from './skill-ground-editor'
 
 describe('Master persistent Ground controls', () => {
-  it('edits duration, timing and only registered animations', () => {
+  it('edits duration and registered animations while leaving activation to Master timing', () => {
     const skill = resolveMatureSkillVersion('cinderweaver.flame-burst')!
     const html = renderToStaticMarkup(
       createElement(SkillGroundEditor, {
@@ -24,7 +24,7 @@ describe('Master persistent Ground controls', () => {
     expect(html).toContain('Embers')
     expect(html).toContain('Frost')
     expect(html).toContain('Arcane pulse')
-    expect(html).toContain('aria-label="Ground activation"')
+    expect(html).not.toContain('aria-label="Ground activation"')
     expect(html).not.toContain('textarea')
   })
   it('keeps a registered preset while synchronizing only legal entry payloads', () => {

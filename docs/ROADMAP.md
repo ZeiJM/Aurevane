@@ -1,3 +1,5 @@
+Owner modular correction — October18 (**in progress, not live**): the complete 294-entry correction cohort is the next single release; broader Master work stays paused and isolated. Global Master tag timing owns all current Skill timing, with Barrier/Blindside Instant and Rewind Controlled. Current Skills use cooldowns without once-per-game limits; shared readers use Attack/Utility/Heal, compact requirements and numeric tags, conflict-only recipients and authoritative Primed indicators. New content uses Ground Move, mostly elevation0, one-stack enemy Blindside and percent maximum-HP Barrier covering damage before HP and shattered by Pierce. Historical captures retain their rules. See `docs/superpowers/specs/2026-10-18-modular-corrections.md` and `docs/verification/2026-10-18-modular-corrections-progress.md`. No correction deployment or publication has occurred.
+
 **⚔️ AUREVANE ROADMAP | OCT 2026**
 ✅ Closed · 🟢 Built · 🟡 Partial · 🔜 Planned
 

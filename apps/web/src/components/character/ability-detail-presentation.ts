@@ -9,10 +9,7 @@ import type {
   RequirementNode,
 } from '@aurevane/game-core/combat/combat-definition'
 import type { BasicSkillDefinition } from '@aurevane/game-core/combat/combat-basic-actions'
-import {
-  nativeCombatTagPayload,
-  combatTagPayloadExplanation,
-} from '@aurevane/game-core/combat/combat-tag-registry'
+import { nativeCombatTagPayload } from '@aurevane/game-core/combat/combat-tag-registry'
 import {
   canonicalAbilityTargetSpec,
   canonicalAbilitySupportsFireGroundIntent,
@@ -54,13 +51,13 @@ export function abilityRequirementDescription(node: RequirementNode | null): str
   switch (node.kind) {
     case 'all':
     case 'any':
-      return `${node.kind === 'all' ? 'All' : 'Any'} of (${node.children.map(abilityRequirementDescription).join('; ')})`
+      return `(${node.children.map(abilityRequirementDescription).join(node.kind === 'all' ? ' & ' : ' or ')})`
     case 'resource-state':
       return `${subjects[node.subject]}: ${node.resource.toUpperCase()} ${node.comparison === 'at-least' ? '≥' : '≤'} ${node.basisPoints === undefined ? node.amount : `${node.basisPoints / 100}%`}`
     case 'resource-threshold-crossing':
       return `${subjects[node.subject]}: ${node.resource.toUpperCase()} crosses ${node.direction} ${node.thresholdBasisPoints / 100}%`
     case 'status-presence':
-      return `${subjects[node.subject]} ${node.present ? 'must have' : 'must not have'} ${gameplayStatusName(node.statusId)}`
+      return `${node.present ? '' : 'No '}${gameplayStatusName(node.statusId)}${requirementSubjectSuffix(node.subject)}`
     case 'prime-presence':
       return `${subjects[node.subject]} ${node.present ? 'must have' : 'must not have'} ${node.abilityId} primed`
     case 'event':
@@ -79,6 +76,12 @@ export function abilityRequirementDescription(node: RequirementNode | null): str
   }
 }
 
+function requirementSubjectSuffix(subject: 'owner' | 'selected' | 'affected' | 'triggering') {
+  return subject === 'selected'
+    ? ''
+    : ` [${subject === 'owner' ? 'Self' : subject === 'affected' ? 'Area' : 'Trigger'}]`
+}
+
 /** Preserve the plain contract and annotate only actual status-presence nodes. */
 function requirementReferenceParts(
   node: RequirementNode | null,
@@ -87,16 +90,20 @@ function requirementReferenceParts(
   function parts(value: RequirementNode): MechanicTextPart[] {
     if (value.kind === 'all' || value.kind === 'any')
       return [
-        `${value.kind === 'all' ? 'All' : 'Any'} of (`,
-        ...value.children.flatMap((child, index) => [...(index ? ['; '] : []), ...parts(child)]),
+        '(',
+        ...value.children.flatMap((child, index) => [
+          ...(index ? [value.kind === 'all' ? ' & ' : ' or '] : []),
+          ...parts(child),
+        ]),
         ')',
       ]
     if (value.kind === 'status-presence') {
       const tag = mechanicStatusTag(value.statusId)
       if (tag)
         return [
-          `${subjects[value.subject]} ${value.present ? 'must have' : 'must not have'} `,
+          ...(value.present ? [] : ['No ']),
           { ...mechanicTag(tag), label: gameplayStatusName(value.statusId) },
+          requirementSubjectSuffix(value.subject),
         ]
     }
     return [abilityRequirementDescription(value)]
@@ -113,15 +120,50 @@ export interface AbilityEffectPresentation {
   readonly condition: string | null
   readonly conditionParts?: readonly MechanicTextPart[]
   readonly recipient: string
+  readonly recipientOverride?: string
   readonly repeatsOnEntry?: boolean
 }
 const recipients = {
   actor: 'Self',
-  'primary-unit': 'Selected unit',
-  'affected-units': 'Affected units',
-  'affected-tiles': 'Affected Ground',
-  'selected-tile': 'Selected Ground',
+  'primary-unit': 'Target',
+  'affected-units': 'Targets',
+  'affected-tiles': 'Ground',
+  'selected-tile': 'Ground',
 } as const
+
+function effectRecipientOverride(
+  behavior: AbilityBehavior,
+  effect: AbilityEffect,
+): string | undefined {
+  const target = behavior.targeting ? canonicalAbilityTargetSpec(behavior.targeting) : null
+  const selected = target ? combatTargetCategories(target) : []
+  const payload = effect.payload
+  const actual =
+    payload.type === 'move' ||
+    payload.recipient === 'selected-tile' ||
+    payload.recipient === 'affected-tiles'
+      ? ['ground']
+      : payload.recipient === 'actor'
+        ? ['self']
+        : target?.friendlyFire === 'enemies-only'
+          ? ['enemy']
+          : target?.friendlyFire === 'allies-only'
+            ? selected.includes('self')
+              ? ['self', 'ally']
+              : ['ally']
+            : selected.filter((category) => category !== 'ground').length
+              ? selected.filter((category) => category !== 'ground')
+              : ['self', 'ally', 'enemy']
+  if (actual.every((category) => selected.some((value) => value === category))) return undefined
+  return actual
+    .map(
+      (category) =>
+        ({ self: 'Self', ally: 'Ally', enemy: 'Enemy', ground: 'Ground' })[
+          category as 'self' | 'ally' | 'enemy' | 'ground'
+        ],
+    )
+    .join(' / ')
+}
 
 const equipmentArmorExplanation =
   'The displayed bypass applies only to equipment Armor. Without equipment Armor, it provides no advantage.'
@@ -145,21 +187,21 @@ function effectPresentation(
       duration: null,
       timing: 'Instant',
     }
-    description = `Move along a legal path within your remaining Movement and Jump. ${basic?.execution.kind === 'basic-move' && basic.execution.costBasis === 'per-terrain-point' ? 'Each traversal point uses the captured AP price; terrain and movement modifiers apply.' : 'Movement is included in the Skill cost; no extra traversal AP is charged.'}`
+    description = 'Move to the chosen Ground within your remaining Movement and Jump.'
   } else if (payload.type === 'damage-bonus') {
     parts = {
       label: 'Damage Up',
       magnitude: `${(payload.multiplierBasisPoints - 10000) / 100}%`,
       duration: null,
     }
-    description = combatTagPayloadExplanation(payload).full
+    description = 'Increase damage dealt.'
   } else if (payload.type === 'summon') {
     parts = {
       label: 'Summon',
       magnitude: payload.profile.name,
       duration: `${payload.profile.lifetimeTurns} Turns`,
     }
-    description = combatTagPayloadExplanation(payload).full
+    description = 'Summon an allied companion on the chosen empty Ground.'
   } else {
     const native = nativeCombatTagPayload(payload)
     parts = compactSkillEffectSummaryParts(native, timingPolicy, {
@@ -196,14 +238,26 @@ function effectPresentation(
         rewindPrimeAnchor: controlledAction,
       })
     if (plain?.descriptionParts) explanationParts = plain.descriptionParts
-    if (plain?.parts) parts = { ...parts, ...plain.parts }
+    if (plain?.parts)
+      parts = {
+        ...parts,
+        ...plain.parts,
+        magnitude: parts.magnitude ?? plain.parts.magnitude ?? null,
+      }
     if (payload.type === 'pierce') {
       parts = {
         ...parts,
         label: 'Pierce',
-        magnitude: `${payload.amount}; ${payload.armorIgnoredBasisPoints / 100}% equipment Armor ignored`,
+        magnitude: String(payload.amount),
+        details: [
+          ...(parts.details ?? []),
+          { label: 'Armor ignored', value: `${payload.armorIgnoredBasisPoints / 100}%` },
+        ],
       }
-      description += ` ${equipmentArmorExplanation}`
+      description +=
+        timingPolicy?.tagAuthority === 'global'
+          ? ' Break the target’s Barrier. The bypass affects equipment Armor; Physical and Mystic Defense still apply.'
+          : ` ${equipmentArmorExplanation}`
     }
     if (
       (payload.type === 'damage' || payload.type === 'pierce') &&
@@ -212,23 +266,20 @@ function effectPresentation(
       const family = (stats.mysticPower ?? 0) > (stats.physicalPower ?? 0) ? 'Mystic' : 'Physical'
       parts = {
         ...parts,
-        magnitude: `${payload.amount} + floor(${basic.execution.scalingBasisPoints / 100}% ${family} Power)${payload.type === 'pierce' ? `; ${payload.armorIgnoredBasisPoints / 100}% equipment Armor ignored` : ''}`,
+        magnitude: `${payload.amount} + floor(${basic.execution.scalingBasisPoints / 100}% ${family} Power)`,
       }
-      description = `Deal the authored base plus ${basic.execution.scalingBasisPoints / 100}% of your stronger Physical or Mystic Power, rounded down before mitigation. Physical wins ties.`
-      if (payload.type === 'pierce') description += ` ${equipmentArmorExplanation}`
+      description = `Deal base damage plus ${basic.execution.scalingBasisPoints / 100}% of your stronger Physical or Mystic Power, rounded down before mitigation. Physical wins ties.`
+      if (payload.type === 'pierce')
+        description +=
+          timingPolicy?.tagAuthority === 'global'
+            ? ' Break the target’s Barrier. The bypass affects equipment Armor; Physical and Mystic Defense still apply.'
+            : ` ${equipmentArmorExplanation}`
     }
     if (payload.type === 'percentage-recovery' && basic?.execution.kind === 'basic-action')
       description +=
         basic.execution.recoveryRounding === 'nearest'
           ? ' Uses the nearest whole resource amount.'
           : ' Rounds the resource amount down.'
-    if (mode === 'next-round' && !plain?.structuredTiming)
-      description += ' Activates at the next global round boundary.'
-    if (mode === 'delayed' && !plain?.structuredTiming)
-      description += ' Activates two global round boundaries later.'
-    if (mode === 'controlled')
-      description +=
-        ' Controlled primes the whole selected action for free, once per character and ability per battle. Choose a legal release to pay the full action cost and start its cooldown. Invalid releases retain the prime; cancellation discards it without renewing that allowance.'
   }
   if (explanationParts) {
     const prefix = explanationParts
@@ -248,6 +299,15 @@ function effectPresentation(
           : detail,
       ),
     }
+  parts = {
+    ...parts,
+    duration:
+      parts.duration
+        ?.replace(/recipient turn ends/gu, 'Turns')
+        .replace(/recipient turn end/gu, 'Turn')
+        .replace(/full rounds/gu, 'Rounds')
+        .replace(/full round/gu, 'Round') ?? null,
+  }
   const condition = effect.requirements ? abilityRequirementDescription(effect.requirements) : null
   const conditionParts = requirementReferenceParts(effect.requirements ?? null, effectContext)
   return {
@@ -291,6 +351,7 @@ export function abilityBehaviorInformation(
     ),
   }
   const effects = behavior.effects.map((effect) => {
+    const recipientOverride = effectRecipientOverride(behavior, effect)
     const described = effectPresentation(
       effect,
       timingPolicy,
@@ -303,6 +364,7 @@ export function abilityBehaviorInformation(
       ...described,
       presentation: {
         ...described.presentation,
+        ...(recipientOverride ? { recipientOverride } : {}),
         ...(behavior.groundArea
           ? { repeatsOnEntry: behavior.groundArea.entryEffectIds.includes(effect.id) }
           : {}),
@@ -318,17 +380,27 @@ export function abilityBehaviorInformation(
     behavior.classification === 'attack'
       ? `Attack [${options.basic?.execution.kind === 'basic-attack' ? ((options.stats?.mysticPower ?? 0) > (options.stats?.physicalPower ?? 0) ? 'Mystic' : 'Physical') : behavior.attackFamily === 'mystic' ? 'Mystic' : 'Physical'}]`
       : behavior.classification === 'recovery'
-        ? 'Recovery'
+        ? 'Heal'
         : 'Utility'
   const summary = effects
     .map(
-      ({ presentation: { parts, condition, recipient, repeatsOnEntry } }) =>
-        `${condition ? `If ${condition}: ` : ''}${parts.label}${parts.magnitude ? ` [${parts.magnitude}]` : ''}${parts.duration ? ` [${parts.duration}]` : ''}${parts.timing ? ` [${parts.timing}]` : ''}${parts.details?.map(({ label, value }) => ` [${label}: ${value}]`).join('') ?? ''}${target?.kind === 'self' && recipient === 'Self' ? '' : ` → ${recipient}`}${repeatsOnEntry ? ' · Repeats on entry' : ''}`,
+      ({ presentation: { parts, condition, recipientOverride, repeatsOnEntry } }) =>
+        `${condition ? `If ${condition}: ` : ''}${parts.label}${parts.magnitude ? ` [${parts.magnitude}]` : ''}${parts.duration ? ` [${parts.duration}]` : ''}${parts.timing ? ` [${parts.timing}]` : ''}${
+          parts.details
+            ?.filter(({ label }) => !['Stacks', 'Expiry'].includes(label))
+            .map(({ label, value }) => ` [${label}: ${value}]`)
+            .join('') ?? ''
+        }${recipientOverride ? ` [${recipientOverride}]` : ''}${repeatsOnEntry ? ' · Repeats on entry' : ''}`,
     )
     .join(', ')
   const requirementParts = nativeMove
     ? undefined
     : requirementReferenceParts(behavior.requirements, effectContext)
+  const groundSummary = behavior.groundArea
+    ? timingPolicy?.tagAuthority === 'global'
+      ? `${behavior.groundArea.durationRounds} ${behavior.groundArea.durationRounds === 1 ? 'Round' : 'Rounds'}${behavior.groundArea.timing === 'instant' ? ' [Instant]' : behavior.groundArea.timing === 'delayed' ? ' [Delayed]' : ''}`
+      : `${groundFire ? 'Ground casts: ' : ''}${combatGroundAreaDescription(behavior.groundArea, timingPolicy?.modes['ground-area'] === 'instant' || timingPolicy?.modes['ground-area'] === 'delayed' ? timingPolicy.modes['ground-area'] : 'next-round', true)}`
+    : null
   return {
     ...(requirementParts ? { requirementParts } : {}),
     ...(behavior.activation === 'ongoing'
@@ -338,10 +410,7 @@ export function abilityBehaviorInformation(
         }
       : {}),
     rows: skillInformationRows({
-      'Skill Type':
-        behavior.activation === 'manual' && behavior.mode === 'action'
-          ? type
-          : `${behavior.activation === 'ongoing' ? 'Ongoing' : behavior.activation === 'automatic' ? 'Automatic' : 'Manual'} ${behavior.mode === 'modifier' ? 'Modifier' : type}`,
+      'Skill Type': type,
       Cost: abilityCostDescription(behavior.costs) + (nativeMove ? ' per traversal point' : ''),
       Cooldown: behavior.cooldown
         ? `${behavior.cooldown.ownerTurns} ${behavior.cooldown.ownerTurns === 1 ? 'turn' : 'turns'}`
@@ -370,10 +439,7 @@ export function abilityBehaviorInformation(
                     ground: target.kind === 'empty-tile' ? 'Empty Ground' : 'Ground',
                   })[category],
               )
-              .join(' / ') +
-            (behavior.groundArea
-              ? ` · ${groundFire ? 'Ground casts: ' : ''}${combatGroundAreaDescription(behavior.groundArea, timingPolicy?.modes['ground-area'] === 'instant' || timingPolicy?.modes['ground-area'] === 'delayed' ? timingPolicy.modes['ground-area'] : 'next-round', true)}`
-              : '')
+              .join(' / ') + (groundSummary ? ` · ${groundSummary}` : '')
           : 'N/A',
       'Target Method': nativeMove
         ? 'Path'

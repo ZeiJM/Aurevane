@@ -20,13 +20,8 @@ import { AbilityGroundEditor } from './skill-ground-editor'
 import styles from './combat-content-editor.module.css'
 import { EffectTagLabel } from '../../character/compact-skill-effect-summary'
 
-const limits = [
-  'once-per-action',
-  'once-per-owner-turn',
-  'once-per-round',
-  'once-per-battle',
-] as const
-const limitNames = ['Once per action', 'Once per owner turn', 'Once per round', 'Once per battle']
+const limits = ['once-per-action', 'once-per-owner-turn', 'once-per-round'] as const
+const limitNames = ['Once per action', 'Once per owner turn', 'Once per round']
 const base = () =>
   structuredClone(
     defaultBasicSkills().find((row) => row.id === 'unarmed.basic')!.ability.behaviors[0]!,
@@ -263,7 +258,6 @@ function AbilityGroupEditor({
               </header>
               <AbilityEffectEditor
                 value={effect}
-                behavior={value}
                 onChange={(next) =>
                   onChange({
                     ...value,

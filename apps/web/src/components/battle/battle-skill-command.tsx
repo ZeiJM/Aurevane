@@ -264,7 +264,7 @@ export function BattleSkillCommand({
         disabled={actionDisabled}
         data-battle-cooldown-active={cooldownTurns > 0 || undefined}
         onClick={onActivate}
-        aria-label={`${label}, ${controlledAvailability?.chooseAction ? 'choose another action' : primeAvailable && !controlledAvailability?.controlledSpent ? 'prime without payment' : cost}${battleCooldownLabel(cooldownTurns)}${controlledAvailability?.controlledSpent && !controlledAvailability.chooseAction ? ', already used this battle' : ''}${ready ? ', ready to release' : ''}`}
+        aria-label={`${label}, ${controlledAvailability?.chooseAction ? 'choose another action' : primeAvailable && !controlledAvailability?.controlledSpent ? 'prime without payment' : cost}${battleCooldownLabel(cooldownTurns)}${controlledAvailability?.controlledSpent && !controlledAvailability.chooseAction ? ', already used this battle' : ''}${controlledAvailability?.controlledPrimed ? ', primed' : ''}${ready ? ', ready to release' : ''}`}
       >
         <span
           className={`${styles.artwork} ${artworkFitStyles.frame}`}
@@ -301,7 +301,7 @@ export function BattleSkillCommand({
             />
           )}
           <BattleSkillCooldown turns={cooldownTurns} />
-          <BattleControlledReady ready={ready} />
+          <BattleControlledReady ready={ready} primed={controlledAvailability?.controlledPrimed} />
         </span>
         <strong>{label}</strong>
       </button>

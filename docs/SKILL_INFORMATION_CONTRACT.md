@@ -1,12 +1,14 @@
 # Minimum Skill information contract
 
+Owner refinement 2026-10-18 (correction release in progress): all full readers use bold, consistently colored effect tags and numeric-only magnitude brackets. Show an effect recipient in brackets only when it differs from the Skill Target. Omit Stack/Expiry brackets; use ordinary turn durations. Requirements use compact modular terms. Master alone controls current tag timing; normal has no badge. Keep all ten fields and immutable battle metadata. This supersedes conflicting older presentation/type/timing wording below. See `superpowers/specs/2026-10-18-modular-corrections.md`.
+
 Owner-approved 2026-10-02. This is the minimum report for **every full Skill detail view**, including Discipline Skills, Essence, inherent commands, Support Actions and passive/triggered effects such as Resonance. It is a presentation rule, not a change to combat mechanics.
 
 ## Required fields and order
 
 | Field | Convention |
 | --- | --- |
-| Skill Type | Attack, Recovery or Utility for active Skills; Passive plus the passive family for triggered/passive effects. |
+| Skill Type | Attack [Physical/Mystic], Utility or Heal for all Skills. Activation and action/modifier mode are separate execution metadata. |
 | Cost | Numeric AP, with MP when used: `45 AP / 3 MP`. Zero is a real cost (`0 AP`), not N/A. Conditional/formula costs state their basis and modifiers. |
 | Cooldown | `1 turn`, `2 turns`, etc., using the definition's owner-turn boundary. `None` means an active action has no cooldown; a passive without an independent cooldown uses `N/A`. |
 | Requirements | Actual use prerequisites/trigger conditions. `None` means no additional prerequisites. Passive equipment, setup and trigger conditions remain visible. |

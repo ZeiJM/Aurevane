@@ -72,7 +72,7 @@ it('renders all ten fields and effect/requirement/limit details from the capture
   expect(html).toContain('<dt>Cooldown</dt><dd>3 turns</dd>')
   expect(html).toContain('You: MP ≥ 3')
   expect(html).toContain('<dt>Range</dt><dd>4</dd>')
-  expect(html).toContain('data-compact-effect-label="true">Move</span>')
+  expect(html).toContain('data-compact-effect-label="true">Move</strong>')
   expect(html).toContain('data-compact-effect-magnitude="true">[13]</span>')
   expect(html).toContain('data-compact-effect-timing="true">[Controlled]</span>')
   expect(html).toContain('Once per round')

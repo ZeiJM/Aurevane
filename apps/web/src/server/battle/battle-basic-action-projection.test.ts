@@ -117,13 +117,9 @@ it('projects saved Basic costs, enabled state and complete reports for the contr
     Cost: '47 AP / 3 MP / 2 HP',
     Effects: expect.stringContaining('22%'),
   })
-  expect(recovery.behaviors[0]!.effects[0]!.condition).toBe('You must have Guard')
-  expect(Object.fromEntries(recovery.behaviors[0]!.rows).Effects).toContain(
-    'If You must have Guard:',
-  )
-  expect(recovery.behaviors[0]!.effectDescriptions.join(' ')).not.toContain(
-    'If You must have Guard:',
-  )
+  expect(recovery.behaviors[0]!.effects[0]!.condition).toBe('Guard [Self]')
+  expect(Object.fromEntries(recovery.behaviors[0]!.rows).Effects).toContain('If Guard [Self]:')
+  expect(recovery.behaviors[0]!.effectDescriptions.join(' ')).not.toContain('If Guard [Self]:')
   const attack = view.basicActions!.find(
     (action) => action.actionId === 'basic.attack.unarmed.basic',
   )!
@@ -169,9 +165,7 @@ it('reports native Basic Pierce stronger-Power scaling as well as Armor bypass',
   expect(Object.fromEntries(attack.behaviors[0]!.rows).Effects).toContain(
     'floor(15% Physical Power)',
   )
-  expect(Object.fromEntries(attack.behaviors[0]!.rows).Effects).toContain(
-    '25% equipment Armor ignored',
-  )
+  expect(Object.fromEntries(attack.behaviors[0]!.rows).Effects).toContain('[Armor ignored: 25%]')
   expect(attack.behaviors[0]!.effectDescriptions.join(' ')).toContain(
     'stronger Physical or Mystic Power',
   )

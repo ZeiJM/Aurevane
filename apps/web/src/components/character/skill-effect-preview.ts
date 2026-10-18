@@ -278,8 +278,11 @@ export function previewEffect(
     case 'barrier-change':
       return {
         label: 'Barrier',
-        magnitude: String(effect.amount),
-        explanation: `Grants damage-absorbing Barrier to ${target}.`,
+        magnitude: `${effect.amount}${effect.basis === 'maximum-hp-percent' ? '%' : ''}`,
+        explanation:
+          effect.basis === 'maximum-hp-percent'
+            ? `Protect ${target} with a share of maximum HP that absorbs damage before HP. Pierce breaks the Barrier.`
+            : `Grants damage-absorbing Barrier to ${target}.`,
       }
     case 'resource-change':
       return {
