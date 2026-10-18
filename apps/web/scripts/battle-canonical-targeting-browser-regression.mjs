@@ -940,7 +940,10 @@ try {
             'controlled-move',
             'controlled-basic',
           ]) {
-            const page = await browser.newPage({ viewport })
+            const page = await browser.newPage({
+              viewport,
+              ...(viewport.width === 390 ? { isMobile: true, hasTouch: true } : {}),
+            })
             page.on('pageerror', (error) => errors.push(error.message))
             await page.goto(
               server.resolvedUrls.local[0] +
@@ -1003,269 +1006,45 @@ try {
         { width: 1440, height: 900 },
         { width: 390, height: 844 },
       ]) {
-        for (const controlled of [false, true]) {
-          const touch = viewport.width === 390
+        for (const variant of ['ordinary', 'controlled', 'recovery', 'long']) {
           const page = await browser.newPage({
             viewport,
-            ...(touch ? { isMobile: true, hasTouch: true } : {}),
+            ...(viewport.width === 390 ? { isMobile: true, hasTouch: true } : {}),
           })
           page.on('pageerror', (error) => errors.push(error.message))
-          const gesture = (locator) => (touch ? locator.tap() : locator.click())
           await page.goto(
             server.resolvedUrls.local[0] +
-              `?mode=${mode}&targeting=single&canonical=modifier-${controlled ? 'controlled' : 'ordinary'}&controls=delayed`,
+              `?mode=${mode}&targeting=single&canonical=modifier-${variant}`,
           )
-          const trigger = page.getByRole('button', { name: 'Modifiers', exact: true })
-          await trigger.waitFor()
+          const footer = page.locator('[data-battle-footer-actions]')
+          await footer.waitFor()
           assert.equal(
-            (await trigger.textContent()).includes('[M]'),
-            false,
-            'no guessed binding before validated controls arrive',
-          )
-          const requests = () =>
-            page.evaluate(() =>
-              window.calls.filter((call) => /\/(preview|commit|intents)$/.test(call.path)),
-            )
-          await gesture(trigger)
-          const panel = page.locator('[data-battle-modifier-picker]')
-          await panel.waitFor()
-          await gesture(
-            panel
-              .locator('[data-modifier-list="actions"] button')
-              .filter({ hasText: 'Selected Targeting Test' })
-              .first(),
-          )
-          const outerBox = await page
-            .getByRole('dialog', { name: 'Modifiers', exact: true })
-            .boundingBox()
-          const innerBox = await panel.boundingBox()
-          assert.ok(
-            innerBox.x >= outerBox.x && innerBox.x + innerBox.width <= outerBox.x + outerBox.width,
-            'picker fits the measured paper surface',
-          )
-          const modifier = panel.getByRole('checkbox').first()
-          await modifier.focus()
-          await page.keyboard.press('End')
-          await page.keyboard.press('Home')
-          assert.equal(
-            await modifier.getAttribute('aria-checked'),
-            'false',
-            'navigation never selects',
-          )
-          await page.keyboard.press('Space')
-          assert.equal(await modifier.getAttribute('aria-checked'), 'true')
-          assert.equal(
-            (await requests()).length,
+            await footer.getByRole('button', { name: 'Modifiers', exact: true }).count(),
             0,
-            'preparation and toggle never preview, prime or commit',
           )
-          await page.keyboard.press('Escape')
-          await panel.waitFor({ state: 'detached' })
-          assert.equal(
-            await trigger.evaluate((element) => element === document.activeElement),
-            true,
-          )
-          await page.evaluate(() => window.releaseControls())
-          await page.waitForFunction(() =>
-            [...document.querySelectorAll('button')].some((button) =>
-              button.textContent.includes('Modifiers (1) [Shift+M]'),
-            ),
-          )
+          await footer.getByRole('button', { name: 'Terrain', exact: true }).waitFor()
+          await footer.getByRole('button', { name: 'Cancel Action', exact: true }).waitFor()
+          if (mode === 'pve')
+            await footer.getByRole('button', { name: 'Surrender', exact: true }).waitFor()
+          const requests = () =>
+            page.evaluate(
+              () =>
+                window.calls.filter((call) => /\/(preview|commit|intents)$/.test(call.path)).length,
+            )
+          const before = await requests()
           await page.keyboard.press('Shift+m')
-          await panel.waitFor()
-          assert.equal(
-            await modifier.getAttribute('aria-checked'),
-            'true',
-            'reader dismissal retains draft',
-          )
-          await page.keyboard.press('Escape')
-          const artwork = page.getByRole('button', { name: /^Selected Targeting Test,/ })
-          const artBounds = await artwork.locator('[data-av-square-media]').first().boundingBox()
-          if (controlled) {
-            const before = await page.evaluate(() =>
-              structuredClone(window.fixtureBattle.snapshot.tactical.battle.combatants[0]),
-            )
-            await gesture(artwork)
-            await page.waitForFunction(() => window.fixtureBattle.battleVersion === 2)
-            const prime = (await requests()).find(
-              (call) => call.body.intent.kind === 'ability-prime',
-            ).body.intent
-            assert.equal(prime.manualModifiers.length, 1)
-            const after = await page.evaluate(
-              () => window.fixtureBattle.snapshot.tactical.battle.combatants[0],
-            )
-            assert.equal(after.hp, before.hp)
-            assert.equal(after.mp, before.mp)
-            assert.deepEqual(
-              after.temporaryResources,
-              before.temporaryResources,
-              'prime does not pay',
-            )
-            await page.evaluate(() => window.restoreCanonicalBattle())
-            await gesture(trigger)
-            await panel.waitFor()
-            await gesture(
-              panel
-                .locator('[data-modifier-list="actions"] button')
-                .filter({ hasText: 'Selected Targeting Test' })
-                .first(),
-            )
-            assert.equal(await modifier.getAttribute('aria-checked'), 'true')
-            assert.equal(
-              await modifier.getAttribute('aria-disabled'),
-              'true',
-              'restored prime owns its locked set',
-            )
-            await page.keyboard.press('Space')
-            assert.equal(await modifier.getAttribute('aria-checked'), 'true')
-            await page.keyboard.press('Escape')
-          }
-          await gesture(artwork)
-          const tile = page.locator('#battlefield').getByRole('button', { name: /^Tile 5, 4;/ })
-          await gesture(tile)
-          await page.waitForFunction(() =>
-            window.calls.some(
-              (call) =>
-                call.path.endsWith('/preview') && call.body.intent.manualModifiers?.length === 1,
-            ),
-          )
-          await gesture(trigger)
-          await panel.waitFor()
-          await panel.getByText(/(?:Command|Release) cost:/).waitFor()
-          await page.screenshot({
-            path: resolve(
-              output,
-              `modifiers-${mode}-${viewport.width}-${controlled ? 'controlled' : 'ordinary'}.png`,
-            ),
-            fullPage: true,
-          })
-          assert.deepEqual(
-            await artwork.locator('[data-av-square-media]').first().boundingBox(),
-            artBounds,
-            'picker preserves artwork bounds',
-          )
-          await page.keyboard.press('Escape')
-          await page.keyboard.press('Enter')
-          await page.waitForFunction(() =>
-            window.calls.some(
-              (call) => /\/(commit|intents)$/.test(call.path) && call.body.intent.kind === 'action',
-            ),
-          )
-          const all = await requests()
-          const paid = all.find(
-            (call) => /\/(commit|intents)$/.test(call.path) && call.body.intent.kind === 'action',
-          ).body.intent
-          assert.deepEqual(paid.manualModifiers, [
-            { sourceInstanceId: 'fixture-modifier', behaviorId: 'strike' },
-          ])
-          if (controlled)
-            assert.deepEqual(
-              all.find((call) => call.body.intent.kind === 'ability-prime').body.intent
-                .manualModifiers,
-              paid.manualModifiers,
-            )
-          await page.evaluate(() => window.advanceBattle('enemy-one'))
-          await gesture(trigger)
-          await panel.waitFor()
-          await panel.getByText('Read only while this action cannot be prepared.').waitFor()
-          const count = (await requests()).length
-          await modifier.focus()
-          await page.keyboard.press('Space')
-          assert.equal(
-            (await requests()).length,
-            count,
-            'off-turn reader sends no command or preview',
-          )
+          assert.equal(await page.locator('[data-battle-modifier-picker]').count(), 0)
+          assert.equal(await requests(), before, 'removed picker shortcut sends no battle request')
+          assert.equal(await footer.evaluate((node) => node.scrollWidth > node.clientWidth), false)
+          if (variant === 'ordinary')
+            await page.screenshot({
+              path: resolve(output, `footer-${mode}-${viewport.width}.png`),
+              fullPage: true,
+            })
           await page.close()
           cases++
         }
       }
-    }
-    for (const mode of ['pve', 'pvp']) {
-      const page = await browser.newPage({ viewport: { width: 1366, height: 768 } })
-      page.on('pageerror', (error) => errors.push(error.message))
-      await page.goto(
-        server.resolvedUrls.local[0] + `?mode=${mode}&targeting=single&canonical=modifier-recovery`,
-      )
-      await page.getByRole('button', { name: 'Modifiers', exact: true }).click()
-      const panel = page.locator('[data-battle-modifier-picker]')
-      await panel
-        .getByRole('button', { name: 'Selected Targeting Test · recovery', exact: true })
-        .click()
-      assert.equal(
-        await page.evaluate(
-          () => window.calls.filter((call) => /\/(preview|commit|intents)$/.test(call.path)).length,
-        ),
-        0,
-      )
-      await page.keyboard.press('Escape')
-      await page.getByRole('button', { name: /^Selected Targeting Test,/ }).click()
-      await page
-        .locator('#battlefield')
-        .getByRole('button', { name: /^Tile 4, 5;/ })
-        .click()
-      await page.keyboard.press('Enter')
-      await page.waitForFunction(() => window.fixtureBattle.battleVersion === 2)
-      const command = await page.evaluate(
-        () => window.calls.find((call) => /\/(commit|intents)$/.test(call.path)).body.intent,
-      )
-      const rootId = await page.evaluate(
-        () =>
-          window.fixtureBattle.snapshot.manualActionTargets.find(
-            (row) => row.behaviorId === 'recovery',
-          ).actionId,
-      )
-      assert.equal(
-        command.actionId,
-        rootId,
-        'attack-first mixed action stays selected in recover mode',
-      )
-      assert.equal(command.behaviorId, 'recovery')
-      assert.deepEqual(command.target, { kind: 'unit', combatantId: 'ally' })
-      await page.close()
-      cases++
-    }
-    for (const mode of ['pve', 'pvp']) {
-      const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
-      page.on('pageerror', (error) => errors.push(error.message))
-      await page.goto(
-        server.resolvedUrls.local[0] + `?mode=${mode}&targeting=single&canonical=modifier-long`,
-      )
-      const session = await page.context().newCDPSession(page)
-      await session.send('Emulation.setPageScaleFactor', { pageScaleFactor: 2 })
-      await page.getByRole('button', { name: 'Modifiers', exact: true }).click()
-      const panel = page.locator('[data-battle-modifier-picker]')
-      await panel
-        .locator('[data-modifier-list="actions"] button')
-        .filter({ hasText: 'Selected Targeting Test' })
-        .first()
-        .click()
-      const rows = panel.getByRole('checkbox')
-      assert.equal(await rows.count(), 24)
-      assert.deepEqual(
-        await rows.evaluateAll((rows) => rows.map((row) => row.getAttribute('aria-disabled'))),
-        Array(24).fill('true'),
-      )
-      await rows.first().focus()
-      await page.keyboard.press('End')
-      assert.equal(await rows.last().evaluate((row) => row === document.activeElement), true)
-      await page.keyboard.press('Space')
-      await page.keyboard.press('Enter')
-      assert.equal(await rows.last().getAttribute('aria-checked'), 'false')
-      assert.equal(
-        await page.evaluate(
-          () => window.calls.filter((call) => /\/(preview|commit|intents)$/.test(call.path)).length,
-        ),
-        0,
-      )
-      await page.screenshot({
-        path: resolve(output, `modifiers-${mode}-long-page-scale-200.png`),
-        fullPage: true,
-      })
-      await page.keyboard.press('Escape')
-      await panel.waitFor({ state: 'detached' })
-      await page.close()
-      cases++
     }
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
     page.on('pageerror', (error) => errors.push(error.message))
