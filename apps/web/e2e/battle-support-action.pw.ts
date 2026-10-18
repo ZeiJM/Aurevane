@@ -354,6 +354,7 @@ for (const [supportActionId, label, cost] of [
       actionId: supportActionId,
       behaviorId: 'use',
       target: { kind: 'self' },
+      manualModifiers: [],
     })
     await expect(
       root.getByRole('progressbar', { name: 'Action Economy remaining' }),
