@@ -1,10 +1,10 @@
 # Combat release acceptance and testing handoff
 
-PRE-RELEASE DRAFT. This combat release is not live. Source 64f82df59f3fc111e9b253960f0f0c56c5b6113a; tree 74c737fd597f2c162bce1052e99f82fb9ca5b256; reconciled main b2d275269433f69ab1824e1f4ce110f730f9aa1a. The broad browser workflow remains pending. Replace this status only after recording actual release receipts.
+RELEASE IN PROGRESS. All18 exact-head workflows pass. PR934 is merged as13147679688ed866e6fbd9dd06872b6e47cc8f49, tree74c737fd597f2c162bce1052e99f82fb9ca5b256 identical to tested source64f82df59f3fc111e9b253960f0f0c56c5b6113a. All six reviewed migrations are applied and verified. Production deployment dpl_3oGN1APbCX1euszQ3sC7wwQiUbC2 is building. The289-record roster remains unpublished; do not call the full release live yet.
 
 ## Continuation checkpoint
 
-PR [#934](https://github.com/ZeiJM/Aurevane/pull/934) is still draft. All17 other exact-head workflows pass. Browser run [39099555327](https://github.com/ZeiJM/Aurevane/actions/runs/39099555327) first job117592835414 failed only the unchanged World presence animation delta; the exact-head retry job117607870313 is running. Do not merge/deploy/publish until the required run is green and complete Edge checks are observed. The first attempt's archived log records73 focused passes and350 complete-suite passes; no combat failure remains in that attempt.
+PR [#934](https://github.com/ZeiJM/Aurevane/pull/934) is merged after all18 exact-head workflows pass. Browser run [39099555327](https://github.com/ZeiJM/Aurevane/actions/runs/39099555327) first job117592835414 failed only the unchanged World presence animation delta; the unchanged-source retry job117607870313 succeeds with351 full Chromium passes and10 Edge passes. Complete Edge results are observed. Do not reapply completed migrations. The first attempt's archived log records73 focused passes and350 complete-suite passes; no combat failure remains in that attempt.
 
 The execution environment disconnected: shell probes are unresponsive and the cloud browser explicitly returned environment_offline. Connected GitHub/Supabase/Vercel APIs remain available. Remote source64f82df5 is ahead of the inaccessible local C69 checkout by exactly the reviewed Support mode fix and signed Guard expectation. Do not mistake that stale local checkout for the release source, or claim new signed-in hosted gameplay/browser zoom/workbook edits.
 
@@ -38,7 +38,7 @@ The kernel, roster and recommended-kit sources used in that pacing evidence are 
 | Modular readers | 24 native reader contexts. | Does not certify every human reader or actual device. |
 | Five Basic restores | 20 desktop/phone journeys through actual local handler/service/repository/validation/preview/publication; cancel, old publication/history, new immutable version and old captures are checked. | Fixture actors and in-memory persistence do not prove hosted identity. |
 | Controls layout | 12 actual desktop states, zero overflow, complete text, buttons at least44px; authenticated layout workflows pass. | Reduced viewport or page/content scaling does not certify physical browser200%zoom. |
-| Full authenticated browser | Exact-head first attempt: early Owner/movement4, password-reset6, guided-battle3 and focused73 pass (21 intentional skips). Complete624:350 pass,273 intentional skips,1 failure in unchanged World presence interpolation (1.129tile delta; strict<0.75). Unchanged-source retry pending. | Edge was not reached. Do not declare the release gate green yet. |
+| Full authenticated browser | Exact-head first attempt: early Owner/movement4, password-reset6, guided-battle3 and focused73 pass (21 intentional skips). Complete624:350 pass,273 intentional skips,1 failure in unchanged World presence interpolation (1.129tile delta; strict<0.75). Unchanged-source retry succeeds:351 full Chromium and10 Edge passes;73 focused passes. Intentional skips remain273 full,21 focused and2 Edge. | The successful retry reaches Edge; all18 exact-head workflows are green. Three destination-stream-closed messages occur during interrupted Owner authoring journeys which pass; this is not an error-free-log claim. |
 | Atomic cohort rehearsal | Whole prospective catalogue validates against observed policy7; actual local SQL commits289 exact versions, rolls all back on a late injected failure, rejects stale retries and clears current pointers without deleting immutable versions. | Actual local SQL; separate from the physical concurrency and hosted probes. |
 
 Earlier native failures exposed outdated empty-modifier request expectations, an M binding now assigned to Modifiers, a held preview intercept that released independent forecasts, focused-reader ownership assumptions, and old unsigned Guard text. Exact equality, resource/commit assertions and strict overflow checks were retained when correcting those tests.
@@ -48,6 +48,8 @@ The full browser suite also exposed a real Support shortcut regression: canonica
 Two earlier quality attempts timed out in existing extreme-count arithmetic cases; focused unchanged-source runs passed in2.33s and1s. The final head runs all9,195 tests successfully with unchanged timeouts. A prior runner was cancelled without a retrievable final archive. The successful final quality log is retained separately.
 
 ## Coordinated release and receipts
+
+At08:02–08:03UTC, all six reviewed migrations are applied. API-generated history timestamps20261018080242/44/46/48/50/53 are reconciled to the six original source versions using exact new-row metadata CAS; statements and every other column remain unchanged. All ten function bodies/ACLs/search paths match expected metadata; content remains0/0/0, policy7 and Owner unchanged. The security-advisor baseline is unchanged (59 INFO entries and the same three WARN groups). Production build dpl_3oGN1APbCX1euszQ3sC7wwQiUbC2 targets the exact merged source. Publication/Ready/alias/readback/probe receipts remain pending.
 
 RECEIPTS_PENDING.
 
