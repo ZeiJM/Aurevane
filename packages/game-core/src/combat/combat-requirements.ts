@@ -12,7 +12,7 @@ export type RequirementNode =
       readonly kind: 'resource-state'
       readonly subject: AbilityRequirementSubject
       readonly resource: AbilityResource
-      readonly comparison: 'at-most' | 'at-least'
+      readonly comparison: 'at-most' | 'at-least' | 'less-than' | 'more-than'
     } & (
       | { readonly amount: number; readonly basisPoints?: never }
       | { readonly basisPoints: number; readonly amount?: never }
@@ -224,7 +224,7 @@ export function validateAbilityRequirements(value: unknown): readonly AbilityDef
         const absolute = Object.hasOwn(row, 'amount')
         const percentage = Object.hasOwn(row, 'basisPoints')
         if (
-          !['at-most', 'at-least'].includes(row.comparison as string) ||
+          !['at-most', 'at-least', 'less-than', 'more-than'].includes(row.comparison as string) ||
           absolute === percentage ||
           (absolute && !nonnegative(row.amount)) ||
           (percentage && (!nonnegative(row.basisPoints) || row.basisPoints > 10000))
@@ -363,13 +363,12 @@ export function evaluateAbilityRequirements(
     const amount = subject.resources?.[node.resource]
     if (!nonnegative(amount)) return false
     if (node.kind === 'resource-state') {
-      if (node.amount !== undefined)
-        return node.comparison === 'at-most' ? amount <= node.amount : amount >= node.amount
+      if (node.amount !== undefined) return compareResource(amount, node.amount, node.comparison)
       const maximum = subject.maximumResources?.[node.resource]
       if (!nonnegative(maximum) || maximum === 0) return false
       const current = BigInt(amount) * 10000n
       const threshold = BigInt(maximum) * BigInt(node.basisPoints)
-      return node.comparison === 'at-most' ? current <= threshold : current >= threshold
+      return compareResource(current, threshold, node.comparison)
     }
     const previous = subject.previousResources?.[node.resource]
     if (node.kind === 'resource-change') {
@@ -487,4 +486,21 @@ export function hasUnanchoredAutomaticStateRequirement(
     ])
   }
   return witnesses(requirement).has(2)
+}
+
+function compareResource(
+  left: number | bigint,
+  right: number | bigint,
+  comparison: Extract<RequirementNode, { kind: 'resource-state' }>['comparison'],
+): boolean {
+  switch (comparison) {
+    case 'at-most':
+      return left <= right
+    case 'at-least':
+      return left >= right
+    case 'less-than':
+      return left < right
+    case 'more-than':
+      return left > right
+  }
 }

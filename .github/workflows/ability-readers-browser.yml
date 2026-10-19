@@ -9,7 +9,11 @@ on:
       - 'apps/web/scripts/skill-parameter-palette-browser-regression.mjs'
       - 'apps/web/e2e/fixtures/primed-requirement-modules-harness.jsx'
       - 'apps/web/scripts/primed-requirement-modules-browser-regression.mjs'
-      - 'apps/web/src/components/master/combat-content/ability-requirement*.tsx'
+      - 'apps/web/e2e/fixtures/simple-requirements-harness.jsx'
+      - 'apps/web/scripts/browser-simple-requirements*.mjs'
+      - 'apps/web/src/components/master/combat-content/ability-*.tsx'
+      - 'apps/web/src/components/master/combat-content/simple-*.tsx'
+      - 'apps/web/src/components/master/combat-content/skill-effect*.tsx'
       - 'packages/game-core/src/combat/**'
       - '.github/workflows/ability-readers-browser.yml'
   workflow_dispatch:
@@ -40,6 +44,10 @@ jobs:
           python3 scripts/prepare-resonance-modularity.test.py
           python3 scripts/prepare-resonance-modularity-release.test.py
           python3 scripts/prepare-resonance-modularity.py --check
+          python3 scripts/prepare-simple-requirements.test.py
+          python3 scripts/prepare-simple-requirements-release.test.py
+          python3 scripts/prepare-simple-requirements.py --check
+          pnpm --filter @aurevane/game-core exec vitest run --root ../.. scripts/2026-10-19-simple-requirements.test.ts
       - name: Install Chromium
         run: |
           printf '%s\n' 'https://archive.ubuntu.com/ubuntu/' | sudo tee /etc/apt/apt-mirrors.txt >/dev/null
@@ -78,4 +86,15 @@ jobs:
         with:
           name: primed-modules-browser-evidence
           path: /tmp/primed-modules-browser-evidence
+          retention-days: 7
+      - name: Verify simple Requirements and Conditional Cleanse on desktop and mobile
+        env:
+          AV_SIMPLE_REQUIREMENTS_EVIDENCE_DIR: /tmp/simple-requirements-browser-evidence
+        run: pnpm --filter @aurevane/web exec node scripts/browser-simple-requirements-regression.mjs
+      - name: Save simple Requirements browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: simple-requirements-browser-evidence
+          path: /tmp/simple-requirements-browser-evidence
           retention-days: 7

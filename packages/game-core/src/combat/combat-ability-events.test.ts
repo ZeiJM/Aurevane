@@ -1,5 +1,9 @@
 import { createCombatTriggerGuard } from './combat-kernel-types'
-import { commitCombatAbilityCommand, prepareCombatAbilityCommand } from './combat-ability-command'
+import {
+  commitCombatAbilityCommand,
+  prepareCombatAbilityCommand,
+  activateCombatAbilitySources,
+} from './combat-ability-command'
 import type { AbilityBehavior } from './combat-definition'
 import type { CombatEncounterState } from './actions'
 import { captureCombatAbilitySource } from './combat-behavior-capture'
@@ -691,3 +695,234 @@ it('keeps parent selected trigger Requirements separate from child Self effect g
   expect(actor.mp).toBe(19)
   expect(child.state.tactical.battle.combatants.find((unit) => unit.id === 'enemy')!.hp).toBe(400)
 })
+
+it('dispatches Simple after-action on its actual owner frame while retaining a null stored Requirement', () => {
+  const base = stateAuto(null).captured
+  const captured = captureCombatAbilitySource({
+    ...base,
+    definition: {
+      ...base.definition,
+      behaviors: [
+        {
+          ...base.definition.behaviors[0]!,
+          requirementMode: 'simple',
+          automaticTrigger: 'after-action',
+        },
+      ],
+    },
+  })
+  const state = reconcileCombatAbilitySources(percentageDotEncounter(), [captured])
+  const context = combatAbilityCommandContext(state, captured)
+  const session = createCombatAbilityEventSession(context.triggerGuard)
+  const calls: string[] = []
+  for (const triggeringCombatantId of ['enemy', 'actor', 'actor']) {
+    const mutation = captureCombatAbilityMutation(state, state, 'action', session, {
+      events: [{ type: 'combat_action_used', phase: 'after' }],
+      triggeringCombatantId,
+      selectedCombatantId: 'enemy',
+      affectedCombatantIds: [],
+      resourceMutations: [],
+    })
+    processCombatAbilityEvent(
+      mutation.state,
+      mutation.frame,
+      PV1F_COMBAT_CONTENT,
+      context,
+      session,
+      0,
+      (input) => {
+        calls.push(input.trigger!.triggeringCombatantId!)
+        expect(
+          input.root.kind === 'canonical' &&
+            input.root.source.definition.behaviors[0]!.requirements,
+        ).toBeNull()
+        return { state: input.state, events: [] }
+      },
+    )
+  }
+  expect(calls).toEqual(['actor', 'actor'])
+})
+
+it('Simple None fires only on genuine fresh-source activation and Simple owner state fires on entry', () => {
+  for (const requirements of [
+    null,
+    {
+      kind: 'resource-state',
+      subject: 'owner',
+      resource: 'hp',
+      comparison: 'less-than',
+      basisPoints: 5000,
+    },
+  ] as const) {
+    const base = stateAuto(null).captured
+    const captured = captureCombatAbilitySource({
+      ...base,
+      definition: {
+        ...base.definition,
+        behaviors: [{ ...base.definition.behaviors[0]!, requirementMode: 'simple', requirements }],
+      },
+    })
+    let state = reconcileCombatAbilitySources(percentageDotEncounter(), [captured])
+    const context = combatAbilityCommandContext(state, captured)
+    const session = createCombatAbilityEventSession(context.triggerGuard)
+    let count = 0
+    const apply = (mutation: ReturnType<typeof captureCombatAbilityMutation>) => {
+      const result = processCombatAbilityEvent(
+        mutation.state,
+        mutation.frame,
+        PV1F_COMBAT_CONTENT,
+        context,
+        session,
+        0,
+        (input) => {
+          count++
+          return { state: input.state, events: [] }
+        },
+      )
+      state = result.state
+    }
+    const facts = { events: [], affectedCombatantIds: [], resourceMutations: [] }
+    apply(captureCombatAbilityMutation(state, state, 'read', session, facts))
+    expect(count).toBe(0)
+    if (requirements === null) {
+      apply(
+        captureCombatAbilityMutation(percentageDotEncounter(), state, 'fresh', session, facts, {
+          newlyActivatedSourceIds: [captured.sourceInstanceId],
+        }),
+      )
+      expect(count).toBe(1)
+      apply(captureCombatAbilityMutation(state, state, 'held', session, facts))
+      expect(count).toBe(1)
+    } else {
+      for (const amount of [500, 400, 400, 600, 400])
+        apply(captureCombatAbilityMutation(state, hp(state, amount), 'state', session, facts))
+      expect(count).toBe(2)
+    }
+    const restored = JSON.parse(JSON.stringify(state)) as CombatEncounterState
+    apply(captureCombatAbilityMutation(restored, restored, 'restore', session, facts))
+    expect(count).toBe(requirements === null ? 1 : 2)
+  }
+})
+
+it('Simple execution metadata retains parent condition snapshots while child effect gates use child geometry', () => {
+  const original = stateAuto(null).captured
+  const captured = captureCombatAbilitySource({
+    ...original,
+    definition: {
+      schemaVersion: 1,
+      behaviors: [
+        {
+          ...original.definition.behaviors[0]!,
+          requirementMode: 'simple',
+          automaticTrigger: 'after-action',
+          costs: [{ resource: 'mp', amount: 1 }],
+          requirements: {
+            kind: 'resource-state',
+            subject: 'selected',
+            resource: 'hp',
+            comparison: 'less-than',
+            basisPoints: 5000,
+          },
+          effects: [
+            {
+              id: 'heal',
+              requirements: {
+                kind: 'resource-state',
+                subject: 'selected',
+                resource: 'hp',
+                comparison: 'more-than',
+                basisPoints: 7000,
+              },
+              payload: { type: 'healing', recipient: 'actor', amount: 1 },
+            },
+          ],
+        },
+      ],
+    },
+  })
+  const changeEnemyHp = (state: CombatEncounterState, amount: number): CombatEncounterState => ({
+    ...state,
+    tactical: {
+      ...state.tactical,
+      battle: {
+        ...state.tactical.battle,
+        combatants: state.tactical.battle.combatants.map((unit) =>
+          unit.id === 'enemy' ? { ...unit, hp: amount } : unit,
+        ),
+      },
+    },
+  })
+  const state = reconcileCombatAbilitySources(
+    changeEnemyHp(hp(percentageDotEncounter(), 800), 400),
+    [captured],
+  )
+  const context = combatAbilityCommandContext(state, captured)
+  const session = createCombatAbilityEventSession(context.triggerGuard)
+  const mutation = captureCombatAbilityMutation(state, state, 'simple-parent', session, {
+    events: [{ type: 'combat_action_used', phase: 'after' }],
+    triggeringCombatantId: 'actor',
+    selectedCombatantId: 'enemy',
+    affectedCombatantIds: [],
+    resourceMutations: [],
+  })
+  const child = processCombatAbilityEvent(
+    changeEnemyHp(mutation.state, 900),
+    mutation.frame,
+    PV1F_COMBAT_CONTENT,
+    context,
+    session,
+    0,
+    commitCombatAbilityCommand,
+  )
+  expect(child.events).toContainEqual(
+    expect.objectContaining({ event: 'healing_applied', targetCombatantId: 'actor', amount: 1 }),
+  )
+  expect(child.state.tactical.battle.combatants.find((unit) => unit.id === 'actor')).toMatchObject({
+    hp: 801,
+    mp: 19,
+  })
+})
+
+it.each(['self', 'unit'] as const)(
+  'Simple None genuinely activates once with an owner binding on %s Self geometry',
+  (kind) => {
+    const base = stateAuto(null).captured
+    const original = base.definition.behaviors[0]!
+    const captured = captureCombatAbilitySource({
+      ...base,
+      definition: {
+        schemaVersion: 1,
+        behaviors: [
+          {
+            ...original,
+            requirementMode: 'simple',
+            automaticTarget: { subject: 'owner' },
+            targeting: { ...original.targeting!, geometryVersion: 3, categories: ['self'], kind },
+          },
+        ],
+      },
+    })
+    const activated = activateCombatAbilitySources(
+      hp(percentageDotEncounter(), 500),
+      [captured],
+      PV1F_COMBAT_CONTENT,
+    )
+    expect(activated.events.filter((event) => event.event === 'healing_applied')).toHaveLength(1)
+    expect(activated.state.tactical.battle.combatants.find((unit) => unit.id === 'actor')!.hp).toBe(
+      501,
+    )
+    const restored = activateCombatAbilitySources(activated.state, [captured], PV1F_COMBAT_CONTENT)
+    expect(restored.events.filter((event) => event.event === 'healing_applied')).toHaveLength(0)
+    expect(() =>
+      captureCombatAbilitySource({
+        ...base,
+        definition: {
+          schemaVersion: 1,
+          behaviors: [
+            { ...captured.definition.behaviors[0]!, automaticTarget: { subject: 'selected' } },
+          ],
+        },
+      }),
+    ).toThrow()
+  },
+)

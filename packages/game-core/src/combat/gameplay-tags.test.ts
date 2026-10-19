@@ -8,6 +8,7 @@ import {
 } from './actions'
 import {
   combatActionPresentationTags,
+  combatEffectPresentationTags,
   combatantGameplayTags,
   combatStatusPresentationTag,
 } from './gameplay-tags'
@@ -189,4 +190,20 @@ describe('current effect-state gameplay tags', () => {
 
     expect(tags).toEqual(expect.arrayContaining(['Scorched', 'Bleeding', 'Poisoned']))
   })
+})
+
+it.each([
+  [['burn', 'wet'], 'Conditional Cleanse'],
+  [['burn', 'guarded'], 'Conditional Cleanse'],
+  [['mark'], 'Conditional Cleanse'],
+  [['covert', 'guarded'], 'Dispel'],
+])('labels specified removal of %j as %s', (statusIds, label) => {
+  expect(
+    combatEffectPresentationTags({
+      type: 'remove-status',
+      recipient: 'actor',
+      statusIds,
+      removalMode: 'specified',
+    }),
+  ).toEqual([label])
 })

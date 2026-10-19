@@ -29,6 +29,30 @@ function depth(count: number): RequirementNode {
 }
 
 describe('Ability Requirements', () => {
+  it.each(['less-than', 'more-than'] as const)(
+    'strict %s percentage excludes equality and compares exact ratios',
+    (comparison) => {
+      const node = {
+        kind: 'resource-state',
+        subject: 'owner',
+        resource: 'hp',
+        comparison,
+        basisPoints: 5000,
+      } as RequirementNode
+      expect(validateAbilityRequirements(node)).toEqual([])
+      const at = (hp: number, maximum = 100) =>
+        evaluateAbilityRequirements(node, {
+          owner: { resources: { hp }, maximumResources: { hp: maximum } },
+        })
+      expect(at(50)).toBe(false)
+      expect(at(49)).toBe(comparison === 'less-than')
+      expect(at(51)).toBe(comparison === 'more-than')
+      expect(at(1, 0)).toBe(false)
+      expect(evaluateAbilityRequirements(node, { owner: { resources: { hp: 1 } } })).toBe(false)
+      expect(at(4503599627370495, 9007199254740991)).toBe(comparison === 'less-than')
+    },
+  )
+
   it('cannot synthesize a resource crossing from preview snapshots and an event label', () => {
     expect(
       evaluateAbilityRequirements(

@@ -105,7 +105,7 @@ it('captures the explicit removal mode without rewriting historical definitions'
   expect(
     JSON.parse(JSON.stringify(captured)).definition.behaviors[0].effects[0].payload,
   ).toMatchObject({ removalMode: 'specified', statusIds: ['mark'] })
-  expect(combatEffectPresentationTags(removal('specified'))).toEqual(['Remove Status'])
+  expect(combatEffectPresentationTags(removal('specified'))).toEqual(['Conditional Cleanse'])
   expect(combatEffectPresentationTags(removal())).toEqual(['Cleanse'])
 })
 it.each(['all', 'anything', null, 7, []].map((mode) => ({ mode })))(
