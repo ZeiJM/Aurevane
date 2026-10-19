@@ -23,9 +23,9 @@
     "packages/game-core/src/combat/modular-correction-interactions.test.ts": "a562bd376b0e9bcc2ed2ffa23d9f4ee74843a2c6"
   },
   "limitations": [
-    "Native browser unavailable locally; exact-source CI pending",
-    "No hosted changes or deployment",
-    "Deferred Minor: attached Move regression start and reached tile share a facing sector; runtime uses reached placements"
+    "Human gameplay acceptance remains open.",
+    "Signed-in hosted battle acceptance was not performed.",
+    "Deferred Minor: attached Move regression start and reached tile share a facing sector; runtime uses reached placements."
   ],
   "priorFailure": "First full gate found a test-only broad-union recipient map type error; explicit apply-status/damage test payloads repaired it before final successful gate.",
   "review": {
@@ -39,5 +39,6 @@
     "passed": 242,
     "exit": 0
   },
-  "integrationFailure": "First combined full gate passed all checks except build, which failed opening Turbopack persistence with invalid digit found in string. Quarantining only the generated cache and repeating the full gate passed without product changes."
+  "integrationFailure": "First combined full gate passed all checks except build, which failed opening Turbopack persistence with invalid digit found in string. Quarantining only the generated cache and repeating the full gate passed without product changes.",
+  "releaseReceipt": "release.json"
 }
