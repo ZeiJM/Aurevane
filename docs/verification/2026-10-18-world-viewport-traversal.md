@@ -1,6 +1,18 @@
 # World viewport rendering and public-ground traversal — October 18
 
-Status: #937 is live, but Owner acceptance remains OPEN. After release the Owner reports missing Emberreach scenery and a pause when changing direction with click-to-move. The follow-up below is not yet released.
+Status: the follow-up is **LIVE for testing** through PR #940. Owner gameplay acceptance remains OPEN. Earlier pending entries below are historical checkpoints.
+
+## Follow-up #940 release receipt
+
+PR #940 merges as `938a2d79f04a14dc1529cbbafd9ffde460e908ba`. Its tree `d5e1c259853bdece0a44ded2962055080f3a3ad3` exactly matches tested candidate `76728577167d4b396afcd02447dcb16749d671e9`, including current main `16838f0cb1fb23ea791f3e5734b1f90c9fd64532` / skill-display release #939. The final fresh-main gate has no additional changes or conflicts.
+
+All three exact-head workflows pass: CI 39180963164, Living Atlas 39180963303 and Browser 39180963259. Local frozen full quality exits zero, matching CI's 10,250 Vitest plus seven Node checks, formatting, lint, generated routes/types and production builds. Atlas passes 55 cases with 86 documented project skips. Full Browser passes 357 Chromium cases with 279 skips, 73 focused cases with 21 skips and 10 Edge cases with two skips; early publication/recovery/training groups also pass 4, 6 and 3 cases. Both complete native pointer-turn scenarios pass again within the full suite.
+
+All four combined-source Emberreach normal/minimum-zoom captures are visually inspected: surrounding land is supplied; the minimum-zoom water edge is coherent. Artifact 12156890808 verifies as SHA256 `605d027338857f4e7a274d2c127b0435736bf7b24e68e480c5b1bbd3c9301357` (208,624,066 bytes). Its synthetic high-DPI/lower-CPU phone sample records a warmed frame p95 of 16 ms with 101 players and 103 scenery sectors (initial 69 ms). This is a bounded synthetic observation, not hosted load or frame-rate acceptance.
+
+Production `dpl_GZAAdd7nfLgq2DnHi9Lav44SRpKz` is READY at `2026-10-19T02:01:55.217Z` (October 18, 22:01:55 Trinidad), built explicitly from the merged SHA. The canonical `aurevane.vercel.app` alias points to this deployment. Public root and World fetches return HTTP 200 at the AUREVANE account gateway; they do not establish authenticated World gameplay. The initial deployment-scoped 10-minute warning/error/fatal scan returns no logs. The prior live skill-display deployment `dpl_Gj8Q7fmefH8zrgNyNfqTEbNmCwDV` remains the immediate release rollback reference; preserve any newer legitimate release when evaluating rollback.
+
+Hosted browser observations remain blocked by credential protection after the permitted fresh-document recovery. No bypass is attempted and no signed-in live click-turn, physical-phone, multiplayer-load or human acceptance is claimed. Hard-refresh before testing the new bundle. The Online Users badge placement beneath Welcome back on desktop/mobile, previously verified with #937, is retained. No migration or content publication is needed. Server authority, private discovery, canonical collision, authored speed and the 600 ms unconfirmed preview bound remain unchanged. Git auto deployments stay locked. This release does not close a phase.
 
 ## Release #937 and residual report
 
