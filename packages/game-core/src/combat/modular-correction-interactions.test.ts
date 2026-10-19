@@ -10,7 +10,7 @@ import {
   cancelCombatControlledAbility,
   combatControlledAbilityAvailability,
 } from './combat-behavior-runtime'
-import { commitCombatAbilityCommand } from './combat-ability-command'
+import { commitCombatAbilityCommand, prepareCombatAbilityCommand } from './combat-ability-command'
 import { parseCombatEffectTimingPolicy } from './combat-effect-timing'
 import { percentageDotEncounter } from './combat-percentage-dots.test-utils'
 import {
@@ -223,3 +223,48 @@ it('copies the real enemy Blindside through Copy Debuffs without turning it into
     expect.objectContaining({ statusId: 'blindside-vulnerability' }),
   )
 })
+
+it.each([
+  ['west', false],
+  ['north', true],
+  ['east', true],
+] as const)(
+  'real Flanking Cut applies Blindside only from a side or rear (%s)',
+  (facing, granted) => {
+    const skill = capture('edgedancer.flanking-cut')
+    const initial = ready([skill])
+    const state = {
+      ...initial,
+      blindsideActivationPolicyVersion: 1 as const,
+      tactical: {
+        ...initial.tactical,
+        placements: initial.tactical.placements.map((row) =>
+          row.combatantId === 'actor'
+            ? { ...row, position: { x: 0, y: 1 } }
+            : row.combatantId === 'enemy'
+              ? { ...row, facing }
+              : row,
+        ),
+      },
+    }
+    const input = {
+      ...command(state, skill, { kind: 'tile', position: { x: 2, y: 1 } }),
+      movementPath: [
+        { x: 0, y: 1 },
+        { x: 1, y: 1 },
+      ],
+    }
+    const prepared = prepareCombatAbilityCommand(input)
+    expect(prepared.evaluation.legal).toBe(true)
+    const out = commitCombatAbilityCommand(input)
+    expect(
+      out.state.tactical.placements.find((row) => row.combatantId === 'actor')!.position,
+    ).toEqual({ x: 1, y: 1 })
+    expect(out.events.some((event) => event.event === 'damage_applied')).toBe(true)
+    expect(
+      out.state.statusState
+        .find((row) => row.combatantId === 'enemy')!
+        .statuses.some((status) => status.statusId === 'blindside-vulnerability'),
+    ).toBe(granted)
+  },
+)

@@ -3839,6 +3839,47 @@ function resolveActionEffects(
           )
         }),
     )
+  function hasQualifyingBlindsideHit(
+    effect: Extract<CombatEffectDefinition, { type: 'apply-status' }>,
+    recipientId?: string,
+  ): boolean {
+    return action.effects.some(
+      (hit, hitOrdinal) =>
+        hit.type === 'damage' &&
+        hit.amount > 0 &&
+        resolveEffectRecipients(
+          actorId,
+          primaryCombatantId,
+          affectedCombatantIds,
+          hit.recipient,
+        ).some((targetId) => {
+          if (
+            (recipientId !== undefined && targetId !== recipientId) ||
+            (action.effectEligibleRecipientIds?.[hitOrdinal] !== undefined &&
+              !action.effectEligibleRecipientIds[hitOrdinal]!.includes(targetId)) ||
+            targetId === actorId ||
+            missedCombatantIds?.has(targetId) ||
+            resistedEffectOrdinalsByTarget?.get(targetId)?.has(hitOrdinal) ||
+            airborneGroundMiss(nextState, action, targetId, content)
+          )
+            return false
+          const actor = getCombatant(nextState.tactical.battle, actorId)
+          const target = getCombatant(nextState.tactical.battle, targetId)
+          if (target.hp <= 0 || actor.teamId === target.teamId) return false
+          const source = getPlacement(nextState.tactical, actorId)
+          const placement = getPlacement(nextState.tactical, targetId)
+          const relation = classifyFacingRelation(
+            placement.position,
+            placement.facing,
+            source.position,
+          )
+          return (
+            relation !== 'front' &&
+            (effect.blindsideModifiersBasisPoints ?? DEFAULT_BLINDSIDE_MODIFIERS)[relation] > 10000
+          )
+        }),
+    )
+  }
   for (const [effectOrdinal, effect] of action.effects.entries()) {
     if (
       !secondaryHealingHasHit &&
@@ -3884,40 +3925,7 @@ function resolveActionEffects(
         effect.type === 'apply-status' &&
         effect.statusId === 'blindside' &&
         effect.recipient === 'actor' &&
-        !action.effects.some(
-          (hit, hitOrdinal) =>
-            hit.type === 'damage' &&
-            hit.amount > 0 &&
-            resolveEffectRecipients(
-              actorId,
-              primaryCombatantId,
-              affectedCombatantIds,
-              hit.recipient,
-            ).some((targetId) => {
-              if (
-                targetId === actorId ||
-                missedCombatantIds?.has(targetId) ||
-                resistedEffectOrdinalsByTarget?.get(targetId)?.has(hitOrdinal) ||
-                airborneGroundMiss(nextState, action, targetId, content)
-              )
-                return false
-              const actor = getCombatant(nextState.tactical.battle, actorId)
-              const target = getCombatant(nextState.tactical.battle, targetId)
-              if (target.hp <= 0 || actor.teamId === target.teamId) return false
-              const source = getPlacement(nextState.tactical, actorId)
-              const placement = getPlacement(nextState.tactical, targetId)
-              const relation = classifyFacingRelation(
-                placement.position,
-                placement.facing,
-                source.position,
-              )
-              return (
-                relation !== 'front' &&
-                (effect.blindsideModifiersBasisPoints ?? DEFAULT_BLINDSIDE_MODIFIERS)[relation] >
-                  10000
-              )
-            }),
-        )
+        !hasQualifyingBlindsideHit(effect)
       )
         continue
       // Only overlapping identities defer to positive damage settlement; unrelated authored
@@ -3935,6 +3943,13 @@ function resolveActionEffects(
         (recipientId) =>
           (action.effectEligibleRecipientIds?.[effectOrdinal] === undefined ||
             action.effectEligibleRecipientIds[effectOrdinal]!.includes(recipientId)) &&
+          !(
+            !resolvingPending &&
+            state.blindsideActivationPolicyVersion === 1 &&
+            effect.type === 'apply-status' &&
+            effect.statusId === BLINDSIDE_DEBUFF_STATUS_ID &&
+            !hasQualifyingBlindsideHit(effect, recipientId)
+          ) &&
           !(
             state.elementalDamagePolicyVersion !== undefined &&
             effect.type === 'apply-status' &&
