@@ -1,6 +1,11 @@
 # Resonance requirements and programmed Barrier lifetimes
 
-Status: implemented; release verification and publication pending. No live claim.
+Status: **LIVE for testing** at https://aurevane.vercel.app. Tested PR #948 head
+`86500e189ffdd00428f45e2f63ce666bafb3ad2f` is integrated by merge commit
+`b174339574f45ea8cf81ce75ed0aca3daae33701`, with identical tested tree
+`1d4d6e2d214f2fa043b6c45c4a9113b2ac444532`. Production
+`dpl_FBGiA9CA4eS27e5ZnckmLKy86KJJ` is READY since 2026-10-19T13:41:53.097Z
+(09:41:53 Trinidad). Canonical alias/source are verified. The application deployed before publication.
 
 ## Scope
 
@@ -74,7 +79,38 @@ bound publication, both readbacks, rollback and atomic rejection scenarios.
 The focused production-component browser fixture checks desktop/mobile PvE/PvP amber PRI parity,
 owner/opponent/spectator privacy, popovers, native prime/cancel, and saved MP-threshold eligibility.
 Local fixture compilation passes; local Chromium installation returned truncated archives, so the
-actual browser assertions run in the native CI Chromium job. Hosted signed-in/human acceptance is
+actual browser assertions passed in the native CI Chromium job. Hosted signed-in/human acceptance is
 not substituted by a local fixture.
 
-Release receipt, exact final checks and deployment/readback will be appended after execution.
+## Final release evidence
+
+All 14 exact-head workflows pass. Full local and native CI quality pass 11,591 Vitest plus 7 Node
+tests, formatting, lint, package types and production builds. Native SQL passes all 6 release-control
+cases. Browser smoke passes 358 full Chromium cases (278 documented skips), 73 focused cases
+(21 skips), and 10 Edge cases (2 skips). Other native jobs pass 57 Controlled cases, the new 6-case
+Primed/modules desktop/mobile matrix, 49 Desktop cases, 110 UI cases, 8 PageFit cases and 24 Buildcraft
+cases, with their documented project skips. Desktop and mobile Master/rail captures were inspected.
+
+One unchanged-source CI retry resolved an existing October 18 PGlite test exceeding 120,000 ms
+without an assertion failure. The complete retry passed without changing source, assertions or
+timeouts. The full browser run completed successfully after approximately 87 minutes; no browser
+retry or scenario removal was needed. The merge API transport timed out after integrating the
+commit. Fresh branch ref, exact parents/tree and local git fetch confirmed integration; the remaining
+open PR metadata was closed without repeating the merge. Its merged flag remains false and is not
+used as source verification.
+
+Fresh hosted inventory matched all 294 baseline definitions, 719 history rows, zero drafts and
+policy 8 before binding the actual enabled Owner identity. Atomic publication appended exactly
+68 definitions. Independent readback matches all 294 current definitions and 226 untouched records,
+retains all prior versions, has 787 history rows, zero drafts and unchanged policy 8. Current and
+history hashes match the publication receipt; all mismatch counts are zero. No migration was needed.
+
+The canonical source and six public/account-entry paths return 200. The initial deployment-scoped
+warning/error/fatal scan is empty. Account gateways do not establish hosted signed-in acceptance.
+Refresh and start a new battle for the newly published definitions. Historical captures keep their
+rules; existing untimed Barrier pools cannot receive invented elapsed clocks. Human movement,
+physical-device, multiplayer/load acceptance, broader Master Task 8 and phase closure remain open.
+Git auto deployments stay locked.
+
+Exact source, manifests, SQL hashes, workflow IDs, publication/readback and limits are preserved in
+the [machine receipt](release-assets/2026-10-19-resonance-modularity-release-receipt.json).
