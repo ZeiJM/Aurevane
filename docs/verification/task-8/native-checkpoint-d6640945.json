@@ -1,0 +1,75 @@
+{
+  "source": "d6640945adfb877f94ca18c79c136c18d6a9a466",
+  "tree": "99edce95b7a20f75f3df1ba31f387f58dcc06613",
+  "localEquivalent": "07c354688ef61b3ef096e63409425993a55fff7c",
+  "workflows": [
+    {
+      "id": 39199323597,
+      "name": "Representative Buildcraft",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 39199323582,
+      "name": "CI",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 39199323539,
+      "name": "Wayfarer's Practice DB",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 39199323651,
+      "name": "Foundation Security DB",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 39199323502,
+      "name": "Attribute Allocation",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 39199323431,
+      "name": "Battle Session DB",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 39199323530,
+      "name": "Discipline Build DB",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 39199323596,
+      "name": "Browser smoke",
+      "status": "completed",
+      "conclusion": "failure"
+    }
+  ],
+  "databaseJob": 117888820176,
+  "qualityJob": 117888820478,
+  "quality": {
+    "vitestTests": 10279,
+    "nodeTests": 7,
+    "typeTasks": 8,
+    "builds": 2
+  },
+  "browser": {
+    "job": 117888820623,
+    "staffFailures": 2,
+    "earlyOtherPasses": 4,
+    "totalTimeoutMs": 180000,
+    "observed": "Initial heading focus and linked selection pass. Both error snapshots show checked Content Staff, Duration No Expiry, no Days control, confirmation unchecked and Save disabled.",
+    "diagnosis": "Pinned Playwright internal label text includes nested SELECT/OPTION content. Exact label Duration does not match DurationNo ExpiryNumber of days. The accessible combobox name remains Duration.",
+    "secondaryError": "Trace ZIP central directory truncated; no usable Staff trace or Staff layout screenshots.",
+    "diagnosticsArtifact": 12163638246,
+    "evidenceArtifact": 12163792613
+  },
+  "disposition": "Staff whole/UI native acceptance OPEN. Backend actor contract accepted from successful native authority and quality evidence for independent Players backend only. No merge/hosted mutation/deployment."
+}

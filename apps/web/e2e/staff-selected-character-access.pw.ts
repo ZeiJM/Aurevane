@@ -80,7 +80,12 @@ test('selected-character Staff & Access keeps authority, UTC duration, focus and
       .getByLabel('Linked character · choose exactly one')
       .selectOption({ label: `Aurelia ${suffix}` })
     await page.getByLabel('Content Staff').check()
-    await page.getByLabel('Duration', { exact: true }).selectOption('days')
+    // The wrapping label includes option text; match the control's accessible name.
+    const duration = page.getByRole('combobox', { name: 'Duration', exact: true })
+    await expect(duration).toHaveValue('none')
+    await duration.selectOption('days')
+    await expect(duration).toHaveValue('days')
+    await expect(page.getByRole('spinbutton', { name: 'Days', exact: true })).toBeVisible()
     for (const invalid of ['0', '-1', '0.5', '1000000000', '']) {
       await page.getByLabel('Days', { exact: true }).fill(invalid)
       await expect(page.getByRole('button', { name: 'Save character access' })).toBeDisabled()
