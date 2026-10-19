@@ -1,6 +1,13 @@
-# Barrier programmed lifetime — local verification, 19 October 2026
+# Barrier programmed lifetime — verification, 19 October 2026
 
-Status: local source only, isolated branch `agent/barrier-duration-20261019`, base `f65f9b1560f5e31406f2c9b4f65b432c7bd752a6`. No publication, migration, deployment, or hosted write. The integrating owner retains the full quality/review/release gates and catalogue corrections.
+Integration status: **LIVE for testing**, 2026-10-19T13:41:53.097Z, through source
+`b174339574f45ea8cf81ce75ed0aca3daae33701` and production `dpl_FBGiA9CA4eS27e5ZnckmLKy86KJJ`.
+All 45 current Barrier definitions (46 payloads) now explicitly author two turns, editable in Master.
+Full quality/browser checks and exact publication/readback pass. See the authoritative
+[integrated release](2026-10-19-resonance-modularity.md). Start a new battle; historical untimed pools
+keep their captured rules. The isolated checkpoint evidence below records the earlier implementation.
+
+Status at isolated checkpoint: local source only, isolated branch `agent/barrier-duration-20261019`, base `f65f9b1560f5e31406f2c9b4f65b432c7bd752a6`. No publication, migration, deployment, or hosted write had occurred at that checkpoint.
 
 ## Defect and boundary
 
@@ -37,4 +44,4 @@ During expansion, the mixed historical-pool test exposed that the shared applica
 
 ## Compatibility and integration limits
 
-This change supplies the generic lifetime path. It does not rewrite any published definition or assign durations to historical captures. The current source-published catalogue's Barrier payloads omit duration, so the integrating correction must publish explicitly authored duration-bearing versions before newly created encounters receive programmed expiry. There is no runtime lookup of old flat Guarded effects, per-Skill timer table, or retroactive default. Full repository/browser/hosted gates remain the integrating owner's responsibility.
+This change supplies the generic lifetime path. It does not rewrite any published definition or assign durations to historical captures. At the isolated checkpoint the source-published catalogue's Barrier payloads omitted duration; the integrated release above subsequently published explicit duration-bearing versions for new encounters. There is no runtime lookup of old flat Guarded effects, per-Skill timer table, or retroactive default. Full release evidence is recorded in the integrated report above.
