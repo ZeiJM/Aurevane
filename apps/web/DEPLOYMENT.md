@@ -1,5 +1,10 @@
 # Web deployment note
 
+## Combined owner fixes and identity catalogue — live for testing October19
+
+Production `dpl_qrA2tsAzbmKELLwDFyk4h3s9vLiK` is READY since06:47:42.438UTC from PR#946 merge `2ace05d9684a3cef9f35c527db93c834ee4d50ec`, identical tested tree `c636324c2f4323ee0c3627878dc4012230582418`. All17 exact-head workflows and full local quality pass. World migration20261019035553 is applied;136identity versions are published with exact readback,158untouched definitions and719retained history rows. Six public/account-gateway responses and initial warning/error/fatal logs pass. Refresh/start a new battle. Git auto deployments stay locked; this receipt-only update does not redeploy. [Full release receipt](../../docs/verification/2026-10-19-combined-owner-release.md).
+
+
 ## Combat/auth reconstruction — released for testing 2026-10-08
 
 Owner-authorized PR #849 merged as `45686c7eb84ab864e49ccff4dfbbd97478b5ddeb`, with tree `d80b486b86ef317d12ba6ac8fde4c0d1cd598a60` identical to final candidate `7d33bd6bd1ab5ca0368bba2a06bc7cda018de481`. All 17 exact-head workflows pass. Full local quality passes 4,401 Vitest tests and seven Node checks, format/lint/eight-package types/build; the production audit reports no known vulnerabilities. Browser smoke passes four Master/WASD, six real-mail recovery, three training, 73 focused, 322 full Chromium and ten Edge checks. Existing project-specific skips remain documented separately.

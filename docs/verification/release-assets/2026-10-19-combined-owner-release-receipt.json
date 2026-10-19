@@ -1,0 +1,293 @@
+{
+  "schemaVersion": 1,
+  "status": "live-for-testing",
+  "verifiedAt": "2026-10-19T06:51:37.071Z",
+  "source": {
+    "pr": 946,
+    "accountPr": 943,
+    "head": "1f6a902f10c2e4b5d4eeedd5696273a6e20a466a",
+    "merge": "2ace05d9684a3cef9f35c527db93c834ee4d50ec",
+    "tree": "c636324c2f4323ee0c3627878dc4012230582418"
+  },
+  "production": {
+    "id": "dpl_qrA2tsAzbmKELLwDFyk4h3s9vLiK",
+    "url": "https://aurevane.vercel.app",
+    "state": "READY",
+    "readyAt": "2026-10-19T06:47:42.438Z",
+    "source": "2ace05d9684a3cef9f35c527db93c834ee4d50ec"
+  },
+  "catalogue": {
+    "manifestSha256": "d74c7e65bdf8b73560b5d890ba08c776b1a523c300fe3810e88013195a8892f1",
+    "publicationSqlSha256": "455c586a23b9c4952c550027381382fd388caae05e3d448b8e249598040f085f",
+    "readbackSqlSha256": "d9819ad35bb1ec8d33b53716f4cf11742a854fb61ca56b189b3b5526760355a7",
+    "publishedAtBy": "2026-10-19T06:49:52Z",
+    "receipt": {
+      "token": "b9e9de97f4b8809274866293f09864aa",
+      "drafts": 0,
+      "policy": {
+        "modes": {
+          "summon": "instant",
+          "displace": "instant",
+          "mp-drain": "instant",
+          "blindside": "instant",
+          "remove-status": "instant",
+          "barrier-change": "instant",
+          "return-to-turn-start": "controlled"
+        },
+        "version": 8,
+        "tagAuthority": "global"
+      },
+      "current": 294,
+      "history": 719,
+      "compatibleSourceSha": "2ace05d9684a3cef9f35c527db93c834ee4d50ec"
+    },
+    "readback": {
+      "token": "b9e9de97f4b8809274866293f09864aa",
+      "drafts": 0,
+      "policy": {
+        "modes": {
+          "summon": "instant",
+          "displace": "instant",
+          "mp-drain": "instant",
+          "blindside": "instant",
+          "remove-status": "instant",
+          "barrier-change": "instant",
+          "return-to-turn-start": "controlled"
+        },
+        "version": 8,
+        "tagAuthority": "global"
+      },
+      "current": 294,
+      "history": 719,
+      "expected": 136,
+      "untouched": 158,
+      "mismatches": [],
+      "exact_current": 136,
+      "exact_untouched": 158,
+      "old_history_retained": 136
+    },
+    "changes": {
+      "resonances": 131,
+      "essences": 5,
+      "retainedReviewed": 17,
+      "untouchedAll": 158
+    }
+  },
+  "migration": {
+    "version": "20261019035553",
+    "name": "world_state_fast_compression",
+    "compression": "lz4",
+    "authorityFunctionHashesPreserved": 21,
+    "privateRlsAndTableAclPreserved": true,
+    "bulkHistoryRewrite": false,
+    "historyNormalization": {
+      "toolGenerated": "20261019064458",
+      "statementDigest": "e3433ebf50525f8479781c4a7848c778",
+      "exactSourceVerified": true,
+      "compareAndSwapRepair": true
+    }
+  },
+  "validation": {
+    "vitest": 11098,
+    "node": 7,
+    "worldPgTap": 41,
+    "socialPgTap": 71,
+    "fullChromium": {
+      "passed": 358,
+      "skipped": 278
+    },
+    "focusedBrowser": {
+      "passed": 73,
+      "skipped": 21
+    },
+    "edge": {
+      "passed": 10,
+      "skipped": 2
+    },
+    "atlas": {
+      "passed": 55,
+      "skipped": 86
+    },
+    "desktop": {
+      "passed": 49,
+      "skipped": 26
+    },
+    "ui": {
+      "passed": 110,
+      "skipped": 61
+    },
+    "pageFit": {
+      "passed": 8,
+      "skipped": 7
+    },
+    "fullLocalQuality": "passed",
+    "finalReviews": "No remaining Critical or Important findings",
+    "workflows": [
+      {
+        "name": "Living Atlas browser",
+        "runId": 39204799561,
+        "conclusion": "success"
+      },
+      {
+        "name": "Desktop experience",
+        "runId": 39204799564,
+        "conclusion": "success"
+      },
+      {
+        "name": "Representative Buildcraft",
+        "runId": 39204799631,
+        "conclusion": "success"
+      },
+      {
+        "name": "CI",
+        "runId": 39204799609,
+        "conclusion": "success"
+      },
+      {
+        "name": "Skill Engine",
+        "runId": 39204799629,
+        "conclusion": "success"
+      },
+      {
+        "name": "Modular ability readers browser",
+        "runId": 39204799622,
+        "conclusion": "success"
+      },
+      {
+        "name": "Essence Build",
+        "runId": 39204799700,
+        "conclusion": "success"
+      },
+      {
+        "name": "Wayfarer's Practice DB",
+        "runId": 39204799583,
+        "conclusion": "success"
+      },
+      {
+        "name": "Controlled combat browser",
+        "runId": 39204799646,
+        "conclusion": "success"
+      },
+      {
+        "name": "Foundation Security DB",
+        "runId": 39204799630,
+        "conclusion": "success"
+      },
+      {
+        "name": "Shared Build Snapshots",
+        "runId": 39204799554,
+        "conclusion": "success"
+      },
+      {
+        "name": "Battle Session DB",
+        "runId": 39204799611,
+        "conclusion": "success"
+      },
+      {
+        "name": "Discipline Build DB",
+        "runId": 39204799656,
+        "conclusion": "success"
+      },
+      {
+        "name": "Attribute Allocation",
+        "runId": 39204799614,
+        "conclusion": "success"
+      },
+      {
+        "name": "UI layout review",
+        "runId": 39204799572,
+        "conclusion": "success"
+      },
+      {
+        "name": "Desktop page fit",
+        "runId": 39204799632,
+        "conclusion": "success"
+      },
+      {
+        "name": "Browser smoke",
+        "runId": 39204799623,
+        "conclusion": "success"
+      }
+    ],
+    "boundedRetries": [
+      {
+        "workflow": "Desktop page fit",
+        "runId": 39204799632,
+        "originalJob": 117905195823,
+        "successfulJob": 117909884754,
+        "reason": "One unchanged historical publication case exceeded30s; complete CI independently passed. Same head/assertions/timeouts retry passed."
+      },
+      {
+        "workflow": "Living Atlas browser",
+        "runId": 39204799561,
+        "originalJob": 117905195517,
+        "successfulJob": 117910788854,
+        "reason": "Synthetic100mobile coarse60-frame diagnostic near deadline; verified trace supports quantization sensitivity, not pure-infrastructure/continuous-FPS proof. Same head/assertions/timeouts/throttling retry passed.",
+        "originalArtifact": {
+          "id": 12166075902,
+          "sha256": "d213fcd6ac9a0152db727a2e0c707912b6c1aff617e2b6ff4a2fd92b5d04931d"
+        },
+        "successfulArtifact": {
+          "id": 12166273730,
+          "sha256": "059d2459ac2fc57309b084cfb94e4131d2f2ebcbd39f9052ea5505f2cb3e1d43"
+        }
+      }
+    ]
+  },
+  "health": [
+    {
+      "path": "/",
+      "status": 200,
+      "success": true,
+      "title": "AUREVANE",
+      "accountEntry": true
+    },
+    {
+      "path": "/manual",
+      "status": 200,
+      "success": true,
+      "title": "Adventurer’s Guide | AUREVANE",
+      "accountEntry": false
+    },
+    {
+      "path": "/rules",
+      "status": 200,
+      "success": true,
+      "title": "Rules | AUREVANE",
+      "accountEntry": false
+    },
+    {
+      "path": "/api/foundation/auth-status",
+      "status": 200,
+      "success": true,
+      "accountEntry": false
+    },
+    {
+      "path": "/game/world",
+      "status": 200,
+      "success": true,
+      "title": "AUREVANE",
+      "accountEntry": true
+    },
+    {
+      "path": "/game/character",
+      "status": 200,
+      "success": true,
+      "title": "AUREVANE",
+      "accountEntry": true
+    }
+  ],
+  "runtime": {
+    "deploymentScoped": true,
+    "levels": ["warning", "error", "fatal"],
+    "from": "2026-10-19T06:41:37.071Z",
+    "through": "2026-10-19T06:51:37.071Z",
+    "result": "No logs found"
+  },
+  "limits": [
+    "Hosted signed-in observation remains blocked by credential protection; no bypass attempted.",
+    "Native disposable-account browser verification is distinct from human physical-device/multiplayer/load acceptance.",
+    "No zero-lag or phase-closure claim. Start a new battle for newly published definitions; historical captures stay pinned.",
+    "Keep the compatible historical reader even after catalogue pointer rollback."
+  ]
+}
