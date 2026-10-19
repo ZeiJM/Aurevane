@@ -55,7 +55,7 @@ function assertReport(html: string) {
     ...MINIMUM_SKILL_INFORMATION_FIELDS,
   ])
   expect(html).toContain('11 AP / 2 MP / 1 HP')
-  expect(html).toContain('MP [≥ 3] [Self]')
+  expect(html.replace(/<[^>]*>/gu, '')).toContain('MP [≥ 3] [Self]')
   expect(html).toContain('Once per battle')
   expect(html).toContain('data-compact-effect-magnitude="true">[13]</span>')
   expect(html).toContain('data-compact-effect-label="true">Move</strong>')

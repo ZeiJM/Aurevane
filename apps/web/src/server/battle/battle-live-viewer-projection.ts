@@ -10,6 +10,7 @@ import {
 import {
   combatManualModifierAvailability,
   combatControlledAbilityAvailability,
+  combatPrimedAbilityIds,
 } from '@aurevane/game-core/combat/combat-behavior-runtime'
 import 'server-only'
 import {
@@ -369,6 +370,9 @@ export function projectBattleStatusStateForViewer(
     | 'blindsideActivationPolicyVersion'
     | 'dotTriggerPolicyVersion'
     | 'skillPacketPolicyVersion'
+    | 'capturedAbilitySources'
+    | 'abilityRuntime'
+    | 'effectTimingPolicy'
   >,
   viewer: BattleViewerEntitlement,
 ): BattleStatusState {
@@ -461,6 +465,22 @@ export function projectBattleStatusStateForViewer(
             presentationDuration: 'while-elevated',
           }))
         : []
+    const relationship = combatant ? battleViewerRelationship(viewer, combatant) : 'enemy'
+    const primedStatuses: BattlePresentedStatus[] =
+      (relationship === 'self' || relationship === 'ally') &&
+      combatPrimedAbilityIds(state, activeRow.combatantId).length > 0
+        ? [
+            {
+              statusId: 'primed',
+              statusVersion: 1,
+              stacks: 1,
+              remainingOwnerTurnStarts: 1,
+              sourceCombatantId: activeRow.combatantId,
+              timingState: 'active',
+              presentationDuration: 'while-primed',
+            },
+          ]
+        : []
     const row = {
       ...activeRow,
       statuses: [
@@ -506,6 +526,7 @@ export function projectBattleStatusStateForViewer(
           })
           .map((status) => presentInteractionPolicy(omitCombatExecutionMetadata(status))),
         ...terrainStatuses,
+        ...primedStatuses,
         ...pending
           .filter((item) => item.combatantId === activeRow.combatantId)
           .map((item) => presentInteractionPolicy(omitCombatExecutionMetadata(item.status))),
@@ -513,8 +534,6 @@ export function projectBattleStatusStateForViewer(
     }
     // Validated snapshots should always resolve this row; omission is safer than disclosure if they do not.
     if (!combatant) return { ...row, statuses: [] }
-
-    const relationship = battleViewerRelationship(viewer, combatant)
 
     // Opposing applied debuffs may retain a concealed cast's engine provenance.
     row.statuses = row.statuses.map((status) => {

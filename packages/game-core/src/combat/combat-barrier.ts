@@ -3,6 +3,7 @@ import type {
   CombatEncounterIssue,
   CombatEncounterState,
   CombatResolutionEvent,
+  CombatSourceCommandVisibility,
 } from './actions'
 import { nextCombatDotApplicationOrder, usesUnlimitedCombatEffectStacking } from './combat-dots'
 import { normalizeCombatEffectState, type CombatBarrierInstance } from './combat-effect-state'
@@ -35,6 +36,7 @@ export function validateBarrierEffect(effect: CombatEffectDefinition): void {
   }
   if (effect.basis !== undefined && effect.basis !== 'maximum-hp-percent')
     throw new TypeError('Unknown Barrier basis.')
+  if (effect.durationTurns !== undefined) validateBarrierDuration(effect.durationTurns)
   if (effect.basis === 'maximum-hp-percent' && effect.amount > 100)
     throw new RangeError('Barrier percentage must be from 1 to 100.')
 }
@@ -104,6 +106,11 @@ export function grantBarrier(
   targetCombatantId: string,
   sourceActionId: string,
   amount: number,
+  lifetime?: {
+    durationTurns: number
+    scope: 'owner-turns' | 'rounds'
+    sourceCommandVisibility?: CombatSourceCommandVisibility
+  },
 ): CombatBarrierGrantResult {
   assertIdentity(sourceCombatantId, 'Barrier source combatant ID')
   assertIdentity(targetCombatantId, 'Barrier target combatant ID')
@@ -112,6 +119,11 @@ export function grantBarrier(
     throw new RangeError('Barrier amount must be a positive safe integer.')
   }
 
+  if (lifetime !== undefined) {
+    validateBarrierDuration(lifetime.durationTurns)
+    if (lifetime.scope !== 'owner-turns' && lifetime.scope !== 'rounds')
+      throw new TypeError('Unknown Barrier lifetime scope.')
+  }
   const target = getCombatant(state, targetCombatantId)
   const before = currentBarrierAmount(state, targetCombatantId)
   const independent = usesUnlimitedCombatEffectStacking(state)
@@ -129,10 +141,11 @@ export function grantBarrier(
     (barrier) =>
       barrier.targetCombatantId === targetCombatantId &&
       barrier.sourceCombatantId === sourceCombatantId &&
-      barrier.sourceActionId === sourceActionId,
+      barrier.sourceActionId === sourceActionId &&
+      !hasBarrierLifetime(barrier),
   )
 
-  if (!independent && existingIndex >= 0) {
+  if (!independent && lifetime === undefined && existingIndex >= 0) {
     const existing = barriers[existingIndex]!
     barriers[existingIndex] = { ...existing, amount: existing.amount + applied }
   } else {
@@ -141,7 +154,21 @@ export function grantBarrier(
       sourceCombatantId,
       sourceActionId,
       amount: applied,
-      ...(independent ? { applicationOrder: nextCombatDotApplicationOrder(barriers) } : {}),
+      ...(independent || lifetime !== undefined
+        ? {
+            applicationOrder: nextCombatDotApplicationOrder(
+              barriers.filter((barrier) => barrier.applicationOrder !== undefined),
+            ),
+          }
+        : {}),
+      ...(lifetime?.sourceCommandVisibility
+        ? { sourceCommandVisibility: lifetime.sourceCommandVisibility }
+        : {}),
+      ...(lifetime === undefined
+        ? {}
+        : lifetime.scope === 'rounds'
+          ? { remainingRoundBoundaries: lifetime.durationTurns }
+          : { remainingOwnerTurnEnds: lifetime.durationTurns }),
     })
   }
   barriers.sort(compareBarrierInstances)
@@ -152,6 +179,70 @@ export function grantBarrier(
     after: before + applied,
     applied,
   }
+}
+
+/** Advance only the authoritative boundary that owns each pool's captured clock. */
+export function advanceBarrierLifetimes(
+  state: CombatEncounterState,
+  boundary: { kind: 'round' } | { kind: 'owner-turn'; combatantId: string },
+): {
+  state: CombatEncounterState
+  events: Extract<CombatResolutionEvent, { event: 'barrier_changed' }>[]
+} {
+  const effects = state.effectState
+  if (
+    !effects?.barriers?.some((barrier) =>
+      boundary.kind === 'round'
+        ? barrier.remainingRoundBoundaries !== undefined
+        : barrier.targetCombatantId === boundary.combatantId &&
+          barrier.remainingOwnerTurnEnds !== undefined,
+    )
+  )
+    return { state, events: [] }
+  const events: Extract<CombatResolutionEvent, { event: 'barrier_changed' }>[] = []
+  const totals = new Map<string, number>()
+  const barriers = effects.barriers.flatMap((barrier) => {
+    const clock = boundary.kind === 'round' ? 'remainingRoundBoundaries' : 'remainingOwnerTurnEnds'
+    const remaining =
+      boundary.kind === 'owner-turn' && barrier.targetCombatantId !== boundary.combatantId
+        ? undefined
+        : barrier[clock]
+    if (remaining === undefined) return [barrier]
+    if (remaining > 1) return [{ ...barrier, [clock]: remaining - 1 }]
+    const before =
+      totals.get(barrier.targetCombatantId) ??
+      currentBarrierAmount(state, barrier.targetCombatantId)
+    const after = before - barrier.amount
+    totals.set(barrier.targetCombatantId, after)
+    events.push({
+      event: 'barrier_changed',
+      reason: 'expired',
+      actionId: barrier.sourceActionId,
+      sourceCombatantId: barrier.sourceCombatantId,
+      targetCombatantId: barrier.targetCombatantId,
+      amount: -barrier.amount,
+      before,
+      after,
+      ...(barrier.sourceCommandVisibility
+        ? { sourceCommandVisibility: barrier.sourceCommandVisibility }
+        : {}),
+    })
+    return []
+  })
+  return { state: { ...state, effectState: { ...effects, barriers } }, events }
+}
+
+function hasBarrierLifetime(barrier: {
+  remainingOwnerTurnEnds?: unknown
+  remainingRoundBoundaries?: unknown
+}): boolean {
+  return (
+    barrier.remainingOwnerTurnEnds !== undefined || barrier.remainingRoundBoundaries !== undefined
+  )
+}
+function validateBarrierDuration(duration: number): void {
+  if (!Number.isSafeInteger(duration) || duration < 1 || duration > 4)
+    throw new RangeError('Barrier duration must be from 1 to 4 turns.')
 }
 
 export function absorbDirectDamageWithBarrier(
@@ -281,12 +372,29 @@ export function validateBarrierState(state: CombatEncounterState): readonly Comb
       isIdentity(sourceActionId)
     ) {
       const key = `${targetCombatantId} ${sourceCombatantId} ${sourceActionId}`
-      if (!independent && seen.has(key))
+      if (!independent && !hasBarrierLifetime(barrier) && seen.has(key))
         issues.push({ field, message: 'Duplicate Barrier source/action key.' })
-      seen.add(key)
+      if (!hasBarrierLifetime(barrier)) seen.add(key)
     }
 
-    if (independent || barrier.applicationOrder !== undefined) {
+    for (const clock of ['remainingOwnerTurnEnds', 'remainingRoundBoundaries'] as const) {
+      const remaining = barrier[clock]
+      if (
+        remaining !== undefined &&
+        (!Number.isSafeInteger(remaining) || (remaining as number) < 1 || (remaining as number) > 4)
+      )
+        issues.push({
+          field: `${field}.${clock}`,
+          message: 'Barrier lifetime must be from 1 to 4 turns.',
+        })
+    }
+    if (
+      barrier.remainingOwnerTurnEnds !== undefined &&
+      barrier.remainingRoundBoundaries !== undefined
+    )
+      issues.push({ field, message: 'Barrier must have only one lifetime clock.' })
+
+    if (independent || hasBarrierLifetime(barrier) || barrier.applicationOrder !== undefined) {
       const order = barrier.applicationOrder
       if (!Number.isSafeInteger(order) || (order as number) <= 0 || orders.has(order as number))
         issues.push({

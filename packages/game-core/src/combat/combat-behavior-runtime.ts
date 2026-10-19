@@ -1,5 +1,9 @@
 import { applyAbilityTimingDefaults } from './combat-definition'
-export { combatControlledAbilityAvailability, isControlledCombatAbility } from './combat-controlled'
+export {
+  combatControlledAbilityAvailability,
+  isControlledCombatAbility,
+  combatPrimedAbilityIds,
+} from './combat-controlled'
 import type { CombatEffectTimingPolicy } from './combat-effect-timing'
 import { readSkillCooldown } from './skill-cooldowns'
 import { pruneCombatAbilityActionHistory } from './combat-ability-state'
@@ -44,6 +48,7 @@ import { createCombatActionProvenance, createCombatTriggerGuard } from './combat
 import type { GridPosition } from './board'
 import {
   reconcileCombatControlledAbilities,
+  combatPrimedAbilityIds,
   updateCombatControlledAbility,
   type CombatControlledAbilityState,
   type CombatControlledAbilityInput,
@@ -227,13 +232,7 @@ export function combatAbilitySubject(
         ...(currentBurnInstance(state, unit.id) ? ['burn'] : []),
       ]),
     ],
-    primeAbilityIds: [
-      ...new Set(
-        state.abilityRuntime?.controlled?.primes
-          .filter((prime) => prime.ownerCombatantId === id)
-          .map((prime) => prime.abilityId) ?? [],
-      ),
-    ],
+    primeAbilityIds: combatPrimedAbilityIds(state, unit.id),
   }
 }
 
@@ -266,6 +265,7 @@ function ownerRequirementTruth(
     node.kind === 'action' ||
     node.kind === 'event' ||
     node.kind === 'resource-threshold-crossing' ||
+    node.kind === 'resource-change' ||
     (node.kind === 'subject-relation' && node.otherSubject !== 'owner') ||
     node.subject !== 'owner'
   )

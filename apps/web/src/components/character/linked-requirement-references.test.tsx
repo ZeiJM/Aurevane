@@ -45,7 +45,9 @@ it('links the actual alternative prerequisites without changing their grouping o
 })
 it('binds a condition link only to its actual conditional effect', () => {
   const report = abilityBehaviorInformation(actual('shadehand.execution-cut').behaviors[0]!)
-  expect(report.requirementParts).toBeUndefined()
+  expect(
+    references(report.requirementParts).map((part) => (typeof part === 'string' ? part : part.tag)),
+  ).toEqual(['resource-threshold'])
   expect(report.effects[0]!.conditionParts).toBeUndefined()
   expect(plain(report.effects[1]!.conditionParts)).toBe('Vulnerable')
   const html = renderToStaticMarkup(<AbilityParameters report={report} />)

@@ -202,6 +202,7 @@ function AbilityGroupEditor({
         </div>
       </fieldset>
       <AbilityRequirementEditor
+        behavior={value}
         value={value.requirements}
         onChange={(requirements) => onChange({ ...value, requirements })}
       />

@@ -1051,14 +1051,17 @@ export function SkillEffectEditor({ value, onChange, canonicalDamage }: SkillEff
     'remove-status',
     'return-to-turn-start',
     'displace',
-    'barrier-change',
     'copy-statuses',
     'sensory',
   ].includes(value.type)
   const fixedTerrain = value.type === 'create-terrain'
   const fixedBlindside = value.type === 'apply-status' && isBlindsideStatusId(value.statusId)
   const maximumDuration = value.type === 'percentage-recovery' ? 3 : 4
-  const minimumDuration = ['apply-status', 'bleed', 'burn', 'poison'].includes(value.type) ? 1 : 0
+  const minimumDuration = ['apply-status', 'bleed', 'burn', 'poison', 'barrier-change'].includes(
+    value.type,
+  )
+    ? 1
+    : 0
   const durationTurns =
     value.durationTurns ??
     (value.type === 'healing' || value.type === 'percentage-recovery'
@@ -1108,7 +1111,20 @@ export function SkillEffectEditor({ value, onChange, canonicalDamage }: SkillEff
               max={fixedBlindside ? 1 : fixedImmediate ? 0 : fixedTerrain ? 2 : maximumDuration}
               step={1}
               disabled={fixedImmediate || fixedTerrain || fixedBlindside}
-              value={fixedBlindside ? 1 : fixedImmediate ? 0 : fixedTerrain ? 2 : durationTurns}
+              value={
+                value.type === 'barrier-change' && value.durationTurns === undefined
+                  ? ''
+                  : fixedBlindside
+                    ? 1
+                    : fixedImmediate
+                      ? 0
+                      : fixedTerrain
+                        ? 2
+                        : durationTurns
+              }
+              placeholder={
+                value.type === 'barrier-change' ? 'Until depleted (historical)' : undefined
+              }
               onChange={(event) =>
                 changeDuration(integer(event.currentTarget.value, durationTurns))
               }
@@ -1120,7 +1136,9 @@ export function SkillEffectEditor({ value, onChange, canonicalDamage }: SkillEff
                   ? 'Frozen Ground uses the engine-owned two-round duration.'
                   : fixedBlindside
                     ? 'Expires at the end of the affected character’s turn.'
-                    : 'Positive durations persist through that many future turns.'}
+                    : value.type === 'barrier-change'
+                      ? 'Instant lasts for affected completed turns; Normal and Delayed last complete rounds after activation. Historical blank durations last until depleted.'
+                      : 'Positive durations persist through that many future turns.'}
             </small>
           </label>
         ) : null}

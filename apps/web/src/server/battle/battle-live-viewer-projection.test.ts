@@ -1405,3 +1405,60 @@ it('projects a global Controlled cooldown as unavailable for free preparation wi
   ).toThrow('controlled-cooldown-active')
   expect(JSON.stringify(state)).toBe(before)
 })
+
+it('derives an amber Primed rail tag from real Controlled state without publishing private ability facts', () => {
+  const { state, captures } = controlledProjectionState()
+  const own = captures[0]!
+  const viewer = deriveParticipantBattleViewerEntitlement(state.tactical.battle.combatants, [
+    PLAYER,
+  ])
+  const primed = primeCombatControlledAbility({
+    state,
+    actorId: PLAYER,
+    sourceInstanceId: own.sourceInstanceId,
+    behaviorId: 'step',
+  }).state as StatDrivenCombatEncounterState
+  const projected = projectBattleStatusStateForViewer(primed, viewer).find(
+    (row) => row.combatantId === PLAYER,
+  )!
+  const marker = projected.statuses.find((row) => row.statusId === 'primed')
+  expect(marker).toMatchObject({
+    presentationDuration: 'while-primed',
+    timingState: 'active',
+    stacks: 1,
+  })
+  const report = battleEffectInformation(marker!)
+  expect(report).toMatchObject({
+    label: 'Primed',
+    identifier: 'PRI',
+    timing: 'Primed',
+    timingState: 'primed',
+    count: null,
+  })
+  expect(report.description).toContain('Controlled')
+  expect(report.description).not.toMatch(/private-controlled|returnAnchor|contentVersion/)
+  const html = JSON.stringify(marker)
+  expect(html).not.toMatch(/private-controlled|returnAnchor|behaviorId|abilityId|contentVersion/)
+  expect(
+    projectBattleStatusStateForViewer(primed, createSpectatorBattleViewerEntitlement())
+      .flatMap((row) => row.statuses)
+      .some((row) => row.statusId === 'primed'),
+  ).toBe(false)
+  const enemy = deriveParticipantBattleViewerEntitlement(state.tactical.battle.combatants, [ENEMY])
+  expect(
+    projectBattleStatusStateForViewer(primed, enemy)
+      .flatMap((row) => row.statuses)
+      .some((row) => row.statusId === 'primed'),
+  ).toBe(false)
+  const cancelled = cancelCombatControlledAbility({
+    state: primed,
+    actorId: PLAYER,
+    sourceInstanceId: own.sourceInstanceId,
+    behaviorId: 'step',
+  }).state as StatDrivenCombatEncounterState
+  expect(
+    projectBattleStatusStateForViewer(cancelled, viewer)
+      .flatMap((row) => row.statuses)
+      .some((row) => row.statusId === 'primed'),
+  ).toBe(false)
+})

@@ -8,7 +8,7 @@ export type BattlePresentedStatus = CombatEffectPresentationStatus & {
   airborneJumpPolicyVersion?: 1
   healingDownPolicyVersion?: 1
   blindsideActivationPolicyVersion?: 1
-  presentationDuration?: 'while-elevated'
+  presentationDuration?: 'while-elevated' | 'while-primed'
 }
 
 export const TERRAIN_EVASION_STATUS_ID = 'terrain-evasion'
@@ -45,4 +45,28 @@ export function terrainBattleEffectPresentation(
       description: `Physical Defense −${percent}%; Mystic Defense −${percent}%. Applied before damage mitigation. This position-derived effect cannot be copied or cleansed.`,
     }
   return null
+}
+
+/** Derived from genuine Controlled memory; never grants an independently mutable status. */
+export function primedBattleEffectPresentation(
+  effect: Pick<BattlePresentedStatus, 'statusId' | 'statusVersion' | 'presentationDuration'>,
+) {
+  if (
+    effect.statusId !== 'primed' ||
+    effect.statusVersion !== 1 ||
+    effect.presentationDuration !== 'while-primed'
+  )
+    return null
+  return {
+    label: 'Primed',
+    kind: 'Effect',
+    identifier: 'PRI',
+    count: null,
+    counterLabel: 'Ready',
+    timing: 'Primed',
+    timingState: 'primed',
+    duration: 'While a Controlled skill remains primed',
+    description:
+      'A Controlled skill is prepared for release. Primed ends when it is released, cancelled, its source is removed, the character is defeated, or battle ends. This derived tag cannot be applied, copied or cleansed.',
+  }
 }

@@ -193,7 +193,9 @@ export function pendingCombatStatusRows(
       (effect.type === 'burn' ? CURRENT_BURN_DAMAGE_BY_STAGE.length : undefined) ??
       Math.max(1, (definition?.durationOwnerTurnStarts ?? 2) - 1)
     const durationScope =
-      effect.type === 'apply-status' && pending.statusDurationScope === 'rounds'
+      (effect.type === 'apply-status' ||
+        (effect.type === 'barrier-change' && effect.durationTurns !== undefined)) &&
+      pending.statusDurationScope === 'rounds'
         ? ('rounds' as const)
         : effect.type === 'poison' && tuning.durationTurns === undefined
           ? ('until-removed' as const)
@@ -280,7 +282,8 @@ export function pendingCombatStatusRows(
           ...(durationScope
             ? {
                 durationScope,
-                ...(effect.type === 'apply-status'
+                ...(effect.type === 'apply-status' ||
+                (effect.type === 'barrier-change' && durationScope === 'rounds')
                   ? { remainingRoundBoundaries: remaining, remainingOwnerTurnEnds: remaining }
                   : {}),
                 ...(effect.type === 'create-terrain'
@@ -379,7 +382,12 @@ export function activePersistentCombatStatusRows(
         remainingOwnerTurnStarts: remaining ?? 1,
         ...(remaining === undefined
           ? { durationScope: durationScope ?? 'until-removed' }
-          : { remainingOwnerTurnEnds: remaining }),
+          : {
+              remainingOwnerTurnEnds: remaining,
+              ...(durationScope === 'rounds'
+                ? { durationScope, remainingRoundBoundaries: remaining }
+                : {}),
+            }),
       },
     })
   }
@@ -444,8 +452,12 @@ export function activePersistentCombatStatusRows(
         effect.targetCombatantId,
         'barrier',
         effect.sourceCombatantId,
-        undefined,
-        'until-spent',
+        effect.remainingRoundBoundaries ?? effect.remainingOwnerTurnEnds,
+        effect.remainingRoundBoundaries !== undefined
+          ? 'rounds'
+          : effect.remainingOwnerTurnEnds === undefined
+            ? 'until-spent'
+            : undefined,
         undefined,
         undefined,
         undefined,

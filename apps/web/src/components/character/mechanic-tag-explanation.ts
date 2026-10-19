@@ -15,6 +15,12 @@ export function mechanicTagExplanation(
   options: CanonicalStatusExplanationOptions,
 ): string {
   switch (tag) {
+    case 'trigger':
+      return 'A registered trigger matches a recorded combat event. The displayed action tags, source, recipient and numeric parameters are executable filters; its condition tags must also be satisfied.'
+    case 'resource-threshold':
+      return 'Checks the named resource against the displayed numeric threshold. ≥ means at least; ≤ means at most. Percentage thresholds use that character’s maximum resource. The subject identifies whose resource is checked.'
+    case 'primed':
+      return 'A Controlled skill is prepared for release. Primed is present while any genuine Controlled skill remains prepared; it ends on release, cancellation, source removal, defeat or battle end. It cannot be independently applied, copied or cleansed.'
     case 'frozen-ground':
       return frozenGroundDescription(options.legacyFrozenGround ? null : 1)
     case 'steam':

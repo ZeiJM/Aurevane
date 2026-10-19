@@ -443,12 +443,15 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
       const after = numberValue(event.after)
       const absorbed = eventType === 'barrier_absorbed'
       const shattered = !absorbed && amount !== null && amount < 0
+      const expired = !absorbed && event.reason === 'expired'
       return createEntry(record, eventType, {
-        messageTemplate: shattered
-          ? "{target}'s Barrier shattered."
-          : absorbed
-            ? "{target}'s Barrier absorbed {amount} damage."
-            : '{target} gained {amount} Barrier.',
+        messageTemplate: expired
+          ? "{target}'s Barrier expired."
+          : shattered
+            ? "{target}'s Barrier shattered."
+            : absorbed
+              ? "{target}'s Barrier absorbed {amount} damage."
+              : '{target} gained {amount} Barrier.',
         templateValues: {
           amount: String(amount ?? 'resolved'),
           barrierRemaining: String(after ?? 'unavailable'),
@@ -459,17 +462,21 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
         statusId: 'barrier',
         kind: 'defense',
         headline: 'Barrier',
-        tone: shattered ? 'damage' : 'benefit',
+        tone: expired ? 'neutral' : shattered ? 'damage' : 'benefit',
         facts: [
           ...fact(
-            shattered
-              ? `${Math.abs(amount!)} Barrier destroyed`
-              : amount === null
+            expired
+              ? amount === null
                 ? null
-                : absorbed
-                  ? `${amount} damage absorbed`
-                  : `+${amount} Barrier`,
-            shattered ? 'damage' : 'benefit',
+                : `${Math.abs(amount)} Barrier expired`
+              : shattered
+                ? `${Math.abs(amount!)} Barrier destroyed`
+                : amount === null
+                  ? null
+                  : absorbed
+                    ? `${amount} damage absorbed`
+                    : `+${amount} Barrier`,
+            expired ? 'neutral' : shattered ? 'damage' : 'benefit',
           ),
           ...fact(after === null ? null : `${after} Barrier remaining`),
         ],

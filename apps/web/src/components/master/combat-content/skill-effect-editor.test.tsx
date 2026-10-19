@@ -20,6 +20,21 @@ describe('Master percentage DoT controls', () => {
     expect(html).toContain('aria-label="Barrier (% maximum HP)"')
     expect(html).toContain('max="100"')
     expect(html).not.toContain('max="20"')
+    expect(template.durationTurns).toBe(2)
+    expect(html).toContain(
+      'aria-label="Effect duration (turns)" type="number" min="1" max="4" step="1" placeholder="Until depleted (historical)" value="2"',
+    )
+  })
+  it('keeps an omitted historical Barrier lifetime blank until explicitly edited', () => {
+    const html = render({
+      type: 'barrier-change',
+      recipient: 'actor',
+      amount: 20,
+      basis: 'maximum-hp-percent',
+    })
+    expect(html).toContain('placeholder="Until depleted (historical)"')
+    expect(html).toContain('value=""')
+    expect(html).not.toContain('disabled=""')
   })
   it.each(['poison', 'bleed', 'burn'] as const)(
     'edits %s percentages instead of fixed HP',
