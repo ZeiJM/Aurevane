@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process'
 
 import { expect, test, type Page, type Response } from '@playwright/test'
 
-import { createVerifiedAccountAndSignIn } from './pv1f-test-helpers'
+import { createAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 function escapeSqlLiteral(value: string): string {
   return value.replaceAll("'", "''")
@@ -54,47 +54,19 @@ function localUserId(email: string): string {
 function grantEventStaff(email: string): string {
   const userId = localUserId(email)
   queryLocalDatabase(`
-    insert into app_private.master_panel_role_assignments (
-      user_id, role, enabled, note
-    ) values (
-      '${userId}'::uuid,
-      'event-staff',
-      true,
-      'P4.14 local browser verification'
-    )
-    on conflict (user_id, role) do update
-    set enabled = true,
-        updated_at = clock_timestamp(),
-        note = excluded.note;
-
-    insert into app_private.master_panel_access_versions (user_id, access_version)
-    values ('${userId}'::uuid, 1)
-    on conflict (user_id) do update
-    set access_version = app_private.master_panel_access_versions.access_version + 1,
-        updated_at = clock_timestamp();
+    insert into app_private.master_panel_character_access(character_id,user_id,roles,special_capabilities,updated_by)
+      select c.id,c.user_id,array['event-staff'],array[]::text[],c.user_id from public.characters c
+      where c.user_id='${userId}'::uuid order by c.slot_index limit 1
+      on conflict(character_id) do update set roles=excluded.roles,enabled=true,access_version=app_private.master_panel_character_access.access_version+1;
   `)
   return userId
 }
 
 function grantEmergencyStop(userId: string): void {
   queryLocalDatabase(`
-    insert into app_private.master_panel_capability_grants (
-      user_id, capability, enabled, note
-    ) values (
-      '${userId}'::uuid,
-      'events.emergency_stop',
-      true,
-      'P4.14 local emergency-stop verification'
-    )
-    on conflict (user_id, capability) do update
-    set enabled = true,
-        updated_at = clock_timestamp(),
-        note = excluded.note;
-
-    update app_private.master_panel_access_versions
-    set access_version = access_version + 1,
-        updated_at = clock_timestamp()
-    where user_id = '${userId}'::uuid;
+    update app_private.master_panel_character_access
+      set special_capabilities=array['events.emergency_stop'],access_version=access_version+1
+      where user_id='${userId}'::uuid;
   `)
 }
 
@@ -243,10 +215,11 @@ test('Event Staff operates a run, completes cleanup and archives Chronicle safel
 
   const now = Date.now()
   const email = `event-ops-${now}@example.com`
-  await createVerifiedAccountAndSignIn({
+  await createAccountAndEnterCharacter({
     page,
     email,
     password: 'Event-ops-browser-2026!',
+    characterName: `Event ${String(now).replace(/\d/g, (d) => String.fromCharCode(65 + Number(d)))}`,
   })
 
   const userId = grantEventStaff(email)

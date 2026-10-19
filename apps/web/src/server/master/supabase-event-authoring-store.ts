@@ -1,5 +1,7 @@
 import 'server-only'
 
+import { createSelectedCharacterRpc } from './selected-character-rpc'
+
 import type { PersistentEventDefinition } from '@aurevane/game-core/events/persistent-event'
 import { AurevaneError } from '@aurevane/game-core/errors'
 
@@ -304,8 +306,10 @@ export class RpcEventAuthoringStore implements EventAuthoringStore {
 export function createSupabaseEventAuthoringStore(actorUserId: string): RpcEventAuthoringStore {
   const client = createSupabaseAdminClient()
   return new RpcEventAuthoringStore(
-    (functionName, parameters) =>
-      client.rpc(functionName, parameters) as unknown as PromiseLike<RpcResult>,
+    createSelectedCharacterRpc(
+      (functionName, parameters) =>
+        client.rpc(functionName, parameters) as unknown as PromiseLike<RpcResult>,
+    ),
     actorUserId,
   )
 }

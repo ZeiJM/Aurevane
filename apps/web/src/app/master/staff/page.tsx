@@ -17,8 +17,8 @@ export default async function MasterStaffPage() {
     <MasterPanelShell
       access={access}
       activeSection="staff"
-      title="Staff & Authority"
-      description="Delegate responsibility without weakening AUREVANE’s single protected Game Owner boundary."
+      title="Staff & Access"
+      description="Assign clear responsibilities to one verified linked character."
     >
       <StaffManagement
         capabilityOptions={MASTER_PANEL_SPECIAL_CAPABILITY_DETAILS}

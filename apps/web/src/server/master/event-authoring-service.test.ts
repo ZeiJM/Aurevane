@@ -61,6 +61,13 @@ const definition = (
 })
 
 class StaffStore implements MasterPanelStaffAccessStore {
+  async resolveIdentity() {
+    return null
+  }
+  async setCharacterAccess() {
+    return 1
+  }
+
   readonly records = new Map<string, MasterPanelAccessRecord>()
 
   async readAccess(userId: string) {
@@ -69,26 +76,6 @@ class StaffStore implements MasterPanelStaffAccessStore {
 
   async listStaff() {
     return []
-  }
-
-  async resolveAccountByEmail() {
-    return null
-  }
-
-  async grantRole() {
-    return 1
-  }
-
-  async revokeRole() {
-    return 1
-  }
-
-  async grantCapability() {
-    return 1
-  }
-
-  async revokeCapability() {
-    return 1
   }
 }
 

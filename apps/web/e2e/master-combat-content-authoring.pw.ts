@@ -411,18 +411,26 @@ test('Master combat authoring publishes versioned content, pins battles, and rol
     await expect(
       page
         .getByRole('navigation', { name: 'Master Panel navigation' })
-        .getByRole('link', { name: /Staff & Authority/ }),
+        .getByRole('link', { name: /Staff & Access/ }),
     ).toBeVisible()
     await expect(page.getByTestId('master-panel-shell')).toBeVisible()
 
     await page.goto('/master/staff')
-    await expect(page.getByRole('heading', { name: 'Staff & Authority' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Staff & Access' })).toBeVisible()
+    const ownerRow = page.getByRole('article').filter({
+      has: page.getByText(email, { exact: true }),
+    })
+    await expect(ownerRow).toHaveCount(1)
+    await expect(ownerRow.getByText('Game Owner', { exact: true }).last()).toBeVisible()
     await expect(
-      page
-        .getByRole('article')
-        .filter({ hasText: email })
-        .getByText('WORLDWRIGHT · GAME OWNER', { exact: true }),
+      ownerRow.getByText('Global administration · protected Owner', { exact: true }),
     ).toBeVisible()
+    await expect(ownerRow.getByText('Protected', { exact: true })).toBeVisible()
+    await expect(ownerRow.getByRole('button', { name: 'Edit', exact: true })).toHaveCount(0)
+    await expect(ownerRow.getByRole('button', { name: 'Revoke', exact: true })).toHaveCount(0)
+    await expect(ownerRow.getByRole('button', { name: 'Bind character', exact: true })).toHaveCount(
+      0,
+    )
 
     await page.goto('/master')
 

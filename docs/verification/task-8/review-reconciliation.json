@@ -1,0 +1,92 @@
+{
+  "staffCheckpoint": "8e5e03a6146c489ca02922994b6af328831dcf5b",
+  "integratedCurrentMain": "8624c49a3853493cbea5f6b4855330bf0cd99117",
+  "liveProductMerge": "28ff6a1b0113cf7183ddd2fc513397a96a2b7a18",
+  "resolvedConflicts": ["AGENTS.md", "TASKS.md", "docs/ROADMAP.md"],
+  "resolution": "Retain current-main Blindside live receipt first, then the existing local-only Staff note, then all remaining current-main text. No product conflict.",
+  "preservedFiles": [
+    {
+      "path": "packages/game-core/src/combat/actions-legacy.ts",
+      "blob": "13458253453c2eb15477a5196ac40f3e8ee0f129",
+      "matchesCurrentMain": true
+    },
+    {
+      "path": "packages/game-core/src/combat/combat-blindside.test.ts",
+      "blob": "c613656e43f2478db1d3b5512d6d012a359f02e1",
+      "matchesCurrentMain": true
+    },
+    {
+      "path": "packages/game-core/src/combat/modular-correction-interactions.test.ts",
+      "blob": "a562bd376b0e9bcc2ed2ffa23d9f4ee74843a2c6",
+      "matchesCurrentMain": true
+    },
+    {
+      "path": "apps/web/e2e/world-presentation-case.ts",
+      "blob": "b88ee932b4519f149175a5ae8c7398794b5acf90",
+      "matchesCurrentMain": true
+    },
+    {
+      "path": "apps/web/src/components/world/map-renderer.test.ts",
+      "blob": "d8a9e5103488dd6cff8f658cfd0148f7dab136fe",
+      "matchesCurrentMain": true
+    },
+    {
+      "path": "apps/web/src/components/world/map-renderer.ts",
+      "blob": "23a25de75de98fc4eb4a4e5ba5e7479ea5b645ad",
+      "matchesCurrentMain": true
+    },
+    {
+      "path": "apps/web/src/components/world/world-controller.test.ts",
+      "blob": "436e2fa9ba3293bb9e7f07914217034e764948b5",
+      "matchesCurrentMain": true
+    },
+    {
+      "path": "apps/web/src/components/world/world-controller.ts",
+      "blob": "6abe1cc8e0e21795256a8e5f543525f7d788c486",
+      "matchesCurrentMain": true
+    },
+    {
+      "path": "apps/web/src/components/world/world-motion-route-confirmation.test.ts",
+      "blob": "02b83da61343d92ae9e571791f3f81ab7e33d375",
+      "matchesCurrentMain": true
+    },
+    {
+      "path": "apps/web/src/components/world/world-motion.test.ts",
+      "blob": "53f94efb0f45af72f051ce91073e44d2177cff53",
+      "matchesCurrentMain": true
+    },
+    {
+      "path": "apps/web/src/components/world/world-motion.ts",
+      "blob": "9c1f38a2eb40d668211d34434d57acdb07fbfc2c",
+      "matchesCurrentMain": true
+    },
+    {
+      "path": "apps/web/src/components/world/world-scene-coverage.test.ts",
+      "blob": "a650846a6fd18cd6b5ab30f689ee007ea8358fc2",
+      "matchesCurrentMain": true
+    },
+    {
+      "path": "apps/web/src/components/world/world-workspace.tsx",
+      "blob": "fb5e696d50df3c9bdea89cd84c30a427c7cba02c",
+      "matchesCurrentMain": true
+    },
+    {
+      "path": "apps/web/vercel.json",
+      "blob": "b8a4e0e3c57b95a8da49c05d1fe5f60ba2181b5f",
+      "matchesCurrentMain": true
+    }
+  ],
+  "rootOwnedUntrackedReceipt": {
+    "path": "docs/verification/2026-10-19-skill-display-controlled-release.md",
+    "sha256": "5f5003909eb4269f6931f9ee6a472fec74b60f8f686c459f2b70ebddd6e4d643",
+    "unchanged": true
+  },
+  "reviewRepair": "I1 only; current Owner article by verified exact email, Game Owner/protected global scope and absent Edit/Revoke/Bind controls.",
+  "deferred": ["M1 focus restoration", "M2 inherited native-config warning"],
+  "nativeAcceptance": "Unavailable; no browser/Docker/local Supabase; listing is discovery only.",
+  "freshMain": "8624c49a3853493cbea5f6b4855330bf0cd99117",
+  "frozenSourceSnapshotTree": "cb2dbeafe4245b6286c9634c1512e49eb3b4f0ba",
+  "postBuildSourceDiffExit": 0,
+  "fullCheckExit": 1,
+  "unchangedSourceBuildRetryExit": 0
+}

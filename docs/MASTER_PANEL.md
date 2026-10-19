@@ -633,10 +633,8 @@ future Master Panel module from this specification is complete.
 
 ### Authorization and persistence
 
-- Access requires an authenticated account with an explicit enabled row in
-  `app_private.master_panel_operators`.
-- The current bounded operator roles are `owner` and `content-staff`; no account is implicitly
-  privileged and the temporary buildcraft/testing allowlist is not Master Panel authorization.
+- Task 8 local source uses canonical `game-owner`, `moderator`, `content-staff`, and `event-staff` role presets. The single Game Owner remains the protected account-root/bootstrap exception. Delegated authority belongs only to an explicitly selected, currently owned playable character, with live expiry/revocation checked on every protected server/RPC operation. The older `owner` label survives only as the Combat Content adapter's internal role result.
+- Ambiguous predecessor account role/capability rows are retained privately as Needs binding and cannot authorize delegated operations. Verified name/email discovery shows all linked characters, but assignments target exactly one. New character assignments support No Expiry or positive whole UTC days and optimistic revisions, without routine reasons; private actor/time/action and before/after audit states remain. See `docs/verification/task-8/actor-interface.md` for exact current-source consumers and later Task 9–12 handoffs. This reconstruction is not a hosted release.
 - Browser code never writes combat-content tables directly. Private draft/version/publication state
   stays under RLS with browser roles revoked; server composition uses service-role access and
   protected RPCs.
