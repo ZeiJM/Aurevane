@@ -402,16 +402,27 @@ if (process.env.AV_SIMPLE_REQUIREMENTS_COMPILE_ONLY === '1') {
       await expect(cleanse.getByRole('textbox', { name: 'Status IDs', exact: true })).toHaveCount(0)
       await save()
       saved = (await snapshot()).saved.behaviors[0]
-      assert.deepEqual(saved.effects.at(-1).payload, {
-        type: 'remove-status',
-        recipient: 'primary-unit',
-        removalMode: 'specified',
-        statusIds: ['burn', 'wet'],
-      })
+      const cleansePayload = saved.effects.at(-1).payload
+      // Native multi-select returns DOM order; specified removal checks set membership.
+      assert.deepEqual(
+        { ...cleansePayload, statusIds: [...cleansePayload.statusIds].sort() },
+        {
+          type: 'remove-status',
+          recipient: 'primary-unit',
+          removalMode: 'specified',
+          statusIds: ['burn', 'wet'],
+        },
+      )
       const encodedBeforeReload = JSON.stringify((await snapshot()).saved)
       await page.reload({ waitUntil: 'networkidle' })
       await page.waitForFunction(() => Boolean(window.simpleRequirements))
-      await expect(statuses).toHaveValues(['burn', 'wet'])
+      await expect
+        .poll(() =>
+          statuses.evaluate((node) =>
+            [...node.selectedOptions].map((option) => option.value).sort(),
+          ),
+        )
+        .toEqual(['burn', 'wet'])
       await expect(activation).toHaveValue('damage-taken')
       assert.equal(JSON.stringify((await snapshot()).saved), encodedBeforeReload)
       await assertReaders('Burn [Target]')
