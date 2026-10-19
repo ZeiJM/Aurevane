@@ -65,6 +65,27 @@ beforeAll(async () => {
 afterAll(async () => {
   await db?.close()
 })
+it('executes the native Staff gate SQL against the real predecessor authority and protected consumers', async () => {
+  const other = '33333333-3333-4333-8333-333333333333'
+  await db.exec('begin')
+  try {
+    await db.query('insert into auth.users values($1,$2,now())', [other, 'other@example.com'])
+    await db.query(
+      `select set_config('task8.owner',$1,true),set_config('task8.staff',$2,true),
+        set_config('task8.other',$3,true),set_config('task8.character',$4,true),
+        set_config('task8.alternate',$5,true),set_config('task8.character_name','Chosen',true)`,
+      [owner, staff, other, chosen, alternate],
+    )
+    await db.exec(
+      readFileSync(
+        resolve(root, '../../.github/scripts/verify-master-panel-staff-authority.sql'),
+        'utf8',
+      ),
+    )
+  } finally {
+    await db.exec('rollback')
+  }
+})
 it('legacy_needs_binding: real migrated account grants no longer authorize old account access', async () => {
   const directory = (
     await db.query<{ directory: { userId: string; status: string; characterId: string | null }[] }>(

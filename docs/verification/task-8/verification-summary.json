@@ -67,5 +67,16 @@
     "Full pnpm check invocation exited 1; all preceding gate components passed and unchanged-source build-only retry exited 0.",
     "Unchanged package tasks used exact-input Turbo cache; changed web tests executed.",
     "Staff source remains local; no source publication, hosted mutation or deployment."
-  ]
+  ],
+  "nativeVerificationRepair": {
+    "publishedInitialHead": "199f4718239d85fae7ed29c468a192c7ad286216",
+    "initialDatabaseFailure": "retired resolve_master_panel_account_v1 permission denied",
+    "localFocusedExit": 0,
+    "actualPGliteTests": 15,
+    "sharedNativeSQLExecuted": true,
+    "productSourceUnchanged": true,
+    "fullGateRepeated": false,
+    "nativeOrchestrationVerified": false,
+    "report": "docs/verification/task-8/native-verification-repair.md"
+  }
 }

@@ -102,6 +102,36 @@
     "bytes": 620
   },
   {
+    "log": "docs/verification/task-8/native-gate-final-focused.log",
+    "archive": "docs/verification/task-8/native-gate-final-focused.log.gz",
+    "sha256": "9459953dc353f31479472e20c53fc114d79ddd6e9390e9795581556d17caf538",
+    "bytes": 333
+  },
+  {
+    "log": "docs/verification/task-8/native-gate-final-source-receipt.log",
+    "archive": "docs/verification/task-8/native-gate-final-source-receipt.log.gz",
+    "sha256": "df079098e948cc875d40e3840807b88533fa275f44ffbde07f53f50ebd9012dc",
+    "bytes": 341
+  },
+  {
+    "log": "docs/verification/task-8/native-gate-shared-sql-first.log",
+    "archive": "docs/verification/task-8/native-gate-shared-sql-first.log.gz",
+    "sha256": "7f15933e93fc1a3f65dfab7de916fd08da924fd19254bf60b110646e4fce2348",
+    "bytes": 1885
+  },
+  {
+    "log": "docs/verification/task-8/native-gate-shared-sql-green.log",
+    "archive": "docs/verification/task-8/native-gate-shared-sql-green.log.gz",
+    "sha256": "8b900a87b73743339d2d8f31e35c56a35d027c5732eac2ce3d81c94644dfb986",
+    "bytes": 252
+  },
+  {
+    "log": "docs/verification/task-8/native-gate-workflow-static.log",
+    "archive": "docs/verification/task-8/native-gate-workflow-static.log.gz",
+    "sha256": "e6ab21598772f8c049c9872cd7f81e1599ab8b874c1998b5f71378b5b4f68651",
+    "bytes": 1033
+  },
+  {
     "log": "docs/verification/task-8/red-predecessor.log",
     "archive": "docs/verification/task-8/red-predecessor.log.gz",
     "sha256": "5fd63fda78ceead67467a9f8f0d21700a465b8d886f7865061f89796a5d81d53",

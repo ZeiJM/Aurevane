@@ -11,11 +11,16 @@ owner_id="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d p
   limit 1;")"
 staff_id="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   select user_id::text
-  from app_private.master_panel_role_assignments
-  where role = 'event-staff' and enabled = true
+  from app_private.master_panel_character_access
+  where 'event-staff'=any(roles) and enabled = true
   limit 1;")"
 test -n "$owner_id"
 test -n "$staff_id"
+
+staff_character_id="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
+  select character_id::text from app_private.master_panel_character_access
+  where user_id='$staff_id'::uuid and 'event-staff'=any(roles) and enabled order by character_id limit 1;")"
+test -n "$staff_character_id"
 
 version_id="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   insert into app_private.event_templates (event_key, event_family, created_by)
@@ -155,6 +160,7 @@ operate() {
     select lifecycle_status || '|' || state_version::text || '|' || replayed::text
     from public.operate_event_run_v2(
       '$staff_id'::uuid,
+      '$staff_character_id'::uuid,
       '$run_id'::uuid,
       '$version'::bigint,
       '$key'::uuid,
@@ -244,6 +250,7 @@ dashboard_live="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgre
   from (
     select public.read_event_operation_dashboard_v1(
       '$staff_id'::uuid,
+      '$staff_character_id'::uuid,
       '$run_id'::uuid
     ) as dashboard
   ) as state;")"
@@ -254,6 +261,7 @@ advance="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d po
   select current_phase_id || '|' || state_version::text || '|' || replayed::text
   from public.advance_event_run_phase_v2(
     '$staff_id'::uuid,
+    '$staff_character_id'::uuid,
     '$run_id'::uuid,
     4,
     '00000000-0000-4000-8000-000000004404'::uuid,
@@ -267,6 +275,7 @@ advance_replay="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgre
   select current_phase_id || '|' || state_version::text || '|' || replayed::text
   from public.advance_event_run_phase_v2(
     '$staff_id'::uuid,
+    '$staff_character_id'::uuid,
     '$run_id'::uuid,
     4,
     '00000000-0000-4000-8000-000000004404'::uuid,
@@ -279,6 +288,7 @@ if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -
   set role service_role;
   select * from public.advance_event_run_phase_v2(
     '$staff_id'::uuid,
+    '$staff_character_id'::uuid,
     '$run_id'::uuid,
     5,
     '00000000-0000-4000-8000-000000004404'::uuid,
@@ -333,6 +343,7 @@ dashboard_ended="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgr
   from (
     select public.read_event_operation_dashboard_v1(
       '$staff_id'::uuid,
+      '$staff_character_id'::uuid,
       '$run_id'::uuid
     ) as dashboard
   ) as state;")"
@@ -349,6 +360,7 @@ cleanup="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d po
   select cleanup_status || '|' || state_version::text || '|' || replayed::text
   from public.complete_event_cleanup_requirement_v2(
     '$staff_id'::uuid,
+    '$staff_character_id'::uuid,
     '$run_id'::uuid,
     'mobilization',
     0,
@@ -363,6 +375,7 @@ cleanup_replay="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgre
   select cleanup_status || '|' || state_version::text || '|' || replayed::text
   from public.complete_event_cleanup_requirement_v2(
     '$staff_id'::uuid,
+    '$staff_character_id'::uuid,
     '$run_id'::uuid,
     'mobilization',
     0,
@@ -395,6 +408,7 @@ dashboard_archived="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U pos
   from (
     select public.read_event_operation_dashboard_v1(
       '$staff_id'::uuid,
+      '$staff_character_id'::uuid,
       '$run_id'::uuid
     ) as dashboard
   ) as state;")"
@@ -443,6 +457,7 @@ if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -
   set role service_role;
   select * from public.operate_event_run_v2(
     '$staff_id'::uuid,
+    '$staff_character_id'::uuid,
     '$emergency_run'::uuid,
     1,
     '00000000-0000-4000-8000-000000004420'::uuid,
@@ -455,14 +470,14 @@ if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -
 fi
 grep -Fq 'EVENT_EMERGENCY_STOP_CAPABILITY_REQUIRED' /tmp/p414-emergency-denied.err
 
+staff_version="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
+  select access_version from app_private.master_panel_character_access where character_id='$staff_character_id'::uuid;")"
 docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
   set role service_role;
-  select public.grant_master_panel_capability_v1(
-    '$owner_id'::uuid,
-    '$staff_id'::uuid,
-    'events.emergency_stop',
-    'P4.14 emergency stop verification'
-  );
+  select public.set_master_panel_character_access_v2(
+    '$owner_id'::uuid,'$staff_id'::uuid,'$staff_character_id'::uuid,
+    array['event-staff'],array['events.global_scope','events.emergency_stop'],
+    null,'$staff_version'::bigint,true);
 " >/dev/null
 
 emergency="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
@@ -470,6 +485,7 @@ emergency="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d 
   select lifecycle_status || '|' || state_version::text
   from public.operate_event_run_v2(
     '$staff_id'::uuid,
+    '$staff_character_id'::uuid,
     '$emergency_run'::uuid,
     1,
     '00000000-0000-4000-8000-000000004421'::uuid,
@@ -490,7 +506,7 @@ test "$emergency_cleanup" = 'not-required|0'
 
 if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
   set role authenticated;
-  select * from public.list_event_operation_runs_v1('$staff_id'::uuid);" >/tmp/p414-browser-read.out 2>/tmp/p414-browser-read.err; then
+  select * from public.list_event_operation_runs_v1('$staff_id'::uuid,'$staff_character_id'::uuid);" >/tmp/p414-browser-read.out 2>/tmp/p414-browser-read.err; then
   echo 'Authenticated browser role unexpectedly called Event operations DB authority.' >&2
   exit 1
 fi
@@ -544,6 +560,7 @@ if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -
   set role service_role;
   select * from public.operate_event_run_v2(
     '$staff_id'::uuid,
+    '$staff_character_id'::uuid,
     '$expired_run'::uuid,
     1,
     '00000000-0000-4000-8000-000000004430'::uuid,
@@ -631,6 +648,7 @@ if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -
   set role service_role;
   select * from public.advance_event_run_phase_v2(
     '$staff_id'::uuid,
+    '$staff_character_id'::uuid,
     '$elapsed_run'::uuid,
     1,
     '00000000-0000-4000-8000-000000004431'::uuid,

@@ -1,0 +1,30 @@
+{
+  "head": "199f4718239d85fae7ed29c468a192c7ad286216",
+  "tree": "1d4591b8244d86f1f0740e4a190d94eae95e18dc",
+  "pr": 945,
+  "run": 39196135215,
+  "failures": [
+    {
+      "job": 117879207189,
+      "step": "Verify Master Panel staff authority",
+      "cause": "permission denied for function resolve_master_panel_account_v1",
+      "classification": "Native verification script still uses retired account-wide management API; verification parity repair underway."
+    },
+    {
+      "job": 117879207376,
+      "step": "Run quality gates",
+      "test": "src/combat/combat-unlimited-dots.test.ts:41",
+      "cause": "Test timed out in 5000ms (5434ms), 4502 passed / 1 failed",
+      "classification": "Unchanged combat source; bounded unchanged-source retry planned, no assertion/timeout change."
+    }
+  ],
+  "passedWorkflows": [
+    "Foundation Security DB",
+    "Wayfarer's Practice DB",
+    "Attribute Allocation",
+    "Discipline Build DB",
+    "Battle Session DB",
+    "Representative Buildcraft"
+  ],
+  "limits": "Initial head is not accepted; browser still running. No hosted migration/deployment."
+}
