@@ -129,7 +129,7 @@ it('renders the real current canonical catalogue and every edited Basic from one
     'Manual Action 1',
     'Ongoing Modifier 2',
     '11 AP / 2 MP / 1 HP',
-    'You: MP ≥ 3',
+    'MP [≥ 3] [Self]',
     'Move [2]',
     'Dmg [13] [Controlled]',
     'Once per battle',

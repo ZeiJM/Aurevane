@@ -165,7 +165,10 @@ it('reports native Basic Pierce stronger-Power scaling as well as Armor bypass',
   expect(Object.fromEntries(attack.behaviors[0]!.rows).Effects).toContain(
     'floor(15% Physical Power)',
   )
-  expect(Object.fromEntries(attack.behaviors[0]!.rows).Effects).toContain('[Armor ignored: 25%]')
+  expect(Object.fromEntries(attack.behaviors[0]!.rows).Effects).not.toContain('Armor ignored')
+  expect(attack.behaviors[0]!.effects[0]!.parts.details).toContainEqual(
+    expect.objectContaining({ label: 'Armor ignored', value: '25%' }),
+  )
   expect(attack.behaviors[0]!.effectDescriptions.join(' ')).toContain(
     'stronger Physical or Mystic Power',
   )

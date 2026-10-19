@@ -5,7 +5,10 @@ import { MechanicTextView } from '../character/mechanic-text-view'
 import { useSkillEffectTimingPolicy } from '../character/skill-effect-timing-context'
 import Image from 'next/image'
 import type { BattleBasicActionPresentation } from '@/lib/battle/battle-basic-actions'
-import { CompactEffectSummary } from '../character/compact-skill-effect-summary'
+import {
+  CompactEffectSummary,
+  EffectExplanationNotes,
+} from '../character/compact-skill-effect-summary'
 import { MINIMUM_SKILL_INFORMATION_FIELDS } from '../character/skill-information-contract'
 
 import {
@@ -383,6 +386,12 @@ export function BattleSkillCommand({
                         text={description}
                         parts={behavior.effects[index]?.explanationParts}
                       />
+                      {behavior.effects[index] ? (
+                        <EffectExplanationNotes
+                          parts={behavior.effects[index]!.parts}
+                          repeatsOnEntry={behavior.effects[index]!.repeatsOnEntry}
+                        />
+                      ) : null}
                     </li>
                   )),
                 )}

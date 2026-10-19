@@ -303,7 +303,7 @@ it('presents enemy Blindside as a one-turn vulnerability with only its powers in
   expect(report.effects[0]!.parts).toMatchObject({
     label: 'Blindside',
     magnitude: '175% / 250%',
-    duration: '1 Turn',
+    duration: null,
   })
   expect(report.effectDescriptions[0]).toContain('Take increased Skill damage')
   expect(report.effectDescriptions[0]).not.toMatch(/grants|refreshes|owner|Stacks|Expiry/)

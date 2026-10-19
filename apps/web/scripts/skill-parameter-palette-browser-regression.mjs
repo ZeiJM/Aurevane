@@ -247,7 +247,7 @@ async function assertModularReport(panel) {
     assert.deepEqual(await group.locator('dt').allTextContents(), fields)
   const text = await panel.innerText()
   assert.match(text, /11 AP \/ 2 MP \/ 1 HP/)
-  assert.match(text, /You: MP ≥ 3/)
+  assert.match(text, /MP \[≥ 3\] \[Self\]/)
   assert.match(text, /Move \[2\]/)
   assert.match(text, /Dmg \[13\] \[Controlled\]/)
   assert.match(text, /Once per battle/)
@@ -377,7 +377,7 @@ async function verifyModularManual(page, viewport) {
     '11 AP / 2 MP / 1 HP',
     'Move [2]',
     'Dmg [13] [Controlled]',
-    'You: MP ≥ 3',
+    'MP [≥ 3] [Self]',
     'Once per battle',
     '12.5%',
     'Active while Requirements are met',
@@ -1145,7 +1145,7 @@ try {
       const summary = await report.textContent()
       assert.ok(summary.includes('Blindside'))
       assert.ok(summary.includes('[Instant]'))
-      assert.ok(summary.includes('[1 Turn]'))
+      assert.ok(!summary.includes('[1 Turn]'))
       assert.ok(summary.includes('[20]'))
       if (surface !== 'Nexus') {
         assert.ok(summary.includes('160% from the side and 220% from the rear'))

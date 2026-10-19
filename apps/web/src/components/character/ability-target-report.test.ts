@@ -138,7 +138,7 @@ it('marks only the selected repeated Ground packet when other unit and caster ef
   const report = abilityBehaviorInformation(behavior)
   expect(report.effects.map((effect) => effect.repeatsOnEntry)).toEqual([false, true, false])
   expect(Object.fromEntries(report.rows).Target).toContain('only the effects marked for entry')
-  expect(Object.fromEntries(report.rows).Effects.match(/Repeats on entry/g)).toHaveLength(1)
+  expect(Object.fromEntries(report.rows).Effects).not.toContain('Repeats on entry')
   expect(JSON.stringify(report)).not.toContain('repeat-hit')
   expect(JSON.stringify(behavior)).toBe(before)
 })

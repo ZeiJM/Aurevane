@@ -143,7 +143,7 @@ it.each([
         { label: 'Then', value: 'End of each recipient turn that starts after activation' },
       ],
     })
-    expect(Object.fromEntries(report.rows).Effects).toContain('[Applications: 3]')
+    expect(Object.fromEntries(report.rows).Effects).not.toContain('Applications:')
     expect(report.effectDescriptions[0]).not.toMatch(/\d/)
     expect(report.effectDescriptions[0]).toMatch(/cannot.*revive/iu)
   },
@@ -153,7 +153,7 @@ it('reports Reveal expiry in owner-turn starts instead of inventing ordinary tur
   expect(report.effects[0]!.parts).toMatchObject({
     details: [{ label: 'Revealed', value: '2 owner-turn starts' }],
   })
-  expect(Object.fromEntries(report.rows).Effects).toContain('[Revealed: 2 owner-turn starts]')
+  expect(Object.fromEntries(report.rows).Effects).not.toContain('Revealed:')
 })
 it('keeps native Move terrain pricing distinct from attached Move', () => {
   const basic = defaultBasicSkills().find((row) => row.execution.kind === 'basic-move')!
@@ -202,11 +202,13 @@ it('renders exact structured facts through actual local/public readers and prese
     <SkillParameters key="public" skill={projectPublicCombat(skill)} />,
   ]) {
     const html = renderToStaticMarkup(node)
-    expect(html).toMatch(/data-compact-effect-detail="Applications">\s*\[Applications: 3\]<\/span>/)
+    expect(html).toMatch(
+      /data-effect-explanation-detail="Applications">\s*Applications: 3\.<\/span>/,
+    )
     expect(html).toContain('data-compact-effect-magnitude="true">[17]</span>')
     const prose = html.match(/aria-label="Effect explanations">([\s\S]*?)<\/ul>/)![1]!
     expect(prose).not.toContain('17')
-    expect(prose).not.toContain('3')
+    expect(prose).toContain('Applications: 3.')
     expect(prose).toMatch(/cannot.*revive/iu)
   }
   expect(
@@ -299,9 +301,7 @@ it.each(['actor', 'ally'] as const)(
       expect(state.effectState!.ongoingRecovery[0]!.remainingFutureTicks).toBe(1)
       const ability = definition(payload)
       const report = abilityBehaviorInformation(ability.behaviors[0]!)
-      expect(Object.fromEntries(report.rows).Effects).toContain(
-        '[Then: End of each recipient turn that starts after activation]',
-      )
+      expect(Object.fromEntries(report.rows).Effects).not.toContain('Then:')
       expect(renderToStaticMarkup(<AbilityDefinitionParameters definition={ability} />)).toContain(
         'End of each recipient turn that starts after activation',
       )

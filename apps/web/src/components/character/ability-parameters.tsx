@@ -1,6 +1,10 @@
 import { MechanicTextView } from './mechanic-text-view'
 import type { BattleAbilityBehaviorReport } from '@/lib/battle/battle-basic-actions'
-import { CompactEffectSummary, EffectTagLabel } from './compact-skill-effect-summary'
+import {
+  CompactEffectSummary,
+  EffectTagLabel,
+  EffectExplanationNotes,
+} from './compact-skill-effect-summary'
 import { SkillCharacteristicRows } from './skill-characteristic-rows'
 
 /** Render the shared public mechanics report without raw execution data or prose parsing. */
@@ -22,10 +26,7 @@ export function AbilityParameters({
           effectSummary={
             report.effects.length
               ? report.effects.map(
-                  (
-                    { parts, condition, conditionParts, recipientOverride, repeatsOnEntry },
-                    index,
-                  ) => (
+                  ({ parts, condition, conditionParts, recipientOverride }, index) => (
                     <div key={index}>
                       {condition ? (
                         <>
@@ -34,7 +35,6 @@ export function AbilityParameters({
                       ) : null}
                       <CompactEffectSummary parts={parts} />
                       {recipientOverride ? ` [${recipientOverride}]` : null}
-                      {repeatsOnEntry ? ' · Repeats on entry' : null}
                     </div>
                   ),
                 )
@@ -59,6 +59,12 @@ export function AbilityParameters({
                 text={description}
                 parts={report.effects[index]?.explanationParts}
               />
+              {report.effects[index] ? (
+                <EffectExplanationNotes
+                  parts={report.effects[index]!.parts}
+                  repeatsOnEntry={report.effects[index]!.repeatsOnEntry}
+                />
+              ) : null}
             </li>
           ))}
         </ul>

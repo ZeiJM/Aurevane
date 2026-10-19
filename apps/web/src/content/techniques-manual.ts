@@ -38,7 +38,11 @@ import type {
 import { abilityBehaviorInformation } from '@/components/character/ability-detail-presentation'
 import type { ManualArticle } from './public-information'
 import { techniqueMagnitudeBands } from './technique-magnitudes'
-import { abilityManualInlineParts, type ManualInlinePart } from './manual-mechanic-text'
+import {
+  abilityManualInlineParts,
+  plainManualInlineParts,
+  type ManualInlinePart,
+} from './manual-mechanic-text'
 
 export const techniquePowerSummary = `Current non-percentage Technique effects use a bounded authored power scale from 1 to 20. Higher-AP Skills receive more total effect budget, but area coverage, extra effects, long durations and strong utility consume part of that budget so high cost does not mean unlimited output. In new battles, each ordinary direct-damage packet adds 25% of its matching Physical or Mystic Power before defenses, independently of AP cost or packet count. Historical battles keep their recorded scaling.`
 
@@ -57,10 +61,8 @@ function abilityManualSummary(
   const groups = definition.behaviors.map((behavior, index) => {
     const report = abilityBehaviorInformation(behavior, { timingPolicy, basic })
     const label = `${behavior.activation === 'manual' ? 'Manual' : behavior.activation === 'automatic' ? 'Automatic' : 'Ongoing'} ${behavior.mode === 'action' ? 'Action' : 'Modifier'}${definition.behaviors.length > 1 ? ` ${index + 1}` : ''}`
-    return {
-      text: `${label}. ${report.rows.map(([key, value]) => `${key}: ${value}`).join('. ')}. ${[...report.limits, ...(report.maintenance ? [report.maintenance] : []), ...report.effectDescriptions].join(' ')}`,
-      parts: abilityManualInlineParts(report, label),
-    }
+    const parts = abilityManualInlineParts(report, label)
+    return { text: plainManualInlineParts(parts)!, parts }
   })
   return {
     text: groups.map((group) => group.text).join(' '),

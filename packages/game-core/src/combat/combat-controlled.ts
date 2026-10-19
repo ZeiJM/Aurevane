@@ -1,3 +1,4 @@
+import { readSkillCooldown } from './skill-cooldowns'
 import { applyAbilityTimingDefaults } from './combat-definition'
 import type { CombatEncounterState, CombatEncounterIssue } from './actions'
 import type { AbilityBehavior } from './combat-definition'
@@ -199,6 +200,16 @@ export function updateCombatControlledAbility(
     !state.tactical.battle.combatants.some((unit) => unit.id === input.actorId && unit.hp > 0)
   )
     throw new TypeError('controlled-turn-unavailable')
+  if (
+    operation === 'prime' &&
+    state.effectTimingPolicy?.tagAuthority === 'global' &&
+    behavior.cooldown &&
+    readSkillCooldown(
+      state.tactical.battle.combatants.find((unit) => unit.id === input.actorId)!,
+      behavior.cooldown,
+    ).active
+  )
+    throw new TypeError('controlled-cooldown-active')
   if (operation === 'cancel' && input.manualModifiers !== undefined)
     throw new TypeError('controlled-cancel-modifiers-invalid')
   const manualModifiers =

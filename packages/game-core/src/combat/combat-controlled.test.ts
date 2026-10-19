@@ -10,10 +10,12 @@ import { percentageDotEncounter } from './combat-percentage-dots.test-utils'
 import { reattachStatDrivenCombatBridge } from './stat-driven-combat'
 import { validateBattleState } from './battle-state'
 
-function setup() {
+function setup(
+  cooldown: { key: string; ownerTurns: number } | null = { key: 'controlled-test', ownerTurns: 2 },
+) {
   const captured = captureCombatAbilitySource(
     source({
-      cooldown: { key: 'controlled-test', ownerTurns: 2 },
+      cooldown,
       effects: [
         {
           id: 'hit',
@@ -57,7 +59,7 @@ function prime(state: ReturnType<typeof setup>['state']) {
 }
 
 describe('Controlled whole Manual actions', () => {
-  it('allows repeated preparation and cancellation under global timing while cooldown still blocks release', () => {
+  it('allows repeated cancellation under global timing while cooldown blocks new preparation', () => {
     const initial = setup()
     const state = {
       ...initial.state,
@@ -68,13 +70,12 @@ describe('Controlled whole Manual actions', () => {
       },
     }
     const primed = prime(state).state
-    const released = commitCombatAbilityCommand(command(primed, initial.captured)).state
-    const reprime = prime(released).state
+    const reprime = primed
     expect(runtime.combatAbilitySubject(reprime, 'actor')!.primeAbilityIds).toEqual([
       'test.ability',
     ])
     expect(prepareCombatAbilityCommand(command(reprime, initial.captured)).evaluation.legal).toBe(
-      false,
+      true,
     )
     expect(validateCombatAbilityState(reprime)).toEqual([])
     const cancelled = runtime.cancelCombatControlledAbility({
@@ -87,6 +88,32 @@ describe('Controlled whole Manual actions', () => {
     expect(validateCombatAbilityState(thirdPrime)).toEqual([])
     expect(thirdPrime.abilityRuntime!.controlled!.used).toHaveLength(1)
     expect(thirdPrime.abilityRuntime!.controlled!.primes).toHaveLength(1)
+    const released = commitCombatAbilityCommand(command(thirdPrime, initial.captured)).state
+    expect(() => prime(released)).toThrow('controlled-cooldown-active')
+  })
+  it('allows another free prime immediately after a global Controlled action without a cooldown', () => {
+    const initial = setup(null)
+    const state = {
+      ...initial.state,
+      effectTimingPolicy: {
+        version: 8,
+        tagAuthority: 'global' as const,
+        modes: { damage: 'controlled' as const, healing: 'instant' as const },
+      },
+    }
+    const released = commitCombatAbilityCommand(command(prime(state).state, initial.captured)).state
+    expect(
+      runtime.combatControlledAbilityAvailability({
+        state: released,
+        actorId: 'actor',
+        sourceInstanceId: 'source-a',
+        behaviorId: 'strike',
+      })!.canPrime,
+    ).toBe(true)
+    const again = prime(released)
+    expect(again.events).toEqual([])
+    expect(again.state.tactical).toEqual(released.tactical)
+    expect(again.state.abilityRuntime!.controlled!.primes).toHaveLength(1)
   })
   it('releases again after its cooldown rather than imposing an extra once-per-battle limit', () => {
     const initial = setup()

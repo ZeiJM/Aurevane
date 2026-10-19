@@ -3,7 +3,10 @@ import {
   plainMechanicText,
   type MechanicTextPart,
 } from '@/components/character/mechanic-text'
-import type { CompactSkillEffectSummaryParts } from '@/components/character/skill-detail-presentation'
+import {
+  skillEffectExplanationDetails,
+  type CompactSkillEffectSummaryParts,
+} from '@/components/character/skill-detail-presentation'
 import type { BattleAbilityBehaviorReport } from '@/lib/battle/battle-basic-actions'
 
 export type ManualInlinePart =
@@ -54,11 +57,7 @@ function effectText(parts: CompactSkillEffectSummaryParts): string {
     parts.label +
     (parts.magnitude ? ' [' + parts.magnitude + ']' : '') +
     (parts.duration ? ' [' + parts.duration + ']' : '') +
-    (parts.timing ? ' [' + parts.timing + ']' : '') +
-    (parts.details
-      ?.filter((detail) => !['Stacks', 'Expiry'].includes(detail.label))
-      .map((detail) => ' [' + detail.label + ': ' + detail.value + ']')
-      .join('') ?? '')
+    (parts.timing ? ' [' + parts.timing + ']' : '')
   )
 }
 /** Reject stale or unsupported optional metadata before rendering any part of its bullet. */
@@ -98,7 +97,6 @@ export function abilityManualInlineParts(
           effects.push('If ', ...linked(entry.condition, entry.conditionParts), ': ')
         effects.push({ kind: 'effect', parts: entry.parts })
         if (entry.recipientOverride) effects.push(' [' + entry.recipientOverride + ']')
-        if (entry.repeatsOnEntry) effects.push(' · Repeats on entry')
       })
       result.push(...(plainManualInlineParts(effects) === value ? effects : [value]))
     } else result.push(value)
@@ -107,9 +105,19 @@ export function abilityManualInlineParts(
   const tail: ManualInlinePart[][] = [
     ...report.limits.map((limit) => [limit]),
     ...(report.maintenance ? [[report.maintenance]] : []),
-    ...report.effectDescriptions.map((text, index) =>
-      linked(text, report.effects[index]?.explanationParts),
-    ),
+    ...report.effectDescriptions.map((text, index) => [
+      ...linked(text, report.effects[index]?.explanationParts),
+      ...(report.effects[index]
+        ? skillEffectExplanationDetails(report.effects[index]!.parts).flatMap(
+            ({ label, value, labelParts }) => [
+              ' ',
+              ...linked(label, labelParts),
+              ': ' + value + '.',
+            ],
+          )
+        : []),
+      ...(report.effects[index]?.repeatsOnEntry ? [' Repeats on entry.'] : []),
+    ]),
   ]
   tail.forEach((parts, index) => {
     if (index) result.push(' ')

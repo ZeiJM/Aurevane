@@ -8,6 +8,7 @@ import {
 
 import {
   compactSkillEffectSummaryParts,
+  skillEffectExplanationDetails,
   type CompactSkillEffectSummaryParts,
 } from './skill-detail-presentation'
 import styles from './compact-skill-effect-summary.module.css'
@@ -76,14 +77,6 @@ export function CompactEffectSummary({
           </span>
         </>
       ) : null}
-      {parts.details
-        ?.filter(({ label }) => !['Stacks', 'Expiry'].includes(label))
-        .map(({ label, value, labelParts }) => (
-          <span key={label} className={styles.magnitude} data-compact-effect-detail={label}>
-            {' '}
-            [<MechanicTextView text={label} parts={labelParts} />: {value}]
-          </span>
-        ))}
       {count > 1 ? (
         <span data-compact-effect-count={count} aria-label={`${count} applications`}>
           {' '}
@@ -91,5 +84,26 @@ export function CompactEffectSummary({
         </span>
       ) : null}
     </span>
+  )
+}
+
+/** Shared supplementary facts for all full readers, including captured Basic commands. */
+export function EffectExplanationNotes({
+  parts,
+  repeatsOnEntry,
+}: {
+  parts: CompactSkillEffectSummaryParts
+  repeatsOnEntry?: boolean
+}) {
+  return (
+    <>
+      {skillEffectExplanationDetails(parts).map(({ label, value, labelParts }) => (
+        <span key={label} data-effect-explanation-detail={label}>
+          {' '}
+          <MechanicTextView text={label} parts={labelParts} />: {value}.
+        </span>
+      ))}
+      {repeatsOnEntry ? ' Repeats on entry.' : null}
+    </>
   )
 }
