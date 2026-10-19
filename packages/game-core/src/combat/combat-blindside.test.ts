@@ -76,6 +76,28 @@ const customBlindside = {
   ...action,
   effects: [customBlindsideEffect, action.effects[1]!],
 }
+const vulnerabilityAction: CombatActionDefinition = {
+  ...customBlindside,
+  effects: [
+    {
+      ...customBlindsideEffect,
+      recipient: 'primary-unit',
+      statusId: 'blindside-vulnerability',
+    },
+    action.effects[1]!,
+  ],
+}
+function currentBlindsideState(facing: 'west' | 'north' | 'east') {
+  return {
+    ...faced(facing),
+    blindsideActivationPolicyVersion: 1 as const,
+    effectTimingPolicy: {
+      version: 8,
+      tagAuthority: 'global' as const,
+      modes: { blindside: 'instant' as const },
+    },
+  }
+}
 function enemyBlindside() {
   return executeCombatAction(
     {
@@ -100,6 +122,106 @@ function enemyBlindside() {
     content,
   ).state
 }
+it.each([
+  ['west', false, 20],
+  ['north', true, 35],
+  ['east', true, 50],
+] as const)(
+  'current enemy Blindside grants only on a flank, not a head-on %s-facing hit',
+  (facing, granted, damage) => {
+    const state = currentBlindsideState(facing)
+    const attack = vulnerabilityAction
+    const before = JSON.stringify(state)
+    const preview = evaluateCombatAction(state, attack, selection, content)
+    expect(preview.projectedEffects.some((row) => row.effectType === 'apply-status')).toBe(granted)
+    expect(JSON.stringify(state)).toBe(before)
+    const result = executeCombatAction(state, attack, selection, content)
+    expect(result.events.some((event) => event.event === 'status_applied')).toBe(granted)
+    expect(result.events).toContainEqual(
+      expect.objectContaining({ event: 'damage_applied', amount: damage }),
+    )
+    expect(
+      result.state.statusState
+        .find((row) => row.combatantId === 'enemy')!
+        .statuses.some((row) => row.statusId === 'blindside-vulnerability'),
+    ).toBe(granted)
+  },
+)
+it('a head-on hit cannot refresh an existing enemy Blindside application', () => {
+  const granted = executeCombatAction(
+    currentBlindsideState('east'),
+    vulnerabilityAction,
+    selection,
+    content,
+  ).state
+  const front = {
+    ...granted,
+    tactical: {
+      ...granted.tactical,
+      placements: granted.tactical.placements.map((row) =>
+        row.combatantId === 'enemy' ? { ...row, facing: 'west' as const } : row,
+      ),
+    },
+  }
+  const out = executeCombatAction(front, vulnerabilityAction, selection, content)
+  expect(out.events.some((event) => event.event === 'status_applied')).toBe(false)
+  expect(out.state.statusState).toEqual(granted.statusState)
+})
+it('an excluded damage effect cannot qualify an independent enemy Blindside application', () => {
+  const state = currentBlindsideState('east')
+  const attack = { ...vulnerabilityAction, effectEligibleRecipientIds: [undefined, []] }
+  const out = executeCombatAction(state, attack, selection, content)
+  expect(out.events.some((event) => event.event === 'damage_applied')).toBe(false)
+  expect(out.events.some((event) => event.event === 'status_applied')).toBe(false)
+  expect(out.state.statusState.find((row) => row.combatantId === 'enemy')!.statuses).toEqual([])
+})
+it.each([false, true])(
+  'gates each area Blindside recipient independently (missed flank: %s)',
+  (missedFlank) => {
+    const base = currentBlindsideState('west')
+    const state = {
+      ...base,
+      tactical: {
+        ...base.tactical,
+        placements: base.tactical.placements.map((row) =>
+          row.combatantId === 'other' ? { ...row, facing: 'north' as const } : row,
+        ),
+      },
+    }
+    const area: CombatActionDefinition = {
+      ...vulnerabilityAction,
+      target: {
+        ...action.target,
+        geometryVersion: 2,
+        shape: { kind: 'all' },
+        minimumRange: 0,
+        maximumRange: 0,
+      },
+      effects: [
+        {
+          ...customBlindsideEffect,
+          recipient: 'affected-units',
+          statusId: 'blindside-vulnerability',
+        },
+        { type: 'damage', recipient: 'affected-units', amount: 20 },
+      ],
+    }
+    const out = executeLegacyCombatAction(
+      state,
+      area,
+      { kind: 'activate' },
+      content,
+      undefined,
+      new Set(missedFlank ? ['other'] : []),
+    )
+    expect(
+      out.events
+        .filter((event) => event.event === 'status_applied')
+        .map((event) => event.targetCombatantId),
+    ).toEqual(missedFlank ? [] : ['other'])
+    expect(out.state.statusState.find((row) => row.combatantId === 'enemy')!.statuses).toEqual([])
+  },
+)
 it('keeps enemy Blindside through the caster turn and expires it after the affected enemy turn', () => {
   const granted = enemyBlindside()
   const next = endCombatTurn(
