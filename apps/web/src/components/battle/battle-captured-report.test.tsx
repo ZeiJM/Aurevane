@@ -73,7 +73,7 @@ it('renders all ten fields and effect/requirement/limit details from the capture
   ])
   expect(html).toContain('<dt>Cost</dt><dd>7 AP / 3 MP / 2 HP</dd>')
   expect(html).toContain('<dt>Cooldown</dt><dd>3 turns</dd>')
-  expect(html).toContain('MP [≥ 3] [Self]')
+  expect(html.replace(/<[^>]*>/gu, '')).toContain('MP [≥ 3] [Self]')
   expect(html).toContain('<dt>Range</dt><dd>4</dd>')
   expect(html).toContain('data-compact-effect-label="true">Move</strong>')
   expect(html).toContain('data-compact-effect-magnitude="true">[13]</span>')

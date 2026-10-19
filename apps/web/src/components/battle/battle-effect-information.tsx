@@ -2,6 +2,7 @@ import type { ReactNode, RefObject } from 'react'
 import { PV1F_COMBAT_CONTENT } from '@aurevane/game-core/combat/pv1f-action-economy'
 import {
   terrainBattleEffectPresentation,
+  primedBattleEffectPresentation,
   type BattlePresentedStatus,
 } from '@/lib/battle/battle-elevation-effects'
 import { mechanicTagExplanation } from '../character/mechanic-tag-explanation'
@@ -46,7 +47,8 @@ export function battleEffectInformation(effect: BattlePresentedStatus) {
       (row) => row.id === effect.statusId && row.version === effect.statusVersion,
     ) ||
     (effect.statusVersion === 1 && presentationFamilies.has(effect.statusId)) ||
-    terrainBattleEffectPresentation(effect) !== null,
+    terrainBattleEffectPresentation(effect) !== null ||
+    primedBattleEffectPresentation(effect) !== null,
   )
   const label = known ? details.label : gameplayStatusName(effect.statusId)
   const baseDescription = !known

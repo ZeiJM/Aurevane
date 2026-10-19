@@ -128,12 +128,15 @@ export interface CombatDamageHistoryEntry {
 
 export interface CombatBarrierInstance {
   sourceCommandVisibility?: CombatSourceCommandVisibility
-  /** Stable identity for independent Barrier pools in stacking policy 1. */
+  /** Stable identity for independently stacked or timed Barrier pools. */
   applicationOrder?: number
   targetCombatantId: string
   sourceCombatantId: string
   sourceActionId: string
   amount: number
+  /** Omitted clocks preserve historical protection until spent. Exactly one may be present. */
+  remainingOwnerTurnEnds?: number
+  remainingRoundBoundaries?: number
   provenance?: CombatEffectInstanceProvenance
 }
 

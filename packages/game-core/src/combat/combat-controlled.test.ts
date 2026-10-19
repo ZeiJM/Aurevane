@@ -556,3 +556,72 @@ describe('Controlled whole Manual actions', () => {
     expect(validateCombatAbilityState(released.state)).toEqual([])
   })
 })
+
+it('derives generic Primed only from a living current Controlled capture through its lifecycle', () => {
+  const { state, captured } = setup()
+  expect(runtime.combatAbilitySubject(state, 'actor')!.primeAbilityIds).toEqual([])
+  const primed = prime(state).state
+  expect(runtime.combatAbilitySubject(primed, 'actor')!.primeAbilityIds).toEqual(['test.ability'])
+  const restored = JSON.parse(JSON.stringify(primed)) as typeof state
+  expect(runtime.combatAbilitySubject(restored, 'actor')!.primeAbilityIds).toEqual(['test.ability'])
+  const cancelled = runtime.cancelCombatControlledAbility({
+    state: primed,
+    actorId: 'actor',
+    sourceInstanceId: 'source-a',
+    behaviorId: 'strike',
+  }).state
+  expect(runtime.combatAbilitySubject(cancelled, 'actor')!.primeAbilityIds).toEqual([])
+  expect(
+    runtime.combatAbilitySubject(
+      commitCombatAbilityCommand(command(primed, captured)).state,
+      'actor',
+    )!.primeAbilityIds,
+  ).toEqual([])
+  expect(
+    runtime.combatAbilitySubject({ ...primed, capturedAbilitySources: [] }, 'actor')!
+      .primeAbilityIds,
+  ).toEqual([])
+  expect(
+    runtime.combatAbilitySubject(
+      {
+        ...primed,
+        tactical: {
+          ...primed.tactical,
+          battle: {
+            ...primed.tactical.battle,
+            combatants: primed.tactical.battle.combatants.map((unit) =>
+              unit.id === 'actor' ? { ...unit, hp: 0 } : unit,
+            ),
+          },
+        },
+      },
+      'actor',
+    )!.primeAbilityIds,
+  ).toEqual([])
+  expect(
+    runtime.combatAbilitySubject(
+      {
+        ...primed,
+        tactical: {
+          ...primed.tactical,
+          battle: { ...primed.tactical.battle, lifecycle: 'completed' },
+        },
+      } as typeof primed,
+      'actor',
+    )!.primeAbilityIds,
+  ).toEqual([])
+  const stale = {
+    ...primed,
+    abilityRuntime: {
+      ...primed.abilityRuntime!,
+      controlled: {
+        ...primed.abilityRuntime!.controlled!,
+        primes: primed.abilityRuntime!.controlled!.primes.map((row) => ({
+          ...row,
+          behaviorId: 'missing-behavior',
+        })),
+      },
+    },
+  }
+  expect(runtime.combatAbilitySubject(stale, 'actor')!.primeAbilityIds).toEqual([])
+})

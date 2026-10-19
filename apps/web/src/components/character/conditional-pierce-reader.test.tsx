@@ -214,7 +214,7 @@ it('keeps nested effect requirements aligned while prose stays plain and global 
   )
   const html = renderToStaticMarkup(<AbilityParameters report={report} />)
   expect(html.split(condition)).toHaveLength(2)
-  expect(html).toContain('AP [≥ 9] [Self]')
+  expect(html.replace(/<[^>]*>/gu, '')).toContain('AP [≥ 9] [Self]')
 })
 it('preserves authored conditional text exactly as escaped text without stripping repeated numbers', () => {
   const definition = actual('resonance.edgedancer-tidecaller.linked-sequence')

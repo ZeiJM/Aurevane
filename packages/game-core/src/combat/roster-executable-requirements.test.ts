@@ -76,7 +76,8 @@ interface RequirementCase {
   exercise: () => void
 }
 // Preserve the released inventory's eight kinds. The additive causal relation has
-// native coverage in combat-subject-relation.test.ts until a new roster selects it.
+// native coverage in combat-subject-relation.test.ts. Resource change is additive
+// in the later modularity correction and has separate native coverage.
 const cases = {
   all: {
     recordId: secondWind,
@@ -263,7 +264,10 @@ const cases = {
       expect(currentBarrierAmount(out.state, 'actor')).toBe(0)
     },
   },
-} satisfies Record<Exclude<RequirementNode['kind'], 'subject-relation'>, RequirementCase>
+} satisfies Record<
+  Exclude<RequirementNode['kind'], 'subject-relation' | 'resource-change'>,
+  RequirementCase
+>
 
 it('requires executable scenarios for every Requirement kind in the released roster', () => {
   expect(Object.keys(cases).sort()).toEqual(

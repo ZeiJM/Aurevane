@@ -748,6 +748,100 @@ describe('CSR-3 commit-time privacy metadata', () => {
     ).toEqual({ kind: 'team-only', teamId: 'team:a' })
   })
 
+  it.each(['instant', 'next-round', 'delayed'] as const)(
+    'keeps %s timed Barrier expiry private after the source Covert ends',
+    async (mode) => {
+      const initial = {
+        ...encounter({
+          actorStatuses: [
+            { ...status('covert', ACTOR, 1), remainingOwnerTurnEnds: 1, timingState: 'active' },
+          ],
+        }),
+        effectTimingPolicy: { version: 1, modes: { 'barrier-change': mode } },
+      }
+      const cast = executeCombatAction(
+        initial,
+        {
+          id: 'secret.timed-barrier',
+          version: 1,
+          sourceType: 'test',
+          tags: [],
+          cost: { spendsAction: false, mp: 0 },
+          requirements: [],
+          target: {
+            kind: 'self',
+            teamPolicy: 'self',
+            shape: { kind: 'single' },
+            minimumRange: 0,
+            maximumRange: 0,
+            requiresLineOfSight: false,
+            maximumElevationDifference: null,
+            friendlyFire: 'allies-only',
+          },
+          effects: [{ type: 'barrier-change', recipient: 'actor', amount: 17, durationTurns: 2 }],
+        },
+        { kind: 'self' },
+        PV1F_COMBAT_CONTENT,
+      )
+      let after = { ...initial, ...cast.state, statBridge: initial.statBridge }
+      let before = after
+      let ended: ReturnType<typeof endCombatTurn> | undefined
+      let expiryIndex = -1
+      for (let boundary = 0; boundary < 20 && expiryIndex < 0; boundary++) {
+        before = after
+        ended = endCombatTurn(
+          { ...before, tactical: selectCurrentFinalFacing(before.tactical, 'east').state },
+          PV1F_COMBAT_CONTENT,
+        )
+        after = { ...before, ...ended.state, statBridge: before.statBridge }
+        expiryIndex = ended.events.findIndex(
+          (event) => event.event === 'barrier_changed' && event.reason === 'expired',
+        )
+      }
+      if (!ended) throw new Error('Expected native Barrier boundary.')
+      expect(expiryIndex).toBeGreaterThanOrEqual(0)
+      expect(
+        before.statusState
+          .find((row) => row.combatantId === ACTOR)!
+          .statuses.some((row) => row.statusId === 'covert'),
+      ).toBe(false)
+      expect(ended.events[expiryIndex]).toMatchObject({
+        amount: -17,
+        before: 17,
+        after: 0,
+        sourceCommandVisibility: { kind: 'team-only', teamId: 'team:a' },
+      })
+      const boundaryActor = before.tactical.battle.currentTurn!.combatantId
+      const journal: BattleHistoryPrivacyJournal = {
+        ...buildBattlePrivacyJournalInput({
+          before,
+          after,
+          commandKind: 'face',
+          events: ended.events,
+        }),
+        battleVersion: 2,
+        actorCombatantId: boundaryActor,
+        actorTeamId: before.tactical.battle.combatants.find((unit) => unit.id === boundaryActor)!
+          .teamId,
+        eventCount: ended.events.length,
+      }
+      for (const viewer of [
+        deriveParticipantBattleViewerEntitlement(before.tactical.battle.combatants, [TARGET]),
+        createSpectatorBattleViewerEntitlement(),
+      ]) {
+        const records = ended.events.map((event, index) => record(2, index, event))
+        const log = await createViewerSafeBattleLogService(
+          { findBattleEvents: async () => records },
+          { findBattleHistoryPrivacy: async () => ({ viewer, journals: [journal] }) },
+        ).getLog('user', 'session')
+        expect(log.entries.some((entry) => entry.eventType === 'barrier_changed')).toBe(false)
+        expect(JSON.stringify(log)).not.toMatch(
+          /Barrier|secret.timed-barrier|sourceCommandVisibility/,
+        )
+      }
+    },
+  )
+
   it('intersects original source privacy with an opposing Covert target restriction', () => {
     const before = encounter({ targetStatuses: [status('covert', TARGET, 4)] })
     const event = {

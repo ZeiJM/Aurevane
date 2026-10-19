@@ -15,6 +15,7 @@ import {
 import { airborneDescription } from '@aurevane/game-core/combat/combat-airborne'
 import {
   terrainBattleEffectPresentation,
+  primedBattleEffectPresentation,
   type BattlePresentedStatus,
 } from '../../lib/battle/battle-elevation-effects'
 
@@ -75,6 +76,8 @@ export function battleEffectIdentity(statusId: string) {
 }
 
 export function describeBattleEffect(effect: BattlePresentedStatus) {
+  const primed = primedBattleEffectPresentation(effect)
+  if (primed) return { ...primed, explanation: `${primed.description} ${primed.duration}.` }
   const terrainEffect = terrainBattleEffectPresentation(effect)
   if (terrainEffect)
     return {
