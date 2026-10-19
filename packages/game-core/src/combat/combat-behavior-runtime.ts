@@ -212,6 +212,8 @@ export function combatAbilitySubject(
   if (!unit) return null
   const ap = unit.temporaryResources.find((row) => row.key === 'pv1f.action-economy')
   return {
+    combatantId: unit.id,
+    teamId: unit.teamId,
     resources: { hp: unit.hp, mp: unit.mp, ap: ap?.current ?? 0 },
     maximumResources: { hp: unit.maxHp, mp: unit.maxMp, ap: ap?.maximum ?? 100 },
     statusIds: [
@@ -264,6 +266,7 @@ function ownerRequirementTruth(
     node.kind === 'action' ||
     node.kind === 'event' ||
     node.kind === 'resource-threshold-crossing' ||
+    (node.kind === 'subject-relation' && node.otherSubject !== 'owner') ||
     node.subject !== 'owner'
   )
     return null

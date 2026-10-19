@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "status": "prepared-not-executed",
+  "candidateSha256": "d74c7e65bdf8b73560b5d890ba08c776b1a523c300fe3810e88013195a8892f1",
+  "templates": {
+    "publication": "7d1ee7f70555bd0326510a5bb93b675c0b4fe95e955a0b28af2b14ae0a23a5c6",
+    "rollback": "c81d56a965c23aad6fe0b16076c33fba02406987202e123ea8e4b4e69b401f40",
+    "readback": "96b21d059e24def1255ecaf41ec09e76516b1f687db20efccea5514306e94296"
+  },
+  "publication": {
+    "historyBefore": 583,
+    "historyAfter": 719,
+    "current": 294,
+    "drafts": 0,
+    "appended": 136,
+    "unchangedCurrent": 158,
+    "policyVersion": 8
+  },
+  "deploymentOrder": [
+    "verify backward-compatible application READY and exact source SHA",
+    "refresh exact catalogue inventory",
+    "prepare and execute transactional publication",
+    "read back all definitions, immutable history and untouched rows"
+  ],
+  "rollbackOrder": [
+    "refresh exact current inventory",
+    "restore compatible current pointers transactionally, retaining all 719 versions",
+    "retain compatible historical reader for captured new definitions before any older application promotion"
+  ]
+}

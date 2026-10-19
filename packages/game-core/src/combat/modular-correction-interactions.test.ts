@@ -152,6 +152,26 @@ it('keeps the real Rewind prime, anchor and maintained Resonance coherent under 
       .primes,
   ).toHaveLength(1)
 })
+it.each(['dawnshield.aegis', 'lifebinder.barrier'])(
+  'casts the real %s at full HP on self and ally for temporary health above max HP',
+  (id) => {
+    for (const recipient of ['actor', 'ally']) {
+      const skill = capture(id)
+      const state = ready([skill])
+      const input = command(
+        state,
+        skill,
+        recipient === 'actor' ? { kind: 'self' } : { kind: 'unit', combatantId: recipient },
+      )
+      expect(prepareCombatAbilityCommand(input).evaluation.legal).toBe(true)
+      const out = commitCombatAbilityCommand(input)
+      const target = out.state.tactical.battle.combatants.find((row) => row.id === recipient)!
+      expect(target.hp).toBe(target.maxHp)
+      expect(currentBarrierAmount(out.state, recipient)).toBe(200)
+      expect(target.hp + currentBarrierAmount(out.state, recipient)).toBe(1200)
+    }
+  },
+)
 it('pays the real Overchannel HP cost from HP while retaining Barrier', () => {
   const skill = capture('aetherist.overchannel')
   const state = grantBarrier(ready([skill]), 'actor', 'actor', 'test.shield', 20).state

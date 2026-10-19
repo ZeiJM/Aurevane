@@ -222,6 +222,49 @@ function cast(
 }
 
 describe('Amplify Curse active-status copying: public command contract', () => {
+  it.each(['amplify', 'curse'] as const)(
+    'does not transfer donor privacy or shared lifetime onto a fresh %s application',
+    (mode) => {
+      const donorId = mode === 'amplify' ? 'target' : 'actor'
+      const receiverId = mode === 'amplify' ? 'actor' : 'target'
+      const initial = { ...world(), effectStackingPolicyVersion: 1 as const }
+      initial.statusState = initial.statusState.map((entry) =>
+        entry.combatantId === donorId
+          ? {
+              ...entry,
+              statuses: [
+                row(mode === 'amplify' ? POSITIVE : NEGATIVE, {
+                  sourceCombatantId: donorId,
+                  applicationModifiers: [
+                    {
+                      stacks: 1,
+                      sourceCombatantId: donorId,
+                      sourceCommandVisibility: {
+                        kind: 'team-only',
+                        teamId: mode === 'amplify' ? 'enemies' : 'players',
+                      },
+                      privateSharedLifetime: true,
+                    },
+                  ],
+                }),
+              ],
+            }
+          : entry,
+      )
+      const result = cast(initial, mode)
+      expect(validateCombatEncounterState(result.state)).toEqual([])
+      expect(statuses(result.state, receiverId)[0].applicationModifiers![0]).not.toHaveProperty(
+        'sourceCommandVisibility',
+      )
+      expect(statuses(result.state, receiverId)[0].applicationModifiers![0]).not.toHaveProperty(
+        'privateSharedLifetime',
+      )
+      expect(statuses(initial, donorId)[0].applicationModifiers![0]).toHaveProperty(
+        'sourceCommandVisibility',
+      )
+    },
+  )
+
   it('copies positive target statuses onto the caster without removing originals', () => {
     const state = world([
       { combatantId: 'target', statuses: [row(POSITIVE, { stacks: 2 }), row(NEGATIVE)] },

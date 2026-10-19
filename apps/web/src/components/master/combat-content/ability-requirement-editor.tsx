@@ -11,6 +11,7 @@ const kinds = [
   'any',
   'resource-state',
   'resource-threshold-crossing',
+  'subject-relation',
   'status-presence',
   'prime-presence',
   'event',
@@ -48,6 +49,8 @@ function initial(kind: (typeof kinds)[number]): RequirementNode | null {
       }
     case 'status-presence':
       return { kind, subject: 'owner', statusId: 'guarded', present: true }
+    case 'subject-relation':
+      return { kind, subject: 'triggering', otherSubject: 'owner', relation: 'same-unit' }
     case 'prime-presence':
       return { kind, subject: 'owner', abilityId: '', present: true }
     case 'event':
@@ -122,6 +125,22 @@ export function AbilityRequirementEditor({
           >
             Add condition
           </button>
+        </div>
+      ) : null}
+      {node?.kind === 'subject-relation' ? (
+        <div className={styles.typedGrid}>
+          <AbilitySelect
+            label="Other requirement subject"
+            value={node.otherSubject}
+            options={subjects}
+            onChange={(otherSubject) => onChange({ ...node, otherSubject })}
+          />
+          <AbilitySelect
+            label="Subject relation"
+            value={node.relation}
+            options={['same-unit', 'ally', 'enemy']}
+            onChange={(relation) => onChange({ ...node, relation })}
+          />
         </div>
       ) : null}
       {node?.kind === 'resource-state' ? (

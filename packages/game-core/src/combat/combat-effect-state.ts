@@ -1,6 +1,6 @@
 import type { CapturedPercentageRecovery } from './combat-percentage-recovery'
 import type { CapturedPercentageDotDamage } from './combat-percentage-dots'
-import type { CombatStatusDefinition } from './actions'
+import type { CombatStatusDefinition, CombatSourceCommandVisibility } from './actions'
 import type { CombatEffectCategory } from './combat-effect-categories'
 import type { CombatEffectInstanceProvenance } from './combat-kernel-types'
 import type { SummonProfileDefinition } from './summon-content'
@@ -54,6 +54,7 @@ export interface DamageProvenance {
 }
 
 export interface CombatOngoingRecovery {
+  sourceCommandVisibility?: CombatSourceCommandVisibility
   percentageRecovery?: CapturedPercentageRecovery
   kind: 'hp' | 'mp'
   sourceCombatantId: string
@@ -126,6 +127,7 @@ export interface CombatDamageHistoryEntry {
 }
 
 export interface CombatBarrierInstance {
+  sourceCommandVisibility?: CombatSourceCommandVisibility
   /** Stable identity for independent Barrier pools in stacking policy 1. */
   applicationOrder?: number
   targetCombatantId: string

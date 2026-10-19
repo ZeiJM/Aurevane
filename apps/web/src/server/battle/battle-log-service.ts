@@ -500,8 +500,8 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
     case 'hidden_combat_action': {
       const actorCombatantId = stringValue(event.actorCombatantId)
       return createEntry(record, eventType, {
-        message: `${combatantLabel(actorCombatantId)} performed an action.`,
-        messageTemplate: '{actor} performed an action.',
+        message: `${combatantLabel(actorCombatantId)} uses a skill.`,
+        messageTemplate: '{actor} uses a skill.',
         actorCombatantId,
         kind: 'offense',
         headline: 'Action',

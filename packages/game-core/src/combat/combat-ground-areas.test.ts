@@ -6,7 +6,12 @@ import {
 } from './combat-ground-areas'
 import { percentageDotEncounter } from './combat-percentage-dots.test-utils'
 import { PHASE4_STATUSES } from './status-content'
-import type { CombatActionDefinition, CombatEncounterState } from './actions'
+import {
+  executeCombatAction,
+  type CombatActionDefinition,
+  type CombatEncounterState,
+} from './actions'
+import { PV1F_COMBAT_CONTENT } from './pv1f-action-economy'
 
 const content = { statuses: PHASE4_STATUSES }
 const tiles = [
@@ -58,6 +63,28 @@ function atRound(state: CombatEncounterState, round: number) {
 }
 
 describe('persisted typed Ground area state', () => {
+  it('pins the source privacy of a Ground area created by a Covert-establishing cast', () => {
+    const before = {
+      ...encounter(),
+      effectTimingPolicy: { version: 1, modes: { covert: 'instant' as const } },
+    }
+    const hidden: CombatActionDefinition = {
+      ...action,
+      effects: [
+        { type: 'apply-status', recipient: 'actor', statusId: 'covert', stacks: 1 },
+        ...action.effects,
+      ],
+      groundArea: { ...action.groundArea, entryEffectOrdinals: [1] },
+    }
+    const out = executeCombatAction(before, hidden, { kind: 'activate' }, PV1F_COMBAT_CONTENT)
+    expect(out.state.groundAreas).toHaveLength(1)
+    expect(out.state.groundAreas![0].sourceCommandVisibility).toEqual({
+      kind: 'team-only',
+      teamId: 'players',
+    })
+    expect(out.state.tactical.battle.combatants.find((unit) => unit.id === 'enemy')!.hp).toBe(977)
+  })
+
   it.each(['level', 'physicalPower', 'missing-profile', 'null-profile'])(
     'rejects incomplete frozen bridge3 %s on reload',
     (missing) => {

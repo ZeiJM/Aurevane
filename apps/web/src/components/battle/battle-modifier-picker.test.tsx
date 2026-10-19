@@ -182,14 +182,37 @@ it.each(['primed', 'spent'] as const)(
 )
 it('keeps an explicitly selected recovery group on its owned attack-first ability instead of Basic Recovery', () => {
   const mixed = { actionId: 'attack-first-resonance', classification: 'recovery' }
-  expect(battleRecoveryActionId(mixed.actionId, ['basic.recover'], mixed)).toBe(mixed.actionId)
+  expect(battleRecoveryActionId(mixed.actionId, ['basic.recover'], [mixed])).toBe(mixed.actionId)
   expect(
-    battleRecoveryActionId(mixed.actionId, ['basic.recover'], {
-      ...mixed,
-      classification: 'attack',
-    }),
+    battleRecoveryActionId(
+      mixed.actionId,
+      ['basic.recover'],
+      [
+        {
+          ...mixed,
+          classification: 'attack',
+        },
+      ],
+    ),
   ).toBe('basic.recover')
-  expect(battleRecoveryActionId('removed', ['basic.recover'], mixed)).toBe('basic.recover')
+  expect(battleRecoveryActionId('removed', ['basic.recover'], [mixed])).toBe('basic.recover')
+})
+it('keeps an implicit sole captured Barrier recovery action despite its defense menu category', () => {
+  const captures = [
+    { actionId: 'dawnshield.aegis', behaviorId: 'aegis', classification: 'recovery' },
+  ]
+  expect(battleRecoveryActionId('dawnshield.aegis', [], captures)).toBe('dawnshield.aegis')
+  expect(battleRecoveryActionId('dawnshield.aegis', ['basic.recover'], captures)).toBe(
+    'dawnshield.aegis',
+  )
+  expect(
+    battleRecoveryActionId(
+      'dawnshield.aegis',
+      ['basic.recover'],
+      [...captures, { ...captures[0]!, behaviorId: 'other' }],
+    ),
+  ).toBe('basic.recover')
+  expect(battleRecoveryActionId('removed', ['basic.recover'], captures)).toBe('basic.recover')
 })
 it.each([
   { version: 8, expected: 'Ability', rejected: 'Wrong version' },

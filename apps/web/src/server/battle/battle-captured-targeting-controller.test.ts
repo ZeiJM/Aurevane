@@ -1,3 +1,8 @@
+import { readFileSync } from 'node:fs'
+import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
+import { parseCombatEffectTimingPolicy } from '@aurevane/game-core/combat/combat-effect-timing'
+import { currentBarrierAmount } from '@aurevane/game-core/combat/combat-barrier'
+import { battleRecoveryActionId } from '@/components/battle/battle-modifier-picker-model'
 import { expect, it, vi } from 'vitest'
 import { captureCombatAbilitySource } from '@aurevane/game-core/combat/combat-behavior-capture'
 import { source } from '../../../../../packages/game-core/src/combat/combat-behavior.test-utils'
@@ -6,7 +11,10 @@ import {
   combatAbilityCommandContext,
   reconcileCombatAbilitySources,
 } from '@aurevane/game-core/combat/combat-behavior-runtime'
-import { prepareCombatAbilityCommand } from '@aurevane/game-core/combat/combat-ability-command'
+import {
+  commitCombatAbilityCommand,
+  prepareCombatAbilityCommand,
+} from '@aurevane/game-core/combat/combat-ability-command'
 import { reattachStatDrivenCombatBridge } from '@aurevane/game-core/combat/stat-driven-combat'
 import {
   preparePv1fTurnEconomy,
@@ -217,6 +225,99 @@ it.each([{ kind: 'line', length: 3 }, { kind: 'circle', radius: 2 }, { kind: 'al
         expect(quote.evaluation.issues.some((issue) => issue.code === 'invalid-target-kind')).toBe(
           false,
         )
+    }
+  },
+)
+
+it.each(['dawnshield.aegis', 'lifebinder.barrier'])(
+  'keeps current %s selected from the defense menu through full-HP self/ally command settlement',
+  (id) => {
+    const cohort: { records: { id: string; after: MatureSkillDefinition }[] } = JSON.parse(
+      readFileSync(
+        new URL(
+          '../../../../../docs/superpowers/specs/2026-10-18-modular-correction-cohort.json',
+          import.meta.url,
+        ),
+        'utf8',
+      ),
+    )
+    const definition = cohort.records.find((row) => row.id === id)!.after
+    expect(definition.tags).toContain('cockpit:defense')
+    const source = captureCombatAbilitySource({
+      schemaVersion: 1,
+      sourceInstanceId: `actor:${id}`,
+      ownerCombatantId: 'actor',
+      abilityId: id,
+      contentVersion: definition.contentVersion,
+      sourceKind: 'discipline-skill',
+      sourceDisciplineId: definition.sourceDisciplineId,
+      tags: definition.tags,
+      definition: definition.ability!,
+    })
+    const base = preparePv1fTurnEconomy(percentageDotEncounter())
+    const state = reattachStatDrivenCombatBridge(
+      reconcileCombatAbilitySources(
+        {
+          ...base,
+          modularSkillPolicyVersion: 1,
+          effectTimingPolicy: parseCombatEffectTimingPolicy({
+            version: 8,
+            tagAuthority: 'global',
+            modes: { 'barrier-change': 'instant' },
+          }),
+        },
+        [source],
+      ),
+      base.statBridge,
+    )
+    const viewer = deriveParticipantBattleViewerEntitlement(state.tactical.battle.combatants, [
+      'actor',
+    ])
+    const choices = projectBattleManualActionTargets(state, viewer)
+    expect(choices).toHaveLength(1)
+    expect(choices[0]!.classification).toBe('recovery')
+    // No explicit group choice exists for these single-group Skills. Their legacy menu is defense.
+    expect(battleRecoveryActionId(id, [], choices)).toBe(id)
+    const target = choices[0]!.target
+    const descriptor = resolveBattleCapturedSkill(
+      {
+        id,
+        targetKind: target.kind,
+        targetTeamPolicy: target.teamPolicy,
+        minimumRange: target.minimumRange,
+        maximumRange: target.maximumRange,
+      },
+      choices,
+    )!
+    for (const recipient of ['actor', 'ally']) {
+      const intent = selectBattleSkillPreviewIntent(descriptor, {
+        actorId: 'actor',
+        selectedCombatantId: recipient,
+        selectedTile: null,
+        combatants: state.tactical.battle.combatants.map((unit) => ({
+          combatantId: unit.id,
+          teamIndex: unit.teamId === 'players' ? 0 : 1,
+          hp: unit.hp,
+          position: state.tactical.placements.find((row) => row.combatantId === unit.id)!.position,
+        })),
+      })!
+      expect(intent.actionId).toBe(id)
+      const input = {
+        state,
+        actorId: 'actor',
+        root: { kind: 'canonical' as const, source, behaviorId: intent.behaviorId },
+        selection: intent.target,
+        content: PV1F_COMBAT_CONTENT,
+        context: combatAbilityCommandContext(state, source),
+      }
+      expect(prepareCombatAbilityCommand(input).evaluation.legal).toBe(true)
+      const out = commitCombatAbilityCommand(input)
+      const unit = out.state.tactical.battle.combatants.find((row) => row.id === recipient)!
+      expect(unit.hp).toBe(1000)
+      expect(unit.maxHp).toBe(1000)
+      expect(currentBarrierAmount(out.state, recipient)).toBe(200)
+      expect(out.state.tactical.battle.combatants.find((row) => row.id === 'actor')!.mp).toBe(16)
+      expect(() => commitCombatAbilityCommand({ ...input, state: out.state })).toThrow()
     }
   },
 )

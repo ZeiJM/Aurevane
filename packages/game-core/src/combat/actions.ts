@@ -43,6 +43,7 @@ import { recordCommittedDamageHistory } from './combat-damage-history'
 import { attachCombatEffectProvenance } from './combat-effect-provenance'
 import {
   filterBlockedCovertApplication,
+  protectCovertEstablishingAction,
   materializeCsrCommittedAction,
   materializeCsrPreviewAction,
   type CombatSensoryEffect,
@@ -547,10 +548,14 @@ export function executeCombatAction(
       })
     : [...accuracy.events]
   const preCommitEvents = [...accuracyEvents, ...resistance.events, ...critical.events]
-  const transition =
+  const transition = protectCovertEstablishingAction(
+    state,
     preCommitEvents.length > 0
       ? { ...committedTransition, events: [...preCommitEvents, ...committedTransition.events] }
-      : committedTransition
+      : committedTransition,
+    actorId ?? undefined,
+    action.id,
+  )
   if (!context || !evaluation) return transition
   return {
     ...(hitDependentEffects ? { hitDependentEffectsActivated } : {}),

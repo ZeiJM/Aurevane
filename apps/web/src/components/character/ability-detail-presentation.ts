@@ -1,4 +1,5 @@
 import type { MechanicTextPart } from './mechanic-text'
+import { isCleanseEffect } from '@aurevane/game-core/combat/combat-cleanse'
 import { mechanicStatusTag, mechanicTag } from './mechanic-text'
 import { resolveMechanicText } from './mechanic-tag-explanation'
 import { applyAbilityTimingDefaults } from '@aurevane/game-core/combat/combat-definition'
@@ -62,6 +63,8 @@ export function abilityRequirementDescription(node: RequirementNode | null): str
       return `${node.resource.toUpperCase()} [${node.direction === 'below' ? 'Falls Below' : 'Rises Above'} ${node.thresholdBasisPoints / 100}%] [${subjects[node.subject]}]`
     case 'status-presence':
       return `${node.present ? '' : 'No '}${gameplayStatusName(node.statusId)}${requirementSubjectSuffix(node.subject)}`
+    case 'subject-relation':
+      return `${node.relation === 'same-unit' ? 'Same Unit' : node.relation === 'ally' ? 'Ally, excluding Self' : 'Enemy'} [${subjects[node.subject]} / ${subjects[node.otherSubject]}]`
     case 'prime-presence':
       return `${node.present ? '' : 'No '}${requirementTerm(node.abilityId.split('.').at(-1) ?? node.abilityId)} [Primed] [${subjects[node.subject]}]`
     case 'event':
@@ -332,6 +335,40 @@ function effectPresentation(
   }
 }
 
+/** The Cleanse explanation already lists this exact recipient eligibility. */
+function repeatsCleanseEligibility(effect: AbilityEffect, preceding: readonly AbilityEffect[]) {
+  const requirement = effect.requirements
+  if (effect.payload.type !== 'percentage-recovery' || requirement?.kind !== 'any') return false
+  const subject =
+    effect.payload.recipient === 'actor'
+      ? 'owner'
+      : effect.payload.recipient === 'primary-unit'
+        ? 'selected'
+        : 'affected'
+  return preceding.some(({ payload, requirements }) => {
+    if (
+      payload.type !== 'remove-status' ||
+      !isCleanseEffect(payload) ||
+      requirements ||
+      payload.recipient !== effect.payload.recipient
+    )
+      return false
+    const statuses = new Set([...payload.statusIds, 'suppress'])
+    return (
+      requirement.children.length === statuses.size &&
+      [...statuses].every((statusId) =>
+        requirement.children.some(
+          (child) =>
+            child.kind === 'status-presence' &&
+            child.present &&
+            child.subject === subject &&
+            child.statusId === statusId,
+        ),
+      )
+    )
+  })
+}
+
 export function abilityBehaviorInformation(
   behavior: AbilityBehavior,
   options: {
@@ -360,7 +397,7 @@ export function abilityBehaviorInformation(
         : [nativeCombatTagPayload(payload)],
     ),
   }
-  const effects = behavior.effects.map((effect) => {
+  const effects = behavior.effects.map((effect, index) => {
     const recipientOverride = effectRecipientOverride(behavior, effect)
     const described = effectPresentation(
       effect,
@@ -370,10 +407,17 @@ export function abilityBehaviorInformation(
       controlledAction,
       effectContext,
     )
+    const redundantEligibility = repeatsCleanseEligibility(effect, behavior.effects.slice(0, index))
     return {
       ...described,
+      ...(redundantEligibility
+        ? {
+            description: `${described.description} Applies only if the recipient has an effect that Cleanse can remove.`,
+          }
+        : {}),
       presentation: {
         ...described.presentation,
+        ...(redundantEligibility ? { condition: null, conditionParts: undefined } : {}),
         ...(recipientOverride ? { recipientOverride } : {}),
         ...(behavior.groundArea
           ? { repeatsOnEntry: behavior.groundArea.entryEffectIds.includes(effect.id) }

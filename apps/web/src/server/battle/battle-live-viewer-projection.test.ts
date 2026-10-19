@@ -1,6 +1,9 @@
 import { applySkillCooldown } from '@aurevane/game-core/combat/skill-cooldowns'
 import { readFileSync } from 'node:fs'
-import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
+import {
+  resolveMatureSkillVersion,
+  type MatureSkillDefinition,
+} from '@aurevane/game-core/combat/mature-skills'
 import { capturedMatureSkillAbilitySource } from '@aurevane/game-core/combat/combat-action-source'
 import {
   resolveBattleCapturedSkill,
@@ -493,6 +496,112 @@ describe('CSR-2 live viewer-relative status projection', () => {
     expect(rowStatuses(projected, ENEMY).map((entry) => entry.statusId)).toEqual(['exposed'])
     expect(rowStatuses(projected, PLAIN_ENEMY).map((entry) => entry.statusId)).toEqual(['guarded'])
     expect(authoritative.statusState).toEqual(before)
+  })
+
+  it('keeps pending Covert private without activating concealment before its round', () => {
+    const state = encounter()
+    state.pendingEffects = [
+      {
+        actorId: PLAIN_ENEMY,
+        actionId: 'secret.smoke',
+        recipientIds: [PLAIN_ENEMY],
+        affectedTiles: [],
+        effect: { type: 'apply-status', recipient: 'actor', statusId: 'covert', stacks: 1 },
+        activationRound: 2,
+        content: PV1F_COMBAT_CONTENT,
+      },
+    ]
+    const owner = deriveParticipantBattleViewerEntitlement(state.tactical.battle.combatants, [
+      PLAIN_ENEMY,
+    ])
+    expect(
+      projectBattleStatusStateForViewer(state, owner).find((row) => row.combatantId === PLAIN_ENEMY)
+        ?.statuses,
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ statusId: 'covert', timingState: 'pending' }),
+      ]),
+    )
+    for (const viewer of [
+      deriveParticipantBattleViewerEntitlement(state.tactical.battle.combatants, [PLAYER]),
+      createSpectatorBattleViewerEntitlement(),
+    ]) {
+      expect(
+        projectBattleStatusStateForViewer(state, viewer)
+          .find((row) => row.combatantId === PLAIN_ENEMY)
+          ?.statuses.map((row) => row.statusId),
+      ).toEqual(['guarded'])
+    }
+  })
+
+  it('omits a concealed queued Summon while keeping an earlier public Summon and owner/allied rows', () => {
+    const state = encounter()
+    const profile = resolveMatureSkillVersion('wildwarden.renewing-herbs')!.summonProfile!
+    state.pendingSummons = ['public.call', 'secret.call'].map((sourceSkillId, index) => ({
+      input: {
+        ownerCombatantId: PLAIN_ENEMY,
+        sourceSkillId,
+        sourceSkillVersion: 1,
+        profile,
+        position: { x: 0, y: 0 },
+        facing: 'east',
+      },
+      activationRound: 2,
+      ...(index
+        ? { sourceCommandVisibility: { kind: 'team-only' as const, teamId: 'team:b' } }
+        : {}),
+    }))
+    for (const id of [PLAIN_ENEMY, ENEMY]) {
+      const viewer = deriveParticipantBattleViewerEntitlement(state.tactical.battle.combatants, [
+        id,
+      ])
+      expect(
+        projectBattleStatusStateForViewer(state, viewer)
+          .find((row) => row.combatantId === PLAIN_ENEMY)!
+          .statuses.filter((row) => row.statusId === 'summon'),
+      ).toHaveLength(2)
+    }
+    for (const viewer of [
+      deriveParticipantBattleViewerEntitlement(state.tactical.battle.combatants, [PLAYER]),
+      createSpectatorBattleViewerEntitlement(),
+    ]) {
+      expect(
+        projectBattleStatusStateForViewer(state, viewer)
+          .find((row) => row.combatantId === PLAIN_ENEMY)!
+          .statuses.filter((row) => row.statusId === 'summon'),
+      ).toHaveLength(1)
+    }
+  })
+
+  it('retains the recipient’s own queued benefit without exposing an opposing concealed source Skill', () => {
+    const state = encounter()
+    state.pendingEffects = [
+      {
+        actorId: ENEMY,
+        actionId: 'secret.opposing-buff',
+        recipientIds: [PLAYER],
+        affectedTiles: [],
+        effect: {
+          type: 'apply-status',
+          recipient: 'primary-unit',
+          statusId: 'inspired',
+          stacks: 1,
+        },
+        activationRound: 2,
+        content: PV1F_COMBAT_CONTENT,
+        sourceCommandVisibility: { kind: 'team-only', teamId: 'team:b' },
+      },
+    ]
+    const viewer = deriveParticipantBattleViewerEntitlement(state.tactical.battle.combatants, [
+      PLAYER,
+    ])
+    const projected = projectBattleStatusStateForViewer(state, viewer)
+    expect(projected.find((row) => row.combatantId === PLAYER)!.statuses).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ statusId: 'inspired', timingState: 'pending' }),
+      ]),
+    )
+    expect(JSON.stringify(projected)).not.toContain('secret.opposing-buff')
   })
 })
 

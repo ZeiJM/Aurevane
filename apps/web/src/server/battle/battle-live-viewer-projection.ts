@@ -51,6 +51,24 @@ import {
 } from '../../lib/battle/battle-elevation-effects'
 
 import { battleViewerRelationship, type BattleViewerEntitlement } from './battle-viewer-entitlement'
+import type { CombatSourceCommandVisibility } from '@aurevane/game-core/combat/actions'
+
+function pendingCovertConcealsInstance(
+  state: Pick<StatDrivenCombatEncounterState, 'pendingEffects'>,
+  instance: { sourceCombatantId: string; sourceCommandVisibility?: CombatSourceCommandVisibility },
+): boolean {
+  return (
+    instance.sourceCommandVisibility?.kind === 'team-only' &&
+    (state.pendingEffects ?? []).some(
+      (pending) =>
+        pending.actorId === instance.sourceCombatantId &&
+        pending.sourceCommandVisibility &&
+        pending.effect.type === 'apply-status' &&
+        pending.effect.statusId === PV1F_COVERT_STATUS.id &&
+        pending.recipientIds.includes(pending.actorId),
+    )
+  )
+}
 
 function capturedAbilityEffectContext(state: StatDrivenCombatEncounterState) {
   return {
@@ -295,7 +313,7 @@ export function projectBattleBasicActions(
     )
 }
 
-/** Shallow public receipt projection; private execution records stay in persistence. */
+/** Public receipt projection, including per-application private execution metadata. */
 export function omitCombatExecutionMetadata<T extends object>(receipt: T): T {
   const projected = { ...receipt }
   for (const key of [
@@ -303,10 +321,18 @@ export function omitCombatExecutionMetadata<T extends object>(receipt: T): T {
     'abilityParticipants',
     'modifierSuppressions',
     'sourceCommandVisibility',
+    'privateSharedLifetime',
     'abilityCommandFacts',
     'provenance',
   ])
     Reflect.deleteProperty(projected, key)
+  if ('applicationModifiers' in projected && Array.isArray(projected.applicationModifiers)) {
+    Object.assign(projected, {
+      applicationModifiers: projected.applicationModifiers.map((application: object) =>
+        omitCombatExecutionMetadata(application),
+      ),
+    })
+  }
   return projected
 }
 
@@ -370,7 +396,45 @@ export function projectBattleStatusStateForViewer(
       ? { healingDownPolicyVersion: 1 as const }
       : {}),
   })
-  const pending = [...pendingCombatStatusRows(state), ...activePersistentCombatStatusRows(state)]
+  const pending = [
+    ...(state.pendingEffects ?? []).flatMap((effect) => {
+      const rows = pendingCombatStatusRows({
+        ...state,
+        pendingEffects: [effect],
+        pendingSummons: [],
+      })
+      const visibility = effect.sourceCommandVisibility
+      if (
+        !visibility ||
+        (viewer.kind === 'participant' && viewer.friendlyTeamIds.has(visibility.teamId))
+      )
+        return rows
+      // A protected cast's queued benefits stay private before its own Covert activates.
+      return rows.filter(({ combatantId, status }) => {
+        const recipient = combatantById.get(combatantId)
+        const relationship = recipient ? battleViewerRelationship(viewer, recipient) : 'enemy'
+        if (relationship === 'self' || relationship === 'ally') return true
+        const definition = STATUS_DEFINITION_BY_KEY.get(
+          statusDefinitionKey(status.statusId, status.statusVersion),
+        )
+        return definition && combatStatusMetadata(definition).polarity !== 'positive'
+      })
+    }),
+    ...pendingCombatStatusRows({
+      ...state,
+      pendingEffects: [],
+      pendingSummons: state.pendingSummons?.filter(
+        (summon) =>
+          !summon.sourceCommandVisibility ||
+          (viewer.kind === 'participant' &&
+            viewer.friendlyTeamIds.has(summon.sourceCommandVisibility.teamId)),
+      ),
+    }),
+    ...activePersistentCombatStatusRows({
+      ...state,
+      effectState: projectBattleEffectStateForViewer(state, viewer),
+    }),
+  ]
   return state.statusState.map((activeRow) => {
     const combatant = combatantById.get(activeRow.combatantId)
     const terrainBonus =
@@ -400,9 +464,47 @@ export function projectBattleStatusStateForViewer(
     const row = {
       ...activeRow,
       statuses: [
-        ...activeRow.statuses.map((status) =>
-          presentInteractionPolicy(omitCombatExecutionMetadata(status)),
-        ),
+        ...activeRow.statuses
+          .flatMap((status) => {
+            const recipient = combatantById.get(activeRow.combatantId)
+            const relationship = recipient ? battleViewerRelationship(viewer, recipient) : 'enemy'
+            if (relationship === 'self' || relationship === 'ally') return [status]
+            const definition = STATUS_DEFINITION_BY_KEY.get(
+              statusDefinitionKey(status.statusId, status.statusVersion),
+            )
+            if (definition && combatStatusMetadata(definition).polarity !== 'positive')
+              return [status]
+            if (pendingCovertConcealsInstance(state, status)) return []
+            if (!status.applicationModifiers) return [status]
+            if (
+              status.applicationModifiers.some(
+                (application) =>
+                  application.privateSharedLifetime &&
+                  pendingCovertConcealsInstance(state, application),
+              )
+            )
+              return []
+            const applications = status.applicationModifiers.filter(
+              (application) => !pendingCovertConcealsInstance(state, application),
+            )
+            if (applications.length === status.applicationModifiers.length) return [status]
+            const last = applications.at(-1)
+            if (!last) return []
+            const visible = {
+              ...status,
+              applicationModifiers: applications,
+              stacks: applications.reduce((sum, application) => sum + application.stacks, 0),
+              sourceCombatantId: last.sourceCombatantId,
+            }
+            delete visible.potencyBasisPoints
+            delete visible.blindsideModifiersBasisPoints
+            if (last.potencyBasisPoints !== undefined)
+              visible.potencyBasisPoints = last.potencyBasisPoints
+            if (last.blindsideModifiersBasisPoints !== undefined)
+              visible.blindsideModifiersBasisPoints = last.blindsideModifiersBasisPoints
+            return [visible]
+          })
+          .map((status) => presentInteractionPolicy(omitCombatExecutionMetadata(status))),
         ...terrainStatuses,
         ...pending
           .filter((item) => item.combatantId === activeRow.combatantId)
@@ -426,10 +528,16 @@ export function projectBattleStatusStateForViewer(
 
     if (relationship === 'self' || relationship === 'ally') return row
 
-    const covert = row.statuses.some(
+    // Concealment is authoritative even when a private queued refresh hides the
+    // active Covert instance from this viewer's presented rows.
+    const covert = activeRow.statuses.some(
       (status) => status.statusId === PV1F_COVERT_STATUS.id && status.timingState !== 'pending',
     )
-    if (!covert) return row
+    if (!covert)
+      return {
+        ...row,
+        statuses: row.statuses.filter((status) => status.statusId !== PV1F_COVERT_STATUS.id),
+      }
 
     return {
       ...row,
@@ -448,7 +556,10 @@ export function projectBattleStatusStateForViewer(
 }
 
 export function projectBattleEffectStateForViewer(
-  state: Pick<StatDrivenCombatEncounterState, 'effectState' | 'tactical' | 'statusState'>,
+  state: Pick<
+    StatDrivenCombatEncounterState,
+    'effectState' | 'tactical' | 'statusState' | 'pendingEffects'
+  >,
   viewer: BattleViewerEntitlement,
 ): CombatEffectState | undefined {
   if (!state.effectState) return undefined
@@ -462,18 +573,23 @@ export function projectBattleEffectStateForViewer(
     const relationship = battleViewerRelationship(viewer, source)
     return relationship === 'self' || relationship === 'ally'
   }
-  const positiveHolderVisible = (instance: { targetCombatantId: string }) => {
+  const positiveHolderVisible = (instance: {
+    targetCombatantId: string
+    sourceCombatantId: string
+    sourceCommandVisibility?: CombatSourceCommandVisibility
+  }) => {
     const holder = combatantById.get(instance.targetCombatantId)
     if (!holder) return false
     const relationship = battleViewerRelationship(viewer, holder)
     return (
       relationship === 'self' ||
       relationship === 'ally' ||
-      !state.statusState
-        .find((row) => row.combatantId === holder.id)
-        ?.statuses.some(
-          (row) => row.statusId === PV1F_COVERT_STATUS.id && row.timingState !== 'pending',
-        )
+      (!pendingCovertConcealsInstance(state, instance) &&
+        !state.statusState
+          .find((row) => row.combatantId === holder.id)
+          ?.statuses.some(
+            (row) => row.statusId === PV1F_COVERT_STATUS.id && row.timingState !== 'pending',
+          ))
     )
   }
   const publicInstance = <
@@ -484,7 +600,7 @@ export function projectBattleEffectStateForViewer(
     if (sourceAllowed(instance.sourceCombatantId)) return omitCombatExecutionMetadata(instance)
     const publicEffect = { ...instance, sourceActionId: 'combat.effect' }
     delete publicEffect.provenance
-    return publicEffect
+    return omitCombatExecutionMetadata(publicEffect)
   }
   return {
     ...state.effectState,

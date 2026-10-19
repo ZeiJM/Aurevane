@@ -80,7 +80,7 @@ import {
 } from './combat-modifier-composition'
 import { issueCommittedCombatExecution, committedCombatAction } from './combat-committed-execution'
 import { markPv1fTurnActivity } from './pv1f-turn-activity'
-import { revealedSkillApCost } from './covert-sensory-revealed'
+import { protectCovertEstablishingAction, revealedSkillApCost } from './covert-sensory-revealed'
 import { spendAction } from './battle-state'
 import {
   createCombatAbilityEventSession,
@@ -1111,7 +1111,7 @@ export function commitCombatAbilityCommand(
     !input.eventSession && terminal.state.effectState?.summons?.length
       ? removeDefeatedCombatSummons(terminal.state as StatDrivenCombatEncounterState)
       : { state: terminal.state, events: [] }
-  return {
+  const transition: CombatAbilityCommandTransition = {
     ...out,
     state: cleaned.state.abilityRuntime?.controlled
       ? reconcileCombatAbilitySources(
@@ -1152,6 +1152,7 @@ export function commitCombatAbilityCommand(
       ...cleaned.events,
     ],
   }
+  return protectCovertEstablishingAction(input.state, transition, input.actorId, prepared.action.id)
 }
 
 /** Internal native boundary driver. Each invocation owns its queue; nested commands retain theirs. */

@@ -720,22 +720,21 @@ function BattleExperienceContent({
   const selectedDefense =
     defenseOptions.find((option) => option.id === selectedDefenseActionId) ?? defenseOptions[0]!
   const preferredHealId = String(selectedTechniqueHealId ?? selectedHealActionId)
-  const selectedOwnedRecoveryGroup =
-    (selectableTechniques.some((row) => row.id === preferredHealId) ||
-      selectableSpecial?.id === preferredHealId) &&
-    selectedBehavior?.actionId === preferredHealId
-      ? manualActionTargets.find(
+  const selectedOwnedRecoveryGroups =
+    selectableTechniques.some((row) => row.id === preferredHealId) ||
+    selectableSpecial?.id === preferredHealId
+      ? manualActionTargets.filter(
           (row) =>
-            row.actionId === preferredHealId && row.behaviorId === selectedBehavior.behaviorId,
+            row.actionId === preferredHealId &&
+            (selectedBehavior?.actionId !== preferredHealId ||
+              row.behaviorId === selectedBehavior.behaviorId),
         )
-      : null
+      : []
   const effectiveHealActionId = String(
     battleRecoveryActionId(
       preferredHealId,
       recoveryOptions.map((option) => option.id),
-      selectedOwnedRecoveryGroup?.classification
-        ? { actionId: preferredHealId, classification: selectedOwnedRecoveryGroup.classification }
-        : null,
+      selectedOwnedRecoveryGroups,
     ),
   )
   const tactical = battle.snapshot.tactical

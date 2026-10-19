@@ -432,8 +432,12 @@ export interface CombatContentCatalog {
 }
 
 export interface CombatStatusInstance {
+  /** Private source restriction for an instant benefit of a pending-Covert cast. */
+  sourceCommandVisibility?: CombatSourceCommandVisibility
   /** Policy 1 preserves each application's authored magnitude and source under the shared lifetime. */
   applicationModifiers?: readonly {
+    sourceCommandVisibility?: CombatSourceCommandVisibility
+    privateSharedLifetime?: true
     stacks: number
     sourceCombatantId: string
     potencyBasisPoints?: number
@@ -2993,6 +2997,32 @@ function collectPersistentProvenanceIssues(
   state: CombatEncounterState,
   issues: CombatEncounterIssue[],
 ): void {
+  const collectVisibility = (
+    entry: {
+      sourceCombatantId: string
+      sourceCommandVisibility?: unknown
+      privateSharedLifetime?: unknown
+    },
+    field: string,
+  ) => {
+    try {
+      if (
+        entry.privateSharedLifetime !== undefined &&
+        (entry.privateSharedLifetime !== true || entry.sourceCommandVisibility === undefined)
+      )
+        throw new TypeError('Invalid private shared lifetime.')
+      validateSourceCommandVisibility(
+        state,
+        entry.sourceCommandVisibility as CombatSourceCommandVisibility | undefined,
+        entry.sourceCombatantId,
+      )
+    } catch {
+      issues.push({
+        field,
+        message: 'Active source command visibility must match its source team.',
+      })
+    }
+  }
   const collect = (value: unknown, field: string) => {
     if (value === undefined) return
     for (const message of validateCombatEffectInstanceProvenance(value)) {
@@ -3003,6 +3033,17 @@ function collectPersistentProvenanceIssues(
   for (const [rowIndex, row] of state.statusState.entries()) {
     for (const [statusIndex, status] of row.statuses.entries()) {
       collect(status.provenance, `statusState.${rowIndex}.statuses.${statusIndex}.provenance`)
+      collectVisibility(
+        status,
+        `statusState.${rowIndex}.statuses.${statusIndex}.sourceCommandVisibility`,
+      )
+      ;(Array.isArray(status.applicationModifiers) ? status.applicationModifiers : []).forEach(
+        (application, index) =>
+          collectVisibility(
+            application,
+            `statusState.${rowIndex}.statuses.${statusIndex}.applicationModifiers.${index}.sourceCommandVisibility`,
+          ),
+      )
     }
   }
 
@@ -3023,6 +3064,10 @@ function collectPersistentProvenanceIssues(
       collect(
         (row as { provenance?: unknown }).provenance,
         `effectState.${name}.${index}.provenance`,
+      )
+      collectVisibility(
+        row as { sourceCombatantId: string; sourceCommandVisibility?: unknown },
+        `effectState.${name}.${index}.sourceCommandVisibility`,
       )
     })
   }
@@ -5731,6 +5776,9 @@ function applyStatusState(
         ...(potencyBasisPoints !== undefined ? { potencyBasisPoints } : {}),
         ...(blindsideModifiers ? { blindsideModifiersBasisPoints: blindsideModifiers } : {}),
       }
+
+  if (existing && existing.sourceCombatantId !== sourceCombatantId)
+    delete nextStatus.sourceCommandVisibility
 
   if (state.effectStackingPolicyVersion === 1 && statusId !== 'suppress') {
     nextStatus.applicationModifiers = [
