@@ -1,0 +1,11 @@
+# Compact Account presence line and portrait
+
+Owner request: replace the Online Users badge beneath Welcome back with a compact clickable text line, and use some of the saved space for a modestly larger mini portrait. Apply the shared layout on desktop and phone.
+
+The existing `/game/online` anchor and live presence count are retained. Account menu styling removes the surrounding border, padding and status dot, reduces the link to a 24px minimum line, and adds hover/focus underline while retaining the shared keyboard focus outline. The Current character caption selector is narrowed so its uppercase/tiny label treatment does not affect the count. Only the Account portrait grows from 2.4rem to 3.25rem (38.4px to 52px at the standard root scale); its responsive image hint matches the frame. The main navigation portrait is unchanged.
+
+The existing native navigation case now runs on desktop and phone, checks the menu at normal viewport widths and a 320px phone width, verifies the link is beneath the greeting without badge border/padding, checks the larger square portrait and popup containment, saves captures, and actually opens the Online Users page. Existing navigation assertions remain intact. Local native execution is unavailable because this executor has no Chromium binary; authenticated CI scenarios use disposable local accounts. Hosted browser observation remains blocked by credential protection from the preceding release; no bypass is attempted.
+
+Pre-release checks: the existing three focused shell suites pass 11 tests. Prettier, ESLint, TypeScript and diff whitespace checks pass. Independent read-only review reports no Critical or Important findings across the CSS cascade, mobile/long-name layout, native link, focus and image sizing. Whole-source quality and native CI are pending. No migration, gameplay, presence heartbeat, count authority or navigation destination changes.
+
+Status: implemented, not yet released. Main baseline is `7637a969d9152a7b26ce77e35f01873992fb8c40`, preserving the live World fix and skill-display update. The standing instruction to run the requested changes live for testing remains applicable to this Account badge refinement; perform the fresh-main and verified-source release gates first. Git auto deployments remain locked.
