@@ -1,6 +1,7 @@
 import { mergeWorldAttackReceipt, type WorldAttackReceipt } from '@/world/attack-receipt'
 import { STEP_MS } from '@/world/catalog'
 import { retainWorldSceneReferences } from '@/world/presence'
+import { mergeWorldMovement, type WorldMovementReceipt } from '@/world/movement-receipt'
 import type { WorldIntent, WorldView } from '@/world/types'
 
 export class WorldConflict extends Error {}
@@ -24,14 +25,19 @@ export class WorldController {
   private idleRead: AbortController | null = null
   private sceneRead: AbortController | null = null
   private pendingViewport = false
+  private pendingMovementScene = false
   private lastSceneAt = -Infinity
   private lastSceneSector: string | null = null
   constructor(
     public view: WorldView,
     private transport: {
-      command: (intent: WorldIntent, view: WorldView) => Promise<WorldView | WorldAttackReceipt>
+      command: (
+        intent: WorldIntent,
+        view: WorldView,
+      ) => Promise<WorldView | WorldAttackReceipt | WorldMovementReceipt>
       refresh: (signal?: AbortSignal, fullScene?: boolean) => Promise<WorldView>
       accept: (view: WorldView, reconcile: boolean) => void
+      confirmMovement?: (view: WorldView) => void
       presentation?: (view: WorldView) => void
       sceneCovered?: (view: WorldView) => boolean
       error: (message: string) => void
@@ -145,9 +151,11 @@ export class WorldController {
     if (this.disposed || !this.transport.presentation) return
     if (this.sceneRead) {
       if (options.viewport) this.pendingViewport = true
+      if (options.movement) this.pendingMovementScene = true
       return
     }
-    if (options.viewport && this.transport.sceneCovered?.(this.view) === true) return
+    if (options.viewport && !options.movement && this.transport.sceneCovered?.(this.view) === true)
+      return
     // Ordinary movement already carries owned authority and peers have a
     // separate live channel. Avoid repeatedly downloading/indexing the full
     // atlas while this approved public route is still supplied. Explicit reads,
@@ -215,6 +223,9 @@ export class WorldController {
             ?.cells.some((cell) => cell.x === point.x && cell.y === point.y && cell.walkable)
         let from = this.view.position
         for (const step of this.view.route) {
+          // Only the contiguous supplied prefix can currently animate. A known
+          // far-future tile beyond a gap must not reject nearer scene ground.
+          if (!walkable(previous, from) || !walkable(previous, step.position)) break
           if (walkable(previous, step.position) && !walkable(supplied, step.position)) return
           const oldSector = previous.get(from.sectorId),
             newSector = supplied.get(from.sectorId)
@@ -301,9 +312,12 @@ export class WorldController {
       // Approved movement remains usable; the regular schedule retries presentation.
     } finally {
       if (this.sceneRead === read) this.sceneRead = null
-      if (this.pendingViewport) {
+      if (this.pendingViewport || this.pendingMovementScene) {
+        const viewport = this.pendingViewport,
+          movement = this.pendingMovementScene
         this.pendingViewport = false
-        void this.hydrate({ viewport: true })
+        this.pendingMovementScene = false
+        void this.hydrate({ viewport, movement })
       }
     }
   }
@@ -359,7 +373,7 @@ export class WorldController {
     this.currentJob = job
     this.transport.busy(job.intent)
     try {
-      let receipt: WorldView | WorldAttackReceipt,
+      let receipt: WorldView | WorldAttackReceipt | WorldMovementReceipt,
         source = this.view
       try {
         receipt = await this.transport.command(job.intent, source)
@@ -373,12 +387,37 @@ export class WorldController {
         source = this.view
         receipt = await this.transport.command(job.intent, source)
       }
-      const view =
-        job.intent.kind === 'attack' && !('version' in receipt)
-          ? mergeWorldAttackReceipt(this.view, receipt, source.characterId)
-          : (receipt as WorldView)
+      let view: WorldView,
+        acceptReceipt = true
+      if (job.intent.kind === 'attack' && !('version' in receipt))
+        view = mergeWorldAttackReceipt(this.view, receipt, source.characterId)
+      else if ('kind' in receipt && receipt.kind === 'movement') {
+        // Validate against the dispatch authority, but retain scene/peer data
+        // delivered independently while this command was awaiting approval.
+        const validated = mergeWorldMovement(source, receipt),
+          current = this.view
+        const superseded =
+          current.version > receipt.version ||
+          (current !== source &&
+            current.version === receipt.version &&
+            current.serverNow >= receipt.serverNow)
+        if (superseded) {
+          view = current
+          // Re-accepting saved authority would restart its client clock at
+          // this delayed reply's arrival and insert another movement pause.
+          acceptReceipt = false
+        } else view = current === source ? validated : mergeWorldMovement(current, receipt)
+      } else view = receipt as WorldView
       const reconcile = !movement(job.intent) || job.sequence === this.latestMovement
-      this.accept(view, reconcile && !this.queue.some((next) => movement(next.intent)))
+      if (acceptReceipt)
+        this.accept(view, reconcile && !this.queue.some((next) => movement(next.intent)))
+      else if (
+        !this.disposed &&
+        reconcile &&
+        !this.attackPending &&
+        !this.queue.some((next) => movement(next.intent))
+      )
+        this.transport.confirmMovement?.(view)
       job.resolve({ applied: true, view })
     } catch (error) {
       if (!this.disposed && (!movement(job.intent) || job.sequence === this.latestMovement)) {
@@ -397,6 +436,7 @@ export class WorldController {
   dispose() {
     this.disposed = true
     this.pendingViewport = false
+    this.pendingMovementScene = false
     this.sceneRead?.abort()
     this.sceneRead = null
     this.idleRead?.abort()

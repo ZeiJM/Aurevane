@@ -5,6 +5,26 @@ import { newWorldState } from '@/world/travel'
 import { localRoute, WorldMotion } from './world-motion'
 
 describe('confirmed distant-click routes', () => {
+  it('keeps a partial turn on canonical public ground moving until timely approval', () => {
+    const state = { ...newWorldState(), position: { sectorId: 'atlas:58:28', x: 6, y: 4 } }
+    const view = projectWorld(state, [], 1000)
+    const straight = localRoute(view, state.position, { ...state.position, x: 9 })!
+    const destination = { ...state.position, y: 0 }
+    const turn = localRoute(view, state.position, destination)!
+    expect(turn).toHaveLength(4)
+    const motion = new WorldMotion(view)
+    motion.plan(straight, view.sectors, 0)
+    motion.plan(turn, view.sectors, 100)
+    expect(motion.sample(550).moving).toBe(true)
+    const before = motion.sample(650)
+    expect(before.moving).toBe(true)
+    const confirmed = resolveWorldIntent(state, { kind: 'walk', destination }, 1100)
+    expect(confirmed.route.at(-1)!.position).toEqual(destination)
+    motion.reconcile(projectWorld(confirmed, [], 1100), 650)
+    expect(motion.sample(650).point).toEqual(before.point)
+    expect(motion.sample(666).point).not.toEqual(before.point)
+    expect(motion.sample(2000).position).toEqual(destination)
+  })
   it('does not return to the old origin when the server confirms a different equally legal path', () => {
     const state = {
       ...newWorldState(),

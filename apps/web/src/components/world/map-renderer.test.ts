@@ -1787,6 +1787,8 @@ describe('native map input and bounded lifecycle', () => {
     )
     s.renderer.update(s.view)
     s.frame(10_016)
+    expect(Number(s.canvas.dataset.travellerX)).toBeCloseTo(origin.x + 0.08, 8)
+    expect(Number(s.canvas.dataset.travellerY)).toBe(origin.y)
     expect(Number(s.canvas.dataset.cameraX) - origin.x).toBeCloseTo(
       0.08 * (1 - Math.exp(-16 / 90)),
       8,

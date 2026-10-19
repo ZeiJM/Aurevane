@@ -236,6 +236,38 @@ export function registerWorldInputCases({
   capture: (page: Page, info: TestInfo, name: string) => Promise<void>
   openJournal: (page: Page) => Promise<void>
 }) {
+  test('the reported Emberreach position renders surrounding ground at normal and minimum zoom', async ({
+    page,
+  }, info) => {
+    test.setTimeout(60000)
+    test.skip(
+      info.project.name === 'laptop-chromium',
+      'Check the reported ground on desktop and phone.',
+    )
+    await enter(page)
+    const initial = await world(page)
+    place(initial.characterId, 'atlas:76:25', 9, 4)
+    await page.reload()
+    const canvas = page.locator('canvas[data-world-stage]')
+    await expect(canvas).toHaveAttribute('data-camera-x', /\d/)
+    const view = await world(page)
+    expect(view.position).toEqual({ sectorId: 'atlas:76:25', x: 9, y: 4 })
+    const baseTile = await canvas.evaluate((el) => (el.clientWidth < 600 ? 48 : 64))
+    for (const zoom of [100, 35]) {
+      await openMapSettings(page)
+      const slider = page.getByRole('slider', { name: 'Zoom level', exact: true })
+      await slider.focus()
+      await slider.press('Home')
+      if (zoom === 100) for (let step = 35; step < 100; step++) await slider.press('ArrowRight')
+      await expect(slider).toHaveValue(String(zoom))
+      await closeMapSettings(page)
+      await expect(canvas).toHaveAttribute('data-tile-size', String(baseTile * (zoom / 100)))
+      await expect
+        .poll(() => canvas.evaluate((el) => Number(el.dataset.cachedSectors)))
+        .toBeGreaterThan(1)
+      await capture(page, info, `emberreach-reported-ground-${zoom}`)
+    }
+  })
   test('a large map preloads its public viewport and accepts clicks beyond the peer scene', async ({
     page,
   }, info) => {
@@ -503,6 +535,200 @@ export function registerWorldInputCases({
       await capture(page, info, 'distant-click-different-confirmed-path')
     } finally {
       release()
+    }
+  })
+  test('a pointer direction change keeps moving through a timely delayed approval', async ({
+    page,
+  }, info) => {
+    test.skip(info.project.name === 'laptop-chromium', 'Check mouse and touch once each.')
+    test.setTimeout(60000)
+    await enter(page)
+    const initial = await world(page)
+    // Keep each layout away from the shared arrival fixtures and from the
+    // other layout's traveller: a real touch on a peer opens its details.
+    const origin = {
+      sectorId: info.project.name === 'mobile-chromium' ? 'atlas:66:23' : 'atlas:20:33',
+      x: 6,
+      y: 4,
+    }
+    place(initial.characterId, origin.sectorId, origin.x, origin.y)
+    await page.clock.install()
+    await page.reload()
+    const canvas = page.locator('canvas[data-world-stage]')
+    await expect(canvas).toHaveAttribute('data-camera-x', /\d/)
+    const scene = await world(page)
+    expect(scene.players).toHaveLength(0)
+    const destination = { ...origin, y: 0 }
+    const point = (position: typeof origin) => mapPoint(position, scene.sectors)
+    const clickGround = async (position: typeof origin) => {
+      const metrics = await canvas.evaluate((el) => {
+        const box = el.getBoundingClientRect()
+        return {
+          x: box.x,
+          y: box.y,
+          width: box.width,
+          height: box.height,
+          camera: { x: Number(el.dataset.cameraX), y: Number(el.dataset.cameraY) },
+          travellerX: Number(el.dataset.travellerX),
+          tile: Number(el.dataset.tileSize),
+        }
+      })
+      const target = projectMapPoint(
+        point(position),
+        metrics.camera,
+        { x: 0, y: 0 },
+        metrics.tile,
+        metrics.width,
+        metrics.height,
+      )
+      expect(target.x).toBeGreaterThan(0)
+      expect(target.x).toBeLessThan(metrics.width)
+      expect(target.y).toBeGreaterThan(0)
+      expect(target.y).toBeLessThan(metrics.height)
+      if (position.y === destination.y) {
+        expect(metrics.travellerX).toBeGreaterThan(point(origin).x)
+        expect(metrics.travellerX).toBeLessThan(point(origin).x + 1)
+      }
+      if (info.project.name === 'mobile-chromium')
+        await page.touchscreen.tap(metrics.x + target.x, metrics.y + target.y)
+      else await page.mouse.click(metrics.x + target.x, metrics.y + target.y)
+    }
+    let delayed = false,
+      firstHeld = false
+    let releaseFirst!: () => void, releaseTurn!: () => void, turnReady!: () => void
+    const firstGate = new Promise<void>((resolve) => {
+      releaseFirst = resolve
+    })
+    const turnGate = new Promise<void>((resolve) => {
+      releaseTurn = resolve
+    })
+    const turnResponseReady = new Promise<void>((resolve) => {
+      turnReady = resolve
+    })
+    await page.route('**/api/world', async (route) => {
+      const request = route.request()
+      const target =
+        request.method() === 'POST' ? request.postDataJSON()?.intent?.destination : null
+      if (!firstHeld && target?.x === 9 && target?.y === origin.y) {
+        firstHeld = true
+        const response = await route.fetch()
+        expect(response.ok()).toBe(true)
+        await firstGate
+        await route.fulfill({ response })
+      } else if (!delayed && request.method() === 'POST' && target?.y === destination.y) {
+        delayed = true
+        const response = await route.fetch()
+        expect(response.ok()).toBe(true)
+        // Keep the real receipt and route. Deliver at an exact visual-clock
+        // phase so protocol/runner delays cannot miss the partial turn.
+        turnReady()
+        await turnGate
+        await route.fulfill({ response })
+      } else await route.continue()
+    })
+    await page.clock.pauseAt(new Date(Date.now() + 1000))
+    const nextWalk = () =>
+      page.waitForRequest(
+        (request) =>
+          request.method() === 'POST' &&
+          new URL(request.url()).pathname === '/api/world' &&
+          request.postDataJSON()?.intent?.kind === 'walk',
+      )
+    try {
+      const firstRequest = nextWalk()
+      await clickGround({ ...origin, x: 9 })
+      expect((await firstRequest).postDataJSON().intent.destination).toEqual({ ...origin, x: 9 })
+      await page.clock.runFor(75)
+      const startPoint = point(origin)
+      await expect
+        .poll(() => canvas.evaluate((el) => Number(el.dataset.travellerX)), { intervals: [10] })
+        .toBeGreaterThan(startPoint.x + 0.25)
+      await canvas.evaluate((el) => {
+        el.addEventListener(
+          'pointerup',
+          () => {
+            const samples: { time: number; x: number; y: number }[] = []
+            const start = performance.now()
+            const record = () => {
+              const time = performance.now() - start
+              samples.push({
+                time,
+                x: Number(el.dataset.travellerX),
+                y: Number(el.dataset.travellerY),
+              })
+              el.dataset.testTurnSamples = JSON.stringify(samples)
+              if (time < 1100) requestAnimationFrame(record)
+            }
+            requestAnimationFrame(record)
+          },
+          { once: true },
+        )
+      })
+      const turnRequest = nextWalk()
+      await clickGround(destination)
+      releaseFirst()
+      expect((await turnRequest).postDataJSON().intent.destination).toEqual(destination)
+      await turnResponseReady
+      await page.clock.runFor(550)
+      await expect(canvas).toHaveAttribute('data-test-turn-samples', /\[/)
+      expect(delayed).toBe(true)
+      const samples = JSON.parse((await canvas.getAttribute('data-test-turn-samples'))!) as {
+        time: number
+        x: number
+        y: number
+      }[]
+      // Ignore initial pointer scheduling; the new route has four legal steps,
+      // so it cannot have reached its destination during this observation.
+      const during = samples.filter((sample) => sample.time >= 120 && sample.time <= 545)
+      expect(during.length).toBeGreaterThan(10)
+      let lastMove = during[0]!.time
+      let longestPause = 0
+      for (let i = 1; i < during.length; i++) {
+        const previous = during[i - 1]!,
+          current = during[i]!
+        if (Math.hypot(current.x - previous.x, current.y - previous.y) > 0.001)
+          lastMove = current.time
+        else longestPause = Math.max(longestPause, current.time - lastMove)
+      }
+      await info.attach('pointer-turn-motion', {
+        body: JSON.stringify({ samples, longestPause }),
+        contentType: 'application/json',
+      })
+      expect(longestPause).toBeLessThan(60)
+      const approval = page.waitForResponse(
+        (response) =>
+          response.request().method() === 'POST' &&
+          new URL(response.url()).pathname === '/api/world' &&
+          response.request().postDataJSON()?.intent?.destination?.y === destination.y,
+      )
+      releaseTurn()
+      await (await approval).finished()
+      await page.clock.runFor(100)
+      const afterApproval = await canvas.evaluate((el) => ({
+        x: Number(el.dataset.travellerX),
+        y: Number(el.dataset.travellerY),
+      }))
+      await page.clock.runFor(32)
+      const continuing = await canvas.evaluate((el) => ({
+        x: Number(el.dataset.travellerX),
+        y: Number(el.dataset.travellerY),
+      }))
+      expect(continuing).not.toEqual(afterApproval)
+      await page.clock.resume()
+      await expect
+        .poll(
+          async () => {
+            const current = await world(page)
+            return { position: current.position, remaining: current.route.length }
+          },
+          { timeout: 12000 },
+        )
+        .toEqual({ position: destination, remaining: 0 })
+      await capture(page, info, 'pointer-turn-delayed-approval-arrival')
+    } finally {
+      releaseFirst()
+      releaseTurn()
+      await page.clock.resume()
     }
   })
   for (const mode of ['effects off', 'reduced motion']) {

@@ -9,12 +9,13 @@
   "full": {
     "command": "pnpm check",
     "exit": 0,
-    "vitest": 10244,
+    "vitest": 10260,
     "node": 7,
     "format": true,
     "lint": true,
     "types": 8,
-    "buildTasks": 2
+    "buildTasks": 2,
+    "receipt": "reconcile-full-check-2.log.gz"
   },
   "sourceBlobs": {
     "packages/game-core/src/combat/actions-legacy.ts": "13458253453c2eb15477a5196ac40f3e8ee0f129",
@@ -31,5 +32,12 @@
     "verdict": "Ready to merge subject to final release gates",
     "important": "Damage effect eligibility gap repaired with valid RED and 52-test GREEN; scoped rereview confirms addressed",
     "minorDeferred": 1
-  }
+  },
+  "integrationBase": "7637a969d9152a7b26ce77e35f01873992fb8c40",
+  "worldSourceMerge": "938a2d79f04a14dc1529cbbafd9ffde460e908ba",
+  "worldFocused": {
+    "passed": 242,
+    "exit": 0
+  },
+  "integrationFailure": "First combined full gate passed all checks except build, which failed opening Turbopack persistence with invalid digit found in string. Quarantining only the generated cache and repeating the full gate passed without product changes."
 }

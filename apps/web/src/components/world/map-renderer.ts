@@ -1709,6 +1709,8 @@ export function createMapRenderer(
     // diagnostics measure peer motion against the same camera, not the last frame.
     canvas.dataset.cameraX = String(camera.x + pan.x)
     canvas.dataset.cameraY = String(camera.y + pan.y)
+    canvas.dataset.travellerX = String(selfPoint.x)
+    canvas.dataset.travellerY = String(selfPoint.y)
     canvas.dataset.tileSize = String(tile)
     canvas.dataset.frameNow = String(now)
     canvas.dataset.frameStarted = String(start)
