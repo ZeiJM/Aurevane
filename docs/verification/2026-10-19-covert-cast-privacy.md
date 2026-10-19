@@ -1,5 +1,7 @@
 # Covert cast and pending-effect privacy — 2026-10-19
 
+**LIVE for testing:** combined PR #946/source `2ace05d9684a3cef9f35c527db93c834ee4d50ec`; production READY06:47:42.438UTC and catalogue readback verified October19. See [combined release receipt](2026-10-19-combined-owner-release.md). The following sections preserve the pre-release design/investigation and focused evidence; the combined receipt supersedes their pending release status.
+
 Local source correction on `agent/covert-battle-privacy-20261019`, based on main `8624c49a3853493cbea5f6b4855330bf0cd99117`. This is focused verification, not a deployed-release or full-quality claim. Account, World and Barrier/HP-bar implementation belong to the coordinating branch and are not changed here.
 
 The requested enemy-facing wording is **“X uses a skill.”** Protected commands carry no Skill identity, target, costs, effect details or information-reader reference in the viewer-safe log DTO. Shared Chronicle rendering and Copy Full Log consume that DTO. Entitled owners and existing allied viewers retain full details; spectators do not receive a participant’s entitlement.

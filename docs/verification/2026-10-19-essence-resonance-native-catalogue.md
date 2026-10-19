@@ -1,5 +1,7 @@
 # Essence/Resonance catalogue native verification — 19 October 2026
 
+**LIVE for testing:** combined PR #946/source `2ace05d9684a3cef9f35c527db93c834ee4d50ec`; production READY06:47:42.438UTC and catalogue readback verified October19. See [combined release receipt](2026-10-19-combined-owner-release.md). The following sections preserve the pre-release design/investigation and focused evidence; the combined receipt supersedes their pending release status.
+
 Local focused evidence, first captured for candidate `373b664f2eb19ebcbbcc9c56613b7411e778e1ddffd057ee9bf985b8577ced4e` and rerun for final candidate `d74c7e65bdf8b73560b5d890ba08c776b1a523c300fe3810e88013195a8892f1`, following the corrected overview/Lifebinder payoff commit `01073014`. This work adds tests and fixtures only. It does not modify catalogue data, product/engine behavior, migrations, ordinary136 Skills/five Basics, or hosted state.
 
 Command:

@@ -1,5 +1,7 @@
 # Intermittent World walking pause — October19
 
+**LIVE for testing:** combined PR #946/source `2ace05d9684a3cef9f35c527db93c834ee4d50ec`; production READY06:47:42.438UTC and catalogue readback verified October19. See [combined release receipt](2026-10-19-combined-owner-release.md). The following sections preserve the pre-release design/investigation and focused evidence; the combined receipt supersedes their pending release status.
+
 Status: investigation and regression work; not fixed or released yet. Owner reports an intermittent pause after a few walking steps followed by completion of the same path. Preserve the independent Account #943 layout release.
 
 Live successful walk approvals at03:43:42Z and03:44:19Z take641.9ms and714.5ms; identity takes43.6/56.9ms, command598.3/657.6ms. The existing unconfirmed visual preview stops at600ms, reproducing the reported shape when approval arrives later. Local short-route computation measures13–36ms. Existing motion/controller/service/repository baseline passes221 tests.

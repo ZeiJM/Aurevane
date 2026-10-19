@@ -1,5 +1,7 @@
 # Barrier casting, effective HP and Cleanse report correction — 19 October 2026
 
+**LIVE for testing:** combined PR #946/source `2ace05d9684a3cef9f35c527db93c834ee4d50ec`; production READY06:47:42.438UTC and catalogue readback verified October19. See [combined release receipt](2026-10-19-combined-owner-release.md). The following sections preserve the pre-release design/investigation and focused evidence; the combined receipt supersedes their pending release status.
+
 Local source verification only. Branch `agent/barrier-cast-hp-20261019`, base/main `8624c49a3853493cbea5f6b4855330bf0cd99117`. No publication, migration, hosted mutation or deployment is included. Final combined-branch quality, review and browser gates belong to the integrating release owner.
 
 ## Reproduction and root cause

@@ -1,5 +1,7 @@
 # Compact Account presence line and portrait
 
+**LIVE for testing:** combined PR #946/source `2ace05d9684a3cef9f35c527db93c834ee4d50ec`; production READY06:47:42.438UTC and catalogue readback verified October19. See [combined release receipt](2026-10-19-combined-owner-release.md). The following sections preserve the pre-release design/investigation and focused evidence; the combined receipt supersedes their pending release status.
+
 Owner request: replace the Online Users badge beneath Welcome back with a compact clickable text line, and use some of the saved space for a modestly larger mini portrait. Apply the shared layout on desktop and phone.
 
 The existing `/game/online` anchor and live presence count are retained. Account menu styling removes the surrounding border, padding and status dot, reduces the link to a 24px minimum line, and adds hover/focus underline while retaining the shared keyboard focus outline. The Current character caption selector is narrowed so its uppercase/tiny label treatment does not affect the count. Only the Account portrait grows from 2.4rem to 3.25rem (38.4px to 52px at the standard root scale); its responsive image hint matches the frame. The main navigation portrait is unchanged.

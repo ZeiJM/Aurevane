@@ -1,5 +1,7 @@
 # Essence and Resonance implementation plan
 
+**LIVE for testing:** combined PR #946/source `2ace05d9684a3cef9f35c527db93c834ee4d50ec`; production READY06:47:42.438UTC and catalogue readback verified October19. See [combined release receipt](../../verification/2026-10-19-combined-owner-release.md). The following sections preserve the pre-release design/investigation and focused evidence; the combined receipt supersedes their pending release status.
+
 Design: `docs/superpowers/specs/2026-10-19-essence-resonance-identity-design.md`.
 
 1. Audit the released definitions, original themes and actual execution capabilities. Export a complete inventory and document the manual/passive mismatch without modifying gameplay.
