@@ -18,6 +18,36 @@
     "bytes": 81
   },
   {
+    "log": "docs/verification/task-8/focus-repair-final-source.log",
+    "archive": "docs/verification/task-8/focus-repair-final-source.log.gz",
+    "sha256": "bebe33bf66e96ade39c6ee4be952390ba297c410b950449e67ed2655581383a0",
+    "bytes": 434
+  },
+  {
+    "log": "docs/verification/task-8/focus-repair-focused-corrected.log",
+    "archive": "docs/verification/task-8/focus-repair-focused-corrected.log.gz",
+    "sha256": "b7ded74988f55c253e5a8221c396c59345320c5a8ba63222ad201041e6b8a6b3",
+    "bytes": 781
+  },
+  {
+    "log": "docs/verification/task-8/focus-repair-focused.log",
+    "archive": "docs/verification/task-8/focus-repair-focused.log.gz",
+    "sha256": "55a8dde2726371ebe8c42cdac6bd26496950ec36f379ac0f8d48fa9ac3c614d7",
+    "bytes": 427
+  },
+  {
+    "log": "docs/verification/task-8/focus-repair-freeze-receipt.log",
+    "archive": "docs/verification/task-8/focus-repair-freeze-receipt.log.gz",
+    "sha256": "10b8adf301f1583085d3719d341369297a4f3339792d35345f87a6a509600a27",
+    "bytes": 434
+  },
+  {
+    "log": "docs/verification/task-8/focus-repair-full-check.log",
+    "archive": "docs/verification/task-8/focus-repair-full-check.log.gz",
+    "sha256": "ed4f8741403702dabcf7b4ca50a7435bbaed78a31207f9910e6f610f2d3c239b",
+    "bytes": 145194
+  },
+  {
     "log": "docs/verification/task-8/focused-db-3.log",
     "archive": "docs/verification/task-8/focused-db-3.log.gz",
     "sha256": "3f6c2cac64865f2f213a912714a6bb1acbd85fc8f213dd50b338056c8caf8522",

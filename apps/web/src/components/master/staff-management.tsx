@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import styles from './staff-management.module.css'
 
 interface Option {
@@ -76,6 +76,9 @@ export function StaffManagement({ staff, roleOptions, capabilityOptions }: Staff
     [error, setError] = useState<string | null>(null),
     [notice, setNotice] = useState<string | null>(null)
   const [previewClock, setPreviewClock] = useState(() => Date.now())
+  useEffect(() => {
+    if (identity) editorRef.current?.focus()
+  }, [identity])
   const existing = staff.find(
     (row) => row.characterId === selected && row.userId === identity?.userId,
   )
@@ -129,7 +132,6 @@ export function StaffManagement({ staff, roleOptions, capabilityOptions }: Staff
       }
       setIdentity(account)
       if (characterId) choose(characterId, account)
-      setTimeout(() => editorRef.current?.focus(), 0)
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Identity lookup failed.')
     } finally {

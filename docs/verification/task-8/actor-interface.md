@@ -1,6 +1,6 @@
 # Task 8 selected-character authority contract
 
-Base: 16838f0cb1fb23ea791f3e5734b1f90c9fd64532, refreshed origin/main 2026-10-19. Deployment lock remains `**: false`; no hosted mutation or source publication authorized.
+Initial base: 16838f0cb1fb23ea791f3e5734b1f90c9fd64532, reconciled with main 8624c49a3853493cbea5f6b4855330bf0cd99117. Nick explicitly authorized publication to ZeiJM/Aurevane for native CI on October 19; PR #945 publishes that source. The earlier source-publication hold is resolved. Deployment lock remains `**: false`; no Staff merge, hosted migration or deployment has occurred. Latest native and focus-repair checkpoints are recorded below.
 
 Behavioral delta: delegated Master authority belongs to one explicitly bound, currently owned playable selected character and expires/revokes on every protected request/RPC.
 
@@ -34,7 +34,7 @@ Scheduled/recovery/system event workers call the existing persistent kernel/tran
 
 Source and the additive migration are one reviewed release unit. New source requires the actor overloads/new Staff RPCs. Applying the migration before source deliberately removes ambiguous delegated authority and retires the old account-management API, so the old Staff editor cannot administer grants during that interval. Coordinate the authorized migration/source rollout; do not restore an account-wide compatibility fallback. Owner/bootstrap and ordinary current/pinned gameplay readers retain their existing paths. A source-only rollback continues to fail closed for delegated Staff; it is not permission to revive legacy account grants. No hosted rollout was performed here.
 
-## Current-main reconciliation and review handoff
+## Historical local checkpoint before source publication
 
 Task 8 checkpoint `8e5e03a6146c489ca02922994b6af328831dcf5b` is reconciled with current main `8624c49a3853493cbea5f6b4855330bf0cd99117` (World #940/#942, verified-live Blindside #941 and receipt #944). No actor/capability/SQL interface changed during the review repair. All three Blindside product/test blobs and the imported World source/test blobs match current main exactly; the Git deployment lock is unchanged. See `review-reconciliation.json`. The sole Important review repair updates only the existing browser assertion to the current protected Owner directory contract. The same reviewer approves I1 in source; M1 focus continuity and M2 inherited tooling warning stay deferred. Native/physical zoom/hosted adapter acceptance and the distinct Staff publication authorization remain open.
 
@@ -43,3 +43,5 @@ Final verification: fresh main remains `8624c49a3853493cbea5f6b4855330bf0cd99117
 ## Native verification caller handoff
 
 Nick authorized source publication; controller PR #945 published the reviewed tree at `199f4718239d85fae7ed29c468a192c7ad286216`. Initial native CI failed on the retired account API. The bounded verification-only repair migrates Staff authority, Event Builder and live Event-operation shell fixtures to selected-character grants and actor overloads; shared native SQL is exercised against real predecessor functions by PGlite (15 tests pass). No actor/product API changed. Remaining legacy signatures are deliberate Owner/bootstrap or persisted service-only lifecycle paths. See `native-verification-repair.md`; real native orchestration/browser/hosted acceptance remains open and Tasks 9–12 must retain this interface boundary. Earlier source-publication hold is superseded; hosted rollout remains separate.
+
+The subsequent native initial-editor focus repair changes only Staff client focus timing: an identity-keyed post-commit effect replaces a zero-delay timer. No actor, grant, API, SQL, native test assertion or worker contract changes. Native RED occurs twice on `084022efb81534404f88577b73247cbd64d218c8`; local frozen-source full gate passes 10,279 Vitest + seven Node tests and all quality/build stages. Native focus GREEN and broader UI/hosted acceptance remain pending; M1/M2 stay deferred. See `focus-repair.md` and sanitized `focus-native-red.json`.

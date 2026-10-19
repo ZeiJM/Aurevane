@@ -26,30 +26,21 @@
     ]
   },
   "command": "pnpm check",
-  "exit": 1,
-  "failureStage": "build: generated Turbopack persistence initialization (invalid digit found in string)",
-  "completedStages": ["format", "lint", "typecheck", "test"],
+  "exit": 0,
+  "completedStages": ["format", "lint", "typecheck", "test", "build"],
   "vitestByPackage": {
     "@aurevane/game-core": 4503,
     "@aurevane/validation": 106,
     "@aurevane/realtime": 3,
     "@aurevane/worker": 2,
     "@aurevane/audio": 17,
-    "@aurevane/db": 139,
+    "@aurevane/db": 140,
     "@aurevane/web": 5508
   },
-  "vitestTotal": 10278,
+  "vitestTotal": 10279,
   "vitestFiles": 605,
   "nodeTests": 7,
-  "logs": "docs/verification/task-8/review-combined-full-check.log",
-  "buildRecovery": {
-    "command": "pnpm build",
-    "exit": 0,
-    "logs": "docs/verification/task-8/review-unchanged-source-build-retry.log",
-    "action": "Quarantined only generated apps/web/.next/cache/turbopack outside repository",
-    "productTestSourceUnchanged": true,
-    "passingSuitesRerun": false
-  },
+  "logs": "docs/verification/task-8/focus-repair-full-check.log",
   "focused": {
     "dbTests": 14,
     "webTests": 48,
@@ -64,9 +55,10 @@
     "evidence": "docs/verification/task-8/review.md"
   },
   "notes": [
-    "Full pnpm check invocation exited 1; all preceding gate components passed and unchanged-source build-only retry exited 0.",
-    "Unchanged package tasks used exact-input Turbo cache; changed web tests executed.",
-    "Staff source remains local; no source publication, hosted mutation or deployment."
+    "Current focus-repair pnpm check exits 0, with all preceding qualification/failure receipts retained under priorReconciledGate.",
+    "Changed web/DB test tasks execute; five unchanged package test tasks use exact-input Turbo cache.",
+    "Native initial focus RED occurs twice on pre-fix source; current-source native focus GREEN and hosted/physical zoom acceptance remain pending.",
+    "Inherited Vite native config warning remains disclosed; no warning suppression or timeout/test weakening."
   ],
   "nativeVerificationRepair": {
     "publishedInitialHead": "199f4718239d85fae7ed29c468a192c7ad286216",
@@ -78,5 +70,45 @@
     "fullGateRepeated": false,
     "nativeOrchestrationVerified": false,
     "report": "docs/verification/task-8/native-verification-repair.md"
+  },
+  "priorReconciledGate": {
+    "command": "pnpm check",
+    "exit": 1,
+    "failureStage": "build: generated Turbopack persistence initialization (invalid digit found in string)",
+    "completedStages": ["format", "lint", "typecheck", "test"],
+    "vitestByPackage": {
+      "@aurevane/game-core": 4503,
+      "@aurevane/validation": 106,
+      "@aurevane/realtime": 3,
+      "@aurevane/worker": 2,
+      "@aurevane/audio": 17,
+      "@aurevane/db": 139,
+      "@aurevane/web": 5508
+    },
+    "vitestTotal": 10278,
+    "vitestFiles": 605,
+    "nodeTests": 7,
+    "logs": "docs/verification/task-8/review-combined-full-check.log",
+    "buildRecovery": {
+      "command": "pnpm build",
+      "exit": 0,
+      "logs": "docs/verification/task-8/review-unchanged-source-build-retry.log",
+      "action": "Quarantined only generated apps/web/.next/cache/turbopack outside repository",
+      "productTestSourceUnchanged": true,
+      "passingSuitesRerun": false
+    }
+  },
+  "frozenProductBlob": "3180bfcdb3e0deda241e7e403949668a3db93f07",
+  "localBase": "ee1156f97bc874ad9b84704aa4d08eab642d262f",
+  "focusRepair": {
+    "nativeRedHead": "084022efb81534404f88577b73247cbd64d218c8",
+    "nativeRedRepeats": 2,
+    "nativeGreen": false,
+    "productScope": "Identity-keyed commit effect replaces timer; no M1/M2 repair",
+    "focusedTests": 14,
+    "focusedExit": 0,
+    "fullGateExit": 0,
+    "report": "docs/verification/task-8/focus-repair.md",
+    "redEvidence": "docs/verification/task-8/focus-native-red.json"
   }
 }

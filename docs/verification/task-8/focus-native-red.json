@@ -1,0 +1,56 @@
+{
+  "nativeHeadShort": "084022ef",
+  "run": 39197020073,
+  "job": 117882033514,
+  "earlyTestResult": {
+    "passed": 4,
+    "failed": 2
+  },
+  "source": "Controller-downloaded native trace artifacts; only sanitized observations and artifact hashes retained here. Raw trace contains disposable-session credentials and is not copied into source.",
+  "observations": [
+    {
+      "repeat": "staff-selected-character-a-39ccf-esponsive-controls-coherent-desktop-chromium",
+      "traceSha256": "1b1d6fc643e1355fb9cddb62e8b458d1076a48d5d5421b5ab66236790e89d928",
+      "errorContextSha256": "d44a04d2ab384b4e6e30775becc86d20bc406d0faa918589861ed046b5113b5a",
+      "identityResponses": [
+        {
+          "method": "POST",
+          "path": "/api/master/staff-access",
+          "status": 200
+        }
+      ],
+      "assertion": "Character access heading toBeFocused",
+      "timeoutMs": 5000,
+      "mountedHeadingObservations": 13,
+      "inactiveObservations": 13
+    },
+    {
+      "repeat": "staff-selected-character-a-39ccf-esponsive-controls-coherent-desktop-chromium-repeat1",
+      "traceSha256": "2091f438d5da9b0c90a53e15a7047cef42905aaf4400eaa02794d1513e235907",
+      "errorContextSha256": "d44a04d2ab384b4e6e30775becc86d20bc406d0faa918589861ed046b5113b5a",
+      "identityResponses": [
+        {
+          "method": "POST",
+          "path": "/api/master/staff-access",
+          "status": 200
+        }
+      ],
+      "assertion": "Character access heading toBeFocused",
+      "timeoutMs": 5000,
+      "mountedHeadingObservations": 13,
+      "inactiveObservations": 13
+    }
+  ],
+  "diagnosis": "resolve queues setIdentity and a zero-delay timer; the timer has no React commit guarantee, so the editor ref may still be null when the sole focus attempt occurs. Successful lookup and mounted inactive heading establish the failure; the exact timer/commit ordering is inferred from source, not browser instrumentation.",
+  "repair": "Focus in effect keyed to resolved identity, after DOM commit; no test focus, sleeps, timeouts or close/save/revoke changes.",
+  "localDOMHarness": false,
+  "nativeGreen": "pending controller rerun",
+  "nativeHead": "084022efb81534404f88577b73247cbd64d218c8",
+  "nativeTree": "128120f9f5bb73a99739c6aeeea6a0aa1526badb",
+  "localBase": "ee1156f97bc874ad9b84704aa4d08eab642d262f",
+  "visualObservation": "Inspected the Owner trace screencast frame (800x500, scaled from reported1440x900 viewport): editor and linked-character select are visibly mounted, no API error. This is not a full-resolution layout screenshot. Failure precedes the Staff screenshot loop; responsive/physical-zoom acceptance remains open.",
+  "frozenProductBlob": "3180bfcdb3e0deda241e7e403949668a3db93f07",
+  "localFullGateExit": 0,
+  "localVitestTests": 10279,
+  "localNodeTests": 7
+}
