@@ -25,6 +25,12 @@ export type RequirementNode =
       readonly thresholdBasisPoints: number
     }
   | {
+      readonly kind: 'subject-relation'
+      readonly subject: AbilityRequirementSubject
+      readonly otherSubject: AbilityRequirementSubject
+      readonly relation: 'same-unit' | 'ally' | 'enemy'
+    }
+  | {
       readonly kind: 'status-presence'
       readonly subject: AbilityRequirementSubject
       readonly statusId: string
@@ -46,6 +52,9 @@ export type RequirementNode =
     }
 
 export interface AbilityRequirementSubjectState {
+  /** Native identity/team only; absent historical subjects cannot establish a relation. */
+  readonly combatantId?: string
+  readonly teamId?: string
   readonly resources?: Readonly<Partial<Record<AbilityResource, number>>>
   readonly maximumResources?: Readonly<Partial<Record<AbilityResource, number>>>
   /** Values immediately before the immutable triggering event, never a previous read. */
@@ -152,6 +161,7 @@ export function validateAbilityRequirements(value: unknown): readonly AbilityDef
         'thresholdBasisPoints',
       ],
       'status-presence': ['kind', 'subject', 'statusId', 'present'],
+      'subject-relation': ['kind', 'subject', 'otherSubject', 'relation'],
       'prime-presence': ['kind', 'subject', 'abilityId', 'present'],
       event: ['kind', 'eventType', 'phase'],
       action: ['kind', 'classification', 'attackFamily', 'sourceDisciplineId', 'requiredTags'],
@@ -183,6 +193,16 @@ export function validateAbilityRequirements(value: unknown): readonly AbilityDef
       issue(path, 'invalid-requirement', 'Unknown Requirement subject.')
     if (row.kind !== 'event' && row.kind !== 'action' && !('subject' in row))
       issue(path, 'invalid-requirement', 'Requirement subject is required.')
+    if (
+      row.kind === 'subject-relation' &&
+      (!subjects.includes(row.otherSubject as string) ||
+        !['same-unit', 'ally', 'enemy'].includes(row.relation as string))
+    )
+      issue(
+        path,
+        'invalid-requirement',
+        'Relation requires another supported subject and same-unit, ally or enemy.',
+      )
     if (row.kind === 'resource-state' || row.kind === 'resource-threshold-crossing') {
       if (!resources.includes(row.resource as string))
         issue(path, 'invalid-requirement', 'Unknown resource unit.')
@@ -289,6 +309,16 @@ export function evaluateAbilityRequirements(
     }
     const subject = context[node.subject]
     if (!subject) return false
+    if (node.kind === 'subject-relation') {
+      const other = context[node.otherSubject]
+      if (!other || !identity(subject.combatantId) || !identity(other.combatantId)) return false
+      const same = subject.combatantId === other.combatantId
+      if (node.relation === 'same-unit') return same
+      if (same || !identity(subject.teamId) || !identity(other.teamId)) return false
+      return node.relation === 'ally'
+        ? subject.teamId === other.teamId
+        : subject.teamId !== other.teamId
+    }
     if (node.kind === 'status-presence')
       return (
         Array.isArray(subject.statusIds) &&
@@ -331,6 +361,9 @@ export function evaluateAbilityRequirements(
 
 function nonnegative(value: unknown): value is number {
   return Number.isSafeInteger(value) && (value as number) >= 0
+}
+function identity(value: unknown): value is string {
+  return typeof value === 'string' && value.length > 0 && value.trim() === value
 }
 
 export interface AutomaticRequirementTriggerResult {
@@ -399,7 +432,12 @@ export function hasUnanchoredAutomaticStateRequirement(
       return result
     }
     if (['event', 'action', 'resource-threshold-crossing'].includes(node.kind)) return new Set([1])
-    return new Set(['subject' in node && node.subject !== 'owner' ? 2 : 0])
+    return new Set([
+      ('subject' in node && node.subject !== 'owner') ||
+      (node.kind === 'subject-relation' && node.otherSubject !== 'owner')
+        ? 2
+        : 0,
+    ])
   }
   return witnesses(requirement).has(2)
 }

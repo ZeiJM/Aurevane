@@ -347,6 +347,18 @@ jobs:
           path: /tmp/battle-command-feedback-review
           retention-days: 7
 
+      - name: Save focused World failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-world-failure-diagnostics
+          path: |
+            apps/web/test-results/atlas-world.pw.ts-*/trace.zip
+            apps/web/test-results/atlas-world.pw.ts-*/error-context.md
+            apps/web/test-results/atlas-world.pw.ts-*/test-failed-*.png
+            apps/web/test-results/atlas-world.pw.ts-*/attachments/world-*.json
+          retention-days: 7
+
       - name: Save browser evidence
         if: always()
         uses: actions/upload-artifact@v4

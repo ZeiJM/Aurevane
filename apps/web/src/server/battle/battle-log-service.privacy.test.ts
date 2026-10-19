@@ -307,7 +307,7 @@ describe('CSR-3 battle log privacy integration', () => {
     ])
     expect(result.entries[0]).toEqual(
       expect.objectContaining({
-        message: 'Wayfarer performed an action.',
+        message: 'Wayfarer uses a skill.',
         actorCombatantId: ACTOR,
         targetCombatantId: null,
         actionId: null,

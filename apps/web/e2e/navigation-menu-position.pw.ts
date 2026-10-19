@@ -6,8 +6,8 @@ test('game navigation stays in the primary rail without a redundant footer trigg
   page,
 }, testInfo) => {
   test.skip(
-    testInfo.project.name !== 'desktop-chromium',
-    'One desktop shell-navigation proof is sufficient.',
+    testInfo.project.name === 'laptop-chromium',
+    'Check the shared account menu once on desktop and once on phone.',
   )
 
   const now = Date.now()
@@ -59,5 +59,39 @@ test('game navigation stays in the primary rail without a redundant footer trigg
   await page.getByRole('button', { name: 'Account', exact: true }).click()
   const finalAccountMenu = page.getByRole('menu', { name: 'Account menu' })
   await expect(finalAccountMenu.getByText(/Welcome back, Navigator/)).toBeVisible()
-  await expect(finalAccountMenu.getByRole('link', { name: /Online Users/ })).toBeVisible()
+  const online = finalAccountMenu.getByRole('link', { name: /Online Users/ })
+  await expect(online).toHaveAttribute('href', '/game/online')
+  const viewport = page.viewportSize()!
+  for (const width of testInfo.project.name === 'mobile-chromium'
+    ? [viewport.width, 320]
+    : [viewport.width]) {
+    await page.setViewportSize({ width, height: viewport.height })
+    const link = (await online.boundingBox())!
+    const greeting = (await finalAccountMenu.getByText(/Welcome back, Navigator/).boundingBox())!
+    const portrait = (await finalAccountMenu
+      .getByRole('img', { name: /^Current character:/ })
+      .boundingBox())!
+    const wrapper = await online.evaluate((el) => {
+      const style = getComputedStyle(el.parentElement!)
+      return { border: style.borderTopWidth, padding: style.padding }
+    })
+    expect(wrapper).toEqual({ border: '0px', padding: '0px' })
+    expect(link.y).toBeGreaterThanOrEqual(greeting.y + greeting.height - 0.5)
+    expect(link.height).toBeGreaterThanOrEqual(24)
+    expect(link.height).toBeLessThanOrEqual(28)
+    expect(portrait.width).toBeGreaterThan(48)
+    expect(portrait.width).toBeLessThanOrEqual(64)
+    expect(portrait.height).toBeCloseTo(portrait.width, 1)
+    expect(portrait.x).toBeGreaterThanOrEqual(link.x + link.width)
+    const menu = (await finalAccountMenu.boundingBox())!
+    expect(menu.x).toBeGreaterThanOrEqual(0)
+    expect(menu.x + menu.width).toBeLessThanOrEqual(width)
+    await page.screenshot({
+      path: testInfo.outputPath(`account-menu-compact-${width}.png`),
+      animations: 'disabled',
+    })
+  }
+  await online.click()
+  await expect(page).toHaveURL(/\/game\/online$/)
+  await expect(page.getByRole('heading', { name: 'Online Users', exact: true })).toBeVisible()
 })

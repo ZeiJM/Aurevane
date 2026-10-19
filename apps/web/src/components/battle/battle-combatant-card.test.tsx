@@ -86,7 +86,9 @@ describe('shared compact combatant card', () => {
       />,
     )
     expect(html).toContain('data-battle-hp-barrier="true"')
-    expect(html).toContain('aria-label="HP 35 / 80, Barrier 30"')
+    expect(html).toContain('aria-label="HP 65 / 80, HP 35, Barrier 30"')
+    expect(html).toContain('>65/80</span>')
+    expect(html).toMatch(/data-battle-hp-barrier="true"[^>]*left:43.75%/)
     expect(html).toContain('title="Barrier 30"')
     expect(html).toMatch(/data-battle-hp-barrier="true"[^>]*width:37.5%/)
     expect(html).not.toContain('Barrier 70')
@@ -101,6 +103,45 @@ describe('shared compact combatant card', () => {
       ),
     ).not.toContain('data-battle-hp-barrier')
   })
+  it.each(['local', 'selected', 'acting'] as const)(
+    'shows full HP plus Barrier above the ordinary maximum in the shared %s card',
+    (role) => {
+      const shielded = {
+        ...battle,
+        snapshot: {
+          ...battle.snapshot,
+          statusState: [
+            {
+              combatantId: 'wayfarer',
+              statuses: [
+                {
+                  statusId: 'barrier',
+                  statusVersion: 1,
+                  stacks: 1,
+                  remainingOwnerTurnStarts: 1,
+                  barrier: { kind: 'remaining', amount: 38 },
+                },
+              ],
+            },
+          ],
+        },
+      } as unknown as BattleSessionView
+      const html = renderToStaticMarkup(
+        <BattleCombatantCard
+          participant={participant}
+          battle={shielded}
+          teamCount={2}
+          role={role}
+        />,
+      )
+      expect(html).toContain('aria-label="HP 190 / 152, HP 152, Barrier 38"')
+      expect(html).toContain('aria-valuenow="190"')
+      expect(html).toContain('aria-valuemax="190"')
+      expect(html).toContain('>190/152</span>')
+      expect(html).toMatch(/<b[^>]*width:80%/)
+      expect(html).toMatch(/data-battle-hp-barrier="true"[^>]*left:80%;width:20%/)
+    },
+  )
   it('renders current snapshot vitals, identity accent and an accessible Inspect trigger', () => {
     const markup = renderToStaticMarkup(
       <BattleCombatantCard participant={participant} battle={battle} teamCount={2} role="local" />,

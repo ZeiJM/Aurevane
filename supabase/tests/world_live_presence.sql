@@ -4,7 +4,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions, pg_catalog;
-select plan(31);
+select plan(41);
 
 select has_function('public', 'read_world_scene_players_v2', array['uuid','uuid','bigint','text[]','jsonb'], 'service scene v2 exists');
 select has_function('public', 'read_world_live_players_v1', array['uuid','uuid','bigint'], 'live reader accepts no scene IDs');
@@ -101,5 +101,54 @@ values('81000000-0000-4000-8000-000000000011','81000000-0000-4000-8000-000000000
 set local role authenticated;
 select ok(not public.can_receive_world_scene_v1('world-scene:atlas:58:28'), 'deleting character loses receive authorization');
 reset role;
+-- Large saved exploration must not make every walking approval pay the old
+-- compression cost. These are real authority calls; no player fixture persists.
+create temporary table world_storage_history(state jsonb compression pglz);
+insert into world_storage_history(state)
+select state || jsonb_build_object('discoveries', (
+  select jsonb_object_agg('atlas:' || (n % 80) || ':' || (n / 80), cells)
+  from generate_series(1,526) n
+  cross join (select jsonb_agg(cell) cells from generate_series(0,53) cell) surveyed
+))
+from app_private.character_world_state
+where character_id='81000000-0000-4000-8000-000000000012';
+select ok((select octet_length(state::text)>100000 from world_storage_history), 'storage regression uses a substantial exploration history');
+update app_private.character_world_state set state=(select state from world_storage_history)
+where character_id='81000000-0000-4000-8000-000000000012';
+create temporary table world_storage_command as
+select state || jsonb_build_object(
+  'route', '[{"position":{"sectorId":"verdant-expanse","x":6,"y":4},"durationMs":200},{"position":{"sectorId":"verdant-expanse","x":7,"y":4},"durationMs":200}]'::jsonb,
+  'nextStepAt',floor(extract(epoch from clock_timestamp())*1000)::bigint+200
+) state
+from world_storage_history;
+create temporary table world_storage_approval as
+select public.commit_world_state_v1(
+  '81000000-0000-4000-8000-000000000002','81000000-0000-4000-8000-000000000012',1,
+  '81000000-0000-4000-8000-000000000091','walk',state,'large-history-walk'
+) state from world_storage_command;
+select ok((select a.state->>'version'='2' and a.state->'route'=c.state->'route' and a.state->'nextStepAt'=c.state->'nextStepAt' from world_storage_approval a cross join world_storage_command c), 'large-history walk retains the approved route and authored first deadline');
+select ok((select a.state->'position'=h.state->'position' from world_storage_approval a cross join world_storage_history h), 'approval does not grant an instant authoritative step');
+select is((select pg_column_compression(state) from app_private.character_world_state where character_id='81000000-0000-4000-8000-000000000012'), 'lz4', 'new large World writes use fast compression');
+select ok((select s.state->'discoveries'=h.state->'discoveries' from app_private.character_world_state s cross join world_storage_history h where s.character_id='81000000-0000-4000-8000-000000000012'), 'complete existing exploration survives the approved write');
+select ok((select a.state->'discoveries'=h.state->'discoveries' from world_storage_approval a cross join world_storage_history h), 'committed authority returns the complete exploration history');
+select ok((select public.commit_world_state_v1(
+  '81000000-0000-4000-8000-000000000002','81000000-0000-4000-8000-000000000012',1,
+  '81000000-0000-4000-8000-000000000091','walk',c.state,'large-history-walk'
+)=a.state from world_storage_command c cross join world_storage_approval a), 'replayed large-history command retains the exact prior approval');
+create temporary table world_storage_stop as
+select public.commit_world_state_v1(
+  '81000000-0000-4000-8000-000000000002','81000000-0000-4000-8000-000000000012',2,
+  '81000000-0000-4000-8000-000000000092','stop',
+  state || '{"route":[],"nextStepAt":null}'::jsonb,'large-history-stop'
+) state from world_storage_approval;
+select ok((select s.state->>'version'='3' and s.state->'route'='[]'::jsonb and s.state->'nextStepAt'='null'::jsonb and s.state->'position'=h.state->'position' and s.state->'discoveries'=h.state->'discoveries' from world_storage_stop s cross join world_storage_history h), 'stop preserves position and complete history while clearing travel');
+select throws_ok($$select public.commit_world_state_v1(
+  '81000000-0000-4000-8000-000000000002','81000000-0000-4000-8000-000000000012',2,
+  '81000000-0000-4000-8000-000000000093','stop',(select state from world_storage_stop),'stale-storage-test'
+)$$,'40001','WORLD_STALE_VERSION','large history does not bypass the version check');
+select throws_ok($$select public.commit_world_state_v1(
+  '81000000-0000-4000-8000-000000000001','81000000-0000-4000-8000-000000000012',3,
+  '81000000-0000-4000-8000-000000000094','stop',(select state from world_storage_stop),'foreign-storage-test'
+)$$,'42501','WORLD_NOT_OWNED','large history does not bypass ownership');
 select * from finish();
 rollback;

@@ -3,6 +3,7 @@ import type {
   CombatActionDefinition,
   CombatContentCatalog,
   CombatEncounterState,
+  CombatResolutionTransition,
   CombatStatusDefinition,
 } from './actions'
 import type {
@@ -16,6 +17,185 @@ export const CSR_MINIMUM_DURATION_OWNER_TURN_STARTS = 1 as const
 export const CSR_MAXIMUM_DURATION_OWNER_TURN_STARTS = 4 as const
 export const COVERT_STATUS_ID = 'covert' as const
 export const REVEALED_STATUS_ID = 'revealed' as const
+
+/** A successful concealment cast protects its own receipts and future delayed packets. */
+export function protectCovertEstablishingAction<T extends CombatResolutionTransition>(
+  before: CombatEncounterState,
+  transition: T,
+  actorId: string | undefined,
+  actionId: string,
+): T {
+  if (!actorId) return transition
+  const establishesCovert = transition.events.some(
+    (event) =>
+      ((event.event === 'status_applied' && event.statusId === COVERT_STATUS_ID) ||
+        (event.event === 'effect_pending' && event.effectTag === COVERT_STATUS_ID)) &&
+      event.actionId === actionId &&
+      event.sourceCombatantId === actorId &&
+      event.targetCombatantId === actorId,
+  )
+  if (!establishesCovert) return transition
+  const teamId = before.tactical.battle.combatants.find((unit) => unit.id === actorId)!.teamId
+  const visibility = { kind: 'team-only' as const, teamId }
+  const existingPending = new Set(before.pendingEffects ?? [])
+  const existingSummons = new Set(before.pendingSummons ?? [])
+  const existingGroundIds = new Set(before.groundAreas?.map((area) => area.id) ?? [])
+  const existingBarriers = new Set(
+    before.effectState?.barriers?.map((pool) => pool.applicationOrder) ?? [],
+  )
+  const existingBarrierInstances = new Set(before.effectState?.barriers ?? [])
+  const existingRecovery = new Set(before.effectState?.ongoingRecovery ?? [])
+  const appliedStatuses = new Set(
+    transition.events.flatMap((event) =>
+      event.event === 'status_applied' &&
+      event.actionId === actionId &&
+      event.sourceCombatantId === actorId
+        ? [JSON.stringify([event.targetCombatantId, event.statusId])]
+        : [],
+    ),
+  )
+  return {
+    ...transition,
+    state: {
+      ...transition.state,
+      statusState: transition.state.statusState.map((row) => ({
+        ...row,
+        statuses: row.statuses.map((status) => {
+          if (!appliedStatuses.has(JSON.stringify([row.combatantId, status.statusId])))
+            return status
+          if (!status.applicationModifiers)
+            return status.sourceCombatantId === actorId && !status.sourceCommandVisibility
+              ? { ...status, sourceCommandVisibility: visibility }
+              : status
+          const previous = before.statusState
+            .find((item) => item.combatantId === row.combatantId)
+            ?.statuses.find(
+              (item) =>
+                item.statusId === status.statusId &&
+                (!status.sourceScopedMark || item.sourceCombatantId === status.sourceCombatantId),
+            )
+          const previousApplications = new Set(previous?.applicationModifiers ?? [])
+          const removed = transition.events.some(
+            (event) =>
+              (event.event === 'status_removed' &&
+                event.targetCombatantId === row.combatantId &&
+                event.statusId === status.statusId) ||
+              (event.event === 'status_expired' &&
+                event.combatantId === row.combatantId &&
+                event.statusId === status.statusId),
+          )
+          // Legacy single statuses are promoted to an application record by the native append.
+          // It is public only when the original survived and its exact application facts remain.
+          const promotedPrevious =
+            previous && !previous.applicationModifiers && !removed
+              ? status.applicationModifiers.find(
+                  (application) =>
+                    application.stacks === previous.stacks &&
+                    application.sourceCombatantId === previous.sourceCombatantId &&
+                    application.potencyBasisPoints === previous.potencyBasisPoints &&
+                    application.blindsideModifiersBasisPoints ===
+                      previous.blindsideModifiersBasisPoints &&
+                    application.sourceCommandVisibility === previous.sourceCommandVisibility,
+                )
+              : undefined
+          const clockFields = [
+            'remainingOwnerTurnStarts',
+            'remainingOwnerTurnEnds',
+            'remainingRoundBoundaries',
+            'durationScope',
+            'skipCurrentOwnerTurnEnd',
+            'activationRound',
+            'timingState',
+          ] as const
+          const privateClock = previous && clockFields.some((key) => previous[key] !== status[key])
+          return {
+            ...status,
+            applicationModifiers: status.applicationModifiers.map((application) =>
+              !previousApplications.has(application) &&
+              application !== promotedPrevious &&
+              application.sourceCombatantId === actorId
+                ? {
+                    ...application,
+                    sourceCommandVisibility: application.sourceCommandVisibility ?? visibility,
+                    // The shared refreshed lifetime cannot be attributed to public applications.
+                    ...(privateClock ? { privateSharedLifetime: true as const } : {}),
+                  }
+                : application,
+            ),
+          }
+        }),
+      })),
+      ...(transition.state.effectState
+        ? {
+            effectState: {
+              ...transition.state.effectState,
+              ongoingRecovery: transition.state.effectState.ongoingRecovery.map((instance) =>
+                !existingRecovery.has(instance) &&
+                instance.sourceCombatantId === actorId &&
+                instance.sourceActionId === actionId &&
+                !instance.sourceCommandVisibility
+                  ? { ...instance, sourceCommandVisibility: visibility }
+                  : instance,
+              ),
+              ...(transition.state.effectState.barriers
+                ? {
+                    barriers: transition.state.effectState.barriers.map((instance) =>
+                      (instance.applicationOrder === undefined
+                        ? !existingBarrierInstances.has(instance)
+                        : !existingBarriers.has(instance.applicationOrder)) &&
+                      instance.sourceCombatantId === actorId &&
+                      instance.sourceActionId === actionId &&
+                      !instance.sourceCommandVisibility
+                        ? { ...instance, sourceCommandVisibility: visibility }
+                        : instance,
+                    ),
+                  }
+                : {}),
+            },
+          }
+        : {}),
+      ...(transition.state.pendingEffects
+        ? {
+            pendingEffects: transition.state.pendingEffects.map((pending) =>
+              !existingPending.has(pending) &&
+              pending.actorId === actorId &&
+              pending.actionId === actionId &&
+              !pending.sourceCommandVisibility
+                ? { ...pending, sourceCommandVisibility: visibility }
+                : pending,
+            ),
+          }
+        : {}),
+      ...(transition.state.pendingSummons
+        ? {
+            pendingSummons: transition.state.pendingSummons.map((pending) =>
+              !existingSummons.has(pending) &&
+              pending.input.ownerCombatantId === actorId &&
+              pending.input.sourceSkillId === actionId &&
+              !pending.sourceCommandVisibility
+                ? { ...pending, sourceCommandVisibility: visibility }
+                : pending,
+            ),
+          }
+        : {}),
+      ...(transition.state.groundAreas
+        ? {
+            groundAreas: transition.state.groundAreas.map((area) =>
+              !existingGroundIds.has(area.id) &&
+              area.sourceCombatantId === actorId &&
+              area.sourceActionId === actionId &&
+              !area.sourceCommandVisibility
+                ? { ...area, sourceCommandVisibility: visibility }
+                : area,
+            ),
+          }
+        : {}),
+    },
+    events: transition.events.map((event) =>
+      event.sourceCommandVisibility ? event : { ...event, sourceCommandVisibility: visibility },
+    ),
+  }
+}
 
 export interface CombatSensoryEffect {
   readonly type: 'sensory'

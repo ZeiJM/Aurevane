@@ -194,6 +194,34 @@ it('captured ordinary count two now uses canonical targeting without discarding 
   expect(JSON.stringify(unsupported.state)).toBe(before)
   expect(prepareCombatAbilityCommand({ ...input, manualModifiers: [] }).evaluation.legal).toBe(true)
 })
+
+it.each(['instant', 'next-round'] as const)(
+  'pins every receipt and delayed packet of a canonical %s Covert-establishing cast',
+  (mode) => {
+    const input = command(100, 20, {
+      effects: [
+        {
+          id: 'hide',
+          payload: { type: 'apply-status', recipient: 'actor', statusId: 'covert', stacks: 1 },
+        },
+        {
+          id: 'guard',
+          payload: { type: 'apply-status', recipient: 'actor', statusId: 'guarded', stacks: 1 },
+        },
+      ],
+    })
+    const state = { ...input.state, effectTimingPolicy: { version: 1, modes: { covert: mode } } }
+    const before = JSON.stringify(state)
+    const out = commitCombatAbilityCommand({ ...input, state, manualModifiers: [] })
+    expect(out.events.length).toBeGreaterThan(2)
+    for (const event of out.events)
+      expect(event.sourceCommandVisibility).toEqual({ kind: 'team-only', teamId: 'players' })
+    expect(out.state.pendingEffects!.length).toBeGreaterThan(0)
+    for (const pending of out.state.pendingEffects!)
+      expect(pending.sourceCommandVisibility).toEqual({ kind: 'team-only', teamId: 'players' })
+    expect(JSON.stringify(state)).toBe(before)
+  },
+)
 it('actual immediate percentage Poison settlement emits one witnessed Automatic child', () => {
   const input = command(100, 20, {
     effects: [
