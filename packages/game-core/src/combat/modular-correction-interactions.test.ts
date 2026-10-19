@@ -1,3 +1,4 @@
+import { advanceSkillCooldownsAtOwnerTurnStart } from './skill-cooldowns'
 import { readFileSync } from 'node:fs'
 import { expect, it } from 'vitest'
 import { captureCombatAbilitySource } from './combat-behavior-capture'
@@ -7,8 +8,9 @@ import {
   reconcileCombatAbilitySources,
   primeCombatControlledAbility,
   cancelCombatControlledAbility,
+  combatControlledAbilityAvailability,
 } from './combat-behavior-runtime'
-import { commitCombatAbilityCommand, prepareCombatAbilityCommand } from './combat-ability-command'
+import { commitCombatAbilityCommand } from './combat-ability-command'
 import { parseCombatEffectTimingPolicy } from './combat-effect-timing'
 import { percentageDotEncounter } from './combat-percentage-dots.test-utils'
 import {
@@ -117,10 +119,38 @@ it('keeps the real Rewind prime, anchor and maintained Resonance coherent under 
     { x: 1, y: 1 },
   )
   expect(released.abilityRuntime!.maintained).toEqual([])
-  const nextPrime = primeCombatControlledAbility({ ...primeInput, state: released }).state
+  const before = JSON.stringify(released)
+  expect(combatControlledAbilityAvailability({ ...primeInput, state: released })).toMatchObject({
+    phase: 'unprimed',
+    canPrime: false,
+    canCancel: false,
+  })
+  expect(() => primeCombatControlledAbility({ ...primeInput, state: released })).toThrow(
+    'controlled-cooldown-active',
+  )
+  expect(JSON.stringify(released)).toBe(before)
+  let cooled = released
+  for (let turn = 0; turn < 4; turn++) {
+    cooled = {
+      ...cooled,
+      tactical: {
+        ...cooled.tactical,
+        battle: {
+          ...cooled.tactical.battle,
+          combatants: cooled.tactical.battle.combatants.map((unit) =>
+            unit.id === 'actor' ? advanceSkillCooldownsAtOwnerTurnStart(unit).combatant : unit,
+          ),
+        },
+      },
+    }
+    expect(combatControlledAbilityAvailability({ ...primeInput, state: cooled })!.canPrime).toBe(
+      turn === 3,
+    )
+  }
   expect(
-    prepareCombatAbilityCommand(command(nextPrime, rewind, { kind: 'self' })).evaluation.legal,
-  ).toBe(false)
+    primeCombatControlledAbility({ ...primeInput, state: cooled }).state.abilityRuntime!.controlled!
+      .primes,
+  ).toHaveLength(1)
 })
 it('pays the real Overchannel HP cost from HP while retaining Barrier', () => {
   const skill = capture('aetherist.overchannel')

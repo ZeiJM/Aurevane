@@ -91,8 +91,8 @@ describe('Player-facing Skill targeting and effects', () => {
   it('uses Chilled for Shatter requirements without changing the stored Frozen tag', () => {
     const shatter = resolveMatureSkillVersion('frostweaver.shatter')!
     const before = JSON.stringify(shatter)
-    expect(skillRequirementsSummary(shatter)).toBe('Target: Chilled')
-    expect(skillRequirementDescription(shatter.requirements[0]!)).toBe('Target must have Chilled.')
+    expect(skillRequirementsSummary(shatter)).toBe('Chilled [Target]')
+    expect(skillRequirementDescription(shatter.requirements[0]!)).toBe('Chilled [Target]')
     expect(shatter.requirements).toContainEqual({ kind: 'target-tag-present', tag: 'Frozen' })
     expect(JSON.stringify(shatter)).toBe(before)
   })
@@ -114,13 +114,13 @@ describe('Player-facing Skill targeting and effects', () => {
   })
   it('describes prerequisites, negative resource changes, and facing explicitly', () => {
     expect(skillRequirementDescription({ kind: 'actor-status-present', statusId: 'guarded' })).toBe(
-      'Requires Guard on yourself.',
+      'Guard [Self]',
     )
     expect(
       skillRequirementDescription({ kind: 'target-status-present', statusId: 'exposed' }),
-    ).toBe('Target must have Vulnerable.')
+    ).toBe('Vulnerable [Target]')
     expect(skillRequirementDescription({ kind: 'actor-hp-at-most', basisPoints: 5000 })).toBe(
-      'Requires your HP at 50% or below.',
+      'HP ≤ 50% [Self]',
     )
     expect(
       skillEffectDescription({

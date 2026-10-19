@@ -1,3 +1,4 @@
+import { applySkillCooldown } from '@aurevane/game-core/combat/skill-cooldowns'
 import { readFileSync } from 'node:fs'
 import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
 import { capturedMatureSkillAbilitySource } from '@aurevane/game-core/combat/combat-action-source'
@@ -869,7 +870,7 @@ it.each([false, true])(
       /private-controlled|returnAnchor|conditionTruth|"requirements"|contentVersion":7/,
     )
     expect(Object.fromEntries(publicView.manualActionTargets![0]!.report!.rows).Requirements).toBe(
-      'You: HP ≥ 9999',
+      'HP [≥ 9999] [Self]',
     )
     const cancelled = cancelCombatControlledAbility({
       state: primed,
@@ -1017,7 +1018,7 @@ it('projects a detached complete report from the actual owner Manual capture wit
   expect(Object.fromEntries(report.rows)).toMatchObject({
     Cost: '7 AP / 3 MP / 2 HP',
     Cooldown: '3 turns',
-    Requirements: 'You: MP ≥ 3',
+    Requirements: 'MP [≥ 3] [Self]',
     Range: '4',
     Target: 'Enemy',
     'Target Method': 'Single · Up to 2 distinct targets',
@@ -1233,4 +1234,65 @@ it('carries the captured application-stacking policy into public instance reader
       .statuses[0],
   ).not.toHaveProperty('effectStackingPolicyVersion')
   expect(JSON.stringify(current)).toBe(before)
+})
+
+it('projects a global Controlled cooldown as unavailable for free preparation without a false Primed overlay', () => {
+  const initial = controlledProjectionState()
+  const captures = initial.captures.map((source) =>
+    captureCombatAbilitySource({
+      ...source,
+      definition: {
+        ...source.definition,
+        behaviors: source.definition.behaviors.map((behavior) => ({
+          ...behavior,
+          cooldown: { key: 'chronist.private-step', ownerTurns: 3 },
+        })),
+      },
+    }),
+  )
+  const state = reconcileCombatAbilitySources(
+    {
+      ...initial.state,
+      capturedAbilitySources: undefined,
+      abilityRuntime: undefined,
+      effectTimingPolicy: {
+        version: 8,
+        tagAuthority: 'global',
+        modes: { 'return-to-turn-start': 'controlled' },
+      },
+      tactical: {
+        ...initial.state.tactical,
+        battle: {
+          ...initial.state.tactical.battle,
+          combatants: initial.state.tactical.battle.combatants.map((unit) =>
+            unit.id === PLAYER
+              ? applySkillCooldown(
+                  unit,
+                  { key: 'chronist.private-step', ownerTurns: 3 },
+                  { actionId: 'chronist.private-step', definitionVersion: 7 },
+                ).combatant
+              : unit,
+          ),
+        },
+      },
+    },
+    captures,
+  ) as StatDrivenCombatEncounterState
+  const before = JSON.stringify(state)
+  const viewer = deriveParticipantBattleViewerEntitlement(state.tactical.battle.combatants, [
+    PLAYER,
+  ])
+  const rows = projectBattleSnapshot(state, viewer).manualActionTargets!
+  expect(rows).toHaveLength(2)
+  for (const row of rows)
+    expect(row.controlled).toEqual({ phase: 'unprimed', canPrime: false, canCancel: false })
+  expect(() =>
+    primeCombatControlledAbility({
+      state,
+      actorId: PLAYER,
+      sourceInstanceId: captures[0]!.sourceInstanceId,
+      behaviorId: 'step',
+    }),
+  ).toThrow('controlled-cooldown-active')
+  expect(JSON.stringify(state)).toBe(before)
 })

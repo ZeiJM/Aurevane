@@ -39,13 +39,17 @@ export type AbilityEffectPresentationContext = NonNullable<
 >
 
 const subjects = {
-  owner: 'You',
-  selected: 'Each selected unit',
-  affected: 'Affected unit',
-  triggering: 'Triggering unit',
+  owner: 'Self',
+  selected: 'Target',
+  affected: 'Area',
+  triggering: 'Trigger',
 } as const
 
-/** The same typed requirement tree is used for execution; this is read-only prose. */
+function requirementTerm(value: string): string {
+  return value.replace(/[-_]/gu, ' ').replace(/\b\w/gu, (letter) => letter.toUpperCase())
+}
+
+/** Render the executable requirement tree as compact modules; prose never creates a condition. */
 export function abilityRequirementDescription(node: RequirementNode | null): string {
   if (!node) return 'None'
   switch (node.kind) {
@@ -53,26 +57,29 @@ export function abilityRequirementDescription(node: RequirementNode | null): str
     case 'any':
       return `(${node.children.map(abilityRequirementDescription).join(node.kind === 'all' ? ' & ' : ' or ')})`
     case 'resource-state':
-      return `${subjects[node.subject]}: ${node.resource.toUpperCase()} ${node.comparison === 'at-least' ? '≥' : '≤'} ${node.basisPoints === undefined ? node.amount : `${node.basisPoints / 100}%`}`
+      return `${node.resource.toUpperCase()} [${node.comparison === 'at-least' ? '≥' : '≤'} ${node.basisPoints === undefined ? node.amount : `${node.basisPoints / 100}%`}] [${subjects[node.subject]}]`
     case 'resource-threshold-crossing':
-      return `${subjects[node.subject]}: ${node.resource.toUpperCase()} crosses ${node.direction} ${node.thresholdBasisPoints / 100}%`
+      return `${node.resource.toUpperCase()} [${node.direction === 'below' ? 'Falls Below' : 'Rises Above'} ${node.thresholdBasisPoints / 100}%] [${subjects[node.subject]}]`
     case 'status-presence':
       return `${node.present ? '' : 'No '}${gameplayStatusName(node.statusId)}${requirementSubjectSuffix(node.subject)}`
     case 'prime-presence':
-      return `${subjects[node.subject]} ${node.present ? 'must have' : 'must not have'} ${node.abilityId} primed`
+      return `${node.present ? '' : 'No '}${requirementTerm(node.abilityId.split('.').at(-1) ?? node.abilityId)} [Primed] [${subjects[node.subject]}]`
     case 'event':
-      return `${node.phase === 'before' ? 'Before' : 'After'} ${node.eventType.replaceAll('_', ' ')}`
-    case 'action':
-      return (
-        [
-          node.classification,
-          node.attackFamily,
-          node.sourceDisciplineId,
-          ...(node.requiredTags ?? []),
-        ]
-          .filter(Boolean)
-          .join(' / ') || 'Any action'
-      )
+      return `${requirementTerm(node.eventType)} [${node.phase === 'before' ? 'Before' : 'After'}]`
+    case 'action': {
+      return [
+        node.classification
+          ? node.classification === 'recovery'
+            ? 'Heal'
+            : requirementTerm(node.classification)
+          : 'Action',
+        node.attackFamily ? `[${requirementTerm(node.attackFamily)}]` : null,
+        node.sourceDisciplineId ? `[${requirementTerm(node.sourceDisciplineId)}]` : null,
+        ...(node.requiredTags ?? []).map((tag) => `[${requirementTerm(tag)}]`),
+      ]
+        .filter(Boolean)
+        .join(' ')
+    }
   }
 }
 
@@ -207,6 +214,7 @@ function effectPresentation(
     parts = compactSkillEffectSummaryParts(native, timingPolicy, {
       explicitElemental: true,
       ...effectContext,
+      ...(effect.timing ? { timingMode: effect.timing } : {}),
     })
     const mode =
       effect.timing ??
@@ -308,6 +316,8 @@ function effectPresentation(
         .replace(/full rounds/gu, 'Rounds')
         .replace(/full round/gu, 'Round') ?? null,
   }
+  if (parts.timing === 'Instant' && /^1 (?:affected )?turns?$/iu.test(parts.duration ?? ''))
+    parts = { ...parts, duration: null }
   const condition = effect.requirements ? abilityRequirementDescription(effect.requirements) : null
   const conditionParts = requirementReferenceParts(effect.requirements ?? null, effectContext)
   return {
@@ -384,13 +394,8 @@ export function abilityBehaviorInformation(
         : 'Utility'
   const summary = effects
     .map(
-      ({ presentation: { parts, condition, recipientOverride, repeatsOnEntry } }) =>
-        `${condition ? `If ${condition}: ` : ''}${parts.label}${parts.magnitude ? ` [${parts.magnitude}]` : ''}${parts.duration ? ` [${parts.duration}]` : ''}${parts.timing ? ` [${parts.timing}]` : ''}${
-          parts.details
-            ?.filter(({ label }) => !['Stacks', 'Expiry'].includes(label))
-            .map(({ label, value }) => ` [${label}: ${value}]`)
-            .join('') ?? ''
-        }${recipientOverride ? ` [${recipientOverride}]` : ''}${repeatsOnEntry ? ' · Repeats on entry' : ''}`,
+      ({ presentation: { parts, condition, recipientOverride } }) =>
+        `${condition ? `If ${condition}: ` : ''}${parts.label}${parts.magnitude ? ` [${parts.magnitude}]` : ''}${parts.duration ? ` [${parts.duration}]` : ''}${parts.timing ? ` [${parts.timing}]` : ''}${recipientOverride ? ` [${recipientOverride}]` : ''}`,
     )
     .join(', ')
   const requirementParts = nativeMove

@@ -28,7 +28,7 @@ describe('authoritative inherent action descriptors', () => {
   it('keeps HP and MP recovery requirements distinct and shares their cooldown', () => {
     const hp = values('basic.recover')
     const mp = values('basic.recover.mp')
-    expect(hp.Requirements).toBe('HP ≤ 99.99%')
+    expect(hp.Requirements).toBe('HP ≤ 99.99% [Self]')
     expect(mp.Requirements).toBe('Missing MP')
     expect(hp.Cooldown).toBe('2 turns')
     expect(mp.Cooldown).toBe(hp.Cooldown)

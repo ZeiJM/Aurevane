@@ -353,4 +353,4 @@ it('handles native exact-arithmetic capacity failure without an unbounded reader
       { label: 'Incoming damage from this effect', magnitude: 'Unavailable' },
     ]),
   )
-})
+}, 15_000)

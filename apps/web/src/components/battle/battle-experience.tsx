@@ -49,20 +49,14 @@ import {
   type BattlePreviewSkill,
   battleSkillIntentMetadata,
 } from './battle-preview-selection'
-import { BattleModifierPicker } from './battle-modifier-picker'
 import {
   battleModifierChoices,
   battleModifierContextForAction,
-  prepareBattleModifierActionDraft,
   battleRecoveryActionId,
   battleModifierActionMode,
-  battleModifierCanToggle,
-  type BattleModifierActionChoice,
 } from './battle-modifier-picker-model'
 import {
   battleManualModifierReferences,
-  prepareBattleModifierDraft,
-  toggleBattleModifierDraft,
   resolveBattleModifierDraft,
   type BattleModifierDraft,
 } from './battle-modifier-draft'
@@ -389,7 +383,6 @@ function BattleExperienceContent({
     modifierDraftRef.current = next
     setModifierDraftState(next)
   }, [])
-  const modifierTriggerRef = useRef<HTMLButtonElement>(null)
   const [preview, setPreview] = useState<(BattlePreviewView & { intent: BattleIntent }) | null>(
     null,
   )
@@ -400,7 +393,6 @@ function BattleExperienceContent({
   const [allyInspection, setAllyInspection] = useState<BattleAllyInspection | null>(null)
   const [inspectedTile, setInspectedTile] = useState<BattleGridPosition | null>(null)
   const [bindings, setBindings] = useState<CombatKeybindMap>(DEFAULT_COMBAT_KEYBINDS)
-  const [bindingsLoaded, setBindingsLoaded] = useState(false)
   const executionLock = useRef(false)
   const [executionPending, setExecutionPending] = useState(false)
   useEffect(() => {
@@ -411,7 +403,6 @@ function BattleExperienceContent({
         const parsed = parseCombatKeybindMap(body.controls?.combatKeybinds)
         if (!cancelled && response.ok && parsed) {
           setBindings(parsed)
-          setBindingsLoaded(true)
         }
       })
       .catch(() => undefined)
@@ -1927,80 +1918,6 @@ function BattleExperienceContent({
     ],
   )
 
-  const modifierActions: BattleModifierActionChoice[] = (() => {
-    if (!localCombatantId) return []
-    const entries = [
-      ...[
-        {
-          id: 'basic.move',
-          name: basicMove?.name ?? 'Move',
-          owned: basicMove !== null && basicMove?.enabled !== false,
-        },
-        {
-          id: BASIC_ATTACK_ID,
-          name: attackLabel,
-          owned: basicAttack !== null && basicAttack?.enabled !== false,
-        },
-        {
-          id: supportActionId,
-          name: supportLabel,
-          owned: basicSupport !== null && basicSupport?.enabled !== false,
-        },
-      ].filter((row) => row.owned),
-      ...HEAL_SELECTOR_OPTIONS.filter((row) => {
-        const basic = findBattleBasicAction(battle.snapshot, localCombatantId, row.id)
-        return basic !== null && basic?.enabled !== false
-      }).map((row) => ({
-        id: row.id,
-        name: findBattleBasicAction(battle.snapshot, localCombatantId, row.id)?.name ?? row.label,
-      })),
-      ...(guidedGuardPractice ? [{ id: GUARD_ID, name: 'Guard' }] : []),
-      ...selectableTechniques.map((row) => ({ id: row.id, name: row.name })),
-      ...(selectableSpecial ? [{ id: selectableSpecial.id, name: selectableSpecial.name }] : []),
-    ]
-    return [...new Map(entries.map((entry) => [entry.id, entry])).values()].flatMap((entry) => {
-      const groups = manualActionTargets.filter((row) => row.actionId === entry.id)
-      return (groups.length ? groups.map((row) => row.behaviorId) : [undefined]).map(
-        (behaviorId) => {
-          const descriptor = unboundActionDescriptor(entry.id, behaviorId)
-          return {
-            key: JSON.stringify([entry.id, descriptor.behaviorId ?? null]),
-            label: `${entry.name}${groups.length > 1 ? ` · ${behaviorId}` : ''}`,
-            context: modifierContext(descriptor),
-            descriptor,
-          }
-        },
-      )
-    })
-  })()
-  const prepareModifierAction = useCallback(
-    (choice: BattleModifierActionChoice) => {
-      if (
-        planningDisabledRef.current ||
-        executionLock.current ||
-        commitLock.current ||
-        choice.context.battleVersion !== battleRef.current.battleVersion ||
-        choice.context.actorId !==
-          battleRef.current.snapshot.tactical.battle.currentTurn?.combatantId
-      )
-        return
-      const nextMode = battleModifierActionMode(choice.descriptor)
-      if (nextMode === 'attack') setSelectedAttackActionId(choice.context.actionId)
-      else if (nextMode === 'guard') setSelectedDefenseActionId(choice.context.actionId)
-      else if (nextMode === 'recover') setSelectedTechniqueHealId(choice.context.actionId)
-      setSelectedBehavior(
-        choice.context.behaviorId
-          ? { actionId: choice.context.actionId, behaviorId: choice.context.behaviorId }
-          : null,
-      )
-      const current = modifierDraftRef.current
-      replaceModifierDraft(prepareBattleModifierActionDraft(current, choice))
-      clearPlanning('none')
-      setNotice('Modifiers prepared. Use the action artwork or its key when ready.')
-    },
-    [clearPlanning, replaceModifierDraft],
-  )
-
   const currentActionId =
     mode === 'none' && modifierDraft
       ? modifierDraft.context.actionId
@@ -2018,75 +1935,6 @@ function BattleExperienceContent({
     () => actionDescriptor(currentActionId),
     [actionDescriptor, currentActionId],
   )
-  const modifierPanelRoot =
-    modifierActions.find(
-      (choice) =>
-        choice.context.actionId ===
-          (modifierDraft?.context.actionId ??
-            (['move', 'attack', 'guard', 'recover'].includes(mode) ? currentActionId : null)) &&
-        choice.context.behaviorId ===
-          (modifierDraft?.context.behaviorId ?? currentDescriptor.behaviorId),
-    ) ?? null
-  const modifierPanelSet = modifierPanelRoot
-    ? resolveBattleModifierDraft(
-        modifierDraft?.context.actionId === modifierPanelRoot.context.actionId &&
-          modifierDraft.context.behaviorId === modifierPanelRoot.context.behaviorId
-          ? modifierDraft
-          : null,
-        modifierPanelRoot.context,
-        modifierPins,
-        modifierPanelRoot.descriptor.controlled,
-      )
-    : { manualModifiers: [], stale: false, locked: false }
-  const modifierPanelChoices = battleModifierChoices(
-    battle.snapshot.manualModifierAvailability ?? [],
-    localCombatantId,
-    modifierNames,
-    modifierPanelSet.locked ? [] : (modifierDraft?.selected ?? []),
-    modifierPanelSet.manualModifiers,
-  )
-  const toggleModifierChoice = (choice: (typeof modifierPanelChoices)[number]) => {
-    if (
-      !modifierPanelRoot ||
-      planningDisabledRef.current ||
-      executionLock.current ||
-      commitLock.current ||
-      modifierPanelRoot.context.battleVersion !== battleRef.current.battleVersion
-    )
-      return
-    const current = modifierDraftRef.current
-    if (
-      current &&
-      (current.context.actionId !== modifierPanelRoot.context.actionId ||
-        current.context.behaviorId !== modifierPanelRoot.context.behaviorId)
-    )
-      return
-    const checked = modifierPanelSet.manualModifiers.some(
-      (row) =>
-        row.sourceInstanceId === choice.reference.sourceInstanceId &&
-        row.behaviorId === choice.reference.behaviorId,
-    )
-    if (
-      !choice.pin ||
-      !battleModifierCanToggle(
-        choice,
-        checked,
-        modifierPanelRoot,
-        modifierPanelSet.locked,
-        planningDisabled,
-      ) ||
-      (!checked && modifierPanelSet.manualModifiers.length >= 15)
-    )
-      return
-    replaceModifierDraft(
-      toggleBattleModifierDraft(
-        current ?? prepareBattleModifierDraft(modifierPanelRoot.context),
-        choice.pin,
-      ),
-    )
-    clearPlanning('none')
-    setNotice('Modifier selection updated. Use the action when ready.')
-  }
   const controlledReadyActionId =
     localTurn &&
     !currentDescriptor.unavailable &&
@@ -2195,23 +2043,6 @@ function BattleExperienceContent({
     JSON.stringify(battleManualModifierReferences(preview.intent.manualModifiers ?? [])) ===
       JSON.stringify(currentDescriptor.manualModifiers ?? [])
       ? preview.preview
-      : null
-  const modifierQuote =
-    modifierPanelRoot &&
-    !modifierPanelSet.stale &&
-    selectedActionPreview?.legal &&
-    selectedActionPreview.commandCosts &&
-    selectedActionPreview.commandCooldowns &&
-    preview?.intent.kind === 'action' &&
-    preview.intent.actionId === modifierPanelRoot.context.actionId &&
-    preview.intent.behaviorId === modifierPanelRoot.context.behaviorId &&
-    JSON.stringify(preview.intent) === JSON.stringify(pendingIntent) &&
-    JSON.stringify(battleManualModifierReferences(preview.intent.manualModifiers ?? [])) ===
-      JSON.stringify(modifierPanelSet.manualModifiers)
-      ? {
-          commandCosts: selectedActionPreview.commandCosts,
-          commandCooldowns: selectedActionPreview.commandCooldowns,
-        }
       : null
   // Target gestures stay available while informational forecasts load or fail.
   const basicAttackTargets = new Set(
@@ -2421,7 +2252,7 @@ function BattleExperienceContent({
         return
       const action = COMBAT_KEYBIND_ACTIONS.find(
         (key) =>
-          (key !== 'modifiers' || bindingsLoaded) &&
+          key !== 'modifiers' &&
           bindings[key].code === event.code &&
           bindings[key].shift === event.shiftKey,
       )
@@ -2532,12 +2363,6 @@ function BattleExperienceContent({
         return
       }
       event.preventDefault()
-      if (selected === 'modifiers') {
-        if (document.hidden || !document.hasFocus() || !bindingsLoaded) return
-        if (modifierTriggerRef.current) modifierTriggerRef.current.click()
-        else setNotice('No owned Manual modifiers are available.')
-        return
-      }
       if (selected === 'cancel') {
         replaceModifierDraft(null)
         clearPlanning()
@@ -2609,7 +2434,6 @@ function BattleExperienceContent({
   }, [
     actionDescriptor,
     bindings,
-    bindingsLoaded,
     replaceModifierDraft,
     battle.snapshot,
     chooseMode,
@@ -3596,23 +3420,6 @@ function BattleExperienceContent({
             </button>
           ) : null}
           <div className={styles.footerActions} data-battle-footer-actions="true">
-            {ownedModifierChoices.length || modifierPanelSet.manualModifiers.length ? (
-              <BattleModifierPicker
-                actions={modifierActions}
-                publicNames={modifierNames}
-                modifiers={modifierPanelChoices}
-                selectedActionKey={modifierPanelRoot?.key ?? null}
-                selectedReferences={modifierPanelSet.manualModifiers}
-                locked={modifierPanelSet.locked}
-                readOnly={planningDisabled}
-                binding={bindingsLoaded ? bindings.modifiers : null}
-                quote={modifierQuote}
-                quotePending={previewPending}
-                onPrepareAction={prepareModifierAction}
-                onToggleModifier={toggleModifierChoice}
-                triggerRef={modifierTriggerRef}
-              />
-            ) : null}
             {['move', 'attack', 'guard', 'recover'].includes(mode) && behaviorChoices.length > 1 ? (
               <label className={bridgeStyles.targetChoices}>
                 Action{' '}

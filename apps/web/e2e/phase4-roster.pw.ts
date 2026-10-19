@@ -83,7 +83,7 @@ test('Ironfist provisions normally and Skill details preserve selection on phone
   await expect(list.getByRole('checkbox')).toHaveCount(8)
   const palm = list.locator('article').filter({ hasText: 'Counter Palm' })
   await palm.getByRole('checkbox').focus()
-  await expect(dialog).toContainText('RequirementsSelf: Guard')
+  await expect(dialog).toContainText('RequirementsGuard [Self]')
   await expect(page.getByTestId('technique-preview')).toContainText('Range1')
   await expect(palm.getByRole('checkbox')).not.toBeChecked()
   const sweep = list.locator('article').filter({ hasText: 'Sweep' })

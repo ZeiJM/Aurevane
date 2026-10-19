@@ -888,10 +888,6 @@ if (canonicalCase) {
       )
       modifier.ownerCombatantId = ids[0]
       modifier.abilityId = `fixture.modifier.${index}`
-      if (canonicalCase === 'modifier-long')
-        modifier.definition.behaviors[0].effects = [
-          { id: 'unsupported', payload: { type: 'barrier-change', recipient: 'actor', amount: 1 } },
-        ]
       return captureCombatAbilitySource(modifier)
     })
     canonicalState = reconcileCombatAbilitySources(canonicalState, [canonicalCapture, ...modifiers])
