@@ -19,6 +19,7 @@ interface TestRecord {
   history: { contentVersion: number }[]
 }
 let db: PGlite
+let predecessorLearned: Record<string, unknown>[]
 beforeAll(async () => {
   db = await PGlite.create()
   // Only Supabase's platform identity and unavailable scheduler are fixtures.
@@ -40,16 +41,26 @@ beforeAll(async () => {
     const sql = readFileSync(resolve(root, name), 'utf8')
       .replace(/create extension if not exists pg_cron(?: with schema pg_catalog)?;/gi, '')
       .replace(/set compression lz4/gi, 'set compression pglz')
+    if (name === '20261020225734_discipline_skill_earned_provenance.sql') {
+      await db.exec(`insert into auth.users(id,email,email_confirmed_at) values('${owner}','owner@example.test',now()),('${other}','other@example.test',now());
+    insert into app_private.master_panel_role_assignments(user_id,role) values('${owner}','game-owner');
+    insert into public.characters(id,user_id,slot_index,rules_version,name,name_key,presentation_id,pronoun_preset_id,portrait_ref,starter_appearance_ref,foundation_discipline_id,might,finesse,vitality,agility,intellect,resolve,level,xp,progression_cycle,created_at,cycle_started_at,last_active_at)
+    values('${character}','${other}',0,1,'Test Player','test-player','default','they','portrait','appearance','vanguard',12,4,7,4,3,6,1,0,1,now(),now(),now());`)
+      await db.exec(
+        `select * from public.record_character_skill_unlock_v1('${character}',(select skill_id from app_private.phase4_skill_catalog where discipline_id='wildwarden' order by skill_id limit 1),(select content_version from app_private.phase4_skill_catalog where discipline_id='wildwarden' order by skill_id limit 1),'wildwarden','support','discipline-testing-open:v1');`,
+      )
+      predecessorLearned = (
+        await db.query<Record<string, unknown>>(
+          'select * from app_private.character_skill_unlocks order by character_id,skill_id',
+        )
+      ).rows
+    }
     try {
       await db.exec(sql)
     } catch (error) {
       throw new Error(`Migration ${name}: ${String(error)}`, { cause: error })
     }
   }
-  await db.exec(`insert into auth.users(id,email,email_confirmed_at) values('${owner}','owner@example.test',now()),('${other}','other@example.test',now());
-    insert into app_private.master_panel_role_assignments(user_id,role) values('${owner}','game-owner');
-    insert into public.characters(id,user_id,slot_index,rules_version,name,name_key,presentation_id,pronoun_preset_id,portrait_ref,starter_appearance_ref,foundation_discipline_id,might,finesse,vitality,agility,intellect,resolve,level,xp,progression_cycle,created_at,cycle_started_at,last_active_at)
-    values('${character}','${other}',0,1,'Test Player','test-player','default','they','portrait','appearance','vanguard',12,4,7,4,3,6,1,0,1,now(),now(),now());`)
 }, 60000)
 afterAll(async () => {
   await db?.close()
@@ -950,4 +961,275 @@ it('a conflicting old pointer rollback cannot replace canonical pair selection o
         )
       ).rows[0]!.allowed,
     ).toBe(false)
+})
+it('existing native grant bytes retain their earned provenance and eligibility through the storage migration', async () => {
+  const rows = (
+    await db.query<{
+      source_discipline_id: string
+      eligibility_discipline_id: string
+      learned_at: Date
+      earned_at: Date
+      source_kind: string
+      earned_source_kind: string
+      source_id: string
+      earned_source_id: string
+    }>(
+      'select l.*,g.eligibility_discipline_id,g.earned_at,g.earned_source_kind,g.earned_source_id from app_private.character_skill_unlocks l join app_private.character_discipline_skill_grants g using(character_id,skill_id) where character_id=$1',
+      [character],
+    )
+  ).rows
+  expect(
+    (
+      await db.query(
+        'select * from app_private.character_skill_unlocks order by character_id,skill_id',
+      )
+    ).rows,
+  ).toEqual(predecessorLearned)
+  expect(rows.length).toBeGreaterThan(0)
+  for (const row of rows) {
+    expect(row.eligibility_discipline_id).toBe(row.source_discipline_id)
+    if (row.source_kind === 'support' && row.source_id === 'discipline-testing-open:v1') {
+      expect(row.earned_at).toBeNull()
+      expect(row.earned_source_kind).toBeNull()
+      expect(row.earned_source_id).toBeNull()
+    } else {
+      expect(row.earned_at).toEqual(row.learned_at)
+      expect(row.earned_source_kind).toBe(row.source_kind)
+      expect(row.earned_source_id).toBe(row.source_id)
+    }
+  }
+})
+async function sharedSkill() {
+  return (
+    await db.query<{ skill_id: string; content_version: number }>(
+      "select skill_id,content_version from app_private.phase4_skill_catalog where discipline_id='lifebinder' order by skill_id limit 1",
+    )
+  ).rows[0]!
+}
+it('publishing a shared link grants nothing; actual provisioning records distinct earned Discipline eligibility and intrinsic source', async () => {
+  const skill = await sharedSkill()
+  await db.query('select * from public.record_character_skill_unlock_v1($1,$2,$3,$4,$5,$6)', [
+    character,
+    skill.skill_id,
+    skill.content_version,
+    'lifebinder',
+    'gameplay',
+    'earned-control',
+  ])
+  await publishNativeDiscipline('vanguard', {
+    linkedSkills: [skill.skill_id],
+    skillStages: [{ skillId: skill.skill_id, minimumStage: 1 }],
+  })
+  expect(
+    (
+      await db.query(
+        'select 1 from app_private.character_discipline_skill_grants where character_id=$1 and skill_id=$2 and eligibility_discipline_id=$3',
+        [character, skill.skill_id, 'vanguard'],
+      )
+    ).rows,
+  ).toEqual([])
+  await db.query('select app_private.provision_mastery_skills_v1($1)', [character])
+  const rows = (
+    await db.query<{
+      source_discipline_id: string
+      eligibility_discipline_id: string
+      earned_at: string | null
+    }>(
+      'select l.source_discipline_id,g.eligibility_discipline_id,g.earned_at from app_private.character_skill_unlocks l join app_private.character_discipline_skill_grants g using(character_id,skill_id) where character_id=$1 and skill_id=$2 order by eligibility_discipline_id',
+      [character, skill.skill_id],
+    )
+  ).rows
+  expect(rows).toHaveLength(2)
+  expect(rows.map((r) => r.eligibility_discipline_id)).toEqual(['lifebinder', 'vanguard'])
+  expect(rows.every((r) => r.source_discipline_id === 'lifebinder' && r.earned_at !== null)).toBe(
+    true,
+  )
+  const before = (
+    await db.query(
+      'select * from app_private.character_skill_unlocks where character_id=$1 and skill_id=$2',
+      [character, skill.skill_id],
+    )
+  ).rows
+  await publishNativeDiscipline('vanguard', { linkedSkills: [], skillStages: [] })
+  await db.query('select app_private.provision_mastery_skills_v1($1)', [character])
+  expect(
+    (
+      await db.query(
+        'select * from app_private.character_skill_unlocks where character_id=$1 and skill_id=$2',
+        [character, skill.skill_id],
+      )
+    ).rows,
+  ).toEqual(before)
+})
+it('testing access is not earned eligibility and an actual mastery grant upgrades it without rewriting its testing provenance', async () => {
+  const skill = await sharedSkill()
+  await publishNativeDiscipline('vanguard', {
+    linkedSkills: [skill.skill_id],
+    skillStages: [{ skillId: skill.skill_id, minimumStage: 5 }],
+  })
+  await db.query('select app_private.provision_mastery_skills_v1($1)', [character])
+  const before = (
+    await db.query<{
+      learned_at: unknown
+      earned_at: unknown
+      source_id: string
+      earned_source_id: string | null
+    }>(
+      'select g.*,g.granted_at learned_at,g.grant_source_id source_id from app_private.character_discipline_skill_grants g where character_id=$1 and skill_id=$2 and eligibility_discipline_id=$3',
+      [character, skill.skill_id, 'vanguard'],
+    )
+  ).rows[0]!
+  expect(before).toMatchObject({
+    earned_at: null,
+    earned_source_id: null,
+    source_id: 'discipline-testing-open:v1',
+  })
+  await db.query('select * from public.record_character_discipline_mastery_v1($1,$2,$3,$4)', [
+    character,
+    'vanguard',
+    'owner',
+    'actual-mastery-control',
+  ])
+  await db.query('select app_private.provision_mastery_skills_v1($1)', [character])
+  const after = (
+    await db.query<{
+      learned_at: unknown
+      earned_at: unknown
+      source_id: string
+      earned_source_id: string
+    }>(
+      'select g.*,g.granted_at learned_at,g.grant_source_id source_id from app_private.character_discipline_skill_grants g where character_id=$1 and skill_id=$2 and eligibility_discipline_id=$3',
+      [character, skill.skill_id, 'vanguard'],
+    )
+  ).rows[0]!
+  expect(after.learned_at).toEqual(before.learned_at)
+  expect(after.source_id).toBe(before.source_id)
+  expect(after.earned_at).not.toBeNull()
+  expect(after.earned_source_id).toBe('discipline-mastery:v1')
+})
+it('a cross-only learned row does not fabricate native eligibility in the old reader or the joined availability authority', async () => {
+  const skill = await sharedSkill()
+  await publishNativeDiscipline('vanguard', {
+    linkedSkills: [skill.skill_id],
+    skillStages: [{ skillId: skill.skill_id, minimumStage: 1 }],
+  })
+  await db.query('select app_private.provision_mastery_skills_v1($1)', [character])
+  expect(
+    (
+      await db.query(
+        'select * from public.get_character_learned_skills_v1($1,$2) where skill_id=$3',
+        [other, character, skill.skill_id],
+      )
+    ).rows,
+  ).toEqual([])
+  expect(
+    (
+      await db.query(
+        'select source_discipline_id,eligibility_discipline_id from public.get_character_learned_skills_v2($1,$2) where skill_id=$3',
+        [other, character, skill.skill_id],
+      )
+    ).rows,
+  ).toEqual([{ source_discipline_id: 'lifebinder', eligibility_discipline_id: 'vanguard' }])
+  expect(
+    (
+      await db.query('select * from public.get_character_learned_skills_v2($1,$2)', [
+        owner,
+        character,
+      ])
+    ).rows,
+  ).toEqual([])
+})
+it('late attached-grant failure rolls back the new learned row and all grant facts', async () => {
+  const skill = await sharedSkill()
+  await publishNativeDiscipline('vanguard', {
+    linkedSkills: [skill.skill_id],
+    skillStages: [{ skillId: skill.skill_id, minimumStage: 1 }],
+  })
+  await db.exec(
+    "create function app_private.reject_grant_test() returns trigger language plpgsql as $$ begin raise exception 'FORCED_GRANT_FAILURE'; end; $$; create trigger reject_grant_test after insert on app_private.character_discipline_skill_grants for each row execute function app_private.reject_grant_test();",
+  )
+  await denied(
+    () => db.query('select app_private.provision_mastery_skills_v1($1)', [character]),
+    /FORCED_GRANT_FAILURE/,
+  )
+  expect(
+    (
+      await db.query(
+        'select * from app_private.character_skill_unlocks where character_id=$1 and skill_id=$2',
+        [character, skill.skill_id],
+      )
+    ).rows,
+  ).toEqual([])
+  expect(
+    (
+      await db.query(
+        'select * from app_private.character_discipline_skill_grants where character_id=$1 and skill_id=$2',
+        [character, skill.skill_id],
+      )
+    ).rows,
+  ).toEqual([])
+})
+it('attached grants require a real learned identity, keep private RLS/ACLs and retain usable unearned native testing access', async () => {
+  await denied(
+    () =>
+      db.query(
+        "insert into app_private.character_discipline_skill_grants values($1,'missing.skill','vanguard',now(),'gameplay','missing',now(),'gameplay','missing')",
+        [character],
+      ),
+    /foreign key/,
+  )
+  const testing = (
+    await db.query<{ skill_id: string; earned_at: unknown }>(
+      'select * from public.get_character_learned_skills_v2($1,$2) where eligibility_discipline_id=$3',
+      [other, character, 'wildwarden'],
+    )
+  ).rows
+  expect(testing).toHaveLength(1)
+  expect(testing[0]!.earned_at).toBeNull()
+  expect(
+    (
+      await db.query(
+        'select * from public.get_character_learned_skills_v1($1,$2) where skill_id=$3',
+        [other, character, testing[0]!.skill_id],
+      )
+    ).rows,
+  ).toHaveLength(1)
+  for (const role of ['anon', 'authenticated', 'service_role']) {
+    expect(
+      (
+        await db.query<{ allowed: boolean }>(
+          "select has_table_privilege($1,'app_private.character_discipline_skill_grants','select,insert,update,delete') allowed",
+          [role],
+        )
+      ).rows[0]!.allowed,
+    ).toBe(false)
+    for (const signature of [
+      'app_private.grant_discipline_skill_v1(uuid,text,integer,text,text,text,text,boolean)',
+      'app_private.current_discipline_skill_catalog_v1(text)',
+      'app_private.character_discipline_skill_availability_v1(uuid)',
+    ])
+      expect(
+        (
+          await db.query<{ allowed: boolean }>(
+            "select has_function_privilege($1,$2,'execute') allowed",
+            [role, signature],
+          )
+        ).rows[0]!.allowed,
+      ).toBe(false)
+    expect(
+      (
+        await db.query<{ allowed: boolean }>(
+          "select has_function_privilege($1,'public.get_character_learned_skills_v2(uuid,uuid)','execute') allowed",
+          [role],
+        )
+      ).rows[0]!.allowed,
+    ).toBe(role === 'service_role')
+  }
+  expect(
+    (
+      await db.query<{ enabled: boolean }>(
+        "select relrowsecurity enabled from pg_class where oid='app_private.character_discipline_skill_grants'::regclass",
+      )
+    ).rows[0]!.enabled,
+  ).toBe(true)
 })
