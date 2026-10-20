@@ -1,5 +1,5 @@
 import { isMechanicTag, plainMechanicText, type MechanicTextPart } from './mechanic-text'
-import styles from './compact-skill-effect-summary.module.css'
+import { EffectTagLabel } from './compact-skill-effect-summary'
 
 /** Reuse the exact policy-aware tag help already captured with the requirement. */
 export function RequirementExplanations({
@@ -22,7 +22,10 @@ export function RequirementExplanations({
     <ul className={className} aria-label="Requirement explanations">
       {[...tags].map(([key, part]) => (
         <li key={key}>
-          <strong className={styles.label}>{part.label}</strong> — {part.explanation}
+          <strong>
+            <EffectTagLabel label={part.label} />
+          </strong>{' '}
+          — {part.explanation}
         </li>
       ))}
     </ul>

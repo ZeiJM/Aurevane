@@ -268,6 +268,14 @@ async function assertModularReport(panel, { resonance = false } = {}) {
   )
   assert.equal(tagColors.length, 3)
   for (const row of tagColors) assert.equal(row.label, row.value)
+  for (const label of await panel
+    .getByRole('list', { name: 'Requirement explanations' })
+    .locator('[data-effect-tag-label]')
+    .all())
+    assert.equal(
+      await label.evaluate((element) => getComputedStyle(element).color),
+      tagColors[0].label,
+    )
 }
 async function verifyModularReaders(page, viewport) {
   await page.goto(`${server.resolvedUrls.local[0]}?surface=modular-readers`, {

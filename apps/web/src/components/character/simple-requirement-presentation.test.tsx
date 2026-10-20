@@ -23,6 +23,7 @@ it('shows a linked status tag and its Target explicitly', () => {
   const html = renderToStaticMarkup(<AbilityParameters report={r} />)
   expect(html).toMatch(/<strong[^>]*data-combat-tag-reference="wet"[^>]*>Drenched<\/strong>/)
   expect(html).toContain('aria-label="Requirement explanations"')
+  expect(html).toContain('data-effect-tag-label="true">Drenched</span>')
   const explanation = r.requirementParts!.find((part) => typeof part !== 'string')!.explanation
   expect(html).toContain(renderToStaticMarkup(<>{explanation}</>))
 })
