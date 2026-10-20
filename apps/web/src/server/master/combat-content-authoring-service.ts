@@ -84,6 +84,7 @@ export interface CombatContentSemanticDiff {
 }
 
 export interface CombatContentAuthoringService {
+  recordCommand?(input: unknown): Promise<unknown>
   requireOperator(actorUserId: string): Promise<MasterPanelOperatorRole>
   validateSkillDefinition(definition: unknown): CombatContentValidationResult
   validateEssenceDefinition(definition: unknown): CombatContentValidationResult

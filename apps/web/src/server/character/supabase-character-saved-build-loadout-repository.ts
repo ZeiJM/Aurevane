@@ -1,4 +1,5 @@
 import 'server-only'
+import { throwCombatContentAdmissionError } from '../combat/combat-content-admission-error'
 
 import type { DisciplineSkillReference } from '@aurevane/game-core/character/discipline-skill-loadout'
 import { parseSupportActionId } from '@aurevane/game-core/combat/support-actions'
@@ -113,6 +114,7 @@ function parseActivationResult(row: unknown): CharacterSavedBuildLoadoutActivati
 }
 
 function mutationError(error: { message: string }): AurevaneError {
+  throwCombatContentAdmissionError(error)
   if (error.message.includes('CHARACTER_BUILD_VERSION_CONFLICT')) {
     return new AurevaneError('STALE_VERSION', 'The build changed. Refresh and try again.')
   }
