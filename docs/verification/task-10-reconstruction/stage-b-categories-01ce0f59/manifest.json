@@ -1,0 +1,63 @@
+{
+  "local_source": "01ce0f59ea9ef02400e7bdbaf1af9f00eb5fe3f0",
+  "remote_source": "72b1004d6967e1b4ee5701480fcd15d54e2947a2",
+  "prior_rows_unchanged": 131,
+  "logs": [
+    {
+      "source": "docs/verification/task-10-reconstruction/b-category-descriptor-red.log",
+      "file": "b-category-descriptor-red.log.gz",
+      "bytes": 1868,
+      "sha256": "e056b451a13664f69542b12452e4e9f9eba9d78ed4d31e2d6995fde0b7a85512",
+      "gzip_sha256": "4bab40cee7aa6bc1e58057b358929d7197691c3c849af3887ac88aa1dd68026f",
+      "exit": 1
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/b-category-descriptor-initial.log",
+      "file": "b-category-descriptor-initial.log.gz",
+      "bytes": 1982,
+      "sha256": "03252b998ddd39e610bfed1b04c1f7ea3299d91dcab2057a2d2276cbd8abce57",
+      "gzip_sha256": "6df914bb5e892f793b1f123b2b5a18a9f830113658eef9dd8c0f4ab565c2e1c4",
+      "exit": 0
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/b-category-integrated-attempt.log",
+      "file": "b-category-integrated-attempt.log.gz",
+      "bytes": 41301,
+      "sha256": "7a696403da93aafec0b584b2d8ca1940f0b47d7e89a31d8381887b5d7022c27f",
+      "gzip_sha256": "c57e8380595e8a58a4cf8e570b2584d485eca651684acd8e96ac9f056d0d0a82",
+      "exit": 0
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/b-category-format.log",
+      "file": "b-category-format.log.gz",
+      "bytes": 604,
+      "sha256": "b81cac6abfe47fc46d4c7082df7fd1f7f3abcc4493b46be2a74122e12fa3cecc",
+      "gzip_sha256": "50a48d08b5ac352b441e5130993d529f7b6319036c7909298f04ecfd04026ec0",
+      "exit": 0
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/b-category-web-types.log",
+      "file": "b-category-web-types.log.gz",
+      "bytes": 90,
+      "sha256": "99d7c2179cdd316467c51f37901025a0753453664d741214ba56fc631fa6c0bc",
+      "gzip_sha256": "e0356247813383c642bcaf9deb204edac049294684227f11c159d094ec0752cb",
+      "exit": 0
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/b-category-lint.log",
+      "file": "b-category-lint.log.gz",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip_sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "exit": 0
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/b-category-import-format.log",
+      "file": "b-category-import-format.log.gz",
+      "bytes": 203,
+      "sha256": "ab397bb23ce74d0ff9c898219e1e95a5494d541c037938a5f41ff978217ca0e5",
+      "gzip_sha256": "74b8fe6066ec430bc0fbd37fa573215b3db9841b368329f26a4ef752ccf76310",
+      "exit": 0
+    }
+  ]
+}

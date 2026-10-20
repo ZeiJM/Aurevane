@@ -1,0 +1,71 @@
+{
+  "local_source": "21926f00dc1a4388e88641ddb05499cf5f04f4a2",
+  "remote_source": "192486cde074b7b3134835c68aebee6b25b97bc3",
+  "prior_rows_unchanged": 147,
+  "logs": [
+    {
+      "source": "docs/verification/task-10-reconstruction/b-status-compatibility-diagnosis-red.log",
+      "file": "b-status-compatibility-diagnosis-red.log.gz",
+      "bytes": 3952,
+      "sha256": "26bd44891684ee5435580a99490ccc2a654452dc954795fd7d0553a15617cf29",
+      "gzip_sha256": "2ab1c3eafc3bf2550b1fddb4b6fca0e0c0da5fff3134ed979e41457a2fa7475c",
+      "exit": 1
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/b-status-compatibility-diagnosis-controls.log",
+      "file": "b-status-compatibility-diagnosis-controls.log.gz",
+      "bytes": 930,
+      "sha256": "e8e0644a785d91eebef684b1072764d33440251cb773f9f09c9c23d193fba90c",
+      "gzip_sha256": "aed927ff95438c566a980531a4c9ec5cfcff507c7aefc83a6515a66afa89950a",
+      "exit": 0
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/r3-compatibility-green.log",
+      "file": "r3-compatibility-green.log.gz",
+      "bytes": 15377,
+      "sha256": "273a0adc54bfd75017f2075a6fc6c83fe3aa706588427c0824876f8e7bc09d3c",
+      "gzip_sha256": "f726e341c26e919074089bae4bda2f000843d147cf690dd6ded591ee245b0425",
+      "exit": 0
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/r3-compatibility-format.log",
+      "file": "r3-compatibility-format.log.gz",
+      "bytes": 74,
+      "sha256": "8e1ae7e43d622599c0d5d8e041805ea4b0b9145d74198d97124390eb52e03b0a",
+      "gzip_sha256": "d3b1464f14cdfc081944e36f40679f760e59e090e5ff8fd5544efeac58a24c3d",
+      "exit": 0
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/r3-compatibility-lint.log",
+      "file": "r3-compatibility-lint.log.gz",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip_sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "exit": 0
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/r3-web-types.log",
+      "file": "r3-web-types.log.gz",
+      "bytes": 90,
+      "sha256": "99d7c2179cdd316467c51f37901025a0753453664d741214ba56fc631fa6c0bc",
+      "gzip_sha256": "e0356247813383c642bcaf9deb204edac049294684227f11c159d094ec0752cb",
+      "exit": 0
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/r3-fresh-main.log",
+      "file": "r3-fresh-main.log.gz",
+      "bytes": 91,
+      "sha256": "b766328fa61582906ce1c22c1cdcfe20780b9f71144a3a9d40dae3db9f5268e5",
+      "gzip_sha256": "d7543ee30ba64c29125516f87d9c354e94b0f1639b8da89db3a005625bdac6fc",
+      "exit": 0
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/r3-integrity.log",
+      "file": "r3-integrity.log.gz",
+      "bytes": 185,
+      "sha256": "e8002f51ef28ac5cfc235a05c61a01142ac2d61fcc65024b29b405649aedba16",
+      "gzip_sha256": "4e85d1c182ad88e288b7527a5b6f8a98a323d4d3a7b72edcdbdd5189a42e9284",
+      "exit": 0
+    }
+  ]
+}
