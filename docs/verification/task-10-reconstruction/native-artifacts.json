@@ -1,0 +1,16 @@
+[
+  {
+    "file": "native-stage-a-dede-database-success.log.gz",
+    "sha256": "90b4a20874f9b5bf2195969485de8e7a47a6037f765c39b71fad03fa143637cb",
+    "uncompressed_sha256": "d7abf3277c438ffe3f073df9f59f81f8014924cfadc4cb8a953208974f8075e2",
+    "bytes": 109417,
+    "run_id": 39500389334,
+    "job_id": 118896090121,
+    "local_source": "dedea81e2e46a4ca31fe31572351f3de24f53b7a",
+    "remote_source": "65f73b5e41efc182aedcb5f8721643364e2f89c2",
+    "redactions": {
+      "jwt": 0,
+      "local_cli_key": 1
+    }
+  }
+]
