@@ -1,0 +1,6 @@
+{"cwd": "/workspace/scratch/081f137b6a6d/aurevane-players-20261020", "argv": ["python", "-c", "import subprocess; subprocess.run([\"git\",\"fetch\",\"origin\",\"main\"],check=True); print(\"MAIN\",subprocess.check_output([\"git\",\"rev-parse\",\"origin/main\"],text=True).strip()); subprocess.run([\"git\",\"merge-base\",\"--is-ancestor\",\"origin/main\",\"HEAD\"],check=True); print(\"LOCK\",subprocess.check_output([\"git\",\"hash-object\",\"apps/web/vercel.json\"],text=True).strip()); subprocess.run([\"git\",\"diff\",\"--exit-code\",\"88f85ab98efd26dcb1a155de94a0cc8e884b180a\",\"--\",\"apps/web/src\",\"packages\",\"supabase\",\".github\",\"apps/web/vercel.json\"],check=True); subprocess.run([\"git\",\"diff\",\"--check\"],check=True)"], "start": "2026-10-20T21:09:25.289991+00:00"}
+From https://github.com/ZeiJM/Aurevane
+ * branch                  main       -> FETCH_HEAD
+MAIN b7ba1e7b3e8b850c53f0d15842c96aecc50ae160
+LOCK b8a4e0e3c57b95a8da49c05d1fe5f60ba2181b5f
+{"end": "2026-10-20T21:09:29.999153+00:00", "exit": 0}

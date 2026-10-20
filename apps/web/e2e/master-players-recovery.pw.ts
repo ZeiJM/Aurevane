@@ -225,7 +225,12 @@ test('Owner corrections and whole encounter recovery reach actual PvE, both PvP 
     await expect(correctionGroup).toHaveValue('source')
     await selectDisciplineGroup()
     await owner.getByRole('button', { name: 'Review correction', exact: true }).click()
-    await expect(owner.getByRole('alert')).toHaveText('Choose a different Primary or Secondary.')
+    const correctionAlert = owner
+      .locator('form')
+      .filter({ has: correctionGroup })
+      .getByRole('alert')
+    await expect(correctionAlert).toHaveCount(1)
+    await expect(correctionAlert).toHaveText('Choose a different Primary or Secondary.')
     await correctDisciplines({ secondary }, 'discipline-secondary-only-add')
     await correctDisciplines({ primary: nextPrimary }, 'discipline-primary-retains-secondary')
     // Model elapsed time between independent cases on this disposable character;
