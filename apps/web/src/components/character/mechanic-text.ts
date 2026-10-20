@@ -15,6 +15,10 @@ const labels = {
   primed: 'Primed',
   trigger: 'Trigger',
   'resource-threshold': 'Resource Threshold',
+  'hp-less-than': 'HP less than',
+  'hp-more-than': 'HP more than',
+  'mp-less-than': 'MP less than',
+  'mp-more-than': 'MP more than',
   fortified: 'Fortified',
   reckless: 'Reckless',
   bleed: 'Bleed',
@@ -23,6 +27,14 @@ const labels = {
   suppress: 'Suppress',
   conductive: 'Conductive',
   wet: 'Drenched',
+  inspired: 'Damage Up',
+  blindside: 'Blindside',
+  hexed: 'Healing Down',
+  invisible: 'Invisible',
+  haste: 'Haste',
+  warded: 'Burn Ward',
+  revealed: 'Revealed',
+  'lowered-guard': 'Defenseless',
 } as const
 /** Only identities with supported status rules become prerequisite links. */
 export function mechanicStatusTag(statusId: string): MechanicTag | undefined {
@@ -44,6 +56,14 @@ export function mechanicStatusTag(statusId: string): MechanicTag | undefined {
     case 'suppress':
     case 'conductive':
     case 'wet':
+    case 'inspired':
+    case 'blindside':
+    case 'hexed':
+    case 'invisible':
+    case 'haste':
+    case 'warded':
+    case 'revealed':
+    case 'lowered-guard':
       return statusId
     default:
       return undefined

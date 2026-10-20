@@ -508,7 +508,7 @@ it('describes specified status consumption without promising full Cleanse or rem
     removalMode: 'specified' as const,
   }
   const result = previewEffect(effect)
-  expect(result.label).toBe('Remove Status')
+  expect(result.label).toBe('Conditional Cleanse')
   expect(result.magnitude).toBe('Marked')
   expect(result.explanation).not.toContain('Suppress')
 })
@@ -522,5 +522,17 @@ it('labels an explicitly specified positive Covert list as Dispel and leaves Sup
   })
   expect(result.label).toBe('Dispel')
   expect(result.magnitude).toBe('Covert / Guard')
+  expect(result.explanation).not.toContain('Suppress')
+})
+
+it('names the limited Burn and Drenched removal Conditional Cleanse', () => {
+  const result = previewEffect({
+    type: 'remove-status',
+    recipient: 'actor',
+    statusIds: ['burn', 'wet'],
+    removalMode: 'specified',
+  })
+  expect(result.label).toBe('Conditional Cleanse')
+  expect(result.magnitude).toBe('Burn / Drenched')
   expect(result.explanation).not.toContain('Suppress')
 })

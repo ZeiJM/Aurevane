@@ -1,3 +1,4 @@
+import { projectPublicCombat } from './public-combat-presentation'
 import { validateCombatAbilityState } from './combat-ability-state'
 import {
   reconcileCombatAbilitySources,
@@ -262,4 +263,35 @@ it('Basic capture compares duplicated Ability objects independently of JSON key 
       },
     }),
   ).toThrow('invalid-captured-basic-definition')
+})
+
+it('capture reconnect retains separate simple execution metadata and its single percentage leaf', () => {
+  const captured = captureCombatAbilitySource(
+    source({
+      activation: 'automatic',
+      automaticTarget: { subject: 'affected' },
+      requirementMode: 'simple',
+      automaticTrigger: 'damage-dealt',
+      requirements: {
+        kind: 'resource-state',
+        subject: 'affected',
+        resource: 'hp',
+        comparison: 'less-than',
+        basisPoints: 3333,
+      },
+    }),
+  )
+  const state = reconcileCombatAbilitySources(percentageDotEncounter(), [captured])
+  const restored = JSON.parse(JSON.stringify(state))
+  expect(validateCombatAbilityState(restored)).toEqual([])
+  expect(projectPublicCombat(restored.capturedAbilitySources[0].definition)).toEqual(
+    captured.definition,
+  )
+  const copy = captureCombatAbilitySource(restored.capturedAbilitySources[0])
+  expect(copy).toEqual(captured)
+  expect(copy.definition.behaviors[0]).toMatchObject({
+    requirementMode: 'simple',
+    automaticTrigger: 'damage-dealt',
+    requirements: { kind: 'resource-state', comparison: 'less-than', basisPoints: 3333 },
+  })
 })

@@ -130,3 +130,21 @@ it('authors the visible limited Cleanse Chilled using the existing removal paylo
     statusIds: ['frozen'],
   })
 })
+
+it('offers Conditional Cleanse using only the native specified removal payload', () => {
+  const effect = createDefaultCombatEffect('conditional-cleanse')
+  expect(effect).toEqual({
+    type: 'remove-status',
+    recipient: 'primary-unit',
+    statusIds: ['burn'],
+    removalMode: 'specified',
+  })
+  const html = renderToStaticMarkup(
+    createElement(SkillEffectListEditor, {
+      value: [effect],
+      onChange: vi.fn(),
+    }),
+  )
+  expect(html).toContain('<option value="conditional-cleanse">Conditional Cleanse</option>')
+  expect(html).toContain('<strong>Conditional Cleanse</strong>')
+})

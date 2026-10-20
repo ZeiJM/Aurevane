@@ -1,10 +1,7 @@
 'use client'
 
 import type { CombatEffectDefinition } from '@aurevane/game-core/combat/actions'
-import {
-  CLEANSE_STATUS_IDS,
-  isCleanseChilledEffect,
-} from '@aurevane/game-core/combat/combat-cleanse'
+import { CLEANSE_STATUS_IDS } from '@aurevane/game-core/combat/combat-cleanse'
 import { useState } from 'react'
 
 import { previewEffect } from '../../character/skill-effect-preview'
@@ -12,7 +9,12 @@ import styles from './combat-content-editor.module.css'
 import { SkillEffectEditor } from './skill-effect-editor'
 
 export type CombatEffectType =
-  CombatEffectDefinition['type'] | 'push' | 'pull' | 'blindside' | 'cleanse-chilled'
+  | CombatEffectDefinition['type']
+  | 'push'
+  | 'pull'
+  | 'blindside'
+  | 'cleanse-chilled'
+  | 'conditional-cleanse'
 
 const EFFECT_TYPES: readonly { value: CombatEffectType; label: string }[] = [
   { value: 'damage', label: 'Damage' },
@@ -21,7 +23,8 @@ const EFFECT_TYPES: readonly { value: CombatEffectType; label: string }[] = [
   { value: 'resource-change', label: 'MP change' },
   { value: 'apply-status', label: 'Apply status' },
   { value: 'blindside', label: 'Blindside · Instant, 1 turn' },
-  { value: 'remove-status', label: 'Remove status' },
+  { value: 'remove-status', label: 'Cleanse / Dispel' },
+  { value: 'conditional-cleanse', label: 'Conditional Cleanse' },
   { value: 'cleanse-chilled', label: 'Cleanse Chilled' },
   { value: 'return-to-turn-start', label: 'Return to turn start' },
   { value: 'create-terrain', label: 'Create Frozen Ground' },
@@ -61,6 +64,13 @@ export function createDefaultCombatEffect(type: CombatEffectType): CombatEffectD
       return { type, recipient: 'primary-unit', statusId: 'guarded', stacks: 1 }
     case 'cleanse-chilled':
       return { type: 'remove-status', recipient: 'actor', statusIds: ['frozen'] }
+    case 'conditional-cleanse':
+      return {
+        type: 'remove-status',
+        recipient: 'primary-unit',
+        statusIds: ['burn'],
+        removalMode: 'specified',
+      }
     case 'remove-status':
       return { type, recipient: 'primary-unit', statusIds: [...CLEANSE_STATUS_IDS] }
     case 'return-to-turn-start':
@@ -206,8 +216,8 @@ export function SkillEffectListEditor({
                     ? effect.direction === 'pull'
                       ? 'Pull'
                       : 'Push'
-                    : isCleanseChilledEffect(effect)
-                      ? 'Cleanse Chilled'
+                    : effect.type === 'remove-status'
+                      ? previewEffect(effect).label
                       : effect.type === 'apply-status' && effect.statusId === 'blindside'
                         ? 'Blindside'
                         : EFFECT_TYPES.find((entry) => entry.value === effect.type)?.label}

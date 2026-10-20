@@ -10,6 +10,11 @@ import {
 } from '@aurevane/game-core/combat/combat-requirement-modules'
 import { AbilityNumber, AbilitySelect } from './ability-editor-fields'
 import { AbilityRequirementModulesEditor } from './ability-requirement-modules-editor'
+import { SimpleAbilityRequirementEditor } from './simple-ability-requirement-editor'
+import {
+  readSimpleRequirement,
+  simpleRequirementSubjects,
+} from '@aurevane/game-core/combat/combat-simple-requirements'
 import styles from './combat-content-editor.module.css'
 
 const kinds = [
@@ -84,6 +89,7 @@ export function AbilityRequirementEditor({
   depth = 0,
   behavior,
   primitiveOnly = false,
+  simple = false,
   conditionOnly = false,
   lockedKind = false,
   lockedActionClassification = false,
@@ -96,6 +102,7 @@ export function AbilityRequirementEditor({
   depth?: number
   behavior?: AbilityBehavior
   primitiveOnly?: boolean
+  simple?: boolean
   conditionOnly?: boolean
   lockedKind?: boolean
   lockedActionClassification?: boolean
@@ -103,6 +110,21 @@ export function AbilityRequirementEditor({
   allowedSubjects?: readonly (typeof subjects)[number][]
 }) {
   const node = value
+  if (
+    !primitiveOnly &&
+    depth === 0 &&
+    (behavior?.requirementMode === 'simple' ||
+      simple ||
+      (behavior?.activation === 'manual' && readSimpleRequirement(value) !== null))
+  )
+    return (
+      <SimpleAbilityRequirementEditor
+        value={value}
+        onChange={onChange}
+        label={label}
+        allowedSubjects={behavior ? simpleRequirementSubjects(behavior) : allowedSubjects}
+      />
+    )
   const statusSet =
     node?.kind === 'any' &&
     node.children.length > 0 &&

@@ -1,4 +1,8 @@
 import type { MechanicTextPart } from './mechanic-text'
+import {
+  SIMPLE_AUTOMATIC_TRIGGER_OPTIONS,
+  readSimpleRequirement,
+} from '@aurevane/game-core/combat/combat-simple-requirements'
 import { plainMechanicText } from './mechanic-text'
 import {
   COMBAT_TRIGGER_MODULES,
@@ -62,6 +66,10 @@ export function abilityRequirementDescription(
   behavior?: AbilityBehavior,
 ): string {
   if (!node) return 'None'
+  if (behavior?.requirementMode === 'simple') {
+    const parts = simpleRequirementParts(node)
+    if (parts) return plainMechanicText(parts)
+  }
   if (behavior) {
     const modules = recognizeCombatRequirementModules(node, behavior)
     if (modules) return plainMechanicText(modularRequirementParts(modules)) || 'None'
@@ -71,7 +79,11 @@ export function abilityRequirementDescription(
     case 'any':
       return `(${node.children.map((child) => abilityRequirementDescription(child)).join(node.kind === 'all' ? ' & ' : ' or ')})`
     case 'resource-state':
-      return `${node.resource.toUpperCase()} [${node.comparison === 'at-least' ? '≥' : '≤'} ${node.basisPoints === undefined ? node.amount : `${node.basisPoints / 100}%`}] [${subjects[node.subject]}]`
+      if (node.comparison === 'less-than' || node.comparison === 'more-than') {
+        const parts = simpleRequirementParts(node)
+        if (parts) return plainMechanicText(parts)
+      }
+      return `${node.resource.toUpperCase()} [${{ 'at-least': '≥', 'at-most': '≤', 'less-than': '<', 'more-than': '>' }[node.comparison]} ${node.basisPoints === undefined ? node.amount : `${node.basisPoints / 100}%`}] [${subjects[node.subject]}]`
     case 'resource-change':
       return `${node.resource.toUpperCase()} [${node.direction === 'gained' ? 'Gained' : 'Lost'} ≥ ${node.minimumAmount}] [${subjects[node.subject]}]`
     case 'resource-threshold-crossing':
@@ -101,6 +113,27 @@ export function abilityRequirementDescription(
   }
 }
 
+function simpleRequirementParts(node: RequirementNode): MechanicTextPart[] | null {
+  const selection = readSimpleRequirement(node)
+  if (!selection) return null
+  const target = selection.subject === 'owner' ? 'Self' : 'Target'
+  if (node.kind === 'status-presence') {
+    const tag = mechanicStatusTag(node.statusId)
+    return [
+      tag
+        ? { ...mechanicTag(tag), label: gameplayStatusName(node.statusId) }
+        : gameplayStatusName(node.statusId),
+      ` [${target}]`,
+    ]
+  }
+  if (node.kind === 'prime-presence') return [mechanicTag('primed'), ` [${target}]`]
+  if (selection.percent !== undefined) {
+    const id = selection.tagId as 'hp-less-than' | 'hp-more-than' | 'mp-less-than' | 'mp-more-than'
+    return [mechanicTag(id), ` [${selection.percent}%] [${target}]`]
+  }
+  return ['None']
+}
+
 function requirementSubjectSuffix(subject: 'owner' | 'selected' | 'affected' | 'triggering') {
   return subject === 'selected'
     ? ''
@@ -109,6 +142,13 @@ function requirementSubjectSuffix(subject: 'owner' | 'selected' | 'affected' | '
 
 /** Raw and historical trees retain every branch, including unregistered identities. */
 function primitiveRequirementParts(value: RequirementNode, modular = false): MechanicTextPart[] {
+  if (
+    value.kind === 'resource-state' &&
+    (value.comparison === 'less-than' || value.comparison === 'more-than')
+  ) {
+    const parts = simpleRequirementParts(value)
+    if (parts) return parts
+  }
   const suffix = (subject: 'owner' | 'selected' | 'affected' | 'triggering') =>
     modular && subject === 'affected' ? ' [Affected unit]' : requirementSubjectSuffix(subject)
   if (value.kind === 'all' || value.kind === 'any')
@@ -203,6 +243,10 @@ function requirementReferenceParts(
   context: AbilityEffectPresentationContext,
   behavior?: AbilityBehavior,
 ): readonly MechanicTextPart[] | undefined {
+  if (behavior?.requirementMode === 'simple' && node) {
+    const parts = simpleRequirementParts(node)
+    if (parts) return resolveMechanicText(parts, context)
+  }
   const modules = behavior ? recognizeCombatRequirementModules(node, behavior) : null
   const result = modules
     ? modularRequirementParts(modules)
@@ -542,6 +586,16 @@ export function abilityBehaviorInformation(
     : null
   return {
     ...(requirementParts ? { requirementParts } : {}),
+    ...(behavior.requirementMode === 'simple' && behavior.activation === 'automatic'
+      ? {
+          automaticActivation:
+            behavior.mode === 'modifier'
+              ? 'On your Attack'
+              : (SIMPLE_AUTOMATIC_TRIGGER_OPTIONS.find(({ id }) => id === behavior.automaticTrigger)
+                  ?.label ??
+                (behavior.requirements ? 'When the requirement becomes true' : 'When activated')),
+        }
+      : {}),
     ...(behavior.activation === 'ongoing'
       ? {
           maintenance:

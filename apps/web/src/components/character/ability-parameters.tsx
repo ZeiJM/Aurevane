@@ -42,6 +42,7 @@ export function AbilityParameters({
           }
         />
       </dl>
+      {report.automaticActivation ? <p>Automatic: {report.automaticActivation}</p> : null}
       {report.maintenance ? <p>{report.maintenance}</p> : null}
       {report.effectDescriptions.length ? (
         <ul className={effectExplanationsClassName} aria-label="Effect explanations">
