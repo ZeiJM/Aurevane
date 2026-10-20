@@ -1,5 +1,9 @@
 # Native Task9 checkpoint disposition
 
+Current exact source: local3a791c060efda502f8f5cb03dc052a5aefaefb9c/remoteaa971de38eae662caf95c2bb12309e1068298c87, same reviewed tree61d2718f84c35e4f32c86ee4abe5c50985de7ff9. Full CI39488302794 succeeds: native database118854415372 and quality118854414840,11,953Vitest/633files+7Node/types/lint/format/2executedbuilds/workerboot/clean source. UIlayout39488302707/job118854414776 also succeeds (mobile1pass, serial110pass/61skip, large desktop1pass/2skip). The unchanged combat timeout passes this native gate without timeout or mechanics changes. Dedicated Browser39488302754/job118854414411 remains running. Same reviewer approves the fixture repair; backend-handoff.md accepts the bounded producer for independent Task10StageA. Full Task9 UI/physical/hosted/human acceptance remains open.
+
+The following earlier checkpoint failures are retained as history; their source IDs are not current UI/quality acceptance.
+
 Source local `d2fef237ce6a81833314c16bb15e5f0e64503483` maps exactly to PR953 remote `a56e96ca791152c7ed8307554137520865db5d2e`. Its application subtree `3dd25bba8c58eea387ecdf2979bf3bf96a49a8f7` is identical to PR952 remote `a0b12bac92a76c62d1a3b8115bf8de519c7070b2`. This evidence does not close Task9 or authorize a hosted change.
 
 ## Actual native database success
