@@ -1,0 +1,27 @@
+{
+  "status": "failures-before-native-acceptance",
+  "logs": [
+    {
+      "file": "native-readers-first-failure.log.gz",
+      "sha256": "5e38e63daad4cbb0e35efa135f2591082f1bc04fbbe0021d7579c6eeef0844fc",
+      "raw_bytes": 50024,
+      "workflow_run": 39481241197,
+      "job": 118830050344,
+      "source": "d004217fc55aab1c17c445d0a77d3b99108fe687",
+      "jwt_redactions": 0,
+      "static_test_password_redactions": 0
+    },
+    {
+      "file": "native-db-first-failure.log.gz",
+      "sha256": "2fa5d9823264cebbefc638ebeff0d88c07ed4ade17670352df79b7289339b128",
+      "raw_bytes": 84417,
+      "workflow_run": 39481241234,
+      "job": 118830050554,
+      "source": "d004217fc55aab1c17c445d0a77d3b99108fe687",
+      "jwt_redactions": 0,
+      "static_test_password_redactions": 0,
+      "local_cli_secret_key_redactions": 1,
+      "sanitized_bytes": 84407
+    }
+  ]
+}
