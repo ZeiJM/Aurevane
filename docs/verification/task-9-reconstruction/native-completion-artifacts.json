@@ -1,0 +1,65 @@
+[
+  {
+    "file": "native-fix2-database-success.log.gz",
+    "sha256": "b6ca2441c0314cb3bcc2ab828de784765f1dda6bd0a50d24dd12293f137ecc61",
+    "uncompressed_sha256": "ae3ddb981c9c805e1cd183a6a30275791f444f6bfd8277ad2402612631398793",
+    "bytes": 103042,
+    "run_id": 39485042827,
+    "job_id": 118843150721,
+    "remote_source": "a56e96ca791152c7ed8307554137520865db5d2e",
+    "redactions": {
+      "jwt": 0,
+      "local_cli_key": 1
+    }
+  },
+  {
+    "file": "native-fix2-quality-failure.log.gz",
+    "sha256": "c32963a049baf872204cc2ae32eb4cc9b63555d9fa7b62c2cfc8d3d367786ec3",
+    "uncompressed_sha256": "9ab981ede9e30d525cb029a2382c35a948c7c8abc6ccbdcfa63998c43de15bba",
+    "bytes": 291765,
+    "run_id": 39485042827,
+    "job_id": 118843151303,
+    "remote_source": "a56e96ca791152c7ed8307554137520865db5d2e",
+    "redactions": {
+      "jwt": 0,
+      "local_cli_key": 0
+    }
+  },
+  {
+    "file": "native-fix1-quality-cancelled.log.gz",
+    "sha256": "c147bc397e08f14835fb60541c55c513608af76cea7db1a2ff447e9a760f6d17",
+    "uncompressed_sha256": "e1d795b55bd5b091e522c21cfb66effd431cbe347196d1a54effaacbb6af1820",
+    "bytes": 246062,
+    "run_id": 39483455387,
+    "job_id": 118837698092,
+    "remote_source": "a0b12bac92a76c62d1a3b8115bf8de519c7070b2",
+    "redactions": {
+      "jwt": 0,
+      "local_cli_key": 0
+    }
+  },
+  {
+    "file": "native-browser-fix1-failure.log.gz",
+    "sha256": "5e4767cea3e7d43e6e4b1e1c89802d23aca252098b927ee111ba089ae5840bd1",
+    "uncompressed_sha256": "cb66231381e1f60bd87090ddc9b3df1ecbaf5b19b8759233f5f8999a68aeeb0a",
+    "bytes": 183537,
+    "run_id": 39483455793,
+    "job_id": 118838889171,
+    "remote_source": "a0b12bac92a76c62d1a3b8115bf8de519c7070b2",
+    "redactions": {
+      "jwt": 0,
+      "local_cli_key": 1
+    }
+  },
+  {
+    "file": "task-9-build-completion.log.gz",
+    "sha256": "266037b7dc61c11ec6e8f10a31ab448abe758550c925a932dfdfa8fd009875e8",
+    "uncompressed_sha256": "843f7700ff81cd20336d00af20a964983ff49935631072075966e58f1d779d32",
+    "bytes": 11062,
+    "local_source": "d2fef237ce6a81833314c16bb15e5f0e64503483",
+    "redactions": {
+      "jwt": 0,
+      "local_cli_key": 0
+    }
+  }
+]

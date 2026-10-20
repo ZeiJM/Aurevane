@@ -77,3 +77,9 @@ The same reviewer approves the single guest SQL change and actual-statement regr
 Exact remote `a56e96ca791152c7ed8307554137520865db5d2e` on the staging branch is draft PR [#953](https://github.com/ZeiJM/Aurevane/pull/953), based on PR #952's reviewed a0 head. The apps subtree is identically `3dd25bba8c58eea387ecdf2979bf3bf96a49a8f7` in both heads. This preserves the ongoing PR952 UI run while the fixture-only native checkpoint executes. Only CI and Browser smoke workflows trigger for the incremental checkpoint. Root integration retains reviewed source and coordination evidence.
 
 Both native checkpoints and the final handoff remain open. No Task9 acceptance, Task10 implementation, remote-main merge, hosted change or deployment is claimed.
+
+## Native database success and remaining verification blockers
+
+PR953/a56 native Database foundation job118843150721/run39485042827 passes the complete unchanged migration/Staff/Players race and subsequent Event/profile/deletion/API/catalogue sequence. The exact physical Players probes now run and pass; this supersedes the prior setup-only failures for database acceptance. See task-9-reconstruction/native-completion-status.md and its deterministic transcript manifest.
+
+PR952 Browser job118838889171 fails both Players repetitions at an empty Owner UUID during setup before any Players UI interactions; six other early tests pass. The original implementer resumes one scoped round3 repair, preserving actual singleOwner authority. PR952 quality passes11947Vitest+7Node/types but is cancelled during build; PR953quality has one unchanged combat test timeout, separately diagnosed. Current d2 local worker/Web builds both pass after only generated-cache quarantine. No native quality/UI success, wholeTask9 acceptance or Task10 handoff is inferred. All original failures remain retained.
