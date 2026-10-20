@@ -15,3 +15,7 @@ Actual native PostgreSQL job118843150721/run39485042827 at remotea56/locald2 pas
 - StageA archive admission guards must also map the named COMBAT_CONTENT_ADMISSION_RETRY domain error through actual Players correction to409, retaining transaction rollback, immutable earned/equipped facts and catalogue membership blockers.
 
 Ruling: unlock only independent Task10 StageA backend reconstruction now, after this actual reviewed/native backend handoff. The remaining UI fixture verification and timing-sensitive quality check do not change these backend producer contracts. Keep one active implementation worker, and retain Task9 UI/final acceptance as explicit open work. StageB must refresh this handoff and exact new native disposition; no completed Task9/Task10 UI release is inferred. Cost if subsequent native UI evidence requires an authority/API correction: reconcile and rerun affected StageA guards before accepting dependent source.
+
+## Exact repaired-source native confirmation
+
+CI39488302794, Database foundation118854415372 at exact aa971de38eae662caf95c2bb12309e1068298c87/local3a791c06 also SUCCEEDS through the complete chain, including physical Players races at20:03:08UTC and subsequent Event/API/catalogue steps. Full sanitized deterministic transcript and hashes are retained as native-fix3-database-success.log.gz in native-completion-artifacts.json. This strengthens the same accepted backend contract; browser/quality and wholeTask9 acceptance remain open.
