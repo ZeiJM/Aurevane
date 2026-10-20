@@ -19,3 +19,7 @@ Ruling: unlock only independent Task10 StageA backend reconstruction now, after 
 ## Exact repaired-source native confirmation
 
 CI39488302794, Database foundation118854415372 at exact aa971de38eae662caf95c2bb12309e1068298c87/local3a791c06 also SUCCEEDS through the complete chain, including physical Players races at20:03:08UTC and subsequent Event/API/catalogue steps. Full sanitized deterministic transcript and hashes are retained as native-fix3-database-success.log.gz in native-completion-artifacts.json. This strengthens the same accepted backend contract; browser/quality and wholeTask9 acceptance remain open.
+
+## Exact repaired-source quality confirmation
+
+The same exact-head CI39488302794 Quality gates job118854414840 also SUCCEEDS. Actual output:11,953Vitest/633files (Core5360,DB210,Web6255,Validation106,Audio17,Realtime3,Worker2),7Node,format/lint/8types/2executedbuilds/workerboot/cleantrackedsource. All task groups execute with0cachehits. The earlier unchanged combat30-second failure passes in the full native gate without changing its timeout or mechanics; earlier failure/cancellation transcripts remain retained. Existing Vite/nativeconfig, missingbuildcache, Nodepunycode and actionNode20-target warnings remain visible. Browser/physical/hosted/human acceptance stays separate.

@@ -74,5 +74,18 @@
       "jwt": 0,
       "local_cli_key": 1
     }
+  },
+  {
+    "file": "native-fix3-quality-success.log.gz",
+    "sha256": "14640c4cb4adeaf722b25d54b31933ad3b9c616e1db1a9a3cf21614277099b7d",
+    "uncompressed_sha256": "f3f4496066692741766cad355eb4aef6a1c27a5c1d8d22b9039c65443f514009",
+    "bytes": 224511,
+    "run_id": 39488302794,
+    "job_id": 118854414840,
+    "remote_source": "aa971de38eae662caf95c2bb12309e1068298c87",
+    "redactions": {
+      "jwt": 0,
+      "local_cli_key": 0
+    }
   }
 ]
