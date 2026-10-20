@@ -336,6 +336,11 @@ export interface CompleteCombatContentVersion {
   readonly restoredBy: string | null
 }
 export interface CompleteCombatContentRecord {
+  /** Server-derived capability; opaque retained data is not an editable definition. */
+  readonly authoringBlocker?: {
+    readonly code: 'EFFECT_PROFILE_AUTHORING_UNSUPPORTED'
+    readonly message: string
+  }
   readonly contentKey: string
   readonly contentKind: CombatContentKind
   readonly lifecycle: CombatContentLifecycle

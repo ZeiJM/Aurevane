@@ -1,3 +1,8 @@
+import {
+  EFFECT_PROFILE_AUTHORING_BLOCKER,
+  parseStoredStatusDefinition,
+  retainOpaqueEffectProfile,
+} from '../combat/combat-standalone-content'
 import type { CompleteCombatContentRecord, CombatContentKind } from '@aurevane/db/combat-content'
 import {
   isNoncombatContentKind,
@@ -54,6 +59,11 @@ export function parseCompleteCombatContentRecord(value: unknown): CompleteCombat
       if (isNoncombatContentKind(value.contentKind)) {
         const parsed = parseNoncombatContentDefinition(value.contentKind, v)
         if (parsed.id !== value.contentKey) throw new TypeError('Invalid definition identity.')
+      } else if (value.contentKind === 'status') {
+        if (parseStoredStatusDefinition(v).id !== value.contentKey)
+          throw new TypeError('Invalid Status identity.')
+      } else if (value.contentKind === 'effect-profile') {
+        retainOpaqueEffectProfile(v, value.contentKey as string)
       } else if ((value.contentKind === 'essence' ? v.essenceId : v.id) !== value.contentKey)
         throw new TypeError('Invalid definition identity.')
     }
@@ -88,7 +98,10 @@ export function parseCompleteCombatContentRecord(value: unknown): CompleteCombat
     }
     if (value.lifecycle === 'archived' && value.current !== null)
       throw new TypeError('Archived current pointer.')
-    return structuredClone(value) as unknown as CompleteCombatContentRecord
+    const record = structuredClone(value) as unknown as CompleteCombatContentRecord
+    return value.contentKind === 'effect-profile'
+      ? { ...record, authoringBlocker: { ...EFFECT_PROFILE_AUTHORING_BLOCKER } }
+      : record
   } catch (cause) {
     throw new AurevaneError(
       'PERSISTENCE_UNAVAILABLE',

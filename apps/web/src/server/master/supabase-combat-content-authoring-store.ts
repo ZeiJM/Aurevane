@@ -1,3 +1,7 @@
+import {
+  EFFECT_PROFILE_AUTHORING_BLOCKER,
+  parseStoredStatusDefinition,
+} from '../combat/combat-standalone-content'
 import 'server-only'
 import type {
   CompleteCombatContentRecord,
@@ -339,6 +343,23 @@ export class RpcCombatContentAuthoringStore implements CombatContentAuthoringSto
     contentKey: string,
     command: CompleteCombatContentWrite,
   ): Promise<CompleteCombatContentRecord> {
+    if (command.action === 'create' && command.contentKind === 'effect-profile')
+      throw new AurevaneError('INVALID_REQUEST', EFFECT_PROFILE_AUTHORING_BLOCKER.message)
+    if (command.action === 'create' && command.contentKind === 'status')
+      parseStoredStatusDefinition(command.definition)
+    if (
+      command.action === 'save' ||
+      command.action === 'duplicate' ||
+      command.action === 'restore'
+    ) {
+      const source = await this.readRecord(
+        command.action === 'duplicate' ? command.sourceKey : contentKey,
+      )
+      if (source?.contentKind === 'effect-profile')
+        throw new AurevaneError('INVALID_REQUEST', EFFECT_PROFILE_AUTHORING_BLOCKER.message)
+      if (source?.contentKind === 'status' && command.action === 'save')
+        parseStoredStatusDefinition(command.definition)
+    }
     const { data, error } = await this.#rpc('write_combat_content_record_v1', {
       p_actor_user_id: this.#actorUserId,
       p_content_key: contentKey,
@@ -362,6 +383,8 @@ export class RpcCombatContentAuthoringStore implements CombatContentAuthoringSto
         'STALE_VERSION',
         'Save and review the current draft before publishing.',
       )
+    if (saved.contentKind === 'effect-profile')
+      throw new AurevaneError('INVALID_REQUEST', EFFECT_PROFILE_AUTHORING_BLOCKER.message)
     if (isNoncombatContentKind(saved.contentKind)) {
       parseNoncombatContentDefinition(saved.contentKind, saved.draft.definition)
       throw new AurevaneError(
@@ -525,6 +548,8 @@ export class RpcCombatContentAuthoringStore implements CombatContentAuthoringSto
     contentKind: CombatContentKind,
     target: CombatContentVersionRecord | null,
   ): Promise<string> {
+    if (target && contentKind === 'effect-profile')
+      throw new AurevaneError('INVALID_REQUEST', EFFECT_PROFILE_AUTHORING_BLOCKER.message)
     const snapshot = await new RpcPublishedCombatContentSource(this.#rpc).readCatalogueSnapshot()
     if (
       snapshot.publications.some(

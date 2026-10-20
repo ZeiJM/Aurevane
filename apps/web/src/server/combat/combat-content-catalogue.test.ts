@@ -1,4 +1,5 @@
 import { expect, it, vi } from 'vitest'
+import { PHASE4_STATUSES } from '@aurevane/game-core/combat/status-content'
 vi.mock('server-only', () => ({}))
 import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
 import {
@@ -92,7 +93,12 @@ it('overlays actual Owner choices, including custom identities, older current po
       row('skill', basic.id, basic, 40),
       row('essence', essence.essenceId, changedEssence, 81),
       row('resonance', resonance.id, changedResonance, 82),
-      row('status', 'owner.status', { id: 'owner.status', values: [3] }, 1),
+      row(
+        'status',
+        'owner.status',
+        { ...PHASE4_STATUSES[0], id: 'owner.status', contentVersion: 1 },
+        1,
+      ),
       row('effect-profile', 'owner.profile', { id: 'owner.profile', values: [4] }, 1),
     ],
   }
@@ -124,7 +130,7 @@ it('overlays actual Owner choices, including custom identities, older current po
   })
   expect(first.entries.find((e) => e.contentKey === 'owner.status')).toMatchObject({
     category: 'status',
-    definition: { values: [3] },
+    definition: { ...PHASE4_STATUSES[0], id: 'owner.status', contentVersion: 1 },
   })
   expect(first.entries.find((e) => e.contentKey === 'owner.profile')).toMatchObject({
     category: 'effect-profile',

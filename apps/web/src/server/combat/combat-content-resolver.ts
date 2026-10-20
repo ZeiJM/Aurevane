@@ -1,4 +1,9 @@
 import {
+  EFFECT_PROFILE_AUTHORING_BLOCKER,
+  parseStoredStatusDefinition,
+  retainOpaqueEffectProfile,
+} from './combat-standalone-content'
+import {
   isNoncombatContentKind,
   parseNoncombatContentDefinition,
 } from '@aurevane/game-core/content/authored-content'
@@ -110,7 +115,12 @@ export type CombatContentCatalogueEntry = CatalogueIdentity &
     | { readonly category: 'essence'; readonly definition: EssenceDefinition }
     | { readonly category: 'resonance'; readonly definition: AnyResonanceDefinition }
     | { readonly category: 'status'; readonly definition: CombatContentDefinition }
-    | { readonly category: 'effect-profile'; readonly definition: CombatContentDefinition }
+    | {
+        readonly category: 'effect-profile'
+        readonly definition: CombatContentDefinition
+        readonly runtimeSupported: false
+        readonly authoringBlocker: typeof EFFECT_PROFILE_AUTHORING_BLOCKER
+      }
   )
 export interface CombatContentCatalogue {
   readonly token: string
@@ -264,6 +274,17 @@ export class RpcPublishedCombatContentSource implements PublishedCombatContentSo
         if (!record || seen.has(record.contentKey))
           throw new TypeError('Invalid or duplicate catalogue identity.')
         seen.add(record.contentKey)
+        if (record.contentKind === 'status') {
+          const definition = parseStoredStatusDefinition(record.definition)
+          if (
+            definition.id !== record.contentKey ||
+            (definition.contentVersion !== undefined &&
+              definition.contentVersion !== record.contentVersion)
+          )
+            throw new TypeError('Status identity mismatch.')
+        }
+        if (record.contentKind === 'effect-profile')
+          retainOpaqueEffectProfile(record.definition, record.contentKey, record.contentVersion)
         if (isNoncombatContentKind(record.contentKind)) {
           const definition = parseNoncombatContentDefinition(record.contentKind, record.definition)
           if (
@@ -624,12 +645,28 @@ export function resolveCombatContentCatalogueSnapshot(
           definition: validatePublishedResonance(record, record.contentKey),
         }
         break
-      case 'status':
+      case 'status': {
+        const definition = parseStoredStatusDefinition(record.definition)
+        if (
+          definition.id !== record.contentKey ||
+          (definition.contentVersion !== undefined &&
+            definition.contentVersion !== record.contentVersion)
+        )
+          throw new InvalidPublishedCombatContentError('Status identity mismatch.')
+        entry = { ...identity, category: 'status', definition }
+        break
+      }
       case 'effect-profile':
         entry = {
           ...identity,
           category: record.contentKind,
-          definition: structuredClone(record.definition),
+          definition: retainOpaqueEffectProfile(
+            record.definition,
+            record.contentKey,
+            record.contentVersion,
+          ),
+          runtimeSupported: false,
+          authoringBlocker: { ...EFFECT_PROFILE_AUTHORING_BLOCKER },
         }
         break
       default:

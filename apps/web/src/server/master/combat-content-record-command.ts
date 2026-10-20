@@ -1,3 +1,7 @@
+import {
+  EFFECT_PROFILE_AUTHORING_BLOCKER,
+  parseStoredStatusDefinition,
+} from '../combat/combat-standalone-content'
 import type { CombatContentDefinition, CombatContentKind } from '@aurevane/db/combat-content'
 import {
   parseNoncombatContentDefinition,
@@ -41,6 +45,14 @@ export function createCombatContentRecordCommand(
 ) {
   const validate = (kind: CombatContentKind, definition: unknown): CombatContentDefinition => {
     if (!object(definition)) invalid('A complete content definition is required.')
+    if (kind === 'effect-profile') invalid(EFFECT_PROFILE_AUTHORING_BLOCKER.message)
+    if (kind === 'status') {
+      try {
+        return parseStoredStatusDefinition(definition)
+      } catch (error) {
+        invalid(error instanceof Error ? error.message : 'Invalid Status definition.')
+      }
+    }
     if (isNoncombatContentKind(kind)) {
       try {
         return { ...parseNoncombatContentDefinition(kind, definition) }
@@ -143,6 +155,7 @@ export function createCombatContentRecordCommand(
     if (action === 'duplicate') {
       const source = await store.readRecord(key(input.sourceKey))
       if (!source) invalid('The source content does not exist.')
+      if (source.contentKind === 'effect-profile') invalid(EFFECT_PROFILE_AUTHORING_BLOCKER.message)
       const request = requestId(input.requestId)
       return {
         record: await store.writeRecord(`${source.contentKind}.${request}`, {
