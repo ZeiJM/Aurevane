@@ -1,0 +1,25 @@
+{
+  "head": "f6ba4876f39f39d0da690dbbcf6039fcc488aaf7",
+  "run": 39202185447,
+  "source": "immutable completed GitHub job transcripts",
+  "records": [
+    {
+      "name": "database",
+      "job": 117897317608,
+      "path": "docs/verification/task-8/native-selector-database.log.gz",
+      "sha256": "bb0629090fae364fdb9db97bf3eb0adc3d8588d7eb71ee3aae8acf6c0f766cca",
+      "source_bytes": 102944,
+      "test_key_redactions": 1,
+      "test_password_redactions": 1
+    },
+    {
+      "name": "quality",
+      "job": 117897317701,
+      "path": "docs/verification/task-8/native-selector-quality.log.gz",
+      "sha256": "c2da0c392986846b7ce1e38997a32ec23641563d4ae9037b3ff146d63d772fda",
+      "source_bytes": 239810,
+      "test_key_redactions": 0,
+      "test_password_redactions": 0
+    }
+  ]
+}

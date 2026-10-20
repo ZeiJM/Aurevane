@@ -14,8 +14,9 @@ create table app_private.player_support_revisions (
 create table app_private.player_support_audit (
  id uuid primary key default gen_random_uuid(),
  actor_user_id uuid references auth.users(id) on delete cascade,
- actor_character_id uuid,
+ actor_character_id uuid references public.characters(id) on delete cascade,
  character_id uuid not null references public.characters(id) on delete cascade,
+ battle_session_id uuid references app_private.battle_sessions(id) on delete cascade,
  action text not null check(action in ('player.edit','battle.no-contest')),
  request_key uuid not null,
  request_hash text not null,
@@ -294,7 +295,7 @@ begin
  update app_private.battle_sessions set lifecycle='abandoned',current_version=current_version+1,current_snapshot=p_terminal_snapshot,updated_at=v_now where id=p_battle_session_id;
  insert into app_private.battle_snapshots(battle_session_id,battle_version,snapshot,created_at) values(p_battle_session_id,v_session.current_version+1,p_terminal_snapshot,v_now);
  insert into app_private.battle_events(battle_session_id,battle_version,event_index,event,created_at) values(p_battle_session_id,v_session.current_version+1,0,jsonb_build_object('event','administrative_no_contest','outcome','NoContest','rewards','NoRewards'),v_now);
- insert into app_private.player_support_audit(actor_user_id,actor_character_id,character_id,action,request_key,request_hash,before_facts,after_facts) values(p_actor_user_id,p_actor_character_id,p_character_id,'battle.no-contest',p_request_key,v_hash,v_before,v_before||jsonb_build_object('version',v_session.current_version+1,'outcome','NoContest','rewards','NoRewards'));
+ insert into app_private.player_support_audit(actor_user_id,actor_character_id,character_id,battle_session_id,action,request_key,request_hash,before_facts,after_facts) values(p_actor_user_id,p_actor_character_id,p_character_id,p_battle_session_id,'battle.no-contest',p_request_key,v_hash,v_before,v_before||jsonb_build_object('version',v_session.current_version+1,'outcome','NoContest','rewards','NoRewards'));
  -- No resource refund, training mutation, XP-grant deletion or World progress rewrite.
  delete from app_private.ai_turn_clocks where battle_session_id=p_battle_session_id;
  delete from app_private.pvp_turn_clocks where battle_session_id=p_battle_session_id;

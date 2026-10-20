@@ -514,139 +514,169 @@ it('World recovery clears actual block/read battle link while retaining origin, 
   ).toMatchObject({ active: false })
   expect((await db.query('select * from app_private.ai_turn_clocks')).rows).toEqual([])
 })
-it('shared PvP recovery names the exact real participants and clears actual clocks, staging and spectator locks', async () => {
-  const spectator = '00000000-0000-4000-8000-000000000003'
-  await db.query('insert into auth.users(id) values($1)', [spectator])
-  const peer = '00000000-0000-4000-8000-000000000012',
-    lobby = '00000000-0000-4000-8000-000000000033'
-  await db.query(
-    `insert into public.characters(id,user_id,slot_index,rules_version,name,name_key,presentation_id,pronoun_preset_id,portrait_ref,starter_appearance_ref,foundation_discipline_id,might,finesse,vitality,agility,intellect,resolve,level,xp,progression_cycle,created_at,cycle_started_at,last_active_at)
+it.each(['character', 'account'])(
+  'shared PvP recovery clears actual clocks, staging, spectators and unselected participant %s deletion payloads',
+  async (kind) => {
+    const spectator = '00000000-0000-4000-8000-000000000003'
+    const peerUser = '00000000-0000-4000-8000-000000000004'
+    await db.query('insert into auth.users(id) values($1)', [peerUser])
+    await db.query('insert into auth.users(id) values($1)', [spectator])
+    const peer = '00000000-0000-4000-8000-000000000012',
+      lobby = '00000000-0000-4000-8000-000000000033'
+    await db.query(
+      `insert into public.characters(id,user_id,slot_index,rules_version,name,name_key,presentation_id,pronoun_preset_id,portrait_ref,starter_appearance_ref,foundation_discipline_id,might,finesse,vitality,agility,intellect,resolve,level,xp,progression_cycle,created_at,cycle_started_at,last_active_at)
  select $1,$2,slot_index,rules_version,'Peer','peer',presentation_id,pronoun_preset_id,portrait_ref,starter_appearance_ref,foundation_discipline_id,might,finesse,vitality,agility,intellect,resolve,level,xp,progression_cycle,created_at,cycle_started_at,last_active_at from public.characters where id=$3`,
-    [peer, owner, character],
-  )
-  await db.query(
-    "insert into app_private.pvp_lobbies(id,lobby_key,mode,owner_user_id,team_a_size,team_b_size) values($1,'AVL-0000-0001','1v1',$2,1,1)",
-    [lobby, other],
-  )
-  await db.query(
-    'insert into app_private.pvp_lobby_members(lobby_id,user_id,character_id,team_index,seat_index,ready) values($1,$2,$3,0,0,true),($1,$4,$5,1,0,true)',
-    [lobby, other, character, owner, peer],
-  )
-  const prepared = await snapshot()
-  prepared.tactical.battle.combatants[1]!.id = `character:${peer}`
-  prepared.tactical.battle.combatants.forEach((unit, index) => {
-    unit.teamId = `team:${index}`
-  })
-  const members = [
-    {
-      combatant_id: `character:${character}`,
-      user_id: other,
-      character_id: character,
-      team_index: 0,
-    },
-    { combatant_id: `character:${peer}`, user_id: owner, character_id: peer, team_index: 1 },
-  ]
-  const peerBuild = async () =>
-    (
-      await db.query<{ value: Record<string, unknown> }>(
-        'select public.get_character_committed_build_snapshot_v2($1,$2) value',
+      [peer, peerUser, character],
+    )
+    await db.query(
+      "insert into app_private.pvp_lobbies(id,lobby_key,mode,owner_user_id,team_a_size,team_b_size) values($1,'AVL-0000-0001','1v1',$2,1,1)",
+      [lobby, other],
+    )
+    await db.query(
+      'insert into app_private.pvp_lobby_members(lobby_id,user_id,character_id,team_index,seat_index,ready) values($1,$2,$3,0,0,true),($1,$4,$5,1,0,true)',
+      [lobby, other, character, peerUser, peer],
+    )
+    const prepared = await snapshot()
+    prepared.tactical.battle.combatants[1]!.id = `character:${peer}`
+    prepared.tactical.battle.combatants.forEach((unit, index) => {
+      unit.teamId = `team:${index}`
+    })
+    const members = [
+      {
+        combatant_id: `character:${character}`,
+        user_id: other,
+        character_id: character,
+        team_index: 0,
+      },
+      { combatant_id: `character:${peer}`, user_id: peerUser, character_id: peer, team_index: 1 },
+    ]
+    const peerBuild = async () =>
+      (
+        await db.query<{ value: Record<string, unknown> }>(
+          'select public.get_character_committed_build_snapshot_v2($1,$2) value',
+          [peerUser, peer],
+        )
+      ).rows[0]!.value
+    prepared.buildAuthority.combatants.push({
+      ...(await peerBuild()),
+      combatantId: `character:${peer}`,
+      characterId: peer,
+    })
+    const peerFingerprint = (
+      await db.query<{ value: string }>(
+        "select public.read_master_player_v1($1,$2,null)->>'fingerprint' value",
         [owner, peer],
       )
     ).rows[0]!.value
-  prepared.buildAuthority.combatants.push({
-    ...(await peerBuild()),
-    combatantId: `character:${peer}`,
-    characterId: peer,
-  })
-  const peerFingerprint = (
-    await db.query<{ value: string }>(
-      "select public.read_master_player_v1($1,$2,null)->>'fingerprint' value",
-      [owner, peer],
+    await db.query('select public.edit_master_player_v1($1,$2,$3,$4,$5,true,null)', [
+      owner,
+      peer,
+      peerFingerprint,
+      request,
+      { kind: 'support', supportActionId: 'basic.recover.mp' },
+    ])
+    await denied(
+      () =>
+        db.query('select * from public.create_pvp_battle_session_v1($1,$2,$3,1,1,$4,$5)', [
+          other,
+          lobby,
+          'players-test',
+          prepared,
+          members,
+        ]),
+      /PREPARATION_STALE/,
     )
-  ).rows[0]!.value
-  await db.query('select public.edit_master_player_v1($1,$2,$3,$4,$5,true,null)', [
-    owner,
-    peer,
-    peerFingerprint,
-    request,
-    { kind: 'support', supportActionId: 'basic.recover.mp' },
-  ])
-  await denied(
-    () =>
-      db.query('select * from public.create_pvp_battle_session_v1($1,$2,$3,1,1,$4,$5)', [
-        other,
-        lobby,
-        'players-test',
-        prepared,
-        members,
-      ]),
-    /PREPARATION_STALE/,
-  )
-  expect((await db.query('select * from app_private.battle_sessions')).rows).toEqual([])
-  expect((await db.query('select * from app_private.battle_participants')).rows).toEqual([])
-  prepared.buildAuthority.combatants[1] = {
-    ...(await peerBuild()),
-    combatantId: `character:${peer}`,
-    characterId: peer,
-  }
-  const battle = (
-    await db.query<Awaited<ReturnType<typeof createBattle>>>(
-      'select * from public.create_pvp_battle_session_v1($1,$2,$3,1,1,$4,$5)',
-      [other, lobby, 'players-test', prepared, members],
+    expect((await db.query('select * from app_private.battle_sessions')).rows).toEqual([])
+    expect((await db.query('select * from app_private.battle_participants')).rows).toEqual([])
+    prepared.buildAuthority.combatants[1] = {
+      ...(await peerBuild()),
+      combatantId: `character:${peer}`,
+      characterId: peer,
+    }
+    const battle = (
+      await db.query<Awaited<ReturnType<typeof createBattle>>>(
+        'select * from public.create_pvp_battle_session_v1($1,$2,$3,1,1,$4,$5)',
+        [other, lobby, 'players-test', prepared, members],
+      )
+    ).rows[0]!
+    await db.query('insert into app_private.ai_turn_clocks values($1,1,$2,now(),now())', [
+      battle.battle_session_id,
+      `character:${character}`,
+    ])
+    await db.query(
+      'insert into app_private.pvp_active_spectating(user_id,battle_session_id) values($1,$2)',
+      [spectator, battle.battle_session_id],
     )
-  ).rows[0]!
-  await db.query('insert into app_private.ai_turn_clocks values($1,1,$2,now(),now())', [
-    battle.battle_session_id,
-    `character:${character}`,
-  ])
-  await db.query(
-    'insert into app_private.pvp_active_spectating(user_id,battle_session_id) values($1,$2)',
-    [spectator, battle.battle_session_id],
-  )
-  await db.query(
-    'insert into app_private.pvp_battle_spectator_presence(user_id,battle_session_id) values($1,$2)',
-    [spectator, battle.battle_session_id],
-  )
-  expect((await read()).rows[0]!.result.battle).toMatchObject({
-    participants: [
-      { characterId: character, name: 'Test Player' },
-      { characterId: peer, name: 'Peer' },
-    ],
-  })
-  await denied(() => recover(battle, [character]), /PARTICIPANTS_CHANGED/)
-  await recover(battle, [peer, character])
-  for (const table of [
-    'ai_turn_clocks',
-    'pvp_turn_clocks',
-    'pvp_active_spectating',
-    'pvp_battle_spectator_presence',
-    'pvp_lobby_members',
-  ])
-    expect((await db.query(`select * from app_private.${table}`)).rows, table).toEqual([])
-  expect(
-    (await db.query<{ status: string }>('select status from app_private.pvp_lobbies')).rows[0]!
-      .status,
-  ).toBe('cancelled')
-  expect(
-    (
-      await db.query<{ result: unknown }>('select public.ensure_pvp_turn_clock_v1($1,$2) result', [
-        other,
-        battle.battle_session_id,
+    await db.query(
+      'insert into app_private.pvp_battle_spectator_presence(user_id,battle_session_id) values($1,$2)',
+      [spectator, battle.battle_session_id],
+    )
+    expect((await read()).rows[0]!.result.battle).toMatchObject({
+      participants: [
+        { characterId: character, name: 'Test Player' },
+        { characterId: peer, name: 'Peer' },
+      ],
+    })
+    await denied(() => recover(battle, [character]), /PARTICIPANTS_CHANGED/)
+    await recover(battle, [peer, character])
+    for (const table of [
+      'ai_turn_clocks',
+      'pvp_turn_clocks',
+      'pvp_active_spectating',
+      'pvp_battle_spectator_presence',
+      'pvp_lobby_members',
+    ])
+      expect((await db.query(`select * from app_private.${table}`)).rows, table).toEqual([])
+    expect(
+      (await db.query<{ status: string }>('select status from app_private.pvp_lobbies')).rows[0]!
+        .status,
+    ).toBe('cancelled')
+    expect(
+      (
+        await db.query<{ result: unknown }>(
+          'select public.ensure_pvp_turn_clock_v1($1,$2) result',
+          [other, battle.battle_session_id],
+        )
+      ).rows[0]!.result,
+    ).toMatchObject({ active: false })
+    await denied(
+      () =>
+        db.query('select * from public.create_pvp_battle_session_v1($1,$2,$3,1,1,$4,$5)', [
+          other,
+          lobby,
+          'players-test',
+          prepared,
+          members,
+        ]),
+      /PVP_LOBBY_NOT_AVAILABLE/,
+    )
+    if (kind === 'character') {
+      await db.query(
+        "insert into app_private.character_deletion_requests(character_id,user_id,requested_at,delete_after) values($1,$2,now()-interval '2 days',now()-interval '1 day')",
+        [peer, peerUser],
+      )
+      await db.query('select app_private.finalize_due_character_deletions_for_user_v1($1)', [
+        peerUser,
       ])
-    ).rows[0]!.result,
-  ).toMatchObject({ active: false })
-  await denied(
-    () =>
-      db.query('select * from public.create_pvp_battle_session_v1($1,$2,$3,1,1,$4,$5)', [
-        other,
-        lobby,
-        'players-test',
-        prepared,
-        members,
-      ]),
-    /PVP_LOBBY_NOT_AVAILABLE/,
-  )
-})
+    } else {
+      await db.query(
+        "insert into app_private.account_deletion_requests(user_id,requested_at,delete_after) values($1,now()-interval '2 days',now()-interval '1 day')",
+        [peerUser],
+      )
+      await db.query('select app_private.finalize_account_deletion_for_user_v1($1)', [peerUser])
+    }
+    expect((await db.query('select * from app_private.battle_sessions')).rows).toEqual([])
+    expect((await db.query('select * from app_private.battle_no_contests')).rows).toEqual([])
+    expect((await db.query('select * from app_private.player_support_audit')).rows).toEqual([])
+    expect(
+      (await db.query('select * from app_private.battle_no_contest_markers')).rows,
+    ).toHaveLength(1)
+    const remainingRead = (await read()).rows[0]!.result
+    expect(remainingRead.battle).toBeNull()
+    expect(JSON.stringify(remainingRead)).not.toContain(peer)
+    expect(JSON.stringify(remainingRead)).not.toContain(peerUser)
+  },
+)
 it('completion-first keeps a real successful trial claim and its repeat receipt', async () => {
   const prepared = await snapshot()
   Object.assign(prepared, {
@@ -732,6 +762,34 @@ it('deleting the initiating Owner removes actor audit linkage but retains the se
   expect(
     (await db.query('select terminal_version from app_private.battle_no_contests')).rows,
   ).toHaveLength(1)
+})
+
+it('deleting the initiating selected character removes audit actor identity while preserving recovery', async () => {
+  const actor = '00000000-0000-4000-8000-000000000055'
+  await db.query(
+    `insert into public.characters(id,user_id,slot_index,rules_version,name,name_key,presentation_id,pronoun_preset_id,portrait_ref,starter_appearance_ref,foundation_discipline_id,might,finesse,vitality,agility,intellect,resolve,level,xp,progression_cycle,created_at,cycle_started_at,last_active_at)
+    select $1,$2,0,rules_version,'Owner actor','owner-actor',presentation_id,pronoun_preset_id,portrait_ref,starter_appearance_ref,foundation_discipline_id,might,finesse,vitality,agility,intellect,resolve,level,xp,progression_cycle,created_at,cycle_started_at,last_active_at from public.characters where id=$3`,
+    [actor, owner, character],
+  )
+  const fingerprint = String((await read()).rows[0]!.result.fingerprint)
+  await db.query('select public.edit_master_player_v1($1,$2,$3,$4,$5,true,$6)', [
+    owner,
+    character,
+    fingerprint,
+    request,
+    sourceCommand,
+    actor,
+  ])
+  const battle = await createBattle()
+  await recover(battle)
+  await db.query(
+    "insert into app_private.character_deletion_requests(character_id,user_id,requested_at,delete_after) values($1,$2,now()-interval '2 days',now()-interval '1 day')",
+    [actor, owner],
+  )
+  await db.query('select app_private.finalize_due_character_deletions_for_user_v1($1)', [owner])
+  const audit = (await db.query('select * from app_private.player_support_audit')).rows
+  expect(JSON.stringify(audit)).not.toContain(actor)
+  expect((await db.query('select * from app_private.battle_no_contests')).rows).toHaveLength(1)
 })
 
 it.each([
