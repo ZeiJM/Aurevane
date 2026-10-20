@@ -122,6 +122,14 @@ export async function handleCombatContentAuthoringRequest(
     await service.requireOperator(actor.userId)
     const body = await readBody(request)
     const operation = requiredString(body.operation, 'operation')
+    if (operation === 'record') {
+      if (
+        Object.keys(body).some((key) => !['operation', 'command'].includes(key)) ||
+        !service.recordCommand
+      )
+        invalid('A supported complete-record command is required.')
+      return success(await service.recordCommand(requireProperty(body, 'command')))
+    }
     const contentKind = readAuthoringContentKind(body.contentKind)
 
     if (operation === 'validate') {

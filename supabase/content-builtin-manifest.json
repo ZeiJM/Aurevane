@@ -1,0 +1,2354 @@
+[
+  {
+    "contentKey": "aetherist.arc-bolt",
+    "contentKind": "skill",
+    "name": "Arc Bolt",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "aetherist"
+  },
+  {
+    "contentKey": "aetherist.arcane-field",
+    "contentKind": "skill",
+    "name": "Arcane Field",
+    "contentVersion": 6,
+    "versionFloor": 6,
+    "sourceDisciplineId": "aetherist"
+  },
+  {
+    "contentKey": "aetherist.chain-spark",
+    "contentKind": "skill",
+    "name": "Chain Spark",
+    "contentVersion": 6,
+    "versionFloor": 6,
+    "sourceDisciplineId": "aetherist"
+  },
+  {
+    "contentKey": "aetherist.channel",
+    "contentKind": "skill",
+    "name": "Channel",
+    "contentVersion": 6,
+    "versionFloor": 6,
+    "sourceDisciplineId": "aetherist"
+  },
+  {
+    "contentKey": "aetherist.mana-burst",
+    "contentKind": "skill",
+    "name": "Mana Burst",
+    "contentVersion": 6,
+    "versionFloor": 6,
+    "sourceDisciplineId": "aetherist"
+  },
+  {
+    "contentKey": "aetherist.mana-shield",
+    "contentKind": "skill",
+    "name": "Mana Shield",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "aetherist"
+  },
+  {
+    "contentKey": "aetherist.overchannel",
+    "contentKind": "skill",
+    "name": "Overchannel",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "aetherist"
+  },
+  {
+    "contentKey": "aetherist.ward-pierce",
+    "contentKind": "skill",
+    "name": "Ward Pierce",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "aetherist"
+  },
+  {
+    "contentKey": "basic.guard",
+    "contentKind": "skill",
+    "name": "Guard",
+    "contentVersion": 1,
+    "versionFloor": 1,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "basic.move",
+    "contentKind": "skill",
+    "name": "Move",
+    "contentVersion": 1,
+    "versionFloor": 1,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "basic.recover",
+    "contentKind": "skill",
+    "name": "HP Recovery",
+    "contentVersion": 1,
+    "versionFloor": 1,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "basic.recover.mp",
+    "contentKind": "skill",
+    "name": "MP Recovery",
+    "contentVersion": 1,
+    "versionFloor": 1,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "bastion.challenge",
+    "contentKind": "skill",
+    "name": "Challenge",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": "bastion"
+  },
+  {
+    "contentKey": "bastion.cover",
+    "contentKind": "skill",
+    "name": "Cover",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": "bastion"
+  },
+  {
+    "contentKey": "bastion.fortress",
+    "contentKind": "skill",
+    "name": "Fortress",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": "bastion"
+  },
+  {
+    "contentKey": "bastion.hold-fast",
+    "contentKind": "skill",
+    "name": "Hold Fast",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "bastion"
+  },
+  {
+    "contentKey": "bastion.shield-bash",
+    "contentKind": "skill",
+    "name": "Shield Bash",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": "bastion"
+  },
+  {
+    "contentKey": "bastion.shield-line",
+    "contentKind": "skill",
+    "name": "Shield Line",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "bastion"
+  },
+  {
+    "contentKey": "bastion.stalwart-strike",
+    "contentKind": "skill",
+    "name": "Stalwart Strike",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": "bastion"
+  },
+  {
+    "contentKey": "bastion.steady-footing",
+    "contentKind": "skill",
+    "name": "Steady Footing",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "bastion"
+  },
+  {
+    "contentKey": "chronist.delay",
+    "contentKind": "skill",
+    "name": "Delay",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": "chronist"
+  },
+  {
+    "contentKey": "chronist.haste",
+    "contentKind": "skill",
+    "name": "Haste",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": "chronist"
+  },
+  {
+    "contentKey": "chronist.rewind-step",
+    "contentKind": "skill",
+    "name": "Rewind Step",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "chronist"
+  },
+  {
+    "contentKey": "chronist.slow",
+    "contentKind": "skill",
+    "name": "Slow",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": "chronist"
+  },
+  {
+    "contentKey": "chronist.stolen-moment",
+    "contentKind": "skill",
+    "name": "Stolen Moment",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "chronist"
+  },
+  {
+    "contentKey": "chronist.temporal-bolt",
+    "contentKind": "skill",
+    "name": "Temporal Bolt",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": "chronist"
+  },
+  {
+    "contentKey": "chronist.temporal-ward",
+    "contentKind": "skill",
+    "name": "Temporal Ward",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": "chronist"
+  },
+  {
+    "contentKey": "chronist.time-lock",
+    "contentKind": "skill",
+    "name": "Time Lock",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": "chronist"
+  },
+  {
+    "contentKey": "cinderweaver.ash-ward",
+    "contentKind": "skill",
+    "name": "Ash Ward",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": "cinderweaver"
+  },
+  {
+    "contentKey": "cinderweaver.banked-embers",
+    "contentKind": "skill",
+    "name": "Banked Embers",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "cinderweaver"
+  },
+  {
+    "contentKey": "cinderweaver.blistering-heat",
+    "contentKind": "skill",
+    "name": "Blistering Heat",
+    "contentVersion": 6,
+    "versionFloor": 6,
+    "sourceDisciplineId": "cinderweaver"
+  },
+  {
+    "contentKey": "cinderweaver.cinder-bolt",
+    "contentKind": "skill",
+    "name": "Cinder Bolt",
+    "contentVersion": 7,
+    "versionFloor": 7,
+    "sourceDisciplineId": "cinderweaver"
+  },
+  {
+    "contentKey": "cinderweaver.ember-line",
+    "contentKind": "skill",
+    "name": "Ember Line",
+    "contentVersion": 8,
+    "versionFloor": 8,
+    "sourceDisciplineId": "cinderweaver"
+  },
+  {
+    "contentKey": "cinderweaver.flame-burst",
+    "contentKind": "skill",
+    "name": "Flame Burst",
+    "contentVersion": 9,
+    "versionFloor": 9,
+    "sourceDisciplineId": "cinderweaver"
+  },
+  {
+    "contentKey": "cinderweaver.flashfire",
+    "contentKind": "skill",
+    "name": "Flashfire",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": "cinderweaver"
+  },
+  {
+    "contentKey": "cinderweaver.scorch",
+    "contentKind": "skill",
+    "name": "Scorch",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": "cinderweaver"
+  },
+  {
+    "contentKey": "dawnshield.aegis",
+    "contentKind": "skill",
+    "name": "Aegis",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "dawnshield"
+  },
+  {
+    "contentKey": "dawnshield.consecrated-light",
+    "contentKind": "skill",
+    "name": "Consecrated Light",
+    "contentVersion": 6,
+    "versionFloor": 6,
+    "sourceDisciplineId": "dawnshield"
+  },
+  {
+    "contentKey": "dawnshield.judgment",
+    "contentKind": "skill",
+    "name": "Judgment",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": "dawnshield"
+  },
+  {
+    "contentKey": "dawnshield.last-light",
+    "contentKind": "skill",
+    "name": "Last Light",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "dawnshield"
+  },
+  {
+    "contentKey": "dawnshield.purge",
+    "contentKind": "skill",
+    "name": "Purge",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": "dawnshield"
+  },
+  {
+    "contentKey": "dawnshield.radiant-strike",
+    "contentKind": "skill",
+    "name": "Radiant Strike",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": "dawnshield"
+  },
+  {
+    "contentKey": "dawnshield.renewal",
+    "contentKind": "skill",
+    "name": "Renewal",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "dawnshield"
+  },
+  {
+    "contentKey": "dawnshield.sacred-guard",
+    "contentKind": "skill",
+    "name": "Sacred Guard",
+    "contentVersion": 6,
+    "versionFloor": 6,
+    "sourceDisciplineId": "dawnshield"
+  },
+  {
+    "contentKey": "edgedancer.finishing-thrust",
+    "contentKind": "skill",
+    "name": "Finishing Thrust",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": "edgedancer"
+  },
+  {
+    "contentKey": "edgedancer.flanking-cut",
+    "contentKind": "skill",
+    "name": "Flanking Cut",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "edgedancer"
+  },
+  {
+    "contentKey": "edgedancer.flourish",
+    "contentKind": "skill",
+    "name": "Flourish",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": "edgedancer"
+  },
+  {
+    "contentKey": "edgedancer.hamstring",
+    "contentKind": "skill",
+    "name": "Hamstring",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": "edgedancer"
+  },
+  {
+    "contentKey": "edgedancer.lunge",
+    "contentKind": "skill",
+    "name": "Lunge",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": "edgedancer"
+  },
+  {
+    "contentKey": "edgedancer.poised-guard",
+    "contentKind": "skill",
+    "name": "Poised Guard",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": "edgedancer"
+  },
+  {
+    "contentKey": "edgedancer.riposte",
+    "contentKind": "skill",
+    "name": "Riposte",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": "edgedancer"
+  },
+  {
+    "contentKey": "edgedancer.severing-cut",
+    "contentKind": "skill",
+    "name": "Severing Cut",
+    "contentVersion": 6,
+    "versionFloor": 6,
+    "sourceDisciplineId": "edgedancer"
+  },
+  {
+    "contentKey": "essence.aetherist.aether-nova",
+    "contentKind": "essence",
+    "name": "Aether Nova",
+    "contentVersion": 6,
+    "versionFloor": 6,
+    "sourceDisciplineId": "aetherist"
+  },
+  {
+    "contentKey": "essence.bastion.last-bastion",
+    "contentKind": "essence",
+    "name": "Last Bastion",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "bastion"
+  },
+  {
+    "contentKey": "essence.chronist.borrowed-hour",
+    "contentKind": "essence",
+    "name": "Borrowed Hour",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "chronist"
+  },
+  {
+    "contentKey": "essence.cinderweaver.phoenix-wake",
+    "contentKind": "essence",
+    "name": "Phoenix Wake",
+    "contentVersion": 6,
+    "versionFloor": 6,
+    "sourceDisciplineId": "cinderweaver"
+  },
+  {
+    "contentKey": "essence.dawnshield.dawns-oath",
+    "contentKind": "essence",
+    "name": "Dawn’s Oath",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "dawnshield"
+  },
+  {
+    "contentKey": "essence.edgedancer.sevenfold-cut",
+    "contentKind": "essence",
+    "name": "Sevenfold Cut",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "edgedancer"
+  },
+  {
+    "contentKey": "essence.farstrider.deadeye-barrage",
+    "contentKind": "essence",
+    "name": "Deadeye Barrage",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "farstrider"
+  },
+  {
+    "contentKey": "essence.frostweaver.absolute-winter",
+    "contentKind": "essence",
+    "name": "Absolute Winter",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "frostweaver"
+  },
+  {
+    "contentKey": "essence.ironfist.hundredfold-rush",
+    "contentKind": "essence",
+    "name": "Hundredfold Rush",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": "ironfist"
+  },
+  {
+    "contentKey": "essence.lifebinder.verdant-rupture",
+    "contentKind": "essence",
+    "name": "Verdant Rupture",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "lifebinder"
+  },
+  {
+    "contentKey": "essence.ravager.red-tempest",
+    "contentKind": "essence",
+    "name": "Red Tempest",
+    "contentVersion": 6,
+    "versionFloor": 6,
+    "sourceDisciplineId": "ravager"
+  },
+  {
+    "contentKey": "essence.runeblade.runic-overdrive",
+    "contentKind": "essence",
+    "name": "Runic Overdrive",
+    "contentVersion": 6,
+    "versionFloor": 6,
+    "sourceDisciplineId": "runeblade"
+  },
+  {
+    "contentKey": "essence.shadehand.perfect-opening",
+    "contentKind": "essence",
+    "name": "Perfect Opening",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "shadehand"
+  },
+  {
+    "contentKey": "essence.stormsinger.skybreak",
+    "contentKind": "essence",
+    "name": "Skybreak",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "stormsinger"
+  },
+  {
+    "contentKey": "essence.tidecaller.tidal-crown",
+    "contentKind": "essence",
+    "name": "Tidal Crown",
+    "contentVersion": 6,
+    "versionFloor": 6,
+    "sourceDisciplineId": "tidecaller"
+  },
+  {
+    "contentKey": "essence.vanguard.unbroken-strike",
+    "contentKind": "essence",
+    "name": "Unbroken Strike",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": "vanguard"
+  },
+  {
+    "contentKey": "essence.wildwarden.apex-hunt",
+    "contentKind": "essence",
+    "name": "Apex Hunt",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": "wildwarden"
+  },
+  {
+    "contentKey": "farstrider.aimed-shot",
+    "contentKind": "skill",
+    "name": "Aimed Shot",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": "farstrider"
+  },
+  {
+    "contentKey": "farstrider.fieldcraft",
+    "contentKind": "skill",
+    "name": "Fieldcraft",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "farstrider"
+  },
+  {
+    "contentKey": "farstrider.keen-focus",
+    "contentKind": "skill",
+    "name": "Keen Focus",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": "farstrider"
+  },
+  {
+    "contentKey": "farstrider.longshot",
+    "contentKind": "skill",
+    "name": "Longshot",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": "farstrider"
+  },
+  {
+    "contentKey": "farstrider.piercing-barrage",
+    "contentKind": "skill",
+    "name": "Piercing Barrage",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "farstrider"
+  },
+  {
+    "contentKey": "farstrider.pinning-shot",
+    "contentKind": "skill",
+    "name": "Pinning Shot",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": "farstrider"
+  },
+  {
+    "contentKey": "farstrider.scouts-mark",
+    "contentKind": "skill",
+    "name": "Scouts Mark",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": "farstrider"
+  },
+  {
+    "contentKey": "farstrider.volley",
+    "contentKind": "skill",
+    "name": "Volley",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "farstrider"
+  },
+  {
+    "contentKey": "frostweaver.brittle-ice",
+    "contentKind": "skill",
+    "name": "Brittle Ice",
+    "contentVersion": 6,
+    "versionFloor": 6,
+    "sourceDisciplineId": "frostweaver"
+  },
+  {
+    "contentKey": "frostweaver.chilling-mist",
+    "contentKind": "skill",
+    "name": "Chilling Mist",
+    "contentVersion": 7,
+    "versionFloor": 7,
+    "sourceDisciplineId": "frostweaver"
+  },
+  {
+    "contentKey": "frostweaver.crystal-prison",
+    "contentKind": "skill",
+    "name": "Crystal Prison",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": "frostweaver"
+  },
+  {
+    "contentKey": "frostweaver.frost-guard",
+    "contentKind": "skill",
+    "name": "Frost Guard",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": "frostweaver"
+  },
+  {
+    "contentKey": "frostweaver.ice-lance",
+    "contentKind": "skill",
+    "name": "Ice Lance",
+    "contentVersion": 7,
+    "versionFloor": 7,
+    "sourceDisciplineId": "frostweaver"
+  },
+  {
+    "contentKey": "frostweaver.ice-line",
+    "contentKind": "skill",
+    "name": "Ice Line",
+    "contentVersion": 7,
+    "versionFloor": 7,
+    "sourceDisciplineId": "frostweaver"
+  },
+  {
+    "contentKey": "frostweaver.shatter",
+    "contentKind": "skill",
+    "name": "Shatter",
+    "contentVersion": 7,
+    "versionFloor": 7,
+    "sourceDisciplineId": "frostweaver"
+  },
+  {
+    "contentKey": "frostweaver.thaw",
+    "contentKind": "skill",
+    "name": "Thaw",
+    "contentVersion": 6,
+    "versionFloor": 6,
+    "sourceDisciplineId": "frostweaver"
+  },
+  {
+    "contentKey": "ironfist.breakfall",
+    "contentKind": "skill",
+    "name": "Breakfall",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "ironfist"
+  },
+  {
+    "contentKey": "ironfist.counter-palm",
+    "contentKind": "skill",
+    "name": "Counter Palm",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": "ironfist"
+  },
+  {
+    "contentKey": "ironfist.focus-breath",
+    "contentKind": "skill",
+    "name": "Focus Breath",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "ironfist"
+  },
+  {
+    "contentKey": "ironfist.hammer-knuckle",
+    "contentKind": "skill",
+    "name": "Hammer Knuckle",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": "ironfist"
+  },
+  {
+    "contentKey": "ironfist.last-stand",
+    "contentKind": "skill",
+    "name": "Last Stand",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "ironfist"
+  },
+  {
+    "contentKey": "ironfist.pressure-palm",
+    "contentKind": "skill",
+    "name": "Pressure Palm",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "ironfist"
+  },
+  {
+    "contentKey": "ironfist.rising-fist",
+    "contentKind": "skill",
+    "name": "Rising Fist",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": "ironfist"
+  },
+  {
+    "contentKey": "ironfist.sweep",
+    "contentKind": "skill",
+    "name": "Sweep",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "ironfist"
+  },
+  {
+    "contentKey": "lifebinder.barrier",
+    "contentKind": "skill",
+    "name": "Barrier",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": "lifebinder"
+  },
+  {
+    "contentKey": "lifebinder.fortifying-light",
+    "contentKind": "skill",
+    "name": "Fortifying Light",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "lifebinder"
+  },
+  {
+    "contentKey": "lifebinder.mend",
+    "contentKind": "skill",
+    "name": "Mend",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "lifebinder"
+  },
+  {
+    "contentKey": "lifebinder.mending-light",
+    "contentKind": "skill",
+    "name": "Mending Light",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "lifebinder"
+  },
+  {
+    "contentKey": "lifebinder.renew",
+    "contentKind": "skill",
+    "name": "Renew",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "lifebinder"
+  },
+  {
+    "contentKey": "lifebinder.sanctuary",
+    "contentKind": "skill",
+    "name": "Sanctuary",
+    "contentVersion": 6,
+    "versionFloor": 6,
+    "sourceDisciplineId": "lifebinder"
+  },
+  {
+    "contentKey": "lifebinder.searing-bloom",
+    "contentKind": "skill",
+    "name": "Searing Bloom",
+    "contentVersion": 6,
+    "versionFloor": 6,
+    "sourceDisciplineId": "lifebinder"
+  },
+  {
+    "contentKey": "lifebinder.vital-sever",
+    "contentKind": "skill",
+    "name": "Vital Sever",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "lifebinder"
+  },
+  {
+    "contentKey": "ravager.blood-rush",
+    "contentKind": "skill",
+    "name": "Blood Rush",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "ravager"
+  },
+  {
+    "contentKey": "ravager.blood-siphon",
+    "contentKind": "skill",
+    "name": "Blood Siphon",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "ravager"
+  },
+  {
+    "contentKey": "ravager.cleaving-blow",
+    "contentKind": "skill",
+    "name": "Cleaving Blow",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "ravager"
+  },
+  {
+    "contentKey": "ravager.desperate-execution",
+    "contentKind": "skill",
+    "name": "Desperate Execution",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": "ravager"
+  },
+  {
+    "contentKey": "ravager.frenzy",
+    "contentKind": "skill",
+    "name": "Frenzy",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": "ravager"
+  },
+  {
+    "contentKey": "ravager.gash",
+    "contentKind": "skill",
+    "name": "Gash",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "ravager"
+  },
+  {
+    "contentKey": "ravager.open-wound",
+    "contentKind": "skill",
+    "name": "Open Wound",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "ravager"
+  },
+  {
+    "contentKey": "ravager.war-roar",
+    "contentKind": "skill",
+    "name": "War Roar",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "ravager"
+  },
+  {
+    "contentKey": "resonance.aetherist-bastion.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Tempered Arc",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.aetherist-chronist.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Measured Arc",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.aetherist-cinderweaver.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Ember Arc",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.aetherist-dawnshield.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Dawnlit Arc",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.aetherist-edgedancer.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Poised Arc",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.aetherist-farstrider.arcane-hunt",
+    "contentKind": "resonance",
+    "name": "Arcane Hunt",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.aetherist-frostweaver.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Frozen Arc",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.aetherist-ironfist.conductive-impact",
+    "contentKind": "resonance",
+    "name": "Conductive Impact",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.aetherist-lifebinder.vital-circuit",
+    "contentKind": "resonance",
+    "name": "Vital Circuit",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.aetherist-ravager.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Crimson Arc",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.aetherist-runeblade.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Runic Arc",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.aetherist-shadehand.veiled-conduit",
+    "contentKind": "resonance",
+    "name": "Veiled Conduit",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.aetherist-stormsinger.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Charged Arc",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.aetherist-tidecaller.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Renewing Arc",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.aetherist-vanguard.spellsteel-rhythm",
+    "contentKind": "resonance",
+    "name": "Spellsteel Rhythm",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.aetherist-wildwarden.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Quarry Arc",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.bastion-chronist.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Measured Bulwark",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.bastion-cinderweaver.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Ember Bulwark",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.bastion-dawnshield.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Dawnlit Bulwark",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.bastion-edgedancer.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Poised Bulwark",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.bastion-farstrider.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Tempered Volley",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.bastion-frostweaver.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Frozen Bulwark",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.bastion-ironfist.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Tempered Impact",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.bastion-lifebinder.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Tempered Bloom",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.bastion-ravager.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Crimson Bulwark",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.bastion-runeblade.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Runic Bulwark",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.bastion-shadehand.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Tempered Ambush",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.bastion-stormsinger.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Charged Bulwark",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.bastion-tidecaller.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Renewing Bulwark",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.bastion-vanguard.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Tempered Vanguard",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.bastion-wildwarden.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Quarry Bulwark",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.chronist-cinderweaver.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Measured Flare",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.chronist-dawnshield.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Measured Aegis",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.chronist-edgedancer.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Measured Edge",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.chronist-farstrider.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Measured Volley",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.chronist-frostweaver.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Measured Crystal",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.chronist-ironfist.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Measured Impact",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.chronist-lifebinder.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Measured Bloom",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.chronist-ravager.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Measured Fury",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.chronist-runeblade.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Measured Sigil",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.chronist-shadehand.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Measured Ambush",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.chronist-stormsinger.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Measured Thunder",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.chronist-tidecaller.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Measured Tide",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.chronist-vanguard.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Measured Vanguard",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.chronist-wildwarden.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Measured Hunt",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.cinderweaver-dawnshield.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Ember Aegis",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.cinderweaver-edgedancer.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Ember Edge",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.cinderweaver-farstrider.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Ember Volley",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.cinderweaver-frostweaver.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Frozen Flare",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.cinderweaver-ironfist.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Ember Impact",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.cinderweaver-lifebinder.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Ember Bloom",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.cinderweaver-ravager.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Ember Fury",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.cinderweaver-runeblade.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Ember Sigil",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.cinderweaver-shadehand.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Ember Ambush",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.cinderweaver-stormsinger.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Charged Flare",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.cinderweaver-tidecaller.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Renewing Flare",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.cinderweaver-vanguard.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Ember Vanguard",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.cinderweaver-wildwarden.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Ember Hunt",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.dawnshield-edgedancer.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Dawnlit Edge",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.dawnshield-farstrider.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Dawnlit Volley",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.dawnshield-frostweaver.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Frozen Aegis",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.dawnshield-ironfist.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Dawnlit Impact",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.dawnshield-lifebinder.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Dawnlit Bloom",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.dawnshield-ravager.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Dawnlit Fury",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.dawnshield-runeblade.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Dawnlit Sigil",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.dawnshield-shadehand.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Dawnlit Ambush",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.dawnshield-stormsinger.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Charged Aegis",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.dawnshield-tidecaller.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Renewing Aegis",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.dawnshield-vanguard.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Dawnlit Vanguard",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.dawnshield-wildwarden.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Dawnlit Hunt",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.edgedancer-farstrider.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Poised Volley",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.edgedancer-frostweaver.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Frozen Edge",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.edgedancer-ironfist.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Poised Impact",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.edgedancer-lifebinder.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Poised Bloom",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.edgedancer-ravager.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Poised Fury",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.edgedancer-runeblade.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Runic Edge",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.edgedancer-shadehand.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Poised Ambush",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.edgedancer-stormsinger.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Charged Edge",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.edgedancer-tidecaller.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Renewing Edge",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.edgedancer-vanguard.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Poised Vanguard",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.edgedancer-wildwarden.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Quarry Edge",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.farstrider-frostweaver.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Frozen Volley",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.farstrider-ironfist.marked-approach",
+    "contentKind": "resonance",
+    "name": "Marked Approach",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.farstrider-lifebinder.guided-renewal",
+    "contentKind": "resonance",
+    "name": "Guided Renewal",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.farstrider-ravager.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Crimson Volley",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.farstrider-runeblade.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Runic Volley",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.farstrider-shadehand.marked-opening",
+    "contentKind": "resonance",
+    "name": "Marked Opening",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.farstrider-stormsinger.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Charged Volley",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.farstrider-tidecaller.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Renewing Volley",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.farstrider-vanguard.covering-break",
+    "contentKind": "resonance",
+    "name": "Covering Break",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.farstrider-wildwarden.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Quarry Volley",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.frostweaver-ironfist.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Frozen Impact",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.frostweaver-lifebinder.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Frozen Bloom",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.frostweaver-ravager.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Frozen Fury",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.frostweaver-runeblade.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Frozen Sigil",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.frostweaver-shadehand.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Frozen Ambush",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.frostweaver-stormsinger.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Charged Crystal",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.frostweaver-tidecaller.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Renewing Crystal",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.frostweaver-vanguard.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Frozen Vanguard",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.frostweaver-wildwarden.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Frozen Hunt",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.ironfist-lifebinder.renewed-force",
+    "contentKind": "resonance",
+    "name": "Renewed Force",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.ironfist-ravager.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Crimson Impact",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.ironfist-runeblade.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Runic Impact",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.ironfist-shadehand.broken-rhythm",
+    "contentKind": "resonance",
+    "name": "Broken Rhythm",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.ironfist-stormsinger.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Charged Impact",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.ironfist-tidecaller.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Renewing Impact",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.ironfist-vanguard.tempered-response",
+    "contentKind": "resonance",
+    "name": "Tempered Response",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.ironfist-wildwarden.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Quarry Impact",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.lifebinder-ravager.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Crimson Bloom",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.lifebinder-runeblade.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Runic Bloom",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.lifebinder-shadehand.mercy-in-shadow",
+    "contentKind": "resonance",
+    "name": "Mercy in Shadow",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.lifebinder-stormsinger.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Charged Bloom",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.lifebinder-tidecaller.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Renewing Bloom",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.lifebinder-vanguard.mercys-edge",
+    "contentKind": "resonance",
+    "name": "Mercy's Edge",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.lifebinder-wildwarden.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Quarry Bloom",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.ravager-runeblade.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Runic Fury",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.ravager-shadehand.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Crimson Ambush",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.ravager-stormsinger.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Charged Fury",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.ravager-tidecaller.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Renewing Fury",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.ravager-vanguard.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Crimson Vanguard",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.ravager-wildwarden.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Quarry Fury",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.runeblade-shadehand.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Runic Ambush",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.runeblade-stormsinger.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Charged Sigil",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.runeblade-tidecaller.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Renewing Sigil",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.runeblade-vanguard.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Runic Vanguard",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.runeblade-wildwarden.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Runic Hunt",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.shadehand-stormsinger.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Charged Ambush",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.shadehand-tidecaller.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Renewing Ambush",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.shadehand-vanguard.broken-line",
+    "contentKind": "resonance",
+    "name": "Broken Line",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.shadehand-wildwarden.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Quarry Ambush",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.stormsinger-tidecaller.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Renewing Thunder",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.stormsinger-vanguard.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Charged Vanguard",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.stormsinger-wildwarden.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Charged Hunt",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.tidecaller-vanguard.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Renewing Vanguard",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.tidecaller-wildwarden.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Renewing Hunt",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "resonance.vanguard-wildwarden.linked-sequence",
+    "contentKind": "resonance",
+    "name": "Quarry Vanguard",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "runeblade.aether-cut",
+    "contentKind": "skill",
+    "name": "Aether Cut",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "runeblade"
+  },
+  {
+    "contentKey": "runeblade.arc-edge",
+    "contentKind": "skill",
+    "name": "Arc Edge",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "runeblade"
+  },
+  {
+    "contentKey": "runeblade.rune-burst",
+    "contentKind": "skill",
+    "name": "Rune Burst",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": "runeblade"
+  },
+  {
+    "contentKey": "runeblade.rune-guard",
+    "contentKind": "skill",
+    "name": "Rune Guard",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "runeblade"
+  },
+  {
+    "contentKey": "runeblade.rune-mending",
+    "contentKind": "skill",
+    "name": "Rune Mending",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "runeblade"
+  },
+  {
+    "contentKey": "runeblade.sigil-brand",
+    "contentKind": "skill",
+    "name": "Sigil Brand",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "runeblade"
+  },
+  {
+    "contentKey": "runeblade.siphon-slash",
+    "contentKind": "skill",
+    "name": "Siphon Slash",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "runeblade"
+  },
+  {
+    "contentKey": "runeblade.unbinding-rune",
+    "contentKind": "skill",
+    "name": "Unbinding Rune",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": "runeblade"
+  },
+  {
+    "contentKey": "shadehand.backstab",
+    "contentKind": "skill",
+    "name": "Backstab",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "shadehand"
+  },
+  {
+    "contentKey": "shadehand.crippling-cut",
+    "contentKind": "skill",
+    "name": "Crippling Cut",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": "shadehand"
+  },
+  {
+    "contentKey": "shadehand.execution-cut",
+    "contentKind": "skill",
+    "name": "Execution Cut",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "shadehand"
+  },
+  {
+    "contentKey": "shadehand.exploit-opening",
+    "contentKind": "skill",
+    "name": "Exploit Opening",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "shadehand"
+  },
+  {
+    "contentKey": "shadehand.fan-of-knives",
+    "contentKind": "skill",
+    "name": "Fan Of Knives",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "shadehand"
+  },
+  {
+    "contentKey": "shadehand.feint",
+    "contentKind": "skill",
+    "name": "Feint",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": "shadehand"
+  },
+  {
+    "contentKey": "shadehand.quick-hands",
+    "contentKind": "skill",
+    "name": "Quick Hands",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "shadehand"
+  },
+  {
+    "contentKey": "shadehand.smoke-vial",
+    "contentKind": "skill",
+    "name": "Smoke Vial",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "shadehand"
+  },
+  {
+    "contentKey": "stormsinger.arc-spark",
+    "contentKind": "skill",
+    "name": "Arc Spark",
+    "contentVersion": 7,
+    "versionFloor": 7,
+    "sourceDisciplineId": "stormsinger"
+  },
+  {
+    "contentKey": "stormsinger.conductive-bolt",
+    "contentKind": "skill",
+    "name": "Conductive Bolt",
+    "contentVersion": 7,
+    "versionFloor": 7,
+    "sourceDisciplineId": "stormsinger"
+  },
+  {
+    "contentKey": "stormsinger.grounding",
+    "contentKind": "skill",
+    "name": "Grounding",
+    "contentVersion": 6,
+    "versionFloor": 6,
+    "sourceDisciplineId": "stormsinger"
+  },
+  {
+    "contentKey": "stormsinger.lightning-line",
+    "contentKind": "skill",
+    "name": "Lightning Line",
+    "contentVersion": 7,
+    "versionFloor": 7,
+    "sourceDisciplineId": "stormsinger"
+  },
+  {
+    "contentKey": "stormsinger.static-burst",
+    "contentKind": "skill",
+    "name": "Static Burst",
+    "contentVersion": 8,
+    "versionFloor": 8,
+    "sourceDisciplineId": "stormsinger"
+  },
+  {
+    "contentKey": "stormsinger.static-drain",
+    "contentKind": "skill",
+    "name": "Static Drain",
+    "contentVersion": 7,
+    "versionFloor": 7,
+    "sourceDisciplineId": "stormsinger"
+  },
+  {
+    "contentKey": "stormsinger.storm-breath",
+    "contentKind": "skill",
+    "name": "Storm Breath",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "stormsinger"
+  },
+  {
+    "contentKey": "stormsinger.thunderclap",
+    "contentKind": "skill",
+    "name": "Thunderclap",
+    "contentVersion": 6,
+    "versionFloor": 6,
+    "sourceDisciplineId": "stormsinger"
+  },
+  {
+    "contentKey": "tidecaller.cleansing-rain",
+    "contentKind": "skill",
+    "name": "Cleansing Rain",
+    "contentVersion": 6,
+    "versionFloor": 6,
+    "sourceDisciplineId": "tidecaller"
+  },
+  {
+    "contentKey": "tidecaller.crushing-wave",
+    "contentKind": "skill",
+    "name": "Crushing Wave",
+    "contentVersion": 6,
+    "versionFloor": 6,
+    "sourceDisciplineId": "tidecaller"
+  },
+  {
+    "contentKey": "tidecaller.flood-line",
+    "contentKind": "skill",
+    "name": "Flood Line",
+    "contentVersion": 8,
+    "versionFloor": 8,
+    "sourceDisciplineId": "tidecaller"
+  },
+  {
+    "contentKey": "tidecaller.mist-veil",
+    "contentKind": "skill",
+    "name": "Mist Veil",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": "tidecaller"
+  },
+  {
+    "contentKey": "tidecaller.springwater",
+    "contentKind": "skill",
+    "name": "Springwater",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "tidecaller"
+  },
+  {
+    "contentKey": "tidecaller.still-water",
+    "contentKind": "skill",
+    "name": "Still Water",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "tidecaller"
+  },
+  {
+    "contentKey": "tidecaller.undertow",
+    "contentKind": "skill",
+    "name": "Undertow",
+    "contentVersion": 6,
+    "versionFloor": 6,
+    "sourceDisciplineId": "tidecaller"
+  },
+  {
+    "contentKey": "tidecaller.water-lance",
+    "contentKind": "skill",
+    "name": "Water Lance",
+    "contentVersion": 7,
+    "versionFloor": 7,
+    "sourceDisciplineId": "tidecaller"
+  },
+  {
+    "contentKey": "unarmed.basic",
+    "contentKind": "skill",
+    "name": "Basic Attack",
+    "contentVersion": 1,
+    "versionFloor": 1,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "vanguard.brace",
+    "contentKind": "skill",
+    "name": "Brace",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": "vanguard"
+  },
+  {
+    "contentKey": "vanguard.cleave",
+    "contentKind": "skill",
+    "name": "Cleave",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "vanguard"
+  },
+  {
+    "contentKey": "vanguard.forceful-strike",
+    "contentKind": "skill",
+    "name": "Forceful Strike",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "vanguard"
+  },
+  {
+    "contentKey": "vanguard.guard-break",
+    "contentKind": "skill",
+    "name": "Guard Break",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": "vanguard"
+  },
+  {
+    "contentKey": "vanguard.rally",
+    "contentKind": "skill",
+    "name": "Rally",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "vanguard"
+  },
+  {
+    "contentKey": "vanguard.second-wind",
+    "contentKind": "skill",
+    "name": "Second Wind",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "vanguard"
+  },
+  {
+    "contentKey": "vanguard.shield-bash",
+    "contentKind": "skill",
+    "name": "Shield Bash",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": "vanguard"
+  },
+  {
+    "contentKey": "vanguard.sweeping-strike",
+    "contentKind": "skill",
+    "name": "Sweeping Strike",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "vanguard"
+  },
+  {
+    "contentKey": "wildwarden.close-quarry",
+    "contentKind": "skill",
+    "name": "Close Quarry",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "wildwarden"
+  },
+  {
+    "contentKey": "wildwarden.field-remedy",
+    "contentKind": "skill",
+    "name": "Field Remedy",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "wildwarden"
+  },
+  {
+    "contentKey": "wildwarden.hunters-mark",
+    "contentKind": "skill",
+    "name": "Hunters Mark",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": "wildwarden"
+  },
+  {
+    "contentKey": "wildwarden.pursuit-shot",
+    "contentKind": "skill",
+    "name": "Pursuit Shot",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": "wildwarden"
+  },
+  {
+    "contentKey": "wildwarden.renewing-herbs",
+    "contentKind": "skill",
+    "name": "Renewing Herbs",
+    "contentVersion": 6,
+    "versionFloor": 6,
+    "sourceDisciplineId": "wildwarden"
+  },
+  {
+    "contentKey": "wildwarden.snare",
+    "contentKind": "skill",
+    "name": "Snare",
+    "contentVersion": 4,
+    "versionFloor": 4,
+    "sourceDisciplineId": "wildwarden"
+  },
+  {
+    "contentKey": "wildwarden.thorn-line",
+    "contentKind": "skill",
+    "name": "Thorn Line",
+    "contentVersion": 5,
+    "versionFloor": 5,
+    "sourceDisciplineId": "wildwarden"
+  },
+  {
+    "contentKey": "wildwarden.venom-shot",
+    "contentKind": "skill",
+    "name": "Venom Shot",
+    "contentVersion": 7,
+    "versionFloor": 7,
+    "sourceDisciplineId": "wildwarden"
+  }
+]

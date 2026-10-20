@@ -1,4 +1,13 @@
 import {
+  EFFECT_PROFILE_AUTHORING_BLOCKER,
+  parseStoredStatusDefinition,
+  retainOpaqueEffectProfile,
+} from './combat-standalone-content'
+import {
+  isNoncombatContentKind,
+  parseNoncombatContentDefinition,
+} from '@aurevane/game-core/content/authored-content'
+import {
   BASIC_SKILL_IDS,
   defaultBasicSkills,
   parseBasicSkillDefinition,
@@ -91,6 +100,7 @@ export interface PublishedCombatContentCatalogueSnapshot {
   readonly token: string
   readonly policy: CombatEffectTimingPolicy
   readonly publications: readonly CombatContentVersionRecord[]
+  readonly archivedKeys?: readonly string[]
 }
 type CatalogueIdentity = {
   readonly contentKey: string
@@ -105,7 +115,12 @@ export type CombatContentCatalogueEntry = CatalogueIdentity &
     | { readonly category: 'essence'; readonly definition: EssenceDefinition }
     | { readonly category: 'resonance'; readonly definition: AnyResonanceDefinition }
     | { readonly category: 'status'; readonly definition: CombatContentDefinition }
-    | { readonly category: 'effect-profile'; readonly definition: CombatContentDefinition }
+    | {
+        readonly category: 'effect-profile'
+        readonly definition: CombatContentDefinition
+        readonly runtimeSupported: false
+        readonly authoringBlocker: typeof EFFECT_PROFILE_AUTHORING_BLOCKER
+      }
   )
 export interface CombatContentCatalogue {
   readonly token: string
@@ -236,7 +251,9 @@ export class RpcPublishedCombatContentSource implements PublishedCombatContentSo
     try {
       if (
         !isObject(data) ||
-        Object.keys(data).some((key) => !['token', 'policy', 'publications'].includes(key)) ||
+        Object.keys(data).some(
+          (key) => !['token', 'policy', 'publications', 'archivedKeys'].includes(key),
+        ) ||
         typeof data.token !== 'string' ||
         !/^[a-f0-9]{32}$/.test(data.token) ||
         !Array.isArray(data.publications)
@@ -247,16 +264,48 @@ export class RpcPublishedCombatContentSource implements PublishedCombatContentSo
         if (
           !isObject(row) ||
           typeof row.content_kind !== 'string' ||
-          !['skill', 'essence', 'resonance', 'status', 'effect-profile'].includes(row.content_kind)
+          (!['skill', 'essence', 'resonance', 'status', 'effect-profile'].includes(
+            row.content_kind,
+          ) &&
+            !isNoncombatContentKind(row.content_kind))
         )
           throw new TypeError('Invalid catalogue content kind.')
         const record = parseVersionRow([row], row.content_kind as CombatContentKind)
         if (!record || seen.has(record.contentKey))
           throw new TypeError('Invalid or duplicate catalogue identity.')
         seen.add(record.contentKey)
+        if (record.contentKind === 'status') {
+          const definition = parseStoredStatusDefinition(record.definition)
+          if (
+            definition.id !== record.contentKey ||
+            (definition.contentVersion !== undefined &&
+              definition.contentVersion !== record.contentVersion)
+          )
+            throw new TypeError('Status identity mismatch.')
+        }
+        if (record.contentKind === 'effect-profile')
+          retainOpaqueEffectProfile(record.definition, record.contentKey, record.contentVersion)
+        if (isNoncombatContentKind(record.contentKind)) {
+          const definition = parseNoncombatContentDefinition(record.contentKind, record.definition)
+          if (
+            definition.id !== record.contentKey ||
+            definition.contentVersion !== record.contentVersion
+          )
+            throw new TypeError('Noncombat identity mismatch.')
+        }
         return record
       })
+      if (
+        data.archivedKeys !== undefined &&
+        (!Array.isArray(data.archivedKeys) ||
+          data.archivedKeys.some(
+            (key) => typeof key !== 'string' || !requiredString(key) || seen.has(key),
+          ) ||
+          new Set(data.archivedKeys).size !== data.archivedKeys.length)
+      )
+        throw new TypeError('Invalid archived identities.')
       return {
+        ...(data.archivedKeys === undefined ? {} : { archivedKeys: data.archivedKeys as string[] }),
         token: data.token,
         policy: parseStoredCombatEffectTimingPolicy(data.policy),
         publications,
@@ -540,12 +589,27 @@ export function resolveCombatContentCatalogueSnapshot(
       definition: structuredClone(definition),
     })),
   ]
-  const current = new Map(entries.map((entry) => [entry.contentKey, entry]))
+  const current = new Map(
+    entries
+      .filter((entry) => !snapshot.archivedKeys?.includes(entry.contentKey))
+      .map((entry) => [entry.contentKey, entry]),
+  )
   const seen = new Set<string>()
   for (const record of snapshot.publications) {
     if (seen.has(record.contentKey))
       throw new InvalidPublishedCombatContentError('Duplicate current content identity.')
     seen.add(record.contentKey)
+    if (snapshot.archivedKeys?.includes(record.contentKey))
+      throw new InvalidPublishedCombatContentError('Archived content has a current publication.')
+    if (isNoncombatContentKind(record.contentKind)) {
+      const definition = parseNoncombatContentDefinition(record.contentKind, record.definition)
+      if (
+        definition.id !== record.contentKey ||
+        definition.contentVersion !== record.contentVersion
+      )
+        throw new InvalidPublishedCombatContentError('Noncombat identity mismatch.')
+      continue
+    }
     const identity: CatalogueIdentity = {
       contentKey: record.contentKey,
       contentKind: record.contentKind,
@@ -581,12 +645,28 @@ export function resolveCombatContentCatalogueSnapshot(
           definition: validatePublishedResonance(record, record.contentKey),
         }
         break
-      case 'status':
+      case 'status': {
+        const definition = parseStoredStatusDefinition(record.definition)
+        if (
+          definition.id !== record.contentKey ||
+          (definition.contentVersion !== undefined &&
+            definition.contentVersion !== record.contentVersion)
+        )
+          throw new InvalidPublishedCombatContentError('Status identity mismatch.')
+        entry = { ...identity, category: 'status', definition }
+        break
+      }
       case 'effect-profile':
         entry = {
           ...identity,
           category: record.contentKind,
-          definition: structuredClone(record.definition),
+          definition: retainOpaqueEffectProfile(
+            record.definition,
+            record.contentKey,
+            record.contentVersion,
+          ),
+          runtimeSupported: false,
+          authoringBlocker: { ...EFFECT_PROFILE_AUTHORING_BLOCKER },
         }
         break
       default:
@@ -667,20 +747,28 @@ export function createCombatContentResolver(
             const snapshot = structuredClone(await source.readCatalogueSnapshot!())
             // Validate the entire coherent generation before selecting any battle source.
             resolveCombatContentCatalogueSnapshot(snapshot)
-            const current = (key: string, kind: CombatContentKind) =>
-              snapshot.publications.find(
-                (row) => row.contentKey === key && row.contentKind === kind,
-              ) ?? null
+            const current = (key: string, kind: CombatContentKind) => {
+              if (snapshot.archivedKeys?.includes(key))
+                throw new InvalidPublishedCombatContentError('This content is archived.')
+              return (
+                snapshot.publications.find(
+                  (row) => row.contentKey === key && row.contentKind === kind,
+                ) ?? null
+              )
+            }
             const pinned = (key: string, kind: CombatContentKind, version: number) => {
-              const row = current(key, kind)
+              const row = snapshot.publications.find(
+                (row) => row.contentKey === key && row.contentKind === kind,
+              )
               return row?.contentVersion === version ? row : null
             }
             const frozen = createCombatContentResolver({
               readCatalogueSnapshot: async () => structuredClone(snapshot),
               findCurrentSkill: async (key) => structuredClone(current(key, 'skill')),
               findCurrentSkills: async (keys) =>
-                snapshot.publications
-                  .filter((row) => row.contentKind === 'skill' && keys.includes(row.contentKey))
+                keys
+                  .map((key) => current(key, 'skill'))
+                  .filter((row): row is CombatContentVersionRecord => row !== null)
                   .map((row) => structuredClone(row)),
               findCurrentContent: async (key, kind) => structuredClone(current(key, kind)),
               findSkillVersion: async (key, version) =>
