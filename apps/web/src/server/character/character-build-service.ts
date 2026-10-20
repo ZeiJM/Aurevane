@@ -80,6 +80,8 @@ export interface CharacterEquippedDisciplineSkillRecord extends DisciplineSkillR
 }
 
 export interface CharacterCommittedBuildSnapshotRecord {
+  /** Server-only exact source facts, never a public profile field. */
+  sourceHash?: string
   supportActionId?: SupportActionId
   schemaVersion: number
   buildVersion: number

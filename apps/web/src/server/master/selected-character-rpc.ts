@@ -6,6 +6,10 @@ import { loadSelectedCharacter } from '@/server/character/selected-character'
 
 /** Only staff entrypoints take selected actor context. Player/history and worker RPCs do not. */
 const SELECTED_ACTOR_RPCS = new Set([
+  'search_master_players_v1',
+  'read_master_player_v1',
+  'edit_master_player_v1',
+  'recover_master_player_battle_v1',
   'read_master_panel_access_v1',
   'read_master_panel_operator_v1',
   'read_combat_content_draft_v1',

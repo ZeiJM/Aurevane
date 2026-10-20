@@ -1,3 +1,4 @@
+import { assertPreparedBattleSource } from '@/server/battle/battle-source-authority'
 import { readBattlefieldElevationPolicy } from '@/server/master/battlefield-elevation-policy-store'
 import { readCombatEffectTimingPolicy } from '@/server/master/combat-effect-timing-policy-store'
 import 'server-only'
@@ -59,6 +60,7 @@ export async function attackWorldPlayer(
         ready: true,
         isHost: index === 0,
       }
+      assertPreparedBattleSource(character, buildSnapshot)
       return { character, buildSnapshot, member }
     }),
   ).then(async (roster) => {

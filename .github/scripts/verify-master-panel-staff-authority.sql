@@ -115,7 +115,7 @@ begin
     assert not has_function_privilege('service_role',signature,'execute'), 'Retired API service denial: '||signature;
     assert not has_function_privilege('authenticated',signature,'execute') and not has_function_privilege('anon',signature,'execute'), 'Retired API browser denial: '||signature;
   end loop;
-  for proc in select p.oid,n.nspname,p.proname,pg_get_function_identity_arguments(p.oid) identity from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','app_private') and 'p_actor_character_id'=any(p.proargnames) loop
+  for proc in select p.oid,n.nspname,p.proname,pg_get_function_identity_arguments(p.oid) identity from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','app_private') and 'p_actor_character_id'=any(p.proargnames) and p.proname<>all(array['search_master_players_v1','read_master_player_v1','edit_master_player_v1','recover_master_player_battle_v1']) loop
     checked := checked+1;
     assert not has_function_privilege('anon',proc.oid,'execute') and not has_function_privilege('authenticated',proc.oid,'execute'), 'Explicit actor browser denial: '||proc.proname;
     if proc.nspname='app_private' then
@@ -126,6 +126,15 @@ begin
     end if;
   end loop;
   assert checked=33, 'Complete explicit actor ACL inventory';
+  -- Task9 adds independent Owner-only operations with no legacy overload.
+  if to_regprocedure('public.read_master_player_v1(uuid,uuid,uuid)') is not null then
+    checked:=0;
+    for proc in select p.oid,p.proname from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname=any(array['search_master_players_v1','read_master_player_v1','edit_master_player_v1','recover_master_player_battle_v1']) and 'p_actor_character_id'=any(p.proargnames) loop
+      checked:=checked+1;
+      assert has_function_privilege('service_role',proc.oid,'execute') and not has_function_privilege('anon',proc.oid,'execute') and not has_function_privilege('authenticated',proc.oid,'execute'), 'Players service-only actor ACL: '||proc.proname;
+    end loop;
+    assert checked=4, 'Independent Players actor ACL inventory';
+  end if;
   foreach signature in array array['public.resolve_master_panel_account_v2(uuid,text)','public.list_master_panel_staff_v2(uuid)','public.set_master_panel_character_access_v2(uuid,uuid,uuid,text[],text[],integer,bigint,boolean)'] loop
     assert has_function_privilege('service_role',signature,'execute') and not has_function_privilege('authenticated',signature,'execute') and not has_function_privilege('anon',signature,'execute'), 'New management private RPC ACL';
   end loop;
