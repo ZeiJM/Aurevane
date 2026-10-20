@@ -1,0 +1,309 @@
+{"cwd": "/workspace/scratch/081f137b6a6d/aurevane-players-20261020", "command": ["bash", "-e", "-c", "corepack pnpm format:check; corepack pnpm exec turbo run lint --env-mode=loose; corepack pnpm exec eslint \"packages/**/*.{ts,tsx}\"; corepack pnpm exec turbo run typecheck --env-mode=loose; corepack pnpm exec turbo run test --env-mode=loose; corepack pnpm exec turbo run build --env-mode=loose"], "start": "2026-10-20T18:58:42.539840+00:00"}
+$ prettier --check "apps/**/*.{ts,tsx,js,mjs,json,css}" "packages/**/*.{ts,tsx,js,mjs,json}" package.json turbo.json pnpm-workspace.yaml .prettierrc.json eslint.config.mjs
+Checking formatting...
+All matched files use Prettier code style!
+• turbo 2.10.7
+
+   • Packages in scope: @aurevane/audio, @aurevane/db, @aurevane/game-core, @aurevane/realtime, @aurevane/ui, @aurevane/validation, @aurevane/web, @aurevane/worker
+   • Running lint in 8 packages
+   • Remote caching disabled, using shared worktree cache
+
+@aurevane/worker:lint: cache miss, executing f28d8428d3789391
+@aurevane/web:lint: cache miss, executing 78c9724a848f4ad4
+@aurevane/worker:lint: $ eslint . --max-warnings=0
+@aurevane/web:lint: $ eslint . --max-warnings=0
+
+ Tasks:    2 successful, 2 total
+Cached:    0 cached, 2 total
+  Time:    35.208s 
+
+• turbo 2.10.7
+
+   • Packages in scope: @aurevane/audio, @aurevane/db, @aurevane/game-core, @aurevane/realtime, @aurevane/ui, @aurevane/validation, @aurevane/web, @aurevane/worker
+   • Running typecheck in 8 packages
+   • Remote caching disabled, using shared worktree cache
+
+@aurevane/db:typecheck: cache miss, executing 574d8ee01c1ffa75
+@aurevane/ui:typecheck: cache miss, executing 655fdd1f4f1f7a55
+@aurevane/audio:typecheck: cache miss, executing 235a08b4a44674a5
+@aurevane/worker:typecheck: cache miss, executing 4ca74b569df90806
+@aurevane/game-core:typecheck: cache miss, executing ad9ef5be392945a8
+@aurevane/realtime:typecheck: cache miss, executing 8fe0b36b716d7e25
+@aurevane/validation:typecheck: cache miss, executing ca3fdc965b7aaf4d
+@aurevane/audio:typecheck: $ tsc --noEmit
+@aurevane/worker:typecheck: $ tsc --noEmit
+@aurevane/ui:typecheck: $ tsc --noEmit
+@aurevane/realtime:typecheck: $ tsc --noEmit
+@aurevane/game-core:typecheck: $ tsc --noEmit
+@aurevane/validation:typecheck: $ tsc --noEmit
+@aurevane/db:typecheck: $ tsc --noEmit
+@aurevane/web:typecheck: cache miss, executing b3ebb32d8baf5ef8
+@aurevane/web:typecheck: $ next typegen && tsc --noEmit
+@aurevane/web:typecheck: Generating route types...
+@aurevane/web:typecheck: ✓ Types generated successfully
+
+ Tasks:    8 successful, 8 total
+Cached:    0 cached, 8 total
+  Time:    14.47s 
+
+• turbo 2.10.7
+
+   • Packages in scope: @aurevane/audio, @aurevane/db, @aurevane/game-core, @aurevane/realtime, @aurevane/ui, @aurevane/validation, @aurevane/web, @aurevane/worker
+   • Running test in 8 packages
+   • Remote caching disabled, using shared worktree cache
+
+@aurevane/db:test: cache miss, executing 48bad8a005b15312
+@aurevane/realtime:test: cache miss, executing 9f8e736b42798972
+@aurevane/game-core:test: cache miss, executing 5fed9fbaee96a328
+@aurevane/worker:test: cache miss, executing 13529c8f553a3a01
+@aurevane/validation:test: cache miss, executing c719a24ab49e15fc
+@aurevane/audio:test: cache miss, executing d55b62689fd1ec08
+@aurevane/realtime:test: $ vitest run
+@aurevane/game-core:test: $ vitest run
+@aurevane/audio:test: $ vitest run
+@aurevane/worker:test: $ vitest run
+@aurevane/db:test: $ vitest run
+@aurevane/validation:test: $ vitest run
+@aurevane/realtime:test: 
+@aurevane/realtime:test:  RUN  v4.1.10 /workspace/scratch/081f137b6a6d/aurevane-players-20261020/packages/realtime
+@aurevane/realtime:test: 
+@aurevane/game-core:test: 
+@aurevane/game-core:test:  RUN  v4.1.10 /workspace/scratch/081f137b6a6d/aurevane-players-20261020/packages/game-core
+@aurevane/game-core:test: 
+@aurevane/audio:test: 
+@aurevane/audio:test:  RUN  v4.1.10 /workspace/scratch/081f137b6a6d/aurevane-players-20261020/packages/audio
+@aurevane/audio:test: 
+@aurevane/worker:test: 
+@aurevane/worker:test:  RUN  v4.1.10 /workspace/scratch/081f137b6a6d/aurevane-players-20261020/apps/worker
+@aurevane/worker:test: 
+@aurevane/validation:test: 
+@aurevane/validation:test:  RUN  v4.1.10 /workspace/scratch/081f137b6a6d/aurevane-players-20261020/packages/validation
+@aurevane/validation:test: 
+@aurevane/db:test: 
+@aurevane/db:test:  RUN  v4.1.10 /workspace/scratch/081f137b6a6d/aurevane-players-20261020/packages/db
+@aurevane/db:test: 
+@aurevane/realtime:test: 
+@aurevane/realtime:test:  Test Files  1 passed (1)
+@aurevane/realtime:test:       Tests  3 passed (3)
+@aurevane/realtime:test:    Start at  15:00:07
+@aurevane/realtime:test:    Duration  623ms (transform 229ms, setup 0ms, import 308ms, tests 25ms, environment 0ms)
+@aurevane/realtime:test: 
+@aurevane/worker:test: 
+@aurevane/worker:test:  Test Files  1 passed (1)
+@aurevane/worker:test:       Tests  2 passed (2)
+@aurevane/worker:test:    Start at  15:00:07
+@aurevane/worker:test:    Duration  677ms (transform 150ms, setup 0ms, import 229ms, tests 8ms, environment 0ms)
+@aurevane/worker:test: 
+@aurevane/audio:test: 
+@aurevane/audio:test:  Test Files  3 passed (3)
+@aurevane/audio:test:       Tests  17 passed (17)
+@aurevane/audio:test:    Start at  15:00:07
+@aurevane/audio:test:    Duration  788ms (transform 543ms, setup 0ms, import 788ms, tests 67ms, environment 0ms)
+@aurevane/audio:test: 
+@aurevane/validation:test: 
+@aurevane/validation:test:  Test Files  9 passed (9)
+@aurevane/validation:test:       Tests  106 passed (106)
+@aurevane/validation:test:    Start at  15:00:07
+@aurevane/validation:test:    Duration  1.44s (transform 1.05s, setup 0ms, import 2.45s, tests 259ms, environment 1ms)
+@aurevane/validation:test: 
+@aurevane/game-core:test: 
+@aurevane/game-core:test:  Test Files  193 passed (193)
+@aurevane/game-core:test:       Tests  5360 passed (5360)
+@aurevane/game-core:test:    Start at  15:00:07
+@aurevane/game-core:test:    Duration  50.31s (transform 20.78s, setup 0ms, import 107.95s, tests 127.73s, environment 29ms)
+@aurevane/game-core:test: 
+@aurevane/db:test: 
+@aurevane/db:test:  Test Files  25 passed (25)
+@aurevane/db:test:       Tests  200 passed (200)
+@aurevane/db:test:    Start at  15:00:07
+@aurevane/db:test:    Duration  209.56s (transform 5.84s, setup 0ms, import 9.04s, tests 664.75s, environment 3ms)
+@aurevane/db:test: 
+@aurevane/web:test: cache miss, executing 9d806ebe341d869e
+@aurevane/web:test: $ vitest run && node --test scripts/pv1-report-node-tests.mjs scripts/a07-audio-render-node-tests.mjs
+@aurevane/web:test: (!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+@aurevane/web:test:   - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+@aurevane/web:test: Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+@aurevane/web:test: 
+@aurevane/web:test:  RUN  v4.1.10 /workspace/scratch/081f137b6a6d/aurevane-players-20261020/apps/web
+@aurevane/web:test: 
+@aurevane/web:test: 
+@aurevane/web:test:  Test Files  400 passed (400)
+@aurevane/web:test:       Tests  6248 passed (6248)
+@aurevane/web:test:    Start at  15:03:38
+@aurevane/web:test:    Duration  181.32s (transform 22.97s, setup 0ms, import 113.37s, tests 654.13s, environment 47ms)
+@aurevane/web:test: 
+@aurevane/web:test: ✔ renders 17 distinct Discipline action and Essence families as valid PCM WAVs (569.752426ms)
+@aurevane/web:test: ✔ summarizes the required PV-1 evidence and replay warning deterministically (2.839312ms)
+@aurevane/web:test: ✔ excludes time and technical blocks from the voluntary replay denominator (0.321726ms)
+@aurevane/web:test: ✔ median is stable for odd, even and empty samples (0.109613ms)
+@aurevane/web:test: ✔ rejects unknown fields and likely email addresses in local qualitative notes (0.467332ms)
+@aurevane/web:test: ✔ rejects contradictory technical replay exclusions (0.204272ms)
+@aurevane/web:test: ✔ requires battle duration when the first battle completed (0.138946ms)
+@aurevane/web:test: ℹ tests 7
+@aurevane/web:test: ℹ suites 0
+@aurevane/web:test: ℹ pass 7
+@aurevane/web:test: ℹ fail 0
+@aurevane/web:test: ℹ cancelled 0
+@aurevane/web:test: ℹ skipped 0
+@aurevane/web:test: ℹ todo 0
+@aurevane/web:test: ℹ duration_ms 651.875099
+
+ Tasks:    7 successful, 7 total
+Cached:    0 cached, 7 total
+  Time:    6m33.428s 
+
+• turbo 2.10.7
+
+   • Packages in scope: @aurevane/audio, @aurevane/db, @aurevane/game-core, @aurevane/realtime, @aurevane/ui, @aurevane/validation, @aurevane/web, @aurevane/worker
+   • Running build in 8 packages
+   • Remote caching disabled, using shared worktree cache
+
+@aurevane/worker:build: cache miss, executing f650cc73f62a1a7e
+@aurevane/web:build: cache miss, executing fa03d3a33f6c25c0
+@aurevane/worker:build: $ tsc -p tsconfig.build.json
+@aurevane/web:build: $ node ../../scripts/media/render_phase4_audio_v02.mjs --output public/media/audio/sfx/phase4 && next build
+@aurevane/web:build: {"cues":102,"families":17,"runtimeBytes":4480008,"maxRuntimeBytes":59564}
+@aurevane/web:build: ▲ Next.js 16.3.8 (Turbopack)
+@aurevane/web:build: ✓ Running next.config.ts took 21ms
+@aurevane/web:build: 
+@aurevane/web:build:   Creating an optimized production build ...
+@aurevane/web:build: ✓ Compiled successfully in 9.9s
+@aurevane/web:build:   Running TypeScript ...
+@aurevane/web:build:   Finished TypeScript in 23.9s ...
+@aurevane/web:build:   Collecting page data using 8 workers ...
+@aurevane/web:build:   Generating static pages using 8 workers (0/66) ...
+@aurevane/web:build:   Generating static pages using 8 workers (16/66) 
+@aurevane/web:build:   Generating static pages using 8 workers (32/66) 
+@aurevane/web:build:   Generating static pages using 8 workers (49/66) 
+@aurevane/web:build: ✓ Generating static pages using 8 workers (66/66) in 270ms
+@aurevane/web:build:   Finalizing page optimization ...
+@aurevane/web:build: 
+@aurevane/web:build: Route (app)
+@aurevane/web:build: ┌ ƒ /
+@aurevane/web:build: ├ ○ /_not-found
+@aurevane/web:build: ├ ƒ /api/account/controls
+@aurevane/web:build: ├ ƒ /api/account/default-portrait
+@aurevane/web:build: ├ ƒ /api/account/deletion
+@aurevane/web:build: ├ ƒ /api/account/game-session/claim
+@aurevane/web:build: ├ ƒ /api/account/password-reset
+@aurevane/web:build: ├ ƒ /api/account/profile-display
+@aurevane/web:build: ├ ƒ /api/account/recovery
+@aurevane/web:build: ├ ƒ /api/account/titles/personal
+@aurevane/web:build: ├ ƒ /api/battle/preferences/emojis
+@aurevane/web:build: ├ ƒ /api/battles
+@aurevane/web:build: ├ ƒ /api/battles/[battleSessionId]
+@aurevane/web:build: ├ ƒ /api/battles/[battleSessionId]/abort
+@aurevane/web:build: ├ ƒ /api/battles/[battleSessionId]/audio
+@aurevane/web:build: ├ ƒ /api/battles/[battleSessionId]/commit
+@aurevane/web:build: ├ ƒ /api/battles/[battleSessionId]/events
+@aurevane/web:build: ├ ƒ /api/battles/[battleSessionId]/final-turn
+@aurevane/web:build: ├ ƒ /api/battles/[battleSessionId]/final-turn/preview
+@aurevane/web:build: ├ ƒ /api/battles/[battleSessionId]/guided-training
+@aurevane/web:build: ├ ƒ /api/battles/[battleSessionId]/intents
+@aurevane/web:build: ├ ƒ /api/battles/[battleSessionId]/mastery
+@aurevane/web:build: ├ ƒ /api/battles/[battleSessionId]/preview
+@aurevane/web:build: ├ ƒ /api/battles/[battleSessionId]/recruit-turn
+@aurevane/web:build: ├ ƒ /api/battles/[battleSessionId]/surrender
+@aurevane/web:build: ├ ƒ /api/battles/[battleSessionId]/turn-clock
+@aurevane/web:build: ├ ƒ /api/character
+@aurevane/web:build: ├ ƒ /api/character/attributes
+@aurevane/web:build: ├ ƒ /api/character/build/disciplines
+@aurevane/web:build: ├ ƒ /api/character/build/loadouts
+@aurevane/web:build: ├ ƒ /api/character/build/primary
+@aurevane/web:build: ├ ƒ /api/character/build/pv2-test-kit
+@aurevane/web:build: ├ ƒ /api/character/build/skills
+@aurevane/web:build: ├ ƒ /api/character/build/support-action
+@aurevane/web:build: ├ ƒ /api/character/mastery
+@aurevane/web:build: ├ ƒ /api/character/supernatural
+@aurevane/web:build: ├ ƒ /api/characters/[characterId]/deletion
+@aurevane/web:build: ├ ƒ /api/chat/friends
+@aurevane/web:build: ├ ƒ /api/chat/groups
+@aurevane/web:build: ├ ƒ /api/chat/inbox
+@aurevane/web:build: ├ ƒ /api/chat/mentions
+@aurevane/web:build: ├ ƒ /api/chat/messages
+@aurevane/web:build: ├ ƒ /api/chat/reactions
+@aurevane/web:build: ├ ƒ /api/chat/read
+@aurevane/web:build: ├ ƒ /api/chat/settings
+@aurevane/web:build: ├ ƒ /api/chat/typing
+@aurevane/web:build: ├ ƒ /api/foundation/auth-status
+@aurevane/web:build: ├ ƒ /api/foundation/authority-probe
+@aurevane/web:build: ├ ƒ /api/master/access
+@aurevane/web:build: ├ ƒ /api/master/combat-content
+@aurevane/web:build: ├ ƒ /api/master/combat-elevation
+@aurevane/web:build: ├ ƒ /api/master/combat-timing
+@aurevane/web:build: ├ ƒ /api/master/event-operations
+@aurevane/web:build: ├ ƒ /api/master/events
+@aurevane/web:build: ├ ƒ /api/master/players
+@aurevane/web:build: ├ ƒ /api/master/site-music
+@aurevane/web:build: ├ ƒ /api/master/staff-access
+@aurevane/web:build: ├ ƒ /api/master/world-environment
+@aurevane/web:build: ├ ƒ /api/media/starter-portrait/[portraitRef]
+@aurevane/web:build: ├ ƒ /api/presence
+@aurevane/web:build: ├ ƒ /api/presence/directory
+@aurevane/web:build: ├ ƒ /api/pvp/battles/[battleSessionId]/chat
+@aurevane/web:build: ├ ƒ /api/pvp/battles/[battleSessionId]/surrender
+@aurevane/web:build: ├ ƒ /api/pvp/battles/[battleSessionId]/turn-clock
+@aurevane/web:build: ├ ƒ /api/pvp/lobbies
+@aurevane/web:build: ├ ƒ /api/pvp/lobbies/[lobbyId]
+@aurevane/web:build: ├ ƒ /api/pvp/lobbies/[lobbyId]/ready
+@aurevane/web:build: ├ ƒ /api/pvp/lobbies/[lobbyId]/seat
+@aurevane/web:build: ├ ƒ /api/pvp/lobbies/[lobbyId]/settings
+@aurevane/web:build: ├ ƒ /api/pvp/lobbies/[lobbyId]/start
+@aurevane/web:build: ├ ƒ /api/pvp/lobbies/join
+@aurevane/web:build: ├ ƒ /api/pvp/spectate/[battleKey]
+@aurevane/web:build: ├ ƒ /api/site-music
+@aurevane/web:build: ├ ƒ /api/wayfarers-practice/claim
+@aurevane/web:build: ├ ƒ /api/wayfarers-practice/plan
+@aurevane/web:build: ├ ƒ /api/wayfarers-practice/stop
+@aurevane/web:build: ├ ƒ /api/world
+@aurevane/web:build: ├ ƒ /api/world/presence
+@aurevane/web:build: ├ ƒ /auth/callback
+@aurevane/web:build: ├ ƒ /auth/claim
+@aurevane/web:build: ├ ƒ /auth/recovery
+@aurevane/web:build: ├ ƒ /auth/reset-password
+@aurevane/web:build: ├ ƒ /auth/signout
+@aurevane/web:build: ├ ƒ /game
+@aurevane/web:build: ├ ƒ /game/account/titles
+@aurevane/web:build: ├ ƒ /game/arsenal
+@aurevane/web:build: ├ ƒ /game/battle
+@aurevane/web:build: ├ ƒ /game/battle/[battleSessionId]
+@aurevane/web:build: ├ ƒ /game/battle/spectate/[battleKey]
+@aurevane/web:build: ├ ƒ /game/character
+@aurevane/web:build: ├ ƒ /game/create/[slot]
+@aurevane/web:build: ├ ƒ /game/haven
+@aurevane/web:build: ├ ƒ /game/loadout
+@aurevane/web:build: ├ ƒ /game/loadout/items
+@aurevane/web:build: ├ ƒ /game/nexus
+@aurevane/web:build: ├ ƒ /game/online
+@aurevane/web:build: ├ ƒ /game/select/[characterId]
+@aurevane/web:build: ├ ƒ /game/settings/audio
+@aurevane/web:build: ├ ƒ /game/settings/controls
+@aurevane/web:build: ├ ƒ /game/training
+@aurevane/web:build: ├ ƒ /game/world
+@aurevane/web:build: ├ ƒ /manual
+@aurevane/web:build: ├ ƒ /manual/[slug]
+@aurevane/web:build: ├ ƒ /master
+@aurevane/web:build: ├ ƒ /master/combat-content
+@aurevane/web:build: ├ ƒ /master/combat-timing
+@aurevane/web:build: ├ ƒ /master/events
+@aurevane/web:build: ├ ƒ /master/events/live
+@aurevane/web:build: ├ ƒ /master/music
+@aurevane/web:build: ├ ƒ /master/players
+@aurevane/web:build: ├ ƒ /master/staff
+@aurevane/web:build: ├ ƒ /master/world-environment
+@aurevane/web:build: ├ ƒ /news
+@aurevane/web:build: ├ ƒ /news/[slug]
+@aurevane/web:build: └ ƒ /rules
+@aurevane/web:build: 
+@aurevane/web:build: 
+@aurevane/web:build: ƒ Proxy (Middleware)
+@aurevane/web:build: 
+@aurevane/web:build: ○  (Static)   prerendered as static content
+@aurevane/web:build: ƒ  (Dynamic)  server-rendered on demand
+@aurevane/web:build: 
+
+ Tasks:    2 successful, 2 total
+Cached:    0 cached, 2 total
+  Time:    37.702s 
+
+{"end": "2026-10-20T19:07:19.002130+00:00", "exit": 0}
