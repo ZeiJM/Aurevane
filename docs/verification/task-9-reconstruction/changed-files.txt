@@ -5,6 +5,7 @@
 .superpowers/sdd/2026-10-10-unified-engine-recovery/task-9-report.md
 .superpowers/sdd/2026-10-10-unified-engine-recovery/verification.jsonl
 apps/web/e2e/master-players-recovery.pw.ts
+apps/web/scripts/skill-parameter-palette-browser-regression.mjs
 apps/web/src/app/api/master/players/route.ts
 apps/web/src/app/game/battle/[battleSessionId]/page.tsx
 apps/web/src/app/master/players/page.tsx
@@ -14,10 +15,12 @@ apps/web/src/components/battle/battle-recovery-navigation.test.ts
 apps/web/src/components/battle/battle-recovery-navigation.ts
 apps/web/src/components/battle/pvp-spectator-experience.tsx
 apps/web/src/components/master/master-panel-shell.tsx
+apps/web/src/components/master/player-correction-form.test.tsx
 apps/web/src/components/master/player-correction-form.tsx
 apps/web/src/components/master/players-workspace.module.css
 apps/web/src/components/master/players-workspace.test.tsx
 apps/web/src/components/master/players-workspace.tsx
+apps/web/src/master/player-discipline-correction.ts
 apps/web/src/master/players.ts
 apps/web/src/server/battle/battle-build-authority.ts
 apps/web/src/server/battle/battle-essence-authority.test.ts
@@ -46,6 +49,7 @@ docs/verification/task-9-reconstruction/backend-checkpoint.md
 docs/verification/task-9-reconstruction/changed-files.txt
 docs/verification/task-9-reconstruction/checkpoint.md
 docs/verification/task-9-reconstruction/final-evidence-manifest.json
+docs/verification/task-9-reconstruction/fix1-evidence-manifest.json
 docs/verification/task-9-reconstruction/native-browser-error-context.md
 docs/verification/task-9-reconstruction/report.md
 docs/verification/task-9-reconstruction/ui-client-checkpoint.md

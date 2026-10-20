@@ -24,10 +24,24 @@ def quote(value):
 def js(value):
     return quote(json.dumps(value))+'::jsonb'
 def uid(): return str(uuid.uuid4())
-owner,user,char=uid(),uid(),uid()
+owner=None
+user,char=uid(),uid()
 guest,guestchar=uid(),uid()
-sql(f"""insert into auth.users(id,email) values('{owner}','{owner}@example.test'),('{user}','{user}@example.test');
-insert into app_private.master_panel_role_assignments(user_id,role) values('{owner}','game-owner');
+owned_accounts=[]
+borrowed_owner=False
+def setup():
+    global owner,borrowed_owner
+    existing=json.loads(sql("select coalesce(jsonb_agg(jsonb_build_object('owner',a.user_id,'account',u.id)),'[]') from app_private.master_panel_role_assignments a left join auth.users u on u.id=a.user_id where a.role='game-owner' and a.enabled"))
+    assert len(existing)<=1,'Disposable database must preserve the single enabled Owner invariant'
+    if existing:
+        assert existing[0]['account']==existing[0]['owner'],'Existing Owner must reference a real account'
+        owner=existing[0]['owner'];borrowed_owner=True
+        print('Reusing existing disposable Owner; its account and Staff evidence are not owned by this harness')
+    else:
+        owner=uid();owned_accounts.append(owner)
+        sql(f"insert into auth.users(id,email) values('{owner}','{owner}@example.test');insert into app_private.master_panel_role_assignments(user_id,role) values('{owner}','game-owner');")
+    owned_accounts.append(user)
+    sql(f"""insert into auth.users(id,email) values('{user}','{user}@example.test');
 insert into public.characters(id,user_id,slot_index,rules_version,name,name_key,presentation_id,pronoun_preset_id,portrait_ref,starter_appearance_ref,foundation_discipline_id,might,finesse,vitality,agility,intellect,resolve,level,xp,progression_cycle,created_at,cycle_started_at,last_active_at)
 values('{char}','{user}',0,1,'Native recovery','native-{char}','default','they','portrait','appearance','vanguard',12,4,7,4,3,6,1,0,1,now(),now(),now());""")
 def prepare():
@@ -59,6 +73,7 @@ def race(lock,first,second,second_failure=None):
     stdout=holder.stdout.read();stderr=holder.stderr.read();assert holder.wait(timeout=10)==0,(stdout,stderr)
     return output
 try:
+    setup()
     # Correction/admission account locks must request retry without leaving an orphan.
     prepared=prepare()
     command={'kind':'source','xp':0,'attributes':{'might':11,'finesse':4,'vitality':7,'agility':4,'intellect':3,'resolve':6}}
@@ -90,6 +105,7 @@ try:
     assert 't' in sql(claim(session))
     # Guest account contention in the actual PvP producer retries before atlas
     # participant locks; failure rolls back the head and preserves waiting seats.
+    owned_accounts.append(guest)
     sql(f"insert into auth.users(id,email) values('{guest}','{guest}@example.test');")
     sql(f"""insert into public.characters(id,user_id,slot_index,rules_version,name,name_key,presentation_id,pronoun_preset_id,portrait_ref,starter_appearance_ref,foundation_discipline_id,might,finesse,vitality,agility,intellect,resolve,level,xp,progression_cycle,created_at,cycle_started_at,last_active_at)
     select '{guestchar}','{guest}',0,rules_version,'Native guest','native-{guestchar}',presentation_id,pronoun_preset_id,portrait_ref,starter_appearance_ref,foundation_discipline_id,might,finesse,vitality,agility,intellect,resolve,level,xp,progression_cycle,created_at,cycle_started_at,last_active_at from public.characters where id='{char}';""")
@@ -111,6 +127,8 @@ try:
     print('PASS native completion/recovery orders, actual concurrent trial claims, account/guest admission and correction retry, edit-first stale/no-orphan, fresh admission and live-edit rejection')
 finally:
     # Exercise real account deletion authority, including raw recovery-payload deletion.
-    for account in [user,guest,owner]:
+    for account in reversed(owned_accounts):
         if sql(f"select count(*) from auth.users where id='{account}'")=='0': continue
         sql(f"insert into app_private.account_deletion_requests(user_id,requested_at,delete_after) values('{account}',now()-interval '2 days',now()-interval '1 day') on conflict(user_id) do update set delete_after=excluded.delete_after;select app_private.finalize_account_deletion_for_user_v1('{account}');")
+    if borrowed_owner:
+        assert sql(f"select count(*) from app_private.master_panel_role_assignments a join auth.users u on u.id=a.user_id where a.user_id='{owner}' and a.role='game-owner' and a.enabled")=='1','Borrowed Staff Owner must survive fixture cleanup'

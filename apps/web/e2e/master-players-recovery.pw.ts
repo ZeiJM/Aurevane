@@ -3,6 +3,7 @@ import { copyFileSync, mkdirSync } from 'node:fs'
 import { randomUUID } from 'node:crypto'
 import { expect, test, type Page } from '@playwright/test'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
+import type { MasterPlayerView } from '../src/master/players'
 
 function sql(query: string) {
   const names = execFileSync(
@@ -126,6 +127,87 @@ test('Owner corrections and whole encounter recovery reach actual PvE, both PvP 
     await owner.getByRole('button', { name: 'Save confirmed correction', exact: true }).click()
     await expect(owner.getByRole('status')).toContainText('Correction saved')
     expect(sql(`select xp from public.characters where id='${characterId}'`)).toBe('1')
+    // Exercise actual form→protected handler→SQL Discipline corrections before fresh admission.
+    async function readPlayer() {
+      const response = await owner.request.post('/api/master/players', {
+        data: { operation: 'read', characterId },
+      })
+      expect(response.ok()).toBe(true)
+      return ((await response.json()) as { player: MasterPlayerView }).player
+    }
+    const original = await readPlayer()
+    const originalPrimary = original.facts.build.primary.disciplineId
+    const secondary = original.disciplines.find(
+      (row) => row.secondary && row.id !== originalPrimary,
+    )!.id
+    const nextPrimary = original.disciplines.find(
+      (row) => row.primary && row.id !== originalPrimary && row.id !== secondary,
+    )!.id
+    async function correctDisciplines(
+      change: { primary?: string; secondary?: string | null },
+      screenshot: string,
+    ) {
+      const before = await readPlayer()
+      await owner.getByLabel('Correction group', { exact: true }).selectOption('disciplines')
+      if (change.primary !== undefined)
+        await owner.getByLabel('Primary', { exact: true }).selectOption(change.primary)
+      if (change.secondary !== undefined)
+        await owner.getByLabel('Secondary', { exact: true }).selectOption(change.secondary ?? '')
+      await owner.getByRole('button', { name: 'Review correction', exact: true }).click()
+      await expect(
+        owner.getByRole('heading', { name: 'Review correction', exact: true }),
+      ).toBeFocused()
+      if (change.secondary === undefined && before.facts.build.secondary) {
+        const label = before.facts.build.secondary.disciplineId
+          .split(/[._-]/u)
+          .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' ')
+        await expect(owner.getByText(`${label} → ${label}`, { exact: true })).toBeVisible()
+      }
+      await capture(screenshot)
+      await owner
+        .getByRole('checkbox', {
+          name: `I confirm this correction for ${identities[1]!.characterName}.`,
+          exact: true,
+        })
+        .check()
+      const saved = owner.waitForResponse(
+        (response) =>
+          response.url().endsWith('/api/master/players') &&
+          response.request().postDataJSON()?.operation === 'edit',
+      )
+      await owner.getByRole('button', { name: 'Save confirmed correction', exact: true }).click()
+      const response = await saved
+      expect(response.request().postDataJSON().command).toEqual({ kind: 'disciplines', ...change })
+      expect(response.ok()).toBe(true)
+      await expect(owner.getByRole('status')).toContainText('Correction saved')
+      const after = await readPlayer()
+      expect(after.facts.build.primary.disciplineId).toBe(
+        change.primary ?? before.facts.build.primary.disciplineId,
+      )
+      expect(after.facts.build.secondary?.disciplineId ?? null).toBe(
+        change.secondary === undefined
+          ? (before.facts.build.secondary?.disciplineId ?? null)
+          : change.secondary,
+      )
+      expect(after.facts.build.buildVersion).toBeGreaterThan(before.facts.build.buildVersion)
+      expect(after.facts.xp).toBe(1)
+    }
+    await owner.getByLabel('Correction group', { exact: true }).selectOption('disciplines')
+    await owner.getByRole('button', { name: 'Review correction', exact: true }).click()
+    await expect(owner.getByRole('alert')).toHaveText('Choose a different Primary or Secondary.')
+    await correctDisciplines({ secondary }, 'discipline-secondary-only-add')
+    await correctDisciplines({ primary: nextPrimary }, 'discipline-primary-retains-secondary')
+    // Model elapsed time between independent cases on this disposable character;
+    // keep the actual attunement policy and all command validation unchanged.
+    sql(
+      `update app_private.character_active_builds set secondary_attunement_locked_until=now()-interval '1 day' where character_id='${characterId}'`,
+    )
+    await correctDisciplines({ secondary: null }, 'discipline-secondary-only-remove')
+    sql(
+      `update app_private.character_active_builds set primary_attunement_locked_until=now()-interval '1 day' where character_id='${characterId}'`,
+    )
+    await correctDisciplines({ primary: originalPrimary }, 'discipline-primary-with-none')
     expect(
       (
         await host.request.post('/api/master/players', { data: { operation: 'read', characterId } })

@@ -1,3 +1,4 @@
+import { disciplineCorrectionFromForm } from '../../../apps/web/src/master/player-discipline-correction'
 import { readFileSync, readdirSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { PGlite } from '@electric-sql/pglite'
@@ -800,3 +801,44 @@ it.each([
 ])('real new operation denies non-Owner even with explicit actor: %s', async (query) => {
   await denied(() => db.query(query, [other, character]), /OWNER_REQUIRED/)
 })
+
+it.each(['secondary-add', 'secondary-remove', 'primary-pure', 'primary-retain-secondary'])(
+  'actual Discipline authority accepts form command %s and preserves omitted fields',
+  async (kind) => {
+    const initial = (await read()).rows[0]!.result
+    const catalog = initial.disciplines as { id: string; primary: boolean; secondary: boolean }[]
+    const secondary = catalog.find((row) => row.secondary && row.id !== 'vanguard')!.id
+    const primary = catalog.find(
+      (row) => row.primary && row.id !== 'vanguard' && row.id !== secondary,
+    )!.id
+    if (kind === 'secondary-remove' || kind === 'primary-retain-secondary') {
+      await edit({ kind: 'disciplines', secondary })
+      // Model elapsed attunement time for the removal case; preserve actual policy.
+      if (kind === 'secondary-remove')
+        await db.query(
+          "update app_private.character_active_builds set secondary_attunement_locked_until=now()-interval '1 day' where character_id=$1",
+          [character],
+        )
+    }
+    const before = (await read()).rows[0]!.result
+      .facts as import('../../../apps/web/src/master/players').MasterPlayerFacts
+    const data = new FormData()
+    data.set('primary', kind.startsWith('primary') ? primary : before.build.primary.disciplineId)
+    data.set(
+      'secondary',
+      kind === 'secondary-add' || kind === 'primary-retain-secondary' ? secondary : '',
+    )
+    const command = disciplineCorrectionFromForm(before.build, data)
+    const result = (await edit(command, '00000000-0000-4000-8000-000000000078')).rows[0]!.result
+      .facts
+    expect(result.build).toMatchObject({
+      primary: { disciplineId: kind.startsWith('primary') ? primary : 'vanguard' },
+      secondary:
+        kind === 'secondary-add' || kind === 'primary-retain-secondary'
+          ? { disciplineId: secondary }
+          : null,
+    })
+    expect(result.build.buildVersion).toBeGreaterThan(before.build.buildVersion)
+    expect(result.xp).toBe(before.xp)
+  },
+)

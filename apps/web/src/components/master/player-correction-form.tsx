@@ -10,6 +10,7 @@ import {
   type SupportActionId,
 } from '@aurevane/game-core/combat/support-actions'
 import type { MasterPlayerView, PlayerCorrection } from '@/master/players'
+import { disciplineCorrectionFromForm } from '@/master/player-discipline-correction'
 
 export function playerLabel(value: string) {
   return value
@@ -46,13 +47,16 @@ export function PlayerCorrectionForm({
           CHARACTER_ATTRIBUTE_IDS.map((id) => [id, Number(data.get(id))]),
         ) as CharacterAttributes,
       }
-    else if (kind === 'disciplines')
-      command = {
-        kind,
-        primary: String(data.get('primary')),
-        secondary: String(data.get('secondary')) || null,
+    else if (kind === 'disciplines') {
+      try {
+        command = disciplineCorrectionFromForm(player.facts.build, data)
+      } catch (error) {
+        setError(
+          error instanceof Error ? error.message : 'Choose a different Primary or Secondary.',
+        )
+        return
       }
-    else if (kind === 'support')
+    } else if (kind === 'support')
       command = { kind, supportActionId: String(data.get('support')) as SupportActionId }
     else {
       const skills = earned.filter((_, index) => data.getAll('skill').includes(String(index)))
@@ -239,7 +243,11 @@ export function PlayerCorrectionReview({
             {
               label: 'Secondary',
               before: playerLabel(player.facts.build.secondary?.disciplineId ?? 'None'),
-              after: playerLabel(command.secondary ?? 'None'),
+              after: playerLabel(
+                (command.secondary === undefined
+                  ? player.facts.build.secondary?.disciplineId
+                  : command.secondary) ?? 'None',
+              ),
             },
           ]
         : command.kind === 'support'
