@@ -123,3 +123,41 @@ it('builtin identity resolves its exact existing definition for first edit but a
   })
   expect(await store.readRecord(skill.id)).not.toHaveProperty('builtinDefinition')
 })
+it.each([
+  ['40001', 'COMBAT_CONTENT_IDENTITY_CONFLICT', 'STALE_VERSION', /Content changed/],
+  [
+    '22023',
+    'COMBAT_CONTENT_BUILTIN_SELECTION_DEPENDENCY',
+    'INVALID_REQUEST',
+    /selected by an existing Discipline/,
+  ],
+  ['22023', 'COMBAT_CONTENT_DEPENDENCIES', 'INVALID_REQUEST', /Used by/],
+  ['0A000', 'COMBAT_CONTENT_COMPLETE_RECORD_REQUIRED', 'INVALID_REQUEST', /saved-record workflow/],
+] as const)(
+  'maps %s %s to actionable content errors',
+  async (code, message, expectedCode, expectedMessage) => {
+    const store = new RpcCombatContentAuthoringStore(
+      async () => ({ data: null, error: { code, message } }),
+      'owner',
+    )
+    await expect(
+      store.writeRecord('content.test', { action: 'archive', expectedRevision: 1 }),
+    ).rejects.toMatchObject({ code: expectedCode, message: expect.stringMatching(expectedMessage) })
+  },
+)
+
+it('bounded lists reject unknown stored kinds instead of passing them to category consumers', async () => {
+  const rpc = vi.fn(async () => ({
+    data: {
+      records: [
+        { contentKey: 'unknown.test', contentKind: 'unknown', lifecycle: 'draft', revision: 1 },
+      ],
+      nextCursor: null,
+    },
+    error: null,
+  }))
+  const store = new RpcCombatContentAuthoringStore(rpc, 'owner')
+  await expect(store.listRecords({ limit: 10 })).rejects.toMatchObject({
+    code: 'PERSISTENCE_UNAVAILABLE',
+  })
+})

@@ -645,7 +645,7 @@ it('combined actor inventory includes original33 Players4 Content4 with private 
   ).toHaveLength(41)
   const helpers = (
     await db.query<{ allowed: boolean }>(
-      "select has_function_privilege('service_role',p.oid,'execute') allowed from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='app_private' and (p.proname like '%combat_content%' or p.proname='validate_noncombat_content_v1') and p.proname<>'prevent_combat_content_version_mutation_v1'",
+      "select has_function_privilege('service_role',p.oid,'execute') allowed from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='app_private' and (p.proname like '%combat_content%' or p.proname in ('validate_noncombat_content_v1','validate_content_record_identity_v1','content_nonnegative_integer_v1','validate_content_requirement_v1','validate_content_command_v1','content_reference_targets_v1','index_content_references_v1','bound_content_links_v1')) and p.proname<>'prevent_combat_content_version_mutation_v1'",
     )
   ).rows
   expect(helpers.every((r) => !r.allowed)).toBe(true)
@@ -874,3 +874,124 @@ it('late create-with-parent request failure rolls back child, link, parent revis
   )
   expect(await snapshot()).toBe(before)
 })
+it('fresh restore permits its own retained reference without reopening the archived record before publication', async () => {
+  const selfDefinition = {
+    ...definition,
+    requirements: {
+      kind: 'prime-presence',
+      subject: 'owner',
+      abilityId: 'content.test',
+      present: true,
+    },
+  }
+  const first = await write('content.test', {
+    action: 'create',
+    requestId: '00000000-0000-4000-8000-000000000099',
+    contentKind: 'skill',
+    definition: selfDefinition,
+  })
+  const current = await publish('content.test', first.draft.draftVersion, null)
+  const archived = await write('content.test', {
+    action: 'archive',
+    expectedRevision: current.revision,
+  })
+  const restored = await write('content.test', {
+    action: 'restore',
+    expectedRevision: archived.revision,
+    sourceVersion: current.current.contentVersion,
+  })
+  expect(restored.draft.definition.requirements).toEqual(selfDefinition.requirements)
+  expect((await publish('content.test', restored.draft.draftVersion, null)).lifecycle).toBe(
+    'active',
+  )
+})
+it('archived parent relationships can be removed without reactivating either record or allowing an archived new link', async () => {
+  const parent = await createDiscipline()
+  const child = await create()
+  const linked = await write('discipline.test', {
+    action: 'link',
+    expectedRevision: parent.revision,
+    childKey: 'content.test',
+    requestId: '00000000-0000-4000-8000-000000000097',
+  })
+  const archived = await write('discipline.test', {
+    action: 'archive',
+    expectedRevision: linked.revision,
+  })
+  await write('content.test', { action: 'archive', expectedRevision: child.revision })
+  const removed = await write('discipline.test', {
+    action: 'unlink',
+    expectedRevision: archived.revision,
+    childKey: 'content.test',
+    requestId: '00000000-0000-4000-8000-000000000096',
+  })
+  expect(removed).toMatchObject({ lifecycle: 'archived', links: [] })
+  await denied(
+    () =>
+      write('discipline.test', {
+        action: 'link',
+        expectedRevision: removed.revision,
+        childKey: 'content.test',
+        requestId: '00000000-0000-4000-8000-000000000095',
+      }),
+    /LINK_INVALID/,
+  )
+})
+it('link limit keeps record reads bounded and failed create-with-parent leaves no orphan', async () => {
+  const parent = await createDiscipline()
+  await db.exec(
+    "insert into app_private.combat_content_records(content_key,content_kind,lifecycle) select 'content.limit-'||i,'skill','draft' from generate_series(1,256) i; insert into app_private.combat_content_links select 'discipline.test','content.limit-'||i from generate_series(1,256) i;",
+  )
+  expect((await record('discipline.test')).links).toHaveLength(256)
+  await denied(
+    () =>
+      write('content.orphan', {
+        action: 'create',
+        requestId: '00000000-0000-4000-8000-000000000099',
+        contentKind: 'skill',
+        definition: { ...definition, id: 'content.orphan' },
+        parentKey: 'discipline.test',
+        expectedParentRevision: parent.revision,
+      }),
+    /LINK_LIMIT/,
+  )
+  expect(await record('content.orphan')).toBeNull()
+  expect((await record('discipline.test')).revision).toBe(parent.revision)
+})
+it.each(['skill', 'essence', 'resonance', 'status', 'effect-profile'])(
+  'preserves complete %s records through saved publication, exact history and restore',
+  async (kind) => {
+    const key = `preserve.${kind}`
+    const body =
+      kind === 'essence'
+        ? {
+            essenceId: key,
+            contentVersion: 1,
+            skill: { id: key, contentVersion: 1, privateAccuracy: { chanceBasisPoints: 5500 } },
+            media: { artworkId: 'unchanged' },
+          }
+        : { ...definition, id: key, privateField: { retained: [1, 2, 3] } }
+    const created = await write(key, {
+      action: 'create',
+      requestId: '00000000-0000-4000-8000-000000000099',
+      contentKind: kind,
+      definition: body,
+    })
+    const current = await publish(key, created.draft.draftVersion, null, 7)
+    expect(current.current.definition).toMatchObject(
+      kind === 'essence'
+        ? { ...body, contentVersion: 8, skill: { ...body.skill, contentVersion: 8 } }
+        : { ...body, contentVersion: 8 },
+    )
+    const restored = await write(key, {
+      action: 'restore',
+      expectedRevision: current.revision,
+      sourceVersion: 8,
+    })
+    expect(restored.draft.definition).toEqual(current.current.definition)
+    expect(
+      (await db.query('select * from public.read_combat_content_version_v1($1,$2,8)', [key, kind]))
+        .rows,
+    ).toHaveLength(1)
+  },
+)

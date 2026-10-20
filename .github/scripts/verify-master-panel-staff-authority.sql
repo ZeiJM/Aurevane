@@ -159,6 +159,12 @@ begin
       assert has_function_privilege('service_role',proc.oid,'execute') and not has_function_privilege('anon',proc.oid,'execute') and not has_function_privilege('authenticated',proc.oid,'execute'), 'Content service-only actor ACL: '||proc.proname;
     end loop;
     assert checked=4, 'Independent Content actor ACL inventory';
+    checked:=0;
+    for proc in select p.oid,p.proname from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='app_private' and p.proname=any(array['combat_content_used_by_v1','combat_content_record_json_v1','validate_content_record_identity_v1','guard_combat_content_admission_v1','assert_combat_content_current_v1','guard_combat_content_intrinsic_source_v1','validate_noncombat_content_v1','content_nonnegative_integer_v1','validate_content_requirement_v1','validate_content_command_v1','content_reference_targets_v1','index_content_references_v1','combat_content_blockers_v1','combat_content_all_uses_v1','bound_content_links_v1']) loop
+      checked:=checked+1;
+      assert not has_function_privilege('service_role',proc.oid,'execute') and not has_function_privilege('anon',proc.oid,'execute') and not has_function_privilege('authenticated',proc.oid,'execute'), 'Content private helper ACL: '||proc.proname;
+    end loop;
+    assert checked=15, 'Complete Content private helper inventory';
     assert (select count(*)=41 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','app_private') and 'p_actor_character_id'=any(p.proargnames)), 'Original33 + Players4 + Content4 actor inventory';
     foreach signature in array array[
       'select public.read_combat_content_record_v1($1,$2,''native.staff.skill'')',

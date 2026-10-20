@@ -9,7 +9,7 @@ import {
   parseNoncombatContentDefinition,
   noncombatPublicationBlocker,
 } from '@aurevane/game-core/content/authored-content'
-import { parseCompleteCombatContentRecord } from './combat-content-record'
+import { isCombatContentKind, parseCompleteCombatContentRecord } from './combat-content-record'
 
 import { createSelectedCharacterRpc } from './selected-character-rpc'
 
@@ -186,15 +186,36 @@ function mapRpcError(error: RpcError): never {
       'INVALID_REQUEST',
       'This operation requires the complete saved-record workflow. Refresh the content editor before continuing.',
     )
-  if (/COMBAT_CONTENT_(RECORD_CONFLICT|REQUEST_CONFLICT|ADMISSION_RETRY)/u.test(message))
+  if (
+    /COMBAT_CONTENT_(RECORD_CONFLICT|REQUEST_CONFLICT|IDENTITY_CONFLICT|ADMISSION_RETRY)/u.test(
+      message,
+    )
+  )
     throw new AurevaneError(
       'STALE_VERSION',
       'Content changed. Refresh and review the complete record before retrying.',
     )
+  const inputMessages: Readonly<Record<string, string>> = {
+    COMBAT_CONTENT_BUILTIN_SELECTION_DEPENDENCY:
+      'This content is still selected by an existing Discipline or Discipline pair. Its selection must be replaced before archive is available.',
+    COMBAT_CONTENT_DEPENDENCIES:
+      'This content is still in use. Review Used by before changing its lifecycle.',
+    COMBAT_CONTENT_ARCHIVED:
+      'A referenced record is archived. Restore and publish it before adding new references.',
+    COMBAT_CONTENT_BASIC_DUPLICATE_UNSUPPORTED:
+      'Basic actions keep reserved identities and cannot be duplicated as ordinary Skills.',
+    COMBAT_CONTENT_ESSENTIAL: 'This essential Basic action cannot be archived.',
+    COMBAT_CONTENT_SOURCE_IMMUTABLE:
+      'An existing Skill’s intrinsic source Discipline cannot change. Create a separate Skill instead.',
+    COMBAT_CONTENT_LINK_LIMIT: 'A Discipline can link at most 256 Skills.',
+    COMBAT_CONTENT_RESTORE_REQUIRED:
+      'Restore an immutable version to a fresh draft before publishing archived content.',
+    COMBAT_CONTENT_NOT_FOUND: 'The content record could not be found. Refresh the content list.',
+  }
   if (error.code === '22023')
     throw new AurevaneError(
       'INVALID_REQUEST',
-      message.startsWith('COMBAT_CONTENT_') ? message : 'The content operation is not supported.',
+      inputMessages[message] ?? 'The content request contains unsupported or invalid fields.',
     )
   if (message.includes('COMBAT_CONTENT_CATALOGUE_CONFLICT'))
     throw new AurevaneError(
@@ -306,7 +327,7 @@ export class RpcCombatContentAuthoringStore implements CombatContentAuthoringSto
         (row) =>
           !isObject(row) ||
           !requiredString(row.contentKey) ||
-          !requiredString(row.contentKind) ||
+          !isCombatContentKind(row.contentKind) ||
           !['draft', 'active', 'archived'].includes(String(row.lifecycle)) ||
           !positiveInteger(row.revision),
       )

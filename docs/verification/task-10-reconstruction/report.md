@@ -1,4 +1,4 @@
-# Task 10 reconstruction — Stage A in progress
+# Task 10 reconstruction — Stage A frozen for independent review
 
 BASE `924551bf8be31ff717b6053365996beddc97d76a`, tree `71d18774c9405dae976d46c3a3634d301b69b5fd`; fresh main `b7ba1e7b3e8b850c53f0d15842c96aecc50ae160` remains an ancestor. Accepted Task 9 backend handoff consumed. One implementer; root owns independent review/publication.
 
@@ -51,3 +51,32 @@ Explicitly inventoried actual `resolveEssenceForBuild` and `resolveResonanceForP
 The actual-chain lifecycle suite now27/27 passes: it includes dependency/archive/history transitions,105 references with bounded output, forced late publication and create-with-parent request failures with complete player/content rollback, and an old-pointer rollback followed by publication above all five retained physical versions. The latter uses a postgres-only fixture write to model historical rollback; the retired public pointer endpoint remains unavailable. Selection/store tests6/6, scoped DB/Web types and lint, and native shell syntax pass. Native physical schedules remain prepared/unexecuted here. A migration null-to-UUID cast and an old expected Used-by shape were corrected through retained failing/green runs.
 
 Latest Task9 coordination: exact88f85/remote05aba native DB succeeds again; quality has an unchanged 30s combat test recurrence, and dedicated Browser/layout were still pending when reported. This does not change accepted backend contracts, but no combined quality/UI acceptance or Stage B unlock is inferred. Remaining Stage A freeze work: final command/error/null/shape review, actual lifecycle limit and five-kind preservation coverage, scoped combined gates and independent/native review. Stage A is still not accepted or deployable as a finished editor.
+
+## Stage A implementation freeze for independent review — 2026-10-20
+
+Merged final accepted Task9/coordination head `b83de822171d8f62726bd8b7a668a82d5d39b523` cleanly at `ba7f755a8d2c2158f4318daf1db0bb4f5f403e5c` / tree `0e2c041bb218cc087ed21d9fe20964840a1279cf`. **The full Task10 review BASE is now b83de822, superseding ebda558e.** The independent review must include every Stage A source change since924 through the merge graph, not just the final checkpoint or `HEAD~1`. Root owns the one combined independent review and native verification.
+
+Final lifecycle coverage exposed two cleanup boundaries: an archived self-referential immutable definition could not be restored to a fresh draft, and archived parent relationships could not be unlinked. The additive migration permits only an explicit fresh restore's self-reference and permits unlink cleanup without reactivation; unrelated archived targets/new links remain rejected. The256-link limit is exercised with atomic create-with-parent rollback. Separate full-payload lifecycle tests preserve all five existing stored kinds through saved publication, immutable history and draft restore. The identity-conflict response now maps to409 and archive/dependency/Basic/source/restore failures have bounded actionable messages. Bounded list parsing now rejects unknown kinds rather than handing them to category consumers. Exact native helper inventory covers all15 new private helpers and original33+Players4+Content4 actor signatures; predecessor and current native Staff SQL both execute in the local fixtures.
+
+Current covering evidence is recorded with exact argv/cwd/UTC start/end/exit/raw-log SHA256 in `verification.jsonl`:
+
+| Check | Actual retained result |
+| --- | --- |
+| Full DB package (`stage-a-db-covering-gate.log`) |245 passed /26 files; includes35 lifecycle cases and historical predecessor fixtures |
+| Focused Web authority/resolver/service/handler/catalogue callers (`stage-a-web-covering-gate.log`) |231 passed /13 files, before final list-kind guard |
+| Finite core drafts (`finite-drafts-core.log`) |19 passed /1 file |
+| Final record/store/command after list guard (`bounded-list-kind-green-confirmed.log`) |23 passed /3 files; verbose output explicitly includes the list regression |
+| Expanded helper ACL plus predecessor/current Staff (`stage-a-helper-acl.log`) |3 passed /47 intentionally filtered skips in2 files |
+| Scoped DB/core/Web types, final Web types |Exit0 |
+| Full changed-source Web/package lint and final store/test lint |Exit0 |
+| Changed-source format and native shell syntax |Exit0 |
+
+The first `final-lifecycle-boundaries-red.log` exited1 with empty stdout; it is not behavioral RED proof. `final-lifecycle-isolated-red.log` instead reproduces the two actual lifecycle failures against the immediate predecessor before the new migration. Likewise `bounded-list-kind-green.log` exited0 with empty stdout and establishes no test count; the concrete evidence gap justified the retained verbose23-test run. `bounded-list-kind-red.log` shows the unknown-kind response resolving when rejection was required. Empty successful ESLint/shell outputs are expected; their process status is retained. No missing-source historical test claim certifies this reconstruction.
+
+The consumer and native handoff is expanded in `actor-and-caller-interface.md`, including metadata-only builtin semantics, actual implicit E/R selection dependencies, bounded Used-by/history, complete saved-record command fields and the strictness split between SQL envelope/Requirement validation and the existing server Ability/combat semantic validators.
+
+**Freeze is not Stage A acceptance or Task10 completion.** Independent full-range review and actual PostgreSQL/LZ4/two-session schedules remain open; this environment has no Docker/psql/pinned Chromium. The prepared physical admission schedules use the real earned-Skill RPC in both archive orderings and independent shared admissions; local actual-chain tests separately exercise all four table guards. Neither shell syntax nor PGlite establishes native lock behavior. Existing legacy editor and frozen historical publication recipes still call retired operations and require the Stage D migration/reviewed adapter before any complete release. No mounted UI, keyboard, physical zoom, native browser, build or full workspace quality acceptance is claimed here.
+
+Parent reports final Task9 fix5 remote43ff3cad native DB118889547615/CI39498465457 green with actual Players checks; its quality/Browser/layout disposition is still pending and N4 combat-test timing reliability remains open. Accepted backend interfaces are unchanged. Stage B must refresh that producer/native disposition first. Stages B/C/D remain held. Existing released mechanics, current Owner publications/global timing, earned/pinned facts and deployment lock remain preserved. No hosted access, remote write or deploy was performed by this worker.
+
+Final integrity correction: the first integrity command incorrectly compared a SHA256 digest with the supplied40-character Git blob ID and failed that assertion. The corrected command verifies Git blob `b8a4e0e3c57b95a8da49c05d1fe5f60ba2181b5f`, actual SHA256 `31ac08447408c265666f3a0e92d0a7aff07582bc6f168af3a036e440763e6b9c`, all-false deployment setting, fresh-main/review-BASE ancestry and clean diff whitespace. The lock file did not change. Fresh fetch still returns main `b7ba1e7b3e8b850c53f0d15842c96aecc50ae160`.
