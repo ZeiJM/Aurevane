@@ -105,10 +105,12 @@ try:
     assert 't' in sql(claim(session))
     # Guest account contention in the actual PvP producer retries before atlas
     # participant locks; failure rolls back the head and preserves waiting seats.
+    # Creation must spend its own full starting pool. The corrected/rewarded
+    # host intentionally has unspent points and is not a creation template.
     owned_accounts.append(guest)
     sql(f"insert into auth.users(id,email) values('{guest}','{guest}@example.test');")
     sql(f"""insert into public.characters(id,user_id,slot_index,rules_version,name,name_key,presentation_id,pronoun_preset_id,portrait_ref,starter_appearance_ref,foundation_discipline_id,might,finesse,vitality,agility,intellect,resolve,level,xp,progression_cycle,created_at,cycle_started_at,last_active_at)
-    select '{guestchar}','{guest}',0,rules_version,'Native guest','native-{guestchar}',presentation_id,pronoun_preset_id,portrait_ref,starter_appearance_ref,foundation_discipline_id,might,finesse,vitality,agility,intellect,resolve,level,xp,progression_cycle,created_at,cycle_started_at,last_active_at from public.characters where id='{char}';""")
+    values('{guestchar}','{guest}',0,1,'Native guest','native-{guestchar}','default','they','portrait','appearance','vanguard',12,4,7,4,3,6,1,0,1,now(),now(),now());""")
     lobby=uid(); key='AVL-'+uuid.uuid4().hex[:4].upper()+'-'+uuid.uuid4().hex[:4].upper()
     sql(f"insert into app_private.pvp_lobbies(id,lobby_key,mode,owner_user_id,team_a_size,team_b_size) values('{lobby}','{key}','1v1','{user}',1,1);insert into app_private.pvp_lobby_members(lobby_id,user_id,character_id,team_index,seat_index,ready) values('{lobby}','{user}','{char}',0,0,true),('{lobby}','{guest}','{guestchar}',1,0,true);")
     fresh=prepare()

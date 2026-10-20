@@ -842,3 +842,67 @@ it.each(['secondary-add', 'secondary-remove', 'primary-pure', 'primary-retain-se
     expect(result.xp).toBe(before.xp)
   },
 )
+
+it.each(['initial-host', 'guest-after-correction-and-reward'])(
+  'native character fixture is independently valid: %s',
+  async (phase) => {
+    const native = readFileSync(
+      resolve(process.cwd(), '../../.github/scripts/verify-master-players-recovery.py'),
+      'utf8',
+    )
+    const statements = [...native.matchAll(/sql\(f"""([\s\S]*?)"""\)/gu)].map((match) => match[1]!)
+    const fixtureUser = '00000000-0000-4000-8000-000000000004'
+    const fixtureCharacter = '00000000-0000-4000-8000-000000000014'
+    let statement: string
+    const replacements: Record<string, string> = {
+      user: fixtureUser,
+      char: fixtureCharacter,
+      guest: fixtureUser,
+      guestchar: fixtureCharacter,
+    }
+    if (phase === 'initial-host') {
+      statement = statements.find(
+        (sql) => sql.includes('insert into public.characters') && !sql.includes('{guestchar}'),
+      )!
+    } else {
+      await edit(sourceCommand)
+      await db.query(
+        "select * from public.grant_character_xp_v1($1,$2,'native-fixture','test','gameplay','native-fixture-reward','test',50)",
+        [character, '00000000-0000-4000-8000-000000000097'],
+      )
+      const before = (await read()).rows[0]!.result
+        .facts as import('../../../apps/web/src/master/players').MasterPlayerFacts
+      expect(before.xp).toBe(50)
+      expect(Object.values(before.attributes).reduce((sum, value) => sum + value, 0)).toBe(35)
+      await db.query('insert into auth.users(id) values($1)', [fixtureUser])
+      statement = statements.find(
+        (sql) => sql.includes('insert into public.characters') && sql.includes('{guestchar}'),
+      )!
+      replacements.char = character
+    }
+    expect(statement).toBeDefined()
+    // Execute the actual Python harness SQL body, not a separately copied seed.
+    await db.exec(
+      statement.replace(
+        /\{(user|char|guest|guestchar)\}/gu,
+        (_, key: string) => replacements[key]!,
+      ),
+    )
+    expect(
+      (
+        await db.query(
+          'select level,xp,might+finesse+vitality+agility+intellect+resolve total from public.characters where id=$1',
+          [fixtureCharacter],
+        )
+      ).rows[0],
+    ).toMatchObject({ level: 1, xp: 0, total: 36 })
+    expect(
+      (
+        await db.query(
+          'select might+finesse+vitality+agility+intellect+resolve spent from app_private.character_attribute_personal_allocations where character_id=$1',
+          [fixtureCharacter],
+        )
+      ).rows[0],
+    ).toEqual({ spent: 5 })
+  },
+)

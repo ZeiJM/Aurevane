@@ -50,6 +50,7 @@ docs/verification/task-9-reconstruction/changed-files.txt
 docs/verification/task-9-reconstruction/checkpoint.md
 docs/verification/task-9-reconstruction/final-evidence-manifest.json
 docs/verification/task-9-reconstruction/fix1-evidence-manifest.json
+docs/verification/task-9-reconstruction/fix2-evidence-manifest.json
 docs/verification/task-9-reconstruction/native-browser-error-context.md
 docs/verification/task-9-reconstruction/report.md
 docs/verification/task-9-reconstruction/ui-client-checkpoint.md
