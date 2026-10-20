@@ -1,3 +1,5 @@
+Owner refinement 2026-10-19 (simple requirement correction, pending release): current simple profiles show exactly a linked status/Primed tag with [Self] or [Target], a linked HP/MP less-than/more-than tag with [value%] and target, or None. Automatic activation timing appears separately below the ten-field parameter table. Do not hide historical predicates or label a compound legacy tree as a simple tag. Limited specified negative-status removal reads Conditional Cleanse; standard Cleanse and Dispel remain distinct. See `verification/2026-10-19-simple-requirements.md`.
+
 # Minimum Skill information contract
 
 Owner refinement 2026-10-18 (skill display cleanup): omit a one-turn duration label for Instant effects; retain two or more turns and non-Instant durations. Use compact requirement names with subject brackets, including fallback/historical readers, while preserving all actual conditions and All/Any grouping. Technique Preview explanation bullets have a small gap below the parameter table. Display-only; execution and expiry rules remain unchanged.

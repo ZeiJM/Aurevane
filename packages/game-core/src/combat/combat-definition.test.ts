@@ -50,6 +50,381 @@ function ability() {
 }
 
 describe('canonical Ability definition', () => {
+  it('admits a single simple requirement without synthesizing an Automatic modifier anchor', () => {
+    const value = ability()
+    expect(
+      validateAbilityDefinition({
+        ...value,
+        behaviors: [
+          {
+            ...value.behaviors[0],
+            activation: 'automatic',
+            mode: 'modifier',
+            targeting: null,
+            requirementMode: 'simple',
+            requirements: {
+              kind: 'status-presence',
+              subject: 'selected',
+              statusId: 'frozen',
+              present: true,
+            },
+          },
+        ],
+      }),
+    ).toEqual([])
+  })
+  it('simple Automatic action binds a finite execution trigger separately from its requirement', () => {
+    const value = ability()
+    const behavior = {
+      ...value.behaviors[0],
+      activation: 'automatic',
+      requirementMode: 'simple',
+      automaticTrigger: 'damage-dealt',
+      automaticTarget: { subject: 'affected' },
+      requirements: {
+        kind: 'status-presence',
+        subject: 'affected',
+        statusId: 'frozen',
+        present: true,
+      },
+    }
+    expect(validateAbilityDefinition({ ...value, behaviors: [behavior] })).toEqual([])
+    expect(
+      validateAbilityDefinition({
+        ...value,
+        behaviors: [{ ...behavior, automaticTrigger: undefined }],
+      }),
+    ).toContainEqual(expect.objectContaining({ code: 'automatic-state-anchor-required' }))
+  })
+  it('rejects a Simple behavior target outside its genuine execution role', () => {
+    const value = ability()
+    const requirements = {
+      kind: 'status-presence',
+      subject: 'affected',
+      statusId: 'frozen',
+      present: true,
+    }
+    expect(
+      validateAbilityDefinition({
+        ...value,
+        behaviors: [{ ...value.behaviors[0], requirementMode: 'simple', requirements }],
+      }),
+    ).toContainEqual(expect.objectContaining({ code: 'invalid-requirement' }))
+    expect(
+      validateAbilityDefinition({
+        ...value,
+        behaviors: [
+          {
+            ...value.behaviors[0],
+            activation: 'automatic',
+            requirementMode: 'simple',
+            automaticTrigger: 'after-action',
+            automaticTarget: { subject: 'selected' },
+            requirements,
+          },
+        ],
+      }),
+    ).toContainEqual(expect.objectContaining({ code: 'invalid-requirement' }))
+  })
+
+  it.each([
+    { automaticTrigger: undefined, subject: 'selected', self: true },
+    { automaticTrigger: undefined, subject: 'owner', self: false },
+    { automaticTrigger: 'turn-started', subject: 'selected', self: true },
+    { automaticTrigger: 'after-action', subject: 'triggering', self: false },
+  ])(
+    'Simple automatic bindings reject unavailable $automaticTrigger/$subject with Self=$self',
+    ({ automaticTrigger, subject, self }) => {
+      const value = ability()
+      const base = value.behaviors[0]!
+      const behavior = {
+        ...base,
+        activation: 'automatic',
+        requirementMode: 'simple',
+        automaticTrigger,
+        automaticTarget: { subject },
+        targeting: {
+          ...base.targeting,
+          geometryVersion: 3,
+          categories: self ? ['self'] : ['enemy'],
+          teamPolicy: self ? 'self' : 'enemy',
+          minimumRange: self ? 0 : 1,
+          maximumRange: self ? 0 : 3,
+        },
+      }
+      expect(validateAbilityDefinition({ ...value, behaviors: [behavior] })).toContainEqual(
+        expect.objectContaining({
+          code: 'invalid-automatic-target',
+          path: 'behaviors[0].automaticTarget',
+        }),
+      )
+    },
+  )
+  it('Simple after-action triggering owner remains a valid Self unit binding', () => {
+    const value = ability()
+    const base = value.behaviors[0]!
+    expect(
+      validateAbilityDefinition({
+        ...value,
+        behaviors: [
+          {
+            ...base,
+            activation: 'automatic',
+            requirementMode: 'simple',
+            automaticTrigger: 'after-action',
+            automaticTarget: { subject: 'triggering' },
+            targeting: {
+              ...base.targeting,
+              geometryVersion: 3,
+              categories: ['self'],
+              teamPolicy: 'self',
+              minimumRange: 0,
+              maximumRange: 0,
+            },
+          },
+        ],
+      }),
+    ).toEqual([])
+  })
+
+  it.each([{ kind: 'circle', radius: 1 }, { kind: 'all' }] as const)(
+    'Simple manual $kind actions cannot require a nonexistent selected unit',
+    (shape) => {
+      const value = ability()
+      const behavior = {
+        ...value.behaviors[0]!,
+        targeting: {
+          ...value.behaviors[0]!.targeting,
+          shape,
+          minimumRange: 0,
+          maximumRange: shape.kind === 'circle' ? 1 : 0,
+          requiresLineOfSight: false,
+          maximumElevationDifference: null,
+        },
+        effects: [
+          { id: 'area', payload: { type: 'damage', recipient: 'affected-units', amount: 1 } },
+        ],
+        requirements: {
+          kind: 'status-presence',
+          subject: 'selected',
+          statusId: 'wet',
+          present: true,
+        },
+      }
+      expect(validateAbilityDefinition({ ...value, behaviors: [behavior] })).toEqual([])
+      expect(
+        validateAbilityDefinition({
+          ...value,
+          behaviors: [{ ...behavior, requirementMode: 'simple' }],
+        }),
+      ).toContainEqual(
+        expect.objectContaining({
+          code: 'invalid-requirement',
+          path: 'behaviors[0].requirements.subject',
+        }),
+      )
+      expect(
+        validateAbilityDefinition({
+          ...value,
+          behaviors: [
+            {
+              ...behavior,
+              requirementMode: 'simple',
+              requirements: { ...behavior.requirements, subject: 'owner' },
+            },
+          ],
+        }),
+      ).toEqual([])
+    },
+  )
+  it('Simple manual Single actions retain their genuine selected unit predicate', () => {
+    const value = ability()
+    expect(
+      validateAbilityDefinition({
+        ...value,
+        behaviors: [
+          {
+            ...value.behaviors[0],
+            requirementMode: 'simple',
+            requirements: {
+              kind: 'status-presence',
+              subject: 'selected',
+              statusId: 'wet',
+              present: true,
+            },
+          },
+        ],
+      }),
+    ).toEqual([])
+  })
+
+  it.each([
+    { recipient: 'actor', subject: 'selected', shape: { kind: 'circle', radius: 1 } },
+    { recipient: 'affected-units', subject: 'selected', shape: { kind: 'single' } },
+    { recipient: 'primary-unit', subject: 'affected', shape: { kind: 'single' } },
+    { recipient: 'primary-unit', subject: 'triggering', shape: { kind: 'single' } },
+  ])(
+    'Simple effect conditions reject unsupported $recipient/$subject on $shape.kind',
+    ({ recipient, subject, shape }) => {
+      const value = ability()
+      const behavior = value.behaviors[0]!
+      const effect = {
+        id: 'conditioned',
+        payload: { type: 'damage', recipient, amount: 1 },
+        requirements: { kind: 'status-presence', subject, statusId: 'wet', present: true },
+      }
+      expect(
+        validateAbilityDefinition({
+          ...value,
+          behaviors: [
+            {
+              ...behavior,
+              requirementMode: 'simple',
+              targeting: {
+                ...behavior.targeting,
+                shape,
+                minimumRange: shape.kind === 'single' ? 1 : 0,
+                maximumRange: shape.kind === 'single' ? 3 : 1,
+              },
+              effects: [effect],
+            },
+          ],
+        }),
+      ).toContainEqual(
+        expect.objectContaining({
+          code: 'invalid-requirement',
+          path: 'behaviors[0].effects[0].requirements.subject',
+        }),
+      )
+      expect(
+        validateAbilityDefinition({
+          ...value,
+          behaviors: [
+            {
+              ...behavior,
+              targeting: {
+                ...behavior.targeting,
+                shape,
+                minimumRange: shape.kind === 'single' ? 1 : 0,
+                maximumRange: shape.kind === 'single' ? 3 : 1,
+              },
+              effects: [effect],
+            },
+          ],
+        }).filter((issue) => issue.code === 'invalid-requirement'),
+      ).toEqual([])
+    },
+  )
+  it('Simple affected-tile packets require None because native routing has no effect gate', () => {
+    const value = ability()
+    const behavior = {
+      ...value.behaviors[0],
+      requirementMode: 'simple',
+      targeting: { ...value.behaviors[0]!.targeting, kind: 'ground-tile', teamPolicy: 'any' },
+    }
+    const effect = {
+      id: 'frozen',
+      payload: { type: 'create-terrain', recipient: 'affected-tiles', terrain: 'frozen' },
+      requirements: { kind: 'status-presence', subject: 'owner', statusId: 'burn', present: true },
+    }
+    expect(
+      validateAbilityDefinition({
+        ...value,
+        behaviors: [{ ...behavior, effects: [{ ...effect, requirements: null }] }],
+      }),
+    ).toEqual([])
+    expect(
+      validateAbilityDefinition({ ...value, behaviors: [{ ...behavior, effects: [effect] }] }),
+    ).toContainEqual(
+      expect.objectContaining({
+        code: 'invalid-requirement',
+        path: 'behaviors[0].effects[0].requirements.subject',
+      }),
+    )
+  })
+
+  it('Simple Self and unit Single effects retain selected conditions independently of actor recipient', () => {
+    const value = ability()
+    const behavior = value.behaviors[0]!
+    const effects = [
+      {
+        id: 'conditioned',
+        payload: { type: 'apply-status', recipient: 'actor', statusId: 'guarded', stacks: 1 },
+        requirements: {
+          kind: 'status-presence',
+          subject: 'selected',
+          statusId: 'wet',
+          present: true,
+        },
+      },
+    ]
+    expect(
+      validateAbilityDefinition({
+        ...value,
+        behaviors: [{ ...behavior, requirementMode: 'simple', effects }],
+      }),
+    ).toEqual([])
+    expect(
+      validateAbilityDefinition({
+        ...value,
+        behaviors: [
+          {
+            ...behavior,
+            requirementMode: 'simple',
+            targeting: {
+              ...behavior.targeting,
+              kind: 'self',
+              teamPolicy: 'self',
+              minimumRange: 0,
+              maximumRange: 0,
+            },
+            effects,
+          },
+        ],
+      }),
+    ).toEqual([])
+  })
+
+  it.each([
+    {
+      kind: 'all',
+      children: [{ kind: 'status-presence', subject: 'owner', statusId: 'frozen', present: true }],
+    },
+    { kind: 'status-presence', subject: 'owner', statusId: 'invented', present: true },
+    { kind: 'status-presence', subject: 'owner', statusId: 'frozen', present: false },
+    { kind: 'prime-presence', subject: 'owner', abilityId: 'strike', present: true },
+    { kind: 'action', sourceDisciplineId: 'vanguard' },
+    {
+      kind: 'resource-state',
+      subject: 'owner',
+      resource: 'ap',
+      comparison: 'less-than',
+      basisPoints: 5000,
+    },
+    {
+      kind: 'resource-state',
+      subject: 'owner',
+      resource: 'hp',
+      comparison: 'at-most',
+      basisPoints: 5000,
+    },
+    {
+      kind: 'resource-state',
+      subject: 'owner',
+      resource: 'mp',
+      comparison: 'less-than',
+      amount: 5,
+    },
+  ])('rejects unsupported simple requirement $kind', (requirements) => {
+    const value = ability()
+    expect(
+      validateAbilityDefinition({
+        ...value,
+        behaviors: [{ ...value.behaviors[0], requirementMode: 'simple', requirements }],
+      }),
+    ).toContainEqual(expect.objectContaining({ code: 'invalid-requirement' }))
+  })
+
   it.each([
     { categories: ['ground'], friendlyFire: 'enemies-only', allowed: true },
     { categories: ['ground'], friendlyFire: 'allies-only', allowed: false },

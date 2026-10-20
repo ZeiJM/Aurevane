@@ -1,3 +1,4 @@
+import { automaticAbilityExecutionRequirements } from './combat-simple-requirements'
 import type { GridPosition } from './board'
 import { canonicalAbilityTargetSpec } from './combat-targeting-shapes'
 import type {
@@ -203,12 +204,9 @@ function captureAutomaticImpulses(
     if (!after.abilityRuntime?.activeSourceIds.includes(source.sourceInstanceId)) continue
     for (const behavior of source.definition.behaviors) {
       if (behavior.activation !== 'automatic' || behavior.mode !== 'action') continue
+      const requirement = automaticAbilityExecutionRequirements(behavior)
       const context = combatAbilityFrameRequirements(frame, source.ownerCombatantId)
-      const stateTruth = evaluateAutomaticRequirementTrigger(
-        behavior.requirements,
-        context,
-        true,
-      ).stateTruth
+      const stateTruth = evaluateAutomaticRequirementTrigger(requirement, context, true).stateTruth
       const prior = truth.find(
         (row) => row.sourceInstanceId === source.sourceInstanceId && row.behaviorId === behavior.id,
       )
@@ -221,13 +219,13 @@ function captureAutomaticImpulses(
       const event = frame.events.find(
         (receipt) =>
           evaluateAutomaticRequirementTrigger(
-            behavior.requirements,
+            requirement,
             combatAbilityFrameRequirements(frame, source.ownerCombatantId, receipt),
             true,
           ).eventMatched,
       )
       const mutationMatched = evaluateAutomaticRequirementTrigger(
-        behavior.requirements,
+        requirement,
         context,
         true,
       ).eventMatched

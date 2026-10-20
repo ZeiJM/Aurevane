@@ -1,4 +1,12 @@
 import {
+  isSimpleRequirement,
+  simpleRequirementSubjects,
+  simpleEffectRequirementSubjects,
+  simpleAutomaticTargetSubjects,
+  SIMPLE_AUTOMATIC_TRIGGER_OPTIONS,
+  type SimpleAutomaticTriggerId,
+} from './combat-simple-requirements'
+import {
   combatEffectTimingMode,
   currentCombatEffectTimingTag,
   type CombatEffectTimingPolicy,
@@ -20,6 +28,7 @@ import {
   type AbilityResource,
   type AbilityClassification,
   type AbilityAttackFamily,
+  type AbilityRequirementSubject,
 } from './combat-requirements'
 import {
   validateCombatTagPayload,
@@ -79,6 +88,8 @@ export interface AbilityBehavior {
   readonly costs: readonly { readonly resource: AbilityResource; readonly amount: number }[]
   readonly cooldown: SkillCooldownDefinition | null
   readonly requirements: RequirementNode | null
+  readonly requirementMode?: 'simple'
+  readonly automaticTrigger?: SimpleAutomaticTriggerId
   readonly targeting: AbilityTargeting | null
   readonly effects: readonly AbilityEffect[]
   readonly groundArea?: AbilityGroundAreaDefinition
@@ -193,6 +204,8 @@ export function validateAbilityDefinition(value: unknown): readonly AbilityDefin
         'costs',
         'cooldown',
         'requirements',
+        'requirementMode',
+        'automaticTrigger',
         'targeting',
         'effects',
         'accuracy',
@@ -284,9 +297,46 @@ export function validateAbilityDefinition(value: unknown): readonly AbilityDefin
       }
     }
     requirements(candidate.requirements, `${path}.requirements`)
+    if (candidate.requirementMode !== undefined && candidate.requirementMode !== 'simple')
+      issue(`${path}.requirementMode`, 'invalid-requirement', 'Unknown Requirement profile.')
+    if (
+      candidate.requirementMode === 'simple' &&
+      !isSimpleRequirement(candidate.requirements as RequirementNode | null)
+    )
+      issue(
+        `${path}.requirements`,
+        'invalid-requirement',
+        'Simple Requirements require None or one registered positive status, Primed or strict HP/MP percentage predicate.',
+      )
+    if (
+      candidate.requirementMode === 'simple' &&
+      record(candidate.requirements) &&
+      'subject' in candidate.requirements &&
+      !simpleRequirementSubjects(candidate as unknown as AbilityBehavior).includes(
+        candidate.requirements.subject as AbilityRequirementSubject,
+      )
+    )
+      issue(
+        `${path}.requirements.subject`,
+        'invalid-requirement',
+        'Requirement Target must use the genuine subject of this execution path.',
+      )
+    if (
+      candidate.automaticTrigger !== undefined &&
+      (candidate.requirementMode !== 'simple' ||
+        candidate.activation !== 'automatic' ||
+        candidate.mode !== 'action' ||
+        !SIMPLE_AUTOMATIC_TRIGGER_OPTIONS.some(({ id }) => id === candidate.automaticTrigger))
+    )
+      issue(
+        `${path}.automaticTrigger`,
+        'automatic-event-unsupported',
+        'A predefined execution trigger requires a Simple Automatic action.',
+      )
     if (
       candidate.activation === 'automatic' &&
       candidate.mode === 'modifier' &&
+      candidate.requirementMode !== 'simple' &&
       validateAbilityRequirements(candidate.requirements).length === 0 &&
       !isBeforeActionModifierRequirement(candidate.requirements as RequirementNode | null)
     )
@@ -301,7 +351,10 @@ export function validateAbilityDefinition(value: unknown): readonly AbilityDefin
       validateAbilityRequirements(candidate.requirements).length === 0
     ) {
       const requirement = candidate.requirements as RequirementNode | null
-      if (hasUnanchoredAutomaticStateRequirement(requirement))
+      if (
+        hasUnanchoredAutomaticStateRequirement(requirement) &&
+        !(candidate.requirementMode === 'simple' && candidate.automaticTrigger !== undefined)
+      )
         issue(
           `${path}.requirements`,
           'automatic-state-anchor-required',
@@ -403,6 +456,18 @@ export function validateAbilityDefinition(value: unknown): readonly AbilityDefin
           'invalid-automatic-target',
           'Automatic single/Line actions bind a causal subject; Self binds owner; Circle/All use owner activation.',
         )
+      if (
+        candidate.requirementMode === 'simple' &&
+        record(binding) &&
+        !simpleAutomaticTargetSubjects(candidate as unknown as AbilityBehavior).includes(
+          binding.subject as AbilityRequirementSubject,
+        )
+      )
+        issue(
+          `${path}.automaticTarget`,
+          'invalid-automatic-target',
+          'Automatic target must bind an available native role compatible with its authored target geometry.',
+        )
       if (record(binding)) keys(binding, ['subject'], `${path}.automaticTarget`)
     } else if (
       candidate.activation === 'automatic' &&
@@ -467,8 +532,18 @@ export function validateAbilityDefinition(value: unknown): readonly AbilityDefin
       }
       keys(effect, ['id', 'payload', 'requirements', 'timing'], effectPath)
       stableId(effect.id, `${effectPath}.id`, effectIds)
-      if (effect.requirements !== undefined)
+      if (effect.requirements !== undefined) {
         requirements(effect.requirements, `${effectPath}.requirements`)
+        if (
+          candidate.requirementMode === 'simple' &&
+          !isSimpleRequirement(effect.requirements as RequirementNode | null)
+        )
+          issue(
+            `${effectPath}.requirements`,
+            'invalid-requirement',
+            'Simple effect Requirements require None or one supported predicate.',
+          )
+      }
       const errors = validateCombatTagPayload(effect.payload, {
         activation: candidate.activation as AbilityActivation,
         mode: candidate.mode as AbilityMode,
@@ -479,6 +554,18 @@ export function validateAbilityDefinition(value: unknown): readonly AbilityDefin
         continue
       }
       const payload = effect.payload as CombatTagPayload
+      if (
+        candidate.requirementMode === 'simple' &&
+        record(effect.requirements) &&
+        !simpleEffectRequirementSubjects(candidate as unknown as AbilityBehavior, payload).includes(
+          effect.requirements.subject as AbilityRequirementSubject,
+        )
+      )
+        issue(
+          `${effectPath}.requirements.subject`,
+          'invalid-requirement',
+          'Effect Requirements must use the supported Self/Target role for this recipient and geometry.',
+        )
       const tag = combatTagDefinition(payload.type)!
       if (effect.timing !== undefined && !tag.timing.includes(effect.timing as never))
         issue(

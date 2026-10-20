@@ -369,7 +369,22 @@ it('authors explicit listed-status removal independently of full Cleanse', () =>
     removalMode: 'specified',
   } as CombatEffectDefinition)
   expect(markup).toContain('Status removal mode')
-  expect(markup).toContain('Only listed statuses')
+  expect(markup).toContain('Conditional Cleanse / Dispel · only listed statuses')
   expect(markup).toContain('Other statuses remain')
   expect(markup).not.toContain('Use standard Cleanse')
+})
+
+it('offers registered limited-removal statuses and retains unregistered stored IDs', () => {
+  const markup = render({
+    type: 'remove-status',
+    recipient: 'actor',
+    statusIds: ['burn', 'wet', 'historical-status'],
+    removalMode: 'specified',
+  })
+  expect(markup).toContain('aria-label="Conditional Cleanse statuses" multiple=""')
+  expect(markup).toContain('<option value="burn" selected="">Burn</option>')
+  expect(markup).toContain('<option value="wet" selected="">Drenched</option>')
+  expect(markup).toContain(
+    '<option value="historical-status" selected="">historical-status (unregistered)</option>',
+  )
 })

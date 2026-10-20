@@ -319,3 +319,51 @@ describe('captured modifier composition', () => {
     ).toThrow(/modifier-source-inactive/)
   })
 })
+
+it('quotes and commits a Simple intrinsic Attack modifier without an event or action requirement anchor', () => {
+  const input = fixture()
+  const automatic = captureCombatAbilitySource(
+    source(
+      {
+        id: 'simple-bonus',
+        activation: 'automatic',
+        mode: 'modifier',
+        targeting: null,
+        costs: [],
+        requirementMode: 'simple',
+        requirements: {
+          kind: 'resource-state',
+          subject: 'owner',
+          resource: 'mp',
+          comparison: 'more-than',
+          basisPoints: 0,
+        },
+        effects: [
+          { id: 'bonus', payload: { type: 'damage', recipient: 'primary-unit', amount: 1 } },
+        ],
+      },
+      'simple-modifier',
+    ),
+  )
+  const state = reconcileCombatAbilitySources(input.state, [
+    ...input.state.capturedAbilitySources!,
+    automatic,
+  ])
+  const command = {
+    ...input,
+    state,
+    context: combatAbilityCommandContext(state, input.root.source),
+  }
+  const quote = prepareCombatAbilityCommand(command)
+  expect(quote.evaluation.issues).toEqual([])
+  expect(quote.participants.map((row) => row.sourceInstanceId)).toContain('simple-modifier')
+  expect(automatic.definition.behaviors[0]!.requirements?.kind).toBe('resource-state')
+  const out = commitCombatAbilityCommand(command)
+  expect(out.events).toContainEqual(
+    expect.objectContaining({
+      event: 'damage_applied',
+      effectOrigin: expect.objectContaining({ sourceInstanceId: 'simple-modifier' }),
+      amount: 1,
+    }),
+  )
+})

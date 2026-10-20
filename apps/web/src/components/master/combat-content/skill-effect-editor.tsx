@@ -4,7 +4,12 @@ import type {
   CombatEffectDefinition,
   CombatEffectRecipient,
 } from '@aurevane/game-core/combat/actions'
-import type { CombatElement } from '@aurevane/game-core/combat/gameplay-tags'
+import {
+  combatStatusPresentationTag,
+  type CombatElement,
+} from '@aurevane/game-core/combat/gameplay-tags'
+import { SIMPLE_REQUIREMENT_TAG_OPTIONS } from '@aurevane/game-core/combat/combat-simple-requirements'
+import { PHASE4_STATUSES } from '@aurevane/game-core/combat/status-content'
 import {
   CLEANSE_STATUS_IDS,
   isCleanseEffect,
@@ -43,6 +48,17 @@ const PERCENTAGE_STATUS_IDS = new Set([
   'fortified',
   'challenged',
 ])
+
+const REMOVAL_STATUS_IDS = [
+  ...new Set([
+    ...PHASE4_STATUSES.map((status) => status.id),
+    'guarded',
+    'exposed',
+    'covert',
+    'revealed',
+    'lowered-guard',
+  ]),
+].filter((id) => SIMPLE_REQUIREMENT_TAG_OPTIONS.some((option) => option.id === id))
 
 const RECIPIENTS: readonly { value: CombatEffectRecipient; label: string }[] = [
   { value: 'actor', label: 'Actor' },
@@ -813,32 +829,61 @@ export function SkillEffectEditor({ value, onChange, canonicalDamage }: SkillEff
               }}
             >
               <option value="standard">Cleanse / Dispel</option>
-              <option value="specified">Only listed statuses</option>
+              <option value="specified">Conditional Cleanse / Dispel · only listed statuses</option>
             </select>
           </label>
           {recipientField('Status removal recipient', value.recipient, (recipient) =>
             onChange({ ...value, recipient }),
           )}
           <label className={styles.field}>
-            <span>Status IDs</span>
-            <input
-              aria-label="Status IDs"
-              type="text"
-              value={value.statusIds.join(', ')}
-              onChange={(event) =>
-                onChange({
-                  ...value,
-                  statusIds: event.currentTarget.value
-                    .split(',')
-                    .map((id) => id.trim())
-                    .filter((id, index, all) => id.length > 0 && all.indexOf(id) === index)
-                    .slice(0, 8),
-                })
-              }
-            />
+            <span>{value.removalMode === 'specified' ? 'Listed statuses' : 'Status IDs'}</span>
+            {value.removalMode === 'specified' ? (
+              <select
+                aria-label="Conditional Cleanse statuses"
+                multiple
+                size={8}
+                value={[...value.statusIds]}
+                onChange={(event) => {
+                  const statusIds = Array.from(
+                    event.currentTarget.selectedOptions,
+                    (option) => option.value,
+                  )
+                  if (statusIds.length > 0 && statusIds.length <= 8)
+                    onChange({ ...value, statusIds })
+                }}
+              >
+                {[...new Set([...REMOVAL_STATUS_IDS, ...value.statusIds])].map((id) => (
+                  <option
+                    key={id}
+                    value={id}
+                    disabled={value.statusIds.length >= 8 && !value.statusIds.includes(id)}
+                  >
+                    {REMOVAL_STATUS_IDS.includes(id)
+                      ? combatStatusPresentationTag(id)
+                      : `${id} (unregistered)`}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                aria-label="Status IDs"
+                type="text"
+                value={value.statusIds.join(', ')}
+                onChange={(event) =>
+                  onChange({
+                    ...value,
+                    statusIds: event.currentTarget.value
+                      .split(',')
+                      .map((id) => id.trim())
+                      .filter((id, index, all) => id.length > 0 && all.indexOf(id) === index)
+                      .slice(0, 8),
+                  })
+                }
+              />
+            )}
             <small className={styles.fieldHint}>
               {value.removalMode === 'specified'
-                ? 'Remove only the listed statuses. Other statuses remain, including Suppress unless explicitly listed.'
+                ? 'Select one to eight statuses. Remove only the listed statuses. Other statuses remain, including Suppress unless explicitly listed.'
                 : isCleanseChilledEffect(value)
                   ? 'Cleanse Chilled removes only Chilled from the authored recipient; other statuses remain.'
                   : 'Cleanse removes Burn, Bleed, Poison, Slow, Rooted, Vulnerable, Marked and Taunted. Dispel removes authored positive statuses.'}
