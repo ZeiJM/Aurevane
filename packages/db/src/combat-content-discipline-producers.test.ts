@@ -154,8 +154,8 @@ const authored = {
   focus: ['might', 'finesse'],
   enabledForPrimary: true,
   enabledForSecondary: true,
-  linkedSkills: [],
-  skillStages: [],
+  linkedSkills: [] as string[],
+  skillStages: [] as { skillId: string; minimumStage: number }[],
   unlock: { kind: 'always' },
   essenceId: null,
   resonanceSelections: [],
@@ -1232,4 +1232,370 @@ it('attached grants require a real learned identity, keep private RLS/ACLs and r
       )
     ).rows[0]!.enabled,
   ).toBe(true)
+})
+async function saveSkillReferences(skills: object[]) {
+  const version = (
+    await db.query<{ build_version: number }>(
+      'select build_version from app_private.character_active_builds where character_id=$1',
+      [character],
+    )
+  ).rows[0]!.build_version
+  return db.query(
+    'select * from public.save_character_discipline_skill_loadout_v1($1,$2,$3,$4,$5,$6)',
+    [other, character, version, skills, crypto.randomUUID(), 'earned-selection-test'],
+  )
+}
+it('actual equipped and committed references persist selected earned eligibility without reparenting intrinsic Skill source', async () => {
+  const skill = await sharedSkill()
+  await publishNativeDiscipline('vanguard', {
+    linkedSkills: [skill.skill_id],
+    skillStages: [{ skillId: skill.skill_id, minimumStage: 1 }],
+  })
+  await db.query('select app_private.provision_mastery_skills_v1($1)', [character])
+  await saveSkillReferences([
+    {
+      skillId: skill.skill_id,
+      contentVersion: (
+        await db.query<{ skill_content_version: number }>(
+          'select skill_content_version from app_private.character_skill_unlocks where character_id=$1 and skill_id=$2',
+          [character, skill.skill_id],
+        )
+      ).rows[0]!.skill_content_version,
+      sourceDisciplineId: 'lifebinder',
+      eligibilityDisciplineId: 'vanguard',
+    },
+  ])
+  expect(
+    (
+      await db.query(
+        'select source_discipline_id,eligibility_discipline_id from app_private.character_build_discipline_skills where character_id=$1',
+        [character],
+      )
+    ).rows,
+  ).toEqual([{ source_discipline_id: 'lifebinder', eligibility_discipline_id: 'vanguard' }])
+  const snapshot = (
+    await db.query<{ value: { disciplineSkills: unknown[] } }>(
+      'select public.get_character_committed_build_snapshot_v2($1,$2) value',
+      [other, character],
+    )
+  ).rows[0]!.value
+  expect(snapshot.disciplineSkills).toContainEqual(
+    expect.objectContaining({
+      skillId: skill.skill_id,
+      sourceDisciplineId: 'lifebinder',
+      eligibilityDisciplineId: 'vanguard',
+    }),
+  )
+})
+it('a new selection infers only a sole active grant and demands an explicit choice when both Disciplines qualify', async () => {
+  const skill = await sharedSkill()
+  await publishNativeDiscipline('vanguard', {
+    linkedSkills: [skill.skill_id],
+    skillStages: [{ skillId: skill.skill_id, minimumStage: 1 }],
+  })
+  await db.query('select app_private.provision_mastery_skills_v1($1)', [character])
+  const reference = {
+    skillId: skill.skill_id,
+    contentVersion: (
+      await db.query<{ skill_content_version: number }>(
+        'select skill_content_version from app_private.character_skill_unlocks where character_id=$1 and skill_id=$2',
+        [character, skill.skill_id],
+      )
+    ).rows[0]!.skill_content_version,
+    sourceDisciplineId: 'lifebinder',
+  }
+  await saveSkillReferences([reference])
+  await db.query('select * from public.record_character_discipline_mastery_v1($1,$2,$3,$4)', [
+    character,
+    'lifebinder',
+    'owner',
+    'secondary-control',
+  ])
+  const version = (
+    await db.query<{ build_version: number }>(
+      'select build_version from app_private.character_active_builds where character_id=$1',
+      [character],
+    )
+  ).rows[0]!.build_version
+  await db.query(
+    'select * from public.change_character_disciplines_v3($1,$2,$3,false,null,true,$4,$5,$6)',
+    [other, character, version, 'lifebinder', crypto.randomUUID(), 'secondary-selection-control'],
+  )
+  await denied(() => saveSkillReferences([reference]), /DISCIPLINE_SKILL_ELIGIBILITY_REQUIRED/)
+  await saveSkillReferences([{ ...reference, eligibilityDisciplineId: 'vanguard' }])
+  expect(
+    (
+      await db.query(
+        'select eligibility_discipline_id from app_private.character_build_discipline_skills where character_id=$1',
+        [character],
+      )
+    ).rows,
+  ).toEqual([{ eligibility_discipline_id: 'vanguard' }])
+})
+it.each([null, 42, {}, ' vanguard', 'vanguard\n'])(
+  'present malformed eligibility %j is rejected before replacing a valid selection',
+  async (eligibility) => {
+    const native = (
+      await db.query<{ skill_id: string; skill_content_version: number }>(
+        'select skill_id,skill_content_version from app_private.character_skill_unlocks where character_id=$1 and source_discipline_id=$2 order by skill_id limit 1',
+        [character, 'vanguard'],
+      )
+    ).rows[0]!
+    const reference = {
+      skillId: native.skill_id,
+      contentVersion: native.skill_content_version,
+      sourceDisciplineId: 'vanguard',
+    }
+    await saveSkillReferences([reference])
+    const before = (
+      await db.query(
+        'select * from app_private.character_build_discipline_skills where character_id=$1',
+        [character],
+      )
+    ).rows
+    await denied(
+      () => saveSkillReferences([{ ...reference, eligibilityDisciplineId: eligibility }]),
+      /SKILL_LOADOUT_REFERENCE_INVALID/,
+    )
+    expect(
+      (
+        await db.query(
+          'select * from app_private.character_build_discipline_skills where character_id=$1',
+          [character],
+        )
+      ).rows,
+    ).toEqual(before)
+  },
+)
+it('a retained unequipped earned grant blocks archiving its eligibility Discipline after the link is removed', async () => {
+  const skill = await sharedSkill()
+  const draft = await authoredDraft({
+    ...authored,
+    linkedSkills: [skill.skill_id],
+    skillStages: [{ skillId: skill.skill_id, minimumStage: 1 }],
+  })
+  const first = await publish(authored.id, draft.draft.draftVersion, null)
+  await db.query('select app_private.grant_discipline_skill_v1($1,$2,$3,$4,$5,$6,$7,true)', [
+    character,
+    skill.skill_id,
+    skill.content_version,
+    'lifebinder',
+    authored.id,
+    'gameplay',
+    'actual-earned-control',
+  ])
+  const unlinked = await write(authored.id, {
+    action: 'save',
+    expectedRevision: first.revision,
+    definition: { ...first.current.definition, linkedSkills: [], skillStages: [] },
+  })
+  const current = await publish(
+    authored.id,
+    unlinked.draft.draftVersion,
+    first.current.contentVersion,
+  )
+  expect(current.usedBy).toContainEqual({
+    kind: 'discipline-skill-grant',
+    key: `${character}:${skill.skill_id}:${authored.id}`,
+    blocking: true,
+  })
+  expect(
+    (
+      await db.query(
+        'select * from app_private.character_build_discipline_skills where character_id=$1',
+        [character],
+      )
+    ).rows,
+  ).toEqual([])
+  await denied(
+    () => write(authored.id, { action: 'archive', expectedRevision: current.revision }),
+    /COMBAT_CONTENT_DEPENDENCIES/,
+  )
+  expect((await record(authored.id)).lifecycle).toBe('active')
+})
+it('named loadouts retain explicit eligibility and historical omitted eligibility activates as native even when another grant qualifies', async () => {
+  const skill = await sharedSkill()
+  await publishNativeDiscipline('vanguard', {
+    linkedSkills: [skill.skill_id],
+    skillStages: [{ skillId: skill.skill_id, minimumStage: 1 }],
+  })
+  await db.query('select app_private.provision_mastery_skills_v1($1)', [character])
+  await db.query('select * from public.record_character_discipline_mastery_v1($1,$2,$3,$4)', [
+    character,
+    'lifebinder',
+    'owner',
+    'saved-native-control',
+  ])
+  await db.query(
+    'select * from public.change_character_disciplines_v3($1,$2,1,false,null,true,$3,$4,$5)',
+    [other, character, 'lifebinder', crypto.randomUUID(), 'saved-native-secondary'],
+  )
+  const version = (
+    await db.query<{ skill_content_version: number }>(
+      'select skill_content_version from app_private.character_skill_unlocks where character_id=$1 and skill_id=$2',
+      [character, skill.skill_id],
+    )
+  ).rows[0]!.skill_content_version
+  await saveSkillReferences([
+    {
+      skillId: skill.skill_id,
+      contentVersion: version,
+      sourceDisciplineId: 'lifebinder',
+      eligibilityDisciplineId: 'lifebinder',
+    },
+  ])
+  let buildVersion = (
+    await db.query<{ build_version: number }>(
+      'select build_version from app_private.character_active_builds where character_id=$1',
+      [character],
+    )
+  ).rows[0]!.build_version
+  await db.query(
+    'select * from public.save_character_build_loadout_v1($1,$2,1::smallint,$3,$4,$5,$6)',
+    [other, character, 'Saved native', buildVersion, crypto.randomUUID(), 'saved-native-persist'],
+  )
+  expect(
+    (
+      await db.query<{ discipline_skills: unknown[] }>(
+        'select discipline_skills from app_private.character_saved_build_loadouts where character_id=$1',
+        [character],
+      )
+    ).rows[0]!.discipline_skills,
+  ).toEqual([
+    {
+      skillId: skill.skill_id,
+      contentVersion: version,
+      sourceDisciplineId: 'lifebinder',
+      eligibilityDisciplineId: 'lifebinder',
+    },
+  ])
+  // Model an existing old saved row; activation must not rewrite its historical body.
+  await db.query(
+    "update app_private.character_saved_build_loadouts set discipline_skills=jsonb_build_array((discipline_skills->0)-'eligibilityDisciplineId') where character_id=$1",
+    [character],
+  )
+  const before = (
+    await db.query(
+      'select * from app_private.character_saved_build_loadouts where character_id=$1',
+      [character],
+    )
+  ).rows
+  await saveSkillReferences([])
+  buildVersion = (
+    await db.query<{ build_version: number }>(
+      'select build_version from app_private.character_active_builds where character_id=$1',
+      [character],
+    )
+  ).rows[0]!.build_version
+  await db.query(
+    'select * from public.activate_character_build_loadout_v1($1,$2,1::smallint,$3,$4,$5)',
+    [other, character, buildVersion, crypto.randomUUID(), 'saved-native-activate'],
+  )
+  expect(
+    (
+      await db.query(
+        'select eligibility_discipline_id from app_private.character_build_discipline_skills where character_id=$1',
+        [character],
+      )
+    ).rows,
+  ).toEqual([{ eligibility_discipline_id: 'lifebinder' }])
+  expect(
+    (
+      await db.query(
+        'select * from app_private.character_saved_build_loadouts where character_id=$1',
+        [character],
+      )
+    ).rows,
+  ).toEqual(before)
+})
+it('new selection helpers remain private and capacity rejects before expensive eligibility lookup or state writes', async () => {
+  const before = (
+    await db.query('select * from app_private.character_active_builds where character_id=$1', [
+      character,
+    ])
+  ).rows
+  await denied(
+    () => saveSkillReferences(Array.from({ length: 5 }, () => ({}))),
+    /DISCIPLINE_SKILL_CAPACITY_EXCEEDED/,
+  )
+  expect(
+    (
+      await db.query('select * from app_private.character_active_builds where character_id=$1', [
+        character,
+      ])
+    ).rows,
+  ).toEqual(before)
+  for (const role of ['anon', 'authenticated', 'service_role']) {
+    for (const signature of [
+      'app_private.default_native_skill_eligibility_v1()',
+      'app_private.resolve_skill_eligibility_v1(uuid,jsonb,text,text)',
+    ])
+      expect(
+        (
+          await db.query<{ allowed: boolean }>(
+            "select has_function_privilege($1,$2,'execute') allowed",
+            [role, signature],
+          )
+        ).rows[0]!.allowed,
+      ).toBe(false)
+    expect(
+      (
+        await db.query<{ allowed: boolean }>(
+          "select has_function_privilege($1,'public.get_character_discipline_skill_loadout_v2(uuid,uuid)','execute') allowed",
+          [role],
+        )
+      ).rows[0]!.allowed,
+    ).toBe(role === 'service_role')
+  }
+})
+it('the actual build-change pruning trigger preserves a valid three-plus-one selection and its exact pins', async () => {
+  await db.query('select * from public.record_character_discipline_mastery_v1($1,$2,$3,$4)', [
+    character,
+    'lifebinder',
+    'owner',
+    'capacity-control',
+  ])
+  await db.query(
+    'select * from public.change_character_disciplines_v3($1,$2,1,false,null,true,$3,$4,$5)',
+    [other, character, 'lifebinder', crypto.randomUUID(), 'capacity-secondary-control'],
+  )
+  const rows = (
+    await db.query<{
+      skill_id: string
+      skill_content_version: number
+      source_discipline_id: string
+    }>(
+      "select skill_id,skill_content_version,source_discipline_id from app_private.character_skill_unlocks where character_id=$1 and source_discipline_id in ('vanguard','lifebinder') order by skill_id",
+      [character],
+    )
+  ).rows
+  const selected = [
+    ...rows.filter((r) => r.source_discipline_id === 'vanguard').slice(0, 3),
+    ...rows.filter((r) => r.source_discipline_id === 'lifebinder').slice(0, 1),
+  ].map((r) => ({
+    skillId: r.skill_id,
+    contentVersion: r.skill_content_version,
+    sourceDisciplineId: r.source_discipline_id,
+    eligibilityDisciplineId: r.source_discipline_id,
+  }))
+  await saveSkillReferences(selected)
+  const before = (
+    await db.query(
+      'select * from app_private.character_build_discipline_skills where character_id=$1 order by slot_index',
+      [character],
+    )
+  ).rows
+  await db.query(
+    'update app_private.character_active_builds set primary_discipline_id=primary_discipline_id where character_id=$1',
+    [character],
+  )
+  expect(
+    (
+      await db.query(
+        'select * from app_private.character_build_discipline_skills where character_id=$1 order by slot_index',
+        [character],
+      )
+    ).rows,
+  ).toEqual(before)
+  expect(before).toHaveLength(4)
 })

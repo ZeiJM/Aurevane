@@ -180,4 +180,142 @@ begin
  execute replace(d,old,old||E'
         and exists(select 1 from app_private.character_discipline_skill_grants g where g.character_id=unlock.character_id and g.skill_id=unlock.skill_id and g.eligibility_discipline_id=v_source_discipline_id)');
 end; $migration$;
+
+
+alter table app_private.character_build_discipline_skills add column eligibility_discipline_id text;
+update app_private.character_build_discipline_skills set eligibility_discipline_id=source_discipline_id;
+alter table app_private.character_build_discipline_skills add constraint equipped_eligibility_format check(eligibility_discipline_id ~ '^[a-z0-9]+([._-][a-z0-9]+)*$');
+create function app_private.default_native_skill_eligibility_v1()
+returns trigger language plpgsql set search_path='' as $$
+begin
+ if new.eligibility_discipline_id is null then new.eligibility_discipline_id:=new.source_discipline_id; end if;
+ return new;
+end; $$;
+create trigger native_skill_eligibility before insert on app_private.character_build_discipline_skills for each row execute function app_private.default_native_skill_eligibility_v1();
+alter table app_private.character_build_discipline_skills alter column eligibility_discipline_id set not null;
+
+create function app_private.resolve_skill_eligibility_v1(p_character uuid,r jsonb,p_primary text,p_secondary text)
+returns text language plpgsql stable security definer set search_path='' as $$
+declare candidate text; choices text[];
+begin
+ if jsonb_typeof(r) is distinct from 'object' or jsonb_typeof(r->'skillId') is distinct from 'string' or (r->>'skillId') !~ '^[a-z0-9]+([._-][a-z0-9]+)*$'
+ or jsonb_typeof(r->'sourceDisciplineId') is distinct from 'string' or (r->>'sourceDisciplineId') !~ '^[a-z0-9]+([._-][a-z0-9]+)*$'
+ or jsonb_typeof(r->'contentVersion') is distinct from 'number' or (r->>'contentVersion') !~ '^[1-9][0-9]{0,9}$' or (r->>'contentVersion')::numeric>2147483647
+ then raise exception using errcode='22023',message='SKILL_LOADOUT_REFERENCE_INVALID'; end if;
+ if r ? 'eligibilityDisciplineId' then
+  if jsonb_typeof(r->'eligibilityDisciplineId') is distinct from 'string' or (r->>'eligibilityDisciplineId') !~ '^[a-z0-9]+([._-][a-z0-9]+)*$' then raise exception using errcode='22023',message='SKILL_LOADOUT_REFERENCE_INVALID'; end if;
+  candidate:=r->>'eligibilityDisciplineId';
+ end if;
+ select array_agg(a.eligibility_discipline_id order by a.eligibility_discipline_id) into choices
+ from app_private.character_discipline_skill_availability_v1(p_character) a
+ where a.skill_id=r->>'skillId' and a.skill_content_version=(r->>'contentVersion')::integer and a.source_discipline_id=r->>'sourceDisciplineId'
+ and (a.eligibility_discipline_id=p_primary or a.eligibility_discipline_id=p_secondary);
+ if candidate is null then
+  if coalesce(cardinality(choices),0)=0 then raise exception using errcode='22023',message='DISCIPLINE_SKILL_NOT_LEARNED'; end if;
+  if cardinality(choices)>1 then raise exception using errcode='22023',message='DISCIPLINE_SKILL_ELIGIBILITY_REQUIRED'; end if;
+  return choices[1];
+ end if;
+ if candidate<>p_primary and candidate is distinct from p_secondary then raise exception using errcode='22023',message='DISCIPLINE_SKILL_SOURCE_INACTIVE'; end if;
+ if choices is null or not candidate=any(choices) then raise exception using errcode='22023',message='DISCIPLINE_SKILL_NOT_LEARNED'; end if;
+ return candidate;
+end; $$;
+
+do $migration$
+declare d text; old text;
+begin
+ d:=pg_get_functiondef('public.save_character_discipline_skill_loadout_v1(uuid,uuid,bigint,jsonb,uuid,text)'::regprocedure);
+ old:='  v_source_discipline_id text;';
+ if strpos(d,old)=0 then raise exception 'EARNED_EQUIP_DECLARATION_CONFLICT'; end if;
+ d:=replace(d,old,old||E'
+  v_eligibility text;');
+ old:='  v_count := jsonb_array_length(p_skills);';
+ if strpos(d,old)=0 then raise exception 'EARNED_EQUIP_NORMALIZATION_CONFLICT'; end if;
+ d:=replace(d,old,$after$  if jsonb_array_length(p_skills)>4 then raise exception using errcode='22023',message='DISCIPLINE_SKILL_CAPACITY_EXCEEDED'; end if;
+  select coalesce(jsonb_agg(element || jsonb_build_object('eligibilityDisciplineId',app_private.resolve_skill_eligibility_v1(p_character_id,element,v_build.primary_discipline_id,v_build.secondary_discipline_id)) order by ordinality),'[]'::jsonb)
+  into p_skills from jsonb_array_elements(p_skills) with ordinality as selected(element,ordinality);
+$after$||old);
+ old:=$before$    v_source_discipline_id := v_entry ->> 'sourceDisciplineId';$before$;
+ if strpos(d,old)=0 then raise exception 'EARNED_EQUIP_REFERENCE_CONFLICT'; end if;
+ d:=replace(d,old,old||$after$
+    v_eligibility := v_entry ->> 'eligibilityDisciplineId';$after$);
+ d:=replace(d,'if v_source_discipline_id = v_build.primary_discipline_id then','if v_eligibility = v_build.primary_discipline_id then');
+ d:=replace(d,'and v_source_discipline_id = v_build.secondary_discipline_id then','and v_eligibility = v_build.secondary_discipline_id then');
+ old:=$before$      from app_private.character_skill_unlocks unlock
+      where unlock.character_id = p_character_id$before$;
+ if strpos(d,old)=0 then raise exception 'EARNED_EQUIP_AUTHORITY_CONFLICT'; end if;
+ d:=replace(d,old,$after$      from app_private.character_discipline_skill_availability_v1(p_character_id) unlock
+      where unlock.eligibility_discipline_id=v_eligibility$after$);
+ old:=$before$        and exists(select 1 from app_private.character_discipline_skill_grants g where g.character_id=unlock.character_id and g.skill_id=unlock.skill_id and g.eligibility_discipline_id=v_source_discipline_id)$before$;
+ if strpos(d,old)=0 then raise exception 'EARNED_EQUIP_NATIVE_GUARD_CONFLICT'; end if;
+ d:=replace(d,old,'');
+ old:=E'    source_discipline_id,
+    equipped_at';
+ if strpos(d,old)=0 then raise exception 'EARNED_EQUIP_INSERT_CONFLICT'; end if;
+ d:=replace(d,old,E'    source_discipline_id,
+    eligibility_discipline_id,
+    equipped_at');
+ old:=$before$    element ->> 'sourceDisciplineId',
+    v_saved_at$before$;
+ if strpos(d,old)=0 then raise exception 'EARNED_EQUIP_INSERT_VALUE_CONFLICT'; end if;
+ d:=replace(d,old,$after$    element ->> 'sourceDisciplineId',
+    element ->> 'eligibilityDisciplineId',
+    v_saved_at$after$);
+ execute d;
+end; $migration$;
+
+-- Preserve selected eligibility when a build changes; retain the existing order
+-- while applying the same four-total/three-per-side current mixed capacity.
+create or replace function app_private.prune_character_discipline_skill_loadout_v1()
+returns trigger language plpgsql security definer set search_path='' as $$
+declare kept jsonb;
+begin
+ select coalesce(jsonb_agg(jsonb_build_object('skillId',x.skill_id,'contentVersion',x.skill_content_version,'sourceDisciplineId',x.source_discipline_id,'eligibilityDisciplineId',x.eligibility_discipline_id,'equippedAt',x.equipped_at) order by x.slot_index),'[]'::jsonb)
+ into kept from (
+  select ranked.* from (
+   select equipped.*,row_number() over(partition by equipped.eligibility_discipline_id order by equipped.slot_index) side_rank from app_private.character_build_discipline_skills equipped where equipped.character_id=new.character_id
+  ) ranked where (ranked.eligibility_discipline_id=new.primary_discipline_id or ranked.eligibility_discipline_id=new.secondary_discipline_id)
+  and ranked.side_rank<=case when new.secondary_discipline_id is null then 4 else 3 end
+  order by ranked.slot_index limit 4
+ ) x;
+ delete from app_private.character_build_discipline_skills where character_id=new.character_id;
+ insert into app_private.character_build_discipline_skills(character_id,slot_index,skill_id,skill_content_version,source_discipline_id,eligibility_discipline_id,equipped_at)
+ select new.character_id,ordinality::smallint,element->>'skillId',(element->>'contentVersion')::integer,element->>'sourceDisciplineId',element->>'eligibilityDisciplineId',(element->>'equippedAt')::timestamptz
+ from jsonb_array_elements(kept) with ordinality as selected(element,ordinality);
+ return new;
+end; $$;
+
+-- Actual serialization paths retain the intrinsic source and selected eligibility.
+do $migration$
+declare d text; old text; signature text;
+begin
+ foreach signature in array array[
+ 'public.save_character_discipline_skill_loadout_v1(uuid,uuid,bigint,jsonb,uuid,text)',
+ 'public.save_character_build_loadout_v1(uuid,uuid,smallint,text,bigint,uuid,text)',
+ 'public.activate_character_build_loadout_v1(uuid,uuid,smallint,bigint,uuid,text)',
+ 'public.get_character_committed_build_snapshot_v1(uuid,uuid)',
+ 'public.get_character_committed_build_snapshot_v2(uuid,uuid)'
+ ] loop
+  d:=pg_get_functiondef(signature::regprocedure);
+  old:=$before$'sourceDisciplineId', equipped.source_discipline_id$before$;
+  if strpos(d,old)=0 then raise exception 'EARNED_SERIALIZATION_PREDECESSOR_CONFLICT: %',signature; end if;
+  execute replace(d,old,old||$after$,'eligibilityDisciplineId',equipped.eligibility_discipline_id$after$);
+ end loop;
+ -- Stored historical omission means intrinsic/native eligibility. Materialize it
+ -- only in the activation's local working value, never rewrite the saved history.
+ d:=pg_get_functiondef('public.activate_character_build_loadout_v1(uuid,uuid,smallint,bigint,uuid,text)'::regprocedure);
+ old:='  v_change_primary :=';
+ if strpos(d,old)=0 then raise exception 'EARNED_SAVED_ACTIVATION_PREDECESSOR_CONFLICT'; end if;
+ d:=replace(d,old,$after$  select coalesce(jsonb_agg(case when element ? 'eligibilityDisciplineId' then element else element || jsonb_build_object('eligibilityDisciplineId',element->'sourceDisciplineId') end order by ordinality),'[]'::jsonb)
+  into v_loadout.discipline_skills from jsonb_array_elements(v_loadout.discipline_skills) with ordinality as selected(element,ordinality);
+  v_change_primary :=$after$);
+ execute d;
+end; $migration$;
+create function public.get_character_discipline_skill_loadout_v2(p_user_id uuid,p_character_id uuid)
+returns table(slot_index smallint,skill_id text,skill_content_version integer,source_discipline_id text,eligibility_discipline_id text,equipped_at timestamptz)
+language sql stable security definer set search_path='' as $$
+ select e.slot_index,e.skill_id,e.skill_content_version,e.source_discipline_id,e.eligibility_discipline_id,e.equipped_at from app_private.character_build_discipline_skills e join app_private.character_active_builds b on b.character_id=e.character_id where b.user_id=p_user_id and b.character_id=p_character_id order by e.slot_index;
+$$;
+revoke all on function public.get_character_discipline_skill_loadout_v2(uuid,uuid) from public,anon,authenticated;
+grant execute on function public.get_character_discipline_skill_loadout_v2(uuid,uuid) to service_role;
+revoke all on function app_private.default_native_skill_eligibility_v1(),app_private.resolve_skill_eligibility_v1(uuid,jsonb,text,text) from public,anon,authenticated,service_role;
 commit;
