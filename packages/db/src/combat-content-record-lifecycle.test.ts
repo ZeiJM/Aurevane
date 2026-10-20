@@ -450,3 +450,91 @@ it('create within Discipline retries atomically and stale parent creates no orph
   expect(await record('content.orphan')).toBeNull()
   expect((await record('content.test')).draft.definition.sourceDisciplineId).toBe('vanguard')
 })
+it('every legacy mutation overload checks actual authority before its precise retirement error', async () => {
+  const functions = (
+    await db.query<{ name: string; signature: string; args: string[]; types: string[] }>(
+      "select n.nspname||'.'||p.proname name,p.oid::regprocedure::text signature,p.proargnames args,array(select format_type(t,null) from unnest(p.proargtypes::oid[]) t) types from pg_proc p join pg_namespace n on n.oid=p.pronamespace where p.proname in ('save_combat_content_draft_v1','publish_combat_content_v1','publish_combat_content_v2','publish_combat_content_v3','set_combat_content_publication_v1','set_combat_content_publication_v2','publish_combat_content_with_floor_v1')",
+    )
+  ).rows
+  expect(functions).toHaveLength(14)
+  for (const fn of functions) {
+    const values: unknown[] = fn.types.map((type, index) =>
+      fn.args[index] === 'p_actor_user_id'
+        ? owner
+        : fn.args[index] === 'p_actor_character_id'
+          ? null
+          : type === 'text'
+            ? 'content.retired'
+            : type === 'jsonb'
+              ? { id: 'content.retired' }
+              : null,
+    )
+    const sql = `select * from ${fn.name}(${fn.types.map((type, index) => `$${index + 1}::${type}`).join(',')})`
+    await denied(
+      () => db.query(sql, values),
+      fn.name.includes('publication')
+        ? /RESTORE_TO_DRAFT_REQUIRED/
+        : fn.name.includes('save_')
+          ? /COMPLETE_RECORD_REQUIRED/
+          : /SAVED_REVISION_REQUIRED/,
+    )
+    values[0] = other
+    await denied(() => db.query(sql, values), /OPERATOR_REQUIRED/)
+  }
+})
+it('combined actor inventory includes original33 Players4 Content4 with private helpers inaccessible', async () => {
+  expect(
+    (
+      await db.query(
+        "select p.oid from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','app_private') and 'p_actor_character_id'=any(p.proargnames)",
+      )
+    ).rows,
+  ).toHaveLength(41)
+  const helpers = (
+    await db.query<{ allowed: boolean }>(
+      "select has_function_privilege('service_role',p.oid,'execute') allowed from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='app_private' and (p.proname like '%combat_content%' or p.proname='validate_noncombat_content_v1') and p.proname<>'prevent_combat_content_version_mutation_v1'",
+    )
+  ).rows
+  expect(helpers.every((r) => !r.allowed)).toBe(true)
+})
+it('executes the complete native Staff fixture with all 41 real actor contracts on the current migration chain', async () => {
+  const outsider = '00000000-0000-4000-8000-000000000003'
+  const alternate = '00000000-0000-4000-8000-000000000012'
+  await db.exec(`insert into auth.users(id,email,email_confirmed_at) values('${outsider}','outsider@example.test',now());
+    insert into app_private.master_panel_role_assignments(user_id,role) values('${other}','content-staff');
+    insert into public.characters(id,user_id,slot_index,rules_version,name,name_key,presentation_id,pronoun_preset_id,portrait_ref,starter_appearance_ref,foundation_discipline_id,might,finesse,vitality,agility,intellect,resolve,level,xp,progression_cycle,created_at,cycle_started_at,last_active_at)
+    values('${alternate}','${other}',1,1,'Alternate Player','alternate-player','default','they','portrait','appearance','vanguard',12,4,7,4,3,6,1,0,1,now(),now(),now());`)
+  await db.query(
+    `select set_config('task8.owner',$1,true),set_config('task8.staff',$2,true),set_config('task8.other',$3,true),set_config('task8.character',$4,true),set_config('task8.alternate',$5,true),set_config('task8.character_name','Test Player',true)`,
+    [owner, other, outsider, character, alternate],
+  )
+  await db.exec(
+    readFileSync(
+      resolve(root, '../../.github/scripts/verify-master-panel-staff-authority.sql'),
+      'utf8',
+    ),
+  )
+})
+it('native concurrency rollback snapshot reads the complete actual content and player tables', async () => {
+  const script = readFileSync(
+    resolve(root, '../../.github/scripts/verify-combat-catalogue-concurrency.sh'),
+    'utf8',
+  )
+  const expression = script.match(/state_expression="([\s\S]*?)"\nwait_for_query/)?.[1]
+  expect(expression).toBeDefined()
+  const result = (await db.query<{ state: string }>(`select ${expression} state`)).rows[0]!.state
+  expect(Object.keys(JSON.parse(result))).toEqual(
+    expect.arrayContaining([
+      'records',
+      'requests',
+      'links',
+      'attribution',
+      'characters',
+      'earned',
+      'equipped',
+      'saved',
+      'builds',
+      'phase4',
+    ]),
+  )
+})
