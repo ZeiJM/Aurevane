@@ -6,6 +6,8 @@ export interface DisciplineSkillReference {
   readonly skillId: string
   readonly contentVersion: number
   readonly sourceDisciplineId: string
+  /** Selected earned grant; historical omission retains intrinsic/native eligibility. */
+  readonly eligibilityDisciplineId?: string
 }
 
 export interface DisciplineSkillLoadoutIssue {
@@ -36,16 +38,27 @@ export function disciplineSkillCapacity(secondaryDisciplineId: string | null): n
     : MIXED_DISCIPLINE_SKILL_CAPACITY
 }
 
+/** A present malformed pin never falls back to intrinsic source. */
+export function disciplineSkillEligibilityId(reference: DisciplineSkillReference): string | null {
+  const value = Object.hasOwn(reference, 'eligibilityDisciplineId')
+    ? reference.eligibilityDisciplineId
+    : reference.sourceDisciplineId
+  return typeof value === 'string' && STABLE_ID_PATTERN.test(value) ? value : null
+}
+
 function key(reference: DisciplineSkillReference): string {
-  return `${reference.skillId}:${reference.contentVersion}:${reference.sourceDisciplineId}`
+  return `${reference.skillId}:${reference.contentVersion}:${reference.sourceDisciplineId}:${disciplineSkillEligibilityId(reference)}`
 }
 
 function validReference(reference: DisciplineSkillReference): boolean {
   return (
+    typeof reference.skillId === 'string' &&
     STABLE_ID_PATTERN.test(reference.skillId) &&
     Number.isSafeInteger(reference.contentVersion) &&
     reference.contentVersion > 0 &&
-    STABLE_ID_PATTERN.test(reference.sourceDisciplineId)
+    typeof reference.sourceDisciplineId === 'string' &&
+    STABLE_ID_PATTERN.test(reference.sourceDisciplineId) &&
+    disciplineSkillEligibilityId(reference) !== null
   )
 }
 
@@ -63,10 +76,10 @@ export function validateDisciplineSkillLoadout(
 
   if (input.secondaryDisciplineId !== null) {
     const primaryCount = input.equipped.filter(
-      (reference) => reference.sourceDisciplineId === input.primaryDisciplineId,
+      (reference) => disciplineSkillEligibilityId(reference) === input.primaryDisciplineId,
     ).length
     const secondaryCount = input.equipped.filter(
-      (reference) => reference.sourceDisciplineId === input.secondaryDisciplineId,
+      (reference) => disciplineSkillEligibilityId(reference) === input.secondaryDisciplineId,
     ).length
 
     if (primaryCount > MIXED_DISCIPLINE_SKILL_SOURCE_CAPACITY) {
@@ -94,7 +107,7 @@ export function validateDisciplineSkillLoadout(
       ? [input.primaryDisciplineId]
       : [input.primaryDisciplineId, input.secondaryDisciplineId],
   )
-  const learned = new Set(input.learned.map(key))
+  const learned = new Set(input.learned.filter(validReference).map(key))
   const seen = new Set<string>()
 
   for (const reference of input.equipped) {
@@ -115,17 +128,17 @@ export function validateDisciplineSkillLoadout(
     }
     seen.add(reference.skillId)
 
-    if (!allowedSources.has(reference.sourceDisciplineId)) {
+    if (!allowedSources.has(disciplineSkillEligibilityId(reference)!)) {
       issues.push({
         code: 'inactive-skill-source',
-        message: 'That Technique does not come from an active Discipline.',
+        message: 'That Technique has no selected eligibility in an active Discipline.',
         skillId: reference.skillId,
       })
     }
     if (!learned.has(key(reference))) {
       issues.push({
         code: 'skill-not-learned',
-        message: 'That Discipline Technique has not been learned for this character.',
+        message: 'That Discipline Technique has not been learned through the selected Discipline.',
         skillId: reference.skillId,
       })
     }
