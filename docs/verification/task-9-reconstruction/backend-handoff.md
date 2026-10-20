@@ -1,8 +1,8 @@
-# Accepted Players backend handoff for Game Content Stage A
+# Accepted Players source and native producer handoff
 
-This accepts the bounded backend producer for independent Task10 StageA work. Task9 as a whole remains OPEN for exact-head native browser/quality and final acceptance. It is not permission to merge, migrate hosted data or deploy.
+Current final reviewed source59b63728/remote43ff3cad passes native database, complete quality, UI layout and the full Browser workflow. This accepts its source/native producer for Task10 integration; physical-device/zoom, hosted signed-in/multiplayer, human and final shared-shell acceptance remain separate. No main merge, hosted mutation or deployment is authorized. Earlier staged notes below retain their source-specific history; the final confirmation supersedes their pending native statuses.
 
-Reviewed source: local `3a791c060efda502f8f5cb03dc052a5aefaefb9c`, exact remote `aa971de38eae662caf95c2bb12309e1068298c87`, tree `61d2718f84c35e4f32c86ee4abe5c50985de7ff9`. Original full review and all three scoped repair reviews have no remaining Critical/Important source findings. Deferred Minors remain recorded.
+Initial bounded handoff source (historical): local `3a791c060efda502f8f5cb03dc052a5aefaefb9c`, exact remote `aa971de38eae662caf95c2bb12309e1068298c87`, tree `61d2718f84c35e4f32c86ee4abe5c50985de7ff9`. Original full review and all three scoped repair reviews have no remaining Critical/Important source findings. Deferred Minors remain recorded.
 
 Actual native PostgreSQL job118843150721/run39485042827 at remotea56/locald2 passes unchanged migrations, selected Staff authority/explicit37 actor RPC inventory, all physical Players completion/recovery/admission/trial races and every subsequent Event/reward/cleanup/profile/deletion/progression/API/catalogue check. Round3 changes only E2E fixtures/tests/evidence; production Web source, game core, migration and native scripts remain byte-identical. Round3 adds4 focused actual-chain guard cases;39skipped. Prior a0 native11947Vitest+7Node and current d2 local2/2 executed builds remain separately identified. The unchanged combat timeout's narrow rerun passes2 cases/322skips; this does not turn native quality green.
 
@@ -33,3 +33,9 @@ Current exact43ff native quality also succeeds: job118889547386/CI39498465457 ex
 ## Dedicated native Players interaction confirmation under Content guards
 
 Completed Content Browser39500389417/job118896090839 at exact65f73b/dede runs the unchanged reviewed59b63728 Players E2E twice. Both repetitions pass the complete correction/denial/PvE/PvP/participant/spectator recovery scenario; the early group reports6pass and only2 legacy Content publication failures. Root verifies the Players E2E diff59..dede is empty. This closes the dedicated N5 interaction blocker on that descendant source. The overall Content Browser is failed at its old editor's Confirm publish400, consistent with the declared StageD migration boundary; the exact43ff full Browser remains running. Physical/device/hosted/human acceptance and final shared-shell composition are still open.
+
+## Final exact-source browser confirmation
+
+Browser39498465423/job118889547171 SUCCEEDS at exact43ff/59, completed22:44:40UTC. The early Master/Staff/Players/keyboard group passes8 cases, including both full Players correction/PvE/PvP/participant/spectator/recovery/denial repetitions. Full Chromium passes360 with282 project-specific skips; focused73/21skip; Edge10/2skip. Password recovery6 and training3 also pass. The dedicated Players test executes in desktop-chromium and checks its five viewport variants including CSS2x; laptop/mobile project entries are explicitly skipped, so this is not physical browser zoom/touch evidence.
+
+Complete sanitized transcript and deterministic hashes are in native-fix5-browser-success.log.gz/native-completion-artifacts.json. Three WebServer destination-stream-close error lines remain visible despite successful assertions; no zero-error runtime or hosted acceptance is claimed. Source review and every native gate on final43 are green. The individual N4 timing/reliability concern and final integrated frozen gate remain Task13 carry-forwards; no performance fix is claimed.
