@@ -1,0 +1,279 @@
+{
+  "schemaVersion": 1,
+  "status": "live-for-testing",
+  "releasedAt": "2026-10-20T18:16:35.478Z",
+  "application": {
+    "url": "https://aurevane.vercel.app",
+    "pr": 950,
+    "testedHead": "b57ab0ffc9e998f42c790e551fe13e2298260d14",
+    "mergeSha": "7d39fc4177f610584c8595e535219c7735de38dc",
+    "tree": "6dc86bcf1f2b25c276c3bcc5c955545de5a40edc",
+    "deploymentId": "dpl_DS9yCyuaWz6z5s1GexCmxP67EQT6",
+    "readyAt": "2026-10-20T18:13:17.988Z",
+    "canonicalAliasVerified": true,
+    "gitAutoDeploymentsLocked": true
+  },
+  "validation": {
+    "all13WorkflowsGreenAt": "2026-10-20T18:10:43.780Z",
+    "workflowRuns": [
+      {
+        "id": 39294888975,
+        "name": "Profile Skill Build",
+        "conclusion": "success"
+      },
+      {
+        "id": 39294888903,
+        "name": "Shared Build Snapshots",
+        "conclusion": "success"
+      },
+      {
+        "id": 39294888688,
+        "name": "Resonance Build",
+        "conclusion": "success"
+      },
+      {
+        "id": 39294888863,
+        "name": "Skill Engine",
+        "conclusion": "success"
+      },
+      {
+        "id": 39294888681,
+        "name": "Essence Build",
+        "conclusion": "success"
+      },
+      {
+        "id": 39294888741,
+        "name": "Modular ability readers browser",
+        "conclusion": "success"
+      },
+      {
+        "id": 39294889187,
+        "name": "Controlled combat browser",
+        "conclusion": "success"
+      },
+      {
+        "id": 39294888696,
+        "name": "Desktop experience",
+        "conclusion": "success"
+      },
+      {
+        "id": 39294888950,
+        "name": "Representative Buildcraft",
+        "conclusion": "success"
+      },
+      {
+        "id": 39294889074,
+        "name": "Desktop page fit",
+        "conclusion": "success"
+      },
+      {
+        "id": 39294888768,
+        "name": "UI layout review",
+        "conclusion": "success"
+      },
+      {
+        "id": 39294888896,
+        "name": "Browser smoke",
+        "conclusion": "success"
+      },
+      {
+        "id": 39294888803,
+        "name": "CI",
+        "conclusion": "success"
+      }
+    ],
+    "qualityRunAttempt": 2,
+    "vitestPassed": 11829,
+    "nodePassed": 7,
+    "chromium": {
+      "passed": 358,
+      "skipped": 278
+    },
+    "focusedChromium": {
+      "passed": 73,
+      "skipped": 21
+    },
+    "edge": {
+      "passed": 10,
+      "skipped": 2
+    },
+    "simpleRequirementsBrowserCases": 22,
+    "primedBrowserCases": 6,
+    "controlledBrowserCases": 57,
+    "simpleRequirementsArtifact": {
+      "id": 12207118300,
+      "sha256": "eb1b6043f536c948c6608c5136d7e8420969168e0cd433bac9923e22d17056f0",
+      "desktopAndMobileVisuallyReviewed": true
+    }
+  },
+  "boundControls": {
+    "publication": {
+      "mode": "publication",
+      "state": null,
+      "records": 166,
+      "appendedByKind": {
+        "basic": 2,
+        "skill": 24,
+        "essence": 4,
+        "resonance": 136
+      },
+      "historyBefore": 787,
+      "historyAfter": 953,
+      "unchangedCurrent": 128,
+      "candidateSha256": "7f2baf49ec379b3367dfe88a81058ae6865d76f7db49f0154b8b3a67efaa41fa",
+      "designSha256": "2e0820b5766a53209f07ff1ac85cb14ecb173fa7648da7cb43d1f7cf9113e9e4",
+      "effectiveBaselineSha256": "f819952f307127cf1c487b9e5f252cd657bea6dd582f45c4e81637e55963b687",
+      "sourceSha": "7d39fc4177f610584c8595e535219c7735de38dc",
+      "bytes": 1671888,
+      "sha256": "633fbec3b65b68d16bd6e6e3d8a913163fc0b597045a72ce532a8780e4f5530e",
+      "characters": 1671796
+    },
+    "readback": {
+      "mode": "readback",
+      "state": "published",
+      "records": 166,
+      "appendedByKind": {
+        "basic": 2,
+        "skill": 24,
+        "essence": 4,
+        "resonance": 136
+      },
+      "historyBefore": 953,
+      "historyAfter": 953,
+      "unchangedCurrent": 128,
+      "candidateSha256": "7f2baf49ec379b3367dfe88a81058ae6865d76f7db49f0154b8b3a67efaa41fa",
+      "designSha256": "2e0820b5766a53209f07ff1ac85cb14ecb173fa7648da7cb43d1f7cf9113e9e4",
+      "effectiveBaselineSha256": "f819952f307127cf1c487b9e5f252cd657bea6dd582f45c4e81637e55963b687",
+      "sourceSha": "7d39fc4177f610584c8595e535219c7735de38dc",
+      "bytes": 1667576,
+      "sha256": "6d57fc62eccdb96cea2aee608b24710733b12dfd9fe2493e968c05744e0f0221",
+      "characters": 1667484
+    }
+  },
+  "publication": {
+    "mode": "publication",
+    "token": "b3df8a78450eea4bf00c352fcf306f9d",
+    "drafts": 0,
+    "policy": {
+      "modes": {
+        "summon": "instant",
+        "displace": "instant",
+        "mp-drain": "instant",
+        "blindside": "instant",
+        "remove-status": "instant",
+        "barrier-change": "instant",
+        "return-to-turn-start": "controlled"
+      },
+      "version": 8,
+      "tagAuthority": "global"
+    },
+    "current": 294,
+    "history": 953,
+    "hashFormat": "md5-postgresql-jsonb-text; exact JSONB equality is authoritative",
+    "currentHash": "de404a1bbdc7e3fc4829e5c5b7cc6d1b",
+    "historyHash": "e65743b7155978d5ac015ae9439b0ac5",
+    "designSha256": "2e0820b5766a53209f07ff1ac85cb14ecb173fa7648da7cb43d1f7cf9113e9e4",
+    "candidateSha256": "7f2baf49ec379b3367dfe88a81058ae6865d76f7db49f0154b8b3a67efaa41fa",
+    "compatibleSourceSha": "7d39fc4177f610584c8595e535219c7735de38dc",
+    "effectiveBaselineSha256": "f819952f307127cf1c487b9e5f252cd657bea6dd582f45c4e81637e55963b687"
+  },
+  "readback": {
+    "state": "published",
+    "token": "b3df8a78450eea4bf00c352fcf306f9d",
+    "drafts": 0,
+    "policy": {
+      "modes": {
+        "summon": "instant",
+        "displace": "instant",
+        "mp-drain": "instant",
+        "blindside": "instant",
+        "remove-status": "instant",
+        "barrier-change": "instant",
+        "return-to-turn-start": "controlled"
+      },
+      "version": 8,
+      "tagAuthority": "global"
+    },
+    "current": 294,
+    "history": 953,
+    "hashFormat": "md5-postgresql-jsonb-text; exact JSONB equality is authoritative",
+    "mismatches": [],
+    "designSha256": "2e0820b5766a53209f07ff1ac85cb14ecb173fa7648da7cb43d1f7cf9113e9e4",
+    "history_hash": "e65743b7155978d5ac015ae9439b0ac5",
+    "exact_current": 294,
+    "policy_matches": true,
+    "candidateSha256": "7f2baf49ec379b3367dfe88a81058ae6865d76f7db49f0154b8b3a67efaa41fa",
+    "exact_untouched": 128,
+    "expected_changed": 166,
+    "expected_current": 294,
+    "expected_history": 953,
+    "expected_untouched": 128,
+    "actual_current_hash": "de404a1bbdc7e3fc4829e5c5b7cc6d1b",
+    "compatibleSourceSha": "7d39fc4177f610584c8595e535219c7735de38dc",
+    "expected_current_hash": "de404a1bbdc7e3fc4829e5c5b7cc6d1b",
+    "current_mismatch_count": 0,
+    "effectiveBaselineSha256": "f819952f307127cf1c487b9e5f252cd657bea6dd582f45c4e81637e55963b687",
+    "new_history_mismatch_count": 0,
+    "old_history_mismatch_count": 0
+  },
+  "readbackAt": "2026-10-20T18:17:41.237Z",
+  "health": [
+    {
+      "path": "/",
+      "success": true,
+      "status": 200,
+      "characters": 18397
+    },
+    {
+      "path": "/manual",
+      "success": true,
+      "status": 200,
+      "characters": 46940
+    },
+    {
+      "path": "/manual/techniques-damage-effects",
+      "success": true,
+      "status": 200,
+      "characters": 732457
+    },
+    {
+      "path": "/rules",
+      "success": true,
+      "status": 200,
+      "characters": 35895
+    },
+    {
+      "path": "/api/foundation/auth-status",
+      "success": true,
+      "status": 200,
+      "characters": 23
+    },
+    {
+      "path": "/game/world",
+      "success": true,
+      "status": 200,
+      "characters": 18238
+    },
+    {
+      "path": "/game/character",
+      "success": true,
+      "status": 200,
+      "characters": 18238
+    }
+  ],
+  "initialRuntimeScan": {
+    "from": "2026-10-20T18:13:17.988Z",
+    "through": "2026-10-20T18:17:54.168Z",
+    "levels": ["warning", "error", "fatal"],
+    "matchingLogs": 0
+  },
+  "acceptance": {
+    "hostedSignedIn": false,
+    "physicalDevice": false,
+    "multiplayer": false,
+    "load": false,
+    "ownerGameplay": false,
+    "broaderMasterTask8": "open",
+    "worldMovementAcceptance": "open"
+  }
+}
