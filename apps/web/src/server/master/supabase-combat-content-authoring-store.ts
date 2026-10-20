@@ -359,6 +359,47 @@ export class RpcCombatContentAuthoringStore implements CombatContentAuthoringSto
         throw new AurevaneError('INVALID_REQUEST', EFFECT_PROFILE_AUTHORING_BLOCKER.message)
       if (source?.contentKind === 'status' && command.action === 'save')
         parseStoredStatusDefinition(command.definition)
+      if (source?.contentKind === 'status' && command.action === 'restore') {
+        // The displayed history is bounded. Validate the exact immutable source, not
+        // just those recent entries, before SQL can commit it as the editable draft.
+        const { data, error } = await this.#rpc('read_combat_content_version_v1', {
+          p_content_key: contentKey,
+          p_content_kind: 'status',
+          p_content_version: command.sourceVersion,
+        })
+        if (error) mapRpcError(error)
+        const historical = parseSingleVersion(data)
+        if (!historical)
+          throw new AurevaneError(
+            'INVALID_REQUEST',
+            'That historical Status version does not exist. Choose an available version.',
+          )
+        if (
+          historical.contentKey !== contentKey ||
+          historical.contentKind !== 'status' ||
+          historical.contentVersion !== command.sourceVersion
+        )
+          throw new AurevaneError(
+            'PERSISTENCE_UNAVAILABLE',
+            'The server returned a different historical Status version.',
+          )
+        try {
+          const definition = parseStoredStatusDefinition(historical.definition)
+          if (
+            definition.id !== contentKey ||
+            (definition.contentVersion !== undefined &&
+              definition.contentVersion !== historical.contentVersion)
+          )
+            throw new TypeError('Invalid historical Status identity.')
+        } catch (cause) {
+          throw new AurevaneError(
+            'INVALID_REQUEST',
+            'This historical Status version is unsupported for restoration. Choose a supported version or edit the current draft; the original history is retained.',
+            { cause },
+          )
+        }
+        // The mutation below still receives the caller's original expectedRevision.
+      }
     }
     const { data, error } = await this.#rpc('write_combat_content_record_v1', {
       p_actor_user_id: this.#actorUserId,

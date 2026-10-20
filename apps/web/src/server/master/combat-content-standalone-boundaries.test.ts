@@ -135,8 +135,8 @@ it('retained Effect Profile catalogue entry has no runtime authority and exact h
   )
   expect(JSON.stringify(history[0]?.definition)).toBe(JSON.stringify(opaque))
 })
-it('malformed retained Effect Profile identity fails closed without inventing a profile schema', () => {
-  const row = { ...published('effect-profile', opaque), contentKey: 'another.profile' }
+it('malformed retained Effect Profile envelope fails closed without inventing a profile schema', () => {
+  const row = { ...published('effect-profile', opaque), contentKey: '' }
   expect(() => resolveCombatContentCatalogueSnapshot(snapshot([row]))).toThrow()
 })
 it('an unrelated saved Skill still publishes with an opaque retained Effect Profile in the current snapshot', async () => {

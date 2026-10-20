@@ -99,13 +99,11 @@ export function retainOpaqueEffectProfile(
 ): CombatContentDefinition {
   if (
     !object(value) ||
-    value.id !== key ||
-    !text(value.id, 160) ||
-    (value.contentVersion !== undefined &&
-      (!Number.isSafeInteger(value.contentVersion) ||
-        (value.contentVersion as number) < 1 ||
-        (version !== undefined && value.contentVersion !== version)))
+    !text(key, 160) ||
+    (version !== undefined && (!Number.isSafeInteger(version) || version < 1))
   )
-    throw new TypeError('Invalid retained Effect Profile identity.')
+    throw new TypeError('Invalid retained Effect Profile envelope.')
+  // Predecessor publication allowed every object. Body fields, even id/contentVersion,
+  // are opaque data: only the stored envelope identifies this non-runtime record.
   return structuredClone(value)
 }
