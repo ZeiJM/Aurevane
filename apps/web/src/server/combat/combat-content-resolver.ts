@@ -33,6 +33,7 @@ import {
   currentEssenceDefinitions,
   resolveEssenceForBuild,
   type EssenceDefinition,
+  type EssenceSnapshotReference,
 } from '@aurevane/game-core/combat/essence'
 import { combatActionPresentationTags } from '@aurevane/game-core/combat/gameplay-tags'
 import {
@@ -44,6 +45,7 @@ import {
   currentResonanceDefinitions,
   resolveResonanceForPair,
   type AnyResonanceDefinition,
+  type ResonanceSnapshotReference,
 } from '@aurevane/game-core/combat/resonance'
 import { AurevaneError } from '@aurevane/game-core/errors'
 
@@ -127,7 +129,18 @@ export interface CombatContentCatalogue {
   readonly entries: readonly CombatContentCatalogueEntry[]
 }
 
+export interface CurrentDisciplineSelection {
+  readonly selectionVersion: 1
+  readonly catalogueToken: string
+  readonly essence: EssenceSnapshotReference | null
+  readonly resonance: ResonanceSnapshotReference | null
+}
+
 export interface PublishedCombatContentSource {
+  readCurrentDisciplineSelection?(
+    primary: string,
+    secondary: string | null,
+  ): Promise<CurrentDisciplineSelection>
   readCatalogueSnapshot?(): Promise<PublishedCombatContentCatalogueSnapshot>
   findCurrentSkill(contentKey: string): Promise<CombatContentVersionRecord | null>
   findCurrentSkills?(contentKeys: readonly string[]): Promise<readonly CombatContentVersionRecord[]>
@@ -233,6 +246,69 @@ export class RpcPublishedCombatContentSource implements PublishedCombatContentSo
 
   constructor(rpc: RpcExecutor) {
     this.#rpc = rpc
+  }
+
+  async readCurrentDisciplineSelection(
+    primary: string,
+    secondary: string | null,
+  ): Promise<CurrentDisciplineSelection> {
+    const { data, error } = await this.#rpc('read_current_discipline_selection_v1', {
+      p_primary_discipline_id: primary,
+      p_secondary_discipline_id: secondary,
+    })
+    if (error) mapRpcFailure(error)
+    const invalid = () =>
+      new AurevaneError('PERSISTENCE_UNAVAILABLE', 'The current Discipline selection is invalid.')
+    if (
+      !isObject(data) ||
+      data.selectionVersion !== 1 ||
+      typeof data.catalogueToken !== 'string' ||
+      !/^[a-f0-9]{32}$/.test(data.catalogueToken) ||
+      Object.keys(data).some(
+        (key) => !['selectionVersion', 'catalogueToken', 'essence', 'resonance'].includes(key),
+      )
+    )
+      throw invalid()
+    const essence = data.essence
+    const resonance = data.resonance
+    if (
+      essence !== null &&
+      (!isObject(essence) ||
+        secondary !== null ||
+        !requiredString(essence.essenceId) ||
+        !positiveInteger(essence.contentVersion) ||
+        essence.sourceDisciplineId !== primary ||
+        essence.skillId !== essence.essenceId ||
+        essence.skillContentVersion !== essence.contentVersion ||
+        Object.keys(essence).some(
+          (key) =>
+            ![
+              'essenceId',
+              'contentVersion',
+              'sourceDisciplineId',
+              'skillId',
+              'skillContentVersion',
+            ].includes(key),
+        ))
+    )
+      throw invalid()
+    const pair = secondary === null ? null : [primary, secondary].sort()
+    if (
+      resonance !== null &&
+      (!isObject(resonance) ||
+        secondary === null ||
+        secondary === primary ||
+        !requiredString(resonance.resonanceId) ||
+        !positiveInteger(resonance.contentVersion) ||
+        !Array.isArray(resonance.disciplinePair) ||
+        resonance.disciplinePair.length !== 2 ||
+        resonance.disciplinePair.some((id, index) => id !== pair![index]) ||
+        Object.keys(resonance).some(
+          (key) => !['resonanceId', 'contentVersion', 'disciplinePair'].includes(key),
+        ))
+    )
+      throw invalid()
+    return structuredClone(data) as unknown as CurrentDisciplineSelection
   }
 
   async readCatalogueSnapshot(): Promise<PublishedCombatContentCatalogueSnapshot> {
@@ -508,6 +584,25 @@ export function createCombatContentResolver(
             }
             const frozen = createCombatContentResolver({
               readCatalogueSnapshot: async () => structuredClone(snapshot),
+              ...(source.readCurrentDisciplineSelection
+                ? {
+                    readCurrentDisciplineSelection: async (
+                      primary: string,
+                      secondary: string | null,
+                    ) => {
+                      const selected = await source.readCurrentDisciplineSelection!(
+                        primary,
+                        secondary,
+                      )
+                      if (selected.catalogueToken !== snapshot.token)
+                        throw new AurevaneError(
+                          'STALE_VERSION',
+                          'The combat catalogue changed. Refresh your build and retry.',
+                        )
+                      return selected
+                    },
+                  }
+                : {}),
               findCurrentSkill: async (key) => structuredClone(current(key, 'skill')),
               findCurrentSkills: async (keys) =>
                 keys
@@ -583,6 +678,35 @@ export function createCombatContentResolver(
       return fallback ? structuredClone(fallback) : null
     },
     async resolveCurrentEssenceDefinition(primaryDisciplineId, secondaryDisciplineId) {
+      if (source.readCurrentDisciplineSelection) {
+        const reference = (
+          await source.readCurrentDisciplineSelection(primaryDisciplineId, secondaryDisciplineId)
+        ).essence
+        if (!reference) return null
+        const published = await source.findContentVersion?.(
+          reference.essenceId,
+          'essence',
+          reference.contentVersion,
+        )
+        const definition = published
+          ? validatePublishedEssence(published, reference.essenceId, reference.contentVersion)
+          : resolveEssenceForBuild(
+              primaryDisciplineId,
+              secondaryDisciplineId,
+              reference.contentVersion,
+            )
+        if (
+          !definition ||
+          definition.essenceId !== reference.essenceId ||
+          definition.sourceDisciplineId !== primaryDisciplineId ||
+          !definition.enabled ||
+          !definition.skill.enabled
+        )
+          throw new InvalidPublishedCombatContentError(
+            'The selected Essence is unavailable for this build.',
+          )
+        return structuredClone(definition)
+      }
       const fallback = resolveEssenceForBuild(primaryDisciplineId, secondaryDisciplineId)
       if (!fallback) return null
       const published = source.findCurrentContent
@@ -608,6 +732,34 @@ export function createCombatContentResolver(
     },
 
     async resolveCurrentResonanceDefinition(primaryDisciplineId, secondaryDisciplineId) {
+      if (source.readCurrentDisciplineSelection) {
+        const reference = (
+          await source.readCurrentDisciplineSelection(primaryDisciplineId, secondaryDisciplineId)
+        ).resonance
+        if (!reference) return null
+        const published = await source.findContentVersion?.(
+          reference.resonanceId,
+          'resonance',
+          reference.contentVersion,
+        )
+        const definition = published
+          ? validatePublishedResonance(published, reference.resonanceId, reference.contentVersion)
+          : resolveResonanceForPair(
+              primaryDisciplineId,
+              secondaryDisciplineId,
+              reference.contentVersion,
+            )
+        if (
+          !definition ||
+          definition.id !== reference.resonanceId ||
+          !definition.enabled ||
+          definition.disciplinePair.some((id, index) => id !== reference.disciplinePair[index])
+        )
+          throw new InvalidPublishedCombatContentError(
+            'The selected Resonance is unavailable for this build.',
+          )
+        return structuredClone(definition)
+      }
       const fallback = resolveResonanceForPair(primaryDisciplineId, secondaryDisciplineId)
       if (!fallback) return null
       const published = source.findCurrentContent

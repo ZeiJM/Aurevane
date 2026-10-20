@@ -1,5 +1,7 @@
 import { readFileSync, readdirSync } from 'node:fs'
 import { resolve } from 'node:path'
+import { resolveResonanceForPair } from '../../game-core/src/combat/resonance'
+import { resolveEssenceForBuild } from '../../game-core/src/combat/essence'
 import { PGlite } from '@electric-sql/pglite'
 import { beforeAll, afterAll, beforeEach, afterEach, expect, it } from 'vitest'
 const root = resolve(process.cwd(), '../../supabase/migrations')
@@ -549,4 +551,273 @@ it('new Discipline projection helpers and current-pointer storage have no browse
       )
     ).rows[0]!.relrowsecurity,
   ).toBe(true)
+})
+
+async function publishAuxiliary(
+  kind: 'essence' | 'resonance',
+  id: string,
+  changes: Record<string, unknown> = {},
+) {
+  const native =
+    kind === 'resonance'
+      ? resolveResonanceForPair('vanguard', 'lifebinder')!
+      : resolveEssenceForBuild('vanguard', null)!
+  const definition =
+    kind === 'resonance'
+      ? { ...native, id, ...changes }
+      : {
+          ...native,
+          essenceId: id,
+          skill: { ...(native as ReturnType<typeof resolveEssenceForBuild>)!.skill, id },
+          ...changes,
+        }
+  const saved = await write(id, {
+    action: 'create',
+    requestId: crypto.randomUUID(),
+    contentKind: kind,
+    definition,
+  })
+  return publish(id, saved.draft.draftVersion, null)
+}
+async function publishNativeDiscipline(
+  id: string,
+  changes: Record<string, unknown> = {},
+  expectedToken?: string,
+) {
+  const domain = (
+    await db.query<{
+      name: string
+      summary: string
+      core_base_attributes: object
+      focus_attributes: string[]
+    }>(
+      'select d.name,d.summary,p.core_base_attributes,p.focus_attributes from app_private.current_discipline_definitions_v1() d join app_private.discipline_primary_profiles p on p.discipline_id=d.discipline_id and p.profile_version=d.primary_profile_version where d.discipline_id=$1',
+      [id],
+    )
+  ).rows[0]!
+  const definition = {
+    ...authored,
+    id,
+    name: domain.name,
+    description: domain.summary,
+    core: domain.core_base_attributes,
+    focus: domain.focus_attributes,
+    ...changes,
+  }
+  const exists =
+    (await db.query('select 1 from app_private.combat_content_records where content_key=$1', [id]))
+      .rows.length > 0
+  const prior = exists ? await record(id) : null
+  const saved = await write(
+    id,
+    prior
+      ? { action: 'save', expectedRevision: prior.revision, definition }
+      : { action: 'create', requestId: crypto.randomUUID(), contentKind: 'discipline', definition },
+  )
+  return publish(
+    id,
+    saved.draft.draftVersion,
+    prior?.current?.contentVersion ?? null,
+    1,
+    expectedToken,
+  )
+}
+async function pairReference(a = 'vanguard', b = 'lifebinder') {
+  return (
+    await db.query<{ value: { resonanceId: string; contentVersion: number } | null }>(
+      'select app_private.resolve_resonance_reference_v1($1,$2) value',
+      [a, b],
+    )
+  ).rows[0]!.value
+}
+it('actual SQL current extensions follow explicit custom identities and current publication versions in either pair order', async () => {
+  const resonance = await publishAuxiliary('resonance', 'resonance.authored')
+  const essence = await publishAuxiliary('essence', 'essence.authored')
+  await publishNativeDiscipline('vanguard', {
+    essenceId: 'essence.authored',
+    resonanceSelections: [{ withDisciplineId: 'lifebinder', resonanceId: 'resonance.authored' }],
+  })
+  for (const pair of [
+    ['vanguard', 'lifebinder'],
+    ['lifebinder', 'vanguard'],
+  ]) {
+    expect(await pairReference(pair[0], pair[1])).toMatchObject({
+      resonanceId: 'resonance.authored',
+      contentVersion: resonance.current.contentVersion,
+    })
+  }
+  expect(
+    (
+      await db.query<{ value: unknown }>(
+        "select app_private.resolve_essence_reference_v1('vanguard',null) value",
+      )
+    ).rows[0]!.value,
+  ).toMatchObject({
+    essenceId: 'essence.authored',
+    contentVersion: essence.current.contentVersion,
+    skillContentVersion: essence.current.contentVersion,
+  })
+  expect(
+    (
+      await db.query<{ value: unknown }>(
+        "select app_private.resolve_essence_reference_v1('vanguard','lifebinder') value",
+      )
+    ).rows[0]!.value,
+  ).toBeNull()
+})
+it.each([
+  ['vanguard', 'lifebinder'],
+  ['lifebinder', 'vanguard'],
+])(
+  'conflicting published pair declarations block atomically in order %s then %s',
+  async (first, second) => {
+    await publishAuxiliary('resonance', 'resonance.authored')
+    await publishAuxiliary('resonance', 'resonance.other')
+    await publishNativeDiscipline(first, {
+      resonanceSelections: [{ withDisciplineId: second, resonanceId: 'resonance.authored' }],
+    })
+    await denied(
+      () =>
+        publishNativeDiscipline(second, {
+          resonanceSelections: [{ withDisciplineId: first, resonanceId: 'resonance.other' }],
+        }),
+      /DISCIPLINE_RESONANCE_SELECTION_CONFLICT/,
+    )
+    expect(await pairReference()).toMatchObject({ resonanceId: 'resonance.authored' })
+  },
+)
+it('removing one declaration preserves the other explicit claim; removing both never resurrects the builtin pair', async () => {
+  await publishAuxiliary('resonance', 'resonance.authored')
+  await publishNativeDiscipline('vanguard', {
+    resonanceSelections: [{ withDisciplineId: 'lifebinder', resonanceId: 'resonance.authored' }],
+  })
+  await publishNativeDiscipline('lifebinder', {
+    resonanceSelections: [{ withDisciplineId: 'vanguard', resonanceId: 'resonance.authored' }],
+  })
+  await publishNativeDiscipline('vanguard', { resonanceSelections: [] })
+  expect(await pairReference()).toMatchObject({ resonanceId: 'resonance.authored' })
+  await publishNativeDiscipline('lifebinder', { resonanceSelections: [] })
+  expect(await pairReference()).toBeNull()
+  expect(await pairReference('lifebinder', 'vanguard')).toBeNull()
+})
+it('untouched builtin selection follows its actual current content pointer, never the latest physical version', async () => {
+  const native = resolveResonanceForPair('vanguard', 'lifebinder')!
+  const saved = await write(native.id, {
+    action: 'save',
+    expectedRevision: (await record(native.id)).revision,
+    definition: native,
+  })
+  const first = await publish(native.id, saved.draft.draftVersion, null)
+  const next = await write(native.id, {
+    action: 'save',
+    expectedRevision: first.revision,
+    definition: { ...native, name: 'New pointer' },
+  })
+  const second = await publish(native.id, next.draft.draftVersion, first.current.contentVersion)
+  expect(await pairReference()).toMatchObject({
+    resonanceId: native.id,
+    contentVersion: second.current.contentVersion,
+  })
+  await db.query(
+    'update app_private.combat_content_publications set version_id=(select id from app_private.combat_content_versions where content_key=$1 and content_version=$2) where content_key=$1',
+    [native.id, first.current.contentVersion],
+  )
+  expect(await pairReference()).toMatchObject({
+    resonanceId: native.id,
+    contentVersion: first.current.contentVersion,
+  })
+})
+it('canonical selection service read exposes exact versioned pins and token but has no browser execution grant', async () => {
+  const published = await publishAuxiliary('resonance', 'resonance.authored')
+  await publishNativeDiscipline('vanguard', {
+    resonanceSelections: [{ withDisciplineId: 'lifebinder', resonanceId: 'resonance.authored' }],
+  })
+  const value = (
+    await db.query<{ value: unknown }>(
+      "select public.read_current_discipline_selection_v1('vanguard','lifebinder') value",
+    )
+  ).rows[0]!.value
+  expect(value).toMatchObject({
+    selectionVersion: 1,
+    catalogueToken: await token(),
+    essence: null,
+    resonance: {
+      resonanceId: 'resonance.authored',
+      contentVersion: published.current.contentVersion,
+      disciplinePair: ['lifebinder', 'vanguard'],
+    },
+  })
+  for (const role of ['anon', 'authenticated', 'service_role']) {
+    expect(
+      (
+        await db.query<{ allowed: boolean }>(
+          "select has_function_privilege($1,'public.read_current_discipline_selection_v1(text,text)','execute') allowed",
+          [role],
+        )
+      ).rows[0]!.allowed,
+    ).toBe(role === 'service_role')
+    for (const name of ['current_resonance_selection_key_v1', 'current_essence_selection_key_v1'])
+      expect(
+        (
+          await db.query<{ allowed: boolean }>(
+            `select has_function_privilege($1,'app_private.${name}(text,text)','execute') allowed`,
+            [role],
+          )
+        ).rows[0]!.allowed,
+      ).toBe(false)
+  }
+})
+it('a stale catalogue CAS cannot change canonical pair selection or append a published Discipline version', async () => {
+  await publishAuxiliary('resonance', 'resonance.authored')
+  const first = await publishNativeDiscipline('vanguard', {
+    resonanceSelections: [{ withDisciplineId: 'lifebinder', resonanceId: 'resonance.authored' }],
+  })
+  const stale = await token()
+  await publishAuxiliary('resonance', 'resonance.other')
+  const draft = await write('vanguard', {
+    action: 'save',
+    expectedRevision: first.revision,
+    definition: {
+      ...first.current.definition,
+      resonanceSelections: [{ withDisciplineId: 'lifebinder', resonanceId: 'resonance.other' }],
+    },
+  })
+  const before = await record('vanguard')
+  await denied(
+    () => publish('vanguard', draft.draft.draftVersion, first.current.contentVersion, 1, stale),
+    /COMBAT_CONTENT_CATALOGUE_CONFLICT/,
+  )
+  expect(await record('vanguard')).toEqual(before)
+  expect(await pairReference()).toMatchObject({ resonanceId: 'resonance.authored' })
+})
+it('selected disabled or corrupt current definitions fail closed instead of choosing the builtin', async () => {
+  const published = await publishAuxiliary('resonance', 'resonance.authored')
+  await publishNativeDiscipline('vanguard', {
+    resonanceSelections: [{ withDisciplineId: 'lifebinder', resonanceId: 'resonance.authored' }],
+  })
+  // Inject separate invalid physical rows to test the read boundary; immutable old rows remain untouched.
+  for (const [index, change] of [
+    { enabled: false },
+    { disciplinePair: ['arcanist', 'vanguard'] },
+  ].entries()) {
+    const version = 100 + index
+    await db.query(
+      'insert into app_private.combat_content_versions(content_key,content_kind,content_version,definition,published_by) values($1,$2,$3,$4,$5)',
+      [
+        'resonance.authored',
+        'resonance',
+        version,
+        { ...published.current.definition, contentVersion: version, ...change },
+        owner,
+      ],
+    )
+    await db.query(
+      'update app_private.combat_content_publications set version_id=(select id from app_private.combat_content_versions where content_key=$1 and content_version=$2) where content_key=$1',
+      ['resonance.authored', version],
+    )
+    await denied(
+      () => pairReference(),
+      index === 0 ? /COMBAT_CONTENT_SELECTION_DISABLED/ : /COMBAT_CONTENT_SELECTION_INVALID/,
+    )
+  }
 })

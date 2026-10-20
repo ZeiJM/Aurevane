@@ -237,7 +237,37 @@ it('captures one immutable catalogue generation for policy and every current adm
     policy: { version: 8, tagAuthority: 'global', modes: { healing: 'controlled' } },
     publications: definitions,
   }
-  const { resolver } = fixture(data)
+  const resolver = createCombatContentResolver(
+    new RpcPublishedCombatContentSource(async (name, args) => {
+      if (name === 'read_current_discipline_selection_v1')
+        return {
+          data: {
+            selectionVersion: 1,
+            catalogueToken: token,
+            essence:
+              args.p_secondary_discipline_id === null
+                ? {
+                    essenceId: essence.essenceId,
+                    contentVersion: essence.contentVersion,
+                    sourceDisciplineId: 'vanguard',
+                    skillId: essence.skill.id,
+                    skillContentVersion: essence.skill.contentVersion,
+                  }
+                : null,
+            resonance:
+              args.p_secondary_discipline_id === null
+                ? null
+                : {
+                    resonanceId: resonance.id,
+                    contentVersion: resonance.contentVersion,
+                    disciplinePair: resonance.disciplinePair,
+                  },
+          },
+          error: null,
+        }
+      return { data: structuredClone(data), error: null }
+    }),
+  )
   expect(resolver.captureCurrentCatalogue).toBeTypeOf('function')
   const captured = await resolver.captureCurrentCatalogue!()
   data.policy.version = 9

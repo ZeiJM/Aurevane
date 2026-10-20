@@ -279,4 +279,90 @@ create trigger combat_content_admission before insert or update on app_private.c
 revoke all on function app_private.lock_current_discipline_selection_v1() from public,anon,authenticated,service_role;
 
 revoke all on function app_private.select_published_discipline_v1(),app_private.authored_discipline_unlock_satisfied_v1(uuid,jsonb),app_private.current_discipline_definitions_v1(),app_private.validate_authored_discipline_unlock_v1(jsonb,text,integer),app_private.validate_authored_discipline_envelope_v1(jsonb),app_private.project_published_discipline_v1(uuid) from public,anon,authenticated,service_role;
+-- One canonical unordered-pair selection. Discipline records are declarations;
+-- an omitted declaration cannot erase the other side's explicit current choice.
+create function app_private.current_resonance_selection_key_v1(a text,b text)
+returns text language plpgsql stable security definer set search_path='' as $$
+declare da jsonb; db jsonb; ka text; kb text; selected_key text;
+begin
+ if b is null or a=b then return null; end if;
+ perform app_private.assert_combat_content_current_v1(array[a,b]);
+ select v.definition into da from app_private.combat_content_publications p join app_private.combat_content_versions v on v.id=p.version_id where p.content_key=a and p.content_kind='discipline';
+ select v.definition into db from app_private.combat_content_publications p join app_private.combat_content_versions v on v.id=p.version_id where p.content_key=b and p.content_kind='discipline';
+ if da is not null then select r->>'resonanceId' into ka from jsonb_array_elements(da->'resonanceSelections') r where r->>'withDisciplineId'=b; end if;
+ if db is not null then select r->>'resonanceId' into kb from jsonb_array_elements(db->'resonanceSelections') r where r->>'withDisciplineId'=a; end if;
+ if ka is not null and kb is not null and ka<>kb then raise exception using errcode='22023',message='DISCIPLINE_RESONANCE_SELECTION_CONFLICT',detail=least(a,b)||'+'||greatest(a,b); end if;
+ if da is not null or db is not null then return coalesce(ka,kb); end if;
+ select content_key into selected_key from app_private.combat_content_builtin_selections where kind='builtin-resonance-selection' and selection_key=least(a,b)||'+'||greatest(a,b);
+ return selected_key;
+end; $$;
+create function app_private.current_essence_selection_key_v1(a text,b text)
+returns text language plpgsql stable security definer set search_path='' as $$
+declare d jsonb; selected_key text;
+begin
+ if b is not null then return null; end if;
+ perform app_private.assert_combat_content_current_v1(array[a]);
+ select v.definition into d from app_private.combat_content_publications p join app_private.combat_content_versions v on v.id=p.version_id where p.content_key=a and p.content_kind='discipline';
+ if d is not null then return d->>'essenceId'; end if;
+ select content_key into selected_key from app_private.combat_content_builtin_selections where kind='builtin-essence-selection' and selection_key=a;
+ return selected_key;
+end; $$;
+
+create or replace function app_private.resolve_resonance_reference_v1(p_primary_discipline_id text,p_secondary_discipline_id text)
+returns jsonb language plpgsql stable security definer set search_path='' as $$
+declare k text; r app_private.combat_content_records; v app_private.combat_content_versions; n integer; pair jsonb;
+begin
+ k:=app_private.current_resonance_selection_key_v1(p_primary_discipline_id,p_secondary_discipline_id);
+ if k is null then return null; end if;
+ perform app_private.assert_combat_content_current_v1(array[k]);
+ select * into r from app_private.combat_content_records where content_key=k and content_kind='resonance';
+ if not found then raise exception using errcode='22023',message='COMBAT_CONTENT_SELECTION_UNAVAILABLE'; end if;
+ select cv.* into v from app_private.combat_content_publications p join app_private.combat_content_versions cv on cv.id=p.version_id where p.content_key=k and p.content_kind='resonance';
+ pair:=jsonb_build_array(least(p_primary_discipline_id,p_secondary_discipline_id),greatest(p_primary_discipline_id,p_secondary_discipline_id));
+ if v.id is not null then
+  if v.definition->'enabled'='false'::jsonb then raise exception using errcode='22023',message='COMBAT_CONTENT_SELECTION_DISABLED'; end if;
+  if v.definition->'enabled' is distinct from 'true'::jsonb or v.definition->>'id' is distinct from k or v.definition->'disciplinePair' is distinct from pair then raise exception using errcode='22023',message='COMBAT_CONTENT_SELECTION_INVALID'; end if;
+  n:=v.content_version;
+ else
+  if r.lifecycle<>'active' or r.builtin_version is null then raise exception using errcode='22023',message='COMBAT_CONTENT_SELECTION_UNAVAILABLE'; end if;
+  if not exists(select 1 from app_private.combat_content_builtin_selections where content_key=k and kind='builtin-resonance-selection' and selection_key=concat(pair->>0,'+',pair->>1)) then raise exception using errcode='22023',message='COMBAT_CONTENT_SELECTION_INVALID'; end if;
+  n:=r.builtin_version;
+ end if;
+ return jsonb_build_object('resonanceId',k,'contentVersion',n,'disciplinePair',pair);
+end; $$;
+create or replace function app_private.resolve_essence_reference_v1(p_primary_discipline_id text,p_secondary_discipline_id text)
+returns jsonb language plpgsql stable security definer set search_path='' as $$
+declare k text; r app_private.combat_content_records; v app_private.combat_content_versions; n integer;
+begin
+ k:=app_private.current_essence_selection_key_v1(p_primary_discipline_id,p_secondary_discipline_id);
+ if k is null then return null; end if;
+ perform app_private.assert_combat_content_current_v1(array[k]);
+ select * into r from app_private.combat_content_records where content_key=k and content_kind='essence';
+ if not found then raise exception using errcode='22023',message='COMBAT_CONTENT_SELECTION_UNAVAILABLE'; end if;
+ select cv.* into v from app_private.combat_content_publications p join app_private.combat_content_versions cv on cv.id=p.version_id where p.content_key=k and p.content_kind='essence';
+ if v.id is not null then
+  if v.definition->'enabled'='false'::jsonb or v.definition->'skill'->'enabled'='false'::jsonb then raise exception using errcode='22023',message='COMBAT_CONTENT_SELECTION_DISABLED'; end if;
+  if v.definition->'enabled' is distinct from 'true'::jsonb or v.definition->>'essenceId' is distinct from k
+   or v.definition->>'sourceDisciplineId' is distinct from p_primary_discipline_id or v.definition->'skill'->>'id' is distinct from k
+   or v.definition->'skill'->'contentVersion' is distinct from to_jsonb(v.content_version)
+   then raise exception using errcode='22023',message='COMBAT_CONTENT_SELECTION_INVALID'; end if;
+  n:=v.content_version;
+ else
+  if r.lifecycle<>'active' or r.builtin_version is null then raise exception using errcode='22023',message='COMBAT_CONTENT_SELECTION_UNAVAILABLE'; end if;
+  if r.builtin_source_discipline_id is distinct from p_primary_discipline_id then raise exception using errcode='22023',message='COMBAT_CONTENT_SELECTION_INVALID'; end if;
+  n:=r.builtin_version;
+ end if;
+ return jsonb_build_object('essenceId',k,'contentVersion',n,'sourceDisciplineId',p_primary_discipline_id,'skillId',k,'skillContentVersion',n);
+end; $$;
+
+create function public.read_current_discipline_selection_v1(p_primary_discipline_id text,p_secondary_discipline_id text)
+returns jsonb language sql stable security definer set search_path='' as $$
+ select jsonb_build_object('selectionVersion',1,
+  'catalogueToken',public.read_combat_content_catalogue_v1()->>'token',
+  'resonance',app_private.resolve_resonance_reference_v1(p_primary_discipline_id,p_secondary_discipline_id),
+  'essence',app_private.resolve_essence_reference_v1(p_primary_discipline_id,p_secondary_discipline_id));
+$$;
+revoke all on function public.read_current_discipline_selection_v1(text,text) from public,anon,authenticated;
+grant execute on function public.read_current_discipline_selection_v1(text,text) to service_role;
+revoke all on function app_private.current_resonance_selection_key_v1(text,text),app_private.current_essence_selection_key_v1(text,text) from public,anon,authenticated,service_role;
 commit;
