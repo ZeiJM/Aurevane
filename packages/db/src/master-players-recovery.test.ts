@@ -1,3 +1,7 @@
+import {
+  acquirePlayersFixtureOwner,
+  releasePlayersFixtureOwner,
+} from '../../../apps/web/e2e/players-local-fixture'
 import { disciplineCorrectionFromForm } from '../../../apps/web/src/master/player-discipline-correction'
 import { readFileSync, readdirSync } from 'node:fs'
 import { resolve } from 'node:path'
@@ -904,5 +908,56 @@ it.each(['initial-host', 'guest-after-correction-and-reward'])(
         )
       ).rows[0],
     ).toEqual({ spent: 5 })
+  },
+)
+
+async function browserFixtureSql(query: string) {
+  const result = await db.query(query)
+  return result.rows
+    .map((row) => Object.values(row as Record<string, unknown>).join('|'))
+    .join('\n')
+}
+
+it('browser fixture rejects an unrelated protected Owner before changing any grant', async () => {
+  const before = (await db.query('select * from app_private.master_panel_role_assignments')).rows
+  await denied(
+    () => acquirePlayersFixtureOwner(browserFixtureSql, other),
+    /Players browser fixture requires no enabled Owner/,
+  )
+  expect((await db.query('select * from app_private.master_panel_role_assignments')).rows).toEqual(
+    before,
+  )
+  expect((await read()).rows[0]!.result.name).toBe('Test Player')
+})
+it('browser fixture uses the immutable auth ID and cleans only its own grant after Staff', async () => {
+  await db.query(
+    'update app_private.master_panel_role_assignments set enabled=false where user_id=$1',
+    [owner],
+  )
+  const before = (await db.query('select * from app_private.master_panel_role_assignments')).rows
+  const created = await acquirePlayersFixtureOwner(browserFixtureSql, other)
+  expect(created).toEqual({ userId: other })
+  expect((await read(other)).rows[0]!.result.name).toBe('Test Player')
+  await releasePlayersFixtureOwner(browserFixtureSql, created)
+  expect((await db.query('select * from app_private.master_panel_role_assignments')).rows).toEqual(
+    before,
+  )
+  await denied(() => read(other), /OWNER_REQUIRED/)
+})
+it.each(['', '00000000-0000-4000-8000-000000000099'])(
+  'browser fixture rejects a missing auth identity before Owner SQL: %s',
+  async (userId) => {
+    await db.query(
+      'update app_private.master_panel_role_assignments set enabled=false where user_id=$1',
+      [owner],
+    )
+    await denied(
+      () => acquirePlayersFixtureOwner(browserFixtureSql, userId),
+      /Players browser fixture requires a real auth user ID/,
+    )
+    expect(
+      (await db.query('select * from app_private.master_panel_role_assignments where enabled'))
+        .rows,
+    ).toEqual([])
   },
 )
