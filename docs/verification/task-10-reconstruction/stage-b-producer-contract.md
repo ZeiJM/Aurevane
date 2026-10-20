@@ -15,3 +15,7 @@ Preserve selected-character/live capability enforcement,41 actor inventory, all 
 The implementer must produce concrete actual-producer interface/caller inventory, meaningful RED/GREEN evidence and coherent recoverable source checkpoints before long work. Root owns source publication, native schedules and the same task review seat. Stop at a coherent StageB freeze for the next gate; references/media and final UI remain substantive StageC/D work. No hosted mutation, main merge or deployment follows from this contract.
 
 Known final-integration carry-forward: StageA snapshot checks omit physical publication pointer metadata; Task13 must add those deterministic rows while retaining catalogue/token checks. See `../master-deferred-findings.md` and the original StageA review.
+
+## Fresh-main review baseline
+
+After upstream PR954/956, the accepted-A plus current-main composite `c96880123b8e31f6d8dec3bbbac024a1ff75609e` supersedes25968315 as the StageB delta review base. It includes main4793 and no B implementation commits; product changes relative to the old base are exactly the independent upstream reader paths. Postmerge378 reader/editor tests and both browser script syntax checks pass. Review c968..StageBHEAD, never HEAD~1. Cumulative Task10 audit base remainsb83de822. Preserve the newly released Requirement/Resonance presentation contract.

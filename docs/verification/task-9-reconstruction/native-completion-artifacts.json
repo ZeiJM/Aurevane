@@ -204,5 +204,20 @@
       "jwt": 0,
       "local_cli_key": 1
     }
+  },
+  {
+    "file": "native-fix5-browser-success.log.gz",
+    "run_id": 39498465423,
+    "job_id": 118889547171,
+    "local_source": "59b6372826df3805e22a9d383a9d4d0d4fb74f50",
+    "remote_source": "43ff3cad58b66dac5febfe52d69f11a9efdae251",
+    "redactions": {
+      "jwt": 0,
+      "local_cli_key": 1,
+      "static_test_password": 0
+    },
+    "sha256": "49975ede10a55e56942ace81f2b145437c778133404631c3f61ce20e17237b8b",
+    "uncompressed_sha256": "da799ae27c9d5fc4938f7688b28bc637b7d0fbd3e1e851b4fe1cc2197debd0d5",
+    "bytes": 362551
   }
 ]
