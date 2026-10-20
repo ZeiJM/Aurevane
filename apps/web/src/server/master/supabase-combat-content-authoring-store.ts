@@ -31,6 +31,7 @@ import {
 } from '@/server/combat/combat-content-resolver'
 import { assertCombatCatalogueTimingCompatible } from '@/server/combat/combat-catalogue-timing-compatibility'
 import { builtinCombatContentVersionFloor } from './combat-content-version-floor'
+import { builtinCombatContentDefinition } from './combat-content-builtin-index'
 
 import type {
   CombatContentAuthoringStore,
@@ -175,6 +176,16 @@ function parseVersionList(data: unknown): readonly CombatContentVersionRecord[] 
 
 function mapRpcError(error: RpcError): never {
   const message = error.message ?? ''
+  if (
+    error.code === '0A000' &&
+    /COMBAT_CONTENT_(COMPLETE_RECORD_REQUIRED|SAVED_REVISION_REQUIRED|RESTORE_TO_DRAFT_REQUIRED)/u.test(
+      message,
+    )
+  )
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'This operation requires the complete saved-record workflow. Refresh the content editor before continuing.',
+    )
   if (/COMBAT_CONTENT_(RECORD_CONFLICT|REQUEST_CONFLICT|ADMISSION_RETRY)/u.test(message))
     throw new AurevaneError(
       'STALE_VERSION',
@@ -257,7 +268,18 @@ export class RpcCombatContentAuthoringStore implements CombatContentAuthoringSto
       p_content_key: contentKey,
     })
     if (error) mapRpcError(error)
-    return data === null ? null : parseCompleteCombatContentRecord(data)
+    if (data === null) return null
+    const record = parseCompleteCombatContentRecord(data)
+    if (record.builtin && !record.current && record.lifecycle !== 'archived') {
+      const definition = builtinCombatContentDefinition(record.contentKind, record.contentKey)
+      if (!definition || definition.contentVersion !== record.builtin.contentVersion)
+        throw new AurevaneError(
+          'PERSISTENCE_UNAVAILABLE',
+          'The builtin identity index does not match this server catalogue.',
+        )
+      return { ...record, builtinDefinition: definition }
+    }
+    return record
   }
   async listRecords(input: {
     kind?: CombatContentKind

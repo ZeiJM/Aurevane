@@ -150,6 +150,9 @@ export function createCombatContentRecordCommand(
           requestId: request,
           sourceKey: source.contentKey,
           expectedSourceRevision: revision(input.expectedSourceRevision),
+          ...(!source.draft && !source.current && source.builtinDefinition
+            ? { sourceDefinition: source.builtinDefinition }
+            : {}),
         }),
       }
     }

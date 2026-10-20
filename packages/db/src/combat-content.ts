@@ -343,6 +343,10 @@ export interface CompleteCombatContentRecord {
   readonly versionFloor: number
   readonly createdBy: string | null
   readonly createdAt: string | null
+  /** Baseline identity metadata; this is not a fabricated publication/history row. */
+  readonly builtin?: { readonly contentVersion: number; readonly name: string } | null
+  /** Resolved from the existing executable catalogue only for a nonarchived baseline. */
+  readonly builtinDefinition?: CombatContentDefinition
   readonly draft: {
     readonly definition: CombatContentDefinition
     readonly draftVersion: number
@@ -371,6 +375,7 @@ export type CompleteCombatContentWrite =
       readonly requestId: string
       readonly sourceKey: string
       readonly expectedSourceRevision: number
+      readonly sourceDefinition?: CombatContentDefinition
     }
   | {
       readonly action: 'save'

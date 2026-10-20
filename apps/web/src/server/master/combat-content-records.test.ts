@@ -105,3 +105,21 @@ it('malformed returned record and future definition fail closed', async () => {
     code: 'PERSISTENCE_UNAVAILABLE',
   })
 })
+it('builtin identity resolves its exact existing definition for first edit but a tombstone never does', async () => {
+  const builtinRecord = {
+    ...record,
+    draft: null,
+    builtin: { contentVersion: skill.contentVersion, name: 'Forceful Strike' },
+  }
+  const rpc = vi.fn(async (): Promise<{ data: unknown; error: null }> => ({
+    data: builtinRecord,
+    error: null,
+  }))
+  const store = new RpcCombatContentAuthoringStore(rpc, 'owner')
+  expect(await store.readRecord(skill.id)).toMatchObject({ builtinDefinition: skill })
+  rpc.mockResolvedValueOnce({
+    data: { ...builtinRecord, lifecycle: 'archived' as const },
+    error: null,
+  })
+  expect(await store.readRecord(skill.id)).not.toHaveProperty('builtinDefinition')
+})

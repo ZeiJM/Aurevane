@@ -230,11 +230,11 @@ it('bounded_list_and_essential_basic_archive', async () => {
       ]),
     /LIST_INVALID/,
   )
-  await write('basic.guard', {
-    action: 'create',
-    requestId: '00000000-0000-4000-8000-000000000097',
-    contentKind: 'skill',
-    definition: { ...definition, id: 'basic.guard' },
+  expect(await record('basic.guard')).toMatchObject({
+    lifecycle: 'active',
+    current: null,
+    history: [],
+    builtin: { name: 'Guard' },
   })
   await denied(() => write('basic.guard', { action: 'archive', expectedRevision: 1 }), /ESSENTIAL/)
 })
@@ -380,6 +380,21 @@ it('strict future drafts reject arbitrary schema fields and never publish unsupp
   }
   for (const invalid of [
     { ...definition, itemClass: 'invented' },
+    { ...definition, itemClass: null },
+    { ...definition, usage: null },
+    { ...definition, acquisition: null },
+    { ...definition, requirements: { kind: 'simple' } },
+    { ...definition, requirements: { kind: 'all', children: [] } },
+    {
+      ...definition,
+      requirements: {
+        kind: 'resource-state',
+        subject: 'owner',
+        resource: 'hp',
+        comparison: 'at-most',
+        basisPoints: null,
+      },
+    },
     { ...definition, execute: 'arbitrary' },
     { ...definition, name: '\u2003' },
   ])
@@ -404,6 +419,121 @@ it('strict future drafts reject arbitrary schema fields and never publish unsupp
     /ITEM_RUNTIME_UNSUPPORTED/,
   )
   expect((await record('item.test')).draft.definition).toEqual(definition)
+})
+it('restore attribution is retained in immutable history and cleared from the next independently authored draft', async () => {
+  const first = await create()
+  const published = await publish('content.test', first.draft.draftVersion, null)
+  const restored = await write('content.test', {
+    action: 'restore',
+    expectedRevision: published.revision,
+    sourceVersion: published.current.contentVersion,
+  })
+  const restoredPublication = await publish(
+    'content.test',
+    restored.draft.draftVersion,
+    published.current.contentVersion,
+  )
+  const edited = await write('content.test', {
+    action: 'save',
+    expectedRevision: restoredPublication.revision,
+    definition: { ...definition, name: 'Independent subsequent authoring' },
+  })
+  expect(edited.draft.restoredFrom).toBeNull()
+  const result = await publish(
+    'content.test',
+    edited.draft.draftVersion,
+    restoredPublication.current.contentVersion,
+  )
+  expect(result.current).toMatchObject({ restoredFrom: null, restoredBy: null, authoredBy: owner })
+  expect(result.history[1]).toMatchObject({
+    restoredFrom: published.current.contentVersion,
+    restoredBy: owner,
+  })
+})
+it('command shapes and reserved Basic duplication fail with specific boundaries', async () => {
+  await denied(
+    () =>
+      write('content.test', {
+        action: 'create',
+        requestId: '00000000-0000-4000-8000-000000000099',
+        contentKind: 'skill',
+        definition,
+        execute: 'not-supported',
+      }),
+    /COMMAND_INVALID/,
+  )
+  const basic = await record('basic.guard')
+  await denied(
+    () =>
+      write('content.copy', {
+        action: 'duplicate',
+        requestId: '00000000-0000-4000-8000-000000000097',
+        sourceKey: 'basic.guard',
+        expectedSourceRevision: basic.revision,
+      }),
+    /BASIC_DUPLICATE_UNSUPPORTED/,
+  )
+})
+it('builtin inventory permits first full-record save and publication above the trusted physical floor without seeded history', async () => {
+  const key = 'vanguard.forceful-strike'
+  const initial = await record(key)
+  expect(initial).toMatchObject({
+    lifecycle: 'active',
+    revision: 1,
+    current: null,
+    draft: null,
+    history: [],
+  })
+  const saved = await write(key, {
+    action: 'save',
+    expectedRevision: initial.revision,
+    definition: { ...definition, id: key },
+  })
+  const result = await publish(key, saved.draft.draftVersion, null, 1)
+  expect(result.current.contentVersion).toBeGreaterThan(5)
+  expect(result.history).toHaveLength(1)
+  const manifestMigration = readFileSync(
+    resolve(root, '20261020204946_combat_content_builtin_identity_index.sql'),
+    'utf8',
+  )
+  const importStatement = manifestMigration.match(
+    /insert into app_private.combat_content_records[\s\S]*?builtin_source_discipline_id=excluded.builtin_source_discipline_id;/,
+  )![0]
+  await db.exec(importStatement)
+  expect(await record(key)).toEqual(result)
+  await denied(
+    () =>
+      write(key, {
+        action: 'save',
+        expectedRevision: result.revision,
+        definition: { ...definition, id: key, sourceDisciplineId: 'lifebinder' },
+      }),
+    /SOURCE_IMMUTABLE/,
+  )
+})
+it('builtin duplication uses the trusted source definition but creates an independent identity and version sequence', async () => {
+  const key = 'vanguard.forceful-strike'
+  const source = await record(key)
+  const row = (
+    await db.query<{ builtin_version: number }>(
+      'select builtin_version from app_private.combat_content_records where content_key=$1',
+      [key],
+    )
+  ).rows[0]!
+  const copy = await write('content.copy', {
+    action: 'duplicate',
+    requestId: '00000000-0000-4000-8000-000000000099',
+    sourceKey: key,
+    expectedSourceRevision: source.revision,
+    sourceDefinition: { ...definition, id: key, contentVersion: row.builtin_version },
+  })
+  expect(copy.draft.definition).toMatchObject({
+    id: 'content.copy',
+    contentVersion: 1,
+    sourceDisciplineId: 'vanguard',
+  })
+  expect(copy.history).toEqual([])
+  expect(await record(key)).toEqual(source)
 })
 it('create within Discipline retries atomically and stale parent creates no orphan; link preserves intrinsic source', async () => {
   const parent = await write('discipline.test', {

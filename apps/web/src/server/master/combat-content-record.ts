@@ -32,6 +32,14 @@ export function parseCompleteCombatContentRecord(value: unknown): CompleteCombat
     for (const field of ['createdBy', 'createdAt'])
       if (value[field] !== null && !string(value[field]))
         throw new TypeError('Invalid record attribution.')
+    if (
+      value.builtin !== undefined &&
+      value.builtin !== null &&
+      (!object(value.builtin) ||
+        !integer(value.builtin.contentVersion) ||
+        !string(value.builtin.name))
+    )
+      throw new TypeError('Invalid builtin identity.')
     const definition = (v: unknown) => {
       if (!object(v)) throw new TypeError('Invalid definition.')
       if (isNoncombatContentKind(value.contentKind)) {
