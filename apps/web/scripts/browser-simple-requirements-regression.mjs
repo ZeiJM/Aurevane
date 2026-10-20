@@ -118,6 +118,17 @@ if (process.env.AV_SIMPLE_REQUIREMENTS_COMPILE_ONLY === '1') {
           await expect(requirementLine(reader)).not.toContainText(
             /event|action|Discipline|All conditions|Any condition/i,
           )
+          const notes = reader.getByRole('list', { name: 'Requirement explanations' })
+          if (text === 'None') {
+            await expect(notes).toHaveCount(0)
+          } else {
+            const reference = requirementLine(reader).locator('[data-combat-tag-reference]')
+            assert.equal(await reference.evaluate((node) => node.tagName), 'STRONG')
+            assert.ok(
+              Number(await reference.evaluate((node) => getComputedStyle(node).fontWeight)) >= 600,
+            )
+            await expect(notes).toContainText(await reference.innerText())
+          }
         }
       }
       await expect(tag).toHaveValue('none')
@@ -355,10 +366,13 @@ if (process.env.AV_SIMPLE_REQUIREMENTS_COMPILE_ONLY === '1') {
       await activation.selectOption('damage-taken')
       await tag.selectOption('burn')
       await target.selectOption('triggering')
+      await group.getByRole('checkbox', { name: 'Once per action', exact: true }).check()
+      await group.getByRole('checkbox', { name: 'Once per round', exact: true }).check()
       await save()
       let saved = (await snapshot()).saved.behaviors[0]
       assert.equal(saved.automaticTrigger, 'damage-taken')
       assert.deepEqual(saved.automaticTarget, { subject: 'triggering' })
+      assert.deepEqual([...saved.activationLimits].sort(), ['once-per-action', 'once-per-round'])
       assert.deepEqual((await snapshot()).validationIssues, [])
       assert.deepEqual(saved.requirements, {
         kind: 'status-presence',
@@ -367,10 +381,20 @@ if (process.env.AV_SIMPLE_REQUIREMENTS_COMPILE_ONLY === '1') {
         present: true,
       })
       await assertReaders('Burn [Target]')
-      for (const name of readerNames)
-        await expect(page.getByRole('region', { name, exact: true })).toContainText(
-          'Automatic: Damage Taken',
+      for (const name of readerNames.slice(0, 2)) {
+        const reader = page.getByRole('region', { name, exact: true })
+        await expect(reader).toContainText('Automatic: Damage Taken')
+        await expect(reader.getByRole('list', { name: 'Usage limits' })).toContainText(
+          'Once per round',
         )
+      }
+      const resonance = page.getByRole('region', { name: readerNames[2], exact: true })
+      await expect(resonance).not.toContainText('Automatic:')
+      await expect(resonance.getByRole('list', { name: 'Usage limits' })).toHaveCount(0)
+      await expect(resonance.getByRole('list', { name: 'Effect explanations' })).toBeVisible()
+      await resonance.screenshot({
+        path: resolve(output, `resonance-passive-${viewport.width}.png`),
+      })
       await activation.selectOption('turn-started')
       await expect(target.locator('option')).toHaveCount(1)
       await expect(target).toHaveValue('owner')
@@ -379,7 +403,7 @@ if (process.env.AV_SIMPLE_REQUIREMENTS_COMPILE_ONLY === '1') {
       await save()
       evidence.push({
         viewport,
-        case: 'finite automatic activation separate from one Burn Target predicate',
+        case: 'finite activation and limits remain programmable without redundant Resonance notes',
         passed: true,
       })
 

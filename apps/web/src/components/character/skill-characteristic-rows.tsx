@@ -43,6 +43,7 @@ export function SkillCharacteristicRows({
           <MechanicTextView
             text={typeof value === 'string' ? value : value.join(', ') || 'N/A'}
             parts={requirementParts}
+            emphasizeTags
           />
         ) : (
           parameterValue(label, value)

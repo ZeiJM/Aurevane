@@ -46,7 +46,7 @@ const ability = parseAbilityDefinition({
     },
   ],
 })
-function assertCanonicalEditor(html: string) {
+function assertCanonicalEditor(html: string, { resonance = false } = {}) {
   expect(html).toMatch(/Next publish<\/dt><dd>v51<\/dd>/)
   for (const label of [
     'Group activation',
@@ -62,7 +62,13 @@ function assertCanonicalEditor(html: string) {
     expect(html).toContain(`aria-label="${label}"`)
   expect(html).toContain('data-compact-effect-timing="true">[Controlled]')
   expect(html).toContain('value="45"')
-  expect(html).toContain('Once per battle')
+  if (resonance) {
+    expect(html).not.toContain('Once per battle')
+    expect(html).not.toContain('aria-label="Usage limits"')
+  } else {
+    expect(html).toContain('Once per battle')
+  }
+  expect(html).toContain('<legend>Usage limits</legend>')
   expect(html).not.toContain('aria-label="Action Economy (AP)"')
   expect(html).not.toContain('aria-label="Accuracy mode"')
 }
@@ -137,7 +143,7 @@ it('edits canonical Resonance groups without entering the legacy combo editor', 
       ]}
     />,
   )
-  assertCanonicalEditor(html)
+  assertCanonicalEditor(html, { resonance: true })
   expect(html).not.toContain('aria-label="Resonance mode"')
 })
 

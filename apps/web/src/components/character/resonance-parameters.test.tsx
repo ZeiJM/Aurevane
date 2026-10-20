@@ -1,6 +1,10 @@
+import { readFileSync } from 'node:fs'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
-import { resolveResonanceForPair } from '@aurevane/game-core/combat/resonance'
+import {
+  resolveResonanceForPair,
+  type AnyResonanceDefinition,
+} from '@aurevane/game-core/combat/resonance'
 import { normalizedResonanceMechanics } from '@aurevane/game-core/combat/resonance-v2'
 import { ResonanceParameters } from './resonance-parameters'
 
@@ -16,6 +20,39 @@ const fields = [
   'Target Elevation',
   'Line of Sight',
 ]
+
+const currentResonances = (
+  JSON.parse(
+    readFileSync(
+      new URL(
+        '../../../../../docs/superpowers/specs/2026-10-19-simple-requirements-cohort.json',
+        import.meta.url,
+      ),
+      'utf8',
+    ),
+  ).records as { id: string; kind: string; after: AnyResonanceDefinition }[]
+).filter(({ kind }) => kind === 'resonance')
+
+it.each(currentResonances)(
+  '$id keeps its fields and effects without redundant passive activation or usage notes',
+  ({ after: definition }) => {
+    const before = JSON.stringify(definition)
+    const markup = renderToStaticMarkup(<ResonanceParameters definition={definition} />)
+    expect([...markup.matchAll(/<dt>(.*?)<\/dt>/g)].map((match) => match[1])).toEqual(fields)
+    expect(markup).toContain('aria-label="Effect explanations"')
+    expect(markup.match(/data-compact-skill-effect="true"/g)).toHaveLength(
+      definition.ability!.behaviors[0]!.effects.length,
+    )
+    expect(markup).not.toContain('Automatic:')
+    expect(markup).not.toContain('aria-label="Usage limits"')
+    expect(markup).not.toMatch(/Once per (action|owner turn|round|battle)/)
+    if (definition.ability!.behaviors[0]!.requirements) {
+      expect(markup).toContain('aria-label="Requirement explanations"')
+      expect(markup).toMatch(/<strong[^>]*data-combat-tag-reference=/)
+    }
+    expect(JSON.stringify(definition)).toBe(before)
+  },
+)
 
 describe('shared Resonance parameter report', () => {
   it('names exact Frozen Flare setup Skills without inventing a Control or Utility annotation', () => {

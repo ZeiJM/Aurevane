@@ -35,7 +35,7 @@ export function ResonanceParameters({
         className={[styles.report, className].filter(Boolean).join(' ')}
         data-resonance-parameters="true"
       >
-        <AbilityDefinitionParameters definition={definition.ability} />
+        <AbilityDefinitionParameters definition={definition.ability} showActivationNotes={false} />
       </div>
     )
   const mechanics = definition ? normalizedResonanceMechanics(definition) : null
