@@ -1,4 +1,11 @@
 import type { MechanicTextPart } from './mechanic-text'
+import { plainMechanicText } from './mechanic-text'
+import {
+  COMBAT_TRIGGER_MODULES,
+  recognizeCombatRequirementModules,
+  type CombatRequirementModules,
+} from '@aurevane/game-core/combat/combat-requirement-modules'
+import { isCleanseEffect } from '@aurevane/game-core/combat/combat-cleanse'
 import { mechanicStatusTag, mechanicTag } from './mechanic-text'
 import { resolveMechanicText } from './mechanic-tag-explanation'
 import { applyAbilityTimingDefaults } from '@aurevane/game-core/combat/combat-definition'
@@ -50,20 +57,31 @@ function requirementTerm(value: string): string {
 }
 
 /** Render the executable requirement tree as compact modules; prose never creates a condition. */
-export function abilityRequirementDescription(node: RequirementNode | null): string {
+export function abilityRequirementDescription(
+  node: RequirementNode | null,
+  behavior?: AbilityBehavior,
+): string {
   if (!node) return 'None'
+  if (behavior) {
+    const modules = recognizeCombatRequirementModules(node, behavior)
+    if (modules) return plainMechanicText(modularRequirementParts(modules)) || 'None'
+  }
   switch (node.kind) {
     case 'all':
     case 'any':
-      return `(${node.children.map(abilityRequirementDescription).join(node.kind === 'all' ? ' & ' : ' or ')})`
+      return `(${node.children.map((child) => abilityRequirementDescription(child)).join(node.kind === 'all' ? ' & ' : ' or ')})`
     case 'resource-state':
       return `${node.resource.toUpperCase()} [${node.comparison === 'at-least' ? '≥' : '≤'} ${node.basisPoints === undefined ? node.amount : `${node.basisPoints / 100}%`}] [${subjects[node.subject]}]`
+    case 'resource-change':
+      return `${node.resource.toUpperCase()} [${node.direction === 'gained' ? 'Gained' : 'Lost'} ≥ ${node.minimumAmount}] [${subjects[node.subject]}]`
     case 'resource-threshold-crossing':
       return `${node.resource.toUpperCase()} [${node.direction === 'below' ? 'Falls Below' : 'Rises Above'} ${node.thresholdBasisPoints / 100}%] [${subjects[node.subject]}]`
     case 'status-presence':
       return `${node.present ? '' : 'No '}${gameplayStatusName(node.statusId)}${requirementSubjectSuffix(node.subject)}`
+    case 'subject-relation':
+      return `${node.relation === 'same-unit' ? 'Same Unit' : node.relation === 'ally' ? 'Ally, excluding Self' : 'Enemy'} [${subjects[node.subject]} / ${subjects[node.otherSubject]}]`
     case 'prime-presence':
-      return `${node.present ? '' : 'No '}${requirementTerm(node.abilityId.split('.').at(-1) ?? node.abilityId)} [Primed] [${subjects[node.subject]}]`
+      return `${node.present ? '' : 'No '}${node.abilityId ? `${requirementTerm(node.abilityId.split('.').at(-1) ?? node.abilityId)} [Primed]` : 'Primed'} [${subjects[node.subject]}]`
     case 'event':
       return `${requirementTerm(node.eventType)} [${node.phase === 'before' ? 'Before' : 'After'}]`
     case 'action': {
@@ -89,33 +107,108 @@ function requirementSubjectSuffix(subject: 'owner' | 'selected' | 'affected' | '
     : ` [${subject === 'owner' ? 'Self' : subject === 'affected' ? 'Area' : 'Trigger'}]`
 }
 
-/** Preserve the plain contract and annotate only actual status-presence nodes. */
+/** Raw and historical trees retain every branch, including unregistered identities. */
+function primitiveRequirementParts(value: RequirementNode, modular = false): MechanicTextPart[] {
+  const suffix = (subject: 'owner' | 'selected' | 'affected' | 'triggering') =>
+    modular && subject === 'affected' ? ' [Affected unit]' : requirementSubjectSuffix(subject)
+  if (value.kind === 'all' || value.kind === 'any')
+    return [
+      '(',
+      ...value.children.flatMap((child, index) => [
+        ...(index ? [value.kind === 'all' ? ' & ' : ' or '] : []),
+        ...primitiveRequirementParts(child, modular),
+      ]),
+      ')',
+    ]
+  if (value.kind === 'status-presence') {
+    const tag = mechanicStatusTag(value.statusId)
+    if (tag)
+      return [
+        ...(value.present ? [] : ['No ']),
+        { ...mechanicTag(tag), label: gameplayStatusName(value.statusId) },
+        suffix(value.subject),
+      ]
+  }
+  if (value.kind === 'prime-presence' && !value.abilityId)
+    return [
+      ...(value.present ? [] : ['No ']),
+      mechanicTag('primed'),
+      ` [${subjects[value.subject]}]`,
+    ]
+  if (modular && value.kind === 'resource-state') {
+    const text = abilityRequirementDescription(value)
+    return [
+      { ...mechanicTag('resource-threshold'), label: value.resource.toUpperCase() },
+      text.slice(value.resource.length),
+    ]
+  }
+  return [abilityRequirementDescription(value)]
+}
+
+function modularRequirementParts(modules: CombatRequirementModules): MechanicTextPart[] {
+  const result: MechanicTextPart[] = []
+  const trigger = modules.trigger
+  if (trigger) {
+    const definition = COMBAT_TRIGGER_MODULES.find((module) => module.id === trigger.id)!
+    result.push({ ...mechanicTag('trigger'), label: definition.label })
+    const qualifiers = trigger.parameters.actionQualifiers.flatMap((node) => [
+      ...(node.sourceDisciplineId ? [requirementTerm(node.sourceDisciplineId)] : []),
+      ...(node.classification
+        ? [node.classification === 'recovery' ? 'Heal' : requirementTerm(node.classification)]
+        : []),
+      ...(node.attackFamily ? [requirementTerm(node.attackFamily)] : []),
+      ...(node.requiredTags ?? []).map(requirementTerm),
+    ])
+    for (const qualifier of new Set(qualifiers)) result.push(` [${qualifier}]`)
+    for (const relation of trigger.parameters.causalRelations) {
+      const relative =
+        relation.otherSubject === 'owner'
+          ? relation.subject
+          : relation.subject === 'owner'
+            ? relation.otherSubject
+            : null
+      const role =
+        relative === 'triggering'
+          ? 'Source'
+          : relative === 'affected'
+            ? 'Recipient'
+            : relative === 'selected'
+              ? 'Target'
+              : null
+      result.push(
+        role
+          ? ` [${role}: ${relation.relation === 'same-unit' ? 'Self' : relation.relation === 'ally' ? 'Ally' : 'Enemy'}]`
+          : ` [${abilityRequirementDescription(relation)}]`,
+      )
+    }
+    if (trigger.parameters.crossing)
+      result.push(` [${trigger.parameters.crossing.thresholdBasisPoints / 100}%]`)
+    if (trigger.parameters.resourceChange)
+      result.push(` [≥ ${trigger.parameters.resourceChange.minimumAmount}]`)
+  }
+  if (modules.conditions.length) {
+    if (result.length) result.push(' & ')
+    if (modules.conditions.length > 1) result.push('(')
+    modules.conditions.forEach((node, index) => {
+      if (index) result.push(' & ')
+      result.push(...primitiveRequirementParts(node, true))
+    })
+    if (modules.conditions.length > 1) result.push(')')
+  }
+  return result
+}
+
 function requirementReferenceParts(
   node: RequirementNode | null,
   context: AbilityEffectPresentationContext,
+  behavior?: AbilityBehavior,
 ): readonly MechanicTextPart[] | undefined {
-  function parts(value: RequirementNode): MechanicTextPart[] {
-    if (value.kind === 'all' || value.kind === 'any')
-      return [
-        '(',
-        ...value.children.flatMap((child, index) => [
-          ...(index ? [value.kind === 'all' ? ' & ' : ' or '] : []),
-          ...parts(child),
-        ]),
-        ')',
-      ]
-    if (value.kind === 'status-presence') {
-      const tag = mechanicStatusTag(value.statusId)
-      if (tag)
-        return [
-          ...(value.present ? [] : ['No ']),
-          { ...mechanicTag(tag), label: gameplayStatusName(value.statusId) },
-          requirementSubjectSuffix(value.subject),
-        ]
-    }
-    return [abilityRequirementDescription(value)]
-  }
-  const result = node ? parts(node) : []
+  const modules = behavior ? recognizeCombatRequirementModules(node, behavior) : null
+  const result = modules
+    ? modularRequirementParts(modules)
+    : node
+      ? primitiveRequirementParts(node)
+      : []
   return result.some((part) => typeof part !== 'string')
     ? resolveMechanicText(result, context)
     : undefined
@@ -332,6 +425,40 @@ function effectPresentation(
   }
 }
 
+/** The Cleanse explanation already lists this exact recipient eligibility. */
+function repeatsCleanseEligibility(effect: AbilityEffect, preceding: readonly AbilityEffect[]) {
+  const requirement = effect.requirements
+  if (effect.payload.type !== 'percentage-recovery' || requirement?.kind !== 'any') return false
+  const subject =
+    effect.payload.recipient === 'actor'
+      ? 'owner'
+      : effect.payload.recipient === 'primary-unit'
+        ? 'selected'
+        : 'affected'
+  return preceding.some(({ payload, requirements }) => {
+    if (
+      payload.type !== 'remove-status' ||
+      !isCleanseEffect(payload) ||
+      requirements ||
+      payload.recipient !== effect.payload.recipient
+    )
+      return false
+    const statuses = new Set([...payload.statusIds, 'suppress'])
+    return (
+      requirement.children.length === statuses.size &&
+      [...statuses].every((statusId) =>
+        requirement.children.some(
+          (child) =>
+            child.kind === 'status-presence' &&
+            child.present &&
+            child.subject === subject &&
+            child.statusId === statusId,
+        ),
+      )
+    )
+  })
+}
+
 export function abilityBehaviorInformation(
   behavior: AbilityBehavior,
   options: {
@@ -360,7 +487,7 @@ export function abilityBehaviorInformation(
         : [nativeCombatTagPayload(payload)],
     ),
   }
-  const effects = behavior.effects.map((effect) => {
+  const effects = behavior.effects.map((effect, index) => {
     const recipientOverride = effectRecipientOverride(behavior, effect)
     const described = effectPresentation(
       effect,
@@ -370,10 +497,17 @@ export function abilityBehaviorInformation(
       controlledAction,
       effectContext,
     )
+    const redundantEligibility = repeatsCleanseEligibility(effect, behavior.effects.slice(0, index))
     return {
       ...described,
+      ...(redundantEligibility
+        ? {
+            description: `${described.description} Applies only if the recipient has an effect that Cleanse can remove.`,
+          }
+        : {}),
       presentation: {
         ...described.presentation,
+        ...(redundantEligibility ? { condition: null, conditionParts: undefined } : {}),
         ...(recipientOverride ? { recipientOverride } : {}),
         ...(behavior.groundArea
           ? { repeatsOnEntry: behavior.groundArea.entryEffectIds.includes(effect.id) }
@@ -400,7 +534,7 @@ export function abilityBehaviorInformation(
     .join(', ')
   const requirementParts = nativeMove
     ? undefined
-    : requirementReferenceParts(behavior.requirements, effectContext)
+    : requirementReferenceParts(behavior.requirements, effectContext, behavior)
   const groundSummary = behavior.groundArea
     ? timingPolicy?.tagAuthority === 'global'
       ? `${behavior.groundArea.durationRounds} ${behavior.groundArea.durationRounds === 1 ? 'Round' : 'Rounds'}${behavior.groundArea.timing === 'instant' ? ' [Instant]' : behavior.groundArea.timing === 'delayed' ? ' [Delayed]' : ''}`
@@ -420,7 +554,9 @@ export function abilityBehaviorInformation(
       Cooldown: behavior.cooldown
         ? `${behavior.cooldown.ownerTurns} ${behavior.cooldown.ownerTurns === 1 ? 'turn' : 'turns'}`
         : 'None',
-      Requirements: nativeMove ? 'N/A' : abilityRequirementDescription(behavior.requirements),
+      Requirements: nativeMove
+        ? 'N/A'
+        : abilityRequirementDescription(behavior.requirements, behavior),
       Effects: summary,
       Range: nativeMove
         ? options.stats?.move === undefined

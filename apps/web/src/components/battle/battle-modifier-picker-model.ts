@@ -200,8 +200,9 @@ export function prepareBattleModifierActionDraft(
 export function battleRecoveryActionId(
   preferredId: string,
   menuActionIds: readonly string[],
-  selectedOwnedGroup: { actionId: string; classification: string } | null,
+  ownedGroups: readonly { actionId: string; classification?: string }[] | null,
 ): string {
+  const selectedOwnedGroup = ownedGroups?.length === 1 ? ownedGroups[0] : undefined
   if (
     selectedOwnedGroup?.actionId === preferredId &&
     selectedOwnedGroup.classification === 'recovery'

@@ -135,6 +135,7 @@ import {
   currentBarrierAmount,
   barrierGrantAmount,
   grantBarrier,
+  advanceBarrierLifetimes,
   validateBarrierEffect,
   validateBarrierState,
 } from './combat-barrier'
@@ -333,6 +334,8 @@ export type CombatEffectDefinition =
       recipient: CombatEffectRecipient
       amount: number
       basis?: 'maximum-hp-percent'
+      /** Omitted preserves historical until-spent protection. */
+      durationTurns?: number
     }
   | {
       type: 'sensory'
@@ -432,8 +435,12 @@ export interface CombatContentCatalog {
 }
 
 export interface CombatStatusInstance {
+  /** Private source restriction for an instant benefit of a pending-Covert cast. */
+  sourceCommandVisibility?: CombatSourceCommandVisibility
   /** Policy 1 preserves each application's authored magnitude and source under the shared lifetime. */
   applicationModifiers?: readonly {
+    sourceCommandVisibility?: CombatSourceCommandVisibility
+    privateSharedLifetime?: true
     stacks: number
     sourceCombatantId: string
     potencyBasisPoints?: number
@@ -769,6 +776,7 @@ export type CombatResolutionEvent = (
     }
   | {
       event: 'barrier_changed'
+      reason?: 'expired'
       actionId: string
       sourceCombatantId: string
       targetCombatantId: string
@@ -1809,6 +1817,12 @@ function applyCombatRoundBoundary(
     })),
   }
   nextState = applyObservedStatusBoundary(state, nextState.statusState, events, nativeHooks)
+  const barriers = advanceBarrierLifetimes(nextState, { kind: 'round' })
+  nextState = observeCombatNativeMutation(nativeHooks, nextState, barriers, {
+    affectedCombatantIds: barriers.events.map((event) => event.targetCombatantId),
+    prepaid: true,
+  }).state
+  events.push(...barriers.events)
   const expiredTerrain = expireTerrainOverlays(nextState)
   nextState = expiredTerrain.state
   events.push(...expiredTerrain.events)
@@ -2019,6 +2033,7 @@ function applyCombatRoundBoundary(
           skillDamage: pending.skillDamage,
           returnAnchor: pending.returnAnchor,
           statusDurationScope: pending.statusDurationScope,
+          sourceCommandVisibility: pending.sourceCommandVisibility,
           percentageRecoveryByRecipient: pending.percentageRecoveryByRecipient,
         },
       )
@@ -2300,6 +2315,15 @@ export function endCombatTurn(
   const ownerExpiry = expireOwnerTurnEndStatuses(nextState, outgoingId, nativeHooks)
   nextState = ownerExpiry.state
   events.push(...ownerExpiry.events)
+  const barriers = advanceBarrierLifetimes(nextState, {
+    kind: 'owner-turn',
+    combatantId: outgoingId,
+  })
+  nextState = observeCombatNativeMutation(nativeHooks, nextState, barriers, {
+    affectedCombatantIds: [outgoingId],
+    prepaid: true,
+  }).state
+  events.push(...barriers.events)
   const outgoingReceipt = ended.events.find((event) => event.event === 'turn_ended')
   if (outgoingReceipt)
     nextState = observeCombatNativeMutation(
@@ -2993,6 +3017,32 @@ function collectPersistentProvenanceIssues(
   state: CombatEncounterState,
   issues: CombatEncounterIssue[],
 ): void {
+  const collectVisibility = (
+    entry: {
+      sourceCombatantId: string
+      sourceCommandVisibility?: unknown
+      privateSharedLifetime?: unknown
+    },
+    field: string,
+  ) => {
+    try {
+      if (
+        entry.privateSharedLifetime !== undefined &&
+        (entry.privateSharedLifetime !== true || entry.sourceCommandVisibility === undefined)
+      )
+        throw new TypeError('Invalid private shared lifetime.')
+      validateSourceCommandVisibility(
+        state,
+        entry.sourceCommandVisibility as CombatSourceCommandVisibility | undefined,
+        entry.sourceCombatantId,
+      )
+    } catch {
+      issues.push({
+        field,
+        message: 'Active source command visibility must match its source team.',
+      })
+    }
+  }
   const collect = (value: unknown, field: string) => {
     if (value === undefined) return
     for (const message of validateCombatEffectInstanceProvenance(value)) {
@@ -3003,6 +3053,17 @@ function collectPersistentProvenanceIssues(
   for (const [rowIndex, row] of state.statusState.entries()) {
     for (const [statusIndex, status] of row.statuses.entries()) {
       collect(status.provenance, `statusState.${rowIndex}.statuses.${statusIndex}.provenance`)
+      collectVisibility(
+        status,
+        `statusState.${rowIndex}.statuses.${statusIndex}.sourceCommandVisibility`,
+      )
+      ;(Array.isArray(status.applicationModifiers) ? status.applicationModifiers : []).forEach(
+        (application, index) =>
+          collectVisibility(
+            application,
+            `statusState.${rowIndex}.statuses.${statusIndex}.applicationModifiers.${index}.sourceCommandVisibility`,
+          ),
+      )
     }
   }
 
@@ -3023,6 +3084,10 @@ function collectPersistentProvenanceIssues(
       collect(
         (row as { provenance?: unknown }).provenance,
         `effectState.${name}.${index}.provenance`,
+      )
+      collectVisibility(
+        row as { sourceCombatantId: string; sourceCommandVisibility?: unknown },
+        `effectState.${name}.${index}.sourceCommandVisibility`,
       )
     })
   }
@@ -3562,6 +3627,7 @@ interface CombatEffectResolutionOptions {
   percentageRecoveryByRecipient?: Readonly<Record<string, CapturedPercentageRecovery>>
   returnAnchor?: GridPosition
   statusDurationScope?: 'rounds'
+  sourceCommandVisibility?: CombatSourceCommandVisibility
   /** Native committed actor settlement retains every original ordinal. */
   actorOnly?: true
   nativeHooks?: CombatNativeExecutionHooks
@@ -4057,7 +4123,8 @@ function resolveActionEffects(
                       : {}),
                   }
                 : {}),
-              ...(['apply-status', 'copy-statuses'].includes(effect.type)
+              ...(['apply-status', 'copy-statuses'].includes(effect.type) ||
+              (effect.type === 'barrier-change' && effect.durationTurns !== undefined)
                 ? { statusDurationScope: 'rounds' as const }
                 : {}),
               sourceCommandVisibility: combatSourceCommandVisibility(state, actorId),
@@ -5096,6 +5163,15 @@ function applyEffectNative(
       recipientId,
       actionId,
       barrierGrantAmount(state, recipientId, effect),
+      effect.durationTurns === undefined
+        ? undefined
+        : {
+            durationTurns: effect.durationTurns,
+            scope: options.statusDurationScope ?? 'owner-turns',
+            sourceCommandVisibility: resolvingPending
+              ? options.sourceCommandVisibility
+              : combatSourceCommandVisibility(state, actorId),
+          },
     )
     return {
       state: changed.state,
@@ -5731,6 +5807,9 @@ function applyStatusState(
         ...(potencyBasisPoints !== undefined ? { potencyBasisPoints } : {}),
         ...(blindsideModifiers ? { blindsideModifiersBasisPoints: blindsideModifiers } : {}),
       }
+
+  if (existing && existing.sourceCombatantId !== sourceCombatantId)
+    delete nextStatus.sourceCommandVisibility
 
   if (state.effectStackingPolicyVersion === 1 && statusId !== 'suppress') {
     nextStatus.applicationModifiers = [

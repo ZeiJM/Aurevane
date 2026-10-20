@@ -246,6 +246,8 @@ function lifecycleTarget(event: Record<string, unknown>): string | null {
     event.event === 'status_applied' ||
     event.event === 'status_removed' ||
     event.event === 'barrier_changed' ||
+    event.event === 'effect_pending' ||
+    event.event === 'persistent_effect_applied' ||
     event.event === 'recovery_scheduled'
   ) {
     return stringValue(event.targetCombatantId)
@@ -259,12 +261,18 @@ function statusLifecycleIdentityBeforeOrAfter(input: {
   statusesByCombatant: Map<string, MutableStatusIdentity[]>
   after: StatDrivenCombatEncounterState
 }): StatusIdentity | null {
-  const statusId = stringValue(input.event.statusId)
+  const statusId = stringValue(
+    input.event.event === 'effect_pending' ? input.event.effectTag : input.event.statusId,
+  )
   if (!statusId) return null
   const sourceCombatantId =
     stringValue(input.event.sourceCombatantId) ?? stringValue(input.event.combatantId)
 
-  if (input.event.event === 'status_applied') {
+  if (
+    input.event.event === 'status_applied' ||
+    input.event.event === 'effect_pending' ||
+    input.event.event === 'persistent_effect_applied'
+  ) {
     return appliedStatusIdentity(input.after, input.targetCombatantId, statusId, sourceCombatantId)
   }
 
@@ -317,8 +325,21 @@ export function buildBattlePrivacyJournalInput(input: {
     ),
   )
   const actorWasCovert = actor ? hasCovert(statusesByCombatant, actor.actorCombatantId) : false
+  const actorEstablishesCovert =
+    actor &&
+    input.events.some((raw) => {
+      const event = objectValue(raw)
+      return (
+        event?.sourceCombatantId === actor.actorCombatantId &&
+        event.targetCombatantId === actor.actorCombatantId &&
+        ((event.event === 'status_applied' && event.statusId === PV1F_COVERT_STATUS.id) ||
+          (event.event === 'effect_pending' && event.effectTag === PV1F_COVERT_STATUS.id))
+      )
+    })
   const commandVisibility =
-    input.commandKind === 'action' && actor?.actorTeamId && actorWasCovert
+    input.commandKind === 'action' &&
+    actor?.actorTeamId &&
+    (actorWasCovert || actorEstablishesCovert)
       ? teamVisibility(actor.actorTeamId)
       : publicVisibility()
   const sensoryPublicIndexes = sensoryPublicEventIndexes(input.events)
@@ -342,7 +363,10 @@ export function buildBattlePrivacyJournalInput(input: {
       after: input.after,
     })
 
-    if (targetWasCovert && !sensoryPublicIndexes.has(eventIndex)) {
+    if (
+      (targetWasCovert || identity?.statusId === PV1F_COVERT_STATUS.id) &&
+      !sensoryPublicIndexes.has(eventIndex)
+    ) {
       const polarity = identity ? statusPolarity(identity) : null
       if (polarity === 'positive' || polarity === null) {
         const teamId = teamByCombatant.get(targetCombatantId)

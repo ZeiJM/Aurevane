@@ -25,6 +25,19 @@ export type RequirementNode =
       readonly thresholdBasisPoints: number
     }
   | {
+      readonly kind: 'resource-change'
+      readonly subject: AbilityRequirementSubject
+      readonly resource: AbilityResource
+      readonly direction: 'gained' | 'lost'
+      readonly minimumAmount: number
+    }
+  | {
+      readonly kind: 'subject-relation'
+      readonly subject: AbilityRequirementSubject
+      readonly otherSubject: AbilityRequirementSubject
+      readonly relation: 'same-unit' | 'ally' | 'enemy'
+    }
+  | {
       readonly kind: 'status-presence'
       readonly subject: AbilityRequirementSubject
       readonly statusId: string
@@ -33,7 +46,8 @@ export type RequirementNode =
   | {
       readonly kind: 'prime-presence'
       readonly subject: AbilityRequirementSubject
-      readonly abilityId: string
+      /** Omission means any actual Controlled prime; pinned historical IDs remain exact. */
+      readonly abilityId?: string
       readonly present: boolean
     }
   | { readonly kind: 'event'; readonly eventType: string; readonly phase: 'before' | 'after' }
@@ -46,6 +60,9 @@ export type RequirementNode =
     }
 
 export interface AbilityRequirementSubjectState {
+  /** Native identity/team only; absent historical subjects cannot establish a relation. */
+  readonly combatantId?: string
+  readonly teamId?: string
   readonly resources?: Readonly<Partial<Record<AbilityResource, number>>>
   readonly maximumResources?: Readonly<Partial<Record<AbilityResource, number>>>
   /** Values immediately before the immutable triggering event, never a previous read. */
@@ -93,7 +110,8 @@ export function evaluateAbilitySelectedRequirements(
 /** Every satisfying branch must qualify this root's before-action hook. */
 export function isBeforeActionModifierRequirement(node: RequirementNode | null): boolean {
   function inspect(value: RequirementNode): { compatible: boolean; anchored: boolean } {
-    if (value.kind === 'resource-threshold-crossing') return { compatible: false, anchored: false }
+    if (value.kind === 'resource-threshold-crossing' || value.kind === 'resource-change')
+      return { compatible: false, anchored: false }
     if (value.kind === 'event') {
       const compatible = value.eventType === 'combat_action_used' && value.phase === 'before'
       return { compatible, anchored: compatible }
@@ -151,7 +169,9 @@ export function validateAbilityRequirements(value: unknown): readonly AbilityDef
         'direction',
         'thresholdBasisPoints',
       ],
+      'resource-change': ['kind', 'subject', 'resource', 'direction', 'minimumAmount'],
       'status-presence': ['kind', 'subject', 'statusId', 'present'],
+      'subject-relation': ['kind', 'subject', 'otherSubject', 'relation'],
       'prime-presence': ['kind', 'subject', 'abilityId', 'present'],
       event: ['kind', 'eventType', 'phase'],
       action: ['kind', 'classification', 'attackFamily', 'sourceDisciplineId', 'requiredTags'],
@@ -183,7 +203,21 @@ export function validateAbilityRequirements(value: unknown): readonly AbilityDef
       issue(path, 'invalid-requirement', 'Unknown Requirement subject.')
     if (row.kind !== 'event' && row.kind !== 'action' && !('subject' in row))
       issue(path, 'invalid-requirement', 'Requirement subject is required.')
-    if (row.kind === 'resource-state' || row.kind === 'resource-threshold-crossing') {
+    if (
+      row.kind === 'subject-relation' &&
+      (!subjects.includes(row.otherSubject as string) ||
+        !['same-unit', 'ally', 'enemy'].includes(row.relation as string))
+    )
+      issue(
+        path,
+        'invalid-requirement',
+        'Relation requires another supported subject and same-unit, ally or enemy.',
+      )
+    if (
+      row.kind === 'resource-state' ||
+      row.kind === 'resource-threshold-crossing' ||
+      row.kind === 'resource-change'
+    ) {
       if (!resources.includes(row.resource as string))
         issue(path, 'invalid-requirement', 'Unknown resource unit.')
       if (row.kind === 'resource-state') {
@@ -200,6 +234,17 @@ export function validateAbilityRequirements(value: unknown): readonly AbilityDef
             'invalid-requirement',
             'Resource state requires a comparison and exactly one amount or 0–10000 basis-point threshold.',
           )
+      } else if (row.kind === 'resource-change') {
+        if (
+          !['gained', 'lost'].includes(row.direction as string) ||
+          !nonnegative(row.minimumAmount) ||
+          row.minimumAmount === 0
+        )
+          issue(
+            path,
+            'invalid-requirement',
+            'Resource change requires gained/lost and a positive amount.',
+          )
       } else if (
         !['below', 'above'].includes(row.direction as string) ||
         !nonnegative(row.thresholdBasisPoints) ||
@@ -213,7 +258,11 @@ export function validateAbilityRequirements(value: unknown): readonly AbilityDef
     }
     if (row.kind === 'status-presence' || row.kind === 'prime-presence') {
       const id = row.kind === 'status-presence' ? row.statusId : row.abilityId
-      if (typeof id !== 'string' || !ID.test(id) || typeof row.present !== 'boolean')
+      const genericPrime = row.kind === 'prime-presence' && !Object.hasOwn(row, 'abilityId')
+      if (
+        (!genericPrime && (typeof id !== 'string' || !ID.test(id))) ||
+        typeof row.present !== 'boolean'
+      )
         issue(path, 'invalid-requirement', 'Presence predicates require a stable ID and boolean.')
     }
     if (
@@ -289,6 +338,16 @@ export function evaluateAbilityRequirements(
     }
     const subject = context[node.subject]
     if (!subject) return false
+    if (node.kind === 'subject-relation') {
+      const other = context[node.otherSubject]
+      if (!other || !identity(subject.combatantId) || !identity(other.combatantId)) return false
+      const same = subject.combatantId === other.combatantId
+      if (node.relation === 'same-unit') return same
+      if (same || !identity(subject.teamId) || !identity(other.teamId)) return false
+      return node.relation === 'ally'
+        ? subject.teamId === other.teamId
+        : subject.teamId !== other.teamId
+    }
     if (node.kind === 'status-presence')
       return (
         Array.isArray(subject.statusIds) &&
@@ -297,7 +356,9 @@ export function evaluateAbilityRequirements(
     if (node.kind === 'prime-presence')
       return (
         Array.isArray(subject.primeAbilityIds) &&
-        subject.primeAbilityIds.includes(node.abilityId) === node.present
+        (node.abilityId === undefined
+          ? subject.primeAbilityIds.length > 0
+          : subject.primeAbilityIds.includes(node.abilityId)) === node.present
       )
     const amount = subject.resources?.[node.resource]
     if (!nonnegative(amount)) return false
@@ -311,6 +372,15 @@ export function evaluateAbilityRequirements(
       return node.comparison === 'at-most' ? current <= threshold : current >= threshold
     }
     const previous = subject.previousResources?.[node.resource]
+    if (node.kind === 'resource-change') {
+      if (
+        !context.resourceMutations?.[node.subject]?.includes(node.resource) ||
+        !nonnegative(previous)
+      )
+        return false
+      const delta = BigInt(amount) - BigInt(previous)
+      return (node.direction === 'gained' ? delta : -delta) >= BigInt(node.minimumAmount)
+    }
     const maximum = subject.maximumResources?.[node.resource]
     if (
       !context.resourceMutations?.[node.subject]?.includes(node.resource) ||
@@ -331,6 +401,9 @@ export function evaluateAbilityRequirements(
 
 function nonnegative(value: unknown): value is number {
   return Number.isSafeInteger(value) && (value as number) >= 0
+}
+function identity(value: unknown): value is string {
+  return typeof value === 'string' && value.length > 0 && value.trim() === value
 }
 
 export interface AutomaticRequirementTriggerResult {
@@ -364,7 +437,12 @@ export function evaluateAutomaticRequirementTrigger(
       }
     }
     const holds = evaluateAbilityRequirements(node, context)
-    const transient = ['event', 'action', 'resource-threshold-crossing'].includes(node.kind)
+    const transient = [
+      'event',
+      'action',
+      'resource-threshold-crossing',
+      'resource-change',
+    ].includes(node.kind)
     return {
       holds,
       stateTruth: !transient && holds,
@@ -372,6 +450,7 @@ export function evaluateAutomaticRequirementTrigger(
         holds &&
         (node.kind === 'event' ||
           node.kind === 'resource-threshold-crossing' ||
+          node.kind === 'resource-change' ||
           (node.kind === 'action' &&
             context.event?.type === 'combat_action_used' &&
             context.event.phase === 'after')),
@@ -398,8 +477,14 @@ export function hasUnanchoredAutomaticStateRequirement(
       }
       return result
     }
-    if (['event', 'action', 'resource-threshold-crossing'].includes(node.kind)) return new Set([1])
-    return new Set(['subject' in node && node.subject !== 'owner' ? 2 : 0])
+    if (['event', 'action', 'resource-threshold-crossing', 'resource-change'].includes(node.kind))
+      return new Set([1])
+    return new Set([
+      ('subject' in node && node.subject !== 'owner') ||
+      (node.kind === 'subject-relation' && node.otherSubject !== 'owner')
+        ? 2
+        : 0,
+    ])
   }
   return witnesses(requirement).has(2)
 }

@@ -11,6 +11,32 @@ const USER_ID = '11111111-1111-4111-8111-111111111111'
 const SESSION_ID = '33333333-3333-4333-8333-333333333333'
 
 describe('sanitized battle log service', () => {
+  it('describes a timed pool expiry while another Barrier remains', () => {
+    const view = buildBattleLogView(SESSION_ID, [
+      {
+        battleVersion: 2,
+        eventIndex: 0,
+        createdAt: '2026-10-19T14:00:00Z',
+        event: {
+          event: 'barrier_changed',
+          reason: 'expired',
+          actionId: 'barrier',
+          sourceCombatantId: 'actor',
+          targetCombatantId: 'ally',
+          amount: -75,
+          before: 175,
+          after: 100,
+        },
+      },
+    ])
+    expect(view.entries[0]!.messageTemplate).toBe("{target}'s Barrier expired.")
+    expect(view.entries[0]!.facts).toEqual([
+      { label: '75 Barrier expired', tone: 'neutral' },
+      { label: '100 Barrier remaining', tone: 'neutral' },
+    ])
+    expect(JSON.stringify(view)).not.toContain('shattered')
+    expect(JSON.stringify(view)).not.toContain('gained')
+  })
   it('describes a shattered Barrier without claiming a negative grant or absorbed HP damage', () => {
     const view = buildBattleLogView(SESSION_ID, [
       {

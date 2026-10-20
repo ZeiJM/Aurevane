@@ -7,6 +7,9 @@ on:
       - 'apps/web/src/components/battle/**'
       - 'apps/web/e2e/fixtures/skill-parameter-palette-harness.jsx'
       - 'apps/web/scripts/skill-parameter-palette-browser-regression.mjs'
+      - 'apps/web/e2e/fixtures/primed-requirement-modules-harness.jsx'
+      - 'apps/web/scripts/primed-requirement-modules-browser-regression.mjs'
+      - 'apps/web/src/components/master/combat-content/ability-requirement*.tsx'
       - 'packages/game-core/src/combat/**'
       - '.github/workflows/ability-readers-browser.yml'
   workflow_dispatch:
@@ -32,6 +35,11 @@ jobs:
           corepack enable
           corepack prepare pnpm@11.17.0 --activate
       - run: pnpm install --frozen-lockfile
+      - name: Verify modular catalogue and release bindings
+        run: |
+          python3 scripts/prepare-resonance-modularity.test.py
+          python3 scripts/prepare-resonance-modularity-release.test.py
+          python3 scripts/prepare-resonance-modularity.py --check
       - name: Install Chromium
         run: |
           printf '%s\n' 'https://archive.ubuntu.com/ubuntu/' | sudo tee /etc/apt/apt-mirrors.txt >/dev/null
@@ -59,4 +67,15 @@ jobs:
         with:
           name: basic-service-restore-review
           path: /tmp/basic-service-restore-review
+          retention-days: 7
+      - name: Verify Primed and modular requirements on desktop and mobile
+        env:
+          AV_PRIMED_MODULES_EVIDENCE_DIR: /tmp/primed-modules-browser-evidence
+        run: pnpm --filter @aurevane/web exec node scripts/primed-requirement-modules-browser-regression.mjs
+      - name: Save Primed and modular requirement evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: primed-modules-browser-evidence
+          path: /tmp/primed-modules-browser-evidence
           retention-days: 7

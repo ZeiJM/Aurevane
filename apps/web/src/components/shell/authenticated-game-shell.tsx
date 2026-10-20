@@ -44,11 +44,7 @@ function ShellCharacterPortrait({
         imageUrl={imageUrl}
         fallbackAssetId={getStarterPortraitImageAssetId(character.portraitRef)}
         className={styles.screenPortraitImage}
-        sizes={
-          rail
-            ? '(max-height: 620px) 88px, (max-height: 700px) 112px, 165px'
-            : '(max-width: 760px) 2rem, 3rem'
-        }
+        sizes={rail ? '(max-height: 620px) 88px, (max-height: 700px) 112px, 165px' : '3.25rem'}
         alt=""
         priority
       />

@@ -1,5 +1,9 @@
 import { applyAbilityTimingDefaults } from './combat-definition'
-export { combatControlledAbilityAvailability, isControlledCombatAbility } from './combat-controlled'
+export {
+  combatControlledAbilityAvailability,
+  isControlledCombatAbility,
+  combatPrimedAbilityIds,
+} from './combat-controlled'
 import type { CombatEffectTimingPolicy } from './combat-effect-timing'
 import { readSkillCooldown } from './skill-cooldowns'
 import { pruneCombatAbilityActionHistory } from './combat-ability-state'
@@ -44,6 +48,7 @@ import { createCombatActionProvenance, createCombatTriggerGuard } from './combat
 import type { GridPosition } from './board'
 import {
   reconcileCombatControlledAbilities,
+  combatPrimedAbilityIds,
   updateCombatControlledAbility,
   type CombatControlledAbilityState,
   type CombatControlledAbilityInput,
@@ -212,6 +217,8 @@ export function combatAbilitySubject(
   if (!unit) return null
   const ap = unit.temporaryResources.find((row) => row.key === 'pv1f.action-economy')
   return {
+    combatantId: unit.id,
+    teamId: unit.teamId,
     resources: { hp: unit.hp, mp: unit.mp, ap: ap?.current ?? 0 },
     maximumResources: { hp: unit.maxHp, mp: unit.maxMp, ap: ap?.maximum ?? 100 },
     statusIds: [
@@ -225,13 +232,7 @@ export function combatAbilitySubject(
         ...(currentBurnInstance(state, unit.id) ? ['burn'] : []),
       ]),
     ],
-    primeAbilityIds: [
-      ...new Set(
-        state.abilityRuntime?.controlled?.primes
-          .filter((prime) => prime.ownerCombatantId === id)
-          .map((prime) => prime.abilityId) ?? [],
-      ),
-    ],
+    primeAbilityIds: combatPrimedAbilityIds(state, unit.id),
   }
 }
 
@@ -264,6 +265,8 @@ function ownerRequirementTruth(
     node.kind === 'action' ||
     node.kind === 'event' ||
     node.kind === 'resource-threshold-crossing' ||
+    node.kind === 'resource-change' ||
+    (node.kind === 'subject-relation' && node.otherSubject !== 'owner') ||
     node.subject !== 'owner'
   )
     return null

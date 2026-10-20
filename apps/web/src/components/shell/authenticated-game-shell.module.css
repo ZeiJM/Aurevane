@@ -1042,28 +1042,30 @@
   }
 }
 
+.accountCharacter {
+  flex: 0 0 auto;
+}
+
 .accountCharacter .screenPortrait {
-  width: 2.4rem;
-  height: 2.4rem;
+  width: 3.25rem;
+  height: 3.25rem;
 }
 
 .accountOnline {
   display: inline-flex;
-  gap: 0.5rem;
+  gap: 0.35rem;
   align-items: center;
   color: var(--av-text-muted);
-  font: 600 0.8rem/1.2 var(--av-font-body);
+  font: 500 0.75rem/1.35 var(--av-font-body);
   text-decoration: none;
 }
-.accountOnline::before {
-  width: 0.45rem;
-  height: 0.45rem;
-  border-radius: 50%;
-  background: var(--av-teal-bright);
-  content: '';
+.accountOnline:hover,
+.accountOnline:focus-visible {
+  color: var(--av-teal-bright);
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
 }
 .accountOnline span {
-  margin-left: auto;
   color: var(--av-teal-bright);
 }
 

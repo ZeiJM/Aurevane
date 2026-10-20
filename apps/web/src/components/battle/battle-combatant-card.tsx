@@ -89,21 +89,24 @@ export function BattleCombatantCard({
       <div className={styles.vitals}>
         {(['hp', 'mp'] as const).map((resource) => {
           const maximum = resource === 'hp' ? combatant.maxHp : combatant.maxMp
-          const barrierLabel = resource === 'hp' && barrier > 0 ? `, Barrier ${barrier}` : ''
+          const protection = resource === 'hp' ? barrier : 0
+          const current = combatant[resource] + protection
+          const meterMaximum = Math.max(maximum, current)
+          const barrierLabel = protection > 0 ? `, HP ${combatant.hp}, Barrier ${barrier}` : ''
           return (
             <div key={resource} data-resource={resource}>
               <span aria-hidden="true">{resource.toUpperCase()}</span>
               <i
                 role="meter"
-                aria-label={`${resource.toUpperCase()} ${combatant[resource]} / ${maximum}${barrierLabel}`}
+                aria-label={`${resource.toUpperCase()} ${current} / ${maximum}${barrierLabel}`}
                 aria-valuemin={0}
-                aria-valuenow={combatant[resource]}
-                aria-valuemax={maximum}
-                aria-valuetext={`${combatant[resource]} / ${maximum}${barrierLabel}`}
+                aria-valuenow={current}
+                aria-valuemax={meterMaximum}
+                aria-valuetext={`${current} / ${maximum}${barrierLabel}`}
               >
                 <b
                   aria-hidden="true"
-                  style={{ width: `${meterPercent(combatant[resource], maximum)}%` }}
+                  style={{ width: `${meterPercent(combatant[resource], meterMaximum)}%` }}
                 />
                 {resource === 'hp' && barrier > 0 ? (
                   <em
@@ -111,11 +114,14 @@ export function BattleCombatantCard({
                     data-battle-hp-barrier="true"
                     title={`Barrier ${barrier}`}
                     aria-hidden="true"
-                    style={{ width: `${meterPercent(barrier, maximum)}%` }}
+                    style={{
+                      left: `${meterPercent(combatant.hp, meterMaximum)}%`,
+                      width: `${meterPercent(barrier, meterMaximum)}%`,
+                    }}
                   />
                 ) : null}
                 <span className={styles.value} aria-hidden="true">
-                  {combatant[resource]}/{maximum}
+                  {current}/{maximum}
                 </span>
               </i>
             </div>

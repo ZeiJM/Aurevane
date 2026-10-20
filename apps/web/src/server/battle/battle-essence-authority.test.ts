@@ -1096,13 +1096,14 @@ it('projects startup Automatic children with their own Covert visibility through
       /effectOrigin|abilityParticipants|sourceCommandVisibility|sourceInstanceId|conditionTruth/,
     )
     expect(log.entries.filter((entry) => entry.eventType === 'combat_action_used')).toHaveLength(
-      index === 0 ? 2 : 1,
+      index === 0 ? 2 : 0,
     )
     expect(log.entries.filter((entry) => entry.eventType === 'mp_spent')).toHaveLength(
       index === 0 ? 1 : 0,
     )
     if (index === 0) expect(JSON.stringify(log)).toContain(original.essenceId)
     else {
+      expect(JSON.stringify(log)).not.toContain('a-hide')
       expect(JSON.stringify(log)).not.toContain('z-recover')
       expect(log.entries.filter((entry) => entry.eventType === 'mp_spent')).toHaveLength(0)
     }

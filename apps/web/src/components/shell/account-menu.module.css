@@ -101,7 +101,7 @@
   min-width: 0;
   gap: 0.22rem;
 }
-.characterGreeting span {
+.characterGreeting > div:first-child > span {
   color: var(--av-text-dim);
   font: 650 0.54rem/1.1 var(--av-font-body);
   letter-spacing: 0.08em;
@@ -131,16 +131,10 @@
 }
 
 .presenceBlock {
-  margin: 0.25rem 0;
-  padding: 0.2rem 0.8rem;
-  border: 1px solid var(--av-border);
-  border-radius: var(--av-radius-sm);
+  display: flex;
 }
 .presenceBlock a {
-  display: flex;
-  min-height: 2.6rem;
-  align-items: center;
-  justify-content: flex-start;
+  min-height: 1.5rem;
 }
 @media (max-width: 760px) {
   .trigger {
@@ -152,7 +146,7 @@
 
 /* mobile type floor */
 @media (max-width: 760px) {
-  .characterGreeting span {
+  .characterGreeting > div:first-child > span {
     font-size: 0.6875rem !important;
   }
 }

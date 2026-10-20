@@ -6,11 +6,13 @@ export function AbilitySelect<T extends string>({
   label,
   value,
   options,
+  optionLabels,
   onChange,
 }: {
   label: string
   value: T
   options: readonly T[]
+  optionLabels?: Readonly<Partial<Record<T, string>>>
   onChange: (value: T) => void
 }) {
   return (
@@ -24,7 +26,7 @@ export function AbilitySelect<T extends string>({
         {!options.includes(value) ? <option value={value}>{value} (incompatible)</option> : null}
         {options.map((option) => (
           <option key={option} value={option}>
-            {option || 'Any'}
+            {optionLabels?.[option] ?? (option || 'Any')}
           </option>
         ))}
       </select>

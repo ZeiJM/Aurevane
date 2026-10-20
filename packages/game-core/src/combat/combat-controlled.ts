@@ -73,8 +73,27 @@ export function combatControlledPrime(
   )
 }
 
+type ControlledStateInput = Pick<
+  CombatEncounterState,
+  'tactical' | 'abilityRuntime' | 'capturedAbilitySources' | 'effectTimingPolicy'
+>
+
+/** Shared genuine state for predicates and the viewer-only Primed tag. */
+export function combatPrimedAbilityIds(
+  state: ControlledStateInput,
+  ownerId: string,
+): readonly string[] {
+  return [
+    ...new Set(
+      reconcileCombatControlledAbilities(state, state.capturedAbilitySources ?? [])
+        ?.primes.filter((prime) => prime.ownerCombatantId === ownerId)
+        .map((prime) => prime.abilityId) ?? [],
+    ),
+  ]
+}
+
 export function reconcileCombatControlledAbilities(
-  state: CombatEncounterState,
+  state: ControlledStateInput,
   sources: readonly CapturedCombatAbilitySource[],
 ): CombatControlledAbilityState | undefined {
   const controlled = state.abilityRuntime?.controlled
@@ -94,7 +113,18 @@ export function reconcileCombatControlledAbilities(
             source.ownerCombatantId === prime.ownerCombatantId &&
             source.abilityId === prime.abilityId &&
             source.contentVersion === prime.contentVersion &&
-            source.basic?.enabled !== false,
+            source.basic?.enabled !== false &&
+            state.abilityRuntime?.activeSourceIds.includes(source.sourceInstanceId) &&
+            source.definition.behaviors.some((authored) => {
+              if (authored.id !== prime.behaviorId) return false
+              try {
+                return isControlledCombatAbility(
+                  applyAbilityTimingDefaults(authored, state.effectTimingPolicy),
+                )
+              } catch {
+                return false
+              }
+            }),
         ) &&
         (prime.manualModifiers ?? []).every((modifier) =>
           sources.some(

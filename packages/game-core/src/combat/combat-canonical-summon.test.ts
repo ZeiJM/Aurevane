@@ -107,6 +107,31 @@ function recordedEvents(transition: { readonly events: readonly unknown[] }) {
 }
 
 describe('canonical Summon command routing', () => {
+  it('retains privacy when a queued Summon is part of the Skill establishing Covert', () => {
+    const state = encounter()
+    const definition = summoning('next-round', [
+      {
+        id: 'hide',
+        timing: 'next-round',
+        payload: { type: 'apply-status', recipient: 'actor', statusId: 'covert', stacks: 1 },
+      },
+    ])
+    let out = executePv1fMatureSkill(state, definition, tile)
+    expect(out.state.pendingSummons).toHaveLength(1)
+    expect(out.state.pendingSummons![0].sourceCommandVisibility).toEqual({
+      kind: 'team-only',
+      teamId: 'players',
+    })
+    const events = [...recordedEvents(out)]
+    for (let turn = 0; turn < 8 && out.state.tactical.battle.round < 2; turn++) {
+      out = finishPv1fTurn(out.state, 'east')
+      events.push(...recordedEvents(out))
+    }
+    expect(
+      events.find((event) => event.event === 'summon_spawned')?.sourceCommandVisibility,
+    ).toEqual({ kind: 'team-only', teamId: 'players' })
+  })
+
   it('inherits the captured Summon timing policy when its packet has no explicit timing', () => {
     const state = {
       ...encounter(),

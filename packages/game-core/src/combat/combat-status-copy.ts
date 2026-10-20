@@ -344,10 +344,12 @@ export function planCombatStatusCopies(
               applicationModifiers: [
                 ...(previous ? combatStatusApplications(previous) : []),
                 ...selectedDonors.flatMap((row) =>
-                  combatStatusApplications(row).map((application) => ({
-                    ...application,
-                    sourceCombatantId: actorId,
-                  })),
+                  combatStatusApplications(row).map((application) => {
+                    const copied = { ...application, sourceCombatantId: actorId }
+                    delete copied.sourceCommandVisibility
+                    delete copied.privateSharedLifetime
+                    return copied
+                  }),
                 ),
               ],
             }
@@ -387,6 +389,7 @@ export function planCombatStatusCopies(
           sourceCombatantId: actorId,
           skipCurrentOwnerTurnEnd: undefined,
         }
+        delete incoming.sourceCommandVisibility
         if (statusDurationScope === 'rounds') {
           const remaining =
             donor.remainingRoundBoundaries ??

@@ -34,23 +34,89 @@ it.each(['bastion.hold-fast', 'essence.bastion.last-bastion'])(
     expect(JSON.stringify(definition)).toBe(before)
   },
 )
+it.each(['wildwarden.field-remedy', 'essence.dawnshield.dawns-oath'])(
+  'keeps Cleanse eligibility in the explanation instead of repeating its status list in %s Effects',
+  (id) => {
+    const definition = actual(id)
+    const before = JSON.stringify(definition)
+    const report = abilityBehaviorInformation(definition.behaviors[0]!)
+    expect(report.effects[1]!.condition).toBeNull()
+    expect(report.effectDescriptions[1]).toContain(
+      'Applies only if the recipient has an effect that Cleanse can remove.',
+    )
+    const html = renderToStaticMarkup(
+      <AbilityDefinitionParameters definition={projectPublicCombat(definition)} />,
+    )
+    expect(html).not.toContain('If (')
+    expect(report.effectDescriptions[0]).toContain('Poison')
+    expect(JSON.stringify(definition)).toBe(before)
+  },
+)
 it.each([
-  ['wildwarden.field-remedy', ' [Self]'],
-  ['essence.dawnshield.dawns-oath', ''],
-])('reports only conditional recovery in actual public %s', (id, subject) => {
-  const definition = actual(id!)
-  const before = JSON.stringify(definition)
-  const report = abilityBehaviorInformation(definition.behaviors[0]!)
-  const recovery = report.effects[1]!
-  expect(recovery.condition).toContain(`Poison${subject}`)
-  expect(recovery.condition).toContain(`Suppress${subject}`)
-  expect(recovery.condition).not.toContain('Chilled')
-  expect(report.effects.filter((effect) => effect.condition)).toEqual([recovery])
-  const html = renderToStaticMarkup(
-    <AbilityDefinitionParameters definition={projectPublicCombat(definition)} />,
+  'conditional-cleanse',
+  'different-recipient',
+  'different-subject',
+  'different-status-list',
+  'non-percentage-recovery',
+] as const)('preserves meaningful recovery conditions for %s', (variant) => {
+  const group = actual('essence.dawnshield.dawns-oath').behaviors[0]!
+  const cleanse = group.effects[0]!
+  const recovery = group.effects[1]!
+  if (
+    cleanse.payload.type !== 'remove-status' ||
+    recovery.payload.type !== 'percentage-recovery' ||
+    recovery.requirements?.kind !== 'any'
   )
-  const visibleText = html.replace(/<[^>]*>/g, '')
-  expect(visibleText.split(`If ${recovery.condition}: `)).toHaveLength(2)
+    throw new Error('Expected the actual conditional Cleanse/recovery fixture.')
+  const requirements = recovery.requirements
+  const effects = [
+    {
+      ...cleanse,
+      ...(variant === 'conditional-cleanse'
+        ? {
+            requirements: {
+              kind: 'resource-state' as const,
+              subject: 'owner' as const,
+              resource: 'mp' as const,
+              comparison: 'at-least' as const,
+              amount: 1,
+            },
+          }
+        : {}),
+      payload: {
+        ...cleanse.payload,
+        ...(variant === 'different-recipient' ? { recipient: 'actor' as const } : {}),
+        ...(variant === 'different-status-list'
+          ? { statusIds: cleanse.payload.statusIds.filter((id) => id !== 'poison') }
+          : {}),
+      },
+    },
+    {
+      ...recovery,
+      requirements:
+        variant === 'different-subject'
+          ? {
+              ...requirements,
+              children: requirements.children.map((child) =>
+                child.kind === 'status-presence' ? { ...child, subject: 'owner' as const } : child,
+              ),
+            }
+          : requirements,
+      payload:
+        variant === 'non-percentage-recovery'
+          ? { type: 'healing' as const, recipient: recovery.payload.recipient, amount: 9 }
+          : recovery.payload,
+    },
+    ...group.effects.slice(2),
+  ]
+  const definition = { ...group, effects }
+  const before = JSON.stringify(definition)
+  const report = abilityBehaviorInformation(definition)
+  expect(report.effects[1]!.condition).not.toBeNull()
+  expect(Object.fromEntries(report.rows).Effects).toContain('If ')
+  expect(report.effectDescriptions[1]).not.toContain(
+    'Applies only if the recipient has an effect that Cleanse can remove.',
+  )
   expect(JSON.stringify(definition)).toBe(before)
 })
 it.each([
@@ -148,7 +214,7 @@ it('keeps nested effect requirements aligned while prose stays plain and global 
   )
   const html = renderToStaticMarkup(<AbilityParameters report={report} />)
   expect(html.split(condition)).toHaveLength(2)
-  expect(html).toContain('AP [≥ 9] [Self]')
+  expect(html.replace(/<[^>]*>/gu, '')).toContain('AP [≥ 9] [Self]')
 })
 it('preserves authored conditional text exactly as escaped text without stripping repeated numbers', () => {
   const definition = actual('resonance.edgedancer-tidecaller.linked-sequence')
