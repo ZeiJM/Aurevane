@@ -1,18 +1,11 @@
-import {
-  EFFECT_PROFILE_AUTHORING_BLOCKER,
-  parseStoredStatusDefinition,
-} from '../combat/combat-standalone-content'
-import 'server-only'
 import type {
+  CombatContentListPage,
   CompleteCombatContentRecord,
   CompleteCombatContentWrite,
-  CombatContentListPage,
 } from '@aurevane/db/combat-content'
-import {
-  isNoncombatContentKind,
-  parseNoncombatContentDefinition,
-  noncombatPublicationBlocker,
-} from '@aurevane/game-core/content/authored-content'
+import 'server-only'
+import { combatContentCategory } from '../combat/combat-content-categories'
+import { parseStoredStatusDefinition } from '../combat/combat-standalone-content'
 import { isCombatContentKind, parseCompleteCombatContentRecord } from './combat-content-record'
 
 import { createSelectedCharacterRpc } from './selected-character-rpc'
@@ -29,13 +22,13 @@ import {
 import { AurevaneError } from '@aurevane/game-core/errors'
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { assertCombatCatalogueTimingCompatible } from '@/server/combat/combat-catalogue-timing-compatibility'
 import {
   RpcPublishedCombatContentSource,
   resolveCombatContentCatalogueSnapshot,
 } from '@/server/combat/combat-content-resolver'
-import { assertCombatCatalogueTimingCompatible } from '@/server/combat/combat-catalogue-timing-compatibility'
-import { builtinCombatContentVersionFloor } from './combat-content-version-floor'
 import { builtinCombatContentDefinition } from './combat-content-builtin-index'
+import { builtinCombatContentVersionFloor } from './combat-content-version-floor'
 
 import type {
   CombatContentAuthoringStore,
@@ -72,13 +65,7 @@ function positiveBigintAsNumber(value: unknown): number | null {
 }
 
 function combatContentKind(value: unknown): CombatContentKind | null {
-  return value === 'skill' ||
-    value === 'essence' ||
-    value === 'resonance' ||
-    value === 'status' ||
-    value === 'effect-profile'
-    ? value
-    : null
+  return combatContentCategory(value)?.storedKind ?? null
 }
 
 function oneRow(data: unknown): JsonObject | null {
@@ -343,8 +330,10 @@ export class RpcCombatContentAuthoringStore implements CombatContentAuthoringSto
     contentKey: string,
     command: CompleteCombatContentWrite,
   ): Promise<CompleteCombatContentRecord> {
-    if (command.action === 'create' && command.contentKind === 'effect-profile')
-      throw new AurevaneError('INVALID_REQUEST', EFFECT_PROFILE_AUTHORING_BLOCKER.message)
+    if (command.action === 'create') {
+      const blocker = combatContentCategory(command.contentKind, contentKey)?.authoringBlocker
+      if (blocker) throw new AurevaneError('INVALID_REQUEST', blocker.message)
+    }
     if (command.action === 'create' && command.contentKind === 'status')
       parseStoredStatusDefinition(command.definition)
     if (
@@ -355,8 +344,9 @@ export class RpcCombatContentAuthoringStore implements CombatContentAuthoringSto
       const source = await this.readRecord(
         command.action === 'duplicate' ? command.sourceKey : contentKey,
       )
-      if (source?.contentKind === 'effect-profile')
-        throw new AurevaneError('INVALID_REQUEST', EFFECT_PROFILE_AUTHORING_BLOCKER.message)
+      const blocker =
+        source && combatContentCategory(source.contentKind, source.contentKey)!.authoringBlocker
+      if (blocker) throw new AurevaneError('INVALID_REQUEST', blocker.message)
       if (source?.contentKind === 'status' && command.action === 'save')
         parseStoredStatusDefinition(command.definition)
       if (source?.contentKind === 'status' && command.action === 'restore') {
@@ -424,14 +414,10 @@ export class RpcCombatContentAuthoringStore implements CombatContentAuthoringSto
         'STALE_VERSION',
         'Save and review the current draft before publishing.',
       )
-    if (saved.contentKind === 'effect-profile')
-      throw new AurevaneError('INVALID_REQUEST', EFFECT_PROFILE_AUTHORING_BLOCKER.message)
-    if (isNoncombatContentKind(saved.contentKind)) {
-      parseNoncombatContentDefinition(saved.contentKind, saved.draft.definition)
-      throw new AurevaneError(
-        'INVALID_REQUEST',
-        noncombatPublicationBlocker(saved.contentKind).message,
-      )
+    const descriptor = combatContentCategory(saved.contentKind, saved.contentKey)!
+    if (descriptor.publicationBlocker) {
+      if (!descriptor.authoringBlocker) descriptor.parseAuthoring(saved.draft.definition)
+      throw new AurevaneError('INVALID_REQUEST', descriptor.publicationBlocker.message)
     }
     const floor = Math.max(
       saved.versionFloor,
@@ -589,8 +575,8 @@ export class RpcCombatContentAuthoringStore implements CombatContentAuthoringSto
     contentKind: CombatContentKind,
     target: CombatContentVersionRecord | null,
   ): Promise<string> {
-    if (target && contentKind === 'effect-profile')
-      throw new AurevaneError('INVALID_REQUEST', EFFECT_PROFILE_AUTHORING_BLOCKER.message)
+    const blocker = combatContentCategory(contentKind, contentKey)?.publicationBlocker
+    if (target && blocker) throw new AurevaneError('INVALID_REQUEST', blocker.message)
     const snapshot = await new RpcPublishedCombatContentSource(this.#rpc).readCatalogueSnapshot()
     if (
       snapshot.publications.some(

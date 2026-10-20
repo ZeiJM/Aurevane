@@ -1,12 +1,5 @@
-import {
-  EFFECT_PROFILE_AUTHORING_BLOCKER,
-  parseStoredStatusDefinition,
-} from '../combat/combat-standalone-content'
+import { combatContentCategory } from '../combat/combat-content-categories'
 import type { CombatContentDefinition, CombatContentKind } from '@aurevane/db/combat-content'
-import {
-  parseNoncombatContentDefinition,
-  isNoncombatContentKind,
-} from '@aurevane/game-core/content/authored-content'
 import { AurevaneError } from '@aurevane/game-core/errors'
 import type { CombatContentAuthoringService } from './combat-content-authoring-service'
 import type { RpcCombatContentAuthoringStore } from './supabase-combat-content-authoring-store'
@@ -44,35 +37,17 @@ export function createCombatContentRecordCommand(
   actor: string,
 ) {
   const validate = (kind: CombatContentKind, definition: unknown): CombatContentDefinition => {
-    if (!object(definition)) invalid('A complete content definition is required.')
-    if (kind === 'effect-profile') invalid(EFFECT_PROFILE_AUTHORING_BLOCKER.message)
-    if (kind === 'status') {
-      try {
-        return parseStoredStatusDefinition(definition)
-      } catch (error) {
-        invalid(error instanceof Error ? error.message : 'Invalid Status definition.')
-      }
+    const descriptor = combatContentCategory(kind)
+    if (!descriptor) invalid('Choose a supported content category.')
+    try {
+      const parsed = descriptor.parseAuthoring(definition)
+      if (descriptor.identityField !== null) key(parsed[descriptor.identityField])
+      return parsed
+    } catch (error) {
+      invalid(error instanceof Error ? error.message : 'Invalid content definition.')
     }
-    if (isNoncombatContentKind(kind)) {
-      try {
-        return { ...parseNoncombatContentDefinition(kind, definition) }
-      } catch (error) {
-        invalid(error instanceof Error ? error.message : 'Invalid authored definition.')
-      }
-    }
-    const result =
-      kind === 'skill'
-        ? service.validateSkillDefinition(definition)
-        : kind === 'essence'
-          ? service.validateEssenceDefinition(definition)
-          : kind === 'resonance'
-            ? service.validateResonanceDefinition(definition)
-            : null
-    if (result && !result.valid)
-      invalid(result.issues[0]?.message ?? 'The complete definition is invalid.')
-    key(kind === 'essence' ? definition.essenceId : definition.id)
-    return structuredClone(definition)
   }
+
   return async (input: unknown): Promise<unknown> => {
     await service.requireOperator(actor)
     if (!object(input)) invalid('A content command is required.')
@@ -155,7 +130,8 @@ export function createCombatContentRecordCommand(
     if (action === 'duplicate') {
       const source = await store.readRecord(key(input.sourceKey))
       if (!source) invalid('The source content does not exist.')
-      if (source.contentKind === 'effect-profile') invalid(EFFECT_PROFILE_AUTHORING_BLOCKER.message)
+      const blocker = combatContentCategory(source.contentKind, source.contentKey)!.authoringBlocker
+      if (blocker) invalid(blocker.message)
       const request = requestId(input.requestId)
       return {
         record: await store.writeRecord(`${source.contentKind}.${request}`, {

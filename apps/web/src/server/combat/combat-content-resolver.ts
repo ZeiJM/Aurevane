@@ -1,52 +1,51 @@
 import {
-  EFFECT_PROFILE_AUTHORING_BLOCKER,
-  parseStoredStatusDefinition,
-  retainOpaqueEffectProfile,
-} from './combat-standalone-content'
-import {
-  isNoncombatContentKind,
-  parseNoncombatContentDefinition,
-} from '@aurevane/game-core/content/authored-content'
-import {
-  BASIC_SKILL_IDS,
   defaultBasicSkills,
-  parseBasicSkillDefinition,
   type BasicSkillDefinition,
   type BasicSkillId,
 } from '@aurevane/game-core/combat/combat-basic-actions'
 import 'server-only'
+import { combatContentCategory } from './combat-content-categories'
+import {
+  InvalidPublishedCombatContentError,
+  isBasicSkillId,
+  validatePublishedBasicSkill,
+  validatePublishedEssence,
+  validatePublishedResonance,
+  validatePublishedSkill,
+} from './combat-content-published-validation'
+import { EFFECT_PROFILE_AUTHORING_BLOCKER } from './combat-standalone-content'
+export {
+  InvalidPublishedCombatContentError,
+  isBasicSkillId,
+  validatePublishedBasicSkill,
+} from './combat-content-published-validation'
 
 import type {
-  CombatContentVersionRecord,
-  CombatContentKind,
   CombatContentDefinition,
+  CombatContentKind,
+  CombatContentVersionRecord,
 } from '@aurevane/db/combat-content'
 import {
   parseStoredCombatEffectTimingPolicy,
   type CombatEffectTimingPolicy,
 } from '@aurevane/game-core/combat/combat-effect-timing'
-import { validateCombatActionDefinition } from '@aurevane/game-core/combat/combat-authoring-validation'
 import {
-  resolveEssenceForBuild,
   currentEssenceDefinitions,
-  validateEssenceDefinition,
+  resolveEssenceForBuild,
   type EssenceDefinition,
 } from '@aurevane/game-core/combat/essence'
+import { combatActionPresentationTags } from '@aurevane/game-core/combat/gameplay-tags'
 import {
-  resolveResonanceForPair,
+  latestEnabledMatureSkills,
+  resolveMatureSkillVersion,
+  type MatureSkillDefinition,
+} from '@aurevane/game-core/combat/mature-skills'
+import {
   currentResonanceDefinitions,
-  validateResonanceDefinition,
+  resolveResonanceForPair,
   type AnyResonanceDefinition,
 } from '@aurevane/game-core/combat/resonance'
 import { AurevaneError } from '@aurevane/game-core/errors'
-import { combatActionPresentationTags } from '@aurevane/game-core/combat/gameplay-tags'
-import {
-  resolveMatureSkillVersion,
-  latestEnabledMatureSkills,
-  toMaterializedCombatActionDefinition,
-  validateMatureSkillDefinition,
-  type MatureSkillDefinition,
-} from '@aurevane/game-core/combat/mature-skills'
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 
@@ -145,15 +144,6 @@ export interface PublishedCombatContentSource {
     contentKind: 'essence' | 'resonance',
     contentVersion: number,
   ): Promise<CombatContentVersionRecord | null>
-}
-
-export class InvalidPublishedCombatContentError extends Error {
-  readonly code = 'INVALID_PUBLISHED_COMBAT_CONTENT' as const
-
-  constructor(message: string, options?: ErrorOptions) {
-    super(message, options)
-    this.name = 'InvalidPublishedCombatContentError'
-  }
 }
 
 type RpcError = { readonly code?: string; readonly message?: string }
@@ -261,38 +251,17 @@ export class RpcPublishedCombatContentSource implements PublishedCombatContentSo
         throw new TypeError('Invalid catalogue snapshot.')
       const seen = new Set<string>()
       const publications = data.publications.map((row) => {
-        if (
-          !isObject(row) ||
-          typeof row.content_kind !== 'string' ||
-          (!['skill', 'essence', 'resonance', 'status', 'effect-profile'].includes(
-            row.content_kind,
-          ) &&
-            !isNoncombatContentKind(row.content_kind))
-        )
+        if (!isObject(row) || !combatContentCategory(row.content_kind))
           throw new TypeError('Invalid catalogue content kind.')
         const record = parseVersionRow([row], row.content_kind as CombatContentKind)
         if (!record || seen.has(record.contentKey))
           throw new TypeError('Invalid or duplicate catalogue identity.')
         seen.add(record.contentKey)
-        if (record.contentKind === 'status') {
-          const definition = parseStoredStatusDefinition(record.definition)
-          if (
-            definition.id !== record.contentKey ||
-            (definition.contentVersion !== undefined &&
-              definition.contentVersion !== record.contentVersion)
-          )
-            throw new TypeError('Status identity mismatch.')
-        }
-        if (record.contentKind === 'effect-profile')
-          retainOpaqueEffectProfile(record.definition, record.contentKey, record.contentVersion)
-        if (isNoncombatContentKind(record.contentKind)) {
-          const definition = parseNoncombatContentDefinition(record.contentKind, record.definition)
-          if (
-            definition.id !== record.contentKey ||
-            definition.contentVersion !== record.contentVersion
-          )
-            throw new TypeError('Noncombat identity mismatch.')
-        }
+        combatContentCategory(record.contentKind, record.contentKey)!.parseRetained(
+          record.definition,
+          record.contentKey,
+          record.contentVersion,
+        )
         return record
       })
       if (
@@ -381,176 +350,6 @@ export class RpcPublishedCombatContentSource implements PublishedCombatContentSo
   }
 }
 
-function validatePublishedSkill(
-  record: CombatContentVersionRecord,
-  expectedSkillId: string,
-  expectedVersion?: number,
-): MatureSkillDefinition {
-  if (
-    record.contentKind !== 'skill' ||
-    record.contentKey !== expectedSkillId ||
-    (expectedVersion !== undefined && record.contentVersion !== expectedVersion)
-  ) {
-    throw new InvalidPublishedCombatContentError(
-      `Published Skill metadata does not match ${expectedSkillId}${
-        expectedVersion === undefined ? '' : `@${expectedVersion}`
-      }.`,
-    )
-  }
-
-  const candidate = structuredClone(record.definition) as unknown as MatureSkillDefinition
-  let issues: readonly string[]
-  try {
-    issues = validateMatureSkillDefinition(candidate)
-  } catch (error) {
-    throw new InvalidPublishedCombatContentError(
-      `Published Skill ${expectedSkillId}@${record.contentVersion} has an invalid definition shape.`,
-      { cause: error },
-    )
-  }
-
-  if (
-    issues.length > 0 ||
-    candidate.id !== record.contentKey ||
-    candidate.contentVersion !== record.contentVersion
-  ) {
-    throw new InvalidPublishedCombatContentError(
-      `Published Skill ${expectedSkillId}@${record.contentVersion} failed validation${
-        issues.length > 0 ? `: ${issues.join(', ')}` : '.'
-      }`,
-    )
-  }
-
-  try {
-    if (Object.hasOwn(candidate, 'ability')) return structuredClone(candidate)
-    for (const context of ['pve', 'pvp'] as const) {
-      validateCombatActionDefinition(
-        toMaterializedCombatActionDefinition({ ...candidate, enabled: true }, context),
-      )
-    }
-  } catch (error) {
-    throw new InvalidPublishedCombatContentError(
-      `Published Skill ${expectedSkillId}@${record.contentVersion} failed combat-action validation.`,
-      { cause: error },
-    )
-  }
-
-  return structuredClone(candidate)
-}
-
-function validatePublishedEssence(
-  record: CombatContentVersionRecord,
-  expectedEssenceId: string,
-  expectedVersion?: number,
-): EssenceDefinition {
-  if (
-    record.contentKind !== 'essence' ||
-    record.contentKey !== expectedEssenceId ||
-    (expectedVersion !== undefined && record.contentVersion !== expectedVersion)
-  ) {
-    throw new InvalidPublishedCombatContentError(
-      `Published Essence metadata does not match ${expectedEssenceId}${
-        expectedVersion === undefined ? '' : `@${expectedVersion}`
-      }.`,
-    )
-  }
-
-  const candidate = structuredClone(record.definition) as unknown as EssenceDefinition
-  let issues: readonly string[]
-  try {
-    issues = validateEssenceDefinition(candidate)
-  } catch (error) {
-    throw new InvalidPublishedCombatContentError(
-      `Published Essence ${expectedEssenceId}@${record.contentVersion} has an invalid definition shape.`,
-      { cause: error },
-    )
-  }
-  if (
-    issues.length > 0 ||
-    candidate.essenceId !== record.contentKey ||
-    candidate.contentVersion !== record.contentVersion ||
-    candidate.skill.contentVersion !== record.contentVersion
-  ) {
-    throw new InvalidPublishedCombatContentError(
-      `Published Essence ${expectedEssenceId}@${record.contentVersion} failed validation${
-        issues.length > 0 ? `: ${issues.join(', ')}` : '.'
-      }`,
-    )
-  }
-  return structuredClone(candidate)
-}
-
-function validatePublishedResonance(
-  record: CombatContentVersionRecord,
-  expectedResonanceId: string,
-  expectedVersion?: number,
-): AnyResonanceDefinition {
-  if (
-    record.contentKind !== 'resonance' ||
-    record.contentKey !== expectedResonanceId ||
-    (expectedVersion !== undefined && record.contentVersion !== expectedVersion)
-  ) {
-    throw new InvalidPublishedCombatContentError(
-      `Published Resonance metadata does not match ${expectedResonanceId}${
-        expectedVersion === undefined ? '' : `@${expectedVersion}`
-      }.`,
-    )
-  }
-
-  const candidate = structuredClone(record.definition) as unknown as AnyResonanceDefinition
-  let issues: readonly string[]
-  try {
-    issues = validateResonanceDefinition(candidate)
-  } catch (error) {
-    throw new InvalidPublishedCombatContentError(
-      `Published Resonance ${expectedResonanceId}@${record.contentVersion} has an invalid definition shape.`,
-      { cause: error },
-    )
-  }
-  if (
-    issues.length > 0 ||
-    candidate.id !== record.contentKey ||
-    candidate.contentVersion !== record.contentVersion
-  ) {
-    throw new InvalidPublishedCombatContentError(
-      `Published Resonance ${expectedResonanceId}@${record.contentVersion} failed validation${
-        issues.length > 0 ? `: ${issues.join(', ')}` : '.'
-      }`,
-    )
-  }
-  return structuredClone(candidate)
-}
-
-export function isBasicSkillId(id: string): id is BasicSkillId {
-  return BASIC_SKILL_IDS.includes(id as BasicSkillId)
-}
-
-export function validatePublishedBasicSkill(
-  record: CombatContentVersionRecord,
-  id: BasicSkillId,
-  version?: number,
-): BasicSkillDefinition {
-  if (
-    record.contentKind !== 'skill' ||
-    record.contentKey !== id ||
-    (version !== undefined && record.contentVersion !== version)
-  )
-    throw new InvalidPublishedCombatContentError(
-      'Published Basic Skill metadata does not match its exact identity.',
-    )
-  try {
-    const basic = parseBasicSkillDefinition(record.definition)
-    if (basic.id !== id || basic.contentVersion !== record.contentVersion)
-      throw new TypeError('Basic definition identity or version mismatch.')
-    return basic
-  } catch (cause) {
-    throw new InvalidPublishedCombatContentError(
-      `Published Basic Skill ${id}@${record.contentVersion} is invalid.`,
-      { cause },
-    )
-  }
-}
-
 /** Resolve a proposed server-private snapshot with the same validators as current reads. */
 export function resolveCombatContentCatalogueSnapshot(
   snapshot: PublishedCombatContentCatalogueSnapshot,
@@ -601,77 +400,22 @@ export function resolveCombatContentCatalogueSnapshot(
     seen.add(record.contentKey)
     if (snapshot.archivedKeys?.includes(record.contentKey))
       throw new InvalidPublishedCombatContentError('Archived content has a current publication.')
-    if (isNoncombatContentKind(record.contentKind)) {
-      const definition = parseNoncombatContentDefinition(record.contentKind, record.definition)
-      if (
-        definition.id !== record.contentKey ||
-        definition.contentVersion !== record.contentVersion
-      )
-        throw new InvalidPublishedCombatContentError('Noncombat identity mismatch.')
-      continue
-    }
-    const identity: CatalogueIdentity = {
+    const descriptor = combatContentCategory(record.contentKind, record.contentKey)
+    if (!descriptor)
+      throw new InvalidPublishedCombatContentError('Unsupported current content kind.')
+    const definition = descriptor.parsePublished(record)
+    if (descriptor.catalogueProjection === 'container') continue
+    const entry = {
       contentKey: record.contentKey,
       contentKind: record.contentKind,
       contentVersion: record.contentVersion,
       source: 'published',
-    }
-    let entry: CombatContentCatalogueEntry
-    switch (record.contentKind) {
-      case 'skill':
-        entry = isBasicSkillId(record.contentKey)
-          ? {
-              ...identity,
-              category: 'basic',
-              definition: validatePublishedBasicSkill(record, record.contentKey),
-            }
-          : {
-              ...identity,
-              category: 'skill',
-              definition: validatePublishedSkill(record, record.contentKey),
-            }
-        break
-      case 'essence':
-        entry = {
-          ...identity,
-          category: 'essence',
-          definition: validatePublishedEssence(record, record.contentKey),
-        }
-        break
-      case 'resonance':
-        entry = {
-          ...identity,
-          category: 'resonance',
-          definition: validatePublishedResonance(record, record.contentKey),
-        }
-        break
-      case 'status': {
-        const definition = parseStoredStatusDefinition(record.definition)
-        if (
-          definition.id !== record.contentKey ||
-          (definition.contentVersion !== undefined &&
-            definition.contentVersion !== record.contentVersion)
-        )
-          throw new InvalidPublishedCombatContentError('Status identity mismatch.')
-        entry = { ...identity, category: 'status', definition }
-        break
-      }
-      case 'effect-profile':
-        entry = {
-          ...identity,
-          category: record.contentKind,
-          definition: retainOpaqueEffectProfile(
-            record.definition,
-            record.contentKey,
-            record.contentVersion,
-          ),
-          runtimeSupported: false,
-          authoringBlocker: { ...EFFECT_PROFILE_AUTHORING_BLOCKER },
-        }
-        break
-      default:
-        throw new InvalidPublishedCombatContentError('Unsupported current content kind.')
-    }
+      category: descriptor.category,
+      definition,
+      ...(descriptor.authoringBlocker
+        ? { authoringBlocker: { ...descriptor.authoringBlocker }, runtimeSupported: false }
+        : {}),
+    } as CombatContentCatalogueEntry
     if (
       current.has(entry.contentKey) &&
       current.get(entry.contentKey)!.contentKind !== entry.contentKind

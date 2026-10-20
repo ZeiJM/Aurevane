@@ -1,21 +1,12 @@
-import {
-  EFFECT_PROFILE_AUTHORING_BLOCKER,
-  parseStoredStatusDefinition,
-  retainOpaqueEffectProfile,
-} from '../combat/combat-standalone-content'
+import { combatContentCategory } from '../combat/combat-content-categories'
 import type { CompleteCombatContentRecord, CombatContentKind } from '@aurevane/db/combat-content'
-import {
-  isNoncombatContentKind,
-  parseNoncombatContentDefinition,
-} from '@aurevane/game-core/content/authored-content'
 import { AurevaneError } from '@aurevane/game-core/errors'
 const object = (v: unknown): v is Record<string, unknown> =>
   !!v && typeof v === 'object' && !Array.isArray(v)
 const integer = (v: unknown): v is number => Number.isSafeInteger(v) && (v as number) > 0
 const string = (v: unknown): v is string => typeof v === 'string' && v.length > 0 && v.trim() === v
 export const isCombatContentKind = (v: unknown): v is CombatContentKind =>
-  ['skill', 'essence', 'resonance', 'status', 'effect-profile'].includes(v as string) ||
-  isNoncombatContentKind(v)
+  combatContentCategory(v) !== null
 export function parseCompleteCombatContentRecord(value: unknown): CompleteCombatContentRecord {
   try {
     if (
@@ -54,19 +45,8 @@ export function parseCompleteCombatContentRecord(value: unknown): CompleteCombat
         !string(value.builtin.name))
     )
       throw new TypeError('Invalid builtin identity.')
-    const definition = (v: unknown) => {
-      if (!object(v)) throw new TypeError('Invalid definition.')
-      if (isNoncombatContentKind(value.contentKind)) {
-        const parsed = parseNoncombatContentDefinition(value.contentKind, v)
-        if (parsed.id !== value.contentKey) throw new TypeError('Invalid definition identity.')
-      } else if (value.contentKind === 'status') {
-        if (parseStoredStatusDefinition(v).id !== value.contentKey)
-          throw new TypeError('Invalid Status identity.')
-      } else if (value.contentKind === 'effect-profile') {
-        retainOpaqueEffectProfile(v, value.contentKey as string)
-      } else if ((value.contentKind === 'essence' ? v.essenceId : v.id) !== value.contentKey)
-        throw new TypeError('Invalid definition identity.')
-    }
+    const descriptor = combatContentCategory(value.contentKind, value.contentKey)!
+    const definition = (v: unknown) => descriptor.parseRetained(v, value.contentKey as string)
     if (value.draft !== null) {
       const d = value.draft
       if (
@@ -99,8 +79,8 @@ export function parseCompleteCombatContentRecord(value: unknown): CompleteCombat
     if (value.lifecycle === 'archived' && value.current !== null)
       throw new TypeError('Archived current pointer.')
     const record = structuredClone(value) as unknown as CompleteCombatContentRecord
-    return value.contentKind === 'effect-profile'
-      ? { ...record, authoringBlocker: { ...EFFECT_PROFILE_AUTHORING_BLOCKER } }
+    return descriptor.authoringBlocker
+      ? { ...record, authoringBlocker: { ...descriptor.authoringBlocker } }
       : record
   } catch (cause) {
     throw new AurevaneError(
