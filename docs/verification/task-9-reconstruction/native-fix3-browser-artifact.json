@@ -1,0 +1,106 @@
+{
+  "run_id": 39488302754,
+  "job_id": 118854414411,
+  "remote_source": "aa971de38eae662caf95c2bb12309e1068298c87",
+  "artifact_id": 12296227434,
+  "artifact_sha256": "49a2ce632b71333726115efd08d8fa11ad2458066efad53e4afefa0b362f3303",
+  "images": [
+    {
+      "file": "players-r0-css2x.png",
+      "bytes": 1335233,
+      "size": [
+        1440,
+        1800
+      ],
+      "sha256": "e1b405ea86c9513b8e03a08f39a30bba4c10f7047fcb42f810de66f3d023bc14"
+    },
+    {
+      "file": "players-r0-desktop.png",
+      "bytes": 739178,
+      "size": [
+        1440,
+        900
+      ],
+      "sha256": "90c16f7b01a959314d7882352b036de152552f6414e3c877f1118ad659e2dd38"
+    },
+    {
+      "file": "players-r0-laptop.png",
+      "bytes": 604790,
+      "size": [
+        1366,
+        768
+      ],
+      "sha256": "24027b4b01bc935a5191893267fc2a84372130df9d9a73e923a86628321877a9"
+    },
+    {
+      "file": "players-r0-mobile.png",
+      "bytes": 580716,
+      "size": [
+        390,
+        2877
+      ],
+      "sha256": "923af616df31bab95288185a40b86aa6d0e6fb982b234a22c4c640c9d4b2582c"
+    },
+    {
+      "file": "players-r0-narrow.png",
+      "bytes": 530974,
+      "size": [
+        320,
+        2999
+      ],
+      "sha256": "5f19956e2025913ec35ed8a485b0640a03b584bb878e8b8411d732d41150d1b5"
+    },
+    {
+      "file": "players-r1-css2x.png",
+      "bytes": 1333843,
+      "size": [
+        1440,
+        1800
+      ],
+      "sha256": "8b9769e278f61127008bba0e5e6d3f806f04ff1316db97df8ed96a6584b83ac6"
+    },
+    {
+      "file": "players-r1-desktop.png",
+      "bytes": 738821,
+      "size": [
+        1440,
+        900
+      ],
+      "sha256": "154f14690a3b5d746d4e06d93d438b542ddfc5b02fea35393dcb87c75498c8f6"
+    },
+    {
+      "file": "players-r1-laptop.png",
+      "bytes": 604062,
+      "size": [
+        1366,
+        768
+      ],
+      "sha256": "1c1bf273d77051df47c554552d5f6e8e1fce18c44c994ef68ac8388ab9e37dea"
+    },
+    {
+      "file": "players-r1-mobile.png",
+      "bytes": 580473,
+      "size": [
+        390,
+        2877
+      ],
+      "sha256": "10bf4412ab30663fd2e83dc506718db84c9570d72e1dd97f0f02e69fb4bd3708"
+    },
+    {
+      "file": "players-r1-narrow.png",
+      "bytes": 530780,
+      "size": [
+        320,
+        2999
+      ],
+      "sha256": "464768c8cef93184144040c43158e246406bf98a6b87c00bb48ed8bd7ffa26c2"
+    }
+  ],
+  "inspection": "Root inspected repeat0 desktop/laptop/390/320/CSS2x initial layouts. Both repeats captured all five initial layouts. Final error contexts show actual first XP correction succeeded, then both tests hit300s. No Discipline/recovery/PvP flow acceptance. CSS2x is not physical zoom. Existing large header/nav is preserved for Task10D common-shell work.",
+  "trace_limit": {
+    "artifact_id": 12295134551,
+    "bytes": 796459888,
+    "connector_max_bytes": 536870912,
+    "result": "download rejected; trace unavailable from this oversized artifact"
+  }
+}

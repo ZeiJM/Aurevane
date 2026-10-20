@@ -61,5 +61,57 @@
       "jwt": 0,
       "local_cli_key": 0
     }
+  },
+  {
+    "file": "native-fix3-database-success.log.gz",
+    "sha256": "1b23d725c8913eb97086760b600021cd8615416c05ac34469c93bb28378d55a6",
+    "uncompressed_sha256": "fb6beb97e91d22cbba6511702b75336adba5a9869ea92d01581564a8547b5956",
+    "bytes": 103992,
+    "run_id": 39488302794,
+    "job_id": 118854415372,
+    "remote_source": "aa971de38eae662caf95c2bb12309e1068298c87",
+    "redactions": {
+      "jwt": 0,
+      "local_cli_key": 1
+    }
+  },
+  {
+    "file": "native-fix3-quality-success.log.gz",
+    "sha256": "14640c4cb4adeaf722b25d54b31933ad3b9c616e1db1a9a3cf21614277099b7d",
+    "uncompressed_sha256": "f3f4496066692741766cad355eb4aef6a1c27a5c1d8d22b9039c65443f514009",
+    "bytes": 224511,
+    "run_id": 39488302794,
+    "job_id": 118854414840,
+    "remote_source": "aa971de38eae662caf95c2bb12309e1068298c87",
+    "redactions": {
+      "jwt": 0,
+      "local_cli_key": 0
+    }
+  },
+  {
+    "file": "native-fix3-layout-success.log.gz",
+    "sha256": "c572bcd5c8f762362a89cb11b1d372c564fffe0f99601b668702d190bf00c71c",
+    "uncompressed_sha256": "9d40b98da177584512cf1e76fbf4efdc73aaaef208505adabe57fde8d04d1169",
+    "bytes": 152132,
+    "run_id": 39488302707,
+    "job_id": 118854414776,
+    "remote_source": "aa971de38eae662caf95c2bb12309e1068298c87",
+    "redactions": {
+      "jwt": 0,
+      "local_cli_key": 1
+    }
+  },
+  {
+    "file": "native-fix3-browser-failure.log.gz",
+    "sha256": "b5d91b64083cfba042369718d9cc15ff135db995fef0d415167e4d3a7153f0fb",
+    "uncompressed_sha256": "4809c557ab2138f1708dc5c40b8dde278d1907bd23ff976f37d65d3e4bf3ff23",
+    "bytes": 187802,
+    "run_id": 39488302754,
+    "job_id": 118854414411,
+    "remote_source": "aa971de38eae662caf95c2bb12309e1068298c87",
+    "redactions": {
+      "jwt": 0,
+      "local_cli_key": 1
+    }
   }
 ]
