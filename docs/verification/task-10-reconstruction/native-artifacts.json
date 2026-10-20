@@ -12,5 +12,33 @@
       "jwt": 0,
       "local_cli_key": 1
     }
+  },
+  {
+    "file": "native-stage-a-dede-quality-cancelled.log.gz",
+    "sha256": "8ffe995069442d51ab968edc41c7a9ae51b0233efc6c02569cedf23a86e4d482",
+    "uncompressed_sha256": "f0f8d6a68942d76e5366b37a0466e1db023e93d1009f62a38ac16d41b8d7f44a",
+    "bytes": 247707,
+    "run_id": 39500389334,
+    "job_id": 118896089627,
+    "local_source": "dedea81e2e46a4ca31fe31572351f3de24f53b7a",
+    "remote_source": "65f73b5e41efc182aedcb5f8721643364e2f89c2",
+    "redactions": {
+      "jwt": 0,
+      "local_cli_key": 0
+    }
+  },
+  {
+    "file": "native-stage-a-dede-browser-failure.log.gz",
+    "sha256": "2034ec02c5d8ed9fcf291a757dbff4d25087b1c8635e0c1161479dc1bce79262",
+    "uncompressed_sha256": "a4a9d7721175cec7e89bc59968256f0fcf856ba224f3f35f9607c4db6a8da942",
+    "bytes": 180229,
+    "run_id": 39500389417,
+    "job_id": 118896090839,
+    "local_source": "dedea81e2e46a4ca31fe31572351f3de24f53b7a",
+    "remote_source": "65f73b5e41efc182aedcb5f8721643364e2f89c2",
+    "redactions": {
+      "jwt": 0,
+      "local_cli_key": 1
+    }
   }
 ]

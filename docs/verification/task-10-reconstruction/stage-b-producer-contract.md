@@ -1,0 +1,17 @@
+# Task10 Stage B producer contract
+
+Held until the StageA Important repair passes the same combined source gate and the controller refreshes actual producer/native evidence. This supplements the approved Task10 brief/discovery/reconstruction contract; it does not create a new game design or certify the incomplete editor.
+
+Implement real published Discipline/Core/Essence/Resonance selection and per-Skill/per-Discipline earned provenance across actual SQL and consumers. Trace existing producers before changing them. The result must reach profile/Atlas/Manual, creation/allocation, active builds, named loadouts, fresh encounter admission and actual trial/grant paths. A separate authored catalogue, static-only validator or isolated read panel does not satisfy this stage.
+
+Preserve actual Core31, six positive bases,2–3 focus stats,60/40 caps, five personal creation choices, four total selected Discipline Skills, current AP/resource/progression formulas, intrinsic sources and old exact encounter pins. Published links, testing entitlement and current selection are distinct from earned provenance; none may silently manufacture earned facts. Preserve existing valid grants, receipts, loadouts and historical reads. The Players eligibility-copy Minor must be reconciled with these actual distinctions.
+
+Consume the accepted Players sourceHash plus numeric buildVersion coherence contract. Every support edit retains its version increment; newly authored producers must feed the same locked authoritative facts and source hash used by real admission. No second progression/Core formula, disconnected eligibility flag or alternate recovery path. Test actual fresh/stale/correction/publication boundaries and retain whole-transaction losing-writer evidence appropriate to the changed producers.
+
+The StageA descriptor Minor is explicit work here: consolidate the shared backend category identity/validator/capability contract for actual supported categories. Reuse the repaired Status validator and explicit unsupported Effect Profile boundary; do not invent a new execution schema. Applicable editor fields/defaults finish in StageD. Do not claim multiple independent kind switches are the specified shared descriptor.
+
+Preserve selected-character/live capability enforcement,41 actor inventory, all retired unsafe overloads, private helpers/table ACLs, saved-revision publication/history/attribution, nonblocking archive/admission guards and named retry/archived outcomes. Current released combat/simple Requirements/Blindside/Owner definitions remain preservation scope. Do not redesign the released roster or add future equipment, ownership or transformation mechanics.
+
+The implementer must produce concrete actual-producer interface/caller inventory, meaningful RED/GREEN evidence and coherent recoverable source checkpoints before long work. Root owns source publication, native schedules and the same task review seat. Stop at a coherent StageB freeze for the next gate; references/media and final UI remain substantive StageC/D work. No hosted mutation, main merge or deployment follows from this contract.
+
+Known final-integration carry-forward: StageA snapshot checks omit physical publication pointer metadata; Task13 must add those deterministic rows while retaining catalogue/token checks. See `../master-deferred-findings.md` and the original StageA review.
