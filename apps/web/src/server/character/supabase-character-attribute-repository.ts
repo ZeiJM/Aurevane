@@ -1,4 +1,5 @@
 import 'server-only'
+import { throwCombatContentAdmissionError } from '../combat/combat-content-admission-error'
 
 import { AurevaneError } from '@aurevane/game-core/errors'
 
@@ -39,6 +40,7 @@ export function createSupabaseCharacterAttributeRepository(): CharacterAttribute
       })
 
       if (error) {
+        throwCombatContentAdmissionError(error)
         if (error.message.includes('CHARACTER_ATTRIBUTE_IDEMPOTENCY_CONFLICT')) {
           throw new AurevaneError(
             'IDEMPOTENCY_CONFLICT',

@@ -10,6 +10,7 @@ vi.mock('../master/staff-access-server', () => ({
   createServerMasterPanelStaffAccessService: () => ({ requireCapability: async () => {} }),
 }))
 import { createCharacterInSlot } from './character-slot-service'
+import { createSupabaseCharacterAttributeRepository } from './supabase-character-attribute-repository'
 import { createSupabaseCharacterRepository } from './supabase-character-repository'
 import { createSupabaseCharacterBuildRepository } from './supabase-character-build-repository'
 import { createSupabaseCharacterSavedBuildLoadoutRepository } from './supabase-character-saved-build-loadout-repository'
@@ -85,6 +86,15 @@ const calls: [string, () => Promise<unknown>][] = [
   [
     'saved loadout activation',
     () => createSupabaseCharacterSavedBuildLoadoutRepository().activate({ ...base, slotIndex: 1 }),
+  ],
+  [
+    'Core allocation',
+    () =>
+      createSupabaseCharacterAttributeRepository().commitAllocation({
+        ...base,
+        mode: 'spend',
+        attributes: { might: 12, finesse: 4, vitality: 7, agility: 4, intellect: 3, resolve: 6 },
+      }),
   ],
   ['trial claim', () => claimDisciplineTrial('user', 'battle')],
   ['test kit grants', () => preparePv2BuildcraftTestKit('user', 'character')],
