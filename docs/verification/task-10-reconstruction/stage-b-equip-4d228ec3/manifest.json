@@ -1,0 +1,136 @@
+{
+  "local_source": "4d228ec375b55d2d5242a9136e8113439f5adc67",
+  "remote_source": "89aedef647d0dee778107aded45959edce155bbf",
+  "tree": "f7a094be2f7c0429aaaa71f73c691117023bab23",
+  "prior_rows_unchanged": 209,
+  "logs": [
+    {
+      "source": "docs/verification/task-10-reconstruction/b-earned-selection-sql-red.log",
+      "file": "b-earned-selection-sql-red.log.gz",
+      "bytes": 9030,
+      "sha256": "53b3c8f44d925ac9ab05328d1b49764b688392bb91cdea0fac172de817918660",
+      "gzip_sha256": "70b5b4dc5f7303360114caeb3a1939b24d244babe69915531e4b0fe4d8c49ddb",
+      "exit": 1
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/b-earned-selection-sql-green.log",
+      "file": "b-earned-selection-sql-green.log.gz",
+      "bytes": 28168,
+      "sha256": "3e74cd7fe4370796917c28f1f53e76ef897f1be64a69532a73bb7331f6e69546",
+      "gzip_sha256": "f4fde2712cd32eb2954f651f069278a10c469c049e9c7a17eaa6c6a9be2ec9d0",
+      "exit": 1
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/b-earned-selection-sql-confirmed-green.log",
+      "file": "b-earned-selection-sql-confirmed-green.log.gz",
+      "bytes": 2307,
+      "sha256": "e5f703783c3961e07ceadf54e13d820f3d4594deeab36df014fd38f51c0e23c2",
+      "gzip_sha256": "5fe12de36a3409aa74f83418f610ab8e056a4078446c36d7e926b6bb04bcdaba",
+      "exit": 1
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/b-earned-selection-actual-version-green.log",
+      "file": "b-earned-selection-actual-version-green.log.gz",
+      "bytes": 268,
+      "sha256": "b02e847a5d9c4b0bfda0b4d1aa05b17cf820637c487519d253d612b298210dc1",
+      "gzip_sha256": "3882c87038dedfe2a29e05e47418431c6ec517e5b0343ed1f35fce526e76b27c",
+      "exit": 0
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/b-earned-loadout-archive-green.log",
+      "file": "b-earned-loadout-archive-green.log.gz",
+      "bytes": 1962,
+      "sha256": "f2fb5fc29a3305041be3b7c89de6667862d84a96e419d8c51d295da375643463",
+      "gzip_sha256": "fbf6e2e840e2d2b900a37bda7aebfc9695f740f2b042b697148f971c9f2a4468",
+      "exit": 1
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/b-earned-loadout-archive-confirmed-green.log",
+      "file": "b-earned-loadout-archive-confirmed-green.log.gz",
+      "bytes": 268,
+      "sha256": "f7ffc9e6de4575332823a079c412c07caea53c88b2bf00d87db372aaf0b7ed00",
+      "gzip_sha256": "bedd8e0ddd10c52349b68e95eca668fd62dec153d00a2a63f1dc0b519aa725c8",
+      "exit": 0
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/b-earned-equip-covering-green.log",
+      "file": "b-earned-equip-covering-green.log.gz",
+      "bytes": 256,
+      "sha256": "b85c718788b424910178f6b9c20445ecdc4b42a91d7df5530b9ff039b950febb",
+      "gzip_sha256": "6fc6eba1ef5f1ced8a1a47cd59a756e382b81772c95363ceac1bed74869a948a",
+      "exit": 0
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/b-earned-equip-format.log",
+      "file": "b-earned-equip-format.log.gz",
+      "bytes": 66,
+      "sha256": "2a0e2f43b90ccb6ad18ed88d626a99368e123f17c53a1d50ebb9a295751a35a9",
+      "gzip_sha256": "8733bb16b3f61701398078236dd8bcba45153ca6ba026355d023701243638b2d",
+      "exit": 0
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/b-earned-equip-types.log",
+      "file": "b-earned-equip-types.log.gz",
+      "bytes": 459,
+      "sha256": "55b1a886d298e6f99f00a7d1137477f3d614a78baea4b145432181069961a06e",
+      "gzip_sha256": "62603386e7e48373a2ce18e9e0ab3c1f61e2fc2efe69ab5c34529bd5f3afbdef",
+      "exit": 2
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/b-earned-equip-lint.log",
+      "file": "b-earned-equip-lint.log.gz",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip_sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "exit": 0
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/b-earned-equip-types-green.log",
+      "file": "b-earned-equip-types-green.log.gz",
+      "bytes": 15,
+      "sha256": "8366207267355d3e3d5bf3bf6e8c94c5f93f6078c34f08973fa2b38cdda6cc92",
+      "gzip_sha256": "67be5567bde7f0f4c1fd5e775e918562bc1f228a849614e4ad48b4172e907169",
+      "exit": 0
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/b-earned-equip-fresh-main.log",
+      "file": "b-earned-equip-fresh-main.log.gz",
+      "bytes": 132,
+      "sha256": "ca1b4657c3201daf60a4db0fc3d2956ede73c38cd1ffdc45b4cdc0de8f63e84b",
+      "gzip_sha256": "73c604d71f9e906bf2dd38819f04af97bb970f1c88176007a7382cfd243e69c8",
+      "exit": 0
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/b-earned-prune-three-one-green.log",
+      "file": "b-earned-prune-three-one-green.log.gz",
+      "bytes": 268,
+      "sha256": "0daa335f78a4a6ad9b2100aafc68a149786678337970830e29eb6dc880b1c6dc",
+      "gzip_sha256": "1027db66c7d52fcf188bf0e8cca43346c9c3144c4db7d11c48abd47ca8607e13",
+      "exit": 0
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/b-earned-equip-final-format.log",
+      "file": "b-earned-equip-final-format.log.gz",
+      "bytes": 66,
+      "sha256": "160b3febae4c2db7e4f345deb099d0093a81292c00b26f562357c4bce2216655",
+      "gzip_sha256": "a8a5ca54e0dc901d830319544263f8682a4d5473fc63efd89f3caf2eb3c82443",
+      "exit": 0
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/b-earned-equip-final-types.log",
+      "file": "b-earned-equip-final-types.log.gz",
+      "bytes": 15,
+      "sha256": "8366207267355d3e3d5bf3bf6e8c94c5f93f6078c34f08973fa2b38cdda6cc92",
+      "gzip_sha256": "67be5567bde7f0f4c1fd5e775e918562bc1f228a849614e4ad48b4172e907169",
+      "exit": 0
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/b-earned-equip-final-style.log",
+      "file": "b-earned-equip-final-style.log.gz",
+      "bytes": 66,
+      "sha256": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20",
+      "gzip_sha256": "710c63d8d40d5688a62c3b08053dd1971c4e4ee87b2297f3f20c2540d22cd94e",
+      "exit": 0
+    }
+  ]
+}
