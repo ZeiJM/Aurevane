@@ -365,4 +365,49 @@ $$;
 revoke all on function public.read_current_discipline_selection_v1(text,text) from public,anon,authenticated;
 grant execute on function public.read_current_discipline_selection_v1(text,text) to service_role;
 revoke all on function app_private.current_resonance_selection_key_v1(text,text),app_private.current_essence_selection_key_v1(text,text) from public,anon,authenticated,service_role;
+
+-- A current pointer can never strand an active declared selection. This AFTER
+-- trigger sees the prospective pointer in the same transaction; any rejection
+-- rolls back history, domain projection, attribution and draft consumption.
+create function app_private.validate_current_discipline_selections_v1()
+returns trigger language plpgsql security definer set search_path='' as $$
+declare candidate record;
+begin
+ if new.content_kind='discipline' then
+  perform app_private.resolve_essence_reference_v1(new.content_key,null);
+  for candidate in select discipline_id from app_private.current_discipline_definitions_v1() where discipline_id<>new.content_key loop
+   perform app_private.resolve_resonance_reference_v1(new.content_key,candidate.discipline_id);
+  end loop;
+ elsif new.content_kind='essence' then
+  for candidate in
+   select b.selection_key discipline_id from app_private.combat_content_builtin_selections b where b.kind='builtin-essence-selection' and b.content_key=new.content_key
+   union select p.content_key from app_private.combat_content_publications p join app_private.combat_content_versions v on v.id=p.version_id where p.content_kind='discipline' and v.definition->>'essenceId'=new.content_key
+  loop perform app_private.resolve_essence_reference_v1(candidate.discipline_id,null); end loop;
+ elsif new.content_kind='resonance' then
+  for candidate in
+   select split_part(b.selection_key,'+',1) a,split_part(b.selection_key,'+',2) b from app_private.combat_content_builtin_selections b where b.kind='builtin-resonance-selection' and b.content_key=new.content_key
+   union select p.content_key,r->>'withDisciplineId' from app_private.combat_content_publications p join app_private.combat_content_versions v on v.id=p.version_id cross join lateral jsonb_array_elements(v.definition->'resonanceSelections') r where p.content_kind='discipline' and r->>'resonanceId'=new.content_key
+  loop perform app_private.resolve_resonance_reference_v1(candidate.a,candidate.b); end loop;
+ end if;
+ return new;
+end; $$;
+create trigger validate_discipline_selections after insert or update on app_private.combat_content_publications for each row execute function app_private.validate_current_discipline_selections_v1();
+revoke all on function app_private.validate_current_discipline_selections_v1() from public,anon,authenticated,service_role;
+
+-- Builtin dependencies represent only mappings still actually used. Explicit
+-- authored declarations have their separate current-definition reference rows.
+do $migration$
+declare d text; old text;
+begin
+ d:=pg_get_functiondef('app_private.combat_content_blockers_v1(text)'::regprocedure);
+ old:=$before$union all select b.kind,b.selection_key from app_private.combat_content_builtin_selections b where b.content_key=p_key$before$;
+ if strpos(d,old)=0 then raise exception 'DISCIPLINE_BUILTIN_BLOCKER_PREDECESSOR_CONFLICT'; end if;
+ execute replace(d,old,$after$union all select b.kind,b.selection_key from app_private.combat_content_builtin_selections b where b.content_key=p_key
+  and not exists(select 1 from app_private.combat_content_publications p where p.content_kind='discipline'
+   and (p.content_key=split_part(b.selection_key,'+',1) or (b.kind='builtin-resonance-selection' and p.content_key=split_part(b.selection_key,'+',2))))$after$);
+ d:=pg_get_functiondef('public.write_combat_content_record_v1(uuid,uuid,text,jsonb)'::regprocedure);
+ old:=$before$if exists(select 1 from app_private.combat_content_builtin_selections where content_key=p_content_key) then$before$;
+ if strpos(d,old)=0 then raise exception 'DISCIPLINE_BUILTIN_ARCHIVE_PREDECESSOR_CONFLICT'; end if;
+ execute replace(d,old,$after$if exists(select 1 from app_private.combat_content_blockers_v1(p_content_key) where kind in ('builtin-essence-selection','builtin-resonance-selection')) then$after$);
+end; $migration$;
 commit;

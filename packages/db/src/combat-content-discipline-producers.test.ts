@@ -795,6 +795,10 @@ it('selected disabled or corrupt current definitions fail closed instead of choo
   await publishNativeDiscipline('vanguard', {
     resonanceSelections: [{ withDisciplineId: 'lifebinder', resonanceId: 'resonance.authored' }],
   })
+  // Model already-retained corruption independently of the new publication guard.
+  await db.exec(
+    'alter table app_private.combat_content_publications disable trigger validate_discipline_selections',
+  )
   // Inject separate invalid physical rows to test the read boundary; immutable old rows remain untouched.
   for (const [index, change] of [
     { enabled: false },
@@ -820,4 +824,130 @@ it('selected disabled or corrupt current definitions fail closed instead of choo
       index === 0 ? /COMBAT_CONTENT_SELECTION_DISABLED/ : /COMBAT_CONTENT_SELECTION_INVALID/,
     )
   }
+})
+it('removing actual builtin selections releases only those dependency blockers and permits archive without resurrection', async () => {
+  const resonance = resolveResonanceForPair('vanguard', 'lifebinder')!
+  const essence = resolveEssenceForBuild('vanguard', null)!
+  await publishNativeDiscipline('vanguard', { resonanceSelections: [], essenceId: null })
+  for (const key of [resonance.id, essence.essenceId]) {
+    const current = await record(key)
+    expect(current.usedBy).toEqual([])
+    await write(key, { action: 'archive', expectedRevision: current.revision })
+  }
+  expect(await pairReference()).toBeNull()
+  expect(
+    (
+      await db.query<{ value: unknown }>(
+        "select app_private.resolve_essence_reference_v1('vanguard',null) value",
+      )
+    ).rows[0]!.value,
+  ).toBeNull()
+  const untouched = resolveResonanceForPair('vanguard', 'arcanist')
+  if (untouched) throw new Error('Unexpected nonexistent builtin control.')
+  const stillUsed = resolveResonanceForPair('lifebinder', 'farstrider')!
+  expect((await record(stillUsed.id)).usedBy).toContainEqual({
+    kind: 'builtin-resonance-selection',
+    key: 'farstrider+lifebinder',
+    blocking: true,
+  })
+})
+it('publication refuses disabling an actually selected target and rolls back current history and draft consumption', async () => {
+  const target = await publishAuxiliary('resonance', 'resonance.authored')
+  await publishNativeDiscipline('vanguard', {
+    resonanceSelections: [{ withDisciplineId: 'lifebinder', resonanceId: 'resonance.authored' }],
+  })
+  const draft = await write('resonance.authored', {
+    action: 'save',
+    expectedRevision: target.revision,
+    definition: { ...target.current.definition, enabled: false },
+  })
+  const before = await record('resonance.authored')
+  await denied(
+    () => publish('resonance.authored', draft.draft.draftVersion, target.current.contentVersion),
+    /COMBAT_CONTENT_SELECTION_DISABLED/,
+  )
+  expect(await record('resonance.authored')).toEqual(before)
+  expect(await pairReference()).toMatchObject({
+    resonanceId: 'resonance.authored',
+    contentVersion: target.current.contentVersion,
+  })
+})
+it('publication cannot select a disabled target; removal permits later target disable and replacement', async () => {
+  const target = await publishAuxiliary('resonance', 'resonance.authored', { enabled: false })
+  await denied(
+    () =>
+      publishNativeDiscipline('vanguard', {
+        resonanceSelections: [
+          { withDisciplineId: 'lifebinder', resonanceId: 'resonance.authored' },
+        ],
+      }),
+    /COMBAT_CONTENT_SELECTION_DISABLED/,
+  )
+  expect(await pairReference()).toMatchObject({
+    resonanceId: resolveResonanceForPair('vanguard', 'lifebinder')!.id,
+  })
+  const saved = await write('resonance.authored', {
+    action: 'save',
+    expectedRevision: target.revision,
+    definition: { ...target.current.definition, enabled: true },
+  })
+  const enabled = await publish(
+    'resonance.authored',
+    saved.draft.draftVersion,
+    target.current.contentVersion,
+  )
+  await publishNativeDiscipline('vanguard', {
+    resonanceSelections: [{ withDisciplineId: 'lifebinder', resonanceId: 'resonance.authored' }],
+  })
+  await publishNativeDiscipline('vanguard', { resonanceSelections: [] })
+  const disabled = await write('resonance.authored', {
+    action: 'save',
+    expectedRevision: enabled.revision,
+    definition: { ...enabled.current.definition, enabled: false },
+  })
+  await publish('resonance.authored', disabled.draft.draftVersion, enabled.current.contentVersion)
+  expect(await pairReference()).toBeNull()
+})
+it('a conflicting old pointer rollback cannot replace canonical pair selection or its projected Core', async () => {
+  await publishAuxiliary('resonance', 'resonance.first')
+  await publishAuxiliary('resonance', 'resonance.second')
+  const first = await publishNativeDiscipline('vanguard', {
+    resonanceSelections: [{ withDisciplineId: 'lifebinder', resonanceId: 'resonance.first' }],
+  })
+  await publishNativeDiscipline('vanguard', { resonanceSelections: [] })
+  await publishNativeDiscipline('lifebinder', {
+    resonanceSelections: [{ withDisciplineId: 'vanguard', resonanceId: 'resonance.second' }],
+  })
+  const before = await record('vanguard')
+  const domainBefore = (
+    await db.query(
+      "select * from app_private.current_discipline_definitions_v1() where discipline_id='vanguard'",
+    )
+  ).rows
+  await denied(
+    () =>
+      db.query(
+        'update app_private.combat_content_publications set version_id=(select id from app_private.combat_content_versions where content_key=$1 and content_version=$2) where content_key=$1',
+        ['vanguard', first.current.contentVersion],
+      ),
+    /DISCIPLINE_RESONANCE_SELECTION_CONFLICT/,
+  )
+  expect(await record('vanguard')).toEqual(before)
+  expect(
+    (
+      await db.query(
+        "select * from app_private.current_discipline_definitions_v1() where discipline_id='vanguard'",
+      )
+    ).rows,
+  ).toEqual(domainBefore)
+  expect(await pairReference()).toMatchObject({ resonanceId: 'resonance.second' })
+  for (const role of ['anon', 'authenticated', 'service_role'])
+    expect(
+      (
+        await db.query<{ allowed: boolean }>(
+          "select has_function_privilege($1,'app_private.validate_current_discipline_selections_v1()','execute') allowed",
+          [role],
+        )
+      ).rows[0]!.allowed,
+    ).toBe(false)
 })
