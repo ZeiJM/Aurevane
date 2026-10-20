@@ -92,7 +92,8 @@
     "./combat/combat-targeting-roster": "./src/combat/combat-targeting-roster.ts",
     "./combat/combat-ground-areas": "./src/combat/combat-ground-areas.ts",
     "./combat/combat-ground-visuals": "./src/combat/combat-ground-visuals.ts",
-    "./combat/combat-requirement-modules": "./src/combat/combat-requirement-modules.ts"
+    "./combat/combat-requirement-modules": "./src/combat/combat-requirement-modules.ts",
+    "./combat/combat-simple-requirements": "./src/combat/combat-simple-requirements.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

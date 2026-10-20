@@ -1,3 +1,4 @@
+import { battleSourceHash } from './battle-source-authority'
 import { validateStatDrivenCombatEncounterState } from '@aurevane/game-core/combat/stat-driven-combat'
 import type { CharacterRecord } from '@aurevane/db/character'
 import type { BattleSessionRecord, BattleSessionRepository } from '@aurevane/db/battle-session'
@@ -9,6 +10,7 @@ import { createStandardBattlefieldTiles } from '@aurevane/game-core/combat/stand
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
+  sourceProof: 'none' as 'none' | 'current' | 'stale',
   canonicalStartup: false,
   globalTiming: false,
   captureAtomic: false,
@@ -116,6 +118,14 @@ vi.mock('@/server/character/supabase-character-build-repository', () => ({
     loadCommittedBuildSnapshot: async (_userId: string, characterId: string) => {
       if (characterId === hostCharacterId) {
         return {
+          ...(mocks.sourceProof === 'none'
+            ? {}
+            : {
+                sourceHash:
+                  mocks.sourceProof === 'stale'
+                    ? '0'.repeat(64)
+                    : battleSourceHash(characters.get(characterId)!),
+              }),
           schemaVersion: mocks.groundSkill ? 3 : 2,
           buildVersion: 3,
           primary: {
@@ -154,6 +164,14 @@ vi.mock('@/server/character/supabase-character-build-repository', () => ({
         }
       }
       return {
+        ...(mocks.sourceProof === 'none'
+          ? {}
+          : {
+              sourceHash:
+                mocks.sourceProof === 'stale'
+                  ? '0'.repeat(64)
+                  : battleSourceHash(characters.get(characterId)!),
+            }),
         schemaVersion: 2,
         buildVersion: 4,
         primary: { disciplineId: 'vanguard', definitionVersion: 1, profileVersion: 1 },
@@ -308,6 +326,7 @@ import { startPvpLobbyWithQuality } from './pvp-lobby-quality-service'
 
 describe('P3.7 direct PvP committed build snapshots', () => {
   beforeEach(() => {
+    mocks.sourceProof = 'none'
     mocks.canonicalStartup = false
     mocks.globalTiming = false
     mocks.captureAtomic = false
@@ -325,6 +344,26 @@ describe('P3.7 direct PvP committed build snapshots', () => {
     mocks.terrainBias = 'neutral'
     mocks.elevationBias = 'neutral'
   })
+
+  it.each(['quality', 'legacy'] as const)(
+    'actual %s producer rejects mixed source before admission and captures fresh proof',
+    async (entry) => {
+      mocks.sourceProof = 'stale'
+      await expect(
+        (entry === 'quality' ? startPvpLobbyWithQuality : startPvpLobby)(hostUserId, lobbyId),
+      ).rejects.toMatchObject({ code: 'STALE_VERSION' })
+      expect(mocks.createdBattleArgs).toBeNull()
+      mocks.sourceProof = 'current'
+      await (entry === 'quality' ? startPvpLobbyWithQuality : startPvpLobby)(hostUserId, lobbyId)
+      const snapshot = mocks.createdBattleArgs!.p_initial_snapshot as {
+        buildAuthority: { combatants: { sourceHash?: string }[] }
+      }
+      expect(snapshot.buildAuthority.combatants).toHaveLength(2)
+      expect(snapshot.buildAuthority.combatants.every((row) => row.sourceHash?.length === 64)).toBe(
+        true,
+      )
+    },
+  )
 
   it.each([
     ['quality', false],

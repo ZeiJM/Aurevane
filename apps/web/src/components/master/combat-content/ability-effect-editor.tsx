@@ -1,6 +1,6 @@
 'use client'
 
-import type { AbilityEffect } from '@aurevane/game-core/combat/combat-definition'
+import type { AbilityBehavior, AbilityEffect } from '@aurevane/game-core/combat/combat-definition'
 import {
   combatTagDefinition,
   nativeCombatTagPayload,
@@ -12,10 +12,17 @@ import { SkillEffectEditor } from './skill-effect-editor'
 import { SummonProfileEditor } from './summon-profile-editor'
 import { AbilityNumber } from './ability-editor-fields'
 import { AbilityRequirementEditor } from './ability-requirement-editor'
+import {
+  createSimpleRequirement,
+  readSimpleRequirement,
+  simpleEffectRequirementSubjects,
+} from '@aurevane/game-core/combat/combat-simple-requirements'
 import styles from './combat-content-editor.module.css'
 
 /** Authoring templates, never inferred from prose or sent directly as combat actions. */
-export function defaultAbilityPayload(type: CombatTagPayload['type']): CombatTagPayload {
+export function defaultAbilityPayload(
+  type: CombatTagPayload['type'] | 'conditional-cleanse',
+): CombatTagPayload {
   if (type === 'move') return { type, recipient: 'actor', maximumTiles: 1 }
   if (type === 'damage-bonus') return { type, recipient: 'actor', multiplierBasisPoints: 11250 }
   if (type === 'pierce')
@@ -34,16 +41,49 @@ export function defaultAbilityPayload(type: CombatTagPayload['type']): CombatTag
   return effect
 }
 
+/** Keep the visible Target bound to an executable child-geometry role after retargeting. */
+export function rebindSimpleEffectRequirement(
+  value: AbilityEffect,
+  behavior?: AbilityBehavior,
+): AbilityEffect {
+  const selection = readSimpleRequirement(value.requirements ?? null)
+  const allowed = effectSubjects(value.payload, behavior)
+  if (!selection || selection.tagId === 'none' || allowed.includes(selection.subject)) return value
+  return {
+    ...value,
+    requirements: allowed.length
+      ? createSimpleRequirement(
+          selection.tagId,
+          allowed.find((subject) => subject !== 'owner') ?? 'owner',
+          selection.percent ?? 50,
+        )
+      : null,
+  }
+}
+function effectSubjects(payload: CombatTagPayload, behavior?: AbilityBehavior) {
+  return behavior
+    ? simpleEffectRequirementSubjects(behavior, payload)
+    : payload.recipient === 'affected-units'
+      ? (['owner', 'affected'] as const)
+      : payload.recipient === 'actor' || payload.recipient === 'primary-unit'
+        ? (['owner', 'selected'] as const)
+        : (['owner'] as const)
+}
+
 export function AbilityEffectEditor({
   value,
   onChange,
+  behavior,
 }: {
   value: AbilityEffect
+  behavior?: AbilityBehavior
   onChange: (value: AbilityEffect) => void
 }) {
   const payload = value.payload
   const tag = combatTagDefinition(payload.type)
-  const update = (next: CombatTagPayload) => onChange({ ...value, payload: next })
+  const allowedSubjects = effectSubjects(payload, behavior)
+  const update = (next: CombatTagPayload) =>
+    onChange(rebindSimpleEffectRequirement({ ...value, payload: next }, behavior))
   let controls
   if (payload.type === 'move') {
     controls = (
@@ -133,11 +173,19 @@ export function AbilityEffectEditor({
   return (
     <div className={styles.effectList}>
       {controls}
-      <AbilityRequirementEditor
-        label="Effect condition"
-        value={value.requirements ?? null}
-        onChange={(requirements) => onChange({ ...value, requirements })}
-      />
+      {allowedSubjects.length ? (
+        <AbilityRequirementEditor
+          label="Effect condition"
+          simple={readSimpleRequirement(value.requirements ?? null) !== null}
+          allowedSubjects={allowedSubjects}
+          value={value.requirements ?? null}
+          onChange={(requirements) => onChange({ ...value, requirements })}
+        />
+      ) : (
+        <p className={styles.fieldHint}>
+          This tile effect has no separate condition. Use the group Requirement.
+        </p>
+      )}
       <p className={styles.fieldHint}>{tag?.fullExplanation}</p>
     </div>
   )

@@ -2077,3 +2077,57 @@ it('creates PvE from one catalogue generation even when separately read policy/c
     expect.objectContaining({ abilityId: essence.essenceId, contentVersion: 77 }),
   )
 })
+
+describe('Players correction preparation uses actual PvE producer', () => {
+  it.each(['source', 'build-version'] as const)(
+    'rejects mixed %s before createBattleSession',
+    async (kind) => {
+      const { battleSourceHash } = await import('./battle-source-authority')
+      const snapshot = {
+        ...pureSnapshot(),
+        sourceHash: kind === 'source' ? '0'.repeat(64) : battleSourceHash(characterRecord()),
+      }
+      const builds = buildRepository(snapshot)
+      if (kind === 'build-version')
+        builds.repository.findActiveBuild = vi.fn(async () => ({
+          ...activeBuildFor(snapshot),
+          buildVersion: snapshot.buildVersion - 1,
+        }))
+      const battles = battleRepository()
+      const service = createBattleSessionService({
+        characters: characterRepository(),
+        builds: builds.repository,
+        battles: battles.repository,
+      })
+      await expect(
+        service.createSession({
+          userId: USER_ID,
+          characterId: CHARACTER_ID,
+          idempotencyKey: '88888888-8888-4888-8888-888888888888',
+        }),
+      ).rejects.toMatchObject({ code: 'STALE_VERSION' })
+      expect(battles.createBattleSession).not.toHaveBeenCalled()
+    },
+  )
+  it('persists coherent source capture but excludes it recursively from the public view', async () => {
+    const { battleSourceHash } = await import('./battle-source-authority')
+    const sourceHash = battleSourceHash(characterRecord())
+    const builds = buildRepository({ ...pureSnapshot(), sourceHash })
+    const battles = battleRepository()
+    const service = createBattleSessionService({
+      characters: characterRepository(),
+      builds: builds.repository,
+      battles: battles.repository,
+    })
+    const view = await service.createSession({
+      userId: USER_ID,
+      characterId: CHARACTER_ID,
+      idempotencyKey: '88888888-8888-4888-8888-888888888888',
+    })
+    expect(
+      (battles.record!.snapshot as BattleAuthoritativeEncounterState).buildAuthority?.combatants[0]
+        ?.sourceHash,
+    ).toBe(sourceHash)
+    expect(JSON.stringify(view)).not.toContain('sourceHash')
+  })
+})

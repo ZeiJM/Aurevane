@@ -1,3 +1,4 @@
+import { automaticAbilityExecutionRequirements } from './combat-simple-requirements'
 import {
   effectiveBasicSkillBehavior,
   bindBasicSkillAction,
@@ -532,7 +533,10 @@ export function prepareCombatAbilityCommand(
     // Automatic trigger predicates use the parent's immutable frame; effect gates keep child geometry.
     const requirementsMet =
       participant.activation === 'automatic'
-        ? evaluateAbilityRequirements(participant.behavior.requirements, requirementsContext)
+        ? evaluateAbilityRequirements(
+            automaticAbilityExecutionRequirements(participant.behavior),
+            requirementsContext,
+          )
         : evaluateAbilitySelectedRequirements(
             participant.behavior.requirements,
             requirementsContext,

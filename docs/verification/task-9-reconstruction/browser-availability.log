@@ -1,0 +1,15 @@
+{"cwd": "/workspace/scratch/081f137b6a6d/aurevane-players-20261020", "command": ["corepack", "pnpm", "--filter", "@aurevane/web", "exec", "node", "-e", "const {chromium}=require(\"@playwright/test\"); console.log(\"binary:\",chromium.executablePath()); chromium.launch({headless:true}).then(async b=>{console.log(\"headless Chromium launched\"); await b.close()}).catch(e=>{console.error(e.message);process.exitCode=1})"], "start": "2026-10-20T18:33:48.067410+00:00"}
+binary: /root/.cache/ms-playwright/chromium-1234/chrome-linux64/chrome
+browserType.launch: Executable doesn't exist at /root/.cache/ms-playwright/chromium_headless_shell-1234/chrome-headless-shell-linux64/chrome-headless-shell
+╔════════════════════════════════════════════════════════════╗
+║ Looks like Playwright was just installed or updated.       ║
+║ Please run the following command to download new browsers: ║
+║                                                            ║
+║     pnpm exec playwright install                           ║
+║                                                            ║
+║ <3 Playwright Team                                         ║
+╚════════════════════════════════════════════════════════════╝
+undefined
+/workspace/scratch/081f137b6a6d/aurevane-players-20261020/apps/web:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: node -e 'const {chromium}=require("@playwright/test"); console.log("binary:",chromium.executablePath()); chromium.launch({headless:true}).then(async b=>{console.log("headless Chromium launched"); await b.close()}).catch(e=>{console.error(e.message);process.exitCode=1})'
+{"end": "2026-10-20T18:33:48.871455+00:00", "exit": 1}

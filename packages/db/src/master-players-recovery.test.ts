@@ -99,7 +99,35 @@ const sourceCommand = {
   xp: 0,
   attributes: { might: 11, finesse: 4, vitality: 7, agility: 4, intellect: 3, resolve: 6 },
 }
-async function snapshot() {
+interface TestSnapshot {
+  [key: string]: unknown
+  tactical: {
+    battle: {
+      battleId: string
+      rulesVersion: number
+      contentVersion: number
+      lifecycle: string
+      currentTurn: { combatantId: string } | null
+      rng: Record<string, unknown>
+      combatants: {
+        id: string
+        teamId?: string
+        kind?: string
+        hp: number
+        mp: number
+        temporaryResources?: { key: string; current: number; maximum: number }[]
+      }[]
+    }
+  }
+  buildAuthority: {
+    combatants: (Record<string, unknown> & { combatantId: string; characterId: string })[]
+  }
+  statBridge?: {
+    schemaVersion?: number
+    combatants: ({ combatantId: string } & Record<string, unknown>)[]
+  }
+}
+async function snapshot(): Promise<TestSnapshot> {
   const build = (
     await db.query<{ value: Record<string, unknown> }>(
       'select public.get_character_committed_build_snapshot_v2($1,$2) value',
@@ -161,6 +189,7 @@ async function recover(
   battle: Awaited<ReturnType<typeof createBattle>>,
   ids = [character],
   version = 1,
+  transform?: (terminal: TestSnapshot) => void,
 ) {
   const terminal = {
     ...battle.snapshot,
@@ -171,6 +200,7 @@ async function recover(
       battle: { ...battle.snapshot.tactical.battle, lifecycle: 'abandoned', currentTurn: null },
     },
   }
+  transform?.(terminal)
   return db.query<{ result: { outcome: string; replayed: boolean; version: number } }>(
     'select public.recover_master_player_battle_v1($1,$2,$3,$4,$5,$6,$7,true,null) result',
     [
@@ -318,4 +348,332 @@ it('cleanup failure rolls back marker, head, history and audit together', async 
     (await db.query<{ lifecycle: string }>('select lifecycle from app_private.battle_sessions'))
       .rows[0]!.lifecycle,
   ).toBe('active')
+})
+
+it('exact old replay lookup returns terminal authority after no contest', async () => {
+  const battle = await createBattle()
+  await db.query('select * from public.commit_battle_intent_v2($1,$2,$3,$4,$5,1,$6,$7)', [
+    other,
+    '00000000-0000-4000-8000-000000000066',
+    'old-command',
+    other,
+    battle.battle_session_id,
+    battle.snapshot,
+    [],
+  ])
+  await recover(battle, [character], 2)
+  const replay = (
+    await db.query<{ snapshot: { administrativeOutcome: string }; battle_version: number }>(
+      'select * from public.get_battle_intent_replay_v1($1,$2,$3,$4,$5)',
+      [
+        other,
+        '00000000-0000-4000-8000-000000000066',
+        'old-command',
+        other,
+        battle.battle_session_id,
+      ],
+    )
+  ).rows[0]!
+  expect(replay.snapshot.administrativeOutcome).toBe('NoContest')
+  expect(replay.battle_version).toBe(3)
+})
+it.each(['character', 'account'])(
+  'real %s deletion finalizer removes payload/audit without losing hash-only anti-reopen marker',
+  async (kind) => {
+    const battle = await createBattle()
+    await recover(battle)
+    if (kind === 'character') {
+      await db.query(
+        "insert into app_private.character_deletion_requests(character_id,user_id,requested_at,delete_after) values($1,$2,now()-interval '2 days',now()-interval '1 day')",
+        [character, other],
+      )
+      await db.query('select app_private.finalize_due_character_deletions_for_user_v1($1)', [other])
+    } else {
+      await db.query(
+        "insert into app_private.account_deletion_requests(user_id,requested_at,delete_after) values($1,now()-interval '2 days',now()-interval '1 day')",
+        [other],
+      )
+      await db.query('select app_private.finalize_account_deletion_for_user_v1($1)', [other])
+    }
+    expect((await db.query('select * from app_private.battle_sessions')).rows).toEqual([])
+    expect((await db.query('select * from app_private.battle_snapshots')).rows).toEqual([])
+    expect((await db.query('select * from app_private.battle_no_contests')).rows).toEqual([])
+    expect((await db.query('select * from app_private.player_support_audit')).rows).toEqual([])
+    expect(
+      (await db.query('select * from app_private.battle_no_contest_markers')).rows,
+    ).toHaveLength(1)
+    await denied(
+      () =>
+        db.query(
+          "insert into app_private.battle_sessions(owner_user_id,battle_id,rules_version,content_version,lifecycle,current_snapshot) values($1,'players-test',1,1,'active',$2)",
+          [owner, battle.snapshot],
+        ),
+      /NO_CONTEST/,
+    )
+  },
+)
+it('late exact creation retry resynchronizes no contest instead of replaying the initial active snapshot', async () => {
+  const battle = await createBattle()
+  await recover(battle)
+  const retry = await createBattle(battle.snapshot)
+  expect(
+    (retry.snapshot as unknown as { administrativeOutcome: string }).administrativeOutcome,
+  ).toBe('NoContest')
+  expect(retry.battle_version).toBe(2)
+})
+
+it.each(['missing-unit', 'changed-resource', 'changed-policy', 'retained-queue'])(
+  'terminal rejects %s without writing a marker',
+  async (kind) => {
+    const battle = await createBattle()
+    await denied(
+      () =>
+        recover(battle, [character], 1, (terminal) => {
+          if (kind === 'missing-unit')
+            terminal.tactical.battle.combatants = terminal.tactical.battle.combatants.slice(1)
+          if (kind === 'changed-resource') terminal.tactical.battle.combatants[0].hp = 999
+          if (kind === 'changed-policy') terminal.effectTimingPolicy = 'invented'
+          if (kind === 'retained-queue') terminal.pendingEffects = [{ fake: true }]
+        }),
+      /SNAPSHOT_INVALID/,
+    )
+    expect((await db.query('select * from app_private.battle_no_contest_markers')).rows).toEqual([])
+  },
+)
+it('terminal accepts removal of summon bridge rows only', async () => {
+  const prepared = await snapshot()
+  const raw = prepared
+  raw.tactical.battle.combatants.push({ id: 'summon', kind: 'summon', hp: 2, mp: 0 })
+  raw.statBridge = {
+    schemaVersion: 1,
+    combatants: [
+      { combatantId: 'enemy', value: 2 },
+      { combatantId: 'summon', value: 1 },
+    ],
+  }
+  const battle = await createBattle()
+  await db.query('update app_private.battle_sessions set current_snapshot=$1 where id=$2', [
+    prepared,
+    battle.battle_session_id,
+  ])
+  battle.snapshot = prepared
+  await recover(battle, [character], 1, (terminal) => {
+    terminal.tactical.battle.combatants = terminal.tactical.battle.combatants.filter(
+      (unit: { id: string }) => unit.id !== 'summon',
+    )
+    terminal.statBridge!.combatants = terminal.statBridge!.combatants.filter(
+      (unit: { combatantId: string }) => unit.combatantId !== 'summon',
+    )
+  })
+})
+it('World recovery clears actual block/read battle link while retaining origin, saved progress and prior receipts', async () => {
+  await db.query(
+    "select * from public.grant_character_xp_v1($1,$2,'prior','test','gameplay','prior-unrelated','test',5)",
+    [character, '00000000-0000-4000-8000-000000000098'],
+  )
+  const grants = (await db.query('select * from app_private.character_xp_grants')).rows
+  const state = {
+    version: 4,
+    position: { sectorId: 'test', x: 2, y: 3 },
+    route: [],
+    discoveries: { visited: ['test'] },
+    safe: true,
+  }
+  await db.query(
+    'insert into app_private.character_world_state(character_id,state) values($1,$2)',
+    [character, state],
+  )
+  const battle = await createBattle()
+  await db.query('insert into app_private.world_encounters values($1)', [battle.battle_session_id])
+  const world = async () =>
+    (
+      await db.query<{
+        result: { state: unknown; blocked: string | null; battleSessionId: string | null }
+      }>('select public.read_world_state_v1($1,$2,$3) result', [other, character, state])
+    ).rows[0]!.result
+  const beforeWorld = await world()
+  expect(beforeWorld.blocked).toBe('WORLD_ACTIVE_BATTLE')
+  const receipts = (await db.query('select * from app_private.idempotency_records')).rows
+  await recover(battle)
+  expect(await world()).toMatchObject({
+    state: beforeWorld.state,
+    blocked: null,
+    battleSessionId: null,
+  })
+  expect((await db.query('select * from app_private.world_encounters')).rows).toHaveLength(1)
+  expect((await db.query('select * from app_private.character_xp_grants')).rows).toEqual(grants)
+  expect((await read()).rows[0]!.result.facts).toMatchObject({ xp: 5 })
+  expect((await db.query('select * from app_private.idempotency_records')).rows).toEqual(receipts)
+  expect(
+    (
+      await db.query<{ result: unknown }>('select public.ensure_ai_turn_clock_v1($1,$2) result', [
+        other,
+        battle.battle_session_id,
+      ])
+    ).rows[0]!.result,
+  ).toMatchObject({ active: false })
+  expect((await db.query('select * from app_private.ai_turn_clocks')).rows).toEqual([])
+})
+it('shared PvP recovery names the exact real participants and clears actual clocks, staging and spectator locks', async () => {
+  const spectator = '00000000-0000-4000-8000-000000000003'
+  await db.query('insert into auth.users(id) values($1)', [spectator])
+  const peer = '00000000-0000-4000-8000-000000000012',
+    lobby = '00000000-0000-4000-8000-000000000033'
+  await db.query(
+    `insert into public.characters(id,user_id,slot_index,rules_version,name,name_key,presentation_id,pronoun_preset_id,portrait_ref,starter_appearance_ref,foundation_discipline_id,might,finesse,vitality,agility,intellect,resolve,level,xp,progression_cycle,created_at,cycle_started_at,last_active_at)
+ select $1,$2,slot_index,rules_version,'Peer','peer',presentation_id,pronoun_preset_id,portrait_ref,starter_appearance_ref,foundation_discipline_id,might,finesse,vitality,agility,intellect,resolve,level,xp,progression_cycle,created_at,cycle_started_at,last_active_at from public.characters where id=$3`,
+    [peer, owner, character],
+  )
+  await db.query(
+    "insert into app_private.pvp_lobbies(id,lobby_key,mode,owner_user_id,team_a_size,team_b_size) values($1,'AVL-0000-0001','1v1',$2,1,1)",
+    [lobby, other],
+  )
+  await db.query(
+    'insert into app_private.pvp_lobby_members(lobby_id,user_id,character_id,team_index,seat_index,ready) values($1,$2,$3,0,0,true),($1,$4,$5,1,0,true)',
+    [lobby, other, character, owner, peer],
+  )
+  const prepared = await snapshot()
+  prepared.tactical.battle.combatants[1]!.id = `character:${peer}`
+  prepared.tactical.battle.combatants.forEach((unit, index) => {
+    unit.teamId = `team:${index}`
+  })
+  const members = [
+    {
+      combatant_id: `character:${character}`,
+      user_id: other,
+      character_id: character,
+      team_index: 0,
+    },
+    { combatant_id: `character:${peer}`, user_id: owner, character_id: peer, team_index: 1 },
+  ]
+  const battle = (
+    await db.query<Awaited<ReturnType<typeof createBattle>>>(
+      'select * from public.create_pvp_battle_session_v1($1,$2,$3,1,1,$4,$5)',
+      [other, lobby, 'players-test', prepared, members],
+    )
+  ).rows[0]!
+  await db.query('insert into app_private.ai_turn_clocks values($1,1,$2,now(),now())', [
+    battle.battle_session_id,
+    `character:${character}`,
+  ])
+  await db.query(
+    'insert into app_private.pvp_active_spectating(user_id,battle_session_id) values($1,$2)',
+    [spectator, battle.battle_session_id],
+  )
+  await db.query(
+    'insert into app_private.pvp_battle_spectator_presence(user_id,battle_session_id) values($1,$2)',
+    [spectator, battle.battle_session_id],
+  )
+  expect((await read()).rows[0]!.result.battle).toMatchObject({
+    participants: [
+      { characterId: character, name: 'Test Player' },
+      { characterId: peer, name: 'Peer' },
+    ],
+  })
+  await denied(() => recover(battle, [character]), /PARTICIPANTS_CHANGED/)
+  await recover(battle, [peer, character])
+  for (const table of [
+    'ai_turn_clocks',
+    'pvp_turn_clocks',
+    'pvp_active_spectating',
+    'pvp_battle_spectator_presence',
+    'pvp_lobby_members',
+  ])
+    expect((await db.query(`select * from app_private.${table}`)).rows, table).toEqual([])
+  expect(
+    (await db.query<{ status: string }>('select status from app_private.pvp_lobbies')).rows[0]!
+      .status,
+  ).toBe('cancelled')
+  expect(
+    (
+      await db.query<{ result: unknown }>('select public.ensure_pvp_turn_clock_v1($1,$2) result', [
+        other,
+        battle.battle_session_id,
+      ])
+    ).rows[0]!.result,
+  ).toMatchObject({ active: false })
+  await denied(
+    () =>
+      db.query('select * from public.create_pvp_battle_session_v1($1,$2,$3,1,1,$4,$5)', [
+        other,
+        lobby,
+        'players-test',
+        prepared,
+        members,
+      ]),
+    /PVP_LOBBY_NOT_AVAILABLE/,
+  )
+})
+it('completion-first keeps a real successful trial claim and its repeat receipt', async () => {
+  const prepared = await snapshot()
+  Object.assign(prepared, {
+    statBridge: {
+      combatants: [
+        {
+          combatantId: 'enemy',
+          provenance: {
+            kind: 'scenario',
+            sourceId: 'scenario:p2-7-recruit:vanguard:mastery-trial:standard',
+          },
+        },
+      ],
+    },
+  })
+  const battle = await createBattle(prepared)
+  for (const [index, actionId] of [
+    'vanguard.forceful-strike',
+    'vanguard.cleave',
+    'vanguard.forceful-strike',
+  ].entries())
+    await db.query(
+      'insert into app_private.battle_events(battle_session_id,battle_version,event_index,event) values($1,1,$2,$3)',
+      [
+        battle.battle_session_id,
+        index,
+        { event: 'combat_action_used', actorId: `character:${character}`, actionId },
+      ],
+    )
+  const completed = structuredClone(prepared)
+  completed.tactical.battle.lifecycle = 'completed'
+  completed.tactical.battle.combatants[1]!.hp = 0
+  await db.query(
+    "update app_private.battle_sessions set lifecycle='completed',current_snapshot=$1 where id=$2",
+    [completed, battle.battle_session_id],
+  )
+  expect((await recover(battle)).rows[0]!.result.outcome).toBe('AlreadyTerminal')
+  const claim = async () =>
+    db.query<{ awarded_xp: number; replayed: boolean }>(
+      'select * from public.claim_discipline_trial_v1($1,$2)',
+      [other, battle.battle_session_id],
+    )
+  expect((await claim()).rows[0]).toMatchObject({ awarded_xp: 50, replayed: false })
+  expect((await claim()).rows[0]).toMatchObject({ awarded_xp: 50, replayed: true })
+  expect((await db.query('select * from app_private.discipline_trial_claims')).rows).toHaveLength(1)
+})
+it('uses the actual level-100 XP ceiling and Primary focus/nonfocus caps', async () => {
+  const max = (
+    await db.query<{ xp: number }>(
+      'select c.cumulative_xp_by_level[c.max_level]::float8 xp from app_private.level_progression_curves c join app_private.progression_cycle_level_curves m on m.curve_version=c.version where m.progression_cycle=1',
+    )
+  ).rows[0]!.xp
+  await denied(() => edit({ ...sourceCommand, xp: max + 1 }), /XP_RANGE/)
+  await denied(
+    () =>
+      edit({ ...sourceCommand, xp: max, attributes: { ...sourceCommand.attributes, might: 61 } }),
+    /CAP_EXCEEDED/,
+  )
+  await denied(
+    () =>
+      edit({ ...sourceCommand, xp: max, attributes: { ...sourceCommand.attributes, finesse: 41 } }),
+    /CAP_EXCEEDED/,
+  )
+  expect(
+    (
+      await edit({
+        ...sourceCommand,
+        xp: max,
+        attributes: { ...sourceCommand.attributes, might: 60 },
+      })
+    ).rows[0]!.result.facts,
+  ).toMatchObject({ level: 100, xp: max })
 })

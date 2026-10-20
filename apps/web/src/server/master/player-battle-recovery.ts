@@ -1,9 +1,6 @@
 import 'server-only'
 import { reorderBattleInitiative } from '@aurevane/game-core/combat/battle-state'
-import {
-  reconcileCombatAbilitySources,
-  refreezeCapturedCombatAbilityState,
-} from '@aurevane/game-core/combat/combat-behavior-runtime'
+import { refreezeCapturedCombatAbilityState } from '@aurevane/game-core/combat/combat-behavior-runtime'
 import {
   validateStatDrivenCombatEncounterState,
   type StatDrivenCombatEncounterState,
@@ -11,9 +8,7 @@ import {
 import { AurevaneError } from '@aurevane/game-core/errors'
 
 /** Keeps immutable definitions/policies and resources; discards only encounter execution state. */
-export function resolveMasterBattleRecovery(
-  snapshot: unknown,
-): StatDrivenCombatEncounterState & {
+export function resolveMasterBattleRecovery(snapshot: unknown): StatDrivenCombatEncounterState & {
   administrativeOutcome: 'NoContest'
   rewardOutcome: 'NoRewards'
 } {
@@ -77,14 +72,24 @@ export function resolveMasterBattleRecovery(
     administrativeOutcome: 'NoContest'
     rewardOutcome: 'NoRewards'
   }
-  const reconciled =
-    state.abilityRuntime || state.capturedAbilitySources
-      ? {
-          ...terminal,
-          ...reconcileCombatAbilitySources(terminal, []),
-          statBridge: terminal.statBridge,
-        }
-      : terminal
+  const reconciled = state.abilityRuntime
+    ? {
+        ...terminal,
+        abilityRuntime: {
+          ...state.abilityRuntime,
+          activeSourceIds: [],
+          maintained: [],
+          usage: state.abilityRuntime.usage.map((row) => {
+            const history = { ...row }
+            delete history.pendingRootActionIds
+            return history
+          }),
+          ...(state.abilityRuntime.controlled
+            ? { controlled: { ...state.abilityRuntime.controlled, primes: [] } }
+            : {}),
+        },
+      }
+    : terminal
   const issues = validateStatDrivenCombatEncounterState(reconciled)
   if (issues.length)
     throw new AurevaneError(

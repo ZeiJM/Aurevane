@@ -1,0 +1,46 @@
+{"cwd": "/workspace/scratch/081f137b6a6d/aurevane-players-20261020", "command": ["corepack", "pnpm", "--filter", "@aurevane/web", "exec", "playwright", "install", "chromium"], "start": "2026-10-20T18:34:02.391640+00:00"}
+Downloading Chrome for Testing 151.0.7922.34 (playwright chromium v1234)[2m from https://cdn.playwright.dev/builds/cft/151.0.7922.34/linux64/chrome-linux64.zip[22m
+|■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■| 100% of 0 MiB
+Error: End of central directory record signature not found. Either not a zip file, or file is truncated.
+    at /workspace/scratch/081f137b6a6d/aurevane-players-20261020/node_modules/.pnpm/playwright-core@1.62.0/node_modules/playwright-core/lib/utilsBundle.js:38081:18
+    at /workspace/scratch/081f137b6a6d/aurevane-players-20261020/node_modules/.pnpm/playwright-core@1.62.0/node_modules/playwright-core/lib/utilsBundle.js:38607:9
+    at /workspace/scratch/081f137b6a6d/aurevane-players-20261020/node_modules/.pnpm/playwright-core@1.62.0/node_modules/playwright-core/lib/utilsBundle.js:37504:11
+    at FSReqCallback.wrapper [as oncomplete] (node:fs:731:5)
+Downloading Chrome for Testing 151.0.7922.34 (playwright chromium v1234)[2m from https://cdn.playwright.dev/builds/cft/151.0.7922.34/linux64/chrome-linux64.zip[22m
+|■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■| 100% of 0 MiB
+Error: End of central directory record signature not found. Either not a zip file, or file is truncated.
+    at /workspace/scratch/081f137b6a6d/aurevane-players-20261020/node_modules/.pnpm/playwright-core@1.62.0/node_modules/playwright-core/lib/utilsBundle.js:38081:18
+    at /workspace/scratch/081f137b6a6d/aurevane-players-20261020/node_modules/.pnpm/playwright-core@1.62.0/node_modules/playwright-core/lib/utilsBundle.js:38607:9
+    at /workspace/scratch/081f137b6a6d/aurevane-players-20261020/node_modules/.pnpm/playwright-core@1.62.0/node_modules/playwright-core/lib/utilsBundle.js:37504:11
+    at FSReqCallback.wrapper [as oncomplete] (node:fs:731:5)
+Downloading Chrome for Testing 151.0.7922.34 (playwright chromium v1234)[2m from https://cdn.playwright.dev/builds/cft/151.0.7922.34/linux64/chrome-linux64.zip[22m
+|■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■| 100% of 0 MiB
+Error: End of central directory record signature not found. Either not a zip file, or file is truncated.
+    at /workspace/scratch/081f137b6a6d/aurevane-players-20261020/node_modules/.pnpm/playwright-core@1.62.0/node_modules/playwright-core/lib/utilsBundle.js:38081:18
+    at /workspace/scratch/081f137b6a6d/aurevane-players-20261020/node_modules/.pnpm/playwright-core@1.62.0/node_modules/playwright-core/lib/utilsBundle.js:38607:9
+    at /workspace/scratch/081f137b6a6d/aurevane-players-20261020/node_modules/.pnpm/playwright-core@1.62.0/node_modules/playwright-core/lib/utilsBundle.js:37504:11
+    at FSReqCallback.wrapper [as oncomplete] (node:fs:731:5)
+Downloading Chrome for Testing 151.0.7922.34 (playwright chromium v1234)[2m from https://cdn.playwright.dev/builds/cft/151.0.7922.34/linux64/chrome-linux64.zip[22m
+|■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■| 100% of 0 MiB
+Error: End of central directory record signature not found. Either not a zip file, or file is truncated.
+    at /workspace/scratch/081f137b6a6d/aurevane-players-20261020/node_modules/.pnpm/playwright-core@1.62.0/node_modules/playwright-core/lib/utilsBundle.js:38081:18
+    at /workspace/scratch/081f137b6a6d/aurevane-players-20261020/node_modules/.pnpm/playwright-core@1.62.0/node_modules/playwright-core/lib/utilsBundle.js:38607:9
+    at /workspace/scratch/081f137b6a6d/aurevane-players-20261020/node_modules/.pnpm/playwright-core@1.62.0/node_modules/playwright-core/lib/utilsBundle.js:37504:11
+    at FSReqCallback.wrapper [as oncomplete] (node:fs:731:5)
+Downloading Chrome for Testing 151.0.7922.34 (playwright chromium v1234)[2m from https://cdn.playwright.dev/builds/cft/151.0.7922.34/linux64/chrome-linux64.zip[22m
+|■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■| 100% of 0 MiB
+Error: End of central directory record signature not found. Either not a zip file, or file is truncated.
+    at /workspace/scratch/081f137b6a6d/aurevane-players-20261020/node_modules/.pnpm/playwright-core@1.62.0/node_modules/playwright-core/lib/utilsBundle.js:38081:18
+    at /workspace/scratch/081f137b6a6d/aurevane-players-20261020/node_modules/.pnpm/playwright-core@1.62.0/node_modules/playwright-core/lib/utilsBundle.js:38607:9
+    at /workspace/scratch/081f137b6a6d/aurevane-players-20261020/node_modules/.pnpm/playwright-core@1.62.0/node_modules/playwright-core/lib/utilsBundle.js:37504:11
+    at FSReqCallback.wrapper [as oncomplete] (node:fs:731:5)
+Failed to install browsers
+Error: Failed to download Chrome for Testing 151.0.7922.34 (playwright chromium v1234), caused by
+Error: Download failure, code=1
+    at ChildProcess.<anonymous> (/workspace/scratch/081f137b6a6d/aurevane-players-20261020/node_modules/.pnpm/playwright-core@1.62.0/node_modules/playwright-core/lib/coreBundle.js:32015:32)
+    at ChildProcess.emit (node:events:509:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:295:12)
+undefined
+/workspace/scratch/081f137b6a6d/aurevane-players-20261020/apps/web:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: playwright install chromium
+{"end": "2026-10-20T18:34:30.934137+00:00", "exit": 1}

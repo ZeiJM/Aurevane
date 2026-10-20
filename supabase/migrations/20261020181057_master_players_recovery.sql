@@ -182,6 +182,7 @@ begin
    v_xp:=(p_command->>'xp')::bigint;
    select curve.* into v_curve from app_private.level_progression_curves curve join app_private.progression_cycle_level_curves mapping on mapping.curve_version=curve.version where mapping.progression_cycle=v_character.progression_cycle;
    if not found then raise exception using errcode='22023',message='PLAYER_CURVE_UNAVAILABLE'; end if;
+   if v_xp>v_curve.cumulative_xp_by_level[v_curve.max_level] then raise exception using errcode='22023',message='PLAYER_XP_RANGE_INVALID'; end if;
    v_level:=app_private.resolve_level_from_curve(v_xp,v_curve.cumulative_xp_by_level,v_curve.max_level);
    select * into v_profile from app_private.discipline_primary_profiles where discipline_id=v_build.primary_discipline_id and profile_version=v_build.primary_profile_version;
    perform app_private.validate_character_core_allocation_v1((v_attributes->>'might')::int,(v_attributes->>'finesse')::int,(v_attributes->>'vitality')::int,(v_attributes->>'agility')::int,(v_attributes->>'intellect')::int,(v_attributes->>'resolve')::int,v_level,v_profile.core_base_attributes,v_profile.focus_attributes,v_profile.off_focus_cap,false);
@@ -233,9 +234,10 @@ end; $$;
 
 create function public.recover_master_player_battle_v1(p_actor_user_id uuid,p_character_id uuid,p_battle_session_id uuid,p_expected_version bigint,p_participant_ids uuid[],p_request_key uuid,p_terminal_snapshot jsonb,p_confirmed boolean,p_actor_character_id uuid)
 returns jsonb language plpgsql security definer set search_path=pg_catalog,public,app_private as $$
-declare v_session app_private.battle_sessions%rowtype; v_people uuid[]; v_user uuid; v_receipt app_private.battle_no_contests%rowtype; v_now timestamptz:=clock_timestamp(); v_before jsonb; v_hash text; v_lobby uuid;
+declare v_session app_private.battle_sessions%rowtype; v_people uuid[]; v_user uuid; v_receipt app_private.battle_no_contests%rowtype; v_now timestamptz:=clock_timestamp(); v_before jsonb; v_hash text; v_lobby uuid; v_old jsonb; v_units jsonb; v_bridge jsonb; v_runtime jsonb;
 begin
  perform app_private.assert_game_owner_v1(p_actor_user_id);
+ perform set_config('lock_timeout','2s',true);
  if p_confirmed is distinct from true or p_request_key is null then raise exception using errcode='22023',message='PLAYER_CONFIRMATION_REQUIRED'; end if;
  select * into v_session from app_private.battle_sessions where id=p_battle_session_id for update;
  if not found then raise exception using errcode='22023',message='BATTLE_NOT_FOUND'; end if;
@@ -251,13 +253,31 @@ begin
  perform 1 from public.characters where id=any(v_people) order by id for update nowait;
  perform 1 from app_private.character_active_builds where character_id=any(v_people) order by character_id for update nowait;
  for v_lobby in select id from app_private.pvp_lobbies where battle_session_id=p_battle_session_id order by id for update nowait loop null; end loop;
+ v_old:=v_session.current_snapshot;
+ select coalesce(jsonb_agg(unit),'[]'::jsonb) into v_units from jsonb_array_elements(v_old #> '{tactical,battle,combatants}') unit where unit->>'kind' is distinct from 'summon';
+ v_bridge:=v_old->'statBridge';
+ if v_bridge is not null then
+   v_bridge:=jsonb_set(v_bridge,'{combatants}',(select coalesce(jsonb_agg(row),'[]'::jsonb) from jsonb_array_elements(v_bridge->'combatants') row where exists(select 1 from jsonb_array_elements(v_units) unit where unit->>'id'=row->>'combatantId')));
+ end if;
+ v_runtime:=v_old->'abilityRuntime';
+ if v_runtime is not null then
+   v_runtime:=v_runtime||jsonb_build_object('activeSourceIds','[]'::jsonb,'maintained','[]'::jsonb,'usage',(select coalesce(jsonb_agg(row-'pendingRootActionIds'),'[]'::jsonb) from jsonb_array_elements(v_runtime->'usage') row));
+   if v_runtime ? 'controlled' then v_runtime:=jsonb_set(v_runtime,'{controlled,primes}','[]'::jsonb); end if;
+ end if;
  if p_terminal_snapshot #>> '{tactical,battle,lifecycle}' is distinct from 'abandoned'
  or p_terminal_snapshot->>'administrativeOutcome' is distinct from 'NoContest'
  or p_terminal_snapshot->>'rewardOutcome' is distinct from 'NoRewards'
- or p_terminal_snapshot #>> '{tactical,battle,battleId}' is distinct from v_session.battle_id
- or p_terminal_snapshot->'statBridge' is distinct from v_session.current_snapshot->'statBridge'
- or p_terminal_snapshot->'buildAuthority' is distinct from v_session.current_snapshot->'buildAuthority'
- or exists(select 1 from jsonb_array_elements(v_session.current_snapshot #> '{tactical,battle,combatants}') old_unit join jsonb_array_elements(p_terminal_snapshot #> '{tactical,battle,combatants}') new_unit on old_unit->>'id'=new_unit->>'id' where (old_unit->'hp',old_unit->'mp',old_unit->'temporaryResources') is distinct from (new_unit->'hp',new_unit->'mp',new_unit->'temporaryResources'))
+ or p_terminal_snapshot #> '{tactical,battle,currentTurn}' is distinct from 'null'::jsonb
+ or p_terminal_snapshot ?| array['pendingSummons','pendingEffects','groundAreas','terrainOverlays','turnOrigin','turnTriggerState','percentageDotCommands','effectState']
+ or (p_terminal_snapshot-array['tactical','statBridge','statusState','abilityRuntime','administrativeOutcome','rewardOutcome']) is distinct from (v_old-array['tactical','statBridge','statusState','abilityRuntime','pendingSummons','pendingEffects','groundAreas','terrainOverlays','turnOrigin','turnTriggerState','percentageDotCommands','effectState'])
+ or p_terminal_snapshot->'statBridge' is distinct from v_bridge
+ or p_terminal_snapshot->'abilityRuntime' is distinct from v_runtime
+ or p_terminal_snapshot #> '{tactical,battle,combatants}' is distinct from v_units
+ or ((p_terminal_snapshot->'tactical')-array['battle','placements']) is distinct from ((v_old->'tactical')-array['battle','placements'])
+ or ((p_terminal_snapshot #> '{tactical,battle}')-array['lifecycle','currentTurn','combatants','initiativeOrder','initiativeTieOrder','actedCombatantIds','deferredInitiativeCombatantIds','activeInitiativeModifiers','roundInitiativeModifiers']) is distinct from ((v_old #> '{tactical,battle}')-array['lifecycle','currentTurn','combatants','initiativeOrder','initiativeTieOrder','actedCombatantIds','deferredInitiativeCombatantIds','activeInitiativeModifiers','roundInitiativeModifiers'])
+ or exists(select 1 from unnest(array['actedCombatantIds','deferredInitiativeCombatantIds','activeInitiativeModifiers','roundInitiativeModifiers']) key where coalesce(p_terminal_snapshot #> array['tactical','battle',key],'[]'::jsonb)<>'[]'::jsonb)
+ or (v_old #> '{tactical,placements}' is not null and p_terminal_snapshot #> '{tactical,placements}' is distinct from (select coalesce(jsonb_agg(row),'[]'::jsonb) from jsonb_array_elements(v_old #> '{tactical,placements}') row where exists(select 1 from jsonb_array_elements(v_units) unit where unit->>'id'=row->>'combatantId')))
+ or (v_old->'statusState' is not null and p_terminal_snapshot->'statusState' is distinct from (select coalesce(jsonb_agg(row||jsonb_build_object('statuses','[]'::jsonb)),'[]'::jsonb) from jsonb_array_elements(v_old->'statusState') row where exists(select 1 from jsonb_array_elements(v_units) unit where unit->>'id'=row->>'combatantId')))
  then raise exception using errcode='22023',message='BATTLE_RECOVERY_SNAPSHOT_INVALID'; end if;
  v_before:=jsonb_build_object('battleSessionId',p_battle_session_id,'version',v_session.current_version,'participants',v_people);
  v_hash:=encode(sha256(convert_to(v_before::text,'UTF8')),'hex');
@@ -280,4 +300,23 @@ end; $$;
 revoke all on function public.search_master_players_v1(uuid,text,uuid),public.read_master_player_v1(uuid,uuid,uuid),public.edit_master_player_v1(uuid,uuid,text,uuid,jsonb,boolean,uuid),public.recover_master_player_battle_v1(uuid,uuid,uuid,bigint,uuid[],uuid,jsonb,boolean,uuid) from public,anon,authenticated;
 grant execute on function public.search_master_players_v1(uuid,text,uuid),public.read_master_player_v1(uuid,uuid,uuid),public.edit_master_player_v1(uuid,uuid,text,uuid,jsonb,boolean,uuid),public.recover_master_player_battle_v1(uuid,uuid,uuid,bigint,uuid[],uuid,jsonb,boolean,uuid) to service_role;
 revoke all on function app_private.player_source_hash_v1(uuid),app_private.player_support_facts_v1(uuid),app_private.player_support_fingerprint_v1(uuid),app_private.guard_player_battle_admission_v1(),app_private.guard_no_contest_head_v1(),app_private.lock_no_contest_head_v1(uuid,uuid),app_private.prevent_player_support_update_v1() from public,anon,authenticated,service_role;
+-- Read-only exact replay is also called directly by the service before commit.
+-- Preserve its STABLE/read-only contract while preferring current terminal truth.
+do $$ declare v_definition text; v_guard text := $guard$
+begin
+ return query select b.id,b.current_version,b.current_snapshot,b.updated_at,true
+ from app_private.battle_sessions b
+ where b.id=p_battle_session_id
+ and exists(select 1 from app_private.battle_no_contest_markers m where m.battle_hash=encode(sha256(convert_to(b.battle_id,'UTF8')),'hex'))
+ and exists(select 1 from app_private.battle_participants p where p.battle_session_id=b.id and p.user_id=p_user_id and p.participant_role='player');
+ if found then return; end if;
+$guard$;
+begin
+ select pg_get_functiondef('public.get_battle_intent_replay_v1(text,uuid,text,uuid,uuid)'::regprocedure) into v_definition;
+ execute regexp_replace(v_definition,E'\nbegin\n',v_guard);
+ select pg_get_functiondef('public.create_battle_session_v1(text,uuid,text,uuid,text,integer,integer,jsonb,jsonb)'::regprocedure) into v_definition;
+ if position(E'1::bigint,\n      snap.snapshot,' in v_definition)=0 then raise exception 'PLAYER_CREATE_REPLAY_PREDECESSOR_MISMATCH'; end if;
+ execute replace(v_definition,E'1::bigint,\n      snap.snapshot,',E'case when s.current_snapshot->>\'administrativeOutcome\'=\'NoContest\' then s.current_version else 1::bigint end,\n      case when s.current_snapshot->>\'administrativeOutcome\'=\'NoContest\' then s.current_snapshot else snap.snapshot end,');
+end; $$;
+
 commit;

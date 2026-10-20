@@ -1,5 +1,11 @@
+import { grantBarrier } from './combat-barrier'
 import { selectCurrentFinalFacing } from './board'
-import { executeCombatAction, endCombatTurn, validateCombatEncounterState } from './actions'
+import {
+  executeCombatAction,
+  endCombatTurn,
+  validateCombatEncounterState,
+  type CombatEncounterState,
+} from './actions'
 import {
   issueCommittedCombatExecution,
   type CommittedCombatExecution,
@@ -2079,3 +2085,66 @@ it('a Revealed-blocked Covert packet creates no temporary Automatic status witne
       .statuses.some((row) => row.statusId === 'covert'),
   ).toBe(false)
 })
+
+it.each([false, true])(
+  'Simple Damage Dealt preserves native positive damage semantics with full Barrier=%s',
+  (barrier) => {
+    const root = captureCombatAbilitySource(source())
+    const reaction = captureCombatAbilitySource(
+      source(
+        {
+          id: 'simple-heal',
+          activation: 'automatic',
+          classification: 'recovery',
+          attackFamily: undefined,
+          costs: [],
+          requirementMode: 'simple',
+          automaticTrigger: 'damage-dealt',
+          requirements: null,
+          activationLimits: ['once-per-action'],
+          targeting: {
+            kind: 'self',
+            teamPolicy: 'self',
+            friendlyFire: 'allies-only',
+            shape: { kind: 'single' },
+            minimumRange: 0,
+            maximumRange: 0,
+            requiresLineOfSight: false,
+            maximumElevationDifference: null,
+            maximumSelections: 1,
+          },
+          effects: [{ id: 'heal', payload: { type: 'healing', recipient: 'actor', amount: 1 } }],
+        },
+        'simple-damage-heal',
+      ),
+    )
+    let state: CombatEncounterState = preparePv1fTurnEconomy({
+      ...percentageDotEncounter(),
+      modularSkillPolicyVersion: 1,
+    })
+    state.tactical.battle.combatants.find((unit) => unit.id === 'actor')!.hp = 500
+    if (barrier) state = grantBarrier(state, 'enemy', 'enemy', 'test-barrier', 100).state
+    state = reconcileCombatAbilitySources(state, [root, reaction])
+    const out = commitCombatAbilityCommand({
+      state,
+      actorId: 'actor',
+      root: { kind: 'canonical', source: root },
+      selection: { kind: 'unit', combatantId: 'enemy' },
+      content: PV1F_COMBAT_CONTENT,
+      context: combatAbilityCommandContext(state, root),
+    })
+    const heals = out.events.filter((event) => event.event === 'healing_applied')
+    expect(heals).toHaveLength(barrier ? 0 : 1)
+    if (barrier)
+      expect(out.events).toContainEqual(
+        expect.objectContaining({
+          event: 'barrier_absorbed',
+          targetCombatantId: 'enemy',
+          amount: 10,
+        }),
+      )
+    expect(out.state.tactical.battle.combatants.find((unit) => unit.id === 'actor')!.hp).toBe(
+      barrier ? 499 : 500,
+    )
+  },
+)

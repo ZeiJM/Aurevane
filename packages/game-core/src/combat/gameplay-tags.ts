@@ -407,7 +407,7 @@ function effectPresentationTags(effect: PresentationEffect): readonly string[] {
       return [
         ids.length > 0 && ids.every((id) => POSITIVE_STATUS_IDS.has(id))
           ? 'Dispel'
-          : 'Remove Status',
+          : 'Conditional Cleanse',
       ]
     if (isCleanseChilledEffect(effect)) return ['Cleanse Chilled']
     return [
