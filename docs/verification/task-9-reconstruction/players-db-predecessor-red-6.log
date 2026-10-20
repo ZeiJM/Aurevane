@@ -1,0 +1,54 @@
+{"cwd": "/workspace/scratch/081f137b6a6d/aurevane-players-20261020", "command": ["env", "TASK9_PREDECESSOR=1", "corepack", "pnpm", "--filter", "@aurevane/db", "exec", "vitest", "run", "src/master-players-recovery.test.ts"], "start": "2026-10-20T18:18:09.589360+00:00"}
+
+ RUN  v4.1.10 /workspace/scratch/081f137b6a6d/aurevane-players-20261020/packages/db
+
+ ❯ src/master-players-recovery.test.ts (2 tests | 2 failed) 2354ms
+   × neutral_reader_no_world_mutation and existing real Owner authority 11ms
+   × registers four service-only actor-context operations without weakening original Staff authority 3ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/master-players-recovery.test.ts > neutral_reader_no_world_mutation and existing real Owner authority
+AssertionError: expected [Function] to throw error matching /OWNER_REQUIRED/ but got 'function public.read_master_player_v1…'
+
+- Expected:
+/OWNER_REQUIRED/
+
++ Received:
+"function public.read_master_player_v1(unknown, unknown, unknown) does not exist"
+
+ ❯ denied src/master-players-recovery.test.ts:43:28
+     41| async function denied(operation: () => Promise<unknown>, message: RegE…
+     42|   await db.exec('savepoint denied')
+     43|   await expect(operation()).rejects.toThrow(message)
+       |                            ^
+     44|   await db.exec('rollback to savepoint denied')
+     45| }
+ ❯ src/master-players-recovery.test.ts:47:3
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/master-players-recovery.test.ts > registers four service-only actor-context operations without weakening original Staff authority
+AssertionError: expected [] to have a length of 4 but got +0
+
+- Expected
++ Received
+
+- 4
++ 0
+
+ ❯ src/master-players-recovery.test.ts:55:16
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed (2)
+   Start at  14:18:10
+   Duration  2.53s (transform 22ms, setup 0ms, import 48ms, tests 2.35s, environment 0ms)
+
+undefined
+/workspace/scratch/081f137b6a6d/aurevane-players-20261020/packages/db:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/master-players-recovery.test.ts
+{"end": "2026-10-20T18:18:12.909681+00:00", "exit": 1}

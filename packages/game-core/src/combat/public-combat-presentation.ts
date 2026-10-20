@@ -1,7 +1,8 @@
 import type { AbilityDefinition } from './combat-definition'
 
 /** Hit-authoring aliases are private at every nesting level; numeric combat stats remain public. */
-type PrivateHitAuthoringKey = 'accuracyRule' | 'accuracyMode' | 'accuracyModifierBasisPoints'
+type PrivateHitAuthoringKey =
+  'sourceHash' | 'accuracyRule' | 'accuracyMode' | 'accuracyModifierBasisPoints'
 export type PublicCombat<T> = T extends string | number | boolean | null | undefined
   ? T
   : T extends readonly unknown[]
@@ -22,6 +23,7 @@ export type PublicCombat<T> = T extends string | number | boolean | null | undef
 export type PublicAbilityDefinition = PublicCombat<AbilityDefinition>
 
 const PRIVATE_HIT_AUTHORING_KEYS = new Set<string>([
+  'sourceHash',
   'accuracyRule',
   'accuracyMode',
   'accuracyModifierBasisPoints',

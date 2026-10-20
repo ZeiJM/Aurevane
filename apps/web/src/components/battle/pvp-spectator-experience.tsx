@@ -1,6 +1,7 @@
 'use client'
 
 import { BATTLE_EFFECT_KEYBOARD_HELP } from './battle-effect-keyboard-navigation'
+import { spectatorLinkEnded } from './battle-recovery-navigation'
 import { BattleFacingIndicator } from './battle-facing-indicator'
 import { BattleGroundAreaLayer } from './battle-ground-area-layer'
 
@@ -193,11 +194,21 @@ export function PvpSpectatorExperience({
           `/api/pvp/spectate/${encodeURIComponent(spectator.battleKey)}`,
           { cache: 'no-store', signal: controller.signal },
         )
+        if (!cancelled && !controller.signal.aborted && spectatorLinkEnded(response.status)) {
+          cancelled = true
+          window.location.replace('/game/battle')
+          return
+        }
         const body = (await response.json()) as ApiBody
         if (!response.ok || !body.spectator || cancelled || controller.signal.aborted) {
           if (!cancelled) {
             setConnectionNote(body.error?.message ?? 'Arena link interrupted. Retrying…')
           }
+          return
+        }
+        if (body.spectator.battle.snapshot.tactical.battle.lifecycle === 'abandoned') {
+          cancelled = true
+          window.location.replace('/game/battle')
           return
         }
         setSpectator(body.spectator)

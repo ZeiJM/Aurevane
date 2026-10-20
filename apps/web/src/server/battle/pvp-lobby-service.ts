@@ -1,3 +1,4 @@
+import { assertPreparedBattleSource } from '@/server/battle/battle-source-authority'
 import { projectPublicCombat } from '@aurevane/game-core/combat/public-combat-presentation'
 import { readBattlefieldElevationPolicy } from '@/server/master/battlefield-elevation-policy-store'
 import { readCombatEffectTimingPolicy } from '@/server/master/combat-effect-timing-policy-store'
@@ -629,6 +630,7 @@ export async function startPvpLobby(
       character.id,
       builds,
     )
+    assertPreparedBattleSource(character, buildSnapshot)
     roster.push({ member, character, buildSnapshot })
   }
 

@@ -1,0 +1,33 @@
+{"cwd": "/workspace/scratch/081f137b6a6d/aurevane-players-20261020", "command": ["corepack", "pnpm", "--filter", "@aurevane/web", "exec", "vitest", "run", "src/server/battle/battle-source-authority.test.ts"], "start": "2026-10-20T18:10:17.807382+00:00"}
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.10 /workspace/scratch/081f137b6a6d/aurevane-players-20261020/apps/web
+
+ ❯ src/server/battle/battle-source-authority.test.ts (0 test)
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/server/battle/battle-source-authority.test.ts [ src/server/battle/battle-source-authority.test.ts ]
+Error: Cannot find module '/src/server/battle/battle-source-authority' imported from /workspace/scratch/081f137b6a6d/aurevane-players-20261020/apps/web/src/server/battle/battle-source-authority.test.ts
+ ❯ src/server/battle/battle-source-authority.test.ts:4:1
+      2| import { describe, expect, it, vi } from 'vitest'
+      3| vi.mock('server-only', () => ({}))
+      4| import { assertPreparedBattleSource, battleSourceHash } from './battle…
+       | ^
+      5|
+      6| const character = { level: 4, xp: 700, progressionCycle: 1, might: 12,…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  14:10:18
+   Duration  188ms (transform 24ms, setup 0ms, import 0ms, tests 0ms, environment 0ms)
+
+undefined
+/workspace/scratch/081f137b6a6d/aurevane-players-20261020/apps/web:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/server/battle/battle-source-authority.test.ts
+{"end": "2026-10-20T18:10:18.853875+00:00", "exit": 1}

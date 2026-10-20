@@ -1,0 +1,23 @@
+{"cwd": "/workspace/scratch/081f137b6a6d/aurevane-players-20261020", "command": ["bash", "-e", "-c", "corepack pnpm --filter @aurevane/web exec vitest run src/components/master/player-correction-form.test.tsx src/components/master/players-workspace.test.tsx; corepack pnpm --filter @aurevane/db exec vitest run src/master-players-recovery.test.ts"], "start": "2026-10-20T19:19:44.073702+00:00"}
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.10 /workspace/scratch/081f137b6a6d/aurevane-players-20261020/apps/web
+
+
+ Test Files  2 passed (2)
+      Tests  9 passed (9)
+   Start at  15:19:44
+   Duration  1.61s (transform 1.11s, setup 0ms, import 1.56s, tests 28ms, environment 0ms)
+
+
+ RUN  v4.1.10 /workspace/scratch/081f137b6a6d/aurevane-players-20261020/packages/db
+
+
+ Test Files  1 passed (1)
+      Tests  37 passed (37)
+   Start at  15:19:47
+   Duration  3.70s (transform 48ms, setup 0ms, import 80ms, tests 3.48s, environment 0ms)
+
+{"end": "2026-10-20T19:19:50.965225+00:00", "exit": 0}

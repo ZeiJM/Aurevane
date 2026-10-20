@@ -1,0 +1,35 @@
+{"cwd": "/workspace/scratch/081f137b6a6d/aurevane-players-20261020", "command": ["corepack", "pnpm", "--filter", "@aurevane/db", "exec", "vitest", "run", "src/master-players-recovery.test.ts", "-t", "initiating selected character"], "start": "2026-10-20T18:59:37.356529+00:00"}
+
+ RUN  v4.1.10 /workspace/scratch/081f137b6a6d/aurevane-players-20261020/packages/db
+
+ ❯ src/master-players-recovery.test.ts (33 tests | 1 failed | 32 skipped) 2710ms
+   × deleting the initiating selected character removes audit actor identity while preserving recovery 95ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/master-players-recovery.test.ts > deleting the initiating selected character removes audit actor identity while preserving recovery
+AssertionError: expected '[{"id":"096ff1bf-abad-41f9-8926-6a6fd…' not to contain '00000000-0000-4000-8000-000000000055'
+
+Expected: "00000000-0000-4000-8000-000000000055"
+Received: "[{"id":"096ff1bf-abad-41f9-8926-6a6fdb749171","actor_user_id":"00000000-0000-4000-8000-000000000001","actor_character_id":"00000000-0000-4000-8000-000000000055","character_id":"00000000-0000-4000-8000-000000000011","battle_session_id":null,"action":"player.edit","request_key":"00000000-0000-4000-8000-000000000099","request_hash":"305a08d59b96439af945dd69ecc06fadc1dc58d4429ed61ec47d1d1deace1d55","before_facts":{"xp":0,"build":{"primary":{"disciplineId":"vanguard","profileVersion":1,"definitionVersion":1},"secondary":null,"extensions":{"essence":{"skillId":"essence.vanguard.unbroken-strike","essenceId":"essence.vanguard.unbroken-strike","contentVersion":1,"sourceDisciplineId":"vanguard","skillContentVersion":1},"prestige":null,"resonance":null,"supernatural":null,"equipmentSkills":[]},"buildVersion":1,"schemaVersion":2,"supportActionId":"basic.guard","disciplineSkills":[]},"cycle":1,"level":1,"personal":{"might":5,"agility":0,"finesse":0,"resolve":0,"vitality":0,"intellect":0,"conversion_required":false,"primary_discipline_id":"vanguard","primary_profile_version":1},"attributes":{"might":12,"agility":4,"finesse":4,"resolve":6,"vitality":7,"intellect":3}},"after_facts":{"xp":0,"build":{"primary":{"disciplineId":"vanguard","profileVersion":1,"definitionVersion":1},"secondary":null,"extensions":{"essence":{"skillId":"essence.vanguard.unbroken-strike","essenceId":"essence.vanguard.unbroken-strike","contentVersion":1,"sourceDisciplineId":"vanguard","skillContentVersion":1},"prestige":null,"resonance":null,"supernatural":null,"equipmentSkills":[]},"buildVersion":2,"schemaVersion":2,"supportActionId":"basic.guard","disciplineSkills":[]},"cycle":1,"level":1,"personal":{"might":4,"agility":0,"finesse":0,"resolve":0,"vitality":0,"intellect":0,"conversion_required":false,"primary_discipline_id":"vanguard","primary_profile_version":1},"attributes":{"might":11,"agility":4,"finesse":4,"resolve":6,"vitality":7,"intellect":3}},"created_at":"2026-10-20T18:59:41.400Z"},{"id":"24543e07-ddfe-4b1f-8133-0430d2913f32","actor_user_id":"00000000-0000-4000-8000-000000000001","actor_character_id":null,"character_id":"00000000-0000-4000-8000-000000000011","battle_session_id":"9a4ee539-143d-4fec-b37e-904920bea0c9","action":"battle.no-contest","request_key":"00000000-0000-4000-8000-000000000088","request_hash":"1d0b66d4e8dede45afec04282bd630fabcfba5b9d4d1478443bd65415d30e53a","before_facts":{"version":1,"participants":["00000000-0000-4000-8000-000000000011"],"battleSessionId":"9a4ee539-143d-4fec-b37e-904920bea0c9"},"after_facts":{"outcome":"NoContest","rewards":"NoRewards","version":2,"participants":["00000000-0000-4000-8000-000000000011"],"battleSessionId":"9a4ee539-143d-4fec-b37e-904920bea0c9"},"created_at":"2026-10-20T18:59:41.426Z"}]"
+
+ ❯ src/master-players-recovery.test.ts:778:37
+    776|   await db.query('select app_private.finalize_due_character_deletions_…
+    777|   const audit = (await db.query('select * from app_private.player_supp…
+    778|   expect(JSON.stringify(audit)).not.toContain(actor)
+       |                                     ^
+    779|   expect((await db.query('select * from app_private.battle_no_contests…
+    780| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 32 skipped (33)
+   Start at  14:59:38
+   Duration  2.96s (transform 51ms, setup 0ms, import 89ms, tests 2.71s, environment 0ms)
+
+undefined
+/workspace/scratch/081f137b6a6d/aurevane-players-20261020/packages/db:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/master-players-recovery.test.ts -t 'initiating selected character'
+{"end": "2026-10-20T18:59:41.556872+00:00", "exit": 1}

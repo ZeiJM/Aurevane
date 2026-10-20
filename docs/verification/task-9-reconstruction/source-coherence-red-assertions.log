@@ -1,0 +1,80 @@
+{"cwd": "/workspace/scratch/081f137b6a6d/aurevane-players-20261020", "command": ["corepack", "pnpm", "--filter", "@aurevane/web", "exec", "vitest", "run", "src/server/battle/battle-source-authority.test.ts"], "start": "2026-10-20T18:10:31.378108+00:00"}
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.10 /workspace/scratch/081f137b6a6d/aurevane-players-20261020/apps/web
+
+ ❯ src/server/battle/battle-source-authority.test.ts (8 tests | 6 failed) 14ms
+     × rejects old CharacterRecord mixed with a new committed build after a Primary correction 5ms
+     × rejects parallel active-build 7 with committed snapshot 8 before creating PvE 1ms
+     × rejects malformed present capture null 1ms
+     × rejects malformed present capture  1ms
+     × rejects malformed present capture 12 0ms
+     × rejects malformed present capture wrong 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/server/battle/battle-source-authority.test.ts > actual preparation source authority > rejects old CharacterRecord mixed with a new committed build after a Primary correction
+AssertionError: expected [Function] to throw an error
+
+- Expected:
+null
+
++ Received:
+undefined
+
+ ❯ src/server/battle/battle-source-authority.test.ts:14:86
+     12|   it('rejects old CharacterRecord mixed with a new committed build aft…
+     13|     const committed = snapshot()
+     14|     expect(() => assertPreparedBattleSource({ ...character, might: 11 …
+       |                                                                                      ^
+     15|   })
+     16|   it('rejects parallel active-build 7 with committed snapshot 8 before…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  src/server/battle/battle-source-authority.test.ts > actual preparation source authority > rejects parallel active-build 7 with committed snapshot 8 before creating PvE
+AssertionError: expected [Function] to throw an error
+
+- Expected:
+null
+
++ Received:
+undefined
+
+ ❯ src/server/battle/battle-source-authority.test.ts:17:72
+     15|   })
+     16|   it('rejects parallel active-build 7 with committed snapshot 8 before…
+     17|     expect(() => assertPreparedBattleSource(character, snapshot(), 7))…
+       |                                                                        ^
+     18|   })
+     19|   it('accepts fresh coherent preparation and preserves pre-migration c…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+ FAIL  src/server/battle/battle-source-authority.test.ts > actual preparation source authority > rejects malformed present capture null
+ FAIL  src/server/battle/battle-source-authority.test.ts > actual preparation source authority > rejects malformed present capture 
+ FAIL  src/server/battle/battle-source-authority.test.ts > actual preparation source authority > rejects malformed present capture 12
+ FAIL  src/server/battle/battle-source-authority.test.ts > actual preparation source authority > rejects malformed present capture wrong
+AssertionError: expected [Function] to throw an error
+ ❯ src/server/battle/battle-source-authority.test.ts:24:90
+     22|   })
+     23|   it.each([null, '', 12, 'wrong'])('rejects malformed present capture …
+     24|     expect(() => assertPreparedBattleSource(character, { buildVersion:…
+       |                                                                                          ^
+     25|   })
+     26| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/6]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  6 failed | 2 passed (8)
+   Start at  14:10:32
+   Duration  240ms (transform 37ms, setup 0ms, import 56ms, tests 14ms, environment 0ms)
+
+undefined
+/workspace/scratch/081f137b6a6d/aurevane-players-20261020/apps/web:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/server/battle/battle-source-authority.test.ts
+{"end": "2026-10-20T18:10:32.401277+00:00", "exit": 1}

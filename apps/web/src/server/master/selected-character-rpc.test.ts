@@ -42,3 +42,23 @@ it('ordinary current/pinned gameplay reads retain their service-only path withou
   )
   expect(getActor).not.toHaveBeenCalled()
 })
+it.each([
+  'search_master_players_v1',
+  'read_master_player_v1',
+  'edit_master_player_v1',
+  'recover_master_player_battle_v1',
+])('Players %s uses fresh trusted selected actor', async (name) => {
+  const call = vi.fn(async (_name: string, parameters: Record<string, unknown>) => ({
+    data: parameters,
+    error: null,
+  }))
+  const rpc = createSelectedCharacterRpc(call, {
+    getActor: async () => ({ userId: 'owner' }),
+    loadSelection: async () => ({ id: 'selected' }),
+  })
+  await rpc(name, { p_actor_user_id: 'owner', p_actor_character_id: 'forged' })
+  expect(call).toHaveBeenCalledWith(name, {
+    p_actor_user_id: 'owner',
+    p_actor_character_id: 'selected',
+  })
+})

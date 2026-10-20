@@ -22,6 +22,16 @@
       "static_test_password_redactions": 0,
       "local_cli_secret_key_redactions": 1,
       "sanitized_bytes": 84407
+    },
+    {
+      "file": "native-db-fix1-failure.log.gz",
+      "sha256": "d9819abbfceaed096f715cc4e49fa3b1854a8714788f91398ffe72bcdb6e86e0",
+      "sanitized_bytes": 85267,
+      "workflow_run": 39483455387,
+      "job": 118837698385,
+      "source": "a0b12bac92a76c62d1a3b8115bf8de519c7070b2",
+      "local_cli_secret_key_redactions": 1,
+      "status": "guest-fixture-failed-before-full-native-acceptance"
     }
   ]
 }

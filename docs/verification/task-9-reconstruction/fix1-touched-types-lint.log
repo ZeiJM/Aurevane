@@ -1,0 +1,6 @@
+{"cwd": "/workspace/scratch/081f137b6a6d/aurevane-players-20261020", "command": ["bash", "-e", "-c", "corepack pnpm --filter @aurevane/web exec eslint src/master/player-discipline-correction.ts src/components/master/player-correction-form.tsx src/components/master/player-correction-form.test.tsx e2e/master-players-recovery.pw.ts scripts/skill-parameter-palette-browser-regression.mjs; corepack pnpm exec eslint packages/db/src/master-players-recovery.test.ts; NEXT_TELEMETRY_DISABLED=1 corepack pnpm --filter @aurevane/web typecheck; corepack pnpm --filter @aurevane/db typecheck"], "start": "2026-10-20T19:21:09.291561+00:00"}
+$ next typegen && tsc --noEmit
+Generating route types...
+✓ Types generated successfully
+$ tsc --noEmit
+{"end": "2026-10-20T19:21:24.354761+00:00", "exit": 0}

@@ -89,6 +89,12 @@ import {
 } from '@aurevane/game-core/combat/support-actions'
 import type { BattleIntent } from '@aurevane/validation/combat/battle-session'
 import { useRouter } from 'next/navigation'
+import { battleReturnNavigation } from './battle-return-navigation'
+import {
+  battleRecoveryNotice,
+  participantPollDelay,
+  shouldPollParticipant,
+} from './battle-recovery-navigation'
 import {
   useCallback,
   useEffect,
@@ -178,8 +184,6 @@ const ACTION_ECONOMY_KEY = 'pv1f.action-economy'
 const ATTACK_COST = PV1F_BASIC_ATTACK_COST
 const RECOVER_COST = PV1F_RECOVER_COST
 const MP_RECOVER_COST = PV1F_MP_RECOVER_COST
-const ACTIVE_PLAYER_POLL_MS = 900
-const WAITING_PLAYER_POLL_MS = 1000
 const COMMIT_POLL_RETRY_MS = 120
 
 const HEAL_SELECTOR_OPTIONS = [
@@ -1046,7 +1050,10 @@ function BattleExperienceContent({
       battleRef.current = next
       setBattle(next)
 
-      if (nextBattleState.lifecycle === 'completed') {
+      if (nextBattleState.lifecycle === 'abandoned') {
+        clearPlanning()
+        setNotice(battleRecoveryNotice(next.snapshot))
+      } else if (nextBattleState.lifecycle === 'completed') {
         clearPlanning()
         setNotice('Battle complete.')
       } else if (
@@ -1101,7 +1108,7 @@ function BattleExperienceContent({
   }, [applyRemoteBattle, battle.battleSessionId, runtime.kind])
 
   useEffect(() => {
-    if (runtime.kind !== 'pvp' || battleState.lifecycle !== 'active') return
+    if (!shouldPollParticipant(runtime.kind, battleState.lifecycle)) return
     let cancelled = false
     let timer: number | null = null
 
@@ -1112,7 +1119,7 @@ function BattleExperienceContent({
 
     const nextNormalDelay = () => {
       const currentTurnId = battleRef.current.snapshot.tactical.battle.currentTurn?.combatantId
-      return currentTurnId === localCombatantId ? ACTIVE_PLAYER_POLL_MS : WAITING_PLAYER_POLL_MS
+      return participantPollDelay(runtime.kind, currentTurnId === localCombatantId)
     }
 
     async function poll() {
@@ -1162,6 +1169,16 @@ function BattleExperienceContent({
     localCombatantId,
     runtime.kind,
   ])
+
+  const recoveryReturnHref = battleReturnNavigation(
+    runtime.kind === 'pvp' ? runtime.metadata.origin : 'battle-hall',
+    runtime.kind === 'pvp' ? runtime.returnTo : undefined,
+  ).href
+  useEffect(() => {
+    if (battleState.lifecycle !== 'abandoned') return
+    router.replace(recoveryReturnHref)
+    router.refresh()
+  }, [battleState.lifecycle, recoveryReturnHref, router])
 
   const requestPreview = useCallback(
     (intent: BattleIntent) => {

@@ -1,6 +1,6 @@
 # Master work recovery — October 20
 
-Workspace maintenance removed the previous local checkouts and their unpublished Git objects. A fresh clone restored `ZeiJM/Aurevane`. Current main is `d817cb827858a49f5d5bcd0589dc92cbc2858aa4`; do not reset it to the October 19 baseline. The current main includes the separate World, Covert, Barrier and modular Resonance releases. Preserve those changes and do not reconstruct or republish the completed roster.
+Workspace maintenance removed the previous local checkouts and their unpublished Git objects. A fresh clone restored `ZeiJM/Aurevane`. Recovery started from main `d817cb827858a49f5d5bcd0589dc92cbc2858aa4`; do not reset newer main to the October 19 baseline. The current main includes the separate World, Covert, Barrier and modular Resonance releases. Preserve those changes and do not reconstruct or republish the completed roster.
 
 ## Recovered Staff checkpoint
 
@@ -67,3 +67,13 @@ Native full PostgreSQL migration reset/Staff authority pass, but race setup fail
 Same reviewer confirms all I1/I2/N1 addressed at local175e106b/tree d7696c927cf49eaf72629fc70cb2d250ebad2a41, with no new Critical/Important issues; see task-9-reconstruction/fix1-review.md. Original Minors remain deferred. Seven behavioral form REDs and four actualSQL REDs become9Web/37DB GREEN, plus exactBasicHTTPservice/touchedtypes/style/nativePython syntax/E2Ediscovery. Actual E2E now covers allfourDiscipline correctionpatterns with request/result assertions and clearly documented disposable attunement-time fixtures. Underlying SQL/eligibility/attunement policies and migration/lock are unchanged.
 
 The exact tree is backed up as remote a0b12bac92a76c62d1a3b8115bf8de519c7070b2 on a separate staging ref before review, then promoted with lease to PR952 after approval. Freshmainstillb7 is included. Native reruns must certify physical races/browser behavior at this reviewed head; the earlier source's full local gate is retained without pretending it reran for the repair. Task9 native acceptance/Task10 producer handoff remain open. No merge/hosted/deployment.
+
+## Second native fixture repair and preserved UI execution
+
+Native head a0 applies the full migration chain, passes Staff authority, and reuses the existing Owner. It then fails while creating a guest from the corrected/rewarded host's facts: that host legitimately has unspent personal points, while new-character provisioning requires the complete allocation pool.
+
+The same reviewer approves the single guest SQL change and actual-statement regression at local `d2fef237ce6a81833314c16bb15e5f0e64503483`, tree `aad815e29c2f6b7774eeb93a17dae98411f1614f`. The guest uses independent level1/XP0/full36-point Vanguard starting facts. The exact native RED and two selected GREEN tests with37 skipped are retained; this is not a39-test pass. No application, trigger, migration or gameplay authority changed. See `fix2-review.md` and the round2 report. Modular reader workflow `39483455704` now succeeds, confirming the first reader-harness repair natively.
+
+Exact remote `a56e96ca791152c7ed8307554137520865db5d2e` on the staging branch is draft PR [#953](https://github.com/ZeiJM/Aurevane/pull/953), based on PR #952's reviewed a0 head. The apps subtree is identically `3dd25bba8c58eea387ecdf2979bf3bf96a49a8f7` in both heads. This preserves the ongoing PR952 UI run while the fixture-only native checkpoint executes. Only CI and Browser smoke workflows trigger for the incremental checkpoint. Root integration retains reviewed source and coordination evidence.
+
+Both native checkpoints and the final handoff remain open. No Task9 acceptance, Task10 implementation, remote-main merge, hosted change or deployment is claimed.

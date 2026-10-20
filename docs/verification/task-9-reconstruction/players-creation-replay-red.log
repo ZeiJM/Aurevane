@@ -1,0 +1,53 @@
+{"cwd": "/workspace/scratch/081f137b6a6d/aurevane-players-20261020", "command": ["corepack", "pnpm", "--filter", "@aurevane/db", "exec", "vitest", "run", "src/master-players-recovery.test.ts", "-t", "replay|retry resynchronizes"], "start": "2026-10-20T18:25:28.324509+00:00"}
+
+ RUN  v4.1.10 /workspace/scratch/081f137b6a6d/aurevane-players-20261020/packages/db
+
+ ❯ src/master-players-recovery.test.ts (17 tests | 2 failed | 14 skipped) 2428ms
+   × exact old replay lookup returns terminal authority after no contest 45ms
+   × late exact creation retry resynchronizes no contest instead of replaying the initial active snapshot 12ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/master-players-recovery.test.ts > exact old replay lookup returns terminal authority after no contest
+AssertionError: expected undefined to be 'NoContest' // Object.is equality
+
+- Expected:
+"NoContest"
+
++ Received:
+undefined
+
+ ❯ src/master-players-recovery.test.ts:328:49
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/master-players-recovery.test.ts > late exact creation retry resynchronizes no contest instead of replaying the initial active snapshot
+AssertionError: expected undefined to be 'NoContest' // Object.is equality
+
+- Expected:
+"NoContest"
+
++ Received:
+undefined
+
+ ❯ src/master-players-recovery.test.ts:352:97
+    350|   await recover(battle)
+    351|   const retry = await createBattle(battle.snapshot)
+    352|   expect((retry.snapshot as unknown as { administrativeOutcome:string …
+       |                                                                                                 ^
+    353|   expect(retry.battle_version).toBe(2)
+    354| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 1 passed | 14 skipped (17)
+   Start at  14:25:29
+   Duration  2.70s (transform 66ms, setup 0ms, import 113ms, tests 2.43s, environment 0ms)
+
+undefined
+/workspace/scratch/081f137b6a6d/aurevane-players-20261020/packages/db:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/master-players-recovery.test.ts -t 'replay|retry resynchronizes'
+{"end": "2026-10-20T18:25:31.888015+00:00", "exit": 1}

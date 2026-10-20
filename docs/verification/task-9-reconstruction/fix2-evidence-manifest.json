@@ -1,0 +1,31 @@
+{
+  "fixBase": "175e106bfb1e4777e4233afef1b1bb327c76a407",
+  "redaction": "None in these local fixture/check logs; no raw native transcript copied.",
+  "files": [
+    {
+      "path": "fix2-focused-integrity.log",
+      "bytes": 591,
+      "sha256": "3c6d1abaa4a8e657c0ede8e5bb8e6c5fc9facbeb081f92afd186c13a5f31b119"
+    },
+    {
+      "path": "fix2-format.log",
+      "bytes": 338,
+      "sha256": "38646572c8a18932793afc7c0ea5bf33c497439cb1b3ced476f0e5466c5510ca"
+    },
+    {
+      "path": "fix2-main-lock-integrity.log",
+      "bytes": 1506,
+      "sha256": "3d80eb8f74dde6daa80078c6c04e8c340931f6eb38e094ed111cf3c5ce50fe30"
+    },
+    {
+      "path": "fix2-native-fixture-green.log",
+      "bytes": 594,
+      "sha256": "f2f226efe1836e3c16725f11087be88ee1d2f25a6b057a708079a3e29bfc859c"
+    },
+    {
+      "path": "fix2-native-fixture-red.log",
+      "bytes": 2197,
+      "sha256": "52207cd13c89d4d510c05a12601b127e5d30348ff169da971f8f801be46b4fae"
+    }
+  ]
+}

@@ -1,0 +1,106 @@
+{"cwd": "/workspace/scratch/081f137b6a6d/aurevane-players-20261020", "command": ["corepack", "pnpm", "--filter", "@aurevane/db", "exec", "vitest", "run", "src/master-players-recovery.test.ts", "-t", "XP ceiling"], "start": "2026-10-20T18:37:17.219515+00:00"}
+
+ RUN  v4.1.10 /workspace/scratch/081f137b6a6d/aurevane-players-20261020/packages/db
+
+ ❯ src/master-players-recovery.test.ts (26 tests | 1 failed | 25 skipped) 2774ms
+   × uses the actual level-100 XP ceiling and Primary focus/nonfocus caps 40ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/master-players-recovery.test.ts > uses the actual level-100 XP ceiling and Primary focus/nonfocus caps
+AssertionError: promise resolved "{ rows: [ { result: { …(2) } } ], …(4) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "affectedRows": 0,
++   "command": "SELECT",
++   "fields": [
++     {
++       "dataTypeID": 3802,
++       "name": "result",
++     },
++   ],
++   "rowCount": 1,
++   "rows": [
++     {
++       "result": {
++         "facts": {
++           "attributes": {
++             "agility": 4,
++             "finesse": 4,
++             "intellect": 3,
++             "might": 11,
++             "resolve": 6,
++             "vitality": 7,
++           },
++           "build": {
++             "buildVersion": 2,
++             "disciplineSkills": [],
++             "extensions": {
++               "equipmentSkills": [],
++               "essence": {
++                 "contentVersion": 1,
++                 "essenceId": "essence.vanguard.unbroken-strike",
++                 "skillContentVersion": 1,
++                 "skillId": "essence.vanguard.unbroken-strike",
++                 "sourceDisciplineId": "vanguard",
++               },
++               "prestige": null,
++               "resonance": null,
++               "supernatural": null,
++             },
++             "primary": {
++               "definitionVersion": 1,
++               "disciplineId": "vanguard",
++               "profileVersion": 1,
++             },
++             "schemaVersion": 2,
++             "secondary": null,
++             "supportActionId": "basic.guard",
++           },
++           "cycle": 1,
++           "level": 100,
++           "personal": {
++             "agility": 0,
++             "conversion_required": false,
++             "finesse": 0,
++             "intellect": 0,
++             "might": 4,
++             "primary_discipline_id": "vanguard",
++             "primary_profile_version": 1,
++             "resolve": 0,
++             "vitality": 0,
++           },
++           "xp": 1723921,
++         },
++         "replayed": false,
++       },
++     },
++   ],
+  }
+
+ ❯ denied src/master-players-recovery.test.ts:62:28
+     60| async function denied(operation: () => Promise<unknown>, message: RegE…
+     61|   await db.exec('savepoint denied')
+     62|   await expect(operation()).rejects.toThrow(message)
+       |                            ^
+     63|   await db.exec('rollback to savepoint denied')
+     64| }
+ ❯ src/master-players-recovery.test.ts:655:2
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 25 skipped (26)
+   Start at  14:37:18
+   Duration  2.99s (transform 37ms, setup 0ms, import 66ms, tests 2.77s, environment 0ms)
+
+undefined
+/workspace/scratch/081f137b6a6d/aurevane-players-20261020/packages/db:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/master-players-recovery.test.ts -t 'XP ceiling'
+{"end": "2026-10-20T18:37:21.091333+00:00", "exit": 1}

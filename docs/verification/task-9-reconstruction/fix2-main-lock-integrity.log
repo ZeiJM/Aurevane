@@ -1,0 +1,7 @@
+{"cwd": "/workspace/scratch/081f137b6a6d/aurevane-players-20261020", "command": ["python", "-c", "import subprocess; subprocess.run([\"git\",\"fetch\",\"origin\",\"main\"],check=True); print(\"main\",subprocess.check_output([\"git\",\"rev-parse\",\"origin/main\"],text=True).strip()); subprocess.run([\"git\",\"merge-base\",\"--is-ancestor\",\"origin/main\",\"HEAD\"],check=True); value=subprocess.check_output([\"git\",\"hash-object\",\"apps/web/vercel.json\"],text=True).strip(); print(\"lock\",value); assert value==\"b8a4e0e3c57b95a8da49c05d1fe5f60ba2181b5f\"; paths=subprocess.check_output([\"git\",\"diff\",\"175e106b\",\"--name-only\"],text=True).splitlines(); print(\"changed tracked paths\",paths); assert all(p in [\".github/scripts/verify-master-players-recovery.py\",\"packages/db/src/master-players-recovery.test.ts\"] or p.startswith(\".superpowers/\") or p.startswith(\"docs/verification/\") for p in paths); subprocess.run([\"git\",\"diff\",\"--check\",\"--\",\".github\",\"apps\",\"packages\"],check=True)"], "start": "2026-10-20T19:33:45.025533+00:00"}
+From https://github.com/ZeiJM/Aurevane
+ * branch              main       -> FETCH_HEAD
+main b7ba1e7b3e8b850c53f0d15842c96aecc50ae160
+lock b8a4e0e3c57b95a8da49c05d1fe5f60ba2181b5f
+changed tracked paths ['.github/scripts/verify-master-players-recovery.py', '.superpowers/sdd/2026-10-10-unified-engine-recovery/verification.jsonl', 'packages/db/src/master-players-recovery.test.ts']
+{"end": "2026-10-20T19:33:49.931739+00:00", "exit": 0}

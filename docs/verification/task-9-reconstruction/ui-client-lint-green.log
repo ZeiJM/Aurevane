@@ -1,0 +1,2 @@
+{"cwd": "/workspace/scratch/081f137b6a6d/aurevane-players-20261020", "command": ["corepack", "pnpm", "--filter", "@aurevane/web", "exec", "eslint", "src/components/battle/battle-experience.tsx", "src/components/master/players-workspace.tsx", "src/components/master/player-correction-form.tsx", "--max-warnings=0"], "start": "2026-10-20T18:49:53.615086+00:00"}
+{"end": "2026-10-20T18:49:59.217107+00:00", "exit": 0}

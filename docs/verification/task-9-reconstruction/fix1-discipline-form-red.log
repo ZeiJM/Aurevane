@@ -1,0 +1,152 @@
+{"cwd": "/workspace/scratch/081f137b6a6d/aurevane-players-20261020", "command": ["corepack", "pnpm", "--filter", "@aurevane/web", "exec", "vitest", "run", "src/components/master/player-correction-form.test.tsx"], "start": "2026-10-20T19:18:56.319529+00:00"}
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.10 /workspace/scratch/081f137b6a6d/aurevane-players-20261020/apps/web
+
+ ❯ src/components/master/player-correction-form.test.tsx (7 tests | 7 failed) 24ms
+   × form fields preserve omitted Discipline flags: null → vanguard / arcanist 10ms
+   × form fields preserve omitted Discipline flags: arcanist → vanguard /  1ms
+   × form fields preserve omitted Discipline flags: null → ironfist /  1ms
+   × form fields preserve omitted Discipline flags: arcanist → ironfist / arcanist 1ms
+   × rejects unchanged Discipline selections including null 2ms
+   × rejects unchanged Discipline selections including arcanist 0ms
+   × review retains omitted Secondary and distinguishes explicit removal 9ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/components/master/player-correction-form.test.tsx > form fields preserve omitted Discipline flags: null → vanguard / arcanist
+AssertionError: expected { kind: 'disciplines', …(2) } to deeply equal { kind: 'disciplines', …(1) }
+
+- Expected
++ Received
+
+  {
+    "kind": "disciplines",
++   "primary": "vanguard",
+    "secondary": "arcanist",
+  }
+
+ ❯ src/components/master/player-correction-form.test.tsx:19:64
+     17| ] as const)('form fields preserve omitted Discipline flags: %s → %s / …
+     18|   const data = new FormData(); data.set('primary', primary); data.set(…
+     19|   expect(disciplineCorrectionFromForm(build(secondary), data)).toEqual…
+       |                                                                ^
+     20| })
+     21| it.each([null, 'arcanist'])('rejects unchanged Discipline selections i…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/7]⎯
+
+ FAIL  src/components/master/player-correction-form.test.tsx > form fields preserve omitted Discipline flags: arcanist → vanguard / 
+AssertionError: expected { kind: 'disciplines', …(2) } to deeply equal { Object (kind, secondary) }
+
+- Expected
++ Received
+
+  {
+    "kind": "disciplines",
++   "primary": "vanguard",
+    "secondary": null,
+  }
+
+ ❯ src/components/master/player-correction-form.test.tsx:19:64
+     17| ] as const)('form fields preserve omitted Discipline flags: %s → %s / …
+     18|   const data = new FormData(); data.set('primary', primary); data.set(…
+     19|   expect(disciplineCorrectionFromForm(build(secondary), data)).toEqual…
+       |                                                                ^
+     20| })
+     21| it.each([null, 'arcanist'])('rejects unchanged Discipline selections i…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/7]⎯
+
+ FAIL  src/components/master/player-correction-form.test.tsx > form fields preserve omitted Discipline flags: null → ironfist / 
+AssertionError: expected { kind: 'disciplines', …(2) } to deeply equal { kind: 'disciplines', …(1) }
+
+- Expected
++ Received
+
+  {
+    "kind": "disciplines",
+    "primary": "ironfist",
++   "secondary": null,
+  }
+
+ ❯ src/components/master/player-correction-form.test.tsx:19:64
+     17| ] as const)('form fields preserve omitted Discipline flags: %s → %s / …
+     18|   const data = new FormData(); data.set('primary', primary); data.set(…
+     19|   expect(disciplineCorrectionFromForm(build(secondary), data)).toEqual…
+       |                                                                ^
+     20| })
+     21| it.each([null, 'arcanist'])('rejects unchanged Discipline selections i…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/7]⎯
+
+ FAIL  src/components/master/player-correction-form.test.tsx > form fields preserve omitted Discipline flags: arcanist → ironfist / arcanist
+AssertionError: expected { kind: 'disciplines', …(2) } to deeply equal { kind: 'disciplines', …(1) }
+
+- Expected
++ Received
+
+  {
+    "kind": "disciplines",
+    "primary": "ironfist",
++   "secondary": "arcanist",
+  }
+
+ ❯ src/components/master/player-correction-form.test.tsx:19:64
+     17| ] as const)('form fields preserve omitted Discipline flags: %s → %s / …
+     18|   const data = new FormData(); data.set('primary', primary); data.set(…
+     19|   expect(disciplineCorrectionFromForm(build(secondary), data)).toEqual…
+       |                                                                ^
+     20| })
+     21| it.each([null, 'arcanist'])('rejects unchanged Discipline selections i…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/7]⎯
+
+ FAIL  src/components/master/player-correction-form.test.tsx > rejects unchanged Discipline selections including null
+ FAIL  src/components/master/player-correction-form.test.tsx > rejects unchanged Discipline selections including arcanist
+AssertionError: expected [Function] to throw an error
+
+- Expected:
+null
+
++ Received:
+undefined
+
+ ❯ src/components/master/player-correction-form.test.tsx:23:69
+     21| it.each([null, 'arcanist'])('rejects unchanged Discipline selections i…
+     22|   const data = new FormData(); data.set('primary','vanguard'); data.se…
+     23|   expect(() => disciplineCorrectionFromForm(build(secondary),data)).to…
+       |                                                                     ^
+     24| })
+     25| it('review retains omitted Secondary and distinguishes explicit remova…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/7]⎯
+
+ FAIL  src/components/master/player-correction-form.test.tsx > review retains omitted Secondary and distinguishes explicit removal
+AssertionError: expected '<dl><div><dt>Primary</dt><dd>Vanguard…' to contain 'Arcanist → <strong>Arcanist</strong>'
+
+Expected: "Arcanist → <strong>Arcanist</strong>"
+Received: "<dl><div><dt>Primary</dt><dd>Vanguard → <strong>Ironfist</strong></dd></div><div><dt>Secondary</dt><dd>Arcanist → <strong>None</strong></dd></div></dl>"
+
+ ❯ src/components/master/player-correction-form.test.tsx:28:21
+     26|   const player = {facts:{build:build('arcanist')}} as MasterPlayerView
+     27|   const preserved = renderToStaticMarkup(createElement(PlayerCorrectio…
+     28|   expect(preserved).toContain('Arcanist → <strong>Arcanist</strong>')
+       |                     ^
+     29|   const removed = renderToStaticMarkup(createElement(PlayerCorrectionR…
+     30|   expect(removed).toContain('Arcanist → <strong>None</strong>')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/7]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  7 failed (7)
+   Start at  15:18:57
+   Duration  291ms (transform 68ms, setup 0ms, import 113ms, tests 24ms, environment 0ms)
+
+undefined
+/workspace/scratch/081f137b6a6d/aurevane-players-20261020/apps/web:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/components/master/player-correction-form.test.tsx
+{"end": "2026-10-20T19:18:57.447286+00:00", "exit": 1}

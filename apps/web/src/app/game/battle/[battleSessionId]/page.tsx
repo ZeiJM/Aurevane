@@ -12,7 +12,10 @@ import { redirect } from 'next/navigation'
 
 import { BattleAudioGate } from '@/components/battle/battle-audio-gate'
 import { BattleClientBoundary } from '@/components/battle/battle-client-boundary'
-import { parseBattleReturnTo } from '@/components/battle/battle-return-navigation'
+import {
+  battleReturnNavigation,
+  parseBattleReturnTo,
+} from '@/components/battle/battle-return-navigation'
 import type { BattleTechniqueCategory } from '@/components/battle/battle-runtime'
 import {
   skillEffectDescription,
@@ -249,7 +252,8 @@ export default async function BattleSessionPage({
     throw error
   }
 
-  if (battle.snapshot.tactical.battle.lifecycle === 'abandoned') redirect('/game/battle')
+  if (battle.snapshot.tactical.battle.lifecycle === 'abandoned')
+    redirect(battleReturnNavigation(pvpMetadata?.origin ?? 'battle-hall', returnTo).href)
 
   if (pvpMetadata) {
     const localParticipant = pvpMetadata.participants.find(
