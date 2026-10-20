@@ -72,6 +72,13 @@ export type SecondaryDisciplineCatalogEntry = DisciplineCatalogEntry & { mastere
 
 export interface CharacterLearnedSkillRecord extends DisciplineSkillReference {
   learnedAt: string
+  /** Absent only in historical/in-memory adapters; actual joined reads always supply provenance. */
+  grantedAt?: string
+  grantSourceKind?: 'system' | 'gameplay' | 'support' | 'owner' | 'migration'
+  grantSourceId?: string
+  earnedAt?: string | null
+  earnedSourceKind?: 'system' | 'gameplay' | 'support' | 'owner' | 'migration' | null
+  earnedSourceId?: string | null
 }
 
 export interface CharacterEquippedDisciplineSkillRecord extends DisciplineSkillReference {
