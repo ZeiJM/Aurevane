@@ -20,9 +20,11 @@ it('shows a linked status tag and its Target explicitly', () => {
   const r = report({ kind: 'status-presence', subject: 'selected', statusId: 'wet', present: true })
   expect(Object.fromEntries(r.rows).Requirements).toBe('Drenched [Target]')
   expect(plainMechanicText(r.requirementParts!)).toBe('Drenched [Target]')
-  expect(renderToStaticMarkup(<AbilityParameters report={r} />)).toContain(
-    'data-combat-tag-reference="wet"',
-  )
+  const html = renderToStaticMarkup(<AbilityParameters report={r} />)
+  expect(html).toMatch(/<strong[^>]*data-combat-tag-reference="wet"[^>]*>Drenched<\/strong>/)
+  expect(html).toContain('aria-label="Requirement explanations"')
+  const explanation = r.requirementParts!.find((part) => typeof part !== 'string')!.explanation
+  expect(html).toContain(renderToStaticMarkup(<>{explanation}</>))
 })
 
 it.each([
@@ -54,6 +56,9 @@ it('renders None without adding an event or action prerequisite', () => {
   const r = report(null)
   expect(Object.fromEntries(r.rows).Requirements).toBe('None')
   expect(r.requirementParts).toBeUndefined()
+  expect(renderToStaticMarkup(<AbilityParameters report={r} />)).not.toContain(
+    'aria-label="Requirement explanations"',
+  )
 })
 
 it('keeps automatic timing outside the simple requirement line', () => {

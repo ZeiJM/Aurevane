@@ -193,6 +193,7 @@ it('falls back to captured plain global and effect strings when optional parts a
   expect(html).toContain('HP [≤ 35%] [Target]')
   expect(html).toContain('If Vulnerable: ')
   expect(html).not.toContain('data-combat-tag-reference="burn"')
+  expect(html).not.toContain('aria-label="Requirement explanations"')
 })
 
 it.each(['wet', 'conductive'])(
