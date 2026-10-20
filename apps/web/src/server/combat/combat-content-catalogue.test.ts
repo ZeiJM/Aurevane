@@ -252,3 +252,114 @@ it('captures one immutable catalogue generation for policy and every current adm
   ).toEqual(skill)
   expect((await captured.resolver.resolveCurrentCatalogue!()).policy.version).toBe(8)
 })
+
+const futureItem = {
+  schemaVersion: 1,
+  id: 'future.item',
+  contentVersion: 1,
+  name: 'Field kit',
+  description: 'Authored field kit intent.',
+  sortOrder: 0,
+  enabled: true,
+  media: {},
+  requirements: null,
+  ability: null,
+  itemClass: 'consumable',
+  usage: 'active',
+  equipmentSlot: null,
+  acquisition: 'unimplemented',
+}
+it('recognized noncombat snapshots validate strictly before deliberate combat-only projection', async () => {
+  const source = new RpcPublishedCombatContentSource(async () => ({
+    data: {
+      token,
+      policy,
+      publications: [row('item', 'future.item', futureItem, 1)],
+      archivedKeys: [],
+    },
+    error: null,
+  }))
+  expect((await source.readCatalogueSnapshot()).publications).toHaveLength(1)
+  const catalogue = await createCombatContentResolver(source).resolveCurrentCatalogue!()
+  expect(catalogue.entries.some((e) => e.contentKey === 'future.item')).toBe(false)
+  for (const definition of [
+    { ...futureItem, itemClass: 'arbitrary' },
+    { ...futureItem, quantity: 100 },
+    { ...futureItem, requirements: { kind: 'execute', script: 'grant()' } },
+    { ...futureItem, name: '   ' },
+  ]) {
+    await expect(
+      fixture({ token, policy, publications: [row('item', 'future.item', definition, 1)] }).resolver
+        .resolveCurrentCatalogue!(),
+    ).rejects.toThrow()
+  }
+})
+it('archived builtin identities cannot resurrect in current catalogue or captured current reads but exact pins remain available', async () => {
+  const skill = resolveMatureSkillVersion('vanguard.forceful-strike')!
+  const source = new RpcPublishedCombatContentSource(async (name) => ({
+    data:
+      name === 'read_combat_content_catalogue_v1'
+        ? { token, policy, publications: [], archivedKeys: [skill.id] }
+        : [row('skill', skill.id, skill, skill.contentVersion)],
+    error: null,
+  }))
+  const resolver = createCombatContentResolver(source)
+  expect(
+    (await resolver.resolveCurrentCatalogue!()).entries.some((e) => e.contentKey === skill.id),
+  ).toBe(false)
+  const captured = await resolver.captureCurrentCatalogue!()
+  await expect(captured.resolver.resolveCurrentSkillDefinition(skill.id)).rejects.toThrow(
+    /archived/i,
+  )
+  expect(
+    await captured.resolver.resolvePinnedSkillDefinition(skill.id, skill.contentVersion),
+  ).toMatchObject({ id: skill.id })
+})
+it.each(['discipline', 'tag', 'ascension', 'severence'])(
+  'strict %s snapshot cannot become a combat entry',
+  async (kind) => {
+    const common = {
+      schemaVersion: 1,
+      id: `future.${kind}`,
+      contentVersion: 1,
+      name: 'Draft intent',
+      description: 'A meaningful supported intent.',
+      sortOrder: 0,
+      enabled: true,
+      media: {},
+    }
+    const definition =
+      kind === 'discipline'
+        ? {
+            ...common,
+            core: { might: 8, finesse: 4, vitality: 7, agility: 4, intellect: 4, resolve: 4 },
+            focus: ['might', 'vitality'],
+            enabledForPrimary: true,
+            enabledForSecondary: true,
+            linkedSkills: [],
+            unlock: { kind: 'unavailable' },
+          }
+        : kind === 'tag'
+          ? { ...common, tagId: 'damage', explanation: 'Damage uses configured power.' }
+          : {
+              ...common,
+              formName: 'Unbound form',
+              requirements: null,
+              ability: null,
+              transformation: { kind, description: 'Authored transformation intent.' },
+            }
+    expect(
+      (
+        await fixture({ token, policy, publications: [row(kind, common.id, definition, 1)] })
+          .resolver.resolveCurrentCatalogue!()
+      ).entries.some((e) => e.contentKey === common.id),
+    ).toBe(false)
+    await expect(
+      fixture({
+        token,
+        policy,
+        publications: [row(kind, common.id, { ...definition, runtime: 'enable' }, 1)],
+      }).resolver.resolveCurrentCatalogue!(),
+    ).rejects.toThrow()
+  },
+)

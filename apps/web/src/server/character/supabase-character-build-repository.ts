@@ -1,4 +1,5 @@
 import 'server-only'
+import { throwCombatContentAdmissionError } from '../combat/combat-content-admission-error'
 
 import type { DerivedStatId } from '@aurevane/game-core/character/derived-stats'
 import {
@@ -458,6 +459,7 @@ export function createSupabaseCharacterBuildRepository(): CharacterBuildReposito
         p_request_fingerprint: input.requestFingerprint,
       })
       if (error) {
+        throwCombatContentAdmissionError(error)
         if (error.message.includes('CHARACTER_BUILD_VERSION_CONFLICT')) {
           throw new AurevaneError(
             'STALE_VERSION',
@@ -513,6 +515,7 @@ export function createSupabaseCharacterBuildRepository(): CharacterBuildReposito
         },
       )
       if (error) {
+        throwCombatContentAdmissionError(error)
         if (error.message.includes('CHARACTER_BUILD_VERSION_CONFLICT'))
           throw new AurevaneError(
             'STALE_VERSION',
@@ -548,6 +551,7 @@ export function createSupabaseCharacterBuildRepository(): CharacterBuildReposito
         p_request_fingerprint: input.requestFingerprint,
       })
       if (error) {
+        throwCombatContentAdmissionError(error)
         if (error.message.includes('CHARACTER_BUILD_VERSION_CONFLICT')) {
           throw new AurevaneError(
             'STALE_VERSION',

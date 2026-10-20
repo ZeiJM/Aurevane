@@ -1,4 +1,5 @@
 import 'server-only'
+import { throwCombatContentAdmissionError } from '../combat/combat-content-admission-error'
 
 import type { DisciplineMasteryStage } from '@aurevane/game-core/character/discipline-atlas'
 import { AurevaneError } from '@aurevane/game-core/errors'
@@ -68,6 +69,7 @@ export async function claimDisciplineTrial(userId: string, battleSessionId: stri
     p_battle_session_id: battleSessionId,
   })
   if (error) {
+    throwCombatContentAdmissionError(error)
     if (error.message.includes('TRIAL_NOT_FOUND'))
       throw new AurevaneError('FORBIDDEN', 'That trial is unavailable to this account.')
     const message = Object.entries(claimErrors).find(([code]) => error.message.includes(code))?.[1]

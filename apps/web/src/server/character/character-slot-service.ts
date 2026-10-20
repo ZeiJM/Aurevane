@@ -1,4 +1,5 @@
 import 'server-only'
+import { throwCombatContentAdmissionError } from '../combat/combat-content-admission-error'
 
 import { createHash } from 'node:crypto'
 
@@ -231,6 +232,7 @@ export async function createCharacterInSlot(command: {
   })
 
   if (error) {
+    throwCombatContentAdmissionError(error)
     if (error.code === '22023') {
       throw new AurevaneError(
         'IDEMPOTENCY_CONFLICT',
@@ -273,6 +275,7 @@ export async function requestCharacterDeletion(
     p_confirmation_phrase: confirmationPhrase,
   })
   if (error) {
+    throwCombatContentAdmissionError(error)
     if (error.message.includes('CHARACTER_DELETE_CONFIRMATION_MISMATCH')) {
       throw new AurevaneError('INVALID_REQUEST', 'The deletion phrase does not match exactly.')
     }

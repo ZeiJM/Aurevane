@@ -1,6 +1,16 @@
 import { randomUUID } from 'node:crypto'
 
-export type CombatContentKind = 'skill' | 'essence' | 'resonance' | 'status' | 'effect-profile'
+export type CombatContentKind =
+  | 'skill'
+  | 'essence'
+  | 'resonance'
+  | 'status'
+  | 'effect-profile'
+  | 'discipline'
+  | 'tag'
+  | 'item'
+  | 'ascension'
+  | 'severence'
 
 export type CombatContentDefinition = Readonly<Record<string, unknown>>
 
@@ -312,4 +322,77 @@ export class InMemoryCombatContentRepository implements CombatContentRepository 
     }
     assertContentIdentity(contentKey, contentKind, known.contentKind)
   }
+}
+
+export type CombatContentLifecycle = 'draft' | 'active' | 'archived'
+export interface CompleteCombatContentVersion {
+  readonly contentVersion: number
+  readonly definition: CombatContentDefinition
+  readonly publishedBy: string
+  readonly publishedAt: string
+  readonly authoredBy: string | null
+  readonly authoredAt: string | null
+  readonly restoredFrom: number | null
+  readonly restoredBy: string | null
+}
+export interface CompleteCombatContentRecord {
+  readonly contentKey: string
+  readonly contentKind: CombatContentKind
+  readonly lifecycle: CombatContentLifecycle
+  readonly revision: number
+  readonly versionFloor: number
+  readonly createdBy: string | null
+  readonly createdAt: string | null
+  readonly draft: {
+    readonly definition: CombatContentDefinition
+    readonly draftVersion: number
+    readonly baseVersion: number | null
+    readonly updatedBy: string
+    readonly updatedAt: string
+    readonly restoredFrom: number | null
+    readonly restoredBy: string | null
+  } | null
+  readonly current: CompleteCombatContentVersion | null
+  readonly history: readonly CompleteCombatContentVersion[]
+  readonly usedBy: readonly { readonly kind: string; readonly key: string }[]
+  readonly links: readonly string[]
+}
+export type CompleteCombatContentWrite =
+  | {
+      readonly action: 'create'
+      readonly requestId: string
+      readonly contentKind: CombatContentKind
+      readonly definition: CombatContentDefinition
+      readonly parentKey?: string
+      readonly expectedParentRevision?: number
+    }
+  | {
+      readonly action: 'duplicate'
+      readonly requestId: string
+      readonly sourceKey: string
+      readonly expectedSourceRevision: number
+    }
+  | {
+      readonly action: 'save'
+      readonly expectedRevision: number
+      readonly definition: CombatContentDefinition
+    }
+  | {
+      readonly action: 'restore'
+      readonly expectedRevision: number
+      readonly sourceVersion: number
+    }
+  | { readonly action: 'archive'; readonly expectedRevision: number }
+  | {
+      readonly action: 'link' | 'unlink'
+      readonly requestId: string
+      readonly expectedRevision: number
+      readonly childKey: string
+    }
+export interface CombatContentListPage {
+  readonly records: readonly Pick<
+    CompleteCombatContentRecord,
+    'contentKey' | 'contentKind' | 'lifecycle' | 'revision'
+  >[]
+  readonly nextCursor: string | null
 }

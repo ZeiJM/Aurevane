@@ -1,4 +1,15 @@
 import 'server-only'
+import type {
+  CompleteCombatContentRecord,
+  CompleteCombatContentWrite,
+  CombatContentListPage,
+} from '@aurevane/db/combat-content'
+import {
+  isNoncombatContentKind,
+  parseNoncombatContentDefinition,
+  noncombatPublicationBlocker,
+} from '@aurevane/game-core/content/authored-content'
+import { parseCompleteCombatContentRecord } from './combat-content-record'
 
 import { createSelectedCharacterRpc } from './selected-character-rpc'
 
@@ -164,6 +175,16 @@ function parseVersionList(data: unknown): readonly CombatContentVersionRecord[] 
 
 function mapRpcError(error: RpcError): never {
   const message = error.message ?? ''
+  if (/COMBAT_CONTENT_(RECORD_CONFLICT|REQUEST_CONFLICT|ADMISSION_RETRY)/u.test(message))
+    throw new AurevaneError(
+      'STALE_VERSION',
+      'Content changed. Refresh and review the complete record before retrying.',
+    )
+  if (error.code === '22023')
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      message.startsWith('COMBAT_CONTENT_') ? message : 'The content operation is not supported.',
+    )
   if (message.includes('COMBAT_CONTENT_CATALOGUE_CONFLICT'))
     throw new AurevaneError(
       'STALE_VERSION',
@@ -228,6 +249,106 @@ export class RpcCombatContentAuthoringStore implements CombatContentAuthoringSto
       )
     }
     return row.role
+  }
+
+  async readRecord(contentKey: string): Promise<CompleteCombatContentRecord | null> {
+    const { data, error } = await this.#rpc('read_combat_content_record_v1', {
+      p_actor_user_id: this.#actorUserId,
+      p_content_key: contentKey,
+    })
+    if (error) mapRpcError(error)
+    return data === null ? null : parseCompleteCombatContentRecord(data)
+  }
+  async listRecords(input: {
+    kind?: CombatContentKind
+    lifecycle?: string
+    search?: string
+    after?: string
+    limit?: number
+  }): Promise<CombatContentListPage> {
+    const { data, error } = await this.#rpc('list_combat_content_records_v1', {
+      p_actor_user_id: this.#actorUserId,
+      p_kind: input.kind ?? null,
+      p_lifecycle: input.lifecycle ?? null,
+      p_search: input.search ?? null,
+      p_after: input.after ?? null,
+      p_limit: input.limit ?? 30,
+    })
+    if (error) mapRpcError(error)
+    if (
+      !isObject(data) ||
+      !Array.isArray(data.records) ||
+      data.records.length > (input.limit ?? 30) ||
+      (data.nextCursor !== null && !requiredString(data.nextCursor)) ||
+      data.records.some(
+        (row) =>
+          !isObject(row) ||
+          !requiredString(row.contentKey) ||
+          !requiredString(row.contentKind) ||
+          !['draft', 'active', 'archived'].includes(String(row.lifecycle)) ||
+          !positiveInteger(row.revision),
+      )
+    )
+      throw new AurevaneError('PERSISTENCE_UNAVAILABLE', 'The content list is invalid.')
+    return data as unknown as CombatContentListPage
+  }
+  async writeRecord(
+    contentKey: string,
+    command: CompleteCombatContentWrite,
+  ): Promise<CompleteCombatContentRecord> {
+    const { data, error } = await this.#rpc('write_combat_content_record_v1', {
+      p_actor_user_id: this.#actorUserId,
+      p_content_key: contentKey,
+      p_command: command,
+    })
+    if (error) mapRpcError(error)
+    return parseCompleteCombatContentRecord(data)
+  }
+  async publishSaved(
+    record: Pick<CompleteCombatContentRecord, 'contentKey'>,
+    expectedDraftVersion: number,
+    expectedBaseVersion: number | null,
+  ): Promise<CompleteCombatContentRecord> {
+    const saved = await this.readRecord(record.contentKey)
+    if (
+      !saved?.draft ||
+      saved.draft.draftVersion !== expectedDraftVersion ||
+      saved.draft.baseVersion !== expectedBaseVersion
+    )
+      throw new AurevaneError(
+        'STALE_VERSION',
+        'Save and review the current draft before publishing.',
+      )
+    if (isNoncombatContentKind(saved.contentKind)) {
+      parseNoncombatContentDefinition(saved.contentKind, saved.draft.definition)
+      throw new AurevaneError(
+        'INVALID_REQUEST',
+        noncombatPublicationBlocker(saved.contentKind).message,
+      )
+    }
+    const floor = Math.max(
+      saved.versionFloor,
+      builtinCombatContentVersionFloor(saved.contentKind, saved.contentKey) ?? 0,
+    )
+    const token = await this.#validatePublication(saved.contentKey, saved.contentKind, {
+      id: 'prospective',
+      contentKey: saved.contentKey,
+      contentKind: saved.contentKind,
+      contentVersion: Number(saved.draft.definition.contentVersion ?? 1),
+      definition: saved.draft.definition,
+      publishedBy: this.#actorUserId,
+      publishedAt: 'prospective',
+    })
+    const { data, error } = await this.#rpc('publish_saved_combat_content_v1', {
+      p_actor_user_id: this.#actorUserId,
+      p_content_key: saved.contentKey,
+      p_expected_draft_version: expectedDraftVersion,
+      p_expected_base_version: expectedBaseVersion,
+      p_expected_catalogue_token: token,
+      p_version_floor: floor || null,
+    })
+    if (error) mapRpcError(error)
+    return parseCompleteCombatContentRecord(data)
   }
 
   async findDraft(contentKey: string): Promise<CombatContentDraftRecord | null> {
@@ -371,7 +492,13 @@ export class RpcCombatContentAuthoringStore implements CombatContentAuthoringSto
     const publications = snapshot.publications.filter((row) => row.contentKey !== contentKey)
     if (target) publications.push(target)
     assertCombatCatalogueTimingCompatible(
-      resolveCombatContentCatalogueSnapshot({ ...snapshot, publications }),
+      resolveCombatContentCatalogueSnapshot({
+        ...snapshot,
+        publications,
+        archivedKeys: target
+          ? snapshot.archivedKeys?.filter((key) => key !== contentKey)
+          : snapshot.archivedKeys,
+      }),
     )
     return snapshot.token
   }

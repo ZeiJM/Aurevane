@@ -7,6 +7,8 @@ const owner = '00000000-0000-4000-8000-000000000001'
 const other = '00000000-0000-4000-8000-000000000002'
 const character = '00000000-0000-4000-8000-000000000011'
 interface TestRecord {
+  links: string[]
+  usedBy: unknown[]
   contentKey: string
   lifecycle: string
   revision: number
@@ -194,10 +196,10 @@ it('archive_restore_requires_fresh_intent_and_never_resurrects_current', async (
     expectedRevision: restored.revision,
   })
   expect(archived.lifecycle).toBe('archived')
-  expect(
-    (await db.query("select * from public.read_current_combat_content_v1('content.test','skill')"))
-      .rows,
-  ).toEqual([])
+  await denied(
+    () => db.query("select * from public.read_current_combat_content_v1('content.test','skill')"),
+    /COMBAT_CONTENT_ARCHIVED/,
+  )
   await denied(() => publish('content.test', restored.draft.draftVersion, null), /RESTORE_REQUIRED/)
   const fresh = await write('content.test', {
     action: 'restore',
@@ -268,4 +270,183 @@ it('four_actor_rpcs_enforce_actual_browser_denial_and_live_selected_grants', asy
     /permission denied/,
   )
   await db.exec('reset role')
+})
+
+it('archive blocks phase4 provisioning membership without rewriting catalogue or earned facts', async () => {
+  const saved = await create()
+  await db.query(
+    "insert into app_private.phase4_skill_catalog values('content.test',1,'vanguard',1)",
+  )
+  const before = await record('content.test')
+  await denied(
+    () => write('content.test', { action: 'archive', expectedRevision: saved.revision }),
+    /DEPENDENCIES/,
+  )
+  expect(await record('content.test')).toEqual(before)
+  expect((await record('content.test')).usedBy).toEqual([
+    { kind: 'phase4-catalogue', key: 'content.test' },
+  ])
+})
+it('all actual admission tables reject archived links with complete statement rollback', async () => {
+  const saved = await create()
+  await write('content.test', { action: 'archive', expectedRevision: saved.revision })
+  const statements = [
+    "insert into app_private.character_skill_unlocks(character_id,skill_id,skill_content_version,source_discipline_id,source_kind,source_id) values($1,'content.test',1,'vanguard','owner','test')",
+    "insert into app_private.character_build_discipline_skills(character_id,slot_index,skill_id,skill_content_version,source_discipline_id) values($1,1,'content.test',1,'vanguard')",
+    'insert into app_private.character_saved_build_loadouts(character_id,slot_index,name,primary_discipline_id,discipline_skills,source_build_version) values($1,1,\'Archived\',\'vanguard\',\'[{"skillId":"content.test","contentVersion":1,"sourceDisciplineId":"vanguard"}]\',1)',
+    "insert into app_private.phase4_skill_catalog values('content.test',1,'vanguard',1)",
+  ]
+  for (const statement of statements)
+    await denied(
+      () => db.query(statement, statement.includes('$1') ? [character] : []),
+      /COMBAT_CONTENT_ARCHIVED/,
+    )
+  expect(
+    (
+      await db.query(
+        "select * from app_private.character_skill_unlocks where skill_id='content.test'",
+      )
+    ).rows,
+  ).toEqual([])
+  expect(
+    (await db.query("select * from app_private.phase4_skill_catalog where skill_id='content.test'"))
+      .rows,
+  ).toEqual([])
+})
+it('admission uses one nonblocking shared catalogue lock before checking archive; archive owns exclusive lock', async () => {
+  const guards = (
+    await db.query<{ body: string }>(
+      "select pg_get_functiondef(p.oid) body from pg_proc p where p.proname='guard_combat_content_admission_v1'",
+    )
+  ).rows
+  expect(guards).toHaveLength(1)
+  expect(guards[0]!.body).toContain('pg_try_advisory_xact_lock_shared')
+  expect(guards[0]!.body).toContain('COMBAT_CONTENT_ADMISSION_RETRY')
+  expect(guards[0]!.body).not.toMatch(/pg_advisory_xact_lock\(/)
+})
+it('current single and batch readers reject tombstones while exact history remains readable', async () => {
+  const saved = await create()
+  const published = await publish('content.test', saved.draft.draftVersion, null)
+  await write('content.test', { action: 'archive', expectedRevision: published.revision })
+  await denied(
+    () => db.query("select * from public.read_current_combat_content_v1('content.test','skill')"),
+    /COMBAT_CONTENT_ARCHIVED/,
+  )
+  await denied(
+    () =>
+      db.query(
+        "select * from public.read_current_combat_content_many_v1(array['content.test'],'skill')",
+      ),
+    /COMBAT_CONTENT_ARCHIVED/,
+  )
+  expect(
+    (
+      await db.query(
+        "select * from public.read_combat_content_version_v1('content.test','skill',$1)",
+        [published.current.contentVersion],
+      )
+    ).rows,
+  ).toHaveLength(1)
+})
+it('intrinsic source cannot change when the first post-publication draft is saved', async () => {
+  const saved = await create()
+  const published = await publish('content.test', saved.draft.draftVersion, null)
+  await denied(
+    () =>
+      write('content.test', {
+        action: 'save',
+        expectedRevision: published.revision,
+        definition: { ...definition, sourceDisciplineId: 'lifebinder' },
+      }),
+    /SOURCE_IMMUTABLE/,
+  )
+})
+it('strict future drafts reject arbitrary schema fields and never publish unsupported runtime', async () => {
+  const definition = {
+    schemaVersion: 1,
+    id: 'item.test',
+    contentVersion: 1,
+    name: 'Field kit',
+    description: 'A supported field-kit intent.',
+    sortOrder: 0,
+    enabled: true,
+    media: {},
+    requirements: null,
+    ability: null,
+    itemClass: 'consumable',
+    usage: 'active',
+    equipmentSlot: null,
+    acquisition: 'unimplemented',
+  }
+  for (const invalid of [
+    { ...definition, itemClass: 'invented' },
+    { ...definition, execute: 'arbitrary' },
+    { ...definition, name: '\u2003' },
+  ])
+    await denied(
+      () =>
+        write('item.test', {
+          action: 'create',
+          requestId: '00000000-0000-4000-8000-000000000099',
+          contentKind: 'item',
+          definition: invalid,
+        }),
+      /DEFINITION_INVALID/,
+    )
+  const saved = await write('item.test', {
+    action: 'create',
+    requestId: '00000000-0000-4000-8000-000000000099',
+    contentKind: 'item',
+    definition,
+  })
+  await denied(
+    () => publish('item.test', saved.draft.draftVersion, null),
+    /ITEM_RUNTIME_UNSUPPORTED/,
+  )
+  expect((await record('item.test')).draft.definition).toEqual(definition)
+})
+it('create within Discipline retries atomically and stale parent creates no orphan; link preserves intrinsic source', async () => {
+  const parent = await write('discipline.test', {
+    action: 'create',
+    requestId: '00000000-0000-4000-8000-000000000091',
+    contentKind: 'discipline',
+    definition: {
+      schemaVersion: 1,
+      id: 'discipline.test',
+      contentVersion: 1,
+      name: 'Discipline',
+      description: 'Authored Discipline intent.',
+      sortOrder: 0,
+      enabled: true,
+      media: {},
+      core: { might: 8, finesse: 4, vitality: 7, agility: 4, intellect: 4, resolve: 4 },
+      focus: ['might', 'vitality'],
+      enabledForPrimary: true,
+      enabledForSecondary: true,
+      linkedSkills: [],
+      unlock: { kind: 'unavailable' },
+    },
+  })
+  const command = {
+    action: 'create',
+    requestId: '00000000-0000-4000-8000-000000000099',
+    contentKind: 'skill',
+    definition,
+    parentKey: 'discipline.test',
+    expectedParentRevision: parent.revision,
+  }
+  const child = await write('content.test', command)
+  expect(await write('content.test', command)).toEqual(child)
+  expect((await record('discipline.test')).links).toEqual(['content.test'])
+  await denied(
+    () =>
+      write('content.orphan', {
+        ...command,
+        requestId: '00000000-0000-4000-8000-000000000092',
+        definition: { ...definition, id: 'content.orphan' },
+      }),
+    /RECORD_CONFLICT/,
+  )
+  expect(await record('content.orphan')).toBeNull()
+  expect((await record('content.test')).draft.definition.sourceDisciplineId).toBe('vanguard')
 })
