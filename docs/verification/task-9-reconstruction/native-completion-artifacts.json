@@ -100,5 +100,18 @@
       "jwt": 0,
       "local_cli_key": 1
     }
+  },
+  {
+    "file": "native-fix3-browser-failure.log.gz",
+    "sha256": "b5d91b64083cfba042369718d9cc15ff135db995fef0d415167e4d3a7153f0fb",
+    "uncompressed_sha256": "4809c557ab2138f1708dc5c40b8dde278d1907bd23ff976f37d65d3e4bf3ff23",
+    "bytes": 187802,
+    "run_id": 39488302754,
+    "job_id": 118854414411,
+    "remote_source": "aa971de38eae662caf95c2bb12309e1068298c87",
+    "redactions": {
+      "jwt": 0,
+      "local_cli_key": 1
+    }
   }
 ]

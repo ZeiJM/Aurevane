@@ -307,6 +307,7 @@ jobs:
             /tmp/players-task9-review/*.png
             apps/web/test-results/master-players-recovery*/error-context.md
             apps/web/test-results/master-players-recovery*/test-failed-*.png
+            apps/web/test-results/master-players-recovery*/trace.zip
             apps/web/test-results/**/master-percentage-*.png
             apps/web/test-results/**/master-elevation-*.png
             apps/web/test-results/**/master-ground-*.png
