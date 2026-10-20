@@ -32,8 +32,6 @@ create table app_private.battle_no_contest_markers (
 );
 create table app_private.battle_no_contests (
  battle_session_id uuid primary key references app_private.battle_sessions(id) on delete cascade,
- actor_user_id uuid references auth.users(id) on delete cascade,
- actor_character_id uuid,
  participant_ids uuid[] not null,
  original_version bigint not null,
  terminal_version bigint not null,
@@ -83,7 +81,17 @@ begin
  end if;
  return new;
 end; $$;
-create trigger guard_player_battle_admission before insert on app_private.battle_participants for each row execute function app_private.guard_player_battle_admission_v1();
+create trigger aaa_player_battle_admission before insert on app_private.battle_participants for each row execute function app_private.guard_player_battle_admission_v1();
+
+-- Run before retained atlas/single-active-session triggers take blocking account
+-- locks. The same transaction owns that lock when those predecessors continue.
+create function app_private.guard_player_battle_head_admission_v1() returns trigger
+language plpgsql security definer set search_path=pg_catalog as $$
+begin
+ if not pg_try_advisory_xact_lock(hashtextextended(new.owner_user_id::text,1)) then raise exception using errcode='40001',message='PLAYER_ADMISSION_RETRY'; end if;
+ return new;
+end; $$;
+create trigger aaa_player_battle_head_admission before insert on app_private.battle_sessions for each row execute function app_private.guard_player_battle_head_admission_v1();
 
 create function app_private.guard_no_contest_head_v1() returns trigger
 language plpgsql security definer set search_path=pg_catalog,app_private as $$
@@ -282,7 +290,7 @@ begin
  v_before:=jsonb_build_object('battleSessionId',p_battle_session_id,'version',v_session.current_version,'participants',v_people);
  v_hash:=encode(sha256(convert_to(v_before::text,'UTF8')),'hex');
  insert into app_private.battle_no_contest_markers(battle_hash) values(encode(sha256(convert_to(v_session.battle_id,'UTF8')),'hex'));
- insert into app_private.battle_no_contests(battle_session_id,actor_user_id,actor_character_id,participant_ids,original_version,terminal_version,request_key) values(p_battle_session_id,p_actor_user_id,p_actor_character_id,v_people,v_session.current_version,v_session.current_version+1,p_request_key);
+ insert into app_private.battle_no_contests(battle_session_id,participant_ids,original_version,terminal_version,request_key) values(p_battle_session_id,v_people,v_session.current_version,v_session.current_version+1,p_request_key);
  update app_private.battle_sessions set lifecycle='abandoned',current_version=current_version+1,current_snapshot=p_terminal_snapshot,updated_at=v_now where id=p_battle_session_id;
  insert into app_private.battle_snapshots(battle_session_id,battle_version,snapshot,created_at) values(p_battle_session_id,v_session.current_version+1,p_terminal_snapshot,v_now);
  insert into app_private.battle_events(battle_session_id,battle_version,event_index,event,created_at) values(p_battle_session_id,v_session.current_version+1,0,jsonb_build_object('event','administrative_no_contest','outcome','NoContest','rewards','NoRewards'),v_now);
@@ -299,7 +307,7 @@ end; $$;
 
 revoke all on function public.search_master_players_v1(uuid,text,uuid),public.read_master_player_v1(uuid,uuid,uuid),public.edit_master_player_v1(uuid,uuid,text,uuid,jsonb,boolean,uuid),public.recover_master_player_battle_v1(uuid,uuid,uuid,bigint,uuid[],uuid,jsonb,boolean,uuid) from public,anon,authenticated;
 grant execute on function public.search_master_players_v1(uuid,text,uuid),public.read_master_player_v1(uuid,uuid,uuid),public.edit_master_player_v1(uuid,uuid,text,uuid,jsonb,boolean,uuid),public.recover_master_player_battle_v1(uuid,uuid,uuid,bigint,uuid[],uuid,jsonb,boolean,uuid) to service_role;
-revoke all on function app_private.player_source_hash_v1(uuid),app_private.player_support_facts_v1(uuid),app_private.player_support_fingerprint_v1(uuid),app_private.guard_player_battle_admission_v1(),app_private.guard_no_contest_head_v1(),app_private.lock_no_contest_head_v1(uuid,uuid),app_private.prevent_player_support_update_v1() from public,anon,authenticated,service_role;
+revoke all on function app_private.player_source_hash_v1(uuid),app_private.player_support_facts_v1(uuid),app_private.player_support_fingerprint_v1(uuid),app_private.guard_player_battle_admission_v1(),app_private.guard_player_battle_head_admission_v1(),app_private.guard_no_contest_head_v1(),app_private.lock_no_contest_head_v1(uuid,uuid),app_private.prevent_player_support_update_v1() from public,anon,authenticated,service_role;
 -- Read-only exact replay is also called directly by the service before commit.
 -- Preserve its STABLE/read-only contract while preferring current terminal truth.
 do $$ declare v_definition text; v_guard text := $guard$

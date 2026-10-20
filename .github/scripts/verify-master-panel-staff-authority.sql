@@ -134,6 +134,19 @@ begin
       assert has_function_privilege('service_role',proc.oid,'execute') and not has_function_privilege('anon',proc.oid,'execute') and not has_function_privilege('authenticated',proc.oid,'execute'), 'Players service-only actor ACL: '||proc.proname;
     end loop;
     assert checked=4, 'Independent Players actor ACL inventory';
+    -- Execute the real new Owner assertions; no authorization stub or renamed actor.
+    foreach signature in array array[
+      'select public.search_master_players_v1($1,''native'',$2)',
+      'select public.read_master_player_v1($1,$2,$2)',
+      'select public.edit_master_player_v1($1,$2,''invalid'',gen_random_uuid(),''{}'',true,$2)',
+      'select public.recover_master_player_battle_v1($1,$2,gen_random_uuid(),1,array[$2::uuid],gen_random_uuid(),null,true,$2)'
+    ] loop
+      begin
+        execute signature using staff_id,character_id;
+        raise exception 'EXPECTED Players Owner denial: %',signature;
+      exception when insufficient_privilege then assert sqlerrm='MASTER_PANEL_OWNER_REQUIRED'; end;
+    end loop;
+
   end if;
   foreach signature in array array['public.resolve_master_panel_account_v2(uuid,text)','public.list_master_panel_staff_v2(uuid)','public.set_master_panel_character_access_v2(uuid,uuid,uuid,text[],text[],integer,bigint,boolean)'] loop
     assert has_function_privilege('service_role',signature,'execute') and not has_function_privilege('authenticated',signature,'execute') and not has_function_privilege('anon',signature,'execute'), 'New management private RPC ACL';

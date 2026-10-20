@@ -1003,3 +1003,23 @@ it('projects only bounded recovery application counts on the appropriate pending
   )
   expect(JSON.stringify(outcomes)).not.toContain('a future round')
 })
+it('records only authoritative administrative no contest as No rewards without ordinary abandonment attribution', () => {
+  const view = buildBattleLogView(SESSION_ID, [
+    {
+      battleVersion: 2,
+      eventIndex: 0,
+      createdAt: '2026-10-20T00:00:00Z',
+      event: { event: 'administrative_no_contest', outcome: 'NoContest', rewards: 'NoRewards' },
+    },
+  ])
+  expect(view.entries[0]?.message).toBe('Encounter ended: No contest. No rewards.')
+  const ordinary = buildBattleLogView(SESSION_ID, [
+    {
+      battleVersion: 2,
+      eventIndex: 0,
+      createdAt: '2026-10-20T00:00:00Z',
+      event: { event: 'battle_abandoned' },
+    },
+  ])
+  expect(ordinary.entries[0]?.message).not.toContain('No contest')
+})

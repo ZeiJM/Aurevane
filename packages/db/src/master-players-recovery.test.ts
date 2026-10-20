@@ -546,6 +546,49 @@ it('shared PvP recovery names the exact real participants and clears actual cloc
     },
     { combatant_id: `character:${peer}`, user_id: owner, character_id: peer, team_index: 1 },
   ]
+  const peerBuild = async () =>
+    (
+      await db.query<{ value: Record<string, unknown> }>(
+        'select public.get_character_committed_build_snapshot_v2($1,$2) value',
+        [owner, peer],
+      )
+    ).rows[0]!.value
+  prepared.buildAuthority.combatants.push({
+    ...(await peerBuild()),
+    combatantId: `character:${peer}`,
+    characterId: peer,
+  })
+  const peerFingerprint = (
+    await db.query<{ value: string }>(
+      "select public.read_master_player_v1($1,$2,null)->>'fingerprint' value",
+      [owner, peer],
+    )
+  ).rows[0]!.value
+  await db.query('select public.edit_master_player_v1($1,$2,$3,$4,$5,true,null)', [
+    owner,
+    peer,
+    peerFingerprint,
+    request,
+    { kind: 'support', supportActionId: 'basic.recover.mp' },
+  ])
+  await denied(
+    () =>
+      db.query('select * from public.create_pvp_battle_session_v1($1,$2,$3,1,1,$4,$5)', [
+        other,
+        lobby,
+        'players-test',
+        prepared,
+        members,
+      ]),
+    /PREPARATION_STALE/,
+  )
+  expect((await db.query('select * from app_private.battle_sessions')).rows).toEqual([])
+  expect((await db.query('select * from app_private.battle_participants')).rows).toEqual([])
+  prepared.buildAuthority.combatants[1] = {
+    ...(await peerBuild()),
+    combatantId: `character:${peer}`,
+    characterId: peer,
+  }
   const battle = (
     await db.query<Awaited<ReturnType<typeof createBattle>>>(
       'select * from public.create_pvp_battle_session_v1($1,$2,$3,1,1,$4,$5)',
@@ -676,4 +719,26 @@ it('uses the actual level-100 XP ceiling and Primary focus/nonfocus caps', async
       })
     ).rows[0]!.result.facts,
   ).toMatchObject({ level: 100, xp: max })
+})
+it('deleting the initiating Owner removes actor audit linkage but retains the session recovery receipt', async () => {
+  const battle = await createBattle()
+  await recover(battle)
+  await db.query(
+    "insert into app_private.account_deletion_requests(user_id,requested_at,delete_after) values($1,now()-interval '2 days',now()-interval '1 day')",
+    [owner],
+  )
+  await db.query('select app_private.finalize_account_deletion_for_user_v1($1)', [owner])
+  expect((await db.query('select * from app_private.player_support_audit')).rows).toEqual([])
+  expect(
+    (await db.query('select terminal_version from app_private.battle_no_contests')).rows,
+  ).toHaveLength(1)
+})
+
+it.each([
+  "select public.search_master_players_v1($1,'Test',$2)",
+  'select public.read_master_player_v1($1,$2,$2)',
+  "select public.edit_master_player_v1($1,$2,'bad',gen_random_uuid(),'{}',true,$2)",
+  'select public.recover_master_player_battle_v1($1,$2,gen_random_uuid(),1,array[$2::uuid],gen_random_uuid(),null,true,$2)',
+])('real new operation denies non-Owner even with explicit actor: %s', async (query) => {
+  await denied(() => db.query(query, [other, character]), /OWNER_REQUIRED/)
 })

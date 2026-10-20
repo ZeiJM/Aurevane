@@ -138,6 +138,9 @@ jobs:
       - name: Verify Master Panel staff authority
         run: bash .github/scripts/verify-master-panel-staff-authority.sh
 
+      - name: Verify native Players recovery races
+        run: python3 .github/scripts/verify-master-players-recovery.py
+
       - name: Verify Phase 4 persistent event kernel
         run: bash .github/scripts/verify-phase5-event-kernel.sh
 

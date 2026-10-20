@@ -1,0 +1,83 @@
+{"cwd": "/workspace/scratch/081f137b6a6d/aurevane-players-20261020", "command": ["corepack", "pnpm", "--filter", "@aurevane/web", "exec", "vitest", "run", "src/components/battle/battle-recovery-navigation.test.ts"], "start": "2026-10-20T18:41:59.049365+00:00"}
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.10 /workspace/scratch/081f137b6a6d/aurevane-players-20261020/apps/web
+
+ ❯ src/components/battle/battle-recovery-navigation.test.ts (8 tests | 4 failed) 13ms
+   × polls active PvE within two seconds and preserves faster PvP polling 9ms
+   × ejects ended/revoked spectator HTTP 400 1ms
+   × ejects ended/revoked spectator HTTP 403 1ms
+   × attributes only authoritative no-contest and preserves canonical World return over query preference 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/components/battle/battle-recovery-navigation.test.ts > polls active PvE within two seconds and preserves faster PvP polling
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/components/battle/battle-recovery-navigation.test.ts:5:48
+      3| import { battleReturnNavigation } from './battle-return-navigation'
+      4| it('polls active PvE within two seconds and preserves faster PvP polli…
+      5|  expect(shouldPollParticipant('pve','active')).toBe(true)
+       |                                                ^
+      6|  expect(participantPollDelay('pve',true)).toBeLessThanOrEqual(2000)
+      7|  expect(participantPollDelay('pve',false)).toBeLessThanOrEqual(2000)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  src/components/battle/battle-recovery-navigation.test.ts > ejects ended/revoked spectator HTTP 400
+ FAIL  src/components/battle/battle-recovery-navigation.test.ts > ejects ended/revoked spectator HTTP 403
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/components/battle/battle-recovery-navigation.test.ts:12:104
+     10|  expect(participantPollDelay('pvp',true)).toBe(900)
+     11| })
+     12| it.each([400,403])('ejects ended/revoked spectator HTTP %s',status=>ex…
+       |                                                                                                        ^
+     13| it.each([409,503,500,0])('keeps transient spectator HTTP %s retryable'…
+     14| it('attributes only authoritative no-contest and preserves canonical W…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  src/components/battle/battle-recovery-navigation.test.ts > attributes only authoritative no-contest and preserves canonical World return over query preference
+AssertionError: expected 'The encounter has ended.' to match /No contest.*No rewards/
+
+- Expected:
+/No contest.*No rewards/
+
++ Received:
+"The encounter has ended."
+
+ ❯ src/components/battle/battle-recovery-navigation.test.ts:15:94
+     13| it.each([409,503,500,0])('keeps transient spectator HTTP %s retryable'…
+     14| it('attributes only authoritative no-contest and preserves canonical W…
+     15|  expect(battleRecoveryNotice({administrativeOutcome:'NoContest',reward…
+       |                                                                                              ^
+     16|  expect(battleRecoveryNotice({})).not.toMatch(/No contest|No rewards/)
+     17|  expect(battleReturnNavigation('world','battle-hall').href).toBe('/gam…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 4 passed (8)
+   Start at  14:41:59
+   Duration  253ms (transform 31ms, setup 0ms, import 49ms, tests 13ms, environment 0ms)
+
+undefined
+/workspace/scratch/081f137b6a6d/aurevane-players-20261020/apps/web:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/components/battle/battle-recovery-navigation.test.ts
+{"end": "2026-10-20T18:42:00.149359+00:00", "exit": 1}

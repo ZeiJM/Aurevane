@@ -62,3 +62,40 @@ it('clears actual spawned summons and deferred execution while retaining human r
   expect(terminal.statBridge.combatants).toHaveLength(before.statBridge.combatants.length - 1)
   expect(validateStatDrivenCombatEncounterState(terminal)).toEqual([])
 })
+it('clears a real Controlled prime without refunding costs or losing captured definitions/usage', async () => {
+  const { source } =
+    await import('../../../../../packages/game-core/src/combat/combat-behavior.test-utils')
+  const { captureCombatAbilitySource } =
+    await import('@aurevane/game-core/combat/combat-behavior-capture')
+  const { reconcileCombatAbilitySources, primeCombatControlledAbility } =
+    await import('@aurevane/game-core/combat/combat-behavior-runtime')
+  const { preparePv1fTurnEconomy } = await import('@aurevane/game-core/combat/pv1f-action-economy')
+  const captured = captureCombatAbilitySource(
+    source({
+      cooldown: { key: 'recovery-test', ownerTurns: 2 },
+      effects: [
+        {
+          id: 'hit',
+          timing: 'controlled',
+          payload: { type: 'damage', recipient: 'primary-unit', amount: 10 },
+        },
+      ],
+    }),
+  )
+  const base = preparePv1fTurnEconomy(percentageDotEncounter())
+  const primed = primeCombatControlledAbility({
+    state: reconcileCombatAbilitySources(base, [captured]),
+    actorId: 'actor',
+    sourceInstanceId: 'source-a',
+    behaviorId: 'strike',
+  }).state
+  expect(primed.abilityRuntime?.controlled?.primes).toHaveLength(1)
+  const terminal = resolveMasterBattleRecovery({ ...primed, statBridge: base.statBridge })
+  expect(terminal.abilityRuntime?.controlled?.primes).toEqual([])
+  expect(terminal.abilityRuntime?.controlled?.used).toEqual(primed.abilityRuntime?.controlled?.used)
+  expect(terminal.abilityRuntime?.activeSourceIds).toEqual([])
+  expect(terminal.abilityRuntime?.maintained).toEqual([])
+  expect(terminal.capturedAbilitySources).toEqual(primed.capturedAbilitySources)
+  expect(terminal.tactical.battle.combatants).toEqual(primed.tactical.battle.combatants)
+  expect(validateStatDrivenCombatEncounterState(terminal)).toEqual([])
+})

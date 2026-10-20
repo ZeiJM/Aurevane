@@ -1128,6 +1128,16 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
         kind: 'system',
         headline: 'Battle Start',
       })
+    case 'administrative_no_contest':
+      if (event.outcome !== 'NoContest' || event.rewards !== 'NoRewards') return null
+      return createEntry(record, eventType, {
+        message: 'Encounter ended: No contest. No rewards.',
+        messageTemplate: 'Encounter ended: No contest. No rewards.',
+        kind: 'system',
+        headline: 'No Contest',
+        tone: 'neutral',
+        facts: fact('No rewards', 'neutral'),
+      })
     case 'battle_abandoned':
       return createEntry(record, eventType, {
         message: 'Practice battle was aborted.',

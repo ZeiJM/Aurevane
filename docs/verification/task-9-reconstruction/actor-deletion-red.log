@@ -1,0 +1,38 @@
+{"cwd": "/workspace/scratch/081f137b6a6d/aurevane-players-20261020", "command": ["corepack", "pnpm", "--filter", "@aurevane/db", "exec", "vitest", "run", "src/master-players-recovery.test.ts", "-t", "initiating Owner"], "start": "2026-10-20T18:47:26.714004+00:00"}
+
+ RUN  v4.1.10 /workspace/scratch/081f137b6a6d/aurevane-players-20261020/packages/db
+
+ ❯ src/master-players-recovery.test.ts (27 tests | 1 failed | 26 skipped) 2470ms
+   × deleting the initiating Owner removes actor audit linkage but retains the session recovery receipt 57ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/master-players-recovery.test.ts > deleting the initiating Owner removes actor audit linkage but retains the session recovery receipt
+AssertionError: expected [] to have a length of 1 but got +0
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/master-players-recovery.test.ts:685:95
+    683|  await db.query('select app_private.finalize_account_deletion_for_user…
+    684|  expect((await db.query('select * from app_private.player_support_audi…
+    685|  expect((await db.query('select terminal_version from app_private.batt…
+       |                                                                                               ^
+    686| })
+    687|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 26 skipped (27)
+   Start at  14:47:27
+   Duration  2.71s (transform 36ms, setup 0ms, import 80ms, tests 2.47s, environment 0ms)
+
+undefined
+/workspace/scratch/081f137b6a6d/aurevane-players-20261020/packages/db:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/master-players-recovery.test.ts -t 'initiating Owner'
+{"end": "2026-10-20T18:47:30.183462+00:00", "exit": 1}

@@ -1,0 +1,236 @@
+import { execFileSync } from 'node:child_process'
+import { copyFileSync, mkdirSync } from 'node:fs'
+import { randomUUID } from 'node:crypto'
+import { expect, test, type Page } from '@playwright/test'
+import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
+
+function sql(query: string) {
+  const names = execFileSync(
+    'docker',
+    ['ps', '--filter', 'name=supabase_db_', '--format', '{{.Names}}'],
+    { encoding: 'utf8' },
+  )
+    .trim()
+    .split('\n')
+  if (names.length !== 1 || !names[0]?.startsWith('supabase_db_'))
+    throw new Error('Players proof requires one disposable local Supabase container.')
+  return execFileSync(
+    'docker',
+    [
+      'exec',
+      names[0],
+      'psql',
+      '-X',
+      '-v',
+      'ON_ERROR_STOP=1',
+      '-U',
+      'postgres',
+      '-d',
+      'postgres',
+      '-Atqc',
+      query,
+    ],
+    { encoding: 'utf8' },
+  ).trim()
+}
+test('Owner corrections and whole encounter recovery reach actual PvE, both PvP participants and spectator', async ({
+  browser,
+  baseURL,
+}, info) => {
+  test.skip(
+    info.project.name !== 'desktop-chromium',
+    'This proof explicitly checks desktop/laptop/mobile/narrow/CSS2x.',
+  )
+  test.setTimeout(300000)
+  expect(['localhost', '127.0.0.1']).toContain(
+    new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'http://invalid').hostname,
+  )
+  const contexts = await Promise.all(
+    [0, 1, 2, 3].map(() => browser.newContext({ baseURL, viewport: { width: 1440, height: 900 } })),
+  )
+  const [owner, host, guest, watcher] = (await Promise.all(
+    contexts.map((context) => context.newPage()),
+  )) as [Page, Page, Page, Page]
+  const suffix = randomUUID()
+    .replace(/[^a-z]/g, '')
+    .slice(0, 8)
+  const identities = ['Owner', 'Player', 'Peer', 'Watcher'].map((prefix) => ({
+    email: `players-${prefix}-${randomUUID()}@example.test`,
+    characterName: `${prefix} ${suffix}`,
+  }))
+  let ownerId = ''
+  async function capture(name: string) {
+    const filename = `players-r${info.repeatEachIndex}-${name}.png`
+    const path = info.outputPath(filename)
+    await owner.screenshot({ path, fullPage: true })
+    mkdirSync('/tmp/players-task9-review', { recursive: true })
+    copyFileSync(path, `/tmp/players-task9-review/${filename}`)
+  }
+  try {
+    for (const [index, page] of [owner, host, guest, watcher].entries())
+      await provisionAccountAndEnterCharacter({
+        page,
+        ...identities[index]!,
+        password: 'Disposable-Players-2026!',
+      })
+    ownerId = sql(`select id from auth.users where email='${identities[0]!.email}'`)
+    sql(
+      `insert into app_private.master_panel_role_assignments(user_id,role) values('${ownerId}','game-owner')`,
+    )
+    const characterId = sql(
+      `select c.id from public.characters c join auth.users u on u.id=c.user_id where u.email='${identities[1]!.email}'`,
+    )
+    await owner.goto('/master/players')
+    await expect(owner.getByRole('heading', { name: 'Players', exact: true })).toBeVisible()
+    await expect(
+      owner.getByTestId('authenticated-shell').locator('[data-av-game-rail]'),
+    ).toBeVisible()
+    await owner.getByLabel('Character name', { exact: true }).fill(identities[1]!.characterName)
+    await owner.getByLabel('Character name', { exact: true }).press('Enter')
+    await owner
+      .getByRole('button', { name: `Inspect ${identities[1]!.characterName}`, exact: true })
+      .click()
+    await expect(
+      owner.getByRole('heading', { name: identities[1]!.characterName, exact: true }),
+    ).toBeFocused()
+    for (const [name, width, height, zoom] of [
+      ['desktop', 1440, 900, 1],
+      ['laptop', 1366, 768, 1],
+      ['mobile', 390, 844, 1],
+      ['narrow', 320, 740, 1],
+      ['css2x', 1440, 900, 2],
+    ] as const) {
+      await owner.setViewportSize({ width, height })
+      await owner.evaluate((zoom) => {
+        document.documentElement.style.zoom = String(zoom)
+      }, zoom)
+      expect(
+        await owner.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 2),
+      ).toBe(true)
+      await capture(name)
+    }
+    await owner.evaluate(() => {
+      document.documentElement.style.zoom = '1'
+    })
+    await owner.getByLabel('Total XP', { exact: true }).fill('1')
+    await owner.getByRole('button', { name: 'Review correction', exact: true }).click()
+    await expect(
+      owner.getByRole('heading', { name: 'Review correction', exact: true }),
+    ).toBeFocused()
+    const confirm = owner.getByRole('checkbox', {
+      name: `I confirm this correction for ${identities[1]!.characterName}.`,
+      exact: true,
+    })
+    await confirm.focus()
+    await owner.keyboard.press('Space')
+    await owner.getByRole('button', { name: 'Save confirmed correction', exact: true }).click()
+    await expect(owner.getByRole('status')).toContainText('Correction saved')
+    expect(sql(`select xp from public.characters where id='${characterId}'`)).toBe('1')
+    expect(
+      (
+        await host.request.post('/api/master/players', { data: { operation: 'read', characterId } })
+      ).status(),
+    ).toBe(403)
+    expect(
+      (
+        await owner.request.post('/api/master/players', {
+          data: { operation: 'read', characterId, actorUserId: ownerId },
+        })
+      ).status(),
+    ).toBe(400)
+    await host.goto('/game/battle')
+    await host.getByRole('button', { name: 'Enter Battle', exact: true }).click()
+    await expect(host).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/)
+    const pveId = host.url().split('/').pop()!
+    const pve = await host.request.get(`/api/battles/${pveId}`)
+    expect(pve.ok()).toBe(true)
+    expect(JSON.stringify(await pve.json())).not.toContain('sourceHash')
+    await owner.getByRole('button', { name: 'Refresh player', exact: true }).click()
+    await owner.getByRole('button', { name: 'Review encounter recovery', exact: true }).click()
+    await owner
+      .getByRole('checkbox', {
+        name: 'I confirm ending the encounter for every participant listed above.',
+        exact: true,
+      })
+      .check()
+    await capture('pve-confirmation')
+    await owner.getByRole('button', { name: 'End encounter without rewards', exact: true }).click()
+    await expect(host).toHaveURL(/\/game\/battle$/, { timeout: 10000 })
+    expect(sql(`select xp from public.characters where id='${characterId}'`)).toBe('1')
+    expect((await host.request.post(`/api/battles/${pveId}/mastery`)).ok()).toBe(false)
+    await host.getByRole('button', { name: 'PVP', exact: true }).click()
+    const created = host.waitForResponse(
+      (response) =>
+        response.request().method() === 'POST' &&
+        new URL(response.url()).pathname === '/api/pvp/lobbies',
+    )
+    await host.getByRole('button', { name: 'Create Lobby', exact: true }).click()
+    await host.getByRole('button', { name: 'Create Battle Lobby', exact: true }).click()
+    const { lobby } = await (await created).json()
+    await guest.goto(`/game/battle?join=${encodeURIComponent(lobby.lobbyKey)}`)
+    await guest
+      .getByRole('dialog', { name: 'The arena is waiting.' })
+      .getByRole('button', { name: 'Mark Ready' })
+      .click()
+    await host
+      .getByRole('dialog', { name: 'The arena is waiting.' })
+      .getByRole('button', { name: 'Mark Ready' })
+      .click()
+    await expect(host).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/, { timeout: 20000 })
+    await expect(guest).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/, { timeout: 20000 })
+    const pvpId = host.url().split('/').pop()!
+    const key = (await host.locator('[data-pvp-spectator-key] strong').textContent())!.trim()
+    await watcher.goto(`/game/battle/spectate/${key}`)
+    await expect(watcher.locator('[data-battle-versus]')).toBeVisible()
+    let transient = true
+    await watcher.route(`**/api/pvp/spectate/${key}`, async (route) => {
+      if (transient) {
+        transient = false
+        await route.fulfill({
+          status: 503,
+          json: { error: { message: 'Transient test interruption' } },
+        })
+      } else await route.continue()
+    })
+    await expect(watcher.getByText('Transient test interruption')).toBeVisible()
+    expect(watcher.url()).toContain('/spectate/')
+    await watcher.unroute(`**/api/pvp/spectate/${key}`)
+    await owner.getByRole('button', { name: 'Refresh player', exact: true }).click()
+    await owner.getByRole('button', { name: 'Review encounter recovery', exact: true }).click()
+    await expect(
+      owner.getByRole('heading', { name: 'Confirm all participants', exact: true }),
+    ).toBeFocused()
+    const review = owner
+      .getByRole('heading', { name: 'Confirm all participants', exact: true })
+      .locator('..')
+    await expect(review.getByText(identities[1]!.characterName, { exact: true })).toBeVisible()
+    await expect(review.getByText(identities[2]!.characterName, { exact: true })).toBeVisible()
+    await capture('pvp-all-participants')
+    await owner
+      .getByRole('checkbox', {
+        name: 'I confirm ending the encounter for every participant listed above.',
+        exact: true,
+      })
+      .check()
+    await owner.getByRole('button', { name: 'End encounter without rewards', exact: true }).click()
+    for (const participant of [host, guest, watcher])
+      await expect(participant).toHaveURL(/\/game\/battle$/, { timeout: 10000 })
+    expect(sql(`select xp from public.characters where id='${characterId}'`)).toBe('1')
+    expect(
+      sql(
+        `select count(*) from app_private.discipline_trial_claims where battle_session_id in ('${pveId}','${pvpId}')`,
+      ),
+    ).toBe('0')
+    expect(
+      sql(
+        `select count(*) from app_private.battle_no_contests where battle_session_id in ('${pveId}','${pvpId}')`,
+      ),
+    ).toBe('2')
+  } finally {
+    if (ownerId)
+      sql(
+        `delete from app_private.master_panel_role_assignments where user_id='${ownerId}' and role='game-owner'`,
+      )
+    await Promise.all(contexts.map((context) => context.close()))
+  }
+})

@@ -1,0 +1,39 @@
+{"cwd": "/workspace/scratch/081f137b6a6d/aurevane-players-20261020", "command": ["corepack", "pnpm", "--filter", "@aurevane/db", "exec", "vitest", "run", "src/master-players-recovery.test.ts"], "start": "2026-10-20T18:50:29.843383+00:00"}
+
+ RUN  v4.1.10 /workspace/scratch/081f137b6a6d/aurevane-players-20261020/packages/db
+
+ ❯ src/master-players-recovery.test.ts (31 tests | 1 failed) 3354ms
+   × real new operation denies non-Owner even with explicit actor: select public.recover_master_player_battle_v1($1,$2,gen_random_uuid(),1,array[$2],gen_random_uuid(),null,true,$2) 10ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/master-players-recovery.test.ts > real new operation denies non-Owner even with explicit actor: select public.recover_master_player_battle_v1($1,$2,gen_random_uuid(),1,array[$2],gen_random_uuid(),null,true,$2)
+AssertionError: expected [Function] to throw error matching /OWNER_REQUIRED/ but got 'function public.recover_master_player…'
+
+- Expected:
+/OWNER_REQUIRED/
+
++ Received:
+"function public.recover_master_player_battle_v1(unknown, unknown, uuid, integer, text[], uuid, unknown, boolean, text) does not exist"
+
+ ❯ denied src/master-players-recovery.test.ts:62:28
+     60| async function denied(operation: () => Promise<unknown>, message: RegE…
+     61|   await db.exec('savepoint denied')
+     62|   await expect(operation()).rejects.toThrow(message)
+       |                            ^
+     63|   await db.exec('rollback to savepoint denied')
+     64| }
+ ❯ src/master-players-recovery.test.ts:708:2
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 30 passed (31)
+   Start at  14:50:30
+   Duration  3.62s (transform 47ms, setup 0ms, import 80ms, tests 3.35s, environment 0ms)
+
+undefined
+/workspace/scratch/081f137b6a6d/aurevane-players-20261020/packages/db:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/master-players-recovery.test.ts
+{"end": "2026-10-20T18:50:34.367110+00:00", "exit": 1}
