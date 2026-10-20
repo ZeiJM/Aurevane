@@ -1,6 +1,6 @@
 # Task10 Stage B producer contract
 
-Held until the StageA Important repair passes the same combined source gate and the controller refreshes actual producer/native evidence. This supplements the approved Task10 brief/discovery/reconstruction contract; it does not create a new game design or certify the incomplete editor.
+Active after the same combined reviewer accepted StageA3719ddf4 and the controller refreshed the producer/native evidence. Exact remote9a84f49a subsequently passes native database foundation job118914649654. This supplements the approved Task10 brief/discovery/reconstruction contract; it does not create a new game design or certify the incomplete editor.
 
 Implement real published Discipline/Core/Essence/Resonance selection and per-Skill/per-Discipline earned provenance across actual SQL and consumers. Trace existing producers before changing them. The result must reach profile/Atlas/Manual, creation/allocation, active builds, named loadouts, fresh encounter admission and actual trial/grant paths. A separate authored catalogue, static-only validator or isolated read panel does not satisfy this stage.
 

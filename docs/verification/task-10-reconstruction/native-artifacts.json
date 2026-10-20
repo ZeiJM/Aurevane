@@ -40,5 +40,20 @@
       "jwt": 0,
       "local_cli_key": 1
     }
+  },
+  {
+    "file": "native-stage-a-3719-database-success.log.gz",
+    "run_id": 39505910633,
+    "job_id": 118914649654,
+    "local_source": "3719ddf484167acf2f74cffe049fbb97bb42262e",
+    "remote_source": "9a84f49a175f3b8a62436067071a77400b2af698",
+    "redactions": {
+      "jwt": 0,
+      "local_cli_key": 1,
+      "static_test_password": 1
+    },
+    "sha256": "8dc8c9bca4dae4fcecd16611a0a80351c829e13c8567c5fc997c74bcf1be9f7d",
+    "uncompressed_sha256": "d8be69b07fae88d70cb0eadb13bd3d2ed626fa126a475c785a5f0d3c73650500",
+    "bytes": 105694
   }
 ]
