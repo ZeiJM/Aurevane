@@ -14,7 +14,7 @@ Actual Status authoring/current/prospective validation uses the existing finite 
 
 Effect Profile has no implemented authoring schema/runtime adapter. Preserve every predecessor-compatible object by its authoritative stored envelope, without interpreting incidental body identity/version fields. Retained records are read-only and catalogue entries are non-runtime. New create/save/duplicate/restore/publication remain specifically blocked. Do not turn legacy retention into a new execution promise.
 
-Preserve the actual four-table shared nonblocking archive/admission guards, full archive blockers and named retry/archived caller outcomes. The Players private sourceHash plus numeric buildVersion contract remains authoritative. StageB must connect real published producers to those same locked facts, not create another formula or eligibility store.
+Preserve the actual four-table shared nonblocking archive/admission guards, full archive blockers and named retry/archived caller outcomes. The Players private sourceHash plus numeric buildVersion contract remains authoritative. StageB must connect real published producers to those same locked facts, not create another formula or disconnected eligibility authority. A normalized per-Discipline grant relation attached transactionally to existing learned rows is allowed when actual producers, claims and admission consume the same authoritative facts.
 
 ## Evidence and limits
 
