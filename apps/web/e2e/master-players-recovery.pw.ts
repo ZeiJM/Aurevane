@@ -5,7 +5,7 @@ import { expect, test, type Page } from '@playwright/test'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 import {
   acquirePlayersFixtureOwner,
-  releasePlayersFixtureOwner,
+  cleanupPlayersFixture,
   type FixtureOwner,
 } from './players-local-fixture'
 import type { MasterPlayerView } from '../src/master/players'
@@ -65,6 +65,7 @@ test('Owner corrections and whole encounter recovery reach actual PvE, both PvP 
     characterName: `${prefix} ${suffix}`,
   }))
   let ownerGrant: FixtureOwner | undefined
+  let primaryFailure = false
   async function capture(name: string) {
     const filename = `players-r${info.repeatEachIndex}-${name}.png`
     const path = info.outputPath(filename)
@@ -133,14 +134,18 @@ test('Owner corrections and whole encounter recovery reach actual PvE, both PvP 
     await owner.keyboard.press('Space')
     await owner.getByRole('button', { name: 'Save confirmed correction', exact: true }).click()
     await expect(owner.getByRole('status')).toContainText('Correction saved')
-    expect(sql(`select xp from public.characters where id='${characterId}'`)).toBe('1')
+    await test.step('Verify the first XP correction in SQL', async () => {
+      expect(sql(`select xp from public.characters where id='${characterId}'`)).toBe('1')
+    })
     // Exercise actual form→protected handler→SQL Discipline corrections before fresh admission.
     async function readPlayer() {
-      const response = await owner.request.post('/api/master/players', {
-        data: { operation: 'read', characterId },
+      return test.step('Read current Players facts through the protected API', async () => {
+        const response = await owner.request.post('/api/master/players', {
+          data: { operation: 'read', characterId },
+        })
+        expect(response.status()).toBe(200)
+        return ((await response.json()) as { player: MasterPlayerView }).player
       })
-      expect(response.ok()).toBe(true)
-      return ((await response.json()) as { player: MasterPlayerView }).player
     }
     const original = await readPlayer()
     const originalPrimary = original.facts.build.primary.disciplineId
@@ -150,16 +155,33 @@ test('Owner corrections and whole encounter recovery reach actual PvE, both PvP 
     const nextPrimary = original.disciplines.find(
       (row) => row.primary && row.id !== originalPrimary && row.id !== secondary,
     )!.id
+    // Wrapping label text includes every option; use the control's accessible name.
+    const correctionGroup = owner.getByRole('combobox', { name: 'Correction group', exact: true })
+    async function selectDisciplineGroup() {
+      await test.step('Select the Discipline correction group', async () => {
+        await expect(correctionGroup).toHaveCount(1)
+        await correctionGroup.selectOption('disciplines')
+        await expect(correctionGroup).toHaveValue('disciplines')
+      })
+    }
     async function correctDisciplines(
       change: { primary?: string; secondary?: string | null },
       screenshot: string,
     ) {
       const before = await readPlayer()
-      await owner.getByLabel('Correction group', { exact: true }).selectOption('disciplines')
-      if (change.primary !== undefined)
-        await owner.getByLabel('Primary', { exact: true }).selectOption(change.primary)
-      if (change.secondary !== undefined)
-        await owner.getByLabel('Secondary', { exact: true }).selectOption(change.secondary ?? '')
+      await selectDisciplineGroup()
+      if (change.primary !== undefined) {
+        const primary = owner.getByRole('combobox', { name: 'Primary', exact: true })
+        await expect(primary).toHaveCount(1)
+        await primary.selectOption(change.primary)
+        await expect(primary).toHaveValue(change.primary)
+      }
+      if (change.secondary !== undefined) {
+        const secondary = owner.getByRole('combobox', { name: 'Secondary', exact: true })
+        await expect(secondary).toHaveCount(1)
+        await secondary.selectOption(change.secondary ?? '')
+        await expect(secondary).toHaveValue(change.secondary ?? '')
+      }
       await owner.getByRole('button', { name: 'Review correction', exact: true }).click()
       await expect(
         owner.getByRole('heading', { name: 'Review correction', exact: true }),
@@ -200,7 +222,8 @@ test('Owner corrections and whole encounter recovery reach actual PvE, both PvP 
       expect(after.facts.build.buildVersion).toBeGreaterThan(before.facts.build.buildVersion)
       expect(after.facts.xp).toBe(1)
     }
-    await owner.getByLabel('Correction group', { exact: true }).selectOption('disciplines')
+    await expect(correctionGroup).toHaveValue('source')
+    await selectDisciplineGroup()
     await owner.getByRole('button', { name: 'Review correction', exact: true }).click()
     await expect(owner.getByRole('alert')).toHaveText('Choose a different Primary or Secondary.')
     await correctDisciplines({ secondary }, 'discipline-secondary-only-add')
@@ -315,11 +338,10 @@ test('Owner corrections and whole encounter recovery reach actual PvE, both PvP 
         `select count(*) from app_private.battle_no_contests where battle_session_id in ('${pveId}','${pvpId}')`,
       ),
     ).toBe('2')
+  } catch (error) {
+    primaryFailure = true
+    throw error
   } finally {
-    try {
-      if (ownerGrant) await releasePlayersFixtureOwner(sql, ownerGrant)
-    } finally {
-      await Promise.all(contexts.map((context) => context.close()))
-    }
+    await cleanupPlayersFixture(sql, ownerGrant, contexts, primaryFailure)
   }
 })

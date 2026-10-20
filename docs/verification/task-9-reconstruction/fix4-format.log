@@ -1,0 +1,6 @@
+{"cwd": "/workspace/scratch/081f137b6a6d/aurevane-players-20261020", "argv": ["corepack", "pnpm", "exec", "prettier", "--write", "apps/web/e2e/players-local-fixture.ts", "apps/web/e2e/players-local-fixture.test.ts", "apps/web/e2e/master-players-recovery.pw.ts", ".github/workflows/browser-smoke.yml"], "start": "2026-10-20T20:39:33.636249+00:00"}
+apps/web/e2e/players-local-fixture.ts 66ms (unchanged)
+apps/web/e2e/players-local-fixture.test.ts 23ms
+apps/web/e2e/master-players-recovery.pw.ts 69ms (unchanged)
+.github/workflows/browser-smoke.yml 35ms (unchanged)
+{"end": "2026-10-20T20:39:34.468747+00:00", "exit": 0}
