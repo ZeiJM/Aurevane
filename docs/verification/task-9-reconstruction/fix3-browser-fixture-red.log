@@ -1,0 +1,69 @@
+{"cwd": "/workspace/scratch/081f137b6a6d/aurevane-players-20261020", "command": ["corepack", "pnpm", "--filter", "@aurevane/db", "exec", "vitest", "run", "src/master-players-recovery.test.ts", "-t", "browser fixture"], "start": "2026-10-20T19:54:38.563714+00:00"}
+
+ RUN  v4.1.10 /workspace/scratch/081f137b6a6d/aurevane-players-20261020/packages/db
+
+ ❯ src/master-players-recovery.test.ts (42 tests | 3 failed | 39 skipped) 2300ms
+   × browser fixture resolves the normalized auth identity for mixed-case emails 9ms
+   × browser fixture borrows the protected Owner without creating or deleting another grant 5ms
+   × browser fixture removes only its own bootstrap grant after ordered Staff cleanup 3ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/master-players-recovery.test.ts > browser fixture resolves the normalized auth identity for mixed-case emails
+AssertionError: expected '' to be '00000000-0000-4000-8000-000000000002' // Object.is equality
+
+- Expected
++ Received
+
+- 00000000-0000-4000-8000-000000000002
+
+ ❯ src/master-players-recovery.test.ts:916:84
+    914| }
+    915| it('browser fixture resolves the normalized auth identity for mixed-ca…
+    916|   expect(await resolvePlayersFixtureUser(browserFixtureSql, 'Other@Exa…
+       |                                                                                    ^
+    917| })
+    918| it('browser fixture borrows the protected Owner without creating or de…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  src/master-players-recovery.test.ts > browser fixture borrows the protected Owner without creating or deleting another grant
+error: duplicate key value violates unique constraint "master_panel_single_enabled_game_owner_uq"
+ ❯ pe.Ue ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pg-protocol/src/parser.ts:442:10
+ ❯ pe.tt ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pg-protocol/src/parser.ts:220:15
+ ❯ pe.parse ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pg-protocol/src/parser.ts:104:20
+ ❯ N.qe ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pglite/src/pglite.ts:753:25
+ ❯ ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pglite/src/pglite.ts:706:13
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:5922000
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:2616044
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:2648530
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:2649134
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:5569870
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  src/master-players-recovery.test.ts > browser fixture removes only its own bootstrap grant after ordered Staff cleanup
+error: invalid input syntax for type uuid: ""
+ ❯ pe.Ue ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pg-protocol/src/parser.ts:442:10
+ ❯ pe.tt ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pg-protocol/src/parser.ts:220:15
+ ❯ pe.parse ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pg-protocol/src/parser.ts:104:20
+ ❯ N.qe ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pglite/src/pglite.ts:753:25
+ ❯ ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pglite/src/pglite.ts:706:13
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:5922000
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:2616044
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:2648530
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:2649134
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:5569870
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 39 skipped (42)
+   Start at  15:54:39
+   Duration  2.60s (transform 51ms, setup 0ms, import 86ms, tests 2.30s, environment 0ms)
+
+undefined
+/workspace/scratch/081f137b6a6d/aurevane-players-20261020/packages/db:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/master-players-recovery.test.ts -t 'browser fixture'
+{"end": "2026-10-20T19:54:41.922865+00:00", "exit": 1}

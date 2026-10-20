@@ -3,6 +3,11 @@ import { copyFileSync, mkdirSync } from 'node:fs'
 import { randomUUID } from 'node:crypto'
 import { expect, test, type Page } from '@playwright/test'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
+import {
+  acquirePlayersFixtureOwner,
+  releasePlayersFixtureOwner,
+  type FixtureOwner,
+} from './players-local-fixture'
 import type { MasterPlayerView } from '../src/master/players'
 
 function sql(query: string) {
@@ -59,7 +64,7 @@ test('Owner corrections and whole encounter recovery reach actual PvE, both PvP 
     email: `players-${prefix}-${randomUUID()}@example.test`,
     characterName: `${prefix} ${suffix}`,
   }))
-  let ownerId = ''
+  let ownerGrant: FixtureOwner | undefined
   async function capture(name: string) {
     const filename = `players-r${info.repeatEachIndex}-${name}.png`
     const path = info.outputPath(filename)
@@ -68,19 +73,21 @@ test('Owner corrections and whole encounter recovery reach actual PvE, both PvP 
     copyFileSync(path, `/tmp/players-task9-review/${filename}`)
   }
   try {
+    const accounts: { userId: string }[] = []
     for (const [index, page] of [owner, host, guest, watcher].entries())
-      await provisionAccountAndEnterCharacter({
-        page,
-        ...identities[index]!,
-        password: 'Disposable-Players-2026!',
-      })
-    ownerId = sql(`select id from auth.users where email='${identities[0]!.email}'`)
-    sql(
-      `insert into app_private.master_panel_role_assignments(user_id,role) values('${ownerId}','game-owner')`,
-    )
+      accounts.push(
+        await provisionAccountAndEnterCharacter({
+          page,
+          ...identities[index]!,
+          password: 'Disposable-Players-2026!',
+        }),
+      )
+    const ownerId = accounts[0]!.userId
+    ownerGrant = await acquirePlayersFixtureOwner(sql, ownerId)
     const characterId = sql(
-      `select c.id from public.characters c join auth.users u on u.id=c.user_id where u.email='${identities[1]!.email}'`,
+      `select id from public.characters where user_id='${accounts[1]!.userId}'`,
     )
+    expect(characterId).toMatch(/^[0-9a-f-]{36}$/u)
     await owner.goto('/master/players')
     await expect(owner.getByRole('heading', { name: 'Players', exact: true })).toBeVisible()
     await expect(
@@ -309,10 +316,10 @@ test('Owner corrections and whole encounter recovery reach actual PvE, both PvP 
       ),
     ).toBe('2')
   } finally {
-    if (ownerId)
-      sql(
-        `delete from app_private.master_panel_role_assignments where user_id='${ownerId}' and role='game-owner'`,
-      )
-    await Promise.all(contexts.map((context) => context.close()))
+    try {
+      if (ownerGrant) await releasePlayersFixtureOwner(sql, ownerGrant)
+    } finally {
+      await Promise.all(contexts.map((context) => context.close()))
+    }
   }
 })

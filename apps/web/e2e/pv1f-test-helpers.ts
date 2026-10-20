@@ -133,19 +133,21 @@ export async function provisionAccountAndEnterCharacter(input: {
   email: string
   password: string
   characterName: string
-}): Promise<void> {
+}): Promise<{ userId: string }> {
   const { page, email, password, characterName } = input
   const supabase = createTestAuthAdminClient()
-  const { error } = await supabase.auth.admin.createUser({
+  const { data, error } = await supabase.auth.admin.createUser({
     email,
     password,
     email_confirm: true,
   })
 
   if (error) throw error
+  if (!data.user?.id) throw new Error('Local Supabase did not return a created user ID.')
 
   await signInExistingAccount({ page, email, password })
   await createCharacterAfterSignIn({ page, characterName })
+  return { userId: data.user.id }
 }
 
 export async function signOutFromAccountMenu(page: Page): Promise<void> {
