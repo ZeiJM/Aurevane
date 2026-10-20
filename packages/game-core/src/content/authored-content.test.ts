@@ -115,3 +115,56 @@ it.each(['', ' ', '\u2003', 'bad\u0007text', ' padded'])(
   'rejects blank, control or untrimmed display text %j',
   (name) => expect(() => parseNoncombatContentDefinition('item', { ...item, name })).toThrow(),
 )
+
+const publishedDiscipline = {
+  ...discipline,
+  unlock: {
+    kind: 'all',
+    rules: [
+      { kind: 'mastery', disciplineId: 'vanguard', minimumStage: 2 },
+      { kind: 'rekindling', minimumCount: 1 },
+    ],
+  },
+  atlas: {
+    family: 'martial',
+    band: 'first-journey',
+    disclosure: 'open',
+    power: { reliability: 3, flexibility: 3, setup: 3, ruleAccess: 3, execution: 3 },
+  },
+  linkedSkills: ['vanguard.forceful-strike'],
+  skillStages: [{ skillId: 'vanguard.forceful-strike', minimumStage: 2 }],
+  essenceId: null,
+  resonanceSelections: [{ withDisciplineId: 'vanguard', resonanceId: 'resonance.test' }],
+}
+it('accepts an explicit Discipline Core, actual supported progression and current relationship intent', () => {
+  expect(parseNoncombatContentDefinition('discipline', publishedDiscipline)).toEqual(
+    publishedDiscipline,
+  )
+})
+it.each([
+  { ...publishedDiscipline, unlock: { kind: 'flag', id: 'invented', label: 'Invented discovery' } },
+  { ...publishedDiscipline, core: { ...discipline.core, might: 7 } },
+  { ...publishedDiscipline, focus: ['might', 'might'] },
+  { ...publishedDiscipline, skillStages: [] },
+  {
+    ...publishedDiscipline,
+    skillStages: [{ skillId: 'vanguard.forceful-strike', minimumStage: 6 }],
+  },
+  {
+    ...publishedDiscipline,
+    atlas: {
+      ...publishedDiscipline.atlas,
+      power: { ...publishedDiscipline.atlas.power, setup: 0 },
+    },
+  },
+  {
+    ...publishedDiscipline,
+    resonanceSelections: [{ withDisciplineId: 'draft.test', resonanceId: 'resonance.test' }],
+  },
+  { ...publishedDiscipline, essenceId: 1 },
+])(
+  'rejects unsupported Discipline publication fields rather than inventing authority',
+  (definition) => {
+    expect(() => parseNoncombatContentDefinition('discipline', definition)).toThrow()
+  },
+)

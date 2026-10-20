@@ -1,6 +1,7 @@
 import { parseAbilityDefinition, type AbilityDefinition } from '../combat/combat-definition'
 import { validateAbilityRequirements, type RequirementNode } from '../combat/combat-requirements'
 import { combatTagDefinition } from '../combat/combat-tag-registry'
+import type { DisciplineAtlasEntry, DisciplineMasteryStage } from '../character/discipline-atlas'
 
 export const NONCOMBAT_CONTENT_KINDS = [
   'discipline',
@@ -38,6 +39,16 @@ export interface AuthoredTransformation extends AuthoredIdentity {
     readonly description: string
   }
 }
+/** These are the release prerequisites backed by current character progression facts. */
+export type AuthoredDisciplineUnlock =
+  | { readonly kind: 'always' }
+  | {
+      readonly kind: 'mastery'
+      readonly disciplineId: string
+      readonly minimumStage: DisciplineMasteryStage
+    }
+  | { readonly kind: 'rekindling'; readonly minimumCount: 1 | 2 | 3 }
+  | { readonly kind: 'all'; readonly rules: readonly AuthoredDisciplineUnlock[] }
 export interface AuthoredDiscipline extends AuthoredIdentity {
   readonly core: Readonly<
     Record<'might' | 'finesse' | 'vitality' | 'agility' | 'intellect' | 'resolve', number>
@@ -46,7 +57,18 @@ export interface AuthoredDiscipline extends AuthoredIdentity {
   readonly enabledForPrimary: boolean
   readonly enabledForSecondary: boolean
   readonly linkedSkills: readonly string[]
-  readonly unlock: { readonly kind: 'unavailable' }
+  readonly unlock: AuthoredDisciplineUnlock | { readonly kind: 'unavailable' }
+  /** Absent on retained Stage A drafts. Publication requires the complete producer envelope. */
+  readonly atlas?: Pick<DisciplineAtlasEntry, 'family' | 'band' | 'disclosure' | 'power'>
+  readonly skillStages?: readonly {
+    readonly skillId: string
+    readonly minimumStage: DisciplineMasteryStage
+  }[]
+  readonly essenceId?: string | null
+  readonly resonanceSelections?: readonly {
+    readonly withDisciplineId: string
+    readonly resonanceId: string
+  }[]
 }
 export interface AuthoredTag extends AuthoredIdentity {
   readonly tagId: string
@@ -95,6 +117,39 @@ const COMMON = [
   'media',
 ]
 const ATTRIBUTES = ['might', 'finesse', 'vitality', 'agility', 'intellect', 'resolve'] as const
+function masteryStage(value: unknown, path: string): void {
+  if (!Number.isInteger(value) || Number(value) < 1 || Number(value) > 5)
+    invalid(path, 'Choose an implemented mastery stage from 1 to 5.')
+}
+function validateDisciplineUnlock(
+  value: unknown,
+  path: string,
+  disciplineId: string,
+  depth = 0,
+): void {
+  if (depth > 8) invalid(path, 'Prerequisites may nest at most 8 levels.')
+  const row = object(value, path, ['kind', 'disciplineId', 'minimumStage', 'minimumCount', 'rules'])
+  if (row.kind === 'always' || (row.kind === 'unavailable' && depth === 0)) {
+    object(row, path, ['kind'])
+  } else if (row.kind === 'mastery') {
+    object(row, path, ['kind', 'disciplineId', 'minimumStage'])
+    id(row.disciplineId, `${path}.disciplineId`)
+    if (row.disciplineId === disciplineId)
+      invalid(path, 'A Discipline cannot require its own mastery.')
+    masteryStage(row.minimumStage, `${path}.minimumStage`)
+  } else if (row.kind === 'rekindling') {
+    object(row, path, ['kind', 'minimumCount'])
+    if (![1, 2, 3].includes(row.minimumCount as number))
+      invalid(path, 'Choose an implemented Rekindling count.')
+  } else if (row.kind === 'all') {
+    object(row, path, ['kind', 'rules'])
+    if (!Array.isArray(row.rules) || row.rules.length < 1 || row.rules.length > 32)
+      invalid(path, 'Use 1–32 supported prerequisites.')
+    row.rules.forEach((rule, index) =>
+      validateDisciplineUnlock(rule, `${path}.rules.${index}`, disciplineId, depth + 1),
+    )
+  } else invalid(path, 'This prerequisite has no authoritative progression producer.')
+}
 /** Finite authoring intents only. These records never grant ownership or activate a runtime. */
 export function parseNoncombatContentDefinition(
   kind: NoncombatContentKind,
@@ -102,7 +157,18 @@ export function parseNoncombatContentDefinition(
 ): NoncombatContentDefinition {
   const specific =
     kind === 'discipline'
-      ? ['core', 'focus', 'enabledForPrimary', 'enabledForSecondary', 'linkedSkills', 'unlock']
+      ? [
+          'core',
+          'focus',
+          'enabledForPrimary',
+          'enabledForSecondary',
+          'linkedSkills',
+          'unlock',
+          'atlas',
+          'skillStages',
+          'essenceId',
+          'resonanceSelections',
+        ]
       : kind === 'tag'
         ? ['tagId', 'explanation']
         : kind === 'item'
@@ -148,8 +214,59 @@ export function parseNoncombatContentDefinition(
     )
       invalid('linkedSkills', 'Use at most 256 distinct Skill references.')
     row.linkedSkills.forEach((key, index) => id(key, `linkedSkills.${index}`))
-    if (object(row.unlock, 'unlock', ['kind']).kind !== 'unavailable')
-      invalid('unlock', 'Authored Discipline admission is not available yet.')
+    validateDisciplineUnlock(row.unlock, 'unlock', row.id)
+    const extended = ['atlas', 'skillStages', 'essenceId', 'resonanceSelections']
+    if (
+      extended.some((key) => Object.hasOwn(row, key)) ||
+      (row.unlock as { kind: string }).kind !== 'unavailable'
+    ) {
+      const atlas = object(row.atlas, 'atlas', ['family', 'band', 'disclosure', 'power'])
+      if (!['foundation', 'martial', 'hybrid', 'mage', 'support'].includes(atlas.family as string))
+        invalid('atlas.family', 'Choose a supported Discipline family.')
+      if (
+        !['foundation', 'first-journey', 'rekindling-1', 'rekindling-2', 'rekindling-3'].includes(
+          atlas.band as string,
+        )
+      )
+        invalid('atlas.band', 'Choose a supported progression band.')
+      // Secret revelation has no current persisted producer. Do not promise invented discovery.
+      if (atlas.disclosure !== 'open')
+        invalid('atlas.disclosure', 'Secret discovery authoring is not supported.')
+      const axes = ['reliability', 'flexibility', 'setup', 'ruleAccess', 'execution']
+      const power = object(atlas.power, 'atlas.power', axes)
+      if (
+        axes.some(
+          (axis) =>
+            !Number.isInteger(power[axis]) || Number(power[axis]) < 1 || Number(power[axis]) > 5,
+        )
+      )
+        invalid('atlas.power', 'Every power axis must be an integer from 1 to 5.')
+      if (!Array.isArray(row.skillStages) || row.skillStages.length !== row.linkedSkills.length)
+        invalid('skillStages', 'Every linked Skill needs exactly one earned progression stage.')
+      const seen = new Set<string>()
+      row.skillStages.forEach((value, index) => {
+        const path = `skillStages.${index}`
+        const stage = object(value, path, ['skillId', 'minimumStage'])
+        id(stage.skillId, `${path}.skillId`)
+        if (!(row.linkedSkills as string[]).includes(stage.skillId) || seen.has(stage.skillId))
+          invalid(path, 'Stage references must match the distinct linked Skills.')
+        seen.add(stage.skillId)
+        masteryStage(stage.minimumStage, `${path}.minimumStage`)
+      })
+      if (row.essenceId !== null) id(row.essenceId, 'essenceId')
+      if (!Array.isArray(row.resonanceSelections) || row.resonanceSelections.length > 256)
+        invalid('resonanceSelections', 'Use at most 256 explicit Discipline pair selections.')
+      const pairs = new Set<string>()
+      row.resonanceSelections.forEach((value, index) => {
+        const path = `resonanceSelections.${index}`
+        const pair = object(value, path, ['withDisciplineId', 'resonanceId'])
+        id(pair.withDisciplineId, `${path}.withDisciplineId`)
+        id(pair.resonanceId, `${path}.resonanceId`)
+        if (pair.withDisciplineId === row.id || pairs.has(pair.withDisciplineId))
+          invalid(path, 'Choose each other Discipline at most once.')
+        pairs.add(pair.withDisciplineId)
+      })
+    }
   } else if (kind === 'tag') {
     text(row.tagId, 'tagId', 160)
     if (!combatTagDefinition(row.tagId)) invalid('tagId', 'Choose an implemented registry Tag.')
