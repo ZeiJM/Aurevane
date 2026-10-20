@@ -24,9 +24,18 @@ export function parseCompleteCombatContentRecord(value: unknown): CompleteCombat
       !Array.isArray(value.history) ||
       value.history.length > 3 ||
       !Array.isArray(value.links) ||
+      value.links.length > 256 ||
       !value.links.every(string) ||
       !Array.isArray(value.usedBy) ||
-      !value.usedBy.every((v) => object(v) && string(v.kind) && string(v.key))
+      value.usedBy.length > 100 ||
+      (value.usedByTruncated !== undefined && typeof value.usedByTruncated !== 'boolean') ||
+      !value.usedBy.every(
+        (v) =>
+          object(v) &&
+          string(v.kind) &&
+          string(v.key) &&
+          (v.blocking === undefined || typeof v.blocking === 'boolean'),
+      )
     )
       throw new TypeError('Invalid record identity.')
     for (const field of ['createdBy', 'createdAt'])

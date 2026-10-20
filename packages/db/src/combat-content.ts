@@ -358,7 +358,12 @@ export interface CompleteCombatContentRecord {
   } | null
   readonly current: CompleteCombatContentVersion | null
   readonly history: readonly CompleteCombatContentVersion[]
-  readonly usedBy: readonly { readonly kind: string; readonly key: string }[]
+  readonly usedBy: readonly {
+    readonly kind: string
+    readonly key: string
+    readonly blocking?: boolean
+  }[]
+  readonly usedByTruncated?: boolean
   readonly links: readonly string[]
 }
 export type CompleteCombatContentWrite =

@@ -36,6 +36,8 @@ state_expression="jsonb_build_object(
   'requests',(select coalesce(jsonb_agg(to_jsonb(r) order by actor_user_id,request_id),'[]') from app_private.combat_content_record_requests r),
   'links',(select coalesce(jsonb_agg(to_jsonb(l) order by parent_key,child_key),'[]') from app_private.combat_content_links l),
   'attribution',(select coalesce(jsonb_agg(to_jsonb(a) order by version_id),'[]') from app_private.combat_content_attribution a),
+  'references',(select coalesce(jsonb_agg(to_jsonb(r) order by source_key,version_key,target_key),'[]') from app_private.combat_content_references r),
+  'builtinSelections',(select coalesce(jsonb_agg(to_jsonb(s) order by kind,selection_key),'[]') from app_private.combat_content_builtin_selections s),
   'characters',(select coalesce(jsonb_agg(to_jsonb(c) order by id),'[]') from public.characters c),
   'earned',(select coalesce(jsonb_agg(to_jsonb(u) order by character_id,skill_id),'[]') from app_private.character_skill_unlocks u),
   'equipped',(select coalesce(jsonb_agg(to_jsonb(e) order by character_id,slot_index),'[]') from app_private.character_build_discipline_skills e),
@@ -56,6 +58,8 @@ wait_for_query() {
 race() {
   local label="$1" holder_sql="$2" writer_sql="$3" finish="${4:-commit}"
   local expected_error="${5-COMBAT_CONTENT_CATALOGUE_CONFLICT}" schedule="${6:-blocking}"
+  local writer_timeout='30s'
+  if [ "$schedule" = immediate ]; then writer_timeout='3s'; fi
   local catalogue_token before_state writer_result expected_state
   catalogue_token="$(sql "select public.read_combat_content_catalogue_v1()->>'token';")"
   before_state="$(sql "select $state_expression;")"
@@ -77,7 +81,7 @@ SQL
     >"$race_tmp/$label-writer.log" 2>&1 <<SQL &
 begin;
 \\set VERBOSITY verbose
-set local statement_timeout='3s';
+set local statement_timeout='$writer_timeout';
 set local role service_role;
 $writer_sql
 rollback;

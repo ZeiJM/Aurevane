@@ -108,6 +108,29 @@ async function create(key = 'content.test') {
     definition: { ...definition, id: key },
   })
 }
+async function createDiscipline() {
+  return write('discipline.test', {
+    action: 'create',
+    requestId: '00000000-0000-4000-8000-000000000091',
+    contentKind: 'discipline',
+    definition: {
+      schemaVersion: 1,
+      id: 'discipline.test',
+      contentVersion: 1,
+      name: 'Dependency Discipline',
+      description: 'A draft dependency owner.',
+      sortOrder: 0,
+      enabled: true,
+      media: {},
+      core: { might: 8, finesse: 4, vitality: 7, agility: 4, intellect: 4, resolve: 4 },
+      focus: ['might', 'vitality'],
+      enabledForPrimary: true,
+      enabledForSecondary: true,
+      linkedSkills: [],
+      unlock: { kind: 'unavailable' },
+    },
+  })
+}
 async function publish(
   key: string,
   revision: number,
@@ -284,7 +307,7 @@ it('archive blocks phase4 provisioning membership without rewriting catalogue or
   )
   expect(await record('content.test')).toEqual(before)
   expect((await record('content.test')).usedBy).toEqual([
-    { kind: 'phase4-catalogue', key: 'content.test' },
+    { kind: 'phase4-catalogue', key: 'content.test', blocking: true },
   ])
 })
 it('all actual admission tables reject archived links with complete statement rollback', async () => {
@@ -667,4 +690,187 @@ it('native concurrency rollback snapshot reads the complete actual content and p
       'phase4',
     ]),
   )
+})
+it('indexed live definition dependencies block archive, retained history stays readable, and new archived references fail closed', async () => {
+  const parent = await createDiscipline()
+  const child = await write('content.child', {
+    action: 'create',
+    requestId: '00000000-0000-4000-8000-000000000099',
+    contentKind: 'skill',
+    definition: { ...definition, id: 'content.child', sourceDisciplineId: 'discipline.test' },
+  })
+  expect((await record('discipline.test')).usedBy).toContainEqual({
+    kind: 'definition-draft',
+    key: 'content.child',
+    blocking: true,
+  })
+  await denied(
+    () => write('discipline.test', { action: 'archive', expectedRevision: parent.revision }),
+    /DEPENDENCIES/,
+  )
+  const current = await publish('content.child', child.draft.draftVersion, null)
+  await denied(
+    () => write('discipline.test', { action: 'archive', expectedRevision: parent.revision }),
+    /DEPENDENCIES/,
+  )
+  await write('content.child', { action: 'archive', expectedRevision: current.revision })
+  const archived = await write('discipline.test', {
+    action: 'archive',
+    expectedRevision: parent.revision,
+  })
+  expect(archived.usedBy).toContainEqual({
+    kind: 'definition-history',
+    key: `content.child@${current.current.contentVersion}`,
+    blocking: false,
+  })
+  await denied(
+    () =>
+      write('content.new', {
+        action: 'create',
+        requestId: '00000000-0000-4000-8000-000000000098',
+        contentKind: 'skill',
+        definition: { ...definition, id: 'content.new', sourceDisciplineId: 'discipline.test' },
+      }),
+    /ARCHIVED/,
+  )
+  expect(await record('content.new')).toBeNull()
+  expect(
+    (
+      await db.query(
+        "select * from public.read_combat_content_version_v1('content.child','skill',$1)",
+        [current.current.contentVersion],
+      )
+    ).rows,
+  ).toHaveLength(1)
+})
+it('Used-by output is bounded and explicitly reports omitted references without weakening archive checks', async () => {
+  await createDiscipline()
+  await db.query(
+    `do $body$ begin for i in 1..105 loop perform public.write_combat_content_record_v1('${owner}',null,'content.ref-'||i,jsonb_build_object('action','create','requestId',gen_random_uuid(),'contentKind','skill','definition',jsonb_build_object('id','content.ref-'||i,'sourceDisciplineId','discipline.test'))); end loop; end; $body$`,
+  )
+  const parent = await record('discipline.test')
+  expect(parent.usedBy).toHaveLength(100)
+  expect(parent).toMatchObject({ usedByTruncated: true })
+  await denied(
+    () => write('discipline.test', { action: 'archive', expectedRevision: parent.revision }),
+    /DEPENDENCIES/,
+  )
+})
+it('late publication failure rolls back immutable history, attribution, revision, draft and pointer together', async () => {
+  const first = await create()
+  const script = readFileSync(
+    resolve(root, '../../.github/scripts/verify-combat-catalogue-concurrency.sh'),
+    'utf8',
+  )
+  const expression = script.match(/state_expression="([\s\S]*?)"\nwait_for_query/)![1]
+  const snapshot = async () =>
+    (await db.query<{ state: string }>(`select ${expression} state`)).rows[0]!.state
+  const before = await snapshot()
+  await db.exec(
+    `create function app_private.fail_content_test() returns trigger language plpgsql as $$ begin raise exception 'FORCED_LATE_PUBLICATION_FAILURE'; end; $$; create trigger forced_content_failure after insert on app_private.combat_content_attribution for each row execute function app_private.fail_content_test();`,
+  )
+  await denied(
+    () => publish('content.test', first.draft.draftVersion, null),
+    /FORCED_LATE_PUBLICATION_FAILURE/,
+  )
+  expect(await snapshot()).toBe(before)
+})
+it('actual builtin pure and pair selectors are specific Used-by blockers, while unrelated custom records remain archivable', async () => {
+  const keys = (
+    await db.query<{ content_key: string }>(
+      "select distinct on(content_kind) content_key from app_private.combat_content_records where content_kind in ('essence','resonance') order by content_kind,content_key",
+    )
+  ).rows
+  expect(keys).toHaveLength(2)
+  for (const { content_key: key } of keys) {
+    const r = await record(key)
+    expect(r.usedBy).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: expect.stringMatching(/^builtin-(essence|resonance)-selection$/),
+          blocking: true,
+        }),
+      ]),
+    )
+    await denied(
+      () => write(key, { action: 'archive', expectedRevision: r.revision }),
+      /BUILTIN_SELECTION_DEPENDENCY/,
+    )
+  }
+  const custom = await create()
+  expect(
+    (await write('content.test', { action: 'archive', expectedRevision: custom.revision }))
+      .lifecycle,
+  ).toBe('archived')
+})
+it('all physical versions survive an old pointer rollback and allocation never reuses their numbers', async () => {
+  let r = await create()
+  r = await publish('content.test', r.draft.draftVersion, null, 10)
+  const first = r.current.contentVersion
+  for (let i = 0; i < 3; i++) {
+    const base = r.current.contentVersion
+    r = await write('content.test', {
+      action: 'save',
+      expectedRevision: r.revision,
+      definition: { ...definition, name: `Revision ${i}` },
+    })
+    r = await publish('content.test', r.draft.draftVersion, base, 1)
+  }
+  expect(r.history).toHaveLength(3)
+  await db.exec(
+    `update app_private.combat_content_publications set version_id=(select id from app_private.combat_content_versions where content_key='content.test' and content_version=${first}) where content_key='content.test'`,
+  )
+  const saved = await write('content.test', {
+    action: 'save',
+    expectedRevision: r.revision,
+    definition,
+  })
+  const next = await publish('content.test', saved.draft.draftVersion, first, 1)
+  expect(next.current.contentVersion).toBe(first + 4)
+  expect(
+    (
+      await db.query(
+        "select content_version from app_private.combat_content_versions where content_key='content.test' order by content_version",
+      )
+    ).rows,
+  ).toEqual(
+    [first, first + 1, first + 2, first + 3, first + 4].map((content_version) => ({
+      content_version,
+    })),
+  )
+  expect(
+    (
+      await db.query(
+        "select * from public.read_combat_content_version_v1('content.test','skill',$1)",
+        [first],
+      )
+    ).rows,
+  ).toHaveLength(1)
+})
+it('late create-with-parent request failure rolls back child, link, parent revision and all reverse references', async () => {
+  const parent = await createDiscipline()
+  const script = readFileSync(
+    resolve(root, '../../.github/scripts/verify-combat-catalogue-concurrency.sh'),
+    'utf8',
+  )
+  const expression = script.match(/state_expression="([\s\S]*?)"\nwait_for_query/)![1]
+  const snapshot = async () =>
+    (await db.query<{ state: string }>(`select ${expression} state`)).rows[0]!.state
+  const before = await snapshot()
+  await db.exec(
+    `create function app_private.fail_content_request_test() returns trigger language plpgsql as $$ begin raise exception 'FORCED_LATE_REQUEST_FAILURE'; end; $$; create trigger forced_content_failure before insert on app_private.combat_content_record_requests for each row execute function app_private.fail_content_request_test();`,
+  )
+  await denied(
+    () =>
+      write('content.test', {
+        action: 'create',
+        requestId: '00000000-0000-4000-8000-000000000099',
+        contentKind: 'skill',
+        definition,
+        parentKey: 'discipline.test',
+        expectedParentRevision: parent.revision,
+      }),
+    /FORCED_LATE_REQUEST_FAILURE/,
+  )
+  expect(await snapshot()).toBe(before)
 })
