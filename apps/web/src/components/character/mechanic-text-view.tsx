@@ -8,9 +8,11 @@ import styles from './compact-skill-effect-summary.module.css'
 export function MechanicTextView({
   text,
   parts,
+  emphasizeTags = false,
 }: {
   text: string
   parts?: readonly MechanicTextPart[]
+  emphasizeTags?: boolean
 }) {
   if (!parts || plainMechanicText(parts) !== text) return text
   return parts.map((part, index) =>
@@ -27,7 +29,15 @@ export function MechanicTextView({
         label={`Explain ${part.label}`}
         title={part.label}
         className={styles.reference}
-        trigger={<span data-combat-tag-reference={part.tag}>{part.label}</span>}
+        trigger={
+          emphasizeTags ? (
+            <strong className={styles.label} data-combat-tag-reference={part.tag}>
+              {part.label}
+            </strong>
+          ) : (
+            <span data-combat-tag-reference={part.tag}>{part.label}</span>
+          )
+        }
       >
         <p>{part.explanation}</p>
       </BattleInfoPopover>

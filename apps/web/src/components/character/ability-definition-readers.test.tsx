@@ -56,7 +56,6 @@ function assertReport(html: string) {
   ])
   expect(html).toContain('11 AP / 2 MP / 1 HP')
   expect(html.replace(/<[^>]*>/gu, '')).toContain('MP [≥ 3] [Self]')
-  expect(html).toContain('Once per battle')
   expect(html).toContain('data-compact-effect-magnitude="true">[13]</span>')
   expect(html).toContain('data-compact-effect-label="true">Move</strong>')
   expect(html).toContain('data-compact-effect-timing="true">[Controlled]</span>')
@@ -66,16 +65,26 @@ function assertReport(html: string) {
 }
 it('renders current and read-only Master Skill details from the canonical group', () => {
   const before = JSON.stringify(skill)
-  assertReport(renderToStaticMarkup(<SkillDetails skill={skill} expanded />))
-  assertReport(renderToStaticMarkup(<SkillDetails skill={projectPublicCombat(skill)} />))
+  for (const node of [
+    <SkillDetails key="current" skill={skill} expanded />,
+    <SkillDetails key="master" skill={projectPublicCombat(skill)} />,
+  ]) {
+    const html = renderToStaticMarkup(node)
+    assertReport(html)
+    expect(html).toContain('Once per battle')
+  }
   expect(JSON.stringify(skill)).toBe(before)
 })
 it('renders full current Nexus parameter reports from canonical mechanics', () => {
-  assertReport(renderToStaticMarkup(<SkillParameters skill={skill} />))
+  const html = renderToStaticMarkup(<SkillParameters skill={skill} />)
+  assertReport(html)
+  expect(html).toContain('Once per battle')
 })
 it('renders canonical Resonance behaviors without entering the legacy combo normalizer', () => {
   const resonance = { ...resolveResonanceForPair('wildwarden', 'edgedancer')!, ability }
-  assertReport(renderToStaticMarkup(<ResonanceParameters definition={resonance} />))
+  const html = renderToStaticMarkup(<ResonanceParameters definition={resonance} />)
+  assertReport(html)
+  expect(html).not.toContain('Once per battle')
 })
 it('keeps multiple groups separate and describes Ongoing 12.5% by its maintained lifetime', () => {
   const multi = parseAbilityDefinition({

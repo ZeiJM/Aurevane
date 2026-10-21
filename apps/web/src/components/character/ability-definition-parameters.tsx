@@ -16,11 +16,13 @@ export function AbilityDefinitionParameters({
   effectDescriptions,
   characteristicsClassName,
   effectExplanationsClassName,
+  showActivationNotes = true,
 }: {
   definition: PublicAbilityDefinition
   effectDescriptions?: readonly (string | null)[]
   characteristicsClassName?: string
   effectExplanationsClassName?: string
+  showActivationNotes?: boolean
 }) {
   const timingPolicy = useSkillEffectTimingPolicy()
   const groundRules = useSkillGroundInteractionRules()
@@ -69,6 +71,7 @@ export function AbilityDefinitionParameters({
               }}
               characteristicsClassName={characteristicsClassName}
               effectExplanationsClassName={effectExplanationsClassName}
+              showActivationNotes={showActivationNotes}
             />
           </section>
         )

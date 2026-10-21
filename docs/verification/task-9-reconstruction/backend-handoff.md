@@ -1,0 +1,41 @@
+# Accepted Players source and native producer handoff
+
+Current final reviewed source59b63728/remote43ff3cad passes native database, complete quality, UI layout and the full Browser workflow. This accepts its source/native producer for Task10 integration; physical-device/zoom, hosted signed-in/multiplayer, human and final shared-shell acceptance remain separate. No main merge, hosted mutation or deployment is authorized. Earlier staged notes below retain their source-specific history; the final confirmation supersedes their pending native statuses.
+
+Initial bounded handoff source (historical): local `3a791c060efda502f8f5cb03dc052a5aefaefb9c`, exact remote `aa971de38eae662caf95c2bb12309e1068298c87`, tree `61d2718f84c35e4f32c86ee4abe5c50985de7ff9`. Original full review and all three scoped repair reviews have no remaining Critical/Important source findings. Deferred Minors remain recorded.
+
+Actual native PostgreSQL job118843150721/run39485042827 at remotea56/locald2 passes unchanged migrations, selected Staff authority/explicit37 actor RPC inventory, all physical Players completion/recovery/admission/trial races and every subsequent Event/reward/cleanup/profile/deletion/progression/API/catalogue check. Round3 changes only E2E fixtures/tests/evidence; production Web source, game core, migration and native scripts remain byte-identical. Round3 adds4 focused actual-chain guard cases;39skipped. Prior a0 native11947Vitest+7Node and current d2 local2/2 executed builds remain separately identified. The unchanged combat timeout's narrow rerun passes2 cases/322skips; this does not turn native quality green.
+
+## Consumer contract
+
+- Preserve server-derived selected actor and live Owner-only Players authority through existing staff.manage/assert_game_owner_v1; do not invent delegated Players powers. Four service-only Players RPCs extend original33 actor overload/predecessor/denial checks to37. Content's four new complete-record actor operations must extend this to41 without weakening prior checks.
+- Current corrections use actual progression/build/allocation facts, fingerprint/CAS/idempotency/audit, and increment numeric buildVersion. Every corrected admission requires both exact private source SHA256 and numeric current buildVersion; actual account/character/build locks prevent correction/admission interleavings. Preserve all actual PvE/PvP/World producers and recursive public proof stripping.
+- Game Content must feed newly published Discipline/Core/E/R/earned relationships into that same authoritative admission path, not fabricate an already-accepted authored producer or introduce another formula. Retain Core31, six positive bases,2–3focus,60/40caps,5personal creation choices,4selected Skills and intrinsic/pinned provenance.
+- Recovery is durable whole-encounter no-contest. Every retained commit/head/replay/retry/trial/reward path respects it. Preserve exact immutable captures, unrelated XP/receipts, actual World return/history and privacy deletion behavior. Never treat timeout or recovery as a win or reward.
+- StageA archive admission guards must also map the named COMBAT_CONTENT_ADMISSION_RETRY domain error through actual Players correction to409, retaining transaction rollback, immutable earned/equipped facts and catalogue membership blockers.
+
+Ruling: unlock only independent Task10 StageA backend reconstruction now, after this actual reviewed/native backend handoff. The remaining UI fixture verification and timing-sensitive quality check do not change these backend producer contracts. Keep one active implementation worker, and retain Task9 UI/final acceptance as explicit open work. StageB must refresh this handoff and exact new native disposition; no completed Task9/Task10 UI release is inferred. Cost if subsequent native UI evidence requires an authority/API correction: reconcile and rerun affected StageA guards before accepting dependent source.
+
+## Exact repaired-source native confirmation
+
+CI39488302794, Database foundation118854415372 at exact aa971de38eae662caf95c2bb12309e1068298c87/local3a791c06 also SUCCEEDS through the complete chain, including physical Players races at20:03:08UTC and subsequent Event/API/catalogue steps. Full sanitized deterministic transcript and hashes are retained as native-fix3-database-success.log.gz in native-completion-artifacts.json. This strengthens the same accepted backend contract; browser/quality and wholeTask9 acceptance remain open.
+
+## Exact repaired-source quality confirmation
+
+The same exact-head CI39488302794 Quality gates job118854414840 also SUCCEEDS. Actual output:11,953Vitest/633files (Core5360,DB210,Web6255,Validation106,Audio17,Realtime3,Worker2),7Node,format/lint/8types/2executedbuilds/workerboot/cleantrackedsource. All task groups execute with0cachehits. The earlier unchanged combat30-second failure passes in the full native gate without changing its timeout or mechanics; earlier failure/cancellation transcripts remain retained. Existing Vite/nativeconfig, missingbuildcache, Nodepunycode and actionNode20-target warnings remain visible. Browser/physical/hosted/human acceptance stays separate.
+
+## Final harness source and current backend confirmation
+
+Reviewed local59b6372826df3805e22a9d383a9d4d0d4fb74f50 / remote43ff3cad58b66dac5febfe52d69f11a9efdae251 only scopes the observed no-op alert in the native test; no production backend, migration or gameplay change. Current CI39498465457 Database118889547615 SUCCEEDS through the entire unchanged chain. Actual physical Players PASS is21:15:01UTC, with all prior Staff37 and subsequent Event/API/catalogue steps retained. Complete sanitized native-fix5-database-success.log.gz and checksums are recorded. Native Browser/quality remain running at this snapshot; N4 timing reliability is explicitly open. This refreshes the same bounded backend handoff and does not certify whole Task9 UI or finished Master release.
+
+Current exact43ff native quality also succeeds: job118889547386/CI39498465457 executes11957Vitest/634files plus7Node,format/lint/8types/2builds/workerboot/clean trackedsource,0cachehits. Actual unchanged N4 orientations pass25935/28271ms under30000ms. Full transcript/checksums retained as native-fix5-quality-success.log.gz. The known timing reliability risk remains disclosed; this is current-source gate success, not an AI performance fix. Dedicated Players browser and physical/hosted/human acceptance remain separate.
+
+## Dedicated native Players interaction confirmation under Content guards
+
+Completed Content Browser39500389417/job118896090839 at exact65f73b/dede runs the unchanged reviewed59b63728 Players E2E twice. Both repetitions pass the complete correction/denial/PvE/PvP/participant/spectator recovery scenario; the early group reports6pass and only2 legacy Content publication failures. Root verifies the Players E2E diff59..dede is empty. This closes the dedicated N5 interaction blocker on that descendant source. The overall Content Browser is failed at its old editor's Confirm publish400, consistent with the declared StageD migration boundary; the exact43ff full Browser remains running. Physical/device/hosted/human acceptance and final shared-shell composition are still open.
+
+## Final exact-source browser confirmation
+
+Browser39498465423/job118889547171 SUCCEEDS at exact43ff/59, completed22:44:40UTC. The early Master/Staff/Players/keyboard group passes8 cases, including both full Players correction/PvE/PvP/participant/spectator/recovery/denial repetitions. Full Chromium passes360 with282 project-specific skips; focused73/21skip; Edge10/2skip. Password recovery6 and training3 also pass. The dedicated Players test executes in desktop-chromium and checks its five viewport variants including CSS2x; laptop/mobile project entries are explicitly skipped, so this is not physical browser zoom/touch evidence.
+
+Complete sanitized transcript and deterministic hashes are in native-fix5-browser-success.log.gz/native-completion-artifacts.json. Three WebServer destination-stream-close error lines remain visible despite successful assertions; no zero-error runtime or hosted acceptance is claimed. Source review and every native gate on final43 are green. The individual N4 timing/reliability concern and final integrated frozen gate remain Task13 carry-forwards; no performance fix is claimed.

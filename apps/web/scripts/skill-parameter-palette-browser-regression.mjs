@@ -241,7 +241,7 @@ async function assertPaperEffects(panel) {
     )
   }
 }
-async function assertModularReport(panel) {
+async function assertModularReport(panel, { resonance = false } = {}) {
   const groups = panel.locator('[data-ability-behavior]')
   assert.equal(await groups.count(), 2)
   for (const group of await groups.all())
@@ -251,7 +251,12 @@ async function assertModularReport(panel) {
   assert.match(text, /MP \[≥ 3\] \[Self\]/)
   assert.match(text, /Move \[2\]/)
   assert.match(text, /Dmg \[13\] \[Controlled\]/)
-  assert.match(text, /Once per battle/)
+  if (resonance) {
+    assert.doesNotMatch(text, /Once per battle/)
+    assert.equal(await panel.getByRole('list', { name: 'Usage limits' }).count(), 0)
+  } else {
+    assert.match(text, /Once per battle/)
+  }
   assert.match(text, /Ongoing Modifier/)
   assert.match(text, /12\.5%/)
   assert.match(text, /while Requirements are met/)
@@ -264,6 +269,14 @@ async function assertModularReport(panel) {
   )
   assert.equal(tagColors.length, 3)
   for (const row of tagColors) assert.equal(row.label, row.value)
+  for (const label of await panel
+    .getByRole('list', { name: 'Requirement explanations' })
+    .locator('[data-effect-tag-label]')
+    .all())
+    assert.equal(
+      await label.evaluate((element) => getComputedStyle(element).color),
+      tagColors[0].label,
+    )
 }
 async function verifyModularReaders(page, viewport) {
   await page.goto(`${server.resolvedUrls.local[0]}?surface=modular-readers`, {
@@ -274,7 +287,9 @@ async function verifyModularReaders(page, viewport) {
     'Modular Nexus parameters',
     'Modular Resonance parameters',
   ])
-    await assertModularReport(page.getByRole('region', { name, exact: true }))
+    await assertModularReport(page.getByRole('region', { name, exact: true }), {
+      resonance: name === 'Modular Resonance parameters',
+    })
   assert.doesNotMatch(
     await page.evaluate(() => JSON.stringify(window.modularPublicDefinition)),
     /accuracyMode|accuracyRule|accuracyModifierBasisPoints|7777|"accuracy":\{/,
@@ -299,7 +314,7 @@ async function verifyModularReaders(page, viewport) {
     await gesture(trigger)
     const panel = page.getByRole('dialog', { name, exact: true })
     await panel.waitFor()
-    await assertModularReport(panel)
+    await assertModularReport(panel, { resonance: attunement === 'resonance' })
     assert.equal(await page.getByRole('dialog').count(), 1)
     const box = await panel.boundingBox()
     assert.ok(box.x >= 0 && box.x + box.width <= viewport.width + 1)

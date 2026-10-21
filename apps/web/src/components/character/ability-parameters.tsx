@@ -6,16 +6,19 @@ import {
   EffectExplanationNotes,
 } from './compact-skill-effect-summary'
 import { SkillCharacteristicRows } from './skill-characteristic-rows'
+import { RequirementExplanations } from './requirement-explanations'
 
 /** Render the shared public mechanics report without raw execution data or prose parsing. */
 export function AbilityParameters({
   report,
   characteristicsClassName,
   effectExplanationsClassName,
+  showActivationNotes = true,
 }: {
   report: BattleAbilityBehaviorReport
   characteristicsClassName?: string
   effectExplanationsClassName?: string
+  showActivationNotes?: boolean
 }) {
   return (
     <div data-ability-parameters="true">
@@ -42,7 +45,9 @@ export function AbilityParameters({
           }
         />
       </dl>
-      {report.automaticActivation ? <p>Automatic: {report.automaticActivation}</p> : null}
+      {showActivationNotes && report.automaticActivation ? (
+        <p>Automatic: {report.automaticActivation}</p>
+      ) : null}
       {report.maintenance ? <p>{report.maintenance}</p> : null}
       {report.effectDescriptions.length ? (
         <ul className={effectExplanationsClassName} aria-label="Effect explanations">
@@ -70,13 +75,18 @@ export function AbilityParameters({
           ))}
         </ul>
       ) : null}
-      {report.limits.length ? (
+      {showActivationNotes && report.limits.length ? (
         <ul aria-label="Usage limits">
           {report.limits.map((limit) => (
             <li key={limit}>{limit}</li>
           ))}
         </ul>
       ) : null}
+      <RequirementExplanations
+        text={report.rows.find(([label]) => label === 'Requirements')?.[1] ?? 'None'}
+        parts={report.requirementParts}
+        className={effectExplanationsClassName}
+      />
     </div>
   )
 }
