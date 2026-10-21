@@ -1,0 +1,64 @@
+{
+  "local_source": "1323b016d15e41c10c714565a3035a89ec299ffe",
+  "tree": "43d76f078d6a803a447f55cbfafef2373aafd665",
+  "prior_rows_unchanged": 235,
+  "logs": [
+    {
+      "source": "docs/verification/task-10-reconstruction/b-current-build-service-red.log",
+      "file": "b-current-build-service-red.log.gz",
+      "bytes": 29195,
+      "sha256": "8b40913fd925237dc6334987b1d5342b15c8bbe66dafef0e06bec8070adee007",
+      "gzip_sha256": "24dbc3c9abd4c09125d47bb08ad3036962b501b2178746208659c0e1ff9bbf85",
+      "exit": 1
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/b-current-build-service-green.log",
+      "file": "b-current-build-service-green.log.gz",
+      "bytes": 627,
+      "sha256": "0c3e014b6bc515e69817583bdd342a2385fd5142bca3c226ee28e75189d83808",
+      "gzip_sha256": "e8006216a92ec818afc744ed82915ee2859e144f1591ea9685cc3af48d17210e",
+      "exit": 0
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/b-current-build-stop-format.log",
+      "file": "b-current-build-stop-format.log.gz",
+      "bytes": 216,
+      "sha256": "1bb0be77cfd056b973e915a94541f5214cb7c507f67d8532d7db1fcc5a7c4f3e",
+      "gzip_sha256": "35bbea8167120945d148e27e4ce02025df3b73d28c2c6a23eb1ec819f6f7f3e1",
+      "exit": 0
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/b-current-build-stop-types.log",
+      "file": "b-current-build-stop-types.log.gz",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip_sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "exit": 0
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/b-current-build-stop-transport.log",
+      "file": "b-current-build-stop-transport.log.gz",
+      "bytes": 627,
+      "sha256": "d3c4f5f5cc1c4c53eb1c098c20dad98228d2054ee9695410fac363ec6b6e8722",
+      "gzip_sha256": "65311f370e41d037321e57a2c8190c41b7246fc6d098d78dd5657100178794a9",
+      "exit": 0
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/b-current-build-stop-lint.log",
+      "file": "b-current-build-stop-lint.log.gz",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip_sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "exit": 0
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/b-current-build-stop-final-check.log",
+      "file": "b-current-build-stop-final-check.log.gz",
+      "bytes": 173,
+      "sha256": "2c9ddc40fff5549821e0582b1e19573bfbcd0f50e9ffb2a7a2b26418aedccce3",
+      "gzip_sha256": "238fb80c480e04a1390261eb53ac0991a3ed60220c8e7c6d5c8888543b0d2341",
+      "exit": 0
+    }
+  ],
+  "remote_source": "c6c54764a1216cd091fc22bc136143b63135ae16"
+}
