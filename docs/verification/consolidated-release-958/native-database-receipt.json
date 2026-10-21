@@ -1,0 +1,17 @@
+{
+  "head": "179a68d0a64018d3006937bd844f5c255e3a3c94",
+  "tree": "3dcd8460fbbf01ea1307c602ea83c635c802cef9",
+  "run": 39524363881,
+  "job": 118975440495,
+  "conclusion": "success",
+  "scope": "Complete unchanged migration/Staff37/Players physical races/Event/privacy/API/catalogue chain",
+  "sanitized_raw_bytes": 103207,
+  "sanitized_raw_sha256": "86c0bf2e4bf896e29ba6b2df0c6677982b8fc79357cad625576d4214e998a92f",
+  "gzip_bytes": 21582,
+  "gzip_sha256": "fcf9adbdd41cfb8d9177bcaecd1503308138d6a540d7aa5eb31a01d5886c8434",
+  "redactions": {
+    "localCLIKey": 1,
+    "JWT": 0
+  },
+  "limits": "Expected negative SQL permission/CAS/idempotency probes and existing warnings retained; not zero-error output or hosted acceptance."
+}

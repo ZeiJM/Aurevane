@@ -1,0 +1,33 @@
+{
+  "head": "179a68d0a64018d3006937bd844f5c255e3a3c94",
+  "tree": "3dcd8460fbbf01ea1307c602ea83c635c802cef9",
+  "run": 39524363881,
+  "job": 118975439930,
+  "conclusion": "cancelled",
+  "vitest": 12101,
+  "node": 7,
+  "test_groups": {
+    "web": 6403,
+    "core": 5360,
+    "db": 210,
+    "validation": 106,
+    "audio": 17,
+    "realtime": 3,
+    "worker": 2
+  },
+  "quality_scope_passed": "format/lint/all-workspace types/all tests; worker build completed",
+  "not_completed": "web production build and subsequent checks; not a full-quality success",
+  "timing": "first runner log00:56:50UTC, tests end01:11:42UTC, genericcancel01:12:03UTC; configured quality15min; consistent budget cause, not explicitly confirmed cancellation reason",
+  "N4_ms": [
+    28637,
+    20940
+  ],
+  "redactions": {
+    "localCLIKey": 0,
+    "JWT": 0
+  },
+  "sanitized_raw_bytes": 248380,
+  "sanitized_raw_sha256": "3be4dea2cc5f985078a4412c5aa26a6e0572b700fac705bf5cd593605a3fcbf4",
+  "gzip_bytes": 35872,
+  "gzip_sha256": "cf1236149cf4850bceba3bac090fb289afb7863da0424d074403d662d4ef882d"
+}
