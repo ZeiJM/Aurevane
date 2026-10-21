@@ -2072,6 +2072,37 @@ describe('native map input and bounded lifecycle', () => {
     s.renderer.dispose()
     vi.unstubAllGlobals()
   })
+  it('an offline retained fixture consumes its ground click until the fixture leaves the scene', () => {
+    const s = scene()
+    const destination = { sectorId: 'verdant-expanse', x: 8, y: 4 }
+    s.renderer.update({
+      ...s.view,
+      players: [
+        {
+          characterId: 'old-fixture',
+          name: 'Previous repeat',
+          level: 1,
+          portraitRef: '',
+          imageUrl: '/old-fixture.webp',
+          online: false,
+          attackable: false,
+          position: destination,
+        },
+      ],
+    })
+    s.frame(40)
+    s.event('pointerdown', 563.2, 384.48)
+    s.event('pointerup', 563.2, 384.48)
+    expect(s.selectPlayer).toHaveBeenCalledWith('old-fixture')
+    expect(s.select).not.toHaveBeenCalled()
+    s.renderer.update({ ...s.view, players: [] })
+    s.frame(80)
+    s.event('pointerdown', 563.2, 384.48)
+    s.event('pointerup', 563.2, 384.48)
+    expect(s.select).toHaveBeenCalledExactlyOnceWith(destination)
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  })
   it('inverts a ground click exactly and never walks on the river or after dragging', () => {
     const s = scene()
     s.event('pointerdown', 563.2, 384.48)

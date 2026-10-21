@@ -1,4 +1,10 @@
 import { openMapSettings, closeMapSettings } from './world-map-settings-helpers'
+import { measurePeerMotionStep, observeWorldMovement } from './world-timing-metrics'
+import {
+  cleanupWorldPresenceFixtures,
+  matchesWorldWalk,
+  worldPresenceDiagnostics,
+} from './world-presence-diagnostics'
 import {
   expect,
   test,
@@ -198,14 +204,58 @@ export async function verifyWorldScenePresence(
 ) {
   test.skip(info.project.name !== 'desktop-chromium', 'Exercise two-account presence once.')
   test.setTimeout(120000)
-  await enter(page)
-  const context = await browser.newContext({ baseURL: new URL(page.url()).origin })
+  const diagnostics = worldPresenceDiagnostics()
+  diagnostics.observe(page, 'owner')
+  const fixtureIds: string[] = []
+  let failed = false
+  const context = await browser.newContext({ baseURL: info.project.use.baseURL })
   try {
+    await enter(page)
     const other = await context.newPage()
+    diagnostics.observe(other, 'peer')
     await enter(other)
     const owner = await world(page),
       target = await world(other),
       id = target.characterId
+    fixtureIds.push(owner.characterId, id)
+    diagnostics.fixture('owner', owner.characterId)
+    diagnostics.fixture('peer', id)
+    const checkedWalk = (actor: Page, destination: WorldView['position']) => {
+      const observer = actor === page ? 'owner' : 'peer'
+      diagnostics.walk(observer, destination)
+      const approval = actor
+        .waitForResponse(
+          (response) => {
+            if (
+              response.request().method() !== 'POST' ||
+              new URL(response.url()).pathname !== '/api/world' ||
+              !matchesWorldWalk(response.request().postDataJSON(), destination)
+            )
+              return false
+            // Observe the controller's existing stale-version recovery within
+            // this same deadline. The test never retries or repeats the click.
+            if (response.status() === 409) {
+              diagnostics.record({ observer, phase: 'walk-conflict', status: 409 })
+              return false
+            }
+            return true
+          },
+          { timeout: 5000 },
+        )
+        .then(async (response) => {
+          diagnostics.record({ observer, phase: 'walk-response', status: response.status() })
+          expect(response.ok(), `${observer} matching walk must be accepted`).toBe(true)
+          const receipt = (await response.json()) as WorldView & { kind?: string }
+          expect(receipt.kind).toBe('movement')
+          expect(receipt.characterId).toBe(actor === page ? owner.characterId : id)
+          expect(receipt.version).toBeGreaterThan(response.request().postDataJSON().expectedVersion)
+          expect(receipt.route.at(-1)?.position ?? receipt.position).toEqual(destination)
+          diagnostics.record({ observer, phase: 'walk-approved' })
+        })
+      // Callers observe both immediately, while keeping arrival deadlines tied
+      // to click completion rather than adding approval latency to the budget.
+      return { click: stageWalk(actor, destination), approval }
+    }
     // Stop the target's heartbeat before testing deliberately aged presence.
     await other.goto('about:blank')
     for (const uuid of [owner.characterId, id]) expect(uuid).toMatch(/^[0-9a-f-]{36}$/)
@@ -383,73 +433,80 @@ export async function verifyWorldScenePresence(
     )
     const destination = { sectorId: 'atlas:59:28', x: 4, y: 4 }
     let observed: { players: WorldView['players'] }
-    const walking = stageWalk(other, destination)
-    try {
-      observed = await (await movedPresence).json()
-      const elapsedMs = Date.now() - startedAt
-      const deliveryPath = info.outputPath('world-live-peer-delivery.json')
-      await writeFile(
-        deliveryPath,
-        JSON.stringify({
-          elapsedMs,
-          blockedFallbackReads,
-          movement: observed.players.find((p) => p.characterId === id)?.movement,
-        }),
-      )
-      await info.attach('world-live-peer-delivery', {
-        path: deliveryPath,
+    const walking = checkedWalk(other, destination)
+    const delivery = movedPresence.then(async (response) => ({
+      observed: (await response.json()) as { players: WorldView['players'] },
+      elapsedMs: Date.now() - startedAt,
+    }))
+    await observeWorldMovement([walking], async () => {
+      try {
+        const receipt = await delivery
+        observed = receipt.observed
+        const { elapsedMs } = receipt
+        const deliveryPath = info.outputPath('world-live-peer-delivery.json')
+        await writeFile(
+          deliveryPath,
+          JSON.stringify({
+            elapsedMs,
+            blockedFallbackReads,
+            movement: observed.players.find((p) => p.characterId === id)?.movement,
+          }),
+        )
+        await info.attach('world-live-peer-delivery', {
+          path: deliveryPath,
+          contentType: 'application/json',
+        })
+        expect(elapsedMs).toBeLessThan(2500)
+        expect(blockedFallbackReads).toBeGreaterThan(0)
+        await walking.click
+      } finally {
+        await page.unroute('**/api/world?*', fallbackRoute)
+        await Promise.allSettled([delivery, walking.click])
+      }
+      expect(observed).not.toHaveProperty('sectors')
+      expect(observed).not.toHaveProperty('atlas')
+      await expect
+        .poll(
+          async () => {
+            const samples = JSON.parse(
+              (await canvas.getAttribute('data-test-remote-draws')) ?? '[]',
+            ) as { x: number; y: number }[]
+            return new Set(samples.map((sample) => `${sample.x}:${sample.y}`)).size
+          },
+          { timeout: 4000 },
+        )
+        .toBeGreaterThan(8)
+      await expect
+        .poll(async () => (await world(other)).position, { timeout: 12000 })
+        .toEqual(destination)
+      await expect
+        .poll(async () => (await world(page)).players.find((p) => p.characterId === id)?.position, {
+          timeout: 5000,
+        })
+        .toEqual(destination)
+      expect((await world(page)).position).toEqual({ sectorId: 'atlas:58:28', x: 12, y: 4 })
+      const remoteSamples = JSON.parse(
+        (await canvas.getAttribute('data-test-remote-draws')) ?? '[]',
+      ) as { at: number; x: number; y: number }[]
+      const remoteDeltas = remoteSamples.slice(1).map((sample, index) => ({
+        ms: sample.at - remoteSamples[index]!.at,
+        x: sample.x - remoteSamples[index]!.x,
+        y: sample.y - remoteSamples[index]!.y,
+      }))
+      const tile = Number(await canvas.getAttribute('data-tile-size'))
+      expect(remoteDeltas.length).toBeGreaterThan(8)
+      for (const delta of remoteDeltas) {
+        expect(delta.x).toBeGreaterThanOrEqual(0)
+        expect(delta.y).toBeGreaterThanOrEqual(0)
+        expect(delta.x).toBeLessThan(tile * 0.85)
+        expect(delta.y).toBeLessThan(tile * 0.44)
+      }
+      const motionPath = info.outputPath('world-live-peer-interpolation.json')
+      await writeFile(motionPath, JSON.stringify({ remoteSamples, remoteDeltas, tile }))
+      await info.attach('world-live-peer-interpolation', {
+        path: motionPath,
         contentType: 'application/json',
       })
-      expect(elapsedMs).toBeLessThan(2500)
-      expect(blockedFallbackReads).toBeGreaterThan(0)
-      await walking
-    } finally {
-      await page.unroute('**/api/world?*', fallbackRoute)
-      await walking
-    }
-    expect(observed).not.toHaveProperty('sectors')
-    expect(observed).not.toHaveProperty('atlas')
-    await expect
-      .poll(
-        async () => {
-          const samples = JSON.parse(
-            (await canvas.getAttribute('data-test-remote-draws')) ?? '[]',
-          ) as { x: number; y: number }[]
-          return new Set(samples.map((sample) => `${sample.x}:${sample.y}`)).size
-        },
-        { timeout: 4000 },
-      )
-      .toBeGreaterThanOrEqual(8)
-    await expect
-      .poll(async () => (await world(other)).position, { timeout: 12000 })
-      .toEqual(destination)
-    await expect
-      .poll(async () => (await world(page)).players.find((p) => p.characterId === id)?.position, {
-        timeout: 5000,
-      })
-      .toEqual(destination)
-    expect((await world(page)).position).toEqual({ sectorId: 'atlas:58:28', x: 12, y: 4 })
-    const remoteSamples = JSON.parse(
-      (await canvas.getAttribute('data-test-remote-draws')) ?? '[]',
-    ) as { at: number; x: number; y: number }[]
-    const remoteDeltas = remoteSamples.slice(1).map((sample, index) => ({
-      ms: sample.at - remoteSamples[index]!.at,
-      x: sample.x - remoteSamples[index]!.x,
-      y: sample.y - remoteSamples[index]!.y,
-    }))
-    const tile = Number(await canvas.getAttribute('data-tile-size'))
-    expect(remoteDeltas.length).toBeGreaterThan(8)
-    for (const delta of remoteDeltas) {
-      expect(delta.x).toBeGreaterThanOrEqual(0)
-      expect(delta.y).toBeGreaterThanOrEqual(0)
-      expect(delta.x).toBeLessThan(tile * 0.85)
-      expect(delta.y).toBeLessThan(tile * 0.44)
-    }
-    const motionPath = info.outputPath('world-live-peer-interpolation.json')
-    await writeFile(motionPath, JSON.stringify({ remoteSamples, remoteDeltas, tile }))
-    await info.attach('world-live-peer-interpolation', {
-      path: motionPath,
-      contentType: 'application/json',
     })
     await capture(page, info, 'idle-observer-smooth-remote-arrival')
 
@@ -506,59 +563,69 @@ export async function verifyWorldScenePresence(
     }
     const ownerDestination = { sectorId: 'atlas:59:28', x: 3, y: 4 },
       peerDestination = { sectorId: 'atlas:59:28', x: 7, y: 4 }
-    await Promise.all([stageWalk(page, ownerDestination), stageWalk(other, peerDestination)])
-    await Promise.all([
-      expect.poll(async () => (await world(page)).position).toEqual(ownerDestination),
-      expect.poll(async () => (await world(other)).position).toEqual(peerDestination),
-    ])
-    for (const [index, observer] of movingObservers.entries()) {
-      await expect
-        .poll(
-          async () => {
-            const draws = JSON.parse(
-              (await observer.page
-                .locator('canvas[data-world-stage]')
-                .getAttribute('data-test-moving-observer-draws')) ?? '[]',
-            ) as { x: number }[]
-            return draws.length ? draws.at(-1)!.x - draws[0]!.x : 0
-          },
-          { timeout: 5000 },
+    const walks = [checkedWalk(page, ownerDestination), checkedWalk(other, peerDestination)]
+    await observeWorldMovement(walks, async () => {
+      await Promise.all(walks.map((walk) => walk.click))
+      await Promise.all([
+        expect.poll(async () => (await world(page)).position).toEqual(ownerDestination),
+        expect.poll(async () => (await world(other)).position).toEqual(peerDestination),
+      ])
+      for (const [index, observer] of movingObservers.entries()) {
+        await expect
+          .poll(
+            async () => {
+              const draws = JSON.parse(
+                (await observer.page
+                  .locator('canvas[data-world-stage]')
+                  .getAttribute('data-test-moving-observer-draws')) ?? '[]',
+              ) as { x: number }[]
+              return draws.length ? draws.at(-1)!.x - draws[0]!.x : 0
+            },
+            { timeout: 5000 },
+          )
+          .toBeGreaterThan(observer.distance - 0.6)
+        const samples = JSON.parse(
+          (await observer.page
+            .locator('canvas[data-world-stage]')
+            .getAttribute('data-test-moving-observer-draws')) ?? '[]',
+        ) as { at: number; x: number; y: number }[]
+        const motionSteps = samples
+          .slice(1)
+          .map((sample, i) => measurePeerMotionStep(samples[i]!, sample))
+        const deltas = motionSteps.map((step) => step.deltaX)
+        const path = info.outputPath(`world-both-moving-peer-${index}.json`)
+        const longTasks = JSON.parse(
+          (await observer.page
+            .locator('canvas[data-world-stage]')
+            .getAttribute('data-test-moving-observer-long-tasks')) ?? '[]',
+        ) as { at: number; durationMs: number }[]
+        await writeFile(
+          path,
+          JSON.stringify({ samples, deltas, motionSteps, longTasks, distance: observer.distance }),
         )
-        .toBeGreaterThan(observer.distance - 0.6)
-      const samples = JSON.parse(
-        (await observer.page
-          .locator('canvas[data-world-stage]')
-          .getAttribute('data-test-moving-observer-draws')) ?? '[]',
-      ) as { at: number; x: number; y: number }[]
-      const deltas = samples.slice(1).map((sample, i) => sample.x - samples[i]!.x)
-      const path = info.outputPath(`world-both-moving-peer-${index}.json`)
-      const longTasks = JSON.parse(
-        (await observer.page
-          .locator('canvas[data-world-stage]')
-          .getAttribute('data-test-moving-observer-long-tasks')) ?? '[]',
-      ) as { at: number; durationMs: number }[]
-      await writeFile(
-        path,
-        JSON.stringify({ samples, deltas, longTasks, distance: observer.distance }),
-      )
-      await info.attach(`world-both-moving-peer-${index}`, {
-        path,
-        contentType: 'application/json',
-      })
-      expect(deltas.filter((delta) => delta > 0.002).length).toBeGreaterThan(8)
-      expect(samples.at(-1)!.x - samples[0]!.x).toBeGreaterThan(observer.distance - 0.6)
-      expect(samples.at(-1)!.x - samples[0]!.x).toBeLessThan(observer.distance + 0.6)
-      // A delayed animation frame can combine small interpolation steps on
-      // shared CI runners. Permit occasional bounded samples while rejecting
-      // repeated jumps or any single large discontinuity.
-      expect(deltas.filter((delta) => delta >= 0.75).length).toBeLessThanOrEqual(
-        Math.max(2, Math.ceil(deltas.length * 0.05)),
-      )
-      for (const delta of deltas) {
-        expect(delta).toBeGreaterThan(-0.1)
-        expect(delta).toBeLessThan(1)
+        await info.attach(`world-both-moving-peer-${index}`, {
+          path,
+          contentType: 'application/json',
+        })
+        expect(deltas.filter((delta) => delta > 0.002).length).toBeGreaterThan(8)
+        expect(samples.at(-1)!.x - samples[0]!.x).toBeGreaterThan(observer.distance - 0.6)
+        expect(samples.at(-1)!.x - samples[0]!.x).toBeLessThan(observer.distance + 0.6)
+        for (const [stepIndex, step] of motionSteps.entries()) {
+          expect(
+            step.elapsedMs,
+            `peer ${index}, step ${stepIndex}: increasing sample time`,
+          ).toBeGreaterThan(0)
+          expect(
+            step.deltaX,
+            `peer ${index}, step ${stepIndex}: no backwards jump`,
+          ).toBeGreaterThan(-0.1)
+          expect(
+            step.deltaX,
+            `peer ${index}, step ${stepIndex}: ${step.elapsedMs.toFixed(1)}ms sample gap; ${longTasks.length} observed long tasks`,
+          ).toBeLessThan(step.maximumDeltaX)
+        }
       }
-    }
+    })
     await capture(page, info, 'both-walking-smooth-remote-arrival')
     await other.goto('about:blank')
     // Restore the initial neighbouring placement before the viewport/privacy cases.
@@ -659,8 +726,48 @@ export async function verifyWorldScenePresence(
     sql(
       `do $$ declare c record; begin select ch.user_id,ch.id,w.state into c from public.characters ch join app_private.character_world_state w on w.character_id=ch.id where ch.id='${owner.characterId}'; begin perform public.read_world_scene_players_v1(c.user_id,c.id,1,array_fill('atlas:58:28'::text,array[26]),c.state->'position'); raise exception 'Invalid scene was accepted'; exception when invalid_parameter_value then null; end; begin perform public.read_world_scene_players_v1('00000000-0000-4000-8000-000000000099',c.id,1,array['atlas:58:28'],c.state->'position'); raise exception 'Wrong owner was accepted'; exception when insufficient_privilege then null; end; end $$`,
     )
+  } catch (error) {
+    failed = true
+    diagnostics.record({ phase: 'case-failed' })
+    throw error
   } finally {
-    await context.close()
+    const cleanupErrors: string[] = []
+    try {
+      await diagnostics.captureMotion()
+    } catch {
+      cleanupErrors.push('motion-capture')
+    }
+    cleanupErrors.push(
+      ...(await cleanupWorldPresenceFixtures(
+        fixtureIds,
+        [() => page.close(), () => context.close()],
+        sql,
+      )),
+    )
+    diagnostics.record({
+      phase: 'cleanup',
+      retired: cleanupErrors.length === 0,
+      failureCount: cleanupErrors.length,
+    })
+    try {
+      await diagnostics.save(info)
+      const path = info.outputPath('world-presence-cleanup.json')
+      await writeFile(
+        path,
+        JSON.stringify({ fixtureCount: fixtureIds.length, errors: cleanupErrors }),
+      )
+      await info.attach('world-presence-cleanup', { path, contentType: 'application/json' })
+    } catch {
+      cleanupErrors.push('diagnostic-save')
+    }
+    if (cleanupErrors.length) {
+      info.annotations.push({
+        type: 'world-presence-cleanup',
+        description: cleanupErrors.join(', '),
+      })
+      // Preserve the assertion that failed first; cleanup remains separately visible.
+      if (!failed) throw new Error(`World fixture cleanup failed: ${cleanupErrors.join(', ')}`)
+    }
   }
 }
 
