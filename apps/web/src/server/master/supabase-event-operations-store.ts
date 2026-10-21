@@ -1,3 +1,4 @@
+import { callSelectedStaffRpc } from './selected-staff-actor'
 import 'server-only'
 
 import { AurevaneError } from '@aurevane/game-core/errors'
@@ -184,9 +185,13 @@ export function createSupabaseEventOperationsStore(): EventOperationsStore {
   return {
     async listRuns(actorUserId) {
       const supabase = createSupabaseAdminClient()
-      const { data, error } = await supabase.rpc('list_event_operation_runs_v1', {
-        p_actor_user_id: actorUserId,
-      })
+      const { data, error } = await callSelectedStaffRpc(
+        supabase.rpc.bind(supabase),
+        'list_event_operation_runs_v1',
+        {
+          p_actor_user_id: actorUserId,
+        },
+      )
       if (error) mapRpcError(error)
       if (!Array.isArray(data)) throw unavailable()
 
@@ -202,54 +207,70 @@ export function createSupabaseEventOperationsStore(): EventOperationsStore {
 
     async readDashboard(actorUserId, runId) {
       const supabase = createSupabaseAdminClient()
-      const { data, error } = await supabase.rpc('read_event_operation_dashboard_v1', {
-        p_actor_user_id: actorUserId,
-        p_run_id: runId,
-      })
+      const { data, error } = await callSelectedStaffRpc(
+        supabase.rpc.bind(supabase),
+        'read_event_operation_dashboard_v1',
+        {
+          p_actor_user_id: actorUserId,
+          p_run_id: runId,
+        },
+      )
       if (error) mapRpcError(error)
       return parseDashboard(data)
     },
 
     async operate(input) {
       const supabase = createSupabaseAdminClient()
-      const { data, error } = await supabase.rpc('operate_event_run_v2', {
-        p_actor_user_id: input.actorUserId,
-        p_run_id: input.runId,
-        p_expected_state_version: input.expectedStateVersion,
-        p_idempotency_key: input.idempotencyKey,
-        p_command: input.command,
-        p_reason: input.reason,
-        p_confirmed: input.confirmed,
-      })
+      const { data, error } = await callSelectedStaffRpc(
+        supabase.rpc.bind(supabase),
+        'operate_event_run_v2',
+        {
+          p_actor_user_id: input.actorUserId,
+          p_run_id: input.runId,
+          p_expected_state_version: input.expectedStateVersion,
+          p_idempotency_key: input.idempotencyKey,
+          p_command: input.command,
+          p_reason: input.reason,
+          p_confirmed: input.confirmed,
+        },
+      )
       if (error) mapRpcError(error)
       return parseRunMutation(data)
     },
 
     async advancePhase(input) {
       const supabase = createSupabaseAdminClient()
-      const { data, error } = await supabase.rpc('advance_event_run_phase_v2', {
-        p_actor_user_id: input.actorUserId,
-        p_run_id: input.runId,
-        p_expected_state_version: input.expectedStateVersion,
-        p_idempotency_key: input.idempotencyKey,
-        p_reason: input.reason,
-        p_confirmed: input.confirmed,
-      })
+      const { data, error } = await callSelectedStaffRpc(
+        supabase.rpc.bind(supabase),
+        'advance_event_run_phase_v2',
+        {
+          p_actor_user_id: input.actorUserId,
+          p_run_id: input.runId,
+          p_expected_state_version: input.expectedStateVersion,
+          p_idempotency_key: input.idempotencyKey,
+          p_reason: input.reason,
+          p_confirmed: input.confirmed,
+        },
+      )
       if (error) mapRpcError(error)
       return parseAdvance(data)
     },
 
     async completeCleanup(input) {
       const supabase = createSupabaseAdminClient()
-      const { data, error } = await supabase.rpc('complete_event_cleanup_requirement_v2', {
-        p_actor_user_id: input.actorUserId,
-        p_run_id: input.runId,
-        p_phase_id: input.phaseId,
-        p_effect_ordinal: input.effectOrdinal,
-        p_completion_key: input.completionKey,
-        p_reason: input.reason,
-        p_confirmed: input.confirmed,
-      })
+      const { data, error } = await callSelectedStaffRpc(
+        supabase.rpc.bind(supabase),
+        'complete_event_cleanup_requirement_v2',
+        {
+          p_actor_user_id: input.actorUserId,
+          p_run_id: input.runId,
+          p_phase_id: input.phaseId,
+          p_effect_ordinal: input.effectOrdinal,
+          p_completion_key: input.completionKey,
+          p_reason: input.reason,
+          p_confirmed: input.confirmed,
+        },
+      )
       if (error) mapRpcError(error)
       return parseCleanup(data)
     },

@@ -1,3 +1,4 @@
+import { selectedStaffRpcParameters } from './selected-staff-actor'
 import 'server-only'
 
 import type { PersistentEventDefinition } from '@aurevane/game-core/events/persistent-event'
@@ -303,9 +304,14 @@ export class RpcEventAuthoringStore implements EventAuthoringStore {
 
 export function createSupabaseEventAuthoringStore(actorUserId: string): RpcEventAuthoringStore {
   const client = createSupabaseAdminClient()
-  return new RpcEventAuthoringStore(
-    (functionName, parameters) =>
-      client.rpc(functionName, parameters) as unknown as PromiseLike<RpcResult>,
-    actorUserId,
-  )
+  return new RpcEventAuthoringStore((functionName, parameters) => {
+    // These ordinary service readers retain their actorless SQL contracts.
+    // Every other operation must derive the current selected Staff actor.
+    if (functionName === 'read_current_event_definition_v1') {
+      return client.rpc(functionName, parameters) as unknown as PromiseLike<RpcResult>
+    }
+    return selectedStaffRpcParameters(parameters).then((verified) =>
+      client.rpc(functionName, verified),
+    ) as unknown as PromiseLike<RpcResult>
+  }, actorUserId)
 }

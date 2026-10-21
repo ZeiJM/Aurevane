@@ -1,3 +1,4 @@
+import { callSelectedStaffRpc } from './selected-staff-actor'
 import 'server-only'
 import {
   defaultBattlefieldElevationPolicy,
@@ -42,7 +43,8 @@ export async function publishBattlefieldElevationPolicy(input: {
   )
     throw new AurevaneError('INVALID_REQUEST', 'A reason from 1 to 240 characters is required.')
   const { version, ...chances } = policy
-  const { data, error } = await createSupabaseAdminClient().rpc(
+  const { data, error } = await callSelectedStaffRpc(
+    (name, parameters) => createSupabaseAdminClient().rpc(name, parameters),
     'publish_battlefield_elevation_policy_v1',
     {
       p_actor_user_id: input.actorUserId,

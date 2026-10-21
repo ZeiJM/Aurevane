@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process'
 
 import { expect, test, type Page, type Response } from '@playwright/test'
 
-import { createVerifiedAccountAndSignIn } from './pv1f-test-helpers'
+import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 function escapeSqlLiteral(value: string): string {
   return value.replaceAll("'", "''")
@@ -51,18 +51,19 @@ function localUserId(email: string): string {
   return userId
 }
 
-function grantLocalEventStaff(email: string): void {
+function grantLocalEventStaff(email: string, characterId: string): void {
   const userId = localUserId(email)
   queryLocalDatabase(`
     insert into app_private.master_panel_role_assignments (
-      user_id, role, enabled, note
+      user_id, character_id, role, enabled, note
     ) values (
       '${userId}'::uuid,
+      '${characterId}'::uuid,
       'event-staff',
       true,
       'P4.13 local browser verification'
     )
-    on conflict (user_id, role) do update
+    on conflict (user_id, role, character_id) do update
     set enabled = true,
         updated_at = clock_timestamp(),
         note = excluded.note;
@@ -75,18 +76,19 @@ function grantLocalEventStaff(email: string): void {
   `)
 }
 
-function grantLocalProductionPublish(email: string): void {
+function grantLocalProductionPublish(email: string, characterId: string): void {
   const userId = localUserId(email)
   queryLocalDatabase(`
     insert into app_private.master_panel_capability_grants (
-      user_id, capability, enabled, note
+      user_id, character_id, capability, enabled, note
     ) values (
       '${userId}'::uuid,
+      '${characterId}'::uuid,
       'events.production_publish',
       true,
       'P4.13 local browser publication'
     )
-    on conflict (user_id, capability) do update
+    on conflict (user_id, capability, character_id) do update
     set enabled = true,
         updated_at = clock_timestamp(),
         note = excluded.note;
@@ -150,13 +152,19 @@ test('Event Staff uses structured Event Builder without preview state leakage', 
 
   const now = Date.now()
   const email = `event-staff-${now}@example.com`
-  await createVerifiedAccountAndSignIn({
+  await provisionAccountAndEnterCharacter({
     page,
     email,
     password: 'Event-staff-browser-2026!',
+    characterName: `EventStaff${String(now).slice(-8)}`,
   })
 
-  grantLocalEventStaff(email)
+  const characterId = (await page.context().cookies()).find(
+    (cookie) => cookie.name === 'aurevane_selected_character',
+  )?.value
+  if (!characterId || !/^[0-9a-f-]{36}$/.test(characterId))
+    throw new Error('Selected fixture character is unavailable.')
+  grantLocalEventStaff(email, characterId)
 
   await page.goto('/master/events')
   await expect(page.getByRole('heading', { name: 'Persistent Event Definition' })).toBeVisible()
@@ -194,7 +202,7 @@ test('Event Staff uses structured Event Builder without preview state leakage', 
   await runEventOperation(page, 'save-draft', 'Save draft')
   await expect(page.getByText(/Draft v\d+ saved\./)).toBeVisible()
 
-  grantLocalProductionPublish(email)
+  grantLocalProductionPublish(email, characterId)
   await page.reload()
   await expect(page.getByRole('heading', { name: 'Persistent Event Definition' })).toBeVisible()
   await expect(publishButton).toBeDisabled()

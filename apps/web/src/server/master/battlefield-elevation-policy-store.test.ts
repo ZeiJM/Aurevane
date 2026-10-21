@@ -1,5 +1,9 @@
 import { beforeEach, expect, it, vi } from 'vitest'
 vi.mock('server-only', () => ({}))
+vi.mock('@/server/auth/actor', () => ({ getAuthenticatedActor: async () => ({ userId: 'owner' }) }))
+vi.mock('@/server/character/selected-character', () => ({
+  loadSelectedCharacter: async () => ({ id: 'selected' }),
+}))
 const rpc = vi.fn()
 vi.mock('@/lib/supabase/admin', () => ({ createSupabaseAdminClient: () => ({ rpc }) }))
 const policy = {
@@ -50,6 +54,7 @@ it('publishes exact validated chances and rejects invalid total or missing reaso
   ).toEqual(next)
   expect(rpc).toHaveBeenCalledWith('publish_battlefield_elevation_policy_v1', {
     p_actor_user_id: 'owner',
+    p_actor_character_id: 'selected',
     p_expected_version: 1,
     p_chances: { level1BasisPoints: 1234, level2BasisPoints: 8766, level3BasisPoints: 0 },
     p_reason: 'exact',

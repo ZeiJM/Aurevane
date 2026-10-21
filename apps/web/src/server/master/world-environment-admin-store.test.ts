@@ -1,5 +1,9 @@
 import { beforeEach, expect, it, vi } from 'vitest'
 vi.mock('server-only', () => ({}))
+vi.mock('@/server/auth/actor', () => ({ getAuthenticatedActor: async () => ({ userId: 'owner' }) }))
+vi.mock('@/server/character/selected-character', () => ({
+  loadSelectedCharacter: async () => ({ id: 'selected' }),
+}))
 const { rpc } = vi.hoisted(() => ({ rpc: vi.fn() }))
 vi.mock('@/lib/supabase/admin', () => ({ createSupabaseAdminClient: () => ({ rpc }) }))
 import { setWorldEnvironment } from './world-environment-admin-store'
@@ -26,6 +30,7 @@ it('computes the override expiry server-side and sends validated settings', asyn
   expect(result.weatherOverrideUntil).toBe(4_600_000)
   expect(rpc).toHaveBeenCalledWith('set_world_environment_v1', {
     p_actor: 'owner',
+    p_actor_character_id: 'selected',
     p_expected_version: 0,
     p_settings: {
       timeOffsetMinutes: 0,

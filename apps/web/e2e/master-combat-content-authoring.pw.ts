@@ -180,7 +180,7 @@ function grantLocalMasterOperator(email: string): void {
       true,
       'Phase 5 local browser verification'
     )
-    on conflict (user_id, role) do update
+    on conflict (user_id, role) where character_id is null do update
     set enabled = excluded.enabled,
         updated_at = clock_timestamp(),
         note = excluded.note;
@@ -411,12 +411,12 @@ test('Master combat authoring publishes versioned content, pins battles, and rol
     await expect(
       page
         .getByRole('navigation', { name: 'Master Panel navigation' })
-        .getByRole('link', { name: /Staff & Authority/ }),
+        .getByRole('link', { name: /Staff & Access/ }),
     ).toBeVisible()
     await expect(page.getByTestId('master-panel-shell')).toBeVisible()
 
     await page.goto('/master/staff')
-    await expect(page.getByRole('heading', { name: 'Staff & Authority' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Staff & Access' })).toBeVisible()
     await expect(
       page
         .getByRole('article')

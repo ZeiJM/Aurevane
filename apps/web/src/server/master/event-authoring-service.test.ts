@@ -71,23 +71,16 @@ class StaffStore implements MasterPanelStaffAccessStore {
     return []
   }
 
-  async resolveAccountByEmail() {
-    return null
+  async resolveAccounts() {
+    return []
   }
-
-  async grantRole() {
+  async setCharacterAccess() {
     return 1
   }
-
-  async revokeRole() {
+  async revokeLegacyAccess() {
     return 1
   }
-
-  async grantCapability() {
-    return 1
-  }
-
-  async revokeCapability() {
+  async revokeCharacterAccess() {
     return 1
   }
 }
@@ -173,7 +166,7 @@ function access(
   roles: MasterPanelAccessRecord['roles'],
   specialCapabilities: MasterPanelAccessRecord['specialCapabilities'] = [],
 ): MasterPanelAccessRecord {
-  return { userId, accessVersion: 1, roles, specialCapabilities }
+  return { userId, characterId: 'selected', accessVersion: 1, roles, specialCapabilities }
 }
 
 function serviceFor(record: MasterPanelAccessRecord) {

@@ -643,10 +643,15 @@ future Master Panel module from this specification is complete.
 
 ### Authorization and persistence
 
-- Access requires an authenticated account with an explicit enabled row in
-  `app_private.master_panel_operators`.
-- The current bounded operator roles are `owner` and `content-staff`; no account is implicitly
-  privileged and the temporary buildcraft/testing allowlist is not Master Panel authorization.
+- Canonical roles are `game-owner`, `moderator`, `content-staff` and `event-staff`.
+  The immutable Owner identity is account-bound and single; delegated grants belong to one
+  explicitly chosen owned character. Legacy account grants fail closed until explicitly bound.
+  The temporary buildcraft/testing allowlist is not Master Panel authorization.
+- Task 8's local candidate (not published) derives the current actor from verified authentication,
+  the active game-session lease and the playable selected-character cookie lookup on every
+  protected operation. Protected RPCs additionally receive `p_actor_character_id`, verify its
+  ownership/deletion state and check enabled grants with `expires_at > statement_timestamp()`.
+  Switching characters, expiry and revocation therefore affect open sessions on the next action.
 - Browser code never writes combat-content tables directly. Private draft/version/publication state
   stays under RLS with browser roles revoked; server composition uses service-role access and
   protected RPCs.
@@ -654,6 +659,32 @@ future Master Panel module from this specification is complete.
   `draft_version` concurrency and publication uses a per-content advisory transaction lock.
 - Published version rows are immutable. Rollback changes only the current publication pointer (or
   clears that pointer when returning to a valid static fallback); historical rows are retained.
+
+### Selected-character Staff & Access (Task 8 local candidate, 2026-10-20)
+
+`/master/staff` resolves an exact character name or verified email into verified identities and all
+their linked characters. The Owner explicitly selects one playable character, chooses existing
+role presets/special permissions and either No Expiry or positive whole elapsed UTC days. Saving
+atomically replaces that character's scope/duration; editing requires an explicit expiry choice.
+Legacy binding disables unbound predecessor roles/capabilities. Revocation disables all delegated
+authority for the chosen character, or only the unbound legacy grants when that is the target.
+Actor UUID, actor character, target UUID/character, time and before/after state are audited without
+a written reason or fabricated note. Account access versions serialize stale editor changes.
+
+Owner identity, staff management, Site Music and global combat/world settings remain nondelegable.
+The combined operations preset uses existing roles; it creates no global-admin role. Later Players
+tools must consume the same selected-character boundary and never mutate identity or role state.
+Ordinary service-only current/pinned catalogue, runtime rules and worker paths retain their contracts.
+
+The additive migration preserves current function bodies, including complete nested Essence and
+version-floor publication, adds selected-character overloads and revokes predecessor account-only
+RPC execution. New server composition must use `selectedStaffRpcParameters` / `callSelectedStaffRpc`;
+never pass a submitted character identifier as actor authority or call an old account-only overload.
+Trusted Owner bootstrap still resolves the exact verified account to its UUID and inserts the single
+`game-owner` identity with null character/expiry. A bootstrap upsert now uses
+`ON CONFLICT (user_id, role) WHERE character_id IS NULL`; delegation RPCs cannot create/revoke it.
+Full local evidence and visual-verification limits are in
+`docs/verification/2026-10-20-selected-character-staff.md`. This is not a hosted release claim.
 
 ### Minimum Skill information
 
@@ -755,6 +786,7 @@ immutable version records. The broader searchable Master Panel audit log, granul
 system, re-authentication/break-glass workflows and other future operational modules remain governed
 by the later phases of this specification; this slice must not pretend those wider systems already
 exist.
+
 ## Owner-approved combat timing and short narration — 2026-10-03
 
 `/master/combat-timing` is Owner-only. Registered effect tags choose Instant or Next global round. Publishing requires a reason and the current version; immutable private rows record actor/time/version. New encounters pin the full policy. Existing encounters and logs never re-read today’s policy. Direct damage/HP/MP recovery default instant; other effects default following global round. A pending icon is presentation only.
@@ -766,7 +798,6 @@ Current Skill, Essence and Resonance short battle scenes reuse their immutable `
 Current drafts use immutable geometry version 2 and expose Single, Line, Circle and All. Single retains authored min/max range. Line/Circle use one integer X from 1 to 5 and store range 0..X. All exposes no X or positional range, stores range 0..0 with LoS false, and reads Range/LoS N/A. Team policy, recipient kind, friendly fire and explicit elevation remain independent; self-only targeting normalizes to Single. Server preview, save and publication reject contradictory range/LoS, invalid X, area primary-unit effects/requirements and area summons. Single Empty Tile summon remains available. Existing permission, reasons, auditing, optimistic versions, drafts, publication and rollback authority remains unchanged. Historical pinned definitions remain immutable.
 
 Burn/Poison/Bleed percentage controls from the approved attack-based DoT release remain precise in integer basis points (0.01% through 100%), with positive complete tick sequences, authored duration and compatible direct attack coverage validated server-side. Changing a percentage creates a new immutable version and leaves in-progress battles pinned. The Owner can also publish separate elevation chances in Master → Combat Settings: level 1/2/3 default to 60%/30%/10%, accept 0% through 100% to two decimal places and must total exactly 100%. Each raised tile independently draws from this policy in new Battle Hall, PvP and world encounters. Changes require an audit reason and reject stale versions; saved battles retain their pinned policy and actual tiles.
-
 
 ### Current persistent Ground controls — 2026-10-07
 

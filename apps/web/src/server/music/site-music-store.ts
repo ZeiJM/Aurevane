@@ -3,6 +3,7 @@ import 'server-only'
 import { AurevaneError } from '@aurevane/game-core/errors'
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { callSelectedStaffRpc } from '@/server/master/selected-staff-actor'
 import {
   createDefaultSiteMusicConfig,
   parseSiteMusicConfig,
@@ -66,21 +67,21 @@ export async function saveSiteMusicConfig(input: {
   }
 
   const client = createSupabaseAdminClient()
-  const nextRevision = input.expectedRevision + 1
-  const { data, error } = await client
-    .from('site_music_configuration')
-    .update({
-      enabled: config.enabled,
-      default_track: config.defaultTrack,
-      route_overrides: config.routeOverrides,
-      revision: nextRevision,
-      updated_by: input.actorUserId,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('singleton_id', true)
-    .eq('revision', input.expectedRevision)
-    .select('enabled, default_track, route_overrides, revision, updated_at')
-    .maybeSingle()
+  const { data, error } = await callSelectedStaffRpc(
+    client.rpc.bind(client),
+    'save_site_music_configuration_v2',
+    {
+      p_actor_user_id: input.actorUserId,
+      p_expected_revision: input.expectedRevision,
+      p_enabled: config.enabled,
+      p_default_track: config.defaultTrack,
+      p_route_overrides: config.routeOverrides,
+    },
+  )
+  if (error?.code === '42501')
+    throw new AurevaneError('FORBIDDEN', 'Only the selected Game Owner may change Site Music.')
+  if (error?.code === '40001')
+    throw new AurevaneError('STALE_VERSION', 'Site Music changed. Refresh and try again.')
 
   if (error) {
     throw new AurevaneError(

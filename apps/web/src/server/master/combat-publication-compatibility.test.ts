@@ -1,5 +1,11 @@
 import { beforeEach, expect, it, vi } from 'vitest'
 vi.mock('server-only', () => ({}))
+vi.mock('@/server/auth/actor', () => ({
+  getAuthenticatedActor: async () => ({ userId: '11111111-1111-4111-8111-111111111111' }),
+}))
+vi.mock('@/server/character/selected-character', () => ({
+  loadSelectedCharacter: async () => ({ id: 'selected' }),
+}))
 const { adminRpc } = vi.hoisted(() => ({ adminRpc: vi.fn() }))
 vi.mock('@/lib/supabase/admin', () => ({ createSupabaseAdminClient: () => ({ rpc: adminRpc }) }))
 import {
@@ -106,6 +112,7 @@ it.each(['manual', 'automatic'] as const)(
         {
           name: 'publish_combat_effect_timing_policy_v2',
           parameters: {
+            p_actor_character_id: 'selected',
             p_actor_user_id: actor,
             p_expected_version: 7,
             p_modes: proposed.modes,
@@ -231,6 +238,7 @@ it('publishes compatible timing through the same catalogue-CAS boundary and pres
     {
       name: 'publish_combat_effect_timing_policy_v2',
       parameters: {
+        p_actor_character_id: 'selected',
         p_actor_user_id: actor,
         p_expected_version: 7,
         p_modes: { slow: 'instant' },

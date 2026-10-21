@@ -14,6 +14,7 @@ vi.mock('@/components/media/aurevane-image', () => ({
 import { MasterPanelShell } from './master-panel-shell'
 const access: MasterPanelAccess = {
   userId: 'staff-1',
+  characterId: 'selected',
   accessVersion: 1,
   roles: ['content-staff'],
   specialCapabilities: [],

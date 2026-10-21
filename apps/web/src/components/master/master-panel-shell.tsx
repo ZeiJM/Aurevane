@@ -68,7 +68,7 @@ export const masterNavigation = [
   {
     id: 'staff',
     href: '/master/staff',
-    label: 'Staff & Authority',
+    label: 'Staff & Access',
     detail: 'Roles & capabilities',
     icon: '♜',
     capability: 'staff.manage',

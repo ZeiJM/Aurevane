@@ -21,6 +21,7 @@ const idempotencyKey = '00000000-0000-4000-8000-000000004402'
 function access(capabilities: readonly MasterPanelCapability[]): MasterPanelAccess {
   return {
     userId: '00000000-0000-4000-8000-000000004403',
+    characterId: 'selected',
     accessVersion: 1,
     roles: ['event-staff'],
     specialCapabilities: capabilities.filter(
@@ -43,11 +44,10 @@ function staffAccess(
       return current
     }),
     listStaff: vi.fn(),
-    resolveAccountByEmail: vi.fn(),
-    grantRole: vi.fn(),
-    revokeRole: vi.fn(),
-    grantCapability: vi.fn(),
-    revokeCapability: vi.fn(),
+    resolveAccounts: vi.fn(),
+    setCharacterAccess: vi.fn(),
+    revokeLegacyAccess: vi.fn(),
+    revokeCharacterAccess: vi.fn(),
   }
 }
 

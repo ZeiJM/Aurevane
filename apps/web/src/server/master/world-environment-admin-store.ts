@@ -1,4 +1,6 @@
+import { callSelectedStaffRpc } from './selected-staff-actor'
 import 'server-only'
+import { getAuthenticatedActor } from '@/server/auth/actor'
 import { AurevaneError } from '@aurevane/game-core/errors'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { parseWorldEnvironmentSettings } from '@/server/world/world-environment-store'
@@ -54,9 +56,11 @@ export async function readWorldEnvironmentAdminSettings(): Promise<WorldEnvironm
 export async function readWorldEnvironmentHistory(
   limit = 20,
 ): Promise<WorldEnvironmentAuditEntry[]> {
-  const { data, error } = await createSupabaseAdminClient().rpc(
+  const actor = await getAuthenticatedActor()
+  const { data, error } = await callSelectedStaffRpc(
+    (name, parameters) => createSupabaseAdminClient().rpc(name, parameters),
     'read_world_environment_history_v1',
-    { p_limit: limit },
+    { p_limit: limit, p_actor_user_id: actor.userId },
   )
   if (error?.code === 'PGRST202' || error?.code === '42883') return []
   if (error || !Array.isArray(data))
@@ -98,17 +102,21 @@ export async function setWorldEnvironment(input: {
   const durationMs = WEATHER_DURATIONS[durationKey as WeatherDurationKey]
   const until =
     weather !== null && durationMs !== null ? (input.nowMs ?? Date.now()) + durationMs : null
-  const { data, error } = await createSupabaseAdminClient().rpc('set_world_environment_v1', {
-    p_actor: input.actorUserId,
-    p_expected_version: input.expectedVersion as number,
-    p_settings: {
-      timeOffsetMinutes: change.timeOffsetMinutes,
-      frozenMinuteOfDay: frozen,
-      weatherOverride: weather,
-      weatherOverrideUntilMs: until,
+  const { data, error } = await callSelectedStaffRpc(
+    (name, parameters) => createSupabaseAdminClient().rpc(name, parameters),
+    'set_world_environment_v1',
+    {
+      p_actor: input.actorUserId,
+      p_expected_version: input.expectedVersion as number,
+      p_settings: {
+        timeOffsetMinutes: change.timeOffsetMinutes,
+        frozenMinuteOfDay: frozen,
+        weatherOverride: weather,
+        weatherOverrideUntilMs: until,
+      },
+      p_reason: (input.reason as string).trim(),
     },
-    p_reason: (input.reason as string).trim(),
-  })
+  )
   if (error?.message?.includes('WORLD_ENVIRONMENT_VERSION_CONFLICT'))
     throw new AurevaneError('STALE_VERSION', 'Refresh the world environment before changing it.')
   if (error?.message?.includes('INVALID_WORLD_ENVIRONMENT'))

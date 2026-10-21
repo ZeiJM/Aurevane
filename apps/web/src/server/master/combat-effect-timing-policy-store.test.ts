@@ -3,6 +3,10 @@ import { latestEnabledMatureSkills } from '@aurevane/game-core/combat/mature-ski
 import { currentEssenceDefinitions } from '@aurevane/game-core/combat/essence'
 import { currentResonanceDefinitions } from '@aurevane/game-core/combat/resonance'
 vi.mock('server-only', () => ({}))
+vi.mock('@/server/auth/actor', () => ({ getAuthenticatedActor: async () => ({ userId: 'owner' }) }))
+vi.mock('@/server/character/selected-character', () => ({
+  loadSelectedCharacter: async () => ({ id: 'selected' }),
+}))
 const rpc = vi.fn()
 vi.mock('@/lib/supabase/admin', () => ({ createSupabaseAdminClient: () => ({ rpc }) }))
 beforeEach(() => {
@@ -104,6 +108,7 @@ it('publishes Controlled defaults without requiring a human reason', async () =>
     'publish_combat_effect_timing_policy_v2',
     expect.objectContaining({
       p_actor_user_id: 'owner',
+      p_actor_character_id: 'selected',
       p_expected_version: 3,
       p_modes: { slow: 'controlled' },
     }),
