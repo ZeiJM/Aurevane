@@ -1,5 +1,7 @@
 import 'server-only'
 
+import { createSelectedCharacterRpc } from './selected-character-rpc'
+
 import { AurevaneError } from '@aurevane/game-core/errors'
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
@@ -184,7 +186,8 @@ export function createSupabaseEventOperationsStore(): EventOperationsStore {
   return {
     async listRuns(actorUserId) {
       const supabase = createSupabaseAdminClient()
-      const { data, error } = await supabase.rpc('list_event_operation_runs_v1', {
+      const rpc = createSelectedCharacterRpc((name, parameters) => supabase.rpc(name, parameters))
+      const { data, error } = await rpc('list_event_operation_runs_v1', {
         p_actor_user_id: actorUserId,
       })
       if (error) mapRpcError(error)
@@ -202,7 +205,8 @@ export function createSupabaseEventOperationsStore(): EventOperationsStore {
 
     async readDashboard(actorUserId, runId) {
       const supabase = createSupabaseAdminClient()
-      const { data, error } = await supabase.rpc('read_event_operation_dashboard_v1', {
+      const rpc = createSelectedCharacterRpc((name, parameters) => supabase.rpc(name, parameters))
+      const { data, error } = await rpc('read_event_operation_dashboard_v1', {
         p_actor_user_id: actorUserId,
         p_run_id: runId,
       })
@@ -212,7 +216,8 @@ export function createSupabaseEventOperationsStore(): EventOperationsStore {
 
     async operate(input) {
       const supabase = createSupabaseAdminClient()
-      const { data, error } = await supabase.rpc('operate_event_run_v2', {
+      const rpc = createSelectedCharacterRpc((name, parameters) => supabase.rpc(name, parameters))
+      const { data, error } = await rpc('operate_event_run_v2', {
         p_actor_user_id: input.actorUserId,
         p_run_id: input.runId,
         p_expected_state_version: input.expectedStateVersion,
@@ -227,7 +232,8 @@ export function createSupabaseEventOperationsStore(): EventOperationsStore {
 
     async advancePhase(input) {
       const supabase = createSupabaseAdminClient()
-      const { data, error } = await supabase.rpc('advance_event_run_phase_v2', {
+      const rpc = createSelectedCharacterRpc((name, parameters) => supabase.rpc(name, parameters))
+      const { data, error } = await rpc('advance_event_run_phase_v2', {
         p_actor_user_id: input.actorUserId,
         p_run_id: input.runId,
         p_expected_state_version: input.expectedStateVersion,
@@ -241,7 +247,8 @@ export function createSupabaseEventOperationsStore(): EventOperationsStore {
 
     async completeCleanup(input) {
       const supabase = createSupabaseAdminClient()
-      const { data, error } = await supabase.rpc('complete_event_cleanup_requirement_v2', {
+      const rpc = createSelectedCharacterRpc((name, parameters) => supabase.rpc(name, parameters))
+      const { data, error } = await rpc('complete_event_cleanup_requirement_v2', {
         p_actor_user_id: input.actorUserId,
         p_run_id: input.runId,
         p_phase_id: input.phaseId,

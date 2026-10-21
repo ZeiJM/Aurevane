@@ -73,6 +73,7 @@ const STANDALONE_EVENTS = new Set([
   'terrain_overlay_expired',
   'battle_completed',
   'battle_abandoned',
+  'administrative_no_contest',
 ])
 
 const TONE_PRIORITY: Record<BattleLogTone, number> = {
@@ -525,6 +526,7 @@ function presentAction(group: ActionGroup, options: PresentationOptions): Presen
   const surrender = findEntry(group, 'pvp_combatant_surrendered')
   const completed = findEntry(group, 'battle_completed')
   const abandoned = findEntry(group, 'battle_abandoned')
+  const noContest = findEntry(group, 'administrative_no_contest')
   const started = findEntry(group, 'battle_started')
   const timeout = findEntry(group, 'pvp_turn_timed_out')
   const resolved = findEntry(group, 'stat_driven_attack_resolved')
@@ -555,6 +557,11 @@ function presentAction(group: ActionGroup, options: PresentationOptions): Presen
     kind = 'system'
     significance = 'highlight'
     consumed.add('complete')
+  } else if (noContest) {
+    primary = [segment('No contest · No rewards', 'outcome', 'neutral')]
+    kind = 'system'
+    significance = 'highlight'
+    consumed.add('no rewards')
   } else if (abandoned) {
     primary = [segment('Battle ended early', 'outcome', 'warning')]
     kind = 'system'

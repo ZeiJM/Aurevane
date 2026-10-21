@@ -1,0 +1,11 @@
+{"cwd": "/workspace/scratch/081f137b6a6d/aurevane-players-20261020", "command": ["corepack", "pnpm", "--filter", "@aurevane/db", "exec", "vitest", "run", "src/master-players-recovery.test.ts"], "start": "2026-10-20T18:21:14.458809+00:00"}
+
+ RUN  v4.1.10 /workspace/scratch/081f137b6a6d/aurevane-players-20261020/packages/db
+
+
+ Test Files  1 passed (1)
+      Tests  13 passed (13)
+   Start at  14:21:15
+   Duration  2.56s (transform 27ms, setup 0ms, import 55ms, tests 2.38s, environment 0ms)
+
+{"end": "2026-10-20T18:21:17.709803+00:00", "exit": 0}

@@ -1,0 +1,7 @@
+{"cwd": "/workspace/scratch/081f137b6a6d/aurevane-players-20261020", "command": ["python", "-c", "import subprocess; subprocess.run([\"git\",\"fetch\",\"origin\",\"main\"],check=True); print(\"main\",subprocess.check_output([\"git\",\"rev-parse\",\"origin/main\"],text=True).strip()); subprocess.run([\"git\",\"merge-base\",\"--is-ancestor\",\"origin/main\",\"HEAD\"],check=True); subprocess.run([\"git\",\"diff\",\"--check\"],check=True); blob=subprocess.check_output([\"git\",\"hash-object\",\"apps/web/vercel.json\"],text=True).strip(); print(\"deployment lock\",blob); assert blob==\"b8a4e0e3c57b95a8da49c05d1fe5f60ba2181b5f\"; old=subprocess.check_output([\"git\",\"diff\",\"--name-only\",\"9b84e413\",\"--\",\"supabase/migrations\"],text=True).splitlines(); print(\"migration diff\",old); assert old==[\"supabase/migrations/20261020181057_master_players_recovery.sql\"]"], "start": "2026-10-20T19:02:01.657738+00:00"}
+From https://github.com/ZeiJM/Aurevane
+ * branch              main       -> FETCH_HEAD
+main b7ba1e7b3e8b850c53f0d15842c96aecc50ae160
+deployment lock b8a4e0e3c57b95a8da49c05d1fe5f60ba2181b5f
+migration diff ['supabase/migrations/20261020181057_master_players_recovery.sql']
+{"end": "2026-10-20T19:02:09.736796+00:00", "exit": 0}

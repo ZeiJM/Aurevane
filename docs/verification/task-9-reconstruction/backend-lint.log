@@ -1,0 +1,23 @@
+{"cwd": "/workspace/scratch/081f137b6a6d/aurevane-players-20261020", "command": ["corepack", "pnpm", "exec", "eslint", "apps/web/src/server/master/player-battle-recovery.ts", "apps/web/src/server/master/players-service.ts", "apps/web/src/server/master/players-service.test.ts", "apps/web/src/server/master/players-handler.ts", "apps/web/src/server/master/players-handler.test.ts", "apps/web/src/server/master/player-battle-recovery.test.ts", "packages/db/src/master-players-recovery.test.ts"], "start": "2026-10-20T18:36:37.856186+00:00"}
+
+/workspace/scratch/081f137b6a6d/aurevane-players-20261020/apps/web/src/server/master/player-battle-recovery.test.ts
+  0:0  warning  File ignored because of a matching ignore pattern. Use "--no-ignore" to disable file ignore settings or use "--no-warn-ignored" to suppress this warning
+
+/workspace/scratch/081f137b6a6d/aurevane-players-20261020/apps/web/src/server/master/player-battle-recovery.ts
+  0:0  warning  File ignored because of a matching ignore pattern. Use "--no-ignore" to disable file ignore settings or use "--no-warn-ignored" to suppress this warning
+
+/workspace/scratch/081f137b6a6d/aurevane-players-20261020/apps/web/src/server/master/players-handler.test.ts
+  0:0  warning  File ignored because of a matching ignore pattern. Use "--no-ignore" to disable file ignore settings or use "--no-warn-ignored" to suppress this warning
+
+/workspace/scratch/081f137b6a6d/aurevane-players-20261020/apps/web/src/server/master/players-handler.ts
+  0:0  warning  File ignored because of a matching ignore pattern. Use "--no-ignore" to disable file ignore settings or use "--no-warn-ignored" to suppress this warning
+
+/workspace/scratch/081f137b6a6d/aurevane-players-20261020/apps/web/src/server/master/players-service.test.ts
+  0:0  warning  File ignored because of a matching ignore pattern. Use "--no-ignore" to disable file ignore settings or use "--no-warn-ignored" to suppress this warning
+
+/workspace/scratch/081f137b6a6d/aurevane-players-20261020/apps/web/src/server/master/players-service.ts
+  0:0  warning  File ignored because of a matching ignore pattern. Use "--no-ignore" to disable file ignore settings or use "--no-warn-ignored" to suppress this warning
+
+✖ 6 problems (0 errors, 6 warnings)
+
+{"end": "2026-10-20T18:36:40.528858+00:00", "exit": 0}

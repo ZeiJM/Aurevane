@@ -1,0 +1,46 @@
+{
+  "runtimeCommit": "20486d28318eb6d6eced4ec7fca81b1b8947749e",
+  "redaction": "None: retained exact raw command output. No production credentials were used. Full quality log is only 16521 bytes; no compression required.",
+  "files": [
+    {
+      "path": "telemetry-disabled-full-gate.log",
+      "bytes": 16521,
+      "sha256": "841a67549b39f793a233ca667ec19f766be9b5ba14c363a2bb49864428a30c85"
+    },
+    {
+      "path": "frozen-full-check.log",
+      "bytes": 1642,
+      "sha256": "efd5c065379d513249365cc0520bcf653e562f1cfb484e775331fa9a840effea"
+    },
+    {
+      "path": "actor-counterpart-deletion-green.log",
+      "bytes": 548,
+      "sha256": "43912dcdbd5db2cc97b6bc37f1af231fed835214c76dd9f695abc7e022221517"
+    },
+    {
+      "path": "counterpart-deletion-red.log",
+      "bytes": 2916,
+      "sha256": "d92e4a2a2a740e259485dee320f38ad6835632448ce7dcaf5dfdaf0cd2b3d700"
+    },
+    {
+      "path": "selected-actor-deletion-red.log",
+      "bytes": 4670,
+      "sha256": "be8be77e33bded209ac187ee398d24a9b8232e520cd0331bf71a9e0e5aa6a4a5"
+    },
+    {
+      "path": "native-browser-execution.log",
+      "bytes": 3638,
+      "sha256": "60773629aa107d8a1359dbe3acaf2eb0828c31464d5175522573dda20ae777c3"
+    },
+    {
+      "path": "final-source-integrity.log",
+      "bytes": 1251,
+      "sha256": "8924812ec64015c57e0407a93395247950a750c8a59683a9321e445addc5a369"
+    },
+    {
+      "path": "final-privacy-test-style.log",
+      "bytes": 430,
+      "sha256": "4c5e8d51db267c64260ed80c8dabffb1e858cb44ad2352fd8e4f7f5a4e066568"
+    }
+  ]
+}

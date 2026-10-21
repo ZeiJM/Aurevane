@@ -1,0 +1,17 @@
+{"cwd": "/workspace/scratch/081f137b6a6d/aurevane-players-20261020", "command": ["python", ".github/scripts/verify-master-players-recovery.py"], "start": "2026-10-20T18:45:12.172441+00:00"}
+Traceback (most recent call last):
+  File "/workspace/scratch/081f137b6a6d/aurevane-players-20261020/.github/scripts/verify-master-players-recovery.py", line 10, in <module>
+    containers = subprocess.check_output(['docker','ps','--filter','name=supabase_db_','--format','{{.Names}}'],text=True).splitlines()
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 466, in check_output
+    return run(*popenargs, stdout=PIPE, timeout=timeout, check=True,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 548, in run
+    with Popen(*popenargs, **kwargs) as process:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 1026, in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 1955, in _execute_child
+    raise child_exception_type(errno_num, err_msg, err_filename)
+FileNotFoundError: [Errno 2] No such file or directory: 'docker'
+{"end": "2026-10-20T18:45:12.218154+00:00", "exit": 1}

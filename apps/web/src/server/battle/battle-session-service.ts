@@ -1,3 +1,4 @@
+import { assertPreparedBattleSource } from './battle-source-authority'
 import {
   projectPublicCombat,
   type PublicCombat,
@@ -773,6 +774,9 @@ export function createBattleSessionService({
           'The committed character build is unavailable right now.',
         )
       }
+
+      if (committedBuildSnapshot)
+        assertPreparedBattleSource(character, committedBuildSnapshot, committedBuild?.buildVersion)
 
       const battleHallRecordId = command.battleHallRecordId ?? 'recruit-sparring'
       const allyCount = command.allyCount ?? 0,

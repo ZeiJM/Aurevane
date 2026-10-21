@@ -76,6 +76,7 @@ function parseNarratorIdentity(value: unknown): BattleNarratorIdentitySnapshot |
 }
 
 export interface BattleBuildAuthorityCombatantSnapshot {
+  sourceHash?: string
   narratorIdentity?: BattleNarratorIdentitySnapshot
   supportActionId?: SupportActionId
   combatantId: string
@@ -376,6 +377,7 @@ function parseCombatant(
 
   return {
     combatantId: value.combatantId,
+    ...(typeof value.sourceHash === 'string' ? { sourceHash: value.sourceHash } : {}),
     ...(narratorIdentity ? { narratorIdentity } : {}),
     characterId: value.characterId,
     snapshotSchemaVersion: COMBAT_BUILD_SNAPSHOT_SCHEMA_VERSION,
@@ -444,6 +446,7 @@ function createBattleBuildAuthoritySnapshotForCatalog(
       const combatSnapshot = combatSnapshotFromCommitted(snapshot)
       return {
         combatantId,
+        ...(snapshot.sourceHash ? { sourceHash: snapshot.sourceHash } : {}),
         ...(narratorIdentity ? { narratorIdentity: { ...narratorIdentity } } : {}),
         characterId,
         snapshotSchemaVersion: combatSnapshot.schemaVersion,

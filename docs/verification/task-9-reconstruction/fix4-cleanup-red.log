@@ -1,0 +1,72 @@
+{"cwd": "/workspace/scratch/081f137b6a6d/aurevane-players-20261020", "argv": ["corepack", "pnpm", "--filter", "@aurevane/web", "exec", "vitest", "run", "e2e/players-local-fixture.test.ts"], "start": "2026-10-20T20:38:33.905083+00:00"}
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.10 /workspace/scratch/081f137b6a6d/aurevane-players-20261020/apps/web
+
+ ❯ e2e/players-local-fixture.test.ts (4 tests | 2 failed) 14ms
+   × preserves the primary failure when an already-closed context rejects cleanup 10ms
+   × reports every cleanup failure and closes every context after Owner release fails 3ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  e2e/players-local-fixture.test.ts > preserves the primary failure when an already-closed context rejects cleanup
+AssertionError: expected Error: Target page, context or browser ha… to be Error: Correction group selection timed o… // Object.is equality
+
+- Expected
++ Received
+
+  Error {
+-   "message": "Correction group selection timed out",
++   "message": "Target page, context or browser has been closed",
+  }
+
+ ❯ e2e/players-local-fixture.test.ts:26:6
+     24|         }
+     25|       })(),
+     26|     ).rejects.toBe(primary)
+       |      ^
+     27|     expect(closed).toEqual([0, 1])
+     28|     expect(log).toHaveBeenCalledWith('Players fixture cleanup failed a…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  e2e/players-local-fixture.test.ts > reports every cleanup failure and closes every context after Owner release fails
+AssertionError: expected Error: Context cleanup failed to match object { name: 'AggregateError', …(1) }
+
+- Expected
++ Received
+
+- {
+-   "errors": [
+-     Error {
+-       "message": "Owner grant cleanup failed",
+-     },
+  Error {
+    "message": "Context cleanup failed",
+-     },
+-   ],
+-   "name": "AggregateError",
+  }
+
+ ❯ e2e/players-local-fixture.test.ts:46:5
+     44|     ],
+     45|     false,
+     46|   )).rejects.toMatchObject({ name: 'AggregateError', errors: [release,…
+       |     ^
+     47|   expect(closed).toEqual([0, 1])
+     48| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 2 passed (4)
+   Start at  16:38:34
+   Duration  219ms (transform 31ms, setup 0ms, import 43ms, tests 14ms, environment 0ms)
+
+undefined
+/workspace/scratch/081f137b6a6d/aurevane-players-20261020/apps/web:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run e2e/players-local-fixture.test.ts
+{"end": "2026-10-20T20:38:34.896687+00:00", "exit": 1}

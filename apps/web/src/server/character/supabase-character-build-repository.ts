@@ -351,7 +351,13 @@ function parseCommittedSnapshot(value: unknown): CharacterCommittedBuildSnapshot
   const essence = parseSnapshotEssence(value.extensions.essence)
   if (essence === undefined) return null
 
+  if (
+    Object.hasOwn(value, 'sourceHash') &&
+    (typeof value.sourceHash !== 'string' || !/^[a-f0-9]{64}$/u.test(value.sourceHash))
+  )
+    return null
   return {
+    ...(typeof value.sourceHash === 'string' ? { sourceHash: value.sourceHash } : {}),
     schemaVersion,
     buildVersion,
     ...(supportActionId ? { supportActionId } : {}),

@@ -1,0 +1,18 @@
+{"cwd": "/workspace/scratch/081f137b6a6d/aurevane-players-20261020", "command": ["corepack", "pnpm", "exec", "prettier", "--write", "apps/web/src/app/game/battle/[battleSessionId]/page.tsx", "apps/web/src/components/battle/battle-experience.tsx", "apps/web/src/components/battle/battle-log-presentation.ts", "apps/web/src/components/battle/pvp-spectator-experience.tsx", "apps/web/src/components/master/master-panel-shell.tsx", "apps/web/src/server/battle/battle-log-service.test.ts", "apps/web/src/server/battle/battle-log-service.ts", "packages/db/src/master-players-recovery.test.ts", "apps/web/e2e/master-players-recovery.pw.ts", "apps/web/src/app/master/players/page.tsx", "apps/web/src/components/battle/battle-recovery-navigation.test.ts", "apps/web/src/components/battle/battle-recovery-navigation.ts", "apps/web/src/components/master/player-correction-form.tsx", "apps/web/src/components/master/players-workspace.module.css", "apps/web/src/components/master/players-workspace.test.tsx", "apps/web/src/components/master/players-workspace.tsx"], "start": "2026-10-20T18:48:59.095653+00:00"}
+apps/web/src/app/game/battle/[battleSessionId]/page.tsx 122ms
+apps/web/src/components/battle/battle-experience.tsx 353ms
+apps/web/src/components/battle/battle-log-presentation.ts 80ms (unchanged)
+apps/web/src/components/battle/pvp-spectator-experience.tsx 34ms (unchanged)
+apps/web/src/components/master/master-panel-shell.tsx 9ms
+apps/web/src/server/battle/battle-log-service.test.ts 66ms
+apps/web/src/server/battle/battle-log-service.ts 114ms
+packages/db/src/master-players-recovery.test.ts 59ms
+apps/web/e2e/master-players-recovery.pw.ts 22ms
+apps/web/src/app/master/players/page.tsx 2ms
+apps/web/src/components/battle/battle-recovery-navigation.test.ts 3ms
+apps/web/src/components/battle/battle-recovery-navigation.ts 2ms
+apps/web/src/components/master/player-correction-form.tsx 20ms
+apps/web/src/components/master/players-workspace.module.css 45ms
+apps/web/src/components/master/players-workspace.test.tsx 6ms
+apps/web/src/components/master/players-workspace.tsx 26ms
+{"end": "2026-10-20T18:49:00.769369+00:00", "exit": 0}

@@ -1,0 +1,99 @@
+{"cwd": "/workspace/scratch/081f137b6a6d/aurevane-players-20261020", "command": ["corepack", "pnpm", "--filter", "@aurevane/db", "exec", "vitest", "run", "src/master-players-recovery.test.ts", "-t", "terminal"], "start": "2026-10-20T18:31:34.882382+00:00"}
+
+ RUN  v4.1.10 /workspace/scratch/081f137b6a6d/aurevane-players-20261020/packages/db
+
+ ❯ src/master-players-recovery.test.ts (22 tests | 4 failed | 16 skipped) 2342ms
+   × terminal rejects missing-unit without writing a marker 18ms
+   × terminal rejects changed-policy without writing a marker 13ms
+   × terminal rejects retained-queue without writing a marker 11ms
+   × terminal accepts removal of summon bridge rows only 6ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/master-players-recovery.test.ts > terminal rejects missing-unit without writing a marker
+AssertionError: expected [Function] to throw error matching /SNAPSHOT_INVALID/ but got 'BATTLE_INVALID_SNAPSHOT'
+
+- Expected:
+/SNAPSHOT_INVALID/
+
++ Received:
+"BATTLE_INVALID_SNAPSHOT"
+
+ ❯ denied src/master-players-recovery.test.ts:62:28
+     60| async function denied(operation: () => Promise<unknown>, message: RegE…
+     61|   await db.exec('savepoint denied')
+     62|   await expect(operation()).rejects.toThrow(message)
+       |                            ^
+     63|   await db.exec('rollback to savepoint denied')
+     64| }
+ ❯ src/master-players-recovery.test.ts:360:2
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  src/master-players-recovery.test.ts > terminal rejects changed-policy without writing a marker
+ FAIL  src/master-players-recovery.test.ts > terminal rejects retained-queue without writing a marker
+AssertionError: promise resolved "{ rows: [ { result: { …(4) } } ], …(4) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "affectedRows": 0,
++   "command": "SELECT",
++   "fields": [
++     {
++       "dataTypeID": 3802,
++       "name": "result",
++     },
++   ],
++   "rowCount": 1,
++   "rows": [
++     {
++       "result": {
++         "outcome": "NoContest",
++         "replayed": false,
++         "rewards": "NoRewards",
++         "version": 2,
++       },
++     },
++   ],
+  }
+
+ ❯ denied src/master-players-recovery.test.ts:62:28
+     60| async function denied(operation: () => Promise<unknown>, message: RegE…
+     61|   await db.exec('savepoint denied')
+     62|   await expect(operation()).rejects.toThrow(message)
+       |                            ^
+     63|   await db.exec('rollback to savepoint denied')
+     64| }
+ ❯ src/master-players-recovery.test.ts:360:2
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  src/master-players-recovery.test.ts > terminal accepts removal of summon bridge rows only
+error: BATTLE_PARTICIPANT_COVERAGE_INVALID
+ ❯ pe.Ue ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pg-protocol/src/parser.ts:442:10
+ ❯ pe.tt ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pg-protocol/src/parser.ts:220:15
+ ❯ pe.parse ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pg-protocol/src/parser.ts:104:20
+ ❯ N.qe ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pglite/src/pglite.ts:753:25
+ ❯ ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pglite/src/pglite.ts:706:13
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:5922000
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:2616044
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:2648530
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:2649134
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:5569870
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 2 passed | 16 skipped (22)
+   Start at  14:31:35
+   Duration  2.61s (transform 34ms, setup 0ms, import 61ms, tests 2.34s, environment 0ms)
+
+undefined
+/workspace/scratch/081f137b6a6d/aurevane-players-20261020/packages/db:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/master-players-recovery.test.ts -t terminal
+{"end": "2026-10-20T18:31:38.247859+00:00", "exit": 1}

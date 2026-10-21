@@ -131,6 +131,7 @@ const server = await createServer({
       ...(basicServiceAcceptance
         ? {
             '@/server/auth/actor': resolve(fixture, 'auth-boundary.js'),
+            './combat-content-authoring-server': resolve(fixture, 'authoring-boundary.js'),
             '@/server/master/combat-content-authoring-server': resolve(
               fixture,
               'authoring-boundary.js',

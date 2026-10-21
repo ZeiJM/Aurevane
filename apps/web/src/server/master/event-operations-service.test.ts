@@ -35,6 +35,8 @@ function staffAccess(
 ): MasterPanelStaffAccessService {
   const current = access(capabilities)
   return {
+    resolveIdentity: async () => null,
+    setCharacterAccess: async () => 1,
     readAccess: vi.fn(async () => current),
     requireCapability: vi.fn(async (_userId, capability) => {
       if (!current.effectiveCapabilities.includes(capability)) {
@@ -43,11 +45,6 @@ function staffAccess(
       return current
     }),
     listStaff: vi.fn(),
-    resolveAccountByEmail: vi.fn(),
-    grantRole: vi.fn(),
-    revokeRole: vi.fn(),
-    grantCapability: vi.fn(),
-    revokeCapability: vi.fn(),
   }
 }
 

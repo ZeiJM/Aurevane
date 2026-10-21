@@ -1,5 +1,7 @@
 import 'server-only'
 
+import { createSelectedCharacterRpc } from './selected-character-rpc'
+
 import {
   CombatContentConflictError,
   type CombatContentDefinition,
@@ -386,8 +388,10 @@ export function createSupabaseCombatContentAuthoringStore(
 ): RpcCombatContentAuthoringStore {
   const client = createSupabaseAdminClient()
   return new RpcCombatContentAuthoringStore(
-    (functionName, parameters) =>
-      client.rpc(functionName, parameters) as unknown as PromiseLike<RpcResult>,
+    createSelectedCharacterRpc(
+      (functionName, parameters) =>
+        client.rpc(functionName, parameters) as unknown as PromiseLike<RpcResult>,
+    ),
     actorUserId,
   )
 }

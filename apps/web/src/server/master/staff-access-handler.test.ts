@@ -1,182 +1,109 @@
-import { describe, expect, it, vi } from 'vitest'
-
+import { expect, it, vi } from 'vitest'
 vi.mock('server-only', () => ({}))
-
-import { AurevaneError } from '@aurevane/game-core/errors'
-
+import { handleStaffAccessRequest } from './staff-access-handler'
 import {
-  handleStaffAccessRequest,
-  type StaffAccessHandlerDependencies,
-} from './staff-access-handler'
-import type { MasterPanelStaffAccessService } from './staff-access'
-
-const OWNER = '11111111-1111-4111-8111-111111111111'
-const STAFF = '22222222-2222-4222-8222-222222222222'
-
-function serviceMock(): MasterPanelStaffAccessService {
-  return {
-    readAccess: vi.fn(async () => null),
-    requireCapability: vi.fn(async () => {
-      throw new Error('Not used directly by handler tests.')
+  createMasterPanelStaffAccessService,
+  type MasterPanelStaffAccessStore,
+  type SetCharacterStaffAccessInput,
+} from './staff-access'
+const owner = '11111111-1111-4111-8111-111111111111',
+  staff = '22222222-2222-4222-8222-222222222222',
+  character = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+function fixture() {
+  let saved: SetCharacterStaffAccessInput | null = null
+  const store: MasterPanelStaffAccessStore = {
+    readAccess: async () => ({
+      userId: owner,
+      roles: ['game-owner'],
+      specialCapabilities: [],
+      accessVersion: 1,
     }),
-    listStaff: vi.fn(async () => []),
-    resolveAccountByEmail: vi.fn(async () => ({ userId: STAFF, email: 'staff@example.com' })),
-    grantRole: vi.fn(async () => 2),
-    revokeRole: vi.fn(async () => 3),
-    grantCapability: vi.fn(async () => 4),
-    revokeCapability: vi.fn(async () => 5),
+    listStaff: async () => [],
+    resolveIdentity: async () => ({
+      userId: staff,
+      email: 'verified@example.com',
+      characters: [{ characterId: character, name: 'Chosen', playable: true }],
+    }),
+    setCharacterAccess: async (input) => {
+      saved = input
+      return 2
+    },
   }
-}
-
-function dependencies(service = serviceMock()): StaffAccessHandlerDependencies {
   return {
-    getActor: async () => ({ userId: OWNER }),
-    createService: vi.fn(() => service),
+    dependencies: {
+      getActor: async () => ({ userId: owner }),
+      createService: () => createMasterPanelStaffAccessService(store),
+    },
+    saved: () => saved,
   }
 }
-
-function post(body: unknown): Request {
-  return new Request('http://localhost/api/master/staff-access', {
+const post = (body: unknown) =>
+  new Request('http://localhost/api/master/staff-access', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   })
+const command = {
+  operation: 'set-character-access',
+  targetUserId: staff,
+  targetCharacterId: character,
+  roles: ['content-staff'],
+  specialCapabilities: [],
+  days: null,
+  expectedVersion: 0,
+  enabled: true,
+  confirmed: true,
 }
-
-describe('staff access handler', () => {
-  it('resolves an exact account through the authenticated Owner context', async () => {
-    const service = serviceMock()
-    const response = await handleStaffAccessRequest(
-      post({ operation: 'resolve-account', email: 'staff@example.com' }),
-      dependencies(service),
-    )
-
-    expect(response.status).toBe(200)
-    expect(service.resolveAccountByEmail).toHaveBeenCalledWith(OWNER, 'staff@example.com')
-    await expect(response.json()).resolves.toEqual({
-      account: { userId: STAFF, email: 'staff@example.com' },
-    })
+it('resolves a verified name or email to all linked characters without caching identity data', async () => {
+  const { dependencies } = fixture()
+  const response = await handleStaffAccessRequest(
+    post({ operation: 'resolve-account', query: 'Chosen' }),
+    dependencies,
+  )
+  expect(response.status).toBe(200)
+  expect(response.headers.get('cache-control')).toContain('no-store')
+  expect(await response.json()).toMatchObject({
+    account: { characters: [{ characterId: character }] },
   })
-
-  it('injects the authenticated Owner identity into confirmed role grants', async () => {
-    const service = serviceMock()
-    const response = await handleStaffAccessRequest(
-      post({
-        operation: 'grant-role',
-        targetUserId: STAFF,
-        role: 'content-staff',
-        reason: 'Combat content',
-        confirmed: true,
-        actorUserId: STAFF,
-      }),
-      dependencies(service),
-    )
-
-    expect(response.status).toBe(200)
-    expect(service.grantRole).toHaveBeenCalledWith({
-      actorUserId: OWNER,
-      targetUserId: STAFF,
-      role: 'content-staff',
-      reason: 'Combat content',
-    })
-    await expect(response.json()).resolves.toEqual({ accessVersion: 2 })
-  })
-
-  it('routes confirmed special-capability revocation through the protected service', async () => {
-    const service = serviceMock()
-    const response = await handleStaffAccessRequest(
-      post({
-        operation: 'revoke-capability',
-        targetUserId: STAFF,
-        capability: 'events.global_scope',
-        reason: 'Scope removed',
-        confirmed: true,
-      }),
-      dependencies(service),
-    )
-
-    expect(response.status).toBe(200)
-    expect(service.revokeCapability).toHaveBeenCalledWith({
-      actorUserId: OWNER,
-      targetUserId: STAFF,
-      capability: 'events.global_scope',
-      reason: 'Scope removed',
-    })
-  })
-
-  it('requires both a reason and explicit confirmation for authority mutation', async () => {
-    const service = serviceMock()
-
-    const noConfirmation = await handleStaffAccessRequest(
-      post({
-        operation: 'grant-role',
-        targetUserId: STAFF,
-        role: 'event-staff',
-        reason: 'Live events',
-      }),
-      dependencies(service),
-    )
-    const noReason = await handleStaffAccessRequest(
-      post({
-        operation: 'grant-role',
-        targetUserId: STAFF,
-        role: 'event-staff',
-        confirmed: true,
-      }),
-      dependencies(service),
-    )
-
-    expect(noConfirmation.status).toBe(400)
-    expect(noReason.status).toBe(400)
-    expect(service.grantRole).not.toHaveBeenCalled()
-  })
-
-  it('rejects protected role/capability identities before mutation', async () => {
-    const service = serviceMock()
-    const ownerRole = await handleStaffAccessRequest(
-      post({
-        operation: 'grant-role',
-        targetUserId: STAFF,
-        role: 'game-owner',
-        reason: 'Should fail',
-        confirmed: true,
-      }),
-      dependencies(service),
-    )
-    const rootCapability = await handleStaffAccessRequest(
-      post({
-        operation: 'grant-capability',
-        targetUserId: STAFF,
-        capability: 'staff.manage',
-        reason: 'Should fail',
-        confirmed: true,
-      }),
-      dependencies(service),
-    )
-
-    expect(ownerRole.status).toBe(400)
-    expect(rootCapability.status).toBe(400)
-    expect(service.grantRole).not.toHaveBeenCalled()
-    expect(service.grantCapability).not.toHaveBeenCalled()
-  })
-
-  it('preserves authorization failures from the staff service', async () => {
-    const service = serviceMock()
-    vi.mocked(service.grantRole).mockRejectedValue(
-      new AurevaneError('FORBIDDEN', 'Master Panel unavailable.'),
-    )
-
-    const response = await handleStaffAccessRequest(
-      post({
-        operation: 'grant-role',
-        targetUserId: STAFF,
-        role: 'moderator',
-        reason: 'Moderation duty',
-        confirmed: true,
-      }),
-      dependencies(service),
-    )
-
-    expect(response.status).toBe(403)
-  })
+})
+it('reason_free_attribution: server identity wins over client claims and no reason is required', async () => {
+  const { dependencies, saved } = fixture()
+  const response = await handleStaffAccessRequest(
+    post({ ...command, actorUserId: staff, actorCharacterId: 'forged' }),
+    dependencies,
+  )
+  expect(response.status).toBe(200)
+  expect(saved()).toMatchObject({ actorUserId: owner, targetCharacterId: character })
+  expect(saved()).not.toHaveProperty('actorCharacterId')
+  expect(saved()).not.toHaveProperty('reason')
+})
+it.each([
+  { confirmed: false },
+  { targetCharacterId: null },
+  { roles: ['game-owner'] },
+  { days: 0 },
+  { days: -1 },
+  { expectedVersion: -1 },
+])('rejects invalid sensitive assignment %j', async (patch) => {
+  const { dependencies, saved } = fixture()
+  expect(
+    (await handleStaffAccessRequest(post({ ...command, ...patch }), dependencies)).status,
+  ).toBe(400)
+  expect(saved()).toBeNull()
+})
+it('rejects obsolete account-wide assignment operations', async () => {
+  const { dependencies } = fixture()
+  expect(
+    (
+      await handleStaffAccessRequest(
+        post({
+          operation: 'grant-role',
+          targetUserId: staff,
+          role: 'content-staff',
+          confirmed: true,
+        }),
+        dependencies,
+      )
+    ).status,
+  ).toBe(400)
 })

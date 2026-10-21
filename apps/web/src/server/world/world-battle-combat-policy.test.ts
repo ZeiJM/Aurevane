@@ -17,7 +17,14 @@ const { rpc, findCharacter, loadBuildSnapshot, readWorld, attackAuthority } = vi
   attackAuthority: vi.fn(),
   rpc: vi.fn(),
   findCharacter: vi.fn<(userId: string, id: string) => Promise<CharacterRecord | null>>(),
-  loadBuildSnapshot: vi.fn<() => Promise<CharacterCommittedBuildSnapshotRecord>>(),
+  loadBuildSnapshot:
+    vi.fn<
+      (
+        userId: string,
+        id: string,
+        repository?: unknown,
+      ) => Promise<CharacterCommittedBuildSnapshotRecord>
+    >(),
 }))
 const startup = vi.hoisted(() => ({ enabled: false }))
 vi.mock('@/lib/supabase/admin', () => ({ createSupabaseAdminClient: () => ({ rpc }) }))
@@ -411,5 +418,35 @@ it('starts against only the resulting persisted version after approved owned tra
   expect(rpc).toHaveBeenCalledWith(
     'start_world_encounter_v1',
     expect.objectContaining({ p_expected_version: 3, p_target_version: 3 }),
+  )
+})
+it('rejects mixed source CharacterRecord and new committed build before actual World admission', async () => {
+  rpc.mockImplementation(async (name: string) => successfulAttackRpc(name))
+  loadBuildSnapshot.mockImplementation(async () => ({
+    ...pureSnapshot(),
+    sourceHash: '0'.repeat(64),
+  }))
+  await expect(attackWorldPlayer('owner', 'actor', 'target', 2)).rejects.toMatchObject({
+    code: 'STALE_VERSION',
+  })
+  expect(rpc.mock.calls.some(([name]) => String(name).startsWith('start_world_encounter'))).toBe(
+    false,
+  )
+})
+it('fresh World producer persists both coherent source proofs', async () => {
+  const { battleSourceHash } = await import('@/server/battle/battle-source-authority')
+  rpc.mockImplementation(async (name: string) => successfulAttackRpc(name))
+  loadBuildSnapshot.mockImplementation(async (userId: string, id: string) => ({
+    ...pureSnapshot(),
+    sourceHash: battleSourceHash(characterRecord(id, userId, 'Fighter')),
+  }))
+  await attackWorldPlayer('owner', 'actor', 'target', 2)
+  const args = rpc.mock.calls.find(([name]) =>
+    String(name).startsWith('start_world_encounter'),
+  )?.[1] as Record<string, unknown>
+  const snapshot = args.p_snapshot as BattleAuthoritativeEncounterState
+  expect(snapshot.buildAuthority?.combatants).toHaveLength(2)
+  expect(snapshot.buildAuthority?.combatants.every((row) => row.sourceHash?.length === 64)).toBe(
+    true,
   )
 })

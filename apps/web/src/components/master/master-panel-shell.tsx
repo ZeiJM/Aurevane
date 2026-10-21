@@ -17,6 +17,7 @@ export type MasterPanelSection =
   | 'combat'
   | 'combat-timing'
   | 'world-environment'
+  | 'players'
   | 'staff'
   | 'events'
   | 'live-events'
@@ -31,6 +32,15 @@ interface MasterPanelShellProps {
 }
 
 export const masterNavigation = [
+  {
+    id: 'players',
+    href: '/master/players',
+    label: 'Players',
+    detail: 'Inspect & recover',
+    icon: '♙',
+    capability: 'staff.manage',
+    ownerOnly: true,
+  },
   {
     id: 'combat-timing',
     href: '/master/combat-timing',
@@ -68,7 +78,7 @@ export const masterNavigation = [
   {
     id: 'staff',
     href: '/master/staff',
-    label: 'Staff & Authority',
+    label: 'Staff & Access',
     detail: 'Roles & capabilities',
     icon: '♜',
     capability: 'staff.manage',
@@ -96,6 +106,7 @@ export const masterNavigation = [
     | '/master/combat-timing'
     | '/master/music'
     | '/master/world-environment'
+    | '/master/players'
     | '/master/staff'
     | '/master/events'
     | '/master/events/live'

@@ -1,3 +1,4 @@
+import { assertPreparedBattleSource } from '@/server/battle/battle-source-authority'
 import { readBattlefieldElevationPolicy } from '@/server/master/battlefield-elevation-policy-store'
 import { readCombatEffectTimingPolicy } from '@/server/master/combat-effect-timing-policy-store'
 import 'server-only'
@@ -336,6 +337,7 @@ export async function startPvpLobbyWithQuality(
       if (!character) {
         throw new AurevaneError('INVALID_REQUEST', 'A lobby character is no longer available.')
       }
+      assertPreparedBattleSource(character, buildSnapshot)
       return { member, character, buildSnapshot }
     }),
   )

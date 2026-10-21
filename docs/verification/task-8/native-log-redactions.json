@@ -1,0 +1,35 @@
+{
+  "scope": "Controller CI transcripts only; raw traces and original credential-bearing logs stay outside published source. Diagnostic outcomes unchanged.",
+  "logs": [
+    {
+      "file": "native-initial-database.log.gz",
+      "credentialValuesRedacted": 1,
+      "originalSha256": "7288be3115218e1cd93ac708203a30188f3bfa58b61dbcbaebe102609786b039",
+      "publishedSha256": "38bab011bda358db7854016f918062c56a4e0573490a398641c97c83ba634403"
+    },
+    {
+      "file": "native-initial-quality.log.gz",
+      "credentialValuesRedacted": 0,
+      "originalSha256": "53620dcd649928517025886b22f87c191ca219f41e06db75682bdfd9c4a4fbe9",
+      "publishedSha256": "53620dcd649928517025886b22f87c191ca219f41e06db75682bdfd9c4a4fbe9"
+    },
+    {
+      "file": "native-repaired-database.log.gz",
+      "credentialValuesRedacted": 1,
+      "originalSha256": "4d577fdf228a11606727a69edee8a3fc83a681f99c552b760aa310b0862603d9",
+      "publishedSha256": "196c408612734326a6d3dc1ada7abc922114326f7532c3ef0d67ee1b018f6fbd"
+    },
+    {
+      "file": "native-repaired-quality.log.gz",
+      "credentialValuesRedacted": 0,
+      "originalSha256": "57b21177c08ead5c0588faa08bc0c31351c95582e20df9ebae5a05c90aea2b23",
+      "publishedSha256": "57b21177c08ead5c0588faa08bc0c31351c95582e20df9ebae5a05c90aea2b23"
+    },
+    {
+      "file": "native-repaired-browser-failure.log.gz",
+      "credentialValuesRedacted": 1,
+      "originalSha256": "7da61c3a8cd308e8b5540ba523be58a6666d504db9aebc48323825b5f04f637b",
+      "publishedSha256": "34b825b84f2dee9248c0ff4360cc3e1f869af3d6b62af0019964f05359846025"
+    }
+  ]
+}

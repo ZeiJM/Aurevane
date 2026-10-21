@@ -1,0 +1,91 @@
+{
+  "source": "f6ba4876f39f39d0da690dbbcf6039fcc488aaf7",
+  "tree": "7174dd6ca0960d92ace1feb96ad5a72346cb2263",
+  "browser": {
+    "run": 39202185522,
+    "job": 117897318004,
+    "conclusion": "success",
+    "early_protected_master": {
+      "passed": 6,
+      "staff_repetitions": 2
+    },
+    "focused": {
+      "passed": 73,
+      "skipped": 21
+    },
+    "full_chromium": {
+      "passed": 358,
+      "skipped": 281
+    },
+    "edge": {
+      "passed": 10,
+      "skipped": 2
+    }
+  },
+  "all_eight_workflows": "success",
+  "sanitized_browser_log": {
+    "path": "docs/verification/task-8/native-selector-browser.log.gz",
+    "sha256": "ba966b1f790646a1e78e6981f4dcdb82c50ed09738c2a60e5eaef8875e07dcb7",
+    "test_credential_redactions": 1
+  },
+  "artifact": {
+    "id": 12166507860,
+    "name": "combat-release-reader-screens",
+    "sha256": "86f00cd2f357158a97674de889ac0c11a7ae257dcc592e90eb5c783591ace395",
+    "staff_pngs": [
+      {
+        "artifact_path": "tmp/combat-master-release-review/staff-desktop.png",
+        "sha256": "722ceefc232ef5b4c369d61ec78e384e5c49ea70421f2c231cfd9b11cb3337e1",
+        "bytes": 669746
+      },
+      {
+        "artifact_path": "tmp/combat-master-release-review/staff-laptop.png",
+        "sha256": "29ae3e5d0c5a8a24835d6fc9dcf0098a436e6b51c3cf88346ffb604923275c88",
+        "bytes": 541270
+      },
+      {
+        "artifact_path": "tmp/combat-master-release-review/staff-200-percent-layout.png",
+        "sha256": "a70f348aff79422d90b75c9077ddede7fcbe1b7e364479a1f8055eea983475f9",
+        "bytes": 1218157
+      },
+      {
+        "artifact_path": "tmp/combat-master-release-review/staff-mobile.png",
+        "sha256": "a9ce4ee79c759b526999faced6263a453f72bce04c92889d8c4bbf7af3e63537",
+        "bytes": 394173
+      },
+      {
+        "artifact_path": "tmp/combat-master-release-review/staff-narrow-mobile.png",
+        "sha256": "8ca6a9d89f5a52f99faa2014b7c3988dc0bc435ede9e4648fefaa9a11a9f56d3",
+        "bytes": 370092
+      },
+      {
+        "artifact_path": "home/runner/work/Aurevane/Aurevane/apps/web/test-results/staff-selected-character-a-39ccf-esponsive-controls-coherent-desktop-chromium/staff-200-percent-layout.png",
+        "sha256": "2846397a4d51de2ac045dfa4b6a3d6e9202f4fce214e52120ae1c9ac8e0331ac",
+        "bytes": 1730907
+      },
+      {
+        "artifact_path": "home/runner/work/Aurevane/Aurevane/apps/web/test-results/staff-selected-character-a-39ccf-esponsive-controls-coherent-desktop-chromium/staff-desktop.png",
+        "sha256": "48323a26d9a9903bee325a856a1ff2fd72668bd061dc56bad4ecfb7d99852a83",
+        "bytes": 668480
+      },
+      {
+        "artifact_path": "home/runner/work/Aurevane/Aurevane/apps/web/test-results/staff-selected-character-a-39ccf-esponsive-controls-coherent-desktop-chromium/staff-laptop.png",
+        "sha256": "e60525cbc00e7ca94576264ac5f24ec105687b193c686297ad670339fe29138d",
+        "bytes": 545299
+      },
+      {
+        "artifact_path": "home/runner/work/Aurevane/Aurevane/apps/web/test-results/staff-selected-character-a-39ccf-esponsive-controls-coherent-desktop-chromium/staff-mobile.png",
+        "sha256": "fbbfe568d95cf238cd83bf3864cd1b874a7a20ecb9bbc70b2d581825cc45c0bb",
+        "bytes": 595752
+      },
+      {
+        "artifact_path": "home/runner/work/Aurevane/Aurevane/apps/web/test-results/staff-selected-character-a-39ccf-esponsive-controls-coherent-desktop-chromium/staff-narrow-mobile.png",
+        "sha256": "ab511eb13c8dcfa4e5ec5fe21d9a222bdbac72e276495990205ad81ea52bd45c",
+        "bytes": 546538
+      }
+    ]
+  },
+  "visual_inspection": "Root inspected retained desktop, laptop,390px,320px and CSS200percent-layout screenshots; form controls readable and reachable. Existing horizontal Master navigation is scrollable. Physical browser zoom/touch/human acceptance not certified.",
+  "server_diagnostics": "Three destination-stream-closed-early diagnostics appear in successful production-server browser flow; retained honestly, no assertion weakening or blanket error-free claim.",
+  "hosted_changes": "none"
+}

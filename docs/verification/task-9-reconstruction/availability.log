@@ -1,0 +1,28 @@
+{"cwd": "/workspace/scratch/081f137b6a6d/aurevane-players-20261020", "command": ["bash", "-c", "node --version; corepack pnpm --version; command -v docker; command -v psql; command -v chromium; command -v google-chrome; git hash-object apps/web/vercel.json; git status --short"], "start": "2026-10-20T18:23:21.213413+00:00"}
+v24.19.0
+11.17.0
+b8a4e0e3c57b95a8da49c05d1fe5f60ba2181b5f
+ M .github/scripts/verify-master-panel-staff-authority.sql
+ M .superpowers/sdd/2026-10-10-unified-engine-recovery/verification.jsonl
+ M apps/web/src/server/battle/battle-build-authority.ts
+ M apps/web/src/server/battle/battle-session-service.ts
+ M apps/web/src/server/battle/pvp-lobby-quality-service.ts
+ M apps/web/src/server/battle/pvp-lobby-service.ts
+ M apps/web/src/server/character/character-build-service.ts
+ M apps/web/src/server/character/supabase-character-build-repository.ts
+ M apps/web/src/server/master/selected-character-rpc.ts
+ M apps/web/src/server/world/world-battle.ts
+ M packages/game-core/src/combat/public-combat-presentation.ts
+?? apps/web/src/app/api/master/players/
+?? apps/web/src/master/
+?? apps/web/src/server/battle/battle-source-authority.test.ts
+?? apps/web/src/server/battle/battle-source-authority.ts
+?? apps/web/src/server/master/player-battle-recovery.test.ts
+?? apps/web/src/server/master/player-battle-recovery.ts
+?? apps/web/src/server/master/players-handler.ts
+?? apps/web/src/server/master/players-server.ts
+?? apps/web/src/server/master/players-service.ts
+?? docs/verification/task-9-reconstruction/
+?? packages/db/src/master-players-recovery.test.ts
+?? supabase/migrations/20261020181057_master_players_recovery.sql
+{"end": "2026-10-20T18:23:21.650990+00:00", "exit": 0}

@@ -1,0 +1,63 @@
+{"cwd": "/workspace/scratch/081f137b6a6d/aurevane-players-20261020", "command": ["corepack", "pnpm", "--filter", "@aurevane/db", "exec", "vitest", "run", "src/master-players-recovery.test.ts", "-t", "World recovery|shared PvP"], "start": "2026-10-20T18:34:31.073388+00:00"}
+
+ RUN  v4.1.10 /workspace/scratch/081f137b6a6d/aurevane-players-20261020/packages/db
+
+ ❯ src/master-players-recovery.test.ts (24 tests | 2 failed | 22 skipped) 2709ms
+   × World recovery clears actual block/read battle link while retaining origin, saved progress and prior receipts 58ms
+   × shared PvP recovery names the exact real participants and clears actual clocks, staging and spectator locks 22ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/master-players-recovery.test.ts > World recovery clears actual block/read battle link while retaining origin, saved progress and prior receipts
+AssertionError: expected { state: { safe: true, …(5) }, …(8) } to match object { state: { version: 4, …(4) }, …(2) }
+(7 matching properties omitted from actual)
+
+- Expected
++ Received
+
+@@ -12,8 +12,8 @@
+        "x": 2,
+        "y": 3,
+      },
+      "route": [],
+      "safe": true,
+-     "version": 4,
++     "version": 5,
+    },
+  }
+
+ ❯ src/master-players-recovery.test.ts:390:24
+    388|  const receipts=(await db.query('select * from app_private.idempotency…
+    389|  await recover(battle)
+    390|  expect(await world()).toMatchObject({state,blocked:null,battleSession…
+       |                        ^
+    391|  expect((await db.query('select * from app_private.world_encounters'))…
+    392|  expect((await db.query('select * from app_private.idempotency_records…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/master-players-recovery.test.ts > shared PvP recovery names the exact real participants and clears actual clocks, staging and spectator locks
+error: PVP_PARTICIPANT_NOT_IN_SNAPSHOT
+ ❯ pe.Ue ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pg-protocol/src/parser.ts:442:10
+ ❯ pe.tt ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pg-protocol/src/parser.ts:220:15
+ ❯ pe.parse ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pg-protocol/src/parser.ts:104:20
+ ❯ N.qe ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pglite/src/pglite.ts:753:25
+ ❯ ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pglite/src/pglite.ts:706:13
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:5922000
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:2616044
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:2648530
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:2649134
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:5569870
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 22 skipped (24)
+   Start at  14:34:31
+   Duration  2.98s (transform 32ms, setup 0ms, import 67ms, tests 2.71s, environment 0ms)
+
+undefined
+/workspace/scratch/081f137b6a6d/aurevane-players-20261020/packages/db:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/master-players-recovery.test.ts -t 'World recovery|shared PvP'
+{"end": "2026-10-20T18:34:34.869960+00:00", "exit": 1}

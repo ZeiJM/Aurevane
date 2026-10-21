@@ -1,0 +1,95 @@
+{
+  "head": "084022efb81534404f88577b73247cbd64d218c8",
+  "tree": "128120f9f5bb73a99739c6aeeea6a0aa1526badb",
+  "localEquivalent": "ee1156f97bc874ad9b84704aa4d08eab642d262f",
+  "pr": 945,
+  "accepted": false,
+  "runs": [
+    {
+      "id": 39197020070,
+      "name": "CI",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 39197020056,
+      "name": "Representative Buildcraft",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 39197020122,
+      "name": "Wayfarer's Practice DB",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 39197020146,
+      "name": "Foundation Security DB",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 39197020125,
+      "name": "Attribute Allocation",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 39197020096,
+      "name": "Battle Session DB",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 39197020080,
+      "name": "Discipline Build DB",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 39197020073,
+      "name": "Browser smoke",
+      "status": "completed",
+      "conclusion": "failure"
+    }
+  ],
+  "quality": {
+    "job": 117881865112,
+    "vitest": 10279,
+    "nodeChecks": 7,
+    "types": 8,
+    "builds": 2,
+    "exit": 0
+  },
+  "database": {
+    "job": 117881863926,
+    "exit": 0,
+    "staffAndEventNativeScripts": "passed"
+  },
+  "browser": {
+    "job": 117882033514,
+    "earlyCases": {
+      "passed": 4,
+      "failed": 2
+    },
+    "failure": "Both Staff repetitions fail initial editor heading focus after successful lookup; native assertion unchanged.",
+    "artifact": 12163060401,
+    "scaledTraceFramePixels": [
+      800,
+      500
+    ],
+    "reportedViewport": [
+      1440,
+      900
+    ]
+  },
+  "disciplineRetry": {
+    "head": "084022efb81534404f88577b73247cbd64d218c8",
+    "run": 39197020080,
+    "failedJob": 117881863686,
+    "cause": "Supabase Inbucket container could not bind host port 54324: address already in use",
+    "action": "one unchanged-source job-only retry"
+  },
+  "limits": "New focus repair awaits exact reviewed commit/native rerun. No hosted migration/deployment. Task9 not unlocked."
+}

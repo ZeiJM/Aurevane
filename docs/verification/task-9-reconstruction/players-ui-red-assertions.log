@@ -1,0 +1,40 @@
+{"cwd": "/workspace/scratch/081f137b6a6d/aurevane-players-20261020", "command": ["corepack", "pnpm", "--filter", "@aurevane/web", "exec", "vitest", "run", "src/components/master/players-workspace.test.tsx"], "start": "2026-10-20T18:39:42.184671+00:00"}
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.10 /workspace/scratch/081f137b6a6d/aurevane-players-20261020/apps/web
+
+ ❯ src/components/master/players-workspace.test.tsx (1 test | 1 failed) 13ms
+   × offers neutral bounded search and Owner-only navigation 11ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/components/master/players-workspace.test.tsx > offers neutral bounded search and Owner-only navigation
+AssertionError: expected '' to contain 'Character name'
+
+- Expected
++ Received
+
+- Character name
+
+ ❯ src/components/master/players-workspace.test.tsx:9:15
+      7| it('offers neutral bounded search and Owner-only navigation',()=>{
+      8|  const html=renderToStaticMarkup(createElement(PlayersWorkspace))
+      9|  expect(html).toContain('Character name')
+       |               ^
+     10|  expect(html).toContain('Find players')
+     11|  expect(html).not.toContain('textarea')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed (1)
+   Start at  14:39:43
+   Duration  1.90s (transform 1.26s, setup 0ms, import 1.73s, tests 13ms, environment 0ms)
+
+undefined
+/workspace/scratch/081f137b6a6d/aurevane-players-20261020/apps/web:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/components/master/players-workspace.test.tsx
+{"end": "2026-10-20T18:39:45.000566+00:00", "exit": 1}

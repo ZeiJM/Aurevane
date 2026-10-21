@@ -1,0 +1,5 @@
+# Supabase reference check
+
+Read current official RLS and database-function guides: https://supabase.com/docs/guides/database/postgres/row-level-security and https://supabase.com/docs/guides/database/functions. Markdown fetch endpoints were unavailable through the web retriever (unsupported text/markdown), then HTML documentation was fetched successfully. No Supabase package, config, JWT/session model or public browser Data API change is introduced. Existing pinned Supabase CLI 2.114.0 and JS 2.112.3 remain unchanged.
+
+Review applied: no user_metadata authority; server-only admin credentials; private RLS table; browser/table grants revoked; private assertion helpers; explicit EXECUTE revokes on every new definer and preserved old service-only grants. Service-only RPC actor identity is derived from verified app auth and currently owned selected cookie, not client JSON. No hosted database/advisor mutation or migration was run; hosted advisor checks remain a future authorized release gate.
