@@ -1,3 +1,4 @@
+import { selectedStaffRpcParameters } from './selected-staff-actor'
 import 'server-only'
 
 import {
@@ -385,9 +386,17 @@ export function createSupabaseCombatContentAuthoringStore(
   actorUserId: string,
 ): RpcCombatContentAuthoringStore {
   const client = createSupabaseAdminClient()
-  return new RpcCombatContentAuthoringStore(
-    (functionName, parameters) =>
-      client.rpc(functionName, parameters) as unknown as PromiseLike<RpcResult>,
-    actorUserId,
-  )
+  return new RpcCombatContentAuthoringStore((functionName, parameters) => {
+    // These ordinary service readers retain their actorless SQL contracts.
+    // Every other operation must derive the current selected Staff actor.
+    if (
+      functionName === 'read_current_combat_content_v1' ||
+      functionName === 'read_combat_content_catalogue_v1'
+    ) {
+      return client.rpc(functionName, parameters) as unknown as PromiseLike<RpcResult>
+    }
+    return selectedStaffRpcParameters(parameters).then((verified) =>
+      client.rpc(functionName, verified),
+    ) as unknown as PromiseLike<RpcResult>
+  }, actorUserId)
 }

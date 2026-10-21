@@ -1,157 +1,117 @@
-import { describe, expect, it, vi } from 'vitest'
-
+import { expect, it, vi } from 'vitest'
 vi.mock('server-only', () => ({}))
-
 import { RpcMasterPanelStaffAccessStore } from './supabase-staff-access-store'
-
-const OWNER = '11111111-1111-4111-8111-111111111111'
-const STAFF = '22222222-2222-4222-8222-222222222222'
-
-function rpcResult(data: unknown, error: { code?: string; message?: string } | null = null) {
-  return Promise.resolve({ data, error })
+const row = {
+  user_id: 'staff',
+  character_id: 'first',
+  access_version: 2,
+  roles: ['content-staff'],
+  special_capabilities: [],
 }
-
-describe('RpcMasterPanelStaffAccessStore', () => {
-  it('reads roles plus explicit special capabilities and normalizes bigint versions', async () => {
-    const rpc = vi.fn(() =>
-      rpcResult([
-        {
-          user_id: STAFF,
-          access_version: '7',
-          roles: ['content-staff', 'event-staff'],
-          special_capabilities: ['events.global_scope'],
-        },
-      ]),
-    )
-    const store = new RpcMasterPanelStaffAccessStore(rpc)
-
-    await expect(store.readAccess(STAFF)).resolves.toEqual({
-      userId: STAFF,
-      accessVersion: 7,
-      roles: ['content-staff', 'event-staff'],
-      specialCapabilities: ['events.global_scope'],
-    })
+const result = (data: unknown) => Promise.resolve({ data, error: null })
+it('parses selected-character authority and rejects malformed current authority', async () => {
+  const rpc = vi.fn(() => result([row]))
+  const store = new RpcMasterPanelStaffAccessStore(rpc)
+  expect(await store.readAccess('staff')).toEqual({
+    userId: 'staff',
+    characterId: 'first',
+    accessVersion: 2,
+    roles: ['content-staff'],
+    specialCapabilities: [],
   })
-
-  it('lists current staff and resolves an exact Owner-authorized account email', async () => {
-    const rpc = vi.fn((name: string) => {
-      if (name === 'list_master_panel_staff_v1') {
-        return rpcResult([
-          {
-            user_id: STAFF,
-            email: 'staff@example.com',
-            access_version: 3,
-            roles: ['content-staff'],
-            special_capabilities: ['content.story_copy'],
-          },
-        ])
-      }
-      return rpcResult([{ user_id: STAFF, email: 'staff@example.com' }])
-    })
-    const store = new RpcMasterPanelStaffAccessStore(rpc)
-
-    await expect(store.listStaff(OWNER)).resolves.toEqual([
+  await expect(
+    new RpcMasterPanelStaffAccessStore(() => result([{ ...row, character_id: null }])).readAccess(
+      'staff',
+    ),
+  ).rejects.toMatchObject({ code: 'PERSISTENCE_UNAVAILABLE' })
+  await expect(
+    new RpcMasterPanelStaffAccessStore(() =>
+      result([{ ...row, roles: ['administrator'] }]),
+    ).readAccess('staff'),
+  ).rejects.toMatchObject({ code: 'PERSISTENCE_UNAVAILABLE' })
+})
+it('returns authorized per-character directory status and linked identity details', async () => {
+  const rpc = vi.fn(() =>
+    result([
       {
-        userId: STAFF,
-        email: 'staff@example.com',
-        accessVersion: 3,
-        roles: ['content-staff'],
-        specialCapabilities: ['content.story_copy'],
+        ...row,
+        character_name: 'First',
+        email: 'staff@example.test',
+        status: 'expired',
+        expires_at: '2026-10-20T12:00:00Z',
       },
-    ])
-    await expect(store.resolveAccountByEmail(OWNER, 'Staff@example.com')).resolves.toEqual({
-      userId: STAFF,
-      email: 'staff@example.com',
-    })
+    ]),
+  )
+  expect(await new RpcMasterPanelStaffAccessStore(rpc).listStaff('owner')).toMatchObject([
+    {
+      characterId: 'first',
+      characterName: 'First',
+      status: 'expired',
+      expiresAt: '2026-10-20T12:00:00Z',
+    },
+  ])
+})
+it('validates the verified identity and all linked characters lookup shape', async () => {
+  const accounts = [
+    {
+      user_id: 'staff',
+      email: 'staff@example.test',
+      characters: [
+        { id: 'first', name: 'First', playable: true },
+        { id: 'alternate', name: 'Alternate', playable: false },
+      ],
+    },
+  ]
+  const rpc = vi.fn(() => result(accounts))
+  expect(await new RpcMasterPanelStaffAccessStore(rpc).resolveAccounts('owner', 'First')).toEqual([
+    { userId: 'staff', email: 'staff@example.test', characters: accounts[0]!.characters },
+  ])
+  expect(rpc).toHaveBeenCalledWith('resolve_master_panel_accounts_v2', {
+    p_actor_user_id: 'owner',
+    p_query: 'First',
   })
-
-  it('fails closed on unknown role or capability data', async () => {
-    const unknownRole = vi.fn(() =>
-      rpcResult([
-        {
-          user_id: STAFF,
-          access_version: 1,
-          roles: ['super-admin'],
-          special_capabilities: [],
-        },
-      ]),
-    )
-    const unknownCapability = vi.fn(() =>
-      rpcResult([
-        {
-          user_id: STAFF,
-          access_version: 1,
-          roles: ['content-staff'],
-          special_capabilities: ['root.everything'],
-        },
-      ]),
-    )
-
-    await expect(
-      new RpcMasterPanelStaffAccessStore(unknownRole).readAccess(STAFF),
-    ).rejects.toMatchObject({
-      code: 'PERSISTENCE_UNAVAILABLE',
-    })
-    await expect(
-      new RpcMasterPanelStaffAccessStore(unknownCapability).readAccess(STAFF),
-    ).rejects.toMatchObject({ code: 'PERSISTENCE_UNAVAILABLE' })
+})
+it('routes atomic assignment/revoke with explicit character, duration, binding and CAS, without reasons', async () => {
+  const rpc = vi.fn(() => result(3))
+  const store = new RpcMasterPanelStaffAccessStore(rpc)
+  await store.setCharacterAccess({
+    actorUserId: 'owner',
+    targetCharacterId: 'first',
+    roles: ['content-staff'],
+    specialCapabilities: [],
+    days: 2,
+    bindLegacy: true,
+    expectedAccessVersion: 2,
   })
-
-  it('routes role and special-capability mutations through actor-bound RPCs', async () => {
-    const rpc = vi.fn((name: string) => {
-      if (name.startsWith('grant_master_panel_role')) return rpcResult('2')
-      if (name.startsWith('revoke_master_panel_role')) return rpcResult(3)
-      if (name.startsWith('grant_master_panel_capability')) return rpcResult('4')
-      return rpcResult(5)
-    })
-    const store = new RpcMasterPanelStaffAccessStore(rpc)
-
-    await expect(
-      store.grantRole({
-        actorUserId: OWNER,
-        targetUserId: STAFF,
-        role: 'content-staff',
-        note: 'Combat content',
-      }),
-    ).resolves.toBe(2)
-    await expect(
-      store.revokeRole({
-        actorUserId: OWNER,
-        targetUserId: STAFF,
-        role: 'content-staff',
-        note: 'Role rotation',
-      }),
-    ).resolves.toBe(3)
-    await expect(
-      store.grantCapability({
-        actorUserId: OWNER,
-        targetUserId: STAFF,
-        capability: 'events.global_scope',
-        note: 'Global events',
-      }),
-    ).resolves.toBe(4)
-    await expect(
-      store.revokeCapability({
-        actorUserId: OWNER,
-        targetUserId: STAFF,
-        capability: 'events.global_scope',
-        note: 'Scope removed',
-      }),
-    ).resolves.toBe(5)
+  expect(rpc).toHaveBeenLastCalledWith('set_master_panel_character_access_v2', {
+    p_actor_user_id: 'owner',
+    p_target_character_id: 'first',
+    p_roles: ['content-staff'],
+    p_capabilities: [],
+    p_days: 2,
+    p_bind_legacy: true,
+    p_expected_access_version: 2,
   })
-
-  it('maps database authorization rejection to FORBIDDEN', async () => {
-    const rpc = vi.fn(() =>
-      rpcResult(null, { code: '42501', message: 'MASTER_PANEL_OWNER_REQUIRED' }),
-    )
-
-    await expect(
-      new RpcMasterPanelStaffAccessStore(rpc).grantRole({
-        actorUserId: STAFF,
-        targetUserId: OWNER,
-        role: 'event-staff',
-        note: 'Escalation',
-      }),
-    ).rejects.toMatchObject({ code: 'FORBIDDEN' })
+  await store.revokeCharacterAccess({
+    actorUserId: 'owner',
+    targetCharacterId: 'first',
+    expectedAccessVersion: 3,
   })
+  expect(rpc).toHaveBeenLastCalledWith('revoke_master_panel_character_access_v2', {
+    p_actor_user_id: 'owner',
+    p_target_character_id: 'first',
+    p_expected_access_version: 3,
+  })
+})
+it('maps live denial and stale assignment conflicts safely', async () => {
+  await expect(
+    new RpcMasterPanelStaffAccessStore(() =>
+      Promise.resolve({ data: null, error: { code: '42501' } }),
+    ).readAccess('staff'),
+  ).rejects.toMatchObject({ code: 'FORBIDDEN' })
+  await expect(
+    new RpcMasterPanelStaffAccessStore(() =>
+      Promise.resolve({ data: null, error: { code: '40001' } }),
+    ).readAccess('staff'),
+  ).rejects.toMatchObject({ code: 'STALE_VERSION' })
 })

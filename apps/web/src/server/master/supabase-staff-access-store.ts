@@ -3,11 +3,13 @@ import 'server-only'
 import { AurevaneError } from '@aurevane/game-core/errors'
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { selectedStaffRpcParameters } from './selected-staff-actor'
 
 import {
   isMasterPanelRole,
   isMasterPanelSpecialCapability,
-  type DelegatedMasterPanelRole,
+  type CharacterAccessAssignment,
+  type CharacterAccessRevocation,
   type MasterPanelAccessRecord,
   type MasterPanelAccountReference,
   type MasterPanelRole,
@@ -59,6 +61,7 @@ function parseAccessRow(row: JsonObject, expectedUserId?: string): MasterPanelAc
   const specialCapabilities = parseSpecialCapabilities(row.special_capabilities)
   if (
     typeof row.user_id !== 'string' ||
+    typeof row.character_id !== 'string' ||
     (expectedUserId !== undefined && row.user_id !== expectedUserId) ||
     accessVersion === null ||
     roles === null ||
@@ -69,6 +72,7 @@ function parseAccessRow(row: JsonObject, expectedUserId?: string): MasterPanelAc
 
   return {
     userId: row.user_id,
+    characterId: row.character_id as string,
     accessVersion,
     roles,
     specialCapabilities,
@@ -90,14 +94,30 @@ function parseStaffList(data: unknown): readonly MasterPanelStaffSummary[] {
         'The server returned an invalid Master Panel staff record.',
       )
     }
-    const access = parseAccessRow(value)
+    const access = parseAccessRow({ ...value, character_id: value.character_id ?? 'unbound' })
     if (!access || (value.email !== null && typeof value.email !== 'string')) {
       throw new AurevaneError(
         'PERSISTENCE_UNAVAILABLE',
         'The server returned an invalid Master Panel staff record.',
       )
     }
-    return { ...access, email: value.email as string | null }
+    if (
+      !['owner', 'active', 'expired', 'revoked', 'needs-binding'].includes(String(value.status)) ||
+      (value.character_id !== null && typeof value.character_id !== 'string') ||
+      (value.character_name !== null && typeof value.character_name !== 'string') ||
+      (value.expires_at !== null &&
+        (typeof value.expires_at !== 'string' || !Number.isFinite(Date.parse(value.expires_at))))
+    ) {
+      throw new AurevaneError('PERSISTENCE_UNAVAILABLE', 'Invalid staff character state.')
+    }
+    return {
+      ...access,
+      characterId: value.character_id as string | null,
+      characterName: value.character_name as string | null,
+      email: value.email as string | null,
+      status: value.status as MasterPanelStaffSummary['status'],
+      expiresAt: value.expires_at as string | null,
+    }
   })
 }
 
@@ -112,7 +132,11 @@ function mapRpcError(error: RpcError): never {
       cause: error,
     })
   }
+  if (error.code === '40001') {
+    throw new AurevaneError('STALE_VERSION', 'Staff access changed. Refresh and try again.')
+  }
   if (
+    error.code === '22023' ||
     error.code === '23503' ||
     message.includes('MASTER_PANEL_ROLE_INVALID') ||
     message.includes('MASTER_PANEL_OWNER_ROLE_PROTECTED') ||
@@ -184,89 +208,74 @@ export class RpcMasterPanelStaffAccessStore implements MasterPanelStaffAccessSto
     return parseStaffList(data)
   }
 
-  async resolveAccountByEmail(
+  async resolveAccounts(
     actorUserId: string,
-    email: string,
-  ): Promise<MasterPanelAccountReference | null> {
-    const { data, error } = await this.#rpc('resolve_master_panel_account_v1', {
+    query: string,
+  ): Promise<readonly MasterPanelAccountReference[]> {
+    const { data, error } = await this.#rpc('resolve_master_panel_accounts_v2', {
       p_actor_user_id: actorUserId,
-      p_email: email,
+      p_query: query,
     })
     if (error) mapRpcError(error)
-    const row = oneRow(data)
-    if (!row) return null
-    if (
-      typeof row.user_id !== 'string' ||
-      typeof row.email !== 'string' ||
-      row.email.toLowerCase() !== email.toLowerCase()
-    ) {
-      throw new AurevaneError(
-        'PERSISTENCE_UNAVAILABLE',
-        'The server returned an invalid Master Panel account lookup.',
-      )
-    }
-    return { userId: row.user_id, email: row.email }
-  }
-
-  async grantRole(input: {
-    actorUserId: string
-    targetUserId: string
-    role: DelegatedMasterPanelRole
-    note: string
-  }): Promise<number> {
-    const { data, error } = await this.#rpc('grant_master_panel_role_v1', {
-      p_actor_user_id: input.actorUserId,
-      p_target_user_id: input.targetUserId,
-      p_role: input.role,
-      p_note: input.note,
+    if (!Array.isArray(data))
+      throw new AurevaneError('PERSISTENCE_UNAVAILABLE', 'Invalid identity lookup.')
+    return data.map((row: unknown) => {
+      if (
+        !isObject(row) ||
+        typeof row.user_id !== 'string' ||
+        typeof row.email !== 'string' ||
+        !Array.isArray(row.characters) ||
+        !row.characters.every(
+          (c: unknown) =>
+            isObject(c) &&
+            typeof c.id === 'string' &&
+            typeof c.name === 'string' &&
+            typeof c.playable === 'boolean',
+        )
+      ) {
+        throw new AurevaneError('PERSISTENCE_UNAVAILABLE', 'Invalid linked character lookup.')
+      }
+      return {
+        userId: row.user_id,
+        email: row.email,
+        characters: row.characters as unknown as MasterPanelAccountReference['characters'],
+      }
     })
-    if (error) mapRpcError(error)
-    return requiredVersion(data)
   }
 
-  async revokeRole(input: {
-    actorUserId: string
-    targetUserId: string
-    role: DelegatedMasterPanelRole
-    note: string
-  }): Promise<number> {
-    const { data, error } = await this.#rpc('revoke_master_panel_role_v1', {
+  async setCharacterAccess(input: CharacterAccessAssignment): Promise<number> {
+    const { data, error } = await this.#rpc('set_master_panel_character_access_v2', {
       p_actor_user_id: input.actorUserId,
-      p_target_user_id: input.targetUserId,
-      p_role: input.role,
-      p_note: input.note,
+      p_target_character_id: input.targetCharacterId,
+      p_roles: input.roles,
+      p_capabilities: input.specialCapabilities,
+      p_days: input.days,
+      p_bind_legacy: input.bindLegacy,
+      p_expected_access_version: input.expectedAccessVersion,
     })
     if (error) mapRpcError(error)
     return requiredVersion(data)
   }
 
-  async grantCapability(input: {
+  async revokeLegacyAccess(input: {
     actorUserId: string
     targetUserId: string
-    capability: MasterPanelSpecialCapability
-    note: string
+    expectedAccessVersion: number | null
   }): Promise<number> {
-    const { data, error } = await this.#rpc('grant_master_panel_capability_v1', {
+    const { data, error } = await this.#rpc('revoke_master_panel_legacy_access_v2', {
       p_actor_user_id: input.actorUserId,
       p_target_user_id: input.targetUserId,
-      p_capability: input.capability,
-      p_note: input.note,
+      p_expected_access_version: input.expectedAccessVersion,
     })
     if (error) mapRpcError(error)
     return requiredVersion(data)
   }
 
-  async revokeCapability(input: {
-    actorUserId: string
-    targetUserId: string
-    capability: MasterPanelSpecialCapability
-    note: string
-  }): Promise<number> {
-    const { data, error } = await this.#rpc('revoke_master_panel_capability_v1', {
+  async revokeCharacterAccess(input: CharacterAccessRevocation): Promise<number> {
+    const { data, error } = await this.#rpc('revoke_master_panel_character_access_v2', {
       p_actor_user_id: input.actorUserId,
-      p_target_user_id: input.targetUserId,
-      p_capability: input.capability,
-      p_note: input.note,
+      p_target_character_id: input.targetCharacterId,
+      p_expected_access_version: input.expectedAccessVersion,
     })
     if (error) mapRpcError(error)
     return requiredVersion(data)
@@ -277,6 +286,8 @@ export function createSupabaseMasterPanelStaffAccessStore(): RpcMasterPanelStaff
   const client = createSupabaseAdminClient()
   return new RpcMasterPanelStaffAccessStore(
     (functionName, parameters) =>
-      client.rpc(functionName, parameters) as unknown as PromiseLike<RpcResult>,
+      selectedStaffRpcParameters(parameters).then((verified) =>
+        client.rpc(functionName, verified),
+      ) as unknown as PromiseLike<RpcResult>,
   )
 }

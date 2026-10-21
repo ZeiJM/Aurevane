@@ -50,20 +50,12 @@ function requiredString(value: unknown, field: string): string {
   return value
 }
 
-function requiredUserId(value: unknown): string {
-  const userId = requiredString(value, 'targetUserId')
+function requiredUserId(value: unknown, field = 'targetCharacterId'): string {
+  const userId = requiredString(value, field)
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(userId)) {
-    return invalid('targetUserId must be a valid UUID.')
+    return invalid(field + ' must be a valid UUID.')
   }
   return userId
-}
-
-function requiredReason(value: unknown): string {
-  const reason = requiredString(value, 'reason')
-  if (reason.length < 3 || reason.length > 240) {
-    return invalid('reason must be 3–240 characters.')
-  }
-  return reason
 }
 
 function requireConfirmation(value: unknown): void {
@@ -90,62 +82,72 @@ export async function handleStaffAccessRequest(
     const body = await readBody(request)
     const operation = requiredString(body.operation, 'operation')
 
-    if (operation === 'resolve-account') {
-      const email = requiredString(body.email, 'email')
-      const account = await service.resolveAccountByEmail(actor.userId, email)
-      return success({ account })
+    if (operation === 'resolve-accounts') {
+      const query = requiredString(body.query, 'query')
+      return success({ accounts: await service.resolveAccounts(actor.userId, query) })
     }
-
     if (
-      operation !== 'grant-role' &&
-      operation !== 'revoke-role' &&
-      operation !== 'grant-capability' &&
-      operation !== 'revoke-capability'
+      operation !== 'set-character-access' &&
+      operation !== 'revoke-character-access' &&
+      operation !== 'revoke-legacy-access'
     ) {
-      throw new AurevaneError('INVALID_REQUEST', 'Unsupported Master Panel staff operation.')
+      return invalid('Unsupported Master Panel staff operation.')
     }
-
     requireConfirmation(body.confirmed)
-    const targetUserId = requiredUserId(body.targetUserId)
-    const reason = requiredReason(body.reason)
-
-    if (operation === 'grant-role' || operation === 'revoke-role') {
-      const role = requiredString(body.role, 'role')
-      if (!isDelegatedMasterPanelRole(role)) {
-        throw new AurevaneError(
-          'INVALID_REQUEST',
-          'role must be moderator, content-staff, or event-staff.',
-        )
-      }
-      const accessVersion =
-        operation === 'grant-role'
-          ? await service.grantRole({ actorUserId: actor.userId, targetUserId, role, reason })
-          : await service.revokeRole({ actorUserId: actor.userId, targetUserId, role, reason })
-      return success({ accessVersion })
+    const expectedAccessVersion = body.expectedAccessVersion
+    if (
+      expectedAccessVersion !== null &&
+      (!Number.isSafeInteger(expectedAccessVersion) || (expectedAccessVersion as number) < 1)
+    ) {
+      return invalid('expectedAccessVersion must be null or a positive integer.')
     }
-
-    const capability = requiredString(body.capability, 'capability')
-    if (!isMasterPanelSpecialCapability(capability)) {
-      throw new AurevaneError(
-        'INVALID_REQUEST',
-        'capability must be an approved special capability.',
-      )
+    if (operation === 'revoke-legacy-access') {
+      return success({
+        accessVersion: await service.revokeLegacyAccess({
+          actorUserId: actor.userId,
+          targetUserId: requiredUserId(body.targetUserId, 'targetUserId'),
+          expectedAccessVersion: expectedAccessVersion as number | null,
+        }),
+      })
     }
-
-    const accessVersion =
-      operation === 'grant-capability'
-        ? await service.grantCapability({
-            actorUserId: actor.userId,
-            targetUserId,
-            capability,
-            reason,
-          })
-        : await service.revokeCapability({
-            actorUserId: actor.userId,
-            targetUserId,
-            capability,
-            reason,
-          })
+    const targetCharacterId = requiredUserId(body.targetCharacterId)
+    const common = {
+      actorUserId: actor.userId,
+      targetCharacterId,
+      expectedAccessVersion: expectedAccessVersion as number | null,
+    }
+    if (operation === 'revoke-character-access') {
+      return success({ accessVersion: await service.revokeCharacterAccess(common) })
+    }
+    if (
+      !Array.isArray(body.roles) ||
+      body.roles.length === 0 ||
+      !body.roles.every(isDelegatedMasterPanelRole)
+    ) {
+      return invalid('Choose approved delegated roles.')
+    }
+    if (
+      !Array.isArray(body.specialCapabilities) ||
+      !body.specialCapabilities.every(isMasterPanelSpecialCapability)
+    ) {
+      return invalid('Choose approved special permissions.')
+    }
+    if (
+      body.days !== null &&
+      (!Number.isSafeInteger(body.days) ||
+        (body.days as number) <= 0 ||
+        (body.days as number) > 2147483647)
+    ) {
+      return invalid('Choose No Expiry or a positive whole number of days.')
+    }
+    if (typeof body.bindLegacy !== 'boolean') return invalid('bindLegacy must be a boolean.')
+    const accessVersion = await service.setCharacterAccess({
+      ...common,
+      roles: body.roles,
+      specialCapabilities: body.specialCapabilities,
+      days: body.days as number | null,
+      bindLegacy: body.bindLegacy,
+    })
     return success({ accessVersion })
   } catch (error) {
     return toServerErrorResponse(error)

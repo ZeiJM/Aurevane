@@ -1,3 +1,4 @@
+import { callSelectedStaffRpc } from './selected-staff-actor'
 import 'server-only'
 import {
   parseCombatEffectTimingPolicy,
@@ -56,12 +57,16 @@ export async function publishCombatEffectTimingPolicy(input: {
   assertCombatCatalogueTimingCompatible(
     resolveCombatContentCatalogueSnapshot({ ...snapshot, policy }),
   )
-  const { data, error } = await client.rpc('publish_combat_effect_timing_policy_v2', {
-    p_actor_user_id: input.actorUserId,
-    p_expected_version: policy.version,
-    p_modes: policy.modes,
-    p_expected_catalogue_token: snapshot.token,
-  })
+  const { data, error } = await callSelectedStaffRpc(
+    client.rpc.bind(client),
+    'publish_combat_effect_timing_policy_v2',
+    {
+      p_actor_user_id: input.actorUserId,
+      p_expected_version: policy.version,
+      p_modes: policy.modes,
+      p_expected_catalogue_token: snapshot.token,
+    },
+  )
   if (error?.message?.includes('COMBAT_CONTENT_CATALOGUE_CONFLICT'))
     throw new AurevaneError(
       'STALE_VERSION',

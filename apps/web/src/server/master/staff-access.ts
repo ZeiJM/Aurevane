@@ -123,6 +123,7 @@ const ROLE_CAPABILITIES: Readonly<Record<MasterPanelRole, readonly MasterPanelCa
 
 export interface MasterPanelAccessRecord {
   readonly userId: string
+  readonly characterId: string
   readonly accessVersion: number
   readonly roles: readonly MasterPanelRole[]
   readonly specialCapabilities: readonly MasterPanelSpecialCapability[]
@@ -132,80 +133,62 @@ export interface MasterPanelAccess extends MasterPanelAccessRecord {
   readonly effectiveCapabilities: readonly MasterPanelCapability[]
 }
 
-export interface MasterPanelStaffSummary extends MasterPanelAccessRecord {
+export interface MasterPanelStaffSummary extends Omit<MasterPanelAccessRecord, 'characterId'> {
+  readonly characterId: string | null
+  readonly characterName: string | null
   readonly email: string | null
+  readonly status: 'owner' | 'active' | 'expired' | 'revoked' | 'needs-binding'
+  readonly expiresAt: string | null
 }
 
 export interface MasterPanelAccountReference {
   readonly userId: string
   readonly email: string
+  readonly characters: readonly {
+    readonly id: string
+    readonly name: string
+    readonly playable: boolean
+  }[]
+}
+
+export interface CharacterAccessAssignment {
+  readonly actorUserId: string
+  readonly targetCharacterId: string
+  readonly roles: readonly DelegatedMasterPanelRole[]
+  readonly specialCapabilities: readonly MasterPanelSpecialCapability[]
+  readonly days: number | null
+  readonly bindLegacy: boolean
+  readonly expectedAccessVersion: number | null
+}
+
+export interface CharacterAccessRevocation {
+  readonly actorUserId: string
+  readonly targetCharacterId: string
+  readonly expectedAccessVersion: number | null
 }
 
 export interface MasterPanelStaffAccessStore {
   readAccess(userId: string): Promise<MasterPanelAccessRecord | null>
   listStaff(actorUserId: string): Promise<readonly MasterPanelStaffSummary[]>
-  resolveAccountByEmail(
+  resolveAccounts(
     actorUserId: string,
-    email: string,
-  ): Promise<MasterPanelAccountReference | null>
-  grantRole(input: {
+    query: string,
+  ): Promise<readonly MasterPanelAccountReference[]>
+  setCharacterAccess(input: CharacterAccessAssignment): Promise<number>
+  revokeCharacterAccess(input: CharacterAccessRevocation): Promise<number>
+  revokeLegacyAccess(input: {
     actorUserId: string
     targetUserId: string
-    role: DelegatedMasterPanelRole
-    note: string
-  }): Promise<number>
-  revokeRole(input: {
-    actorUserId: string
-    targetUserId: string
-    role: DelegatedMasterPanelRole
-    note: string
-  }): Promise<number>
-  grantCapability(input: {
-    actorUserId: string
-    targetUserId: string
-    capability: MasterPanelSpecialCapability
-    note: string
-  }): Promise<number>
-  revokeCapability(input: {
-    actorUserId: string
-    targetUserId: string
-    capability: MasterPanelSpecialCapability
-    note: string
+    expectedAccessVersion: number | null
   }): Promise<number>
 }
 
-export interface MasterPanelStaffAccessService {
+export interface MasterPanelStaffAccessService extends Omit<
+  MasterPanelStaffAccessStore,
+  'readAccess'
+> {
   readAccess(userId: string): Promise<MasterPanelAccess | null>
   requireCapability(userId: string, capability: MasterPanelCapability): Promise<MasterPanelAccess>
-  listStaff(actorUserId: string): Promise<readonly MasterPanelStaffSummary[]>
-  resolveAccountByEmail(
-    actorUserId: string,
-    email: string,
-  ): Promise<MasterPanelAccountReference | null>
-  grantRole(input: {
-    actorUserId: string
-    targetUserId: string
-    role: DelegatedMasterPanelRole
-    reason: string
-  }): Promise<number>
-  revokeRole(input: {
-    actorUserId: string
-    targetUserId: string
-    role: DelegatedMasterPanelRole
-    reason: string
-  }): Promise<number>
-  grantCapability(input: {
-    actorUserId: string
-    targetUserId: string
-    capability: MasterPanelSpecialCapability
-    reason: string
-  }): Promise<number>
-  revokeCapability(input: {
-    actorUserId: string
-    targetUserId: string
-    capability: MasterPanelSpecialCapability
-    reason: string
-  }): Promise<number>
 }
 
 export function isMasterPanelRole(value: unknown): value is MasterPanelRole {
@@ -264,41 +247,20 @@ export function hasMasterPanelCapability(
   return access.effectiveCapabilities.includes(capability)
 }
 
-function requiredReason(reason: string): string {
-  if (reason.trim() !== reason || reason.length < 3 || reason.length > 240) {
-    throw new AurevaneError(
-      'INVALID_REQUEST',
-      'Staff authority changes require a 3–240 character reason with no outer whitespace.',
-    )
-  }
-  return reason
-}
-
-function validEmail(email: string): boolean {
-  return (
-    email.trim() === email &&
-    email.length >= 3 &&
-    email.length <= 320 &&
-    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
-  )
-}
-
-function toAccess(record: MasterPanelAccessRecord): MasterPanelAccess {
-  return {
-    ...record,
-    effectiveCapabilities: effectiveMasterPanelCapabilities(
-      record.roles,
-      record.specialCapabilities,
-    ),
-  }
-}
-
 export function createMasterPanelStaffAccessService(
   store: MasterPanelStaffAccessStore,
 ): MasterPanelStaffAccessService {
   async function readAccess(userId: string): Promise<MasterPanelAccess | null> {
     const record = await store.readAccess(userId)
-    return record ? toAccess(record) : null
+    return record
+      ? {
+          ...record,
+          effectiveCapabilities: effectiveMasterPanelCapabilities(
+            record.roles,
+            record.specialCapabilities,
+          ),
+        }
+      : null
   }
 
   async function requireCapability(
@@ -307,126 +269,55 @@ export function createMasterPanelStaffAccessService(
   ): Promise<MasterPanelAccess> {
     const access = await readAccess(userId)
     if (!access || !hasMasterPanelCapability(access, capability)) {
-      throw new AurevaneError('FORBIDDEN', 'Master Panel access is not available to this account.')
+      throw new AurevaneError(
+        'FORBIDDEN',
+        'Master Panel access is not available to this character.',
+      )
     }
     return access
   }
 
-  function assertDifferentAccount(actorUserId: string, targetUserId: string): void {
-    if (actorUserId === targetUserId) {
-      throw new AurevaneError(
-        'INVALID_REQUEST',
-        'Game Owner staff authority changes must target another account.',
-      )
-    }
-  }
-
-  function hasDelegatedRole(access: MasterPanelAccess | null): boolean {
-    return access?.roles.some(isDelegatedMasterPanelRole) ?? false
+  function invalid(message: string): never {
+    throw new AurevaneError('INVALID_REQUEST', message)
   }
 
   return {
     readAccess,
     requireCapability,
-
     async listStaff(actorUserId) {
       await requireCapability(actorUserId, 'staff.manage')
       return store.listStaff(actorUserId)
     },
-
-    async resolveAccountByEmail(actorUserId, email) {
+    async resolveAccounts(actorUserId, query) {
       await requireCapability(actorUserId, 'staff.manage')
-      if (!validEmail(email)) {
-        throw new AurevaneError('INVALID_REQUEST', 'Enter a valid exact account email address.')
+      if (query.trim() !== query || query.length < 1 || query.length > 320) {
+        invalid('Enter an exact character name or verified account email.')
       }
-      return store.resolveAccountByEmail(actorUserId, email)
+      return store.resolveAccounts(actorUserId, query)
     },
-
-    async grantRole(input) {
+    async setCharacterAccess(input) {
       await requireCapability(input.actorUserId, 'staff.manage')
-      assertDifferentAccount(input.actorUserId, input.targetUserId)
-      if (!isDelegatedMasterPanelRole(input.role)) {
-        throw new AurevaneError(
-          'INVALID_REQUEST',
-          'Only Moderator, Content Staff, or Event Staff can be delegated here.',
-        )
+      if (!input.roles.length || !input.roles.every(isDelegatedMasterPanelRole)) {
+        invalid('Choose one or more approved delegated roles.')
       }
-      return store.grantRole({
-        actorUserId: input.actorUserId,
-        targetUserId: input.targetUserId,
-        role: input.role,
-        note: requiredReason(input.reason),
-      })
-    },
-
-    async revokeRole(input) {
-      await requireCapability(input.actorUserId, 'staff.manage')
-      assertDifferentAccount(input.actorUserId, input.targetUserId)
-      if (!isDelegatedMasterPanelRole(input.role)) {
-        throw new AurevaneError(
-          'INVALID_REQUEST',
-          'The Game Owner identity cannot be revoked through delegated staff controls.',
-        )
+      if (!input.specialCapabilities.every(isMasterPanelSpecialCapability)) {
+        invalid('Choose approved special permissions.')
       }
-
-      const targetAccess = await readAccess(input.targetUserId)
       if (
-        targetAccess?.roles.includes(input.role) &&
-        targetAccess.specialCapabilities.length > 0 &&
-        !targetAccess.roles.some((role) => role !== input.role && isDelegatedMasterPanelRole(role))
+        input.days !== null &&
+        (!Number.isSafeInteger(input.days) || input.days <= 0 || input.days > 2147483647)
       ) {
-        throw new AurevaneError(
-          'INVALID_REQUEST',
-          'Revoke special capabilities before removing this account’s final delegated staff role.',
-        )
+        invalid('Expiry must be No Expiry or a positive whole number of days.')
       }
-
-      return store.revokeRole({
-        actorUserId: input.actorUserId,
-        targetUserId: input.targetUserId,
-        role: input.role,
-        note: requiredReason(input.reason),
-      })
+      return store.setCharacterAccess(input)
     },
-
-    async grantCapability(input) {
+    async revokeLegacyAccess(input) {
       await requireCapability(input.actorUserId, 'staff.manage')
-      assertDifferentAccount(input.actorUserId, input.targetUserId)
-      if (!isMasterPanelSpecialCapability(input.capability)) {
-        throw new AurevaneError(
-          'INVALID_REQUEST',
-          'Only approved special capabilities can be delegated.',
-        )
-      }
-      if (!hasDelegatedRole(await readAccess(input.targetUserId))) {
-        throw new AurevaneError(
-          'INVALID_REQUEST',
-          'Grant a delegated staff role before adding special capabilities.',
-        )
-      }
-      return store.grantCapability({
-        actorUserId: input.actorUserId,
-        targetUserId: input.targetUserId,
-        capability: input.capability,
-        note: requiredReason(input.reason),
-      })
+      return store.revokeLegacyAccess(input)
     },
-
-    async revokeCapability(input) {
+    async revokeCharacterAccess(input) {
       await requireCapability(input.actorUserId, 'staff.manage')
-      assertDifferentAccount(input.actorUserId, input.targetUserId)
-      if (!isMasterPanelSpecialCapability(input.capability)) {
-        throw new AurevaneError(
-          'INVALID_REQUEST',
-          'Root Master Panel capabilities are never ordinary special grants.',
-        )
-      }
-      return store.revokeCapability({
-        actorUserId: input.actorUserId,
-        targetUserId: input.targetUserId,
-        capability: input.capability,
-        note: requiredReason(input.reason),
-      })
+      return store.revokeCharacterAccess(input)
     },
   }
 }

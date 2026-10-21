@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process'
 
 import { expect, test, type Page, type Response } from '@playwright/test'
 
-import { createVerifiedAccountAndSignIn } from './pv1f-test-helpers'
+import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 function escapeSqlLiteral(value: string): string {
   return value.replaceAll("'", "''")
@@ -51,18 +51,19 @@ function localUserId(email: string): string {
   return userId
 }
 
-function grantEventStaff(email: string): string {
+function grantEventStaff(email: string, characterId: string): string {
   const userId = localUserId(email)
   queryLocalDatabase(`
     insert into app_private.master_panel_role_assignments (
-      user_id, role, enabled, note
+      user_id, character_id, role, enabled, note
     ) values (
       '${userId}'::uuid,
+      '${characterId}'::uuid,
       'event-staff',
       true,
       'P4.14 local browser verification'
     )
-    on conflict (user_id, role) do update
+    on conflict (user_id, role, character_id) do update
     set enabled = true,
         updated_at = clock_timestamp(),
         note = excluded.note;
@@ -76,17 +77,18 @@ function grantEventStaff(email: string): string {
   return userId
 }
 
-function grantEmergencyStop(userId: string): void {
+function grantEmergencyStop(userId: string, characterId: string): void {
   queryLocalDatabase(`
     insert into app_private.master_panel_capability_grants (
-      user_id, capability, enabled, note
+      user_id, character_id, capability, enabled, note
     ) values (
       '${userId}'::uuid,
+      '${characterId}'::uuid,
       'events.emergency_stop',
       true,
       'P4.14 local emergency-stop verification'
     )
-    on conflict (user_id, capability) do update
+    on conflict (user_id, capability, character_id) do update
     set enabled = true,
         updated_at = clock_timestamp(),
         note = excluded.note;
@@ -243,13 +245,19 @@ test('Event Staff operates a run, completes cleanup and archives Chronicle safel
 
   const now = Date.now()
   const email = `event-ops-${now}@example.com`
-  await createVerifiedAccountAndSignIn({
+  await provisionAccountAndEnterCharacter({
     page,
     email,
     password: 'Event-ops-browser-2026!',
+    characterName: `EventOps${String(now).slice(-8)}`,
   })
 
-  const userId = grantEventStaff(email)
+  const characterId = (await page.context().cookies()).find(
+    (cookie) => cookie.name === 'aurevane_selected_character',
+  )?.value
+  if (!characterId || !/^[0-9a-f-]{36}$/.test(characterId))
+    throw new Error('Selected fixture character is unavailable.')
+  const userId = grantEventStaff(email, characterId)
   const eventKey = `event.browser-ops-${now}`
   const runId = createScheduledRun(userId, eventKey)
 
@@ -280,7 +288,7 @@ test('Event Staff operates a run, completes cleanup and archives Chronicle safel
   await clickOperation(page, 'operate', 'Resume')
   await expect(page.getByText('live', { exact: true }).first()).toBeVisible()
 
-  grantEmergencyStop(userId)
+  grantEmergencyStop(userId, characterId)
   await page.reload()
   await expect(page.getByRole('heading', { name: 'Event runs', exact: true })).toBeVisible()
   await page.getByLabel('Event Run').selectOption(runId)
