@@ -92,3 +92,6 @@ Application transport currently still needs migration to the new learned/equippe
 
 
 Application transport checkpoint: the actual build repository now calls learned/equipped v2 reads, retains all grant/earned fields, and forwards selected eligibility through save. Committed and named-loadout readers share strict absent-versus-present reference parsing. Multiple-active-grant SQL blocker maps to actionable400. These transport changes do not yet make the static build/profile service consumer current-aware; that next boundary remains open.
+
+
+STOP handover21Oct: current service WIP now uses actual repository-supplied content resolver, groups grant choices and accepts explicit eligibility in service input, with6 RED→27 GREEN. Transport21/2 remains GREEN after factory wiring. Actual route/UI and immutable earned admission/trial/Core/public integration remain OPEN; see the final STOP section of report.md. This checkpoint is not B freeze or source acceptance.

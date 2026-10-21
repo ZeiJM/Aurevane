@@ -1,4 +1,5 @@
 import 'server-only'
+import { createServerCombatContentResolver } from '../combat/combat-content-resolver'
 import {
   isDisciplineSkillIdentity as stableId,
   parseDisciplineSkillReference,
@@ -413,6 +414,7 @@ function parseCommittedSnapshot(value: unknown): CharacterCommittedBuildSnapshot
 
 export function createSupabaseCharacterBuildRepository(): CharacterBuildRepository {
   return {
+    contentResolver: createServerCombatContentResolver(),
     async findActiveBuild(userId, characterId) {
       const supabase = createSupabaseAdminClient()
       const { data, error } = await supabase.rpc('get_character_active_build_v4', {
