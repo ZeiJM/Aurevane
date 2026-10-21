@@ -1,0 +1,1772 @@
+﻿2026-10-21T02:08:04.4875948Z Current runner version: '2.338.0'
+2026-10-21T02:08:04.4900135Z ##[group]Runner Image Provisioner
+2026-10-21T02:08:04.4901411Z Hosted Compute Agent
+2026-10-21T02:08:04.4902179Z Version: 20261015.610
+2026-10-21T02:08:04.4903393Z Commit: 267fdb4e8bbec4ab5ea31367f3a00d5c480c7656
+2026-10-21T02:08:04.4904555Z Build Date: 2026-10-14T17:06:54Z
+2026-10-21T02:08:04.4905742Z Worker ID: {6872053b-e098-4fd5-a78e-588ac0b9a25f}
+2026-10-21T02:08:04.4906828Z Region: eastus2
+2026-10-21T02:08:04.4907371Z Cloud: Azure
+2026-10-21T02:08:04.4908091Z ##[endgroup]
+2026-10-21T02:08:04.4909781Z ##[group]Operating System
+2026-10-21T02:08:04.4910925Z Ubuntu
+2026-10-21T02:08:04.4911520Z 24.04.5
+2026-10-21T02:08:04.4912054Z LTS
+2026-10-21T02:08:04.4912701Z ##[endgroup]
+2026-10-21T02:08:04.4913264Z ##[group]Runner Image
+2026-10-21T02:08:04.4913925Z Image: ubuntu-24.04
+2026-10-21T02:08:04.4914561Z Version: 20261018.339.1
+2026-10-21T02:08:04.4915950Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261018.339/images/ubuntu/Ubuntu2404-Readme.md
+2026-10-21T02:08:04.4917521Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261018.339
+2026-10-21T02:08:04.4918579Z ##[endgroup]
+2026-10-21T02:08:04.4919745Z ##[group]GITHUB_TOKEN Permissions
+2026-10-21T02:08:04.4922202Z Contents: read
+2026-10-21T02:08:04.4922844Z Metadata: read
+2026-10-21T02:08:04.4923406Z ##[endgroup]
+2026-10-21T02:08:04.4925622Z Secret source: Actions
+2026-10-21T02:08:04.4926582Z Cache mode: write
+2026-10-21T02:08:04.4927653Z Prepare workflow directory
+2026-10-21T02:08:04.5258153Z Prepare all required actions
+2026-10-21T02:08:04.5305968Z Getting action download info
+2026-10-21T02:08:04.7570237Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+2026-10-21T02:08:04.8839086Z Download action repository 'actions/setup-node@v4' (SHA:49933ea5288caeca8642d1e84afbd3f7d6820020)
+2026-10-21T02:08:05.0253702Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2026-10-21T02:08:05.2844893Z Complete job name: verify
+2026-10-21T02:08:05.3715192Z ##[group]Run actions/checkout@v4
+2026-10-21T02:08:05.3716125Z with:
+2026-10-21T02:08:05.3716563Z   repository: ZeiJM/Aurevane
+2026-10-21T02:08:05.3720174Z   token: ***
+2026-10-21T02:08:05.3720897Z   ssh-strict: true
+2026-10-21T02:08:05.3721346Z   ssh-user: git
+2026-10-21T02:08:05.3721782Z   persist-credentials: true
+2026-10-21T02:08:05.3722342Z   clean: true
+2026-10-21T02:08:05.3722797Z   sparse-checkout-cone-mode: true
+2026-10-21T02:08:05.3723339Z   fetch-depth: 1
+2026-10-21T02:08:05.3723766Z   fetch-tags: false
+2026-10-21T02:08:05.3724270Z   show-progress: true
+2026-10-21T02:08:05.3724770Z   lfs: false
+2026-10-21T02:08:05.3725181Z   submodules: false
+2026-10-21T02:08:05.3725628Z   set-safe-directory: true
+2026-10-21T02:08:05.3726134Z   allow-unsafe-pr-checkout: false
+2026-10-21T02:08:05.3726942Z ##[endgroup]
+2026-10-21T02:08:05.4734728Z Syncing repository: ZeiJM/Aurevane
+2026-10-21T02:08:05.4737308Z ##[group]Getting Git version info
+2026-10-21T02:08:05.4738339Z Working directory is '/home/runner/work/Aurevane/Aurevane'
+2026-10-21T02:08:05.4739534Z [command]/usr/bin/git version
+2026-10-21T02:08:05.4898675Z git version 2.55.0
+2026-10-21T02:08:05.4925803Z ##[endgroup]
+2026-10-21T02:08:05.4943938Z Temporarily overriding HOME='/home/runner/work/_temp/9514d971-9a48-4f59-b87e-e95975a2b3a9' before making global git config changes
+2026-10-21T02:08:05.4946849Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-21T02:08:05.4952721Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Aurevane/Aurevane
+2026-10-21T02:08:05.5019042Z Deleting the contents of '/home/runner/work/Aurevane/Aurevane'
+2026-10-21T02:08:05.5026816Z ##[group]Initializing the repository
+2026-10-21T02:08:05.5031779Z [command]/usr/bin/git init /home/runner/work/Aurevane/Aurevane
+2026-10-21T02:08:05.5166849Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-21T02:08:05.5169474Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-21T02:08:05.5171645Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-21T02:08:05.5174676Z hint: call:
+2026-10-21T02:08:05.5175607Z hint:
+2026-10-21T02:08:05.5176656Z hint: 	git config --global init.defaultBranch <name>
+2026-10-21T02:08:05.5177944Z hint:
+2026-10-21T02:08:05.5179102Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-21T02:08:05.5181153Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-21T02:08:05.5183242Z hint:
+2026-10-21T02:08:05.5184175Z hint: 	git branch -m <name>
+2026-10-21T02:08:05.5185215Z hint:
+2026-10-21T02:08:05.5186443Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-21T02:08:05.5188484Z Initialized empty Git repository in /home/runner/work/Aurevane/Aurevane/.git/
+2026-10-21T02:08:05.5192599Z [command]/usr/bin/git remote add origin https://github.com/ZeiJM/Aurevane
+2026-10-21T02:08:05.5249714Z ##[endgroup]
+2026-10-21T02:08:05.5251865Z ##[group]Disabling automatic garbage collection
+2026-10-21T02:08:05.5254101Z [command]/usr/bin/git config --local gc.auto 0
+2026-10-21T02:08:05.5322554Z ##[endgroup]
+2026-10-21T02:08:05.5324145Z ##[group]Setting up auth
+2026-10-21T02:08:05.5331940Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-21T02:08:05.5378849Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-21T02:08:05.5850910Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-21T02:08:05.5885349Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-21T02:08:05.6149805Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-21T02:08:05.6196189Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-21T02:08:05.6438082Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-10-21T02:08:05.6486143Z ##[endgroup]
+2026-10-21T02:08:05.6486952Z ##[group]Fetching the repository
+2026-10-21T02:08:05.6496585Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +c2efc11525d2607c9328842e76ec6cc7ab868b90:refs/remotes/pull/960/merge
+2026-10-21T02:08:08.5699471Z From https://github.com/ZeiJM/Aurevane
+2026-10-21T02:08:08.5701936Z  * [new ref]         c2efc11525d2607c9328842e76ec6cc7ab868b90 -> pull/960/merge
+2026-10-21T02:08:08.5706615Z ##[endgroup]
+2026-10-21T02:08:08.5707425Z ##[group]Determining the checkout info
+2026-10-21T02:08:08.5708894Z ##[endgroup]
+2026-10-21T02:08:08.5714962Z [command]/usr/bin/git sparse-checkout disable
+2026-10-21T02:08:08.5789240Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-10-21T02:08:08.5908274Z ##[group]Checking out the ref
+2026-10-21T02:08:08.5909770Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/960/merge
+2026-10-21T02:08:08.9755457Z Note: switching to 'refs/remotes/pull/960/merge'.
+2026-10-21T02:08:08.9756824Z 
+2026-10-21T02:08:08.9757791Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-10-21T02:08:08.9760095Z changes and commit them, and you can discard any commits you make in this
+2026-10-21T02:08:08.9762704Z state without impacting any branches by switching back to a branch.
+2026-10-21T02:08:08.9764041Z 
+2026-10-21T02:08:08.9764976Z If you want to create a new branch to retain commits you create, you may
+2026-10-21T02:08:08.9767107Z do so (now or later) by using -c with the switch command. Example:
+2026-10-21T02:08:08.9768686Z 
+2026-10-21T02:08:08.9769289Z   git switch -c <new-branch-name>
+2026-10-21T02:08:08.9770216Z 
+2026-10-21T02:08:08.9771044Z Or undo this operation with:
+2026-10-21T02:08:08.9771911Z 
+2026-10-21T02:08:08.9772416Z   git switch -
+2026-10-21T02:08:08.9773118Z 
+2026-10-21T02:08:08.9774242Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-10-21T02:08:08.9775945Z 
+2026-10-21T02:08:08.9778003Z HEAD is now at c2efc11 Merge 962dcb88cf0278fb68d5e1f73a4ce97b6ade6f60 into 4793b77c607b98bc8a8ccf783da56d69f429f0fe
+2026-10-21T02:08:08.9799206Z ##[endgroup]
+2026-10-21T02:08:08.9855735Z [command]/usr/bin/git log -1 --format=%H
+2026-10-21T02:08:08.9890342Z c2efc11525d2607c9328842e76ec6cc7ab868b90
+2026-10-21T02:08:09.0293165Z ##[group]Run actions/setup-node@v4
+2026-10-21T02:08:09.0294441Z with:
+2026-10-21T02:08:09.0295363Z   node-version: 24
+2026-10-21T02:08:09.0296375Z   always-auth: false
+2026-10-21T02:08:09.0297408Z   check-latest: false
+2026-10-21T02:08:09.0307194Z   token: ***
+2026-10-21T02:08:09.0308168Z ##[endgroup]
+2026-10-21T02:08:09.1964648Z (node:2325) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-21T02:08:09.1968893Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-21T02:08:09.1973963Z Found in cache @ /opt/hostedtoolcache/node/24.22.0/x64
+2026-10-21T02:08:09.1981694Z ##[group]Environment details
+2026-10-21T02:08:12.0246396Z node: v24.22.0
+2026-10-21T02:08:12.0246951Z npm: 11.19.1
+2026-10-21T02:08:12.0247397Z yarn: 1.22.22
+2026-10-21T02:08:12.0249222Z ##[endgroup]
+2026-10-21T02:08:12.0413936Z ##[group]Run corepack enable && corepack prepare pnpm@11.17.0 --activate
+2026-10-21T02:08:12.0414612Z [36;1mcorepack enable && corepack prepare pnpm@11.17.0 --activate[0m
+2026-10-21T02:08:12.0665792Z shell: /usr/bin/bash -e {0}
+2026-10-21T02:08:12.0666135Z ##[endgroup]
+2026-10-21T02:08:12.2333333Z Preparing pnpm@11.17.0 for immediate activation...
+2026-10-21T02:08:13.5465678Z ##[group]Run pnpm install --frozen-lockfile
+2026-10-21T02:08:13.5466103Z [36;1mpnpm install --frozen-lockfile[0m
+2026-10-21T02:08:13.5520060Z shell: /usr/bin/bash -e {0}
+2026-10-21T02:08:13.5520338Z ##[endgroup]
+2026-10-21T02:08:14.4328074Z Scope: all 9 workspace projects
+2026-10-21T02:08:14.6316465Z ? Verifying lockfile against supply-chain policies (507 entries)...
+2026-10-21T02:08:14.6430775Z Lockfile is up to date, resolution step is skipped
+2026-10-21T02:08:14.7535876Z Progress: resolved 1, reused 0, downloaded 0, added 0
+2026-10-21T02:08:14.8151488Z Packages: +412
+2026-10-21T02:08:14.8172043Z ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+2026-10-21T02:08:15.7594367Z Progress: resolved 412, reused 0, downloaded 62, added 0
+2026-10-21T02:08:16.7672304Z Progress: resolved 412, reused 0, downloaded 149, added 8
+2026-10-21T02:08:17.7692251Z Progress: resolved 412, reused 0, downloaded 229, added 16
+2026-10-21T02:08:18.7836983Z Progress: resolved 412, reused 0, downloaded 291, added 20
+2026-10-21T02:08:19.8158985Z Progress: resolved 412, reused 0, downloaded 412, added 88
+2026-10-21T02:08:20.4632307Z Progress: resolved 412, reused 0, downloaded 412, added 412, done
+2026-10-21T02:08:20.6359868Z ✓ Lockfile passes supply-chain policies (507 entries in 6s)
+2026-10-21T02:08:20.7915289Z .../node_modules/unrs-resolver postinstall$ node postinstall.js
+2026-10-21T02:08:20.8696081Z .../node_modules/unrs-resolver postinstall: Done
+2026-10-21T02:08:20.9620148Z 
+2026-10-21T02:08:20.9621896Z devDependencies:
+2026-10-21T02:08:20.9622312Z + @eslint/js 9.39.5
+2026-10-21T02:08:20.9622593Z + eslint 9.39.5
+2026-10-21T02:08:20.9622823Z + prettier 3.9.6
+2026-10-21T02:08:20.9623113Z + supabase 2.114.0
+2026-10-21T02:08:20.9623350Z + turbo 2.10.7
+2026-10-21T02:08:20.9623596Z + typescript-eslint 8.65.0
+2026-10-21T02:08:20.9623763Z 
+2026-10-21T02:08:21.0199882Z Done in 7.4s using pnpm v11.17.0
+2026-10-21T02:08:21.1375536Z ##[group]Run pnpm --filter @aurevane/web exec playwright install --with-deps chromium
+2026-10-21T02:08:21.1376349Z [36;1mpnpm --filter @aurevane/web exec playwright install --with-deps chromium[0m
+2026-10-21T02:08:21.1428532Z shell: /usr/bin/bash -e {0}
+2026-10-21T02:08:21.1428792Z ##[endgroup]
+2026-10-21T02:08:22.1926751Z Installing dependencies...
+2026-10-21T02:08:22.2012301Z Switching to root user to install dependencies...
+2026-10-21T02:08:22.3294760Z Get:1 file:/etc/apt/apt-mirrors.txt Mirrorlist [144 B]
+2026-10-21T02:08:22.3686621Z Hit:2 http://azure.archive.ubuntu.com/ubuntu noble InRelease
+2026-10-21T02:08:22.3723890Z Get:6 https://packages.microsoft.com/ubuntu/24.04/prod noble InRelease [3600 B]
+2026-10-21T02:08:22.3761996Z Get:3 http://azure.archive.ubuntu.com/ubuntu noble-updates InRelease [126 kB]
+2026-10-21T02:08:22.3805007Z Get:4 http://azure.archive.ubuntu.com/ubuntu noble-backports InRelease [126 kB]
+2026-10-21T02:08:22.3862975Z Get:5 http://azure.archive.ubuntu.com/ubuntu noble-security InRelease [126 kB]
+2026-10-21T02:08:22.5543404Z Get:7 https://packages.microsoft.com/ubuntu/24.04/prod noble/main amd64 Packages [628 kB]
+2026-10-21T02:08:22.5833049Z Get:8 https://packages.microsoft.com/ubuntu/24.04/prod noble/main arm64 Packages [565 kB]
+2026-10-21T02:08:22.6081050Z Get:9 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 Packages [1397 kB]
+2026-10-21T02:08:22.6182067Z Get:10 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 Packages [1704 kB]
+2026-10-21T02:08:22.7108526Z Get:11 http://azure.archive.ubuntu.com/ubuntu noble-security/main amd64 Packages [1145 kB]
+2026-10-21T02:08:22.7164076Z Get:12 http://azure.archive.ubuntu.com/ubuntu noble-security/main Translation-en [231 kB]
+2026-10-21T02:08:22.7186791Z Get:13 http://azure.archive.ubuntu.com/ubuntu noble-security/universe amd64 Packages [1222 kB]
+2026-10-21T02:08:29.1206279Z Fetched 7274 kB in 1s (8679 kB/s)
+2026-10-21T02:08:30.1664794Z Reading package lists...
+2026-10-21T02:08:30.2680826Z Reading package lists...
+2026-10-21T02:08:30.4871877Z Building dependency tree...
+2026-10-21T02:08:30.4879380Z Reading state information...
+2026-10-21T02:08:30.6429022Z libasound2t64 is already the newest version (1.2.11-1ubuntu0.3).
+2026-10-21T02:08:30.6429933Z libasound2t64 set to manually installed.
+2026-10-21T02:08:30.6430975Z libatk-bridge2.0-0t64 is already the newest version (2.52.0-1build1).
+2026-10-21T02:08:30.6431560Z libatk-bridge2.0-0t64 set to manually installed.
+2026-10-21T02:08:30.6432081Z libatk1.0-0t64 is already the newest version (2.52.0-1build1).
+2026-10-21T02:08:30.6432537Z libatk1.0-0t64 set to manually installed.
+2026-10-21T02:08:30.6433021Z libatspi2.0-0t64 is already the newest version (2.52.0-1build1).
+2026-10-21T02:08:30.6433715Z libatspi2.0-0t64 set to manually installed.
+2026-10-21T02:08:30.6434431Z libcairo2 is already the newest version (1.18.0-3build1).
+2026-10-21T02:08:30.6435054Z libcairo2 set to manually installed.
+2026-10-21T02:08:30.6435565Z libcups2t64 is already the newest version (2.4.7-1.2ubuntu7.14).
+2026-10-21T02:08:30.6436029Z libcups2t64 set to manually installed.
+2026-10-21T02:08:30.6436559Z libdbus-1-3 is already the newest version (1.14.10-4ubuntu4.1).
+2026-10-21T02:08:30.6437012Z libdbus-1-3 set to manually installed.
+2026-10-21T02:08:30.6437488Z libdrm2 is already the newest version (2.4.125-1ubuntu0.1~24.04.2).
+2026-10-21T02:08:30.6437944Z libdrm2 set to manually installed.
+2026-10-21T02:08:30.6438451Z libgbm1 is already the newest version (25.2.8-0ubuntu0.24.04.4).
+2026-10-21T02:08:30.6438889Z libgbm1 set to manually installed.
+2026-10-21T02:08:30.6439361Z libglib2.0-0t64 is already the newest version (2.80.0-6ubuntu3.9).
+2026-10-21T02:08:30.6439831Z libglib2.0-0t64 set to manually installed.
+2026-10-21T02:08:30.6440305Z libnspr4 is already the newest version (2:4.35-1.1build1).
+2026-10-21T02:08:30.6440991Z libnspr4 set to manually installed.
+2026-10-21T02:08:30.6441444Z libnss3 is already the newest version (2:3.98-1ubuntu0.2).
+2026-10-21T02:08:30.6442230Z libnss3 set to manually installed.
+2026-10-21T02:08:30.6442665Z libpango-1.0-0 is already the newest version (1.52.1+ds-1build1).
+2026-10-21T02:08:30.6443244Z libpango-1.0-0 set to manually installed.
+2026-10-21T02:08:30.6443662Z libx11-6 is already the newest version (2:1.8.7-1ubuntu0.1).
+2026-10-21T02:08:30.6444045Z libx11-6 set to manually installed.
+2026-10-21T02:08:30.6444408Z libxcb1 is already the newest version (1.15-1ubuntu2).
+2026-10-21T02:08:30.6444767Z libxcb1 set to manually installed.
+2026-10-21T02:08:30.6445178Z libxcomposite1 is already the newest version (1:0.4.5-1build3).
+2026-10-21T02:08:30.6445594Z libxcomposite1 set to manually installed.
+2026-10-21T02:08:30.6446012Z libxdamage1 is already the newest version (1:1.1.6-1build1).
+2026-10-21T02:08:30.6446399Z libxdamage1 set to manually installed.
+2026-10-21T02:08:30.6446780Z libxext6 is already the newest version (2:1.3.4-1build2).
+2026-10-21T02:08:30.6447145Z libxext6 set to manually installed.
+2026-10-21T02:08:30.6447551Z libxfixes3 is already the newest version (1:6.0.0-2build1).
+2026-10-21T02:08:30.6447937Z libxfixes3 set to manually installed.
+2026-10-21T02:08:30.6448343Z libxkbcommon0 is already the newest version (1.6.0-1build1).
+2026-10-21T02:08:30.6448741Z libxkbcommon0 set to manually installed.
+2026-10-21T02:08:30.6449139Z libxrandr2 is already the newest version (2:1.5.2-2build1).
+2026-10-21T02:08:30.6449518Z libxrandr2 set to manually installed.
+2026-10-21T02:08:30.6450014Z fonts-noto-color-emoji is already the newest version (2.047-0ubuntu0.24.04.1).
+2026-10-21T02:08:30.6450858Z libfontconfig1 is already the newest version (2.15.0-1.1ubuntu2).
+2026-10-21T02:08:30.6451321Z libfontconfig1 set to manually installed.
+2026-10-21T02:08:30.6451771Z libfreetype6 is already the newest version (2.13.2+dfsg-1ubuntu0.2).
+2026-10-21T02:08:30.6452199Z libfreetype6 set to manually installed.
+2026-10-21T02:08:30.6452618Z fonts-liberation is already the newest version (1:2.1.5-3).
+2026-10-21T02:08:30.6453036Z fonts-liberation set to manually installed.
+2026-10-21T02:08:30.6453437Z The following additional packages will be installed:
+2026-10-21T02:08:30.6453826Z   xfonts-encodings xfonts-utils xserver-common
+2026-10-21T02:08:30.6454155Z Recommended packages:
+2026-10-21T02:08:30.6454456Z   fonts-ipafont-mincho fonts-tlwg-loma xfonts-base
+2026-10-21T02:08:31.0904297Z The following NEW packages will be installed:
+2026-10-21T02:08:31.0904911Z   fonts-freefont-ttf fonts-ipafont-gothic fonts-tlwg-loma-otf fonts-unifont
+2026-10-21T02:08:31.0910990Z   fonts-wqy-zenhei xfonts-cyrillic xfonts-encodings xfonts-scalable
+2026-10-21T02:08:31.0911741Z   xfonts-utils
+2026-10-21T02:08:31.0919944Z The following packages will be upgraded:
+2026-10-21T02:08:31.0920491Z   xserver-common xvfb
+2026-10-21T02:08:31.1109567Z 2 upgraded, 9 newly installed, 0 to remove and 43 not upgraded.
+2026-10-21T02:08:31.1110038Z Need to get 22.0 MB of archives.
+2026-10-21T02:08:31.1110471Z After this operation, 79.5 MB of additional disk space will be used.
+2026-10-21T02:08:31.1111544Z Get:1 file:/etc/apt/apt-mirrors.txt Mirrorlist [144 B]
+2026-10-21T02:08:31.2191347Z Get:2 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 fonts-ipafont-gothic all 00303-21ubuntu1 [3513 kB]
+2026-10-21T02:08:31.3984803Z Get:3 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 fonts-freefont-ttf all 20211204+svn4273-2 [5641 kB]
+2026-10-21T02:08:31.6352606Z Get:4 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 fonts-tlwg-loma-otf all 1:0.7.3-1 [107 kB]
+2026-10-21T02:08:31.7237450Z Get:5 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 fonts-unifont all 1:15.1.01-1build1 [2993 kB]
+2026-10-21T02:08:31.8887296Z Get:6 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 fonts-wqy-zenhei all 0.9.45-8 [7472 kB]
+2026-10-21T02:08:32.1745603Z Get:7 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 xfonts-encodings all 1:1.0.5-0ubuntu2 [578 kB]
+2026-10-21T02:08:32.2742531Z Get:8 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 xfonts-utils amd64 1:7.7+6build3 [94.4 kB]
+2026-10-21T02:08:32.3608815Z Get:9 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 xfonts-cyrillic all 1:1.0.5+nmu1 [384 kB]
+2026-10-21T02:08:32.4571406Z Get:10 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 xfonts-scalable all 1:1.0.3-1.3 [304 kB]
+2026-10-21T02:08:32.5498914Z Get:11 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 xserver-common all 2:21.1.12-1ubuntu1.9 [35.0 kB]
+2026-10-21T02:08:32.6362224Z Get:12 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 xvfb amd64 2:21.1.12-1ubuntu1.9 [877 kB]
+2026-10-21T02:08:32.9508164Z Fetched 22.0 MB in 2s (14.1 MB/s)
+2026-10-21T02:08:33.0105983Z Selecting previously unselected package fonts-ipafont-gothic.
+2026-10-21T02:08:33.0632324Z (Reading database ... 
+2026-10-21T02:08:33.0632931Z (Reading database ... 5%
+2026-10-21T02:08:33.0633485Z (Reading database ... 10%
+2026-10-21T02:08:33.0634022Z (Reading database ... 15%
+2026-10-21T02:08:33.0634549Z (Reading database ... 20%
+2026-10-21T02:08:33.0635091Z (Reading database ... 25%
+2026-10-21T02:08:33.0635613Z (Reading database ... 30%
+2026-10-21T02:08:33.0636161Z (Reading database ... 35%
+2026-10-21T02:08:33.0636681Z (Reading database ... 40%
+2026-10-21T02:08:33.0637733Z (Reading database ... 45%
+2026-10-21T02:08:33.0638216Z (Reading database ... 50%
+2026-10-21T02:08:33.1061109Z (Reading database ... 55%
+2026-10-21T02:08:33.4017937Z (Reading database ... 60%
+2026-10-21T02:08:33.6411182Z (Reading database ... 65%
+2026-10-21T02:08:33.8157456Z (Reading database ... 70%
+2026-10-21T02:08:34.1139428Z (Reading database ... 75%
+2026-10-21T02:08:34.6564035Z (Reading database ... 80%
+2026-10-21T02:08:35.3888751Z (Reading database ... 85%
+2026-10-21T02:08:36.0509878Z (Reading database ... 90%
+2026-10-21T02:08:36.8118955Z (Reading database ... 95%
+2026-10-21T02:08:36.8119580Z (Reading database ... 100%
+2026-10-21T02:08:36.8120492Z (Reading database ... 214410 files and directories currently installed.)
+2026-10-21T02:08:36.8164308Z Preparing to unpack .../00-fonts-ipafont-gothic_00303-21ubuntu1_all.deb ...
+2026-10-21T02:08:36.8263749Z Unpacking fonts-ipafont-gothic (00303-21ubuntu1) ...
+2026-10-21T02:08:37.0619343Z Selecting previously unselected package fonts-freefont-ttf.
+2026-10-21T02:08:37.0759312Z Preparing to unpack .../01-fonts-freefont-ttf_20211204+svn4273-2_all.deb ...
+2026-10-21T02:08:37.0765260Z Unpacking fonts-freefont-ttf (20211204+svn4273-2) ...
+2026-10-21T02:08:37.1597051Z Selecting previously unselected package fonts-tlwg-loma-otf.
+2026-10-21T02:08:37.1736187Z Preparing to unpack .../02-fonts-tlwg-loma-otf_1%3a0.7.3-1_all.deb ...
+2026-10-21T02:08:37.1741943Z Unpacking fonts-tlwg-loma-otf (1:0.7.3-1) ...
+2026-10-21T02:08:37.1971030Z Selecting previously unselected package fonts-unifont.
+2026-10-21T02:08:37.2110226Z Preparing to unpack .../03-fonts-unifont_1%3a15.1.01-1build1_all.deb ...
+2026-10-21T02:08:37.2116983Z Unpacking fonts-unifont (1:15.1.01-1build1) ...
+2026-10-21T02:08:37.3218738Z Selecting previously unselected package fonts-wqy-zenhei.
+2026-10-21T02:08:37.3360373Z Preparing to unpack .../04-fonts-wqy-zenhei_0.9.45-8_all.deb ...
+2026-10-21T02:08:37.3469027Z Unpacking fonts-wqy-zenhei (0.9.45-8) ...
+2026-10-21T02:08:37.8251313Z Selecting previously unselected package xfonts-encodings.
+2026-10-21T02:08:37.8391577Z Preparing to unpack .../05-xfonts-encodings_1%3a1.0.5-0ubuntu2_all.deb ...
+2026-10-21T02:08:37.8399966Z Unpacking xfonts-encodings (1:1.0.5-0ubuntu2) ...
+2026-10-21T02:08:37.8707178Z Selecting previously unselected package xfonts-utils.
+2026-10-21T02:08:37.8845597Z Preparing to unpack .../06-xfonts-utils_1%3a7.7+6build3_amd64.deb ...
+2026-10-21T02:08:37.8851831Z Unpacking xfonts-utils (1:7.7+6build3) ...
+2026-10-21T02:08:37.9525626Z Selecting previously unselected package xfonts-cyrillic.
+2026-10-21T02:08:37.9645071Z Preparing to unpack .../07-xfonts-cyrillic_1%3a1.0.5+nmu1_all.deb ...
+2026-10-21T02:08:37.9657406Z Unpacking xfonts-cyrillic (1:1.0.5+nmu1) ...
+2026-10-21T02:08:38.0016394Z Selecting previously unselected package xfonts-scalable.
+2026-10-21T02:08:38.0154847Z Preparing to unpack .../08-xfonts-scalable_1%3a1.0.3-1.3_all.deb ...
+2026-10-21T02:08:38.0162067Z Unpacking xfonts-scalable (1:1.0.3-1.3) ...
+2026-10-21T02:08:38.0558963Z Preparing to unpack .../09-xserver-common_2%3a21.1.12-1ubuntu1.9_all.deb ...
+2026-10-21T02:08:38.0577081Z Unpacking xserver-common (2:21.1.12-1ubuntu1.9) over (2:21.1.12-1ubuntu1.8) ...
+2026-10-21T02:08:38.0956536Z Preparing to unpack .../10-xvfb_2%3a21.1.12-1ubuntu1.9_amd64.deb ...
+2026-10-21T02:08:38.0974010Z Unpacking xvfb (2:21.1.12-1ubuntu1.9) over (2:21.1.12-1ubuntu1.8) ...
+2026-10-21T02:08:38.1512164Z Setting up fonts-wqy-zenhei (0.9.45-8) ...
+2026-10-21T02:08:38.1638740Z Setting up fonts-freefont-ttf (20211204+svn4273-2) ...
+2026-10-21T02:08:38.1655504Z Setting up fonts-tlwg-loma-otf (1:0.7.3-1) ...
+2026-10-21T02:08:38.1672664Z Setting up xfonts-encodings (1:1.0.5-0ubuntu2) ...
+2026-10-21T02:08:38.1689685Z Setting up fonts-ipafont-gothic (00303-21ubuntu1) ...
+2026-10-21T02:08:38.1755228Z update-alternatives: using /usr/share/fonts/opentype/ipafont-gothic/ipag.ttf to provide /usr/share/fonts/truetype/fonts-japanese-gothic.ttf (fonts-japanese-gothic.ttf) in auto mode
+2026-10-21T02:08:38.1769510Z Setting up xserver-common (2:21.1.12-1ubuntu1.9) ...
+2026-10-21T02:08:38.1786379Z Setting up fonts-unifont (1:15.1.01-1build1) ...
+2026-10-21T02:08:38.1804556Z Setting up xvfb (2:21.1.12-1ubuntu1.9) ...
+2026-10-21T02:08:38.1821447Z Setting up xfonts-utils (1:7.7+6build3) ...
+2026-10-21T02:08:38.1858958Z Setting up xfonts-cyrillic (1:1.0.5+nmu1) ...
+2026-10-21T02:08:38.2148778Z Setting up xfonts-scalable (1:1.0.3-1.3) ...
+2026-10-21T02:08:38.2474944Z Processing triggers for man-db (2.12.0-4build2) ...
+2026-10-21T02:08:38.2556394Z Not building database; man-db/auto-update is not 'true'.
+2026-10-21T02:08:38.2568346Z Processing triggers for fontconfig (2.15.0-1.1ubuntu2) ...
+2026-10-21T02:08:39.6680824Z 
+2026-10-21T02:08:39.6681811Z Running kernel seems to be up-to-date.
+2026-10-21T02:08:39.6682164Z 
+2026-10-21T02:08:39.6682413Z No services need to be restarted.
+2026-10-21T02:08:39.6682677Z 
+2026-10-21T02:08:39.6682886Z No containers need to be restarted.
+2026-10-21T02:08:39.6683155Z 
+2026-10-21T02:08:39.6683409Z No user sessions are running outdated binaries.
+2026-10-21T02:08:39.6683727Z 
+2026-10-21T02:08:39.6684133Z No VM guests are running outdated hypervisor (qemu) binaries on this host.
+2026-10-21T02:08:40.5080128Z Downloading Chrome for Testing 151.0.7922.34 (playwright chromium v1234) from https://cdn.playwright.dev/builds/cft/151.0.7922.34/linux64/chrome-linux64.zip
+2026-10-21T02:08:41.5194783Z |                                                                                |   0% of 184.3 MiB
+2026-10-21T02:08:41.6760386Z |■■■■■■■■                                                                        |  10% of 184.3 MiB
+2026-10-21T02:08:41.7669352Z |■■■■■■■■■■■■■■■■                                                                |  20% of 184.3 MiB
+2026-10-21T02:08:41.8604854Z |■■■■■■■■■■■■■■■■■■■■■■■■                                                        |  30% of 184.3 MiB
+2026-10-21T02:08:41.9417618Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                                |  40% of 184.3 MiB
+2026-10-21T02:08:42.0196751Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                        |  50% of 184.3 MiB
+2026-10-21T02:08:42.0750305Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                |  60% of 184.3 MiB
+2026-10-21T02:08:42.1539884Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                        |  70% of 184.3 MiB
+2026-10-21T02:08:42.2367267Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                |  80% of 184.3 MiB
+2026-10-21T02:08:42.3198768Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■        |  90% of 184.3 MiB
+2026-10-21T02:08:42.3887109Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■| 100% of 184.3 MiB
+2026-10-21T02:08:45.2798779Z Chrome for Testing 151.0.7922.34 (playwright chromium v1234) downloaded to /home/runner/.cache/ms-playwright/chromium-1234
+2026-10-21T02:08:45.2802554Z Downloading FFmpeg (playwright ffmpeg v1011) from https://cdn.playwright.dev/dbazure/download/playwright/builds/ffmpeg/1011/ffmpeg-linux.zip
+2026-10-21T02:08:46.3604711Z |                                                                                |   0% of 2.3 MiB
+2026-10-21T02:08:46.3719507Z |■■■■■■■■                                                                        |  10% of 2.3 MiB
+2026-10-21T02:08:46.3797174Z |■■■■■■■■■■■■■■■■                                                                |  20% of 2.3 MiB
+2026-10-21T02:08:46.3849599Z |■■■■■■■■■■■■■■■■■■■■■■■■                                                        |  30% of 2.3 MiB
+2026-10-21T02:08:46.3994810Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                                |  40% of 2.3 MiB
+2026-10-21T02:08:46.4043018Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                        |  50% of 2.3 MiB
+2026-10-21T02:08:46.4076453Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                |  60% of 2.3 MiB
+2026-10-21T02:08:46.4099523Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                        |  70% of 2.3 MiB
+2026-10-21T02:08:46.4132745Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                |  80% of 2.3 MiB
+2026-10-21T02:08:46.4182019Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■        |  90% of 2.3 MiB
+2026-10-21T02:08:46.4191640Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■| 100% of 2.3 MiB
+2026-10-21T02:08:46.4804936Z FFmpeg (playwright ffmpeg v1011) downloaded to /home/runner/.cache/ms-playwright/ffmpeg-1011
+2026-10-21T02:08:46.4822649Z Downloading Chrome Headless Shell 151.0.7922.34 (playwright chromium-headless-shell v1234) from https://cdn.playwright.dev/builds/cft/151.0.7922.34/linux64/chrome-headless-shell-linux64.zip
+2026-10-21T02:08:47.4837567Z |                                                                                |   0% of 114.7 MiB
+2026-10-21T02:08:47.5822568Z |■■■■■■■■                                                                        |  10% of 114.7 MiB
+2026-10-21T02:08:47.6475657Z |■■■■■■■■■■■■■■■■                                                                |  20% of 114.7 MiB
+2026-10-21T02:08:47.7094239Z |■■■■■■■■■■■■■■■■■■■■■■■■                                                        |  30% of 114.7 MiB
+2026-10-21T02:08:47.7623145Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                                |  40% of 114.7 MiB
+2026-10-21T02:08:47.8334864Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                        |  50% of 114.7 MiB
+2026-10-21T02:08:47.8686977Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                |  60% of 114.7 MiB
+2026-10-21T02:08:47.9061443Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                        |  70% of 114.7 MiB
+2026-10-21T02:08:47.9607771Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                |  80% of 114.7 MiB
+2026-10-21T02:08:47.9966230Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■        |  90% of 114.7 MiB
+2026-10-21T02:08:48.0254368Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■| 100% of 114.7 MiB
+2026-10-21T02:08:50.1884980Z Chrome Headless Shell 151.0.7922.34 (playwright chromium-headless-shell v1234) downloaded to /home/runner/.cache/ms-playwright/chromium_headless_shell-1234
+2026-10-21T02:08:50.2283214Z ##[group]Run pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
+2026-10-21T02:08:50.2283966Z [36;1mpnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime[0m
+2026-10-21T02:08:50.2335972Z shell: /usr/bin/bash -e {0}
+2026-10-21T02:08:50.2336231Z ##[endgroup]
+2026-10-21T02:08:53.3071716Z Error response from daemon: toomanyrequests: Rate exceeded
+2026-10-21T02:08:53.3081718Z Error response from daemon: toomanyrequests: Rate exceeded
+2026-10-21T02:08:53.3083131Z Retrying after 4s: public.ecr.aws/supabase/kong:2.8.1
+2026-10-21T02:08:53.3114016Z Retrying after 4s: public.ecr.aws/supabase/mailpit:v1.30.2
+2026-10-21T02:08:53.3363096Z Error response from daemon: toomanyrequests: Rate exceeded
+2026-10-21T02:08:53.3388225Z Retrying after 4s: public.ecr.aws/supabase/gotrue:v2.195.0
+2026-10-21T02:08:53.3598878Z Error response from daemon: toomanyrequests: Rate exceeded
+2026-10-21T02:08:53.3624811Z Retrying after 4s: public.ecr.aws/supabase/postgres:17.6.1.158
+2026-10-21T02:08:53.3805464Z v16.1: Pulling from supabase/postgrest
+2026-10-21T02:08:53.3933036Z v1.69.0: Pulling from supabase/storage-api
+2026-10-21T02:08:53.4060233Z v2.124.4: Pulling from supabase/realtime
+2026-10-21T02:08:53.4191670Z v0.97.0: Pulling from supabase/postgres-meta
+2026-10-21T02:08:53.4300442Z toomanyrequests: Rate exceeded
+2026-10-21T02:08:53.4323746Z Retrying after 4s: public.ecr.aws/supabase/storage-api:v1.69.0
+2026-10-21T02:08:53.4553411Z toomanyrequests: Rate exceeded
+2026-10-21T02:08:53.4569602Z Retrying after 4s: public.ecr.aws/supabase/postgres-meta:v0.97.0
+2026-10-21T02:08:53.4809815Z bcf274f2d0ac: Pulling fs layer
+2026-10-21T02:08:53.4988405Z 062e450697fa: Pulling fs layer
+2026-10-21T02:08:53.4989125Z aadc1df55248: Pulling fs layer
+2026-10-21T02:08:53.4989668Z f214992b7983: Pulling fs layer
+2026-10-21T02:08:53.4990168Z 7cb31bd93ed4: Pulling fs layer
+2026-10-21T02:08:53.4990925Z 1eed381aa904: Pulling fs layer
+2026-10-21T02:08:53.4991466Z d7166cf3602c: Pulling fs layer
+2026-10-21T02:08:53.4991964Z fff665a60d88: Pulling fs layer
+2026-10-21T02:08:53.4992454Z cf7b44056470: Pulling fs layer
+2026-10-21T02:08:53.4993075Z 0b63fa1a2444: Pulling fs layer
+2026-10-21T02:08:53.4993689Z ad84d6f3ed2a: Pulling fs layer
+2026-10-21T02:08:53.4994199Z 0b6cbf4d6001: Pulling fs layer
+2026-10-21T02:08:53.4994679Z 4f4fb700ef54: Pulling fs layer
+2026-10-21T02:08:53.4995184Z 1eed381aa904: Waiting
+2026-10-21T02:08:53.4995573Z d7166cf3602c: Waiting
+2026-10-21T02:08:53.4995961Z cf7b44056470: Waiting
+2026-10-21T02:08:53.4996337Z 0b63fa1a2444: Waiting
+2026-10-21T02:08:53.4997031Z ad84d6f3ed2a: Waiting
+2026-10-21T02:08:53.4997409Z 0b6cbf4d6001: Waiting
+2026-10-21T02:08:53.4997779Z f214992b7983: Waiting
+2026-10-21T02:08:53.4998163Z 7cb31bd93ed4: Waiting
+2026-10-21T02:08:53.4998547Z 4f4fb700ef54: Waiting
+2026-10-21T02:08:53.4998934Z fff665a60d88: Waiting
+2026-10-21T02:08:53.6554137Z bcf274f2d0ac: Verifying Checksum
+2026-10-21T02:08:53.6557041Z bcf274f2d0ac: Download complete
+2026-10-21T02:08:53.7438548Z 062e450697fa: Verifying Checksum
+2026-10-21T02:08:53.7452601Z 062e450697fa: Download complete
+2026-10-21T02:08:53.8233933Z 7cb31bd93ed4: Verifying Checksum
+2026-10-21T02:08:53.8242772Z 7cb31bd93ed4: Download complete
+2026-10-21T02:08:53.8624552Z aadc1df55248: Verifying Checksum
+2026-10-21T02:08:53.8625440Z aadc1df55248: Download complete
+2026-10-21T02:08:53.9015446Z f214992b7983: Verifying Checksum
+2026-10-21T02:08:53.9019952Z f214992b7983: Download complete
+2026-10-21T02:08:53.9229138Z 1eed381aa904: Download complete
+2026-10-21T02:08:53.9350321Z bcf274f2d0ac: Pull complete
+2026-10-21T02:08:53.9582723Z Digest: sha256:5922bde07147b82b1c9d8f749e48c1e5b99ebb233f3888bb7ab65f07cf4ac82d
+2026-10-21T02:08:53.9603720Z Status: Downloaded newer image for public.ecr.aws/supabase/postgrest:v16.1
+2026-10-21T02:08:53.9608159Z public.ecr.aws/supabase/postgrest:v16.1
+2026-10-21T02:08:53.9615486Z d7166cf3602c: Download complete
+2026-10-21T02:08:54.0025393Z fff665a60d88: Verifying Checksum
+2026-10-21T02:08:54.0027230Z fff665a60d88: Download complete
+2026-10-21T02:08:54.0241537Z cf7b44056470: Verifying Checksum
+2026-10-21T02:08:54.0245441Z cf7b44056470: Download complete
+2026-10-21T02:08:54.0336121Z 0b63fa1a2444: Download complete
+2026-10-21T02:08:54.0593321Z 4f4fb700ef54: Verifying Checksum
+2026-10-21T02:08:54.0594654Z 4f4fb700ef54: Download complete
+2026-10-21T02:08:54.0990417Z 0b6cbf4d6001: Verifying Checksum
+2026-10-21T02:08:54.0995911Z 0b6cbf4d6001: Download complete
+2026-10-21T02:08:54.1592884Z ad84d6f3ed2a: Verifying Checksum
+2026-10-21T02:08:54.1601522Z ad84d6f3ed2a: Download complete
+2026-10-21T02:08:54.8883965Z 062e450697fa: Pull complete
+2026-10-21T02:08:57.8664196Z 2.8.1: Pulling from supabase/kong
+2026-10-21T02:08:57.8774929Z v1.30.2: Pulling from supabase/mailpit
+2026-10-21T02:08:57.9425102Z Error response from daemon: toomanyrequests: Rate exceeded
+2026-10-21T02:08:57.9450495Z Retrying after 8s: public.ecr.aws/supabase/postgres:17.6.1.158
+2026-10-21T02:08:57.9502772Z 213ec9aee27d: Pulling fs layer
+2026-10-21T02:08:57.9503416Z a70653f7a2d5: Pulling fs layer
+2026-10-21T02:08:57.9503962Z 531e3bd93090: Pulling fs layer
+2026-10-21T02:08:57.9504590Z 814dd06d26c7: Pulling fs layer
+2026-10-21T02:08:57.9505053Z 814dd06d26c7: Waiting
+2026-10-21T02:08:57.9702096Z 55afa1ecc21d: Already exists
+2026-10-21T02:08:57.9721292Z 95403727e7d4: Pulling fs layer
+2026-10-21T02:08:57.9721874Z e326d083c2c9: Pulling fs layer
+2026-10-21T02:08:57.9722351Z 95403727e7d4: Waiting
+2026-10-21T02:08:57.9722761Z e326d083c2c9: Waiting
+2026-10-21T02:08:57.9798175Z v1.69.0: Pulling from supabase/storage-api
+2026-10-21T02:08:58.0059078Z v2.195.0: Pulling from supabase/gotrue
+2026-10-21T02:08:58.0103280Z a70653f7a2d5: Verifying Checksum
+2026-10-21T02:08:58.0104365Z a70653f7a2d5: Download complete
+2026-10-21T02:08:58.0377385Z v0.97.0: Pulling from supabase/postgres-meta
+2026-10-21T02:08:58.0583602Z 213ec9aee27d: Verifying Checksum
+2026-10-21T02:08:58.0584424Z 213ec9aee27d: Download complete
+2026-10-21T02:08:58.0774225Z toomanyrequests: Rate exceeded
+2026-10-21T02:08:58.0806414Z Retrying after 8s: public.ecr.aws/supabase/postgres-meta:v0.97.0
+2026-10-21T02:08:58.0889930Z e6f31ffc071e: Pulling fs layer
+2026-10-21T02:08:58.0890973Z 5f05fbb94ac9: Pulling fs layer
+2026-10-21T02:08:58.0891684Z dbd229483e61: Pulling fs layer
+2026-10-21T02:08:58.0893746Z 814dd06d26c7: Verifying Checksum
+2026-10-21T02:08:58.0895193Z 814dd06d26c7: Download complete
+2026-10-21T02:08:58.0895989Z f4e2bfbd8bcd: Pulling fs layer
+2026-10-21T02:08:58.0896937Z 521c5280947c: Pulling fs layer
+2026-10-21T02:08:58.0898356Z 3f609ae12598: Pulling fs layer
+2026-10-21T02:08:58.0899680Z 35d5e54f513a: Pulling fs layer
+2026-10-21T02:08:58.0901076Z 25e9c8801257: Pulling fs layer
+2026-10-21T02:08:58.0902705Z 331c4f30549c: Pulling fs layer
+2026-10-21T02:08:58.0903512Z 294ed970ec07: Pulling fs layer
+2026-10-21T02:08:58.0904818Z 0cd3238360a9: Pulling fs layer
+2026-10-21T02:08:58.0905585Z 290ac3a8d0cf: Pulling fs layer
+2026-10-21T02:08:58.0907064Z fc22dfabf25d: Pulling fs layer
+2026-10-21T02:08:58.0907816Z d55b71be218a: Pulling fs layer
+2026-10-21T02:08:58.0908668Z e6f31ffc071e: Waiting
+2026-10-21T02:08:58.0910235Z 5f05fbb94ac9: Waiting
+2026-10-21T02:08:58.0911159Z dbd229483e61: Waiting
+2026-10-21T02:08:58.0911800Z f4e2bfbd8bcd: Waiting
+2026-10-21T02:08:58.0912902Z 521c5280947c: Waiting
+2026-10-21T02:08:58.0913816Z 3f609ae12598: Waiting
+2026-10-21T02:08:58.0914433Z 35d5e54f513a: Waiting
+2026-10-21T02:08:58.0915026Z 25e9c8801257: Waiting
+2026-10-21T02:08:58.0916076Z 331c4f30549c: Waiting
+2026-10-21T02:08:58.0916713Z 294ed970ec07: Waiting
+2026-10-21T02:08:58.0917561Z 0cd3238360a9: Waiting
+2026-10-21T02:08:58.0918571Z 290ac3a8d0cf: Waiting
+2026-10-21T02:08:58.0920024Z fc22dfabf25d: Waiting
+2026-10-21T02:08:58.0920883Z d55b71be218a: Waiting
+2026-10-21T02:08:58.1132374Z 55afa1ecc21d: Already exists
+2026-10-21T02:08:58.1133984Z 565df2d910df: Pulling fs layer
+2026-10-21T02:08:58.1134496Z dc286a8aa197: Pulling fs layer
+2026-10-21T02:08:58.1135216Z 3b1d86731cf1: Pulling fs layer
+2026-10-21T02:08:58.1136879Z fd855b1da301: Pulling fs layer
+2026-10-21T02:08:58.1137364Z ad8aa6f5f9a9: Pulling fs layer
+2026-10-21T02:08:58.1138344Z 565df2d910df: Waiting
+2026-10-21T02:08:58.1138842Z dc286a8aa197: Waiting
+2026-10-21T02:08:58.1139450Z 3b1d86731cf1: Waiting
+2026-10-21T02:08:58.1140935Z fd855b1da301: Waiting
+2026-10-21T02:08:58.1141605Z ad8aa6f5f9a9: Waiting
+2026-10-21T02:08:58.1884354Z e326d083c2c9: Verifying Checksum
+2026-10-21T02:08:58.1885036Z e326d083c2c9: Download complete
+2026-10-21T02:08:58.1930350Z 95403727e7d4: Verifying Checksum
+2026-10-21T02:08:58.1931428Z 95403727e7d4: Download complete
+2026-10-21T02:08:58.2139357Z 531e3bd93090: Verifying Checksum
+2026-10-21T02:08:58.2141242Z 531e3bd93090: Download complete
+2026-10-21T02:08:58.2496825Z 213ec9aee27d: Pull complete
+2026-10-21T02:08:58.3192031Z e6f31ffc071e: Verifying Checksum
+2026-10-21T02:08:58.3192840Z e6f31ffc071e: Download complete
+2026-10-21T02:08:58.3193507Z dbd229483e61: Verifying Checksum
+2026-10-21T02:08:58.3194033Z dbd229483e61: Download complete
+2026-10-21T02:08:58.4672156Z f4e2bfbd8bcd: Verifying Checksum
+2026-10-21T02:08:58.4672838Z f4e2bfbd8bcd: Download complete
+2026-10-21T02:08:58.7713592Z 3f609ae12598: Verifying Checksum
+2026-10-21T02:08:58.7714318Z 3f609ae12598: Download complete
+2026-10-21T02:08:58.8205779Z a70653f7a2d5: Pull complete
+2026-10-21T02:08:59.0685868Z 35d5e54f513a: Verifying Checksum
+2026-10-21T02:08:59.0686865Z 35d5e54f513a: Download complete
+2026-10-21T02:08:59.1529871Z 5f05fbb94ac9: Verifying Checksum
+2026-10-21T02:08:59.1531358Z 5f05fbb94ac9: Download complete
+2026-10-21T02:08:59.2158721Z 25e9c8801257: Verifying Checksum
+2026-10-21T02:08:59.2161692Z 25e9c8801257: Download complete
+2026-10-21T02:08:59.2906622Z 331c4f30549c: Verifying Checksum
+2026-10-21T02:08:59.2907768Z 331c4f30549c: Download complete
+2026-10-21T02:08:59.4241753Z 294ed970ec07: Verifying Checksum
+2026-10-21T02:08:59.4243070Z 294ed970ec07: Download complete
+2026-10-21T02:08:59.5361656Z 521c5280947c: Verifying Checksum
+2026-10-21T02:08:59.5363995Z 521c5280947c: Download complete
+2026-10-21T02:08:59.5697574Z 290ac3a8d0cf: Verifying Checksum
+2026-10-21T02:08:59.5698340Z 290ac3a8d0cf: Download complete
+2026-10-21T02:08:59.6191809Z fc22dfabf25d: Verifying Checksum
+2026-10-21T02:08:59.6197847Z fc22dfabf25d: Download complete
+2026-10-21T02:08:59.6479643Z d55b71be218a: Verifying Checksum
+2026-10-21T02:08:59.6481562Z d55b71be218a: Download complete
+2026-10-21T02:08:59.6804142Z e6f31ffc071e: Pull complete
+2026-10-21T02:08:59.6873615Z 565df2d910df: Verifying Checksum
+2026-10-21T02:08:59.6873978Z 565df2d910df: Download complete
+2026-10-21T02:08:59.7122267Z 0cd3238360a9: Verifying Checksum
+2026-10-21T02:08:59.7124672Z 0cd3238360a9: Download complete
+2026-10-21T02:08:59.7206740Z dc286a8aa197: Verifying Checksum
+2026-10-21T02:08:59.7207701Z dc286a8aa197: Download complete
+2026-10-21T02:08:59.7842259Z fd855b1da301: Verifying Checksum
+2026-10-21T02:08:59.7843119Z fd855b1da301: Download complete
+2026-10-21T02:08:59.7960241Z ad8aa6f5f9a9: Verifying Checksum
+2026-10-21T02:08:59.7961764Z ad8aa6f5f9a9: Download complete
+2026-10-21T02:08:59.9348470Z 3b1d86731cf1: Verifying Checksum
+2026-10-21T02:08:59.9349529Z 3b1d86731cf1: Download complete
+2026-10-21T02:09:01.6354825Z 95403727e7d4: Pull complete
+2026-10-21T02:09:01.6474822Z 565df2d910df: Pull complete
+2026-10-21T02:09:01.6493255Z aadc1df55248: Pull complete
+2026-10-21T02:09:01.8632562Z dc286a8aa197: Pull complete
+2026-10-21T02:09:01.9253791Z e326d083c2c9: Pull complete
+2026-10-21T02:09:01.9328343Z Digest: sha256:37a38e48e9338cd7e89dfeb487f37b02ebfcd9cb23111bed2d345e79d37d6dd6
+2026-10-21T02:09:01.9368856Z Status: Downloaded newer image for public.ecr.aws/supabase/mailpit:v1.30.2
+2026-10-21T02:09:01.9390853Z public.ecr.aws/supabase/mailpit:v1.30.2
+2026-10-21T02:09:02.0364783Z f214992b7983: Pull complete
+2026-10-21T02:09:02.0507260Z 7cb31bd93ed4: Pull complete
+2026-10-21T02:09:02.0758681Z 1eed381aa904: Pull complete
+2026-10-21T02:09:02.1125568Z d7166cf3602c: Pull complete
+2026-10-21T02:09:02.1572956Z fff665a60d88: Pull complete
+2026-10-21T02:09:02.1703208Z cf7b44056470: Pull complete
+2026-10-21T02:09:02.1829360Z 0b63fa1a2444: Pull complete
+2026-10-21T02:09:02.3438592Z 3b1d86731cf1: Pull complete
+2026-10-21T02:09:02.3965239Z fd855b1da301: Pull complete
+2026-10-21T02:09:02.4203449Z ad8aa6f5f9a9: Pull complete
+2026-10-21T02:09:02.4253941Z Digest: sha256:362659ca70eaa75ba05bbaf963caa84c1c5afe5e8fbf0777e17b830dd5f0f60a
+2026-10-21T02:09:02.4271358Z Status: Downloaded newer image for public.ecr.aws/supabase/gotrue:v2.195.0
+2026-10-21T02:09:02.4282398Z public.ecr.aws/supabase/gotrue:v2.195.0
+2026-10-21T02:09:02.5217750Z 5f05fbb94ac9: Pull complete
+2026-10-21T02:09:02.5869261Z dbd229483e61: Pull complete
+2026-10-21T02:09:02.6034688Z f4e2bfbd8bcd: Pull complete
+2026-10-21T02:09:03.1374381Z 531e3bd93090: Pull complete
+2026-10-21T02:09:03.2244247Z 814dd06d26c7: Pull complete
+2026-10-21T02:09:03.2293444Z Digest: sha256:1b53405d8680a09d6f44494b7990bf7da2ea43f84a258c59717d4539abf09f6d
+2026-10-21T02:09:03.2300896Z Status: Downloaded newer image for public.ecr.aws/supabase/kong:2.8.1
+2026-10-21T02:09:03.2311280Z public.ecr.aws/supabase/kong:2.8.1
+2026-10-21T02:09:03.7958582Z ad84d6f3ed2a: Pull complete
+2026-10-21T02:09:03.8121526Z 0b6cbf4d6001: Pull complete
+2026-10-21T02:09:03.8238466Z 4f4fb700ef54: Pull complete
+2026-10-21T02:09:03.8302157Z Digest: sha256:446e4db4b088c3ed91465250c5f9d5712d37e284b08545d91f965e8d7396d8ba
+2026-10-21T02:09:03.8317555Z Status: Downloaded newer image for public.ecr.aws/supabase/realtime:v2.124.4
+2026-10-21T02:09:03.8330526Z public.ecr.aws/supabase/realtime:v2.124.4
+2026-10-21T02:09:05.2771161Z 521c5280947c: Pull complete
+2026-10-21T02:09:05.2895157Z 3f609ae12598: Pull complete
+2026-10-21T02:09:05.3034610Z 35d5e54f513a: Pull complete
+2026-10-21T02:09:05.3122502Z 25e9c8801257: Pull complete
+2026-10-21T02:09:06.1917707Z 17.6.1.158: Pulling from supabase/postgres
+2026-10-21T02:09:06.2748516Z 331c4f30549c: Pull complete
+2026-10-21T02:09:06.2789967Z e6f31ffc071e: Already exists
+2026-10-21T02:09:06.2811907Z 498a244f555d: Pulling fs layer
+2026-10-21T02:09:06.2816668Z 32bfe7c0a4b9: Pulling fs layer
+2026-10-21T02:09:06.2817605Z 9860e44d4d32: Pulling fs layer
+2026-10-21T02:09:06.2819661Z d7c1cc03085c: Pulling fs layer
+2026-10-21T02:09:06.2821200Z ee02ba04abbd: Pulling fs layer
+2026-10-21T02:09:06.2821814Z 3deef7e0de88: Pulling fs layer
+2026-10-21T02:09:06.2822386Z 1e40da44e651: Pulling fs layer
+2026-10-21T02:09:06.2822910Z 2bf03da13843: Pulling fs layer
+2026-10-21T02:09:06.2823417Z ccb85ff59ca5: Pulling fs layer
+2026-10-21T02:09:06.2823969Z d633f688a3e1: Pulling fs layer
+2026-10-21T02:09:06.2824261Z abbb747de905: Pulling fs layer
+2026-10-21T02:09:06.2824890Z e7f95a1d37af: Pulling fs layer
+2026-10-21T02:09:06.2825418Z a937b4dfea5a: Pulling fs layer
+2026-10-21T02:09:06.2825719Z acf41e7ea660: Pulling fs layer
+2026-10-21T02:09:06.2826001Z 4599ada4ddc4: Pulling fs layer
+2026-10-21T02:09:06.2826535Z 601f053bc1c6: Pulling fs layer
+2026-10-21T02:09:06.2827081Z 451bf6d723e8: Pulling fs layer
+2026-10-21T02:09:06.2827649Z cfecf399afb7: Pulling fs layer
+2026-10-21T02:09:06.2828201Z 0bd13f8e9af4: Pulling fs layer
+2026-10-21T02:09:06.2828756Z 75ff486b78a4: Pulling fs layer
+2026-10-21T02:09:06.2829291Z 9c430d2079cb: Pulling fs layer
+2026-10-21T02:09:06.2829819Z 748920062a2f: Pulling fs layer
+2026-10-21T02:09:06.2830428Z 60382f14d112: Pulling fs layer
+2026-10-21T02:09:06.2832969Z 36b2dd684648: Pulling fs layer
+2026-10-21T02:09:06.2833794Z f2aa8cac0b87: Pulling fs layer
+2026-10-21T02:09:06.2834334Z e7aa91c1252d: Pulling fs layer
+2026-10-21T02:09:06.2834880Z 415aa48180ae: Pulling fs layer
+2026-10-21T02:09:06.2835333Z 83e91386ffc4: Pulling fs layer
+2026-10-21T02:09:06.2835711Z 601f053bc1c6: Waiting
+2026-10-21T02:09:06.2836131Z 451bf6d723e8: Waiting
+2026-10-21T02:09:06.2836486Z cfecf399afb7: Waiting
+2026-10-21T02:09:06.2836722Z 0bd13f8e9af4: Waiting
+2026-10-21T02:09:06.2837092Z 75ff486b78a4: Waiting
+2026-10-21T02:09:06.2837516Z 9c430d2079cb: Waiting
+2026-10-21T02:09:06.2837741Z 748920062a2f: Waiting
+2026-10-21T02:09:06.2838149Z 60382f14d112: Waiting
+2026-10-21T02:09:06.2838783Z 36b2dd684648: Waiting
+2026-10-21T02:09:06.2839197Z f2aa8cac0b87: Waiting
+2026-10-21T02:09:06.2839614Z e7aa91c1252d: Waiting
+2026-10-21T02:09:06.2840003Z 415aa48180ae: Waiting
+2026-10-21T02:09:06.2840792Z d7c1cc03085c: Waiting
+2026-10-21T02:09:06.2841281Z 83e91386ffc4: Waiting
+2026-10-21T02:09:06.2841794Z ee02ba04abbd: Waiting
+2026-10-21T02:09:06.2842319Z 3deef7e0de88: Waiting
+2026-10-21T02:09:06.2842807Z 1e40da44e651: Waiting
+2026-10-21T02:09:06.2843039Z 2bf03da13843: Waiting
+2026-10-21T02:09:06.2843263Z ccb85ff59ca5: Waiting
+2026-10-21T02:09:06.2843651Z d633f688a3e1: Waiting
+2026-10-21T02:09:06.2844070Z abbb747de905: Waiting
+2026-10-21T02:09:06.2844299Z e7f95a1d37af: Waiting
+2026-10-21T02:09:06.2844522Z 4599ada4ddc4: Waiting
+2026-10-21T02:09:06.2844797Z a937b4dfea5a: Waiting
+2026-10-21T02:09:06.3121863Z 294ed970ec07: Pull complete
+2026-10-21T02:09:06.3420170Z v0.97.0: Pulling from supabase/postgres-meta
+2026-10-21T02:09:06.3541610Z 32bfe7c0a4b9: Verifying Checksum
+2026-10-21T02:09:06.3542572Z 32bfe7c0a4b9: Download complete
+2026-10-21T02:09:06.3884358Z 498a244f555d: Verifying Checksum
+2026-10-21T02:09:06.3885283Z 498a244f555d: Download complete
+2026-10-21T02:09:06.4350568Z d7c1cc03085c: Verifying Checksum
+2026-10-21T02:09:06.4351306Z d7c1cc03085c: Download complete
+2026-10-21T02:09:06.4451768Z 039e6f9f9752: Pulling fs layer
+2026-10-21T02:09:06.4452492Z 5404bc2cc13c: Pulling fs layer
+2026-10-21T02:09:06.4453796Z 555d35074583: Pulling fs layer
+2026-10-21T02:09:06.4464144Z 8f99eb9866f3: Pulling fs layer
+2026-10-21T02:09:06.4466495Z c0ed9f2d0e0e: Pulling fs layer
+2026-10-21T02:09:06.4471261Z 45880ce13aff: Pulling fs layer
+2026-10-21T02:09:06.4474872Z ee4b2418b2f7: Pulling fs layer
+2026-10-21T02:09:06.4475708Z 55ed777ad44b: Pulling fs layer
+2026-10-21T02:09:06.4476598Z 214b51a78849: Pulling fs layer
+2026-10-21T02:09:06.4477386Z 3ab108385876: Pulling fs layer
+2026-10-21T02:09:06.4478149Z 039e6f9f9752: Waiting
+2026-10-21T02:09:06.4478762Z 5404bc2cc13c: Waiting
+2026-10-21T02:09:06.4479378Z 555d35074583: Waiting
+2026-10-21T02:09:06.4480118Z 8f99eb9866f3: Waiting
+2026-10-21T02:09:06.4480937Z c0ed9f2d0e0e: Waiting
+2026-10-21T02:09:06.4481649Z 45880ce13aff: Waiting
+2026-10-21T02:09:06.4482259Z ee4b2418b2f7: Waiting
+2026-10-21T02:09:06.4482901Z 55ed777ad44b: Waiting
+2026-10-21T02:09:06.4483510Z 214b51a78849: Waiting
+2026-10-21T02:09:06.4488503Z 3ab108385876: Waiting
+2026-10-21T02:09:06.4938503Z ee02ba04abbd: Verifying Checksum
+2026-10-21T02:09:06.4939404Z ee02ba04abbd: Download complete
+2026-10-21T02:09:06.5084456Z 3deef7e0de88: Verifying Checksum
+2026-10-21T02:09:06.5085979Z 3deef7e0de88: Download complete
+2026-10-21T02:09:06.5676725Z 1e40da44e651: Verifying Checksum
+2026-10-21T02:09:06.5677531Z 1e40da44e651: Download complete
+2026-10-21T02:09:06.5783291Z 2bf03da13843: Verifying Checksum
+2026-10-21T02:09:06.5784615Z 2bf03da13843: Download complete
+2026-10-21T02:09:06.6398430Z ccb85ff59ca5: Verifying Checksum
+2026-10-21T02:09:06.6399912Z ccb85ff59ca5: Download complete
+2026-10-21T02:09:06.7162225Z abbb747de905: Verifying Checksum
+2026-10-21T02:09:06.7167113Z abbb747de905: Download complete
+2026-10-21T02:09:06.7249680Z d633f688a3e1: Verifying Checksum
+2026-10-21T02:09:06.7251103Z d633f688a3e1: Download complete
+2026-10-21T02:09:06.7928553Z e7f95a1d37af: Verifying Checksum
+2026-10-21T02:09:06.7929672Z e7f95a1d37af: Download complete
+2026-10-21T02:09:06.8247068Z a937b4dfea5a: Verifying Checksum
+2026-10-21T02:09:06.8249037Z a937b4dfea5a: Download complete
+2026-10-21T02:09:06.8661656Z acf41e7ea660: Verifying Checksum
+2026-10-21T02:09:06.8662423Z acf41e7ea660: Download complete
+2026-10-21T02:09:06.8721459Z 498a244f555d: Pull complete
+2026-10-21T02:09:06.9095009Z 4599ada4ddc4: Download complete
+2026-10-21T02:09:06.9152576Z 32bfe7c0a4b9: Pull complete
+2026-10-21T02:09:06.9431425Z 601f053bc1c6: Verifying Checksum
+2026-10-21T02:09:06.9433527Z 601f053bc1c6: Download complete
+2026-10-21T02:09:06.9845161Z 451bf6d723e8: Verifying Checksum
+2026-10-21T02:09:06.9849756Z 451bf6d723e8: Download complete
+2026-10-21T02:09:07.0409462Z cfecf399afb7: Verifying Checksum
+2026-10-21T02:09:07.0410488Z cfecf399afb7: Download complete
+2026-10-21T02:09:07.0419251Z 0bd13f8e9af4: Verifying Checksum
+2026-10-21T02:09:07.0422547Z 0bd13f8e9af4: Download complete
+2026-10-21T02:09:07.1151155Z 75ff486b78a4: Download complete
+2026-10-21T02:09:07.1173348Z 9c430d2079cb: Verifying Checksum
+2026-10-21T02:09:07.1175944Z 9c430d2079cb: Download complete
+2026-10-21T02:09:07.1865793Z 748920062a2f: Verifying Checksum
+2026-10-21T02:09:07.1867251Z 748920062a2f: Download complete
+2026-10-21T02:09:07.2425237Z 60382f14d112: Download complete
+2026-10-21T02:09:07.3177732Z 36b2dd684648: Verifying Checksum
+2026-10-21T02:09:07.3178389Z 36b2dd684648: Download complete
+2026-10-21T02:09:07.3182420Z f2aa8cac0b87: Verifying Checksum
+2026-10-21T02:09:07.3183000Z f2aa8cac0b87: Download complete
+2026-10-21T02:09:07.3858529Z 415aa48180ae: Download complete
+2026-10-21T02:09:07.4175343Z e7aa91c1252d: Verifying Checksum
+2026-10-21T02:09:07.4176229Z e7aa91c1252d: Download complete
+2026-10-21T02:09:07.4576923Z 83e91386ffc4: Verifying Checksum
+2026-10-21T02:09:07.4577838Z 83e91386ffc4: Download complete
+2026-10-21T02:09:07.5308160Z 5404bc2cc13c: Verifying Checksum
+2026-10-21T02:09:07.5308875Z 5404bc2cc13c: Download complete
+2026-10-21T02:09:07.6212843Z 9860e44d4d32: Verifying Checksum
+2026-10-21T02:09:07.6213408Z 9860e44d4d32: Download complete
+2026-10-21T02:09:07.6279786Z 039e6f9f9752: Verifying Checksum
+2026-10-21T02:09:07.6284557Z 039e6f9f9752: Download complete
+2026-10-21T02:09:07.7268274Z c0ed9f2d0e0e: Verifying Checksum
+2026-10-21T02:09:07.7269594Z c0ed9f2d0e0e: Download complete
+2026-10-21T02:09:07.7416741Z 8f99eb9866f3: Verifying Checksum
+2026-10-21T02:09:07.7417798Z 8f99eb9866f3: Download complete
+2026-10-21T02:09:07.8203935Z 555d35074583: Verifying Checksum
+2026-10-21T02:09:07.8204628Z 555d35074583: Download complete
+2026-10-21T02:09:07.8236040Z ee4b2418b2f7: Verifying Checksum
+2026-10-21T02:09:07.8237163Z ee4b2418b2f7: Download complete
+2026-10-21T02:09:07.8581456Z 45880ce13aff: Verifying Checksum
+2026-10-21T02:09:07.8582723Z 45880ce13aff: Download complete
+2026-10-21T02:09:07.9057830Z 214b51a78849: Verifying Checksum
+2026-10-21T02:09:07.9058457Z 214b51a78849: Download complete
+2026-10-21T02:09:07.9338528Z 3ab108385876: Verifying Checksum
+2026-10-21T02:09:07.9339383Z 3ab108385876: Download complete
+2026-10-21T02:09:07.9990328Z 55ed777ad44b: Verifying Checksum
+2026-10-21T02:09:07.9992317Z 55ed777ad44b: Download complete
+2026-10-21T02:09:09.4102431Z 039e6f9f9752: Pull complete
+2026-10-21T02:09:10.9359290Z 5404bc2cc13c: Pull complete
+2026-10-21T02:09:14.1188608Z 555d35074583: Pull complete
+2026-10-21T02:09:14.3236477Z 8f99eb9866f3: Pull complete
+2026-10-21T02:09:14.3439836Z c0ed9f2d0e0e: Pull complete
+2026-10-21T02:09:14.5849029Z 45880ce13aff: Pull complete
+2026-10-21T02:09:14.5963801Z ee4b2418b2f7: Pull complete
+2026-10-21T02:09:19.5807860Z 55ed777ad44b: Pull complete
+2026-10-21T02:09:19.7460781Z 214b51a78849: Pull complete
+2026-10-21T02:09:19.7642230Z 3ab108385876: Pull complete
+2026-10-21T02:09:19.7669085Z Digest: sha256:e7da2ab376a7ff7b1e0c8dc98176dddab1f3646dded244d74e26c4e50a1d58c2
+2026-10-21T02:09:19.7683731Z Status: Downloaded newer image for public.ecr.aws/supabase/postgres-meta:v0.97.0
+2026-10-21T02:09:19.7691029Z public.ecr.aws/supabase/postgres-meta:v0.97.0
+2026-10-21T02:09:24.6253881Z 9860e44d4d32: Pull complete
+2026-10-21T02:09:24.6448464Z d7c1cc03085c: Pull complete
+2026-10-21T02:09:24.6728284Z ee02ba04abbd: Pull complete
+2026-10-21T02:09:24.6850224Z 3deef7e0de88: Pull complete
+2026-10-21T02:09:24.7237164Z 1e40da44e651: Pull complete
+2026-10-21T02:09:24.7408356Z 2bf03da13843: Pull complete
+2026-10-21T02:09:24.7808133Z ccb85ff59ca5: Pull complete
+2026-10-21T02:09:24.7918526Z d633f688a3e1: Pull complete
+2026-10-21T02:09:24.8010285Z abbb747de905: Pull complete
+2026-10-21T02:09:24.8101487Z e7f95a1d37af: Pull complete
+2026-10-21T02:09:24.8220485Z a937b4dfea5a: Pull complete
+2026-10-21T02:09:24.8303745Z acf41e7ea660: Pull complete
+2026-10-21T02:09:24.8431472Z 4599ada4ddc4: Pull complete
+2026-10-21T02:09:24.8571821Z 601f053bc1c6: Pull complete
+2026-10-21T02:09:24.8667766Z 451bf6d723e8: Pull complete
+2026-10-21T02:09:24.8786389Z cfecf399afb7: Pull complete
+2026-10-21T02:09:24.8883130Z 0bd13f8e9af4: Pull complete
+2026-10-21T02:09:24.8977453Z 75ff486b78a4: Pull complete
+2026-10-21T02:09:24.9068969Z 9c430d2079cb: Pull complete
+2026-10-21T02:09:24.9169674Z 748920062a2f: Pull complete
+2026-10-21T02:09:24.9268792Z 60382f14d112: Pull complete
+2026-10-21T02:09:24.9584640Z 36b2dd684648: Pull complete
+2026-10-21T02:09:24.9678753Z f2aa8cac0b87: Pull complete
+2026-10-21T02:09:24.9780939Z e7aa91c1252d: Pull complete
+2026-10-21T02:09:24.9876616Z 415aa48180ae: Pull complete
+2026-10-21T02:09:24.9969764Z 83e91386ffc4: Pull complete
+2026-10-21T02:09:25.0010983Z Digest: sha256:99b1729aeb0bac314445024fc149fbd39306170b61dd50800ccf180327ab3459
+2026-10-21T02:09:25.0023387Z Status: Downloaded newer image for public.ecr.aws/supabase/postgres:17.6.1.158
+2026-10-21T02:09:25.0032969Z public.ecr.aws/supabase/postgres:17.6.1.158
+2026-10-21T02:09:33.0232541Z 0cd3238360a9: Pull complete
+2026-10-21T02:09:33.3422769Z 290ac3a8d0cf: Pull complete
+2026-10-21T02:09:33.3508508Z fc22dfabf25d: Pull complete
+2026-10-21T02:09:33.3603552Z d55b71be218a: Pull complete
+2026-10-21T02:09:33.3637707Z Digest: sha256:28424184c9f699790cc190f78ddf7d6abfb5c87af78af260529a394d12c135e9
+2026-10-21T02:09:33.3654136Z Status: Downloaded newer image for public.ecr.aws/supabase/storage-api:v1.69.0
+2026-10-21T02:09:33.3662407Z public.ecr.aws/supabase/storage-api:v1.69.0
+2026-10-21T02:09:33.3906444Z Starting database...
+2026-10-21T02:09:44.6433473Z Initialising schema...
+2026-10-21T02:09:50.4230863Z Seeding globals from roles.sql...
+2026-10-21T02:09:50.4496837Z Applying migration 20260815190000_foundation_security.sql...
+2026-10-21T02:09:50.4698583Z Applying migration 20260815205500_server_architecture_foundation.sql...
+2026-10-21T02:09:50.4910515Z Applying migration 20260816001000_player_profile_foundation.sql...
+2026-10-21T02:09:50.5093938Z Applying migration 20260816152000_character_persistence.sql...
+2026-10-21T02:09:50.5418504Z Applying migration 20260816190000_character_progression.sql...
+2026-10-21T02:09:50.5918223Z Applying migration 20260816224000_wayfarers_practice.sql...
+2026-10-21T02:09:50.6833713Z Applying migration 20260817021658_battle_session_persistence.sql...
+2026-10-21T02:09:50.7328695Z Applying migration 20260817021718_battle_snapshot_fail_closed.sql...
+2026-10-21T02:09:50.7464663Z Applying migration 20260817021826_battle_control_projection.sql...
+2026-10-21T02:09:50.7564303Z Applying migration 20260817022022_battle_participant_character_index.sql...
+2026-10-21T02:09:50.7645654Z Applying migration 20260817022927_foundation_rls_helper_hardening.sql...
+2026-10-21T02:09:50.7718633Z Applying migration 20260817024719_phase1_fk_index_hardening.sql...
+2026-10-21T02:09:50.7816121Z Applying migration 20260817141155_p25_battle_event_read.sql...
+2026-10-21T02:09:50.7908392Z Applying migration 20260817161641_wayfarers_practice_planned_windows.sql...
+2026-10-21T02:09:50.8321228Z Applying migration 20260817161658_wayfarers_practice_v1_compatibility.sql...
+2026-10-21T02:09:50.8425743Z Applying migration 20260817170011_wayfarers_practice_plan_fk_indexes.sql...
+2026-10-21T02:09:50.8491226Z Applying migration 20260817184500_player_combat_keybinds.sql...
+2026-10-21T02:09:50.8633753Z Applying migration 20260817203500_pv1_combat_validation_events.sql...
+2026-10-21T02:09:50.8809946Z Applying migration 20260818145212_pv1f_single_active_game_session.sql...
+2026-10-21T02:09:50.8998182Z Applying migration 20260818145256_pv1f_character_slots_and_deletion.sql...
+2026-10-21T02:09:50.9264351Z Applying migration 20260819002814_six_attributes_and_character_swap_cooldown.sql...
+2026-10-21T02:09:50.9503673Z Applying migration 20260819002828_character_personal_titles.sql...
+2026-10-21T02:09:50.9644916Z Applying migration 20260819133007_character_profile_display_and_presence.sql...
+2026-10-21T02:09:50.9835561Z Applying migration 20260819133114_passive_training.sql...
+2026-10-21T02:09:51.0146282Z Applying migration 20260820130000_pvp_lobbies_and_spectation.sql...
+2026-10-21T02:09:51.0644366Z Applying migration 20260820161500_pvp_function_ambiguity_hardening.sql...
+2026-10-21T02:09:51.0850306Z Applying migration 20260820223000_pvp_battle_persistence_and_quality.sql...
+2026-10-21T02:09:51.1131237Z Applying migration 20260820224500_active_battle_replay_guard.sql...
+2026-10-21T02:09:51.1193885Z Applying migration 20260821002500_ai_battle_turn_quality.sql...
+2026-10-21T02:09:51.1364644Z Applying migration 20260821024756_pvp_turn_timer_options.sql...
+2026-10-21T02:09:51.1514626Z Applying migration 20260821170000_pvp_spectator_persistence_and_chat.sql...
+2026-10-21T02:09:51.1851903Z Applying migration 20260821170100_pvp_spectator_active_lock.sql...
+2026-10-21T02:09:51.1957183Z Applying migration 20260821170500_passive_training_partial_stop.sql...
+2026-10-21T02:09:51.2063005Z Applying migration 20260821180500_battle_intent_retry_hardening.sql...
+2026-10-21T02:09:51.2336950Z Applying migration 20260821181900_pvp_spectator_fk_indexes.sql...
+2026-10-21T02:09:51.2431177Z Applying migration 20260821185217_terminal_battle_retry_noop_guard.sql...
+2026-10-21T02:09:51.2513659Z Applying migration 20260822115226_pvp_spectator_last_seen_ambiguity_fix.sql...
+2026-10-21T02:09:51.2599588Z Applying migration 20260822122209_pvp_turn_handoff_contention_fix.sql...
+2026-10-21T02:09:51.2687459Z Applying migration 20260823033500_pvp_spectator_join_ambiguity_fix.sql...
+2026-10-21T02:09:51.2777155Z Applying migration 20260824003500_account_deletion_grace_period.sql...
+2026-10-21T02:09:51.3251294Z Applying migration 20260824015000_player_recent_battle_emojis.sql...
+2026-10-21T02:09:51.3357347Z Applying migration 20260824020500_pvp_lobby_unseat_reseat.sql...
+2026-10-21T02:09:51.3504277Z Applying migration 20260824230017_reduce_game_session_lease_contention.sql...
+2026-10-21T02:09:51.3591150Z Applying migration 20260825004020_read_first_active_game_session_verification.sql...
+2026-10-21T02:09:51.3644074Z Applying migration 20260825051500_pvp_spectator_chat_write.sql...
+2026-10-21T02:09:51.3746676Z Applying migration 20260826003500_battle_log_full_history_pagination.sql...
+2026-10-21T02:09:51.3843387Z Applying migration 20260826123837_phase2_fk_index_hardening.sql...
+2026-10-21T02:09:51.3917564Z Applying migration 20260826164500_pvp_lobby_join_preserve_ready.sql...
+2026-10-21T02:09:51.3981031Z Applying migration 20260829033000_ai_turn_clock_contention_fix.sql...
+2026-10-21T02:09:51.4076994Z Applying migration 20260903031500_p31_discipline_build_authority.sql...
+2026-10-21T02:09:51.4424751Z Applying migration 20260903031600_p31_character_build_provisioning.sql...
+2026-10-21T02:09:51.4486359Z Applying migration 20260903140500_p32_secondary_attunement.sql...
+2026-10-21T02:09:51.5328151Z Applying migration 20260903171500_p34_profile_skill_configuration.sql...
+2026-10-21T02:09:51.5735040Z Applying migration 20260903171600_p34_active_build_schema_compat.sql...
+2026-10-21T02:09:51.5815671Z Applying migration 20260903171700_p34_preserve_active_build_schema.sql...
+2026-10-21T02:09:51.5877270Z Applying migration 20260903190000_p35_resonance_framework.sql...
+2026-10-21T02:09:51.6023435Z Applying migration 20260903200000_p36_essence_framework.sql...
+2026-10-21T02:09:51.6178797Z Applying migration 20260904121500_p37_saved_build_loadouts.sql...
+2026-10-21T02:09:51.6511357Z Applying migration 20260904121600_p37_saved_build_loadout_upsert_fix.sql...
+2026-10-21T02:09:51.6619896Z Applying migration 20260904163000_pv2_owner_test_access.sql...
+2026-10-21T02:09:51.6709296Z Applying migration 20260905040000_phase3_four_technique_contract.sql...
+2026-10-21T02:09:51.6946515Z Applying migration 20260905143545_temporarily_disable_discipline_attunement_cooldowns_for_testing.sql...
+2026-10-21T02:09:51.7024493Z Applying migration 20260905162500_character_presence_directory.sql...
+2026-10-21T02:09:51.7092159Z Applying migration 20260906224000_technique_mixed_loadout_authority_fix.sql...
+2026-10-21T02:09:51.7175820Z Applying migration 20260907002000_active_discipline_skill_provisioning.sql...
+2026-10-21T02:09:51.7270097Z Applying migration 20260907013000_foundation_trio_class_content.sql...
+2026-10-21T02:09:51.7389898Z Applying migration 20260907030000_level_50_progression_curve.sql...
+2026-10-21T02:09:51.7452346Z Applying migration 20260907041000_character_attribute_allocation.sql...
+2026-10-21T02:09:51.7898508Z Applying migration 20260907042000_discipline_focus_summaries.sql...
+2026-10-21T02:09:51.7955390Z Applying migration 20260909143000_active_player_discipline_testing_access.sql...
+2026-10-21T02:09:51.8078989Z Applying migration 20260909222550_jsonb_object_length_compat.sql...
+2026-10-21T02:09:51.8168694Z Applying migration 20260909222626_primary_core_attribute_profiles.sql...
+2026-10-21T02:09:51.8646104Z Applying migration 20260909222627_primary_core_profile_constraint_hardening.sql...
+2026-10-21T02:09:51.8729928Z Applying migration 20260911130317_phase4_ironfist_content.sql...
+2026-10-21T02:09:51.8818102Z Applying migration 20260911174638_phase4_roster_mastery.sql...
+2026-10-21T02:09:51.9362233Z Applying migration 20260912012521_phase4_chronist.sql...
+2026-10-21T02:09:51.9509010Z Applying migration 20260912070000_discipline_atlas_testing_separation.sql...
+2026-10-21T02:09:52.0079716Z Applying migration 20260912133206_phase4_combat_publication_staged.sql...
+2026-10-21T02:09:52.0436174Z Applying migration 20260912165224_spectator_participant_title_read.sql...
+2026-10-21T02:09:52.0496139Z Applying migration 20260916140000_battle_privacy_journal_foundation.sql...
+2026-10-21T02:09:52.0664234Z Applying migration 20260917174436_csr3_battle_history_privacy.sql...
+2026-10-21T02:09:52.0788355Z Applying migration 20260917213000_combat_content_authoring.sql...
+2026-10-21T02:09:52.0993655Z Applying migration 20260917214500_combat_content_resolver.sql...
+2026-10-21T02:09:52.1074918Z Applying migration 20260917220000_master_panel_combat_authoring.sql...
+2026-10-21T02:09:52.1336404Z Applying migration 20260918151327_phase4_discipline_rebalance_activation.sql...
+2026-10-21T02:09:52.1669676Z Applying migration 20260918193000_phase5_staff_authority_foundation.sql...
+2026-10-21T02:09:52.1990277Z Applying migration 20260918200927_phase5_staff_management_and_capabilities.sql...
+2026-10-21T02:09:52.2287040Z Applying migration 20260918233000_phase5_persistent_event_kernel.sql...
+2026-10-21T02:09:52.2731400Z Applying migration 20260919043000_phase5_event_participation_ledger.sql...
+2026-10-21T02:09:52.3163832Z Applying migration 20260919050000_phase4_event_reward_execution.sql...
+2026-10-21T02:09:52.3433884Z Applying migration 20260919050500_phase4_event_reward_budget_hardening.sql...
+2026-10-21T02:09:52.3602397Z Applying migration 20260919051500_phase4_event_terminal_cleanup.sql...
+2026-10-21T02:09:52.3799178Z Applying migration 20260919053000_phase4_event_builder_mvp.sql...
+2026-10-21T02:09:52.4156186Z Applying migration 20260919053500_phase4_event_builder_authority_hardening.sql...
+2026-10-21T02:09:52.4348802Z Applying migration 20260919053700_phase4_event_authoring_audit.sql...
+2026-10-21T02:09:52.4638251Z Applying migration 20260919054500_phase4_live_event_operations.sql...
+2026-10-21T02:09:52.5162505Z Applying migration 20260919055000_phase4_event_recovery_cron.sql...
+2026-10-21T02:09:52.5440292Z Applying migration 20260919055500_phase4_live_event_operations_audit.sql...
+2026-10-21T02:09:52.5686805Z Applying migration 20260919061000_online_users_active_disciplines.sql...
+2026-10-21T02:09:52.5749150Z Applying migration 20260919125734_online_users_active_disciplines.sql...
+2026-10-21T02:09:52.5812645Z Applying migration 20260920233000_level100_stat_combat_rewrite.sql...
+2026-10-21T02:09:52.6060441Z Applying migration 20260921030000_primary_focus_attribute_cap_60.sql...
+2026-10-21T02:09:52.6151966Z Applying migration 20260923002000_navigation_performance_helpers.sql...
+2026-10-21T02:09:52.6233356Z Applying migration 20260923163055_site_music_management.sql...
+2026-10-21T02:09:52.6337043Z Applying migration 20260923190443_living_atlas_world_travel.sql...
+2026-10-21T02:09:52.6677047Z Applying migration 20260923194500_phase5_world_interactions.sql...
+2026-10-21T02:09:52.6772373Z Applying migration 20260923220111_site_music_management_reconcile.sql...
+2026-10-21T02:09:52.6843085Z Applying migration 20260924003000_phase5_supernatural_story_state.sql...
+2026-10-21T02:09:52.7102069Z Applying migration 20260925180000_cartographic_drift_cycle_ledger.sql...
+2026-10-21T02:09:52.7241892Z Applying migration 20260928042812_combat_content_essence_resonance_kinds.sql...
+2026-10-21T02:09:52.7335339Z Applying migration 20261001221022_character_support_action.sql...
+2026-10-21T02:09:52.7731804Z Applying migration 20261001221030_pvp_three_map_sizes.sql...
+2026-10-21T02:09:52.7806247Z Applying migration 20261003040911_combat_effect_timing_policy.sql...
+2026-10-21T02:09:52.7934970Z Applying migration 20261003142740_character_default_portrait_choice.sql...
+2026-10-21T02:09:52.8043506Z Applying migration 20261005194142_online_character_experience_projection.sql...
+2026-10-21T02:09:52.8092714Z Applying migration 20261007101310_battlefield_elevation_policy.sql...
+2026-10-21T02:09:52.8225889Z Applying migration 20261008203822_combat_delayed_timing.sql...
+2026-10-21T02:09:52.8317275Z Applying migration 20261009033830_combat_push_pull_timing.sql...
+2026-10-21T02:09:52.8380108Z Applying migration 20261009193628_combat_suppress_timing.sql...
+2026-10-21T02:09:52.8446243Z Applying migration 20261010210515_captured_ability_startup_events.sql...
+2026-10-21T02:09:52.8607698Z Applying migration 20261011003143_world_all_characters_presence.sql...
+2026-10-21T02:09:52.8694887Z Applying migration 20261011030821_world_environment_controls.sql...
+2026-10-21T02:09:52.8902792Z Applying migration 20261011115701_world_open_ground_idle_timeout.sql...
+2026-10-21T02:09:52.8986401Z Applying migration 20261011161830_world_multistep_pacing.sql...
+2026-10-21T02:09:52.9079533Z Applying migration 20261012135027_world_scene_players.sql...
+2026-10-21T02:09:52.9163730Z Applying migration 20261013131048_world_live_presence.sql...
+2026-10-21T02:09:52.9366987Z Applying migration 20261014024323_world_captured_ability_startup.sql...
+2026-10-21T02:09:52.9437618Z Applying migration 20261015071731_combat_controlled_timing.sql...
+2026-10-21T02:09:52.9522451Z Applying migration 20261015073458_remove_combat_timing_reason.sql...
+2026-10-21T02:09:52.9589797Z Applying migration 20261015095150_typed_combat_authoring_kinds.sql...
+2026-10-21T02:09:52.9685865Z Applying migration 20261015100834_combat_content_catalogue_snapshot.sql...
+2026-10-21T02:09:52.9753777Z Applying migration 20261015103321_combat_catalogue_publication_guard.sql...
+2026-10-21T02:09:52.9878937Z Applying migration 20261015191634_combat_content_version_floor.sql...
+2026-10-21T02:09:52.9981808Z Applying migration 20261017104500_social_chat_foundation.sql...
+2026-10-21T02:09:53.0716155Z Applying migration 20261017190931_social_chat_followups.sql...
+2026-10-21T02:09:53.0932731Z Applying migration 20261017205527_social_chat_reaction_rate_limit.sql...
+2026-10-21T02:09:53.1053229Z Applying migration 20261018033000_chat_friend_name_key_normalization.sql...
+2026-10-21T02:09:53.1135274Z Applying migration 20261018141646_modular_global_tag_timing.sql...
+2026-10-21T02:09:53.1246007Z Applying migration 20261019035553_world_state_fast_compression.sql...
+2026-10-21T02:09:53.1409190Z Seeding data from supabase/seed.sql...
+2026-10-21T02:09:53.1511902Z Starting containers...
+2026-10-21T02:09:54.8591071Z Waiting for health checks...
+2026-10-21T02:10:05.6384489Z Started supabase local development setup.
+2026-10-21T02:10:05.6384953Z 
+2026-10-21T02:10:05.6399285Z ╭──────────────────────────────────╮
+2026-10-21T02:10:05.6399877Z Local dev security notice
+2026-10-21T02:10:05.6400907Z All services bind to 0.0.0.0 (network-accessible, not just localhost)
+2026-10-21T02:10:05.6401932Z API keys and JWT secrets are shared defaults. Do not use in production
+2026-10-21T02:10:05.6402884Z Studio, pgMeta (/pg/*), and analytics have no authentication
+2026-10-21T02:10:05.6403355Z 
+2026-10-21T02:10:05.6403790Z │ 🔧 Development Tools             │
+2026-10-21T02:10:05.6405049Z ├─────────┬────────────────────────┤
+2026-10-21T02:10:05.6405768Z │ Mailpit │ http://127.0.0.1:54324 │
+2026-10-21T02:10:05.6406414Z ╰─────────┴────────────────────────╯
+2026-10-21T02:10:05.6406708Z 
+2026-10-21T02:10:05.6407131Z ╭─────────────────────────────────────────────────╮
+2026-10-21T02:10:05.6407847Z │ 🌐 APIs                                         │
+2026-10-21T02:10:05.6408596Z ├─────────────┬───────────────────────────────────┤
+2026-10-21T02:10:05.6409327Z │ Project URL │ http://127.0.0.1:54321            │
+2026-10-21T02:10:05.6410083Z │ REST        │ http://127.0.0.1:54321/rest/v1    │
+2026-10-21T02:10:05.6411657Z │ GraphQL     │ http://127.0.0.1:54321/graphql/v1 │
+2026-10-21T02:10:05.6412159Z ╰─────────────┴───────────────────────────────────╯
+2026-10-21T02:10:05.6412368Z 
+2026-10-21T02:10:05.6412649Z ╭───────────────────────────────────────────────────────────────╮
+2026-10-21T02:10:05.6413128Z │ ⛁ Database                                                    │
+2026-10-21T02:10:05.6413693Z ├─────┬─────────────────────────────────────────────────────────┤
+2026-10-21T02:10:05.6414547Z │ URL │ ***127.0.0.1:54322/postgres │
+2026-10-21T02:10:05.6415010Z ╰─────┴─────────────────────────────────────────────────────────╯
+2026-10-21T02:10:05.6415242Z 
+2026-10-21T02:10:05.6415514Z ╭──────────────────────────────────────────────────────────────╮
+2026-10-21T02:10:05.6416018Z │ 🔑 Authentication Keys                                       │
+2026-10-21T02:10:05.6416537Z ├─────────────┬────────────────────────────────────────────────┤
+2026-10-21T02:10:05.6417051Z │ Publishable │ sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH │
+2026-10-21T02:10:05.6417893Z │ Secret      │ [REDACTED_LOCAL_CLI_KEY]      │
+2026-10-21T02:10:05.6418426Z ╰─────────────┴────────────────────────────────────────────────╯
+2026-10-21T02:10:05.6418641Z 
+2026-10-21T02:10:05.6418978Z ╭───────────────────────────────────────────────────────────────────────────────╮
+2026-10-21T02:10:05.6419542Z │ 📦 Storage (S3)                                                               │
+2026-10-21T02:10:05.6420108Z ├────────────┬──────────────────────────────────────────────────────────────────┤
+2026-10-21T02:10:05.6421301Z │ URL        │ http://127.0.0.1:54321/storage/v1/s3                             │
+2026-10-21T02:10:05.6422019Z │ Access Key │ 625729a08b95bf1b7ff351a663f3a23c                                 │
+2026-10-21T02:10:05.6422697Z │ Secret Key │ 850181e4652dd023b7a98c58ae0d2d34bd487ee0cc3254aed6eda37307425907 │
+2026-10-21T02:10:05.6423298Z │ Region     │ local                                                            │
+2026-10-21T02:10:05.6423900Z ╰────────────┴──────────────────────────────────────────────────────────────────╯
+2026-10-21T02:10:06.1346012Z ##[group]Run set -euo pipefail
+2026-10-21T02:10:06.1346382Z [36;1mset -euo pipefail[0m
+2026-10-21T02:10:06.1346682Z [36;1mstatus_env="$(pnpm exec supabase status -o env)"[0m
+2026-10-21T02:10:06.1347174Z [36;1meval "$(printf '%s\n' "$status_env" | grep -E '^(ANON_KEY|SERVICE_ROLE_KEY|SECRET_KEY)=')"[0m
+2026-10-21T02:10:06.1347694Z [36;1mexport AUREVANE_ENV=local NEXT_PUBLIC_AUREVANE_ENV=local[0m
+2026-10-21T02:10:06.1348148Z [36;1mexport NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321[0m
+2026-10-21T02:10:06.1348566Z [36;1mexport NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="$ANON_KEY"[0m
+2026-10-21T02:10:06.1349007Z [36;1mexport SUPABASE_SECRET_KEY="${SECRET_KEY:-${SERVICE_ROLE_KEY:-}}"[0m
+2026-10-21T02:10:06.1349412Z [36;1mtest -n "$SUPABASE_SECRET_KEY"[0m
+2026-10-21T02:10:06.1349705Z [36;1mpnpm --filter @aurevane/web build[0m
+2026-10-21T02:10:06.1350164Z [36;1mdb_container="$(docker ps --filter 'name=supabase_db_' --format '{{.Names}}' | head -n 1)"[0m
+2026-10-21T02:10:06.1351118Z [36;1mdocker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "[0m
+2026-10-21T02:10:06.1351553Z [36;1m  set role service_role;[0m
+2026-10-21T02:10:06.1351885Z [36;1m  select public.activate_phase4_combat_interactions_v2();[0m
+2026-10-21T02:10:06.1352313Z [36;1m  select public.activate_phase4_discipline_rebalance_v1();[0m
+2026-10-21T02:10:06.1352644Z [36;1m"[0m
+2026-10-21T02:10:06.1352974Z [36;1mpnpm --filter @aurevane/web exec playwright test e2e/atlas-world.pw.ts \[0m
+2026-10-21T02:10:06.1353517Z [36;1m  --project=desktop-chromium --workers=1 --repeat-each=20 --retries=0 \[0m
+2026-10-21T02:10:06.1354126Z [36;1m  --grep 'known neighbouring players follow the visible viewport|holding WASD walks repeatedly' \[0m
+2026-10-21T02:10:06.1354614Z [36;1m  --reporter=list,github[0m
+2026-10-21T02:10:06.1408082Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-21T02:10:06.1408580Z ##[endgroup]
+2026-10-21T02:10:07.2281823Z Stopped services: [supabase_imgproxy_aurevane supabase_studio_aurevane supabase_edge_runtime_aurevane supabase_analytics_aurevane supabase_vector_aurevane supabase_pooler_aurevane]
+2026-10-21T02:10:08.0692262Z $ node ../../scripts/media/render_phase4_audio_v02.mjs --output public/media/audio/sfx/phase4 && next build
+2026-10-21T02:10:08.7637077Z {"cues":102,"families":17,"runtimeBytes":4480008,"maxRuntimeBytes":59564}
+2026-10-21T02:10:09.1438750Z ▲ Next.js 16.3.8 (Turbopack)
+2026-10-21T02:10:09.1695989Z ✓ Running next.config.ts took 25ms
+2026-10-21T02:10:09.1699155Z ⚠ No build cache found. Please configure build caching for faster rebuilds. Read more: https://nextjs.org/docs/messages/no-cache
+2026-10-21T02:10:09.1763542Z Attention: Next.js now collects completely anonymous telemetry regarding usage.
+2026-10-21T02:10:09.1764770Z This information is used to shape Next.js' roadmap and prioritize features.
+2026-10-21T02:10:09.1766403Z You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+2026-10-21T02:10:09.1767785Z https://nextjs.org/telemetry
+2026-10-21T02:10:09.1768282Z 
+2026-10-21T02:10:09.1925970Z 
+2026-10-21T02:10:09.2478875Z   Creating an optimized production build ...
+2026-10-21T02:10:27.2042192Z ✓ Compiled successfully in 17.2s
+2026-10-21T02:10:27.2126803Z   Running TypeScript ...
+2026-10-21T02:10:52.9888271Z   Finished TypeScript in 25.8s ...
+2026-10-21T02:10:52.9907854Z   Collecting page data using 3 workers ...
+2026-10-21T02:10:55.6345145Z   Generating static pages using 3 workers (0/65) ...
+2026-10-21T02:10:55.6943124Z   Generating static pages using 3 workers (16/65) 
+2026-10-21T02:10:55.7350500Z   Generating static pages using 3 workers (32/65) 
+2026-10-21T02:10:55.8397144Z   Generating static pages using 3 workers (48/65) 
+2026-10-21T02:10:55.9854094Z ✓ Generating static pages using 3 workers (65/65) in 351ms
+2026-10-21T02:10:55.9904152Z   Finalizing page optimization ...
+2026-10-21T02:10:56.0071283Z 
+2026-10-21T02:10:56.0143226Z Route (app)
+2026-10-21T02:10:56.0172053Z ┌ ƒ /
+2026-10-21T02:10:56.0172513Z ├ ○ /_not-found
+2026-10-21T02:10:56.0173026Z ├ ƒ /api/account/controls
+2026-10-21T02:10:56.0173585Z ├ ƒ /api/account/default-portrait
+2026-10-21T02:10:56.0174095Z ├ ƒ /api/account/deletion
+2026-10-21T02:10:56.0174631Z ├ ƒ /api/account/game-session/claim
+2026-10-21T02:10:56.0175255Z ├ ƒ /api/account/password-reset
+2026-10-21T02:10:56.0175807Z ├ ƒ /api/account/profile-display
+2026-10-21T02:10:56.0176316Z ├ ƒ /api/account/recovery
+2026-10-21T02:10:56.0176866Z ├ ƒ /api/account/titles/personal
+2026-10-21T02:10:56.0177472Z ├ ƒ /api/battle/preferences/emojis
+2026-10-21T02:10:56.0177957Z ├ ƒ /api/battles
+2026-10-21T02:10:56.0178467Z ├ ƒ /api/battles/[battleSessionId]
+2026-10-21T02:10:56.0179105Z ├ ƒ /api/battles/[battleSessionId]/abort
+2026-10-21T02:10:56.0179751Z ├ ƒ /api/battles/[battleSessionId]/audio
+2026-10-21T02:10:56.0180386Z ├ ƒ /api/battles/[battleSessionId]/commit
+2026-10-21T02:10:56.0181554Z ├ ƒ /api/battles/[battleSessionId]/events
+2026-10-21T02:10:56.0182266Z ├ ƒ /api/battles/[battleSessionId]/final-turn
+2026-10-21T02:10:56.0183047Z ├ ƒ /api/battles/[battleSessionId]/final-turn/preview
+2026-10-21T02:10:56.0183926Z ├ ƒ /api/battles/[battleSessionId]/guided-training
+2026-10-21T02:10:56.0184548Z ├ ƒ /api/battles/[battleSessionId]/intents
+2026-10-21T02:10:56.0184943Z ├ ƒ /api/battles/[battleSessionId]/mastery
+2026-10-21T02:10:56.0185698Z ├ ƒ /api/battles/[battleSessionId]/preview
+2026-10-21T02:10:56.0186477Z ├ ƒ /api/battles/[battleSessionId]/recruit-turn
+2026-10-21T02:10:56.0187272Z ├ ƒ /api/battles/[battleSessionId]/surrender
+2026-10-21T02:10:56.0188062Z ├ ƒ /api/battles/[battleSessionId]/turn-clock
+2026-10-21T02:10:56.0188679Z ├ ƒ /api/character
+2026-10-21T02:10:56.0189168Z ├ ƒ /api/character/attributes
+2026-10-21T02:10:56.0189789Z ├ ƒ /api/character/build/disciplines
+2026-10-21T02:10:56.0190438Z ├ ƒ /api/character/build/loadouts
+2026-10-21T02:10:56.0191687Z ├ ƒ /api/character/build/primary
+2026-10-21T02:10:56.0192292Z ├ ƒ /api/character/build/pv2-test-kit
+2026-10-21T02:10:56.0192895Z ├ ƒ /api/character/build/skills
+2026-10-21T02:10:56.0193475Z ├ ƒ /api/character/build/support-action
+2026-10-21T02:10:56.0194025Z ├ ƒ /api/character/mastery
+2026-10-21T02:10:56.0194566Z ├ ƒ /api/character/supernatural
+2026-10-21T02:10:56.0195180Z ├ ƒ /api/characters/[characterId]/deletion
+2026-10-21T02:10:56.0195725Z ├ ƒ /api/chat/friends
+2026-10-21T02:10:56.0196159Z ├ ƒ /api/chat/groups
+2026-10-21T02:10:56.0196568Z ├ ƒ /api/chat/inbox
+2026-10-21T02:10:56.0196995Z ├ ƒ /api/chat/mentions
+2026-10-21T02:10:56.0197271Z ├ ƒ /api/chat/messages
+2026-10-21T02:10:56.0197534Z ├ ƒ /api/chat/reactions
+2026-10-21T02:10:56.0197789Z ├ ƒ /api/chat/read
+2026-10-21T02:10:56.0198035Z ├ ƒ /api/chat/settings
+2026-10-21T02:10:56.0198292Z ├ ƒ /api/chat/typing
+2026-10-21T02:10:56.0198580Z ├ ƒ /api/foundation/auth-status
+2026-10-21T02:10:56.0198919Z ├ ƒ /api/foundation/authority-probe
+2026-10-21T02:10:56.0199244Z ├ ƒ /api/master/access
+2026-10-21T02:10:56.0199536Z ├ ƒ /api/master/combat-content
+2026-10-21T02:10:56.0199865Z ├ ƒ /api/master/combat-elevation
+2026-10-21T02:10:56.0200283Z ├ ƒ /api/master/combat-timing
+2026-10-21T02:10:56.0201253Z ├ ƒ /api/master/event-operations
+2026-10-21T02:10:56.0201572Z ├ ƒ /api/master/events
+2026-10-21T02:10:56.0201860Z ├ ƒ /api/master/site-music
+2026-10-21T02:10:56.0202151Z ├ ƒ /api/master/staff-access
+2026-10-21T02:10:56.0202469Z ├ ƒ /api/master/world-environment
+2026-10-21T02:10:56.0202854Z ├ ƒ /api/media/starter-portrait/[portraitRef]
+2026-10-21T02:10:56.0203197Z ├ ƒ /api/presence
+2026-10-21T02:10:56.0203455Z ├ ƒ /api/presence/directory
+2026-10-21T02:10:56.0203802Z ├ ƒ /api/pvp/battles/[battleSessionId]/chat
+2026-10-21T02:10:56.0204204Z ├ ƒ /api/pvp/battles/[battleSessionId]/surrender
+2026-10-21T02:10:56.0204620Z ├ ƒ /api/pvp/battles/[battleSessionId]/turn-clock
+2026-10-21T02:10:56.0204952Z ├ ƒ /api/pvp/lobbies
+2026-10-21T02:10:56.0205242Z ├ ƒ /api/pvp/lobbies/[lobbyId]
+2026-10-21T02:10:56.0205588Z ├ ƒ /api/pvp/lobbies/[lobbyId]/ready
+2026-10-21T02:10:56.0206145Z ├ ƒ /api/pvp/lobbies/[lobbyId]/seat
+2026-10-21T02:10:56.0206514Z ├ ƒ /api/pvp/lobbies/[lobbyId]/settings
+2026-10-21T02:10:56.0206865Z ├ ƒ /api/pvp/lobbies/[lobbyId]/start
+2026-10-21T02:10:56.0207167Z ├ ƒ /api/pvp/lobbies/join
+2026-10-21T02:10:56.0207486Z ├ ƒ /api/pvp/spectate/[battleKey]
+2026-10-21T02:10:56.0207772Z ├ ƒ /api/site-music
+2026-10-21T02:10:56.0208067Z ├ ƒ /api/wayfarers-practice/claim
+2026-10-21T02:10:56.0208415Z ├ ƒ /api/wayfarers-practice/plan
+2026-10-21T02:10:56.0208748Z ├ ƒ /api/wayfarers-practice/stop
+2026-10-21T02:10:56.0209016Z ├ ƒ /api/world
+2026-10-21T02:10:56.0209264Z ├ ƒ /api/world/presence
+2026-10-21T02:10:56.0209515Z ├ ƒ /auth/callback
+2026-10-21T02:10:56.0209736Z ├ ƒ /auth/claim
+2026-10-21T02:10:56.0209964Z ├ ƒ /auth/recovery
+2026-10-21T02:10:56.0210211Z ├ ƒ /auth/reset-password
+2026-10-21T02:10:56.0210475Z ├ ƒ /auth/signout
+2026-10-21T02:10:56.0217935Z ├ ƒ /game
+2026-10-21T02:10:56.0218227Z ├ ƒ /game/account/titles
+2026-10-21T02:10:56.0218500Z ├ ƒ /game/arsenal
+2026-10-21T02:10:56.0218738Z ├ ƒ /game/battle
+2026-10-21T02:10:56.0219026Z ├ ƒ /game/battle/[battleSessionId]
+2026-10-21T02:10:56.0219378Z ├ ƒ /game/battle/spectate/[battleKey]
+2026-10-21T02:10:56.0219675Z ├ ƒ /game/character
+2026-10-21T02:10:56.0219931Z ├ ƒ /game/create/[slot]
+2026-10-21T02:10:56.0220186Z ├ ƒ /game/haven
+2026-10-21T02:10:56.0220416Z ├ ƒ /game/loadout
+2026-10-21T02:10:56.0220938Z ├ ƒ /game/loadout/items
+2026-10-21T02:10:56.0221190Z ├ ƒ /game/nexus
+2026-10-21T02:10:56.0221408Z ├ ƒ /game/online
+2026-10-21T02:10:56.0221679Z ├ ƒ /game/select/[characterId]
+2026-10-21T02:10:56.0221972Z ├ ƒ /game/settings/audio
+2026-10-21T02:10:56.0222247Z ├ ƒ /game/settings/controls
+2026-10-21T02:10:56.0222506Z ├ ƒ /game/training
+2026-10-21T02:10:56.0222726Z ├ ƒ /game/world
+2026-10-21T02:10:56.0222933Z ├ ƒ /manual
+2026-10-21T02:10:56.0223148Z ├ ƒ /manual/[slug]
+2026-10-21T02:10:56.0223360Z ├ ƒ /master
+2026-10-21T02:10:56.0223600Z ├ ƒ /master/combat-content
+2026-10-21T02:10:56.0224081Z ├ ƒ /master/combat-timing
+2026-10-21T02:10:56.0224349Z ├ ƒ /master/events
+2026-10-21T02:10:56.0224592Z ├ ƒ /master/events/live
+2026-10-21T02:10:56.0224839Z ├ ƒ /master/music
+2026-10-21T02:10:56.0225065Z ├ ƒ /master/staff
+2026-10-21T02:10:56.0225321Z ├ ƒ /master/world-environment
+2026-10-21T02:10:56.0225579Z ├ ƒ /news
+2026-10-21T02:10:56.0225783Z ├ ƒ /news/[slug]
+2026-10-21T02:10:56.0225994Z └ ƒ /rules
+2026-10-21T02:10:56.0226106Z 
+2026-10-21T02:10:56.0226113Z 
+2026-10-21T02:10:56.0226242Z ƒ Proxy (Middleware)
+2026-10-21T02:10:56.0226380Z 
+2026-10-21T02:10:56.0226575Z ○  (Static)   prerendered as static content
+2026-10-21T02:10:56.0226963Z ƒ  (Dynamic)  server-rendered on demand
+2026-10-21T02:10:56.0227150Z 
+2026-10-21T02:10:56.6824619Z SET
+2026-10-21T02:10:56.6825631Z                                                             activate_phase4_combat_interactions_v2                                                             
+2026-10-21T02:10:56.6827253Z ---------------------------------------------------------------------------------------------------------------------------------------------------------------
+2026-10-21T02:10:56.6829322Z  {"replayed": false, "releaseId": "phase4-combat-interactions-v2", "activatedAt": "2026-10-21T02:10:56.671592+00:00", "updatedBuilds": 0, "updatedUnlocks": 0}
+2026-10-21T02:10:56.6830810Z (1 row)
+2026-10-21T02:10:56.6831020Z 
+2026-10-21T02:10:56.6832040Z                                                                                       activate_phase4_discipline_rebalance_v1                                                                                       
+2026-10-21T02:10:56.6834137Z --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+2026-10-21T02:10:56.6836424Z  {"replayed": false, "releaseId": "phase4-discipline-rebalance-v1", "activatedAt": "2026-10-21T02:10:56.676867+00:00", "updatedBuilds": 0, "updatedUnlocks": 0, "enabledEssences": 17, "updatedCatalogSkills": 136}
+2026-10-21T02:10:56.6837731Z (1 row)
+2026-10-21T02:10:56.6837850Z 
+2026-10-21T02:11:00.6807128Z 
+2026-10-21T02:11:00.6807797Z Running 40 tests using 1 worker
+2026-10-21T02:11:00.6808168Z 
+2026-10-21T02:11:11.5463513Z held-world-key-window {
+2026-10-21T02:11:11.5464240Z   heldMs: 825.3000000000466,
+2026-10-21T02:11:11.5465569Z   settledWalks: 5,
+2026-10-21T02:11:11.5465914Z   walkConflicts: 0,
+2026-10-21T02:11:11.5466257Z   maximumWalks: 6,
+2026-10-21T02:11:11.5466555Z   terminalRetargets: 1
+2026-10-21T02:11:11.5466887Z }
+2026-10-21T02:11:12.7093177Z   ✓   1 [desktop-chromium] › e2e/world-presentation-case.ts:1102:7 › holding WASD walks repeatedly at bounded cadence and releasing the key ends the stream (10.0s)
+2026-10-21T02:11:23.3044537Z Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+2026-10-21T02:11:50.2953247Z   ✓   2 [desktop-chromium] › e2e/atlas-world.pw.ts:1597:5 › known neighbouring players follow the visible viewport with service-only presence authority (37.6s)
+2026-10-21T02:11:57.2529892Z held-world-key-window {
+2026-10-21T02:11:57.2530810Z   heldMs: 800.2000000000116,
+2026-10-21T02:11:57.2531458Z   settledWalks: 5,
+2026-10-21T02:11:57.2531841Z   walkConflicts: 0,
+2026-10-21T02:11:57.2532208Z   maximumWalks: 6,
+2026-10-21T02:11:57.2532585Z   terminalRetargets: 1
+2026-10-21T02:11:57.2532953Z }
+2026-10-21T02:11:58.4459637Z   ✓   3 [desktop-chromium] › e2e/world-presentation-case.ts:1102:7 › holding WASD walks repeatedly at bounded cadence and releasing the key ends the stream (7.3s)
+2026-10-21T02:12:08.0536853Z Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+2026-10-21T02:12:34.4735834Z   ✓   4 [desktop-chromium] › e2e/atlas-world.pw.ts:1597:5 › known neighbouring players follow the visible viewport with service-only presence authority (36.0s)
+2026-10-21T02:12:41.4986703Z held-world-key-window {
+2026-10-21T02:12:41.4987461Z   heldMs: 805.8000000000466,
+2026-10-21T02:12:41.4988339Z   settledWalks: 5,
+2026-10-21T02:12:41.4988860Z   walkConflicts: 0,
+2026-10-21T02:12:41.4989424Z   maximumWalks: 6,
+2026-10-21T02:12:41.4989946Z   terminalRetargets: 1
+2026-10-21T02:12:41.4990458Z }
+2026-10-21T02:12:42.7630978Z   ✓   5 [desktop-chromium] › e2e/world-presentation-case.ts:1102:7 › holding WASD walks repeatedly at bounded cadence and releasing the key ends the stream (7.5s)
+2026-10-21T02:12:51.7339046Z Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+2026-10-21T02:13:18.1334981Z   ✓   6 [desktop-chromium] › e2e/atlas-world.pw.ts:1597:5 › known neighbouring players follow the visible viewport with service-only presence authority (35.3s)
+2026-10-21T02:13:25.0964551Z held-world-key-window {
+2026-10-21T02:13:25.0969498Z   heldMs: 828.6000000000349,
+2026-10-21T02:13:25.0970320Z   settledWalks: 5,
+2026-10-21T02:13:25.0971263Z   walkConflicts: 0,
+2026-10-21T02:13:25.0971841Z   maximumWalks: 6,
+2026-10-21T02:13:25.0972417Z   terminalRetargets: 0
+2026-10-21T02:13:25.0973087Z }
+2026-10-21T02:13:26.3128102Z   ✓   7 [desktop-chromium] › e2e/world-presentation-case.ts:1102:7 › holding WASD walks repeatedly at bounded cadence and releasing the key ends the stream (7.4s)
+2026-10-21T02:13:35.6049497Z Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+2026-10-21T02:14:02.6365083Z   ✓   8 [desktop-chromium] › e2e/atlas-world.pw.ts:1597:5 › known neighbouring players follow the visible viewport with service-only presence authority (36.3s)
+2026-10-21T02:14:09.6481813Z held-world-key-window {
+2026-10-21T02:14:09.6512915Z   heldMs: 808.2999999999884,
+2026-10-21T02:14:09.6513763Z   settledWalks: 5,
+2026-10-21T02:14:09.6514432Z   walkConflicts: 0,
+2026-10-21T02:14:09.6515089Z   maximumWalks: 6,
+2026-10-21T02:14:09.6515680Z   terminalRetargets: 1
+2026-10-21T02:14:09.6516287Z }
+2026-10-21T02:14:10.8257639Z   ✓   9 [desktop-chromium] › e2e/world-presentation-case.ts:1102:7 › holding WASD walks repeatedly at bounded cadence and releasing the key ends the stream (7.4s)
+2026-10-21T02:14:20.1475098Z Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+2026-10-21T02:14:47.1430032Z   ✓  10 [desktop-chromium] › e2e/atlas-world.pw.ts:1597:5 › known neighbouring players follow the visible viewport with service-only presence authority (36.3s)
+2026-10-21T02:14:53.9581150Z held-world-key-window {
+2026-10-21T02:14:53.9596224Z   heldMs: 787.8000000000466,
+2026-10-21T02:14:53.9681553Z   settledWalks: 5,
+2026-10-21T02:14:53.9741308Z   walkConflicts: 0,
+2026-10-21T02:14:53.9752830Z   maximumWalks: 5,
+2026-10-21T02:14:53.9771269Z   terminalRetargets: 0
+2026-10-21T02:14:53.9800990Z }
+2026-10-21T02:14:55.2016553Z   ✓  11 [desktop-chromium] › e2e/world-presentation-case.ts:1102:7 › holding WASD walks repeatedly at bounded cadence and releasing the key ends the stream (7.2s)
+2026-10-21T02:15:04.7344518Z Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+2026-10-21T02:15:31.8056607Z   ✓  12 [desktop-chromium] › e2e/atlas-world.pw.ts:1597:5 › known neighbouring players follow the visible viewport with service-only presence authority (36.6s)
+2026-10-21T02:15:38.8674109Z held-world-key-window {
+2026-10-21T02:15:38.8674936Z   heldMs: 823.8000000000466,
+2026-10-21T02:15:38.8682152Z   settledWalks: 5,
+2026-10-21T02:15:38.8683189Z   walkConflicts: 0,
+2026-10-21T02:15:38.8683761Z   maximumWalks: 6,
+2026-10-21T02:15:38.8684378Z   terminalRetargets: 1
+2026-10-21T02:15:38.8684921Z }
+2026-10-21T02:15:39.9904656Z   ✓  13 [desktop-chromium] › e2e/world-presentation-case.ts:1102:7 › holding WASD walks repeatedly at bounded cadence and releasing the key ends the stream (7.4s)
+2026-10-21T02:15:49.1619819Z Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+2026-10-21T02:16:11.1378298Z   ✘  14 [desktop-chromium] › e2e/atlas-world.pw.ts:1597:5 › known neighbouring players follow the visible viewport with service-only presence authority (27.5s)
+2026-10-21T02:16:11.1379417Z 
+2026-10-21T02:16:11.1425471Z ##[error]  1) [desktop-chromium] › e2e/atlas-world.pw.ts:1597:5 › known neighbouring players follow the visible viewport with service-only presence authority 
+    Error: peer 1, step 12: 231.9ms sample gap; 6 observed long tasks
+
+    expect(received).toBeLessThan(expected)
+
+    Expected: < 0.95
+    Received:   1.4956299317979074
+
+       at world-presence-case.ts:625
+
+      623 |             step.deltaX,
+      624 |             `peer ${index}, step ${stepIndex}: ${step.elapsedMs.toFixed(1)}ms sample gap; ${longTasks.length} observed long tasks`,
+    > 625 |           ).toBeLessThan(step.maximumDeltaX)
+          |             ^
+      626 |         }
+      627 |       }
+      628 |     })
+        at /home/runner/work/Aurevane/Aurevane/apps/web/e2e/world-presence-case.ts:625:13
+        at observeWorldMovement (/home/runner/work/Aurevane/Aurevane/apps/web/e2e/world-timing-metrics.ts:29:3)
+        at verifyWorldScenePresence (/home/runner/work/Aurevane/Aurevane/apps/web/e2e/world-presence-case.ts:567:5)
+        at /home/runner/work/Aurevane/Aurevane/apps/web/e2e/atlas-world.pw.ts:1601:3
+2026-10-21T02:16:17.9707238Z held-world-key-window {
+2026-10-21T02:16:17.9707905Z   heldMs: 818.1999999999534,
+2026-10-21T02:16:17.9708430Z   settledWalks: 5,
+2026-10-21T02:16:17.9708859Z   walkConflicts: 0,
+2026-10-21T02:16:17.9709397Z   maximumWalks: 6,
+2026-10-21T02:16:17.9710002Z   terminalRetargets: 1
+2026-10-21T02:16:17.9710400Z }
+2026-10-21T02:16:19.1480421Z   ✓  15 [desktop-chromium] › e2e/world-presentation-case.ts:1102:7 › holding WASD walks repeatedly at bounded cadence and releasing the key ends the stream (7.2s)
+2026-10-21T02:16:28.1822719Z Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+2026-10-21T02:16:54.6188129Z   ✓  16 [desktop-chromium] › e2e/atlas-world.pw.ts:1597:5 › known neighbouring players follow the visible viewport with service-only presence authority (35.5s)
+2026-10-21T02:17:01.5281867Z held-world-key-window {
+2026-10-21T02:17:01.5301477Z   heldMs: 775.5,
+2026-10-21T02:17:01.5307996Z   settledWalks: 5,
+2026-10-21T02:17:01.5308680Z   walkConflicts: 0,
+2026-10-21T02:17:01.5309234Z   maximumWalks: 5,
+2026-10-21T02:17:01.5309770Z   terminalRetargets: 1
+2026-10-21T02:17:01.5310330Z }
+2026-10-21T02:17:02.7092608Z   ✓  17 [desktop-chromium] › e2e/world-presentation-case.ts:1102:7 › holding WASD walks repeatedly at bounded cadence and releasing the key ends the stream (7.3s)
+2026-10-21T02:17:11.9681962Z Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+2026-10-21T02:17:38.4169533Z   ✓  18 [desktop-chromium] › e2e/atlas-world.pw.ts:1597:5 › known neighbouring players follow the visible viewport with service-only presence authority (35.7s)
+2026-10-21T02:17:45.1461719Z held-world-key-window {
+2026-10-21T02:17:45.1463636Z   heldMs: 751.3000000000466,
+2026-10-21T02:17:45.1491809Z   settledWalks: 5,
+2026-10-21T02:17:45.1506165Z   walkConflicts: 0,
+2026-10-21T02:17:45.1507017Z   maximumWalks: 5,
+2026-10-21T02:17:45.1507431Z   terminalRetargets: 1
+2026-10-21T02:17:45.1507807Z }
+2026-10-21T02:17:46.3536951Z   ✓  19 [desktop-chromium] › e2e/world-presentation-case.ts:1102:7 › holding WASD walks repeatedly at bounded cadence and releasing the key ends the stream (7.1s)
+2026-10-21T02:17:55.6274447Z Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+2026-10-21T02:18:18.2584275Z   ✘  20 [desktop-chromium] › e2e/atlas-world.pw.ts:1597:5 › known neighbouring players follow the visible viewport with service-only presence authority (28.1s)
+2026-10-21T02:18:18.2585133Z 
+2026-10-21T02:18:18.2601522Z ##[error]  2) [desktop-chromium] › e2e/atlas-world.pw.ts:1597:5 › known neighbouring players follow the visible viewport with service-only presence authority 
+    Error: peer 0, step 4: 82.1ms sample gap; 5 observed long tasks
+
+    expect(received).toBeLessThan(expected)
+
+    Expected: < 0.95
+    Received:   0.9614794317416226
+
+       at world-presence-case.ts:625
+
+      623 |             step.deltaX,
+      624 |             `peer ${index}, step ${stepIndex}: ${step.elapsedMs.toFixed(1)}ms sample gap; ${longTasks.length} observed long tasks`,
+    > 625 |           ).toBeLessThan(step.maximumDeltaX)
+          |             ^
+      626 |         }
+      627 |       }
+      628 |     })
+        at /home/runner/work/Aurevane/Aurevane/apps/web/e2e/world-presence-case.ts:625:13
+        at observeWorldMovement (/home/runner/work/Aurevane/Aurevane/apps/web/e2e/world-timing-metrics.ts:29:3)
+        at verifyWorldScenePresence (/home/runner/work/Aurevane/Aurevane/apps/web/e2e/world-presence-case.ts:567:5)
+        at /home/runner/work/Aurevane/Aurevane/apps/web/e2e/atlas-world.pw.ts:1601:3
+2026-10-21T02:18:25.4018233Z held-world-key-window {
+2026-10-21T02:18:25.4019010Z   heldMs: 811.7999999999302,
+2026-10-21T02:18:25.4019481Z   settledWalks: 5,
+2026-10-21T02:18:25.4023124Z   walkConflicts: 0,
+2026-10-21T02:18:25.4023813Z   maximumWalks: 6,
+2026-10-21T02:18:25.4024346Z   terminalRetargets: 0
+2026-10-21T02:18:25.4024861Z }
+2026-10-21T02:18:26.5830113Z   ✓  21 [desktop-chromium] › e2e/world-presentation-case.ts:1102:7 › holding WASD walks repeatedly at bounded cadence and releasing the key ends the stream (7.5s)
+2026-10-21T02:18:35.6905258Z Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+2026-10-21T02:19:02.8358640Z   ✓  22 [desktop-chromium] › e2e/atlas-world.pw.ts:1597:5 › known neighbouring players follow the visible viewport with service-only presence authority (36.2s)
+2026-10-21T02:19:09.8881881Z held-world-key-window {
+2026-10-21T02:19:09.8896796Z   heldMs: 808.6999999999534,
+2026-10-21T02:19:09.8913221Z   settledWalks: 5,
+2026-10-21T02:19:09.8914656Z   walkConflicts: 0,
+2026-10-21T02:19:09.8915297Z   maximumWalks: 6,
+2026-10-21T02:19:09.8915855Z   terminalRetargets: 0
+2026-10-21T02:19:09.8916400Z }
+2026-10-21T02:19:11.0646495Z   ✓  23 [desktop-chromium] › e2e/world-presentation-case.ts:1102:7 › holding WASD walks repeatedly at bounded cadence and releasing the key ends the stream (7.4s)
+2026-10-21T02:19:20.2805090Z Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+2026-10-21T02:19:46.5701906Z   ✓  24 [desktop-chromium] › e2e/atlas-world.pw.ts:1597:5 › known neighbouring players follow the visible viewport with service-only presence authority (35.5s)
+2026-10-21T02:19:53.7375370Z held-world-key-window {
+2026-10-21T02:19:53.7402802Z   heldMs: 846.1000000000931,
+2026-10-21T02:19:53.7403328Z   settledWalks: 5,
+2026-10-21T02:19:53.7403693Z   walkConflicts: 0,
+2026-10-21T02:19:53.7404065Z   maximumWalks: 6,
+2026-10-21T02:19:53.7404428Z   terminalRetargets: 1
+2026-10-21T02:19:53.7404790Z }
+2026-10-21T02:19:54.9187120Z   ✓  25 [desktop-chromium] › e2e/world-presentation-case.ts:1102:7 › holding WASD walks repeatedly at bounded cadence and releasing the key ends the stream (7.5s)
+2026-10-21T02:20:04.1416455Z Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+2026-10-21T02:20:25.5760842Z   ✘  26 [desktop-chromium] › e2e/atlas-world.pw.ts:1597:5 › known neighbouring players follow the visible viewport with service-only presence authority (27.1s)
+2026-10-21T02:20:25.5761723Z 
+2026-10-21T02:20:25.5776868Z ##[error]  3) [desktop-chromium] › e2e/atlas-world.pw.ts:1597:5 › known neighbouring players follow the visible viewport with service-only presence authority 
+    Error: peer 0, step 4: 83.5ms sample gap; 4 observed long tasks
+
+    expect(received).toBeLessThan(expected)
+
+    Expected: < 0.95
+    Received:   1.1754750336591542
+
+       at world-presence-case.ts:625
+
+      623 |             step.deltaX,
+      624 |             `peer ${index}, step ${stepIndex}: ${step.elapsedMs.toFixed(1)}ms sample gap; ${longTasks.length} observed long tasks`,
+    > 625 |           ).toBeLessThan(step.maximumDeltaX)
+          |             ^
+      626 |         }
+      627 |       }
+      628 |     })
+        at /home/runner/work/Aurevane/Aurevane/apps/web/e2e/world-presence-case.ts:625:13
+        at observeWorldMovement (/home/runner/work/Aurevane/Aurevane/apps/web/e2e/world-timing-metrics.ts:29:3)
+        at verifyWorldScenePresence (/home/runner/work/Aurevane/Aurevane/apps/web/e2e/world-presence-case.ts:567:5)
+        at /home/runner/work/Aurevane/Aurevane/apps/web/e2e/atlas-world.pw.ts:1601:3
+2026-10-21T02:20:32.1729321Z held-world-key-window {
+2026-10-21T02:20:32.1729861Z   heldMs: 796.5,
+2026-10-21T02:20:32.1730266Z   settledWalks: 5,
+2026-10-21T02:20:32.1730938Z   walkConflicts: 0,
+2026-10-21T02:20:32.1731358Z   maximumWalks: 5,
+2026-10-21T02:20:32.1731764Z   terminalRetargets: 1
+2026-10-21T02:20:32.1732171Z }
+2026-10-21T02:20:33.4117394Z   ✓  27 [desktop-chromium] › e2e/world-presentation-case.ts:1102:7 › holding WASD walks repeatedly at bounded cadence and releasing the key ends the stream (7.1s)
+2026-10-21T02:20:42.9253201Z Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+2026-10-21T02:21:09.5594708Z   ✓  28 [desktop-chromium] › e2e/atlas-world.pw.ts:1597:5 › known neighbouring players follow the visible viewport with service-only presence authority (36.1s)
+2026-10-21T02:21:16.3174328Z held-world-key-window {
+2026-10-21T02:21:16.3201369Z   heldMs: 802.3000000000466,
+2026-10-21T02:21:16.3221361Z   settledWalks: 5,
+2026-10-21T02:21:16.3243300Z   walkConflicts: 0,
+2026-10-21T02:21:16.3247635Z   maximumWalks: 6,
+2026-10-21T02:21:16.3248236Z   terminalRetargets: 1
+2026-10-21T02:21:16.3248841Z }
+2026-10-21T02:21:17.5048942Z   ✓  29 [desktop-chromium] › e2e/world-presentation-case.ts:1102:7 › holding WASD walks repeatedly at bounded cadence and releasing the key ends the stream (7.1s)
+2026-10-21T02:21:26.8124519Z Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+2026-10-21T02:21:53.7499779Z   ✓  30 [desktop-chromium] › e2e/atlas-world.pw.ts:1597:5 › known neighbouring players follow the visible viewport with service-only presence authority (36.2s)
+2026-10-21T02:22:01.1328393Z held-world-key-window {
+2026-10-21T02:22:01.1328732Z   heldMs: 833.1999999999534,
+2026-10-21T02:22:01.1329002Z   settledWalks: 5,
+2026-10-21T02:22:01.1329229Z   walkConflicts: 0,
+2026-10-21T02:22:01.1329477Z   maximumWalks: 6,
+2026-10-21T02:22:01.1329721Z   terminalRetargets: 0
+2026-10-21T02:22:01.1330266Z }
+2026-10-21T02:22:02.3414292Z   ✓  31 [desktop-chromium] › e2e/world-presentation-case.ts:1102:7 › holding WASD walks repeatedly at bounded cadence and releasing the key ends the stream (7.8s)
+2026-10-21T02:22:11.6850425Z Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+2026-10-21T02:22:39.0573862Z   ✓  32 [desktop-chromium] › e2e/atlas-world.pw.ts:1597:5 › known neighbouring players follow the visible viewport with service-only presence authority (36.7s)
+2026-10-21T02:22:46.1048009Z held-world-key-window {
+2026-10-21T02:22:46.1048929Z   heldMs: 818.8000000000466,
+2026-10-21T02:22:46.1049689Z   settledWalks: 5,
+2026-10-21T02:22:46.1050159Z   walkConflicts: 0,
+2026-10-21T02:22:46.1050759Z   maximumWalks: 6,
+2026-10-21T02:22:46.1051186Z   terminalRetargets: 0
+2026-10-21T02:22:46.1051572Z }
+2026-10-21T02:22:47.3608524Z   ✓  33 [desktop-chromium] › e2e/world-presentation-case.ts:1102:7 › holding WASD walks repeatedly at bounded cadence and releasing the key ends the stream (7.5s)
+2026-10-21T02:22:56.7626162Z Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+2026-10-21T02:23:24.2719308Z   ✓  34 [desktop-chromium] › e2e/atlas-world.pw.ts:1597:5 › known neighbouring players follow the visible viewport with service-only presence authority (36.9s)
+2026-10-21T02:23:31.3370734Z held-world-key-window {
+2026-10-21T02:23:31.3372007Z   heldMs: 759.1999999999534,
+2026-10-21T02:23:31.3372674Z   settledWalks: 5,
+2026-10-21T02:23:31.3373070Z   walkConflicts: 0,
+2026-10-21T02:23:31.3373429Z   maximumWalks: 5,
+2026-10-21T02:23:31.3373726Z   terminalRetargets: 1
+2026-10-21T02:23:31.3373968Z }
+2026-10-21T02:23:32.6094327Z   ✓  35 [desktop-chromium] › e2e/world-presentation-case.ts:1102:7 › holding WASD walks repeatedly at bounded cadence and releasing the key ends the stream (7.5s)
+2026-10-21T02:23:41.9747495Z Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+2026-10-21T02:24:08.6213857Z   ✓  36 [desktop-chromium] › e2e/atlas-world.pw.ts:1597:5 › known neighbouring players follow the visible viewport with service-only presence authority (36.0s)
+2026-10-21T02:24:15.7136820Z held-world-key-window {
+2026-10-21T02:24:15.7171448Z   heldMs: 782.1000000000931,
+2026-10-21T02:24:15.7172109Z   settledWalks: 5,
+2026-10-21T02:24:15.7172625Z   walkConflicts: 0,
+2026-10-21T02:24:15.7173168Z   maximumWalks: 5,
+2026-10-21T02:24:15.7173744Z   terminalRetargets: 1
+2026-10-21T02:24:15.7174280Z }
+2026-10-21T02:24:16.8844828Z   ✓  37 [desktop-chromium] › e2e/world-presentation-case.ts:1102:7 › holding WASD walks repeatedly at bounded cadence and releasing the key ends the stream (7.5s)
+2026-10-21T02:24:25.8118175Z Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+2026-10-21T02:24:48.6963538Z   ✘  38 [desktop-chromium] › e2e/atlas-world.pw.ts:1597:5 › known neighbouring players follow the visible viewport with service-only presence authority (28.0s)
+2026-10-21T02:24:48.6965157Z 
+2026-10-21T02:24:48.6982600Z ##[error]  4) [desktop-chromium] › e2e/atlas-world.pw.ts:1597:5 › known neighbouring players follow the visible viewport with service-only presence authority 
+    Error: peer 1, step 6: 160.4ms sample gap; 2 observed long tasks
+
+    expect(received).toBeLessThan(expected)
+
+    Expected: < 0.95
+    Received:   1.082817280691529
+
+       at world-presence-case.ts:625
+
+      623 |             step.deltaX,
+      624 |             `peer ${index}, step ${stepIndex}: ${step.elapsedMs.toFixed(1)}ms sample gap; ${longTasks.length} observed long tasks`,
+    > 625 |           ).toBeLessThan(step.maximumDeltaX)
+          |             ^
+      626 |         }
+      627 |       }
+      628 |     })
+        at /home/runner/work/Aurevane/Aurevane/apps/web/e2e/world-presence-case.ts:625:13
+        at observeWorldMovement (/home/runner/work/Aurevane/Aurevane/apps/web/e2e/world-timing-metrics.ts:29:3)
+        at verifyWorldScenePresence (/home/runner/work/Aurevane/Aurevane/apps/web/e2e/world-presence-case.ts:567:5)
+        at /home/runner/work/Aurevane/Aurevane/apps/web/e2e/atlas-world.pw.ts:1601:3
+2026-10-21T02:24:55.8693948Z held-world-key-window {
+2026-10-21T02:24:55.8694899Z   heldMs: 805.9000000001397,
+2026-10-21T02:24:55.8695959Z   settledWalks: 5,
+2026-10-21T02:24:55.8696679Z   walkConflicts: 0,
+2026-10-21T02:24:55.8697312Z   maximumWalks: 6,
+2026-10-21T02:24:55.8697945Z   terminalRetargets: 0
+2026-10-21T02:24:55.8698553Z }
+2026-10-21T02:24:57.0299724Z   ✓  39 [desktop-chromium] › e2e/world-presentation-case.ts:1102:7 › holding WASD walks repeatedly at bounded cadence and releasing the key ends the stream (7.5s)
+2026-10-21T02:25:06.5496627Z Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.
+2026-10-21T02:25:33.5456770Z   ✓  40 [desktop-chromium] › e2e/atlas-world.pw.ts:1597:5 › known neighbouring players follow the visible viewport with service-only presence authority (36.5s)
+2026-10-21T02:25:33.7579510Z 
+2026-10-21T02:25:33.7584537Z 
+2026-10-21T02:25:33.7595070Z   1) [desktop-chromium] › e2e/atlas-world.pw.ts:1597:5 › known neighbouring players follow the visible viewport with service-only presence authority 
+2026-10-21T02:25:33.7596148Z 
+2026-10-21T02:25:33.7596680Z     Error: peer 1, step 12: 231.9ms sample gap; 6 observed long tasks
+2026-10-21T02:25:33.7597055Z 
+2026-10-21T02:25:33.7597559Z     expect(received).toBeLessThan(expected)
+2026-10-21T02:25:33.7597909Z 
+2026-10-21T02:25:33.7598077Z     Expected: < 0.95
+2026-10-21T02:25:33.7598351Z     Received:   1.4956299317979074
+2026-10-21T02:25:33.7598531Z 
+2026-10-21T02:25:33.7598667Z        at world-presence-case.ts:625
+2026-10-21T02:25:33.7599071Z 
+2026-10-21T02:25:33.7599289Z       623 |             step.deltaX,
+2026-10-21T02:25:33.7600489Z       624 |             `peer ${index}, step ${stepIndex}: ${step.elapsedMs.toFixed(1)}ms sample gap; ${longTasks.length} observed long tasks`,
+2026-10-21T02:25:33.7601897Z     > 625 |           ).toBeLessThan(step.maximumDeltaX)
+2026-10-21T02:25:33.7602461Z           |             ^
+2026-10-21T02:25:33.7602872Z       626 |         }
+2026-10-21T02:25:33.7603245Z       627 |       }
+2026-10-21T02:25:33.7603607Z       628 |     })
+2026-10-21T02:25:33.7604371Z         at /home/runner/work/Aurevane/Aurevane/apps/web/e2e/world-presence-case.ts:625:13
+2026-10-21T02:25:33.7605722Z         at observeWorldMovement (/home/runner/work/Aurevane/Aurevane/apps/web/e2e/world-timing-metrics.ts:29:3)
+2026-10-21T02:25:33.7607299Z         at verifyWorldScenePresence (/home/runner/work/Aurevane/Aurevane/apps/web/e2e/world-presence-case.ts:567:5)
+2026-10-21T02:25:33.7608807Z         at /home/runner/work/Aurevane/Aurevane/apps/web/e2e/atlas-world.pw.ts:1601:3
+2026-10-21T02:25:33.7609472Z 
+2026-10-21T02:25:33.7610948Z     attachment #2: world-private-scene-join-diagnostics (application/json) ─────────────────────────
+2026-10-21T02:25:33.7613366Z     test-results/atlas-world.pw.ts-known-ne-c4bfc-ice-only-presence-authority-desktop-chromium-repeat6/attachments/world-private-scene-join-diagnostics-0f2c664b88050a73cbca2f9d3ad23b8371596945.json
+2026-10-21T02:25:33.7614849Z     ────────────────────────────────────────────────────────────────────────────────────────────────
+2026-10-21T02:25:33.7615160Z 
+2026-10-21T02:25:33.7615604Z     attachment #3: world-live-peer-delivery (application/json) ─────────────────────────────────────
+2026-10-21T02:25:33.7616839Z     test-results/atlas-world.pw.ts-known-ne-c4bfc-ice-only-presence-authority-desktop-chromium-repeat6/attachments/world-live-peer-delivery-fc356c7e145f3ea9f325a9c78a757cb6d06a81c5.json
+2026-10-21T02:25:33.7618013Z     ────────────────────────────────────────────────────────────────────────────────────────────────
+2026-10-21T02:25:33.7618537Z 
+2026-10-21T02:25:33.7618995Z     attachment #4: world-live-peer-interpolation (application/json) ────────────────────────────────
+2026-10-21T02:25:33.7620247Z     test-results/atlas-world.pw.ts-known-ne-c4bfc-ice-only-presence-authority-desktop-chromium-repeat6/attachments/world-live-peer-interpolation-b9d5956ff1987b3643b52eb91f68d8daa8a19d8f.json
+2026-10-21T02:25:33.7622611Z     ────────────────────────────────────────────────────────────────────────────────────────────────
+2026-10-21T02:25:33.7623106Z 
+2026-10-21T02:25:33.7623837Z     attachment #5: world-both-moving-peer-0 (application/json) ─────────────────────────────────────
+2026-10-21T02:25:33.7625856Z     test-results/atlas-world.pw.ts-known-ne-c4bfc-ice-only-presence-authority-desktop-chromium-repeat6/attachments/world-both-moving-peer-0-24d956974800cbbe5b5790cfea70c9736f576ddd.json
+2026-10-21T02:25:33.7627908Z     ────────────────────────────────────────────────────────────────────────────────────────────────
+2026-10-21T02:25:33.7628424Z 
+2026-10-21T02:25:33.7629174Z     attachment #6: world-both-moving-peer-1 (application/json) ─────────────────────────────────────
+2026-10-21T02:25:33.7631621Z     test-results/atlas-world.pw.ts-known-ne-c4bfc-ice-only-presence-authority-desktop-chromium-repeat6/attachments/world-both-moving-peer-1-0391154922e0155ce426dc4e31728e1bd25da1ae.json
+2026-10-21T02:25:33.7633671Z     ────────────────────────────────────────────────────────────────────────────────────────────────
+2026-10-21T02:25:33.7634311Z 
+2026-10-21T02:25:33.7635191Z     attachment #7: world-presence-boundaries (application/json) ────────────────────────────────────
+2026-10-21T02:25:33.7637634Z     test-results/atlas-world.pw.ts-known-ne-c4bfc-ice-only-presence-authority-desktop-chromium-repeat6/attachments/world-presence-boundaries-aa3bb53b2d2b1b901b23e681560532dc92ca184d.json
+2026-10-21T02:25:33.7639842Z     ────────────────────────────────────────────────────────────────────────────────────────────────
+2026-10-21T02:25:33.7640365Z 
+2026-10-21T02:25:33.7641613Z     attachment #8: world-presence-cleanup (application/json) ───────────────────────────────────────
+2026-10-21T02:25:33.7643828Z     test-results/atlas-world.pw.ts-known-ne-c4bfc-ice-only-presence-authority-desktop-chromium-repeat6/attachments/world-presence-cleanup-ae6910b89e7f47db4cd3c24421e4e04231e0bd26.json
+2026-10-21T02:25:33.7645814Z     ────────────────────────────────────────────────────────────────────────────────────────────────
+2026-10-21T02:25:33.7646302Z 
+2026-10-21T02:25:33.7647264Z     Error Context: test-results/atlas-world.pw.ts-known-ne-c4bfc-ice-only-presence-authority-desktop-chromium-repeat6/error-context.md
+2026-10-21T02:25:33.7648233Z 
+2026-10-21T02:25:33.7648914Z     attachment #10: trace (application/zip) ────────────────────────────────────────────────────────
+2026-10-21T02:25:33.7650245Z     test-results/atlas-world.pw.ts-known-ne-c4bfc-ice-only-presence-authority-desktop-chromium-repeat6/trace.zip
+2026-10-21T02:25:33.7651671Z     Usage:
+2026-10-21T02:25:33.7651852Z 
+2026-10-21T02:25:33.7652915Z         pnpm exec playwright show-trace test-results/atlas-world.pw.ts-known-ne-c4bfc-ice-only-presence-authority-desktop-chromium-repeat6/trace.zip
+2026-10-21T02:25:33.7653971Z 
+2026-10-21T02:25:33.7654603Z     ────────────────────────────────────────────────────────────────────────────────────────────────
+2026-10-21T02:25:33.7655089Z 
+2026-10-21T02:25:33.7656163Z   2) [desktop-chromium] › e2e/atlas-world.pw.ts:1597:5 › known neighbouring players follow the visible viewport with service-only presence authority 
+2026-10-21T02:25:33.7657079Z 
+2026-10-21T02:25:33.7657425Z     Error: peer 0, step 4: 82.1ms sample gap; 5 observed long tasks
+2026-10-21T02:25:33.7657871Z 
+2026-10-21T02:25:33.7658103Z     expect(received).toBeLessThan(expected)
+2026-10-21T02:25:33.7658405Z 
+2026-10-21T02:25:33.7658555Z     Expected: < 0.95
+2026-10-21T02:25:33.7658964Z     Received:   0.9614794317416226
+2026-10-21T02:25:33.7659251Z 
+2026-10-21T02:25:33.7659485Z        at world-presence-case.ts:625
+2026-10-21T02:25:33.7659805Z 
+2026-10-21T02:25:33.7660004Z       623 |             step.deltaX,
+2026-10-21T02:25:33.7661387Z       624 |             `peer ${index}, step ${stepIndex}: ${step.elapsedMs.toFixed(1)}ms sample gap; ${longTasks.length} observed long tasks`,
+2026-10-21T02:25:33.7662658Z     > 625 |           ).toBeLessThan(step.maximumDeltaX)
+2026-10-21T02:25:33.7663187Z           |             ^
+2026-10-21T02:25:33.7663559Z       626 |         }
+2026-10-21T02:25:33.7663904Z       627 |       }
+2026-10-21T02:25:33.7664236Z       628 |     })
+2026-10-21T02:25:33.7664956Z         at /home/runner/work/Aurevane/Aurevane/apps/web/e2e/world-presence-case.ts:625:13
+2026-10-21T02:25:33.7666291Z         at observeWorldMovement (/home/runner/work/Aurevane/Aurevane/apps/web/e2e/world-timing-metrics.ts:29:3)
+2026-10-21T02:25:33.7667792Z         at verifyWorldScenePresence (/home/runner/work/Aurevane/Aurevane/apps/web/e2e/world-presence-case.ts:567:5)
+2026-10-21T02:25:33.7669094Z         at /home/runner/work/Aurevane/Aurevane/apps/web/e2e/atlas-world.pw.ts:1601:3
+2026-10-21T02:25:33.7669929Z 
+2026-10-21T02:25:33.7670953Z     attachment #2: world-private-scene-join-diagnostics (application/json) ─────────────────────────
+2026-10-21T02:25:33.7673317Z     test-results/atlas-world.pw.ts-known-ne-c4bfc-ice-only-presence-authority-desktop-chromium-repeat9/attachments/world-private-scene-join-diagnostics-e8924368a9a9b9d74faac039aa5ea3a8de56b326.json
+2026-10-21T02:25:33.7675604Z     ────────────────────────────────────────────────────────────────────────────────────────────────
+2026-10-21T02:25:33.7676105Z 
+2026-10-21T02:25:33.7676837Z     attachment #3: world-live-peer-delivery (application/json) ─────────────────────────────────────
+2026-10-21T02:25:33.7678938Z     test-results/atlas-world.pw.ts-known-ne-c4bfc-ice-only-presence-authority-desktop-chromium-repeat9/attachments/world-live-peer-delivery-01422e38c6d7bd467dff1f20f552e8a32df87fd8.json
+2026-10-21T02:25:33.7681195Z     ────────────────────────────────────────────────────────────────────────────────────────────────
+2026-10-21T02:25:33.7682091Z 
+2026-10-21T02:25:33.7682862Z     attachment #4: world-live-peer-interpolation (application/json) ────────────────────────────────
+2026-10-21T02:25:33.7685093Z     test-results/atlas-world.pw.ts-known-ne-c4bfc-ice-only-presence-authority-desktop-chromium-repeat9/attachments/world-live-peer-interpolation-18bfb7b069451c3f5ebeaea40fe209b72fe57cf5.json
+2026-10-21T02:25:33.7687208Z     ────────────────────────────────────────────────────────────────────────────────────────────────
+2026-10-21T02:25:33.7687695Z 
+2026-10-21T02:25:33.7688420Z     attachment #5: world-both-moving-peer-0 (application/json) ─────────────────────────────────────
+2026-10-21T02:25:33.7690696Z     test-results/atlas-world.pw.ts-known-ne-c4bfc-ice-only-presence-authority-desktop-chromium-repeat9/attachments/world-both-moving-peer-0-acc98284caab442ca894add601f3f32f8aa15ddd.json
+2026-10-21T02:25:33.7692759Z     ────────────────────────────────────────────────────────────────────────────────────────────────
+2026-10-21T02:25:33.7693339Z 
+2026-10-21T02:25:33.7694126Z     attachment #6: world-presence-boundaries (application/json) ────────────────────────────────────
+2026-10-21T02:25:33.7696338Z     test-results/atlas-world.pw.ts-known-ne-c4bfc-ice-only-presence-authority-desktop-chromium-repeat9/attachments/world-presence-boundaries-4d356760b3a8cb18f01d1b2dcab12dcd4be89132.json
+2026-10-21T02:25:33.7698492Z     ────────────────────────────────────────────────────────────────────────────────────────────────
+2026-10-21T02:25:33.7698993Z 
+2026-10-21T02:25:33.7699769Z     attachment #7: world-presence-cleanup (application/json) ───────────────────────────────────────
+2026-10-21T02:25:33.7702174Z     test-results/atlas-world.pw.ts-known-ne-c4bfc-ice-only-presence-authority-desktop-chromium-repeat9/attachments/world-presence-cleanup-08a4c58d04281e2dd78c633aeadee324deabe59f.json
+2026-10-21T02:25:33.7704321Z     ────────────────────────────────────────────────────────────────────────────────────────────────
+2026-10-21T02:25:33.7704838Z 
+2026-10-21T02:25:33.7705987Z     Error Context: test-results/atlas-world.pw.ts-known-ne-c4bfc-ice-only-presence-authority-desktop-chromium-repeat9/error-context.md
+2026-10-21T02:25:33.7707052Z 
+2026-10-21T02:25:33.7707785Z     attachment #9: trace (application/zip) ─────────────────────────────────────────────────────────
+2026-10-21T02:25:33.7709287Z     test-results/atlas-world.pw.ts-known-ne-c4bfc-ice-only-presence-authority-desktop-chromium-repeat9/trace.zip
+2026-10-21T02:25:33.7710354Z     Usage:
+2026-10-21T02:25:33.7710738Z 
+2026-10-21T02:25:33.7711816Z         pnpm exec playwright show-trace test-results/atlas-world.pw.ts-known-ne-c4bfc-ice-only-presence-authority-desktop-chromium-repeat9/trace.zip
+2026-10-21T02:25:33.7712895Z 
+2026-10-21T02:25:33.7713477Z     ────────────────────────────────────────────────────────────────────────────────────────────────
+2026-10-21T02:25:33.7713942Z 
+2026-10-21T02:25:33.7715244Z   3) [desktop-chromium] › e2e/atlas-world.pw.ts:1597:5 › known neighbouring players follow the visible viewport with service-only presence authority 
+2026-10-21T02:25:33.7716228Z 
+2026-10-21T02:25:33.7716593Z     Error: peer 0, step 4: 83.5ms sample gap; 4 observed long tasks
+2026-10-21T02:25:33.7717062Z 
+2026-10-21T02:25:33.7717297Z     expect(received).toBeLessThan(expected)
+2026-10-21T02:25:33.7717645Z 
+2026-10-21T02:25:33.7717791Z     Expected: < 0.95
+2026-10-21T02:25:33.7718203Z     Received:   1.1754750336591542
+2026-10-21T02:25:33.7718483Z 
+2026-10-21T02:25:33.7718691Z        at world-presence-case.ts:625
+2026-10-21T02:25:33.7718995Z 
+2026-10-21T02:25:33.7719181Z       623 |             step.deltaX,
+2026-10-21T02:25:33.7720244Z       624 |             `peer ${index}, step ${stepIndex}: ${step.elapsedMs.toFixed(1)}ms sample gap; ${longTasks.length} observed long tasks`,
+2026-10-21T02:25:33.7721516Z     > 625 |           ).toBeLessThan(step.maximumDeltaX)
+2026-10-21T02:25:33.7722026Z           |             ^
+2026-10-21T02:25:33.7722397Z       626 |         }
+2026-10-21T02:25:33.7722732Z       627 |       }
+2026-10-21T02:25:33.7723049Z       628 |     })
+2026-10-21T02:25:33.7723743Z         at /home/runner/work/Aurevane/Aurevane/apps/web/e2e/world-presence-case.ts:625:13
+2026-10-21T02:25:33.7725043Z         at observeWorldMovement (/home/runner/work/Aurevane/Aurevane/apps/web/e2e/world-timing-metrics.ts:29:3)
+2026-10-21T02:25:33.7726537Z         at verifyWorldScenePresence (/home/runner/work/Aurevane/Aurevane/apps/web/e2e/world-presence-case.ts:567:5)
+2026-10-21T02:25:33.7727789Z         at /home/runner/work/Aurevane/Aurevane/apps/web/e2e/atlas-world.pw.ts:1601:3
+2026-10-21T02:25:33.7728352Z 
+2026-10-21T02:25:33.7729129Z     attachment #2: world-private-scene-join-diagnostics (application/json) ─────────────────────────
+2026-10-21T02:25:33.7731671Z     test-results/atlas-world.pw.ts-known-ne-c4bfc-ice-only-presence-authority-desktop-chromium-repeat12/attachments/world-private-scene-join-diagnostics-cce9e042245c9db5eb9a0308c47289241f9e222b.json
+2026-10-21T02:25:33.7734128Z     ────────────────────────────────────────────────────────────────────────────────────────────────
+2026-10-21T02:25:33.7734633Z 
+2026-10-21T02:25:33.7735383Z     attachment #3: world-live-peer-delivery (application/json) ─────────────────────────────────────
+2026-10-21T02:25:33.7737547Z     test-results/atlas-world.pw.ts-known-ne-c4bfc-ice-only-presence-authority-desktop-chromium-repeat12/attachments/world-live-peer-delivery-775e59fa2346f3d393d685b7aef81f7af2814b42.json
+2026-10-21T02:25:33.7739657Z     ────────────────────────────────────────────────────────────────────────────────────────────────
+2026-10-21T02:25:33.7740193Z 
+2026-10-21T02:25:33.7741167Z     attachment #4: world-live-peer-interpolation (application/json) ────────────────────────────────
+2026-10-21T02:25:33.7743360Z     test-results/atlas-world.pw.ts-known-ne-c4bfc-ice-only-presence-authority-desktop-chromium-repeat12/attachments/world-live-peer-interpolation-8cd4239a2bbec1894335e64f0900299aa74687b5.json
+2026-10-21T02:25:33.7745645Z     ────────────────────────────────────────────────────────────────────────────────────────────────
+2026-10-21T02:25:33.7746142Z 
+2026-10-21T02:25:33.7746903Z     attachment #5: world-both-moving-peer-0 (application/json) ─────────────────────────────────────
+2026-10-21T02:25:33.7749106Z     test-results/atlas-world.pw.ts-known-ne-c4bfc-ice-only-presence-authority-desktop-chromium-repeat12/attachments/world-both-moving-peer-0-0d8d235bd51087aab98ea397f0b4f7152ae8737b.json
+2026-10-21T02:25:33.7751343Z     ────────────────────────────────────────────────────────────────────────────────────────────────
+2026-10-21T02:25:33.7751835Z 
+2026-10-21T02:25:33.7752573Z     attachment #6: world-presence-boundaries (application/json) ────────────────────────────────────
+2026-10-21T02:25:33.7754818Z     test-results/atlas-world.pw.ts-known-ne-c4bfc-ice-only-presence-authority-desktop-chromium-repeat12/attachments/world-presence-boundaries-6b51f5b6d6ac09c40e7650db588967978db504e5.json
+2026-10-21T02:25:33.7757033Z     ────────────────────────────────────────────────────────────────────────────────────────────────
+2026-10-21T02:25:33.7757513Z 
+2026-10-21T02:25:33.7758255Z     attachment #7: world-presence-cleanup (application/json) ───────────────────────────────────────
+2026-10-21T02:25:33.7760327Z     test-results/atlas-world.pw.ts-known-ne-c4bfc-ice-only-presence-authority-desktop-chromium-repeat12/attachments/world-presence-cleanup-420106ed86630ffa8aad029cb7d3ad1dbbc4c68e.json
+2026-10-21T02:25:33.7762660Z     ────────────────────────────────────────────────────────────────────────────────────────────────
+2026-10-21T02:25:33.7763166Z 
+2026-10-21T02:25:33.7764218Z     Error Context: test-results/atlas-world.pw.ts-known-ne-c4bfc-ice-only-presence-authority-desktop-chromium-repeat12/error-context.md
+2026-10-21T02:25:33.7765285Z 
+2026-10-21T02:25:33.7765953Z     attachment #9: trace (application/zip) ─────────────────────────────────────────────────────────
+2026-10-21T02:25:33.7767543Z     test-results/atlas-world.pw.ts-known-ne-c4bfc-ice-only-presence-authority-desktop-chromium-repeat12/trace.zip
+2026-10-21T02:25:33.7768628Z     Usage:
+2026-10-21T02:25:33.7768810Z 
+2026-10-21T02:25:33.7769948Z         pnpm exec playwright show-trace test-results/atlas-world.pw.ts-known-ne-c4bfc-ice-only-presence-authority-desktop-chromium-repeat12/trace.zip
+2026-10-21T02:25:33.7771310Z 
+2026-10-21T02:25:33.7771939Z     ────────────────────────────────────────────────────────────────────────────────────────────────
+2026-10-21T02:25:33.7772420Z 
+2026-10-21T02:25:33.7773566Z   4) [desktop-chromium] › e2e/atlas-world.pw.ts:1597:5 › known neighbouring players follow the visible viewport with service-only presence authority 
+2026-10-21T02:25:33.7774570Z 
+2026-10-21T02:25:33.7775021Z     Error: peer 1, step 6: 160.4ms sample gap; 2 observed long tasks
+2026-10-21T02:25:33.7775594Z 
+2026-10-21T02:25:33.7775837Z     expect(received).toBeLessThan(expected)
+2026-10-21T02:25:33.7776199Z 
+2026-10-21T02:25:33.7776618Z     Expected: < 0.95
+2026-10-21T02:25:33.7777046Z     Received:   1.082817280691529
+2026-10-21T02:25:33.7777347Z 
+2026-10-21T02:25:33.7777556Z        at world-presence-case.ts:625
+2026-10-21T02:25:33.7777861Z 
+2026-10-21T02:25:33.7778056Z       623 |             step.deltaX,
+2026-10-21T02:25:33.7779134Z       624 |             `peer ${index}, step ${stepIndex}: ${step.elapsedMs.toFixed(1)}ms sample gap; ${longTasks.length} observed long tasks`,
+2026-10-21T02:25:33.7780221Z     > 625 |           ).toBeLessThan(step.maximumDeltaX)
+2026-10-21T02:25:33.7781108Z           |             ^
+2026-10-21T02:25:33.7781658Z       626 |         }
+2026-10-21T02:25:33.7782383Z       627 |       }
+2026-10-21T02:25:33.7782845Z       628 |     })
+2026-10-21T02:25:33.7799110Z         at /home/runner/work/Aurevane/Aurevane/apps/web/e2e/world-presence-case.ts:625:13
+2026-10-21T02:25:33.7800494Z         at observeWorldMovement (/home/runner/work/Aurevane/Aurevane/apps/web/e2e/world-timing-metrics.ts:29:3)
+2026-10-21T02:25:33.7802131Z         at verifyWorldScenePresence (/home/runner/work/Aurevane/Aurevane/apps/web/e2e/world-presence-case.ts:567:5)
+2026-10-21T02:25:33.7803305Z         at /home/runner/work/Aurevane/Aurevane/apps/web/e2e/atlas-world.pw.ts:1601:3
+2026-10-21T02:25:33.7803888Z 
+2026-10-21T02:25:33.7804734Z     attachment #2: world-private-scene-join-diagnostics (application/json) ─────────────────────────
+2026-10-21T02:25:33.7807069Z     test-results/atlas-world.pw.ts-known-ne-c4bfc-ice-only-presence-authority-desktop-chromium-repeat18/attachments/world-private-scene-join-diagnostics-5d4d525e9379bdd164210193943a1f426f9d799f.json
+2026-10-21T02:25:33.7809203Z     ────────────────────────────────────────────────────────────────────────────────────────────────
+2026-10-21T02:25:33.7809673Z 
+2026-10-21T02:25:33.7810373Z     attachment #3: world-live-peer-delivery (application/json) ─────────────────────────────────────
+2026-10-21T02:25:33.7812906Z     test-results/atlas-world.pw.ts-known-ne-c4bfc-ice-only-presence-authority-desktop-chromium-repeat18/attachments/world-live-peer-delivery-5f480ae05ddcf86d08f75e28471cab22938e7da6.json
+2026-10-21T02:25:33.7815045Z     ────────────────────────────────────────────────────────────────────────────────────────────────
+2026-10-21T02:25:33.7815550Z 
+2026-10-21T02:25:33.7816271Z     attachment #4: world-live-peer-interpolation (application/json) ────────────────────────────────
+2026-10-21T02:25:33.7818343Z     test-results/atlas-world.pw.ts-known-ne-c4bfc-ice-only-presence-authority-desktop-chromium-repeat18/attachments/world-live-peer-interpolation-dade5a1971d82cd860d2814c6e1d1bf27d8ba1ad.json
+2026-10-21T02:25:33.7820480Z     ────────────────────────────────────────────────────────────────────────────────────────────────
+2026-10-21T02:25:33.7821138Z 
+2026-10-21T02:25:33.7821900Z     attachment #5: world-both-moving-peer-0 (application/json) ─────────────────────────────────────
+2026-10-21T02:25:33.7824001Z     test-results/atlas-world.pw.ts-known-ne-c4bfc-ice-only-presence-authority-desktop-chromium-repeat18/attachments/world-both-moving-peer-0-529d3217ad44fe88d040fc1c56d301b3f987e25b.json
+2026-10-21T02:25:33.7826165Z     ────────────────────────────────────────────────────────────────────────────────────────────────
+2026-10-21T02:25:33.7826631Z 
+2026-10-21T02:25:33.7827380Z     attachment #6: world-both-moving-peer-1 (application/json) ─────────────────────────────────────
+2026-10-21T02:25:33.7829508Z     test-results/atlas-world.pw.ts-known-ne-c4bfc-ice-only-presence-authority-desktop-chromium-repeat18/attachments/world-both-moving-peer-1-692e8b29fd9e29a85478ba0d0c613ffd4638e9ac.json
+2026-10-21T02:25:33.7831720Z     ────────────────────────────────────────────────────────────────────────────────────────────────
+2026-10-21T02:25:33.7832168Z 
+2026-10-21T02:25:33.7832879Z     attachment #7: world-presence-boundaries (application/json) ────────────────────────────────────
+2026-10-21T02:25:33.7834953Z     test-results/atlas-world.pw.ts-known-ne-c4bfc-ice-only-presence-authority-desktop-chromium-repeat18/attachments/world-presence-boundaries-0f16e9c289ed5e5264c56971d4b16c76134bd73c.json
+2026-10-21T02:25:33.7837036Z     ────────────────────────────────────────────────────────────────────────────────────────────────
+2026-10-21T02:25:33.7837520Z 
+2026-10-21T02:25:33.7838272Z     attachment #8: world-presence-cleanup (application/json) ───────────────────────────────────────
+2026-10-21T02:25:33.7840332Z     test-results/atlas-world.pw.ts-known-ne-c4bfc-ice-only-presence-authority-desktop-chromium-repeat18/attachments/world-presence-cleanup-8c74750069e7d281e34fd80c50a3251b203a67bf.json
+2026-10-21T02:25:33.7842496Z     ────────────────────────────────────────────────────────────────────────────────────────────────
+2026-10-21T02:25:33.7842973Z 
+2026-10-21T02:25:33.7843949Z     Error Context: test-results/atlas-world.pw.ts-known-ne-c4bfc-ice-only-presence-authority-desktop-chromium-repeat18/error-context.md
+2026-10-21T02:25:33.7844972Z 
+2026-10-21T02:25:33.7845644Z     attachment #10: trace (application/zip) ────────────────────────────────────────────────────────
+2026-10-21T02:25:33.7847281Z     test-results/atlas-world.pw.ts-known-ne-c4bfc-ice-only-presence-authority-desktop-chromium-repeat18/trace.zip
+2026-10-21T02:25:33.7848291Z     Usage:
+2026-10-21T02:25:33.7848465Z 
+2026-10-21T02:25:33.7849604Z         pnpm exec playwright show-trace test-results/atlas-world.pw.ts-known-ne-c4bfc-ice-only-presence-authority-desktop-chromium-repeat18/trace.zip
+2026-10-21T02:25:33.7850938Z 
+2026-10-21T02:25:33.7851596Z     ────────────────────────────────────────────────────────────────────────────────────────────────
+2026-10-21T02:25:33.7852095Z 
+2026-10-21T02:25:33.7852232Z   4 failed
+2026-10-21T02:25:33.7853462Z     [desktop-chromium] › e2e/atlas-world.pw.ts:1597:5 › known neighbouring players follow the visible viewport with service-only presence authority 
+2026-10-21T02:25:33.7855411Z     [desktop-chromium] › e2e/atlas-world.pw.ts:1597:5 › known neighbouring players follow the visible viewport with service-only presence authority 
+2026-10-21T02:25:33.7857756Z     [desktop-chromium] › e2e/atlas-world.pw.ts:1597:5 › known neighbouring players follow the visible viewport with service-only presence authority 
+2026-10-21T02:25:33.7859862Z     [desktop-chromium] › e2e/atlas-world.pw.ts:1597:5 › known neighbouring players follow the visible viewport with service-only presence authority 
+2026-10-21T02:25:33.7861091Z   36 passed (14.6m)
+2026-10-21T02:25:33.7871762Z ##[notice]  4 failed
+    [desktop-chromium] › e2e/atlas-world.pw.ts:1597:5 › known neighbouring players follow the visible viewport with service-only presence authority 
+    [desktop-chromium] › e2e/atlas-world.pw.ts:1597:5 › known neighbouring players follow the visible viewport with service-only presence authority 
+    [desktop-chromium] › e2e/atlas-world.pw.ts:1597:5 › known neighbouring players follow the visible viewport with service-only presence authority 
+    [desktop-chromium] › e2e/atlas-world.pw.ts:1597:5 › known neighbouring players follow the visible viewport with service-only presence authority 
+  36 passed (14.6m)
+2026-10-21T02:25:33.8073210Z undefined
+2026-10-21T02:25:33.8083489Z /home/runner/work/Aurevane/Aurevane/apps/web:
+2026-10-21T02:25:33.8086844Z [ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: playwright test e2e/atlas-world.pw.ts '--project=desktop-chromium' '--workers=1' '--repeat-each=20' '--retries=0' --grep 'known neighbouring players follow the visible viewport|holding WASD walks repeatedly' '--reporter=list,github'
+2026-10-21T02:25:33.8571931Z ##[error]Process completed with exit code 1.
+2026-10-21T02:25:33.8653177Z ##[group]Run actions/upload-artifact@v4
+2026-10-21T02:25:33.8653482Z with:
+2026-10-21T02:25:33.8653704Z   name: world-timing-repeat-evidence
+2026-10-21T02:25:33.8655367Z   path: apps/web/test-results/**/world-private-scene-join-diagnostics.json
+apps/web/test-results/**/world-live-peer-delivery.json
+apps/web/test-results/**/world-live-peer-interpolation.json
+apps/web/test-results/**/world-both-moving-peer-*.json
+apps/web/test-results/**/world-presence-boundaries.json
+apps/web/test-results/**/world-presence-cleanup.json
+apps/web/test-results/**/attachments/held-walk-approval-timings-*.json
+
+2026-10-21T02:25:33.8657038Z   if-no-files-found: error
+2026-10-21T02:25:33.8657275Z   retention-days: 7
+2026-10-21T02:25:33.8657496Z   compression-level: 6
+2026-10-21T02:25:33.8657714Z   overwrite: false
+2026-10-21T02:25:33.8657929Z   include-hidden-files: false
+2026-10-21T02:25:33.8658168Z ##[endgroup]
+2026-10-21T02:25:34.0376676Z (node:42032) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-21T02:25:34.0378196Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-21T02:25:34.1203758Z With the provided path, there will be 176 files uploaded
+2026-10-21T02:25:34.1204698Z Artifact name is valid!
+2026-10-21T02:25:34.1205167Z Root directory input is valid!
+2026-10-21T02:25:34.3556867Z Beginning upload of artifact content to blob storage
+2026-10-21T02:25:34.5299197Z (node:42032) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-10-21T02:25:34.5990781Z Uploaded bytes 228890
+2026-10-21T02:25:34.6200307Z Finished uploading artifact content to blob storage!
+2026-10-21T02:25:34.6201741Z SHA256 digest of uploaded artifact zip is d3f910ee05a89c2be6a3ac2a245c02092a1e6021176e48e122c83480ee08c8ba
+2026-10-21T02:25:34.6203269Z Finalizing artifact upload
+2026-10-21T02:25:34.8379477Z Artifact world-timing-repeat-evidence.zip successfully finalized. Artifact ID 12315508752
+2026-10-21T02:25:34.8380864Z Artifact world-timing-repeat-evidence has been successfully uploaded! Final size is 228890 bytes. Artifact ID is 12315508752
+2026-10-21T02:25:34.8386300Z Artifact download URL: https://github.com/ZeiJM/Aurevane/actions/runs/39531298207/artifacts/12315508752
+2026-10-21T02:25:34.8561961Z ##[group]Run pnpm exec supabase stop --no-backup
+2026-10-21T02:25:34.8562364Z [36;1mpnpm exec supabase stop --no-backup[0m
+2026-10-21T02:25:34.8613819Z shell: /usr/bin/bash -e {0}
+2026-10-21T02:25:34.8614080Z ##[endgroup]
+2026-10-21T02:25:35.9212905Z Stopping containers...
+2026-10-21T02:25:53.7931391Z Stopped supabase local development setup.
+2026-10-21T02:25:54.2423696Z Post job cleanup.
+2026-10-21T02:25:54.3280259Z [command]/usr/bin/git version
+2026-10-21T02:25:54.3327388Z git version 2.55.0
+2026-10-21T02:25:54.3369853Z Temporarily overriding HOME='/home/runner/work/_temp/17bd9b01-485e-4e52-8663-aeacf97f02c4' before making global git config changes
+2026-10-21T02:25:54.3375803Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-21T02:25:54.3377456Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Aurevane/Aurevane
+2026-10-21T02:25:54.3420046Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-21T02:25:54.3459321Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-21T02:25:54.3721483Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-21T02:25:54.3749021Z http.https://github.com/.extraheader
+2026-10-21T02:25:54.3762930Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-10-21T02:25:54.3845488Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-21T02:25:54.4119174Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-21T02:25:54.4167007Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-21T02:25:54.4683969Z Cleaning up orphan processes
+2026-10-21T02:25:54.5110275Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-node@v4, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
