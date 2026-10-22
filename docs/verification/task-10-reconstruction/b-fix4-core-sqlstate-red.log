@@ -1,0 +1,42 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.10 /workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/apps/web
+
+stderr | src/server/master/combat-content-discipline-boundaries.test.ts > maps the real unique-Core SQLSTATE 23505 through HTTP and the operator client
+{"timestamp":"2026-10-22T21:24:20.315Z","level":"error","event":"server.persistence_unavailable","code":"PERSISTENCE_UNAVAILABLE"}
+
+ ❯ src/server/master/combat-content-discipline-boundaries.test.ts (21 tests | 1 failed | 19 skipped) 41ms
+   × maps the real unique-Core SQLSTATE 23505 through HTTP and the operator client 26ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/server/master/combat-content-discipline-boundaries.test.ts > maps the real unique-Core SQLSTATE 23505 through HTTP and the operator client
+AssertionError: expected 503 to be 400 // Object.is equality
+
+- Expected
++ Received
+
+- 400
++ 503
+
+ ❯ src/server/master/combat-content-discipline-boundaries.test.ts:180:27
+    178|   failure = { code: '23505', message: 'DISCIPLINE_CORE_BASE_MUST_BE_UN…
+    179|   const response = await publish()
+    180|   expect(response.status).toBe(400)
+       |                           ^
+    181|   vi.stubGlobal('fetch', async () => response)
+    182|   await expect(postCombatContentAuthoring({ operation: 'record', comma…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 1 passed | 19 skipped (21)
+   Start at  14:24:18
+   Duration  1.38s (transform 961ms, setup 0ms, import 1.19s, tests 41ms, environment 0ms)
+
+undefined
+/workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/apps/web:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/server/master/combat-content-discipline-boundaries.test.ts -t 'SQLSTATE|unrelated database'

@@ -37,7 +37,11 @@ import type {
   MasterPanelOperatorRole,
 } from './combat-content-authoring-service'
 
-type RpcError = { readonly code?: string; readonly message?: string }
+type RpcError = {
+  readonly code?: string
+  readonly message?: string
+  readonly details?: string | null
+}
 type RpcResult = { readonly data: unknown; readonly error: RpcError | null }
 export type CombatAuthoringRpc = (
   functionName: string,
@@ -167,7 +171,45 @@ function parseVersionList(data: unknown): readonly CombatContentVersionRecord[] 
   return parsed as CombatContentVersionRecord[]
 }
 
-function mapRpcError(error: RpcError): never {
+type PublicationTarget = Pick<CombatContentVersionRecord, 'contentKey' | 'definition'>
+
+function publicContentKey(value: unknown): value is string {
+  return (
+    typeof value === 'string' && value.length <= 160 && /^[a-z0-9]+([._-][a-z0-9]+)*$/u.test(value)
+  )
+}
+
+/** Only recognized structured identities may cross this boundary; never echo SQL diagnostics. */
+function disciplinePublicationMessage(error: RpcError, target?: PublicationTarget): string | null {
+  const key = publicContentKey(target?.contentKey) ? target.contentKey : null
+  const discipline = key ? `Discipline ${key}` : 'This Discipline'
+  if (error.message === 'DISCIPLINE_ESSENCE_UNAVAILABLE') {
+    const essence = target?.definition.essenceId
+    return `${publicContentKey(essence) ? `Essence ${essence}` : 'The selected Essence'} is unavailable for ${discipline}. Choose an active Essence whose source is this Discipline, or select None.`
+  }
+  if (error.message === 'DISCIPLINE_CORE_BASE_MUST_BE_UNIQUE')
+    return `${discipline} must use a Core base allocation different from those already recorded for other Disciplines. Adjust the six positive bases while keeping their total at 31.`
+  if (error.message === 'DISCIPLINE_RESONANCE_SELECTION_CONFLICT') {
+    const pair = error.details?.split('+')
+    const validPair = pair?.length === 2 && pair.every(publicContentKey) && pair[0] !== pair[1]
+    const selections = target?.definition.resonanceSelections
+    const partners = Array.isArray(selections)
+      ? selections.flatMap((selection) =>
+          isObject(selection) && publicContentKey(selection.withDisciplineId)
+            ? [selection.withDisciplineId]
+            : [],
+        )
+      : []
+    // The projection validator has no detail; identify the saved declaration and its partners.
+    const subject = validPair
+      ? `Discipline pair ${pair.join(' + ')}`
+      : `${discipline}${partners.length ? ` (selected partners: ${partners.join(', ')})` : ''}`
+    return `${subject} has conflicting explicit Resonance selections. Reconcile both Discipline declarations to select the same Resonance for each pair.`
+  }
+  return null
+}
+
+function mapRpcError(error: RpcError, target?: PublicationTarget): never {
   const message = error.message ?? ''
   if (
     error.code === '0A000' &&
@@ -216,10 +258,15 @@ function mapRpcError(error: RpcError): never {
       'Restore an immutable version to a fresh draft before publishing archived content.',
     COMBAT_CONTENT_NOT_FOUND: 'The content record could not be found. Refresh the content list.',
   }
-  if (error.code === '22023')
+  if (
+    error.code === '22023' ||
+    (error.code === '23505' && message === 'DISCIPLINE_CORE_BASE_MUST_BE_UNIQUE')
+  )
     throw new AurevaneError(
       'INVALID_REQUEST',
-      inputMessages[message] ?? 'The content request contains unsupported or invalid fields.',
+      disciplinePublicationMessage(error, target) ??
+        inputMessages[message] ??
+        'The content request contains unsupported or invalid fields.',
     )
   if (message.includes('COMBAT_CONTENT_CATALOGUE_CONFLICT'))
     throw new AurevaneError(
@@ -472,7 +519,8 @@ export class RpcCombatContentAuthoringStore implements CombatContentAuthoringSto
       p_expected_catalogue_token: token,
       p_version_floor: floor || null,
     })
-    if (error) mapRpcError(error)
+    if (error)
+      mapRpcError(error, { contentKey: saved.contentKey, definition: saved.draft.definition })
     return parseCompleteCombatContentRecord(data)
   }
 
@@ -541,7 +589,7 @@ export class RpcCombatContentAuthoringStore implements CombatContentAuthoringSto
       p_expected_catalogue_token: token,
       p_version_floor: floor || null,
     })
-    if (error) mapRpcError(error)
+    if (error) mapRpcError(error, input)
     const row = parseSingleVersion(data)
     if (!row) {
       throw new AurevaneError(
@@ -599,7 +647,7 @@ export class RpcCombatContentAuthoringStore implements CombatContentAuthoringSto
       p_target_version: version,
       p_expected_catalogue_token: token,
     })
-    if (error) mapRpcError(error)
+    if (error) mapRpcError(error, target ?? { contentKey, definition: {} })
   }
 
   async #validatePublication(

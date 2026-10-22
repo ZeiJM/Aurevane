@@ -1,5 +1,11 @@
 # SDD ledger — plan: docs/superpowers/plans/2026-10-10-unified-engine-recovery.md
 
+October22 current continuation: Owner explicitly authorized completing the full Master Panel and the final live testing release, with other work afterward. Canonical Players migration20261020181057 is applied with exact reviewed source history and postflight checks; coordinator owns all hosted operations. StageB source freeze localb80127af8/tree f133bc93805d16245739b2bb82bf22f187a2bc79 is recovered after scratch loss as exact remote24b797b551748dff54d2fb370c12d0e2c525fd67. FullB combined review from e2e076753 finds three Important issues: I1 retained Discipline text bounds, I2 actual producer blocker transport, I3 production v3 admission retry mapping. Spec/quality gate is withheld; C/D remains held. Durable review: docs/verification/task-10-reconstruction/stage-b-review-20261022.md. Native physical/browser/whole-quality gates remain pending.
+
+Task10 minor (deferred): StageB M1 is the inherited Vite native-config warning already recorded for Staff/Players; retain at finalTask13, no warning-suppression change. Existing physical publication pointer metadata carry-forward remains Task13.
+
+Task10 fix round4/5 dispatched: one fresh frontier implementer with increased reasoning owns all three B findings; rounds1–3 remain used across the whole task. FixBASE24b797b551748dff54d2fb370c12d0e2c525fd67 is the exact frozen tree reviewed under originalb801. No reset per stage and no controller product fix. Re-review will be limited to these findings and the fix diff, with actual focused covering evidence.
+
 Resume at Task 8. Tasks 1–7 and combat Tasks 14–16 have released scope per current handover; do not reconstruct them. Broad overhaul remains incomplete.
 
 BASE: 16838f0cb1fb23ea791f3e5734b1f90c9fd64532. Branch agent/staff-access-20261019. Private 0350184a9 source remains unrecovered. Concrete local Staff reconstruction is authorized; retain separate previous Staff publication rejection and do not upload or deploy Staff source without resolving that concrete publication boundary.
@@ -213,3 +219,5 @@ PartialBequip/loadout checkpoint4d228ec375b55d2d5242a9136e8113439f5adc67/remote8
 Recovery continuity: active same soleTask10 implementer/root/content_reconstruction_20261020 resumed at4d checkpoint, preserving current untracked transport RED test and append-only ledger. Existing combined reviewer retained for nextBgate; no helper/new review seat.
 
 Coordinator evidencee635a0f6de4019b95a4cb472bf24e206c388ab33 exactlybacksupremote45c99bed3553061f72cc6abe05dead195af2705a/treeec6dfba1d7b3ad104e6175a0298818fa847294a3; fetchedzero-diff/lockpreserved. Includes12+16deterministic earned/equip logs and currentacceptancemap. Currentrecoveryhand-off reconciles completeTask9native and finalA failures/sourceR3. No repeatedbroadnativeuntilcoherentBfreeze.
+
+- 2026-10-22 Task10 fix4: I1/I2/I3 bounded parser/publication/v3-admission repair completed locally from FixBASE24b/tree f133. Final covering Web136/9, authored30/1, actual-chain Core/relationship1, final regressions33/2 and scoped types/lint/format pass. Same-reviewer scoped re-review pending; no C/D/migration/release work. Main freshness remains a310 per coordinator. Append-only original ledger preserved; two RED raw truncations, failed integrity check and verified final compressed RED captures are explicitly documented in task-10-b-fix4-report.md and main report.

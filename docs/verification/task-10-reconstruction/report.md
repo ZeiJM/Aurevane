@@ -310,3 +310,66 @@ This is the coherent B source-review gate, not native acceptance or release. Phy
 ### Stage B final native preparation inspection — 2026-10-22
 
 Fresh bounded inventory runs all152 migrations and records71 actual matched function signatures/body hashes plus205 columns in stage-b-freeze-inventory.json; original producer inventories remain untouched. The new native preparation regression extracts the actual shell producer commands and proves real guarded table changes before savepoint rollback. Its RED found a reset with identical allocations (CHARACTER_ATTRIBUTE_NO_CHANGE); preparation now uses an available level point and real spend mode. One intermediate guessed mode error is retained, then the real7-producer preparation and actual-write assertions pass. This strengthens fixture readiness only; physical lock schedules remain unexecuted. The real browser preparation now follows the existing coarse-pointer Equip action, asserts a local base URL before account work, and clears selections through the real RPC before the shared choice case. Product source remains53a8398. Full source-review handoff: .superpowers/sdd/2026-10-10-unified-engine-recovery/task-10-b-resume-report.md.
+
+### Task10 Stage B fix4 — retained reads and actual error interfaces, 2026-10-22
+
+This is round4 of the retained Task10 fix budget (rounds1–3 were used previously), not a new task. FixBASE is `24b797b551748dff54d2fb370c12d0e2c525fd67`, tree `f133bc93805d16245739b2bb82bf22f187a2bc79`, exactly the reviewed local b801 tree restored by the coordinator. The original b801 object remains absent. Coordinator final freshness confirms main remains `a31029c04c0ef7be9fd08092c6a70f6f086b48b6`; reviewed Next b091 remains reconciled. Single implementer, no helpers, no new review seat. Stop for the same reviewer's scoped FixBASE..FixHEAD re-review.
+
+I1: a distinct retained entrypoint uses the same complete noncombat validator with the original120/4000 text envelope. The shared category descriptor uses it for persisted draft/current/history reads. Authoring and saved-publication readiness retain80/240. Regressions exercise actual handler→record parser→readiness, exact former limits, over-limit rejection, unchanged bodies, immutable history, and unchanged invalid Core/focus/prerequisite rejection. Nothing truncates text or relaxes mechanics.
+
+I2: the common RPC mapper recognizes actual `DISCIPLINE_ESSENCE_UNAVAILABLE`, `DISCIPLINE_RESONANCE_SELECTION_CONFLICT`, and `DISCIPLINE_CORE_BASE_MUST_BE_UNIQUE`. Publication paths carry the saved target definition. Canonical SQL `details` is accepted only as two distinct bounded stable content IDs, then rendered as an actionable pair; detail-less projection errors identify the saved Discipline and its partner declarations. Essence errors identify the selected Essence and source Discipline; Core errors describe the existing uniqueness rule across recorded other-Discipline bases. No raw SQL/hints/rows cross the HTTP boundary. Existing mapper outcomes remain. Following the real inherited trigger revealed Core uses23505, not the review's injected22023: a separate RED reproduced503, the actual-chain SQL control confirms23505, and the final mapper handles only that named23505 while unrelated uniqueness failures remain persistence errors. No migration was changed.
+
+I3: the actual production v3 mutation invokes the existing shared admission mapper before its existing local mappings. The new real PUT→service→v3 adapter tests inject faults only at the Supabase RPC boundary: contention returns409/STALE_VERSION, archived selection returns actionable400, invalid current Primary/Secondary returns400, and existing version/idempotency/cooldown/Mastery/Core outcomes remain. This does not alter successful mutation, admission locks, actor selection or formulas.
+
+Final covering result: Web136 tests across9 named files, authored game-core30 across1, actual-chain unique-Core/relationship rollback1 with55 intentionally filtered skips. Final two new regression files pass33 tests after the evidence replay restored exact fixed bytes. Web bounded typecheck, game-core/DB types, actual package-scoped Web lint, touched package lint and formatting pass. These overlapping counts are not a full-suite total. Existing M1 Vite native-loader warning remains visible and unsuppressed. No physical PostgreSQL race, browser, native/full-quality/build, hosted SQL, deployment, remote push or main merge was performed by this implementer. C/D and Task13 metadata remain separate; source acceptance is pending.
+
+Evidence preservation: all original190074 pre-fix bytes/335 ledger rows remain exact, including the original136674-byte c6 prefix (SHA256 `cd188ae6c9c833997c26030c05adef30b2d9c1b96c6d1e4b020a28bcb8d16c39`) and93 prior appended rows. The entire pre-fix slice SHA256 remains `9387caa54f498c9bcdf695c6ebf3b95d7cbe1d2d8c4603208c1258b1390204fa`. All fix4 evidence rows append only.
+
+Evidence limitation: the first multi-file RED raw file and its single replay later contained only994/995-byte prefixes despite full outputs being captured and hashed in the tool response. Their original ledger entries and remaining files are retained unchanged; the cause is unestablished and neither agent intentionally changed them. `b-fix4-red-captured-output.txt` is a manually reconstructed tool transcript, explicitly not an exact raw recovery (its hash does not match); `b-fix4-red-truncated.log` preserves the initial observed prefix. A first integrity command therefore failed and remains recorded. Two bounded single-file RED controls then captured stdout in memory and immediately saved/staged compressed logs: retained81-character name fails503→200, real v3 retry fails503→409. Each records actual exit1 and a verified gzip-file hash. All other fix4 recorded raw-log hashes match. Temporary RED replay source was exactly the three FixBASE parser/category/v3 files; finally restored fixed files match the already-green source byte for byte. No extra product repair followed this evidence issue.
+
+Exact covering argv (cwd is this checkout), with all test files explicitly named:
+
+```sh
+corepack pnpm --filter @aurevane/db exec vitest run src/combat-content-discipline-producers.test.ts -t 'existing unique-Core and missing relationship'
+```
+
+```sh
+corepack pnpm --filter @aurevane/game-core exec vitest run src/content/authored-content.test.ts
+```
+
+```sh
+corepack pnpm --filter @aurevane/web exec vitest run src/server/master/combat-content-discipline-boundaries.test.ts src/app/api/character/build/disciplines/admission-route.test.ts src/server/master/combat-content-records.test.ts src/server/master/combat-content-record-command.test.ts src/server/master/supabase-combat-content-authoring-store.test.ts src/server/combat/combat-content-categories.test.ts src/server/character/combat-content-admission.test.ts src/app/api/character/build/disciplines/route.test.ts src/server/character/character-build-service.test.ts
+```
+
+```sh
+corepack pnpm --filter @aurevane/web exec vitest run src/server/master/combat-content-discipline-boundaries.test.ts src/app/api/character/build/disciplines/admission-route.test.ts
+```
+
+All executed argv, timestamps, exits and original raw hashes remain in `verification.jsonl`. Raw output disposition:
+
+| Raw log | Exit | SHA256 recorded at capture | Disposition |
+| --- | --- | --- | --- |
+| `b-fix4-red.log` | 1 | `cb6b87a236c6db866a9e76a007d30fb498631265e50fdc28e17cea71ff663d0f` | partial file; full tool output observed; see limitation above |
+| `b-fix4-retained-admission-green.log` | 0 | `f1998feb48b8298d50067a3de1d84f82d89ec71a3cb7f4a94356a81e1126313b` | retained; hash matches |
+| `b-fix4-pair-detail-red.log` | 1 | `ce19348b3292325e3599462e323b3b1f87a94458672b3c7a6e8f00b7295d6ff4` | expected RED; hash matches |
+| `b-fix4-green.log` | 0 | `94a33dd51fdd607cb2288397bbdd99ed5c1e507c6d1393562ce2093a5fc11b38` | retained; hash matches |
+| `b-fix4-core-sqlstate-red.log` | 1 | `73b7376607a60369f2b6074d48691c5b25a2f615b30f2b7afcf13e5da6706c8a` | expected RED; hash matches |
+| `b-fix4-core-producer-contract.log` | 0 | `18d0442fe2cb6b0b90dd8dbbb0ae7966957f2552f1dc8b1ad2c110e6c3610a93` | retained; hash matches |
+| `b-fix4-format-write.log` | 0 | `fcd8f855ed183fc5b3bae68034ddfca45661b30b4ff56ebd56e33f7ef92f8684` | retained; hash matches |
+| `b-fix4-covering-core.log` | 0 | `582c9a89c486fc6bad9422bdfd24389054fea6673786b6e91727ba2e9966e0d3` | retained; hash matches |
+| `b-fix4-covering-web.log` | 0 | `00b33eb865c9bc043ba159935c2fef71c2a93793c3448750ab66d020a6d8260f` | retained; hash matches |
+| `b-fix4-web-lint.log` | 0 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` | retained; hash matches |
+| `b-fix4-package-lint.log` | 0 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` | retained; hash matches |
+| `b-fix4-web-types.log` | 0 | `99d7c2179cdd316467c51f37901025a0753453664d741214ba56fc631fa6c0bc` | retained; hash matches |
+| `b-fix4-format-check.log` | 0 | `17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20` | retained; hash matches |
+| `b-fix4-package-types.log` | 0 | `62f334fb7bd836943afc4fc1eb6dbd5e65198e56e28fcfbcad3665d2bf22ad5d` | retained; hash matches |
+| `b-fix4-red-replay.log` | 1 | `d60f80f214791dc074b42417dd42fa383b8a454da8811bc05ab3a1791b699295` | partial file; full tool output observed; see limitation above |
+| `b-fix4-final-regressions.log` | 0 | `f64870f7c9e13e6b051fcded6689c5b116a9e8370ca60067573e7e0dcf294871` | retained; hash matches |
+| `b-fix4-integrity-recovery.log` | 1 | `9ab3046e9eedc85716fe22deb739a1d4f5deeea75b5ba31b64f5c8ba2d956f24` | failed integrity check; hash matches |
+| `b-fix4-retained-red-durable.log.gz` | 1 | `97c2653984c5a6b81b8270ee54007d5d702397b57d0108a2ae5028e5ce3b1c90` | expected RED; hash matches |
+| `b-fix4-admission-red-durable.log.gz` | 1 | `3bdbd40987ee3c9bfb7bb7cf2341024770142fbb662cd9c6fe28a36477714c21` | expected RED; hash matches |
+
+Observed partial-file hashes (not replacements for original ledger hashes):
+
+- `b-fix4-red.log`: 994 bytes, SHA256 `6e9f67b6196e87900b4a7a642688738e67359de6fb6decf016b323be914ebe94`.
+- `b-fix4-red-replay.log`: 995 bytes, SHA256 `e6d4c1758edb1979c177a4ae00b8b3eaf7959a9f0be1b948f6f46e2358a36c5e`.

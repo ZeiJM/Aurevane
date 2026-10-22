@@ -289,10 +289,12 @@ it('existing unique-Core and missing relationship failures roll back the entire 
     )
   ).rows[0]!.core_base_attributes
   const saved = await authoredDraft({ ...authored, core: existing })
-  await denied(
-    () => publish(authored.id, saved.draft.draftVersion, null),
-    /DISCIPLINE_CORE_BASE_MUST_BE_UNIQUE/,
-  )
+  await db.exec('savepoint rejected')
+  await expect(publish(authored.id, saved.draft.draftVersion, null)).rejects.toMatchObject({
+    code: '23505',
+    message: 'DISCIPLINE_CORE_BASE_MUST_BE_UNIQUE',
+  })
+  await db.exec('rollback to savepoint rejected')
   expect((await record(authored.id)).current).toBeNull()
   expect(
     (

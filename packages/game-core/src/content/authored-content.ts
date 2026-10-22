@@ -155,6 +155,22 @@ export function parseNoncombatContentDefinition(
   kind: NoncombatContentKind,
   value: unknown,
 ): NoncombatContentDefinition {
+  return parseNoncombatDefinition(kind, value, 'authoring')
+}
+
+/** Retained Stage A bodies keep their original text range so authors can read and correct them. */
+export function parseRetainedNoncombatContentDefinition(
+  kind: NoncombatContentKind,
+  value: unknown,
+): NoncombatContentDefinition {
+  return parseNoncombatDefinition(kind, value, 'retained')
+}
+
+function parseNoncombatDefinition(
+  kind: NoncombatContentKind,
+  value: unknown,
+  boundary: 'authoring' | 'retained',
+): NoncombatContentDefinition {
   const specific =
     kind === 'discipline'
       ? [
@@ -177,8 +193,12 @@ export function parseNoncombatContentDefinition(
   const row = object(value, 'definition', [...COMMON, ...specific])
   if (row.schemaVersion !== 1) invalid('schemaVersion', 'Unsupported schema.')
   id(row.id, 'id')
-  text(row.name, 'name', kind === 'discipline' ? 80 : 120)
-  text(row.description, 'description', kind === 'discipline' ? 240 : 4000)
+  text(row.name, 'name', kind === 'discipline' && boundary === 'authoring' ? 80 : 120)
+  text(
+    row.description,
+    'description',
+    kind === 'discipline' && boundary === 'authoring' ? 240 : 4000,
+  )
   if (!Number.isSafeInteger(row.contentVersion) || (row.contentVersion as number) < 1)
     invalid('contentVersion', 'Expected a positive version.')
   if (

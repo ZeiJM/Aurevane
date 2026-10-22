@@ -6,6 +6,7 @@ import type {
 import {
   NONCOMBAT_CONTENT_KINDS,
   parseNoncombatContentDefinition,
+  parseRetainedNoncombatContentDefinition,
   noncombatPublicationBlocker,
   assertDisciplinePublicationReady,
 } from '@aurevane/game-core/content/authored-content'
@@ -171,7 +172,7 @@ export const COMBAT_CONTENT_CATEGORIES: readonly CombatContentCategoryDescriptor
       publicationBlocker: kind === 'discipline' ? null : noncombatPublicationBlocker(kind),
       ...(kind === 'discipline' ? { validatePublication: assertDisciplinePublicationReady } : {}),
       parseAuthoring: (value) => ({ ...parseNoncombatContentDefinition(kind, value) }),
-      parseRetainedBody: (value) => ({ ...parseNoncombatContentDefinition(kind, value) }),
+      parseRetainedBody: (value) => ({ ...parseRetainedNoncombatContentDefinition(kind, value) }),
     }),
   ),
 ])

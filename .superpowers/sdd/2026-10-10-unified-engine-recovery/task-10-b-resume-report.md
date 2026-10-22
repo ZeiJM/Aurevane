@@ -53,3 +53,10 @@ Use disposable local Supabase with the full unmodified migration chain, Docker, 
 Outstanding: actual PostgreSQL physical races, full native/browser/quality gates, combined B reviewer acceptance and later C/D/T13 integration. StageA physical pointer snapshot carry-forward remains the recorded Task13 finding. This handoff does not claim a finished full Master Panel, final UI acceptance or live release.
 
 Final complete source/fixture/evidence checkpoint: `1fbbd6db411476a5dc462248c9b1b7b774a44bc7`, tree `fb92531151b87048db25620e0e8cbaa6ae10f4c9`. This identity addendum is documentation only; the final review HEAD/tree is also reported directly to the coordinator. No product or test edits follow this checkpoint. Final fixture types/lint/syntax/discovery and formatting all pass after the typed state-projection fix; the failed intermediate type command remains in the ledger.
+
+
+## Fix4 disposition — 2026-10-22
+
+I1–I3 are repaired locally from verified FixBASE24b/tree f133: retained120/4000 versus authoring/publication80/240; actual safe Essence/Resonance/Core blocker transport (including real Core23505); production v3 admission409/archived400 mapping. Final Web136/9, authored30/1, actual-chain rollback1 and new regressions33/2 pass; types/scoped lint/format pass. This is retained round4, awaiting the same reviewer; no source acceptance or physical/native/browser/full-quality claim.
+
+The complete pre-fix190074-byte ledger remains exact, including original136674-byte prefix and93 prior appended rows. Two multi-file RED raw logs later truncated to994/995-byte prefixes; original entries and partial files remain, full tool output/transcript provenance is documented, and final single-file RED gzip captures match their hashes. The failed integrity check is retained. This recovery limitation is explicit, not a silent hash correction. See `task-10-b-fix4-report.md` and appended main report/ledger for source, exact argv, outputs, hashes and remaining gates. Coordinator refreshed main at a310 unchanged; no migration, C/D work, push, main merge, hosted write or deployment.

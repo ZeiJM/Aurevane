@@ -4,6 +4,8 @@ import { AurevaneError } from '@aurevane/game-core/errors'
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 
+import { throwCombatContentAdmissionError } from '../combat/combat-content-admission-error'
+
 import type { CharacterBuildRepository } from './character-build-service'
 import { createSupabaseCharacterBuildRepository } from './supabase-character-build-repository'
 
@@ -31,6 +33,7 @@ export function createSupabaseCharacterBuildRepositoryV3(): CharacterBuildReposi
       })
 
       if (error) {
+        throwCombatContentAdmissionError(error)
         if (error.message.includes('PRIMARY_DISCIPLINE_MASTERY_REQUIRED'))
           throw new AurevaneError(
             'INVALID_REQUEST',
