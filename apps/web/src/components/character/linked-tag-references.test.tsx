@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs'
+import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { expect, it } from 'vitest'
 import {
@@ -193,4 +194,36 @@ it('places modular Requirements explanations before Effects while keeping their 
       markup.indexOf('aria-label="Effect explanations"'),
     )
   }
+})
+
+it('shows an effect-specific requirement only in Requirements, keeping the effect itself unconditional in the list', () => {
+  const behavior = defaultBasicSkills().find((row) => row.id === 'basic.guard')!.ability
+    .behaviors[0]!
+  const conditioned = {
+    ...behavior,
+    effects: behavior.effects.map((effect, index) =>
+      index === 0
+        ? {
+            ...effect,
+            requirements: {
+              kind: 'status-presence' as const,
+              statusId: 'wet',
+              subject: 'owner' as const,
+              present: true,
+            },
+          }
+        : effect,
+    ),
+  }
+  const report = abilityBehaviorInformation(conditioned)
+  const requirements = report.rows.find(([label]) => label === 'Requirements')![1]
+  const effects = report.rows.find(([label]) => label === 'Effects')![1]
+  expect(requirements).toContain('Drenched [Self]')
+  expect(effects).not.toContain('If ')
+  expect(effects).not.toContain('Drenched')
+  const html = renderToStaticMarkup(<AbilityParameters report={report} />)
+  expect(html.indexOf('aria-label="Requirement explanations"')).toBeLessThan(
+    html.indexOf('aria-label="Effect explanations"'),
+  )
+  expect(html).toContain('data-combat-tag-reference="wet"')
 })
