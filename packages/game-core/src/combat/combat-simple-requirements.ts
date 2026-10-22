@@ -131,8 +131,8 @@ export function simpleAutomaticTargetSubjects(
   const available: readonly AbilityRequirementSubject[] = !trigger
     ? ['owner']
     : trigger === 'turn-started' ||
-      trigger === 'enemy-turn-started' ||
-      trigger === 'enemy-turn-ended'
+        trigger === 'enemy-turn-started' ||
+        trigger === 'enemy-turn-ended'
       ? ['owner', 'triggering', 'affected']
       : ['owner', 'triggering', 'selected', 'affected']
   const actor = { id: 'owner', teamId: 'owner-team' }
