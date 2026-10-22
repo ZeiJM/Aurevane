@@ -19,7 +19,7 @@ const candidate = JSON.parse(
 }
 
 describe('Resonance modular trigger visibility', () => {
-  it.each(candidate.records)('$name displays an enemy turn-end event before the owner status', ({
+  it.each(candidate.records)('$name displays an enemy turn-start event before the owner status', ({
     after,
   }) => {
     const behavior = after.ability!.behaviors[0]!
@@ -27,7 +27,7 @@ describe('Resonance modular trigger visibility', () => {
     const expectedCondition = report.effects.map((effect) => effect.condition).filter(Boolean)
     const requirements = Object.fromEntries(report.rows).Requirements!
     const effects = Object.fromEntries(report.rows).Effects!
-    expect(requirements).toMatch(/^Enemy Turn Ends; /)
+    expect(requirements).toMatch(/^Enemy Turn Starts; /)
     expect(requirements).toContain('[Self]')
     expect(requirements).not.toMatch(/\bIf\b|\bonly if\b/i)
     expect(effects).not.toMatch(/\bIf\b|\bonly if\b/i)
@@ -36,7 +36,7 @@ describe('Resonance modular trigger visibility', () => {
       <AbilityDefinitionParameters definition={projectPublicCombat(after.ability!)} showActivationNotes={false} />,
     )
     expect(html).toContain('data-combat-tag-reference="trigger"')
-    expect(html.indexOf('Enemy Turn Ends')).toBeLessThan(html.indexOf('Effects</dt>'))
-    expect(html).not.toContain('Automatic: Enemy Turn Ends')
+    expect(html.indexOf('Enemy Turn Starts')).toBeLessThan(html.indexOf('Effects</dt>'))
+    expect(html).not.toContain('Automatic: Enemy Turn Starts')
   })
 })
