@@ -65,7 +65,7 @@ it('renders None without adding an event or action prerequisite', () => {
   )
 })
 
-it('keeps automatic timing outside the simple requirement line', () => {
+it('renders the native automatic event as a modular Requirement instead of hidden prose', () => {
   const r = abilityBehaviorInformation({
     ...defaultBasicSkills().find((row) => row.id === 'unarmed.basic')!.ability.behaviors[0]!,
     activation: 'automatic',
@@ -74,10 +74,11 @@ it('keeps automatic timing outside the simple requirement line', () => {
     automaticTarget: { subject: 'affected' },
     requirements: { kind: 'status-presence', subject: 'affected', statusId: 'burn', present: true },
   })
-  expect(Object.fromEntries(r.rows).Requirements).toBe('Burn [Target]')
+  expect(Object.fromEntries(r.rows).Requirements).toBe('Damage Dealt; Burn [Target]')
   const html = renderToStaticMarkup(<AbilityParameters report={r} />)
-  expect(html).toContain('Automatic: Damage Dealt')
-  expect(html.slice(0, html.indexOf('</dl>'))).not.toContain('Damage Dealt')
+  expect(html).not.toContain('Automatic: Damage Dealt')
+  expect(html).not.toContain('If ')
+  expect(html).toContain('data-combat-tag-reference="trigger"')
 })
 
 const candidate = JSON.parse(
@@ -107,7 +108,7 @@ it.each(candidate.records)(
           expect(requirement).toContain(`${effect.parts.label}: ${effect.condition}`)
           expect(Object.fromEntries(result.rows).Effects).not.toContain(effect.condition)
         }
-      expect(requirement).not.toMatch(/After|Tidecaller|Trigger|Action|\bIf\b/)
+      expect(requirement).not.toMatch(/\bIf\b|\bonly if\b/i)
       const html = renderToStaticMarkup(<AbilityParameters report={result} />)
       expect(html.match(/<dt>/g)).toHaveLength(10)
       if (requirement !== 'None') expect(html).toContain('data-combat-tag-reference=')
