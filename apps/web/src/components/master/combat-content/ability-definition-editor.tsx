@@ -343,8 +343,8 @@ function AbilityGroupEditor({
       <fieldset className={styles.typedGroup}>
         <legend>Effect requirements</legend>
         <p className={styles.fieldHint}>
-          Conditions here gate only the indicated effect, not the whole Skill. They stay
-          executable modular requirements and appear in the Requirements report.
+          Conditions here gate only the indicated effect, not the whole Skill. They stay executable
+          modular requirements and appear in the Requirements report.
         </p>
         {value.effects.map((effect, index) => {
           const allowedSubjects = effectSubjects(effect.payload, value)
