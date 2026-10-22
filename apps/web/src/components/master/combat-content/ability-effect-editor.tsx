@@ -11,7 +11,6 @@ import { createDefaultCombatEffect } from './skill-effect-list-editor'
 import { SkillEffectEditor } from './skill-effect-editor'
 import { SummonProfileEditor } from './summon-profile-editor'
 import { AbilityNumber } from './ability-editor-fields'
-import { AbilityRequirementEditor } from './ability-requirement-editor'
 import {
   createSimpleRequirement,
   readSimpleRequirement,
@@ -60,7 +59,7 @@ export function rebindSimpleEffectRequirement(
       : null,
   }
 }
-function effectSubjects(payload: CombatTagPayload, behavior?: AbilityBehavior) {
+export function effectSubjects(payload: CombatTagPayload, behavior?: AbilityBehavior) {
   return behavior
     ? simpleEffectRequirementSubjects(behavior, payload)
     : payload.recipient === 'affected-units'
@@ -81,7 +80,6 @@ export function AbilityEffectEditor({
 }) {
   const payload = value.payload
   const tag = combatTagDefinition(payload.type)
-  const allowedSubjects = effectSubjects(payload, behavior)
   const update = (next: CombatTagPayload) =>
     onChange(rebindSimpleEffectRequirement({ ...value, payload: next }, behavior))
   let controls
@@ -173,19 +171,6 @@ export function AbilityEffectEditor({
   return (
     <div className={styles.effectList}>
       {controls}
-      {allowedSubjects.length ? (
-        <AbilityRequirementEditor
-          label="Effect condition"
-          simple={readSimpleRequirement(value.requirements ?? null) !== null}
-          allowedSubjects={allowedSubjects}
-          value={value.requirements ?? null}
-          onChange={(requirements) => onChange({ ...value, requirements })}
-        />
-      ) : (
-        <p className={styles.fieldHint}>
-          This tile effect has no separate condition. Use the group Requirement.
-        </p>
-      )}
       <p className={styles.fieldHint}>{tag?.fullExplanation}</p>
     </div>
   )
