@@ -272,7 +272,9 @@ if (process.env.AV_SIMPLE_REQUIREMENTS_COMPILE_ONLY === '1') {
             .locator('[data-combat-tag-reference="wet"]'),
         ).toHaveCount(1)
       const firstEffect = group.locator('[data-ability-effect="hit"]')
-      const effectRequirement = firstEffect.locator('[data-simple-requirements]')
+      const effectRequirement = group
+        .locator('[data-effect-requirement="hit"]')
+        .locator('[data-simple-requirements]')
       const effectTag = effectRequirement.getByRole('combobox', {
         name: 'Requirement tag',
         exact: true,
