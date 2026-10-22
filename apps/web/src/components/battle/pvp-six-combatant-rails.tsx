@@ -72,8 +72,7 @@ function RailCard({
     battle.snapshot.statusState
       .find((entry) => entry.combatantId === participant.combatantId)
       ?.statuses.reduce(
-        (sum, status) =>
-          sum + (status.barrier?.kind === 'remaining' ? status.barrier.amount : 0),
+        (sum, status) => sum + (status.barrier?.kind === 'remaining' ? status.barrier.amount : 0),
         0,
       ) ?? 0
   const effectiveHp = combatant.hp + barrier
