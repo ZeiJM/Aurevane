@@ -264,7 +264,7 @@
       "id": "resonance.chronist-tidecaller.linked-sequence",
       "name": "Returning Current",
       "decision": "revised",
-      "reason": "replace redundant cleanse/heal/Guard with one temporal Haste payoff; Drenched remains as counterplay"
+      "reason": "replace self-Drenched cleanse/recovery/Guard with a single Haste payoff while Primed"
     },
     {
       "id": "resonance.chronist-vanguard.linked-sequence",
@@ -3024,10 +3024,9 @@
               },
               "activation": "automatic",
               "requirements": {
-                "kind": "status-presence",
+                "kind": "prime-presence",
                 "present": true,
-                "subject": "owner",
-                "statusId": "wet"
+                "subject": "owner"
               },
               "classification": "utility",
               "automaticTarget": {
@@ -3089,7 +3088,7 @@
           ]
         },
         "flavorLine": "Measured Tide carries Chronist momentum into a Tidecaller response shaped by both Disciplines.",
-        "description": "Requirement: wet [Self]. Result: haste [Self].",
+        "description": "Requirement: Primed [Self]. Result: Haste [Self], 1 Turn. A prepared Controlled Skill carries its tempo forward.",
         "contentVersion": 9,
         "disciplinePair": [
           "chronist",
@@ -3097,7 +3096,7 @@
         ]
       },
       "reasons": [
-        "replace redundant cleanse/heal/Guard with one temporal Haste payoff; Drenched remains as counterplay"
+        "replace self-Drenched cleanse/recovery/Guard with a single Haste payoff while Primed"
       ]
     },
     {
