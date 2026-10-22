@@ -199,3 +199,33 @@ it.each([
   expect(rpc.mock.calls.some(([name]) => name === 'write_combat_content_record_v1')).toBe(false)
   expect(response.status).toBe(400)
 })
+
+it('passes global sort and bounded cursor to the same authorized list RPC', async () => {
+  rpc.mockImplementation(async (name: string) => {
+    if (name === 'read_master_panel_operator_v1')
+      return { data: [{ user_id: 'owner', enabled: true, role: 'owner' }], error: null }
+    if (name === 'list_combat_content_records_v1')
+      return { data: { records: [], nextCursor: null }, error: null }
+    throw new Error(`Unexpected RPC ${name}`)
+  })
+  const cursor = JSON.stringify({ sort: 'name-asc', key: 'skill.test', name: 'Same name' })
+  const response = await call({
+    action: 'list',
+    kind: 'skill',
+    sort: 'name-asc',
+    after: cursor,
+    search: 'name',
+    limit: 20,
+  })
+  expect(response.status).toBe(200)
+  expect(rpc).toHaveBeenCalledWith(
+    'list_combat_content_records_v1',
+    expect.objectContaining({
+      p_search: 'name',
+      p_limit: 20,
+      p_actor_character_id: 'selected',
+      p_after: JSON.stringify({ sort: 'name-asc', after: JSON.parse(cursor) }),
+    }),
+  )
+  expect((await call({ action: 'list', sort: 'sql-order' })).status).toBe(400)
+})

@@ -2,6 +2,7 @@ import { DISCIPLINE_ATLAS } from '@aurevane/game-core/character/discipline-atlas
 import { parseNoncombatContentDefinition } from '@aurevane/game-core/content/authored-content'
 import type {
   CombatContentListPage,
+  CombatContentSort,
   CompleteCombatContentRecord,
   CompleteCombatContentWrite,
 } from '@aurevane/db/combat-content'
@@ -373,6 +374,8 @@ export class RpcCombatContentAuthoringStore implements CombatContentAuthoringSto
     return record
   }
   async listRecords(input: {
+    sort?: CombatContentSort
+    category?: 'basic' | 'discipline-skill'
     kind?: CombatContentKind
     lifecycle?: string
     search?: string
@@ -381,10 +384,12 @@ export class RpcCombatContentAuthoringStore implements CombatContentAuthoringSto
   }): Promise<CombatContentListPage> {
     const { data, error } = await this.#rpc('list_combat_content_records_v1', {
       p_actor_user_id: this.#actorUserId,
-      p_kind: input.kind ?? null,
+      p_kind: input.category ?? input.kind ?? null,
       p_lifecycle: input.lifecycle ?? null,
       p_search: input.search ?? null,
-      p_after: input.after ?? null,
+      p_after: input.sort
+        ? JSON.stringify({ sort: input.sort, after: input.after ? JSON.parse(input.after) : null })
+        : (input.after ?? null),
       p_limit: input.limit ?? 30,
     })
     if (error) mapRpcError(error)

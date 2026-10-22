@@ -108,3 +108,14 @@ it.each([
     expect(() => category.validatePublication!(corrected)).not.toThrow()
   },
 )
+
+it('provides finite editor defaults through the shared descriptor for every creatable category', () => {
+  for (const descriptor of COMBAT_CONTENT_CATEGORIES) {
+    expect(descriptor).toHaveProperty('editor')
+    const editor = descriptor.editor
+    expect(editor.label.length).toBeGreaterThan(0)
+    if (!editor.defaultDefinition) continue
+    expect(() => descriptor.parseAuthoring(editor.defaultDefinition)).not.toThrow()
+    expect(JSON.parse(JSON.stringify(editor))).toEqual(editor)
+  }
+})

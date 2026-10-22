@@ -1,5 +1,9 @@
 import { combatContentCategory } from '../combat/combat-content-categories'
-import type { CombatContentDefinition, CombatContentKind } from '@aurevane/db/combat-content'
+import type {
+  CombatContentDefinition,
+  CombatContentKind,
+  CombatContentSort,
+} from '@aurevane/db/combat-content'
 import { AurevaneError } from '@aurevane/game-core/errors'
 import type { CombatContentAuthoringService } from './combat-content-authoring-service'
 import type { RpcCombatContentAuthoringStore } from './supabase-combat-content-authoring-store'
@@ -54,7 +58,7 @@ export function createCombatContentRecordCommand(
     const action = input.action
     const fields: Record<string, string[]> = {
       read: ['contentKey'],
-      list: ['kind', 'lifecycle', 'search', 'after', 'limit'],
+      list: ['kind', 'category', 'lifecycle', 'search', 'after', 'limit', 'sort'],
       create: ['requestId', 'contentKind', 'definition', 'parentKey', 'expectedParentRevision'],
       duplicate: ['requestId', 'sourceKey', 'expectedSourceRevision'],
       save: ['contentKey', 'expectedRevision', 'definition'],
@@ -72,6 +76,35 @@ export function createCombatContentRecordCommand(
       invalid('Choose a supported complete-record command without extra fields.')
     if (action === 'read') return { record: await store.readRecord(key(input.contentKey)) }
     if (action === 'list') {
+      if (
+        input.category !== undefined &&
+        !['basic', 'discipline-skill'].includes(String(input.category))
+      )
+        invalid('Choose a supported Skill filter.')
+      if (input.category !== undefined && input.kind !== 'skill')
+        invalid('Skill filters apply only to Skills.')
+      if (
+        input.sort !== undefined &&
+        !['key-asc', 'key-desc', 'name-asc', 'name-desc'].includes(String(input.sort))
+      )
+        invalid('Choose a supported sort order.')
+      if (input.after !== undefined && input.sort !== undefined) {
+        try {
+          if (typeof input.after !== 'string' || input.after.length > 1600) throw new Error()
+          const cursor = JSON.parse(input.after)
+          if (
+            !object(cursor) ||
+            cursor.sort !== input.sort ||
+            typeof cursor.name !== 'string' ||
+            cursor.name.length > 400 ||
+            Object.keys(cursor).some((key) => !['sort', 'key', 'name'].includes(key))
+          )
+            throw new Error()
+          key(cursor.key)
+        } catch {
+          invalid('Refresh the content list; this page cursor is invalid.')
+        }
+      }
       if (input.kind !== undefined && !isCombatContentKind(input.kind))
         invalid('Choose a supported category.')
       if (
@@ -93,9 +126,16 @@ export function createCombatContentRecordCommand(
         invalid('Use a page size from 1 to 100.')
       return store.listRecords({
         kind: input.kind as CombatContentKind | undefined,
+        category: input.category as 'basic' | 'discipline-skill' | undefined,
         lifecycle: input.lifecycle as string | undefined,
         search: input.search as string | undefined,
-        after: input.after === undefined ? undefined : key(input.after),
+        after:
+          input.after === undefined
+            ? undefined
+            : input.sort === undefined
+              ? key(input.after)
+              : (input.after as string),
+        sort: input.sort as CombatContentSort | undefined,
         limit: input.limit as number | undefined,
       })
     }

@@ -1,3 +1,7 @@
+import {
+  contentEditorDefaults,
+  type CombatContentEditorDescriptor,
+} from './combat-content-editor-defaults'
 import type {
   CombatContentDefinition,
   CombatContentKind,
@@ -31,6 +35,7 @@ import {
 import type { CombatContentValidationResult } from '../master/combat-content-authoring-service'
 
 export interface CombatContentCategoryDescriptor {
+  readonly editor: CombatContentEditorDescriptor
   readonly category: CombatContentKind | 'basic'
   readonly storedKind: CombatContentKind
   readonly identityField: 'id' | 'essenceId' | null
@@ -57,7 +62,7 @@ function validated(validator: (value: unknown) => CombatContentValidationResult)
   }
 }
 function descriptor(
-  input: Omit<CombatContentCategoryDescriptor, 'parseRetained' | 'parsePublished'> & {
+  input: Omit<CombatContentCategoryDescriptor, 'parseRetained' | 'parsePublished' | 'editor'> & {
     parsePublished?: CombatContentCategoryDescriptor['parsePublished']
     parseRetainedBody?(value: unknown, key: string, version?: number): CombatContentDefinition
   },
@@ -65,6 +70,12 @@ function descriptor(
   const { parseRetainedBody, ...entry } = input
   const result: CombatContentCategoryDescriptor = {
     ...entry,
+    editor: {
+      ...contentEditorDefaults(entry.category),
+      category: entry.category,
+      storedKind: entry.storedKind,
+      publicationBlocker: entry.publicationBlocker,
+    },
     parsePublished(record) {
       return input.parsePublished
         ? input.parsePublished(record)

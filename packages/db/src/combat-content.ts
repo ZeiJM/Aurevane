@@ -404,10 +404,11 @@ export type CompleteCombatContentWrite =
       readonly expectedRevision: number
       readonly childKey: string
     }
+export type CombatContentSort = 'key-asc' | 'key-desc' | 'name-asc' | 'name-desc'
 export interface CombatContentListPage {
-  readonly records: readonly Pick<
+  readonly records: readonly (Pick<
     CompleteCombatContentRecord,
     'contentKey' | 'contentKind' | 'lifecycle' | 'revision'
-  >[]
+  > & { readonly name?: string })[]
   readonly nextCursor: string | null
 }

@@ -1071,3 +1071,68 @@ it('native Stage B schedule producers all reach real guarded writes with their p
     await db.exec('rollback to savepoint native_preparation; release savepoint native_preparation;')
   }
 })
+
+it('globally sorts named content with tied names across bounded cursors and server-wide search', async () => {
+  const names = ['Zed Global', 'Alpha Global', 'Alpha Global', 'Middle Global']
+  for (const [i, name] of names.entries())
+    await write(`content.sort-${i}`, {
+      action: 'create',
+      requestId: `00000000-0000-4000-8000-00000000020${i}`,
+      contentKind: 'skill',
+      definition: { ...definition, id: `content.sort-${i}`, name },
+    })
+  const page = async (sort: string, after: unknown = null, search = 'Global') =>
+    (
+      await db.query<{
+        value: { records: { contentKey: string; name: string }[]; nextCursor: string | null }
+      }>("select public.list_combat_content_records_v1($1,null,'skill',null,$2,$3,2) value", [
+        owner,
+        search,
+        JSON.stringify({ sort, after }),
+      ])
+    ).rows[0]!.value
+  const first = await page('name-asc')
+  expect(first.records.map((r) => r.contentKey)).toEqual(['content.sort-1', 'content.sort-2'])
+  const second = await page('name-asc', JSON.parse(first.nextCursor!))
+  expect(second.records.map((r) => r.name)).toEqual(['Middle Global', 'Zed Global'])
+  const descending = await page('name-desc')
+  expect(descending.records.map((r) => r.name)).toEqual(['Zed Global', 'Middle Global'])
+  expect(
+    (await page('name-desc', JSON.parse(descending.nextCursor!))).records.map((r) => r.contentKey),
+  ).toEqual(['content.sort-1', 'content.sort-2'])
+  await db.exec('savepoint invalid_cursor')
+  await expect(
+    page('name-asc', { sort: 'name-desc', key: 'content.sort-1', name: 'Alpha Global' }),
+  ).rejects.toThrow('COMBAT_CONTENT_CURSOR_INVALID')
+  await db.exec('rollback to savepoint invalid_cursor; release savepoint invalid_cursor')
+  const basicPage = (
+    await db.query<{ value: { records: { contentKey: string }[] } }>(
+      "select public.list_combat_content_records_v1($1,null,'basic',null,null,null,100) value",
+      [owner],
+    )
+  ).rows[0]!.value
+  expect(basicPage.records.map((r) => r.contentKey).sort()).toEqual([
+    'basic.guard',
+    'basic.move',
+    'basic.recover',
+    'basic.recover.mp',
+    'unarmed.basic',
+  ])
+  const skillPage = (
+    await db.query<{ value: { records: { contentKey: string }[] } }>(
+      "select public.list_combat_content_records_v1($1,null,'discipline-skill',null,'Global',null,100) value",
+      [owner],
+    )
+  ).rows[0]!.value
+  expect(skillPage.records).toHaveLength(4)
+  expect((await page('name-asc', null, 'Zed Global')).records.map((r) => r.contentKey)).toEqual([
+    'content.sort-0',
+  ])
+  const old = (
+    await db.query<{ value: { records: { contentKey: string }[] } }>(
+      "select public.list_combat_content_records_v1($1,null,'skill',null,'Global','content.sort-1',2) value",
+      [owner],
+    )
+  ).rows[0]!.value
+  expect(old.records.map((r) => r.contentKey)).toEqual(['content.sort-2', 'content.sort-3'])
+})
