@@ -75,7 +75,9 @@ it('keeps multi-group prerequisite prefixes and conditional effect links in the 
   expect(html.match(/data-combat-tag-reference="mark"/g) ?? []).toHaveLength(1)
   expect(html).toContain('exploit-opening: (')
   expect(html.replace(/<[^>]*>/gu, '')).toContain('; execution-cut: HP [≤ 35%] [Target]')
-  expect(html).toContain('execution-cut: If ')
+  expect(html).toContain('Dmg: <button')
+  expect(html).not.toContain('execution-cut: If ')
+  expect(html).not.toContain('execution-cut: If ')
 })
 it('links only the selected captured group without borrowing other group prerequisites', () => {
   const html = reader(

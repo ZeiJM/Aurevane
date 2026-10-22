@@ -344,18 +344,6 @@ export function BattleSkillCommand({
                       behavior.effects.map((effect, index) => (
                         <span key={`${behavior.behaviorId}:${index}`}>
                           {reports.length > 1 ? `${behavior.behaviorId}: ` : ''}
-                          {effect.condition ? (
-                            <>
-                              If{' '}
-                              <MechanicTextView
-                                text={effect.condition}
-                                parts={effect.conditionParts}
-                              />
-                              :{' '}
-                            </>
-                          ) : (
-                            ''
-                          )}
                           <CompactEffectSummary parts={effect.parts} />
                           {effect.recipient !== 'Self' || behavior.target.kind !== 'self'
                             ? ` → ${effect.recipient}`

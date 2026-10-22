@@ -68,6 +68,15 @@ function RailCard({
   const { combatant, placement, active } = participantState(battle, participant)
   if (!combatant || !placement) return null
 
+  const barrier =
+    battle.snapshot.statusState
+      .find((entry) => entry.combatantId === participant.combatantId)
+      ?.statuses.reduce(
+        (sum, status) => sum + (status.barrier?.kind === 'remaining' ? status.barrier.amount : 0),
+        0,
+      ) ?? 0
+  const effectiveHp = combatant.hp + barrier
+  const effectiveMaximum = Math.max(combatant.maxHp, effectiveHp)
   const accentStyle = { '--battle-combatant-accent': accent } as CSSProperties
 
   return (
@@ -114,9 +123,19 @@ function RailCard({
         />
         <div className={styles.meters}>
           <span
-            aria-label={`${participant.characterName} HP ${combatant.hp} of ${combatant.maxHp}`}
+            aria-label={`${participant.characterName} HP ${combatant.hp} of ${combatant.maxHp}${barrier ? `, Barrier ${barrier}` : ''}`}
           >
-            <i style={{ width: `${meterPercent(combatant.hp, combatant.maxHp)}%` }} />
+            <i style={{ width: `${meterPercent(combatant.hp, effectiveMaximum)}%` }} />
+            {barrier > 0 ? (
+              <em
+                data-pvp-rail-barrier="true"
+                title={`Temporary HP ${barrier}`}
+                style={{
+                  left: `${meterPercent(combatant.hp, effectiveMaximum)}%`,
+                  width: `${meterPercent(barrier, effectiveMaximum)}%`,
+                }}
+              />
+            ) : null}
           </span>
           <span
             aria-label={`${participant.characterName} MP ${combatant.mp} of ${combatant.maxMp}`}

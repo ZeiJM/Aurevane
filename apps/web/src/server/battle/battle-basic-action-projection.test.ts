@@ -118,7 +118,10 @@ it('projects saved Basic costs, enabled state and complete reports for the contr
     Effects: expect.stringContaining('22%'),
   })
   expect(recovery.behaviors[0]!.effects[0]!.condition).toBe('Guard [Self]')
-  expect(Object.fromEntries(recovery.behaviors[0]!.rows).Effects).toContain('If Guard [Self]:')
+  expect(Object.fromEntries(recovery.behaviors[0]!.rows).Requirements).toContain(
+    'HP Recovery: Guard [Self]',
+  )
+  expect(Object.fromEntries(recovery.behaviors[0]!.rows).Effects).not.toContain('If ')
   expect(recovery.behaviors[0]!.effectDescriptions.join(' ')).not.toContain('If Guard [Self]:')
   const attack = view.basicActions!.find(
     (action) => action.actionId === 'basic.attack.unarmed.basic',
