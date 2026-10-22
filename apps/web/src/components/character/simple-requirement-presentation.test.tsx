@@ -3,7 +3,10 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { expect, it } from 'vitest'
 import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
 import type { AbilityBehavior, RequirementNode } from '@aurevane/game-core/combat/combat-definition'
-import { abilityBehaviorInformation, abilityRequirementDescription } from './ability-detail-presentation'
+import {
+  abilityBehaviorInformation,
+  abilityRequirementDescription,
+} from './ability-detail-presentation'
 import { AbilityParameters } from './ability-parameters'
 import { plainMechanicText } from './mechanic-text'
 
