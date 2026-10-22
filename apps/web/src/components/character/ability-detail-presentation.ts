@@ -9,7 +9,6 @@ import {
   recognizeCombatRequirementModules,
   type CombatRequirementModules,
 } from '@aurevane/game-core/combat/combat-requirement-modules'
-import { isCleanseEffect } from '@aurevane/game-core/combat/combat-cleanse'
 import { mechanicStatusTag, mechanicTag } from './mechanic-text'
 import { resolveMechanicText } from './mechanic-tag-explanation'
 import { applyAbilityTimingDefaults } from '@aurevane/game-core/combat/combat-definition'
@@ -469,40 +468,6 @@ function effectPresentation(
   }
 }
 
-/** The Cleanse explanation already lists this exact recipient eligibility. */
-function repeatsCleanseEligibility(effect: AbilityEffect, preceding: readonly AbilityEffect[]) {
-  const requirement = effect.requirements
-  if (effect.payload.type !== 'percentage-recovery' || requirement?.kind !== 'any') return false
-  const subject =
-    effect.payload.recipient === 'actor'
-      ? 'owner'
-      : effect.payload.recipient === 'primary-unit'
-        ? 'selected'
-        : 'affected'
-  return preceding.some(({ payload, requirements }) => {
-    if (
-      payload.type !== 'remove-status' ||
-      !isCleanseEffect(payload) ||
-      requirements ||
-      payload.recipient !== effect.payload.recipient
-    )
-      return false
-    const statuses = new Set([...payload.statusIds, 'suppress'])
-    return (
-      requirement.children.length === statuses.size &&
-      [...statuses].every((statusId) =>
-        requirement.children.some(
-          (child) =>
-            child.kind === 'status-presence' &&
-            child.present &&
-            child.subject === subject &&
-            child.statusId === statusId,
-        ),
-      )
-    )
-  })
-}
-
 export function abilityBehaviorInformation(
   behavior: AbilityBehavior,
   options: {
@@ -531,7 +496,7 @@ export function abilityBehaviorInformation(
         : [nativeCombatTagPayload(payload)],
     ),
   }
-  const effects = behavior.effects.map((effect, index) => {
+  const effects = behavior.effects.map((effect) => {
     const recipientOverride = effectRecipientOverride(behavior, effect)
     const described = effectPresentation(
       effect,
@@ -541,17 +506,10 @@ export function abilityBehaviorInformation(
       controlledAction,
       effectContext,
     )
-    const redundantEligibility = repeatsCleanseEligibility(effect, behavior.effects.slice(0, index))
     return {
       ...described,
-      ...(redundantEligibility
-        ? {
-            description: `${described.description} Applies only if the recipient has an effect that Cleanse can remove.`,
-          }
-        : {}),
       presentation: {
         ...described.presentation,
-        ...(redundantEligibility ? { condition: null, conditionParts: undefined } : {}),
         ...(recipientOverride ? { recipientOverride } : {}),
         ...(behavior.groundArea
           ? { repeatsOnEntry: behavior.groundArea.entryEffectIds.includes(effect.id) }
