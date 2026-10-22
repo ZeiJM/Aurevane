@@ -29,13 +29,8 @@ export function AbilityParameters({
           effectSummary={
             report.effects.length
               ? report.effects.map(
-                  ({ parts, condition, conditionParts, recipientOverride }, index) => (
+                  ({ parts, recipientOverride }, index) => (
                     <div key={index}>
-                      {condition ? (
-                        <>
-                          If <MechanicTextView text={condition} parts={conditionParts} />:{' '}
-                        </>
-                      ) : null}
                       <CompactEffectSummary parts={parts} />
                       {recipientOverride ? ` [${recipientOverride}]` : null}
                     </div>
