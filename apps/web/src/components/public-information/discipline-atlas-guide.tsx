@@ -155,9 +155,11 @@ function DisciplineCard({ discipline }: { discipline: DisciplineAtlasEntry }) {
   )
 }
 
-export function DisciplineAtlasGuide() {
-  const published = DISCIPLINE_ATLAS.filter((discipline) => discipline.publication === 'published')
-  const secret = DISCIPLINE_ATLAS.filter((discipline) => discipline.disclosure === 'secret')
+export function DisciplineAtlasGuide({
+  disciplines = DISCIPLINE_ATLAS,
+}: { disciplines?: readonly DisciplineAtlasEntry[] } = {}) {
+  const published = disciplines.filter((discipline) => discipline.publication === 'published')
+  const secret = disciplines.filter((discipline) => discipline.disclosure === 'secret')
 
   return (
     <article
@@ -397,7 +399,7 @@ export function DisciplineAtlasGuide() {
 
           {BAND_ORDER.map((band) => {
             const copy = BAND_COPY[band]
-            const entries = DISCIPLINE_ATLAS.filter((discipline) => discipline.band === band)
+            const entries = disciplines.filter((discipline) => discipline.band === band)
             return (
               <section className={styles.atlasBand} id={band} key={band}>
                 <div className={styles.sectionHeading}>

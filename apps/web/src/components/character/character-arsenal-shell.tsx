@@ -202,6 +202,9 @@ export function CharacterArsenalShell({
     disciplineBuild.current.definition.id,
     disciplineBuild.currentSecondary?.id ?? 'pure',
     learnedSkillCatalogKey,
+    JSON.stringify(
+      disciplineBuild.disciplineSkills.learnedSkills.map((entry) => entry.eligibilityGrants ?? []),
+    ),
   ].join(':')
   const resonance = disciplineBuild.disciplineSkills.extensions.resonance
   const essence = disciplineBuild.disciplineSkills.extensions.essence

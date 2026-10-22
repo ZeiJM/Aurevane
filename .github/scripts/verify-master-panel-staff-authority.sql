@@ -98,6 +98,7 @@ declare
   other_id uuid := current_setting('task8.other')::uuid;
   character_id uuid := current_setting('task8.character')::uuid;
   signature text;
+  table_name text;
   checked integer := 0;
   proc record;
   predecessor text;
@@ -165,6 +166,21 @@ begin
       assert not has_function_privilege('service_role',proc.oid,'execute') and not has_function_privilege('anon',proc.oid,'execute') and not has_function_privilege('authenticated',proc.oid,'execute'), 'Content private helper ACL: '||proc.proname;
     end loop;
     assert checked=15, 'Complete Content private helper inventory';
+    checked:=0;
+    for proc in select p.oid,p.proname from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='app_private' and p.proname=any(array['current_discipline_definitions_v1','validate_authored_discipline_unlock_v1','validate_authored_discipline_envelope_v1','project_published_discipline_v1','select_published_discipline_v1','authored_discipline_unlock_satisfied_v1','lock_current_discipline_selection_v1','current_resonance_selection_key_v1','current_essence_selection_key_v1','validate_current_discipline_selections_v1','grant_discipline_skill_v1','current_discipline_skill_catalog_v1','character_discipline_skill_availability_v1','default_native_skill_eligibility_v1','resolve_skill_eligibility_v1']) loop
+      checked:=checked+1;
+      assert not has_function_privilege('service_role',proc.oid,'execute') and not has_function_privilege('anon',proc.oid,'execute') and not has_function_privilege('authenticated',proc.oid,'execute'), 'Stage B private helper ACL: '||proc.proname;
+    end loop;
+    assert checked=15, 'Complete Stage B private helper inventory; 30 total with Stage A';
+    assert (select count(*)=7 from pg_trigger t join pg_class c on c.oid=t.tgrelid join pg_namespace n on n.oid=c.relnamespace where n.nspname='app_private' and t.tgname='combat_content_admission' and t.tgenabled='O' and t.tgtype=23 and c.relname=any(array['character_skill_unlocks','character_build_discipline_skills','character_saved_build_loadouts','phase4_skill_catalog','character_active_builds','character_attribute_personal_allocations','character_discipline_skill_grants'])), 'All seven real BEFORE INSERT/UPDATE row admission guards';
+    foreach table_name in array array['discipline_current_definitions','character_discipline_skill_grants'] loop
+      assert (select relrowsecurity from pg_class where oid=('app_private.'||table_name)::regclass), 'Stage B private RLS: '||table_name;
+      assert not has_table_privilege('service_role','app_private.'||table_name,'select,insert,update,delete') and not has_table_privilege('authenticated','app_private.'||table_name,'select,insert,update,delete') and not has_table_privilege('anon','app_private.'||table_name,'select,insert,update,delete'), 'Stage B private table ACL: '||table_name;
+    end loop;
+    foreach signature in array array['public.get_character_discipline_catalog_v3(uuid,uuid)','public.get_primary_discipline_catalog_v2()','public.get_current_discipline_catalog_v1()','public.get_character_discipline_atlas_progress_v2(uuid,uuid)','public.get_builtin_discipline_definition_v1(text)','public.create_character_v4(uuid,smallint,uuid,text,integer,text,text,text,text,text,text,text,integer,integer,integer,integer,integer,integer,integer)','public.get_character_learned_skills_v2(uuid,uuid)','public.get_character_discipline_skill_loadout_v2(uuid,uuid)','public.read_current_discipline_selection_v1(text,text)'] loop
+      assert has_function_privilege('service_role',signature,'execute') and not has_function_privilege('anon',signature,'execute') and not has_function_privilege('authenticated',signature,'execute'), 'Stage B ordinary service RPC ACL: '||signature;
+    end loop;
+
     assert (select count(*)=41 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','app_private') and 'p_actor_character_id'=any(p.proargnames)), 'Original33 + Players4 + Content4 actor inventory';
     foreach signature in array array[
       'select public.read_combat_content_record_v1($1,$2,''native.staff.skill'')',

@@ -1,3 +1,5 @@
+import { DISCIPLINE_ATLAS } from '@aurevane/game-core/character/discipline-atlas'
+import { parseNoncombatContentDefinition } from '@aurevane/game-core/content/authored-content'
 import type {
   CombatContentListPage,
   CompleteCombatContentRecord,
@@ -187,6 +189,17 @@ function mapRpcError(error: RpcError): never {
       'Content changed. Refresh and review the complete record before retrying.',
     )
   const inputMessages: Readonly<Record<string, string>> = {
+    DISCIPLINE_PRESENTATION_LIMIT:
+      'Use at most 80 characters for the Discipline name and 240 for its description.',
+    DISCIPLINE_PUBLICATION_INCOMPLETE:
+      'Complete the Atlas, prerequisites, Skill stages and explicit Essence/Resonance selections before publication.',
+    DISCIPLINE_PREREQUISITE_UNAVAILABLE:
+      'A prerequisite Discipline is unavailable. Choose a current published Discipline.',
+    DISCIPLINE_SKILL_UNAVAILABLE: 'A linked Skill is unavailable. Choose an active current Skill.',
+    DISCIPLINE_ESSENCE_INVALID: 'Choose an active Essence for this Discipline or select None.',
+    DISCIPLINE_RESONANCE_CONFLICT:
+      'The pair has a conflicting explicit Resonance selection. Reconcile both Discipline declarations.',
+
     COMBAT_CONTENT_BUILTIN_SELECTION_DEPENDENCY:
       'This content is still selected by an existing Discipline or Discipline pair. Its selection must be replaced before archive is available.',
     COMBAT_CONTENT_DEPENDENCIES:
@@ -283,7 +296,26 @@ export class RpcCombatContentAuthoringStore implements CombatContentAuthoringSto
     if (data === null) return null
     const record = parseCompleteCombatContentRecord(data)
     if (record.builtin && !record.current && record.lifecycle !== 'archived') {
-      const definition = builtinCombatContentDefinition(record.contentKind, record.contentKey)
+      let definition = builtinCombatContentDefinition(record.contentKind, record.contentKey)
+      if (record.contentKind === 'discipline') {
+        const { data, error } = await this.#rpc('get_builtin_discipline_definition_v1', {
+          p_discipline_id: record.contentKey,
+        })
+        if (error) mapRpcError(error)
+        const atlas = DISCIPLINE_ATLAS.find((entry) => entry.id === record.contentKey)
+        if (!data || typeof data !== 'object' || !atlas)
+          throw new AurevaneError(
+            'PERSISTENCE_UNAVAILABLE',
+            'The builtin Discipline metadata is unavailable.',
+          )
+        const { family, band, disclosure, power } = atlas
+        definition = {
+          ...parseNoncombatContentDefinition('discipline', {
+            ...data,
+            atlas: { family, band, disclosure, power },
+          }),
+        }
+      }
       if (!definition || definition.contentVersion !== record.builtin.contentVersion)
         throw new AurevaneError(
           'PERSISTENCE_UNAVAILABLE',
@@ -575,7 +607,20 @@ export class RpcCombatContentAuthoringStore implements CombatContentAuthoringSto
     contentKind: CombatContentKind,
     target: CombatContentVersionRecord | null,
   ): Promise<string> {
-    const blocker = combatContentCategory(contentKind, contentKey)?.publicationBlocker
+    const descriptor = combatContentCategory(contentKind, contentKey)
+    if (target && descriptor?.validatePublication) {
+      try {
+        descriptor.validatePublication(target.definition)
+      } catch (error) {
+        throw new AurevaneError(
+          'INVALID_REQUEST',
+          error instanceof Error
+            ? error.message
+            : 'Complete the producer metadata before publication.',
+        )
+      }
+    }
+    const blocker = descriptor?.publicationBlocker
     if (target && blocker) throw new AurevaneError('INVALID_REQUEST', blocker.message)
     const snapshot = await new RpcPublishedCombatContentSource(this.#rpc).readCatalogueSnapshot()
     if (

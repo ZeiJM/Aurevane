@@ -161,3 +161,104 @@ it('bounded lists reject unknown stored kinds instead of passing them to categor
     code: 'PERSISTENCE_UNAVAILABLE',
   })
 })
+
+it('builtin Discipline first edit enriches the actual producer metadata with retained Atlas presentation', async () => {
+  const native = {
+    schemaVersion: 1,
+    id: 'vanguard',
+    contentVersion: 1,
+    name: 'Vanguard',
+    description: 'Armed tradition.',
+    sortOrder: 0,
+    enabled: true,
+    media: {},
+    core: { might: 7, finesse: 4, vitality: 7, agility: 4, intellect: 3, resolve: 6 },
+    focus: ['might', 'vitality', 'resolve'],
+    enabledForPrimary: true,
+    enabledForSecondary: true,
+    linkedSkills: ['vanguard.forceful-strike'],
+    skillStages: [{ skillId: 'vanguard.forceful-strike', minimumStage: 1 }],
+    unlock: { kind: 'always' },
+    essenceId: 'essence.vanguard',
+    resonanceSelections: [],
+  }
+  const rpc = vi.fn(async (name: string) => ({
+    data:
+      name === 'get_builtin_discipline_definition_v1'
+        ? native
+        : {
+            ...record,
+            contentKey: 'vanguard',
+            contentKind: 'discipline',
+            draft: null,
+            builtin: { contentVersion: 1, name: 'Vanguard' },
+          },
+    error: null,
+  }))
+  const store = new RpcCombatContentAuthoringStore(rpc, 'owner')
+  expect(await store.readRecord('vanguard')).toMatchObject({
+    builtinDefinition: {
+      ...native,
+      atlas: { family: 'foundation', band: 'foundation', disclosure: 'open' },
+    },
+  })
+})
+
+it('publishes a complete saved Discipline through the shared descriptor and rejects incomplete producer metadata before write', async () => {
+  const definition = {
+    schemaVersion: 1,
+    id: 'discipline.ready',
+    contentVersion: 1,
+    name: 'Ready',
+    description: 'Ready Discipline.',
+    sortOrder: 0,
+    enabled: true,
+    media: {},
+    core: { might: 7, finesse: 5, vitality: 5, agility: 5, intellect: 5, resolve: 4 },
+    focus: ['might', 'intellect'],
+    enabledForPrimary: true,
+    enabledForSecondary: true,
+    linkedSkills: [],
+    skillStages: [],
+    unlock: { kind: 'always' },
+    essenceId: null,
+    resonanceSelections: [],
+    atlas: {
+      family: 'mage',
+      band: 'first-journey',
+      disclosure: 'open',
+      power: { reliability: 1, flexibility: 2, setup: 3, ruleAccess: 4, execution: 5 },
+    },
+  }
+  let saved = {
+    ...record,
+    contentKey: definition.id,
+    contentKind: 'discipline' as const,
+    draft: { ...record.draft, definition },
+  }
+  const rpc = vi.fn(async (name: string) => ({
+    data:
+      name === 'read_combat_content_catalogue_v1'
+        ? {
+            token: 'a'.repeat(32),
+            policy: { version: 1, modes: {} },
+            publications: [],
+            archivedKeys: [],
+          }
+        : saved,
+    error: null,
+  }))
+  const store = new RpcCombatContentAuthoringStore(rpc, 'owner')
+  await store.publishSaved(saved, 4, null)
+  expect(rpc).toHaveBeenCalledWith(
+    'publish_saved_combat_content_v1',
+    expect.objectContaining({ p_content_key: definition.id, p_expected_draft_version: 4 }),
+  )
+  rpc.mockClear()
+  saved = {
+    ...saved,
+    draft: { ...saved.draft, definition: { ...definition, unlock: { kind: 'unavailable' } } },
+  }
+  await expect(store.publishSaved(saved, 4, null)).rejects.toThrow(/complete|prerequisite/i)
+  expect(rpc).not.toHaveBeenCalledWith('publish_saved_combat_content_v1', expect.anything())
+})

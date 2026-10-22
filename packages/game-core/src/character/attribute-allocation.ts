@@ -64,6 +64,7 @@ export function disciplineAttributePolicyFromCore(
     !base ||
     typeof base !== 'object' ||
     Array.isArray(base) ||
+    Object.keys(base).length !== CHARACTER_ATTRIBUTE_IDS.length ||
     !Array.isArray(focus) ||
     offFocusCap !== FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP
   )

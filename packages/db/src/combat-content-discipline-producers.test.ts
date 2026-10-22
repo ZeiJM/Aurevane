@@ -1906,3 +1906,177 @@ it('named activation uses actual v3 Core conversion with preserved personal choi
   expect(after.personal_attributes).toEqual(before)
   expect(after.base_attributes).toEqual(authored.core)
 })
+
+async function createWithPersonalBonuses(
+  profileVersion: number | null,
+  request = crypto.randomUUID(),
+) {
+  return (
+    await db.query<{ id: string; might: number; intellect: number; replayed: boolean }>(
+      `select * from public.create_character_v4($1,0::smallint,$2,$3,1,'Core Creator','core-creator','default','they','portrait','appearance','vanguard',2,0,2,0,0,1,$4)`,
+      [owner, request, 'stable-personal-request', profileVersion],
+    )
+  ).rows[0]!
+}
+it('creation applies five personal choices to the current Core and replays after publication', async () => {
+  const first = await publishNativeDiscipline('vanguard', {
+    core: { might: 8, finesse: 4, vitality: 7, agility: 4, intellect: 4, resolve: 4 },
+  })
+  const request = crypto.randomUUID()
+  const created = await createWithPersonalBonuses(first.current.contentVersion, request)
+  expect(created.might).toBe(10)
+  expect(created.intellect).toBe(4)
+  const personal = (
+    await db.query<{ personal_attributes: unknown }>(
+      'select personal_attributes from public.get_character_attribute_allocation_v2($1,$2)',
+      [owner, created.id],
+    )
+  ).rows[0]!
+  expect(personal.personal_attributes).toEqual({
+    might: 2,
+    finesse: 0,
+    vitality: 2,
+    agility: 0,
+    intellect: 0,
+    resolve: 1,
+  })
+  await publishNativeDiscipline('vanguard', {
+    core: { might: 9, finesse: 4, vitality: 6, agility: 4, intellect: 4, resolve: 4 },
+  })
+  const replay = await createWithPersonalBonuses(first.current.contentVersion, request)
+  expect(replay.id).toBe(created.id)
+  expect(replay.might).toBe(10)
+  expect(replay.replayed).toBe(true)
+})
+it('creation rejects a stale displayed Core with no character or idempotency write', async () => {
+  const first = await publishNativeDiscipline('vanguard', {
+    core: { might: 8, finesse: 4, vitality: 7, agility: 4, intellect: 4, resolve: 4 },
+  })
+  await publishNativeDiscipline('vanguard', {
+    core: { might: 9, finesse: 4, vitality: 6, agility: 4, intellect: 4, resolve: 4 },
+  })
+  const request = crypto.randomUUID()
+  await db.exec('savepoint stale_creation')
+  await expect(createWithPersonalBonuses(first.current.contentVersion, request)).rejects.toThrow(
+    'CHARACTER_CORE_STALE',
+  )
+  await db.exec('rollback to savepoint stale_creation')
+  expect(
+    (await db.query('select id from public.characters where user_id=$1', [owner])).rows,
+  ).toEqual([])
+  expect(
+    (
+      await db.query(
+        'select idempotency_key from app_private.idempotency_records where idempotency_key=$1',
+        [request],
+      )
+    ).rows,
+  ).toEqual([])
+})
+it('public current Core catalogue exposes authored values while the existing character remains pinned', async () => {
+  const first = await publishNativeDiscipline('vanguard', {
+    name: 'New Vanguard',
+    core: { might: 8, finesse: 4, vitality: 7, agility: 4, intellect: 4, resolve: 4 },
+  })
+  const catalogue = (
+    await db.query<{
+      value: {
+        discipline_id: string
+        name: string
+        profile_version: number
+        core_base_attributes: unknown
+      }[]
+    }>('select public.get_primary_discipline_catalog_v2() value')
+  ).rows[0]!.value
+  expect(catalogue.find((row) => row.discipline_id === 'vanguard')).toMatchObject({
+    name: 'New Vanguard',
+    profile_version: first.current.contentVersion,
+    core_base_attributes: { might: 8 },
+  })
+  const active = (
+    await db.query<{ value: { core_base_attributes: unknown } }>(
+      'select public.get_character_active_build_v4($1,$2) value',
+      [other, character],
+    )
+  ).rows[0]!.value
+  expect(active.core_base_attributes).toEqual({
+    might: 7,
+    finesse: 4,
+    vitality: 7,
+    agility: 4,
+    intellect: 3,
+    resolve: 6,
+  })
+})
+
+it('native Discipline first-edit reads real Core, prerequisites and all selected relationships without publication', async () => {
+  const view = (
+    await db.query<{ value: Record<string, unknown> }>(
+      'select public.get_builtin_discipline_definition_v1($1) value',
+      ['vanguard'],
+    )
+  ).rows[0]!.value
+  expect(view).toMatchObject({
+    id: 'vanguard',
+    core: { might: 7 },
+    focus: ['might', 'vitality', 'resolve'],
+    unlock: { kind: 'always' },
+    essenceId: resolveEssenceForBuild('vanguard', null)!.essenceId,
+  })
+  expect(view.linkedSkills).toHaveLength(8)
+  expect(view.skillStages).toHaveLength(8)
+  expect(view.resonanceSelections).toHaveLength(16)
+  const r = await record('vanguard')
+  expect(r).toMatchObject({
+    contentKind: 'discipline',
+    current: null,
+    draft: null,
+    builtin: { name: 'Vanguard' },
+  })
+  expect(
+    (
+      await db.query('select 1 from app_private.combat_content_publications where content_key=$1', [
+        'vanguard',
+      ])
+    ).rows,
+  ).toEqual([])
+})
+it('master Players and Atlas project cross-Discipline grants with explicit testing and earned facts', async () => {
+  await crossTrialSkills(false)
+  const view = (
+    await db.query<{ value: { learnedSkills: Record<string, unknown>[] } }>(
+      'select public.read_master_player_v1($1,$2,null) value',
+      [owner, character],
+    )
+  ).rows[0]!.value
+  expect(view.learnedSkills).toContainEqual(
+    expect.objectContaining({
+      sourceDisciplineId: 'lifebinder',
+      eligibilityDisciplineId: 'vanguard',
+      earnedEligibility: false,
+    }),
+  )
+  const progress = (
+    await db.query<{
+      value: { discipline_id: string; unearned_skill_count: number; earned_skill_count: number }[]
+    }>('select public.get_character_discipline_atlas_progress_v2($1,$2) value', [other, character])
+  ).rows[0]!.value
+  expect(
+    progress.find((row) => row.discipline_id === 'vanguard')?.unearned_skill_count,
+  ).toBeGreaterThanOrEqual(2)
+})
+
+it('publication invalidates preparation without changing pinned character Core, and a fresh capture admits', async () => {
+  const before = await capturedBuild()
+  const stale = await newTrialSnapshot()
+  await publishNativeDiscipline('vanguard', {
+    core: { might: 8, finesse: 4, vitality: 7, agility: 4, intellect: 4, resolve: 4 },
+  })
+  await denied(() => admitTrial(stale), /PLAYER_PREPARATION_STALE/)
+  const fresh = await capturedBuild()
+  expect(fresh.primary).toEqual(before.primary)
+  expect(fresh.sourceHash).toBe(before.sourceHash)
+  expect(fresh.buildVersion).toBe(before.buildVersion)
+  expect(fresh.catalogueToken).not.toBe(before.catalogueToken)
+  await admitTrial(await newTrialSnapshot())
+})

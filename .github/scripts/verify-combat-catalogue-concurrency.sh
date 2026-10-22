@@ -43,6 +43,22 @@ state_expression="jsonb_build_object(
   'equipped',(select coalesce(jsonb_agg(to_jsonb(e) order by character_id,slot_index),'[]') from app_private.character_build_discipline_skills e),
   'saved',(select coalesce(jsonb_agg(to_jsonb(s) order by character_id,slot_index),'[]') from app_private.character_saved_build_loadouts s),
   'builds',(select coalesce(jsonb_agg(to_jsonb(b) order by character_id),'[]') from app_private.character_active_builds b),
+  'personal',(select coalesce(jsonb_agg(to_jsonb(p) order by character_id),'[]') from app_private.character_attribute_personal_allocations p),
+  'grants',(select coalesce(jsonb_agg(to_jsonb(g) order by character_id,skill_id,eligibility_discipline_id),'[]') from app_private.character_discipline_skill_grants g),
+  'disciplinePointers',(select coalesce(jsonb_agg(to_jsonb(d) order by discipline_id),'[]') from app_private.discipline_current_definitions d),
+  'disciplineDefinitions',(select coalesce(jsonb_agg(to_jsonb(d) order by discipline_id,definition_version),'[]') from app_private.discipline_definitions d),
+  'profiles',(select coalesce(jsonb_agg(to_jsonb(p) order by discipline_id,profile_version),'[]') from app_private.discipline_primary_profiles p),
+  'idempotency',(select coalesce(jsonb_agg(to_jsonb(i) order by actor_key,command_name,idempotency_key),'[]') from app_private.idempotency_records i),
+  'mastery',(select coalesce(jsonb_agg(to_jsonb(p) order by character_id,discipline_id),'[]') from app_private.character_discipline_progress p),
+  'character_attribute_reset_windows',(select coalesce(jsonb_agg(to_jsonb(x) order by to_jsonb(x)::text),'[]') from app_private.character_attribute_reset_windows x),
+  'character_attribute_change_audit',(select coalesce(jsonb_agg(to_jsonb(x) order by to_jsonb(x)::text),'[]') from app_private.character_attribute_change_audit x),
+  'character_build_change_audit',(select coalesce(jsonb_agg(to_jsonb(x) order by to_jsonb(x)::text),'[]') from app_private.character_build_change_audit x),
+  'character_discipline_masteries',(select coalesce(jsonb_agg(to_jsonb(x) order by to_jsonb(x)::text),'[]') from app_private.character_discipline_masteries x),
+  'character_saved_build_loadout_activation_audit',(select coalesce(jsonb_agg(to_jsonb(x) order by to_jsonb(x)::text),'[]') from app_private.character_saved_build_loadout_activation_audit x),
+  'character_saved_build_loadout_activation_idempotency',(select coalesce(jsonb_agg(to_jsonb(x) order by to_jsonb(x)::text),'[]') from app_private.character_saved_build_loadout_activation_idempotency x),
+  'character_saved_build_loadout_save_idempotency',(select coalesce(jsonb_agg(to_jsonb(x) order by to_jsonb(x)::text),'[]') from app_private.character_saved_build_loadout_save_idempotency x),
+  'character_skill_loadout_change_audit',(select coalesce(jsonb_agg(to_jsonb(x) order by to_jsonb(x)::text),'[]') from app_private.character_skill_loadout_change_audit x),
+  'character_skill_loadout_idempotency',(select coalesce(jsonb_agg(to_jsonb(x) order by to_jsonb(x)::text),'[]') from app_private.character_skill_loadout_idempotency x),
   'phase4',(select coalesce(jsonb_agg(to_jsonb(c) order by skill_id),'[]') from app_private.phase4_skill_catalog c),
   'timing',(select jsonb_agg(to_jsonb(t) order by version) from app_private.combat_effect_timing_policy_versions t))::text"
 wait_for_query() {
@@ -77,6 +93,11 @@ reset role;
 select 'EXPECTED:' || $state_expression;
 SQL
   wait_for_query "select exists(select 1 from pg_stat_activity a join pg_locks l on l.pid=a.pid where a.application_name='$holder_app' and a.state='idle in transaction' and l.locktype='advisory' and l.granted);" "$label holder's real RPC lock"
+  if [[ "$label" == b-*-producer-first ]]; then
+    test "$(sql "select exists(select 1 from pg_stat_activity a join pg_locks l on l.pid=a.pid where a.application_name='$holder_app' and l.locktype='advisory' and l.mode='ShareLock' and l.granted);")" = t
+  elif [[ "$label" == b-*-catalogue-first ]]; then
+    test "$(sql "select exists(select 1 from pg_stat_activity a join pg_locks l on l.pid=a.pid where a.application_name='$holder_app' and l.locktype='advisory' and l.mode='ExclusiveLock' and l.granted);")" = t
+  fi
   docker exec -i -e PGAPPNAME="$writer_app" "$db_container" psql -X -Atq -v ON_ERROR_STOP=1 -v actor="$owner_id" -v token="$catalogue_token" -U postgres -d postgres \
     >"$race_tmp/$label-writer.log" 2>&1 <<SQL &
 begin;
@@ -115,7 +136,13 @@ SQL
     test -n "$expected_state"
     test "$(sql "select $state_expression;")" = "$expected_state"
   else
-    test "$writer_result" -eq 0
+    if [ -n "$expected_error" ]; then
+      test "$writer_result" -ne 0
+      grep -Fq "$expected_error" "$race_tmp/$label-writer.log"
+      grep -Fq '40001:' "$race_tmp/$label-writer.log"
+    else
+      test "$writer_result" -eq 0
+    fi
     test "$(sql "select $state_expression;")" = "$before_state"
   fi
   echo "Catalogue two-session $label: observed $schedule schedule, $finish, exact result and complete persisted state PASS."
@@ -129,7 +156,7 @@ test "$(sql "select content_version from app_private.combat_content_versions whe
 race timing-versus-content "$timing" "select public.publish_saved_combat_content_v1(:'actor',null,'ci.catalogue-loser',1,null,:'token',5);"
 race history-versus-content "select public.write_combat_content_record_v1(:'actor',null,'ci.catalogue-race','{\"action\":\"restore\",\"expectedRevision\":2,\"sourceVersion\":6}');" "select public.publish_saved_combat_content_v1(:'actor',null,'ci.catalogue-loser',1,null,:'token',5);"
 publish="select public.publish_saved_combat_content_v1(:'actor',null,'ci.catalogue-race',2,6,:'token',1);"
-race rollback-releases-token "$publish" "$timing" rollback
+race rollback-releases-token "$publish" "$timing" rollback ''
 
 # Use an isolated confirmed account and a physical character fixture. The actual
 # earned-Skill RPC runs under service_role; no guard or authorizer is replaced.
@@ -147,3 +174,30 @@ race independent-shared-admission "$(grant_skill ci.shared-first)" "$(grant_skil
 
 echo 'Combat catalogue physical PostgreSQL races: saved revision and floor, content/timing/restore cross-writer CAS, rollback and zero partial losing writes PASS.'
 echo 'Content archive/admission physical PostgreSQL races: admission-first dependency, archive-first immediate 40001, shared admissions and complete player/content rollback PASS.'
+
+# Stage B: each of the seven guarded tables is reached by its real mutation
+# producer. phase4_skill_catalog is the private content-import table itself.
+# Every schedule uses an independent catalogue holder, exact result, bounded
+# fail-fast assertion, and whole persisted state comparison including grants,
+# personal points, pointers and idempotency. Successful holders roll back here.
+sql "set role service_role; select public.write_combat_content_record_v1('$owner_id',null,k,jsonb_build_object('action','create','requestId',gen_random_uuid(),'contentKind','skill','definition',jsonb_build_object('id',k,'sourceDisciplineId','vanguard'))) from unnest(array['ci.b-stage-lock','ci.b-stage-grant','ci.b-stage-import']) k;" >/dev/null
+archive_b="$(archive_skill ci.b-stage-lock)"
+selected_b="$(sql "select jsonb_agg(jsonb_build_object('skillId',skill_id,'contentVersion',skill_content_version,'sourceDisciplineId',source_discipline_id,'eligibilityDisciplineId','vanguard') order by skill_id) from (select * from app_private.character_skill_unlocks where character_id='$admission_character' and source_discipline_id='vanguard' and skill_id like 'vanguard.%' order by skill_id limit 2) s;")"
+version_b="$(sql "select build_version from app_private.character_active_builds where character_id='$admission_character';")"
+producer_b() {
+  case "$1" in
+    character_skill_unlocks|character_discipline_skill_grants) grant_skill ci.b-stage-grant ;;
+    character_build_discipline_skills) printf "select * from public.save_character_discipline_skill_loadout_v1('%s','%s',%s,'%s'::jsonb,gen_random_uuid(),'native-b-selected');" "$admission_user" "$admission_character" "$version_b" "$selected_b" ;;
+    character_saved_build_loadouts) printf "select * from public.save_character_build_loadout_v1('%s','%s',1::smallint,'Native B',%s,gen_random_uuid(),'native-b-named');" "$admission_user" "$admission_character" "$version_b" ;;
+    character_active_builds) printf "select * from public.change_character_disciplines_v3('%s','%s',%s,true,'lifebinder',false,null,gen_random_uuid(),'native-b-primary');" "$admission_user" "$admission_character" "$version_b" ;;
+    character_attribute_personal_allocations) printf "select * from public.commit_character_attribute_allocation_v2('%s','%s','reset',12,4,7,4,3,6,gen_random_uuid(),'native-b-allocation');" "$admission_user" "$admission_character" ;;
+    phase4_skill_catalog) printf "reset role; insert into app_private.phase4_skill_catalog(skill_id,content_version,discipline_id,minimum_stage) values('ci.b-stage-import',1,'vanguard',1); set local role service_role;" ;;
+    *) return 1 ;;
+  esac
+}
+for guarded_table in character_skill_unlocks character_build_discipline_skills character_saved_build_loadouts phase4_skill_catalog character_active_builds character_attribute_personal_allocations character_discipline_skill_grants; do
+  actual_producer="$(producer_b "$guarded_table")"
+  race "b-$guarded_table-catalogue-first" "$archive_b" "$actual_producer" rollback COMBAT_CONTENT_ADMISSION_RETRY immediate
+  race "b-$guarded_table-producer-first" "$actual_producer" "$archive_b" rollback '' blocking
+done
+echo 'Stage B all seven actual guard tables: both physical catalogue/producer lock orders and whole-transaction rollback PASS.'

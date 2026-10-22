@@ -168,3 +168,12 @@ it.each([
     expect(() => parseNoncombatContentDefinition('discipline', definition)).toThrow()
   },
 )
+
+it.each([
+  ['name', 'x'.repeat(81)],
+  ['description', 'x'.repeat(241)],
+])('matches the real Discipline publication text limit for %s', (field, value) => {
+  expect(() =>
+    parseNoncombatContentDefinition('discipline', { ...publishedDiscipline, [field]: value }),
+  ).toThrow(field)
+})

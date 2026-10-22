@@ -27,6 +27,11 @@ export interface CharacterRecord {
 }
 
 export interface CreateBaseCharacterRecordInput extends IdempotentCommandInput {
+  personalBonuses?: Record<
+    'might' | 'finesse' | 'vitality' | 'agility' | 'intellect' | 'resolve',
+    number
+  >
+  expectedProfileVersion?: number
   userId: string
   rulesVersion: number
   name: string

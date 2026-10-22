@@ -126,7 +126,7 @@ it('shows one shared Skill with explicit active eligibility choices and truthful
     )
     expect(html).toContain('aria-label="Eligible Discipline for Mending Light"')
     expect(html).toContain('value="aetherist" selected=""')
-    expect(html).toContain('Vanguard — Testing access (unearned)')
+    expect(html).toContain('Vanguard — Available (unearned)')
     expect(html).toContain('Aetherist — Earned')
     expect(html.match(/data-selected="true"/g) ?? []).toHaveLength(2) // one Skill plus Guard
   } finally {

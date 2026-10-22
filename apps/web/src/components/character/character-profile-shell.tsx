@@ -78,11 +78,17 @@ export interface CharacterWorkspaceProps {
         definition: MatureSkillDefinition
         learnedAt: string
         activeSource: boolean
+        eligibilityGrants?: readonly {
+          eligibilityDisciplineId: string
+          activeSource: boolean
+          earnedAt?: string | null
+        }[]
       }[]
       equippedSkills: readonly {
         definition: MatureSkillDefinition
         slotIndex: number
         equippedAt: string
+        eligibilityDisciplineId?: string
       }[]
       extensions: {
         resonance: AnyResonanceDefinition | null

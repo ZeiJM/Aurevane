@@ -1,0 +1,9 @@
+$ next typegen && tsc --noEmit
+Generating route types...
+✓ Types generated successfully
+src/components/character/character-arsenal-shell.tsx(205,53): error TS2339: Property 'eligibilityGrants' does not exist on type '{ capacity: number; learnedSkills: readonly { definition: MatureSkillDefinition; learnedAt: string; activeSource: boolean; }[]; equippedSkills: readonly { definition: MatureSkillDefinition; slotIndex: number; equippedAt: string; }[]; extensions: { ...; }; }'.
+src/server/character/supabase-character-repository.ts(62,141): error TS18047: 'legacy' is possibly 'null'.
+src/server/character/supabase-character-repository.ts(62,207): error TS18047: 'legacy' is possibly 'null'.
+/workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/apps/web:
+[ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @aurevane/web@0.0.1 typecheck: `next typegen && tsc --noEmit`
+Exit status 2

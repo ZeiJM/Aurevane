@@ -7,6 +7,7 @@ import {
   NONCOMBAT_CONTENT_KINDS,
   parseNoncombatContentDefinition,
   noncombatPublicationBlocker,
+  assertDisciplinePublicationReady,
 } from '@aurevane/game-core/content/authored-content'
 import {
   EFFECT_PROFILE_AUTHORING_BLOCKER,
@@ -35,6 +36,7 @@ export interface CombatContentCategoryDescriptor {
   readonly catalogueProjection: 'combat' | 'opaque' | 'container'
   readonly authoringBlocker: typeof EFFECT_PROFILE_AUTHORING_BLOCKER | null
   readonly publicationBlocker: { readonly code: string; readonly message: string } | null
+  validatePublication?(value: unknown): void
   parseAuthoring(value: unknown): CombatContentDefinition
   parseRetained(value: unknown, key: string, version?: number): CombatContentDefinition
   parsePublished(record: CombatContentVersionRecord): CombatContentDefinition
@@ -163,10 +165,11 @@ export const COMBAT_CONTENT_CATEGORIES: readonly CombatContentCategoryDescriptor
       category: kind,
       storedKind: kind,
       identityField: 'id',
-      runtime: 'unsupported',
+      runtime: kind === 'discipline' ? 'container' : 'unsupported',
       catalogueProjection: 'container',
       authoringBlocker: null,
-      publicationBlocker: noncombatPublicationBlocker(kind),
+      publicationBlocker: kind === 'discipline' ? null : noncombatPublicationBlocker(kind),
+      ...(kind === 'discipline' ? { validatePublication: assertDisciplinePublicationReady } : {}),
       parseAuthoring: (value) => ({ ...parseNoncombatContentDefinition(kind, value) }),
       parseRetainedBody: (value) => ({ ...parseNoncombatContentDefinition(kind, value) }),
     }),

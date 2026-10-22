@@ -177,8 +177,8 @@ export function parseNoncombatContentDefinition(
   const row = object(value, 'definition', [...COMMON, ...specific])
   if (row.schemaVersion !== 1) invalid('schemaVersion', 'Unsupported schema.')
   id(row.id, 'id')
-  text(row.name, 'name', 120)
-  text(row.description, 'description', 4000)
+  text(row.name, 'name', kind === 'discipline' ? 80 : 120)
+  text(row.description, 'description', kind === 'discipline' ? 240 : 4000)
   if (!Number.isSafeInteger(row.contentVersion) || (row.contentVersion as number) < 1)
     invalid('contentVersion', 'Expected a positive version.')
   if (
@@ -323,4 +323,21 @@ export function noncombatPublicationBlocker(kind: NoncombatContentKind): {
     severence: 'Severence ownership, progression and activation are not implemented.',
   }
   return { path: 'contentKind', code: `${kind}-runtime-unsupported`, message: messages[kind] }
+}
+
+/** A saved legacy draft may be incomplete; publication requires every real producer field. */
+export function assertDisciplinePublicationReady(value: unknown): void {
+  const discipline = parseNoncombatContentDefinition('discipline', value) as AuthoredDiscipline
+  if (
+    discipline.unlock.kind === 'unavailable' ||
+    !discipline.atlas ||
+    !discipline.skillStages ||
+    discipline.essenceId === undefined ||
+    !discipline.resonanceSelections
+  ) {
+    invalid(
+      'discipline',
+      'Complete the Atlas, prerequisites, Skill stages and explicit Essence/Resonance selections before publication.',
+    )
+  }
 }

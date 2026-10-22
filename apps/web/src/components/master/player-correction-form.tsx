@@ -29,10 +29,12 @@ export function PlayerCorrectionForm({
 }) {
   const [kind, setKind] = useState<PlayerCorrection['kind']>('source')
   const [error, setError] = useState<string | null>(null)
-  const earned = player.learnedSkills.filter(
+  const available = player.learnedSkills.filter(
     (skill) =>
-      skill.sourceDisciplineId === player.facts.build.primary.disciplineId ||
-      skill.sourceDisciplineId === player.facts.build.secondary?.disciplineId,
+      (skill.eligibilityDisciplineId ?? skill.sourceDisciplineId) ===
+        player.facts.build.primary.disciplineId ||
+      (skill.eligibilityDisciplineId ?? skill.sourceDisciplineId) ===
+        player.facts.build.secondary?.disciplineId,
   )
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -59,12 +61,25 @@ export function PlayerCorrectionForm({
     } else if (kind === 'support')
       command = { kind, supportActionId: String(data.get('support')) as SupportActionId }
     else {
-      const skills = earned.filter((_, index) => data.getAll('skill').includes(String(index)))
-      if (skills.length > 4) {
-        setError('Choose at most four earned Skills.')
+      const skills = available.filter((_, index) => data.getAll('skill').includes(String(index)))
+      if (
+        skills.length > 4 ||
+        new Set(skills.map((skill) => skill.skillId)).size !== skills.length
+      ) {
+        setError('Choose up to four distinct Skills, with one eligibility choice per Skill.')
         return
       }
-      command = { kind, skills }
+      command = {
+        kind,
+        skills: skills.map(
+          ({ skillId, contentVersion, sourceDisciplineId, eligibilityDisciplineId }) => ({
+            skillId,
+            contentVersion,
+            sourceDisciplineId,
+            ...(eligibilityDisciplineId ? { eligibilityDisciplineId } : {}),
+          }),
+        ),
+      }
     }
     onReview(command)
   }
@@ -84,7 +99,7 @@ export function PlayerCorrectionForm({
         >
           <option value="source">Core Stats & XP</option>
           <option value="disciplines">Primary & Secondary</option>
-          <option value="skills">Earned Skill loadout</option>
+          <option value="skills">Available Skill loadout</option>
           <option value="support">Support action</option>
         </select>
       </label>
@@ -95,7 +110,7 @@ export function PlayerCorrectionForm({
             : kind === 'disciplines'
               ? 'Disciplines'
               : kind === 'skills'
-                ? 'Exact earned Skills'
+                ? 'Exact available Skills'
                 : 'Support action'}
         </legend>
         {kind === 'source' ? (
@@ -169,10 +184,15 @@ export function PlayerCorrectionForm({
           </>
         ) : kind === 'skills' ? (
           <>
-            <p>Choose up to four exact earned versions from the current Primary and Secondary.</p>
-            {earned.length ? (
-              earned.map((skill, index) => (
-                <label key={`${skill.skillId}:${skill.contentVersion}`}>
+            <p>
+              Choose up to four distinct available Skills and one active eligibility for each.
+              Testing access remains unearned.
+            </p>
+            {available.length ? (
+              available.map((skill, index) => (
+                <label
+                  key={`${skill.skillId}:${skill.contentVersion}:${skill.eligibilityDisciplineId ?? skill.sourceDisciplineId}`}
+                >
                   <input
                     type="checkbox"
                     name="skill"
@@ -180,15 +200,22 @@ export function PlayerCorrectionForm({
                     defaultChecked={player.facts.build.disciplineSkills.some(
                       (active) =>
                         active.skillId === skill.skillId &&
-                        active.contentVersion === skill.contentVersion,
+                        active.contentVersion === skill.contentVersion &&
+                        (active.eligibilityDisciplineId ?? active.sourceDisciplineId) ===
+                          (skill.eligibilityDisciplineId ?? skill.sourceDisciplineId),
                     )}
                   />
                   {playerLabel(skill.skillId)} · v{skill.contentVersion} ·{' '}
-                  {playerLabel(skill.sourceDisciplineId)}
+                  {playerLabel(skill.eligibilityDisciplineId ?? skill.sourceDisciplineId)} ·{' '}
+                  {skill.earnedEligibility === true
+                    ? 'Earned'
+                    : skill.earnedEligibility === false
+                      ? 'Available (unearned)'
+                      : 'Earned status unavailable'}
                 </label>
               ))
             ) : (
-              <p>No earned Skills available for these disciplines.</p>
+              <p>No Skills available for these disciplines.</p>
             )}
           </>
         ) : (

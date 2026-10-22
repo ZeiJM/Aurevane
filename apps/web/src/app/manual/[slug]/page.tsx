@@ -1,3 +1,4 @@
+import { loadPublishedDisciplineAtlas } from '@/server/character/published-discipline-catalogue'
 import { notFound } from 'next/navigation'
 
 import { DisciplineAtlasGuide } from '@/components/public-information/discipline-atlas-guide'
@@ -26,7 +27,7 @@ export default async function ManualArticlePage({ params }: { params: Promise<{ 
   if (slug === DISCIPLINE_ATLAS_SLUG) {
     return (
       <PublicInformationShell active="manual">
-        <DisciplineAtlasGuide />
+        <DisciplineAtlasGuide disciplines={await loadPublishedDisciplineAtlas()} />
       </PublicInformationShell>
     )
   }

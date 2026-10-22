@@ -1,3 +1,8 @@
+import {
+  CHARACTER_ATTRIBUTE_IDS,
+  type CharacterAttributes,
+} from '@aurevane/game-core/character/creation'
+import { getFoundationDiscipline } from '@aurevane/game-core/character/foundation-disciplines'
 import 'server-only'
 import { throwCombatContentAdmissionError } from '../combat/combat-content-admission-error'
 
@@ -54,8 +59,17 @@ export function createSupabaseCharacterRepository(): CharacterRepository {
     },
 
     async createBaseCharacter(input) {
+      // Retained direct adapter callers supply the old static seed; recover only
+      // their original five choices, then let the actual SQL producer add current Core.
+      const legacy = getFoundationDiscipline(input.foundationDisciplineId)
+      if (!input.personalBonuses && !legacy) throw unavailable()
+      const bonuses =
+        input.personalBonuses ??
+        (Object.fromEntries(
+          CHARACTER_ATTRIBUTE_IDS.map((key) => [key, input[key] - legacy!.baseAttributes[key]]),
+        ) as CharacterAttributes)
       const supabase = createSupabaseAdminClient()
-      const { data, error } = await supabase.rpc('create_character_v3', {
+      const { data, error } = await supabase.rpc('create_character_v4', {
         p_user_id: input.userId,
         p_slot_index: 0,
         p_idempotency_key: input.idempotencyKey,
@@ -68,16 +82,22 @@ export function createSupabaseCharacterRepository(): CharacterRepository {
         p_portrait_ref: input.portraitRef,
         p_starter_appearance_ref: input.starterAppearanceRef,
         p_foundation_discipline_id: input.foundationDisciplineId,
-        p_might: input.might,
-        p_finesse: input.finesse,
-        p_vitality: input.vitality,
-        p_agility: input.agility,
-        p_intellect: input.intellect,
-        p_resolve: input.resolve,
+        p_bonus_might: bonuses.might,
+        p_bonus_finesse: bonuses.finesse,
+        p_bonus_vitality: bonuses.vitality,
+        p_bonus_agility: bonuses.agility,
+        p_bonus_intellect: bonuses.intellect,
+        p_bonus_resolve: bonuses.resolve,
+        p_expected_profile_version: input.expectedProfileVersion ?? null,
       })
 
       if (error) {
         throwCombatContentAdmissionError(error)
+        if (error.message.includes('CHARACTER_CORE_STALE'))
+          throw new AurevaneError(
+            'INVALID_REQUEST',
+            'The Discipline Core changed. Refresh and review your five personal choices.',
+          )
         if (error.code === '22023') {
           throw new AurevaneError(
             'IDEMPOTENCY_CONFLICT',

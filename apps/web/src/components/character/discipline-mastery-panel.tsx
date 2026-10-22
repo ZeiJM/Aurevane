@@ -30,6 +30,8 @@ interface AtlasMasteryView {
   xp: number
   stage: number
   demonstratedSkillCount: number
+  earnedSkillCount: number
+  unearnedSkillCount: number
 }
 
 interface AtlasEntryView {
@@ -289,7 +291,13 @@ export function DisciplineMasteryPanel({
                             <div className={styles.masteryLine}>
                               <span>{masteryLabel(entry.mastery)}</span>
                               {entry.mastery ? (
-                                <span>{entry.mastery.demonstratedSkillCount}/8 demonstrated</span>
+                                <>
+                                  <span>{entry.mastery.demonstratedSkillCount} demonstrated</span>
+                                  <span>
+                                    {entry.mastery.earnedSkillCount} earned Skills ·{' '}
+                                    {entry.mastery.unearnedSkillCount} available Skills (unearned)
+                                  </span>
+                                </>
                               ) : null}
                             </div>
                             <progress

@@ -706,7 +706,7 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                             {grant.earnedAt
                               ? 'Earned'
                               : grant.earnedAt === null
-                                ? 'Testing access (unearned)'
+                                ? 'Available (unearned)'
                                 : 'Earned status unavailable'}
                           </option>
                         ))}

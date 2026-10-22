@@ -70,10 +70,19 @@ export function parsePlayerCorrection(value: unknown): PlayerCorrection {
         (skill) =>
           !playerRecord(skill) ||
           Object.keys(skill).some(
-            (key) => !['skillId', 'contentVersion', 'sourceDisciplineId'].includes(key),
+            (key) =>
+              ![
+                'skillId',
+                'contentVersion',
+                'sourceDisciplineId',
+                'eligibilityDisciplineId',
+              ].includes(key),
           ) ||
           typeof skill.skillId !== 'string' ||
           typeof skill.sourceDisciplineId !== 'string' ||
+          (Object.hasOwn(skill, 'eligibilityDisciplineId') &&
+            (typeof skill.eligibilityDisciplineId !== 'string' ||
+              !/^[a-z0-9]+([._-][a-z0-9]+)*$/u.test(skill.eligibilityDisciplineId))) ||
           !whole(skill.contentVersion) ||
           skill.contentVersion < 1,
       )
