@@ -20,6 +20,24 @@ describe('Master battle narration preview', () => {
     expect(markup).not.toContain('aria-label="Battle narration validation"')
   })
 
+  it('provides readable contextual insertion and never offers unavailable outcomes', () => {
+    const markup = renderToStaticMarkup(
+      createElement(BattleFlavorTemplateHelp, {
+        value: '{value.0.power} power',
+        ability: 'Arc',
+        onChange: () => {},
+        context: { field: 'activation', values: { '0.power': 12 }, affectedTargets: true },
+      }),
+    )
+    expect(markup).toContain('Insert Reference')
+    expect(markup).toContain('>User</option>')
+    expect(markup).toContain('>Affected Targets</option>')
+    expect(markup).toContain('Effect 1 · power')
+    expect(markup).toContain('12 power')
+    expect(markup).not.toContain('Actual damage')
+    expect(markup).toContain('does not verify arbitrary English')
+  })
+
   it('shows invalid-token diagnostics and a generic preview without rendering forbidden content', () => {
     const markup = renderToStaticMarkup(
       createElement(BattleFlavorTemplateHelp, {
