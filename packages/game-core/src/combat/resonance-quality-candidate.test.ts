@@ -38,7 +38,8 @@ describe('published Resonance quality cohort', () => {
     '$id retains exact history and declares valid modular native combat',
     ({ id, previousVersion, afterVersion, before, after }) => {
       expect(after.id).toBe(id)
-      expect(after.contentVersion).toBe(previousVersion + 1)
+      // The failed +1 revision remains immutable; corrected publication uses +2.
+      expect(after.contentVersion).toBe(previousVersion + 2)
       expect(afterVersion).toBe(after.contentVersion)
       expect(before.contentVersion).toBe(previousVersion)
       expect(after.disciplinePair).toEqual(before.disciplinePair)

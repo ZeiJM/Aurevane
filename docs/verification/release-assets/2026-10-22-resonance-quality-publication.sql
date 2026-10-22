@@ -28,14 +28,14 @@ begin
   perform app_private.assert_game_owner_v1(actor);
   if (select count(*) from app_private.combat_content_publications) <> 294
      or (select count(*) from app_private.combat_content_publications where content_kind='resonance') <> 136
-     or (select count(*) from app_private.combat_content_versions) <> 953
+     or (select count(*) from app_private.combat_content_versions) <> 1025
      or exists(select 1 from app_private.combat_content_drafts)
      or jsonb_array_length(rows) <> 72
      or (select count(distinct x->>'id') from jsonb_array_elements(rows) x) <> 72
      or (public.read_combat_effect_timing_policy_v1()->>'version')::int <> 8
   then raise exception 'RESONANCE_RELEASE_INVENTORY_OR_POLICY_CHANGED'; end if;
 
-  -- Before writing anything, validate all 72 pinned baselines and historical maxima.
+  -- Failed +1 definitions remain immutable in history, never selected.\n  -- Before writing anything, validate all 72 restored baseline pointers and +1 maxima.
   for row in select value from jsonb_array_elements(rows) loop
     select v.definition, v.content_version into current_definition, current_version
       from app_private.combat_content_publications p
@@ -45,7 +45,7 @@ begin
       from app_private.combat_content_versions v where v.content_key=row->>'id';
     if current_definition is null
        or current_version is distinct from (row->>'version')::int
-       or top_version is distinct from current_version
+       or top_version is distinct from current_version + 1
        or current_definition#>'{ability,behaviors,0,effects}' is distinct from row->'beforeEffects'
        or current_definition#>'{authoring,validationTags}' ? 'owner-resonance-quality-20261022'
     then raise exception 'RESONANCE_RELEASE_SOURCE_DRIFT: %', row->>'id'; end if;
@@ -60,21 +60,26 @@ begin
     proposed := jsonb_set(
       current_definition,
       '{ability,behaviors,0}',
-      (current_definition#>'{ability,behaviors,0}') || row->'behaviorPatch',
+      (current_definition#>'{ability,behaviors,0}') || (row->'behaviorPatch'),
       false
     );
     proposed := jsonb_set(proposed,'{description}',to_jsonb(row->>'description'),true);
     proposed := jsonb_set(proposed,'{authoring,validationTags}',row->'validationTags',false);
-    proposed := jsonb_set(proposed,'{contentVersion}',to_jsonb((row->>'version')::int + 1),false);
+    proposed := jsonb_set(proposed,'{contentVersion}',to_jsonb((row->>'version')::int + 2),false);
+    if proposed#>>'{ability,behaviors,0,id}' is distinct from current_definition#>>'{ability,behaviors,0,id}'
+      or proposed#>>'{ability,behaviors,0,activation}' is null
+      or proposed#>>'{ability,behaviors,0,mode}' is null
+      or jsonb_typeof(proposed#>'{ability,behaviors,0,effects}') <> 'array'
+    then raise exception 'RESONANCE_BEHAVIOR_RECONSTRUCTION_FAILED: %',row->>'id'; end if;
     select * into version_receipt
       from app_private.publish_combat_content_with_floor_v1(
-        actor,row->>'id','resonance',proposed,(row->>'version')::int,(row->>'version')::int
+        actor,row->>'id','resonance',proposed,(row->>'version')::int,(row->>'version')::int + 1
       );
-    if version_receipt.content_version is distinct from (row->>'version')::int + 1
+    if version_receipt.content_version is distinct from (row->>'version')::int + 2
        or version_receipt.definition is distinct from proposed
     then raise exception 'RESONANCE_RELEASE_READBACK_MISMATCH: %',row->>'id'; end if;
   end loop;
-  if (select count(*) from app_private.combat_content_versions) <> 1025
+  if (select count(*) from app_private.combat_content_versions) <> 1097
      or (select count(*) from app_private.combat_content_publications where content_kind='resonance') <> 136
      or (select count(*) from app_private.combat_content_publications) <> 294
   then raise exception 'RESONANCE_RELEASE_POSTCONDITION_FAILED'; end if;
