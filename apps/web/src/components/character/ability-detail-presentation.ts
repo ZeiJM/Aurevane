@@ -570,15 +570,46 @@ export function abilityBehaviorInformation(
       : behavior.classification === 'recovery'
         ? 'Heal'
         : 'Utility'
+  // An effect's own condition still gates only that effect in shared combat legality.
+  // Display it in the Requirements characteristic, never as a prefix to Effects.
   const summary = effects
     .map(
-      ({ presentation: { parts, condition, recipientOverride } }) =>
-        `${condition ? `If ${condition}: ` : ''}${parts.label}${parts.magnitude ? ` [${parts.magnitude}]` : ''}${parts.duration ? ` [${parts.duration}]` : ''}${parts.timing ? ` [${parts.timing}]` : ''}${recipientOverride ? ` [${recipientOverride}]` : ''}`,
+      ({ presentation: { parts, recipientOverride } }) =>
+        `${parts.label}${parts.magnitude ? ` [${parts.magnitude}]` : ''}${parts.duration ? ` [${parts.duration}]` : ''}${parts.timing ? ` [${parts.timing}]` : ''}${recipientOverride ? ` [${recipientOverride}]` : ''}`,
     )
     .join(', ')
-  const requirementParts = nativeMove
+  const primaryRequirement = nativeMove
+    ? 'N/A'
+    : abilityRequirementDescription(behavior.requirements, behavior)
+  const primaryParts = nativeMove
     ? undefined
     : requirementReferenceParts(behavior.requirements, effectContext, behavior)
+  const requirementEntries: { text: string; parts: readonly MechanicTextPart[] }[] = []
+  if (primaryRequirement !== 'None' && primaryRequirement !== 'N/A')
+    requirementEntries.push({
+      text: primaryRequirement,
+      parts: primaryParts ?? [primaryRequirement],
+    })
+  for (const { presentation } of effects) {
+    if (!presentation.condition) continue
+    const text = `${presentation.parts.label}: ${presentation.condition}`
+    requirementEntries.push({
+      text,
+      parts: [
+        `${presentation.parts.label}: `,
+        ...(presentation.conditionParts ?? [presentation.condition]),
+      ],
+    })
+  }
+  const requirementsSummary = requirementEntries.map(({ text }) => text).join('; ') ||
+    (nativeMove ? 'N/A' : 'None')
+  const combinedRequirementParts = requirementEntries.flatMap(({ parts }, index) => [
+    ...(index ? ['; '] : []),
+    ...parts,
+  ])
+  const requirementParts = combinedRequirementParts.some((part) => typeof part !== 'string')
+    ? combinedRequirementParts
+    : undefined
   const groundSummary = behavior.groundArea
     ? timingPolicy?.tagAuthority === 'global'
       ? `${behavior.groundArea.durationRounds} ${behavior.groundArea.durationRounds === 1 ? 'Round' : 'Rounds'}${behavior.groundArea.timing === 'instant' ? ' [Instant]' : behavior.groundArea.timing === 'delayed' ? ' [Delayed]' : ''}`
@@ -608,9 +639,7 @@ export function abilityBehaviorInformation(
       Cooldown: behavior.cooldown
         ? `${behavior.cooldown.ownerTurns} ${behavior.cooldown.ownerTurns === 1 ? 'turn' : 'turns'}`
         : 'None',
-      Requirements: nativeMove
-        ? 'N/A'
-        : abilityRequirementDescription(behavior.requirements, behavior),
+      Requirements: requirementsSummary,
       Effects: summary,
       Range: nativeMove
         ? options.stats?.move === undefined
