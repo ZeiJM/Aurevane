@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { expect, it } from 'vitest'
 import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
 import type { AbilityBehavior, RequirementNode } from '@aurevane/game-core/combat/combat-definition'
-import { abilityBehaviorInformation } from './ability-detail-presentation'
+import { abilityBehaviorInformation, abilityRequirementDescription } from './ability-detail-presentation'
 import { AbilityParameters } from './ability-parameters'
 import { plainMechanicText } from './mechanic-text'
 
@@ -94,10 +94,17 @@ it.each(candidate.records)(
     for (const behavior of row.after.ability.behaviors) {
       const result = abilityBehaviorInformation(behavior)
       const requirement = Object.fromEntries(result.rows).Requirements!
-      expect(requirement).toMatch(
+      const root = abilityRequirementDescription(behavior.requirements, behavior)
+      expect(root).toMatch(
         /^(None|[^\[\]&]+ \[(Self|Target)\]|(?:HP|MP) (?:less|more) than \[[\d.]+%\] \[(Self|Target)\])$/,
       )
-      expect(requirement).not.toMatch(/After|Tidecaller|Trigger|Action| or | & /)
+      if (root !== 'None') expect(requirement).toContain(root)
+      for (const effect of result.effects)
+        if (effect.condition) {
+          expect(requirement).toContain(`${effect.parts.label}: ${effect.condition}`)
+          expect(Object.fromEntries(result.rows).Effects).not.toContain(effect.condition)
+        }
+      expect(requirement).not.toMatch(/After|Tidecaller|Trigger|Action|\bIf\b/)
       const html = renderToStaticMarkup(<AbilityParameters report={result} />)
       expect(html.match(/<dt>/g)).toHaveLength(10)
       if (requirement !== 'None') expect(html).toContain('data-combat-tag-reference=')
