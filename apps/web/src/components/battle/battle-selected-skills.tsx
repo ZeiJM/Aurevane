@@ -99,9 +99,6 @@ export function BattleSelectedSkills({
     )
   const essenceCost = runtime.essence ? actionCost(runtime.essence) : undefined
   const essenceMode = runtime.essence ? battleSkillCastMode(runtime.essence) : undefined
-  const resonanceMode = runtime.resonance?.definition?.ability
-    ? battleSkillCastMode(runtime.resonance)
-    : undefined
   const special = battleCapturedSpecialAction(
     runtime,
     manualActionTargets,
@@ -348,12 +345,7 @@ export function BattleSelectedSkills({
                 )}
               />
             </SkillControls>
-            <small>
-              Resonance
-              {resonanceSkill
-                ? ''
-                : ` · ${resonanceMode ? (resonanceMode.canCast ? 'Unavailable' : resonanceMode.label) : 'Passive'}`}
-            </small>
+            <small>Resonance</small>
           </>
         ) : (
           <>

@@ -94,9 +94,34 @@ export function BattleMobileTokenMeters({
         token.dataset.battleSharedToken = 'true'
         const host = ensureMeterHost(token)
         const hpFill = host.querySelector<HTMLElement>('[data-mobile-token-meter="hp"] > i')
+        const hpTrack = host.querySelector<HTMLElement>('[data-mobile-token-meter="hp"]')
+        let barrierFill =
+          hpTrack?.querySelector<HTMLElement>('[data-mobile-hp-barrier="true"]') ?? null
         const mpFill = host.querySelector<HTMLElement>('[data-mobile-token-meter="mp"] > i')
-        const hpWidth = percent(combatant.hp, combatant.maxHp)
+        const barrier =
+          battle.current.snapshot.statusState
+            .find((entry) => entry.combatantId === combatantId)
+            ?.statuses.reduce(
+              (amount, status) =>
+                amount + (status.barrier?.kind === 'remaining' ? status.barrier.amount : 0),
+              0,
+            ) ?? 0
+        const hpMaximum = Math.max(combatant.maxHp, combatant.hp + barrier)
+        const hpWidth = percent(combatant.hp, hpMaximum)
+        const barrierWidth = percent(barrier, hpMaximum)
         const mpWidth = percent(combatant.mp, combatant.maxMp)
+        if (barrier > 0 && hpTrack && !barrierFill) {
+          barrierFill = document.createElement('span')
+          barrierFill.dataset.mobileHpBarrier = 'true'
+          hpTrack.append(barrierFill)
+        }
+        if (barrierFill) {
+          if (barrier === 0) barrierFill.remove()
+          else {
+            barrierFill.style.left = hpWidth
+            barrierFill.style.width = barrierWidth
+          }
+        }
         if (hpFill && hpFill.style.width !== hpWidth) hpFill.style.width = hpWidth
         if (mpFill && mpFill.style.width !== mpWidth) mpFill.style.width = mpWidth
       }

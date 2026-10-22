@@ -35,15 +35,14 @@ it.each(['bastion.hold-fast', 'essence.bastion.last-bastion'])(
   },
 )
 it.each(['wildwarden.field-remedy', 'essence.dawnshield.dawns-oath'])(
-  'keeps Cleanse eligibility in the explanation instead of repeating its status list in %s Effects',
+  'keeps Cleanse recovery eligibility as a modular Requirement, not effect prose, for %s',
   (id) => {
     const definition = actual(id)
     const before = JSON.stringify(definition)
     const report = abilityBehaviorInformation(definition.behaviors[0]!)
-    expect(report.effects[1]!.condition).toBeNull()
-    expect(report.effectDescriptions[1]).toContain(
-      'Applies only if the recipient has an effect that Cleanse can remove.',
-    )
+    expect(report.effects[1]!.condition).not.toBeNull()
+    expect(Object.fromEntries(report.rows).Requirements).toContain(report.effects[1]!.condition!)
+    expect(report.effectDescriptions[1]).not.toContain('only if')
     const html = renderToStaticMarkup(
       <AbilityDefinitionParameters definition={projectPublicCombat(definition)} />,
     )
@@ -113,7 +112,8 @@ it.each([
   const before = JSON.stringify(definition)
   const report = abilityBehaviorInformation(definition)
   expect(report.effects[1]!.condition).not.toBeNull()
-  expect(Object.fromEntries(report.rows).Effects).toContain('If ')
+  expect(Object.fromEntries(report.rows).Requirements).toContain(report.effects[1]!.condition!)
+  expect(Object.fromEntries(report.rows).Effects).not.toContain('If ')
   expect(report.effectDescriptions[1]).not.toContain(
     'Applies only if the recipient has an effect that Cleanse can remove.',
   )
@@ -130,12 +130,14 @@ it.each([
   const index = group.effects.findIndex((effect) => effect.requirements)
   const report = abilityBehaviorInformation(group)
   expect(report.effects[index]!.condition).toBe(condition)
-  expect(Object.fromEntries(report.rows).Effects).toContain(`If ${condition}: `)
+  expect(Object.fromEntries(report.rows).Requirements).toContain(condition)
+  expect(Object.fromEntries(report.rows).Effects).not.toContain('If ')
   expect(report.effectDescriptions[index]).not.toMatch(/^If |\d/)
   const html = renderToStaticMarkup(
     <AbilityDefinitionParameters definition={projectPublicCombat(definition)} />,
   )
-  expect(html.split(`If ${condition}: `)).toHaveLength(2)
+  expect(html).not.toContain(`If ${condition}: `)
+  expect(html).toContain('aria-label="Requirement explanations"')
   expect(report.effects.map((effect) => effect.condition)).toEqual(
     group.effects.map((effect, i) => (i === index ? condition : null)),
   )
@@ -207,13 +209,16 @@ it('keeps nested effect requirements aligned while prose stays plain and global 
   const report = abilityBehaviorInformation(nested.behaviors[0]!)
   const condition = '(MP [≥ 50%] [Self] or Marked)'
   expect(report.effects.map((effect) => effect.condition)).toEqual([null, condition, null])
-  expect(Object.fromEntries(report.rows).Requirements).toBe('AP [≥ 9] [Self]')
-  expect(Object.fromEntries(report.rows).Effects).toContain(`If ${condition}: MP Restore`)
+  expect(Object.fromEntries(report.rows).Requirements).toBe(
+    `AP [≥ 9] [Self]; MP Restore: ${condition}`,
+  )
+  expect(Object.fromEntries(report.rows).Effects).not.toContain('If ')
   expect(report.effectDescriptions[1]).toBe(
     'Restore MP to yourself, without exceeding the maximum. Recovery cannot revive a defeated unit.',
   )
   const html = renderToStaticMarkup(<AbilityParameters report={report} />)
-  expect(html.split(condition)).toHaveLength(2)
+  expect(html).toContain(condition)
+  expect(html).not.toContain(`If ${condition}:`)
   expect(html.replace(/<[^>]*>/gu, '')).toContain('AP [≥ 9] [Self]')
 })
 it('preserves authored conditional text exactly as escaped text without stripping repeated numbers', () => {

@@ -47,12 +47,13 @@ it('binds a condition link only to its actual conditional effect', () => {
   const report = abilityBehaviorInformation(actual('shadehand.execution-cut').behaviors[0]!)
   expect(
     references(report.requirementParts).map((part) => (typeof part === 'string' ? part : part.tag)),
-  ).toEqual(['resource-threshold'])
+  ).toEqual(['resource-threshold', 'exposed'])
   expect(report.effects[0]!.conditionParts).toBeUndefined()
   expect(plain(report.effects[1]!.conditionParts)).toBe('Vulnerable')
   const html = renderToStaticMarkup(<AbilityParameters report={report} />)
   expect(html.match(/data-combat-tag-reference="exposed"/g)).toHaveLength(1)
-  expect(html).toContain('If <')
+  expect(html).not.toContain('If <')
+  expect(Object.fromEntries(report.rows).Requirements).toContain('Dmg: Vulnerable')
 })
 it('retains all subjects, absence and non-status branches around nested linked predicates', () => {
   const requirements: RequirementNode = {
@@ -191,7 +192,8 @@ it('falls back to captured plain global and effect strings when optional parts a
   } as unknown as Parameters<typeof AbilityParameters>[0]['report']
   const html = renderToStaticMarkup(<AbilityParameters report={report} />)
   expect(html).toContain('HP [≤ 35%] [Target]')
-  expect(html).toContain('If Vulnerable: ')
+  expect(html).toContain('Dmg: Vulnerable')
+  expect(html).not.toContain('If Vulnerable: ')
   expect(html).not.toContain('data-combat-tag-reference="burn"')
   expect(html).not.toContain('aria-label="Requirement explanations"')
 })
