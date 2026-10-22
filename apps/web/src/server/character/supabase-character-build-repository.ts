@@ -1,3 +1,4 @@
+import { disciplineAttributePolicyFromCore } from '@aurevane/game-core/character/attribute-allocation'
 import 'server-only'
 import { createServerCombatContentResolver } from '../combat/combat-content-resolver'
 import {
@@ -73,7 +74,16 @@ function parseCatalogEntry(row: unknown): DisciplineCatalogEntry | null {
     enabledForPrimary: row.enabled_for_primary,
     enabledForSecondary: row.enabled_for_secondary,
   }
+  const corePolicy = disciplineAttributePolicyFromCore(
+    row.discipline_id,
+    profileVersion,
+    row.core_base_attributes,
+    row.focus_attributes,
+    row.off_focus_cap,
+  )
+  if (!corePolicy) return null
   const profile = {
+    corePolicy,
     disciplineId: row.discipline_id,
     profileVersion,
     statOffsets,
@@ -130,7 +140,16 @@ function parseActiveBuild(row: unknown): CharacterActiveBuildRecord | null {
     enabledForPrimary: row.primary_enabled_for_primary,
     enabledForSecondary: row.primary_enabled_for_secondary,
   }
+  const corePolicy = disciplineAttributePolicyFromCore(
+    row.primary_discipline_id,
+    primaryProfileVersion,
+    row.core_base_attributes,
+    row.focus_attributes,
+    row.off_focus_cap,
+  )
+  if (!corePolicy) return null
   const primaryProfile = {
+    corePolicy,
     disciplineId: row.primary_discipline_id,
     profileVersion: primaryProfileVersion,
     statOffsets: primaryStatOffsets,
@@ -386,11 +405,25 @@ function parseCommittedSnapshot(value: unknown): CharacterCommittedBuildSnapshot
   if (essence === undefined) return null
 
   if (
+    Object.hasOwn(value, 'catalogueToken') &&
+    (typeof value.catalogueToken !== 'string' || !/^[a-f0-9]{32}$/.test(value.catalogueToken))
+  )
+    return null
+  if (
+    Object.hasOwn(value, 'skillEligibilityPolicyVersion') &&
+    value.skillEligibilityPolicyVersion !== 1
+  )
+    return null
+  if (
     Object.hasOwn(value, 'sourceHash') &&
     (typeof value.sourceHash !== 'string' || !/^[a-f0-9]{64}$/u.test(value.sourceHash))
   )
     return null
   return {
+    ...(typeof value.catalogueToken === 'string' ? { catalogueToken: value.catalogueToken } : {}),
+    ...(value.skillEligibilityPolicyVersion === 1
+      ? { skillEligibilityPolicyVersion: 1 as const }
+      : {}),
     ...(typeof value.sourceHash === 'string' ? { sourceHash: value.sourceHash } : {}),
     schemaVersion,
     buildVersion,
@@ -432,7 +465,7 @@ export function createSupabaseCharacterBuildRepository(): CharacterBuildReposito
 
     async listDisciplines(userId, characterId) {
       const supabase = createSupabaseAdminClient()
-      const { data, error } = await supabase.rpc('get_character_discipline_catalog_v2', {
+      const { data, error } = await supabase.rpc('get_character_discipline_catalog_v3', {
         p_user_id: userId,
         p_character_id: characterId,
       })

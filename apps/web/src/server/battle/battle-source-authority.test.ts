@@ -44,7 +44,9 @@ it('recursively removes private source captures from every public envelope', () 
   expect(
     projectPublicCombat({
       sourceHash: 'root',
-      snapshot: { combatants: [{ sourceHash: 'private', hp: 8 }] },
+      snapshot: {
+        combatants: [{ sourceHash: 'private', catalogueToken: 'private-generation', hp: 8 }],
+      },
     }),
   ).toEqual({ snapshot: { combatants: [{ hp: 8 }] } })
 })

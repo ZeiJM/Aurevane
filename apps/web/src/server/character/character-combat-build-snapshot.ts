@@ -22,6 +22,9 @@ export function toCombatBuildSnapshot(
     schemaVersion: COMBAT_BUILD_SNAPSHOT_SCHEMA_VERSION,
     sourceBuildSchemaVersion: committed.schemaVersion,
     sourceBuildVersion: committed.buildVersion,
+    ...(committed.skillEligibilityPolicyVersion === 1
+      ? { skillEligibilityPolicyVersion: 1 as const }
+      : {}),
     primary: { ...committed.primary },
     secondary: committed.secondary ? { ...committed.secondary } : null,
     disciplineSkills: [...committed.disciplineSkills]

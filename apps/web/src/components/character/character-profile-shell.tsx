@@ -1,4 +1,4 @@
-import { foundationDisciplineAttributePolicy } from '@aurevane/game-core/character/attribute-allocation'
+import { disciplineAttributePolicyForProfile } from '@aurevane/game-core/character/discipline-build'
 import type {
   CharacterAttributeId,
   CharacterAttributes,
@@ -135,7 +135,7 @@ export function CharacterProfileShell({
   personalTitle = null,
   imageUrl = null,
 }: CharacterWorkspaceProps) {
-  const attributePolicy = foundationDisciplineAttributePolicy(disciplineBuild.current.definition.id)
+  const attributePolicy = disciplineAttributePolicyForProfile(disciplineBuild.current.profile)
   const focusAttributes: readonly CharacterAttributeId[] = attributePolicy?.focusAttributes ?? []
   const buildTypeLabel = disciplineBuild.currentSecondary ? 'Resonance Build' : 'Essence Build'
 

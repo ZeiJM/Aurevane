@@ -4,13 +4,11 @@ import { createHash } from 'node:crypto'
 import type { CombatContentResolver } from '../combat/combat-content-resolver'
 import { isDisciplineSkillIdentity } from './discipline-skill-reference-parser'
 
-import {
-  foundationDisciplineAttributePolicy,
-  projectAllocationForPrimaryDisciplineChange,
-} from '@aurevane/game-core/character/attribute-allocation'
+import { projectAllocationForPrimaryDisciplineChange } from '@aurevane/game-core/character/attribute-allocation'
 import type { PersistedCharacter } from '@aurevane/game-core/character/persistence'
 import {
   buildPrimaryDisciplinePreview,
+  disciplineAttributePolicyForProfile,
   type DisciplineDefinition,
   type PrimaryDisciplineBaseProfile,
   type PrimaryDisciplinePreview,
@@ -91,6 +89,8 @@ export interface CharacterEquippedDisciplineSkillRecord extends DisciplineSkillR
 
 export interface CharacterCommittedBuildSnapshotRecord {
   /** Server-only exact source facts, never a public profile field. */
+  catalogueToken?: string
+  skillEligibilityPolicyVersion?: 1
   sourceHash?: string
   supportActionId?: SupportActionId
   schemaVersion: number
@@ -324,8 +324,9 @@ function selectedSecondary(
 function resolvedPrimaryEntry(
   id: string,
   context: CharacterBuildContext,
+  refreshCurrent = false,
 ): PrimaryDisciplineCatalogEntry {
-  if (id === context.current.definition.id) {
+  if (id === context.current.definition.id && !refreshCurrent) {
     return {
       definition: context.current.definition,
       profile: context.current.profile,
@@ -625,7 +626,7 @@ export async function previewCharacterDisciplines(
     throw new AurevaneError('INVALID_REQUEST', 'Choose a valid Secondary Discipline to preview.')
   }
 
-  const primary = resolvedPrimaryEntry(primaryId, context)
+  const primary = resolvedPrimaryEntry(primaryId, context, input.primaryDisciplineId !== undefined)
   const secondary = resolvedSecondaryDefinition(secondaryId, context)
 
   if (secondary?.id === primary.definition.id) {
@@ -635,11 +636,14 @@ export async function previewCharacterDisciplines(
     )
   }
 
-  const changesPrimary = primary.definition.id !== context.current.definition.id
+  const changesPrimary =
+    primary.definition.id !== context.current.definition.id ||
+    primary.definition.definitionVersion !== context.current.definition.definitionVersion ||
+    primary.profile.profileVersion !== context.current.profile.profileVersion
   let proposedAttributes = character.attributes
   if (changesPrimary) {
-    const currentPolicy = foundationDisciplineAttributePolicy(context.current.definition.id)
-    const proposedPolicy = foundationDisciplineAttributePolicy(primary.definition.id)
+    const currentPolicy = disciplineAttributePolicyForProfile(context.current.profile)
+    const proposedPolicy = disciplineAttributePolicyForProfile(primary.profile)
     if (!currentPolicy || !proposedPolicy) {
       throw new AurevaneError('INVALID_REQUEST', 'The selected Primary Discipline is unavailable.')
     }
@@ -875,7 +879,7 @@ export async function changeCharacterDisciplines(
     throw new AurevaneError('INVALID_REQUEST', 'Choose a valid Secondary Discipline to commit.')
   }
 
-  const primary = resolvedPrimaryEntry(primaryId, context)
+  const primary = resolvedPrimaryEntry(primaryId, context, input.primaryDisciplineId !== undefined)
   const secondary = resolvedSecondaryDefinition(secondaryId, context)
 
   if (secondary?.id === primary.definition.id) {
@@ -885,7 +889,10 @@ export async function changeCharacterDisciplines(
     )
   }
 
-  const changePrimary = primary.definition.id !== context.current.definition.id
+  const changePrimary =
+    primary.definition.id !== context.current.definition.id ||
+    primary.definition.definitionVersion !== context.current.definition.definitionVersion ||
+    primary.profile.profileVersion !== context.current.profile.profileVersion
   const changeSecondary = (secondary?.id ?? null) !== (context.currentSecondary?.id ?? null)
 
   if (!changePrimary && !changeSecondary) {

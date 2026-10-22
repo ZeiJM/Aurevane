@@ -863,3 +863,53 @@ describe('published current build consumers and earned eligibility', () => {
     expect(contentResolver.resolveCurrentSkillDefinition).not.toHaveBeenCalled()
   })
 })
+
+it('previews an authored same-identity Core refresh without resetting personal points', async () => {
+  const currentPolicy = {
+    disciplineId: 'vanguard',
+    policyVersion: 1,
+    baseAttributes: { might: 8, finesse: 4, vitality: 8, agility: 4, intellect: 3, resolve: 4 },
+    focusAttributes: ['might', 'vitality'] as const,
+    attributeCaps: {
+      might: 60,
+      finesse: 40,
+      vitality: 60,
+      agility: 40,
+      intellect: 40,
+      resolve: 40,
+    },
+  }
+  const nextPolicy = {
+    ...currentPolicy,
+    policyVersion: 9,
+    baseAttributes: { ...currentPolicy.baseAttributes, might: 7, intellect: 4 },
+  }
+  const pinned = { ...vanguard, profile: { ...vanguard.profile, corePolicy: currentPolicy } }
+  const next = {
+    ...vanguard,
+    definition: { ...vanguard.definition, definitionVersion: 9 },
+    profile: { ...vanguard.profile, profileVersion: 9, corePolicy: nextPolicy },
+  }
+  const repo = repository({
+    findActiveBuild: vi.fn(async () => build(pinned)),
+    listDisciplines: vi.fn(async () => [next]),
+  })
+  const preview = await previewCharacterDisciplines(
+    userId,
+    character(),
+    { primaryDisciplineId: 'vanguard' },
+    repo,
+  )
+  expect(preview.proposed.profile.profileVersion).toBe(9)
+  expect(preview.changes.primary).toBe(true)
+  // The same personal allocation gives the same derived stats as an explicit
+  // new Core7/4 plus original Might1/Intellect0, not a reset to its new base.
+  expect(preview.proposed.derived).toEqual(
+    (await import('@aurevane/game-core/character/discipline-build')).buildPrimaryDisciplinePreview({
+      attributes: { ...character().attributes, might: 8, intellect: 4 },
+      level: character().level,
+      primaryDefinition: next.definition,
+      primaryProfile: next.profile,
+    }).derived,
+  )
+})

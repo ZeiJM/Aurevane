@@ -18,6 +18,7 @@ export function parseDisciplineSkillReference(value: unknown): DisciplineSkillRe
     typeof row.contentVersion !== 'number' ||
     !Number.isSafeInteger(row.contentVersion) ||
     row.contentVersion < 1 ||
+    (Object.hasOwn(row, 'earnedEligibility') && typeof row.earnedEligibility !== 'boolean') ||
     (Object.hasOwn(row, 'eligibilityDisciplineId') &&
       !isDisciplineSkillIdentity(row.eligibilityDisciplineId))
   )
@@ -28,6 +29,9 @@ export function parseDisciplineSkillReference(value: unknown): DisciplineSkillRe
     sourceDisciplineId: row.sourceDisciplineId,
     ...(Object.hasOwn(row, 'eligibilityDisciplineId')
       ? { eligibilityDisciplineId: row.eligibilityDisciplineId as string }
+      : {}),
+    ...(Object.hasOwn(row, 'earnedEligibility')
+      ? { earnedEligibility: row.earnedEligibility as boolean }
       : {}),
   }
 }

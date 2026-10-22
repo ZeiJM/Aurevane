@@ -1,0 +1,51 @@
+
+/workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/apps/web/src/app/api/character/build/disciplines/route.ts
+  0:0  warning  File ignored because of a matching ignore pattern. Use "--no-ignore" to disable file ignore settings or use "--no-warn-ignored" to suppress this warning
+
+/workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/apps/web/src/components/character/character-profile-shell.tsx
+  0:0  warning  File ignored because of a matching ignore pattern. Use "--no-ignore" to disable file ignore settings or use "--no-warn-ignored" to suppress this warning
+
+/workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/apps/web/src/server/battle/battle-build-authority-mixed-source-cap.test.ts
+  0:0  warning  File ignored because of a matching ignore pattern. Use "--no-ignore" to disable file ignore settings or use "--no-warn-ignored" to suppress this warning
+
+/workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/apps/web/src/server/battle/battle-build-authority.ts
+  0:0  warning  File ignored because of a matching ignore pattern. Use "--no-ignore" to disable file ignore settings or use "--no-warn-ignored" to suppress this warning
+
+/workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/apps/web/src/server/battle/battle-source-authority.test.ts
+  0:0  warning  File ignored because of a matching ignore pattern. Use "--no-ignore" to disable file ignore settings or use "--no-warn-ignored" to suppress this warning
+
+/workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/apps/web/src/server/character/character-attribute-service.ts
+  0:0  warning  File ignored because of a matching ignore pattern. Use "--no-ignore" to disable file ignore settings or use "--no-warn-ignored" to suppress this warning
+
+/workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/apps/web/src/server/character/character-build-eligibility-transport.test.ts
+  0:0  warning  File ignored because of a matching ignore pattern. Use "--no-ignore" to disable file ignore settings or use "--no-warn-ignored" to suppress this warning
+
+/workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/apps/web/src/server/character/character-build-service.test.ts
+  0:0  warning  File ignored because of a matching ignore pattern. Use "--no-ignore" to disable file ignore settings or use "--no-warn-ignored" to suppress this warning
+
+/workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/apps/web/src/server/character/character-build-service.ts
+  0:0  warning  File ignored because of a matching ignore pattern. Use "--no-ignore" to disable file ignore settings or use "--no-warn-ignored" to suppress this warning
+
+/workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/apps/web/src/server/character/character-combat-build-snapshot.ts
+  0:0  warning  File ignored because of a matching ignore pattern. Use "--no-ignore" to disable file ignore settings or use "--no-warn-ignored" to suppress this warning
+
+/workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/apps/web/src/server/character/character-slot-service.test.ts
+  0:0  warning  File ignored because of a matching ignore pattern. Use "--no-ignore" to disable file ignore settings or use "--no-warn-ignored" to suppress this warning
+
+/workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/apps/web/src/server/character/discipline-skill-reference-parser.ts
+  0:0  warning  File ignored because of a matching ignore pattern. Use "--no-ignore" to disable file ignore settings or use "--no-warn-ignored" to suppress this warning
+
+/workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/apps/web/src/server/character/supabase-character-attribute-repository.ts
+  0:0  warning  File ignored because of a matching ignore pattern. Use "--no-ignore" to disable file ignore settings or use "--no-warn-ignored" to suppress this warning
+
+/workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/apps/web/src/server/character/supabase-character-build-repository.ts
+  0:0  warning  File ignored because of a matching ignore pattern. Use "--no-ignore" to disable file ignore settings or use "--no-warn-ignored" to suppress this warning
+
+✖ 14 problems (0 errors, 14 warnings)
+
+
+/workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/apps/web/src/server/character/character-published-core-allocation.test.ts
+  0:0  warning  File ignored because of a matching ignore pattern. Use "--no-ignore" to disable file ignore settings or use "--no-warn-ignored" to suppress this warning
+
+✖ 1 problem (0 errors, 1 warning)
+

@@ -52,6 +52,32 @@ function attributeCapsForFocus(focusAttributes: readonly CharacterAttributeId[])
   ) as Record<CharacterAttributeId, number>
 }
 
+/** Parse the same published six-base/focus contract used by SQL and preserve its exact version. */
+export function disciplineAttributePolicyFromCore(
+  disciplineId: string,
+  policyVersion: number,
+  base: unknown,
+  focus: unknown,
+  offFocusCap: unknown,
+): DisciplineAttributePolicy | null {
+  if (
+    !base ||
+    typeof base !== 'object' ||
+    Array.isArray(base) ||
+    !Array.isArray(focus) ||
+    offFocusCap !== FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP
+  )
+    return null
+  const policy: DisciplineAttributePolicy = {
+    disciplineId,
+    policyVersion,
+    baseAttributes: base as CharacterAttributes,
+    focusAttributes: focus as CharacterAttributeId[],
+    attributeCaps: attributeCapsForFocus(focus as CharacterAttributeId[]),
+  }
+  return validateDisciplineAttributePolicy(policy).length === 0 ? policy : null
+}
+
 /**
  * Foundation identity policy v5. The Primary owns a fixed 31-point Core Stat base, while all
  * creation/level points remain player-owned. Primary focus attributes cap at 60 and all non-focus

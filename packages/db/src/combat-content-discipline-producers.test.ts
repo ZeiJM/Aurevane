@@ -1599,3 +1599,310 @@ it('the actual build-change pruning trigger preserves a valid three-plus-one sel
   ).toEqual(before)
   expect(before).toHaveLength(4)
 })
+
+async function capturedBuild() {
+  return (
+    await db.query<{ value: Record<string, unknown> }>(
+      'select public.get_character_committed_build_snapshot_v2($1,$2) value',
+      [other, character],
+    )
+  ).rows[0]!.value
+}
+async function newTrialSnapshot() {
+  return {
+    tactical: {
+      battle: {
+        battleId: 'stage-b-trial',
+        rulesVersion: 1,
+        contentVersion: 1,
+        lifecycle: 'active',
+        currentTurn: { combatantId: `character:${character}` },
+        rng: { algorithm: 'xorshift32-v1', seed: 7, state: 7, draws: 0 },
+        combatants: [
+          {
+            id: `character:${character}`,
+            teamId: 'players',
+            hp: 100,
+            mp: 10,
+            temporaryResources: [],
+          },
+          { id: 'enemy', teamId: 'enemies', hp: 100, mp: 10, temporaryResources: [] },
+        ],
+      },
+    },
+    buildAuthority: {
+      combatants: [
+        {
+          ...(await capturedBuild()),
+          combatantId: `character:${character}`,
+          characterId: character,
+        },
+      ],
+    },
+    statBridge: {
+      combatants: [
+        {
+          combatantId: 'enemy',
+          provenance: {
+            kind: 'scenario',
+            sourceId: 'scenario:p2-7-recruit:vanguard:mastery-trial:standard',
+          },
+        },
+      ],
+    },
+  }
+}
+async function admitTrial(snapshot: Awaited<ReturnType<typeof newTrialSnapshot>>) {
+  return (
+    await db.query<{ battle_session_id: string }>(
+      'select * from public.create_battle_session_v1($1::text,$2,$3,$1::uuid,$4,1,1,$5,$6)',
+      [
+        other,
+        crypto.randomUUID(),
+        'stage-b',
+        'stage-b-trial',
+        snapshot,
+        [
+          {
+            combatant_id: `character:${character}`,
+            participant_role: 'player',
+            character_id: character,
+          },
+          { combatant_id: 'enemy', participant_role: 'opponent', character_id: null },
+        ],
+      ],
+    )
+  ).rows[0]!
+}
+async function crossTrialSkills(earned: boolean) {
+  const skills = (
+    await db.query<{ skill_id: string; content_version: number }>(
+      "select skill_id,content_version from app_private.phase4_skill_catalog where discipline_id='lifebinder' order by skill_id limit 2",
+    )
+  ).rows
+  for (const skill of skills)
+    await db.query('select app_private.grant_discipline_skill_v1($1,$2,$3,$4,$5,$6,$7,$8)', [
+      character,
+      skill.skill_id,
+      skill.content_version,
+      'lifebinder',
+      'vanguard',
+      earned ? 'gameplay' : 'support',
+      earned ? 'discipline-mastery:v1' : 'discipline-testing-open:v1',
+      earned,
+    ])
+  await saveSkillReferences(
+    skills.map((skill) => ({
+      skillId: skill.skill_id,
+      contentVersion: skill.content_version,
+      sourceDisciplineId: 'lifebinder',
+      eligibilityDisciplineId: 'vanguard',
+    })),
+  )
+  return skills.map((skill) => skill.skill_id)
+}
+it('committed producer pins selected earned facts and explicit policy without changing the Players sourceHash contract', async () => {
+  await crossTrialSkills(false)
+  const snapshot = await capturedBuild()
+  expect(snapshot.skillEligibilityPolicyVersion).toBe(1)
+  expect(snapshot.disciplineSkills).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        eligibilityDisciplineId: 'vanguard',
+        sourceDisciplineId: 'lifebinder',
+        earnedEligibility: false,
+      }),
+    ]),
+  )
+  const hash = (
+    await db.query<{ hash: string }>('select app_private.player_source_hash_v1($1) hash', [
+      character,
+    ])
+  ).rows[0]!.hash
+  expect(snapshot.sourceHash).toBe(hash)
+})
+it.each(['source', 'build', 'earned', 'eligibility'] as const)(
+  'fresh actual admission rejects stale or forged %s with whole transaction rollback',
+  async (kind) => {
+    await crossTrialSkills(false)
+    const snapshot = await newTrialSnapshot()
+    const captured = snapshot.buildAuthority.combatants[0]! as Record<string, unknown>
+    if (kind === 'source')
+      await db.query('update public.characters set xp=xp+1 where id=$1', [character])
+    if (kind === 'build')
+      await db.query(
+        'update app_private.character_active_builds set build_version=build_version+1 where character_id=$1',
+        [character],
+      )
+    if (kind === 'earned')
+      (captured.disciplineSkills as Record<string, unknown>[])[0]!.earnedEligibility = true
+    if (kind === 'eligibility')
+      (captured.disciplineSkills as Record<string, unknown>[])[0]!.eligibilityDisciplineId =
+        'lifebinder'
+    await denied(() => admitTrial(snapshot), /PLAYER_PREPARATION_STALE/)
+    expect((await db.query('select * from app_private.battle_sessions')).rows).toHaveLength(0)
+    expect((await db.query('select * from app_private.battle_snapshots')).rows).toHaveLength(0)
+  },
+)
+it.each([true, false])(
+  'actual trial credits only immutable selected earned eligibility (%s), once for battle-pinned Primary',
+  async (earned) => {
+    const skills = await crossTrialSkills(earned)
+    const snapshot = await newTrialSnapshot()
+    const battle = await admitTrial(snapshot)
+    // Later grant changes must not rewrite admission facts.
+    if (!earned)
+      for (const skill of skills)
+        await db.query(
+          "update app_private.character_discipline_skill_grants set earned_at=now(),earned_source_kind='gameplay',earned_source_id='later' where character_id=$1 and skill_id=$2 and eligibility_discipline_id='vanguard'",
+          [character, skill],
+        )
+    for (const [index, skill] of [skills[0], skills[1], skills[0]].entries())
+      await db.query(
+        'insert into app_private.battle_events(battle_session_id,battle_version,event_index,event) values($1,1,$2,$3)',
+        [
+          battle.battle_session_id,
+          index,
+          { event: 'combat_action_used', actorId: `character:${character}`, actionId: skill },
+        ],
+      )
+    snapshot.tactical.battle.lifecycle = 'completed'
+    snapshot.tactical.battle.combatants[1]!.hp = 0
+    await db.query(
+      "update app_private.battle_sessions set lifecycle='completed',current_snapshot=$1 where id=$2",
+      [snapshot, battle.battle_session_id],
+    )
+    const claim = () =>
+      db.query<{ discipline_id: string; awarded_xp: number; replayed: boolean }>(
+        'select * from public.claim_discipline_trial_v1($1,$2)',
+        [other, battle.battle_session_id],
+      )
+    if (earned) {
+      expect((await claim()).rows[0]).toMatchObject({
+        discipline_id: 'vanguard',
+        awarded_xp: 50,
+        replayed: false,
+      })
+      expect((await claim()).rows[0]).toMatchObject({ awarded_xp: 50, replayed: true })
+    } else {
+      await denied(claim, /TRIAL_SKILL_VARIETY_REQUIRED/)
+      expect(
+        (await db.query('select * from app_private.discipline_trial_claims')).rows,
+      ).toHaveLength(0)
+    }
+  },
+)
+it('historical omitted-policy trial keeps native credit and exact repeat receipt', async () => {
+  const snapshot = await newTrialSnapshot()
+  delete (snapshot.buildAuthority.combatants[0]! as Record<string, unknown>)
+    .skillEligibilityPolicyVersion
+  // Import a pre-migration physical encounter, then restore the actual admission guard.
+  // No ordinary post-migration creation can omit this policy.
+  await db.exec(
+    'alter table app_private.battle_participants disable trigger aaa_player_battle_admission',
+  )
+  const battle = await admitTrial(snapshot)
+  await db.exec(
+    'alter table app_private.battle_participants enable trigger aaa_player_battle_admission',
+  )
+  for (const [index, skill] of [
+    'vanguard.forceful-strike',
+    'vanguard.cleave',
+    'vanguard.forceful-strike',
+  ].entries())
+    await db.query(
+      'insert into app_private.battle_events(battle_session_id,battle_version,event_index,event) values($1,1,$2,$3)',
+      [
+        battle.battle_session_id,
+        index,
+        { event: 'combat_action_used', actorId: `character:${character}`, actionId: skill },
+      ],
+    )
+  snapshot.tactical.battle.lifecycle = 'completed'
+  snapshot.tactical.battle.combatants[1]!.hp = 0
+  await db.query(
+    "update app_private.battle_sessions set lifecycle='completed',current_snapshot=$1 where id=$2",
+    [snapshot, battle.battle_session_id],
+  )
+  const claim = () =>
+    db.query<{ awarded_xp: number; replayed: boolean }>(
+      'select * from public.claim_discipline_trial_v1($1,$2)',
+      [other, battle.battle_session_id],
+    )
+  expect((await claim()).rows[0]).toMatchObject({ awarded_xp: 50, replayed: false })
+  expect((await claim()).rows[0]).toMatchObject({ awarded_xp: 50, replayed: true })
+})
+it('same-identity current Core refresh preserves personal allocations and attunement clocks', async () => {
+  const before = (
+    await db.query<{ personal_attributes: Record<string, number> }>(
+      'select personal_attributes from public.get_character_attribute_allocation_v2($1,$2)',
+      [other, character],
+    )
+  ).rows[0]!.personal_attributes
+  await db.query(
+    "update app_private.character_active_builds set primary_attunement_locked_until=now()+interval '1 hour' where character_id=$1",
+    [character],
+  )
+  const clock = (
+    await db.query<{ value: unknown }>(
+      'select primary_attunement_locked_until value from app_private.character_active_builds where character_id=$1',
+      [character],
+    )
+  ).rows[0]!.value
+  const published = await publishNativeDiscipline('vanguard', {
+    core: { might: 8, finesse: 4, vitality: 7, agility: 4, intellect: 4, resolve: 4 },
+  })
+  await db.query(
+    'select * from public.change_character_disciplines_v3($1,$2,1,true,$3,false,null,$4,$5)',
+    [other, character, 'vanguard', crypto.randomUUID(), 'refresh'],
+  )
+  const after = (
+    await db.query<{ personal_attributes: unknown; base_attributes: unknown }>(
+      'select personal_attributes,base_attributes from public.get_character_attribute_allocation_v2($1,$2)',
+      [other, character],
+    )
+  ).rows[0]!
+  expect(after.personal_attributes).toEqual(before)
+  expect(after.base_attributes).toEqual({
+    might: 8,
+    finesse: 4,
+    vitality: 7,
+    agility: 4,
+    intellect: 4,
+    resolve: 4,
+  })
+  const active = (
+    await db.query<{ primary_profile_version: number; primary_attunement_locked_until: unknown }>(
+      'select primary_profile_version,primary_attunement_locked_until from app_private.character_active_builds where character_id=$1',
+      [character],
+    )
+  ).rows[0]!
+  expect(active.primary_profile_version).toBe(published.current.contentVersion)
+  expect(active.primary_attunement_locked_until).toEqual(clock)
+})
+it('named activation uses actual v3 Core conversion with preserved personal choices', async () => {
+  const before = (
+    await db.query<{ personal_attributes: unknown }>(
+      'select personal_attributes from public.get_character_attribute_allocation_v2($1,$2)',
+      [other, character],
+    )
+  ).rows[0]!.personal_attributes
+  const saved = await authoredDraft()
+  await publish(authored.id, saved.draft.draftVersion, null)
+  await db.query(
+    "insert into app_private.character_saved_build_loadouts(character_id,slot_index,name,primary_discipline_id,secondary_discipline_id,discipline_skills,source_build_version) values($1,1,'Authored',$2,null,'[]',1)",
+    [character, authored.id],
+  )
+  await db.query(
+    'select * from public.activate_character_build_loadout_v1($1,$2,1::smallint,1,$3,$4)',
+    [other, character, crypto.randomUUID(), 'named-core'],
+  )
+  const after = (
+    await db.query<{ personal_attributes: unknown; base_attributes: unknown }>(
+      'select personal_attributes,base_attributes from public.get_character_attribute_allocation_v2($1,$2)',
+      [other, character],
+    )
+  ).rows[0]!
+  expect(after.personal_attributes).toEqual(before)
+  expect(after.base_attributes).toEqual(authored.core)
+})

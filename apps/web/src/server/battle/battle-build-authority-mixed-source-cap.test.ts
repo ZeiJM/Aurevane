@@ -503,3 +503,57 @@ it('reduces eight actual content-source reads in bounded fallback waves to one b
     vi.useRealTimers()
   }
 })
+
+it.each(['absent', 'custom'] as const)(
+  'published %s extensions and selected cross eligibility survive actual admission and restoration',
+  async (kind) => {
+    const snapshot = productionShapeMixedSnapshot()
+    snapshot.secondary = null
+    snapshot.disciplineSkills = [
+      {
+        slotIndex: 1,
+        skillId: 'lifebinder.barrier',
+        contentVersion: 1,
+        sourceDisciplineId: 'lifebinder',
+        eligibilityDisciplineId: 'vanguard',
+        earnedEligibility: false,
+      },
+    ]
+    snapshot.extensions = { ...snapshot.extensions, resonance: null, essence: null }
+    const original = resolveEssenceForBuild('vanguard', null)!
+    const custom = {
+      ...original,
+      essenceId: 'essence.vanguard.authored',
+      contentVersion: 77,
+      skill: { ...original.skill, id: 'essence.vanguard.authored', contentVersion: 77 },
+    }
+    const resolver: CombatContentResolver = {
+      resolveCurrentSkillDefinition: async (id) => currentStaticSkill(id),
+      resolvePinnedSkillDefinition: async (id, version) => resolveMatureSkillVersion(id, version),
+      resolveCurrentEssenceDefinition: async () => (kind === 'absent' ? null : custom),
+      resolveCurrentResonanceDefinition: async () => null,
+    }
+    const authority = await createResolvedBattleBuildAuthoritySnapshot(
+      'pve',
+      [
+        {
+          combatantId: 'character:00000000-0000-4000-8000-000000004301',
+          characterId: '00000000-0000-4000-8000-000000004301',
+          snapshot,
+        },
+      ],
+      resolver,
+    )
+    expect(authority.combatants[0]!.disciplineSkills[0]).toMatchObject({
+      sourceDisciplineId: 'lifebinder',
+      eligibilityDisciplineId: 'vanguard',
+      earnedEligibility: false,
+    })
+    expect(authority.combatants[0]!.extensions.essence?.essenceId ?? null).toBe(
+      kind === 'absent' ? null : custom.essenceId,
+    )
+    expect(parseBattleBuildAuthoritySnapshot(JSON.parse(JSON.stringify(authority)))).toEqual(
+      authority,
+    )
+  },
+)

@@ -1,3 +1,4 @@
+import { parseDisciplineSkillReference } from '@/server/character/discipline-skill-reference-parser'
 import {
   captureBasicSkillSources,
   type BasicSkillId,
@@ -76,6 +77,8 @@ function parseNarratorIdentity(value: unknown): BattleNarratorIdentitySnapshot |
 }
 
 export interface BattleBuildAuthorityCombatantSnapshot {
+  catalogueToken?: string
+  skillEligibilityPolicyVersion?: 1
   sourceHash?: string
   narratorIdentity?: BattleNarratorIdentitySnapshot
   supportActionId?: SupportActionId
@@ -181,12 +184,9 @@ function parseDisciplineSkills(
     ) {
       return null
     }
-    parsed.push({
-      slotIndex: candidate.slotIndex,
-      skillId: candidate.skillId,
-      contentVersion: candidate.contentVersion,
-      sourceDisciplineId: candidate.sourceDisciplineId,
-    })
+    const reference = parseDisciplineSkillReference(candidate)
+    if (!reference) return null
+    parsed.push({ slotIndex: candidate.slotIndex, ...reference })
   }
   return parsed.sort((left, right) => left.slotIndex - right.slotIndex)
 }
@@ -198,6 +198,9 @@ function combatSnapshotFromCommitted(
     schemaVersion: COMBAT_BUILD_SNAPSHOT_SCHEMA_VERSION,
     sourceBuildSchemaVersion: snapshot.schemaVersion,
     sourceBuildVersion: snapshot.buildVersion,
+    ...(snapshot.skillEligibilityPolicyVersion === 1
+      ? { skillEligibilityPolicyVersion: 1 as const }
+      : {}),
     primary: { ...snapshot.primary },
     secondary: snapshot.secondary ? { ...snapshot.secondary } : null,
     disciplineSkills: [...snapshot.disciplineSkills]
@@ -240,6 +243,9 @@ function validateCanonicalCombatSnapshot(
       schemaVersion: snapshot.schemaVersion,
       sourceBuildSchemaVersion: snapshot.sourceBuildSchemaVersion,
       sourceBuildVersion: snapshot.sourceBuildVersion,
+      ...(snapshot.skillEligibilityPolicyVersion === 1
+        ? { skillEligibilityPolicyVersion: 1 as const }
+        : {}),
       primary: snapshot.primary,
       secondary: snapshot.secondary,
       disciplineSkills: snapshot.disciplineSkills,
@@ -299,10 +305,18 @@ function parseCombatant(
     ? parseNarratorIdentity(value.narratorIdentity)
     : undefined
   if (narratorIdentity === null) return null
+  if (
+    Object.hasOwn(value, 'skillEligibilityPolicyVersion') &&
+    value.skillEligibilityPolicyVersion !== 1
+  )
+    return null
   const combatSnapshot: CombatBuildSnapshot = {
     schemaVersion: COMBAT_BUILD_SNAPSHOT_SCHEMA_VERSION,
     sourceBuildSchemaVersion: value.buildSchemaVersion,
     sourceBuildVersion: value.buildVersion,
+    ...(value.skillEligibilityPolicyVersion === 1
+      ? { skillEligibilityPolicyVersion: 1 as const }
+      : {}),
     fingerprint: value.fingerprint,
     primary: {
       disciplineId: value.primary.disciplineId,
@@ -328,55 +342,62 @@ function parseCombatant(
     legacyCatalog &&
     (value.primary.disciplineId === 'ironfist' || secondaryDisciplineId === 'ironfist') &&
     !disciplineSkills.some((skill) => skill.sourceDisciplineId === 'ironfist')
-  const expectedResonance = resolveResonanceForPair(
-    value.primary.disciplineId,
-    secondaryDisciplineId,
-    allowPublishedSkillVersions ? undefined : resonance?.contentVersion,
-  )
-  if (resonance) {
-    if (!expectedResonance) return null
-    const expected = resonanceSnapshotReference(expectedResonance)
-    if (
-      expected.resonanceId !== resonance.resonanceId ||
-      (!allowPublishedSkillVersions && expected.contentVersion !== resonance.contentVersion) ||
-      expected.disciplinePair[0] !== resonance.disciplinePair[0] ||
-      expected.disciplinePair[1] !== resonance.disciplinePair[1]
+  if (!allowPublishedSkillVersions) {
+    const expectedResonance = resolveResonanceForPair(
+      value.primary.disciplineId,
+      secondaryDisciplineId,
+      allowPublishedSkillVersions ? undefined : resonance?.contentVersion,
+    )
+    if (resonance) {
+      if (!expectedResonance) return null
+      const expected = resonanceSnapshotReference(expectedResonance)
+      if (
+        expected.resonanceId !== resonance.resonanceId ||
+        (!allowPublishedSkillVersions && expected.contentVersion !== resonance.contentVersion) ||
+        expected.disciplinePair[0] !== resonance.disciplinePair[0] ||
+        expected.disciplinePair[1] !== resonance.disciplinePair[1]
+      ) {
+        return null
+      }
+    } else if (
+      !legacyIronfist &&
+      resolveResonanceForPair(value.primary.disciplineId, secondaryDisciplineId)
     ) {
       return null
     }
-  } else if (
-    !legacyIronfist &&
-    resolveResonanceForPair(value.primary.disciplineId, secondaryDisciplineId)
-  ) {
-    return null
-  }
 
-  const expectedEssence = resolveEssenceForBuild(
-    value.primary.disciplineId,
-    secondaryDisciplineId,
-    allowPublishedSkillVersions ? undefined : essence?.contentVersion,
-  )
-  if (essence) {
-    if (!expectedEssence) return null
-    const expected = essenceSnapshotReference(expectedEssence)
-    if (
-      expected.essenceId !== essence.essenceId ||
-      (!allowPublishedSkillVersions && expected.contentVersion !== essence.contentVersion) ||
-      expected.sourceDisciplineId !== essence.sourceDisciplineId ||
-      expected.skillId !== essence.skillId ||
-      (!allowPublishedSkillVersions && expected.skillContentVersion !== essence.skillContentVersion)
+    const expectedEssence = resolveEssenceForBuild(
+      value.primary.disciplineId,
+      secondaryDisciplineId,
+      allowPublishedSkillVersions ? undefined : essence?.contentVersion,
+    )
+    if (essence) {
+      if (!expectedEssence) return null
+      const expected = essenceSnapshotReference(expectedEssence)
+      if (
+        expected.essenceId !== essence.essenceId ||
+        (!allowPublishedSkillVersions && expected.contentVersion !== essence.contentVersion) ||
+        expected.sourceDisciplineId !== essence.sourceDisciplineId ||
+        expected.skillId !== essence.skillId ||
+        (!allowPublishedSkillVersions &&
+          expected.skillContentVersion !== essence.skillContentVersion)
+      ) {
+        return null
+      }
+    } else if (
+      !legacyIronfist &&
+      resolveEssenceForBuild(value.primary.disciplineId, secondaryDisciplineId)
     ) {
       return null
     }
-  } else if (
-    !legacyIronfist &&
-    resolveEssenceForBuild(value.primary.disciplineId, secondaryDisciplineId)
-  ) {
-    return null
   }
 
   return {
     combatantId: value.combatantId,
+    ...(typeof value.catalogueToken === 'string' ? { catalogueToken: value.catalogueToken } : {}),
+    ...(value.skillEligibilityPolicyVersion === 1
+      ? { skillEligibilityPolicyVersion: 1 as const }
+      : {}),
     ...(typeof value.sourceHash === 'string' ? { sourceHash: value.sourceHash } : {}),
     ...(narratorIdentity ? { narratorIdentity } : {}),
     characterId: value.characterId,
@@ -446,6 +467,10 @@ function createBattleBuildAuthoritySnapshotForCatalog(
       const combatSnapshot = combatSnapshotFromCommitted(snapshot)
       return {
         combatantId,
+        ...(snapshot.catalogueToken ? { catalogueToken: snapshot.catalogueToken } : {}),
+        ...(snapshot.skillEligibilityPolicyVersion === 1
+          ? { skillEligibilityPolicyVersion: 1 as const }
+          : {}),
         ...(snapshot.sourceHash ? { sourceHash: snapshot.sourceHash } : {}),
         ...(narratorIdentity ? { narratorIdentity: { ...narratorIdentity } } : {}),
         characterId,
@@ -538,32 +563,25 @@ export async function createResolvedBattleBuildAuthoritySnapshot(
           : builtinResonance,
       ])
       if (
-        builtinEssence &&
-        (!currentEssence ||
-          !currentEssence.enabled ||
+        currentEssence &&
+        (!currentEssence.enabled ||
           !currentEssence.skill.enabled ||
           validateEssenceDefinition(currentEssence).length ||
-          currentEssence.essenceId !== builtinEssence.essenceId ||
           currentEssence.sourceDisciplineId !== primary ||
           secondary !== null)
       )
         throw new TypeError(
           'Published Essence does not match the enabled committed build extension.',
         )
-      if (!builtinEssence && currentEssence)
-        throw new TypeError('Unexpected published Essence for this build.')
       if (
-        builtinResonance &&
-        (!currentResonance ||
-          !currentResonance.enabled ||
+        currentResonance &&
+        (!currentResonance.enabled ||
           validateResonanceDefinition(currentResonance).length ||
-          currentResonance.id !== builtinResonance.id ||
-          currentResonance.disciplinePair[0] !== builtinResonance.disciplinePair[0] ||
-          currentResonance.disciplinePair[1] !== builtinResonance.disciplinePair[1])
+          secondary === null ||
+          !currentResonance.disciplinePair.includes(primary) ||
+          !currentResonance.disciplinePair.includes(secondary))
       )
         throw new TypeError('Published Resonance does not match the enabled committed build pair.')
-      if (!builtinResonance && currentResonance)
-        throw new TypeError('Unexpected published Resonance for this build.')
 
       return {
         ...input,

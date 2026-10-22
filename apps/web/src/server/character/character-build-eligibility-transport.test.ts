@@ -180,3 +180,83 @@ it.each([
     createSupabaseCharacterBuildRepository().listLearnedSkills('user', 'character'),
   ).rejects.toMatchObject({ code: 'PERSISTENCE_UNAVAILABLE' })
 })
+it.each([true, false])(
+  'committed read retains SQL-derived selected earned eligibility %s',
+  async (earnedEligibility) => {
+    const captured = {
+      ...snapshot,
+      disciplineSkills: [{ ...snapshot.disciplineSkills[0], earnedEligibility }],
+    }
+    rpc.mockResolvedValue({ data: captured, error: null })
+    expect(
+      (
+        await createSupabaseCharacterBuildRepository().loadCommittedBuildSnapshot(
+          'user',
+          'character',
+        )
+      )?.disciplineSkills,
+    ).toEqual(captured.disciplineSkills)
+  },
+)
+it.each([null, 'true', 1])(
+  'committed read rejects malformed earned eligibility %j',
+  async (earnedEligibility) => {
+    rpc.mockResolvedValue({
+      data: {
+        ...snapshot,
+        disciplineSkills: [{ ...snapshot.disciplineSkills[0], earnedEligibility }],
+      },
+      error: null,
+    })
+    await expect(
+      createSupabaseCharacterBuildRepository().loadCommittedBuildSnapshot('user', 'character'),
+    ).rejects.toMatchObject({ code: 'PERSISTENCE_UNAVAILABLE' })
+  },
+)
+it('retains the authoritative catalogue generation and earned policy through committed transport', async () => {
+  rpc.mockResolvedValue({
+    data: { ...snapshot, skillEligibilityPolicyVersion: 1, catalogueToken: 'a'.repeat(32) },
+    error: null,
+  })
+  expect(
+    await createSupabaseCharacterBuildRepository().loadCommittedBuildSnapshot('user', 'character'),
+  ).toMatchObject({ skillEligibilityPolicyVersion: 1, catalogueToken: 'a'.repeat(32) })
+})
+it('actual current catalogue transports published Core bases and focus without static identity fallback', async () => {
+  rpc.mockResolvedValue({
+    data: [
+      {
+        discipline_id: 'authored.discipline',
+        definition_version: 12,
+        name: 'Authored',
+        summary: 'Current.',
+        enabled_for_primary: true,
+        enabled_for_secondary: true,
+        profile_version: 12,
+        stat_offsets: {},
+        mastered_at: null,
+        core_base_attributes: {
+          might: 8,
+          finesse: 4,
+          vitality: 7,
+          agility: 4,
+          intellect: 4,
+          resolve: 4,
+        },
+        focus_attributes: ['intellect', 'resolve'],
+        off_focus_cap: 40,
+      },
+    ],
+    error: null,
+  })
+  const rows = await createSupabaseCharacterBuildRepository().listDisciplines('user', 'character')
+  expect(rows[0]?.profile).toMatchObject({
+    corePolicy: {
+      disciplineId: 'authored.discipline',
+      policyVersion: 12,
+      baseAttributes: { might: 8, finesse: 4, vitality: 7, agility: 4, intellect: 4, resolve: 4 },
+      focusAttributes: ['intellect', 'resolve'],
+      attributeCaps: { might: 40, intellect: 60, resolve: 60 },
+    },
+  })
+})

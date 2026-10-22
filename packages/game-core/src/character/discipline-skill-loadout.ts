@@ -8,6 +8,8 @@ export interface DisciplineSkillReference {
   readonly sourceDisciplineId: string
   /** Selected earned grant; historical omission retains intrinsic/native eligibility. */
   readonly eligibilityDisciplineId?: string
+  /** Immutable admission fact from the selected grant; never player-supplied authority. */
+  readonly earnedEligibility?: boolean
 }
 
 export interface DisciplineSkillLoadoutIssue {
