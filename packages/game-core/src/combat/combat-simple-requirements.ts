@@ -33,6 +33,7 @@ export const SIMPLE_AUTOMATIC_TRIGGER_OPTIONS = [
   { id: 'damage-dealt', targetSubject: 'affected', label: 'Damage Dealt' },
   { id: 'damage-taken', targetSubject: 'triggering', label: 'Damage Taken' },
   { id: 'ally-damage-taken', targetSubject: 'affected', label: 'Ally Takes Damage' },
+  { id: 'enemy-turn-started', targetSubject: 'triggering', label: 'Enemy Turn Starts' },
   { id: 'enemy-turn-ended', targetSubject: 'triggering', label: 'Enemy Turn Ends' },
   { id: 'healed', targetSubject: 'affected', label: 'Friendly Healing Applied' },
   { id: 'resource-changed', targetSubject: 'affected', label: 'Resource Changed' },
@@ -129,7 +130,8 @@ export function simpleAutomaticTargetSubjects(
   const trigger = behavior.automaticTrigger
   const available: readonly AbilityRequirementSubject[] = !trigger
     ? ['owner']
-    : trigger === 'turn-started' || trigger === 'enemy-turn-ended'
+    : trigger === 'turn-started' || trigger === 'enemy-turn-started' || trigger === 'enemy-turn-started' ||
+      trigger === 'enemy-turn-ended'
       ? ['owner', 'triggering', 'affected']
       : ['owner', 'triggering', 'selected', 'affected']
   const actor = { id: 'owner', teamId: 'owner-team' }
@@ -172,6 +174,7 @@ function automaticTargetCategories(
   }
   switch (trigger) {
     case 'damage-dealt':
+    case 'enemy-turn-started':
     case 'enemy-turn-ended':
       return ['enemy']
     case 'damage-taken':
@@ -238,6 +241,7 @@ export function automaticAbilityExecutionRequirements(
     'damage-dealt': 'damage_applied',
     'damage-taken': 'damage_applied',
     'ally-damage-taken': 'damage_applied',
+    'enemy-turn-started': 'turn_started',
     'enemy-turn-ended': 'turn_ended',
     healed: 'healing_applied',
     'resource-changed': 'resource_changed',
@@ -257,6 +261,7 @@ export function automaticAbilityExecutionRequirements(
     case 'ally-damage-taken':
       bindings = [relation('triggering', 'enemy'), relation('affected', 'ally')]
       break
+    case 'enemy-turn-started':
     case 'enemy-turn-ended':
       bindings = [relation('triggering', 'enemy')]
       break
