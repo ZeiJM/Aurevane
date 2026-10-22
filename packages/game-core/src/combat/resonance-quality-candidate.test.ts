@@ -49,21 +49,23 @@ describe('published Resonance quality cohort', () => {
       expect(after.ability!.behaviors[0]!.effects.length).toBeGreaterThan(0)
       expect(after.ability!.behaviors[0]!.effects.length).toBeLessThanOrEqual(2)
       expect(after.ability!.behaviors[0]!.requirementMode).toBe('simple')
-      expect(after.ability!.behaviors[0]!.requirements).toEqual(
-        before.ability!.behaviors[0]!.requirements,
-      )
+      if (id !== 'resonance.chronist-tidecaller.linked-sequence') {
+        expect(after.ability!.behaviors[0]!.requirements).toEqual(
+          before.ability!.behaviors[0]!.requirements,
+        )
+      }
       expect(validateResonanceDefinition(after)).toEqual([])
     },
   )
 
-  it('makes Returning Current a single tactical Haste instead of auto-cleanse, heal and Guard', () => {
+  it('makes Returning Current a Primed timing payoff instead of automatic cleanse, heal and Guard', () => {
     const row = candidate.changes.find(
       (entry) => entry.id === 'resonance.chronist-tidecaller.linked-sequence',
     )!
     const behavior = row.after.ability!.behaviors[0]!
     expect(behavior.requirements).toMatchObject({
-      kind: 'status-presence',
-      statusId: 'wet',
+      kind: 'prime-presence',
+      present: true,
       subject: 'owner',
     })
     expect(behavior.costs).toEqual([])
