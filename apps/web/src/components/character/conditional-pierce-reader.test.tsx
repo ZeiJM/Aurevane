@@ -137,7 +137,7 @@ it.each([
     <AbilityDefinitionParameters definition={projectPublicCombat(definition)} />,
   )
   expect(html).not.toContain(`If ${condition}: `)
-  expect(html).toContain('aria-label="Requirement explanations"')
+  expect(html).toContain('<dt>Requirements</dt>')
   expect(report.effects.map((effect) => effect.condition)).toEqual(
     group.effects.map((effect, i) => (i === index ? condition : null)),
   )
