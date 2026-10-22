@@ -1,4 +1,5 @@
 import { expect, type Page } from '@playwright/test'
+import { setBattleChronicleOpen } from './battle-log-layout-helpers'
 import type { BattleSessionView } from '../src/server/battle/battle-session-service'
 
 /** Compare against a fresh server projection, including the read-only spectator projection. */
@@ -13,6 +14,10 @@ export async function expectRecordedBattleRound(page: Page): Promise<number> {
   const body = await response.json()
   const battle: BattleSessionView = spectating ? body.spectator.battle : body.battle
   const round = battle.snapshot.tactical.battle.round
+  const toggle = page.locator('[data-battle-mobile-chronicle-toggle]')
+  const wasOpen =
+    (await toggle.isVisible()) && (await toggle.getAttribute('aria-expanded')) === 'true'
+  await setBattleChronicleOpen(page, true)
   const badge = page.locator('[data-battle-chronicle-heading] [data-battle-round]')
   await expect(badge).toBeVisible()
   await expect(page.locator('[data-battle-preview-strip] [data-battle-round]')).toHaveCount(0)
@@ -32,5 +37,6 @@ export async function expectRecordedBattleRound(page: Page): Promise<number> {
   })
   expect(geometry.contained).toBe(true)
   expect(geometry.pointerEvents).toBe('none')
+  if (!wasOpen) await setBattleChronicleOpen(page, false)
   return round
 }

@@ -402,8 +402,11 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   )
   await page.keyboard.press('Escape')
   await expect(skillDetails).toHaveCount(0)
-  await expect(informationTrigger).toBeFocused()
-  await commandDeck.getByRole('button', { name: 'Guard, 30 AP', exact: true }).click()
+  await page.keyboard.press('Digit3')
+  await expect(page.locator('main[data-unified-battle]')).toHaveAttribute(
+    'data-battle-action-mode',
+    'guard',
+  )
   await expect(forecast).toContainText('Success 100%')
   await expectBattlePreviewFits(page)
   await page.getByRole('button', { name: 'Cancel Action', exact: true }).click()

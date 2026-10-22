@@ -89,9 +89,9 @@ async function geometry(dialog: Locator) {
       return [r.x, r.y, r.width, r.height]
     }
     const art = node.querySelector('[data-technique-art]')!
-    const previewArt = preview.querySelector('[data-av-square-media]')!
+    const previewImages = preview.querySelectorAll('img').length
     const artRect = rect(art)
-    const previewRect = rect(previewArt)
+    const previewRect = rect(preview)
     // Mobile focus scrolls the gallery; compare positions within its content by adding back the
     // scroll offset of every scrolling ancestor between the element and the dialog.
     const scrolled = (element: Element) => {
@@ -102,17 +102,13 @@ async function geometry(dialog: Locator) {
       return total
     }
     artRect[1] += scrolled(art)
-    previewRect[1] += scrolled(previewArt)
-    if (innerWidth <= 820) {
-      // On phones the preview is a bottom sheet whose height follows its content, so measure the
-      // art inside the sheet rather than against the page.
-      previewRect[1] -= preview.getBoundingClientRect().y
-    }
+    previewRect[1] += scrolled(preview)
     return {
       dialog: rect(node),
       workspace: rect(workspace),
       art: artRect,
-      previewArt: previewRect,
+      preview: previewRect,
+      previewImages,
     }
   })
 }
@@ -121,7 +117,8 @@ function expectGeometry(
   actual: Awaited<ReturnType<typeof geometry>>,
   expected: Awaited<ReturnType<typeof geometry>>,
 ) {
-  for (const key of ['dialog', 'workspace', 'art', 'previewArt'] as const) {
+  expect(actual.previewImages, 'preview does not duplicate chooser artwork').toBe(0)
+  for (const key of ['dialog', 'workspace', 'art', 'preview'] as const) {
     actual[key].forEach((value, index) =>
       expect(
         Math.abs(value - expected[key][index]),

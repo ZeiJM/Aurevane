@@ -1,7 +1,12 @@
 import { expect, test, type Locator } from '@playwright/test'
 
 import { recordedChronicleAction } from './battle-log-chronicle-fixtures'
-import { expectReadableBattleLog } from './battle-log-layout-helpers'
+import {
+  battleChronicleScrollRegion,
+  expectReadableBattleLog,
+  scrollBattleChronicle,
+  setBattleChronicleOpen,
+} from './battle-log-layout-helpers'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 import { commitGesture } from './refined-battle-helpers'
 
@@ -69,6 +74,7 @@ test('scrolls the full chronicle and preserves reviewed history after a live com
   await page.getByLabel('Battle mode').selectOption('recruit-sparring')
   await page.getByRole('button', { name: 'Enter Battle' }).click()
   await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/)
+  await setBattleChronicleOpen(page, true)
   const log = page.locator('[data-battle-inline-log]')
   const reader = log.getByRole('region', { name: 'Battle chronicle', exact: true })
   const firstAction = reader.locator('[data-chronicle-action="1:0"]')
@@ -83,15 +89,14 @@ test('scrolls the full chronicle and preserves reviewed history after a live com
   const board = page.locator('[data-board-auto-fit]')
   const before = await readBoardGeometry(board)
   await expectReadableBattleLog(page, testInfo, 'all-recorded-actions', log)
-  const geometry = await reader.evaluate((element) => ({
+  const scroller = await battleChronicleScrollRegion(page, reader)
+  const geometry = await scroller.evaluate((element) => ({
     horizontal: element.scrollWidth - element.clientWidth,
     vertical: element.scrollHeight - element.clientHeight,
   }))
   expect(geometry.horizontal).toBeLessThanOrEqual(1)
   expect(geometry.vertical).toBeGreaterThan(0)
-  await reader.evaluate((element) => {
-    element.scrollTop = 0
-  })
+  await scrollBattleChronicle(page, reader, 'start')
   await expect(firstAction).toBeInViewport()
   await expect(firstAction).toContainText('1 damage')
   const after = await readBoardGeometry(board)
@@ -100,43 +105,58 @@ test('scrolls the full chronicle and preserves reviewed history after a live com
     contentType: 'application/json',
   })
   if (testInfo.project.name === 'mobile-chromium') {
-    // Clicking the off-screen log may scroll its field; its board layout and scale must stay fixed.
+    expect(after.viewport).toEqual(before.viewport)
     expect(after.layout).toEqual(before.layout)
   } else {
     expect(after.viewport).toEqual(before.viewport)
   }
 
+  // Arm the real Guard flow without scrolling the open history to its cockpit.
+  await page
+    .locator('main[data-unified-battle]')
+    .evaluate((element) => (element as HTMLElement).focus({ preventScroll: true }))
+  await page.keyboard.press('Digit3')
+  await expect(page.locator('main[data-unified-battle]')).toHaveAttribute(
+    'data-battle-action-mode',
+    'guard',
+  )
+  await scrollBattleChronicle(page, reader, 'start')
   const anchor = await firstAction.evaluate((element) => {
     const reader = element.closest('[data-battle-chronicle]')!
-    return element.getBoundingClientRect().top - reader.getBoundingClientRect().top
+    const lower = element.closest('[data-battle-mobile-lower-panel]')
+    const viewport = lower && getComputedStyle(lower).display !== 'contents' ? lower : reader
+    return element.getBoundingClientRect().top - viewport.getBoundingClientRect().top
   })
   // Guard spends AP in the same recorded round; it does not advance the battle to Round 2.
   entries = [...entries, ...recordedChronicleAction(21, 1)]
   const refreshed = page.waitForResponse(
     (response) => response.url().endsWith('/events') && response.request().method() === 'GET',
   )
-  const deck = page.getByRole('region', { name: 'Command Deck' })
-  await deck.getByRole('button', { name: /^Guard,/ }).click()
+  const lowerFrame = page.locator('[data-battle-mobile-lower-panel]')
+  const lowerBefore = await lowerFrame.boundingBox()
   await commitGesture(
     page,
     page.getByRole('button', { name: new RegExp(`occupied by ${characterName}`) }),
   )
   await refreshed
+  const toggle = page.locator('[data-battle-mobile-chronicle-toggle]')
+  if (await toggle.isVisible()) {
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true')
+    expect(await lowerFrame.boundingBox()).toEqual(lowerBefore)
+  }
   await expect(reader.locator('[data-chronicle-action]')).toHaveCount(21)
   await expect(reader).toContainText('ROUND 1')
   await expect(reader.locator('[data-chronicle-round]')).toHaveCount(1)
   await expect(currentRound).toHaveAttribute('data-chronicle-current-round', 'true')
-  await reader.scrollIntoViewIfNeeded()
   await expect(firstAction).toBeInViewport()
-  const refreshedAnchor = await firstAction.evaluate(
-    (element) =>
-      element.getBoundingClientRect().top -
-      element.closest('[data-battle-chronicle]')!.getBoundingClientRect().top,
-  )
-  expect(Math.abs(refreshedAnchor - anchor)).toBeLessThanOrEqual(1)
-  await reader.evaluate((element) => {
-    element.scrollTop = element.scrollHeight
+  const refreshedAnchor = await firstAction.evaluate((element) => {
+    const reader = element.closest('[data-battle-chronicle]')!
+    const lower = element.closest('[data-battle-mobile-lower-panel]')
+    const viewport = lower && getComputedStyle(lower).display !== 'contents' ? lower : reader
+    return element.getBoundingClientRect().top - viewport.getBoundingClientRect().top
   })
+  expect(Math.abs(refreshedAnchor - anchor)).toBeLessThanOrEqual(1)
+  await scrollBattleChronicle(page, reader, 'end')
   const newest = reader.locator('[data-chronicle-action="21:0"]')
   await expect(newest).toBeInViewport()
   await expect(newest).toContainText('21 damage')

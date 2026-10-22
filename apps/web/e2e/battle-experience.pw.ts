@@ -1,3 +1,4 @@
+import { setBattleChronicleOpen } from './battle-log-layout-helpers'
 import { expect, test } from '@playwright/test'
 import {
   PV1F_ACTION_ECONOMY_RESOURCE_KEY,
@@ -269,6 +270,7 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   await expect(criteriaButton).toHaveAttribute('data-new-progress', 'true')
   await openCriteriaAndClose(page, '3/4 complete')
 
+  await setBattleChronicleOpen(page, true)
   const inlineLog = page.locator('[data-battle-inline-log]')
   const battleLog = inlineLog.getByRole('region', { name: 'Battle chronicle', exact: true })
   await expect(battleLog).toBeVisible()
@@ -285,6 +287,8 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   await page.keyboard.press('KeyW')
   await expect(apRemaining).toHaveAttribute('aria-valuenow', apBeforeDetails!)
   await expect(battleLog).toBeVisible()
+
+  await setBattleChronicleOpen(page, false)
 
   // Missing informational forecasts must not hide eligible targets or gate a deliberate cast.
   await page.route('**/api/battles/*/preview', (route) => route.abort())

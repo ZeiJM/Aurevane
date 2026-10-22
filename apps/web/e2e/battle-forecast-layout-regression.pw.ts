@@ -675,7 +675,7 @@ async function exerciseForecast(
         expect(commits).toBe(0)
         await page.keyboard.press('Escape')
         await expect(parameters).toHaveCount(0)
-        await expect(informationTrigger).toBeFocused()
+        await expect(page.locator('main[data-battle-keyboard-focus-root="true"]')).toBeFocused()
         await expectInlineSkillForecast(
           page,
           `frostweaver.${name.toLowerCase().replaceAll(' ', '-')}`,

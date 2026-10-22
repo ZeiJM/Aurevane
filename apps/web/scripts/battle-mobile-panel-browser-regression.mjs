@@ -45,7 +45,7 @@ await fs.writeFile(
     )
     .replace(
       'entries: suppressChronicleEntries',
-      'entries: Array.from({ length: 24 }, (_, index) => suppressChronicleEntries.map(entry => ({ ...entry, battleVersion: index + 1 }))).flat()',
+      'entries: Array.from({ length: window.fixtureLogCount ?? 24 }, (_, index) => suppressChronicleEntries.map(entry => ({ ...entry, battleVersion: index + 1 }))).flat()',
     )
     .replace(
       'import { BattleExperience }',
@@ -128,6 +128,168 @@ const browser = await chromium.launch({
   args: ['--no-sandbox'],
   headless: true,
 })
+async function verifyMobileChatFooter(page, viewport, label) {
+  const chat = page.locator('main > footer button').filter({ hasText: /^Chat/ })
+  const panel = page.locator('#pvp-battle-chat-panel[data-open]')
+  const expectAboveFooter = async () => {
+    await page.waitForFunction(() => {
+      const panel = document.querySelector('#pvp-battle-chat-panel[data-open]')
+      const footer = document.querySelector('main[data-pvp-battle] > footer')
+      if (!panel || !footer || panel.hasAttribute('data-desktop')) return false
+      const bounds = panel.getBoundingClientRect()
+      return bounds.bottom <= footer.getBoundingClientRect().top - 4 && bounds.top >= 0
+    })
+    return page
+      .locator('main[data-pvp-battle] > footer')
+      .evaluate((el) => el.getBoundingClientRect().height)
+  }
+  await chat.click()
+  await panel.waitFor({ state: 'visible' })
+  const initialFooterHeight = await expectAboveFooter()
+  await page.screenshot({ path: resolve(output, `${label}-chat.png`) })
+  const rotated = viewport.height < 500 ? { width: 390, height: 844 } : { width: 844, height: 390 }
+  await page.setViewportSize(rotated)
+  const resizedFooterHeight = await expectAboveFooter()
+  assert.notEqual(
+    resizedFooterHeight,
+    initialFooterHeight,
+    'Chat follows the actual footer when rotation changes its height',
+  )
+  await chat.click()
+  await panel.waitFor({ state: 'hidden' })
+  await chat.click()
+  await panel.waitFor({ state: 'visible' })
+  await panel.getByRole('button', { name: 'Close battle communication', exact: true }).click()
+  await panel.waitFor({ state: 'hidden' })
+  await page.setViewportSize(viewport)
+  await page.evaluate(async () => {
+    await document.fonts.ready
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+  })
+}
+async function verifyMobileChronicleUpdates(page, geometry, frozen, label) {
+  const panel = page.locator('[data-battle-mobile-lower-panel]')
+  const actions = page.locator('[data-chronicle-action]')
+  const readScrollMetrics = () =>
+    page.evaluate(() => {
+      const measure = (selector) => {
+        const el = document.querySelector(selector)
+        return {
+          scrollTop: el.scrollTop,
+          scrollHeight: el.scrollHeight,
+          clientHeight: el.clientHeight,
+          display: getComputedStyle(el).display,
+          height: el.getBoundingClientRect().height,
+        }
+      }
+      return {
+        lower: measure('[data-battle-mobile-lower-panel]'),
+        reader: measure('[data-battle-chronicle]'),
+        actions: document.querySelectorAll('[data-chronicle-action]').length,
+        scrolls: window.chronicleScrollDiagnostics,
+      }
+    })
+  await page.evaluate(() => {
+    window.chronicleScrollDiagnostics = []
+    for (const selector of ['[data-battle-mobile-lower-panel]', '[data-battle-chronicle]']) {
+      const el = document.querySelector(selector)
+      el.addEventListener('scroll', () =>
+        window.chronicleScrollDiagnostics.push({
+          selector,
+          top: el.scrollTop,
+          height: el.scrollHeight,
+          client: el.clientHeight,
+          actions: document.querySelectorAll('[data-chronicle-action]').length,
+          time: performance.now(),
+        }),
+      )
+    }
+  })
+  const settle = () =>
+    page.evaluate(
+      () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+    )
+  const append = async (count) => {
+    await page.evaluate((count) => {
+      window.fixtureLogCount = count
+      window.advanceBattle()
+    }, count)
+    await page.waitForFunction(
+      (count) => document.querySelectorAll('[data-chronicle-action]').length === count,
+      count,
+    )
+    await settle()
+  }
+  const assertFrozen = async () => {
+    const current = await geometry()
+    for (const key of ['board', 'header', 'rails', 'footer'])
+      assert.deepEqual(current[key], frozen[key], `Live Chronicle append preserves ${key}`)
+  }
+  await panel.evaluate((el) => el.scrollTo(0, el.scrollHeight))
+  await settle()
+  const atEnd = await readScrollMetrics()
+  await append(32)
+  await page
+    .waitForFunction(
+      () => {
+        const panel = document.querySelector('[data-battle-mobile-lower-panel]')
+        return panel.scrollHeight - panel.clientHeight - panel.scrollTop <= 2
+      },
+      undefined,
+      { timeout: 2000 },
+    )
+    .catch(() => {})
+  const afterAppend = await readScrollMetrics()
+  console.log(JSON.stringify({ chronicleCase: label, atEnd, afterAppend }))
+  const bottomDistance = await panel.evaluate(
+    (el) => el.scrollHeight - el.clientHeight - el.scrollTop,
+  )
+  assert.ok(
+    bottomDistance <= 2,
+    `Live Chronicle follows appended entries in the lower panel (distance ${bottomDistance})`,
+  )
+  await assertFrozen()
+
+  const anchor = actions.nth(4)
+  const anchorId = await anchor.getAttribute('data-chronicle-action')
+  await anchor.evaluate((el) => {
+    const panel = el.closest('[data-battle-mobile-lower-panel]')
+    panel.scrollTop += el.getBoundingClientRect().top - panel.getBoundingClientRect().top - 12
+  })
+  await settle()
+  const relativeTop = () =>
+    anchor.evaluate(
+      (el) =>
+        el.getBoundingClientRect().top -
+        el.closest('[data-battle-mobile-lower-panel]').getBoundingClientRect().top,
+    )
+  const before = await relativeTop()
+  await append(40)
+  await page
+    .waitForFunction(
+      ({ anchorId, before }) => {
+        const anchor = [...document.querySelectorAll('[data-chronicle-action]')].find(
+          (el) => el.getAttribute('data-chronicle-action') === anchorId,
+        )
+        if (!anchor) return false
+        const panel = anchor.closest('[data-battle-mobile-lower-panel]')
+        return (
+          Math.abs(
+            anchor.getBoundingClientRect().top - panel.getBoundingClientRect().top - before,
+          ) <= 1
+        )
+      },
+      { anchorId, before },
+      { timeout: 2000 },
+    )
+    .catch(() => {})
+  assert.equal(await anchor.getAttribute('data-chronicle-action'), anchorId)
+  assert.ok(
+    Math.abs((await relativeTop()) - before) <= 1,
+    'Reviewed history retains its visible action anchor when live entries append',
+  )
+  await assertFrozen()
+}
 const errors = []
 const receipts = []
 try {
@@ -141,6 +303,11 @@ try {
         { width: 1366, height: 768 },
       ]) {
         if (columns !== 9 && ![390, 844].includes(viewport.width)) continue
+        if (
+          process.env.AV_MOBILE_PANEL_SCENE &&
+          process.env.AV_MOBILE_PANEL_SCENE !== `${mode}-${columns}-${viewport.width}`
+        )
+          continue
         const page = await browser.newPage({ viewport, hasTouch: viewport.width <= 980 })
         page.on('pageerror', (error) => errors.push(error.message))
         await page.goto(
@@ -195,6 +362,8 @@ try {
         }
 
         if (mobile) {
+          if (mode === 'pvp')
+            await verifyMobileChatFooter(page, viewport, `${mode}-${columns}-${viewport.width}`)
           await toggle.waitFor({ state: 'visible' })
           const geometry = () =>
             page.evaluate(() => {
@@ -318,6 +487,12 @@ try {
           assert.deepEqual(after.board, before.board, `${mode}: Chronicle preserves board`)
           assert.deepEqual(after.header, before.header, `${mode}: Chronicle preserves header`)
           assert.deepEqual(after.footer, before.footer, `${mode}: toggle remains frozen`)
+          await verifyMobileChronicleUpdates(
+            page,
+            geometry,
+            before,
+            `${mode}-${columns}-${viewport.width}`,
+          )
           await page
             .locator('[data-battle-mobile-lower-panel]')
             .evaluate((el) => el.scrollTo(0, el.scrollHeight))

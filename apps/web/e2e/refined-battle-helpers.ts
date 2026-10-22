@@ -1,3 +1,4 @@
+import { setBattleChronicleOpen } from './battle-log-layout-helpers'
 import { expect, type Locator, type Page } from '@playwright/test'
 
 export function targetForecast(page: Page) {
@@ -72,6 +73,7 @@ export async function moveOneStep(
 }
 
 export async function expectRefinedCockpit(page: Page) {
+  await setBattleChronicleOpen(page, false)
   const deck = page.getByRole('region', { name: 'Command Deck' })
   await expect(deck.locator('[data-command-card]')).toHaveCount(6)
   await expect(deck.locator('[data-battle-command="items"]')).toBeDisabled()
