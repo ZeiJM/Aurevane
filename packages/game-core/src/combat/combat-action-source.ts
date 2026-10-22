@@ -68,6 +68,14 @@ export function capturedMatureSkillAbilitySource(
     sourceDisciplineId: definition.sourceDisciplineId,
     tags: definition.tags,
     definition: definition.ability!,
+    ...(definition.media.artwork || definition.media.audio
+      ? {
+          media: {
+            ...(definition.media.artwork ? { artwork: definition.media.artwork } : {}),
+            ...(definition.media.audio ? { audio: definition.media.audio } : {}),
+          },
+        }
+      : {}),
   })
 }
 
@@ -116,5 +124,13 @@ export function capturedResonanceAbilitySource(
     sourceKind: 'resonance',
     tags: [],
     definition: definition.ability!,
+    ...(definition.media.artwork || definition.media.audio
+      ? {
+          media: {
+            ...(definition.media.artwork ? { artwork: definition.media.artwork } : {}),
+            ...(definition.media.audio ? { audio: definition.media.audio } : {}),
+          },
+        }
+      : {}),
   })
 }

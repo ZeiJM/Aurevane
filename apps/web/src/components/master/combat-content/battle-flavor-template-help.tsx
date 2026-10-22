@@ -1,6 +1,7 @@
 'use client'
 
 import {
+  ABILITY_PRESENTATION_TEXT_LIMITS,
   battleTextReferenceChoices,
   battleTextContextIssues,
   type BattleTextReferenceContext,
@@ -26,7 +27,8 @@ export function BattleFlavorTemplateHelp({
   const [actor, setActor] = useState<BattleNarratorIdentity>({ name: 'Asha' })
   const [target, setTarget] = useState<BattleNarratorIdentity>({ name: 'Bryn' })
   const [plural, setPlural] = useState(false)
-  const issues = value.trim() ? battleTextContextIssues(value, context) : []
+  const maximum = ABILITY_PRESENTATION_TEXT_LIMITS[context.field]
+  const issues = value.trim() ? battleTextContextIssues(value, context, maximum) : []
   const sample = {
     actor,
     target,
@@ -49,12 +51,12 @@ export function BattleFlavorTemplateHelp({
     <details>
       <summary>References and writing preview</summary>
       <p className={styles.fieldHint}>
-        One or two short story sentences, up to 160 characters. Names and pronouns use explicit
-        identity only; missing historical identity stays neutral. Gender alternatives use masculine
-        | feminine | neutral wording. Quantities come from recorded battle results. Presentation
-        never controls mechanics and does not verify arbitrary English. Example: insert User, write
-        “uses”, then insert Ability. Results and triggering actors appear only in supported
-        contexts.
+        One or two short story sentences, up to {maximum} characters. Names and pronouns use
+        explicit identity only; missing historical identity stays neutral. Gender alternatives use
+        masculine | feminine | neutral wording. Quantities come from recorded battle results.
+        Presentation never controls mechanics and does not verify arbitrary English. Example: insert
+        User, write “uses”, then insert Ability. Results and triggering actors appear only in
+        supported contexts.
       </p>
       <label className={styles.field}>
         <span>Insert Reference</span>
@@ -65,7 +67,7 @@ export function BattleFlavorTemplateHelp({
             const token = event.currentTarget.value
             if (!token) return
             const next = `${value}${value && !value.endsWith(' ') ? ' ' : ''}${token}`
-            if (next.length <= 160) onChange(next)
+            if (next.length <= maximum) onChange(next)
           }}
         >
           <option value="">Choose a reference</option>
@@ -155,7 +157,7 @@ export function BattleFlavorTemplateHelp({
         </ul>
       )}
       <p aria-label="Battle narration sample">
-        {renderBattleFlavorTemplate(value, sample) ?? fallback}
+        {renderBattleFlavorTemplate(value, sample, maximum) ?? fallback}
       </p>
       <p aria-label="Neutral historical narration preview">
         {renderBattleFlavorTemplate(value, { ability }) ?? `Combatant calls on ${ability}.`}

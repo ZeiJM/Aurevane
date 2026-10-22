@@ -1,3 +1,4 @@
+import { abilityPresentationTextIssues, type AbilityPresentationText } from './battle-narration'
 import { finalizedContentMediaIssues, type FinalizedContentMediaSlots } from './content-media'
 import type { CombatEncounterState, CombatActionDefinition } from './actions'
 import {
@@ -33,6 +34,7 @@ export interface BasicSkillDefinition {
   readonly enabled: boolean
   readonly name: string
   readonly description: string
+  readonly presentation?: AbilityPresentationText
   readonly battleText?: string
   readonly tags: readonly string[]
   readonly media: FinalizedContentMediaSlots & {
@@ -59,6 +61,8 @@ export function validateBasicSkillDefinition(value: unknown): readonly BasicSkil
     issues.push({ path, code, message })
   if (!record(value))
     return [{ path: '', code: 'invalid-basic', message: 'Basic Skill must be a complete record.' }]
+  for (const path of abilityPresentationTextIssues(value))
+    issue(path, 'invalid-presentation', 'Use references available for this field and definition.')
   const keys = (row: Record<string, unknown>, allowed: readonly string[], path: string) => {
     for (const key of Object.keys(row))
       if (!allowed.includes(key))
@@ -74,6 +78,7 @@ export function validateBasicSkillDefinition(value: unknown): readonly BasicSkil
       'name',
       'description',
       'battleText',
+      'presentation',
       'tags',
       'media',
       'execution',

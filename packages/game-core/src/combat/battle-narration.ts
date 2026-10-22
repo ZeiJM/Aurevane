@@ -158,8 +158,9 @@ export function battleTextReferenceChoices(
 export function battleTextContextIssues(
   template: string,
   context: BattleTextReferenceContext,
+  maximum = 160,
 ): readonly string[] {
-  const issues = [...battleFlavorTemplateIssues(template)]
+  const issues = [...battleFlavorTemplateIssues(template, maximum)]
   const allowed = new Set(battleTextReferenceChoices(context).map((choice) => choice.token))
   for (const match of template.matchAll(FLAVOR_TOKEN_PATTERN)) {
     if (!allowed.has(match[1]!) && !GENDER_TOKEN_PATTERN.test(match[1]!))
@@ -171,12 +172,17 @@ export function battleTextContextIssues(
 const FLAVOR_TOKEN_PATTERN = /\{([^{}]+)\}/gu
 const GENDER_TOKEN_PATTERN = /^(actor|target)\.gender:([^{}|]+)\|([^{}|]+)\|([^{}|]+)$/u
 
-export function battleFlavorTemplateIssues(template: unknown): readonly string[] {
+export function battleFlavorTemplateIssues(template: unknown, maximum = 160): readonly string[] {
   if (typeof template !== 'string') return ['Narration must be text.']
   const issues: string[] = []
   if (!template.trim()) issues.push('Narration cannot be blank.')
-  if (template.length > 160) issues.push('Narration must be 160 characters or fewer.')
-  if (/[<>]/u.test(template) || [...template].some((character) => character.charCodeAt(0) < 32))
+  if (template.length > maximum) issues.push(`Narration must be ${maximum} characters or fewer.`)
+  if (
+    /[<>]/u.test(template) ||
+    [...template].some(
+      (character) => character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127,
+    )
+  )
     issues.push('Narration must be one plain-text line.')
   const allowed = new Set<string>(BATTLE_FLAVOR_TOKENS)
   for (const match of template.matchAll(FLAVOR_TOKEN_PATTERN)) {
@@ -199,8 +205,10 @@ export function battleFlavorTemplateIssues(template: unknown): readonly string[]
 export function renderBattleFlavorTemplate(
   template: string | null | undefined,
   context: BattleFlavorTemplateContext,
+  maximum = 160,
 ): string | null {
-  if (battleFlavorTemplateIssues(template).length > 0 || typeof template !== 'string') return null
+  if (battleFlavorTemplateIssues(template, maximum).length > 0 || typeof template !== 'string')
+    return null
   // Refuse the whole message when a required fact is absent. Never substitute fabricated zeros.
   for (const match of template.matchAll(FLAVOR_TOKEN_PATTERN)) {
     const token = match[1]!
@@ -304,4 +312,130 @@ export function defaultSkillBattleText(definition: {
   )
     return `{actor} draws on ${force} to weave {ability}.`
   return '{actor} calls upon {ability}.'
+}
+
+export type AbilityPresentationText = Readonly<Partial<Record<BattleTextField, string>>>
+export const ABILITY_PRESENTATION_TEXT_LIMITS = {
+  public: 2000,
+  compact: 240,
+  activation: 160,
+  result: 160,
+} as const
+const presentationRecord = (value: unknown): Record<string, unknown> | null =>
+  value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null
+function presentationPayloads(value: unknown): readonly Record<string, unknown>[] {
+  const row = presentationRecord(value)
+  if (!row) return []
+  const ability = presentationRecord(row.ability) ?? row
+  if (Array.isArray(ability.behaviors))
+    return ability.behaviors.flatMap((group) => {
+      const effects = presentationRecord(group)?.effects
+      return Array.isArray(effects)
+        ? effects.flatMap((effect) => {
+            const payload = presentationRecord(presentationRecord(effect)?.payload)
+            return payload ? [payload] : []
+          })
+        : []
+    })
+  const effects = row.effects ?? presentationRecord(row.trigger)?.resultEffects
+  return Array.isArray(effects)
+    ? effects.flatMap((effect) => (presentationRecord(effect) ? [presentationRecord(effect)!] : []))
+    : []
+}
+/** Finite public payload fields only. No recursive numeric scan or Accuracy-derived values. */
+export function abilityPresentationValues(value: unknown): Readonly<Record<string, number>> {
+  const values: Record<string, number> = {}
+  for (const [index, effect] of presentationPayloads(value).slice(0, 100).entries()) {
+    const put = (unit: string, candidate: unknown, divisor = 1) => {
+      if (typeof candidate === 'number' && Number.isFinite(candidate))
+        values[`${index}.${unit}`] = candidate / divisor
+    }
+    if (['damage', 'pierce', 'healing', 'barrier-change'].includes(String(effect.type)))
+      put('power', effect.power ?? effect.amount)
+    put('duration', effect.durationTurns)
+    if (effect.type === 'move') put('tiles', effect.maximumTiles)
+    if (effect.type === 'displace') put('tiles', effect.distance)
+    put('applications', effect.ticks)
+    if (effect.type === 'percentage-recovery')
+      put(
+        'percentage',
+        effect.percentageBasisPoints ??
+          (typeof effect.percent === 'number' ? effect.percent * 100 : undefined),
+        100,
+      )
+    if (effect.type === 'apply-status') {
+      put('stacks', effect.stacks)
+      put('percentage', effect.potencyBasisPoints, 100)
+    }
+    if (effect.type === 'resource-change') put('resource', effect.delta)
+  }
+  return values
+}
+export function abilityPresentationContext(
+  value: unknown,
+  field: BattleTextField,
+): BattleTextReferenceContext {
+  const types = presentationPayloads(value).map((effect) => effect.type)
+  const row = presentationRecord(value)
+  const behaviors = presentationRecord(row?.ability)?.behaviors
+  const triggeringActor =
+    field === 'activation' &&
+    Array.isArray(behaviors) &&
+    behaviors.some((group) => presentationRecord(group)?.activation === 'automatic')
+  return {
+    field,
+    triggeringActor,
+    values: abilityPresentationValues(value),
+    affectedTargets: field === 'result',
+    outcomes:
+      field === 'result'
+        ? [
+            ...(types.some((type) => type === 'damage' || type === 'pierce')
+              ? ['damage' as const]
+              : []),
+            ...(types.includes('healing') ? ['healing' as const] : []),
+          ]
+        : [],
+  }
+}
+export function abilityPresentationTextIssues(value: unknown): readonly string[] {
+  const row = presentationRecord(value)
+  if (!row || row.presentation === undefined) return []
+  const text = presentationRecord(row.presentation)
+  if (!text) return ['presentation']
+  return Object.entries(text).flatMap(([field, template]) => {
+    if (!Object.hasOwn(ABILITY_PRESENTATION_TEXT_LIMITS, field)) return [`presentation.${field}`]
+    return typeof template !== 'string' ||
+      battleTextContextIssues(
+        template,
+        abilityPresentationContext(value, field as BattleTextField),
+        ABILITY_PRESENTATION_TEXT_LIMITS[field as BattleTextField],
+      ).length
+      ? [`presentation.${field}`]
+      : []
+  })
+}
+/** The same exact definition feeds full/compact readers and contextual recorded messages. */
+export function renderAbilityPresentationText(
+  value: unknown,
+  field: BattleTextField,
+  context: BattleFlavorTemplateContext,
+): string | null {
+  const template = presentationRecord(presentationRecord(value)?.presentation)?.[field]
+  if (
+    typeof template !== 'string' ||
+    battleTextContextIssues(
+      template,
+      abilityPresentationContext(value, field),
+      ABILITY_PRESENTATION_TEXT_LIMITS[field],
+    ).length
+  )
+    return null
+  return renderBattleFlavorTemplate(
+    template,
+    { ...context, values: abilityPresentationValues(value) },
+    ABILITY_PRESENTATION_TEXT_LIMITS[field],
+  )
 }

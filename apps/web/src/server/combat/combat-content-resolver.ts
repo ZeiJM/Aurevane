@@ -1,4 +1,13 @@
 import {
+  captureCombatTagPresentation,
+  bindCombatTagPresentations,
+  type CombatTagPresentationSnapshot,
+} from '@aurevane/game-core/combat/combat-tag-registry'
+import {
+  parseNoncombatContentDefinition,
+  type AuthoredTag,
+} from '@aurevane/game-core/content/authored-content'
+import {
   defaultBasicSkills,
   type BasicSkillDefinition,
   type BasicSkillId,
@@ -52,6 +61,11 @@ import { AurevaneError } from '@aurevane/game-core/errors'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 
 export interface CombatContentResolver {
+  resolveCurrentTagPresentations?(): Promise<readonly CombatTagPresentationSnapshot[]>
+  resolvePinnedTagPresentation?(
+    key: string,
+    version: number,
+  ): Promise<CombatTagPresentationSnapshot | null>
   /** One MVCC catalogue supplies timing and every current lookup during battle admission. */
   captureCurrentCatalogue?(): Promise<{
     resolver: CombatContentResolver
@@ -150,11 +164,11 @@ export interface PublishedCombatContentSource {
   ): Promise<CombatContentVersionRecord | null>
   findCurrentContent?(
     contentKey: string,
-    contentKind: 'essence' | 'resonance',
+    contentKind: 'essence' | 'resonance' | 'tag',
   ): Promise<CombatContentVersionRecord | null>
   findContentVersion?(
     contentKey: string,
-    contentKind: 'essence' | 'resonance',
+    contentKind: 'essence' | 'resonance' | 'tag',
     contentVersion: number,
   ): Promise<CombatContentVersionRecord | null>
 }
@@ -375,7 +389,7 @@ export class RpcPublishedCombatContentSource implements PublishedCombatContentSo
 
   async findCurrentContent(
     contentKey: string,
-    contentKind: 'essence' | 'resonance',
+    contentKind: 'essence' | 'resonance' | 'tag',
   ): Promise<CombatContentVersionRecord | null> {
     const { data, error } = await this.#rpc('read_current_combat_content_v1', {
       p_content_key: contentKey,
@@ -400,7 +414,7 @@ export class RpcPublishedCombatContentSource implements PublishedCombatContentSo
 
   async findContentVersion(
     contentKey: string,
-    contentKind: 'essence' | 'resonance',
+    contentKind: 'essence' | 'resonance' | 'tag',
     contentVersion: number,
   ): Promise<CombatContentVersionRecord | null> {
     const { data, error } = await this.#rpc('read_combat_content_version_v1', {
@@ -510,8 +524,22 @@ export function resolveCombatContentCatalogueSnapshot(
   }
 }
 
+export function catalogueTagPresentations(
+  snapshot: PublishedCombatContentCatalogueSnapshot,
+): readonly CombatTagPresentationSnapshot[] {
+  return snapshot.publications
+    .filter((row) => row.contentKind === 'tag' && !snapshot.archivedKeys?.includes(row.contentKey))
+    .flatMap((row) => {
+      const definition = parseNoncombatContentDefinition('tag', row.definition) as AuthoredTag
+      if (definition.id !== row.contentKey || definition.contentVersion !== row.contentVersion)
+        throw new InvalidPublishedCombatContentError('Tag identity mismatch.')
+      return definition.enabled ? [captureCombatTagPresentation(definition)] : []
+    })
+}
+
 export function createCombatContentResolver(
   source: PublishedCombatContentSource,
+  admissionTags?: readonly CombatTagPresentationSnapshot[],
 ): CombatContentResolver {
   async function resolveCurrentCatalogue(): Promise<CombatContentCatalogue> {
     if (!source.readCatalogueSnapshot)
@@ -560,7 +588,7 @@ export function createCombatContentResolver(
     return resolved
   }
 
-  return {
+  const resolver: CombatContentResolver = {
     ...(source.readCatalogueSnapshot
       ? {
           async captureCurrentCatalogue() {
@@ -582,42 +610,45 @@ export function createCombatContentResolver(
               )
               return row?.contentVersion === version ? row : null
             }
-            const frozen = createCombatContentResolver({
-              readCatalogueSnapshot: async () => structuredClone(snapshot),
-              ...(source.readCurrentDisciplineSelection
-                ? {
-                    readCurrentDisciplineSelection: async (
-                      primary: string,
-                      secondary: string | null,
-                    ) => {
-                      const selected = await source.readCurrentDisciplineSelection!(
-                        primary,
-                        secondary,
-                      )
-                      if (selected.catalogueToken !== snapshot.token)
-                        throw new AurevaneError(
-                          'STALE_VERSION',
-                          'The combat catalogue changed. Refresh your build and retry.',
+            const frozen = createCombatContentResolver(
+              {
+                readCatalogueSnapshot: async () => structuredClone(snapshot),
+                ...(source.readCurrentDisciplineSelection
+                  ? {
+                      readCurrentDisciplineSelection: async (
+                        primary: string,
+                        secondary: string | null,
+                      ) => {
+                        const selected = await source.readCurrentDisciplineSelection!(
+                          primary,
+                          secondary,
                         )
-                      return selected
-                    },
-                  }
-                : {}),
-              findCurrentSkill: async (key) => structuredClone(current(key, 'skill')),
-              findCurrentSkills: async (keys) =>
-                keys
-                  .map((key) => current(key, 'skill'))
-                  .filter((row): row is CombatContentVersionRecord => row !== null)
-                  .map((row) => structuredClone(row)),
-              findCurrentContent: async (key, kind) => structuredClone(current(key, kind)),
-              findSkillVersion: async (key, version) =>
-                structuredClone(pinned(key, 'skill', version)) ??
-                source.findSkillVersion(key, version),
-              findContentVersion: async (key, kind, version) =>
-                structuredClone(pinned(key, kind, version)) ??
-                (await source.findContentVersion?.(key, kind, version)) ??
-                null,
-            })
+                        if (selected.catalogueToken !== snapshot.token)
+                          throw new AurevaneError(
+                            'STALE_VERSION',
+                            'The combat catalogue changed. Refresh your build and retry.',
+                          )
+                        return selected
+                      },
+                    }
+                  : {}),
+                findCurrentSkill: async (key) => structuredClone(current(key, 'skill')),
+                findCurrentSkills: async (keys) =>
+                  keys
+                    .map((key) => current(key, 'skill'))
+                    .filter((row): row is CombatContentVersionRecord => row !== null)
+                    .map((row) => structuredClone(row)),
+                findCurrentContent: async (key, kind) => structuredClone(current(key, kind)),
+                findSkillVersion: async (key, version) =>
+                  structuredClone(pinned(key, 'skill', version)) ??
+                  source.findSkillVersion(key, version),
+                findContentVersion: async (key, kind, version) =>
+                  structuredClone(pinned(key, kind, version)) ??
+                  (await source.findContentVersion?.(key, kind, version)) ??
+                  null,
+              },
+              catalogueTagPresentations(snapshot),
+            )
             return { resolver: frozen, policy: structuredClone(snapshot.policy) }
           },
         }
@@ -782,6 +813,75 @@ export function createCombatContentResolver(
       if (published) return validatePublishedResonance(published, resonanceId, version)
       const fallback = resolveResonanceForPair(primaryDisciplineId, secondaryDisciplineId, version)
       return fallback?.id === resonanceId ? structuredClone(fallback) : null
+    },
+  }
+  const tags = async () =>
+    admissionTags ??
+    (source.readCatalogueSnapshot
+      ? catalogueTagPresentations(await source.readCatalogueSnapshot())
+      : [])
+  const bindCurrent = async <T>(value: T) => bindCombatTagPresentations(value, await tags())
+  const bindPinned = <T>(value: T) =>
+    admissionTags ? bindCombatTagPresentations(value, admissionTags) : value
+  return {
+    ...resolver,
+    resolveCurrentTagPresentations: tags,
+    async resolvePinnedTagPresentation(key, version) {
+      if (!Number.isSafeInteger(version) || version < 1) return null
+      const row = await source.findContentVersion?.(key, 'tag', version)
+      if (!row) return null
+      return captureCombatTagPresentation(
+        parseNoncombatContentDefinition('tag', row.definition) as AuthoredTag,
+      )
+    },
+    async resolveCurrentCatalogue() {
+      const catalogue = await resolver.resolveCurrentCatalogue!()
+      return bindCurrent(catalogue)
+    },
+    async resolveCurrentSkillDefinition(id) {
+      return bindCurrent(await resolver.resolveCurrentSkillDefinition(id))
+    },
+    async resolveCurrentSkillDefinitions(ids) {
+      const entries = await resolver.resolveCurrentSkillDefinitions!(ids)
+      const currentTags = await tags()
+      return new Map(
+        [...entries].map(([id, definition]) => [
+          id,
+          bindCombatTagPresentations(definition, currentTags),
+        ]),
+      )
+    },
+    async resolveCurrentBasicSkillDefinitions(ids) {
+      const entries = await resolver.resolveCurrentBasicSkillDefinitions!(ids)
+      const currentTags = await tags()
+      return new Map(
+        [...entries].map(([id, definition]) => [
+          id,
+          bindCombatTagPresentations(definition, currentTags),
+        ]),
+      )
+    },
+    async resolveCurrentEssenceDefinition(primary, secondary) {
+      return bindCurrent(await resolver.resolveCurrentEssenceDefinition!(primary, secondary))
+    },
+    async resolveCurrentResonanceDefinition(primary, secondary) {
+      return bindCurrent(await resolver.resolveCurrentResonanceDefinition!(primary, secondary))
+    },
+    async resolvePinnedSkillDefinition(id, version) {
+      return bindPinned(await resolver.resolvePinnedSkillDefinition(id, version))
+    },
+    async resolvePinnedBasicSkillDefinition(id, version) {
+      return bindPinned(await resolver.resolvePinnedBasicSkillDefinition!(id, version))
+    },
+    async resolvePinnedEssenceDefinition(primary, secondary, id, version) {
+      return bindPinned(
+        await resolver.resolvePinnedEssenceDefinition!(primary, secondary, id, version),
+      )
+    },
+    async resolvePinnedResonanceDefinition(primary, secondary, id, version) {
+      return bindPinned(
+        await resolver.resolvePinnedResonanceDefinition!(primary, secondary, id, version),
+      )
     },
   }
 }

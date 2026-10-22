@@ -1,3 +1,4 @@
+import { abilityPresentationTextIssues, type AbilityPresentationText } from './battle-narration'
 import { finalizedContentMediaIssues, type FinalizedContentMediaSlots } from './content-media'
 import { battleFlavorTemplateIssues } from './battle-narration'
 import type { CombatEffectDefinition, CombatTargetSpec, CombatUseRequirement } from './actions'
@@ -29,6 +30,7 @@ export interface SummonAbilityDefinition {
   readonly id: string
   readonly name: string
   readonly description: string
+  readonly presentation?: AbilityPresentationText
   readonly battleText?: string
   readonly apCost: number
   readonly mpCost: number
@@ -85,6 +87,7 @@ function validAbility(ability: SummonAbilityDefinition): boolean {
     STABLE_ID_PATTERN.test(ability.id) &&
     ability.name.trim().length > 0 &&
     ability.description.trim().length > 0 &&
+    abilityPresentationTextIssues(ability).length === 0 &&
     (ability.battleText === undefined ||
       battleFlavorTemplateIssues(ability.battleText).length === 0) &&
     positiveSafeInteger(ability.apCost) &&

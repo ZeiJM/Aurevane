@@ -138,9 +138,13 @@ export function FinalizedMediaEditor({
           accept={`image/png,image/jpeg,image/webp${allowAudio ? ',audio/wav,audio/x-wav' : ''}`}
           onChange={(event) => {
             const selected = event.currentTarget.files?.[0] ?? null
+            event.currentTarget.value = ''
             setError('')
             setPreview('')
-            if (selected && selected.size > CONTENT_MEDIA_MAX_BYTES) {
+            if (selected && !allowAudio && !selected.type.startsWith('image/')) {
+              setError('This category supports images only; audio is unavailable.')
+              setFile(null)
+            } else if (selected && selected.size > CONTENT_MEDIA_MAX_BYTES) {
               setError('Choose a file no larger than 2 MiB.')
               setFile(null)
             } else setFile(selected)
@@ -179,7 +183,16 @@ export function FinalizedMediaEditor({
         </div>
       )}
       {file && !file.type.startsWith('image/') && preview && (
-        <audio controls src={preview} aria-label="Selected sound preview" />
+        <audio
+          controls
+          onError={() =>
+            setError(
+              'This sound could not be played. Use PCM16 WAV, mono or stereo, at 44.1 or 48 kHz.',
+            )
+          }
+          src={preview}
+          aria-label="Selected sound preview"
+        />
       )}
       <button
         type="button"
@@ -196,6 +209,11 @@ export function FinalizedMediaEditor({
         <div>
           <Image
             src={contentMediaSource(value.artwork, true)}
+            onError={() =>
+              setError(
+                'The finalized artwork preview is unavailable. Check your access or try again.',
+              )
+            }
             alt="Finalized artwork crop"
             width={144}
             height={144}
@@ -217,6 +235,11 @@ export function FinalizedMediaEditor({
             controls
             preload="none"
             src={contentMediaSource(value.audio, true)}
+            onError={() =>
+              setError(
+                'The finalized sound preview is unavailable. Check your access or try again.',
+              )
+            }
             aria-label="Finalized sound preview"
           />
           <button

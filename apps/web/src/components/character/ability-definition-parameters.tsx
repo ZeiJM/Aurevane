@@ -40,6 +40,7 @@ export function AbilityDefinitionParameters({
           .reduce((sum, group) => sum + group.effects.length, 0)
         const explanations = authored?.slice(offset, offset + behavior.effects.length)
         const report = abilityBehaviorInformation(behavior, {
+          tagPresentation: definition.tagPresentation,
           timingPolicy,
           effectContext: {
             ...groundRules,

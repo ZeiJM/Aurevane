@@ -1,3 +1,4 @@
+import { renderBattleFlavorTemplate } from '@aurevane/game-core/combat/battle-narration'
 import { combatStatusDetails } from '@aurevane/game-core/combat/status-content'
 import { battleDamageLabel } from '../../lib/battle/battle-damage-type'
 import type { BattleLogEntry } from '@/server/battle/battle-log-service'
@@ -24,6 +25,8 @@ export interface ChronicleAction {
   contentId: string | null
   contentVersion: number | null
   flavorTemplate: string | null
+  configuredValues?: Readonly<Record<string, number>>
+  triggeringActorName?: string
   narrator?: NonNullable<BattleLogEntry['actionContext']>['narrator']
   targetName: string
   fallbackNarration: string
@@ -273,6 +276,10 @@ function action(entry: BattleLogEntry, names: ChronicleNames, ownerId: string): 
       loweredGuard && entry.eventType === 'combat_action_used'
         ? '{actor} lowered {actor.possessive} guard!'
         : (entry.actionContext?.battleText ?? entry.actionContext?.flavor ?? null),
+    configuredValues: entry.actionContext?.presentation?.values,
+    triggeringActorName: entry.actionContext?.triggeringActorId
+      ? chronicleCombatantName(entry.actionContext.triggeringActorId, names)
+      : undefined,
     narrator:
       entry.actionContext?.narrator ??
       (entry.actorNarrator ? { actor: entry.actorNarrator } : undefined),
@@ -330,6 +337,34 @@ function outcome(entry: BattleLogEntry, names: ChronicleNames): ChronicleOutcome
       : {}),
   }
   if (entry.effectTimingState === 'pending') return null
+  if (
+    !entry.periodicStatusId &&
+    !entry.damageTrigger &&
+    (entry.eventType === 'damage_applied' || entry.eventType === 'healing_applied') &&
+    /^\d+$/u.test(value.amount ?? '')
+  ) {
+    const amount = Number(value.amount)
+    const rendered = Number.isSafeInteger(amount)
+      ? renderBattleFlavorTemplate(entry.actionContext?.presentation?.result, {
+          actor: {
+            name: chronicleCombatantName(entry.actorCombatantId, names),
+            ...entry.actionContext?.narrator?.actor,
+          },
+          target: { name: target, ...entry.actionContext?.narrator?.target },
+          affectedTargets: [{ name: target, ...entry.actionContext?.narrator?.target }],
+          ability: entry.actionContext?.name ?? entry.actionLabel ?? 'Ability',
+          values: entry.actionContext?.presentation?.values,
+          outcomes: entry.eventType === 'damage_applied' ? { damage: amount } : { healing: amount },
+        })
+      : null
+    if (rendered)
+      return {
+        ...base,
+        text: rendered,
+        tone: entry.eventType === 'damage_applied' ? 'damage' : 'recovery',
+      }
+  }
+
   switch (entry.eventType) {
     case 'combatant_rewind_blocked':
       return { ...base, text: entry.message, tone: 'harm' }

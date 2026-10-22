@@ -873,7 +873,16 @@ export function executePv1fSummonAbility(
   return {
     state: next,
     events: [
-      ...resolved.events,
+      ...resolved.events.map((event) =>
+        event.event === 'combat_action_used' &&
+        summon.profile.abilities.find((ability) => ability.id === actionId)?.media.audio
+          ? {
+              ...event,
+              audioMedia: summon.profile.abilities.find((ability) => ability.id === actionId)!.media
+                .audio,
+            }
+          : event,
+      ),
       ...defeatedSummons.events,
       {
         event: 'summon_ability_used',
@@ -1373,6 +1382,9 @@ export function executePv1fMatureSkill(
         ? [
             {
               event: 'resonance_activated',
+              ...(resonance.definition.media.audio
+                ? { audioMedia: resonance.definition.media.audio }
+                : {}),
               resonanceId: resonance.definition.id,
               contentVersion: resonance.definition.contentVersion,
               actorId,

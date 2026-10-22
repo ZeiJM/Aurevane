@@ -9,6 +9,7 @@ import {
 } from '@aurevane/game-core/combat/combat-basic-actions'
 import { AbilityDefinitionEditor } from './ability-definition-editor'
 import { AbilityNumber, AbilitySelect, AbilityText } from './ability-editor-fields'
+import { AbilityPresentationEditor } from './ability-presentation-editor'
 import { SkillMediaEditor } from './skill-media-editor'
 import { BattleFlavorTemplateHelp } from './battle-flavor-template-help'
 import { postCombatContentAuthoring } from './combat-content-client'
@@ -458,6 +459,12 @@ export function BasicContentEditor({
             value={draft.ability}
             allowEffectDescriptions={false}
             onChange={(ability) => update({ ...draft, ability })}
+          />
+          <AbilityPresentationEditor
+            definition={draft}
+            name={draft.name}
+            value={draft.presentation}
+            onChange={(presentation) => update({ ...draft, presentation })}
           />
           <SkillMediaEditor value={draft.media} onChange={(media) => update({ ...draft, media })} />
         </section>

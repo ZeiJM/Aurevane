@@ -75,6 +75,10 @@ export interface BattleLogEntry {
     description: string
     flavor: string | null
     battleText?: string | null
+    triggeringActorId?: string
+    presentation?: import('@aurevane/game-core/combat/battle-narration').AbilityPresentationText & {
+      readonly values: Readonly<Record<string, number>>
+    }
     narrator?: { actor: BattleNarratorIdentitySnapshot; target?: BattleNarratorIdentitySnapshot }
   }
   round: number | null

@@ -35,6 +35,7 @@ import {
 } from './combat-content-workflow'
 import { SkillEconomyEditor, type SkillEconomyDraft } from './skill-economy-editor'
 import { SkillEffectListEditor } from './skill-effect-list-editor'
+import { AbilityPresentationEditor } from './ability-presentation-editor'
 import { SkillMediaEditor } from './skill-media-editor'
 import { SkillGroundEditor, groundAreaForEffects, withSkillGroundArea } from './skill-ground-editor'
 import { SkillTargetingEditor } from './skill-targeting-editor'
@@ -539,6 +540,14 @@ export function EssenceContentEditor({ essences, initialEssenceId }: EssenceCont
                     updateDraft({ ...selectedDraft, skill: next })
                   }}
                 />
+                <AbilityPresentationEditor
+                  definition={skill}
+                  name={selectedDraft.name}
+                  value={skill.presentation}
+                  onChange={(presentation) =>
+                    updateDraft({ ...selectedDraft, skill: { ...skill, presentation } })
+                  }
+                />
                 <SkillMediaEditor
                   value={skill.media}
                   onChange={(media) =>
@@ -586,6 +595,14 @@ export function EssenceContentEditor({ essences, initialEssenceId }: EssenceCont
                               },
                       },
                     })
+                  }
+                />
+                <AbilityPresentationEditor
+                  definition={skill}
+                  name={selectedDraft.name}
+                  value={skill.presentation}
+                  onChange={(presentation) =>
+                    updateDraft({ ...selectedDraft, skill: { ...skill, presentation } })
                   }
                 />
                 <SkillMediaEditor

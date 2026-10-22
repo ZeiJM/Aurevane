@@ -80,8 +80,27 @@ async function battleBuildExtensions(
     resolvePinnedBattleResonanceDefinition(authority, combatantId, resolver),
     resolvePinnedBattleEssenceDefinition(authority, combatantId, resolver),
   ])
+  const capturedTags = <
+    T extends {
+      id: string
+      contentVersion: number
+      ability?: import('@aurevane/game-core/combat/combat-definition').AbilityDefinition
+    },
+  >(
+    definition: T,
+  ): T => {
+    const capture = battle.snapshot.tagPresentations?.find(
+      (row) =>
+        row.ownerCombatantId === combatantId &&
+        row.abilityId === definition.id &&
+        row.contentVersion === definition.contentVersion,
+    )
+    return capture && definition.ability
+      ? { ...definition, ability: { ...definition.ability, tagPresentation: capture.tags } }
+      : definition
+  }
   const essenceDefinition = resolvedEssence
-    ? { ...resolvedEssence, skill: essenceCombatSkill(resolvedEssence) }
+    ? { ...resolvedEssence, skill: capturedTags(essenceCombatSkill(resolvedEssence)) }
     : null
   const combatContext = authority?.combatContext
   const essenceOverride = combatContext
@@ -101,7 +120,7 @@ async function battleBuildExtensions(
           return null
         const override = combatContext ? definition.overrides[combatContext] : undefined
         return {
-          definition,
+          definition: capturedTags(definition),
           target: definition.target,
           id: definition.id,
           contentVersion: definition.contentVersion,
@@ -152,7 +171,7 @@ async function battleBuildExtensions(
     techniques,
     resonance: resonanceDefinition
       ? {
-          definition: resonanceDefinition,
+          definition: capturedTags(resonanceDefinition),
           id: resonanceDefinition.id,
           contentVersion: resonanceDefinition.contentVersion,
           name: resonanceDefinition.name,

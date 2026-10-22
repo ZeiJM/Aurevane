@@ -431,6 +431,7 @@ export function validateCombatTagPayload(
             'name',
             'description',
             'battleText',
+            'presentation',
             'apCost',
             'mpCost',
             'tags',
@@ -660,4 +661,100 @@ export function combatTagPayloadExplanation(payload: CombatTagPayload): {
             ? 'Summon'
             : combatEffectPresentationTags(nativeCombatTagPayload(payload)).join(' · ')
   return { concise, full: definition.fullExplanation }
+}
+
+/** Versioned wording attached to a canonical Tag. Handler, units and compatibility remain above. */
+export interface CombatTagPresentationSnapshot {
+  readonly contentKey: string
+  readonly contentVersion: number
+  readonly tagId: string
+  readonly name: string
+  readonly full: string
+  readonly compact: string
+}
+export function combatTagPresentationIssues(value: unknown): readonly string[] {
+  if (value === undefined) return []
+  if (!Array.isArray(value) || value.length > COMBAT_TAG_REGISTRY.length) return ['tagPresentation']
+  const seen = new Set<string>()
+  return value.flatMap((row, index) => {
+    const path = `tagPresentation.${index}`
+    if (
+      !isRecord(row) ||
+      Object.keys(row).length !== 6 ||
+      Object.keys(row).some(
+        (key) =>
+          !['contentKey', 'contentVersion', 'tagId', 'name', 'full', 'compact'].includes(key),
+      ) ||
+      typeof row.tagId !== 'string' ||
+      !combatTagDefinition(row.tagId) ||
+      row.contentKey !== `tag.${row.tagId}` ||
+      !Number.isSafeInteger(row.contentVersion) ||
+      Number(row.contentVersion) < 1 ||
+      seen.has(row.tagId)
+    )
+      return [path]
+    seen.add(row.tagId)
+    return (['name', 'full', 'compact'] as const).some((key) => {
+      const text = row[key]
+      return (
+        typeof text !== 'string' ||
+        text !== text.trim() ||
+        !text ||
+        text.length > { name: 120, full: 2000, compact: 240 }[key] ||
+        /[<>{}]/u.test(text) ||
+        [...text].some((c) => c.charCodeAt(0) < 32 || c.charCodeAt(0) === 127)
+      )
+    })
+      ? [path]
+      : []
+  })
+}
+export function captureCombatTagPresentation(row: {
+  id: string
+  contentVersion: number
+  tagId: string
+  name: string
+  description: string
+  explanation: string
+}): CombatTagPresentationSnapshot {
+  const snapshot = {
+    contentKey: row.id,
+    contentVersion: row.contentVersion,
+    tagId: row.tagId,
+    name: row.name,
+    full: row.explanation,
+    compact: row.description,
+  }
+  if (combatTagPresentationIssues([snapshot]).length)
+    throw new TypeError('Invalid canonical Tag presentation.')
+  return Object.freeze(snapshot)
+}
+/** Current catalogue binding is presentation-only and copies every mechanics value unchanged. */
+export function bindCombatTagPresentations<T>(
+  value: T,
+  presentations: readonly CombatTagPresentationSnapshot[],
+): T {
+  function visit(input: unknown): unknown {
+    if (Array.isArray(input)) return input.map(visit)
+    if (!isRecord(input)) return input
+    const result = Object.fromEntries(
+      Object.entries(input).map(([key, child]) => [key, visit(child)]),
+    )
+    if (Array.isArray(input.behaviors)) {
+      const ids = new Set(
+        input.behaviors.flatMap((group) =>
+          isRecord(group) && Array.isArray(group.effects)
+            ? group.effects.flatMap((effect) =>
+                isRecord(effect) && isRecord(effect.payload) ? [effect.payload.type] : [],
+              )
+            : [],
+        ),
+      )
+      const selected = presentations.filter((row) => ids.has(row.tagId))
+      if (selected.length || Object.hasOwn(result, 'tagPresentation'))
+        result.tagPresentation = selected.map((row) => ({ ...row }))
+    }
+    return result
+  }
+  return visit(value) as T
 }

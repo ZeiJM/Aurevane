@@ -37,6 +37,8 @@ import {
 } from './combat-content-workflow'
 import { SkillEconomyEditor, type SkillEconomyDraft } from './skill-economy-editor'
 import { SkillEffectListEditor } from './skill-effect-list-editor'
+import { skillDisplayName } from '../../character/skill-detail-presentation'
+import { AbilityPresentationEditor } from './ability-presentation-editor'
 import { SkillMediaEditor } from './skill-media-editor'
 import { SkillGroundEditor, groundAreaForEffects, withSkillGroundArea } from './skill-ground-editor'
 import { SkillTargetingEditor } from './skill-targeting-editor'
@@ -680,6 +682,14 @@ export function CombatContentEditor({ skills, initialSkillId }: CombatContentEdi
                       updateSelectedDraft(next)
                     }}
                   />
+                  <AbilityPresentationEditor
+                    definition={selectedDraft}
+                    name={skillDisplayName(selectedDraft)}
+                    value={selectedDraft.presentation}
+                    onChange={(presentation) =>
+                      updateSelectedDraft({ ...selectedDraft, presentation })
+                    }
+                  />
                   <SkillMediaEditor
                     value={selectedDraft.media}
                     onChange={(media) => updateSelectedDraft({ ...selectedDraft, media })}
@@ -724,6 +734,14 @@ export function CombatContentEditor({ skills, initialSkillId }: CombatContentEdi
                                 ownerTurns: economy.cooldown?.ownerTurns ?? 1,
                               },
                       })
+                    }
+                  />
+                  <AbilityPresentationEditor
+                    definition={selectedDraft}
+                    name={skillDisplayName(selectedDraft)}
+                    value={selectedDraft.presentation}
+                    onChange={(presentation) =>
+                      updateSelectedDraft({ ...selectedDraft, presentation })
                     }
                   />
                   <SkillMediaEditor

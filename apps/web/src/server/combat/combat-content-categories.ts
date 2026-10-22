@@ -166,10 +166,11 @@ export const COMBAT_CONTENT_CATEGORIES: readonly CombatContentCategoryDescriptor
       category: kind,
       storedKind: kind,
       identityField: 'id',
-      runtime: kind === 'discipline' ? 'container' : 'unsupported',
+      runtime: kind === 'discipline' || kind === 'tag' ? 'container' : 'unsupported',
       catalogueProjection: 'container',
       authoringBlocker: null,
-      publicationBlocker: kind === 'discipline' ? null : noncombatPublicationBlocker(kind),
+      publicationBlocker:
+        kind === 'discipline' || kind === 'tag' ? null : noncombatPublicationBlocker(kind),
       ...(kind === 'discipline' ? { validatePublication: assertDisciplinePublicationReady } : {}),
       parseAuthoring: (value) => ({ ...parseNoncombatContentDefinition(kind, value) }),
       parseRetainedBody: (value) => ({ ...parseRetainedNoncombatContentDefinition(kind, value) }),

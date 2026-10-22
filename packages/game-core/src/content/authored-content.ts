@@ -1,7 +1,7 @@
 import { isFinalizedContentMedia, type FinalizedContentImage } from '../combat/content-media'
 import { parseAbilityDefinition, type AbilityDefinition } from '../combat/combat-definition'
 import { validateAbilityRequirements, type RequirementNode } from '../combat/combat-requirements'
-import { combatTagDefinition } from '../combat/combat-tag-registry'
+import { combatTagDefinition, captureCombatTagPresentation } from '../combat/combat-tag-registry'
 import type { DisciplineAtlasEntry, DisciplineMasteryStage } from '../character/discipline-atlas'
 
 export const NONCOMBAT_CONTENT_KINDS = [
@@ -297,6 +297,7 @@ function parseNoncombatDefinition(
     text(row.tagId, 'tagId', 160)
     if (!combatTagDefinition(row.tagId)) invalid('tagId', 'Choose an implemented registry Tag.')
     text(row.explanation, 'explanation', 2000)
+    captureCombatTagPresentation(row as unknown as AuthoredTag)
   } else {
     const issues = validateAbilityRequirements(row.requirements)
     if (issues.length) invalid(issues[0]!.path, issues[0]!.message)

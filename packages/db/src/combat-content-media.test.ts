@@ -210,3 +210,88 @@ it('real saved-record write rejects forged finalized descriptors atomically', as
     }),
   ).rejects.toThrow(/MEDIA_REFERENCE_INVALID/)
 })
+it('publishes canonical Tag wording and retains exact Skill publication snapshots after Tag changes', async () => {
+  const tag = {
+    schemaVersion: 1,
+    id: 'tag.damage',
+    contentVersion: 1,
+    tagId: 'damage',
+    name: 'Impact',
+    description: 'Relative power.',
+    explanation: 'Damage uses power, not exact HP.',
+    sortOrder: 0,
+    enabled: true,
+    media: {},
+  }
+  let tagSaved = await writeMedia(tag.id, {
+    action: 'create',
+    requestId: '00000000-0000-4000-8000-000000000080',
+    contentKind: 'tag',
+    definition: tag,
+  })
+  tagSaved = await publishMedia(tag.id, tagSaved)
+  const skill = {
+    id: 'content.tag-test',
+    contentVersion: 1,
+    sourceDisciplineId: 'vanguard',
+    media: {},
+    ability: {
+      schemaVersion: 1,
+      behaviors: [{ effects: [{ payload: { type: 'damage', amount: 10 } }] }],
+    },
+  }
+  let saved = await writeMedia(skill.id, {
+    action: 'create',
+    requestId: '00000000-0000-4000-8000-000000000081',
+    contentKind: 'skill',
+    definition: skill,
+  })
+  saved = await publishMedia(skill.id, saved)
+  const exact = async () =>
+    (
+      await db.query<{ definition: { ability: { tagPresentation: unknown[] } } }>(
+        "select definition from public.read_combat_content_version_v1($1,'skill',$2)",
+        [skill.id, saved.current.contentVersion],
+      )
+    ).rows[0]!.definition
+  const first = await exact()
+  expect(first.ability.tagPresentation).toEqual([
+    {
+      contentKey: 'tag.damage',
+      contentVersion: tagSaved.current.contentVersion,
+      tagId: 'damage',
+      name: 'Impact',
+      compact: 'Relative power.',
+      full: 'Damage uses power, not exact HP.',
+    },
+  ])
+  tagSaved = await writeMedia(tag.id, {
+    action: 'save',
+    expectedRevision: tagSaved.revision,
+    definition: { ...tag, name: 'Force' },
+  })
+  await publishMedia(tag.id, tagSaved)
+  expect(await exact()).toEqual(first)
+})
+it('rejects unsupported Tag handlers and forged exact Tag snapshot metadata at actual writes', async () => {
+  const tag = {
+    schemaVersion: 1,
+    id: 'tag.invented',
+    contentVersion: 1,
+    tagId: 'invented',
+    name: 'Invented',
+    description: 'No handler.',
+    explanation: 'No handler.',
+    sortOrder: 0,
+    enabled: true,
+    media: {},
+  }
+  await expect(
+    writeMedia(tag.id, {
+      action: 'create',
+      requestId: '00000000-0000-4000-8000-000000000082',
+      contentKind: 'tag',
+      definition: tag,
+    }),
+  ).rejects.toThrow(/TAG/)
+})

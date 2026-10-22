@@ -20,6 +20,10 @@ export function chronicleActionNarration(action: ChronicleAction, actorName: str
       actor: { name: actorName, ...action.narrator?.actor },
       target: { name: action.targetName, ...action.narrator?.target },
       ability: action.title,
+      values: action.configuredValues,
+      triggeringActor: action.triggeringActorName
+        ? { name: action.triggeringActorName }
+        : undefined,
     }) ?? action.fallbackNarration
   )
 }

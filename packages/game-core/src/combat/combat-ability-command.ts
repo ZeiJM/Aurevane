@@ -877,8 +877,12 @@ export function commitCombatAbilityCommand(
     event: 'combat_action_used',
     actionId: prepared.action.id,
     actorId: input.actorId,
-    ...(input.root.kind === 'canonical' && input.root.source.basic?.media.audio
-      ? { audioMedia: input.root.source.basic.media.audio }
+    ...(input.trigger?.triggeringCombatantId
+      ? { triggeringActorId: input.trigger.triggeringCombatantId }
+      : {}),
+    ...(input.root.kind === 'canonical' &&
+    (input.root.source.basic?.media.audio ?? input.root.source.media?.audio)
+      ? { audioMedia: input.root.source.basic?.media.audio ?? input.root.source.media?.audio }
       : {}),
   }
   const beforeMutation = captureCombatAbilityMutation(paid, paid, commandIdentity, session, {

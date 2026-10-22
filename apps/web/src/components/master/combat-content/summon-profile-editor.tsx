@@ -7,6 +7,8 @@ import type {
 } from '@aurevane/game-core/combat/summon-content'
 
 import styles from './combat-content-editor.module.css'
+import { AbilityPresentationEditor } from './ability-presentation-editor'
+import { SkillMediaEditor } from './skill-media-editor'
 import { BattleFlavorTemplateHelp } from './battle-flavor-template-help'
 import { SkillEffectListEditor } from './skill-effect-list-editor'
 import { SkillTargetingEditor } from './skill-targeting-editor'
@@ -431,6 +433,16 @@ export function SummonProfileEditor({
               value={ability.battleText ?? ''}
               ability={ability.name}
               onChange={(battleText) => updateAbility(index, { ...ability, battleText })}
+            />
+            <AbilityPresentationEditor
+              definition={ability}
+              name={ability.name}
+              value={ability.presentation}
+              onChange={(presentation) => updateAbility(index, { ...ability, presentation })}
+            />
+            <SkillMediaEditor
+              value={ability.media}
+              onChange={(media) => updateAbility(index, { ...ability, media })}
             />
             <SkillTargetingEditor
               value={ability.target}

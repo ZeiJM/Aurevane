@@ -1,5 +1,8 @@
 'use client'
 
+import type { CombatTagPresentationSnapshot } from '@aurevane/game-core/combat/combat-tag-registry'
+import { BattleInfoPopover } from '../battle/battle-info-popover'
+
 import type { MatureSkillEffectDefinition } from '@aurevane/game-core/combat/mature-skills'
 import {
   useSkillEffectTimingPolicy,
@@ -15,7 +18,39 @@ import styles from './compact-skill-effect-summary.module.css'
 import { MechanicTextView } from './mechanic-text-view'
 
 /** Effect names share their magnitude color in compact and expanded readers. */
-export function EffectTagLabel({ label }: { label: string }) {
+export function EffectTagLabel({
+  label,
+  tagPresentation,
+}: {
+  label: string
+  tagPresentation?: CombatTagPresentationSnapshot
+}) {
+  if (tagPresentation)
+    return (
+      <BattleInfoPopover
+        nested
+        referenceTrigger
+        hover
+        consumeOutsideClick
+        panelWidth={300}
+        label={`Explain ${tagPresentation.name}`}
+        title={tagPresentation.name}
+        className={styles.reference}
+        trigger={
+          <span
+            className={styles.label}
+            data-combat-tag-reference={tagPresentation.tagId}
+            data-tag-version={tagPresentation.contentVersion}
+          >
+            {tagPresentation.name}
+          </span>
+        }
+      >
+        <p>{tagPresentation.compact}</p>
+        <p>{tagPresentation.full}</p>
+      </BattleInfoPopover>
+    )
+
   return (
     <span className={styles.label} data-effect-tag-label="true">
       {label}
@@ -44,14 +79,16 @@ export function CompactSkillEffectSummary({
 export function CompactEffectSummary({
   parts,
   count = 1,
+  tagPresentation,
 }: {
+  tagPresentation?: CombatTagPresentationSnapshot
   parts: CompactSkillEffectSummaryParts
   count?: number
 }) {
   return (
     <span data-compact-skill-effect="true">
       <strong className={styles.label} data-compact-effect-label="true">
-        {parts.label}
+        <EffectTagLabel label={parts.label} tagPresentation={tagPresentation} />
       </strong>
       {parts.magnitude ? (
         <>

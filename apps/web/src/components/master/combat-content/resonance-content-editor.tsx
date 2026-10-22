@@ -35,6 +35,7 @@ import {
 import { AbilityDefinitionEditor } from './ability-definition-editor'
 import { validateAbilityDefinition } from '@aurevane/game-core/combat/combat-definition'
 import { SkillEffectListEditor } from './skill-effect-list-editor'
+import { AbilityPresentationEditor } from './ability-presentation-editor'
 import { SkillMediaEditor } from './skill-media-editor'
 import { ResonanceParameters } from '../../character/resonance-parameters'
 
@@ -848,6 +849,12 @@ export function ResonanceContentEditor({
                 </fieldset>
               </>
             ) : null}
+            <AbilityPresentationEditor
+              definition={selectedDraft}
+              name={selectedDraft.name}
+              value={selectedDraft.presentation}
+              onChange={(presentation) => updateDraft({ ...selectedDraft, presentation })}
+            />
             <SkillMediaEditor
               value={selectedDraft.media}
               onChange={(media) => updateDraft({ ...selectedDraft, media })}

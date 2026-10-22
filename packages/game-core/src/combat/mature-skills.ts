@@ -1,3 +1,4 @@
+import { abilityPresentationTextIssues, type AbilityPresentationText } from './battle-narration'
 import { finalizedContentMediaIssues, type FinalizedContentMediaSlots } from './content-media'
 import {
   validateAbilityDefinition,
@@ -94,6 +95,7 @@ export interface MatureSkillDefinition extends CombatAccuracyAuthoring {
   readonly descriptionRef: string
   readonly flavorLine?: string
   /** Optional versioned action prose, separate from catalogue flavor. */
+  readonly presentation?: AbilityPresentationText
   readonly battleText?: string
   readonly sourceDisciplineId: string
   readonly unlockRequirement: MatureSkillUnlockRequirement
@@ -1192,7 +1194,7 @@ export function latestEnabledMatureSkills(
 export function validateMatureSkillDefinition(
   definition: MatureSkillDefinition,
 ): readonly string[] {
-  const issues: string[] = []
+  const issues: string[] = [...abilityPresentationTextIssues(definition)]
   if (Object.hasOwn(definition, 'nativeBasicAttackCommand'))
     issues.push('private-native-basic-command-not-authored')
   const canonical = Object.hasOwn(definition, 'ability')
