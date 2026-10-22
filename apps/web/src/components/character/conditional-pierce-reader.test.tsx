@@ -41,9 +41,7 @@ it.each(['wildwarden.field-remedy', 'essence.dawnshield.dawns-oath'])(
     const before = JSON.stringify(definition)
     const report = abilityBehaviorInformation(definition.behaviors[0]!)
     expect(report.effects[1]!.condition).not.toBeNull()
-    expect(Object.fromEntries(report.rows).Requirements).toContain(
-      report.effects[1]!.condition!,
-    )
+    expect(Object.fromEntries(report.rows).Requirements).toContain(report.effects[1]!.condition!)
     expect(report.effectDescriptions[1]).not.toContain('only if')
     const html = renderToStaticMarkup(
       <AbilityDefinitionParameters definition={projectPublicCombat(definition)} />,
