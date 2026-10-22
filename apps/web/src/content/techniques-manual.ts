@@ -318,7 +318,7 @@ export function createTechniquesManualArticle(catalogue: TechniquesManualCatalog
         id: 'basic-skills',
         title: 'Basic and auxiliary Skills',
         paragraphs: [
-          'Move and Basic Attack have editable definitions, as do every auxiliary Skill. Your build equips one auxiliary Skill in its final slot; this guide lists all currently enabled choices. A battle retains its captured versions. Basic Move may charge per traversal point; attached Move is included in the overall Skill cost and does not charge extra walking AP. Remaining Movement, Root, Jump, terrain, occupancy and the effect’s entered-tile cap still apply.',
+          'Move and Basic Attack have editable definitions, as do every auxiliary Skill. Your build equips one auxiliary Skill in its final slot; this guide lists all currently enabled choices. A battle retains its captured versions. Basic Move may charge per traversal point and obeys remaining ordinary Movement. Attached Move uses the Skill’s authored distance and overall cost without spending ordinary Movement or extra walking AP. Root, Jump, terrain, occupancy and the effect’s entered-tile cap still apply.',
           'Controlled timing primes the whole selected Manual action for free, once per character and ability per battle. When a legal release is ready, the Skill artwork lights up. Release pays the full action cost once and starts its cooldown; an invalid release keeps the prime. Cancel discards the prime without renewing its allowance. Other supported effects may use Controlled timing when their definition and timing policy permit it.',
         ],
         disclosures: basics.map((basic) => {
