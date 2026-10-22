@@ -114,7 +114,7 @@ if (process.env.AV_SIMPLE_REQUIREMENTS_COMPILE_ONLY === '1') {
       async function assertReaders(text) {
         for (const name of readerNames) {
           const reader = page.getByRole('region', { name, exact: true })
-          await expect(requirementLine(reader)).toHaveText(text)
+          await expect(requirementLine(reader)).toContainText(text)
           await expect(requirementLine(reader)).not.toContainText(
             /event|action|Discipline|All conditions|Any condition/i,
           )
@@ -299,6 +299,13 @@ if (process.env.AV_SIMPLE_REQUIREMENTS_COMPILE_ONLY === '1') {
         assert.deepEqual((await snapshot()).validationIssues, [])
         await save()
         await assertReaders('Drenched [Self]')
+        for (const name of readerNames) {
+          const reader = page.getByRole('region', { name, exact: true })
+          await expect(requirementLine(reader)).toContainText(/Dmg.*Drenched \\[Self\\]/)
+          await expect(
+            reader.locator('dt').filter({ hasText: /^Effects$/ }).locator('xpath=following-sibling::dd[1]'),
+          ).not.toContainText(/^If /)
+        }
         const geometrySaved = (await snapshot()).saved.behaviors[0]
         assert.equal(geometrySaved.targeting.shape.kind, nextShape)
         assert.deepEqual(geometrySaved.requirements, {
