@@ -548,3 +548,27 @@ it('keeps noncast Essences informational with their true activation label', asyn
   expect(markup).toMatch(/aria-label="Forceful Strike, Essence, Ongoing"[^>]*disabled/)
   expect(markup).not.toContain('Forceful Strike, Essence, 15 AP')
 })
+
+it('labels a passive or activated Resonance without a redundant Automatic suffix', async () => {
+  const { resolveResonanceForPair } = await import('@aurevane/game-core/combat/resonance')
+  const definition = resolveResonanceForPair('chronist', 'tidecaller')!
+  const html = renderToStaticMarkup(
+    <BattleSelectedSkills
+      runtime={{
+        ...runtime,
+        resonance: {
+          id: definition.id,
+          contentVersion: definition.contentVersion,
+          name: definition.name,
+          description: definition.description,
+          definition,
+        },
+      }}
+      disabled
+      actionEconomy={0}
+      onSelect={vi.fn()}
+    />,
+  )
+  expect(html).toContain('>Resonance</small>')
+  expect(html).not.toMatch(/Resonance · (Automatic|Passive|Ongoing)/)
+})
