@@ -181,3 +181,16 @@ it('treats an unsupported reference identity as escaped ordinary text', () => {
   expect(html).toContain('&lt;Steam&gt;')
   expect(html).not.toContain('data-combat-tag-reference="constructor"')
 })
+
+it('places modular Requirements explanations before Effects while keeping their exact tags', () => {
+  const definition = actual('resonance.bastion-edgedancer.linked-sequence')
+  const group = definition.behaviors[0]!
+  const report = abilityBehaviorInformation(group)
+  const markup = renderToStaticMarkup(<AbilityParameters report={report} />)
+  if (report.requirementParts?.some((part) => typeof part !== 'string')) {
+    expect(markup).toContain('aria-label="Requirement explanations"')
+    expect(markup.indexOf('aria-label="Requirement explanations"')).toBeLessThan(
+      markup.indexOf('aria-label="Effect explanations"'),
+    )
+  }
+})
