@@ -17,7 +17,7 @@ import {
 } from './combat-ability-events'
 import { source } from './combat-behavior.test-utils'
 import { percentageDotEncounter } from './combat-percentage-dots.test-utils'
-import { PV1F_COMBAT_CONTENT } from './pv1f-action-economy'
+import { PV1F_COMBAT_CONTENT, finishPv1fTurn } from './pv1f-action-economy'
 
 const cohort = JSON.parse(
   readFileSync(
@@ -84,6 +84,42 @@ describe('owner-status automatic Resonance recovery', () => {
       expect(validateResonanceDefinition(after)).toEqual([])
     },
   )
+
+  it('fires Red Lightning on an actual incoming Recruit turn without Zei attacking', () => {
+    const red = cohort.records.find((row) => row.name === 'Red Lightning')!.after
+    const captured = captureCombatAbilitySource(
+      source({ ...red.ability!.behaviors[0]! }, 'red-lightning-turn-boundary'),
+    )
+    const base = percentageDotEncounter()
+    const ready = reconcileCombatAbilitySources(
+      {
+        ...base,
+        statusState: [
+          ...base.statusState.filter((row) => row.combatantId !== 'actor'),
+          {
+            combatantId: 'actor',
+            statuses: [
+              {
+                statusId: 'reckless',
+                statusVersion: 1,
+                stacks: 1,
+                sourceCombatantId: 'actor',
+                remainingOwnerTurnStarts: 1,
+              },
+            ],
+          },
+        ],
+      },
+      [captured],
+    ) as ReturnType<typeof percentageDotEncounter>
+    expect(ready.tactical.battle.currentTurn?.combatantId).toBe('actor')
+    const ended = finishPv1fTurn(ready, 'west')
+    expect(ended.state.tactical.battle.currentTurn?.combatantId).toBe('enemy')
+    const opponent = ended.state.tactical.battle.combatants.find((unit) => unit.id === 'enemy')!
+    const actor = ended.state.tactical.battle.combatants.find((unit) => unit.id === 'actor')!
+    expect(opponent.mp).toBeLessThan(20)
+    expect(actor.hp).toBeLessThan(1000)
+  })
 
   it('Red Lightning schedules against the opposing turn start while owner has Reckless, without requiring outgoing damage', () => {
     const red = cohort.records.find((row) => row.name === 'Red Lightning')!.after
