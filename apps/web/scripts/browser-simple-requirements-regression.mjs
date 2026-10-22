@@ -301,9 +301,12 @@ if (process.env.AV_SIMPLE_REQUIREMENTS_COMPILE_ONLY === '1') {
         await assertReaders('Drenched [Self]')
         for (const name of readerNames) {
           const reader = page.getByRole('region', { name, exact: true })
-          await expect(requirementLine(reader)).toContainText(/Dmg.*Drenched \\[Self\\]/)
+          await expect(requirementLine(reader)).toContainText(/Dmg.*Drenched \[Self\]/)
           await expect(
-            reader.locator('dt').filter({ hasText: /^Effects$/ }).locator('xpath=following-sibling::dd[1]'),
+            reader
+              .locator('dt')
+              .filter({ hasText: /^Effects$/ })
+              .locator('xpath=following-sibling::dd[1]'),
           ).not.toContainText(/^If /)
         }
         const geometrySaved = (await snapshot()).saved.behaviors[0]
