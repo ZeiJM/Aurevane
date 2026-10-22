@@ -9,6 +9,7 @@ import {
   parseRetainedNoncombatContentDefinition,
   noncombatPublicationBlocker,
   assertDisciplinePublicationReady,
+  assertTagPublicationReady,
 } from '@aurevane/game-core/content/authored-content'
 import {
   EFFECT_PROFILE_AUTHORING_BLOCKER,
@@ -172,6 +173,21 @@ export const COMBAT_CONTENT_CATEGORIES: readonly CombatContentCategoryDescriptor
       publicationBlocker:
         kind === 'discipline' || kind === 'tag' ? null : noncombatPublicationBlocker(kind),
       ...(kind === 'discipline' ? { validatePublication: assertDisciplinePublicationReady } : {}),
+      ...(kind === 'tag'
+        ? {
+            validatePublication: assertTagPublicationReady,
+            parsePublished(record: CombatContentVersionRecord) {
+              const definition = parseNoncombatContentDefinition('tag', record.definition)
+              assertTagPublicationReady(definition)
+              if (
+                definition.id !== record.contentKey ||
+                definition.contentVersion !== record.contentVersion
+              )
+                throw new TypeError('Content definition identity or publication version mismatch.')
+              return { ...definition }
+            },
+          }
+        : {}),
       parseAuthoring: (value) => ({ ...parseNoncombatContentDefinition(kind, value) }),
       parseRetainedBody: (value) => ({ ...parseRetainedNoncombatContentDefinition(kind, value) }),
     }),

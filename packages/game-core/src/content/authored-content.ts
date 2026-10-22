@@ -297,7 +297,6 @@ function parseNoncombatDefinition(
     text(row.tagId, 'tagId', 160)
     if (!combatTagDefinition(row.tagId)) invalid('tagId', 'Choose an implemented registry Tag.')
     text(row.explanation, 'explanation', 2000)
-    captureCombatTagPresentation(row as unknown as AuthoredTag)
   } else {
     const issues = validateAbilityRequirements(row.requirements)
     if (issues.length) invalid(issues[0]!.path, issues[0]!.message)
@@ -336,6 +335,10 @@ function parseNoncombatDefinition(
     }
   }
   return structuredClone(value) as NoncombatContentDefinition
+}
+/** Drafts retain their original envelope; only canonical wording can become a public snapshot. */
+export function assertTagPublicationReady(value: unknown): void {
+  captureCombatTagPresentation(parseNoncombatContentDefinition('tag', value) as AuthoredTag)
 }
 export function noncombatPublicationBlocker(kind: NoncombatContentKind): {
   readonly path: string

@@ -68,6 +68,7 @@ if (process.env.AV_SIMPLE_REQUIREMENTS_COMPILE_ONLY === '1') {
   await server.listen()
   let browser
   const evidence = []
+  const browserErrors = []
   try {
     browser = await chromium.launch({
       ...(process.env.AV_CHROMIUM_EXECUTABLE
@@ -82,6 +83,7 @@ if (process.env.AV_SIMPLE_REQUIREMENTS_COMPILE_ONLY === '1') {
     ]) {
       const page = await browser.newPage({ viewport })
       const errors = []
+      browserErrors.push({ viewport, errors })
       page.on('pageerror', (error) => errors.push(error.message))
       page.on('console', (message) => {
         if (message.type() === 'error') errors.push(message.text())
@@ -484,12 +486,14 @@ if (process.env.AV_SIMPLE_REQUIREMENTS_COMPILE_ONLY === '1') {
       `Simple Requirements browser regression passed (${evidence.length} cases). Evidence: ${output}`,
     )
   } catch (error) {
+    console.error('Simple Requirements browser errors:', JSON.stringify(browserErrors))
     await fs.writeFile(
       resolve(output, 'failure.json'),
       JSON.stringify(
         {
           error: error.message,
           completedCases: evidence,
+          browserErrors,
           browserAssertionsCompleted: evidence.length,
         },
         null,

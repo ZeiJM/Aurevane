@@ -1,39 +1,12 @@
-import { readFileSync, readdirSync } from 'node:fs'
-import { resolve } from 'node:path'
-import { PGlite } from '@electric-sql/pglite'
+import type { PGlite } from '@electric-sql/pglite'
+import { createCombatContentTestDatabase } from './test-support/combat-content-test-database'
 import { beforeAll, afterAll, beforeEach, afterEach, expect, it } from 'vitest'
-const root = resolve(process.cwd(), '../../supabase/migrations')
 const owner = '00000000-0000-4000-8000-000000000001'
 const other = '00000000-0000-4000-8000-000000000002'
 const character = '00000000-0000-4000-8000-000000000011'
 let db: PGlite
 beforeAll(async () => {
-  db = await PGlite.create()
-  // Only Supabase's platform identity and unavailable scheduler are fixtures.
-  // Every Aurevane table, authorization function, producer and finalizer is real migration SQL.
-  await db.exec(`create role anon; create role authenticated; create role service_role;
-    create schema auth; create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz,created_at timestamptz default now());
-    create function auth.uid() returns uuid language sql as $$ select null::uuid $$;
-    create schema storage; create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);
-    create schema realtime; create table realtime.messages(extension text,topic text,payload jsonb);
-    create function realtime.topic() returns text language sql as $$ select null::text $$;
-    create function realtime.send(jsonb,text,text,boolean) returns void language sql as $$ insert into realtime.messages values($2,$3,$1) $$;
-    create schema cron; create table cron.job(jobid bigint generated always as identity,jobname text);
-    create function cron.schedule(text,text,text) returns bigint language sql as $$ insert into cron.job(jobname) values($1) returning jobid $$;
-    create function cron.unschedule(bigint) returns boolean language sql as $$ delete from cron.job where jobid=$1 returning true $$;`)
-  for (const name of readdirSync(root)
-    .filter((name) => name.endsWith('.sql'))
-    .sort()) {
-    // PGlite has no LZ4 codec; this storage-only setting does not alter authority.
-    const sql = readFileSync(resolve(root, name), 'utf8')
-      .replace(/create extension if not exists pg_cron(?: with schema pg_catalog)?;/gi, '')
-      .replace(/set compression lz4/gi, 'set compression pglz')
-    try {
-      await db.exec(sql)
-    } catch (error) {
-      throw new Error(`Migration ${name}: ${String(error)}`, { cause: error })
-    }
-  }
+  db = await createCombatContentTestDatabase()
   await db.exec(`insert into auth.users(id,email,email_confirmed_at) values('${owner}','owner@example.test',now()),('${other}','other@example.test',now());
     insert into app_private.master_panel_role_assignments(user_id,role) values('${owner}','game-owner');
     insert into public.characters(id,user_id,slot_index,rules_version,name,name_key,presentation_id,pronoun_preset_id,portrait_ref,starter_appearance_ref,foundation_discipline_id,might,finesse,vitality,agility,intellect,resolve,level,xp,progression_cycle,created_at,cycle_started_at,last_active_at)
@@ -354,4 +327,51 @@ it('denies browser and direct service invocation of every private Tag helper', a
   )
   expect(rows).toHaveLength(3)
   for (const row of rows) expect(row).toMatchObject({ service: false, browser: false, anon: false })
+})
+
+it.each([
+  ['tag.damage', 'x'.repeat(4000)],
+  ['tag.00000000-0000-4000-8000-000000000093', 'Relative power.'],
+])(
+  'retains the original Tag draft envelope at %s but rejects noncanonical SQL publication',
+  async (id, description) => {
+    const saved = await writeMedia(id, {
+      action: 'create',
+      requestId: '00000000-0000-4000-8000-000000000093',
+      contentKind: 'tag',
+      definition: {
+        schemaVersion: 1,
+        id,
+        contentVersion: 1,
+        tagId: 'damage',
+        name: 'Impact',
+        description,
+        explanation: 'Damage uses relative power.',
+        sortOrder: 0,
+        enabled: true,
+        media: {},
+      },
+    })
+    expect(saved.revision).toBe(1)
+    await expect(publishMedia(id, saved)).rejects.toThrow(/CONTENT_TAG_(ID|TEXT)_INVALID/u)
+  },
+)
+it('canonical Tag trigger boundaries retain their private ACLs on drafts and immutable versions', async () => {
+  expect(
+    (
+      await db.query(
+        `select has_function_privilege('authenticated','app_private.validate_content_tag_presentation_v1()','execute') browser, has_function_privilege('service_role','app_private.validate_content_tag_presentation_v1()','execute') service`,
+      )
+    ).rows,
+  ).toEqual([{ browser: false, service: false }])
+  expect(
+    (
+      await db.query(
+        "select tgname from pg_trigger where tgname in ('combat_content_draft_tag_presentation','combat_content_version_tag_presentation') order by tgname",
+      )
+    ).rows,
+  ).toEqual([
+    { tgname: 'combat_content_draft_tag_presentation' },
+    { tgname: 'combat_content_version_tag_presentation' },
+  ])
 })

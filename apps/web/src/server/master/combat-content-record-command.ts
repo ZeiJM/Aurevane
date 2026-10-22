@@ -103,7 +103,12 @@ export function createCombatContentRecordCommand(
       if (!isCombatContentKind(input.contentKind) || !object(input.definition))
         invalid('Choose a supported category and definition.')
       const request = requestId(input.requestId),
-        contentKey = `${input.contentKind}.${request}`
+        // One presentation record per implemented handler; the request UUID remains the
+        // independent idempotency key checked atomically by the existing store/SQL path.
+        contentKey =
+          input.contentKind === 'tag'
+            ? `tag.${key(input.definition.tagId)}`
+            : `${input.contentKind}.${request}`
       let definition: Record<string, unknown> = { ...input.definition, id: contentKey }
       if (input.contentKind === 'essence')
         definition = {
@@ -130,6 +135,10 @@ export function createCombatContentRecordCommand(
     if (action === 'duplicate') {
       const source = await store.readRecord(key(input.sourceKey))
       if (!source) invalid('The source content does not exist.')
+      if (source.contentKind === 'tag')
+        invalid(
+          'Tag presentation records cannot be duplicated. Create or edit the canonical Tag; new mechanics require an implemented handler.',
+        )
       const blocker = combatContentCategory(source.contentKind, source.contentKey)!.authoringBlocker
       if (blocker) invalid(blocker.message)
       const request = requestId(input.requestId)

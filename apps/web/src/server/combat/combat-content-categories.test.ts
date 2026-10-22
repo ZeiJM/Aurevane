@@ -71,3 +71,40 @@ it.each(['item', 'ascension', 'severence'] as const)(
     expect(() => descriptor.parseAuthoring({ arbitrary: true })).toThrow()
   },
 )
+
+it.each([
+  { id: 'tag.damage', description: 'x'.repeat(241) },
+  { id: 'tag.00000000-0000-4000-8000-000000000091', description: 'Retained text.' },
+])(
+  'keeps retained Tag drafts correctable while rejecting noncanonical publication: %j',
+  (retained) => {
+    const definition = {
+      schemaVersion: 1,
+      contentVersion: 1,
+      name: 'Impact',
+      sortOrder: 0,
+      enabled: true,
+      media: {},
+      tagId: 'damage',
+      explanation: 'Damage power.',
+      ...retained,
+    }
+    const category = combatContentCategory('tag')!
+    expect(category.parseRetained(definition, definition.id)).toEqual(definition)
+    expect(category.parseAuthoring(definition)).toEqual(definition)
+    expect(() => category.validatePublication!(definition)).toThrow()
+    expect(() =>
+      category.parsePublished({
+        id: 'version',
+        contentKey: definition.id,
+        contentKind: 'tag',
+        contentVersion: 1,
+        definition,
+        publishedBy: 'owner',
+        publishedAt: '2026-10-22T00:00:00Z',
+      }),
+    ).toThrow()
+    const corrected = { ...definition, id: 'tag.damage', description: 'Relative power.' }
+    expect(() => category.validatePublication!(corrected)).not.toThrow()
+  },
+)

@@ -352,8 +352,10 @@ export function abilityPresentationValues(value: unknown): Readonly<Record<strin
       if (typeof candidate === 'number' && Number.isFinite(candidate))
         values[`${index}.${unit}`] = candidate / divisor
     }
-    if (['damage', 'pierce', 'healing', 'barrier-change'].includes(String(effect.type)))
+    if (['damage', 'pierce', 'healing'].includes(String(effect.type)))
       put('power', effect.power ?? effect.amount)
+    if (effect.type === 'barrier-change')
+      put(effect.basis === 'maximum-hp-percent' ? 'percentage' : 'power', effect.amount)
     put('duration', effect.durationTurns)
     if (effect.type === 'move') put('tiles', effect.maximumTiles)
     if (effect.type === 'displace') put('tiles', effect.distance)

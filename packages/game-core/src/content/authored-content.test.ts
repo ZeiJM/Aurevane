@@ -3,6 +3,7 @@ import { defaultBasicSkills } from '../combat/combat-basic-actions'
 import { COMBAT_TAG_REGISTRY } from '../combat/combat-tag-registry'
 import {
   parseNoncombatContentDefinition,
+  parseRetainedNoncombatContentDefinition,
   noncombatPublicationBlocker,
   type NoncombatContentKind,
 } from './authored-content'
@@ -177,3 +178,23 @@ it.each([
     parseNoncombatContentDefinition('discipline', { ...publishedDiscipline, [field]: value }),
   ).toThrow(field)
 })
+
+it.each(['tag.damage', 'tag.00000000-0000-4000-8000-000000000091'])(
+  'retains and permits correcting the original 4000-character Tag draft envelope at %s',
+  (id) => {
+    const draft = {
+      ...common,
+      id,
+      tagId: 'damage',
+      description: 'x'.repeat(4000),
+      explanation: 'Damage power.',
+    }
+    expect(parseRetainedNoncombatContentDefinition('tag', draft)).toEqual(draft)
+    expect(
+      parseNoncombatContentDefinition('tag', { ...draft, explanation: 'Corrected explanation.' }),
+    ).toEqual({ ...draft, explanation: 'Corrected explanation.' })
+    expect(() =>
+      parseRetainedNoncombatContentDefinition('tag', { ...draft, description: 'x'.repeat(4001) }),
+    ).toThrow('description')
+  },
+)
