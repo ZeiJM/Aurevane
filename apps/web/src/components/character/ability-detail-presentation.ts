@@ -543,6 +543,18 @@ export function abilityBehaviorInformation(
     ? undefined
     : requirementReferenceParts(behavior.requirements, effectContext, behavior)
   const requirementEntries: { text: string; parts: readonly MechanicTextPart[] }[] = []
+  // A configured Automatic event is an executable Requirement, never hidden behind
+  // the generic word "automatic" or qualitative If prose.
+  const automaticTrigger =
+    behavior.requirementMode === 'simple' && behavior.activation === 'automatic'
+      ? SIMPLE_AUTOMATIC_TRIGGER_OPTIONS.find(({ id }) => id === behavior.automaticTrigger)
+      : undefined
+  if (automaticTrigger && !nativeMove) {
+    requirementEntries.push({
+      text: automaticTrigger.label,
+      parts: [{ ...mechanicTag('trigger'), label: automaticTrigger.label }],
+    })
+  }
   if (primaryRequirement !== 'None' && primaryRequirement !== 'N/A')
     requirementEntries.push({
       text: primaryRequirement,
@@ -575,7 +587,7 @@ export function abilityBehaviorInformation(
     : null
   return {
     ...(requirementParts ? { requirementParts } : {}),
-    ...(behavior.requirementMode === 'simple' && behavior.activation === 'automatic'
+    ...(behavior.requirementMode === 'simple' && behavior.activation === 'automatic' && !behavior.automaticTrigger
       ? {
           automaticActivation:
             behavior.mode === 'modifier'
