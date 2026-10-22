@@ -751,7 +751,7 @@ it('AI retains the original Ground follow-up target while walking', () => {
 })
 
 it.each(['occupied', 'movement', 'jump', 'unaffordable'] as const)(
-  'AI rejects a Move follow-up with %s restrictions',
+  'AI handles %s restrictions with independent Skill movement',
   (restriction) => {
     const { state: base, captured } = moveAiEncounter('discipline-skill')
     const state = {
@@ -791,7 +791,7 @@ it.each(['occupied', 'movement', 'jump', 'unaffordable'] as const)(
     const decision = chooseBuildAwareRecruitAiDecision({ state, tieBreakSeed: 1 })
     expect(
       decision.intent.kind === 'action' && decision.intent.actionId === captured.abilityId,
-    ).toBe(false)
+    ).toBe(restriction === 'movement')
     expect(JSON.stringify(state)).toBe(before)
   },
 )

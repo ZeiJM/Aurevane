@@ -42,7 +42,7 @@ const cases: readonly [string, AbilityEffect['payload'], string][] = [
   [
     'attached Move',
     { type: 'move', recipient: 'actor', maximumTiles: 7 },
-    'remaining Movement and Jump',
+    'independent of ordinary walking',
   ],
   [
     'Push',
@@ -160,6 +160,8 @@ it('keeps native Move terrain pricing distinct from attached Move', () => {
   const report = abilityBehaviorInformation(basic.ability.behaviors[0]!, { basic })
   expect(Object.fromEntries(report.rows).Cost).toContain('per traversal point')
   expect(report.effectDescriptions[0]).toContain('Jump')
+  expect(report.effectDescriptions[0]).toContain('remaining Movement')
+  expect(report.effectDescriptions[0]).not.toContain('independent of ordinary walking')
   expect(report.effectDescriptions[0]).not.toContain('included in the Skill cost')
   expect(report.effectDescriptions[0]).not.toMatch(/\d/)
 })

@@ -677,19 +677,6 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                       {focusedSupportActionId ? (
                         <>
                           <div className={styles.selectedTechniqueHeading}>
-                            <span
-                              className={styles.detailArt}
-                              data-av-square-media="true"
-                              data-av-square-media-fit="contain"
-                            >
-                              <Image
-                                src={battleSkillArtwork(focusedSupportActionId)}
-                                width={192}
-                                height={192}
-                                unoptimized
-                                alt=""
-                              />
-                            </span>
                             <div>
                               <strong>{pv1fSkillByActionId(focusedSupportActionId)!.name}</strong>
                               <small>One Support Action, separate from Discipline Skills.</small>
@@ -731,19 +718,6 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                       ) : focusedSkill ? (
                         <>
                           <div className={styles.selectedTechniqueHeading}>
-                            <span
-                              className={styles.detailArt}
-                              data-av-square-media="true"
-                              data-av-square-media-fit="contain"
-                            >
-                              <Image
-                                src={battleSkillArtwork(focusedSkill.definition.id)}
-                                width={192}
-                                height={192}
-                                unoptimized
-                                alt=""
-                              />
-                            </span>
                             <div>
                               <strong>{skillDisplayName(focusedSkill.definition)}</strong>
                               <small>

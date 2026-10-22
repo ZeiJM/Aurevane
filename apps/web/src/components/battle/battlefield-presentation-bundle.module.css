@@ -129,14 +129,8 @@
   pointer-events: none;
 }
 
-/* Keyboard shortcuts can make a previously clicked tile match :focus-visible.
-   Unselected tiles must not acquire a second, unrelated selection rectangle.
-   Keep deliberate inspection selections and every action/terrain cue intact. */
-:global(
-  main[data-battle-concept='true']
-    section#battlefield
-    button[aria-label^='Tile ']:focus-visible:not([data-selected])
-) {
+/* Battlefield selection is painted by the game, independently of browser focus. */
+:global(main[data-battle-concept='true'] section#battlefield button[aria-label^='Tile ']:focus) {
   outline: none !important;
 }
 

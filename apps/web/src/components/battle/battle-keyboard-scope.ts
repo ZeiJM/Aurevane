@@ -19,9 +19,9 @@ export function isBattleShortcutBlocked(target: EventTarget | null, code?: strin
   if (!(target instanceof HTMLElement)) return false
   return Boolean(
     target.closest(
-      'dialog[open][data-battle-action-details], [data-battle-flow], [data-battle-log-reader], [data-battle-inline-log], [data-battle-effect-trigger], [data-battle-info-panel], [data-battle-preview-lane]',
+      'dialog[open][data-battle-action-details], [data-battle-flow], [data-battle-log-reader], [data-battle-inline-log], [data-battle-info-panel], [data-battle-preview-lane]',
     ) ||
-    (Boolean(target.closest('[data-battle-info-trigger]')) &&
+    (Boolean(target.closest('[data-battle-info-trigger], [data-battle-effect-trigger]')) &&
       (!code || code === 'Space' || code === 'Enter')) ||
     target.isContentEditable ||
     target instanceof HTMLInputElement ||

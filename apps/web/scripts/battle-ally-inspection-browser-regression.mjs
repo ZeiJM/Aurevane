@@ -253,6 +253,27 @@ try {
       assert.match(await page.getByRole('dialog').innerText(), /90\/100/)
       await page.keyboard.press('Escape')
       await expectName(local, 'Zei')
+      await page.waitForFunction(() =>
+        document.activeElement?.matches('main[data-battle-keyboard-focus-root="true"]'),
+      )
+      await page.keyboard.press('Digit1')
+      await page.waitForFunction(
+        () =>
+          document
+            .querySelector('[data-battle-command="move"]')
+            ?.getAttribute('data-battle-active') === 'true',
+      )
+      const focusedTile = tile('Ally 1')
+      await focusedTile.focus()
+      await page.keyboard.press('Escape')
+      await page.waitForFunction(() =>
+        document.activeElement?.matches('main[data-battle-keyboard-focus-root="true"]'),
+      )
+      assert.equal(
+        await focusedTile.evaluate((node) => getComputedStyle(node).outlineStyle),
+        'none',
+        'Escape leaves no browser focus rectangle on map assets',
+      )
       await command('inspect').click()
       await tile('Ally 1').click()
       await expectName(local, 'Ally 1')

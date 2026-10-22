@@ -26,6 +26,29 @@ import {
   retractProjectedPath,
 } from './battle-geometry'
 
+it('shows attached Move destinations after ordinary walking is exhausted', () => {
+  const base = encounter()
+  const turn = base.tactical.battle.currentTurn!
+  const state = {
+    ...base,
+    tactical: {
+      ...base.tactical,
+      battle: {
+        ...base.tactical.battle,
+        currentTurn: { ...turn, movementRemaining: 0, movementSpent: turn.movementMaximum },
+      },
+    },
+  }
+  const placement = state.tactical.placements[0]!
+  expect(buildReachablePaths(state, placement, 100).has('1:0')).toBe(false)
+  expect(
+    buildReachablePaths(state, placement, 100, Infinity, undefined, {
+      maximumTiles: 1,
+      costs: [],
+    }).has('1:0'),
+  ).toBe(true)
+})
+
 it('shows Airborne Jump 3 paths consistently with authoritative movement and saved history', () => {
   const base = withStatus(
     { ...encounter(), airborneJumpPolicyVersion: 1 as const },

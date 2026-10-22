@@ -29,7 +29,7 @@ await fs.copyFile(
 )
 await fs.writeFile(
   resolve(fixture, 'index.html'),
-  '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><style>#root{width:calc(100% - 112px);height:calc(100dvh - 120px);margin:60px auto}@media(max-width:760px){#root{width:calc(100% - 24px);height:auto;margin:12px auto}}</style></head><body><main id="root"></main><script type="module" src="/entry.jsx"></script></body></html>',
+  '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><style>#root{width:calc(100% - 112px);height:calc(100dvh - 120px);margin:60px auto}@media(max-width:760px){#root{width:calc(100% - 24px);height:calc(100dvh - 24px);margin:12px auto}}</style></head><body><main id="root"></main><script type="module" src="/entry.jsx"></script></body></html>',
 )
 await fs.writeFile(
   resolve(fixture, 'production-styles.js'),
@@ -177,6 +177,52 @@ try {
     }
     await page.getByRole('button', { name: 'Guided Fundamentals', exact: false }).click()
     assert.equal(await allies.count(), 0)
+  }
+  for (const viewport of [
+    { width: 320, height: 568 },
+    { width: 360, height: 640 },
+    { width: 390, height: 844 },
+  ]) {
+    await page.setViewportSize(viewport)
+    await page.goto(server.resolvedUrls.local[0])
+    await page.getByLabel('AI sparring arena').waitFor()
+    for (const name of ['Sparring Yard', 'PVP', 'Arena Queue', 'Spectate']) {
+      await page.getByRole('button', { name, exact: true }).click()
+      const bounds = await page.locator('[data-hall-concept]').evaluate((hall) => {
+        const rect = hall.getBoundingClientRect()
+        return {
+          top: rect.top,
+          bottom: rect.bottom,
+          headingHeight: hall.querySelector('header').getBoundingClientRect().height,
+          overflowX: hall.scrollWidth - hall.clientWidth,
+          overflowY: hall.scrollHeight - hall.clientHeight,
+        }
+      })
+      const label = `${viewport.width}x${viewport.height} ${name}`
+      assert.ok(bounds.headingHeight <= 90, `${label}: compact Hall heading`)
+      assert.ok(bounds.top >= 0 && bounds.bottom <= viewport.height, `${label}: Hall fits viewport`)
+      assert.ok(bounds.overflowX <= 1 && bounds.overflowY <= 1, `${label}: no outer Hall scrolling`)
+      if (name === 'Sparring Yard') {
+        const enter = page.getByRole('button', { name: 'Enter Battle', exact: true })
+        await enter.scrollIntoViewIfNeeded()
+        const box = await enter.boundingBox()
+        assert.ok(box.y + box.height <= viewport.height, `${label}: Enter Battle reachable`)
+      }
+      if (name === 'PVP') {
+        await page.getByRole('button', { name: 'Create Lobby', exact: true }).click()
+        await page.getByRole('dialog').waitFor()
+        assert.ok(await page.getByRole('button', { name: 'Close', exact: true }).isVisible())
+        await page.getByRole('button', { name: 'Close', exact: true }).click()
+      }
+      if (name === 'Spectate')
+        assert.ok(await page.getByLabel('Battle Key', { exact: true }).isVisible())
+      await page.screenshot({
+        path: resolve(
+          output,
+          `mobile-${viewport.width}-${name.replaceAll(' ', '-').toLowerCase()}.png`,
+        ),
+      })
+    }
   }
   await page.setViewportSize({ width: 1366, height: 768 })
   await page.goto(server.resolvedUrls.local[0] + '?screen=skill&profilePanel=techniques')

@@ -11,6 +11,7 @@ import type { StatDrivenCombatEncounterState } from './stat-driven-combat'
 
 export type CombatMovePayload = Extract<CombatTagPayload, { type: 'move' }>
 export interface PreparedCombatMove {
+  readonly independentAllowance?: boolean
   readonly path: readonly GridPosition[]
   readonly eligible: boolean
   readonly maximumTiles: number
@@ -24,6 +25,7 @@ type MoveInput = {
   actorId: string
   selection: CombatTargetSelection
   movementPath?: readonly GridPosition[]
+  independentAllowance?: boolean
 }
 
 export function prepareCombatMove(input: MoveInput, effect: AbilityEffect): PreparedCombatMove {
@@ -105,6 +107,7 @@ export function prepareCombatMove(input: MoveInput, effect: AbilityEffect): Prep
     }
   const state = input.state as StatDrivenCombatEncounterState
   const quote = evaluatePreparedCombatWalking(state, copy, input.content, {
+    independentAllowance: input.independentAllowance,
     maximumTiles: payload.maximumTiles,
     ignorePoisonForecast: true,
   })
@@ -113,12 +116,13 @@ export function prepareCombatMove(input: MoveInput, effect: AbilityEffect): Prep
   const moved = moveCurrentCombatant(
     airborneMovementTactical(state, input.content),
     copy,
-    'entered-tiles',
+    input.independentAllowance ? 'skill-entered-tiles' : 'entered-tiles',
     state.statBalancePolicyVersion,
     state.airborneJumpPolicyVersion,
   )
   return {
     path: copy,
+    independentAllowance: input.independentAllowance,
     eligible,
     maximumTiles: payload.maximumTiles,
     projectedState: {

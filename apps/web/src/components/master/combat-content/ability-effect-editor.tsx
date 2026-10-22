@@ -94,8 +94,9 @@ export function AbilityEffectEditor({
           onChange={(maximumTiles) => update({ ...payload, maximumTiles })}
         />
         <p className={styles.fieldHint}>
-          Attached Move is included in the Skill cost. Legal terrain, remaining Movement, Jump,
-          occupancy and Root still apply. Basic Move retains its own execution price.
+          Skill Move is included in the Skill cost and is independent of ordinary walking. Its
+          authored distance, legal terrain, Jump, occupancy and Root still apply. Basic Move retains
+          its own execution price and Movement allowance.
         </p>
       </>
     )

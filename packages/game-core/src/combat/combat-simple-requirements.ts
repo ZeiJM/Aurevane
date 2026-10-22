@@ -29,6 +29,7 @@ export const SIMPLE_REQUIREMENT_TAG_OPTIONS = Object.freeze([
   { id: 'mp-more-than', label: 'MP more than' },
 ])
 export const SIMPLE_AUTOMATIC_TRIGGER_OPTIONS = [
+  { id: 'requirements-met', targetSubject: 'selected', label: 'When Requirements Are Satisfied' },
   { id: 'after-action', targetSubject: 'selected', label: 'After Your Action' },
   { id: 'damage-dealt', targetSubject: 'affected', label: 'Damage Dealt' },
   { id: 'damage-taken', targetSubject: 'triggering', label: 'Damage Taken' },
@@ -129,9 +130,11 @@ export function simpleAutomaticTargetSubjects(
   const trigger = behavior.automaticTrigger
   const available: readonly AbilityRequirementSubject[] = !trigger
     ? ['owner']
-    : trigger === 'turn-started' || trigger === 'enemy-turn-ended'
-      ? ['owner', 'triggering', 'affected']
-      : ['owner', 'triggering', 'selected', 'affected']
+    : trigger === 'requirements-met'
+      ? ['owner', 'selected']
+      : trigger === 'turn-started' || trigger === 'enemy-turn-ended'
+        ? ['owner', 'triggering', 'affected']
+        : ['owner', 'triggering', 'selected', 'affected']
   const actor = { id: 'owner', teamId: 'owner-team' }
   // Geometry 2 Ally admits its owner; geometry 3 uses the explicit native categories.
   const legacyCategories: readonly SimpleUnitCategory[] =
@@ -219,7 +222,11 @@ function hasSimpleUnitSelection(target: AbilityBehavior['targeting']): boolean {
 export function automaticAbilityExecutionRequirements(
   behavior: AbilityBehavior,
 ): RequirementNode | null {
-  if (behavior.requirementMode !== 'simple' || !behavior.automaticTrigger)
+  if (
+    behavior.requirementMode !== 'simple' ||
+    !behavior.automaticTrigger ||
+    behavior.automaticTrigger === 'requirements-met'
+  )
     return behavior.requirements
   const relation = (
     subject: AbilityRequirementSubject,
