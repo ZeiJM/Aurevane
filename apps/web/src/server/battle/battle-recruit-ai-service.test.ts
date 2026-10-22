@@ -37,6 +37,8 @@ import {
 import { createBattleRngState } from '@aurevane/game-core/combat/battle-state'
 import { createStandardBattlefieldTiles } from '@aurevane/game-core/combat/standard-battlefield'
 import { spawnCombatSummon } from '@aurevane/game-core/combat/combat-summons'
+import { normalizeCombatEffectState } from '@aurevane/game-core/combat/combat-effect-state'
+import type { RecruitAiDecision } from '@aurevane/game-core/combat/recruit-ai'
 import {
   evaluatePv1fMovement,
   executePv1fMovement,
@@ -64,6 +66,7 @@ vi.mock('node:crypto', async (importOriginal) => {
 import {
   createBattleRecruitAiService,
   deriveRecruitTieBreakSeed,
+  resolveRecruitDecisionWithFallback,
 } from './battle-recruit-ai-service'
 import { battleSparringTeamCounts } from '@/components/battle/battle-runtime'
 import { createBattleSessionService } from './battle-session-service'
@@ -411,6 +414,63 @@ function groundApproachDistance(
   }
   throw new Error(`No legal ground route for ${actorId} to the opposing player.`)
 }
+
+describe('Recruit AI rejected-command recovery', () => {
+  const rejected: RecruitAiDecision = {
+    intent: {
+      kind: 'action',
+      actionId: 'test.nonexistent-command',
+      target: { kind: 'self' },
+    },
+    reason: 'legal-damage',
+    utility: 999,
+    candidateCount: 1,
+    profileId: 'recruit-standard-v2',
+    profileVersion: 2,
+    rulesVersion: 2,
+  }
+
+  it('executes an ordinary quoted Recruit choice when an authored action rejects at commit', async () => {
+    const state = advanceToRecruitTurn(await initialEncounter())
+    const result = resolveRecruitDecisionWithFallback(state, rejected, {}, 17, 'standard')
+
+    expect(result.recovery).toBe('basic')
+    expect(result.decision.intent).not.toEqual(rejected.intent)
+    expect(result.resolved.state).not.toBe(state)
+    expect(state.tactical.battle.currentTurn?.combatantId).toBe('recruit:p2-4-1')
+    expect(result.resolved.events.length).toBeGreaterThan(0)
+  })
+
+  it('legally finishes a Summon turn rather than hanging on a rejected ability', async () => {
+    const active = stateWithActiveSummonTurn(await initialEncounter())
+    const summon = normalizeCombatEffectState(active.state.effectState).summons?.find(
+      (row) => row.combatantId === active.summonId,
+    )
+    expect(summon).toBeDefined()
+
+    const result = resolveRecruitDecisionWithFallback(
+      active.state,
+      rejected,
+      {},
+      17,
+      'standard',
+      summon!,
+    )
+    expect(result.recovery).toBe('end-turn')
+    expect(result.decision.intent).toEqual({ kind: 'end-turn' })
+    expect(result.resolved.state.tactical.battle.currentTurn?.combatantId).not.toBe(active.summonId)
+    expect(
+      result.resolved.events.some(
+        (event) =>
+          typeof event === 'object' &&
+          event !== null &&
+          'event' in event &&
+          event.event === 'summon_ability_used',
+      ),
+    ).toBe(false)
+    expect(active.state.tactical.battle.currentTurn?.combatantId).toBe(active.summonId)
+  })
+})
 
 describe('P2.6 authoritative Recruit AI turn service', () => {
   it.each(
