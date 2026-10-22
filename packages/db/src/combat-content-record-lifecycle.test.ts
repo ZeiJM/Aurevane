@@ -1,4 +1,5 @@
 import { readFileSync, readdirSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
 import { resolve } from 'node:path'
 import { PGlite } from '@electric-sql/pglite'
 import { beforeAll, afterAll, beforeEach, afterEach, expect, it } from 'vitest'
@@ -995,3 +996,78 @@ it.each(['skill', 'essence', 'resonance', 'status', 'effect-profile'])(
     ).toHaveLength(1)
   },
 )
+
+// This validates the actual native schedule's preparation SQL. It cannot model
+// PostgreSQL cross-session waits; those remain the physical native CI gate.
+it('native Stage B schedule producers all reach real guarded writes with their prepared arguments', async () => {
+  const script = readFileSync(
+    resolve(root, '../../.github/scripts/verify-combat-catalogue-concurrency.sh'),
+    'utf8',
+  )
+  const grantFunction = script.match(/^grant_skill\(\) \{.*$/m)?.[0]
+  const producerFunction = script.match(/producer_b\(\) \{[\s\S]*?\n\}/)?.[0]
+  expect(grantFunction).toBeDefined()
+  expect(producerFunction).toBeDefined()
+  for (const key of ['ci.b-stage-grant', 'ci.b-stage-import'])
+    await write(key, {
+      action: 'create',
+      requestId: crypto.randomUUID(),
+      contentKind: 'skill',
+      definition: { id: key, sourceDisciplineId: 'vanguard' },
+    })
+  await db.exec(`update public.characters set level=2 where id='${character}'`)
+  const selected = (
+    await db.query<{ value: unknown }>(
+      `select jsonb_agg(jsonb_build_object('skillId',skill_id,'contentVersion',skill_content_version,'sourceDisciplineId',source_discipline_id,'eligibilityDisciplineId','vanguard') order by skill_id) value from (select * from app_private.character_skill_unlocks where character_id='${character}' and source_discipline_id='vanguard' and skill_id like 'vanguard.%' order by skill_id limit 2) s`,
+    )
+  ).rows[0]!.value
+  const version = (
+    await db.query<{ build_version: number }>(
+      `select build_version from app_private.character_active_builds where character_id='${character}'`,
+    )
+  ).rows[0]!.build_version
+  for (const table of [
+    'character_skill_unlocks',
+    'character_build_discipline_skills',
+    'character_saved_build_loadouts',
+    'phase4_skill_catalog',
+    'character_active_builds',
+    'character_attribute_personal_allocations',
+    'character_discipline_skill_grants',
+  ]) {
+    const statement = execFileSync(
+      'bash',
+      ['-c', `${grantFunction}\n${producerFunction}\nproducer_b "$GUARDED_TABLE"`],
+      {
+        encoding: 'utf8',
+        env: {
+          ...process.env,
+          GUARDED_TABLE: table,
+          admission_character: character,
+          admission_user: other,
+          selected_b: JSON.stringify(selected),
+          version_b: String(version),
+        },
+      },
+    )
+    const before = (
+      await db.query<{ state: unknown }>(
+        `select coalesce(jsonb_agg(to_jsonb(t) order by to_jsonb(t)::text),'[]') state from app_private.${table} t`,
+      )
+    ).rows[0]!.state
+    await db.exec('savepoint native_preparation; set local role service_role;')
+    try {
+      await db.exec(statement)
+    } catch (error) {
+      throw new Error(`Native producer for ${table}: ${String(error)}`, { cause: error })
+    }
+    await db.exec('reset role')
+    const after = (
+      await db.query<{ state: unknown }>(
+        `select coalesce(jsonb_agg(to_jsonb(t) order by to_jsonb(t)::text),'[]') state from app_private.${table} t`,
+      )
+    ).rows[0]!.state
+    expect(after, `Actual write to ${table}`).not.toEqual(before)
+    await db.exec('rollback to savepoint native_preparation; release savepoint native_preparation;')
+  }
+})

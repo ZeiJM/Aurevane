@@ -5,7 +5,9 @@ import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 // Real local Supabase producers + application routes/UI. No route mocks or hosted URL.
 test('shared Skill eligibility persists through the actual route and refresh, without earning testing access', async ({
   page,
+  baseURL,
 }, testInfo) => {
+  expect(['localhost', '127.0.0.1']).toContain(new URL(baseURL!).hostname)
   const containers = execFileSync(
     'docker',
     ['ps', '--filter', 'name=supabase_db_', '--format', '{{.Names}}'],
@@ -15,6 +17,7 @@ test('shared Skill eligibility persists through the actual route and refresh, wi
     .split('\n')
   expect(containers).toHaveLength(1)
   const container = containers[0]!
+  expect(container).toMatch(/^supabase_db_/)
   const sql = (query: string) =>
     execFileSync(
       'docker',
@@ -70,6 +73,12 @@ test('shared Skill eligibility persists through the actual route and refresh, wi
   sql(
     `select * from public.change_character_disciplines_v3('${userId}','${characterId}',${version},false,null,true,'lifebinder',gen_random_uuid(),'native-shared-secondary')`,
   )
+  const selectedVersion = sql(
+    `select build_version from app_private.character_active_builds where character_id='${characterId}'`,
+  )
+  sql(
+    `select * from public.save_character_discipline_skill_loadout_v1('${userId}','${characterId}',${selectedVersion},'[]'::jsonb,gen_random_uuid(),'native-shared-empty')`,
+  )
   await page.goto('/game/nexus')
   await page.getByRole('button', { name: /Manage Techniques/ }).click()
   const picker = page.getByRole('combobox', {
@@ -83,7 +92,13 @@ test('shared Skill eligibility persists through the actual route and refresh, wi
     (r) =>
       new URL(r.url()).pathname === '/api/character/build/skills' && r.request().method() === 'PUT',
   )
-  await page.getByRole('checkbox', { name: 'Select Barrier', exact: true }).check()
+  const barrier = page.getByRole('checkbox', { name: 'Select Barrier', exact: true })
+  if (await page.evaluate(() => matchMedia('(pointer: coarse)').matches)) {
+    await barrier.click()
+    await page.getByRole('button', { name: 'Equip technique', exact: true }).click()
+  } else {
+    await barrier.check()
+  }
   const response = await saved
   expect(response.ok()).toBe(true)
   expect(response.request().postDataJSON().eligibilitySelections).toContainEqual({

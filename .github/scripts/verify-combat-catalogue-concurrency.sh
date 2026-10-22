@@ -181,6 +181,8 @@ echo 'Content archive/admission physical PostgreSQL races: admission-first depen
 # fail-fast assertion, and whole persisted state comparison including grants,
 # personal points, pointers and idempotency. Successful holders roll back here.
 sql "set role service_role; select public.write_combat_content_record_v1('$owner_id',null,k,jsonb_build_object('action','create','requestId',gen_random_uuid(),'contentKind','skill','definition',jsonb_build_object('id',k,'sourceDisciplineId','vanguard'))) from unnest(array['ci.b-stage-lock','ci.b-stage-grant','ci.b-stage-import']) k;" >/dev/null
+# A real unspent level point lets the allocation producer perform a write.
+sql "update public.characters set level=2 where id='$admission_character';" >/dev/null
 archive_b="$(archive_skill ci.b-stage-lock)"
 selected_b="$(sql "select jsonb_agg(jsonb_build_object('skillId',skill_id,'contentVersion',skill_content_version,'sourceDisciplineId',source_discipline_id,'eligibilityDisciplineId','vanguard') order by skill_id) from (select * from app_private.character_skill_unlocks where character_id='$admission_character' and source_discipline_id='vanguard' and skill_id like 'vanguard.%' order by skill_id limit 2) s;")"
 version_b="$(sql "select build_version from app_private.character_active_builds where character_id='$admission_character';")"
@@ -190,7 +192,7 @@ producer_b() {
     character_build_discipline_skills) printf "select * from public.save_character_discipline_skill_loadout_v1('%s','%s',%s,'%s'::jsonb,gen_random_uuid(),'native-b-selected');" "$admission_user" "$admission_character" "$version_b" "$selected_b" ;;
     character_saved_build_loadouts) printf "select * from public.save_character_build_loadout_v1('%s','%s',1::smallint,'Native B',%s,gen_random_uuid(),'native-b-named');" "$admission_user" "$admission_character" "$version_b" ;;
     character_active_builds) printf "select * from public.change_character_disciplines_v3('%s','%s',%s,true,'lifebinder',false,null,gen_random_uuid(),'native-b-primary');" "$admission_user" "$admission_character" "$version_b" ;;
-    character_attribute_personal_allocations) printf "select * from public.commit_character_attribute_allocation_v2('%s','%s','reset',12,4,7,4,3,6,gen_random_uuid(),'native-b-allocation');" "$admission_user" "$admission_character" ;;
+    character_attribute_personal_allocations) printf "select * from public.commit_character_attribute_allocation_v2('%s','%s','spend',13,4,7,4,3,6,gen_random_uuid(),'native-b-allocation');" "$admission_user" "$admission_character" ;;
     phase4_skill_catalog) printf "reset role; insert into app_private.phase4_skill_catalog(skill_id,content_version,discipline_id,minimum_stage) values('ci.b-stage-import',1,'vanguard',1); set local role service_role;" ;;
     *) return 1 ;;
   esac
