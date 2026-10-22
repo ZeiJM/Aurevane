@@ -17,8 +17,10 @@ DECLARE
   highest_version integer;
   inserted record;
 BEGIN
-  SELECT count(*), min(user_id) INTO operator_count,operator_id
+  SELECT count(*) INTO operator_count
     FROM app_private.master_panel_role_assignments WHERE role='game-owner' AND enabled;
+  SELECT user_id INTO operator_id
+    FROM app_private.master_panel_role_assignments WHERE role='game-owner' AND enabled LIMIT 1;
   IF operator_count <> 1 THEN RAISE EXCEPTION 'RESONANCE_REPAIR_OWNER_REQUIRED'; END IF;
   PERFORM app_private.assert_game_owner_v1(operator_id);
   IF (SELECT count(*) FROM app_private.combat_content_versions) <> 1097
