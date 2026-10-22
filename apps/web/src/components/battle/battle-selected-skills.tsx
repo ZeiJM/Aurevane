@@ -348,12 +348,7 @@ export function BattleSelectedSkills({
                 )}
               />
             </SkillControls>
-            <small>
-              Resonance
-              {resonanceSkill
-                ? ''
-                : ` · ${resonanceMode ? (resonanceMode.canCast ? 'Unavailable' : resonanceMode.label) : 'Passive'}`}
-            </small>
+            <small>Resonance</small>
           </>
         ) : (
           <>
