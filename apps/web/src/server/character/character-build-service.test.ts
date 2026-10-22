@@ -623,6 +623,83 @@ describe('published current build consumers and earned eligibility', () => {
       resolveCurrentResonanceDefinition: vi.fn(async () => null),
     }
   }
+  it.each(['missing', 'disabled', 'wrong-source', 'wrong-id'] as const)(
+    'rejects %s current Skill before a save',
+    async (kind) => {
+      const resolver = currentResolver()
+      resolver.resolveCurrentSkillDefinition = vi.fn(async () =>
+        kind === 'missing'
+          ? null
+          : {
+              ...custom,
+              id: kind === 'wrong-id' ? 'wrong.skill' : custom.id,
+              enabled: kind !== 'disabled',
+              sourceDisciplineId: kind === 'wrong-source' ? 'wrong' : 'lifebinder',
+            },
+      )
+      const repo = repository({
+        contentResolver: resolver,
+        listEquippedDisciplineSkills: vi.fn(async () => []),
+        listLearnedSkills: vi.fn(async () => [
+          { ...shared, skillId: custom.id, contentVersion: 9 },
+        ]),
+      })
+      await expect(
+        saveCharacterDisciplineSkills(
+          userId,
+          character(),
+          {
+            expectedBuildVersion: 1,
+            skillIds: [custom.id],
+            idempotencyKey: '00000000-0000-4000-8000-000000000803',
+          },
+          repo,
+        ),
+      ).rejects.toMatchObject({ code: 'PERSISTENCE_UNAVAILABLE' })
+      expect(repo.saveDisciplineSkills).not.toHaveBeenCalled()
+    },
+  )
+  it.each(['duplicate', 'inactive', 'forged', 'extra', 'malformed'] as const)(
+    'rejects %s selected eligibility with zero writes',
+    async (kind) => {
+      const choice = {
+        skillId: shared.skillId,
+        eligibilityDisciplineId:
+          kind === 'inactive'
+            ? 'aetherist'
+            : kind === 'forged'
+              ? 'invented'
+              : kind === 'malformed'
+                ? ''
+                : 'vanguard',
+      }
+      const repo = repository({
+        listLearnedSkills: vi.fn(async () => [
+          shared,
+          { ...shared, eligibilityDisciplineId: 'aetherist' },
+        ]),
+      })
+      await expect(
+        saveCharacterDisciplineSkills(
+          userId,
+          character(),
+          {
+            expectedBuildVersion: 1,
+            skillIds: [shared.skillId],
+            eligibilitySelections:
+              kind === 'duplicate'
+                ? [choice, choice]
+                : kind === 'extra'
+                  ? [choice, { ...choice, skillId: 'extra.skill' }]
+                  : [choice],
+            idempotencyKey: '00000000-0000-4000-8000-000000000803',
+          },
+          repo,
+        ),
+      ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
+      expect(repo.saveDisciplineSkills).not.toHaveBeenCalled()
+    },
+  )
   it('actual published resolver supplies custom Skills and explicit current E/R removal in the profile', async () => {
     const contentResolver = currentResolver()
     const repo = repository({

@@ -385,7 +385,12 @@ async function buildDisciplineSkillView(
       )
   function definitionFor(record: DisciplineSkillReference) {
     const definition = definitions.get(record.skillId)
-    if (!definition || definition.sourceDisciplineId !== record.sourceDisciplineId) {
+    if (
+      !definition ||
+      !definition.enabled ||
+      definition.id !== record.skillId ||
+      definition.sourceDisciplineId !== record.sourceDisciplineId
+    ) {
       throw persistenceUnavailable(
         'A learned Skill references a missing or invalid current definition.',
       )
