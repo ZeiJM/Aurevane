@@ -28,19 +28,12 @@ export function AbilityParameters({
           requirementParts={report.requirementParts}
           effectSummary={
             report.effects.length
-              ? report.effects.map(
-                  ({ parts, condition, conditionParts, recipientOverride }, index) => (
-                    <div key={index}>
-                      {condition ? (
-                        <>
-                          If <MechanicTextView text={condition} parts={conditionParts} />:{' '}
-                        </>
-                      ) : null}
-                      <CompactEffectSummary parts={parts} />
-                      {recipientOverride ? ` [${recipientOverride}]` : null}
-                    </div>
-                  ),
-                )
+              ? report.effects.map(({ parts, recipientOverride }, index) => (
+                  <div key={index}>
+                    <CompactEffectSummary parts={parts} />
+                    {recipientOverride ? ` [${recipientOverride}]` : null}
+                  </div>
+                ))
               : 'N/A'
           }
         />
@@ -49,6 +42,11 @@ export function AbilityParameters({
         <p>Automatic: {report.automaticActivation}</p>
       ) : null}
       {report.maintenance ? <p>{report.maintenance}</p> : null}
+      <RequirementExplanations
+        text={report.rows.find(([label]) => label === 'Requirements')?.[1] ?? 'None'}
+        parts={report.requirementParts}
+        className={effectExplanationsClassName}
+      />
       {report.effectDescriptions.length ? (
         <ul className={effectExplanationsClassName} aria-label="Effect explanations">
           {report.effectDescriptions.map((description, index) => (
@@ -82,11 +80,6 @@ export function AbilityParameters({
           ))}
         </ul>
       ) : null}
-      <RequirementExplanations
-        text={report.rows.find(([label]) => label === 'Requirements')?.[1] ?? 'None'}
-        parts={report.requirementParts}
-        className={effectExplanationsClassName}
-      />
     </div>
   )
 }

@@ -114,7 +114,7 @@ if (process.env.AV_SIMPLE_REQUIREMENTS_COMPILE_ONLY === '1') {
       async function assertReaders(text) {
         for (const name of readerNames) {
           const reader = page.getByRole('region', { name, exact: true })
-          await expect(requirementLine(reader)).toHaveText(text)
+          await expect(requirementLine(reader)).toContainText(text)
           await expect(requirementLine(reader)).not.toContainText(
             /event|action|Discipline|All conditions|Any condition/i,
           )
@@ -122,7 +122,7 @@ if (process.env.AV_SIMPLE_REQUIREMENTS_COMPILE_ONLY === '1') {
           if (text === 'None') {
             await expect(notes).toHaveCount(0)
           } else {
-            const reference = requirementLine(reader).locator('[data-combat-tag-reference]')
+            const reference = requirementLine(reader).locator('[data-combat-tag-reference]').first()
             assert.equal(await reference.evaluate((node) => node.tagName), 'STRONG')
             assert.ok(
               Number(await reference.evaluate((node) => getComputedStyle(node).fontWeight)) >= 600,
@@ -272,7 +272,9 @@ if (process.env.AV_SIMPLE_REQUIREMENTS_COMPILE_ONLY === '1') {
             .locator('[data-combat-tag-reference="wet"]'),
         ).toHaveCount(1)
       const firstEffect = group.locator('[data-ability-effect="hit"]')
-      const effectRequirement = firstEffect.locator('[data-simple-requirements]')
+      const effectRequirement = group
+        .locator('[data-effect-requirement="hit"]')
+        .locator('[data-simple-requirements]')
       const effectTag = effectRequirement.getByRole('combobox', {
         name: 'Requirement tag',
         exact: true,
@@ -297,6 +299,16 @@ if (process.env.AV_SIMPLE_REQUIREMENTS_COMPILE_ONLY === '1') {
         assert.deepEqual((await snapshot()).validationIssues, [])
         await save()
         await assertReaders('Drenched [Self]')
+        for (const name of readerNames) {
+          const reader = page.getByRole('region', { name, exact: true })
+          await expect(requirementLine(reader)).toContainText(/Dmg.*Drenched \[Self\]/)
+          await expect(
+            reader
+              .locator('dt')
+              .filter({ hasText: /^Effects$/ })
+              .locator('xpath=following-sibling::dd[1]'),
+          ).not.toContainText(/^If /)
+        }
         const geometrySaved = (await snapshot()).saved.behaviors[0]
         assert.equal(geometrySaved.targeting.shape.kind, nextShape)
         assert.deepEqual(geometrySaved.requirements, {
