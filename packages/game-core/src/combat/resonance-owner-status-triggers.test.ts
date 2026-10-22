@@ -41,7 +41,7 @@ describe('owner-status automatic Resonance recovery', () => {
     expect(new Set(cohort.records.map((row) => row.id)).size).toBe(13)
     expect(cohort.records.some((row) => row.name === 'Red Lightning')).toBe(true)
   })
-  it.each(cohort.records)('$name has one native opponent turn-end trigger and preserves range and effects', ({
+  it.each(cohort.records)('$name has one native opponent turn-start trigger and preserves range and effects', ({
     before,
     after,
     oldVersion,
@@ -66,12 +66,12 @@ describe('owner-status automatic Resonance recovery', () => {
     expect(behavior.activationLimits).toEqual(original.activationLimits)
     expect(original.automaticTrigger).toBe('damage-dealt')
     expect(original.automaticTarget?.subject).toBe('affected')
-    expect(behavior.automaticTrigger).toBe('enemy-turn-ended')
+    expect(behavior.automaticTrigger).toBe('enemy-turn-started')
     expect(behavior.automaticTarget).toEqual({ subject: 'triggering' })
     expect(automaticAbilityExecutionRequirements(behavior)).toMatchObject({
       kind: 'all',
       children: expect.arrayContaining([
-        { kind: 'event', eventType: 'turn_ended', phase: 'after' },
+        { kind: 'event', eventType: 'turn_started', phase: 'after' },
         { kind: 'subject-relation', subject: 'triggering', otherSubject: 'owner', relation: 'enemy' },
         original.requirements,
       ]),
@@ -79,7 +79,7 @@ describe('owner-status automatic Resonance recovery', () => {
     expect(validateResonanceDefinition(after)).toEqual([])
   })
 
-  it('Red Lightning schedules against the opposing turn end while owner has Reckless, without requiring outgoing damage', () => {
+  it('Red Lightning schedules against the opposing turn start while owner has Reckless, without requiring outgoing damage', () => {
     const red = cohort.records.find((row) => row.name === 'Red Lightning')!.after
     const behavior = red.ability!.behaviors[0]!
     const captured = captureCombatAbilitySource(
@@ -100,7 +100,7 @@ describe('owner-status automatic Resonance recovery', () => {
     const context = combatAbilityCommandContext(active, captured)
     const session = createCombatAbilityEventSession(context.triggerGuard)
     const mutation = captureCombatAbilityMutation(active, active, 'recruit-turn-ended', session, {
-      events: [{ type: 'turn_ended', phase: 'after' }],
+      events: [{ type: 'turn_started', phase: 'after' }],
       triggeringCombatantId: 'enemy',
       affectedCombatantIds: ['enemy'],
       resourceMutations: [],
@@ -117,7 +117,7 @@ describe('owner-status automatic Resonance recovery', () => {
         dispatched += 1
         expect(input.actorId).toBe('actor')
         expect(input.selection).toEqual({ kind: 'unit', combatantId: 'enemy' })
-        expect(input.trigger?.type).toBe('turn_ended')
+        expect(input.trigger?.type).toBe('turn_started')
         expect(prepareCombatAbilityCommand(input).evaluation.legal).toBe(true)
         return { state: input.state, events: [] }
       },
