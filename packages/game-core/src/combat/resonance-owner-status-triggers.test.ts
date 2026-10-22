@@ -92,7 +92,7 @@ describe('owner-status automatic Resonance recovery', () => {
         ...base.statusState.filter((row) => row.combatantId !== 'actor'),
         {
           combatantId: 'actor',
-          statuses: [{ statusId: 'reckless', statusVersion: 1, stacks: 1, remainingOwnerTurnStarts: 1 }],
+          statuses: [{ statusId: 'reckless', statusVersion: 1, stacks: 1, sourceCombatantId: 'actor', remainingOwnerTurnStarts: 1 }],
         },
       ],
     }
