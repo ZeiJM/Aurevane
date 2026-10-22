@@ -5,6 +5,7 @@ import { validateResonanceDefinition } from './resonance'
 import { automaticAbilityExecutionRequirements } from './combat-simple-requirements'
 import { evaluateAbilityRequirements } from './combat-requirements'
 import { captureCombatAbilitySource } from './combat-behavior-capture'
+import { prepareCombatAbilityCommand } from './combat-ability-command'
 import { combatAbilityCommandContext, reconcileCombatAbilitySources } from './combat-behavior-runtime'
 import {
   captureCombatAbilityMutation,
@@ -117,6 +118,7 @@ describe('owner-status automatic Resonance recovery', () => {
         expect(input.actorId).toBe('actor')
         expect(input.selection).toEqual({ kind: 'unit', combatantId: 'enemy' })
         expect(input.trigger?.type).toBe('turn_ended')
+        expect(prepareCombatAbilityCommand(input).evaluation.legal).toBe(true)
         return { state: input.state, events: [] }
       },
     )
