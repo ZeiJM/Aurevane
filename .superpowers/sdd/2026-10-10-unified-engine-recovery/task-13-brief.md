@@ -24,6 +24,8 @@ Consume accepted source/interfaces/reports and the current docs/verification/202
 - Standalone Requirements fixture fails with process is not defined before its exposed ready hook. Trace reachable imports/public Next environment transformation. Fix a demonstrated fixture contract; never add a blanket process shim, include secrets or increase timeout to mask bootstrap failure.
 - Nexus controls actually spill95px horizontally/16px vertically at1366x768; preserve geometric assertions and inspect the actual narrow eligibility widgets. See retained diagnostic screenshots/metrics.
 
+For200% acceptance use an actual browser zoom action/API and record the observed browser/viewport metrics. A CSS transform, visual viewport scale or emulated deviceScaleFactor by itself does not establish browser zoom. Preserve real keyboard/touch focus and overflow checks at the changed effective layout width.
+
 ## Evidence and safety boundaries
 
 The accepted physical Core Database gate already proves all7 guarded producer tables in both lock orders and rollback, selected-character/private ACL, Players/Event and route checks. Reuse it when unchanged; add actual new C/D/11/12 scenarios where authority changed. Native migration reset/grants alone is not full media/Tag lifecycle proof. C's real finalized-media browser case passed once; repetition failed at duplicate character creation before media. Full Chromium/Edge and later browser cases remained blocked at staged publication callers.
