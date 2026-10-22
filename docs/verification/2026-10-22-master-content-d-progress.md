@@ -1,0 +1,15 @@
+# Master Stage D active handoff — 2026-10-22
+
+C source is accepted after same-seat repair5 review, and updated physical Core Database foundation is SUCCESS: CI39869428471/job120139805970, source22ea8d3165eda578a6ce01ffe4dfcf6fe1f3d044. Root inspected complete output:20261022225712 applies; selected-character/private ACL, Players/Event, authenticated route and actual7 producer tables both physical lock orders/whole rollback pass. Full sanitized database log is22550bytes/SHA25664c2a59b6ff731f84237c5c7a3d18b33515c8a0d912dcdf3d42062982c7efbb7,2local test keys redacted,0JWT. Native media/Tag lifecycle assertions remain Task13.
+
+Local D BASEe8fc46ba93ef1950e7e491c934a7068b37177fb9 maps exactly to remote216b6c49fdabedf04770a08a2f7d0f38bb09dc82 on agent/master-content-d-20261022, treefe22da779ecf454d146a0414c4b23199d3a0ec7a. Root reconciled only43 coordinating docs/evidence entries, preserving original source progress/brief byte prefixes; exact tree and fetched zero diff verified. PR972 remains22ea, main freshlya31029c. No product change or native/deployment trigger in D baseline.
+
+Sole implementer master_content_d is product-unlocked and reuses completed discovery. Root does immutable object reads/backups and remote coordinating docs only while D edits. No source-tree probes/index/HEAD changes. Same combined reviewer is the only review seat.
+
+Ruling: implement global sorting across matching category/search results with stable bounded pagination, preserving old default/key cursor callers and selected-actor ACL — Owner requested a finished sortable workspace; page-only ordering is discontinuous across ordinary multi-page Skill lists. Cost if wrong: one bounded migration/API extension plus covering/native checks. Existing list SQL emits name; TS type omits it. Avoid full-record N+1 hydration. D proceeds without permission pause.
+
+D also owns actual Nexus95px x/16px y repair, Staff focus restoration, all retired combat publisher migration, auxiliary independence, C MinorM1 HP result reference and unique per-repeat media fixture. Rules/Music/World/Events functionality and map/roster work remain staged.
+
+New native reader diagnosis:39869428476/job120139805646 reports browser error process is not defined at1366x768 before window.simpleRequirements. Root relayed bounded editor-import tracing to D: correct a specific missing Next public-env fixture contract if established; no blanket process polyfill, secrets, timeout increase or guessed product workaround. Otherwise carry concrete cause to13. Actual Next media case passed once in prior run, so no universal production render failure is asserted. Full sanitized reader log is12666bytes/SHA25695fb31d40c8e1d034822e664d03309af21077e6f4f3f780d621368b439675814,0key/JWT.
+
+Task10 cumulative repair count5/5 stays. Other exact-head native workflows still running at this receipt; every prior failed gate and final integration inventory remains required. No main merge, hosted Content migration, roster publication or production deployment.
