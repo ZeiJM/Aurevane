@@ -16,7 +16,7 @@ const descriptor = {
   checksum: createHash('sha256').update(bytes).digest('hex'),
   channels: 1 as const,
   sampleRate: 44100 as const,
-  durationMs: 1000 / 44100,
+  durationMs: 0.023,
 }
 function upload() {
   const body = new FormData()
@@ -50,6 +50,13 @@ describe('actual media HTTP transport', () => {
     expect(response.status).toBe(200)
     expect(observed).toEqual(bytes)
     expect(await response.json()).toEqual({ media: descriptor })
+  })
+  it('rejects altered server metadata even when immutable bytes and hash match', async () => {
+    const response = await handleContentMediaUpload(upload(), {
+      authorize: async () => {},
+      finalize: async () => ({ ...descriptor, channels: 2 }),
+    })
+    expect(response.status).toBe(503)
   })
   it('requires a complete finalized descriptor; a URL or ticket is insufficient', async () => {
     const response = await handleContentMediaUpload(upload(), {

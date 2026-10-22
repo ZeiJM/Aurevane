@@ -1,5 +1,6 @@
 import 'server-only'
 import { createHash } from 'node:crypto'
+import { isDeepStrictEqual } from 'node:util'
 import {
   CONTENT_MEDIA_MAX_BYTES,
   isFinalizedContentMedia,
@@ -75,9 +76,7 @@ export async function handleContentMediaUpload(
     const media = await dependencies.finalize(normalized)
     if (
       !isFinalizedContentMedia(media) ||
-      media.checksum !== normalized.descriptor.checksum ||
-      media.byteLength !== normalized.bytes.length ||
-      media.kind !== normalized.descriptor.kind
+      !isDeepStrictEqual(media, { ...normalized.descriptor, id: media.id })
     )
       unavailable()
     return Response.json(

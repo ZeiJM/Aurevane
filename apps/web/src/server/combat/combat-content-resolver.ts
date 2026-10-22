@@ -829,10 +829,10 @@ export function createCombatContentResolver(
     async resolvePinnedTagPresentation(key, version) {
       if (!Number.isSafeInteger(version) || version < 1) return null
       const row = await source.findContentVersion?.(key, 'tag', version)
-      if (!row) return null
-      return captureCombatTagPresentation(
-        parseNoncombatContentDefinition('tag', row.definition) as AuthoredTag,
-      )
+      if (!row || row.contentKey !== key || row.contentVersion !== version) return null
+      const tag = parseNoncombatContentDefinition('tag', row.definition) as AuthoredTag
+      if (tag.id !== key || tag.contentVersion !== version) return null
+      return captureCombatTagPresentation(tag)
     },
     async resolveCurrentCatalogue() {
       const catalogue = await resolver.resolveCurrentCatalogue!()

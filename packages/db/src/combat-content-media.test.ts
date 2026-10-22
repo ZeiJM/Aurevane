@@ -265,6 +265,11 @@ it('publishes canonical Tag wording and retains exact Skill publication snapshot
       full: 'Damage uses power, not exact HP.',
     },
   ])
+  const beforeTagToken = (
+    await db.query<{ token: string }>(
+      "select public.read_combat_content_catalogue_v1()->>'token' token",
+    )
+  ).rows[0]!.token
   tagSaved = await writeMedia(tag.id, {
     action: 'save',
     expectedRevision: tagSaved.revision,
@@ -272,8 +277,50 @@ it('publishes canonical Tag wording and retains exact Skill publication snapshot
   })
   await publishMedia(tag.id, tagSaved)
   expect(await exact()).toEqual(first)
+  const afterTagToken = (
+    await db.query<{ token: string }>(
+      "select public.read_combat_content_catalogue_v1()->>'token' token",
+    )
+  ).rows[0]!.token
+  expect(afterTagToken).not.toBe(beforeTagToken)
+  await db.exec('savepoint forged_tag')
+  await expect(
+    writeMedia('content.tag-forged', {
+      action: 'create',
+      requestId: '00000000-0000-4000-8000-000000000083',
+      contentKind: 'skill',
+      definition: {
+        ...skill,
+        id: 'content.tag-forged',
+        ability: {
+          ...skill.ability,
+          tagPresentation: [
+            {
+              ...(first.ability.tagPresentation[0] as Record<string, unknown>),
+              name: 'Forged wording',
+            },
+          ],
+        },
+      },
+    }),
+  ).rejects.toThrow(/TAG/)
+  await db.exec('rollback to savepoint forged_tag')
+  const unchanged = await writeMedia(skill.id, {
+    action: 'save',
+    expectedRevision: saved.revision,
+    definition: first,
+  })
+  await expect(
+    db.query('select public.publish_saved_combat_content_v1($1,null,$2,$3,$4,$5,null)', [
+      owner,
+      skill.id,
+      unchanged.draft.draftVersion,
+      unchanged.draft.baseVersion,
+      beforeTagToken,
+    ]),
+  ).rejects.toThrow(/CATALOGUE/)
 })
-it('rejects unsupported Tag handlers and forged exact Tag snapshot metadata at actual writes', async () => {
+it('rejects unsupported Tag handlers at actual writes', async () => {
   const tag = {
     schemaVersion: 1,
     id: 'tag.invented',
@@ -294,4 +341,17 @@ it('rejects unsupported Tag handlers and forged exact Tag snapshot metadata at a
       definition: tag,
     }),
   ).rejects.toThrow(/TAG/)
+})
+
+it('denies browser and direct service invocation of every private Tag helper', async () => {
+  const { rows } = await db.query<{
+    name: string
+    service: boolean
+    browser: boolean
+    anon: boolean
+  }>(
+    `select p.proname name, has_function_privilege('service_role',p.oid,'execute') service, has_function_privilege('authenticated',p.oid,'execute') browser, has_function_privilege('anon',p.oid,'execute') anon from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='app_private' and p.proname=any(array['content_tag_snapshot_v1','bind_content_tag_presentation_v1','validate_content_tag_presentation_v1'])`,
+  )
+  expect(rows).toHaveLength(3)
+  for (const row of rows) expect(row).toMatchObject({ service: false, browser: false, anon: false })
 })

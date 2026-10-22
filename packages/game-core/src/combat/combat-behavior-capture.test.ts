@@ -295,3 +295,38 @@ it('capture reconnect retains separate simple execution metadata and its single 
     requirements: { kind: 'resource-state', comparison: 'less-than', basisPoints: 3333 },
   })
 })
+
+it('actual restored captured command emits its exact finalized sound without mutating the capture', () => {
+  const audio = {
+    id: '00000000-0000-4000-8000-000000000012',
+    kind: 'audio' as const,
+    contentType: 'audio/wav' as const,
+    checksum: 'a'.repeat(64),
+    byteLength: 46,
+    durationMs: 0.023,
+    channels: 1 as const,
+    sampleRate: 44100 as const,
+  }
+  const original = { ...source(), media: { audio } }
+  const captured = captureCombatAbilitySource(original)
+  const serialized = JSON.stringify(captured)
+  const restored = captureCombatAbilitySource(JSON.parse(serialized))
+  const state = reconcileCombatAbilitySources(preparePv1fTurnEconomy(percentageDotEncounter()), [
+    restored,
+  ])
+  const result = activateCombatAbility({
+    state,
+    actorId: 'actor',
+    source: restored,
+    selection: { kind: 'unit', combatantId: 'enemy' },
+    content: PV1F_COMBAT_CONTENT,
+    context: combatAbilityCommandContext(state, restored),
+  })
+  expect(result.events.find((event) => event.event === 'combat_action_used')).toMatchObject({
+    audioMedia: audio,
+  })
+  expect(JSON.stringify(captured)).toBe(serialized)
+  expect(Object.isFrozen(captured.media?.audio)).toBe(true)
+  Object.assign(original.media.audio, { id: '00000000-0000-4000-8000-000000000013' })
+  expect(captured.media?.audio?.id).toBe('00000000-0000-4000-8000-000000000012')
+})

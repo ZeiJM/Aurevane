@@ -311,6 +311,13 @@ export function projectBattleBasicActions(
         description:
           renderAbilityPresentationText(basic, 'public', { ability: basic.name }) ??
           basic.description,
+        ...(renderAbilityPresentationText(basic, 'compact', { ability: basic.name })
+          ? {
+              compactText: renderAbilityPresentationText(basic, 'compact', {
+                ability: basic.name,
+              })!,
+            }
+          : {}),
         enabled: basic.enabled,
         iconKey: contentArtworkKey(basic.media),
         ...(native

@@ -219,6 +219,14 @@ begin
       assert not has_table_privilege('service_role','app_private.'||table_name,'select,insert,update,delete') and not has_table_privilege('authenticated','app_private.'||table_name,'select,insert,update,delete') and not has_table_privilege('anon','app_private.'||table_name,'select,insert,update,delete'), 'Stage C private media table ACL';
     end loop;
   end if;
+  if to_regprocedure('app_private.content_tag_snapshot_v1(jsonb)') is not null then
+    checked:=0;
+    for proc in select p.oid from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='app_private' and p.proname=any(array['content_tag_snapshot_v1','bind_content_tag_presentation_v1','validate_content_tag_presentation_v1']) loop
+      checked:=checked+1;
+      assert not has_function_privilege('service_role',proc.oid,'execute') and not has_function_privilege('anon',proc.oid,'execute') and not has_function_privilege('authenticated',proc.oid,'execute'), 'Stage C private Tag helpers';
+    end loop;
+    assert checked=3, 'Stage C complete private Tag helper inventory';
+  end if;
   foreach signature in array array['public.resolve_master_panel_account_v2(uuid,text)','public.list_master_panel_staff_v2(uuid)','public.set_master_panel_character_access_v2(uuid,uuid,uuid,text[],text[],integer,bigint,boolean)'] loop
     assert has_function_privilege('service_role',signature,'execute') and not has_function_privilege('authenticated',signature,'execute') and not has_function_privilege('anon',signature,'execute'), 'New management private RPC ACL';
   end loop;

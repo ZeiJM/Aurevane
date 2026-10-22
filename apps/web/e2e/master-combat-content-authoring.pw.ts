@@ -889,3 +889,142 @@ test('Master combat authoring publishes versioned content, pins battles, and rol
     `)
   }
 })
+
+// Stage C proof is independent of the retired legacy publication workflow above.
+test('finalized media controls crop actual bytes, replace the same PC file, preview sound and report failed previews', async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-chromium', 'One real Chromium media decoding proof.')
+  const host = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'http://invalid').hostname
+  if (!['127.0.0.1', 'localhost'].includes(host))
+    throw new Error('Media E2E requires disposable local Supabase.')
+  const email = `master-media-${Date.now()}@example.com`
+  await provisionAccountAndEnterCharacter({
+    page,
+    email,
+    password: 'Master-media-browser-2026!',
+    characterName: 'Media Author',
+  })
+  try {
+    grantLocalMasterOperator(email)
+    await page.goto('/master/combat-content')
+    await page.getByLabel('Combat content type').selectOption('basics')
+    const panel = page.getByRole('group', { name: 'Uploaded media', exact: true })
+    const input = panel.getByLabel('Upload content media')
+    // Four real RGBA pixels: selecting y=0 versus y=1 must change the final pixel/hash.
+    const sharp = (await import('sharp')).default
+    const png = await sharp(
+      Buffer.from([255, 0, 0, 255, 0, 255, 0, 255, 0, 0, 255, 255, 255, 255, 0, 255]),
+      { raw: { width: 2, height: 2, channels: 4 } },
+    )
+      .png()
+      .toBuffer()
+    const file = { name: 'same-image.png', mimeType: 'image/png', buffer: png }
+    async function finalize() {
+      const pending = page.waitForResponse(
+        (response) =>
+          response.request().method() === 'POST' &&
+          new URL(response.url()).pathname === '/api/master/combat-content/media',
+      )
+      await panel.getByRole('button', { name: 'Finalize upload', exact: true }).click()
+      const response = await pending
+      expect(response.status()).toBe(200)
+      return (await response.json()).media as {
+        id: string
+        checksum: string
+        width?: number
+        height?: number
+      }
+    }
+    await input.setInputFiles(file)
+    await expect(panel.getByLabel('Crop size')).toHaveValue('2')
+    await panel.getByLabel('Crop size').fill('1')
+    await panel.getByLabel('Crop x').fill('0')
+    await panel.getByLabel('Crop y').fill('0')
+    await expect
+      .poll(() =>
+        panel
+          .getByLabel('Actual crop preview')
+          .evaluate((canvas) =>
+            Array.from(
+              (canvas as HTMLCanvasElement).getContext('2d')!.getImageData(96, 96, 1, 1).data,
+            ),
+          ),
+      )
+      .toEqual([255, 0, 0, 255])
+    const first = await finalize()
+    expect(first).toMatchObject({ width: 1, height: 1 })
+    const preview = panel.getByAltText('Finalized artwork crop')
+    await expect
+      .poll(() => preview.evaluate((image) => (image as HTMLImageElement).naturalWidth))
+      .toBe(1)
+    expect((await page.request.get(`/api/content-media/${first.id}`)).status()).toBe(404)
+    const stored = await page.request.get(`/api/master/combat-content/media/${first.id}`)
+    expect(stored.status()).toBe(200)
+    expect(
+      Array.from(
+        await sharp(await stored.body())
+          .raw()
+          .toBuffer(),
+      ),
+    ).toEqual([255, 0, 0, 255])
+    // Identical filename/bytes must dispatch a new selection and allow a different crop.
+    await input.setInputFiles(file)
+    await expect(panel.getByLabel('Crop size')).toHaveValue('2')
+    await panel.getByLabel('Crop size').fill('1')
+    await panel.getByLabel('Crop y').fill('1')
+    const second = await finalize()
+    expect(second.id).not.toBe(first.id)
+    expect(second.checksum).not.toBe(first.checksum)
+    await page.route(`**/api/master/combat-content/media/${second.id}*`, (route) => route.abort())
+    await preview.evaluate((image) => {
+      ;(image as HTMLImageElement).src += '?retry=1'
+    })
+    await expect(panel.getByRole('alert')).toContainText('finalized artwork preview is unavailable')
+    await panel.getByRole('button', { name: 'Remove uploaded artwork' }).click()
+    await expect(preview).toHaveCount(0)
+
+    const wav = Buffer.alloc(44 + 8820)
+    wav.write('RIFF', 0)
+    wav.writeUInt32LE(wav.length - 8, 4)
+    wav.write('WAVEfmt ', 8)
+    wav.writeUInt32LE(16, 16)
+    wav.writeUInt16LE(1, 20)
+    wav.writeUInt16LE(1, 22)
+    wav.writeUInt32LE(44100, 24)
+    wav.writeUInt32LE(88200, 28)
+    wav.writeUInt16LE(2, 32)
+    wav.writeUInt16LE(16, 34)
+    wav.write('data', 36)
+    wav.writeUInt32LE(8820, 40)
+    await input.setInputFiles({ name: 'actual.wav', mimeType: 'audio/wav', buffer: wav })
+    const localSound = panel.getByLabel('Selected sound preview')
+    await expect
+      .poll(() => localSound.evaluate((audio) => (audio as HTMLAudioElement).duration))
+      .toBeCloseTo(0.1, 3)
+    const sound = await finalize()
+    const finalizedSound = panel.getByLabel('Finalized sound preview')
+    await finalizedSound.evaluate((audio) => (audio as HTMLAudioElement).load())
+    await expect
+      .poll(() => finalizedSound.evaluate((audio) => (audio as HTMLAudioElement).duration))
+      .toBeCloseTo(0.1, 3)
+    await page.route(`**/api/master/combat-content/media/${sound.id}*`, (route) => route.abort())
+    await finalizedSound.evaluate((audio) => {
+      ;(audio as HTMLAudioElement).src += '?retry=1'
+      ;(audio as HTMLAudioElement).load()
+    })
+    await expect(panel.getByRole('alert')).toContainText('finalized sound preview is unavailable')
+    await panel.getByRole('button', { name: 'Remove uploaded sound' }).click()
+    await input.setInputFiles({
+      name: 'invalid.wav',
+      mimeType: 'audio/wav',
+      buffer: Buffer.from('invalid'),
+    })
+    await expect(panel.getByRole('alert')).toContainText('sound could not be played')
+  } finally {
+    const escapedEmail = escapeSqlLiteral(email)
+    queryLocalDatabase(
+      `update app_private.master_panel_role_assignments set enabled=false, updated_at=clock_timestamp() where user_id=(select id from auth.users where email='${escapedEmail}') and role='game-owner'; update app_private.master_panel_access_versions set access_version=access_version+1 where user_id=(select id from auth.users where email='${escapedEmail}');`,
+    )
+  }
+})

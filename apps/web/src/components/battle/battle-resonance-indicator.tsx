@@ -1,3 +1,4 @@
+import { contentArtworkKey } from '@aurevane/game-core/combat/content-media'
 import Image from 'next/image'
 
 import type { BattleResonancePresentation } from './battle-runtime'
@@ -16,7 +17,10 @@ export function BattleResonanceIndicator({
         height={64}
         unoptimized
         className={styles.artwork}
-        src={battleResonanceArtwork(resonance.id)}
+        src={battleResonanceArtwork(
+          resonance.id,
+          contentArtworkKey(resonance.definition?.media ?? {}),
+        )}
         alt=""
         aria-hidden="true"
       />

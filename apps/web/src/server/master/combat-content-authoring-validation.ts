@@ -1,3 +1,4 @@
+import { battleTextContextIssues } from '@aurevane/game-core/combat/battle-narration'
 import { finalizedContentMediaIssues } from '@aurevane/game-core/combat/content-media'
 import {
   validateBasicSkillDefinition,
@@ -92,6 +93,12 @@ function forbiddenDraftFieldIssues(
         message: 'Displaced is retired. Use Push or Pull effects directly.',
       })
 
+    // Legacy activation fields retain their original actor/target/ability contract.
+    // Contextual configured values and outcomes belong to the typed presentation fields.
+    if ((field === 'flavorLine' || field === 'battleText') && typeof nested === 'string') {
+      for (const message of battleTextContextIssues(nested, { field: 'activation' }))
+        issues.push({ path: fieldPath, code: 'UNAVAILABLE_TEXT_REFERENCE', message })
+    }
     if (field === 'media') {
       for (const path of finalizedContentMediaIssues(nested))
         issues.push({

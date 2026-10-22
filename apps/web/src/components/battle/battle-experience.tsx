@@ -1,5 +1,7 @@
 'use client'
 
+import { contentArtworkKey } from '@aurevane/game-core/combat/content-media'
+
 import { BATTLE_EFFECT_KEYBOARD_HELP } from './battle-effect-keyboard-navigation'
 
 import {
@@ -591,7 +593,10 @@ function BattleExperienceContent({
         label: selectableSpecial.name,
         artworkSrc:
           special.kind === 'resonance'
-            ? battleResonanceArtwork(selectableSpecial.id)
+            ? battleResonanceArtwork(
+                selectableSpecial.id,
+                contentArtworkKey(runtime.resonance?.definition?.media ?? {}),
+              )
             : battleSkillArtwork(selectableSpecial.id, selectableSpecial.iconKey),
         tags: selectableSpecial.tags,
       }

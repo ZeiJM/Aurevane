@@ -103,3 +103,24 @@ it('current Tag publication changes actual readers and a new frozen capture whil
   expect(await resolver.resolvePinnedTagPresentation!('tag.percentage-recovery', 999)).toBeNull()
   expect(captures[2]!.definition.behaviors).toEqual(admitted[2]!.definition.behaviors)
 })
+
+it('rejects mismatched physical or embedded identity at the exact Tag reader boundary', async () => {
+  for (const row of [
+    published(2, 'Wrong version'),
+    { ...published(1, 'Wrong key'), contentKey: 'tag.damage' },
+    {
+      ...published(1, 'Wrong embedded identity'),
+      definition: {
+        ...(published(1, 'Wrong embedded identity').definition as object),
+        contentVersion: 2,
+      },
+    },
+  ]) {
+    const resolver = createCombatContentResolver({
+      findCurrentSkill: async () => null,
+      findSkillVersion: async () => null,
+      findContentVersion: async () => row,
+    })
+    expect(await resolver.resolvePinnedTagPresentation!('tag.percentage-recovery', 1)).toBeNull()
+  }
+})
