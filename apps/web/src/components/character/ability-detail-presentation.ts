@@ -587,7 +587,9 @@ export function abilityBehaviorInformation(
     : null
   return {
     ...(requirementParts ? { requirementParts } : {}),
-    ...(behavior.requirementMode === 'simple' && behavior.activation === 'automatic' && !behavior.automaticTrigger
+    ...(behavior.requirementMode === 'simple' &&
+    behavior.activation === 'automatic' &&
+    !behavior.automaticTrigger
       ? {
           automaticActivation:
             behavior.mode === 'modifier'
