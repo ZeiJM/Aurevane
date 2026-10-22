@@ -601,8 +601,8 @@ export function abilityBehaviorInformation(
       ],
     })
   }
-  const requirementsSummary = requirementEntries.map(({ text }) => text).join('; ') ||
-    (nativeMove ? 'N/A' : 'None')
+  const requirementsSummary =
+    requirementEntries.map(({ text }) => text).join('; ') || (nativeMove ? 'N/A' : 'None')
   const combinedRequirementParts = requirementEntries.flatMap(({ parts }, index) => [
     ...(index ? ['; '] : []),
     ...parts,
