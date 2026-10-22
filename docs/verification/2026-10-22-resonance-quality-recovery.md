@@ -1,6 +1,10 @@
 # Resonance quality publication recovery — 2026-10-22
 
-This is an operational repair receipt, not a claim that the corrected release is live.
+**LIVE for testing — corrected publication verified October 22, 2026.**
+
+The final corrected publication executed in a single CAS-guarded transaction and passed a complete **72/72 live JSONB definition comparison** against the exact reviewed `after` records. Catalogue current definitions remain 294, of which 136 are Resonances; 72 have revised current versions, 64 retain their existing versions. Immutable history is now **1,097** records (the initial 953 + 72 failed historical +1 versions + 72 corrected +2 versions); drafts remain zero and global timing policy stays at version 8. The public current-content reader exposes the corrected Returning Current definition at version 10. The canonical production domain resolves to Vercel deployment `dpl_BQgHdRJQDYndXDRtexL5AZ8uLihh` (READY), build commit `874a14ce5b7f9aabed8df11140a9017fbfa4f71e`. No new app deployment was needed for the versioned catalogue publication. Initial post-publication Vercel warning/error/fatal scan found no entries.
+
+The corrected rollback asset was also rehearsed with a top-level `ROLLBACK`; after the rehearsal the catalogue token, 1,097 history count and 72 revised pointers remained unchanged. The final-head Skill Engine and focused controlled-combat/modular-reader/Discipline DB browser workflows succeeded; broader CI/browser workflows were still running at the last inspection, so they are not represented as passed. Authenticated human gameplay, physical-device and multiplayer/load acceptance remain unverified.
 
 ## Initial attempt and containment
 - Initial 72-definition publication committed 72 additional immutable version records (history 953 → 1025) and moved current pointers.
@@ -25,3 +29,13 @@ This is an operational repair receipt, not a claim that the corrected release is
 5. Verify public readers, the canonical production alias and warning/error/fatal logs. Retain the corrected rollback asset and make no claims of authenticated human/gameplay acceptance without those tests.
 
 Immutable historical +1 versions must never be reused or pointed to by rollback.
+
+## Final corrected release receipt
+
+- Source: merged PR #964, `a0601d29769f136f98c31208457ebec7e98d0803`; initial quality proposal PR #963, `01799fb599055b2543312636ae83bbaf41bff9ac`.
+- The post-release exact current-content comparison returned `expected:72, read:72, exact:72, mismatches:[]`.
+- Returning Current: `Primed [Self]` → `Haste [Self]` one turn, automatic with 3-turn cooldown.
+- Still Target: `Rooted [Affected]`, Enemy, range 1–3, LOS, Dmg [3], 3 MP, automatic Damage Dealt, once-per-action/round and 3-turn cooldown.
+- Crystal Impact: `Frozen [Affected]`, Enemy, range 1–2, LOS, Dmg [3], 3 MP, automatic Damage Dealt, once-per-action/round and 3-turn cooldown.
+- Current Resonance acceptance census: 132 automatic and 4 ongoing (passive), zero manual, zero empty effect lists and zero with more than two effects.
+- Historical +1 records from the failed attempt remain immutable and are not active. Corrected +2 records are the only revised current pointers. No Skill, Essence, Basic, timeline policy or other game-content publication was performed.
