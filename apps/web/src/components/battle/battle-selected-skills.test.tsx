@@ -450,7 +450,8 @@ it.each(['absent', 'foreign', 'no-actor'] as const)(
         onSelect={vi.fn()}
       />,
     )
-    expect(markup).toContain('Resonance · Unavailable')
+    expect(markup).toContain('>Resonance</small>')
+    expect(markup).not.toContain('Resonance · Unavailable')
     expect(markup).not.toContain('Resonance · Passive')
     expect(markup).not.toContain(`aria-label="${definition.name}, Resonance,`)
     expect(markup).not.toContain('data-battle-controlled-ready="true"')
