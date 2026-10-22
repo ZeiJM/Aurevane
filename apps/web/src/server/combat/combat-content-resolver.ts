@@ -548,7 +548,10 @@ export function createCombatContentResolver(
         'A complete combat catalogue is unavailable.',
       )
     const snapshot = await source.readCatalogueSnapshot()
-    return resolveCombatContentCatalogueSnapshot(snapshot)
+    return bindCombatTagPresentations(
+      resolveCombatContentCatalogueSnapshot(snapshot),
+      admissionTags ?? catalogueTagPresentations(snapshot),
+    )
   }
   async function resolveCurrentSkillDefinitions(
     skillIds: readonly string[],
@@ -834,10 +837,7 @@ export function createCombatContentResolver(
       if (tag.id !== key || tag.contentVersion !== version) return null
       return captureCombatTagPresentation(tag)
     },
-    async resolveCurrentCatalogue() {
-      const catalogue = await resolver.resolveCurrentCatalogue!()
-      return bindCurrent(catalogue)
-    },
+    resolveCurrentCatalogue,
     async resolveCurrentSkillDefinition(id) {
       return bindCurrent(await resolver.resolveCurrentSkillDefinition(id))
     },

@@ -1426,3 +1426,40 @@ it.each(['effect_pending', 'status_applied'] as const)(
     }
   },
 )
+
+it('renders HP Recovery result text from the actual captured healing receipt', async () => {
+  const basic = {
+    ...defaultBasicSkills().find((row) => row.id === 'basic.recover')!,
+    presentation: { result: '{actor} restores {outcome.healing} HP.' },
+  }
+  const source = captureCombatAbilitySource({
+    schemaVersion: 1,
+    sourceInstanceId: 'sample-hp',
+    ownerCombatantId: ACTOR,
+    abilityId: basic.id,
+    contentVersion: basic.contentVersion,
+    sourceKind: 'basic',
+    tags: basic.tags,
+    definition: basic.ability,
+    basic,
+  })
+  const result = await getLog(
+    [
+      record({ event: 'combat_action_used', actorId: ACTOR, actionId: basic.id }),
+      record(
+        {
+          event: 'healing_applied',
+          sourceCombatantId: ACTOR,
+          targetCombatantId: ACTOR,
+          actionId: basic.id,
+          amount: 37,
+        },
+        1,
+      ),
+    ],
+    async () => null,
+    { capturedAbilitySources: [source] },
+  )
+  expect(formatBattleLogForClipboard(result.entries)).toContain('restores 37 HP')
+  expect(formatBattleLogForClipboard(result.entries)).not.toContain('outcome.healing')
+})

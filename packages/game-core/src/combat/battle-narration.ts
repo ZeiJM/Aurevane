@@ -379,7 +379,8 @@ export function abilityPresentationContext(
   value: unknown,
   field: BattleTextField,
 ): BattleTextReferenceContext {
-  const types = presentationPayloads(value).map((effect) => effect.type)
+  const payloads = presentationPayloads(value)
+  const types = payloads.map((effect) => effect.type)
   const row = presentationRecord(value)
   const behaviors = presentationRecord(row?.ability)?.behaviors
   const triggeringActor =
@@ -397,7 +398,13 @@ export function abilityPresentationContext(
             ...(types.some((type) => type === 'damage' || type === 'pierce')
               ? ['damage' as const]
               : []),
-            ...(types.includes('healing') ? ['healing' as const] : []),
+            ...(payloads.some(
+              (effect) =>
+                effect.type === 'healing' ||
+                (effect.type === 'percentage-recovery' && effect.resource === 'hp'),
+            )
+              ? ['healing' as const]
+              : []),
           ]
         : [],
   }

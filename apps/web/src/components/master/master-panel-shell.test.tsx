@@ -49,7 +49,9 @@ describe('Master workspace composition', () => {
       </MasterPanelShell>,
     )
     expect(markup).toContain('data-master-composition="combat"')
-    expect(markup).toContain('data-art="environment.archive.interior"')
+    expect(markup).not.toContain('data-art=')
+    expect(markup).not.toContain('Overview')
+    expect(markup).toContain('Game Content')
     expect(markup).toMatch(/<a[^>]*aria-current="page"[^>]*href="\/master\/combat-content"/)
     expect(markup).toContain('Publish reviewed version')
     for (const href of ['/master/staff', '/master/events', '/master/music'])

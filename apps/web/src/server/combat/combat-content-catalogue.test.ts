@@ -399,3 +399,44 @@ it.each(['discipline', 'tag', 'ascension', 'severence'])(
     ).rejects.toThrow()
   },
 )
+
+it('binds catalogue Tags from its single snapshot even when the next read would change wording', async () => {
+  let reads = 0
+  const rpc = vi.fn(async () => {
+    reads++
+    const name = reads === 1 ? 'Captured impact' : 'Later impact'
+    return {
+      error: null,
+      data: {
+        token: (reads === 1 ? 'a' : 'b').repeat(32),
+        policy,
+        publications: [
+          row(
+            'tag',
+            'tag.damage',
+            {
+              schemaVersion: 1,
+              id: 'tag.damage',
+              contentVersion: reads,
+              name,
+              description: 'Damage power.',
+              explanation: name,
+              tagId: 'damage',
+              enabled: true,
+              sortOrder: 0,
+              media: {},
+            },
+            reads,
+          ),
+        ],
+      },
+    }
+  })
+  const resolver = createCombatContentResolver(new RpcPublishedCombatContentSource(rpc))
+  const catalogue = await resolver.resolveCurrentCatalogue!()
+  expect(catalogue.token).toBe('a'.repeat(32))
+  const basic = catalogue.entries.find((entry) => entry.contentKey === 'unarmed.basic')!
+  expect(JSON.stringify(basic).includes('Captured impact')).toBe(true)
+  expect(JSON.stringify(basic).includes('Later impact')).toBe(false)
+  expect(rpc).toHaveBeenCalledExactlyOnceWith('read_combat_content_catalogue_v1', {})
+})
