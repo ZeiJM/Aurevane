@@ -170,7 +170,6 @@ function resolveRecruitIntent(
     : null
   if (!placement) throw new Error('AI combatant has no committed facing.')
   return finishPv1fTurn(state, placement.facing)
-
 }
 
 /** Never bypass shared legality: try a simpler AI action, then a legal turn end.
@@ -188,7 +187,10 @@ export function resolveRecruitDecisionWithFallback(
   recovery?: 'basic' | 'end-turn'
 } {
   try {
-    return { decision: selected, resolved: resolveRecruitIntent(state, selected.intent, skillOptions, summon) }
+    return {
+      decision: selected,
+      resolved: resolveRecruitIntent(state, selected.intent, skillOptions, summon),
+    }
   } catch (error) {
     if (error instanceof AurevaneError) throw error
   }
