@@ -17,9 +17,10 @@ DECLARE
  top_version int;
  inserted record;
 BEGIN
- SELECT COUNT(*),MIN(user_id) INTO owner_count,actor
+ SELECT COUNT(*) INTO owner_count
    FROM app_private.master_panel_role_assignments
    WHERE role='game-owner' AND enabled;
+ SELECT user_id INTO actor FROM app_private.master_panel_role_assignments WHERE role='game-owner' AND enabled LIMIT 1;
  IF owner_count<>1 THEN RAISE EXCEPTION 'RESONANCE_TRIGGER_OWNER_UNVERIFIED'; END IF;
  PERFORM app_private.assert_game_owner_v1(actor);
  IF (SELECT COUNT(*) FROM app_private.combat_content_versions)<>1097
