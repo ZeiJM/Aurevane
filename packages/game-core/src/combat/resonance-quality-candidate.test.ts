@@ -5,7 +5,10 @@ import type { AnyResonanceDefinition } from './resonance'
 
 const candidate = JSON.parse(
   readFileSync(
-    new URL('../../../../docs/verification/release-assets/2026-10-22-resonance-quality-candidate.json', import.meta.url),
+    new URL(
+      '../../../../docs/verification/release-assets/2026-10-22-resonance-quality-candidate.json',
+      import.meta.url,
+    ),
     'utf8',
   ),
 ) as {
@@ -31,28 +34,27 @@ describe('published Resonance quality cohort', () => {
     expect(candidate.changes).toHaveLength(candidate.revisedCount)
   })
 
-  it.each(candidate.changes)('$id retains exact history and declares valid modular native combat', ({
-    id,
-    previousVersion,
-    afterVersion,
-    before,
-    after,
-  }) => {
-    expect(after.id).toBe(id)
-    expect(after.contentVersion).toBe(previousVersion + 1)
-    expect(afterVersion).toBe(after.contentVersion)
-    expect(before.contentVersion).toBe(previousVersion)
-    expect(after.disciplinePair).toEqual(before.disciplinePair)
-    expect(after.media).toEqual(before.media)
-    expect(after.name).toBe(before.name)
-    expect(after.ability?.behaviors.length).toBe(1)
-    expect(after.ability!.behaviors[0]!.activation).not.toBe('manual')
-    expect(after.ability!.behaviors[0]!.effects.length).toBeGreaterThan(0)
-    expect(after.ability!.behaviors[0]!.effects.length).toBeLessThanOrEqual(2)
-    expect(after.ability!.behaviors[0]!.requirementMode).toBe('simple')
-    expect(after.ability!.behaviors[0]!.requirements).toEqual(before.ability!.behaviors[0]!.requirements)
-    expect(validateResonanceDefinition(after)).toEqual([])
-  })
+  it.each(candidate.changes)(
+    '$id retains exact history and declares valid modular native combat',
+    ({ id, previousVersion, afterVersion, before, after }) => {
+      expect(after.id).toBe(id)
+      expect(after.contentVersion).toBe(previousVersion + 1)
+      expect(afterVersion).toBe(after.contentVersion)
+      expect(before.contentVersion).toBe(previousVersion)
+      expect(after.disciplinePair).toEqual(before.disciplinePair)
+      expect(after.media).toEqual(before.media)
+      expect(after.name).toBe(before.name)
+      expect(after.ability?.behaviors.length).toBe(1)
+      expect(after.ability!.behaviors[0]!.activation).not.toBe('manual')
+      expect(after.ability!.behaviors[0]!.effects.length).toBeGreaterThan(0)
+      expect(after.ability!.behaviors[0]!.effects.length).toBeLessThanOrEqual(2)
+      expect(after.ability!.behaviors[0]!.requirementMode).toBe('simple')
+      expect(after.ability!.behaviors[0]!.requirements).toEqual(
+        before.ability!.behaviors[0]!.requirements,
+      )
+      expect(validateResonanceDefinition(after)).toEqual([])
+    },
+  )
 
   it('makes Returning Current a single tactical Haste instead of auto-cleanse, heal and Guard', () => {
     const row = candidate.changes.find(
