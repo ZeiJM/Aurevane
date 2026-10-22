@@ -6,7 +6,10 @@ import { automaticAbilityExecutionRequirements } from './combat-simple-requireme
 import { evaluateAbilityRequirements } from './combat-requirements'
 import { captureCombatAbilitySource } from './combat-behavior-capture'
 import { prepareCombatAbilityCommand } from './combat-ability-command'
-import { combatAbilityCommandContext, reconcileCombatAbilitySources } from './combat-behavior-runtime'
+import {
+  combatAbilityCommandContext,
+  reconcileCombatAbilitySources,
+} from './combat-behavior-runtime'
 import {
   captureCombatAbilityMutation,
   createCombatAbilityEventSession,
@@ -41,50 +44,51 @@ describe('owner-status automatic Resonance recovery', () => {
     expect(new Set(cohort.records.map((row) => row.id)).size).toBe(13)
     expect(cohort.records.some((row) => row.name === 'Red Lightning')).toBe(true)
   })
-  it.each(cohort.records)('$name has one native opponent turn-start trigger and preserves range and effects', ({
-    before,
-    after,
-    oldVersion,
-    newVersion,
-  }) => {
-    expect(newVersion).toBe(oldVersion + 1)
-    expect(after.contentVersion).toBe(newVersion)
-    expect(after.id).toBe(before.id)
-    expect(after.name).toBe(before.name)
-    expect(after.disciplinePair).toEqual(before.disciplinePair)
-    expect(after.media).toEqual(before.media)
-    const original = before.ability!.behaviors[0]!
-    const behavior = after.ability!.behaviors[0]!
-    expect(behavior.activation).toBe('automatic')
-    expect(behavior.mode).toBe('action')
-    expect(behavior.requirementMode).toBe('simple')
-    expect(behavior.requirements).toEqual(original.requirements)
-    expect(behavior.targeting).toEqual(original.targeting)
-    expect(behavior.costs).toEqual(original.costs)
-    expect(behavior.effects).toEqual(original.effects)
-    expect(behavior.cooldown).toEqual(original.cooldown)
-    expect(behavior.activationLimits).toEqual(original.activationLimits)
-    expect(original.automaticTrigger).toBe('damage-dealt')
-    expect(original.automaticTarget?.subject).toBe('affected')
-    expect(behavior.automaticTrigger).toBe('enemy-turn-started')
-    expect(behavior.automaticTarget).toEqual({ subject: 'triggering' })
-    expect(automaticAbilityExecutionRequirements(behavior)).toMatchObject({
-      kind: 'all',
-      children: expect.arrayContaining([
-        { kind: 'event', eventType: 'turn_started', phase: 'after' },
-        { kind: 'subject-relation', subject: 'triggering', otherSubject: 'owner', relation: 'enemy' },
-        original.requirements,
-      ]),
-    })
-    expect(validateResonanceDefinition(after)).toEqual([])
-  })
+  it.each(cohort.records)(
+    '$name has one native opponent turn-start trigger and preserves range and effects',
+    ({ before, after, oldVersion, newVersion }) => {
+      expect(newVersion).toBe(oldVersion + 1)
+      expect(after.contentVersion).toBe(newVersion)
+      expect(after.id).toBe(before.id)
+      expect(after.name).toBe(before.name)
+      expect(after.disciplinePair).toEqual(before.disciplinePair)
+      expect(after.media).toEqual(before.media)
+      const original = before.ability!.behaviors[0]!
+      const behavior = after.ability!.behaviors[0]!
+      expect(behavior.activation).toBe('automatic')
+      expect(behavior.mode).toBe('action')
+      expect(behavior.requirementMode).toBe('simple')
+      expect(behavior.requirements).toEqual(original.requirements)
+      expect(behavior.targeting).toEqual(original.targeting)
+      expect(behavior.costs).toEqual(original.costs)
+      expect(behavior.effects).toEqual(original.effects)
+      expect(behavior.cooldown).toEqual(original.cooldown)
+      expect(behavior.activationLimits).toEqual(original.activationLimits)
+      expect(original.automaticTrigger).toBe('damage-dealt')
+      expect(original.automaticTarget?.subject).toBe('affected')
+      expect(behavior.automaticTrigger).toBe('enemy-turn-started')
+      expect(behavior.automaticTarget).toEqual({ subject: 'triggering' })
+      expect(automaticAbilityExecutionRequirements(behavior)).toMatchObject({
+        kind: 'all',
+        children: expect.arrayContaining([
+          { kind: 'event', eventType: 'turn_started', phase: 'after' },
+          {
+            kind: 'subject-relation',
+            subject: 'triggering',
+            otherSubject: 'owner',
+            relation: 'enemy',
+          },
+          original.requirements,
+        ]),
+      })
+      expect(validateResonanceDefinition(after)).toEqual([])
+    },
+  )
 
   it('Red Lightning schedules against the opposing turn start while owner has Reckless, without requiring outgoing damage', () => {
     const red = cohort.records.find((row) => row.name === 'Red Lightning')!.after
     const behavior = red.ability!.behaviors[0]!
-    const captured = captureCombatAbilitySource(
-      source({ ...behavior }, 'red-lightning-source'),
-    )
+    const captured = captureCombatAbilitySource(source({ ...behavior }, 'red-lightning-source'))
     const base = percentageDotEncounter()
     const withReckless = {
       ...base,
@@ -92,7 +96,15 @@ describe('owner-status automatic Resonance recovery', () => {
         ...base.statusState.filter((row) => row.combatantId !== 'actor'),
         {
           combatantId: 'actor',
-          statuses: [{ statusId: 'reckless', statusVersion: 1, stacks: 1, sourceCombatantId: 'actor', remainingOwnerTurnStarts: 1 }],
+          statuses: [
+            {
+              statusId: 'reckless',
+              statusVersion: 1,
+              stacks: 1,
+              sourceCombatantId: 'actor',
+              remainingOwnerTurnStarts: 1,
+            },
+          ],
         },
       ],
     }
@@ -125,14 +137,24 @@ describe('owner-status automatic Resonance recovery', () => {
     expect(dispatched).toBe(1)
     expect(child.events).toEqual([])
     // The same frame cannot fire twice even without an explicit outgoing Attack.
-    processCombatAbilityEvent(mutation.state, mutation.frame, PV1F_COMBAT_CONTENT, context, session, 0, () => {
-      dispatched += 1
-      throw new Error('repeat dispatch')
-    })
+    processCombatAbilityEvent(
+      mutation.state,
+      mutation.frame,
+      PV1F_COMBAT_CONTENT,
+      context,
+      session,
+      0,
+      () => {
+        dispatched += 1
+        throw new Error('repeat dispatch')
+      },
+    )
     expect(dispatched).toBe(1)
     const raw = automaticAbilityExecutionRequirements(behavior)!
-    expect(evaluateAbilityRequirements(raw, {
-      owner: { combatantId: 'actor', teamId: 'players', statusIds: [] },
-    })).toBe(false)
+    expect(
+      evaluateAbilityRequirements(raw, {
+        owner: { combatantId: 'actor', teamId: 'players', statusIds: [] },
+      }),
+    ).toBe(false)
   })
 })
