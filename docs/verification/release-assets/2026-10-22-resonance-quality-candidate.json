@@ -4,8 +4,8 @@
   "date": "2026-10-22",
   "source": "Current protected catalogue pointers; this is not a publication or deployment receipt.",
   "inventoryCount": 136,
-  "retainedCount": 66,
-  "revisedCount": 70,
+  "retainedCount": 64,
+  "revisedCount": 72,
   "immutableHistoryPreserved": true,
   "review": [
     {
@@ -497,8 +497,8 @@
     {
       "id": "resonance.farstrider-frostweaver.linked-sequence",
       "name": "Still Target",
-      "decision": "retained",
-      "reason": "One or two native effects without counterproductive cleanse"
+      "decision": "revised",
+      "reason": "Rare ranged native automatic damage payoff with targeted status requirement and bounded cooldown"
     },
     {
       "id": "resonance.farstrider-ironfist.marked-approach",
@@ -557,8 +557,8 @@
     {
       "id": "resonance.frostweaver-ironfist.linked-sequence",
       "name": "Crystal Impact",
-      "decision": "retained",
-      "reason": "One or two native effects without counterproductive cleanse"
+      "decision": "revised",
+      "reason": "Rare ranged native automatic damage payoff with targeted status requirement and bounded cooldown"
     },
     {
       "id": "resonance.frostweaver-lifebinder.linked-sequence",
@@ -10716,6 +10716,261 @@
       ]
     },
     {
+      "id": "resonance.farstrider-frostweaver.linked-sequence",
+      "name": "Still Target",
+      "previousVersion": 8,
+      "afterVersion": 9,
+      "before": {
+        "id": "resonance.farstrider-frostweaver.linked-sequence",
+        "name": "Still Target",
+        "media": {
+          "vfxKey": "resonance.farstrider-frostweaver.linked-sequence.vfx",
+          "iconKey": "resonance.farstrider-frostweaver.linked-sequence.icon",
+          "audioCueKey": "resonance.farstrider-frostweaver.linked-sequence.audio"
+        },
+        "ability": {
+          "behaviors": [
+            {
+              "id": "linked-sequence",
+              "mode": "modifier",
+              "costs": [
+                {
+                  "amount": 3,
+                  "resource": "mp"
+                }
+              ],
+              "effects": [
+                {
+                  "id": "effect-1",
+                  "payload": {
+                    "type": "damage",
+                    "amount": 3,
+                    "scaling": {
+                      "source": "physical-power",
+                      "coefficientBasisPoints": 0
+                    },
+                    "recipient": "affected-units",
+                    "defenseKind": "armor"
+                  }
+                }
+              ],
+              "cooldown": {
+                "key": "resonance.farstrider-frostweaver.linked-sequence",
+                "ownerTurns": 3
+              },
+              "targeting": null,
+              "activation": "automatic",
+              "requirements": {
+                "kind": "status-presence",
+                "present": true,
+                "subject": "selected",
+                "statusId": "root"
+              },
+              "classification": "utility",
+              "requirementMode": "simple",
+              "activationLimits": [
+                "once-per-action",
+                "once-per-round"
+              ]
+            }
+          ],
+          "schemaVersion": 1
+        },
+        "enabled": true,
+        "trigger": {
+          "kind": "skill-trigger-v2",
+          "mode": "immediate",
+          "setup": null,
+          "trigger": {
+            "requiredTags": [
+              "attack"
+            ],
+            "sourceDisciplineId": "farstrider"
+          },
+          "resultEffects": [
+            {
+              "type": "damage",
+              "amount": 3,
+              "recipient": "primary-unit",
+              "durationTurns": 0
+            },
+            {
+              "type": "apply-status",
+              "stacks": 1,
+              "statusId": "slow",
+              "recipient": "primary-unit",
+              "durationTurns": 1
+            }
+          ],
+          "aiSetupUtilityBonus": 0,
+          "aiTriggerUtilityBonus": 22
+        },
+        "authoring": {
+          "status": "representative",
+          "schemaVersion": 2,
+          "validationTags": [
+            "p4",
+            "cross-library-sequence",
+            "no-percentage-bonus",
+            "owner-rebalance-v5",
+            "thematic-resonance-payoff",
+            "duration-aware",
+            "owner-rebalance-v5-1",
+            "resonance-immediate-v2",
+            "setup-trigger-result",
+            "owner-clarified-resonance-matchers",
+            "owner-identity-restoration-20261019",
+            "owner-simple-requirements-20261019"
+          ]
+        },
+        "flavorLine": "Frozen Volley carries Frostweaver momentum into a Farstrider response shaped by both Disciplines.",
+        "description": "For an attack with Rooted [Target]: add 3 damage to the attack.",
+        "contentVersion": 8,
+        "disciplinePair": [
+          "farstrider",
+          "frostweaver"
+        ]
+      },
+      "after": {
+        "id": "resonance.farstrider-frostweaver.linked-sequence",
+        "name": "Still Target",
+        "media": {
+          "vfxKey": "resonance.farstrider-frostweaver.linked-sequence.vfx",
+          "iconKey": "resonance.farstrider-frostweaver.linked-sequence.icon",
+          "audioCueKey": "resonance.farstrider-frostweaver.linked-sequence.audio"
+        },
+        "ability": {
+          "behaviors": [
+            {
+              "id": "linked-sequence",
+              "mode": "action",
+              "costs": [
+                {
+                  "resource": "mp",
+                  "amount": 3
+                }
+              ],
+              "effects": [
+                {
+                  "id": "effect-1",
+                  "payload": {
+                    "type": "damage",
+                    "recipient": "primary-unit",
+                    "amount": 3,
+                    "scaling": {
+                      "source": "physical-power",
+                      "coefficientBasisPoints": 0
+                    },
+                    "defenseKind": "armor"
+                  }
+                }
+              ],
+              "cooldown": {
+                "key": "resonance.farstrider-frostweaver.linked-sequence",
+                "ownerTurns": 3
+              },
+              "targeting": {
+                "kind": "unit",
+                "shape": {
+                  "kind": "single"
+                },
+                "categories": [
+                  "enemy"
+                ],
+                "teamPolicy": "enemy",
+                "friendlyFire": "enemies-only",
+                "minimumRange": 1,
+                "maximumRange": 3,
+                "geometryVersion": 3,
+                "maximumSelections": 1,
+                "requiresLineOfSight": true,
+                "maximumElevationDifference": 1
+              },
+              "activation": "automatic",
+              "requirements": {
+                "kind": "status-presence",
+                "present": true,
+                "subject": "affected",
+                "statusId": "root"
+              },
+              "classification": "attack",
+              "requirementMode": "simple",
+              "activationLimits": [
+                "once-per-round",
+                "once-per-action"
+              ],
+              "automaticTrigger": "damage-dealt",
+              "automaticTarget": {
+                "subject": "affected"
+              },
+              "attackFamily": "physical"
+            }
+          ],
+          "schemaVersion": 1
+        },
+        "enabled": true,
+        "trigger": {
+          "kind": "skill-trigger-v2",
+          "mode": "immediate",
+          "setup": null,
+          "trigger": {
+            "requiredTags": [
+              "attack"
+            ],
+            "sourceDisciplineId": "farstrider"
+          },
+          "resultEffects": [
+            {
+              "type": "damage",
+              "amount": 3,
+              "recipient": "primary-unit",
+              "durationTurns": 0
+            },
+            {
+              "type": "apply-status",
+              "stacks": 1,
+              "statusId": "slow",
+              "recipient": "primary-unit",
+              "durationTurns": 1
+            }
+          ],
+          "aiSetupUtilityBonus": 0,
+          "aiTriggerUtilityBonus": 22
+        },
+        "authoring": {
+          "status": "representative",
+          "schemaVersion": 2,
+          "validationTags": [
+            "p4",
+            "cross-library-sequence",
+            "no-percentage-bonus",
+            "owner-rebalance-v5",
+            "thematic-resonance-payoff",
+            "duration-aware",
+            "owner-rebalance-v5-1",
+            "resonance-immediate-v2",
+            "setup-trigger-result",
+            "owner-clarified-resonance-matchers",
+            "owner-identity-restoration-20261019",
+            "owner-simple-requirements-20261019",
+            "owner-resonance-quality-20261022",
+            "rare-ranged-automatic-damage"
+          ]
+        },
+        "flavorLine": "Frozen Volley carries Frostweaver momentum into a Farstrider response shaped by both Disciplines.",
+        "description": "Rooted [Target] · Enemy · Range [3] · Dmg [3] · Automatic [Damage Dealt].",
+        "contentVersion": 9,
+        "disciplinePair": [
+          "farstrider",
+          "frostweaver"
+        ]
+      },
+      "reasons": [
+        "rare ranged automatic Dmg [3] requires status on the actually damaged enemy, scoped by native target legality",
+        "3 MP and 3-turn cooldown; once-per-action and once-per-round"
+      ]
+    },
+    {
       "id": "resonance.farstrider-ravager.linked-sequence",
       "name": "Barbed Pursuit",
       "previousVersion": 9,
@@ -12162,6 +12417,261 @@
       },
       "reasons": [
         "remove 1 counterproductive cleanses"
+      ]
+    },
+    {
+      "id": "resonance.frostweaver-ironfist.linked-sequence",
+      "name": "Crystal Impact",
+      "previousVersion": 8,
+      "afterVersion": 9,
+      "before": {
+        "id": "resonance.frostweaver-ironfist.linked-sequence",
+        "name": "Crystal Impact",
+        "media": {
+          "vfxKey": "resonance.frostweaver-ironfist.linked-sequence.vfx",
+          "iconKey": "resonance.frostweaver-ironfist.linked-sequence.icon",
+          "audioCueKey": "resonance.frostweaver-ironfist.linked-sequence.audio"
+        },
+        "ability": {
+          "behaviors": [
+            {
+              "id": "linked-sequence",
+              "mode": "modifier",
+              "costs": [
+                {
+                  "amount": 3,
+                  "resource": "mp"
+                }
+              ],
+              "effects": [
+                {
+                  "id": "effect-1",
+                  "payload": {
+                    "type": "damage",
+                    "amount": 3,
+                    "scaling": {
+                      "source": "physical-power",
+                      "coefficientBasisPoints": 0
+                    },
+                    "recipient": "affected-units",
+                    "defenseKind": "armor"
+                  }
+                }
+              ],
+              "cooldown": {
+                "key": "resonance.frostweaver-ironfist.linked-sequence",
+                "ownerTurns": 3
+              },
+              "targeting": null,
+              "activation": "automatic",
+              "requirements": {
+                "kind": "status-presence",
+                "present": true,
+                "subject": "selected",
+                "statusId": "frozen"
+              },
+              "classification": "utility",
+              "requirementMode": "simple",
+              "activationLimits": [
+                "once-per-action",
+                "once-per-round"
+              ]
+            }
+          ],
+          "schemaVersion": 1
+        },
+        "enabled": true,
+        "trigger": {
+          "kind": "skill-trigger-v2",
+          "mode": "immediate",
+          "setup": null,
+          "trigger": {
+            "requiredTags": [
+              "attack"
+            ],
+            "sourceDisciplineId": "ironfist"
+          },
+          "resultEffects": [
+            {
+              "type": "damage",
+              "amount": 3,
+              "recipient": "primary-unit",
+              "durationTurns": 0
+            },
+            {
+              "type": "apply-status",
+              "stacks": 1,
+              "statusId": "slow",
+              "recipient": "primary-unit",
+              "durationTurns": 1
+            }
+          ],
+          "aiSetupUtilityBonus": 0,
+          "aiTriggerUtilityBonus": 22
+        },
+        "authoring": {
+          "status": "representative",
+          "schemaVersion": 2,
+          "validationTags": [
+            "p4",
+            "cross-library-sequence",
+            "no-percentage-bonus",
+            "owner-rebalance-v5",
+            "thematic-resonance-payoff",
+            "duration-aware",
+            "owner-rebalance-v5-1",
+            "resonance-immediate-v2",
+            "setup-trigger-result",
+            "owner-clarified-resonance-matchers",
+            "owner-identity-restoration-20261019",
+            "owner-simple-requirements-20261019"
+          ]
+        },
+        "flavorLine": "Frozen Impact carries Frostweaver momentum into a Ironfist response shaped by both Disciplines.",
+        "description": "For an attack with Chilled [Target]: add 3 damage to the attack.",
+        "contentVersion": 8,
+        "disciplinePair": [
+          "frostweaver",
+          "ironfist"
+        ]
+      },
+      "after": {
+        "id": "resonance.frostweaver-ironfist.linked-sequence",
+        "name": "Crystal Impact",
+        "media": {
+          "vfxKey": "resonance.frostweaver-ironfist.linked-sequence.vfx",
+          "iconKey": "resonance.frostweaver-ironfist.linked-sequence.icon",
+          "audioCueKey": "resonance.frostweaver-ironfist.linked-sequence.audio"
+        },
+        "ability": {
+          "behaviors": [
+            {
+              "id": "linked-sequence",
+              "mode": "action",
+              "costs": [
+                {
+                  "resource": "mp",
+                  "amount": 3
+                }
+              ],
+              "effects": [
+                {
+                  "id": "effect-1",
+                  "payload": {
+                    "type": "damage",
+                    "recipient": "primary-unit",
+                    "amount": 3,
+                    "scaling": {
+                      "source": "physical-power",
+                      "coefficientBasisPoints": 0
+                    },
+                    "defenseKind": "armor"
+                  }
+                }
+              ],
+              "cooldown": {
+                "key": "resonance.frostweaver-ironfist.linked-sequence",
+                "ownerTurns": 3
+              },
+              "targeting": {
+                "kind": "unit",
+                "shape": {
+                  "kind": "single"
+                },
+                "categories": [
+                  "enemy"
+                ],
+                "teamPolicy": "enemy",
+                "friendlyFire": "enemies-only",
+                "minimumRange": 1,
+                "maximumRange": 2,
+                "geometryVersion": 3,
+                "maximumSelections": 1,
+                "requiresLineOfSight": true,
+                "maximumElevationDifference": 1
+              },
+              "activation": "automatic",
+              "requirements": {
+                "kind": "status-presence",
+                "present": true,
+                "subject": "affected",
+                "statusId": "frozen"
+              },
+              "classification": "attack",
+              "requirementMode": "simple",
+              "activationLimits": [
+                "once-per-round",
+                "once-per-action"
+              ],
+              "automaticTrigger": "damage-dealt",
+              "automaticTarget": {
+                "subject": "affected"
+              },
+              "attackFamily": "physical"
+            }
+          ],
+          "schemaVersion": 1
+        },
+        "enabled": true,
+        "trigger": {
+          "kind": "skill-trigger-v2",
+          "mode": "immediate",
+          "setup": null,
+          "trigger": {
+            "requiredTags": [
+              "attack"
+            ],
+            "sourceDisciplineId": "ironfist"
+          },
+          "resultEffects": [
+            {
+              "type": "damage",
+              "amount": 3,
+              "recipient": "primary-unit",
+              "durationTurns": 0
+            },
+            {
+              "type": "apply-status",
+              "stacks": 1,
+              "statusId": "slow",
+              "recipient": "primary-unit",
+              "durationTurns": 1
+            }
+          ],
+          "aiSetupUtilityBonus": 0,
+          "aiTriggerUtilityBonus": 22
+        },
+        "authoring": {
+          "status": "representative",
+          "schemaVersion": 2,
+          "validationTags": [
+            "p4",
+            "cross-library-sequence",
+            "no-percentage-bonus",
+            "owner-rebalance-v5",
+            "thematic-resonance-payoff",
+            "duration-aware",
+            "owner-rebalance-v5-1",
+            "resonance-immediate-v2",
+            "setup-trigger-result",
+            "owner-clarified-resonance-matchers",
+            "owner-identity-restoration-20261019",
+            "owner-simple-requirements-20261019",
+            "owner-resonance-quality-20261022",
+            "rare-ranged-automatic-damage"
+          ]
+        },
+        "flavorLine": "Frozen Impact carries Frostweaver momentum into a Ironfist response shaped by both Disciplines.",
+        "description": "Frozen [Target] · Enemy · Range [2] · Dmg [3] · Automatic [Damage Dealt].",
+        "contentVersion": 9,
+        "disciplinePair": [
+          "frostweaver",
+          "ironfist"
+        ]
+      },
+      "reasons": [
+        "rare ranged automatic Dmg [3] requires status on the actually damaged enemy, scoped by native target legality",
+        "3 MP and 3-turn cooldown; once-per-action and once-per-round"
       ]
     },
     {
