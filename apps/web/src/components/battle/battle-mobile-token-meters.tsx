@@ -95,15 +95,17 @@ export function BattleMobileTokenMeters({
         const host = ensureMeterHost(token)
         const hpFill = host.querySelector<HTMLElement>('[data-mobile-token-meter="hp"] > i')
         const hpTrack = host.querySelector<HTMLElement>('[data-mobile-token-meter="hp"]')
-        let barrierFill = hpTrack?.querySelector<HTMLElement>('[data-mobile-hp-barrier="true"]') ?? null
+        let barrierFill =
+          hpTrack?.querySelector<HTMLElement>('[data-mobile-hp-barrier="true"]') ?? null
         const mpFill = host.querySelector<HTMLElement>('[data-mobile-token-meter="mp"] > i')
-        const barrier = battle.current.snapshot.statusState
-          .find((entry) => entry.combatantId === combatantId)
-          ?.statuses.reduce(
-            (amount, status) =>
-              amount + (status.barrier?.kind === 'remaining' ? status.barrier.amount : 0),
-            0,
-          ) ?? 0
+        const barrier =
+          battle.current.snapshot.statusState
+            .find((entry) => entry.combatantId === combatantId)
+            ?.statuses.reduce(
+              (amount, status) =>
+                amount + (status.barrier?.kind === 'remaining' ? status.barrier.amount : 0),
+              0,
+            ) ?? 0
         const hpMaximum = Math.max(combatant.maxHp, combatant.hp + barrier)
         const hpWidth = percent(combatant.hp, hpMaximum)
         const barrierWidth = percent(barrier, hpMaximum)
