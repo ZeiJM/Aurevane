@@ -122,7 +122,7 @@ if (process.env.AV_SIMPLE_REQUIREMENTS_COMPILE_ONLY === '1') {
           if (text === 'None') {
             await expect(notes).toHaveCount(0)
           } else {
-            const reference = requirementLine(reader).locator('[data-combat-tag-reference]')
+            const reference = requirementLine(reader).locator('[data-combat-tag-reference]').first()
             assert.equal(await reference.evaluate((node) => node.tagName), 'STRONG')
             assert.ok(
               Number(await reference.evaluate((node) => getComputedStyle(node).fontWeight)) >= 600,
