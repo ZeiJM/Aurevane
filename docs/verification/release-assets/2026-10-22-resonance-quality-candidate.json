@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "status": "review-candidate-not-published",
+  "status": "repaired-candidate-not-published",
   "date": "2026-10-22",
   "source": "Current protected catalogue pointers; this is not a publication or deployment receipt.",
   "inventoryCount": 136,
@@ -830,7 +830,7 @@
       "id": "resonance.aetherist-shadehand.veiled-conduit",
       "name": "Dissolving Formula",
       "previousVersion": 9,
-      "afterVersion": 10,
+      "afterVersion": 11,
       "before": {
         "id": "resonance.aetherist-shadehand.veiled-conduit",
         "name": "Dissolving Formula",
@@ -1117,7 +1117,7 @@
         },
         "flavorLine": "Shed Guarded to recover mana and slip into concealment.",
         "description": "Requirement: guarded [Self]. Result: resource-change [Self]; covert [Self].",
-        "contentVersion": 10,
+        "contentVersion": 11,
         "disciplinePair": [
           "aetherist",
           "shadehand"
@@ -1131,7 +1131,7 @@
       "id": "resonance.bastion-tidecaller.linked-sequence",
       "name": "Harbor Guard",
       "previousVersion": 10,
-      "afterVersion": 11,
+      "afterVersion": 12,
       "before": {
         "id": "resonance.bastion-tidecaller.linked-sequence",
         "name": "Harbor Guard",
@@ -1399,7 +1399,7 @@
         },
         "flavorLine": "Renewing Bulwark carries Tidecaller momentum into a Bastion response shaped by both Disciplines.",
         "description": "Requirement: wet [Target]. Result: barrier-change [Target].",
-        "contentVersion": 11,
+        "contentVersion": 12,
         "disciplinePair": [
           "bastion",
           "tidecaller"
@@ -1413,7 +1413,7 @@
       "id": "resonance.chronist-farstrider.linked-sequence",
       "name": "Forecasted Mark",
       "previousVersion": 9,
-      "afterVersion": 10,
+      "afterVersion": 11,
       "before": {
         "id": "resonance.chronist-farstrider.linked-sequence",
         "name": "Forecasted Mark",
@@ -1664,7 +1664,7 @@
         },
         "flavorLine": "Measured Volley carries Chronist momentum into a Farstrider response shaped by both Disciplines.",
         "description": "Requirement: Primed [Self]. Result: haste [Self].",
-        "contentVersion": 10,
+        "contentVersion": 11,
         "disciplinePair": [
           "chronist",
           "farstrider"
@@ -1678,7 +1678,7 @@
       "id": "resonance.chronist-frostweaver.linked-sequence",
       "name": "Approaching Winter",
       "previousVersion": 9,
-      "afterVersion": 10,
+      "afterVersion": 11,
       "before": {
         "id": "resonance.chronist-frostweaver.linked-sequence",
         "name": "Approaching Winter",
@@ -1937,7 +1937,7 @@
         },
         "flavorLine": "Measured Crystal carries Chronist momentum into a Frostweaver response shaped by both Disciplines.",
         "description": "Requirement: Primed [Self]. Result: root [Target].",
-        "contentVersion": 10,
+        "contentVersion": 11,
         "disciplinePair": [
           "chronist",
           "frostweaver"
@@ -1951,7 +1951,7 @@
       "id": "resonance.chronist-ironfist.linked-sequence",
       "name": "Patient Palm",
       "previousVersion": 9,
-      "afterVersion": 10,
+      "afterVersion": 11,
       "before": {
         "id": "resonance.chronist-ironfist.linked-sequence",
         "name": "Patient Palm",
@@ -2224,7 +2224,7 @@
         },
         "flavorLine": "Measured Impact carries Chronist momentum into a Ironfist response shaped by both Disciplines.",
         "description": "Requirement: haste [Self]. Result: barrier-change [Self]; slow [Target].",
-        "contentVersion": 10,
+        "contentVersion": 11,
         "disciplinePair": [
           "chronist",
           "ironfist"
@@ -2238,7 +2238,7 @@
       "id": "resonance.chronist-runeblade.linked-sequence",
       "name": "Deferred Inscription",
       "previousVersion": 9,
-      "afterVersion": 10,
+      "afterVersion": 11,
       "before": {
         "id": "resonance.chronist-runeblade.linked-sequence",
         "name": "Deferred Inscription",
@@ -2519,7 +2519,7 @@
         },
         "flavorLine": "Measured Sigil carries Chronist momentum into a Runeblade response shaped by both Disciplines.",
         "description": "Requirement: Primed [Self]. Result: percentage-recovery [Self]; guarded [Self].",
-        "contentVersion": 10,
+        "contentVersion": 11,
         "disciplinePair": [
           "chronist",
           "runeblade"
@@ -2533,7 +2533,7 @@
       "id": "resonance.chronist-stormsinger.linked-sequence",
       "name": "Forecasted Thunder",
       "previousVersion": 9,
-      "afterVersion": 10,
+      "afterVersion": 11,
       "before": {
         "id": "resonance.chronist-stormsinger.linked-sequence",
         "name": "Forecasted Thunder",
@@ -2812,7 +2812,7 @@
         },
         "flavorLine": "Measured Thunder carries Chronist momentum into a Stormsinger response shaped by both Disciplines.",
         "description": "Requirement: Primed [Self]. Result: resource-change [Target]; suppress [Target].",
-        "contentVersion": 10,
+        "contentVersion": 11,
         "disciplinePair": [
           "chronist",
           "stormsinger"
@@ -2826,7 +2826,7 @@
       "id": "resonance.chronist-tidecaller.linked-sequence",
       "name": "Returning Current",
       "previousVersion": 8,
-      "afterVersion": 9,
+      "afterVersion": 10,
       "before": {
         "id": "resonance.chronist-tidecaller.linked-sequence",
         "name": "Returning Current",
@@ -3089,7 +3089,7 @@
         },
         "flavorLine": "Measured Tide carries Chronist momentum into a Tidecaller response shaped by both Disciplines.",
         "description": "Requirement: Primed [Self]. Result: Haste [Self], 1 Turn. A prepared Controlled Skill carries its tempo forward.",
-        "contentVersion": 9,
+        "contentVersion": 10,
         "disciplinePair": [
           "chronist",
           "tidecaller"
@@ -3103,7 +3103,7 @@
       "id": "resonance.chronist-vanguard.linked-sequence",
       "name": "Delayed Breach",
       "previousVersion": 9,
-      "afterVersion": 10,
+      "afterVersion": 11,
       "before": {
         "id": "resonance.chronist-vanguard.linked-sequence",
         "name": "Delayed Breach",
@@ -3386,7 +3386,7 @@
         },
         "flavorLine": "Measured Vanguard carries Chronist momentum into a Vanguard response shaped by both Disciplines.",
         "description": "Requirement: Primed [Self]. Result: exposed [Target]; Conditional Cleanse guarded [Self].",
-        "contentVersion": 10,
+        "contentVersion": 11,
         "disciplinePair": [
           "chronist",
           "vanguard"
@@ -3400,7 +3400,7 @@
       "id": "resonance.chronist-wildwarden.linked-sequence",
       "name": "Patient Hunt",
       "previousVersion": 9,
-      "afterVersion": 10,
+      "afterVersion": 11,
       "before": {
         "id": "resonance.chronist-wildwarden.linked-sequence",
         "name": "Patient Hunt",
@@ -3682,7 +3682,7 @@
         },
         "flavorLine": "Measured Hunt carries Chronist momentum into a Wildwarden response shaped by both Disciplines.",
         "description": "Requirement: Primed [Self]. Result: root [Target]; hexed [Target].",
-        "contentVersion": 10,
+        "contentVersion": 11,
         "disciplinePair": [
           "chronist",
           "wildwarden"
@@ -3696,7 +3696,7 @@
       "id": "resonance.cinderweaver-dawnshield.linked-sequence",
       "name": "Ashen Benediction",
       "previousVersion": 9,
-      "afterVersion": 10,
+      "afterVersion": 11,
       "before": {
         "id": "resonance.cinderweaver-dawnshield.linked-sequence",
         "name": "Ashen Benediction",
@@ -3991,7 +3991,7 @@
         },
         "flavorLine": "Ember Aegis carries Cinderweaver momentum into a Dawnshield response shaped by both Disciplines.",
         "description": "Requirement: burn [Target]. Result: barrier-change [Target]; warded [Target].",
-        "contentVersion": 10,
+        "contentVersion": 11,
         "disciplinePair": [
           "cinderweaver",
           "dawnshield"
@@ -4005,7 +4005,7 @@
       "id": "resonance.cinderweaver-farstrider.linked-sequence",
       "name": "Sighting Flame",
       "previousVersion": 8,
-      "afterVersion": 9,
+      "afterVersion": 10,
       "before": {
         "id": "resonance.cinderweaver-farstrider.linked-sequence",
         "name": "Sighting Flame",
@@ -4268,7 +4268,7 @@
         },
         "flavorLine": "Ember Volley carries Cinderweaver momentum into a Farstrider response shaped by both Disciplines.",
         "description": "Requirement: burn [Affected]. Result: suppress [Target].",
-        "contentVersion": 9,
+        "contentVersion": 10,
         "disciplinePair": [
           "cinderweaver",
           "farstrider"
@@ -4282,7 +4282,7 @@
       "id": "resonance.cinderweaver-frostweaver.linked-sequence",
       "name": "Thermal Choice",
       "previousVersion": 8,
-      "afterVersion": 9,
+      "afterVersion": 10,
       "before": {
         "id": "resonance.cinderweaver-frostweaver.linked-sequence",
         "name": "Thermal Choice",
@@ -4565,7 +4565,7 @@
         },
         "flavorLine": "Frozen Flare carries Frostweaver momentum into a Cinderweaver response shaped by both Disciplines.",
         "description": "Requirement: frozen [Affected]. Result: exposed [Target].",
-        "contentVersion": 9,
+        "contentVersion": 10,
         "disciplinePair": [
           "cinderweaver",
           "frostweaver"
@@ -4579,7 +4579,7 @@
       "id": "resonance.cinderweaver-ironfist.linked-sequence",
       "name": "Furnace Palm",
       "previousVersion": 9,
-      "afterVersion": 10,
+      "afterVersion": 11,
       "before": {
         "id": "resonance.cinderweaver-ironfist.linked-sequence",
         "name": "Furnace Palm",
@@ -4862,7 +4862,7 @@
         },
         "flavorLine": "Ember Impact carries Cinderweaver momentum into a Ironfist response shaped by both Disciplines.",
         "description": "Requirement: burn [Affected]. Result: barrier-change [Self]; warded [Self].",
-        "contentVersion": 10,
+        "contentVersion": 11,
         "disciplinePair": [
           "cinderweaver",
           "ironfist"
@@ -4876,7 +4876,7 @@
       "id": "resonance.cinderweaver-lifebinder.linked-sequence",
       "name": "Cauterized Relief",
       "previousVersion": 8,
-      "afterVersion": 9,
+      "afterVersion": 10,
       "before": {
         "id": "resonance.cinderweaver-lifebinder.linked-sequence",
         "name": "Cauterized Relief",
@@ -5193,7 +5193,7 @@
         },
         "flavorLine": "Ember Bloom carries Cinderweaver momentum into a Lifebinder response shaped by both Disciplines.",
         "description": "Requirement: HP below 35% [Target]. Result: Conditional Cleanse burn/bleed/poison/slow/root/exposed/mark/challenged [Target]; percentage-recovery [Target].",
-        "contentVersion": 9,
+        "contentVersion": 10,
         "disciplinePair": [
           "cinderweaver",
           "lifebinder"
@@ -5207,7 +5207,7 @@
       "id": "resonance.cinderweaver-ravager.linked-sequence",
       "name": "Bloodfed Cinder",
       "previousVersion": 9,
-      "afterVersion": 10,
+      "afterVersion": 11,
       "before": {
         "id": "resonance.cinderweaver-ravager.linked-sequence",
         "name": "Bloodfed Cinder",
@@ -5512,7 +5512,7 @@
         },
         "flavorLine": "Ember Fury carries Cinderweaver momentum into a Ravager response shaped by both Disciplines.",
         "description": "Requirement: reckless [Self]. Result: hexed [Target]; exposed [Self].",
-        "contentVersion": 10,
+        "contentVersion": 11,
         "disciplinePair": [
           "cinderweaver",
           "ravager"
@@ -5526,7 +5526,7 @@
       "id": "resonance.cinderweaver-stormsinger.linked-sequence",
       "name": "Overheated Circuit",
       "previousVersion": 9,
-      "afterVersion": 10,
+      "afterVersion": 11,
       "before": {
         "id": "resonance.cinderweaver-stormsinger.linked-sequence",
         "name": "Overheated Circuit",
@@ -5825,7 +5825,7 @@
         },
         "flavorLine": "Charged Flare carries Stormsinger momentum into a Cinderweaver response shaped by both Disciplines.",
         "description": "Requirement: burn [Affected]. Result: resource-change [Target]; suppress [Target].",
-        "contentVersion": 10,
+        "contentVersion": 11,
         "disciplinePair": [
           "cinderweaver",
           "stormsinger"
@@ -5839,7 +5839,7 @@
       "id": "resonance.cinderweaver-tidecaller.linked-sequence",
       "name": "Steamfront",
       "previousVersion": 10,
-      "afterVersion": 11,
+      "afterVersion": 12,
       "before": {
         "id": "resonance.cinderweaver-tidecaller.linked-sequence",
         "name": "Steamfront",
@@ -6125,7 +6125,7 @@
         },
         "flavorLine": "Renewing Flare carries Tidecaller momentum into a Cinderweaver response shaped by both Disciplines.",
         "description": "Requirement: burn [Self]. Result: barrier-change [Self]; warded [Self].",
-        "contentVersion": 11,
+        "contentVersion": 12,
         "disciplinePair": [
           "cinderweaver",
           "tidecaller"
@@ -6139,7 +6139,7 @@
       "id": "resonance.cinderweaver-vanguard.linked-sequence",
       "name": "Ember Ram",
       "previousVersion": 8,
-      "afterVersion": 9,
+      "afterVersion": 10,
       "before": {
         "id": "resonance.cinderweaver-vanguard.linked-sequence",
         "name": "Ember Ram",
@@ -6440,7 +6440,7 @@
         },
         "flavorLine": "Ember Vanguard carries Cinderweaver momentum into a Vanguard response shaped by both Disciplines.",
         "description": "Requirement: burn [Affected]. Result: warded [Self]; exposed [Self].",
-        "contentVersion": 9,
+        "contentVersion": 10,
         "disciplinePair": [
           "cinderweaver",
           "vanguard"
@@ -6454,7 +6454,7 @@
       "id": "resonance.cinderweaver-wildwarden.linked-sequence",
       "name": "Burn the Thicket",
       "previousVersion": 8,
-      "afterVersion": 9,
+      "afterVersion": 10,
       "before": {
         "id": "resonance.cinderweaver-wildwarden.linked-sequence",
         "name": "Burn the Thicket",
@@ -6756,7 +6756,7 @@
         },
         "flavorLine": "Burn away a poisoned, Marked quarry’s affliction to pin it with a Fire strike.",
         "description": "Requirement: poison [Affected]. Result: root [Target]; hexed [Target].",
-        "contentVersion": 9,
+        "contentVersion": 10,
         "disciplinePair": [
           "cinderweaver",
           "wildwarden"
@@ -6770,7 +6770,7 @@
       "id": "resonance.dawnshield-frostweaver.linked-sequence",
       "name": "Shelter from Winter",
       "previousVersion": 9,
-      "afterVersion": 10,
+      "afterVersion": 11,
       "before": {
         "id": "resonance.dawnshield-frostweaver.linked-sequence",
         "name": "Shelter from Winter",
@@ -7070,7 +7070,7 @@
         },
         "flavorLine": "Frozen Aegis carries Frostweaver momentum into a Dawnshield response shaped by both Disciplines.",
         "description": "Requirement: frozen [Target]. Result: barrier-change [Target]; guarded [Target].",
-        "contentVersion": 10,
+        "contentVersion": 11,
         "disciplinePair": [
           "dawnshield",
           "frostweaver"
@@ -7084,7 +7084,7 @@
       "id": "resonance.dawnshield-lifebinder.linked-sequence",
       "name": "Two Hands of Mercy",
       "previousVersion": 9,
-      "afterVersion": 10,
+      "afterVersion": 11,
       "before": {
         "id": "resonance.dawnshield-lifebinder.linked-sequence",
         "name": "Two Hands of Mercy",
@@ -7395,7 +7395,7 @@
         },
         "flavorLine": "Dawnlit Bloom carries Dawnshield momentum into a Lifebinder response shaped by both Disciplines.",
         "description": "Requirement: HP below 30% [Target]. Result: percentage-recovery [Target]; guarded [Target].",
-        "contentVersion": 10,
+        "contentVersion": 11,
         "disciplinePair": [
           "dawnshield",
           "lifebinder"
@@ -7409,7 +7409,7 @@
       "id": "resonance.dawnshield-shadehand.linked-sequence",
       "name": "Purge and Vanish",
       "previousVersion": 9,
-      "afterVersion": 10,
+      "afterVersion": 11,
       "before": {
         "id": "resonance.dawnshield-shadehand.linked-sequence",
         "name": "Purge and Vanish",
@@ -7712,7 +7712,7 @@
         },
         "flavorLine": "Dawnlit Ambush carries Dawnshield momentum into a Shadehand response shaped by both Disciplines.",
         "description": "Requirement: mark [Self]. Result: invisible [Self]; hexed [Self].",
-        "contentVersion": 10,
+        "contentVersion": 11,
         "disciplinePair": [
           "dawnshield",
           "shadehand"
@@ -7726,7 +7726,7 @@
       "id": "resonance.dawnshield-stormsinger.linked-sequence",
       "name": "Calm the Charge",
       "previousVersion": 10,
-      "afterVersion": 11,
+      "afterVersion": 12,
       "before": {
         "id": "resonance.dawnshield-stormsinger.linked-sequence",
         "name": "Calm the Charge",
@@ -8010,7 +8010,7 @@
         },
         "flavorLine": "Charged Aegis carries Stormsinger momentum into a Dawnshield response shaped by both Disciplines.",
         "description": "Requirement: wet [Target]. Result: barrier-change [Target].",
-        "contentVersion": 11,
+        "contentVersion": 12,
         "disciplinePair": [
           "dawnshield",
           "stormsinger"
@@ -8024,7 +8024,7 @@
       "id": "resonance.dawnshield-tidecaller.linked-sequence",
       "name": "Harbor Benediction",
       "previousVersion": 10,
-      "afterVersion": 11,
+      "afterVersion": 12,
       "before": {
         "id": "resonance.dawnshield-tidecaller.linked-sequence",
         "name": "Harbor Benediction",
@@ -8323,7 +8323,7 @@
         },
         "flavorLine": "Renewing Aegis carries Tidecaller momentum into a Dawnshield response shaped by both Disciplines.",
         "description": "Requirement: wet [Target]. Result: percentage-recovery [Target]; guarded [Target].",
-        "contentVersion": 11,
+        "contentVersion": 12,
         "disciplinePair": [
           "dawnshield",
           "tidecaller"
@@ -8337,7 +8337,7 @@
       "id": "resonance.edgedancer-frostweaver.linked-sequence",
       "name": "Glacial Step",
       "previousVersion": 8,
-      "afterVersion": 9,
+      "afterVersion": 10,
       "before": {
         "id": "resonance.edgedancer-frostweaver.linked-sequence",
         "name": "Glacial Step",
@@ -8634,7 +8634,7 @@
         },
         "flavorLine": "Frozen Edge carries Frostweaver momentum into a Edgedancer response shaped by both Disciplines.",
         "description": "Requirement: frozen [Affected]. Result: Conditional Cleanse root/slow [Self]; haste [Self].",
-        "contentVersion": 9,
+        "contentVersion": 10,
         "disciplinePair": [
           "edgedancer",
           "frostweaver"
@@ -8648,7 +8648,7 @@
       "id": "resonance.edgedancer-lifebinder.linked-sequence",
       "name": "Merciful Exit",
       "previousVersion": 8,
-      "afterVersion": 9,
+      "afterVersion": 10,
       "before": {
         "id": "resonance.edgedancer-lifebinder.linked-sequence",
         "name": "Merciful Exit",
@@ -8909,7 +8909,7 @@
         },
         "flavorLine": "Poised Bloom carries Edgedancer momentum into a Lifebinder response shaped by both Disciplines.",
         "description": "Requirement: guarded [Self]. Result: percentage-recovery [Self].",
-        "contentVersion": 9,
+        "contentVersion": 10,
         "disciplinePair": [
           "edgedancer",
           "lifebinder"
@@ -8923,7 +8923,7 @@
       "id": "resonance.edgedancer-runeblade.linked-sequence",
       "name": "Rune in Motion",
       "previousVersion": 8,
-      "afterVersion": 9,
+      "afterVersion": 10,
       "before": {
         "id": "resonance.edgedancer-runeblade.linked-sequence",
         "name": "Rune in Motion",
@@ -9206,7 +9206,7 @@
         },
         "flavorLine": "Runic Edge carries Runeblade momentum into a Edgedancer response shaped by both Disciplines.",
         "description": "Requirement: MP below 25% [Target]. Result: resource-change [Self]; haste [Self].",
-        "contentVersion": 9,
+        "contentVersion": 10,
         "disciplinePair": [
           "edgedancer",
           "runeblade"
@@ -9220,7 +9220,7 @@
       "id": "resonance.edgedancer-shadehand.linked-sequence",
       "name": "Veiled Flourish",
       "previousVersion": 8,
-      "afterVersion": 9,
+      "afterVersion": 10,
       "before": {
         "id": "resonance.edgedancer-shadehand.linked-sequence",
         "name": "Veiled Flourish",
@@ -9493,7 +9493,7 @@
         },
         "flavorLine": "Poised Ambush carries Edgedancer momentum into a Shadehand response shaped by both Disciplines.",
         "description": "Requirement: inspired [Self]. Result: covert [Self]; suppress [Target].",
-        "contentVersion": 9,
+        "contentVersion": 10,
         "disciplinePair": [
           "edgedancer",
           "shadehand"
@@ -9507,7 +9507,7 @@
       "id": "resonance.edgedancer-stormsinger.linked-sequence",
       "name": "Arc across the Gap",
       "previousVersion": 9,
-      "afterVersion": 10,
+      "afterVersion": 11,
       "before": {
         "id": "resonance.edgedancer-stormsinger.linked-sequence",
         "name": "Arc across the Gap",
@@ -9810,7 +9810,7 @@
         },
         "flavorLine": "Charged Edge carries Stormsinger momentum into a Edgedancer response shaped by both Disciplines.",
         "description": "Requirement: conductive [Affected]. Result: resource-change [Target]; resource-change [Self].",
-        "contentVersion": 10,
+        "contentVersion": 11,
         "disciplinePair": [
           "edgedancer",
           "stormsinger"
@@ -9824,7 +9824,7 @@
       "id": "resonance.edgedancer-tidecaller.linked-sequence",
       "name": "Mistward Step",
       "previousVersion": 10,
-      "afterVersion": 11,
+      "afterVersion": 12,
       "before": {
         "id": "resonance.edgedancer-tidecaller.linked-sequence",
         "name": "Mistward Step",
@@ -10109,7 +10109,7 @@
         },
         "flavorLine": "Renewing Edge carries Tidecaller momentum into a Edgedancer response shaped by both Disciplines.",
         "description": "Requirement: guarded [Self]. Result: barrier-change [Self]; airborne [Self].",
-        "contentVersion": 11,
+        "contentVersion": 12,
         "disciplinePair": [
           "edgedancer",
           "tidecaller"
@@ -10123,7 +10123,7 @@
       "id": "resonance.edgedancer-vanguard.linked-sequence",
       "name": "Turning Advance",
       "previousVersion": 8,
-      "afterVersion": 9,
+      "afterVersion": 10,
       "before": {
         "id": "resonance.edgedancer-vanguard.linked-sequence",
         "name": "Turning Advance",
@@ -10406,7 +10406,7 @@
         },
         "flavorLine": "Poised Vanguard carries Edgedancer momentum into a Vanguard response shaped by both Disciplines.",
         "description": "Requirement: inspired [Self]. Result: guarded [Self]; slow [Target].",
-        "contentVersion": 9,
+        "contentVersion": 10,
         "disciplinePair": [
           "edgedancer",
           "vanguard"
@@ -10420,7 +10420,7 @@
       "id": "resonance.edgedancer-wildwarden.linked-sequence",
       "name": "Pursuit Angle",
       "previousVersion": 10,
-      "afterVersion": 11,
+      "afterVersion": 12,
       "before": {
         "id": "resonance.edgedancer-wildwarden.linked-sequence",
         "name": "Pursuit Angle",
@@ -10705,7 +10705,7 @@
         },
         "flavorLine": "Circle a Marked quarry, then pull it toward your new position.",
         "description": "Requirement: mark [Affected]. Result: barrier-change [Self]; resource-change [Self].",
-        "contentVersion": 11,
+        "contentVersion": 12,
         "disciplinePair": [
           "edgedancer",
           "wildwarden"
@@ -10719,7 +10719,7 @@
       "id": "resonance.farstrider-frostweaver.linked-sequence",
       "name": "Still Target",
       "previousVersion": 8,
-      "afterVersion": 9,
+      "afterVersion": 10,
       "before": {
         "id": "resonance.farstrider-frostweaver.linked-sequence",
         "name": "Still Target",
@@ -10959,7 +10959,7 @@
         },
         "flavorLine": "Frozen Volley carries Frostweaver momentum into a Farstrider response shaped by both Disciplines.",
         "description": "Rooted [Target] · Enemy · Range [3] · Dmg [3] · Automatic [Damage Dealt].",
-        "contentVersion": 9,
+        "contentVersion": 10,
         "disciplinePair": [
           "farstrider",
           "frostweaver"
@@ -10974,7 +10974,7 @@
       "id": "resonance.farstrider-ravager.linked-sequence",
       "name": "Barbed Pursuit",
       "previousVersion": 9,
-      "afterVersion": 10,
+      "afterVersion": 11,
       "before": {
         "id": "resonance.farstrider-ravager.linked-sequence",
         "name": "Barbed Pursuit",
@@ -11245,7 +11245,7 @@
         },
         "flavorLine": "Crimson Volley carries Ravager momentum into a Farstrider response shaped by both Disciplines.",
         "description": "Requirement: bleed [Affected]. Result: percentage-recovery [Self].",
-        "contentVersion": 10,
+        "contentVersion": 11,
         "disciplinePair": [
           "farstrider",
           "ravager"
@@ -11259,7 +11259,7 @@
       "id": "resonance.farstrider-stormsinger.linked-sequence",
       "name": "Conductive Sight",
       "previousVersion": 9,
-      "afterVersion": 10,
+      "afterVersion": 11,
       "before": {
         "id": "resonance.farstrider-stormsinger.linked-sequence",
         "name": "Conductive Sight",
@@ -11548,7 +11548,7 @@
         },
         "flavorLine": "Charged Volley carries Stormsinger momentum into a Farstrider response shaped by both Disciplines.",
         "description": "Requirement: conductive [Affected]. Result: mark [Target]; haste [Self].",
-        "contentVersion": 10,
+        "contentVersion": 11,
         "disciplinePair": [
           "farstrider",
           "stormsinger"
@@ -11562,7 +11562,7 @@
       "id": "resonance.farstrider-tidecaller.linked-sequence",
       "name": "Waterline Shot",
       "previousVersion": 10,
-      "afterVersion": 11,
+      "afterVersion": 12,
       "before": {
         "id": "resonance.farstrider-tidecaller.linked-sequence",
         "name": "Waterline Shot",
@@ -11841,7 +11841,7 @@
         },
         "flavorLine": "Renewing Volley carries Tidecaller momentum into a Farstrider response shaped by both Disciplines.",
         "description": "Requirement: wet [Affected]. Result: percentage-recovery [Self]; root [Self].",
-        "contentVersion": 11,
+        "contentVersion": 12,
         "disciplinePair": [
           "farstrider",
           "tidecaller"
@@ -11855,7 +11855,7 @@
       "id": "resonance.farstrider-vanguard.covering-break",
       "name": "Picket Charge",
       "previousVersion": 9,
-      "afterVersion": 10,
+      "afterVersion": 11,
       "before": {
         "id": "resonance.farstrider-vanguard.covering-break",
         "name": "Picket Charge",
@@ -12138,7 +12138,7 @@
         },
         "flavorLine": "Covering Break carries Farstrider momentum into a Vanguard response shaped by both Disciplines.",
         "description": "Requirement: mark [Affected]. Result: challenged [Target].",
-        "contentVersion": 10,
+        "contentVersion": 11,
         "disciplinePair": [
           "farstrider",
           "vanguard"
@@ -12152,7 +12152,7 @@
       "id": "resonance.farstrider-wildwarden.linked-sequence",
       "name": "Twin Hunt",
       "previousVersion": 9,
-      "afterVersion": 10,
+      "afterVersion": 11,
       "before": {
         "id": "resonance.farstrider-wildwarden.linked-sequence",
         "name": "Twin Hunt",
@@ -12409,7 +12409,7 @@
         },
         "flavorLine": "Quarry Volley carries Wildwarden momentum into a Farstrider response shaped by both Disciplines.",
         "description": "Requirement: poison [Affected]. Result: hexed [Target].",
-        "contentVersion": 10,
+        "contentVersion": 11,
         "disciplinePair": [
           "farstrider",
           "wildwarden"
@@ -12423,7 +12423,7 @@
       "id": "resonance.frostweaver-ironfist.linked-sequence",
       "name": "Crystal Impact",
       "previousVersion": 8,
-      "afterVersion": 9,
+      "afterVersion": 10,
       "before": {
         "id": "resonance.frostweaver-ironfist.linked-sequence",
         "name": "Crystal Impact",
@@ -12663,7 +12663,7 @@
         },
         "flavorLine": "Frozen Impact carries Frostweaver momentum into a Ironfist response shaped by both Disciplines.",
         "description": "Frozen [Target] · Enemy · Range [2] · Dmg [3] · Automatic [Damage Dealt].",
-        "contentVersion": 9,
+        "contentVersion": 10,
         "disciplinePair": [
           "frostweaver",
           "ironfist"
@@ -12678,7 +12678,7 @@
       "id": "resonance.frostweaver-ravager.linked-sequence",
       "name": "Cold Blood",
       "previousVersion": 9,
-      "afterVersion": 10,
+      "afterVersion": 11,
       "before": {
         "id": "resonance.frostweaver-ravager.linked-sequence",
         "name": "Cold Blood",
@@ -12975,7 +12975,7 @@
         },
         "flavorLine": "Frozen Fury carries Frostweaver momentum into a Ravager response shaped by both Disciplines.",
         "description": "Requirement: reckless [Self]. Result: suppress [Target]; frozen [Self].",
-        "contentVersion": 10,
+        "contentVersion": 11,
         "disciplinePair": [
           "frostweaver",
           "ravager"
@@ -12989,7 +12989,7 @@
       "id": "resonance.frostweaver-runeblade.linked-sequence",
       "name": "Quiet Rune",
       "previousVersion": 9,
-      "afterVersion": 10,
+      "afterVersion": 11,
       "before": {
         "id": "resonance.frostweaver-runeblade.linked-sequence",
         "name": "Quiet Rune",
@@ -13264,7 +13264,7 @@
         },
         "flavorLine": "Frozen Sigil carries Frostweaver momentum into a Runeblade response shaped by both Disciplines.",
         "description": "Requirement: frozen [Affected]. Result: barrier-change [Self].",
-        "contentVersion": 10,
+        "contentVersion": 11,
         "disciplinePair": [
           "frostweaver",
           "runeblade"
@@ -13278,7 +13278,7 @@
       "id": "resonance.frostweaver-shadehand.linked-sequence",
       "name": "Brittle Secret",
       "previousVersion": 8,
-      "afterVersion": 9,
+      "afterVersion": 10,
       "before": {
         "id": "resonance.frostweaver-shadehand.linked-sequence",
         "name": "Brittle Secret",
@@ -13541,7 +13541,7 @@
         },
         "flavorLine": "Frozen Ambush carries Frostweaver momentum into a Shadehand response shaped by both Disciplines.",
         "description": "Requirement: frozen [Target]. Result: invisible [Self].",
-        "contentVersion": 9,
+        "contentVersion": 10,
         "disciplinePair": [
           "frostweaver",
           "shadehand"
@@ -13555,7 +13555,7 @@
       "id": "resonance.frostweaver-stormsinger.linked-sequence",
       "name": "Brittle Conductor",
       "previousVersion": 9,
-      "afterVersion": 10,
+      "afterVersion": 11,
       "before": {
         "id": "resonance.frostweaver-stormsinger.linked-sequence",
         "name": "Brittle Conductor",
@@ -13854,7 +13854,7 @@
         },
         "flavorLine": "Charged Crystal carries Stormsinger momentum into a Frostweaver response shaped by both Disciplines.",
         "description": "Requirement: conductive [Affected]. Result: resource-change [Self]; hexed [Target].",
-        "contentVersion": 10,
+        "contentVersion": 11,
         "disciplinePair": [
           "frostweaver",
           "stormsinger"
@@ -13868,7 +13868,7 @@
       "id": "resonance.frostweaver-tidecaller.linked-sequence",
       "name": "Rime Current",
       "previousVersion": 10,
-      "afterVersion": 11,
+      "afterVersion": 12,
       "before": {
         "id": "resonance.frostweaver-tidecaller.linked-sequence",
         "name": "Rime Current",
@@ -14162,7 +14162,7 @@
         },
         "flavorLine": "Renewing Crystal carries Tidecaller momentum into a Frostweaver response shaped by both Disciplines.",
         "description": "Requirement: wet [Affected]. Result: Conditional Cleanse burn/bleed/poison [Self]; barrier-change [Self].",
-        "contentVersion": 11,
+        "contentVersion": 12,
         "disciplinePair": [
           "frostweaver",
           "tidecaller"
@@ -14176,7 +14176,7 @@
       "id": "resonance.frostweaver-wildwarden.linked-sequence",
       "name": "Frostbound Quarry",
       "previousVersion": 8,
-      "afterVersion": 9,
+      "afterVersion": 10,
       "before": {
         "id": "resonance.frostweaver-wildwarden.linked-sequence",
         "name": "Frostbound Quarry",
@@ -14469,7 +14469,7 @@
         },
         "flavorLine": "Frozen Hunt carries Frostweaver momentum into a Wildwarden response shaped by both Disciplines.",
         "description": "Requirement: poison [Affected]. Result: root [Target]; airborne [Self].",
-        "contentVersion": 9,
+        "contentVersion": 10,
         "disciplinePair": [
           "frostweaver",
           "wildwarden"
@@ -14483,7 +14483,7 @@
       "id": "resonance.ironfist-ravager.linked-sequence",
       "name": "Bloodied Separation",
       "previousVersion": 9,
-      "afterVersion": 10,
+      "afterVersion": 11,
       "before": {
         "id": "resonance.ironfist-ravager.linked-sequence",
         "name": "Bloodied Separation",
@@ -14774,7 +14774,7 @@
         },
         "flavorLine": "Crimson Impact carries Ravager momentum into a Ironfist response shaped by both Disciplines.",
         "description": "Requirement: reckless [Self]. Result: challenged [Target]; guarded [Self].",
-        "contentVersion": 10,
+        "contentVersion": 11,
         "disciplinePair": [
           "ironfist",
           "ravager"
@@ -14788,7 +14788,7 @@
       "id": "resonance.ironfist-runeblade.linked-sequence",
       "name": "Runic Pressure Point",
       "previousVersion": 8,
-      "afterVersion": 9,
+      "afterVersion": 10,
       "before": {
         "id": "resonance.ironfist-runeblade.linked-sequence",
         "name": "Runic Pressure Point",
@@ -15061,7 +15061,7 @@
         },
         "flavorLine": "Runic Impact carries Runeblade momentum into a Ironfist response shaped by both Disciplines.",
         "description": "Requirement: hexed [Affected]. Result: resource-change [Target]; suppress [Target].",
-        "contentVersion": 9,
+        "contentVersion": 10,
         "disciplinePair": [
           "ironfist",
           "runeblade"
@@ -15075,7 +15075,7 @@
       "id": "resonance.ironfist-shadehand.broken-rhythm",
       "name": "Low Sweep Feint",
       "previousVersion": 8,
-      "afterVersion": 9,
+      "afterVersion": 10,
       "before": {
         "id": "resonance.ironfist-shadehand.broken-rhythm",
         "name": "Low Sweep Feint",
@@ -15355,7 +15355,7 @@
         },
         "flavorLine": "Broken Rhythm carries Ironfist momentum into a Shadehand response shaped by both Disciplines.",
         "description": "Requirement: airborne [Self]. Result: root [Target].",
-        "contentVersion": 9,
+        "contentVersion": 10,
         "disciplinePair": [
           "ironfist",
           "shadehand"
@@ -15369,7 +15369,7 @@
       "id": "resonance.ironfist-tidecaller.linked-sequence",
       "name": "Turning Current",
       "previousVersion": 9,
-      "afterVersion": 10,
+      "afterVersion": 11,
       "before": {
         "id": "resonance.ironfist-tidecaller.linked-sequence",
         "name": "Turning Current",
@@ -15624,7 +15624,7 @@
         },
         "flavorLine": "Renewing Impact carries Tidecaller momentum into a Ironfist response shaped by both Disciplines.",
         "description": "Requirement: airborne [Self]. Result: haste [Self].",
-        "contentVersion": 10,
+        "contentVersion": 11,
         "disciplinePair": [
           "ironfist",
           "tidecaller"
@@ -15638,7 +15638,7 @@
       "id": "resonance.ironfist-vanguard.tempered-response",
       "name": "Disciplined Pressure",
       "previousVersion": 9,
-      "afterVersion": 10,
+      "afterVersion": 11,
       "before": {
         "id": "resonance.ironfist-vanguard.tempered-response",
         "name": "Disciplined Pressure",
@@ -15939,7 +15939,7 @@
         },
         "flavorLine": "Tempered Response carries Ironfist momentum into a Vanguard response shaped by both Disciplines.",
         "description": "Requirement: airborne [Self]. Result: barrier-change [Self]; slow [Target].",
-        "contentVersion": 10,
+        "contentVersion": 11,
         "disciplinePair": [
           "ironfist",
           "vanguard"
@@ -15953,7 +15953,7 @@
       "id": "resonance.lifebinder-shadehand.mercy-in-shadow",
       "name": "Suffering Returned",
       "previousVersion": 9,
-      "afterVersion": 10,
+      "afterVersion": 11,
       "before": {
         "id": "resonance.lifebinder-shadehand.mercy-in-shadow",
         "name": "Suffering Returned",
@@ -16221,7 +16221,7 @@
         },
         "flavorLine": "Mercy in Shadow carries Lifebinder momentum into a Shadehand response shaped by both Disciplines.",
         "description": "Requirement: hexed [Self]. Result: resource-change [Self].",
-        "contentVersion": 10,
+        "contentVersion": 11,
         "disciplinePair": [
           "lifebinder",
           "shadehand"
@@ -16235,7 +16235,7 @@
       "id": "resonance.lifebinder-stormsinger.linked-sequence",
       "name": "Restorative Current",
       "previousVersion": 10,
-      "afterVersion": 11,
+      "afterVersion": 12,
       "before": {
         "id": "resonance.lifebinder-stormsinger.linked-sequence",
         "name": "Restorative Current",
@@ -16540,7 +16540,7 @@
         },
         "flavorLine": "Charged Bloom carries Stormsinger momentum into a Lifebinder response shaped by both Disciplines.",
         "description": "Requirement: guarded [Self]. Result: percentage-recovery [Self]; Conditional Cleanse root/slow [Self].",
-        "contentVersion": 11,
+        "contentVersion": 12,
         "disciplinePair": [
           "lifebinder",
           "stormsinger"
@@ -16554,7 +16554,7 @@
       "id": "resonance.ravager-shadehand.linked-sequence",
       "name": "Risk the Blindside",
       "previousVersion": 9,
-      "afterVersion": 10,
+      "afterVersion": 11,
       "before": {
         "id": "resonance.ravager-shadehand.linked-sequence",
         "name": "Risk the Blindside",
@@ -16845,7 +16845,7 @@
         },
         "flavorLine": "Crimson Ambush carries Ravager momentum into a Shadehand response shaped by both Disciplines.",
         "description": "Requirement: reckless [Self]. Result: invisible [Self]; hexed [Self].",
-        "contentVersion": 10,
+        "contentVersion": 11,
         "disciplinePair": [
           "ravager",
           "shadehand"
@@ -16859,7 +16859,7 @@
       "id": "resonance.ravager-stormsinger.linked-sequence",
       "name": "Red Lightning",
       "previousVersion": 9,
-      "afterVersion": 10,
+      "afterVersion": 11,
       "before": {
         "id": "resonance.ravager-stormsinger.linked-sequence",
         "name": "Red Lightning",
@@ -17166,7 +17166,7 @@
         },
         "flavorLine": "Charged Fury carries Stormsinger momentum into a Ravager response shaped by both Disciplines.",
         "description": "Requirement: reckless [Self]. Result: resource-change [Target]; conductive [Self].",
-        "contentVersion": 10,
+        "contentVersion": 11,
         "disciplinePair": [
           "ravager",
           "stormsinger"
@@ -17180,7 +17180,7 @@
       "id": "resonance.ravager-tidecaller.linked-sequence",
       "name": "Red Undertow",
       "previousVersion": 9,
-      "afterVersion": 10,
+      "afterVersion": 11,
       "before": {
         "id": "resonance.ravager-tidecaller.linked-sequence",
         "name": "Red Undertow",
@@ -17467,7 +17467,7 @@
         },
         "flavorLine": "Renewing Fury carries Tidecaller momentum into a Ravager response shaped by both Disciplines.",
         "description": "Requirement: reckless [Self]. Result: percentage-recovery [Self]; suppress [Self].",
-        "contentVersion": 10,
+        "contentVersion": 11,
         "disciplinePair": [
           "ravager",
           "tidecaller"
@@ -17481,7 +17481,7 @@
       "id": "resonance.ravager-vanguard.linked-sequence",
       "name": "Breach at a Price",
       "previousVersion": 10,
-      "afterVersion": 11,
+      "afterVersion": 12,
       "before": {
         "id": "resonance.ravager-vanguard.linked-sequence",
         "name": "Breach at a Price",
@@ -17784,7 +17784,7 @@
         },
         "flavorLine": "Crimson Vanguard carries Ravager momentum into a Vanguard response shaped by both Disciplines.",
         "description": "Requirement: bleed [Affected]. Result: barrier-change [Self]; suppress [Target].",
-        "contentVersion": 11,
+        "contentVersion": 12,
         "disciplinePair": [
           "ravager",
           "vanguard"
@@ -17798,7 +17798,7 @@
       "id": "resonance.ravager-wildwarden.linked-sequence",
       "name": "Blood Scent",
       "previousVersion": 9,
-      "afterVersion": 10,
+      "afterVersion": 11,
       "before": {
         "id": "resonance.ravager-wildwarden.linked-sequence",
         "name": "Blood Scent",
@@ -18093,7 +18093,7 @@
         },
         "flavorLine": "Quarry Fury carries Wildwarden momentum into a Ravager response shaped by both Disciplines.",
         "description": "Requirement: poison [Affected]. Result: hexed [Target]; root [Self].",
-        "contentVersion": 10,
+        "contentVersion": 11,
         "disciplinePair": [
           "ravager",
           "wildwarden"
@@ -18107,7 +18107,7 @@
       "id": "resonance.runeblade-shadehand.linked-sequence",
       "name": "Unbind the Veil",
       "previousVersion": 8,
-      "afterVersion": 9,
+      "afterVersion": 10,
       "before": {
         "id": "resonance.runeblade-shadehand.linked-sequence",
         "name": "Unbind the Veil",
@@ -18368,7 +18368,7 @@
         },
         "flavorLine": "Runic Ambush carries Runeblade momentum into a Shadehand response shaped by both Disciplines.",
         "description": "Requirement: hexed [Target]. Result: resource-change [Self].",
-        "contentVersion": 9,
+        "contentVersion": 10,
         "disciplinePair": [
           "runeblade",
           "shadehand"
@@ -18382,7 +18382,7 @@
       "id": "resonance.runeblade-stormsinger.linked-sequence",
       "name": "Circuit after Contact",
       "previousVersion": 9,
-      "afterVersion": 10,
+      "afterVersion": 11,
       "before": {
         "id": "resonance.runeblade-stormsinger.linked-sequence",
         "name": "Circuit after Contact",
@@ -18681,7 +18681,7 @@
         },
         "flavorLine": "Charged Sigil carries Stormsinger momentum into a Runeblade response shaped by both Disciplines.",
         "description": "Requirement: conductive [Affected]. Result: resource-change [Self]; conductive [Self].",
-        "contentVersion": 10,
+        "contentVersion": 11,
         "disciplinePair": [
           "runeblade",
           "stormsinger"
@@ -18695,7 +18695,7 @@
       "id": "resonance.runeblade-tidecaller.linked-sequence",
       "name": "Washing Inscription",
       "previousVersion": 10,
-      "afterVersion": 11,
+      "afterVersion": 12,
       "before": {
         "id": "resonance.runeblade-tidecaller.linked-sequence",
         "name": "Washing Inscription",
@@ -18959,7 +18959,7 @@
         },
         "flavorLine": "Renewing Sigil carries Tidecaller momentum into a Runeblade response shaped by both Disciplines.",
         "description": "Requirement: hexed [Self]. Result: resource-change [Self].",
-        "contentVersion": 11,
+        "contentVersion": 12,
         "disciplinePair": [
           "runeblade",
           "tidecaller"
@@ -18973,7 +18973,7 @@
       "id": "resonance.runeblade-vanguard.linked-sequence",
       "name": "Rune on the Ram",
       "previousVersion": 8,
-      "afterVersion": 9,
+      "afterVersion": 10,
       "before": {
         "id": "resonance.runeblade-vanguard.linked-sequence",
         "name": "Rune on the Ram",
@@ -19256,7 +19256,7 @@
         },
         "flavorLine": "Runic Vanguard carries Runeblade momentum into a Vanguard response shaped by both Disciplines.",
         "description": "Requirement: hexed [Affected]. Result: resource-change [Target]; inspired [Self].",
-        "contentVersion": 9,
+        "contentVersion": 10,
         "disciplinePair": [
           "runeblade",
           "vanguard"
@@ -19270,7 +19270,7 @@
       "id": "resonance.runeblade-wildwarden.linked-sequence",
       "name": "Quarry Sigil",
       "previousVersion": 8,
-      "afterVersion": 9,
+      "afterVersion": 10,
       "before": {
         "id": "resonance.runeblade-wildwarden.linked-sequence",
         "name": "Quarry Sigil",
@@ -19551,7 +19551,7 @@
         },
         "flavorLine": "Runic Hunt carries Runeblade momentum into a Wildwarden response shaped by both Disciplines.",
         "description": "Requirement: hexed [Target]. Result: root [Target]; resource-change [Self].",
-        "contentVersion": 9,
+        "contentVersion": 10,
         "disciplinePair": [
           "runeblade",
           "wildwarden"
@@ -19565,7 +19565,7 @@
       "id": "resonance.shadehand-stormsinger.linked-sequence",
       "name": "Static Misdirection",
       "previousVersion": 9,
-      "afterVersion": 10,
+      "afterVersion": 11,
       "before": {
         "id": "resonance.shadehand-stormsinger.linked-sequence",
         "name": "Static Misdirection",
@@ -19867,7 +19867,7 @@
         },
         "flavorLine": "Charged Ambush carries Stormsinger momentum into a Shadehand response shaped by both Disciplines.",
         "description": "Requirement: covert [Self]. Result: mark [Target]; suppress [Target].",
-        "contentVersion": 10,
+        "contentVersion": 11,
         "disciplinePair": [
           "shadehand",
           "stormsinger"
@@ -19882,7 +19882,7 @@
       "id": "resonance.shadehand-tidecaller.linked-sequence",
       "name": "Mistbound Escape",
       "previousVersion": 9,
-      "afterVersion": 10,
+      "afterVersion": 11,
       "before": {
         "id": "resonance.shadehand-tidecaller.linked-sequence",
         "name": "Mistbound Escape",
@@ -20140,7 +20140,7 @@
         },
         "flavorLine": "Renewing Ambush carries Tidecaller momentum into a Shadehand response shaped by both Disciplines.",
         "description": "Requirement: covert [Self]. Result: percentage-recovery [Self].",
-        "contentVersion": 10,
+        "contentVersion": 11,
         "disciplinePair": [
           "shadehand",
           "tidecaller"
@@ -20154,7 +20154,7 @@
       "id": "resonance.shadehand-vanguard.broken-line",
       "name": "Broken Formation",
       "previousVersion": 8,
-      "afterVersion": 9,
+      "afterVersion": 10,
       "before": {
         "id": "resonance.shadehand-vanguard.broken-line",
         "name": "Broken Formation",
@@ -20466,7 +20466,7 @@
         },
         "flavorLine": "Broken Line carries Shadehand momentum into a Vanguard response shaped by both Disciplines.",
         "description": "Requirement: covert [Self]. Result: challenged [Target]; inspired [Self].",
-        "contentVersion": 9,
+        "contentVersion": 10,
         "disciplinePair": [
           "shadehand",
           "vanguard"
@@ -20480,7 +20480,7 @@
       "id": "resonance.shadehand-wildwarden.linked-sequence",
       "name": "Hidden Snare",
       "previousVersion": 9,
-      "afterVersion": 10,
+      "afterVersion": 11,
       "before": {
         "id": "resonance.shadehand-wildwarden.linked-sequence",
         "name": "Hidden Snare",
@@ -20757,7 +20757,7 @@
         },
         "flavorLine": "Quarry Ambush carries Wildwarden momentum into a Shadehand response shaped by both Disciplines.",
         "description": "Requirement: root [Affected]. Result: haste [Self]; hexed [Target].",
-        "contentVersion": 10,
+        "contentVersion": 11,
         "disciplinePair": [
           "shadehand",
           "wildwarden"
@@ -20771,7 +20771,7 @@
       "id": "resonance.stormsinger-tidecaller.linked-sequence",
       "name": "Chosen Confluence",
       "previousVersion": 9,
-      "afterVersion": 10,
+      "afterVersion": 11,
       "before": {
         "id": "resonance.stormsinger-tidecaller.linked-sequence",
         "name": "Chosen Confluence",
@@ -21058,7 +21058,7 @@
         },
         "flavorLine": "Renewing Thunder carries Tidecaller momentum into a Stormsinger response shaped by both Disciplines.",
         "description": "Requirement: wet [Affected]. Result: percentage-recovery [Self]; slow [Self].",
-        "contentVersion": 10,
+        "contentVersion": 11,
         "disciplinePair": [
           "stormsinger",
           "tidecaller"
@@ -21072,7 +21072,7 @@
       "id": "resonance.stormsinger-vanguard.linked-sequence",
       "name": "Thunder Breach",
       "previousVersion": 9,
-      "afterVersion": 10,
+      "afterVersion": 11,
       "before": {
         "id": "resonance.stormsinger-vanguard.linked-sequence",
         "name": "Thunder Breach",
@@ -21371,7 +21371,7 @@
         },
         "flavorLine": "Charged Vanguard carries Stormsinger momentum into a Vanguard response shaped by both Disciplines.",
         "description": "Requirement: conductive [Affected]. Result: resource-change [Self]; suppress [Target].",
-        "contentVersion": 10,
+        "contentVersion": 11,
         "disciplinePair": [
           "stormsinger",
           "vanguard"
@@ -21385,7 +21385,7 @@
       "id": "resonance.stormsinger-wildwarden.linked-sequence",
       "name": "Charged Quarry",
       "previousVersion": 9,
-      "afterVersion": 10,
+      "afterVersion": 11,
       "before": {
         "id": "resonance.stormsinger-wildwarden.linked-sequence",
         "name": "Charged Quarry",
@@ -21691,7 +21691,7 @@
         },
         "flavorLine": "Charged Hunt carries Stormsinger momentum into a Wildwarden response shaped by both Disciplines.",
         "description": "Requirement: poison [Affected]. Result: resource-change [Target]; slow [Target].",
-        "contentVersion": 10,
+        "contentVersion": 11,
         "disciplinePair": [
           "stormsinger",
           "wildwarden"
@@ -21705,7 +21705,7 @@
       "id": "resonance.tidecaller-vanguard.linked-sequence",
       "name": "Undertow Breach",
       "previousVersion": 9,
-      "afterVersion": 10,
+      "afterVersion": 11,
       "before": {
         "id": "resonance.tidecaller-vanguard.linked-sequence",
         "name": "Undertow Breach",
@@ -21994,7 +21994,7 @@
         },
         "flavorLine": "Renewing Vanguard carries Tidecaller momentum into a Vanguard response shaped by both Disciplines.",
         "description": "Requirement: wet [Affected]. Result: hexed [Target]; percentage-recovery [Self].",
-        "contentVersion": 10,
+        "contentVersion": 11,
         "disciplinePair": [
           "tidecaller",
           "vanguard"
@@ -22008,7 +22008,7 @@
       "id": "resonance.tidecaller-wildwarden.linked-sequence",
       "name": "Quarry in the Current",
       "previousVersion": 9,
-      "afterVersion": 10,
+      "afterVersion": 11,
       "before": {
         "id": "resonance.tidecaller-wildwarden.linked-sequence",
         "name": "Quarry in the Current",
@@ -22301,7 +22301,7 @@
         },
         "flavorLine": "Renewing Hunt carries Tidecaller momentum into a Wildwarden response shaped by both Disciplines.",
         "description": "Requirement: mark [Affected]. Result: suppress [Target]; resource-change [Self].",
-        "contentVersion": 10,
+        "contentVersion": 11,
         "disciplinePair": [
           "tidecaller",
           "wildwarden"
@@ -22311,5 +22311,9 @@
         "remove 1 counterproductive cleanses"
       ]
     }
-  ]
+  ],
+  "priorFailedVersionRetained": true,
+  "releaseHistoryBase": 1025,
+  "publicationRequiresFullBehaviorReadback": true,
+  "releaseNote": "First append-only attempt was atomically rolled back to original pointers after partial behavior JSON was detected by exact readback. Attempted +1 versions remain in immutable history; reviewed corrections are +2 versions."
 }
