@@ -13,8 +13,9 @@ DECLARE
  expected jsonb;
  current_definition jsonb;
 BEGIN
- SELECT count(*),min(user_id) INTO owners,actor FROM app_private.master_panel_role_assignments
+ SELECT count(*) INTO owners FROM app_private.master_panel_role_assignments
    WHERE role='game-owner' AND enabled;
+ SELECT user_id INTO actor FROM app_private.master_panel_role_assignments WHERE role='game-owner' AND enabled LIMIT 1;
  IF owners<>1 THEN RAISE EXCEPTION 'OWNER_NOT_UNIQUE'; END IF;
  PERFORM app_private.assert_game_owner_v1(actor);
  IF (SELECT count(*) FROM app_private.combat_content_versions)<>1110
