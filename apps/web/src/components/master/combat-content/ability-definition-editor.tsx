@@ -14,6 +14,7 @@ import {
 } from '@aurevane/game-core/combat/combat-tag-registry'
 import { AbilityNumber, AbilitySelect } from './ability-editor-fields'
 import { AbilityRequirementEditor } from './ability-requirement-editor'
+import { effectSubjects } from './ability-effect-editor'
 import {
   AbilityEffectEditor,
   defaultAbilityPayload,
@@ -339,6 +340,34 @@ function AbilityGroupEditor({
           Use tag requirements
         </button>
       ) : null}
+      <fieldset className={styles.typedGroup}>
+        <legend>Effect requirements</legend>
+        <p className={styles.fieldHint}>
+          Conditions here gate only the indicated effect, not the whole Skill. They stay
+          executable modular requirements and appear in the Requirements report.
+        </p>
+        {value.effects.map((effect, index) => {
+          const allowedSubjects = effectSubjects(effect.payload, value)
+          return allowedSubjects.length ? (
+            <div key={effect.id} data-effect-requirement={effect.id}>
+              <AbilityRequirementEditor
+                label={`Effect ${index + 1} · ${effect.payload.type} requirement`}
+                value={effect.requirements ?? null}
+                simple={readSimpleRequirement(effect.requirements ?? null) !== null}
+                allowedSubjects={allowedSubjects}
+                onChange={(requirements) =>
+                  onChange({
+                    ...value,
+                    effects: value.effects.map((row) =>
+                      row.id === effect.id ? { ...row, requirements } : row,
+                    ),
+                  })
+                }
+              />
+            </div>
+          ) : null
+        })}
+      </fieldset>
       {value.targeting ? (
         <AbilityTargetingEditor
           value={value.targeting}
