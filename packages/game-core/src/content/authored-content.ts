@@ -1,3 +1,4 @@
+import { isFinalizedContentMedia, type FinalizedContentImage } from '../combat/content-media'
 import { parseAbilityDefinition, type AbilityDefinition } from '../combat/combat-definition'
 import { validateAbilityRequirements, type RequirementNode } from '../combat/combat-requirements'
 import { combatTagDefinition } from '../combat/combat-tag-registry'
@@ -19,7 +20,7 @@ interface AuthoredIdentity {
   readonly description: string
   readonly sortOrder: number
   readonly enabled: boolean
-  readonly media: { readonly artworkId?: string }
+  readonly media: { readonly artworkId?: string; readonly artwork?: FinalizedContentImage }
 }
 export interface AuthoredItem extends AuthoredIdentity {
   readonly itemClass:
@@ -208,7 +209,12 @@ function parseNoncombatDefinition(
   )
     invalid('sortOrder', 'Expected 0–1000000.')
   if (typeof row.enabled !== 'boolean') invalid('enabled', 'Expected a boolean.')
-  const media = object(row.media, 'media', ['artworkId'])
+  const media = object(row.media, 'media', ['artworkId', 'artwork'])
+  if (
+    media.artwork !== undefined &&
+    (!isFinalizedContentMedia(media.artwork) || media.artwork.kind !== 'image')
+  )
+    invalid('media.artwork', 'Choose a finalized image.')
   if (media.artworkId !== undefined) id(media.artworkId, 'media.artworkId')
   if (kind === 'discipline') {
     const core = object(row.core, 'core', ATTRIBUTES)

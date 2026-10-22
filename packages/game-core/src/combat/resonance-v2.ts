@@ -1,3 +1,4 @@
+import { finalizedContentMediaIssues } from './content-media'
 import {
   validateAbilityDefinition,
   assertLegacyAbilityAbsent,
@@ -155,7 +156,7 @@ export function normalizedResonanceMechanics(
 export function validateResonanceDefinitionV2(
   definition: ResonanceDefinitionV2,
 ): readonly string[] {
-  const issues: string[] = []
+  const issues: string[] = [...finalizedContentMediaIssues(definition.media)]
   const canonical = Object.hasOwn(definition, 'ability')
   if (canonical && validateAbilityDefinition(definition.ability).length > 0) issues.push('ability')
 

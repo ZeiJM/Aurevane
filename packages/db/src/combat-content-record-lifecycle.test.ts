@@ -636,14 +636,14 @@ it('every legacy mutation overload checks actual authority before its precise re
     await denied(() => db.query(sql, values), /OPERATOR_REQUIRED/)
   }
 })
-it('combined actor inventory includes original33 Players4 Content4 with private helpers inaccessible', async () => {
+it('combined actor inventory includes original33 Players4 Content4 Media2 with private helpers inaccessible', async () => {
   expect(
     (
       await db.query(
         "select p.oid from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','app_private') and 'p_actor_character_id'=any(p.proargnames)",
       )
     ).rows,
-  ).toHaveLength(41)
+  ).toHaveLength(43)
   const helpers = (
     await db.query<{ allowed: boolean }>(
       "select has_function_privilege('service_role',p.oid,'execute') allowed from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='app_private' and (p.proname like '%combat_content%' or p.proname in ('validate_noncombat_content_v1','validate_content_record_identity_v1','content_nonnegative_integer_v1','validate_content_requirement_v1','validate_content_command_v1','content_reference_targets_v1','index_content_references_v1','bound_content_links_v1')) and p.proname<>'prevent_combat_content_version_mutation_v1'",
@@ -651,7 +651,7 @@ it('combined actor inventory includes original33 Players4 Content4 with private 
   ).rows
   expect(helpers.every((r) => !r.allowed)).toBe(true)
 })
-it('executes the complete native Staff fixture with all 41 real actor contracts on the current migration chain', async () => {
+it('executes the complete native Staff fixture with all 43 real actor contracts on the current migration chain', async () => {
   const outsider = '00000000-0000-4000-8000-000000000003'
   const alternate = '00000000-0000-4000-8000-000000000012'
   await db.exec(`insert into auth.users(id,email,email_confirmed_at) values('${outsider}','outsider@example.test',now());

@@ -1256,12 +1256,16 @@ export function executePv1fMatureSkill(
     (!resonanceRequiresHit || resolved.hitDependentEffectsActivated === true)
   const resolutionEvents = resolved.events
   const mediaResolutionEvents = resolutionEvents.map((event) =>
-    definition.media.audioCueKey &&
+    (definition.media.audioCueKey || definition.media.audio) &&
     typeof event === 'object' &&
     event !== null &&
     'event' in event &&
     event.event === 'combat_action_used'
-      ? { ...event, audioCueKey: definition.media.audioCueKey }
+      ? {
+          ...event,
+          audioCueKey: definition.media.audioCueKey,
+          ...(definition.media.audio ? { audioMedia: definition.media.audio } : {}),
+        }
       : event,
   )
   let next = reattachStatDrivenCombatBridge(

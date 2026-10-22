@@ -1,3 +1,4 @@
+import { contentArtworkKey } from '@aurevane/game-core/combat/content-media'
 import { projectPublicCombat } from '@aurevane/game-core/combat/public-combat-presentation'
 import { essenceCombatSkill } from '@aurevane/game-core/combat/essence'
 import { isStarterCharacterPortraitRef } from '@aurevane/game-core/character/starter-options'
@@ -110,7 +111,7 @@ async function battleBuildExtensions(
               ? definition.id.slice(definition.id.indexOf('.') + 1)
               : definition.id,
           ),
-          iconKey: definition.media.iconKey,
+          iconKey: contentArtworkKey(definition.media),
           apCost: override?.apCost ?? definition.apCost,
           mpCost: definition.mpCost ?? 0,
           cooldownOwnerTurns:
@@ -166,7 +167,7 @@ async function battleBuildExtensions(
           contentVersion: essenceDefinition.contentVersion,
           name: essenceDefinition.name,
           description: essenceDefinition.description,
-          iconKey: essenceDefinition.skill.media.iconKey,
+          iconKey: contentArtworkKey(essenceDefinition.skill.media),
           apCost: essenceOverride?.apCost ?? essenceDefinition.skill.apCost,
           mpCost: essenceDefinition.skill.mpCost ?? 0,
           targetKind: essenceDefinition.skill.target.kind,

@@ -1,3 +1,4 @@
+import { isFinalizedContentMedia } from '@aurevane/game-core/combat/content-media'
 import { PHASE4_AUDIO_DISCIPLINES, PHASE4_DISCIPLINE_AUDIO_VERSION } from '@aurevane/audio'
 import type { BattleEventRecord } from '@aurevane/db/battle-session'
 
@@ -20,6 +21,23 @@ export function selectBattleAudioCues(
     if (record.battleVersion !== version || !Number.isFinite(age) || age < 0 || age > 5000) continue
     if (!record.event || typeof record.event !== 'object' || Array.isArray(record.event)) continue
     const event = record.event as Record<string, unknown>
+    if (
+      (event.event === 'combat_action_used' || event.event === 'resonance_activated') &&
+      isFinalizedContentMedia(event.audioMedia) &&
+      event.audioMedia.kind === 'audio'
+    ) {
+      const assetId = `content-media.${event.audioMedia.id}`
+      selected.set(assetId, {
+        assetId,
+        priority:
+          event.event === 'resonance_activated'
+            ? 80
+            : String(event.actionId).startsWith('essence.')
+              ? 90
+              : 70,
+      })
+      continue
+    }
     const storedAction = typeof event.actionId === 'string' ? event.actionId : ''
     const action = storedAction
     let family = ''

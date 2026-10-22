@@ -63,6 +63,8 @@ it.each([
   })
 })
 it.each([
+  'finalize_combat_content_media_v1',
+  'read_combat_content_media_v1',
   'read_combat_content_record_v1',
   'list_combat_content_records_v1',
   'write_combat_content_record_v1',

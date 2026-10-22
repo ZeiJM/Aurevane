@@ -10,6 +10,8 @@ import {
   skillIconHookOptions,
 } from '@/media/skill-media-hooks'
 
+import { FinalizedMediaEditor } from './finalized-media-editor'
+
 import styles from './combat-content-editor.module.css'
 
 export interface SkillMediaEditorProps {
@@ -26,6 +28,10 @@ export function SkillMediaEditor({ value, onChange }: SkillMediaEditorProps) {
   return (
     <fieldset className={styles.typedGroup}>
       <legend>Media</legend>
+      <FinalizedMediaEditor
+        value={value}
+        onChange={(media) => onChange({ ...value, artwork: media.artwork, audio: media.audio })}
+      />
 
       <div className={styles.mediaGrid}>
         <label className={styles.field}>

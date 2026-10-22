@@ -1,5 +1,7 @@
 'use client'
 
+import { contentArtworkKey } from '@aurevane/game-core/combat/content-media'
+
 import { AbilityDefinitionParameters } from './ability-definition-parameters'
 import { groupSkillEffects } from './skill-effect-groups'
 
@@ -663,7 +665,10 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                       aria-hidden="true"
                     >
                       <Image
-                        src={battleSkillArtwork(entry.definition.id)}
+                        src={battleSkillArtwork(
+                          entry.definition.id,
+                          contentArtworkKey(entry.definition.media),
+                        )}
                         width={160}
                         height={160}
                         unoptimized
@@ -859,7 +864,10 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                               data-av-square-media-fit="contain"
                             >
                               <Image
-                                src={battleSkillArtwork(focusedSkill.definition.id)}
+                                src={battleSkillArtwork(
+                                  focusedSkill.definition.id,
+                                  contentArtworkKey(focusedSkill.definition.media),
+                                )}
                                 width={192}
                                 height={192}
                                 unoptimized

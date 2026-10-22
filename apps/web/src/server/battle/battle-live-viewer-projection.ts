@@ -1,3 +1,4 @@
+import { contentArtworkKey } from '@aurevane/game-core/combat/content-media'
 import { airborneJump } from '@aurevane/game-core/combat/combat-airborne'
 import { battleActionDealsDamage } from '@/components/battle/battle-attack-path'
 import { abilityBehaviorInformation } from '@/components/character/ability-detail-presentation'
@@ -287,7 +288,7 @@ export function projectBattleBasicActions(
         name: basic.name,
         description: basic.description,
         enabled: basic.enabled,
-        iconKey: basic.media.iconKey,
+        iconKey: contentArtworkKey(basic.media),
         ...(native
           ? {
               movement: {

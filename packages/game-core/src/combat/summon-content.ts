@@ -1,3 +1,4 @@
+import { finalizedContentMediaIssues, type FinalizedContentMediaSlots } from './content-media'
 import { battleFlavorTemplateIssues } from './battle-narration'
 import type { CombatEffectDefinition, CombatTargetSpec, CombatUseRequirement } from './actions'
 
@@ -18,7 +19,7 @@ export function isMaterializedCombatEffect(
 
 export type SummonAiProfile = 'standard' | 'high'
 
-export interface SummonAbilityMediaHooks {
+export interface SummonAbilityMediaHooks extends FinalizedContentMediaSlots {
   readonly iconKey: string | null
   readonly audioCueKey: string | null
   readonly vfxKey: string | null
@@ -126,7 +127,9 @@ export function validateSummonProfileDefinition(
   if (
     profile.abilities.length < 1 ||
     profile.abilities.length > 2 ||
-    profile.abilities.some((ability) => !validAbility(ability))
+    profile.abilities.some(
+      (ability) => !validAbility(ability) || finalizedContentMediaIssues(ability.media).length > 0,
+    )
   ) {
     issues.push('abilities')
   } else if (

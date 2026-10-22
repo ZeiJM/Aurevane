@@ -1,3 +1,4 @@
+import { finalizedContentMediaIssues } from '@aurevane/game-core/combat/content-media'
 import {
   validateBasicSkillDefinition,
   type BasicSkillDefinition,
@@ -91,6 +92,15 @@ function forbiddenDraftFieldIssues(
         message: 'Displaced is retired. Use Push or Pull effects directly.',
       })
 
+    if (field === 'media') {
+      for (const path of finalizedContentMediaIssues(nested))
+        issues.push({
+          path: fieldPath + path.slice(5),
+          code: 'INVALID_FINALIZED_MEDIA',
+          message:
+            'Choose a finalized media asset; upload tickets and URLs cannot be saved as media.',
+        })
+    }
     if (FORBIDDEN_DRAFT_FIELDS.has(field)) {
       issues.push({
         path: fieldPath,

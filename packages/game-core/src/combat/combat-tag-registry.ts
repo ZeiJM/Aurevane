@@ -443,7 +443,11 @@ export function validateCombatTagPayload(
           path,
         )
         keys(ability.ai, ['baseUtility', 'purposeTags'], `${path}.ai`)
-        keys(ability.media, ['iconKey', 'audioCueKey', 'vfxKey'], `${path}.media`)
+        keys(
+          ability.media,
+          ['iconKey', 'audioCueKey', 'vfxKey', 'artwork', 'audio'],
+          `${path}.media`,
+        )
         keys(
           ability.target,
           [

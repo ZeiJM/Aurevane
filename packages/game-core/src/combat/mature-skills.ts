@@ -1,3 +1,4 @@
+import { finalizedContentMediaIssues, type FinalizedContentMediaSlots } from './content-media'
 import {
   validateAbilityDefinition,
   assertLegacyAbilityAbsent,
@@ -69,7 +70,7 @@ export interface MatureSkillContextOverride {
   readonly cooldownOwnerTurns?: number
 }
 
-export interface MatureSkillMediaHooks {
+export interface MatureSkillMediaHooks extends FinalizedContentMediaSlots {
   readonly iconKey: string | null
   readonly audioCueKey: string | null
   readonly vfxKey: string | null
@@ -1302,6 +1303,7 @@ export function validateMatureSkillDefinition(
     issues.push('unlockRequirement.grantId')
   }
   if (!Number.isFinite(definition.ai.baseUtility)) issues.push('ai.baseUtility')
+  issues.push(...finalizedContentMediaIssues(definition.media))
   const media = definition.media as MatureSkillMediaHooks | null | undefined
   if (!media || typeof media !== 'object') {
     issues.push('media')

@@ -53,3 +53,30 @@ describe('Master Panel Skill media editor', () => {
     expect(markup).toContain('/media/audio/sfx/phase4/vanguard-action-v02-1.wav')
   })
 })
+it('offers PC upload with explicit finalization, crop and sound limits and immutable removal', () => {
+  const media = {
+    id: '00000000-0000-4000-8000-000000000012',
+    kind: 'image' as const,
+    contentType: 'image/png' as const,
+    checksum: 'a'.repeat(64),
+    byteLength: 100,
+    width: 4,
+    height: 4,
+    sourceWidth: 8,
+    sourceHeight: 4,
+    crop: { x: 2, y: 0, size: 4 },
+  }
+  const markup = renderToStaticMarkup(
+    createElement(SkillMediaEditor, {
+      value: { iconKey: null, audioCueKey: null, vfxKey: null, artwork: media },
+      onChange: () => {},
+    }),
+  )
+  expect(markup).toContain('type="file"')
+  expect(markup).toContain('Finalize upload')
+  expect(markup).toContain('PCM16 WAV')
+  expect(markup).toContain('2 MiB')
+  expect(markup).toContain('Remove uploaded artwork')
+  expect(markup).toContain(`/api/master/combat-content/media/${media.id}`)
+  expect(markup).toContain('Browse finalized assets')
+})
