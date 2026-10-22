@@ -15,6 +15,7 @@ export async function expectRecordedBattleRound(page: Page): Promise<number> {
   const battle: BattleSessionView = spectating ? body.spectator.battle : body.battle
   const round = battle.snapshot.tactical.battle.round
   const toggle = page.locator('[data-battle-mobile-chronicle-toggle]')
+  await toggle.waitFor({ state: 'attached' })
   const wasOpen =
     (await toggle.isVisible()) && (await toggle.getAttribute('aria-expanded')) === 'true'
   await setBattleChronicleOpen(page, true)

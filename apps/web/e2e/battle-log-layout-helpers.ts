@@ -4,15 +4,16 @@ import { expect, type Locator, type Page, type TestInfo } from '@playwright/test
 export async function setBattleChronicleOpen(page: Page, open: boolean) {
   await page.locator('main[data-battle-concept]').waitFor({ state: 'visible' })
   const toggle = page.locator('[data-battle-mobile-chronicle-toggle]')
+  await toggle.waitFor({ state: 'attached' })
   if (!(await toggle.isVisible())) return
   if ((await toggle.getAttribute('aria-expanded')) !== String(open)) await toggle.click()
   await expect(toggle).toHaveAttribute('aria-expanded', String(open))
 }
 
 export async function battleChronicleScrollRegion(page: Page, reader: Locator) {
-  return (await page.locator('[data-battle-mobile-chronicle-toggle]').isVisible())
-    ? page.locator('[data-battle-mobile-lower-panel]')
-    : reader
+  const toggle = page.locator('[data-battle-mobile-chronicle-toggle]')
+  await toggle.waitFor({ state: 'attached' })
+  return (await toggle.isVisible()) ? page.locator('[data-battle-mobile-lower-panel]') : reader
 }
 
 export async function scrollBattleChronicle(page: Page, reader: Locator, edge: 'start' | 'end') {
