@@ -337,7 +337,9 @@ export function MobileBattleChronicle({
         aria-atomic="true"
         data-battle-round={recordedRound ? currentRound : 'unavailable'}
         aria-label={
-          recordedRound ? `Current battle round ${currentRound}` : 'Current battle round unavailable'
+          recordedRound
+            ? `Current battle round ${currentRound}`
+            : 'Current battle round unavailable'
         }
       >
         R{recordedRound ? currentRound : '—'}
