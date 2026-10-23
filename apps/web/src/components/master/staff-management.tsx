@@ -64,6 +64,9 @@ function errorMessage(value: unknown): string {
 export function StaffManagement({ staff, roleOptions, capabilityOptions }: StaffManagementProps) {
   const router = useRouter(),
     editorRef = useRef<HTMLHeadingElement>(null)
+  const openerRef = useRef<HTMLElement | null>(null)
+  const lookupRef = useRef<HTMLInputElement>(null)
+  const restoreFocus = useRef(false)
   const [query, setQuery] = useState(''),
     [identity, setIdentity] = useState<ResolvedAccount | null>(null)
   const [selected, setSelected] = useState(''),
@@ -79,6 +82,22 @@ export function StaffManagement({ staff, roleOptions, capabilityOptions }: Staff
   useEffect(() => {
     if (identity) editorRef.current?.focus()
   }, [identity])
+  useEffect(() => {
+    if (identity || pending || !restoreFocus.current) return
+    const frame = requestAnimationFrame(() => {
+      const opener = openerRef.current
+      if (opener?.isConnected && !opener.matches(':disabled')) opener.focus()
+      else lookupRef.current?.focus()
+      restoreFocus.current = false
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [identity, pending])
+  function closeEditor() {
+    restoreFocus.current = true
+    setIdentity(null)
+    setSelected('')
+    setConfirmed(false)
+  }
   const existing = staff.find(
     (row) => row.characterId === selected && row.userId === identity?.userId,
   )
@@ -117,6 +136,8 @@ export function StaffManagement({ staff, roleOptions, capabilityOptions }: Staff
     setPreviewClock(Date.now())
   }
   async function resolve(value: string, characterId?: string) {
+    openerRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null
     setPending(true)
     setError(null)
     setNotice(null)
@@ -160,9 +181,7 @@ export function StaffManagement({ staff, roleOptions, capabilityOptions }: Staff
         confirmed,
       })
       setNotice(`${linked?.name ?? 'Character'} access ${enabled ? 'saved' : 'revoked'}.`)
-      setIdentity(null)
-      setSelected('')
-      setConfirmed(false)
+      closeEditor()
       router.refresh()
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Access change failed.')
@@ -192,6 +211,7 @@ export function StaffManagement({ staff, roleOptions, capabilityOptions }: Staff
           <div>
             <input
               id="staff-identity"
+              ref={lookupRef}
               autoComplete="off"
               maxLength={320}
               value={query}
@@ -287,13 +307,7 @@ export function StaffManagement({ staff, roleOptions, capabilityOptions }: Staff
             <h2 id="staff-editor-title" tabIndex={-1} ref={editorRef}>
               Character access
             </h2>
-            <button
-              onClick={() => {
-                setIdentity(null)
-                setSelected('')
-              }}
-              disabled={pending}
-            >
+            <button onClick={closeEditor} disabled={pending}>
               Close editor
             </button>
           </div>

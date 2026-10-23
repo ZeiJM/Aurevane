@@ -1,0 +1,144 @@
+.workspace {
+  display: grid;
+  gap: 0.7rem;
+  min-width: 0;
+}
+.toolbar,
+.actions,
+.tabs,
+.fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  align-items: end;
+  min-width: 0;
+}
+.workspace label {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+}
+.workspace input,
+.workspace select,
+.workspace textarea {
+  max-width: 100%;
+  min-width: 0;
+  padding: 0.4rem;
+  font: inherit;
+}
+.workspace textarea {
+  width: 100%;
+  resize: vertical;
+}
+.workspace button {
+  min-height: 2.25rem;
+  white-space: normal;
+}
+.workspace fieldset {
+  min-width: 0;
+  margin: 0.6rem 0;
+  padding: 0.65rem;
+  border: 1px solid #394354;
+}
+.workspace legend {
+  font-weight: 600;
+}
+.workspace p {
+  margin: 0.4rem 0;
+}
+.columns {
+  display: grid;
+  grid-template-columns: minmax(11rem, 0.75fr) minmax(0, 2fr) minmax(15rem, 1fr);
+  gap: 0.75rem;
+  align-items: start;
+}
+.list {
+  display: grid;
+  gap: 0.3rem;
+  min-width: 0;
+}
+.list button {
+  text-align: left;
+  overflow-wrap: anywhere;
+  padding: 0.45rem;
+}
+.list button[aria-current='true'],
+.tabs button[aria-pressed='true'] {
+  outline: 2px solid #c5ad68;
+  outline-offset: -2px;
+}
+.editor,
+.preview {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.editor {
+  border-inline: 1px solid #394354;
+  padding-inline: 0.75rem;
+}
+.savebar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 0.5rem;
+  background: #151b26;
+  border: 1px solid #394354;
+}
+.status {
+  margin-inline-end: auto;
+}
+.error {
+  border: 1px solid #e88a80;
+  padding: 0.5rem;
+  overflow-wrap: anywhere;
+}
+.toggle {
+  display: flex !important;
+  align-items: center;
+}
+.fields > * {
+  flex: 1 1 10rem;
+}
+.history {
+  display: grid;
+  gap: 0.6rem;
+  padding: 0;
+  list-style: none;
+}
+.history li {
+  border-bottom: 1px solid #394354;
+  padding-bottom: 0.6rem;
+}
+.preview img {
+  max-width: 100%;
+  height: auto;
+}
+.preview audio {
+  max-width: 100%;
+}
+@media (max-width: 1100px) {
+  .columns {
+    grid-template-columns: minmax(10rem, 0.65fr) minmax(0, 2fr);
+  }
+  .preview {
+    grid-column: 2;
+  }
+}
+@media (max-width: 700px) {
+  .columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .preview {
+    grid-column: auto;
+  }
+  .editor {
+    border: 0;
+    padding: 0;
+  }
+  .savebar {
+    position: static;
+  }
+  .list {
+    grid-template-columns: repeat(auto-fit, minmax(min(10rem, 100%), 1fr));
+  }
+}

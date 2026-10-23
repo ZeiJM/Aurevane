@@ -628,6 +628,7 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                 <article
                   className={styles.skill}
                   data-technique-card="true"
+                  data-has-eligibility={entry.eligibilityGrants ? 'true' : undefined}
                   key={`${entry.definition.id}:${entry.definition.contentVersion}`}
                   data-selected={selected ? 'true' : 'false'}
                   style={skillPaletteStyle(entry.definition.sourceDisciplineId)}
@@ -682,7 +683,7 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                     </span>
                   </label>
                   {entry.eligibilityGrants ? (
-                    <label>
+                    <label className={styles.eligibility}>
                       Eligible Discipline
                       <select
                         aria-label={`Eligible Discipline for ${label}`}

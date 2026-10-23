@@ -86,6 +86,9 @@ export interface MatureSkillAuthoringMetadata {
 export type MatureSkillEffectDefinition = CombatEffectDefinition | CombatSummonEffect
 
 export interface MatureSkillDefinition extends CombatAccuracyAuthoring {
+  /** Authored text overrides preserve the stable identity and historical translation refs. */
+  readonly name?: string
+  readonly description?: string
   readonly ability?: AbilityDefinition
   readonly groundArea?: CombatGroundAreaDefinition
   readonly id: string
@@ -1195,6 +1198,16 @@ export function validateMatureSkillDefinition(
   definition: MatureSkillDefinition,
 ): readonly string[] {
   const issues: string[] = [...abilityPresentationTextIssues(definition)]
+  if (
+    definition.name !== undefined &&
+    (typeof definition.name !== 'string' || !definition.name.trim() || definition.name.length > 120)
+  )
+    issues.push('name')
+  if (
+    definition.description !== undefined &&
+    (typeof definition.description !== 'string' || definition.description.length > 2000)
+  )
+    issues.push('description')
   if (Object.hasOwn(definition, 'nativeBasicAttackCommand'))
     issues.push('private-native-basic-command-not-authored')
   const canonical = Object.hasOwn(definition, 'ability')

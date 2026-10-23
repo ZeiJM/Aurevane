@@ -34,7 +34,16 @@ await fs.writeFile(
   resolve(fixture, 'production-styles.js'),
   "import '@aurevane/ui/styles.css';import '@/app/globals.css'",
 )
+// next/image is reached by AbilityEffectEditor → SummonProfileEditor → SkillMediaEditor.
+// Next replaces these public build constants; this standalone Vite fixture must do so too.
+// Keep real image components and never expose a process object or server environment.
+const nextImageBrowserDefines = {
+  'process.env.__NEXT_IMAGE_OPTS': 'undefined',
+  'process.env.NEXT_DEPLOYMENT_ID': 'undefined',
+  'process.env.NEXT_SUPPORTS_IMMUTABLE_ASSETS': 'false',
+}
 const config = {
+  define: nextImageBrowserDefines,
   configFile: false,
   root: fixture,
   publicDir: resolve(web, 'public'),
@@ -54,11 +63,25 @@ const config = {
   },
   esbuild: { jsx: 'automatic' },
   server: { host: '127.0.0.1', port: 0, hmr: false, watch: null, fs: { allow: [root, fixture] } },
-  optimizeDeps: { include: ['react', 'react-dom/client'] },
+  optimizeDeps: {
+    include: ['react', 'react-dom/client'],
+    rolldownOptions: { transform: { define: nextImageBrowserDefines } },
+  },
 }
 if (process.env.AV_SIMPLE_REQUIREMENTS_COMPILE_ONLY === '1') {
   try {
-    await build({ ...config, build: { write: false, minify: false } })
+    const built = await build({ ...config, build: { write: false, minify: false } })
+    const chunks = (Array.isArray(built) ? built : [built])
+      .flatMap((result) => result.output)
+      .filter((chunk) => chunk.type === 'chunk')
+    const processAccess = chunks.flatMap(
+      (chunk) => chunk.code.match(/\bprocess\.env\.[A-Z_]+/g) ?? [],
+    )
+    assert.deepEqual(
+      processAccess,
+      [],
+      'Standalone browser build must replace all reachable Next environment accesses',
+    )
     console.log('Simple Requirements production fixture compilation passed.')
   } finally {
     await fs.rm(fixture, { recursive: true, force: true })

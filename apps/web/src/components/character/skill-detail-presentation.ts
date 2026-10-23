@@ -567,6 +567,7 @@ function recoveryTiming(ticks: number | undefined): string {
 }
 
 export function skillDisplayName(skill: MatureSkillDefinition): string {
+  if (skill.name?.trim()) return skill.name
   const tail = skill.id.includes('.') ? skill.id.slice(skill.id.indexOf('.') + 1) : skill.id
   return tail
     .split(/[._-]/g)

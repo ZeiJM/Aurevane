@@ -5,15 +5,24 @@ import { parseAbilityDefinition } from '@aurevane/game-core/combat/combat-defini
 import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
 import { resolveEssenceForBuild } from '@aurevane/game-core/combat/essence'
 import { resolveResonanceForPair } from '@aurevane/game-core/combat/resonance'
-import { CombatContentEditor } from './combat-content-editor'
-import { EssenceContentEditor } from './essence-content-editor'
-import { ResonanceContentEditor } from './resonance-content-editor'
+import { ContentDefinitionFields } from './content-definition-fields'
+import { ContentRecordPreview } from './content-record-preview'
+import type { CombatContentDefinition, CombatContentKind } from '@aurevane/db/combat-content'
 import { AbilityDefinitionEditor } from './ability-definition-editor'
 import { defaultAbilityPayload, AbilityEffectEditor } from './ability-effect-editor'
 import { SkillEffectEditor } from './skill-effect-editor'
 import { COMBAT_TAG_REGISTRY } from '@aurevane/game-core/combat/combat-tag-registry'
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh() {} }) }))
+function CompleteFields({ kind, definition }: { kind: CombatContentKind; definition: object }) {
+  const value = definition as CombatContentDefinition
+  return (
+    <>
+      <ContentDefinitionFields kind={kind} value={value} tab="Parameters" onChange={() => {}} />
+      <ContentRecordPreview kind={kind} working={value} current={null} saved={null} />
+    </>
+  )
+}
 const base = defaultBasicSkills().find((row) => row.id === 'unarmed.basic')!.ability.behaviors[0]!
 const ability = parseAbilityDefinition({
   schemaVersion: 1,
@@ -47,7 +56,6 @@ const ability = parseAbilityDefinition({
   ],
 })
 function assertCanonicalEditor(html: string, { resonance = false } = {}) {
-  expect(html).toMatch(/Next publish<\/dt><dd>v51<\/dd>/)
   for (const label of [
     'Group activation',
     'Group mode',
@@ -80,23 +88,7 @@ it('edits canonical Skill groups instead of the stale native economy and effect 
   }
   const before = JSON.stringify(definition)
   assertCanonicalEditor(
-    renderToStaticMarkup(
-      <CombatContentEditor
-        skills={[
-          {
-            id: definition.id,
-            sourceDisciplineId: definition.sourceDisciplineId,
-            label: 'Leap',
-            versionFloor: 50,
-            currentVersion: definition.contentVersion,
-            baseVersion: definition.contentVersion,
-            draftVersion: null,
-            derivedTags: [],
-            definition,
-          },
-        ]}
-      />,
-    ),
+    renderToStaticMarkup(<CompleteFields kind="skill" definition={definition} />),
   )
   expect(JSON.stringify(definition)).toBe(before)
 })
@@ -104,45 +96,12 @@ it('uses the same canonical editor for Essence mechanics while retaining the sou
   const original = resolveEssenceForBuild('vanguard', null)!
   const definition = { ...original, skill: { ...original.skill, ability } }
   assertCanonicalEditor(
-    renderToStaticMarkup(
-      <EssenceContentEditor
-        essences={[
-          {
-            id: definition.essenceId,
-            label: definition.name,
-            versionFloor: 50,
-            sourceDisciplineId: definition.sourceDisciplineId,
-            currentVersion: definition.contentVersion,
-            baseVersion: definition.contentVersion,
-            draftVersion: null,
-            derivedTags: [],
-            definition,
-            history: [],
-          },
-        ]}
-      />,
-    ),
+    renderToStaticMarkup(<CompleteFields kind="essence" definition={definition} />),
   )
 })
 it('edits canonical Resonance groups without entering the legacy combo editor', () => {
   const definition = { ...resolveResonanceForPair('lifebinder', 'vanguard')!, ability }
-  const html = renderToStaticMarkup(
-    <ResonanceContentEditor
-      resonances={[
-        {
-          id: definition.id,
-          label: definition.name,
-          versionFloor: 50,
-          disciplinePair: definition.disciplinePair,
-          currentVersion: definition.contentVersion,
-          baseVersion: definition.contentVersion,
-          draftVersion: null,
-          definition,
-          history: [],
-        },
-      ]}
-    />,
-  )
+  const html = renderToStaticMarkup(<CompleteFields kind="resonance" definition={definition} />)
   assertCanonicalEditor(html, { resonance: true })
   expect(html).not.toContain('aria-label="Resonance mode"')
 })
@@ -186,22 +145,7 @@ it('keeps an incompatible draft editable and shows named validation instead of a
     })),
   }
   const definition = { ...resolveMatureSkillVersion('vanguard.forceful-strike')!, ability: invalid }
-  const html = renderToStaticMarkup(
-    <CombatContentEditor
-      skills={[
-        {
-          id: definition.id,
-          sourceDisciplineId: definition.sourceDisciplineId,
-          label: 'Leap',
-          currentVersion: definition.contentVersion,
-          baseVersion: definition.contentVersion,
-          draftVersion: null,
-          derivedTags: [],
-          definition,
-        },
-      ]}
-    />,
-  )
+  const html = renderToStaticMarkup(<CompleteFields kind="skill" definition={definition} />)
   expect(html).toContain('Resolve compatibility before publishing')
   expect(html).toContain('Resolve Ability compatibility to show the player preview.')
   expect(html).toContain('aria-label="Move maximum tiles"')
@@ -234,42 +178,11 @@ function renderPreviewEditor(kind: 'Skill' | 'Essence', selectedAbility: typeof 
       ...resolveMatureSkillVersion('vanguard.forceful-strike')!,
       ability: selectedAbility,
     }
-    return renderToStaticMarkup(
-      <CombatContentEditor
-        skills={[
-          {
-            id: definition.id,
-            sourceDisciplineId: definition.sourceDisciplineId,
-            label: definition.id,
-            currentVersion: definition.contentVersion,
-            baseVersion: definition.contentVersion,
-            draftVersion: null,
-            derivedTags: [],
-            definition,
-          },
-        ]}
-      />,
-    )
+    return renderToStaticMarkup(<CompleteFields kind="skill" definition={definition} />)
   }
   const original = resolveEssenceForBuild('vanguard', null)!
   const definition = { ...original, skill: { ...original.skill, ability: selectedAbility } }
-  return renderToStaticMarkup(
-    <EssenceContentEditor
-      essences={[
-        {
-          id: definition.essenceId,
-          sourceDisciplineId: definition.sourceDisciplineId,
-          label: definition.name,
-          currentVersion: definition.contentVersion,
-          baseVersion: definition.contentVersion,
-          draftVersion: null,
-          derivedTags: [],
-          definition,
-          history: [],
-        },
-      ]}
-    />,
-  )
+  return renderToStaticMarkup(<CompleteFields kind="essence" definition={definition} />)
 }
 it.each(['Skill', 'Essence'] as const)(
   'distinguishes Manual and Automatic groups in the actual %s preview selector',
