@@ -1,0 +1,43 @@
+name: Publish verified final mobile layout fixes
+
+on:
+  push:
+    branches:
+      - agent/mobile-layout-redesign-20261023
+
+permissions:
+  contents: write
+
+jobs:
+  publish-verified-layout:
+    if: startsWith(github.event.head_commit.message, 'chore(release): trigger verified final layout patch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout release branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: true
+      - name: Apply and verify exact locally tested file tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          package=scripts/release/mobile-layout-final-fixes-20261023.patch.xz.base64
+          base64 --decode "$package" > /tmp/mobile-final.patch.xz
+          printf '%s  %s\n' b61a758314ab47f97a0500aa371573592269e77917e855e88d6a447c9b6260ce /tmp/mobile-final.patch.xz | sha256sum --check --status
+          xz --decompress --stdout /tmp/mobile-final.patch.xz > /tmp/mobile-final.patch
+          printf '%s  %s\n' 3fd214c4646202a445f4e586d62abac4db7bf6530a9cc235b60c1b773dfc05ca /tmp/mobile-final.patch | sha256sum --check --status
+          git apply --check /tmp/mobile-final.patch
+          git apply /tmp/mobile-final.patch
+          rm -f "$package" .github/workflows/aurevane-layout-final-publish.yml
+          git add --all
+          expected=eefd1334c98fbe486b5a239c942b14a89f665cd7
+          actual="$(git write-tree)"
+          if [[ "$actual" != "$expected" ]]; then
+            echo "Refusing publish: release tree does not match locally tested commit."
+            echo "Expected $expected, found $actual"
+            exit 1
+          fi
+          git -c user.name='Aurevane Release' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'fix(mobile): no-scroll viewport geometry, silent equips and responsive regression coverage'
+          git push origin HEAD:refs/heads/agent/mobile-layout-redesign-20261023
