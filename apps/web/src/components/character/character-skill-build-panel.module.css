@@ -1437,7 +1437,8 @@
     min-height: 0;
     display: grid;
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+    /* Keep the lower mechanical preview legible at short mobile viewports. */
+    grid-template-rows: minmax(0, 46fr) minmax(0, 54fr);
     gap: 0.3rem;
     padding: 0.3rem;
     overflow: hidden;
