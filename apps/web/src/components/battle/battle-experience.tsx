@@ -3573,6 +3573,7 @@ function BattleExperienceContent({
               type="button"
               className={mobileStyles.mobileTerrainControl}
               aria-pressed={terrainView}
+              aria-label={terrainView ? 'Back to Actions' : 'Terrain'}
               onClick={() => setTerrainView((current) => !current)}
             >
               {terrainView ? 'Back to Actions' : '▲ Terrain'}

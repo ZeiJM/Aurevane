@@ -591,7 +591,7 @@
   .shell[data-battle-mobile-stage='true']
     :global(#battlefield)
     :global([data-battle-facing-indicator]) {
-    scale: 0.68;
+    scale: 1;
     transform-origin: top left;
   }
 }
@@ -606,8 +606,8 @@
   }
   .shell[data-battle-mobile-stage='true']
     :global(#battlefield [data-battle-facing-indicator='true']) {
-    width: clamp(0.58rem, 2.05vw, 0.7rem) !important;
-    height: clamp(0.58rem, 2.05vw, 0.7rem) !important;
+    width: clamp(0.75rem, 2.4vw, 0.875rem) !important;
+    height: clamp(0.75rem, 2.4vw, 0.875rem) !important;
     min-width: 0 !important;
     min-height: 0 !important;
     padding: 0.08rem !important;
