@@ -58,6 +58,8 @@ test('Techniques preserves geometry through previews, pending saves and failed s
     releaseSave = undefined
     const supportTab = dialog.getByRole('tab', { name: 'Support', exact: true })
     if (await supportTab.isVisible()) await supportTab.click()
+    // Tab selection changes the visible gallery on phones; measure that active pane.
+    const supportBaseline = await geometry(dialog)
     await dialog.getByRole('radio', { name: 'HP Recovery', exact: true }).check()
     // Compact Techniques hides its old footer at phone widths; assert the pending
     // live-region state without requiring a visible bottom notification.
@@ -65,14 +67,15 @@ test('Techniques preserves geometry through previews, pending saves and failed s
       dialog.locator('[aria-live="polite"]', { hasText: 'Saving selection…' }),
     ).toHaveText('Saving selection…')
     await expect.poll(() => Boolean(releaseSave)).toBe(true)
-    expectGeometry(await geometry(dialog), baseline, `${width}x${height}: Support save pending`)
+    expectGeometry(await geometry(dialog), supportBaseline, `${width}x${height}: Support save pending`)
     releaseSave!()
     await expect(dialog.getByRole('status')).toHaveText(error)
     await expect(dialog.getByRole('radio', { name: 'Guard', exact: true })).toBeChecked()
-    expectGeometry(await geometry(dialog), baseline, `${width}x${height}: Support save rejected`)
+    expectGeometry(await geometry(dialog), supportBaseline, `${width}x${height}: Support save rejected`)
     releaseSave = undefined
     const disciplineTab = dialog.getByRole('tab', { name: 'Discipline 1', exact: true })
     if (await disciplineTab.isVisible()) await disciplineTab.click()
+    const skillBaseline = await geometry(dialog)
     const skill = dialog.locator('[data-technique-card] input:not(:disabled)').first()
     await skill.check()
     // Compact Techniques hides its old footer at phone widths; assert the pending
@@ -81,11 +84,11 @@ test('Techniques preserves geometry through previews, pending saves and failed s
       dialog.locator('[aria-live="polite"]', { hasText: 'Saving selection…' }),
     ).toHaveText('Saving selection…')
     await expect.poll(() => Boolean(releaseSave)).toBe(true)
-    expectGeometry(await geometry(dialog), baseline, `${width}x${height}: Skill save pending`)
+    expectGeometry(await geometry(dialog), skillBaseline, `${width}x${height}: Skill save pending`)
     releaseSave!()
     await expect(dialog.getByRole('status')).toHaveText(error)
     await expect(skill).not.toBeChecked()
-    expectGeometry(await geometry(dialog), baseline, `${width}x${height}: Skill save rejected`)
+    expectGeometry(await geometry(dialog), skillBaseline, `${width}x${height}: Skill save rejected`)
     expect(
       await dialog.evaluate((node) => node.scrollWidth - node.clientWidth),
     ).toBeLessThanOrEqual(1)
@@ -100,7 +103,12 @@ async function geometry(dialog: Locator) {
       const r = element.getBoundingClientRect()
       return [r.x, r.y, r.width, r.height]
     }
-    const art = node.querySelector('[data-technique-art]')!
+    // At phone sizes the inactive discipline gallery is intentionally display:none.
+    // Measure a visible artwork tile from the selected category, including Support.
+    const art = [...node.querySelectorAll(
+      '[data-technique-art], [data-technique-category="support"] [data-av-square-media]',
+    )].find((tile) => tile.getBoundingClientRect().width > 0)
+    if (!art) throw new Error('Active Techniques artwork is missing')
     const previewImages = preview.querySelectorAll('img').length
     const artRect = rect(art)
     const previewRect = rect(preview)

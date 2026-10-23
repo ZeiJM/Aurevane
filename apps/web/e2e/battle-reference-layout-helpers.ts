@@ -187,18 +187,18 @@ export async function expectBattleHeaderAndArtworkGeometry(page: Page) {
       }
     }
   }
-  for (const frame of [
+  for (const [index, frame] of [
     ...geometry.standards,
     ...geometry.selected.map((item) => item.frame),
     ...geometry.empty,
-  ]) {
+  ].entries()) {
     expect(
       Math.abs(frame.width - frame.height),
       'command and selected artwork stay square',
     ).toBeLessThanOrEqual(1)
     expect(
       Math.abs(frame.width - baseline.width),
-      'standard commands match authored selected artwork width',
+      `standard commands match authored selected artwork width (frame ${index + 1}: ${frame.width}px vs ${baseline.width}px at ${geometry.width}px)`,
     ).toBeLessThanOrEqual(1)
     expect(
       Math.abs(frame.height - baseline.height),

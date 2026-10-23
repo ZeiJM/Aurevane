@@ -731,3 +731,12 @@
     gap: 0.125rem;
   }
 }
+
+/* Six authentic command-art squares must fit beside six selected Skill columns
+   at compact desktop widths. Reclaim excess horizontal spacing rather than
+   shrinking the standards below the selected artwork reference size. */
+@media (min-width: 821px) and (max-width: 1400px) {
+  .shell :global([data-battle-command-group='true']) {
+    column-gap: 0.1rem !important;
+  }
+}
