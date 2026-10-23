@@ -394,6 +394,18 @@ test('a populated hybrid loadout keeps all four Techniques and management action
   )
   for (let index = 0; index < 4; index += 1) {
     const choice = choices.nth(index)
+    const category = await choice.evaluate((input) =>
+      input.closest('[data-technique-category]')?.getAttribute('data-technique-category'),
+    )
+    const tabName =
+      category === 'primary' ? 'Discipline 1' : category === 'secondary' ? 'Discipline 2' : null
+    if (tabName) {
+      const tab = techniques.getByRole('tab', { name: tabName, exact: true })
+      if (await tab.isVisible()) {
+        await tab.click()
+        await expect(tab).toHaveAttribute('aria-selected', 'true')
+      }
+    }
     if (await choice.isChecked()) continue
     const skillsSaved = page.waitForResponse(
       (response) =>

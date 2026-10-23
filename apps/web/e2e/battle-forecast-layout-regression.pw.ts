@@ -227,7 +227,11 @@ async function capture(page: Page, testInfo: TestInfo, label: string) {
         ),
       })),
       terrainToggle: rect(root.querySelector('button[aria-label="Terrain"]')),
-      cancel: rect(root.querySelector('[data-battle-footer-actions] > button:nth-child(2)')),
+      cancel: rect(
+        Array.from(root.querySelectorAll('[data-battle-footer-actions] > button')).find((node) =>
+          ['Cancel Action', 'Cancel prime'].includes(node.textContent?.trim() ?? ''),
+        ) ?? null,
+      ),
       footer: rect(root.querySelector('footer')),
       commandContents: [
         ...root.querySelectorAll(
