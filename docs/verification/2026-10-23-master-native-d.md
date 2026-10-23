@@ -25,3 +25,31 @@ Current metadata snapshot:18workflows total,10success/6failure/2in_progress; Des
 All files are in docs/verification/task-10-reconstruction. Deterministic gzip mtime0, full transcripts; only Database contains2local test keys redacted. Other three0key/JWT matches. Full argv/steps and original diagnostic failures preserved. No auth artifacts or private player data published.
 
 No main merge, hosted Content migration, production deployment or roster republish. Production last read-only check remains READY dpl_BQgHdRJQDYndXDRtexL5AZ8uLihh/source874a14ce5b7f9aabed8df11140a9017fbfa4f71e. Exact final source/hosted compatibility/migration/history/player preservation and final whole-branch review remain required.
+
+## Final frozen-D disposition and next-stage handoff
+
+All18 workflows are complete: **10success/8failure** on exactly7c02f72ad9046c77b023b494e0453124769da326. The earlier10success/6failure/2in_progress entry above is the retained intermediate snapshot. Final metadata is d-native-workflows-final.json. No unchanged-source retry was performed.
+
+- Discipline Build DB39879830991/job120174258189 fails its P3.4 verifier at line3 through the generic trap. This full log does not print the actual retained-count comparison. The prior frozen-B isolated diagnostic supports the recorded2→3 fixture correction, but do not mislabel that earlier diagnostic as newly observed D output.
+- Battle Session DB39879831022/job120174258392 fails captured_ability_startup.sql58 with PLAYER_PREPARATION_STALE. The genuine-preparation fixture repair remains13; keep the authority guard intact.
+- Representative Buildcraft39879831007/job120174258312 passes760/7 and250/13 unit tests, actual Mastery and provenance checks, then fails the staged Chronist Essence early-current assertion. Preserve the final roster/currentv5; repair the isolated predecessor fixture in13.
+- Desktop page fit39879831066/job120174258478 completes actual8browser passes/7skips, then reports Web6651passes/11failures across8files/427total. Remaining failures are six nested Tag-markup assertions, two eligibility message expectations, one Manual Atlas env fixture, one invalid strict-Tag fixture and one old Summon heading. The one-RPC catalogue regression is fixed in D. Task11 dependency checkpoint already updates the three directly affected ability-definition-reader assertions; the other fixtures remain13. These are not final all-package quality results.
+- UI layout39879831085/job120174258662 has one large-fit pass and authenticated109passes/61skips/1failure. Nexus first fails at1366×768: artwork width38.296875 is below the preserved64 minimum, e2e/nexus-technique-alignment.pw.ts380. The previous horizontal95px/vertical16px overflow assertions and minimum artwork readability must all pass; reaching the earlier artwork failure does not prove later bounds. Keep this disjoint gallery repair in13.
+- CI format and Basic contrast corrections are source-implemented in Task11 first checkpoint7f33a5131c549b428402bc7e50c44f6bd3fbd1f0/tree3c8ee319d324395fc159c9f7083b0fd73e30471b, exact remote7b153f9947366f034fdfb874473e64fbeec6e612. Focused evidence passes, but Task11 combined source review and native runtime are still pending; frozen-D native failures are not retroactively green.
+- Modular popover interception still prevents subsequent Basic/Primed/Simple Requirements browser steps. Do not force-click or increase timeouts. Main authoring/media and later broad browser steps remain unreached after the Basic contrast failure.
+
+Compact Nexus artifact12470701714 is26235003bytes, SHA256cafa5606c6c4bc70adba3555a629f7676d8d4e0e65e315970db03b71d5e86a3e. It contains only error-context.md and trace.zip, not standalone screenshots. Root verified ZIP identity, read the failure as untrusted diagnostic data, and extracted only the final known screencast JPEG locally for visual inspection. The1366×768 frame visibly has eight very narrow primary gallery columns, truncated eligibility controls and small art. It does not close overflow/readability gates. The trace/auth/network resources are not published.
+
+### Remaining five complete raw logs
+
+| File | Bytes | SHA256 |
+| --- | ---: | --- |
+|d-native-discipline-120174258189.log.gz|17069|10b62e55799c46c69b966207a813fde0e0433cb258b43b2e2e57578d138242b8|
+|d-native-startup-120174258392.log.gz|17300|9c2c667d7f939ceb70f7939f24be66760bb1257929674ad200c6ddd6e22764b1|
+|d-native-buildcraft-120174258312.log.gz|25726|4eacfb22689432f5fd6f9906e9e2ddb19653470a3fb0a790c0ac217957777566|
+|d-native-desktop-fit-120174258478.log.gz|76788|ad130ea1a72448e544cd07948b26e09b81eeff0d296e44dec13e67a5fb22740d|
+|d-native-ui-120174258662.log.gz|31474|82eaaf4c8edb63d746689938bf49d4f1a51fb362b425235d2975ae2b16753c96|
+
+Each deterministic gzip has2local test keys redacted and0JWT; full diagnostic transcripts remain. All nine frozen-D failed-job/foundation logs are now durable. There is no hosted Content migration, main merge, production deployment or roster republish.
+
+Task11 remains the sole active implementation seat for Rules/Music/World Environment. Root's coordinating/evidence updates are outside its source worktree and will reconcile only after its source freeze.
