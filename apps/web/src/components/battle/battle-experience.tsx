@@ -3416,7 +3416,6 @@ function BattleExperienceContent({
                           data-open="true"
                           data-unified-facing-pad="true"
                           role="group"
-                          aria-hidden="true"
                           aria-label="Final facing"
                         >
                           {(['north', 'south', 'west', 'east'] as const).map((facing) => (
