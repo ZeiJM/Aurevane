@@ -22,12 +22,11 @@ it('uses approved defaults only when the migration is absent', async () => {
     code: 'PERSISTENCE_UNAVAILABLE',
   })
 })
-it('publishes exact validated chances and rejects invalid total or missing reason before persistence', async () => {
+it('publishes exact validated chances and rejects invalid total before persistence', async () => {
   const { publishBattlefieldElevationPolicy } = await import('./battlefield-elevation-policy-store')
   for (const input of [
-    { policy: { ...policy, level1BasisPoints: 0 }, reason: 'change' },
-    { policy, reason: ' ' },
-    { policy: { ...policy, unknown: true }, reason: 'change' },
+    { policy: { ...policy, level1BasisPoints: 0 } },
+    { policy: { ...policy, unknown: true } },
   ]) {
     await expect(
       publishBattlefieldElevationPolicy({ actorUserId: 'owner', ...input }),
@@ -45,14 +44,12 @@ it('publishes exact validated chances and rejects invalid total or missing reaso
     await publishBattlefieldElevationPolicy({
       actorUserId: 'owner',
       policy: { ...next, version: 1 },
-      reason: 'exact',
     }),
   ).toEqual(next)
-  expect(rpc).toHaveBeenCalledWith('publish_battlefield_elevation_policy_v1', {
+  expect(rpc).toHaveBeenCalledWith('publish_battlefield_elevation_policy_v2', {
     p_actor_user_id: 'owner',
     p_expected_version: 1,
     p_chances: { level1BasisPoints: 1234, level2BasisPoints: 8766, level3BasisPoints: 0 },
-    p_reason: 'exact',
   })
 })
 it.each([
@@ -63,6 +60,6 @@ it.each([
   const { publishBattlefieldElevationPolicy } = await import('./battlefield-elevation-policy-store')
   rpc.mockResolvedValueOnce({ data: null, error })
   await expect(
-    publishBattlefieldElevationPolicy({ actorUserId: 'owner', policy, reason: 'change' }),
+    publishBattlefieldElevationPolicy({ actorUserId: 'owner', policy }),
   ).rejects.toMatchObject({ code })
 })

@@ -1,4 +1,5 @@
 'use client'
+import type { CombatTagPresentationSnapshot } from '@aurevane/game-core/combat/combat-tag-registry'
 import { useState, type FormEvent } from 'react'
 import {
   COMBAT_EFFECT_TIMING_TAGS,
@@ -31,10 +32,33 @@ function timingLabel(tag: string): string {
 }
 export function CombatEffectTimingEditor({
   initialPolicy,
+  usedBy = {},
+  tagPresentations = [],
 }: {
   initialPolicy: CombatEffectTimingPolicy
+  usedBy?: Readonly<Record<string, readonly { contentKey: string; name: string }[]>>
+  tagPresentations?: readonly CombatTagPresentationSnapshot[]
 }) {
   const [policy, setPolicy] = useState(initialPolicy)
+  const [search, setSearch] = useState('')
+  const [filter, setFilter] = useState('all')
+  const [sort, setSort] = useState('name-asc')
+  const label = (tag: string) =>
+    tagPresentations.find((row) => row.tagId === tag)?.name ?? timingLabel(tag)
+  const timingOrder = ['instant', 'next-round', 'delayed', 'controlled']
+  const rows = COMBAT_EFFECT_TIMING_TAGS.filter((tag) => tag !== 'displace' && tag !== 'displaced')
+    .filter(
+      (tag) =>
+        `${label(tag)} ${tag}`.toLowerCase().includes(search.toLowerCase()) &&
+        (filter === 'all' || combatEffectTimingMode(policy, tag) === filter),
+    )
+    .toSorted((a, b) => {
+      const order = sort.startsWith('timing')
+        ? timingOrder.indexOf(combatEffectTimingMode(policy, a)) -
+          timingOrder.indexOf(combatEffectTimingMode(policy, b))
+        : label(a).localeCompare(label(b))
+      return (order || label(a).localeCompare(label(b))) * (sort.endsWith('desc') ? -1 : 1)
+    })
   const [message, setMessage] = useState('')
   const [saving, setSaving] = useState(false)
   async function publish(event: FormEvent<HTMLFormElement>) {
@@ -52,11 +76,11 @@ export function CombatEffectTimingEditor({
         error?: { message?: string }
       }
       if (!response.ok || !body.policy)
-        throw new Error(body.error?.message ?? 'Timing policy could not be published.')
+        throw new Error(body.error?.message ?? 'Timing changes could not be saved.')
       setPolicy(body.policy)
       setMessage('Timing updated.')
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Timing policy could not be published.')
+      setMessage(error instanceof Error ? error.message : 'Timing changes could not be saved.')
     } finally {
       setSaving(false)
     }
@@ -70,49 +94,95 @@ export function CombatEffectTimingEditor({
         later release. The selected timing applies to every current Skill using that tag. Existing
         battles retain their saved rules.
       </p>
+      <div className={styles.controls}>
+        <label>
+          Search effect tags
+          <input value={search} onChange={(event) => setSearch(event.currentTarget.value)} />
+        </label>
+        <label>
+          Filter timing
+          <select value={filter} onChange={(event) => setFilter(event.currentTarget.value)}>
+            <option value="all">All timings</option>
+            {timingOrder.map((value, index) => (
+              <option key={value} value={value}>
+                {['Instant', 'Normal', 'Delayed', 'Controlled'][index]}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Sort effect tags
+          <select value={sort} onChange={(event) => setSort(event.currentTarget.value)}>
+            <option value="name-asc">Name A–Z</option>
+            <option value="name-desc">Name Z–A</option>
+            <option value="timing-asc">Timing first–last</option>
+            <option value="timing-desc">Timing last–first</option>
+          </select>
+        </label>
+      </div>
+      <p>
+        Display order: Instant, Normal, Delayed, Controlled. Sorting does not change execution
+        order. Used by reflects the loaded catalogue; Save Changes checks current compatibility
+        again.
+      </p>
       <table>
         <thead>
           <tr>
             <th scope="col">Effect tag</th>
             <th scope="col">Timing</th>
+            <th scope="col">Used by</th>
           </tr>
         </thead>
         <tbody>
-          {COMBAT_EFFECT_TIMING_TAGS.filter((tag) => tag !== 'displace' && tag !== 'displaced').map(
-            (tag) => (
-              <tr key={tag}>
-                <th scope="row">
-                  <label htmlFor={`timing-${tag}`}>{timingLabel(tag)}</label>
-                </th>
-                <td>
-                  <select
-                    id={`timing-${tag}`}
-                    value={combatEffectTimingMode(policy, tag)}
-                    disabled={saving}
-                    onChange={(event) =>
-                      setPolicy({
-                        ...policy,
-                        modes: {
-                          ...policy.modes,
-                          [tag]: event.target.value as CombatEffectTimingMode,
-                        },
-                      })
-                    }
+          {rows.map((tag) => (
+            <tr key={tag}>
+              <th scope="row">
+                <label htmlFor={`timing-${tag}`}>{label(tag)}</label>
+              </th>
+              <td>
+                <select
+                  id={`timing-${tag}`}
+                  value={combatEffectTimingMode(policy, tag)}
+                  disabled={saving}
+                  onChange={(event) =>
+                    setPolicy({
+                      ...policy,
+                      modes: {
+                        ...policy.modes,
+                        [tag]: event.target.value as CombatEffectTimingMode,
+                      },
+                    })
+                  }
+                >
+                  <option value="instant">Instant</option>
+                  <option value="next-round">Normal</option>
+                  <option value="delayed">Delayed</option>
+                  <option
+                    value="controlled"
+                    disabled={!CONTROLLED_COMBAT_TIMING_TAGS.includes(tag)}
                   >
-                    <option value="instant">Instant</option>
-                    <option value="next-round">Normal</option>
-                    <option value="delayed">Delayed</option>
-                    <option
-                      value="controlled"
-                      disabled={!CONTROLLED_COMBAT_TIMING_TAGS.includes(tag)}
-                    >
-                      Controlled
-                    </option>
-                  </select>
-                </td>
-              </tr>
-            ),
-          )}
+                    Controlled
+                  </option>
+                </select>
+              </td>
+              <td>
+                {usedBy[tag]?.length ? (
+                  <details>
+                    <summary>{usedBy[tag]!.length} current definitions</summary>
+                    <ul>
+                      {usedBy[tag]!.map((row) => (
+                        <li key={row.contentKey}>
+                          {row.name} <small>({row.contentKey})</small>
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                ) : (
+                  'No current definitions'
+                )}
+              </td>
+            </tr>
+          ))}
         </tbody>
       </table>
       <p>
@@ -120,7 +190,7 @@ export function CombatEffectTimingEditor({
         release targeting before they can use Controlled.
       </p>
       <button type="submit" disabled={saving}>
-        {saving ? 'Saving…' : 'Save timing'}
+        {saving ? 'Saving…' : 'Save Changes'}
       </button>
       <p role="status">{message}</p>
     </form>

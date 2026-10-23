@@ -135,3 +135,20 @@ it.each([
   ).rejects.toMatchObject({ code: 'STALE_VERSION' })
   expect(rpc).toHaveBeenCalledTimes(1)
 })
+
+it('reads Used-by and current timing from one actual catalogue snapshot', async () => {
+  const { readCombatTimingWorkspace } = await import('./combat-effect-timing-policy-store')
+  rpc.mockResolvedValueOnce({
+    data: {
+      token: 'a'.repeat(32),
+      policy: { version: 8, tagAuthority: 'global', modes: { damage: 'instant' } },
+      publications: [],
+    },
+    error: null,
+  })
+  const result = await readCombatTimingWorkspace()
+  expect(result.policy.version).toBe(8)
+  expect(result.usedBy.damage?.some((row) => row.contentKey === 'unarmed.basic')).toBe(true)
+  expect(rpc).toHaveBeenCalledTimes(1)
+  expect(rpc.mock.calls[0]?.[0]).toBe('read_combat_content_catalogue_v1')
+})

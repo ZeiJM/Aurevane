@@ -1,10 +1,11 @@
 'use client'
+import { worldTimeLabel, worldDayPhase, WORLD_DAY_REAL_MS } from '@/world/environment'
 import { ChatPanel } from '@/components/social/chat/chat-panel'
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { useRouter } from 'next/navigation'
 import { WORLD_LAND_NAME } from '@/world/atlas'
 import { WORLD_REGIONS } from '@/world/catalog'
-import { precipitationKind } from './map-weather'
+import { regionalWeatherLabel } from './map-weather'
 import { remainingTravelMs, worldSyncDelayMs } from '@/world/travel'
 import type { WorldAttackReceipt } from '@/world/attack-receipt'
 import type { WorldMovementReceipt } from '@/world/movement-receipt'
@@ -484,12 +485,8 @@ export function WorldWorkspace({
     },
     [motion, send],
   )
-  const time = new Intl.DateTimeFormat('en', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-    timeZone: 'UTC',
-  }).format(view.environment.effectiveTimeMs)
+  const time = worldTimeLabel(view.environment.minuteOfDay)
+  const weatherLabel = regionalWeatherLabel(view.environment.weather, local.regionId)
   return (
     <section
       className={styles.workspace}
@@ -518,16 +515,11 @@ export function WorldWorkspace({
           </button>
         </div>
         <div className={styles.environment}>
-          <span>{time} UTC</span>
-          {mode === 'local' ? (
-            <span>
-              {precipitationKind(view.environment.weather, local.regionId) === 'snow'
-                ? view.environment.weather === 'storm'
-                  ? 'Snowstorm'
-                  : 'Snow'
-                : view.environment.weather}
-            </span>
-          ) : null}
+          <span>
+            {time}
+            {view.environment.dayLengthMs === WORLD_DAY_REAL_MS ? ' UTC' : ' World'}
+          </span>
+          {mode === 'local' ? <span>{weatherLabel}</span> : null}
         </div>
         <button
           className={styles.panelToggle}
@@ -579,6 +571,10 @@ export function WorldWorkspace({
           className={`${styles.sidebar} ${panelOpen ? styles.open : ''}`}
           aria-label="World details"
         >
+          <p className={styles.conditions} aria-label="World conditions">
+            {time} · {worldDayPhase(view.environment.minuteOfDay)} · {weatherLabel}
+            {view.environment.frozen ? ' · Frozen' : ''}
+          </p>
           {mode === 'local' ? (
             <div className={styles.tabs} role="tablist" aria-label="World details">
               <button

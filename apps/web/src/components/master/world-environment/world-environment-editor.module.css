@@ -1,12 +1,12 @@
 .editor {
   display: grid;
-  gap: 1rem;
+  gap: 0.65rem;
   width: 100%;
   max-width: 60rem;
-  margin: 2rem auto;
-  padding-top: 2rem;
+  margin: 1rem auto;
+  padding-top: 1rem;
   border-top: 1px solid rgba(205, 177, 111, 0.3);
-  color: var(--av-text, #ede3cb);
+  color: #313b37;
 }
 .editor h2,
 .editor h3,
@@ -26,7 +26,7 @@
   padding: 0.5rem 0.75rem;
   font: inherit;
   color: inherit;
-  background: #171811;
+  background: #ded4bf;
   border: 1px solid rgba(205, 177, 111, 0.5);
   border-radius: 0.3rem;
 }
@@ -59,4 +59,19 @@
 .editor :is(input, select, textarea, button):focus-visible {
   outline: 2px solid #dfbd72;
   outline-offset: 3px;
+}
+
+.editor fieldset {
+  min-width: 0;
+  display: grid;
+  gap: 0.65rem;
+  border: 1px solid #9b8769;
+}
+.editor button {
+  color: #f1e5ce;
+  background: #345b52;
+}
+.editor input {
+  max-width: 100%;
+  min-width: 0;
 }

@@ -14,7 +14,6 @@ export function BattlefieldElevationEditor({
 }) {
   const [version, setVersion] = useState(initialPolicy.version)
   const [chances, setChances] = useState(fields.map((key) => String(initialPolicy[key] / 100)))
-  const [reason, setReason] = useState('')
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
   const bps = chances.map((value) =>
@@ -39,7 +38,7 @@ export function BattlefieldElevationEditor({
       const response = await fetch('/api/master/combat-elevation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ policy, reason }),
+        body: JSON.stringify({ policy }),
       })
       const body = (await response.json()) as {
         policy?: BattlefieldElevationPolicy
@@ -50,8 +49,7 @@ export function BattlefieldElevationEditor({
       const published = parseBattlefieldElevationPolicy(body.policy)
       setVersion(published.version)
       setChances(fields.map((key) => String(published[key] / 100)))
-      setReason('')
-      setMessage(`Published elevation policy v${published.version}. New battles use these chances.`)
+      setMessage('Elevation changes saved. New battles use these chances.')
     } catch (error) {
       setMessage(
         error instanceof Error ? error.message : 'Elevation chances could not be published.',
@@ -62,10 +60,11 @@ export function BattlefieldElevationEditor({
   }
   return (
     <form className={styles.editor} onSubmit={publish} aria-label="Elevation chances">
-      <h2>Elevation chances v{version}</h2>
+      <h2>Battlefield elevation</h2>
       <p>
         Each raised tile independently rolls level 1, 2 or 3 using these chances. Changes apply to
-        new battles. Existing battles keep their tiles.
+        new battles. Existing battles keep their tiles. These global map chances are separate from a
+        Skill’s Target Elevation.
       </p>
       {fields.map((field, index) => (
         <label key={field}>
@@ -88,18 +87,8 @@ export function BattlefieldElevationEditor({
         Total: {Number.isFinite(total) ? `${total / 100}%` : 'Invalid'}
         {!policy ? ' — enter chances totaling exactly 100%.' : ''}
       </p>
-      <label>
-        Elevation change reason
-        <textarea
-          required
-          maxLength={240}
-          value={reason}
-          disabled={saving}
-          onChange={(event) => setReason(event.target.value)}
-        />
-      </label>
-      <button type="submit" disabled={saving || !policy || reason.trim().length === 0}>
-        {saving ? 'Publishing…' : 'Publish elevation chances'}
+      <button type="submit" disabled={saving || !policy}>
+        {saving ? 'Saving…' : 'Save Changes'}
       </button>
       <p role="status">{message}</p>
     </form>

@@ -45,5 +45,5 @@ it('passes the authenticated actor and returns a private policy response', async
   expect(response.status).toBe(200)
   expect(await response.json()).toEqual({ policy })
   expect(response.headers.get('Cache-Control')).toBe('private, no-store')
-  expect(publish).toHaveBeenCalledWith({ actorUserId: 'staff', policy, reason: 'test' })
+  expect(publish).toHaveBeenCalledWith({ actorUserId: 'staff', policy })
 })

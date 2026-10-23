@@ -11,7 +11,10 @@ import {
   RpcPublishedCombatContentSource,
   resolveCombatContentCatalogueSnapshot,
 } from '@/server/combat/combat-content-resolver'
-import { assertCombatCatalogueTimingCompatible } from '@/server/combat/combat-catalogue-timing-compatibility'
+import {
+  combatTimingUsedBy,
+  assertCombatCatalogueTimingCompatible,
+} from '@/server/combat/combat-catalogue-timing-compatibility'
 
 export async function readCombatEffectTimingPolicy(): Promise<CombatEffectTimingPolicy> {
   const { data, error } = await createSupabaseAdminClient().rpc(
@@ -77,4 +80,17 @@ export async function publishCombatEffectTimingPolicy(input: {
       'Combat timing changes could not be published.',
     )
   return parseStoredCombatEffectTimingPolicy(data)
+}
+
+export async function readCombatTimingWorkspace() {
+  const client = createSupabaseAdminClient()
+  const snapshot = await new RpcPublishedCombatContentSource((name, parameters) =>
+    client.rpc(name, parameters),
+  ).readCatalogueSnapshot()
+  const catalogue = resolveCombatContentCatalogueSnapshot(snapshot)
+  return {
+    policy: catalogue.policy,
+    usedBy: combatTimingUsedBy(catalogue),
+    tagPresentations: catalogue.tagPresentations ?? [],
+  }
 }

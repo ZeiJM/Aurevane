@@ -22,6 +22,7 @@ it('reads stored settings', async () => {
   })
   expect(await readWorldEnvironmentSettings()).toEqual({
     version: 4,
+    dayLengthMinutes: 1440,
     timeOffsetMinutes: -30,
     frozenMinuteOfDay: 600,
     weatherOverride: 'fog',
@@ -41,4 +42,13 @@ it('rejects out-of-range or unknown values', () => {
   expect(parseWorldEnvironmentSettings(ok)).not.toBeNull()
   expect(parseWorldEnvironmentSettings({ ...ok, frozenMinuteOfDay: 1440 })).toBeNull()
   expect(parseWorldEnvironmentSettings({ ...ok, weatherOverride: 'hail' })).toBeNull()
+})
+
+it('reads configurable cycles and rejects malformed cycles instead of silently changing time', () => {
+  const base = { version: 1, timeOffsetMinutes: 0 }
+  expect(parseWorldEnvironmentSettings({ ...base, dayLengthMinutes: 120 })).toMatchObject({
+    dayLengthMinutes: 120,
+  })
+  for (const dayLengthMinutes of [0, -1, 1.5, 10081, '120'])
+    expect(parseWorldEnvironmentSettings({ ...base, dayLengthMinutes })).toBeNull()
 })

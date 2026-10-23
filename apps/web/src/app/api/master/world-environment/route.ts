@@ -3,7 +3,7 @@ import { getAuthenticatedActor } from '@/server/auth/actor'
 import { toServerErrorResponse } from '@/server/http/error-response'
 import { createServerMasterPanelStaffAccessService } from '@/server/master/staff-access-server'
 import {
-  readWorldEnvironmentHistory,
+  readWorldEnvironmentAdminSettings,
   setWorldEnvironment,
 } from '@/server/master/world-environment-admin-store'
 
@@ -24,7 +24,10 @@ async function requireOwner() {
 export async function GET() {
   try {
     await requireOwner()
-    return Response.json({ history: await readWorldEnvironmentHistory(20) }, { headers: NO_STORE })
+    return Response.json(
+      { settings: await readWorldEnvironmentAdminSettings() },
+      { headers: NO_STORE },
+    )
   } catch (error) {
     return toServerErrorResponse(error)
   }
@@ -40,19 +43,14 @@ export async function POST(request: Request) {
       throw new AurevaneError('INVALID_REQUEST', 'Request body must be valid JSON.')
     }
     if (!body || typeof body !== 'object' || Array.isArray(body))
-      throw new AurevaneError(
-        'INVALID_REQUEST',
-        'Expected version, change and reason are required.',
-      )
-    const input = body as { expectedVersion?: unknown; change?: unknown; reason?: unknown }
+      throw new AurevaneError('INVALID_REQUEST', 'Expected version and change are required.')
+    const input = body as { expectedVersion?: unknown; change?: unknown }
     const settings = await setWorldEnvironment({
       actorUserId: actor.userId,
       expectedVersion: input.expectedVersion,
       change: input.change,
-      reason: input.reason,
     })
-    const history = await readWorldEnvironmentHistory(20)
-    return Response.json({ settings, history }, { headers: NO_STORE })
+    return Response.json({ settings }, { headers: NO_STORE })
   } catch (error) {
     return toServerErrorResponse(error)
   }

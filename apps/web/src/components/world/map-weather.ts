@@ -140,3 +140,9 @@ export function paintTerrainAtmosphere(
   context.restore()
   return count
 }
+
+export function regionalWeatherLabel(weather: WorldWeather, regionId: string): string {
+  if (precipitationKind(weather, regionId) === 'snow')
+    return weather === 'storm' ? 'Snowstorm' : 'Snow'
+  return weather.charAt(0).toUpperCase() + weather.slice(1)
+}

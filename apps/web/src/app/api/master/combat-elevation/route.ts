@@ -17,12 +17,11 @@ export async function POST(request: Request) {
       throw new AurevaneError('INVALID_REQUEST', 'Request body must be valid JSON.')
     }
     if (!body || typeof body !== 'object' || Array.isArray(body))
-      throw new AurevaneError('INVALID_REQUEST', 'Elevation policy and reason are required.')
-    const input = body as { policy?: unknown; reason?: unknown }
+      throw new AurevaneError('INVALID_REQUEST', 'Elevation settings are required.')
+    const input = body as { policy?: unknown }
     const policy = await publishBattlefieldElevationPolicy({
       actorUserId: actor.userId,
       policy: input.policy,
-      reason: input.reason,
     })
     return Response.json({ policy }, { headers: { 'Cache-Control': 'private, no-store' } })
   } catch (error) {

@@ -1,66 +1,30 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { expect, it } from 'vitest'
 import { WorldEnvironmentEditor } from './world-environment-editor'
-
-const settings = {
-  version: 5,
-  timeOffsetMinutes: 0,
-  frozenMinuteOfDay: 1080,
-  weatherOverride: 'storm' as const,
-  weatherOverrideUntil: null,
-}
-
-it('shows effective time and weather, every control, a required reason and the history', () => {
+import { DEFAULT_WORLD_ENVIRONMENT_SETTINGS } from '@/world/environment'
+it('shows real cycle controls and regional weather without reasons or history/version chores', () => {
   const html = renderToStaticMarkup(
     <WorldEnvironmentEditor
-      initialSettings={settings}
+      initialSettings={{
+        ...DEFAULT_WORLD_ENVIRONMENT_SETTINGS,
+        version: 5,
+        dayLengthMinutes: 120,
+        frozenMinuteOfDay: 1080,
+        weatherOverride: 'storm',
+      }}
       initialNowMs={Date.UTC(2026, 9, 10, 3)}
-      initialHistory={[
-        {
-          id: 9,
-          version: 5,
-          actorUserId: 'owner-1',
-          reason: 'Evening storm for the event',
-          before: {},
-          after: {
-            timeOffsetMinutes: 0,
-            frozenMinuteOfDay: 1080,
-            weatherOverride: 'storm',
-            weatherOverrideUntilMs: null,
-          },
-          changedAtMs: Date.UTC(2026, 9, 10),
-        },
-      ]}
     />,
   )
   for (const text of [
-    'World environment v5',
-    'World time 18:00 UTC (frozen); weather storm (forced by Master).',
-    'Shift world time (minutes',
-    'Freeze the clock at a time of day',
-    'Force fog',
-    '15 minutes',
-    'Until cleared',
-    'Live weather (no override)',
-    'Environment change reason',
-    'Apply world environment',
-    'Recent changes',
-    'clock frozen at 18:00 UTC; weather forced to storm until cleared',
-    'Evening storm for the event',
+    'Day length (real minutes)',
+    'Forced weather duration (minutes)',
+    'Snowstorm in Frostmere',
+    'Save Changes',
+    '18:00',
+    'Keep current weather',
   ])
     expect(html).toContain(text)
-  expect(html).toContain('required')
-  expect(html).toContain('disabled=""')
-})
-it('explains an empty history', () => {
-  const html = renderToStaticMarkup(
-    <WorldEnvironmentEditor
-      initialSettings={{ ...settings, version: 0, frozenMinuteOfDay: null, weatherOverride: null }}
-      initialHistory={[]}
-      initialNowMs={Date.UTC(2026, 9, 10, 3)}
-    />,
-  )
-  expect(html).toContain('No environment changes have been recorded.')
-  expect(html).toContain('weather ')
-  expect(html).toContain('(live)')
+  expect(html).not.toMatch(/Recent changes|change reason|environment v5|Until cleared<\/option>/)
+  expect(html).toContain('type="number"')
+  expect(html).toContain('value="120"')
 })

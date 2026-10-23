@@ -91,3 +91,22 @@ describe('resolveWorldEnvironment', () => {
     expect(env).toMatchObject({ weather: 'fog', weatherSource: 'master' })
   })
 })
+
+it('advances a configured whole world day through day and night in 120 real minutes', () => {
+  const settings = { ...base, dayLengthMinutes: 120 }
+  const start = resolveWorldEnvironment(MIDNIGHT, settings)
+  const noon = resolveWorldEnvironment(MIDNIGHT + 60 * 60_000, settings)
+  const next = resolveWorldEnvironment(MIDNIGHT + 120 * 60_000, settings)
+  expect(start.minuteOfDay).toBe(0)
+  expect(noon.minuteOfDay).toBe(720)
+  expect(next.minuteOfDay).toBe(0)
+  expect(noon.dayLengthMs).toBe(120 * 60_000)
+  expect(
+    resolveWorldEnvironment(MIDNIGHT + 60 * 60_000, { ...settings, timeOffsetMinutes: 60 })
+      .minuteOfDay,
+  ).toBe(780)
+  expect(
+    resolveWorldEnvironment(MIDNIGHT + DAY, { ...settings, frozenMinuteOfDay: 360 }).minuteOfDay,
+  ).toBe(360)
+  expect(noon.weather).toBe(resolveWorldEnvironment(MIDNIGHT + 60 * 60_000, base).weather)
+})
