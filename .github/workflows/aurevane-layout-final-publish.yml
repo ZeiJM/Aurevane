@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   publish-verified-layout:
-    if: startsWith(github.event.head_commit.message, 'chore(release): trigger verified final layout patch')
+    if: startsWith(github.event.head_commit.message, 'chore(release)')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
