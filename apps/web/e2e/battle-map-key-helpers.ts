@@ -135,7 +135,7 @@ export async function expectTerrainKey(page: Page) {
   }
   await page.keyboard.press('Escape')
   await expect(overlay).toHaveCount(0)
-  await expect(toggle).toBeFocused()
+  await expect(page.locator('main[data-battle-keyboard-focus-root="true"]')).toBeFocused()
   await expect(toggle).toHaveAttribute('aria-expanded', 'false')
   await toggle.click()
   await page.locator('main > header').click({ position: { x: 5, y: 5 } })

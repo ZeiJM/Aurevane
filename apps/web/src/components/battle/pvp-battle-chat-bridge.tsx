@@ -1,6 +1,13 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from 'react'
 import { createPortal } from 'react-dom'
 
 import type { PvpSpectatorPresenceView } from '@/server/battle/pvp-battle-communication-service'
@@ -153,6 +160,34 @@ export function PvpBattleChatBridge({
       window.cancelAnimationFrame(frame)
     }
   }, [])
+
+  useLayoutEffect(() => {
+    const panel = panelRef.current
+    if (!panel) return
+    if (desktop) {
+      panel.style.removeProperty('--battle-chat-footer-offset')
+      return
+    }
+    // A desktop window may have been dragged before rotating into the mobile layout.
+    for (const property of ['left', 'top', 'right', 'bottom', 'width', 'height'])
+      panel.style.removeProperty(property)
+    if (!footerTarget) return
+
+    const fitAboveFooter = () => {
+      panel.style.setProperty(
+        '--battle-chat-footer-offset',
+        `${Math.max(0, window.innerHeight - footerTarget.getBoundingClientRect().top)}px`,
+      )
+    }
+    fitAboveFooter()
+    const observer = new ResizeObserver(fitAboveFooter)
+    observer.observe(footerTarget)
+    window.addEventListener('resize', fitAboveFooter)
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', fitAboveFooter)
+    }
+  }, [desktop, footerTarget])
 
   useEffect(() => {
     let attachedChat: HTMLButtonElement | null = null

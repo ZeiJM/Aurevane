@@ -1,3 +1,4 @@
+import { setBattleChronicleOpen } from './battle-log-layout-helpers'
 import { expect, type Locator, type Page } from '@playwright/test'
 
 export function targetForecast(page: Page) {
@@ -72,6 +73,7 @@ export async function moveOneStep(
 }
 
 export async function expectRefinedCockpit(page: Page) {
+  await setBattleChronicleOpen(page, false)
   const deck = page.getByRole('region', { name: 'Command Deck' })
   await expect(deck.locator('[data-command-card]')).toHaveCount(6)
   await expect(deck.locator('[data-battle-command="items"]')).toBeDisabled()
@@ -110,20 +112,33 @@ export async function expectRefinedCockpit(page: Page) {
     'supernatural',
     'finish',
   ])
-  const frames = await deck.locator('[data-av-square-media]').evaluateAll((elements) =>
-    elements.map((element) => {
-      const rect = element.getBoundingClientRect()
-      const image = element.querySelector('img')
-      return {
-        width: rect.width,
-        height: rect.height,
-        loaded: !image || (image.complete && image.naturalWidth > 0),
-      }
-    }),
+  const scrollContainers = page.locator(
+    '[data-battle-mobile-lower-panel], [data-battle-selected-skills]',
   )
-  for (const frame of frames) {
-    expect(Math.abs(frame.width - frame.height)).toBeLessThanOrEqual(1)
-    expect(frame.loaded).toBe(true)
+  const scrollPositions = await scrollContainers.evaluateAll((elements) =>
+    elements.map((element) => ({ left: element.scrollLeft, top: element.scrollTop })),
+  )
+  try {
+    // The compact cockpit scrolls below the fixed board. Visit every frame so native
+    // lazy images, including End Turn, are requested before checking their artwork.
+    for (const frame of await deck.locator('[data-av-square-media]').all()) {
+      await frame.scrollIntoViewIfNeeded()
+      await expect
+        .poll(() =>
+          frame.evaluate((element) => {
+            const image = element.querySelector('img')
+            return !image || (image.complete && image.naturalWidth > 0)
+          }),
+        )
+        .toBe(true)
+      const bounds = await frame.boundingBox()
+      expect(bounds).not.toBeNull()
+      expect(Math.abs(bounds!.width - bounds!.height)).toBeLessThanOrEqual(1)
+    }
+  } finally {
+    await scrollContainers.evaluateAll((elements, positions) => {
+      elements.forEach((element, index) => element.scrollTo(positions[index]!))
+    }, scrollPositions)
   }
   await expect(page.getByRole('button', { name: 'Confirm Action', exact: true })).toHaveCount(0)
   await expect(targetForecast(page)).toBeVisible()

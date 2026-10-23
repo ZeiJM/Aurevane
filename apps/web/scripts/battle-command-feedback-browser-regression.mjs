@@ -106,8 +106,11 @@ async function verifyChatComposer(page) {
       const input = element.querySelector('input[aria-label="Battle chat message"]')
       const form = input.closest('form')
       const messages = element.querySelector('[aria-live="polite"]')
+      const footer = document.querySelector('main[data-pvp-battle] > footer')
       return {
         inputHeight: input.getBoundingClientRect().height,
+        panelBottom: element.getBoundingClientRect().bottom,
+        footerTop: footer.getBoundingClientRect().top,
         composerHeight: form.getBoundingClientRect().height,
         messageHeight: messages.getBoundingClientRect().height,
         insidePanel:
@@ -122,6 +125,10 @@ async function verifyChatComposer(page) {
       await panel.getByText('Fixture send unavailable.').waitFor()
     }
     const geometry = await read()
+    assert.ok(
+      geometry.panelBottom <= geometry.footerTop - 4,
+      `Chat stays above the actual footer: ${JSON.stringify(geometry)}`,
+    )
     assert.ok(geometry.inputHeight <= 48, 'Chat input stays one compact row')
     assert.ok(geometry.composerHeight <= 80, 'Chat composer cannot fill the message area')
     assert.ok(

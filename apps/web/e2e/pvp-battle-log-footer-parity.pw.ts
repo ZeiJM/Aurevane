@@ -7,7 +7,11 @@ import {
 } from './battle-reference-layout-helpers'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 import { commitGesture } from './refined-battle-helpers'
-import { expectReadableBattleLog } from './battle-log-layout-helpers'
+import {
+  battleChronicleScrollRegion,
+  expectReadableBattleLog,
+  setBattleChronicleOpen,
+} from './battle-log-layout-helpers'
 import { recordedChronicleAction } from './battle-log-chronicle-fixtures'
 
 test('actual battle-log geometry ignores mobile scrolling but rejects a reader resize', async ({
@@ -31,13 +35,15 @@ test('actual battle-log geometry ignores mobile scrolling but rejects a reader r
   await page.goto('/game/battle')
   await page.getByRole('button', { name: 'Enter Battle', exact: true }).click()
   await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/)
+  await setBattleChronicleOpen(page, true)
   const reader = page.locator('[data-battle-inline-log] [data-battle-chronicle]')
   await expect(reader.locator('[data-chronicle-action]')).toHaveCount(20)
   await expectReadableBattleLog(page, testInfo, 'actual-mobile-scroll')
+  const scroller = await battleChronicleScrollRegion(page, reader)
   expect(
-    await reader.evaluate((element) => element.scrollHeight - element.clientHeight),
+    await scroller.evaluate((element) => element.scrollHeight - element.clientHeight),
   ).toBeGreaterThan(0)
-  await reader.evaluate(async (element) => {
+  await scroller.evaluate(async (element) => {
     element.scrollTop = element.scrollHeight
     await new Promise<void>((resolve) =>
       requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
@@ -45,7 +51,9 @@ test('actual battle-log geometry ignores mobile scrolling but rejects a reader r
     element.addEventListener(
       'scroll',
       () => {
-        const log = element.closest<HTMLElement>('[data-battle-inline-log]')!
+        const log = element.matches('[data-battle-mobile-lower-panel]')
+          ? element.querySelector<HTMLElement>('[data-battle-inline-log]')!
+          : element.closest<HTMLElement>('[data-battle-inline-log]')!
         log.style.height = `${log.getBoundingClientRect().height + 40}px`
       },
       { once: true },

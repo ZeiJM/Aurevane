@@ -337,10 +337,17 @@ test('Battle Hall places one arena workspace below the scenic mode tabs with all
       'ai-record-purpose',
     )
     await expect(purpose).toHaveText(record.purpose)
-    if (mobile) await purpose.scrollIntoViewIfNeeded()
-    await expect(purpose).toBeInViewport()
+    const visiblePurpose = mobile
+      ? ai
+          .locator('button')
+          .filter({ hasText: recordDisplayNameForTest(mode, record.name) })
+          .first()
+          .getByText(record.purpose, { exact: true })
+      : purpose
+    if (mobile) await visiblePurpose.scrollIntoViewIfNeeded()
+    await expect(visiblePurpose).toBeInViewport()
     expect(
-      await purpose.evaluate((node) => parseFloat(getComputedStyle(node).fontSize)),
+      await visiblePurpose.evaluate((node) => parseFloat(getComputedStyle(node).fontSize)),
     ).toBeGreaterThanOrEqual(11)
     await expect(page.getByRole('button', { name: 'Enter Battle', exact: true })).toBeEnabled()
     if (mode === 'mastery-trial') {

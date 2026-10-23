@@ -1,3 +1,9 @@
+## Owner independent Skill Move and passive readiness — 2026-10-22 (pending release)
+
+An authored Skill Move uses its own entered-tile distance and the Skill's overall costs. It neither spends nor requires the ordinary walking Movement allowance, so walking and Blood Rush can both move in either order. Root, actual terrain/elevation/occupancy legality, authored destination limits and the Skill's costs still apply. Ordinary Basic Move keeps its own AP costs and Movement allowance. This supersedes older statements that attached Move requires remaining ordinary Movement.
+
+Automatic action behaviors may select **When Requirements Are Satisfied** in Master. They retry after real state changes, including intermediate walking/Skill Move tiles and Controlled preparation, when their actual target, range, line of sight, resources and authored requirements permit execution. An illegal or out-of-range target does not consume readiness. Successful execution retains authored costs, cooldowns, usage limits and bounded reaction protection. A marked-enemy prerequisite can be distinct from the authored Self/Ally effect target; it does not retarget beneficial effects onto the enemy. Explicit event-triggered behaviors and ongoing modifiers retain their authored paths. Published versions and saved battle captures remain immutable.
+
 ## Owner simple requirement correction — 2026-10-19 (pending release)
 
 Simple-profile abilities store one supported active status/Primed requirement, one strict HP/MP percentage comparison, or no requirement. A tag on the selected native Self/Target subject qualifies; pending statuses do not qualify as active. Primed reads the native Controlled state. Percentage evaluation compares current resource and maximum exactly in integer basis points; less-than and more-than exclude equality and missing/zero maxima fail closed.

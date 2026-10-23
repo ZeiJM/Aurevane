@@ -182,7 +182,7 @@ test('keeps square empty Skill slots and consistent cockpit info controls withou
     }
     await page.keyboard.press('Escape')
     await expect(panel).toHaveCount(0)
-    await expect(info).toBeFocused()
+    await expect(page.locator('main[data-battle-keyboard-focus-root="true"]')).toBeFocused()
   }
   await controls.first().getByRole('button').click()
   await testInfo.attach('cockpit-info-popup.png', {

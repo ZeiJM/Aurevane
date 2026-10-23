@@ -94,6 +94,47 @@ function actor(state: CombatEncounterState) {
 }
 
 describe('registered Move on one paid skill command', () => {
+  it('keeps a Skill Move independent of ordinary walking in either order', () => {
+    const command = input()
+    const initialTurn = command.state.tactical.battle.currentTurn!
+    const cast = commitCombatAbilityCommand(command)
+    expect(cast.state.tactical.battle.currentTurn).toMatchObject({
+      movementRemaining: initialTurn.movementRemaining,
+      movementSpent: initialTurn.movementSpent,
+    })
+    const walked = executePv1fMovement(
+      reattachStatDrivenCombatBridge(cast.state, percentageDotEncounter().statBridge),
+      [
+        { x: 2, y: 1 },
+        { x: 2, y: 0 },
+      ],
+    )
+    expect(walked.state.tactical.battle.currentTurn!.movementRemaining).toBe(
+      initialTurn.movementRemaining - 1,
+    )
+
+    const exhausted = {
+      ...command.state,
+      tactical: {
+        ...command.state.tactical,
+        battle: {
+          ...command.state.tactical.battle,
+          currentTurn: {
+            ...initialTurn,
+            movementRemaining: 0,
+            movementSpent: initialTurn.movementMaximum,
+          },
+        },
+      },
+    }
+    const afterWalking = { ...command, state: exhausted }
+    expect(prepareCombatAbilityCommand(afterWalking).evaluation.issues).toEqual([])
+    const second = commitCombatAbilityCommand(afterWalking)
+    expect(
+      second.state.tactical.placements.find((p) => p.combatantId === 'actor')!.position,
+    ).toEqual({ x: 2, y: 1 })
+    expect(second.state.tactical.battle.currentTurn!.movementRemaining).toBe(0)
+  })
   it.each([true, false])(
     'checks the Ground occupant for a selected-target prerequisite: Mark %s',
     (marked) => {
@@ -472,7 +513,7 @@ it('moves after spending all AP on the skill without another AP charge', () => {
   expect(cast.state.tactical.battle.combatants.find((u) => u.id === 'enemy')!.hp).toBeLessThan(1000)
 })
 
-it('still rejects a path beyond remaining Movement before paying the skill', () => {
+it('admits an authored Skill Move after ordinary Movement is spent', () => {
   const command = input()
   const turn = command.state.tactical.battle.currentTurn!
   const state = {
@@ -485,9 +526,11 @@ it('still rejects a path beyond remaining Movement before paying the skill', () 
       },
     },
   }
-  const invalid = { ...command, state }
-  expect(prepareCombatAbilityCommand(invalid).evaluation.legal).toBe(false)
-  expect(() => commitCombatAbilityCommand(invalid)).toThrow()
+  const legal = { ...command, state }
+  expect(prepareCombatAbilityCommand(legal).evaluation.legal).toBe(true)
+  expect(
+    commitCombatAbilityCommand(legal).state.tactical.battle.currentTurn!.movementRemaining,
+  ).toBe(0)
   expect(actor(state).mp).toBe(20)
   expect(
     actor(state).temporaryResources.find((r) => r.key === 'pv1f.action-economy')!.current,
@@ -518,7 +561,7 @@ it('supports a pure utility Move at its overall authored cost', () => {
     actor(cast.state).temporaryResources.find((r) => r.key === 'pv1f.action-economy')!.current,
   ).toBe(89)
   expect(actor(cast.state).mp).toBe(18)
-  expect(cast.state.tactical.battle.currentTurn!.movementRemaining).toBe(3)
+  expect(cast.state.tactical.battle.currentTurn!.movementRemaining).toBe(4)
 })
 
 it('preserves standalone native Move cost and receipt behavior', () => {

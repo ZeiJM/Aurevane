@@ -104,7 +104,11 @@ export function buildReachablePaths(
   actionEconomy: number,
   maximumSteps = Infinity,
   behaviorId?: string,
-  attachedMove?: { maximumTiles: number; costs: AbilityBehavior['costs'] },
+  attachedMove?: {
+    maximumTiles: number
+    costs: AbilityBehavior['costs']
+    independentAllowance?: boolean
+  },
 ): Map<string, BattleGridPosition[]> {
   const tactical = airborneMovementTactical(state, PV1F_COMBAT_CONTENT)
   const turn = tactical.battle.currentTurn
@@ -230,8 +234,11 @@ export function buildReachablePaths(
         (flat
           ? 0
           : movementApCostForTile(traversalCost, modifiers.additionalApAt(neighbor), apPerPoint))
-      if (movement > Math.min(turn.movementRemaining, maximumSteps, tileCap) || ap > actionEconomy)
-        continue
+      const allowance =
+        attachedMove && attachedMove.independentAllowance !== false
+          ? tileCap
+          : turn.movementRemaining
+      if (movement > Math.min(allowance, maximumSteps, tileCap) || ap > actionEconomy) continue
       const known = bestCosts.get(neighborKey) ?? []
       if (known.some((cost) => cost.movement <= movement && cost.ap <= ap)) continue
       bestCosts.set(neighborKey, [

@@ -1,3 +1,4 @@
+import { setBattleChronicleOpen } from './battle-log-layout-helpers'
 import { expect, test } from '@playwright/test'
 import {
   PV1F_ACTION_ECONOMY_RESOURCE_KEY,
@@ -87,7 +88,6 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   const battlefield = page.getByRole('region', { name: 'Tactical battlefield' })
   const commandDeck = page.getByRole('region', { name: 'Command Deck' })
   const commandContext = page.locator('[data-battle-preview-strip]')
-  const initialRound = await expectRecordedBattleRound(page)
   const inspectButton = commandDeck.getByRole('button', { name: /^Inspect,/ })
   const moveButton = commandDeck.getByRole('button', { name: /^Move,/ })
   const attackButton = commandDeck.locator('button[data-battle-command="attack"]')
@@ -101,6 +101,10 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
     page.getByRole('dialog', { name: 'Complete the tactical fundamentals' }),
   ).toBeVisible()
   await page.getByRole('button', { name: 'Continue training' }).click()
+  await expect(
+    page.getByRole('dialog', { name: 'Complete the tactical fundamentals' }),
+  ).toHaveCount(0)
+  const initialRound = await expectRecordedBattleRound(page)
 
   await expect(battlefield).toBeVisible()
   await expect(commandDeck).toBeVisible()
@@ -202,10 +206,10 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   await expect(commandContext).toContainText('Choose your action', { timeout: 15_000 })
   await expect(facingPad).toBeHidden()
   await expect(criteriaButton).toHaveAttribute('data-new-progress', 'true')
-  expect(await expectRecordedBattleRound(page)).toBeGreaterThan(initialRound)
   await expect(
     page.getByRole('dialog', { name: 'Complete the tactical fundamentals' }),
   ).toHaveCount(0)
+  expect(await expectRecordedBattleRound(page)).toBeGreaterThan(initialRound)
 
   // Guided Fundamentals uses the full 9x7 Duel Yard. Traverse a second movement turn toward
   // the Recruit before completing Guard/Attack so the lesson remains deterministic at medium scale.
@@ -269,6 +273,7 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   await expect(criteriaButton).toHaveAttribute('data-new-progress', 'true')
   await openCriteriaAndClose(page, '3/4 complete')
 
+  await setBattleChronicleOpen(page, true)
   const inlineLog = page.locator('[data-battle-inline-log]')
   const battleLog = inlineLog.getByRole('region', { name: 'Battle chronicle', exact: true })
   await expect(battleLog).toBeVisible()
@@ -285,6 +290,8 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   await page.keyboard.press('KeyW')
   await expect(apRemaining).toHaveAttribute('aria-valuenow', apBeforeDetails!)
   await expect(battleLog).toBeVisible()
+
+  await setBattleChronicleOpen(page, false)
 
   // Missing informational forecasts must not hide eligible targets or gate a deliberate cast.
   await page.route('**/api/battles/*/preview', (route) => route.abort())

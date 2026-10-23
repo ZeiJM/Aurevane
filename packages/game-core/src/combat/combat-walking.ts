@@ -156,6 +156,7 @@ function forecastPv1fPoisonMovement(
 }
 
 export interface Pv1fMovementQuoteOptions {
+  readonly independentAllowance?: boolean
   readonly maximumTiles?: number
   /** Captured native Basic Move price; committed attached Move always costs zero here. */
   readonly apPerTraversalPoint?: number
@@ -172,7 +173,7 @@ export function evaluatePreparedCombatWalking(
   let movement = evaluateCurrentMovementPath(
     movementTactical,
     path,
-    'entered-tiles',
+    options.independentAllowance ? 'skill-entered-tiles' : 'entered-tiles',
     prepared.statBalancePolicyVersion,
     prepared.airborneJumpPolicyVersion,
   )
@@ -211,7 +212,7 @@ export function evaluatePreparedCombatWalking(
     movement = evaluateCurrentMovementPath(
       movementTactical,
       path.slice(0, poisonForecast.traversedTiles + 1),
-      'entered-tiles',
+      options.independentAllowance ? 'skill-entered-tiles' : 'entered-tiles',
       prepared.statBalancePolicyVersion,
       prepared.airborneJumpPolicyVersion,
     )
@@ -240,6 +241,7 @@ export function evaluatePreparedCombatWalking(
 }
 
 export interface CombatWalkingExecutionOptions {
+  readonly independentAllowance?: boolean
   readonly maximumTiles?: number
   /** Captured native Basic Move price; committed attached Move always costs zero here. */
   readonly apPerTraversalPoint?: number
@@ -260,6 +262,7 @@ export function executePreparedCombatWalking(
     consumeCommittedCombatMovement(options.committed, prepared, actorId, {
       path: movementPath,
       maximumTiles: options.maximumTiles!,
+      independentAllowance: options.independentAllowance,
     })
   const nativeHooks = options.nativeHooks
   let next = prepared
@@ -299,7 +302,7 @@ export function executePreparedCombatWalking(
       !evaluateCurrentMovementPath(
         airborneMovementTactical(next, content),
         [movementPath[index - 1]!, position],
-        'entered-tiles',
+        options.independentAllowance ? 'skill-entered-tiles' : 'entered-tiles',
         next.statBalancePolicyVersion,
         next.airborneJumpPolicyVersion,
       ).legal
@@ -309,7 +312,7 @@ export function executePreparedCombatWalking(
     const moved = moveCurrentCombatant(
       airborneMovementTactical(next, content),
       [movementPath[index - 1]!, position],
-      'entered-tiles',
+      options.independentAllowance ? 'skill-entered-tiles' : 'entered-tiles',
       next.statBalancePolicyVersion,
       next.airborneJumpPolicyVersion,
     )
@@ -355,6 +358,14 @@ export function executePreparedCombatWalking(
     })
     next = reattachStatDrivenCombatBridge(resolved.state, next.statBridge)
     movementEffectEvents.push(...resolved.events)
+    const readiness = nativeHooks?.settleMovementReadiness?.(
+      { state: next, events: [] },
+      options.committed ? undefined : { combatantId: actorId, amount: spentEconomy },
+    )
+    if (readiness) {
+      next = reattachStatDrivenCombatBridge(readiness.state, next.statBridge)
+      movementEffectEvents.push(...readiness.events)
+    }
   }
   // One command retains one movement receipt, even though hazards resolve at each tile.
   const moves = movementEvents.filter(

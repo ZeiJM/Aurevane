@@ -12,7 +12,7 @@
   min-height: 0;
   padding: 0.6rem 0.6rem 0.4rem;
 }
-.stage > :global([data-battle-side]) {
+.stage :global([data-battle-side]) {
   position: relative;
   container-type: size;
   display: grid;
@@ -22,21 +22,21 @@
   min-height: 0;
   overflow: hidden;
 }
-.stage > :global([data-battle-side='local']) {
+.stage :global([data-battle-side='local']) {
   grid-area: local;
   grid-template-rows: repeat(2, minmax(0, 1fr));
 }
-.stage > :global([data-battle-side='local']) > :global([data-battle-combatant-card]) {
+.stage :global([data-battle-side='local']) > :global([data-battle-combatant-card]) {
   height: 100%;
   align-content: start;
   box-sizing: border-box;
 }
-.stage > :global([data-battle-side='selected']) {
+.stage :global([data-battle-side='selected']) {
   grid-area: selected;
   grid-template-rows: auto minmax(0, 1fr);
   gap: 0;
 }
-.stage > :global([data-battle-side]) > :first-child {
+.stage :global([data-battle-side]) > :first-child {
   min-height: 0;
   overflow: visible;
 }
@@ -53,14 +53,14 @@
     grid-template-areas: 'local' 'board' 'preview' 'cockpit' 'selected';
     padding: 0.4rem;
   }
-  .stage > :global([data-battle-side]) {
+  .stage :global([data-battle-side]) {
     container-type: normal;
     overflow: visible;
   }
-  .stage > :global([data-battle-side='local']) {
+  .stage :global([data-battle-side='local']) {
     grid-template-rows: repeat(2, auto);
   }
-  .stage > :global([data-battle-side='local']) > :global([data-battle-combatant-card]) {
+  .stage :global([data-battle-side='local']) > :global([data-battle-combatant-card]) {
     height: auto;
   }
 }

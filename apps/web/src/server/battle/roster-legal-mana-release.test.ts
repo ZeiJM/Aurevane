@@ -79,7 +79,7 @@ describe('actual legal Aether in Poise release at its required movement opportun
       ).toEqual({ x: 2, y: 1 })
       expect(readPv1fActionEconomy(result.state, actorId)!.current).toBe(50)
       expect(result.state.tactical.battle.currentTurn!.movementRemaining).toBe(
-        duel.state.tactical.battle.currentTurn!.movementRemaining - 1,
+        duel.state.tactical.battle.currentTurn!.movementRemaining,
       )
       expect(result.state.tactical.battle.combatants.find((u) => u.id === actorId)!.mp).toBe(
         duel.state.tactical.battle.combatants.find((u) => u.id === actorId)!.mp - 8,

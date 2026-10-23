@@ -1069,6 +1069,22 @@
   color: var(--av-teal-bright);
 }
 
+/* Battle Hall fills the phone viewport above the existing navigation dock. */
+@media (max-width: 760px) {
+  .worldFrame .shell:has([data-battle-hall-workspace]) {
+    height: 100dvh;
+    min-height: 0;
+    grid-template-rows: auto minmax(0, 1fr);
+    overflow: hidden;
+  }
+
+  .shell:has([data-battle-hall-workspace]) .main {
+    min-height: 0;
+    overflow: hidden;
+    padding: 0.35rem;
+  }
+}
+
 /* mobile type floor */
 @media (max-width: 760px) {
   .activeBattleLink,

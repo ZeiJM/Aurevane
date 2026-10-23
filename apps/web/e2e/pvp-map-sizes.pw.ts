@@ -1,3 +1,4 @@
+import { setBattleChronicleOpen } from './battle-log-layout-helpers'
 import { randomUUID } from 'node:crypto'
 
 import { expect, test, type Page } from '@playwright/test'
@@ -149,7 +150,9 @@ for (const [size, label, width, tiles] of [
       await expect(spectator.locator('#battlefield button[aria-label^="Tile "]')).toHaveCount(tiles)
       await expectRecordedBattleRound(spectator)
       const versus = spectator.locator('[data-battle-versus]')
-      await expect(versus).toBeVisible()
+      const mobile = await spectator.locator('[data-battle-mobile-chronicle-toggle]').isVisible()
+      if (mobile) await expect(versus).toBeHidden()
+      else await expect(versus).toBeVisible()
       const seam = await versus.evaluate((node) => {
         const cards = [...node.parentElement!.querySelectorAll('[data-battle-combatant-card]')].map(
           (card) => card.getBoundingClientRect(),
@@ -161,8 +164,17 @@ for (const [size, label, width, tiles] of [
           pointerEvents: getComputedStyle(node).pointerEvents,
         }
       })
-      expect(seam.delta).toBeLessThanOrEqual(1)
-      expect(seam.width).toBeLessThanOrEqual(108)
+      if (!mobile) {
+        expect(seam.delta).toBeLessThanOrEqual(1)
+        expect(seam.width).toBeLessThanOrEqual(108)
+      } else {
+        const cards = await spectator
+          .locator('[data-battle-side="local"] > [data-battle-combatant-card]')
+          .evaluateAll((nodes) => nodes.map((node) => node.getBoundingClientRect().toJSON()))
+        expect(cards).toHaveLength(2)
+        expect(Math.abs(cards[0].top - cards[1].top)).toBeLessThanOrEqual(1)
+        expect(cards[0].right).toBeLessThanOrEqual(cards[1].left)
+      }
       expect(seam.pointerEvents).toBe('none')
       for (const page of [host, guest, spectator]) {
         await expectBattleChronicleGutterGeometry(page)
@@ -235,12 +247,14 @@ for (const [size, label, width, tiles] of [
           'true',
         )
         for (const page of [host, guest, spectator]) {
+          await setBattleChronicleOpen(page, true)
           await expect(
             page.locator('[data-battle-chronicle-heading] [data-battle-round]'),
           ).toHaveAttribute('data-battle-round', String(committed.snapshot.tactical.battle.round))
           await expect(page.locator('[data-battle-chronicle]')).toContainText(
             `${idleName} stands around and does nothing.`,
           )
+          await setBattleChronicleOpen(page, false)
         }
       }
       expect(committed.snapshot.tactical.battle.round).toBe(

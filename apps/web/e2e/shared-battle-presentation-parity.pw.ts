@@ -12,7 +12,7 @@ import {
   expectBattlePreviewFits,
   expectBattleHeaderAndArtworkGeometry,
 } from './battle-reference-layout-helpers'
-import { expectReadableBattleLog } from './battle-log-layout-helpers'
+import { expectReadableBattleLog, setBattleChronicleOpen } from './battle-log-layout-helpers'
 
 const SHARED_HEADER =
   /^(Steel is drawn\. The battle is underway\.|Stand fast\. The field belongs to the resolute\.|Hold your nerve\. One clear move can turn the tide\.|Press forward\. Fortune follows the decisive\.|Every step has weight\. Make this one count\.)$/
@@ -382,6 +382,7 @@ test('keeps requested PvP presentation parity on desktop and mobile', async ({
       activePage,
       activeRoot.getByRole('button', { name: new RegExp(`occupied by ${activeName}`) }),
     )
+    await setBattleChronicleOpen(activePage, true)
     await expect(
       activeRoot
         .locator('[data-battle-inline-log]')

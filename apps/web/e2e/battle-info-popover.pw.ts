@@ -112,7 +112,7 @@ test('shared compact readers retain complete reports and consume the first armed
   await expectUnchangedBattle()
   await page.keyboard.press('Escape')
   await expect(panels).toHaveCount(0)
-  await expect(attack).toBeFocused()
+  await expect(root).toBeFocused()
 
   await root.focus()
   await page.keyboard.press('Digit3')

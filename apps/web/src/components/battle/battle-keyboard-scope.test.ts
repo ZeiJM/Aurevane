@@ -21,6 +21,23 @@ describe('combat shortcuts while reading', () => {
 })
 
 describe('closed information trigger focus', () => {
+  it.each(['Digit4', 'KeyW', 'ArrowRight', 'Escape'])(
+    'does not trap %s on a closed effect trigger',
+    (code) => {
+      class Trigger {
+        isContentEditable = false
+        closest(selector: string) {
+          return selector.includes('[data-battle-effect-trigger]') ? this : null
+        }
+      }
+      vi.stubGlobal('document', { querySelector: () => null })
+      vi.stubGlobal('HTMLElement', Trigger)
+      vi.stubGlobal('HTMLInputElement', class {})
+      vi.stubGlobal('HTMLTextAreaElement', class {})
+      vi.stubGlobal('HTMLSelectElement', class {})
+      expect(isBattleShortcutBlocked(new Trigger() as unknown as EventTarget, code)).toBe(false)
+    },
+  )
   it('allows numbered commands after closing information while retaining native Space activation', () => {
     class Trigger {
       isContentEditable = false

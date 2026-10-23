@@ -867,6 +867,7 @@ function walkingPaths(
         continue
       const next = [...path, position]
       const legal = evaluatePreparedCombatWalking(state, next, PV1F_COMBAT_CONTENT, {
+        independentAllowance: true,
         maximumTiles,
         ignorePoisonForecast: true,
       }).movement.legal

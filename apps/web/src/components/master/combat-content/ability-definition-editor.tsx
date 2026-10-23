@@ -146,8 +146,10 @@ function AbilityGroupEditor({
               next.cooldown = null
               next.targeting = null
             }
-            if (activation === 'automatic' && next.mode === 'action')
+            if (activation === 'automatic' && next.mode === 'action') {
               next.automaticTarget ??= { subject: 'selected' }
+              next.automaticTrigger ??= 'requirements-met'
+            }
             if (activation !== 'automatic') {
               delete next.automaticTarget
               delete next.automaticTrigger
@@ -168,8 +170,10 @@ function AbilityGroupEditor({
             if (mode === 'modifier') {
               delete next.automaticTarget
               delete next.automaticTrigger
-            } else if (value.activation === 'automatic')
+            } else if (value.activation === 'automatic') {
               next.automaticTarget = { subject: 'selected' }
+              next.automaticTrigger ??= 'requirements-met'
+            }
             onChange(rebindSimpleRequirement(next))
           }}
         />

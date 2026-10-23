@@ -1,6 +1,6 @@
 'use client'
 
-import { useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useSkillElementalDamagePolicyVersion } from '../character/skill-effect-timing-context'
 import { statusPotencyDescription } from '@/lib/status-potency-presentation'
 import { combatStatusDetails } from '@aurevane/game-core/combat/status-content'
@@ -19,6 +19,11 @@ import {
   chronicleMissingResult,
 } from './battle-log-chronicle-text'
 import styles from './battle-log-chronicle.module.css'
+
+function chronicleScrollPort(reader: HTMLDivElement): HTMLElement {
+  const lower = reader.closest<HTMLElement>('[data-battle-mobile-lower-panel]')
+  return lower && getComputedStyle(lower).display !== 'contents' ? lower : reader
+}
 
 function ChronicleTechnique({
   action,
@@ -129,10 +134,10 @@ export function BattleLogChronicle({
   const followLive = useRef(true)
   const readingAnchor = useRef<{ key: string; round: string; offset: number } | null>(null)
 
-  function rememberReadingPosition() {
+  const rememberReadingPosition = useCallback(() => {
     const reader = scrollRef.current
     if (!reader) return null
-    const top = reader.getBoundingClientRect().top
+    const top = chronicleScrollPort(reader).getBoundingClientRect().top
     const anchor = [
       ...reader.querySelectorAll<HTMLElement>(
         '[data-chronicle-action], [data-chronicle-round-anchor]',
@@ -148,12 +153,34 @@ export function BattleLogChronicle({
     const round = anchor?.closest<HTMLElement>('[data-chronicle-round]')
     const content = round?.querySelector<HTMLElement>('[data-chronicle-round-content]')
     return round && content && !content.hidden ? Number(round.dataset.chronicleRound) : null
-  }
+  }, [])
 
   useLayoutEffect(() => {
     const reader = scrollRef.current
-    if (reader && followLive.current) reader.scrollTop = reader.scrollHeight
-    else if (reader && readingAnchor.current) {
+    if (!reader) return
+    const lower = reader.closest<HTMLElement>('[data-battle-mobile-lower-panel]')
+    const onScroll = (event: Event) => {
+      const port = chronicleScrollPort(reader)
+      if (event.currentTarget !== port || reader.getClientRects().length === 0) return
+      followLive.current = port.scrollHeight - port.clientHeight - port.scrollTop < 24
+      const visibleRound = rememberReadingPosition()
+      setReadingRound(followLive.current ? null : visibleRound)
+    }
+    // Both ports stay subscribed so rotation can change the scroll owner without a remount.
+    reader.addEventListener('scroll', onScroll, { passive: true })
+    lower?.addEventListener('scroll', onScroll, { passive: true })
+    return () => {
+      reader.removeEventListener('scroll', onScroll)
+      lower?.removeEventListener('scroll', onScroll)
+    }
+  }, [rememberReadingPosition])
+
+  useLayoutEffect(() => {
+    const reader = scrollRef.current
+    if (!reader || reader.getClientRects().length === 0) return
+    const port = chronicleScrollPort(reader)
+    if (followLive.current) port.scrollTop = port.scrollHeight
+    else if (readingAnchor.current) {
       const saved = readingAnchor.current
       const anchors = [
         ...reader.querySelectorAll<HTMLElement>(
@@ -168,9 +195,9 @@ export function BattleLogChronicle({
       const fallback = anchors.find((item) => item.dataset.chronicleRoundAnchor === saved.round)
       const target = anchor ?? fallback
       if (target)
-        reader.scrollTop +=
+        port.scrollTop +=
           target.getBoundingClientRect().top -
-          reader.getBoundingClientRect().top -
+          port.getBoundingClientRect().top -
           (anchor ? saved.offset : 0)
     }
   }, [rounds, liveRound, roundOverrides, readingRound])
@@ -184,14 +211,6 @@ export function BattleLogChronicle({
       data-battle-log-reader="true"
       tabIndex={0}
       ref={scrollRef}
-      onScroll={() => {
-        const reader = scrollRef.current
-        if (reader) {
-          followLive.current = reader.scrollHeight - reader.clientHeight - reader.scrollTop < 24
-          const visibleRound = rememberReadingPosition()
-          setReadingRound(followLive.current ? null : visibleRound)
-        }
-      }}
     >
       {rounds.length === 0 ? (
         <p className={styles.empty}>{emptyMessage}</p>

@@ -11,11 +11,13 @@ import { hasCurrentPoison, hasCurrentBleed, currentBurnInstance } from './combat
 import {
   prepareCombatAbilityCommand,
   commitCombatAbilityCommand,
+  createCombatNativeAbilityRuntime,
   combatAbilityParticipant,
   combatAbilityParticipantIssues,
   combatAbilityCostIssues,
   type ManualCombatModifierSelection,
 } from './combat-ability-command'
+import { PV1F_COMBAT_CONTENT } from './pv1f-combat-content'
 import {
   type CombatEncounterState,
   type CombatContentCatalog,
@@ -473,7 +475,7 @@ function updateControlledAbility(
   operation: 'prime' | 'cancel',
 ): CombatResolutionTransition {
   const state = updateCombatControlledAbility(input, operation)
-  return {
+  const transition = {
     state: reconcileCombatAbilitySources(
       state,
       (state.capturedAbilitySources ?? []).filter((source) =>
@@ -482,6 +484,13 @@ function updateControlledAbility(
     ),
     events: [],
   }
+  const runtime = createCombatNativeAbilityRuntime(input.state, PV1F_COMBAT_CONTENT)
+  if (!runtime) return transition
+  const observed = runtime.observeMutation(input.state, transition, {
+    triggeringCombatantId: input.actorId,
+    affectedCombatantIds: [input.actorId],
+  })
+  return runtime.settleOutcomes!({ state: observed, events: [] })
 }
 
 /** Strict restore validation happens at the owning encounter reader; this never dispatches. */

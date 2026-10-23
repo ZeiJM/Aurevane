@@ -221,7 +221,7 @@
     padding-bottom: 0;
   }
 }
-@media (max-width: 820px) {
+@media (max-width: 820px), (max-width: 980px) and (max-height: 500px) and (pointer: coarse) {
   .card {
     display: grid;
     grid-template-columns: var(--av-cockpit-art-size) minmax(0, 1fr);
@@ -245,5 +245,50 @@
   }
   .card > section {
     grid-column: 2;
+  }
+}
+
+/* Two compact summaries sit side by side above the mobile battlefield. */
+@media (max-width: 820px), (max-width: 980px) and (max-height: 500px) and (pointer: coarse) {
+  .card {
+    grid-template-columns: 2.5rem minmax(0, 1fr);
+    grid-template-rows: auto auto auto;
+    gap: 0.1rem 0.2rem;
+    padding: 0.2rem;
+    height: auto;
+  }
+  .card .portrait {
+    width: 2.5rem;
+    height: 2.5rem;
+    grid-row: 2;
+  }
+  .identity {
+    padding: 0 0.1rem;
+  }
+  .identity strong {
+    font-size: 0.8125rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .vitals {
+    grid-column: 2;
+    grid-row: 2;
+    align-self: center;
+    padding: 0;
+    gap: 0.15rem;
+  }
+  .vitals span {
+    font-size: 0.625rem;
+  }
+  .card > section {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    max-height: 2.25rem;
+    overflow: auto;
+    padding: 0.1rem;
+  }
+  .card > section > header {
+    display: none;
   }
 }
