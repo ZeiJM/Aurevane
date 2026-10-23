@@ -53,6 +53,7 @@ export default async function MasterCombatContentPage() {
           initialPage={initialPage}
           initialRecord={initialRecord}
           references={references}
+          tagPresentations={catalogue.tagPresentations ?? []}
         />
       </MasterPanelShell>
     </SkillEffectTimingProvider>

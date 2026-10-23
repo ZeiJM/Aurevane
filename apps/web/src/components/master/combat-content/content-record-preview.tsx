@@ -1,5 +1,9 @@
 'use client'
 import { Component, useState, type ReactNode } from 'react'
+import {
+  bindCombatTagPresentations,
+  type CombatTagPresentationSnapshot,
+} from '@aurevane/game-core/combat/combat-tag-registry'
 import type { CombatContentDefinition, CombatContentKind } from '@aurevane/db/combat-content'
 import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
 import type { AnyResonanceDefinition } from '@aurevane/game-core/combat/resonance'
@@ -48,12 +52,14 @@ function SharedPreview({
   actor,
   target,
   amount,
+  tagPresentations,
 }: {
   kind: CombatContentKind
   definition: CombatContentDefinition
   actor: string
   target: string
   amount: number
+  tagPresentations: readonly CombatTagPresentationSnapshot[]
 }) {
   const originalBody = kind === 'essence' ? objectValue(definition.skill) : definition
   if (
@@ -61,7 +67,9 @@ function SharedPreview({
     validateAbilityDefinition(originalBody.ability).length > 0
   )
     return <p>Resolve Ability compatibility to show the player preview.</p>
-  const safe = projectPublicCombat(definition)
+  // This is a current authoring preview, never an exact/captured-history reader.
+  // Bind only the copied presentation view; Save/Publish retain the raw definition.
+  const safe = projectPublicCombat(bindCombatTagPresentations(definition, tagPresentations))
   const body = kind === 'essence' ? objectValue(safe.skill) : safe
   const name = contentRecordName(safe)
   const ability = body.ability as AbilityDefinition | undefined
@@ -223,11 +231,13 @@ export function ContentRecordPreview({
   working,
   saved,
   current,
+  tagPresentations = [],
 }: {
   kind: CombatContentKind
   working: CombatContentDefinition
   saved: CombatContentDefinition | null
   current: CombatContentDefinition | null
+  tagPresentations?: readonly CombatTagPresentationSnapshot[]
 }) {
   const [view, setView] = useState<'working' | 'saved' | 'current' | 'compare'>('working')
   const [actor, setActor] = useState('Sample author'),
@@ -298,6 +308,7 @@ export function ContentRecordPreview({
               actor={actor}
               target={target}
               amount={amount}
+              tagPresentations={tagPresentations}
             />
           </PreviewBoundary>
           <h4>Local draft</h4>
@@ -314,6 +325,7 @@ export function ContentRecordPreview({
             actor={actor}
             target={target}
             amount={amount}
+            tagPresentations={tagPresentations}
           />
         </PreviewBoundary>
       ) : (

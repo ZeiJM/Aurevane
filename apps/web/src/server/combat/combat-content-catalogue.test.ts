@@ -435,6 +435,9 @@ it('binds catalogue Tags from its single snapshot even when the next read would 
   const resolver = createCombatContentResolver(new RpcPublishedCombatContentSource(rpc))
   const catalogue = await resolver.resolveCurrentCatalogue!()
   expect(catalogue.token).toBe('a'.repeat(32))
+  expect(catalogue.tagPresentations).toEqual([
+    expect.objectContaining({ tagId: 'damage', name: 'Captured impact', contentVersion: 1 }),
+  ])
   const basic = catalogue.entries.find((entry) => entry.contentKey === 'unarmed.basic')!
   expect(JSON.stringify(basic).includes('Captured impact')).toBe(true)
   expect(JSON.stringify(basic).includes('Later impact')).toBe(false)

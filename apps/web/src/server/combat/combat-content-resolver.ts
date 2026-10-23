@@ -138,6 +138,8 @@ export type CombatContentCatalogueEntry = CatalogueIdentity &
       }
   )
 export interface CombatContentCatalogue {
+  /** Current presentation dictionary captured with this catalogue token. */
+  readonly tagPresentations?: readonly CombatTagPresentationSnapshot[]
   readonly token: string
   readonly policy: CombatEffectTimingPolicy
   readonly entries: readonly CombatContentCatalogueEntry[]
@@ -548,10 +550,14 @@ export function createCombatContentResolver(
         'A complete combat catalogue is unavailable.',
       )
     const snapshot = await source.readCatalogueSnapshot()
-    return bindCombatTagPresentations(
-      resolveCombatContentCatalogueSnapshot(snapshot),
-      admissionTags ?? catalogueTagPresentations(snapshot),
-    )
+    const tagPresentations = admissionTags ?? catalogueTagPresentations(snapshot)
+    return {
+      ...bindCombatTagPresentations(
+        resolveCombatContentCatalogueSnapshot(snapshot),
+        tagPresentations,
+      ),
+      tagPresentations,
+    }
   }
   async function resolveCurrentSkillDefinitions(
     skillIds: readonly string[],

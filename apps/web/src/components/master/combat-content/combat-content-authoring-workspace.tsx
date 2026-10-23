@@ -1,5 +1,9 @@
 'use client'
 import { useRef, useState } from 'react'
+import {
+  captureCombatTagPresentation,
+  type CombatTagPresentationSnapshot,
+} from '@aurevane/game-core/combat/combat-tag-registry'
 import { BASIC_SKILL_IDS } from '@aurevane/game-core/combat/combat-basic-actions'
 import type {
   CombatContentDefinition,
@@ -32,6 +36,7 @@ export interface CombatContentAuthoringWorkspaceProps {
   readonly initialPage?: CombatContentListPage
   readonly initialRecord?: CompleteCombatContentRecord | null
   readonly references?: readonly ContentReference[]
+  readonly tagPresentations?: readonly CombatTagPresentationSnapshot[]
 }
 const categoryOf = (record: Pick<CompleteCombatContentRecord, 'contentKind' | 'contentKey'>) =>
   record.contentKind === 'skill' &&
@@ -43,7 +48,9 @@ export function CombatContentAuthoringWorkspace({
   initialPage = { records: [], nextCursor: null },
   initialRecord = null,
   references = [],
+  tagPresentations: initialTagPresentations = [],
 }: CombatContentAuthoringWorkspaceProps) {
+  const [tagPresentations, setTagPresentations] = useState(initialTagPresentations)
   const [record, setRecord] = useState(initialRecord)
   const [definition, setDefinition] = useState<CombatContentDefinition | null>(
     initialRecord ? editableDefinition(initialRecord) : null,
@@ -176,6 +183,22 @@ export function CombatContentAuthoringWorkspace({
     await work(async () => {
       const result = await contentRecordCommand<{ record: CompleteCombatContentRecord }>(command)
       accept(result.record, revision !== editRevision.current)
+      if (
+        result.record.contentKind === 'tag' &&
+        (command.action === 'publish' || command.action === 'archive')
+      ) {
+        const published = result.record.current?.definition
+        const next =
+          result.record.lifecycle !== 'archived' && published?.enabled !== false && published
+            ? captureCombatTagPresentation(
+                published as Parameters<typeof captureCombatTagPresentation>[0],
+              )
+            : null
+        setTagPresentations((old) => [
+          ...old.filter((row) => row.contentKey !== result.record.contentKey),
+          ...(next ? [next] : []),
+        ])
+      }
       setNotice(
         revision !== editRevision.current
           ? 'Saved earlier changes; newer local edits remain unsaved.'
@@ -744,6 +767,7 @@ export function CombatContentAuthoringWorkspace({
             <ContentRecordPreview
               kind={newDefinition ? descriptor!.storedKind : record!.contentKind}
               working={activeDefinition}
+              tagPresentations={tagPresentations}
               saved={newDefinition ? null : (record?.draft?.definition ?? null)}
               current={
                 newDefinition

@@ -2,6 +2,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { expect, it, vi } from 'vitest'
 import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
 import { SUPPORT_ACTION_IDS } from '@aurevane/game-core/combat/support-actions'
+import { EffectTagLabel } from '@/components/character/compact-skill-effect-summary'
 import { ContentRecordPreview } from './content-record-preview'
 import { CombatContentAuthoringWorkspace } from './combat-content-authoring-workspace'
 vi.mock('server-only', () => ({}))
@@ -69,3 +70,35 @@ it.each(['basic.recover', 'basic.recover.mp'])(
     expect(text).toContain('does not simulate a battle')
   },
 )
+
+it('renders current catalogue Tag wording in raw authoring previews without modifying the saved definition', () => {
+  const definition = structuredClone(
+    defaultBasicSkills().find((row) => row.id === 'unarmed.basic')!,
+  )
+  const original = structuredClone(definition)
+  const tag = {
+    contentKey: 'tag.damage',
+    contentVersion: 8,
+    tagId: 'damage',
+    name: 'Impact',
+    compact: 'Changed damage wording.',
+    full: 'Snapshot published explanation.',
+  }
+  const html = renderToStaticMarkup(
+    <ContentRecordPreview
+      kind="skill"
+      working={{ ...definition }}
+      saved={null}
+      current={null}
+      tagPresentations={[tag]}
+    />,
+  )
+  expect(html).toContain('Explain Impact')
+  // The real popover mounts its body only when opened; inspect the shared label's actual body separately.
+  expect(
+    renderToStaticMarkup(EffectTagLabel({ label: 'Damage', tagPresentation: tag }).props.children),
+  ).toContain('Snapshot published explanation.')
+  expect(html).toContain('data-tag-version="8"')
+  expect(definition).toEqual(original)
+  expect(definition.ability).not.toHaveProperty('tagPresentation')
+})

@@ -169,3 +169,25 @@ it('fails honestly when the authoritative catalogue is unavailable', async () =>
   source.read.mockRejectedValue(new Error('catalogue unavailable'))
   await expect(MasterCombatContentPage()).rejects.toThrow('catalogue unavailable')
 })
+
+it('passes current Tag wording from the same catalogue call into previews without another source read', async () => {
+  const tags = [
+    {
+      contentKey: 'tag.damage',
+      contentVersion: 8,
+      tagId: 'damage',
+      name: 'Impact',
+      compact: 'Impact power.',
+      full: 'Current exact catalogue explanation.',
+    },
+  ]
+  source.read.mockResolvedValueOnce({
+    policy: defaultCombatEffectTimingPolicy(),
+    entries: [],
+    tagPresentations: tags,
+  })
+  const { props } = await pageProps()
+  expect(props.tagPresentations).toEqual(tags)
+  expect(source.read).toHaveBeenCalledTimes(1)
+  expect(source.record).toHaveBeenCalledTimes(1)
+})
