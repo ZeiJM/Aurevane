@@ -25,7 +25,10 @@ concurrency:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # The authenticated Atlas suite covers many full-route journeys; the previous
+    # 20-minute cap cancelled an otherwise progressing run at scenario 39.
+    # Retain the entire test suite and allow the real run to finish.
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
