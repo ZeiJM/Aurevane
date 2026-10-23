@@ -59,7 +59,9 @@ test('Techniques preserves geometry through previews, pending saves and failed s
     const supportTab = dialog.getByRole('tab', { name: 'Support', exact: true })
     if (await supportTab.isVisible()) await supportTab.click()
     await dialog.getByRole('radio', { name: 'HP Recovery', exact: true }).check()
-    await expect(dialog.getByText('Saving selection…', { exact: true })).toBeVisible()
+    // Compact Techniques hides its old footer at phone widths; assert the pending
+    // live-region state without requiring a visible bottom notification.
+    await expect(dialog.locator('[aria-live="polite"]', { hasText: 'Saving selection…' })).toHaveText('Saving selection…')
     await expect.poll(() => Boolean(releaseSave)).toBe(true)
     expectGeometry(await geometry(dialog), baseline, `${width}x${height}: Support save pending`)
     releaseSave!()
@@ -71,7 +73,9 @@ test('Techniques preserves geometry through previews, pending saves and failed s
     if (await disciplineTab.isVisible()) await disciplineTab.click()
     const skill = dialog.locator('[data-technique-card] input:not(:disabled)').first()
     await skill.check()
-    await expect(dialog.getByText('Saving selection…', { exact: true })).toBeVisible()
+    // Compact Techniques hides its old footer at phone widths; assert the pending
+    // live-region state without requiring a visible bottom notification.
+    await expect(dialog.locator('[aria-live="polite"]', { hasText: 'Saving selection…' })).toHaveText('Saving selection…')
     await expect.poll(() => Boolean(releaseSave)).toBe(true)
     expectGeometry(await geometry(dialog), baseline, `${width}x${height}: Skill save pending`)
     releaseSave!()
