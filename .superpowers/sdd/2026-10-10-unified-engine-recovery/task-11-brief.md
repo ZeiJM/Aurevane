@@ -1,3 +1,80 @@
+## REQUIRED first dependency checkpoint from Task10 cap adjudication
+
+Before Rules/Music/World work, close the four confirmed Important Stage D adapter defects and M1 below. They are inherited load-bearing dependencies expressly carried into this next approved task at Task10's exhausted5/5 cap, not a sixth D fix wave or a reset. Root verified their concrete producer/consumer contracts. Use one implementation seat for the entire Task11; do not delegate. Produce one early coherent checkpoint with meaningful RED/GREEN controls and affected types/lint/format, then continue the operational scope below. Do not change the kernel, Basic parser key contract, unpublished-media public ACL, stored definitions/history or current/exact Tag semantics to make preview code pass.
+
+Read the detailed review at docs/verification/task-10-reconstruction/stage-d-review-20261023.md for evidence; exact findings are reproduced here. Final Task11 report must separately map I1–I4 and M1 to source/tests, and its combined review must verdict them closed. Keep M2 tracked for13. Root owns actual physical/native browser/hosted operations. The current D native run is evidence on the old frozen D source, not a pass for your later changes.
+
+## Important findings
+
+### I1 — The Basic Text form creates an unsupported field and makes the draft unsavable
+
+**Location:** `apps/web/src/components/master/combat-content/content-definition-fields.tsx:640–647`.
+
+The shared combat Text section offers **Flavor line** for Basics as well as Discipline Skills, Essences and Resonances. Its callbacks always set a top-level `flavorLine`. Every Basic definition has a strict top-level key allowlist; `flavorLine` is absent from it (`packages/game-core/src/combat/combat-basic-actions.ts:66–88`). Only the supported Basic text fields, including `description`, `battleText` and `presentation`, may be written.
+
+Reproduction from the actual source path: open any of the five Basics, select Text, type into Flavor line, then Save draft or Validate. The resulting Basic fails with `flavorLine / unknown-key / Unsupported Basic Skill field`. Clearing the input still writes an empty `flavorLine` property, so clearing it does not recover a valid definition. The retired Basic editor did not expose this unsupported field.
+
+This violates the requirement to finish applicable fields for all five independently editable Basics. The new Basic tests only mount the Text tab and check for Description; they do not exercise the offered field through the strict parser.
+
+**Requested correction:** make the shared Text controls category-aware and keep Basic edits within their existing definition contract. Preserve the supported Basic presentation fields; do not add a new mechanic or silently discard a user's other text. Cover the actual Text callback through validation/save for all Basic identities, including clearing an optional field.
+
+### I2 — Unpublished finalized media cannot load in the main authoring previews
+
+**Location:** `apps/web/src/components/master/combat-content/content-record-preview.tsx:77–78`.
+
+The main full/compact/comparison preview obtains artwork and audio URLs using `contentMediaSource(media.artwork)` and `contentMediaSource(media.audio)` without the preview flag. The helper defaults to `/api/content-media/<id>` (`packages/game-core/src/combat/content-media.ts:84–85`). That public route calls `readPublished`; the accepted SQL intentionally returns a media asset only when an immutable publication references it (`supabase/migrations/20261022214821_finalized_combat_content_media.sql:89–90`). A newly finalized upload referenced only by a local or saved draft therefore returns 404 here.
+
+The Media tab already uses the authorized private preview route, via `contentMediaSource(value.artwork, true)` and the corresponding audio call (`finalized-media-editor.tsx:211,237`). Consequently a newly uploaded image/sound can work in the Media tab while appearing broken in the main draft and comparison previews until publication. This defeats review-before-publication for the newly added preview surface. The pending media E2E edits target the Media controls, which does not establish that these main preview URLs work.
+
+**Requested correction:** use the protected authoring media-read path for unpublished authoring previews while preserving the public route's published-only reachability restriction. Cover new local media and saved-but-unpublished media in the actual preview; keep already published and exact retained media working. Do not make unpublished assets public to repair the preview.
+
+### I3 — Main compact and activation previews ignore the authored presentation text
+
+**Locations:** `apps/web/src/components/master/combat-content/content-record-preview.tsx:112` and `:185`.
+
+There are two omissions in the new preview adapter:
+
+1. Sample messages set `actionContext.battleText` only from the legacy `body.battleText`. Authored `body.presentation.activation` is not selected for that field. The real Chronicle consumes `actionContext.battleText ?? actionContext.flavor` (`apps/web/src/components/battle/battle-log-chronicle-model.ts:275–278`); merely attaching the presentation object does not make it use its activation template. Editing the new activation template therefore leaves this sample showing legacy/fallback narration instead of the authored activation.
+2. For canonical non-Resonance definitions, Compact view calls `AbilityDefinitionParameters` directly. It bypasses `SkillParameters`, whose canonical branch renders `presentation.compact` before the parameters (`apps/web/src/components/character/skill-parameters.tsx:18–33`). Thus the compact wording edited in Text is absent from the main compact/comparison preview for canonical Skills, Basics and the nested Essence body.
+
+The separate text helper is not a substitute for the required actual full/compact/live/message preview. These are valid authored fields and can be published, so a misleading preview can survive otherwise successful validation.
+
+**Requested correction:** feed the main previews through the same presentation selection and rendering contract as the production readers, including activation precedence and compact text. Add controls with distinctive compact and activation strings, configured references, and legacy fallback text so the rendered main preview proves which field is consumed. Keep authoring Accuracy recursively excluded.
+
+### I4 — Basic previews lose native execution metadata and misdescribe edited mechanics
+
+**Locations:** `apps/web/src/components/master/combat-content/content-record-preview.tsx:185,195`.
+
+Basics are passed to the generic Ability renderer for compact view and cast to `MatureSkillDefinition` for the full `SkillDetails` view. Both routes render their Ability without passing the Basic execution envelope to `abilityBehaviorInformation`.
+
+That envelope is necessary for truthful Basic mechanics: `apps/web/src/components/character/ability-detail-presentation.ts:407–426` uses it for stronger Physical/Mystic Power scaling and recovery rounding, and `:524–526` uses it to distinguish per-terrain-point Move costs. The generic `AbilityDefinitionParameters` call supplies no `basic` option (`apps/web/src/components/character/ability-definition-parameters.tsx:43–52`). The retired Basic editor explicitly supplied `basic: draft` to that shared report builder.
+
+For example, changing Basic Attack's Higher Power scaling to 42.25% does not make the new full/compact preview describe that scaling; it describes the underlying flat Ability payload. Changing Move from flat to per-terrain-point cost or changing Recovery rounding likewise loses the execution distinction. This is a presentation regression, not a requested change to the kernel or roster balance. The new Basic preview test checks a changed AP amount and privacy, which does not cover these execution-dependent facts.
+
+**Requested correction:** retain the complete Basic execution context when rendering shared Basic information, with an explicitly illustrative character context wherever needed. Cover changed scaling, both Move cost bases and both supported recovery rounding choices in the actual full/compact preview. Preserve the public projection and existing native execution formulas.
+
+## Minor findings
+
+### M1 — The three-row history window can omit the selected current publication
+
+**Location:** `apps/web/src/components/master/combat-content/combat-content-authoring-workspace.tsx:537–538`.
+
+The UI sorts all history by descending version and takes the first three, instead of reserving one row for the selected current version. Retained state with current v2 and physical history v2/v73/v74/v75 therefore shows v75/v74/v73 and no current row. The page's own supported retained-state fixture uses exactly this form (`apps/web/src/app/master/combat-content/page.test.tsx:138–151`). The version-state banner still identifies current v2, and data is not deleted, so this is Minor rather than a persistence defect.
+
+**Requested correction:** include the actual current publication explicitly, then the appropriate two previous/other recent retained publication entries, without duplicates. Add a history-rendering control where the current pointer is older than the newest stored versions.
+
+### M2 — Inherited Vite native-config warning remains unsuppressed
+
+**Location:** `apps/web/vitest.config.ts:1`, as reported in `docs/verification/task-10-reconstruction/d-tag-preview-wiring-green2.log.gz:1–3` after decompression.
+
+The final focused Web log still warns that ESM syntax in a file loaded as CommonJS is unsupported by Vite's future native config loader. This is the already recorded C M2, not a new D source defect. The warning was not suppressed and does not invalidate the recorded exit-zero tests. Retain it in the integration inventory until a compatible configuration change is independently verified; do not describe the test logs as warning-free.
+
+
+
+Preserve same-snapshot current Tag dictionary bindings and historical exact/captured Tag snapshots while repairing previews. Use actual public/battle components, private authoring URLs only within protected authoring, and recursively strip Accuracy. Distinctive authored compact/activation strings with references and fallback strings must prove real rendering precedence; Basic tests must exercise changed42.25% stronger-Power scaling, both supported Move cost bases and both recovery rounding choices without changing execution balance/formulas. All five Basic Text forms must remain parse/save-valid after supported edits and clearing optional text. Main media previews cover local and saved-but-unpublished final assets; public unpublished reads remain denied.
+
+## Original Task11 requirements
+
 ### Task 11: Combat Rules and Site Music
 
 **Files:** Existing timing/elevation policy editor/store/service and site-music settings/media/player/route coverage components/tests; compact Rules/Music workspaces.
