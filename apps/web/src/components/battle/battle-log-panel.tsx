@@ -232,7 +232,7 @@ export function BattleLogPanel({
 
   if (presentation === 'timeline')
     return (
-      <div data-battle-compact-log="true" className={styles.inline}>
+      <div data-battle-compact-log="true" className={styles.compactInline}>
         {loading && entries.length === 0 ? (
           <p className={styles.empty}>Reading battle history…</p>
         ) : error ? (

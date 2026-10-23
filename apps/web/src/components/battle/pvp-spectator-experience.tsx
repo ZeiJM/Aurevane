@@ -86,7 +86,7 @@ export function PvpSpectatorExperience({
   initialParticipantTitles: Record<string, string | null>
 }) {
   useBattleTabCyclePrevention()
-  const { chronicleOpen, lowerPanelRef, toggleChronicle } = useBattleMobileChronicle()
+  const { chronicleOpen, lowerPanelRef } = useBattleMobileChronicle()
   const [spectator, setSpectator] = useState(initialSpectator)
   const [participantTitles, setParticipantTitles] = useState(initialParticipantTitles)
   const [connectionNote, setConnectionNote] = useState<string | null>(null)
@@ -585,17 +585,17 @@ export function PvpSpectatorExperience({
             </aside>
           </div>
         </section>
+        <div className={mobileStyles.chronicleBar} data-battle-mobile-chronicle-strip="true">
+          <BattleLogPanel
+            presentation="timeline"
+            battleSessionId={battle.battleSessionId}
+            battleVersion={battle.battleVersion}
+            combatantNames={combatantNames}
+            currentRound={battleState.round}
+            recentTurnCount={2}
+          />
+        </div>
         <footer className={mobileStyles.spectatorFooter} data-battle-mobile-footer="true">
-          <button
-            type="button"
-            className={mobileStyles.chronicleToggle}
-            data-battle-mobile-chronicle-toggle="true"
-            aria-expanded={chronicleOpen}
-            aria-controls="battle-mobile-chronicle"
-            onClick={toggleChronicle}
-          >
-            Chronicle
-          </button>
           <span>Live · Read-only</span>
         </footer>
       </main>

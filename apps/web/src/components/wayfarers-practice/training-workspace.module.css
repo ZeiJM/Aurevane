@@ -417,7 +417,7 @@
   }
   .panel .startButton,
   .panel .stopButton {
-    min-height: 2.35rem;
+    min-height: 2.5rem;
     padding-block: 0.35rem;
   }
 }

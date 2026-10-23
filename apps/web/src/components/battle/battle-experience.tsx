@@ -3185,7 +3185,7 @@ function BattleExperienceContent({
               {mode === 'finish' ? (
                 <div className={styles.previewFacing} role="group" aria-label="Choose final facing">
                   <span>Choose facing</span>
-                  {(['north', 'west', 'east', 'south'] as const).map((facing) => (
+                  {(['north', 'south', 'west', 'east'] as const).map((facing) => (
                     <button
                       type="button"
                       key={facing}
@@ -3416,14 +3416,16 @@ function BattleExperienceContent({
                           data-open="true"
                           data-unified-facing-pad="true"
                           role="group"
+                          aria-hidden="true"
                           aria-label="Final facing"
                         >
-                          {(['north', 'west', 'east', 'south'] as const).map((facing) => (
+                          {(['north', 'south', 'west', 'east'] as const).map((facing) => (
                             <button
                               type="button"
                               key={facing}
                               onClick={() => void commitValue({ kind: 'face', facing })}
                               aria-label={`Face ${facing}`}
+                              tabIndex={-1}
                               disabled={
                                 planningDisabled ||
                                 ((battle.snapshot.elementalDamagePolicyVersion === 1 ||
