@@ -1,4 +1,5 @@
 import 'server-only'
+import { throwCombatContentAdmissionError } from '../combat/combat-content-admission-error'
 
 import { FOUNDATION_DISCIPLINES } from '@aurevane/game-core/character/foundation-disciplines'
 import { latestEnabledMatureSkills } from '@aurevane/game-core/combat/mature-skills'
@@ -85,7 +86,10 @@ export async function preparePv2BuildcraftTestKit(
       p_source_kind: 'support',
       p_source_id: PV2_TEST_SOURCE_ID,
     })
-    if (error) throw persistenceUnavailable()
+    if (error) {
+      throwCombatContentAdmissionError(error)
+      throw persistenceUnavailable()
+    }
   }
 
   const representativeSkills = latestEnabledMatureSkills().filter(
@@ -106,7 +110,10 @@ export async function preparePv2BuildcraftTestKit(
       p_source_kind: 'support',
       p_source_id: PV2_TEST_SOURCE_ID,
     })
-    if (error) throw persistenceUnavailable()
+    if (error) {
+      throwCombatContentAdmissionError(error)
+      throw persistenceUnavailable()
+    }
   }
 
   return {

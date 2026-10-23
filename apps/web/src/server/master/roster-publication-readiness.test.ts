@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { CombatContentEditor } from '@/components/master/combat-content/combat-content-editor'
+import { ContentDefinitionFields } from '@/components/master/combat-content/content-definition-fields'
 import { SkillDetails } from '@/components/character/skill-details'
 import { SkillParameters } from '@/components/character/skill-parameters'
 import { projectPublicCombat } from '@aurevane/game-core/combat/public-combat-presentation'
@@ -179,19 +179,11 @@ it.each([
       )
     }
     const editor = renderToStaticMarkup(
-      createElement(CombatContentEditor, {
-        skills: [
-          {
-            id: definition.id,
-            sourceDisciplineId: definition.sourceDisciplineId,
-            label: definition.id,
-            currentVersion: definition.contentVersion,
-            baseVersion: definition.contentVersion,
-            draftVersion: null,
-            derivedTags: [],
-            definition,
-          },
-        ],
+      createElement(ContentDefinitionFields, {
+        kind: 'skill',
+        value: { ...definition },
+        tab: 'Parameters',
+        onChange: () => {},
       }),
     )
     for (const label of [

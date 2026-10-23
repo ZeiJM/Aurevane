@@ -1273,3 +1273,29 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
+
+/* Eligibility is a second control, not another artwork/name grid. Budget its real height. */
+.skill .eligibility {
+  grid-template-rows: auto auto;
+  width: 100%;
+  box-sizing: border-box;
+  justify-items: stretch;
+  align-content: start;
+  font-size: 0.8125rem;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+  cursor: default;
+}
+.eligibility select {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  min-height: 1.8rem;
+  font: inherit;
+}
+@media (min-width: 821px) and (min-height: 601px) {
+  .skill[data-has-eligibility='true'] {
+    --av-gameplay-art-size: max(1rem, min(var(--av-cockpit-art-size), calc(100cqb - 8rem)));
+  }
+}

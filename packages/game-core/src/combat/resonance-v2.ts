@@ -1,3 +1,5 @@
+import { abilityPresentationTextIssues, type AbilityPresentationText } from './battle-narration'
+import { finalizedContentMediaIssues } from './content-media'
 import {
   validateAbilityDefinition,
   assertLegacyAbilityAbsent,
@@ -31,6 +33,7 @@ export interface ResonanceDefinitionV2 {
   readonly disciplinePair: readonly [string, string]
   readonly name: string
   readonly description: string
+  readonly presentation?: AbilityPresentationText
   readonly flavorLine?: string
   readonly trigger: ResonanceSkillTriggerV2
   readonly media: ResonanceMediaHooks
@@ -155,7 +158,10 @@ export function normalizedResonanceMechanics(
 export function validateResonanceDefinitionV2(
   definition: ResonanceDefinitionV2,
 ): readonly string[] {
-  const issues: string[] = []
+  const issues: string[] = [
+    ...finalizedContentMediaIssues(definition.media),
+    ...abilityPresentationTextIssues(definition),
+  ]
   const canonical = Object.hasOwn(definition, 'ability')
   if (canonical && validateAbilityDefinition(definition.ability).length > 0) issues.push('ability')
 

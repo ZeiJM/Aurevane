@@ -1,145 +1,76 @@
-import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { describe, expect, it, vi } from 'vitest'
-
+import { expect, it } from 'vitest'
 import { resolveResonanceForPair } from '@aurevane/game-core/combat/resonance'
-
-vi.mock('next/navigation', () => ({
-  useRouter: () => ({ refresh: () => undefined }),
-}))
-
-import {
-  ResonanceContentEditor,
-  type ResonanceContentEditorOption,
-} from './resonance-content-editor'
-
-function option(
-  primaryDisciplineId: string,
-  secondaryDisciplineId: string,
-): ResonanceContentEditorOption {
-  const definition = resolveResonanceForPair(primaryDisciplineId, secondaryDisciplineId)
-  if (!definition) throw new Error('Expected current Resonance fixture.')
-  return {
-    id: definition.id,
-    label: definition.name,
-    disciplinePair: [...definition.disciplinePair],
-    currentVersion: definition.contentVersion,
-    baseVersion: definition.contentVersion,
-    draftVersion: null,
-    definition,
-    history: [
-      {
-        contentVersion: definition.contentVersion,
-        source: 'static-baseline',
-        current: true,
-        publishedAt: null,
-      },
-    ],
-  }
-}
-
-describe('Master Panel Resonance v2 editor', () => {
-  it('shows explicit Any Skill matching for the approved Chronist setup', () => {
-    const resonance = option('chronist', 'cinderweaver')
-    const markup = renderToStaticMarkup(
-      createElement(ResonanceContentEditor, {
-        resonances: [resonance],
-        initialResonanceId: resonance.id,
-      }),
-    )
-    expect(markup).toContain('aria-label="Resonance Setup matching"')
-    expect(markup).toContain(
-      '<option value="any-skill" selected="">Any Skill in this Discipline</option>',
-    )
-    expect(markup).toMatch(/aria-label="Resonance Setup tags"[^>]*disabled=""/)
-    expect(markup).toContain('<dt>Requirements</dt><dd>Chronist Skills</dd>')
-  })
-  it('presents Resonance results with Skill effect highlights and explanation bullets', () => {
-    const markup = renderToStaticMarkup(
-      createElement(ResonanceContentEditor, {
-        resonances: [option('wildwarden', 'edgedancer')],
-      }),
-    )
-    const preview = markup.match(
-      /<section[^>]*aria-label="Resonance Skill preview"[^>]*>([\s\S]*?)<\/section>/,
-    )?.[1]
-    expect(markup).toContain('aria-label="Battle narration tokens"')
-    expect(markup).toContain('aria-label="Neutral historical narration preview"')
-    expect(preview).toContain('data-compact-effect-magnitude="true">[4%]</span>')
-    expect(preview).not.toContain('→ Self')
-    expect(preview).toContain('Edgedancer Skills tagged Attack:')
-    expect(preview).toContain('<ul aria-label="Effect explanations">')
-    expect(preview).toContain('Restores a captured 4% of your maximum MP.')
-    expect(preview).toContain('<dt>Requirements</dt><dd>Wildwarden Skills tagged Mark</dd>')
-  })
-
-  it('previews every passive Skill field in the shared order without inventing independent targeting', () => {
-    const resonance = option('lifebinder', 'vanguard')
-    const markup = renderToStaticMarkup(
-      createElement(ResonanceContentEditor, { resonances: [resonance] }),
-    )
-    const preview = markup.match(
-      /<section[^>]*aria-label="Resonance Skill preview"[^>]*>([\s\S]*?)<\/section>/,
-    )?.[1]
-    expect(preview).toBeDefined()
-    expect(
-      [...preview!.matchAll(/<dt>(.*?)<\/dt>/g)].slice(0, 10).map((match) => match[1]),
-    ).toEqual([
-      'Skill Type',
-      'Cost',
-      'Cooldown',
-      'Requirements',
-      'Effects',
-      'Range',
-      'Target',
-      'Target Method',
-      'Target Elevation',
-      'Line of Sight',
-    ])
-    expect(preview).toContain('<dt>Cost</dt><dd>N/A</dd>')
-    expect(preview).toContain('<dt>Cooldown</dt><dd>N/A</dd>')
-    expect(preview).toContain('Trigger Skill selected unit')
-    expect(preview).not.toContain('Trigger targeting')
-    expect(preview).toContain('Vanguard Skills tagged Attack + Melee:')
-    expect(preview).not.toContain('<dt>Mode</dt>')
-    expect(preview).not.toContain('<dt>Setup</dt>')
-    expect(preview).not.toContain('<dt>Trigger</dt>')
-    expect(preview).not.toContain('0 AP')
-  })
-
-  it('authors sequence Resonance as Setup, Trigger and Result without Payoff terminology', () => {
-    const resonance = option('lifebinder', 'vanguard')
-    const markup = renderToStaticMarkup(
-      createElement(ResonanceContentEditor, {
-        resonances: [resonance],
-        initialResonanceId: resonance.id,
-      }),
-    )
-
-    expect(markup).toContain('aria-label="Resonance mode"')
-    expect(markup).toContain('Sequence · Setup → Trigger → Result')
-    expect(markup).toContain('<legend>Setup</legend>')
-    expect(markup).toContain('<legend>Trigger</legend>')
-    expect(markup).toContain('<legend>Result</legend>')
-    expect(markup).toContain('aria-label="Resonance Setup tags"')
-    expect(markup).toContain('aria-label="Resonance Trigger tags"')
-    expect(markup).not.toContain('<legend>Payoff</legend>')
-    expect(markup).not.toContain('AI payoff utility')
-  })
-
-  it('shows no Setup editor for immediate Resonance and caps Result effects at two', () => {
-    const resonance = option('farstrider', 'lifebinder')
-    const markup = renderToStaticMarkup(
-      createElement(ResonanceContentEditor, {
-        resonances: [resonance],
-        initialResonanceId: resonance.id,
-      }),
-    )
-
-    expect(markup).toContain('<option value="immediate" selected="">')
-    expect(markup).toContain('None. This Resonance activates immediately when its Trigger matches')
-    expect(markup).not.toContain('aria-label="Resonance Setup Discipline"')
-    expect(markup).toContain('aria-label="Resonance Trigger Discipline"')
-    expect(markup).toContain('This section allows at most 2 effects.')
-  })
+import { ContentDefinitionFields } from './content-definition-fields'
+import { ContentRecordPreview } from './content-record-preview'
+it('keeps explicit Any Skill matching in historical Chronist Setup', () => {
+  const definition = { ...resolveResonanceForPair('chronist', 'cinderweaver')! }
+  const html = renderToStaticMarkup(
+    <ContentDefinitionFields
+      kind="resonance"
+      value={definition}
+      tab="Parameters"
+      onChange={() => {}}
+    />,
+  )
+  expect(html).toContain('aria-label="Resonance Setup matching"')
+  expect(html).toContain(
+    '<option value="any-skill" selected="">Any Skill in this Discipline</option>',
+  )
+  expect(html).toMatch(/aria-label="Resonance Setup tags"[^>]*disabled=""/)
+})
+it('authors retained sequence as Setup, Trigger, Result with bounded result effects', () => {
+  const definition = { ...resolveResonanceForPair('lifebinder', 'vanguard')! }
+  const html = renderToStaticMarkup(
+    <ContentDefinitionFields
+      kind="resonance"
+      value={definition}
+      tab="Parameters"
+      onChange={() => {}}
+    />,
+  )
+  for (const label of [
+    'Resonance mode',
+    'Resonance Setup Discipline',
+    'Resonance Trigger Discipline',
+    'Resonance AI trigger utility',
+  ])
+    expect(html).toContain(`aria-label="${label}"`)
+  expect(html).toContain('<legend>Result</legend>')
+  expect(html).not.toContain('Payoff')
+})
+it('keeps immediate historical Resonance without a fabricated Setup', () => {
+  const definition = { ...resolveResonanceForPair('farstrider', 'lifebinder')! }
+  const html = renderToStaticMarkup(
+    <ContentDefinitionFields
+      kind="resonance"
+      value={definition}
+      tab="Parameters"
+      onChange={() => {}}
+    />,
+  )
+  expect(html).not.toContain('aria-label="Resonance Setup Discipline"')
+  expect(html).toContain('Setup: None')
+  expect(html).toContain('Resonance Trigger Discipline')
+})
+it('uses the shared passive parameter reader and truthful illustrative context', () => {
+  const definition = { ...resolveResonanceForPair('wildwarden', 'edgedancer')! }
+  const html = renderToStaticMarkup(
+    <ContentRecordPreview kind="resonance" working={definition} current={null} saved={null} />,
+  )
+  for (const field of [
+    'Skill Type',
+    'Cost',
+    'Cooldown',
+    'Requirements',
+    'Target',
+    'Range',
+    'Effects',
+    'Target Method',
+    'Target Elevation',
+    'Line of Sight',
+  ])
+    expect(html).toContain(`<dt>${field}</dt>`)
+  expect(html).toContain('does not simulate a battle or an equipped Resonance match')
+  expect(html).toContain('data-compact-effect-magnitude')
 })

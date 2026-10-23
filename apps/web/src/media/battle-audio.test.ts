@@ -181,3 +181,21 @@ describe('committed battle audio', () => {
     ).toEqual([])
   })
 })
+it('uses exact finalized sound identity from committed events and keeps replay/stale behavior', () => {
+  const audioMedia = {
+    id: '00000000-0000-4000-8000-000000000012',
+    kind: 'audio',
+    contentType: 'audio/wav',
+    checksum: 'a'.repeat(64),
+    byteLength: 100,
+    durationMs: 1000,
+    channels: 1,
+    sampleRate: 44100,
+  }
+  const event = { event: 'combat_action_used', actionId: 'basic.recover.mp', audioMedia }
+  expect(selectBattleAudioCues([record(event)], 8, now)).toEqual([
+    { assetId: `content-media.${audioMedia.id}`, priority: 70 },
+  ])
+  expect(selectBattleAudioCues([record(event, 7)], 8, now)).toEqual([])
+  expect(selectBattleAudioCues([record({ ...event, event: 'skill_preview' })], 8, now)).toEqual([])
+})

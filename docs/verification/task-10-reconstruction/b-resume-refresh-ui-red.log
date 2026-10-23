@@ -1,0 +1,39 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.10 /workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/apps/web
+
+ ❯ src/components/character/discipline-library.test.tsx (11 tests | 1 failed | 10 skipped) 8ms
+   × allows a same-identity Core refresh during attunement while blocking other identities 7ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/components/character/discipline-library.test.tsx > allows a same-identity Core refresh during attunement while blocking other identities
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ src/components/character/discipline-library.test.tsx:112:111
+    110|  const input={...props(),primaryRemainingSeconds:3600,refreshPrimaryId…
+    111|  const cards=buttons(DisciplineLibrary(input))
+    112|  expect(cards.find(card=>card.props['aria-label']==='Select Vanguard a…
+       |                                                                                                               ^
+    113|  expect(cards.filter(card=>card.props['aria-label']!=='Select Vanguard…
+    114| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 10 skipped (11)
+   Start at  13:28:08
+   Duration  340ms (transform 136ms, setup 0ms, import 198ms, tests 8ms, environment 0ms)
+
+undefined
+/workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/apps/web:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/components/character/discipline-library.test.tsx -t 'same-identity Core'

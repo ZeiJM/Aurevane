@@ -6,6 +6,7 @@ import {
   latestEnabledMatureSkills,
   resolveMatureSkillVersion,
 } from '@aurevane/game-core/combat/mature-skills'
+import { PHASE4_STATUSES } from '@aurevane/game-core/combat/status-content'
 import { currentEssenceDefinitions } from '@aurevane/game-core/combat/essence'
 import { currentResonanceDefinitions } from '@aurevane/game-core/combat/resonance'
 import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
@@ -277,7 +278,12 @@ it('rejects missing or wrong-kind history targets before a pointer change', asyn
 })
 it('rejects an attempted kind change of a custom current identity', async () => {
   const f = fixture(instantPolicy, [
-    record('status', 'a.owner-identity', { id: 'a.owner-identity' }, 1),
+    record(
+      'status',
+      'a.owner-identity',
+      { ...PHASE4_STATUSES[0]!, id: 'a.owner-identity', contentVersion: 1 },
+      1,
+    ),
   ])
   const custom = { ...f.skill, id: 'a.owner-identity' }
   await expect(
@@ -290,6 +296,24 @@ it('rejects an attempted kind change of a custom current identity', async () => 
     }),
   ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
   expect(f.writes).toEqual([])
+  expect(f.rpc.mock.calls.map(([name]) => name)).toEqual(['read_combat_content_catalogue_v1'])
+})
+it('rejects a malformed retained Status snapshot before a kind-change write', async () => {
+  const f = fixture(instantPolicy, [
+    record('status', 'a.owner-identity', { id: 'a.owner-identity' }, 1),
+  ])
+  const custom = { ...f.skill, id: 'a.owner-identity' }
+  await expect(
+    f.store.publish({
+      actorUserId: actor,
+      contentKey: custom.id,
+      contentKind: 'skill',
+      definition: custom as unknown as Record<string, unknown>,
+      expectedBaseVersion: 1,
+    }),
+  ).rejects.toMatchObject({ code: 'PERSISTENCE_UNAVAILABLE' })
+  expect(f.writes).toEqual([])
+  expect(f.rpc.mock.calls.map(([name]) => name)).toEqual(['read_combat_content_catalogue_v1'])
 })
 it('rejects a stale timing version before writing and translates a post-validation catalogue race', async () => {
   const f = fixture()

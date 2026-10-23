@@ -1,6 +1,7 @@
 import {
   MIXED_DISCIPLINE_SKILL_SOURCE_CAPACITY,
   disciplineSkillCapacity,
+  disciplineSkillEligibilityId,
   type DisciplineSkillReference,
 } from '../character/discipline-skill-loadout'
 import { parseSupportActionId, type SupportActionId } from './support-actions'
@@ -17,6 +18,7 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3
 const SHA256_PATTERN = /^sha256:[0-9a-f]{64}$/
 
 export interface CombatBuildSnapshot {
+  readonly skillEligibilityPolicyVersion?: 1
   readonly supportActionId?: SupportActionId
   readonly schemaVersion: typeof COMBAT_BUILD_SNAPSHOT_SCHEMA_VERSION
   readonly sourceBuildSchemaVersion: number
@@ -112,10 +114,10 @@ export function validateCombatBuildSnapshot(
   }
   if (secondaryId !== null) {
     const primaryCount = snapshot.disciplineSkills.filter(
-      (skill) => skill.sourceDisciplineId === snapshot.primary.disciplineId,
+      (skill) => disciplineSkillEligibilityId(skill) === snapshot.primary.disciplineId,
     ).length
     const secondaryCount = snapshot.disciplineSkills.filter(
-      (skill) => skill.sourceDisciplineId === secondaryId,
+      (skill) => disciplineSkillEligibilityId(skill) === secondaryId,
     ).length
     if (
       primaryCount > MIXED_DISCIPLINE_SKILL_SOURCE_CAPACITY ||
@@ -138,9 +140,14 @@ export function validateCombatBuildSnapshot(
     const prefix = `disciplineSkills.${index}`
     stableIdIssue(issues, skill.skillId, `${prefix}.skillId`)
     stableIdIssue(issues, skill.sourceDisciplineId, `${prefix}.sourceDisciplineId`)
+    if (Object.hasOwn(skill, 'earnedEligibility') && typeof skill.earnedEligibility !== 'boolean')
+      issues.push({
+        field: `${prefix}.earnedEligibility`,
+        message: 'Earned eligibility must be a captured boolean.',
+      })
     positiveIntegerIssue(issues, skill.contentVersion, `${prefix}.contentVersion`)
     positiveIntegerIssue(issues, skill.slotIndex, `${prefix}.slotIndex`)
-    if (!allowedSources.has(skill.sourceDisciplineId)) {
+    if (!allowedSources.has(disciplineSkillEligibilityId(skill) ?? '')) {
       issues.push({
         field: `${prefix}.sourceDisciplineId`,
         message: 'Combat Skill source is not an active Discipline.',

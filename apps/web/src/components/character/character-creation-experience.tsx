@@ -9,6 +9,7 @@ import {
   type CharacterPresentationId,
 } from '@aurevane/game-core/character/creation'
 import { FOUNDATION_DISCIPLINES } from '@aurevane/game-core/character/foundation-disciplines'
+import type { PublishedFoundationDiscipline } from '@/server/character/published-discipline-catalogue'
 import {
   defaultPronounPresetForPresentation,
   STARTER_CHARACTER_APPEARANCES,
@@ -30,6 +31,7 @@ type Step = 'identity' | 'discipline' | 'review'
 
 interface CharacterCreationExperienceProps {
   slotIndex: number
+  disciplines?: readonly PublishedFoundationDiscipline[]
 }
 
 const attributeCopy = {
@@ -56,7 +58,19 @@ function starterBonusesForDiscipline(disciplineId: string): CharacterAttributeBo
       }
 }
 
-export function CharacterCreationExperience({ slotIndex }: CharacterCreationExperienceProps) {
+const DEFAULT_FOUNDATION_PREVIEW: readonly PublishedFoundationDiscipline[] =
+  FOUNDATION_DISCIPLINES.map((d) => ({
+    ...d,
+    profileVersion: 5,
+    definitionVersion: 1,
+    enabledForPrimary: true,
+    enabledForSecondary: true,
+  }))
+
+export function CharacterCreationExperience({
+  slotIndex,
+  disciplines = DEFAULT_FOUNDATION_PREVIEW,
+}: CharacterCreationExperienceProps) {
   const router = useRouter()
   const [step, setStep] = useState<Step>('identity')
   const [name, setName] = useState('')
@@ -65,9 +79,11 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
   const [starterAppearanceRef, setStarterAppearanceRef] = useState(
     STARTER_CHARACTER_APPEARANCES[0].ref,
   )
-  const [foundationDisciplineId, setFoundationDisciplineId] = useState('vanguard')
+  const [foundationDisciplineId, setFoundationDisciplineId] = useState(
+    disciplines[0]?.id ?? 'vanguard',
+  )
   const [attributeBonuses, setAttributeBonuses] = useState<CharacterAttributeBonuses>(() =>
-    starterBonusesForDiscipline('vanguard'),
+    starterBonusesForDiscipline(disciplines[0]?.id ?? 'vanguard'),
   )
   const [submitting, setSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -79,8 +95,7 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
     (option) => option.presentationId === presentationId,
   )
   const selectedDiscipline =
-    FOUNDATION_DISCIPLINES.find((candidate) => candidate.id === foundationDisciplineId) ??
-    FOUNDATION_DISCIPLINES[0]
+    disciplines.find((candidate) => candidate.id === foundationDisciplineId) ?? disciplines[0]
   const selectedPortrait =
     STARTER_CHARACTER_PORTRAITS.find((option) => option.ref === portraitRef) ??
     STARTER_CHARACTER_PORTRAITS[0]
@@ -178,6 +193,7 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
           slotIndex,
           idempotencyKey: idempotencyKey.current,
           intent: creationIntent(),
+          expectedProfileVersion: selectedDiscipline.profileVersion,
         }),
       })
       const payload = (await response.json()) as {
@@ -416,7 +432,7 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
               >
                 <legend>Disciplines of AUREVANE</legend>
                 <div className={styles.disciplineGrid}>
-                  {FOUNDATION_DISCIPLINES.map((discipline) => (
+                  {disciplines.map((discipline) => (
                     <label
                       key={discipline.id}
                       className={styles.optionCard}

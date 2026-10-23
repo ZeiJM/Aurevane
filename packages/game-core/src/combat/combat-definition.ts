@@ -31,6 +31,8 @@ import {
   type AbilityRequirementSubject,
 } from './combat-requirements'
 import {
+  combatTagPresentationIssues,
+  type CombatTagPresentationSnapshot,
   validateCombatTagPayload,
   nativeCombatTagPayload,
   combatTagDefinition,
@@ -99,6 +101,7 @@ export interface AbilityBehavior {
   readonly activationLimits?: readonly AbilityActivationLimit[]
 }
 export interface AbilityDefinition {
+  readonly tagPresentation?: readonly CombatTagPresentationSnapshot[]
   readonly schemaVersion: 1
   readonly behaviors: readonly AbilityBehavior[]
 }
@@ -181,7 +184,9 @@ export function validateAbilityDefinition(value: unknown): readonly AbilityDefin
   }
   if (!record(value))
     return [{ path: 'ability', code: 'invalid-definition', message: 'Ability must be an object.' }]
-  keys(value, ['schemaVersion', 'behaviors'], '')
+  keys(value, ['schemaVersion', 'behaviors', 'tagPresentation'], '')
+  for (const path of combatTagPresentationIssues(value.tagPresentation))
+    issue(path, 'invalid-definition', 'Choose exact presentation from an implemented Tag.')
   if (value.schemaVersion !== 1)
     issue('schemaVersion', 'invalid-definition', 'Only Ability schemaVersion 1 is supported.')
   if (!array(value.behaviors, ABILITY_DEFINITION_BUDGET.maximumBehaviors, 'behaviors'))

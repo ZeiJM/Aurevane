@@ -1,0 +1,65 @@
+
+ RUN  v4.1.10 /workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/packages/db
+
+ ❯ src/combat-content-discipline-producers.test.ts (53 tests | 3 failed | 50 skipped) 3232ms
+   × creation applies five personal choices to the current Core and replays after publication 55ms
+   × creation rejects a stale displayed Core with no character or idempotency write 60ms
+   × public current Core catalogue exposes authored values while the existing character remains pinned 26ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/combat-content-discipline-producers.test.ts > creation applies five personal choices to the current Core and replays after publication
+error: function public.create_character_v4(unknown, smallint, unknown, unknown, integer, unknown, unknown, unknown, unknown, unknown, unknown, unknown, integer, integer, integer, integer, integer, integer, unknown) does not exist
+ ❯ pe.Ue ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pg-protocol/src/parser.ts:442:10
+ ❯ pe.tt ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pg-protocol/src/parser.ts:220:15
+ ❯ pe.parse ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pg-protocol/src/parser.ts:104:20
+ ❯ N.qe ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pglite/src/pglite.ts:753:25
+ ❯ ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pglite/src/pglite.ts:706:13
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:5922000
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:2616044
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:2648530
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:2649134
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:5569870
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  src/combat-content-discipline-producers.test.ts > creation rejects a stale displayed Core with no character or idempotency write
+AssertionError: expected [Function] to throw error including 'CHARACTER_CORE_STALE' but got 'function public.create_character_v4(u…'
+
+Expected: "CHARACTER_CORE_STALE"
+Received: "function public.create_character_v4(unknown, smallint, unknown, unknown, integer, unknown, unknown, unknown, unknown, unknown, unknown, unknown, integer, integer, integer, integer, integer, integer, unknown) does not exist"
+
+ ❯ src/combat-content-discipline-producers.test.ts:1935:80
+    1933|   const request = crypto.randomUUID()
+    1934|   await db.exec('savepoint stale_creation')
+    1935|   await expect(createWithPersonalBonuses(first.current.contentVersion,…
+       |                                                                                ^
+    1936|   await db.exec('rollback to savepoint stale_creation')
+    1937|   expect((await db.query('select id from public.characters where user_…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  src/combat-content-discipline-producers.test.ts > public current Core catalogue exposes authored values while the existing character remains pinned
+error: function public.get_primary_discipline_catalog_v2() does not exist
+ ❯ pe.Ue ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pg-protocol/src/parser.ts:442:10
+ ❯ pe.tt ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pg-protocol/src/parser.ts:220:15
+ ❯ pe.parse ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pg-protocol/src/parser.ts:104:20
+ ❯ N.qe ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pglite/src/pglite.ts:753:25
+ ❯ ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pglite/src/pglite.ts:706:13
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:5922000
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:2616044
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:2648530
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:2649134
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:5569870
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 50 skipped (53)
+   Start at  13:24:17
+   Duration  4.42s (transform 773ms, setup 0ms, import 970ms, tests 3.23s, environment 0ms)
+
+undefined
+/workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/packages/db:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/combat-content-discipline-producers.test.ts -t 'creation applies|creation rejects|public current Core'

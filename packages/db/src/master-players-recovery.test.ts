@@ -683,6 +683,39 @@ it.each(['character', 'account'])(
   },
 )
 it('completion-first keeps a real successful trial claim and its repeat receipt', async () => {
+  const refs = (
+    await db.query<{ skill_id: string; skill_content_version: number }>(
+      "select skill_id,skill_content_version from app_private.character_skill_unlocks where character_id=$1 and skill_id in ('vanguard.forceful-strike','vanguard.cleave') order by skill_id",
+      [character],
+    )
+  ).rows
+  for (const ref of refs)
+    await db.query(
+      "select app_private.grant_discipline_skill_v1($1,$2,$3,'vanguard','vanguard','gameplay','trial-fixture',true)",
+      [character, ref.skill_id, ref.skill_content_version],
+    )
+  const version = (
+    await db.query<{ build_version: number }>(
+      'select build_version from app_private.character_active_builds where character_id=$1',
+      [character],
+    )
+  ).rows[0]!.build_version
+  await db.query(
+    'select * from public.save_character_discipline_skill_loadout_v1($1,$2,$3,$4,$5,$6)',
+    [
+      other,
+      character,
+      version,
+      refs.map((ref) => ({
+        skillId: ref.skill_id,
+        contentVersion: ref.skill_content_version,
+        sourceDisciplineId: 'vanguard',
+        eligibilityDisciplineId: 'vanguard',
+      })),
+      crypto.randomUUID(),
+      'trial-fixture',
+    ],
+  )
   const prepared = await snapshot()
   Object.assign(prepared, {
     statBridge: {

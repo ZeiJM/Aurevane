@@ -1,10 +1,16 @@
 import { describe, expect, it } from 'vitest'
+import { validateCombatTagPayload } from './combat-tag-registry'
 
 import {
   isSkillNarrationVariantValid,
   skillNarrationVariantIssues,
   validateSkillNarrationTemplate,
   defaultSkillBattleText,
+  abilityPresentationValues,
+  abilityPresentationContext,
+  battleTextReferenceChoices,
+  abilityPresentationTextIssues,
+  renderAbilityPresentationText,
 } from './battle-narration'
 
 describe('skill battle narration contract', () => {
@@ -40,4 +46,68 @@ describe('skill battle narration contract', () => {
   it('rejects blank narration', () => {
     expect(isSkillNarrationVariantValid('   ')).toBe(false)
   })
+})
+
+it.each([
+  ['maximum-hp-percent', 75, 'percentage', 'power'],
+  [undefined, 8, 'power', 'percentage'],
+] as const)(
+  'Barrier basis %s offers only its actual value type',
+  (basis, amount, unit, wrongUnit) => {
+    const payload = {
+      type: 'barrier-change',
+      recipient: 'actor',
+      amount,
+      ...(basis ? { basis } : {}),
+    }
+    expect(validateCombatTagPayload(payload)).toEqual([])
+    const definition = { ability: { schemaVersion: 1, behaviors: [{ effects: [{ payload }] }] } }
+    expect(abilityPresentationValues(definition)).toEqual({ [`0.${unit}`]: amount })
+    const choices = battleTextReferenceChoices(abilityPresentationContext(definition, 'compact'))
+    expect(choices.some((choice) => choice.token === `value.0.${unit}`)).toBe(true)
+    expect(choices.some((choice) => choice.token === `value.0.${wrongUnit}`)).toBe(false)
+    const valid = { ...definition, presentation: { compact: `Barrier {value.0.${unit}}` } }
+    expect(abilityPresentationTextIssues(valid)).toEqual([])
+    expect(renderAbilityPresentationText(valid, 'compact', { ability: 'Shield' })).toBe(
+      `Barrier ${amount}`,
+    )
+    const invalid = { ...definition, presentation: { compact: `Barrier {value.0.${wrongUnit}}` } }
+    expect(abilityPresentationTextIssues(invalid)).toEqual(['presentation.compact'])
+    expect(renderAbilityPresentationText(invalid, 'compact', { ability: 'Shield' })).toBeNull()
+  },
+)
+
+it('offers recorded healing only for HP recovery result text, never MP or activation', () => {
+  const recovery = (resource: 'hp' | 'mp') => ({
+    ability: {
+      schemaVersion: 1,
+      behaviors: [
+        {
+          effects: [
+            {
+              payload: {
+                type: 'percentage-recovery',
+                resource,
+                recipient: 'actor',
+                basisPoints: 2500,
+              },
+            },
+          ],
+        },
+      ],
+    },
+    presentation: { result: '{actor} recovers {outcome.healing} HP.' },
+  })
+  expect(abilityPresentationContext(recovery('hp'), 'result').outcomes).toContain('healing')
+  expect(abilityPresentationTextIssues(recovery('hp'))).toEqual([])
+  expect(
+    renderAbilityPresentationText(recovery('hp'), 'result', {
+      actor: { name: 'Sample author' },
+      ability: 'HP Recovery',
+      outcomes: { healing: 37 },
+    }),
+  ).toBe('Sample author recovers 37 HP.')
+  expect(abilityPresentationContext(recovery('mp'), 'result').outcomes).not.toContain('healing')
+  expect(abilityPresentationContext(recovery('hp'), 'activation').outcomes).not.toContain('healing')
+  expect(abilityPresentationTextIssues(recovery('mp'))).toEqual(['presentation.result'])
 })

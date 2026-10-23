@@ -1,0 +1,38 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.10 /workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/apps/web
+
+ ❯ src/server/character/character-slot-service.test.ts (10 tests | 3 failed) 28ms
+     × shows a changed pure build instead of its creation discipline 18ms
+     × shows a changed mixed build instead of its creation discipline 1ms
+     × uses server names for a discipline outside the client foundation catalog 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/server/character/character-slot-service.test.ts > roster equipped discipline projection > shows a changed pure build instead of its creation discipline
+ FAIL  src/server/character/character-slot-service.test.ts > roster equipped discipline projection > shows a changed mixed build instead of its creation discipline
+ FAIL  src/server/character/character-slot-service.test.ts > roster equipped discipline projection > uses server names for a discipline outside the client foundation catalog
+AurevaneError: Character build data is unavailable right now.
+ ❯ unavailable src/server/character/supabase-character-build-repository.ts:652:10
+    650|
+    651| function unavailable(): AurevaneError {
+    652|   return new AurevaneError(
+       |          ^
+    653|     'PERSISTENCE_UNAVAILABLE',
+    654|     'Character build data is unavailable right now.',
+ ❯ Object.findActiveBuild src/server/character/supabase-character-build-repository.ts:449:43
+ ❯ src/server/character/character-slot-service.ts:55:21
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+
+ Test Files  1 failed | 3 passed (4)
+      Tests  3 failed | 70 passed (73)
+   Start at  13:18:39
+   Duration  1.42s (transform 2.86s, setup 0ms, import 3.85s, tests 119ms, environment 0ms)
+
+undefined
+/workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/apps/web:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/server/character/character-build-service.test.ts src/server/character/character-build-eligibility-transport.test.ts src/server/character/character-slot-service.test.ts src/app/api/character/build/disciplines/route.test.ts

@@ -1,0 +1,89 @@
+[
+  {
+    "file": "native-stage-a-dede-database-success.log.gz",
+    "sha256": "90b4a20874f9b5bf2195969485de8e7a47a6037f765c39b71fad03fa143637cb",
+    "uncompressed_sha256": "d7abf3277c438ffe3f073df9f59f81f8014924cfadc4cb8a953208974f8075e2",
+    "bytes": 109417,
+    "run_id": 39500389334,
+    "job_id": 118896090121,
+    "local_source": "dedea81e2e46a4ca31fe31572351f3de24f53b7a",
+    "remote_source": "65f73b5e41efc182aedcb5f8721643364e2f89c2",
+    "redactions": {
+      "jwt": 0,
+      "local_cli_key": 1
+    }
+  },
+  {
+    "file": "native-stage-a-dede-quality-cancelled.log.gz",
+    "sha256": "8ffe995069442d51ab968edc41c7a9ae51b0233efc6c02569cedf23a86e4d482",
+    "uncompressed_sha256": "f0f8d6a68942d76e5366b37a0466e1db023e93d1009f62a38ac16d41b8d7f44a",
+    "bytes": 247707,
+    "run_id": 39500389334,
+    "job_id": 118896089627,
+    "local_source": "dedea81e2e46a4ca31fe31572351f3de24f53b7a",
+    "remote_source": "65f73b5e41efc182aedcb5f8721643364e2f89c2",
+    "redactions": {
+      "jwt": 0,
+      "local_cli_key": 0
+    }
+  },
+  {
+    "file": "native-stage-a-dede-browser-failure.log.gz",
+    "sha256": "2034ec02c5d8ed9fcf291a757dbff4d25087b1c8635e0c1161479dc1bce79262",
+    "uncompressed_sha256": "a4a9d7721175cec7e89bc59968256f0fcf856ba224f3f35f9607c4db6a8da942",
+    "bytes": 180229,
+    "run_id": 39500389417,
+    "job_id": 118896090839,
+    "local_source": "dedea81e2e46a4ca31fe31572351f3de24f53b7a",
+    "remote_source": "65f73b5e41efc182aedcb5f8721643364e2f89c2",
+    "redactions": {
+      "jwt": 0,
+      "local_cli_key": 1
+    }
+  },
+  {
+    "file": "native-stage-a-3719-database-success.log.gz",
+    "run_id": 39505910633,
+    "job_id": 118914649654,
+    "local_source": "3719ddf484167acf2f74cffe049fbb97bb42262e",
+    "remote_source": "9a84f49a175f3b8a62436067071a77400b2af698",
+    "redactions": {
+      "jwt": 0,
+      "local_cli_key": 1,
+      "static_test_password": 1
+    },
+    "sha256": "8dc8c9bca4dae4fcecd16611a0a80351c829e13c8567c5fc997c74bcf1be9f7d",
+    "uncompressed_sha256": "d8be69b07fae88d70cb0eadb13bd3d2ed626fa126a475c785a5f0d3c73650500",
+    "bytes": 105694
+  },
+  {
+    "file": "native-stage-a-3719-quality-failure.log.gz",
+    "run_id": 39505910633,
+    "job_id": 118914649206,
+    "local_source": "3719ddf484167acf2f74cffe049fbb97bb42262e",
+    "remote_source": "9a84f49a175f3b8a62436067071a77400b2af698",
+    "redactions": {
+      "jwt": 0,
+      "local_cli_key": 0,
+      "static_test_password": 0
+    },
+    "sha256": "f30df4e9adede231298b131416d1c078a65e53de0fb23bb6404939f15cfa78f8",
+    "uncompressed_sha256": "f9500cfdcf4a666b965aadd5eb0beacf6584b1ef99a87f2c01ac9931f55a752b",
+    "bytes": 250596
+  },
+  {
+    "file": "native-stage-a-3719-browser-failure.log.gz",
+    "run_id": 39505910549,
+    "job_id": 118914648154,
+    "local_source": "3719ddf484167acf2f74cffe049fbb97bb42262e",
+    "remote_source": "9a84f49a175f3b8a62436067071a77400b2af698",
+    "redactions": {
+      "jwt": 0,
+      "local_cli_key": 1,
+      "static_test_password": 0
+    },
+    "sha256": "b67406ff551787355f71dcc7532352d575a5ec7020b9e7d9f99226bbaf3551bb",
+    "uncompressed_sha256": "a1ba14d1e67be7201a021f4d1a9a61c04e20c210e4504cf46ffb891b9d3ab6b5",
+    "bytes": 182021
+  }
+]

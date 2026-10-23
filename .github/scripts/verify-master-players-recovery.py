@@ -72,6 +72,34 @@ def race(lock,first,second,second_failure=None):
     output=sql(second,second_failure)
     stdout=holder.stdout.read();stderr=holder.stderr.read();assert holder.wait(timeout=10)==0,(stdout,stderr)
     return output
+def observed_wait_race(first,second):
+    """Hold a real admitted transaction; observe the real competing writer wait."""
+    holder_tag='task10-holder-'+uid(); writer_tag='task10-writer-'+uid()
+    holder=subprocess.Popen(base,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
+    writer=None
+    try:
+        holder.stdin.write(f"set application_name={quote(holder_tag)};begin;set local statement_timeout='8s';{first}\n");holder.stdin.flush()
+        deadline=time.monotonic()+8
+        while sql(f"select count(*) from pg_stat_activity a where application_name={quote(holder_tag)} and state='idle in transaction' and exists(select 1 from pg_locks l where l.pid=a.pid and l.granted and l.locktype='advisory' and l.mode='ShareLock')")!='1':
+            assert holder.poll() is None,'Real admitted holder exited before holding locks'
+            assert time.monotonic()<deadline,'Real admitted holder did not reach its shared catalogue lock'
+            time.sleep(.05)
+        writer=subprocess.Popen(base,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
+        writer.stdin.write(f"set application_name={quote(writer_tag)};begin;set local statement_timeout='8s';{second};commit;");writer.stdin.close()
+        deadline=time.monotonic()+4
+        while sql(f"select count(*) from pg_stat_activity w join pg_stat_activity h on h.application_name={quote(holder_tag)} where w.application_name={quote(writer_tag)} and w.wait_event_type='Lock' and h.pid=any(pg_blocking_pids(w.pid))")!='1':
+            assert writer.poll() is None,'Competing producer finished without the expected real row wait'
+            assert time.monotonic()<deadline,'Competing producer did not block on the admitted holder'
+            time.sleep(.05)
+        holder.stdin.write('commit;\n\\quit\n');holder.stdin.close()
+        assert holder.wait(timeout=8)==0,(holder.stdout.read(),holder.stderr.read())
+        assert writer.wait(timeout=8)==0,(writer.stdout.read(),writer.stderr.read())
+        print('PASS observed real admission shared catalogue lock and selected-grant writer blocking predicate')
+    finally:
+        sql(f"select pg_terminate_backend(pid) from pg_stat_activity where application_name in ({quote(holder_tag)},{quote(writer_tag)}) and pid<>pg_backend_pid()")
+        for process in [holder,writer]:
+            if process and process.poll() is None: process.wait(timeout=8)
+
 try:
     setup()
     # Correction/admission account locks must request retry without leaving an orphan.
@@ -95,7 +123,40 @@ try:
     assert sql(f"select count(*) from app_private.discipline_trial_claims where battle_session_id='{session}'")=='0'
     fresh=prepare();session=create(fresh)
     race(f"select id from app_private.battle_sessions where id='{session}' for update",recovery(session,fresh),claim(session),'BATTLE_NO_REWARDS')
+    # A real earned upgrade holds a selected grant row independently of numeric
+    # build version. Admission must fail fast, roll back its head, then reject the
+    # previously prepared false fact after the upgrade commits.
+    shared=json.loads(sql("select row_to_json(s) from (select skill_id,content_version from app_private.phase4_skill_catalog where discipline_id='lifebinder' order by skill_id limit 1) s"))
+    grant=f"select app_private.grant_discipline_skill_v1('{char}',{quote(shared['skill_id'])},{shared['content_version']},'lifebinder','vanguard','support','native-shared-testing',false)"
+    sql(grant)
+    shared_ref={'skillId':shared['skill_id'],'contentVersion':shared['content_version'],'sourceDisciplineId':'lifebinder','eligibilityDisciplineId':'vanguard'}
+    version=sql(f"select build_version from app_private.character_active_builds where character_id='{char}'")
+    sql(f"select * from public.save_character_discipline_skill_loadout_v1('{user}','{char}',{version},{js([shared_ref])},'{uid()}','native-shared-selected')")
+    unearned=prepare()
+    assert unearned['buildAuthority']['combatants'][0]['disciplineSkills'][0]['earnedEligibility'] is False
+    upgrade=grant.replace("'support','native-shared-testing',false","'gameplay','native-shared-earned',true")
+    race(f"select 1 from app_private.character_discipline_skill_grants where character_id='{char}' and skill_id={quote(shared['skill_id'])} and eligibility_discipline_id='vanguard' for update",upgrade,create_statement(unearned),'PLAYER_ADMISSION_RETRY')
+    assert sql(f"select count(*) from app_private.battle_sessions where battle_id={quote(unearned['tactical']['battle']['battleId'])}")=='0'
+    create(unearned,'PLAYER_PREPARATION_STALE')
+    earned=prepare(); assert earned['buildAuthority']['combatants'][0]['disciplineSkills'][0]['earnedEligibility'] is True
+    session=create(earned);sql(recovery(session,earned))
+    # Reverse order: a real admission retains its selected grant SHARE lock.
+    # Updating the provenance waits for that actual transaction, without changing
+    # the immutable admitted earned fact or duplicating any participant.
+    pinned=prepare()
+    observed_wait_race(create_statement(pinned),upgrade)
+    session=sql(f"select id from app_private.battle_sessions where battle_id={quote(pinned['tactical']['battle']['battleId'])}")
+    stored=json.loads(sql(f"select snapshot from app_private.battle_snapshots where battle_session_id='{session}' and battle_version=1"))
+    assert stored['buildAuthority']==pinned['buildAuthority']
+    sql(recovery(session,pinned))
     # Completion wins: real trial claim races recovery and retains its one receipt.
+    # New trials require actual selected earned facts before immutable capture.
+    skills=json.loads(sql(f"select jsonb_agg(jsonb_build_object('skillId',skill_id,'contentVersion',skill_content_version,'sourceDisciplineId',source_discipline_id,'eligibilityDisciplineId','vanguard') order by skill_id) from app_private.character_skill_unlocks where character_id='{char}' and skill_id in ('vanguard.forceful-strike','vanguard.cleave')"))
+    assert len(skills)==2
+    for skill in skills:
+        sql(f"select app_private.grant_discipline_skill_v1('{char}',{quote(skill['skillId'])},{skill['contentVersion']},'vanguard','vanguard','gameplay','native-trial-earned',true)")
+    version=sql(f"select build_version from app_private.character_active_builds where character_id='{char}'")
+    sql(f"select * from public.save_character_discipline_skill_loadout_v1('{user}','{char}',{version},{js(skills)},'{uid()}','native-trial-selected')")
     fresh=prepare();session=create(fresh)
     for index,action in enumerate(['vanguard.forceful-strike','vanguard.cleave','vanguard.forceful-strike']):
         sql(f"insert into app_private.battle_events(battle_session_id,battle_version,event_index,event) values('{session}',1,{index},{js({'event':'combat_action_used','actorId':'character:'+char,'actionId':action})});")

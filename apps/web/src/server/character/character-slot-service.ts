@@ -1,4 +1,5 @@
 import 'server-only'
+import { throwCombatContentAdmissionError } from '../combat/combat-content-admission-error'
 
 import { createHash } from 'node:crypto'
 
@@ -152,6 +153,7 @@ export async function createCharacterInSlot(command: {
   slotIndex: number
   idempotencyKey: string
   intent: CharacterCreationIntent
+  expectedProfileVersion?: number
 }): Promise<{ character: PersistedCharacter; replayed: boolean }> {
   if (!isCharacterSlotIndex(command.slotIndex)) {
     throw new AurevaneError('INVALID_REQUEST', 'Choose character slot 1, 2, or 3.')
@@ -193,7 +195,7 @@ export async function createCharacterInSlot(command: {
   const requestFingerprint = createHash('sha256')
     .update(
       JSON.stringify({
-        command: 'character.create.v3',
+        command: 'character.create.v4',
         slotIndex: command.slotIndex,
         rulesVersion: seed.rulesVersion,
         name: seed.name,
@@ -203,13 +205,14 @@ export async function createCharacterInSlot(command: {
         portraitRef: seed.portraitRef,
         starterAppearanceRef: seed.starterAppearanceRef,
         foundationDisciplineId: seed.foundationDisciplineId,
-        attributes: seed.attributes,
+        attributeBonuses: command.intent.attributeBonuses,
+        expectedProfileVersion: command.expectedProfileVersion ?? null,
       }),
     )
     .digest('hex')
 
   const supabase = createSupabaseAdminClient()
-  const { data, error } = await supabase.rpc('create_character_v3', {
+  const { data, error } = await supabase.rpc('create_character_v4', {
     p_user_id: command.actor.userId,
     p_slot_index: command.slotIndex,
     p_idempotency_key: command.idempotencyKey,
@@ -222,15 +225,22 @@ export async function createCharacterInSlot(command: {
     p_portrait_ref: seed.portraitRef,
     p_starter_appearance_ref: seed.starterAppearanceRef,
     p_foundation_discipline_id: seed.foundationDisciplineId,
-    p_might: seed.attributes.might,
-    p_finesse: seed.attributes.finesse,
-    p_vitality: seed.attributes.vitality,
-    p_agility: seed.attributes.agility,
-    p_intellect: seed.attributes.intellect,
-    p_resolve: seed.attributes.resolve,
+    p_bonus_might: command.intent.attributeBonuses.might,
+    p_bonus_finesse: command.intent.attributeBonuses.finesse,
+    p_bonus_vitality: command.intent.attributeBonuses.vitality,
+    p_bonus_agility: command.intent.attributeBonuses.agility,
+    p_bonus_intellect: command.intent.attributeBonuses.intellect,
+    p_bonus_resolve: command.intent.attributeBonuses.resolve,
+    p_expected_profile_version: command.expectedProfileVersion ?? null,
   })
 
   if (error) {
+    throwCombatContentAdmissionError(error)
+    if (error.message.includes('CHARACTER_CORE_STALE'))
+      throw new AurevaneError(
+        'INVALID_REQUEST',
+        'The Discipline Core changed. Refresh and review your five personal choices.',
+      )
     if (error.code === '22023') {
       throw new AurevaneError(
         'IDEMPOTENCY_CONFLICT',
@@ -273,6 +283,7 @@ export async function requestCharacterDeletion(
     p_confirmation_phrase: confirmationPhrase,
   })
   if (error) {
+    throwCombatContentAdmissionError(error)
     if (error.message.includes('CHARACTER_DELETE_CONFIRMATION_MISMATCH')) {
       throw new AurevaneError('INVALID_REQUEST', 'The deletion phrase does not match exactly.')
     }

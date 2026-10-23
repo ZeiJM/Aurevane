@@ -1,3 +1,4 @@
+import { contentMediaKeySource } from '@aurevane/game-core/combat/content-media'
 import {
   PV1F_BASIC_ATTACK_ID,
   PV1F_GUARD_ACTION_ID,
@@ -68,6 +69,7 @@ const ACTION_ARTWORK = new Map<string, string>([
 export function battleSkillArtwork(actionId: string, iconKey?: string | null): string {
   const hooked = resolveSkillIconHook(iconKey)
   return (
+    contentMediaKeySource(iconKey) ??
     (hooked ? disciplineSkillArtwork(hooked.skillId) : null) ??
     disciplineSkillArtwork(actionId) ??
     ACTION_ARTWORK.get(actionId) ??
@@ -75,8 +77,9 @@ export function battleSkillArtwork(actionId: string, iconKey?: string | null): s
   )
 }
 
-export function battleResonanceArtwork(resonanceId: string): string {
+export function battleResonanceArtwork(resonanceId: string, iconKey?: string | null): string {
   return (
+    contentMediaKeySource(iconKey) ??
     resonanceArtwork(resonanceId) ??
     darkFantasyResonanceArtwork(resonanceId) ??
     BATTLE_MISSING_ARTWORK

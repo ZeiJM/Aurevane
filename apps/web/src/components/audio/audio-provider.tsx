@@ -1,5 +1,7 @@
 'use client'
 
+import { contentMediaKeySource } from '@aurevane/game-core/combat/content-media'
+
 import {
   AUDIO_SETTINGS_STORAGE_KEY,
   AudioDirector,
@@ -251,7 +253,19 @@ export function AudioProvider({ children }: PropsWithChildren) {
 
   const playAsset = useCallback(
     (id: string, priority = 50) => {
-      const asset = audioAssetRegistry.get(id)
+      const src = contentMediaKeySource(id)
+      const asset = src
+        ? {
+            id,
+            src,
+            kind: 'sfx' as const,
+            channel: 'sfx' as const,
+            status: 'approved' as const,
+            requestId: 'finalized-content-media',
+            loop: false,
+            preload: 'none' as const,
+          }
+        : audioAssetRegistry.get(id)
       return asset ? director.playAsset(asset, priority) : Promise.resolve(false)
     },
     [director],

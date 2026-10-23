@@ -1,8 +1,6 @@
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 
-import { AurevaneImage } from '@/components/media/aurevane-image'
-
 import { AuthenticatedShellFrame } from '@/components/shell/authenticated-game-shell'
 import {
   hasMasterPanelCapability,
@@ -44,7 +42,7 @@ export const masterNavigation = [
   {
     id: 'combat-timing',
     href: '/master/combat-timing',
-    label: 'Combat Settings',
+    label: 'Combat Rules',
     detail: 'Timing & elevation',
     icon: '◷',
     capability: 'staff.manage',
@@ -62,7 +60,7 @@ export const masterNavigation = [
   {
     id: 'combat',
     href: '/master/combat-content',
-    label: 'Combat Content',
+    label: 'Game Content',
     detail: 'Skills & publication',
     icon: '⚔',
     capability: 'content.combat.author',
@@ -86,7 +84,7 @@ export const masterNavigation = [
   {
     id: 'events',
     href: '/master/events',
-    label: 'Event Builder',
+    label: 'Events & Live Ops',
     detail: 'Draft & schedule',
     icon: '✧',
     capability: 'events.author',
@@ -118,11 +116,23 @@ export const masterNavigation = [
 }[]
 
 export function masterNavigationForAccess(access: MasterPanelAccess) {
-  return masterNavigation.filter(
-    (item) =>
-      (!('ownerOnly' in item) || !item.ownerOnly || access.roles.includes('game-owner')) &&
-      (!item.capability || hasMasterPanelCapability(access, item.capability)),
-  )
+  const order: readonly MasterPanelSection[] = [
+    'combat',
+    'combat-timing',
+    'events',
+    'live-events',
+    'players',
+    'staff',
+    'music',
+    'world-environment',
+  ]
+  return masterNavigation
+    .filter(
+      (item) =>
+        (!('ownerOnly' in item) || !item.ownerOnly || access.roles.includes('game-owner')) &&
+        (!item.capability || hasMasterPanelCapability(access, item.capability)),
+    )
+    .sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id))
 }
 
 export function MasterPanelShell({
@@ -140,11 +150,6 @@ export function MasterPanelShell({
         data-master-composition={activeSection}
       >
         <header className={styles.heading}>
-          <AurevaneImage
-            assetId="environment.archive.interior"
-            className={styles.headingArt}
-            sizes="85vw"
-          />
           <div>
             <span className="av-eyebrow">
               Master Panel ·{' '}
@@ -155,9 +160,6 @@ export function MasterPanelShell({
           <p>{description}</p>
         </header>
         <nav className={styles.navigation} aria-label="Master Panel navigation">
-          <Link href="/master" aria-current={activeSection === 'overview' ? 'page' : undefined}>
-            Overview
-          </Link>
           {masterNavigationForAccess(access).map((item) => (
             <Link
               key={item.id}

@@ -20,6 +20,7 @@ export interface BattleBasicActionPresentation {
   readonly contentVersion: number
   readonly name: string
   readonly description: string
+  readonly compactText?: string
   readonly enabled: boolean
   readonly iconKey: string | null
   readonly movement?: {

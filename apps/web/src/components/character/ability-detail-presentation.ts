@@ -1,3 +1,4 @@
+import type { CombatTagPresentationSnapshot } from '@aurevane/game-core/combat/combat-tag-registry'
 import type { MechanicTextPart } from './mechanic-text'
 import {
   SIMPLE_AUTOMATIC_TRIGGER_OPTIONS,
@@ -472,6 +473,7 @@ export function abilityBehaviorInformation(
   behavior: AbilityBehavior,
   options: {
     timingPolicy?: SkillEffectTimingPolicy
+    tagPresentation?: readonly CombatTagPresentationSnapshot[]
     basic?: BasicSkillDefinition
     stats?: BasicActionCharacterStats
     effectContext?: AbilityEffectPresentationContext
@@ -510,6 +512,7 @@ export function abilityBehaviorInformation(
       ...described,
       presentation: {
         ...described.presentation,
+        tagPresentation: options.tagPresentation?.find((tag) => tag.tagId === effect.payload.type),
         ...(recipientOverride ? { recipientOverride } : {}),
         ...(behavior.groundArea
           ? { repeatsOnEntry: behavior.groundArea.entryEffectIds.includes(effect.id) }

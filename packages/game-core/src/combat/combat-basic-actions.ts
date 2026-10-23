@@ -1,3 +1,5 @@
+import { abilityPresentationTextIssues, type AbilityPresentationText } from './battle-narration'
+import { finalizedContentMediaIssues, type FinalizedContentMediaSlots } from './content-media'
 import type { CombatEncounterState, CombatActionDefinition } from './actions'
 import {
   getStatDrivenCombatProfile,
@@ -32,9 +34,10 @@ export interface BasicSkillDefinition {
   readonly enabled: boolean
   readonly name: string
   readonly description: string
+  readonly presentation?: AbilityPresentationText
   readonly battleText?: string
   readonly tags: readonly string[]
-  readonly media: {
+  readonly media: FinalizedContentMediaSlots & {
     readonly iconKey: string | null
     readonly audioCueKey: string | null
     readonly vfxKey: string | null
@@ -58,6 +61,8 @@ export function validateBasicSkillDefinition(value: unknown): readonly BasicSkil
     issues.push({ path, code, message })
   if (!record(value))
     return [{ path: '', code: 'invalid-basic', message: 'Basic Skill must be a complete record.' }]
+  for (const path of abilityPresentationTextIssues(value))
+    issue(path, 'invalid-presentation', 'Use references available for this field and definition.')
   const keys = (row: Record<string, unknown>, allowed: readonly string[], path: string) => {
     for (const key of Object.keys(row))
       if (!allowed.includes(key))
@@ -73,6 +78,7 @@ export function validateBasicSkillDefinition(value: unknown): readonly BasicSkil
       'name',
       'description',
       'battleText',
+      'presentation',
       'tags',
       'media',
       'execution',
@@ -107,7 +113,9 @@ export function validateBasicSkillDefinition(value: unknown): readonly BasicSkil
     issue('tags', 'invalid-tags', 'Basic Skill tags must be bounded nonempty strings.')
   if (!record(value.media)) issue('media', 'invalid-media', 'Media fields are required.')
   else {
-    keys(value.media, ['iconKey', 'audioCueKey', 'vfxKey'], 'media')
+    keys(value.media, ['iconKey', 'audioCueKey', 'vfxKey', 'artwork', 'audio'], 'media')
+    for (const path of finalizedContentMediaIssues(value.media))
+      issue(path, 'invalid-media', 'Choose a finalized media asset.')
     for (const key of ['iconKey', 'audioCueKey', 'vfxKey'])
       if (
         value.media[key] !== null &&

@@ -871,3 +871,23 @@ it('keeps Chronicle elemental explanations pinned in standalone completed battle
     popup.mockRestore()
   }
 })
+it('renders configured activation values and only recorded result values from the exact context', () => {
+  const context = {
+    ...technique(9).actionContext!,
+    battleText: '{actor} uses power {value.0.power}.',
+    presentation: {
+      activation: '{actor} uses power {value.0.power}.',
+      result: '{ability} deals {outcome.damage} to {targets}.',
+      values: { '0.power': 12 },
+    },
+  }
+  const rows = [
+    entry(9, 0, 'combat_action_used', { actionContext: context }),
+    entry(9, 1, 'damage_applied', { actionContext: context, templateValues: { amount: '37' } }),
+  ]
+  const markup = render(rows)
+  expect(markup).toContain('Zei uses power 12.')
+  expect(markup).toContain('Hollow Reflection deals 37 to Weon.')
+  expect(render([rows[0]!])).not.toContain('deals 37')
+  expect(render([{ ...rows[1]!, templateValues: {} }])).not.toContain('deals 0')
+})

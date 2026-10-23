@@ -76,6 +76,10 @@ test('selected-character Staff & Access keeps authority, UTC duration, focus and
     await page.getByLabel('Character name or verified email').fill(targetEmail)
     await page.getByRole('button', { name: 'Find identity' }).click()
     await expect(page.getByRole('heading', { name: 'Character access', exact: true })).toBeFocused()
+    await page.getByRole('button', { name: 'Close editor', exact: true }).click()
+    await expect(page.getByRole('button', { name: 'Find identity', exact: true })).toBeFocused()
+    await page.getByRole('button', { name: 'Find identity', exact: true }).click()
+    await expect(page.getByRole('heading', { name: 'Character access', exact: true })).toBeFocused()
     await page
       .getByLabel('Linked character · choose exactly one')
       .selectOption({ label: `Aurelia ${suffix}` })
@@ -119,6 +123,7 @@ test('selected-character Staff & Access keeps authority, UTC duration, focus and
     await page.setViewportSize({ width: 1440, height: 900 })
     await page.getByRole('button', { name: 'Save character access' }).click()
     await expect(page.getByRole('status')).toContainText('access saved')
+    await expect(page.getByRole('button', { name: 'Find identity', exact: true })).toBeFocused()
     expect((await target.request.get('/api/master/access')).status()).toBe(200)
     expect(await (await target.request.get('/api/master/access')).json()).toMatchObject({
       hasAccess: true,
@@ -132,16 +137,19 @@ test('selected-character Staff & Access keeps authority, UTC duration, focus and
     await page.getByLabel(/Confirm access change for/).check()
     await page.getByRole('button', { name: 'Revoke access', exact: true }).click()
     await expect(page.getByRole('status')).toContainText('access revoked')
+    await expect(row.getByRole('button', { name: 'Edit', exact: true })).toBeFocused()
     expect(await (await target.request.get('/api/master/access')).json()).toMatchObject({
       hasAccess: false,
     })
     const denied = await target.request.post('/api/master/combat-content', {
       data: {
-        operation: 'save-draft',
-        skillId: 'vanguard.forceful-strike',
-        expectedDraftVersion: null,
-        baseVersion: 1,
-        definition: {},
+        operation: 'record',
+        command: {
+          action: 'save',
+          contentKey: 'vanguard.forceful-strike',
+          expectedRevision: 1,
+          definition: {},
+        },
       },
     })
     expect(denied.status()).toBe(403)

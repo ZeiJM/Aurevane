@@ -1,0 +1,1802 @@
+{
+  "sourceCommit": "53a8398bec31b620d77844e206378d579dc796ed",
+  "sourceTree": "445abcdf4deb63aa594d5f4b77d50bef42ad5e38",
+  "migrations": 152,
+  "functionCount": 71,
+  "columnCount": 205,
+  "scope": "Actual migrated public/app_private function names matched by the preserved producer inspector; not all database functions. PGlite identity/scheduler shim and LZ4->pglz storage substitution; no physical concurrency proof.",
+  "functions": [
+    {
+      "file": "app_private.authored_discipline_unlock_satisfied_v1-0.sql",
+      "args": "p_character_id uuid, d jsonb",
+      "sha256": "91f07e65e931e894c508085240c6855899564a73c0024628681e9eb9e2f986a1"
+    },
+    {
+      "file": "app_private.character_discipline_skill_availability_v1-1.sql",
+      "args": "p_character uuid",
+      "sha256": "97e323f49e35a2e69ac1ce11fe4ef4c8c2bec9dcba3797fc492a619d390342e3"
+    },
+    {
+      "file": "app_private.current_discipline_definitions_v1-2.sql",
+      "args": "",
+      "sha256": "14633195639980d7c07f7b8bac67113433c009ff7f86c425ab8b389fd760cba7"
+    },
+    {
+      "file": "app_private.current_discipline_skill_catalog_v1-3.sql",
+      "args": "p_discipline text",
+      "sha256": "1eb33c49382ad2530bb40f24d014180dc358c40e05420eca890ba872e10fd48d"
+    },
+    {
+      "file": "app_private.default_native_skill_eligibility_v1-4.sql",
+      "args": "",
+      "sha256": "4672c4200bcca9d677be7d731abd4562803ce2be194644a09f5452cb8ef09957"
+    },
+    {
+      "file": "app_private.discipline_mastery_stage_v1-5.sql",
+      "args": "p_character_id uuid, p_discipline_id text",
+      "sha256": "79922a246fa0a5717a1200e6ddb170b532c372a6b91ad7bfa8de41639bb4e243"
+    },
+    {
+      "file": "app_private.discipline_release_unlocked_v1-6.sql",
+      "args": "p_character_id uuid, p_discipline_id text",
+      "sha256": "889118b7b8e4fb7889520609360567b71b59e605280d4c74672ce6fd869d7256"
+    },
+    {
+      "file": "app_private.discipline_testing_open_v1-7.sql",
+      "args": "",
+      "sha256": "af0ff9356922c5c588fe8020c94fad9275a0d0c3b918869d3d71373945a579d5"
+    },
+    {
+      "file": "app_private.discipline_unlocked_v1-8.sql",
+      "args": "p_character_id uuid, p_discipline_id text",
+      "sha256": "b0ad038aac7e4e9eaed4369fe5950db8708fdcc60decd82ce944a221be2b350e"
+    },
+    {
+      "file": "app_private.grant_discipline_skill_v1-9.sql",
+      "args": "p_character uuid, p_skill text, p_version integer, p_source text, p_eligibility text, p_kind text, p_provenance text, p_earned boolean",
+      "sha256": "79dfe475529240f9c34e461a874431c8d8c9eb257371142800310219ba6bde4a"
+    },
+    {
+      "file": "app_private.lock_current_discipline_selection_v1-10.sql",
+      "args": "",
+      "sha256": "02576eb73f20f9cb7d6722ac70550b54209be4433ac4f73f98f00157fdb848f2"
+    },
+    {
+      "file": "app_private.player_source_hash_v1-11.sql",
+      "args": "p_character_id uuid",
+      "sha256": "454196bfb15c91f3ad6c87a46c9715b0570ad4a5f3db3d801dce8cf142b4d7db"
+    },
+    {
+      "file": "app_private.preserve_character_active_build_schema_v1-12.sql",
+      "args": "",
+      "sha256": "2f2fc8027360467e83124607777cdd31b18f1d9f5ff8b331513d685acf5947ef"
+    },
+    {
+      "file": "app_private.prevent_duplicate_discipline_core_base_v1-13.sql",
+      "args": "",
+      "sha256": "230440a39d74157bdd0741acac1df26bfc82b2838333c430fe03b99217cd3376"
+    },
+    {
+      "file": "app_private.project_published_discipline_v1-14.sql",
+      "args": "p_version_id uuid",
+      "sha256": "7d6cf86ee90ccec0e8daddc2b6db3aa6b17520088fc7dba246d46264452064e3"
+    },
+    {
+      "file": "app_private.provision_active_discipline_skills_v1-15.sql",
+      "args": "",
+      "sha256": "cd4aca45454c816b9d296c90ba2a2aa5fc50f0085a0eac0420f7c069cfe98867"
+    },
+    {
+      "file": "app_private.provision_character_active_build_v1-16.sql",
+      "args": "",
+      "sha256": "a968785c1f73154d4deaa6247939855a992579ab773acd297b11d6fe8df38d39"
+    },
+    {
+      "file": "app_private.provision_character_personal_attributes_v1-17.sql",
+      "args": "",
+      "sha256": "2a6b4c445fee3dcd2a8ddaf9b3960a6c590dc3fc23d5bedaa77a3a9cc2190e3c"
+    },
+    {
+      "file": "app_private.provision_mastery_skills_v1-18.sql",
+      "args": "p_character_id uuid",
+      "sha256": "c8c5b393c9121915a93941c2978a5f2b4f2691436d573da6b10da6239267754e"
+    },
+    {
+      "file": "app_private.provision_phase4_active_build_v1-19.sql",
+      "args": "",
+      "sha256": "d07a6d730954badcc860f29f8205f588202c3dfd1577a1b40e68e4819fd0c279"
+    },
+    {
+      "file": "app_private.prune_character_discipline_skill_loadout_v1-20.sql",
+      "args": "",
+      "sha256": "f0ff81c6e8ede95842e0f4c4f93e11d90e677ba926d48d1509f855aab30ff519"
+    },
+    {
+      "file": "app_private.resolve_skill_eligibility_v1-21.sql",
+      "args": "p_character uuid, r jsonb, p_primary text, p_secondary text",
+      "sha256": "e38e537ffeb8493ff48b01da93b4bd241bfe6acede35bf5e180721d7557762f0"
+    },
+    {
+      "file": "app_private.select_published_discipline_v1-22.sql",
+      "args": "",
+      "sha256": "bc4fdab8011f616d337c4300cb70bb10d0447aa5bf375a556c62681b67417cf8"
+    },
+    {
+      "file": "app_private.validate_authored_discipline_envelope_v1-23.sql",
+      "args": "d jsonb",
+      "sha256": "ea569bc53bed856887accc0d03fc05b656b847aa4007111282386e2a33b6864a"
+    },
+    {
+      "file": "app_private.validate_authored_discipline_unlock_v1-24.sql",
+      "args": "d jsonb, p_self text, p_depth integer",
+      "sha256": "2abc641adb4f568d2dae01892a9b587eeacfa3ffa7c71bf2b2136606de9a3018"
+    },
+    {
+      "file": "app_private.validate_character_core_allocation_v1-25.sql",
+      "args": "p_might integer, p_finesse integer, p_vitality integer, p_agility integer, p_intellect integer, p_resolve integer, p_level integer, p_base jsonb, p_focus text[], p_off_focus_cap integer, p_require_full boolean",
+      "sha256": "db56f496cbcb5c2053b7d588c96b6473f7fcf1c26779a8239200caa61ccc30f9"
+    },
+    {
+      "file": "app_private.validate_current_discipline_selections_v1-26.sql",
+      "args": "",
+      "sha256": "52d084dc023dd13a50305d364b2b01cd6edc0b408642572d984b9af36f46b61b"
+    },
+    {
+      "file": "public.activate_character_build_loadout_v1-27.sql",
+      "args": "p_user_id uuid, p_character_id uuid, p_slot_index smallint, p_expected_build_version bigint, p_idempotency_key uuid, p_request_fingerprint text",
+      "sha256": "f702be2a6f05e9ede05c96d90b647ecda2989f37fda6e51316269954798cc42c"
+    },
+    {
+      "file": "public.activate_phase4_discipline_rebalance_v1-28.sql",
+      "args": "",
+      "sha256": "d76c89c4e2da168141d9cc29b5b9930d93f8066e6214256fd9a3c293315a558d"
+    },
+    {
+      "file": "public.change_character_disciplines_v2-29.sql",
+      "args": "p_user_id uuid, p_character_id uuid, p_expected_build_version bigint, p_change_primary boolean, p_primary_discipline_id text, p_change_secondary boolean, p_secondary_discipline_id text, p_idempotency_key uuid, p_request_fingerprint text",
+      "sha256": "19ac938a8812db88f4f6129e826bbb2591fe99ca565aebca29dba83d99edfac8"
+    },
+    {
+      "file": "public.change_character_disciplines_v3-30.sql",
+      "args": "p_user_id uuid, p_character_id uuid, p_expected_build_version bigint, p_change_primary boolean, p_primary_discipline_id text, p_change_secondary boolean, p_secondary_discipline_id text, p_idempotency_key uuid, p_request_fingerprint text",
+      "sha256": "5cdfa3b7209588bce039c700486d271f6bd8af3e33404c341f6bee55fba16f07"
+    },
+    {
+      "file": "public.change_character_primary_discipline_v1-31.sql",
+      "args": "p_user_id uuid, p_character_id uuid, p_expected_build_version bigint, p_primary_discipline_id text, p_idempotency_key uuid, p_request_fingerprint text",
+      "sha256": "302a3779b2cb3d9ede9ee574d9bab2512ccf2c99fa8b484616d3360c35902252"
+    },
+    {
+      "file": "public.claim_discipline_trial_v1-32.sql",
+      "args": "p_user_id uuid, p_battle_session_id uuid",
+      "sha256": "b3dda23ca1372ab6869891a6056ffa04fcb698055d56ef38ecf66281baf94af1"
+    },
+    {
+      "file": "public.commit_character_attribute_allocation_v1-33.sql",
+      "args": "p_user_id uuid, p_character_id uuid, p_mode text, p_might integer, p_finesse integer, p_vitality integer, p_agility integer, p_intellect integer, p_resolve integer, p_idempotency_key uuid, p_request_fingerprint text",
+      "sha256": "3772877642c24beb95baa06fff2f92a5f85d9af223c3be7ed7837641c2719f24"
+    },
+    {
+      "file": "public.commit_character_attribute_allocation_v2-34.sql",
+      "args": "p_user_id uuid, p_character_id uuid, p_mode text, p_might integer, p_finesse integer, p_vitality integer, p_agility integer, p_intellect integer, p_resolve integer, p_idempotency_key uuid, p_request_fingerprint text",
+      "sha256": "87bd96402259ebe743708d0e0b2fb602c7c8f9ccf8f5de167c3f9e4f25782737"
+    },
+    {
+      "file": "public.create_character_v2-35.sql",
+      "args": "p_user_id uuid, p_slot_index smallint, p_idempotency_key uuid, p_request_fingerprint text, p_rules_version integer, p_name text, p_name_key text, p_presentation_id text, p_pronoun_preset_id text, p_portrait_ref text, p_starter_appearance_ref text, p_foundation_discipline_id text, p_might integer, p_finesse integer, p_intellect integer, p_resolve integer",
+      "sha256": "b5ed97a7eac8e7eb765f70e91a58248676d3c688db6c57b5f42bc578867f5e26"
+    },
+    {
+      "file": "public.create_character_v3-36.sql",
+      "args": "p_user_id uuid, p_slot_index smallint, p_idempotency_key uuid, p_request_fingerprint text, p_rules_version integer, p_name text, p_name_key text, p_presentation_id text, p_pronoun_preset_id text, p_portrait_ref text, p_starter_appearance_ref text, p_foundation_discipline_id text, p_might integer, p_finesse integer, p_vitality integer, p_agility integer, p_intellect integer, p_resolve integer",
+      "sha256": "81d3a3207618d644076bed8dd0861fe548fce79521972f2497d27b4296d6b440"
+    },
+    {
+      "file": "public.create_character_v4-37.sql",
+      "args": "p_user_id uuid, p_slot_index smallint, p_idempotency_key uuid, p_request_fingerprint text, p_rules_version integer, p_name text, p_name_key text, p_presentation_id text, p_pronoun_preset_id text, p_portrait_ref text, p_starter_appearance_ref text, p_foundation_discipline_id text, p_bonus_might integer, p_bonus_finesse integer, p_bonus_vitality integer, p_bonus_agility integer, p_bonus_intellect integer, p_bonus_resolve integer, p_expected_profile_version integer",
+      "sha256": "1886f270d48012d328f480a9fc2113ab4e77098969fe8c3b00130c29dee20812"
+    },
+    {
+      "file": "public.get_builtin_discipline_definition_v1-38.sql",
+      "args": "p_discipline_id text",
+      "sha256": "09d14252ee721d79b71b8493f6e52aedd6fc39e128a11cc54de68057db7e4e1b"
+    },
+    {
+      "file": "public.get_character_active_build_v1-39.sql",
+      "args": "p_user_id uuid, p_character_id uuid",
+      "sha256": "19f16b189dbb36c01d6c5d62c73c75a15bcd7b1e6529f579311ff2dab82fab67"
+    },
+    {
+      "file": "public.get_character_active_build_v2-40.sql",
+      "args": "p_user_id uuid, p_character_id uuid",
+      "sha256": "5f687a128d891d785723511af28a87d6961f909cbeffcd714d638080f30a10e7"
+    },
+    {
+      "file": "public.get_character_active_build_v4-41.sql",
+      "args": "p_user_id uuid, p_character_id uuid",
+      "sha256": "21919db6e1941611a0f511f618c1081a4701b729105560c4e669830c71ed2f85"
+    },
+    {
+      "file": "public.get_character_attribute_allocation_v1-42.sql",
+      "args": "p_user_id uuid, p_character_id uuid",
+      "sha256": "e559609cbe77b3c17dd39389db5fa68a0c94a4050b0bff486540a89f5fed9cb4"
+    },
+    {
+      "file": "public.get_character_attribute_allocation_v2-43.sql",
+      "args": "p_user_id uuid, p_character_id uuid",
+      "sha256": "d0046406a4a57f8c4c25a130d12d6f69502997594de072ef85ec754f3f96ecbe"
+    },
+    {
+      "file": "public.get_character_committed_build_snapshot_v1-44.sql",
+      "args": "p_user_id uuid, p_character_id uuid",
+      "sha256": "7f17c5291ecf69adbf743bdb1ed5a50b984b56ac6b3cfae0e5f3045fa37eb87a"
+    },
+    {
+      "file": "public.get_character_committed_build_snapshot_v2-45.sql",
+      "args": "p_user_id uuid, p_character_id uuid",
+      "sha256": "e6b748aedcdbdc5fac38915519636e78d0164dedcd75d8ee46cd504fca01aaa6"
+    },
+    {
+      "file": "public.get_character_discipline_atlas_progress_v1-46.sql",
+      "args": "p_user_id uuid, p_character_id uuid",
+      "sha256": "990522f51daad1ab5d9fadce1e05be2b0717a27ff07ea3a35a76a5b29a731f9d"
+    },
+    {
+      "file": "public.get_character_discipline_atlas_progress_v2-47.sql",
+      "args": "p_user_id uuid, p_character_id uuid",
+      "sha256": "fcfa0ac0970d6ac5d42a501c91d13d9a50c54f1500b60f4200a3f819b2ece76a"
+    },
+    {
+      "file": "public.get_character_discipline_catalog_v2-48.sql",
+      "args": "p_user_id uuid, p_character_id uuid",
+      "sha256": "8a1caed30cd4eb0fe1be63d76600dc356b3f432218407fef1a9b878c48602c2d"
+    },
+    {
+      "file": "public.get_character_discipline_catalog_v3-49.sql",
+      "args": "p_user_id uuid, p_character_id uuid",
+      "sha256": "3fa90aa0ff9a00185da82398d9bac529ade26fdfc121bb8874f2c93862052e15"
+    },
+    {
+      "file": "public.get_character_discipline_progress_v1-50.sql",
+      "args": "p_user_id uuid, p_character_id uuid",
+      "sha256": "820086a5d43b8db46f3c8556eda343a48263bfc0710b5fcbdddae3f1d38b8e66"
+    },
+    {
+      "file": "public.get_character_discipline_skill_loadout_v1-51.sql",
+      "args": "p_user_id uuid, p_character_id uuid",
+      "sha256": "92f3721479e8ad0beb0bd31d5fce07746a77c27493dd0d72e5d6497302ce51de"
+    },
+    {
+      "file": "public.get_character_discipline_skill_loadout_v2-52.sql",
+      "args": "p_user_id uuid, p_character_id uuid",
+      "sha256": "9147696e6f090ac67e328946081a15327e24e64632ebd9ef4fbf05f2db7082e2"
+    },
+    {
+      "file": "public.get_character_learned_skills_v1-53.sql",
+      "args": "p_user_id uuid, p_character_id uuid",
+      "sha256": "b21bc4a0f62faadbae91cf4fe7209d0083e7eeff5a845101d2fcfb370759d34a"
+    },
+    {
+      "file": "public.get_character_learned_skills_v2-54.sql",
+      "args": "p_user_id uuid, p_character_id uuid",
+      "sha256": "c14b90ee4bcce7fe7fd0e68eed26991c577934433a00ab8f82a569d42338c4a0"
+    },
+    {
+      "file": "public.get_character_public_active_disciplines_v1-55.sql",
+      "args": "p_character_ids uuid[]",
+      "sha256": "123b08b7777ae64561e6191c21a0f822f62afbe55084084deac2805257fa7c68"
+    },
+    {
+      "file": "public.get_character_saved_build_loadouts_v1-56.sql",
+      "args": "p_user_id uuid, p_character_id uuid",
+      "sha256": "57f32b3390da34c9754bff0183059598f249c036a28a74669ec23f41920c937e"
+    },
+    {
+      "file": "public.get_character_saved_build_loadouts_v2-57.sql",
+      "args": "p_user_id uuid, p_character_id uuid",
+      "sha256": "fae79fdebc92bf979f3dea8c953a71c2f627e0c51de220e23de03baaa2ff324a"
+    },
+    {
+      "file": "public.get_character_slots_v1-58.sql",
+      "args": "p_user_id uuid",
+      "sha256": "4c7601572bf498b5f7f2c1848b201627e861cf702c8d7c6c125a352a62151f83"
+    },
+    {
+      "file": "public.get_character_slots_v2-59.sql",
+      "args": "p_user_id uuid",
+      "sha256": "0e649928581c5f2d056c1a4e0118563a7cca4f50755cd5764c5998444628180e"
+    },
+    {
+      "file": "public.get_current_discipline_catalog_v1-60.sql",
+      "args": "",
+      "sha256": "56ce5d44a3c2044c152007a070292c55975a775ffc596004bfe6d02154ba85fb"
+    },
+    {
+      "file": "public.get_discipline_core_attribute_profiles_v1-61.sql",
+      "args": "",
+      "sha256": "92762365f08952a02671035cc4838fe6922f7d5ded12ba7a21a52a161ef7084c"
+    },
+    {
+      "file": "public.get_primary_discipline_catalog_v1-62.sql",
+      "args": "",
+      "sha256": "797fd43ceaad7a1e995cda959a2c4ab746be40a6ac06577a23d9f00a5f9c9ce8"
+    },
+    {
+      "file": "public.get_primary_discipline_catalog_v2-63.sql",
+      "args": "",
+      "sha256": "2ff2a1c0e9eb1464cc2ce70624c334d814d721f1988bb9ce8526f9fa728bce0f"
+    },
+    {
+      "file": "public.is_pv2_buildcraft_tester_v1-64.sql",
+      "args": "p_user_id uuid",
+      "sha256": "41bd09184a7b34d0661c6510b0819459cbd54c94cc8a8190db7ee008c499e27d"
+    },
+    {
+      "file": "public.publish_saved_combat_content_v1-65.sql",
+      "args": "p_actor_user_id uuid, p_actor_character_id uuid, p_content_key text, p_expected_draft_version bigint, p_expected_base_version integer, p_expected_catalogue_token text, p_version_floor integer",
+      "sha256": "8cfb8c041e0675ca3193a7ccd2c4e23944bf9a026d0bad22243d03e7f139ebb3"
+    },
+    {
+      "file": "public.read_current_discipline_selection_v1-66.sql",
+      "args": "p_primary_discipline_id text, p_secondary_discipline_id text",
+      "sha256": "4f386ad3e7df39d2199e5d52641503fca3e4c578a814ee47220ade16e8b6c40a"
+    },
+    {
+      "file": "public.record_character_discipline_mastery_v1-67.sql",
+      "args": "p_character_id uuid, p_discipline_id text, p_source_kind text, p_source_id text",
+      "sha256": "0925501a139cb9ad15bb2d98f3b5a0d16e7069825fc8b8884d191598b7483ffa"
+    },
+    {
+      "file": "public.record_character_skill_unlock_v1-68.sql",
+      "args": "p_character_id uuid, p_skill_id text, p_skill_content_version integer, p_source_discipline_id text, p_source_kind text, p_source_id text",
+      "sha256": "e0b5518b28a83ccb0695582235d3bcdbc206e3131b624d80c2e90c302be83919"
+    },
+    {
+      "file": "public.save_character_build_loadout_v1-69.sql",
+      "args": "p_user_id uuid, p_character_id uuid, p_slot_index smallint, p_name text, p_expected_build_version bigint, p_idempotency_key uuid, p_request_fingerprint text",
+      "sha256": "4da0b7f79c903fda44b56b763309af4604532b7bb3240eca33ab9c30bf6e2f9f"
+    },
+    {
+      "file": "public.save_character_discipline_skill_loadout_v1-70.sql",
+      "args": "p_user_id uuid, p_character_id uuid, p_expected_build_version bigint, p_skills jsonb, p_idempotency_key uuid, p_request_fingerprint text",
+      "sha256": "c08279b0a5ca04d2a18ffbe43639b3c41deae8648b6e9ea112202531362a9b20"
+    }
+  ],
+  "columns": [
+    {
+      "table_name": "character_active_builds",
+      "column_name": "character_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_active_builds",
+      "column_name": "user_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_active_builds",
+      "column_name": "schema_version",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": "2"
+    },
+    {
+      "table_name": "character_active_builds",
+      "column_name": "build_version",
+      "data_type": "bigint",
+      "is_nullable": "NO",
+      "column_default": "1"
+    },
+    {
+      "table_name": "character_active_builds",
+      "column_name": "primary_discipline_id",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_active_builds",
+      "column_name": "primary_definition_version",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_active_builds",
+      "column_name": "primary_profile_version",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_active_builds",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": "clock_timestamp()"
+    },
+    {
+      "table_name": "character_active_builds",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": "clock_timestamp()"
+    },
+    {
+      "table_name": "character_active_builds",
+      "column_name": "secondary_discipline_id",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "character_active_builds",
+      "column_name": "secondary_definition_version",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "character_active_builds",
+      "column_name": "primary_attunement_locked_until",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "character_active_builds",
+      "column_name": "secondary_attunement_locked_until",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "character_active_builds",
+      "column_name": "last_attunement_policy_version",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": "1"
+    },
+    {
+      "table_name": "character_active_builds",
+      "column_name": "support_action_id",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": "'basic.guard'::text"
+    },
+    {
+      "table_name": "character_attribute_change_audit",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_attribute_change_audit",
+      "column_name": "character_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_attribute_change_audit",
+      "column_name": "user_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_attribute_change_audit",
+      "column_name": "command_name",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_attribute_change_audit",
+      "column_name": "change_mode",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_attribute_change_audit",
+      "column_name": "before_attributes",
+      "data_type": "jsonb",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_attribute_change_audit",
+      "column_name": "after_attributes",
+      "data_type": "jsonb",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_attribute_change_audit",
+      "column_name": "level_at_change",
+      "data_type": "smallint",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_attribute_change_audit",
+      "column_name": "point_pool",
+      "data_type": "smallint",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_attribute_change_audit",
+      "column_name": "reset_window_started_at_after",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "character_attribute_change_audit",
+      "column_name": "reset_used_after",
+      "data_type": "smallint",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_attribute_change_audit",
+      "column_name": "request_fingerprint",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_attribute_change_audit",
+      "column_name": "changed_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": "clock_timestamp()"
+    },
+    {
+      "table_name": "character_attribute_personal_allocations",
+      "column_name": "character_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_attribute_personal_allocations",
+      "column_name": "user_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_attribute_personal_allocations",
+      "column_name": "primary_discipline_id",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_attribute_personal_allocations",
+      "column_name": "primary_profile_version",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_attribute_personal_allocations",
+      "column_name": "might",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": "0"
+    },
+    {
+      "table_name": "character_attribute_personal_allocations",
+      "column_name": "finesse",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": "0"
+    },
+    {
+      "table_name": "character_attribute_personal_allocations",
+      "column_name": "vitality",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": "0"
+    },
+    {
+      "table_name": "character_attribute_personal_allocations",
+      "column_name": "agility",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": "0"
+    },
+    {
+      "table_name": "character_attribute_personal_allocations",
+      "column_name": "intellect",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": "0"
+    },
+    {
+      "table_name": "character_attribute_personal_allocations",
+      "column_name": "resolve",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": "0"
+    },
+    {
+      "table_name": "character_attribute_personal_allocations",
+      "column_name": "conversion_required",
+      "data_type": "boolean",
+      "is_nullable": "NO",
+      "column_default": "false"
+    },
+    {
+      "table_name": "character_attribute_personal_allocations",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": "clock_timestamp()"
+    },
+    {
+      "table_name": "character_attribute_reset_windows",
+      "column_name": "character_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_attribute_reset_windows",
+      "column_name": "user_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_attribute_reset_windows",
+      "column_name": "window_started_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_attribute_reset_windows",
+      "column_name": "resets_used",
+      "data_type": "smallint",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_attribute_reset_windows",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": "clock_timestamp()"
+    },
+    {
+      "table_name": "character_build_attunement_policies",
+      "column_name": "version",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_build_attunement_policies",
+      "column_name": "primary_cooldown_seconds",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_build_attunement_policies",
+      "column_name": "secondary_cooldown_seconds",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_build_attunement_policies",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": "clock_timestamp()"
+    },
+    {
+      "table_name": "character_build_attunement_policy_state",
+      "column_name": "singleton",
+      "data_type": "boolean",
+      "is_nullable": "NO",
+      "column_default": "true"
+    },
+    {
+      "table_name": "character_build_attunement_policy_state",
+      "column_name": "current_policy_version",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_build_attunement_policy_state",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": "clock_timestamp()"
+    },
+    {
+      "table_name": "character_build_change_audit",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_build_change_audit",
+      "column_name": "character_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_build_change_audit",
+      "column_name": "user_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_build_change_audit",
+      "column_name": "command_name",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_build_change_audit",
+      "column_name": "build_version_before",
+      "data_type": "bigint",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_build_change_audit",
+      "column_name": "build_version_after",
+      "data_type": "bigint",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_build_change_audit",
+      "column_name": "from_primary_discipline_id",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_build_change_audit",
+      "column_name": "from_primary_definition_version",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_build_change_audit",
+      "column_name": "from_primary_profile_version",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_build_change_audit",
+      "column_name": "to_primary_discipline_id",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_build_change_audit",
+      "column_name": "to_primary_definition_version",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_build_change_audit",
+      "column_name": "to_primary_profile_version",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_build_change_audit",
+      "column_name": "request_fingerprint",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_build_change_audit",
+      "column_name": "changed_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": "clock_timestamp()"
+    },
+    {
+      "table_name": "character_build_change_audit",
+      "column_name": "change_primary",
+      "data_type": "boolean",
+      "is_nullable": "NO",
+      "column_default": "true"
+    },
+    {
+      "table_name": "character_build_change_audit",
+      "column_name": "change_secondary",
+      "data_type": "boolean",
+      "is_nullable": "NO",
+      "column_default": "false"
+    },
+    {
+      "table_name": "character_build_change_audit",
+      "column_name": "from_secondary_discipline_id",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "character_build_change_audit",
+      "column_name": "from_secondary_definition_version",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "character_build_change_audit",
+      "column_name": "to_secondary_discipline_id",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "character_build_change_audit",
+      "column_name": "to_secondary_definition_version",
+      "data_type": "integer",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "character_build_change_audit",
+      "column_name": "attunement_policy_version",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": "1"
+    },
+    {
+      "table_name": "character_build_change_audit",
+      "column_name": "primary_attunement_locked_until_after",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "character_build_change_audit",
+      "column_name": "secondary_attunement_locked_until_after",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "character_build_discipline_skills",
+      "column_name": "character_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_build_discipline_skills",
+      "column_name": "slot_index",
+      "data_type": "smallint",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_build_discipline_skills",
+      "column_name": "skill_id",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_build_discipline_skills",
+      "column_name": "skill_content_version",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_build_discipline_skills",
+      "column_name": "source_discipline_id",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_build_discipline_skills",
+      "column_name": "equipped_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": "clock_timestamp()"
+    },
+    {
+      "table_name": "character_build_discipline_skills",
+      "column_name": "eligibility_discipline_id",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_discipline_masteries",
+      "column_name": "character_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_discipline_masteries",
+      "column_name": "discipline_id",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_discipline_masteries",
+      "column_name": "mastered_definition_version",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_discipline_masteries",
+      "column_name": "mastered_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": "clock_timestamp()"
+    },
+    {
+      "table_name": "character_discipline_masteries",
+      "column_name": "source_kind",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_discipline_masteries",
+      "column_name": "source_id",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_discipline_progress",
+      "column_name": "character_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_discipline_progress",
+      "column_name": "discipline_id",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_discipline_progress",
+      "column_name": "mastery_xp",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": "0"
+    },
+    {
+      "table_name": "character_discipline_progress",
+      "column_name": "demonstrated_skills",
+      "data_type": "ARRAY",
+      "is_nullable": "NO",
+      "column_default": "'{}'::text[]"
+    },
+    {
+      "table_name": "character_discipline_progress",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": "clock_timestamp()"
+    },
+    {
+      "table_name": "character_discipline_skill_grants",
+      "column_name": "character_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_discipline_skill_grants",
+      "column_name": "skill_id",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_discipline_skill_grants",
+      "column_name": "eligibility_discipline_id",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_discipline_skill_grants",
+      "column_name": "granted_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_discipline_skill_grants",
+      "column_name": "grant_source_kind",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_discipline_skill_grants",
+      "column_name": "grant_source_id",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_discipline_skill_grants",
+      "column_name": "earned_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "character_discipline_skill_grants",
+      "column_name": "earned_source_kind",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "character_discipline_skill_grants",
+      "column_name": "earned_source_id",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "character_saved_build_loadout_activation_audit",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_saved_build_loadout_activation_audit",
+      "column_name": "character_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_saved_build_loadout_activation_audit",
+      "column_name": "user_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_saved_build_loadout_activation_audit",
+      "column_name": "slot_index",
+      "data_type": "smallint",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_saved_build_loadout_activation_audit",
+      "column_name": "build_version_before",
+      "data_type": "bigint",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_saved_build_loadout_activation_audit",
+      "column_name": "build_version_after",
+      "data_type": "bigint",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_saved_build_loadout_activation_audit",
+      "column_name": "target_primary_discipline_id",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_saved_build_loadout_activation_audit",
+      "column_name": "target_secondary_discipline_id",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "character_saved_build_loadout_activation_audit",
+      "column_name": "target_discipline_skills",
+      "data_type": "jsonb",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_saved_build_loadout_activation_audit",
+      "column_name": "request_fingerprint",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_saved_build_loadout_activation_audit",
+      "column_name": "activated_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_saved_build_loadout_activation_idempotency",
+      "column_name": "character_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_saved_build_loadout_activation_idempotency",
+      "column_name": "idempotency_key",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_saved_build_loadout_activation_idempotency",
+      "column_name": "request_fingerprint",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_saved_build_loadout_activation_idempotency",
+      "column_name": "build_version_after",
+      "data_type": "bigint",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_saved_build_loadout_activation_idempotency",
+      "column_name": "activated_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_saved_build_loadout_save_idempotency",
+      "column_name": "character_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_saved_build_loadout_save_idempotency",
+      "column_name": "idempotency_key",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_saved_build_loadout_save_idempotency",
+      "column_name": "request_fingerprint",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_saved_build_loadout_save_idempotency",
+      "column_name": "slot_index",
+      "data_type": "smallint",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_saved_build_loadout_save_idempotency",
+      "column_name": "saved_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_saved_build_loadouts",
+      "column_name": "character_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_saved_build_loadouts",
+      "column_name": "slot_index",
+      "data_type": "smallint",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_saved_build_loadouts",
+      "column_name": "name",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_saved_build_loadouts",
+      "column_name": "primary_discipline_id",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_saved_build_loadouts",
+      "column_name": "secondary_discipline_id",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "character_saved_build_loadouts",
+      "column_name": "discipline_skills",
+      "data_type": "jsonb",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_saved_build_loadouts",
+      "column_name": "source_build_version",
+      "data_type": "bigint",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_saved_build_loadouts",
+      "column_name": "saved_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": "clock_timestamp()"
+    },
+    {
+      "table_name": "character_saved_build_loadouts",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": "clock_timestamp()"
+    },
+    {
+      "table_name": "character_saved_build_loadouts",
+      "column_name": "support_action_id",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": "'basic.guard'::text"
+    },
+    {
+      "table_name": "character_skill_loadout_change_audit",
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_skill_loadout_change_audit",
+      "column_name": "character_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_skill_loadout_change_audit",
+      "column_name": "user_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_skill_loadout_change_audit",
+      "column_name": "build_version_before",
+      "data_type": "bigint",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_skill_loadout_change_audit",
+      "column_name": "build_version_after",
+      "data_type": "bigint",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_skill_loadout_change_audit",
+      "column_name": "primary_discipline_id",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_skill_loadout_change_audit",
+      "column_name": "secondary_discipline_id",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "character_skill_loadout_change_audit",
+      "column_name": "before_skills",
+      "data_type": "jsonb",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_skill_loadout_change_audit",
+      "column_name": "after_skills",
+      "data_type": "jsonb",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_skill_loadout_change_audit",
+      "column_name": "request_fingerprint",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_skill_loadout_change_audit",
+      "column_name": "changed_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": "clock_timestamp()"
+    },
+    {
+      "table_name": "character_skill_loadout_idempotency",
+      "column_name": "character_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_skill_loadout_idempotency",
+      "column_name": "idempotency_key",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_skill_loadout_idempotency",
+      "column_name": "request_fingerprint",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_skill_loadout_idempotency",
+      "column_name": "build_version_after",
+      "data_type": "bigint",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_skill_loadout_idempotency",
+      "column_name": "saved_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": "clock_timestamp()"
+    },
+    {
+      "table_name": "character_skill_unlocks",
+      "column_name": "character_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_skill_unlocks",
+      "column_name": "skill_id",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_skill_unlocks",
+      "column_name": "skill_content_version",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_skill_unlocks",
+      "column_name": "source_discipline_id",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_skill_unlocks",
+      "column_name": "learned_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": "clock_timestamp()"
+    },
+    {
+      "table_name": "character_skill_unlocks",
+      "column_name": "source_kind",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "character_skill_unlocks",
+      "column_name": "source_id",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "discipline_current_definitions",
+      "column_name": "discipline_id",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "discipline_current_definitions",
+      "column_name": "definition_version",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "discipline_definitions",
+      "column_name": "discipline_id",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "discipline_definitions",
+      "column_name": "definition_version",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "discipline_definitions",
+      "column_name": "name",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "discipline_definitions",
+      "column_name": "summary",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "discipline_definitions",
+      "column_name": "enabled_for_primary",
+      "data_type": "boolean",
+      "is_nullable": "NO",
+      "column_default": "false"
+    },
+    {
+      "table_name": "discipline_definitions",
+      "column_name": "primary_profile_version",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "discipline_definitions",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": "clock_timestamp()"
+    },
+    {
+      "table_name": "discipline_definitions",
+      "column_name": "enabled_for_secondary",
+      "data_type": "boolean",
+      "is_nullable": "NO",
+      "column_default": "false"
+    },
+    {
+      "table_name": "discipline_mastery_prerequisites",
+      "column_name": "discipline_id",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "discipline_mastery_prerequisites",
+      "column_name": "required_discipline_id",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "discipline_mastery_prerequisites",
+      "column_name": "minimum_stage",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "discipline_primary_profiles",
+      "column_name": "discipline_id",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "discipline_primary_profiles",
+      "column_name": "profile_version",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "discipline_primary_profiles",
+      "column_name": "stat_offsets",
+      "data_type": "jsonb",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "discipline_primary_profiles",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": "clock_timestamp()"
+    },
+    {
+      "table_name": "discipline_primary_profiles",
+      "column_name": "core_base_attributes",
+      "data_type": "jsonb",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "discipline_primary_profiles",
+      "column_name": "focus_attributes",
+      "data_type": "ARRAY",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "discipline_primary_profiles",
+      "column_name": "off_focus_cap",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": "40"
+    },
+    {
+      "table_name": "discipline_rekindling_prerequisites",
+      "column_name": "discipline_id",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "discipline_rekindling_prerequisites",
+      "column_name": "minimum_rekindling_count",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "discipline_trial_claims",
+      "column_name": "battle_session_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "discipline_trial_claims",
+      "column_name": "character_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "discipline_trial_claims",
+      "column_name": "discipline_id",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "discipline_trial_claims",
+      "column_name": "awarded_xp",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "discipline_trial_claims",
+      "column_name": "mastery_xp_after",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "discipline_trial_claims",
+      "column_name": "claimed_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": "clock_timestamp()"
+    },
+    {
+      "table_name": "discipline_unlock_policy_state",
+      "column_name": "singleton",
+      "data_type": "boolean",
+      "is_nullable": "NO",
+      "column_default": "true"
+    },
+    {
+      "table_name": "discipline_unlock_policy_state",
+      "column_name": "policy_version",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "discipline_unlock_policy_state",
+      "column_name": "testing_open",
+      "data_type": "boolean",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "discipline_unlock_policy_state",
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": "clock_timestamp()"
+    },
+    {
+      "table_name": "phase4_combat_skill_versions",
+      "column_name": "skill_id",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "phase4_combat_skill_versions",
+      "column_name": "previous_version",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "phase4_combat_skill_versions",
+      "column_name": "content_version",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "phase4_discipline_rebalance_publication",
+      "column_name": "release_id",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "phase4_discipline_rebalance_publication",
+      "column_name": "activated_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "phase4_discipline_rebalance_publication",
+      "column_name": "result",
+      "data_type": "jsonb",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "table_name": "phase4_discipline_rebalance_skill_versions",
+      "column_name": "skill_id",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "phase4_discipline_rebalance_skill_versions",
+      "column_name": "previous_version",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "phase4_discipline_rebalance_skill_versions",
+      "column_name": "content_version",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "phase4_skill_catalog",
+      "column_name": "skill_id",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "phase4_skill_catalog",
+      "column_name": "content_version",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "phase4_skill_catalog",
+      "column_name": "discipline_id",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "phase4_skill_catalog",
+      "column_name": "minimum_stage",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "pv2_buildcraft_testers",
+      "column_name": "user_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "table_name": "pv2_buildcraft_testers",
+      "column_name": "enabled",
+      "data_type": "boolean",
+      "is_nullable": "NO",
+      "column_default": "true"
+    },
+    {
+      "table_name": "pv2_buildcraft_testers",
+      "column_name": "granted_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": "clock_timestamp()"
+    },
+    {
+      "table_name": "pv2_buildcraft_testers",
+      "column_name": "note",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "column_default": null
+    }
+  ]
+}

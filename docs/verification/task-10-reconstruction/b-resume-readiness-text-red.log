@@ -1,0 +1,38 @@
+
+ RUN  v4.1.10 /workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/packages/game-core
+
+ ❯ src/content/authored-content.test.ts (30 tests | 2 failed | 28 skipped) 17ms
+   × matches the real Discipline publication text limit for name 15ms
+   × matches the real Discipline publication text limit for description 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/content/authored-content.test.ts > matches the real Discipline publication text limit for name
+ FAIL  src/content/authored-content.test.ts > matches the real Discipline publication text limit for description
+AssertionError: expected [Function] to throw an error
+
+- Expected:
+null
+
++ Received:
+undefined
+
+ ❯ src/content/authored-content.test.ts:173:99
+    171|
+    172| it.each([['name','x'.repeat(81)],['description','x'.repeat(241)]])('ma…
+    173|  expect(()=>parseNoncombatContentDefinition('discipline',{...published…
+       |                                                                                                   ^
+    174| })
+    175|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 28 skipped (30)
+   Start at  13:28:06
+   Duration  1.04s (transform 689ms, setup 0ms, import 829ms, tests 17ms, environment 0ms)
+
+undefined
+/workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/packages/game-core:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/content/authored-content.test.ts -t 'publication text limit'

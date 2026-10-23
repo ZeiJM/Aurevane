@@ -62,3 +62,19 @@ it.each([
     p_actor_character_id: 'selected',
   })
 })
+it.each([
+  'finalize_combat_content_media_v1',
+  'read_combat_content_media_v1',
+  'read_combat_content_record_v1',
+  'list_combat_content_records_v1',
+  'write_combat_content_record_v1',
+  'publish_saved_combat_content_v1',
+])('Content %s replaces caller actor with current trusted selection', async (name) => {
+  const rpc = createSelectedCharacterRpc(async (_name, parameters) => parameters, {
+    getActor: async () => ({ userId: 'owner' }),
+    loadSelection: async () => ({ id: 'selected' }),
+  })
+  expect(
+    await rpc(name, { p_actor_user_id: 'owner', p_actor_character_id: 'forged' }),
+  ).toMatchObject({ p_actor_character_id: 'selected' })
+})

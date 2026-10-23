@@ -1,4 +1,15 @@
+import { DISCIPLINE_ATLAS } from '@aurevane/game-core/character/discipline-atlas'
+import { parseNoncombatContentDefinition } from '@aurevane/game-core/content/authored-content'
+import type {
+  CombatContentListPage,
+  CombatContentSort,
+  CompleteCombatContentRecord,
+  CompleteCombatContentWrite,
+} from '@aurevane/db/combat-content'
 import 'server-only'
+import { combatContentCategory } from '../combat/combat-content-categories'
+import { parseStoredStatusDefinition } from '../combat/combat-standalone-content'
+import { isCombatContentKind, parseCompleteCombatContentRecord } from './combat-content-record'
 
 import { createSelectedCharacterRpc } from './selected-character-rpc'
 
@@ -14,11 +25,12 @@ import {
 import { AurevaneError } from '@aurevane/game-core/errors'
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { assertCombatCatalogueTimingCompatible } from '@/server/combat/combat-catalogue-timing-compatibility'
 import {
   RpcPublishedCombatContentSource,
   resolveCombatContentCatalogueSnapshot,
 } from '@/server/combat/combat-content-resolver'
-import { assertCombatCatalogueTimingCompatible } from '@/server/combat/combat-catalogue-timing-compatibility'
+import { builtinCombatContentDefinition } from './combat-content-builtin-index'
 import { builtinCombatContentVersionFloor } from './combat-content-version-floor'
 
 import type {
@@ -26,7 +38,11 @@ import type {
   MasterPanelOperatorRole,
 } from './combat-content-authoring-service'
 
-type RpcError = { readonly code?: string; readonly message?: string }
+type RpcError = {
+  readonly code?: string
+  readonly message?: string
+  readonly details?: string | null
+}
 type RpcResult = { readonly data: unknown; readonly error: RpcError | null }
 export type CombatAuthoringRpc = (
   functionName: string,
@@ -56,13 +72,7 @@ function positiveBigintAsNumber(value: unknown): number | null {
 }
 
 function combatContentKind(value: unknown): CombatContentKind | null {
-  return value === 'skill' ||
-    value === 'essence' ||
-    value === 'resonance' ||
-    value === 'status' ||
-    value === 'effect-profile'
-    ? value
-    : null
+  return combatContentCategory(value)?.storedKind ?? null
 }
 
 function oneRow(data: unknown): JsonObject | null {
@@ -162,8 +172,103 @@ function parseVersionList(data: unknown): readonly CombatContentVersionRecord[] 
   return parsed as CombatContentVersionRecord[]
 }
 
-function mapRpcError(error: RpcError): never {
+type PublicationTarget = Pick<CombatContentVersionRecord, 'contentKey' | 'definition'>
+
+function publicContentKey(value: unknown): value is string {
+  return (
+    typeof value === 'string' && value.length <= 160 && /^[a-z0-9]+([._-][a-z0-9]+)*$/u.test(value)
+  )
+}
+
+/** Only recognized structured identities may cross this boundary; never echo SQL diagnostics. */
+function disciplinePublicationMessage(error: RpcError, target?: PublicationTarget): string | null {
+  const key = publicContentKey(target?.contentKey) ? target.contentKey : null
+  const discipline = key ? `Discipline ${key}` : 'This Discipline'
+  if (error.message === 'DISCIPLINE_ESSENCE_UNAVAILABLE') {
+    const essence = target?.definition.essenceId
+    return `${publicContentKey(essence) ? `Essence ${essence}` : 'The selected Essence'} is unavailable for ${discipline}. Choose an active Essence whose source is this Discipline, or select None.`
+  }
+  if (error.message === 'DISCIPLINE_CORE_BASE_MUST_BE_UNIQUE')
+    return `${discipline} must use a Core base allocation different from those already recorded for other Disciplines. Adjust the six positive bases while keeping their total at 31.`
+  if (error.message === 'DISCIPLINE_RESONANCE_SELECTION_CONFLICT') {
+    const pair = error.details?.split('+')
+    const validPair = pair?.length === 2 && pair.every(publicContentKey) && pair[0] !== pair[1]
+    const selections = target?.definition.resonanceSelections
+    const partners = Array.isArray(selections)
+      ? selections.flatMap((selection) =>
+          isObject(selection) && publicContentKey(selection.withDisciplineId)
+            ? [selection.withDisciplineId]
+            : [],
+        )
+      : []
+    // The projection validator has no detail; identify the saved declaration and its partners.
+    const subject = validPair
+      ? `Discipline pair ${pair.join(' + ')}`
+      : `${discipline}${partners.length ? ` (selected partners: ${partners.join(', ')})` : ''}`
+    return `${subject} has conflicting explicit Resonance selections. Reconcile both Discipline declarations to select the same Resonance for each pair.`
+  }
+  return null
+}
+
+function mapRpcError(error: RpcError, target?: PublicationTarget): never {
   const message = error.message ?? ''
+  if (
+    error.code === '0A000' &&
+    /COMBAT_CONTENT_(COMPLETE_RECORD_REQUIRED|SAVED_REVISION_REQUIRED|RESTORE_TO_DRAFT_REQUIRED)/u.test(
+      message,
+    )
+  )
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'This operation requires the complete saved-record workflow. Refresh the content editor before continuing.',
+    )
+  if (
+    /COMBAT_CONTENT_(RECORD_CONFLICT|REQUEST_CONFLICT|IDENTITY_CONFLICT|ADMISSION_RETRY)/u.test(
+      message,
+    )
+  )
+    throw new AurevaneError(
+      'STALE_VERSION',
+      'Content changed. Refresh and review the complete record before retrying.',
+    )
+  const inputMessages: Readonly<Record<string, string>> = {
+    DISCIPLINE_PRESENTATION_LIMIT:
+      'Use at most 80 characters for the Discipline name and 240 for its description.',
+    DISCIPLINE_PUBLICATION_INCOMPLETE:
+      'Complete the Atlas, prerequisites, Skill stages and explicit Essence/Resonance selections before publication.',
+    DISCIPLINE_PREREQUISITE_UNAVAILABLE:
+      'A prerequisite Discipline is unavailable. Choose a current published Discipline.',
+    DISCIPLINE_SKILL_UNAVAILABLE: 'A linked Skill is unavailable. Choose an active current Skill.',
+    DISCIPLINE_ESSENCE_INVALID: 'Choose an active Essence for this Discipline or select None.',
+    DISCIPLINE_RESONANCE_CONFLICT:
+      'The pair has a conflicting explicit Resonance selection. Reconcile both Discipline declarations.',
+
+    COMBAT_CONTENT_BUILTIN_SELECTION_DEPENDENCY:
+      'This content is still selected by an existing Discipline or Discipline pair. Its selection must be replaced before archive is available.',
+    COMBAT_CONTENT_DEPENDENCIES:
+      'This content is still in use. Review Used by before changing its lifecycle.',
+    COMBAT_CONTENT_ARCHIVED:
+      'A referenced record is archived. Restore and publish it before adding new references.',
+    COMBAT_CONTENT_BASIC_DUPLICATE_UNSUPPORTED:
+      'Basic actions keep reserved identities and cannot be duplicated as ordinary Skills.',
+    COMBAT_CONTENT_ESSENTIAL: 'This essential Basic action cannot be archived.',
+    COMBAT_CONTENT_SOURCE_IMMUTABLE:
+      'An existing Skill’s intrinsic source Discipline cannot change. Create a separate Skill instead.',
+    COMBAT_CONTENT_LINK_LIMIT: 'A Discipline can link at most 256 Skills.',
+    COMBAT_CONTENT_RESTORE_REQUIRED:
+      'Restore an immutable version to a fresh draft before publishing archived content.',
+    COMBAT_CONTENT_NOT_FOUND: 'The content record could not be found. Refresh the content list.',
+  }
+  if (
+    error.code === '22023' ||
+    (error.code === '23505' && message === 'DISCIPLINE_CORE_BASE_MUST_BE_UNIQUE')
+  )
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      disciplinePublicationMessage(error, target) ??
+        inputMessages[message] ??
+        'The content request contains unsupported or invalid fields.',
+    )
   if (message.includes('COMBAT_CONTENT_CATALOGUE_CONFLICT'))
     throw new AurevaneError(
       'STALE_VERSION',
@@ -228,6 +333,200 @@ export class RpcCombatContentAuthoringStore implements CombatContentAuthoringSto
       )
     }
     return row.role
+  }
+
+  async readRecord(contentKey: string): Promise<CompleteCombatContentRecord | null> {
+    const { data, error } = await this.#rpc('read_combat_content_record_v1', {
+      p_actor_user_id: this.#actorUserId,
+      p_content_key: contentKey,
+    })
+    if (error) mapRpcError(error)
+    if (data === null) return null
+    const record = parseCompleteCombatContentRecord(data)
+    if (record.builtin && !record.current && record.lifecycle !== 'archived') {
+      let definition = builtinCombatContentDefinition(record.contentKind, record.contentKey)
+      if (record.contentKind === 'discipline') {
+        const { data, error } = await this.#rpc('get_builtin_discipline_definition_v1', {
+          p_discipline_id: record.contentKey,
+        })
+        if (error) mapRpcError(error)
+        const atlas = DISCIPLINE_ATLAS.find((entry) => entry.id === record.contentKey)
+        if (!data || typeof data !== 'object' || !atlas)
+          throw new AurevaneError(
+            'PERSISTENCE_UNAVAILABLE',
+            'The builtin Discipline metadata is unavailable.',
+          )
+        const { family, band, disclosure, power } = atlas
+        definition = {
+          ...parseNoncombatContentDefinition('discipline', {
+            ...data,
+            atlas: { family, band, disclosure, power },
+          }),
+        }
+      }
+      if (!definition || definition.contentVersion !== record.builtin.contentVersion)
+        throw new AurevaneError(
+          'PERSISTENCE_UNAVAILABLE',
+          'The builtin identity index does not match this server catalogue.',
+        )
+      return { ...record, builtinDefinition: definition }
+    }
+    return record
+  }
+  async listRecords(input: {
+    sort?: CombatContentSort
+    category?: 'basic' | 'discipline-skill'
+    kind?: CombatContentKind
+    lifecycle?: string
+    search?: string
+    after?: string
+    limit?: number
+  }): Promise<CombatContentListPage> {
+    const { data, error } = await this.#rpc('list_combat_content_records_v1', {
+      p_actor_user_id: this.#actorUserId,
+      p_kind: input.category ?? input.kind ?? null,
+      p_lifecycle: input.lifecycle ?? null,
+      p_search: input.search ?? null,
+      p_after: input.sort
+        ? JSON.stringify({ sort: input.sort, after: input.after ? JSON.parse(input.after) : null })
+        : (input.after ?? null),
+      p_limit: input.limit ?? 30,
+    })
+    if (error) mapRpcError(error)
+    if (
+      !isObject(data) ||
+      !Array.isArray(data.records) ||
+      data.records.length > (input.limit ?? 30) ||
+      (data.nextCursor !== null && !requiredString(data.nextCursor)) ||
+      data.records.some(
+        (row) =>
+          !isObject(row) ||
+          !requiredString(row.contentKey) ||
+          !isCombatContentKind(row.contentKind) ||
+          !['draft', 'active', 'archived'].includes(String(row.lifecycle)) ||
+          !positiveInteger(row.revision),
+      )
+    )
+      throw new AurevaneError('PERSISTENCE_UNAVAILABLE', 'The content list is invalid.')
+    return data as unknown as CombatContentListPage
+  }
+  async writeRecord(
+    contentKey: string,
+    command: CompleteCombatContentWrite,
+  ): Promise<CompleteCombatContentRecord> {
+    if (command.action === 'create') {
+      const blocker = combatContentCategory(command.contentKind, contentKey)?.authoringBlocker
+      if (blocker) throw new AurevaneError('INVALID_REQUEST', blocker.message)
+    }
+    if (command.action === 'create' && command.contentKind === 'status')
+      parseStoredStatusDefinition(command.definition)
+    if (
+      command.action === 'save' ||
+      command.action === 'duplicate' ||
+      command.action === 'restore'
+    ) {
+      const source = await this.readRecord(
+        command.action === 'duplicate' ? command.sourceKey : contentKey,
+      )
+      const blocker =
+        source && combatContentCategory(source.contentKind, source.contentKey)!.authoringBlocker
+      if (blocker) throw new AurevaneError('INVALID_REQUEST', blocker.message)
+      if (source?.contentKind === 'status' && command.action === 'save')
+        parseStoredStatusDefinition(command.definition)
+      if (source?.contentKind === 'status' && command.action === 'restore') {
+        // The displayed history is bounded. Validate the exact immutable source, not
+        // just those recent entries, before SQL can commit it as the editable draft.
+        const { data, error } = await this.#rpc('read_combat_content_version_v1', {
+          p_content_key: contentKey,
+          p_content_kind: 'status',
+          p_content_version: command.sourceVersion,
+        })
+        if (error) mapRpcError(error)
+        const historical = parseSingleVersion(data)
+        if (!historical)
+          throw new AurevaneError(
+            'INVALID_REQUEST',
+            'That historical Status version does not exist. Choose an available version.',
+          )
+        if (
+          historical.contentKey !== contentKey ||
+          historical.contentKind !== 'status' ||
+          historical.contentVersion !== command.sourceVersion
+        )
+          throw new AurevaneError(
+            'PERSISTENCE_UNAVAILABLE',
+            'The server returned a different historical Status version.',
+          )
+        try {
+          const definition = parseStoredStatusDefinition(historical.definition)
+          if (
+            definition.id !== contentKey ||
+            (definition.contentVersion !== undefined &&
+              definition.contentVersion !== historical.contentVersion)
+          )
+            throw new TypeError('Invalid historical Status identity.')
+        } catch (cause) {
+          throw new AurevaneError(
+            'INVALID_REQUEST',
+            'This historical Status version is unsupported for restoration. Choose a supported version or edit the current draft; the original history is retained.',
+            { cause },
+          )
+        }
+        // The mutation below still receives the caller's original expectedRevision.
+      }
+    }
+    const { data, error } = await this.#rpc('write_combat_content_record_v1', {
+      p_actor_user_id: this.#actorUserId,
+      p_content_key: contentKey,
+      p_command: command,
+    })
+    if (error) mapRpcError(error)
+    return parseCompleteCombatContentRecord(data)
+  }
+  async publishSaved(
+    record: Pick<CompleteCombatContentRecord, 'contentKey'>,
+    expectedDraftVersion: number,
+    expectedBaseVersion: number | null,
+  ): Promise<CompleteCombatContentRecord> {
+    const saved = await this.readRecord(record.contentKey)
+    if (
+      !saved?.draft ||
+      saved.draft.draftVersion !== expectedDraftVersion ||
+      saved.draft.baseVersion !== expectedBaseVersion
+    )
+      throw new AurevaneError(
+        'STALE_VERSION',
+        'Save and review the current draft before publishing.',
+      )
+    const descriptor = combatContentCategory(saved.contentKind, saved.contentKey)!
+    if (descriptor.publicationBlocker) {
+      if (!descriptor.authoringBlocker) descriptor.parseAuthoring(saved.draft.definition)
+      throw new AurevaneError('INVALID_REQUEST', descriptor.publicationBlocker.message)
+    }
+    const floor = Math.max(
+      saved.versionFloor,
+      builtinCombatContentVersionFloor(saved.contentKind, saved.contentKey) ?? 0,
+    )
+    const token = await this.#validatePublication(saved.contentKey, saved.contentKind, {
+      id: 'prospective',
+      contentKey: saved.contentKey,
+      contentKind: saved.contentKind,
+      contentVersion: Number(saved.draft.definition.contentVersion ?? 1),
+      definition: saved.draft.definition,
+      publishedBy: this.#actorUserId,
+      publishedAt: 'prospective',
+    })
+    const { data, error } = await this.#rpc('publish_saved_combat_content_v1', {
+      p_actor_user_id: this.#actorUserId,
+      p_content_key: saved.contentKey,
+      p_expected_draft_version: expectedDraftVersion,
+      p_expected_base_version: expectedBaseVersion,
+      p_expected_catalogue_token: token,
+      p_version_floor: floor || null,
+    })
+    if (error)
+      mapRpcError(error, { contentKey: saved.contentKey, definition: saved.draft.definition })
+    return parseCompleteCombatContentRecord(data)
   }
 
   async findDraft(contentKey: string): Promise<CombatContentDraftRecord | null> {
@@ -295,7 +594,7 @@ export class RpcCombatContentAuthoringStore implements CombatContentAuthoringSto
       p_expected_catalogue_token: token,
       p_version_floor: floor || null,
     })
-    if (error) mapRpcError(error)
+    if (error) mapRpcError(error, input)
     const row = parseSingleVersion(data)
     if (!row) {
       throw new AurevaneError(
@@ -353,7 +652,7 @@ export class RpcCombatContentAuthoringStore implements CombatContentAuthoringSto
       p_target_version: version,
       p_expected_catalogue_token: token,
     })
-    if (error) mapRpcError(error)
+    if (error) mapRpcError(error, target ?? { contentKey, definition: {} })
   }
 
   async #validatePublication(
@@ -361,6 +660,21 @@ export class RpcCombatContentAuthoringStore implements CombatContentAuthoringSto
     contentKind: CombatContentKind,
     target: CombatContentVersionRecord | null,
   ): Promise<string> {
+    const descriptor = combatContentCategory(contentKind, contentKey)
+    if (target && descriptor?.validatePublication) {
+      try {
+        descriptor.validatePublication(target.definition)
+      } catch (error) {
+        throw new AurevaneError(
+          'INVALID_REQUEST',
+          error instanceof Error
+            ? error.message
+            : 'Complete the producer metadata before publication.',
+        )
+      }
+    }
+    const blocker = descriptor?.publicationBlocker
+    if (target && blocker) throw new AurevaneError('INVALID_REQUEST', blocker.message)
     const snapshot = await new RpcPublishedCombatContentSource(this.#rpc).readCatalogueSnapshot()
     if (
       snapshot.publications.some(
@@ -371,7 +685,13 @@ export class RpcCombatContentAuthoringStore implements CombatContentAuthoringSto
     const publications = snapshot.publications.filter((row) => row.contentKey !== contentKey)
     if (target) publications.push(target)
     assertCombatCatalogueTimingCompatible(
-      resolveCombatContentCatalogueSnapshot({ ...snapshot, publications }),
+      resolveCombatContentCatalogueSnapshot({
+        ...snapshot,
+        publications,
+        archivedKeys: target
+          ? snapshot.archivedKeys?.filter((key) => key !== contentKey)
+          : snapshot.archivedKeys,
+      }),
     )
     return snapshot.token
   }

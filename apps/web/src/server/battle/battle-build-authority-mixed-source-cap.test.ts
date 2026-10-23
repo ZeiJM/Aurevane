@@ -503,3 +503,156 @@ it('reduces eight actual content-source reads in bounded fallback waves to one b
     vi.useRealTimers()
   }
 })
+
+it.each(['absent', 'custom'] as const)(
+  'published %s extensions and selected cross eligibility survive actual admission and restoration',
+  async (kind) => {
+    const snapshot = productionShapeMixedSnapshot()
+    snapshot.secondary = null
+    snapshot.disciplineSkills = [
+      {
+        slotIndex: 1,
+        skillId: 'lifebinder.barrier',
+        contentVersion: 1,
+        sourceDisciplineId: 'lifebinder',
+        eligibilityDisciplineId: 'vanguard',
+        earnedEligibility: false,
+      },
+    ]
+    snapshot.extensions = { ...snapshot.extensions, resonance: null, essence: null }
+    const original = resolveEssenceForBuild('vanguard', null)!
+    const custom = {
+      ...original,
+      essenceId: 'essence.vanguard.authored',
+      contentVersion: 77,
+      skill: { ...original.skill, id: 'essence.vanguard.authored', contentVersion: 77 },
+    }
+    const resolver: CombatContentResolver = {
+      resolveCurrentSkillDefinition: async (id) => currentStaticSkill(id),
+      resolvePinnedSkillDefinition: async (id, version) => resolveMatureSkillVersion(id, version),
+      resolveCurrentEssenceDefinition: async () => (kind === 'absent' ? null : custom),
+      resolveCurrentResonanceDefinition: async () => null,
+    }
+    const authority = await createResolvedBattleBuildAuthoritySnapshot(
+      'pve',
+      [
+        {
+          combatantId: 'character:00000000-0000-4000-8000-000000004301',
+          characterId: '00000000-0000-4000-8000-000000004301',
+          snapshot,
+        },
+      ],
+      resolver,
+    )
+    expect(authority.combatants[0]!.disciplineSkills[0]).toMatchObject({
+      sourceDisciplineId: 'lifebinder',
+      eligibilityDisciplineId: 'vanguard',
+      earnedEligibility: false,
+    })
+    expect(authority.combatants[0]!.extensions.essence?.essenceId ?? null).toBe(
+      kind === 'absent' ? null : custom.essenceId,
+    )
+    expect(parseBattleBuildAuthoritySnapshot(JSON.parse(JSON.stringify(authority)))).toEqual(
+      authority,
+    )
+  },
+)
+it('captures current canonical Tag presentation through the actual admission producer without changing old sources', async () => {
+  const { defaultCombatEffectTimingPolicy } =
+    await import('@aurevane/game-core/combat/combat-effect-timing')
+  const { captureCombatTagPresentation } =
+    await import('@aurevane/game-core/combat/combat-tag-registry')
+  const tag = (version: number, name: string) => ({
+    id: 'tag.apply-status',
+    schemaVersion: 1,
+    contentVersion: version,
+    enabled: true,
+    sortOrder: 0,
+    media: {},
+    tagId: 'apply-status',
+    name,
+    description: 'Apply a configured status.',
+    explanation: 'Status magnitudes and lifetimes come from the actual effect.',
+  })
+  let current = tag(1, 'Status')
+  const resolver = createCombatContentResolver({
+    readCatalogueSnapshot: async () => ({
+      token: String(current.contentVersion).repeat(32),
+      policy: defaultCombatEffectTimingPolicy(),
+      publications: [
+        {
+          id: '00000000-0000-4000-8000-000000000111',
+          contentKey: current.id,
+          contentKind: 'tag',
+          contentVersion: current.contentVersion,
+          definition: current,
+          publishedBy: 'owner',
+          publishedAt: '2026-10-22T00:00:00Z',
+        },
+      ],
+    }),
+    findCurrentSkill: async () => null,
+    findSkillVersion: async () => null,
+  })
+  const frozen = await resolver.captureCurrentCatalogue!()
+  const authority = await createResolvedBattleBuildAuthoritySnapshot(
+    'pvp',
+    ['actor', 'target'].map((characterId) => ({
+      characterId,
+      combatantId: `character:${characterId}`,
+      snapshot: productionShapeMixedSnapshot(),
+    })),
+    frozen.resolver,
+  )
+  const ids = authority.combatants.map((row) => row.combatantId)
+  const battle = startBattle(
+    createPendingBattle({
+      battleId: 'tag-capture',
+      rulesVersion: 1,
+      contentVersion: 1,
+      rngSeed: 1,
+      combatants: ids.map((id, index) => ({
+        id,
+        teamId: `team:${index}`,
+        initiative: 20 - index,
+        baseMovementBudget: 2,
+        hp: 10,
+        maxHp: 10,
+        mp: 10,
+        maxMp: 10,
+      })),
+    }),
+  ).state
+  const state = createCombatEncounterState(
+    createTacticalBattleState({
+      battle,
+      width: 2,
+      height: 1,
+      terrains: [{ id: 'open', traversalCost: 1 }],
+      tiles: ids.map((_, x) => ({ position: { x, y: 0 }, elevation: 0, terrainId: 'open' })),
+      movementProfiles: [{ id: 'ground', maxElevationStep: 0, terrainCostOverrides: [] }],
+      placements: ids.map((combatantId, x) => ({
+        combatantId,
+        position: { x, y: 0 },
+        facing: 'east',
+        movementProfileId: 'ground',
+      })),
+    }),
+  )
+  const old = await captureBattleBuildAbilitySources(state, authority, frozen.resolver)
+  const bytes = JSON.stringify(old)
+  expect(
+    old
+      .filter((row) => row.basic?.id === 'basic.guard')
+      .map((row) => row.definition.tagPresentation),
+  ).toEqual(ids.map(() => [captureCombatTagPresentation(current)]))
+  current = tag(2, 'Condition')
+  const newer = await resolver.captureCurrentCatalogue!()
+  const next = await captureBattleBuildAbilitySources(state, authority, newer.resolver)
+  expect(
+    next
+      .filter((row) => row.basic?.id === 'basic.guard')
+      .map((row) => row.definition.tagPresentation?.[0]?.name),
+  ).toEqual(ids.map(() => 'Condition'))
+  expect(JSON.stringify(old)).toBe(bytes)
+})

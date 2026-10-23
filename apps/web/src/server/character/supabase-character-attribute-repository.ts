@@ -1,4 +1,6 @@
+import { disciplineAttributePolicyFromCore } from '@aurevane/game-core/character/attribute-allocation'
 import 'server-only'
+import { throwCombatContentAdmissionError } from '../combat/combat-content-admission-error'
 
 import { AurevaneError } from '@aurevane/game-core/errors'
 
@@ -39,6 +41,7 @@ export function createSupabaseCharacterAttributeRepository(): CharacterAttribute
       })
 
       if (error) {
+        throwCombatContentAdmissionError(error)
         if (error.message.includes('CHARACTER_ATTRIBUTE_IDEMPOTENCY_CONFLICT')) {
           throw new AurevaneError(
             'IDEMPOTENCY_CONFLICT',
@@ -79,7 +82,17 @@ export function createSupabaseCharacterAttributeRepository(): CharacterAttribute
 function parseAllocation(value: unknown): CharacterAttributeAllocationView {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw unavailable()
   const row = value as Record<string, unknown>
+  const policy = disciplineAttributePolicyFromCore(
+    'allocation',
+    1,
+    row.base_attributes,
+    row.focus_attributes,
+    row.off_focus_cap,
+  )
+  if (!policy) throw unavailable()
   return {
+    focusAttributes: policy.focusAttributes,
+    offFocusCap: 40,
     characterId: stringField(row.character_id),
     attributes: {
       might: integerField(row.might),

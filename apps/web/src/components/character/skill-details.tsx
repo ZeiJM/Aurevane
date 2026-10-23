@@ -1,5 +1,8 @@
 'use client'
 
+import { renderAbilityPresentationText } from '@aurevane/game-core/combat/battle-narration'
+import { skillDisplayName } from './skill-detail-presentation'
+
 import {
   useSkillGroundInteractionRules,
   useAirborneAttackElevation,
@@ -126,6 +129,12 @@ export function SkillDetails({
   )
   return (
     <div className={styles.root} data-testid="skill-details">
+      {skill.description ? <p>{skill.description}</p> : null}
+      {renderAbilityPresentationText(skill, 'public', { ability: skillDisplayName(skill) }) ? (
+        <p>
+          {renderAbilityPresentationText(skill, 'public', { ability: skillDisplayName(skill) })}
+        </p>
+      ) : null}
       {!skill.ability ? (
         <div className={styles.tags} aria-label="Targeting and effects">
           {skillTargetTags(skill, groundRules).map((tag) => (

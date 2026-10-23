@@ -116,3 +116,72 @@ describe('P3.4 Discipline Technique loadout authority', () => {
     expect(issues).toContainEqual(expect.objectContaining({ code: 'skill-not-learned' }))
   })
 })
+
+// Earned eligibility is separate from intrinsic source; old omitted pins remain native.
+describe('earned Discipline eligibility references', () => {
+  const native = skill('vanguard.forceful-strike', 'vanguard', 2)
+  it('accepts a shared Skill through its selected earned active Discipline without reparenting it', () => {
+    const shared = { ...native, eligibilityDisciplineId: 'lifebinder' }
+    expect(
+      validateDisciplineSkillLoadout({
+        primaryDisciplineId: 'lifebinder',
+        secondaryDisciplineId: null,
+        equipped: [shared],
+        learned: [shared],
+      }),
+    ).toEqual([])
+    expect(shared.sourceDisciplineId).toBe('vanguard')
+  })
+  it('does not infer a second earned eligibility from knowing the same Skill natively', () => {
+    const shared = { ...native, eligibilityDisciplineId: 'lifebinder' }
+    expect(
+      validateDisciplineSkillLoadout({
+        primaryDisciplineId: 'vanguard',
+        secondaryDisciplineId: 'lifebinder',
+        equipped: [shared],
+        learned: [native],
+      }),
+    ).toContainEqual(expect.objectContaining({ code: 'skill-not-learned' }))
+  })
+  it('counts mixed capacity by selected earned eligibility, retaining intrinsic sources', () => {
+    const shared = [0, 1, 2, 3].map((n) => ({
+      ...skill(`vanguard.shared-${n}`, 'vanguard'),
+      eligibilityDisciplineId: n === 3 ? 'lifebinder' : 'vanguard',
+    }))
+    expect(
+      validateDisciplineSkillLoadout({
+        primaryDisciplineId: 'vanguard',
+        secondaryDisciplineId: 'lifebinder',
+        equipped: shared,
+        learned: shared,
+      }),
+    ).toEqual([])
+  })
+  it.each([null, undefined, '', ' lifebinder', 1, {}])(
+    'rejects a present malformed eligibility pin %j rather than defaulting it to intrinsic source',
+    (eligibilityDisciplineId) => {
+      const malformed = {
+        ...native,
+        eligibilityDisciplineId,
+      } as unknown as DisciplineSkillReference
+      expect(
+        validateDisciplineSkillLoadout({
+          primaryDisciplineId: 'vanguard',
+          secondaryDisciplineId: null,
+          equipped: [malformed],
+          learned: [native],
+        }),
+      ).toContainEqual(expect.objectContaining({ code: 'invalid-skill-reference' }))
+    },
+  )
+  it('retains legacy omission as native and equates an explicit native earned pin', () => {
+    expect(
+      validateDisciplineSkillLoadout({
+        primaryDisciplineId: 'vanguard',
+        secondaryDisciplineId: null,
+        equipped: [native],
+        learned: [{ ...native, eligibilityDisciplineId: 'vanguard' }] as DisciplineSkillReference[],
+      }),
+    ).toEqual([])
+  })
+})

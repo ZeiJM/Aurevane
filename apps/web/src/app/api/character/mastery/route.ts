@@ -1,5 +1,5 @@
+import { loadPublishedDisciplineAtlas } from '@/server/character/published-discipline-catalogue'
 import {
-  DISCIPLINE_ATLAS,
   describeDisciplineUnlockRule,
   evaluateDisciplineAtlasEntry,
   rekindlingCountFromCycleNumber,
@@ -18,7 +18,10 @@ export async function GET() {
     const character = await loadSelectedCharacter(actor)
     if (!character) throw new AurevaneError('FORBIDDEN', 'Select your character first.')
 
-    const progress = await loadDisciplineMastery(actor.userId, character.id)
+    const [progress, disciplines] = await Promise.all([
+      loadDisciplineMastery(actor.userId, character.id),
+      loadPublishedDisciplineAtlas(),
+    ])
     const testingAccess = progress.some((row) => row.testingAccess)
     const rekindlingCount = rekindlingCountFromCycleNumber(character.progressionCycle.number)
     const masteryByDiscipline = Object.fromEntries(
@@ -26,7 +29,7 @@ export async function GET() {
     ) as Record<string, DisciplineMasteryStage>
     const progressByDiscipline = new Map(progress.map((row) => [row.disciplineId, row]))
 
-    const entries = DISCIPLINE_ATLAS.map((discipline, index) => {
+    const entries = disciplines.map((discipline, index) => {
       const evaluation = evaluateDisciplineAtlasEntry(discipline, {
         masteryByDiscipline,
         rekindlingCount,
@@ -66,9 +69,21 @@ export async function GET() {
         family: discipline.family,
         band: discipline.band,
         publication: discipline.publication,
-        state: evaluation.state,
-        releaseEligible: evaluation.releaseEligible,
-        effectiveSelectable: evaluation.effectiveSelectable,
+        state: mastery
+          ? mastery.releaseUnlocked
+            ? 'unlocked'
+            : mastery.unlocked
+              ? 'testing'
+              : evaluation.state
+          : discipline.publication === 'published'
+            ? 'revealed'
+            : evaluation.state,
+        releaseEligible:
+          mastery?.releaseUnlocked ??
+          (discipline.publication === 'planned' && evaluation.releaseEligible),
+        effectiveSelectable:
+          mastery?.unlocked ??
+          (discipline.publication === 'planned' && evaluation.effectiveSelectable),
         requirementSummary: describeDisciplineUnlockRule(discipline.unlock),
         unmetRequirements: evaluation.unmetRequirements,
         masteryRite: discipline.masteryRite ?? null,
@@ -78,6 +93,8 @@ export async function GET() {
               xp: mastery.xp,
               stage: mastery.stage,
               demonstratedSkillCount: mastery.demonstratedSkillCount,
+              earnedSkillCount: mastery.earnedSkillCount,
+              unearnedSkillCount: mastery.unearnedSkillCount,
             }
           : null,
       }
@@ -90,8 +107,8 @@ export async function GET() {
           progressionCycleNumber: character.progressionCycle.number,
           rekindlingCount,
           testingAccess,
-          totalDisciplines: DISCIPLINE_ATLAS.length,
-          publishedDisciplines: DISCIPLINE_ATLAS.filter(
+          totalDisciplines: disciplines.length,
+          publishedDisciplines: disciplines.filter(
             (discipline) => discipline.publication === 'published',
           ).length,
           entries,

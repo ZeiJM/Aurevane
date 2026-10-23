@@ -154,3 +154,16 @@ describe('shared Resonance parameter report', () => {
     expect(markup).not.toContain('Trigger targeting')
   })
 })
+
+it('renders authored public and compact Resonance wording through the actual exact-definition reader', () => {
+  const definition = {
+    ...currentResonances[0]!.after,
+    presentation: {
+      public: '{ability} follows its configured conditions.',
+      compact: 'Ready when conditions hold.',
+    },
+  }
+  const markup = renderToStaticMarkup(<ResonanceParameters definition={definition} />)
+  expect(markup).toContain(`${definition.name} follows its configured conditions.`)
+  expect(markup).toContain('Ready when conditions hold.')
+})

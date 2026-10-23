@@ -83,3 +83,53 @@ it.each([false, true])(
     }
   },
 )
+
+it('shows one shared Skill with explicit active eligibility choices and truthful testing access', () => {
+  hooks.state = 0
+  hooks.touch = false
+  vi.stubGlobal('document', { body: {} })
+  const definition = resolveMatureSkillVersion('lifebinder.mending-light')!
+  try {
+    const html = renderToStaticMarkup(
+      <CharacterSkillBuildPanel
+        characterId="character-1"
+        initialBuildVersion={2}
+        primaryDiscipline={{ id: 'vanguard', name: 'Vanguard' }}
+        secondaryDiscipline={{ id: 'aetherist', name: 'Aetherist' }}
+        initialCapacity={4}
+        initialLearnedSkills={[
+          {
+            definition,
+            learnedAt: '2026-10-20T00:00:00Z',
+            activeSource: true,
+            eligibilityGrants: [
+              { eligibilityDisciplineId: 'vanguard', activeSource: true, earnedAt: null },
+              {
+                eligibilityDisciplineId: 'aetherist',
+                activeSource: true,
+                earnedAt: '2026-10-21T00:00:00Z',
+              },
+            ],
+          },
+        ]}
+        initialEquippedSkills={[
+          {
+            definition,
+            slotIndex: 1,
+            equippedAt: '2026-10-21T00:00:00Z',
+            eligibilityDisciplineId: 'aetherist',
+          },
+        ]}
+        initialResonance={null}
+        initialEssence={null}
+      />,
+    )
+    expect(html).toContain('aria-label="Eligible Discipline for Mending Light"')
+    expect(html).toContain('value="aetherist" selected=""')
+    expect(html).toContain('Vanguard — Available (unearned)')
+    expect(html).toContain('Aetherist — Earned')
+    expect(html.match(/data-selected="true"/g) ?? []).toHaveLength(2) // one Skill plus Guard
+  } finally {
+    vi.unstubAllGlobals()
+  }
+})

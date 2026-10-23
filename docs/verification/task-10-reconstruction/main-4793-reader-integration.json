@@ -1,0 +1,30 @@
+{
+  "argv": [
+    "corepack",
+    "pnpm",
+    "--filter",
+    "@aurevane/web",
+    "exec",
+    "vitest",
+    "run",
+    "src/components/character/ability-definition-readers.test.tsx",
+    "src/components/character/linked-requirement-references.test.tsx",
+    "src/components/character/resonance-parameters.test.tsx",
+    "src/components/character/simple-requirement-presentation.test.tsx",
+    "src/components/master/combat-content/canonical-ability-editor.test.tsx"
+  ],
+  "cwd": "/workspace/scratch/081f137b6a6d/aurevane-recovery-20261020",
+  "startedAt": "2026-10-20T22:41:22.011248+00:00",
+  "completedAt": "2026-10-20T22:41:24.661802+00:00",
+  "exit": 0,
+  "rawLog": "docs/verification/task-10-reconstruction/main-4793-reader-integration.log",
+  "sha256": "94c106912a14e1c4b13afa4aaab454b7d7fb08ac1eee7c39ca11b48e670dd1fb",
+  "gzipLog": "docs/verification/task-10-reconstruction/main-4793-reader-integration.log.gz",
+  "gzipSha256": "beb3863748098d3277e3d89dfd125e2385d2565e64c94c2df496861bd570d604",
+  "root_source": "c96880123b8e31f6d8dec3bbbac024a1ff75609e",
+  "upstream_source": "4793b77c607b98bc8a8ccf783da56d69f429f0fe",
+  "testsPassed": 378,
+  "testFilesPassed": 5,
+  "browserScriptsSyntax": "both node --check exit0",
+  "baselineExcludesBCommits": true
+}

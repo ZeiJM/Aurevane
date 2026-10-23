@@ -1,0 +1,7 @@
+Scope: 2 of 9 workspace projects
+packages/db typecheck$ tsc --noEmit
+packages/db typecheck: Done
+apps/web typecheck$ next typegen && tsc --noEmit
+apps/web typecheck: Generating route types...
+apps/web typecheck: ✓ Types generated successfully
+apps/web typecheck: Done
