@@ -570,3 +570,15 @@
     font-size: 1rem;
   }
 }
+
+/* Match the existing Discipline Skills star only on mobile. */
+.mobileSupportStar {
+  display: none;
+}
+@media (max-width: 760px) {
+  .mobileSupportStar {
+    display: inline;
+    color: #9a783d;
+    font-size: 0.95rem;
+  }
+}

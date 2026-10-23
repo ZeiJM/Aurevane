@@ -133,3 +133,21 @@
     font-size: 1.35rem;
   }
 }
+
+/* Phones use the Nexus/Items switch as the complete header, not a duplicate title. */
+@media (max-width: 760px) {
+  .heading {
+    height: auto;
+    min-height: 2.75rem;
+    padding: 0.15rem 0.35rem;
+    display: block;
+  }
+  .headingCopy {
+    display: none;
+  }
+  .heading > nav {
+    width: 100%;
+    max-width: none;
+    height: 2.75rem;
+  }
+}

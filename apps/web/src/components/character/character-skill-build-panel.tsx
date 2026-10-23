@@ -170,6 +170,9 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
   const [pending, setPending] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [coarsePointer, setCoarsePointer] = useState(false)
+  const [activeMobileTab, setActiveMobileTab] = useState<'primary' | 'secondary' | 'support'>(
+    'primary',
+  )
   const refreshOnCloseRef = useRef(false)
 
   const visibleSkills = useMemo(
@@ -411,7 +414,12 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
 
   function renderSupportActions() {
     return (
-      <section className={styles.techniqueGroup} data-support-action-group="true">
+      <section
+        className={styles.techniqueGroup}
+        data-mobile-active={activeMobileTab === 'support' ? 'true' : 'false'}
+        data-technique-category="support"
+        data-support-action-group="true"
+      >
         <header>
           <div>
             <span aria-hidden="true">✦</span>
@@ -485,7 +493,11 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
       <section
         className={styles.techniqueGroup}
         data-technique-group="true"
+        data-technique-category={secondary ? 'secondary' : 'primary'}
         data-locked={locked ? 'true' : 'false'}
+        data-mobile-active={
+          activeMobileTab === (secondary ? 'secondary' : 'primary') ? 'true' : 'false'
+        }
       >
         <header>
           <div>
@@ -659,7 +671,50 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                     className={styles.techniqueArea}
                     aria-label="Available Techniques"
                     data-testid="learned-skill-list"
+                    data-technique-tab={activeMobileTab}
                   >
+                    <nav
+                      className={styles.mobileTechniqueTabs}
+                      role="tablist"
+                      aria-label="Technique categories"
+                    >
+                      <button
+                        type="button"
+                        role="tab"
+                        aria-selected={activeMobileTab === 'primary'}
+                        onClick={() => {
+                          setActiveMobileTab('primary')
+                          setFocusedSupportActionId(null)
+                          setFocusedSkillId(primarySkills[0]?.definition.id ?? null)
+                        }}
+                      >
+                        Discipline 1
+                      </button>
+                      <button
+                        type="button"
+                        role="tab"
+                        aria-selected={activeMobileTab === 'secondary'}
+                        disabled={!secondaryDiscipline}
+                        onClick={() => {
+                          setActiveMobileTab('secondary')
+                          setFocusedSupportActionId(null)
+                          setFocusedSkillId(secondarySkills[0]?.definition.id ?? null)
+                        }}
+                      >
+                        Discipline 2
+                      </button>
+                      <button
+                        type="button"
+                        role="tab"
+                        aria-selected={activeMobileTab === 'support'}
+                        onClick={() => {
+                          setActiveMobileTab('support')
+                          setFocusedSupportActionId(supportActionId)
+                        }}
+                      >
+                        Support
+                      </button>
+                    </nav>
                     {renderTechniqueGroup(primaryDiscipline, primarySkills, false)}
                     {renderTechniqueGroup(secondaryDiscipline, secondarySkills, true)}
                     {renderSupportActions()}
@@ -821,20 +876,6 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                     </section>
                   </aside>
                 </div>
-
-                <footer className={styles.actions}>
-                  <button
-                    type="button"
-                    className={styles.secondaryAction}
-                    onClick={() => void commitSelection([], 'Selections cleared.')}
-                    disabled={pending || selectedIds.length === 0}
-                  >
-                    ↻ Clear Selections
-                  </button>
-                  <span className={styles.saveState} aria-live="polite">
-                    {pending ? 'Saving selection…' : ''}
-                  </span>
-                </footer>
 
                 <p className={styles.status} role="status">
                   {message}

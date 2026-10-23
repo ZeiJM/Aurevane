@@ -275,11 +275,14 @@ export function CharacterProfileDetails({
             </span>
             <div>
               <h2 id="attributes-title">Core Stats</h2>
-              <p>Your innate potential, shaping what you can become.</p>
             </div>
             <i aria-hidden="true" />
           </div>
-          <small>The sixfold nature endures.</small>
+          {attributeResetControl ? (
+            <div className={styles.headerReset} data-profile-reset-control>
+              {attributeResetControl}
+            </div>
+          ) : null}
         </header>
 
         <div className={styles.attributeList}>
@@ -384,12 +387,6 @@ export function CharacterProfileDetails({
           })}
         </div>
       </section>
-
-      {attributeResetControl ? (
-        <footer className={styles.sectionAction} data-profile-reset-control>
-          {attributeResetControl}
-        </footer>
-      ) : null}
 
       {showBuildTendencies ? (
         <aside className={styles.buildTendencies} aria-label="Build tendencies">

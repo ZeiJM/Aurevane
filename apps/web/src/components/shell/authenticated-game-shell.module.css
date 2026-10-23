@@ -1095,3 +1095,11 @@
     font-size: 0.6875rem !important;
   }
 }
+
+/* A selected mobile dock slot is framed by matching top and bottom azure rules. */
+@media (max-width: 760px) {
+  .railLink[aria-current='page'] {
+    border-top-color: var(--av-teal-bright);
+    border-bottom: 2px solid var(--av-teal-bright);
+  }
+}

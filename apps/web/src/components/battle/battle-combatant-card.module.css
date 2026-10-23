@@ -292,3 +292,30 @@
     display: none;
   }
 }
+
+/* Limit HP/MP meters to their own mobile character rail. */
+@media (max-width: 820px), (max-width: 980px) and (max-height: 500px) and (pointer: coarse) {
+  .card {
+    min-width: 0;
+    overflow: hidden;
+  }
+  .vitals {
+    min-width: 0;
+    max-width: min(100%, 9.3rem);
+    width: 100%;
+    overflow: hidden;
+  }
+  .vitals > div {
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+  }
+  .vitals i {
+    min-width: 0;
+    max-width: 100%;
+    height: 0.8rem;
+  }
+  .vitals .value {
+    font-size: 0.57rem;
+  }
+}
