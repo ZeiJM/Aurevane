@@ -92,6 +92,60 @@ test('scrolls the full chronicle and preserves reviewed history after a live com
   await page.getByLabel('Battle mode').selectOption('recruit-sparring')
   await page.getByRole('button', { name: 'Enter Battle' }).click()
   await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/)
+  const mobileTimeline = page.locator('[data-battle-mobile-chronicle-strip]')
+  if (await mobileTimeline.isVisible()) {
+    const strip = mobileTimeline.locator('[data-battle-action-strip]')
+    const track = strip.locator('[aria-label="Battle actions"]')
+    const actions = track.getByRole('button', { name: /Show Chronicle details/i })
+    await expect(actions).toHaveCount(20)
+    await expect(page.locator('[data-battle-mobile-chronicle-toggle]')).toHaveCount(0)
+    const board = page.locator('[data-board-auto-fit]')
+    const before = await readBoardGeometry(board)
+    const frameBefore = await readMobileFrame(page)
+    await actions.first().click()
+    const details = strip.getByRole('dialog', { name: /Chronicle action:/i })
+    await expect(details).toBeVisible()
+    await expect(details).toContainText(characterName)
+    await expect(details).toContainText('1 damage')
+    await details.getByRole('button', { name: 'Close Chronicle action' }).click()
+    await track.evaluate((element) => {
+      element.scrollLeft = element.scrollWidth
+    })
+    await expect(actions.last()).toBeInViewport()
+    expect(await readMobileFrame(page)).toEqual(frameBefore)
+    await page
+      .locator('main[data-unified-battle]')
+      .evaluate((element) => (element as HTMLElement).focus({ preventScroll: true }))
+    await page.keyboard.press('Digit3')
+    await expect(page.locator('main[data-unified-battle]')).toHaveAttribute(
+      'data-battle-action-mode',
+      'guard',
+    )
+    entries = [...entries, ...recordedChronicleAction(21, 1)]
+    const refreshed = page.waitForResponse(
+      (response) => response.url().endsWith('/events') && response.request().method() === 'GET',
+    )
+    await commitGesture(
+      page,
+      page.getByRole('button', { name: new RegExp('occupied by ' + characterName) }),
+    )
+    await refreshed
+    await expect(actions).toHaveCount(21)
+    await actions.last().click()
+    await expect(details).toBeVisible()
+    await expect(details).toContainText('21 damage')
+    await details.getByRole('button', { name: 'Close Chronicle action' }).click()
+    expect(await readMobileFrame(page)).toEqual(frameBefore)
+    const after = await readBoardGeometry(board)
+    expect(after.layout.width).toBe(before.layout.width)
+    expect(after.layout.height).toBe(before.layout.height)
+    await testInfo.attach('mobile-chronicle-history-after-refresh', {
+      body: await page.screenshot(),
+      contentType: 'image/png',
+    })
+    return
+  }
+
   await setBattleChronicleOpen(page, true)
   const log = page.locator('[data-battle-inline-log]')
   const reader = log.getByRole('region', { name: 'Battle chronicle', exact: true })

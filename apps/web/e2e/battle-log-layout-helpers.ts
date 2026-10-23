@@ -1,19 +1,24 @@
 import { expect, type Locator, type Page, type TestInfo } from '@playwright/test'
 
-/** Use the rendered footer control so desktop rails and coarse landscape follow production. */
+/** Desktop retains the visible reader; mobile uses the permanently docked action timeline. */
 export async function setBattleChronicleOpen(page: Page, open: boolean) {
   await page.locator('main[data-battle-concept]').waitFor({ state: 'visible' })
-  const toggle = page.locator('[data-battle-mobile-chronicle-toggle]')
-  await toggle.waitFor({ state: 'attached' })
-  if (!(await toggle.isVisible())) return
-  if ((await toggle.getAttribute('aria-expanded')) !== String(open)) await toggle.click()
-  await expect(toggle).toHaveAttribute('aria-expanded', String(open))
+  const timeline = page.locator('[data-battle-mobile-chronicle-strip]')
+  if (await timeline.isVisible()) {
+    await expect(timeline.locator('[data-battle-action-strip]')).toBeVisible()
+    await expect(page.locator('[data-battle-mobile-chronicle-toggle]')).toHaveCount(0)
+    if (!open) {
+      await page.keyboard.press('Escape')
+      await expect(timeline.getByRole('dialog', { name: /Chronicle action:/i })).toHaveCount(0)
+    }
+  } else if (open) {
+    await expect(page.locator('[data-battle-inline-log] [data-battle-chronicle]')).toBeVisible()
+  }
 }
 
 export async function battleChronicleScrollRegion(page: Page, reader: Locator) {
-  const toggle = page.locator('[data-battle-mobile-chronicle-toggle]')
-  await toggle.waitFor({ state: 'attached' })
-  return (await toggle.isVisible()) ? page.locator('[data-battle-mobile-lower-panel]') : reader
+  const timeline = page.locator('[data-battle-mobile-chronicle-strip]')
+  return (await timeline.isVisible()) ? timeline.locator('[aria-label="Battle actions"]') : reader
 }
 
 export async function scrollBattleChronicle(page: Page, reader: Locator, edge: 'start' | 'end') {
@@ -43,6 +48,46 @@ export async function expectReadableBattleLog(
   log: Locator = page.locator('[data-battle-inline-log]'),
 ) {
   await setBattleChronicleOpen(page, true)
+  const mobileTimeline = page.locator('[data-battle-mobile-chronicle-strip]')
+  if (await mobileTimeline.isVisible()) {
+    const strip = mobileTimeline.locator('[data-battle-action-strip]')
+    const track = strip.locator('[aria-label="Battle actions"]')
+    await expect(track).toBeVisible()
+    await expect(mobileTimeline.locator('[data-battle-round]')).toBeVisible()
+    const action = track.getByRole('button', { name: /Show Chronicle details/i }).last()
+    const geometry = () =>
+      page.evaluate(() =>
+        ['[data-board-auto-fit]', '[data-battle-mobile-chronicle-strip]', '[data-battle-mobile-footer]']
+          .map((selector) => {
+            const node = document.querySelector(selector)
+            if (!node) throw new Error('Missing battle region: ' + selector)
+            const bounds = node.getBoundingClientRect()
+            return [selector, bounds.x, bounds.y, bounds.width, bounds.height]
+          }),
+      )
+    const before = await geometry()
+    if (await action.count()) {
+      await action.click()
+      const details = strip.getByRole('dialog', { name: /Chronicle action:/i })
+      await expect(details).toBeVisible()
+      await expect(details).not.toContainText('rollBasisPoints')
+      await expect(page.locator('dialog[data-battle-action-details]')).toHaveCount(0)
+      await details.getByRole('button', { name: 'Close Chronicle action' }).click()
+      await expect(details).toHaveCount(0)
+      await expect(action).toHaveAttribute('aria-expanded', 'false')
+    }
+    const after = await geometry()
+    expect(after, 'Chronicle action details must not resize the mobile battle').toEqual(before)
+    await testInfo.attach(`${label}-chronicle-geometry`, {
+      body: JSON.stringify({ before, after }, null, 2),
+      contentType: 'application/json',
+    })
+    await testInfo.attach(`${label}-chronicle`, {
+      body: await page.screenshot(),
+      contentType: 'image/png',
+    })
+    return
+  }
   const reader = log.getByRole('region', { name: 'Battle chronicle', exact: true })
   await expect(reader).toBeVisible()
   await expect(reader).toHaveAttribute('tabindex', '0')

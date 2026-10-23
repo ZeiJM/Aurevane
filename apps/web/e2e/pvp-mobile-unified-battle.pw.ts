@@ -95,9 +95,13 @@ test('keeps the unified PvP battle usable on mobile', async ({ browser }, testIn
     await expect(hostRoot).toBeVisible()
     await expect(guestRoot).toBeVisible()
     for (const root of [hostRoot, guestRoot]) {
-      await expect(root.locator('[data-battle-mobile-chronicle-toggle]')).toHaveAttribute(
-        'aria-expanded',
-        'false',
+      await expect(root.locator('[data-battle-mobile-chronicle-toggle]')).toHaveCount(0)
+      const timeline = root.locator('[data-battle-mobile-chronicle-strip]')
+      await expect(timeline).toBeVisible()
+      await expect(timeline.locator('[data-battle-action-strip]')).toBeVisible()
+      await expect(timeline.locator('[data-battle-round]')).toHaveAttribute(
+        'aria-label',
+        /^Current battle round/,
       )
       const cards = await root
         .locator('[data-battle-side="local"] > [data-battle-combatant-card]')
@@ -148,10 +152,8 @@ test('keeps the unified PvP battle usable on mobile', async ({ browser }, testIn
     await expect(activeRoot.locator('[data-battle-combatant-card="local"]')).toBeVisible()
     await expect(activeRoot.locator('[data-battle-combatant-card="selected"]')).toBeVisible()
     await expectBattleFlowKeepsBoardSize(hostHasTurn ? host : guest)
-    await expect(activeRoot.locator('[data-battle-mobile-chronicle-toggle]')).toHaveAttribute(
-      'aria-expanded',
-      'false',
-    )
+    await expect(activeRoot.locator('[data-battle-mobile-chronicle-toggle]')).toHaveCount(0)
+    await expect(activeRoot.locator('[data-battle-mobile-chronicle-strip]')).toBeVisible()
   } finally {
     await Promise.all([hostContext.close(), guestContext.close()])
   }
