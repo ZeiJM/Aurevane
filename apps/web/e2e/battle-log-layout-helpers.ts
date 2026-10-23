@@ -57,13 +57,16 @@ export async function expectReadableBattleLog(
     const action = track.getByRole('button', { name: /Show Chronicle details/i }).last()
     const geometry = () =>
       page.evaluate(() =>
-        ['[data-board-auto-fit]', '[data-battle-mobile-chronicle-strip]', '[data-battle-mobile-footer]']
-          .map((selector) => {
-            const node = document.querySelector(selector)
-            if (!node) throw new Error('Missing battle region: ' + selector)
-            const bounds = node.getBoundingClientRect()
-            return [selector, bounds.x, bounds.y, bounds.width, bounds.height]
-          }),
+        [
+          '[data-board-auto-fit]',
+          '[data-battle-mobile-chronicle-strip]',
+          '[data-battle-mobile-footer]',
+        ].map((selector) => {
+          const node = document.querySelector(selector)
+          if (!node) throw new Error('Missing battle region: ' + selector)
+          const bounds = node.getBoundingClientRect()
+          return [selector, bounds.x, bounds.y, bounds.width, bounds.height]
+        }),
       )
     const before = await geometry()
     if (await action.count()) {

@@ -36,13 +36,16 @@ test('keeps the fixed mobile Chronicle and battlefield steady through scrolling 
   await expect(page.locator('[data-battle-mobile-chronicle-toggle]')).toHaveCount(0)
   const measure = () =>
     page.evaluate(() =>
-      ['[data-board-auto-fit]', '[data-battle-mobile-chronicle-strip]', '[data-battle-mobile-footer]']
-        .map((selector) => {
-          const element = document.querySelector(selector)
-          if (!element) throw new Error('Missing battle region: ' + selector)
-          const rect = element.getBoundingClientRect()
-          return [selector, rect.x, rect.y, rect.width, rect.height]
-        }),
+      [
+        '[data-board-auto-fit]',
+        '[data-battle-mobile-chronicle-strip]',
+        '[data-battle-mobile-footer]',
+      ].map((selector) => {
+        const element = document.querySelector(selector)
+        if (!element) throw new Error('Missing battle region: ' + selector)
+        const rect = element.getBoundingClientRect()
+        return [selector, rect.x, rect.y, rect.width, rect.height]
+      }),
     )
   const before = await measure()
   await track.evaluate((element) => {
