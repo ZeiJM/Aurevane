@@ -3416,14 +3416,14 @@ function BattleExperienceContent({
                           data-open="true"
                           data-unified-facing-pad="true"
                           role="group"
-                          aria-label="Final facing"
+                          aria-label="End Turn facing shortcuts"
                         >
                           {(['north', 'south', 'west', 'east'] as const).map((facing) => (
                             <button
                               type="button"
                               key={facing}
                               onClick={() => void commitValue({ kind: 'face', facing })}
-                              aria-label={`Face ${facing}`}
+                              aria-label={`End Turn: Face ${facing}`}
                               tabIndex={-1}
                               disabled={
                                 planningDisabled ||

@@ -65,7 +65,7 @@ async function expectInlineFacingPad(page: Page, closedHeight: number) {
   if (!cardBox) return
   expect(Math.abs(cardBox.height - closedHeight)).toBeLessThanOrEqual(1)
   for (const facing of ['north', 'west', 'east', 'south']) {
-    const button = facingPad.getByRole('button', { name: `Face ${facing}`, exact: true })
+    const button = facingPad.getByRole('button', { name: `End Turn: Face ${facing}`, exact: true })
     await expect(button).toBeVisible()
     const buttonBox = await button.boundingBox()
     expect(buttonBox).not.toBeNull()
