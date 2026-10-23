@@ -1561,3 +1561,17 @@
     font-size: 0.98rem;
   }
 }
+
+/* Two fixed editor rows, preserving touch targets when switching skill libraries. */
+@media (max-width: 820px) {
+  .workspace > .techniqueArea {
+    grid-row: 1;
+  }
+  .workspace > .detailRail {
+    grid-row: 2;
+  }
+  .skill,
+  .lockedSkill {
+    --av-gameplay-art-size: 2.6875rem;
+  }
+}

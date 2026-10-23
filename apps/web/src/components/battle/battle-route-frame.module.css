@@ -63,3 +63,18 @@
     scrollbar-gutter: auto;
   }
 }
+
+/* Mobile battles reclaim the external Account header's entire height. */
+@media (max-width: 820px), (max-width: 980px) and (max-height: 500px) and (pointer: coarse) {
+  .frame {
+    --battle-chrome-height: 0px;
+    grid-template-rows: minmax(0, 1fr);
+  }
+  .frame > .header {
+    display: none !important;
+  }
+  .frame > .field {
+    grid-row: 1;
+    overflow: clip;
+  }
+}

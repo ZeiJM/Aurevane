@@ -617,3 +617,28 @@
     font-size: clamp(0.49rem, 1.6vw, 0.65rem);
   }
 }
+
+/* The countdown is a compact HUD peer, not a competing title. */
+@media (max-width: 820px), (max-width: 980px) and (max-height: 500px) and (pointer: coarse) {
+  .shell[data-battle-mobile-stage='true']
+    :global([data-unified-battle-economy] [data-battle-turn-clock-slot]) {
+    max-width: 4.7rem;
+    min-width: 0;
+  }
+  .shell[data-battle-mobile-stage='true']
+    :global([data-unified-battle-economy] [data-battle-turn-clock-slot])
+    > span {
+    font-size: 0.61rem !important;
+    line-height: 1.05 !important;
+    padding: 0 0.15rem !important;
+    max-height: 1.25rem;
+  }
+}
+
+/* Rotated facing glyphs must pivot within their tile, never outside its edges. */
+@media (max-width: 820px), (max-width: 980px) and (max-height: 500px) and (pointer: coarse) {
+  .shell[data-battle-mobile-stage='true']
+    :global(#battlefield [data-battle-facing-indicator='true']) {
+    transform-origin: center center !important;
+  }
+}

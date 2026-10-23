@@ -290,10 +290,7 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
     return [...selectedIds, id]
   }
 
-  async function commitSelection(
-    nextIds: string[],
-    successMessage = 'Techniques saved automatically.',
-  ) {
+  async function commitSelection(nextIds: string[]) {
     if (pendingRef.current || sameSelection(nextIds, selectedIds)) return
     if (!mixedSelectionValid(nextIds)) {
       setMessage('A full mixed loadout needs at least one Technique from each active Discipline.')
@@ -333,7 +330,7 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
       setCommittedIds(committed)
       setSelectedIds(committed)
       refreshOnCloseRef.current = true
-      setMessage(successMessage)
+      setMessage(null)
     } catch {
       setSelectedIds(committedIds)
       refreshOnCloseRef.current = true
@@ -401,7 +398,7 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
       setCommittedIds(committed)
       setSelectedIds(committed)
       refreshOnCloseRef.current = true
-      setMessage('Support Action saved for battle slot 3.')
+      setMessage(null)
     } catch {
       setSupportActionId(committedSupportActionId)
       refreshOnCloseRef.current = true
@@ -876,6 +873,21 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                     </section>
                   </aside>
                 </div>
+
+                {/* Desktop retains bulk clearing; phone tabs use the full height for the editor. */}
+                <footer className={styles.actions}>
+                  <button
+                    type="button"
+                    className={styles.secondaryAction}
+                    onClick={() => void commitSelection([])}
+                    disabled={pending || selectedIds.length === 0}
+                  >
+                    ↻ Clear Selections
+                  </button>
+                  <span className={styles.saveState} aria-live="polite">
+                    {pending ? 'Saving selection…' : ''}
+                  </span>
+                </footer>
 
                 <p className={styles.status} role="status">
                   {message}

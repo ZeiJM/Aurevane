@@ -582,3 +582,13 @@
     font-size: 0.95rem;
   }
 }
+
+/* Pseudo-element is mobile-only and will not create a hidden desktop text node. */
+@media (max-width: 760px) {
+  .mobileSupportHeading::before {
+    content: '✦';
+    color: #9a783d;
+    font-size: 0.86rem;
+    margin-right: 0.42rem;
+  }
+}

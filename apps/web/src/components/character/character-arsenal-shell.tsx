@@ -314,10 +314,7 @@ export function CharacterArsenalShell({
             <div className={styles.supportSummary} data-testid="nexus-support-action">
               <header className={styles.sectionHeading}>
                 <div>
-                  <span className={styles.mobileSupportStar} aria-hidden="true">
-                    ✦
-                  </span>
-                  <h2>Support Action</h2>
+                  <h2 className={styles.mobileSupportHeading}>Support Action</h2>
                 </div>
               </header>
               <span className={styles.overviewTechniqueArt} data-arsenal-media="true">

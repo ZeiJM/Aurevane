@@ -10,6 +10,20 @@ import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 test.use({ trace: 'on' })
 
 async function setTechnique(page: Page, card: Locator, checked = true): Promise<void> {
+  const category = await card
+    .locator('xpath=ancestor::section[@data-technique-category][1]')
+    .getAttribute('data-technique-category')
+  const categoryTab =
+    category === 'primary' ? 'Discipline 1' : category === 'secondary' ? 'Discipline 2' : null
+  if (categoryTab) {
+    const tab = page
+      .getByRole('dialog', { name: 'Techniques', exact: true })
+      .getByRole('tab', { name: categoryTab, exact: true })
+    if (await tab.isVisible()) {
+      await tab.click()
+      await expect(tab).toHaveAttribute('aria-selected', 'true')
+    }
+  }
   const checkbox = card.getByRole('checkbox')
   if ((await checkbox.isChecked()) === checked) return
 
