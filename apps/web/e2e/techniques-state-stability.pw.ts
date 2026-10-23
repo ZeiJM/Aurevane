@@ -48,32 +48,32 @@ test('Techniques preserves geometry through previews, pending saves and failed s
     const baseline = await geometry(dialog)
     for (const input of await dialog.locator('[data-technique-card] input').all()) {
       await input.focus()
-      expectGeometry(await geometry(dialog), baseline)
+      expectGeometry(await geometry(dialog), baseline, `${width}x${height}: Skill preview focus`)
     }
     for (const input of await dialog.getByRole('radio').all()) {
       await input.focus()
-      expectGeometry(await geometry(dialog), baseline)
+      expectGeometry(await geometry(dialog), baseline, `${width}x${height}: Support preview focus`)
       await expect(dialog.getByTestId('technique-preview').locator('dl > div')).toHaveCount(10)
     }
     releaseSave = undefined
     await dialog.getByRole('radio', { name: 'HP Recovery', exact: true }).check()
     await expect(dialog.getByText('Saving selection…', { exact: true })).toBeVisible()
     await expect.poll(() => Boolean(releaseSave)).toBe(true)
-    expectGeometry(await geometry(dialog), baseline)
+    expectGeometry(await geometry(dialog), baseline, `${width}x${height}: Support save pending`)
     releaseSave!()
     await expect(dialog.getByRole('status')).toHaveText(error)
     await expect(dialog.getByRole('radio', { name: 'Guard', exact: true })).toBeChecked()
-    expectGeometry(await geometry(dialog), baseline)
+    expectGeometry(await geometry(dialog), baseline, `${width}x${height}: Support save rejected`)
     releaseSave = undefined
     const skill = dialog.locator('[data-technique-card] input:not(:disabled)').first()
     await skill.check()
     await expect(dialog.getByText('Saving selection…', { exact: true })).toBeVisible()
     await expect.poll(() => Boolean(releaseSave)).toBe(true)
-    expectGeometry(await geometry(dialog), baseline)
+    expectGeometry(await geometry(dialog), baseline, `${width}x${height}: Skill save pending`)
     releaseSave!()
     await expect(dialog.getByRole('status')).toHaveText(error)
     await expect(skill).not.toBeChecked()
-    expectGeometry(await geometry(dialog), baseline)
+    expectGeometry(await geometry(dialog), baseline, `${width}x${height}: Skill save rejected`)
     expect(
       await dialog.evaluate((node) => node.scrollWidth - node.clientWidth),
     ).toBeLessThanOrEqual(1)
@@ -116,13 +116,14 @@ async function geometry(dialog: Locator) {
 function expectGeometry(
   actual: Awaited<ReturnType<typeof geometry>>,
   expected: Awaited<ReturnType<typeof geometry>>,
+  context: string,
 ) {
-  expect(actual.previewImages, 'preview does not duplicate chooser artwork').toBe(0)
+  expect(actual.previewImages, `${context}: preview does not duplicate chooser artwork`).toBe(0)
   for (const key of ['dialog', 'workspace', 'art', 'preview'] as const) {
     actual[key].forEach((value, index) =>
       expect(
         Math.abs(value - expected[key][index]),
-        `${key} dimension ${index} remains stable`,
+        `${context}: ${key} dimension ${index} remains stable`,
       ).toBeLessThanOrEqual(1),
     )
   }

@@ -1,4 +1,4 @@
-import { expect, test, type Locator } from '@playwright/test'
+import { expect, test, type Locator, type Page } from '@playwright/test'
 
 import { recordedChronicleAction } from './battle-log-chronicle-fixtures'
 import {
@@ -44,6 +44,24 @@ async function readBoardGeometry(board: Locator) {
       },
       scrollOffset: { x: scrollX, y: scrollY },
     }
+  })
+}
+
+async function readMobileFrame(page: Page) {
+  return page.evaluate(() => {
+    const regions = {
+      header: 'main[data-unified-battle] > header',
+      rails: '[data-battle-side="local"]',
+      board: '[data-board-auto-fit]',
+      footer: '[data-battle-mobile-footer]',
+      lower: '[data-battle-mobile-lower-panel]',
+    }
+    return Object.fromEntries(
+      Object.entries(regions).map(([name, selector]) => {
+        const { x, y, width, height } = document.querySelector(selector)!.getBoundingClientRect()
+        return [name, { x, y, width, height }]
+      }),
+    )
   })
 }
 
@@ -132,17 +150,17 @@ test('scrolls the full chronicle and preserves reviewed history after a live com
   const refreshed = page.waitForResponse(
     (response) => response.url().endsWith('/events') && response.request().method() === 'GET',
   )
-  const lowerFrame = page.locator('[data-battle-mobile-lower-panel]')
-  const lowerBefore = await lowerFrame.boundingBox()
+  const toggle = page.locator('[data-battle-mobile-chronicle-toggle]')
+  const mobile = await toggle.isVisible()
+  const frameBefore = mobile ? await readMobileFrame(page) : null
   await commitGesture(
     page,
     page.getByRole('button', { name: new RegExp(`occupied by ${characterName}`) }),
   )
   await refreshed
-  const toggle = page.locator('[data-battle-mobile-chronicle-toggle]')
-  if (await toggle.isVisible()) {
+  if (mobile) {
     await expect(toggle).toHaveAttribute('aria-expanded', 'true')
-    expect(await lowerFrame.boundingBox()).toEqual(lowerBefore)
+    expect(await readMobileFrame(page)).toEqual(frameBefore)
   }
   await expect(reader.locator('[data-chronicle-action]')).toHaveCount(21)
   await expect(reader).toContainText('ROUND 1')

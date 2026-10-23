@@ -29,7 +29,18 @@ await fs.writeFile(
   harness
     .replace(
       'const body = options.body ? JSON.parse(options.body) : null',
-      'if (path.includes("/api/pvp/spectate/")) return Response.json({ spectator: { battle: window.fixtureBattle, mode: "2v2", battleKey: metadata.battleKey, participants }, participantTitles: {} })\n  const body = options.body ? JSON.parse(options.body) : null',
+      'if (path.includes("/api/pvp/spectate/")) return Response.json({ spectator: { battle: window.fixtureBattle, mode: "2v2", battleKey: metadata.battleKey, participants }, participantTitles: {} })\n  if (path.endsWith("/turn-clock")) return Response.json({ tick: { clock: { active: true, turnNumber: window.fixtureBattle.snapshot.tactical.battle.turnNumber, combatantId: "character:player", deadlineAt: new Date(window.fixtureTurnDeadline ??= Date.now() + 60000).toISOString(), expired: false, turnTimerSeconds: 60 }, battle: null, timedOut: false } })\n  const body = options.body ? JSON.parse(options.body) : null',
+    )
+    .replace(
+      'window.restoreCanonicalBattle = () => {',
+      `window.applyFixtureGuard = () => {
+        const before = readPv1fActionEconomy(window.fixtureBattle.snapshot).current
+        const transition = executePv1fAction(window.fixtureBattle.snapshot, 'basic.guard', { kind: 'self' })
+        window.fixtureGuardReceipt = { before, after: readPv1fActionEconomy(transition.state).current }
+        window.fixtureBattle = { ...window.fixtureBattle, battleVersion: window.fixtureBattle.battleVersion + 1, snapshot: transition.state }
+        window.publishBattle()
+      }
+      window.restoreCanonicalBattle = () => {`,
     )
     .replace(
       'width: 9,',
@@ -219,15 +230,34 @@ async function verifyMobileChronicleUpdates(page, geometry, frozen, label) {
       count,
     )
     await settle()
+    const { reader } = await readScrollMetrics()
+    assert.ok(
+      reader.scrollHeight <= reader.clientHeight + 1,
+      'Appended entries stay inside Chronicle parchment',
+    )
   }
   const assertFrozen = async () => {
     const current = await geometry()
     for (const key of ['board', 'header', 'rails', 'footer'])
       assert.deepEqual(current[key], frozen[key], `Live Chronicle append preserves ${key}`)
   }
+  // Let opening's initial scroll and reading-round update finish before choosing live follow.
+  await settle()
   await panel.evaluate((el) => el.scrollTo(0, el.scrollHeight))
   await settle()
+  await page.waitForFunction(
+    () => {
+      const panel = document.querySelector('[data-battle-mobile-lower-panel]')
+      return panel.scrollHeight - panel.clientHeight - panel.scrollTop <= 2
+    },
+    undefined,
+    { timeout: 2000 },
+  )
   const atEnd = await readScrollMetrics()
+  assert.ok(
+    atEnd.reader.scrollHeight <= atEnd.reader.clientHeight + 1,
+    'Chronicle parchment contains full reader content; lower panel owns scrolling',
+  )
   await append(32)
   await page
     .waitForFunction(
@@ -290,6 +320,118 @@ async function verifyMobileChronicleUpdates(page, geometry, frozen, label) {
   )
   await assertFrozen()
 }
+async function verifyMobileGuardFrame(page, geometry, label) {
+  // Clear the fixture's Suppress so this is a legal Guard transition from a local turn.
+  await page.evaluate(() => {
+    const next = structuredClone(window.fixtureBattle)
+    next.battleVersion++
+    next.snapshot.statusState = next.snapshot.statusState.map((row) => ({ ...row, statuses: [] }))
+    next.snapshot.tactical.battle.currentTurn.combatantId = 'character:player'
+    window.fixtureBattle = next
+    window.publishBattle()
+  })
+  const main = page.locator('main[data-unified-battle]')
+  await main.evaluate((el) => el.focus({ preventScroll: true }))
+  await page.keyboard.press('Digit3')
+  await page.waitForFunction(
+    () => document.querySelector('main[data-unified-battle]').dataset.battleActionMode === 'guard',
+  )
+  const panel = page.locator('[data-battle-mobile-lower-panel]')
+  const anchor = page.locator('[data-chronicle-action]').first()
+  await anchor.evaluate((el) => {
+    const panel = el.closest('[data-battle-mobile-lower-panel]')
+    panel.scrollTop += el.getBoundingClientRect().top - panel.getBoundingClientRect().top
+  })
+  const settle = () =>
+    page.evaluate(
+      () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+    )
+  await settle()
+  const anchorTop = () =>
+    anchor.evaluate(
+      (el) =>
+        el.getBoundingClientRect().top -
+        el.closest('[data-battle-mobile-lower-panel]').getBoundingClientRect().top,
+    )
+  const before = await geometry()
+  const anchorBefore = await anchorTop()
+  const proposed = page
+    .locator('[data-unified-battle-economy] small')
+    .filter({ hasText: 'proposed' })
+  assert.match(await proposed.textContent(), /30 proposed/)
+  const headerText = await page.locator('[data-unified-battle-economy]').evaluate((el) => {
+    const box = (node) => {
+      const r = node.getBoundingClientRect()
+      return { x: r.x, y: r.y, right: r.right, bottom: r.bottom, width: r.width, height: r.height }
+    }
+    const ap = el.querySelector('strong')
+    const cost = el.querySelector('small')
+    const clock = el.querySelector('[data-battle-turn-clock-slot] > span > span')
+    return {
+      economy: box(el),
+      track: box(el.querySelector('[role="progressbar"]')),
+      ap: box(ap),
+      cost: box(cost),
+      clock: box(clock),
+      clockText: clock.textContent,
+      clockOverflow: clock.scrollWidth - clock.clientWidth,
+      costOverflow: cost.scrollWidth - cost.clientWidth,
+      costFont: getComputedStyle(cost).font,
+      costText: cost.textContent,
+      costSpacing: getComputedStyle(cost).letterSpacing,
+    }
+  })
+  console.log(JSON.stringify({ guardHeader: label, headerText }))
+  assert.ok(
+    headerText.ap.right + 1 <= headerText.cost.x,
+    'Proposed AP cost does not overlap remaining AP',
+  )
+  assert.ok(
+    headerText.cost.right <= headerText.economy.right + 1,
+    'Complete proposed AP cost stays within economy header',
+  )
+  assert.ok(headerText.costOverflow <= 1, 'Proposed AP cost remains readable')
+  for (const part of ['ap', 'cost', 'clock']) {
+    assert.ok(
+      headerText[part].y >= headerText.economy.y - 1 &&
+        headerText[part].bottom <= headerText.track.y + 1,
+      `${part} stays above AP track inside economy header`,
+    )
+  }
+  assert.ok(
+    headerText.clock.bottom <= headerText.ap.y + 1 &&
+      headerText.clock.bottom <= headerText.cost.y + 1,
+    'Clock and AP details occupy separate rows',
+  )
+  assert.match(headerText.clockText, /\d+s/)
+  assert.ok(
+    headerText.clockOverflow <= 1 && headerText.clock.width > 0,
+    'Countdown remains readable',
+  )
+  await page.screenshot({ path: resolve(output, `${label}-guard-before.png`) })
+  await page.evaluate(() => {
+    window.fixtureLogCount = 41
+    window.applyFixtureGuard()
+  })
+  await page.waitForFunction(
+    () => document.querySelectorAll('[data-chronicle-action]').length === 41,
+  )
+  await settle()
+  const paid = await page.evaluate(() => window.fixtureGuardReceipt)
+  assert.equal(paid.before - paid.after, 30, 'Real Guard transition spends 30 AP')
+  const after = await geometry()
+  for (const key of ['header', 'rails', 'board', 'footer', 'lower'])
+    assert.deepEqual(after[key], before[key], `Guard preserves frozen ${key}`)
+  const anchorAfter = await anchorTop()
+  assert.ok(Math.abs(anchorAfter - anchorBefore) <= 1, 'Guard preserves reviewed Chronicle anchor')
+  assert.equal(
+    await page.locator('[data-battle-mobile-chronicle-toggle]').getAttribute('aria-expanded'),
+    'true',
+  )
+  assert.equal(await panel.isVisible(), true)
+  await page.screenshot({ path: resolve(output, `${label}-guard-after.png`) })
+  return { before, after, anchorBefore, anchorAfter, headerText, paid }
+}
 const errors = []
 const receipts = []
 try {
@@ -298,6 +440,7 @@ try {
       for (const viewport of [
         { width: 390, height: 844 },
         { width: 320, height: 568 },
+        { width: 412, height: 839 },
         { width: 812, height: 375 },
         { width: 844, height: 390 },
         { width: 1366, height: 768 },
@@ -493,6 +636,10 @@ try {
             before,
             `${mode}-${columns}-${viewport.width}`,
           )
+          const guard =
+            mode !== 'spectator'
+              ? await verifyMobileGuardFrame(page, geometry, `${mode}-${columns}-${viewport.width}`)
+              : null
           await page
             .locator('[data-battle-mobile-lower-panel]')
             .evaluate((el) => el.scrollTo(0, el.scrollHeight))
@@ -526,7 +673,7 @@ try {
             )
             assert.equal(await page.evaluate(() => window.scrollY), 0)
           }
-          receipts.push({ mode, columns, viewport, before, after })
+          receipts.push({ mode, columns, viewport, before, after, guard })
         } else
           assert.equal(await toggle.isVisible(), false, 'Desktop retains existing Chronicle rail')
         await page.screenshot({ path: resolve(output, `${mode}-${columns}-${viewport.width}.png`) })
