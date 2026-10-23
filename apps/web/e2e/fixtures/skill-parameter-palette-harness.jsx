@@ -206,7 +206,17 @@ if (query.get('surface') === 'basic-editor' && !basicService) {
       })
     if (body.operation === 'record') {
       const command = body.command
-      if (command.action === 'list') return Response.json(basicPage)
+      if (command.action === 'list')
+        return Response.json({
+          records: [...fixtureRecords.values()].map((row) => ({
+            contentKey: row.contentKey,
+            contentKind: row.contentKind,
+            lifecycle: row.lifecycle,
+            revision: row.revision,
+            name: row.draft?.definition.name ?? row.current?.definition.name ?? row.builtin.name,
+          })),
+          nextCursor: null,
+        })
       const stored = fixtureRecords.get(command.contentKey)
       if (!stored) throw new Error('Unknown fixture record')
       if (command.action === 'read') return Response.json({ record: stored })

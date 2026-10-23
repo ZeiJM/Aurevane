@@ -50,7 +50,7 @@ beforeEach(() => {
   hooks.cells = []
 })
 afterEach(() => vi.unstubAllGlobals())
-function fixture(id: string = 'basic.guard') {
+function fixture(id: string = 'basic.guard', override: Partial<CompleteCombatContentRecord> = {}) {
   const definition = { ...structuredClone(defaultBasicSkills().find((row) => row.id === id)!) }
   const version = (n: number) => ({
     contentVersion: n,
@@ -83,8 +83,14 @@ function fixture(id: string = 'basic.guard') {
     history: [version(5), version(4), version(3), version(2)],
     links: [],
     usedBy: [],
+    ...override,
   }
-  const request = vi.fn()
+  const request = vi.fn().mockImplementation((_url, options) => {
+    const command = JSON.parse(options.body).command
+    if (command.action === 'list')
+      return Promise.resolve(Response.json({ records: [], nextCursor: null }))
+    throw new Error('Unexpected fixture mutation')
+  })
   vi.stubGlobal('fetch', request)
   function render() {
     hooks.index = 0
@@ -94,8 +100,8 @@ function fixture(id: string = 'basic.guard') {
       initialPage: {
         records: [
           {
-            contentKey: id,
-            contentKind: 'skill',
+            contentKey: initial.contentKey,
+            contentKind: initial.contentKind,
             lifecycle: 'active',
             revision: 9,
             name: definition.name,
@@ -116,9 +122,17 @@ function fixture(id: string = 'basic.guard') {
     const control = button(label)
     expect(control.props.disabled).not.toBe(true)
     ;(control.props.onClick as () => void)()
-    await vi.waitFor(() => expect(button('Save draft')?.props.disabled ?? false).not.toBe(true))
+    await vi.waitFor(() =>
+      expect(
+        button('Save draft')?.props.disabled ?? button('Create draft')?.props.disabled ?? false,
+      ).not.toBe(true),
+    )
   }
-  const command = () => JSON.parse(request.mock.calls.at(-1)![1].body).command
+  const command = () =>
+    request.mock.calls
+      .map((call) => JSON.parse(call[1].body).command)
+      .filter((command) => command.action !== 'list')
+      .at(-1)
   return { initial, definition, request, render, button, fields, change, reply, click, command }
 }
 it.each(SUPPORT_ACTION_IDS)(
@@ -172,9 +186,15 @@ it('restores the whole snapshot to a saved draft, retains the current pointer an
   expect(
     find(
       f.render(),
-      (node) => node.type === 'button' && node.props.children === 'Restore version 2 to draft',
+      (node) =>
+        node.type === 'button' &&
+        Array.isArray(node.props.children) &&
+        node.props.children.join('') === 'Restore version 2 to draft',
     ),
   ).toBeNull()
+  expect(
+    find(f.render(), (node) => node.props['aria-label'] === 'Publication history')!.props.children,
+  ).toHaveLength(3)
   const restore = find(
     f.render(),
     (node) =>
@@ -195,7 +215,11 @@ it('restores the whole snapshot to a saved draft, retains the current pointer an
   }
   f.reply(restored)
   ;(restore.props.onClick as () => void)()
-  await vi.waitFor(() => expect(f.request).toHaveBeenCalledTimes(1))
+  await vi.waitFor(() =>
+    expect(
+      f.request.mock.calls.filter((call) => JSON.parse(call[1].body).command.action === 'restore'),
+    ).toHaveLength(1),
+  )
   await vi.waitFor(() => expect(f.button('Save draft').props.disabled).toBe(false))
   expect(f.command()).toEqual({
     action: 'restore',
@@ -260,4 +284,118 @@ it('preserves local changes and exposes a stale revision failure without automat
   expect(find(f.render(), (node) => node.props.role === 'alert')).toBeTruthy()
   expect(f.request).toHaveBeenCalledTimes(1)
   expect(f.button('Publish saved draft').props.disabled).toBe(true)
+})
+
+function disciplineFixture() {
+  const definition = COMBAT_CONTENT_CATEGORIES.find((row) => row.category === 'discipline')!.editor
+    .defaultDefinition!
+  const f = fixture('basic.guard', {
+    contentKind: 'discipline',
+    contentKey: 'discipline.original',
+    draft: null,
+    current: {
+      contentVersion: 5,
+      definition: { ...definition, id: 'discipline.original' },
+      publishedBy: 'publisher',
+      publishedAt: '2026-10-22',
+      authoredBy: 'author',
+      authoredAt: '2026-10-21',
+      restoredFrom: null,
+      restoredBy: null,
+    },
+  })
+  return f
+}
+it('retains a new unsaved definition until creation or explicit discard', async () => {
+  const f = disciplineFixture()
+  await f.click('New')
+  f.change({ ...(f.fields().props.value as CombatContentDefinition), name: 'Keep new work' })
+  expect(f.button('New').props.disabled).toBe(true)
+  expect(f.button('First page').props.disabled).toBe(true)
+  expect(
+    find(f.render(), (node) => node.props['aria-label'] === 'Content category')!.props.disabled,
+  ).toBe(true)
+  expect(f.fields().props.value).toMatchObject({ name: 'Keep new work' })
+  await f.click('Discard new draft')
+  expect(f.fields().props.value).toEqual(f.initial.current!.definition)
+  expect(f.request).not.toHaveBeenCalled()
+})
+it('creates directly within a Discipline using its revision and refreshes the matching global Skill list', async () => {
+  const f = disciplineFixture()
+  await f.click('New Skill in this Discipline')
+  const draft = f.fields().props.value as CombatContentDefinition
+  expect(draft.sourceDisciplineId).toBe('discipline.original')
+  const key = 'skill.11111111-1111-4111-8111-111111111111'
+  const created = {
+    ...f.initial,
+    contentKey: key,
+    contentKind: 'skill' as const,
+    lifecycle: 'draft' as const,
+    revision: 1,
+    current: null,
+    history: [],
+    draft: {
+      definition: { ...draft, id: key },
+      draftVersion: 1,
+      baseVersion: null,
+      updatedBy: 'author',
+      updatedAt: '2026-10-23',
+      restoredFrom: null,
+      restoredBy: null,
+    },
+  }
+  f.reply(created)
+  f.request.mockResolvedValueOnce(
+    Response.json({
+      records: [
+        {
+          contentKey: key,
+          contentKind: 'skill',
+          revision: 1,
+          lifecycle: 'draft',
+          name: 'New Skill',
+        },
+      ],
+      nextCursor: null,
+    }),
+  )
+  await f.click('Create draft')
+  expect(JSON.parse(f.request.mock.calls[0]![1].body).command).toMatchObject({
+    action: 'create',
+    contentKind: 'skill',
+    parentKey: 'discipline.original',
+    expectedParentRevision: 9,
+    definition: JSON.parse(JSON.stringify(draft)),
+  })
+  expect(JSON.parse(f.request.mock.calls.at(-1)![1].body).command).toMatchObject({
+    action: 'list',
+    kind: 'skill',
+    category: 'discipline-skill',
+    sort: 'name-asc',
+    limit: 20,
+  })
+  expect(find(f.render(), (node) => node.props['data-content-key'] === key)).toBeTruthy()
+  expect(f.fields().props.value).toEqual(JSON.parse(JSON.stringify(created.draft.definition)))
+})
+it('keeps the record when dependency-aware archive rejects it', async () => {
+  const f = disciplineFixture()
+  f.request.mockResolvedValueOnce(
+    Response.json(
+      {
+        error: {
+          code: 'CONTENT_REFERENCED',
+          message: 'This Discipline is used by a player build.',
+        },
+      },
+      { status: 409 },
+    ),
+  )
+  await f.click('Archive')
+  expect(f.command()).toEqual({
+    action: 'archive',
+    contentKey: 'discipline.original',
+    expectedRevision: 9,
+  })
+  expect(f.fields().props.value).toEqual(f.initial.current!.definition)
+  expect(find(f.render(), (node) => node.props.role === 'alert')).toBeTruthy()
 })

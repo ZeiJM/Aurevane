@@ -121,6 +121,7 @@ export function CombatContentAuthoringWorkspace({
     setRecord(next)
     setCategory(categoryOf(next))
     setNewDefinition(null)
+    setNewParent(null)
     const local = keepLocal ? localEdits.current.get(next.contentKey) : null
     setDefinition(local ?? editableDefinition(next))
     if (!keepLocal) {
@@ -180,19 +181,34 @@ export function CombatContentAuthoringWorkspace({
           ? 'Saved earlier changes; newer local edits remain unsaved.'
           : message,
       )
-      setPage((old) => ({
-        ...old,
-        records: old.records.map((row) =>
-          row.contentKey === result.record.contentKey
-            ? {
-                ...row,
-                revision: result.record.revision,
-                lifecycle: result.record.lifecycle,
-                name: String(editableDefinition(result.record)?.name ?? row.name ?? row.contentKey),
-              }
-            : row,
-        ),
-      }))
+      const nextCategory = categoryOf(result.record)
+      const isNew = command.action === 'create' || command.action === 'duplicate'
+      const nextSearch = isNew ? '' : search,
+        nextLifecycle = isNew ? '' : lifecycle
+      try {
+        const nextPage = await contentRecordCommand<CombatContentListPage>({
+          action: 'list',
+          kind: result.record.contentKind,
+          ...(nextCategory === 'basic'
+            ? { category: 'basic' }
+            : nextCategory === 'skill'
+              ? { category: 'discipline-skill' }
+              : {}),
+          search: nextSearch,
+          sort,
+          ...(nextLifecycle ? { lifecycle: nextLifecycle } : {}),
+          limit: 20,
+        })
+        setPage(nextPage)
+        setSearch(nextSearch)
+        setLifecycle(nextLifecycle)
+        setAppliedBrowse(JSON.stringify({ search: nextSearch, sort, lifecycle: nextLifecycle }))
+      } catch {
+        setPage((old) => ({ ...old, nextCursor: null }))
+        setError(
+          'The record was saved, but the content list could not refresh. Use Search to reload the list.',
+        )
+      }
     })
   }
   async function create() {
@@ -215,7 +231,7 @@ export function CombatContentAuthoringWorkspace({
         className={styles.toolbar}
         onSubmit={(event) => {
           event.preventDefault()
-          void browse()
+          if (!newDefinition) void browse()
         }}
       >
         <label>
@@ -223,7 +239,7 @@ export function CombatContentAuthoringWorkspace({
           <select
             aria-label="Content category"
             value={category}
-            disabled={busy}
+            disabled={busy || !!newDefinition}
             onChange={(event) => {
               void browse(event.currentTarget.value as typeof category)
             }}
@@ -265,10 +281,10 @@ export function CombatContentAuthoringWorkspace({
             <option value="archived">Archived</option>
           </select>
         </label>
-        <button disabled={busy}>Search</button>
+        <button disabled={busy || !!newDefinition}>Search</button>
         <button
           type="button"
-          disabled={busy || !descriptor?.defaultDefinition}
+          disabled={busy || !!newDefinition || !descriptor?.defaultDefinition}
           onClick={() => {
             setNewParent(null)
             setNewDefinition(structuredClone(descriptor!.defaultDefinition!))
@@ -282,7 +298,7 @@ export function CombatContentAuthoringWorkspace({
       {error ? (
         <p className={styles.error} role="alert">
           {error} Your local edits are retained.{' '}
-          {record ? (
+          {record && !newDefinition ? (
             <button type="button" disabled={busy} onClick={() => void read(record.contentKey)}>
               Refresh saved state
             </button>
@@ -298,7 +314,7 @@ export function CombatContentAuthoringWorkspace({
               key={row.contentKey}
               data-content-key={row.contentKey}
               aria-current={record?.contentKey === row.contentKey && !newDefinition}
-              disabled={busy}
+              disabled={busy || !!newDefinition}
               onClick={() => void read(row.contentKey)}
             >
               {row.name ?? row.contentKey}
@@ -311,12 +327,13 @@ export function CombatContentAuthoringWorkspace({
           ))}
           {page.records.length === 0 ? <p>No matching records.</p> : null}
           <div className={styles.actions}>
-            <button disabled={busy} onClick={() => void browse()}>
+            <button disabled={busy || !!newDefinition} onClick={() => void browse()}>
               First page
             </button>
             <button
               disabled={
                 busy ||
+                !!newDefinition ||
                 !page.nextCursor ||
                 appliedBrowse !== JSON.stringify({ search, sort, lifecycle })
               }
@@ -339,14 +356,27 @@ export function CombatContentAuthoringWorkspace({
                       : record?.draft
                         ? 'Saved draft'
                         : 'Published'}
-                  {record?.current || record?.builtin
+                  {!newDefinition && (record?.current || record?.builtin)
                     ? ` · Current v${record?.current?.contentVersion ?? record?.builtin?.contentVersion}`
                     : ''}
                 </span>
                 {newDefinition ? (
-                  <button disabled={busy} onClick={() => void create()}>
-                    Create draft
-                  </button>
+                  <>
+                    <button disabled={busy} onClick={() => void create()}>
+                      Create draft
+                    </button>
+                    <button
+                      disabled={busy}
+                      onClick={() => {
+                        setNewDefinition(null)
+                        setNewParent(null)
+                        if (record) setCategory(categoryOf(record))
+                        setNotice('New draft discarded.')
+                      }}
+                    >
+                      Discard new draft
+                    </button>
+                  </>
                 ) : (
                   <>
                     <button
@@ -524,7 +554,7 @@ export function CombatContentAuthoringWorkspace({
                   <p>Older snapshots remain retained. Draft saves do not consume history.</p>
                 </>
               ) : (
-                <fieldset disabled={!newDefinition && readOnly}>
+                <fieldset disabled={newDefinition ? busy : readOnly}>
                   <ContentDefinitionFields
                     kind={newDefinition ? descriptor!.storedKind : record!.contentKind}
                     value={activeDefinition}
