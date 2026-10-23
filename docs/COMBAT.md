@@ -1,4 +1,6 @@
-## Owner independent Skill Move and passive readiness — 2026-10-22 (pending release)
+## Owner independent Skill Move and passive readiness — 2026-10-22 (LIVE for testing)
+
+Released through PR #971; source and publication receipts: `docs/verification/2026-10-22-combat-mobile-release.md`. Refresh and start a new battle; historical captures retain their saved definitions.
 
 An authored Skill Move uses its own entered-tile distance and the Skill's overall costs. It neither spends nor requires the ordinary walking Movement allowance, so walking and Blood Rush can both move in either order. Root, actual terrain/elevation/occupancy legality, authored destination limits and the Skill's costs still apply. Ordinary Basic Move keeps its own AP costs and Movement allowance. This supersedes older statements that attached Move requires remaining ordinary Movement.
 

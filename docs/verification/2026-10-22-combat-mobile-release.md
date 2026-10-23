@@ -1,6 +1,6 @@
 # Combat independence, passive readiness and mobile layout release
 
-Status: implemented locally; combined verification and production release pending.
+Status: LIVE for testing at https://aurevane.vercel.app. Application deployment and actual catalogue publication verified.
 
 Owner authorized completing and deploying this thread's fixes on October 22, 2026. The final layout instruction permits implementation without another concept approval.
 
@@ -14,7 +14,37 @@ Owner authorized completing and deploying this thread's fixes on October 22, 202
 - Tighten existing Sparring Yard, PvP, Arena Queue and Spectate pages; add no recent-battles feature.
 - Mobile battle and spectation use compact chrome, side-by-side character rails, a fitted board and a lower preview/cockpit/Chronicle reader. The footer toggle opens and scrolls that lower area to Chronicle while header, rails, board and footer remain fixed. Collapsing restores the cockpit. Preserve desktop behavior.
 
-## Local evidence
+## Verified production release
+
+Owner combat/mobile continuation — October 22: **LIVE for testing** at https://aurevane.vercel.app, PR #971, tested head `8df97448f6490af23a837b98e18b7aa7b5b7e7a9`, merge `8591a2186f39d5017bc8b0366a2afbe31021f119`, identical tested tree `81e21392cffe47e92de7e8d9a7b6a6a5d7b8dc20`. Production `dpl_2y76PUwvM4adpL8grUKVd5qLA7mK` is READY since `2026-10-23T03:30:38.947Z` (October 22, 23:30:38 Trinidad). Skill Move is independent of ordinary walking; state-based passives check actual legality and intermediate movement. Discipline slots stay side by side, Technique previews omit duplicate images, and the four existing Hall sections fit compactly. The footer Chronicle toggle scrolls only the lower reader while the battle frame stays fixed, including live following, history anchoring and rotation. All 15 exact-head workflows pass, including 12,351 Vitest plus seven Node checks, 360 full Chromium, 76 focused and 10 Edge cases, with documented project skips. App-first publication appends 130 immutable Resonance versions and retains all 1,110 prior versions and 158 unrelated current definitions; private/public full-definition readback is exact: current294/history1240/Resonances136/drafts0/policy8. Canonical source, seven public routes and the bounded initial runtime scan pass. Refresh and start a new battle. No new migration or World/Master phase completion; human signed-in/physical-device/multiplayer/load acceptance remains open. Receipts: `docs/verification/2026-10-22-combat-mobile-release.md`.
+
+The merged application tree exactly matches the tested candidate. A new Production-target build uses Production-scoped configuration; no Preview deployment was promoted. Vercel automatic Git deployments remain disabled. The app was live and its canonical source, rendered Manual and public responses verified before the actual publication transaction committed. The fresh compare-and-swap baseline matched all 130 complete definitions; the transaction also checked that every prior immutable version and all 158 unrelated current pointers remained unchanged. External private and coherent public readback then matched all 130 complete resulting definitions.
+
+| Exact-head workflow                  | Run         | Result  |
+| ------------------------------------ | ----------- | ------- |
+| Essence Build                        | 39877225951 | success |
+| Skill Engine                         | 39877225962 | success |
+| Resonance Build                      | 39877226121 | success |
+| Profile Skill Build                  | 39877225984 | success |
+| Controlled combat browser            | 39877226036 | success |
+| Modular ability readers browser      | 39877225948 | success |
+| Combat and mobile layout regressions | 39877226084 | success |
+| Shared Build Snapshots               | 39877225934 | success |
+| Representative Buildcraft            | 39877226017 | success |
+| CI                                   | 39877226083 | success |
+| Desktop experience                   | 39877225960 | success |
+| Desktop page fit                     | 39877226062 | success |
+| UI layout review                     | 39877225982 | success |
+| Discipline Build DB                  | 39877226095 | success |
+| Browser smoke                        | 39877225935 | success |
+
+Complete Browser results: 360 passed / 282 configured skips; focused: 76 passed / 22 configured skips; Edge: 10 passed. The first final-candidate Browser attempt passed all scoped flows but failed two unchanged World timing cases; a single unchanged-source retry passed the complete job. Diagnostics and initial failure counts are retained in the machine receipt. No new skips, relaxed tolerances or timeout increases were used. The dedicated native guard passes 30 layouts, 18 real Guard transitions and 54 live appends; frozen frame bounds remain exact and maximum reviewed-history drift is 0.21875px. Six Technique save-state viewport flows and independent 320px, 412px and coarse-landscape review pass.
+
+Machine-readable release evidence: `release-assets/2026-10-22-combat-mobile-production-receipt.json`. The SQL assets retain their original reviewed bytes and hashes; their UNRELEASED header describes the archived pre-execution package. The publication was executed once with its fresh catalogue token, and the rollback asset was rehearsed only. No schema migration was added.
+
+The checks below are historical implementation checkpoints. Their pending-release and superseded-candidate statements describe those checkpoints, not the verified status above. Hosted signed-in gameplay, physical Safari/device behavior, multiplayer/load and Owner acceptance are not certified by native fixtures, public route smoke or this release.
+
+## Local evidence (historical checkpoints)
 
 - Existing Battle Hall baseline passed seven viewport sizes using Chromium headless shell 1194. Full Chrome failed its process-singleton socket initialization; default Playwright browser download was unavailable. The headless shell successfully executes native rendering/interaction guards.
 - New Hall regression first failed the compact-header requirement at 320×568. Current guard passes seven existing viewport/control cases and all four sections at three phone sizes, including popup and action reachability.
@@ -32,7 +62,7 @@ Owner authorized completing and deploying this thread's fixes on October 22, 202
 - Final local follow-up repairs actual mobile Chat/footer overlap using the measured footer height, preserving both close controls through rotation. Chronicle live-follow and reviewed-history anchoring now use the actual lower scroll container; native red showed505px of missed following before the fix. Final27-scenario guard passes48 live appends with follow<=2px, anchor drift<=1px and fixed header/rails/board/footer, alongside Chat rotation and all original layout/pill/popover checks. Suppress14/12 Chronicle and command-feedback28 pass; Chronicle/feed82 cases, scoped React lint and web typecheck pass. Independent component review has no Important/Critical findings.
 - Nineteen authenticated E2E files now exercise real Chronicle toggle/scroll ownership, current side-by-side geometry, image-free preview, visible duplicate Hall copy and real Escape hotkeys. Mechanical/privacy/live-history/desktop assertions remain and no skips were added. All E2E lint,642-test discovery and web types pass; six full-production-fixture reader-helper cases pass. Actual signed-in E2E execution remains a final native CI gate.
 
-## Final native CI reconciliation
+## Earlier native CI reconciliation (historical checkpoint)
 
 Candidate `43e2d3c9083e66a57ad2ff3eb28dd59f3cef4dcf` passed 14 of 15 workflows, including complete Quality (12,351 Vitest plus seven Node checks, formatting/lint/types/audit/build/worker boot), database authority, desktop experience, UI layout, page fit and the dedicated combat/mobile guards. Browser passed eight repeated Owner/Staff and keyboard preflight cases, six password cases, three training cases and 73 focused cases with 21 configured skips. Its full suite passed 358 cases with 282 configured skips and two failures; Edge did not run after that failure.
 
@@ -42,7 +72,7 @@ Visual review also found landscape Chronicle text painting beyond its parchment.
 
 Both failing authenticated E2E files now run in the early focused stage as well as the complete suite. A small failure artifact retains their screenshots and error contexts without depending on the combined trace archive, which exceeded the connector's 512MiB download limit. No new skips are added, no tolerance or timeout is relaxed, and no live application or catalogue publication has occurred at this checkpoint.
 
-## Release boundary
+## Release procedure and preserved boundary
 
 Use the reviewed Next.js16.4.1 / matching eslint patch from PR #968; the prior16.3.8 dependency blocks the production security gate. Keep Vercel Git deployment disabled. Reconcile fresh main and preserve concurrent Staff/Players and World work without claiming that this thread completes those workstreams.
 
