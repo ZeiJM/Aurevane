@@ -56,6 +56,8 @@ test('Techniques preserves geometry through previews, pending saves and failed s
       await expect(dialog.getByTestId('technique-preview').locator('dl > div')).toHaveCount(10)
     }
     releaseSave = undefined
+    const supportTab = dialog.getByRole('tab', { name: 'Support', exact: true })
+    if (await supportTab.isVisible()) await supportTab.click()
     await dialog.getByRole('radio', { name: 'HP Recovery', exact: true }).check()
     await expect(dialog.getByText('Saving selection…', { exact: true })).toBeVisible()
     await expect.poll(() => Boolean(releaseSave)).toBe(true)
@@ -65,6 +67,8 @@ test('Techniques preserves geometry through previews, pending saves and failed s
     await expect(dialog.getByRole('radio', { name: 'Guard', exact: true })).toBeChecked()
     expectGeometry(await geometry(dialog), baseline, `${width}x${height}: Support save rejected`)
     releaseSave = undefined
+    const disciplineTab = dialog.getByRole('tab', { name: 'Discipline 1', exact: true })
+    if (await disciplineTab.isVisible()) await disciplineTab.click()
     const skill = dialog.locator('[data-technique-card] input:not(:disabled)').first()
     await skill.check()
     await expect(dialog.getByText('Saving selection…', { exact: true })).toBeVisible()

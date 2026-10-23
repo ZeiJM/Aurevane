@@ -206,8 +206,14 @@ test('leaving during an informational preview cannot submit a late action', asyn
   // Arming supplies information only; leaving without a target gesture must never commit.
   expect(previews).toBe(1)
   expect(commits).toBe(0)
-  await page.getByRole('button', { name: 'Account', exact: true }).click()
-  await page.getByRole('menuitem', { name: 'Controls & Keybinds', exact: true }).click()
+  if (await page.locator('[data-battle-mobile-chronicle-strip]').isVisible()) {
+    // Owner's mobile battle mode intentionally hides the ordinary Account header.
+    await expect(page.getByRole('button', { name: 'Account', exact: true })).toHaveCount(0)
+    await page.goto('/game/settings/controls')
+  } else {
+    await page.getByRole('button', { name: 'Account', exact: true }).click()
+    await page.getByRole('menuitem', { name: 'Controls & Keybinds', exact: true }).click()
+  }
   await expect(page).toHaveURL(/\/game\/settings\/controls$/)
   // Presence polling prevents network-idle; settle the held response after the battle unmounts.
   await expect(page.locator('[data-battle-layout="refined"]')).toHaveCount(0)

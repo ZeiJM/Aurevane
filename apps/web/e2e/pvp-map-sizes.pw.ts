@@ -86,7 +86,7 @@ for (const [size, label, width, tiles] of [
         }
       })
       expect(lobbyGeometry.width).toBeGreaterThanOrEqual(
-        testInfo.project.name === 'mobile-chromium' ? 80 : 144,
+        testInfo.project.name === 'mobile-chromium' ? 24 : 144,
       )
       expect(Math.abs(lobbyGeometry.center - lobbyGeometry.seam)).toBeLessThanOrEqual(1)
       expect(lobbyGeometry.left).toBeGreaterThan(

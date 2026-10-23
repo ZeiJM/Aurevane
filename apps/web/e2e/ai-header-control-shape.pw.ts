@@ -46,9 +46,7 @@ test('keeps contextual terrain help in the side key and Victory Conditions in th
       .evaluate((el) => parseFloat(getComputedStyle(el).fontSize)),
   ).toBeGreaterThanOrEqual(testInfo.project.name === 'mobile-chromium' ? 10 : 12)
   await expect(page.locator('[data-battle-header-utilities]')).toContainText('Victory Conditions')
-  await expect(
-    page.locator('[data-battle-footer-actions] button').filter({ hasText: 'Terrain' }),
-  ).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Terrain', exact: true })).toBeVisible()
   await victoryConditions.click()
   const objectives = page.getByRole('dialog', { name: /^Victory conditions/i })
   await expect(objectives).toBeVisible()

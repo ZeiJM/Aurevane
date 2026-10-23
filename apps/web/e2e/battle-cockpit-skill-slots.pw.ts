@@ -67,7 +67,8 @@ test('keeps square empty Skill slots and consistent cockpit info controls withou
   const techniques = page.getByRole('dialog', { name: 'Techniques', exact: true })
   await expect(techniques).toBeVisible()
   const clear = techniques.getByRole('button', { name: /Clear Selections/ })
-  if (await clear.isEnabled()) await clear.click()
+  if ((await clear.count()) && (await clear.isVisible()) && (await clear.isEnabled()))
+    await clear.click()
   await expect(techniques.getByTestId('skill-capacity')).toContainText('0 / 4 selected')
   await techniques.getByRole('button', { name: 'Close', exact: true }).click()
 
